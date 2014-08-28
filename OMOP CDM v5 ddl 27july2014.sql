@@ -21,8 +21,8 @@ Standardized vocabulary
 CREATE TABLE concept (
   concept_id			INTEGER			NOT NULL,
   concept_name		VARCHAR(255)	NOT NULL,
-  primary_domain	VARCHAR(20)		NOT NULL,
-  concept_class		VARCHAR(20)		NOT NULL,
+  primary_domain_id	VARCHAR(20)		NOT NULL,
+  concept_class_id		VARCHAR(20)		NOT NULL,
   vocabulary_id		VARCHAR(20)		NOT NULL,
   standard_concept		VARCHAR(1)		NULL,
   concept_code		VARCHAR(50)		NOT NULL,

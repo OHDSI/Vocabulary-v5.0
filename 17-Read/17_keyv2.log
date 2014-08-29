@@ -1,0 +1,38 @@
+
+SQL*Loader: Release 12.1.0.1.0 - Production on Wed Aug 27 14:57:07 2014
+
+Copyright (c) 1982, 2013, Oracle and/or its affiliates.  All rights reserved.
+
+Control File:   17_keyv2.ctl
+Data File:      keyv2.all
+  Bad File:     keyv2.bad
+  Discard File:  none specified
+ 
+ (Allow all discards)
+
+Number to load: ALL
+Number to skip: 1
+Errors allowed: 50
+Bind array:     64 rows, maximum of 256000 bytes
+Continuation:    none specified
+Path used:      Conventional
+
+Table KEYV2, loaded from every logical record.
+Insert option in effect for this table: REPLACE
+TRAILING NULLCOLS option in effect
+
+   Column Name                  Position   Len  Term Encl Datatype
+------------------------------ ---------- ----- ---- ---- ---------------------
+TERMCLASS                           FIRST     *   ,  O(") CHARACTER            
+CLASSNUMBER                          NEXT     *   ,  O(") CHARACTER            
+DESCRIPTION_SHORT                    NEXT     *   ,  O(") CHARACTER            
+DESCRIPTION                          NEXT     *   ,  O(") CHARACTER            
+DESCRIPTION_LONG                     NEXT     *   ,  O(") CHARACTER            
+TERMCODE                             NEXT     *   ,  O(") CHARACTER            
+LANG                                 NEXT     *   ,  O(") CHARACTER            
+READCODE                             NEXT     *   ,  O(") CHARACTER            
+DIGIT                                NEXT     *   ,  O(") CHARACTER            
+
+SQL*Loader-941: Error during describe of table KEYV2
+ORA-04043: object KEYV2 does not exist
+

@@ -49,20 +49,14 @@ my $dbh = DBI->connect(
     $stage->{pass}
 ) or die 'Couldnt connect to database';
 
-system('sqlplus', $DBschema_conn, '@17_create_schema.sql', $stage-> {schema} $stage->{pass});
-#$ unzip -u nhs_readv2_17.0.0_YYYYMMDD000001.zip
-#$ unzip -u nhs_datamigration_17.0.0_YYYYMMDD000001.zip
-my $status = unzip $zip_one => "."
-or die "unzip failed: $UnzipError\n";
-my $status = unzip $zip_two => "."
-or die "unzip failed: $UnzipError\n";
+system('sqlplus', '$sys_conn', '@17_create_schema.sql', $stage-> {schema}, $stage->{pass});
+my $status1 = unzip $zip_one => "."
+or die "unzip failed:\n";
+my $status2 = unzip $zip_two => "."
+or die "unzip failed:\n";
 system('sqlldr', $stage_conn, '@control=17_keyv2.ctl');
-#$ sqlldr READ_YYYYMMDD/myPass@DEV control=17_keyv2.ctl 
 system('sqlldr', $stage_conn, '@control=17_rcsctmap2_uk');
-#$ sqlldr READ_YYYYMMDD/myPass@DEV control=17_rcsctmap2_uk.ctl  
-system("cp -Ru /data/READ/.zip /data/backup_area ; cp -Ru /data/READ/.log /data/backup_area ")
-#$ cp -Ru /data/READ/.zip /data/backup_area ; cp -Ru /data/READ/.log /data/backup_area  
-#$ sqlplus READ_20140131/myPass@DEV_VOCAB
+system("cp -Ru /data/READ/.zip /data/backup_area ; cp -Ru /data/READ/.log /data/backup_area "); 
 system('sqlplus', $stage_conn);
 #@row_ary = $dbh->selectrow_array('SELECT count(*) FROM KEYV2;');
 #@row_ary = $dbh->selectrow_array('SELECT count(*) FROM RCSCTMAP2_UK;');

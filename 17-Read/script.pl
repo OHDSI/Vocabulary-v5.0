@@ -1,3 +1,35 @@
+/******************************************************************************
+*
+*  OMOP - Cloud Research Lab
+*
+*  Observational Medical Outcomes Partnership
+*  (c) Foundation for the National Institutes of Health (FNIH)
+*
+*  Licensed under the Apache License, Version 2.0 (the "License"); you may not
+*  use this file except in compliance with the License. You may obtain a copy
+*  of the License at http://omop.fnih.org/publiclicense.
+*
+*  Unless required by applicable law or agreed to in writing, software
+*  distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+*  WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. Any
+*  redistributions of this work or any derivative work or modification based on
+*  this work should be accompanied by the following source attribution: "This
+*  work is based on work by the Observational Medical Outcomes Partnership
+*  (OMOP) and used under license from the FNIH at
+*  http://omop.fnih.org/publiclicense.
+*
+*  Any scientific publication that is based on this work should include a
+*  reference to http://omop.fnih.org.
+*
+*  Date:           2014/09/01
+*
+*  Automatic loader for 17-Read vocabulary
+* 
+*  Usage: 
+*  echo "EXIT" |sqlplus READ_20140401/myPass@DEV_VOCAB @execute_build.pl 
+*
+******************************************************************************/
+
 #!/usr/bin/perl
 # Automatic loader for Read-17 vocabulary 
 # Version 1.0, 26-Aug-2014
@@ -33,10 +65,11 @@ my $stage_conn = sprintf '%s/%s@%s/%s',
     $stage->{host},
     $stage->{sid};
 
+#latest release files from the Health and Social Care Information Centre TRUD section "UK Read".
+#NHS UK Read Codes Version 2
 my $zip_one='nhs_readv2_17.0.0_20140401000001.zip';
+#NHS Data Migration
 my $zip_two='nhs_datamigration_17.0.0_20140401000001.zip';
-#open(FILL,"file.txt");
-#my $file_name='READ_20140505';
 
 
 my $dbh = DBI->connect(
@@ -56,7 +89,7 @@ my $status2 = unzip $zip_two => "."
 or die "unzip failed:\n";
 system('sqlldr', $stage_conn, '@control=17_keyv2.ctl');
 system('sqlldr', $stage_conn, '@control=17_rcsctmap2_uk');
-system("cp -Ru /data/READ/.zip /data/backup_area ; cp -Ru /data/READ/.log /data/backup_area "); 
+system("cp -Ru *.zip data ; cp -Ru *.log data "); 
 system('sqlplus', $stage_conn);
 #@row_ary = $dbh->selectrow_array('SELECT count(*) FROM KEYV2;');
 #@row_ary = $dbh->selectrow_array('SELECT count(*) FROM RCSCTMAP2_UK;');

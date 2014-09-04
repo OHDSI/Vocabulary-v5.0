@@ -153,7 +153,7 @@ CREATE  table &1..rcsctmap2_uk
   DescriptionId varchar(18), -- SNOMED DescriptionID 
   IS_ASSURED varchar(1), -- 0 = Not assured, 1 = Assured 
   EffectiveDate date, -- YYYYMMDD e.g. 20061218 
-  MapStatus varchar(1) -- 0 = Inactive 1 = Active. 
+  MapStatus varchar(2) -- 0 = Inactive 1 = Active. 
 );
 
 drop table &1..keyv2;

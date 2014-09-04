@@ -12,6 +12,6 @@ TermCode,
 ConceptId,
 DescriptionId,
 IS_ASSURED,
-EffectiveDate date "YYYYMMDD",
+EffectiveDate date 'YYYY.MM.DD',
 MapStatus
 )

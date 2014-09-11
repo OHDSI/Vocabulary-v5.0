@@ -53,12 +53,12 @@ my $log = 'reich@omop.org';
 my $passw = 'Late4man';  
  
 if (head($host)) {
-     print 'Requested document exists
+     print 'Requested document exists, first zip 
 ';
   }
   
 if (head($host1)) {
-     print 'Requested document exists
+     print 'Requested document exists, second zip 
 ';
   }  
  
@@ -74,11 +74,11 @@ my $req1 = HTTP::Request->new(GET =>$host1);
  
 if ($res->is_success){
     
-    print 'Connect to server...........Ok
+    print 'Connect to server, first zip ...........Ok
 ';
    }
  else{
-      die 'Downloading failed...
+      die 'Downloading failed, first zip...
 ';
        die '$res->status_line
 ';
@@ -87,11 +87,11 @@ if ($res->is_success){
     
 if ($res1->is_success){
     
-    print 'Connect to server...........Ok
+    print 'Connect to server, second zip ...........Ok
 ';
    }
  else{
-      die 'Downloading failed...
+      die 'Downloading failed, second zip...
 ';
        die '$res->status_line
 ';

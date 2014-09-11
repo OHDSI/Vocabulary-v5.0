@@ -24,7 +24,7 @@
 #  Any scientific publication that is based on this work should include a
 #  reference to http://omop.fnih.org.
 #
-#  Date:           2014/09/01
+#  Date:           2014/09/11
 #
 #  Automatic loader for 17-Read vocabulary
 # 
@@ -50,12 +50,7 @@ my $NameFile1 = 'nhs_datamigration_17.0.0_20140401000001.zip';
 my $host = 'https://isd.hscic.gov.uk/artefact/trud3/1cioqb31xpr9pivth7eup8x5ri/17.0.0/NHS_READV2/';
 my $host1 = 'https://isd.hscic.gov.uk/artefact/trud3/b96wcfvlr99jjhpey8opu8gjk/DATAMIGRATION/17.0.0/NHS_DATAMIGRATION/';
 my $log = 'reich@omop.org';       
-my $passw = 'Late4man'; 
-my $ua;
-my $res;  
-my $res1;
-#my $req1;  
-my $ua1;
+my $passw = 'Late4man';  
  
 if (head($host)) {
      print 'Requested document exists
@@ -67,15 +62,15 @@ if (head($host1)) {
 ';
   }  
  
-$ua = LWP::UserAgent-> new;
+my $ua = LWP::UserAgent-> new;
 my $req = HTTP::Request->new(GET =>$host);
    # $req->authorization_basic('$log', '$passw'); # autorization 
-     $res =  $ua->request($req, $NameFile); 
+   my $res =  $ua->request($req, $NameFile); 
 
-$ua1 = LWP::UserAgent-> new;     
+my $ua1 = LWP::UserAgent-> new;     
 my $req1 = HTTP::Request->new(GET =>$host1);
    # $req->authorization_basic('$log', '$passw'); # autorization 
-     $res1 =  $ua1->request($req1, $NameFile1);      
+   my $res1 =  $ua1->request($req1, $NameFile1);      
  
 if ($res->is_success){
     

@@ -29,7 +29,7 @@
 #  Automatic loader for 17-Read vocabulary
 # 
 #  Usage: 
-#  echo "EXIT" |sqlplus READ_20140401/myPass@DEV_VOCAB @execute_build.pl 
+#  echo "EXIT" |sqlplus READ_20140401/myPass@DEV_VOCAB @download.pl 
 #
 #******************************************************************************/'
 
@@ -82,7 +82,8 @@ if ($res->is_success){
 ';
        die '$res->status_line
 ';
-    } 
+    }  
+    
     
     
 if ($res1->is_success){

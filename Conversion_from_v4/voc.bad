@@ -1,0 +1,5 @@
+ICD9CM,"International Classification of Diseases, Ninth Revision, Clinical Modification, Volume 1 and 2 (NCHS)",http://www.cms.gov/Medicare/Coding/ICD9ProviderDiagnosticCodes/codes.html,Version 32,44819098
+ICD9Proc,"International Classification of Diseases, Ninth Revision, Clinical Modification, Volume 3 (NCHS)",http://www.cms.gov/Medicare/Coding/ICD9ProviderDiagnosticCodes/codes.html,Version 32,44819099
+NDC,National Drug Code (FDA and manufacturers),"http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html, http://www.fda.gov/downloads/Drugs/DevelopmentApprovalProcess/UCM070838.zip",RxNorm_full_07072016,44819105
+OXMIS,Oxford Medical Information System (OCHP),"Codes extracted from GPRD database, courtesy of GSK",2009-03-01,44819114
+ICD10CM,"International Classification of Diseases, 10th Revision, Clinical Modification (NCHS)",,,44819124

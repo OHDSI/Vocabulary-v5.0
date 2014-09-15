@@ -65,6 +65,7 @@ create table relationship (
   relationship_name varchar(255) null,
   is_hierarchical varchar(1) not null,
   defines_ancestry varchar(1) not null,
+  reverse_relationship varchar(20) not null,
   relationship_concept_id integer not null
 );
 alter table relationship 

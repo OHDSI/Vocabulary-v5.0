@@ -1,0 +1,39 @@
+domain_code,domain_name,domain_concept_id
+Domain,Domain,1
+Gender,Gender,2
+Race,Race,3
+Ethnicity,Ethnicity,4
+Obs period type,Observation period type,5
+Death type,Death type,6
+Metadata,Metadata,7
+Visit,Visit,8
+Metadata,Metadata,7
+Visit type,Visit type,9
+Procedure,Procedure,10
+Procedure type,Procedure type,11
+Modifier,Modifier,12
+Drug,Drug,13
+Drug type,Drug type,14
+Route,Route of administration,15
+Unit,Unit,16
+Device,Device,17
+Device type,Device type,18
+Condition,Condition,19
+Condition type,Condition type,20
+Meas,Measurement,21
+Meas type,Measurement type,22
+Meas value operator,Measurement value operator,23
+Meas value,Measurement value,24
+Note Type,Note Type,26
+Observation,Observation,27
+Observation type,Observation type,28
+Relationship,Relationship,31
+Place of service,Place of service,32
+Provider specialty,Provider specialty,33
+Currency,Currency,34
+Revenue code,Revenue code,35
+Spec,Specimen,36
+Spec type,Specimen type,37
+Spec anatomic site,Specimen anatomic site,38
+Spec disease status,Specimen disease status,39
+Generic,Generic,40

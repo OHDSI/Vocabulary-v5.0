@@ -1,59 +1,59 @@
-vocabulary_code,vocabulary_name,vocabulary_reference,vocabulary_version
-None,OMOP Vocabulary v4.5 10-Sep-2014,,v5.0 10-Sep-2014
-SNOMED,Systematic Nomenclature of Medicine - Clinical Terms (IHDSTO),http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html,2014AA
-ICD9CM,"International Classification of Diseases, Ninth Revision, Clinical Modification, Volume 1 and 2 (NCHS)",http://www.cms.gov/Medicare/Coding/ICD9ProviderDiagnosticCodes/codes.html,Version 32
-ICD9Proc,"International Classification of Diseases, Ninth Revision, Clinical Modification, Volume 3 (NCHS)",http://www.cms.gov/Medicare/Coding/ICD9ProviderDiagnosticCodes/codes.html,Version 32
-CPT4,Current Procedural Terminology version 4 (AMA),http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html,2014AA
-HCPCS,Healthcare Common Procedure Coding System (CMS),http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html,2014AA
-LOINC,Logical Observation Identifiers Names and Codes (Regenstrief Institute),http://loinc.org/downloads/loinc,LOINC 2.48
-NDFRT,National Drug File – Reference Terminology (VA),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072014
-RxNorm,RxNorm (NLM),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072015
-NDC,National Drug Code (FDA and manufacturers),"http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html, http://www.fda.gov/downloads/Drugs/DevelopmentApprovalProcess/UCM070838.zip",RxNorm_full_07072016
-GPI,Medi-Span Generic Product Identifier (Wolters Kluwer Health),Medi-Span distribution package,
-UCUM,Unified Code for Units of Measure (Regenstrief Institute),http://aurora.regenstrief.org/~ucum/ucum.html#section-Alphabetic-Index,Version 1.8.2
-Gender,Gender,OMOP generated,
-Race,Race and Ethnicity Code Set (USBC),http://www.cdc.gov/nchs/data/dvs/Race_Ethnicity_CodeSet.pdf,Version 1.0
-Place of Service,Place of Service Codes for Professional Claims (CMS),http://www.cms.gov/Medicare/Medicare-Fee-for-Service-Payment/PhysicianFeeSched/downloads//Website_POS_database.pdf,2009-01-11
-MedDRA,Medical Dictionary for Regulatory Activities (MSSO),http://www.meddramsso.com/subscriber_download.asp,Version 16.1
-Multum,Cerner Multum (Cerner),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,2013-07-10
-Read,NHS UK Read Codes Version 2 (HSCIC),http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html,April 2014 RELEASE
-OXMIS,Oxford Medical Information System (OCHP),"Codes extracted from GPRD database, courtesy of GSK",2009-03-01
-Indication,Indications and Contraindications (FDB),FDB US distribution package,2013-20-06
-ETC,Enhanced Therapeutic Classification (FDB),FDB US distribution package,2013-20-06
-ATC,WHO Anatomic Therapeutic Chemical Classification,FDB UK distribution package,2013-05-06
-Multilex,Multilex (FDB),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072015
-Visit,OMOP Visit,OMOP generated,
-VA Product,VA National Drug File Product (VA),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072015
-SMQ,Standardised MedDRA Queries (MSSO),http://www.meddramsso.com/secure/smq/SMQ_Spreadsheet_14_0_English_update.xlsx,Version 14.0
-VA Class,VA National Drug File Class (VA),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072015
-Cohort,OMOP Cohort,OMOP generated,
-ICD10CM,"International Classification of Diseases, 10th Revision, Clinical Modification (NCHS)",,
-ICD10PCS,ICD-10 Procedure Coding System (CMS),,
-Drug Type,OMOP Drug Exposure Type,,
-Condition Type,OMOP Condition Occurrence Type,,
-Procedure Type,OMOP Procedure Occurrence Type,,
-Observation Type,OMOP Observation Type,,
-DRG,Diagnosis-related group (CMS),,
-MDC,Major Diagnostic Categories (CMS),,
-APC,Ambulatory Payment Classification (CMS),,
-Revenue Code,UB04/CMS1450 Revenue Codes (CMS),,
-Ethnicity,OMOP Ethnicity,,
-Death Type,OMOP Death Type,,
-Mesh,Medical Subject Headings (NLM),,
-NUCC,National Uniform Claim Committee Health Care Provider Taxonomy Code Set (NUCC),,
-Specialty,Medicare provider/supplier specialty codes (CMS),,
-LOINC Hierarchy,LOINC Multidimensional Classification (Regenstrief Institute),,
-SPL, Structured Product Labeling (FDA),,
-Genseqno,Generic sequence number (FDB),,
-CCS,CCS,,
-OPCS4,OPCS Classification of Interventions and Procedures version 4 (NHS),,
-Gemscript,Gemscript,,
-HES Specialty,HES Specialty,,
-Note Type,OMOP Note Type,,
-Domain,OMOP Domain,,
-PCORNet,PCORNet,,
-Obs Period Type,OMOP Observation Period Type,,
-Visit Type,OMOP Visit Type,,
-Device Type,OMOP Device Type,,
-Meas Type,OMOP Measurement Type,,
-Currency,International Currency Symbol,,
+vocabulary_code,vocabulary_name,vocabulary_reference,vocabulary_version,vocabulary_concept_id
+None,OMOP Vocabulary v4.5 10-Sep-2014,,v5.0 10-Sep-2014,44819096
+SNOMED,Systematic Nomenclature of Medicine - Clinical Terms (IHDSTO),http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html,2014AA,44819097
+ICD9CM,"International Classification of Diseases, Ninth Revision, Clinical Modification, Volume 1 and 2 (NCHS)",http://www.cms.gov/Medicare/Coding/ICD9ProviderDiagnosticCodes/codes.html,Version 32,44819098
+ICD9Proc,"International Classification of Diseases, Ninth Revision, Clinical Modification, Volume 3 (NCHS)",http://www.cms.gov/Medicare/Coding/ICD9ProviderDiagnosticCodes/codes.html,Version 32,44819099
+CPT4,Current Procedural Terminology version 4 (AMA),http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html,2014AA,44819100
+HCPCS,Healthcare Common Procedure Coding System (CMS),http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html,2014AA,44819101
+LOINC,Logical Observation Identifiers Names and Codes (Regenstrief Institute),http://loinc.org/downloads/loinc,LOINC 2.48,44819102
+NDFRT,National Drug File – Reference Terminology (VA),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072014,44819103
+RxNorm,RxNorm (NLM),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072015,44819104
+NDC,National Drug Code (FDA and manufacturers),"http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html, http://www.fda.gov/downloads/Drugs/DevelopmentApprovalProcess/UCM070838.zip",RxNorm_full_07072016,44819105
+GPI,Medi-Span Generic Product Identifier (Wolters Kluwer Health),Medi-Span distribution package,,44819106
+UCUM,Unified Code for Units of Measure (Regenstrief Institute),http://aurora.regenstrief.org/~ucum/ucum.html#section-Alphabetic-Index,Version 1.8.2,44819107
+Gender,Gender,OMOP generated,,44819108
+Race,Race and Ethnicity Code Set (USBC),http://www.cdc.gov/nchs/data/dvs/Race_Ethnicity_CodeSet.pdf,Version 1.0,44819109
+Place of Service,Place of Service Codes for Professional Claims (CMS),http://www.cms.gov/Medicare/Medicare-Fee-for-Service-Payment/PhysicianFeeSched/downloads//Website_POS_database.pdf,2009-01-11,44819110
+MedDRA,Medical Dictionary for Regulatory Activities (MSSO),http://www.meddramsso.com/subscriber_download.asp,Version 16.1,44819111
+Multum,Cerner Multum (Cerner),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,2013-07-10,44819112
+Read,NHS UK Read Codes Version 2 (HSCIC),http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html,April 2014 RELEASE,44819113
+OXMIS,Oxford Medical Information System (OCHP),"Codes extracted from GPRD database, courtesy of GSK",2009-03-01,44819114
+Indication,Indications and Contraindications (FDB),FDB US distribution package,2013-20-06,44819115
+ETC,Enhanced Therapeutic Classification (FDB),FDB US distribution package,2013-20-06,44819116
+ATC,WHO Anatomic Therapeutic Chemical Classification,FDB UK distribution package,2013-05-06,44819117
+Multilex,Multilex (FDB),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072015,44819118
+Visit,OMOP Visit,OMOP generated,,44819119
+VA Product,VA National Drug File Product (VA),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072015,44819120
+SMQ,Standardised MedDRA Queries (MSSO),http://www.meddramsso.com/secure/smq/SMQ_Spreadsheet_14_0_English_update.xlsx,Version 14.0,44819121
+VA Class,VA National Drug File Class (VA),http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html,RxNorm_full_07072015,44819122
+Cohort,OMOP Cohort,OMOP generated,,44819123
+ICD10CM,"International Classification of Diseases, 10th Revision, Clinical Modification (NCHS)",,,44819124
+ICD10PCS,ICD-10 Procedure Coding System (CMS),,,44819125
+Drug Type,OMOP Drug Exposure Type,,,44819126
+Condition Type,OMOP Condition Occurrence Type,,,44819127
+Procedure Type,OMOP Procedure Occurrence Type,,,44819128
+Observation Type,OMOP Observation Type,,,44819129
+DRG,Diagnosis-related group (CMS),,,44819130
+MDC,Major Diagnostic Categories (CMS),,,44819131
+APC,Ambulatory Payment Classification (CMS),,,44819132
+Revenue Code,UB04/CMS1450 Revenue Codes (CMS),,,44819133
+Ethnicity,OMOP Ethnicity,,,44819134
+Death Type,OMOP Death Type,,,44819135
+Mesh,Medical Subject Headings (NLM),,,44819136
+NUCC,National Uniform Claim Committee Health Care Provider Taxonomy Code Set (NUCC),,,44819137
+Specialty,Medicare provider/supplier specialty codes (CMS),,,44819138
+LOINC Hierarchy,LOINC Multidimensional Classification (Regenstrief Institute),,,44819139
+SPL, Structured Product Labeling (FDA),,,44819140
+Genseqno,Generic sequence number (FDB),,,44819141
+CCS,CCS,,,44819142
+OPCS4,OPCS Classification of Interventions and Procedures version 4 (NHS),,,44819143
+Gemscript,Gemscript,,,44819144
+HES Specialty,HES Specialty,,,44819145
+Note Type,OMOP Note Type,,,44819146
+Domain,OMOP Domain,,,44819147
+PCORNet,PCORNet,,,44819148
+Obs Period Type,OMOP Observation Period Type,,,44819149
+Visit Type,OMOP Visit Type,,,44819150
+Device Type,OMOP Device Type,,,44819151
+Meas Type,OMOP Measurement Type,,,44819152
+Currency,International Currency Symbol,,,44819153

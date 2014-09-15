@@ -10,6 +10,7 @@ trailing nullcols
   relationship_name,
   is_hierarchical nullif is_hierarchical='',
   defines_ancestry nullif defines_ancestry='',
+  reverse_relationship,
   relationship_concept_id
 
 )

@@ -1,59 +1,107 @@
-vocabulary_id,vocabulary_code
-0,None
-1,SNOMED
-2,ICD9CM
-3,ICD9Proc
-4,CPT4
-5,HCPCS
-6,LOINC
-7,NDFRT
-8,RxNorm
-9,NDC
-10,GPI
-11,UCUM
-12,Gender
-13,Race
-14,Place of Service
-15,MedDRA
-16,Multum
-17,Read
-18,OXMIS
-19,Indication
-20,ETC
-21,ATC
-22,Multilex
-24,Visit
-28,VA Product
-31,SMQ
-32,VA Class
-33,Cohort
-34,ICD10CM
-35,ICD10PCS
-36,Drug Type
-37,Condition Type
-38,Procedure Type
-39,Observation Type
-40,DRG
-41,MDC
-42,APC
-43,Revenue Code
-44,Ethnicity
-45,Death Type
-46,Mesh
-47,NUCC
-48,Specialty
-49,LOINC Hierarchy
-50,SPL
-53,Genseqno
-54,CCS
-55,OPCS4
-56,Gemscript
-57,HES Specialty
-58,Note Type
-59,Domain
-60,PCORNet
-61,Obs Period Type
-62,Visit Type
-63,Device Type
-64,Meas Type
-65,Currency
+Original,class_code
+Ingredient,Ingredient
+Branded Pack,Branded Pack
+Pharmaceutical Preparations,Pharma Preparation
+Pharmacokinetics,PK
+Place of Service,Place of Service
+Administrative concept,Admin Concept
+APC,Procedure
+MS-DRG,Diagnostic Category
+DRG,Diagnostic Category
+High Level Group Term,HLGT
+Chart Availability,Chart Availability
+Clinical Pack,Clinical Pack
+VA Class,Drug Class
+Drug Interaction,Drug Interaction
+Therapeutic Class,Therapeutic Class
+Body structure,Body Structure
+Clinical finding,Clinical Finding
+Procedure,Procedure
+Record artifact,Record Artifact
+Death Type,Death Type
+Measurement Type,Meas Type
+Admitting Source,Admitting Source
+Discharge Disposition,Discharge Dispo
+Branded Drug Component,Branded Drug Comp
+Mechanism of Action,Mechanism of Action
+Pharmacologic Class,Pharmacologic Class
+Pharmaceutical / biologic product,Pharma/Biologic Product
+Morphologic abnormality,Morph abnormality
+Physical object,Physical Object
+Staging and scales,Staging / Scales
+Environment or geographical location,Location
+Condition Occurrence Type,Condition Occur Type
+Procedure Occurrence Type,Procedure Occur Type
+Health Care Provider Specialty,Provider Specialty
+CCS_PROCEDURES,Procedure
+HES specialty,Specialty
+Preferred Term,PT
+High Level Term,HLT
+Biobank Flag,Biobank Flag
+Clinical Drug Form,Clinical Drug Form
+Qualifier value,Qualifier Value
+Social context,Social Context
+Visit,Visit
+OMOP DOI cohort,Drug Cohort
+Domain,Domain
+Concept Relationship,Concept Relationship
+Device Type,Device Type
+Clinical Drug,Clinical Drug
+Observable entity,Observable Entity
+Race,Race
+Undefined,Undefined
+ICD-9-Procedure,Procedure
+HCPCS,Procedure
+OMOP HOI cohort,Condition Cohort
+Ethnicity,Ethnicity
+CPT-4,Procedure
+System Organ Class,SOC
+Enrollment Basis,Enrollment Basis
+Visit Type,Visit Type
+VA Product,Drug Product
+Branded Drug Form,Branded Drug Form
+Indication or Contra-indication,Ind / CI
+Organism,Organism
+UNKNOWN,Undefined
+Gender,Gender
+Special concept,Special Concept
+Biological function,Biological Function
+CCS_DIAGNOSIS,Condition
+Currency,Currency
+Substance,Substance
+Context-dependent category,Context-dependent
+Physical force,Physical force
+UCUM Canonical,Canonical
+Anatomical Therapeutic Chemical Classification,ATC
+Specimen,Specimen
+Event,Event
+Namespace concept,Namespace concept
+Model component,Model Comp
+LOINC Multidimensional Classification,Meas Class
+Standardized MedDRA Query,SMQ
+Note Type,Note Type
+Observation Period Type,Obs Period Type
+Branded Drug,Branded Drug
+Clinical Drug Component,Clinical Drug Comp
+Brand Name,Brand Name
+Dose Form,Dose Form
+Physiologic Effect,Physiologic Effect
+Chemical Structure,Chemical Structure
+VA Drug Interaction,Drug Interaction
+Attribute,Attribute
+LOINC Code,Measurement
+UCUM,Unit
+UCUM Standard,Standard Unit
+UCUM Custom,Custom Unit
+Revenue Code,Revenue Code
+Observation Type,Observation Type
+MDC,Diagnostic Category
+Drug Exposure Type,Drug Exposure Type
+Patient Status,Patient Status
+OPCS-4,Procedure
+Lowest Level Term,LLT
+Enhanced Therapeutic Classification,ETC
+Discharge Status,Discharge Status
+Encounter Type,Encounter Type
+Hispanic,Hispanic
+Sex,Gender

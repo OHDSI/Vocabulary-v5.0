@@ -1,7 +1,8 @@
--- insert into concept
-select distinct
-  1 /* seq_concept.nextval */ as concept_id,
+ insert into concepttmp
+select 
+    seq_concept.nextval as concept_id,
   first_value(m.source_code_description) over (partition by m.source_vocabulary_id, m.source_code order by length(m.source_code_description) desc) as concept_name,
+  
   case 
     when m.source_vocabulary_id=2 then -- Snomed
       case
@@ -42,7 +43,7 @@ select distinct
          else first_value(m.mapping_type) over (partition by m.source_vocabulary_id, m.source_code order by decode(m.mapping_type, 
           'Procedure', 1, 10))
       end
-    when m.source_vocabulary_id=46	then -- NLM Mesh
+    when m.source_vocabulary_id=46  then -- NLM Mesh
       case
         when m.target_vocabulary_id=0 then 'Condition'
         else first_value(m.mapping_type) over (partition by m.source_vocabulary_id, m.source_code order by decode(m.mapping_type, 
@@ -60,21 +61,22 @@ select distinct
       end 
     when m.source_vocabulary_id=56 then 'Drug'-- Gemscript
     else m.mapping_type end
-  as class_code,
+  as domain_code,
+  c.concept_class as class_code,
   v.vocabulary_code as vocabulary_code,
+  null as standard_concept,
   m.source_code as concept_code,
   to_date('19700101', 'YYYYMMDD') as valid_start_date,
   to_date('20991231', 'YYYYMMDD') as valid_end_date,
-  null as invalid_reason,
-  null as standard_concept,
-  null as domain_code
+  null as invalid_reason
+
 from dev.source_to_concept_map m
 join vocabulary_id_to_code v on v.vocabulary_id=m.source_vocabulary_id
 left join dev.concept c on c.concept_id=m.target_concept_id
 where m.source_vocabulary_id=53 -- in (2, 9, 10, 16, 17, 18, 34, 35, 46, 50, 53, 56) -- vocabulary_id=10, 17 missing source_code_descriptions
 ;
 
-
+commit;  
 -- insert into concept_relationship;
 select 
   src.concept_id as concept_id_1,
@@ -85,8 +87,8 @@ select
   m.invalid_reason
 from dev.source_to_concept_map m
 join vocabulary_id_to_code v1 on v1.vocabulary_id=m.source_vocabulary_id
-join concept src on src.vocabulary_code=v1.vocabulary_code and src.concept_code=m.source_code
-join concept trg on trg.concept_id=m.target_concept_id
+join concepttmp src on src.vocabulary_code=v1.vocabulary_code and src.concept_code=m.source_code
+join concepttmp trg on trg.concept_id=m.target_concept_id
 where m.invalid_reason is null
 ;
 ;

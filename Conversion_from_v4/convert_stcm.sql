@@ -75,7 +75,6 @@ join vocabulary_id_to_code v on v.vocabulary_id=m.source_vocabulary_id
 left join dev.concept c on c.concept_id=m.target_concept_id
 where m.source_vocabulary_id=53 -- in (2, 9, 10, 16, 17, 18, 34, 35, 46, 50, 53, 56) -- vocabulary_id=10, 17 missing source_code_descriptions
 ;
-
 commit;  
 -- insert into concept_relationship;
 select 

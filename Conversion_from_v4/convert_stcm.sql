@@ -1,4 +1,4 @@
- insert into concepttmp
+ insert into concept
 select 
     seq_concept.nextval as concept_id,
   first_value(m.source_code_description) over (partition by m.source_vocabulary_id, m.source_code order by length(m.source_code_description) desc) as concept_name,
@@ -62,7 +62,7 @@ select
     when m.source_vocabulary_id=56 then 'Drug'-- Gemscript
     else m.mapping_type end
   as domain_code,
-  c.concept_class as class_code,
+  cl.class_code as class_code, 
   v.vocabulary_code as vocabulary_code,
   null as standard_concept,
   m.source_code as concept_code,
@@ -73,10 +73,13 @@ select
 from dev.source_to_concept_map m
 join vocabulary_id_to_code v on v.vocabulary_id=m.source_vocabulary_id
 left join dev.concept c on c.concept_id=m.target_concept_id
-where m.source_vocabulary_id=53 -- in (2, 9, 10, 16, 17, 18, 34, 35, 46, 50, 53, 56) -- vocabulary_id=10, 17 missing source_code_descriptions
+join class_old_to_new cl on cl.original=c.concept_class
+where m.source_vocabulary_id in (2, 9, 10, 16, 17, 18, 34, 35, 46, 50, 53, 56) -- vocabulary_id=10, 17 missing source_code_descriptions
 ;
-commit;  
--- insert into concept_relationship;
+commit;
+
+
+insert into concept_relationship
 select 
   src.concept_id as concept_id_1,
   trg.concept_id as concept_id_2,
@@ -89,5 +92,4 @@ join vocabulary_id_to_code v1 on v1.vocabulary_id=m.source_vocabulary_id
 join concepttmp src on src.vocabulary_code=v1.vocabulary_code and src.concept_code=m.source_code
 join concepttmp trg on trg.concept_id=m.target_concept_id
 where m.invalid_reason is null
-;
 ;

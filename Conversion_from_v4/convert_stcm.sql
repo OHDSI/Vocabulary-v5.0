@@ -1,4 +1,73 @@
- insert into concept
+--insert to concept from dev.concept  
+insert into concept(
+  CONCEPT_ID, 
+	CONCEPT_NAME, 
+	DOMAIN_CODE, 
+	CLASS_CODE, 
+	VOCABULARY_CODE, 
+	STANDARD_CONCEPT, 
+	CONCEPT_CODE, 
+	VALID_START_DATE, 
+	VALID_END_DATE, 
+	INVALID_REASON) 
+  select c.concept_id,
+  c.concept_name, 
+  d.domain_code, --
+  cl.class_code,
+  v.vocabulary_code,
+  case when c.concept_level=0 then 'S' else null end as standard_concept,   
+  c.concept_code,
+  c.valid_start_date,
+  c.valid_end_date,
+  c.invalid_reason
+from dev.concept c
+join dev.concept_relationship r on r.concept_id_2=c.concept_id and r.relationship_id=359
+join dev.concept dc on dc.concept_id=r.concept_id_1
+join domain d on d.domain_concept_id=dc.concept_id 
+join vocabulary_id_to_code v on v.vocabulary_id=c.vocabulary_id
+join class_old_to_new cl on cl.original=c.concept_class
+;
+
+commit;
+
+--insert to concept_relationship from concept_relationship  
+insert into concept_relationship(
+CONCEPT_ID_1,
+CONCEPT_ID_2,
+RELATIONSHIP_CODE,
+VALID_START_DATE,
+VALID_END_DATE,
+INVALID_REASON) 
+  select c.concept_id_1,
+  c.concept_id_2, 
+  v.relationship_code, 
+  c.valid_start_date,
+  c.valid_end_date,
+  c.invalid_reason
+from dev.concept_relationship c
+join relationship_id_to_code v on v.relationship_id=c.relationship_id
+;
+
+insert into concept_ancestor select * from dev.concept_ancestor;
+--delete absent concept_id (which exist in dev.concept and don't in prototype.concept)
+
+--find greatest possible concept_id in concept, to start next
+select t.concept_id from concept t order by t.concept_id desc;
+ 
+--drop sequence SEQ_CONCEPT;
+create sequence SEQ_CONCEPT
+minvalue 1
+maxvalue 9999999999999999999999999999
+start with 
+44818714 --take result from select t.concept_id from concept t order by t.concept_id desc; plus one 
+increment by 1
+cache 20;
+
+commit; 
+
+ 
+ --insert to concept from source_to_concept_map  
+  insert into concept
 select 
     seq_concept.nextval as concept_id,
   first_value(m.source_code_description) over (partition by m.source_vocabulary_id, m.source_code order by length(m.source_code_description) desc) as concept_name,
@@ -62,24 +131,24 @@ select
     when m.source_vocabulary_id=56 then 'Drug'-- Gemscript
     else m.mapping_type end
   as domain_code,
-  cl.class_code as class_code, 
+  cl.class_code as class_code,  
   v.vocabulary_code as vocabulary_code,
   null as standard_concept,
   m.source_code as concept_code,
   to_date('19700101', 'YYYYMMDD') as valid_start_date,
   to_date('20991231', 'YYYYMMDD') as valid_end_date,
   null as invalid_reason
-
 from dev.source_to_concept_map m
 join vocabulary_id_to_code v on v.vocabulary_id=m.source_vocabulary_id
 left join dev.concept c on c.concept_id=m.target_concept_id
 join class_old_to_new cl on cl.original=c.concept_class
-where m.source_vocabulary_id in (2, 9, 10, 16, 17, 18, 34, 35, 46, 50, 53, 56) -- vocabulary_id=10, 17 missing source_code_descriptions
-;
-commit;
+where m.source_vocabulary_id in (2, 9, 10, 16, 17, 18, 34, 35, 46, 50, 53, 56)  -- vocabulary_id=10, 17 missing source_code_descriptions 
+; 
 
+commit; 
 
-insert into concept_relationship
+-- insert to concept_relationship from source_to_concept_map  
+ insert into concept_relationship
 select 
   src.concept_id as concept_id_1,
   trg.concept_id as concept_id_2,
@@ -88,7 +157,7 @@ select
   m.valid_end_date as valid_end_date,
   m.invalid_reason
 from dev.source_to_concept_map m
-join vocabulary_id_to_code v1 on v1.vocabulary_id=m.source_vocabulary_id
+  join vocabulary_id_to_code v1 on v1.vocabulary_id=m.source_vocabulary_id
 join concepttmp src on src.vocabulary_code=v1.vocabulary_code and src.concept_code=m.source_code
 join concepttmp trg on trg.concept_id=m.target_concept_id
 where m.invalid_reason is null

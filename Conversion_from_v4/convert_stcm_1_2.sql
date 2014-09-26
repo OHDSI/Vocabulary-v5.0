@@ -1,3 +1,4 @@
+--insert to concept from dev.concept  
 insert into concept(
   CONCEPT_ID, 
 	CONCEPT_NAME, 
@@ -29,6 +30,7 @@ join class_old_to_new cl on cl.original=c.concept_class
 
 commit;
 
+--insert to concept_relationship from concept_relationship  
 insert into concept_relationship(
 CONCEPT_ID_1,
 CONCEPT_ID_2,

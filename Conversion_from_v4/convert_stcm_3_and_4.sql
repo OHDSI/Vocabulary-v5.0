@@ -1,17 +1,20 @@
-select count(*) from concept;
-
+--find greatest possible concept_id in concept, to start next
+select t.concept_id from concept t order by t.concept_id desc;
+ 
 --drop sequence SEQ_CONCEPT;
 create sequence SEQ_CONCEPT
 minvalue 1
 maxvalue 9999999999999999999999999999
-start with 642885
---1 /*(select count(*) from concept)*/
+start with 
+44818714 --take result from select t.concept_id from concept t order by t.concept_id desc; plus one 
 increment by 1
 cache 20;
 
-insert into concepttmp select * from concept;
+commit; 
+
  
- insert into concepttmp
+ --insert to concept from source_to_concept_map  
+  insert into concept
 select 
     seq_concept.nextval as concept_id,
   first_value(m.source_code_description) over (partition by m.source_vocabulary_id, m.source_code order by length(m.source_code_description) desc) as concept_name,
@@ -91,6 +94,7 @@ where m.source_vocabulary_id in (2, 9, 10, 16, 17, 18, 34, 35, 46, 50, 53, 56)  
 
 commit; 
 
+-- insert to concept_relationship from source_to_concept_map  
  insert into concept_relationship
 select 
   src.concept_id as concept_id_1,

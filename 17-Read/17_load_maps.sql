@@ -1,74 +1,104 @@
--- Mark records that exist in dev.source_to_concept_map (except description)
-update source_to_concept_map_stage d
-set source_to_concept_map_id = (
-  select 1 from dev.source_to_concept_map c
-  where d.source_code = c.source_code 
-    and d.source_vocabulary_id = c.source_vocabulary_id
---    and d.mapping_type = c.mapping_type
-    and d.target_concept_id = c.target_concept_id
-    and d.target_vocabulary_id = c.target_vocabulary_id
-    and nvl(d.primary_map,'X') = nvl(c.primary_map, 'X')
-    and nvl(c.invalid_reason,'X') <> 'D'
-)
+-- insert new records 
+--find greatest possible concept_id in concept, to start next
+--select MAX(t.concept_id)+1 INTO REST from  concept t; 
+
+declare
+ ex number;
+begin
+  select MAX(concept_id)  + 1 into ex from concept;
+  If ex > 0 then
+    begin
+            execute immediate 'DROP SEQUENCE SEQ_CONCEPT';
+      exception when others then
+        null;
+    end;
+    execute immediate 'CREATE SEQUENCE SEQ_CONCEPT INCREMENT BY 1 START WITH ' || ex || ' NOCYCLE CACHE 20 NOORDER';
+  end if;
+end;
+
+commit; 
+
+ 
+ --insert to concept from source_to_concept_map  
+  insert into concept
+select 
+    seq_concept.nextval as concept_id,
+  first_value(m.source_code_description) over (partition by m.source_vocabulary_id, m.source_code order by length(m.source_code_description) desc) as concept_name,
+
+   'Read' as vocabulary_code,     
+    m.mapping_type as domain_code,
+  cl.class_code as class_code,  
+  v.vocabulary_code as vocabulary_code,
+  null as standard_concept,
+  m.source_code as concept_code,
+  to_date('19700101', 'YYYYMMDD') as valid_start_date,
+  to_date('20991231', 'YYYYMMDD') as valid_end_date,
+  null as invalid_reason
+from dev.source_to_concept_map m
+join vocabulary_id_to_code v on v.vocabulary_id=m.source_vocabulary_id
+left join dev.concept c on c.concept_id=m.target_concept_id
+join class_old_to_new cl on cl.original=c.concept_class
+where m.source_vocabulary_id = 17  -- vocabulary_id=10, 17 missing source_code_descriptions 
+; 
+
+commit; 
+
+-- insert to concept_relationship from source_to_concept_map  
+ insert into concept_relationship
+select 
+  src.concept_id as concept_id_1,
+  trg.concept_id as concept_id_2,
+  'Maps to' as relationship_code,
+  m.valid_start_date as valid_start_date,
+  m.valid_end_date as valid_end_date,
+  m.invalid_reason
+from dev.source_to_concept_map m
+  join vocabulary_id_to_code v1 on v1.vocabulary_id=m.source_vocabulary_id
+join concepttmp src on src.vocabulary_code=v1.vocabulary_code and src.concept_code=m.source_code
+join concepttmp trg on trg.concept_id=m.target_concept_id
+where m.invalid_reason is null
 ;
 
--- deprecate records in dev that are no longer in the list
-update dev.source_to_concept_map c set
+commit;
+
+-- deprecate records in prototype that are no longer in the list
+update prototype.concept_relationship c set
 -- set the valid_end_date to the previous day of the date in the release (part of the schema name)
   valid_end_date = to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd')-1,
   invalid_reason = 'D'
 where not exists (
-  select 1 from source_to_concept_map_stage d 
-  where d.source_code          = c.source_code 
-    and d.source_vocabulary_id = c.source_vocabulary_id
- --   and d.mapping_type         = c.mapping_type
-    and d.target_concept_id    = c.target_concept_id
-    and d.target_vocabulary_id = c.target_vocabulary_id
-    and nvl(d.primary_map,'X') =  nvl(c.primary_map,'X')
+  select 1 from concept_relationship_stage d 
+  where d.concept_id_2    = c.concept_id_2
 )
   and c.valid_end_date = to_date('12312099','mmddyyyy')
   and c.valid_start_date < to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd')
-  and c.source_vocabulary_id = 17
-  and c.target_vocabulary_id = 1
+  and c.source_vocabulary_code = 'Read'
+  and c.concept_id_2 = 1
 -- deprecate only if there is a replacement, otherwise leave intact
   and exists (
-    select 1 from source_to_concept_map_stage d 
-    where d.source_code          = c.source_code 
-      and d.source_vocabulary_id = c.source_vocabulary_id
-  --    and d.mapping_type         = c.mapping_type
-      and d.target_vocabulary_id = c.target_vocabulary_id
+    select 1 from concept_relationship_stage d 
+    where  d.concept_id_2 = c.concept_id_2
 )
 ;
 
--- insert new records 
-insert into dev.source_to_concept_map
-select distinct 
-  source_code,
-  17 as source_vocabulary_id,
-  source_code_description, 
-  target_concept_id,
-  target_vocabulary_id,
-  mapping_type, 
-  'Y' as primary_map,
-  to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd') as valid_start_date,
-  -- to_date('19700101','yyyymmdd') as valid_start_date,
-  to_date('12312099','mmddyyyy') as valid_end_date,
-  null as invalid_reason
-from    source_to_concept_map_stage
-where   1 = 1
--- new ones are marked
-  and source_to_concept_map_id is null
-;
-
--- Update descriptions (don't usually run)
-update dev.save17 m 
-set m.source_code_description = (
-  select distinct coalesce(v2.description_long, v2.description, v2.description_short)
-  from keyv2 v2
-  where v2.readcode||v2.termcode = m.source_code 
+-- deprecate records in prototype that are no longer in the list
+update prototype.concept c set
+-- set the valid_end_date to the previous day of the date in the release (part of the schema name)
+  valid_end_date = to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd')-1,
+  invalid_reason = 'D'
+where not exists (
+  select 1 from concept_stage d 
+  where d.concept_code          = c.concept_code 
+    and d.vocabulary_code = c.vocabulary_code
 )
-where m.source_vocabulary_id=17
+  and c.valid_end_date = to_date('12312099','mmddyyyy')
+  and c.valid_start_date < to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd')
+  and c.vocabulary_code = 'Read'
+-- deprecate only if there is a replacement, otherwise leave intact
+  and exists (
+    select 1 from concept d 
+    where d.concept_code          = c.concept_code 
+      and d.vocabulary_code = c.vocabulary_code
+)
 ;
-
-commit;
 exit;

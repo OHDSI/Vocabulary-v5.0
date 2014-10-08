@@ -23,15 +23,13 @@ commit;
   insert into concept
 select 
     seq_concept.nextval as concept_id,
-  first_value(m.source_code_description) over (partition by m.source_vocabulary_id, m.source_code order by length(m.source_code_description) desc) as concept_name,
-
-   'Read' as vocabulary_code,     
+  first_value(m.source_code_description) over  (partition by m.source_vocabulary_id, m.source_code order by length(m.source_code_description) desc) as concept_name,
     m.mapping_type as domain_code,
-  cl.class_code as class_code,  
-  v.vocabulary_code as vocabulary_code,
-  null as standard_concept,
+    cl.class_code as class_code,
+   'Read' as vocabulary_code,     
+    null as standard_concept,
   m.source_code as concept_code,
-  to_date('19700101', 'YYYYMMDD') as valid_start_date,
+  to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd') as valid_start_date,
   to_date('20991231', 'YYYYMMDD') as valid_end_date,
   null as invalid_reason
 from dev.source_to_concept_map m
@@ -49,7 +47,7 @@ select
   src.concept_id as concept_id_1,
   trg.concept_id as concept_id_2,
   'Maps to' as relationship_code,
-  m.valid_start_date as valid_start_date,
+  to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd') as valid_start_date,
   m.valid_end_date as valid_end_date,
   m.invalid_reason
 from dev.source_to_concept_map m

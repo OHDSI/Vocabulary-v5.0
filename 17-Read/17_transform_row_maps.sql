@@ -1,53 +1,55 @@
 spool 17_transform_row_maps.log;
 
 -- Create temporary table for uploading concept. 
-truncate table source_to_concept_map_stage;
+truncate table concept_stage;
+truncate table concept_relationship_stage;
+
+declare
+ ex number;
+begin
+  select MAX(concept_id)  + 1 into ex from concept;
+  If ex > 0 then
+    begin
+            execute immediate 'DROP SEQUENCE SEQ_CONCEPT';
+      exception when others then
+        null;
+    end;
+    execute immediate 'CREATE SEQUENCE SEQ_CONCEPT INCREMENT BY 1 START WITH ' || ex || ' NOCYCLE CACHE 20 NOORDER';
+  end if;
+end;
+
+commit; 
 
 -- create new stage
 insert into concept_stage
 select 
-  --null as source_to_concept_map_id,
-  mapped.concept_code,
-  v2.description as concept_name, 
-  'XXX' as domain_code, -- mapping type gets overwritten by the domain of the target SNOMED concept
-   -- coalesce(mapped.target_concept_id, 0) as target_concept_id, -- if not mapping map to 0
-  -- case when mapped.target_concept_id is null then 0 when mapped.target_concept_id=0 then 0 else 1 end as target_vocabulary_id,
+  seq_concept.nextval as concept_id,
+  coalense(v2.description_long, v2.description, v2.description_short) as concept_name
+  'XXX' as domain_code, -- ??  
+  null as class_code,
   'Read' as vocabulary_code,
-  -- 'Y' as primary_map
-from (
--- get all available Read codes and their maps from the Read to Snomed mapping provided by the NHS
-  select distinct
-    m.readcode||m.termcode as concept_code,
-    -- pick the best map: mapstatus=1, then is_assured=1, then target concept is fresh, then newest date
-    first_value(c.concept_id) over (partition by readcode||termcode order by m.mapstatus desc, m.is_assured desc, coalesce(c.invalid_reason, 'A'), m.effectivedate desc) as target_concept_id
-  from rcsctmap2_uk m
-  left join concept c on c.concept_code=m.conceptid
-) mapped
-left join (
--- get the descriptions for Read codes
-  select distinct
-    readcode||termcode as concept_code, 
-    coalesce(description_long, description, description_short) as description
-  from keyv2
-) v2 on v2.source_code=mapped.concept_code
+  null as standart_concept, 
+  v2.readcode||v2.termcode as concept_code, 
+  to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd') as valid_start_date,
+  to_date('12312099','mmddyyyy') as valid_end_date,
+  null as invalid reason
+from from rcsctmap2_uk m, keyv2 v2 
+
 ;
 
 insert into concept_relationship_stage
 select 
-  -- null as source_to_concept_map_id,
-  -- mapped.concept_code,
-  --  v2.description as source_code_description,
-   -- 'XXX' as mapping_type, -- mapping type gets overwritten by the domain of the target SNOMED concept
-  coalesce(mapped.target_concept_id, 0) as  concept_id_2, -- if not mapping map to 0
- -- case when mapped.target_concept_id is null then 0 when mapped.target_concept_id=0 then 0 else 1 end as target_vocabulary_id,
- -- 'Read' as source_vocabulary_id,
- -- 'Y' as primary_map
+  c.concept as concept_id_1,
+  coalesce(mapped.target_concept_id, 0) as  concept_id_2,
+  'Maps to' as relationship_code,
+  to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd') as valid_start_date,
+  to_date('12312099','mmddyyyy') as valid_end_date,
+  m.invalid_reason
 from (
 -- get all available Read codes and their maps from the Read to Snomed mapping provided by the NHS
   select distinct
-    m.readcode||m.termcode as concept_code,
-    -- pick the best map: mapstatus=1, then is_assured=1, then target concept is fresh, then newest date
-    first_value(c.concept_id) over (partition by readcode||termcode order by m.mapstatus desc, m.is_assured desc, coalesce(c.invalid_reason, 'A'), m.effectivedate desc) as target_concept_id
+    first_value(c.concept_id) over (partition by readcode||termcode order by m.mapstatus desc, m.is_assured desc, coalesce(c.invalid_reason, 'A'), m.effectivedate desc) as target_concept_id,
+    invalid_reason 
   from rcsctmap2_uk m
   left join dev.concept c on c.concept_code=m.conceptid
 ) mapped
@@ -94,11 +96,6 @@ select root, concept_id_2 from (
 ;
 
 create index x_hi_tree on historical_tree (root);
-
---update concept_stage m
---set target_concept_id = (select concept_id_2 from historical_tree t where m.target_concept_id = t.root )
---where exists (select 1 from historical_tree tt where m.target_concept_id = tt.root )
---;
 
 update concept_relationship_stage m
 set concept_id_2 = (select concept_id_2 from historical_tree t where m.target_concept_id = t.root )

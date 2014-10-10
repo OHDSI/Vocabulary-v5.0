@@ -29,7 +29,8 @@ select
   null as class_code,
   'Read' as vocabulary_code,
   null as standart_concept, 
-  v2.readcode||v2.termcode as concept_code, 
+  v2.readcode||v2.termcode as concept_code,
+  --don't need it
   to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd') as valid_start_date,
   to_date('12312099','mmddyyyy') as valid_end_date,
   null as invalid reason
@@ -40,27 +41,28 @@ from from rcsctmap2_uk m, keyv2 v2
 insert into concept_relationship_stage
 select 
   c.concept as concept_id_1,
-  coalesce(mapped.target_concept_id, 0) as  concept_id_2,
+  --coalesce(mapped.target_concept_id, 0) as  concept_id_2,
+  c.concept_id as concept_id_2,
   'Maps to' as relationship_code,
   to_date(substr(user, regexp_instr(user, '_[[:digit:]]')+1, 256),'yyyymmdd') as valid_start_date,
   to_date('12312099','mmddyyyy') as valid_end_date,
   m.invalid_reason
-from (
--- get all available Read codes and their maps from the Read to Snomed mapping provided by the NHS
-  select distinct
-    first_value(c.concept_id) over (partition by readcode||termcode order by m.mapstatus desc, m.is_assured desc, coalesce(c.invalid_reason, 'A'), m.effectivedate desc) as target_concept_id,
-    invalid_reason 
-  from rcsctmap2_uk m
-  left join dev.concept c on c.concept_code=m.conceptid
-) mapped
-left join (
--- get the descriptions for Read codes
-  select distinct
-    readcode||termcode as concept_code, 
-    coalesce(description_long, description, description_short) as description
-  from keyv2
-) v2 on v2.source_code=mapped.source_code
+from rcsctmap2_uk m
+  left join dev.concept c on m.conceptid=c.concept_code and c.vocabulary_code='SNOMED'
 ;
+
+--update concept_stage y set y.domain_code=(select domain_code from
+--dev.concept c on m.conceptid=c.concept_code and c.vocabulary_code='SNOMED')
+
+--;
+/*
+update concept read set read.domain_code=(select snomed.domain_code from
+dev.concept snomed, concept_relationship_stage r where snomed.vocabulary_code='SNOMED' 
+--and snomed.concept_id=r.concept_id_1
+and r.concept_id_2=read.concept_id)
+where exists (select 1 from concept_relationship_stage where concept_id_2=read.concept_id)
+and read.vocabulary_code='READ'
+*/
 
 -- Remap when target_concept_id is obsolete
 drop table historical_tree;

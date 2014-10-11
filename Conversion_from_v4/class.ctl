@@ -3,7 +3,8 @@ load data
 infile class.csv
 into table class
 replace
-fields terminated by ','
+fields terminated by '\t'
+optionally enclosed by '"'
 trailing nullcols
 (
   class_code,

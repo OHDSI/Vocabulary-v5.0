@@ -1,5 +1,5 @@
 -- Create
-create user prototype
+create user v5dev
   identified by 123
   default tablespace users
   temporary tablespace temp
@@ -7,22 +7,22 @@ create user prototype
   account unlock;
 
  -- Grants
-grant connect to prototype;
-alter user prototype default role all;
-grant create procedure to prototype;
-grant create sequence to prototype;
-grant create any index to prototype;
-grant create database link to prototype;
-grant create table to prototype;
-grant create view to prototype;
-alter user prototype quota unlimited on users;
+grant connect to v5dev;
+alter user v5dev default role all;
+grant create procedure to v5dev;
+grant create sequence to v5dev;
+grant create any index to v5dev;
+grant create database link to v5dev;
+grant create table to v5dev;
+grant create view to v5dev;
+alter user v5dev quota unlimited on users;
 
--- Access to dev
-grant select, insert, update, delete on dev.concept to prototype; 
-grant select, insert, update, delete on dev.concept_relationship to prototype;
-grant select, insert, update, delete on dev.concept_ancestor to prototype;
-grant select, insert, update, delete on dev.relationship to prototype;
-grant select, insert, update, delete on dev.source_to_concept_map to prototype;
-grant select, insert, update, delete on dev.vocabulary to prototype;
-grant select on dev.seq_concept to prototype;
+-- Access to v5dev
+grant select, insert, update, delete on v5dev.concept to v5dev; 
+grant select, insert, update, delete on v5dev.concept_relationship to v5dev;
+grant select, insert, update, delete on v5dev.concept_ancestor to v5dev;
+grant select, insert, update, delete on v5dev.relationship to v5dev;
+grant select, insert, update, delete on v5dev.source_to_concept_map to v5dev;
+grant select, insert, update, delete on v5dev.vocabulary to v5dev;
+grant select on v5dev.seq_concept to v5dev;
 

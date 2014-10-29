@@ -4,9 +4,10 @@ infile vocabulary.csv
 into table vocabulary
 replace
 fields terminated by ','
+optionally enclosed by '"'
 trailing nullcols
 (
-  vocabulary_code,
+  vocabulary_id,
   vocabulary_name,
   vocabulary_reference,
   vocabulary_version,

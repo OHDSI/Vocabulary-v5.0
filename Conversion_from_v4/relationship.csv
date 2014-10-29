@@ -1,4 +1,4 @@
-relationship_code,relationship_name,is_hierarchical,defines_ancestry,reverse_relationship,relationship_concept_id
+relationship_id,relationship_name,is_hierarchical,defines_ancestry,reverse_relationship,concept_id
 LOINC replaced by,Concept replaced by (LOINC),0,0,LOINC replaces,44818714
 Has precise ing,Has precise ingredient (RxNorm),0,0,Precise ing of,44818715
 Has tradename,Has tradename (RxNorm),0,1,Tradename of,44818716
@@ -77,7 +77,7 @@ Has proc morph,Has procedure morphology (SNOMED),0,0,Proc morph of,44818788
 Has finding context,Has finding context (SNOMED),0,0,Finding context of,44818789
 Has proc context,Has procedure context (SNOMED),0,0,Proc context of,44818790
 Has temporal context,Has temporal context (SNOMED),0,0,Temporal context of,44818791
-Findinga sso with,Associated with (SNOMED),0,0,Asso with finding,44818792
+Asso with finding,Associated with (SNOMED),0,0,Findinga sso with,44818792
 Has surgical appr,Has surgical approach (SNOMED),0,0,Surgical appr of,44818793
 Using device,Using device (SNOMED),0,0,Device used by,44818794
 Using energy,Using energy (SNOMED),0,0,Energy used by,44818795
@@ -87,7 +87,7 @@ Has clinical course,Has clinical course (SNOMED),0,0,Clinical course of,44818798
 Has route of admin,Has route of administration (SNOMED),0,0,Route of admin of,44818799
 Using finding method,Using finding method (SNOMED),0,0,Finding method of,44818800
 Using finding inform,Using finding informer (SNOMED),0,0,Finding inform of,44818801
-ICD9P - SNOMED eq,ICD9 procedure to SNOMED equivalent (OMOP),1,0,SNOMED - ICD9P eq,44818802
+ICD9P - SNOMED eq,ICD-9-Procedure to SNOMED equivalent (OMOP),1,0,SNOMED - ICD9P eq,44818802
 CPT4 - SNOMED cat,CPT-4 to SNOMED category (OMOP),1,0,SNOMED cat - CPT4,44818803
 CPT4 - SNOMED eq,CPT-4 to SNOMED equivalent (OMOP),0,0,SNOMED - CPT4 eq,44818804
 MedDRA - SNOMED eq,MedDRA to SNOMED equivalent (OMOP),0,1,SNOMED - MedDRA eq,44818805
@@ -175,7 +175,7 @@ Proc morph of,Procedure morphology of (SNOMED),0,0,Has proc morph,44818886
 Finding context of,Finding context of (SNOMED),0,0,Has finding context,44818887
 Proc context of,Procedure context of (SNOMED),0,0,Has proc context,44818888
 Temporal context of,Temporal context of (SNOMED),0,0,Has temporal context,44818889
-Asso with finding,Associated with (SNOMED),0,0,Findinga sso with,44818890
+Findinga sso with,Associated with (SNOMED),0,0,Asso with finding,44818890
 Surgical appr of,Surgical approach of (SNOMED),0,0,Has surgical appr,44818891
 Device used by,Device used by (SNOMED),0,0,Using device,44818892
 Energy used by,Energy used by (SNOMED),0,0,Using energy,44818893
@@ -185,7 +185,7 @@ Clinical course of,Has clinical course of (SNOMED),0,0,Has clinical course,44818
 Route of admin of,Route of administration of (SNOMED),0,0,Has route of admin,44818897
 Finding method of,Finding method of (SNOMED),0,0,Using finding method,44818898
 Finding inform of,Finding informer of (SNOMED),0,0,Using finding inform,44818899
-SNOMED - ICD9P eq,SNOMED to ICD9 procedure equivalent (OMOP),0,1,ICD9P - SNOMED eq,44818900
+SNOMED - ICD9P eq,SNOMED to ICD-9-Procedure equivalent (OMOP),0,1,ICD9P - SNOMED eq,44818900
 SNOMED cat - CPT4,SNOMED category to CPT-4 (OMOP),1,1,CPT4 - SNOMED cat,44818901
 SNOMED - CPT4 eq,SNOMED to CPT-4 equivalent (OMOP),0,1,CPT4 - SNOMED eq,44818902
 SNOMED - MedDRA eq,SNOMED to MedDRA equivalent (OMOP),0,0,MedDRA - SNOMED eq,44818903
@@ -235,33 +235,43 @@ RxNorm replaced by,Concept replaced by (RxNorm),0,0,RxNorm replaces,44818946
 RxNorm replaces,Concept replaces (RxNorm),0,0,RxNorm replaced by,44818947
 SNOMED replaced by,Concept replaced by (SNOMED),0,0,SNOMED replaces,44818948
 SNOMED replaces,Concept replaces (SNOMED),0,0,SNOMED replaced by,44818949
-ICD9P replaced by,Concept replaced by (ICD-9-Procedure),0,0,ICD9P replaces,44818950
-ICD9P replaces,Concept replaces (ICD-9-Procedure),0,0,ICD9P replaced by,44818951
-Multilex has ing,Has ingredient (Multilex),0,0,Multilex ing of,44818952
-Multilex ing of,Ingredient of (Multilex),0,1,Multilex has ing,44818953
-RxNorm - Multilex eq,RxNorm to Multilex equivalent (OMOP),0,0,Multilex - RxNorm eq,44818954
-Multilex - RxNorm eq,Multilex to RxNorm equivalent (OMOP),0,1,RxNorm - Multilex eq,44818955
-Multilex ing - class,Multilex ingredient to drug class (OMOP),0,0,Class - Multilex ing,44818956
-Class - Multilex ing,Drug class to Multilex ingredient (OMOP),0,1,Multilex ing - class,44818957
-Maps to,Non-standard to Standard map (OMOP),0,0,Mapped from,44818958
-Mapped from,Standard to Non-standard map (OMOP),0,0,Maps to,44818959
-Map includes child,Non-standard to Standard include child (OMOP),0,0,Included in map from,44818960
-Included in map from,Standard to Non-standard include child (OMOP),0,0,Map includes child,44818961
-Map excludes child,Non-standard to Standard exclude child (OMOP),0,0,Excluded in map from,44818962
-Excluded in map from,Standard to Non-standard exclude child (OMOP),0,0,Map excludes child,44818963
-UCUM replaced by,Concept replaced by (UCUM),0,0,UCUM replaces,44818964
-UCUM replaces,Concept replaces (UCUM),0,0,UCUM replaced by,44818965
-Concept replaced by,Concept replaced by,0,0,Concept replaces,44818966
-Concept replaces,Concept replaces,0,0,Concept replaced by,44818967
-Concept same_as to,Inactive same_as active (SNOMED),0,0,Concept same_as from,44818968
-Concept same_as from,Active same_as inactive (SNOMED),0,0,Concept same_as to,44818969
-Concept alt_to to,Inactive alternative_to active (SNOMED),0,0,Concept alt_to from,44818970
-Concept alt_to from,Active alternative_to inactive (SNOMED),0,0,Concept alt_to to,44818971
-Concept poss_eq to,Inactive possibly_equivalent_to active (SNOMED),0,0,Concept poss_eq from,44818972
-Concept poss_eq from,Active possibly_equivalent_to inactive (SNOMED),0,0,Concept poss_eq to,44818973
-Concept was_a to,Inactive was_a active (SNOMED),0,0,Concept was_a from,44818974
-Concept was_a from,Active was_a inactive (SNOMED),0,0,Concept was_a to,44818975
-SNOMED meas - HCPCS,SNOMED measurement subsumes HCPCS (OMOP),1,1,HCPCS - SNOMED meas,44818976
-HCPCS - SNOMED meas,HCPCS is a SNOMED measurement (OMOP),1,0,SNOMED meas - HCPCS,44818977
-Domain subsumes,Domain subsumes (OMOP),1,0,Is domain,44818978
-Is domain,Is a domain (OMOP),0,0,Domain subsumes,44818979
+Multilex has ing,Has ingredient (Multilex),0,0,Multilex ing of,44818950
+Multilex ing of,Ingredient of (Multilex),0,1,Multilex has ing,44818951
+RxNorm - Multilex eq,RxNorm to Multilex equivalent (OMOP),0,0,Multilex - RxNorm eq,44818952
+Multilex - RxNorm eq,Multilex to RxNorm equivalent (OMOP),0,1,RxNorm - Multilex eq,44818953
+Multilex ing - class,Multilex ingredient to drug class (OMOP),0,0,Class - Multilex ing,44818954
+Class - Multilex ing,Drug class to Multilex ingredient (OMOP),0,1,Multilex ing - class,44818955
+Concept replaced by,Concept replaced by,0,0,Concept replaces,44818956
+Concept replaces,Concept replaces,0,0,Concept replaced by,44818957
+Concept same_as to,Inactive same_as active (SNOMED),0,0,Concept same_as from,44818958
+Concept same_as from,Active same_as inactive (SNOMED),0,0,Concept same_as to,44818959
+Concept alt_to to,Inactive alternative_to active (SNOMED),0,0,Concept alt_to from,44818960
+Concept alt_to from,Active alternative_to inactive (SNOMED),0,0,Concept alt_to to,44818961
+Concept poss_eq to,Inactive possibly_equivalent_to active (SNOMED),0,0,Concept poss_eq from,44818962
+Concept poss_eq from,Active possibly_equivalent_to inactive (SNOMED),0,0,Concept poss_eq to,44818963
+Concept was_a to,Inactive was_a active (SNOMED),0,0,Concept was_a from,44818964
+Concept was_a from,Active was_a inactive (SNOMED),0,0,Concept was_a to,44818965
+SNOMED meas - HCPCS,SNOMED measurement subsumes HCPCS (OMOP),1,1,HCPCS - SNOMED meas,44818966
+HCPCS - SNOMED meas,HCPCS is a SNOMED measurement (OMOP),1,0,SNOMED meas - HCPCS,44818967
+Domain subsumes,Domain subsumes (OMOP),1,0,Is domain,44818968
+Is domain,Is a domain (OMOP),0,0,Domain subsumes,44818969
+Excluded in map from,Standard to Non-standard exclude child (OMOP),0,0,Map excludes child,44818970
+ICD9P replaced by,Concept replaced by (ICD-9-Procedure),0,0,ICD9P replaces,44818971
+ICD9P replaces,Concept replaces (ICD-9-Procedure),0,0,ICD9P replaced by,44818972
+Included in map from,Standard to Non-standard include child (OMOP),0,0,Map includes child,44818973
+Map excludes child,Non-standard to Standard exclude child (OMOP),0,0,Excluded in map from,44818974
+Map includes child,Non-standard to Standard include child (OMOP),0,0,Included in map from,44818975
+Mapped from,Standard to Non-standard map (OMOP),0,0,Maps to,44818976
+Maps to,Non-standard to Standard map (OMOP),0,0,Mapped from,44818977
+UCUM replaced by,Concept replaced by (UCUM),0,0,UCUM replaces,44818978
+UCUM replaces,Concept replaces (UCUM),0,0,UCUM replaced by,44818979
+Maps to type,Non-standard to type concept map (OMOP),0,0,Type mapped from,44819237
+Maps to unit,Non-standard to unit concept map (OMOP),0,0,Unit mapped from,44819238
+Maps to value,Non-standard to value_as_concept map (OMOP),0,0,Value mapped from,44819239
+Type mapped from,Type concept to non-standard map (OMOP),0,0,Maps to type,44819240
+Unit mapped from,Unit concept to non-standard map (OMOP),0,0,Maps to unit,44819241
+Value mapped from,Value_as_concept to non-standard map (OMOP),0,0,Maps to value,44819242
+ICD9CM - MedDRA,ICD-9-CM to MedDRA (MSSO),0,0,MedDRA - ICD9CM,44819286
+MedDRA - ICD9CM,MedDRA to ICD-9-CM (MSSO),0,0,ICD9CM - MedDRA,44819287
+ICD9CM - FDB Ind,ICD-9-CM to FDB Indication/Contraindication (FDB),0,0,FDB Ind - ICD9CM,44819288
+FDB Ind - ICD9CM,FDB Indication/Contraindication to ICD-9-CM (FDB),0,0,ICD9CM - FDB Ind,44819289

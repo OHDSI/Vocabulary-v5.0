@@ -6,8 +6,7 @@ replace
 fields terminated by ','
 trailing nullcols
 (
-  domain_code,
+  domain_id,
   domain_name,
   domain_concept_id
-
 )

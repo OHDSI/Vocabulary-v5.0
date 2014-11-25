@@ -154,6 +154,7 @@ CREATE INDEX idx_concept_relationship_id_1 ON concept_relationship (concept_id_1
 CREATE INDEX idx_concept_relationship_id_2 ON concept_relationship (concept_id_2 ASC); 
 CREATE INDEX idx_concept_relationship_id_3 ON concept_relationship (relationship_id ASC); 
 CREATE INDEX idx_concept_synonym_id ON concept_synonym (concept_id ASC);
+CREATE INDEX idx_csyn_concept_syn_name ON concept_synonym (concept_synonym_name);
 CREATE INDEX idx_concept_ancestor_id_1 ON concept_ancestor (ancestor_concept_id ASC);
 CREATE INDEX idx_concept_ancestor_id_2 ON concept_ancestor (descendant_concept_id ASC);
 CREATE INDEX idx_source_to_concept_map_id_1 ON source_to_concept_map (source_vocabulary_id ASC);

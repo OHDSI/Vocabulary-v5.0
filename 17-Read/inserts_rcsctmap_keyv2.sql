@@ -9,7 +9,7 @@ INSERT INTO CONCEPT_STAGE (concept_id,
                            valid_end_date,
                            invalid_reason)
    SELECT NULL,
-          kv2.description,
+          coalesce(kv2.description_long, kv2.description, kv2.description_short),
           NULL,
           'Read',
           NULL,

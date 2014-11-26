@@ -29,10 +29,19 @@ INSERT INTO concept_relationship_stage (concept_id_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT NULL,
+   SELECT DISTINCT
+          NULL,
           NULL,
           RSCCT.ReadCode || RSCCT.TermCode,
-          RSCCT.ConceptId,
+          -- pick the best map: mapstatus=1, then is_assured=1, then target concept is fresh, then newest date
+          FIRST_VALUE (
+             RSCCT.conceptid)
+          OVER (
+             PARTITION BY RSCCT.readcode || RSCCT.termcode
+             ORDER BY
+                RSCCT.mapstatus DESC,
+                RSCCT.is_assured DESC,
+                RSCCT.effectivedate DESC),
           'Maps to',
           TO_DATE ('20141001', 'yyyymmdd'),
           TO_DATE ('20991231', 'yyyymmdd'),

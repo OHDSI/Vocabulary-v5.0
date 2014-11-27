@@ -3,7 +3,7 @@
 CREATE TABLE concept (
   concept_id            INTEGER            NOT NULL,
   concept_name            VARCHAR(255)    NOT NULL,
-  domain_id                VARCHAR(20)        NOT NULL,
+  domain_id                VARCHAR(200)        NOT NULL,
   vocabulary_id            VARCHAR(20)        NOT NULL,
   concept_class_id        VARCHAR(20)        NOT NULL,
   standard_concept        VARCHAR(1)        NULL,
@@ -97,7 +97,7 @@ CREATE TABLE CONCEPT_STAGE
 (
    concept_id         INTEGER,
    concept_name       VARCHAR2 (256),
-   domain_id          VARCHAR (20),
+   domain_id          VARCHAR (200),
    vocabulary_id      VARCHAR (20) NOT NULL,
    concept_class_id   VARCHAR (20),
    standard_concept   VARCHAR2 (1 BYTE),
@@ -144,7 +144,7 @@ ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_v_2 F
 ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_c_1 FOREIGN KEY (target_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_1 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id);
 
--- Create indices
+-- Create indexes
 
 CREATE INDEX idx_concept_code ON concept (concept_code ASC);
 CREATE INDEX idx_concept_vocabluary_id ON concept (vocabulary_id ASC);
@@ -154,6 +154,7 @@ CREATE INDEX idx_concept_relationship_id_1 ON concept_relationship (concept_id_1
 CREATE INDEX idx_concept_relationship_id_2 ON concept_relationship (concept_id_2 ASC); 
 CREATE INDEX idx_concept_relationship_id_3 ON concept_relationship (relationship_id ASC); 
 CREATE INDEX idx_concept_synonym_id ON concept_synonym (concept_id ASC);
+CREATE INDEX idx_csyn_concept_syn_name ON concept_synonym (concept_synonym_name);
 CREATE INDEX idx_concept_ancestor_id_1 ON concept_ancestor (ancestor_concept_id ASC);
 CREATE INDEX idx_concept_ancestor_id_2 ON concept_ancestor (descendant_concept_id ASC);
 CREATE INDEX idx_source_to_concept_map_id_1 ON source_to_concept_map (source_vocabulary_id ASC);
@@ -162,6 +163,8 @@ CREATE INDEX idx_source_to_concept_map_id_3 ON source_to_concept_map (target_con
 CREATE INDEX idx_source_to_concept_map_code ON source_to_concept_map (source_code ASC);
 CREATE INDEX idx_drug_strength_id_1 ON drug_strength (drug_concept_id ASC);
 CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id ASC);
+CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
+CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_2 FOREIGN KEY (ingredient_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_1 FOREIGN KEY (amount_unit_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_2 FOREIGN KEY (numerator_unit_concept_id) REFERENCES concept (concept_id);

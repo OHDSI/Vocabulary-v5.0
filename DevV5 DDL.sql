@@ -3,7 +3,7 @@
 CREATE TABLE concept (
   concept_id            INTEGER            NOT NULL,
   concept_name            VARCHAR(255)    NOT NULL,
-  domain_id                VARCHAR(20)        NOT NULL,
+  domain_id                VARCHAR(200)        NOT NULL,
   vocabulary_id            VARCHAR(20)        NOT NULL,
   concept_class_id        VARCHAR(20)        NOT NULL,
   standard_concept        VARCHAR(1)        NULL,

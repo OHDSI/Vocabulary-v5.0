@@ -97,7 +97,7 @@ CREATE TABLE CONCEPT_STAGE
 (
    concept_id         INTEGER,
    concept_name       VARCHAR2 (256),
-   domain_id          VARCHAR (20),
+   domain_id          VARCHAR (200),
    vocabulary_id      VARCHAR (20) NOT NULL,
    concept_class_id   VARCHAR (20),
    standard_concept   VARCHAR2 (1 BYTE),

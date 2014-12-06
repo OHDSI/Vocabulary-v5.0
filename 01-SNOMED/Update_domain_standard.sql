@@ -85,6 +85,7 @@ insert into peak (peak_code, peak_domain_id) values (4155301, 'Race'); --Ethnic 
 insert into peak (peak_code, peak_domain_id) values (4216292, 'Race'); -- Racial group
 insert into peak (peak_code, peak_domain_id) values (40642546, 'Metadata'); -- SNOMED CT Model Component
 insert into peak (peak_code, peak_domain_id) values (4024728, 'Observation'); -- Linkage concept
+insert into peak (peak_code, peak_domain_id) values (4121358, 'Unit'); -- Top unit
 
 -- 2. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
@@ -285,12 +286,11 @@ join domain d on d.concept_code=a.descendant_concept_code
 join concept child on child.concept_code=a.descendant_concept_code
 order by 1;
 
--- Method 2: assign domains by using the class_concept_id
+-- Method 2: For those that slipped through the cracks assign domains by using the class_concept_id
+-- Check out which these are and potentially fix and re-run Method 1
 update domain d set
-	d.domain_id = 
+	d.domain_id = (select
     case c.concept_class_id
---       when 'Location' then 'Place of Service'
---       when 'Social context' then 'Provider Specialty'
       when 'Clinical Finding' then 'Condition'
       when 'Procedure' then 'Procedure'
       when 'Pharma/Biol Product' then 'Drug'
@@ -298,8 +298,10 @@ update domain d set
       when 'Model comp' then 'Metadata'
       else 'Observation' 
     end
-from concept_stage c
-where c.concept_code=d.concept_code and d.domain_id='Not assigned'
+  from concept_stage c
+  where c.concept_code=d.concept_code
+)
+where d.domain_id='Not assigned'
 ;
 
 -- 5. Update concept_stage from newly created domains
@@ -316,7 +318,9 @@ update concept_stage
       when 'Drug' then null -- Drugs are RxNorm
       when 'Metadata' then null -- Not used in CDM
       when 'Race' then null -- Race are CDC
-      when 'Provider' then null
+      when 'Provider Specialty' then null
+      when 'Place of Service' then null
+      when 'Unit' then null -- Units are UCUM
       else 'S' 
     end
 ;

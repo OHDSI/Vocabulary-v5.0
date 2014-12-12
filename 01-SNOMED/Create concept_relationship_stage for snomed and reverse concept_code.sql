@@ -1,5 +1,12 @@
 --Before we can update the domain_id, we need to build the hierarchy, and for that we need to get the internal relationships
 
+--0. prepare work
+--DROP INDEX idx_concept_code_1;
+--DROP INDEX idx_concept_code_2;
+--DROP INDEX idx_concept_id_1;
+--DROP INDEX idx_concept_id_2;
+
+
 --1. Build concept_relationship_stage
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
@@ -246,8 +253,8 @@ INSERT INTO concept_relationship_stage
              (                                           -- the inverse record
               SELECT 1
                 FROM concept_relationship_stage i
-               WHERE     crs.concept_id_1 = i.concept_id_2
-                     AND crs.concept_id_2 = i.concept_id_1
+               WHERE     crs.CONCEPT_CODE_1 = i.CONCEPT_CODE_2
+                     AND crs.CONCEPT_CODE_2 = i.CONCEPT_CODE_1
                      AND r.reverse_relationship_id = i.relationship_id);
                      
 
@@ -261,9 +268,9 @@ exec PKG_CONCEPT_ANCESTOR.CALC;
 
 --6. fill in all concept_id_1 and _2 in concept_relationship_stage
 CREATE INDEX idx_concept_code_1
-   ON concept_relationship_stage (concept_code_1);
+   ON concept_relationship_stage (concept_code_1) NOLOGGING;
 CREATE INDEX idx_concept_code_2
-   ON concept_relationship_stage (concept_code_2);
+   ON concept_relationship_stage (concept_code_2) NOLOGGING;
    
 UPDATE concept_relationship_stage crs
    SET (crs.concept_id_1, crs.concept_id_2) =
@@ -287,9 +294,9 @@ UPDATE concept_relationship_stage crs
  
  --7. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
  CREATE INDEX idx_concept_id_1
-   ON concept_relationship_stage (concept_id_1);
+   ON concept_relationship_stage (concept_id_1) NOLOGGING;
 CREATE INDEX idx_concept_id_2
-   ON concept_relationship_stage (concept_id_2);
+   ON concept_relationship_stage (concept_id_2) NOLOGGING;
 
 UPDATE concept_relationship d
    SET (d.valid_end_date, d.invalid_reason) =

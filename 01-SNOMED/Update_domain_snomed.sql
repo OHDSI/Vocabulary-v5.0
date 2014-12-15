@@ -178,7 +178,8 @@ INSERT INTO peak -- before doing that check first out without the insert
 
 
 -- 5. Start building domains, preassign all them with "Not assigned"
--- drop table domain_snomed purge;
+DROP TABLE domain_snomed purge;
+
 CREATE TABLE domain_snomed
 AS
    SELECT concept_code, CAST ('Not assigned' AS VARCHAR2 (20)) AS domain_id
@@ -222,13 +223,21 @@ BEGIN
                           WHERE     a.ancestor_concept_code = p.peak_code
                                 AND p.ranked = A.ranked) child
                   WHERE child.concept_code = d.concept_code)
-       WHERE d.concept_code IN (SELECT a.descendant_concept_code
-                                  FROM peak p, snomed_ancestor a
-                                 WHERE     a.ancestor_concept_code = p.peak_code);
+       WHERE     d.concept_code IN (SELECT a.descendant_concept_code
+                                      FROM peak p, snomed_ancestor a
+                                     WHERE a.ancestor_concept_code =
+                                              p.peak_code)
+             AND EXISTS
+                    (SELECT 1
+                       FROM peak p, snomed_ancestor a
+                      WHERE     a.ancestor_concept_code = p.peak_code
+                            AND p.ranked = A.ranked
+                            AND a.descendant_concept_code = d.concept_code);
    END LOOP;
 
    COMMIT;
 END;
+
 
 -- Check orphans whether they contain mixed children with different multiple concept_class_ids or domains. 
 -- If they have mixed children, the concept_class_id-based heuristic might create problems
@@ -274,6 +283,7 @@ UPDATE domain_snomed d
 
 CREATE INDEX idx_domain_cc
    ON domain_snomed (concept_code);
+   
 
 UPDATE concept_stage c
    SET c.domain_id =
@@ -283,46 +293,48 @@ UPDATE concept_stage c
  WHERE C.VOCABULARY_ID = 'SNOMED';
 
 
-
 UPDATE concept_stage c
    SET c.domain_id = 'Route'
- WHERE concept_code IN ('255560000',
-                        '255582007',
-                        '258160008',
-                        '260540009',
-                        '260548002',
-                        '264049007',
-                        '263887005',
-                        '372468001',
-                        '72607000',
-                        '359540000',
-                        '90028008');
+ WHERE     concept_code IN ('255560000',
+                            '255582007',
+                            '258160008',
+                            '260540009',
+                            '260548002',
+                            '264049007',
+                            '263887005',
+                            '372468001',
+                            '72607000',
+                            '359540000',
+                            '90028008')
+       AND C.VOCABULARY_ID = 'SNOMED';
 
 UPDATE concept_stage c
    SET c.domain_id = 'Spec Anatomic Site'
- WHERE concept_class_id = 'Body Structure';
+ WHERE concept_class_id = 'Body Structure' AND C.VOCABULARY_ID = 'SNOMED';
 
 UPDATE concept_stage c
    SET c.domain_id = 'Specimen'
- WHERE concept_class_id = 'Specimen';
+ WHERE concept_class_id = 'Specimen' AND C.VOCABULARY_ID = 'SNOMED';
 
 UPDATE concept_stage c
    SET c.domain_id = 'Meas Value Operator'
- WHERE concept_code IN ('255560000',
-                        '255582007',
-                        '258160008',
-                        '260540009',
-                        '260548002',
-                        '264049007',
-                        '263887005',
-                        '372468001',
-                        '72607000',
-                        '359540000',
-                        '90028008');
+ WHERE     concept_code IN ('255560000',
+                            '255582007',
+                            '258160008',
+                            '260540009',
+                            '260548002',
+                            '264049007',
+                            '263887005',
+                            '372468001',
+                            '72607000',
+                            '359540000',
+                            '90028008')
+       AND C.VOCABULARY_ID = 'SNOMED';
 
 UPDATE concept_stage c
    SET c.domain_id = 'Spec Disease Status'
- WHERE concept_code IN ('21594007', '17621005', '263654008');
+ WHERE     concept_code IN ('21594007', '17621005', '263654008')
+       AND C.VOCABULARY_ID = 'SNOMED';
 
 -- 8. Set standard_concept based on domain_id
 UPDATE concept_stage c

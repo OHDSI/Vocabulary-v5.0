@@ -14,7 +14,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   WITH tmp_rel
+  WITH tmp_rel
         AS (                             --get active and latest relationships
             SELECT sourceid, destinationid, replace(term,' (attribute)','') term
               FROM (SELECT r.sourceid,
@@ -33,7 +33,8 @@ INSERT INTO concept_relationship_stage (concept_code_1,
              WHERE     rn = 1
                    AND active = 1
                    AND sourceid IS NOT NULL
-                   AND destinationid IS NOT NULL)
+                   AND destinationid IS NOT NULL
+				   AND d.term<>'PBCL flag true')
    --convert SNOMED to OMOP-type relationship_id
    SELECT sourceid,
           destinationid,
@@ -188,10 +189,38 @@ INSERT INTO concept_relationship_stage (concept_code_1,
              WHEN term = 'Procedure context'
              THEN
                 'Has proc context'
+             WHEN term = 'AW'
+             THEN
+                'Finding asso with'
+             WHEN term = 'Clinical course'
+             THEN
+                'Has clinical course'  
+             WHEN term = 'Finding informer'
+             THEN
+                'Using finding inform'   
+             WHEN term = 'Finding method'
+             THEN
+                'Using finding method'    
+             WHEN term = 'Measurement method'
+             THEN
+                'Has method'     
+             WHEN term = 'Route of administration - attribute'
+             THEN
+                'Has route of admin'
+             WHEN term = 'Surgical approach'
+             THEN
+                'Has surgical appr'  
+             WHEN term = 'Temporal context'
+             THEN
+                'Has temporal context'   
+             WHEN term = 'Using access device'
+             THEN
+                'Using acc device'                                                                                                                                      
              ELSE
                 'non-existing'                           -- this will break it
           END
-             AS relationship_id,
+             AS relationship_id, term,
+             
           TO_DATE ('01.12.2014', 'dd.mm.yyyy'),--release date
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
@@ -268,9 +297,9 @@ exec PKG_CONCEPT_ANCESTOR.CALC;
 
 --6. fill in all concept_id_1 and _2 in concept_relationship_stage
 CREATE INDEX idx_concept_code_1
-   ON concept_relationship_stage (concept_code_1) NOLOGGING;
+   ON concept_relationship_stage (concept_code_1);
 CREATE INDEX idx_concept_code_2
-   ON concept_relationship_stage (concept_code_2) NOLOGGING;
+   ON concept_relationship_stage (concept_code_2);
    
 UPDATE concept_relationship_stage crs
    SET (crs.concept_id_1, crs.concept_id_2) =
@@ -288,96 +317,8 @@ UPDATE concept_relationship_stage crs
                   AND crs.concept_code_1 = r.concept_code_1
                   AND c2.vocabulary_id = cs2.vocabulary_id
                   AND crs.concept_code_2 = r.concept_code_2
-                  AND c1.vocabulary_id = 'SNOMED'
-                  AND c2.vocabulary_id = 'SNOMED')
+                  AND c1.vocabulary_id = c2.vocabulary_id)
  WHERE crs.concept_id_1 IS NULL OR crs.concept_id_2 IS NULL;
  
- --7. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
- CREATE INDEX idx_concept_id_1
-   ON concept_relationship_stage (concept_id_1) NOLOGGING;
-CREATE INDEX idx_concept_id_2
-   ON concept_relationship_stage (concept_id_2) NOLOGGING;
-
-UPDATE concept_relationship d
-   SET (d.valid_end_date, d.invalid_reason) =
-          (SELECT distinct crs.valid_end_date, crs.invalid_reason
-             FROM concept_relationship_stage crs
-            WHERE     crs.concept_id_1 = d.concept_id_1
-                  AND crs.concept_id_2 = d.concept_id_2
-                  AND crs.relationship_id = d.relationship_id)
- WHERE EXISTS
-          (SELECT 1
-             FROM concept_relationship_stage r
-            -- test whether either the concept_ids match
-            WHERE     d.concept_id_1 = r.concept_id_1
-                  AND d.concept_id_2 = r.concept_id_2
-                  AND d.relationship_id = r.relationship_id);
- 
- 
---8. Deprecate missing relationships, but only if the concepts exist.
--- If relationships are missing because of deprecated concepts, leave them intact
-UPDATE concept_relationship d
-   SET valid_end_date = to_date('20141130', 'YYYYMMDD'), -- day before release day
-       invalid_reason = 'D'
- WHERE     NOT EXISTS
-              (SELECT 1
-                 FROM concept_relationship_stage r
-                -- test whether either the concept_ids match, or the concept_ids matched to the concept_codes in either stage or dev
-                WHERE     d.concept_id_1 = r.concept_id_1
-                      AND d.concept_id_2 = r.concept_id_2
-                      AND d.relationship_id = r.relationship_id)
-
-       AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecate those that are fresh and active
-       AND d.valid_start_date < TO_DATE ('20141130', 'YYYYMMDD') -- started before release date
-       -- exclude replacing relationships, usually they are not maintained after a concept died
-       AND d.relationship_id NOT IN ('UCUM replaced by',
-                                     'UCUM replaces',
-                                     'Concept replaced by',
-                                     'Concept replaces',
-                                     'Concept same_as to',
-                                     'Concept same_as from',
-                                     'Concept alt_to to',
-                                     'Concept alt_to from',
-                                     'Concept poss_eq to',
-                                     'Concept poss_eq from',
-                                     'Concept was_a to',
-                                     'Concept was_a from',
-                                     'LOINC replaced by',
-                                     'LOINC replaces',
-                                     'RxNorm replaced by',
-                                     'RxNorm replaces',
-                                     'SNOMED replaced by',
-                                     'SNOMED replaces',
-                                     'ICD9P replaced by',
-                                     'ICD9P replaces') -- check for existence of both concept_id_1 and concept_id_2
-       AND EXISTS
-              (SELECT 1
-                 FROM concept_stage c
-                WHERE c.concept_id = d.concept_id_1 and C.VOCABULARY_ID='SNOMED' )
-       AND EXISTS
-              (SELECT 1
-                 FROM concept_stage c
-                WHERE c.concept_id = d.concept_id_2 and C.VOCABULARY_ID='SNOMED');                  
-
---10. insert new relationships
-INSERT INTO concept_relationship (concept_id_1,
-                                  concept_id_2,
-                                  relationship_id,
-                                  valid_start_date,
-                                  valid_end_date,
-                                  invalid_reason)
-   SELECT distinct crs.concept_id_1,
-          crs.concept_id_2,
-          crs.relationship_id,
-          TO_DATE ('20141201', 'YYYYMMDD') AS valid_start_date,
-          TO_DATE ('20991231', 'YYYYMMDD') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM concept_relationship_stage crs
-    WHERE NOT EXISTS
-             (SELECT 1
-                FROM concept_relationship r
-               -- test whether either the concept_ids match, or the concept_ids matched to the concept_codes in either stage or dev
-               WHERE     crs.concept_id_1 = r.concept_id_1
-                     AND crs.concept_id_2 = r.concept_id_2
-                     AND crs.relationship_id = r.relationship_id);
-
+ --7. update domains (Vocabulary-v5.0\17-Read\Add_domain_id_and_concept_class_id_to_concept_stage.sql)
+ --8. update concept from concept_stage (Vocabulary-v5.0\Update\Concept_Update_Full.sql)

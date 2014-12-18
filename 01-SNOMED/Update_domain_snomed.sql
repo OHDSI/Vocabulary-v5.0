@@ -137,6 +137,7 @@ SELECT conflict.concept_name AS child,
                                                   clash)
          AND c.concept_code = a.ancestor_concept_code
          AND c.concept_code = d.peak_code
+		 AND c.vocabulary_id='SNOMED'
          AND conflict.concept_code = a.descendant_concept_code
 ORDER BY conflict.concept_name, min_levels_of_separation, c.concept_name;
 
@@ -254,6 +255,7 @@ END;
                                                       WHERE ancestor_concept_code !=
                                                                descendant_concept_code)
                  AND c.concept_code = a.ancestor_concept_code
+				 AND c.vocabulary_id='SNOMED'
                  AND c.concept_code NOT IN (SELECT DISTINCT peak_code
                                             FROM peak)) orphan
          JOIN snomed_ancestor a

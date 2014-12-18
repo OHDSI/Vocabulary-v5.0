@@ -17,6 +17,12 @@ Download the international SNOMED file SnomedCT_Release_INT_YYYYMMDD.zip from ht
 
 9. der2_cRefset_AssociationReferenceFull_INT_YYYYMMDD.txt from SnomedCT_Release_INT_YYYYMMDD\RF2Release\Full\Refset\Content 
 and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT2_GB1000000_YYYYMMDD\RF2Release\Full\Refset\Content (ctl files in 10-SNOMED)
+
+10. download YYYYab-1-meta.nlm (for exemple 2014ab-1-meta.nlm)
+--unpack MRCONSO.RRF.aa.gz and MRCONSO.RRF.ab.gz, then run:
+--gunzip *.gz
+--cat MRCONSO.RRF.aa MRCONSO.RRF.ab > MRCONSO.RRF
+--load MRCONSO.RRF with RXNCONSO.ctl
 */
 
 --1 create views
@@ -167,7 +173,8 @@ AS
                                      rna -- row number in sct2_desc_full_merged
                              FROM concept_stage c
                                   JOIN sct2_desc_full_merged d
-                                     ON d.conceptid = c.concept_code)))
+                                     ON d.conceptid = c.concept_code
+									 where c.vocabulary_id='SNOMED')))
     WHERE rnc = 1;	
 	
 	create index x_cc_2cd on tmp_concept_class (concept_code);
@@ -324,6 +331,83 @@ UPDATE concept_stage cs
                         'Undefined'
                   END
              FROM tmp_concept_class cc
-            WHERE cc.concept_code = cs.concept_code);
+            WHERE cc.concept_code = cs.concept_code)
+	WHERE cs.vocabulary_id='SNOMED';
 			
+--5.	Choice of concept_name in SNOMED and synonyms
+--1st Fix concept_names using tmp table:
+
+create table mrconso_tmp as
+select DISTINCT
+                  FIRST_VALUE (
+                     n.AUI)
+                  OVER (
+                     PARTITION BY n.code
+                     ORDER BY
+                        DECODE (n.tty,
+                                'PT', 1,
+                                'PTGB', 2,
+                                'SY', 3,
+                                'SYGB', 4,
+                                'MTH_PT', 5,
+                                'FN', 6,
+                                'MTH_SY', 7,
+                                'SB', 8,
+                                10            -- default for the obsolete ones
+                                  )) AUI,  
+                   FIRST_VALUE (
+                     -- take the best str, and remove things like "(procedure)" 
+                     REGEXP_REPLACE (n.str, ' \(.*?\)$', '')) 
+                  OVER (
+                     PARTITION BY n.code
+                     ORDER BY
+                        DECODE (n.tty,
+                                'PT', 1,
+                                'PTGB', 2,
+                                'SY', 3,
+                                'SYGB', 4,
+                                'MTH_PT', 5,
+                                'FN', 6,
+                                'MTH_SY', 7,
+                                'SB', 8,
+                                10            -- default for the obsolete ones
+                                  )) str,                                  
+                  n.code                                                                
+             FROM mrconso n
+            WHERE n.sab = 'SNOMEDCT_US';
 			
+--then update
+UPDATE concept c
+   SET c.concept_name =
+          (         
+           SELECT str
+             FROM mrconso_tmp m_tmp
+            WHERE m_tmp.code = c.concept_code)
+ WHERE     EXISTS
+              (        -- the concept_name is identical to the str of a record
+               SELECT 1
+                 FROM mrconso m
+                WHERE     m.code = c.concept_code
+                      AND m.sab = 'SNOMEDCT_US'
+                      AND c.vocabulary_id = 'SNOMED'
+                      AND TRIM (c.concept_name) = TRIM (m.str)
+                      AND m.tty <> 'PT' -- anything that is not the preferred term
+                                       )
+       AND c.invalid_reason IS NULL -- only active ones. The inactive ones often only have obsolete tty anyway
+       AND c.vocabulary_id = 'SNOMED';
+
+--6 Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
+INSERT INTO concept_synonym_stage (synonym_concept_id,
+                                   synonym_concept_code,
+                                   synonym_name,
+                                   language_concept_id)
+   SELECT NULL,
+          m.code,
+          SUBSTR (m.str, 1, 256),
+          4093769 -- English
+     FROM mrconso m LEFT JOIN mrconso_tmp m_tmp ON m.aui = m_tmp.aui
+    WHERE m.sab = 'SNOMEDCT_US' AND m_tmp.aui IS NULL;
+
+			   
+
+		

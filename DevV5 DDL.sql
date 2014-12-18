@@ -40,6 +40,7 @@ CREATE TABLE concept_relationship (
   concept_id_1            INTEGER            NOT NULL,
   concept_id_2            INTEGER            NOT NULL,
   relationship_id        VARCHAR(20)        NOT NULL,
+  vocabulary_id            VARCHAR(20)        NOT NULL,
   valid_start_date        DATE            NOT NULL,
   valid_end_date        DATE            NOT NULL,
   invalid_reason        VARCHAR(1)        NULL)
@@ -110,6 +111,20 @@ CREATE TABLE CONCEPT_STAGE
                          NOT NULL,
    invalid_reason     VARCHAR2 (1 BYTE)
 );
+
+
+CREATE TABLE CONCEPT_RELATIONSHIP_STAGE
+(
+  CONCEPT_ID_1      NUMBER,
+  CONCEPT_ID_2      NUMBER,
+  CONCEPT_CODE_1    VARCHAR2(50 BYTE),
+  CONCEPT_CODE_2    VARCHAR2(50 BYTE),
+  RELATIONSHIP_ID   VARCHAR2(20 BYTE)           NOT NULL,
+  VOCABULARY_ID      VARCHAR (20) NOT NULL,
+  VALID_START_DATE  DATE,
+  VALID_END_DATE    DATE,
+  INVALID_REASON    VARCHAR2(1 BYTE)
+)
 
 -- Create FKs
 

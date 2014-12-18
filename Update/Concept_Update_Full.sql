@@ -73,20 +73,17 @@ where  concept_id in (select concept_id from concept_stage);
 -- Deprecate missing concepts
 update concept c set
 c.valid_end_date = c.valid_start_date-1
-where c.vocabulary_id = (select distinct vocabulary_id from concept_stage)
-and not exists (select 1 from concept_stage cs where cs.concept_id=c.concept_id);
+where not exists (select 1 from concept_stage cs where cs.concept_id=c.concept_id and cs.vocabulary_id=c.vocabulary_id);
 
 -- set invalid_reason for active concepts
 update concept set
 invalid_reason=null
-where vocabulary_id = (select distinct vocabulary_id from concept_stage)
-and valid_end_date = to_date('31.12.2099','dd.mm.yyyy');
+where valid_end_date = to_date('31.12.2099','dd.mm.yyyy');
 
 -- set invalid_reason for deprecated concepts
 update concept set
 invalid_reason='D'
-where vocabulary_id = (select distinct vocabulary_id from concept_stage)
-and invalid_reason is null -- unless is already set
+where invalid_reason is null -- unless is already set
 and valid_end_date <> to_date('31.12.2099','dd.mm.yyyy');
 
 -- Add new concepts
@@ -103,8 +100,7 @@ INSERT INTO concept (concept_id,
    SELECT v5dev.v5_concept.NEXTVAL,
           cs.concept_name,
           cs.domain_id,
-          (SELECT DISTINCT vocabulary_id
-             FROM concept_stage),
+          cs.vocabulary_id,
           cs.concept_class_id,
           cs.standard_concept,
           cs.concept_code,

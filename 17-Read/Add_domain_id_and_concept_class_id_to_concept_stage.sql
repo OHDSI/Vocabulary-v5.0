@@ -1,9 +1,14 @@
 --1. create temporary table read_domains
 create table read_domains as
-    select concept_code, replace(
-    domains,'Measurement/Procedure','Meas/Procedure',
-    'Condition/Measurement','Condition/Meas'
-    ) domains from (
+    select concept_code,   
+    case when domains='Measurement/Procedure' then 'Meas/Procedure'
+        when domains='Condition/Measurement' then 'Condition/Meas'
+        when domains='Condition/Observation/Spec Anatomic Site' then 'Condition'
+        when domains='Condition/Spec Anatomic Site' then 'Condition'
+        when domains='Device/Observation/Procedure/Spec Anatomic Site' then 'Procedure'
+        when domains='Observation/Procedure/Spec Anatomic Site' then 'Procedure'
+        else domains
+    end domains from (
         select concept_code, LISTAGG(domain_id, '/') WITHIN GROUP (order by domain_id) domains from (
                SELECT c1.concept_code, c2.domain_id
                 FROM concept_relationship_stage r, concept_stage c1, concept c2
@@ -40,6 +45,11 @@ update read_domains set domains=trim('/' FROM replace('/'||domains||'/','/Observ
 where '/'||domains||'/' like '%/Observation/%'
 and instr(domains,'/')<>0;
 
+
+--check for new domains:
+select domains from read_domains 
+minus
+select domain_id from domain;
 
 --3. update each domain_id with the domains field from read_domains. If null take the 6-letter code, if still null take the 5-letter code etc.
 update concept_stage cs set (domain_id)=

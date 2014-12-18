@@ -1,6 +1,7 @@
 --Before we can update the domain_id, we need to build the hierarchy, and for that we need to get the internal relationships
 
 --0. prepare work
+--truncate table concept_relationship_stage;
 --DROP INDEX idx_concept_code_1;
 --DROP INDEX idx_concept_code_2;
 --DROP INDEX idx_concept_id_1;
@@ -11,6 +12,7 @@
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
+										vocabulary_id,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
@@ -34,7 +36,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    AND active = 1
                    AND sourceid IS NOT NULL
                    AND destinationid IS NOT NULL
-				   AND d.term<>'PBCL flag true')
+				   AND term<>'PBCL flag true')
    --convert SNOMED to OMOP-type relationship_id
    SELECT sourceid,
           destinationid,
@@ -215,12 +217,21 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                 'Has temporal context'   
              WHEN term = 'Using access device'
              THEN
-                'Using acc device'                                                                                                                                      
+                'Using acc device'  
+             WHEN term = 'Using device'
+             THEN
+                'Using device'   
+             WHEN term = 'Using energy'
+             THEN
+                'Using energy'   
+             WHEN term = 'Using substance'
+             THEN
+                'Using subst'      				
              ELSE
                 'non-existing'                           -- this will break it
           END
-             AS relationship_id, term,
-             
+             AS relationship_id,
+		  'SNOMED',
           TO_DATE ('01.12.2014', 'dd.mm.yyyy'),--release date
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
@@ -231,12 +242,14 @@ INSERT INTO concept_relationship_stage (concept_code_1,
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
+										vocabulary_id,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
    SELECT concept_code_1,
           concept_code_2,
           relationship_id,
+		  'SNOMED',
           TO_DATE ('01.12.2014', 'dd.mm.yyyy'),                 --release date
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
@@ -273,6 +286,7 @@ INSERT INTO concept_relationship_stage
           CRS.CONCEPT_CODE_2 AS CONCEPT_CODE_1,
           CRS.CONCEPT_CODE_1 AS CONCEPT_CODE_2,
           r.reverse_relationship_id AS relationship_id,
+		  crs.vocabulary_id,
           crs.valid_start_date,
           crs.valid_end_date,
           crs.invalid_reason
@@ -284,8 +298,9 @@ INSERT INTO concept_relationship_stage
                 FROM concept_relationship_stage i
                WHERE     crs.CONCEPT_CODE_1 = i.CONCEPT_CODE_2
                      AND crs.CONCEPT_CODE_2 = i.CONCEPT_CODE_1
-                     AND r.reverse_relationship_id = i.relationship_id);
-                     
+                     AND r.reverse_relationship_id = i.relationship_id
+					 AND crs.vocabulary_id=i.vocabulary_id)
+    AND crs.vocabulary_id='SNOMED'                 
 
 
 commit;
@@ -304,8 +319,8 @@ CREATE INDEX idx_concept_code_2
 UPDATE concept_relationship_stage crs
    SET (crs.concept_id_1, crs.concept_id_2) =
           (SELECT DISTINCT
-                  COALESCE (cs1.concept_id, c1.concept_id),
-                  COALESCE (cs2.concept_id, c2.concept_id)
+                  COALESCE (cs1.concept_id, c1.concept_id,crs.concept_id_1),
+                  COALESCE (cs2.concept_id, c2.concept_id,crs.concept_id_2)
              FROM concept_relationship_stage r
                   LEFT JOIN concept_stage cs1
                      ON cs1.concept_code = r.concept_code_1

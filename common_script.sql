@@ -1412,6 +1412,7 @@ commit;
 --Deprecate missing relationships, but only if the concepts exist.
 -- If relationships are missing because of deprecated concepts, leave them intact
 --Do it with all vocabulary (Read, SNOMED, RxNorm), but with his own release day
+
 --SNOMED
 UPDATE concept_relationship d
    SET valid_end_date = to_date('20141130', 'YYYYMMDD'), -- day before release day

@@ -1,22 +1,63 @@
 --1. create copies of main files
-truncate table concept;
-truncate table concept_relationship;
-truncate table concept_synonym;
-insert into concept select * from v5dev.concept;
-commit;
-insert into concept_relationship select * from v5dev.concept_relationship;
-commit;
-insert into concept_synonym select * from v5dev.concept_synonym;
-commit;
+declare
+CURSOR  usr_idxs IS 
+    select * from user_indexes where table_name in ('CONCEPT','CONCEPT_RELATIONSHIP','CONCEPT_SYNONYM');
+CURSOR  usr_cnstrs_d  IS 
+    select * from user_constraints WHERE table_name not like 'BIN$%' and status='ENABLED' order by constraint_type DESC; --'R' constraints first
+CURSOR  usr_cnstrs_e  IS 
+    select * from user_constraints WHERE table_name not like 'BIN$%' and status='DISABLED' order by constraint_type ASC;
+v_sql  VARCHAR2(2000);
+begin
+    EXECUTE IMMEDIATE 'alter session set skip_unusable_indexes = true'; --disables error reporting of indexes and index partitions marked UNUSABLE
+    EXECUTE IMMEDIATE 'alter session enable parallel dml';
+    /*disable indexes and redo*/
+    for cur_idx in usr_idxs loop
+        v_sql:= 'ALTER TABLE ' || cur_idx.table_name || ' NOLOGGING';
+        EXECUTE IMMEDIATE v_sql;    
+        v_sql:= 'ALTER INDEX ' || cur_idx.index_name || ' UNUSABLE';
+        EXECUTE IMMEDIATE v_sql;
+    end loop;
 
---1.1 clear *_stage tables and drop views
-truncate table CONCEPT_STAGE;
-truncate table concept_relationship_stage;
-truncate table concept_synonym_stage;
-drop view sct2_concept_full_merged;
-drop view sct2_desc_full_merged;
-drop view sct2_rela_full_merged;
-drop view der2_cRefset_AssRefFull_merged;
+    /*disable constraints*/
+    for cur_cnstr in usr_cnstrs_d loop
+        v_sql:= 'ALTER TABLE ' || cur_cnstr.table_name || ' MODIFY CONSTRAINT '|| cur_cnstr.constraint_name || ' DISABLE';
+        EXECUTE IMMEDIATE v_sql;
+    end loop;    
+
+    execute immediate 'truncate table concept';
+    execute immediate 'truncate table concept_relationship';
+    execute immediate 'truncate table concept_synonym';
+    execute immediate 'truncate table CONCEPT_STAGE';
+    execute immediate 'truncate table concept_relationship_stage';
+    execute immediate 'truncate table concept_synonym_stage';
+    
+    
+    insert /*+ APPEND parallel(4) */ into concept select * from v5dev.concept;
+    commit;
+    insert /*+ APPEND parallel(4) */ into concept_relationship select * from v5dev.concept_relationship;
+    commit;
+    insert /*+ APPEND parallel(4) */ into concept_synonym select * from v5dev.concept_synonym;
+    commit;
+
+    /*enable indexes and redo*/
+    for cur_idx in usr_idxs loop
+        v_sql:= 'ALTER INDEX ' || cur_idx.index_name || ' REBUILD NOLOGGING';
+        dbms_output.put_line(v_sql);
+        EXECUTE IMMEDIATE v_sql;
+        v_sql:= 'ALTER TABLE ' || cur_idx.table_name || ' LOGGING';
+        EXECUTE IMMEDIATE v_sql;            
+    end loop;
+
+    /*enable constraints*/
+    for cur_cnstr in usr_cnstrs_e loop
+        v_sql:= 'ALTER TABLE ' || cur_cnstr.table_name || ' MODIFY CONSTRAINT '|| cur_cnstr.constraint_name || ' ENABLE';
+        dbms_output.put_line(v_sql);
+        EXECUTE IMMEDIATE v_sql;
+    end loop;    
+
+end;
+
+--1.1 
 drop table read_domains;
 
 --2. create core files of Read
@@ -159,7 +200,8 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
              ON     c.concept_code = r.rxcui
                 AND NOT c.concept_class_id IN ('Clinical Pack',
                                                'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY';
+    WHERE sab = 'RXNORM' AND tty = 'SY'
+	AND c.vocabulary_id='RxNorm';
 
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
@@ -170,16 +212,13 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           JOIN concept_stage c
              ON     c.concept_code = r.code
                 AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY';    
+    WHERE sab = 'RXNORM' AND tty = 'SY'
+	AND c.vocabulary_id='RxNorm';
 
 	
 --6. create core files of SNOMED
 --7. fill CONCEPT_STAGE and concept_synonym_stage from SNOMED	
 
-create view sct2_concept_full_merged as select * from sct2_concept_full_int union select * from sct2_concept_full_uk;
-create view sct2_desc_full_merged as select * from sct2_desc_full_en_int union select * from sct2_desc_full_uk;
-create view sct2_rela_full_merged as select * from sct2_rela_full_int union select * from sct2_rela_full_uk;
-create view der2_cRefset_AssRefFull_merged as select * from der2_cRefset_AssRefFull_INT union select * from der2_cRefset_AssRefFull_UK;
 
 --Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
 INSERT INTO concept_stage (concept_name,

@@ -1,4 +1,5 @@
 --1. create copies of main files
+--1. create copies of main files
 declare
 CURSOR  usr_idxs IS 
     select * from user_indexes where table_name in ('CONCEPT','CONCEPT_RELATIONSHIP','CONCEPT_SYNONYM');
@@ -1226,68 +1227,12 @@ UPDATE concept_stage c
 
 COMMIT;
 
-------------------need rewrite code below!!----------
 
---11. fill in all concept_id_1 and _2 in concept_relationship_stage
-CREATE INDEX idx_concept_code_1
-   ON concept_relationship_stage (concept_code_1);
-CREATE INDEX idx_concept_code_2
-   ON concept_relationship_stage (concept_code_2);
-
-/*   depricate
-UPDATE concept_relationship_stage crs
-   SET (crs.concept_id_1, crs.concept_id_2) =
-          (SELECT DISTINCT
-                  COALESCE (cs1.concept_id, c1.concept_id,crs.concept_id_1),
-                  COALESCE (cs2.concept_id, c2.concept_id,crs.concept_id_2)
-             FROM concept_relationship_stage r
-                  LEFT JOIN concept_stage cs1
-                     ON cs1.concept_code = r.concept_code_1
-                  LEFT JOIN concept c1 ON c1.concept_code = r.concept_code_1
-                  LEFT JOIN concept_stage cs2
-                     ON cs2.concept_code = r.concept_code_2
-                  LEFT JOIN concept c2 ON c2.concept_code = r.concept_code_2
-            WHERE     c1.vocabulary_id = cs1.vocabulary_id
-                  AND crs.concept_code_1 = r.concept_code_1
-                  AND c2.vocabulary_id = cs2.vocabulary_id
-                  AND crs.concept_code_2 = r.concept_code_2
-                  AND c1.vocabulary_id = c2.vocabulary_id)
- WHERE crs.concept_id_1 IS NULL OR crs.concept_id_2 IS NULL;
- */
  
- --probably requires to be rewritten
- UPDATE concept_relationship_stage crs
-   SET (crs.concept_id_1, crs.concept_id_2) =
-          (SELECT DISTINCT
-                  COALESCE (cs1.concept_id, c1.concept_id,crs.concept_id_1),
-                  COALESCE (cs2.concept_id, c2.concept_id,crs.concept_id_2)
-             FROM concept_relationship_stage r
-                  LEFT JOIN concept_stage cs1
-                     ON cs1.concept_code = r.concept_code_1 and cs1.vocabulary_id=r.vocabulary_id
-                  LEFT JOIN concept c1 ON c1.concept_code = r.concept_code_1 and c1.vocabulary_id=r.vocabulary_id
-                  LEFT JOIN concept_stage cs2
-                     ON cs2.concept_code = r.concept_code_2 and cs2.vocabulary_id=r.vocabulary_id
-                  LEFT JOIN concept c2 ON c2.concept_code = r.concept_code_2 and c2.vocabulary_id=r.vocabulary_id
-            WHERE      nvl(crs.concept_code_1,-1) = nvl(r.concept_code_1,-1)
-                  AND nvl(crs.concept_code_2,-1) = nvl(r.concept_code_2,-1)
-                  
-         )
- WHERE crs.concept_id_1 IS NULL OR crs.concept_id_2 IS NULL; 
- COMMIT;
- 
- --12. update domains
-
- --12.1. create temporary table read_domains
+ --11. update domains
+ --11.1. create temporary table read_domains
 create table read_domains as
-    select concept_code,   
-    case when domains='Measurement/Procedure' then 'Meas/Procedure'
-        when domains='Condition/Measurement' then 'Condition/Meas'
-        when domains='Condition/Observation/Spec Anatomic Site' then 'Condition'
-        when domains='Condition/Spec Anatomic Site' then 'Condition'
-        when domains='Device/Observation/Procedure/Spec Anatomic Site' then 'Procedure'
-        when domains='Observation/Procedure/Spec Anatomic Site' then 'Procedure'
-        else domains
-    end domains from (
+    select concept_code, domains from (
         select concept_code, LISTAGG(domain_id, '/') WITHIN GROUP (order by domain_id) domains from (
                SELECT c1.concept_code, c2.domain_id
                 FROM concept_relationship_stage r, concept_stage c1, concept c2
@@ -1324,18 +1269,29 @@ create table read_domains as
 
 CREATE INDEX idx_read_domains ON read_domains (concept_code);
 
---12.2. Simplify the list by removing Observations where is Measurement, Meas Value, Speciment, Spec Anatomic Site, Relationship
+--11.2. Simplify the list by removing Observations where is Measurement, Meas Value, Speciment, Spec Anatomic Site, Relationship
 update read_domains set domains=trim('/' FROM replace('/'||domains||'/','/Observation/','/'))
 where '/'||domains||'/' like '%/Observation/%'
 and instr(domains,'/')<>0;
 
+update read_domains set domains='Meas/Procedure' where domains='Measurement/Procedure';
+update read_domains set domains='Condition/Meas' where domains='Condition/Measurement';
+update read_domains set domains='Condition' where domains='Condition/Spec Anatomic Site';
+update read_domains set domains='Procedure' where domains='Device/Procedure/Spec Anatomic Site';
+update read_domains set domains='Procedure' where domains='Procedure/Spec Anatomic Site';
+update read_domains set domains='Procedure' where domains='Condition/Procedure/Spec Anatomic Site';
+update read_domains set domains='Observation' where domains='Condition/Relationship';
+update read_domains set domains='Procedure' where domains='Place of Service/Procedure';
 
---check for new domains:
+
+commit;
+
+--check for new domains (must not return any rows!):
 select domains from read_domains 
 minus
 select domain_id from domain;
 
---12.3. update each domain_id with the domains field from read_domains. If null take the 6-letter code, if still null take the 5-letter code etc.
+--11.3. update each domain_id with the domains field from read_domains. If null take the 6-letter code, if still null take the 5-letter code etc.
 update concept_stage cs set (domain_id)=
     (select coalesce(d7.domains, d6.domains, d5.domains, d4.domains, d3.domains, 'Observation')
     from concept_stage c
@@ -1350,7 +1306,7 @@ update concept_stage cs set (domain_id)=
 
 COMMIT;
 
---13. update concept from concept_stage 
+--12. update concept from concept_stage 
  -- Fill concept_id where concept exists
 update concept_stage cs
 set cs.concept_id=(select c.concept_id from concept c where c.concept_code=cs.concept_code and c.vocabulary_id=cs.vocabulary_id)
@@ -1423,7 +1379,34 @@ INSERT INTO concept (concept_id,
           NULL
      FROM concept_stage cs
     WHERE cs.concept_id IS NULL;
-	
+
+
+
+
+--13. fill in all concept_id_1 and _2 in concept_relationship_stage
+CREATE INDEX idx_concept_code_1
+   ON concept_relationship_stage (concept_code_1);
+CREATE INDEX idx_concept_code_2
+   ON concept_relationship_stage (concept_code_2);
+
+
+UPDATE concept_relationship_stage crs
+   SET (crs.concept_id_1, crs.concept_id_2) =
+          (SELECT 
+                  COALESCE (cs1.concept_id, c1.concept_id,crs.concept_id_1),
+                  COALESCE (cs2.concept_id, c2.concept_id,crs.concept_id_2)
+             FROM concept_relationship_stage r
+                  LEFT JOIN concept_stage cs1
+                     ON cs1.concept_code = r.concept_code_1 and cs1.vocabulary_id=r.vocabulary_id
+                  LEFT JOIN concept c1 ON c1.concept_code = r.concept_code_1 and c1.vocabulary_id=r.vocabulary_id
+                  LEFT JOIN concept_stage cs2
+                     ON cs2.concept_code = r.concept_code_2 and cs2.vocabulary_id=r.vocabulary_id
+                  LEFT JOIN concept c2 ON c2.concept_code = r.concept_code_2 and c2.vocabulary_id=r.vocabulary_id
+            WHERE      crs.rowid=r.rowid
+                  
+         )
+ WHERE crs.concept_id_1 IS NULL OR crs.concept_id_2 IS NULL;
+ COMMIT;	
 
 
  --Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones

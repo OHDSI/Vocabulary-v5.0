@@ -1,9 +1,10 @@
 OPTIONS (errors=0, SKIP=1, direct=true)
 LOAD DATA 
 CHARACTERSET UTF8  
-INFILE 'LOINC_248_SELECTED_FORMS.csv'  
+INFILE 'LOINC_248_SELECTED_FORMS.csv' "str X'0D'"
 BADFILE 'LOINC_248_SELECTED_FORMS.bad'
 DISCARDFILE 'LOINC_248_SELECTED_FORMS.dsc'                                                           
+TRUNCATE
 INTO TABLE LOINC_ANSWERS                                                                
 FIELDS TERMINATED BY ';' OPTIONALLY ENCLOSED BY '"'                                                       
 TRAILING NULLCOLS                                                               
@@ -21,7 +22,7 @@ TRAILING NULLCOLS
  , ANSWERCODESYSTEM             CHAR NULLIF (ANSWERCODESYSTEM=BLANKS)                 
  , GLOBALID                     CHAR NULLIF (GLOBALID=BLANKS)          
  , GLOBALIDCODESYSTEM           CHAR NULLIF (GLOBALIDCODESYSTEM=BLANKS)             
- , COPYRIGHTNOTICE              FILLER
- , DESCRIPTION                  CHAR(5000) NULLIF (DESCRIPTION=BLANKS)                
- , SCORE                        CHAR NULLIF (SCORE=BLANKS)                 
+ , COPYRIGHTNOTICE              FILLER CHAR (4000)
+ , DESCRIPTION                  FILLER CHAR (4000) 
+ , SCORE                        FILLER CHAR (4000) 
 )                                                                               

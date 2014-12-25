@@ -59,7 +59,7 @@ begin
 end;
 
 --1.1 
-drop table read_domains;
+drop table read_domain;
 
 --2. create core files of Read
 --3. fill CONCEPT_STAGE and concept_relationship_stage from Read
@@ -93,7 +93,8 @@ INSERT INTO concept_relationship_stage (concept_id_1,
                                         concept_code_1,
                                         concept_code_2,
                                         relationship_id,
-										vocabulary_id,
+										vocabulary_id_1,
+										vocabulary_id_2,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
@@ -112,6 +113,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
                 RSCCT.effectivedate DESC),
           'Maps to',
 		  'Read',
+		  'SNOMED',
           TO_DATE ('20141001', 'yyyymmdd'),
           TO_DATE ('20991231', 'yyyymmdd'),
           NULL
@@ -130,7 +132,7 @@ INSERT INTO concept_stage (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT SUBSTR (str, 1, 256),
+   SELECT SUBSTR (str, 1, 255),
           'RxNorm',
           'Drug',
           CASE tty                    -- use RxNorm tty as for Concept Classes
@@ -173,7 +175,7 @@ INSERT INTO concept_stage (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT SUBSTR (str, 1, 256),
+   SELECT SUBSTR (str, 1, 255),
           'RxNorm',
           'Drug',
           CASE tty                    -- use RxNorm tty as for Concept Classes
@@ -234,7 +236,7 @@ INSERT INTO concept_stage (concept_name,
           TO_DATE ('01.12.2014', 'dd.mm.yyyy') AS valid_start_date,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
           NULL AS invalid_reason
-     FROM (SELECT SUBSTR (d.term, 1, 256) AS concept_name,
+     FROM (SELECT SUBSTR (d.term, 1, 255) AS concept_name,
                   d.conceptid AS concept_code,
                   c.active,
                   ROW_NUMBER ()
@@ -595,7 +597,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    language_concept_id)
    SELECT NULL,
           m.code,
-          SUBSTR (m.str, 1, 256),
+          SUBSTR (m.str, 1, 255),
           4093769 -- English
      FROM mrconso m LEFT JOIN mrconso_tmp m_tmp ON m.aui = m_tmp.aui
     WHERE m.sab = 'SNOMEDCT_US' AND m_tmp.aui IS NULL;
@@ -607,7 +609,8 @@ DROP TABLE mrconso_tmp PURGE;
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
-										vocabulary_id,
+										vocabulary_id_1,
+										vocabulary_id_2,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
@@ -827,6 +830,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
           END
              AS relationship_id,
 		  'SNOMED',
+		  'SNOMED',
           TO_DATE ('01.12.2014', 'dd.mm.yyyy'),--release date
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
@@ -837,13 +841,15 @@ COMMIT;
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
-										vocabulary_id,
+										vocabulary_id_1,
+										vocabulary_id_2,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
    SELECT concept_code_1,
           concept_code_2,
           relationship_id,
+		  'SNOMED',
 		  'SNOMED',
           TO_DATE ('01.12.2014', 'dd.mm.yyyy'),                 --release date
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
@@ -882,7 +888,8 @@ INSERT INTO concept_relationship_stage
           CRS.CONCEPT_CODE_2 AS CONCEPT_CODE_1,
           CRS.CONCEPT_CODE_1 AS CONCEPT_CODE_2,
           r.reverse_relationship_id AS relationship_id,
-		  crs.vocabulary_id,
+		  crs.vocabulary_id_1,
+		  crs.vocabulary_id_2,
           crs.valid_start_date,
           crs.valid_end_date,
           crs.invalid_reason
@@ -895,8 +902,9 @@ INSERT INTO concept_relationship_stage
                WHERE     crs.CONCEPT_CODE_1 = i.CONCEPT_CODE_2
                      AND crs.CONCEPT_CODE_2 = i.CONCEPT_CODE_1
                      AND r.reverse_relationship_id = i.relationship_id
-					 AND crs.vocabulary_id=i.vocabulary_id)
-    AND crs.vocabulary_id='SNOMED';
+					 AND crs.vocabulary_id_1=i.vocabulary_id_1
+					 AND crs.vocabulary_id_2=i.vocabulary_id_2)
+    AND crs.vocabulary_id_1='SNOMED';
 
 COMMIT;
 
@@ -1230,80 +1238,62 @@ COMMIT;
 
  
  --11. update domains
- --11.1. create temporary table read_domains
-create table read_domains as
-    select concept_code, domains from (
-        select concept_code, LISTAGG(domain_id, '/') WITHIN GROUP (order by domain_id) domains from (
-               SELECT c1.concept_code, c2.domain_id
-                FROM concept_relationship_stage r, concept_stage c1, concept c2
-                WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-                AND c1.vocabulary_id='Read' AND c2.vocabulary_id='SNOMED'
-				AND r.vocabulary_id in ('Read','SNOMED')
-                UNION
-                SELECT SUBSTR(c1.concept_code, 1, 6) AS concept_code, c2.domain_id
-                FROM concept_relationship_stage r, concept_stage c1, concept c2
-                WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-                AND c1.vocabulary_id='Read' AND c2.vocabulary_id='SNOMED'
-				AND r.vocabulary_id in ('Read','SNOMED')
-                UNION
-                SELECT SUBSTR(c1.concept_code, 1, 5) AS concept_code, c2.domain_id
-                FROM concept_relationship_stage r, concept_stage c1, concept c2
-                WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-                AND c1.vocabulary_id='Read' AND c2.vocabulary_id='SNOMED'
-				AND r.vocabulary_id in ('Read','SNOMED')
-                UNION
-                SELECT SUBSTR(c1.concept_code, 1, 4) AS concept_code, c2.domain_id
-                FROM concept_relationship_stage r, concept_stage c1, concept c2
-                WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-                AND c1.vocabulary_id='Read' AND c2.vocabulary_id='SNOMED'
-				AND r.vocabulary_id in ('Read','SNOMED')
-                UNION
-                SELECT SUBSTR(c1.concept_code, 1, 3) AS concept_code, c2.domain_id
-                FROM concept_relationship_stage r, concept_stage c1, concept c2
-                WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-                AND c1.vocabulary_id='Read' AND c2.vocabulary_id='SNOMED'
-				AND r.vocabulary_id in ('Read','SNOMED')
+ --11.1. create temporary table read_domain
+create table read_domain as
+    select concept_code, 
+    case when domain_id is not null then domain_id 
+    else 
+        case when prev_domain=next_domain then prev_domain --prev and next domain are the same (and of course not null both)
+            when prev_domain is not null and next_domain is not null then  
+                case when prev_domain<next_domain then prev_domain||'/'||next_domain 
+                else next_domain||'/'||prev_domain 
+                end -- prev and next domain are not same and not null both, with order by name
+            else coalesce (prev_domain,next_domain,'Unknown')
+        end
+    end domain_id
+    from (
+        with filled_domain as
+        (
+            select c1.concept_code, c2.domain_id
+            FROM concept_relationship_stage r, concept_stage c1, concept c2
+            WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
+            AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
+            AND r.vocabulary_id_1='Read' AND r.vocabulary_id_2='SNOMED'
         )
-        group by concept_code
-);      
 
-CREATE INDEX idx_read_domains ON read_domains (concept_code);
+        select c1.concept_code, c2.domain_id,
+            (select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and c2.domain_id is null) prev_domain,
+            (select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and c2.domain_id is null) next_domain
+        from concept_stage c1
+        left join concept_relationship_stage r on r.concept_code_1=c1.concept_code and r.vocabulary_id_1=c1.vocabulary_id
+        left join concept c2 on c2.concept_code=r.concept_code_2 and r.vocabulary_id_2=c2.vocabulary_id and c2.vocabulary_id='SNOMED'
+        where c1.vocabulary_id='Read'
+    );
+    
+CREATE INDEX idx_read_domain ON read_domain (concept_code);
 
---11.2. Simplify the list by removing Observations where is Measurement, Meas Value, Speciment, Spec Anatomic Site, Relationship
-update read_domains set domains=trim('/' FROM replace('/'||domains||'/','/Observation/','/'))
-where '/'||domains||'/' like '%/Observation/%'
-and instr(domains,'/')<>0;
+--11.2. Simplify the list by removing Observations
+update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
+where '/'||domain_id||'/' like '%/Observation/%'
+and instr(domain_id,'/')<>0;
 
-update read_domains set domains='Meas/Procedure' where domains='Measurement/Procedure';
-update read_domains set domains='Condition/Meas' where domains='Condition/Measurement';
-update read_domains set domains='Condition' where domains='Condition/Spec Anatomic Site';
-update read_domains set domains='Procedure' where domains='Device/Procedure/Spec Anatomic Site';
-update read_domains set domains='Procedure' where domains='Procedure/Spec Anatomic Site';
-update read_domains set domains='Procedure' where domains='Condition/Procedure/Spec Anatomic Site';
-update read_domains set domains='Observation' where domains='Condition/Relationship';
-update read_domains set domains='Procedure' where domains='Place of Service/Procedure';
-
+update read_domain set domain_id='Meas/Procedure' where domain_id='Measurement/Procedure';
+update read_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
 
 commit;
 
 --check for new domains (must not return any rows!):
-select domains from read_domains 
+select domain_id from read_domain 
 minus
 select domain_id from domain;
 
---11.3. update each domain_id with the domains field from read_domains. If null take the 6-letter code, if still null take the 5-letter code etc.
-update concept_stage cs set (domain_id)=
-    (select coalesce(d7.domains, d6.domains, d5.domains, d4.domains, d3.domains, 'Observation')
-    from concept_stage c
-    left join read_domains d7 on d7.concept_code=c.concept_code
-    left join read_domains d6 on d6.concept_code=substr(c.concept_code, 1, 6)
-    left join read_domains d5 on d5.concept_code=substr(c.concept_code, 1, 5)
-    left join read_domains d4 on d4.concept_code=substr(c.concept_code, 1, 4)
-    left join read_domains d3 on d3.concept_code=substr(c.concept_code, 1, 3)
-    where c.CONCEPT_CODE=cs.CONCEPT_CODE
-    and c.vocabulary_id=cs.vocabulary_id
-) where cs.vocabulary_id='Read';   
-
+--11.3. update each domain_id with the domains field from read_domain.
+UPDATE concept_stage c
+   SET (domain_id) =
+          (SELECT domain_id
+             FROM read_domain rd
+            WHERE rd.concept_code = c.concept_code)
+ WHERE c.vocabulary_id = 'Read';
 COMMIT;
 
 --12. update concept from concept_stage 
@@ -1397,11 +1387,11 @@ UPDATE concept_relationship_stage crs
                   COALESCE (cs2.concept_id, c2.concept_id,crs.concept_id_2)
              FROM concept_relationship_stage r
                   LEFT JOIN concept_stage cs1
-                     ON cs1.concept_code = r.concept_code_1 and cs1.vocabulary_id=r.vocabulary_id
-                  LEFT JOIN concept c1 ON c1.concept_code = r.concept_code_1 and c1.vocabulary_id=r.vocabulary_id
+                     ON cs1.concept_code = r.concept_code_1 and cs1.vocabulary_id=r.vocabulary_id_1
+                  LEFT JOIN concept c1 ON c1.concept_code = r.concept_code_1 and c1.vocabulary_id=r.vocabulary_id_1
                   LEFT JOIN concept_stage cs2
-                     ON cs2.concept_code = r.concept_code_2 and cs2.vocabulary_id=r.vocabulary_id
-                  LEFT JOIN concept c2 ON c2.concept_code = r.concept_code_2 and c2.vocabulary_id=r.vocabulary_id
+                     ON cs2.concept_code = r.concept_code_2 and cs2.vocabulary_id=r.vocabulary_id_2
+                  LEFT JOIN concept c2 ON c2.concept_code = r.concept_code_2 and c2.vocabulary_id=r.vocabulary_id_2
             WHERE      crs.rowid=r.rowid
                   
          )

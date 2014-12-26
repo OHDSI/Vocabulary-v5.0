@@ -1,0 +1,36 @@
+options (direct=true, errors=0)
+load data
+infile 'MRMAP.RRF' 
+badfile 'MRMAP.bad'
+discardfile 'MRMAP.dsc'
+truncate
+into table MRMAP
+fields terminated by '|'
+trailing nullcols(
+ MAPSETCUI CHAR,
+ MAPSETSAB CHAR,
+ MAPSUBSETID CHAR,
+ MAPRANK CHAR,
+ MAPID CHAR,
+ MAPSID CHAR,
+ FROMID CHAR,
+ FROMSID CHAR,
+ FROMEXPR CHAR (4000),
+ FROMTYPE CHAR,
+ FROMRULE CHAR (4000),
+ FROMRES CHAR (4000),
+ REL CHAR,
+ RELA CHAR,
+ TOID CHAR,
+ TOSID CHAR,
+ TOEXPR CHAR (4000),
+ TOTYPE CHAR,
+ TORULE CHAR (4000),
+ TORES CHAR (4000),
+ MAPRULE CHAR (4000),
+ MAPRES CHAR (4000),
+ MAPTYPE CHAR,
+ MAPATN CHAR,
+ MAPATV CHAR (4000),
+ CVF INTEGER external
+)

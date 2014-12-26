@@ -81,7 +81,7 @@ INSERT INTO CONCEPT_STAGE (concept_id,
           'Read',
           NULL,
           kv2.readcode || kv2.termcode,
-          TO_DATE ('20141001', 'yyyymmdd'),
+          (select latest_update from vocabulary where vocabulary_id='Read'),
           TO_DATE ('20991231', 'yyyymmdd'),
           NULL
      FROM keyv2 kv2;
@@ -114,7 +114,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
           'Maps to',
 		  'Read',
 		  'SNOMED',
-          TO_DATE ('20141001', 'yyyymmdd'),
+          (select latest_update from vocabulary where vocabulary_id='Read'),
           TO_DATE ('20991231', 'yyyymmdd'),
           NULL
      FROM RCSCTMAP2_UK RSCCT;
@@ -149,7 +149,7 @@ INSERT INTO concept_stage (concept_name,
           CASE tty -- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
                   WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
           rxcui,                                    -- the code used in RxNorm
-          TO_DATE ('01.12.2014', 'dd.mm.yyyy'),
+          (select latest_update From vocabulary where vocabulary_id='RxNorm'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
      FROM rxnconso
@@ -184,7 +184,7 @@ INSERT INTO concept_stage (concept_name,
           END,
           'S',
           code,                                        -- Cannot use rxcui here
-          TO_DATE ('01.12.2014', 'dd.mm.yyyy'),
+          (select latest_update From vocabulary where vocabulary_id='RxNorm'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL          
      FROM rxnconso
@@ -233,7 +233,7 @@ INSERT INTO concept_stage (concept_name,
    SELECT regexp_replace(concept_name, ' \(.*?\)$', ''),
           'SNOMED' AS vocabulary_id,
           concept_code,
-          TO_DATE ('01.12.2014', 'dd.mm.yyyy') AS valid_start_date,
+          (select latest_update From vocabulary where vocabulary_id='SNOMED') AS valid_start_date,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
           NULL AS invalid_reason
      FROM (SELECT SUBSTR (d.term, 1, 255) AS concept_name,
@@ -831,7 +831,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
              AS relationship_id,
 		  'SNOMED',
 		  'SNOMED',
-          TO_DATE ('01.12.2014', 'dd.mm.yyyy'),--release date
+          (select latest_update From vocabulary where vocabulary_id='SNOMED'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
      FROM (SELECT * FROM tmp_rel);
@@ -851,7 +851,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
           relationship_id,
 		  'SNOMED',
 		  'SNOMED',
-          TO_DATE ('01.12.2014', 'dd.mm.yyyy'),                 --release date
+          (select latest_update From vocabulary where vocabulary_id='SNOMED'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
      FROM (SELECT referencedcomponentid AS concept_code_1,
@@ -1423,11 +1423,14 @@ UPDATE concept_relationship d
 commit; 
 --Deprecate missing relationships, but only if the concepts exist.
 -- If relationships are missing because of deprecated concepts, leave them intact
---Do it with all vocabulary (Read, SNOMED, RxNorm), but with his own release day
 
---SNOMED
 UPDATE concept_relationship d
-   SET valid_end_date = to_date('20141130', 'YYYYMMDD'), -- day before release day
+   SET valid_end_date =
+            (SELECT latest_update
+               FROM vocabulary v, concept_stage c
+              WHERE     v.vocabulary_id = c.vocabulary_id
+                    AND c.concept_id = d.concept_id_1)
+          - 1,                                       -- day before release day
        invalid_reason = 'D'
  WHERE     NOT EXISTS
               (SELECT 1
@@ -1436,9 +1439,13 @@ UPDATE concept_relationship d
                 WHERE     d.concept_id_1 = r.concept_id_1
                       AND d.concept_id_2 = r.concept_id_2
                       AND d.relationship_id = r.relationship_id)
-
        AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecate those that are fresh and active
-       AND d.valid_start_date < TO_DATE ('20141130', 'YYYYMMDD') -- started before release date
+       AND d.valid_start_date <
+                (SELECT latest_update
+                   FROM vocabulary v, concept_stage c
+                  WHERE     v.vocabulary_id = c.vocabulary_id
+                        AND c.concept_id = d.concept_id_1)
+              - 1                               -- started before release date
        -- exclude replacing relationships, usually they are not maintained after a concept died
        AND d.relationship_id NOT IN ('UCUM replaced by',
                                      'UCUM replaces',
@@ -1463,56 +1470,12 @@ UPDATE concept_relationship d
        AND EXISTS
               (SELECT 1
                  FROM concept_stage c
-                WHERE c.concept_id = d.concept_id_1 and C.VOCABULARY_ID='SNOMED' )
+                WHERE c.concept_id = d.concept_id_1)
        AND EXISTS
               (SELECT 1
                  FROM concept_stage c
-                WHERE c.concept_id = d.concept_id_2 and C.VOCABULARY_ID='SNOMED');            
-
---Read
-UPDATE concept_relationship d
-   SET valid_end_date = to_date('20141130', 'YYYYMMDD'), -- day before release day
-       invalid_reason = 'D'
- WHERE     NOT EXISTS
-              (SELECT 1
-                 FROM concept_relationship_stage r
-                -- test whether either the concept_ids match, or the concept_ids matched to the concept_codes in either stage or dev
-                WHERE     d.concept_id_1 = r.concept_id_1
-                      AND d.concept_id_2 = r.concept_id_2
-                      AND d.relationship_id = r.relationship_id)
-
-       AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecate those that are fresh and active
-       AND d.valid_start_date < TO_DATE ('20140930', 'YYYYMMDD') -- started before release date
-       -- exclude replacing relationships, usually they are not maintained after a concept died
-       AND d.relationship_id NOT IN ('UCUM replaced by',
-                                     'UCUM replaces',
-                                     'Concept replaced by',
-                                     'Concept replaces',
-                                     'Concept same_as to',
-                                     'Concept same_as from',
-                                     'Concept alt_to to',
-                                     'Concept alt_to from',
-                                     'Concept poss_eq to',
-                                     'Concept poss_eq from',
-                                     'Concept was_a to',
-                                     'Concept was_a from',
-                                     'LOINC replaced by',
-                                     'LOINC replaces',
-                                     'RxNorm replaced by',
-                                     'RxNorm replaces',
-                                     'SNOMED replaced by',
-                                     'SNOMED replaces',
-                                     'ICD9P replaced by',
-                                     'ICD9P replaces') -- check for existence of both concept_id_1 and concept_id_2
-       AND EXISTS
-              (SELECT 1
-                 FROM concept_stage c
-                WHERE c.concept_id = d.concept_id_1 and C.VOCABULARY_ID='Read' )
-       AND EXISTS
-              (SELECT 1
-                 FROM concept_stage c
-                WHERE c.concept_id = d.concept_id_2 and C.VOCABULARY_ID='Read');                  
-				
+                WHERE c.concept_id = d.concept_id_2);      
+	
 
 commit;				
 --insert new relationships

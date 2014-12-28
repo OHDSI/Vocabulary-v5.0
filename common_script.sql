@@ -888,8 +888,8 @@ INSERT INTO concept_relationship_stage
           CRS.CONCEPT_CODE_2 AS CONCEPT_CODE_1,
           CRS.CONCEPT_CODE_1 AS CONCEPT_CODE_2,
           r.reverse_relationship_id AS relationship_id,
-		  crs.vocabulary_id_1,
 		  crs.vocabulary_id_2,
+		  crs.vocabulary_id_1,
           crs.valid_start_date,
           crs.valid_end_date,
           crs.invalid_reason
@@ -1398,6 +1398,93 @@ UPDATE concept_relationship_stage crs
  WHERE crs.concept_id_1 IS NULL OR crs.concept_id_2 IS NULL;
  COMMIT;	
 
+ 
+ /* *******************************hacks begins*********************/
+ --for some reason we have no all snomed codes, therefore we take it manually from sct2_concept_full_merged and add into concept_stage
+ CREATE TABLE snomed_nonexisting
+
+AS
+   SELECT CASE WHEN id_1 IS NULL THEN concept_code_1 ELSE concept_code_2 END
+             concept_code
+     FROM (SELECT r.relationship_id,
+                  r.concept_code_1,
+                  r.concept_code_2,
+                  r.vocabulary_id_1,
+                  r.vocabulary_id_2,
+                  COALESCE (cs1.concept_id, c1.concept_id, r.concept_id_1)
+                     id_1,
+                  COALESCE (cs2.concept_id, c2.concept_id, r.concept_id_2)
+                     id_2
+             FROM concept_relationship_stage r
+                  LEFT JOIN concept_stage cs1
+                     ON     cs1.concept_code = r.concept_code_1
+                        AND cs1.vocabulary_id = r.vocabulary_id_1
+                  LEFT JOIN concept c1
+                     ON     c1.concept_code = r.concept_code_1
+                        AND c1.vocabulary_id = r.vocabulary_id_1
+                  LEFT JOIN concept_stage cs2
+                     ON     cs2.concept_code = r.concept_code_2
+                        AND cs2.vocabulary_id = r.vocabulary_id_2
+                  LEFT JOIN concept c2
+                     ON     c2.concept_code = r.concept_code_2
+                        AND c2.vocabulary_id = r.vocabulary_id_2
+            WHERE     (r.concept_id_1 IS NULL OR r.concept_id_2 IS NULL)
+                  AND vocabulary_id_2 = 'SNOMED'
+                  AND concept_code_1 IS NOT NULL
+                  AND concept_code_2 IS NOT NULL)
+    WHERE id_1 IS NULL OR id_2 IS NULL;
+
+
+INSERT INTO concept_stage (concept_name,
+                           vocabulary_id,
+                           concept_code,
+                           valid_start_date,
+                           valid_end_date,
+                           invalid_reason)
+   SELECT concept_name,
+          'SNOMED' AS vocabulary_id,
+          concept_code,
+          CASE
+             WHEN min_time <> max_time THEN TO_DATE (min_time, 'YYYYMMDD')
+             ELSE TO_DATE ('01.01.1970', 'dd.mm.yyyy')
+          END
+             AS valid_start_date,
+          TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM (SELECT REGEXP_REPLACE (SUBSTR (d.term, 1, 255), ' \(.*?\)$', '')
+                     AS concept_name,
+                  d.conceptid AS concept_code,
+                  MIN (c.effectivetime) OVER (PARTITION BY d.conceptid)
+                     min_time,
+                  MAX (c.effectivetime) OVER (PARTITION BY d.conceptid)
+                     max_time,
+                  ROW_NUMBER ()
+                  OVER (
+                     PARTITION BY d.conceptid
+                     -- Order of preference: newest in sct2_concept, in sct2_desc, synonym, does not contain class in parenthesis
+                     --we take all rows including non-active concepts!
+                     ORDER BY
+                        TO_DATE (c.effectivetime, 'YYYYMMDD') DESC,
+                        TO_DATE (d.effectivetime, 'YYYYMMDD') DESC,
+                        CASE
+                           WHEN typeid = '900000000000013009' THEN 0
+                           ELSE 1
+                        END,
+                        CASE WHEN term LIKE '%(%)%' THEN 1 ELSE 0 END)
+                     rn
+             FROM sct2_concept_full_merged c,
+                  sct2_desc_full_merged d,
+                  snomed_nonexisting sn --only non-existing snomed codes!
+            WHERE     c.id = d.conceptid
+                  AND term IS NOT NULL
+                  AND conceptid = SN.CONCEPT_CODE
+          )
+    WHERE rn = 1;
+    
+COMMIT;	
+	
+ 
+ /* *******************************hacks end*********************/
 
  --Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
  CREATE INDEX idx_concept_id_1
@@ -1488,7 +1575,7 @@ INSERT INTO concept_relationship (concept_id_1,
    SELECT distinct crs.concept_id_1,
           crs.concept_id_2,
           crs.relationship_id,
-          TO_DATE ('20141201', 'YYYYMMDD') AS valid_start_date,
+          crs.valid_start_date,
           TO_DATE ('20991231', 'YYYYMMDD') AS valid_end_date,
           NULL AS invalid_reason
      FROM concept_relationship_stage crs

@@ -719,8 +719,7 @@ COMMIT;
 exec PKG_CONCEPT_ANCESTOR.CALC;
 COMMIT;
 
-
---11. now we need creating domain_id
+--11. Create domain_id
 -- 11.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
 create table peak (
 	peak_code varchar(20), --the id of the top ancestor
@@ -736,10 +735,8 @@ insert into peak (peak_code, peak_domain_id) values (43741000, 'Place of Service
 insert into peak (peak_code, peak_domain_id) values (420056007, 'Drug'); -- Aromatherapy agent
 insert into peak (peak_code, peak_domain_id) values (373873005, 'Drug'); -- Pharmaceutical / biologic product
 insert into peak (peak_code, peak_domain_id) values (410942007, 'Drug'); --	Drug or medicament
-insert into peak (peak_code, peak_domain_id) values (49062001, 'Device');
-insert into peak (peak_code, peak_domain_id) values (289964002, 'Device'); -- Surgical material
-insert into peak (peak_code, peak_domain_id) values (260667007, 'Device'); -- Graft
-insert into peak (peak_code, peak_domain_id) values (418920007, 'Device'); -- Adhesive agent
+insert into peak (peak_code, peak_domain_id) values (419572002, 'Observation'); -- alcohol agent, exception of drug
+insert into peak (peak_code, peak_domain_id) values (373782009, 'Observation'); -- diagnostic substance, exception of drug
 insert into peak (peak_code, peak_domain_id) values (404684003, 'Condition'); -- Clinical Finding
 insert into peak (peak_code, peak_domain_id) values (218496004, 'Condition'); -- Adverse reaction to primarily systemic agents
 insert into peak (peak_code, peak_domain_id) values (313413008, 'Condition'); -- Calculus observation
@@ -789,6 +786,36 @@ insert into peak (peak_code, peak_domain_id) values (106237007, 'Observation'); 
 insert into peak (peak_code, peak_domain_id) values (258666001, 'Unit'); -- Top unit
 insert into peak (peak_code, peak_domain_id) values (260245000, 'Meas Value'); -- Meas Value
 insert into peak (peak_code, peak_domain_id) values (125677006, 'Relationship'); -- Relationship
+insert into peak (peak_code, peak_domain_id) values (264301008, 'Observation'); -- psychoactive substance of abuse - non-pharmaceutical
+insert into peak (peak_code, peak_domain_id) values (226465004, 'Observation'); -- drinks
+insert into peak (peak_code, peak_domain_id) values (289964002, 'Device'); -- Surgical material
+insert into peak (peak_code, peak_domain_id) values (260667007, 'Device'); -- Graft
+insert into peak (peak_code, peak_domain_id) values (418920007, 'Device'); -- Adhesive agent
+insert into peak (peak_code, peak_domain_id) values (255922001, 'Device'); -- Dental material
+insert into peak (peak_code, peak_domain_id) values (413674002, 'Device'); -- Body material
+insert into peak (peak_code, peak_domain_id) values (118417008, 'Device'); -- Filling material
+insert into peak (peak_code, peak_domain_id) values (418920007, 'Device'); -- Adhesive agent
+insert into peak (peak_code, peak_domain_id) values (255922001, 'Device'); -- dental material,
+insert into peak (peak_code, peak_domain_id) values (118417008, 'Device'); -- filling material,
+insert into peak (peak_code, peak_domain_id) values (289964002, 'Device'); -- surgical material, 
+insert into peak (peak_code, peak_domain_id) values (445214009, 'Device'); -- corneal storage medium
+insert into peak (peak_code, peak_domain_id) values (369443003, 'Device'); -- bedpan
+insert into peak (peak_code, peak_domain_id) values (398146001, 'Device'); -- armband
+insert into peak (peak_code, peak_domain_id) values (272181003, 'Device'); -- clinical equipment and/or device
+insert into peak (peak_code, peak_domain_id) values (445316008, 'Device'); -- component of optical microscope
+insert into peak (peak_code, peak_domain_id) values (419818001, 'Device'); -- Contact lens storage case
+insert into peak (peak_code, peak_domain_id) values (228167008, 'Device'); -- Corset
+insert into peak (peak_code, peak_domain_id) values (42380001, 'Device'); -- Ear plug, device
+insert into peak (peak_code, peak_domain_id) values (1333003, 'Device'); -- Emesis basin, device
+insert into peak (peak_code, peak_domain_id) values (360306007, 'Device'); -- Environmental control system
+insert into peak (peak_code, peak_domain_id) values (33894003, 'Device'); -- Experimental device
+insert into peak (peak_code, peak_domain_id) values (116250002, 'Device'); -- filter
+insert into peak (peak_code, peak_domain_id) values (59432006, 'Device'); -- ligature
+insert into peak (peak_code, peak_domain_id) values (360174002, 'Device'); -- nabeya capsule
+insert into peak (peak_code, peak_domain_id) values (311767007, 'Device'); -- special bed
+insert into peak (peak_code, peak_domain_id) values (360173008, 'Device'); -- watson capsule
+insert into peak (peak_code, peak_domain_id) values (367561004, 'Device'); -- xenon arc photocoagulator
+
 COMMIT;
 -- 11.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
@@ -797,7 +824,7 @@ COMMIT;
 UPDATE peak p
    SET p.ranked =
           (SELECT rnk
-             FROM (  SELECT ranked.pd AS peak_code, COUNT (*) AS rnk
+             FROM (  SELECT ranked.pd AS peak_code, COUNT(*)+1 AS rnk -- +1 so the top most who have an ancestor are ranked 2, and the ancestor can be ranked 1 (see below)
                        FROM (SELECT DISTINCT
                                     pa.peak_code AS pa, pd.peak_code AS pd
                                FROM peak pa,
@@ -808,6 +835,12 @@ UPDATE peak p
                                     ) ranked
                    GROUP BY ranked.pd) r
             WHERE r.peak_code = p.peak_code);
+
+-- For those that have no ancestors, the rank is 1
+UPDATE peak
+   SET ranked = 1 
+   WHERE ranked is null
+;
 COMMIT;
 
 -- 11.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
@@ -833,17 +866,16 @@ INSERT INTO peak -- before doing that check first out without the insert
              THEN
                 'Drug'
              ELSE
-                'Manual'
+                'Observation'
           END
              AS peak_domain_id,
           NULL AS ranked
      FROM snomed_ancestor a, concept_stage c
-    WHERE     a.ancestor_concept_code NOT IN (SELECT DISTINCT
+    WHERE c.concept_code = a.ancestor_concept_code
+          AND a.ancestor_concept_code NOT IN (SELECT DISTINCT -- find those where ancestors are not also a descendant, i.e. a top of a tree
                                                      descendant_concept_code
-                                                FROM snomed_ancestor
-                                               WHERE ancestor_concept_code !=
-                                                        descendant_concept_code)
-          AND c.concept_code = a.ancestor_concept_code
+                                                FROM snomed_ancestor)
+          AND a.ancestor_concept_code NOT IN (SELECT DISTINCT peak_code from peak) -- but exclude those we already have
           AND c.vocabulary_id='SNOMED';
 COMMIT;
 
@@ -961,17 +993,11 @@ UPDATE concept_stage c
 
 UPDATE concept_stage c
    SET c.domain_id = 'Meas Value Operator'
- WHERE     concept_code IN ('255560000',
-                            '255582007',
-                            '258160008',
-                            '260540009',
-                            '260548002',
-                            '264049007',
-                            '263887005',
-                            '372468001',
-                            '72607000',
-                            '359540000',
-                            '90028008')
+ WHERE     concept_code IN ('276136004',
+                            '276140008',
+                            '276137008',
+                            '276138003',
+                            '276139006')
        AND C.VOCABULARY_ID = 'SNOMED';
 
 UPDATE concept_stage c

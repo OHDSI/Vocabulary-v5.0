@@ -205,14 +205,14 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    language_concept_id)
    (SELECT NULL AS synonym_concept_id,
            LOINC_NUM AS synonym_concept_code,
-           SUBSTR (TO_CHAR (RELATEDNAMES2), 1, 255) AS synonym_name,
+           SUBSTR (TO_CHAR (RELATEDNAMES2), 1, 1000) AS synonym_name,
            4093769 AS language_concept_id                           -- English
       FROM loinc
      WHERE TO_CHAR (RELATEDNAMES2) IS NOT NULL
     UNION
     SELECT NULL AS synonym_concept_id,
            LOINC_NUM AS synonym_concept_code,
-           SUBSTR (LONG_COMMON_NAME, 1, 255) AS synonym_name,
+           SUBSTR (LONG_COMMON_NAME, 1, 1000) AS synonym_name,
            4093769 AS language_concept_id                           -- English
       FROM loinc
      WHERE LONG_COMMON_NAME IS NOT NULL

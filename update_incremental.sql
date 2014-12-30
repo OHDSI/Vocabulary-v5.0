@@ -32,15 +32,51 @@ where concept_id in (select concept_id from concept_stage);
 
 --4 Deprecate missing concepts
 update concept c set
-c.valid_end_date = c.valid_start_date-1
-where not exists (select 1 from concept_stage cs where cs.concept_id=c.concept_id and cs.vocabulary_id=c.vocabulary_id);
+c.valid_end_date = (select latest_update-1 from vocabulary where vocabulary_id=c.vocabulary_id)
+where not exists (select 1 from concept_stage cs where cs.concept_id=c.concept_id and cs.vocabulary_id=c.vocabulary_id)
+and exists (select 1 from vocabulary where vocabulary_id=c.vocabulary_id and latest_update is not null);
+
 
 --5 set invalid_reason for active concepts
 update concept set invalid_reason=null where valid_end_date = to_date('31.12.2099','dd.mm.yyyy');
 
 --6 set invalid_reason for deprecated concepts
-update concept set invalid_reason='D' where invalid_reason is null -- unless is already set
-and valid_end_date <> to_date('31.12.2099','dd.mm.yyyy');
+UPDATE concept c
+   SET invalid_reason = 'D'
+ WHERE     invalid_reason IS NULL                     -- unless is already set
+       AND valid_end_date <> TO_DATE ('31.12.2099', 'dd.mm.yyyy')
+       AND NOT EXISTS
+              (SELECT 1
+                 FROM (SELECT rs.concept_id_1,
+                              rs.concept_id_2,
+                              rs.relationship_id
+                         FROM concept_relationship_stage rs
+                       UNION ALL
+                       SELECT r.concept_id_1,
+                              r.concept_id_2,
+                              r.relationship_id
+                         FROM concept_relationship r) d
+                WHERE     c.concept_id IN (d.concept_id_1, d.concept_id_2)
+                      AND d.relationship_id IN ('UCUM replaced by',
+                                                'UCUM replaces',
+                                                'Concept replaced by',
+                                                'Concept replaces',
+                                                'Concept same_as to',
+                                                'Concept same_as from',
+                                                'Concept alt_to to',
+                                                'Concept alt_to from',
+                                                'Concept poss_eq to',
+                                                'Concept poss_eq from',
+                                                'Concept was_a to',
+                                                'Concept was_a from',
+                                                'LOINC replaced by',
+                                                'LOINC replaces',
+                                                'RxNorm replaced by',
+                                                'RxNorm replaces',
+                                                'SNOMED replaced by',
+                                                'SNOMED replaces',
+                                                'ICD9P replaced by',
+                                                'ICD9P replaces'));
 COMMIT;
 
 --7 add new concepts
@@ -67,14 +103,6 @@ INSERT INTO concept (concept_id,
      FROM concept_stage cs
     WHERE cs.concept_id IS NULL;
 COMMIT;
-
-/*
---create indexes if you don't did it already
-CREATE INDEX idx_concept_code_1
-   ON concept_relationship_stage (concept_code_1);
-CREATE INDEX idx_concept_code_2
-   ON concept_relationship_stage (concept_code_2);
-*/
 
 --8. fill in all concept_id_1 and _2 in concept_relationship_stage
 UPDATE concept_relationship_stage crs
@@ -122,13 +150,6 @@ COMMIT;
 
 
  --10 Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
- /*
- --create indexes if you don't did it already
- CREATE INDEX idx_concept_id_1
-   ON concept_relationship_stage (concept_id_1);
-CREATE INDEX idx_concept_id_2
-   ON concept_relationship_stage (concept_id_2);
- */
 
 UPDATE concept_relationship d
    SET (d.valid_end_date, d.invalid_reason) =

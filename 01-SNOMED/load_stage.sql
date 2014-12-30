@@ -1,229 +1,41 @@
---1. create copies of main files
---1. create copies of main files
-declare
-CURSOR  usr_idxs IS 
-    select * from user_indexes where table_name in ('CONCEPT','CONCEPT_RELATIONSHIP','CONCEPT_SYNONYM');
-CURSOR  usr_cnstrs_d  IS 
-    select * from user_constraints WHERE table_name not like 'BIN$%' and status='ENABLED' order by constraint_type DESC; --'R' constraints first
-CURSOR  usr_cnstrs_e  IS 
-    select * from user_constraints WHERE table_name not like 'BIN$%' and status='DISABLED' order by constraint_type ASC;
-v_sql  VARCHAR2(2000);
-begin
-    EXECUTE IMMEDIATE 'alter session set skip_unusable_indexes = true'; --disables error reporting of indexes and index partitions marked UNUSABLE
-    EXECUTE IMMEDIATE 'alter session enable parallel dml';
-    /*disable indexes and redo*/
-    for cur_idx in usr_idxs loop
-        v_sql:= 'ALTER TABLE ' || cur_idx.table_name || ' NOLOGGING';
-        EXECUTE IMMEDIATE v_sql;    
-        v_sql:= 'ALTER INDEX ' || cur_idx.index_name || ' UNUSABLE';
-        EXECUTE IMMEDIATE v_sql;
-    end loop;
+/*
+Download the international SNOMED file SnomedCT_Release_INT_YYYYMMDD.zip from http://www.nlm.nih.gov/research/umls/licensedcontent/snomedctfiles.html.
+2. Extract the release date from the file name.
+3. Extract the following files from the folder SnomedCT_Release_INT_YYYYMMDD\RF2Release\Full\Terminology\ into a working folder:
+- sct2_Concept_Full_INT_YYYYMMDD.txt
+- sct2_Description_Full-en_INT_YYYYMMDD.txt
+- sct2_Relationship_Full_INT_YYYYMMDD.txt
+4. Load them into SCT2_CONCEPT_FULL_INT, SCT2_DESC_FULL_EN_INT and SCT2_RELA_FULL_INT. Use the control files in Vocabulary-v5.0\01-SNOMED.
 
-    /*disable constraints*/
-    for cur_cnstr in usr_cnstrs_d loop
-        v_sql:= 'ALTER TABLE ' || cur_cnstr.table_name || ' MODIFY CONSTRAINT '|| cur_cnstr.constraint_name || ' DISABLE';
-        EXECUTE IMMEDIATE v_sql;
-    end loop;    
+5. Download the British SNOMED file SNOMEDCT2_XX.0.0_YYYYMMDD000001.zip from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/26/subpack/102/releases.
+6. Extract the release date from the file name.
+7. Extract the following files from the folder SnomedCT2_GB1000000_YYYYMMDD\RF2Release\Full\Terminology into a working folder:
+- sct2_Concept_Full_GB1000000_YYYYMMDD.txt
+- sct2_Description_Full-en-GB_GB1000000_YYYYMMDD.txt
+- sct2_Description_Full-en-GB_GB1000000_YYYYMMDD.txt
+8. Load them into SCT2_CONCEPT_FULL_UK, SCT2_DESC_FULL_UK, SCT2_RELA_FULL_UK. Use the control files in Vocabulary-v5.0\01-SNOMED
 
-    execute immediate 'truncate table concept';
-    execute immediate 'truncate table concept_relationship';
-    execute immediate 'truncate table concept_synonym';
-    execute immediate 'truncate table CONCEPT_STAGE';
-    execute immediate 'truncate table concept_relationship_stage';
-    execute immediate 'truncate table concept_synonym_stage';
-    
-    
-    insert /*+ APPEND parallel(4) */ into concept select * from v5dev.concept;
-    commit;
-    insert /*+ APPEND parallel(4) */ into concept_relationship select * from v5dev.concept_relationship;
-    commit;
-    insert /*+ APPEND parallel(4) */ into concept_synonym select * from v5dev.concept_synonym;
-    commit;
+9. der2_cRefset_AssociationReferenceFull_INT_YYYYMMDD.txt from SnomedCT_Release_INT_YYYYMMDD\RF2Release\Full\Refset\Content 
+and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT2_GB1000000_YYYYMMDD\RF2Release\Full\Refset\Content (ctl files in 10-SNOMED)
 
-    /*enable indexes and redo*/
-    for cur_idx in usr_idxs loop
-        v_sql:= 'ALTER INDEX ' || cur_idx.index_name || ' REBUILD NOLOGGING';
-        dbms_output.put_line(v_sql);
-        EXECUTE IMMEDIATE v_sql;
-        v_sql:= 'ALTER TABLE ' || cur_idx.table_name || ' LOGGING';
-        EXECUTE IMMEDIATE v_sql;            
-    end loop;
+10. download YYYYab-1-meta.nlm (for exemple 2014ab-1-meta.nlm)
+--unpack MRCONSO.RRF.aa.gz and MRCONSO.RRF.ab.gz, then run:
+--gunzip *.gz
+--cat MRCONSO.RRF.aa MRCONSO.RRF.ab > MRCONSO.RRF
+--load MRCONSO.RRF with RXNCONSO.ctl
+-- DDL & ctl -> Vocabulary-v5.0\UMLS\
 
-    /*enable constraints*/
-    for cur_cnstr in usr_cnstrs_e loop
-        v_sql:= 'ALTER TABLE ' || cur_cnstr.table_name || ' MODIFY CONSTRAINT '|| cur_cnstr.constraint_name || ' ENABLE';
-        dbms_output.put_line(v_sql);
-        EXECUTE IMMEDIATE v_sql;
-    end loop;    
+-- Update latest_update field to new date 
+update vocabulary set latest_update=to_date('YYYYMMDD','yyyymmdd') where vocabulary_id='SNOMED'; commit;
+*/
 
-end;
+--1 create views
+create view sct2_concept_full_merged as select * from sct2_concept_full_int union select * from sct2_concept_full_uk;
+create view sct2_desc_full_merged as select * from sct2_desc_full_en_int union select * from sct2_desc_full_uk;
+create view sct2_rela_full_merged as select * from sct2_rela_full_int union select * from sct2_rela_full_uk;
+create view der2_cRefset_AssRefFull_merged as select * from der2_cRefset_AssRefFull_INT union select * from der2_cRefset_AssRefFull_UK;
 
---1.1 
-drop table read_domain;
-
---2. create core files of Read
---3. fill CONCEPT_STAGE and concept_relationship_stage from Read
-INSERT INTO CONCEPT_STAGE (concept_id,
-                           concept_name,
-                           domain_id,
-                           vocabulary_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-   SELECT DISTINCT
-	      NULL,
-          coalesce(kv2.description_long, kv2.description, kv2.description_short),
-          NULL,
-          'Read',
-          'Read',
-          NULL,
-          kv2.readcode || kv2.termcode,
-          (select latest_update from vocabulary where vocabulary_id='Read'),
-          TO_DATE ('20991231', 'yyyymmdd'),
-          NULL
-     FROM keyv2 kv2;
-
-COMMIT;
-
-INSERT INTO concept_relationship_stage (concept_id_1,
-                                        concept_id_2,
-                                        concept_code_1,
-                                        concept_code_2,
-                                        relationship_id,
-										vocabulary_id_1,
-										vocabulary_id_2,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT DISTINCT
-          NULL,
-          NULL,
-          RSCCT.ReadCode || RSCCT.TermCode,
-          -- pick the best map: mapstatus=1, then is_assured=1, then target concept is fresh, then newest date
-          FIRST_VALUE (
-             RSCCT.conceptid)
-          OVER (
-             PARTITION BY RSCCT.readcode || RSCCT.termcode
-             ORDER BY
-                RSCCT.mapstatus DESC,
-                RSCCT.is_assured DESC,
-                RSCCT.effectivedate DESC),
-          'Maps to',
-		  'Read',
-		  'SNOMED',
-          (select latest_update from vocabulary where vocabulary_id='Read'),
-          TO_DATE ('20991231', 'yyyymmdd'),
-          NULL
-     FROM RCSCTMAP2_UK RSCCT;
-COMMIT;
-
---4. create core files of RxNorm
---5. fill CONCEPT_STAGE and concept_synonym_stage from RxNorm
--- Get drugs, components, forms and ingredients
-INSERT INTO concept_stage (concept_name,
-                           vocabulary_id,
-                           domain_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-   SELECT SUBSTR (str, 1, 255),
-          'RxNorm',
-          'Drug',
-          CASE tty                    -- use RxNorm tty as for Concept Classes
-             WHEN 'IN' THEN 'Ingredient'
-             WHEN 'DF' THEN 'Dose Form'
-             WHEN 'SCDC' THEN 'Clinical Drug Comp'
-             WHEN 'SCDF' THEN 'Clinical Drug Form'
-             WHEN 'SCD' THEN 'Clinical Drug'
-             WHEN 'BN' THEN 'Brand Name'
-             WHEN 'SBDC' THEN 'Branded Drug Comp'
-             WHEN 'SBDF' THEN 'Branded Drug Form'
-             WHEN 'SBD' THEN 'Branded Drug'
-          END,
-          CASE tty -- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
-                  WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
-          rxcui,                                    -- the code used in RxNorm
-          (select latest_update From vocabulary where vocabulary_id='RxNorm'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL
-     FROM rxnconso
-    WHERE     sab = 'RXNORM'
-          AND tty IN ('IN',
-                      'DF',
-                      'SCDC',
-                      'SCDF',
-                      'SCD',
-                      'BN',
-                      'SBDC',
-                      'SBDF',
-                      'SBD');
-
-
--- Packs share rxcuis with Clinical Drugs and Branded Drugs, therefore use code as concept_code
-INSERT INTO concept_stage (concept_name,
-                           vocabulary_id,
-                           domain_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-   SELECT SUBSTR (str, 1, 255),
-          'RxNorm',
-          'Drug',
-          CASE tty                    -- use RxNorm tty as for Concept Classes
-             WHEN 'BPCK' THEN 'Branded Pack'
-             WHEN 'GPCK' THEN 'Clinical Pack'
-          END,
-          'S',
-          code,                                        -- Cannot use rxcui here
-          (select latest_update From vocabulary where vocabulary_id='RxNorm'),
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-          NULL          
-     FROM rxnconso
-    WHERE sab = 'RXNORM' AND tty IN ('BPCK', 'GPCK');
-
-commit;	
-
---Add synonyms
-INSERT INTO concept_synonym_stage (synonym_concept_id,
-                                   synonym_concept_code,
-                                   synonym_name,
-                                   language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 255), 4093769                    -- English
-     FROM rxnconso r
-          JOIN concept_stage c
-             ON     c.concept_code = r.rxcui
-                AND NOT c.concept_class_id IN ('Clinical Pack',
-                                               'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY'
-	AND c.vocabulary_id='RxNorm';
-
-INSERT INTO concept_synonym_stage (synonym_concept_id,
-                                   synonym_concept_code,
-                                   synonym_name,
-                                   language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 255), 4093769                    -- English
-     FROM rxnconso r
-          JOIN concept_stage c
-             ON     c.concept_code = r.code
-                AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY'
-	AND c.vocabulary_id='RxNorm';
-
-	
---6. create core files of SNOMED
---7. fill CONCEPT_STAGE and concept_synonym_stage from SNOMED	
-
-
---Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
+--2 Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
 INSERT INTO concept_stage (concept_name,
                            vocabulary_id,
                            concept_code,
@@ -255,9 +67,10 @@ INSERT INTO concept_stage (concept_name,
              FROM sct2_concept_full_merged c, sct2_desc_full_merged d
             WHERE c.id = d.conceptid AND term IS NOT NULL)
     WHERE rn = 1 AND active = 1;
+COMMIT;	
 	
 
--- Create temporary table with extracted class information and terms ordered by some good precedence
+--3 Create temporary table with extracted class information and terms ordered by some good precedence
 CREATE TABLE tmp_concept_class
 AS
    SELECT *
@@ -368,9 +181,9 @@ AS
 									 where c.vocabulary_id='SNOMED')))
     WHERE rnc = 1;	
 	
-create index x_cc_2cd on tmp_concept_class (concept_code);
+	create index x_cc_2cd on tmp_concept_class (concept_code);
 	
--- Create reduced set of classes 
+--4 Create reduced set of classes 
 UPDATE concept_stage cs
    SET concept_class_id =
           (SELECT CASE
@@ -524,12 +337,9 @@ UPDATE concept_stage cs
              FROM tmp_concept_class cc
             WHERE cc.concept_code = cs.concept_code)
 	WHERE cs.vocabulary_id='SNOMED';
-	
-DROP TABLE tmp_concept_class PURGE;
 			
---Choice of concept_name in SNOMED and synonyms
+--5.	Choice of concept_name in SNOMED and synonyms
 --1st Fix concept_names using tmp table:
-
 create table mrconso_tmp as
 select DISTINCT
                   FIRST_VALUE (
@@ -588,9 +398,9 @@ UPDATE concept c
                                        )
        AND c.invalid_reason IS NULL -- only active ones. The inactive ones often only have obsolete tty anyway
        AND c.vocabulary_id = 'SNOMED';
+COMMIT;	   
 
-	   
--- Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
+--6 Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -601,11 +411,10 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           4093769 -- English
      FROM mrconso m LEFT JOIN mrconso_tmp m_tmp ON m.aui = m_tmp.aui
     WHERE m.sab = 'SNOMEDCT_US' AND m_tmp.aui IS NULL;
-
+COMMIT;
 DROP TABLE mrconso_tmp PURGE;
 
-
---8. fill concept_relationship_stage from SNOMED	
+--7 fill concept_relationship_stage from SNOMED	
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -835,9 +644,9 @@ INSERT INTO concept_relationship_stage (concept_code_1,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
      FROM (SELECT * FROM tmp_rel);
-
 COMMIT;	 
---add replacement relationships. They are handled in a different SNOMED table
+
+--8 add replacement relationships. They are handled in a different SNOMED table
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -877,11 +686,9 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                                900000000000527005,
                                900000000000530003))
     WHERE rn = 1 AND active = 1;
-	 
 COMMIT;
 
---Make sure all records are symmetrical and turn if necessary
-
+--9 Make sure all records are symmetrical and turn if necessary
 INSERT INTO concept_relationship_stage
    SELECT crs.concept_id_2 AS concept_id_1,
           crs.concept_id_1 AS concept_id_2,
@@ -905,24 +712,23 @@ INSERT INTO concept_relationship_stage
 					 AND crs.vocabulary_id_1=i.vocabulary_id_2
 					 AND crs.vocabulary_id_2=i.vocabulary_id_1)
     AND crs.vocabulary_id_1='SNOMED';
-
 COMMIT;
 
 	
---9. start building the hierarchy (snomed-only)
+--10. create the ancestor's package (01-SNOMED\PKG_CONCEPT_ANCESTOR.sql) and start building the hierarchy (snomed-only)
 exec PKG_CONCEPT_ANCESTOR.CALC;
-commit;
+COMMIT;
 
---10. start creating domain_id (Vocabulary-v5.0\01-SNOMED\Update_domain_snomed.sql)			   
--- 10.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
-drop table peak;
+
+--11. now we need creating domain_id
+-- 11.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
 create table peak (
 	peak_code varchar(20), --the id of the top ancestor
 	peak_domain_id varchar(20), -- the domain to assign to all its children
 	ranked integer -- number for the order in which to assign
 );
-
--- Fill in the various peak concepts
+			   
+-- 11.2 Fill in the various peak concepts
 insert into peak (peak_code, peak_domain_id) values (243796009, 'Observation'); -- 'Context-dependent category' that has no ancestor
 insert into peak (peak_code, peak_domain_id) values (138875005, 'Observation'); -- root
 insert into peak (peak_code, peak_domain_id) values (223366009, 'Provider Specialty');
@@ -941,10 +747,7 @@ insert into peak (peak_code, peak_domain_id) values (118245000, 'Measurement'); 
 insert into peak (peak_code, peak_domain_id) values (365854008, 'Observation'); -- 'History finding'
 insert into peak (peak_code, peak_domain_id) values (118233009, 'Observation'); -- 'Finding of activity of daily living'
 insert into peak (peak_code, peak_domain_id) values (307824009, 'Observation');-- 'Administrative statuses'
-		-- 40416814, 'Observation'); Causes of injury and poisoning'
-		-- 40418184,  -- '[X]External causes of morbidity and mortality'
 insert into peak (peak_code, peak_domain_id) values (162408000, 'Observation'); -- Symptom description
--- insert into peak (peak_code, peak_domain_id) values (4084137,	'Observation');-- Sample observation
 insert into peak (peak_code, peak_domain_id) values (105729006, 'Observation'); -- 'Health perception, health management pattern'
 insert into peak (peak_code, peak_domain_id) values (162566001, 'Observation'); --'Patient not aware of diagnosis'
 insert into peak (peak_code, peak_domain_id) values (65367001, 'Observation'); --'Victim status'
@@ -962,14 +765,8 @@ insert into peak (peak_code, peak_domain_id) values (42045007, 'Observation'); -
 insert into peak (peak_code, peak_domain_id) values (108329005, 'Observation'); --	Social context condition
 insert into peak (peak_code, peak_domain_id) values (309298003, 'Observation'); -- Drug therapy observations
 insert into peak (peak_code, peak_domain_id) values (48340000, 'Condition'); --Incontinence
--- insert into peak (peak_code, peak_domain_id) values (4025202, 'Condition'); --Elimination pattern
--- insert into peak (peak_code, peak_domain_id) values (4186437, 'Condition'); -- Urinary elimination alteration
---		4266236, 'Observation'); --'Cancer-related substance' - 4228508
 insert into peak (peak_code, peak_domain_id) values (108252007, 'Measurement'); --'Laboratory procedures'
 insert into peak (peak_code, peak_domain_id) values (122869004, 'Measurement'); --'Measurement'
--- 		4236002, 'Observation'); --'Allergen class'
--- 		4019381, 'Observation'); --'Biological substance'
---		4240422 -- 'Human body substance'
 insert into peak (peak_code, peak_domain_id) values (118246004, 'Measurement');	-- 'Laboratory test finding' - child of excluded Sample observation
 insert into peak (peak_code, peak_domain_id) values (71388002, 'Procedure'); --'Procedure'
 insert into peak (peak_code, peak_domain_id) values (304252001, 'Procedure'); -- Resuscitate
@@ -992,8 +789,8 @@ insert into peak (peak_code, peak_domain_id) values (106237007, 'Observation'); 
 insert into peak (peak_code, peak_domain_id) values (258666001, 'Unit'); -- Top unit
 insert into peak (peak_code, peak_domain_id) values (260245000, 'Meas Value'); -- Meas Value
 insert into peak (peak_code, peak_domain_id) values (125677006, 'Relationship'); -- Relationship
-
--- 10.2. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
+COMMIT;
+-- 11.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 -- The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
 -- This could go wrong if a parallel fork happens
@@ -1011,41 +808,9 @@ UPDATE peak p
                                     ) ranked
                    GROUP BY ranked.pd) r
             WHERE r.peak_code = p.peak_code);
+COMMIT;
 
--- 10.3. Find clashes, where one child has two or more Peak concepts as ancestors and display them with ordered by levels of separation
--- Currently these clashes are dealt with by precedence, not through rank. This might need to change
--- Also, this script needs to do this within a rank. Not done yet.
-SELECT conflict.concept_name AS child,
-         min_levels_of_separation AS MIN,
-         d.peak_domain_id,
-         c.concept_name AS peak,
-         c.concept_class_id AS peak_class_id
-    FROM snomed_ancestor a,
-         concept_stage c,
-         peak d,
-         concept_stage conflict
-   WHERE     a.descendant_concept_code IN (SELECT concept_code
-                                             FROM (  SELECT child.concept_code,
-                                                            COUNT (*)
-                                                       FROM (SELECT DISTINCT
-                                                                    p.peak_domain_id,
-                                                                    a.descendant_concept_code
-                                                                       AS concept_code
-                                                               FROM peak p,
-                                                                    snomed_ancestor a
-                                                              WHERE a.ancestor_concept_code =
-                                                                    p.peak_code)
-                                                            child
-                                                   GROUP BY child.concept_code
-                                                     HAVING COUNT (*) > 1)
-                                                  clash)
-         AND c.concept_code = a.ancestor_concept_code
-         AND c.concept_code = d.peak_code
-		 AND c.vocabulary_id='SNOMED'
-         AND conflict.concept_code = a.descendant_concept_code
-ORDER BY conflict.concept_name, min_levels_of_separation, c.concept_name;
-
--- 10.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
+-- 11.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
 -- Peak concepts are those ancestors that are not also descendants somewhere, except in their own record
 -- If there are mistakes, the manual list needs be updated and everything re-run
 INSERT INTO peak -- before doing that check first out without the insert
@@ -1080,10 +845,9 @@ INSERT INTO peak -- before doing that check first out without the insert
                                                         descendant_concept_code)
           AND c.concept_code = a.ancestor_concept_code
           AND c.vocabulary_id='SNOMED';
+COMMIT;
 
-
--- 10.5. Start building domains, preassign all them with "Not assigned"
-DROP TABLE domain_snomed purge;
+-- 11.5. Start building domains, preassign all them with "Not assigned"
 
 CREATE TABLE domain_snomed
 AS
@@ -1091,7 +855,7 @@ AS
      FROM concept_stage
     WHERE vocabulary_id = 'SNOMED';
 
--- 10.6. Pass out domain_ids
+-- 11.6. Pass out domain_ids
 -- Method 1: Assign domains to children of peak concepts in the order rank, and within rank by order of precedence
 -- Do that for all peaks by order of ranks. The highest first, the lower ones second, etc.
 
@@ -1139,10 +903,8 @@ BEGIN
                             AND p.ranked = A.ranked
                             AND a.descendant_concept_code = d.concept_code);
    END LOOP;
-
-   COMMIT;
-END;
-
+END;	
+COMMIT;		
 
 -- Method 2: For those that slipped through the cracks assign domains by using the class_concept_id
 -- Check out which these are and potentially fix and re-run Method 1
@@ -1160,13 +922,12 @@ UPDATE domain_snomed d
             WHERE     c.concept_code = d.concept_code
                   AND C.VOCABULARY_ID = 'SNOMED')
  WHERE d.domain_id = 'Not assigned';
-
--- 10.7. Update concept_stage from newly created domains.
-
+ COMMIT;
+ 
+ -- 11.7. Update concept_stage from newly created domains.
 CREATE INDEX idx_domain_cc
    ON domain_snomed (concept_code);
    
-
 UPDATE concept_stage c
    SET c.domain_id =
           (SELECT d.domain_id
@@ -1219,7 +980,8 @@ UPDATE concept_stage c
        AND C.VOCABULARY_ID = 'SNOMED';
 
 COMMIT;
--- 10.8. Set standard_concept based on domain_id
+
+-- 11.8. Set standard_concept based on domain_id
 UPDATE concept_stage c
    SET c.standard_concept =
           CASE c.domain_id
@@ -1232,361 +994,6 @@ UPDATE concept_stage c
              ELSE 'S'
           END
  WHERE C.VOCABULARY_ID = 'SNOMED';
-
 COMMIT;
 
-
- 
- --11. update domains
- --11.1. create temporary table read_domain
-create table read_domain as
-    select concept_code, 
-    case when domain_id is not null then domain_id 
-    else 
-        case when prev_domain=next_domain then prev_domain --prev and next domain are the same (and of course not null both)
-            when prev_domain is not null and next_domain is not null then  
-                case when prev_domain<next_domain then prev_domain||'/'||next_domain 
-                else next_domain||'/'||prev_domain 
-                end -- prev and next domain are not same and not null both, with order by name
-            else coalesce (prev_domain,next_domain,'Unknown')
-        end
-    end domain_id
-    from (
-        with filled_domain as
-        (
-            select c1.concept_code, c2.domain_id
-            FROM concept_relationship_stage r, concept_stage c1, concept c2
-            WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-            AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
-            AND r.vocabulary_id_1='Read' AND r.vocabulary_id_2='SNOMED'
-        )
-
-        select c1.concept_code, c2.domain_id,
-            (select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and c2.domain_id is null) prev_domain,
-            (select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and c2.domain_id is null) next_domain
-        from concept_stage c1
-        left join concept_relationship_stage r on r.concept_code_1=c1.concept_code and r.vocabulary_id_1=c1.vocabulary_id
-        left join concept c2 on c2.concept_code=r.concept_code_2 and r.vocabulary_id_2=c2.vocabulary_id and c2.vocabulary_id='SNOMED'
-        where c1.vocabulary_id='Read'
-    );
-    
-CREATE INDEX idx_read_domain ON read_domain (concept_code);
-
---11.2. Simplify the list by removing Observations
-update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
-where '/'||domain_id||'/' like '%/Observation/%'
-and instr(domain_id,'/')<>0;
-
-update read_domain set domain_id='Meas/Procedure' where domain_id='Measurement/Procedure';
-update read_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
-
-commit;
-
---check for new domains (must not return any rows!):
-select domain_id from read_domain 
-minus
-select domain_id from domain;
-
---11.3. update each domain_id with the domains field from read_domain.
-UPDATE concept_stage c
-   SET (domain_id) =
-          (SELECT domain_id
-             FROM read_domain rd
-            WHERE rd.concept_code = c.concept_code)
- WHERE c.vocabulary_id = 'Read';
-COMMIT;
-
---12. update concept from concept_stage 
- -- Fill concept_id where concept exists
-update concept_stage cs
-set cs.concept_id=(select c.concept_id from concept c where c.concept_code=cs.concept_code and c.vocabulary_id=cs.vocabulary_id)
-where cs.concept_id is null;
-commit;
-
--- Add existing concept_names to synonym (unless already exists) if being overwritten with a new one
-insert into concept_synonym
-select
-    c.concept_id,
-    c.concept_name concept_synonym_name,
-    4093769 language_concept_id -- English
-from concept_stage cs, concept c
-where c.concept_id=cs.concept_id and c.concept_name<>cs.concept_name
-and not exists (select 1 from concept_synonym where concept_synonym_name=c.concept_name); -- synonym already exists
-
-commit;
-
--- Update concepts
-UPDATE concept c
-SET (concept_name, domain_id,concept_class_id,standard_concept,valid_end_date) = (
-  SELECT coalesce(cs.concept_name, c.concept_name), coalesce(cs.domain_id, c.domain_id),
-  coalesce(cs.concept_class_id, c.concept_class_id),coalesce(cs.standard_concept, c.standard_concept), 
-  coalesce(cs.valid_end_date, c.valid_end_date)
-  FROM concept_stage cs
-  WHERE c.concept_id=cs.concept_id)
-where  concept_id in (select concept_id from concept_stage);
-commit;
-
--- Deprecate missing concepts
-update concept c set
-c.valid_end_date = c.valid_start_date-1
-where not exists (select 1 from concept_stage cs where cs.concept_id=c.concept_id and cs.vocabulary_id=c.vocabulary_id);
-commit;
-
--- set invalid_reason for active concepts
-update concept set
-invalid_reason=null
-where valid_end_date = to_date('31.12.2099','dd.mm.yyyy');
-commit;
-
--- set invalid_reason for deprecated concepts
-update concept set
-invalid_reason='D'
-where invalid_reason is null -- unless is already set
-and valid_end_date <> to_date('31.12.2099','dd.mm.yyyy');
-commit;
-
--- Add new concepts
-INSERT INTO concept (concept_id,
-                     concept_name,
-                     domain_id,
-                     vocabulary_id,
-                     concept_class_id,
-                     standard_concept,
-                     concept_code,
-                     valid_start_date,
-                     valid_end_date,
-                     invalid_reason)
-   SELECT v5_concept.NEXTVAL,
-          cs.concept_name,
-          cs.domain_id,
-          cs.vocabulary_id,
-          cs.concept_class_id,
-          cs.standard_concept,
-          cs.concept_code,
-          COALESCE (cs.valid_start_date,
-                    TO_DATE ('01.01.1970', 'dd.mm.yyyy')),
-          COALESCE (cs.valid_end_date, TO_DATE ('31.12.2099', 'dd.mm.yyyy')),
-          NULL
-     FROM concept_stage cs
-    WHERE cs.concept_id IS NULL;
-
-
-
-
---13. fill in all concept_id_1 and _2 in concept_relationship_stage
-CREATE INDEX idx_concept_code_1
-   ON concept_relationship_stage (concept_code_1);
-CREATE INDEX idx_concept_code_2
-   ON concept_relationship_stage (concept_code_2);
-
-
-UPDATE concept_relationship_stage crs
-   SET (crs.concept_id_1, crs.concept_id_2) =
-          (SELECT 
-                  COALESCE (cs1.concept_id, c1.concept_id,crs.concept_id_1),
-                  COALESCE (cs2.concept_id, c2.concept_id,crs.concept_id_2)
-             FROM concept_relationship_stage r
-                  LEFT JOIN concept_stage cs1
-                     ON cs1.concept_code = r.concept_code_1 and cs1.vocabulary_id=r.vocabulary_id_1
-                  LEFT JOIN concept c1 ON c1.concept_code = r.concept_code_1 and c1.vocabulary_id=r.vocabulary_id_1
-                  LEFT JOIN concept_stage cs2
-                     ON cs2.concept_code = r.concept_code_2 and cs2.vocabulary_id=r.vocabulary_id_2
-                  LEFT JOIN concept c2 ON c2.concept_code = r.concept_code_2 and c2.vocabulary_id=r.vocabulary_id_2
-            WHERE      crs.rowid=r.rowid
-                  
-         )
- WHERE crs.concept_id_1 IS NULL OR crs.concept_id_2 IS NULL;
- COMMIT;	
-
- 
- /* *******************************hacks begins*********************/
- --for some reason we have no all snomed codes, therefore we take it manually from sct2_concept_full_merged and add into concept_stage
- CREATE TABLE snomed_nonexisting
-
-AS
-   SELECT CASE WHEN id_1 IS NULL THEN concept_code_1 ELSE concept_code_2 END
-             concept_code
-     FROM (SELECT r.relationship_id,
-                  r.concept_code_1,
-                  r.concept_code_2,
-                  r.vocabulary_id_1,
-                  r.vocabulary_id_2,
-                  COALESCE (cs1.concept_id, c1.concept_id, r.concept_id_1)
-                     id_1,
-                  COALESCE (cs2.concept_id, c2.concept_id, r.concept_id_2)
-                     id_2
-             FROM concept_relationship_stage r
-                  LEFT JOIN concept_stage cs1
-                     ON     cs1.concept_code = r.concept_code_1
-                        AND cs1.vocabulary_id = r.vocabulary_id_1
-                  LEFT JOIN concept c1
-                     ON     c1.concept_code = r.concept_code_1
-                        AND c1.vocabulary_id = r.vocabulary_id_1
-                  LEFT JOIN concept_stage cs2
-                     ON     cs2.concept_code = r.concept_code_2
-                        AND cs2.vocabulary_id = r.vocabulary_id_2
-                  LEFT JOIN concept c2
-                     ON     c2.concept_code = r.concept_code_2
-                        AND c2.vocabulary_id = r.vocabulary_id_2
-            WHERE     (r.concept_id_1 IS NULL OR r.concept_id_2 IS NULL)
-                  AND vocabulary_id_2 = 'SNOMED'
-                  AND concept_code_1 IS NOT NULL
-                  AND concept_code_2 IS NOT NULL)
-    WHERE id_1 IS NULL OR id_2 IS NULL;
-
-
-INSERT INTO concept_stage (concept_name,
-                           vocabulary_id,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-   SELECT concept_name,
-          'SNOMED' AS vocabulary_id,
-          concept_code,
-          CASE
-             WHEN min_time <> max_time THEN TO_DATE (min_time, 'YYYYMMDD')
-             ELSE TO_DATE ('01.01.1970', 'dd.mm.yyyy')
-          END
-             AS valid_start_date,
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM (SELECT REGEXP_REPLACE (SUBSTR (d.term, 1, 255), ' \(.*?\)$', '')
-                     AS concept_name,
-                  d.conceptid AS concept_code,
-                  MIN (c.effectivetime) OVER (PARTITION BY d.conceptid)
-                     min_time,
-                  MAX (c.effectivetime) OVER (PARTITION BY d.conceptid)
-                     max_time,
-                  ROW_NUMBER ()
-                  OVER (
-                     PARTITION BY d.conceptid
-                     -- Order of preference: newest in sct2_concept, in sct2_desc, synonym, does not contain class in parenthesis
-                     --we take all rows including non-active concepts!
-                     ORDER BY
-                        TO_DATE (c.effectivetime, 'YYYYMMDD') DESC,
-                        TO_DATE (d.effectivetime, 'YYYYMMDD') DESC,
-                        CASE
-                           WHEN typeid = '900000000000013009' THEN 0
-                           ELSE 1
-                        END,
-                        CASE WHEN term LIKE '%(%)%' THEN 1 ELSE 0 END)
-                     rn
-             FROM sct2_concept_full_merged c,
-                  sct2_desc_full_merged d,
-                  snomed_nonexisting sn --only non-existing snomed codes!
-            WHERE     c.id = d.conceptid
-                  AND term IS NOT NULL
-                  AND conceptid = SN.CONCEPT_CODE
-          )
-    WHERE rn = 1;
-    
-COMMIT;	
-	
- 
- /* *******************************hacks end*********************/
-
- --Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
- CREATE INDEX idx_concept_id_1
-   ON concept_relationship_stage (concept_id_1);
-CREATE INDEX idx_concept_id_2
-   ON concept_relationship_stage (concept_id_2);
-
-UPDATE concept_relationship d
-   SET (d.valid_end_date, d.invalid_reason) =
-          (SELECT distinct crs.valid_end_date, crs.invalid_reason
-             FROM concept_relationship_stage crs
-            WHERE     crs.concept_id_1 = d.concept_id_1
-                  AND crs.concept_id_2 = d.concept_id_2
-                  AND crs.relationship_id = d.relationship_id)
- WHERE EXISTS
-          (SELECT 1
-             FROM concept_relationship_stage r
-            -- test whether either the concept_ids match
-            WHERE     d.concept_id_1 = r.concept_id_1
-                  AND d.concept_id_2 = r.concept_id_2
-                  AND d.relationship_id = r.relationship_id);
- 
-commit; 
---Deprecate missing relationships, but only if the concepts exist.
--- If relationships are missing because of deprecated concepts, leave them intact
-
-UPDATE concept_relationship d
-   SET valid_end_date =
-            (SELECT latest_update
-               FROM vocabulary v, concept_stage c
-              WHERE     v.vocabulary_id = c.vocabulary_id
-                    AND c.concept_id = d.concept_id_1)
-          - 1,                                       -- day before release day
-       invalid_reason = 'D'
- WHERE     NOT EXISTS
-              (SELECT 1
-                 FROM concept_relationship_stage r
-                -- test whether either the concept_ids match, or the concept_ids matched to the concept_codes in either stage or dev
-                WHERE     d.concept_id_1 = r.concept_id_1
-                      AND d.concept_id_2 = r.concept_id_2
-                      AND d.relationship_id = r.relationship_id)
-       AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecate those that are fresh and active
-       AND d.valid_start_date <
-                (SELECT latest_update
-                   FROM vocabulary v, concept_stage c
-                  WHERE     v.vocabulary_id = c.vocabulary_id
-                        AND c.concept_id = d.concept_id_1)
-              - 1                               -- started before release date
-       -- exclude replacing relationships, usually they are not maintained after a concept died
-       AND d.relationship_id NOT IN ('UCUM replaced by',
-                                     'UCUM replaces',
-                                     'Concept replaced by',
-                                     'Concept replaces',
-                                     'Concept same_as to',
-                                     'Concept same_as from',
-                                     'Concept alt_to to',
-                                     'Concept alt_to from',
-                                     'Concept poss_eq to',
-                                     'Concept poss_eq from',
-                                     'Concept was_a to',
-                                     'Concept was_a from',
-                                     'LOINC replaced by',
-                                     'LOINC replaces',
-                                     'RxNorm replaced by',
-                                     'RxNorm replaces',
-                                     'SNOMED replaced by',
-                                     'SNOMED replaces',
-                                     'ICD9P replaced by',
-                                     'ICD9P replaces') -- check for existence of both concept_id_1 and concept_id_2
-       AND EXISTS
-              (SELECT 1
-                 FROM concept_stage c
-                WHERE c.concept_id = d.concept_id_1)
-       AND EXISTS
-              (SELECT 1
-                 FROM concept_stage c
-                WHERE c.concept_id = d.concept_id_2);      
-	
-
-commit;				
---insert new relationships
-INSERT INTO concept_relationship (concept_id_1,
-                                  concept_id_2,
-                                  relationship_id,
-                                  valid_start_date,
-                                  valid_end_date,
-                                  invalid_reason)
-   SELECT distinct crs.concept_id_1,
-          crs.concept_id_2,
-          crs.relationship_id,
-          crs.valid_start_date,
-          TO_DATE ('20991231', 'YYYYMMDD') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM concept_relationship_stage crs
-    WHERE NOT EXISTS
-             (SELECT 1
-                FROM concept_relationship r
-               -- test whether either the concept_ids match, or the concept_ids matched to the concept_codes in either stage or dev
-               WHERE     crs.concept_id_1 = r.concept_id_1
-                     AND crs.concept_id_2 = r.concept_id_2
-                     AND crs.relationship_id = r.relationship_id);
-
-commit;	
-	
- 
+--12------ run Vocabulary-v5.0\generic_update.sql ---------------

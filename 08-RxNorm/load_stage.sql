@@ -11,6 +11,9 @@ RXNREL
 RXNSAB
 RXNSAT
 RXNSTY
+
+-- Update latest_update field to new date 
+update vocabulary set latest_update=to_date('YYYYMMDD','yyyymmdd') where vocabulary_id='RxNorm'; commit;
 */
 
 --3. Insert into concept_stage
@@ -24,7 +27,7 @@ INSERT INTO concept_stage (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT SUBSTR (str, 1, 256),
+   SELECT SUBSTR (str, 1, 255),
           'RxNorm',
           'Drug',
           CASE tty                    -- use RxNorm tty as for Concept Classes
@@ -41,7 +44,7 @@ INSERT INTO concept_stage (concept_name,
           CASE tty -- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
                   WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
           rxcui,                                    -- the code used in RxNorm
-          TO_DATE ('01.12.2014', 'dd.mm.yyyy'),
+          (select latest_update From vocabulary where vocabulary_id='RxNorm'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
      FROM rxnconso
@@ -55,10 +58,10 @@ INSERT INTO concept_stage (concept_name,
                       'SBDC',
                       'SBDF',
                       'SBD');
+COMMIT;					  
 
 
 -- Packs share rxcuis with Clinical Drugs and Branded Drugs, therefore use code as concept_code
-
 INSERT INTO concept_stage (concept_name,
                            vocabulary_id,
                            domain_id,
@@ -68,7 +71,7 @@ INSERT INTO concept_stage (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT SUBSTR (str, 1, 256),
+   SELECT SUBSTR (str, 1, 255),
           'RxNorm',
           'Drug',
           CASE tty                    -- use RxNorm tty as for Concept Classes
@@ -77,14 +80,14 @@ INSERT INTO concept_stage (concept_name,
           END,
           'S',
           code,                                        -- Cannot use rxcui here
-          TO_DATE ('01.12.2014', 'dd.mm.yyyy'),
+          (select latest_update From vocabulary where vocabulary_id='RxNorm'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL          
      FROM rxnconso
     WHERE sab = 'RXNORM' AND tty IN ('BPCK', 'GPCK');
+COMMIT;	
 	
 --4. Add synonyms
-
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -95,7 +98,8 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
              ON     c.concept_code = r.rxcui
                 AND NOT c.concept_class_id IN ('Clinical Pack',
                                                'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY';
+    WHERE sab = 'RXNORM' AND tty = 'SY'
+	AND c.vocabulary_id='RxNorm';
 
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
@@ -106,8 +110,9 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           JOIN concept_stage c
              ON     c.concept_code = r.code
                 AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY';    
-	
+    WHERE sab = 'RXNORM' AND tty = 'SY'
+	AND c.vocabulary_id='RxNorm';
+COMMIT;	
 
 	   
-			
+--5------ run Vocabulary-v5.0\generic_update.sql ---------------			

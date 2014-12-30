@@ -1,5 +1,4 @@
---1 Fill concept_id where concept exists
-update concept from concept_stage 
+--1 update concept from concept_stage 
  -- Fill concept_id where concept exists
 update concept_stage cs
 set cs.concept_id=(select c.concept_id from concept c where c.concept_code=cs.concept_code and c.vocabulary_id=cs.vocabulary_id)

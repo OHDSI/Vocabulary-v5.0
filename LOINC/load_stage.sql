@@ -1,5 +1,5 @@
 /*
-1. Logon to https://loinc.org/downloads/loinc, login cgreich, pw aramchik. 
+1. Logon to https://loinc.org/downloads/loinc
 Download full set (http://loinc.org/downloads/files/loinc-table-csv-text-format/loinc-table-file-csv-text-format/download). 
 Also, download multiaxial hierarchy (http://loinc.org/downloads/files/loinc-multiaxial-hierarchy/loinc-multiaxial-hierarchy-file/download). 
 In the box "Intended use" fill in "Incorporation into OMOP Standardized Vocabulary" 

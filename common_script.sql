@@ -132,7 +132,7 @@ INSERT INTO concept_stage (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT SUBSTR (str, 1, 255),
+   SELECT SUBSTR (str, 1, 1000),
           'RxNorm',
           'Drug',
           CASE tty                    -- use RxNorm tty as for Concept Classes
@@ -197,7 +197,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 255), 4093769                    -- English
+   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 4093769                    -- English
      FROM rxnconso r
           JOIN concept_stage c
              ON     c.concept_code = r.rxcui
@@ -210,7 +210,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 255), 4093769                    -- English
+   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 4093769                    -- English
      FROM rxnconso r
           JOIN concept_stage c
              ON     c.concept_code = r.code
@@ -597,7 +597,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    language_concept_id)
    SELECT NULL,
           m.code,
-          SUBSTR (m.str, 1, 255),
+          SUBSTR (m.str, 1, 1000),
           4093769 -- English
      FROM mrconso m LEFT JOIN mrconso_tmp m_tmp ON m.aui = m_tmp.aui
     WHERE m.sab = 'SNOMEDCT_US' AND m_tmp.aui IS NULL;

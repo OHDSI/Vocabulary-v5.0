@@ -270,6 +270,54 @@ INSERT INTO concept_relationship_stage (concept_id_1,
     WHERE e.concept_code_2 IS NOT NULL AND e.concept_code_1 IS NOT NULL;
 COMMIT;	
 
+--8 update dates from mrsat.atv (only for new concepts)
+UPDATE concept_stage c1
+   SET valid_start_date =
+          (WITH t
+                AS (SELECT DISTINCT TO_DATE (dt, 'yyyymmdd') dt, concept_code
+                      FROM (SELECT TO_CHAR (s.atv) dt, c.concept_code
+                              FROM concept_stage c
+                                   LEFT JOIN mrconso m
+                                      ON     m.scui = c.concept_code
+                                         AND m.sab in ('CPT', 'HCPT')
+                                   LEFT JOIN mrsat s
+                                      ON s.cui = m.cui AND s.atn = 'DA'
+                             WHERE     NOT EXISTS
+                                          ( -- only new codes we don't already have
+                                           SELECT 1
+                                             FROM concept co
+                                            WHERE     co.concept_code =
+                                                         c.concept_code
+                                                  AND co.vocabulary_id =
+                                                         c.vocabulary_id)
+                                   AND c.vocabulary_id = 'CPT4'
+                                   AND c.concept_class_id = 'CPT4'
+                           )
+                     WHERE dt IS NOT NULL)
+           SELECT COALESCE (dt, c1.valid_start_date)
+             FROM t
+            WHERE c1.concept_code = t.concept_code)
+ WHERE     c1.vocabulary_id = 'CPT4'
+       AND EXISTS
+              (SELECT 1 concept_code
+                 FROM (SELECT TO_CHAR (s.atv) dt, c.concept_code
+                         FROM concept_stage c
+                              LEFT JOIN mrconso m
+                                 ON m.scui = c.concept_code AND m.sab in ('CPT', 'HCPT')
+                              LEFT JOIN mrsat s
+                                 ON s.cui = m.cui AND s.atn = 'DA'
+                        WHERE     NOT EXISTS
+                                     ( -- only new codes we don't already have
+                                      SELECT 1
+                                        FROM concept co
+                                       WHERE     co.concept_code =
+                                                    c.concept_code
+                                             AND co.vocabulary_id =
+                                                    c.vocabulary_id)
+                              AND c.vocabulary_id = 'CPT4'
+                              AND c.concept_class_id = 'CPT4') s
+                WHERE dt IS NOT NULL AND s.concept_code = c1.concept_code);
+COMMIT;				
 
---8 create new codes and mappings according to UMLS	   
---9------ run Vocabulary-v5.0\generic_update.sql ---------------			
+--9 create new codes and mappings according to UMLS	   
+--10------ run Vocabulary-v5.0\generic_update.sql ---------------			

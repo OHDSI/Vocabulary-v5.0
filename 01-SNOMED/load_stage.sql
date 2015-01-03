@@ -407,7 +407,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    language_concept_id)
    SELECT NULL,
           m.code,
-          SUBSTR (m.str, 1, 255),
+          SUBSTR (m.str, 1, 1000),
           4093769 -- English
      FROM mrconso m LEFT JOIN mrconso_tmp m_tmp ON m.aui = m_tmp.aui
     WHERE m.sab = 'SNOMEDCT_US' AND m_tmp.aui IS NULL;

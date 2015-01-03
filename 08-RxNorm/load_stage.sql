@@ -92,7 +92,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 255), 4093769                    -- English
+   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 4093769                    -- English
      FROM rxnconso r
           JOIN concept_stage c
              ON     c.concept_code = r.rxcui
@@ -105,7 +105,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 255), 4093769                    -- English
+   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 4093769                    -- English
      FROM rxnconso r
           JOIN concept_stage c
              ON     c.concept_code = r.code

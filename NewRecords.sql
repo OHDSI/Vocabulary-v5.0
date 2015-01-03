@@ -334,6 +334,10 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 values (v5_concept.nextval, 'Linkage Concept', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
 values ('Linkage Concept', 'Linkage Concept', (select concept_id from concept where concept_name='Linkage Concept'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Link Assertion', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Link Assertion', 'Link Assertion', (select concept_id from concept where concept_name='Link Assertion'));
 
 -- Fix existing SNOMED concept classes
 update concept set concept_name='Situation with explicit context' where concept_id=44819051;

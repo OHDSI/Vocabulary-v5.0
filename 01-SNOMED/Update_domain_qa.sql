@@ -48,12 +48,12 @@ and ad.domain_id='Procedure' and ed.domain_id='Measurement'
 order by de.concept_name
 limit 1000;
 
-select * from concept where concept_id=40484042;
+select * from concept where concept_code='260787004';
 select * from domain_id d, concept c where d.concept_id=c.concept_id limit 100; --and d.domain_id='Clinical finding';
 
 -- hierarchy down and up
-select max_levels_of_separation min, c.* from concept_ancestor a, concept c where a.ancestor_concept_id in (4297090) and c.concept_id=a.descendant_concept_id order by min_levels_of_separation, concept_name;
-select max_levels_of_separation min, c.* from concept_ancestor a, concept c where a.descendant_concept_id in (4047152) and c.concept_id=a.ancestor_concept_id order by maxa_levels_of_separation;
+select min_levels_of_separation min, c.* from snomed_ancestor a, concept c where a.ancestor_concept_code in (260787004) and c.concept_code=a.descendant_concept_code and c.vocabulary_id='SNOMED' order by min_levels_of_separation, concept_name;
+select max_levels_of_separation min, c.* from snomed_ancestor a, concept c where a.descendant_concept_code in (4047152) and c.concept_code=a.ancestor_concept_code and c.vocabulary_id='SNOMED' order by maxa_levels_of_separation;
 -- relationships down and up
 select c.concept_id, c.concept_name, c.domain_id, r.relationship_id
 from concept c, concept_relationship r, relationship s
@@ -72,13 +72,14 @@ join concept c on c.concept_id=m.target_concept_id
 where m.mapping_type='CONDITION' and d.domain_id='Clinical finding' 
 ;
 
+select * from concept where concept_id=4008453;
 -- find the chain
-select up.min_levels_of_separation up, d.domain_id, c.* from concept c, concept_ancestor up, concept_ancestor down, domain_id d
-where up.descendant_concept_id=4059164
-and down.ancestor_concept_id=4008453 -- root-- 4322976 -- Procedure -- 441840 -- Clinical finding --  4008453 -- root
-and up.ancestor_concept_id=down.descendant_concept_id
-and c.concept_id=up.ancestor_concept_id
-and d.concept_id=c.concept_id 
+select up.min_levels_of_separation up, c.* from concept_stage c, snomed_ancestor up, snomed_ancestor down
+where up.descendant_concept_code='69861004'
+and down.ancestor_concept_code='260787004' -- root-- 4322976 -- Procedure -- 441840 -- Clinical finding --  4008453 -- root
+and up.ancestor_concept_code=down.descendant_concept_code
+and c.concept_code=up.ancestor_concept_code
+and c.vocabulary_id='SNOMED' 
 order by up.min_levels_of_separation;
 
 -- check classes against domains

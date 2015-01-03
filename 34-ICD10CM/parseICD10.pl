@@ -63,11 +63,14 @@ my $chapter=""; # global variable since redefined in every page
 if ($year<2008) { # old DIMDI version
 	$home="http:\/\/apps.who.int\/classifications\/apps\/icd\/icd10online".$year."\/";
 	warn "Reading TOC";
-	my $body=geturl($home."navi.htm") or ferror("Unable to get page: $!");
+ 	my $body=geturl($home."navi.htm") or ferror("Unable to get page: $!");
 	while ($body =~ /<a href="(\w+)\.htm">/ig) {
 		$pages{$1} = 1;
 	}
-	%pages=("ga15"=>1); # gt08 gk20 gs00
+# %pages=("ga15"=>1); # nasty fragments
+# %pages=("gt08"=>1); # following in hte same code, added to 3-letter code with dot.
+# %pages=("gk20"=>1); # with from to (K25-K28), extension in strong on next line.
+# %pages=("gs00"=>1); # with following in the subcodes
 }
 else { # new WHO version
 	$home="http:\/\/apps.who.int\/classifications\/icd10\/browse\/".$year."\/en\/GetConcept?ConceptId=";
@@ -79,9 +82,8 @@ else { # new WHO version
 			$pages{$1} = 1;
 		}
 	}
-	# my %pages=("A00-A09"=>1);
+# my %pages=("A00-A09"=>1);
 }
-
 
 # 5. Open all result files
 
@@ -92,6 +94,7 @@ print CONCEPT_SYNONYM "concept_code,concept_synonym_name,language_concept_id\n";
 open EXCLUDES, ">excludes.txt" or ferror("Writing excludes.txt: $!"); print EXCLUDES "concept_code,note\n";
 open INCLUDES, ">includes.txt" or ferror("Writing includes.txt: $!"); print INCLUDES "concept_code,note\n";
 open INCLUSIONTERM, ">inclusionterm.txt" or ferror("Writing inclusionterm.txt: $!"); print INCLUSIONTERM "concept_code,note\n";
+open NOTE, ">note.txt" or ferror("Writing note.txt: $!"); print NOTE "concept_code,note\n";
 
 my $concepts=0; # the counter for concepts found and written
 my $code; # ICD-10 code
@@ -117,9 +120,9 @@ my $tempfile="temp.htm";
 if ($year<2008) { # old DIMDI version
 	foreach $page (sort(keys %pages)) {
 	# pull page
-		my $body=geturl($home.$page.".htm") or ferror("Unable to get page: $!");
+	my $body=geturl($home.$page.".htm") or ferror("Unable to get page: $!");
 
-	#	warn "Reading block $page";
+		warn "Reading block $page";
 		open ICD10, ">".$tempfile or ferror("Unable to open tempfile for writing: $!"); 
 		print ICD10 $body or ferror("Unable to write temp file: $!");
 		close ICD10;
@@ -143,25 +146,27 @@ if ($year<2008) { # old DIMDI version
 		# collect codes, descriptions and all other notes
 		while (<ICD10>) {
 			last if ($_=~/<HR>/i);
-			if ($_=~/<A NAME="s\d\d[a-z]\d\d/) { # found following instructions
-				<ICD10>=~/<\/A>(.+)/i; # the concept_code
+			if ($_=~/<A NAME="s\d\d[a-z]\d\d/) { # found following instructions of the type <A NAME="s19t10">
+				<ICD10>=~/<\/A>(.+)/i; # the instruction text following right after
 				$following=$1;
 				$stopcode=$thiscode="";
 				$stopcode=$1 if ($following=~/\-([A-Z]\d\d)/); # when to stop expanding. If doesn't exist, when category of code (length) changes
 				$thiscode=$code unless ($stopcode); # if no stop code provided, just work on current code
 				$thisdesc=$desc; # keep the descripion in case we need to print it when already in next code space
-print "$code: This $thiscode, Stop $stopcode\n" if $following;
+				$printthis=0; # assume we haven't printed anything yet
+# print "$code: This $thiscode, Stop $stopcode\n" if $following;
 				while (<ICD10>) { # pick up instructions
 					last if ($_=~/<\/TABLE>/i); # some of them close the table
 					last if ($_=~/<EM>/i); # .. others not
+					last if ($_=~/<STRONG>$/i); # .. others not: S02
 					last if ($_=~/<TD VALIGN="TOP" ALIGN="LEFT" COLSPAN="[^68]">/i); # when inclusionterm table started unexpectedly
 					if ($_=~/<TD VALIGN="TOP" ALIGN="LEFT" WIDTH="8%">(.*)/i) { # collect the expansion code
-						$codeext=$1;
+					$codeext=$1;
 						while (<ICD10>) {
 							last if ($_=~/<\/TD>/i);
 							$codeext.=$1 if ($_=~/<[^>]+>(.*)/i); # collect anything after a tag, can be in subsequent lines
 						}
-						$codeext=~s/^\.?(.*)/$1/; # chop off dot, will add during printing when necessary
+						$codeext=~s/^\.?(.*)/$1/; # chop off dot, will add during printing if necessary
 					}
 					elsif ($_=~/<TD VALIGN="TOP" ALIGN="LEFT" COLSPAN="[68]">(.*)/i) { # collect the expansion text
 						$textext=$1;
@@ -185,7 +190,6 @@ print "$code: This $thiscode, Stop $stopcode\n" if $following;
 						$concepts++;
 						printrecord ($code, $desc, "concept"); # write out main record
 						if ($thiscode) { # if we have to watch whether still in expansion
-							$printthis=0; # assume we haven't printed anything yet
 							if ($code=~/$thiscode/) { # if we have an expansion 
 								$printthis=1; # have codes that still fit thiscode (like S02), don't print previous (like T08)
 								foreach $codeext (keys(%ext)) { # print all the permutations of the expansion block
@@ -218,13 +222,15 @@ print "$code: This $thiscode, Stop $stopcode\n" if $following;
 				$totable="inclusionterm"; # what comes after collecting the code and description are the synonyms (inclusionterms)
 				next;
 			}
+			$printlast=1;
 			$totable="includes" if ($_=~/<STRONG>Includes:/i && $code);
 			$totable="excludes" if ($_=~/<STRONG>Excludes:/i && $code);
-			if ($_=~/<TD VALIGN="[^"]+" ALIGN="LEFT" COLSPAN="\d">(.+)/) { # found a list (inclusionterm, includes, excludes)
+			$totable="note" if ($_=~/<STRONG>Note:/i && $code);
+			
+			if ($_=~/<TD VALIGN="[^"]+" ALIGN="LEFT" COLSPAN="\d">(.+)/) { # found a list (inclusionterm, includes, excludes, note)
 				$base=$1; $lastrecord=$1; 
 				$fragment=""; # variable to build the description string for fragments
 				while (<ICD10>) {
-					$printlast=1;
 					if ($lastrecord=~/(.+?)\:/) { # if ends in colon
 						$base=$1." "; $printlast=0;
 					}
@@ -249,11 +255,20 @@ print "$code: This $thiscode, Stop $stopcode\n" if $following;
 					elsif ($_=~/<BR>/i) { # truly new line, print the previous (or not)
 						push (@f_list, $lastrecord) if ($printlast && $lastrecord); # print the previous, unless ends in colon
 						$lastrecord="";
-						if ($_=~/<BR>&middot;\s+(.+)/i) { # print previous first
+						if ($_=~/<BR>&nbsp;&nbsp;&middot;\s+(.+)/i) { # print previous first
 							$lastrecord=$base.$1;
+							$printlast=1;
+						}
+						elsif ($_=~/<BR>&middot;\s+(.+)/i) { # print previous first
+							$lastrecord=$base.$1;
+							$printlast=1;
+							if ($lastrecord=~/(.+?)\:/) { # if ends in colon
+								$base=$1." "; $printlast=0;
+							}
 						}
 						elsif ($_=~/<BR>(.+)/i) { # the next one that is not a bullet (belongs to one above)
 							$lastrecord=$base=$1; 
+							$printlast=1;
 						}
 					}
 					elsif ($_=~/<TD VALIGN="[^"]/i) { # same as <BR>.*
@@ -270,20 +285,27 @@ print "$code: This $thiscode, Stop $stopcode\n" if $following;
 						}
 						elsif ($_=~/<TD VALIGN=[^>]+>&middot;\s+(.+)/i) { # print previous first
 							$lastrecord=$base.$1;
+							$printlast=1;
 						}
 						elsif ($_=~/<TD VALIGN=[^>]+>(.+)/i) { # the next one that is not a bullet (belongs to one above)
-							$lastrecord=$base=$1; 
+							$lastrecord=$base=$1;
+							$printlast=1;
 						}
 					}
 					elsif ($_=~/<STRONG>/i) {
 						last;
 					}
+					elsif ($_=~/<EM>/i) { # usually in front of Include: and Exclude:
+						last;
+					}
+					elsif ($_=~/<\/P>/i) { # At the end.
+						last;
+					}
  					elsif ($_=~/<\/TR>/i) {
-print "Last $lastrecord, Base $base, list @f_list\n" if $code eq 16.3;
-						last unless @f_list;
+						last if ($printlast); # </TR> is the signal to leave unless there is a hanging colon ($lastprint=0)
+#						last if ($printlast && !(@f_list)); # </TR> is the signal to leave, unless we have a fragment list and if the last is printed
 					}
 				}
-				printrecord($code, $lastrecord, $totable) if ($printlast && $lastrecord); # print the previous, unless ends in colon
 				if ($fragment) {
 					$fragment.=join('/', @f_list); # add the remaining fragments
 					printrecord($code, $fragment, $totable); # print out fragmented line
@@ -390,16 +412,75 @@ close CONCEPT;
 close CONCEPT_SYNONYM;
 close EXCLUDES;
 close INCLUDES;
+close NOTE;
 close INCLUSIONTERM;
 
 sub printrecord { # ($code, $text)
 	my $code=shift; my $text=shift; my $totable=shift;
 	$text=~s/\s*$//; # trim trailing spaces
+	# convert html extended characters:
+$text=~s/&aacute;/á/g;
+$text=~s/&Aacute;/Á/g;
+$text=~s/&agrave;/à/g;
+$text=~s/&Agrave;/À/g;
+$text=~s/&acirc;/â/g;
+$text=~s/&Acirc;/Â/g;
+$text=~s/&aring;/å/g;
+$text=~s/&Aring;/Å/g;
+$text=~s/&atilde;/ã/g;
+$text=~s/&Atilde;/Ã/g;
+$text=~s/&auml;/ä/g;
+$text=~s/&Auml;/Ä/g;
+$text=~s/&aelig;/æ/g;
+$text=~s/&AElig;/Æ/g;
+$text=~s/&ccedil;/ç/g;
+$text=~s/&Ccedil;/Ç/g;
+$text=~s/&eacute;/é/g;
+$text=~s/&Eacute;/É/g;
+$text=~s/&egrave;/è/g;
+$text=~s/&Egrave;/È/g;
+$text=~s/&ecirc;/ê/g;
+$text=~s/&Ecirc;/Ê/g;
+$text=~s/&euml;/ë/g;
+$text=~s/&Euml;/Ë/g;
+$text=~s/&iacute;/í/g;
+$text=~s/&Iacute;/Í/g;
+$text=~s/&igrave;/ì/g;
+$text=~s/&Igrave;/Ì/g;
+$text=~s/&icirc;/î/g;
+$text=~s/&Icirc;/Î/g;
+$text=~s/&iuml;/ï/g;
+$text=~s/&Iuml;/Ï/g;
+$text=~s/&ntilde;/ñ/g;
+$text=~s/&Ntilde;/Ñ/g;
+$text=~s/&oacute;/ó/g;
+$text=~s/&Oacute;/Ó/g;
+$text=~s/&ograve;/ò/g;
+$text=~s/&Ograve;/Ò/g;
+$text=~s/&ocirc;/ô/g;
+$text=~s/&Ocirc;/Ô/g;
+$text=~s/&oslash;/ø/g;
+$text=~s/&Oslash;/Ø/g;
+$text=~s/&otilde;/õ/g;
+$text=~s/&Otilde;/Õ/g;
+$text=~s/&ouml;/ö/g;
+$text=~s/&Ouml;/Ö/g;
+$text=~s/&szlig;/ß/g;
+$text=~s/&uacute;/ú/g;
+$text=~s/&Uacute;/Ú/g;
+$text=~s/&ugrave;/ù/g;
+$text=~s/&Ugrave;/Ù/g;
+$text=~s/&ucirc;/û/g;
+$text=~s/&Ucirc;/Û/g;
+$text=~s/&uuml;/ü/g;
+$text=~s/&Uuml;/Ü/g;
+$text=~s/&yuml;/ÿ/g;
 # print "$totable $code: $text\n" if ($totable eq "concept");
 	print CONCEPT ",\"$text\",,ICD10,$concept_class{$chapter},,$code,$startdate,20991231,\n" or ferror("Writing concept.txt: $!") if $totable eq "concept";
 	print INCLUSIONTERM "$code,\"$text\"\n" or ferror("Writing inclusionterm.txt: $!") if $totable eq "inclusionterm";
 	print INCLUDES "$code,\"$text\"\n" or ferror("Writing includes.txt: $!") if $totable eq "includes";
 	print EXCLUDES "$code,\"$text\"\n" or ferror("Writing excludes.txt: $!") if $totable eq "excludes";
+	print NOTE "$code,\"$text\"\n" or ferror("Writing note.txt: $!") if $totable eq "note";
 	$text=~s/\+? \([A-Z]\d\d[^\)]*\)//g; # remove things like '+ (M26.0)'
 	print CONCEPT_SYNONYM "$code,\"$text\",4093769\n" or ferror("Writing concept_synonym.txt: $!") if $totable eq "inclusionterm";
 	print CONCEPT_SYNONYM "$code,\"$text\",4093769\n" or ferror("Writing concept_synonym.txt: $!") if $totable eq "concept";

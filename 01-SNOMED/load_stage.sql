@@ -69,7 +69,6 @@ INSERT INTO concept_stage (concept_name,
     WHERE rn = 1 AND active = 1;
 COMMIT;	
 	
-
 --3 Create temporary table with extracted class information and terms ordered by some good precedence
 CREATE TABLE tmp_concept_class
 AS
@@ -130,6 +129,11 @@ AS
                                 'attribute', 45,
                                 'administrative concept', 46,
                                 'record artifact', 47,
+                                'navigational concept', 48,
+                                'inactive concept', 49,
+                                'linkage concept', 50,
+                                'link assertion', 51,
+                                'environment / location', 52,
                                 99),
                         rnb)
                      AS rnc
@@ -181,162 +185,73 @@ AS
 									 where c.vocabulary_id='SNOMED')))
     WHERE rnc = 1;	
 	
-	create index x_cc_2cd on tmp_concept_class (concept_code);
-	
+create index x_cc_2cd on tmp_concept_class (concept_code);
+
 --4 Create reduced set of classes 
 UPDATE concept_stage cs
    SET concept_class_id =
           (SELECT CASE
-                     WHEN F7 = 'disorder'
-                     THEN
-                        'Clinical Finding'
-                     WHEN F7 = 'procedure'
-                     THEN
-                        'Procedure'
-                     WHEN F7 = 'finding'
-                     THEN
-                        'Clinical Finding'
-                     WHEN F7 = 'organism'
-                     THEN
-                        'Organism'
-                     WHEN F7 = 'body structure'
-                     THEN
-                        'Body Structure'
-                     WHEN F7 = 'substance'
-                     THEN
-                        'Substance'
-                     WHEN F7 = 'product'
-                     THEN
-                        'Pharma/Biol Product'
-                     WHEN F7 = 'event'
-                     THEN
-                        'Event'
-                     WHEN F7 = 'qualifier value'
-                     THEN
-                        'Qualifier Value'
-                     WHEN F7 = 'observable entity'
-                     THEN
-                        'Observable Entity'
-                     WHEN F7 = 'situation'
-                     THEN
-                        'Context-dependent'
-                     WHEN F7 = 'occupation'
-                     THEN
-                        'Social Context'
-                     WHEN F7 = 'regime/therapy'
-                     THEN
-                        'Procedure'
-                     WHEN F7 = 'morphologic abnormality'
-                     THEN
-                        'Morph Abnormality'
-                     WHEN F7 = 'physical object'
-                     THEN
-                        'Physical Object'
-                     WHEN F7 = 'specimen'
-                     THEN
-                        'Specimen'
-                     WHEN F7 = 'environment'
-                     THEN
-                        'Location'
-                     WHEN F7 = 'context-dependent category'
-                     THEN
-                        'Context-dependent'
-                     WHEN F7 = 'attribute'
-                     THEN
-                        'Attribute'
-                     WHEN F7 = 'assessment scale'
-                     THEN
-                        'Staging / Scales'
-                     WHEN F7 = 'person'
-                     THEN
-                        'Social Context'
-                     WHEN F7 = 'cell'
-                     THEN
-                        'Body Structure'
-                     WHEN F7 = 'geographic location'
-                     THEN
-                        'Location'
-                     WHEN F7 = 'cell structure'
-                     THEN
-                        'Body Structure'
-                     WHEN F7 = 'ethnic group'
-                     THEN
-                        'Social Context'
-                     WHEN F7 = 'tumor staging'
-                     THEN
-                        'Staging / Scales'
-                     WHEN F7 = 'religion/philosophy'
-                     THEN
-                        'Social Context'
-                     WHEN F7 = 'record artifact'
-                     THEN
-                        'Record Artifact'
-                     WHEN F7 = 'physical force'
-                     THEN
-                        'Physical Force'
-                     WHEN F7 = 'foundation metadata concept'
-                     THEN
-                        'Model Comp'
-                     WHEN F7 = 'namespace concept'
-                     THEN
-                        'Namespace Concept'
-                     WHEN F7 = 'administrative concept'
-                     THEN
-                        'Admin Concept'
-                     WHEN F7 = 'biological function'
-                     THEN
-                        'Biological Function'
-                     WHEN F7 = 'living organism'
-                     THEN
-                        'Organism'
-                     WHEN F7 = 'life style'
-                     THEN
-                        'Social Context'
-                     WHEN F7 = 'contextual qualifier'
-                     THEN
-                        'Qualifier Value'
-                     WHEN F7 = 'staging scale'
-                     THEN
-                        'Staging / Scales'
-                     WHEN F7 = 'life event - finding'
-                     THEN
-                        'Event'
-                     WHEN F7 = 'social concept'
-                     THEN
-                        'Social Context'
-                     WHEN F7 = 'core metadata concept'
-                     THEN
-                        'Model Comp'
-                     WHEN F7 = 'special concept'
-                     THEN
-                        'Special Concept'
-                     WHEN F7 = 'racial group'
-                     THEN
-                        'Social Context'
-                     WHEN F7 = 'therapy'
-                     THEN
-                        'Procedure'
-                     WHEN F7 = 'external anatomical feature'
-                     THEN
-                        'Body Structure'
-                     WHEN F7 = 'organ component'
-                     THEN
-                        'Body Structure'
-                     WHEN F7 = 'physical device'
-                     THEN
-                        'Physical Object'
-                     WHEN F7 = 'linkage concept'
-                     THEN
-                        'Linkage Concept'
-                     WHEN F7 = 'metadata'
-                     THEN
-                        'Model Comp'
-                     ELSE
-                        'Undefined'
-                  END
+                 WHEN F7 = 'disorder' THEN 'Clinical Finding'
+                 WHEN F7 = 'procedure' THEN 'Procedure'
+                 WHEN F7 = 'finding' THEN 'Clinical Finding'
+                 WHEN F7 = 'organism' THEN 'Organism'
+                 WHEN F7 = 'body structure' THEN 'Body Structure'
+                 WHEN F7 = 'substance' THEN 'Substance'
+                 WHEN F7 = 'product' THEN 'Pharma/Biol Product'
+                 WHEN F7 = 'event' THEN 'Event'
+                 WHEN F7 = 'qualifier value' THEN 'Qualifier Value'
+                 WHEN F7 = 'observable entity' THEN 'Observable Entity'
+                 WHEN F7 = 'situation' THEN 'Context-dependent'
+                 WHEN F7 = 'occupation' THEN 'Social Context'
+                 WHEN F7 = 'regime/therapy' THEN 'Procedure'
+                 WHEN F7 = 'morphologic abnormality' THEN 'Morph Abnormality'
+                 WHEN F7 = 'physical object' THEN 'Physical Object'
+                 WHEN F7 = 'specimen' THEN 'Specimen'
+                 WHEN F7 = 'environment' THEN 'Location'
+                 WHEN F7 = 'environment / location' THEN 'Location'
+                 WHEN F7 = 'context-dependent category' THEN 'Context-dependent'
+                 WHEN F7 = 'attribute' THEN 'Attribute'
+                 WHEN F7 = 'linkage concept' THEN 'Linkage Concept'
+                 WHEN F7 = 'assessment scale' THEN 'Staging / Scales'
+                 WHEN F7 = 'person' THEN 'Social Context'
+                 WHEN F7 = 'cell' THEN 'Body Structure'
+                 WHEN F7 = 'geographic location' THEN 'Location'
+                 WHEN F7 = 'cell structure' THEN 'Body Structure'
+                 WHEN F7 = 'ethnic group' THEN 'Social Context'
+                 WHEN F7 = 'tumor staging' THEN 'Staging / Scales'
+                 WHEN F7 = 'religion/philosophy' THEN 'Social Context'
+                 WHEN F7 = 'record artifact' THEN 'Record Artifact'
+                 WHEN F7 = 'physical force' THEN 'Physical Force'
+                 WHEN F7 = 'foundation metadata concept' THEN 'Model Comp'
+                 WHEN F7 = 'namespace concept' THEN 'Namespace Concept'
+                 WHEN F7 = 'administrative concept' THEN 'Admin Concept'
+                 WHEN F7 = 'biological function' THEN 'Biological Function'
+                 WHEN F7 = 'living organism' THEN 'Organism'
+                 WHEN F7 = 'life style' THEN 'Social Context'
+                 WHEN F7 = 'contextual qualifier' THEN 'Qualifier Value'
+                 WHEN F7 = 'staging scale' THEN 'Staging / Scales'
+                 WHEN F7 = 'life event - finding' THEN 'Event'
+                 WHEN F7 = 'social concept' THEN 'Social Context'
+                 WHEN F7 = 'core metadata concept' THEN 'Model Comp'
+                 WHEN F7 = 'special concept' THEN 'Special Concept'
+                 WHEN F7 = 'racial group' THEN 'Social Context'
+                 WHEN F7 = 'therapy' THEN 'Procedure'
+                 WHEN F7 = 'external anatomical feature' THEN 'Body Structure'
+                 WHEN F7 = 'organ component' THEN 'Body Structure'
+                 WHEN F7 = 'physical device' THEN 'Physical Object'
+                 WHEN F7 = 'linkage concept' THEN 'Linkage Concept'
+                 WHEN F7 = 'link assertion' THEN 'Linkage Assertion'
+                 WHEN F7 = 'metadata' THEN 'Model Comp'
+                 WHEN F7 = 'navigational concept' THEN 'Navi Concept'
+                 WHEN F7 = 'inactive concept' THEN 'Inactive Concept'
+                 ELSE 'Undefined'
+                 END
              FROM tmp_concept_class cc
             WHERE cc.concept_code = cs.concept_code)
 	WHERE cs.vocabulary_id='SNOMED';
+
+-- Assign top SNOMED concept
+update concept_stage set concept_class_id='Model Comp' where concept_code=138875005 and vocabulary_id='SNOMED';
 			
 --5.	Choice of concept_name in SNOMED and synonyms
 --1st Fix concept_names using tmp table:
@@ -392,7 +307,7 @@ UPDATE concept c
                  FROM mrconso m
                 WHERE     m.code = c.concept_code
                       AND m.sab = 'SNOMEDCT_US'
-                      AND c.vocabulary_id = 'SNOMED'
+                      AfND c.vocabulary_id = 'SNOMED'
                       AND TRIM (c.concept_name) = TRIM (m.str)
                       AND m.tty <> 'PT' -- anything that is not the preferred term
                                        )
@@ -418,8 +333,8 @@ DROP TABLE mrconso_tmp PURGE;
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
-										vocabulary_id_1,
-										vocabulary_id_2,
+								                    		vocabulary_id_1,
+                                        vocabulary_id_2,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
@@ -448,196 +363,70 @@ INSERT INTO concept_relationship_stage (concept_code_1,
    SELECT sourceid,
           destinationid,
           CASE
-             WHEN TERM = 'Is a'
-             THEN
-                'Is a'
-             WHEN term = 'Recipient category'
-             THEN
-                'Has recipient cat'
-             WHEN term = 'Procedure site'
-             THEN
-                'Has proc site'
-             WHEN term = 'Priority'
-             THEN
-                'Has priority'
-             WHEN term = 'Pathological process'
-             THEN
-                'Has pathology'
-             WHEN term = 'Part of'
-             THEN
-                'Has part of'
-             WHEN term = 'Severity'
-             THEN
-                'Has severity'
-             WHEN term = 'Revision status'
-             THEN
-                'Has revision status'
-             WHEN term = 'Access'
-             THEN
-                'Has access'
-             WHEN term = 'Occurrence'
-             THEN
-                'Has occurrence'
-             WHEN term = 'Method'
-             THEN
-                'Has method'
-             WHEN term = 'Laterality'
-             THEN
-                'Has laterality'
-             WHEN term = 'Interprets'
-             THEN
-                'Has interprets'
-             WHEN term = 'Indirect morphology'
-             THEN
-                'Has indir morph'
-             WHEN term = 'Indirect device'
-             THEN
-                'Has indir device'
-             WHEN term = 'Has specimen'
-             THEN
-                'Has specimen'
-             WHEN term = 'Has interpretation'
-             THEN
-                'Has interpretation'
-             WHEN term = 'Has intent'
-             THEN
-                'Has intent'
-             WHEN term = 'Has focus'
-             THEN
-                'Has focus'
-             WHEN term = 'Has definitional manifestation'
-             THEN
-                'Has manifestation'
-             WHEN term = 'Has active ingredient'
-             THEN
-                'Has active ing'
-             WHEN term = 'Finding site'
-             THEN
-                'Has finding site'
-             WHEN term = 'Episodicity'
-             THEN
-                'Has episodicity'
-             WHEN term = 'Direct substance'
-             THEN
-                'Has dir subst'
-             WHEN term = 'Direct morphology'
-             THEN
-                'Has dir morph'
-             WHEN term = 'Direct device'
-             THEN
-                'Has dir device'
-             WHEN term = 'Component'
-             THEN
-                'Has component'
-             WHEN term = 'Causative agent'
-             THEN
-                'Has causative agent'
-             WHEN term = 'Associated morphology'
-             THEN
-                'Has asso morph'
-             WHEN term = 'Associated finding'
-             THEN
-                'Has asso finding'
-             WHEN term = 'Measurement Method'
-             THEN
-                'Has measurement'
-             WHEN term = 'Property'
-             THEN
-                'Has property'
-             WHEN term = 'Scale type'
-             THEN
-                'Has scale type'
-             WHEN term = 'Time aspect'
-             THEN
-                'Has time aspect'
-             WHEN term = 'Specimen procedure'
-             THEN
-                'Has specimen proc'
-             WHEN term = 'Specimen source identity'
-             THEN
-                'Has specimen source'
-             WHEN term = 'Specimen source morphology'
-             THEN
-                'Has specimen morph'
-             WHEN term = 'Specimen source topography'
-             THEN
-                'Has specimen topo'
-             WHEN term = 'Specimen substance'
-             THEN
-                'Has specimen subst'
-             WHEN term = 'Due to'
-             THEN
-                'Has due to'
-             WHEN term = 'Subject relationship context'
-             THEN
-                'Has relat context'
-             WHEN term = 'Has dose form'
-             THEN
-                'Has dose form'
-             WHEN term = 'After'
-             THEN
-                'Occurs after'
-             WHEN term = 'Associated procedure'
-             THEN
-                'Has asso proc'
-             WHEN term = 'Procedure site - Direct'
-             THEN
-                'Has dir proc site'
-             WHEN term = 'Procedure site - Indirect'
-             THEN
-                'Has indir proc site'
-             WHEN term = 'Procedure device'
-             THEN
-                'Has proc device'
-             WHEN term = 'Procedure morphology'
-             THEN
-                'Has proc morph'
-             WHEN term = 'Finding context'
-             THEN
-                'Has finding context'
-             WHEN term = 'Procedure context'
-             THEN
-                'Has proc context'
-             WHEN term = 'AW'
-             THEN
-                'Finding asso with'
-             WHEN term = 'Clinical course'
-             THEN
-                'Has clinical course'  
-             WHEN term = 'Finding informer'
-             THEN
-                'Using finding inform'   
-             WHEN term = 'Finding method'
-             THEN
-                'Using finding method'    
-             WHEN term = 'Measurement method'
-             THEN
-                'Has method'     
-             WHEN term = 'Route of administration - attribute'
-             THEN
-                'Has route of admin'
-             WHEN term = 'Surgical approach'
-             THEN
-                'Has surgical appr'  
-             WHEN term = 'Temporal context'
-             THEN
-                'Has temporal context'   
-             WHEN term = 'Using access device'
-             THEN
-                'Using acc device'  
-             WHEN term = 'Using device'
-             THEN
-                'Using device'   
-             WHEN term = 'Using energy'
-             THEN
-                'Using energy'   
-             WHEN term = 'Using substance'
-             THEN
-                'Using subst'                      
-             ELSE
-                'non-existing'                           -- this will break it
-          END
-             AS relationship_id,
+             WHEN term = 'Is a' THEN 'Is a'
+             WHEN term = 'Recipient category' THEN 'Has recipient cat'
+             WHEN term = 'Procedure site' THEN 'Has proc site'
+             WHEN term = 'Priority' THEN 'Has priority'
+             WHEN term = 'Pathological process' THEN 'Has pathology'
+             WHEN term = 'Part of' THEN 'Has part of'
+             WHEN term = 'Severity' THEN 'Has severity'
+             WHEN term = 'Revision status' THEN 'Has revision status'
+             WHEN term = 'Access' THEN 'Has access'
+             WHEN term = 'Occurrence' THEN 'Has occurrence'
+             WHEN term = 'Method' THEN 'Has method'
+             WHEN term = 'Laterality' THEN 'Has laterality'
+             WHEN term = 'Interprets' THEN 'Has interprets'
+             WHEN term = 'Indirect morphology' THEN 'Has indir morph'
+             WHEN term = 'Indirect device' THEN 'Has indir device'
+             WHEN term = 'Has specimen' THEN 'Has specimen'
+             WHEN term = 'Has interpretation' THEN 'Has interpretation'
+             WHEN term = 'Has intent' THEN 'Has intent'
+             WHEN term = 'Has focus' THEN 'Has focus'
+             WHEN term = 'Has definitional manifestation' THEN 'Has manifestation'
+             WHEN term = 'Has active ingredient' THEN 'Has active ing'
+             WHEN term = 'Finding site' THEN 'Has finding site'
+             WHEN term = 'Episodicity' THEN 'Has episodicity'
+             WHEN term = 'Direct substance' THEN 'Has dir subst'
+             WHEN term = 'Direct morphology' THEN 'Has dir morph'
+             WHEN term = 'Direct device' THEN 'Has dir device'
+             WHEN term = 'Component' THEN 'Has component'
+             WHEN term = 'Causative agent' THEN 'Has causative agent'
+             WHEN term = 'Associated morphology' THEN 'Has asso morph'
+             WHEN term = 'Associated finding' THEN 'Has asso finding'
+             WHEN term = 'Measurement Method' THEN 'Has measurement'
+             WHEN term = 'Property' THEN 'Has property'
+             WHEN term = 'Scale type' THEN 'Has scale type'
+             WHEN term = 'Time aspect' THEN 'Has time aspect'
+             WHEN term = 'Specimen procedure' THEN 'Has specimen proc'
+             WHEN term = 'Specimen source identity' THEN 'Has specimen source'
+             WHEN term = 'Specimen source morphology' THEN 'Has specimen morph'
+             WHEN term = 'Specimen source topography' THEN 'Has specimen topo'
+             WHEN term = 'Specimen substance' THEN 'Has specimen subst'
+             WHEN term = 'Due to' THEN 'Has due to'
+             WHEN term = 'Subject relationship context' THEN 'Has relat context'
+             WHEN term = 'Has dose form' THEN 'Has dose form'
+             WHEN term = 'After' THEN 'Occurs after'
+             WHEN term = 'Associated procedure' THEN 'Has asso proc'
+             WHEN term = 'Procedure site - Direct' THEN 'Has dir proc site'
+             WHEN term = 'Procedure site - Indirect' THEN 'Has indir proc site'
+             WHEN term = 'Procedure device' THEN 'Has proc device'
+             WHEN term = 'Procedure morphology' THEN 'Has proc morph'
+             WHEN term = 'Finding context' THEN 'Has finding context'
+             WHEN term = 'Procedure context' THEN 'Has proc context'
+             WHEN term = 'AW' THEN 'Finding asso with'
+             WHEN term = 'Clinical course' THEN 'Has clinical course'  
+             WHEN term = 'Finding informer' THEN 'Using finding inform'   
+             WHEN term = 'Finding method' THEN 'Using finding method'    
+             WHEN term = 'Measurement method' THEN 'Has method'     
+             WHEN term = 'Route of administration - attribute' THEN 'Has route of admin'
+             WHEN term = 'Surgical approach' THEN 'Has surgical appr'  
+             WHEN term = 'Temporal context' THEN 'Has temporal context'   
+             WHEN term = 'Using access device' THEN 'Using acc device'  
+             WHEN term = 'Using device' THEN 'Using device'   
+             WHEN term = 'Using energy' THEN 'Using energy'   
+             WHEN term = 'Using substance' THEN 'Using subst'
+             ELSE 'non-existing'      
+          END AS relationship_id,
 		  'SNOMED',
 		  'SNOMED',
           (select latest_update From vocabulary where vocabulary_id='SNOMED'),
@@ -721,6 +510,7 @@ COMMIT;
 
 --11. Create domain_id
 -- 11.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
+-- drop table peak;
 create table peak (
 	peak_code varchar(20), --the id of the top ancestor
 	peak_domain_id varchar(20), -- the domain to assign to all its children
@@ -728,8 +518,23 @@ create table peak (
 );
 			   
 -- 11.2 Fill in the various peak concepts
-insert into peak (peak_code, peak_domain_id) values (243796009, 'Observation'); -- 'Context-dependent category' that has no ancestor
-insert into peak (peak_code, peak_domain_id) values (138875005, 'Observation'); -- root
+insert into peak (peak_code, peak_domain_id) values (900000000000441003, 'Metadata'); -- SNOMED CT Model Component
+insert into peak (peak_code, peak_domain_id) values (138875005, 'Metadata'); -- root
+insert into peak (peak_code, peak_domain_id) values (105590001, 'Observation'); -- Substances
+insert into peak (peak_code, peak_domain_id) values (123038009, 'Specimen'); -- Specimen
+insert into peak (peak_code, peak_domain_id) values (243796009, 'Observation'); -- Situation with explicit context
+insert into peak (peak_code, peak_domain_id) values (272379006, 'Observation'); -- Events
+insert into peak (peak_code, peak_domain_id) values (260787004, 'Observation'); -- Physical object
+insert into peak (peak_code, peak_domain_id) values (362981000, 'Observation'); -- Qualifier value
+insert into peak (peak_code, peak_domain_id) values (363787002, 'Observation'); -- Observable entity
+insert into peak (peak_code, peak_domain_id) values (410607006, 'Observation'); -- Organism
+insert into peak (peak_code, peak_domain_id) values (419891008, 'Note Type'); -- Record artifact
+insert into peak (peak_code, peak_domain_id) values (78621006, 'Observation'); -- Physical force
+insert into peak (peak_code, peak_domain_id) values (123037004, 'Spec Anatomic Site'); -- Body structure
+insert into peak (peak_code, peak_domain_id) values (118956008, 'Observation'); -- Body structure, altered from its original anatomical structure, reverted from 123037004
+insert into peak (peak_code, peak_domain_id) values (254291000, 'Observation'); -- Staging / Scales
+insert into peak (peak_code, peak_domain_id) values (370115009, 'Metadata'); -- Special Concept
+insert into peak (peak_code, peak_domain_id) values (308916002, 'Observation'); -- Environment or geographical location
 insert into peak (peak_code, peak_domain_id) values (223366009, 'Provider Specialty');
 insert into peak (peak_code, peak_domain_id) values (43741000, 'Place of Service');	  -- Site of care
 insert into peak (peak_code, peak_domain_id) values (420056007, 'Drug'); -- Aromatherapy agent
@@ -767,7 +572,7 @@ insert into peak (peak_code, peak_domain_id) values (122869004, 'Measurement'); 
 insert into peak (peak_code, peak_domain_id) values (118246004, 'Measurement');	-- 'Laboratory test finding' - child of excluded Sample observation
 insert into peak (peak_code, peak_domain_id) values (71388002, 'Procedure'); --'Procedure'
 insert into peak (peak_code, peak_domain_id) values (304252001, 'Procedure'); -- Resuscitate
-insert into peak (peak_code, peak_domain_id) values (304253006, 'Procedure'); --DNR
+insert into peak (peak_code, peak_domain_id) values (304253006, 'Observation'); --DNR
 insert into peak (peak_code, peak_domain_id) values (113021009, 'Procedure'); -- Cardiovascular measurement
 insert into peak (peak_code, peak_domain_id) values (297249002, 'Observation'); --Family history of procedure
 insert into peak (peak_code, peak_domain_id) values (14734007, 'Observation'); --Administrative procedure
@@ -781,7 +586,6 @@ insert into peak (peak_code, peak_domain_id) values (17636008, 'Procedure'); -- 
 insert into peak (peak_code, peak_domain_id) values (365873007, 'Gender'); -- Gender
 insert into peak (peak_code, peak_domain_id) values (372148003, 'Race'); --Ethnic group
 insert into peak (peak_code, peak_domain_id) values (415229000, 'Race'); -- Racial group
-insert into peak (peak_code, peak_domain_id) values (900000000000441003, 'Metadata'); -- SNOMED CT Model Component
 insert into peak (peak_code, peak_domain_id) values (106237007, 'Observation'); -- Linkage concept
 insert into peak (peak_code, peak_domain_id) values (258666001, 'Unit'); -- Top unit
 insert into peak (peak_code, peak_domain_id) values (260245000, 'Meas Value'); -- Meas Value
@@ -817,6 +621,7 @@ insert into peak (peak_code, peak_domain_id) values (360173008, 'Device'); -- wa
 insert into peak (peak_code, peak_domain_id) values (367561004, 'Device'); -- xenon arc photocoagulator
 
 COMMIT;
+
 -- 11.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 -- The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
@@ -844,8 +649,7 @@ UPDATE peak
 COMMIT;
 
 -- 11.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
--- Peak concepts are those ancestors that are not also descendants somewhere, except in their own record
--- If there are mistakes, the manual list needs be updated and everything re-run
+-- This is a catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
 INSERT INTO peak -- before doing that check first out without the insert
    SELECT DISTINCT
           c.concept_code AS peak_code,
@@ -853,16 +657,19 @@ INSERT INTO peak -- before doing that check first out without the insert
              WHEN c.concept_class_id = 'Clinical finding'
              THEN
                 'Condition'
-             WHEN c.concept_class_id = 'Model component'
+             WHEN c.concept_class_id = 'Model Comp'
              THEN
                 'Metadata'
-             WHEN c.concept_class_id = 'Observable entity'
+             WHEN c.concept_class_id = 'Namespace Concept'
+             THEN
+                'Metadata'
+             WHEN c.concept_class_id = 'Observable Entity'
              THEN
                 'Observation'
              WHEN c.concept_class_id = 'Organism'
              THEN
                 'Observation'
-             WHEN c.concept_class_id = 'Pharmaceutical / biologic product'
+             WHEN c.concept_class_id = 'Pharma/Biol Product'
              THEN
                 'Drug'
              ELSE
@@ -880,7 +687,7 @@ INSERT INTO peak -- before doing that check first out without the insert
 COMMIT;
 
 -- 11.5. Start building domains, preassign all them with "Not assigned"
-
+-- drop table domain_snomed;
 CREATE TABLE domain_snomed
 AS
    SELECT concept_code, CAST ('Not assigned' AS VARCHAR2 (20)) AS domain_id
@@ -936,27 +743,53 @@ BEGIN
                             AND a.descendant_concept_code = d.concept_code);
    END LOOP;
 END;	
-COMMIT;		
+;
+COMMIT;
+
+-- Update top guy
+update domain_snomed set domain_id = 'Metadata' where concept_code = 138875005;
 
 -- Method 2: For those that slipped through the cracks assign domains by using the class_concept_id
 -- Check out which these are and potentially fix and re-run Method 1
 UPDATE domain_snomed d
    SET d.domain_id =
           (SELECT CASE c.concept_class_id
-                     WHEN 'Clinical Finding' THEN 'Condition'
-                     WHEN 'Procedure' THEN 'Procedure'
-                     WHEN 'Pharma/Biol Product' THEN 'Drug'
-                     WHEN 'Physical Object' THEN 'Device'
-                     WHEN 'Model comp' THEN 'Metadata'
-                     ELSE 'Observation'
-                  END
+                  WHEN 'Admin Concept' THEN 'Note Type'
+                  WHEN 'Attribute' THEN 'Observation'
+                  WHEN 'Body Structure' THEN 'Spec Anatomic Site'
+                  WHEN 'Clinical Finding' THEN 'Condition'
+                  WHEN 'Context-dependent' THEN 'Observation'
+                  WHEN 'Event' THEN 'Observation'
+                  WHEN 'Inactive Concept' THEN 'Metadata'
+                  WHEN 'Linkage Assertion' THEN 'Observation'
+                  WHEN 'Location' THEN 'Observation'
+                  WHEN 'Model Comp' THEN 'Metadata'
+                  WHEN 'Morph Abnormality' THEN 'Observation'
+                  WHEN 'Namespace Concept' THEN 'Metadata'
+                  WHEN 'Navi Concept' THEN 'Metadata'
+                  WHEN 'Observable Entity' THEN 'Observation'
+                  WHEN 'Organism' THEN 'Observation'
+                  WHEN 'Pharma/Biol Product' THEN 'Drug'
+                  WHEN 'Physical Force' THEN 'Observation'
+                  WHEN 'Physical Object' THEN 'Device'
+                  WHEN 'Procedure' THEN 'Procedure'
+                  WHEN 'Qualifier Value' THEN 'Observation'
+                  WHEN 'Record Artifact' THEN 'Note Type'
+                  WHEN 'Social Context' THEN 'Metadata'
+                  WHEN 'Special Concept' THEN 'Metadata'
+                  WHEN 'Specimen' THEN 'Specimen'
+                  WHEN 'Staging / Scales' THEN 'Observation'
+                  WHEN 'Substance' THEN 'Observation'
+                  ELSE 'Observation'
+                END
              FROM concept_stage c
             WHERE     c.concept_code = d.concept_code
                   AND C.VOCABULARY_ID = 'SNOMED')
  WHERE d.domain_id = 'Not assigned';
- COMMIT;
- 
- -- 11.7. Update concept_stage from newly created domains.
+COMMIT;
+
+-- 11.7. Update concept_stage from newly created domains.
+-- drop index idx_domain_cc;
 CREATE INDEX idx_domain_cc
    ON domain_snomed (concept_code);
    
@@ -965,11 +798,12 @@ UPDATE concept_stage c
           (SELECT d.domain_id
              FROM domain_snomed d
             WHERE d.concept_code = c.concept_code)
- WHERE C.VOCABULARY_ID = 'SNOMED';
+ WHERE c.vocabulary_id = 'SNOMED';
 
-
-UPDATE concept_stage c
-   SET c.domain_id = 'Route'
+-- 11.8. Make manual changes according to rules
+-- Create Route of Administration
+UPDATE concept_stage
+   SET domain_id = 'Route'
  WHERE     concept_code IN ('255560000',
                             '255582007',
                             '258160008',
@@ -981,45 +815,97 @@ UPDATE concept_stage c
                             '72607000',
                             '359540000',
                             '90028008')
-       AND C.VOCABULARY_ID = 'SNOMED';
+       AND vocabulary_id = 'SNOMED';
 
-UPDATE concept_stage c
-   SET c.domain_id = 'Spec Anatomic Site'
- WHERE concept_class_id = 'Body Structure' AND C.VOCABULARY_ID = 'SNOMED';
+-- Create Specimen Anatomical Site
+UPDATE concept_stage
+   SET domain_id = 'Spec Anatomic Site'
+ WHERE concept_class_id = 'Body Structure' AND vocabulary_id = 'SNOMED';
 
-UPDATE concept_stage c
-   SET c.domain_id = 'Specimen'
- WHERE concept_class_id = 'Specimen' AND C.VOCABULARY_ID = 'SNOMED';
+-- Create Specimen
+UPDATE concept_stage
+   SET domain_id = 'Specimen'
+ WHERE concept_class_id = 'Specimen' AND vocabulary_id = 'SNOMED';
 
-UPDATE concept_stage c
-   SET c.domain_id = 'Meas Value Operator'
+-- Create Measurement Value Operator
+UPDATE concept_stage
+   SET domain_id = 'Meas Value Operator'
  WHERE     concept_code IN ('276136004',
                             '276140008',
                             '276137008',
                             '276138003',
                             '276139006')
-       AND C.VOCABULARY_ID = 'SNOMED';
+       AND vocabulary_id = 'SNOMED';
 
-UPDATE concept_stage c
-   SET c.domain_id = 'Spec Disease Status'
- WHERE     concept_code IN ('21594007', '17621005', '263654008')
-       AND C.VOCABULARY_ID = 'SNOMED';
+-- Create Speciment Disease Status
+UPDATE concept_stage
+  SET domain_id = 'Spec Disease Status'
+WHERE concept_code IN ('21594007', '17621005', '263654008')
+  AND vocabulary_id = 'SNOMED';
+
+-- Fix navigational concepts
+UPDATE concept_stage
+  SET domain_id = CASE concept_class_id
+                  WHEN 'Admin Concept' THEN 'Note Type'
+                  WHEN 'Attribute' THEN 'Observation'
+                  WHEN 'Body Structure' THEN 'Spec Anatomic Site'
+                  WHEN 'Clinical Finding' THEN 'Condition'
+                  WHEN 'Context-dependent' THEN 'Observation'
+                  WHEN 'Event' THEN 'Observation'
+                  WHEN 'Inactive Concept' THEN 'Metadata'
+                  WHEN 'Linkage Assertion' THEN 'Observation'
+                  WHEN 'Location' THEN 'Observation'
+                  WHEN 'Model Comp' THEN 'Metadata'
+                  WHEN 'Morph Abnormality' THEN 'Observation'
+                  WHEN 'Namespace Concept' THEN 'Metadata'
+                  WHEN 'Navi Concept' THEN 'Metadata'
+                  WHEN 'Observable Entity' THEN 'Observation'
+                  WHEN 'Organism' THEN 'Observation'
+                  WHEN 'Pharma/Biol Product' THEN 'Drug'
+                  WHEN 'Physical Force' THEN 'Observation'
+                  WHEN 'Physical Object' THEN 'Device'
+                  WHEN 'Procedure' THEN 'Procedure'
+                  WHEN 'Qualifier Value' THEN 'Observation'
+                  WHEN 'Record Artifact' THEN 'Note Type'
+                  WHEN 'Social Context' THEN 'Metadata'
+                  WHEN 'Special Concept' THEN 'Metadata'
+                  WHEN 'Specimen' THEN 'Specimen'
+                  WHEN 'Staging / Scales' THEN 'Observation'
+                  WHEN 'Substance' THEN 'Observation'
+                  ELSE 'Observation'
+                END
+  WHERE vocabulary_id = 'SNOMED'
+    AND concept_code in (
+      SELECT descendant_concept_code from snomed_ancestor where ancestor_concept_code='363743006' -- Navigational Concept, contains all sorts of orphan codes
+    )
+;
 
 COMMIT;
 
--- 11.8. Set standard_concept based on domain_id
-UPDATE concept_stage c
-   SET c.standard_concept =
-          CASE c.domain_id
+-- 11.9. Set standard_concept based on domain_id
+UPDATE concept_stage
+   SET standard_concept =
+          CASE domain_id
              WHEN 'Drug' THEN NULL                         -- Drugs are RxNorm
              WHEN 'Metadata' THEN NULL                      -- Not used in CDM
              WHEN 'Race' THEN NULL                             -- Race are CDC
              WHEN 'Provider Specialty' THEN NULL
              WHEN 'Place of Service' THEN NULL
+             WHEN 'Note Type' THEN NULL   -- Note types in own OMOP vocabulary
              WHEN 'Unit' THEN NULL                           -- Units are UCUM
              ELSE 'S'
           END
- WHERE C.VOCABULARY_ID = 'SNOMED';
+WHERE vocabulary_id = 'SNOMED';
+
+-- And de-standardize navigational concepts
+UPDATE concept_stage
+   SET standard_concept = null
+WHERE vocabulary_id = 'SNOMED'
+  AND concept_code in (
+      SELECT descendant_concept_code from snomed_ancestor where ancestor_concept_code='363743006' -- Navigational Concept
+  )
+;
+
 COMMIT;
 
 --12------ run Vocabulary-v5.0\generic_update.sql ---------------

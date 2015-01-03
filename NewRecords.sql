@@ -321,4 +321,22 @@ values (v5_concept.nextval, 'Local codes', 'Observation', 'HCPCS', 'HCPCS Class'
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Undefined codes', 'Observation', 'HCPCS', 'HCPCS Class', 'C', 'Z2 ', '01-JAN-1970', '31-DEC-2099', null);
 
+-- Add new SNOMED concept classes
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Navigational Concept', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Navi Concept', 'Navigational Concept', (select concept_id from concept where concept_name='Navigational Concept'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Inactive Concept', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Inactive Concept', 'Inactive Concept', (select concept_id from concept where concept_name='Inactive Concept'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Linkage Concept', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Linkage Concept', 'Linkage Concept', (select concept_id from concept where concept_name='Linkage Concept'));
+
+-- Fix existing SNOMED concept classes
+update concept set concept_name='Situation with explicit context' where concept_id=44819051;
+update concept_class set concept_class_name='Situation with explicit context' where concept_class_concept_id=44819051;
+
 commit;

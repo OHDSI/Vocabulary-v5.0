@@ -42,13 +42,14 @@ INSERT INTO concept_stage (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT regexp_replace(concept_name, ' \(.*?\)$', ''),
+   SELECT regexp_replace(coalesce(umls.concept_name, sct2.concept_name), ' \(.*?\)$', ''), -- pick the umls one first (if there) and trim something like "(procedure)"
           'SNOMED' AS vocabulary_id,
-          concept_code,
-          (select latest_update From vocabulary where vocabulary_id='SNOMED') AS valid_start_date,
+          sct2.concept_code,
+          (SELECT latest_update FROM vocabulary WHERE vocabulary_id='SNOMED') AS valid_start_date,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
           NULL AS invalid_reason
-     FROM (SELECT SUBSTR (d.term, 1, 255) AS concept_name,
+     FROM (
+          SELECT SUBSTR(d.term, 1, 255) AS concept_name,
                   d.conceptid AS concept_code,
                   c.active,
                   ROW_NUMBER ()
@@ -63,10 +64,34 @@ INSERT INTO concept_stage (concept_name,
                            ELSE 1
                         END,
                         CASE WHEN term LIKE '%(%)%' THEN 1 ELSE 0 END)
-                     rn
+                     AS rn
              FROM sct2_concept_full_merged c, sct2_desc_full_merged d
-            WHERE c.id = d.conceptid AND term IS NOT NULL)
-    WHERE rn = 1 AND active = 1;
+            WHERE c.id = d.conceptid AND term IS NOT NULL
+          ) sct2
+        LEFT JOIN ( -- get a better concept_name
+              SELECT DISTINCT code AS concept_code,
+                  FIRST_VALUE ( -- take the best str 
+                     SUBSTR(str, 1, 255)) 
+                  OVER (
+                     PARTITION BY code
+                     ORDER BY
+                        DECODE (tty,
+                                'PT', 1,
+                                'PTGB', 2,
+                                'SY', 3,
+                                'SYGB', 4,
+                                'MTH_PT', 5,
+                                'FN', 6,
+                                'MTH_SY', 7,
+                                'SB', 8,
+                                10            -- default for the obsolete ones
+                              )) as concept_name
+             FROM mrconso
+            WHERE sab = 'SNOMEDCT_US'
+              AND tty in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
+        ) umls
+          ON sct2.concept_code = umls.concept_code
+    WHERE sct2.rn = 1 AND sct2.active = 1;
 COMMIT;	
 	
 --3 Create temporary table with extracted class information and terms ordered by some good precedence
@@ -250,84 +275,26 @@ UPDATE concept_stage cs
             WHERE cc.concept_code = cs.concept_code)
 	WHERE cs.vocabulary_id='SNOMED';
 
+DROP TABLE tmp_concept_class PURGE;
+
 -- Assign top SNOMED concept
 update concept_stage set concept_class_id='Model Comp' where concept_code=138875005 and vocabulary_id='SNOMED';
 			
---5.	Choice of concept_name in SNOMED and synonyms
---1st Fix concept_names using tmp table:
-create table mrconso_tmp as
-select DISTINCT
-                  FIRST_VALUE (
-                     n.AUI)
-                  OVER (
-                     PARTITION BY n.code
-                     ORDER BY
-                        DECODE (n.tty,
-                                'PT', 1,
-                                'PTGB', 2,
-                                'SY', 3,
-                                'SYGB', 4,
-                                'MTH_PT', 5,
-                                'FN', 6,
-                                'MTH_SY', 7,
-                                'SB', 8,
-                                10            -- default for the obsolete ones
-                                  )) AUI,  
-                   FIRST_VALUE (
-                     -- take the best str, and remove things like "(procedure)" 
-                     REGEXP_REPLACE (n.str, ' \(.*?\)$', '')) 
-                  OVER (
-                     PARTITION BY n.code
-                     ORDER BY
-                        DECODE (n.tty,
-                                'PT', 1,
-                                'PTGB', 2,
-                                'SY', 3,
-                                'SYGB', 4,
-                                'MTH_PT', 5,
-                                'FN', 6,
-                                'MTH_SY', 7,
-                                'SB', 8,
-                                10            -- default for the obsolete ones
-                                  )) str,                                  
-                  n.code                                                                
-             FROM mrconso n
-            WHERE n.sab = 'SNOMEDCT_US';
-			
---then update
-UPDATE concept c
-   SET c.concept_name =
-          (         
-           SELECT str
-             FROM mrconso_tmp m_tmp
-            WHERE m_tmp.code = c.concept_code)
- WHERE     EXISTS
-              (        -- the concept_name is identical to the str of a record
-               SELECT 1
-                 FROM mrconso m
-                WHERE     m.code = c.concept_code
-                      AND m.sab = 'SNOMEDCT_US'
-                      AfND c.vocabulary_id = 'SNOMED'
-                      AND TRIM (c.concept_name) = TRIM (m.str)
-                      AND m.tty <> 'PT' -- anything that is not the preferred term
-                                       )
-       AND c.invalid_reason IS NULL -- only active ones. The inactive ones often only have obsolete tty anyway
-       AND c.vocabulary_id = 'SNOMED';
-COMMIT;	   
-
 --6 Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
                                    language_concept_id)
-   SELECT NULL,
+   SELECT DISTINCT 
+          NULL,
           m.code,
           SUBSTR (m.str, 1, 1000),
           4093769 -- English
-     FROM mrconso m LEFT JOIN mrconso_tmp m_tmp ON m.aui = m_tmp.aui
-    WHERE m.sab = 'SNOMEDCT_US' AND m_tmp.aui IS NULL;
+     FROM mrconso m
+    WHERE m.sab = 'SNOMEDCT_US' AND m.tty in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
+;
+
 COMMIT;
-DROP TABLE mrconso_tmp PURGE;
 
 --7 fill concept_relationship_stage from SNOMED	
 INSERT INTO concept_relationship_stage (concept_code_1,
@@ -510,18 +477,19 @@ COMMIT;
 
 --11. Create domain_id
 -- 11.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
--- drop table peak;
+-- DROP TABLE peak;
 create table peak (
 	peak_code varchar(20), --the id of the top ancestor
 	peak_domain_id varchar(20), -- the domain to assign to all its children
 	ranked integer -- number for the order in which to assign
 );
-			   
+
 -- 11.2 Fill in the various peak concepts
-insert into peak (peak_code, peak_domain_id) values (900000000000441003, 'Metadata'); -- SNOMED CT Model Component
 insert into peak (peak_code, peak_domain_id) values (138875005, 'Metadata'); -- root
+insert into peak (peak_code, peak_domain_id) values (900000000000441003, 'Metadata'); -- SNOMED CT Model Component
 insert into peak (peak_code, peak_domain_id) values (105590001, 'Observation'); -- Substances
 insert into peak (peak_code, peak_domain_id) values (123038009, 'Specimen'); -- Specimen
+insert into peak (peak_code, peak_domain_id) values (48176007, 'Observation'); -- Social context
 insert into peak (peak_code, peak_domain_id) values (243796009, 'Observation'); -- Situation with explicit context
 insert into peak (peak_code, peak_domain_id) values (272379006, 'Observation'); -- Events
 insert into peak (peak_code, peak_domain_id) values (260787004, 'Observation'); -- Physical object
@@ -596,12 +564,8 @@ insert into peak (peak_code, peak_domain_id) values (289964002, 'Device'); -- Su
 insert into peak (peak_code, peak_domain_id) values (260667007, 'Device'); -- Graft
 insert into peak (peak_code, peak_domain_id) values (418920007, 'Device'); -- Adhesive agent
 insert into peak (peak_code, peak_domain_id) values (255922001, 'Device'); -- Dental material
-insert into peak (peak_code, peak_domain_id) values (413674002, 'Device'); -- Body material
+insert into peak (peak_code, peak_domain_id) values (413674002, 'Observation'); -- Body material
 insert into peak (peak_code, peak_domain_id) values (118417008, 'Device'); -- Filling material
-insert into peak (peak_code, peak_domain_id) values (418920007, 'Device'); -- Adhesive agent
-insert into peak (peak_code, peak_domain_id) values (255922001, 'Device'); -- dental material,
-insert into peak (peak_code, peak_domain_id) values (118417008, 'Device'); -- filling material,
-insert into peak (peak_code, peak_domain_id) values (289964002, 'Device'); -- surgical material, 
 insert into peak (peak_code, peak_domain_id) values (445214009, 'Device'); -- corneal storage medium
 insert into peak (peak_code, peak_domain_id) values (369443003, 'Device'); -- bedpan
 insert into peak (peak_code, peak_domain_id) values (398146001, 'Device'); -- armband
@@ -687,10 +651,10 @@ INSERT INTO peak -- before doing that check first out without the insert
 COMMIT;
 
 -- 11.5. Start building domains, preassign all them with "Not assigned"
--- drop table domain_snomed;
+-- DROP TABLE domain_snomed;
 CREATE TABLE domain_snomed
 AS
-   SELECT concept_code, CAST ('Not assigned' AS VARCHAR2 (20)) AS domain_id
+   SELECT concept_code, CAST ('Not assigned' AS VARCHAR2(20)) AS domain_id
      FROM concept_stage
     WHERE vocabulary_id = 'SNOMED';
 
@@ -701,7 +665,6 @@ AS
 BEGIN
    FOR A IN (  SELECT DISTINCT ranked
                  FROM peak
-                WHERE ranked IS NOT NULL
              ORDER BY ranked)
    LOOP
       UPDATE domain_snomed d
@@ -742,8 +705,17 @@ BEGIN
                             AND p.ranked = A.ranked
                             AND a.descendant_concept_code = d.concept_code);
    END LOOP;
-END;	
+END
 ;
+
+-- Assign domains of peaks themselves (snomed_ancestor doesn't include self-descendants)
+UPDATE domain_snomed d
+  SET d.domain_id = (
+    SELECT p.peak_domain_id FROM peak p WHERE p.peak_code = d.concept_code
+  )
+  WHERE d.concept_code in (SELECT DISTINCT peak_code FROM peak)
+;
+
 COMMIT;
 
 -- Update top guy
@@ -775,7 +747,7 @@ UPDATE domain_snomed d
                   WHEN 'Procedure' THEN 'Procedure'
                   WHEN 'Qualifier Value' THEN 'Observation'
                   WHEN 'Record Artifact' THEN 'Note Type'
-                  WHEN 'Social Context' THEN 'Metadata'
+                  WHEN 'Social Context' THEN 'Observation'
                   WHEN 'Special Concept' THEN 'Metadata'
                   WHEN 'Specimen' THEN 'Specimen'
                   WHEN 'Staging / Scales' THEN 'Observation'
@@ -786,6 +758,7 @@ UPDATE domain_snomed d
             WHERE     c.concept_code = d.concept_code
                   AND C.VOCABULARY_ID = 'SNOMED')
  WHERE d.domain_id = 'Not assigned';
+
 COMMIT;
 
 -- 11.7. Update concept_stage from newly created domains.
@@ -867,7 +840,7 @@ UPDATE concept_stage
                   WHEN 'Procedure' THEN 'Procedure'
                   WHEN 'Qualifier Value' THEN 'Observation'
                   WHEN 'Record Artifact' THEN 'Note Type'
-                  WHEN 'Social Context' THEN 'Metadata'
+                  WHEN 'Social Context' THEN 'Observation'
                   WHEN 'Special Concept' THEN 'Metadata'
                   WHEN 'Specimen' THEN 'Specimen'
                   WHEN 'Staging / Scales' THEN 'Observation'

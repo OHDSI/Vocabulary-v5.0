@@ -19,13 +19,15 @@ values (v5_concept.nextval, 'protein nitrogen unit', 'Unit', 'UCUM', 'Unit', 'S'
 
 -- Add combination of Measurement and Procedure
 insert into concept (concept_id,  concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (56, 'Measurement/Procedure', 'Metadata', 'Domain', 'Domain', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+values (43, 'Measurement/Procedure', 'Metadata', 'Domain', 'Domain', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into domain (domain_id, domain_name, domain_concept_id)
-values ('Meas/Procedure', 'Measurement/Procedure', 56);
+values ('Meas/Procedure', 'Measurement/Procedure', 43);
 
 -- Erica's and Martijn's type concepts
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Pre-qualification time period', 'Obs Period Type', 'Obs Period Type', 'Obs Period Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);	
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'EHR Episode Entry', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);	
 
 -- Make all Metadata non-standard
 update concept 
@@ -342,5 +344,143 @@ values ('Link Assertion', 'Link Assertion', (select concept_id from concept wher
 -- Fix existing SNOMED concept classes
 update concept set concept_name='Situation with explicit context' where concept_id=44819051;
 update concept_class set concept_class_name='Situation with explicit context' where concept_class_concept_id=44819051;
+
+-- Fix Rimma's PCORNet null flavors. Leave only the Hispanic ones alive
+update concept set concept_name='Other' where concept_id=44814649; -- rename from 'Hispanic - other'
+update concept set concept_class_id='Undefined' where concept_id=44814649; -- give generic concept class
+update concept set concept_name='Unknown' where concept_id=44814653; -- rename from 'Hispanic - unknown'
+update concept set concept_class_id='Undefined' where concept_id=44814653; -- give generic concept class
+update concept set concept_name='No information' where concept_id=44814650; -- rename from 'Hispanic - no information'
+update concept set concept_class_id='Undefined' where concept_id=44814650; -- give generic concept class
+update concept set valid_end_date='30-Nov-2014', invalid_reason='D' where concept_id in (44814688, 44814668, 44814713, 44814683, 44814662, 44814705); -- Unknown ones
+update concept set valid_end_date='30-Nov-2014', invalid_reason='D' where concept_id in (44814669, 44814684, 44814714, 44814663, 44814689, 44814706); -- no information ones
+update concept set valid_end_date='30-Nov-2014', invalid_reason='D' where concept_id in (44814667, 44814661, 44814682, 44814704, 44814712, 44814687); -- no information ones
+
+-- Add PCORNet concpet classes and concepts that were not committed
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'DRG Type', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('DRG Type', 'DRG Type', (select concept_id from concept where concept_name='DRG Type'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Diagnosis Code Type', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Diagnosis Code Type', 'Diagnosis Code Type', (select concept_id from concept where concept_name='Diagnosis Code Type'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Diagnosis Type', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Diagnosis Type', 'Diagnosis Type', (select concept_id from concept where concept_name='Diagnosis Type'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Procedure Code Type', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Procedure Code Type', 'Procedure Code Type', (select concept_id from concept where concept_name='Procedure Code Type'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Vital Source', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Vital Source', 'Vital Source', (select concept_id from concept where concept_name='Vital Source'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Blood Pressure Position', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Blood Pressure Pos', 'Blood Pressure Position', (select concept_id from concept where concept_name='Blood Pressure Position'));
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819189, 'CMS-DRG', 'Observation', 'PCORNet', 'DRG Type', null, '01', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819190, 'MS-DRG', 'Observation', 'PCORNet', 'DRG Type', null, '02', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819191, 'No information', 'Observation', 'PCORNet', 'DRG Type', null, 'NI', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819192, 'Unknown', 'Observation', 'PCORNet', 'DRG Type', null, 'UN', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819193, 'Other', 'Observation', 'PCORNet', 'DRG Type', null, 'OT', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819194, 'ICD-9-CM', 'Observation', 'PCORNet', 'Diagnosis Code Type', null, '09', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819195, 'ICD-10-CM', 'Observation', 'PCORNet', 'Diagnosis Code Type', null, '10', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819196, 'ICD-11-CM', 'Observation', 'PCORNet', 'Diagnosis Code Type', null, '11', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819197, 'SNOMED CT', 'Observation', 'PCORNet', 'Diagnosis Code Type', null, 'SM', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819198, 'No information', 'Observation', 'PCORNet', 'Diagnosis Code Type', null, 'NI', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819199, 'Unknown', 'Observation', 'PCORNet', 'Diagnosis Code Type', null, 'UN', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819200, 'Other', 'Observation', 'PCORNet', 'Diagnosis Code Type', null, 'OT', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819201, 'Principal', 'Observation', 'PCORNet', 'Diagnosis Type', null, 'P', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819202, 'Secondary', 'Observation', 'PCORNet', 'Diagnosis Type', null, 'S', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819203, 'Unable to Classify', 'Observation', 'PCORNet', 'Diagnosis Type', null, 'X', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819204, 'No information', 'Observation', 'PCORNet', 'Diagnosis Type', null, 'NI', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819205, 'Unknown', 'Observation', 'PCORNet', 'Diagnosis Type', null, 'UN', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819206, 'Other', 'Observation', 'PCORNet', 'Diagnosis Type', null, 'OT', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819207, 'ICD-9-CM', 'Observation', 'PCORNet', 'Procedure Code Type', null, '09', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819208, 'ICD-10-PCS', 'Observation', 'PCORNet', 'Procedure Code Type', null, '10', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819209, 'ICD-11-PCS', 'Observation', 'PCORNet', 'Procedure Code Type', null, '11', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819210, 'CPT Category II', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'C2', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819211, 'CPT Category III', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'C3', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819212, 'CPT-4', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'C4', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819213, 'HCPCS Level III', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'H3', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819214, 'HCPCS', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'HC', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819215, 'LOINC', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'LC', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819216, 'NDC', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'ND', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819217, 'Revenue', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'RE', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819218, 'No information', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'NI', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819219, 'Unknown', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'UN', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819220, 'Other', 'Observation', 'PCORNet', 'Procedure Code Type', null, 'OT', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819221, 'Patient-reported', 'Observation', 'PCORNet', 'Vital Source', null, 'PR', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819222, 'Healthcare delivery setting', 'Observation', 'PCORNet', 'Vital Source', null, 'HC', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819223, 'No information', 'Observation', 'PCORNet', 'Vital Source', null, 'NI', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819224, 'Unknown', 'Observation', 'PCORNet', 'Vital Source', null, 'UN', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819225, 'Other', 'Observation', 'PCORNet', 'Vital Source', null, 'OT', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819226, 'Sitting', 'Observation', 'PCORNet', 'Blood Pressure Pos', null, '01', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819227, 'Standing', 'Observation', 'PCORNet', 'Blood Pressure Pos', null, '02', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819228, 'Supine', 'Observation', 'PCORNet', 'Blood Pressure Pos', null, '03', '01-Jan-1970', '31-Dec-1999', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819229, 'No information', 'Observation', 'PCORNet', 'Blood Pressure Pos', null, 'NI', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819230, 'Unknown', 'Observation', 'PCORNet', 'Blood Pressure Pos', null, 'UN', '01-Jan-1970', '30-Nov-2014', 'D');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44819231, 'Other', 'Observation', 'PCORNet', 'Blood Pressure Pos', null, 'OT', '01-Jan-1970', '30-Nov-2014', 'D');
+
+-- add new relationship between SNOMED surveys etc. and answers
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has Morphology (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Has morphology', 'Has Morphology (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Morphology (SNOMED)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Morphology of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Morphology of', 'Morphology of (SNOMED)', 0, 0, 'Morphology of', (select concept_id from concept where concept_name='Morphology of (SNOMED)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Morphology'
+set reverse_relationship_id='Morphology of' where relationship_id='Has morphology';
+update relationship -- The reverse wasn't in at the time of writing 'Has Morphology'
+set reverse_relationship_id='Has morphology' where relationship_id='Morphology of';
 
 commit;

@@ -479,8 +479,63 @@ values (v5_concept.nextval, 'Morphology of (SNOMED)', 'Metadata', 'Relationship'
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
 values ('Morphology of', 'Morphology of (SNOMED)', 0, 0, 'Morphology of', (select concept_id from concept where concept_name='Morphology of (SNOMED)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has Morphology'
-set reverse_relationship_id='Morphology of' where relationship_id='Has morphology';
+set reverse_relationship_id = 'Morphology of' where relationship_id='Has morphology';
 update relationship -- The reverse wasn't in at the time of writing 'Has Morphology'
-set reverse_relationship_id='Has morphology' where relationship_id='Morphology of';
+set reverse_relationship_id = 'Has morphology' where relationship_id='Morphology of';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has Measured Component (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Has meas component', 'Has Measured Component (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Measured Component (SNOMED)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Measured Component of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Meas component of', 'Measured Component of (SNOMED)', 0, 0, 'Has meas component', (select concept_id from concept where concept_name='Measured Component of (SNOMED)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Measured Component'
+set reverse_relationship_id = 'Meas component of' where relationship_id='Has meas component';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Caused by (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Caused by', 'Caused by (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Caused by (SNOMED)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Causes (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Causes', 'Causes (SNOMED)', 0, 0, 'Caused by', (select concept_id from concept where concept_name='Causes (SNOMED)'));
+update relationship -- The reverse wasn't in at the time of writing 'Caused by'
+set reverse_relationship_id='Causes' where relationship_id='Caused by';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has Etiology (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Has etiology', 'Has Etiology (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Etiology (SNOMED)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Etiology of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Etiology of', 'Etiology of (SNOMED)', 0, 0, 'Has etiology', (select concept_id from concept where concept_name='Etiology of (SNOMED)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has etiology'
+set reverse_relationship_id='Etiology of' where relationship_id='Has etiology';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has Stage (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Has stage', 'Has Stage (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Stage (SNOMED)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Stage of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Stage of', 'Stage of (SNOMED)', 0, 0, 'Has stage', (select concept_id from concept where concept_name='Stage of (SNOMED)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Stage'
+set reverse_relationship_id='Stage of' where relationship_id='Has stage';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has Extent (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Has extent', 'Has Extent (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Extent (SNOMED)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Extent of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Extent of', 'Extent of (SNOMED)', 0, 0, 'Has extent', (select concept_id from concept where concept_name='Extent of (SNOMED)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has extent'
+set reverse_relationship_id='Extent of' where relationship_id='Has extent';
 
 commit;

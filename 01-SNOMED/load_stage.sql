@@ -312,106 +312,116 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
- SELECT DISTINCT --convert SNOMED to OMOP-type relationship_id
+WITH tmp_rel AS (   -- get relationships from latest records that are active
+      SELECT DISTINCT sourceid, destinationid, replace(term,' (attribute)','') term
+        FROM (SELECT r.sourceid,
+                     r.destinationid,
+                     d.term,
+                     ROW_NUMBER ()
+                     OVER (
+                        PARTITION BY r.id
+                        ORDER BY TO_DATE (r.effectivetime, 'YYYYMMDD') DESC
+                     ) AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
+                    r.active
+                FROM sct2_rela_full_merged r
+                     JOIN sct2_desc_full_merged d ON r.typeid = d.conceptid
+              )
+       WHERE rn = 1
+             AND active = 1
+             AND sourceid IS NOT NULL
+             AND destinationid IS NOT NULL
+             AND term<>'PBCL flag true'
+)
+ --convert SNOMED to OMOP-type relationship_id   
+ SELECT DISTINCT
         sourceid,
         destinationid,
         'SNOMED',
         'SNOMED',
         CASE
-           WHEN term = 'Access' THEN 'Has access'
-           WHEN term = 'Associated aetiologic finding' THEN 'Has etiology'
-           WHEN term = 'After' THEN 'Occurs after'
-           WHEN term = 'Approach' THEN 'Has surgical appr' -- looks like old version
-           WHEN term = 'Associated finding' THEN 'Has asso finding'
-           WHEN term = 'Associated morphology' THEN 'Has asso morph'
-           WHEN term = 'Associated procedure' THEN 'Has asso proc'
-           WHEN term = 'Associated with' THEN 'Finding asso with'
-           WHEN term = 'AW' THEN 'Finding asso with'
-           WHEN term = 'Causative agent' THEN 'Has causative agent'
-           WHEN term = 'Clinical course' THEN 'Has clinical course'  
-           WHEN term = 'Component' THEN 'Has component'
-           WHEN term = 'Direct device' THEN 'Has dir device'
-           WHEN term = 'Direct morphology' THEN 'Has dir morph'
-           WHEN term = 'Direct substance' THEN 'Has dir subst'
-           WHEN term = 'Due to' THEN 'Has due to'
-           WHEN term = 'Episodicity' THEN 'Has episodicity'
-           WHEN term = 'Extent' THEN 'Has extent'
-           WHEN term = 'Finding context' THEN 'Has finding context'
-           WHEN term = 'Finding informer' THEN 'Using finding inform'   
-           WHEN term = 'Finding method' THEN 'Using finding method'    
-           WHEN term = 'Finding site' THEN 'Has finding site'
-           WHEN term = 'Has active ingredient' THEN 'Has active ing'
-           WHEN term = 'Has definitional manifestation' THEN 'Has manifestation'
-           WHEN term = 'Has dose form' THEN 'Has dose form'
-           WHEN term = 'Has focus' THEN 'Has focus'
-           WHEN term = 'Has interpretation' THEN 'Has interpretation'
-           WHEN term = 'Has measured component' THEN 'Has meas component'
-           WHEN term = 'Has specimen' THEN 'Has specimen'
-           WHEN term = 'Stage' THEN 'Has stage'
-           WHEN term = 'Indirect device' THEN 'Has indir device'
-           WHEN term = 'Indirect morphology' THEN 'Has indir morph'
-           WHEN term = 'Instrumentation' THEN 'Using device' -- looks like an old version
-           WHEN term = 'Intent' THEN 'Has intent'
-           WHEN term = 'Interprets' THEN 'Has interprets'
-           WHEN term = 'Is a' THEN 'Is a'
-           WHEN term = 'Laterality' THEN 'Has laterality'
-           WHEN term = 'Measurement method' THEN 'Has measurement'
-           WHEN term = 'Measurement Method' THEN 'Has measurement' -- looks like misspelling
-           WHEN term = 'Method' THEN 'Has method'
-           WHEN term = 'Morphology' THEN 'Has morphology'
-           WHEN term = 'Occurrence' THEN 'Has occurrence'
-           WHEN term = 'Onset' THEN 'Has clinical course' -- looks like old version
-           WHEN term = 'Part of' THEN 'Has part of'
-           WHEN term = 'Pathological process' THEN 'Has pathology'
-           WHEN term = 'Pathological process (qualifier value)' THEN 'Has pathology'
-           WHEN term = 'Priority' THEN 'Has priority'
-           WHEN term = 'Procedure context' THEN 'Has proc context'
-           WHEN term = 'Procedure device' THEN 'Has proc device'
-           WHEN term = 'Procedure morphology' THEN 'Has proc morph'
-           WHEN term = 'Procedure site - Direct' THEN 'Has dir proc site'
-           WHEN term = 'Procedure site - Indirect' THEN 'Has indir proc site'
-           WHEN term = 'Procedure site' THEN 'Has proc site'
-           WHEN term = 'Property' THEN 'Has property'
-           WHEN term = 'Recipient category' THEN 'Has recipient cat'
-           WHEN term = 'Revision status' THEN 'Has revision status'
-           WHEN term = 'Route of administration' THEN 'Has route of admin'
-           WHEN term = 'Route of administration - attribute' THEN 'Has route of admin'
-           WHEN term = 'Scale type' THEN 'Has scale type'
-           WHEN term = 'Severity' THEN 'Has severity'
-           WHEN term = 'Specimen procedure' THEN 'Has specimen proc'
-           WHEN term = 'Specimen source identity' THEN 'Has specimen source'
-           WHEN term = 'Specimen source morphology' THEN 'Has specimen morph'
-           WHEN term = 'Specimen source topography' THEN 'Has specimen topo'
-           WHEN term = 'Specimen substance' THEN 'Has specimen subst'
-           WHEN term = 'Subject relationship context' THEN 'Has relat context'
-           WHEN term = 'Surgical approach' THEN 'Has surgical appr'  
-           WHEN term = 'Temporal context' THEN 'Has temporal context'   
-           WHEN term = 'Temporally follows' THEN 'Occurs after' -- looks like an old version
-           WHEN term = 'Time aspect' THEN 'Has time aspect'
-           WHEN term = 'Using access device' THEN 'Using acc device'  
-           WHEN term = 'Using device' THEN 'Using device'   
-           WHEN term = 'Using energy' THEN 'Using energy'   
-           WHEN term = 'Using substance' THEN 'Using subst'
-           ELSE 'non-existing'      
+            WHEN term = 'Access' THEN 'Has access'
+            WHEN term = 'Associated aetiologic finding' THEN 'Has etiology'
+            WHEN term = 'After' THEN 'Occurs after'
+            WHEN term = 'Approach' THEN 'Has surgical appr' -- looks like old version
+            WHEN term = 'Associated finding' THEN 'Has asso finding'
+            WHEN term = 'Associated morphology' THEN 'Has asso morph'
+            WHEN term = 'Associated procedure' THEN 'Has asso proc'
+            WHEN term = 'Associated with' THEN 'Finding asso with'
+            WHEN term = 'AW' THEN 'Finding asso with'
+            WHEN term = 'Causative agent' THEN 'Has causative agent'
+            WHEN term = 'Clinical course' THEN 'Has clinical course'  
+            WHEN term = 'Component' THEN 'Has component'
+            WHEN term = 'Direct device' THEN 'Has dir device'
+            WHEN term = 'Direct morphology' THEN 'Has dir morph'
+            WHEN term = 'Direct substance' THEN 'Has dir subst'
+            WHEN term = 'Due to' THEN 'Has due to'
+            WHEN term = 'Episodicity' THEN 'Has episodicity'
+            WHEN term = 'Extent' THEN 'Has extent'
+            WHEN term = 'Finding context' THEN 'Has finding context'
+            WHEN term = 'Finding informer' THEN 'Using finding inform'   
+            WHEN term = 'Finding method' THEN 'Using finding method'    
+            WHEN term = 'Finding site' THEN 'Has finding site'
+            WHEN term = 'Has active ingredient' THEN 'Has active ing'
+            WHEN term = 'Has definitional manifestation' THEN 'Has manifestation'
+            WHEN term = 'Has dose form' THEN 'Has dose form'
+            WHEN term = 'Has focus' THEN 'Has focus'
+            WHEN term = 'Has interpretation' THEN 'Has interpretation'
+            WHEN term = 'Has measured component' THEN 'Has meas component'
+            WHEN term = 'Has specimen' THEN 'Has specimen'
+            WHEN term = 'Stage' THEN 'Has stage'
+            WHEN term = 'Indirect device' THEN 'Has indir device'
+            WHEN term = 'Indirect morphology' THEN 'Has indir morph'
+            WHEN term = 'Instrumentation' THEN 'Using device' -- looks like an old version
+            WHEN term = 'Intent' THEN 'Has intent'
+            WHEN term = 'Interprets' THEN 'Has interprets'
+            WHEN term = 'Is a' THEN 'Is a'
+            WHEN term = 'Laterality' THEN 'Has laterality'
+            WHEN term = 'Measurement method' THEN 'Has measurement'
+            WHEN term = 'Measurement Method' THEN 'Has measurement' -- looks like misspelling
+            WHEN term = 'Method' THEN 'Has method'
+            WHEN term = 'Morphology' THEN 'Has morphology'
+            WHEN term = 'Occurrence' THEN 'Has occurrence'
+            WHEN term = 'Onset' THEN 'Has clinical course' -- looks like old version
+            WHEN term = 'Part of' THEN 'Has part of'
+            WHEN term = 'Pathological process' THEN 'Has pathology'
+            WHEN term = 'Pathological process (qualifier value)' THEN 'Has pathology'
+            WHEN term = 'Priority' THEN 'Has priority'
+            WHEN term = 'Procedure context' THEN 'Has proc context'
+            WHEN term = 'Procedure device' THEN 'Has proc device'
+            WHEN term = 'Procedure morphology' THEN 'Has proc morph'
+            WHEN term = 'Procedure site - Direct' THEN 'Has dir proc site'
+            WHEN term = 'Procedure site - Indirect' THEN 'Has indir proc site'
+            WHEN term = 'Procedure site' THEN 'Has proc site'
+            WHEN term = 'Property' THEN 'Has property'
+            WHEN term = 'Recipient category' THEN 'Has recipient cat'
+            WHEN term = 'Revision status' THEN 'Has revision status'
+            WHEN term = 'Route of administration' THEN 'Has route of admin'
+            WHEN term = 'Route of administration - attribute' THEN 'Has route of admin'
+            WHEN term = 'Scale type' THEN 'Has scale type'
+            WHEN term = 'Severity' THEN 'Has severity'
+            WHEN term = 'Specimen procedure' THEN 'Has specimen proc'
+            WHEN term = 'Specimen source identity' THEN 'Has specimen source'
+            WHEN term = 'Specimen source morphology' THEN 'Has specimen morph'
+            WHEN term = 'Specimen source topography' THEN 'Has specimen topo'
+            WHEN term = 'Specimen substance' THEN 'Has specimen subst'
+            WHEN term = 'Subject relationship context' THEN 'Has relat context'
+            WHEN term = 'Surgical approach' THEN 'Has surgical appr'  
+            WHEN term = 'Temporal context' THEN 'Has temporal context'   
+            WHEN term = 'Temporally follows' THEN 'Occurs after' -- looks like an old version
+            WHEN term = 'Time aspect' THEN 'Has time aspect'
+            WHEN term = 'Using access device' THEN 'Using acc device'  
+            WHEN term = 'Using device' THEN 'Using device'   
+            WHEN term = 'Using energy' THEN 'Using energy'   
+            WHEN term = 'Using substance' THEN 'Using subst'
+            ELSE 'non-existing'      
         END AS relationship_id,
         (select latest_update From vocabulary where vocabulary_id='SNOMED'),
         TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
         NULL
-   FROM (
-          SELECT DISTINCT
-               r.sourceid,
-               r.destinationid,
-               replace(d.term,' (attribute)','') AS term
-          FROM sct2_rela_full_merged r
-               JOIN sct2_desc_full_merged d ON r.typeid = d.conceptid
-          WHERE r.active = 1
-            AND r.sourceid IS NOT NULL
-            AND r.destinationid IS NOT NULL
-            AND d.term<>'PBCL flag true'
-    )
+   FROM (SELECT * FROM tmp_rel)
 ;
 
-COMMIT;	 
+COMMIT;
 
 --8 add replacement relationships. They are handled in a different SNOMED table
 INSERT INTO concept_relationship_stage (concept_code_1,
@@ -631,7 +641,6 @@ insert into peak (peak_code, peak_domain_id) values (15220000, 'Measurement'); -
 insert into peak (peak_code, peak_domain_id) values (441742003, 'Measurement'); -- evaluation finding
 insert into peak (peak_code, peak_domain_id) values (365605003, 'Measurement'); -- body measurement finding
 insert into peak (peak_code, peak_domain_id) values (106019003, 'Condition'); -- elimination pattern
-insert into peak (peak_code, peak_domain_id) values (300577008, 'Observation'); -- finding of lesion
 insert into peak (peak_code, peak_domain_id) values (395557000, 'Observation'); -- tumor finding
 insert into peak (peak_code, peak_domain_id) values (422989001, 'Condition'); -- appendix with tumor involvement, with perforation not at tumor
 insert into peak (peak_code, peak_domain_id) values (384980008, 'Condition'); -- atelectasis AND/OR obstructive pneumonitis of entire lung associated with direct extension of malignant neoplasm

@@ -18,7 +18,8 @@ CREATE TABLE vocabulary (
   vocabulary_name        VARCHAR(255)    NOT NULL,
   vocabulary_reference    VARCHAR(255)    NULL,
   vocabulary_version    VARCHAR(255)    NULL,
-  vocabulary_concept_id    INTEGER            NOT NULL
+  vocabulary_concept_id    INTEGER            NOT NULL,
+  latest_update       DATE
 )
 ;
 
@@ -96,7 +97,6 @@ CREATE TABLE drug_strength (
 
 CREATE TABLE concept_stage
 (
-   concept_id         INTEGER,
    concept_name       VARCHAR2 (256),
    domain_id          VARCHAR (200),
    vocabulary_id      VARCHAR (20) NOT NULL,

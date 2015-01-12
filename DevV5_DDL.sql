@@ -1,62 +1,5 @@
 -- Create tables
 
-CREATE TABLE concept (
-  concept_id            INTEGER            NOT NULL,
-  concept_name            VARCHAR(255)    NOT NULL,
-  domain_id                VARCHAR(200)        NOT NULL,
-  vocabulary_id            VARCHAR(20)        NOT NULL,
-  concept_class_id        VARCHAR(20)        NOT NULL,
-  standard_concept        VARCHAR(1)        NULL,
-  concept_code            VARCHAR(50)        NOT NULL,
-  valid_start_date        DATE            NOT NULL,
-  valid_end_date        DATE            NOT NULL,
-  invalid_reason        VARCHAR(1)        NULL
-)
-;
-CREATE TABLE vocabulary (
-  vocabulary_id            VARCHAR(20)        NOT NULL,
-  vocabulary_name        VARCHAR(255)    NOT NULL,
-  vocabulary_reference    VARCHAR(255)    NULL,
-  vocabulary_version    VARCHAR(255)    NULL,
-  vocabulary_concept_id    INTEGER            NOT NULL,
-  latest_update       DATE
-)
-;
-
-CREATE TABLE domain (
-  domain_id            VARCHAR(20)        NOT NULL,
-  domain_name        VARCHAR(255)    NOT NULL,
-  domain_concept_id    INTEGER            NOT NULL
-)
-;
-
-CREATE TABLE concept_class (
-  concept_class_id            VARCHAR(20)        NOT NULL,
-  concept_class_name        VARCHAR(255)    NOT NULL,
-  concept_class_concept_id    INTEGER            NOT NULL
-)
-;
-
-CREATE TABLE concept_relationship (
-  concept_id_1            INTEGER            NOT NULL,
-  concept_id_2            INTEGER            NOT NULL,
-  relationship_id        VARCHAR(20)        NOT NULL,
-  vocabulary_id            VARCHAR(20)        NOT NULL,
-  valid_start_date        DATE            NOT NULL,
-  valid_end_date        DATE            NOT NULL,
-  invalid_reason        VARCHAR(1)        NULL)
-;
-
-CREATE TABLE relationship (
-  relationship_id            VARCHAR(20)        NOT NULL,
-  relationship_name            VARCHAR(255)    NOT NULL,
-  is_hierarchical            VARCHAR(1)        NOT NULL,
-  defines_ancestry            VARCHAR(1)        NOT NULL,
-  reverse_relationship_id    VARCHAR(20)        NOT NULL,
-  relationship_concept_id    INTEGER            NOT NULL
-)
-;
-
 CREATE TABLE concept_synonym (
   concept_id            INTEGER            NOT NULL,
   concept_synonym_name    VARCHAR(1000)    NOT NULL,
@@ -97,6 +40,7 @@ CREATE TABLE drug_strength (
 
 CREATE TABLE concept_stage
 (
+   concept_id         NUMBER,
    concept_name       VARCHAR2 (256),
    domain_id          VARCHAR (200),
    vocabulary_id      VARCHAR (20) NOT NULL,
@@ -132,6 +76,16 @@ CREATE TABLE concept_synonym_stage
   LANGUAGE_CONCEPT_ID  NUMBER
 )
 ;
+
+-- Create copies of table
+create table concept as select * from v5dev.concept;
+create table concept_relationship as select * from v5dev.concept_relationship;
+create table relationship as select * from v5dev.relationship;
+create table vocabulary as select * from v5dev.vocabulary;
+create table concept_class as select * from v5dev.concept_class;
+create table domain as select * from v5dev.domain;
+
+
 -- Create FKs
 
 ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);

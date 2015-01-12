@@ -1,41 +1,16 @@
-/*
-1. Download the international SNOMED file SnomedCT_Release_INT_YYYYMMDD.zip from http://www.nlm.nih.gov/research/umls/licensedcontent/snomedctfiles.html.
-2. Extract the release date from the file name.
-3. Extract the following files from the folder SnomedCT_Release_INT_YYYYMMDD\RF2Release\Full\Terminology\ into a working folder:
-- sct2_Concept_Full_INT_YYYYMMDD.txt
-- sct2_Description_Full-en_INT_YYYYMMDD.txt
-- sct2_Relationship_Full_INT_YYYYMMDD.txt
-4. Load them into SCT2_CONCEPT_FULL_INT, SCT2_DESC_FULL_EN_INT and SCT2_RELA_FULL_INT. Use the control files in Vocabulary-v5.0\01-SNOMED.
-
-5. Download the British SNOMED file SNOMEDCT2_XX.0.0_YYYYMMDD000001.zip from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/26/subpack/102/releases.
-6. Extract the release date from the file name.
-7. Extract the following files from the folder SnomedCT2_GB1000000_YYYYMMDD\RF2Release\Full\Terminology into a working folder:
-- sct2_Concept_Full_GB1000000_YYYYMMDD.txt
-- sct2_Description_Full-en-GB_GB1000000_YYYYMMDD.txt
-- sct2_Description_Full-en-GB_GB1000000_YYYYMMDD.txt
-8. Load them into SCT2_CONCEPT_FULL_UK, SCT2_DESC_FULL_UK, SCT2_RELA_FULL_UK. Use the control files in Vocabulary-v5.0\01-SNOMED
-
-9. der2_cRefset_AssociationReferenceFull_INT_YYYYMMDD.txt from SnomedCT_Release_INT_YYYYMMDD\RF2Release\Full\Refset\Content 
-and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT2_GB1000000_YYYYMMDD\RF2Release\Full\Refset\Content (ctl files in 10-SNOMED)
-
-10. download YYYYab-1-meta.nlm (for exemple 2014ab-1-meta.nlm)
---unpack MRCONSO.RRF.aa.gz and MRCONSO.RRF.ab.gz, then run:
---gunzip *.gz
---cat MRCONSO.RRF.aa MRCONSO.RRF.ab > MRCONSO.RRF
---load MRCONSO.RRF with RXNCONSO.ctl
--- DDL & ctl -> Vocabulary-v5.0\UMLS\
-
-*/
--- Update latest_update field to new date 
+-- 1. Update latest_update field to new date 
 update vocabulary set latest_update=to_date('20140731','yyyymmdd') where vocabulary_id='SNOMED'; commit;
 
---1 create views
-create view sct2_concept_full_merged as select * from sct2_concept_full_int union select * from sct2_concept_full_uk;
-create view sct2_desc_full_merged as select * from sct2_desc_full_en_int union select * from sct2_desc_full_uk;
-create view sct2_rela_full_merged as select * from sct2_rela_full_int union select * from sct2_rela_full_uk;
-create view der2_cRefset_AssRefFull_merged as select * from der2_cRefset_AssRefFull_INT union select * from der2_cRefset_AssRefFull_UK;
+-- 2. Truncate all working tables and remove indices
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+DROP INDEX idx_cs_concept_code ON concept_stage (concept_code);
+DROP INDEX idx_cs_concept_id ON concept_stage (concept_id);
+DROP INDEX idx_concept_code_1;
+DROP INDEX idx_concept_code_2;
 
---2 Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
+-- 3. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
 INSERT INTO concept_stage (concept_name,
                            vocabulary_id,
                            concept_code,
@@ -94,7 +69,7 @@ INSERT INTO concept_stage (concept_name,
     WHERE sct2.rn = 1 AND sct2.active = 1;
 COMMIT;	
 	
---3 Create temporary table with extracted class information and terms ordered by some good precedence
+-- 4. Create temporary table with extracted class information and terms ordered by some good precedence
 CREATE TABLE tmp_concept_class
 AS
    SELECT *
@@ -212,7 +187,7 @@ AS
 	
 CREATE INDEX x_cc_2cd ON tmp_concept_class (concept_code);
 
---4 Create reduced set of classes 
+-- 5. Create reduced set of classes 
 UPDATE concept_stage cs
    SET concept_class_id =
           (SELECT CASE
@@ -275,12 +250,13 @@ UPDATE concept_stage cs
             WHERE cc.concept_code = cs.concept_code)
 	WHERE cs.vocabulary_id='SNOMED';
 
+-- Clean up
 DROP TABLE tmp_concept_class PURGE;
 
 -- Assign top SNOMED concept
-update concept_stage set concept_class_id='Model Comp' where concept_code=138875005 and vocabulary_id='SNOMED';
+UPDATE concept_stage set concept_class_id='Model Comp' WHERE concept_code=138875005 and vocabulary_id='SNOMED';
 			
---6 Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
+-- 6. Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_vocabulary_id,
@@ -298,12 +274,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
 
 COMMIT;
 
---7 fill concept_relationship_stage from SNOMED	
-drop INDEX idx_concept_id_1;
-drop INDEX idx_concept_id_2;
-drop INDEX idx_concept_code_1;
-drop INDEX idx_concept_code_2;
-
+-- 7. Fill concept_relationship_stage from SNOMED	
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
 								                    		vocabulary_id_1,
@@ -423,7 +394,7 @@ WITH tmp_rel AS (   -- get relationships from latest records that are active
 
 COMMIT;
 
---8 add replacement relationships. They are handled in a different SNOMED table
+-- 8. add replacement relationships. They are handled in a different SNOMED table
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -463,17 +434,131 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                                900000000000527005,
                                900000000000530003))
     WHERE rn = 1 AND active = 1;
+
 COMMIT;
 
---9 Make sure all records are symmetrical and turn if necessary
-INSERT INTO concept_relationship_stage
-   SELECT crs.concept_id_2 AS concept_id_1,
-          crs.concept_id_1 AS concept_id_2,
-          crs.concept_code_2 AS concept_code_1,
-          crs.concept_code_1 AS concept_code_2,
-          crs.vocabulary_id_2 AS vocabulary_id_1,
-          crs.vocabulary_id_1 AS vocabulary_id_2,
-          r.reverse_relationship_id AS relationship_id,
+-- 9. Create mapping to self for fresh concepts
+INSERT INTO concept_relationship_stage (
+  concept_code_1,
+  concept_code_2,
+  vocabulary_id_1,
+  vocabulary_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+SELECT 
+  concept_code,
+  concept_code,
+  'SNOMED',
+  'SNOMED',
+  'Maps to',
+  (SELECT latest_update FROM vocabulary WHERE vocabulary_id='SNOMED'),
+  TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
+  NULL
+FROM concept_stage
+;
+
+-- 10. Add mapping from deprecated to fresh concepts
+INSERT INTO concept_relationship_stage (
+  concept_code_1,
+  concept_code_2,
+  vocabulary_id_1,
+  vocabulary_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+SELECT 
+  root,
+  concept_code_2,
+  'SNOMED',
+  'SNOMED',
+  'Maps to',
+  (SELECT latest_update FROM vocabulary WHERE vocabulary_id='SNOMED'),
+  TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
+  NULL
+FROM (
+      SELECT root, concept_code_2 FROM (
+          SELECT root, concept_code_2, dt,  ROW_NUMBER() OVER (PARTITION BY root ORDER BY dt DESC) rn
+            FROM (
+                SELECT 
+                      rownum AS rn, 
+                      LEVEL AS lv, 
+                      concept_code_1, 
+                      concept_code_2, 
+                      relationship_id,
+                      valid_start_date AS dt,
+                      CONNECT_BY_ISCYCLE AS iscy,
+                      CONNECT_BY_ROOT concept_code_1 AS root,
+                      CONNECT_BY_ISLEAF AS lf
+                FROM concept_relationship_stage
+                WHERE 1 = 1
+                      AND relationship_id IN ( 'UCUM replaced by',
+                                               'Concept replaced by',
+                                               'Concept same_as to',
+                                               'Concept alt_to to',
+                                               'Concept poss_eq to',
+                                               'Concept was_a to',
+                                               'LOINC replaced by',
+                                               'RxNorm replaced by',
+                                               'SNOMED replaced by',
+                                               'ICD9P replaced by'
+                                             )
+                      and NVL(invalid_reason, 'X') <> 'D'
+                CONNECT BY  
+                NOCYCLE  
+                PRIOR concept_code_2 = concept_code_1
+                      AND relationship_id IN ( 'UCUM replaced by',
+                                               'Concept replaced by',
+                                               'Concept same_as to',
+                                               'Concept alt_to to',
+                                               'Concept poss_eq to',
+                                               'Concept was_a to',
+                                               'LOINC replaced by',
+                                               'RxNorm replaced by',
+                                               'SNOMED replaced by',
+                                               'ICD9P replaced by'
+                                             )
+                        AND NVL(invalid_reason, 'X') <> 'D'
+                START WITH relationship_id IN ('UCUM replaced by',
+                                               'Concept replaced by',
+                                               'Concept same_as to',
+                                               'Concept alt_to to',
+                                               'Concept poss_eq to',
+                                               'Concept was_a to',
+                                               'LOINC replaced by',
+                                               'RxNorm replaced by',
+                                               'SNOMED replaced by',
+                                               'ICD9P replaced by'
+                                              )
+                      AND NVL(invalid_reason, 'X') <> 'D'
+          ) sou 
+          WHERE lf = 1
+      ) 
+      WHERE rn = 1
+);
+
+COMMIT;
+
+-- 11. Make sure all records are symmetrical and turn if necessary
+INSERT INTO concept_relationship_stage (
+  concept_code_1,
+  concept_code_2,
+  vocabulary_id_1,
+  vocabulary_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+   SELECT crs.concept_code_2,
+          crs.concept_code_1,
+          crs.vocabulary_id_2,
+          crs.vocabulary_id_1,
+          r.reverse_relationship_id ,
           crs.valid_start_date,
           crs.valid_end_date,
           crs.invalid_reason
@@ -490,209 +575,208 @@ INSERT INTO concept_relationship_stage
                AND r.reverse_relationship_id = i.relationship_id
     )
 ;
-COMMIT;
 
+COMMIT;
 	
---10. create the ancestor's package (01-SNOMED\PKG_CONCEPT_ANCESTOR.sql) and start building the hierarchy (snomed-only)
-exec PKG_CONCEPT_ANCESTOR.CALC;
+-- 10. Create the ancestor's package (01-SNOMED\PKG_CONCEPT_ANCESTOR.sql) and start building the hierarchy (snomed-only)
+EXEC PKG_CONCEPT_ANCESTOR.CALC;
 COMMIT;
 
 --11. Create domain_id
 -- 11.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
--- DROP TABLE peak;
-create table peak (
-	peak_code varchar(20), --the id of the top ancestor
-	peak_domain_id varchar(20), -- the domain to assign to all its children
-	ranked integer -- number for the order in which to assign
+CREATE TABLE peak (
+	peak_code VARCHAR(20), --the id of the top ancestor
+	peak_domain_id VARCHAR(20), -- the domain to assign to all its children
+	ranked INTEGER -- number for the order in which to assign
 );
 
 -- 11.2 Fill in the various peak concepts
-insert into peak (peak_code, peak_domain_id) values (138875005, 'Metadata'); -- root
-insert into peak (peak_code, peak_domain_id) values (900000000000441003, 'Metadata'); -- SNOMED CT Model Component
-insert into peak (peak_code, peak_domain_id) values (105590001, 'Observation'); -- Substances
-insert into peak (peak_code, peak_domain_id) values (123038009, 'Specimen'); -- Specimen
-insert into peak (peak_code, peak_domain_id) values (48176007, 'Observation'); -- Social context
-insert into peak (peak_code, peak_domain_id) values (243796009, 'Observation'); -- Situation with explicit context
-insert into peak (peak_code, peak_domain_id) values (272379006, 'Observation'); -- Events
-insert into peak (peak_code, peak_domain_id) values (260787004, 'Observation'); -- Physical object
-insert into peak (peak_code, peak_domain_id) values (362981000, 'Observation'); -- Qualifier value
-insert into peak (peak_code, peak_domain_id) values (363787002, 'Observation'); -- Observable entity
-insert into peak (peak_code, peak_domain_id) values (410607006, 'Observation'); -- Organism
-insert into peak (peak_code, peak_domain_id) values (419891008, 'Note Type'); -- Record artifact
-insert into peak (peak_code, peak_domain_id) values (78621006, 'Observation'); -- Physical force
-insert into peak (peak_code, peak_domain_id) values (123037004, 'Spec Anatomic Site'); -- Body structure
-insert into peak (peak_code, peak_domain_id) values (118956008, 'Observation'); -- Body structure, altered from its original anatomical structure, reverted from 123037004
-insert into peak (peak_code, peak_domain_id) values (254291000, 'Observation'); -- Staging / Scales
-insert into peak (peak_code, peak_domain_id) values (370115009, 'Metadata'); -- Special Concept
-insert into peak (peak_code, peak_domain_id) values (308916002, 'Observation'); -- Environment or geographical location
-insert into peak (peak_code, peak_domain_id) values (223366009, 'Provider Specialty');
-insert into peak (peak_code, peak_domain_id) values (43741000, 'Place of Service'); -- Site of care
-insert into peak (peak_code, peak_domain_id) values (420056007, 'Drug'); -- Aromatherapy agent
-insert into peak (peak_code, peak_domain_id) values (373873005, 'Drug'); -- Pharmaceutical / biologic product
-insert into peak (peak_code, peak_domain_id) values (410942007, 'Drug'); -- Drug or medicament
-insert into peak (peak_code, peak_domain_id) values (373783004, 'Observation'); -- dietary product, exception of Pharmaceutical / biologic product
-insert into peak (peak_code, peak_domain_id) values (419572002, 'Observation'); -- alcohol agent, exception of drug
-insert into peak (peak_code, peak_domain_id) values (373782009, 'Observation'); -- diagnostic substance, exception of drug
-insert into peak (peak_code, peak_domain_id) values (404684003, 'Condition'); -- Clinical Finding
-insert into peak (peak_code, peak_domain_id) values (218496004, 'Condition'); -- Adverse reaction to primarily systemic agents
-insert into peak (peak_code, peak_domain_id) values (313413008, 'Condition'); -- Calculus observation
-insert into peak (peak_code, peak_domain_id) values (405533003, 'Observation'); -- 'adverse incident outcome categories'
-insert into peak (peak_code, peak_domain_id) values (365854008, 'Observation'); -- 'History finding'
-insert into peak (peak_code, peak_domain_id) values (118233009, 'Observation'); -- 'Finding of activity of daily living'
-insert into peak (peak_code, peak_domain_id) values (307824009, 'Observation');-- 'Administrative statuses'
-insert into peak (peak_code, peak_domain_id) values (162408000, 'Observation'); -- Symptom description
-insert into peak (peak_code, peak_domain_id) values (105729006, 'Observation'); -- 'Health perception, health management pattern'
-insert into peak (peak_code, peak_domain_id) values (162566001, 'Observation'); --'Patient not aware of diagnosis'
-insert into peak (peak_code, peak_domain_id) values (71388002, 'Procedure'); --'Procedure'
-insert into peak (peak_code, peak_domain_id) values (304252001, 'Observation'); -- Resuscitate
-insert into peak (peak_code, peak_domain_id) values (304253006, 'Observation'); --DNR
-insert into peak (peak_code, peak_domain_id) values (297249002, 'Observation'); --Family history of procedure
-insert into peak (peak_code, peak_domain_id) values (14734007, 'Observation'); --Administrative procedure
-insert into peak (peak_code, peak_domain_id) values (416940007, 'Observation'); --Past history of procedure
-insert into peak (peak_code, peak_domain_id) values (183932001, 'Observation');-- Procedure contraindicated
-insert into peak (peak_code, peak_domain_id) values (438833006, 'Observation');-- Administration of drug or medicament contraindicated
-insert into peak (peak_code, peak_domain_id) values (410684002, 'Observation'); -- Drug therapy status
-insert into peak (peak_code, peak_domain_id) values (17636008, 'Procedure'); -- Specimen collection treatments and procedures - - bad child of 4028908 Laboratory procedure
-insert into peak (peak_code, peak_domain_id) values (365873007, 'Gender'); -- Gender
-insert into peak (peak_code, peak_domain_id) values (372148003, 'Race'); --Ethnic group
-insert into peak (peak_code, peak_domain_id) values (415229000, 'Race'); -- Racial group
-insert into peak (peak_code, peak_domain_id) values (106237007, 'Observation'); -- Linkage concept
-insert into peak (peak_code, peak_domain_id) values (258666001, 'Unit'); -- Top unit
-insert into peak (peak_code, peak_domain_id) values (260245000, 'Meas Value'); -- Meas Value
-insert into peak (peak_code, peak_domain_id) values (125677006, 'Relationship'); -- Relationship
-insert into peak (peak_code, peak_domain_id) values (264301008, 'Observation'); -- psychoactive substance of abuse - non-pharmaceutical
-insert into peak (peak_code, peak_domain_id) values (226465004, 'Observation'); -- drinks
-insert into peak (peak_code, peak_domain_id) values (289964002, 'Device'); -- Surgical material
-insert into peak (peak_code, peak_domain_id) values (260667007, 'Device'); -- Graft
-insert into peak (peak_code, peak_domain_id) values (418920007, 'Device'); -- Adhesive agent
-insert into peak (peak_code, peak_domain_id) values (255922001, 'Device'); -- Dental material
-insert into peak (peak_code, peak_domain_id) values (413674002, 'Observation'); -- Body material
-insert into peak (peak_code, peak_domain_id) values (118417008, 'Device'); -- Filling material
-insert into peak (peak_code, peak_domain_id) values (445214009, 'Device'); -- corneal storage medium
-insert into peak (peak_code, peak_domain_id) values (369443003, 'Device'); -- bedpan
-insert into peak (peak_code, peak_domain_id) values (398146001, 'Device'); -- armband
-insert into peak (peak_code, peak_domain_id) values (272181003, 'Device'); -- clinical equipment and/or device
-insert into peak (peak_code, peak_domain_id) values (445316008, 'Device'); -- component of optical microscope
-insert into peak (peak_code, peak_domain_id) values (419818001, 'Device'); -- Contact lens storage case
-insert into peak (peak_code, peak_domain_id) values (228167008, 'Device'); -- Corset
-insert into peak (peak_code, peak_domain_id) values (42380001, 'Device'); -- Ear plug, device
-insert into peak (peak_code, peak_domain_id) values (1333003, 'Device'); -- Emesis basin, device
-insert into peak (peak_code, peak_domain_id) values (360306007, 'Device'); -- Environmental control system
-insert into peak (peak_code, peak_domain_id) values (33894003, 'Device'); -- Experimental device
-insert into peak (peak_code, peak_domain_id) values (116250002, 'Device'); -- filter
-insert into peak (peak_code, peak_domain_id) values (59432006, 'Device'); -- ligature
-insert into peak (peak_code, peak_domain_id) values (360174002, 'Device'); -- nabeya capsule
-insert into peak (peak_code, peak_domain_id) values (311767007, 'Device'); -- special bed
-insert into peak (peak_code, peak_domain_id) values (360173008, 'Device'); -- watson capsule
-insert into peak (peak_code, peak_domain_id) values (367561004, 'Device'); -- xenon arc photocoagulator
-insert into peak (peak_code, peak_domain_id) values (80631005, 'Observation'); -- 'clinical stage finding'
-insert into peak (peak_code, peak_domain_id) values (69449002, 'Observation'); -- drug action
-insert into peak (peak_code, peak_domain_id) values (79899007, 'Observation'); -- drug interaction
-insert into peak (peak_code, peak_domain_id) values (365858006, 'Observation'); -- prognosis/outlook finding
-insert into peak (peak_code, peak_domain_id) values (444332001, 'Observation'); -- aware of prognosis
-insert into peak (peak_code, peak_domain_id) values (444143004, 'Observation'); -- carries emergency treatment
-insert into peak (peak_code, peak_domain_id) values (281037003, 'Observation'); -- child health observations
-insert into peak (peak_code, peak_domain_id) values (284530008, 'Observation'); -- communication, speech and language finding
-insert into peak (peak_code, peak_domain_id) values (13197004, 'Observation'); -- contraception
-insert into peak (peak_code, peak_domain_id) values (105499002, 'Observation'); -- convalescence
-insert into peak (peak_code, peak_domain_id) values (251859005, 'Observation'); -- dialysis finding
-insert into peak (peak_code, peak_domain_id) values (422704000, 'Observation'); -- difficulty obtaining contraception
-insert into peak (peak_code, peak_domain_id) values (301886001, 'Observation'); -- drawing up knees
-insert into peak (peak_code, peak_domain_id) values (250869005, 'Observation'); -- equipment finding
-insert into peak (peak_code, peak_domain_id) values (298304004, 'Observation'); -- finding of balance
-insert into peak (peak_code, peak_domain_id) values (298339004, 'Observation'); -- finding of body control
-insert into peak (peak_code, peak_domain_id) values (300577008, 'Observation'); -- finding of lesion
-insert into peak (peak_code, peak_domain_id) values (298325004, 'Observation'); -- finding of movement
-insert into peak (peak_code, peak_domain_id) values (427955007, 'Observation'); -- finding related to status of agreement with prior finding
-insert into peak (peak_code, peak_domain_id) values (118222006, 'Observation'); -- general finding of observation of patient
-insert into peak (peak_code, peak_domain_id) values (249857004, 'Observation'); -- loss of midline awareness
-insert into peak (peak_code, peak_domain_id) values (397745006, 'Observation'); -- medical contraindication
-insert into peak (peak_code, peak_domain_id) values (217315002, 'Observation'); -- onset of illness
-insert into peak (peak_code, peak_domain_id) values (300232005, 'Observation'); -- oral cavity, dental and salivary finding
-insert into peak (peak_code, peak_domain_id) values (364830008, 'Observation'); -- position of body and posture - finding
-insert into peak (peak_code, peak_domain_id) values (248982007, 'Observation'); -- pregnancy, childbirth and puerperium finding
-insert into peak (peak_code, peak_domain_id) values (424092004, 'Observation'); -- questionable explanation of injury
-insert into peak (peak_code, peak_domain_id) values (162511002, 'Observation'); -- rare history finding
-insert into peak (peak_code, peak_domain_id) values (128254003, 'Observation'); -- respiratory auscultation finding
-insert into peak (peak_code, peak_domain_id) values (397773008, 'Observation'); -- surgical contraindication
-insert into peak (peak_code, peak_domain_id) values (413296003, 'Condition'); -- depression requiring intervention
-insert into peak (peak_code, peak_domain_id) values (72670004, 'Condition'); -- sign
-insert into peak (peak_code, peak_domain_id) values (124083000, 'Condition'); -- urobilinogenemia
-insert into peak (peak_code, peak_domain_id) values (65367001, 'Condition'); -- victim status
-insert into peak (peak_code, peak_domain_id) values (59524001, 'Observation'); -- blood bank procedure
-insert into peak (peak_code, peak_domain_id) values (389067005, 'Observation'); -- community health procedure
-insert into peak (peak_code, peak_domain_id) values (225288009, 'Observation'); -- environmental care procedure
-insert into peak (peak_code, peak_domain_id) values (308335008, 'Observation'); -- patient encounter procedure
-insert into peak (peak_code, peak_domain_id) values (389084004, 'Observation'); -- staff related procedure
-insert into peak (peak_code, peak_domain_id) values (110461004, 'Observation'); -- adjunctive care
-insert into peak (peak_code, peak_domain_id) values (372038002, 'Observation'); -- advocacy
-insert into peak (peak_code, peak_domain_id) values (225365006, 'Observation'); -- care regime
-insert into peak (peak_code, peak_domain_id) values (228114008, 'Observation'); -- child health procedures
-insert into peak (peak_code, peak_domain_id) values (309466006, 'Observation'); -- clinical observation regime
-insert into peak (peak_code, peak_domain_id) values (225318000, 'Observation'); -- personal and environmental management regime
-insert into peak (peak_code, peak_domain_id) values (133877004, 'Observation'); -- therapeutic regimen
-insert into peak (peak_code, peak_domain_id) values (225367003, 'Observation'); -- toileting regime
-insert into peak (peak_code, peak_domain_id) values (303163003, 'Observation'); -- treatments administered under the provisions of the law
-insert into peak (peak_code, peak_domain_id) values (429159005, 'Procedure'); -- child psychotherapy
-insert into peak (peak_code, peak_domain_id) values (386053000, 'Measurement'); -- evaluation procedure
-insert into peak (peak_code, peak_domain_id) values (127789004, 'Measurement'); -- laboratory procedure categorized by method
-insert into peak (peak_code, peak_domain_id) values (15220000, 'Measurement'); -- laboratory test
-insert into peak (peak_code, peak_domain_id) values (441742003, 'Measurement'); -- evaluation finding
-insert into peak (peak_code, peak_domain_id) values (365605003, 'Measurement'); -- body measurement finding
-insert into peak (peak_code, peak_domain_id) values (106019003, 'Condition'); -- elimination pattern
-insert into peak (peak_code, peak_domain_id) values (395557000, 'Observation'); -- tumor finding
-insert into peak (peak_code, peak_domain_id) values (422989001, 'Condition'); -- appendix with tumor involvement, with perforation not at tumor
-insert into peak (peak_code, peak_domain_id) values (384980008, 'Condition'); -- atelectasis AND/OR obstructive pneumonitis of entire lung associated with direct extension of malignant neoplasm
-insert into peak (peak_code, peak_domain_id) values (396895006, 'Condition'); -- endocrine pancreas tumor finding
-insert into peak (peak_code, peak_domain_id) values (422805009, 'Condition'); -- erosion of esophageal tumor into bronchus
-insert into peak (peak_code, peak_domain_id) values (423018005, 'Condition'); -- erosion of esophageal tumor into trachea
-insert into peak (peak_code, peak_domain_id) values (399527001, 'Condition'); -- invasive ovarian tumor omental implants present
-insert into peak (peak_code, peak_domain_id) values (399600009, 'Condition'); -- lymphoma finding
-insert into peak (peak_code, peak_domain_id) values (405928008, 'Condition'); -- renal sinus vessel involved by tumor
-insert into peak (peak_code, peak_domain_id) values (405966006, 'Condition'); -- renal tumor finding
-insert into peak (peak_code, peak_domain_id) values (385356007, 'Condition'); -- tumor stage finding
-insert into peak (peak_code, peak_domain_id) values (13104003, 'Observation'); -- clinical stage I
-insert into peak (peak_code, peak_domain_id) values (60333009, 'Observation'); -- clinical stage II
-insert into peak (peak_code, peak_domain_id) values (50283003, 'Observation'); -- clinical stage III
-insert into peak (peak_code, peak_domain_id) values (2640006, 'Observation'); -- clinical stage IV
-insert into peak (peak_code, peak_domain_id) values (385358008, 'Observation'); -- dukes stage finding
-insert into peak (peak_code, peak_domain_id) values (385362002, 'Observation'); -- FIGO stage finding for gynecological malignancy
-insert into peak (peak_code, peak_domain_id) values (405917009, 'Observation'); -- intergroup rhabdomyosarcoma study post-surgical clinical group finding
-insert into peak (peak_code, peak_domain_id) values (409721000, 'Observation'); -- international neuroblastoma staging system stage finding
-insert into peak (peak_code, peak_domain_id) values (385389007, 'Observation'); -- lymphoma stage finding
-insert into peak (peak_code, peak_domain_id) values (396532004, 'Observation'); -- stage I: Tumor confined to gland, 5 cm or less (adrenal cortical carcinoma)
-insert into peak (peak_code, peak_domain_id) values (396533009, 'Observation'); -- stage II: Tumor confined to gland, greater than 5 cm (adrenal cortical carcinoma)
-insert into peak (peak_code, peak_domain_id) values (396534003, 'Observation'); -- stage III: Extraglandular extension of tumor without other organ involvement (adrenal cortical carcinoma)
-insert into peak (peak_code, peak_domain_id) values (396535002, 'Observation'); -- stage IV: Distant metastasis or extension into other organs (adrenal cortical carcinoma)
-insert into peak (peak_code, peak_domain_id) values (399517007, 'Observation'); -- tumor stage cannot be determined
-insert into peak (peak_code, peak_domain_id) values (67101007, 'Observation'); -- TX category
-insert into peak (peak_code, peak_domain_id) values (385385001, 'Observation'); -- pT category finding
-insert into peak (peak_code, peak_domain_id) values (385382003, 'Observation'); -- node category finding
-insert into peak (peak_code, peak_domain_id) values (385380006, 'Observation'); -- metastasis category finding
-insert into peak (peak_code, peak_domain_id) values (386702006, 'Condition'); -- victim of abuse
-insert into peak (peak_code, peak_domain_id) values (95930005, 'Condition'); -- victim of neglect
-insert into peak (peak_code, peak_domain_id) values (106146005, 'Condition'); -- reflex finding
-insert into peak (peak_code, peak_domain_id) values (103020000, 'Condition'); -- adrenarche 
-insert into peak (peak_code, peak_domain_id) values (405729008, 'Condition'); -- hematochezia 
-insert into peak (peak_code, peak_domain_id) values (165816005, 'Condition'); -- HIV positive 
-insert into peak (peak_code, peak_domain_id) values (300391003, 'Condition'); -- finding of appearance of stool 
-insert into peak (peak_code, peak_domain_id) values (300393000, 'Condition'); -- finding of odor of stool 
-insert into peak (peak_code, peak_domain_id) values (239516002, 'Observation'); -- monitoring procedure 
-insert into peak (peak_code, peak_domain_id) values (243114000, 'Observation'); -- support 
-insert into peak (peak_code, peak_domain_id) values (300893006, 'Observation'); -- nutritional finding 
-insert into peak (peak_code, peak_domain_id) values (248536006, 'Observation'); -- finding of functional performance and activity 
-insert into peak (peak_code, peak_domain_id) values (116336009, 'Observation'); -- eating / feeding / drinking finding 
-insert into peak (peak_code, peak_domain_id) values (448717002, 'Measurement'); -- decline in Edinburgh postnatal depression scale score
-insert into peak (peak_code, peak_domain_id) values (449413009, 'Measurement'); -- decline in Edinburgh postnatal depression scale score at 8 months
-insert into peak (peak_code, peak_domain_id) values (37448008, 'Observation'); -- disturbance in intuition 
-insert into peak (peak_code, peak_domain_id) values (12200008, 'Observation'); -- impaired insight 
-insert into peak (peak_code, peak_domain_id) values (5988002, 'Observation'); -- lack of intuition 
-insert into peak (peak_code, peak_domain_id) values (1230003, 'Observation'); -- no diagnosis on Axis I 
-insert into peak (peak_code, peak_domain_id) values (10125004, 'Observation'); -- no diagnosis on Axis II 
-insert into peak (peak_code, peak_domain_id) values (51112002, 'Observation'); -- no diagnosis on Axis III 
-insert into peak (peak_code, peak_domain_id) values (54427008, 'Observation'); -- no diagnosis on Axis IV 
-insert into peak (peak_code, peak_domain_id) values (37768003, 'Observation'); -- no diagnosis on Axis V 
-insert into peak (peak_code, peak_domain_id) values (6811007, 'Observation'); -- prejudice 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (138875005, 'Metadata'); -- root
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (900000000000441003, 'Metadata'); -- SNOMED CT Model Component
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (105590001, 'Observation'); -- Substances
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (123038009, 'Specimen'); -- Specimen
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (48176007, 'Observation'); -- Social context
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (243796009, 'Observation'); -- Situation with explicit context
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (272379006, 'Observation'); -- Events
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (260787004, 'Observation'); -- Physical object
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (362981000, 'Observation'); -- Qualifier value
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (363787002, 'Observation'); -- Observable entity
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (410607006, 'Observation'); -- Organism
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (419891008, 'Note Type'); -- Record artifact
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (78621006, 'Observation'); -- Physical force
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (123037004, 'Spec Anatomic Site'); -- Body structure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (118956008, 'Observation'); -- Body structure, altered from its original anatomical structure, reverted from 123037004
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (254291000, 'Observation'); -- Staging / Scales
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (370115009, 'Metadata'); -- Special Concept
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (308916002, 'Observation'); -- Environment or geographical location
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (223366009, 'Provider Specialty');
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (43741000, 'Place of Service'); -- Site of care
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (420056007, 'Drug'); -- Aromatherapy agent
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (373873005, 'Drug'); -- Pharmaceutical / biologic product
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (410942007, 'Drug'); -- Drug or medicament
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (373783004, 'Observation'); -- dietary product, exception of Pharmaceutical / biologic product
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (419572002, 'Observation'); -- alcohol agent, exception of drug
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (373782009, 'Observation'); -- diagnostic substance, exception of drug
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (404684003, 'Condition'); -- Clinical Finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (218496004, 'Condition'); -- Adverse reaction to primarily systemic agents
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (313413008, 'Condition'); -- Calculus observation
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (405533003, 'Observation'); -- 'adverse incident outcome categories'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (365854008, 'Observation'); -- 'History finding'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (118233009, 'Observation'); -- 'Finding of activity of daily living'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (307824009, 'Observation');-- 'Administrative statuses'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (162408000, 'Observation'); -- Symptom description
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (105729006, 'Observation'); -- 'Health perception, health management pattern'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (162566001, 'Observation'); --'Patient not aware of diagnosis'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (71388002, 'Procedure'); --'Procedure'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (304252001, 'Observation'); -- Resuscitate
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (304253006, 'Observation'); --DNR
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (297249002, 'Observation'); --Family history of procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (14734007, 'Observation'); --Administrative procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (416940007, 'Observation'); --Past history of procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (183932001, 'Observation');-- Procedure contraindicated
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (438833006, 'Observation');-- Administration of drug or medicament contraindicated
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (410684002, 'Observation'); -- Drug therapy status
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (17636008, 'Procedure'); -- Specimen collection treatments and procedures - - bad child of 4028908 Laboratory procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (365873007, 'Gender'); -- Gender
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (372148003, 'Race'); --Ethnic group
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (415229000, 'Race'); -- Racial group
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (106237007, 'Observation'); -- Linkage concept
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (258666001, 'Unit'); -- Top unit
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (260245000, 'Meas Value'); -- Meas Value
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (125677006, 'Relationship'); -- Relationship
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (264301008, 'Observation'); -- psychoactive substance of abuse - non-pharmaceutical
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (226465004, 'Observation'); -- drinks
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (289964002, 'Device'); -- Surgical material
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (260667007, 'Device'); -- Graft
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (418920007, 'Device'); -- Adhesive agent
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (255922001, 'Device'); -- Dental material
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (413674002, 'Observation'); -- Body material
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (118417008, 'Device'); -- Filling material
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (445214009, 'Device'); -- corneal storage medium
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (369443003, 'Device'); -- bedpan
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (398146001, 'Device'); -- armband
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (272181003, 'Device'); -- clinical equipment and/or device
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (445316008, 'Device'); -- component of optical microscope
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (419818001, 'Device'); -- Contact lens storage case
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (228167008, 'Device'); -- Corset
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (42380001, 'Device'); -- Ear plug, device
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (1333003, 'Device'); -- Emesis basin, device
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (360306007, 'Device'); -- Environmental control system
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (33894003, 'Device'); -- Experimental device
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (116250002, 'Device'); -- filter
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (59432006, 'Device'); -- ligature
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (360174002, 'Device'); -- nabeya capsule
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (311767007, 'Device'); -- special bed
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (360173008, 'Device'); -- watson capsule
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (367561004, 'Device'); -- xenon arc photocoagulator
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (80631005, 'Observation'); -- 'clinical stage finding'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (69449002, 'Observation'); -- drug action
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (79899007, 'Observation'); -- drug interaction
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (365858006, 'Observation'); -- prognosis/outlook finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (444332001, 'Observation'); -- aware of prognosis
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (444143004, 'Observation'); -- carries emergency treatment
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (281037003, 'Observation'); -- child health observations
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (284530008, 'Observation'); -- communication, speech and language finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (13197004, 'Observation'); -- contraception
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (105499002, 'Observation'); -- convalescence
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (251859005, 'Observation'); -- dialysis finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (422704000, 'Observation'); -- difficulty obtaining contraception
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (301886001, 'Observation'); -- drawing up knees
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (250869005, 'Observation'); -- equipment finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (298304004, 'Observation'); -- finding of balance
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (298339004, 'Observation'); -- finding of body control
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (300577008, 'Observation'); -- finding of lesion
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (298325004, 'Observation'); -- finding of movement
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (427955007, 'Observation'); -- finding related to status of agreement with prior finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (118222006, 'Observation'); -- general finding of observation of patient
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (249857004, 'Observation'); -- loss of midline awareness
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (397745006, 'Observation'); -- medical contraindication
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (217315002, 'Observation'); -- onset of illness
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (300232005, 'Observation'); -- oral cavity, dental and salivary finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (364830008, 'Observation'); -- position of body and posture - finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (248982007, 'Observation'); -- pregnancy, childbirth and puerperium finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (424092004, 'Observation'); -- questionable explanation of injury
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (162511002, 'Observation'); -- rare history finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (128254003, 'Observation'); -- respiratory auscultation finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (397773008, 'Observation'); -- surgical contraindication
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (413296003, 'Condition'); -- depression requiring intervention
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (72670004, 'Condition'); -- sign
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (124083000, 'Condition'); -- urobilinogenemia
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (65367001, 'Condition'); -- victim status
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (59524001, 'Observation'); -- blood bank procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (389067005, 'Observation'); -- community health procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (225288009, 'Observation'); -- environmental care procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (308335008, 'Observation'); -- patient encounter procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (389084004, 'Observation'); -- staff related procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (110461004, 'Observation'); -- adjunctive care
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (372038002, 'Observation'); -- advocacy
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (225365006, 'Observation'); -- care regime
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (228114008, 'Observation'); -- child health procedures
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (309466006, 'Observation'); -- clinical observation regime
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (225318000, 'Observation'); -- personal and environmental management regime
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (133877004, 'Observation'); -- therapeutic regimen
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (225367003, 'Observation'); -- toileting regime
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (303163003, 'Observation'); -- treatments administered under the provisions of the law
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (429159005, 'Procedure'); -- child psychotherapy
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (386053000, 'Measurement'); -- evaluation procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (127789004, 'Measurement'); -- laboratory procedure categorized by method
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (15220000, 'Measurement'); -- laboratory test
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (441742003, 'Measurement'); -- evaluation finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (365605003, 'Measurement'); -- body measurement finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (106019003, 'Condition'); -- elimination pattern
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (395557000, 'Observation'); -- tumor finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (422989001, 'Condition'); -- appendix with tumor involvement, with perforation not at tumor
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (384980008, 'Condition'); -- atelectasis AND/OR obstructive pneumonitis of entire lung associated with direct extension of malignant neoplasm
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (396895006, 'Condition'); -- endocrine pancreas tumor finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (422805009, 'Condition'); -- erosion of esophageal tumor into bronchus
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (423018005, 'Condition'); -- erosion of esophageal tumor into trachea
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (399527001, 'Condition'); -- invasive ovarian tumor omental implants present
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (399600009, 'Condition'); -- lymphoma finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (405928008, 'Condition'); -- renal sinus vessel involved by tumor
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (405966006, 'Condition'); -- renal tumor finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (385356007, 'Condition'); -- tumor stage finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (13104003, 'Observation'); -- clinical stage I
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (60333009, 'Observation'); -- clinical stage II
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (50283003, 'Observation'); -- clinical stage III
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (2640006, 'Observation'); -- clinical stage IV
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (385358008, 'Observation'); -- dukes stage finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (385362002, 'Observation'); -- FIGO stage finding for gynecological malignancy
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (405917009, 'Observation'); -- intergroup rhabdomyosarcoma study post-surgical clinical group finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (409721000, 'Observation'); -- international neuroblastoma staging system stage finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (385389007, 'Observation'); -- lymphoma stage finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (396532004, 'Observation'); -- stage I: Tumor confined to gland, 5 cm or less (adrenal cortical carcinoma)
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (396533009, 'Observation'); -- stage II: Tumor confined to gland, greater than 5 cm (adrenal cortical carcinoma)
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (396534003, 'Observation'); -- stage III: Extraglandular extension of tumor without other organ involvement (adrenal cortical carcinoma)
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (396535002, 'Observation'); -- stage IV: Distant metastasis or extension into other organs (adrenal cortical carcinoma)
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (399517007, 'Observation'); -- tumor stage cannot be determined
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (67101007, 'Observation'); -- TX category
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (385385001, 'Observation'); -- pT category finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (385382003, 'Observation'); -- node category finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (385380006, 'Observation'); -- metastasis category finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (386702006, 'Condition'); -- victim of abuse
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (95930005, 'Condition'); -- victim of neglect
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (106146005, 'Condition'); -- reflex finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (103020000, 'Condition'); -- adrenarche 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (405729008, 'Condition'); -- hematochezia 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (165816005, 'Condition'); -- HIV positive 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (300391003, 'Condition'); -- finding of appearance of stool 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (300393000, 'Condition'); -- finding of odor of stool 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (239516002, 'Observation'); -- monitoring procedure 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (243114000, 'Observation'); -- support 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (300893006, 'Observation'); -- nutritional finding 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (248536006, 'Observation'); -- finding of functional performance and activity 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (116336009, 'Observation'); -- eating / feeding / drinking finding 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (448717002, 'Measurement'); -- decline in Edinburgh postnatal depression scale score
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (449413009, 'Measurement'); -- decline in Edinburgh postnatal depression scale score at 8 months
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (37448008, 'Observation'); -- disturbance in intuition 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (12200008, 'Observation'); -- impaired insight 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (5988002, 'Observation'); -- lack of intuition 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (1230003, 'Observation'); -- no diagnosis on Axis I 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (10125004, 'Observation'); -- no diagnosis on Axis II 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (51112002, 'Observation'); -- no diagnosis on Axis III 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (54427008, 'Observation'); -- no diagnosis on Axis IV 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (37768003, 'Observation'); -- no diagnosis on Axis V 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (6811007, 'Observation'); -- prejudice 
 
 COMMIT;
 
@@ -720,10 +804,12 @@ UPDATE peak
    SET ranked = 1 
    WHERE ranked is null
 ;
+
 COMMIT;
 
 -- 11.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
--- This is a catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
+-- This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
+-- The result should say "0 rows inserted"
 INSERT INTO peak -- before doing that check first out without the insert
    SELECT DISTINCT
           c.concept_code AS peak_code,
@@ -760,15 +846,14 @@ INSERT INTO peak -- before doing that check first out without the insert
           AND c.vocabulary_id='SNOMED';
 COMMIT;
 
--- 11.5. Start building domains, preassign all them with "Not assigned"
--- DROP TABLE domain_snomed;
+-- 11.5. Build domains, preassign all them with "Not assigned"
 CREATE TABLE domain_snomed
 AS
    SELECT concept_code, CAST ('Not assigned' AS VARCHAR2(20)) AS domain_id
      FROM concept_stage
     WHERE vocabulary_id = 'SNOMED';
 
--- 11.6. Pass out domain_ids
+-- Pass out domain_ids
 -- Method 1: Assign domains to children of peak concepts in the order rank, and within rank by order of precedence
 -- Do that for all peaks by order of ranks. The highest first, the lower ones second, etc.
 
@@ -829,10 +914,10 @@ UPDATE domain_snomed d
 COMMIT;
 
 -- Update top guy
-update domain_snomed set domain_id = 'Metadata' where concept_code = 138875005;
+UPDATE domain_snomed SET domain_id = 'Metadata' WHERE concept_code = 138875005;
 
 -- Method 2: For those that slipped through the cracks assign domains by using the class_concept_id
--- Check out which these are and potentially fix and re-run Method 1
+-- This is a crude method, and Method 1 should be revised to cover all concepts.
 UPDATE domain_snomed d
    SET d.domain_id =
           (SELECT CASE c.concept_class_id
@@ -871,8 +956,7 @@ UPDATE domain_snomed d
 
 COMMIT;
 
--- 11.7. Update concept_stage from newly created domains.
--- drop index idx_domain_cc;
+-- 11.6. Update concept_stage from newly created domains.
 CREATE INDEX idx_domain_cc
    ON domain_snomed (concept_code);
    
@@ -883,7 +967,7 @@ UPDATE concept_stage c
             WHERE d.concept_code = c.concept_code)
  WHERE c.vocabulary_id = 'SNOMED';
 
--- 11.8. Make manual changes according to rules
+-- 11.7. Make manual changes according to rules
 -- Create Route of Administration
 UPDATE concept_stage
    SET domain_id = 'Route'
@@ -965,7 +1049,7 @@ UPDATE concept_stage
 
 COMMIT;
 
--- 11.9. Set standard_concept based on domain_id
+-- 11.8. Set standard_concept based on domain_id
 UPDATE concept_stage
    SET standard_concept =
           CASE domain_id
@@ -991,4 +1075,19 @@ WHERE vocabulary_id = 'SNOMED'
 
 COMMIT;
 
---12------ run Vocabulary-v5.0\generic_update.sql ---------------
+-- 13. Update concept_id in concept_stage from concept for existing concepts
+UPDATE concept_stage cs
+    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
+    WHERE cs.concept_id IS NULL;
+    
+-- 15. Reinstate constraints and indices
+CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
+CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
+CREATE INDEX idx_concept_code_1 ON concept_relationship_stage (concept_code_1);
+CREATE INDEX idx_concept_code_2 ON concept_relationship_stage (concept_code_2);
+
+-- 16. Clean up
+DROP TABLE peak PURGE;
+DROP TABLE domain_snomed CASCADE CONSTRAINTS PURGE;
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

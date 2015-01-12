@@ -116,6 +116,12 @@ CREATE INDEX X_DESC_3CD_UK
 CREATE INDEX X_CID_UK
    ON SCT2_CONCEPT_FULL_UK (ID);
    
+-- Create views combining the Int and UK versions
+CREATE VIEW sct2_concept_full_merged AS SELECT * FROM sct2_concept_full_int UNION SELECT * FROM  sct2_concept_full_uk;
+CREATE VIEW sct2_desc_full_merged AS SELECT * FROM sct2_desc_full_en_int UNION SELECT * FROM sct2_desc_full_uk;
+CREATE VIEW sct2_rela_full_merged AS SELECT * FROM sct2_rela_full_int UNION SELECT * FROM sct2_rela_full_uk;
+CREATE VIEW der2_cRefset_AssRefFull_merged AS SELECT * FROM der2_cRefset_AssRefFull_INT UNION SELECT * FROM der2_cRefset_AssRefFull_UK;
+
 CREATE TABLE MRCONSO
 (
   CUI       CHAR(8 CHAR)                        NOT NULL,
@@ -170,3 +176,5 @@ ALTER TABLE MRCONSO ADD (
   PRIMARY KEY
   (AUI)
   USING INDEX X_MRCONSO_PK);
+  
+

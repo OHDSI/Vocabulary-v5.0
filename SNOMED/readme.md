@@ -34,10 +34,8 @@ Unpack MRCONSO.RRF.aa.gz and MRCONSO.RRF.ab.gz, then run:
 --cat MRCONSO.RRF.aa MRCONSO.RRF.ab > MRCONSO.RRF
 12. Load MRCONSO.RRF into MRCONSO
 
-13. Load package PKG_CONCEPT_ANCESTOR.sql
+13. Run load_stage.sql
 
-14. Run load_stage.sql
-
-15. Run generic_update.sql (from root directory)
+14. Run generic_update.sql (from root directory)
 
  

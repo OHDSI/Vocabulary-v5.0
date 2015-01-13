@@ -77,6 +77,16 @@ CREATE TABLE concept_synonym_stage
 )
 ;
 
+CREATE TABLE SNOMED_ANCESTOR
+(
+  ANCESTOR_CONCEPT_CODE     VARCHAR2(50 CHAR),
+  DESCENDANT_CONCEPT_CODE   VARCHAR2(50 CHAR),
+  MIN_LEVELS_OF_SEPARATION  NUMBER,
+  MAX_LEVELS_OF_SEPARATION  NUMBER
+) 
+NOLOGGING
+;
+
 -- Create copies of table
 create table concept as select * from v5dev.concept;
 create table concept_relationship as select * from v5dev.concept_relationship;
@@ -142,7 +152,14 @@ CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
 CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
 CREATE INDEX idx_concept_code_1 ON concept_relationship_stage (concept_code_1);
 CREATE INDEX idx_concept_code_2 ON concept_relationship_stage (concept_code_2);
+CREATE INDEX XPKSNOMED_ANCESTOR ON SNOMED_ANCESTOR(ANCESTOR_CONCEPT_CODE, DESCENDANT_CONCEPT_CODE);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_2 FOREIGN KEY (ingredient_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_1 FOREIGN KEY (amount_unit_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_2 FOREIGN KEY (numerator_unit_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_3 FOREIGN KEY (denominator_unit_concept_id) REFERENCES concept (concept_id);
+ALTER TABLE SNOMED_ANCESTOR ADD (
+CONSTRAINT XPKSNOMED_ANCESTOR
+  PRIMARY KEY
+  (ANCESTOR_CONCEPT_CODE, DESCENDANT_CONCEPT_CODE)
+  USING INDEX XPKSNOMED_ANCESTOR
+  ENABLE VALIDATE);

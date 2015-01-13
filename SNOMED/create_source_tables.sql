@@ -102,7 +102,7 @@ CREATE TABLE der2_cRefset_AssRefFull_UK
     REFSETID                   NUMBER, 
     REFERENCEDCOMPONENTID      NUMBER NOT NULL,
     TARGETCOMPONENT            NUMBER NOT NULL
-)
+);
 
 CREATE INDEX X_rel_id_uk
    ON SCT2_RELA_FULL_UK (ID);

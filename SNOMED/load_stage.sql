@@ -5,10 +5,11 @@ update vocabulary set latest_update=to_date('20140731','yyyymmdd') where vocabul
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
-DROP INDEX idx_cs_concept_code ON concept_stage (concept_code);
-DROP INDEX idx_cs_concept_id ON concept_stage (concept_id);
-DROP INDEX idx_concept_code_1;
-DROP INDEX idx_concept_code_2;
+ALTER SESSION SET SKIP_UNUSABLE_INDEXES = TRUE; --disables error reporting of indexes and index partitions marked UNUSABLE
+ALTER INDEX idx_cs_concept_code UNUSABLE;
+ALTER INDEX idx_cs_concept_id UNUSABLE;
+ALTER INDEX idx_concept_code_1 UNUSABLE;
+ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 -- 3. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
 INSERT INTO concept_stage (concept_name,
@@ -578,9 +579,171 @@ INSERT INTO concept_relationship_stage (
 
 COMMIT;
 	
--- 10. Create the ancestor's package (01-SNOMED\PKG_CONCEPT_ANCESTOR.sql) and start building the hierarchy (snomed-only)
-EXEC PKG_CONCEPT_ANCESTOR.CALC;
-COMMIT;
+-- 10. start building the hierarchy (snomed-only)
+DECLARE
+   vCnt          INTEGER;
+   vCnt_old      INTEGER;
+   vSumMax       INTEGER;
+   vSumMax_old   INTEGER;
+   vSumMin       INTEGER;
+   vIsOverLoop   BOOLEAN;
+
+   FUNCTION IsSameTableData (pTable1 IN VARCHAR2, pTable2 IN VARCHAR2)
+      RETURN BOOLEAN
+   IS
+      vRefCursor   SYS_REFCURSOR;
+      vDummy       CHAR (1);
+
+      res          BOOLEAN;
+   BEGIN
+      OPEN vRefCursor FOR
+            'select null as col1 from ( select * from '
+         || pTable1
+         || ' minus select * from '
+         || pTable2
+         || ' )';
+
+      FETCH vRefCursor INTO vDummy;
+
+      res := vRefCursor%NOTFOUND;
+
+      CLOSE vRefCursor;
+
+      RETURN res;
+   END;
+BEGIN
+   -- Clean up before
+   BEGIN
+      EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc purge';
+   EXCEPTION
+      WHEN OTHERS
+      THEN
+         NULL;
+   END;
+
+   BEGIN
+      EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc_bkp purge';
+   EXCEPTION
+      WHEN OTHERS
+      THEN
+         NULL;
+   END;
+
+   BEGIN
+      EXECUTE IMMEDIATE 'drop table new_snomed_ancestor_calc purge';
+   EXCEPTION
+      WHEN OTHERS
+      THEN
+         NULL;
+   END;
+
+   -- Seed the table by loading all first-level (parent-child) relationships
+
+   EXECUTE IMMEDIATE
+      'create table snomed_ancestor_calc as
+    select 
+      r.concept_code_1 as ancestor_concept_code,
+      r.concept_code_2 as descendant_concept_code,
+      case when s.is_hierarchical=1 then 1 else 0 end as min_levels_of_separation,
+      case when s.is_hierarchical=1 then 1 else 0 end as max_levels_of_separation
+    from concept_relationship_stage r 
+    join relationship s on s.relationship_id=r.relationship_id and s.defines_ancestry=1
+    and r.vocabulary_id_1=''SNOMED''';
+
+   /********** Repeat till no new records are written *********/
+   FOR i IN 1 .. 100
+   LOOP
+      -- create all new combinations
+
+      EXECUTE IMMEDIATE
+         'create table new_snomed_ancestor_calc as
+        select 
+            uppr.ancestor_concept_code,
+            lowr.descendant_concept_code,
+            uppr.min_levels_of_separation+lowr.min_levels_of_separation as min_levels_of_separation,
+            uppr.min_levels_of_separation+lowr.min_levels_of_separation as max_levels_of_separation    
+        from snomed_ancestor_calc uppr 
+        join snomed_ancestor_calc lowr on uppr.descendant_concept_code=lowr.ancestor_concept_code
+        union all select * from snomed_ancestor_calc';
+
+      --execute immediate 'select count(*) as cnt from new_snomed_ancestor_calc' into vCnt;
+      vCnt := SQL%ROWCOUNT;
+
+      EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc purge';
+
+      -- Shrink and pick the shortest path for min_levels_of_separation, and the longest for max
+
+      EXECUTE IMMEDIATE
+         'create table snomed_ancestor_calc as
+        select 
+            ancestor_concept_code,
+            descendant_concept_code,
+            min(min_levels_of_separation) as min_levels_of_separation,
+            max(max_levels_of_separation) as max_levels_of_separation
+        from new_snomed_ancestor_calc
+        group by ancestor_concept_code, descendant_concept_code ';
+
+      EXECUTE IMMEDIATE
+         'select count(*), sum(max_levels_of_separation), sum(min_levels_of_separation) from snomed_ancestor_calc'
+         INTO vCnt, vSumMax, vSumMin;
+
+      EXECUTE IMMEDIATE 'drop table new_snomed_ancestor_calc purge';
+
+      IF vIsOverLoop
+      THEN
+         IF vCnt = vCnt_old AND vSumMax = vSumMax_old
+         THEN
+            IF IsSameTableData (pTable1   => 'snomed_ancestor_calc',
+                                pTable2   => 'snomed_ancestor_calc_bkp')
+            THEN
+               EXIT;
+            ELSE
+               RETURN;
+            END IF;
+         ELSE
+            RETURN;
+         END IF;
+      ELSIF vCnt = vCnt_old
+      THEN
+         EXECUTE IMMEDIATE
+            'create table snomed_ancestor_calc_bkp as select * from snomed_ancestor_calc ';
+
+         vIsOverLoop := TRUE;
+      END IF;
+
+      vCnt_old := vCnt;
+      vSumMax_old := vSumMax;
+   END LOOP;     /********** Repeat till no new records are written *********/
+
+   EXECUTE IMMEDIATE 'truncate table snomed_ancestor';
+
+   -- drop snomed_ancestor indexes before mass insert.
+   EXECUTE IMMEDIATE
+      'alter table snomed_ancestor disable constraint XPKSNOMED_ANCESTOR';
+
+   EXECUTE IMMEDIATE 'ALTER INDEX XPKSNOMED_ANCESTOR UNUSABLE';
+
+
+   EXECUTE IMMEDIATE
+      'insert /*+ APPEND */ into snomed_ancestor
+    select a.* from snomed_ancestor_calc a
+    join concept_stage c1 on a.ancestor_concept_code=c1.concept_code and c1.vocabulary_id=''SNOMED''
+    join concept_stage c2 on a.descendant_concept_code=c2.concept_code and c2.vocabulary_id=''SNOMED''
+    ';
+
+   COMMIT;
+
+   -- Create snomed_ancestor indexes after mass insert.
+   EXECUTE IMMEDIATE 'ALTER INDEX XPKSNOMED_ANCESTOR REBUILD NOLOGGING';
+   
+   EXECUTE IMMEDIATE
+      'alter table snomed_ancestor enable constraint XPKSNOMED_ANCESTOR';
+
+   -- Clean up
+   EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc purge';
+
+   EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc_bkp purge';
+END;
 
 --11. Create domain_id
 -- 11.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
@@ -1081,13 +1244,13 @@ UPDATE concept_stage cs
     WHERE cs.concept_id IS NULL;
     
 -- 15. Reinstate constraints and indices
-CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
-CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
-CREATE INDEX idx_concept_code_1 ON concept_relationship_stage (concept_code_1);
-CREATE INDEX idx_concept_code_2 ON concept_relationship_stage (concept_code_2);
+ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
+ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 
 -- 16. Clean up
 DROP TABLE peak PURGE;
-DROP TABLE domain_snomed CASCADE CONSTRAINTS PURGE;
+DROP TABLE domain_snomed PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

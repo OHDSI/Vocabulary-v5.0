@@ -1,9 +1,10 @@
-OPTIONS (errors=0, SKIP=1, SILENT=(FEEDBACK))
+OPTIONS (errors=0, SKIP=1, direct=true)
 LOAD DATA 
 CHARACTERSET UTF8  
 INFILE 'loinc.csv'  
 BADFILE 'loinc.bad'
 DISCARDFILE 'loinc.dsc'                                                           
+TRUNCATE
 INTO TABLE LOINC                                                                
 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'                                                       
 TRAILING NULLCOLS                                                               

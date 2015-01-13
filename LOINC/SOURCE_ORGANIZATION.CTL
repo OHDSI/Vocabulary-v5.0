@@ -1,9 +1,10 @@
-OPTIONS (errors=0, SKIP=1, SILENT=(FEEDBACK))
+OPTIONS (errors=0, SKIP=1, direct=true)
 LOAD DATA 
 CHARACTERSET UTF8                                                                      
 INFILE 'source_organization.csv'  
 BADFILE 'source_organization.bad'
 DISCARDFILE 'source_organization.dsc'                                                           
+TRUNCATE
 INTO TABLE SOURCE_ORGANIZATION                                                                
 FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'                                                       
 TRAILING NULLCOLS                                                               

@@ -1,17 +1,16 @@
-/*
-1. Logon to https://loinc.org/downloads/loinc
-Download full set (http://loinc.org/downloads/files/loinc-table-csv-text-format/loinc-table-file-csv-text-format/download). 
-Also, download multiaxial hierarchy (http://loinc.org/downloads/files/loinc-multiaxial-hierarchy/loinc-multiaxial-hierarchy-file/download). 
-In the box "Intended use" fill in "Incorporation into OMOP Standardized Vocabulary" 
 
-Load LOINC Answers - Load LOINC_XXX_SELECTED_FORMS.zip from http://loinc.org/downloads/files/loinc-panels-and-forms-file/loinc-panels-and-forms-file-all-selected-panels-and-forms/download
-Open LOINC_XXX_SELECTED_FORMS.xlsx and load worksheet "ANSWERS" to table LOINC_ANSWERS
+--1. Update latest_update field to new date 
+update vocabulary set latest_update=to_date('20141222','yyyymmdd') where vocabulary_id='LOINC'; commit;
 
-2. DDL & ctl -> Vocabulary-v5.0\LOINC\
-
--- Update latest_update field to new date 
-update vocabulary set latest_update=to_date('YYYYMMDD','yyyymmdd') where vocabulary_id='LOINC'; commit;
-*/
+-- 2. Truncate all working tables and remove indices
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+ALTER SESSION SET SKIP_UNUSABLE_INDEXES = TRUE; --disables error reporting of indexes and index partitions marked UNUSABLE
+ALTER INDEX idx_cs_concept_code UNUSABLE;
+ALTER INDEX idx_cs_concept_id UNUSABLE;
+ALTER INDEX idx_concept_code_1 UNUSABLE;
+ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --3. Create concept_stage from LOINC
 INSERT INTO concept_stage (concept_id,
@@ -202,10 +201,12 @@ COMMIT;
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
+                                   synonym_vocabulary_id,
                                    language_concept_id)
    (SELECT NULL AS synonym_concept_id,
            LOINC_NUM AS synonym_concept_code,
            SUBSTR (TO_CHAR (RELATEDNAMES2), 1, 1000) AS synonym_name,
+           'LOINC' as synonym_vocabulary_id,
            4093769 AS language_concept_id                           -- English
       FROM loinc
      WHERE TO_CHAR (RELATEDNAMES2) IS NOT NULL
@@ -213,6 +214,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
     SELECT NULL AS synonym_concept_id,
            LOINC_NUM AS synonym_concept_code,
            SUBSTR (LONG_COMMON_NAME, 1, 1000) AS synonym_name,
+           'LOINC' as synonym_vocabulary_id,
            4093769 AS language_concept_id                           -- English
       FROM loinc
      WHERE LONG_COMMON_NAME IS NOT NULL
@@ -220,6 +222,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
     SELECT NULL AS synonym_concept_id,
            LOINC_NUM AS synonym_concept_code,
            SHORTNAME AS synonym_name,
+           'LOINC' as synonym_vocabulary_id,
            4093769 AS language_concept_id                           -- English
       FROM loinc
      WHERE SHORTNAME IS NOT NULL);
@@ -282,4 +285,10 @@ INSERT INTO concept_relationship_stage (concept_id_1,
     WHERE AnswerStringID IS NOT NULL;
 COMMIT;	
 
---12------ run Vocabulary-v5.0\generic_update.sql ---------------			
+--12 Reinstate constraints and indices
+ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
+ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;	
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

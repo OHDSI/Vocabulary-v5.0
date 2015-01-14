@@ -14,11 +14,13 @@ ALTER INDEX idx_cs_concept_code UNUSABLE;
 ALTER INDEX idx_cs_concept_id UNUSABLE;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
-
+ALTER TABLE concept_stage NOLOGGING;
+ALTER TABLE concept_relationship_stage NOLOGGING;
+ALTER TABLE concept_synonym_stage NOLOGGING;
 
 
 -- 3. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
-INSERT INTO concept_stage (concept_name,
+INSERT  /*+ APPEND */  INTO concept_stage (concept_name,
                            vocabulary_id,
                            concept_code,
                            valid_start_date,
@@ -264,7 +266,7 @@ DROP TABLE tmp_concept_class PURGE;
 UPDATE concept_stage set concept_class_id='Model Comp' WHERE concept_code=138875005 and vocabulary_id='SNOMED';
 			
 -- 6. Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
-INSERT INTO concept_synonym_stage (synonym_concept_id,
+INSERT  /*+ APPEND */  INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_vocabulary_id,
                                    synonym_name,
@@ -281,7 +283,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
 COMMIT;
 
 -- 7. Fill concept_relationship_stage from SNOMED	
-INSERT INTO concept_relationship_stage (concept_code_1,
+INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
 								                    		vocabulary_id_1,
                                         vocabulary_id_2,
@@ -400,7 +402,7 @@ WITH tmp_rel AS (   -- get relationships from latest records that are active
 COMMIT;
 
 -- 8. add replacement relationships. They are handled in a different SNOMED table
-INSERT INTO concept_relationship_stage (concept_code_1,
+INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                     		vocabulary_id_2,
@@ -442,7 +444,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
 COMMIT;
 
 -- 9. Create mapping to self for fresh concepts
-INSERT INTO concept_relationship_stage (
+INSERT /*+ APPEND */ INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
   vocabulary_id_1,
@@ -463,9 +465,10 @@ SELECT
   NULL
 FROM concept_stage
 ;
+COMMIT;
 
 -- 10. Add mapping from deprecated to fresh concepts
-INSERT INTO concept_relationship_stage (
+INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
   vocabulary_id_1,
@@ -532,7 +535,7 @@ FROM (
 COMMIT;
 
 -- 11. Make sure all records are symmetrical and turn if necessary
-INSERT INTO concept_relationship_stage (
+INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
   vocabulary_id_1,
@@ -1233,6 +1236,9 @@ ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
+ALTER TABLE concept_stage LOGGING;
+ALTER TABLE concept_relationship_stage LOGGING;
+ALTER TABLE concept_synonym_stage LOGGING;
 
 -- 16. Clean up
 DROP TABLE peak PURGE;

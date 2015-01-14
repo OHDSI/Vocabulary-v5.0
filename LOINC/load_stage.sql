@@ -1,5 +1,6 @@
 
 --1. Update latest_update field to new date 
+ALTER TABLE vocabulary ADD latest_update DATE;
 update vocabulary set latest_update=to_date('20141222','yyyymmdd') where vocabulary_id='LOINC'; commit;
 
 -- 2. Truncate all working tables and remove indices
@@ -24,7 +25,7 @@ INSERT INTO concept_stage (concept_id,
                            valid_end_date,
                            invalid_reason)
    SELECT NULL AS concept_id,
-          CONSUMER_NAME AS concept_name,
+          SUBSTR (COALESCE(CONSUMER_NAME,long_common_name), 1, 256) AS concept_name,
           CASE CLASSTYPE
              WHEN '1' THEN 'Measurement'
              WHEN '2' THEN 'Measurement'

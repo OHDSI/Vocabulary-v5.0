@@ -1,5 +1,9 @@
 -- 1. Update latest_update field to new date 
-update vocabulary set latest_update=to_date('20140731','yyyymmdd') where vocabulary_id='SNOMED'; commit;
+-- Use the later of the release dates of the international and UK versions. Usually, the UK is later.
+-- If the international version is already loaded, updating will not affect it
+ALTER TABLE vocabulary ADD latest_update DATE;
+UPDATE vocabulary SET latest_update=to_date('20141001','yyyymmdd') WHERE vocabulary_id='SNOMED'; 
+COMMIT;
 
 -- 2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;
@@ -10,6 +14,8 @@ ALTER INDEX idx_cs_concept_code UNUSABLE;
 ALTER INDEX idx_cs_concept_id UNUSABLE;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
+
+
 
 -- 3. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
 INSERT INTO concept_stage (concept_name,
@@ -272,7 +278,6 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
      FROM mrconso m
     WHERE m.sab = 'SNOMEDCT_US' AND m.tty in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
 ;
-
 COMMIT;
 
 -- 7. Fill concept_relationship_stage from SNOMED	
@@ -392,7 +397,6 @@ WITH tmp_rel AS (   -- get relationships from latest records that are active
         NULL
    FROM (SELECT * FROM tmp_rel)
 ;
-
 COMMIT;
 
 -- 8. add replacement relationships. They are handled in a different SNOMED table
@@ -416,7 +420,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
      FROM (SELECT referencedcomponentid AS concept_code_1,
                   targetcomponent AS concept_code_2,
                   CASE refsetid
-                     WHEN 900000000000526001 THEN 'SNOMED replaced by'
+                     WHEN 900000000000526001 THEN 'Concept replaced by'
                      WHEN 900000000000523009 THEN 'Concept poss_eq to'
                      WHEN 900000000000528000 THEN 'Concept was_a to'
                      WHEN 900000000000527005 THEN 'Concept same_as to'
@@ -435,7 +439,6 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                                900000000000527005,
                                900000000000530003))
     WHERE rn = 1 AND active = 1;
-
 COMMIT;
 
 -- 9. Create mapping to self for fresh concepts
@@ -497,43 +500,28 @@ FROM (
                       CONNECT_BY_ISLEAF AS lf
                 FROM concept_relationship_stage
                 WHERE 1 = 1
-                      AND relationship_id IN ( 'UCUM replaced by',
-                                               'Concept replaced by',
+                      AND relationship_id IN ( 'Concept replaced by',
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'LOINC replaced by',
-                                               'RxNorm replaced by',
-                                               'SNOMED replaced by',
-                                               'ICD9P replaced by'
+                                               'Concept was_a to'
                                              )
                       and NVL(invalid_reason, 'X') <> 'D'
                 CONNECT BY  
                 NOCYCLE  
                 PRIOR concept_code_2 = concept_code_1
-                      AND relationship_id IN ( 'UCUM replaced by',
-                                               'Concept replaced by',
+                      AND relationship_id IN ( 'Concept replaced by',
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'LOINC replaced by',
-                                               'RxNorm replaced by',
-                                               'SNOMED replaced by',
-                                               'ICD9P replaced by'
+                                               'Concept was_a to'
                                              )
                         AND NVL(invalid_reason, 'X') <> 'D'
-                START WITH relationship_id IN ('UCUM replaced by',
-                                               'Concept replaced by',
+                START WITH relationship_id IN ('Concept replaced by',
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'LOINC replaced by',
-                                               'RxNorm replaced by',
-                                               'SNOMED replaced by',
-                                               'ICD9P replaced by'
+                                               'Concept was_a to'
                                               )
                       AND NVL(invalid_reason, 'X') <> 'D'
           ) sou 
@@ -541,7 +529,6 @@ FROM (
       ) 
       WHERE rn = 1
 );
-
 COMMIT;
 
 -- 11. Make sure all records are symmetrical and turn if necessary
@@ -576,9 +563,8 @@ INSERT INTO concept_relationship_stage (
                AND r.reverse_relationship_id = i.relationship_id
     )
 ;
-
 COMMIT;
-	
+
 -- 10. start building the hierarchy (snomed-only)
 DECLARE
    vCnt          INTEGER;
@@ -614,7 +600,7 @@ DECLARE
 BEGIN
    -- Clean up before
    BEGIN
-      EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc purge';
+      EXECUTE IMMEDIATE 'DROP TABLE snomed_ancestor_calc PURGE';
    EXCEPTION
       WHEN OTHERS
       THEN
@@ -666,7 +652,6 @@ BEGIN
         join snomed_ancestor_calc lowr on uppr.descendant_concept_code=lowr.ancestor_concept_code
         union all select * from snomed_ancestor_calc';
 
-      --execute immediate 'select count(*) as cnt from new_snomed_ancestor_calc' into vCnt;
       vCnt := SQL%ROWCOUNT;
 
       EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc purge';
@@ -725,7 +710,7 @@ BEGIN
 
 
    EXECUTE IMMEDIATE
-      'insert /*+ APPEND */ into snomed_ancestor
+    'insert /*+ APPEND */ into snomed_ancestor
     select a.* from snomed_ancestor_calc a
     join concept_stage c1 on a.ancestor_concept_code=c1.concept_code and c1.vocabulary_id=''SNOMED''
     join concept_stage c2 on a.descendant_concept_code=c2.concept_code and c2.vocabulary_id=''SNOMED''

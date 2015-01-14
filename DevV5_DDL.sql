@@ -88,12 +88,13 @@ NOLOGGING
 ;
 
 -- Create copies of table
-create table concept as select * from v5dev.concept;
-create table concept_relationship as select * from v5dev.concept_relationship;
-create table relationship as select * from v5dev.relationship;
-create table vocabulary as select * from v5dev.vocabulary;
-create table concept_class as select * from v5dev.concept_class;
-create table domain as select * from v5dev.domain;
+
+CREATE TABLE concept AS SELECT * FROM v5dev.concept;
+CREATE TABLE concept_relationship AS SELECT * FROM v5dev.concept_relationship;
+CREATE TABLE relationship AS SELECT * FROM v5dev.relationship;
+CREATE TABLE vocabulary AS SELECT * FROM v5dev.vocabulary;
+CREATE TABLE concept_class AS SELECT * FROM v5dev.concept_class;
+CREATE TABLE domain AS SELECT * FROM v5dev.domain;
 
 
 -- Create FKs

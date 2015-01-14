@@ -1,6 +1,6 @@
 -- Remove FKs
 
-ALTER TABLE concept ADD CONSTRAINT xpk_concept;
+ALTER TABLE concept DROP CONSTRAINT xpk_concept;
 ALTER TABLE vocabulary DROP CONSTRAINT xpk_vocabulary;
 ALTER TABLE domain DROP CONSTRAINT xpk_domain;
 ALTER TABLE concept_class DROP CONSTRAINT xpk_concept_class;

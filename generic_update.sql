@@ -1,48 +1,59 @@
 -- 1. Update existing concept details from concept_stage. This is different for different vocabularies.
--- It assumes that if no new detail is available the corresponding fields are null.
+-- It assumes that if no new detail is available the corresponding fields are NULL.
 -- Only the firelds concept_name, domain_id, concept_class_id, standard_concept and valid_end_date are updated.
 -- valid_start_date is set to the release date of the last update and should not overwrite the existing one
 -- if the valid_start_date needs be updated, a separate script should be run
 UPDATE concept c
 SET (concept_name, domain_id,concept_class_id,standard_concept,valid_end_date) = (
   SELECT 
-    coalesce(cs.concept_name, c.concept_name),
-    coalesce(cs.domain_id, c.domain_id),
-    coalesce(cs.concept_class_id, c.concept_class_id),
-    coalesce(cs.standard_concept, c.standard_concept), 
-    coalesce(cs.valid_end_date, c.valid_end_date)
+    COALESCE(cs.concept_name, c.concept_name),
+    COALESCE(cs.domain_id, c.domain_id),
+    COALESCE(cs.concept_class_id, c.concept_class_id),
+    COALESCE(cs.standard_concept, c.standard_concept), 
+    COALESCE(cs.valid_end_date, c.valid_end_date)
   FROM concept_stage cs
   WHERE c.concept_id=cs.concept_id
 )
-where c.concept_id in (select concept_id from concept_stage)
+WHERE c.concept_id IN (SELECT concept_id FROM concept_stage)
 -- The following contains the vocabularies or vocab subsets for which this functionality is desired
-and case
-  when c.vocabulary_id = 'SNOMED' then 1
-  when c.vocabulary_id = 'LOINC' and c.concept_class_id='LOINC Answers' then 1 -- LOINC answers are not full, but incremental
-  when c.vocabulary_id = 'LOINC' then 0
-  else 0
-end = 1
+AND CASE
+  WHEN c.vocabulary_id = 'SNOMED' THEN 1
+  WHEN c.vocabulary_id = 'LOINC' AND c.concept_class_id='LOINC Answers' THEN 1 -- LOINC answers are not full, but incremental
+  WHEN c.vocabulary_id = 'LOINC' THEN 0
+  ELSE 0
+END = 1
 ;
 
 COMMIT;
 
 -- 2. Deprecate concepts missing from concept_stage. This is only for full updates without explicit deprecations.
-update concept c set
-c.valid_end_date = (select latest_update-1 from vocabulary where vocabulary_id=c.vocabulary_id)
-where not exists (select 1 from concept_stage cs where cs.concept_id=c.concept_id and cs.vocabulary_id=c.vocabulary_id)
-and c.vocabulary_id in (select vocabulary_id from vocabulary where latest_update is not null)
-and case
-  when c.vocabulary_id = 'SNOMED' then 1
-  when c.vocabulary_id = 'LOINC' and c.concept_class_id='LOINC Answers' then 1 -- LOINC answers are not full, but incremental
-  when c.vocabulary_id = 'LOINC' then 0
-  else 0
-end = 1
+UPDATE concept c SET
+c.valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id=c.vocabulary_id)
+WHERE NOT exists (SELECT 1 FROM concept_stage cs WHERE cs.concept_id=c.concept_id AND cs.vocabulary_id=c.vocabulary_id)
+AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL)
+AND CASE
+  WHEN c.vocabulary_id = 'SNOMED' THEN 1
+  WHEN c.vocabulary_id = 'LOINC' AND c.concept_class_id='LOINC Answers' THEN 1 -- LOINC answers are NOT full, but incremental
+  WHEN c.vocabulary_id = 'LOINC' THEN 0
+  ELSE 0
+END = 1
 ;
 
 COMMIT;
 
 -- 3. add new concepts from concept_stage
 DROP INDEX idx_concept_code;
+
+DECLARE
+ ex NUMBER;
+BEGIN
+  SELECT MAX(concept_id)+1 INTO ex FROM concept WHERE concept_id<500000000;
+  BEGIN
+    EXECUTE IMMEDIATE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' NOCYCLE CACHE 20 NOORDER';
+    EXCEPTION
+      WHEN OTHERS THEN NULL;
+  END;
+END;
 
 INSERT INTO concept (concept_id,
                      concept_name,
@@ -69,24 +80,25 @@ INSERT INTO concept (concept_id,
 
 CREATE INDEX idx_concept_code ON concept (concept_code ASC);
 
+DROP SEQUENCE v5_concept;
+
 COMMIT;
 
 -- 4. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
-
 UPDATE concept_relationship d
    SET (d.valid_end_date, d.invalid_reason) =
-          (SELECT distinct crs.valid_end_date, crs.invalid_reason
+          (SELECT DISTINCT crs.valid_end_date, crs.invalid_reason
              FROM concept_relationship_stage crs
-             JOIN concept c1 on c1.concept_code = crs.concept_code_1 and c1.vocabulary_id = crs.vocabulary_id_1
-             JOIN concept c2 on c2.concept_code = crs.concept_code_2 and c2.vocabulary_id = crs.vocabulary_id_2
+             JOIN concept c1 on c1.concept_code = crs.concept_code_1 AND c1.vocabulary_id = crs.vocabulary_id_1
+             JOIN concept c2 on c2.concept_code = crs.concept_code_2 AND c2.vocabulary_id = crs.vocabulary_id_2
             WHERE     c1.concept_id = d.concept_id_1
                   AND c2.concept_id = d.concept_id_2
                   AND crs.relationship_id = d.relationship_id)
  WHERE EXISTS
           (SELECT 1
              FROM concept_relationship_stage r
-             JOIN concept r1 on r1.concept_code = r.concept_code_1 and r1.vocabulary_id = r.vocabulary_id_1
-             JOIN concept r2 on r2.concept_code = r.concept_code_2 and r2.vocabulary_id = r.vocabulary_id_2
+             JOIN concept r1 on r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
+             JOIN concept r2 on r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
             -- test whether either the concept_ids match
             WHERE     d.concept_id_1 = r1.concept_id
                   AND d.concept_id_2 = r2.concept_id
@@ -96,26 +108,26 @@ UPDATE concept_relationship d
 COMMIT; 
 
 -- 5. Deprecate missing relationships, but only if the concepts exist. If relationships are missing because of deprecated concepts, leave them intact.
--- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 and relationship_id is present in concept_relationship_stage
+-- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 AND relationship_id IS present in concept_relationship_stage
 CREATE TABLE r_coverage AS
 SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id as combo
        FROM concept_relationship_stage r
-       JOIN concept r1 on r1.concept_code = r.concept_code_1 and r1.vocabulary_id = r.vocabulary_id_1
-       JOIN concept r2 on r2.concept_code = r.concept_code_2 and r2.vocabulary_id = r.vocabulary_id_2
+       JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
+       JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
        WHERE r.relationship_id NOT IN ('Maps to',
-                                       'Mapped from',
+                                       'Mapped FROM',
                                        'UCUM replaced by',
                                        'UCUM replaces',
                                        'Concept replaced by',
                                        'Concept replaces',
                                        'Concept same_as to',
-                                       'Concept same_as from',
+                                       'Concept same_as FROM',
                                        'Concept alt_to to',
-                                       'Concept alt_to from',
+                                       'Concept alt_to FROM',
                                        'Concept poss_eq to',
-                                       'Concept poss_eq from',
+                                       'Concept poss_eq FROM',
                                        'Concept was_a to',
-                                       'Concept was_a from',
+                                       'Concept was_a FROM',
                                        'LOINC replaced by',
                                        'LOINC replaces',
                                        'RxNorm replaced by',
@@ -129,199 +141,146 @@ SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id 
 
 UPDATE concept_relationship d
    SET valid_end_date =
-            (SELECT latest_update
-               FROM vocabulary v, concept_stage c
-              WHERE     v.vocabulary_id = c.vocabulary_id
-                    AND c.concept_id = d.concept_id_1)
+            (SELECT v.latest_update
+                 FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+              WHERE c.concept_id = d.concept_id_1)
           - 1,                                       -- day before release day
        invalid_reason = 'D'
- WHERE     NOT EXISTS
-              (SELECT 1
-                 FROM concept_relationship_stage r
-                 JOIN concept r1 on r1.concept_code = r.concept_code_1 and r1.vocabulary_id = r.vocabulary_id_1
-                 JOIN concept r2 on r2.concept_code = r.concept_code_2 and r2.vocabulary_id = r.vocabulary_id_2
-                -- test whether either the concept_ids match, or the concept_ids matched to the concept_codes in either stage or dev
-                WHERE     d.concept_id_1 = r1.concept_id
-                      AND d.concept_id_2 = r2.concept_id
-                      AND d.relationship_id = r.relationship_id)
-       AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecate those that are fresh and active
-       AND d.valid_start_date <
-                (SELECT latest_update
-                   FROM vocabulary v, concept_stage c
-                  WHERE     v.vocabulary_id = c.vocabulary_id
-                        AND c.concept_id = d.concept_id_1)
-              - 1                               -- started before release date
-       -- exclude replacing relationships, usually they are not maintained after a concept died
-       AND d.relationship_id NOT IN ('UCUM replaced by',
-                                     'UCUM replaces',
-                                     'Concept replaced by',
-                                     'Concept replaces',
-                                     'Concept same_as to',
-                                     'Concept same_as from',
-                                     'Concept alt_to to',
-                                     'Concept alt_to from',
-                                     'Concept poss_eq to',
-                                     'Concept poss_eq from',
-                                     'Concept was_a to',
-                                     'Concept was_a from',
-                                     'LOINC replaced by',
-                                     'LOINC replaces',
-                                     'RxNorm replaced by',
-                                     'RxNorm replaces',
-                                     'SNOMED replaced by',
-                                     'SNOMED replaces',
-                                     'ICD9P replaced by',
-                                     'ICD9P replaces') 
-       -- check for existence of both concept_id_1 and concept_id_2
-       AND d.concept_id_1 in (
-                SELECT concept_id FROM concept_stage c
-       )
-       AND d.concept_id_2 in (
-                SELECT concept_id FROM concept_stage c
-       )
-       -- check the combination of vocab1, vocab2 and relationship_id
-       AND EXISTS (
-              SELECT 1
-                  FROM concept e1, concept e2
-                WHERE  e1.concept_id = d.concept_id_1 and e2.concept_id = d.concept_id_2
-                  AND d.relationship_id||'-'||e1.vocabulary_id||'-'||e2.vocabulary_id in (SELECT combo FROM r_coverage)
-              )
-;
-
-select * from concept_relationship d
- WHERE     NOT EXISTS
-              (SELECT 1
-                 FROM concept_relationship_stage r
-                 JOIN concept r1 on r1.concept_code = r.concept_code_1 and r1.vocabulary_id = r.vocabulary_id_1
-                 JOIN concept r2 on r2.concept_code = r.concept_code_2 and r2.vocabulary_id = r.vocabulary_id_2
-                -- test whether either the concept_ids match, or the concept_ids matched to the concept_codes in either stage or dev
-                WHERE     d.concept_id_1 = r1.concept_id
-                      AND d.concept_id_2 = r2.concept_id
-                      AND d.relationship_id = r.relationship_id)
-       AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecate those that are fresh and active
-       AND d.valid_start_date <
-       -- started before release date
-                (SELECT latest_update -1
-                   FROM vocabulary v, concept_stage c
-                  WHERE     v.vocabulary_id = c.vocabulary_id
-                        AND c.concept_id = d.concept_id_1)
-       -- exclude replacing relationships, usually they are not maintained after a concept died
-       AND d.relationship_id NOT IN ('UCUM replaced by',
-                                     'UCUM replaces',
-                                     'Concept replaced by',
-                                     'Concept replaces',
-                                     'Concept same_as to',
-                                     'Concept same_as from',
-                                     'Concept alt_to to',
-                                     'Concept alt_to from',
-                                     'Concept poss_eq to',
-                                     'Concept poss_eq from',
-                                     'Concept was_a to',
-                                     'Concept was_a from',
-                                     'LOINC replaced by',
-                                     'LOINC replaces',
-                                     'RxNorm replaced by',
-                                     'RxNorm replaces',
-                                     'SNOMED replaced by',
-                                     'SNOMED replaces',
-                                     'ICD9P replaced by',
-                                     'ICD9P replaces') 
-       -- check for existence of both concept_id_1 and concept_id_2
-/*
-       AND d.concept_id_1 in (
-                SELECT concept_id FROM concept_stage c
-       )
-       AND d.concept_id_2 in (
-                SELECT concept_id FROM concept_stage c
-       )
-*/ 
-       -- check the combination of vocab1, vocab2 and relationship_id
-       AND EXISTS (
-              SELECT 1
-                  FROM concept e1, concept e2
-                WHERE  e1.concept_id = d.concept_id_1 and e2.concept_id = d.concept_id_2
-                  AND e1.vocabulary_id||'-'||e2.vocabulary_id||'-'||d.relationship_id in (SELECT combo FROM r_coverage)
-              )
-;
-
-select * from concept_relationship d
-      -- whether the combination of vocab1, vocab2 and relationship exists (in r_coverage) and the individual concepts exist
+      -- Whether the combination of vocab1, vocab2 and relationship exists (in r_coverage) and the individual concepts exist
       -- (intended to be covered by this particular vocab udpate)
+      -- And both concepts exist (don't deprecate relationships of deprecated concepts)
       WHERE EXISTS (
               SELECT 1
                   FROM concept e1, concept e2
-                WHERE  e1.concept_id = d.concept_id_1 and e2.concept_id = d.concept_id_2
-                  AND e1.vocabulary_id||'-'||e2.vocabulary_id||'-'||d.relationship_id in (SELECT combo FROM r_coverage)
+                WHERE  e1.concept_id = d.concept_id_1 AND e2.concept_id = d.concept_id_2
+                  AND e1.vocabulary_id||'-'||e2.vocabulary_id||'-'||d.relationship_id IN (SELECT combo FROM r_coverage)
                   AND e1.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
                   AND e2.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
               )
-      -- and the record is currently fresh
+      -- And the record is currently fresh
       AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
-       -- and it was started before release date
+       -- And it was started before release date
       AND d.valid_start_date <
                 (SELECT latest_update -1 FROM vocabulary v, concept_stage c
                   WHERE     v.vocabulary_id = c.vocabulary_id
                         AND c.concept_id = d.concept_id_1)
-       -- and doesn't exist in the new concept_relationship
+       -- AND doesn't exist in the new concept_relationship_stage
       AND NOT EXISTS (
               SELECT 1
                  FROM concept_relationship_stage r
-                 JOIN concept r1 on r1.concept_code = r.concept_code_1 and r1.vocabulary_id = r.vocabulary_id_1
-                 JOIN concept r2 on r2.concept_code = r.concept_code_2 and r2.vocabulary_id = r.vocabulary_id_2
+                 JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
+                 JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
                 WHERE     d.concept_id_1 = r1.concept_id
                       AND d.concept_id_2 = r2.concept_id
                       AND d.relationship_id = r.relationship_id
         )
-;
-434742	4031262
-4176793	4050373
-
-select * from concept where concept_id in (434742, 4031262, 4176793, 4050373);
-select * from concept_relationship_stage where concept_code_1 in (268239009, 363024001)--  and concept_code_2 in (109414004, 20919000)
+       -- Deal with replacing relationships separately, since they can only have one per deprecated concept
+       AND d.relationship_id NOT IN ('Maps to',
+                                     'Mapped FROM',
+                                     'UCUM replaced by',
+                                     'UCUM replaces',
+                                     'Concept replaced by',
+                                     'Concept replaces',
+                                     'Concept same_as to',
+                                     'Concept same_as FROM',
+                                     'Concept alt_to to',
+                                     'Concept alt_to FROM',
+                                     'Concept poss_eq to',
+                                     'Concept poss_eq FROM',
+                                     'Concept was_a to',
+                                     'Concept was_a FROM',
+                                     'LOINC replaced by',
+                                     'LOINC replaces',
+                                     'RxNorm replaced by',
+                                     'RxNorm replaces',
+                                     'SNOMED replaced by',
+                                     'SNOMED replaces',
+                                     'ICD9P replaced by',
+                                     'ICD9P replaces') 
 ;
 
 DROP TABLE r_coverage PURGE;
 
---select r.relationship_id, r1.concept_name, r1.domain_id, r2.concept_name, r2.domain_id from concept_relationship r 
-select distinct r.relationship_id from concept_relationship r
-                 JOIN concept r1 on r1.concept_id = r.concept_id_1
-                 JOIN concept r2 on r2.concept_id = r.concept_id_2
-where r.valid_end_date='31-jul-2014';
-select * from concept where concept_id in (4116359, 4178026);
+COMMIT;
 
-COMMIT;				
---12 insert new relationships
+-- 7. Deprecate Maps to and Replaced by relationships if new ones are in concept_relationship_stage
+UPDATE concept_relationship d
+   SET valid_end_date =
+            (SELECT v.latest_update
+                 FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+                  WHERE c.concept_id = d.concept_id_1)
+          - 1,                                       -- day before release day
+       invalid_reason = 'D'
+WHERE EXISTS (
+      SELECT 1
+         FROM concept_relationship_stage r
+         JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
+         JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
+        WHERE     d.concept_id_1 = r1.concept_id
+              AND d.concept_id_2 != r2.concept_id
+              AND d.relationship_id = r.relationship_id
+      )
+         AND d.relationship_id IN ('Maps to',
+                                   'Mapped FROM',
+                                   'UCUM replaced by',
+                                   'UCUM replaces',
+                                   'Concept replaced by',
+                                   'Concept replaces',
+                                   'Concept same_as to',
+                                   'Concept same_as FROM',
+                                   'Concept alt_to to',
+                                   'Concept alt_to FROM',
+                                   'Concept poss_eq to',
+                                   'Concept poss_eq FROM',
+                                   'Concept was_a to',
+                                   'Concept was_a FROM',
+                                   'LOINC replaced by',
+                                   'LOINC replaces',
+                                   'RxNorm replaced by',
+                                   'RxNorm replaces',
+                                   'SNOMED replaced by',
+                                   'SNOMED replaces',
+                                   'ICD9P replaced by',
+                                   'ICD9P replaces'
+                                  )
+;    
+
+-- 8. INSERT new relationships
 INSERT INTO concept_relationship (concept_id_1,
                                   concept_id_2,
                                   relationship_id,
                                   valid_start_date,
                                   valid_end_date,
                                   invalid_reason)
-   SELECT distinct crs.concept_id_1,
-          crs.concept_id_2,
+   SELECT DISTINCT 
+          r1.concept_id,
+          r2.concept_id,
           crs.relationship_id,
           crs.valid_start_date,
           TO_DATE ('20991231', 'YYYYMMDD') AS valid_end_date,
           NULL AS invalid_reason
-     FROM concept_relationship_stage crs
+    FROM concept_relationship_stage crs
+    JOIN concept r1 ON r1.concept_code = crs.concept_code_1 AND r1.vocabulary_id = crs.vocabulary_id_1
+    JOIN concept r2 ON r2.concept_code = crs.concept_code_2 AND r2.vocabulary_id = crs.vocabulary_id_2
     WHERE NOT EXISTS
              (SELECT 1
                 FROM concept_relationship r
-               -- test whether either the concept_ids match, or the concept_ids matched to the concept_codes in either stage or dev
-               WHERE     crs.concept_id_1 = r.concept_id_1
-                     AND crs.concept_id_2 = r.concept_id_2
-                     AND crs.relationship_id = r.relationship_id);
+               -- test whether either the concept_ids match, or the concept_ids matched to the concept_codes
+               WHERE     r1.concept_id = r.concept_id_1
+                     AND r2.concept_id = r.concept_id_2
+                     AND crs.relationship_id = r.relationship_id
+              )
+;
+COMMIT;
 
-COMMIT;	
-	
---XX Update invalid_reason
-update concept set invalid_reason=null where valid_end_date = to_date('31.12.2099','dd.mm.yyyy');
+-- 9. UPDATE invalid_reason
+UPDATE concept SET invalid_reason=NULL WHERE valid_end_date = to_date('31.12.2099','dd.mm.yyyy');
 
-update concept c set c.invalid_reason='U' 
-where c.valid_end_date <> to_date('31.12.2099','dd.mm.yyyy')
-and exists (
-    select 1 from concept_relationship r 
-    where r.concept_id_1=c.concept_id AND r.relationship_id in (
+UPDATE concept c SET c.invalid_reason='U' 
+WHERE c.valid_end_date <> to_date('31.12.2099','dd.mm.yyyy')
+AND EXISTS (
+    SELECT 1 FROM concept_relationship r 
+    WHERE r.concept_id_1=c.concept_id AND r.relationship_id IN (
             'UCUM replaced by',
             'Concept replaced by',
             'Concept same_as to',
@@ -335,11 +294,11 @@ and exists (
     )
 ;
 
-update concept c set c.invalid_reason='D'
-where c.valid_end_date <> to_date('31.12.2099','dd.mm.yyyy')
-and not exists (
-    select 1 from concept_relationship r 
-    where r.concept_id_1=c.concept_id AND r.relationship_id in (
+UPDATE concept c SET c.invalid_reason='D'
+WHERE c.valid_end_date <> to_date('31.12.2099','dd.mm.yyyy')
+AND NOT EXISTS (
+    SELECT 1 FROM concept_relationship r 
+    WHERE r.concept_id_1=c.concept_id AND r.relationship_id IN (
             'UCUM replaced by',
             'Concept replaced by',
             'Concept same_as to',
@@ -352,22 +311,6 @@ and not exists (
             'ICD9P replaced by',
     )
 ;
--- 4. Fill in all concept_id_1 and _2 in concept_relationship_stage
-UPDATE concept_relationship_stage crs
-   SET (crs.concept_id_1, crs.concept_id_2) =
-          (SELECT 
-                  COALESCE (cs1.concept_id, c1.concept_id,crs.concept_id_1),
-                  COALESCE (cs2.concept_id, c2.concept_id,crs.concept_id_2)
-             FROM concept_relationship_stage r
-                  LEFT JOIN concept_stage cs1
-                     ON cs1.concept_code = r.concept_code_1 and cs1.vocabulary_id=r.vocabulary_id_1
-                  LEFT JOIN concept c1 ON c1.concept_code = r.concept_code_1 and c1.vocabulary_id=r.vocabulary_id_1
-                  LEFT JOIN concept_stage cs2
-                     ON cs2.concept_code = r.concept_code_2 and cs2.vocabulary_id=r.vocabulary_id_2
-                  LEFT JOIN concept c2 ON c2.concept_code = r.concept_code_2 and c2.vocabulary_id=r.vocabulary_id_2
-            WHERE      crs.rowid=r.rowid        
-         )
- WHERE crs.concept_id_1 IS NULL OR crs.concept_id_2 IS NULL;
  
  COMMIT;
  

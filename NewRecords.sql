@@ -544,4 +544,79 @@ values (v5_concept.nextval, 'Linkage Assertion', 'Metadata', 'Concept Class', 'C
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
 values ('Linkage Assertion', 'Linkage Assertion', (select concept_id from concept where concept_name='Linkage Assertion'));
 
+-- Consolidate Concept replaced by and Snomed replaced by
+create table rby as 
+select r1.concept_id_1, r1.concept_id_2, 'Concept replaced by' as relationship_id, r2.valid_start_date, r1.valid_end_date, r1.invalid_reason
+from concept_relationship r1 
+join concept_relationship r2 on r1.concept_id_1=r2.concept_id_1 and r1.concept_id_2=r2.concept_id_2 and r2.relationship_id='Concept replaced by'
+where r1.relationship_id='SNOMED replaced by'
+;
+create table res as 
+select r1.concept_id_1, r1.concept_id_2, 'Concept replaces' as relationship_id, r2.valid_start_date, r1.valid_end_date, r1.invalid_reason
+from concept_relationship r1 
+join concept_relationship r2 on r1.concept_id_1=r2.concept_id_1 and r1.concept_id_2=r2.concept_id_2 and r2.relationship_id='Concept replaces'
+where r1.relationship_id='SNOMED replaces'
+;
+delete from concept_relationship 
+where relationship_id in ('Concept replaced by', 'SNOMED replaced by')
+and concept_id_1||'-'||concept_id_2 in (
+  select concept_id_1||'-'||concept_id_2 from rby
+)
+;
+delete from concept_relationship 
+where relationship_id in ('Concept replaces', 'SNOMED replaces')
+and concept_id_1||'-'||concept_id_2 in (
+  select concept_id_1||'-'||concept_id_2 from res
+)
+;
+insert into concept_relationship select * from rby;
+insert into concept_relationship select * from res;
+drop table rby purge;
+drop table res purge;
+
 commit;
+
+-- Not done yet:
+-- Change all relationships containing replaces or replaces by to these. Remove the extra relationships
+update concept_relationship set relationship_id = 'Concept replaces' where relationship_id in (
+  'LOINC replaces',
+  'RxNorm replaces',
+  'SNOMED replaces',
+  'ICD9P replaces',
+  'UCUM replaces'
+);
+update concept_relationship set relationship_id = 'Concept replaced by' where relationship_id in (
+  'LOINC replaced by',
+  'RxNorm replaced by',
+  'SNOMED replaced by',
+  'ICD9P replaced by',
+  'UCUM replaced by'
+);
+update concept set 
+  valid_end_date='10-Jan-2015',
+  invalid_reason='D'
+where concept_id in (
+  44818714, -- LOINC replaced by
+  44818812, -- LOINC replaces
+  44818946, -- RxNorm replaced by
+  44818947, -- RxNorm replaces
+  44818948, -- SNOMED replaced by
+  44818949, -- SNOMED replaces
+  44818971, -- ICD9P replaced by
+  44818972, -- ICD9P replaces
+  44818978, -- UCUM replaced by
+  44818979 -- UCUM replaces
+);
+delete from relationship where relationship_id in (
+  'LOINC replaces',
+  'RxNorm replaces',
+  'SNOMED replaces',
+  'ICD9P replaces',
+  'UCUM replaces',
+  'LOINC replaced by',
+  'RxNorm replaced by',
+  'SNOMED replaced by',
+  'ICD9P replaced by',
+  'UCUM replaced by'
+);
+

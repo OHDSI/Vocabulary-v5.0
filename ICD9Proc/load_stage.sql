@@ -1,11 +1,18 @@
-/*
-1. Download from ICD-9-CM-vXX-master-descriptions.zip from http://www.cms.gov/Medicare/Coding/ICD9ProviderDiagnosticCodes/codes.html (already done for ICD9CM)
-2. Extract CMSXX_DESC_LONG_SG.txt and CMSXX_DESC_SHORT_SG.txt.
-DDL & ctl -> Vocabulary-v5.0\ICD9Proc\
+-- 1. Update latest_update field to new date 
+ALTER TABLE vocabulary ADD latest_update DATE;
+UPDATE vocabulary SET latest_update=to_date('20141001','yyyymmdd') WHERE vocabulary_id='ICD9Proc'; 
+COMMIT;
 
--- Update latest_update field to new date 
-update vocabulary set latest_update=to_date('YYYYMMDD','yyyymmdd') where vocabulary_id='ICD9Proc'; commit;
-*/
+-- 2. Truncate all working tables and remove indices
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+ALTER SESSION SET SKIP_UNUSABLE_INDEXES = TRUE; --disables error reporting of indexes and index partitions marked UNUSABLE
+ALTER INDEX idx_cs_concept_code UNUSABLE;
+ALTER INDEX idx_cs_concept_id UNUSABLE;
+ALTER INDEX idx_concept_code_1 UNUSABLE;
+ALTER INDEX idx_concept_code_2 UNUSABLE;
+
 
 --3. Load into concept_stage from CMS_DESC_LONG_SG
 INSERT INTO concept_stage (concept_id,
@@ -39,11 +46,13 @@ COMMIT;
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
+                                   synonym_vocabulary_id,
                                    language_concept_id)
    (SELECT NULL AS synonym_concept_id,
            REGEXP_REPLACE (code, '^([0-9]{3})([0-9]+)', '\1.\2')
               AS synonym_concept_code,
            NAME AS synonym_name,
+		   'ICD9Proc' as synonym_vocabulary_id,
            4093769 AS language_concept_id                           -- English
       FROM (SELECT * FROM CMS_DESC_LONG_SG
             UNION
@@ -78,4 +87,10 @@ INSERT INTO concept_relationship_stage (concept_id_1,
 COMMIT;		  
 
 --6 create new codes and mappings according to UMLS	   
---N------ run Vocabulary-v5.0\generic_update.sql ---------------			
+--7 Reinstate constraints and indices
+ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
+ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

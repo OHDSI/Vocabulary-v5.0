@@ -1,20 +1,17 @@
-/*
-1. Download RxNorm_full_MMDDYYYY.zip from http://www.nlm.nih.gov/research/umls/rxnorm/docs/rxnormfiles.html. The documentation is in http://www.nlm.nih.gov/research/umls/rxnorm/docs/2014/rxnorm_doco_full_2014-4.html.
+-- 1. Update latest_update field to new date 
+ALTER TABLE vocabulary ADD latest_update DATE;
+UPDATE vocabulary SET latest_update=to_date('20141201','yyyymmdd') WHERE vocabulary_id='RxNorm'; 
+COMMIT;
 
-2. Extract and load into the tables from the folder rrf. DDL or ctl available in Vocabulary-v5.0\08-RxNorm
-RXNATOMARCHIVE
-RXNCONSO
-RXNCUI
-RXNCUICHANGES
-RXNDOC
-RXNREL
-RXNSAB
-RXNSAT
-RXNSTY
-
--- Update latest_update field to new date 
-update vocabulary set latest_update=to_date('YYYYMMDD','yyyymmdd') where vocabulary_id='RxNorm'; commit;
-*/
+-- 2. Truncate all working tables and remove indices
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+--ALTER SESSION SET SKIP_UNUSABLE_INDEXES = TRUE; --disables error reporting of indexes and index partitions marked UNUSABLE
+ALTER INDEX idx_cs_concept_code UNUSABLE;
+ALTER INDEX idx_cs_concept_id UNUSABLE;
+ALTER INDEX idx_concept_code_1 UNUSABLE;
+ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --3. Insert into concept_stage
 -- Get drugs, components, forms and ingredients
@@ -91,8 +88,9 @@ COMMIT;
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
+                                   synonym_vocabulary_id,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 4093769                    -- English
+   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4093769                    -- English
      FROM rxnconso r
           JOIN concept_stage c
              ON     c.concept_code = r.rxcui
@@ -104,8 +102,9 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
+                                   synonym_vocabulary_id,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 4093769                    -- English
+   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4093769                    -- English
      FROM rxnconso r
           JOIN concept_stage c
              ON     c.concept_code = r.code
@@ -115,4 +114,10 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
 COMMIT;	
 
 	   
---5------ run Vocabulary-v5.0\generic_update.sql ---------------			
+--5 Reinstate constraints and indices
+ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
+ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

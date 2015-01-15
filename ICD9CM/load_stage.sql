@@ -105,8 +105,48 @@ INSERT INTO concept_relationship_stage (concept_id_1,
           AND C1.CONCEPT_ID = r.concept_id_2;  
 COMMIT;		  
 
---6 create new codes and mappings according to UMLS	   
---7 Reinstate constraints and indices
+--6 Create text for Medical Coder with new codes and mappings
+SELECT NULL AS concept_id_1,
+       NULL AS concept_id_2,
+       c.concept_code AS concept_code_1,
+       u2.scui AS concept_code_2,
+       'Maps to' AS relationship_id, -- till here strawman for concept_relationship to be checked and filled out, the remaining are supportive information to be truncated in the return file
+       c.concept_name AS icd9_name,
+       u2.str AS snomed_str,
+       sno.concept_id AS snomed_concept_id,
+       sno.concept_name AS snomed_name
+  FROM concept_stage c
+       LEFT JOIN
+       (                                          -- UMLS record for ICD9 code
+        SELECT DISTINCT cui, scui
+          FROM mrconso
+         WHERE sab = 'ICD9CM' AND suppress NOT IN ('E', 'O', 'Y')) u1
+          ON u1.scui = concept_code                  -- join UMLS for code one
+       LEFT JOIN
+       (                        -- UMLS record for SNOMED code of the same cui
+        SELECT DISTINCT
+               cui,
+               scui,
+               FIRST_VALUE (
+                  str)
+               OVER (PARTITION BY scui
+                     ORDER BY DECODE (tty,  'PT', 1,  'PTGB', 2,  10))
+                  AS str
+          FROM mrconso
+         WHERE sab IN ('SNOMEDCT_US') AND suppress NOT IN ('E', 'O', 'Y')) u2
+          ON u2.cui = u1.cui
+       LEFT JOIN concept sno
+          ON sno.vocabulary_id = 'SNOMED' AND sno.concept_code = u2.scui -- SNOMED concept
+ WHERE     c.vocabulary_id = 'ICD9CM'
+       AND NOT EXISTS
+              (SELECT 1
+                 FROM concept co
+                WHERE     co.concept_code = c.concept_code
+                      AND co.vocabulary_id = 'ICD9CM'); -- only new codes we don't already have
+
+--7 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+
+--8 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

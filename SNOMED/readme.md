@@ -28,7 +28,7 @@ and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT2_
 Remove date from file name.
 10. Load them into der2_cRefset_AssRefFull_INT and der2_cRefset_AssRefFull_UK.
 
-11. download YYYYab-1-meta.nlm (for exemple 2014ab-1-meta.nlm) from http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html.
+11. download YYYYab-1-meta.nlm (for example 2014ab-1-meta.nlm) from http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html.
 Unpack MRCONSO.RRF.aa.gz and MRCONSO.RRF.ab.gz, then run:
 --gunzip *.gz
 --cat MRCONSO.RRF.aa MRCONSO.RRF.ab > MRCONSO.RRF

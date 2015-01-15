@@ -31,7 +31,7 @@ INSERT INTO concept_stage (concept_id,
           'ICD9Proc' AS vocabulary_id,
           'Procedure' AS concept_class_id,
           'S' AS standard_concept,
-          REGEXP_REPLACE (code, '^([0-9]{3})([0-9]+)', '\1.\2')
+          REGEXP_REPLACE (code, '^([0-9]{2})([0-9]+)', '\1.\2')
              AS concept_code,
           (SELECT latest_update
              FROM vocabulary
@@ -49,7 +49,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_vocabulary_id,
                                    language_concept_id)
    (SELECT NULL AS synonym_concept_id,
-           REGEXP_REPLACE (code, '^([0-9]{3})([0-9]+)', '\1.\2')
+           REGEXP_REPLACE (code, '^([0-9]{2})([0-9]+)', '\1.\2')
               AS synonym_concept_code,
            NAME AS synonym_name,
 		   'ICD9Proc' as synonym_vocabulary_id,
@@ -86,8 +86,22 @@ INSERT INTO concept_relationship_stage (concept_id_1,
           AND C1.CONCEPT_ID = r.concept_id_2;
 COMMIT;		  
 
---6 create new codes and mappings according to UMLS	   
---7 Reinstate constraints and indices
+--6 Create text for Medical Coder with new codes and mappings
+SELECT NULL AS concept_id_1,
+       NULL AS concept_id_2,
+       c.concept_code AS concept_code_1,
+       NULL AS concept_code_2
+  FROM concept_stage c
+ WHERE NOT EXISTS
+          (SELECT 1
+             FROM concept co
+            WHERE     co.concept_code = c.concept_code
+                  AND co.vocabulary_id = 'ICD9Proc') -- only new codes we don't already have
+AND c.vocabulary_id = 'ICD9Proc';
+
+--7 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+
+--8 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

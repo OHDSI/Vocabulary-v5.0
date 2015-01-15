@@ -1,0 +1,301 @@
+﻿CONCEPT_ID|CONCEPT_NAME|DOMAIN_ID|VOCABULARY_ID|CONCEPT_CLASS_ID|STANDARD_CONCEPT|CONCEPT_CODE|VALID_START_DATE|VALID_END_DATE|INVALID_REASON
+|Ophthalmology heterophoria|Measurement|LOINC|LOINC Class|C|EYE.HETEROPHORIA|01.01.1970|31.12.2099|
+|Ophthalmology Optical Coherence Tomography (OTC)|Measurement|LOINC|LOINC Class|C|EYE.OCT|01.01.1970|31.12.2099|
+|Ophthalmology physical findings|Measurement|LOINC|LOINC Class|C|EYE.PX|01.01.1970|31.12.2099|
+|Ophthalmology refraction|Measurement|LOINC|LOINC Class|C|EYE.REFRACTION|01.01.1970|31.12.2099|
+|Ophthalmology treatments|Measurement|LOINC|LOINC Class|C|EYE.RETINAL_RX|01.01.1970|31.12.2099|
+|Ophthalmology tonometry|Measurement|LOINC|LOINC Class|C|EYE.TONOMETRY|01.01.1970|31.12.2099|
+|Ophthalmology ultrasound|Measurement|LOINC|LOINC Class|C|EYE.US|01.01.1970|31.12.2099|
+|Ophthalmology visual field|Measurement|LOINC|LOINC Class|C|EYE.VISUAL_FIELD|01.01.1970|31.12.2099|
+|Functional status (e.g., Glasgow)|Measurement|LOINC|LOINC Class|C|FUNCTION|01.01.1970|31.12.2099|
+|General ultrasound|Measurement|LOINC|LOINC Class|C|GEN.US|01.01.1970|31.12.2099|
+|History|Measurement|LOINC|LOINC Class|C|H&P.HX|01.01.1970|31.12.2099|
+|Physical|Measurement|LOINC|LOINC Class|C|H&P.PX|01.01.1970|31.12.2099|
+|Surgical procedure|Measurement|LOINC|LOINC Class|C|H&P.SURG PROC|01.01.1970|31.12.2099|
+|Hemodynamics|Measurement|LOINC|LOINC Class|C|HEMODYN|01.01.1970|31.12.2099|
+|Hemodynamics atomic|Measurement|LOINC|LOINC Class|C|HEMODYN.ATOM|01.01.1970|31.12.2099|
+|Hemodynamics molecular|Measurement|LOINC|LOINC Class|C|HEMODYN.MOLEC|01.01.1970|31.12.2099|
+|Heart rate|Measurement|LOINC|LOINC Class|C|HRTRATE|01.01.1970|31.12.2099|
+|Heart rate atomic|Measurement|LOINC|LOINC Class|C|HRTRATE.ATOM|01.01.1970|31.12.2099|
+|Heart rate molecular|Measurement|LOINC|LOINC Class|C|HRTRATE.MOLEC|01.01.1970|31.12.2099|
+|Heart rate positional|Measurement|LOINC|LOINC Class|C|HRTRATE.PSTN|01.01.1970|31.12.2099|
+|Heart rate positional molecular|Measurement|LOINC|LOINC Class|C|HRTRATE.PSTN.MOLEC|01.01.1970|31.12.2099|
+|Heart rate timed|Measurement|LOINC|LOINC Class|C|HRTRATE.TIMED|01.01.1970|31.12.2099|
+|Heart rate timed molecular|Measurement|LOINC|LOINC Class|C|HRTRATE.TIMED.MOL|01.01.1970|31.12.2099|
+|Input/Output of tube|Measurement|LOINC|LOINC Class|C|IO.TUBE|01.01.1970|31.12.2099|
+|Input/Output|Measurement|LOINC|LOINC Class|C|IO_IN|01.01.1970|31.12.2099|
+|Input/Output atomic|Measurement|LOINC|LOINC Class|C|IO_IN.ATOM|01.01.1970|31.12.2099|
+|Input/Output molecular|Measurement|LOINC|LOINC Class|C|IO_IN.MOLEC|01.01.1970|31.12.2099|
+|Input/Output summary|Measurement|LOINC|LOINC Class|C|IO_IN.SUMMARY|01.01.1970|31.12.2099|
+|Input/Output timed|Measurement|LOINC|LOINC Class|C|IO_IN.TIMED|01.01.1970|31.12.2099|
+|Input/Output timed molecular|Measurement|LOINC|LOINC Class|C|IO_IN.TIMED.MOLEC|01.01.1970|31.12.2099|
+|Input/Output electrolytes and calories|Measurement|LOINC|LOINC Class|C|IO_IN_SALTS+CALS|01.01.1970|31.12.2099|
+|Input/Output|Measurement|LOINC|LOINC Class|C|IO_OUT|01.01.1970|31.12.2099|
+|Input/Output atomic|Measurement|LOINC|LOINC Class|C|IO_OUT.ATOM|01.01.1970|31.12.2099|
+|Input/Output molecular|Measurement|LOINC|LOINC Class|C|IO_OUT.MOLEC|01.01.1970|31.12.2099|
+|Input/Output timed molecular|Measurement|LOINC|LOINC Class|C|IO_OUT.TIMED.MOLE|01.01.1970|31.12.2099|
+|National EMS Information System data|Measurement|LOINC|LOINC Class|C|NEMSIS|01.01.1970|31.12.2099|
+|Neonatal measures|Measurement|LOINC|LOINC Class|C|NEONAT|01.01.1970|31.12.2099|
+|Obstetric ultrasound|Measurement|LOINC|LOINC Class|C|OB.US|01.01.1970|31.12.2099|
+|Obstetric/Gynecology|Measurement|LOINC|LOINC Class|C|OBGYN|01.01.1970|31.12.2099|
+|Order set|Measurement|LOINC|LOINC Class|C|PANEL|01.01.1970|31.12.2099|
+|Antiretroviral therapy order set|Measurement|LOINC|LOINC Class|C|PANEL.ART|01.01.1970|31.12.2099|
+|Body temperature order set|Measurement|LOINC|LOINC Class|C|PANEL.BDYTMP|01.01.1970|31.12.2099|
+|Blood pressure order set|Measurement|LOINC|LOINC Class|C|PANEL.BP|01.01.1970|31.12.2099|
+|Cardiac studies order set|Measurement|LOINC|LOINC Class|C|PANEL.CARDIAC|01.01.1970|31.12.2099|
+|Clinical NEC (not elsewhere classified) set|Measurement|LOINC|LOINC Class|C|PANEL.CLIN|01.01.1970|31.12.2099|
+|Cardiovascular order set|Measurement|LOINC|LOINC Class|C|PANEL.CV|01.01.1970|31.12.2099|
+|Medical devices order set|Measurement|LOINC|LOINC Class|C|PANEL.DEVICES|01.01.1970|31.12.2099|
+|Documents panels|Measurement|LOINC|LOINC Class|C|PANEL.DOC|01.01.1970|31.12.2099|
+|Clinical report documentation set|Measurement|LOINC|LOINC Class|C|PANEL.DOC.CLINRPT|01.01.1970|31.12.2099|
+|Emergency (DEEDS) order set|Measurement|LOINC|LOINC Class|C|PANEL.ED|01.01.1970|31.12.2099|
+|Ophthalmology panels|Measurement|LOINC|LOINC Class|C|PANEL.EYE|01.01.1970|31.12.2099|
+|Function order set|Measurement|LOINC|LOINC Class|C|PANEL.FUNCTION|01.01.1970|31.12.2099|
+|History & Physical order set|Measurement|LOINC|LOINC Class|C|PANEL.H&P|01.01.1970|31.12.2099|
+|Input/Output order set|Measurement|LOINC|LOINC Class|C|PANEL.IO|01.01.1970|31.12.2099|
+|National EMS Information System data set|Measurement|LOINC|LOINC Class|C|PANEL.NEMSIS|01.01.1970|31.12.2099|
+|Neonatal measures order set|Measurement|LOINC|LOINC Class|C|PANEL.NEONAT|01.01.1970|31.12.2099|
+|Obstetrical order set|Measurement|LOINC|LOINC Class|C|PANEL.OB.US|01.01.1970|31.12.2099|
+|Patient safety order set|Measurement|LOINC|LOINC Class|C|PANEL.PATIENT SAFETY|01.01.1970|31.12.2099|
+|PhenX Panel|Measurement|LOINC|LOINC Class|C|PANEL.PHENX|01.01.1970|31.12.2099|
+|Public health record order set|Measurement|LOINC|LOINC Class|C|PANEL.PHR|01.01.1970|31.12.2099|
+|Pulmonary order set|Measurement|LOINC|LOINC Class|C|PANEL.PULM|01.01.1970|31.12.2099|
+|Radiology order set|Measurement|LOINC|LOINC Class|C|PANEL.RAD|01.01.1970|31.12.2099|
+|Tumor registry order set|Measurement|LOINC|LOINC Class|C|PANEL.TUMRRGT|01.01.1970|31.12.2099|
+|Urology ultrasound order set|Measurement|LOINC|LOINC Class|C|PANEL.US.URO|01.01.1970|31.12.2099|
+|Vaccination order set|Measurement|LOINC|LOINC Class|C|PANEL.VACCIN|01.01.1970|31.12.2099|
+|Vital signs order set|Measurement|LOINC|LOINC Class|C|PANEL.VITALS|01.01.1970|31.12.2099|
+|Patient safety|Measurement|LOINC|LOINC Class|C|PATIENT SAFETY|01.01.1970|31.12.2099|
+|PhenX|Measurement|LOINC|LOINC Class|C|PHENX|01.01.1970|31.12.2099|
+|Public Health|Measurement|LOINC|LOINC Class|C|PUBLICHEALTH|01.01.1970|31.12.2099|
+|Pulmonary ventilator management|Measurement|LOINC|LOINC Class|C|PULM|01.01.1970|31.12.2099|
+|Radiology|Measurement|LOINC|LOINC Class|C|RAD|01.01.1970|31.12.2099|
+|Respiratory|Measurement|LOINC|LOINC Class|C|RESP|01.01.1970|31.12.2099|
+|Respiratory atomic|Measurement|LOINC|LOINC Class|C|RESP.ATOM|01.01.1970|31.12.2099|
+|Respiratory molecular|Measurement|LOINC|LOINC Class|C|RESP.MOLEC|01.01.1970|31.12.2099|
+|Respiratory timed|Measurement|LOINC|LOINC Class|C|RESP.TIMED|01.01.1970|31.12.2099|
+|Respiratory timed molecular|Measurement|LOINC|LOINC Class|C|RESP.TIMED.MOLEC|01.01.1970|31.12.2099|
+|Skinfold measurements|Measurement|LOINC|LOINC Class|C|SKNFLD|01.01.1970|31.12.2099|
+|Skinfold measurements molecular|Measurement|LOINC|LOINC Class|C|SKNFLD.MOLEC|01.01.1970|31.12.2099|
+|Trauma|Measurement|LOINC|LOINC Class|C|TRAUMA|01.01.1970|31.12.2099|
+|Organ transplant|Measurement|LOINC|LOINC Class|C|TRNSPLNT.ORGAN|01.01.1970|31.12.2099|
+|Tumor registry (NAACCR)|Measurement|LOINC|LOINC Class|C|TUMRRGT|01.01.1970|31.12.2099|
+|Urological ultrasound|Measurement|LOINC|LOINC Class|C|US.URO|01.01.1970|31.12.2099|
+|Vaccinations|Measurement|LOINC|LOINC Class|C|VACCIN|01.01.1970|31.12.2099|
+|Volume (specimen)|Measurement|LOINC|LOINC Class|C|VOLUME|01.01.1970|31.12.2099|
+|Volume (specimen) molecular|Measurement|LOINC|LOINC Class|C|VOLUME.MOLEC|01.01.1970|31.12.2099|
+|Antibiotic susceptibilities|Measurement|LOINC|LOINC Class|C|ABXBACT|01.01.1970|31.12.2099|
+|Response to antigens|Measurement|LOINC|LOINC Class|C|ALLERGY|01.01.1970|31.12.2099|
+|Blood bank|Measurement|LOINC|LOINC Class|C|BLDBK|01.01.1970|31.12.2099|
+|Cardiopulmonary|Measurement|LOINC|LOINC Class|C|CARDIO-PULM|01.01.1970|31.12.2099|
+|Cell surface models|Measurement|LOINC|LOINC Class|C|CELLMARK|01.01.1970|31.12.2099|
+|Challenge tests|Measurement|LOINC|LOINC Class|C|CHAL|01.01.1970|31.12.2099|
+|Skin challenge tests|Measurement|LOINC|LOINC Class|C|CHALSKIN|01.01.1970|31.12.2099|
+|Chemistry|Measurement|LOINC|LOINC Class|C|CHEM|01.01.1970|31.12.2099|
+|Coagulation study|Measurement|LOINC|LOINC Class|C|COAG|01.01.1970|31.12.2099|
+|Cytology|Measurement|LOINC|LOINC Class|C|CYTO|01.01.1970|31.12.2099|
+|Drug levels & Toxicology|Measurement|LOINC|LOINC Class|C|DRUG/TOX|01.01.1970|31.12.2099|
+|Drug dose (for transmitting doses for pharmacokinetics)|Measurement|LOINC|LOINC Class|C|DRUGDOSE|01.01.1970|31.12.2099|
+|Fertility|Measurement|LOINC|LOINC Class|C|FERT|01.01.1970|31.12.2099|
+|History for laboratory studies|Measurement|LOINC|LOINC Class|C|H&P.HX.LAB|01.01.1970|31.12.2099|
+|Hematology (coagulation) differential count|Measurement|LOINC|LOINC Class|C|HEM/BC|01.01.1970|31.12.2099|
+|Clinical cytogenetic report|Measurement|LOINC|LOINC Class|C|HL7.CYTOGEN|01.01.1970|31.12.2099|
+|Clinical genetic report|Measurement|LOINC|LOINC Class|C|HL7.GENETICS|01.01.1970|31.12.2099|
+|HLA tissue typing antigens and antibodies|Measurement|LOINC|LOINC Class|C|HLA|01.01.1970|31.12.2099|
+|Human neutrophil alloantigens|Measurement|LOINC|LOINC Class|C|HNA|01.01.1970|31.12.2099|
+|HPA typing|Measurement|LOINC|LOINC Class|C|HPA|01.01.1970|31.12.2099|
+|Laboratory order codes|Measurement|LOINC|LOINC Class|C|LABORDERS|01.01.1970|31.12.2099|
+|Microbiology|Measurement|LOINC|LOINC Class|C|MICRO|01.01.1970|31.12.2099|
+|Miscellaneous|Measurement|LOINC|LOINC Class|C|MISC|01.01.1970|31.12.2099|
+|Molecular pathology|Measurement|LOINC|LOINC Class|C|MOLPATH|01.01.1970|31.12.2099|
+|Gene deletion|Measurement|LOINC|LOINC Class|C|MOLPATH.DEL|01.01.1970|31.12.2099|
+|Gene inversion|Measurement|LOINC|LOINC Class|C|MOLPATH.INV|01.01.1970|31.12.2099|
+|Gene miscellaneous|Measurement|LOINC|LOINC Class|C|MOLPATH.MISC|01.01.1970|31.12.2099|
+|Gene mutation|Measurement|LOINC|LOINC Class|C|MOLPATH.MUT|01.01.1970|31.12.2099|
+|Gene rearrangement|Measurement|LOINC|LOINC Class|C|MOLPATH.REARRANGE|01.01.1970|31.12.2099|
+|Gene trinucleotide repeats|Measurement|LOINC|LOINC Class|C|MOLPATH.TRINUC|01.01.1970|31.12.2099|
+|Gene chromosome trisomy|Measurement|LOINC|LOINC Class|C|MOLPATH.TRISOMY|01.01.1970|31.12.2099|
+|Gene translocation|Measurement|LOINC|LOINC Class|C|MOLPATH.TRNLOC|01.01.1970|31.12.2099|
+|Normal range statistics|Measurement|LOINC|LOINC Class|C|NR STATS|01.01.1970|31.12.2099|
+|Susceptibility order sets|Measurement|LOINC|LOINC Class|C|PANEL.ABXBACT|01.01.1970|31.12.2099|
+|Allergy order set|Measurement|LOINC|LOINC Class|C|PANEL.ALLERGY|01.01.1970|31.12.2099|
+|Blood bank order set|Measurement|LOINC|LOINC Class|C|PANEL.BLDBK|01.01.1970|31.12.2099|
+|Cell marker order sets|Measurement|LOINC|LOINC Class|C|PANEL.CELLMARK|01.01.1970|31.12.2099|
+|Challenge order set|Measurement|LOINC|LOINC Class|C|PANEL.CHAL|01.01.1970|31.12.2099|
+|Chemistry order set|Measurement|LOINC|LOINC Class|C|PANEL.CHEM|01.01.1970|31.12.2099|
+|Coagulation order set|Measurement|LOINC|LOINC Class|C|PANEL.COAG|01.01.1970|31.12.2099|
+|Drug level & Toxicology order set|Measurement|LOINC|LOINC Class|C|PANEL.DRUG/TOX|01.01.1970|31.12.2099|
+|Fertility testing order set|Measurement|LOINC|LOINC Class|C|PANEL.FERT|01.01.1970|31.12.2099|
+|Healthcare Effectiveness Data and Information Set order set|Measurement|LOINC|LOINC Class|C|PANEL.HEDIS|01.01.1970|31.12.2099|
+|Hematology & blood count order set|Measurement|LOINC|LOINC Class|C|PANEL.HEM/BC|01.01.1970|31.12.2099|
+|HL7 cytogenetics panel|Measurement|LOINC|LOINC Class|C|PANEL.HL7.CYTOGEN|01.01.1970|31.12.2099|
+|HL7 genetics panel|Measurement|LOINC|LOINC Class|C|PANEL.HL7.GENETICS|01.01.1970|31.12.2099|
+|HLA order set|Measurement|LOINC|LOINC Class|C|PANEL.HLA|01.01.1970|31.12.2099|
+|HNA order set|Measurement|LOINC|LOINC Class|C|PANEL.HNA|01.01.1970|31.12.2099|
+|HPA order set|Measurement|LOINC|LOINC Class|C|PANEL.HPA|01.01.1970|31.12.2099|
+|Microbiology order set|Measurement|LOINC|LOINC Class|C|PANEL.MICRO|01.01.1970|31.12.2099|
+|Miscellaneous order set|Measurement|LOINC|LOINC Class|C|PANEL.MISC|01.01.1970|31.12.2099|
+|Molecular pathology order set|Measurement|LOINC|LOINC Class|C|PANEL.MOLPATH|01.01.1970|31.12.2099|
+|Obstetrics order set|Measurement|LOINC|LOINC Class|C|PANEL.OBS|01.01.1970|31.12.2099|
+|Pathology order set|Measurement|LOINC|LOINC Class|C|PANEL.PATH|01.01.1970|31.12.2099|
+|Serology order set|Measurement|LOINC|LOINC Class|C|PANEL.SERO|01.01.1970|31.12.2099|
+|Specimen set|Measurement|LOINC|LOINC Class|C|PANEL.SPEC|01.01.1970|31.12.2099|
+|Urinalysis order set|Measurement|LOINC|LOINC Class|C|PANEL.UA|01.01.1970|31.12.2099|
+|Pathology|Measurement|LOINC|LOINC Class|C|PATH|01.01.1970|31.12.2099|
+|Pathology protocols - breast|Measurement|LOINC|LOINC Class|C|PATH.PROTOCOLS.BRST|01.01.1970|31.12.2099|
+|Pathology protocols - general|Measurement|LOINC|LOINC Class|C|PATH.PROTOCOLS.GENER|01.01.1970|31.12.2099|
+|Pathology protocols - prostate|Measurement|LOINC|LOINC Class|C|PATH.PROTOCOLS.PROST|01.01.1970|31.12.2099|
+|Pathology protocols - skin|Measurement|LOINC|LOINC Class|C|PATH.PROTOCOLS.SKIN|01.01.1970|31.12.2099|
+|Serology (antibodies and most antigens except blood bank and infectious agents)|Measurement|LOINC|LOINC Class|C|SERO|01.01.1970|31.12.2099|
+|Specimen characteristics|Measurement|LOINC|LOINC Class|C|SPEC|01.01.1970|31.12.2099|
+|Urinalysis|Measurement|LOINC|LOINC Class|C|UA|01.01.1970|31.12.2099|
+|Survey set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY|01.01.1970|31.12.2099|
+|American Academy of Orthopaedic Surgeons|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.AAOS|01.01.1970|31.12.2099|
+|Agency for Healthcare Research and Quality (AHRQ) survey set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.AHRQ|01.01.1970|31.12.2099|
+|Brief Interview for Mental Health Status (BIMS) set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.BIMS|01.01.1970|31.12.2099|
+|Confusion Assessment Method (CAM) set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.CAM|01.01.1970|31.12.2099|
+|Continuity Assessment Record and Evaluation (CARE) set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.CARE|01.01.1970|31.12.2099|
+|Centers for Disease Control (CDC) set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.CDC|01.01.1970|31.12.2099|
+|Centers for Medicare & Medicaid Services set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.CMS|01.01.1970|31.12.2099|
+|Edinburgh Postnatal Depression Scale set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.EPDS|01.01.1970|31.12.2099|
+|End Stage Renal Disease (ESRD) facility survey set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.ESRD|01.01.1970|31.12.2099|
+|Geriatric Depression Scale (GDS) set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.GDS|01.01.1970|31.12.2099|
+|General Healthy survey set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.GNHLTH|01.01.1970|31.12.2099|
+|Home Health Care Classification set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.HHCC|01.01.1970|31.12.2099|
+|Department of Health and Humsn Services set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.HHS|01.01.1970|31.12.2099|
+|Signs and Symptoms checklist for persons living with HIV set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.HIV-SSC|01.01.1970|31.12.2099|
+|howRU outcomes instrument set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.howRU|01.01.1970|31.12.2099|
+|Living with HIV set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.LIV-HIV|01.01.1970|31.12.2099|
+|Minimum Data Set for Nursing Home Resident Assessment and Care Screening set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.MDS|01.01.1970|31.12.2099|
+|Morse Fall Scale set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.MFS|01.01.1970|31.12.2099|
+|Mental Health survey set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.MTLHLTH|01.01.1970|31.12.2099|
+|Neurological survey set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.NEUR|01.01.1970|31.12.2099|
+|Quality of Life Outcomes in Neurological Disorders (NeuroQol) set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.NEUROQ|01.01.1970|31.12.2099|
+|Nursing Management Minimum Data set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.NMMDS|01.01.1970|31.12.2099|
+|Norton Scale survey set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.NORTON|01.01.1970|31.12.2099|
+|Neonatal Skin Risk Assessment Scale survey|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.NSRAS|01.01.1970|31.12.2099|
+|Outcome and Assessment Information Survey set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.OASIS|01.01.1970|31.12.2099|
+|OMAHA survey set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.OMAHA|01.01.1970|31.12.2099|
+|Outpatient Physical Therapy Improvement in Movement a Assessment Log set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.OPTIMAL|01.01.1970|31.12.2099|
+|Patient Health Questionnaire set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.PHQ|01.01.1970|31.12.2099|
+|Patient Reported Outcomes Measurement System set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.PROMIS|01.01.1970|31.12.2099|
+|Quality Audit Marker set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.QAM|01.01.1970|31.12.2099|
+|Quality Health Reporting Document Architecture set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.QRDA|01.01.1970|31.12.2099|
+|Residual Functional Capacity set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.RFC|01.01.1970|31.12.2099|
+|Substance Abuse and Mental Health Services Administration (SAMHSA) set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.SAMHSA|01.01.1970|31.12.2099|
+|United States Surgeon General Family Health Tool (USSGFHT) set|Observation|LOINC|LOINC Class|C|PANEL.SURVEY.USSGFHT|01.01.1970|31.12.2099|
+|Test of Infant Motor Performance (TIMP) set|Observation|LOINC|LOINC Class|C|PANEL.TIMP|01.01.1970|31.12.2099|
+|Survey|Observation|LOINC|LOINC Class|C|SURVEY|01.01.1970|31.12.2099|
+|American Academy of Orthopaedic Surgeons (AAOS) survey|Observation|LOINC|LOINC Class|C|SURVEY.AAOS|01.01.1970|31.12.2099|
+|Agency for Healthcare Research and Quality (AHRQ) survey|Observation|LOINC|LOINC Class|C|SURVEY.AHRQ|01.01.1970|31.12.2099|
+|Continuity Assessment Record and Evaluation (CARE) survey|Observation|LOINC|LOINC Class|C|SURVEY.CARE|01.01.1970|31.12.2099|
+|Centers for Disease Control (CDC) survey|Observation|LOINC|LOINC Class|C|SURVEY.CDC|01.01.1970|31.12.2099|
+|Cerner survey|Observation|LOINC|LOINC Class|C|SURVEY.CERNER|01.01.1970|31.12.2099|
+|Centers for Medicare & Medicaid Services (CMS) survey|Observation|LOINC|LOINC Class|C|SURVEY.CMS|01.01.1970|31.12.2099|
+|Edinburgh Postnatal Depression Scale (EPDS)|Observation|LOINC|LOINC Class|C|SURVEY.EPDS|01.01.1970|31.12.2099|
+|End Stage Renal Disease (ESRD) facility survey|Observation|LOINC|LOINC Class|C|SURVEY.ESRD|01.01.1970|31.12.2099|
+|Geriatric Depression Scale (GDS) survey|Observation|LOINC|LOINC Class|C|SURVEY.GDS|01.01.1970|31.12.2099|
+|General Health survey|Observation|LOINC|LOINC Class|C|SURVEY.GNHLTH|01.01.1970|31.12.2099|
+|Department of Health and Human Services (HHS) survey|Observation|LOINC|LOINC Class|C|SURVEY.HHS|01.01.1970|31.12.2099|
+|howRU outcomes instrument survey|Observation|LOINC|LOINC Class|C|SURVEY.howRU|01.01.1970|31.12.2099|
+|Minimum Data Set (MDS) for Nursing Home Resident Assessment and Care Screening survey|Observation|LOINC|LOINC Class|C|SURVEY.MDS|01.01.1970|31.12.2099|
+|Morse Fall Scale (MFS) survey|Observation|LOINC|LOINC Class|C|SURVEY.MFS|01.01.1970|31.12.2099|
+|Miscellaneous survey|Observation|LOINC|LOINC Class|C|SURVEY.MISC|01.01.1970|31.12.2099|
+|Mental Health survey|Observation|LOINC|LOINC Class|C|SURVEY.MTLHLTH|01.01.1970|31.12.2099|
+|Neurological survey|Observation|LOINC|LOINC Class|C|SURVEY.NEURO|01.01.1970|31.12.2099|
+|Quality of Life Outcomes in Neurological Disorders (NeuroQol) survey|Observation|LOINC|LOINC Class|C|SURVEY.NEUROQ|01.01.1970|31.12.2099|
+|Nursing Management Minimum Data Survey (NMMDS)|Observation|LOINC|LOINC Class|C|SURVEY.NMMDS|01.01.1970|31.12.2099|
+|Norton Scale survey|Observation|LOINC|LOINC Class|C|SURVEY.NORTON|01.01.1970|31.12.2099|
+|Neonatal Skin Risk Assessment Scale (NSRAS)|Observation|LOINC|LOINC Class|C|SURVEY.NSRAS|01.01.1970|31.12.2099|
+|Home Health Care Classification (HHCC) survey|Observation|LOINC|LOINC Class|C|SURVEY.NURSE.HHCC|01.01.1970|31.12.2099|
+|Signs and Symptoms Checklist (SSC) for persons living with HIV survey|Observation|LOINC|LOINC Class|C|SURVEY.NURSE.HIV-SSC|01.01.1970|31.12.2099|
+|Living with HIV survey|Observation|LOINC|LOINC Class|C|SURVEY.NURSE.LIV-HIV|01.01.1970|31.12.2099|
+|OMAHA survey|Observation|LOINC|LOINC Class|C|SURVEY.NURSE.OMAHA|01.01.1970|31.12.2099|
+|Quality Audit Marker (QAM) survey|Observation|LOINC|LOINC Class|C|SURVEY.NURSE.QAM|01.01.1970|31.12.2099|
+|Outcome and Assessment Information Survey (OASIS)|Observation|LOINC|LOINC Class|C|SURVEY.OASIS|01.01.1970|31.12.2099|
+|Outpatient Physical Therapy Improvement in Movement and Assessment Log (OPTIMAL)|Observation|LOINC|LOINC Class|C|SURVEY.OPTIMAL|01.01.1970|31.12.2099|
+|Patient Health Questionnaire (PHQ)|Observation|LOINC|LOINC Class|C|SURVEY.PHQ|01.01.1970|31.12.2099|
+|Patient Reported Outcomes Measurement System (PROMIS) survey|Observation|LOINC|LOINC Class|C|SURVEY.PROMIS|01.01.1970|31.12.2099|
+|Quality Health Reporting Document Architecture (QRDA) survey|Observation|LOINC|LOINC Class|C|SURVEY.QRDA|01.01.1970|31.12.2099|
+|Residual Functional Capacity (RFC) survey|Observation|LOINC|LOINC Class|C|SURVEY.RFC|01.01.1970|31.12.2099|
+|Substance Abuse and Mental Health Services Administration (SAMHSA) survey|Observation|LOINC|LOINC Class|C|SURVEY.SAMHSA|01.01.1970|31.12.2099|
+|United States Surgeon General Family Health Tool (USSGFHT) survey|Observation|LOINC|LOINC Class|C|SURVEY.USSGFHT|01.01.1970|31.12.2099|
+|Test of Infant Motor Performance (TIMP) survey|Observation|LOINC|LOINC Class|C|TIMP|01.01.1970|31.12.2099|
+|Attachment|Observation|LOINC|LOINC Class|C|ATTACH|01.01.1970|31.12.2099|
+|Ambulance attachment|Observation|LOINC|LOINC Class|C|ATTACH.AMB|01.01.1970|31.12.2099|
+|Cardiac attachment|Observation|LOINC|LOINC Class|C|ATTACH.CARD|01.01.1970|31.12.2099|
+|Clinical report attachment|Observation|LOINC|LOINC Class|C|ATTACH.CLINRPT|01.01.1970|31.12.2099|
+|Children's Preventative Health System attachment|Observation|LOINC|LOINC Class|C|ATTACH.CPHS|01.01.1970|31.12.2099|
+|Emergency department attachment|Observation|LOINC|LOINC Class|C|ATTACH.ED|01.01.1970|31.12.2099|
+|General attachment|Observation|LOINC|LOINC Class|C|ATTACH.GENERAL|01.01.1970|31.12.2099|
+|Gastrointestinal attachment|Observation|LOINC|LOINC Class|C|ATTACH.GI|01.01.1970|31.12.2099|
+|Laboratory attachment|Observation|LOINC|LOINC Class|C|ATTACH.LAB|01.01.1970|31.12.2099|
+|Medication attachment|Observation|LOINC|LOINC Class|C|ATTACH.MEDS|01.01.1970|31.12.2099|
+|Modifier attachment|Observation|LOINC|LOINC Class|C|ATTACH.MODIFIER|01.01.1970|31.12.2099|
+|Obstetrics attachment|Observation|LOINC|LOINC Class|C|ATTACH.OBS|01.01.1970|31.12.2099|
+|Periodontal attachment|Observation|LOINC|LOINC Class|C|ATTACH.PERIODONTAL|01.01.1970|31.12.2099|
+|Rehabilitation attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB|01.01.1970|31.12.2099|
+|Alcohol/Substance abuse rehabilitation attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.ABUSE|01.01.1970|31.12.2099|
+|Cardiac rehabilitation attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.CARDIAC|01.01.1970|31.12.2099|
+|Specialized nursing attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.NURS|01.01.1970|31.12.2099|
+|Occupational therapy attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.OT|01.01.1970|31.12.2099|
+|Psychiatric rehabilitation attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.PSYCH|01.01.1970|31.12.2099|
+|Physical rehabilitation attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.PT|01.01.1970|31.12.2099|
+|Pulmonary rehabilitation attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.PULM|01.01.1970|31.12.2099|
+|Respiratory rehabilitation attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.RT|01.01.1970|31.12.2099|
+|Medical social work attachment|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.SOCIAL|01.01.1970|31.12.2099|
+|Speech therapy rehabilitation|Observation|LOINC|LOINC Class|C|ATTACH.REHAB.SPEECH|01.01.1970|31.12.2099|
+|Respiratory attachment|Observation|LOINC|LOINC Class|C|ATTACH.RESP|01.01.1970|31.12.2099|
+|Antiretroviral therapy|Measurement|LOINC|LOINC Class|C|ART|01.01.1970|31.12.2099|
+|Body circumference|Measurement|LOINC|LOINC Class|C|BDYCRC|01.01.1970|31.12.2099|
+|Body circumference atomic|Measurement|LOINC|LOINC Class|C|BDYCRC.ATOM|01.01.1970|31.12.2099|
+|Body circumference molecular|Measurement|LOINC|LOINC Class|C|BDYCRC.MOLEC|01.01.1970|31.12.2099|
+|Body height|Measurement|LOINC|LOINC Class|C|BDYHGT|01.01.1970|31.12.2099|
+|Body height atomic|Measurement|LOINC|LOINC Class|C|BDYHGT.ATOM|01.01.1970|31.12.2099|
+|Body height molecular|Measurement|LOINC|LOINC Class|C|BDYHGT.MOLEC|01.01.1970|31.12.2099|
+|Body surface|Measurement|LOINC|LOINC Class|C|BDYSURF|01.01.1970|31.12.2099|
+|Body surface atomic|Measurement|LOINC|LOINC Class|C|BDYSURF.ATOM|01.01.1970|31.12.2099|
+|Body temperature|Measurement|LOINC|LOINC Class|C|BDYTMP|01.01.1970|31.12.2099|
+|Body temperature atomic|Measurement|LOINC|LOINC Class|C|BDYTMP.ATOM|01.01.1970|31.12.2099|
+|Body temperature molecular|Measurement|LOINC|LOINC Class|C|BDYTMP.MOLEC|01.01.1970|31.12.2099|
+|Body temperature timed|Measurement|LOINC|LOINC Class|C|BDYTMP.TIMED|01.01.1970|31.12.2099|
+|Body temperature timed molecular|Measurement|LOINC|LOINC Class|C|BDYTMP.TIMED.MOLEC|01.01.1970|31.12.2099|
+|Body weight|Measurement|LOINC|LOINC Class|C|BDYWGT|01.01.1970|31.12.2099|
+|Body weight atomic|Measurement|LOINC|LOINC Class|C|BDYWGT.ATOM|01.01.1970|31.12.2099|
+|Body weight molecular|Measurement|LOINC|LOINC Class|C|BDYWGT.MOLEC|01.01.1970|31.12.2099|
+|Blood pressure|Measurement|LOINC|LOINC Class|C|BP|01.01.1970|31.12.2099|
+|Blood pressure atomic|Measurement|LOINC|LOINC Class|C|BP.ATOM|01.01.1970|31.12.2099|
+|Blood pressure central|Measurement|LOINC|LOINC Class|C|BP.CENT|01.01.1970|31.12.2099|
+|Blood pressure central molecular|Measurement|LOINC|LOINC Class|C|BP.CENT.MOLEC|01.01.1970|31.12.2099|
+|Blood pressure molecular|Measurement|LOINC|LOINC Class|C|BP.MOLEC|01.01.1970|31.12.2099|
+|Blood pressure positional|Measurement|LOINC|LOINC Class|C|BP.PSTN|01.01.1970|31.12.2099|
+|Blood pressure positional molecular|Measurement|LOINC|LOINC Class|C|BP.PSTN.MOLEC|01.01.1970|31.12.2099|
+|Blood pressure timed|Measurement|LOINC|LOINC Class|C|BP.TIMED|01.01.1970|31.12.2099|
+|Blood pressure timed molecular|Measurement|LOINC|LOINC Class|C|BP.TIMED.MOLEC|01.01.1970|31.12.2099|
+|Blood pressure venous|Measurement|LOINC|LOINC Class|C|BP.VENOUS|01.01.1970|31.12.2099|
+|Blood pressure venous molecular|Measurement|LOINC|LOINC Class|C|BP.VENOUS.MOLEC|01.01.1970|31.12.2099|
+|Cardiac Risk Scales Framingham|Measurement|LOINC|LOINC Class|C|CARD.RISK|01.01.1970|31.12.2099|
+|Cardiac ultrasound (was US.ECHO)|Measurement|LOINC|LOINC Class|C|CARD.US|01.01.1970|31.12.2099|
+|Clinical NEC (not elsewhere classified)|Measurement|LOINC|LOINC Class|C|CLIN|01.01.1970|31.12.2099|
+|Dental|Measurement|LOINC|LOINC Class|C|DENTAL|01.01.1970|31.12.2099|
+|Medical devices|Measurement|LOINC|LOINC Class|C|DEVICES|01.01.1970|31.12.2099|
+|Document|Measurement|LOINC|LOINC Class|C|DOC|01.01.1970|31.12.2099|
+|Administrative documents|Measurement|LOINC|LOINC Class|C|DOC.ADMIN|01.01.1970|31.12.2099|
+|Legal Administrative documents|Measurement|LOINC|LOINC Class|C|DOC.ADMIN.LEGAL|01.01.1970|31.12.2099|
+|Clinical report documentation|Measurement|LOINC|LOINC Class|C|DOC.CLINRPT|01.01.1970|31.12.2099|
+|Smart Open Services for European Patients (epSOS) documents|Measurement|LOINC|LOINC Class|C|DOC.EPSOS|01.01.1970|31.12.2099|
+|Miscellaneous documentation|Measurement|LOINC|LOINC Class|C|DOC.MISC|01.01.1970|31.12.2099|
+|Public health documentation|Measurement|LOINC|LOINC Class|C|DOC.PUBLICHEALTH|01.01.1970|31.12.2099|
+|Quality documents|Measurement|LOINC|LOINC Class|C|DOC.QUALITY|01.01.1970|31.12.2099|
+|Referral documentation|Measurement|LOINC|LOINC Class|C|DOC.REF|01.01.1970|31.12.2099|
+|Clinical trial protocol document|Measurement|LOINC|LOINC Class|C|DOC.REF.CTP|01.01.1970|31.12.2099|
+|Regulatory documentation|Measurement|LOINC|LOINC Class|C|DOCUMENT.REGULATORY|01.01.1970|31.12.2099|
+|Emergency (DEEDS)|Measurement|LOINC|LOINC Class|C|ED|01.01.1970|31.12.2099|
+|Electrocardiogram|Measurement|LOINC|LOINC Class|C|EKG|01.01.1970|31.12.2099|
+|Electrocardiogram atomic|Measurement|LOINC|LOINC Class|C|EKG.ATOM|01.01.1970|31.12.2099|
+|Electrocardiogram impression|Measurement|LOINC|LOINC Class|C|EKG.IMP|01.01.1970|31.12.2099|
+|Electrocardiogram measures|Measurement|LOINC|LOINC Class|C|EKG.MEAS|01.01.1970|31.12.2099|
+|Gastrointestinal endoscopy|Measurement|LOINC|LOINC Class|C|ENDO.GI|01.01.1970|31.12.2099|
+|Eye|Measurement|LOINC|LOINC Class|C|EYE|01.01.1970|31.12.2099|
+|Ophthalmology contact lens|Measurement|LOINC|LOINC Class|C|EYE.CONTACT_LENS|01.01.1970|31.12.2099|
+|Ophthalmology glasses: Lens manufacturer (LM) & Prescription|Measurement|LOINC|LOINC Class|C|EYE.GLASSES|01.01.1970|31.12.2099|

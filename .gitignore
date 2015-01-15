@@ -1,7 +1,4 @@
 *.log
-/LOINC/*.xlsx
-/LOINC/*.CSV
-/LOINC/*.csv
 /UMLS/*.gz
 34-ICD10CM/*.txt
 34-ICD10CM/*.bad

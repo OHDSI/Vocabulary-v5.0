@@ -227,7 +227,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
      WHERE SHORTNAME IS NOT NULL);
 COMMIT;
 
---10 Add more Loinc concepts and relationships
+--10 Adding Loinc Answer codes
 INSERT INTO concept_stage (concept_id,
                            concept_name,
                            domain_id,
@@ -241,13 +241,7 @@ INSERT INTO concept_stage (concept_id,
    SELECT DISTINCT
           NULL AS concept_id,
           DisplayText AS concept_name,
-          CASE CLASSTYPE
-             WHEN '1' THEN 'Measurement'
-             WHEN '2' THEN 'Measurement'
-             WHEN '3' THEN 'Observation'
-             WHEN '4' THEN 'Observation'
-          END
-             AS domain_id,
+          'Meas Value' AS domain_id,
           'LOINC' AS vocabulary_id,
           'LOINC Answer' AS concept_class_id,
           'S' AS standard_concept,

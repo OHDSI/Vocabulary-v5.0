@@ -89,12 +89,10 @@ INSERT INTO concept_stage (concept_id,
     WHERE v.vocabulary_id = 'LOINC';
 COMMIT;					  
 
---4 create classes from xlsx
-create table concept_stage_LOINC_tmp as select * from concept_stage where 1=0;
---load data from xlsx, remove empty lines, then
-insert into concept_stage select * From concept_stage_LOINC_tmp;
+--4 Load classes from loinc_class directly into concept_stage
+INSERT INTO concept_stage SELECT * FROM loinc_class;
 COMMIT;
-DROP table concept_stage_LOINC_tmp purge;
+
 
 --5 Add LOINC hierarchy
 INSERT INTO concept_stage (concept_id,

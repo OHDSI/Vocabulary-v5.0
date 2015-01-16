@@ -278,7 +278,12 @@ INSERT INTO concept_relationship_stage (concept_id_1,
     WHERE AnswerStringID IS NOT NULL;
 COMMIT;	
 
---12 Reinstate constraints and indices
+--12 Update concept_id in concept_stage from concept for existing concepts
+UPDATE concept_stage cs
+    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
+    WHERE cs.concept_id IS NULL;
+
+--13 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

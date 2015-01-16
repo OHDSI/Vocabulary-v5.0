@@ -629,7 +629,7 @@ BEGIN
    -- Seed the table by loading all first-level (parent-child) relationships
 
    EXECUTE IMMEDIATE
-      'create table snomed_ancestor_calc as
+      'create table snomed_ancestor_calc NOLOGGING as
     select 
       r.concept_code_1 as ancestor_concept_code,
       r.concept_code_2 as descendant_concept_code,
@@ -645,7 +645,7 @@ BEGIN
       -- create all new combinations
 
       EXECUTE IMMEDIATE
-         'create table new_snomed_ancestor_calc as
+         'create table new_snomed_ancestor_calc NOLOGGING as
         select 
             uppr.ancestor_concept_code,
             lowr.descendant_concept_code,
@@ -662,7 +662,7 @@ BEGIN
       -- Shrink and pick the shortest path for min_levels_of_separation, and the longest for max
 
       EXECUTE IMMEDIATE
-         'create table snomed_ancestor_calc as
+         'create table snomed_ancestor_calc NOLOGGING as
         select 
             ancestor_concept_code,
             descendant_concept_code,
@@ -694,7 +694,7 @@ BEGIN
       ELSIF vCnt = vCnt_old
       THEN
          EXECUTE IMMEDIATE
-            'create table snomed_ancestor_calc_bkp as select * from snomed_ancestor_calc ';
+            'create table snomed_ancestor_calc_bkp NOLOGGING as select * from snomed_ancestor_calc ';
 
          vIsOverLoop := TRUE;
       END IF;

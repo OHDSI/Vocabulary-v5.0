@@ -134,4 +134,10 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'Read';
 COMMIT;
 
---7------ run Vocabulary-v5.0\generic_update.sql ---------------
+--7 Update concept_id in concept_stage from concept for existing concepts
+UPDATE concept_stage cs
+    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
+    WHERE cs.concept_id IS NULL;
+
+
+--8------ run Vocabulary-v5.0\generic_update.sql ---------------

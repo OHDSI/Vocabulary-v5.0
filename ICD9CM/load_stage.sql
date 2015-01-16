@@ -52,7 +52,43 @@ INSERT INTO concept_stage (concept_id,
      FROM CMS_DESC_LONG_DX;
 COMMIT;					  
 
---4 load into concept_synonym_stage name from both CMS_DESC_LONG_DX.txt and CMS_DESC_SHORT_DX
+--4 Add codes which are not in the CMS_DESC_LONG_DX table
+INSERT INTO concept_stage (concept_id,
+                           concept_name,
+                           domain_id,
+                           vocabulary_id,
+                           concept_class_id,
+                           standard_concept,
+                           concept_code,
+                           valid_start_date,
+                           valid_end_date,
+                           invalid_reason)
+   SELECT NULL AS concept_id,
+          SUBSTR (str, 1, 256) AS concept_name,
+          NULL AS domain_id,
+          'ICD9CM' AS vocabulary_id,
+          'ICD9CM non-bill code' AS concept_class_id,
+          NULL AS standard_concept,
+          code AS concept_code,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'ICD9CM')
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM mrconso
+    WHERE     sab = 'ICD9CM'
+          AND NOT code LIKE '%-%'
+          AND tty = 'HT'
+          AND INSTR (code, '.') != 3 -- Dot in 3rd position in Procedure codes, in UMLS also called ICD9CM
+          AND LENGTH (code) != 2                             -- Procedure code
+          AND code NOT IN (SELECT concept_code
+                             FROM concept_stage
+                            WHERE vocabulary_id = 'ICD9CM')
+          AND suppress = 'N';
+COMMIT;	   
+
+--5 load into concept_synonym_stage name from both CMS_DESC_LONG_DX.txt and CMS_DESC_SHORT_DX
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -78,7 +114,30 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
             SELECT * FROM CMS_DESC_SHORT_DX));
 COMMIT;
 
---5  Load concept_relationship_stage from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
+--6 Add codes which are not in the cms_desc_long_dx table as a synonym
+INSERT INTO concept_synonym_stage (synonym_concept_id,
+                                   synonym_concept_code,
+                                   synonym_name,
+                                   synonym_vocabulary_id,
+                                   language_concept_id)
+   SELECT NULL AS synonym_concept_id,
+          code AS synonym_concept_code,
+          SUBSTR (str, 1, 256) AS synonym_name,
+          'ICD9CM' AS vocabulary_id,
+          4093769 AS language_concept_id                            -- English
+     FROM mrconso
+    WHERE     sab = 'ICD9CM'
+          AND NOT code LIKE '%-%'
+          AND tty = 'HT'
+          AND INSTR (code, '.') != 3 -- Dot in 3rd position in Procedure codes, in UMLS also called ICD9CM
+          AND LENGTH (code) != 2                             -- Procedure code
+          AND code NOT IN (SELECT concept_code
+                             FROM concept_stage
+                            WHERE vocabulary_id = 'ICD9CM')
+          AND suppress = 'N';
+COMMIT;	  
+
+--7  Load concept_relationship_stage from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
 INSERT INTO concept_relationship_stage (concept_id_1,
                                         concept_id_2,
                                         concept_code_1,
@@ -106,11 +165,11 @@ INSERT INTO concept_relationship_stage (concept_id_1,
           )
           AND C2.CONCEPT_ID = r.concept_id_2  
           AND r.invalid_reason IS NULL -- only fresh ones
-          AND r.relatinship_id NOT IN ('Domain subsumes', 'Is domain') 
+          AND r.relationship_id NOT IN ('Domain subsumes', 'Is domain') 
 ;
 COMMIT;		  
 
---6 Create text for Medical Coder with new codes and mappings
+--8 Create text for Medical Coder with new codes and mappings
 SELECT NULL AS concept_id_1,
        NULL AS concept_id_2,
        c.concept_code AS concept_code_1,
@@ -149,14 +208,14 @@ SELECT NULL AS concept_id_1,
                 WHERE     co.concept_code = c.concept_code
                       AND co.vocabulary_id = 'ICD9CM'); -- only new codes we don't already have
 
---7 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--9 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 
---8 Update concept_id in concept_stage from concept for existing concepts
+--10 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---9 Reinstate constraints and indices
+--11 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

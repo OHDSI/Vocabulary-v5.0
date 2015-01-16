@@ -83,26 +83,31 @@ INSERT INTO concept_relationship_stage (concept_id_1,
                                         concept_id_2,
                                         concept_code_1,
                                         concept_code_2,
-                                        relationship_id,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
+                                        relationship_id,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
    SELECT NULL AS concept_id_1,
           NULL AS concept_id_2,
-          c.concept_code AS concept_code_1,
-          c1.concept_code AS concept_code_2,
+          c1.concept_code AS concept_code_1,
+          c2.concept_code AS concept_code_2,
+          c1.vocabulary_id AS vocabulary_id_1,
+          c2.vocabulary_id AS vocabulary_id_2,
           r.relationship_id AS relationship_id,
-          c.vocabulary_id AS vocabulary_id_1,
-          c1.vocabulary_id AS vocabulary_id_2,
           r.valid_start_date,
           r.valid_end_date,
           r.invalid_reason
-     FROM concept_relationship r, concept c, concept c1
-    WHERE     c.concept_id = r.concept_id_1
-          AND c.vocabulary_id = 'ICD9CM'
-          AND C1.CONCEPT_ID = r.concept_id_2;  
+     FROM concept_relationship r, concept c1, concept c2
+    WHERE     c1.concept_id = r.concept_id_1
+          AND (
+              c1.vocabulary_id = 'ICD9CM' OR c2.vocabulary_id = 'ICD9CM'
+          )
+          AND C2.CONCEPT_ID = r.concept_id_2  
+          AND r.invalid_reason IS NULL -- only fresh ones
+          AND r.relatinship_id NOT IN ('Domain subsumes', 'Is domain') 
+;
 COMMIT;		  
 
 --6 Create text for Medical Coder with new codes and mappings
@@ -146,7 +151,12 @@ SELECT NULL AS concept_id_1,
 
 --7 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 
---8 Reinstate constraints and indices
+--8 Update concept_id in concept_stage from concept for existing concepts
+UPDATE concept_stage cs
+    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
+    WHERE cs.concept_id IS NULL;
+
+--9 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

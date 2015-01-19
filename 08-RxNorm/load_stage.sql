@@ -41,7 +41,7 @@ INSERT INTO concept_stage (concept_name,
           CASE tty -- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
                   WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
           rxcui,                                    -- the code used in RxNorm
-          (select latest_update From vocabulary where vocabulary_id='RxNorm'),
+          (SELECT latest_update FROM vocabulary WHERE vocabulary_id='RxNorm'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
      FROM rxnconso
@@ -84,13 +84,13 @@ INSERT INTO concept_stage (concept_name,
     WHERE sab = 'RXNORM' AND tty IN ('BPCK', 'GPCK');
 COMMIT;	
 	
---4. Add synonyms
+--4. Add synonyms - for all classes except the packs (they use code as concept_code)
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
                                    synonym_vocabulary_id,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4093769                    -- English
+   SELECT NULL ,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4093769                    -- English
      FROM rxnconso r
           JOIN concept_stage c
              ON     c.concept_code = r.rxcui
@@ -99,6 +99,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
     WHERE sab = 'RXNORM' AND tty = 'SY'
 	AND c.vocabulary_id='RxNorm';
 
+-- Add synonyms for packs
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -116,7 +117,9 @@ COMMIT;
 --5 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
-    WHERE cs.concept_id IS NULL;
+    WHERE cs.concept_id IS NULL
+;
+COMMIT;
 
 --6 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;

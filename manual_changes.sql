@@ -574,6 +574,16 @@ insert into concept_relationship select * from res;
 drop table rby purge;
 drop table res purge;
 
+-- Add new concept classes for non-billing codes in ICD9CM and ICD9Proc
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ICD9CM non-billable code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('ICD9CM non-bill code', 'ICD9CM non-billable code', (select concept_id from concept where concept_name='ICD9CM non-billable code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ICD9Proc non-billable code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('ICD9Proc non-bill', 'ICD9Proc non-billable code', (select concept_id from concept where concept_name='ICD9Proc non-billable code'));
+
 commit;
 
 -- Not done yet:

@@ -170,8 +170,10 @@ AND c.vocabulary_id = 'ICD9Proc';
 --10 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
-    WHERE cs.concept_id IS NULL;
+    WHERE cs.concept_id IS NULL
+;
 
+COMMIT;
 
 --11 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;

@@ -22,6 +22,7 @@ AND CASE
   WHEN c.vocabulary_id = 'LOINC' THEN 0
   WHEN c.vocabulary_id = 'ICD9CM' THEN 1
   WHEN c.vocabulary_id = 'ICD9Proc' THEN 1
+  WHEN c.vocabulary_id = 'RxNorm' THEN 1
   ELSE 0
 END = 1
 ;
@@ -30,7 +31,7 @@ COMMIT;
 
 -- 2. Deprecate concepts missing from concept_stage and are not already deprecated. This is only for full updates without explicit deprecations.
 UPDATE concept c SET
-c.valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id=c.vocabulary_id), -- set invalid_reason depending on the existence of replace relationship
+c.valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id=c.vocabulary_id) -- set invalid_reason depending on the existence of replace relationship
 WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id=c.concept_id AND cs.vocabulary_id=c.vocabulary_id)
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL)
 AND c.invalid_reason IS NULL
@@ -40,6 +41,7 @@ AND CASE
   WHEN c.vocabulary_id = 'LOINC' THEN 0
   WHEN c.vocabulary_id = 'ICD9CM' THEN 1
   WHEN c.vocabulary_id = 'ICD9Proc' THEN 1
+  WHEN c.vocabulary_id = 'RxNorm' THEN 1
   ELSE 0
 END = 1
 ;

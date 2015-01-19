@@ -66,7 +66,7 @@ INSERT INTO concept_stage (concept_id,
              AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
-     FROM mrconso
+     FROM UMLS.mrconso
     WHERE     sab = 'ICD9CM'
           AND tty = 'HT'
           AND (INSTR (code, '.') = 3 OR -- Dot in 3rd position in Procedure codes, in UMLS also called ICD9CM
@@ -107,7 +107,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           SUBSTR (str, 1, 256) AS synonym_name,
           'ICD9Proc' AS vocabulary_id,
           4093769 AS language_concept_id                            -- English
-     FROM mrconso
+     FROM UMLS.mrconso
     WHERE     sab = 'ICD9CM'
           AND tty = 'HT'
           AND (INSTR (code, '.') = 3 OR -- Dot in 3rd position in Procedure codes, in UMLS also called ICD9CM

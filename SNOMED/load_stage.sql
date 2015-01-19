@@ -70,7 +70,7 @@ INSERT  /*+ APPEND */  INTO concept_stage (concept_name,
                                 'SB', 8,
                                 10            -- default for the obsolete ones
                               )) as concept_name
-             FROM mrconso
+             FROM UMLS.mrconso
             WHERE sab = 'SNOMEDCT_US'
               AND tty in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
         ) umls
@@ -277,7 +277,7 @@ INSERT  /*+ APPEND */  INTO concept_synonym_stage (synonym_concept_id,
           'SNOMED',
           SUBSTR (m.str, 1, 1000),
           4093769 -- English
-     FROM mrconso m
+     FROM UMLS.mrconso m
     WHERE m.sab = 'SNOMEDCT_US' AND m.tty in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
 ;
 COMMIT;

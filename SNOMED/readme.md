@@ -2,6 +2,7 @@ Update of SNOMED
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
+- Schema UMLS
 - Working directory SNOMED.
 
 1. Run create_source_tables.sql
@@ -28,14 +29,8 @@ and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT2_
 Remove date from file name.
 10. Load them into der2_cRefset_AssRefFull_INT and der2_cRefset_AssRefFull_UK.
 
-11. download YYYYab-1-meta.nlm (for example 2014ab-1-meta.nlm) from http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html.
-Unpack MRCONSO.RRF.aa.gz and MRCONSO.RRF.ab.gz, then run:
---gunzip *.gz
---cat MRCONSO.RRF.aa MRCONSO.RRF.ab > MRCONSO.RRF
-12. Load MRCONSO.RRF into MRCONSO
+11. Run load_stage.sql
 
-13. Run load_stage.sql
-
-14. Run generic_update.sql (from root directory)
+12. Run generic_update.sql (from root directory)
 
  

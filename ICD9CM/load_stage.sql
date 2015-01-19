@@ -76,7 +76,7 @@ INSERT INTO concept_stage (concept_id,
              AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
-     FROM mrconso
+     FROM UMLS.mrconso
     WHERE     sab = 'ICD9CM'
           AND NOT code LIKE '%-%'
           AND tty = 'HT'
@@ -125,7 +125,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           SUBSTR (str, 1, 256) AS synonym_name,
           'ICD9CM' AS vocabulary_id,
           4093769 AS language_concept_id                            -- English
-     FROM mrconso
+     FROM UMLS.mrconso
     WHERE     sab = 'ICD9CM'
           AND NOT code LIKE '%-%'
           AND tty = 'HT'
@@ -183,7 +183,7 @@ SELECT NULL AS concept_id_1,
        LEFT JOIN
        (                                          -- UMLS record for ICD9 code
         SELECT DISTINCT cui, scui
-          FROM mrconso
+          FROM UMLS.mrconso
          WHERE sab = 'ICD9CM' AND suppress NOT IN ('E', 'O', 'Y')) u1
           ON u1.scui = concept_code                  -- join UMLS for code one
        LEFT JOIN
@@ -196,7 +196,7 @@ SELECT NULL AS concept_id_1,
                OVER (PARTITION BY scui
                      ORDER BY DECODE (tty,  'PT', 1,  'PTGB', 2,  10))
                   AS str
-          FROM mrconso
+          FROM UMLS.mrconso
          WHERE sab IN ('SNOMEDCT_US') AND suppress NOT IN ('E', 'O', 'Y')) u2
           ON u2.cui = u1.cui
        LEFT JOIN concept sno

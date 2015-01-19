@@ -42,7 +42,7 @@ INSERT INTO concept_stage (concept_id,
              AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
-     FROM mrconso
+     FROM UMLS.mrconso
     WHERE     sab IN ('CPT', 'HCPT')
           AND suppress NOT IN ('E', 'O', 'Y')
           AND tty NOT IN ('HT', 'MP');
@@ -74,7 +74,7 @@ INSERT INTO concept_stage (concept_id,
              AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
-     FROM mrconso
+     FROM UMLS.mrconso
     WHERE     sab IN ('CPT', 'HCPT')
           AND suppress NOT IN ('E', 'O', 'Y')
           AND tty = 'MP';
@@ -103,7 +103,7 @@ INSERT INTO concept_stage (concept_id,
                       AS valid_start_date,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
-     FROM mrconso
+     FROM UMLS.mrconso
     WHERE     sab IN ('CPT', 'HCPT')
           AND suppress NOT IN ('E', 'O', 'Y')
           AND tty = 'HT';
@@ -128,7 +128,7 @@ UPDATE concept_stage cs
                    scui AS synonym_concept_code,
                    SUBSTR (str, 1, 1000) AS synonym_name,
                    4093769 AS language_concept_id
-     FROM mrconso
+     FROM UMLS.mrconso
     WHERE sab IN ('CPT', 'HCPT') AND suppress NOT IN ('E', 'O', 'Y');
 COMMIT;	
 
@@ -277,7 +277,7 @@ UPDATE concept_stage c1
                 AS (SELECT DISTINCT TO_DATE (dt, 'yyyymmdd') dt, concept_code
                       FROM (SELECT TO_CHAR (s.atv) dt, c.concept_code
                               FROM concept_stage c
-                                   LEFT JOIN mrconso m
+                                   LEFT JOIN UMLS.mrconso m
                                       ON     m.scui = c.concept_code
                                          AND m.sab in ('CPT', 'HCPT')
                                    LEFT JOIN mrsat s
@@ -302,7 +302,7 @@ UPDATE concept_stage c1
               (SELECT 1 concept_code
                  FROM (SELECT TO_CHAR (s.atv) dt, c.concept_code
                          FROM concept_stage c
-                              LEFT JOIN mrconso m
+                              LEFT JOIN UMLS.mrconso m
                                  ON m.scui = c.concept_code AND m.sab in ('CPT', 'HCPT')
                               LEFT JOIN mrsat s
                                  ON s.cui = m.cui AND s.atn = 'DA'

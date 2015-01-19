@@ -166,7 +166,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
           TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
           NULL AS invalid_reason
-     FROM concept_stage_LOINC_tmp l1, concept_stage_LOINC_tmp l2
+     FROM LOINC_CLASS l1, LOINC_CLASS l2
     WHERE     l1.concept_code LIKE l2.concept_code || '%'
           AND l1.concept_code <> l2.concept_code;
 COMMIT;
@@ -192,7 +192,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
           TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
           NULL AS invalid_reason
-     FROM concept_stage_LOINC_tmp lc, loinc l
+     FROM LOINC_CLASS lc, loinc l
     WHERE lc.concept_code = l.class;
 COMMIT;
 	

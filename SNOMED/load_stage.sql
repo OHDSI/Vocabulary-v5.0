@@ -568,7 +568,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
 ;
 COMMIT;
 
--- 10. start building the hierarchy (snomed-only)
+-- 12. start building the hierarchy (snomed-only)
 DECLARE
    vCnt          INTEGER;
    vCnt_old      INTEGER;
@@ -733,15 +733,15 @@ BEGIN
    EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc_bkp purge';
 END;
 
---11. Create domain_id
--- 11.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
+--13. Create domain_id
+-- 13.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
 CREATE TABLE peak (
 	peak_code VARCHAR(20), --the id of the top ancestor
 	peak_domain_id VARCHAR(20), -- the domain to assign to all its children
 	ranked INTEGER -- number for the order in which to assign
 );
 
--- 11.2 Fill in the various peak concepts
+-- 13.2 Fill in the various peak concepts
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (138875005, 'Metadata'); -- root
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (900000000000441003, 'Metadata'); -- SNOMED CT Model Component
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (105590001, 'Observation'); -- Substances
@@ -931,7 +931,7 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (6811007, 'Observation'); --
 
 COMMIT;
 
--- 11.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
+-- 13.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 -- The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
 -- This could go wrong if a parallel fork happens
@@ -958,7 +958,7 @@ UPDATE peak
 
 COMMIT;
 
--- 11.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
+-- 13.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
 -- This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
 -- The result should say "0 rows inserted"
 INSERT INTO peak -- before doing that check first out without the insert
@@ -997,7 +997,7 @@ INSERT INTO peak -- before doing that check first out without the insert
           AND c.vocabulary_id='SNOMED';
 COMMIT;
 
--- 11.5. Build domains, preassign all them with "Not assigned"
+-- 13.5. Build domains, preassign all them with "Not assigned"
 CREATE TABLE domain_snomed
 AS
    SELECT concept_code, CAST ('Not assigned' AS VARCHAR2(20)) AS domain_id
@@ -1107,7 +1107,7 @@ UPDATE domain_snomed d
 
 COMMIT;
 
--- 11.6. Update concept_stage from newly created domains.
+-- 13.6. Update concept_stage from newly created domains.
 CREATE INDEX idx_domain_cc
    ON domain_snomed (concept_code);
    
@@ -1118,7 +1118,7 @@ UPDATE concept_stage c
             WHERE d.concept_code = c.concept_code)
  WHERE c.vocabulary_id = 'SNOMED';
 
--- 11.7. Make manual changes according to rules
+-- 13.7. Make manual changes according to rules
 -- Create Route of Administration
 UPDATE concept_stage
    SET domain_id = 'Route'
@@ -1200,7 +1200,7 @@ UPDATE concept_stage
 
 COMMIT;
 
--- 11.8. Set standard_concept based on domain_id
+-- 13.8. Set standard_concept based on domain_id
 UPDATE concept_stage
    SET standard_concept =
           CASE domain_id
@@ -1226,7 +1226,7 @@ WHERE vocabulary_id = 'SNOMED'
 
 COMMIT;
 
--- 13. Update concept_id in concept_stage from concept for existing concepts
+-- 14. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;

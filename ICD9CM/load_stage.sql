@@ -210,12 +210,83 @@ SELECT NULL AS concept_id_1,
 
 --9 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 
---10 Update concept_id in concept_stage from concept for existing concepts
+--10 update domain_id for Read from SNOMED
+--create temporary table ICD9CM_domain
+--if domain_id is empty we use previous and next domain_id or its combination
+create table ICD9CM_domain NOLOGGING as
+    select concept_code, 
+    case when domain_id is not null then domain_id 
+    else 
+        case when prev_domain=next_domain then prev_domain --prev and next domain are the same (and of course not null both)
+            when prev_domain is not null and next_domain is not null then  
+                case when prev_domain<next_domain then prev_domain||'/'||next_domain 
+                else next_domain||'/'||prev_domain 
+                end -- prev and next domain are not same and not null both, with order by name
+            else coalesce (prev_domain,next_domain,
+                case concept_class_id
+                    when 'ICD9CM E code' then 'Observation'
+                    else 'Condition'
+                end
+            )
+        end
+    end domain_id
+    from (
+        with filled_domain as
+        (
+            select c1.concept_code, c2.domain_id
+            FROM concept_relationship_stage r, concept_stage c1, concept c2
+            WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
+            AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
+            AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
+        )
+
+        select c1.concept_code, c2.domain_id, c1.concept_class_id,
+            (select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and c2.domain_id is null) prev_domain,
+            (select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and c2.domain_id is null) next_domain
+        from concept_stage c1
+        left join concept_relationship_stage r on r.concept_code_1=c1.concept_code and r.vocabulary_id_1=c1.vocabulary_id
+        left join concept c2 on c2.concept_code=r.concept_code_2 and r.vocabulary_id_2=c2.vocabulary_id and c2.vocabulary_id='SNOMED'
+        where c1.vocabulary_id='ICD9CM'
+    );
+    
+CREATE INDEX idx_ICD9CM_domain ON ICD9CM_domain (concept_code);
+
+--11. Simplify the list by removing Observations
+update ICD9CM_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
+where '/'||domain_id||'/' like '%/Observation/%'
+and instr(domain_id,'/')<>0;
+
+--reducing some domain_id if his length>20
+update ICD9CM_domain set domain_id='Meas/Procedure' where domain_id='Measurement/Procedure';
+update ICD9CM_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
+
+COMMIT;
+
+/*check for new domains (must not return any rows!)
+
+select domain_id from ICD9CM_domain 
+minus
+select domain_id from domain;
+*/
+
+--12. update each domain_id with the domains field from read_domain.
+UPDATE concept_stage c
+   SET (domain_id) =
+          (SELECT domain_id
+             FROM read_domain rd
+            WHERE rd.concept_code = c.concept_code)
+ WHERE c.vocabulary_id = 'ICD9CM';
+COMMIT;
+
+--13 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---11 Reinstate constraints and indices
+--14. Clean up
+DROP TABLE ICD9CM_domain PURGE;
+	
+--15 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

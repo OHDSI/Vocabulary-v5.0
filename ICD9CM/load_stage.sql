@@ -231,25 +231,30 @@ create table ICD9CM_domain NOLOGGING as
         end
     end domain_id
     from (
-        with filled_domain as
-        (
-            select c1.concept_code, c2.domain_id
-            FROM concept_relationship_stage r, concept_stage c1, concept c2
-            WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-            AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
-            AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
-        )
+		with filled_domain as
+			(
+				select c1.concept_code, c2.domain_id
+				FROM concept_relationship_stage r, concept_stage c1, concept c2
+				WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
+				AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
+				AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
+			)
 
-        select c1.concept_code, c2.domain_id, c1.concept_class_id,
-            (select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and c2.domain_id is null) prev_domain,
-            (select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and c2.domain_id is null) next_domain
-        from concept_stage c1
-        left join concept_relationship_stage r on r.concept_code_1=c1.concept_code and r.vocabulary_id_1=c1.vocabulary_id
-        left join concept c2 on c2.concept_code=r.concept_code_2 and r.vocabulary_id_2=c2.vocabulary_id and c2.vocabulary_id='SNOMED'
-        where c1.vocabulary_id='ICD9CM'
+			select c1.concept_code, r1.domain_id, c1.concept_class_id,
+				(select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and r1.domain_id is null) prev_domain,
+				(select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and r1.domain_id is null) next_domain
+			from concept_stage c1
+			left join (
+				select r.concept_code_1, r.vocabulary_id_1, c2.domain_id from concept_relationship_stage r, concept c2 
+				where c2.concept_code=r.concept_code_2 
+				and r.vocabulary_id_2=c2.vocabulary_id 
+				and c2.vocabulary_id='SNOMED'
+			) r1 on r1.concept_code_1=c1.concept_code and r1.vocabulary_id_1=c1.vocabulary_id
+			where c1.vocabulary_id='ICD9CM'
     );
-    
-CREATE INDEX idx_ICD9CM_domain ON ICD9CM_domain (concept_code);
+
+-- INDEX was set as UNIQUE to prevent concept_code duplication
+CREATE UNIQUE INDEX idx_ICD9CM_domain ON ICD9CM_domain (concept_code) NOLOGGING;
 
 --11. Simplify the list by removing Observations
 update ICD9CM_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))

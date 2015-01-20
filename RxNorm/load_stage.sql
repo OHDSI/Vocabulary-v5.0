@@ -114,14 +114,154 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
 	AND c.vocabulary_id='RxNorm';
 COMMIT;	
 
---5 Update concept_id in concept_stage from concept for existing concepts
+--5 Add relationships
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT rxcui1 AS concept_code_1,
+          rxcui2 AS concept_code_2,
+          'RxNorm' AS vocabulary_id_1,
+          'RxNorm' AS vocabulary_id_2,
+          CASE
+             WHEN rela = 'has_precise_ingredient' THEN 'Has precise ing'
+             WHEN rela = 'has_tradename' THEN 'Has tradename'
+             WHEN rela = 'has_dose_form' THEN 'RxNorm has dose form'
+             WHEN rela = 'has_form' THEN 'Has form' -- links Ingredients to Precise Ingredients
+             WHEN rela = 'has_ingredient' THEN 'RxNorm has ing'
+             WHEN rela = 'constitutes' THEN 'Constitutes'
+             WHEN rela = 'contains' THEN 'Contains'
+             WHEN rela = 'reformulated_to' THEN 'Reformulated to'
+             WHEN rela = 'inverse_isa' THEN 'RxNorm subsumes'
+             WHEN rela = 'has_quantified_form' THEN 'Has quantified form'
+             ELSE rela--'non-existing'
+          END
+             AS relationship_id,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'RxNorm')
+             AS valid_start_date,
+          TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM (SELECT rxcui1, rxcui2, rela
+             FROM dev_timur_rxnorm.rxnrel
+            WHERE     sab = 'RXNORM'
+                  AND rxcui1 IS NOT NULL
+                  AND rxcui2 IS NOT NULL
+                  AND EXISTS
+                         (SELECT 1
+                            FROM concept
+                           WHERE     vocabulary_id = 'RxNorm'
+                                 AND concept_code = rxcui1
+                          UNION ALL
+                          SELECT 1
+                            FROM concept_stage
+                           WHERE     vocabulary_id = 'RxNorm'
+                                 AND concept_code = rxcui1)
+                  AND EXISTS
+                         (SELECT 1
+                            FROM concept
+                           WHERE     vocabulary_id = 'RxNorm'
+                                 AND concept_code = rxcui2
+                          UNION ALL
+                          SELECT 1
+                            FROM concept_stage
+                           WHERE     vocabulary_id = 'RxNorm'
+                                 AND concept_code = rxcui2));
+COMMIT;
+
+--6 Add upgrade relationships
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT rxcui AS concept_code_1,
+          merged_to_rxcui AS concept_code_2,
+          'RxNorm' AS vocabulary_id_1,
+          'RxNorm' AS vocabulary_id_2,
+          'Replaced by' AS relationship_id,
+          latest_update AS valid_start_date,
+          TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM dev_timur_rxnorm.rxnatomarchive, vocabulary
+    WHERE     sab = 'RXNORM'
+          AND vocabulary_id = 'RxNorm'
+          AND tty IN ('IN',
+                      'DF',
+                      'SCDC',
+                      'SCDF',
+                      'SCD',
+                      'BN',
+                      'SBDC',
+                      'SBDF',
+                      'SBD')
+          AND rxcui <> merged_to_rxcui
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM concept
+                   WHERE vocabulary_id = 'RxNorm' AND concept_code = rxcui
+                  UNION ALL
+                  SELECT 1
+                    FROM concept_stage
+                   WHERE vocabulary_id = 'RxNorm' AND concept_code = rxcui)
+          AND EXISTS
+                 (SELECT 1
+                    FROM concept
+                   WHERE     vocabulary_id = 'RxNorm'
+                         AND concept_code = merged_to_rxcui
+                  UNION ALL
+                  SELECT 1
+                    FROM concept_stage
+                   WHERE     vocabulary_id = 'RxNorm'
+                         AND concept_code = merged_to_rxcui);
+COMMIT;
+
+--7 Make sure all records are symmetrical and turn if necessary
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT crs.concept_code_2,
+          crs.concept_code_1,
+          crs.vocabulary_id_2,
+          crs.vocabulary_id_1,
+          r.reverse_relationship_id,
+          crs.valid_start_date,
+          crs.valid_end_date,
+          crs.invalid_reason
+     FROM concept_relationship_stage crs
+          JOIN relationship r ON r.relationship_id = crs.relationship_id
+    WHERE NOT EXISTS
+             (                                           -- the inverse record
+              SELECT 1
+                FROM concept_relationship_stage i
+               WHERE     crs.concept_code_1 = i.concept_code_2
+                     AND crs.concept_code_2 = i.concept_code_1
+                     AND crs.vocabulary_id_1 = i.vocabulary_id_2
+                     AND crs.vocabulary_id_2 = i.vocabulary_id_1
+                     AND r.reverse_relationship_id = i.relationship_id);
+COMMIT;					 
+
+--8 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL
 ;
 COMMIT;
 
---6 Reinstate constraints and indices
+--9 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

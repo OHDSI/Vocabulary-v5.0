@@ -584,6 +584,29 @@ values (v5_concept.nextval, 'ICD9Proc non-billable code', 'Metadata', 'Concept C
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
 values ('ICD9Proc non-bill', 'ICD9Proc non-billable code', (select concept_id from concept where concept_name='ICD9Proc non-billable code'));
 
+-- add new relationship RxNorm relationships
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has quantified form (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Has quantified form', 'Has quantified form (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has quantified form (RxNorm)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Quantified form of (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Quantified form of', 'Quantified form of (RxNorm)', 0, 0, 'Has quantified form', (select concept_id from concept where concept_name='Quantified form of (RxNorm)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id='Quantified form of' where relationship_id='Has quantified form';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Is a (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('RxNorm is a', 'Is a (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Is a (RxNorm)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Inverse is a (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('RxNorm inverse is a', 'Inverse is a (RxNorm)', 0, 0, 'RxNorm is a', (select concept_id from concept where concept_name='Inverse is a (RxNorm)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id='RxNorm inverse is a' where relationship_id='RxNorm is a';
+
 commit;
 
 -- Not done yet:

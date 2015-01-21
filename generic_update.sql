@@ -123,8 +123,6 @@ SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id 
        JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
 ;
 
-ALTER TABLE concept_relationship NOLOGGING;
-
 UPDATE concept_relationship d
    SET valid_end_date =
             (SELECT v.latest_update
@@ -168,7 +166,9 @@ DROP TABLE r_coverage PURGE;
 COMMIT;
 
 -- 8. INSERT new relationships
-INSERT INTO concept_relationship (concept_id_1,
+ALTER TABLE concept_relationship NOLOGGING;
+
+INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
                                   concept_id_2,
                                   relationship_id,
                                   valid_start_date,
@@ -238,3 +238,23 @@ AND NOT EXISTS (
  
  COMMIT;
  
+-- 10. UPDATE concept_synonym
+--remove all existing synonyms, except old ones
+DELETE FROM concept_synonym csyn
+      WHERE csyn.concept_id IN (SELECT c.concept_id
+                                  FROM concept c, concept_stage cs
+                                 WHERE     C.CONCEPT_CODE = CS.CONCEPT_CODE
+                                       AND CS.VOCABULARY_ID = C.VOCABULARY_ID);
+
+--add new synonyms for existing concepts
+INSERT INTO concept_synonym (concept_id,
+                             concept_synonym_name,
+                             language_concept_id)
+   SELECT c.concept_id, synonym_name, 4093769
+     FROM concept_synonym_stage css, concept c, concept_stage cs
+    WHERE     css.synonym_concept_code = c.concept_code
+          AND css.synonym_vocabulary_id = c.vocabulary_id
+          AND CS.CONCEPT_CODE = C.CONCEPT_CODE
+          AND CS.VOCABULARY_ID = C.VOCABULARY_ID;
+
+COMMIT;

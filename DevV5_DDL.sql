@@ -1,12 +1,5 @@
 -- Create tables
 
-CREATE TABLE concept_synonym (
-  concept_id            INTEGER            NOT NULL,
-  concept_synonym_name    VARCHAR(1000)    NOT NULL,
-  language_concept_id    INTEGER            NOT NULL
-)
-;
-
 CREATE TABLE concept_ancestor (
   ancestor_concept_id        INTEGER        NOT NULL,
   descendant_concept_id        INTEGER        NOT NULL,
@@ -95,6 +88,7 @@ CREATE TABLE relationship NOLOGGING AS SELECT * FROM v5dev.relationship;
 CREATE TABLE vocabulary NOLOGGING AS SELECT * FROM v5dev.vocabulary;
 CREATE TABLE concept_class NOLOGGING AS SELECT * FROM v5dev.concept_class;
 CREATE TABLE domain NOLOGGING AS SELECT * FROM v5dev.domain;
+CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM v5dev.concept_synonym;
 
 
 -- Create FKs

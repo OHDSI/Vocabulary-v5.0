@@ -57,7 +57,7 @@ CREATE TABLE domain (
   domain_concept_id INTEGER NOT NULL)
 ;
 
-ALTER TABLE vocabulary 
+ALTER TABLE domain 
 	ADD CONSTRAINT XPKdomain_REF PRIMARY KEY (domain_id)
 ;
 

@@ -196,6 +196,7 @@ ALTER TABLE concept_relationship LOGGING;
 
 -- 9. UPDATE invalid_reason
 UPDATE concept SET invalid_reason=NULL WHERE valid_end_date = to_date('31.12.2099','dd.mm.yyyy');
+COMMIT;
 
 UPDATE concept c SET c.invalid_reason='U' 
 WHERE c.valid_end_date <> to_date('31.12.2099','dd.mm.yyyy')
@@ -211,9 +212,10 @@ AND EXISTS (
             'LOINC replaced by',
             'RxNorm replaced by',
             'SNOMED replaced by',
-            'ICD9P replaced by',
+            'ICD9P replaced by'
     )
-;
+);
+COMMIT;
 
 UPDATE concept c SET c.invalid_reason='D'
 WHERE c.valid_end_date <> to_date('31.12.2099','dd.mm.yyyy')
@@ -229,11 +231,10 @@ AND NOT EXISTS (
             'LOINC replaced by',
             'RxNorm replaced by',
             'SNOMED replaced by',
-            'ICD9P replaced by',
+            'ICD9P replaced by'
     )
-;
- 
- COMMIT;
+);
+COMMIT;
  
 -- 10. UPDATE concept_synonym
 --remove all existing synonyms, except old ones

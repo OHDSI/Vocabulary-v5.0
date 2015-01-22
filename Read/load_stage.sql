@@ -69,7 +69,37 @@ INSERT INTO concept_relationship_stage (concept_id_1,
      FROM RCSCTMAP2_UK RSCCT;
 COMMIT;
 
---4. update domain_id for Read from SNOMED
+--4 Make sure all records are symmetrical and turn if necessary
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT crs.concept_code_2,
+          crs.concept_code_1,
+          crs.vocabulary_id_2,
+          crs.vocabulary_id_1,
+          r.reverse_relationship_id,
+          crs.valid_start_date,
+          crs.valid_end_date,
+          crs.invalid_reason
+     FROM concept_relationship_stage crs
+          JOIN relationship r ON r.relationship_id = crs.relationship_id
+    WHERE NOT EXISTS
+             (                                           -- the inverse record
+              SELECT 1
+                FROM concept_relationship_stage i
+               WHERE     crs.concept_code_1 = i.concept_code_2
+                     AND crs.concept_code_2 = i.concept_code_1
+                     AND crs.vocabulary_id_1 = i.vocabulary_id_2
+                     AND crs.vocabulary_id_2 = i.vocabulary_id_1
+                     AND r.reverse_relationship_id = i.relationship_id);
+COMMIT;					 
+
+--5. update domain_id for Read from SNOMED
 --create temporary table read_domain
 --if domain_id is empty we use previous and next domain_id or its combination
 create table read_domain NOLOGGING as
@@ -85,33 +115,36 @@ create table read_domain NOLOGGING as
         end
     end domain_id
     from (
-		with filled_domain as
-			(
-				select c1.concept_code, c2.domain_id
-				FROM concept_relationship_stage r, concept_stage c1, concept c2
-				WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-				AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
-				AND r.vocabulary_id_1='Read' AND r.vocabulary_id_2='SNOMED'
-				AND r.invalid_reason is null
-			)
+			select concept_code, LISTAGG(domain_id, '/') WITHIN GROUP (order by domain_id) domain_id, prev_domain, next_domain, concept_class_id from (
+			with filled_domain as
+						(
+							select c1.concept_code, c2.domain_id
+							FROM concept_relationship_stage r, concept_stage c1, concept c2
+							WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
+							AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
+							AND r.vocabulary_id_1='Read' AND r.vocabulary_id_2='SNOMED'
+							AND r.invalid_reason is null
+						)
 
-			select c1.concept_code, r1.domain_id, c1.concept_class_id,
-				(select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and r1.domain_id is null) prev_domain,
-				(select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and r1.domain_id is null) next_domain
-			from concept_stage c1
-			left join (
-				select r.concept_code_1, r.vocabulary_id_1, c2.domain_id from concept_relationship_stage r, concept c2 
-				where c2.concept_code=r.concept_code_2 
-				and r.vocabulary_id_2=c2.vocabulary_id 
-				and c2.vocabulary_id='SNOMED'
-			) r1 on r1.concept_code_1=c1.concept_code and r1.vocabulary_id_1=c1.vocabulary_id
-			where c1.vocabulary_id='Read'
+						select distinct c1.concept_code, r1.domain_id, c1.concept_class_id,
+							(select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and r1.domain_id is null) prev_domain,
+							(select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and r1.domain_id is null) next_domain
+						from concept_stage c1
+						left join (
+							select r.concept_code_1, r.vocabulary_id_1, c2.domain_id from concept_relationship_stage r, concept c2 
+							where c2.concept_code=r.concept_code_2 
+							and r.vocabulary_id_2=c2.vocabulary_id 
+							and c2.vocabulary_id='SNOMED'
+						) r1 on r1.concept_code_1=c1.concept_code and r1.vocabulary_id_1=c1.vocabulary_id
+						where c1.vocabulary_id='Read'
+			)
+			group by concept_code,prev_domain, next_domain, concept_class_id
     );
 
 -- INDEX was set as UNIQUE to prevent concept_code duplication    
 CREATE UNIQUE INDEX idx_read_domain ON read_domain (concept_code) NOLOGGING;
 
---5. Simplify the list by removing Observations
+--6. Simplify the list by removing Observations
 update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -129,7 +162,7 @@ minus
 select domain_id from domain;
 */
 
---6. update each domain_id with the domains field from read_domain.
+--7. update each domain_id with the domains field from read_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
@@ -138,15 +171,15 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'Read';
 COMMIT;
 
---7. Update concept_id in concept_stage from concept for existing concepts
+--8. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---8. Clean up
+--9. Clean up
 DROP TABLE read_domain PURGE;
 	
---9. Reinstate constraints and indices
+--10. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

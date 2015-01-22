@@ -165,7 +165,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
           )
           AND C2.CONCEPT_ID = r.concept_id_2  
           AND r.invalid_reason IS NULL -- only fresh ones
-          AND r.relationship_id NOT IN ('Domain subsumes', 'Is domain') 
+          AND r.relationship_id NOT IN ('Domain subsumes', 'Is domain', 'Maps to', 'Mapped from') 
 ;
 COMMIT;		  
 
@@ -231,27 +231,30 @@ create table ICD9CM_domain NOLOGGING as
         end
     end domain_id
     from (
-		with filled_domain as
-			(
-				select c1.concept_code, c2.domain_id
-				FROM concept_relationship_stage r, concept_stage c1, concept c2
-				WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-				AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
-				AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
-				AND r.invalid_reason is null
-			)
+			select concept_code, LISTAGG(domain_id, '/') WITHIN GROUP (order by domain_id) domain_id, prev_domain, next_domain, concept_class_id from (
+			with filled_domain as
+						(
+							select c1.concept_code, c2.domain_id
+							FROM concept_relationship_stage r, concept_stage c1, concept c2
+							WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
+							AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
+							AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
+							AND r.invalid_reason is null
+						)
 
-			select c1.concept_code, r1.domain_id, c1.concept_class_id,
-				(select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and r1.domain_id is null) prev_domain,
-				(select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and r1.domain_id is null) next_domain
-			from concept_stage c1
-			left join (
-				select r.concept_code_1, r.vocabulary_id_1, c2.domain_id from concept_relationship_stage r, concept c2 
-				where c2.concept_code=r.concept_code_2 
-				and r.vocabulary_id_2=c2.vocabulary_id 
-				and c2.vocabulary_id='SNOMED'
-			) r1 on r1.concept_code_1=c1.concept_code and r1.vocabulary_id_1=c1.vocabulary_id
-			where c1.vocabulary_id='ICD9CM'
+						select distinct c1.concept_code, r1.domain_id, c1.concept_class_id,
+							(select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and r1.domain_id is null) prev_domain,
+							(select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and r1.domain_id is null) next_domain
+						from concept_stage c1
+						left join (
+							select r.concept_code_1, r.vocabulary_id_1, c2.domain_id from concept_relationship_stage r, concept c2 
+							where c2.concept_code=r.concept_code_2 
+							and r.vocabulary_id_2=c2.vocabulary_id 
+							and c2.vocabulary_id='SNOMED'
+						) r1 on r1.concept_code_1=c1.concept_code and r1.vocabulary_id_1=c1.vocabulary_id
+						where c1.vocabulary_id='ICD9CM'
+			)
+			group by concept_code,prev_domain, next_domain, concept_class_id
     );
 
 -- INDEX was set as UNIQUE to prevent concept_code duplication
@@ -264,8 +267,6 @@ and instr(domain_id,'/')<>0;
 
 --reducing some domain_id if his length>20
 update ICD9CM_domain set domain_id='Meas/Procedure' where domain_id='Measurement/Procedure';
-update ICD9CM_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
-
 COMMIT;
 
 /*check for new domains (must not return any rows!)

@@ -49,7 +49,6 @@ END = 1
 COMMIT;
 
 -- 3. add new concepts from concept_stage
-DROP INDEX idx_concept_code;
 
 DECLARE
  ex NUMBER;
@@ -62,7 +61,7 @@ BEGIN
   END;
 END;
 
-INSERT INTO concept (concept_id,
+INSERT /*+ APPEND */ INTO concept (concept_id,
                      concept_name,
                      domain_id,
                      vocabulary_id,
@@ -84,8 +83,6 @@ INSERT INTO concept (concept_id,
           NULL
      FROM concept_stage cs
     WHERE cs.concept_id IS NULL;
-
-CREATE INDEX idx_concept_code ON concept (concept_code ASC);
 
 DROP SEQUENCE v5_concept;
 
@@ -116,7 +113,7 @@ COMMIT;
 
 -- 5. Deprecate missing relationships, but only if the concepts exist. If relationships are missing because of deprecated concepts, leave them intact.
 -- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 AND relationship_id is present in concept_relationship_stage
-CREATE TABLE r_coverage AS
+CREATE TABLE r_coverage NOLOGGING AS
 SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id as combo
        FROM concept_relationship_stage r
        JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
@@ -161,9 +158,9 @@ UPDATE concept_relationship d
        -- Deal with replacing relationships separately, since they can only have one per deprecated concept
 ;
 
-DROP TABLE r_coverage PURGE;
-
 COMMIT;
+
+DROP TABLE r_coverage PURGE;
 
 -- 8. INSERT new relationships
 ALTER TABLE concept_relationship NOLOGGING;
@@ -247,7 +244,7 @@ DELETE FROM concept_synonym csyn
                                        AND CS.VOCABULARY_ID = C.VOCABULARY_ID);
 
 --add new synonyms for existing concepts
-INSERT INTO concept_synonym (concept_id,
+INSERT /*+ APPEND */ INTO concept_synonym (concept_id,
                              concept_synonym_name,
                              language_concept_id)
    SELECT c.concept_id, synonym_name, 4093769

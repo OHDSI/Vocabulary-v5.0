@@ -238,6 +238,7 @@ create table ICD9CM_domain NOLOGGING as
 				WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
 				AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
 				AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
+				AND r.invalid_reason is null
 			)
 
 			select c1.concept_code, r1.domain_id, c1.concept_class_id,

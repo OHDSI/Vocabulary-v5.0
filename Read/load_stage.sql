@@ -69,8 +69,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
      FROM RCSCTMAP2_UK RSCCT;
 COMMIT;
 
---4. load SNOMED\load_stage.sql
---5. update domain_id for Read from SNOMED
+--4. update domain_id for Read from SNOMED
 --create temporary table read_domain
 --if domain_id is empty we use previous and next domain_id or its combination
 create table read_domain NOLOGGING as
@@ -93,6 +92,7 @@ create table read_domain NOLOGGING as
 				WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
 				AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
 				AND r.vocabulary_id_1='Read' AND r.vocabulary_id_2='SNOMED'
+				AND r.invalid_reason is null
 			)
 
 			select c1.concept_code, r1.domain_id, c1.concept_class_id,
@@ -111,7 +111,7 @@ create table read_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication    
 CREATE UNIQUE INDEX idx_read_domain ON read_domain (concept_code) NOLOGGING;
 
---6. Simplify the list by removing Observations
+--5. Simplify the list by removing Observations
 update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -129,7 +129,7 @@ minus
 select domain_id from domain;
 */
 
---7. update each domain_id with the domains field from read_domain.
+--6. update each domain_id with the domains field from read_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
@@ -138,15 +138,15 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'Read';
 COMMIT;
 
---8. Update concept_id in concept_stage from concept for existing concepts
+--7. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---9. Clean up
+--8. Clean up
 DROP TABLE read_domain PURGE;
 	
---10. Reinstate constraints and indices
+--9. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

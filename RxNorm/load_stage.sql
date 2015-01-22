@@ -115,7 +115,9 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
 COMMIT;	
 
 --5 Add relationships
-INSERT INTO concept_relationship_stage (concept_code_1,
+ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
+
+INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -135,10 +137,20 @@ INSERT INTO concept_relationship_stage (concept_code_1,
              WHEN rela = 'has_ingredient' THEN 'RxNorm has ing'
              WHEN rela = 'constitutes' THEN 'Constitutes'
              WHEN rela = 'contains' THEN 'Contains'
-             WHEN rela = 'reformulated_to' THEN 'Reformulated to'
-             WHEN rela = 'inverse_isa' THEN 'RxNorm subsumes'
+             WHEN rela = 'reformulated_to' THEN 'Reformulated in'
+             WHEN rela = 'inverse_isa' THEN 'RxNorm inverse is a'
              WHEN rela = 'has_quantified_form' THEN 'Has quantified form'
-             ELSE rela--'non-existing'
+             WHEN rela = 'consists_of' THEN 'Consists of'
+             WHEN rela = 'ingredient_of' THEN 'RxNorm ing of'
+             WHEN rela = 'precise_ingredient_of' THEN 'Precise ing of'
+             WHEN rela = 'dose_form_of' THEN 'Dose form of'
+             WHEN rela = 'isa' THEN 'Is a'
+             WHEN rela = 'contained_in' THEN 'Contained in'
+             WHEN rela = 'form_of' THEN 'Form of'
+             WHEN rela = 'reformulation_of' THEN 'Reformulation of'
+             WHEN rela = 'tradename_of' THEN 'Tradename of'
+             WHEN rela = 'quantified_form_of' THEN 'Quantified form of'
+             ELSE 'non-existing'
           END
              AS relationship_id,
           (SELECT latest_update
@@ -148,7 +160,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
           NULL AS invalid_reason
      FROM (SELECT rxcui1, rxcui2, rela
-             FROM dev_timur_rxnorm.rxnrel
+             FROM rxnrel
             WHERE     sab = 'RXNORM'
                   AND rxcui1 IS NOT NULL
                   AND rxcui2 IS NOT NULL
@@ -191,7 +203,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
           latest_update AS valid_start_date,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
           NULL AS invalid_reason
-     FROM dev_timur_rxnorm.rxnatomarchive, vocabulary
+     FROM rxnatomarchive, vocabulary
     WHERE     sab = 'RXNORM'
           AND vocabulary_id = 'RxNorm'
           AND tty IN ('IN',
@@ -262,7 +274,6 @@ UPDATE concept_stage cs
 COMMIT;
 
 --9 Reinstate constraints and indices
-ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;

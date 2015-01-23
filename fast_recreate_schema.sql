@@ -3,19 +3,9 @@ use this script to recreate main tables (concept, concept_relationship, concept_
 */
 
 declare
-CURSOR  usr_cnstrs_d  IS 
-    select * from user_constraints WHERE table_name not like 'BIN$%' and status='ENABLED' order by constraint_type DESC; --'R' constraints first
-CURSOR  usr_cnstrs_e  IS 
-    select * from user_constraints WHERE table_name not like 'BIN$%' and status='DISABLED' order by constraint_type ASC;
-v_sql  VARCHAR2(2000);
-begin
-    /*disable constraints*/
-    for cur_cnstr in usr_cnstrs_d loop
-        v_sql:= 'ALTER TABLE ' || cur_cnstr.table_name || ' MODIFY CONSTRAINT '|| cur_cnstr.constraint_name || ' DISABLE';
-        EXECUTE IMMEDIATE v_sql;
-    end loop;    
+begin 
 
-    execute immediate 'drop table concept purge';
+    execute immediate 'drop table concept cascade constraints purge';
     execute immediate 'drop table concept_relationship purge';
     execute immediate 'drop table concept_synonym purge';
     execute immediate 'truncate table CONCEPT_STAGE';
@@ -27,7 +17,7 @@ begin
 	execute immediate 'CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM v5dev.concept_relationship';
 	execute immediate 'CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM v5dev.concept_synonym';
 
-    /*create indexes and constraints*/
+    /*create indexes and constraints for main tables*/
     execute immediate 'ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id)';
 	execute immediate 'ALTER TABLE concept_relationship ADD CONSTRAINT xpk_concept_relationship PRIMARY KEY (concept_id_1,concept_id_2,relationship_id)';
 	execute immediate 'ALTER TABLE concept ADD CONSTRAINT fpk_concept_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id) ENABLE NOVALIDATE';
@@ -48,8 +38,16 @@ begin
 	execute immediate 'CREATE INDEX idx_csyn_concept_syn_name ON concept_synonym (concept_synonym_name) NOLOGGING';	
 
     /*enable other constraints*/
-    for cur_cnstr in usr_cnstrs_e loop
-        v_sql:= 'ALTER TABLE ' || cur_cnstr.table_name || ' MODIFY CONSTRAINT '|| cur_cnstr.constraint_name || ' ENABLE NOVALIDATE';
-        EXECUTE IMMEDIATE v_sql;
-    end loop;
+    execute immediate 'ALTER TABLE vocabulary ADD CONSTRAINT fpk_vocabulary_concept FOREIGN KEY (vocabulary_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+	execute immediate 'ALTER TABLE domain ADD CONSTRAINT fpk_domain_concept FOREIGN KEY (domain_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+	execute immediate 'ALTER TABLE concept_class ADD CONSTRAINT fpk_concept_class_concept FOREIGN KEY (concept_class_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+	execute immediate 'ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+	execute immediate 'ALTER TABLE concept_ancestor ADD CONSTRAINT fpk_concept_ancestor_concept_1 FOREIGN KEY (ancestor_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+	execute immediate 'ALTER TABLE concept_ancestor ADD CONSTRAINT fpk_concept_ancestor_concept_2 FOREIGN KEY (descendant_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';	
+	execute immediate 'ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_c_1 FOREIGN KEY (target_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+	execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_1 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';	
+	execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_2 FOREIGN KEY (ingredient_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+	execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_1 FOREIGN KEY (amount_unit_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+	execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_2 FOREIGN KEY (numerator_unit_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+	execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_3 FOREIGN KEY (denominator_unit_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
 end;

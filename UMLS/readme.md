@@ -17,11 +17,16 @@ MRREL.RRF.ab.gz
 MRREL.RRF.ac.gz
 MRREL.RRF.ad.gz
 MRSMAP.RRF.gz
+MRSAT.RRF.aa.gz
+MRSAT.RRF.ab.gz
+MRSAT.RRF.ac.gz
+MRSAT.RRF.ad.gz
 
 then run:
 --gunzip *.gz
 --cat MRCONSO.RRF.aa MRCONSO.RRF.ab > MRCONSO.RRF
 --cat MRHIER.RRF.aa MRHIER.RRF.ab > MRHIER.RRF
 --cat MRREL.RRF.aa MRREL.RRF.ab MRREL.RRF.ac MRREL.RRF.ad > MRREL.RRF
+--cat MRSAT.RRF.aa MRSAT.RRF.ab MRSAT.RRF.ac MRSAT.RRF.ad > MRSAT.RRF
 
 4. Load them into tables using control files of the same name

@@ -210,7 +210,7 @@ SELECT NULL AS concept_id_1,
 
 --9 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 
---10 update domain_id for Read from SNOMED
+--10 update domain_id for ICD9CM from SNOMED
 --create temporary table ICD9CM_domain
 --if domain_id is empty we use previous and next domain_id or its combination
 create table ICD9CM_domain NOLOGGING as
@@ -276,11 +276,11 @@ minus
 select domain_id from domain;
 */
 
---12. update each domain_id with the domains field from read_domain.
+--12. update each domain_id with the domains field from ICD9CM_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
-             FROM read_domain rd
+             FROM ICD9CM_domain rd
             WHERE rd.concept_code = c.concept_code)
  WHERE c.vocabulary_id = 'ICD9CM';
 COMMIT;

@@ -93,15 +93,15 @@ CREATE TABLE domain NOLOGGING AS SELECT * FROM v5dev.domain;
 CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM v5dev.concept_synonym;
 
 
--- Create FKs
-
+-- Create PKs
 ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);
 ALTER TABLE vocabulary ADD CONSTRAINT xpk_vocabulary PRIMARY KEY (vocabulary_id);
 ALTER TABLE domain ADD CONSTRAINT xpk_domain PRIMARY KEY (domain_id);
 ALTER TABLE concept_class ADD CONSTRAINT xpk_concept_class PRIMARY KEY (concept_class_id);
 ALTER TABLE concept_relationship ADD CONSTRAINT xpk_concept_relationship PRIMARY KEY (concept_id_1,concept_id_2,relationship_id);
 ALTER TABLE relationship ADD CONSTRAINT xpk_relationship PRIMARY KEY (relationship_id);
-ALTER TABLE concept_ancestor ADD CONSTRAINT xpk_concept_ancestor PRIMARY KEY (ancestor_concept_id,descendant_concept_id);
+ALTER TABLE concept_ancestor ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
+ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
 ALTER TABLE source_to_concept_map ADD CONSTRAINT xpk_source_to_concept_map PRIMARY KEY (source_vocabulary_id,target_concept_id,source_code,valid_end_date);
 ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id);
 
@@ -119,8 +119,6 @@ ALTER TABLE concept_relationship ADD CONSTRAINT fpk_concept_relationship_id FORE
 ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
 ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id) ENABLE NOVALIDATE;
 ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_concept FOREIGN KEY (concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
-ALTER TABLE concept_ancestor ADD CONSTRAINT fpk_concept_ancestor_concept_1 FOREIGN KEY (ancestor_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
-ALTER TABLE concept_ancestor ADD CONSTRAINT fpk_concept_ancestor_concept_2 FOREIGN KEY (descendant_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
 ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_v_1 FOREIGN KEY (source_vocabulary_id) REFERENCES vocabulary (vocabulary_id) ENABLE NOVALIDATE;
 ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_v_2 FOREIGN KEY (target_vocabulary_id) REFERENCES vocabulary (vocabulary_id) ENABLE NOVALIDATE;
 ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_c_1 FOREIGN KEY (target_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
@@ -141,8 +139,6 @@ CREATE INDEX idx_concept_relationship_id_2 ON concept_relationship (concept_id_2
 CREATE INDEX idx_concept_relationship_id_3 ON concept_relationship (relationship_id ASC) NOLOGGING; 
 CREATE INDEX idx_concept_synonym_id ON concept_synonym (concept_id ASC) NOLOGGING;
 CREATE INDEX idx_csyn_concept_syn_name ON concept_synonym (concept_synonym_name) NOLOGGING;
-CREATE INDEX idx_concept_ancestor_id_1 ON concept_ancestor (ancestor_concept_id ASC);
-CREATE INDEX idx_concept_ancestor_id_2 ON concept_ancestor (descendant_concept_id ASC);
 CREATE INDEX idx_source_to_concept_map_id_1 ON source_to_concept_map (source_vocabulary_id ASC);
 CREATE INDEX idx_source_to_concept_map_id_2 ON source_to_concept_map (target_vocabulary_id ASC);
 CREATE INDEX idx_source_to_concept_map_id_3 ON source_to_concept_map (target_concept_id ASC);
@@ -153,17 +149,3 @@ CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
 CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
 CREATE INDEX idx_concept_code_1 ON concept_relationship_stage (concept_code_1);
 CREATE INDEX idx_concept_code_2 ON concept_relationship_stage (concept_code_2);
-CREATE INDEX XPKSNOMED_ANCESTOR ON SNOMED_ANCESTOR(ANCESTOR_CONCEPT_CODE, DESCENDANT_CONCEPT_CODE);
-ALTER TABLE SNOMED_ANCESTOR ADD (
-CONSTRAINT XPKSNOMED_ANCESTOR
-  PRIMARY KEY
-  (ANCESTOR_CONCEPT_CODE, DESCENDANT_CONCEPT_CODE)
-  USING INDEX XPKSNOMED_ANCESTOR
-  ENABLE VALIDATE);
-CREATE INDEX XPKCONCEPT_ANCESTOR ON CONCEPT_ANCESTOR(ANCESTOR_CONCEPT_CODE, DESCENDANT_CONCEPT_CODE);
-ALTER TABLE CONCEPT_ANCESTOR ADD (
-CONSTRAINT XPKCONCEPT_ANCESTOR
-  PRIMARY KEY
-  (ANCESTOR_CONCEPT_CODE, DESCENDANT_CONCEPT_CODE)
-  USING INDEX XPKCONCEPT_ANCESTOR
-  ENABLE VALIDATE);

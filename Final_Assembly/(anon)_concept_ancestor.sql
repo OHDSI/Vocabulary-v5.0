@@ -1,4 +1,3 @@
-/* Formatted on 26.01.2015 11:28:43 (QP5 v5.269.14213.34769) */
 DECLARE
    vCnt          INTEGER;
    vCnt_old      INTEGER;
@@ -61,14 +60,14 @@ BEGIN
    EXECUTE IMMEDIATE
       'create table concept_ancestor_calc NOLOGGING as
     select 
-      r.concept_code_1 as ancestor_concept_code,
-      r.concept_code_2 as descendant_concept_code,
-      case when s.is_hierarchical=1 and c1.standard_concept is not null then 1 else 0 end as min_levels_of_separation,
-      case when s.is_hierarchical=1 and c2.standard_concept is not null then 1 else 0 end as max_levels_of_separation
-    from concept_relationship_stage r 
+	r.concept_id_1 as ancestor_concept_id,
+	r.concept_id_2 as descendant_concept_id,
+    case when s.is_hierarchical=1 and c1.standard_concept is not null then 1 else 0 end as min_levels_of_separation,
+    case when s.is_hierarchical=1 and c2.standard_concept is not null then 1 else 0 end as max_levels_of_separation
+    from concept_relationship r 
     join relationship s on s.relationship_id=r.relationship_id and s.defines_ancestry=1
-    join concept c1 on c1.concept_code=r.concept_code_1 and c1.vocabulary_id=r.vocabulary_id_1 and c1.invalid_reason is null
-    join concept c2 on c2.concept_code=r.concept_code_2 and c2.vocabulary_id=r.vocabulary_id_2 and c2.invalid_reason is null
+	join concept c1 on c1.concept_id=r.concept_id_1 and c1.invalid_reason is null
+	join concept c2 on c2.concept_id=r.concept_id_2 and c2.invalid_reason is null
     where r.invalid_reason is null';
 
    /********** Repeat till no new records are written *********/
@@ -79,12 +78,12 @@ BEGIN
       EXECUTE IMMEDIATE
          'create table new_concept_ancestor_calc NOLOGGING as
         select 
-            uppr.ancestor_concept_code,
-            lowr.descendant_concept_code,
+            uppr.ancestor_concept_id,
+            lowr.descendant_concept_id,
             uppr.min_levels_of_separation+lowr.min_levels_of_separation as min_levels_of_separation,
             uppr.min_levels_of_separation+lowr.min_levels_of_separation as max_levels_of_separation    
         from concept_ancestor_calc uppr 
-        join concept_ancestor_calc lowr on uppr.descendant_concept_code=lowr.ancestor_concept_code
+        join concept_ancestor_calc lowr on uppr.descendant_concept_id=lowr.ancestor_concept_id
         union all select * from concept_ancestor_calc';
 
       vCnt := SQL%ROWCOUNT;
@@ -96,12 +95,12 @@ BEGIN
       EXECUTE IMMEDIATE
          'create table concept_ancestor_calc NOLOGGING as
         select 
-            ancestor_concept_code,
-            descendant_concept_code,
+            ancestor_concept_id,
+            descendant_concept_id,
             min(min_levels_of_separation) as min_levels_of_separation,
             max(max_levels_of_separation) as max_levels_of_separation
         from new_concept_ancestor_calc
-        group by ancestor_concept_code, descendant_concept_code ';
+        group by ancestor_concept_id, descendant_concept_id ';
 
       EXECUTE IMMEDIATE
          'select count(*), sum(max_levels_of_separation), sum(min_levels_of_separation) from concept_ancestor_calc'
@@ -141,42 +140,36 @@ BEGIN
    EXECUTE IMMEDIATE
       'alter table concept_ancestor disable constraint XPKCONCEPT_ANCESTOR';
 
-   EXECUTE IMMEDIATE 'ALTER INDEX XPKCONCEPT_ANCESTOR UNUSABLE';
-
-
    EXECUTE IMMEDIATE
       'insert /*+ APPEND */ into concept_ancestor
     select a.* from concept_ancestor_calc a
-    join concept_stage c1 on a.ancestor_concept_code=c1.concept_code
-    join concept_stage c2 on a.descendant_concept_code=c2.concept_code
+    join concept c1 on a.ancestor_concept_id=c1.concept_id
+    join concept c2 on a.descendant_concept_id=c2.concept_id
     where c1.standard_concept is not null and c2.standard_concept is not null 
     ';
 
    COMMIT;
 
    -- Add connections to self for those vocabs having at least one concept in the concept_relationship table
-   INSERT /*+ APPEND */ INTO concept_ancestor
-      SELECT c.concept_code AS ANCESTOR_CONCEPT_CODE,
-             c.concept_code AS DESCENDANT_CONCEPT_CODE,
-             0 AS MIN_LEVELS_OF_SEPARATION,
-             0 AS MAX_LEVELS_OF_SEPARATION
-        FROM concept_stage c
-       WHERE     c.vocabulary_id IN (SELECT r1.vocabulary_id_1
-                                       FROM concept_relationship_stage r1
-                                      WHERE c.concept_code =
-                                               r1.concept_code_1
-                                     UNION
-                                     SELECT r2.vocabulary_id_2
-                                       FROM concept_relationship_stage r2
-                                      WHERE c.concept_code =
-                                               r2.concept_code_2)
-             AND c.invalid_reason IS NULL
-             AND c.standard_concept IS NOT NULL;
-
+   INSERT /*+ APPEND */
+      INTO  concept_ancestor
+   SELECT c.concept_id AS ancestor_concept_id,
+          c.concept_id AS descendant_concept_id,
+          0 AS MIN_LEVELS_OF_SEPARATION,
+          0 AS MAX_LEVELS_OF_SEPARATION
+     FROM concept c
+    WHERE     c.vocabulary_id IN (SELECT c1.vocabulary_id
+                                    FROM concept_relationship r,
+                                         concept c1
+                                   WHERE c1.concept_id = r.concept_id_1
+                                  UNION
+                                  SELECT c2.vocabulary_id
+                                    FROM concept_relationship r,
+                                         concept c2
+                                   WHERE c2.concept_id = r.concept_id_2)
+          AND c.invalid_reason IS NULL
+          AND c.standard_concept IS NOT NULL;
    COMMIT;
-
-   -- Create concept_ancestor indexes after mass insert.
-   EXECUTE IMMEDIATE 'ALTER INDEX XPKCONCEPT_ANCESTOR REBUILD NOLOGGING';
 
    EXECUTE IMMEDIATE
       'alter table concept_ancestor enable constraint XPKCONCEPT_ANCESTOR';

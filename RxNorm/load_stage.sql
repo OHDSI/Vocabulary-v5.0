@@ -125,11 +125,11 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT rxcui1 AS concept_code_1,
-          rxcui2 AS concept_code_2,
+   SELECT rxcui2 AS concept_code_1, -- !! The RxNorm source files have the direction the opposite than OMOP
+          rxcui1 AS concept_code_2,
           'RxNorm' AS vocabulary_id_1,
           'RxNorm' AS vocabulary_id_2,
-          CASE
+          CASE -- 
              WHEN rela = 'has_precise_ingredient' THEN 'Has precise ing'
              WHEN rela = 'has_tradename' THEN 'Has tradename'
              WHEN rela = 'has_dose_form' THEN 'RxNorm has dose form'
@@ -144,7 +144,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
              WHEN rela = 'ingredient_of' THEN 'RxNorm ing of'
              WHEN rela = 'precise_ingredient_of' THEN 'Precise ing of'
              WHEN rela = 'dose_form_of' THEN 'Dose form of'
-             WHEN rela = 'isa' THEN 'Is a'
+             WHEN rela = 'isa' THEN 'RxNorm is a'
              WHEN rela = 'contained_in' THEN 'Contained in'
              WHEN rela = 'form_of' THEN 'Form of'
              WHEN rela = 'reformulation_of' THEN 'Reformulation of'

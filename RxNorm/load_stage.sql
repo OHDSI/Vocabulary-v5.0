@@ -114,7 +114,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
 	AND c.vocabulary_id='RxNorm';
 COMMIT;	
 
---5 Add relationships
+--5 Add inner-RxNorm relationships
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
@@ -139,7 +139,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
              WHEN rela = 'contains' THEN 'Contains'
              WHEN rela = 'reformulated_to' THEN 'Reformulated in'
              WHEN rela = 'inverse_isa' THEN 'RxNorm inverse is a'
-             WHEN rela = 'has_quantified_form' THEN 'Has quantified form'
+             WHEN rela = 'has_quantified_form' THEN 'Has quantified form' -- links extended release tablets to 12 HR extended release tablets
              WHEN rela = 'consists_of' THEN 'Consists of'
              WHEN rela = 'ingredient_of' THEN 'RxNorm ing of'
              WHEN rela = 'precise_ingredient_of' THEN 'Precise ing of'
@@ -205,7 +205,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
           NULL AS invalid_reason
      FROM rxnatomarchive, vocabulary
     WHERE     sab = 'RXNORM'
-          AND vocabulary_id = 'RxNorm'
+          AND vocabulary_id = 'RxNorm' -- for getting the latest_update
           AND tty IN ('IN',
                       'DF',
                       'SCDC',

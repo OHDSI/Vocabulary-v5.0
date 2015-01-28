@@ -143,7 +143,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
              WHEN rela = 'consists_of' THEN 'Consists of'
              WHEN rela = 'ingredient_of' THEN 'RxNorm ing of'
              WHEN rela = 'precise_ingredient_of' THEN 'Precise ing of'
-             WHEN rela = 'dose_form_of' THEN 'Dose form of'
+             WHEN rela = 'dose_form_of' THEN 'RxNorm dose form of'
              WHEN rela = 'isa' THEN 'RxNorm is a'
              WHEN rela = 'contained_in' THEN 'Contained in'
              WHEN rela = 'form_of' THEN 'Form of'

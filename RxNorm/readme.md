@@ -2,6 +2,7 @@ Update of RxNorm
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
+- SNOMED must be loaded first
 - Working directory RxNorm.
 
 1. Run create_source_tables.sql

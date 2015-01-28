@@ -99,26 +99,23 @@ DROP SEQUENCE v5_concept;
 COMMIT;
 
 -- 4. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
-UPDATE concept_relationship d
-   SET (d.valid_end_date, d.invalid_reason) =
-          (SELECT DISTINCT crs.valid_end_date, crs.invalid_reason
-             FROM concept_relationship_stage crs
-             JOIN concept c1 on c1.concept_code = crs.concept_code_1 AND c1.vocabulary_id = crs.vocabulary_id_1
-             JOIN concept c2 on c2.concept_code = crs.concept_code_2 AND c2.vocabulary_id = crs.vocabulary_id_2
-            WHERE     c1.concept_id = d.concept_id_1
-                  AND c2.concept_id = d.concept_id_2
-                  AND crs.relationship_id = d.relationship_id)
- WHERE EXISTS
-          (SELECT 1
-             FROM concept_relationship_stage r
-             JOIN concept r1 on r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
-             JOIN concept r2 on r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
-            -- test whether either the concept_ids match
-            WHERE     d.concept_id_1 = r1.concept_id
-                  AND d.concept_id_2 = r2.concept_id
-                  AND d.relationship_id = r.relationship_id
-                  AND d.valid_end_date <> r.valid_end_date);
- 
+MERGE INTO concept_relationship d
+    USING (
+        with rel_id as (
+            SELECT /*+ MATERIALIZE */ DISTINCT c1.concept_id concept_id_1, c2.concept_id concept_id_2, crs.relationship_id, crs.valid_end_date, crs.invalid_reason
+            FROM concept_relationship_stage crs, concept c1, concept c2 where
+            c1.concept_code = crs.concept_code_1 AND c1.vocabulary_id = crs.vocabulary_id_1
+            and c2.concept_code = crs.concept_code_2 AND c2.vocabulary_id = crs.vocabulary_id_2
+        )
+        SELECT r.rowid rid, rel.valid_end_date, rel.invalid_reason
+        FROM concept_relationship r, rel_id rel
+        where
+        r.concept_id_1=rel.concept_id_1 and r.concept_id_2=rel.concept_id_2 
+        and r.relationship_id=rel.relationship_id and r.valid_end_date <> rel.valid_end_date  
+    ) o
+ON (d.rowid = o.rid)
+WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reason = o.invalid_reason;
+
 COMMIT; 
 
 -- 5. Deprecate missing relationships, but only if the concepts exist. If relationships are missing because of deprecated concepts, leave them intact.

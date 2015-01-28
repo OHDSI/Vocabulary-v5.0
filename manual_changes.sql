@@ -7,7 +7,7 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 values (v5_concept.nextval, 'bioequivalent allergenic unit', 'Unit', 'UCUM', 'Unit', 'S', '{BAU}', '01-JAN-1970', '31-DEC-2099', null);	
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'cells', 'Unit', 'UCUM', 'Unit', 'S', '{cells}', '01-JAN-1970', '31-DEC-2099', null);	
-update concept set concept_name='pH unit' where concept_id=8569;
+update concept set concept_name = 'pH unit' where concept_id = 8569;
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'clinical unit', 'Unit', 'UCUM', 'Unit', 'S', '{CU}', '01-JAN-1970', '31-DEC-2099', null);	
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -31,83 +31,83 @@ values (v5_concept.nextval, 'EHR Episode Entry', 'Condition Type', 'Condition Ty
 
 -- Make all Metadata non-standard
 update concept 
-set standard_concept=null where domain_id='Metadata';
+set standard_concept = null where domain_id = 'Metadata';
 
 -- Abolish extra vocabulary 'LOINC Multidimensional Classification (Regenstrief Institute)'. Will become only concept class
 update concept
-set vocabulary_id='LOINC' where vocabulary_id='LOINC Hierarchy';
-delete from vocabulary where vocabulary_id='LOINC Hierarchy';
+set vocabulary_id = 'LOINC' where vocabulary_id = 'LOINC Hierarchy';
+delete from vocabulary where vocabulary_id = 'LOINC Hierarchy';
 update concept set 
-  valid_end_date='1-Dec-2014',
-  invalid_reason='D'
-where concept_id=44819139
+  valid_end_date = '1-Dec-2014',
+  invalid_reason = 'D'
+where concept_id = 44819139
 ;
 
 -- Add concept_class 'LOINC Class'
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'LOINC Class', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('LOINC Class', 'LOINC Class', (select concept_id from concept where concept_name='LOINC Class'));
+values ('LOINC Class', 'LOINC Class', (select concept_id from concept where concept_name = 'LOINC Class'));
 
 -- LOINC concept_class_ids
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Laboratory Class', 'Metadata', 'Concept Class', 'Concept Class', null, '1', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Lab Test', 'Laboratory Class', (select concept_id from concept where concept_name='Laboratory Class'));
+values ('Lab Test', 'Laboratory Class', (select concept_id from concept where concept_name = 'Laboratory Class'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Clinical Class', 'Metadata', 'Concept Class', 'Concept Class', null, '2', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Clinical Observation', 'Clinical Class', (select concept_id from concept where concept_name='Clinical Class'));
+values ('Clinical Observation', 'Clinical Class', (select concept_id from concept where concept_name = 'Clinical Class'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Claims Attachments', 'Metadata', 'Concept Class', 'Concept Class', null, '3', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Claims Attachment', 'Claims Attachments', (select concept_id from concept where concept_name='Claims Attachments'));
+values ('Claims Attachment', 'Claims Attachments', (select concept_id from concept where concept_name = 'Claims Attachments'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Surveys', 'Metadata', 'Concept Class', 'Concept Class', null, '4', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Survey', 'Surveys', (select concept_id from concept where concept_name='Surveys'));
+values ('Survey', 'Surveys', (select concept_id from concept where concept_name = 'Surveys'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Answers', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Answer', 'Answers', (select concept_id from concept where concept_name='Answers'));
+values ('Answer', 'Answers', (select concept_id from concept where concept_name = 'Answers'));
 
 -- change LOINC Hierarchy concepts to 'C'
 update concept 
-set standard_concept='C' where concept_class_id='LOINC Hierarchy';
+set standard_concept = 'C' where concept_class_id = 'LOINC Hierarchy';
 
 -- add new relationship between LOINC surveys etc. and answers
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Has Answer (LOINC)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Has Answer', 'Has Answer (LOINC)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Answer (LOINC)'));
+values ('Has Answer', 'Has Answer (LOINC)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Has Answer (LOINC)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Answer of (LOINC)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Answer of', 'Answer of (LOINC)', 0, 0, 'Answer of', (select concept_id from concept where concept_name='Answer of (LOINC)'));
+values ('Answer of', 'Answer of (LOINC)', 0, 0, 'Answer of', (select concept_id from concept where concept_name = 'Answer of (LOINC)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
-set reverse_relationship_id='Answer of' where relationship_id='Has Answer';
+set reverse_relationship_id = 'Answer of' where relationship_id = 'Has Answer';
 update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
-set reverse_relationship_id='Has Answer' where relationship_id='Answer of';
+set reverse_relationship_id = 'Has Answer' where relationship_id = 'Answer of';
 
 -- Add new CPT4 concpet classes
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'CPT4 Modifier', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('CTP4 Modifier', 'CPT4 Modifier', (select concept_id from concept where concept_name='CPT4 Modifier'));
+values ('CTP4 Modifier', 'CPT4 Modifier', (select concept_id from concept where concept_name = 'CPT4 Modifier'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'CPT4 Hierarchy', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('CTP4 Hierarchy', 'CPT4 Hierarchy', (select concept_id from concept where concept_name='CPT4 Hierarchy'));
+values ('CTP4 Hierarchy', 'CPT4 Hierarchy', (select concept_id from concept where concept_name = 'CPT4 Hierarchy'));
 
 -- Add new HCPCS concept classes
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'HCPCS Modifier', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('HCPCS Modifier', 'HCPCS Modifier', (select concept_id from concept where concept_name='HCPCS Modifier'));
+values ('HCPCS Modifier', 'HCPCS Modifier', (select concept_id from concept where concept_name = 'HCPCS Modifier'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'HCPCS Class', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('HCPCS Class', 'HCPCS Class', (select concept_id from concept where concept_name='HCPCS Class'));
+values ('HCPCS Class', 'HCPCS Class', (select concept_id from concept where concept_name = 'HCPCS Class'));
 
 -- Add HCPCS class concepts
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -327,60 +327,60 @@ values (v5_concept.nextval, 'Undefined codes', 'Observation', 'HCPCS', 'HCPCS Cl
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Navigational Concept', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Navi Concept', 'Navigational Concept', (select concept_id from concept where concept_name='Navigational Concept'));
+values ('Navi Concept', 'Navigational Concept', (select concept_id from concept where concept_name = 'Navigational Concept'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Inactive Concept', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Inactive Concept', 'Inactive Concept', (select concept_id from concept where concept_name='Inactive Concept'));
+values ('Inactive Concept', 'Inactive Concept', (select concept_id from concept where concept_name = 'Inactive Concept'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Linkage Concept', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Linkage Concept', 'Linkage Concept', (select concept_id from concept where concept_name='Linkage Concept'));
+values ('Linkage Concept', 'Linkage Concept', (select concept_id from concept where concept_name = 'Linkage Concept'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Link Assertion', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Link Assertion', 'Link Assertion', (select concept_id from concept where concept_name='Link Assertion'));
+values ('Link Assertion', 'Link Assertion', (select concept_id from concept where concept_name = 'Link Assertion'));
 
 -- Fix existing SNOMED concept classes
-update concept set concept_name='Situation with explicit context' where concept_id=44819051;
-update concept_class set concept_class_name='Situation with explicit context' where concept_class_concept_id=44819051;
+update concept set concept_name = 'Situation with explicit context' where concept_id = 44819051;
+update concept_class set concept_class_name = 'Situation with explicit context' where concept_class_concept_id = 44819051;
 
 -- Fix Rimma's PCORNet null flavors. Leave only the Hispanic ones alive
-update concept set concept_name='Other' where concept_id=44814649; -- rename from 'Hispanic - other'
-update concept set concept_class_id='Undefined' where concept_id=44814649; -- give generic concept class
-update concept set concept_name='Unknown' where concept_id=44814653; -- rename from 'Hispanic - unknown'
-update concept set concept_class_id='Undefined' where concept_id=44814653; -- give generic concept class
-update concept set concept_name='No information' where concept_id=44814650; -- rename from 'Hispanic - no information'
-update concept set concept_class_id='Undefined' where concept_id=44814650; -- give generic concept class
-update concept set valid_end_date='30-Nov-2014', invalid_reason='D' where concept_id in (44814688, 44814668, 44814713, 44814683, 44814662, 44814705); -- Unknown ones
-update concept set valid_end_date='30-Nov-2014', invalid_reason='D' where concept_id in (44814669, 44814684, 44814714, 44814663, 44814689, 44814706); -- no information ones
-update concept set valid_end_date='30-Nov-2014', invalid_reason='D' where concept_id in (44814667, 44814661, 44814682, 44814704, 44814712, 44814687); -- no information ones
+update concept set concept_name = 'Other' where concept_id = 44814649; -- rename from 'Hispanic - other'
+update concept set concept_class_id = 'Undefined' where concept_id = 44814649; -- give generic concept class
+update concept set concept_name = 'Unknown' where concept_id = 44814653; -- rename from 'Hispanic - unknown'
+update concept set concept_class_id = 'Undefined' where concept_id = 44814653; -- give generic concept class
+update concept set concept_name = 'No information' where concept_id = 44814650; -- rename from 'Hispanic - no information'
+update concept set concept_class_id = 'Undefined' where concept_id = 44814650; -- give generic concept class
+update concept set valid_end_date = '30-Nov-2014', invalid_reason = 'D' where concept_id in (44814688, 44814668, 44814713, 44814683, 44814662, 44814705); -- Unknown ones
+update concept set valid_end_date = '30-Nov-2014', invalid_reason = 'D' where concept_id in (44814669, 44814684, 44814714, 44814663, 44814689, 44814706); -- no information ones
+update concept set valid_end_date = '30-Nov-2014', invalid_reason = 'D' where concept_id in (44814667, 44814661, 44814682, 44814704, 44814712, 44814687); -- no information ones
 
 -- Add PCORNet concpet classes and concepts that were not committed
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'DRG Type', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('DRG Type', 'DRG Type', (select concept_id from concept where concept_name='DRG Type'));
+values ('DRG Type', 'DRG Type', (select concept_id from concept where concept_name = 'DRG Type'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Diagnosis Code Type', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Diagnosis Code Type', 'Diagnosis Code Type', (select concept_id from concept where concept_name='Diagnosis Code Type'));
+values ('Diagnosis Code Type', 'Diagnosis Code Type', (select concept_id from concept where concept_name = 'Diagnosis Code Type'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Diagnosis Type', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Diagnosis Type', 'Diagnosis Type', (select concept_id from concept where concept_name='Diagnosis Type'));
+values ('Diagnosis Type', 'Diagnosis Type', (select concept_id from concept where concept_name = 'Diagnosis Type'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Procedure Code Type', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Procedure Code Type', 'Procedure Code Type', (select concept_id from concept where concept_name='Procedure Code Type'));
+values ('Procedure Code Type', 'Procedure Code Type', (select concept_id from concept where concept_name = 'Procedure Code Type'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Vital Source', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Vital Source', 'Vital Source', (select concept_id from concept where concept_name='Vital Source'));
+values ('Vital Source', 'Vital Source', (select concept_id from concept where concept_name = 'Vital Source'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Blood Pressure Position', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Blood Pressure Pos', 'Blood Pressure Position', (select concept_id from concept where concept_name='Blood Pressure Position'));
+values ('Blood Pressure Pos', 'Blood Pressure Position', (select concept_id from concept where concept_name = 'Blood Pressure Position'));
 
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (44819189, 'CMS-DRG', 'Observation', 'PCORNet', 'DRG Type', null, '01', '01-Jan-1970', '31-Dec-1999', null);
@@ -473,89 +473,89 @@ values (44819231, 'Other', 'Observation', 'PCORNet', 'Blood Pressure Pos', null,
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Has Morphology (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Has morphology', 'Has Morphology (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Morphology (SNOMED)'));
+values ('Has morphology', 'Has Morphology (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Has Morphology (SNOMED)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Morphology of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Morphology of', 'Morphology of (SNOMED)', 0, 0, 'Morphology of', (select concept_id from concept where concept_name='Morphology of (SNOMED)'));
+values ('Morphology of', 'Morphology of (SNOMED)', 0, 0, 'Morphology of', (select concept_id from concept where concept_name = 'Morphology of (SNOMED)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has Morphology'
-set reverse_relationship_id = 'Morphology of' where relationship_id='Has morphology';
+set reverse_relationship_id = 'Morphology of' where relationship_id = 'Has morphology';
 update relationship -- The reverse wasn't in at the time of writing 'Has Morphology'
-set reverse_relationship_id = 'Has morphology' where relationship_id='Morphology of';
+set reverse_relationship_id = 'Has morphology' where relationship_id = 'Morphology of';
 
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Has Measured Component (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Has meas component', 'Has Measured Component (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Measured Component (SNOMED)'));
+values ('Has meas component', 'Has Measured Component (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Has Measured Component (SNOMED)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Measured Component of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Meas component of', 'Measured Component of (SNOMED)', 0, 0, 'Has meas component', (select concept_id from concept where concept_name='Measured Component of (SNOMED)'));
+values ('Meas component of', 'Measured Component of (SNOMED)', 0, 0, 'Has meas component', (select concept_id from concept where concept_name = 'Measured Component of (SNOMED)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has Measured Component'
-set reverse_relationship_id = 'Meas component of' where relationship_id='Has meas component';
+set reverse_relationship_id = 'Meas component of' where relationship_id = 'Has meas component';
 
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Caused by (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Caused by', 'Caused by (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Caused by (SNOMED)'));
+values ('Caused by', 'Caused by (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Caused by (SNOMED)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Causes (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Causes', 'Causes (SNOMED)', 0, 0, 'Caused by', (select concept_id from concept where concept_name='Causes (SNOMED)'));
+values ('Causes', 'Causes (SNOMED)', 0, 0, 'Caused by', (select concept_id from concept where concept_name = 'Causes (SNOMED)'));
 update relationship -- The reverse wasn't in at the time of writing 'Caused by'
-set reverse_relationship_id='Causes' where relationship_id='Caused by';
+set reverse_relationship_id = 'Causes' where relationship_id = 'Caused by';
 
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Has Etiology (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Has etiology', 'Has Etiology (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Etiology (SNOMED)'));
+values ('Has etiology', 'Has Etiology (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Has Etiology (SNOMED)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Etiology of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Etiology of', 'Etiology of (SNOMED)', 0, 0, 'Has etiology', (select concept_id from concept where concept_name='Etiology of (SNOMED)'));
+values ('Etiology of', 'Etiology of (SNOMED)', 0, 0, 'Has etiology', (select concept_id from concept where concept_name = 'Etiology of (SNOMED)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has etiology'
-set reverse_relationship_id='Etiology of' where relationship_id='Has etiology';
+set reverse_relationship_id = 'Etiology of' where relationship_id = 'Has etiology';
 
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Has Stage (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Has stage', 'Has Stage (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Stage (SNOMED)'));
+values ('Has stage', 'Has Stage (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Has Stage (SNOMED)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Stage of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Stage of', 'Stage of (SNOMED)', 0, 0, 'Has stage', (select concept_id from concept where concept_name='Stage of (SNOMED)'));
+values ('Stage of', 'Stage of (SNOMED)', 0, 0, 'Has stage', (select concept_id from concept where concept_name = 'Stage of (SNOMED)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has Stage'
-set reverse_relationship_id='Stage of' where relationship_id='Has stage';
+set reverse_relationship_id = 'Stage of' where relationship_id = 'Has stage';
 
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Has Extent (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Has extent', 'Has Extent (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has Extent (SNOMED)'));
+values ('Has extent', 'Has Extent (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Has Extent (SNOMED)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Extent of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Extent of', 'Extent of (SNOMED)', 0, 0, 'Has extent', (select concept_id from concept where concept_name='Extent of (SNOMED)'));
+values ('Extent of', 'Extent of (SNOMED)', 0, 0, 'Has extent', (select concept_id from concept where concept_name = 'Extent of (SNOMED)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has extent'
-set reverse_relationship_id='Extent of' where relationship_id='Has extent';
+set reverse_relationship_id = 'Extent of' where relationship_id = 'Has extent';
 
 -- Add concept_class 'Linkage Assertion'
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Linkage Assertion', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Linkage Assertion', 'Linkage Assertion', (select concept_id from concept where concept_name='Linkage Assertion'));
+values ('Linkage Assertion', 'Linkage Assertion', (select concept_id from concept where concept_name = 'Linkage Assertion'));
 
 -- Consolidate Concept replaced by and Snomed replaced by
 create table rby as 
 select r1.concept_id_1, r1.concept_id_2, 'Concept replaced by' as relationship_id, r2.valid_start_date, r1.valid_end_date, r1.invalid_reason
 from concept_relationship r1 
-join concept_relationship r2 on r1.concept_id_1=r2.concept_id_1 and r1.concept_id_2=r2.concept_id_2 and r2.relationship_id='Concept replaced by'
-where r1.relationship_id='SNOMED replaced by'
+join concept_relationship r2 on r1.concept_id_1 = r2.concept_id_1 and r1.concept_id_2 = r2.concept_id_2 and r2.relationship_id = 'Concept replaced by'
+where r1.relationship_id = 'SNOMED replaced by'
 ;
 create table res as 
 select r1.concept_id_1, r1.concept_id_2, 'Concept replaces' as relationship_id, r2.valid_start_date, r1.valid_end_date, r1.invalid_reason
 from concept_relationship r1 
-join concept_relationship r2 on r1.concept_id_1=r2.concept_id_1 and r1.concept_id_2=r2.concept_id_2 and r2.relationship_id='Concept replaces'
-where r1.relationship_id='SNOMED replaces'
+join concept_relationship r2 on r1.concept_id_1 = r2.concept_id_1 and r1.concept_id_2 = r2.concept_id_2 and r2.relationship_id = 'Concept replaces'
+where r1.relationship_id = 'SNOMED replaces'
 ;
 delete from concept_relationship 
 where relationship_id in ('Concept replaced by', 'SNOMED replaced by')
@@ -578,34 +578,156 @@ drop table res purge;
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'ICD9CM non-billable code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('ICD9CM non-bill code', 'ICD9CM non-billable code', (select concept_id from concept where concept_name='ICD9CM non-billable code'));
+values ('ICD9CM non-bill code', 'ICD9CM non-billable code', (select concept_id from concept where concept_name = 'ICD9CM non-billable code'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'ICD9Proc non-billable code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('ICD9Proc non-bill', 'ICD9Proc non-billable code', (select concept_id from concept where concept_name='ICD9Proc non-billable code'));
+values ('ICD9Proc non-bill', 'ICD9Proc non-billable code', (select concept_id from concept where concept_name = 'ICD9Proc non-billable code'));
 
 -- add new relationship RxNorm relationships
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Has quantified form (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Has quantified form', 'Has quantified form (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Has quantified form (RxNorm)'));
+values ('Has quantified form', 'Has quantified form (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Has quantified form (RxNorm)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Quantified form of (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Quantified form of', 'Quantified form of (RxNorm)', 0, 0, 'Has quantified form', (select concept_id from concept where concept_name='Quantified form of (RxNorm)'));
+values ('Quantified form of', 'Quantified form of (RxNorm)', 0, 0, 'Has quantified form', (select concept_id from concept where concept_name = 'Quantified form of (RxNorm)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
-set reverse_relationship_id='Quantified form of' where relationship_id='Has quantified form';
+set reverse_relationship_id = 'Quantified form of' where relationship_id = 'Has quantified form';
 
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Is a (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('RxNorm is a', 'Is a (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name='Is a (RxNorm)'));
+values ('RxNorm is a', 'Is a (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Is a (RxNorm)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Inverse is a (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('RxNorm inverse is a', 'Inverse is a (RxNorm)', 0, 0, 'RxNorm is a', (select concept_id from concept where concept_name='Inverse is a (RxNorm)'));
+values ('RxNorm inverse is a', 'Inverse is a (RxNorm)', 0, 0, 'RxNorm is a', (select concept_id from concept where concept_name = 'Inverse is a (RxNorm)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
-set reverse_relationship_id='RxNorm inverse is a' where relationship_id='RxNorm is a';
+set reverse_relationship_id = 'RxNorm inverse is a' where relationship_id = 'RxNorm is a';
+
+-- Add hierarchical and ancestry flags
+update relationship set is_hierarchical = 1, defines_ancestry = 1 where relationship_concept_id = 45754830;
+update relationship set defines_ancestry = 1 where relationship_concept_id = 45754828;
+
+-- Include VA Product to RxNorm relationship in ancestry building
+update relationship set defines_ancestry = 1 where relationship_id = 'VAProd - RxNorm eq';
+
+-- Rename RxNorm to ATC relationships from FDB to RxNorm
+update relationship set relationship_name = 'ATC to RxNorm (RxNorm)' where relationship_id = 'ATC - RxNorm';
+update relationship set relationship_name = 'RxNorm to ATC (RxNorm)' where relationship_id = 'RxNorm - ATC';
+
+-- Add missing NDF-RT relationships
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VA Class to ATC equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('VA Class to ATC eq', 'VA Class to ATC equivalent (NDF-RT)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'VA Class to ATC equivalent (NDF-RT)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ATC to VA Class equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('ATC to VA Class eq', 'ATC to VA Class equivalent (NDF-RT)', 0, 0, 'VA Class to ATC eq', (select concept_id from concept where concept_name = 'ATC to VA Class equivalent (NDF-RT)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'ATC to VA Class eq' where relationship_id = 'VA Class to ATC eq';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'NDFRT to ATC equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('NDFRT to ATC eq', 'NDFRT to ATC equivalent (NDF-RT)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'NDFRT to ATC equivalent (NDF-RT)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ATC to NDFRT equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('ATC to NDFRT eq', 'ATC to NDFRT equivalent (NDF-RT)', 0, 0, 'VA Class to ATC eq', (select concept_id from concept where concept_name = 'ATC to NDFRT equivalent (NDF-RT)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'ATC to NDFRT eq' where relationship_id = 'NDFRT to ATC eq';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VA Class to NDFRT equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('VA Class to NDFRT eq', 'VA Class to NDFRT equivalent (NDF-RT)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'VA Class to NDFRT equivalent (NDF-RT)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'NDFRT to VA Class equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('NDFRT to VA Class eq', 'NDFRT to VA Class equivalent (NDF-RT)', 0, 0, 'VA Class to NDFRT eq', (select concept_id from concept where concept_name = 'NDFRT to VA Class equivalent (NDF-RT)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'NDFRT to VA Class eq' where relationship_id = 'VA Class to NDFRT eq';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Chemical Structure to Pharmaceutical Preparation equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Chem to Prep eq', 'Chemical Structure to Pharmaceutical Preparation equivalent (NDF-RT)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Chemical Structure to Pharmaceutical Preparation equivalent (NDF-RT)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pharmaceutical Preparation to Chemical Structure equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Prep to Chem eq', 'Pharmaceutical Preparation to Chemical Structure equivalent (NDF-RT)', 0, 0, 'Chem to Prep eq', (select concept_id from concept where concept_name = 'Pharmaceutical Preparation to Chemical Structure equivalent (NDF-RT)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'Prep to Chem eq' where relationship_id = 'Chem to Prep eq';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Chemical Structure to Pharmaceutical Preparation equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Chem to Prep eq', 'Chemical Structure to Pharmaceutical Preparation equivalent (NDF-RT)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Chemical Structure to Pharmaceutical Preparation equivalent (NDF-RT)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pharmaceutical Preparation to Chemical Structure equivalent (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Prep to Chem eq', 'Pharmaceutical Preparation to Chemical Structure equivalent (NDF-RT)', 0, 0, 'Chem to Prep eq', (select concept_id from concept where concept_name = 'Pharmaceutical Preparation to Chemical Structure equivalent (NDF-RT)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'Prep to Chem eq' where relationship_id = 'Chem to Prep eq';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'SNOMED to RxNorm equivalent (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('SNOMED - RxNorm eq', 'SNOMED to RxNorm equivalent (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'SNOMED to RxNorm equivalent (RxNorm)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'RxNorm to SNOMED equivalent (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('RxNorm - SNOMED eq', ' RxNorm to SNOMED equivalent (RxNorm)', 0, 0, 'SNOMED - RxNorm eq', (select concept_id from concept where concept_name = 'RxNorm to SNOMED equivalent (RxNorm)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'RxNorm - SNOMED eq' where relationship_id = 'SNOMED - RxNorm eq';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'SNOMED to NDF-RT equivalent (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('SNOMED - NDFRT eq', 'SNOMED to NDF-RT equivalent (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'SNOMED to NDF-RT equivalent (RxNorm)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'NDF-RT to SNOMED equivalent (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('NDFRT - SNOMED eq', 'NDF-RT to SNOMED equivalent (RxNorm)', 0, 0, 'SNOMED - NDFRT eq', (select concept_id from concept where concept_name = 'NDF-RT to SNOMED equivalent (RxNorm)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'NDFRT - SNOMED eq' where relationship_id = 'SNOMED - NDFRT eq';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'SNOMED to VA Class equivalent (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('SNOMED - VA Class eq', 'SNOMED to VA Class equivalent (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'SNOMED to VA Class equivalent (RxNorm)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VA Class to SNOMED equivalent (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('VA Class - SNOMED eq', 'VA Class to SNOMED equivalent (RxNorm)', 0, 0, 'SNOMED - VA Class eq', (select concept_id from concept where concept_name = 'VA Class to SNOMED equivalent (RxNorm)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'VA Class - SNOMED eq' where relationship_id = 'SNOMED - VA Class eq';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'SNOMED to ATC equivalent (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('SNOMED - ATC eq', 'SNOMED to ATC equivalent (RxNorm)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'SNOMED to ATC equivalent (RxNorm)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ATC to SNOMED equivalent (RxNorm)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('ATC - SNOMED eq', 'ATC to SNOMED equivalent (RxNorm)', 0, 0, 'SNOMED - ATC eq', (select concept_id from concept where concept_name = 'ATC to SNOMED equivalent (RxNorm)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'ATC - SNOMED eq' where relationship_id = 'SNOMED - ATC eq';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has product component (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Has product comp', 'Has product component (NDF-RT)', 1, 0, 'Is a', (select concept_id from concept where concept_name = 'Has product component (NDF-RT)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Product component of (NDF-RT)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Product comp of', 'Product component of (NDF-RT)', 1, 1, 'Has product comp', (select concept_id from concept where concept_name = 'Product component of (NDF-RT)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'Product comp of' where relationship_id = 'Has product comp';
 
 commit;
 
@@ -626,8 +748,8 @@ update concept_relationship set relationship_id = 'Concept replaced by' where re
   'UCUM replaced by'
 );
 update concept set 
-  valid_end_date='10-Jan-2015',
-  invalid_reason='D'
+  valid_end_date = '10-Jan-2015',
+  invalid_reason = 'D'
 where concept_id in (
   44818714, -- LOINC replaced by
   44818812, -- LOINC replaces

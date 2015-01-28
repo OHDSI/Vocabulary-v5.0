@@ -23,6 +23,11 @@ AND CASE
   WHEN c.vocabulary_id = 'ICD9CM' THEN 1
   WHEN c.vocabulary_id = 'ICD9Proc' THEN 1
   WHEN c.vocabulary_id = 'RxNorm' THEN 1
+  WHEN c.vocabulary_id = 'NDFRT' THEN 1
+  WHEN c.vocabulary_id = 'VA Product' THEN 1
+  WHEN c.vocabulary_id = 'VA Class' THEN 1
+  WHEN c.vocabulary_id = 'ATC' THEN 1
+  WHEN c.vocabulary_id = 'RxNorm' THEN 1
   ELSE 0
 END = 1
 ;
@@ -42,6 +47,11 @@ AND CASE
   WHEN c.vocabulary_id = 'ICD9CM' THEN 1
   WHEN c.vocabulary_id = 'ICD9Proc' THEN 1
   WHEN c.vocabulary_id = 'RxNorm' THEN 1
+  WHEN c.vocabulary_id = 'NDFRT' THEN 1
+  WHEN c.vocabulary_id = 'VA Product' THEN 1
+  WHEN c.vocabulary_id = 'VA Class' THEN 1
+  WHEN c.vocabulary_id = 'ATC' THEN 1
+  WHEN c.vocabulary_id = 'RxNorm' THEN 1  
   ELSE 0
 END = 1
 ;

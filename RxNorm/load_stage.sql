@@ -385,7 +385,18 @@ INSERT INTO concept_stage (concept_id,
     WHERE v.vocabulary_id = dv.vocabulary_id;
 COMMIT;	
 
---9  Create all sorts of relationships to self, RxNorm and SNOMED
+--9 Rename the top NDFRT concept
+UPDATE concept_stage
+   SET concept_name =
+             'NDF-RT release '
+          || (SELECT latest_update
+                FROM vocabulary
+               WHERE vocabulary_id = 'RxNorm'),
+       domain_id = 'Metadata'
+ WHERE concept_code = 'N0000000001';
+ COMMIT;
+
+--10  Create all sorts of relationships to self, RxNorm and SNOMED
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -670,7 +681,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
     WHERE     d.vocabulary_id = 'SNOMED'
           AND d.invalid_reason IS NULL
           AND d.concept_class_id NOT IN ('Dose Form', 'BrAND name')
-   -- add ATC to RxNorm by name, but exclude the ones the previous query did already
+   -- add ATC to RxNorm
    UNION ALL
    SELECT DISTINCT d.concept_code AS concept_code_1,
                    e.concept_code AS concept_code_2,
@@ -709,21 +720,35 @@ INSERT INTO concept_relationship_stage (concept_code_1,
    -- add ATC to RxNorm by name, but exclude the ones the previous query did already
    UNION ALL
    SELECT DISTINCT d.concept_code AS concept_code_1,
-                   e.concept_code AS concept_code_2,
-                   'ATC - RxNorm' AS relationship_id, -- this is one to substitute "NDFRF has ing", is hierarchical AND defines ancestry.
-                   'ATC' AS vocabulary_id_1,
-                   'RxNorm' AS vocabulary_id_2,
-                   v.latest_update AS valid_start_date,
-                   TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-                   NULL AS invalid_reason
-     FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
-          JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-          JOIN concept e
-             ON     r.rxcui = e.concept_code
-                AND e.vocabulary_id = 'RxNorm'
-                AND e.invalid_reason IS NULL
-    WHERE d.vocabulary_id = 'ATC' AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
+					e.concept_code AS concept_code_2,
+					'ATC - RxNorm name' AS relationship_id, -- this is one to substitute "NDFRF has ing", is hierarchical AND defines ancestry.
+					'ATC' AS vocabulary_id_1,
+					'RxNorm' AS vocabulary_id_2,
+					v.latest_update AS valid_start_date,
+					TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+					NULL AS invalid_reason
+	  FROM drug_vocs d
+		   JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
+		   JOIN concept e
+			  ON     LOWER (d.concept_name) = LOWER (e.concept_name)
+				 AND e.vocabulary_id = 'RxNorm'
+				 AND e.invalid_reason IS NULL
+	WHERE     d.vocabulary_id = 'ATC'
+		   AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
+		   AND NOT EXISTS
+				  (SELECT 1
+					 FROM drug_vocs d_int
+						  JOIN rxnconso r_int
+							 ON     r_int.rxcui = d_int.rxcui
+								AND r_int.code != 'NOCODE'
+						  JOIN concept e_int
+							 ON     r_int.rxcui = e_int.concept_code
+								AND e_int.vocabulary_id = 'RxNorm'
+								AND e_int.invalid_reason IS NULL
+					WHERE     d_int.vocabulary_id = 'ATC'
+						  AND d_int.concept_class_id = 'ATC 5th'
+						  AND d_int.concept_code = d.concept_code
+						  AND e_int.concept_code = e.concept_code)
    -- NDF-RT-defined relationships
    UNION ALL
    SELECT concept_code_1,
@@ -820,15 +845,15 @@ INSERT INTO concept_relationship_stage (concept_code_1,
     WHERE relationship_id IS NOT NULL;
 COMMIT;
 
---12 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
+--11 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
                                    synonym_vocabulary_id,
                                    language_concept_id)
 SELECT DISTINCT NULL AS synonym_concept_id,
-                dv.code AS synonym_concept_code,
-                SUBSTR (dv.concept_name, 1, 1000) AS synonym_name,
+                dv.concept_code AS synonym_concept_code,
+                SUBSTR (r.str, 1, 1000) AS synonym_name,
                 dv.vocabulary_id AS synonym_vocabulary_id,
                 4093769 AS language_concept_id
   FROM drug_vocs dv
@@ -836,10 +861,11 @@ SELECT DISTINCT NULL AS synonym_concept_id,
           ON     dv.code = r.code
              AND dv.rxcui = r.rxcui
              AND r.suppress != 'Y'
-             AND r.code != 'NOCODE';
+             AND r.code != 'NOCODE'
+             AND r.lat = 'ENG';
 COMMIT;
 
---13 Make sure all records are symmetrical and turn if necessary
+--12 Make sure all records are symmetrical and turn if necessary
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -869,14 +895,14 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;					 
 
---14 Update concept_id in concept_stage from concept for existing concepts
+--13 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL
 ;
 COMMIT;
 
---15 Reinstate constraints and indices
+--14 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;

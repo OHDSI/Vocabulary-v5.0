@@ -306,7 +306,7 @@ AS
                               'Mechanism of Action'
                            WHEN 'PE'
                            THEN
-                              'Physiolog Effect'
+                              'Physiologic Effect'
                            WHEN 'VA Product'
                            THEN
                               'VA Product'

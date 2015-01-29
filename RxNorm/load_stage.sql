@@ -236,7 +236,60 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                          AND concept_code = merged_to_rxcui);
 COMMIT;
 
---7 add NDFRT, VA Product, VA Class and ATC
+--7 Make sure all records are symmetrical and turn if necessary
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT crs.concept_code_2,
+          crs.concept_code_1,
+          crs.vocabulary_id_2,
+          crs.vocabulary_id_1,
+          r.reverse_relationship_id,
+          crs.valid_start_date,
+          crs.valid_end_date,
+          crs.invalid_reason
+     FROM concept_relationship_stage crs
+          JOIN relationship r ON r.relationship_id = crs.relationship_id
+    WHERE NOT EXISTS
+             (                                           -- the inverse record
+              SELECT 1
+                FROM concept_relationship_stage i
+               WHERE     crs.concept_code_1 = i.concept_code_2
+                     AND crs.concept_code_2 = i.concept_code_1
+                     AND crs.vocabulary_id_1 = i.vocabulary_id_2
+                     AND crs.vocabulary_id_2 = i.vocabulary_id_1
+                     AND r.reverse_relationship_id = i.relationship_id);
+COMMIT;					 
+
+--8 Update concept_id in concept_stage from concept for existing concepts
+UPDATE concept_stage cs
+    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
+    WHERE cs.concept_id IS NULL
+;
+COMMIT;
+
+--9 Reinstate constraints and indices
+ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
+
+--10 Run generic_update.sql from root directory
+
+--11 After previous step disable indexes and truncate tables again
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+ALTER INDEX idx_cs_concept_code UNUSABLE;
+ALTER INDEX idx_cs_concept_id UNUSABLE;
+ALTER INDEX idx_concept_code_1 UNUSABLE;
+ALTER INDEX idx_concept_code_2 UNUSABLE;
+
+--12 add NDFRT, VA Product, VA Class and ATC
 BEGIN
    EXECUTE IMMEDIATE 'drop table drug_vocs purge';
 EXCEPTION
@@ -360,7 +413,7 @@ AS
              FROM rxnconso
             WHERE sab = 'ATC' AND suppress != 'Y' AND tty IN ('PT', 'IN') AND code != 'NOCODE');
 
---8 Add to concept_stage
+--13 Add to concept_stage
 INSERT INTO concept_stage (concept_id,
                            concept_name,
                            domain_id,
@@ -385,7 +438,7 @@ INSERT INTO concept_stage (concept_id,
     WHERE v.vocabulary_id = dv.vocabulary_id;
 COMMIT;	
 
---9 Rename the top NDFRT concept
+--14 Rename the top NDFRT concept
 UPDATE concept_stage
    SET concept_name =
              'NDF-RT release '
@@ -396,7 +449,7 @@ UPDATE concept_stage
  WHERE concept_code = 'N0000000001';
  COMMIT;
 
---10  Create all sorts of relationships to self, RxNorm and SNOMED
+--15  Create all sorts of relationships to self, RxNorm and SNOMED
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -845,7 +898,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
     WHERE relationship_id IS NOT NULL;
 COMMIT;
 
---11 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
+--16 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -865,7 +918,7 @@ SELECT DISTINCT NULL AS synonym_concept_id,
              AND r.lat = 'ENG';
 COMMIT;
 
---12 Make sure all records are symmetrical and turn if necessary
+--17 Make sure all records are symmetrical and turn if necessary
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -895,14 +948,15 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;					 
 
---13 Update concept_id in concept_stage from concept for existing concepts
+--18 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL
 ;
 COMMIT;
 
---14 Reinstate constraints and indices
+--19 Reinstate constraints and indices
+ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;

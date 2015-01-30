@@ -1,7 +1,8 @@
 -- 1. Update latest_update field to new date 
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20141201','yyyymmdd') WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class', 'ATC', 'RxNorm'); 
+UPDATE vocabulary SET latest_update=to_date('20141201','yyyymmdd') WHERE vocabulary_id = 'RxNorm'; 
 COMMIT;
+
 
 -- 2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;
@@ -281,6 +282,13 @@ ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 --10 Run generic_update.sql from root directory
 
 --11 After previous step disable indexes and truncate tables again
+UPDATE vocabulary SET latest_update=
+(select latest_update from vocabulary WHERE vocabulary_id = 'RxNorm')
+	WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class', 'ATC'); 
+UPDATE vocabulary SET latest_update=null WHERE vocabulary_id = 'RxNorm';
+COMMIT;
+
+
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;

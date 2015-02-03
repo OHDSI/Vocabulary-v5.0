@@ -187,14 +187,11 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                  AND concept_code = rxcui2));
 COMMIT;
 
--- Remove shortcut 'RxNorm ing of' relationship between Branded Drug and Brand Name. For some strange reason it doesn't exist between Clinical Drug and Ingredient.
+-- Remove shortcut 'RxNorm ing of' relationship between Branded Drug and Brand Name. For some strange reason it doesn't exist between Clinical Drug and Ingredient, but we kill it anyway.
 DELETE FROM concept_relationship_stage r 
 WHERE EXISTS (
-        SELECT 1 FROM concept_stage bd WHERE r.concept_code_1 = bd.concept_code AND r.vocabulary_id_1 = bd.vocabulary_id
-            AND bd.concept_class_id = 'Branded Drug')
-    AND EXISTS ( 
-        SELECT 1 FROM concept_stage bn WHERE r.concept_code_2 = bn.concept_code AND r.vocabulary_id_2 = bn.vocabulary_id
-            AND bn.concept_class_id = 'Brand Name')
+        SELECT 1 FROM concept_stage d WHERE r.concept_code_1 = d.concept_code AND r.vocabulary_id_1 = d.vocabulary_id
+            AND d.concept_class_id in ('Branded Drug', 'Clinical Drug')
     AND r.relationship_id = 'RxNorm has ing'
 ;
 

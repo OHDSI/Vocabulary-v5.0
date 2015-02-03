@@ -729,6 +729,75 @@ values ('Product comp of', 'Product component of (NDF-RT)', 1, 1, 'Has product c
 update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
 set reverse_relationship_id = 'Product comp of' where relationship_id = 'Has product comp';
 
+-- Fix the RxNorm relationships
+update relationship set is_hierarchical=1 where relationship_id='RxNorm is a';
+update relationship set defines_ancestry=1 where relationship_id='Has quantified form';
+update relationship set defines_ancestry=0 where relationship_id='Quantified form of';
+
+-- fix some asymmetrical relationship-reverse relationships
+update relationship set is_hierarchical=0 where relationship_id='ICD9P - SNOMED eq';
+update relationship set is_hierarchical=1 where relationship_id='Is domain';
+
+-- fix some hierarchical relationships not asigned that way and therefore creating wrong min_levels_of_separation
+update relationship set is_hierarchical=1 where relationship_id='Inferred class of';
+update relationship set is_hierarchical=1 where relationship_id='Has inferred class';
+update relationship set is_hierarchical=1 where relationship_id='Is FDA-appr ind of';
+update relationship set is_hierarchical=1 where relationship_id='Has FDA-appr ind';
+update relationship set is_hierarchical=1 where relationship_id='Is off-label ind of';	
+update relationship set is_hierarchical=1 where relationship_id='Has off-label ind';
+
+-- Add SPL concept classes
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'FDA Product Type Vaccine', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Vaccine', 'Vaccine', (select concept_id from concept where concept_name = 'FDA Product Type Vaccine'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'FDA Product Type Standardized Allergenic', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Standard Allergenic', 'FDA Product Type Standardized Allergenic', (select concept_id from concept where concept_name = 'FDA Product Type Standardized Allergenic'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'FDA Product Type Human Prescription Drug', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Prescription Drug', 'FDA Product Type Human Prescription Drug', (select concept_id from concept where concept_name = 'FDA Product Type Human Prescription Drug'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'FDA Product Type Human OTC Drug', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('OTC Drug', 'FDA Product Type Human OTC Drug', (select concept_id from concept where concept_name = 'FDA Product Type Human OTC Drug'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'FDA Product Type Plasma Derivative', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Plasma Derivative', 'FDA Product Type Plasma Derivative', (select concept_id from concept where concept_name = 'FDA Product Type Plasma Derivative'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'FDA Product Type Non-Standardized Allergenic', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Non-Stand Allergenic', 'FDA Product Type Non-Standardized Allergenic', (select concept_id from concept where concept_name = 'FDA Product Type Non-Standardized Allergenic'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'FDA Product Type Cellular Therapy', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Cellular Therapy', 'FDA Product Type Cellular Therapy', (select concept_id from concept where concept_name = 'FDA Product Type Cellular Therapy'));
+
+-- Add RxNorm concept classes
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Quantified Clinical Drug', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Quant Clinical Drug', 'Quantified Clinical Drug', (select concept_id from concept where concept_name = 'Quantified Clinical Drug'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Quantified Branded Drug', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Quant Branded Drug', 'Quantified Branded Drug', (select concept_id from concept where concept_name = 'Quantified Branded Drug'));
+
+-- Add RxNorm special mapping to Quantified Drugs and Packs we need to re-map to Clinical/Branded Drug
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Original but remapped Non-standard to Standard map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Original maps to', 'Original but remapped Non-standard to Standard map (OMOP)', 1, 0, 'Is a', (select concept_id from concept where concept_name = 'Original but remapped Non-standard to Standard map (OMOP)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Original but remapped Standard to Non-standard map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Original mapped from', 'Original but remapped Standard to Non-standard map (OMOP)', 1, 1, 'Has product comp', (select concept_id from concept where concept_name = 'Original but remapped Standard to Non-standard map (OMOP)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'Original mapped from' where relationship_id = 'Original maps to';
+
 commit;
 
 -- Not done yet:

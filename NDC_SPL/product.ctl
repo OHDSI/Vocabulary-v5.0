@@ -1,30 +1,29 @@
-options (direct=true, errors=0, skip=1)
-load data 
-infile 'product.txt' 
-badfile 'product.bad'
-discardfile 'product.dsc'
-truncate
-into table product
-fields terminated by '\t'
-trailing nullcols 
+OPTIONS (errors=0, SKIP=1, direct=true)
+LOAD DATA
+INFILE 'product.txt'  
+BADFILE 'product.bad'
+DISCARDFILE 'product.dsc'                                                           
+TRUNCATE
+INTO TABLE product                                                                
+FIELDS TERMINATED BY X'09'                                                    
+TRAILING NULLCOLS                                                               
 (
-productid char(50),
-productndc char(10),
-producttypename char(27),
-proprietaryname char(226),
-proprietarynamesuffix char(126),
-nonproprietaryname char(511),
-dosageformname char(48),
-routename char(118),
-startmarketingdate date "YYYYMMDD",
-endmarketingdate date "YYYYMMDD",
-marketingcategoryname char(40),
-applicationnumber char(11),
-labelername char(100),
-substancename char(3814),
-active_numerator_strength char(742),
-active_ingred_unit char(2055),
-pharm_classes char(3998),
-deaschedule char(4)
-)
-
+  PRODUCTID                  CHAR NULLIF (PRODUCTID=BLANKS),
+  PRODUCTNDC                 CHAR NULLIF (PRODUCTNDC=BLANKS),
+  PRODUCTTYPENAME            CHAR NULLIF (PRODUCTTYPENAME=BLANKS),
+  PROPRIETARYNAME            CHAR NULLIF (PROPRIETARYNAME=BLANKS),
+  PROPRIETARYNAMESUFFIX      CHAR NULLIF (PROPRIETARYNAMESUFFIX=BLANKS),
+  NONPROPRIETARYNAME         CHAR (4000) NULLIF (NONPROPRIETARYNAME=BLANKS),
+  DOSAGEFORMNAME             CHAR NULLIF (DOSAGEFORMNAME=BLANKS),
+  ROUTENAME                  CHAR NULLIF (ROUTENAME=BLANKS),
+  STARTMARKETINGDATE         DATE 'YYYYMMDD' NULLIF (STARTMARKETINGDATE=BLANKS),
+  ENDMARKETINGDATE           DATE 'YYYYMMDD' NULLIF (ENDMARKETINGDATE=BLANKS),
+  MARKETINGCATEGORYNAME      CHAR NULLIF (MARKETINGCATEGORYNAME=BLANKS),
+  APPLICATIONNUMBER          CHAR NULLIF (APPLICATIONNUMBER=BLANKS),
+  LABELERNAME                CHAR NULLIF (LABELERNAME=BLANKS),
+  SUBSTANCENAME              CHAR (4000) NULLIF (SUBSTANCENAME=BLANKS),
+  ACTIVE_NUMERATOR_STRENGTH  CHAR (4000) NULLIF (ACTIVE_NUMERATOR_STRENGTH=BLANKS),
+  ACTIVE_INGRED_UNIT         CHAR (4000) NULLIF (ACTIVE_INGRED_UNIT=BLANKS),
+  PHARM_CLASSES              CHAR (4000) NULLIF (PHARM_CLASSES=BLANKS),
+  DEASCHEDULE                CHAR NULLIF (DEASCHEDULE=BLANKS)
+)                                                                               

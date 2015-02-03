@@ -188,7 +188,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
 COMMIT;
 
 -- Remove shortcut 'RxNorm ing of' relationship between Branded Drug and Brand Name. For some strange reason it doesn't exist between Clinical Drug and Ingredient.
-DELETE FROM concept_relatiosnhip_stage r 
+DELETE FROM concept_relationship_stage r 
 WHERE EXISTS (
         SELECT 1 FROM concept_stage bd WHERE r.concept_code_1 = bd.concept_code AND r.vocabulary_id_1 = bd.vocabulary_id
             AND bd.concept_class_id = 'Branded Drug')

@@ -1,6 +1,6 @@
 -- 1. Update existing concept details from concept_stage. This is different for different vocabularies.
 -- It assumes that if no new detail is available the corresponding fields are NULL.
--- Only the firelds concept_name, domain_id, concept_class_id, standard_concept and valid_end_date are updated.
+-- Only the fields concept_name, domain_id, concept_class_id, standard_concept and valid_end_date are updated.
 -- valid_start_date is set to the release date of the last update and should not overwrite the existing one
 -- if the valid_start_date needs be updated, a separate script should be run
 UPDATE concept c
@@ -27,7 +27,8 @@ AND CASE
   WHEN c.vocabulary_id = 'VA Product' THEN 1
   WHEN c.vocabulary_id = 'VA Class' THEN 1
   WHEN c.vocabulary_id = 'ATC' THEN 1
-  WHEN c.vocabulary_id = 'RxNorm' THEN 1
+  WHEN c.vocabulary_id = 'NDC' THEN 1
+  WHEN c.vocabulary_id = 'SPL' THEN 1
   ELSE 0
 END = 1
 ;
@@ -51,6 +52,8 @@ AND CASE
   WHEN c.vocabulary_id = 'VA Product' THEN 1
   WHEN c.vocabulary_id = 'VA Class' THEN 1
   WHEN c.vocabulary_id = 'ATC' THEN 1
+  WHEN c.vocabulary_id = 'NDC' THEN 0
+  WHEN c.vocabulary_id = 'SPL' THEN 0  
   ELSE 0
 END = 1
 ;
@@ -151,16 +154,37 @@ UPDATE concept_relationship d
                 (SELECT latest_update -1 FROM vocabulary v, concept_stage c
                   WHERE     v.vocabulary_id = c.vocabulary_id
                         AND c.concept_id = d.concept_id_1)
-       -- AND doesn't exist in the new concept_relationship_stage
-      AND NOT EXISTS (
-              SELECT 1
-                 FROM concept_relationship_stage r
-                 JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
-                 JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
-                WHERE     d.concept_id_1 = r1.concept_id
-                      AND d.concept_id_2 = r2.concept_id
-                      AND d.relationship_id = r.relationship_id
-        )
+       -- AND doesn't exist in the new concept_relationship_stage for all vocabulary_id except 'NDC' and 'SPL'
+	   -- OR exist in the new concept_relationship_stage for 'NDC' and 'SPL'
+      AND (
+			(
+				NOT EXISTS (
+				  SELECT 1
+					 FROM concept_relationship_stage r
+					 JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
+					 JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
+					WHERE     d.concept_id_1 = r1.concept_id
+						  AND d.concept_id_2 = r2.concept_id
+						  AND d.relationship_id = r.relationship_id
+				) AND CASE
+					  WHEN (select c.vocabulary_id from concept c where c.concept_id = d.concept_id_1) IN ('NDC', 'SPL') THEN 0 
+					  ELSE 1
+				END = 1
+			) OR (
+				EXISTS (
+				  SELECT 1
+					 FROM concept_relationship_stage r
+					 JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
+					 JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
+					WHERE     d.concept_id_1 = r1.concept_id
+						  AND d.concept_id_2 = r2.concept_id
+						  AND d.relationship_id = r.relationship_id
+				) AND CASE
+					  WHEN (select c.vocabulary_id from concept c where c.concept_id = d.concept_id_1) IN ('NDC', 'SPL') THEN 0 
+					  ELSE 1
+				END = 0
+			)			
+		)
        -- Deal with replacing relationships separately, since they can only have one per deprecated concept
 ;
 
@@ -201,7 +225,7 @@ COMMIT;
 ALTER TABLE concept_relationship LOGGING;
 
 -- 9. UPDATE invalid_reason
-UPDATE concept SET invalid_reason=NULL WHERE valid_end_date = to_date('31.12.2099','dd.mm.yyyy');
+UPDATE concept SET invalid_reason=NULL WHERE valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NOT NULL;
 COMMIT;
 
 UPDATE concept c SET c.invalid_reason='U' 

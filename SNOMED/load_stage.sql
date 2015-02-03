@@ -507,7 +507,8 @@ FROM (
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to'
+                                               'Concept was_a to',
+											   'Original maps to'
                                              )
                       and NVL(invalid_reason, 'X') <> 'D'
                 CONNECT BY  
@@ -517,14 +518,16 @@ FROM (
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to'
+                                               'Concept was_a to',
+											   'Original maps to'
                                              )
                         AND NVL(invalid_reason, 'X') <> 'D'
                 START WITH relationship_id IN ('Concept replaced by',
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to'
+                                               'Concept was_a to',
+											   'Original maps to'
                                               )
                       AND NVL(invalid_reason, 'X') <> 'D'
           ) sou 

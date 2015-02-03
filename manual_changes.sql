@@ -776,6 +776,28 @@ values (v5_concept.nextval, 'FDA Product Type Cellular Therapy', 'Metadata', 'Co
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
 values ('Cellular Therapy', 'FDA Product Type Cellular Therapy', (select concept_id from concept where concept_name = 'FDA Product Type Cellular Therapy'));
 
+-- Add RxNorm concept classes
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Quantified Clinical Drug', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Quant Clinical Drug', 'Quantified Clinical Drug', (select concept_id from concept where concept_name = 'Quantified Clinical Drug'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Quantified Branded Drug', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Quant Branded Drug', 'Quantified Branded Drug', (select concept_id from concept where concept_name = 'Quantified Branded Drug'));
+
+-- Add RxNorm special mapping to Quantified Drugs and Packs we need to re-map to Clinical/Branded Drug
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Original but remapped Non-standard to Standard map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Original maps to', 'Original but remapped Non-standard to Standard map (OMOP)', 1, 0, 'Is a', (select concept_id from concept where concept_name = 'Original but remapped Non-standard to Standard map (OMOP)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Original but remapped Standard to Non-standard map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Original mapped from', 'Original but remapped Standard to Non-standard map (OMOP)', 1, 1, 'Has product comp', (select concept_id from concept where concept_name = 'Original but remapped Standard to Non-standard map (OMOP)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'Original mapped from' where relationship_id = 'Original maps to';
+
 commit;
 
 -- Not done yet:

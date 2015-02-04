@@ -798,6 +798,80 @@ values ('Original mapped from', 'Original but remapped Standard to Non-standard 
 update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
 set reverse_relationship_id = 'Original mapped from' where relationship_id = 'Original maps to';
 
+-- Add SPL to RxNorm mapping (instead of Maps to)
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'SPL to RxNorm (NLM)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('SPL - RxNorm', 'SPL to RxNorm (NLM)', 1, 0, 'Is a', (select concept_id from concept where concept_name = 'SPL to RxNorm (NLM)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'RxNorm to SPL (NLM)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('RxNorm - SPL', 'RxNorm to SPL (NLM)', 1, 1, 'Has product comp', (select concept_id from concept where concept_name = 'RxNorm to SPL (NLM)'));
+update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
+set reverse_relationship_id = 'RxNorm - SPL' where relationship_id = 'SPL - RxNorm';
+
+select * from concept_class where concept_class_id like 'ICD9CM%';
+select * from concept where concept_class_id='ICD9CM E code';
+select * from concept_class where concept_class_concept_id=44819260;
+
+update concept set invalid_reason='D', valid_end_date='3-Jan-2015' where concept_id=44819260;
+update concept set invalid_reason='D', valid_end_date='3-Jan-2015' where concept_id=44819261;
+update concept set invalid_reason='D', valid_end_date='3-Jan-2015' where concept_id=44819259;
+update concept set invalid_reason='D', valid_end_date='3-Jan-2015' where concept_id=45754823;
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '3-digit billing ICD9CM code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('3-dig billing code', '3-digit billing ICD9CM code', (select concept_id from concept where concept_name = '3-digit billing ICD9CM code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '4-digit billing ICD9CM code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('4-dig billing code', '4-digit billing ICD9CM code', (select concept_id from concept where concept_name = '4-digit billing ICD9CM code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '5-digit billing ICD9CM code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('5-dig billing code', '5-digit billing ICD9CM code', (select concept_id from concept where concept_name = '5-digit billing ICD9CM code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '4-digit billing ICD9CM E code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('4-dig billing E code', '4-digit billing ICD9CM E code', (select concept_id from concept where concept_name = '4-digit billing ICD9CM E code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '5-digit billing ICD9CM E code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('5-dig billing E code', '5-digit billing ICD9CM E code', (select concept_id from concept where concept_name = '5-digit billing ICD9CM E code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '3-digit billing ICD9CM V code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('3-dig billing V code', '3-digit billing ICD9CM V code', (select concept_id from concept where concept_name = '3-digit billing ICD9CM V code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '4-digit billing ICD9CM V code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('4-dig billing V code', '4-digit billing ICD9CM V code', (select concept_id from concept where concept_name = '4-digit billing ICD9CM V code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '5-digit billing ICD9CM V code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('5-dig billing V code', '5-digit billing ICD9CM V code', (select concept_id from concept where concept_name = '5-digit billing ICD9CM V code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '3-digit non-billing ICD9CM code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('3-dig nonbill code', '3-digit non-billing ICD9CM code', (select concept_id from concept where concept_name = '3-digit non-billing ICD9CM code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '4-digit non-billing ICD9CM code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('4-dig nonbill code', '4-digit non-billing ICD9CM code', (select concept_id from concept where concept_name = '4-digit non-billing ICD9CM code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '3-digit non-billing ICD9CM V code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('3-dig nonbill V code', '3-digit non-billing ICD9CM V code', (select concept_id from concept where concept_name = '3-digit non-billing ICD9CM V code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '3-digit non-billing ICD9CM E code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('3-dig nonbill E code', '3-digit non-billing ICD9CM E code', (select concept_id from concept where concept_name = '3-digit non-billing ICD9CM E code'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '4-digit non-billing ICD9CM E code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('4-dig nonbill E code', '4-digit non-billing ICD9CM E code', (select concept_id from concept where concept_name = '4-digit non-billing ICD9CM E code'));
+
 commit;
 
 -- Not done yet:

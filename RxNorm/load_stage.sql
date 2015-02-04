@@ -750,7 +750,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                 AND e.invalid_reason IS NULL
     WHERE     d.vocabulary_id = 'SNOMED'
           AND d.invalid_reason IS NULL
-          AND d.concept_class_id NOT IN ('Dose Form', 'BrAND name')
+          AND d.concept_class_id NOT IN ('Dose Form', 'Brand Name')
    -- add ATC to RxNorm
    UNION ALL
    SELECT DISTINCT d.concept_code AS concept_code_1,

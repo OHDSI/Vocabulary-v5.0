@@ -1,3 +1,7 @@
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_stage', estimate_percent => null, degree =>4, cascade => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_relationship_stage', estimate_percent => null, degree =>4, cascade => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_synonym_stage', estimate_percent => null, degree =>4, cascade => true);
+
 -- 1. Update existing concept details from concept_stage. This is different for different vocabularies.
 -- It assumes that if no new detail is available the corresponding fields are NULL.
 -- Only the fields concept_name, domain_id, concept_class_id, standard_concept and valid_end_date are updated.

@@ -17,7 +17,7 @@ ALTER INDEX idx_concept_code_2 UNUSABLE;
 CREATE OR REPLACE FUNCTION GetAggrDose (active_numerator_strength in varchar2, active_ingred_unit in varchar2) return varchar2 as
 z varchar2(4000);
 BEGIN
-    select  listagg(a_n_s||' '||a_i_u, ' / ') WITHIN GROUP (order by lpad(a_n_s||' '||a_i_u,50)) into z from 
+    select  listagg(a_n_s||a_i_u, ' / ') WITHIN GROUP (order by lpad(a_n_s||a_i_u,50)) into z from 
     (
         select distinct regexp_substr(active_numerator_strength,'[^; ]+', 1, level) a_n_s, 
 		regexp_substr(active_ingred_unit,'[^; ]+', 1, level) a_i_u  from dual
@@ -76,9 +76,9 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 	(           
 		select concept_code, concept_class_id,
 		case when MULTI_NONPROPRIETARYNAME is null then 
-			substr(nonproprietaryname,1,100)||NULLIF(' '||substr(aggr_dose,1,100),'  ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
+			substr(nonproprietaryname,1,100)||decode(substr(nonproprietaryname,1,100),nonproprietaryname,null,'...')||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
 		else
-			'Multiple formulations: '||substr(nonproprietaryname,1,100)||NULLIF(' '||substr(aggr_dose,1,100),'  ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
+			'Multiple formulations: '||substr(nonproprietaryname,1,100)||decode(substr(nonproprietaryname,1,100),nonproprietaryname,null,'...')||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
 		end as concept_name,
 		SUBSTR(brand_name,1,255) as brand_name,
 		valid_start_date
@@ -124,12 +124,12 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 			select t1.*,  
 			(select listagg(DOSAGEFORMNAME,', ') within group (order by DOSAGEFORMNAME) from (select distinct P.DOSAGEFORMNAME from prod p where p.concept_code=t1.concept_code)) as DOSAGEFORMNAME, 
 			(select listagg(ROUTENAME,', ') within group (order by ROUTENAME) from (select distinct P.ROUTENAME from prod p where p.concept_code=t1.concept_code)) as ROUTENAME,
-			(select listagg(NONPROPRIETARYNAME,', ') within group (order by NONPROPRIETARYNAME) from (select distinct P.NONPROPRIETARYNAME from prod p where p.concept_code=t1.concept_code)  where rownum<15) as NONPROPRIETARYNAME,
-			(select count(P.NONPROPRIETARYNAME) from prod p where p.concept_code=t1.concept_code having count(distinct P.NONPROPRIETARYNAME)>1) as MULTI_NONPROPRIETARYNAME,
+			(select listagg(NONPROPRIETARYNAME,', ') within group (order by NONPROPRIETARYNAME) from (select distinct lower(P.NONPROPRIETARYNAME) NONPROPRIETARYNAME from prod p where p.concept_code=t1.concept_code)  where rownum<15) as NONPROPRIETARYNAME,
+			(select count(lower(P.NONPROPRIETARYNAME)) from prod p where p.concept_code=t1.concept_code having count(distinct lower(P.NONPROPRIETARYNAME))>1) as MULTI_NONPROPRIETARYNAME,
 			(
 				select listagg(brand_name,', ') within group (order by brand_name) from 
 				(select distinct CASE WHEN lower(proprietaryname) <> lower(nonproprietaryname) 
-								 THEN TRIM(proprietaryname || ' ' || proprietarynamesuffix)
+								 THEN LOWER(TRIM(proprietaryname || ' ' || proprietarynamesuffix))
 								 ELSE NULL
 								 END AS brand_name 
 				from prod p where p.concept_code=t1.concept_code
@@ -170,9 +170,9 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
     (           
         select concept_code,
         case when MULTI_NONPROPRIETARYNAME is null then 
-            substr(nonproprietaryname,1,100)||NULLIF(' '||substr(aggr_dose,1,100),'  ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
+            substr(nonproprietaryname,1,100)||decode(substr(nonproprietaryname,1,100),nonproprietaryname,null,'...')||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
         else
-            'Multiple formulations: '||substr(nonproprietaryname,1,100)||NULLIF(' '||substr(aggr_dose,1,100),'  ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
+            'Multiple formulations: '||substr(nonproprietaryname,1,100)||decode(substr(nonproprietaryname,1,100),nonproprietaryname,null,'...')||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
         end as concept_name,
         SUBSTR(brand_name,1,255) as brand_name,
         valid_start_date
@@ -220,12 +220,12 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
             select t1.*,  
             (select listagg(DOSAGEFORMNAME,', ') within group (order by DOSAGEFORMNAME) from (select distinct P.DOSAGEFORMNAME from prod p where p.concept_code=t1.concept_code)) as DOSAGEFORMNAME, 
             (select listagg(ROUTENAME,', ') within group (order by ROUTENAME) from (select distinct P.ROUTENAME from prod p where p.concept_code=t1.concept_code)) as ROUTENAME,
-            (select listagg(NONPROPRIETARYNAME,', ') within group (order by NONPROPRIETARYNAME) from (select distinct P.NONPROPRIETARYNAME from prod p where p.concept_code=t1.concept_code)  where rownum<15) as NONPROPRIETARYNAME,
-            (select count(P.NONPROPRIETARYNAME) from prod p where p.concept_code=t1.concept_code having count(distinct P.NONPROPRIETARYNAME)>1) as MULTI_NONPROPRIETARYNAME,
+            (select listagg(NONPROPRIETARYNAME,', ') within group (order by NONPROPRIETARYNAME) from (select distinct lower(P.NONPROPRIETARYNAME) NONPROPRIETARYNAME from prod p where p.concept_code=t1.concept_code)  where rownum<15) as NONPROPRIETARYNAME,
+			(select count(lower(P.NONPROPRIETARYNAME)) from prod p where p.concept_code=t1.concept_code having count(distinct lower(P.NONPROPRIETARYNAME))>1) as MULTI_NONPROPRIETARYNAME,
             (
                 select listagg(brand_name,', ') within group (order by brand_name) from 
                 (select distinct CASE WHEN lower(proprietaryname) <> lower(nonproprietaryname) 
-                                 THEN TRIM(proprietaryname || ' ' || proprietarynamesuffix)
+                                 THEN LOWER(TRIM(proprietaryname || ' ' || proprietarynamesuffix))
                                  ELSE NULL
                                  END AS brand_name 
                 from prod p where p.concept_code=t1.concept_code
@@ -281,7 +281,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
           r.rxcui AS concept_code_2,                    -- RxNorm concept_code
           'SPL' AS vocabulary_id_1,
           'RxNorm' AS vocabulary_id_2,
-          'SPL of RxNorm' AS relationship_id,
+          'SPL - RxNorm' AS relationship_id,
           v.latest_update AS valid_start_date,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
           NULL AS invalid_reason

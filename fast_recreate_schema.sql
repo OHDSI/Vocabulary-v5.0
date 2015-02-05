@@ -15,6 +15,9 @@ begin
     execute immediate 'truncate table CONCEPT_STAGE';
     execute immediate 'truncate table concept_relationship_stage';
     execute immediate 'truncate table concept_synonym_stage';
+
+	insert into concept_class select * from v5dev.concept_class minus select * from concept_class;
+
     
     /*CTAS with NOLOGGING (faster)*/
     execute immediate 'CREATE TABLE concept NOLOGGING AS SELECT * FROM v5dev.concept';

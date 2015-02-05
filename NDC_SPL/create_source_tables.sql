@@ -19,3 +19,22 @@ CREATE TABLE PRODUCT
   PHARM_CLASSES              VARCHAR2(4000 BYTE),
   DEASCHEDULE                VARCHAR2(5 BYTE)
 );
+
+CREATE INDEX idx_f_product
+   ON product (SUBSTR (productid, INSTR (productid, '_') + 1))
+   NOLOGGING;
+   
+CREATE INDEX idx_f1_product
+ON product( 
+    CASE
+    WHEN INSTR (productndc, '-') = 5
+    THEN '0' || SUBSTR (productndc,1,INSTR (productndc, '-') - 1)
+    ELSE SUBSTR (productndc, 1, INSTR (productndc, '-') - 1)
+    END||
+    CASE
+    WHEN LENGTH ( SUBSTR (productndc, INSTR (productndc, '-'))) = 4
+    THEN '0' || SUBSTR (productndc,INSTR (productndc, '-') + 1)
+    ELSE
+      SUBSTR (productndc,INSTR (productndc, '-') + 1)
+    END)
+NOLOGGING;   

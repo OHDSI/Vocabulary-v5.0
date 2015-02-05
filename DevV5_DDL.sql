@@ -148,3 +148,8 @@ CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
 CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
 CREATE INDEX idx_concept_code_1 ON concept_relationship_stage (concept_code_1);
 CREATE INDEX idx_concept_code_2 ON concept_relationship_stage (concept_code_2);
+
+-- GATHER_TABLE_STATS
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept', estimate_percent => null, degree =>4, cascade => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_relationship', estimate_percent => null, degree =>4, cascade => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_synonym', estimate_percent => null, degree =>4, cascade => true);

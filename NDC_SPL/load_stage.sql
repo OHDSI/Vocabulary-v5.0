@@ -76,9 +76,9 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 	(           
 		select concept_code, concept_class_id,
 		case when MULTI_NONPROPRIETARYNAME is null then 
-			substr(nonproprietaryname,1,100)||decode(substr(nonproprietaryname,1,100),nonproprietaryname,null,'...')||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
+			substr(nonproprietaryname,1,100)||case when length(nonproprietaryname)>100 then '...' end||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
 		else
-			'Multiple formulations: '||substr(nonproprietaryname,1,100)||decode(substr(nonproprietaryname,1,100),nonproprietaryname,null,'...')||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
+			'Multiple formulations: '||substr(nonproprietaryname,1,100)||case when length(nonproprietaryname)>100 then '...' end||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
 		end as concept_name,
 		SUBSTR(brand_name,1,255) as brand_name,
 		valid_start_date
@@ -170,9 +170,9 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
     (           
         select concept_code,
         case when MULTI_NONPROPRIETARYNAME is null then 
-            substr(nonproprietaryname,1,100)||decode(substr(nonproprietaryname,1,100),nonproprietaryname,null,'...')||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
+            substr(nonproprietaryname,1,100)||case when length(nonproprietaryname)>100 then '...' end||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
         else
-            'Multiple formulations: '||substr(nonproprietaryname,1,100)||decode(substr(nonproprietaryname,1,100),nonproprietaryname,null,'...')||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
+            'Multiple formulations: '||substr(nonproprietaryname,1,100)||case when length(nonproprietaryname)>100 then '...' end||NULLIF(' '||substr(aggr_dose,1,100),' ')||' '||substr(routename,1,100)||' '||substr(dosageformname,1,100)
         end as concept_name,
         SUBSTR(brand_name,1,255) as brand_name,
         valid_start_date

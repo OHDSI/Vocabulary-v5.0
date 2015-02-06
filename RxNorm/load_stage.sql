@@ -1012,7 +1012,24 @@ SELECT DISTINCT NULL AS synonym_concept_id,
              AND r.lat = 'ENG';
 COMMIT;
 
---18 Add mapping from deprecated to fresh concepts
+--18 Re-map Quantified Drugs and Packs
+--Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
+UPDATE concept_relationship_stage
+   SET relationship_id = 'Original maps to'
+ WHERE ROWID IN (SELECT r.ROWID
+                   FROM concept_relationship_stage r, concept_stage c
+                  WHERE     r.vocabulary_id_2 = 'RxNorm'
+                        AND c.concept_code = r.concept_code_2
+                        AND c.vocabulary_id = r.vocabulary_id_2
+                        AND c.concept_class_id IN ('Quant Clinical Drug',
+                                                   'Quant Branded Drug',
+                                                   'Clinical Pack',
+                                                   'Branded Pack')
+                        AND c.standard_concept IS NULL
+                        AND r.relationship_id = 'Maps to');
+COMMIT;		
+
+--19 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
@@ -1088,7 +1105,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;
 
---19 Make sure all records are symmetrical and turn if necessary
+--20 Make sure all records are symmetrical and turn if necessary
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -1118,14 +1135,14 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;					 
 
---20 Update concept_id in concept_stage from concept for existing concepts
+--21 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL
 ;
 COMMIT;
 
---21 Reinstate constraints and indices
+--22 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

@@ -197,7 +197,7 @@ WHERE EXISTS (
 
 
 --6 Add upgrade relationships
-INSERT INTO concept_relationship_stage (concept_code_1,
+INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -246,16 +246,15 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                          AND concept_code = merged_to_rxcui);
 COMMIT;
 
--- 7. Add mapping from deprecated to fresh concepts
-INSERT  /*+ APPEND */  INTO concept_relationship_stage (
-  concept_code_1,
-  concept_code_2,
-  vocabulary_id_1,
-  vocabulary_id_2,
-  relationship_id,
-  valid_start_date,
-  valid_end_date,
-  invalid_reason
+--7. Add mapping from deprecated to fresh concepts
+INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
 )
     SELECT 
       root,

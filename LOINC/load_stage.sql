@@ -278,12 +278,118 @@ INSERT INTO concept_relationship_stage (concept_id_1,
     WHERE AnswerStringID IS NOT NULL;
 COMMIT;	
 
---12 Update concept_id in concept_stage from concept for existing concepts
+--12. Add mapping from deprecated to fresh concepts
+INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+)
+    SELECT 
+      root,
+      concept_code_2,
+      root_vocabulary_id,
+      vocabulary_id_2,
+      'Maps to',
+      (SELECT latest_update FROM vocabulary WHERE vocabulary_id=root_vocabulary_id),
+      TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
+      NULL
+    FROM 
+    (
+        SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2 FROM (
+          SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2, dt,  ROW_NUMBER() OVER (PARTITION BY root_vocabulary_id, root ORDER BY dt DESC) rn
+            FROM (
+                SELECT 
+                      concept_code_2, 
+                      vocabulary_id_2,
+                      valid_start_date AS dt,
+                      CONNECT_BY_ROOT concept_code_1 AS root,
+                      CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id,
+                      CONNECT_BY_ISLEAF AS lf
+                FROM concept_relationship_stage
+                WHERE relationship_id IN ( 'Concept replaced by',
+                                               'Concept same_as to',
+                                               'Concept alt_to to',
+                                               'Concept poss_eq to',
+                                               'Concept was_a to',
+                                               'Original maps to'
+                                             )
+                      and NVL(invalid_reason, 'X') <> 'D'
+                CONNECT BY  
+                NOCYCLE  
+                PRIOR concept_code_2 = concept_code_1
+                      AND relationship_id IN ( 'Concept replaced by',
+                                               'Concept same_as to',
+                                               'Concept alt_to to',
+                                               'Concept poss_eq to',
+                                               'Concept was_a to',
+                                               'Original maps to'
+                                             )
+                       AND vocabulary_id_2=vocabulary_id_1                     
+                       AND NVL(invalid_reason, 'X') <> 'D'
+                                   
+                START WITH relationship_id IN ('Concept replaced by',
+                                               'Concept same_as to',
+                                               'Concept alt_to to',
+                                               'Concept poss_eq to',
+                                               'Concept was_a to',
+                                               'Original maps to'
+                                              )
+                      AND NVL(invalid_reason, 'X') <> 'D'
+          ) sou 
+          WHERE lf = 1
+        ) 
+        WHERE rn = 1
+    ) int_rel WHERE NOT EXISTS
+    (select 1 from concept_relationship_stage r where
+        int_rel.root=r.concept_code_1
+        and int_rel.concept_code_2=r.concept_code_2
+        and int_rel.root_vocabulary_id=r.vocabulary_id_1
+        and int_rel.vocabulary_id_2=r.vocabulary_id_2
+        and r.relationship_id='Maps to'
+    );
+
+COMMIT;
+
+--13 Make sure all records are symmetrical and turn if necessary
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT crs.concept_code_2,
+          crs.concept_code_1,
+          crs.vocabulary_id_2,
+          crs.vocabulary_id_1,
+          r.reverse_relationship_id,
+          crs.valid_start_date,
+          crs.valid_end_date,
+          crs.invalid_reason
+     FROM concept_relationship_stage crs
+          JOIN relationship r ON r.relationship_id = crs.relationship_id
+    WHERE NOT EXISTS
+             (                                           -- the inverse record
+              SELECT 1
+                FROM concept_relationship_stage i
+               WHERE     crs.concept_code_1 = i.concept_code_2
+                     AND crs.concept_code_2 = i.concept_code_1
+                     AND crs.vocabulary_id_1 = i.vocabulary_id_2
+                     AND crs.vocabulary_id_2 = i.vocabulary_id_1
+                     AND r.reverse_relationship_id = i.relationship_id);
+COMMIT;		
+
+--14 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---13 Reinstate constraints and indices
+--15 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

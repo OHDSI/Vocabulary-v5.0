@@ -468,47 +468,42 @@ FROM concept_stage
 COMMIT;
 
 -- 10. Add mapping from deprecated to fresh concepts
-INSERT  /*+ APPEND */  INTO concept_relationship_stage (
-  concept_code_1,
-  concept_code_2,
-  vocabulary_id_1,
-  vocabulary_id_2,
-  relationship_id,
-  valid_start_date,
-  valid_end_date,
-  invalid_reason
-)
-SELECT 
-  root,
-  concept_code_2,
-  'SNOMED',
-  'SNOMED',
-  'Maps to',
-  (SELECT latest_update FROM vocabulary WHERE vocabulary_id='SNOMED'),
-  TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-  NULL
-FROM (
-      SELECT root, concept_code_2 FROM (
-          SELECT root, concept_code_2, dt,  ROW_NUMBER() OVER (PARTITION BY root ORDER BY dt DESC) rn
+INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+    SELECT 
+      root,
+      concept_code_2,
+      root_vocabulary_id,
+      vocabulary_id_2,
+      'Maps to',
+      (SELECT latest_update FROM vocabulary WHERE vocabulary_id=root_vocabulary_id),
+      TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
+      NULL
+    FROM 
+    (
+        SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2 FROM (
+          SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2, dt,  ROW_NUMBER() OVER (PARTITION BY root_vocabulary_id, root ORDER BY dt DESC) rn
             FROM (
                 SELECT 
-                      rownum AS rn, 
-                      LEVEL AS lv, 
-                      concept_code_1, 
                       concept_code_2, 
-                      relationship_id,
+                      vocabulary_id_2,
                       valid_start_date AS dt,
-                      CONNECT_BY_ISCYCLE AS iscy,
                       CONNECT_BY_ROOT concept_code_1 AS root,
+                      CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id,
                       CONNECT_BY_ISLEAF AS lf
                 FROM concept_relationship_stage
-                WHERE 1 = 1
-                      AND relationship_id IN ( 'Concept replaced by',
+                WHERE relationship_id IN ( 'Concept replaced by',
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
                                                'Concept was_a to',
-											   'Original maps to'
+                                               'Original maps to'
                                              )
                       and NVL(invalid_reason, 'X') <> 'D'
                 CONNECT BY  
@@ -519,22 +514,31 @@ FROM (
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
                                                'Concept was_a to',
-											   'Original maps to'
+                                               'Original maps to'
                                              )
-                        AND NVL(invalid_reason, 'X') <> 'D'
+                       AND vocabulary_id_2=vocabulary_id_1                     
+                       AND NVL(invalid_reason, 'X') <> 'D'
+                                   
                 START WITH relationship_id IN ('Concept replaced by',
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
                                                'Concept was_a to',
-											   'Original maps to'
+                                               'Original maps to'
                                               )
                       AND NVL(invalid_reason, 'X') <> 'D'
           ) sou 
           WHERE lf = 1
-      ) 
-      WHERE rn = 1
-);
+        ) 
+        WHERE rn = 1
+    ) int_rel WHERE NOT EXISTS
+    (select 1 from concept_relationship_stage r where
+        int_rel.root=r.concept_code_1
+        and int_rel.concept_code_2=r.concept_code_2
+        and int_rel.root_vocabulary_id=r.vocabulary_id_1
+        and int_rel.vocabulary_id_2=r.vocabulary_id_2
+        and r.relationship_id='Maps to'
+    );
 COMMIT;
 
 -- 11. Make sure all records are symmetrical and turn if necessary

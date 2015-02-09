@@ -29,9 +29,9 @@ INSERT INTO concept_stage (concept_id,
           NULL AS domain_id,
           'ICD9CM' AS vocabulary_id,
           CASE
-             WHEN SUBSTR (code, 1, 1) = 'V' THEN 'ICD9CM V code'
-             WHEN SUBSTR (code, 1, 1) = 'E' THEN 'ICD9CM E code'
-             ELSE 'ICD9CM code'
+             WHEN SUBSTR (code, 1, 1) = 'V' THEN length(code)||'-dig billing V code'
+             WHEN SUBSTR (code, 1, 1) = 'E' THEN length(code)||'-dig billing E code'
+             ELSE length(code)||'-dig billing code'
           END
              AS concept_class_id,
           NULL AS standard_concept,
@@ -67,7 +67,12 @@ INSERT INTO concept_stage (concept_id,
           SUBSTR (str, 1, 256) AS concept_name,
           NULL AS domain_id,
           'ICD9CM' AS vocabulary_id,
-          'ICD9CM non-bill code' AS concept_class_id,
+          CASE
+             WHEN SUBSTR (code, 1, 1) = 'V' THEN length(replace(code,'.'))||'-dig nonbill V code'
+             WHEN SUBSTR (code, 1, 1) = 'E' THEN length(replace(code,'.'))||'-dig nonbill E code'
+             ELSE length(replace(code,'.'))||'-dig nonbill code'
+          END 
+			AS concept_class_id,
           NULL AS standard_concept,
           code AS concept_code,
           (SELECT latest_update

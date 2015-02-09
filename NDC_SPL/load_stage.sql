@@ -420,6 +420,8 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
        FROM concept_relationship_stage r, t_map t
       WHERE     r.concept_code_1 LIKE t.concept_code_9 || '%'
             AND r.vocabulary_id_1 = 'NDC'
+			AND r.relationship_id='Maps to'
+			AND r.vocabulary_id_2 = 'RxNorm'
    GROUP BY t.concept_code_9,
             r.concept_code_2,
             r.vocabulary_id_1,

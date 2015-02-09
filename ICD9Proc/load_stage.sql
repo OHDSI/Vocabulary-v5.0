@@ -176,7 +176,6 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-)
     SELECT 
       root,
       concept_code_2,

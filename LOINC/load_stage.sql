@@ -37,7 +37,7 @@ INSERT INTO concept_stage (concept_id,
           CASE CLASSTYPE
              WHEN '1' THEN 'Lab Test'
              WHEN '2' THEN 'Clinical Observation'
-             WHEN '3' THEN 'Claims attachment'
+             WHEN '3' THEN 'Claims Attachment'
              WHEN '4' THEN 'Survey'
           END
              AS concept_class_id,
@@ -243,7 +243,7 @@ INSERT INTO concept_stage (concept_id,
           DisplayText AS concept_name,
           'Meas Value' AS domain_id,
           'LOINC' AS vocabulary_id,
-          'LOINC Answer' AS concept_class_id,
+          'Answer' AS concept_class_id,
           'S' AS standard_concept,
           AnswerStringID AS concept_code,
           TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,

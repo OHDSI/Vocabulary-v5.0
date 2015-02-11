@@ -386,7 +386,7 @@ COMMIT;
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 
-INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -394,44 +394,61 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   WITH t_map
-        AS (  SELECT c.concept_code as concept_code_9,
-                     COUNT (c1.concept_code) as cnt
-                FROM CONCEPT_STAGE c, CONCEPT_STAGE c1
-               WHERE     c.vocabulary_id = 'NDC'
-                     AND c.concept_class_id = '9-digit NDC'
-                     AND c1.concept_code LIKE c.concept_code || '%'
-                     AND c1.vocabulary_id = 'NDC'
-                     AND c1.concept_class_id = '11-digit NDC'
-                     AND NOT EXISTS
-                            (SELECT 1
-                               FROM concept_relationship_stage r_int
-                              WHERE     r_int.concept_code_1 = c.concept_code
-                                    AND r_int.vocabulary_id_1 = c.vocabulary_id)
-            GROUP BY c.concept_code, c.vocabulary_id)
-     SELECT t.concept_code_9 AS concept_code_1,
-            r.concept_code_2 AS concept_code_2,
-            r.vocabulary_id_1 AS vocabulary_id_1,
-            r.vocabulary_id_2 AS vocabulary_id_2,
-            r.relationship_id AS relationship_id,
-            r.valid_start_date AS valid_start_date,
-            r.valid_end_date AS valid_end_date,
-            r.invalid_reason AS invalid_reason
-       FROM concept_relationship_stage r, t_map t
-      WHERE     r.concept_code_1 LIKE t.concept_code_9 || '%'
-            AND r.vocabulary_id_1 = 'NDC'
-			AND r.relationship_id='Maps to'
-			AND r.vocabulary_id_2 = 'RxNorm'
-   GROUP BY t.concept_code_9,
-            r.concept_code_2,
-            r.vocabulary_id_1,
-            r.vocabulary_id_2,
-            r.relationship_id,
-            r.valid_start_date,
-            r.valid_end_date,
-            r.invalid_reason,
-            t.cnt
-     HAVING COUNT (r.concept_code_2) = t.cnt;
+   SELECT concept_code_1,
+          concept_code_2,
+          vocabulary_id_1,
+          vocabulary_id_2,
+          relationship_id,
+          valid_start_date,
+          valid_end_date,
+          invalid_reason
+     FROM (SELECT concept_code_1,
+                  concept_code_2,
+                  vocabulary_id_1,
+                  vocabulary_id_2,
+                  relationship_id,
+                  valid_start_date,
+                  valid_end_date,
+                  invalid_reason,
+                  COUNT (DISTINCT concept_code_2) OVER (partition by concept_code_1) cnt
+             FROM (WITH t_map
+                        AS (SELECT c.concept_code AS concept_code_9
+                              FROM CONCEPT_STAGE c, CONCEPT_STAGE c1
+                             WHERE     c.vocabulary_id = 'NDC'
+                                   AND c.concept_class_id = '9-digit NDC'
+                                   AND c1.concept_code LIKE
+                                          c.concept_code || '%'
+                                   AND c1.vocabulary_id = 'NDC'
+                                   AND c1.concept_class_id = '11-digit NDC'
+                                   AND NOT EXISTS
+                                          (SELECT 1
+                                             FROM concept_relationship_stage r_int
+                                            WHERE     r_int.concept_code_1 =
+                                                         c.concept_code
+                                                  AND r_int.vocabulary_id_1 =
+                                                         c.vocabulary_id))
+                     SELECT t.concept_code_9 AS concept_code_1,
+                            r.concept_code_2 AS concept_code_2,
+                            r.vocabulary_id_1 AS vocabulary_id_1,
+                            r.vocabulary_id_2 AS vocabulary_id_2,
+                            r.relationship_id AS relationship_id,
+                            r.valid_start_date AS valid_start_date,
+                            r.valid_end_date AS valid_end_date,
+                            r.invalid_reason AS invalid_reason
+                       FROM concept_relationship_stage r, t_map t
+                      WHERE     r.concept_code_1 LIKE t.concept_code_9 || '%'
+                            AND r.vocabulary_id_1 = 'NDC'
+                            AND r.relationship_id = 'Maps to'
+                            AND r.vocabulary_id_2 = 'RxNorm'
+                   GROUP BY t.concept_code_9,
+                            r.concept_code_2,
+                            r.vocabulary_id_1,
+                            r.vocabulary_id_2,
+                            r.relationship_id,
+                            r.valid_start_date,
+                            r.valid_end_date,
+                            r.invalid_reason))
+    WHERE cnt = 1;
 COMMIT;	 
 
 --11 Add mapping from deprecated to fresh concepts

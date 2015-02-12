@@ -55,7 +55,7 @@ INSERT INTO concept_stage (concept_id,
                            invalid_reason)
    SELECT NULL AS concept_id,
           SUBSTR (str, 1, 256) AS concept_name,
-          NULL AS domain_id,
+          'Procedure' AS domain_id,
           'ICD9Proc' AS vocabulary_id,
           length(replace(code,'.'))||'-dig nonbill code' AS concept_class_id,
           'S' AS standard_concept,

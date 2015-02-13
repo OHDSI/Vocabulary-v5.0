@@ -253,6 +253,7 @@ and instr(domain_id,'/')<>0;
 
 --reducing some domain_id if his length>20
 update ICD10_domain set domain_id='Meas/Procedure' where domain_id='Measurement/Procedure';
+update ICD10_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
 COMMIT;
 
 /*check for new domains (must not return any rows!)

@@ -17,7 +17,7 @@ begin
     execute immediate 'truncate table concept_synonym_stage';
 	execute immediate 'truncate table concept_class';
 
-	insert into concept_class select * from v5dev.concept_class minus select * from concept_class;
+	insert into concept_class select * from v5dev.concept_class;
 
     
     /*CTAS with NOLOGGING (faster)*/

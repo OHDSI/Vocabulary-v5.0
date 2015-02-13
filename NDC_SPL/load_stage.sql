@@ -364,13 +364,49 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
 
+
+--9 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
+INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT r.concept_code_1 AS concept_code_1,
+          c1.concept_code AS concept_code_2,
+          'NDC' AS vocabulary_id_1,
+          'RxNorm' AS vocabulary_id_2,
+          'Maps to' AS relationship_id,
+          r.valid_start_date AS valid_start_date,
+          r.valid_end_date AS valid_end_date,
+          r.invalid_reason
+     FROM concept_relationship_stage r,
+          concept c,
+          concept_relationship r1,
+          concept c1
+    WHERE     r.vocabulary_id_1 = 'NDC'
+          AND r.vocabulary_id_2 = 'RxNorm'
+          AND c.concept_code = r.concept_code_2
+          AND c.vocabulary_id = r.vocabulary_id_2
+          AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
+          AND c.standard_concept IS NULL
+          AND r.relationship_id = 'Maps to'
+          AND r.concept_code_2 = c1.concept_code
+          AND r.vocabulary_id_2 = c1.vocabulary_id
+          AND c1.concept_id = r1.concept_id_1
+          AND r1.relationship_id = 'Contains';
+COMMIT;		  
+
 --9 Re-map Quantified Drugs and Packs
 --Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
 UPDATE concept_relationship_stage
    SET relationship_id = 'Original maps to'
  WHERE ROWID IN (SELECT r.ROWID
-                   FROM concept_relationship_stage r, concept_stage c
-                  WHERE     r.vocabulary_id_2 = 'RxNorm'
+                   FROM concept_relationship_stage r, concept c
+                  WHERE     r.vocabulary_id_1 = 'NDC'
+                        AND r.vocabulary_id_2 = 'RxNorm'
                         AND c.concept_code = r.concept_code_2
                         AND c.vocabulary_id = r.vocabulary_id_2
                         AND c.concept_class_id IN ('Quant Clinical Drug',

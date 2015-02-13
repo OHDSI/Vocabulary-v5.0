@@ -256,7 +256,7 @@ UPDATE concept_stage
                         AND c.concept_class_id LIKE '%Pack'
                         AND r.relationship_id = 'Contains');
 
-
+/*
 UPDATE concept_relationship_stage
    SET relationship_id = 'Maps to'
  WHERE ROWID IN (SELECT r.ROWID
@@ -265,10 +265,12 @@ UPDATE concept_relationship_stage
                         AND c.vocabulary_id = r.vocabulary_id_1
                         AND c.concept_class_id LIKE '%Pack'
                         AND r.relationship_id = 'Contains');
+*/
 COMMIT;
 						
 --8 Re-map Quantified Drugs and Packs
 --Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
+/*
 UPDATE concept_relationship_stage
    SET relationship_id = 'Original maps to'
  WHERE ROWID IN (SELECT r.ROWID
@@ -283,6 +285,7 @@ UPDATE concept_relationship_stage
                         AND c.standard_concept IS NULL
                         AND r.relationship_id = 'Maps to');
 COMMIT;		
+*/
 
 --9. Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,

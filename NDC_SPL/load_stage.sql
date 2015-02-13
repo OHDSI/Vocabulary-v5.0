@@ -363,61 +363,8 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                   JOIN rxnconso r ON r.rxcui = c.rxcui
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
-
-
---9 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
-INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT r.concept_code_1 AS concept_code_1,
-          c1.concept_code AS concept_code_2,
-          'NDC' AS vocabulary_id_1,
-          'RxNorm' AS vocabulary_id_2,
-          'Maps to' AS relationship_id,
-          r.valid_start_date AS valid_start_date,
-          r.valid_end_date AS valid_end_date,
-          r.invalid_reason
-     FROM concept_relationship_stage r,
-          concept c,
-          concept_relationship r1,
-          concept c1
-    WHERE     r.vocabulary_id_1 = 'NDC'
-          AND r.vocabulary_id_2 = 'RxNorm'
-          AND c.concept_code = r.concept_code_2
-          AND c.vocabulary_id = r.vocabulary_id_2
-          AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
-          AND c.standard_concept IS NULL
-          AND r.relationship_id = 'Maps to'
-          AND r.concept_code_2 = c1.concept_code
-          AND r.vocabulary_id_2 = c1.vocabulary_id
-          AND c1.concept_id = r1.concept_id_1
-          AND r1.relationship_id = 'Contains';
-COMMIT;		  
-
---9 Re-map Quantified Drugs and Packs
---Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
-UPDATE concept_relationship_stage
-   SET relationship_id = 'Original maps to'
- WHERE ROWID IN (SELECT r.ROWID
-                   FROM concept_relationship_stage r, concept c
-                  WHERE     r.vocabulary_id_1 = 'NDC'
-                        AND r.vocabulary_id_2 = 'RxNorm'
-                        AND c.concept_code = r.concept_code_2
-                        AND c.vocabulary_id = r.vocabulary_id_2
-                        AND c.concept_class_id IN ('Quant Clinical Drug',
-                                                   'Quant Branded Drug',
-                                                   'Clinical Pack',
-                                                   'Branded Pack')
-                        AND c.standard_concept IS NULL
-                        AND r.relationship_id = 'Maps to');
-COMMIT;						
-
---10 Add additional mapping for NDC codes 
+			
+--9 Add additional mapping for NDC codes 
 --The 9-digit NDC codes that have no mapping can be mapped to the same concept of the 11-digit NDC codes, if all 11-digit NDC codes agree on the same destination Concept
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
@@ -487,7 +434,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE cnt = 1;
 COMMIT;	 
 
---11 Add mapping from deprecated to fresh concepts
+--10 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
@@ -563,7 +510,69 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;
 
---12. Make sure all records are symmetrical and turn if necessary
+--11 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT r.concept_code_1 AS concept_code_1,
+          c2.concept_code AS concept_code_2,
+          'NDC' AS vocabulary_id_1,
+          'RxNorm' AS vocabulary_id_2,
+          'Maps to' AS relationship_id,
+          r.valid_start_date AS valid_start_date,
+          r.valid_end_date AS valid_end_date,
+          r.invalid_reason
+     FROM concept_relationship_stage r,
+          concept c,
+          concept_relationship r1,
+          concept c1,
+          concept c2
+    WHERE     r.vocabulary_id_1 = 'NDC'
+          AND r.vocabulary_id_2 = 'RxNorm'
+          AND c.concept_code = r.concept_code_2
+          AND c.vocabulary_id = r.vocabulary_id_2
+          AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
+          AND c.standard_concept IS NULL
+          AND r.relationship_id = 'Maps to'
+          AND r.concept_code_2 = c1.concept_code
+          AND r.vocabulary_id_2 = c1.vocabulary_id
+          AND c1.concept_id = r1.concept_id_1
+          AND r1.relationship_id = 'Contains'
+          AND r1.concept_id_2 = c2.concept_id
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM concept_relationship_stage r_int
+                   WHERE     r_int.concept_code_1 = r.concept_code_1
+                         AND r_int.concept_code_2 = c2.concept_code
+                         AND r_int.vocabulary_id_1 = 'NDC'
+                         AND r_int.vocabulary_id_2 = 'RxNorm'
+                         AND r_int.relationship_id = 'Maps to');
+COMMIT;		  
+
+--12 Re-map Quantified Drugs and Packs
+--Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
+UPDATE concept_relationship_stage
+   SET relationship_id = 'Original maps to'
+ WHERE ROWID IN (SELECT r.ROWID
+                   FROM concept_relationship_stage r, concept c
+                  WHERE     r.vocabulary_id_1 = 'NDC'
+                        AND r.vocabulary_id_2 = 'RxNorm'
+                        AND c.concept_code = r.concept_code_2
+                        AND c.vocabulary_id = r.vocabulary_id_2
+                        AND c.concept_class_id IN ('Quant Clinical Drug',
+                                                   'Quant Branded Drug',
+                                                   'Clinical Pack',
+                                                   'Branded Pack')
+                        AND c.standard_concept IS NULL
+                        AND r.relationship_id = 'Maps to');
+COMMIT;		
+
+--13. Make sure all records are symmetrical and turn if necessary
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -593,16 +602,16 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;					 
 
---13. Update concept_id in concept_stage from concept for existing concepts
+--14. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 	
---14. Clean up
+--15. Clean up
 DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
 	
---15. Reinstate constraints and indices
+--16. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

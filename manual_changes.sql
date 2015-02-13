@@ -790,11 +790,11 @@ values ('Quant Branded Drug', 'Quantified Branded Drug', (select concept_id from
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Original but remapped Non-standard to Standard map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Original maps to', 'Original but remapped Non-standard to Standard map (OMOP)', 1, 0, 'Is a', (select concept_id from concept where concept_name = 'Original but remapped Non-standard to Standard map (OMOP)'));
+values ('Original maps to', 'Original but remapped Non-standard to Standard map (OMOP)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Original but remapped Non-standard to Standard map (OMOP)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Original but remapped Standard to Non-standard map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-values ('Original mapped from', 'Original but remapped Standard to Non-standard map (OMOP)', 1, 1, 'Has product comp', (select concept_id from concept where concept_name = 'Original but remapped Standard to Non-standard map (OMOP)'));
+values ('Original mapped from', 'Original but remapped Standard to Non-standard map (OMOP)', 0, 0, 'Original maps to', (select concept_id from concept where concept_name = 'Original but remapped Standard to Non-standard map (OMOP)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
 set reverse_relationship_id = 'Original mapped from' where relationship_id = 'Original maps to';
 
@@ -809,10 +809,6 @@ insert into relationship (relationship_id, relationship_name, is_hierarchical, d
 values ('RxNorm - SPL', 'RxNorm to SPL (NLM)', 1, 1, 'Has product comp', (select concept_id from concept where concept_name = 'RxNorm to SPL (NLM)'));
 update relationship -- The reverse wasn't in at the time of writing 'Has Answer'
 set reverse_relationship_id = 'RxNorm - SPL' where relationship_id = 'SPL - RxNorm';
-
-select * from concept_class where concept_class_id like 'ICD9CM%';
-select * from concept where concept_class_id='ICD9CM E code';
-select * from concept_class where concept_class_concept_id=44819260;
 
 update concept set invalid_reason='D', valid_end_date='3-Jan-2015' where concept_id=44819260;
 update concept set invalid_reason='D', valid_end_date='3-Jan-2015' where concept_id=44819261;
@@ -871,6 +867,142 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 values (v5_concept.nextval, '4-digit non-billing ICD9CM E code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
 values ('4-dig nonbill E code', '4-digit non-billing ICD9CM E code', (select concept_id from concept where concept_name = '4-digit non-billing ICD9CM E code'));
+
+-- Add ICD9Proc classes and concepts and rename above ICD9CM concepts
+update concept set concept_name = '3-digit billing code' where concept_name = '3-digit billing ICD9CM code';
+update concept set concept_name = '4-digit billing code' where concept_name = '4-digit billing ICD9CM code';
+update concept set concept_name = '5-digit billing code' where concept_name = '5-digit billing ICD9CM code';
+update concept set concept_name = '4-digit billing E code' where concept_name = '4-digit billing ICD9CM E code';
+update concept set concept_name = '5-digit billing E code' where concept_name = '5-digit billing ICD9CM E code';
+update concept set concept_name = '3-digit billing V code' where concept_name = '3-digit billing ICD9CM V code';
+update concept set concept_name = '4-digit billing V code' where concept_name = '4-digit billing ICD9CM V code';
+update concept set concept_name = '5-digit billing V code' where concept_name = '5-digit billing ICD9CM V code';
+update concept set concept_name = '3-digit non-billing code' where concept_name = '3-digit non-billing ICD9CM code';
+update concept set concept_name = '4-digit non-billing code' where concept_name = '4-digit non-billing ICD9CM code';
+update concept set concept_name = '3-digit non-billing V code' where concept_name = '3-digit non-billing ICD9CM V code';
+update concept set concept_name = '3-digit non-billing E code' where concept_name = '3-digit non-billing ICD9CM E code';
+update concept set concept_name = '4-digit non-billing E code' where concept_name = '4-digit non-billing ICD9CM E code';
+update concept_class set concept_class_name = '3-digit billing code' where concept_class_name = '3-digit billing ICD9CM code';
+update concept_class set concept_class_name = '4-digit billing code' where concept_class_name = '4-digit billing ICD9CM code';
+update concept_class set concept_class_name = '5-digit billing code' where concept_class_name = '5-digit billing ICD9CM code';
+update concept_class set concept_class_name = '4-digit billing E code' where concept_class_name = '4-digit billing ICD9CM E code';
+update concept_class set concept_class_name = '5-digit billing E code' where concept_class_name = '5-digit billing ICD9CM E code';
+update concept_class set concept_class_name = '3-digit billing V code' where concept_class_name = '3-digit billing ICD9CM V code';
+update concept_class set concept_class_name = '4-digit billing V code' where concept_class_name = '4-digit billing ICD9CM V code';
+update concept_class set concept_class_name = '5-digit billing V code' where concept_class_name = '5-digit billing ICD9CM V code';
+update concept_class set concept_class_name = '3-digit non-billing code' where concept_class_name = '3-digit non-billing ICD9CM code';
+update concept_class set concept_class_name = '4-digit non-billing code' where concept_class_name = '4-digit non-billing ICD9CM code';
+update concept_class set concept_class_name = '3-digit non-billing V code' where concept_class_name = '3-digit non-billing ICD9CM V code';
+update concept_class set concept_class_name = '3-digit non-billing E code' where concept_class_name = '3-digit non-billing ICD9CM E code';
+update concept_class set concept_class_name = '4-digit non-billing E code' where concept_class_name = '4-digit non-billing ICD9CM E code';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '2-digit non-billing code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('2-dig nonbill code', '2-digit non-billing code', (select concept_id from concept where concept_name = '2-digit non-billing code'));
+
+-- Add additional mapping relationships for de-coordinating h/o, fh/o, need for vaccination, etc.
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Non-standard to operator concept map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Maps to operator', 'Non-standard to operator concept map (OMOP)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Non-standard to operator concept map (OMOP)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Operator concept to non-standard map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Operator mapped from', 'Operator concept to non-standard map (OMOP)', 0, 0, 'Maps to operator', (select concept_id from concept where concept_name = 'Operator concept to non-standard map (OMOP)'));
+update relationship -- The reverse wasn't in at the time of writing
+set reverse_relationship_id = 'Operator mapped from' where relationship_id = 'Maps to operator';
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Non-standard to value_as_number map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Maps to number', 'Non-standard to value_as_number map (OMOP)', 0, 0, 'Is a', (select concept_id from concept where concept_name = 'Non-standard to value_as_number map (OMOP)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Value_as_number to non-standard map (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+values ('Number mapped from', 'Value_as_number to non-standard map (OMOP)', 0, 0, 'Maps to number', (select concept_id from concept where concept_name = 'Value_as_number to non-standard map (OMOP)'));
+update relationship -- The reverse wasn't in at the time of writing
+set reverse_relationship_id = 'Number mapped from' where relationship_id = 'Maps to number';
+
+-- Make ETC relationships hierarchical, they connect clinical/branded drugs to class directly. Should be 2, really.
+update relationship set is_hierarchical=1 where relationship_id in ('ETC - RxNorm', 'RxNorm - ETC');
+
+-- Undeprecate relationships ICD9P - SNOMED eq (most of them killed in April 2014 release)
+update concept_relationship r set
+  valid_end_date = '31-Dec-2099',
+  invalid_reason = null
+where r.relationship_id='ICD9P - SNOMED eq'
+and exists (
+  select 1 from (
+    select distinct 
+      concept_id_1,
+      first_value(concept_id_2) over (partition by concept_id_1 order by valid_end_date desc) as concept_id_2,
+      relationship_id
+    from concept_relationship
+    where relationship_id='ICD9P - SNOMED eq'
+  ) youngest
+  where youngest.concept_id_1=r.concept_id_1
+  and youngest.concept_id_2=r.concept_id_2 
+  and youngest.relationship_id=r.relationship_id
+)
+;
+
+-- Remove ICD10 duplicates and create replacement relationships
+insert into concept_relationship
+select distinct
+  first_value(e.concept_id) over (partition by e.concept_code order by e.concept_id desc) as concept_id_1,
+  first_value(e.concept_id) over (partition by e.concept_code order by e.concept_id) as concept_id_2,
+  'Concept replaced by' as relationship_id,
+  '12-Feb-2015' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from concept e
+join (
+  select concept_code, count(8) from concept where vocabulary_id='ICD10' and invalid_reason is null group by concept_code having count(8)=2
+) d on d.concept_code=e.concept_code 
+where e.vocabulary_id='ICD10'
+;
+
+insert into concept_relationship
+select distinct
+  first_value(e.concept_id) over (partition by e.concept_code order by e.concept_id) as concept_id_1,
+  first_value(e.concept_id) over (partition by e.concept_code order by e.concept_id desc) as concept_id_2,
+  'Concept replaces' as relationship_id,
+  '12-Feb-2015' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from concept e
+join (
+  select concept_code, count(8) from concept where vocabulary_id='ICD10' and invalid_reason is null group by concept_code having count(8)=2
+) d on d.concept_code=e.concept_code 
+where e.vocabulary_id='ICD10'
+;
+
+update concept c set 
+  concept_name = 'Duplicate of ICD10 Concept, do not use, use replacement Concept from CONCEPT_RELATIONSHIP table instead',
+  concept_code = concept_id,
+  valid_end_date = '11-Feb-2015',
+  invalid_reason = 'U'
+where c.vocabulary_id='ICD10'
+and exists (
+  select 1 from (
+    select distinct
+      first_value(e.concept_id) over (partition by e.concept_code order by e.concept_id desc) as concept_id
+    from concept e
+    join (
+      select concept_code, count(8) from concept where vocabulary_id='ICD10' and invalid_reason is null group by concept_code having count(8)=2
+    ) d on d.concept_code=e.concept_code 
+    where e.vocabulary_id='ICD10'
+  ) f
+  where f.concept_id=c.concept_id
+)
+;
+
+-- ICD10 Hierarchy concept classes
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ICD10 Hierarchy', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('ICD10 Hierarchy', 'ICD10 Hierarchy', (select concept_id from concept where concept_name = 'ICD10 Hierarchy'));
+
 
 commit;
 

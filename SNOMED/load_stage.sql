@@ -2,7 +2,7 @@
 -- Use the later of the release dates of the international and UK versions. Usually, the UK is later.
 -- If the international version is already loaded, updating will not affect it
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20141001','yyyymmdd') WHERE vocabulary_id='SNOMED'; 
+UPDATE vocabulary SET latest_update=to_date('2015031','yyyymmdd') WHERE vocabulary_id='SNOMED'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices
@@ -14,9 +14,6 @@ ALTER INDEX idx_cs_concept_code UNUSABLE;
 ALTER INDEX idx_cs_concept_id UNUSABLE;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
-ALTER TABLE concept_stage NOLOGGING;
-ALTER TABLE concept_relationship_stage NOLOGGING;
-ALTER TABLE concept_synonym_stage NOLOGGING;
 
 
 -- 3. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
@@ -444,30 +441,39 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
 COMMIT;
 
 -- 9. Create mapping to self for fresh concepts
-INSERT /*+ APPEND */ INTO concept_relationship_stage (
-  concept_code_1,
-  concept_code_2,
-  vocabulary_id_1,
-  vocabulary_id_2,
-  relationship_id,
-  valid_start_date,
-  valid_end_date,
-  invalid_reason
-)
-SELECT 
-  concept_code,
-  concept_code,
-  'SNOMED',
-  'SNOMED',
-  'Maps to',
-  (SELECT latest_update FROM vocabulary WHERE vocabulary_id='SNOMED'),
-  TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-  NULL
-FROM concept_stage
-;
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+	SELECT concept_code AS concept_code_1,
+		   concept_code AS concept_code_2,
+		   c.vocabulary_id AS vocabulary_id_1,
+		   c.vocabulary_id AS vocabulary_id_2,
+		   'Maps to' AS relationship_id,
+		   v.latest_update AS valid_start_date,
+		   TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+		   NULL AS invalid_reason
+	  FROM concept_stage c, vocabulary v
+	 WHERE     c.vocabulary_id = v.vocabulary_id
+		   AND c.standard_concept = 'S'
+		   AND NOT EXISTS
+				  (SELECT 1
+					 FROM concept_relationship_stage i
+					WHERE     c.concept_code = i.concept_code_1
+						  AND c.concept_code = i.concept_code_2
+						  AND c.vocabulary_id = i.vocabulary_id_1
+						  AND c.vocabulary_id = i.vocabulary_id_2
+						  AND i.relationship_id = 'Maps to');
 COMMIT;
 
 -- 10. Add mapping from deprecated to fresh concepts
+ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
+
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -540,6 +546,8 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
         and r.relationship_id='Maps to'
     );
 COMMIT;
+ALTER INDEX idx_concept_code_1 UNUSABLE;
+ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 -- 11. Make sure all records are symmetrical and turn if necessary
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
@@ -1237,9 +1245,6 @@ ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
-ALTER TABLE concept_stage LOGGING;
-ALTER TABLE concept_relationship_stage LOGGING;
-ALTER TABLE concept_synonym_stage LOGGING;
 
 -- 16. Clean up
 DROP TABLE peak PURGE;

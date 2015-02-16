@@ -69,7 +69,37 @@ INSERT INTO concept_relationship_stage (concept_id_1,
      FROM RCSCTMAP2_UK RSCCT;
 COMMIT;
 
---4 Make sure all records are symmetrical and turn if necessary
+--4 Create mapping to self for fresh concepts
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+	SELECT concept_code AS concept_code_1,
+		   concept_code AS concept_code_2,
+		   c.vocabulary_id AS vocabulary_id_1,
+		   c.vocabulary_id AS vocabulary_id_2,
+		   'Maps to' AS relationship_id,
+		   v.latest_update AS valid_start_date,
+		   TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+		   NULL AS invalid_reason
+	  FROM concept_stage c, vocabulary v
+	 WHERE     c.vocabulary_id = v.vocabulary_id
+		   AND c.standard_concept = 'S'
+		   AND NOT EXISTS
+				  (SELECT 1
+					 FROM concept_relationship_stage i
+					WHERE     c.concept_code = i.concept_code_1
+						  AND c.concept_code = i.concept_code_2
+						  AND c.vocabulary_id = i.vocabulary_id_1
+						  AND c.vocabulary_id = i.vocabulary_id_2
+						  AND i.relationship_id = 'Maps to');
+COMMIT;
+
+--5 Make sure all records are symmetrical and turn if necessary
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -99,7 +129,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;					 
 
---5. update domain_id for Read from SNOMED
+--6. update domain_id for Read from SNOMED
 --create temporary table read_domain
 --if domain_id is empty we use previous and next domain_id or its combination
 create table read_domain NOLOGGING as
@@ -144,7 +174,7 @@ create table read_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication    
 CREATE UNIQUE INDEX idx_read_domain ON read_domain (concept_code) NOLOGGING;
 
---6. Simplify the list by removing Observations
+--7. Simplify the list by removing Observations
 update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -162,7 +192,7 @@ minus
 select domain_id from domain;
 */
 
---7. update each domain_id with the domains field from read_domain.
+--8. update each domain_id with the domains field from read_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
@@ -171,7 +201,7 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'Read';
 COMMIT;
 
---8. Add mapping from deprecated to fresh concepts
+--9. Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -246,35 +276,6 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---9 Make sure all records are symmetrical and turn if necessary
-INSERT INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT crs.concept_code_2,
-          crs.concept_code_1,
-          crs.vocabulary_id_2,
-          crs.vocabulary_id_1,
-          r.reverse_relationship_id,
-          crs.valid_start_date,
-          crs.valid_end_date,
-          crs.invalid_reason
-     FROM concept_relationship_stage crs
-          JOIN relationship r ON r.relationship_id = crs.relationship_id
-    WHERE NOT EXISTS
-             (                                           -- the inverse record
-              SELECT 1
-                FROM concept_relationship_stage i
-               WHERE     crs.concept_code_1 = i.concept_code_2
-                     AND crs.concept_code_2 = i.concept_code_1
-                     AND crs.vocabulary_id_1 = i.vocabulary_id_2
-                     AND crs.vocabulary_id_2 = i.vocabulary_id_1
-                     AND r.reverse_relationship_id = i.relationship_id);
-COMMIT;
 
 --10. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs

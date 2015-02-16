@@ -170,7 +170,37 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---6 Make sure all records are symmetrical and turn if necessary
+--6 Create mapping to self for fresh concepts
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+	SELECT concept_code AS concept_code_1,
+		   concept_code AS concept_code_2,
+		   c.vocabulary_id AS vocabulary_id_1,
+		   c.vocabulary_id AS vocabulary_id_2,
+		   'Maps to' AS relationship_id,
+		   v.latest_update AS valid_start_date,
+		   TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+		   NULL AS invalid_reason
+	  FROM concept_stage c, vocabulary v
+	 WHERE     c.vocabulary_id = v.vocabulary_id
+		   AND c.standard_concept = 'S'
+		   AND NOT EXISTS
+				  (SELECT 1
+					 FROM concept_relationship_stage i
+					WHERE     c.concept_code = i.concept_code_1
+						  AND c.concept_code = i.concept_code_2
+						  AND c.vocabulary_id = i.vocabulary_id_1
+						  AND c.vocabulary_id = i.vocabulary_id_2
+						  AND i.relationship_id = 'Maps to');
+COMMIT;
+
+--7 Make sure all records are symmetrical and turn if necessary
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -200,7 +230,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;	 
 
----7 update domain_id for ICD10 from SNOMED
+---8 update domain_id for ICD10 from SNOMED
 --create temporary table ICD10_domain
 --if domain_id is empty we use previous and next domain_id or its combination
 create table ICD10_domain NOLOGGING as
@@ -246,7 +276,7 @@ create table ICD10_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication
 CREATE UNIQUE INDEX idx_ICD10_domain ON ICD10_domain (concept_code) NOLOGGING;
 
---8. Simplify the list by removing Observations
+--9. Simplify the list by removing Observations
 update ICD10_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -263,7 +293,7 @@ minus
 select domain_id from domain;
 */
 
---9. update each domain_id with the domains field from ICD10_domain.
+--10. update each domain_id with the domains field from ICD10_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
@@ -272,15 +302,15 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'ICD10';
 COMMIT;
 
---10 Update concept_id in concept_stage from concept for existing concepts
+--11 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---11. Clean up
+--12. Clean up
 DROP TABLE ICD10_domain PURGE;
 
---12 Reinstate constraints and indices
+--13 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

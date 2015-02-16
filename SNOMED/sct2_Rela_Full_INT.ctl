@@ -1,7 +1,7 @@
 options (direct=true, errors=0, SKIP=1)
 load data
 infile 'sct2_Relationship_Full_INT.txt' 
-replace
+truncate
 into table sct2_Rela_Full_INT
 fields terminated by x'09' --WHITESPACE
 trailing nullcols

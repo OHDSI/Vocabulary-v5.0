@@ -1,7 +1,7 @@
 options (direct=true, errors=0, SKIP=1)
 load data
 infile 'sct2_Description_Full-UK.txt' 
-replace
+truncate
 into table sct2_Desc_Full_UK
 fields terminated by X'09'
 trailing nullcols

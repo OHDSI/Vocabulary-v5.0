@@ -1,7 +1,7 @@
 options (direct=true, errors=0, SKIP=1)
 load data
 infile 'sct2_Concept_Full_INT.txt' 
-replace
+truncate
 into table sct2_Concept_Full_INT
 fields terminated by X'09'
 trailing nullcols

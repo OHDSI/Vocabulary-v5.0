@@ -105,7 +105,67 @@ DROP SEQUENCE v5_concept;
 
 COMMIT;
 
--- 4. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
+--4 Create mapping to self for fresh concepts
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+	SELECT concept_code AS concept_code_1,
+		   concept_code AS concept_code_2,
+		   c.vocabulary_id AS vocabulary_id_1,
+		   c.vocabulary_id AS vocabulary_id_2,
+		   'Maps to' AS relationship_id,
+		   v.latest_update AS valid_start_date,
+		   TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+		   NULL AS invalid_reason
+	  FROM concept_stage c, vocabulary v
+	 WHERE     c.vocabulary_id = v.vocabulary_id
+		   AND c.standard_concept = 'S'
+		   AND NOT EXISTS
+				  (SELECT 1
+					 FROM concept_relationship_stage i
+					WHERE     c.concept_code = i.concept_code_1
+						  AND c.concept_code = i.concept_code_2
+						  AND c.vocabulary_id = i.vocabulary_id_1
+						  AND c.vocabulary_id = i.vocabulary_id_2
+						  AND i.relationship_id = 'Maps to');
+COMMIT;
+
+--5 Make sure all records are symmetrical and turn if necessary
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT crs.concept_code_2,
+          crs.concept_code_1,
+          crs.vocabulary_id_2,
+          crs.vocabulary_id_1,
+          r.reverse_relationship_id,
+          crs.valid_start_date,
+          crs.valid_end_date,
+          crs.invalid_reason
+     FROM concept_relationship_stage crs
+          JOIN relationship r ON r.relationship_id = crs.relationship_id
+    WHERE NOT EXISTS
+             (                                           -- the inverse record
+              SELECT 1
+                FROM concept_relationship_stage i
+               WHERE     crs.concept_code_1 = i.concept_code_2
+                     AND crs.concept_code_2 = i.concept_code_1
+                     AND crs.vocabulary_id_1 = i.vocabulary_id_2
+                     AND crs.vocabulary_id_2 = i.vocabulary_id_1
+                     AND r.reverse_relationship_id = i.relationship_id);
+COMMIT;		
+
+-- 6. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
 MERGE INTO concept_relationship d
     USING (
         with rel_id as (
@@ -125,7 +185,7 @@ WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reas
 
 COMMIT; 
 
--- 5. Deprecate missing relationships, but only if the concepts exist. If relationships are missing because of deprecated concepts, leave them intact.
+-- 7. Deprecate missing relationships, but only if the concepts exist. If relationships are missing because of deprecated concepts, leave them intact.
 -- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 AND relationship_id is present in concept_relationship_stage
 CREATE TABLE r_coverage NOLOGGING AS
 SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id as combo

@@ -1,7 +1,7 @@
 options (direct=true, errors=0, SKIP=1)
 load data
 infile 'der2_cRefset_AssociationReferenceFull_UK.txt'
-replace
+truncate
 into table der2_cRefset_AssRefFull_UK
 fields terminated by WHITESPACE
 trailing nullcols

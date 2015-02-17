@@ -1,9 +1,9 @@
 -- This is the Control file for loading the MedDRA - smq_list table
 
 LOAD        DATA
-INFILE      'SMQ_List.asc'
-BADFILE     'SMQ_List.bad'
-DISCARDFILE 'SMQ_List.dsc'
+INFILE      'smq_list.asc'
+BADFILE     'smq_list.bad'
+DISCARDFILE 'smq_list.dsc'
 APPEND
 INTO TABLE smq_list
 FIELDS TERMINATED BY  "$"

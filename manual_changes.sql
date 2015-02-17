@@ -1003,6 +1003,10 @@ values (v5_concept.nextval, 'ICD10 Hierarchy', 'Metadata', 'Concept Class', 'Con
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
 values ('ICD10 Hierarchy', 'ICD10 Hierarchy', (select concept_id from concept where concept_name = 'ICD10 Hierarchy'));
 
+-- Charlie Bailey's redeclaration of Measurement Types
+update concept set concept_name = 'From physical examination' where concept_id = '44818701'; -- was 'Vital sign'
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Derived value', 'Meas Type', 'Meas Type', 'Meas Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 
 commit;
 

@@ -254,14 +254,23 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;				 
 
---7 Update concept_id in concept_stage from concept for existing concepts
+
+--7 Create a relationship file for the Medical Coder
+select c.concept_code, c.concept_name, c.domain_id, c.concept_class_id, c1.concept_code concept_code_snomed 
+from concept_stage c
+left join concept_relationship_stage r on c.concept_code=r.concept_code_1 and r.relationship_id = 'MedDRA - SNOMED eq'
+left join concept c1 on c1.concept_code=r.concept_code_2 and c1.vocabulary_id='SNOMED';
+
+--8 Append result to concept_relationship_stage table
+
+--9 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL
 ;
 COMMIT;
 
---8 Reinstate constraints and indices
+--10 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

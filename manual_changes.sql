@@ -1008,6 +1008,171 @@ update concept set concept_name = 'From physical examination' where concept_id =
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Derived value', 'Meas Type', 'Meas Type', 'Meas Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 
+-- Remove ICD10 dotless duplicates and create replacement relationships
+insert into concept_relationship
+select distinct
+  dotless.concept_id as concept_id_1,
+  withdot.concept_id as concept_id_2,
+  'Concept replaced by' as relationship_id,
+  '12-Feb-2015' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from v5dev.concept dotless
+join v5dev.concept withdot on dotless.concept_code=translate(withdot.concept_code, '1.', '1') and dotless.vocabulary_id=withdot.vocabulary_id and dotless.concept_code!=withdot.concept_code
+where dotless.vocabulary_id='ICD10' 
+and length(dotless.concept_code) between 4 and 7 
+and instr(dotless.concept_code, '.')=0 and instr(dotless.concept_code, '-')=0
+;
+
+insert into concept_relationship
+select distinct
+  withdot.concept_id as concept_id_1,
+  dotless.concept_id as concept_id_2,
+  'Concept replaces' as relationship_id,
+  '12-Feb-2015' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from v5dev.concept dotless
+join v5dev.concept withdot on dotless.concept_code=translate(withdot.concept_code, '1.', '1') and dotless.vocabulary_id=withdot.vocabulary_id and dotless.concept_code!=withdot.concept_code
+where dotless.vocabulary_id='ICD10' 
+and length(dotless.concept_code) between 4 and 7 
+and instr(dotless.concept_code, '.')=0 and instr(dotless.concept_code, '-')=0
+;
+
+-- deprecate those and set to 'U' and 'D' if there are withdot-alternatives
+update concept dotless set 
+  dotless.concept_name = 'Duplicate of ICD10 Concept, do not use, use replacement Concept from CONCEPT_RELATIONSHIP table instead',
+  dotless.valid_end_date = '11-Feb-2015',
+  dotless.invalid_reason = 'U'
+where dotless.vocabulary_id='ICD10' 
+and exists (
+  select 1 from v5dev.concept withdot where dotless.concept_code=translate(withdot.concept_code, '1.', '1') and dotless.vocabulary_id=withdot.vocabulary_id and dotless.concept_code!=withdot.concept_code
+)
+and length(dotless.concept_code) between 4 and 7 
+and instr(dotless.concept_code, '.')=0 and instr(dotless.concept_code, '-')=0
+;
+
+update concept dotless set 
+  dotless.concept_name = 'Duplicate of ICD10 Concept, do not use, use replacement Concept from CONCEPT_RELATIONSHIP table instead',
+  dotless.valid_end_date = '11-Feb-2015',
+  dotless.invalid_reason = 'D'
+where dotless.vocabulary_id='ICD10' 
+and not exists (
+  select 1 from v5dev.concept withdot where dotless.concept_code=translate(withdot.concept_code, '1.', '1') and dotless.vocabulary_id=withdot.vocabulary_id and dotless.concept_code!=withdot.concept_code
+)
+and length(dotless.concept_code) between 4 and 7 
+and instr(dotless.concept_code, '.')=0 and instr(dotless.concept_code, '-')=0
+;
+
+-- turn those that are not ICD10 into ICD10CM
+update concept c set vocabulary_id='ICD10CM'
+where c.vocabulary_id='ICD10' and c.invalid_reason is null
+and not exists (
+  select 1 from dev_christian.manual_icd10 m where m.concept_code=c.concept_code 
+)
+;
+
+-- update those that are truly ICD10
+update concept c set 
+  (c.concept_name, c.concept_class_id, c.valid_start_date, c.valid_end_date, invalid_reason) = 
+  (
+    select m.concept_name, m.concept_class_id, m.valid_start_date, m.valid_end_date, m.invalid_reason
+    from dev_christian.manual_icd10 m where m.concept_code=c.concept_code
+  )
+where c.vocabulary_id='ICD10'
+and exists (
+  select 1 from dev_christian.manual_icd10 m where m.concept_code=c.concept_code
+);
+
+-- Add the missing ones
+insert into concept
+select 
+  v5_concept.nextval as concept_id,
+  m.concept_name,
+  'Condition' as domain_id,
+  'ICD10' as vocabulary_id,
+  m.concept_class_id,
+  m.standard_concept,
+  m.concept_code,
+  m.valid_start_date,
+  m.valid_end_date,
+  m.invalid_reason
+from dev_christian.manual_icd10 m
+join (
+  select distinct concept_code from dev_christian.manual_icd10 
+  minus
+  select concept_code from concept where vocabulary_id='ICD10'
+) f on f.concept_code=m.concept_code
+;
+
+-- Fix missing concept_class_id in MedDRA from old v4
+update concept meddra set 
+  meddra.concept_class_id = (
+    select 
+      case om.concept_class
+        when 'High Level Group Term' then 'HLGT'
+        when 'Preferred Term' then 'PT'
+        when 'High Level Term' then 'HLT'
+        when 'System Organ Class' then 'SOC'
+        when 'Lowest Level Term' then 'LLT'
+      end as concept_class_id
+    from dev.concept om
+    where om.vocabulary_id=15
+    and om.concept_id=meddra.concept_id
+  )
+where meddra.vocabulary_id='MedDRA'
+;
+
+-- Deprecate LLT-PT duplicates and remove concept_codes from MedDRA. Keep the PT. Create replaced by records in the concept_relationship table
+insert into concept_relationship
+select distinct
+  llt.concept_id as concept_id_1,
+  pt.concept_id as concept_id_2,
+  'Concept replaced by' as relationship_id,
+  '12-Feb-2015' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from dev.concept llt
+join dev.concept pt on llt.concept_code=pt.concept_code and pt.vocabulary_id=llt.vocabulary_id
+where llt.vocabulary_id=15
+and llt.concept_class='Lowest Level Term'
+and pt.concept_class='Preferred Term'
+;
+
+insert into concept_relationship
+select distinct
+  pt.concept_id as concept_id_1,
+  llt.concept_id as concept_id_2,
+  'Concept replaces' as relationship_id,
+  '12-Feb-2015' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from dev.concept llt
+join dev.concept pt on llt.concept_code=pt.concept_code and pt.vocabulary_id=llt.vocabulary_id
+where llt.vocabulary_id=15
+and llt.concept_class='Lowest Level Term'
+and pt.concept_class='Preferred Term'
+;
+
+update concept llt set 
+  llt.concept_name = 'MedDRA LLT duplicate of PT Concept, do not use, use PT Concept indicatd by the CONCEPT_RELATIONSHIP table instead',
+  llt.concept_code = llt.concept_id,
+  llt.valid_end_date = '11-Feb-2015',
+  llt.invalid_reason = 'U'
+where llt.vocabulary_id='MedDRA' 
+and llt.concept_class_id='LLT'
+and exists (
+  select 1
+  from (
+    select concept_code, count(8)
+    from concept 
+    where vocabulary_id='MedDRA'
+    group by concept_code having count(8)>1
+  ) d 
+  where d.concept_code=llt.concept_code
+)
+;
+
 commit;
 
 -- Not done yet:

@@ -1,7 +1,7 @@
 
 --1. Update latest_update field to new date 
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20141112','yyyymmdd') where vocabulary_id='HCPCS'; commit;
+update vocabulary set latest_update=to_date('20141112','yyyymmdd'), vocabulary_version='2015 Annual Alpha Numeric HCPCS File' where vocabulary_id='HCPCS'; commit;
 
 -- 2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;
@@ -249,6 +249,7 @@ SELECT NULL AS concept_id_1,
                       AND co.vocabulary_id = 'HCPCS')
        AND c.vocabulary_id = 'HCPCS'
        AND c.concept_class_id IN ('HCPCS', 'HCPCS Modifier');
+
 --10 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 
 --11. Add mapping from deprecated to fresh concepts

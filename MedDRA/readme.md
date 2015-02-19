@@ -2,6 +2,7 @@ Update of MedDRA
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
+- SNOMED must be loaded first
 - Working directory MedDRA.
 
 1. Run create_source_tables.sql
@@ -21,6 +22,6 @@ soc.asc
 soc_hlgt.asc
 
 4. Run load_stage.sql
-5. Run generic_update.sql (from root directory)
+5. Run generic_update.sql (from working directory)
 
  

@@ -18,6 +18,6 @@ nhs_datamigration_VV.0.0_YYYYMMDD000001.zip from https://isd.hscic.gov.uk/trud3/
 4. Load Keyv2.all and rcsctmap2_uk_YYYYMMDD000001.txt into KEYV2 and RCSCTMAP2_UK using control files of the same name
 
 5. Run load_stage.sql
-6. Run generic_update.sql (from root directory)
+6. Run generic_update.sql (from working directory)
 
  

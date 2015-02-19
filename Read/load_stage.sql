@@ -1,6 +1,6 @@
 --1. Update latest_update field to new date 
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20141001','yyyymmdd') where vocabulary_id='Read'; commit;
+update vocabulary set latest_update=to_date('20141001','yyyymmdd'), vocabulary_version='NHS READV2 18.0.2 20141001000001' where vocabulary_id='Read'; commit;
 
 --2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;
@@ -184,13 +184,6 @@ update read_domain set domain_id='Meas/Procedure' where domain_id='Measurement/P
 update read_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
 
 COMMIT;
-
-/*check for new domains (must not return any rows!)
-
-select domain_id from read_domain 
-minus
-select domain_id from domain;
-*/
 
 --8. update each domain_id with the domains field from read_domain.
 UPDATE concept_stage c

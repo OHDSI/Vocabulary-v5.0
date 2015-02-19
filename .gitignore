@@ -1,5 +1,0 @@
-*.log
-/UMLS/*.gz
-34-ICD10CM/*.txt
-34-ICD10CM/*.bad
-*.zip

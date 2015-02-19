@@ -6,6 +6,6 @@ Prerequisites:
 - Working directory ICD10.
 
 1. Run load_stage.sql
-2. Run generic_update.sql (from root directory)
+2. Run generic_update.sql (from working directory)
 
  

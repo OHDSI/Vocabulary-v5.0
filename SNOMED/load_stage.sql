@@ -2,7 +2,7 @@
 -- Use the later of the release dates of the international and UK versions. Usually, the UK is later.
 -- If the international version is already loaded, updating will not affect it
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('2015031','yyyymmdd') WHERE vocabulary_id='SNOMED'; 
+UPDATE vocabulary SET latest_update=to_date('2015031','yyyymmdd'), vocabulary_version='SnomedCT Release INT 2015031' WHERE vocabulary_id='SNOMED'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices
@@ -1126,6 +1126,7 @@ UPDATE concept_stage c
              FROM domain_snomed d
             WHERE d.concept_code = c.concept_code)
  WHERE c.vocabulary_id = 'SNOMED';
+ COMMIT;
 
 -- 13.7. Make manual changes according to rules
 -- Create Route of Administration

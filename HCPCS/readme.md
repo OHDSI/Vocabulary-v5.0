@@ -10,6 +10,6 @@ Prerequisites:
 3. Exctract HCPCYYYY_CONTR_ANWEB_v2.txt
 4. Load them into ANWEB_V2. Use the control files of the same name.
 5. Run load_stage.sql
-6. Run generic_update.sql (from root directory)
+6. Run generic_update.sql (from working directory)
 
  

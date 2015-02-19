@@ -19,6 +19,6 @@ RXNSAT
 RXNSTY 
 
 4. Run load_stage.sql
-5. Run generic_update.sql (from root directory)
+5. Run generic_update.sql (from working directory)
 
  

@@ -1,6 +1,6 @@
 -- 1. Update latest_update field to new date 
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20141201','yyyymmdd') WHERE vocabulary_id = 'RxNorm'; 
+UPDATE vocabulary SET latest_update=to_date('20141201','yyyymmdd'), vocabulary_version='RxNorm Full 20141201' WHERE vocabulary_id = 'RxNorm'; 
 COMMIT;
 
 
@@ -57,7 +57,6 @@ INSERT INTO concept_stage (concept_name,
                       'SBDF',
                       'SBD');
 COMMIT;					  
-
 
 -- Packs share rxcuis with Clinical Drugs and Branded Drugs, therefore use code as concept_code
 INSERT INTO concept_stage (concept_name,
@@ -192,9 +191,8 @@ DELETE FROM concept_relationship_stage r
 WHERE EXISTS (
         SELECT 1 FROM concept_stage d WHERE r.concept_code_1 = d.concept_code AND r.vocabulary_id_1 = d.vocabulary_id
             AND d.concept_class_id in ('Branded Drug', 'Clinical Drug')
-    AND r.relationship_id = 'RxNorm has ing')
-;
-
+    AND r.relationship_id = 'RxNorm has ing');
+COMMIT;
 
 --6 Add upgrade relationships
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
@@ -255,39 +253,9 @@ UPDATE concept_stage
                         AND c.vocabulary_id = r.vocabulary_id_1
                         AND c.concept_class_id LIKE '%Pack'
                         AND r.relationship_id = 'Contains');
-
-/*
-UPDATE concept_relationship_stage
-   SET relationship_id = 'Maps to'
- WHERE ROWID IN (SELECT r.ROWID
-                   FROM concept_stage c, concept_relationship_stage r
-                  WHERE     c.concept_code = r.concept_code_1
-                        AND c.vocabulary_id = r.vocabulary_id_1
-                        AND c.concept_class_id LIKE '%Pack'
-                        AND r.relationship_id = 'Contains');
-*/
 COMMIT;
-						
---8 Re-map Quantified Drugs and Packs
---Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
-/*
-UPDATE concept_relationship_stage
-   SET relationship_id = 'Original maps to'
- WHERE ROWID IN (SELECT r.ROWID
-                   FROM concept_relationship_stage r, concept_stage c
-                  WHERE     r.vocabulary_id_2 = 'RxNorm'
-                        AND c.concept_code = r.concept_code_2
-                        AND c.vocabulary_id = r.vocabulary_id_2
-                        AND c.concept_class_id IN ('Quant Clinical Drug',
-                                                   'Quant Branded Drug',
-                                                   'Clinical Pack',
-                                                   'Branded Pack')
-                        AND c.standard_concept IS NULL
-                        AND r.relationship_id = 'Maps to');
-COMMIT;		
-*/
 
---9. Add mapping from deprecated to fresh concepts
+--8. Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -362,7 +330,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---10 Create mapping to self for fresh concepts
+--9 Create mapping to self for fresh concepts
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -392,7 +360,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 						  AND i.relationship_id = 'Maps to');
 COMMIT;
 
---11 Make sure all records are symmetrical and turn if necessary
+--10 Make sure all records are symmetrical and turn if necessary
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -422,14 +390,14 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;					 
 
---12 Update concept_id in concept_stage from concept for existing concepts
+--11 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL
 ;
 COMMIT;
 
---13 Turn "Clinical Drug" to "Quant Clinical Drug" and "Branded Drug" to "Quant Branded Drug"
+--12 Turn "Clinical Drug" to "Quant Clinical Drug" and "Branded Drug" to "Quant Branded Drug"
 UPDATE concept_stage c
    SET concept_class_id =
           CASE
@@ -445,7 +413,7 @@ UPDATE concept_stage c
                       and r.vocabulary_id_1=c.vocabulary_id);
 COMMIT;		
 
---14 De-standardize all those that have a relationship to the following "Drug Form" concepts
+--13 De-standardize all those that have a relationship to the following "Drug Form" concepts
 update concept_stage c set standard_concept = NULL where rowid in (
     select c.rowid from concept_stage c
     -- that have a relationship indicating it is a quantified drug
@@ -465,16 +433,16 @@ update concept_stage c set standard_concept = NULL where rowid in (
 );
 COMMIT;			  
 
---15 Reinstate constraints and indices
+--14 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 
---16 Run generic_update.sql from root directory
+--15 Run generic_update.sql from working directory
 
---17 After previous step disable indexes and truncate tables again
-UPDATE vocabulary SET latest_update=
-(select latest_update from vocabulary WHERE vocabulary_id = 'RxNorm')
+--16 After previous step disable indexes and truncate tables again
+UPDATE vocabulary SET (latest_update, vocabulary_version)=
+(select latest_update, vocabulary_version from vocabulary WHERE vocabulary_id = 'RxNorm')
 	WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class', 'ATC'); 
 UPDATE vocabulary SET latest_update=null WHERE vocabulary_id = 'RxNorm';
 COMMIT;
@@ -488,7 +456,7 @@ ALTER INDEX idx_cs_concept_id UNUSABLE;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
---18 add NDFRT, VA Product, VA Class and ATC
+--17 add NDFRT, VA Product, VA Class and ATC
 BEGIN
    EXECUTE IMMEDIATE 'drop table drug_vocs purge';
 EXCEPTION
@@ -612,7 +580,7 @@ AS
              FROM rxnconso
             WHERE sab = 'ATC' AND suppress != 'Y' AND tty IN ('PT', 'IN') AND code != 'NOCODE');
 
---19 Add to concept_stage
+--18 Add to concept_stage
 INSERT INTO concept_stage (concept_id,
                            concept_name,
                            domain_id,
@@ -637,7 +605,7 @@ INSERT INTO concept_stage (concept_id,
     WHERE v.vocabulary_id = dv.vocabulary_id;
 COMMIT;	
 
---20 Rename the top NDFRT concept
+--19 Rename the top NDFRT concept
 UPDATE concept_stage
    SET concept_name =
              'NDF-RT release '
@@ -648,7 +616,7 @@ UPDATE concept_stage
  WHERE concept_code = 'N0000000001';
  COMMIT;
 
---21 Create all sorts of relationships to self, RxNorm and SNOMED
+--20 Create all sorts of relationships to self, RxNorm and SNOMED
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -1097,7 +1065,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
     WHERE relationship_id IS NOT NULL;
 COMMIT;
 
---22 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
+--21 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -1132,7 +1100,7 @@ SELECT DISTINCT
 COMMIT;
 
 
---23 Add mapping from deprecated to fresh concepts
+--22 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
@@ -1208,14 +1176,14 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;				 
 
---24 Update concept_id in concept_stage from concept for existing concepts
+--23 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL
 ;
 COMMIT;
 
---25 Reinstate constraints and indices
+--24 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

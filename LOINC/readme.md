@@ -13,6 +13,6 @@ and multiaxial hierarchy (http://loinc.org/downloads/files/loinc-multiaxial-hier
 6. Open LOINC_XXX_SELECTED_FORMS.xlsx and load worksheet "ANSWERS" to table LOINC_ANSWERS
 7. Open loinc_class.csv and load him into table loinc_class
 8. Run load_stage.sql
-9. Run generic_update.sql (from root directory)
+9. Run generic_update.sql (from working directory)
 
  

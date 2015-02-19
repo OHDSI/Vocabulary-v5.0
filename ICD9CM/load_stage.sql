@@ -1,6 +1,6 @@
 -- 1. Update latest_update field to new date 
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20141001','yyyymmdd') WHERE vocabulary_id='ICD9CM'; 
+UPDATE vocabulary SET latest_update=to_date('20141001','yyyymmdd'), vocabulary_version='ICD9CM v32 master descriptions' WHERE vocabulary_id='ICD9CM'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices
@@ -273,13 +273,6 @@ and instr(domain_id,'/')<>0;
 --reducing some domain_id if his length>20
 update ICD9CM_domain set domain_id='Meas/Procedure' where domain_id='Measurement/Procedure';
 COMMIT;
-
-/*check for new domains (must not return any rows!)
-
-select domain_id from ICD9CM_domain 
-minus
-select domain_id from domain;
-*/
 
 --12. update each domain_id with the domains field from ICD9CM_domain.
 UPDATE concept_stage c

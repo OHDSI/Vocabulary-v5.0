@@ -1,7 +1,7 @@
 --1. Update latest_update field to new date 
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20150129','yyyymmdd') where vocabulary_id='NDC'; commit;
-update vocabulary set latest_update=to_date('20150129','yyyymmdd') where vocabulary_id='SPL'; commit;
+update vocabulary set latest_update=to_date('20150129','yyyymmdd'), vocabulary_version='NDC 20140901' where vocabulary_id='NDC'; commit;
+update vocabulary set latest_update=to_date('20150129','yyyymmdd'), vocabulary_version='NDC 20140901' where vocabulary_id='SPL'; commit;
 
 --2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;
@@ -315,7 +315,6 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
     WHERE s.sab = 'RXNORM' AND s.atn = 'NDC';
 COMMIT;		
 
---8. Add mapping from NDCto RxNorm from rxnconso
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -364,7 +363,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
 			
---9 Add additional mapping for NDC codes 
+--8 Add additional mapping for NDC codes 
 --The 9-digit NDC codes that have no mapping can be mapped to the same concept of the 11-digit NDC codes, if all 11-digit NDC codes agree on the same destination Concept
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
@@ -434,7 +433,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE cnt = 1;
 COMMIT;	 
 
---10 Add mapping from deprecated to fresh concepts
+--9 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
@@ -510,7 +509,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;
 
---11 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
+--10 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -554,7 +553,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Maps to');
 COMMIT;		  
 
---12 Re-map Quantified Drugs and Packs
+--11 Re-map Quantified Drugs and Packs
 --Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
 UPDATE concept_relationship_stage
    SET relationship_id = 'Original maps to'
@@ -572,16 +571,16 @@ UPDATE concept_relationship_stage
                         AND r.relationship_id = 'Maps to');
 COMMIT;				 
 
---13. Update concept_id in concept_stage from concept for existing concepts
+--12. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 	
---14. Clean up
+--13. Clean up
 DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
 	
---15. Reinstate constraints and indices
+--14. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

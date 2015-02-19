@@ -1,6 +1,6 @@
 -- 1. Update latest_update field to new date 
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20141001','yyyymmdd') WHERE vocabulary_id='ICD9Proc'; 
+UPDATE vocabulary SET latest_update=to_date('20141001','yyyymmdd'), vocabulary_version='ICD9CM v32 master descriptions' WHERE vocabulary_id='ICD9Proc'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices

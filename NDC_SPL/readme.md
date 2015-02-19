@@ -13,6 +13,6 @@ Open the site http://www.fda.gov/Drugs/InformationOnDrugs/ucm142438.htm
 
 4. Load product.txt into PRODUCT using control file of the same name
 5. Run load_stage.sql
-6. Run generic_update.sql (from root directory)
+6. Run generic_update.sql (from working directory)
 
  

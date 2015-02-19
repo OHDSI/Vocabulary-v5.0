@@ -10,6 +10,6 @@ Prerequisites:
 3. Extract CMSXX_DESC_LONG_SG.txt and CMSXX_DESC_SHORT_SG.txt
 4. Load them into CMS_DESC_LONG_SG and CMS_DESC_SHORT_SG. Use the control files of the same name.
 5. Run load_stage.sql
-6. Run generic_update.sql (from root directory)
+6. Run generic_update.sql (from working directory)
 
  

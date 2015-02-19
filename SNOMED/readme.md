@@ -31,6 +31,6 @@ Remove date from file name.
 
 11. Run load_stage.sql
 
-12. Run generic_update.sql (from root directory)
+12. Run generic_update.sql (from working directory)
 
  

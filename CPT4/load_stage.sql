@@ -122,7 +122,7 @@ COMMIT;
 --4 Update domain_id in concept_stage from concept
 CREATE TABLE t_domains nologging AS
 (
-    SELECT 
+    SELECT DISTINCT
       c.concept_code, 
       CASE
         WHEN nvl(h2.code, cpt.code) = '1011137' THEN 'Measurement' -- Organ or Disease Oriented Panels

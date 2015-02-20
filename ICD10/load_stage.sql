@@ -20,6 +20,30 @@ SELECT *
  WHERE vocabulary_id = 'ICD10' AND invalid_reason IS NULL;
  
 --4. Append file from medical coder to concept_stage
+INSERT INTO CONCEPT_STAGE (concept_id,
+                           concept_name,
+                           domain_id,
+                           vocabulary_id,
+                           concept_class_id,
+                           standard_concept,
+                           concept_code,
+                           valid_start_date,
+                           valid_end_date,
+                           invalid_reason)
+   SELECT concept_id,
+          concept_name,
+          domain_id,
+          vocabulary_id,
+          concept_class_id,
+          standard_concept,
+          concept_code,
+          valid_start_date,
+          valid_end_date,
+          invalid_reason
+     FROM concept
+    WHERE vocabulary_id = 'ICD10' AND invalid_reason IS NULL;
+COMMIT;	
+
 
 --5. Create file for medical coder from the existing one
 SELECT *
@@ -29,6 +53,28 @@ SELECT *
        AND r.invalid_reason IS NULL;
 
 --6. Append file from medical coder to concept_relationship_stage
+INSERT /*+ APPEND */
+      INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT concept_code_1,
+          concept_code_2,
+          vocabulary_id_1,
+          vocabulary_id_2,
+          relationship_id,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'ICD10')
+             AS valid_start_date,
+          TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM concept_relationship_manual;
+COMMIT;	 
 
 --7 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
@@ -106,13 +152,76 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;	
 
---8 Update concept_id in concept_stage from concept for existing concepts
+--8 update domain_id for ICD10 from SNOMED
+--create temporary table ICD10_domain
+--if domain_id is empty we use previous and next domain_id or its combination
+create table ICD10_domain NOLOGGING as
+    select concept_code, 
+    case when domain_id is not null then domain_id 
+    else 
+        case when prev_domain=next_domain then prev_domain --prev and next domain are the same (and of course not null both)
+            when prev_domain is not null and next_domain is not null then  
+                case when prev_domain<next_domain then prev_domain||'/'||next_domain 
+                else next_domain||'/'||prev_domain 
+                end -- prev and next domain are not same and not null both, with order by name
+            else coalesce (prev_domain,next_domain,'Unknown')
+        end
+    end domain_id
+    from (
+			select concept_code, LISTAGG(domain_id, '/') WITHIN GROUP (order by domain_id) domain_id, prev_domain, next_domain, concept_class_id from (
+			with filled_domain as
+						(
+							select c1.concept_code, c2.domain_id
+							FROM concept_relationship_stage r, concept_stage c1, concept c2
+							WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
+							AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
+							AND r.vocabulary_id_1='ICD10' AND r.vocabulary_id_2='SNOMED'
+							AND r.invalid_reason is null
+						)
+
+						select distinct c1.concept_code, r1.domain_id, c1.concept_class_id,
+							(select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and r1.domain_id is null) prev_domain,
+							(select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and r1.domain_id is null) next_domain
+						from concept_stage c1
+						left join (
+							select r.concept_code_1, r.vocabulary_id_1, c2.domain_id from concept_relationship_stage r, concept c2 
+							where c2.concept_code=r.concept_code_2 
+							and r.vocabulary_id_2=c2.vocabulary_id 
+							and c2.vocabulary_id='SNOMED'
+						) r1 on r1.concept_code_1=c1.concept_code and r1.vocabulary_id_1=c1.vocabulary_id
+						where c1.vocabulary_id='ICD10'
+			)
+			group by concept_code,prev_domain, next_domain, concept_class_id
+    );
+
+-- INDEX was set as UNIQUE to prevent concept_code duplication
+CREATE UNIQUE INDEX idx_ICD10_domain ON ICD10_domain (concept_code) NOLOGGING;
+
+--9. Simplify the list by removing Observations
+update ICD10_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
+where '/'||domain_id||'/' like '%/Observation/%'
+and instr(domain_id,'/')<>0;
+
+--reducing some domain_id if his length>20
+update ICD10_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
+COMMIT;
+
+--10. update each domain_id with the domains field from ICD10_domain.
+UPDATE concept_stage c
+   SET (domain_id) =
+          (SELECT domain_id
+             FROM ICD10_domain rd
+            WHERE rd.concept_code = c.concept_code)
+ WHERE c.vocabulary_id = 'ICD10';
+COMMIT;
+
+--11 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
 
---9 Reinstate constraints and indices
+--12 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

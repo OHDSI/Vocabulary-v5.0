@@ -172,7 +172,29 @@ INSERT INTO concept_relationship_stage (concept_id_1,
 COMMIT;
 
 --7 Create hierarchical relationships between HT and normal CPT codes
-/*not done yet*/		  
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        relationship_id,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT c1.code AS concept_code_1,
+          c2.code AS concept_code_2,
+          'Is a' AS relationship_id,
+          'CPT4' AS vocabulary_id_1,
+          'CPT4' AS vocabulary_id_2,
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM (SELECT aui AS aui1,
+                  REGEXP_REPLACE (ptr, '(.+\.)(A\d+)$', '\2') AS aui2
+             FROM umls.mrhier
+            WHERE sab = 'CPT' AND rela = 'isa') h
+          JOIN umls.mrconso c1 ON c1.aui = h.aui1 AND c1.sab = 'CPT'
+          JOIN umls.mrconso c2 ON c2.aui = h.aui2 AND c2.sab = 'CPT';
+COMMIT;		  
 
 --8 Extract all CPT4 codes inside the concept_name of other cpt codes. Currently, there are only 5 of them, with up to 4 codes in each
 INSERT INTO concept_relationship_stage (concept_id_1,

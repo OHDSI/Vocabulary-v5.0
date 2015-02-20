@@ -143,6 +143,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
 COMMIT;	  
 
 --7  Load concept_relationship_stage from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
+/*
 INSERT INTO concept_relationship_stage (concept_id_1,
                                         concept_id_2,
                                         concept_code_1,
@@ -173,6 +174,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
           AND r.relationship_id NOT IN ('Domain subsumes', 'Is domain', 'Maps to', 'Mapped from') 
 ;
 COMMIT;		  
+*/
 
 --8 Create text for Medical Coder with new codes and mappings
 SELECT NULL AS concept_id_1,
@@ -214,7 +216,28 @@ SELECT NULL AS concept_id_1,
                       AND co.vocabulary_id = 'ICD9CM'); -- only new codes we don't already have
 
 --9 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
-
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT concept_code_1,
+          concept_code_2,
+          vocabulary_id_1,
+          vocabulary_id_2,
+          relationship_id,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'ICD9CM')
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM concept_relationship_manual;
+COMMIT;
+	 
 --10 update domain_id for ICD9CM from SNOMED
 --create temporary table ICD9CM_domain
 --if domain_id is empty we use previous and next domain_id or its combination

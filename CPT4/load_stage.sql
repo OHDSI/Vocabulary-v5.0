@@ -122,66 +122,72 @@ COMMIT;
 --4 Update domain_id in concept_stage from concept
 CREATE TABLE t_domains nologging AS
 (
-    SELECT DISTINCT
-      c.concept_code, 
-      CASE
-        WHEN nvl(h2.code, cpt.code) = '1011137' THEN 'Measurement' -- Organ or Disease Oriented Panels
-        WHEN nvl(h2.code, cpt.code) = '1011219' THEN 'Measurement' -- Clinical Pathology Consultations
-        WHEN nvl(h2.code, cpt.code) = '1019043' THEN 'Measurement' -- In Vivo (eg, Transcutaneous) Laboratory Procedures
-        WHEN nvl(h2.code, cpt.code) = '1020889' THEN 'Measurement' -- Molecular Pathology Procedures
-        WHEN nvl(h2.code, cpt.code) = '1021433' THEN 'Observation' -- Non-Measure Category II Codes
-        WHEN nvl(h2.code, cpt.code) = '1014516' THEN 'Observation' -- Patient History
-        WHEN nvl(h2.code, cpt.code) = '1019288' THEN 'Observation' -- Structural Measures
-        WHEN nvl(h2.code, cpt.code) = '1014549' THEN 'Observation' -- Follow-up or Other Outcomes
-        WHEN nvl(h2.code, cpt.code) = '1014516' THEN 'Observation' -- Patient History
-        WHEN nvl(h2.code, cpt.code) = '1014511' THEN 'Observation' -- Patient Management
-        WHEN nvl(h2.code, cpt.code) = '1014535' THEN 'Observation' -- Therapeutic, Preventive or Other Interventions - these are the disease guideline codes such as (A-BRONCH), (OME) etc.
-        WHEN nvl(h2.code, cpt.code) = '1011759' THEN 'Measurement' -- Hematology and Coagulation Procedures
-        WHEN nvl(h2.code, cpt.code) = '1011223' THEN 'Measurement' -- Urinalysis Procedures
-        WHEN nvl(h2.code, cpt.code) = '1012134' THEN 'Measurement' -- Microbiology Procedures
-        WHEN nvl(h2.code, cpt.code) = '1014550' THEN 'Observation' -- Patient Safety - these are guidelines
-        WHEN nvl(h2.code, cpt.code) = '1021135' THEN 'Observation' -- Multianalyte Assays with Algorithmic Analyses
-        WHEN nvl(h2.code, cpt.code) = '1014532' THEN 'Observation' -- Diagnostic/Screening Processes or Results - guidelines, but also results and diagnoses, which need be mapped
-        WHEN nvl(h2.code, cpt.code) = '1014526' THEN 'Observation' -- Physical Examination
-        WHEN nvl(h2.code, cpt.code) = '1011153' THEN 'Measurement' -- Therapeutic Drug Assays - these are measurements of level after dosing, so, also drug
-        WHEN nvl(h2.code, cpt.code) = '1011237' THEN 'Measurement' -- Chemistry Procedures
-        WHEN nvl(h2.code, cpt.code) = '1013575' THEN 'Observation' -- Special Services, Procedures and Reports - medical services really
-        WHEN nvl(h2.code, cpt.code) = '1013774' THEN 'Observation' -- Home Services - medical service as well
-        WHEN nvl(h2.code, cpt.code) = '1012420' THEN 'Measurement' -- Cytogenetic Studies
-        WHEN nvl(h2.code, cpt.code) = '1011147' THEN 'Measurement' -- Drug Testing Procedures
-        WHEN nvl(h2.code, cpt.code) = '1012370' THEN 'Measurement' -- Cytopathology Procedures
-        WHEN nvl(h3.code, cpt.code) = '1011889' THEN 'Procedure' -- Blood bank physician services
-        WHEN nvl(h2.code, cpt.code) = '1011874' THEN 'Measurement' -- Immunology Procedures
-        WHEN cpt.code IN ('88362', '88309', '88302', '88300', '88304', '88305', '88307', '88311', '88375', '88321', '88399', '88325', '88323') THEN 'Procedure'
-        WHEN nvl(h3.code, cpt.code) = '1014276' THEN 'Procedure' -- Pathology consultation during surgery
-        WHEN nvl(h2.code, cpt.code) = '1012454' THEN 'Measurement' -- Surgical Pathology Procedures
-        WHEN nvl(h3.code, cpt.code) = '1012549' THEN 'Measurement' -- Semen analysis
-        WHEN nvl(h3.code, cpt.code) = '1012555' THEN 'Measurement' -- Sperm evaluation
-        WHEN cpt.code IN ('89230', '89220') THEN 'Procedure' -- Sweat collection etc.
-        WHEN nvl(h2.code, cpt.code) = '1013981' THEN 'Measurement' -- Other Pathology and Laboratory Procedures
-        WHEN nvl(h3.code, cpt.code) = '1012089' THEN 'Measurement' -- Antihuman globulin test (Coombs test)
-        WHEN nvl(h3.code, cpt.code) = '1012093' THEN 'Measurement' -- Autologous blood or component, collection processing and storage
-        WHEN nvl(h3.code, cpt.code) = '1012096' THEN 'Measurement' -- Blood typing
-        WHEN nvl(h3.code, cpt.code) = '1012103' THEN 'Measurement' -- Blood typing, for paternity testing, per individual
-        WHEN nvl(h3.code, cpt.code) = '1012106' THEN 'Measurement' -- Compatibility test each unit
-        WHEN nvl(h3.code, cpt.code) = '1012116' THEN 'Measurement' -- Hemolysins and agglutinins
-        WHEN cpt.code = '92531' THEN 'Observation' -- Spontaneous nystagmus, including gaze - Condition
-        WHEN nvl(h2.code, cpt.code) = '1012871' THEN 'Measurement' -- Special Otorhinolaryngologic Services and Procedures - tricky assignement, need devices, have results
-        ELSE 'Procedure'
-      END as domain_id
-    FROM concept_stage c 
-    LEFT JOIN umls.mrconso cpt ON c.concept_code = cpt.code and cpt.sab = 'CPT'
+    SELECT 
+    c.concept_code, 
+    nvl(domain.domain_id, 'Procedure') as domain_id
+    FROM concept_stage c
     LEFT JOIN (
       SELECT 
-        aui AS cpt,
-        regexp_replace(ptr, '(A\d+\.)(A\d+\.)(A\d+)(.*)', '\3') AS aui2,
-        regexp_replace(ptr, '(A\d+\.)(A\d+\.)(A\d+\.)(A\d+)(.*)', '\4') AS aui3
-      FROM umls.mrhier
-      WHERE sab = 'CPT' AND rela = 'isa'
-    ) h ON cpt.aui = h.cpt
-    LEFT JOIN umls.mrconso h2 ON h2.aui = h.aui2 AND h2.sab = 'CPT'
-    LEFT JOIN umls.mrconso h3 ON h3.aui = h.aui3 AND h3.sab = 'CPT'
+        cpt.code, 
+        CASE
+          WHEN nvl(h2.code, cpt.code) = '1011137' THEN 'Measurement' -- Organ or Disease Oriented Panels
+          WHEN nvl(h2.code, cpt.code) = '1011219' THEN 'Measurement' -- Clinical Pathology Consultations
+          WHEN nvl(h2.code, cpt.code) = '1019043' THEN 'Measurement' -- In Vivo (eg, Transcutaneous) Laboratory Procedures
+          WHEN nvl(h2.code, cpt.code) = '1020889' THEN 'Measurement' -- Molecular Pathology Procedures
+          WHEN nvl(h2.code, cpt.code) = '1021433' THEN 'Observation' -- Non-Measure Category II Codes
+          WHEN nvl(h2.code, cpt.code) = '1014516' THEN 'Observation' -- Patient History
+          WHEN nvl(h2.code, cpt.code) = '1019288' THEN 'Observation' -- Structural Measures
+          WHEN nvl(h2.code, cpt.code) = '1014549' THEN 'Observation' -- Follow-up or Other Outcomes
+          WHEN nvl(h2.code, cpt.code) = '1014516' THEN 'Observation' -- Patient History
+          WHEN nvl(h2.code, cpt.code) = '1014511' THEN 'Observation' -- Patient Management
+          WHEN nvl(h2.code, cpt.code) = '1014535' THEN 'Observation' -- Therapeutic, Preventive or Other Interventions - these are the disease guideline codes such as (A-BRONCH), (OME) etc.
+          WHEN nvl(h2.code, cpt.code) = '1011759' THEN 'Measurement' -- Hematology and Coagulation Procedures
+          WHEN nvl(h2.code, cpt.code) = '1011223' THEN 'Measurement' -- Urinalysis Procedures
+          WHEN nvl(h2.code, cpt.code) = '1012134' THEN 'Measurement' -- Microbiology Procedures
+          WHEN nvl(h2.code, cpt.code) = '1014550' THEN 'Observation' -- Patient Safety - these are guidelines
+          WHEN nvl(h2.code, cpt.code) = '1021135' THEN 'Observation' -- Multianalyte Assays with Algorithmic Analyses
+          WHEN nvl(h2.code, cpt.code) = '1014532' THEN 'Observation' -- Diagnostic/Screening Processes or Results - guidelines, but also results and diagnoses, which need be mapped
+          WHEN nvl(h2.code, cpt.code) = '1014526' THEN 'Observation' -- Physical Examination
+          WHEN nvl(h2.code, cpt.code) = '1011153' THEN 'Measurement' -- Therapeutic Drug Assays - these are measurements of level after dosing, so, also drug
+          WHEN nvl(h2.code, cpt.code) = '1011237' THEN 'Measurement' -- Chemistry Procedures
+          WHEN nvl(h2.code, cpt.code) = '1013575' THEN 'Observation' -- Special Services, Procedures and Reports - medical services really
+          WHEN nvl(h2.code, cpt.code) = '1013774' THEN 'Observation' -- Home Services - medical service as well
+          WHEN nvl(h2.code, cpt.code) = '1012420' THEN 'Measurement' -- Cytogenetic Studies
+          WHEN nvl(h2.code, cpt.code) = '1011147' THEN 'Measurement' -- Drug Testing Procedures
+          WHEN nvl(h2.code, cpt.code) = '1012370' THEN 'Measurement' -- Cytopathology Procedures
+          WHEN nvl(h3.code, cpt.code) = '1011889' THEN 'Procedure' -- Blood bank physician services
+          WHEN nvl(h2.code, cpt.code) = '1011874' THEN 'Measurement' -- Immunology Procedures
+          WHEN cpt.code IN ('88362', '88309', '88302', '88300', '88304', '88305', '88307', '88311', '88375', '88321', '88399', '88325', '88323') THEN 'Procedure'
+          WHEN nvl(h3.code, cpt.code) = '1014276' THEN 'Procedure' -- Pathology consultation during surgery
+          WHEN nvl(h2.code, cpt.code) = '1012454' THEN 'Measurement' -- Surgical Pathology Procedures
+          WHEN nvl(h3.code, cpt.code) = '1012549' THEN 'Measurement' -- Semen analysis
+          WHEN nvl(h3.code, cpt.code) = '1012555' THEN 'Measurement' -- Sperm evaluation
+          WHEN cpt.code IN ('89230', '89220') THEN 'Procedure' -- Sweat collection etc.
+          WHEN nvl(h2.code, cpt.code) = '1013981' THEN 'Measurement' -- Other Pathology and Laboratory Procedures
+          WHEN nvl(h3.code, cpt.code) = '1012089' THEN 'Measurement' -- Antihuman globulin test (Coombs test)
+          WHEN nvl(h3.code, cpt.code) = '1012093' THEN 'Measurement' -- Autologous blood or component, collection processing and storage
+          WHEN nvl(h3.code, cpt.code) = '1012096' THEN 'Measurement' -- Blood typing
+          WHEN nvl(h3.code, cpt.code) = '1012103' THEN 'Measurement' -- Blood typing, for paternity testing, per individual
+          WHEN nvl(h3.code, cpt.code) = '1012106' THEN 'Measurement' -- Compatibility test each unit
+          WHEN nvl(h3.code, cpt.code) = '1012116' THEN 'Measurement' -- Hemolysins and agglutinins
+          WHEN cpt.code = '92531' THEN 'Observation' -- Spontaneous nystagmus, including gaze - Condition
+          WHEN nvl(h2.code, cpt.code) = '1012871' THEN 'Measurement' -- Special Otorhinolaryngologic Services and Procedures - tricky assignement, need devices, have results
+          ELSE 'Procedure'
+        END as domain_id
+      FROM (
+        SELECT 
+          aui AS cpt,
+          regexp_replace(ptr, '(A\d+\.)(A\d+\.)(A\d+)(.*)', '\3') AS aui2,
+          regexp_replace(ptr, '(A\d+\.)(A\d+\.)(A\d+\.)(A\d+)(.*)', '\4') AS aui3
+        FROM umls.mrhier
+        WHERE sab = 'CPT' AND rela = 'isa'
+      ) h
+      JOIN umls.mrconso cpt ON h.cpt = cpt.aui and cpt.sab = 'CPT'
+      LEFT JOIN umls.mrconso h2 ON h2.aui = h.aui2 AND h2.sab = 'CPT'
+      LEFT JOIN umls.mrconso h3 ON h3.aui = h.aui3 AND h3.sab = 'CPT'
+    ) domain on domain.code = c.concept_code
 );
+
 CREATE INDEX tmp_idx_cs
    ON t_domains (concept_code)
    NOLOGGING;

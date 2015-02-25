@@ -119,7 +119,7 @@ INSERT INTO concept_stage (concept_id,
           AND tty = 'HT';
 COMMIT;
 
---4 Update domain_id in concept_stage from concept
+--4 Update domain_id in concept_stage
 CREATE TABLE t_domains nologging AS
 (
     SELECT 

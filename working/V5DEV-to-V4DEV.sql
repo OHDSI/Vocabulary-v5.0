@@ -248,6 +248,20 @@ ALTER TABLE SOURCE_TO_CONCEPT_MAP ADD (
 
 --fill tables
 
+INSERT INTO v5dev.relationship_conversion (relationship_id,
+                                           relationship_id_new)
+   SELECT   ROWNUM
+          + (SELECT MAX (relationship_id)
+               FROM v5dev.relationship_conversion)
+             AS rn,
+          relationship_id
+     FROM ( (SELECT relationship_id FROM v5dev.relationship
+             UNION ALL
+             SELECT reverse_relationship_id FROM v5dev.relationship)
+           MINUS
+           SELECT relationship_id_new FROM v5dev.relationship_conversion);
+COMMIT;
+		   
  INSERT INTO RELATIONSHIP (RELATIONSHIP_ID,
                           RELATIONSHIP_NAME,
                           IS_HIERARCHICAL,

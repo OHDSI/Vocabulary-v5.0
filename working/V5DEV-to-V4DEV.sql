@@ -261,6 +261,28 @@ INSERT INTO v5dev.relationship_conversion (relationship_id,
            MINUS
            SELECT relationship_id_new FROM v5dev.relationship_conversion);
 COMMIT;
+
+CREATE TABLE t_concept_class_conversion
+
+AS
+   (SELECT concept_class, concept_class_id_new
+      FROM v5dev.concept_class_conversion
+     WHERE concept_class_id_new NOT IN (  SELECT concept_class_id_new
+                                            FROM v5dev.concept_class_conversion
+                                        GROUP BY concept_class_id_new
+                                          HAVING COUNT (*) > 1))
+   UNION ALL
+   (  SELECT concept_class_id_new AS concept_class, concept_class_id_new
+        FROM v5dev.concept_class_conversion
+    GROUP BY concept_class_id_new
+      HAVING COUNT (*) > 1)
+   UNION ALL
+   (SELECT concept_class_id AS concept_class,
+           concept_class_id AS concept_class_id_new
+      FROM v5dev.concept
+    MINUS
+    SELECT concept_class_id_new, concept_class_id_new
+      FROM v5dev.concept_class_conversion);
 		   
  INSERT INTO RELATIONSHIP (RELATIONSHIP_ID,
                           RELATIONSHIP_NAME,
@@ -299,12 +321,14 @@ INSERT /*+ APPEND */
           c.valid_end_date,
           c.invalid_reason
      FROM v5dev.concept c,
-          v5dev.concept_class_conversion ccc,
+          t_concept_class_conversion ccc,
           v5dev.vocabulary_conversion vc
     WHERE     c.concept_class_id = ccc.concept_class_id_new
           AND c.vocabulary_id = vc.vocabulary_id_v5;
 
-COMMIT;		  
+COMMIT;	
+
+DROP TABLE t_concept_class_conversion PURGE;	  
 
 INSERT /*+ APPEND */
       INTO  concept_relationship (CONCEPT_ID_1,
@@ -323,7 +347,7 @@ INSERT /*+ APPEND */
     WHERE r.relationship_id = rc.relationship_id_new;
 
 COMMIT;	
-
+------
 INSERT /*+ APPEND */
       INTO  concept_ancestor (ANCESTOR_CONCEPT_ID,
                               DESCENDANT_CONCEPT_ID,
@@ -341,7 +365,7 @@ INSERT /*+ APPEND */
       INTO  concept_synonym (CONCEPT_SYNONYM_ID,
                              CONCEPT_ID,
                              CONCEPT_SYNONYM_NAME)
-   SELECT 1 as concept_synonym_id, cs.concept_id, cs.concept_synonym_name
+   SELECT rownum as concept_synonym_id, cs.concept_id, cs.concept_synonym_name
      FROM v5dev.concept_synonym cs;
 
 COMMIT;	 

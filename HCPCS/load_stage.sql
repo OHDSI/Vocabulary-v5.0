@@ -62,7 +62,7 @@ CREATE TABLE t_domains nologging AS
         WHEN l2.str = 'Transport Services Including Ambulance' THEN 'Observation' -- Level 2: A0000-A0999
         WHEN l1.str = 'A Codes' THEN 'Device' -- default for Level 1: A0000-A9999
         -- B codes
-        WHEN l1.str = 'Enteral AND Parenteral Therapy Supplies' THEN 'Device' -- all of them Level 1: B4000-B9999
+        WHEN l1.str = 'Enteral and Parenteral Therapy Supplies' THEN 'Device' -- all of them Level 1: B4000-B9999
         -- C codes
         WHEN hcpc.concept_code = 'C1204' THEN '???' -- Technetium tc 99m tilmanocept, diagnostic, up to 0.5 millicuries
         WHEN hcpc.concept_code like 'C%' AND concept_name like '%Brachytherapy%source%' THEN '???' -- Brachytherapy codes
@@ -84,7 +84,7 @@ CREATE TABLE t_domains nologging AS
         WHEN hcpc.concept_code = 'G0103' THEN 'Measurement' -- Prostate cancer screening; prostate specific antigen test (psa)
         WHEN l2.str = 'Training Services - Diabetes' THEN 'Observation' -- Level 2: G0108-G0109
         WHEN l2.str = 'Screening Services - Cytopathology' THEN 'Measurement' -- Level 2: G0123-G0124
-        WHEN l2.str = 'Service, Nurse AND OT' THEN 'Observation' -- Level 2: G0128-G0129
+        WHEN l2.str = 'Service, Nurse and OT' THEN 'Observation' -- Level 2: G0128-G0129
         WHEN l2.str = 'Screening Services - Cytopathology, Other' THEN 'Measurement' -- Level 2: G0141-G0148
         WHEN l2.str = 'Services, Allied Health' THEN 'Observation' -- Level 2: G0151-G0166
         WHEN l2.str = 'Team Conference' THEN 'Observation' -- Level 2: G0175-G0175
@@ -96,7 +96,7 @@ CREATE TABLE t_domains nologging AS
         WHEN l2.str = 'Laboratory' THEN 'Measurement' -- Level 2: G0306-G0328
         WHEN l2.str = 'Fee, Pharmacy' THEN 'Procedure Drug' -- Level 2: G0333-G0333
         WHEN l2.str = 'Hospice' THEN 'Observation' -- Level 2: G0337-G0337
-        WHEN l2.str = 'Services, Observation AND ED' THEN 'Observation' -- Level 2: G0378-G0384
+        WHEN l2.str = 'Services, Observation and ED' THEN 'Observation' -- Level 2: G0378-G0384
         WHEN l2.str = 'Team, Trauma Response' THEN 'Observation' -- Level 2: G0390-G0390
         WHEN l2.str = 'Examination, Initial Medicare' THEN 'Observation' -- Level 2: G0402-G0402
         WHEN l2.str = 'Electrocardiogram' THEN 'Measurement' -- Level 2: G0403-G0405
@@ -160,10 +160,10 @@ CREATE TABLE t_domains nologging AS
         WHEN hcpc.concept_code = 'M0064' THEN 'Observation' -- Brief office visit for the sole purpose of monitoring or changing drug prescriptions used IN the treatment of mental psychoneurotic AND personality disorders
         WHEN l1.str = 'Other Medical Services' THEN 'Procedure' -- Level 1: M0000-M0301
         -- P codes
-        WHEN l2.str = 'Chemistry AND Toxicology Tests' THEN 'Measurement' -- Level 2: P2028-P2038
+        WHEN l2.str = 'Chemistry and Toxicology Tests' THEN 'Measurement' -- Level 2: P2028-P2038
         WHEN l2.str = 'Pathology Screening Tests' THEN 'Measurement' -- Level 2: P3000-P3001
         WHEN l2.str = 'Microbiology Tests' THEN 'Measurement' -- Level 2: P7001-P7001
-        WHEN l2.str = 'Miscellaneous Pathology AND Laboratory Services' THEN 'Procedure' -- Level 2: P9010-P9615
+        WHEN l2.str = 'Miscellaneous Pathology and Laboratory Services' THEN 'Procedure' -- Level 2: P9010-P9615
         -- Q codes
         WHEN l2.str = 'Cardiokymography (CMS Temporary Codes)' THEN 'Procedure' -- Level 2: Q0035-Q0035
         WHEN l2.str = 'Chemotherapy (CMS Temporary Codes)' THEN 'Procedure Drug' -- Level 2: Q0081-Q0085
@@ -175,7 +175,7 @@ CREATE TABLE t_domains nologging AS
         WHEN l2.str = 'Miscellaneous Devices (CMS Temporary Codes)' THEN 'Device' -- Level 2: Q0478-Q0509
         WHEN l2.str = 'Fee, Pharmacy (CMS Temporary Codes)' THEN 'Procedure Drug' -- Level 2: Q0510-Q0515
         WHEN l2.str = 'Lens, Intraocular (CMS Temporary Codes)' THEN 'Device' -- Level 2: Q1003-Q1005
-        WHEN l2.str = 'Solutions AND Drugs (CMS Temporary Codes)' THEN 'Procedure Drug' -- Level 2: Q2004-Q2052
+        WHEN l2.str = 'Solutions and Drugs (CMS Temporary Codes)' THEN 'Procedure Drug' -- Level 2: Q2004-Q2052
         WHEN l2.str = 'Brachytherapy Radioelements (CMS Temporary Codes)' THEN '???' -- Level 2: Q3001-Q3001
         WHEN l2.str = 'Telehealth (CMS Temporary Codes)' THEN 'Observation' -- Level 2: Q3014-Q3014
         WHEN hcpc.concept_code IN ('Q3025', 'Q3026') THEN 'Procedure Drug' -- Injection, Interferon beta

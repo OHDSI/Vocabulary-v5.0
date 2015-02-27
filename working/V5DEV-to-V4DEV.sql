@@ -381,7 +381,7 @@ INSERT /*+ APPEND */
                                    VALID_START_DATE,
                                    VALID_END_DATE,
                                    INVALID_REASON)
-   SELECT c1.concept_code AS SOURCE_CODE,
+   SELECT distinct c1.concept_code AS SOURCE_CODE,
           vc1.vocabulary_id_v4 AS SOURCE_VOCABULARY_ID,
           c1.concept_name AS SOURCE_CODE_DESCRIPTION,
           c2.concept_id AS TARGET_CONCEPT_ID,

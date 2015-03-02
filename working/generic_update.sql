@@ -204,14 +204,13 @@ UPDATE concept_relationship d
       -- Whether the combination of vocab1, vocab2 and relationship exists (in r_coverage) and the individual concepts exist
       -- (intended to be covered by this particular vocab udpate)
       -- And both concepts exist (don't deprecate relationships of deprecated concepts)
-      WHERE EXISTS (
-              SELECT 1
-                  FROM concept e1, concept e2
-                WHERE  e1.concept_id = d.concept_id_1 AND e2.concept_id = d.concept_id_2
-                  AND e1.vocabulary_id||'-'||e2.vocabulary_id||'-'||d.relationship_id IN (SELECT combo FROM r_coverage)
-                  AND e1.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
-                  AND e2.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
-              )
+      WHERE d.rowid in (SELECT d1.rowid
+						FROM concept e1, concept e2, concept_relationship d1
+						WHERE  e1.concept_id = d1.concept_id_1 AND e2.concept_id = d1.concept_id_2
+						AND e1.vocabulary_id||'-'||e2.vocabulary_id||'-'||d1.relationship_id IN (SELECT combo FROM r_coverage)
+						AND e1.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
+						AND e2.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
+	  )
       -- And the record is currently fresh
       AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
        -- And it was started before release date

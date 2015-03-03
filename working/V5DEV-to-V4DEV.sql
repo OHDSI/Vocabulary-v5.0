@@ -381,16 +381,16 @@ INSERT /*+ APPEND */
                                    VALID_START_DATE,
                                    VALID_END_DATE,
                                    INVALID_REASON)
-   SELECT distinct c1.concept_code AS SOURCE_CODE,
-          vc1.vocabulary_id_v4 AS SOURCE_VOCABULARY_ID,
-          c1.concept_name AS SOURCE_CODE_DESCRIPTION,
-          c2.concept_id AS TARGET_CONCEPT_ID,
-          vc2.vocabulary_id_v4 AS TARGET_VOCABULARY_ID,
-          c2.domain_id AS MAPPING_TYPE,
-          'Y' AS PRIMARY_MAP,
-          r.valid_start_date AS VALID_START_DATE,
-          r.valid_end_date AS VALID_END_DATE,
-          r.invalid_reason AS INVALID_REASON
+   SELECT DISTINCT c1.concept_code AS SOURCE_CODE,
+                   vc1.vocabulary_id_v4 AS SOURCE_VOCABULARY_ID,
+                   c1.concept_name AS SOURCE_CODE_DESCRIPTION,
+                   c2.concept_id AS TARGET_CONCEPT_ID,
+                   vc2.vocabulary_id_v4 AS TARGET_VOCABULARY_ID,
+                   c2.domain_id AS MAPPING_TYPE,
+                   'Y' AS PRIMARY_MAP,
+                   r.valid_start_date AS VALID_START_DATE,
+                   r.valid_end_date AS VALID_END_DATE,
+                   r.invalid_reason AS INVALID_REASON
      FROM v5dev.concept c1,
           v5dev.concept c2,
           v5dev.concept_relationship r,
@@ -400,6 +400,25 @@ INSERT /*+ APPEND */
           AND c2.concept_id = r.concept_id_2
           AND r.relationship_id = 'Maps to'
           AND c1.vocabulary_id = vc1.vocabulary_id_v5
-          AND c2.vocabulary_id = vc2.vocabulary_id_v5;
+          AND c2.vocabulary_id = vc2.vocabulary_id_v5
+   UNION ALL
+   SELECT DISTINCT c1.concept_code AS SOURCE_CODE,
+                   vc1.vocabulary_id_v4 AS SOURCE_VOCABULARY_ID,
+                   c1.concept_name AS SOURCE_CODE_DESCRIPTION,
+                   0 AS TARGET_CONCEPT_ID,
+                   0 AS TARGET_VOCABULARY_ID,
+                   'Unmapped' AS MAPPING_TYPE,
+                   'Y' AS PRIMARY_MAP,
+                   c1.valid_start_date AS VALID_START_DATE,
+                   c1.valid_end_date AS VALID_END_DATE,
+                   NULL AS INVALID_REASON
+     FROM v5dev.concept c1
+          LEFT JOIN v5dev.concept_relationship r
+             ON r.concept_id_1 = c1.concept_id
+          JOIN v5dev.vocabulary_conversion vc1
+             ON vc1.vocabulary_id_v5 = c1.vocabulary_id
+    WHERE     r.concept_id_1 IS NULL
+          AND c1.concept_code <> 'OMOP generated'
+          AND c1.concept_id NOT IN (38000782, 38000781, 38000783);
 
 COMMIT;		  

@@ -125,6 +125,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 	  FROM concept_stage c, vocabulary v
 	 WHERE     c.vocabulary_id = v.vocabulary_id
 		   AND c.standard_concept = 'S'
+		   AND c.invalid_reason IS NULL
 		   AND NOT EXISTS
 				  (SELECT 1
 					 FROM concept_relationship_stage i

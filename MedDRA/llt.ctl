@@ -4,7 +4,7 @@ LOAD        DATA
 INFILE      'llt.asc'
 BADFILE     'llt.bad'
 DISCARDFILE 'llt.dsc'
-APPEND
+TRUNCATE
 INTO TABLE low_level_term
 FIELDS TERMINATED BY  "$"
 TRAILING NULLCOLS

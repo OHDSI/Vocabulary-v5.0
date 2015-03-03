@@ -4,7 +4,7 @@ LOAD        DATA
 INFILE      'smq_list.asc'
 BADFILE     'smq_list.bad'
 DISCARDFILE 'smq_list.dsc'
-APPEND
+TRUNCATE
 INTO TABLE smq_list
 FIELDS TERMINATED BY  "$"
 TRAILING NULLCOLS

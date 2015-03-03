@@ -4,7 +4,7 @@ LOAD        DATA
 INFILE      'soc.asc'
 BADFILE     'soc.bad'
 DISCARDFILE 'soc.dsc'
-APPEND
+TRUNCATE
 INTO TABLE soc_term
 FIELDS TERMINATED BY  "$"
 TRAILING NULLCOLS

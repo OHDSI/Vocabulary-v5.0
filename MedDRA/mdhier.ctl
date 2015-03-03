@@ -4,7 +4,7 @@ LOAD        DATA
 INFILE      'mdhier.asc'
 BADFILE     'mdhier.bad'
 DISCARDFILE 'mdhier.dsc'
-APPEND
+TRUNCATE
 INTO TABLE md_hierarchy
 FIELDS TERMINATED BY  "$"
 TRAILING NULLCOLS

@@ -4,7 +4,7 @@ LOAD        DATA
 INFILE      'intl_ord.asc'
 BADFILE     'intl_ord.bad'
 DISCARDFILE 'intl_ord.dsc'
-APPEND
+TRUNCATE
 INTO TABLE soc_intl_order
 FIELDS TERMINATED BY  "$"
 TRAILING NULLCOLS

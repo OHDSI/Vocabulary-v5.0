@@ -4,7 +4,7 @@ LOAD        DATA
 INFILE      'hlt_pt.asc'
 BADFILE     'hlt_pt.bad'
 DISCARDFILE 'hlt_pt.dsc'
-APPEND
+TRUNCATE
 INTO TABLE hlt_pref_comp
 FIELDS TERMINATED BY  "$"
 TRAILING NULLCOLS

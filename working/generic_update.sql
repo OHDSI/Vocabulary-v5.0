@@ -66,7 +66,6 @@ END = 1
 COMMIT;
 
 -- 3. add new concepts from concept_stage
-
 DECLARE
  ex NUMBER;
 BEGIN
@@ -136,7 +135,25 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 						  AND i.relationship_id = 'Maps to');
 COMMIT;
 
---5 Make sure all records are symmetrical and turn if necessary
+--5 Deleting records according to rules
+DELETE FROM concept_relationship_stage
+      WHERE     ROWID NOT IN (SELECT r.ROWID
+                                FROM concept_relationship_stage r,
+                                     concept_stage c1,
+                                     concept_stage c2
+                               WHERE     r.concept_code_1 = c1.concept_code
+                                     AND r.vocabulary_id_1 = c1.vocabulary_id
+                                     AND r.concept_code_2 = c2.concept_code
+                                     AND r.vocabulary_id_2 = c2.vocabulary_id
+                                     AND NVL (c1.standard_concept, 'X') <>
+                                            'C'
+                                     AND c2.standard_concept = 'S'
+                                     AND c2.invalid_reason IS NULL)
+            AND relationship_id = 'Maps to'
+            AND invalid_reason IS NULL;
+COMMIT;			
+
+--6 Make sure all records are symmetrical and turn if necessary
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -166,7 +183,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;		
 
--- 6. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
+-- 7. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
 MERGE INTO concept_relationship d
     USING (
         with rel_id as (
@@ -186,7 +203,7 @@ WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reas
 
 COMMIT; 
 
--- 7. Deprecate missing relationships, but only if the concepts exist. If relationships are missing because of deprecated concepts, leave them intact.
+-- 8. Deprecate missing relationships, but only if the concepts exist. If relationships are missing because of deprecated concepts, leave them intact.
 -- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 AND relationship_id is present in concept_relationship_stage
 CREATE TABLE r_coverage NOLOGGING AS
 SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id as combo
@@ -257,7 +274,7 @@ COMMIT;
 
 DROP TABLE r_coverage PURGE;
 
--- 8. INSERT new relationships
+-- 9. INSERT new relationships
 ALTER TABLE concept_relationship NOLOGGING;
 
 INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
@@ -289,7 +306,7 @@ COMMIT;
 
 ALTER TABLE concept_relationship LOGGING;
 
--- 9. UPDATE invalid_reason
+-- 10. UPDATE invalid_reason
 UPDATE concept SET invalid_reason=NULL WHERE valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NOT NULL;
 COMMIT;
 
@@ -331,7 +348,7 @@ AND NOT EXISTS (
 );
 COMMIT;
  
--- 10. UPDATE concept_synonym
+-- 11. UPDATE concept_synonym
 --remove all existing synonyms, except old ones
 DELETE FROM concept_synonym csyn
       WHERE csyn.concept_id IN (SELECT c.concept_id

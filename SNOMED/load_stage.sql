@@ -792,7 +792,7 @@ COMMIT;
 -- 13.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 -- The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
--- This could go wrong if a parallel fork happens
+-- This could cause trouble if a parallel fork happens at the same height
 UPDATE peak p
    SET p.ranked =
           (SELECT rnk
@@ -1023,34 +1023,34 @@ WHERE concept_code IN ('21594007', '17621005', '263654008')
 -- Fix navigational concepts
 UPDATE concept_stage
   SET domain_id = CASE concept_class_id
-                  WHEN 'Admin Concept' THEN 'Note Type'
-                  WHEN 'Attribute' THEN 'Observation'
-                  WHEN 'Body Structure' THEN 'Spec Anatomic Site'
-                  WHEN 'Clinical Finding' THEN 'Condition'
-                  WHEN 'Context-dependent' THEN 'Observation'
-                  WHEN 'Event' THEN 'Observation'
-                  WHEN 'Inactive Concept' THEN 'Metadata'
-                  WHEN 'Linkage Assertion' THEN 'Observation'
-                  WHEN 'Location' THEN 'Observation'
-                  WHEN 'Model Comp' THEN 'Metadata'
-                  WHEN 'Morph Abnormality' THEN 'Observation'
-                  WHEN 'Namespace Concept' THEN 'Metadata'
-                  WHEN 'Navi Concept' THEN 'Metadata'
-                  WHEN 'Observable Entity' THEN 'Observation'
-                  WHEN 'Organism' THEN 'Observation'
-                  WHEN 'Pharma/Biol Product' THEN 'Drug'
-                  WHEN 'Physical Force' THEN 'Observation'
-                  WHEN 'Physical Object' THEN 'Device'
-                  WHEN 'Procedure' THEN 'Procedure'
-                  WHEN 'Qualifier Value' THEN 'Observation'
-                  WHEN 'Record Artifact' THEN 'Note Type'
-                  WHEN 'Social Context' THEN 'Observation'
-                  WHEN 'Special Concept' THEN 'Metadata'
-                  WHEN 'Specimen' THEN 'Specimen'
-                  WHEN 'Staging / Scales' THEN 'Observation'
-                  WHEN 'Substance' THEN 'Observation'
-                  ELSE 'Observation'
-                END
+                    WHEN 'Admin Concept' THEN 'Note Type'
+                    WHEN 'Attribute' THEN 'Observation'
+                    WHEN 'Body Structure' THEN 'Spec Anatomic Site'
+                    WHEN 'Clinical Finding' THEN 'Condition'
+                    WHEN 'Context-dependent' THEN 'Observation'
+                    WHEN 'Event' THEN 'Observation'
+                    WHEN 'Inactive Concept' THEN 'Metadata'
+                    WHEN 'Linkage Assertion' THEN 'Observation'
+                    WHEN 'Location' THEN 'Observation'
+                    WHEN 'Model Comp' THEN 'Metadata'
+                    WHEN 'Morph Abnormality' THEN 'Observation'
+                    WHEN 'Namespace Concept' THEN 'Metadata'
+                    WHEN 'Navi Concept' THEN 'Metadata'
+                    WHEN 'Observable Entity' THEN 'Observation'
+                    WHEN 'Organism' THEN 'Observation'
+                    WHEN 'Pharma/Biol Product' THEN 'Drug'
+                    WHEN 'Physical Force' THEN 'Observation'
+                    WHEN 'Physical Object' THEN 'Device'
+                    WHEN 'Procedure' THEN 'Procedure'
+                    WHEN 'Qualifier Value' THEN 'Observation'
+                    WHEN 'Record Artifact' THEN 'Note Type'
+                    WHEN 'Social Context' THEN 'Observation'
+                    WHEN 'Special Concept' THEN 'Metadata'
+                    WHEN 'Specimen' THEN 'Specimen'
+                    WHEN 'Staging / Scales' THEN 'Observation'
+                    WHEN 'Substance' THEN 'Observation'
+                    ELSE 'Observation'
+                  END
   WHERE vocabulary_id = 'SNOMED'
     AND concept_code in (
       SELECT descendant_concept_code from snomed_ancestor where ancestor_concept_code='363743006' -- Navigational Concept, contains all sorts of orphan codes
@@ -1066,8 +1066,8 @@ UPDATE concept_stage
              WHEN 'Drug' THEN NULL                         -- Drugs are RxNorm
              WHEN 'Metadata' THEN NULL                      -- Not used in CDM
              WHEN 'Race' THEN NULL                             -- Race are CDC
-             WHEN 'Provider Specialty' THEN NULL
-             WHEN 'Place of Service' THEN NULL
+             WHEN 'Provider Specialty' THEN NULL -- got CMS and ABMS specialty
+             WHEN 'Place of Service' THEN NULL     -- got own place of service
              WHEN 'Note Type' THEN NULL   -- Note types in own OMOP vocabulary
              WHEN 'Unit' THEN NULL                           -- Units are UCUM
              ELSE 'S'

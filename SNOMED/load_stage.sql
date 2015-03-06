@@ -67,7 +67,7 @@ INSERT  /*+ APPEND */  INTO concept_stage (concept_name,
                                 'SB', 8,
                                 10            -- default for the obsolete ones
                               )) as concept_name
-             FROM UMLS.mrconso
+             FROM umls.mrconso
             WHERE sab = 'SNOMEDCT_US'
               AND tty in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
         ) umls
@@ -155,20 +155,9 @@ AS
                              ELSE
                                 SUBSTR (
                                    term,
-                                     REGEXP_INSTR (term,
-                                                   '\(',
-                                                   1,
-                                                   REGEXP_COUNT (term, '\('))
-                                   + 1,
-                                     REGEXP_INSTR (term,
-                                                   '\)',
-                                                   1,
-                                                   REGEXP_COUNT (term, '\)'))
-                                   - REGEXP_INSTR (term,
-                                                   '\(',
-                                                   1,
-                                                   REGEXP_COUNT (term, '\('))
-                                   - 1)
+                                   REGEXP_INSTR (term, '\(', 1, REGEXP_COUNT (term, '\(')) + 1,
+                                   REGEXP_INSTR (term, '\)', 1, REGEXP_COUNT (term, '\)')) - REGEXP_INSTR (term, '\(', 1, REGEXP_COUNT (term, '\(')) - 1
+                                )
                           END
                              AS f7,
                           rna AS rnb    -- row number in sct2_desc_full_merged
@@ -186,8 +175,7 @@ AS
                                                                         )
                                      rna -- row number in sct2_desc_full_merged
                              FROM concept_stage c
-                                  JOIN sct2_desc_full_merged d
-                                     ON d.conceptid = c.concept_code
+                             JOIN sct2_desc_full_merged d ON d.conceptid = c.concept_code
 									 where c.vocabulary_id='SNOMED')))
     WHERE rnc = 1;	
 	
@@ -306,7 +294,7 @@ WITH tmp_rel AS (   -- get relationships from latest records that are active
              AND active = 1
              AND sourceid IS NOT NULL
              AND destinationid IS NOT NULL
-             AND term<>'PBCL flag true'
+             AND term <> 'PBCL flag true'
 )
  --convert SNOMED to OMOP-type relationship_id   
  SELECT DISTINCT
@@ -438,152 +426,13 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                900000000000527005,
                                900000000000530003))
     WHERE rn = 1 AND active = 1;
-COMMIT;
 
--- 9. Create mapping to self for fresh concepts
-INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-	SELECT concept_code AS concept_code_1,
-		   concept_code AS concept_code_2,
-		   c.vocabulary_id AS vocabulary_id_1,
-		   c.vocabulary_id AS vocabulary_id_2,
-		   'Maps to' AS relationship_id,
-		   v.latest_update AS valid_start_date,
-		   TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
-		   NULL AS invalid_reason
-	  FROM concept_stage c, vocabulary v
-	 WHERE     c.vocabulary_id = v.vocabulary_id
-		   AND c.standard_concept = 'S'
-		   AND NOT EXISTS
-				  (SELECT 1
-					 FROM concept_relationship_stage i
-					WHERE     c.concept_code = i.concept_code_1
-						  AND c.concept_code = i.concept_code_2
-						  AND c.vocabulary_id = i.vocabulary_id_1
-						  AND c.vocabulary_id = i.vocabulary_id_2
-						  AND i.relationship_id = 'Maps to');
-COMMIT;
-
--- 10. Add mapping from deprecated to fresh concepts
-ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
-
-INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-    SELECT 
-      root,
-      concept_code_2,
-      root_vocabulary_id,
-      vocabulary_id_2,
-      'Maps to',
-      (SELECT latest_update FROM vocabulary WHERE vocabulary_id=root_vocabulary_id),
-      TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-      NULL
-    FROM 
-    (
-        SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2 FROM (
-          SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2, dt,  ROW_NUMBER() OVER (PARTITION BY root_vocabulary_id, root ORDER BY dt DESC) rn
-            FROM (
-                SELECT 
-                      concept_code_2, 
-                      vocabulary_id_2,
-                      valid_start_date AS dt,
-                      CONNECT_BY_ROOT concept_code_1 AS root,
-                      CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id,
-                      CONNECT_BY_ISLEAF AS lf
-                FROM concept_relationship_stage
-                WHERE relationship_id IN ( 'Concept replaced by',
-                                               'Concept same_as to',
-                                               'Concept alt_to to',
-                                               'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
-                                             )
-                      and NVL(invalid_reason, 'X') <> 'D'
-                CONNECT BY  
-                NOCYCLE  
-                PRIOR concept_code_2 = concept_code_1
-                      AND relationship_id IN ( 'Concept replaced by',
-                                               'Concept same_as to',
-                                               'Concept alt_to to',
-                                               'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
-                                             )
-                       AND vocabulary_id_2=vocabulary_id_1                     
-                       AND NVL(invalid_reason, 'X') <> 'D'
-                                   
-                START WITH relationship_id IN ('Concept replaced by',
-                                               'Concept same_as to',
-                                               'Concept alt_to to',
-                                               'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
-                                              )
-                      AND NVL(invalid_reason, 'X') <> 'D'
-          ) sou 
-          WHERE lf = 1
-        ) 
-        WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
-    (select 1 from concept_relationship_stage r where
-        int_rel.root=r.concept_code_1
-        and int_rel.concept_code_2=r.concept_code_2
-        and int_rel.root_vocabulary_id=r.vocabulary_id_1
-        and int_rel.vocabulary_id_2=r.vocabulary_id_2
-        and r.relationship_id='Maps to'
-    );
-COMMIT;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
--- 11. Make sure all records are symmetrical and turn if necessary
-INSERT  /*+ APPEND */  INTO concept_relationship_stage (
-  concept_code_1,
-  concept_code_2,
-  vocabulary_id_1,
-  vocabulary_id_2,
-  relationship_id,
-  valid_start_date,
-  valid_end_date,
-  invalid_reason
-)
-   SELECT crs.concept_code_2,
-          crs.concept_code_1,
-          crs.vocabulary_id_2,
-          crs.vocabulary_id_1,
-          r.reverse_relationship_id ,
-          crs.valid_start_date,
-          crs.valid_end_date,
-          crs.invalid_reason
-     FROM concept_relationship_stage crs
-          JOIN relationship r ON r.relationship_id = crs.relationship_id
-    WHERE NOT EXISTS
-             (                                           -- the inverse record
-              SELECT 1
-                FROM concept_relationship_stage i
-                WHERE crs.concept_code_1 = i.concept_code_2
-                  AND crs.concept_code_2 = i.concept_code_1
-    					 AND crs.vocabulary_id_1=i.vocabulary_id_2
-               AND crs.vocabulary_id_2=i.vocabulary_id_1
-               AND r.reverse_relationship_id = i.relationship_id
-    )
-;
 COMMIT;
 
--- 12. start building the hierarchy (snomed-only)
+-- 12. start building the hierarchy for progagating domain_ids from toop to bottom
 DECLARE
    vCnt          INTEGER;
    vCnt_old      INTEGER;
@@ -646,13 +495,13 @@ BEGIN
    EXECUTE IMMEDIATE
       'create table snomed_ancestor_calc NOLOGGING as
     select 
-      r.concept_code_1 as ancestor_concept_code,
-      r.concept_code_2 as descendant_concept_code,
-      case when s.is_hierarchical=1 then 1 else 0 end as min_levels_of_separation,
-      case when s.is_hierarchical=1 then 1 else 0 end as max_levels_of_separation
-    from concept_relationship_stage r 
-    join relationship s on s.relationship_id=r.relationship_id and s.defines_ancestry=1
-    and r.vocabulary_id_1=''SNOMED''';
+      concept_code_2 as ancestor_concept_code,
+      concept_code_1 as descendant_concept_code,
+      1 as min_levels_of_separation,
+      1 as max_levels_of_separation
+    from concept_relationship_stage 
+    where relationship_id = ''Is a'' -- usually subsumes is used for ancestry construction, but it has not been created from Is a
+    and vocabulary_id_1 = ''SNOMED''';
 
    /********** Repeat till no new records are written *********/
    FOR i IN 1 .. 100

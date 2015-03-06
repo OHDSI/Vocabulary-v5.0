@@ -1173,6 +1173,434 @@ and exists (
 )
 ;
 
+-- de-standardize the deprecated MedDRA concepts
+update concept set
+  standard_concept = null
+where concept_name = 'MedDRA LLT duplicate of PT Concept, do not use, use PT Concept indicatd by the CONCEPT_RELATIONSHIP table instead'
+;
+
+-- Addition of 4-digit nonbilling V code. 
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '4-digit non-billing V code', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('4-dig nonbill V code', '4-digit non-billing V code', (select concept_id from concept where concept_name = '4-digit non-billing V code'));
+
+-- Deprecate all concept_relationship records of relationship_id = 'Maps to' which violate the following rules:
+-- - concept in concept_id_1 != 'C'
+-- - concept in concept_id_2 has not standard_concept = 'S' (has 'C' or null instead)
+-- - concept in concept_id_2 has invalid_reason is null
+
+update concept_relationship set 
+  valid_end_date = '1-Mar-2015',
+  invalid_reason='D'
+where relationship_id = 'Maps to'
+and invalid_reason is null
+and concept_id_1 in (
+    select concept_id from v5dev.concept
+    where standard_concept = 'C'
+);
+
+update concept_relationship set 
+  valid_end_date = '1-Mar-2015',
+  invalid_reason='D'
+where relationship_id = 'Mapped from'
+and invalid_reason is null
+and concept_id_2 in (
+    select concept_id from v5dev.concept
+    where standard_concept = 'C'
+);
+
+update concept_relationship set 
+  valid_end_date = '1-Mar-2015',
+  invalid_reason='D'
+where relationship_id = 'Maps to'
+and invalid_reason is null
+and concept_id_2 in (
+    select concept_id from v5dev.concept
+    where nvl(standard_concept, 'X') <> 'S'
+);
+
+update concept_relationship set 
+  valid_end_date = '1-Mar-2015',
+  invalid_reason='D'
+where relationship_id = 'Mapped from'
+and invalid_reason is null
+and concept_id_1 in (
+    select concept_id from v5dev.concept
+    where nvl(standard_concept, 'X') <> 'S'
+);
+
+update concept_relationship set 
+  valid_end_date = '1-Mar-2015',
+  invalid_reason='D'
+where relationship_id = 'Maps to'
+and invalid_reason is null
+and concept_id_2 in (
+    select concept_id from v5dev.concept
+    where invalid_reason is not null
+);
+
+update concept_relationship set 
+  valid_end_date = '1-Mar-2015',
+  invalid_reason='D'
+where relationship_id = 'Mapped from'
+and invalid_reason is null
+and concept_id_1 in (
+    select concept_id from v5dev.concept
+    where invalid_reason is not null
+);
+
+-- Add ABMS specialties
+-- Add the new vocabulary ABMS
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Provider Specialty (American Board of Medical Specialties)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);	
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id)
+values ('ABMS', 'Provider Specialty (American Board of Medical Specialties)', 'http://www.abms.org/member-boards/specialty-subspecialty-certificates', '', (select concept_id from concept where concept_name = 'Provider Specialty (American Board of Medical Specialties)'));
+
+-- ABMS specialty concepts
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Adolescent Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Adult Congenital Heart Disease', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Advanced Heart Failure and Transplant Cardiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Aerospace Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Anesthesiology Critical Care Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Blood Banking/Transfusion Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Brain Injury Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Cardiovascular Disease', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Child Abuse Pediatrics', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Child and Adolescent Psychiatry', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Clinical Biochemical Genetics', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Clinical Cardiac Electrophysiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Clinical Cytogenetics', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Clinical Genetics (MD)', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Clinical Informatics', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Clinical Molecular Genetics', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Clinical Neurophysiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Complex General Surgical Oncology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Congenital Cardiac Surgery', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Cytopathology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Dermatopathology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Developmental-Behavioral Pediatrics', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Diagnostic Radiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Emergency Medical Services', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Endocrinology, Diabetes and Metabolism', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Epilepsy', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Female Pelvic Medicine and Reconstructive Surgery', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Female Pelvic Medicine and Reconstructive Surgery', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Forensic Psychiatry', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Geriatric Psychiatry', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Hospice and Pallative Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Internal Medicine - Critical Care Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Interventional Cardiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Maternal and Fetal Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Medical Biochemical Genetics', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Medical Genetics and Genomics', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Medical Physics', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Medical Toxicology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Molecular Genetic Pathology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Neonatal-Perinatal Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Neurodevelopmental Disabilities', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Neurology with Special Qualification in Child Neurology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Neuromuscular Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Neuropathology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Neuroradiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Neurotology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Nuclear Radiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Orthopaedic Sports Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pathology - Anatomic', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pathology - Chemical', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pathology - Clinical', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pathology - Forensic', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pathology - Hematology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pathology - Medical Microbiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pathology - Molecular Genetic', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pathology - Pediatric', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pathology-Anatomic/Pathology-Clinical', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Anesthesiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Cardiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Critical Care Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Dermatology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Emergency Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Endocrinology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Gastroenterology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Hematology-Oncology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Infectious Diseases', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Nephrology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Otolaryngology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Pulmonology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Radiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Rehabilitation Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Rheumatology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Surgery', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Transplant Hepatology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Pediatric Urology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Plastic Surgery Within the Head and Neck', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Psychosomatic Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Public Health and General Preventive Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Radiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Reproductive Endocrinology/Infertility', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Sleep Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Sports Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Surgical Critical Care', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Thoracic and Cardiac Surgery', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Transplant Hepatology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Undersea and Hyperbaric Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Vascular and Interventional Radiology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Vascular Neurology', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+
+-- Add various type concepts 
+-- Condition Types
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim header - 1st position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim header - 2nd position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim header - 3rd position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim header - 4th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim header - 5th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim header - 6th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim header - 7th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim header - 8th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 1st position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 2nd position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 3rd position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 4th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 5th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 6th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 7th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 8th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 9th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 10th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 11th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 12th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 13th position', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+-- Procedure Types
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail – 2nd position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail – 3rd position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 4th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 5th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 6th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 7th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 8th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 9th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 10th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 11th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 12th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 13th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 14th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 15th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 16th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 17th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 18th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 19th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 20th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 21th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 22th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 23th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 24th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 25th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 26th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 27th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 28th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 29th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 30th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 31th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 32th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 33th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 34th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 35th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 36th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 37th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 38th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 39th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 40th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 41th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 42th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 43th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 44th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Outpatient detail - 45th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 1st position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 2nd position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 3rd position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 4th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 5th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 6th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 7th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 8th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 9th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 10th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 11th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 12th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval,'Carrier claim detail - 13th position', 'Procedure Type', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+
+-- Add domain concepts 
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (56, 'Person', 'Metadata', 'Domain', 'Domain', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (57, 'Care site', 'Metadata', 'Domain', 'Domain', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+
 commit;
 
 -- Not done yet:

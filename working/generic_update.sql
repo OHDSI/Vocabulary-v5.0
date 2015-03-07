@@ -3,53 +3,42 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_stage', 
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_relationship_stage', estimate_percent => null, cascade => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_synonym_stage', estimate_percent => null, cascade => true);
 
--- 1. Update existing concept details from concept_stage. This is different for different vocabularies.
--- It assumes that if no new detail is available the corresponding fields are NULL.
--- Only the fields concept_name, domain_id, concept_class_id, standard_concept and valid_end_date are updated.
--- valid_start_date is set to the release date of the last update and should not overwrite the existing one
--- if the valid_start_date needs be updated, a separate script should be run
-UPDATE concept c
-SET (concept_name, domain_id,concept_class_id,standard_concept,valid_end_date) = (
+-- 1. Update existing concept details from concept_stage. 
+-- All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date and valid_end_date) are updated
+-- with the exception of vocabulary_id (already there), concept_id (already there) and invalid_reason (below).
+SET (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date) = (
   SELECT 
-    COALESCE(cs.concept_name, c.concept_name),
-    COALESCE(cs.domain_id, c.domain_id),
-    COALESCE(cs.concept_class_id, c.concept_class_id),
-    COALESCE(cs.standard_concept, c.standard_concept), 
-    COALESCE(cs.valid_end_date, c.valid_end_date)
-  FROM concept_stage cs
-  WHERE c.concept_id=cs.concept_id
+    cs.concept_name,
+    cs.domain_id,
+    cs.concept_class_id,
+    cs.standard_concept, 
+    CASE -- if we have a real date in concept_stage, use it. If it is only the release date, use the existing.
+      WHEN cs.valid_start_date = v.latest_update THEN c.valid_start_date
+      ELSE cs.valid_start_date
+    END,
+    cs.valid_end_date
+  FROM concept_stage cs, vocabulary v
+  WHERE c.concept_id=cs.concept_id -- concept exists in both, meaning, is not new. But information might be new
+  AND v.vocabulary_id=cs.vocabulary_id
+  -- invalid_reason is set below based on the valid_end_date
 )
 WHERE c.concept_id IN (SELECT concept_id FROM concept_stage)
--- The following contains the vocabularies or vocab subsets for which this functionality is desired
-AND CASE
-  WHEN c.vocabulary_id = 'SNOMED' THEN 1
-  WHEN c.vocabulary_id = 'LOINC' AND c.concept_class_id='LOINC Answers' THEN 1 -- LOINC answers are not full, but incremental
-  WHEN c.vocabulary_id = 'LOINC' THEN 0
-  WHEN c.vocabulary_id = 'ICD9CM' THEN 1
-  WHEN c.vocabulary_id = 'ICD9Proc' THEN 1
-  WHEN c.vocabulary_id = 'RxNorm' THEN 1
-  WHEN c.vocabulary_id = 'NDFRT' THEN 1
-  WHEN c.vocabulary_id = 'VA Product' THEN 1
-  WHEN c.vocabulary_id = 'VA Class' THEN 1
-  WHEN c.vocabulary_id = 'ATC' THEN 1
-  WHEN c.vocabulary_id = 'NDC' THEN 1
-  WHEN c.vocabulary_id = 'SPL' THEN 1
-  ELSE 0
-END = 1
 ;
 
 COMMIT;
 
--- 2. Deprecate concepts missing from concept_stage and are not already deprecated. This is only for full updates without explicit deprecations.
+-- 2. Deprecate concepts missing from concept_stage and are not already deprecated. 
+-- This only works for vocabularies where we expect a full set of active concepts in concept_stage.
+-- If the vocabulary only updates changed concepts, this should not be run, and the update information is already dealt with in step 1.
 UPDATE concept c SET
 c.valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id=c.vocabulary_id) -- set invalid_reason depending on the existence of replace relationship
 WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id=c.concept_id AND cs.vocabulary_id=c.vocabulary_id)
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL)
 AND c.invalid_reason IS NULL
-AND CASE
+AND CASE -- all vocabularies that give us a full list of active concepts at each release we can safely assume to deprecate missing ones (THEN 1)
   WHEN c.vocabulary_id = 'SNOMED' THEN 1
-  WHEN c.vocabulary_id = 'LOINC' AND c.concept_class_id='LOINC Answers' THEN 1 -- LOINC answers are NOT full, but incremental
-  WHEN c.vocabulary_id = 'LOINC' THEN 0
+  WHEN c.vocabulary_id = 'LOINC' AND c.concept_class_id='LOINC Answers' THEN 1 -- Only LOINC answers are full lists
+  WHEN c.vocabulary_id = 'LOINC' THEN 0 -- LOINC gives full account of all concepts
   WHEN c.vocabulary_id = 'ICD9CM' THEN 1
   WHEN c.vocabulary_id = 'ICD9Proc' THEN 1
   WHEN c.vocabulary_id = 'RxNorm' THEN 1
@@ -59,7 +48,11 @@ AND CASE
   WHEN c.vocabulary_id = 'ATC' THEN 1
   WHEN c.vocabulary_id = 'NDC' THEN 0
   WHEN c.vocabulary_id = 'SPL' THEN 0  
-  ELSE 0
+  WHEN c.vocabulary_id = 'MedDRA' THEN 1
+  WHEN c.vocabulary_id = 'CPT4' THEN 1
+  WHEN c.vocabulary_id = 'HCPCS' THEN 1
+  WHEN c.vocabulary_id = 'Read' THEN 1
+  ELSE 0 -- in default we will not deprecate
 END = 1
 ;
 
@@ -94,14 +87,14 @@ INSERT /*+ APPEND */ INTO concept (concept_id,
           cs.concept_class_id,
           cs.standard_concept,
           cs.concept_code,
-          COALESCE (cs.valid_start_date, TO_DATE ('01.01.1970', 'dd.mm.yyyy')),
-          COALESCE (cs.valid_end_date, TO_DATE ('31.12.2099', 'dd.mm.yyyy')),
+          cs.valid_start_date,
+          cs.valid_end_date,
           NULL
      FROM concept_stage cs
     WHERE cs.concept_id IS NULL;
 
 DROP SEQUENCE v5_concept;
-
+  
 COMMIT;
 
 --4 Create mapping to self for fresh concepts
@@ -205,6 +198,9 @@ COMMIT;
 
 -- 8. Deprecate missing relationships, but only if the concepts exist. If relationships are missing because of deprecated concepts, leave them intact.
 -- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 AND relationship_id is present in concept_relationship_stage
+-- The latter will prevent large-scale deprecations of relationships between vocabularies where the relationship is defined not here, but together with that other vocab
+
+-- create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage
 CREATE TABLE r_coverage NOLOGGING AS
 SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id as combo
        FROM concept_relationship_stage r
@@ -212,6 +208,7 @@ SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id 
        JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
 ;
 
+-- deprecate 
 UPDATE concept_relationship d
    SET valid_end_date =
             (SELECT v.latest_update

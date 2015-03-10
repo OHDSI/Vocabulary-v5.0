@@ -1,7 +1,7 @@
 -- GATHER_TABLE_STATS
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname = > USER, tabname  = > 'concept_stage', estimate_percent  = > null, cascade  = > true);
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname = > USER, tabname  = > 'concept_relationship_stage', estimate_percent  = > null, cascade  = > true);
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname = > USER, tabname  = > 'concept_synonym_stage', estimate_percent  = > null, cascade  = > true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);
 
 /***************************
 * Update the concept table *
@@ -110,13 +110,14 @@ UPDATE concept c SET
 WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 ;
+COMMIT;
 
 /****************************************
 * Update the concept_relationship table *
 ****************************************/
 
 -- 5. Turn all relationship records so they are symmetrical if necessary
-INSERT INTO concept_relationship_stage (concept_code_1,
+INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -385,56 +386,55 @@ COMMIT;
 -- b) the target concept has standard_concept = 'C' or NULL
 
 UPDATE concept_relationship d
-   SET d.valid_end_date  = 
+   SET d.valid_end_date =
             (SELECT v.latest_update
-                 FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+               FROM concept c
+                    JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
               WHERE c.concept_id = d.concept_id_1)
           - 1,                                       -- day before release day
        d.invalid_reason = 'D'
-      WHERE  d.ROWID IN (SELECT r.ROWID
-                                FROM concept_relationship_stage r,
-                                     concept_stage c1,
-                                     concept_stage c2,
-                                     vocabulary v
-                               WHERE     r.concept_id_1 = c1.concept_id
-                                     AND r.concept_id_2 = c2.concept_id
-                                     AND (
-                                        c1.standard_concept = 'S' AND c1.concept_id != c2.concept_id -- rule a)
-                                        OR COALESCE(c2.standard_concept, 'X') != 'S' -- rule b)
-                                     )
-                                AND v.latest_update IS NOT NULL -- only the current vocabularies
-                                AND r.relationship_id = 'Maps to'
-                          )
-            AND d.relationship_id = 'Maps to'
-            AND d.invalid_reason IS NULL
-;
+ WHERE d.ROWID IN (SELECT r.ROWID
+                     FROM concept_relationship r,
+                          concept c1,
+                          concept c2,
+                          vocabulary v
+                    WHERE     r.concept_id_1 = c1.concept_id
+                          AND r.concept_id_2 = c2.concept_id
+                          AND (       c1.standard_concept = 'S'
+                                  AND c1.concept_id != c2.concept_id -- rule a)
+                               OR COALESCE (c2.standard_concept, 'X') != 'S' -- rule b)
+                                                                            )
+                          AND c1.vocabulary_id = v.vocabulary_id
+                          AND v.latest_update IS NOT NULL -- only the current vocabularies
+                          AND r.relationship_id = 'Maps to'
+                          AND r.invalid_reason IS NULL);
+COMMIT;
 
 -- And reverse
 
 UPDATE concept_relationship d
-   SET d.valid_end_date  = 
+   SET d.valid_end_date =
             (SELECT v.latest_update
-                 FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+               FROM concept c
+                    JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
               WHERE c.concept_id = d.concept_id_1)
           - 1,                                       -- day before release day
        d.invalid_reason = 'D'
-      WHERE  d.ROWID IN (SELECT r.ROWID
-                                FROM concept_relationship_stage r,
-                                     concept_stage c1,
-                                     concept_stage c2,
-                                     vocabulary v
-                               WHERE     r.concept_id_1 = c1.concept_id
-                                     AND r.concept_id_2 = c2.concept_id
-                                     AND (
-                                        c2.standard_concept = 'S' AND c1.concept_id != c2.concept_id -- rule a)
-                                        OR COALESCE(c1.standard_concept, 'X') != 'S' -- rule b)
-                                     )
-                                AND v.latest_update IS NOT NULL -- only the current vocabularies
-                                AND r.relationship_id = 'Mapped from'
-                          )
-            AND d.relationship_id = 'Mapped from'
-            AND d.invalid_reason IS NULL
-;
+ WHERE d.ROWID IN (SELECT r.ROWID
+                     FROM concept_relationship r,
+                          concept c1,
+                          concept c2,
+                          vocabulary v
+                    WHERE     r.concept_id_1 = c1.concept_id
+                          AND r.concept_id_2 = c2.concept_id
+                          AND (       c2.standard_concept = 'S'
+                                  AND c1.concept_id != c2.concept_id -- rule a)
+                               OR COALESCE (c1.standard_concept, 'X') != 'S' -- rule b)
+                                                                            )
+                          AND c2.vocabulary_id = v.vocabulary_id
+                          AND v.latest_update IS NOT NULL -- only the current vocabularies
+                          AND r.relationship_id = 'Mapped from'
+                          AND r.invalid_reason IS NULL);
 
 COMMIT;
 

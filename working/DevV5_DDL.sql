@@ -37,7 +37,7 @@ CREATE TABLE drug_strength (
 CREATE TABLE concept_stage
 (
    concept_id         NUMBER,
-   concept_name       VARCHAR2 (256),
+   concept_name       VARCHAR2 (255),
    domain_id          VARCHAR (200),
    vocabulary_id      VARCHAR (20) NOT NULL,
    concept_class_id   VARCHAR (20),

@@ -1601,6 +1601,471 @@ values (56, 'Person', 'Metadata', 'Domain', 'Domain', null, 'OMOP generated', '1
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (57, 'Care site', 'Metadata', 'Domain', 'Domain', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 
+-- Add SNOMED UK units
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'component', 'Unit', 'SNOMED', 'Qualifier Value', null, '10368211000001101', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mega u/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '10368511000001103', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'g/dose', 'Unit', 'SNOMED', 'Qualifier Value', null, '10691711000001108', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mg/dose', 'Unit', 'SNOMED', 'Qualifier Value', null, '10691811000001100', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microgram/dose', 'Unit', 'SNOMED', 'Qualifier Value', null, '10691911000001105', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit/dose', 'Unit', 'SNOMED', 'Qualifier Value', null, '10692011000001103', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'application', 'Unit', 'SNOMED', 'Qualifier Value', null, '10692211000001108', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'g/application', 'Unit', 'SNOMED', 'Qualifier Value', null, '10692311000001100', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mg/application', 'Unit', 'SNOMED', 'Qualifier Value', null, '10692411000001107', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'tuberculin units/ML', 'Unit', 'SNOMED', 'Qualifier Value', null, '10692511000001106', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'cigarette', 'Unit', 'SNOMED', 'Qualifier Value', null, '10692611000001105', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'gram/gram', 'Unit', 'SNOMED', 'Qualifier Value', null, '10692711000001101', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'month supply', 'Unit', 'SNOMED', 'Qualifier Value', null, '10692811000001109', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'week supply', 'Unit', 'SNOMED', 'Qualifier Value', null, '10692911000001104', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'SQ-T', 'Unit', 'SNOMED', 'Qualifier Value', null, '10693011000001107', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'HEP', 'Unit', 'SNOMED', 'Qualifier Value', null, '10693111000001108', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Cell', 'Unit', 'SNOMED', 'Qualifier Value', null, '10693211000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'cell/microliter', 'Unit', 'SNOMED', 'Qualifier Value', null, '10693311000001105', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'insert', 'Unit', 'SNOMED', 'Qualifier Value', null, '10693411000001103', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'film', 'Unit', 'SNOMED', 'Qualifier Value', null, '10693511000001104', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'drop', 'Unit', 'SNOMED', 'Qualifier Value', null, '10693611000001100', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit/drop', 'Unit', 'SNOMED', 'Qualifier Value', null, '10693711000001109', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'no value', 'Unit', 'SNOMED', 'Qualifier Value', null, '3314211000001106', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '%w/w', 'Unit', 'SNOMED', 'Qualifier Value', null, '3314511000001109', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '%v/w', 'Unit', 'SNOMED', 'Qualifier Value', null, '3314611000001108', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ml/l', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315911000001103', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'molar', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316111000001107', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'obsolete-mM', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316211000001101', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mmol/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316311000001109', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316411000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'baguette', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316811000001100', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'carton', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317011000001109', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'cartridge', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317111000001105', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'cycle', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317211000001104', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'cylinder', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317311000001107', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'dose', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317411000001100', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'lancet', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317611000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'loaf', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317711000001106', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'multipack', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317911000001108', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'nebule', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318011000001105', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'needle', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318111000001106', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'pack', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318211000001100', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'pastille', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318311000001108', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'pessary', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318511000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'pre-filled disposable injection', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318611000001103', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'device', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318711000001107', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'roll', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318811000001104', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'sachet', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318911000001109', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'stocking', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319011000001100', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'strip', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319111000001104', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'syringe', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319311000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit dose', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319711000001103', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'catheter', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319911000001101', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'dressing', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320111000001103', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'suture', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320311000001101', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'truss', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320411000001108', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'plaster', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320711000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'applicator', 'Unit', 'SNOMED', 'Qualifier Value', null, '3321011000001108', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'pot', 'Unit', 'SNOMED', 'Qualifier Value', null, '3321111000001109', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'pizza base', 'Unit', 'SNOMED', 'Qualifier Value', null, '3321311000001106', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'piece', 'Unit', 'SNOMED', 'Qualifier Value', null, '3321411000001104', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'glove', 'Unit', 'SNOMED', 'Qualifier Value', null, '3321511000001100', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'pillule', 'Unit', 'SNOMED', 'Qualifier Value', null, '4027311000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'actuation', 'Unit', 'SNOMED', 'Qualifier Value', null, '4034511000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'spoonful', 'Unit', 'SNOMED', 'Qualifier Value', null, '4034811000001104', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'enema', 'Unit', 'SNOMED', 'Qualifier Value', null, '700476008', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mg/square cm', 'Unit', 'SNOMED', 'Qualifier Value', null, '8083511000001107', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'container', 'Unit', 'SNOMED', 'Qualifier Value', null, '8084111000001101', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microliter/g', 'Unit', 'SNOMED', 'Qualifier Value', null, '8088511000001103', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'larva', 'Unit', 'SNOMED', 'Qualifier Value', null, '8090511000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'kBq/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '8090811000001104', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'generator', 'Unit', 'SNOMED', 'Qualifier Value', null, '8091011000001101', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'system', 'Unit', 'SNOMED', 'Qualifier Value', null, '8091311000001103', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'bandage', 'Unit', 'SNOMED', 'Qualifier Value', null, '8091811000001107', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'straw', 'Unit', 'SNOMED', 'Qualifier Value', null, '8091911000001102', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '%v/v', 'Unit', 'SNOMED', 'Qualifier Value', null, '3314311000001103', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, '%w/v', 'Unit', 'SNOMED', 'Qualifier Value', null, '3314411000001105', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'g/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '3314711000001104', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'iu/g', 'Unit', 'SNOMED', 'Qualifier Value', null, '3314811000001107', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'iu/mg', 'Unit', 'SNOMED', 'Qualifier Value', null, '3314911000001102', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'kg/l', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315011000001102', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mega u', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315111000001101', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mg/16 hours', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315211000001107', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mg/72 hours', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315311000001104', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mg/g', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315411000001106', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mg/kg', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315511000001105', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mg/mg', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315611000001109', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microgram/72 hours', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315711000001100', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ml/kg', 'Unit', 'SNOMED', 'Qualifier Value', null, '3315811000001108', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ml/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316011000001106', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit/gram', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316511000001103', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit/mg', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316611000001104', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ampoule', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316711000001108', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'capsule', 'Unit', 'SNOMED', 'Qualifier Value', null, '3316911000001105', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'enema', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317511000001101', '01-Jan-1970', '30-Sep-2014', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'lozenge', 'Unit', 'SNOMED', 'Qualifier Value', null, '3317811000001103', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'patch', 'Unit', 'SNOMED', 'Qualifier Value', null, '3318411000001101', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'suppository', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319211000001105', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'tablet', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319411000001109', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'tube', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319511000001108', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'vial', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319611000001107', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microgram/actuation', 'Unit', 'SNOMED', 'Qualifier Value', null, '3319811000001106', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mg/actuation', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320011000001104', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'swab', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320211000001109', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'bag', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320511000001107', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'bottle', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320611000001106', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'disc', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320811000001105', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'blister', 'Unit', 'SNOMED', 'Qualifier Value', null, '3320911000001100', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'bar', 'Unit', 'SNOMED', 'Qualifier Value', null, '3321211000001103', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'dual dose sachet', 'Unit', 'SNOMED', 'Qualifier Value', null, '3314111000001100', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'g/actuation', 'Unit', 'SNOMED', 'Qualifier Value', null, '3989311000001105', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit/actuation', 'Unit', 'SNOMED', 'Qualifier Value', null, '3989211000001102', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'micrograms/square cm', 'Unit', 'SNOMED', 'Qualifier Value', null, '3990011000001103', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'kit', 'Unit', 'SNOMED', 'Qualifier Value', null, '4027211000001105', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'component', 'Unit', 'SNOMED', 'Qualifier Value', null, '10204911000001107', '01-Jan-1970', '05-Jun-2006', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'micromol/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '8082911000001107', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microliter/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '8083011000001104', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'nanoliter/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '8083111000001103', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit/square cm', 'Unit', 'SNOMED', 'Qualifier Value', null, '8083611000001106', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'can', 'Unit', 'SNOMED', 'Qualifier Value', null, '8083911000001100', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ml/gram', 'Unit', 'SNOMED', 'Qualifier Value', null, '8088611000001104', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'GBq', 'Unit', 'SNOMED', 'Qualifier Value', null, '8090611000001103', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'GBq/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '8090711000001107', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'MBq/ml', 'Unit', 'SNOMED', 'Qualifier Value', null, '8090911000001109', '01-Jan-1970', '31-Oct-2008', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'mol/l', 'Unit', 'SNOMED', 'Qualifier Value', null, '10368311000001109', '01-Jan-1970', '30-Sep-2007', 'U');
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'cup', 'Unit', 'SNOMED', 'Qualifier Value', null, '11005411000001103', '01-Jan-1970', '31-Oct-2008', 'U');
+
+-- Add update relationship for deprecated ones
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (45756913, 45757027, 'SNOMED replaces', '06-JUN-06', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4124446, 45757037, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4084455, 45756989, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4084456, 45756988, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4245255, 45756998, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4244976, 45756990, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4288408, 45757001, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4255054, 45757014, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4255055, 45757015, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4255056, 45757024, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246815, 45757023, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4235089, 45756993, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4235090, 45756991, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246828, 45756992, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246829, 45756994, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4252057, 45756995, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4252058, 45756996, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246830, 45756997, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246831, 45756999, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246832, 45757000, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4186050, 45757005, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4186261, 45757028, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4188673, 45757003, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4218803, 45757013, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4166715, 45757030, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4170093, 45757025, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4303660, 45757035, 'SNOMED replaces', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4169284, 45757029, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4305388, 45757012, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4304416, 45757004, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4306003, 45757034, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4167221, 45757036, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4167886, 45757026, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4302500, 45757002, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4305548, 45757018, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4304572, 45757031, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4306671, 45757009, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4168344, 45757033, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4224069, 45757016, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4137363, 45757020, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4144440, 45757022, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4142114, 45757019, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4323501, 45757021, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4176018, 45757038, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4176621, 45757006, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4181295, 45757017, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4178323, 45757011, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4180120, 45757032, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4178796, 45757008, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4326331, 45757010, 'SNOMED replaces', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (45756978, 45757007, 'SNOMED replaces', '01-OCT-14', '31-Dec-2099', null);
+
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (45756913, 45757027, 'SNOMED replaced by', '06-JUN-06', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4124446, 45757037, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4084455, 45756989, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4084456, 45756988, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4245255, 45756998, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4244976, 45756990, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4288408, 45757001, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4255054, 45757014, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4255055, 45757015, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4255056, 45757024, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246815, 45757023, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4235089, 45756993, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4235090, 45756991, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246828, 45756992, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246829, 45756994, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4252057, 45756995, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4252058, 45756996, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246830, 45756997, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246831, 45756999, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4246832, 45757000, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4186050, 45757005, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4186261, 45757028, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4188673, 45757003, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4218803, 45757013, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4166715, 45757030, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4170093, 45757025, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4303660, 45757035, 'SNOMED replaced by', '01-OCT-07', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4169284, 45757029, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4305388, 45757012, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4304416, 45757004, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4306003, 45757034, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4167221, 45757036, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4167886, 45757026, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4302500, 45757002, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4305548, 45757018, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4304572, 45757031, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4306671, 45757009, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4168344, 45757033, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4224069, 45757016, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4137363, 45757020, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4144440, 45757022, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4142114, 45757019, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4323501, 45757021, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4176018, 45757038, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4176621, 45757006, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4181295, 45757017, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4178323, 45757011, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4180120, 45757032, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4178796, 45757008, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (4326331, 45757010, 'SNOMED replaced by', '01-NOV-08', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values (45756978, 45757007, 'SNOMED replaced by', '01-OCT-14', '31-Dec-2099', null);
+
+-- Change Gender to OMOP Gender
+update concept set concept_name='OMOP Gender' where concept_id = 44819108;
+update vocabulary set vocabulary_name='OMOP Gender' where vocabulary_concept_id=44819108;
+
 commit;
 
 -- Not done yet:

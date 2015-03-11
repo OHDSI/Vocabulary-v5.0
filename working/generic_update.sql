@@ -417,7 +417,7 @@ UPDATE concept_relationship d
             (SELECT v.latest_update
                FROM concept c
                     JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
-              WHERE c.concept_id = d.concept_id_1)
+              WHERE c.concept_id = d.concept_id_2)
           - 1,                                       -- day before release day
        d.invalid_reason = 'D'
  WHERE d.ROWID IN (SELECT r.ROWID

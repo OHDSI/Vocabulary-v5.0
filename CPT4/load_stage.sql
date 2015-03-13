@@ -129,7 +129,7 @@ CREATE TABLE t_domains nologging AS
     LEFT JOIN (
       SELECT 
         cpt.code, 
-        CASE
+          CASE
           WHEN nvl(h2.code, cpt.code) = '1011137' THEN 'Measurement' -- Organ or Disease Oriented Panels
           WHEN nvl(h2.code, cpt.code) = '1011219' THEN 'Measurement' -- Clinical Pathology Consultations
           WHEN nvl(h2.code, cpt.code) = '1019043' THEN 'Measurement' -- In Vivo (eg, Transcutaneous) Laboratory Procedures
@@ -171,9 +171,15 @@ CREATE TABLE t_domains nologging AS
           WHEN nvl(h3.code, cpt.code) = '1012106' THEN 'Measurement' -- Compatibility test each unit
           WHEN nvl(h3.code, cpt.code) = '1012116' THEN 'Measurement' -- Hemolysins and agglutinins
           WHEN cpt.code = '92531' THEN 'Observation' -- Spontaneous nystagmus, including gaze - Condition
-          WHEN nvl(h2.code, cpt.code) = '1012871' THEN 'Measurement' -- Special Otorhinolaryngologic Services and Procedures - tricky assignement, need devices, have results
-          ELSE 'Procedure'
-        END as domain_id
+          when cpt.code in ('86890', '86891') then 'Observation' -- Autologous blood or component, collection processing and storage
+          when cpt.str like 'End-stage renal disease (ESRD)%' then 'Observation'
+          when  h2.code in ('1012570', '1012602') then 'Drug' -- Vaccines, Toxoids or Immune Globulins, Serum or Recombinant Products
+          when h2.code = '1011189' then 'Measurement' -- Evocative/Suppression Testing Procedures
+          when cpt.code in ('1013264', '1013276', '1013281','1013282', '1013285','1013295','1013301','1021142','1021170','95004','95012','95017','95018','95024','95027',
+            '95028','95044','95052','95056','95060','95065','95070','95071','95076','95079') then 'Measurement' -- allergy and immunologic testing
+            when cpt.str like 'Electrocardiogram, routine ECG%' then  'Measurement'
+          ELSE 'Procedure' 
+          end as domain_id
       FROM (
         SELECT 
           aui AS cpt,

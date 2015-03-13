@@ -25,7 +25,7 @@ INSERT INTO concept_stage (concept_id,
                            valid_end_date,
                            invalid_reason)
    SELECT NULL AS concept_id,
-       SUBSTR (a.LONG_DESCRIPTION, 1, 256) AS concept_name,
+       SUBSTR (a.LONG_DESCRIPTION, 1, 255) AS concept_name,
        c.domain_id AS domain_id,
        v.vocabulary_id,
        CASE WHEN LENGTH (HCPC) = 2 THEN 'HCPCS Modifier' ELSE 'HCPCS' END

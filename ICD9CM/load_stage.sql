@@ -235,7 +235,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
              AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
-     FROM concept_relationship_manual;
+     FROM concept_relationship_manual9cm;
 COMMIT;
 	 
 --10 update domain_id for ICD9CM from SNOMED
@@ -267,6 +267,7 @@ create table ICD9CM_domain NOLOGGING as
 							WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
 							AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
 							AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
+							AND relationship_id = 'Maps to'
 							AND r.invalid_reason is null
 						)
 
@@ -295,6 +296,9 @@ and instr(domain_id,'/')<>0;
 
 --reducing some domain_id if his length>20
 update ICD9CM_domain set domain_id='Meas/Procedure' where domain_id='Measurement/Procedure';
+update ICD9CM_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
+--Provisional removal of Spec Disease Status, will need review
+update ICD9CM_domain set domain_id='Procedure' where domain_id='Procedure/Spec Disease Status';
 COMMIT;
 
 --12. update each domain_id with the domains field from ICD9CM_domain.

@@ -14,10 +14,12 @@ begin
     execute immediate 'drop table relationship purge';
     execute immediate 'truncate table CONCEPT_STAGE';
     execute immediate 'truncate table concept_relationship_stage';
-    execute immediate 'truncate table concept_synonym_stage';
+	execute immediate 'truncate table concept_synonym_stage';
 	execute immediate 'truncate table concept_class';
+	execute immediate 'truncate table domain';
 
 	insert into concept_class select * from v5dev.concept_class;
+	insert into domain select * from v5dev.domain;
 
     
     /*CTAS with NOLOGGING (faster)*/

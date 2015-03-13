@@ -176,6 +176,7 @@ create table ICD10_domain NOLOGGING as
 							WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
 							AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
 							AND r.vocabulary_id_1='ICD10' AND r.vocabulary_id_2='SNOMED'
+							AND r.relationship_id = 'Maps to'
 							AND r.invalid_reason is null
 						)
 
@@ -204,6 +205,12 @@ and instr(domain_id,'/')<>0;
 
 --reducing some domain_id if his length>20
 update ICD10_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
+update ICD10_domain set domain_id='Procedure' where domain_id = 'Procedure/Spec Disease Status';
+update ICD10_domain set domain_id='Measurement' where domain_id='Measurement/Procedure/Spec Disease Status';
+update ICD10_domain set domain_id='Measurement' where domain_id='Measurement/Spec Disease Status';
+update ICD10_domain set domain_id='Measurement' where domain_id='Meas Value/Measurement/Procedure';
+update ICD10_domain set domain_id='Measurement' where domain_id='Meas Value/Measurement';
+update ICD10_domain set domain_id='Condition' where domain_id='Condition/Spec Disease Status';
 COMMIT;
 
 --10. update each domain_id with the domains field from ICD10_domain.
@@ -214,6 +221,8 @@ UPDATE concept_stage c
             WHERE rd.concept_code = c.concept_code)
  WHERE c.vocabulary_id = 'ICD10';
 COMMIT;
+
+DROP TABLE ICD10_domain PURGE;
 
 --11 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs

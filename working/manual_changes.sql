@@ -2066,6 +2066,22 @@ values (45756978, 45757007, 'SNOMED replaced by', '01-OCT-14', '31-Dec-2099', nu
 update concept set concept_name='OMOP Gender' where concept_id = 44819108;
 update vocabulary set vocabulary_name='OMOP Gender' where vocabulary_concept_id=44819108;
 
+-- One aditional ABMS specialty
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Spinal Cord Injury Medicine', 'Provider Specialty', 'ABMS', 'Specialty', 'S', 'OMOP generated', '01-Jan-1970', '31-Dec-2099', null);
+
+-- DRG as concept_classes
+update concept_class set concept_class_name = 'Disease-related Group' where concept_class_concept_id = 44819250;
+update concept set concept_name = 'Disease-related Group' where concept_id = 44819250;
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Medicare Severity Disease-related Group', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('MS-DRG', 'Medicare Severity Disease-related Group', (select concept_id from concept where concept_name = 'Medicare Severity Disease-related Group'));
+
+-- Fix DRG/MS-DRG concept_classes
+update concept c set concept_class_id=(select o.concept_class from dev.concept o where o.concept_id=c.concept_id)
+where vocabulary_id='DRG';
+
 commit;
 
 -- Not done yet:

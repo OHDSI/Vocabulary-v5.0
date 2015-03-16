@@ -400,8 +400,9 @@ UPDATE concept_relationship d
                           vocabulary v
                     WHERE     r.concept_id_1 = c1.concept_id
                           AND r.concept_id_2 = c2.concept_id
-                          AND (       c1.standard_concept = 'S'
-                                  AND c1.concept_id != c2.concept_id -- rule a)
+                          AND (       (c1.standard_concept = 'S'
+								  AND c1.vocabulary_id = c2.vocabulary_id
+                                  AND c1.concept_id != c2.concept_id) -- rule a)
                                OR COALESCE (c2.standard_concept, 'X') != 'S' -- rule b)
                                                                             )
                           AND c1.vocabulary_id = v.vocabulary_id
@@ -427,8 +428,9 @@ UPDATE concept_relationship d
                           vocabulary v
                     WHERE     r.concept_id_1 = c1.concept_id
                           AND r.concept_id_2 = c2.concept_id
-                          AND (       c2.standard_concept = 'S'
-                                  AND c1.concept_id != c2.concept_id -- rule a)
+                          AND (       (c2.standard_concept = 'S'
+								  AND c1.vocabulary_id = c2.vocabulary_id
+                                  AND c1.concept_id != c2.concept_id) -- rule a)
                                OR COALESCE (c1.standard_concept, 'X') != 'S' -- rule b)
                                                                             )
                           AND c2.vocabulary_id = v.vocabulary_id

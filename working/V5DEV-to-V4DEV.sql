@@ -120,6 +120,7 @@ ALTER TABLE CONCEPT_RELATIONSHIP ADD (
   USING INDEX XPKCONCEPT_RELATIONSHIP
   ENABLE VALIDATE);
 
+ 
 ALTER TABLE CONCEPT_RELATIONSHIP ADD (
   CONSTRAINT CONCEPT_REL_CHILD_FK 
   FOREIGN KEY (CONCEPT_ID_2) 
@@ -509,7 +510,8 @@ left join v5dev.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c
 WHERE EXISTS (SELECT 1
                     FROM v5dev.concept c_int
                    WHERE     c_int.vocabulary_id = c.vocabulary_id
-                         AND standard_concept = 'S');  -- where there is at least one standard concept in the same vocabulary
+                         AND standard_concept = 'S')  -- where there is at least one standard concept in the same vocabulary
+OR c.concept_code in ('OMOP generated','No matching concept');
 COMMIT;	
 
 DROP TABLE t_concept_class_conversion PURGE;	  
@@ -538,6 +540,55 @@ INSERT /*+ APPEND */
                     FROM concept c_int
                    WHERE c_int.concept_id = r.concept_id_2);
 COMMIT;	
+
+
+
+
+INSERT /*+ APPEND */
+      INTO  concept_relationship (CONCEPT_ID_1,
+                                  CONCEPT_ID_2,
+                                  RELATIONSHIP_ID,
+                                  VALID_START_DATE,
+                                  VALID_END_DATE,
+                                  INVALID_REASON)
+   SELECT c.concept_id AS concept_id_1,
+          d.domain_concept_id AS concept_id_2,
+          360 AS relationship_id,                                  --Is domain
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM v5dev.concept c, v5dev.domain d
+    WHERE     c.domain_id = d.domain_id
+          AND EXISTS
+                 (SELECT 1
+                    FROM concept c_int
+                   WHERE c_int.concept_id = c.concept_id)
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM concept_relationship r_int
+                   WHERE     r_int.concept_id_1 = c.concept_id
+                         AND r_int.concept_id_2 = d.domain_concept_id
+                         AND relationship_id = 360)
+   UNION ALL
+   SELECT d.domain_concept_id AS concept_id_1,
+          c.concept_id AS concept_id_2,
+          359 AS relationship_id,                            --Domain subsumes
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM v5dev.concept c, v5dev.domain d
+    WHERE     c.domain_id = d.domain_id
+          AND EXISTS
+                 (SELECT 1
+                    FROM concept c_int
+                   WHERE c_int.concept_id = c.concept_id)    
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM concept_relationship r_int
+                   WHERE     r_int.concept_id_1 = d.domain_concept_id
+                         AND r_int.concept_id_2 = c.concept_id
+                         AND relationship_id = 359);
+COMMIT;
 
 INSERT /*+ APPEND */
       INTO  concept_ancestor (ANCESTOR_CONCEPT_ID,
@@ -633,7 +684,7 @@ INSERT /*+ APPEND */
              ON vc1.vocabulary_id_v5 = c1.vocabulary_id
     WHERE     r.concept_id_1 IS NULL
           AND c1.concept_code <> 'OMOP generated'
-          AND c1.concept_id NOT IN (38000782, 38000781, 38000783)
+          AND c1.concept_id NOT IN (38000782, 38000781, 38000783, 44819222,44819208,38004574, 44819209, 44819226, 38000024,38000301,44819227)
           AND EXISTS
                  (SELECT 1
                     FROM concept c_int

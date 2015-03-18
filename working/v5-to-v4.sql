@@ -706,7 +706,7 @@ INSERT /*+ APPEND */
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = c1.concept_id)
-          AND c.vocabulary_id not in ('concept Class')
+          AND c.vocabulary_id not in ('Concept Class')
 ;
 
 INSERT INTO drug_strength

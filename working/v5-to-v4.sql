@@ -728,7 +728,7 @@ INSERT INTO drug_strength
           s.valid_start_date,
           s.valid_end_date,
           s.invalid_reason
-     FROM v5dev.drug_strength s
+     FROM devv5.drug_strength s
           LEFT JOIN concept au ON au.concept_id = s.amount_unit_concept_id
           LEFT JOIN concept nu ON nu.concept_id = s.numerator_unit_concept_id
           LEFT JOIN concept du

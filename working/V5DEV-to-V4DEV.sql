@@ -249,41 +249,41 @@ ALTER TABLE SOURCE_TO_CONCEPT_MAP ADD (
 
 --fill tables
 
-INSERT INTO v5dev.relationship_conversion (relationship_id,
+INSERT INTO devv5.relationship_conversion (relationship_id,
                                            relationship_id_new)
    SELECT   ROWNUM
           + (SELECT MAX (relationship_id)
-               FROM v5dev.relationship_conversion)
+               FROM devv5.relationship_conversion)
              AS rn,
           relationship_id
-     FROM ( (SELECT relationship_id FROM v5dev.relationship
+     FROM ( (SELECT relationship_id FROM devv5.relationship
              UNION ALL
-             SELECT reverse_relationship_id FROM v5dev.relationship)
+             SELECT reverse_relationship_id FROM devv5.relationship)
            MINUS
-           SELECT relationship_id_new FROM v5dev.relationship_conversion);
+           SELECT relationship_id_new FROM devv5.relationship_conversion);
 COMMIT;
 
 CREATE TABLE t_concept_class_conversion
 
 AS
    (SELECT concept_class, concept_class_id_new
-      FROM v5dev.concept_class_conversion
+      FROM devv5.concept_class_conversion
      WHERE concept_class_id_new NOT IN (  SELECT concept_class_id_new
-                                            FROM v5dev.concept_class_conversion
+                                            FROM devv5.concept_class_conversion
                                         GROUP BY concept_class_id_new
                                           HAVING COUNT (*) > 1))
    UNION ALL
    (  SELECT concept_class_id_new AS concept_class, concept_class_id_new
-        FROM v5dev.concept_class_conversion
+        FROM devv5.concept_class_conversion
     GROUP BY concept_class_id_new
       HAVING COUNT (*) > 1)
    UNION ALL
    (SELECT concept_class_id AS concept_class,
            concept_class_id AS concept_class_id_new
-      FROM v5dev.concept
+      FROM devv5.concept
     MINUS
     SELECT concept_class_id_new, concept_class_id_new
-      FROM v5dev.concept_class_conversion);
+      FROM devv5.concept_class_conversion);
 		   
  INSERT INTO RELATIONSHIP (RELATIONSHIP_ID,
                           RELATIONSHIP_NAME,
@@ -295,9 +295,9 @@ AS
           r.is_hierarchical,
           r.defines_ancestry,
           rc_rev.relationship_id
-     FROM v5dev.relationship r,
-          v5dev.relationship_conversion rc,
-          v5dev.relationship_conversion rc_rev
+     FROM devv5.relationship r,
+          devv5.relationship_conversion rc,
+          devv5.relationship_conversion rc_rev
     WHERE     r.relationship_id = rc.relationship_id_new
           AND r.reverse_relationship_id = rc_rev.relationship_id_new;
 COMMIT;
@@ -502,13 +502,13 @@ select distinct
           c.valid_start_date,
           c.valid_end_date,
           c.invalid_reason
-from v5dev.concept c
+from devv5.concept c
 join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
-join v5dev.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
-left join v5dev.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
-left join v5dev.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
+join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
+left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
+left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
 WHERE EXISTS (SELECT 1
-                    FROM v5dev.concept c_int
+                    FROM devv5.concept c_int
                    WHERE     c_int.vocabulary_id = c.vocabulary_id
                          AND standard_concept = 'S')  -- where there is at least one standard concept in the same vocabulary
 OR c.concept_code in ('OMOP generated','No matching concept');
@@ -529,7 +529,7 @@ INSERT /*+ APPEND */
           r.valid_start_date,
           r.valid_end_date,
           r.invalid_reason
-     FROM v5dev.concept_relationship r, v5dev.relationship_conversion rc
+     FROM devv5.concept_relationship r, devv5.relationship_conversion rc
     WHERE     r.relationship_id = rc.relationship_id_new
           AND EXISTS
                  (SELECT 1
@@ -557,7 +557,7 @@ INSERT /*+ APPEND */
           TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
-     FROM v5dev.concept c, v5dev.domain d
+     FROM devv5.concept c, devv5.domain d
     WHERE     c.domain_id = d.domain_id
           AND EXISTS
                  (SELECT 1
@@ -576,7 +576,7 @@ INSERT /*+ APPEND */
           TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
-     FROM v5dev.concept c, v5dev.domain d
+     FROM devv5.concept c, devv5.domain d
     WHERE     c.domain_id = d.domain_id
           AND EXISTS
                  (SELECT 1
@@ -599,7 +599,7 @@ INSERT /*+ APPEND */
           ca.descendant_concept_id,
           ca.max_levels_of_separation,
           ca.min_levels_of_separation
-     FROM v5dev.concept_ancestor ca
+     FROM devv5.concept_ancestor ca
     WHERE     EXISTS
                  (SELECT 1
                     FROM concept c_int
@@ -618,7 +618,7 @@ INSERT /*+ APPEND */
    SELECT ROWNUM AS concept_synonym_id,
           cs.concept_id,
           cs.concept_synonym_name
-     FROM v5dev.concept_synonym cs
+     FROM devv5.concept_synonym cs
     WHERE EXISTS
              (SELECT 1
                 FROM concept c_int
@@ -646,11 +646,11 @@ INSERT /*+ APPEND */
                    r.valid_start_date AS VALID_START_DATE,
                    r.valid_end_date AS VALID_END_DATE,
                    r.invalid_reason AS INVALID_REASON
-     FROM v5dev.concept c1,
-          v5dev.concept c2,
-          v5dev.concept_relationship r,
-          v5dev.vocabulary_conversion vc1,
-          v5dev.vocabulary_conversion vc2
+     FROM devv5.concept c1,
+          devv5.concept c2,
+          devv5.concept_relationship r,
+          devv5.vocabulary_conversion vc1,
+          devv5.vocabulary_conversion vc2
     WHERE     c1.concept_id = r.concept_id_1
           AND c2.concept_id = r.concept_id_2
           AND r.relationship_id = 'Maps to'
@@ -675,12 +675,12 @@ INSERT /*+ APPEND */
                    c1.valid_start_date AS VALID_START_DATE,
                    c1.valid_end_date AS VALID_END_DATE,
                    NULL AS INVALID_REASON
-     FROM v5dev.concept c1
-          LEFT JOIN v5dev.concept_relationship r
+     FROM devv5.concept c1
+          LEFT JOIN devv5.concept_relationship r
              ON     r.concept_id_1 = c1.concept_id
                 AND r.relationship_id = 'Maps to'
                 AND r.invalid_reason IS NULL
-          JOIN v5dev.vocabulary_conversion vc1
+          JOIN devv5.vocabulary_conversion vc1
              ON vc1.vocabulary_id_v5 = c1.vocabulary_id
     WHERE     r.concept_id_1 IS NULL
           AND c1.concept_code <> 'OMOP generated'

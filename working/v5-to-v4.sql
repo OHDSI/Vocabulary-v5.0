@@ -248,21 +248,29 @@ ALTER TABLE source_to_concept_map ADD (
   REFERENCES concept (concept_id)
   ENABLE VALIDATE);
 
--- add table drug_strength
+--add table drug_strength
+
 CREATE TABLE drug_strength
 (
-    drug_concept_id          INTEGER   NOT NULL,
-    ingredient_concept_id    INTEGER   NOT NULL,                       
-    amount_value             NUMBER,
-    amount_unit              VARCHAR2(60 BYTE),
-    concentration_value      NUMBER,
-    concentration_enum_unit  VARCHAR2(60 BYTE),
-    concentration_denom_unit VARCHAR2(60 BYTE),         
-    valid_start_date         DATE         NOT NULL,
-    valid_end_date           DATE         NOT NULL,
-    invalid_reason           VARCHAR2(1 BYTE)
-)
-;
+   drug_concept_id            INTEGER NOT NULL,
+   ingredient_concept_id      INTEGER NOT NULL,
+   amount_value               NUMBER,
+   amount_unit                VARCHAR2 (60 BYTE),
+   concentration_value        NUMBER,
+   concentration_enum_unit    VARCHAR2 (60 BYTE),
+   concentration_denom_unit   VARCHAR2 (60 BYTE),
+   valid_start_date           DATE NOT NULL,
+   valid_end_date             DATE NOT NULL,
+   invalid_reason             VARCHAR2 (1 BYTE)
+);
+
+--add table vocabulary
+
+CREATE TABLE VOCABULARY
+(
+   VOCABULARY_ID     INTEGER NOT NULL,
+   VOCABULARY_NAME   VARCHAR2 (256 BYTE) NOT NULL
+);
 
 --fill tables
 
@@ -706,23 +714,29 @@ INSERT /*+ APPEND */
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = c1.concept_id)
-          AND c.vocabulary_id not in ('Concept Class')
-;
-
+          AND c.vocabulary_id not in ('Concept Class');
+COMMIT;
+		  
 INSERT INTO drug_strength
-SELECT 
-  s.drug_concept_id,
-  s.ingredient_concept_id,
-  s.amount_value,
-  au.concept_code AS amount_unit,
-  s.numerator_value AS concentration_value,
-  nu.concept_code AS concentration_enum_unit,
-  du.concept_code AS concentration_denom_unit,
-  s.valid_start_date,
-  s.valid_end_date,
-  s.invalid_reason
-FROM v5dev.drug_strength s
-LEFT JOIN concept au ON au.concept_id = s.amount_unit_concept_id
-LEFT JOIN concept nu ON nu.concept_id = s.numerator_unit_concept_id
-LEFT JOIN concept du ON du.concept_id = s.denominator_unit_concept_id
-;
+   SELECT s.drug_concept_id,
+          s.ingredient_concept_id,
+          s.amount_value,
+          au.concept_code AS amount_unit,
+          s.numerator_value AS concentration_value,
+          nu.concept_code AS concentration_enum_unit,
+          du.concept_code AS concentration_denom_unit,
+          s.valid_start_date,
+          s.valid_end_date,
+          s.invalid_reason
+     FROM v5dev.drug_strength s
+          LEFT JOIN concept au ON au.concept_id = s.amount_unit_concept_id
+          LEFT JOIN concept nu ON nu.concept_id = s.numerator_unit_concept_id
+          LEFT JOIN concept du
+             ON du.concept_id = s.denominator_unit_concept_id;
+COMMIT;
+
+INSERT INTO VOCABULARY
+   SELECT vocabulary_id_v4, vocabulary_id_v5 FROM devv5.vocabulary_conversion;
+COMMIT;
+
+   

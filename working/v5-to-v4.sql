@@ -684,10 +684,6 @@ INSERT /*+ APPEND */
           AND EXISTS
                  (SELECT 1
                     FROM concept c_int
-                   WHERE c_int.concept_id = c1.concept_id)
-          AND EXISTS
-                 (SELECT 1
-                    FROM concept c_int
                    WHERE c_int.concept_id = c2.concept_id)
    UNION ALL
    SELECT DISTINCT c1.concept_code AS SOURCE_CODE,
@@ -715,7 +711,7 @@ INSERT /*+ APPEND */
             FROM devv5.concept c2
             GROUP BY c2.vocabulary_id, c2.concept_code, c2.valid_end_date
           ) 		  
-          AND EXISTS
+          AND NOT EXISTS
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = c1.concept_id)

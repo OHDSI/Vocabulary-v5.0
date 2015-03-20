@@ -68,7 +68,7 @@ COMMENT ON COLUMN relationship.defines_ancestry IS 'Defines whether a hierarchic
 
 COMMENT ON COLUMN relationship.reverse_relationship IS 'relationship ID of the reverse relationship to this one. Corresponding records of reverse relationships have their concept_id_1 and concept_id_2 swapped.';
 
-CREATE UNIQUE INDEX XPKRELATIONHIP_TYPE ON relationship
+CREATE UNIQUE INDEX XPKRELATIONSHIP_TYPE ON relationship
 (relationship_id);
 
 ALTER TABLE relationship ADD (
@@ -709,12 +709,17 @@ INSERT /*+ APPEND */
              ON vc1.vocabulary_id_v5 = c1.vocabulary_id
     WHERE     r.concept_id_1 IS NULL
           AND c1.concept_code <> 'OMOP generated'
-          AND c1.concept_id NOT IN (38000782, 38000781, 38000783, 44819222,44819208,38004574, 44819209, 44819226, 38000024,38000301,44819227)
+          --AND c1.concept_id NOT IN (38000782, 38000781, 38000783, 44819222,44819208,38004574, 44819209, 44819226, 38000024,38000301,44819227)
+          AND c1.concept_id in    (
+            SELECT MIN (c2.concept_id)
+            FROM devv5.concept c2
+            GROUP BY c2.vocabulary_id, c2.concept_code, c2.valid_end_date
+          ) 		  
           AND EXISTS
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = c1.concept_id)
-          AND c.vocabulary_id not in ('Concept Class');
+          AND c1.concept_class_id <> 'Concept Class';
 COMMIT;
 		  
 INSERT INTO drug_strength

@@ -3,7 +3,7 @@
 CREATE TABLE concept
 (
   concept_id        INTEGER                     NOT NULL,         
-  concept_name      VARCHAR2(256 BYTE)          NOT NULL,                     
+  concept_name      VARCHAR2(255 BYTE)          NOT NULL,                     
   concept_level     NUMBER                      NOT NULL,           
   concept_class     VARCHAR2(60 BYTE)           NOT NULL,                     
   vocabulary_id     INTEGER                     NOT NULL,            

@@ -650,6 +650,8 @@ INSERT /*+ APPEND */
                WHERE c_int.concept_id = cs.concept_id);
 COMMIT;	 
 
+
+
 INSERT /*+ APPEND */
       INTO  source_to_concept_map (SOURCE_CODE,
                                    SOURCE_vocabulary_id,
@@ -684,8 +686,19 @@ INSERT /*+ APPEND */
           AND EXISTS
                  (SELECT 1
                     FROM concept c_int
-                   WHERE c_int.concept_id = c2.concept_id)
-   UNION ALL
+                   WHERE c_int.concept_id = c2.concept_id);
+COMMIT;
+INSERT /*+ APPEND */
+      INTO  source_to_concept_map (SOURCE_CODE,
+                                   SOURCE_vocabulary_id,
+                                   SOURCE_CODE_DESCRIPTION,
+                                   TARGET_concept_id,
+                                   TARGET_vocabulary_id,
+                                   MAPPING_type,
+                                   PRIMARY_MAP,
+                                   valid_start_date,
+                                   valid_end_date,
+                                   invalid_reason)
    SELECT DISTINCT c1.concept_code AS SOURCE_CODE,
                    vc1.vocabulary_id_v4 AS SOURCE_vocabulary_id,
                    c1.concept_name AS SOURCE_CODE_DESCRIPTION,
@@ -705,16 +718,18 @@ INSERT /*+ APPEND */
              ON vc1.vocabulary_id_v5 = c1.vocabulary_id
     WHERE     r.concept_id_1 IS NULL
           AND c1.concept_code <> 'OMOP generated'
-          --AND c1.concept_id NOT IN (38000782, 38000781, 38000783, 44819222,44819208,38004574, 44819209, 44819226, 38000024,38000301,44819227)
           AND c1.concept_id in    (
             SELECT MIN (c2.concept_id)
             FROM devv5.concept c2
             GROUP BY c2.vocabulary_id, c2.concept_code, c2.valid_end_date
-          ) 		  
+          )           
           AND NOT EXISTS
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = c1.concept_id)
+          AND NOT EXISTS (SELECT 1 FROM source_to_concept_map s_int WHERE s_int.source_code=c1.concept_code 
+            AND s_int.source_vocabulary_id=vc1.vocabulary_id_v4
+          )
           AND c1.concept_class_id <> 'Concept Class';
 COMMIT;
 		  

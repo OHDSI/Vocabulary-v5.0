@@ -9,6 +9,7 @@ create table CONCEPT_ANCESTOR as select * from devv5.CONCEPT_ANCESTOR;
 create table DOMAIN as select * from devv5.DOMAIN;
 create table DRUG_STRENGTH as select * from devv5.DRUG_STRENGTH;
 create table CONCEPT_CLASS as select * from devv5.CONCEPT_CLASS;
+create table vocabulary_conversion as select * from devv5.vocabulary_conversion;
 
 update vocabulary set vocabulary_name='OMOP Vocabulary v5.0 '||sysdate where vocabulary_id='None';
 

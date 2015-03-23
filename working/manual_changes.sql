@@ -1,8 +1,9 @@
 -- Fix names of mapping relationships
 update concept set concept_name = 'Mapping relationship to Standard Concept (OMOP)' where concept_id = 44818977;
 update concept set concept_name = 'Mapping relationship from Standard Concept (OMOP)' where concept_id = 44818976;
-
+/*
 -- start new sequence
+drop sequence v5_concept;
 DECLARE
  ex NUMBER;
 BEGIN
@@ -13,6 +14,7 @@ BEGIN
       WHEN OTHERS THEN NULL;
   END;
 END;
+*/
 
 -- Add another Observation Period type for Rimma
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -471,6 +473,933 @@ insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, v
 values (44814702, 8717, 'Value mapped from', '01-Jan-1970', '31-Dec-2099', null);
 insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 values (44814648, 4188540, 'Value mapped from', '01-Jan-1970', '31-Dec-2099', null);
+
+-- Restore vocabulary_conversion table for use in download page
+alter table vocabulary_conversion add url varchar2(256);
+alter table vocabulary_conversion add click_disabled varchar(1);
+-- Put mailto links where a commercial license is required (except CPT4 and MedDRA)
+update vocabulary_conversion 
+  set url='mailto:contact@ohdsi.org?subject=License%20required%20for%20'||vocabulary_id_v5|| chr(38) ||'body=Describe%20your%20situation%20and%20your%20need%20for%20this%20vocabulary.' 
+where vocabulary_id_v5 in ('GPI', 'Indication', 'ETC', 'Multilex');
+-- Disallow switching on commercial vocabularies (except CTP4 and MedDRA)
+update vocabulary_conversion set click_disabled='Y' where vocabulary_id_v5 in ('GPI', 'Indication', 'ETC', 'Multilex', 'ICD10CM');
+-- Disallow removing type and metadata concepts
+update vocabulary_conversion set click_disabled='Y' where vocabulary_id_v4 in (12, 24, 33, 44, 59, 66, 67, 68);
+-- Indicate license requirement for commercial vocabularies (except CPT4 and MedDRA)
+update vocabulary_conversion set available='License required' where vocabulary_id_v5 in ('GPI', 'Indication', 'ETC', 'Multilex');
+-- Link to new EULA page for CPT4 and MedDRA
+update vocabulary_conversion set url='http://www.ohdsi.org/standardized-vocabulary-eula/' where vocabulary_id_v5 in ('CPT4', 'MedDRA');
+-- Indicate EULA requirement for CTP4 and MedDRA
+update vocabulary_conversion set available='EULA required' where vocabulary_id_v5 in ('CPT4', 'MedDRA');
+
+-- add UCUM equivalents to SNOMED UK units used in drug extension
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Million unit per liter', 'Unit', 'UCUM', 'Unit', 'S', '10*6.[U]/mL', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'gram per dose', 'Unit', 'UCUM', 'Unit', 'S', 'g/[dose]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'milligram per dose', 'Unit', 'UCUM', 'Unit', 'S', 'mg/[dose]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microgram per dose', 'Unit', 'UCUM', 'Unit', 'S', 'ug/[dose]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit per dose', 'Unit', 'UCUM', 'Unit', 'S', '[U]/[dose]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'application', 'Unit', 'UCUM', 'Unit', 'S', '[App]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'gram per application', 'Unit', 'UCUM', 'Unit', 'S', 'g/[App]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'milligram per application', 'Unit', 'UCUM', 'Unit', 'S', 'mg/[App]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'tuberculin unit per milliliter', 'Unit', 'UCUM', 'Unit', 'S', '[tb''U]/mL', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'month supply', 'Unit', 'UCUM', 'Unit', 'S', 'mo{supply}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'week supply', 'Unit', 'UCUM', 'Unit', 'S', 'wk{supply}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit per drop', 'Unit', 'UCUM', 'Unit', 'S', '[U]/[drop]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Megabecquerel', 'Unit', 'UCUM', 'Unit', 'S', 'MBq', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'kilobecquerel', 'Unit', 'UCUM', 'Unit', 'S', 'kBq', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'weight percent volume', 'Unit', 'UCUM', 'Unit', 'S', '{wt]%{vol]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'volume percent volume', 'Unit', 'UCUM', 'Unit', 'S', '{vol}%{vol}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'weight percent weight', 'Unit', 'UCUM', 'Unit', 'S', '{wt}%{wt}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'volume percent weight', 'Unit', 'UCUM', 'Unit', 'S', '{vol}%{wt}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'milliliter per liter', 'Unit', 'UCUM', 'Unit', 'S', 'mL/L', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'millimole per milliliter', 'Unit', 'UCUM', 'Unit', 'S', 'mmol/mL', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microgram per actuation', 'Unit', 'UCUM', 'Unit', 'S', 'ug/{actuat}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'milligram per actuation', 'Unit', 'UCUM', 'Unit', 'S', 'mg/{actuat}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit per actuation', 'Unit', 'UCUM', 'Unit', 'S', '[U]/{actuat}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'gram per actuation', 'Unit', 'UCUM', 'Unit', 'S', 'g/{actuat}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'international unit per milligram', 'Unit', 'UCUM', 'Unit', 'S', '[iU]/mg', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'megaunit', 'Unit', 'UCUM', 'Unit', 'S', '10*6.[U]', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'milligram per 16 hours', 'Unit', 'UCUM', 'Unit', 'S', 'mg/(16.h)', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'milligram per 72 hours', 'Unit', 'UCUM', 'Unit', 'S', 'mg/(72.h)', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microgram per 72 hours', 'Unit', 'UCUM', 'Unit', 'S', 'ug/(72.h)', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Kallikrein inactivator unit', 'Unit', 'UCUM', 'Unit', 'S', '{KIU}', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'nanoliter per milliliter', 'Unit', 'UCUM', 'Unit', 'S', 'nL/mL', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Kallikrein inactivator unit per milliliter', 'Unit', 'UCUM', 'Unit', 'S', '{KIU]/mL', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microgram per square centimeter', 'Unit', 'UCUM', 'Unit', 'S', 'ug/cm2', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Gigabecquerel per milliliter', 'Unit', 'UCUM', 'Unit', 'S', 'GBq/mL', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microliter per milliliter', 'Unit', 'UCUM', 'Unit', 'S', 'uL/mL', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit per milligram', 'Unit', 'UCUM', 'Unit', 'S', '[U]/mg', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Gigabecquerel', 'Unit', 'UCUM', 'Unit', 'S', 'GBq', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Megabecquerel per milliliter', 'Unit', 'UCUM', 'Unit', 'S', 'MBq/mL', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'milliliter per milliliter', 'Unit', 'UCUM', 'Unit', 'S', 'mL/mL', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'unit per square centimeter', 'Unit', 'UCUM', 'Unit', 'S', '[U]/cm2', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'milliliter per gram', 'Unit', 'UCUM', 'Unit', 'S', 'mL/g', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'milligram per square centimeter', 'Unit', 'UCUM', 'Unit', 'S', 'mg/cm2', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'microliter per gram', 'Unit', 'UCUM', 'Unit', 'S', 'uL/g', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'kilobecquerel per milliliter', 'Unit', 'UCUM', 'Unit', 'S', 'kBq/mL', '01-JAN-1970', '31-DEC-2099', null);
+
+-- Add mappings from SNOMED to UCUM
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10368511000001103' and vocabulary_id = 'SNOMED'
+), 45890995, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10691711000001108' and vocabulary_id = 'SNOMED'
+), 45890996, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10691811000001100' and vocabulary_id = 'SNOMED'
+), 45890997, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10691911000001105' and vocabulary_id = 'SNOMED'
+), 45890998, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692011000001103' and vocabulary_id = 'SNOMED'
+), 45890999, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692211000001108' and vocabulary_id = 'SNOMED'
+), 45891000, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692311000001100' and vocabulary_id = 'SNOMED'
+), 45891001, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692411000001107' and vocabulary_id = 'SNOMED'
+), 45891002, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692511000001106' and vocabulary_id = 'SNOMED'
+), 45891003, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692711000001101' and vocabulary_id = 'SNOMED'
+), 9510, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692811000001109' and vocabulary_id = 'SNOMED'
+), 45891004, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692911000001104' and vocabulary_id = 'SNOMED'
+), 45891005, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10693311000001105' and vocabulary_id = 'SNOMED'
+), 8784, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10693711000001109' and vocabulary_id = 'SNOMED'
+), 45891006, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '229034000' and vocabulary_id = 'SNOMED'
+), 45891007, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258669008' and vocabulary_id = 'SNOMED'
+), 9546, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258672001' and vocabulary_id = 'SNOMED'
+), 8582, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258673006' and vocabulary_id = 'SNOMED'
+), 8588, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258682000' and vocabulary_id = 'SNOMED'
+), 8504, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258683005' and vocabulary_id = 'SNOMED'
+), 9529, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258684004' and vocabulary_id = 'SNOMED'
+), 8576, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258685003' and vocabulary_id = 'SNOMED'
+), 9655, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258686002' and vocabulary_id = 'SNOMED'
+), 9600, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258702006' and vocabulary_id = 'SNOMED'
+), 8505, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258718000' and vocabulary_id = 'SNOMED'
+), 9573, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258719008' and vocabulary_id = 'SNOMED'
+), 9667, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258731005' and vocabulary_id = 'SNOMED'
+), 9241, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258770004' and vocabulary_id = 'SNOMED'
+), 8519, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258773002' and vocabulary_id = 'SNOMED'
+), 8587, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258774008' and vocabulary_id = 'SNOMED'
+), 9665, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258794004' and vocabulary_id = 'SNOMED'
+), 8636, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258796002' and vocabulary_id = 'SNOMED'
+), 8751, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258798001' and vocabulary_id = 'SNOMED'
+), 8861, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258801007' and vocabulary_id = 'SNOMED'
+), 8859, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258802000' and vocabulary_id = 'SNOMED'
+), 8720, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258806002' and vocabulary_id = 'SNOMED'
+), 8842, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258812007' and vocabulary_id = 'SNOMED'
+), 9586, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258813002' and vocabulary_id = 'SNOMED'
+), 8736, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258836006' and vocabulary_id = 'SNOMED'
+), 8909, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258838007' and vocabulary_id = 'SNOMED'
+), 44777645, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258840002' and vocabulary_id = 'SNOMED'
+), 8906, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258948008' and vocabulary_id = 'SNOMED'
+), 8763, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258997004' and vocabulary_id = 'SNOMED'
+), 8718, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '259002007' and vocabulary_id = 'SNOMED'
+), 8985, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '259022006' and vocabulary_id = 'SNOMED'
+), 9483, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '282113003' and vocabulary_id = 'SNOMED'
+), 9606, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '282143001' and vocabulary_id = 'SNOMED'
+), 45891008, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '282379003' and vocabulary_id = 'SNOMED'
+), 45891009, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '282380000' and vocabulary_id = 'SNOMED'
+), 45891010, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3314211000001106' and vocabulary_id = 'SNOMED'
+), 0, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3314511000001109' and vocabulary_id = 'SNOMED'
+), 45891011, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3314611000001108' and vocabulary_id = 'SNOMED'
+), 45891012, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3315911000001103' and vocabulary_id = 'SNOMED'
+), 45891013, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3316111000001107' and vocabulary_id = 'SNOMED'
+), 9586, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3316211000001101' and vocabulary_id = 'SNOMED'
+), 8753, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3316311000001109' and vocabulary_id = 'SNOMED'
+), 45891014, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3316411000001102' and vocabulary_id = 'SNOMED'
+), 8510, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3319711000001103' and vocabulary_id = 'SNOMED'
+), 8510, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '396163008' and vocabulary_id = 'SNOMED'
+), 9562, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '396169007' and vocabulary_id = 'SNOMED'
+), 9514, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '396180007' and vocabulary_id = 'SNOMED'
+), 9571, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '4034511000001102' and vocabulary_id = 'SNOMED'
+), 45744809, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '4034811000001104' and vocabulary_id = 'SNOMED'
+), 9412, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408104008' and vocabulary_id = 'SNOMED'
+), 45891015, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408105009' and vocabulary_id = 'SNOMED'
+), 45891016, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408106005' and vocabulary_id = 'SNOMED'
+), 45891017, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408107001' and vocabulary_id = 'SNOMED'
+), 45891018, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408162005' and vocabulary_id = 'SNOMED'
+), 9530, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408163000' and vocabulary_id = 'SNOMED'
+), 9333, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408164006' and vocabulary_id = 'SNOMED'
+), 45891019, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408165007' and vocabulary_id = 'SNOMED'
+), 45891020, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408166008' and vocabulary_id = 'SNOMED'
+), 45891021, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408167004' and vocabulary_id = 'SNOMED'
+), 45891022, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408168009' and vocabulary_id = 'SNOMED'
+), 8723, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408169001' and vocabulary_id = 'SNOMED'
+), 9565, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408170000' and vocabulary_id = 'SNOMED'
+), 45891023, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '411225003' and vocabulary_id = 'SNOMED'
+), 45891024, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '414719002' and vocabulary_id = 'SNOMED'
+), 9673, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '415758003' and vocabulary_id = 'SNOMED'
+), 9413, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '415784009' and vocabulary_id = 'SNOMED'
+), 8629, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '417932008' and vocabulary_id = 'SNOMED'
+), 45891025, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '417962002' and vocabulary_id = 'SNOMED'
+), 45891026, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418042005' and vocabulary_id = 'SNOMED'
+), 45891027, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418261000' and vocabulary_id = 'SNOMED'
+), 45891028, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418342002' and vocabulary_id = 'SNOMED'
+), 45891029, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418830004' and vocabulary_id = 'SNOMED'
+), 45891030, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418931004' and vocabulary_id = 'SNOMED'
+), 45891031, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418948007' and vocabulary_id = 'SNOMED'
+), 45891032, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '419346007' and vocabulary_id = 'SNOMED'
+), 45891033, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '419691006' and vocabulary_id = 'SNOMED'
+), 45891034, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '419805009' and vocabulary_id = 'SNOMED'
+), 45891035, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '8083511000001107' and vocabulary_id = 'SNOMED'
+), 45891036, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '8088511000001103' and vocabulary_id = 'SNOMED'
+), 45891037, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '8090811000001104' and vocabulary_id = 'SNOMED'
+), 45891038, 'Mapped from', '01-Jan-1970', '31-Dec-2099', null);
+
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10368511000001103' and vocabulary_id = 'SNOMED'
+), 45890995, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10691711000001108' and vocabulary_id = 'SNOMED'
+), 45890996, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10691811000001100' and vocabulary_id = 'SNOMED'
+), 45890997, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10691911000001105' and vocabulary_id = 'SNOMED'
+), 45890998, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692011000001103' and vocabulary_id = 'SNOMED'
+), 45890999, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692211000001108' and vocabulary_id = 'SNOMED'
+), 45891000, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692311000001100' and vocabulary_id = 'SNOMED'
+), 45891001, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692411000001107' and vocabulary_id = 'SNOMED'
+), 45891002, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692511000001106' and vocabulary_id = 'SNOMED'
+), 45891003, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692711000001101' and vocabulary_id = 'SNOMED'
+), 9510, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692811000001109' and vocabulary_id = 'SNOMED'
+), 45891004, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10692911000001104' and vocabulary_id = 'SNOMED'
+), 45891005, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10693311000001105' and vocabulary_id = 'SNOMED'
+), 8784, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '10693711000001109' and vocabulary_id = 'SNOMED'
+), 45891006, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '229034000' and vocabulary_id = 'SNOMED'
+), 45891007, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258669008' and vocabulary_id = 'SNOMED'
+), 9546, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258672001' and vocabulary_id = 'SNOMED'
+), 8582, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258673006' and vocabulary_id = 'SNOMED'
+), 8588, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258682000' and vocabulary_id = 'SNOMED'
+), 8504, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258683005' and vocabulary_id = 'SNOMED'
+), 9529, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258684004' and vocabulary_id = 'SNOMED'
+), 8576, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258685003' and vocabulary_id = 'SNOMED'
+), 9655, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258686002' and vocabulary_id = 'SNOMED'
+), 9600, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258702006' and vocabulary_id = 'SNOMED'
+), 8505, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258718000' and vocabulary_id = 'SNOMED'
+), 9573, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258719008' and vocabulary_id = 'SNOMED'
+), 9667, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258731005' and vocabulary_id = 'SNOMED'
+), 9241, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258770004' and vocabulary_id = 'SNOMED'
+), 8519, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258773002' and vocabulary_id = 'SNOMED'
+), 8587, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258774008' and vocabulary_id = 'SNOMED'
+), 9665, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258794004' and vocabulary_id = 'SNOMED'
+), 8636, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258796002' and vocabulary_id = 'SNOMED'
+), 8751, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258798001' and vocabulary_id = 'SNOMED'
+), 8861, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258801007' and vocabulary_id = 'SNOMED'
+), 8859, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258802000' and vocabulary_id = 'SNOMED'
+), 8720, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258806002' and vocabulary_id = 'SNOMED'
+), 8842, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258812007' and vocabulary_id = 'SNOMED'
+), 9586, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258813002' and vocabulary_id = 'SNOMED'
+), 8736, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258836006' and vocabulary_id = 'SNOMED'
+), 8909, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258838007' and vocabulary_id = 'SNOMED'
+), 44777645, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258840002' and vocabulary_id = 'SNOMED'
+), 8906, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258948008' and vocabulary_id = 'SNOMED'
+), 8763, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '258997004' and vocabulary_id = 'SNOMED'
+), 8718, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '259002007' and vocabulary_id = 'SNOMED'
+), 8985, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '259022006' and vocabulary_id = 'SNOMED'
+), 9483, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '282113003' and vocabulary_id = 'SNOMED'
+), 9606, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '282143001' and vocabulary_id = 'SNOMED'
+), 45891008, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '282379003' and vocabulary_id = 'SNOMED'
+), 45891009, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '282380000' and vocabulary_id = 'SNOMED'
+), 45891010, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3314211000001106' and vocabulary_id = 'SNOMED'
+), 0, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3314511000001109' and vocabulary_id = 'SNOMED'
+), 45891011, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3314611000001108' and vocabulary_id = 'SNOMED'
+), 45891012, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3315911000001103' and vocabulary_id = 'SNOMED'
+), 45891013, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3316111000001107' and vocabulary_id = 'SNOMED'
+), 9586, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3316211000001101' and vocabulary_id = 'SNOMED'
+), 8753, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3316311000001109' and vocabulary_id = 'SNOMED'
+), 45891014, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3316411000001102' and vocabulary_id = 'SNOMED'
+), 8510, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '3319711000001103' and vocabulary_id = 'SNOMED'
+), 8510, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '396163008' and vocabulary_id = 'SNOMED'
+), 9562, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '396169007' and vocabulary_id = 'SNOMED'
+), 9514, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '396180007' and vocabulary_id = 'SNOMED'
+), 9571, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '4034511000001102' and vocabulary_id = 'SNOMED'
+), 45744809, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '4034811000001104' and vocabulary_id = 'SNOMED'
+), 9412, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408104008' and vocabulary_id = 'SNOMED'
+), 45891015, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408105009' and vocabulary_id = 'SNOMED'
+), 45891016, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408106005' and vocabulary_id = 'SNOMED'
+), 45891017, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408107001' and vocabulary_id = 'SNOMED'
+), 45891018, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408162005' and vocabulary_id = 'SNOMED'
+), 9530, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408163000' and vocabulary_id = 'SNOMED'
+), 9333, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408164006' and vocabulary_id = 'SNOMED'
+), 45891019, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408165007' and vocabulary_id = 'SNOMED'
+), 45891020, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408166008' and vocabulary_id = 'SNOMED'
+), 45891021, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408167004' and vocabulary_id = 'SNOMED'
+), 45891022, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408168009' and vocabulary_id = 'SNOMED'
+), 8723, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408169001' and vocabulary_id = 'SNOMED'
+), 9565, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '408170000' and vocabulary_id = 'SNOMED'
+), 45891023, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '411225003' and vocabulary_id = 'SNOMED'
+), 45891024, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '414719002' and vocabulary_id = 'SNOMED'
+), 9673, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '415758003' and vocabulary_id = 'SNOMED'
+), 9413, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '415784009' and vocabulary_id = 'SNOMED'
+), 8629, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '417932008' and vocabulary_id = 'SNOMED'
+), 45891025, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '417962002' and vocabulary_id = 'SNOMED'
+), 45891026, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418042005' and vocabulary_id = 'SNOMED'
+), 45891027, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418261000' and vocabulary_id = 'SNOMED'
+), 45891028, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418342002' and vocabulary_id = 'SNOMED'
+), 45891029, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418830004' and vocabulary_id = 'SNOMED'
+), 45891030, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418931004' and vocabulary_id = 'SNOMED'
+), 45891031, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '418948007' and vocabulary_id = 'SNOMED'
+), 45891032, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '419346007' and vocabulary_id = 'SNOMED'
+), 45891033, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '419691006' and vocabulary_id = 'SNOMED'
+), 45891034, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '419805009' and vocabulary_id = 'SNOMED'
+), 45891035, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '8083511000001107' and vocabulary_id = 'SNOMED'
+), 45891036, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '8088511000001103' and vocabulary_id = 'SNOMED'
+), 45891037, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((
+	select concept_id from concept where concept_code = '8090811000001104' and vocabulary_id = 'SNOMED'
+), 45891038, 'Maps to', '01-Jan-1970', '31-Dec-2099', null);
+
+-- Add mappings from upgraded SNOMED Concepts to UCUM
+insert into concept_relationship 
+select 
+  rep.concept_id_1, 
+  ucum.concept_id_2,
+  'SNOMED replaced by' as relationship_id,
+  '01-Jan-1970' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from (
+  select c1.concept_id as concept_id_1, c2.concept_id as concept_id_2 from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where relationship_id='SNOMED replaced by' 
+  and c1.vocabulary_id='SNOMED' and c2.vocabulary_id='SNOMED'
+) rep
+join (
+  select c1.concept_id as concept_id_1, c2.concept_id as concept_id_2 from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where relationship_id='Maps to' 
+  and c1.vocabulary_id='SNOMED' and c2.vocabulary_id='UCUM'
+) ucum on rep.concept_id_2=ucum.concept_id_1
+;
+
+insert into concept_relationship 
+select 
+  ucum.concept_id_2 as concept_id_1,
+  rep.concept_id_1 as concept_id_2, 
+  'SNOMED replaces' as relationship_id,
+  '01-Jan-1970' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from (
+  select c1.concept_id as concept_id_1, c2.concept_id as concept_id_2 from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where relationship_id='SNOMED replaced by' 
+  and c1.vocabulary_id='SNOMED' and c2.vocabulary_id='SNOMED'
+) rep
+join (
+  select c1.concept_id as concept_id_1, c2.concept_id as concept_id_2 from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where relationship_id='Maps to' 
+  and c1.vocabulary_id='SNOMED' and c2.vocabulary_id='UCUM'
+) ucum on rep.concept_id_2=ucum.concept_id_1
+;
+
+commit;
+
+-- Add SNOMED UK additions to relationship
+'Has disp dose form' HAS_DISPENSED_DOSE_FORM
+'Has spec active ing' HAS_SPECIFIC_ACTIVE_INGREDIENT
+'Has basis str subst' HAS_BASIS_OF_STRENGTH_SUBSTANCE
+'Has VMP' HAS_VMP
+'Has incipient' HAS_EXCIPIENT
+'Has licensed route' Has licensed route
+'Has dose form unit' Unit relating to the size
+'Has unit of prod use' Unit relating to the entity that can be handled
+'Has route' 
+'Has AMP' HAS_AMP
+
 
 commit;
 

@@ -25,7 +25,9 @@ INSERT INTO concept_stage (concept_id,
                            valid_end_date,
                            invalid_reason)
    SELECT NULL AS concept_id,
-          SUBSTR (COALESCE(CONSUMER_NAME,long_common_name), 1, 256) AS concept_name,
+          SUBSTR (COALESCE (CONSUMER_NAME,
+			CASE WHEN LENGTH(LONG_COMMON_NAME)>255 AND SHORTNAME IS NOT NULL THEN SHORTNAME ELSE LONG_COMMON_NAME END)
+			,1,255) AS concept_name,
           CASE CLASSTYPE
              WHEN '1' THEN 'Measurement'
              WHEN '2' THEN 'Measurement'

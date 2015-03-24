@@ -3,13 +3,33 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage'
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);
 
+
+-- 1. Remove whitespace from concept_name
+UPDATE concept_stage
+   SET concept_name =
+          TRANSLATE (concept_name,
+                     'X' || CHR (9) || CHR (10) || CHR (13),
+                     'X')
+ WHERE concept_name <>
+          TRANSLATE (concept_name,
+                     'X' || CHR (9) || CHR (10) || CHR (13),
+                     'X');
+
+UPDATE concept_stage
+   SET concept_name = TRIM (concept_name)
+ WHERE concept_name <> TRIM (concept_name);
+
+COMMIT;
+
+
 /***************************
 * Update the concept table *
 ****************************/
 
--- 1. Update existing concept details from concept_stage. 
+-- 2. Update existing concept details from concept_stage. 
 -- All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date and valid_end_date) are updated
 -- with the exception of vocabulary_id (already there), concept_id (already there) and invalid_reason (below).
+ 
 UPDATE concept c
 SET (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date) = (
   SELECT 
@@ -32,7 +52,7 @@ WHERE c.concept_id IN (SELECT concept_id FROM concept_stage)
 
 COMMIT;
 
--- 2. Deprecate concepts missing from concept_stage and are not already deprecated. 
+-- 3. Deprecate concepts missing from concept_stage and are not already deprecated. 
 -- This only works for vocabularies where we expect a full set of active concepts in concept_stage.
 -- If the vocabulary only provides changed concepts, this should not be run, and the update information is already dealt with in step 1.
 UPDATE concept c SET
@@ -64,7 +84,7 @@ END = 1
 
 COMMIT;
 
--- 3. Add new concepts from concept_stage
+-- 4. Add new concepts from concept_stage
 -- Create sequence after last valid one
 DECLARE
  ex NUMBER;
@@ -104,7 +124,7 @@ DROP SEQUENCE v5_concept;
   
 COMMIT;
 
--- 4. Make sure that invalid concepts are standard_concept = NULL
+-- 5. Make sure that invalid concepts are standard_concept = NULL
 UPDATE concept c SET
   c.standard_concept = NULL
 WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') 
@@ -116,7 +136,7 @@ COMMIT;
 * Update the concept_relationship table *
 ****************************************/
 
--- 5. Turn all relationship records so they are symmetrical if necessary
+-- 6. Turn all relationship records so they are symmetrical if necessary
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -146,7 +166,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;		
 
--- 6. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
+-- 7. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
 MERGE INTO concept_relationship d
     USING (
         WITH rel_id as ( -- concept_relationship with concept_ids filled in
@@ -164,7 +184,7 @@ WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reas
 
 COMMIT; 
 
--- 7. Deprecate missing relationships, but only if the concepts are fresh. If relationships are missing because of deprecated concepts, leave them intact.
+-- 8. Deprecate missing relationships, but only if the concepts are fresh. If relationships are missing because of deprecated concepts, leave them intact.
 -- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 AND relationship_id is present in concept_relationship_stage
 -- The latter will prevent large-scale deprecations of relationships between vocabularies where the relationship is defined not here, but together with the other vocab
 
@@ -230,7 +250,7 @@ UPDATE concept_relationship d
 
 DROP TABLE r_coverage PURGE;
 
--- 8. Deprecate replacement concept_relationship records if we have a new one in concept_stage with the same source concept (deprecated concept)
+-- 9. Deprecate replacement concept_relationship records if we have a new one in concept_stage with the same source concept (deprecated concept)
 UPDATE concept_relationship d
    SET valid_end_date  = 
             (SELECT v.latest_update
@@ -292,7 +312,7 @@ UPDATE concept_relationship d
 
 COMMIT;
 
--- 9. Insert new relationships if they don't already exist
+-- 10. Insert new relationships if they don't already exist
 ALTER TABLE concept_relationship NOLOGGING;
 
 INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
@@ -326,7 +346,7 @@ COMMIT;
 -- The following are a bunch of rules for Maps to and Maps from relationships. 
 -- Since they work outside the _stage tables, they will be restricted to the vocabularies worked on 
 
--- 10. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S' 
+-- 11. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S' 
 INSERT /*+ APPEND */ INTO  concept_relationship (
                                         concept_id_1,
                                         concept_id_2,
@@ -381,7 +401,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship (
 
 COMMIT;
 
--- 11. 'Maps to' or 'Mapped from' relationships should not exist where 
+-- 12. 'Maps to' or 'Mapped from' relationships should not exist where 
 -- a) the source concept has standard_concept = 'S', unless it is to self
 -- b) the target concept has standard_concept = 'C' or NULL
 
@@ -445,7 +465,7 @@ COMMIT;
 * This should rarely happen                              *
 *********************************************************/
 
--- 12. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
+-- 13. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
 UPDATE concept c SET
   c.invalid_reason = 'U'
 WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
@@ -470,7 +490,7 @@ AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update
 AND c.invalid_reason IS NULL -- not already deprecated
 ;
 
--- 13. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table
+-- 14. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table
 UPDATE concept c SET
   c.invalid_reason = 'D'
 WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
@@ -495,7 +515,7 @@ AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update
 AND c.invalid_reason IS NULL -- not already deprecated
 ;
 
--- 14. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
+-- 15. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
 UPDATE concept SET
   invalid_reason = null
 WHERE valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
@@ -509,7 +529,7 @@ COMMIT;
 * Update the concept_synonym table *
 ************************************/
 
--- 15. Remove all existing synonyms for concepts that are in concept_stage
+-- 16. Remove all existing synonyms for concepts that are in concept_stage
 -- Synonyms are built from scratch each time, no life cycle
 DELETE FROM concept_synonym csyn
       WHERE csyn.concept_id IN (SELECT c.concept_id
@@ -518,7 +538,7 @@ DELETE FROM concept_synonym csyn
                                        AND cs.vocabulary_id = c.vocabulary_id
                                );
 
--- 16. Add new synonyms for existing concepts
+-- 17. Add new synonyms for existing concepts
 INSERT /*+ APPEND */ INTO concept_synonym (concept_id,
                              concept_synonym_name,
                              language_concept_id)

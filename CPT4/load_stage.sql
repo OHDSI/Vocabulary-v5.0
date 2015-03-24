@@ -28,16 +28,13 @@ INSERT INTO concept_stage (concept_id,
    SELECT DISTINCT
           NULL AS concept_id,
           FIRST_VALUE (
-             SUBSTR (str, 1, 255))
+             str)
           OVER (
              PARTITION BY scui
              ORDER BY
-                DECODE (tty,
-                        'PT', 1,                             -- preferred term
-                        'ETCLIN', 2,      -- Entry term, clinician description
-                        'ETCF', 3, -- Entry term, consumer friendly description
-                        'SY', 4,                                    -- Synonym
-                        10))
+                CASE WHEN LENGTH (str) <= 200 THEN LENGTH (str) ELSE 0 END DESC,
+                LENGTH (str)
+             ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
              AS concept_name,
           NULL AS domain_id,                                -- adding manually
           'CPT4' AS vocabulary_id,
@@ -69,8 +66,14 @@ INSERT INTO concept_stage (concept_id,
                            invalid_reason)
    SELECT DISTINCT
           NULL AS concept_id,
-          FIRST_VALUE (SUBSTR (str, 1, 255))
-             OVER (PARTITION BY scui ORDER BY DECODE (sab, 'CPT', 1, 10))
+          FIRST_VALUE (
+             str)
+          OVER (
+             PARTITION BY scui
+             ORDER BY
+                CASE WHEN LENGTH (str) <= 200 THEN LENGTH (str) ELSE 0 END DESC,
+                LENGTH (str)
+             ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
              AS concept_name,
           NULL AS domain_id,
           'CPT4' AS vocabulary_id,

@@ -440,7 +440,9 @@ ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 
 --15 Run generic_update.sql from working directory
 
---16 After previous step disable indexes and truncate tables again
+--16 Run drug_strength.sql from Final_Assembly directory
+
+--17 After previous step disable indexes and truncate tables again
 UPDATE vocabulary SET (latest_update, vocabulary_version)=
 (select latest_update, vocabulary_version from vocabulary WHERE vocabulary_id = 'RxNorm')
 	WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class', 'ATC'); 
@@ -456,7 +458,7 @@ ALTER INDEX idx_cs_concept_id UNUSABLE;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
---17 add NDFRT, VA Product, VA Class and ATC
+--18 add NDFRT, VA Product, VA Class and ATC
 BEGIN
    EXECUTE IMMEDIATE 'drop table drug_vocs purge';
 EXCEPTION
@@ -580,7 +582,7 @@ AS
              FROM rxnconso
             WHERE sab = 'ATC' AND suppress != 'Y' AND tty IN ('PT', 'IN') AND code != 'NOCODE');
 
---18 Add to concept_stage
+--19 Add to concept_stage
 INSERT INTO concept_stage (concept_id,
                            concept_name,
                            domain_id,
@@ -605,7 +607,7 @@ INSERT INTO concept_stage (concept_id,
     WHERE v.vocabulary_id = dv.vocabulary_id;
 COMMIT;	
 
---19 Rename the top NDFRT concept
+--20 Rename the top NDFRT concept
 UPDATE concept_stage
    SET concept_name =
              'NDF-RT release '
@@ -616,7 +618,7 @@ UPDATE concept_stage
  WHERE concept_code = 'N0000000001';
  COMMIT;
 
---20 Create all sorts of relationships to self, RxNorm and SNOMED
+--21 Create all sorts of relationships to self, RxNorm and SNOMED
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -1065,7 +1067,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
     WHERE relationship_id IS NOT NULL;
 COMMIT;
 
---21 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
+--22 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -1100,7 +1102,7 @@ SELECT DISTINCT
 COMMIT;
 
 
---22 Add mapping from deprecated to fresh concepts
+--23 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
@@ -1176,14 +1178,14 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;				 
 
---23 Update concept_id in concept_stage from concept for existing concepts
+--24 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL
 ;
 COMMIT;
 
---24 Reinstate constraints and indices
+--25 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

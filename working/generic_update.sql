@@ -539,17 +539,20 @@ DELETE FROM concept_synonym csyn
                                );
 
 -- 17. Add new synonyms for existing concepts
-INSERT /*+ APPEND */ INTO concept_synonym (concept_id,
+INSERT /*+ APPEND */
+      INTO  concept_synonym (concept_id,
                              concept_synonym_name,
                              language_concept_id)
-   SELECT c.concept_id, synonym_name, 4093769 -- for English
+   SELECT c.concept_id,
+          TRANSLATE (TRIM (synonym_name),
+                     'X' || CHR (9) || CHR (10) || CHR (13),
+                     'X'),
+          4093769                                               -- for English
      FROM concept_synonym_stage css, concept c, concept_stage cs
     WHERE     css.synonym_concept_code = c.concept_code
           AND css.synonym_vocabulary_id = c.vocabulary_id
           AND cs.concept_code = c.concept_code
-          AND cs.vocabulary_id = c.vocabulary_id
-;
-
+          AND cs.vocabulary_id = c.vocabulary_id;
 COMMIT;
 
 -- QA

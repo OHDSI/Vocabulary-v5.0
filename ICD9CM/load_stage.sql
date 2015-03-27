@@ -241,6 +241,53 @@ COMMIT;
 --10 update domain_id for ICD9CM from SNOMED
 --create temporary table ICD9CM_domain
 --if domain_id is empty we use previous and next domain_id or its combination
+create table filled_domain as
+	with domain_map2value as (
+		SELECT c1.concept_code, c2.domain_id
+		FROM concept_relationship_stage r, concept_stage c1, devv5.concept c2
+		WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
+		AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
+		AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
+		AND r.relationship_id='Maps to value'
+		AND r.invalid_reason is null
+	)
+	select 
+	d.concept_code,
+	case    when d.domain_id in ('Procedure', 'Measurement') 
+				and exists (select 1 from domain_map2value t where t.concept_code=d.concept_code and t.domain_id in ('Meas Value' , 'Spec Disease Status'))
+				then 'Measurement'
+			when d.domain_id = 'Procedure' and exists (select 1 from domain_map2value t where t.concept_code=d.concept_code and t.domain_id = 'Condition')
+				then 'Condition'
+			when d.domain_id = 'Condition' and exists (select 1 from domain_map2value t where t.concept_code=d.concept_code and t.domain_id = 'Procedure')
+				then 'Condition' 
+			when d.domain_id = 'Observation' 
+				then 'Observation'                 
+			else d.domain_id
+	end domain_id
+	FROM 
+	( select concept_code,
+		case when domain_id='Condition/Measurement' then 'Condition'
+			 when domain_id='Condition/Procedure' then 'Condition'
+			 when domain_id='Condition/Observation' then 'Observation'
+			 when domain_id='Observation/Procedure' then 'Observation'
+			 when domain_id='Measurement/Observation' then 'Observation'
+			 when domain_id='Measurement/Procedure' then 'Measurement'
+			 else domain_id
+		end domain_id
+		from (
+			select concept_code, listagg(domain_id,'/') within group (order by domain_id) domain_id from (
+				SELECT distinct c1.concept_code, c2.domain_id
+				FROM concept_relationship_stage r, concept_stage c1, devv5.concept c2
+				WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
+				AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
+				AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
+				AND r.relationship_id='Maps to'
+				AND r.invalid_reason is null
+			)
+			group by concept_code
+		)
+	) d;
+
 create table ICD9CM_domain NOLOGGING as
     select concept_code, 
     case when domain_id is not null then domain_id 
@@ -250,40 +297,20 @@ create table ICD9CM_domain NOLOGGING as
                 case when prev_domain<next_domain then prev_domain||'/'||next_domain 
                 else next_domain||'/'||prev_domain 
                 end -- prev and next domain are not same and not null both, with order by name
-            else coalesce (prev_domain,next_domain,
-                case concept_class_id
-                    when 'ICD9CM E code' then 'Observation'
-                    else 'Condition'
-                end
-            )
+            else coalesce (prev_domain,next_domain,'Unknown')
         end
     end domain_id
     from (
-			select concept_code, LISTAGG(domain_id, '/') WITHIN GROUP (order by domain_id) domain_id, prev_domain, next_domain, concept_class_id from (
-			with filled_domain as
-						(
-							select c1.concept_code, c2.domain_id
-							FROM concept_relationship_stage r, concept_stage c1, concept c2
-							WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
-							AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
-							AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
-							AND relationship_id = 'Maps to'
-							AND r.invalid_reason is null
-						)
+            select concept_code, LISTAGG(domain_id, '/') WITHIN GROUP (order by domain_id) domain_id, prev_domain, next_domain from (
 
-						select distinct c1.concept_code, r1.domain_id, c1.concept_class_id,
-							(select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and r1.domain_id is null) prev_domain,
-							(select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and r1.domain_id is null) next_domain
-						from concept_stage c1
-						left join (
-							select r.concept_code_1, r.vocabulary_id_1, c2.domain_id from concept_relationship_stage r, concept c2 
-							where c2.concept_code=r.concept_code_2 
-							and r.vocabulary_id_2=c2.vocabulary_id 
-							and c2.vocabulary_id='SNOMED'
-						) r1 on r1.concept_code_1=c1.concept_code and r1.vocabulary_id_1=c1.vocabulary_id
-						where c1.vocabulary_id='ICD9CM'
-			)
-			group by concept_code,prev_domain, next_domain, concept_class_id
+                        select distinct c1.concept_code, r1.domain_id,
+                            (select MAX(fd.domain_id) KEEP (DENSE_RANK LAST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code<c1.concept_code and r1.domain_id is null) prev_domain,
+                            (select MIN(fd.domain_id) KEEP (DENSE_RANK FIRST ORDER BY fd.concept_code) from filled_domain fd where fd.concept_code>c1.concept_code and r1.domain_id is null) next_domain
+                        from concept_stage c1
+                        left join filled_domain r1 on r1.concept_code=c1.concept_code
+                        where c1.vocabulary_id='ICD9CM'
+            )
+            group by concept_code,prev_domain, next_domain
     );
 
 -- INDEX was set as UNIQUE to prevent concept_code duplication
@@ -392,6 +419,7 @@ UPDATE concept_stage cs
 
 --15. Clean up
 DROP TABLE ICD9CM_domain PURGE;
+DROP TABLE filled_domain PURGE;
 	
 --16 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;

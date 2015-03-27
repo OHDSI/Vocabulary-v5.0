@@ -1,4 +1,8 @@
 -- 1. Update latest_update field to new date 
+BEGIN
+   EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
+EXCEPTION WHEN OTHERS THEN NULL;
+END;
 ALTER TABLE vocabulary ADD latest_update DATE;
 UPDATE vocabulary SET latest_update=to_date('20150301','yyyymmdd'), vocabulary_version='MedDRA version 18.0' WHERE vocabulary_id = 'MedDRA';
 COMMIT;

@@ -313,8 +313,6 @@ UPDATE concept_relationship d
 COMMIT;
 
 -- 10. Insert new relationships if they don't already exist
-ALTER TABLE concept_relationship NOLOGGING;
-
 INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
                                   concept_id_2,
                                   relationship_id,
@@ -339,8 +337,6 @@ INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
                      AND crs.relationship_id = r.relationship_id
               )
 ;
-ALTER TABLE concept_relationship LOGGING;
-
 COMMIT;
 
 -- The following are a bunch of rules for Maps to and Maps from relationships. 
@@ -554,6 +550,17 @@ INSERT /*+ APPEND */
           AND cs.concept_code = c.concept_code
           AND cs.vocabulary_id = c.vocabulary_id;
 COMMIT;
+
+-- 18. update latest_update on vocabulary_conversion
+MERGE INTO vocabulary_conversion vc
+     USING (SELECT latest_update, vocabulary_id
+              FROM vocabulary
+             WHERE latest_update IS NOT NULL) v
+        ON (v.vocabulary_id = vc.vocabulary_id_v5)
+WHEN MATCHED
+THEN
+   UPDATE SET vc.latest_update = v.latest_update;
+COMMIT;   
 
 -- QA
 -- Only one active replacement relationship per fresh code

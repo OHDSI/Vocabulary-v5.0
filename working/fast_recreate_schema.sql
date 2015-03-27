@@ -4,6 +4,7 @@ use this script to recreate main tables (concept, concept_relationship, concept_
 
 
 declare
+main_schema_name constant varchar2(100):='ProdV5';
 begin 
     execute immediate 'ALTER TABLE source_to_concept_map DROP CONSTRAINT fpk_source_to_concept_map_v_1';
     execute immediate 'ALTER TABLE source_to_concept_map DROP CONSTRAINT fpk_source_to_concept_map_v_2';
@@ -17,17 +18,19 @@ begin
 	execute immediate 'truncate table concept_synonym_stage';
 	execute immediate 'truncate table concept_class';
 	execute immediate 'truncate table domain';
+	execute immediate 'truncate table vocabulary_conversion';
 
-	insert into concept_class select * from v5dev.concept_class;
-	insert into domain select * from v5dev.domain;
+	execute immediate 'insert into concept_class select * from '||main_schema_name||'.concept_class';
+	execute immediate 'insert into domain select * from '||main_schema_name||'.domain';
+	execute immediate 'insert into vocabulary_conversion select * from '||main_schema_name||'.vocabulary_conversion';
 
     
     /*CTAS with NOLOGGING (faster)*/
-    execute immediate 'CREATE TABLE concept NOLOGGING AS SELECT * FROM v5dev.concept';
-    execute immediate 'CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM v5dev.concept_relationship';
-    execute immediate 'CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM v5dev.concept_synonym';
-    execute immediate 'CREATE TABLE vocabulary NOLOGGING AS SELECT * FROM v5dev.vocabulary';
-    execute immediate 'CREATE TABLE relationship NOLOGGING AS SELECT * FROM v5dev.relationship';
+    execute immediate 'CREATE TABLE concept NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept';
+    execute immediate 'CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_relationship';
+    execute immediate 'CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_synonym';
+    execute immediate 'CREATE TABLE vocabulary NOLOGGING AS SELECT * FROM '||main_schema_name||'.vocabulary';
+    execute immediate 'CREATE TABLE relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.relationship';
 
     /*create indexes and constraints for main tables*/
     execute immediate 'ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id)';

@@ -1,4 +1,8 @@
 --1. Update latest_update field to new date 
+BEGIN
+   EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
+EXCEPTION WHEN OTHERS THEN NULL;
+END;
 ALTER TABLE vocabulary ADD latest_update DATE;
 update vocabulary set latest_update=to_date('20141001','yyyymmdd'), vocabulary_version='NHS READV2 18.0.2 20141001000001' where vocabulary_id='Read'; commit;
 

@@ -1,6 +1,10 @@
 -- 1. Update latest_update field to new date 
 -- Use the later of the release dates of the international and UK versions. Usually, the UK is later.
 -- If the international version is already loaded, updating will not affect it
+BEGIN
+   EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
+EXCEPTION WHEN OTHERS THEN NULL;
+END;
 ALTER TABLE vocabulary ADD latest_update DATE;
 UPDATE vocabulary SET latest_update=to_date('2015031','yyyymmdd'), vocabulary_version='SnomedCT Release INT 2015031' WHERE vocabulary_id='SNOMED'; 
 COMMIT;

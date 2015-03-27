@@ -1,5 +1,8 @@
-
 --1. Update latest_update field to new date 
+BEGIN
+   EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
+EXCEPTION WHEN OTHERS THEN NULL;
+END;
 ALTER TABLE vocabulary ADD latest_update DATE;
 update vocabulary set latest_update=to_date('20141112','yyyymmdd'), vocabulary_version='2015 Annual Alpha Numeric HCPCS File' where vocabulary_id='HCPCS'; commit;
 

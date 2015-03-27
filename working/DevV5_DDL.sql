@@ -85,14 +85,14 @@ NOLOGGING
 
 -- Create copies of table
 
-CREATE TABLE concept NOLOGGING AS SELECT * FROM v5dev.concept;
-CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM v5dev.concept_relationship;
-CREATE TABLE relationship NOLOGGING AS SELECT * FROM v5dev.relationship;
-CREATE TABLE vocabulary NOLOGGING AS SELECT * FROM v5dev.vocabulary;
-CREATE TABLE concept_class NOLOGGING AS SELECT * FROM v5dev.concept_class;
-CREATE TABLE domain NOLOGGING AS SELECT * FROM v5dev.domain;
-CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM v5dev.concept_synonym;
-
+CREATE TABLE concept NOLOGGING AS SELECT * FROM prodv5.concept;
+CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM prodv5.concept_relationship;
+CREATE TABLE relationship NOLOGGING AS SELECT * FROM prodv5.relationship;
+CREATE TABLE vocabulary NOLOGGING AS SELECT * FROM prodv5.vocabulary;
+CREATE TABLE concept_class NOLOGGING AS SELECT * FROM prodv5.concept_class;
+CREATE TABLE domain NOLOGGING AS SELECT * FROM prodv5.domain;
+CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM prodv5.concept_synonym;
+CREATE TABLE vocabulary_conversion NOLOGGING AS SELECT * FROM prodv5.vocabulary_conversion;
 
 -- Create PKs
 ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);

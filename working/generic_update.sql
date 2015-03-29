@@ -4,7 +4,7 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relati
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);
 
 
--- 1. Remove whitespace from concept_name
+-- 1. Remove whitespaces from concept_name
 UPDATE concept_stage
    SET concept_name =
           TRANSLATE (concept_name,
@@ -15,9 +15,16 @@ UPDATE concept_stage
                      'X' || CHR (9) || CHR (10) || CHR (13),
                      'X');
 
+--remove spaces					 
 UPDATE concept_stage
    SET concept_name = TRIM (concept_name)
  WHERE concept_name <> TRIM (concept_name);
+ 
+
+ --remove long dashes
+UPDATE concept_stage
+   SET concept_name = REPLACE (concept_name, '–', '-')
+ WHERE concept_name LIKE '%–%';
 
 COMMIT;
 

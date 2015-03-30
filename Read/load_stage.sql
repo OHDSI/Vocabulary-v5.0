@@ -103,7 +103,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 						  AND i.relationship_id = 'Maps to');
 COMMIT;
 
---5 Make sure all records are symmetrical and turn if necessary
+--5 Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -112,25 +112,20 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT crs.concept_code_2,
-          crs.concept_code_1,
-          crs.vocabulary_id_2,
-          crs.vocabulary_id_1,
-          r.reverse_relationship_id,
-          crs.valid_start_date,
-          crs.valid_end_date,
-          crs.invalid_reason
-     FROM concept_relationship_stage crs
-          JOIN relationship r ON r.relationship_id = crs.relationship_id
-    WHERE NOT EXISTS
-             (                                           -- the inverse record
-              SELECT 1
-                FROM concept_relationship_stage i
-               WHERE     crs.concept_code_1 = i.concept_code_2
-                     AND crs.concept_code_2 = i.concept_code_1
-                     AND crs.vocabulary_id_1 = i.vocabulary_id_2
-                     AND crs.vocabulary_id_2 = i.vocabulary_id_1
-                     AND r.reverse_relationship_id = i.relationship_id);
+   SELECT c1.concept_code AS concept_code_1,
+          c2.concept_code AS concept_code_2,
+          c1.vocabulary_id AS vocabulary_id_1,
+          c1.vocabulary_id AS vocabulary_id_2,
+          'Subsumes' AS relationship_id,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = c1.vocabulary_id)
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM concept_stage c1, concept_stage c2
+    WHERE     c2.concept_code LIKE c1.concept_code || '%'
+          AND c1.concept_code <> c2.concept_code;
 COMMIT;					 
 
 --6. update domain_id for Read from SNOMED

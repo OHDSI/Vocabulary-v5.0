@@ -241,8 +241,34 @@ INSERT INTO concept_relationship_stage (concept_code_1,
           NULL AS invalid_reason
      FROM concept_relationship_manual9cm;
 COMMIT;
+
+
+--10 Add "subsumes" relationship between concepts where the concept_code is like of another
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT c1.concept_code AS concept_code_1,
+          c2.concept_code AS concept_code_2,
+          c1.vocabulary_id AS vocabulary_id_1,
+          c1.vocabulary_id AS vocabulary_id_2,
+          'Subsumes' AS relationship_id,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = c1.vocabulary_id)
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM concept_stage c1, concept_stage c2
+    WHERE     c2.concept_code LIKE c1.concept_code || '%'
+          AND c1.concept_code <> c2.concept_code;
+COMMIT;
 	 
---10 update domain_id for ICD9CM from SNOMED
+--11 update domain_id for ICD9CM from SNOMED
 --create temporary table ICD9CM_domain
 --if domain_id is empty we use previous and next domain_id or its combination
 create table filled_domain as
@@ -320,7 +346,7 @@ create table ICD9CM_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication
 CREATE UNIQUE INDEX idx_ICD9CM_domain ON ICD9CM_domain (concept_code) NOLOGGING;
 
---11. Simplify the list by removing Observations
+--12. Simplify the list by removing Observations
 update ICD9CM_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -332,7 +358,7 @@ update ICD9CM_domain set domain_id='Condition/Meas' where domain_id='Condition/M
 update ICD9CM_domain set domain_id='Procedure' where domain_id='Procedure/Spec Disease Status';
 COMMIT;
 
---12. update each domain_id with the domains field from ICD9CM_domain.
+--13. update each domain_id with the domains field from ICD9CM_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
@@ -341,7 +367,7 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'ICD9CM';
 COMMIT;
 
---13. Add mapping from deprecated to fresh concepts
+--14. Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -416,16 +442,16 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---14 Update concept_id in concept_stage from concept for existing concepts
+--15 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---15. Clean up
+--16. Clean up
 DROP TABLE ICD9CM_domain PURGE;
 DROP TABLE filled_domain PURGE;
 	
---16 Reinstate constraints and indices
+--17 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

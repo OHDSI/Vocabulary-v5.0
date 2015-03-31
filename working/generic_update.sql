@@ -532,7 +532,26 @@ COMMIT;
 * Update the concept_synonym table *
 ************************************/
 
--- 16. Remove all existing synonyms for concepts that are in concept_stage
+-- 16. Add all missing synonyms
+INSERT INTO concept_synonym_stage (synonym_concept_id,
+                                   synonym_concept_code,
+                                   synonym_name,
+                                   synonym_vocabulary_id,
+                                   language_concept_id)
+   SELECT NULL AS synonym_concept_id,
+          c.concept_code AS synonym_concept_code,
+          c.concept_name AS synonym_name,
+          c.vocabulary_id AS synonym_vocabulary_id,
+          4093769 AS language_concept_id
+     FROM concept_stage c
+    WHERE NOT EXISTS
+             (SELECT 1
+                FROM concept_synonym_stage css
+               WHERE     css.synonym_concept_code = c.concept_code
+                     AND css.synonym_vocabulary_id = c.vocabulary_id);
+COMMIT;					 
+
+-- 17. Remove all existing synonyms for concepts that are in concept_stage
 -- Synonyms are built from scratch each time, no life cycle
 DELETE FROM concept_synonym csyn
       WHERE csyn.concept_id IN (SELECT c.concept_id
@@ -541,7 +560,7 @@ DELETE FROM concept_synonym csyn
                                        AND cs.vocabulary_id = c.vocabulary_id
                                );
 
--- 17. Add new synonyms for existing concepts
+-- 18. Add new synonyms for existing concepts
 INSERT /*+ APPEND */
       INTO  concept_synonym (concept_id,
                              concept_synonym_name,
@@ -558,7 +577,7 @@ INSERT /*+ APPEND */
           AND cs.vocabulary_id = c.vocabulary_id;
 COMMIT;
 
--- 18. update latest_update on vocabulary_conversion
+-- 19. update latest_update on vocabulary_conversion
 MERGE INTO vocabulary_conversion vc
      USING (SELECT latest_update, vocabulary_id
               FROM vocabulary

@@ -104,6 +104,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 COMMIT;
 
 --5 Add "subsumes" relationship between concepts where the concept_code is like of another
+ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -126,7 +127,8 @@ INSERT INTO concept_relationship_stage (concept_code_1,
      FROM concept_stage c1, concept_stage c2
     WHERE     c2.concept_code LIKE c1.concept_code || '%'
           AND c1.concept_code <> c2.concept_code;
-COMMIT;					 
+COMMIT;	
+ALTER INDEX idx_cs_concept_code UNUSABLE;				 
 
 --6. update domain_id for Read from SNOMED
 --create temporary table read_domain
@@ -173,9 +175,17 @@ create table read_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication    
 CREATE UNIQUE INDEX idx_read_domain ON read_domain (concept_code) NOLOGGING;
 
---7. Simplify the list by removing Observations
+--7. Simplify the list by removing Observations, Metadata and Note Type
 update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
+and instr(domain_id,'/')<>0;
+
+update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Metadata/','/'))
+where '/'||domain_id||'/' like '%/Metadata/%'
+and instr(domain_id,'/')<>0;
+
+update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Note Type/','/'))
+where '/'||domain_id||'/' like '%/Note Type/%'
 and instr(domain_id,'/')<>0;
 
 --reducing some domain_id if his length>20

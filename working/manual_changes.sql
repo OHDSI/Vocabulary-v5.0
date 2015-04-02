@@ -1386,6 +1386,45 @@ join (
 ) ucum on rep.concept_id_2=ucum.concept_id_1
 ;
 
+-- Fix dashes in type concepts
+update concept set concept_name='Inpatient detail - 16th position' where concept_id = 44818709;
+update concept set concept_name='Inpatient detail - 17th position' where concept_id = 44818710;
+update concept set concept_name='Inpatient detail - 18th position' where concept_id = 44818711;
+update concept set concept_name='Inpatient detail - 19th position' where concept_id = 44818712;
+update concept set concept_name='Inpatient detail - 20th position' where concept_id = 44818713;
+update concept set concept_name='Outpatient detail - 2nd position' where concept_id = 45756856;
+update concept set concept_name='Outpatient detail - 3rd position' where concept_id = 45756857;
+update concept set concept_name='National Drug File - Reference Terminology (VA)' where concept_id = 44819103;
+
+-- Declare old HOI and DOI cohorts obsolete
+update vocabulary set vocabulary_name = 'Legacy OMOP HOI or DOI cohort' where vocabulary_id = 'Cohort';
+update concept set concept_name = 'Legacy OMOP HOI or DOI cohort' where concept_id = 44819123;
+
+-- Fix valid_end_date of 31-Dec-1999 (instead of 2099)
+update concept set valid_end_date = '31-Dec-2099' where valid_end_date='31-Dec-1999';
+
+-- Fix concept_relatinoship records
+-- Set inferred and first occurrence of FDB Indication relationships to start 1-1-1970
+update concept_relationship set valid_start_date='1-Jan-1970' where lower(relationship_id) like '%inferred%';
+update concept_relationship set valid_start_date='1-Jan-1970' where relationship_id in ('Is CI of', 'Is FDA-appr ind of', 'Is off-label ind of') and valid_start_date = '25-OCT-2011';
+update concept_relationship set valid_start_date='1-Jan-1970' where relationship_id in ('Has CI', 'Has FDA-appr ind', 'Has off-label ind') and valid_start_date = '25-OCT-2011';
+-- remove those which were introduced and then deprecated during V5 construction
+delete from concept_relationship where rowid in
+(select rowid from concept_relationship 
+    where valid_start_date>valid_end_date-3 and valid_start_date<valid_end_date + 3
+    and valid_start_date>'1-Oct-2014'
+);
+
+-- Change default click status in vocabulary_conversion
+update vocabulary_conversion set click_default='Y' where vocabulary_id_v5='NUCC';
+update vocabulary_conversion set click_default='Y' where vocabulary_id_v5='ICD9CM';
+update vocabulary_conversion set click_default='Y' where vocabulary_id_v5='Cohort';
+update vocabulary_conversion set click_default='Y' where vocabulary_id_v5='SPL';
+
+-- Add missing Drug Type Patient Self-Reported Medication 
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (44787730, 'Patient Self-Reported Medication', 'Drug Type', 'Drug Type', 'Drug Type', 'S', 'OMOP generated', '01-JAN-70', '31-DEC-99', null);
+
 commit;
 
 -- Add SNOMED UK additions to relationship

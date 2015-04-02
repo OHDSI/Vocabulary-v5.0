@@ -1425,6 +1425,82 @@ update vocabulary_conversion set click_default='Y' where vocabulary_id_v5='SPL';
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (44787730, 'Patient Self-Reported Medication', 'Drug Type', 'Drug Type', 'Drug Type', 'S', 'OMOP generated', '01-JAN-70', '31-DEC-99', null);
 
+-- Remove ICD9CM dotless duplicates and create replacement relationships
+insert into concept_relationship
+select distinct
+  e.concept_id as concept_id_1,
+  d.concept_id as concept_id_2,
+  'Concept replaced by' as relationship_id,
+  '1-Apr-2015' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from concept e
+join concept d on e.concept_code = replace(d.concept_code, '.', '') and d.vocabulary_id = 'ICD9CM' and e.concept_id!=d.concept_id
+where e.vocabulary_id = 'ICD9CM'
+  and e.concept_code like 'V___%'
+  and e.concept_code not like '%.%'
+order by 1, 2;
+
+insert into concept_relationship
+select distinct
+  d.concept_id as concept_id_1,
+  e.concept_id as concept_id_2,
+  'Concept replaces' as relationship_id,
+  '1-Apr-2015' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from concept e
+join concept d on e.concept_code = replace(d.concept_code, '.', '') and d.vocabulary_id = 'ICD9CM' and e.concept_id!=d.concept_id
+where e.vocabulary_id = 'ICD9CM'
+  and e.concept_code like 'V___%'
+  and e.concept_code not like '%.%'
+;
+
+update concept c set 
+  concept_name = 'Duplicate of ICD9CM Concept, do not use, use replacement from CONCEPT_RELATIONSHIP table instead',
+  concept_code = concept_id,
+  invalid_reason = 'U'
+where c.vocabulary_id='ICD9CM'
+and exists (
+  select 1 from concept m
+  where c.concept_code = replace (m.concept_code, '.', '')
+  and m.vocabulary_id='ICD9CM' 
+)
+and c.concept_code like 'V___%'
+and c.concept_code not like '%.%'
+;
+
+-- remove all concept_codes from previously inactivated duplicate codes
+update concept set concept_code = concept_id 
+where concept_name like '%do not use%' and vocabulary_id in ('ICD9CM', 'ICD10', 'MedDRA') and invalid_reason is not null
+;
+
+-- deprecate all relationships that are not replacement relationships from these
+update concept_relationship r set
+  r.valid_end_date = (select case when c.valid_end_date < r.valid_end_date then c.valid_end_date else r.valid_end_date end from concept c where c.concept_id = r.concept_id_1),
+  r.invalid_reason = 'D'
+where exists (
+  select 1 from concept c
+  where r.concept_id_1 = c.concept_id
+  and c.concept_name like '%do not use%' and c.vocabulary_id in ('ICD10', 'ICD9CM', 'MedDRA')
+)
+and r.relationship_id not like '%replace%'
+;
+
+update concept_relationship r set
+  r.valid_end_date = (select case when c.valid_end_date < r.valid_end_date then c.valid_end_date else r.valid_end_date end from concept c where c.concept_id = r.concept_id_2),
+  r.invalid_reason = 'D'
+where exists (
+  select 1 from concept c
+  where r.concept_id_2 = c.concept_id
+  and c.concept_name like '%do not use%' and c.vocabulary_id in ('ICD10', 'ICD9CM', 'MedDRA')
+)
+and r.relationship_id not like '%replace%'
+;
+
+-- Fix wrong dash in NDFRT vocabulary_name
+update vocabulary set vocabulary_name = 'National Drug File - Reference Terminology (VA)' where vocabulary_id = 'NDFRT';
+
 commit;
 
 -- Add SNOMED UK additions to relationship

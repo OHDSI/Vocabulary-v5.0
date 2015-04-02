@@ -651,7 +651,7 @@ INSERT /*+ APPEND */
 COMMIT;	 
 
 
-
+--concepts with direct mappings
 INSERT /*+ APPEND */
       INTO  source_to_concept_map (SOURCE_CODE,
                                    SOURCE_vocabulary_id,
@@ -683,11 +683,16 @@ INSERT /*+ APPEND */
           AND r.relationship_id = 'Maps to'
           AND c1.vocabulary_id = vc1.vocabulary_id_v5
           AND c2.vocabulary_id = vc2.vocabulary_id_v5
+          AND NOT (    c1.concept_name LIKE '%do not use%'
+                   AND c1.vocabulary_id IN ('ICD9CM', 'ICD10', 'MedDRA')
+                   AND c1.invalid_reason IS NOT NULL)
           AND EXISTS
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = c2.concept_id);
 COMMIT;
+
+--unmapped concepts
 INSERT /*+ APPEND */
       INTO  source_to_concept_map (SOURCE_CODE,
                                    SOURCE_vocabulary_id,
@@ -718,18 +723,24 @@ INSERT /*+ APPEND */
              ON vc1.vocabulary_id_v5 = c1.vocabulary_id
     WHERE     r.concept_id_1 IS NULL
           AND c1.concept_code <> 'OMOP generated'
-          AND c1.concept_id in    (
-            SELECT MIN (c2.concept_id)
-            FROM devv5.concept c2
-            GROUP BY c2.vocabulary_id, c2.concept_code, c2.valid_end_date
-          )           
+          AND c1.concept_id IN (  SELECT MIN (c2.concept_id) --remove duplicates
+                                    FROM devv5.concept c2
+                                GROUP BY c2.vocabulary_id,
+                                         c2.concept_code,
+                                         c2.valid_end_date)
           AND NOT EXISTS
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = c1.concept_id)
-          AND NOT EXISTS (SELECT 1 FROM source_to_concept_map s_int WHERE s_int.source_code=c1.concept_code 
-            AND s_int.source_vocabulary_id=vc1.vocabulary_id_v4
-          )
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM source_to_concept_map s_int
+                   WHERE     s_int.source_code = c1.concept_code
+                         AND s_int.source_vocabulary_id =
+                                vc1.vocabulary_id_v4)
+          AND NOT (    c1.concept_name LIKE '%do not use%'
+                   AND c1.vocabulary_id IN ('ICD9CM', 'ICD10', 'MedDRA')
+                   AND c1.invalid_reason IS NOT NULL)
           AND c1.concept_class_id <> 'Concept Class';
 COMMIT;
 		  

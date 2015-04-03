@@ -4,7 +4,7 @@ use this script to recreate main tables (concept, concept_relationship, concept_
 
 
 declare
-main_schema_name constant varchar2(100):='ProdV5';
+main_schema_name constant varchar2(100):='DEVV5';
 begin 
     execute immediate 'ALTER TABLE source_to_concept_map DROP CONSTRAINT fpk_source_to_concept_map_v_1';
     execute immediate 'ALTER TABLE source_to_concept_map DROP CONSTRAINT fpk_source_to_concept_map_v_2';

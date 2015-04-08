@@ -36,7 +36,7 @@ INSERT INTO concept_stage (concept_id,
           OVER (
              PARTITION BY scui
              ORDER BY
-                CASE WHEN LENGTH (str) <= 200 THEN LENGTH (str) ELSE 0 END DESC,
+                CASE WHEN LENGTH (str) <= 255 THEN LENGTH (str) ELSE 0 END DESC,
                 LENGTH (str)
              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
              AS concept_name,
@@ -75,7 +75,7 @@ INSERT INTO concept_stage (concept_id,
           OVER (
              PARTITION BY scui
              ORDER BY
-                CASE WHEN LENGTH (str) <= 200 THEN LENGTH (str) ELSE 0 END DESC,
+                CASE WHEN LENGTH (str) <= 255 THEN LENGTH (str) ELSE 0 END DESC,
                 LENGTH (str)
              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
              AS concept_name,

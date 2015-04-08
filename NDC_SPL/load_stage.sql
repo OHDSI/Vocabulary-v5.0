@@ -18,6 +18,7 @@ ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 
+--get aggregated dose
 CREATE OR REPLACE FUNCTION GetAggrDose (active_numerator_strength in varchar2, active_ingred_unit in varchar2) return varchar2 as
 z varchar2(4000);
 BEGIN
@@ -30,6 +31,7 @@ BEGIN
     return z;
 END;
 /
+--get unique dose
 CREATE OR REPLACE FUNCTION GetDistinctDose (active_numerator_strength in varchar2, active_ingred_unit in varchar2, p in number) return varchar2 as
 z varchar2(4000);
 BEGIN
@@ -76,7 +78,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 	COALESCE (valid_start_date, latest_update) AS valid_start_date,
 	TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-	from 
+	from --get unique and aggregated data from source
 	(           
 		select concept_code, concept_class_id, MULTI_NONPROPRIETARYNAME,
 		case when MULTI_NONPROPRIETARYNAME is null then 
@@ -126,9 +128,13 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 			)
 			 
 			select t1.*,  
+			--aggregated unique DOSAGEFORMNAME
 			(select listagg(DOSAGEFORMNAME,', ') within group (order by DOSAGEFORMNAME) from (select distinct P.DOSAGEFORMNAME from prod p where p.concept_code=t1.concept_code)) as DOSAGEFORMNAME, 
+			--aggregated unique ROUTENAME
 			(select listagg(ROUTENAME,', ') within group (order by ROUTENAME) from (select distinct P.ROUTENAME from prod p where p.concept_code=t1.concept_code)) as ROUTENAME,
+			--aggregated unique NONPROPRIETARYNAME
 			(select listagg(NONPROPRIETARYNAME,', ') within group (order by NONPROPRIETARYNAME) from (select distinct lower(P.NONPROPRIETARYNAME) NONPROPRIETARYNAME from prod p where p.concept_code=t1.concept_code)  where rownum<15) as NONPROPRIETARYNAME,
+			--multiple formulations flag
 			(select count(lower(P.NONPROPRIETARYNAME)) from prod p where p.concept_code=t1.concept_code having count(distinct lower(P.NONPROPRIETARYNAME))>1) as MULTI_NONPROPRIETARYNAME,
 			(
 				select listagg(brand_name,', ') within group (order by brand_name) from 
@@ -170,7 +176,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
     COALESCE (valid_start_date, latest_update) AS valid_start_date,
     TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
     NULL AS invalid_reason
-    from 
+    from --get unique and aggregated data from source
     (           
         select concept_code,
         case when MULTI_NONPROPRIETARYNAME is null then 
@@ -222,9 +228,13 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
             )
              
             select t1.*,  
+			--aggregated unique DOSAGEFORMNAME
             (select listagg(DOSAGEFORMNAME,', ') within group (order by DOSAGEFORMNAME) from (select distinct P.DOSAGEFORMNAME from prod p where p.concept_code=t1.concept_code)) as DOSAGEFORMNAME, 
-            (select listagg(ROUTENAME,', ') within group (order by ROUTENAME) from (select distinct P.ROUTENAME from prod p where p.concept_code=t1.concept_code)) as ROUTENAME,
-            (select listagg(NONPROPRIETARYNAME,', ') within group (order by NONPROPRIETARYNAME) from (select distinct lower(P.NONPROPRIETARYNAME) NONPROPRIETARYNAME from prod p where p.concept_code=t1.concept_code)  where rownum<15) as NONPROPRIETARYNAME,
+            --aggregated unique ROUTENAME
+			(select listagg(ROUTENAME,', ') within group (order by ROUTENAME) from (select distinct P.ROUTENAME from prod p where p.concept_code=t1.concept_code)) as ROUTENAME,
+            --aggregated unique NONPROPRIETARYNAME
+			(select listagg(NONPROPRIETARYNAME,', ') within group (order by NONPROPRIETARYNAME) from (select distinct lower(P.NONPROPRIETARYNAME) NONPROPRIETARYNAME from prod p where p.concept_code=t1.concept_code)  where rownum<15) as NONPROPRIETARYNAME,
+			--multiple formulations flag
 			(select count(lower(P.NONPROPRIETARYNAME)) from prod p where p.concept_code=t1.concept_code having count(distinct lower(P.NONPROPRIETARYNAME))>1) as MULTI_NONPROPRIETARYNAME,
             (
                 select listagg(brand_name,', ') within group (order by brand_name) from 
@@ -503,7 +513,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2
@@ -547,7 +557,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
           AND c1.concept_id = r1.concept_id_1
           AND r1.relationship_id = 'Contains'
           AND r1.concept_id_2 = c2.concept_id
-          AND NOT EXISTS
+          AND NOT EXISTS -- only new mapping we don't already have
                  (SELECT 1
                     FROM concept_relationship_stage r_int
                    WHERE     r_int.concept_code_1 = r.concept_code_1

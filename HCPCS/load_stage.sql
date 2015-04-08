@@ -54,6 +54,7 @@ COMMIT;
 
 --4 Update domain_id in concept_stage
 CREATE TABLE t_domains nologging AS
+--create temporary table with domain_id defined by rules
     (
     SELECT 
       hcpc.concept_code,
@@ -296,28 +297,32 @@ CREATE TABLE t_domains nologging AS
 CREATE INDEX tmp_idx_cs
    ON t_domains (concept_code)
    NOLOGGING;
-   
+
+--update concept_stage from temporary table   
 UPDATE concept_stage c
    SET domain_id =
           (SELECT t.domain_id
              FROM t_domains t
             WHERE c.concept_code = t.concept_code);
-			
+COMMIT;
+
+--if some codes does not have domain_id pick it up from existing concept table
 UPDATE concept_stage cs
    SET domain_id =
           (SELECT domain_id
              FROM concept c
             WHERE     C.CONCEPT_CODE = CS.CONCEPT_CODE
                   AND C.VOCABULARY_ID = CS.VOCABULARY_ID)
- WHERE CS.DOMAIN_ID IS NULL AND CS.VOCABULARY_ID = 'HCPCS';
+WHERE CS.DOMAIN_ID IS NULL AND CS.VOCABULARY_ID = 'HCPCS';
+COMMIT;
 
 --Procedure codes are handled as Procedures, but this might change in near future. 
 --Therefore, we are keeping an interim domain_id='Procedure Drug'
 UPDATE concept_stage
    SET domain_id = 'Procedure'
- WHERE domain_id = 'Procedure Drug'; 
- 
+ WHERE domain_id = 'Procedure Drug';
 COMMIT;
+
 DROP TABLE t_domains PURGE;
 
 --5 Create CONCEPT_SYNONYM_STAGE
@@ -331,7 +336,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                    DESCRIPTION AS synonym_name,
                    'HCPCS' AS synonym_vocabulary_id,
                    4093769 AS language_concept_id                   -- English
-     FROM (SELECT LONG_DESCRIPTION, SHORT_DESCRIPTION, HCPC FROM ANWEB_V2) UNPIVOT (DESCRIPTION
+     FROM (SELECT LONG_DESCRIPTION, SHORT_DESCRIPTION, HCPC FROM ANWEB_V2) UNPIVOT (DESCRIPTION --take both LONG_DESCRIPTION and SHORT_DESCRIPTION
                                                                            FOR DESCRIPTIONS
                                                                            IN (LONG_DESCRIPTION,
                                                                               SHORT_DESCRIPTION));
@@ -577,7 +582,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2

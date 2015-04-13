@@ -97,6 +97,7 @@ COMMIT;
 
 --4 Update domain_id
 CREATE TABLE t_domains nologging AS
+--create temporary table with domain_id defined by rules
 (
     SELECT distinct
       l.llt_code AS concept_code,
@@ -292,7 +293,8 @@ CREATE TABLE t_domains nologging AS
 CREATE INDEX tmp_idx_cs
    ON t_domains (concept_code)
    NOLOGGING;
-   
+
+--update concept_stage from temporary table   
 UPDATE concept_stage c
    SET domain_id =
           (SELECT t.domain_id
@@ -453,7 +455,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2

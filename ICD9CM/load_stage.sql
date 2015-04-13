@@ -146,41 +146,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           AND suppress = 'N';
 COMMIT;	  
 
---7  Load concept_relationship_stage from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
-/*
-INSERT INTO concept_relationship_stage (concept_id_1,
-                                        concept_id_2,
-                                        concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT NULL AS concept_id_1,
-          NULL AS concept_id_2,
-          c1.concept_code AS concept_code_1,
-          c2.concept_code AS concept_code_2,
-          c1.vocabulary_id AS vocabulary_id_1,
-          c2.vocabulary_id AS vocabulary_id_2,
-          r.relationship_id AS relationship_id,
-          r.valid_start_date,
-          r.valid_end_date,
-          r.invalid_reason
-     FROM concept_relationship r, concept c1, concept c2
-    WHERE     c1.concept_id = r.concept_id_1
-          AND (
-              c1.vocabulary_id = 'ICD9CM' OR c2.vocabulary_id = 'ICD9CM'
-          )
-          AND C2.CONCEPT_ID = r.concept_id_2  
-          AND r.invalid_reason IS NULL -- only fresh ones
-          AND r.relationship_id NOT IN ('Domain subsumes', 'Is domain', 'Maps to', 'Mapped from') 
-;
-COMMIT;		  
-*/
-
---8 Create text for Medical Coder with new codes and mappings
+--7 Create text for Medical Coder with new codes and mappings
 SELECT NULL AS concept_id_1,
        NULL AS concept_id_2,
        c.concept_code AS concept_code_1,
@@ -219,7 +185,7 @@ SELECT NULL AS concept_id_1,
                 WHERE     co.concept_code = c.concept_code
                       AND co.vocabulary_id = 'ICD9CM'); -- only new codes we don't already have
 
---9 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--8 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -243,7 +209,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
 COMMIT;
 
 
---10 Add "subsumes" relationship between concepts where the concept_code is like of another
+--9 Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -274,11 +240,10 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Subsumes');
 COMMIT;
 	 
---11 update domain_id for ICD9CM from SNOMED
---create temporary table ICD9CM_domain
---if domain_id is empty we use previous and next domain_id or its combination
-create table filled_domain as
-	with domain_map2value as (
+--10 update domain_id for ICD9CM from SNOMED
+--create 1st temporary table ICD9CM_domain with direct mappings
+create table filled_domain NOLOGGING as
+	with domain_map2value as (--ICD9CM have direct "Maps to value" mapping
 		SELECT c1.concept_code, c2.domain_id
 		FROM concept_relationship_stage r, concept_stage c1, devv5.concept c2
 		WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
@@ -289,6 +254,7 @@ create table filled_domain as
 	)
 	select 
 	d.concept_code,
+	--some rules for domain_id
 	case    when d.domain_id in ('Procedure', 'Measurement') 
 				and exists (select 1 from domain_map2value t where t.concept_code=d.concept_code and t.domain_id in ('Meas Value' , 'Spec Disease Status'))
 				then 'Measurement'
@@ -300,7 +266,7 @@ create table filled_domain as
 				then 'Observation'                 
 			else d.domain_id
 	end domain_id
-	FROM 
+	FROM --simplify domain_id
 	( select concept_code,
 		case when domain_id='Condition/Measurement' then 'Condition'
 			 when domain_id='Condition/Procedure' then 'Condition'
@@ -310,7 +276,7 @@ create table filled_domain as
 			 when domain_id='Measurement/Procedure' then 'Measurement'
 			 else domain_id
 		end domain_id
-		from (
+		from ( --ICD9CM have direct "Maps to" mapping
 			select concept_code, listagg(domain_id,'/') within group (order by domain_id) domain_id from (
 				SELECT distinct c1.concept_code, c2.domain_id
 				FROM concept_relationship_stage r, concept_stage c1, devv5.concept c2
@@ -324,6 +290,8 @@ create table filled_domain as
 		)
 	) d;
 
+--create 2d temporary table with ALL ICD9CM domains
+--if domain_id is empty we use previous and next domain_id or its combination
 create table ICD9CM_domain NOLOGGING as
     select concept_code, 
     case when domain_id is not null then domain_id 
@@ -352,7 +320,7 @@ create table ICD9CM_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication
 CREATE UNIQUE INDEX idx_ICD9CM_domain ON ICD9CM_domain (concept_code) NOLOGGING;
 
---12. Simplify the list by removing Observations
+--11. simplify the list by removing Observations
 update ICD9CM_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -364,7 +332,7 @@ update ICD9CM_domain set domain_id='Condition/Meas' where domain_id='Condition/M
 update ICD9CM_domain set domain_id='Procedure' where domain_id='Procedure/Spec Disease Status';
 COMMIT;
 
---13. update each domain_id with the domains field from ICD9CM_domain.
+--12. update each domain_id with the domains field from ICD9CM_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
@@ -373,7 +341,7 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'ICD9CM';
 COMMIT;
 
---14. Add mapping from deprecated to fresh concepts
+--13. Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -437,7 +405,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2
@@ -448,16 +416,16 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---15 Update concept_id in concept_stage from concept for existing concepts
+--14 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---16. Clean up
+--15. Clean up
 DROP TABLE ICD9CM_domain PURGE;
 DROP TABLE filled_domain PURGE;
 	
---17 Reinstate constraints and indices
+--16 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

@@ -235,7 +235,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2

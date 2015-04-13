@@ -36,7 +36,7 @@ INSERT INTO concept_stage (concept_id,
           OVER (
              PARTITION BY scui
              ORDER BY
-                CASE WHEN LENGTH (str) <= 200 THEN LENGTH (str) ELSE 0 END DESC,
+                CASE WHEN LENGTH (str) <= 255 THEN LENGTH (str) ELSE 0 END DESC,
                 LENGTH (str)
              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
              AS concept_name,
@@ -75,7 +75,7 @@ INSERT INTO concept_stage (concept_id,
           OVER (
              PARTITION BY scui
              ORDER BY
-                CASE WHEN LENGTH (str) <= 200 THEN LENGTH (str) ELSE 0 END DESC,
+                CASE WHEN LENGTH (str) <= 255 THEN LENGTH (str) ELSE 0 END DESC,
                 LENGTH (str)
              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
              AS concept_name,
@@ -128,6 +128,7 @@ COMMIT;
 
 --4 Update domain_id in concept_stage
 CREATE TABLE t_domains nologging AS
+--create temporary table with domain_id defined by rules
 (
     SELECT 
     c.concept_code, 
@@ -204,7 +205,8 @@ CREATE TABLE t_domains nologging AS
 CREATE INDEX tmp_idx_cs
    ON t_domains (concept_code)
    NOLOGGING;
-   
+
+--update concept_stage from temporary table   
 UPDATE concept_stage c
    SET domain_id =
           (SELECT t.domain_id
@@ -440,7 +442,9 @@ COMMIT;
 
 --10 Create text for Medical Coder with new codes or codes missing the domain_id to add manually
 --Then update domain_id in concept_stage from resulting file
-	select * from concept_stage where domain_id is null and vocabulary_id='CPT4';
+SELECT *
+  FROM concept_stage
+ WHERE domain_id IS NULL AND vocabulary_id = 'CPT4';
 
 --11 Create text for Medical Coder with new codes and mappings
 SELECT NULL AS concept_id_1,
@@ -481,6 +485,7 @@ SELECT NULL AS concept_id_1,
                 WHERE     co.concept_code = c.concept_code
                       AND co.vocabulary_id = 'CPT4')
        AND c.vocabulary_id = 'CPT4';
+
 --12 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 
 --13. Add mapping from deprecated to fresh concepts
@@ -547,7 +552,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2

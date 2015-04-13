@@ -17,13 +17,7 @@ ALTER INDEX idx_cs_concept_id UNUSABLE;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
-
---3. Create file for medical coder from the existing one
-SELECT *
-  FROM concept
- WHERE vocabulary_id = 'ICD10' AND invalid_reason IS NULL;
- 
---4. Append file from medical coder to concept_stage
+--3. Load CONCEPT_STAGE from the existing one. The reason is that there is no good source for these concepts
 INSERT INTO CONCEPT_STAGE (concept_id,
                            concept_name,
                            domain_id,
@@ -48,15 +42,14 @@ INSERT INTO CONCEPT_STAGE (concept_id,
     WHERE vocabulary_id = 'ICD10' AND invalid_reason IS NULL;
 COMMIT;	
 
-
---5. Create file for medical coder from the existing one
+--4. Create file with mappings for medical coder from the existing one
 SELECT *
   FROM concept c, concept_relationship r
  WHERE     c.concept_id = r.concept_id_1
        AND c.vocabulary_id = 'ICD10'
        AND r.invalid_reason IS NULL;
 
---6. Append file from medical coder to concept_relationship_stage
+--5. Append file from medical coder to concept_relationship_stage
 INSERT /*+ APPEND */
       INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
@@ -80,7 +73,7 @@ INSERT /*+ APPEND */
      FROM concept_relationship_manual;
 COMMIT;	 
 
---7 Add mapping from deprecated to fresh concepts
+--6 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
@@ -146,7 +139,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2
@@ -156,7 +149,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;	
 
---8 Add "subsumes" relationship between concepts where the concept_code is like of another
+--7 Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -187,11 +180,10 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Subsumes');
 COMMIT;
 
---9 update domain_id for ICD10 from SNOMED
---create temporary table ICD10_domain
---if domain_id is empty we use previous and next domain_id or its combination
-create table filled_domain as
-	with domain_map2value as (
+--8 update domain_id for ICD10 from SNOMED
+--create 1st temporary table ICD10_domain with direct mappings
+create table filled_domain NOLOGGING as
+	with domain_map2value as (--ICD10 have direct "Maps to value" mapping
 		SELECT c1.concept_code, c2.domain_id
 		FROM concept_relationship_stage r, concept_stage c1, concept c2
 		WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
@@ -202,6 +194,7 @@ create table filled_domain as
 	)
 	select 
 	d.concept_code,
+	--some rules for domain_id
 	case    when d.domain_id in ('Procedure', 'Measurement') 
 				and exists (select 1 from domain_map2value t where t.concept_code=d.concept_code and t.domain_id in ('Meas Value' , 'Spec Disease Status'))
 				then 'Measurement'
@@ -214,7 +207,7 @@ create table filled_domain as
 			else d.domain_id
 	end domain_id
 	FROM 
-	( select concept_code,
+	( select concept_code, --simplify domain_id
 		case when domain_id='Condition/Measurement' then 'Condition'
 			 when domain_id='Condition/Procedure' then 'Condition'
 			 when domain_id='Condition/Observation' then 'Observation'
@@ -223,7 +216,7 @@ create table filled_domain as
 			 when domain_id='Measurement/Procedure' then 'Measurement'
 			 else domain_id
 		end domain_id
-		from (
+		from (--ICD10 have direct "Maps to" mapping
 			select concept_code, listagg(domain_id,'/') within group (order by domain_id) domain_id from (
 				SELECT distinct c1.concept_code, c2.domain_id
 				FROM concept_relationship_stage r, concept_stage c1, concept c2
@@ -237,6 +230,8 @@ create table filled_domain as
 		)
 	) d;
 
+--create 2d temporary table with ALL ICD10 domains	
+--if domain_id is empty we use previous and next domain_id or its combination	
 create table ICD10_domain NOLOGGING as
     select concept_code, 
     case when domain_id is not null then domain_id 

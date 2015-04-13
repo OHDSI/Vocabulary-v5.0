@@ -323,7 +323,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2
@@ -354,7 +354,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 	  FROM concept_stage c, vocabulary v
 	 WHERE     c.vocabulary_id = v.vocabulary_id
 		   AND c.standard_concept = 'S'
-		   AND NOT EXISTS
+		   AND NOT EXISTS -- only new mapping we don't already have
 				  (SELECT 1
 					 FROM concept_relationship_stage i
 					WHERE     c.concept_code = i.concept_code_1
@@ -384,7 +384,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
      FROM concept_relationship_stage crs
           JOIN relationship r ON r.relationship_id = crs.relationship_id
     WHERE NOT EXISTS
-             (                                           -- the inverse record
+             (  -- only new mapping we don't already have
               SELECT 1
                 FROM concept_relationship_stage i
                WHERE     crs.concept_code_1 = i.concept_code_2
@@ -463,14 +463,7 @@ ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --18 add NDFRT, VA Product, VA Class and ATC
-BEGIN
-   EXECUTE IMMEDIATE 'drop table drug_vocs purge';
-EXCEPTION
-   WHEN OTHERS
-   THEN
-      NULL;
-END;                         
-
+--create temporary table drug_vocs
 CREATE TABLE drug_vocs
 NOLOGGING
 AS
@@ -586,7 +579,7 @@ AS
              FROM rxnconso
             WHERE sab = 'ATC' AND suppress != 'Y' AND tty IN ('PT', 'IN') AND code != 'NOCODE');
 
---19 Add to concept_stage
+--19 Add drug_vocs to concept_stage
 INSERT INTO concept_stage (concept_id,
                            concept_name,
                            domain_id,
@@ -747,7 +740,6 @@ INSERT INTO concept_relationship_stage (concept_code_1,
     WHERE     d.vocabulary_id = 'SNOMED'
           AND invalid_reason IS NULL
           -- exclude all the Pharmaceutical Preps that are duplicates for RxNorm Ingredients
-
           AND NOT EXISTS
                  (SELECT 1
                     FROM drug_vocs pp
@@ -1172,7 +1164,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2
@@ -1189,7 +1181,10 @@ UPDATE concept_stage cs
 ;
 COMMIT;
 
---25 Reinstate constraints and indices
+--25. Clean up
+DROP TABLE drug_vocs PURGE;
+
+--26 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

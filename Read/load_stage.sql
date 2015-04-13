@@ -93,7 +93,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 	  FROM concept_stage c, vocabulary v
 	 WHERE     c.vocabulary_id = v.vocabulary_id
 		   AND c.standard_concept = 'S'
-		   AND NOT EXISTS
+		   AND NOT EXISTS -- only new mapping we don't already have
 				  (SELECT 1
 					 FROM concept_relationship_stage i
 					WHERE     c.concept_code = i.concept_code_1
@@ -127,7 +127,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
      FROM concept_stage c1, concept_stage c2
     WHERE     c2.concept_code LIKE c1.concept_code || '%'
           AND c1.concept_code <> c2.concept_code
-          AND NOT EXISTS
+          AND NOT EXISTS -- only new mapping we don't already have
                  (SELECT 1
                     FROM concept_relationship_stage r_int
                    WHERE     r_int.concept_code_1 = c1.concept_code
@@ -154,7 +154,7 @@ create table read_domain NOLOGGING as
     from (
 			select concept_code, LISTAGG(domain_id, '/') WITHIN GROUP (order by domain_id) domain_id, prev_domain, next_domain, concept_class_id from (
 			with filled_domain as
-						(
+						( -- get Read concepts with direct mappings to SNOMED
 							select c1.concept_code, c2.domain_id
 							FROM concept_relationship_stage r, concept_stage c1, concept c2
 							WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
@@ -273,7 +273,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
           WHERE lf = 1
         ) 
         WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS
+    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
     (select 1 from concept_relationship_stage r where
         int_rel.root=r.concept_code_1
         and int_rel.concept_code_2=r.concept_code_2

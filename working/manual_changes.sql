@@ -1119,87 +1119,236 @@ values (4326892, 38004482, 'Mapped from', '1-Jan-1970', '31-Dec-2099', null);
 insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 values (4299787, 8761, 'Mapped from', '1-Jan-1970', '31-Dec-2099', null);
 
-commit;
+/*
+-- start new sequence
+drop sequence v5_concept;
+DECLARE
+ ex NUMBER;
+BEGIN
+  SELECT MAX(concept_id)+1 INTO ex FROM concept WHERE concept_id<500000000; -- Last valid below HOI concept_id
+  BEGIN
+    EXECUTE IMMEDIATE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' NOCYCLE CACHE 20 NOORDER';
+    EXCEPTION
+      WHEN OTHERS THEN NULL;
+  END;
+END;
+*/
+
+-- Add CIEL vocabulary and concept_class_ids
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Columbia International eHealth Laboratory (Columbia University)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id, latest_update)
+values ('CIEL', 'Columbia International eHealth Laboratory (Columbia University)', 'https://wiki.openmrs.org/display/docs/Getting+and+Using+the+MVP-CIEL+Concept+Dictionary', '1.11.0_20150227', (select concept_id from concept where concept_name='Columbia International eHealth Laboratory (Columbia University)'), '1-Apr-2015');
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Test', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Diagnosis', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Finding', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Anatomy', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Question', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'LabSet', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'MedSet', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ConvSet', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Misc', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+-- Update existing but unused Cocnept Class Symptom
+update concept set concept_name = 'Symptom' where concept_id = 44819184;
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Symptom/Finding', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Misc Order', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Workflow', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'State', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Program', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Aggregate Measurement', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Indicator', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Health Care Monitoring Topics', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Radiology/Imaging Procedure', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Frequency', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+-- Update existing but unused Concept class Drug class
+update concept set concept_name = 'Pharmacologic Drug Class' where concept_id = 44818993;
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Units of Measure', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Drug form', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Medical supply', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Test', 'Test', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Test'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Diagnosis', 'Diagnosis', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Diagnosis'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Finding', 'Finding', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Finding'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Anatomy', 'Anatomy', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Anatomy'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Question', 'Question', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Question'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('LabSet', 'LabSet', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'LabSet'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('MedSet', 'MedSet', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'MedSet'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('ConvSet', 'ConvSet', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'ConvSet'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Misc', 'Misc', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Misc'));
+-- Update existing but unused Concept Class Symptom
+update concept_class set concept_class_name = 'Symptom' where concept_class_id='Symptom';
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Symptom/Finding', 'Symptom/Finding', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Symptom/Finding'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Misc Order', 'Misc Order', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Misc Order'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Workflow', 'Workflow', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Workflow'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('State', 'State', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'State'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Program', 'Program', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Program'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Aggregate Meas', 'Aggregate Measurement', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Aggregate Measurement'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Indicator', 'Indicator', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Indicator'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Monitoring', 'Health Care Monitoring Topics', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Health Care Monitoring Topics'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Radiology', 'Radiology/Imaging Procedure', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Radiology/Imaging Procedure'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Frequency', 'Frequency', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Frequency'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Units of Measure', 'Units of Measure', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Units of Measure'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Drug form', 'Drug form', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Drug form'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Medical supply', 'Medical supply', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Medical supply'));
 
 -- Add SNOMED UK additions to relationship
-'Has disp dose form' HAS_DISPENSED_DOSE_FORM
-'Has spec active ing' HAS_SPECIFIC_ACTIVE_INGREDIENT
-'Has basis str subst' HAS_BASIS_OF_STRENGTH_SUBSTANCE
-'Has VMP' HAS_VMP
-'Has incipient' HAS_EXCIPIENT
-'Has licensed route' Has licensed route
-'Has dose form unit' Unit relating to the size
-'Has unit of prod use' Unit relating to the entity that can be handled
-'Has route' 
-'Has AMP' HAS_AMP
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has dispensed dose form (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has specific active ingredient (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has basis of strength substance (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has Virtual Medicinal Product (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has excipient (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has licensed route (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has unit relating to the size (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has unit relating to the entity that can be handled (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has route (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has Actual Medicinal Product (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Is pack of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has trade family group (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Dispensed dose form of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Specific active ingredient of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Basis of strength substance of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Virtual Medicinal Product of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Excipient of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Licensed route of (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Unit relating to the size of (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Unit relating to the entity that can be handled of (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Route of (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Actual Medicinal Product of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has pack (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Trade family group of (CM+D)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has disp dose form', 'Has dispensed dose form (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has dispensed dose form (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Disp dose form of', 'Dispensed dose form of (SNOMED)', 0, 0, 'Has disp dose form', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Dispensed dose form of (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has spec active ing', 'Has specific active ingredient (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has specific active ingredient (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Spec active ing of', 'Specific active ingredient of (SNOMED)', 0, 0, 'Has spec active ing', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Specific active ingredient of (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has basis str subst', 'Has basis of strength substance (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has basis of strength substance (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Basis str subst of', 'Basis of strength substance of (SNOMED)', 0, 0, 'Has basis str subst', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Basis of strength substance of (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has VMP', 'Has Virtual Medicinal Product (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has Virtual Medicinal Product (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('VMP of', 'Virtual Medicinal Product of (SNOMED)', 0, 0, 'Has VMP', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Virtual Medicinal Product of (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has excipient', 'Has excipient (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has excipient (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Excipient of', 'Excipient of (SNOMED)', 0, 0, 'Has excipient', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Excipient of (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has licensed route', 'Has licensed route (CM+D)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has licensed route (CM+D)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Licensed route of', 'Licensed route of (CM+D)', 0, 0, 'Has licensed route', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Licensed route of (CM+D)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has dose form unit', 'Has unit relating to the size (CM+D)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has unit relating to the size (CM+D)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Dose form unit of', 'Unit relating to the size of (CM+D)', 0, 0, 'Has dose form unit', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Unit relating to the size of (CM+D)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has unit of prod use', 'Has unit relating to the entity that can be handled (CM+D)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has unit relating to the entity that can be handled (CM+D)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Unit of prod use of', 'Unit relating to the entity that can be handled of (CM+D)', 0, 0, 'Has unit of prod use', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Unit relating to the entity that can be handled of (CM+D)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has route', 'Has route (CM+D)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has route (CM+D)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Route of', 'Route of (CM+D)', 0, 0, 'Has route', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Route of (CM+D)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has AMP', 'Has Actual Medicinal Product (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has Actual Medicinal Product (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('AMP of', 'Actual Medicinal Product of (SNOMED)', 0, 0, 'Has AMP', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Actual Medicinal Product of (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Is pack of', 'Is pack of (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Is pack of (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has pack', 'Has pack (SNOMED)', 0, 0, 'Is pack of', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has pack (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has trade family grp', 'Has trade family group (CM+D)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has trade family group (CM+D)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Trade family grp of', 'Trade family group of (CM+D)', 0, 0, 'Has trade family grp', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Trade family group of (CM+D)'));
 
+-- fix the temporary reverse_relationship_id from 'Is a' to what it should be
+update relationship set reverse_relationship_id = 'Disp dose form of' where relationship_id = 'Has disp dose form';
+update relationship set reverse_relationship_id = 'Spec active ing of' where relationship_id = 'Has spec active ing';
+update relationship set reverse_relationship_id = 'Basis str subst of' where relationship_id = 'Has basis str subst';
+update relationship set reverse_relationship_id = 'VMP of' where relationship_id = 'Has VMP';
+update relationship set reverse_relationship_id = 'Excipient of' where relationship_id = 'Has excipient';
+update relationship set reverse_relationship_id = 'Licensed route of' where relationship_id = 'Has licensed route';
+update relationship set reverse_relationship_id = 'Dose form unit of' where relationship_id = 'Has dose form unit';
+update relationship set reverse_relationship_id = 'Unit of prod use of' where relationship_id = 'Has unit of prod use';
+update relationship set reverse_relationship_id = 'Route of' where relationship_id = 'Has route';
+update relationship set reverse_relationship_id = 'AMP of' where relationship_id = 'Has AMP';
+update relationship set reverse_relationship_id = 'Has pack' where relationship_id = 'Is pack of';
+update relationship set reverse_relationship_id = 'Trade family grp of' where relationship_id = 'Has trade family grp';
 
--- Fix HCPCS modifier mapping
-update concept
-set domain_id = case
-  when concept_code in ('A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'AU', 'AV', 'AW', 'AX', 'AY', 'BA',
-    'CS', 'EM', 'GQ', 'JC', 'JD', 'K0', 'K1', 'K2', 'K3', 'K4', 'KA', 'KC', 'KF', 'KM', 'KN', 'KS', 'LR', 'LS',
-    'NB', 'PL', 'Q0', 'QH', 'SC', 'TC', 'TW', 'UE', 'V5', 'V6', 'V7')
-  then 'Device'
-  when concept_code in ('EA', 'EB', 'EC', 'SL') then 'Drug'
-  when concept_code in ('ED', 'EE', 'G1', 'G2', 'G3', 'G4', 'G5', 'PT') then 'Measurement'  
-  when concept_code in ('AD', 'AT', 'BL', 'BO', 'CC', 'DA', 'ET', 'G8', 'G9', 'GG', 'GH', 'GJ', 'GN', 'GO', 'GP', 'GS', 'HA', 'HB',
-    'HC', 'HD', 'HE', 'HF', 'HG', 'HH', 'HI', 'HJ', 'HK', 'JA', 'JB', 'JE', 'KD', 'PA', 'PB', 'PI', 'PS', 'QC', 'QK',
-    'QS', 'QZ', 'RA', 'RB', 'RD', 'RE', 'RT', 'SE', 'SH', 'SJ', 'TL')
-  then 'Procedure'  
-  else 'Observation'
-end as domain,
-concept.*
-from concept
-where vocabulary_id = 'HCPCS' and concept_class_id = 'HCPCS Modifier'
-;
+commit;
 
-
-
-
-
--- Not done yet:
--- Change all relationships containing replaces or replaces by to these. Remove the extra relationships
-update concept_relationship set relationship_id = 'Concept replaces' where relationship_id in (
-  'LOINC replaces',
-  'RxNorm replaces',
-  'SNOMED replaces',
-  'ICD9P replaces',
-  'UCUM replaces'
-);
-update concept_relationship set relationship_id = 'Concept replaced by' where relationship_id in (
-  'LOINC replaced by',
-  'RxNorm replaced by',
-  'SNOMED replaced by',
-  'ICD9P replaced by',
-  'UCUM replaced by'
-);
-update concept set 
-  valid_end_date = '10-Jan-2015',
-  invalid_reason = 'D'
-where concept_id in (
-  44818714, -- LOINC replaced by
-  44818812, -- LOINC replaces
-  44818946, -- RxNorm replaced by
-  44818947, -- RxNorm replaces
-  44818948, -- SNOMED replaced by
-  44818949, -- SNOMED replaces
-  44818971, -- ICD9P replaced by
-  44818972, -- ICD9P replaces
-  44818978, -- UCUM replaced by
-  44818979 -- UCUM replaces
-);
-delete from relationship where relationship_id in (
-  'LOINC replaces',
-  'RxNorm replaces',
-  'SNOMED replaces',
-  'ICD9P replaces',
-  'UCUM replaces',
-  'LOINC replaced by',
-  'RxNorm replaced by',
-  'SNOMED replaced by',
-  'ICD9P replaced by',
-  'UCUM replaced by'
-);
 

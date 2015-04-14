@@ -577,7 +577,17 @@ INSERT /*+ APPEND */
           AND cs.vocabulary_id = c.vocabulary_id;
 COMMIT;
 
--- 19. update latest_update on vocabulary_conversion
+-- 19. check if current vocabulary exists in vocabulary_conversion table
+INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5)
+   SELECT ROWNUM + (SELECT MAX (vocabulary_id_v4) FROM vocabulary_conversion)
+             AS rn,
+          vocabulary_id
+     FROM (SELECT vocabulary_id FROM VOCABULARY
+           MINUS
+           SELECT vocabulary_id_v5 FROM vocabulary_conversion);
+COMMIT;
+
+-- 20. update latest_update on vocabulary_conversion		   
 MERGE INTO vocabulary_conversion vc
      USING (SELECT latest_update, vocabulary_id
               FROM vocabulary

@@ -95,7 +95,17 @@ from concept_ciel c
 left join concept_class_ciel ccl on c.class_id=ccl.concept_class_id
 -- left join drug d on d.drug_id=c.concept_id
 left join concept_name cn on cn.concept_id=c.concept_id and cn.locale='en';
-COMMIT;					  
+COMMIT;			
+
+--START TEMPORARY FIX--
+--for strange reason we have 4 concepts without concept_name
+UPDATE concept_stage
+   SET concept_name = 'Concept ||c.concept_id'
+ WHERE ROWID IN (SELECT ROWID
+                   FROM concept_stage
+                  WHERE concept_name IS NULL);
+COMMIT;
+--END TEMPORARY FIX--
 
 --4 Create chain between CIEL and the best OMOP concept and create map
 create table ciel_to_concept_map nologging as

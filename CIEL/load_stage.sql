@@ -101,9 +101,7 @@ COMMIT;
 --for strange reason we have 4 concepts without concept_name
 UPDATE concept_stage
    SET concept_name = 'Concept ||c.concept_id'
- WHERE ROWID IN (SELECT ROWID
-                   FROM concept_stage
-                  WHERE concept_name IS NULL);
+ WHERE concept_name IS NULL;
 COMMIT;
 --END TEMPORARY FIX--
 

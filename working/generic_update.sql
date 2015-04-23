@@ -596,6 +596,7 @@ MERGE INTO vocabulary_conversion vc
 WHEN MATCHED
 THEN
    UPDATE SET vc.latest_update = v.latest_update;
+ALTER TABLE vocabulary DROP COLUMN latest_update;
 COMMIT;   
 
 -- QA

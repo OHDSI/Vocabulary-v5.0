@@ -1349,6 +1349,179 @@ update relationship set reverse_relationship_id = 'AMP of' where relationship_id
 update relationship set reverse_relationship_id = 'Has pack' where relationship_id = 'Is pack of';
 update relationship set reverse_relationship_id = 'Trade family grp of' where relationship_id = 'Has trade family grp';
 
-commit;
+-- Add Erica's Type Concepts
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Patient Self-Reported Condition', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Observation Recorded from a Survey', 'Observation Type', 'Observation Type', 'Observation Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 
+-- Fix remaining concept_class_id of 2-character HCPCS to be HCPCS Modifier
+update concept set concept_class_id = 'HCPCS Modifier' where vocabulary_id = 'HCPCS' and concept_class_id = 'HCPCS' and length(concept_code) < 3;
+
+
+-- Fix HCPCS modifier domain again
+update concept
+set domain_id = case
+  when concept_code in ('A1', 'A2', 'A3', 'A4', 'A5', 'A6', 'A7', 'A8', 'A9', 'AU', 'AV', 'AW', 'AX', 'AY', 'BA',
+    'CS', 'EM', 'GQ', 'JC', 'JD', 'K0', 'K1', 'K2', 'K3', 'K4', 'KA', 'KC', 'KF', 'KM', 'KN', 'KS', 'LR', 'LS',
+    'NB', 'PL', 'Q0', 'QH', 'SC', 'TC', 'TW', 'UE', 'V5', 'V6', 'V7')
+  and concept_class_id = 'HCPCS Modifier' then 'Device'
+  when concept_code in ('ED', 'EE', 'G1', 'G2', 'G3', 'G4', 'G5', 'PT') and concept_class_id = 'HCPCS Modifier' then 'Measurement'
+  else 'Observation'
+end
+where vocabulary_id = 'HCPCS' and concept_class_id = 'HCPCS Modifier'
+;
+
+-- Rename excipient into incipient for DM+D relationship
+update concept set concept_name = 'Has incipient (DM+D)' where concept_id = 45905740;
+update concept set concept_name = 'Incipient of (DM+D)' where concept_id = 45905752;
+
+update relationship set reverse_relationship_id = 'Is a' where relationship_concept_id = 45905740;
+update relationship set reverse_relationship_id = 'Is a' where relationship_concept_id = 45905752;
+
+update relationship set
+  relationship_id = 'Has incipient',
+  relationship_name = 'Has incipient (DM+D)'
+where relationship_concept_id = 45905740; 
+update relationship set
+  relationship_id = 'Incipient of',
+  relationship_name = 'Incipient of (DM+D)'
+where relationship_concept_id = 45905752; 
+
+update relationship set reverse_relationship_id = 'Incipient of' where relationship_concept_id = 45905740;
+update relationship set reverse_relationship_id = 'Has incipient' where relationship_concept_id = 45905752;
+
+-- Add back excipient relationships
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has excipient (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Excipient of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has excipient', 'Has excipient (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has excipient (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Excipient of', 'Excipient of (SNOMED)', 0, 0, 'Has excipient', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Excipient of (SNOMED)'));
+update relationship set reverse_relationship_id = 'Excipient of' where relationship_id = 'Has excipient';
+
+-- Fix incorrect CM+D into DM+D
+update concept set concept_name = regexp_replace(concept_name, '\(CM\+D\)', '(DM+D)') where concept_name like '%(CM+D)%';
+update relationship set relationship_name = regexp_replace(relationship_name, '\(CM\+D\)', '(DM+D)') where relationship_name like '%(CM+D)%';
+
+-- Add other relationships added to SNOMED by SNOMED UK Drug Extension
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Follows (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Followed by (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Follows', 'Follows (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Follows (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Followed by', 'Followed by (SNOMED)', 0, 0, 'Follows', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Followed by (SNOMED)'));
+update relationship set reverse_relationship_id = 'Followed by' where relationship_id = 'Follows';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has VMP non-availability indicator (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VMP non-availability indicator of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has non-avail ind', 'Has VMP non-availability indicator (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has VMP non-availability indicator (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Non-avail ind of', 'VMP non-availability indicator of (SNOMED)', 0, 0, 'Has non-avail ind', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'VMP non-availability indicator of (SNOMED)'));
+update relationship set reverse_relationship_id = 'Non-avail ind of' where relationship_id = 'Has non-avail ind';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has ARP (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'ARP of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has ARP', 'Has ARP (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has ARP (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('ARP of', 'ARP of (SNOMED)', 0, 0, 'Has ARP', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'ARP of (SNOMED)'));
+update relationship set reverse_relationship_id = 'ARP of' where relationship_id = 'Has ARP';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has VRP (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VRP of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has VRP', 'Has VRP (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has VRP (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('VRP of', 'VRP of (SNOMED)', 0, 0, 'Has VRP', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'VRP of (SNOMED)'));
+update relationship set reverse_relationship_id = 'VRP of' where relationship_id = 'Has VRP';
+
+update relationship set relationship_name = 'Has trade family group (SNOMED)' where relationship_concept_id=45905747;
+update relationship set relationship_name = 'Trade family group of (SNOMED)' where relationship_concept_id=45905759;
+update concept set concept_name = 'Has trade family group (SNOMED)' where concept_id=45905747;
+update concept set concept_name = 'Trade family group of (SNOMED)' where concept_id=45905759;
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has flavor (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Flavor of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has flavor', 'Has flavor (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has flavor (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Flavor of', 'Flavor of (SNOMED)', 0, 0, 'Has flavor', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Flavor of (SNOMED)'));
+update relationship set reverse_relationship_id = 'Flavor of' where relationship_id = 'Has flavor';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has discontinued indicator (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Discontinued indicator of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has disc indicator', 'Has discontinued indicator (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has discontinued indicator (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Disc indicator of', 'Discontinued indicator of (SNOMED)', 0, 0, 'Has disc indicator', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Discontinued indicator of (SNOMED)'));
+update relationship set reverse_relationship_id = 'Disc indicator of' where relationship_id = 'Has disc indicator';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VRP has prescribing status (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VRP prescribing status of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('VRP has prescr stat', 'VRP has prescribing status (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'VRP has prescribing status (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('VRP prescr stat of', 'VRP prescribing status of (SNOMED)', 0, 0, 'VRP has prescr stat', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'VRP prescribing status of (SNOMED)'));
+update relationship set reverse_relationship_id = 'VRP prescr stat of' where relationship_id = 'VRP has prescr stat';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has VMP (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VMP of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has VMP', 'Has VMP (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has VMP (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('VMP of', 'VMP of (SNOMED)', 0, 0, 'Has VMP', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'VMP of (SNOMED)'));
+update relationship set reverse_relationship_id = 'VMP of' where relationship_id = 'Has VMP';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has AMP (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'AMP of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has AMP', 'Has AMP (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has AMP (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('AMP of', 'AMP of (SNOMED)', 0, 0, 'Has AMP', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'AMP of (SNOMED)'));
+update relationship set reverse_relationship_id = 'AMP of' where relationship_id = 'Has AMP';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VMP has prescribing status (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'VMP prescribing status of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('VMP has prescr stat', 'VMP has prescribing status (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'VMP has prescribing status (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('VMP prescr stat of', 'VMP prescribing status of (SNOMED)', 0, 0, 'VRP has prescr stat', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'VMP prescribing status of (SNOMED)'));
+update relationship set reverse_relationship_id = 'VRP prescr stat of' where relationship_id = 'VRP has prescr stat';
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Has legal category (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Legal category of (SNOMED)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Has legal category', 'Has legal category (SNOMED)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has legal category (SNOMED)'));
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Legal category of', 'Legal category of (SNOMED)', 0, 0, 'Has legal category', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Legal category of (SNOMED)'));
+update relationship set reverse_relationship_id = 'Legal category of' where relationship_id = 'Has legal category';
+
+
+commit;
 

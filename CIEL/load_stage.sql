@@ -386,16 +386,6 @@ select distinct
   ccl."name" as domain_id,
   c.concept_id as concept_code,
   case c.retired when 0 then null else 'D' end as invalid_reason
---  crt."code" as concept_code_2,
---  crs."name" as vocabulary_id_2
---  m.vocabulary_id,
---  m.concept_name,
---  m.domain_id,
---  d."name" as drug_name,
---  c.date_created as valid_start_date,
---  cd.concept_description_id as cdid,
---  cd.description
---  d."name" as drug_name
 from concept_ciel c
 -- left join concept_datatype cdt on c.datatype_id=cdt.concept_datatype_id
 left join concept_class_ciel ccl on c.class_id=ccl.concept_class_id
@@ -405,32 +395,7 @@ left join concept_name cn on cn.concept_id=c.concept_id and cn.locale='en'
 left join concept_reference_map crm on crm.concept_id=c.concept_id
 left join concept_reference_term crt on crt.concept_reference_term_id=crm.concept_reference_term_id
 left join concept_reference_source crs on crs.concept_source_id=crt.concept_source_id
---left join drug d on d.concept_id=c.concept_id
-/*
-left join concept m on m.concept_code=crt."code" and m.vocabulary_id=case crs."name"
-  when 'SNOMED CT' then 'SNOMED'
-  when 'SNOMED NP' then 'SNOMED'
-  when 'ICD-10-WHO' then 'ICD10'
-  when 'RxNORM' then 'RxNorm'
-  when 'ICD-10-WHO NP' then 'ICD10'
-  when 'ICD-10-WHO 2nd' then 'ICD10'
-  when 'ICD-10-WHO NP2' then 'ICD10'
-  when 'SNOMED US' then 'SNOMED'
-  when 'NDF-RT NUI' then 'NDFRT'
-  else crs."name"
-end
-*/
-where crs."name" in ('SNOMED CT', 'SNOMED NP', 'ICD-10-WHO', 'RxNORM', 'ICD-10-WHO NP', 'ICD-10-WHO 2nd', 'ICD-10-WHO NP2', 'SNOMED US', 'NDF-RT NUI')
--- and c.concept_id=10
---   and crs."name" like 'NDF-RT%'
--- and d."name" is not null
--- and ccl."name"='Drug'
--- and c.concept_id in (112141, 1065)
--- and lower(cn."name") like '%metabolic%'
--- and cdt."name"='Boolean'
--- and ccl."name"='Diagnosis'
--- and c.retired=1
-;
+where crs."name" in ('SNOMED CT', 'SNOMED NP', 'ICD-10-WHO', 'RxNORM', 'ICD-10-WHO NP', 'ICD-10-WHO 2nd', 'ICD-10-WHO NP2', 'SNOMED US', 'NDF-RT NUI');
 COMMIT;
 
 --6 Create concept_relationship_stage records

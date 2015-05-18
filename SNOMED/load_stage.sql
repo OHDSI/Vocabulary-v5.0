@@ -627,9 +627,15 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (43741000, 'Place of Service
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (420056007, 'Drug'); -- Aromatherapy agent
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (373873005, 'Drug'); -- Pharmaceutical / biologic product
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (410942007, 'Drug'); -- Drug or medicament
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (385285004, 'Drug'); -- dialysis dosage form
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (421967003, 'Drug'); -- drug dose form
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (424387007, 'Drug'); -- dose form by site prepared for 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (421563008, 'Drug'); -- complementary medicine dose form
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (284009009, 'Drug');  -- Route of administration value
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (373783004, 'Observation'); -- dietary product, exception of Pharmaceutical / biologic product
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (419572002, 'Observation'); -- alcohol agent, exception of drug
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (373782009, 'Observation'); -- diagnostic substance, exception of drug
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (2949005, 'Observation'); -- diagnostic aid (exclusion from drugs)
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (404684003, 'Condition'); -- Clinical Finding
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (218496004, 'Condition'); -- Adverse reaction to primarily systemic agents
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (313413008, 'Condition'); -- Calculus observation
@@ -662,6 +668,7 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (260245000, 'Meas Value'); -
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (125677006, 'Relationship'); -- Relationship
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (264301008, 'Observation'); -- psychoactive substance of abuse - non-pharmaceutical
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (226465004, 'Observation'); -- drinks
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (49062001, 'Device'); -- Device
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (289964002, 'Device'); -- Surgical material
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (260667007, 'Device'); -- Graft
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (418920007, 'Device'); -- Adhesive agent
@@ -669,22 +676,6 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (255922001, 'Device'); -- De
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (413674002, 'Observation'); -- Body material
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (118417008, 'Device'); -- Filling material
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (445214009, 'Device'); -- corneal storage medium
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (369443003, 'Device'); -- bedpan
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (398146001, 'Device'); -- armband
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (272181003, 'Device'); -- clinical equipment and/or device
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (445316008, 'Device'); -- component of optical microscope
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (419818001, 'Device'); -- Contact lens storage case
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (228167008, 'Device'); -- Corset
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (42380001, 'Device'); -- Ear plug, device
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (1333003, 'Device'); -- Emesis basin, device
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (360306007, 'Device'); -- Environmental control system
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (33894003, 'Device'); -- Experimental device
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (116250002, 'Device'); -- filter
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (59432006, 'Device'); -- ligature
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (360174002, 'Device'); -- nabeya capsule
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (311767007, 'Device'); -- special bed
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (360173008, 'Device'); -- watson capsule
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (367561004, 'Device'); -- xenon arc photocoagulator
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (80631005, 'Observation'); -- 'clinical stage finding'
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (69449002, 'Observation');
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (79899007, 'Observation');
@@ -790,6 +781,7 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (51112002, 'Observation');
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (54427008, 'Observation');
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (37768003, 'Observation');
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (6811007, 'Observation');
+
 
 COMMIT;
 

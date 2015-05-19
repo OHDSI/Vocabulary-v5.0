@@ -59,7 +59,7 @@ CREATE TABLE t_domains nologging AS
     SELECT 
       hcpc.concept_code,
       case 
-        --review by name with exlusions
+        --review by name with exclusions
         when concept_code in ('A9152', 'A9153', 'A9180') then 'Observation' 
         when concept_code = 'A9155' then 'Drug' --Artificial saliva, 30 ml
         when hcpc.concept_code  in ('G0404', 'G0405', 'G0403') then 'Measurement' -- ECG

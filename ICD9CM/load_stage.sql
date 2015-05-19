@@ -245,7 +245,7 @@ COMMIT;
 create table filled_domain NOLOGGING as
 	with domain_map2value as (--ICD9CM have direct "Maps to value" mapping
 		SELECT c1.concept_code, c2.domain_id
-		FROM concept_relationship_stage r, concept_stage c1, devv5.concept c2
+		FROM concept_relationship_stage r, concept_stage c1, concept c2
 		WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
 		AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
 		AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'
@@ -279,7 +279,7 @@ create table filled_domain NOLOGGING as
 		from ( --ICD9CM have direct "Maps to" mapping
 			select concept_code, listagg(domain_id,'/') within group (order by domain_id) domain_id from (
 				SELECT distinct c1.concept_code, c2.domain_id
-				FROM concept_relationship_stage r, concept_stage c1, devv5.concept c2
+				FROM concept_relationship_stage r, concept_stage c1, concept c2
 				WHERE c1.concept_code=r.concept_code_1 AND c2.concept_code=r.concept_code_2
 				AND c1.vocabulary_id=r.vocabulary_id_1 AND c2.vocabulary_id=r.vocabulary_id_2
 				AND r.vocabulary_id_1='ICD9CM' AND r.vocabulary_id_2='SNOMED'

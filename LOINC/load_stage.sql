@@ -282,7 +282,51 @@ INSERT INTO concept_relationship_stage (concept_id_1,
     WHERE AnswerStringID IS NOT NULL;
 COMMIT;	
 
---12. Add mapping from deprecated to fresh concepts
+--12 Add LOINC to SNOMED map
+INSERT /*+ APPEND */
+      INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT l.maptarget AS concept_code_1,
+          l.referencedcomponentid AS concept_code_2,
+          'LOINC' AS vocabulary_id_1,
+          'SNOMED' AS vocabulary_id_2,
+          'LOINC - SNOMED eq' AS relationship_id,
+          v.latest_update AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM scccRefset_MapCorrOrFull_INT l, vocabulary v
+    WHERE v.vocabulary_id = 'LOINC';
+COMMIT;
+
+--13 Add LOINC to CPT map	 
+INSERT /*+ APPEND */
+      INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT l.fromexpr AS concept_code_1,
+          l.toexpr AS concept_code_2,
+          'LOINC' AS vocabulary_id_1,
+          'CPT4' AS vocabulary_id_2,
+          'LOINC - CPT4 eq' AS relationship_id,
+          v.latest_update AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM CPT_MRSMAP l, vocabulary v
+    WHERE v.vocabulary_id = 'LOINC';
+COMMIT;	 
+
+--14. Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -357,12 +401,12 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---13 Update concept_id in concept_stage from concept for existing concepts
+--15 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---14 Reinstate constraints and indices
+--16 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

@@ -12,7 +12,12 @@ and multiaxial hierarchy (http://loinc.org/downloads/files/loinc-multiaxial-hier
 5. Load LOINC Answers - Load LOINC_XXX_SELECTED_FORMS.zip from http://loinc.org/downloads/files/loinc-panels-and-forms-file/loinc-panels-and-forms-file-all-selected-panels-and-forms/download
 6. Open LOINC_XXX_SELECTED_FORMS.xlsx and load worksheet "ANSWERS" to table LOINC_ANSWERS
 7. Open loinc_class.csv and load him into table loinc_class
-8. Run load_stage.sql
-9. Run generic_update.sql (from working directory)
+8. Download SnomedCT_LOINC_TechnologyPreview_INT_xxxxxxxx.zip from https://loinc.org/news/draft-loinc-snomed-ct-mappings-and-expression-associations-now-available.html
+9. Extract \RF2Release\Full\Refset\Content\xder2_scccRefset_MapCorrelationOriginFull_INT_xxxxxxxx.txt
+10. Load him into scccRefset_MapCorrOrFull_INT using xder2_scccRefset_MapCorrelationOriginFull_INT.ctl
+11. Download LNCxxx_TO_CPT2005_MAPPINGS.zip from http://www.nlm.nih.gov/research/umls/mapping_projects/loinc_to_cpt_map.html
+12. Extract MRSMAP.RRF and load into CPT_MRSMAP using CPT_MRSMAP.ctl
+13. Run load_stage.sql
+14. Run generic_update.sql (from working directory)
 
  

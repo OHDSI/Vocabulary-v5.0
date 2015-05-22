@@ -17,7 +17,7 @@ trailing nullcols(
   SATUI CHAR,
   ATN CHAR,
   SAB CHAR,
-  ATV CHAR(16000),
+  ATV CHAR(500000),
   SUPPRESS  CHAR,
   CVF CHAR
 )

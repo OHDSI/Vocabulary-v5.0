@@ -22,7 +22,7 @@
 
 
 -- fix some components that will set off parser
--- drop table component_replace;
+--drop table component_replace;
 create table component_replace (
 component_name varchar(250),
 replace_with varchar(250)
@@ -49,7 +49,7 @@ insert into component_replace (component_name, replace_with) values ('samarium s
 insert into component_replace (component_name, replace_with) values ('saw palmetto extract extract 1:5', 'Saw palmetto extract 0.5 ');
 
 -- Create Unit mappingselect * from source_to_concept_map;
--- drop table unit_to_concept_map;
+--drop table unit_to_concept_map;
 create table unit_to_concept_map as
 select * from source_to_concept_map where 1=1;
 
@@ -110,30 +110,31 @@ values ('unt', 0, 'unit', 8510, 11, '1-Jan-1970', '31-Dec-2099', null);
  
 
 -- Build drug_strength table;
--- truncate table drug_strength;
-insert into drug_strength (
+truncate table drug_strength;
+insert /*+ APPEND */ into drug_strength (
   drug_concept_id, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_unit_concept_id, valid_start_date, valid_end_date, invalid_reason
 )
-select
+select distinct
   v4.drug_id,
   v4.ingredient_id,
-  amount_value,
-  au.target_concept_id, 
-  numerator_value,
-  nu.target_concept_id as numerator_unit_concept_id, 
-  du.target_concept_id as denominator_unit_concept_id,
+  first_value(amount_value) over (partition by drug_id, ingredient_id order by component_id rows between unbounded preceding and unbounded following) as amount_value,
+  first_value(au.target_concept_id) over (partition by drug_id, ingredient_id order by component_id rows between unbounded preceding and unbounded following) as target_concept_id, 
+  first_value(numerator_value) over (partition by drug_id, ingredient_id order by component_id rows between unbounded preceding and unbounded following) as numerator_value,
+  first_value(nu.target_concept_id) over (partition by drug_id, ingredient_id order by component_id rows between unbounded preceding and unbounded following) as numerator_unit_concept_id, 
+  first_value(du.target_concept_id) over (partition by drug_id, ingredient_id order by component_id rows between unbounded preceding and unbounded following) as denominator_unit_concept_id,
   v4.valid_start_date, v4.valid_end_date,
   null as invalid_reason
 from (
   select distinct
     drug_id, ingredient_id, 
-    sum(amount) over (partition by drug_id, ingredient_id) as amount_value,
+    component_id,
+    sum(amount) over (partition by drug_id, ingredient_id, numerator_unit) as amount_value,
     amount_unit, 
-    sum(numerator) over (partition by drug_id, ingredient_id) as numerator_value,
+    sum(numerator) over (partition by drug_id, ingredient_id, numerator_unit) as numerator_value,
     numerator_unit, denominator_unit, valid_start_date, valid_end_date
   from (
     select
-      drug_id, ingredient_id, 
+      drug_id, ingredient_id, component_id,
       case 
         when regexp_like(component_name, '\/[^-]') then null
         else to_number(regexp_substr(component_name, ' [0-9]+(\.[0-9]+)? ', position)) 
@@ -159,14 +160,16 @@ from (
     from (
       select -- if ingredient name is not part of component name start from position 1, otherwise start after the ingredient name
         drug_id, component_name, component_start_date, component_end_date, ingredient_id, ingredient_name, len,
-        case position when 0 then 1 else position+len end as position
+        case position when 0 then 1 else position+len end as position,
+        component_id
       from (
         select -- get the position of the ingredient inside the component
           drug_id, component_name, component_start_date, component_end_date, ingredient_id, ingredient_name, 
           instr(component_name, ingredient_name) as position,
-          length(ingredient_name) as len
+          length(ingredient_name) as len,
+          component_id
         from ( -- provide drugs with cleaned components and ingredients 
-          select drug_id, ingredient_id,
+          select drug_id, ingredient_id, component_id,
             regexp_replace(lower(component_name), 'ic\s+acid', 'ate') as component_name, 
             min(component_start_date) over (partition by ingredient_id) as component_start_date, 
             max(component_end_date) over (partition by ingredient_id) as component_end_date,
@@ -199,6 +202,11 @@ left join unit_to_concept_map au on au.source_code=v4.amount_unit
 left join unit_to_concept_map nu on nu.source_code=v4.numerator_unit
 left join unit_to_concept_map du on du.source_code=v4.denominator_unit
 ;
+commit;
+
+-- clean up
+drop table component_replace purge;
+drop table unit_to_concept_map purge;
 
 -- check unparsed records
 select * from drug_strength where amount_unit_concept_id is null and numerator_unit_concept_id is null;

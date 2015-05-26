@@ -596,8 +596,24 @@ MERGE INTO vocabulary_conversion vc
 WHEN MATCHED
 THEN
    UPDATE SET vc.latest_update = v.latest_update;
-ALTER TABLE vocabulary DROP COLUMN latest_update;
 COMMIT;   
+
+-- 21. drop column latest_update
+DECLARE
+   z   vocabulary.vocabulary_id%TYPE;
+BEGIN
+   SELECT vocabulary_id
+     INTO z
+     FROM vocabulary
+    WHERE latest_update IS NOT NULL AND ROWNUM = 1;
+
+   IF z <> 'RxNorm'
+   THEN
+      EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
+   END IF;
+END;
+COMMIT;
+
 
 -- QA
 -- Only one active replacement relationship per fresh code

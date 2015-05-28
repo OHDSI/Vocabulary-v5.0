@@ -85,6 +85,9 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'CPT4' THEN 1
   WHEN c.vocabulary_id = 'HCPCS' THEN 1
   WHEN c.vocabulary_id = 'Read' THEN 1
+  WHEN c.vocabulary_id = 'ICD10CM' THEN 1
+  WHEN c.vocabulary_id = 'GPI' THEN 1
+  WHEN c.vocabulary_id = 'OPCS4' THEN 1
   ELSE 0 -- in default we will not deprecate
 END = 1
 ;

@@ -10,13 +10,8 @@ Prerequisites:
 3. Extract and load into the tables from the folder rrf. Use the control files of the same name
 RXNATOMARCHIVE
 RXNCONSO
-RXNCUI
-RXNCUICHANGES
-RXNDOC
 RXNREL
-RXNSAB
 RXNSAT
-RXNSTY 
 
 4. Run load_stage.sql
 5. Run generic_update.sql (from working directory)

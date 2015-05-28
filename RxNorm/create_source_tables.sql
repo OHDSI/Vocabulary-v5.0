@@ -63,36 +63,6 @@ CREATE TABLE RXNREL
 )
 ;
 
-CREATE TABLE RXNSAB
-(
-   VCUI VARCHAR2 (8),
-   RCUI VARCHAR2 (8),
-   VSAB VARCHAR2 (40),
-   RSAB VARCHAR2 (20) NOT NULL,
-   SON VARCHAR2 (3000),
-   SF VARCHAR2 (20),
-   SVER VARCHAR2 (20),
-   VSTART VARCHAR2 (10),
-   VEND VARCHAR2 (10),
-   IMETA VARCHAR2 (10),
-   RMETA VARCHAR2 (10),
-   SLC VARCHAR2 (1000),
-   SCC VARCHAR2 (1000),
-   SRL INTEGER,
-   TFR INTEGER,
-   CFR INTEGER,
-   CXTY VARCHAR2 (50),
-   TTYL VARCHAR2 (300),
-   ATNL VARCHAR2 (1000),
-   LAT VARCHAR2 (3),
-   CENC VARCHAR2 (20),
-   CURVER VARCHAR2 (1),
-   SABIN VARCHAR2 (1),
-   SSN VARCHAR2 (3000),
-   SCIT VARCHAR2 (4000)
-)
-;
-
 CREATE TABLE RXNSAT
 (
    RXCUI VARCHAR2(8),
@@ -111,45 +81,6 @@ CREATE TABLE RXNSAT
 )
 ;
 
-CREATE TABLE RXNSTY
-(
-   RXCUI VARCHAR2(8) NOT NULL,
-   TUI VARCHAR2 (4),
-   STN VARCHAR2 (100),
-   STY VARCHAR2 (50),
-   ATUI VARCHAR2 (11),
-   CVF VARCHAR2 (50)
-)
-;
-
-CREATE TABLE RXNDOC (
-    DOCKEY	varchar2(50) NOT NULL,
-    VALUE	varchar2(1000),
-    TYPE	varchar2(50) NOT NULL,
-    EXPL	varchar2(1000)
-)
-;
-
-CREATE TABLE RXNCUICHANGES
-(
-      RXAUI varchar2(8),
-      CODE varchar2(50),
-      SAB  varchar2(20),
-      TTY  varchar2(20),
-      STR  varchar2(3000),
-      OLD_RXCUI varchar2(8) NOT NULL,
-      NEW_RXCUI varchar2(8) NOT NULL
-)
-;
-
- CREATE TABLE rxncui (
- cui1 varchar2(8),
- ver_start varchar2(40),
- ver_end   varchar2(40),
- cardinality varchar2(8),
- cui2        varchar2(8)
-)
-;
 create index x_rxnconso_str on rxnconso(str) nologging;
 create index x_rxnconso_rxcui on rxnconso(rxcui) nologging;
 create index x_rxnconso_tty on rxnconso(tty) nologging;

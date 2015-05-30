@@ -1522,6 +1522,132 @@ insert into relationship (relationship_id, relationship_name, is_hierarchical, d
 values ('Legal category of', 'Legal category of (SNOMED)', 0, 0, 'Has legal category', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Legal category of (SNOMED)'));
 update relationship set reverse_relationship_id = 'Legal category of' where relationship_id = 'Has legal category';
 
+-- Adding and fixing UCUM concepts needed for CIEL
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'gram per cubical centimeter', 'Unit', 'UCUM', 'Unit', 'S', 'g/cm3', '01-JAN-1970', '31-DEC-2099', null);
+update concept set concept_name = 'signal to cutoff ratio' where concept_id = 8779;
+update concept set concept_code = '[beth''U]/mL' where concept_id = 44777562;
+update concept set concept_code = 'mL/s' where concept_id = 44777614;
+update concept set concept_code = 'mL/h' where concept_id = 44777613;
+
+-- Remove redundant replace by relationships
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 2617369 and relationship_id = 'Concept replaced by' and concept_id_2 = 43533186;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 2617369 and relationship_id = 'Concept replaced by' and concept_id_2 = 43533353;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 2617369 and relationship_id = 'Concept replaced by' and concept_id_2 = 43533248;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 2617370 and relationship_id = 'Concept replaced by' and concept_id_2 = 43533187;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 2617370 and relationship_id = 'Concept replaced by' and concept_id_2 = 43533223;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 2617370 and relationship_id = 'Concept replaced by' and concept_id_2 = 43533242;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 2617370 and relationship_id = 'Concept replaced by' and concept_id_2 = 43533354;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 4058770 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 40485469;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40305404 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4141548;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40328560 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 45765741;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40343703 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4093140;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40351921 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 134031;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40355023 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4108905;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40358195 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4061262;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40390118 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4166222;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40397523 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4140216;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40403601 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4166587;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40408925 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 45763732;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40408925 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 437449;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40436455 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 45763750;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40436455 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4025168;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40461392 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4027292;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40502851 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4030147;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40564008 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4311193;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40622238 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 45763732;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 2617369 and relationship_id = 'Concept replaced by' and concept_id_2 = 43533247;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40307008 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4282906;
+update concept_relationship set valid_end_date = '28-May-2015', invalid_reason = 'D' where concept_id_1 = 40307008 and relationship_id = 'Concept poss_eq to' and concept_id_2 = 4065257;
+
+-- Improved ICD10 mappings by Martijn
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.0'), 4002357, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.1'), 4001329, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.2'), 4003833, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.7'), 4147411, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.9'), 4147411, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.0'), 4002356, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.1'), 4003180, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.9'), 4038838, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.3'), 432574, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.4'), 4003832, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.5'), 4001328, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.6'), 4003831, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.8'), 4003830, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.1'), 434592, 'Maps to', '30-May-2015', '31-Dec-2099', null);
+
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.0'), 4002357, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.1'), 4001329, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.2'), 4003833, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.7'), 4147411, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.9'), 4147411, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.0'), 4002356, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.1'), 4003180, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.9'), 4038838, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.3'), 432574, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.4'), 4003832, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.5'), 4001328, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.6'), 4003831, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.8'), 4003830, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_2, concept_id_1, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values ((select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.1'), 434592, 'Mapped from', '30-May-2015', '31-Dec-2099', null);
+
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.0') and concept_id_2 = 194878;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.1') and concept_id_2 = 194878;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.2') and concept_id_2 = 194878;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.7') and concept_id_2 = 4299152;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.9') and concept_id_2 = 194878;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.0') and concept_id_2 = 440058;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.1') and concept_id_2 = 40481901;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.9') and concept_id_2 = 432571;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.3') and concept_id_2 = 436920;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.4') and concept_id_2 = 4003830;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.5') and concept_id_2 = 200662;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.6') and concept_id_2 = 4003830;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.8') and concept_id_2 = 440058;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_1 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.1') and concept_id_2 = 432571;
+
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.0') and concept_id_1 = 194878;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.1') and concept_id_1 = 194878;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.2') and concept_id_1 = 194878;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.7') and concept_id_1 = 4299152;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C82.9') and concept_id_1 = 194878;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.0') and concept_id_1 = 440058;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.1') and concept_id_1 = 40481901;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.9') and concept_id_1 = 432571;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.3') and concept_id_1 = 436920;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.4') and concept_id_1 = 4003830;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.5') and concept_id_1 = 200662;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.6') and concept_id_1 = 4003830;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.8') and concept_id_1 = 440058;
+update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.1') and concept_id_1 = 432571;
 
 commit;
 

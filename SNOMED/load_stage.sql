@@ -1780,15 +1780,17 @@ BEGIN
 
    COMMIT;
 
+   EXECUTE IMMEDIATE 'ALTER INDEX XPKSNOMED_ANCESTOR REBUILD NOLOGGING';
+   
    EXECUTE IMMEDIATE
       'alter table snomed_ancestor enable constraint XPKSNOMED_ANCESTOR';
-   
-   EXECUTE IMMEDIATE 'ALTER INDEX XPKSNOMED_ANCESTOR REBUILD NOLOGGING';	  
 
    -- Clean up
    EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc purge';
 
    EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc_bkp purge';
+   
+   DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'snomed_ancestor', estimate_percent  => null, cascade  => true);
 END;
 
 --13. Create domain_id

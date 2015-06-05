@@ -711,7 +711,8 @@ UPDATE concept_stage cs
                  END
              FROM tmp_concept_class cc
             WHERE cc.concept_code = cs.concept_code)
-	WHERE cs.vocabulary_id='SNOMED';
+	WHERE cs.vocabulary_id='SNOMED'
+	AND cs.concept_code IN (SELECT concept_code FROM tmp_concept_class);
 
 -- Clean up
 DROP TABLE tmp_concept_class PURGE;

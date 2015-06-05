@@ -4,7 +4,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20150525','yyyymmdd'), vocabulary_version='GPI ??' WHERE vocabulary_id='GPI'; 
+UPDATE vocabulary SET latest_update=to_date('20150506','yyyymmdd'), vocabulary_version='RXNORM CROSS REFERENCE 15.2.1.002' WHERE vocabulary_id='GPI'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices

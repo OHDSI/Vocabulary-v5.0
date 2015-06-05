@@ -121,3 +121,12 @@ CREATE VIEW sct2_concept_full_merged AS SELECT * FROM sct2_concept_full_int UNIO
 CREATE VIEW sct2_desc_full_merged AS SELECT * FROM sct2_desc_full_en_int UNION SELECT * FROM sct2_desc_full_uk;
 CREATE VIEW sct2_rela_full_merged AS SELECT * FROM sct2_rela_full_int UNION SELECT * FROM sct2_rela_full_uk;
 CREATE VIEW der2_cRefset_AssRefFull_merged AS SELECT * FROM der2_cRefset_AssRefFull_INT UNION SELECT * FROM der2_cRefset_AssRefFull_UK;
+
+--Create XML table for DM+D
+CREATE TABLE f_lookup2 (xmlfield XMLTYPE);
+CREATE TABLE f_ingredient2 (xmlfield XMLTYPE);
+CREATE TABLE f_vtm2 (xmlfield XMLTYPE)
+CREATE TABLE f_vmp2 (xmlfield XMLTYPE)
+CREATE TABLE f_amp2 (xmlfield XMLTYPE)
+CREATE TABLE f_vmpp2 (xmlfield XMLTYPE)
+CREATE TABLE f_ampp2 (xmlfield XMLTYPE)

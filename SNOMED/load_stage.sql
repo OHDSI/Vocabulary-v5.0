@@ -19,8 +19,469 @@ ALTER INDEX idx_cs_concept_id UNUSABLE;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
+--3 Create core version of DM+D
+--3.1. We need to create temporary table of DM+D with the same structure as concept_stage and pseudo-column 'insert_id'
+--later it will be important
+CREATE TABLE concept_stage_dmd NOLOGGING AS SELECT * FROM concept_stage WHERE 1=0;
+ALTER TABLE concept_stage_dmd ADD insert_id NUMBER;          
 
--- 3. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
+INSERT /*+ APPEND */
+      INTO  concept_stage_dmd (concept_id,
+                               concept_name,
+                               domain_id,
+                               vocabulary_id,
+                               concept_class_id,
+                               standard_concept,
+                               concept_code,
+                               valid_start_date,
+                               valid_end_date,
+                               invalid_reason,
+                               insert_id)
+   -- UoM
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'INFO/DESC') AS concept_name,
+          'Unit' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Qualifier Value' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code,
+          TO_DATE (NVL (EXTRACTVALUE (VALUE (t), 'INFO/CDDT'), '1970-01-01'),
+                   'YYYY-MM-DD')
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason,
+          1 AS insert_id
+     FROM f_lookup2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT ('LOOKUP/UNIT_OF_MEASURE/INFO'))) t
+   UNION ALL
+   --deprecated UoM
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'INFO/DESC') AS concept_name,
+          'Unit' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Qualifier Value' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') AS concept_code,
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE (EXTRACTVALUE (VALUE (t), 'INFO/CDDT'), 'YYYY-MM-DD') - 1
+             AS valid_end_date,
+          'U' AS invalid_reason,
+          2 AS insert_id
+     FROM f_lookup2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT ('LOOKUP/UNIT_OF_MEASURE/INFO'))) t
+    WHERE EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') IS NOT NULL
+   UNION ALL
+   --Forms
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'INFO/DESC') AS concept_name,
+          'Observation' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Pharma/Biol Product' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code,
+          TO_DATE (NVL (EXTRACTVALUE (VALUE (t), 'INFO/CDDT'), '1970-01-01'),
+                   'YYYY-MM-DD')
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason,
+          3 AS insert_id
+     FROM f_lookup2 t_xml,
+          TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/FORM/INFO'))) t
+   UNION ALL
+   --deprecated Forms
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'INFO/DESC') AS concept_name,
+          'Observation' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Pharma/Biol Product' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') AS concept_code,
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE (EXTRACTVALUE (VALUE (t), 'INFO/CDDT'), 'YYYY-MM-DD') - 1
+             AS valid_end_date,
+          'U' AS invalid_reason,
+          4 AS insert_id
+     FROM f_lookup2 t_xml,
+          TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/FORM/INFO'))) t
+    WHERE EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') IS NOT NULL
+   UNION ALL
+   --Routes
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'INFO/DESC') AS concept_name,
+          'Route' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Qualifier Value' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code,
+          TO_DATE (NVL (EXTRACTVALUE (VALUE (t), 'INFO/CDDT'), '1970-01-01'),
+                   'YYYY-MM-DD')
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason,
+          5 AS insert_id
+     FROM f_lookup2 t_xml,
+          TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/ROUTE/INFO'))) t
+   UNION ALL
+   --Deprecated Routes
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'INFO/DESC') AS concept_name,
+          'Route' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Qualifier Value' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') AS concept_code,
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE (EXTRACTVALUE (VALUE (t), 'INFO/CDDT'), 'YYYY-MM-DD') - 1
+             AS valid_end_date,
+          'U' AS invalid_reason,
+          6 AS insert_id
+     FROM f_lookup2 t_xml,
+          TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/ROUTE/INFO'))) t
+    WHERE EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') IS NOT NULL
+   /* Leave out because we don't know the proper concept class
+   UNION ALL
+   --Suppliers
+  SELECT NULL AS concept_id,
+         EXTRACTVALUE (VALUE (t), 'INFO/NM') AS concept_name, -----INFO/DESC????
+         'Observation' AS domain_id,
+         'SNOMED' AS vocabulary_id,
+         'xxxx' AS concept_class_id,
+         NULL AS standard_concept,
+         EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code,
+         TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+         CASE
+            WHEN EXTRACTVALUE (VALUE (t), 'INFO/INVALID') = '1'
+            THEN
+               (SELECT latest_update - 1
+                  FROM vocabulary
+                 WHERE vocabulary_id = 'SNOMED')
+            ELSE
+               TO_DATE ('20991231', 'yyyymmdd')
+         END
+            AS valid_end_date,
+         CASE
+            WHEN EXTRACTVALUE (VALUE (t), 'INFO/INVALID') = '1' THEN 'D'
+            ELSE NULL
+         END
+            AS invalid_reason
+    FROM f_lookup2 t_xml,
+         TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/SUPPLIER/INFO'))) t
+         WHERE EXTRACTVALUE (VALUE (t), 'INFO/NM') is not null
+   UNION ALL
+   --Deprecated Suppliers
+  SELECT NULL AS concept_id,
+         EXTRACTVALUE (VALUE (t), 'INFO/NM') AS concept_name, -----INFO/DESC????
+         'xxxx' AS domain_id,
+         'SNOMED' AS vocabulary_id,
+         'xxxx' AS concept_class_id,
+         NULL AS standard_concept,
+         EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') AS concept_code,
+         TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+         TO_DATE (EXTRACTVALUE (VALUE (t), 'INFO/CDDT'), 'YYYY-MM-DD') - 1
+            AS valid_end_date,
+         'U' AS invalid_reason
+    FROM f_lookup2 t_xml,
+         TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/SUPPLIER/INFO'))) t
+   WHERE EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') IS NOT NULL
+   AND EXTRACTVALUE (VALUE (t), 'INFO/NM') is not null
+  */
+   UNION ALL
+   --Ingredients
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'ING/NM') AS concept_name,
+          'Drug' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Substance' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'ING/ISID') AS concept_code,
+          TO_DATE (
+             NVL (EXTRACTVALUE (VALUE (t), 'ING/ISIDDT'), '1970-01-01'),
+             'YYYY-MM-DD')
+             AS valid_start_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'ING/INVALID') = '1'
+             THEN
+                (SELECT latest_update - 1
+                   FROM vocabulary
+                  WHERE vocabulary_id = 'SNOMED')
+             ELSE
+                TO_DATE ('20991231', 'yyyymmdd')
+          END
+             AS valid_end_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'ING/INVALID') = '1' THEN 'D'
+             ELSE NULL
+          END
+             AS invalid_reason,
+          7 AS insert_id
+     FROM f_ingredient2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT ('INGREDIENT_SUBSTANCES/ING'))) t
+   UNION ALL
+   --deprecated Ingredients
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'ING/NM') AS concept_name,
+          'Drug' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Substance' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'ING/ISIDPREV') AS concept_code,
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE (EXTRACTVALUE (VALUE (t), 'ING/ISIDDT'), 'YYYY-MM-DD') - 1
+             AS valid_end_date,
+          'U' AS invalid_reason,
+          8 AS insert_id
+     FROM f_ingredient2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT ('INGREDIENT_SUBSTANCES/ING'))) t
+    WHERE EXTRACTVALUE (VALUE (t), 'ING/ISIDPREV') IS NOT NULL
+   UNION ALL
+   --VTMs (Ingredients)
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'VTM/NM') AS concept_name,
+          'Drug' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Pharma/Biol Product' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'VTM/VTMID') AS concept_code,
+          TO_DATE (
+             NVL (EXTRACTVALUE (VALUE (t), 'VTM/VTMIDDT'), '1970-01-01'),
+             'YYYY-MM-DD')
+             AS valid_start_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'VTM/INVALID') = '1'
+             THEN
+                (SELECT latest_update - 1
+                   FROM vocabulary
+                  WHERE vocabulary_id = 'SNOMED')
+             ELSE
+                TO_DATE ('20991231', 'yyyymmdd')
+          END
+             AS valid_end_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'VTM/INVALID') = '1' THEN 'D'
+             ELSE NULL
+          END
+             AS invalid_reason,
+          9 AS insert_id
+     FROM f_vtm2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT ('VIRTUAL_THERAPEUTIC_MOIETIES/VTM'))) t
+   UNION ALL
+   --deprecated VTMs
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'VTM/NM') AS concept_name,
+          'Drug' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Pharma/Biol Product' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'VTM/VTMIDPREV') AS concept_code,
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE (EXTRACTVALUE (VALUE (t), 'VTM/VTMIDDT'), 'YYYY-MM-DD') - 1
+             AS valid_end_date,
+          'U' AS invalid_reason,
+          10 AS insert_id
+     FROM f_vtm2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT ('VIRTUAL_THERAPEUTIC_MOIETIES/VTM'))) t
+    WHERE EXTRACTVALUE (VALUE (t), 'VTM/VTMIDPREV') IS NOT NULL
+   UNION ALL
+   --VMPs (generic or clinical drugs)
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'VMP/NM') AS concept_name,
+          'Drug' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Pharma/Biol Product' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'VMP/VPID') AS concept_code,
+          TO_DATE (
+             NVL (EXTRACTVALUE (VALUE (t), 'VMP/VTMIDDT'), '1970-01-01'),
+             'YYYY-MM-DD')
+             AS valid_start_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'VMP/INVALID') = '1'
+             THEN
+                (SELECT latest_update - 1
+                   FROM vocabulary
+                  WHERE vocabulary_id = 'SNOMED')
+             ELSE
+                TO_DATE ('20991231', 'yyyymmdd')
+          END
+             AS valid_end_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'VMP/INVALID') = '1' THEN 'D'
+             ELSE NULL
+          END
+             AS invalid_reason,
+          11 AS insert_id
+     FROM f_vmp2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT ('VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+   UNION ALL
+   --deprecated VMPs
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'VMP/NM') AS concept_name,
+          'Drug' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Pharma/Biol Product' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'VMP/VPIDPREV') AS concept_code,
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE (EXTRACTVALUE (VALUE (t), 'VMP/VPIDDT'), 'YYYY-MM-DD') - 1
+             AS valid_end_date,
+          'U' AS invalid_reason,
+          12 AS insert_id
+     FROM f_vmp2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT ('VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+    WHERE EXTRACTVALUE (VALUE (t), 'VMP/VPIDPREV') IS NOT NULL
+   UNION ALL
+   -- AMPs (branded drugs)
+   SELECT NULL AS concept_id,
+          SUBSTR (EXTRACTVALUE (VALUE (t), 'AMP/DESC'), 1, 255)
+             AS concept_name,
+          'Drug' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Pharma/Biol Product' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'AMP/APID') AS concept_code,
+          TO_DATE (NVL (EXTRACTVALUE (VALUE (t), 'AMP/NMDT'), '1970-01-01'),
+                   'YYYY-MM-DD')
+             AS valid_start_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'AMP/INVALID') = '1'
+             THEN
+                (SELECT latest_update - 1
+                   FROM vocabulary
+                  WHERE vocabulary_id = 'SNOMED')
+             ELSE
+                TO_DATE ('20991231', 'yyyymmdd')
+          END
+             AS valid_end_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'AMP/INVALID') = '1' THEN 'D'
+             ELSE NULL
+          END
+             AS invalid_reason,
+          13 AS insert_id
+     FROM f_amp2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT ('ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP'))) t
+   UNION ALL
+   --VMPPs (clinical packs)
+   SELECT NULL AS concept_id,
+          SUBSTR (EXTRACTVALUE (VALUE (t), 'VMPP/NM'), 1, 255)
+             AS concept_name,
+          'Drug' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Pharma/Biol Product' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'VMPP/VPPID') AS concept_code,
+          TO_DATE ('1970-01-01', 'YYYY-MM-DD') AS valid_start_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'VMPP/INVALID') = '1'
+             THEN
+                (SELECT latest_update - 1
+                   FROM vocabulary
+                  WHERE vocabulary_id = 'SNOMED')
+             ELSE
+                TO_DATE ('20991231', 'yyyymmdd')
+          END
+             AS valid_end_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'VMPP/INVALID') = '1' THEN 'D'
+             ELSE NULL
+          END
+             AS invalid_reason,
+          14 AS insert_id
+     FROM f_vmpp2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT (
+                   'VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP'))) t
+   UNION ALL
+   --AMPPs (branded packs)
+   SELECT NULL AS concept_id,
+          SUBSTR (EXTRACTVALUE (VALUE (t), 'AMPP/NM'), 1, 255)
+             AS concept_name,
+          'Drug' AS domain_id,
+          'SNOMED' AS vocabulary_id,
+          'Pharma/Biol Product' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'AMPP/APPID') AS concept_code,
+          TO_DATE ('1970-01-01', 'YYYY-MM-DD') AS valid_start_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'AMPP/INVALID') = '1'
+             THEN
+                (SELECT latest_update - 1
+                   FROM vocabulary
+                  WHERE vocabulary_id = 'SNOMED')
+             ELSE
+                TO_DATE ('20991231', 'yyyymmdd')
+          END
+             AS valid_end_date,
+          CASE
+             WHEN EXTRACTVALUE (VALUE (t), 'AMPP/INVALID') = '1' THEN 'D'
+             ELSE NULL
+          END
+             AS invalid_reason,
+          15 AS insert_id
+     FROM f_ampp2 t_xml,
+          TABLE (
+             XMLSEQUENCE (
+                t_xml.xmlfield.EXTRACT (
+                   'ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP'))) t;
+COMMIT;				   
+				   
+--3.2 delete duplicates, first of all concepts with invalid_reason='D', then 'U', last of all 'NULL'
+DELETE FROM concept_stage_dmd
+      WHERE ROWID NOT IN (SELECT LAST_VALUE (
+                                    ROWID)
+                                 OVER (
+                                    PARTITION BY concept_code
+                                    ORDER BY invalid_reason, ROWID
+                                    ROWS BETWEEN UNBOUNDED PRECEDING
+                                         AND     UNBOUNDED FOLLOWING)
+                            FROM concept_stage_dmd);				   
+COMMIT;	
+
+--3.3 copy DM+D to concept_stage
+INSERT /*+ APPEND */
+      INTO  concept_stage (concept_id,
+                           concept_name,
+                           domain_id,
+                           vocabulary_id,
+                           concept_class_id,
+                           standard_concept,
+                           concept_code,
+                           valid_start_date,
+                           valid_end_date,
+                           invalid_reason)
+   SELECT concept_id,
+          concept_name,
+          domain_id,
+          vocabulary_id,
+          concept_class_id,
+          standard_concept,
+          concept_code,
+          valid_start_date,
+          valid_end_date,
+          invalid_reason
+     FROM concept_stage_dmd;  
+COMMIT;
+
+-- 4. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
 INSERT  /*+ APPEND */  INTO concept_stage (concept_name,
                            vocabulary_id,
                            concept_code,
@@ -76,10 +537,14 @@ INSERT  /*+ APPEND */  INTO concept_stage (concept_name,
               AND tty in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
         ) umls
           ON sct2.concept_code = umls.concept_code
-    WHERE sct2.rn = 1 AND sct2.active = 1;
+    WHERE sct2.rn = 1 AND sct2.active = 1
+	AND NOT EXISTS (
+		--DM+D first, SNOMED last
+		SELECT 1 FROM concept_stage cs_int WHERE cs_int.concept_code=sct2.concept_code
+	);
 COMMIT;	
 	
--- 4. Create temporary table with extracted class information and terms ordered by some good precedence
+-- 5. Create temporary table with extracted class information and terms ordered by some good precedence
 CREATE TABLE tmp_concept_class
 AS
    SELECT *
@@ -185,7 +650,7 @@ AS
 	
 CREATE INDEX x_cc_2cd ON tmp_concept_class (concept_code);
 
--- 5. Create reduced set of classes 
+-- 6. Create reduced set of classes 
 UPDATE concept_stage cs
    SET concept_class_id =
           (SELECT CASE
@@ -253,8 +718,156 @@ DROP TABLE tmp_concept_class PURGE;
 
 -- Assign top SNOMED concept
 UPDATE concept_stage set concept_class_id='Model Comp' WHERE concept_code=138875005 and vocabulary_id='SNOMED';
+
+--7 Add DM+D into concept_synonym_stage
+INSERT /*+ APPEND */
+      INTO  concept_synonym_stage (synonym_concept_code,
+                                   synonym_vocabulary_id,
+                                   synonym_name,
+                                   language_concept_id)
+   SELECT DISTINCT synonym_concept_code,
+                   synonym_vocabulary_id,
+                   synonym_name,
+                   language_concept_id
+     FROM (SELECT EXTRACTVALUE (VALUE (t), 'ING/ISID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'ING/NM') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_ingredient2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT ('INGREDIENT_SUBSTANCES/ING'))) t
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'VTM/VTMID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'VTM/NM') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_vtm2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_THERAPEUTIC_MOIETIES/VTM'))) t
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'VTM/VTMID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'VTM/ABBREVNM') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_vtm2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_THERAPEUTIC_MOIETIES/VTM'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'VTM/ABBREVNM') IS NOT NULL
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'VMP/VPID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'VMP/NM') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'VMP/VPID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'VMP/ABBREVNM') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'VMP/ABBREVNM') IS NOT NULL
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'VMP/VPID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'VMP/NMPREV') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'VMP/NMPREV') IS NOT NULL
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'AMP/APID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'AMP/DESC') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_amp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP'))) t
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'AMP/APID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'AMP/ABBREVNM') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_amp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'AMP/ABBREVNM') IS NOT NULL
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'AMP/APID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'AMP/NMPREV') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_amp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'AMP/NMPREV') IS NOT NULL
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'VMPP/VPPID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'VMPP/NM') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_vmpp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP'))) t
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'AMPP/APPID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'AMPP/NM') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_ampp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP'))) t
+           UNION ALL
+           SELECT EXTRACTVALUE (VALUE (t), 'AMPP/APPID')
+                     AS synonym_concept_code,
+                  'SNOMED' AS synonym_vocabulary_id,
+                  EXTRACTVALUE (VALUE (t), 'AMPP/ABBREVNM') AS synonym_name,
+                  4093769 AS language_concept_id                    -- English
+             FROM f_ampp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'AMPP/ABBREVNM') IS NOT NULL);
+COMMIT;			
 			
--- 6. Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
+-- 8. Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
 INSERT  /*+ APPEND */  INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_vocabulary_id,
@@ -268,129 +881,701 @@ INSERT  /*+ APPEND */  INTO concept_synonym_stage (synonym_concept_id,
           4093769 -- English
      FROM UMLS.mrconso m
     WHERE m.sab = 'SNOMEDCT_US' AND m.tty in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
+	AND NOT EXISTS (
+		SELECT 1 FROM concept_synonym_stage css_int WHERE css_int.synonym_concept_code=m.code AND css_int.synonym_name=SUBSTR (m.str, 1, 1000)
+	)
 ;
 COMMIT;
 
--- 7. Fill concept_relationship_stage from SNOMED	
-INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
+-- 9. Fill concept_relationship_stage from DM+D
+INSERT /*+ APPEND */
+      INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
-								                    		vocabulary_id_1,
+                                        vocabulary_id_1,
                                         vocabulary_id_2,
                                         relationship_id,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-WITH tmp_rel AS (   -- get relationships from latest records that are active
-      SELECT DISTINCT sourceid, destinationid, replace(term,' (attribute)','') term
-        FROM (SELECT r.sourceid,
-                     r.destinationid,
-                     d.term,
-                     ROW_NUMBER ()
-                     OVER (
-                        PARTITION BY r.id
-                        ORDER BY TO_DATE (r.effectivetime, 'YYYYMMDD') DESC
-                     ) AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
-                    r.active
-                FROM sct2_rela_full_merged r
-                     JOIN sct2_desc_full_merged d ON r.typeid = d.conceptid
-              )
-       WHERE rn = 1
-             AND active = 1
-             AND sourceid IS NOT NULL
-             AND destinationid IS NOT NULL
-             AND term <> 'PBCL flag true'
-)
- --convert SNOMED to OMOP-type relationship_id   
- SELECT DISTINCT
-        sourceid,
-        destinationid,
-        'SNOMED',
-        'SNOMED',
-        CASE
-            WHEN term = 'Access' THEN 'Has access'
-            WHEN term = 'Associated aetiologic finding' THEN 'Has etiology'
-            WHEN term = 'After' THEN 'Occurs after'
-            WHEN term = 'Approach' THEN 'Has surgical appr' -- looks like old version
-            WHEN term = 'Associated finding' THEN 'Has asso finding'
-            WHEN term = 'Associated morphology' THEN 'Has asso morph'
-            WHEN term = 'Associated procedure' THEN 'Has asso proc'
-            WHEN term = 'Associated with' THEN 'Finding asso with'
-            WHEN term = 'AW' THEN 'Finding asso with'
-            WHEN term = 'Causative agent' THEN 'Has causative agent'
-            WHEN term = 'Clinical course' THEN 'Has clinical course'  
-            WHEN term = 'Component' THEN 'Has component'
-            WHEN term = 'Direct device' THEN 'Has dir device'
-            WHEN term = 'Direct morphology' THEN 'Has dir morph'
-            WHEN term = 'Direct substance' THEN 'Has dir subst'
-            WHEN term = 'Due to' THEN 'Has due to'
-            WHEN term = 'Episodicity' THEN 'Has episodicity'
-            WHEN term = 'Extent' THEN 'Has extent'
-            WHEN term = 'Finding context' THEN 'Has finding context'
-            WHEN term = 'Finding informer' THEN 'Using finding inform'   
-            WHEN term = 'Finding method' THEN 'Using finding method'    
-            WHEN term = 'Finding site' THEN 'Has finding site'
-            WHEN term = 'Has active ingredient' THEN 'Has active ing'
-            WHEN term = 'Has definitional manifestation' THEN 'Has manifestation'
-            WHEN term = 'Has dose form' THEN 'Has dose form'
-            WHEN term = 'Has focus' THEN 'Has focus'
-            WHEN term = 'Has interpretation' THEN 'Has interpretation'
-            WHEN term = 'Has measured component' THEN 'Has meas component'
-            WHEN term = 'Has specimen' THEN 'Has specimen'
-            WHEN term = 'Stage' THEN 'Has stage'
-            WHEN term = 'Indirect device' THEN 'Has indir device'
-            WHEN term = 'Indirect morphology' THEN 'Has indir morph'
-            WHEN term = 'Instrumentation' THEN 'Using device' -- looks like an old version
-            WHEN term = 'Intent' THEN 'Has intent'
-            WHEN term = 'Interprets' THEN 'Has interprets'
-            WHEN term = 'Is a' THEN 'Is a'
-            WHEN term = 'Laterality' THEN 'Has laterality'
-            WHEN term = 'Measurement method' THEN 'Has measurement'
-            WHEN term = 'Measurement Method' THEN 'Has measurement' -- looks like misspelling
-            WHEN term = 'Method' THEN 'Has method'
-            WHEN term = 'Morphology' THEN 'Has morphology'
-            WHEN term = 'Occurrence' THEN 'Has occurrence'
-            WHEN term = 'Onset' THEN 'Has clinical course' -- looks like old version
-            WHEN term = 'Part of' THEN 'Has part of'
-            WHEN term = 'Pathological process' THEN 'Has pathology'
-            WHEN term = 'Pathological process (qualifier value)' THEN 'Has pathology'
-            WHEN term = 'Priority' THEN 'Has priority'
-            WHEN term = 'Procedure context' THEN 'Has proc context'
-            WHEN term = 'Procedure device' THEN 'Has proc device'
-            WHEN term = 'Procedure morphology' THEN 'Has proc morph'
-            WHEN term = 'Procedure site - Direct' THEN 'Has dir proc site'
-            WHEN term = 'Procedure site - Indirect' THEN 'Has indir proc site'
-            WHEN term = 'Procedure site' THEN 'Has proc site'
-            WHEN term = 'Property' THEN 'Has property'
-            WHEN term = 'Recipient category' THEN 'Has recipient cat'
-            WHEN term = 'Revision status' THEN 'Has revision status'
-            WHEN term = 'Route of administration' THEN 'Has route of admin'
-            WHEN term = 'Route of administration - attribute' THEN 'Has route of admin'
-            WHEN term = 'Scale type' THEN 'Has scale type'
-            WHEN term = 'Severity' THEN 'Has severity'
-            WHEN term = 'Specimen procedure' THEN 'Has specimen proc'
-            WHEN term = 'Specimen source identity' THEN 'Has specimen source'
-            WHEN term = 'Specimen source morphology' THEN 'Has specimen morph'
-            WHEN term = 'Specimen source topography' THEN 'Has specimen topo'
-            WHEN term = 'Specimen substance' THEN 'Has specimen subst'
-            WHEN term = 'Subject relationship context' THEN 'Has relat context'
-            WHEN term = 'Surgical approach' THEN 'Has surgical appr'  
-            WHEN term = 'Temporal context' THEN 'Has temporal context'   
-            WHEN term = 'Temporally follows' THEN 'Occurs after' -- looks like an old version
-            WHEN term = 'Time aspect' THEN 'Has time aspect'
-            WHEN term = 'Using access device' THEN 'Using acc device'  
-            WHEN term = 'Using device' THEN 'Using device'   
-            WHEN term = 'Using energy' THEN 'Using energy'   
-            WHEN term = 'Using substance' THEN 'Using subst'
-            ELSE 'non-existing'      
-        END AS relationship_id,
-        (select latest_update From vocabulary where vocabulary_id='SNOMED'),
-        TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-        NULL
-   FROM (SELECT * FROM tmp_rel)
-;
+   SELECT DISTINCT concept_code_1,
+                   concept_code_2,
+                   vocabulary_id_1,
+                   vocabulary_id_2,
+                   relationship_id,
+                   valid_start_date,
+                   valid_end_date,
+                   invalid_reason
+     FROM (--Upgrade links for UoM
+           SELECT EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'SNOMED replaced by' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_lookup2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'LOOKUP/UNIT_OF_MEASURE/INFO'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') IS NOT NULL
+           UNION ALL
+           --Upgrade links for Forms
+           SELECT EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'SNOMED replaced by' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_lookup2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT ('LOOKUP/FORM/INFO'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') IS NOT NULL
+           UNION ALL
+           --Upgrade links for Route
+           SELECT EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'SNOMED replaced by' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_lookup2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT ('LOOKUP/ROUTE/INFO'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') IS NOT NULL
+           /*Leave out because we don't know the proper concept class
+		   UNION ALL
+			-- add upgrade links for Suppliers 
+           SELECT EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'SNOMED replaced by' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_lookup2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT ('LOOKUP/SUPPLIER/INFO'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') IS NOT NULL
+			*/
+			UNION ALL		   
+           --upgrade links for iss
+           SELECT EXTRACTVALUE (VALUE (t), 'ING/ISIDPREV') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'ING/ISID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'SNOMED replaced by' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_ingredient2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT ('INGREDIENT_SUBSTANCES/ING'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'ING/ISIDPREV') IS NOT NULL
+           UNION ALL
+           --upgrade links for VTMs
+           SELECT EXTRACTVALUE (VALUE (t), 'VTM/VTMIDPREV') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'VTM/VTMID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'SNOMED replaced by' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vtm2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_THERAPEUTIC_MOIETIES/VTM'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'VTM/VTMIDPREV') IS NOT NULL
+           UNION ALL
+           --upgrade links for VMPs
+           SELECT EXTRACTVALUE (VALUE (t), 'VMP/VPIDPREV') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'VMP/VPID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'SNOMED replaced by' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'VMP/VPIDPREV') IS NOT NULL
+           UNION ALL
+           --add Unit dose form units for VMP
+           --linking VMPs to the unit of the form, for example "Sodium chloride 3% infusion 100ml bags" to "ml"
+           SELECT EXTRACTVALUE (VALUE (t), 'VMP/VPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'VMP/UDFS_UOMCD')
+                     AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has dose form unit' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'VMP/UDFS_UOMCD') IS NOT NULL
+           UNION ALL
+           -- add Unit dose unit of measure for VMP
+           -- linking VMPs to the unit of the form, for example "Sodium chloride 3% infusion 100ml bags" to "bag"
+           SELECT EXTRACTVALUE (VALUE (t), 'VMP/VPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'VMP/UNIT_DOSE_UOMCD')
+                     AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has unit of prod use' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'VMP/UNIT_DOSE_UOMCD') IS NOT NULL
+           UNION ALL
+           -- link VMPs to VTMs
+           SELECT EXTRACTVALUE (VALUE (t), 'VMP/VPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'VMP/VTMID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Is a' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+           UNION ALL
+           -- link VMPs to Ingredients
+           SELECT EXTRACTVALUE (VALUE (t), 'VPI/VPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'VPI/ISID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has spec active ing' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI'))) t
+           UNION ALL
+           -- link VMPs to Basis Ingredients (Atorvastatin instead of Atorvastatin calcium trihydrate)
+           SELECT EXTRACTVALUE (VALUE (t), 'VPI/VPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'VPI/BS_SUBID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has basis str subst' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'VPI/BS_SUBID') IS NOT NULL
+           UNION ALL
+           -- link VMPs to their drug forms
+           SELECT EXTRACTVALUE (VALUE (t), 'DFORM/VPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'DFORM/FORMCD') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has disp dose form' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM'))) t
+           UNION ALL
+           -- link VMPs to their routes
+           SELECT EXTRACTVALUE (VALUE (t), 'DROUTE/VPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'DROUTE/ROUTECD')
+                     AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has route' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCTS/DRUG_ROUTE/DROUTE'))) t
+           UNION ALL
+           -- link AMPs to VMPs
+           SELECT EXTRACTVALUE (VALUE (t), 'AMP/APID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'AMP/VPID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Is a' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_amp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP'))) t
+           UNION ALL
+           -- inherit 'Has specific active ingredient' relationship from VMP
+           SELECT a.APID AS concept_code_1,
+                  b.ISID AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has spec active ing' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM (SELECT EXTRACTVALUE (VALUE (t), 'AMP/APID') AS APID,
+                          EXTRACTVALUE (VALUE (t), 'AMP/VPID') AS VPID,
+                          ROWNUM rn
+                     FROM f_amp2 t_xml,
+                          TABLE (
+                             XMLSEQUENCE (
+                                t_xml.xmlfield.EXTRACT (
+                                   'ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP'))) t)
+                  a,
+                  (SELECT EXTRACTVALUE (VALUE (t), 'VPI/ISID') AS ISID,
+                          EXTRACTVALUE (VALUE (t), 'VPI/VPID') AS VPID,
+                          ROWNUM rn
+                     FROM f_vmp2 t_xml,
+                          TABLE (
+                             XMLSEQUENCE (
+                                t_xml.xmlfield.EXTRACT (
+                                   'VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI'))) t)
+                  b
+            WHERE a.VPID = b.VPID
+           UNION ALL
+           -- Inherit Basis Ingredients relationships from VMP
+           SELECT a.APID AS concept_code_1,
+                  b.BS_SUBID AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has basis str subst' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM (SELECT EXTRACTVALUE (VALUE (t), 'AMP/APID') AS APID,
+                          EXTRACTVALUE (VALUE (t), 'AMP/VPID') AS VPID,
+                          ROWNUM rn
+                     FROM f_amp2 t_xml,
+                          TABLE (
+                             XMLSEQUENCE (
+                                t_xml.xmlfield.EXTRACT (
+                                   'ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP'))) t)
+                  a,
+                  (SELECT EXTRACTVALUE (VALUE (t), 'VPI/BS_SUBID')
+                             AS BS_SUBID,
+                          EXTRACTVALUE (VALUE (t), 'VPI/VPID') AS VPID,
+                          ROWNUM rn
+                     FROM f_vmp2 t_xml,
+                          TABLE (
+                             XMLSEQUENCE (
+                                t_xml.xmlfield.EXTRACT (
+                                   'VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI'))) t)
+                  b
+            WHERE a.VPID = b.VPID AND b.BS_SUBID IS NOT NULL
+           UNION ALL
+           -- Inherit link drug forms from VMP
+           SELECT a.APID AS concept_code_1,
+                  b.FORMCD AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has disp dose form' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM (SELECT EXTRACTVALUE (VALUE (t), 'AMP/APID') AS APID,
+                          EXTRACTVALUE (VALUE (t), 'AMP/VPID') AS VPID,
+                          ROWNUM rn
+                     FROM f_amp2 t_xml,
+                          TABLE (
+                             XMLSEQUENCE (
+                                t_xml.xmlfield.EXTRACT (
+                                   'ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP'))) t)
+                  a,
+                  (SELECT EXTRACTVALUE (VALUE (t), 'DFORM/FORMCD') AS FORMCD,
+                          EXTRACTVALUE (VALUE (t), 'DFORM/VPID') AS VPID,
+                          ROWNUM rn
+                     FROM f_vmp2 t_xml,
+                          TABLE (
+                             XMLSEQUENCE (
+                                t_xml.xmlfield.EXTRACT (
+                                   'VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM'))) t)
+                  b
+            WHERE a.VPID = b.VPID
+           UNION ALL
+           -- link AMPs to Incipients
+           SELECT EXTRACTVALUE (VALUE (t), 'AP_ING/APID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'AP_ING/ISID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has excipient' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_amp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PRODUCTS/AP_INGREDIENT/AP_ING'))) t
+           UNION ALL
+           -- link AMPs to their licensed routes
+           SELECT EXTRACTVALUE (VALUE (t), 'LIC_ROUTE/APID')
+                     AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'LIC_ROUTE/ROUTECD')
+                     AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has licensed route' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_amp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PRODUCTS/LICENSED_ROUTE/LIC_ROUTE'))) t
+           UNION ALL
+           --link VMPPs to their contained VMPs
+           SELECT EXTRACTVALUE (VALUE (t), 'VMPP/VPPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'VMPP/VPID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has VMP' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmpp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP'))) t
+           UNION ALL
+           --link VMPPs containing VMPPs
+           SELECT EXTRACTVALUE (VALUE (t), 'CCONTENT/PRNTVPPID')
+                     AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'CCONTENT/CHLDVPPID')
+                     AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Is a' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_vmpp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'VIRTUAL_MED_PRODUCT_PACK/COMB_CONTENT/CCONTENT'))) t
+           UNION ALL
+           --link AMPPs to their equivalent VMPPs
+           SELECT EXTRACTVALUE (VALUE (t), 'AMPP/APPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'AMPP/VPPID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Is a' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_ampp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP'))) t
+           UNION ALL
+           -- link AMPPs to their contained AMPs
+           SELECT EXTRACTVALUE (VALUE (t), 'AMPP/APPID') AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'AMPP/APID') AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Has AMP' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_ampp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP'))) t
+           UNION ALL
+           --link AMPPs to containing AMPPs
+           SELECT EXTRACTVALUE (VALUE (t), 'CCONTENT/PRNTVPPID')
+                     AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'CCONTENT/CHLDVPPID')
+                     AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'SNOMED' AS vocabulary_id_2,
+                  'Is a' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM f_ampp2 t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'ACTUAL_MEDICINAL_PROD_PACKS/COMB_CONTENT/CCONTENT'))) t
+            WHERE     EXTRACTVALUE (VALUE (t), 'CCONTENT/PRNTVPPID')
+                         IS NOT NULL
+                  AND EXTRACTVALUE (VALUE (t), 'CCONTENT/CHLDVPPID')
+                         IS NOT NULL);
+COMMIT;						 
+
+-- 10. Fill concept_relationship_stage from SNOMED	
+CREATE TABLE tmp_rel
+NOLOGGING
+AS
+   (                  -- get relationships from latest records that are active
+    SELECT DISTINCT
+           sourceid, destinationid, REPLACE (term, ' (attribute)', '') term
+      FROM (SELECT r.sourceid,
+                   r.destinationid,
+                   d.term,
+                   ROW_NUMBER ()
+                   OVER (PARTITION BY r.id
+                         ORDER BY TO_DATE (r.effectivetime, 'YYYYMMDD') DESC)
+                      AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
+                   r.active
+              FROM sct2_rela_full_merged r
+                   JOIN sct2_desc_full_merged d ON r.typeid = d.conceptid)
+     WHERE     rn = 1
+           AND active = 1
+           AND sourceid IS NOT NULL
+           AND destinationid IS NOT NULL
+           AND term <> 'PBCL flag true');
+
+INSERT  /*+ APPEND */  INTO concept_relationship_stage (
+										concept_code_1,
+                                        concept_code_2,
+								        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+SELECT 
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+FROM (
+	 --convert SNOMED to OMOP-type relationship_id   
+	 SELECT DISTINCT
+			sourceid as concept_code_1,
+			destinationid as concept_code_2,
+			'SNOMED' as vocabulary_id_1,
+			'SNOMED' as vocabulary_id_2,
+			CASE
+				WHEN term = 'Access' THEN 'Has access'
+				WHEN term = 'Associated aetiologic finding' THEN 'Has etiology'
+				WHEN term = 'After' THEN 'Occurs after'
+				WHEN term = 'Approach' THEN 'Has surgical appr' -- looks like old version
+				WHEN term = 'Associated finding' THEN 'Has asso finding'
+				WHEN term = 'Associated morphology' THEN 'Has asso morph'
+				WHEN term = 'Associated procedure' THEN 'Has asso proc'
+				WHEN term = 'Associated with' THEN 'Finding asso with'
+				WHEN term = 'AW' THEN 'Finding asso with'
+				WHEN term = 'Causative agent' THEN 'Has causative agent'
+				WHEN term = 'Clinical course' THEN 'Has clinical course'  
+				WHEN term = 'Component' THEN 'Has component'
+				WHEN term = 'Direct device' THEN 'Has dir device'
+				WHEN term = 'Direct morphology' THEN 'Has dir morph'
+				WHEN term = 'Direct substance' THEN 'Has dir subst'
+				WHEN term = 'Due to' THEN 'Has due to'
+				WHEN term = 'Episodicity' THEN 'Has episodicity'
+				WHEN term = 'Extent' THEN 'Has extent'
+				WHEN term = 'Finding context' THEN 'Has finding context'
+				WHEN term = 'Finding informer' THEN 'Using finding inform'   
+				WHEN term = 'Finding method' THEN 'Using finding method'    
+				WHEN term = 'Finding site' THEN 'Has finding site'
+				WHEN term = 'Has active ingredient' THEN 'Has active ing'
+				WHEN term = 'Has definitional manifestation' THEN 'Has manifestation'
+				WHEN term = 'Has dose form' THEN 'Has dose form'
+				WHEN term = 'Has focus' THEN 'Has focus'
+				WHEN term = 'Has interpretation' THEN 'Has interpretation'
+				WHEN term = 'Has measured component' THEN 'Has meas component'
+				WHEN term = 'Has specimen' THEN 'Has specimen'
+				WHEN term = 'Stage' THEN 'Has stage'
+				WHEN term = 'Indirect device' THEN 'Has indir device'
+				WHEN term = 'Indirect morphology' THEN 'Has indir morph'
+				WHEN term = 'Instrumentation' THEN 'Using device' -- looks like an old version
+				WHEN term = 'Intent' THEN 'Has intent'
+				WHEN term = 'Interprets' THEN 'Has interprets'
+				WHEN term = 'Is a' THEN 'Is a'
+				WHEN term = 'Laterality' THEN 'Has laterality'
+				WHEN term = 'Measurement method' THEN 'Has measurement'
+				WHEN term = 'Measurement Method' THEN 'Has measurement' -- looks like misspelling
+				WHEN term = 'Method' THEN 'Has method'
+				WHEN term = 'Morphology' THEN 'Has morphology'
+				WHEN term = 'Occurrence' THEN 'Has occurrence'
+				WHEN term = 'Onset' THEN 'Has clinical course' -- looks like old version
+				WHEN term = 'Part of' THEN 'Has part of'
+				WHEN term = 'Pathological process' THEN 'Has pathology'
+				WHEN term = 'Pathological process (qualifier value)' THEN 'Has pathology'
+				WHEN term = 'Priority' THEN 'Has priority'
+				WHEN term = 'Procedure context' THEN 'Has proc context'
+				WHEN term = 'Procedure device' THEN 'Has proc device'
+				WHEN term = 'Procedure morphology' THEN 'Has proc morph'
+				WHEN term = 'Procedure site - Direct' THEN 'Has dir proc site'
+				WHEN term = 'Procedure site - Indirect' THEN 'Has indir proc site'
+				WHEN term = 'Procedure site' THEN 'Has proc site'
+				WHEN term = 'Property' THEN 'Has property'
+				WHEN term = 'Recipient category' THEN 'Has recipient cat'
+				WHEN term = 'Revision status' THEN 'Has revision status'
+				WHEN term = 'Route of administration' THEN 'Has route of admin'
+				WHEN term = 'Route of administration - attribute' THEN 'Has route of admin'
+				WHEN term = 'Scale type' THEN 'Has scale type'
+				WHEN term = 'Severity' THEN 'Has severity'
+				WHEN term = 'Specimen procedure' THEN 'Has specimen proc'
+				WHEN term = 'Specimen source identity' THEN 'Has specimen source'
+				WHEN term = 'Specimen source morphology' THEN 'Has specimen morph'
+				WHEN term = 'Specimen source topography' THEN 'Has specimen topo'
+				WHEN term = 'Specimen substance' THEN 'Has specimen subst'
+				WHEN term = 'Subject relationship context' THEN 'Has relat context'
+				WHEN term = 'Surgical approach' THEN 'Has surgical appr'  
+				WHEN term = 'Temporal context' THEN 'Has temporal context'   
+				WHEN term = 'Temporally follows' THEN 'Occurs after' -- looks like an old version
+				WHEN term = 'Time aspect' THEN 'Has time aspect'
+				WHEN term = 'Using access device' THEN 'Using acc device'  
+				WHEN term = 'Using device' THEN 'Using device'   
+				WHEN term = 'Using energy' THEN 'Using energy'   
+				WHEN term = 'Using substance' THEN 'Using subst'
+				WHEN term = 'Following' THEN 'Followed by'
+				WHEN term = 'VMP non-availability indicator' THEN 'Has non-avail ind'
+				WHEN term = 'Has ARP' THEN 'Has ARP'
+				WHEN term = 'Has VRP' THEN 'Has VRP'
+				WHEN term = 'Has trade family group' THEN 'Has trade family grp'
+				WHEN term = 'Flavour' THEN 'Has flavor'
+				WHEN term = 'Discontinued indicator' THEN 'Has disc indicator'
+				WHEN term = 'VRP prescribing status' THEN 'VRP has prescr stat'
+				WHEN term = 'Has specific active ingredient' THEN 'Has spec active ing'
+				WHEN term = 'Has excipient' THEN 'Has excipient'
+				WHEN term = 'Has basis of strength substance' THEN 'Has basis str subst'
+				WHEN term = 'Has VMP' THEN 'Has VMP'
+				WHEN term = 'Has AMP' THEN 'Has AMP'
+				WHEN term = 'Has dispensed dose form' THEN 'Has disp dose form'
+				WHEN term = 'VMP prescribing status' THEN 'VMP has prescr stat'
+				WHEN term = 'Legal category' THEN 'Has legal category'
+				WHEN term = 'Caused by' THEN 'Caused by'
+				ELSE 'non-existing'      
+			END AS relationship_id,
+			(select latest_update From vocabulary where vocabulary_id='SNOMED') as valid_start_date,
+			TO_DATE ('31.12.2099', 'dd.mm.yyyy') as valid_end_date,
+			NULL as invalid_reason
+	   FROM (SELECT * FROM tmp_rel)
+) sn WHERE NOT EXISTS (
+	SELECT 1 FROM concept_relationship_stage crs WHERE crs.concept_code_1=sn.concept_code_1
+	AND crs.concept_code_2=sn.concept_code_2
+	AND crs.relationship_id=sn.relationship_id
+);
 COMMIT;
 
--- 8. add replacement relationships. They are handled in a different SNOMED table
+-- 11. add replacement relationships. They are handled in a different SNOMED table
 INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -400,11 +1585,11 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         valid_end_date,
                                         invalid_reason)
    SELECT DISTINCT
-          concept_code_1,
-          concept_code_2,
+          sn.concept_code_1,
+          sn.concept_code_2,
           'SNOMED',
           'SNOMED',
-          relationship_id,
+          sn.relationship_id,
           (select latest_update From vocabulary where vocabulary_id='SNOMED'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
@@ -428,8 +1613,14 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                900000000000523009,
                                900000000000528000,
                                900000000000527005,
-                               900000000000530003))
-    WHERE rn = 1 AND active = 1;
+                               900000000000530003)
+	) sn
+    WHERE sn.rn = 1 AND sn.active = 1
+	AND NOT EXISTS (
+		SELECT 1 FROM concept_relationship_stage crs WHERE crs.concept_code_1=sn.concept_code_1
+		AND crs.concept_code_2=sn.concept_code_2
+		AND crs.relationship_id=sn.relationship_id	
+	);
 
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
@@ -782,7 +1973,6 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (54427008, 'Observation');
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (37768003, 'Observation');
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (6811007, 'Observation');
 
-
 COMMIT;
 
 -- 13.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
@@ -923,6 +2113,7 @@ UPDATE domain_snomed SET domain_id = 'Metadata' WHERE concept_code = 138875005;
 
 -- Method 2: For those that slipped through the cracks assign domains by using the class_concept_id
 -- This is a crude method, and Method 1 should be revised to cover all concepts.
+ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 UPDATE domain_snomed d
    SET d.domain_id =
           (SELECT CASE c.concept_class_id
@@ -1081,19 +2272,80 @@ WHERE vocabulary_id = 'SNOMED'
 
 COMMIT;
 
--- 14. Update concept_id in concept_stage from concept for existing concepts
+-- 14 Return domain_id and concept_class_id for some concepts according to our rules
+-- 14.1 Return domain_id
+MERGE INTO concept_stage c
+     USING (SELECT dmd_int.domain_id, dmd_int.concept_code
+              FROM concept_stage_dmd dmd_int, concept_stage c_int
+             WHERE     dmd_int.concept_code = c_int.concept_code
+                   AND dmd_int.domain_id <> c_int.domain_id
+                   AND dmd_int.insert_id IN (1,
+                                             2,
+                                             3,
+                                             4,
+                                             5,
+                                             6)) dmd
+        ON (dmd.concept_code = c.concept_code)
+WHEN MATCHED
+THEN
+   UPDATE SET c.domain_id = dmd.domain_id;
+COMMIT;   
+
+-- 14.2 Return concept_class_id
+--for AMPPs (branded packs), AMPs (branded drugs) and VMPPs (clinical packs)
+MERGE INTO concept_stage c
+     USING (SELECT dmd_int.concept_class_id, dmd_int.concept_code
+              FROM concept_stage_dmd dmd_int, concept_stage c_int
+             WHERE     dmd_int.concept_code = c_int.concept_code
+                   AND dmd_int.concept_class_id = 'Pharma/Biol Product'
+                   AND c_int.concept_class_id IS NULL
+                   AND dmd_int.insert_id IN (13, 14, 15)) dmd
+        ON (dmd.concept_code = c.concept_code)
+WHEN MATCHED
+THEN
+   UPDATE SET c.concept_class_id = dmd.concept_class_id;
+
+--for Ingredients and deprecated Ingredients
+MERGE INTO concept_stage c
+     USING (SELECT dmd_int.concept_class_id, dmd_int.concept_code
+              FROM concept_stage_dmd dmd_int, concept_stage c_int
+             WHERE     dmd_int.concept_code = c_int.concept_code
+                   AND dmd_int.concept_class_id = 'Substance'
+                   AND COALESCE (c_int.concept_class_id, 'unknown') NOT IN ('Substance')
+                   AND dmd_int.insert_id IN (7, 8)) dmd
+        ON (dmd.concept_code = c.concept_code)
+WHEN MATCHED
+THEN
+   UPDATE SET c.concept_class_id = dmd.concept_class_id;  
+
+--for Route, deprecated Routes, UoMs and deprecated UoMs    
+MERGE INTO concept_stage c
+     USING (SELECT dmd_int.concept_class_id, dmd_int.concept_code
+              FROM concept_stage_dmd dmd_int, concept_stage c_int
+             WHERE     dmd_int.concept_code = c_int.concept_code
+                   AND dmd_int.concept_class_id = 'Qualifier Value'
+                   AND COALESCE (c_int.concept_class_id, 'unknown') NOT IN ('Qualifier Value')
+                   AND dmd_int.insert_id IN (1, 2, 5, 6)) dmd
+        ON (dmd.concept_code = c.concept_code)
+WHEN MATCHED
+THEN
+   UPDATE SET c.concept_class_id = dmd.concept_class_id;     
+COMMIT;
+
+-- 15. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
     
--- 15. Reinstate constraints and indices
-ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
+-- 16. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 
--- 16. Clean up
+-- 17. Clean up
 DROP TABLE peak PURGE;
 DROP TABLE domain_snomed PURGE;
+DROP TABLE concept_stage_dmd PURGE;
+DROP TABLE tmp_rel PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

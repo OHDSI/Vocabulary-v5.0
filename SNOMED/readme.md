@@ -29,8 +29,11 @@ and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT2_
 Remove date from file name.
 10. Load them into der2_cRefset_AssRefFull_INT and der2_cRefset_AssRefFull_UK.
 
-11. Run load_stage.sql
+11. Add DM+D: Download nhsbsa_dmd_X.X.X_xxxxxxxxxxxxxx.zip from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/6/subpack/24/releases
+12. Extract f_ampp2_xxxxxxx.xml, f_amp2_xxxxxxx.xml, f_vmpp2_xxxxxxx.xml, f_vmp2_xxxxxxx.xml, f_lookup2_xxxxxxx.xml, f_vtm2_xxxxxxx.xml and f_ingredient2_xxxxxxx.xml
+13. Load them into f_ampp2, f_amp2, f_vmpp2, f_vmp2, f_lookup2, f_vtm2 and f_ingredient2. Use the control files of the same name.
 
-12. Run generic_update.sql (from working directory)
+14. Run load_stage.sql
+15. Run generic_update.sql (from working directory)
 
  

@@ -1628,6 +1628,7 @@ ALTER INDEX idx_concept_code_2 UNUSABLE;
 COMMIT;
 
 -- 12. start building the hierarchy for progagating domain_ids from toop to bottom
+ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 DECLARE
    vCnt          INTEGER;
    vCnt_old      INTEGER;
@@ -1767,6 +1768,8 @@ BEGIN
    -- drop snomed_ancestor indexes before mass insert.
    EXECUTE IMMEDIATE
       'alter table snomed_ancestor disable constraint XPKSNOMED_ANCESTOR';
+	  
+   EXECUTE IMMEDIATE 'ALTER INDEX XPKSNOMED_ANCESTOR UNUSABLE';	  
 
    EXECUTE IMMEDIATE
     'insert /*+ APPEND */ into snomed_ancestor
@@ -1779,6 +1782,8 @@ BEGIN
 
    EXECUTE IMMEDIATE
       'alter table snomed_ancestor enable constraint XPKSNOMED_ANCESTOR';
+   
+   EXECUTE IMMEDIATE 'ALTER INDEX XPKSNOMED_ANCESTOR REBUILD NOLOGGING';	  
 
    -- Clean up
    EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc purge';
@@ -2113,7 +2118,6 @@ UPDATE domain_snomed SET domain_id = 'Metadata' WHERE concept_code = 138875005;
 
 -- Method 2: For those that slipped through the cracks assign domains by using the class_concept_id
 -- This is a crude method, and Method 1 should be revised to cover all concepts.
-ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 UPDATE domain_snomed d
    SET d.domain_id =
           (SELECT CASE c.concept_class_id

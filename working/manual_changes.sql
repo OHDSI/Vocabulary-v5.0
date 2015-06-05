@@ -1650,4 +1650,3 @@ update concept_relationship set valid_end_date = '29-May-2015', invalid_reason =
 update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.1') and concept_id_1 = 432571;
 
 commit;
-

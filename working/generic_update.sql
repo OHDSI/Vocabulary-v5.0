@@ -531,11 +531,47 @@ AND invalid_reason IS NOT NULL -- if wrongly deprecated
 
 COMMIT;
 
+
+-- 16. Deprecate old mappings to RxNorm from NDC
+UPDATE concept_relationship d
+   SET valid_end_date  = 
+            (SELECT v.latest_update
+                 FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+              WHERE c.concept_id = d.concept_id_1)
+          - 1,                                       -- day before release day
+       invalid_reason = 'D'
+where d.concept_id_1 in (
+    /* do not deprecate mappings from missing concepts */
+    select c.concept_id from concept c, concept_relationship_stage r
+    where c.concept_code=r.concept_code_1
+    and c.vocabulary_id=r.vocabulary_id_1
+    and r.vocabulary_id_1='NDC'
+    and r.vocabulary_id_2='RxNorm'
+    and r.relationship_id='Maps to'
+    and r.invalid_reason is null
+)
+and d.relationship_id='Maps to'
+and d.invalid_reason is null
+and d.concept_id_2 not in (
+    /* do not deprecate mappings from active concepts */
+    select c.concept_id from concept c, concept_relationship_stage r, concept c1
+    where c.concept_code=r.concept_code_2
+    and c.vocabulary_id=r.vocabulary_id_2
+    and r.vocabulary_id_1='NDC'
+    and r.vocabulary_id_2='RxNorm'
+    and r.relationship_id='Maps to'
+    and r.invalid_reason is null
+    and r.concept_code_1=c1.concept_code
+    and c1.vocabulary_id=r.vocabulary_id_1
+    and c1.concept_id=d.concept_id_1 
+);
+COMMIT;
+
 /***********************************
 * Update the concept_synonym table *
 ************************************/
 
--- 16. Add all missing synonyms
+-- 17. Add all missing synonyms
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -554,7 +590,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                      AND css.synonym_vocabulary_id = c.vocabulary_id);
 COMMIT;					 
 
--- 17. Remove all existing synonyms for concepts that are in concept_stage
+-- 18. Remove all existing synonyms for concepts that are in concept_stage
 -- Synonyms are built from scratch each time, no life cycle
 DELETE FROM concept_synonym csyn
       WHERE csyn.concept_id IN (SELECT c.concept_id
@@ -563,7 +599,7 @@ DELETE FROM concept_synonym csyn
                                        AND cs.vocabulary_id = c.vocabulary_id
                                );
 
--- 18. Add new synonyms for existing concepts
+-- 19. Add new synonyms for existing concepts
 INSERT /*+ APPEND */
       INTO  concept_synonym (concept_id,
                              concept_synonym_name,
@@ -577,10 +613,11 @@ INSERT /*+ APPEND */
     WHERE     css.synonym_concept_code = c.concept_code
           AND css.synonym_vocabulary_id = c.vocabulary_id
           AND cs.concept_code = c.concept_code
-          AND cs.vocabulary_id = c.vocabulary_id;
+          AND cs.vocabulary_id = c.vocabulary_id
+		  AND TRIM (synonym_name) IS NOT NULL; --fix for empty GPI names
 COMMIT;
 
--- 19. check if current vocabulary exists in vocabulary_conversion table
+-- 20. check if current vocabulary exists in vocabulary_conversion table
 INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5)
    SELECT ROWNUM + (SELECT MAX (vocabulary_id_v4) FROM vocabulary_conversion)
              AS rn,
@@ -590,7 +627,7 @@ INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5)
            SELECT vocabulary_id_v5 FROM vocabulary_conversion);
 COMMIT;
 
--- 20. update latest_update on vocabulary_conversion		   
+-- 21. update latest_update on vocabulary_conversion		   
 MERGE INTO vocabulary_conversion vc
      USING (SELECT latest_update, vocabulary_id
               FROM vocabulary
@@ -601,7 +638,7 @@ THEN
    UPDATE SET vc.latest_update = v.latest_update;
 COMMIT;   
 
--- 21. drop column latest_update
+-- 22. drop column latest_update
 DECLARE
    z   vocabulary.vocabulary_id%TYPE;
 BEGIN

@@ -178,4 +178,6 @@ BEGIN
    EXECUTE IMMEDIATE 'drop table concept_ancestor_calc purge';
 
    EXECUTE IMMEDIATE 'drop table concept_ancestor_calc_bkp purge';
+   
+   DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_ancestor', estimate_percent  => null, cascade  => true);
 END;

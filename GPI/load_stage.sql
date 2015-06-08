@@ -53,7 +53,7 @@ INSERT /*+ APPEND */
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT COALESCE (concept_name, drug_string, rx_name,' ') AS concept_name,
+   SELECT DISTINCT COALESCE (concept_name, drug_string, rx_name,' ') AS concept_name,
           domain_id,
           vocabulary_id,
           concept_class_id,

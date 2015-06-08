@@ -1770,8 +1770,6 @@ BEGIN
    EXECUTE IMMEDIATE
       'alter table snomed_ancestor disable constraint XPKSNOMED_ANCESTOR';
 	  
-   EXECUTE IMMEDIATE 'ALTER INDEX XPKSNOMED_ANCESTOR UNUSABLE';	  
-
    EXECUTE IMMEDIATE
     'insert /*+ APPEND */ into snomed_ancestor
     select a.* from snomed_ancestor_calc a
@@ -1781,8 +1779,6 @@ BEGIN
 
    COMMIT;
 
-   EXECUTE IMMEDIATE 'ALTER INDEX XPKSNOMED_ANCESTOR REBUILD NOLOGGING';
-   
    EXECUTE IMMEDIATE
       'alter table snomed_ancestor enable constraint XPKSNOMED_ANCESTOR';
 

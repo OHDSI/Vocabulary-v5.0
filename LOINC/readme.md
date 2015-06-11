@@ -10,7 +10,7 @@ and multiaxial hierarchy (http://loinc.org/downloads/files/loinc-multiaxial-hier
 3. Extract loinc.csv, map_to.csv, source_organization.csv and LOINC_250_MULTI-AXIAL_HIERARCHY.CSV
 4. Load them into LOINC, MAP_TO, SOURCE_ORGANIZATION and LOINC_HIERARCHY. Use the control files of the same name.
 5. Load LOINC Answers - Load LOINC_XXX_SELECTED_FORMS.zip from http://loinc.org/downloads/files/loinc-panels-and-forms-file/loinc-panels-and-forms-file-all-selected-panels-and-forms/download
-6. Open LOINC_XXX_SELECTED_FORMS.xlsx and load worksheet "ANSWERS" to table LOINC_ANSWERS
+6. Open LOINC_XXX_SELECTED_FORMS.xlsx and load worksheet "ANSWERS" to table LOINC_ANSWERS (save as Unicode text (UTF-8 w/o BOM) and use loinc_answers.ctl)
 7. Open loinc_class.csv and load him into table loinc_class
 8. Download SnomedCT_LOINC_TechnologyPreview_INT_xxxxxxxx.zip from https://loinc.org/news/draft-loinc-snomed-ct-mappings-and-expression-associations-now-available.html
 9. Extract \RF2Release\Full\Refset\Content\xder2_scccRefset_MapCorrelationOriginFull_INT_xxxxxxxx.txt

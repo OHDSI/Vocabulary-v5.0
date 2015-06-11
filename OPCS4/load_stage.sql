@@ -18,6 +18,13 @@ ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --3. Load into concept_stage from opcs
+ --remove long dashes
+UPDATE opcs
+   SET cui = REPLACE (cui, '–', '-')
+ WHERE cui LIKE '%–%';
+
+COMMIT;
+
 INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,

@@ -1,6 +1,6 @@
 CREATE TABLE OPCS
 (
-   CUI    VARCHAR2 (7),
+   CUI    VARCHAR2 (50),
    TERM   VARCHAR2 (150)
 );
 

@@ -6,6 +6,6 @@ into table OPCS
 fields terminated by ';' OPTIONALLY ENCLOSED BY '"'
 trailing nullcols
 (
-	CUI char(7),
+	CUI char(50),
 	TERM char (150)
 )

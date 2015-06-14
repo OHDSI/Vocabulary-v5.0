@@ -983,7 +983,7 @@ values (8528, 9448, 'Maps to', '1-Apr-2015', '31-Dec-2099', null);
 insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 values (9448, 8528, 'Mapped from', '1-Apr-2015', '31-Dec-2099', null);
 
--- Add SNOMED to UCUM maps fro those used in CIEL
+-- Add SNOMED to UCUM maps for those used in CIEL
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (9687, 'international unit per hour', 'Unit', 'UCUM', 'Unit', 'S', '[iU]/h', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -997,7 +997,7 @@ values (9691, 'milligram per kilogram per hour', 'Unit', 'UCUM', 'Unit', 'S', 'm
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (9692, 'milligram per kilogram per minute', 'Unit', 'UCUM', 'Unit', 'S', 'mg/kg/min', '01-JAN-1970', '31-DEC-2099', null);
 
--- add SNOMEd to UCUM maps
+-- add SNOMED to UCUM maps
 insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 values (4121358, 8510, 'Maps to', '1-Jan-1970', '31-Dec-2099', null);
 insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
@@ -1158,7 +1158,8 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 values (v5_concept.nextval, 'ConvSet', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Misc', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
--- Update existing but unused Cocnept Class Symptom
+
+-- Update existing but unused Concept Class Symptom
 update concept set concept_name = 'Symptom' where concept_id = 44819184;
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Symptom/Finding', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
@@ -1180,6 +1181,7 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 values (v5_concept.nextval, 'Radiology/Imaging Procedure', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Frequency', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+
 -- Update existing but unused Concept class Drug class
 update concept set concept_name = 'Pharmacologic Drug Class' where concept_id = 44818993;
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -1648,5 +1650,20 @@ update concept_relationship set valid_end_date = '29-May-2015', invalid_reason =
 update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.6') and concept_id_1 = 4003830;
 update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C83.8') and concept_id_1 = 440058;
 update concept_relationship set valid_end_date = '29-May-2015', invalid_reason = 'D' where concept_id_2 = (select concept_id from concept where vocabulary_id = 'ICD10' and concept_code = 'C85.1') and concept_id_1 = 432571;
+
+-- Remove obsolete vocabulary LOINC Hierarchy
+delete from vocabulary_conversion where vocabulary_id_v5='LOINC Hierarchy';
+delete from vocabulary where vocabulary_id='LOINC Hierarchy';
+
+-- Add Mesh concept_class_id values
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Main Heading or Descriptor', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Supplementary Concept', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Main Heading', 'Main Heading or Descriptor', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Main Heading or Descriptor'));
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Suppl Concept', 'Supplementary Concept', (select concept_id from concept where vocabulary_id = 'Concept Class' and concept_name = 'Supplementary Concept'));
 
 commit;

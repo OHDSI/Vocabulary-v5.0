@@ -533,11 +533,11 @@ COMMIT;
 
 
 -- 16. Deprecate old mappings to RxNorm from NDC
+--1st pass
 UPDATE concept_relationship d
    SET valid_end_date  = 
             (SELECT v.latest_update
-                 FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
-              WHERE c.concept_id = d.concept_id_1)
+                 FROM vocabulary v WHERE v.vocabulary_id = 'NDC')
           - 1,                                       -- day before release day
        invalid_reason = 'D'
 where d.concept_id_1 in (
@@ -564,6 +564,42 @@ and d.concept_id_2 not in (
     and r.concept_code_1=c1.concept_code
     and c1.vocabulary_id=r.vocabulary_id_1
     and c1.concept_id=d.concept_id_1 
+);
+COMMIT;
+
+--2d pass
+UPDATE concept_relationship d
+   SET valid_end_date  = 
+            (SELECT v.latest_update
+                 FROM vocabulary v WHERE v.vocabulary_id = 'NDC')
+          - 1,                                       -- day before release day
+       invalid_reason = 'D'
+where d.rowid in (
+    with NDC as (
+        select * From (
+            select c1.concept_id as c1_id, c1.concept_name as c1_name, r.valid_start_date,
+              c2.concept_id as c2_id, c2.concept_name as c2_name, 
+              count(*) over (partition by c1.concept_id) cnt,
+              case when lower(c1.concept_name)=lower(c2.concept_name) then 1 else 0 end name_eq,
+              r.rowid rid
+            from concept c1, concept_relationship r, concept c2
+            where r.concept_id_1=c1.concept_id
+            and c2.concept_id=r.concept_id_2
+            and r.relationship_id='Maps to'
+            and c1.vocabulary_id='NDC'
+            and c2.vocabulary_id='RxNorm'
+            and r.invalid_reason is null
+            and not exists ( --exclude mappings from packs
+                select 1 from concept_relationship r_int where r_int.concept_id_1=c1.concept_id and r_int.relationship_id='Original maps to'
+            )
+            and c1.concept_name not like '%KIT%'
+            and c1.concept_name not like 'Multiple formulations:%'
+        ) where cnt>1
+    )
+    select  t.rid
+    from NDC t
+	-- exclude true mappings
+    where t.rid not in (select last_value(t_int.rid) over (partition by t_int.c1_id order by t_int.name_eq, t_int.valid_start_date, length(t_int.c2_name), t_int.c2_id rows between unbounded preceding and unbounded following) from NDC t_int)
 );
 COMMIT;
 

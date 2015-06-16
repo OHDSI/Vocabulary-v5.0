@@ -12,5 +12,5 @@ trailing nullcols
    filler_column3 FILLER,
    filler_column4 FILLER,
    DRG_NAME	char(4000),
-   DRG_VERSION	"2013"
+   DRG_VERSION	date 'YYYYMMDD' "20120730"
 )

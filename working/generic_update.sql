@@ -88,6 +88,7 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'ICD10CM' THEN 1
   WHEN c.vocabulary_id = 'GPI' THEN 1
   WHEN c.vocabulary_id = 'OPCS4' THEN 1
+  WHEN c.vocabulary_id = 'MeSH' THEN 1
   ELSE 0 -- in default we will not deprecate
 END = 1
 ;
@@ -582,7 +583,7 @@ where d.rowid in (
               count(*) over (partition by c1.concept_id) cnt,
               case when lower(c1.concept_name)=lower(c2.concept_name) then 1 else 0 end name_eq,
               r.rowid rid
-            from concept c1, concept_relationship r, concept c2
+            from concept c1, concept_relationship r, concept c2, vocabulary v
             where r.concept_id_1=c1.concept_id
             and c2.concept_id=r.concept_id_2
             and r.relationship_id='Maps to'
@@ -594,11 +595,13 @@ where d.rowid in (
             )
             and c1.concept_name not like '%KIT%'
             and c1.concept_name not like 'Multiple formulations:%'
+            and v.vocabulary_id=c1.vocabulary_id
+            and v.latest_update is not null --this update for NDC only!
         ) where cnt>1
     )
     select  t.rid
     from NDC t
-	-- exclude true mappings
+    -- exclude true mappings
     where t.rid not in (select last_value(t_int.rid) over (partition by t_int.c1_id order by t_int.name_eq, t_int.valid_start_date, length(t_int.c2_name), t_int.c2_id rows between unbounded preceding and unbounded following) from NDC t_int)
 );
 COMMIT;

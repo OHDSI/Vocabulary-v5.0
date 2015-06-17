@@ -44,7 +44,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 	from umls.mrconso mh
 	-- join to umls cpt4, hcpcs and rxnorm concepts
 	join umls.mrconso m on mh.cui=m.cui and m.sab in ('CPT', 'HCPCS', 'HCPT', 'RXNORM', 'SNOMEDCT_US') and m.suppress='N' 
-	join concept c on c.concept_code=m.code and c.vocabulary_id=decode(m.sab, 'CPT', 'CPT4', 'HCPT', 'CPT4', 'RXNORM', 'RxNorm', 'SNOMEDCT_US', 'SNOMED', 'LNC', 'LOINC', m.sab) and domain_id in ('Condition', 'Procedure', 'Drug', 'Measurement')
+	join concept c on c.concept_code=m.code and c.standard_concept = 'S' and c.vocabulary_id=decode(m.sab, 'CPT', 'CPT4', 'HCPT', 'CPT4', 'RXNORM', 'RxNorm', 'SNOMEDCT_US', 'SNOMED', 'LNC', 'LOINC', m.sab) and domain_id in ('Condition', 'Procedure', 'Drug', 'Measurement')
 	where mh.suppress='N'
 	and mh.sab='MSH' 
 	and mh.lat='ENG' 
@@ -77,7 +77,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 	from umls.mrconso mh
 	-- join to umls cpt4, hcpcs and rxnorm concepts
 	join umls.mrconso m on mh.cui=m.cui and m.sab in ('CPT', 'HCPCS', 'HCPT', 'RXNORM', 'SNOMEDCT_US') and m.suppress='N' 
-	join concept c on c.concept_code=m.code and c.vocabulary_id=decode(m.sab, 'CPT', 'CPT4', 'HCPT', 'CPT4', 'RXNORM', 'RxNorm', 'SNOMEDCT_US', 'SNOMED', 'LNC', 'LOINC', m.sab) and domain_id in ('Condition', 'Procedure', 'Drug', 'Measurement')
+	join concept c on c.concept_code=m.code and c.standard_concept = 'S' and c.vocabulary_id=decode(m.sab, 'CPT', 'CPT4', 'HCPT', 'CPT4', 'RXNORM', 'RxNorm', 'SNOMEDCT_US', 'SNOMED', 'LNC', 'LOINC', m.sab) and domain_id in ('Condition', 'Procedure', 'Drug', 'Measurement')
 	where mh.suppress='N'
 	and mh.sab='MSH' 
 	and mh.lat='ENG' 
@@ -106,7 +106,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 	from umls.mrconso mh
 	-- join to umls cpt4, hcpcs and rxnorm concepts
 	join umls.mrconso m on mh.cui=m.cui and m.sab in ('CPT', 'HCPCS', 'HCPT', 'RXNORM', 'SNOMEDCT_US') and m.suppress='N' 
-	join concept c on c.concept_code=m.code and c.vocabulary_id=decode(m.sab, 'CPT', 'CPT4', 'HCPT', 'CPT4', 'RXNORM', 'RxNorm', 'SNOMEDCT_US', 'SNOMED', 'LNC', 'LOINC', m.sab) and domain_id in ('Condition', 'Procedure', 'Drug', 'Measurement')
+	join concept c on c.concept_code=m.code and c.standard_concept = 'S' and c.vocabulary_id=decode(m.sab, 'CPT', 'CPT4', 'HCPT', 'CPT4', 'RXNORM', 'RxNorm', 'SNOMEDCT_US', 'SNOMED', 'LNC', 'LOINC', m.sab) and domain_id in ('Condition', 'Procedure', 'Drug', 'Measurement')
 	where mh.suppress='N'
 	and mh.sab='MSH' 
 	and mh.lat='ENG' 

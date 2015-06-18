@@ -34,7 +34,7 @@ INSERT INTO concept_stage (concept_id,
           'ICD9CM' AS vocabulary_id,
           CASE
              WHEN SUBSTR (code, 1, 1) = 'V' THEN length(code)||'-dig billing V code'
-             WHEN SUBSTR (code, 1, 1) = 'E' THEN length(code)||'-dig billing E code'
+             WHEN SUBSTR (code, 1, 1) = 'E' THEN length(code)-1||'-dig billing E code'
              ELSE length(code)||'-dig billing code'
           END
              AS concept_class_id,
@@ -73,7 +73,7 @@ INSERT INTO concept_stage (concept_id,
           'ICD9CM' AS vocabulary_id,
           CASE
              WHEN SUBSTR (code, 1, 1) = 'V' THEN length(replace(code,'.'))||'-dig nonbill V code'
-             WHEN SUBSTR (code, 1, 1) = 'E' THEN length(replace(code,'.'))||'-dig nonbill E code'
+             WHEN SUBSTR (code, 1, 1) = 'E' THEN length(replace(code,'.'))-1||'-dig nonbill E code'
              ELSE length(replace(code,'.'))||'-dig nonbill code'
           END 
 			AS concept_class_id,

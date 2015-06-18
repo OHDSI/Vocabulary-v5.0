@@ -43,8 +43,8 @@ INSERT /*+ APPEND */ INTO concept_stage (concept_id,
           NULL AS domain_id,
           'ICD10CM' AS vocabulary_id,
           CASE
-             WHEN CODE_TYPE = 1 THEN LENGTH (code) || '-dig billing code'
-             ELSE LENGTH (code) || '-dig nonbill code'
+             WHEN CODE_TYPE = 1 THEN LENGTH (code) || '-char billing code'
+             ELSE LENGTH (code) || '-char nonbill code'
           END
              AS concept_class_id,
           NULL AS standard_concept,

@@ -18,31 +18,6 @@ ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --3. Load into concept_stage from rxxxref
-/*
-INSERT INTO  concept_stage (concept_name,
-                           domain_id,
-                           vocabulary_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-   SELECT DISTINCT COALESCE (c.concept_name, ' ') AS concept_name, -- have to fill in later
-                   'Drug' AS domain_id,
-                   'GPI' AS vocabulary_id,
-                   'GPI' AS concept_class_id,
-                   NULL AS standard_concept,
-                   r.concept_value AS concept_code,
-                   v.latest_update AS valid_start_date,
-                   TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-                   NULL AS invalid_reason
-     FROM rxxxref r
-          JOIN vocabulary v ON v.vocabulary_id = 'GPI'
-          LEFT JOIN concept c
-             ON r.concept_value = c.concept_code AND c.vocabulary_id = 'GPI'
-    WHERE r.concept_type_id = 5; -- GPI only
-*/
 INSERT /*+ APPEND */
       INTO  concept_stage (concept_name,
                            domain_id,
@@ -135,15 +110,15 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
              FROM gpi_name gn, concept_stage cs
             WHERE gn.gpi_code = cs.concept_code)
     WHERE TRIM (concept_name) IS NOT NULL;
-------------------------------------------
+COMMIT;
 
---?? Update concept_id in concept_stage from concept for existing concepts
+--6. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
 
---?? Reinstate constraints and indices
+--7. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

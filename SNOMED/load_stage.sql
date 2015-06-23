@@ -2103,13 +2103,12 @@ END
 ;
 
 -- Assign domains of peaks themselves (snomed_ancestor doesn't include self-descendants)
-UPDATE domain_snomed d
-  SET d.domain_id = (
-    SELECT p.peak_domain_id FROM peak p WHERE p.peak_code = d.concept_code
-  )
-  WHERE d.concept_code in (SELECT DISTINCT peak_code FROM peak)
-;
-
+MERGE INTO domain_snomed d
+     USING (SELECT peak_code, peak_domain_id FROM peak) v
+        ON (v.peak_code = d.concept_code)
+WHEN MATCHED
+THEN
+   UPDATE SET d.domain_id = v.peak_domain_id;
 COMMIT;
 
 -- Update top guy

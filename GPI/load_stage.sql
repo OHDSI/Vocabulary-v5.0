@@ -28,17 +28,27 @@ INSERT /*+ APPEND */
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT DISTINCT COALESCE (concept_name, drug_string, rx_name,' ') AS concept_name,
-          domain_id,
-          vocabulary_id,
-          concept_class_id,
-          standard_concept,
-          concept_code,
-          valid_start_date,
-          valid_end_date,
-          invalid_reason
+   SELECT DISTINCT COALESCE (concept_name, --take name from concept table OR RxNorm
+                             drug_string,
+                             rx_name,
+                             ' ')
+                      AS concept_name,
+                   domain_id,
+                   vocabulary_id,
+                   concept_class_id,
+                   standard_concept,
+                   concept_code,
+                   valid_start_date,
+                   valid_end_date,
+                   invalid_reason
      FROM (SELECT DISTINCT
-                  c.concept_name AS concept_name,     -- have to fill in later
+                  LAST_VALUE (
+                     c.concept_name)
+                  OVER (
+                     PARTITION BY r.concept_value
+                     ORDER BY LENGTH (c.concept_name), c.concept_name
+                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+                     AS concept_name,
                   'Drug' AS domain_id,
                   'GPI' AS vocabulary_id,
                   'GPI' AS concept_class_id,
@@ -51,19 +61,27 @@ INSERT /*+ APPEND */
                      gn.drug_string)
                   OVER (
                      PARTITION BY r.concept_value
-                     ORDER BY LENGTH (gn.drug_string)
+                     ORDER BY LENGTH (gn.drug_string), gn.drug_string
                      ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
                      AS drug_string,
-                  rx.concept_name AS rx_name
+                  LAST_VALUE (
+                     rx.concept_name)
+                  OVER (
+                     PARTITION BY r.concept_value
+                     ORDER BY LENGTH (rx.concept_name), rx.concept_name
+                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+                     AS rx_name
              FROM rxxxref r
                   JOIN vocabulary v ON v.vocabulary_id = 'GPI'
                   LEFT JOIN concept c
                      ON     r.concept_value = c.concept_code
                         AND c.vocabulary_id = 'GPI'
+                        AND c.invalid_reason IS NULL
                   LEFT JOIN gpi_name gn ON gn.gpi_code = r.concept_value
                   LEFT JOIN concept rx
                      ON     r.rxnorm_code = rx.concept_code
                         AND rx.vocabulary_id = 'RxNorm'
+						AND rx.invalid_reason IS NULL
             WHERE r.concept_type_id = 5                            -- GPI only
 );
 COMMIT;					  

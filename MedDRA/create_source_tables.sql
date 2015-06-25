@@ -36,12 +36,6 @@ CREATE TABLE hlt_pref_comp
    pt_code    NUMBER
 );
 
-CREATE TABLE soc_intl_order
-(
-   intl_ord_code   NUMBER,
-   soc_code        NUMBER
-);
-
 CREATE TABLE low_level_term
 (
    llt_code          NUMBER,
@@ -86,32 +80,6 @@ CREATE TABLE pref_term
    pt_icd9cm_code   VARCHAR2 (100),
    pt_icd10_code    VARCHAR2 (100),
    pt_jart_code     VARCHAR2 (100)
-);
-
-CREATE TABLE smq_content
-(
-   SMQ_code                     NUMBER,
-   Term_code                    NUMBER,
-   Term_level                   NUMBER,
-   Term_scope                   NUMBER,
-   Term_category                VARCHAR2 (100),
-   Term_weight                  NUMBER,
-   Term_status                  VARCHAR2 (100),
-   Term_addition_version        VARCHAR2 (100),
-   Term_last_modified_version   VARCHAR2 (100)
-);
-
-CREATE TABLE smq_list
-(
-   SMQ_code          NUMBER,
-   SMQ_name          VARCHAR2 (100),
-   SMQ_level         NUMBER,
-   SMQ_description   VARCHAR2 (2000),
-   SMQ_source        VARCHAR2 (2000),
-   SMQ_note          VARCHAR2 (2000),
-   MedDRA_version    VARCHAR2 (100),
-   Status            VARCHAR2 (100),
-   SMQ_Algorithm     VARCHAR2 (100)
 );
 
 CREATE TABLE soc_term

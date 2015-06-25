@@ -1420,6 +1420,28 @@ INSERT /*+ APPEND */
             WHERE     EXTRACTVALUE (VALUE (t), 'CCONTENT/PRNTVPPID')
                          IS NOT NULL
                   AND EXTRACTVALUE (VALUE (t), 'CCONTENT/CHLDVPPID')
+                         IS NOT NULL
+           UNION ALL
+		   --Add SNOMED to ATC relationships
+           SELECT EXTRACTVALUE (VALUE (t), 'VMP/VPID')
+                     AS concept_code_1,
+                  EXTRACTVALUE (VALUE (t), 'VMP/ATC')
+                     AS concept_code_2,
+                  'SNOMED' AS vocabulary_id_1,
+                  'ATC' AS vocabulary_id_2,
+                  'SNOMED - ATC eq' AS relationship_id,
+                  (SELECT latest_update
+                     FROM vocabulary
+                    WHERE vocabulary_id = 'SNOMED')
+                     AS valid_start_date,
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                  NULL AS invalid_reason
+             FROM dmdbonus t_xml,
+                  TABLE (
+                     XMLSEQUENCE (
+                        t_xml.xmlfield.EXTRACT (
+                           'BNF_DETAILS/VMPS/VMP'))) t
+            WHERE     EXTRACTVALUE (VALUE (t), 'VMP/ATC')
                          IS NOT NULL);
 COMMIT;						 
 
@@ -1594,8 +1616,8 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
           (select latest_update From vocabulary where vocabulary_id='SNOMED'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL
-     FROM (SELECT referencedcomponentid AS concept_code_1,
-                  targetcomponent AS concept_code_2,
+     FROM (SELECT to_char(referencedcomponentid) AS concept_code_1,
+                  to_char(targetcomponent) AS concept_code_2,
                   CASE refsetid
                      WHEN 900000000000526001 THEN 'Concept replaced by'
                      WHEN 900000000000523009 THEN 'Concept poss_eq to'

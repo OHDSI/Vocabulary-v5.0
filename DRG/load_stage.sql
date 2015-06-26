@@ -26,7 +26,7 @@ begin
         and c.concept_code not in (select drg_code from FY_TABLE_5 f where f.drg_version=cDate.drg_version);
 
         --2. if concept not exists or exists, but names are different, then deprecate old record and create the new one        
-        update concept c set c.invalid_reason='D', c.valid_end_date=cDate.drg_version-1
+        update concept c set c.invalid_reason='U', c.valid_end_date=cDate.drg_version-1
         where 
         c.vocabulary_id='DRG'
         and c.invalid_reason is null
@@ -67,7 +67,25 @@ begin
         ]' using cDate.drg_version;
         
     end loop;
-    
+	
+	--3. add 'Concept replaced by' for 'U'
+	insert into concept_relationship
+		select distinct c1.concept_id as concept_id_1, 
+		last_value(c2.concept_id) over (partition by c1.concept_id order by c2.invalid_reason ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as concept_id_2,
+		'Concept replaced by' as relationship_id,
+		c1.valid_start_date as valid_start_date,
+		last_value(c2.valid_end_date) over (partition by c1.concept_id order by c2.invalid_reason ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as valid_end_date,
+		last_value(c2.invalid_reason) over (partition by c1.concept_id order by c2.invalid_reason ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as invalid_reason
+		from concept c1, concept c2
+		where c1.concept_code=c2.concept_code
+		and c1.vocabulary_Id='DRG'
+		and c2.vocabulary_Id='DRG'
+		and c1.invalid_reason = 'U'
+		and nvl(c2.invalid_reason,'X') in ('X','D')
+		and not exists (
+			select 1 from concept_relationship r_int where r_int.concept_id_1=c1.concept_id and r_int.relationship_id='Concept replaced by'
+		);		
+
     COMMIT;
     execute immediate 'DROP SEQUENCE v5_concept';
 end;

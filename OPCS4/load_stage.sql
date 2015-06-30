@@ -91,15 +91,12 @@ where concept_code in ( -- only codes that are valid
 );
 COMMIT;
 
-------------------------------------------
-
---?? Update concept_id in concept_stage from concept for existing concepts
+--5 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
-
---?? Reinstate constraints and indices
+--6 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

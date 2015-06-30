@@ -17,7 +17,7 @@ ALTER INDEX idx_cs_concept_id UNUSABLE;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
---3. Load CONCEPT_STAGE from the existing one. The reason is that there is no good source for these concepts
+--3. Load into concept_stage.
 -- Build Main Heading (Descriptors)
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
                            concept_name,

@@ -4,7 +4,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20141222','yyyymmdd'), vocabulary_version='LOINC 2.50' where vocabulary_id='LOINC'; commit;
+update vocabulary set latest_update=to_date('20150629','yyyymmdd'), vocabulary_version='LOINC 2.52' where vocabulary_id='LOINC'; commit;
 
 -- 2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;

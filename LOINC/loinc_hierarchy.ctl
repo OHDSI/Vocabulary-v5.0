@@ -1,7 +1,7 @@
 options (direct=true, errors=0, SKIP=1)
 load data
 characterset UTF8 length semantics char
-infile 'LOINC_248_MULTI-AXIAL_HIERARCHY.CSV'
+infile 'LOINC_MULTI-AXIAL_HIERARCHY.CSV'
 truncate
 into table LOINC_HIERARCHY
 fields terminated by ','

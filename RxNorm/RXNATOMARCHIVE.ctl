@@ -1,4 +1,5 @@
 options (direct=true, errors=0)
+UNRECOVERABLE
 load data
 infile 'RXNATOMARCHIVE.RRF' 
 badfile 'RXNATOMARCHIVE.bad'

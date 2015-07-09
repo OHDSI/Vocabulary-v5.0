@@ -1,4 +1,5 @@
 options (direct=true, errors=0)
+UNRECOVERABLE
 load data
 infile 'RXNCONSO.RRF' 
 badfile 'RXNCONSO.bad'

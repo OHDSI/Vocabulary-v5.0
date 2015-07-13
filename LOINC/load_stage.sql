@@ -282,7 +282,31 @@ INSERT INTO concept_relationship_stage (concept_id_1,
     WHERE AnswerStringID IS NOT NULL;
 COMMIT;	
 
---12 Add LOINC to SNOMED map
+--12 Link LOINCs to Forms in concept_relationship_stage
+INSERT INTO concept_relationship_stage (concept_id_1,
+                                        concept_id_2,
+                                        concept_code_1,
+                                        concept_code_2,
+                                        relationship_id,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT DISTINCT NULL AS concept_id_1,
+                   NULL AS concept_id_2,
+                   ParentLoinc AS concept_code_1,
+                   Loinc AS concept_code_2,
+                   'Panel contains' AS relationship_id,
+                   'LOINC' AS vocabulary_id_1,
+                   'LOINC' AS vocabulary_id_2,
+                   TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+                   TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                   NULL AS invalid_reason
+     FROM LOINC_FORMS;
+COMMIT;	
+
+--13 Add LOINC to SNOMED map
 INSERT /*+ APPEND */
       INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
@@ -304,7 +328,7 @@ INSERT /*+ APPEND */
     WHERE v.vocabulary_id = 'LOINC';
 COMMIT;
 
---13 Add LOINC to CPT map	 
+--14 Add LOINC to CPT map	 
 INSERT /*+ APPEND */
       INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
@@ -326,7 +350,7 @@ INSERT /*+ APPEND */
     WHERE v.vocabulary_id = 'LOINC';
 COMMIT;	 
 
---14. Add mapping from deprecated to fresh concepts
+--15. Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -401,12 +425,12 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---15 Update concept_id in concept_stage from concept for existing concepts
+--16 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---16 Reinstate constraints and indices
+--17 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

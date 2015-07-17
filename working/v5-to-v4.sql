@@ -289,7 +289,7 @@ FROM (
             when c.standard_concept is null then 0
             else 2 -- on top of DRG (level 1)
           end
-        when 'Mesh' then 0
+        when 'MeSH' then 0
         when 'Specialty' then
           case 
             when c.standard_concept is null then 0

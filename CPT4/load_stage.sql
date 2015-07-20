@@ -4,7 +4,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20141010','yyyymmdd'), vocabulary_version='2014AB' WHERE vocabulary_id='CPT4'; 
+UPDATE vocabulary SET latest_update=to_date('20150511','yyyymmdd'), vocabulary_version='2015AA' WHERE vocabulary_id='CPT4'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices
@@ -32,7 +32,7 @@ INSERT INTO concept_stage (concept_id,
    SELECT DISTINCT
           NULL AS concept_id,
           FIRST_VALUE (
-             str)
+             substr(str,1,255))
           OVER (
              PARTITION BY scui
              ORDER BY
@@ -71,7 +71,7 @@ INSERT INTO concept_stage (concept_id,
    SELECT DISTINCT
           NULL AS concept_id,
           FIRST_VALUE (
-             str)
+             substr(str,1,255))
           OVER (
              PARTITION BY scui
              ORDER BY
@@ -395,7 +395,7 @@ COMMIT;
 UPDATE concept_stage c1
    SET valid_start_date =
           (WITH t
-                AS (SELECT DISTINCT TO_DATE (dt, 'yyyymmdd') dt, concept_code
+                AS (SELECT MAX(TO_DATE (dt, 'yyyymmdd')) dt, concept_code
                       FROM (SELECT TO_CHAR (s.atv) dt, c.concept_code
                               FROM concept_stage c
                                    LEFT JOIN UMLS.mrconso m
@@ -414,7 +414,7 @@ UPDATE concept_stage c1
                                    AND c.vocabulary_id = 'CPT4'
                                    AND c.concept_class_id = 'CPT4'
                            )
-                     WHERE dt IS NOT NULL)
+                     WHERE dt IS NOT NULL GROUP BY concept_code)
            SELECT COALESCE (dt, c1.valid_start_date)
              FROM t
             WHERE c1.concept_code = t.concept_code)

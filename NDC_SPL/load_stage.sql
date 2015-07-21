@@ -585,12 +585,79 @@ UPDATE concept_relationship_stage
                         AND r.relationship_id = 'Maps to');
 COMMIT;				 
 
---12. Update concept_id in concept_stage from concept for existing concepts
+--12 Add "Quantified form of" mappings
+--12.1 for new concepts
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT DISTINCT r_ndc.concept_code_1 AS concept_code_1,
+          c_rxnorm2.concept_code AS concept_code_2,
+          'NDC' AS vocabulary_id_1,
+          'RxNorm' AS vocabulary_id_2,
+          'Quantified form of' AS relationship_id,
+          last_value(r_ndc.valid_start_date) over (partition by r_ndc.concept_code_1, c_rxnorm2.concept_code order by r_ndc.valid_start_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS valid_start_date,
+          last_value(r_ndc.valid_end_date) over (partition by r_ndc.concept_code_1, c_rxnorm2.concept_code order by r_ndc.valid_start_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS valid_end_date,		  
+          r_ndc.invalid_reason             
+from concept_relationship_stage r_ndc, concept c_rxnorm, concept_relationship r_rxnorm, concept c_rxnorm2
+where r_ndc.relationship_id='Original maps to'
+and r_ndc.concept_code_2=c_rxnorm.concept_code
+and r_ndc.vocabulary_id_2=c_rxnorm.vocabulary_id
+and r_ndc.vocabulary_id_1='NDC'
+and r_ndc.vocabulary_id_2='RxNorm'
+and r_rxnorm.concept_id_1=c_rxnorm.concept_id
+and r_rxnorm.relationship_id in ('Quantified form of','Contains')
+and r_rxnorm.invalid_reason is null
+and r_rxnorm.concept_id_2=c_rxnorm2.concept_id;
+COMMIT;
+
+--12.2 for existing (old) concepts
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT DISTINCT c_ndc.concept_code AS concept_code_1,
+          c_rxnorm.concept_code AS concept_code_2,
+          'NDC' AS vocabulary_id_1,
+          'RxNorm' AS vocabulary_id_2,
+          'Quantified form of' AS relationship_id,
+          last_value(r_ndc.valid_start_date) over (partition by c_ndc.concept_code, c_rxnorm.concept_code order by r_ndc.valid_start_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS valid_start_date,
+          last_value(r_ndc.valid_end_date) over (partition by c_ndc.concept_code, c_rxnorm.concept_code order by r_ndc.valid_start_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS valid_end_date,
+          r_ndc.invalid_reason             
+from concept_relationship r_ndc, concept_relationship r_rxnorm, concept c_ndc, concept c_rxnorm
+where r_ndc.relationship_id='Original maps to'
+and r_ndc.invalid_reason is null
+and r_rxnorm.concept_id_1=r_ndc.concept_id_2
+and r_rxnorm.relationship_id in ('Quantified form of','Contains')
+and r_rxnorm.invalid_reason is null
+and r_ndc.concept_id_1=c_ndc.concept_id
+and r_rxnorm.concept_id_2=c_rxnorm.concept_id
+and c_ndc.vocabulary_id='NDC'
+and c_rxnorm.vocabulary_id='RxNorm'
+and not exists (
+    select 1 from concept_relationship_stage r_int
+    where r_int.concept_code_1=c_ndc.concept_code
+    and r_int.concept_code_2=c_rxnorm.concept_code
+    and r_int.vocabulary_id_1='NDC'
+    and r_int.vocabulary_id_2='RxNorm'
+    and r_int.relationship_id='Quantified form of'
+);
+COMMIT;
+
+--13. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 	
---13. Clean up
+--14. Clean up
 DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
 	

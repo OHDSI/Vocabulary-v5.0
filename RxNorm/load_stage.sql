@@ -42,6 +42,7 @@ INSERT INTO concept_stage (concept_name,
              WHEN 'SBDC' THEN 'Branded Drug Comp'
              WHEN 'SBDF' THEN 'Branded Drug Form'
              WHEN 'SBD' THEN 'Branded Drug'
+			 WHEN 'PIN' THEN 'Ingredient'
           END,
           CASE tty -- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
                   WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
@@ -59,7 +60,8 @@ INSERT INTO concept_stage (concept_name,
                       'BN',
                       'SBDC',
                       'SBDF',
-                      'SBD');
+                      'SBD',
+					  'PIN');
 COMMIT;					  
 
 -- Packs share rxcuis with Clinical Drugs and Branded Drugs, therefore use code as concept_code
@@ -226,7 +228,8 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                       'BN',
                       'SBDC',
                       'SBDF',
-                      'SBD')
+                      'SBD',
+					  'PIN')
           AND rxcui <> merged_to_rxcui
           AND NOT EXISTS
                  (SELECT 1

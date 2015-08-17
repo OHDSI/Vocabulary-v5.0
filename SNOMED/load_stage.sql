@@ -1998,6 +1998,7 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (51112002, 'Observation');
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (54427008, 'Observation');
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (37768003, 'Observation');
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (6811007, 'Observation');
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (46680005, 'Measurement'); -- Vital signs
 
 COMMIT;
 

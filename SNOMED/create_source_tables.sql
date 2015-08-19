@@ -125,9 +125,9 @@ CREATE VIEW der2_cRefset_AssRefFull_merged AS SELECT * FROM der2_cRefset_AssRefF
 --Create XML table for DM+D
 CREATE TABLE f_lookup2 (xmlfield XMLTYPE);
 CREATE TABLE f_ingredient2 (xmlfield XMLTYPE);
-CREATE TABLE f_vtm2 (xmlfield XMLTYPE)
-CREATE TABLE f_vmp2 (xmlfield XMLTYPE)
-CREATE TABLE f_amp2 (xmlfield XMLTYPE)
-CREATE TABLE f_vmpp2 (xmlfield XMLTYPE)
-CREATE TABLE f_ampp2 (xmlfield XMLTYPE)
-CREATE TABLE dmdbonus (xmlfield XMLTYPE)
+CREATE TABLE f_vtm2 (xmlfield XMLTYPE);
+CREATE TABLE f_vmp2 (xmlfield XMLTYPE);
+CREATE TABLE f_amp2 (xmlfield XMLTYPE);
+CREATE TABLE f_vmpp2 (xmlfield XMLTYPE);
+CREATE TABLE f_ampp2 (xmlfield XMLTYPE);
+CREATE TABLE dmdbonus (xmlfield XMLTYPE);

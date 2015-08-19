@@ -38,7 +38,7 @@ INSERT INTO concept_stage (concept_name,
           'Drg Class' AS concept_class_id,
           'C' AS standard_concept,
           cvx_code AS concept_code,
-          (SELECT MIN(concept_date) FROM CVX_DATES d WHERE D.CVX_CODE=C.CVX_CODE) AS valid_start_date,
+          (SELECT MIN(concept_date) FROM CVX_DATES d WHERE D.CVX_CODE=C.CVX_CODE) AS valid_start_date, --get concept date from true source
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
      FROM CVX c;

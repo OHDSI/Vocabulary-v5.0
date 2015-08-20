@@ -509,7 +509,8 @@ INSERT  /*+ APPEND */  INTO concept_stage (concept_name,
                            WHEN typeid = '900000000000013009' THEN 0
                            ELSE 1
                         END,
-                        CASE WHEN term LIKE '%(%)%' THEN 1 ELSE 0 END)
+                        CASE WHEN term LIKE '%(%)%' THEN 1 ELSE 0 END,
+						LENGTH(TERM) DESC)
                      AS rn
              FROM sct2_concept_full_merged c, sct2_desc_full_merged d
             WHERE c.id = d.conceptid AND term IS NOT NULL

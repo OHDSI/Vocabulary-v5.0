@@ -45,7 +45,7 @@ INSERT INTO concept_stage (concept_name,
 			 WHEN 'PIN' THEN 'Ingredient'
           END,
           CASE tty -- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
-                  WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
+                  WHEN 'PIN' THEN NULL WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
           rxcui,                                    -- the code used in RxNorm
           (SELECT latest_update FROM vocabulary WHERE vocabulary_id='RxNorm'),
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),

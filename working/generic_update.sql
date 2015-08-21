@@ -639,7 +639,7 @@ DELETE FROM concept_synonym csyn
                                );
 
 -- 19. Add new synonyms for existing concepts
-INSERT /*+ APPEND */
+INSERT
       INTO  concept_synonym (concept_id,
                              concept_synonym_name,
                              language_concept_id)

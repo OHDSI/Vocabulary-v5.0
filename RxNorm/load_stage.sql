@@ -230,25 +230,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                       'SBDF',
                       'SBD',
 					  'PIN')
-          AND rxcui <> merged_to_rxcui
-          AND NOT EXISTS
-                 (SELECT 1
-                    FROM concept
-                   WHERE vocabulary_id = 'RxNorm' AND concept_code = rxcui
-                  UNION ALL
-                  SELECT 1
-                    FROM concept_stage
-                   WHERE vocabulary_id = 'RxNorm' AND concept_code = rxcui)
-          AND EXISTS
-                 (SELECT 1
-                    FROM concept
-                   WHERE     vocabulary_id = 'RxNorm'
-                         AND concept_code = merged_to_rxcui
-                  UNION ALL
-                  SELECT 1
-                    FROM concept_stage
-                   WHERE     vocabulary_id = 'RxNorm'
-                         AND concept_code = merged_to_rxcui);
+          AND rxcui <> merged_to_rxcui;
 COMMIT;
 
 --7 De-standardize concept_classes "Clinical Pack" and "Branded Pack"

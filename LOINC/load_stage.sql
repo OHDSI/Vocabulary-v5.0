@@ -303,7 +303,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
                    TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
-     FROM LOINC_FORMS;
+     FROM LOINC_FORMS WHERE Loinc <> ParentLoinc;
 COMMIT;	
 
 --13 Add LOINC to SNOMED map

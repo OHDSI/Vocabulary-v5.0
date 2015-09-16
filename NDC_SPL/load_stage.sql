@@ -462,7 +462,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
              FROM product p
                   JOIN rxnconso c
                      ON c.code = p.productndc AND c.sab = 'MTHSPL'
-                  JOIN rxnconso r ON r.rxcui = c.rxcui
+                  JOIN rxnconso r ON r.rxcui = c.rxcui and r.sab='RXNORM'
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
 			

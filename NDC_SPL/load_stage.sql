@@ -4,8 +4,8 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20150730','yyyymmdd'), vocabulary_version='NDC 20150730' where vocabulary_id='NDC'; commit;
-update vocabulary set latest_update=to_date('20150730','yyyymmdd'), vocabulary_version='NDC 20150730' where vocabulary_id='SPL'; commit;
+update vocabulary set latest_update=to_date('20150914','yyyymmdd'), vocabulary_version='NDC 20150914' where vocabulary_id='NDC'; commit;
+update vocabulary set latest_update=to_date('20150914','yyyymmdd'), vocabulary_version='NDC 20150914' where vocabulary_id='SPL'; commit;
 
 --2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;
@@ -54,7 +54,66 @@ BEGIN
 END;
 /
 
---3. Load SPL into concept_stage
+
+--3. Create temporary table for SPL concepts
+CREATE TABLE SPL_EXT NOLOGGING AS
+    select xml_name, coalesce(concept_name,to_char(concept_name_clob)) as concept_name, concept_code, valid_start_date, displayname from (
+        select xml_name, trim(trim(concept_name_part)||' '||trim(concept_name_suffix)) as concept_name, trim(trim(concept_name_clob_part)||' '||trim(concept_name_clob_suffix)) as concept_name_clob, concept_code,
+        to_date(substr(valid_start_date,1,6) || case when to_number(substr(valid_start_date,-2,2))>31 then '31' else substr(valid_start_date,-2,2) end, 'YYYYMMDD') as valid_start_date, 
+        upper(trim(regexp_replace(displayname, '[[:space:]]+',' '))) as displayname from (
+            select t.xml_name, 
+            extractvalue(t.xmlfield,'/document/component/structuredBody/component[1]/section/subject[1]/manufacturedProduct/*/name/text()','xmlns="urn:hl7-org:v3"') as concept_name_part,
+            extractvalue(t.xmlfield,'/document/component/structuredBody/component[1]/section/subject[1]/manufacturedProduct/*/name/suffix','xmlns="urn:hl7-org:v3"') as concept_name_suffix,
+            t.xmlfield.extract('/document/component/structuredBody/component/section/subject/manufacturedProduct/*/name/text()','xmlns="urn:hl7-org:v3"').getClobVal() as concept_name_clob_part,
+            t.xmlfield.extract('/document/component/structuredBody/component/section/subject/manufacturedProduct/*/name/suffix/text()','xmlns="urn:hl7-org:v3"').getClobVal() as concept_name_clob_suffix,
+            t.xmlfield.extract('/document/setId/@root','xmlns="urn:hl7-org:v3"').getStringVal() as concept_code,
+            t.xmlfield.extract('/document/effectiveTime/@value','xmlns="urn:hl7-org:v3"').getStringVal() as valid_start_date,
+            t.xmlfield.extract('/document/code/@displayName','xmlns="urn:hl7-org:v3"').getStringVal() as displayname
+            from spl_ext_raw  t
+    )
+);
+
+--4. Load main SPL concepts into concept_stage
+INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
+                           domain_id,
+                           vocabulary_id,
+                           concept_class_id,
+                           standard_concept,
+                           concept_code,
+                           valid_start_date,
+                           valid_end_date,
+                           invalid_reason)
+    select 
+    concept_name,
+    case when displayname in ('MEDICAL DEVICE','OTC MEDICAL DEVICE LABEL') then 'Device' 
+        when displayname in ('COSMETIC','DIETARY SUPPLEMENT','MEDICAL FOOD','NON-STANDARDIZED ALLERGENIC LABEL') then 'Observation'
+        else 'Drug'
+    end as domain_id,
+    'SPL' as vocabulary_id,
+    case when displayname in ('BULK INGREDIENT') then 'Ingredient'
+        when displayname in ('CELLULAR THERAPY') then 'Cellular Therapy'
+        when displayname in ('COSMETIC') then 'Cosmetic'
+        when displayname in ('DIETARY SUPPLEMENT') then 'Supplement'
+        when displayname in ('HUMAN OTC DRUG LABEL') then 'OTC Drug'
+        when displayname in ('LICENSED MINIMALLY MANIPULATED CELLS LABEL') then 'Cellular Therapy'
+        when displayname in ('MEDICAL DEVICE','OTC MEDICAL DEVICE LABEL','PRESCRIPTION MEDICAL DEVICE LABEL') then 'Device'
+        when displayname in ('MEDICAL FOOD') then 'Food'
+        when displayname in ('NON-STANDARDIZED ALLERGENIC LABEL') then 'Non-Stand Allergenic'
+        when displayname in ('OTC ANIMAL DRUG LABEL') then 'Animal Drug'
+        when displayname in ('PLASMA DERIVATIVE') then 'Plasma Derivative'
+        when displayname in ('STANDARDIZED ALLERGENIC') then 'Standard Allergenic'
+        when displayname in ('VACCINE LABEL') then 'Vaccine'
+        else 'Prescription Drug'
+    end as concept_class_id,
+    'C' as standard_concept,
+    concept_code,
+    valid_start_date,
+    to_date('20991231','YYYYMMDD') as valid_end_date,
+    null as invalid_reason
+    from spl_ext where displayname not in ('IDENTIFICATION OF CBER-REGULATED GENERIC DRUG FACILITY','INDEXING - PHARMACOLOGIC CLASS','INDEXING - SUBSTANCE', 'WHOLESALE DRUG DISTRIBUTORS AND THIRD-PARTY LOGISTICS FACILITY REPORT');
+COMMIT;	
+
+--5. Load SPL into concept_stage
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
                           concept_name,
                           domain_id,
@@ -147,12 +206,15 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 			) as brand_name
 			from t t1
 		)
-	), vocabulary v
-	WHERE v.vocabulary_id = 'SPL';
+	) s, vocabulary v
+	WHERE v.vocabulary_id = 'SPL'
+	AND NOT EXISTS (
+		SELECT 1 FROM CONCEPT_STAGE cs_int WHERE s.concept_code=cs_int.concept_code
+	);
 
 COMMIT;
 
---4. Load NDC into concept_stage
+--6. Load NDC into concept_stage
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
                            concept_name,
                            domain_id,
@@ -252,7 +314,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 
 COMMIT;
 
---5. Add NDC to concept_stage from rxnconso
+--7. Add NDC to concept_stage from rxnconso
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
                            concept_name,
                            domain_id,
@@ -280,8 +342,9 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
     WHERE s.sab = 'RXNORM' AND s.atn = 'NDC';
 COMMIT;
 
---6. Add mapping from SPL to RxNorm through rxnconso
-INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
+--8. Add mapping from SPL to RxNorm through rxnconso
+/*
+INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -304,8 +367,34 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
           JOIN rxnconso r ON r.rxcui = c.rxcui
           JOIN vocabulary v ON v.vocabulary_id = 'SPL';
 COMMIT;	
+*/
 
---7. Add mapping from NDC to RxNorm from rxnconso
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT DISTINCT a.atv AS concept_code_1,
+                   b.code AS concept_code_2,
+                   'SPL' AS vocabulary_id_1,
+                   'RxNorm' AS vocabulary_id_2,
+                   'SPL - RxNorm' AS relationship_id,
+                   v.latest_update AS valid_start_date,
+                   TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+                   NULL AS invalid_reason
+     FROM rxnsat a
+          JOIN rxnsat b ON a.rxcui = b.rxcui
+          JOIN vocabulary v ON v.vocabulary_id = 'SPL'
+    WHERE     a.sab = 'MTHSPL'
+          AND a.atn = 'SPL_SET_ID'
+          AND b.sab = 'RXNORM'
+          AND b.atn = 'RXN_HUMAN_DRUG';
+COMMIT;
+
+--9. Add mapping from NDC to RxNorm from rxnconso
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -377,7 +466,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
 			
---8 Add additional mapping for NDC codes 
+--10 Add additional mapping for NDC codes 
 --The 9-digit NDC codes that have no mapping can be mapped to the same concept of the 11-digit NDC codes, if all 11-digit NDC codes agree on the same destination Concept
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
@@ -447,7 +536,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE cnt = 1;
 COMMIT;	 
 
---9 Add mapping from deprecated to fresh concepts
+--11 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
@@ -523,7 +612,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;
 
---10 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
+--12 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -567,7 +656,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Maps to');
 COMMIT;		  
 
---11 Re-map Quantified Drugs and Packs
+--13 Re-map Quantified Drugs and Packs
 --Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
 UPDATE concept_relationship_stage
    SET relationship_id = 'Original maps to'
@@ -585,8 +674,8 @@ UPDATE concept_relationship_stage
                         AND r.relationship_id = 'Maps to');
 COMMIT;				 
 
---12 Add "Quantified form of" mappings
---12.1 for new concepts
+--14 Add "Quantified form of" mappings
+--14.1 for new concepts
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -615,7 +704,7 @@ and r_rxnorm.invalid_reason is null
 and r_rxnorm.concept_id_2=c_rxnorm2.concept_id;
 COMMIT;
 
---12.2 for existing (old) concepts
+--14.2 for existing (old) concepts
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -652,16 +741,17 @@ and not exists (
 );
 COMMIT;
 
---13. Update concept_id in concept_stage from concept for existing concepts
+--15. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 	
---14. Clean up
+--16. Clean up
 DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
+DROP TABLE SPL_EXT;
 	
---14. Reinstate constraints and indices
+--17. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

@@ -20,6 +20,20 @@ CREATE TABLE PRODUCT
   DEASCHEDULE                VARCHAR2(5 BYTE)
 );
 
+CREATE TABLE spl2rxnorm_mappings
+(
+   SETID         VARCHAR2 (50 BYTE),
+   SPL_VERSION   VARCHAR2 (10 BYTE),
+   RXCUI         VARCHAR2 (8 BYTE),
+   RXTTY         VARCHAR2 (10 BYTE)
+);
+
+CREATE TABLE SPL_EXT_RAW
+(
+  XML_NAME  VARCHAR2(100 BYTE),
+  XMLFIELD  XMLTYPE
+);
+
 CREATE INDEX idx_f_product
    ON product (SUBSTR (productid, INSTR (productid, '_') + 1))
    NOLOGGING;

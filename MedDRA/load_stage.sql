@@ -4,7 +4,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20150301','yyyymmdd'), vocabulary_version='MedDRA version 18.0' WHERE vocabulary_id = 'MedDRA';
+UPDATE vocabulary SET latest_update=to_date('20150901','yyyymmdd'), vocabulary_version='MedDRA version 18.1' WHERE vocabulary_id = 'MedDRA';
 COMMIT;
 
 

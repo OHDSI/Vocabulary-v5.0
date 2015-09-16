@@ -4,7 +4,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20150706','yyyymmdd'), vocabulary_version='RxNorm Full 20150706' WHERE vocabulary_id = 'RxNorm'; 
+UPDATE vocabulary SET latest_update=to_date('20150908','yyyymmdd'), vocabulary_version='RxNorm Full 20150908' WHERE vocabulary_id = 'RxNorm'; 
 COMMIT;
 
 
@@ -213,7 +213,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
           merged_to_rxcui AS concept_code_2,
           'RxNorm' AS vocabulary_id_1,
           'RxNorm' AS vocabulary_id_2,
-          'Replaced by' AS relationship_id,
+          'Concept replaced by' AS relationship_id,
           latest_update AS valid_start_date,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
           NULL AS invalid_reason
@@ -264,6 +264,8 @@ UPDATE concept_stage
 COMMIT;
 
 --8. Add mapping from deprecated to fresh concepts
+ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,

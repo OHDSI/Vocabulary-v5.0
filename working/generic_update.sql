@@ -338,8 +338,8 @@ INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
           TO_DATE ('20991231', 'YYYYMMDD') AS valid_end_date,
           NULL AS invalid_reason
     FROM concept_relationship_stage crs
-    LEFT JOIN concept r1 ON r1.concept_code = crs.concept_code_1 AND r1.vocabulary_id = crs.vocabulary_id_1
-    LEFT JOIN concept r2 ON r2.concept_code = crs.concept_code_2 AND r2.vocabulary_id = crs.vocabulary_id_2
+    JOIN concept r1 ON r1.concept_code = crs.concept_code_1 AND r1.vocabulary_id = crs.vocabulary_id_1
+    JOIN concept r2 ON r2.concept_code = crs.concept_code_2 AND r2.vocabulary_id = crs.vocabulary_id_2
     WHERE NOT EXISTS -- an identical one
              (SELECT 1
                 FROM concept_relationship r

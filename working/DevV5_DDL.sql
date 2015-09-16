@@ -1,15 +1,5 @@
 -- Create tables
 
-CREATE TABLE CONCEPT_ANCESTOR
-(
-  ANCESTOR_CONCEPT_ID       NUMBER             NOT NULL,
-  DESCENDANT_CONCEPT_ID     NUMBER             NOT NULL,
-  MIN_LEVELS_OF_SEPARATION  NUMBER             NOT NULL,
-  MAX_LEVELS_OF_SEPARATION  NUMBER             NOT NULL
-) 
-NOLOGGING  
-;
-
 CREATE TABLE source_to_concept_map (
   source_code                VARCHAR(50)        NOT NULL,
   source_vocabulary_id        VARCHAR(20)        NOT NULL,
@@ -85,6 +75,7 @@ NOLOGGING
 
 -- Create copies of table
 
+CREATE TABLE concept_ancestor NOLOGGING AS SELECT * FROM devv5.concept_ancestor;
 CREATE TABLE concept NOLOGGING AS SELECT * FROM devv5.concept;
 CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM devv5.concept_relationship;
 CREATE TABLE relationship NOLOGGING AS SELECT * FROM devv5.relationship;

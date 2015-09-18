@@ -1,6 +1,6 @@
-OPTIONS (SKIP=1)
+OPTIONS (direct=true, errors=0, skip=1)
 LOAD DATA
-INFILE rcsctmap2_uk_20141001000001.txt
+INFILE rcsctmap2_uk.txt
 INTO TABLE rcsctmap2_uk
 TRUNCATE
 FIELDS TERMINATED BY '\t'

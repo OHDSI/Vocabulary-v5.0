@@ -36,7 +36,9 @@ CREATE TABLE concept_stage
    VALID_START_DATE   DATE NOT NULL,
    VALID_END_DATE     DATE NOT NULL,
    invalid_reason     VARCHAR2 (1 BYTE)
-);
+)
+NOLOGGING
+;
 
 CREATE TABLE concept_relationship_stage
 (
@@ -51,6 +53,7 @@ CREATE TABLE concept_relationship_stage
   VALID_END_DATE    DATE,
   INVALID_REASON    VARCHAR2(1 BYTE)
 )
+NOLOGGING
 ;
 
 CREATE TABLE concept_synonym_stage
@@ -61,6 +64,7 @@ CREATE TABLE concept_synonym_stage
   SYNONYM_VOCABULARY_ID VARCHAR(20) NOT NULL,
   LANGUAGE_CONCEPT_ID  NUMBER
 )
+NOLOGGING
 ;
 
 CREATE TABLE SNOMED_ANCESTOR

@@ -197,6 +197,7 @@ and instr(domain_id,'/')<>0;
 --reducing some domain_id if his length>20
 update read_domain set domain_id='Meas/Procedure' where domain_id='Measurement/Procedure';
 update read_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
+update read_domain set domain_id='Specimen' where domain_id='Measurement/Specimen';
 
 COMMIT;
 

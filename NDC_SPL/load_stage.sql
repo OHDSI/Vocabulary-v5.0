@@ -85,8 +85,8 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            invalid_reason)
     select 
     concept_name,
-    case when displayname in ('MEDICAL DEVICE','OTC MEDICAL DEVICE LABEL') then 'Device' 
-        when displayname in ('COSMETIC','DIETARY SUPPLEMENT','MEDICAL FOOD','NON-STANDARDIZED ALLERGENIC LABEL') then 'Observation'
+    case when displayname in ('COSMETIC', 'MEDICAL FOOD') then 'Observation' 
+        when displayname ('MEDICAL DEVICE','OTC MEDICAL DEVICE LABEL','PRESCRIPTION MEDICAL DEVICE LABEL') then 'Device'
         else 'Drug'
     end as domain_id,
     'SPL' as vocabulary_id,

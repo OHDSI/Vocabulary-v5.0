@@ -631,6 +631,9 @@ COMMIT;
 
 -- 18. Remove all existing synonyms for concepts that are in concept_stage
 -- Synonyms are built from scratch each time, no life cycle
+
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);
+
 DELETE FROM concept_synonym csyn
       WHERE csyn.concept_id IN (SELECT c.concept_id
                                   FROM concept c, concept_stage cs

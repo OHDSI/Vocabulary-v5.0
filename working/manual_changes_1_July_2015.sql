@@ -1338,9 +1338,9 @@ update relationship set reverse_relationship_id = 'Trade family grp of' where re
 
 -- Add Erica's Type Concepts
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (v5_concept.nextval, 'Patient Self-Reported Condition', 'Condition Type', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+values (v5_concept.nextval, 'Patient Self-Reported Condition', 'Type Concept', 'Condition Type', 'Condition Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (v5_concept.nextval, 'Observation Recorded from a Survey', 'Observation Type', 'Observation Type', 'Observation Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+values (v5_concept.nextval, 'Observation Recorded from a Survey', 'Type Concept', 'Observation Type', 'Observation Type', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 
 -- Fix remaining concept_class_id of 2-character HCPCS to be HCPCS Modifier
 update concept set concept_class_id = 'HCPCS Modifier' where vocabulary_id = 'HCPCS' and concept_class_id = 'HCPCS' and length(concept_code) < 3;

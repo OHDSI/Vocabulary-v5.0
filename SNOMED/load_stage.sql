@@ -1833,7 +1833,7 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (260787004, 'Observation'); 
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (362981000, 'Observation'); -- Qualifier value
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (363787002, 'Observation'); -- Observable entity
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (410607006, 'Observation'); -- Organism
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (419891008, 'Note Type'); -- Record artifact
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (419891008, 'Type Concept'); -- Record artifact
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (78621006, 'Observation'); -- Physical force
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (123037004, 'Spec Anatomic Site'); -- Body structure
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (118956008, 'Observation'); -- Body structure, altered from its original anatomical structure, reverted from 123037004
@@ -2143,7 +2143,7 @@ UPDATE domain_snomed SET domain_id = 'Metadata' WHERE concept_code = 138875005;
 UPDATE domain_snomed d
    SET d.domain_id =
           (SELECT CASE c.concept_class_id
-                  WHEN 'Admin Concept' THEN 'Note Type'
+                  WHEN 'Admin Concept' THEN 'Type Concept'
                   WHEN 'Attribute' THEN 'Observation'
                   WHEN 'Body Structure' THEN 'Spec Anatomic Site'
                   WHEN 'Clinical Finding' THEN 'Condition'
@@ -2163,7 +2163,7 @@ UPDATE domain_snomed d
                   WHEN 'Physical Object' THEN 'Device'
                   WHEN 'Procedure' THEN 'Procedure'
                   WHEN 'Qualifier Value' THEN 'Observation'
-                  WHEN 'Record Artifact' THEN 'Note Type'
+                  WHEN 'Record Artifact' THEN 'Type Concept'
                   WHEN 'Social Context' THEN 'Observation'
                   WHEN 'Special Concept' THEN 'Metadata'
                   WHEN 'Specimen' THEN 'Specimen'
@@ -2236,7 +2236,7 @@ WHERE concept_code IN ('21594007', '17621005', '263654008')
 -- Fix navigational concepts
 UPDATE concept_stage
   SET domain_id = CASE concept_class_id
-                    WHEN 'Admin Concept' THEN 'Note Type'
+                    WHEN 'Admin Concept' THEN 'Type Concept'
                     WHEN 'Attribute' THEN 'Observation'
                     WHEN 'Body Structure' THEN 'Spec Anatomic Site'
                     WHEN 'Clinical Finding' THEN 'Condition'
@@ -2256,7 +2256,7 @@ UPDATE concept_stage
                     WHEN 'Physical Object' THEN 'Device'
                     WHEN 'Procedure' THEN 'Procedure'
                     WHEN 'Qualifier Value' THEN 'Observation'
-                    WHEN 'Record Artifact' THEN 'Note Type'
+                    WHEN 'Record Artifact' THEN 'Type Concept'
                     WHEN 'Social Context' THEN 'Observation'
                     WHEN 'Special Concept' THEN 'Metadata'
                     WHEN 'Specimen' THEN 'Specimen'
@@ -2281,7 +2281,7 @@ UPDATE concept_stage
              WHEN 'Race' THEN NULL                             -- Race are CDC
              WHEN 'Provider Specialty' THEN NULL -- got CMS and ABMS specialty
              WHEN 'Place of Service' THEN NULL     -- got own place of service
-             WHEN 'Note Type' THEN NULL   -- Note types in own OMOP vocabulary
+             WHEN 'Type Concept' THEN NULL   -- Type Concept in own OMOP vocabulary
              WHEN 'Unit' THEN NULL                           -- Units are UCUM
              ELSE 'S'
           END

@@ -18,7 +18,7 @@ END;
 
 -- Add another Observation Period type for Rimma
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (v5_concept.nextval, 'Period of complete data capture based on geographic isolation', 'Obs Period Type', 'Obs Period Type', 'Obs Period Type', 'S', 'OMOP generated', '01-JAN-70', '31-DEC-99', null);
+values (v5_concept.nextval, 'Period of complete data capture based on geographic isolation', 'Type Concept', 'Obs Period Type', 'Obs Period Type', 'S', 'OMOP generated', '01-JAN-70', '31-DEC-99', null);
 
 -- Remove relationships to domains
 delete from concept_relationship where relationship_id in ('Is domain','Domain subsumes');
@@ -1423,7 +1423,7 @@ update vocabulary_conversion set click_default='Y' where vocabulary_id_v5='SPL';
 
 -- Add missing Drug Type Patient Self-Reported Medication 
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (44787730, 'Patient Self-Reported Medication', 'Drug Type', 'Drug Type', 'Drug Type', 'S', 'OMOP generated', '01-JAN-70', '31-DEC-99', null);
+values (44787730, 'Patient Self-Reported Medication', 'Type Concept', 'Drug Type', 'Drug Type', 'S', 'OMOP generated', '01-JAN-70', '31-DEC-99', null);
 
 -- Remove ICD9CM dotless duplicates and create replacement relationships
 insert into concept_relationship

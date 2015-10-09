@@ -181,7 +181,7 @@ create table read_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication    
 CREATE UNIQUE INDEX idx_read_domain ON read_domain (concept_code) NOLOGGING;
 
---7. Simplify the list by removing Observations, Metadata and Note Type
+--7. Simplify the list by removing Observations, Metadata and Type Concept
 update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -190,8 +190,8 @@ update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Met
 where '/'||domain_id||'/' like '%/Metadata/%'
 and instr(domain_id,'/')<>0;
 
-update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Note Type/','/'))
-where '/'||domain_id||'/' like '%/Note Type/%'
+update read_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Type Concept/','/'))
+where '/'||domain_id||'/' like '%/Type Concept/%'
 and instr(domain_id,'/')<>0;
 
 --reducing some domain_id if his length>20

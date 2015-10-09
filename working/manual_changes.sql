@@ -446,6 +446,11 @@ values ('Animal Drug', 'FDA Product Type Animal Drug', (select concept_id from c
 
 commit;
 
+-- Consolidate all Type Concept Domains into one 'Type Concept'
+ALTER TABLE concept DISABLE CONSTRAINT FPK_CONCEPT_DOMAIN;
+UPDATE concept SET domain_id = 'Type Concept' WHERE domain_id LIKE '%Type'; COMMIT;
+ALTER TABLE concept ENABLE CONSTRAINT FPK_CONCEPT_DOMAIN;
+
 
 -- Remove invalid ICD10 codes
 delete 

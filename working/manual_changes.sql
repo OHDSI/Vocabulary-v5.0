@@ -443,10 +443,19 @@ values (v5_concept.nextval, 'FDA Product Type Animal Drug', 'Metadata', 'Concept
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
 values ('Animal Drug', 'FDA Product Type Animal Drug', (select concept_id from concept where concept_name = 'FDA Product Type Animal Drug'));
 
+-- add domain for Type Concepts
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (58, 'Type Concept', 'Metadata', 'Domain', 'Domain', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into domain (domain_id, domain_name, domain_concept_id)
+values ('Type Concept', 'Type Concept', 58);
+
+-- ????? ???????? domain_id ???? ?????????
+
+
 
 commit;
 
-
+------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Remove invalid ICD10 codes
 delete 
 from concept_relationship r 

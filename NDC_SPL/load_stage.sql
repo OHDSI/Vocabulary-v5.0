@@ -134,7 +134,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
 		first_value(s.valid_start_date) over (partition by l.replaced_spl order by s.valid_start_date rows between unbounded preceding and unbounded following) spl_date,
 		l.replaced_spl  from spl_ext s, concept c, spl_ext s2,
 		lateral (select regexp_substr(s.replaced_spl,'[^;]+', 1, level) replaced_spl from dual connect by regexp_substr(s.replaced_spl, '[^;]+', 1, level) is not null) l
-		where s.replaced_spl is not null
+		where s.replaced_spl is not null -- if there is an SPL codes ( l ) that is mentioned in another record as replaced_spl (path /document/relatedDocument/relatedDocument/setId/@root)
 		and l.replaced_spl=c.concept_code(+)
 		and c.vocabulary_id(+)='SPL'
 		and l.replaced_spl=s2.concept_code(+)
@@ -309,7 +309,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 		first_value(s.valid_start_date) over (partition by l.replaced_spl order by s.valid_start_date, s.concept_code rows between unbounded preceding and unbounded following) spl_date,
 		l.replaced_spl  from spl_ext s,
 		lateral (select regexp_substr(s.replaced_spl,'[^;]+', 1, level) replaced_spl from dual connect by regexp_substr(s.replaced_spl, '[^;]+', 1, level) is not null) l
-		where s.replaced_spl is not null
+		where s.replaced_spl is not null -- if there is an SPL codes ( l ) that is mentioned in another record as replaced_spl (path /document/relatedDocument/relatedDocument/setId/@root)
 	);
 
 COMMIT;

@@ -54,45 +54,7 @@ BEGIN
 END;
 /
 
-
---3 NEW! Create temporary table for SPL concepts from XML sources
-create table spl_ext nologging as
-    select xml_name, coalesce(concept_name,to_char(concept_name_clob))||' - '||coalesce(concept_name_p2,to_char(concept_name_clob_p2)) as concept_name, concept_code, valid_start_date, displayname, replaced_spl,
-    low_value, high_value from (
-        select xml_name, trim(upper(trim(concept_name_part))||' '||upper(trim(concept_name_suffix))) as concept_name, trim(upper(trim(concept_name_clob_part))||' '||upper(trim(concept_name_clob_suffix))) as concept_name_clob, 
-        trim(lower(trim(concept_name_part2))||' '||lower(trim(formcode))) as concept_name_p2, trim(lower(trim(concept_name_clob_part2))||' '||lower(trim(formcode_clob))) as concept_name_clob_p2, concept_code,
-        to_date(substr(valid_start_date,1,6) || case when to_number(substr(valid_start_date,-2,2))>31 then '31' else substr(valid_start_date,-2,2) end, 'YYYYMMDD') as valid_start_date, 
-        upper(trim(regexp_replace(displayname, '[[:space:]]+',' '))) as displayname, replaced_spl, 
-        trim (';' from low_value1||';'||low_value2) low_value,
-        trim (';' from high_value1||';'||high_value2) high_value
-        from (
-            select t.xml_name, 
-            extractvalue(t.xmlfield,'/document/component/structuredBody/component[1]/section/subject[1]/manufacturedProduct/*/name/text()','xmlns="urn:hl7-org:v3"') as concept_name_part,
-            extractvalue(t.xmlfield,'/document/component/structuredBody/component[1]/section/subject[1]/manufacturedProduct/*/name/suffix','xmlns="urn:hl7-org:v3"') as concept_name_suffix,
-            extractvalue(t.xmlfield,'/document/component/structuredBody/component[1]/section/subject[1]/manufacturedProduct/*/asEntityWithGeneric/genericMedicine/name/text()','xmlns="urn:hl7-org:v3"') as concept_name_part2,
-            extractvalue(t.xmlfield,'/document/component/structuredBody/component[1]/section/subject[1]/manufacturedProduct/*/formCode/@displayName/text()','xmlns="urn:hl7-org:v3"') as formcode,
-            t.xmlfield.extract('/document/component/structuredBody/component/section/subject/manufacturedProduct/*/name/text()','xmlns="urn:hl7-org:v3"').getClobVal() as concept_name_clob_part,
-            t.xmlfield.extract('/document/component/structuredBody/component/section/subject/manufacturedProduct/*/name/suffix/text()','xmlns="urn:hl7-org:v3"').getClobVal() as concept_name_clob_suffix,
-            t.xmlfield.extract('/document/component/structuredBody/component/section/subject/manufacturedProduct/*/asEntityWithGeneric/genericMedicine/name/text()','xmlns="urn:hl7-org:v3"').getClobVal() as concept_name_clob_part2,
-            t.xmlfield.extract('/document/component/structuredBody/component/section/subject/manufacturedProduct/*/formCode/@displayName','xmlns="urn:hl7-org:v3"').getClobVal() as formcode_clob,
-            t.xmlfield.extract('/document/setId/@root','xmlns="urn:hl7-org:v3"').getStringVal() as concept_code,
-            t.xmlfield.extract('/document/effectiveTime/@value','xmlns="urn:hl7-org:v3"').getStringVal() as valid_start_date,
-            t.xmlfield.extract('/document/code/@displayName','xmlns="urn:hl7-org:v3"').getStringVal() as displayname,
-            xmlcast(xmlquery(( 'declare default element namespace "urn:hl7-org:v3"; (::) string-join(//child::text(),";")' ) passing 
-                extract(t.xmlfield, '/document/relatedDocument/relatedDocument/setId/@root', 'xmlns="urn:hl7-org:v3"') returning content) as varchar2(4000)) as replaced_spl,
-            xmlcast(xmlquery(( 'declare default element namespace "urn:hl7-org:v3"; (::) string-join(distinct-values(//child::text()),";")' ) passing 
-                extract(t.xmlfield, '/document/component/structuredBody/component/section/subject/manufacturedProduct/subjectOf/marketingAct/effectiveTime/low/@value', 'xmlns="urn:hl7-org:v3"') returning content) as varchar2(4000)) as low_value1,
-            xmlcast(xmlquery(( 'declare default element namespace "urn:hl7-org:v3"; (::) string-join(distinct-values(//child::text()),";")' ) passing 
-                extract(t.xmlfield, '/document/component/structuredBody/component/section/subject/manufacturedProduct/manufacturedProduct/asContent/subjectOf/marketingAct/effectiveTime/low/@value', 'xmlns="urn:hl7-org:v3"') returning content) as varchar2(4000)) as low_value2,                
-            xmlcast(xmlquery(( 'declare default element namespace "urn:hl7-org:v3"; (::) string-join(distinct-values(//child::text()),";")' ) passing 
-                extract(t.xmlfield, '/document/component/structuredBody/component/section/subject/manufacturedProduct/subjectOf/marketingAct/effectiveTime/high/@value', 'xmlns="urn:hl7-org:v3"') returning content) as varchar2(4000)) as high_value1,            
-            xmlcast(xmlquery(( 'declare default element namespace "urn:hl7-org:v3"; (::) string-join(distinct-values(//child::text()),";")' ) passing 
-                extract(t.xmlfield, '/document/component/structuredBody/component/section/subject/manufacturedProduct/manufacturedProduct/asContent/subjectOf/marketingAct/effectiveTime/high/@value', 'xmlns="urn:hl7-org:v3"') returning content) as varchar2(4000)) as high_value2
-            from spl_ext_raw  t    
-    )
-);
-
---4 NEW! Load upgraded SPL concepts
+--3 NEW! Load upgraded SPL concepts
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -142,7 +104,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
 	where spl_name is not null and displayname not in ('IDENTIFICATION OF CBER-REGULATED GENERIC DRUG FACILITY','INDEXING - PHARMACOLOGIC CLASS','INDEXING - SUBSTANCE', 'WHOLESALE DRUG DISTRIBUTORS AND THIRD-PARTY LOGISTICS FACILITY REPORT');
 COMMIT;
 
---5 NEW! Load main SPL concepts into concept_stage
+--4 NEW! Load main SPL concepts into concept_stage
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -185,7 +147,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
 	);	
 COMMIT;	
 
---6 Load other SPL into concept_stage (from 'product')
+--5 Load other SPL into concept_stage (from 'product')
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
                           concept_name,
                           domain_id,
@@ -286,7 +248,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 
 COMMIT;
 
---7 NEW! Add upgrade SPL relationships
+--6 NEW! Add upgrade SPL relationships
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -314,7 +276,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---8 Load NDC into temporary table from 'product'
+--7 Load NDC into temporary table from 'product'
 CREATE TABLE MAIN_NDC NOLOGGING AS SELECT * FROM CONCEPT_STAGE WHERE 1=0;
 
 INSERT /*+ APPEND */ INTO MAIN_NDC 			   
@@ -407,7 +369,7 @@ INSERT /*+ APPEND */ INTO MAIN_NDC
 
 COMMIT;
 
---9 Add NDC to MAIN_NDC from rxnconso
+--8 Add NDC to MAIN_NDC from rxnconso
 INSERT /*+ APPEND */ INTO MAIN_NDC (concept_id,
                            concept_name,
                            domain_id,
@@ -435,7 +397,7 @@ INSERT /*+ APPEND */ INTO MAIN_NDC (concept_id,
     WHERE s.sab = 'RXNORM' AND s.atn = 'NDC';
 COMMIT;
 
---10 NEW! Add additional NDC with fresh dates and active mapping to RxCUI (source: http://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=xxx) [part 1 of 3]
+--9 NEW! Add additional NDC with fresh dates and active mapping to RxCUI (source: http://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=xxx) [part 1 of 3]
 INSERT /*+ APPEND */ INTO concept_stage (
                            concept_name,
                            domain_id,
@@ -481,7 +443,7 @@ from (
 );
 COMMIT;
 
---11 NEW! Create temporary table for NDC who have't activerxcui (same source). Take dates from coalesce(NDC API, big XML (SPL), MAIN_NDC, concept, default dates)
+--10 NEW! Create temporary table for NDC who have't activerxcui (same source). Take dates from coalesce(NDC API, big XML (SPL), MAIN_NDC, concept, default dates)
 CREATE TABLE ADDITIONALNDCINFO nologging AS
     WITH FUNCTION CheckNDCDate (pDate IN VARCHAR2, pDateDefault IN DATE)
             RETURN DATE
@@ -509,7 +471,7 @@ CREATE TABLE ADDITIONALNDCINFO nologging AS
     lateral (select max(CheckNDCDate(regexp_substr(n.high_value,'[^;]+', 1, level),coalesce(n.c_end_date1, n.c_end_date2, to_date('20991231','YYYYMMDD')))) ndc_valid_end_date from dual connect by regexp_substr(n.high_value, '[^;]+', 1, level) is not null) h
  group by concept_code, startdate, enddate, c_name1,c_name2;
 
---12 NEW! Add additional NDC with fresh dates from previous temporary table (ADDITIONALNDCINFO) [part 2 of 3]
+--11 NEW! Add additional NDC with fresh dates from previous temporary table (ADDITIONALNDCINFO) [part 2 of 3]
  INSERT /*+ APPEND */ INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -535,7 +497,7 @@ CREATE TABLE ADDITIONALNDCINFO nologging AS
      FROM ADDITIONALNDCINFO;
 COMMIT;	 
 
---13 NEW! Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
+--12 NEW! Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
 CREATE TABLE RXNORM2NDC_MAPPINGS NOLOGGING AS    
 select concept_code, ndc_code, startDate, endDate, invalid_reason, coalesce(c_name1,c_name2,last_rxnorm_name) concept_name from (
     select distinct mp.concept_code, mn.concept_name c_name1,c.concept_name c_name2,
@@ -557,7 +519,7 @@ select concept_code, ndc_code, startDate, endDate, invalid_reason, coalesce(c_na
     left join concept rxnorm on rxnorm.concept_code=mp.concept_code and rxnorm.vocabulary_id='RxNorm' --take name from RxNorm
 );
 
---14 NEW! Add additional NDC with fresh dates from previous temporary table (RXNORM2NDC_MAPPINGS) [part 3 of 3]
+--13 NEW! Add additional NDC with fresh dates from previous temporary table (RXNORM2NDC_MAPPINGS) [part 3 of 3]
 INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -584,7 +546,7 @@ INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
                      AND cs_int.vocabulary_id = 'NDC');
 COMMIT;	 
 
---15 NEW! Add all other NDC from 'product'
+--14 NEW! Add all other NDC from 'product'
 INSERT /*+ APPEND */ INTO  CONCEPT_STAGE
    SELECT *
      FROM MAIN_NDC m
@@ -595,7 +557,7 @@ INSERT /*+ APPEND */ INTO  CONCEPT_STAGE
                      AND cs_int.vocabulary_id = 'NDC');
 COMMIT;					 
 
---16 NEW! Add mapping from SPL to RxNorm through RxNorm API (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID)
+--15 NEW! Add mapping from SPL to RxNorm through RxNorm API (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID)
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -650,7 +612,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 		  );
 COMMIT;
 
---18 Add mapping from NDC to RxNorm from rxnconso
+--16 Add mapping from NDC to RxNorm from rxnconso
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -722,7 +684,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
 			
---19 Add additional mapping for NDC codes 
+--17 Add additional mapping for NDC codes 
 --The 9-digit NDC codes that have no mapping can be mapped to the same concept of the 11-digit NDC codes, if all 11-digit NDC codes agree on the same destination Concept
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
@@ -792,7 +754,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE cnt = 1;
 COMMIT;
 
---20 NEW! MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS)
+--18 NEW! MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS)
 MERGE INTO concept_relationship_stage crs
      USING (SELECT * FROM RXNORM2NDC_MAPPINGS) m
         ON (    crs.concept_code_1 = m.ndc_code
@@ -826,7 +788,7 @@ THEN
                m.invalid_reason);
 COMMIT;			   
 
---21 Add mapping from deprecated to fresh concepts
+--19 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
@@ -902,7 +864,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;
 
---22 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
+--20 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -949,7 +911,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Maps to');
 COMMIT;		  
 
---23 Re-map Quantified Drugs and Packs
+--21 Re-map Quantified Drugs and Packs
 --Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
 UPDATE concept_relationship_stage
    SET relationship_id = 'Original maps to'
@@ -967,8 +929,8 @@ UPDATE concept_relationship_stage
                         AND r.relationship_id = 'Maps to');
 COMMIT;				 
 
---24 Add "Quantified form of" mappings
---24.1 for new concepts
+--22 Add "Quantified form of" mappings
+--22.1 for new concepts
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -997,7 +959,7 @@ and r_rxnorm.invalid_reason is null
 and r_rxnorm.concept_id_2=c_rxnorm2.concept_id;
 COMMIT;
 
---24.2 for existing (old) concepts
+--22.2 for existing (old) concepts
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -1034,20 +996,19 @@ and not exists (
 );
 COMMIT;
 
---25. Update concept_id in concept_stage from concept for existing concepts
+--23. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 	
---26. Clean up
+--24. Clean up
 DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
-DROP TABLE SPL_EXT PURGE;
 DROP TABLE MAIN_NDC PURGE;
 DROP TABLE ADDITIONALNDCINFO PURGE;
 DROP TABLE RXNORM2NDC_MAPPINGS PURGE;
 	
---27. Reinstate constraints and indices
+--25. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

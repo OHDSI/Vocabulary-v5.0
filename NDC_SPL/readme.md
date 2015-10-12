@@ -17,7 +17,6 @@ Open the site http://www.fda.gov/Drugs/InformationOnDrugs/ucm142438.htm
 - SPL-RXNORM MAPPINGS (2d link)
 6. Extract LABELS using unzipxml.sh and load xml files using loadxml.ctl
 7. Extract rxnorm_mappings.zip and load rxnorm_mappings.txt using rxnorm_mappings.ctl
-8. Run load_stage.sql
-9. Run generic_update.sql (from working directory)
-
- 
+8. Run parse_XML.sql
+9. Run load_stage.sql
+10. Run generic_update.sql (from working directory)

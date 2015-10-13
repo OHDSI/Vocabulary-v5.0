@@ -423,9 +423,9 @@ from (
       select ndc.concept_code, startDate,
             case when status='Active' then to_date ('20991231', 'yyyymmdd') else endDate end endDate,
             case when status='Active' then null else 'D' end INVALID_REASON        
-            From ndc_info_done ndc        
+            From ndc_history ndc        
             where ndc.activeRxcui=(
-                select ndc_int.activeRxcui from ndc_info_done ndc_int, concept c_int
+                select ndc_int.activeRxcui from ndc_history ndc_int, concept c_int
                 where c_int.vocabulary_id='RxNorm'
                 and ndc_int.activeRxcui=c_int.concept_code
                 and ndc_int.concept_code=ndc.concept_code
@@ -460,7 +460,7 @@ CREATE TABLE ADDITIONALNDCINFO nologging AS
         select /*+ no_merge */ n.concept_code, n.startdate, n.enddate, spl.low_value, spl.high_value, mn.concept_name c_name1, c.concept_name c_name2, spl.concept_name spl_name, 
         mn.valid_start_date c_st_date1, mn.valid_end_date c_end_date1,c.valid_start_date c_st_date2, c.valid_end_date c_end_date2
         From 
-        ndc_info_done n
+        ndc_history n
         left join MAIN_NDC mn on mn.concept_code=n.concept_code and mn.vocabulary_id='NDC'
         left join concept c on c.concept_code=n.concept_code and c.vocabulary_id='NDC'        
         left join SPL2NDC_MAPPINGS s on n.concept_code=s.ndc_code
@@ -498,7 +498,7 @@ CREATE TABLE ADDITIONALNDCINFO nologging AS
 COMMIT;	 
 
 --12 NEW! Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
-CREATE TABLE RXNORM2NDC_MAPPINGS NOLOGGING AS    
+CREATE TABLE RXNORM2NDC_MAPPINGS_EXT NOLOGGING AS    
 select concept_code, ndc_code, startDate, endDate, invalid_reason, coalesce(c_name1,c_name2,last_rxnorm_name) concept_name from (
     select distinct mp.concept_code, mn.concept_name c_name1,c.concept_name c_name2,
     last_value(rxnorm.concept_name) over (partition by mp.ndc_code order by rxnorm.valid_start_date, rxnorm.concept_id rows between unbounded preceding and unbounded following) last_rxnorm_name,
@@ -506,20 +506,14 @@ select concept_code, ndc_code, startDate, endDate, invalid_reason, coalesce(c_na
     case when mp.endDate=mp.max_end_date then to_date ('20991231', 'yyyymmdd') else mp.endDate end endDate,
     case when mp.endDate=mp.max_end_date then null else 'D' end invalid_reason
     from (    
-        select concept_code, ndc_code, startDate, endDate, max(endDate) over() max_end_date from (
-            SELECT /*+ no_merge */ r.concept_code,
-            EXTRACTVALUE (VALUE (t), 'ndcTime/ndc') ndc_code,
-            TO_DATE(EXTRACTVALUE (VALUE (t), 'ndcTime/startDate'),'YYYYMM') startDate,
-            TO_DATE(EXTRACTVALUE (VALUE (t), 'ndcTime/endDate'),'YYYYMM') endDate
-            FROM NDC_EXT_RAW r, TABLE (XMLSEQUENCE (r.ndc_xml.EXTRACT ('rxnormdata/ndcConcept/ndcTime'))) t
-        )
+        select concept_code, ndc_code, startDate, endDate, max(endDate) over() max_end_date from rxnorm2ndc_mappings
     ) mp
     left join MAIN_NDC mn on mn.concept_code=mp.ndc_code and mn.vocabulary_id='NDC' --first search name in old sources
     left join concept c on c.concept_code=mp.ndc_code and c.vocabulary_id='NDC' --search name in concept
     left join concept rxnorm on rxnorm.concept_code=mp.concept_code and rxnorm.vocabulary_id='RxNorm' --take name from RxNorm
 );
 
---13 NEW! Add additional NDC with fresh dates from previous temporary table (RXNORM2NDC_MAPPINGS) [part 3 of 3]
+--13 NEW! Add additional NDC with fresh dates from previous temporary table (RXNORM2NDC_MAPPINGS_EXT) [part 3 of 3]
 INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -538,7 +532,7 @@ INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
           first_value(startDate) over (partition by ndc_code order by startDate rows between unbounded preceding and unbounded following) as valid_start_date,
           last_value(endDate) over (partition by ndc_code order by endDate rows between unbounded preceding and unbounded following) as valid_end_date,
           last_value(invalid_reason) over (partition by ndc_code order by endDate rows between unbounded preceding and unbounded following) as invalid_reason
-     FROM RXNORM2NDC_MAPPINGS m
+     FROM RXNORM2NDC_MAPPINGS_EXT m
      WHERE NOT EXISTS
              (SELECT 1
                 FROM concept_stage cs_int
@@ -574,7 +568,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
           TO_DATE ('19700101', 'YYYYMMDD') AS valid_start_date,
           TO_DATE ('20991231', 'YYYYMMDD') AS valid_end_date,
           NULL AS invalid_reason
-     FROM RXNORM2SPL_done
+     FROM rxnorm2spl_mappings
     WHERE spl_code IS NOT NULL;
 COMMIT;
 
@@ -754,9 +748,9 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE cnt = 1;
 COMMIT;
 
---18 NEW! MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS)
+--18 NEW! MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS_EXT)
 MERGE INTO concept_relationship_stage crs
-     USING (SELECT * FROM RXNORM2NDC_MAPPINGS) m
+     USING (SELECT * FROM RXNORM2NDC_MAPPINGS_EXT) m
         ON (    crs.concept_code_1 = m.ndc_code
             AND crs.concept_code_2 = m.concept_code
             AND crs.relationship_id = 'Maps to'
@@ -1006,7 +1000,7 @@ DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
 DROP TABLE MAIN_NDC PURGE;
 DROP TABLE ADDITIONALNDCINFO PURGE;
-DROP TABLE RXNORM2NDC_MAPPINGS PURGE;
+DROP TABLE RXNORM2NDC_MAPPINGS_EXT PURGE;
 	
 --25. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;

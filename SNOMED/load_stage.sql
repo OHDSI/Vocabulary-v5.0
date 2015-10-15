@@ -488,7 +488,7 @@ INSERT  /*+ APPEND */  INTO concept_stage (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT regexp_replace(coalesce(umls.concept_name, sct2.concept_name), ' \(.*?\)$', ''), -- pick the umls one first (if there) and trim something like "(procedure)"
+   SELECT regexp_replace(coalesce(umls.concept_name, sct2.concept_name), ' (\([^)]*\))$', ''), -- pick the umls one first (if there) and trim something like "(procedure)"
           'SNOMED' AS vocabulary_id,
           sct2.concept_code,
           (SELECT latest_update FROM vocabulary WHERE vocabulary_id='SNOMED') AS valid_start_date,

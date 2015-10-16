@@ -20,7 +20,8 @@ Remove date from file name.
 7. Extract the following files from the folder SnomedCT2_GB1000000_YYYYMMDD\RF2Release\Full\Terminology into a working folder:
 - sct2_Concept_Full_GB1000000_YYYYMMDD.txt
 - sct2_Description_Full-en-GB_GB1000000_YYYYMMDD.txt
-- sct2_Description_Full-en-GB_GB1000000_YYYYMMDD.txt
+- sct2_Relationship_Full-GB_GB1000000_YYYYMMDD.txt
+
 Remove date from file name.
 8. Load them into SCT2_CONCEPT_FULL_UK, SCT2_DESC_FULL_UK, SCT2_RELA_FULL_UK. Use the control files in Vocabulary-v5.0\01-SNOMED
 

@@ -6,7 +6,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20150731','yyyymmdd'), vocabulary_version='SnomedCT Release INT 20150731' WHERE vocabulary_id='SNOMED'; 
+UPDATE vocabulary SET latest_update=to_date('20151001','yyyymmdd'), vocabulary_version='SnomedCT Release 20151001' WHERE vocabulary_id='SNOMED'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices

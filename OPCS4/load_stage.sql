@@ -4,7 +4,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20150401','yyyymmdd'), vocabulary_version='OPCS4 nhs_dmwb_19.0.1_20150401000001' WHERE vocabulary_id='OPCS4'; 
+UPDATE vocabulary SET latest_update=to_date('20151001','yyyymmdd'), vocabulary_version='OPCS4 nhs_dmwb_20.0.1_20151001000001' WHERE vocabulary_id='OPCS4'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices

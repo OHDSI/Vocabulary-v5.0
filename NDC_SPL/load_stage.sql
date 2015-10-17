@@ -4,8 +4,8 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20150914','yyyymmdd'), vocabulary_version='NDC 20150914' where vocabulary_id='NDC'; commit;
-update vocabulary set latest_update=to_date('20150914','yyyymmdd'), vocabulary_version='NDC 20150914' where vocabulary_id='SPL'; commit;
+update vocabulary set latest_update=to_date('20151016','yyyymmdd'), vocabulary_version='NDC 20151016' where vocabulary_id='NDC'; commit;
+update vocabulary set latest_update=to_date('20151016','yyyymmdd'), vocabulary_version='NDC 20151016' where vocabulary_id='SPL'; commit;
 
 --2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;
@@ -440,7 +440,7 @@ from (
     left join SPL2NDC_MAPPINGS s on n.concept_code=s.ndc_code --take name from SPL
     left join spl_ext spl on spl.concept_code=s.concept_code
     group by n.concept_code, n.startDate, n.endDate, n.INVALID_REASON, mn.concept_name, c.concept_name
-);
+) where concept_name is not null;
 COMMIT;
 
 --10 NEW! Create temporary table for NDC who have't activerxcui (same source). Take dates from coalesce(NDC API, big XML (SPL), MAIN_NDC, concept, default dates)

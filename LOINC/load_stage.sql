@@ -350,7 +350,31 @@ INSERT /*+ APPEND */
     WHERE v.vocabulary_id = 'LOINC';
 COMMIT;	 
 
---15. Add mapping from deprecated to fresh concepts
+/*
+--15 Add replacement relationships
+INSERT /*+ APPEND * /
+      INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT l.loinc AS concept_code_1,
+          l.map_to AS concept_code_2,
+          'LOINC' AS vocabulary_id_1,
+          'LOINC' AS vocabulary_id_2,
+          'Concept replaced by' AS relationship_id,
+          v.latest_update AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM MAP_TO l, vocabulary v
+    WHERE v.vocabulary_id = 'LOINC';
+COMMIT;
+*/
+
+--16 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -425,12 +449,12 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---16 Update concept_id in concept_stage from concept for existing concepts
+--17 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---17 Reinstate constraints and indices
+--18 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

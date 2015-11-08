@@ -570,7 +570,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
           NULL AS invalid_reason
      FROM rxnorm2spl_mappings rm
     WHERE spl_code IS NOT NULL
-	AND NOT EXISTS (SELECT 1 FROM concept c WHERE c.concept_code=rm.concept_code AND c.vocabulary_id='RxNorm' AND c.concept_class_id LIKE '%Drug');
+	AND NOT EXISTS (SELECT 1 FROM concept c WHERE c.concept_code=rm.concept_code AND c.vocabulary_id='RxNorm' AND c.concept_class_id='Ingredient');
 COMMIT;
 
 --16 Add mapping from SPL to RxNorm through rxnconso

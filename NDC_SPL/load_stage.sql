@@ -568,8 +568,9 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
           TO_DATE ('19700101', 'YYYYMMDD') AS valid_start_date,
           TO_DATE ('20991231', 'YYYYMMDD') AS valid_end_date,
           NULL AS invalid_reason
-     FROM rxnorm2spl_mappings
-    WHERE spl_code IS NOT NULL;
+     FROM rxnorm2spl_mappings rm
+    WHERE spl_code IS NOT NULL
+	AND NOT EXISTS (SELECT 1 FROM concept c WHERE c.concept_code=rm.concept_code AND c.vocabulary_id='RxNorm' AND c.concept_class_id LIKE '%Drug');
 COMMIT;
 
 --16 Add mapping from SPL to RxNorm through rxnconso
@@ -780,7 +781,7 @@ THEN
                m.startdate,
                m.enddate,
                m.invalid_reason);
-COMMIT;			   
+COMMIT;  
 
 --20 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (

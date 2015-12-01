@@ -432,13 +432,11 @@ update concept_stage c set standard_concept = NULL where rowid in (
     -- the other qunatifications are time delays for extended release formulations, and should not be de-standardized
     join concept_relationship_stage r on r.concept_code_1=c.concept_code and r.vocabulary_id_1=c.vocabulary_id and r.relationship_id='RxNorm has dose form'
     join concept_stage f on f.concept_code=r.concept_code_2 and f.vocabulary_id=r.vocabulary_id_2
-    where f.concept_name in (
-      'Metered Dose Inhaler',
-      'Dry Powder Inhaler',
-      'Topical Gel',
-      'Prefilled Syringe',
-      'Nasal Inhaler', 
-      'Prefilled Applicator'
+    where f.concept_name not in (
+		'Extended Release Oral Capsule',
+		'Extended Release Oral Tablet',
+		'Extended Release Suspension',
+		'Transdermal Patch'
     )
 );
 COMMIT;			  

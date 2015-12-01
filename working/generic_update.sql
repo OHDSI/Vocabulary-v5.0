@@ -335,8 +335,8 @@ INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
           r2.concept_id,
           crs.relationship_id,
           crs.valid_start_date,
-          TO_DATE ('20991231', 'YYYYMMDD') AS valid_end_date,
-          NULL AS invalid_reason
+          crs.valid_end_date,
+          crs.invalid_reason
     FROM concept_relationship_stage crs
     JOIN concept r1 ON r1.concept_code = crs.concept_code_1 AND r1.vocabulary_id = crs.vocabulary_id_1
     JOIN concept r2 ON r2.concept_code = crs.concept_code_2 AND r2.vocabulary_id = crs.vocabulary_id_2
@@ -551,7 +551,7 @@ where d.concept_id_1 in (
     and r.relationship_id='Maps to'
     and r.invalid_reason is null
 )
-and d.relationship_id='Maps to'
+and d.relationship_id in ('Maps to', 'Original maps to')
 and d.invalid_reason is null
 and d.concept_id_2 not in (
     /* do not deprecate mappings from active concepts */
@@ -560,7 +560,7 @@ and d.concept_id_2 not in (
     and c.vocabulary_id=r.vocabulary_id_2
     and r.vocabulary_id_1='NDC'
     and r.vocabulary_id_2='RxNorm'
-    and r.relationship_id='Maps to'
+    and r.relationship_id in ('Maps to', 'Original maps to')
     and r.invalid_reason is null
     and r.concept_code_1=c1.concept_code
     and c1.vocabulary_id=r.vocabulary_id_1

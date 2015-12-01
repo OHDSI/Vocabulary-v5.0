@@ -683,6 +683,8 @@ COMMIT;
 --The 9-digit NDC codes that have no mapping can be mapped to the same concept of the 11-digit NDC codes, if all 11-digit NDC codes agree on the same destination Concept
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
 
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
@@ -749,9 +751,15 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE cnt = 1;
 COMMIT;
 
---19 NEW! MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS_EXT)
+--19 NEW! MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS_EXT). Add/merge only fresh mappings
 MERGE INTO concept_relationship_stage crs
-     USING (SELECT * FROM RXNORM2NDC_MAPPINGS_EXT) m
+     USING (
+        select distinct ndc_code, 
+        last_value(concept_code) over(partition by ndc_code order by invalid_reason nulls last, startDate rows between unbounded preceding and unbounded following) as concept_code, 
+        last_value(startDate) over(partition by ndc_code order by invalid_reason nulls last, startDate rows between unbounded preceding and unbounded following) as startDate,
+        last_value(invalid_reason) over(partition by ndc_code order by invalid_reason nulls last, startDate rows between unbounded preceding and unbounded following) as invalid_reason
+        from RXNORM2NDC_MAPPINGS_EXT
+     ) m
         ON (    crs.concept_code_1 = m.ndc_code
             AND crs.concept_code_2 = m.concept_code
             AND crs.relationship_id = 'Maps to'
@@ -761,8 +769,10 @@ WHEN MATCHED
 THEN
    UPDATE SET
       crs.valid_start_date = m.startdate,
-      crs.valid_end_date = m.enddate,
+      crs.valid_end_date = TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
       crs.invalid_reason = m.invalid_reason
+   WHERE m.invalid_reason IS NULL
+      
 WHEN NOT MATCHED
 THEN
    INSERT     (concept_code_1,
@@ -779,11 +789,41 @@ THEN
                'RxNorm',
                'Maps to',
                m.startdate,
-               m.enddate,
-               m.invalid_reason);
+               TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
+               NULL);
 COMMIT;  
 
---20 Add mapping from deprecated to fresh concepts
+--20 NEW! delete duplicate mappings to packs
+delete from concept_relationship_stage r where
+r.relationship_id='Maps to' and r.invalid_reason is null
+and r.vocabulary_id_1='NDC'
+and r.vocabulary_id_2='RxNorm'
+and concept_code_1 in (
+    --get all duplicate NDC mappings to packs
+    select concept_code_1 from concept_relationship_stage r_int
+    where r_int.relationship_id='Maps to' and r_int.invalid_reason is null
+    and r_int.vocabulary_id_1='NDC'
+    and r_int.vocabulary_id_2='RxNorm'
+    group by concept_code_1 having count(*)>1
+)
+and concept_code_2 not in (
+    --exclude 'true' mappings [Branded->Clinical]
+    select c_int.concept_code from concept_relationship_stage r_int, concept c_int 
+    where r_int.relationship_id='Maps to' and r_int.invalid_reason is null
+    and r_int.vocabulary_id_1=r.vocabulary_id_1
+    and r_int.vocabulary_id_2=r.vocabulary_id_2
+    and c_int.concept_code=r_int.concept_code_2
+    and c_int.vocabulary_id=r_int.vocabulary_id_2
+    and r_int.concept_code_1=r.concept_code_1
+    order by c_int.invalid_reason NULLS FIRST,
+    case c_int.concept_class_id when 'Branded Pack' then 1 when 'Clinical Pack' then 2 when 'Quant Branded Drug' then 3
+    when 'Quant Clinical Drug' then 4 when 'Branded Drug' then 5 when 'Clinical Drug' then 6 else 7 end, 
+    c_int.valid_start_date desc, c_int.concept_id
+    fetch first 1 row only
+);
+COMMIT;
+
+--21 Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
   concept_code_1,
   concept_code_2,
@@ -859,7 +899,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;
 
---21 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
+--22 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -906,7 +946,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Maps to');
 COMMIT;		  
 
---22 Re-map Quantified Drugs and Packs
+--23 Re-map Quantified Drugs and Packs
 --Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
 UPDATE concept_relationship_stage
    SET relationship_id = 'Original maps to'
@@ -924,8 +964,8 @@ UPDATE concept_relationship_stage
                         AND r.relationship_id = 'Maps to');
 COMMIT;				 
 
---23 Add "Maps to" mappings
---23.1 for new concepts
+--24 Add "Maps to" mappings
+--24.1 for new concepts
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -944,6 +984,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 		  last_value(r_ndc.invalid_reason) over (partition by r_ndc.concept_code_1, c_rxnorm2.concept_code order by r_ndc.valid_start_date ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS invalid_reason
 from concept_relationship_stage r_ndc, concept c_rxnorm, concept_relationship r_rxnorm, concept c_rxnorm2
 where r_ndc.relationship_id='Original maps to'
+and r_ndc.invalid_reason is null
 and r_ndc.concept_code_2=c_rxnorm.concept_code
 and r_ndc.vocabulary_id_2=c_rxnorm.vocabulary_id
 and r_ndc.vocabulary_id_1='NDC'
@@ -962,8 +1003,9 @@ and not exists (
 );
 COMMIT;
 
---23.2 for existing (old) concepts
-INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+/*
+--24.2 for existing (old) concepts
+INSERT INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -998,20 +1040,21 @@ and not exists (
     and r_int.relationship_id='Maps to'
 );
 COMMIT;
+*/
 
---24. Update concept_id in concept_stage from concept for existing concepts
+--25. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 	
---25. Clean up
+--26. Clean up
 DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
 DROP TABLE MAIN_NDC PURGE;
 DROP TABLE ADDITIONALNDCINFO PURGE;
 DROP TABLE RXNORM2NDC_MAPPINGS_EXT PURGE;
 	
---26. Reinstate constraints and indices
+--27. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

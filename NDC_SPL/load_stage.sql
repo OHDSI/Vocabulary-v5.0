@@ -231,7 +231,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 			(select count(lower(P.NONPROPRIETARYNAME)) from prod p where p.concept_code=t1.concept_code having count(distinct lower(P.NONPROPRIETARYNAME))>1) as MULTI_NONPROPRIETARYNAME,
 			(
 				select listagg(brand_name,', ') within group (order by brand_name) from 
-				(select distinct CASE WHEN lower(proprietaryname) <> lower(nonproprietaryname) 
+				(select distinct CASE WHEN (lower(proprietaryname) <> lower(nonproprietaryname) OR nonproprietaryname is null)
 								 THEN LOWER(TRIM(proprietaryname || ' ' || proprietarynamesuffix))
 								 ELSE NULL
 								 END AS brand_name 
@@ -355,7 +355,7 @@ INSERT /*+ APPEND */ INTO MAIN_NDC
 			(select count(lower(P.NONPROPRIETARYNAME)) from prod p where p.concept_code=t1.concept_code having count(distinct lower(P.NONPROPRIETARYNAME))>1) as MULTI_NONPROPRIETARYNAME,
             (
                 select listagg(brand_name,', ') within group (order by brand_name) from 
-                (select distinct CASE WHEN lower(proprietaryname) <> lower(nonproprietaryname) 
+                (select distinct CASE WHEN (lower(proprietaryname) <> lower(nonproprietaryname) OR nonproprietaryname is null)
                                  THEN LOWER(TRIM(proprietaryname || ' ' || proprietarynamesuffix))
                                  ELSE NULL
                                  END AS brand_name 
@@ -899,7 +899,34 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (
     );
 COMMIT;
 
---22 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
+--22 replace all 'U' concepts for which we don't have fresh in sources with fresh from 'concept'
+MERGE INTO concept_relationship_stage crs
+     USING (SELECT crs_int.ROWID rid, c2.concept_code replacement_code
+              FROM concept c1,
+                   concept c2,
+                   concept_relationship r,
+                   concept_relationship_stage crs_int
+             WHERE     c1.concept_id = r.concept_id_1
+                   AND c2.concept_id = r.concept_id_2
+                   AND r.relationship_id = 'Maps to'
+                   AND r.invalid_reason IS NULL
+                   AND c1.invalid_reason = 'U'
+                   AND c1.concept_code = crs_int.concept_code_2
+                   AND c1.vocabulary_id = crs_int.vocabulary_id_2
+                   AND NOT EXISTS ( --only if we don't have upgraded concept already
+						SELECT 1 FROM concept_stage cs WHERE 
+						cs.concept_code = crs_int.concept_code_2
+						AND cs.vocabulary_id = crs_int.vocabulary_id_2
+						AND cs.invalid_reason = 'U'
+					)
+			) v
+        ON (crs.ROWID = v.rid)
+WHEN MATCHED
+THEN
+   UPDATE SET crs.concept_code_2 = v.replacement_code;
+COMMIT;
+
+--23 Redirect all relationships 'Maps to' to those concepts that are connected through "Contains"
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -946,7 +973,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Maps to');
 COMMIT;		  
 
---23 Re-map Quantified Drugs and Packs
+--24 Re-map Quantified Drugs and Packs
 --Rename all relationship_id between anything and Concepts where vocabulary_id='RxNorm' and concept_class_id in ('Quant Clinical Drug', 'Quant Branded Drug', 'Clinical Pack', 'Branded Pack') and standard_concept is null from 'Maps to' to 'Original maps to'
 UPDATE concept_relationship_stage
    SET relationship_id = 'Original maps to'
@@ -964,8 +991,8 @@ UPDATE concept_relationship_stage
                         AND r.relationship_id = 'Maps to');
 COMMIT;				 
 
---24 Add "Maps to" mappings
---24.1 for new concepts
+--25 Add "Maps to" mappings
+--25.1 for new concepts
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -1004,7 +1031,7 @@ and not exists (
 COMMIT;
 
 /*
---24.2 for existing (old) concepts
+--25.2 for existing (old) concepts
 INSERT INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -1042,19 +1069,19 @@ and not exists (
 COMMIT;
 */
 
---25. Update concept_id in concept_stage from concept for existing concepts
+--26. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 	
---26. Clean up
+--27. Clean up
 DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
 DROP TABLE MAIN_NDC PURGE;
 DROP TABLE ADDITIONALNDCINFO PURGE;
 DROP TABLE RXNORM2NDC_MAPPINGS_EXT PURGE;
 	
---27. Reinstate constraints and indices
+--28. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

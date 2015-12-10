@@ -89,6 +89,9 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'GPI' THEN 1
   WHEN c.vocabulary_id = 'OPCS4' THEN 1
   WHEN c.vocabulary_id = 'MeSH' THEN 1
+  WHEN c.vocabulary_id = 'GCN_SEQNO' THEN 1
+  WHEN c.vocabulary_id = 'ETC' THEN 1
+  WHEN c.vocabulary_id = 'Indication' THEN 1
   ELSE 0 -- in default we will not deprecate
 END = 1
 ;
@@ -205,8 +208,11 @@ SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id 
        FROM concept_relationship_stage r
        JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
        JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
-  WHERE r.vocabulary_id_1 NOT IN ('NDC', 'SPL')
-  AND r.vocabulary_id_2 NOT IN ('NDC', 'SPL')
+  --WHERE r.vocabulary_id_1 NOT IN ('NDC', 'SPL')
+  --AND r.vocabulary_id_2 NOT IN ('NDC', 'SPL')
+  --temporary exclude NDC
+	WHERE r.vocabulary_id_1 NOT IN ('SPL')
+  AND r.vocabulary_id_2 NOT IN ('SPL')  
   AND r.relationship_id NOT IN (
             'UCUM replaced by',
             'Concept replaced by',
@@ -243,7 +249,7 @@ UPDATE concept_relationship d
       AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
        -- And it was started before release date
       AND d.valid_start_date <
-                (SELECT latest_update -1 FROM vocabulary v, concept_stage c
+                (SELECT latest_update -1 FROM vocabulary v, concept c
                   WHERE     v.vocabulary_id = c.vocabulary_id
                         AND c.concept_id = d.concept_id_1)
       -- And it is missing from the new concept_relationship_stage
@@ -494,7 +500,7 @@ AND EXISTS (
       )      
   ) 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-AND c.invalid_reason IS NULL -- not already deprecated
+AND c.invalid_reason IS NULL -- not already upgraded
 ;
 
 -- 14. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table
@@ -532,7 +538,7 @@ AND invalid_reason IS NOT NULL -- if wrongly deprecated
 
 COMMIT;
 
-
+/*
 -- 16. Deprecate old mappings to RxNorm from NDC
 --1st pass
 UPDATE concept_relationship d
@@ -542,7 +548,7 @@ UPDATE concept_relationship d
           - 1,                                       -- day before release day
        invalid_reason = 'D'
 where d.concept_id_1 in (
-    /* do not deprecate mappings from missing concepts */
+    -- do not deprecate mappings from missing concepts 
     select c.concept_id from concept c, concept_relationship_stage r
     where c.concept_code=r.concept_code_1
     and c.vocabulary_id=r.vocabulary_id_1
@@ -554,7 +560,7 @@ where d.concept_id_1 in (
 and d.relationship_id in ('Maps to', 'Original maps to')
 and d.invalid_reason is null
 and d.concept_id_2 not in (
-    /* do not deprecate mappings from active concepts */
+    -- do not deprecate mappings from active concepts 
     select c.concept_id from concept c, concept_relationship_stage r, concept c1
     where c.concept_code=r.concept_code_2
     and c.vocabulary_id=r.vocabulary_id_2
@@ -605,6 +611,7 @@ where d.rowid in (
     where t.rid not in (select last_value(t_int.rid) over (partition by t_int.c1_id order by t_int.name_eq, t_int.valid_start_date, length(t_int.c2_name), t_int.c2_id rows between unbounded preceding and unbounded following) from NDC t_int)
 );
 COMMIT;
+*/
 
 /***********************************
 * Update the concept_synonym table *

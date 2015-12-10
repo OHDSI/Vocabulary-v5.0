@@ -300,7 +300,7 @@ FROM (
             when c.standard_concept is null then 0
             else 3 -- on top of Ingredient (level 2)
           end
-        when 'Genseqno' then 0
+        when 'GCN_SEQNO' then 0
         when 'CCS' then 0
         when 'OPCS4' then 0
         when 'Gemscript' then 0

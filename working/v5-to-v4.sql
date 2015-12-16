@@ -302,7 +302,7 @@ FROM (
           end
         when 'GCN_SEQNO' then 0
         when 'CCS' then 0
-        when 'OPCS4' then 0
+        when 'OPCS4' then 1
         when 'Gemscript' then 0
         when 'HES Specialty' then 0
         when 'ICD10CM' then 0

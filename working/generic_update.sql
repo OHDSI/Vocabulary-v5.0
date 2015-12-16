@@ -103,7 +103,14 @@ COMMIT;
 DECLARE
  ex NUMBER;
 BEGIN
-  SELECT MAX(concept_id)+1 INTO ex FROM concept WHERE concept_id<500000000; -- Last valid below HOI concept_id
+  --SELECT MAX(concept_id)+1 INTO ex FROM concept WHERE concept_id<500000000; -- Last valid below HOI concept_id
+	SELECT concept_id + 1 INTO ex FROM (
+		SELECT concept_id, next_id, next_id - concept_id - 1 free_concept_ids
+		FROM (SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM concept where concept_id >= 1000 and concept_id < 500000000)
+		WHERE concept_id <> next_id - 1 AND next_id - concept_id > (SELECT COUNT (*) FROM concept_stage WHERE concept_id IS NULL)
+		ORDER BY next_id - concept_id
+		FETCH FIRST 1 ROW ONLY
+	);  
   BEGIN
     EXECUTE IMMEDIATE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' NOCYCLE CACHE 20 NOORDER';
     EXCEPTION
@@ -146,11 +153,46 @@ AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update
 ;
 COMMIT;
 
+
+-- 6. Deprecate old mappings to RxNorm from NDC (special hack for NDC)
+UPDATE concept_relationship d
+   SET valid_end_date  = 
+            (SELECT v.latest_update
+                 FROM vocabulary v WHERE v.vocabulary_id = 'NDC')
+          - 1,                                       -- day before release day
+       invalid_reason = 'D'
+where d.concept_id_1 in (
+    -- do not deprecate mappings from missing concepts 
+    select c.concept_id from concept c, concept_relationship_stage r
+    where c.concept_code=r.concept_code_1
+    and c.vocabulary_id=r.vocabulary_id_1
+    and r.vocabulary_id_1='NDC'
+    and r.vocabulary_id_2='RxNorm'
+    and r.relationship_id='Maps to'
+    and r.invalid_reason is null
+)
+and d.relationship_id in ('Maps to', 'Original maps to')
+and d.invalid_reason is null
+and d.concept_id_2 not in (
+    -- do not deprecate mappings from active concepts 
+    select c.concept_id from concept c, concept_relationship_stage r, concept c1
+    where c.concept_code=r.concept_code_2
+    and c.vocabulary_id=r.vocabulary_id_2
+    and r.vocabulary_id_1='NDC'
+    and r.vocabulary_id_2='RxNorm'
+    and r.relationship_id=d.relationship_id
+    and r.invalid_reason is null
+    and r.concept_code_1=c1.concept_code
+    and c1.vocabulary_id=r.vocabulary_id_1
+    and c1.concept_id=d.concept_id_1 
+);
+COMMIT;
+
 /****************************************
 * Update the concept_relationship table *
 ****************************************/
 
--- 6. Turn all relationship records so they are symmetrical if necessary
+-- 7. Turn all relationship records so they are symmetrical if necessary
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -180,7 +222,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;		
 
--- 7. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
+-- 8. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
 MERGE INTO concept_relationship d
     USING (
         WITH rel_id as ( -- concept_relationship with concept_ids filled in
@@ -198,7 +240,7 @@ WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reas
 
 COMMIT; 
 
--- 8. Deprecate missing relationships, but only if the concepts are fresh. If relationships are missing because of deprecated concepts, leave them intact.
+-- 9. Deprecate missing relationships, but only if the concepts are fresh. If relationships are missing because of deprecated concepts, leave them intact.
 -- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 AND relationship_id is present in concept_relationship_stage
 -- The latter will prevent large-scale deprecations of relationships between vocabularies where the relationship is defined not here, but together with the other vocab
 
@@ -230,9 +272,10 @@ SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id 
 -- Do the deprecation
 UPDATE concept_relationship d
    SET valid_end_date  = 
-            (SELECT v.latest_update
+            (SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
                  FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
-              WHERE c.concept_id = d.concept_id_1)
+              WHERE c.concept_id IN (d.concept_id_1, d.concept_id_2) --take both concept ids to get proper latest_update
+			)
           - 1,                                       -- day before release day
        invalid_reason = 'D'
       -- Whether the combination of vocab1, vocab2 and relationship exists (in r_coverage)
@@ -249,9 +292,11 @@ UPDATE concept_relationship d
       AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
        -- And it was started before release date
       AND d.valid_start_date <
-                (SELECT latest_update -1 FROM vocabulary v, concept c
-                  WHERE     v.vocabulary_id = c.vocabulary_id
-                        AND c.concept_id = d.concept_id_1)
+                (SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+					-1 FROM vocabulary v, concept c
+					WHERE     v.vocabulary_id = c.vocabulary_id
+                        AND c.concept_id IN (d.concept_id_1, d.concept_id_2) --take both concept ids to get proper latest_update
+				)
       -- And it is missing from the new concept_relationship_stage
       AND NOT EXISTS (
 				  SELECT 1
@@ -267,7 +312,7 @@ UPDATE concept_relationship d
 
 DROP TABLE r_coverage PURGE;
 
--- 9. Deprecate replacement concept_relationship records if we have a new one in concept_stage with the same source concept (deprecated concept)
+-- 10. Deprecate replacement concept_relationship records if we have a new one in concept_stage with the same source concept (deprecated concept)
 UPDATE concept_relationship d
    SET valid_end_date  = 
             (SELECT v.latest_update
@@ -329,7 +374,7 @@ UPDATE concept_relationship d
 
 COMMIT;
 
--- 10. Insert new relationships if they don't already exist
+-- 11. Insert new relationships if they don't already exist
 INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
                                   concept_id_2,
                                   relationship_id,
@@ -359,7 +404,7 @@ COMMIT;
 -- The following are a bunch of rules for Maps to and Maps from relationships. 
 -- Since they work outside the _stage tables, they will be restricted to the vocabularies worked on 
 
--- 11. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S' 
+-- 12. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S' 
 INSERT /*+ APPEND */ INTO  concept_relationship (
                                         concept_id_1,
                                         concept_id_2,
@@ -414,7 +459,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship (
 
 COMMIT;
 
--- 12. 'Maps to' or 'Mapped from' relationships should not exist where 
+-- 13. 'Maps to' or 'Mapped from' relationships should not exist where 
 -- a) the source concept has standard_concept = 'S', unless it is to self
 -- b) the target concept has standard_concept = 'C' or NULL
 
@@ -478,7 +523,7 @@ COMMIT;
 * This should rarely happen                              *
 *********************************************************/
 
--- 13. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
+-- 14. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
 UPDATE concept c SET
   c.invalid_reason = 'U'
 WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
@@ -503,7 +548,7 @@ AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update
 AND c.invalid_reason IS NULL -- not already upgraded
 ;
 
--- 14. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table
+-- 15. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table
 UPDATE concept c SET
   c.invalid_reason = 'D'
 WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
@@ -528,7 +573,7 @@ AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update
 AND c.invalid_reason IS NULL -- not already deprecated
 ;
 
--- 15. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
+-- 16. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
 UPDATE concept SET
   invalid_reason = null
 WHERE valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
@@ -538,80 +583,7 @@ AND invalid_reason IS NOT NULL -- if wrongly deprecated
 
 COMMIT;
 
-/*
--- 16. Deprecate old mappings to RxNorm from NDC
---1st pass
-UPDATE concept_relationship d
-   SET valid_end_date  = 
-            (SELECT v.latest_update
-                 FROM vocabulary v WHERE v.vocabulary_id = 'NDC')
-          - 1,                                       -- day before release day
-       invalid_reason = 'D'
-where d.concept_id_1 in (
-    -- do not deprecate mappings from missing concepts 
-    select c.concept_id from concept c, concept_relationship_stage r
-    where c.concept_code=r.concept_code_1
-    and c.vocabulary_id=r.vocabulary_id_1
-    and r.vocabulary_id_1='NDC'
-    and r.vocabulary_id_2='RxNorm'
-    and r.relationship_id='Maps to'
-    and r.invalid_reason is null
-)
-and d.relationship_id in ('Maps to', 'Original maps to')
-and d.invalid_reason is null
-and d.concept_id_2 not in (
-    -- do not deprecate mappings from active concepts 
-    select c.concept_id from concept c, concept_relationship_stage r, concept c1
-    where c.concept_code=r.concept_code_2
-    and c.vocabulary_id=r.vocabulary_id_2
-    and r.vocabulary_id_1='NDC'
-    and r.vocabulary_id_2='RxNorm'
-    and r.relationship_id in ('Maps to', 'Original maps to')
-    and r.invalid_reason is null
-    and r.concept_code_1=c1.concept_code
-    and c1.vocabulary_id=r.vocabulary_id_1
-    and c1.concept_id=d.concept_id_1 
-);
-COMMIT;
 
---2d pass
-UPDATE concept_relationship d
-   SET valid_end_date  = 
-            (SELECT v.latest_update
-                 FROM vocabulary v WHERE v.vocabulary_id = 'NDC')
-          - 1,                                       -- day before release day
-       invalid_reason = 'D'
-where d.rowid in (
-    with NDC as (
-        select * From (
-            select c1.concept_id as c1_id, c1.concept_name as c1_name, r.valid_start_date,
-              c2.concept_id as c2_id, c2.concept_name as c2_name, 
-              count(*) over (partition by c1.concept_id) cnt,
-              case when lower(c1.concept_name)=lower(c2.concept_name) then 1 else 0 end name_eq,
-              r.rowid rid
-            from concept c1, concept_relationship r, concept c2, vocabulary v
-            where r.concept_id_1=c1.concept_id
-            and c2.concept_id=r.concept_id_2
-            and r.relationship_id='Maps to'
-            and c1.vocabulary_id='NDC'
-            and c2.vocabulary_id='RxNorm'
-            and r.invalid_reason is null
-            and not exists ( --exclude mappings from packs
-                select 1 from concept_relationship r_int where r_int.concept_id_1=c1.concept_id and r_int.relationship_id='Original maps to'
-            )
-            and c1.concept_name not like '%KIT%'
-            and c1.concept_name not like 'Multiple formulations:%'
-            and v.vocabulary_id=c1.vocabulary_id
-            and v.latest_update is not null --this update for NDC only!
-        ) where cnt>1
-    )
-    select  t.rid
-    from NDC t
-    -- exclude true mappings
-    where t.rid not in (select last_value(t_int.rid) over (partition by t_int.c1_id order by t_int.name_eq, t_int.valid_start_date, length(t_int.c2_name), t_int.c2_id rows between unbounded preceding and unbounded following) from NDC t_int)
-);
-COMMIT;
-*/
 
 /***********************************
 * Update the concept_synonym table *

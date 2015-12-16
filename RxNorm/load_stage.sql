@@ -252,6 +252,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                          AND concept_code = merged_to_rxcui);*/		  
 COMMIT;
 
+/* disabled at 16.12.2015
 --7 De-standardize concept_classes "Clinical Pack" and "Branded Pack"
 UPDATE concept_stage
    SET standard_concept = NULL
@@ -262,6 +263,7 @@ UPDATE concept_stage
                         AND c.concept_class_id LIKE '%Pack'
                         AND r.relationship_id = 'Contains');
 COMMIT;
+*/
 
 --8. Add mapping from deprecated to fresh concepts
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
@@ -423,6 +425,7 @@ UPDATE concept_stage c
                       and r.vocabulary_id_1=c.vocabulary_id);
 COMMIT;		
 
+/* disabled at 15.12.2015
 --13 De-standardize all those that have a relationship to the following "Drug Form" concepts
 update concept_stage c set standard_concept = NULL where rowid in (
     select c.rowid from concept_stage c
@@ -439,7 +442,8 @@ update concept_stage c set standard_concept = NULL where rowid in (
 		'Transdermal Patch'
     )
 );
-COMMIT;			  
+COMMIT;		
+*/	  
 
 --14 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;

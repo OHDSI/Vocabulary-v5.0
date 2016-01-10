@@ -271,14 +271,14 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 select CONCEPT_CODE_1,'DA_France', CONCEPT_ID_2, 1, '' from ingredients_mapping
 ;
 --Got some non-standard concepts during automation algorithm of concept-name equivalence selection so need to update using 'Form of'
-update relationship_to_concept_v2 a set CONCEPT_ID_2 = (
+update relationship_to_concept a set CONCEPT_ID_2 = (
 select
   c2.concept_id as c2_id
 from devv5.concept c1
 join devv5.concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null and r.relationship_id='Form of'
 join devv5.concept c2 on c2.concept_id=r.concept_id_2
 --where c1.concept_id=46274851;
-join relationship_to_concept_v2 rc on rc.concept_id_2 = c1.concept_id
+join relationship_to_concept rc on rc.concept_id_2 = c1.concept_id
 where a.concept_code_1 = rc.concept_code_1)
 where exists 
 (
@@ -288,7 +288,7 @@ from devv5.concept c1
 join devv5.concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null and r.relationship_id='Form of'
 join devv5.concept c2 on c2.concept_id=r.concept_id_2
 --where c1.concept_id=46274851;
-join relationship_to_concept_v2 rc on rc.concept_id_2 = c1.concept_id
+join relationship_to_concept rc on rc.concept_id_2 = c1.concept_id
 where a.concept_code_1 = rc.concept_code_1)
 ;
 --drug strength
@@ -485,7 +485,7 @@ from ingr_w_dos_3 a join drug_concept_stage c on a.INGRED = c.concept_name and c
 join france d on a.pfc = d.pfc and volume !='NULL' AND MOLECULE LIKE '%+%' 
 ;
 
---DRUG_STRENGTH_STAGE_V2 almost done, add drugs not having dosage
+--DRUG_STRENGTH_STAGE almost done, add drugs not having dosage
 insert into  DRUG_STRENGTH_STAGE (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE, DENOMINATOR_VALUE, DENOMINATOR_UNIT, BOX_SIZE)
 select CAST (concept_code_1 AS VARCHAR (250)), CAST (concept_CODE_2 AS VARCHAR (250)), replace (regexp_substr (volume, '[[:digit:]]+(\.[[:digit:]]+)?'), 'NULL',''),
 replace (regexp_replace (volume, '[[:digit:]]+(\.[[:digit:]]+)?'), 'NULL',''),  REPLACE (packsize, ' ', '')  from drug_to_ingred a  join france b on cAST (b.PFC AS VARCHAR (250))= a.concept_code_1

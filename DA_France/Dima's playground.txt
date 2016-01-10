@@ -202,16 +202,75 @@ select * from drug_to_brnd_name union
 select * from brand_to_ingr
 )
 ;
---relationship_to_concept_stage
---просто скопировал из relationship_to_concept прировняв старые имена к новым. Нужно вреписать этапы автоматические и ручные
-/*drop table relationship_to_concept_v2;
-create table relationship_to_concept_v2 as ( 
-SELECT c.concept_code as concept_code_1,VOCABULARY_ID_1,CONCEPT_ID_2,CAST (PRECEDENCE AS INTEGER) AS PRECEDENCE ,CONVERSION_FACTOR FROM RELATIONSHIP_TO_CONCEPT A 
-join drug_concept_stage b on a.concept_code_1 = b.concept_code 
-join drug_concept_stage_v2 c on c.concept_name = b.concept_name
+drop table RELATIONSHIP_TO_CONCEPT ;
+create table RELATIONSHIP_TO_CONCEPT (
+concept_code_1		varchar(255)	,
+vocabulary_id_1	varchar(20)	,
+concept_id_2		integer	,
+precedence		integer	 ,
+conversion_factor		float	
 )
 ;
---Got some non-standard concepts during automation algorithm of concept-name equivalence selection
+
+--ingredients mapping as a mix of automacaly and munualy created mappings
+drop table ingredients_mapping;
+create table ingredients_mapping as (
+select a.concept_code as concept_code_1,c.concept_id as concept_id_2  from drug_concept_stage a join devv5.concept c on upper (c.concept_name) = a.concept_name and c.concept_class_id = 'Ingredient' and c.vocabulary_id = 'RxNorm' and c.invalid_reason is null 
+where a.concept_class_id = 'Ingredient'
+union
+select b.concept_code,c.concept_id from INGR_NEED_TO_MAP_DONE a --munualy created table of ingredients mapping
+join devv5.concept c on RN_CONCEPT_NAME = cast (c.concept_id as varchar (250)) 
+join drug_concept_stage b on b.concept_name = a.concept_name
+where RN_CONCEPT_NAME !='0')
+--1450
+;
+--Brands mapping as a mix of automacaly and munualy created mappings
+drop table Brand_names_mapping;
+create table Brand_names_mapping as (
+select a.concept_code as concept_code_1,c.concept_id as concept_id_2 from drug_concept_stage a join devv5.concept c on upper (c.concept_name) = a.concept_name and c.concept_class_id = 'Brand Name' and c.vocabulary_id = 'RxNorm' and c.invalid_reason is null 
+where a.concept_class_id = 'Brand Name'
+union
+select b.concept_code,c.concept_id from BRAND_NEED_TO_MAP_DONE  a --munualy created table of brands mapping
+join devv5.concept c on a.concept_id = c.concept_id
+join drug_concept_stage b on b.concept_name = a.sourcename
+where a.concept_id !=0)
+;
+--Units mapping
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('%', 'DA_France',8554,1,1);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('G', 'DA_France',8587,1,1);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('G', 'DA_France',8576,2,1000);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('IU', 'DA_France',8510,1,1);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('IU', 'DA_France',8718,2,1);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('K', 'DA_France',8510,1,1000);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('K', 'DA_France',8718,2,1000);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('KG', 'DA_France',8587,1,1000);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('KG', 'DA_France',8576,2,1000);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('L', 'DA_France',8587,1,1000);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('L', 'DA_France',8576,2,1000000);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('M', 'DA_France',8510,1,1000000);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('M', 'DA_France',9439,2,1);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('MCG', 'DA_France',8576,1,1);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('MG', 'DA_France',8576,1,1);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('MG', 'DA_France',8587,2,0.001);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('ML', 'DA_France',8587,1,1);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('ML', 'DA_France',8576,2,1000);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('U', 'DA_France',8510,1,1);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('Y', 'DA_France',8576,1,0.001)
+;
+--insert forms mapping
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
+select cast (CONCEPT_CODE_1 as varchar (250)) ,cast (VOCABULARY_ID_1 as varchar (20)),cast (CONCEPT_ID_2 as integer),cast (PRECEDENCE as integer),'' 
+from form_mapping --munualy created table 
+;
+--insert Brand_mapping
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
+select CONCEPT_CODE_1,'DA_France', CONCEPT_ID_2, 1, '' from Brand_names_mapping
+;
+--insert ingredients_mapping
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
+select CONCEPT_CODE_1,'DA_France', CONCEPT_ID_2, 1, '' from ingredients_mapping
+;
+--Got some non-standard concepts during automation algorithm of concept-name equivalence selection so need to update using 'Form of'
 update relationship_to_concept_v2 a set CONCEPT_ID_2 = (
 select
   c2.concept_id as c2_id
@@ -231,7 +290,7 @@ join devv5.concept c2 on c2.concept_id=r.concept_id_2
 --where c1.concept_id=46274851;
 join relationship_to_concept_v2 rc on rc.concept_id_2 = c1.concept_id
 where a.concept_code_1 = rc.concept_code_1)
-;*/
+;
 --drug strength
 DROP TABLE DRUG_STRENGTH_STAGE;
 CREATE TABLE DRUG_STRENGTH_STAGE
@@ -560,7 +619,7 @@ AND   AMOUNT_VALUE = 160
 AND   AMOUNT_UNIT IS NULL
 ;
 --we have several duplicate values because of structure source table 
-drop table DRUG_STRENGTH_STAGE_V3;
+--delete them using select DISTINCT statement
 CREATE TABLE  DRUG_STRENGTH_STAGE_V3 AS (
 SELECT DISTINCT DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT,BOX_SIZE FROM  DRUG_STRENGTH_STAGE)
 ;
@@ -764,3 +823,4 @@ where exists (select concept_name from branded_name_1 b where a.concept_code = b
 update drug_concept_stage a 
 set concept_name = (select concept_name from clinical_name_1 b where a.concept_code = b.concept_code)
 where exists (select concept_name from clinical_name_1 b where a.concept_code = b.concept_code)
+;

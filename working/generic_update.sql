@@ -92,6 +92,7 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'GCN_SEQNO' THEN 1
   WHEN c.vocabulary_id = 'ETC' THEN 1
   WHEN c.vocabulary_id = 'Indication' THEN 1
+  WHEN c.vocabulary_id = 'DA_France' THEN 1
   ELSE 0 -- in default we will not deprecate
 END = 1
 ;

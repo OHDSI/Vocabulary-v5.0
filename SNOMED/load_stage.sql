@@ -1528,7 +1528,7 @@ FROM (
 				WHEN term = 'Indirect device' THEN 'Has indir device'
 				WHEN term = 'Indirect morphology' THEN 'Has indir morph'
 				WHEN term = 'Instrumentation' THEN 'Using device' -- looks like an old version
-				WHEN term = 'Intent' THEN 'Has intent'
+				WHEN term IN ('Intent', 'Has intent') THEN 'Has intent'
 				WHEN term = 'Interprets' THEN 'Has interprets'
 				WHEN term = 'Is a' THEN 'Is a'
 				WHEN term = 'Laterality' THEN 'Has laterality'

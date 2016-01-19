@@ -1,10 +1,19 @@
+drop table unique_ds_names ;
+create table unique_ds_names as (
+select a.concept_name||' '||case when amount_value !=0 then AMOUNT_VALUE||' '||AMOUNT_UNIT 
+when NUMERATOR_VALUE !=0 and NUMERATOR_UNIT !='%' then NUMERATOR_VALUE||' '||NUMERATOR_UNIT||'/'||DENOMINATOR_UNIT
+when NUMERATOR_UNIT ='%' then NUMERATOR_VALUE||' '||NUMERATOR_UNIT
+else null end as concept_name, a.concept_name as ing_name,  ds.DS_CODE, ds.denominator_unit
+ from unique_ds ds join drug_concept_stage a on ds.ingredient_concept_code = a.concept_code)
+;
 drop table complete_concept_stage_I_cmb;
 create table complete_concept_stage_I_cmb as (
 select distinct CONCEPT_CODE,DENOMINATOR_VALUE,D_COMBO_CODE,DOSE_FORM_CODE,BRAND_CODE,BOX_SIZE,CONCEPT_CLASS_ID,
 trim(regexp_substr(t.I_COMBO_CODE, '[^\-]+', 1, levels.column_value))  as I_combo_code
 from complete_concept_stage t, 
-table(cast(multiset(select level from dual connect by  level <= length (regexp_replace(t.D_COMBO_CODE, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels)
+table(cast(multiset(select level from dual connect by  level <= length (regexp_replace(t.I_COMBO_CODE, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels)
 ;
+select * from complete_concept_I_cmb_rank where CONCEPT_CODE ='OMOP28292';
 drop table complete_concept_I_cmb_rank;
 create table complete_concept_I_cmb_rank as 
  (select CONCEPT_CODE,DENOMINATOR_VALUE,D_COMBO_CODE,DOSE_FORM_CODE,BRAND_CODE,BOX_SIZE,CONCEPT_CLASS_ID,I_COMBO_CODE,
@@ -24,10 +33,7 @@ create table complete_concept_D_cmb_rank as
 RANK() OVER (PARTITION BY concept_code ORDER BY combo_code) as D_rank
 from complete_concept_stage_cmb)
 ;
-select * from complete_concept_D_cmb_rank where concept_code = 'OMOP94758';
-select * from complete_concept_stage_names where concept_code = 'OMOP94758';
-;
---создание таблицы, где три ингридиента и меньше
+-- 3 or less ingredients
 drop table  complete_concept_stage_names;
 create table complete_concept_stage_names as (
 select distinct case
@@ -39,11 +45,11 @@ when a.concept_class_id = 'Branded Drug' then LISTAGG (b.concept_name, ' / ') WI
 when a.concept_class_id = 'Clinical Drug Box' then LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||' '||df.concept_name||' Box of '||a.box_size
 when a.concept_class_id = 'Branded Drug Box' 
 then LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||' '||df.concept_name||' ['||br.concept_name||'] Box of '||a.box_size
-when a.concept_class_id = 'Quant Clinical Drug' then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||' '||df.concept_name
-when a.concept_class_id = 'Quant Branded Drug' then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||' '||df.concept_name||' ['||br.concept_name||']'
-when a.concept_class_id = 'Quant Clinical Box'
+when a.concept_class_id = 'Quant Clinical Drug' and b.denominator_unit is not null then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||' '||df.concept_name
+when a.concept_class_id = 'Quant Branded Drug' and b.denominator_unit is not null then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||' '||df.concept_name||' ['||br.concept_name||']'
+when a.concept_class_id = 'Quant Clinical Box' and b.denominator_unit is not null
 then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||' '||df.concept_name||' Box of '||a.box_size
-when a.concept_class_id = 'Quant Branded Box' 
+when a.concept_class_id = 'Quant Branded Box' and b.denominator_unit is not null 
 then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||' '||df.concept_name||' ['||br.concept_name||'] Box of '||a.box_size
 else null end as concept_name, a.CONCEPT_CODE,a.DENOMINATOR_VALUE,a.I_COMBO_CODE,a.d_combo_code, a.DOSE_FORM_CODE,a.BRAND_CODE,a.BOX_SIZE,a.CONCEPT_CLASS_ID
 from complete_concept_stage  a
@@ -69,6 +75,7 @@ where (a.concept_class_id = 'Clinical Drug Form' or  a.concept_class_id =  'Bran
 and a.concept_code not in (select concept_code from complete_concept_I_cmb_rank dr where dr.i_rank >3)
 )
 ;
+--more than 3 ingredients
 drop table  complete_concept_stage_names_3;
 create table complete_concept_stage_names_3 as (
 select distinct case
@@ -80,11 +87,11 @@ when a.concept_class_id = 'Branded Drug' then LISTAGG (b.concept_name, ' / ') WI
 when a.concept_class_id = 'Clinical Drug Box' then LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||'...'||' '||df.concept_name||' Box of '||a.box_size
 when a.concept_class_id = 'Branded Drug Box' 
 then LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||'...'||' '||df.concept_name||' ['||br.concept_name||'] Box of '||a.box_size
-when a.concept_class_id = 'Quant Clinical Drug' then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||'...'||' '||df.concept_name
-when a.concept_class_id = 'Quant Branded Drug' then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||'...'||' '||df.concept_name||' ['||br.concept_name||']'
-when a.concept_class_id = 'Quant Clinical Box'
+when a.concept_class_id = 'Quant Clinical Drug' and b.denominator_unit is not null then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||'...'||' '||df.concept_name
+when a.concept_class_id = 'Quant Branded Drug' and b.denominator_unit is not null  then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||'...'||' '||df.concept_name||' ['||br.concept_name||']'
+when a.concept_class_id = 'Quant Clinical Box' and b.denominator_unit is not null
 then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||'...'||' '||df.concept_name||' Box of '||a.box_size
-when a.concept_class_id = 'Quant Branded Box' 
+when a.concept_class_id = 'Quant Branded Box' and b.denominator_unit is not null 
 then a.denominator_value||' '||b.denominator_unit||' '||LISTAGG (b.concept_name, ' / ') WITHIN GROUP (ORDER BY b.concept_name) OVER (PARTITION BY a.concept_code)||'...'||' '||df.concept_name||' ['||br.concept_name||'] Box of '||a.box_size
 else null end as concept_name, a.CONCEPT_CODE,a.DENOMINATOR_VALUE,a.I_COMBO_CODE,a.d_combo_code, a.DOSE_FORM_CODE,a.BRAND_CODE,a.BOX_SIZE,a.CONCEPT_CLASS_ID
 from complete_concept_stage  a
@@ -116,7 +123,6 @@ create table complete_concept_stage_name as
 union 
 select * from complete_concept_stage_names_3)
 ;
-UPDATE complete_concept_stage_name a SET concept_name=REPLACE (concept_name, '  ', ' ')
+UPDATE complete_concept_stage_name a SET concept_name=regexp_REPLACE (concept_name, '\s+', ' ')
 ;
 commit
-;

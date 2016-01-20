@@ -6,60 +6,54 @@
 
 -- Create lookup tables for existing vocab (RxNorm and new ones)
 -- Create table containing ingredients for each drug
-drop table r_drug_ing purge;
-create table r_drug_ing as
+create table r_drug_ing nologging as
   select de.concept_id as drug_id, an.concept_id as ing_id
-  from devv5.concept_ancestor a 
-  join devv5.concept an on a.ancestor_concept_id=an.concept_id and an.concept_class_id='Ingredient' and an.vocabulary_id='RxNorm'
-  join devv5.concept de on de.concept_id=a.descendant_concept_id -- and de.concept_class_id!='Ingredient' -- and de.concept_class_id='Branded Drug Comp'
+  from concept_ancestor a 
+  join concept an on a.ancestor_concept_id=an.concept_id and an.concept_class_id='Ingredient' and an.vocabulary_id='RxNorm'
+  join concept de on de.concept_id=a.descendant_concept_id -- and de.concept_class_id!='Ingredient' -- and de.concept_class_id='Branded Drug Comp'
 ;
 -- count number of ingredients for each drug
-drop table r_ing_count purge;
-create table r_ing_count as
+create table r_ing_count nologging as
   select drug_id as did, count(*) as cnt from r_drug_ing group by drug_id
 ;
 -- Set all counts for Ingredient and Clinical Drug Comp to null, so in comparisons it can match whatever number necessary. Reason is that, like ingredients, Clinical Drug Comp is always only one ingredient
-update r_ing_count set cnt=null where did in (select concept_id from devv5.concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
+update r_ing_count set cnt=null where did in (select concept_id from concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
 
-create index x_r_drug_ing on r_drug_ing(drug_id, ing_id);
+create index x_r_drug_ing on r_drug_ing(drug_id, ing_id) nologging;
 
 -- Create lookup tables for query vocab (new vocab)
-drop table q_drug_ing purge;
-create table q_drug_ing as
+create table q_drug_ing nologging as
 -- for each drug code list standard ingredient (translated ID and original code)
 select drug.concept_code as drug_code, nvl(ing.concept_id, 0) as ing_id, i.concept_code as ing_code -- if ingredient is not mapped use 0 to get the right count
 from drug_concept_stage i
 left join relationship_to_concept r1 on r1.concept_code_1=i.concept_code
-left join devv5.concept ing on ing.concept_id=r1.concept_id_2 -- link standard ingredients to existing ones
+left join concept ing on ing.concept_id=r1.concept_id_2 -- link standard ingredients to existing ones
 join internal_relationship_stage r2 on r2.concept_code_2=i.concept_code
 join drug_concept_stage drug on drug.concept_class_id not in ('Unit', 'Ingredient', 'Brand Name', 'Non-Drug Prod', 'Dose Form') and drug.concept_code=r2.concept_code_1
 where i.concept_class_id='Ingredient'
 ;
-drop table q_ing_count purge;
-create table q_ing_count as
+
+create table q_ing_count nologging as
   select drug_code as dcode, count(*) as cnt from q_drug_ing group by drug_code
 ;
-create index x_q_drug_ing on q_drug_ing(drug_code, ing_id);
+create index x_q_drug_ing on q_drug_ing(drug_code, ing_id) nologging;
 
 -- create table that lists for each ingredient all drugs continaing it from q and r
-drop table match purge;
-create table match as
+create table match nologging as
   select q.ing_id as r_iid, q.ing_code as q_icode, q.drug_code as q_dcode, r.drug_id as r_did
   from q_drug_ing q join r_drug_ing r on q.ing_id=r.ing_id -- match query and result drug on common ingredient
 ;
-create index x_match on match(q_dcode, r_did);
+create index x_match on match(q_dcode, r_did) nologging;
 
 -- create table with all drugs in q and r and the number of ingredients they share
-drop table shared_ing purge;
-create table shared_ing as
+create table shared_ing nologging as
 select r_did, q_dcode, count(*) as cnt from match group by r_did, q_dcode
 ;
 -- Set all counts for Clinical Drug Comp to null, so in comparisons it can match whatever number necessary. Reason is that, like ingredients, Clinical Drug Comp is always only one ingredient
-update shared_ing set cnt=null where r_did in (select concept_id from devv5.concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
+update shared_ing set cnt=null where r_did in (select concept_id from concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
 
 -- Create table that matches drugs q to r, based Form, Brand Name (if exists), and dose. Does not take into account box size or quantity
-drop table q_to_r_anydose purge;
-create table q_to_r_anydose as
+create table q_to_r_anydose nologging as
 -- create table with all query drug codes q_dcode mapped to standard drug concept ids r_did, irrespective of the correct dose
 with m as (
 select distinct m.*, rc.cnt as rc_cnt, r.precedence as i_prec
@@ -86,8 +80,8 @@ left join (
   join relationship_to_concept m on m.concept_code_1=r.concept_code_2 -- left join if not 
 ) q_df on q_df.concept_code_1=m.q_dcode 
 left join (
-  select r.concept_id_1, r.concept_id_2 from devv5.concept_relationship r
-  join devv5.concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
+  select r.concept_id_1, r.concept_id_2 from concept_relationship r
+  join concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
   where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
 ) r_df on r_df.concept_id_1=m.r_did
 
@@ -100,8 +94,8 @@ left join (
 ) q_bn on q_bn.concept_code_1=m.q_dcode
 left join (
   select r.concept_id_1, r.concept_id_2 -- if no Brand Name exists (Clinical Drug) return 0
-  from devv5.concept_relationship r
-  join devv5.concept on concept_id=r.concept_id_2 and concept_class_id ='Brand Name'
+  from concept_relationship r
+  join concept on concept_id=r.concept_id_2 and concept_class_id ='Brand Name'
   where r.invalid_reason is null 
 ) r_bn on r_bn.concept_id_1=m.r_did and m.rc_cnt is not null -- only take Brand Names if they don't come from Ingredients or Clinical Drug Comps
 
@@ -112,8 +106,7 @@ and coalesce(q_df.concept_id_2, /*q_df.concept_id_2, */0)=coalesce(r_df.concept_
 
 -- Create temp tables for speed
 -- create for each drug/ingredient q to r pair two coefficients: Do the amounts come close and do the units comply
-drop table q_to_r_wdose purge;
-create table q_to_r_wdose as
+create table q_to_r_wdose nologging as
 with q as (
   select q_ds.drug_concept_code, q_ds.ingredient_concept_code, 
   q_ds.amount_value*q_ds_a.conversion_factor as amount_value, q_ds_a.concept_id_2 as amount_unit_concept_id, 
@@ -177,13 +170,12 @@ where rowid in (
 ;
 
 -- Remove all those where not everything fits
-drop table q_to_r purge;
 -- table has to be created separately because both subsequent queries define one field as null
-create table q_to_r as
+create table q_to_r nologging as
 select q_dcode, r_did, r_iid, bn_prec, df_prec, u_prec, rc_cnt from q_to_r_wdose
 where 1=0;
 
-insert into q_to_r
+insert /*+ APPEND */ into q_to_r
 select 
   a.q_dcode, a.r_did, null as r_iid, a.bn_prec, a.df_prec, a.u_prec, a.rc_cnt
 from ( -- take the distinct set of drug-drug paris with the same brandname, doseform and unit precedence
@@ -204,22 +196,21 @@ having not exists (
   and (m.div<0.9 or m.u_match=0)
 )
 ;
+commit;
 
 -- Second step add Ingredients and the correct Clinical Drug Components. Their number may not match the total number of Ingredients in the query drug
-insert into q_to_r
+insert /*+ APPEND */ into q_to_r
 select distinct q_dcode, r_did, r_iid, bn_prec, df_prec, u_prec, null as rc_cnt
 from q_to_r_wdose
 where nvl(rc_cnt, 1)=1 -- process only those that done have combinations (ingredients and Clin Drug Components)
 and div>=0.9 and u_match=1
 ;
-
 commit;
 
 -- Get the best possible mapping
-drop table best_map purge;
-create table best_map as
+create table best_map nologging as
 with r as (
-  select qr.*, c.concept_class_id from q_to_r qr join devv5.concept c on c.concept_id=qr.r_did
+  select qr.*, c.concept_class_id from q_to_r qr join concept c on c.concept_id=qr.r_did
 )
 select distinct 
 --   rcnt.*,
@@ -264,19 +255,46 @@ join r rmap on rmap.q_dcode=rcnt.q_dcode and rmap.bn_prec=rcnt.bn_prec and rmap.
 -- where rcnt.q_dcode='1136003'-- '3195423' 3645105 1136004
 ;
 
-commit; 
-
 -- Write concept_relationship_stage
-insert into concept_relationship_stage
+insert /*+ APPEND */ into concept_relationship_stage
+						(concept_code_1,
+						concept_code_2,
+						vocabulary_id_1,
+						vocabulary_id_2,
+						relationship_id,
+						valid_start_date,
+						valid_end_date,
+						invalid_reason)
 select 
   q_dcode as concept_code_1,
+  c.concept_code as concept_code_2,  
   'HCPCS' as vocabulary_id_1,
-  c.concept_code as concept_code_2,
   'RxNorm' as vocabulary_id_2,
-  '17-Jan-2016' as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  'Maps to' as relationship_id,
+  (SELECT latest_update FROM vocabulary WHERE vocabulary_id='HCPCS') as valid_start_date,
+  TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
   null as invalid_reason
 from best_map m
 join concept c on c.concept_id=m.r_did and c.vocabulary_id='RxNorm';
-
 commit;
+
+/****************************
+* Clean up
+*****************************/
+
+drop table drug_concept_stage purge;
+drop table drug_concept_stage_tmp purge;
+drop table brandname purge;
+drop table relationship_to_concept purge;
+drop table internal_relationship_stage purge;
+drop table drug_strength_stage purge;
+drop table r_drug_ing purge;
+drop table r_ing_count purge;
+drop table q_drug_ing purge;
+drop table q_ing_count purge;
+drop table match purge;
+drop table shared_ing purge;
+drop table q_to_r_anydose purge;
+drop table q_to_r_wdose purge;
+drop table q_to_r purge;
+drop table best_map purge;

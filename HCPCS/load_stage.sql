@@ -342,7 +342,11 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                                                               SHORT_DESCRIPTION));
 COMMIT;
 
---6  Load concept_relationship_stage from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
+--6 Run HCPCS/procedure_drug.sql. This will create all the input files for NewDrugVocab.sql
+
+--7 Run the generic working/NewDrugVocab.sql. This will produce a concept_relationship_stage with HCPCS to RxNorm relatoinships
+
+--8 Add all other relationships from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
 INSERT INTO concept_relationship_stage (concept_id_1,
                                         concept_id_2,
                                         concept_code_1,
@@ -366,10 +370,11 @@ INSERT INTO concept_relationship_stage (concept_id_1,
      FROM concept_relationship r, concept c, concept c1
     WHERE     c.concept_id = r.concept_id_1
           AND c.vocabulary_id = 'HCPCS'
-          AND C1.CONCEPT_ID = r.concept_id_2; 
+          AND c1.concept_id = r.concept_id_2
+		  AND NOT (c1.vocabulary_id='RxNorm' AND r.relationship_id='Maps to'); 
 COMMIT;
 
---7 Add upgrade relationships
+--9 Add upgrade relationships
 INSERT INTO concept_relationship_stage (concept_id_1,
                                         concept_id_2,
                                         concept_code_1,
@@ -438,7 +443,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
 COMMIT;		  
 
 
---8 Create hierarchical relationships between HCPCS and HCPCS class
+--10 Create hierarchical relationships between HCPCS and HCPCS class
 INSERT INTO concept_relationship_stage (concept_id_1,
                                         concept_id_2,
                                         concept_code_1,
@@ -470,7 +475,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
     WHERE A.BETOS IS NOT NULL;
 COMMIT;	
 
---9 Create text for Medical Coder with new codes and mappings
+--11 Create text for Medical Coder with new codes and mappings
 SELECT NULL AS concept_id_1,
        NULL AS concept_id_2,
        c.concept_code AS concept_code_1,
@@ -516,9 +521,9 @@ SELECT NULL AS concept_id_1,
        AND c.vocabulary_id = 'HCPCS'
        AND c.concept_class_id IN ('HCPCS', 'HCPCS Modifier');
 
---10 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--12 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 
---11. Add mapping from deprecated to fresh concepts
+--13. Add mapping from deprecated to fresh concepts
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -593,7 +598,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---12 Proceudre Drugs who have a mapping to a Drug concept should not also be recorded as Procedures (no Standard Concepts)
+--14 Proceudre Drugs who have a mapping to a Drug concept should not also be recorded as Procedures (no Standard Concepts)
 UPDATE concept_stage cs
    SET cs.standard_concept = NULL
  WHERE     EXISTS
@@ -619,12 +624,12 @@ UPDATE concept_stage cs
        AND standard_concept IS NOT NULL;
 COMMIT;
 
---13 Update concept_id in concept_stage from concept for existing concepts
+--15 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---14 Reinstate constraints and indices
+--16 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

@@ -189,10 +189,16 @@ FROM (
               case concept_class_id
                 when 'Ingredient' then 2
                 when 'Clinical Drug' then 1
-                when 'Branded Drug' then 1
-                when 'Clinical Pack' then 1
-                when 'Branded Pack' then 1
-                else 0
+                when 'Branded Drug Box' then 1
+                when 'Clinical Drug Box' then 1
+                when 'Quant Branded Box' then 1
+                when 'Quant Clinical Box' then 1
+                when 'Quant Clinical Drug' then 1
+                when 'Quant Branded Drug' then 1
+                when 'Clinical Drug Comp' then 1
+                when 'Branded Drug Comp' then 1
+                when 'Branded Drug Form' then 1
+                when 'Clinical Drug Form' then 1
               end
           end
         when 'NDC' then 0
@@ -306,6 +312,26 @@ FROM (
         when 'Gemscript' then 0
         when 'HES Specialty' then 0
         when 'ICD10CM' then 0
+		when 'DA_France' then -- specialized hierarchy
+          case 
+            when c.standard_concept is null then 0
+            else
+              case concept_class_id
+                when 'Ingredient' then 2
+                when 'Clinical Drug' then 1
+                when 'Branded Drug Box' then 1
+                when 'Clinical Drug Box' then 1
+                when 'Quant Branded Box' then 1
+                when 'Quant Clinical Box' then 1
+                when 'Quant Clinical Drug' then 1
+                when 'Quant Branded Drug' then 1
+                when 'Clinical Drug Comp' then 1
+                when 'Branded Drug Comp' then 1
+                when 'Branded Drug Form' then 1
+                when 'Clinical Drug Form' then 1
+                else 0
+              end
+        end		
         else -- flat list
           case
             when c.standard_concept is null then 0

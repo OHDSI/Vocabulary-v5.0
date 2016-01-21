@@ -4,7 +4,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20141112','yyyymmdd'), vocabulary_version='2015 Annual Alpha Numeric HCPCS File' where vocabulary_id='HCPCS'; commit;
+update vocabulary set latest_update=to_date('20151028','yyyymmdd'), vocabulary_version='2016 Alpha Numeric HCPCS File' where vocabulary_id='HCPCS'; commit;
 
 -- 2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;

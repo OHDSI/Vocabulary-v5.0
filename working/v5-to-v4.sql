@@ -199,6 +199,7 @@ FROM (
                 when 'Branded Drug Comp' then 1
                 when 'Branded Drug Form' then 1
                 when 'Clinical Drug Form' then 1
+				else 0
               end
           end
         when 'NDC' then 0

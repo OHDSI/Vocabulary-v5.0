@@ -143,7 +143,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
     null as invalid_reason
     from spl_ext s where displayname not in ('IDENTIFICATION OF CBER-REGULATED GENERIC DRUG FACILITY','INDEXING - PHARMACOLOGIC CLASS','INDEXING - SUBSTANCE', 'WHOLESALE DRUG DISTRIBUTORS AND THIRD-PARTY LOGISTICS FACILITY REPORT')
 	AND NOT EXISTS (
-		SELECT 1 FROM CONCEPT_STAGE cs_int WHERE s.concept_code=cs_int.concept_code
+		SELECT 1 FROM CONCEPT_STAGE cs_int WHERE lower(s.concept_code)=lower(cs_int.concept_code)
 	);	
 COMMIT;	
 
@@ -243,7 +243,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 	) s, vocabulary v
 	WHERE v.vocabulary_id = 'SPL'
 	AND NOT EXISTS (
-		SELECT 1 FROM CONCEPT_STAGE cs_int WHERE s.concept_code=cs_int.concept_code
+		SELECT 1 FROM CONCEPT_STAGE cs_int WHERE lower(s.concept_code)=lower(cs_int.concept_code)
 	);
 
 COMMIT;
@@ -946,7 +946,7 @@ COMMIT;
 
 --24. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
-    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
+    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE lower(c.concept_code)=lower(cs.concept_code) AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 	
 --26. Clean up

@@ -101,6 +101,90 @@ insert into relationship (relationship_id, relationship_name, is_hierarchical, d
 values ('Has standard form', 'Has standard Dose Form (OMOP)', 0, 0, 'Is standard form of', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has standard Dose Form (OMOP)'));
 update relationship set reverse_relationship_id='Has standard form' where relationship_id='Is standard form of';
 
+
+-- Remove SPL duplicates and create replacement relationships
+insert into concept_relationship
+select distinct
+  e.concept_id as concept_id_1,
+  d.concept_id as concept_id_2,
+  'Concept replaced by' as relationship_id,
+  '25-Jan-2016' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from concept e
+join concept d on e.concept_code = upper(d.concept_code) and d.vocabulary_id = 'SPL' and e.concept_id != d.concept_id
+where e.vocabulary_id = 'SPL'
+;
+
+insert into concept_relationship
+select distinct
+  d.concept_id as concept_id_1,
+  e.concept_id as concept_id_2,
+  'Concept replaces' as relationship_id,
+  '25-Jan-2016' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from concept e
+join concept d on e.concept_code = upper(d.concept_code) and d.vocabulary_id = 'SPL' and e.concept_id != d.concept_id
+where e.vocabulary_id = 'SPL'
+;
+
+update concept c set 
+  concept_name = 'Duplicate of SPL Concept, do not use, use replacement from CONCEPT_RELATIONSHIP table instead',
+  concept_code = concept_id,
+  valid_end_date='25-Jan-2016',
+  invalid_reason = 'U'
+where c.vocabulary_id='SPL'
+and exists (
+  select 1 from concept m
+  where c.concept_code = upper(m.concept_code)
+  and m.vocabulary_id='SPL'
+  and c.concept_id != m.concept_id
+)
+;
+
+-- deprecate all relationships that are not replacement relationships from these
+update concept_relationship r set
+  r.valid_end_date = (select case when c.valid_end_date-1 < r.valid_end_date then c.valid_end_date-1 else r.valid_end_date end from concept c where c.concept_id = r.concept_id_1),
+  r.invalid_reason = 'D'
+where exists (
+  select 1 from concept c
+  where r.concept_id_1 = c.concept_id
+  and c.concept_name like '%do not use%' and c.vocabulary_id = 'SPL'
+)
+and r.relationship_id not like '%replace%'
+;
+
+
+update concept_relationship r set
+  r.valid_end_date = (select case when c.valid_end_date-1 < r.valid_end_date then c.valid_end_date-1 else r.valid_end_date end from concept c where c.concept_id = r.concept_id_2),
+  r.invalid_reason = 'D'
+where exists (
+  select 1 from concept c
+  where r.concept_id_2 = c.concept_id
+  and c.concept_name like '%do not use%' and c.vocabulary_id = 'SPL'
+)
+and r.relationship_id not like '%replace%'
+;
+
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values(9689, 45891020, 'Concept replaces', '25-Jan-2016', '31-Dec-2099', null);
+insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+values(45891020, 9689, 'Concept replaced by', '25-Jan-2016', '31-Dec-2099', null);
+update concept set standard_concept = null, invalid_reason = 'U' where concept_id=45891020;
+update concept c set 
+  concept_name = 'Duplicate of UCUM Concept, do not use, use replacement from CONCEPT_RELATIONSHIP table instead',
+  concept_code = concept_id,
+  valid_end_date='24-Jan-2016',
+  invalid_reason = 'U'
+where c.concept_id in (45891020, 8999, 9549, 9315)
+;
+update concept_relationship set valid_end_date = '24-Jan-2016', invalid_reason = 'D' where concept_id_1 = 45891020 and relationship_id not like '%replace%';
+update concept_relationship set valid_end_date = '24-Jan-2016', invalid_reason = 'D' where concept_id_2 = 45891020 and relationship_id not like '%replace%';
+
+-- fix wrong century in recently added unit
+update concept set valid_end_date = '31-Dec-2099' where concept_id = 9693;
+
 commit;
 
 -- Change relationships for FDB vocabularies

@@ -245,31 +245,6 @@ COMMIT;
 -- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 AND relationship_id is present in concept_relationship_stage
 -- The latter will prevent large-scale deprecations of relationships between vocabularies where the relationship is defined not here, but together with the other vocab
 
--- Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except replacement relationships
-CREATE TABLE r_coverage NOLOGGING AS
-SELECT DISTINCT r1.vocabulary_id||'-'||r2.vocabulary_id||'-'||r.relationship_id as combo
-       FROM concept_relationship_stage r
-       JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
-       JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
-  --WHERE r.vocabulary_id_1 NOT IN ('NDC', 'SPL')
-  --AND r.vocabulary_id_2 NOT IN ('NDC', 'SPL')
-  --temporary exclude NDC
-	WHERE r.vocabulary_id_1 NOT IN ('SPL')
-  AND r.vocabulary_id_2 NOT IN ('SPL')  
-  AND r.relationship_id NOT IN (
-            'UCUM replaced by',
-            'Concept replaced by',
-            'Concept same_as to',
-            'Concept alt_to to',
-            'Concept poss_eq to',
-            'Concept was_a to',
-            'LOINC replaced by',
-            'RxNorm replaced by',
-            'SNOMED replaced by',
-            'ICD9P replaced by'
-      )
-;
-
 -- Do the deprecation
 UPDATE concept_relationship d
    SET valid_end_date  = 
@@ -279,13 +254,34 @@ UPDATE concept_relationship d
 			)
           - 1,                                       -- day before release day
        invalid_reason = 'D'
-      -- Whether the combination of vocab1, vocab2 and relationship exists (in r_coverage)
+      -- Whether the combination of vocab1, vocab2 and relationship exists (in subquery)
       -- (intended to be covered by this particular vocab udpate)
       -- And both concepts exist (don't deprecate relationships of deprecated concepts)
       WHERE d.ROWID IN (SELECT d1.ROWID
 						FROM concept e1, concept e2, concept_relationship d1
 						WHERE e1.concept_id = d1.concept_id_1 AND e2.concept_id = d1.concept_id_2
-						AND e1.vocabulary_id||'-'||e2.vocabulary_id||'-'||d1.relationship_id IN (SELECT combo FROM r_coverage)
+                        AND (e1.vocabulary_id,e2.vocabulary_id,d1.relationship_id) IN (
+							-- Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except replacement relationships
+                            SELECT r.vocabulary_id_1,r.vocabulary_id_2,r.relationship_id 
+                            FROM concept_relationship_stage r
+                            --WHERE r.vocabulary_id_1 NOT IN ('NDC', 'SPL')
+                            --AND r.vocabulary_id_2 NOT IN ('NDC', 'SPL')
+                            --temporary exclude NDC
+                            WHERE r.vocabulary_id_1 NOT IN ('SPL')
+                            AND r.vocabulary_id_2 NOT IN ('SPL')  
+                            AND r.relationship_id NOT IN (
+                                'UCUM replaced by',
+                                'Concept replaced by',
+                                'Concept same_as to',
+                                'Concept alt_to to',
+                                'Concept poss_eq to',
+                                'Concept was_a to',
+                                'LOINC replaced by',
+                                'RxNorm replaced by',
+                                'SNOMED replaced by',
+                                'ICD9P replaced by'
+                            )
+                        )
 						AND e1.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
 						AND e2.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
       )
@@ -310,8 +306,6 @@ UPDATE concept_relationship d
 				) 
        -- Deal with replacement relationships below, since they can only have one per deprecated concept
 ;
-
-DROP TABLE r_coverage PURGE;
 
 -- 10. Deprecate replacement concept_relationship records if we have a new one in concept_stage with the same source concept (deprecated concept)
 UPDATE concept_relationship d

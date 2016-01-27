@@ -4,9 +4,8 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20151005','yyyymmdd'), vocabulary_version='RxNorm Full 20151005' WHERE vocabulary_id = 'RxNorm'; 
+UPDATE vocabulary SET latest_update=to_date('20160104','yyyymmdd'), vocabulary_version='RxNorm Full 20160104' WHERE vocabulary_id = 'RxNorm'; 
 COMMIT;
-
 
 -- 2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;

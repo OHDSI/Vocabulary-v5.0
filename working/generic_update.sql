@@ -270,16 +270,23 @@ UPDATE concept_relationship d
                             WHERE r.vocabulary_id_1 NOT IN ('SPL')
                             AND r.vocabulary_id_2 NOT IN ('SPL')  
                             AND r.relationship_id NOT IN (
-                                'UCUM replaced by',
-                                'Concept replaced by',
-                                'Concept same_as to',
-                                'Concept alt_to to',
-                                'Concept poss_eq to',
-                                'Concept was_a to',
-                                'LOINC replaced by',
-                                'RxNorm replaced by',
-                                'SNOMED replaced by',
-                                'ICD9P replaced by'
+								SELECT rel_id FROM
+								(
+									SELECT relationship_id, reverse_relationship_id FROM relationship 
+									WHERE relationship_id in (
+										'UCUM replaced by',
+										'Concept replaced by',
+										'Concept same_as to',
+										'Concept alt_to to',
+										'Concept poss_eq to',
+										'Concept was_a to',
+										'LOINC replaced by',
+										'RxNorm replaced by',
+										'SNOMED replaced by',
+										'ICD9P replaced by'
+									)
+								)
+								UNPIVOT (rel_id FOR relationship_ids IN (relationship_id, reverse_relationship_id))
                             )
                         )
 						AND e1.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
@@ -307,7 +314,7 @@ UPDATE concept_relationship d
        -- Deal with replacement relationships below, since they can only have one per deprecated concept
 ;
 
--- 10. Deprecate replacement concept_relationship records if we have a new one in concept_stage with the same source concept (deprecated concept)
+-- 10. Deprecate replacement concept_relationship records if we have a new one in concept_relationship_stage with the same source concept (deprecated concept)
 UPDATE concept_relationship d
    SET valid_end_date  = 
             (SELECT v.latest_update
@@ -329,43 +336,41 @@ UPDATE concept_relationship d
         )
   AND EXISTS (
     SELECT 1 FROM concept_relationship_stage s, concept c1, concept c2
-      WHERE s.concept_id_1 = c1.concept_id AND s.concept_id_2 = c2.concept_id
+      WHERE s.concept_code_1 = c1.concept_code AND s.concept_code_2 = c2.concept_code
       AND s.vocabulary_id_1 = c1.vocabulary_id AND s.vocabulary_id_2 = c2.vocabulary_id
       AND c1.concept_id = d.concept_id_1 -- if exists a new one for the 1st concept
-      AND c2.concept_id != d.concept_id_2 -- and the 2nd (replaced to) concept is different
+      AND c2.concept_id <> d.concept_id_2 -- and the 2nd (replaced to) concept is different
       AND s.relationship_id = d.relationship_id -- it is one of the above relationship_id
   )
+  AND d.invalid_reason IS NULL -- not already deprecated
 ;
 
 -- Same for reverse
-UPDATE concept_relationship d
-   SET valid_end_date  = 
-            (SELECT v.latest_update
-                 FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
-              WHERE c.concept_id = d.concept_id_1)
-          - 1,                                       -- day before release day
-       invalid_reason = 'D'
-  WHERE d.relationship_id in (
-            'LOINC replaces', 
-            'RxNorm replaces', 
-            'SNOMED replaces',
-            'Concept replaces',
-            'Concept same_as from',
-            'Concept alt_to from',
-            'Concept poss_eq from',
-            'Concept was_a from',
-            'ICD9P replaces',
-            'UCUM replaces'
-        )
-  AND EXISTS (
-    SELECT 1 FROM concept_relationship_stage s, concept c1, concept c2
-      WHERE s.concept_id_1 = c1.concept_id AND s.concept_id_2 = c2.concept_id
-      AND s.vocabulary_id_1 = c1.vocabulary_id AND s.vocabulary_id_2 = c2.vocabulary_id
-      AND c2.concept_id = d.concept_id_2 -- if exists a new one for the 2nd concept
-      AND c1.concept_id != d.concept_id_1 -- and the 1st (replaced to) concept is different
-      AND s.relationship_id = d.relationship_id -- it is one of the above relationship_id
-  )
-;
+MERGE INTO concept_relationship d
+USING (
+    select r_int.concept_id_1, r_int.concept_id_2, r_int.invalid_reason, r_int.valid_end_date, rel_int.reverse_relationship_id from concept_relationship r_int, relationship rel_int 
+    where r_int.relationship_id IN (
+		'UCUM replaced by',
+		'Concept replaced by',
+		'Concept same_as to',
+		'Concept alt_to to',
+		'Concept poss_eq to',
+		'Concept was_a to',
+		'LOINC replaced by',
+		'RxNorm replaced by',
+		'SNOMED replaced by',
+		'ICD9P replaced by'
+    )
+    and r_int.relationship_id=rel_int.relationship_id
+) i ON (
+		d.concept_id_1=i.concept_id_2 
+    and d.concept_id_2=i.concept_id_1 
+    and d.relationship_id=i.reverse_relationship_id
+	and (NVL(d.invalid_reason,'X')<>NVL(i.invalid_reason,'X') OR d.valid_end_date<>i.valid_end_date)
+)
+WHEN MATCHED THEN UPDATE
+    SET d.invalid_reason=i.invalid_reason,
+        d.valid_end_date=i.valid_end_date;
 
 COMMIT;
 

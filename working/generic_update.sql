@@ -535,12 +535,13 @@ COMMIT;
 
 -- 14. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
 UPDATE concept c SET
-  c.invalid_reason = 'U'
-WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
-AND EXISTS (
+	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
+	c.invalid_reason = 'U'
+WHERE EXISTS (
   SELECT 1
   FROM concept_relationship r
     WHERE r.concept_id_1 = c.concept_id 
+	  AND nvl(r.invalid_reason,'X') in ('X','U')
       AND r.relationship_id in (
         'UCUM replaced by',
         'Concept replaced by',
@@ -555,17 +556,20 @@ AND EXISTS (
       )      
   ) 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-AND c.invalid_reason IS NULL -- not already upgraded
+AND (c.invalid_reason IS NULL OR c.invalid_reason = 'D') -- not already upgraded
 ;
+COMMIT;
 
--- 15. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table
+-- 15. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table for upgraded concepts
 UPDATE concept c SET
-  c.invalid_reason = 'D'
-WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
-AND NOT EXISTS (
+	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
+	c.invalid_reason = 'D'
+WHERE
+NOT EXISTS (
   SELECT 1
   FROM concept_relationship r
     WHERE r.concept_id_1 = c.concept_id 
+	  AND nvl(r.invalid_reason,'X') in ('X','U')
       AND r.relationship_id in (
         'UCUM replaced by',
         'Concept replaced by',
@@ -580,8 +584,9 @@ AND NOT EXISTS (
       )      
   ) 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-AND c.invalid_reason IS NULL -- not already deprecated
+AND c.invalid_reason = 'U' -- not already deprecated
 ;
+COMMIT;
 
 -- 16. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
 UPDATE concept SET

@@ -375,15 +375,12 @@ WHEN MATCHED THEN UPDATE
 COMMIT;
 
 -- 11. Insert new relationships if they don't already exist
-INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
-                                  concept_id_2,
-                                  relationship_id,
-                                  valid_start_date,
-                                  valid_end_date,
-                                  invalid_reason)
-   SELECT DISTINCT 
-          r1.concept_id,
-          r2.concept_id,
+MERGE INTO concept_relationship r
+USING 
+(
+   SELECT  
+          r1.concept_id as concept_id_1,
+          r2.concept_id as concept_id_2,
           crs.relationship_id,
           crs.valid_start_date,
           crs.valid_end_date,
@@ -391,14 +388,27 @@ INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
     FROM concept_relationship_stage crs
     JOIN concept r1 ON r1.concept_code = crs.concept_code_1 AND r1.vocabulary_id = crs.vocabulary_id_1
     JOIN concept r2 ON r2.concept_code = crs.concept_code_2 AND r2.vocabulary_id = crs.vocabulary_id_2
-    WHERE NOT EXISTS -- an identical one
-             (SELECT 1
-                FROM concept_relationship r
-               WHERE     r1.concept_id = r.concept_id_1
-                     AND r2.concept_id = r.concept_id_2
-                     AND crs.relationship_id = r.relationship_id
-              )
-;
+) crs_int
+ON (
+    crs_int.concept_id_1 = r.concept_id_1
+    AND crs_int.concept_id_2 = r.concept_id_2
+    AND crs_int.relationship_id = r.relationship_id
+)
+WHEN NOT MATCHED THEN INSERT
+    (concept_id_1,
+    concept_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
+VALUES (
+    crs_int.concept_id_1,
+    crs_int.concept_id_2,
+    crs_int.relationship_id,
+    crs_int.valid_start_date,
+    crs_int.valid_end_date,
+    crs_int.invalid_reason
+);
 COMMIT;
 
 -- The following are a bunch of rules for Maps to and Maps from relationships. 

@@ -51,6 +51,7 @@ INSERT INTO concept_stage (concept_name,
           NULL
      FROM rxnconso
     WHERE     sab = 'RXNORM'
+		  AND SUPPRESS = 'N'
           AND tty IN ('IN',
                       'DF',
                       'SCDC',
@@ -86,7 +87,7 @@ INSERT INTO concept_stage (concept_name,
           TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
           NULL          
      FROM rxnconso
-    WHERE sab = 'RXNORM' AND tty IN ('BPCK', 'GPCK');
+    WHERE sab = 'RXNORM' AND tty IN ('BPCK', 'GPCK') AND SUPPRESS = 'N';
 COMMIT;	
 	
 --4. Add synonyms - for all classes except the packs (they use code as concept_code)
@@ -101,7 +102,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
              ON     c.concept_code = r.rxcui
                 AND NOT c.concept_class_id IN ('Clinical Pack',
                                                'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY'
+    WHERE sab = 'RXNORM' AND tty = 'SY' AND SUPPRESS = 'N'
 	AND c.vocabulary_id='RxNorm';
 
 -- Add synonyms for packs
@@ -115,7 +116,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           JOIN concept_stage c
              ON     c.concept_code = r.code
                 AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY'
+    WHERE sab = 'RXNORM' AND tty = 'SY' AND SUPPRESS = 'N'
 	AND c.vocabulary_id='RxNorm';
 COMMIT;	
 
@@ -267,78 +268,95 @@ COMMIT;
 --8. Add mapping from deprecated to fresh concepts
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 
-INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-    SELECT 
-      root,
-      concept_code_2,
-      root_vocabulary_id,
-      vocabulary_id_2,
-      'Maps to',
-      (SELECT latest_update FROM vocabulary WHERE vocabulary_id=root_vocabulary_id),
-      TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-      NULL
-    FROM 
-    (
-        SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2 FROM (
-          SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2, dt,  ROW_NUMBER() OVER (PARTITION BY root_vocabulary_id, root ORDER BY dt DESC) rn
-            FROM (
-                SELECT 
-                      concept_code_2, 
-                      vocabulary_id_2,
-                      valid_start_date AS dt,
-                      CONNECT_BY_ROOT concept_code_1 AS root,
-                      CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id,
-                      CONNECT_BY_ISLEAF AS lf
-                FROM concept_relationship_stage
-                WHERE relationship_id IN ( 'Concept replaced by',
-                                               'Concept same_as to',
-                                               'Concept alt_to to',
-                                               'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
-                                             )
-                      and NVL(invalid_reason, 'X') <> 'D'
-                CONNECT BY  
-                NOCYCLE  
-                PRIOR concept_code_2 = concept_code_1
-                      AND relationship_id IN ( 'Concept replaced by',
-                                               'Concept same_as to',
-                                               'Concept alt_to to',
-                                               'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
-                                             )
-                       AND vocabulary_id_2=vocabulary_id_1                     
-                       AND NVL(invalid_reason, 'X') <> 'D'
-                                   
-                START WITH relationship_id IN ('Concept replaced by',
-                                               'Concept same_as to',
-                                               'Concept alt_to to',
-                                               'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
-                                              )
-                      AND NVL(invalid_reason, 'X') <> 'D'
-          ) sou 
-          WHERE lf = 1
-        ) 
-        WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
-    (select 1 from concept_relationship_stage r where
-        int_rel.root=r.concept_code_1
-        and int_rel.concept_code_2=r.concept_code_2
-        and int_rel.root_vocabulary_id=r.vocabulary_id_1
-        and int_rel.vocabulary_id_2=r.vocabulary_id_2
-        and r.relationship_id='Maps to'
+MERGE INTO  concept_relationship_stage r
+USING (
+   SELECT root,
+          concept_code_2,
+          root_vocabulary_id,
+          vocabulary_id_2,
+          'Maps to',
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = root_vocabulary_id) as valid_start_date,
+          TO_DATE ('31.12.2099', 'dd.mm.yyyy') as valid_end_date,
+          NULL as invalid_reason
+     FROM (SELECT root_vocabulary_id,
+                  root,
+                  concept_code_2,
+                  vocabulary_id_2
+             FROM (SELECT root_vocabulary_id,
+                          root,
+                          concept_code_2,
+                          vocabulary_id_2,
+                          dt,
+                          ROW_NUMBER ()
+                          OVER (PARTITION BY root_vocabulary_id, root
+                                ORDER BY dt DESC)
+                             rn
+                     FROM (    SELECT concept_code_2,
+                                      vocabulary_id_2,
+                                      valid_start_date AS dt,
+                                      CONNECT_BY_ROOT concept_code_1 AS root,
+                                      CONNECT_BY_ROOT vocabulary_id_1
+                                         AS root_vocabulary_id,
+                                      CONNECT_BY_ISLEAF AS lf
+                                 FROM concept_relationship_stage
+                                WHERE     relationship_id IN
+                                             ('Concept replaced by',
+                                              'Concept same_as to',
+                                              'Concept alt_to to',
+                                              'Concept poss_eq to',
+                                              'Concept was_a to')
+                                      AND NVL (invalid_reason, 'X') <> 'D'
+                           CONNECT BY NOCYCLE     PRIOR concept_code_2 =
+                                                     concept_code_1
+                                              AND relationship_id IN
+                                                     ('Concept replaced by',
+                                                      'Concept same_as to',
+                                                      'Concept alt_to to',
+                                                      'Concept poss_eq to',
+                                                      'Concept was_a to')
+                                              AND vocabulary_id_2 =
+                                                     vocabulary_id_1
+                                              AND NVL (invalid_reason, 'X') <>
+                                                     'D'
+                           START WITH     relationship_id IN
+                                             ('Concept replaced by',
+                                              'Concept same_as to',
+                                              'Concept alt_to to',
+                                              'Concept poss_eq to',
+                                              'Concept was_a to')
+                                      AND NVL (invalid_reason, 'X') <> 'D')
+                          sou
+                    WHERE lf = 1)
+            WHERE rn = 1)
+) int_rel ON (
+    int_rel.root = r.concept_code_1
+     AND int_rel.concept_code_2 = r.concept_code_2
+     AND int_rel.root_vocabulary_id = r.vocabulary_id_1
+     AND int_rel.vocabulary_id_2 = r.vocabulary_id_2
+     AND r.relationship_id = 'Maps to'    
+)            
+WHEN NOT MATCHED THEN
+INSERT
+    (concept_code_1,
+    concept_code_2,
+    vocabulary_id_1,
+    vocabulary_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
+ VALUES
+    (int_rel.root,
+    int_rel.concept_code_2,
+    int_rel.root_vocabulary_id,
+    int_rel.vocabulary_id_2,
+    'Maps to',
+    int_rel.valid_start_date,
+    int_rel.valid_end_date,
+    int_rel.invalid_reason
     );
-
 COMMIT;
 
 --9 Create mapping to self for fresh concepts
@@ -556,7 +574,7 @@ AS
              FROM rxnconso
             WHERE     sab = 'NDFRT'
                   AND tty IN ('FN', 'HT', 'MTH_RXN_RHT')
-                  AND suppress != 'Y'
+                  AND SUPPRESS = 'N'
 				  AND code != 'NOCODE')
     WHERE concept_class_id IS NOT NULL -- kick out "preparations", which really are the useless 1st initial of pharma preparations
    -- Add ATC
@@ -584,7 +602,7 @@ AS
                   END
                      AS concept_class_id
              FROM rxnconso
-            WHERE sab = 'ATC' AND suppress != 'Y' AND tty IN ('PT', 'IN') AND code != 'NOCODE');
+            WHERE sab = 'ATC' AND SUPPRESS = 'N' AND tty IN ('PT', 'IN') AND code != 'NOCODE');
 
 --19 Add drug_vocs to concept_stage
 INSERT INTO concept_stage (concept_id,
@@ -640,7 +658,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN drug_vocs e ON r.rxcui = e.rxcui AND r.code = e.concept_code
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
     WHERE     d.concept_class_id LIKE 'VA Class'
@@ -656,7 +674,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN drug_vocs e ON r.rxcui = e.rxcui AND r.code = e.concept_code
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
     WHERE     d.concept_class_id IN 'Chemical Structure'
@@ -675,7 +693,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN drug_vocs e ON r.rxcui = e.rxcui AND r.code = e.concept_code
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
     WHERE     d.concept_class_id LIKE 'Therapeutic Class'
@@ -691,7 +709,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN drug_vocs e ON r.rxcui = e.rxcui AND r.code = e.concept_code
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
     WHERE     d.concept_class_id LIKE 'VA Class'
@@ -707,7 +725,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN drug_vocs e ON r.rxcui = e.rxcui AND r.code = e.concept_code
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
     WHERE     d.concept_class_id LIKE 'VA Class'
@@ -723,7 +741,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN drug_vocs e ON r.rxcui = e.rxcui AND r.code = e.concept_code
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
     WHERE     d.concept_class_id LIKE 'Chemical Structure'
@@ -740,8 +758,8 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    NULL AS invalid_reason
      FROM concept d
           JOIN rxnconso r
-             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE'
-          JOIN rxnconso r2 ON r.rxcui = r2.rxcui AND r2.sab = 'NDFRT' AND r2.code != 'NOCODE'
+             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
+          JOIN rxnconso r2 ON r.rxcui = r2.rxcui AND r2.sab = 'NDFRT' AND r2.code != 'NOCODE' AND r2.SUPPRESS = 'N'
           JOIN drug_vocs e
              ON r2.code = e.concept_code AND e.vocabulary_id = 'NDFRT'
     WHERE     d.vocabulary_id = 'SNOMED'
@@ -764,8 +782,8 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    NULL AS invalid_reason
      FROM concept d
           JOIN rxnconso r
-             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE'
-          JOIN rxnconso r2 ON r.rxcui = r2.rxcui AND r2.sab = 'NDFRT' AND r2.code != 'NOCODE'
+             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
+          JOIN rxnconso r2 ON r.rxcui = r2.rxcui AND r2.sab = 'NDFRT' AND r2.code != 'NOCODE' AND r2.SUPPRESS = 'N'
           JOIN drug_vocs e
              ON r2.code = e.code AND e.vocabulary_id = 'VA Class' -- code AND concept_code are different for VA Class
     WHERE d.vocabulary_id = 'SNOMED' AND d.invalid_reason IS NULL
@@ -781,8 +799,8 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    NULL AS invalid_reason
      FROM concept d
           JOIN rxnconso r
-             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE'
-          JOIN rxnconso r2 ON r.rxcui = r2.rxcui AND r2.sab = 'ATC' AND r2.code != 'NOCODE'
+             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
+          JOIN rxnconso r2 ON r.rxcui = r2.rxcui AND r2.sab = 'ATC' AND r2.code != 'NOCODE' AND r2.SUPPRESS = 'N'
           JOIN drug_vocs e
              ON r2.code = e.concept_code AND e.concept_class_id != 'ATC 5th' -- Ingredients only to RxNorm
     WHERE d.vocabulary_id = 'SNOMED' AND d.invalid_reason IS NULL
@@ -797,7 +815,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
           JOIN concept e
              ON     r.rxcui = e.concept_code
@@ -824,7 +842,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
           AND NOT EXISTS
                  (SELECT 1
                     FROM drug_vocs d_int
-                         JOIN rxnconso r_int ON r_int.rxcui = d_int.rxcui AND r_int.code != 'NOCODE'
+                         JOIN rxnconso r_int ON r_int.rxcui = d_int.rxcui AND r_int.code != 'NOCODE' AND r_int.SUPPRESS = 'N'
                          JOIN concept e_int
                             ON     r_int.rxcui = e_int.concept_code
                                AND e_int.vocabulary_id = 'RxNorm'
@@ -843,7 +861,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
           JOIN concept e
              ON     r.rxcui = e.concept_code
@@ -861,7 +879,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
           JOIN concept e
              ON     r.rxcui = e.concept_code
@@ -880,7 +898,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    NULL AS invalid_reason
      FROM concept d
           JOIN rxnconso r
-             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE'
+             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN concept e
              ON     r.rxcui = e.concept_code
                 AND e.vocabulary_id = 'RxNorm'
@@ -898,7 +916,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    NULL AS invalid_reason
      FROM concept d
           JOIN rxnconso r
-             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE'
+             ON r.code = d.concept_code AND r.sab = 'SNOMEDCT_US' AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN concept e
              ON     r.rxcui = e.concept_code
                 AND e.vocabulary_id = 'RxNorm'
@@ -917,7 +935,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
           JOIN concept e
              ON     r.rxcui = e.concept_code
@@ -935,7 +953,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM drug_vocs d
-          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
+          JOIN rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE' AND r.SUPPRESS = 'N'
           JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
           JOIN concept e
              ON     r.rxcui = e.concept_code
@@ -966,6 +984,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
 						  JOIN rxnconso r_int
 							 ON     r_int.rxcui = d_int.rxcui
 								AND r_int.code != 'NOCODE'
+								AND r_int.SUPPRESS = 'N'
 						  JOIN concept e_int
 							 ON     r_int.rxcui = e_int.concept_code
 								AND e_int.vocabulary_id = 'RxNorm'
@@ -1062,10 +1081,10 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                   TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                   NULL AS invalid_reason
              FROM drug_vocs d
-                  JOIN rxnconso r1 ON r1.rxcui = d.rxcui AND r1.code = d.code AND r1.code != 'NOCODE'
+                  JOIN rxnconso r1 ON r1.rxcui = d.rxcui AND r1.code = d.code AND r1.code != 'NOCODE' AND r1.SUPPRESS = 'N'
                   JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
                   JOIN rxnrel r ON r.rxaui1 = r1.rxaui
-                  JOIN rxnconso r2 ON r2.rxaui = r.rxaui2 AND r2.code != 'NOCODE'
+                  JOIN rxnconso r2 ON r2.rxaui = r.rxaui2 AND r2.code != 'NOCODE' AND r2.SUPPRESS = 'N'
                   JOIN drug_vocs e ON r2.code = e.code AND e.rxcui = r2.rxcui)
     WHERE relationship_id IS NOT NULL;
 COMMIT;
@@ -1099,7 +1118,7 @@ SELECT DISTINCT
        JOIN rxnconso r
           ON     dv.code = r.code
              AND dv.rxcui = r.rxcui
-             AND r.suppress != 'Y'
+             AND r.SUPPRESS = 'N'
              AND r.code != 'NOCODE'
              AND r.lat = 'ENG';
 COMMIT;

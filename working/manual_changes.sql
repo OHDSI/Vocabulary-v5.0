@@ -185,6 +185,95 @@ update concept_relationship set valid_end_date = '24-Jan-2016', invalid_reason =
 -- fix wrong century in recently added unit
 update concept set valid_end_date = '31-Dec-2099' where concept_id = 9693;
 
+-- Make fixes to asymmetric relationships
+-- Remove 'SPL to RxNorm' (Ingredient)
+delete from devv5.concept_relationship where rowid in (
+    select r.rowid from devv5.concept c, devv5.concept_relationship r
+    where c.concept_id=r.concept_id_1
+    and R.RELATIONSHIP_ID='RxNorm - SPL'
+    and C.CONCEPT_CLASS_ID='Ingredient'
+);
+
+-- Fix wrong reverse_relationship of 'Has standard brand'
+update relationship set reverse_relationship_id='Is standard brand of' where relationship_id='Has standard brand';
+update concept_relationship r
+  set relationship_id = 'Is standard brand of'
+where exists (
+  select 1 from concept_relationship r2
+  where relationship_id='Has standard brand'
+)
+and r.relationship_id = 'Is standard ing of'
+;
+insert into concept_relationship
+select concept_id_2 as concept_id_1, concept_id_1 as concept_id_2, 
+  'Is standard ing of' as relationship_id, valid_start_date, valid_end_date, invalid_reason
+from concept_relationship where relationship_id='Has standard ing';
+
+delete from concept_relationship where rowid in (
+  select r.rowid from concept_relationship r
+  join concept c1 on c1.concept_id=r.concept_id_1
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.concept_class_id='Ingredient' and c2.concept_class_id='Ingredient' and r.relationship_id='Is standard brand of'
+);
+
+-- Fix remaining 'Has Quantified form of' for NDC
+delete from concept_relationship where rowid in (
+  select r.rowid from concept_relationship r
+  join concept c1 on c1.concept_id=r.concept_id_1
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c2.concept_class_id in ('11-digit NDC', '9-digit NDC') and r.relationship_id='Has quantified form'
+);
+
+-- Fix funny relationship between domains and concept types
+delete from concept_relationship where rowid in (
+  select r.rowid from concept_relationship r
+  join concept c1 on c1.concept_id=r.concept_id_1
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.concept_class_id in ('Domain') and r.relationship_id='SNOMED meas - HCPCS'
+);
+
+-- Fix asymmetrical deprecation in 'Concept replaced by'
+MERGE INTO concept_relationship r
+USING (
+    select r_int.concept_id_1, r_int.concept_id_2, r_int.invalid_reason, r_int.valid_end_date, rel_int.reverse_relationship_id from concept_relationship r_int, relationship rel_int 
+    where r_int.relationship_id IN (
+        'ATC - RxNorm',
+        'ATC - RxNorm name',
+        'Concept replaced by',
+        'Has Answer',
+        'ATC - SNOMED eq',
+        'VAProd - RxNorm eq',
+        'NDFRT - SNOMED eq',
+        'NDFRT - RxNorm eq',
+        'Concept poss_eq to',
+        'NDFRT - RxNorm name',
+        'OPCS4 - SNOMED',
+        'Concept same_as to',
+        'Maps to',
+        'Maps to value'
+    )
+    and r_int.relationship_id=rel_int.relationship_id
+) i ON (
+    r.concept_id_1=i.concept_id_2 
+    and r.concept_id_2=i.concept_id_1 
+    and r.relationship_id=i.reverse_relationship_id
+    and (NVL(r.invalid_reason,'X')<>NVL(i.invalid_reason,'X') OR r.valid_end_date<>i.valid_end_date)
+)
+WHEN MATCHED THEN UPDATE
+    SET r.invalid_reason=i.invalid_reason,
+        r.valid_end_date=i.valid_end_date
+;
+
+-- Remove 'Original maps to'
+delete from concept_relationship where relationship_id='Original maps to';
+delete from concept_relationship where relationship_id='Original mapped from';
+update relationship set reverse_relationship_id='Is a' where relationship_id in ('Original maps to', 'Original mapped from');
+delete from relationship where relationship_id='Original maps to';
+delete from relationship where relationship_id='Original mapped from';
+
+-- Fix upgraded ATC
+update concept set invalid_reason = 'D' where vocabulary_id='ATC' and invalid_reason = 'U';
+
 commit;
 
 -- Change relationships for FDB vocabularies

@@ -243,7 +243,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT rxcui AS concept_code_1,
+   SELECT DISTINCT rxcui AS concept_code_1,
           merged_to_rxcui AS concept_code_2,
           'RxNorm' AS vocabulary_id_1,
           'RxNorm' AS vocabulary_id_2,

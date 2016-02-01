@@ -137,7 +137,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
           'RxNorm' AS vocabulary_id_2,
           CASE -- 
              WHEN rela = 'has_precise_ingredient' THEN 'Has precise ing'
-             WHEN rela = 'has_tradename' THEN 'Has brand name'
+             WHEN rela = 'has_tradename' THEN 'Has tradename'
              WHEN rela = 'has_dose_form' THEN 'RxNorm has dose form'
              WHEN rela = 'has_form' THEN 'Has form' -- links Ingredients to Precise Ingredients
              WHEN rela = 'has_ingredient' THEN 'RxNorm has ing'
@@ -154,7 +154,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
              WHEN rela = 'contained_in' THEN 'Contained in'
              WHEN rela = 'form_of' THEN 'Form of'
              WHEN rela = 'reformulation_of' THEN 'Reformulation of'
-             WHEN rela = 'tradename_of' THEN 'Brand name of'
+             WHEN rela = 'tradename_of' THEN 'Tradename of'
              WHEN rela = 'quantified_form_of' THEN 'Quantified form of'
              ELSE 'non-existing'
           END
@@ -199,6 +199,40 @@ WHERE EXISTS (
             AND d.concept_class_id in ('Branded Drug', 'Clinical Drug')
     AND r.relationship_id = 'RxNorm has ing');
 COMMIT;
+
+--Rename 'Has tradename' to 'Has brand name'  where concept_id_1='Ingredient' and concept_id_2='Brand Name'
+update concept_relationship_stage set relationship_id='Has brand name' 
+where rowid in (
+    select r.rowid from concept_relationship_stage r
+    where r.relationship_id='Has tradename'
+    and exists (
+        select 1 from concept_stage cs where cs.concept_code=r.concept_code_1 and cs.vocabulary_id=r.vocabulary_id_1 and cs.concept_class_id='Ingredient'
+        union all
+        select 1 from concept c where c.concept_code=r.concept_code_1 and c.vocabulary_id=r.vocabulary_id_1 and c.concept_class_id='Ingredient'
+    )
+    and exists (
+        select 1 from concept_stage cs where cs.concept_code=r.concept_code_2 and cs.vocabulary_id=r.vocabulary_id_2 and cs.concept_class_id='Brand Name'
+        union all
+        select 1 from concept c where c.concept_code=r.concept_code_2 and c.vocabulary_id=r.vocabulary_id_2 and c.concept_class_id='Brand Name'
+    )
+);
+--and same for reverse
+update concept_relationship_stage set relationship_id='Brand name of'
+where rowid in (
+    select r.rowid from concept_relationship_stage r
+    where r.relationship_id='Tradename of'
+    and exists (
+        select 1 from concept_stage cs where cs.concept_code=r.concept_code_1 and cs.vocabulary_id=r.vocabulary_id_1 and cs.concept_class_id='Brand Name'
+        union all
+        select 1 from concept c where c.concept_code=r.concept_code_1 and c.vocabulary_id=r.vocabulary_id_1 and c.concept_class_id='Brand Name'
+    )
+    and exists (
+        select 1 from concept_stage cs where cs.concept_code=r.concept_code_2 and cs.vocabulary_id=r.vocabulary_id_2 and cs.concept_class_id='Ingredient'
+        union all
+        select 1 from concept c where c.concept_code=r.concept_code_2 and c.vocabulary_id=r.vocabulary_id_2 and c.concept_class_id='Ingredient'
+    ) 
+);
+commit;
 
 --6 Add upgrade relationships
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,

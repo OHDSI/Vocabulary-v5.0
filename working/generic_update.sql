@@ -34,11 +34,11 @@ COMMIT;
 ****************************/
 
 -- 2. Update existing concept details from concept_stage. 
--- All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date and valid_end_date) are updated
+-- All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date, invalid_reason) are updated
 -- with the exception of vocabulary_id (already there), concept_id (already there) and invalid_reason (below).
  
 UPDATE concept c
-SET (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date) = (
+SET (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date, invalid_reason) = (
   SELECT 
     cs.concept_name,
     cs.domain_id,
@@ -48,7 +48,8 @@ SET (concept_name, domain_id, concept_class_id, standard_concept, valid_start_da
       WHEN cs.valid_start_date = v.latest_update THEN c.valid_start_date
       ELSE cs.valid_start_date
     END,
-    cs.valid_end_date
+    cs.valid_end_date,
+	cs.invalid_reason
   FROM concept_stage cs, vocabulary v
   WHERE c.concept_id = cs.concept_id -- concept exists in both, meaning, is not new. But information might be new
   AND v.vocabulary_id = cs.vocabulary_id
@@ -63,7 +64,8 @@ COMMIT;
 -- This only works for vocabularies where we expect a full set of active concepts in concept_stage.
 -- If the vocabulary only provides changed concepts, this should not be run, and the update information is already dealt with in step 1.
 UPDATE concept c SET
-c.valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id) -- The invalid_reason is set below in 12. 
+	c.invalid_reason = 'D',
+	c.valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
 WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from _stage
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 AND c.invalid_reason IS NULL -- not already deprecated

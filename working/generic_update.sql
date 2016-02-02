@@ -34,11 +34,11 @@ COMMIT;
 ****************************/
 
 -- 2. Update existing concept details from concept_stage. 
--- All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date and valid_end_date) are updated
+-- All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date, invalid_reason) are updated
 -- with the exception of vocabulary_id (already there), concept_id (already there) and invalid_reason (below).
  
 UPDATE concept c
-SET (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date) = (
+SET (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date, invalid_reason) = (
   SELECT 
     cs.concept_name,
     cs.domain_id,
@@ -48,7 +48,8 @@ SET (concept_name, domain_id, concept_class_id, standard_concept, valid_start_da
       WHEN cs.valid_start_date = v.latest_update THEN c.valid_start_date
       ELSE cs.valid_start_date
     END,
-    cs.valid_end_date
+    cs.valid_end_date,
+	cs.invalid_reason
   FROM concept_stage cs, vocabulary v
   WHERE c.concept_id = cs.concept_id -- concept exists in both, meaning, is not new. But information might be new
   AND v.vocabulary_id = cs.vocabulary_id
@@ -63,7 +64,8 @@ COMMIT;
 -- This only works for vocabularies where we expect a full set of active concepts in concept_stage.
 -- If the vocabulary only provides changed concepts, this should not be run, and the update information is already dealt with in step 1.
 UPDATE concept c SET
-c.valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id) -- The invalid_reason is set below in 12. 
+	c.invalid_reason = 'D',
+	c.valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
 WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from _stage
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 AND c.invalid_reason IS NULL -- not already deprecated
@@ -375,15 +377,12 @@ WHEN MATCHED THEN UPDATE
 COMMIT;
 
 -- 11. Insert new relationships if they don't already exist
-INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
-                                  concept_id_2,
-                                  relationship_id,
-                                  valid_start_date,
-                                  valid_end_date,
-                                  invalid_reason)
-   SELECT DISTINCT 
-          r1.concept_id,
-          r2.concept_id,
+MERGE INTO concept_relationship r
+USING 
+(
+   SELECT  
+          r1.concept_id as concept_id_1,
+          r2.concept_id as concept_id_2,
           crs.relationship_id,
           crs.valid_start_date,
           crs.valid_end_date,
@@ -391,14 +390,27 @@ INSERT /*+ APPEND */ INTO concept_relationship (concept_id_1,
     FROM concept_relationship_stage crs
     JOIN concept r1 ON r1.concept_code = crs.concept_code_1 AND r1.vocabulary_id = crs.vocabulary_id_1
     JOIN concept r2 ON r2.concept_code = crs.concept_code_2 AND r2.vocabulary_id = crs.vocabulary_id_2
-    WHERE NOT EXISTS -- an identical one
-             (SELECT 1
-                FROM concept_relationship r
-               WHERE     r1.concept_id = r.concept_id_1
-                     AND r2.concept_id = r.concept_id_2
-                     AND crs.relationship_id = r.relationship_id
-              )
-;
+) crs_int
+ON (
+    crs_int.concept_id_1 = r.concept_id_1
+    AND crs_int.concept_id_2 = r.concept_id_2
+    AND crs_int.relationship_id = r.relationship_id
+)
+WHEN NOT MATCHED THEN INSERT
+    (concept_id_1,
+    concept_id_2,
+    relationship_id,
+    valid_start_date,
+    valid_end_date,
+    invalid_reason)
+VALUES (
+    crs_int.concept_id_1,
+    crs_int.concept_id_2,
+    crs_int.relationship_id,
+    crs_int.valid_start_date,
+    crs_int.valid_end_date,
+    crs_int.invalid_reason
+);
 COMMIT;
 
 -- The following are a bunch of rules for Maps to and Maps from relationships. 
@@ -525,12 +537,13 @@ COMMIT;
 
 -- 14. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
 UPDATE concept c SET
-  c.invalid_reason = 'U'
-WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
-AND EXISTS (
+	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
+	c.invalid_reason = 'U'
+WHERE EXISTS (
   SELECT 1
   FROM concept_relationship r
     WHERE r.concept_id_1 = c.concept_id 
+	  AND nvl(r.invalid_reason,'X') in ('X','U')
       AND r.relationship_id in (
         'UCUM replaced by',
         'Concept replaced by',
@@ -545,17 +558,20 @@ AND EXISTS (
       )      
   ) 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-AND c.invalid_reason IS NULL -- not already upgraded
+AND (c.invalid_reason IS NULL OR c.invalid_reason = 'D') -- not already upgraded
 ;
+COMMIT;
 
--- 15. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table
+-- 15. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table for upgraded concepts
 UPDATE concept c SET
-  c.invalid_reason = 'D'
-WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
-AND NOT EXISTS (
+	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
+	c.invalid_reason = 'D'
+WHERE
+NOT EXISTS (
   SELECT 1
   FROM concept_relationship r
     WHERE r.concept_id_1 = c.concept_id 
+	  AND nvl(r.invalid_reason,'X') in ('X','U')
       AND r.relationship_id in (
         'UCUM replaced by',
         'Concept replaced by',
@@ -570,8 +586,9 @@ AND NOT EXISTS (
       )      
   ) 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-AND c.invalid_reason IS NULL -- not already deprecated
+AND c.invalid_reason = 'U' -- not already deprecated
 ;
+COMMIT;
 
 -- 16. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
 UPDATE concept SET

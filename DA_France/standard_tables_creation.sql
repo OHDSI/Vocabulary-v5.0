@@ -1,7 +1,6 @@
---Below is a list of tables created manually, please look at "munual_tables" file, https://github.com/OHDSI/Vocabulary-v5.0/blob/master/DA_France/munual_tables
---france is a source table where 'Non Human usage products removed'
---france_names_translation_v2 -- translation of France forms to English
---INGR_NEED_TO_MAP_DONE and add_ingr  --munualy created table of ingredients mapping
+--tables created manually, please look at "manual_tables" file, https://github.com/OHDSI/Vocabulary-v5.0/blob/master/DA_France/munual_tables
+--france_names_translation
+--INGR_NEED_TO_MAP_DONE and add_ingr  --munualy created tables of ingredients mapping
 --BRAND_NEED_TO_MAP_DONE  --munualy created table of brands mapping
 --new_form_name_mapping  --forms mapping
 
@@ -34,7 +33,7 @@ and english != 'Non Human Usage Products')) -- 'Non Human Usage Products' means 
 
 CREATE TABLE Forms AS (
 SELECT DOSE_FORM_NAME AS concept_name, 'Dose Form' as concept_class_id
-FROM france_names_translation_v2 -- munual translations
+FROM france_names_translation -- munual translations
 )
 ;
 -- units, take units used for volume and strength definition
@@ -54,23 +53,20 @@ select trim( regexp_replace (replace ((volume||' '||substr ((replace (molecule, 
 from france a
 join  Brand d on d.CONCEPT_NAME = a.PRODUCT_DESC
 and  english != 'Non Human Usage Products'
-left outer join  france_names_translation_v2 c on a.LB_NFC_3 = c.dose_form  -- france_names_translation_v2 is munually created table containing Form translation to English 
+left outer join  france_names_translation c on a.LB_NFC_3 = c.dose_form  -- france_names_translation is munually created table containing Form translation to English 
 )
 ;
-
 create table Clinical_drug as (
  --' / ' is a standard delimeter between two separate ingredients in RxNorm
 select trim( regexp_replace (replace ((volume||' '||substr ((replace (molecule, '+', ' / ')),1, 175) --To avoid names length more than 255
 ||' '||c.DOSE_FORM_NAME||' Box of '||a.packsize), 'NULL', ''), '\s+', ' '))
 as concept_name, pfc as concept_code, case when (a.volume = 'NULL' or a.volume is null) then 'Clinical Drug Box'  else  'Quant Clinical Box' end as concept_class_id
 from france a
-left outer join france_names_translation_v2 c on a.LB_NFC_3 = c.dose_form -- france_names_translation_v2 is munually created table containing Form translation to English 
+left outer join france_names_translation c on a.LB_NFC_3 = c.dose_form -- france_names_translation is munually created table containing Form translation to English 
 where  english != 'Non Human Usage Products'
 and pfc not in (select concept_code from Branded_Drug)
 )
-
 ;
-
 -- drug_concept_STAGE template
 create table DRUG_concept_STAGE (
 concept_name	varchar(255),
@@ -137,7 +133,7 @@ create table drug_to_form as (
 select a.concept_code as drug_code,  b.concept_code as Form_code from drug_concept_stage a 
 join drug_concept_stage b
 on (a.concept_class_id LIKE '%Branded%' OR a.concept_class_id LIKE '%Clinical%') and b.concept_class_id = 'Dose Form'
-join france_names_translation_v2 t on t.dose_form_name = b.concept_name
+join france_names_translation t on t.dose_form_name = b.concept_name
 join france c on a.concept_code = c.pfc
 and c.LB_NFC_3 = t.dose_form)
 ;
@@ -504,7 +500,7 @@ replace (regexp_replace (volume, '[[:digit:]]+(\.[[:digit:]]+)?'), 'NULL',''),  
 and b.english !='Non Human Usage Products'
 where concept_code_1 not in (select drug_concept_code from DRUG_STRENGTH_STAGE  )
 ;
---munual update when we don't have units in the source table
+--manual update when we don't have units in the source table
 UPDATE DRUG_STRENGTH_STAGE
    SET AMOUNT_UNIT = 'MG'
 WHERE DRUG_CONCEPT_CODE = '2558101'
@@ -650,180 +646,6 @@ CREATE TABLE DRUG_STRENGTH_STAGE AS (SELECT * FROM DRUG_STRENGTH_STAGE_V3)
 ;
 drop table DRUG_STRENGTH_STAGE_V3
 ;
---based on tables we already have create normal names 
---create ranked DRUG_STRENGTH_STAGE to define bind each ingredient with dosage corresponding
-create table drug_strength_rank as 
- (select DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT,BOX_SIZE,
-RANK() OVER (PARTITION BY drug_concept_code ORDER BY INGREDIENT_CONCEPT_CODE) as rank1
-from DRUG_STRENGTH_STAGE)
-;
---create new drug names to update drug_concept_stage table
-create table Clinical_name_0 as (
-select distinct 
---using different cases for different number of ingredients
-case when sc.cnt = 1 then 
---if drug contains only one ingredient 
-case when s1.amount_value is not null then d1.concept_name||' '||s1.amount_value||' '||s1.amount_unit
-when s1.numerator_value is not null and s1.numerator_unit !='%' then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||round (s1.numerator_value/s1.denominator_value, 3)||' '||s1.numerator_unit||'/'||s1.denominator_unit
-when s1.numerator_value is not null and s1.numerator_unit ='%'  then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||s1.numerator_value||' '||s1.numerator_unit
-when s1.numerator_value is null and s1.amount_value is null and s1.denominator_value is not null then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name
-else d1.concept_name end 
-||' '||c.dose_form_name||' Box of '||a.packsize
---if drug contains 2 ingredients
-when sc.cnt = 2 then 
-case when s1.amount_value is not null then d1.concept_name||' '||s1.amount_value||' '||s1.amount_unit
-when s1.numerator_value is not null and s1.numerator_unit !='%' then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||round (s1.numerator_value/s1.denominator_value, 3)||' '||s1.numerator_unit||'/'||s1.denominator_unit
-when s1.numerator_value is not null and s1.numerator_unit ='%'  then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||s1.numerator_value||' '||s1.numerator_unit
-when s1.numerator_value is null and s1.amount_value is null and s1.denominator_value is not null then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name
-else d1.concept_name end 
-||' / '||
-case when s2.amount_value is not null then d2.concept_name||' '||s2.amount_value||' '||s2.amount_unit
-when s2.numerator_value is not null and s2.numerator_unit !='%' then d2.concept_name||' '||round (s2.numerator_value/s2.denominator_value, 3)||' '||s2.numerator_unit||'/'||s2.denominator_unit
-when s2.numerator_value is not null and s2.numerator_unit ='%'  then d2.concept_name||' '||s2.numerator_value||' '||s2.numerator_unit||' '||s2.denominator_value||' '||s2.denominator_unit
-when s2.numerator_value is null and s2.amount_value is null and s2.denominator_value is not null then d2.concept_name
-else d2.concept_name end 
-||' '||c.dose_form_name||' Box of '||a.packsize
---if drug contains 3 ingredients
-when sc.cnt = 3 then 
-case when s1.amount_value is not null then d1.concept_name||' '||s1.amount_value||' '||s1.amount_unit
-when s1.numerator_value is not null and s1.numerator_unit !='%' then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||round (s1.numerator_value/s1.denominator_value, 3)||' '||s1.numerator_unit||'/'||s1.denominator_unit
-when s1.numerator_value is not null and s1.numerator_unit ='%'  then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||s1.numerator_value||' '||s1.numerator_unit
-when s1.numerator_value is null and s1.amount_value is null and s1.denominator_value is not null then s1.denominator_value||' '||s1.denominator_unit||' '|| d1.concept_name
-else d1.concept_name end ||' / '||
-case when s2.amount_value is not null then d2.concept_name||' '||s2.amount_value||' '||s2.amount_unit
-when s2.numerator_value is not null and s2.numerator_unit !='%' then d2.concept_name||' '||round (s2.numerator_value/s2.denominator_value, 3)||' '||s2.numerator_unit||'/'||s2.denominator_unit
-when s2.numerator_value is not null and s2.numerator_unit ='%'  then d2.concept_name||' '||s2.numerator_value||' '||s2.numerator_unit||' '||s2.denominator_value||' '||s2.denominator_unit
-when s2.numerator_value is null and s2.amount_value is null and s2.denominator_value is not null then d2.concept_name
-else d2.concept_name end ||' / '||
-case when s3.amount_value is not null then d3.concept_name||' '||s3.amount_value||' '||s3.amount_unit
-when s3.numerator_value is not null and s3.numerator_unit !='%' then d3.concept_name||' '||round (s3.numerator_value/s3.denominator_value, 3)||' '||s3.numerator_unit||'/'||s3.denominator_unit
-when s3.numerator_value is not null and s3.numerator_unit ='%'  then d3.concept_name||' '||s3.numerator_value||' '||s3.numerator_unit||' '||s3.denominator_value||' '||s3.denominator_unit
-when s3.numerator_value is null and s3.amount_value is null and s3.denominator_value is not null then d3.concept_name
-else d3.concept_name end 
-||' '||c.dose_form_name||' Box of '||a.packsize
---if drug has more than 3 ingredients, we don't have exact information about dosage used, so we don't include here drug_strength information
-else s1.denominator_value||' '||s1.denominator_unit||' '||substr ((replace (molecule, '+', ' / ')),1, 173) -- cut names if concept name length is more than 255, 70 is a maximal length of obligative info such as dose form, volume, Brand name, package size, so we can cut list of ingredients
-||' '||c.dose_form_name||' Box of '||a.packsize
-end
- as concept_name
-,pfc as concept_code
-from france a
-
- join  france_names_translation_v2  c -- France form descriptions translated to English
-on a.LB_NFC_3 = c.dose_form 
---joining with drug_strength table taking into account number of ingredients
-left join (select * from drug_strength_rank  where rank1 = 1) s1
-on s1.drug_concept_code = a.pfc
-left join drug_concept_stage d1 on d1.concept_code = s1.INGREDIENT_CONCEPT_CODE
- 
-left join (select * from drug_strength_rank  where rank1 = 2) s2
-on s2.drug_concept_code = a.pfc 
-left join drug_concept_stage d2 on d2.concept_code = s2.INGREDIENT_CONCEPT_CODE
-
-left join (select * from drug_strength_rank  where rank1 = 3)  s3
-on s3.drug_concept_code = a.pfc 
-left join drug_concept_stage d3 on d3.concept_code = s3.INGREDIENT_CONCEPT_CODE
-
-join ( select drug_concept_code, count(1) as cnt from  drug_strength_stage group by drug_concept_code) sc on sc.drug_concept_code =a.pfc 
-join drug_concept_stage f on  f.concept_code = a.pfc and f.concept_class_id like '%Clinical%'
-)
-;
---almost the same query as previous, but for Branded Drug
-create table Branded_name_0 as (
-select distinct 
---using different cases for different number of ingredients
-case when sc.cnt = 1 then 
--- if drug has only 1 ingredient
-case when s1.amount_value is not null then d1.concept_name||' '||s1.amount_value||' '||s1.amount_unit
-when s1.numerator_value is not null and s1.numerator_unit !='%' then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||round (s1.numerator_value/s1.denominator_value, 3)||' '||s1.numerator_unit||'/'||s1.denominator_unit
-when s1.numerator_value is not null and s1.numerator_unit ='%'  then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||s1.numerator_value*1||' '||s1.numerator_unit
-when s1.numerator_value is null and s1.amount_value is null and s1.denominator_value is not null then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name
-else d1.concept_name end 
-
-||' '||c.dose_form_name||' '||' ['||PRODUCT_DESC||']'||' Box of '||a.packsize
--- if drug has 2 ingredients
-when sc.cnt = 2 then 
-case when s1.amount_value is not null then d1.concept_name||' '||s1.amount_value||' '||s1.amount_unit
-when s1.numerator_value is not null and s1.numerator_unit !='%' then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||round (s1.numerator_value/s1.denominator_value, 3)||' '||s1.numerator_unit||'/'||s1.denominator_unit
-when s1.numerator_value is not null and s1.numerator_unit ='%'  then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||s1.numerator_value||' '||s1.numerator_unit
-when s1.numerator_value is null and s1.amount_value is null and s1.denominator_value is not null then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name
-else d1.concept_name end 
-||' / '||
-case when s2.amount_value is not null then d2.concept_name||' '||s2.amount_value||' '||s2.amount_unit
-when s2.numerator_value is not null and s2.numerator_unit !='%' then d2.concept_name||' '||round (s2.numerator_value/s2.denominator_value, 3)||' '||s2.numerator_unit||'/'||s2.denominator_unit
-when s2.numerator_value is not null and s2.numerator_unit ='%'  then d2.concept_name||' '||s2.numerator_value||' '||s2.numerator_unit||' '||s2.denominator_value||' '||s2.denominator_unit
-when s2.numerator_value is null and s2.amount_value is null and s2.denominator_value is not null then d2.concept_name
-else d2.concept_name end 
-||' '||c.dose_form_name||' '||' ['||PRODUCT_DESC||']'||' Box of '||a.packsize
--- if drug has only 3 ingredients
-when sc.cnt = 3 then 
-case when s1.amount_value is not null then d1.concept_name||' '||s1.amount_value||' '||s1.amount_unit
-when s1.numerator_value is not null and s1.numerator_unit !='%' then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||round (s1.numerator_value/s1.denominator_value, 3)||' '||s1.numerator_unit||'/'||s1.denominator_unit
-when s1.numerator_value is not null and s1.numerator_unit ='%'  then s1.denominator_value||' '||s1.denominator_unit||' '||d1.concept_name||' '||s1.numerator_value||' '||s1.numerator_unit
-when s1.numerator_value is null and s1.amount_value is null and s1.denominator_value is not null then s1.denominator_value||' '||s1.denominator_unit||' '|| d1.concept_name
-else d1.concept_name end ||' / '||
-case when s2.amount_value is not null then d2.concept_name||' '||s2.amount_value||' '||s2.amount_unit
-when s2.numerator_value is not null and s2.numerator_unit !='%' then d2.concept_name||' '||round (s2.numerator_value/s2.denominator_value, 3)||' '||s2.numerator_unit||'/'||s2.denominator_unit
-when s2.numerator_value is not null and s2.numerator_unit ='%'  then d2.concept_name||' '||s2.numerator_value||' '||s2.numerator_unit||' '||s2.denominator_value||' '||s2.denominator_unit
-when s2.numerator_value is null and s2.amount_value is null and s2.denominator_value is not null then d2.concept_name
-else d2.concept_name end ||' / '||
-case when s3.amount_value is not null then d3.concept_name||' '||s3.amount_value||' '||s3.amount_unit
-when s3.numerator_value is not null and s3.numerator_unit !='%' then d3.concept_name||' '||round (s3.numerator_value/s3.denominator_value, 3)||' '||s3.numerator_unit||'/'||s3.denominator_unit
-when s3.numerator_value is not null and s3.numerator_unit ='%'  then d3.concept_name||' '||s3.numerator_value||' '||s3.numerator_unit||' '||s3.denominator_value||' '||s3.denominator_unit
-when s3.numerator_value is null and s3.amount_value is null and s3.denominator_value is not null then d3.concept_name
-else d3.concept_name end 
-||' '||c.dose_form_name||' ['||PRODUCT_DESC||']'||' Box of '||a.packsize
---if drug has more than 3 ingredients
-else s1.denominator_value||' '||s1.denominator_unit||' '||substr ((replace (molecule, '+', ' / ')),1, 173)||' '||c.dose_form_name||' ['||PRODUCT_DESC||']'||' Box of '||a.packsize
-end
- as concept_name
-,pfc as concept_code
-from france a
-
- join  france_names_translation_v2  c --France forms descriptions translated to English
-on a.LB_NFC_3 = c.dose_form
-
-left join (select * from drug_strength_rank  where rank1 = 1) s1
-on s1.drug_concept_code = a.pfc
-left join drug_concept_stage d1 on d1.concept_code = s1.INGREDIENT_CONCEPT_CODE
- 
-left join (select * from drug_strength_rank  where rank1 = 2) s2
-on s2.drug_concept_code = a.pfc 
-left join drug_concept_stage d2 on d2.concept_code = s2.INGREDIENT_CONCEPT_CODE
-
-left join (select * from drug_strength_rank  where rank1 = 3)  s3
-on s3.drug_concept_code = a.pfc 
-left join drug_concept_stage d3 on d3.concept_code = s3.INGREDIENT_CONCEPT_CODE
-
-join ( select drug_concept_code, count(1) as cnt from  drug_strength_stage group by drug_concept_code) sc on sc.drug_concept_code =a.pfc 
-join drug_concept_stage f on  f.concept_code = a.pfc and f.concept_class_id like '%Branded%'
-)
-;
---inaccuracy occured in names such as '0.001' turned to '.001', and several spaces in a row because some entries used for name building could be null
---fix these inaccuaries for clincal drug
-create table clinical_name_1 as (
-select trim (regexp_replace (replace(( replace (concept_name, ' .', ' 0.')), '/.', '/0.'), '\s+', ' ')) as concept_name, CONCEPT_CODE from clinical_name_0)
-;
---inaccuracy occured in names such as '0.001' turned to '.001', and several spaces in a row because some entries used for name building could be null
---fix these inaccuaries for Branded drug
-create table branded_name_1 as (
-select trim( regexp_replace (replace(( replace (concept_name, ' .', ' 0.')), '/.', '/0.'), '\s+', ' ')) as concept_name, CONCEPT_CODE from branded_name_0)
-;
---update drug_concept_stage with Branded drugs
-update drug_concept_stage a 
-set concept_name = (select concept_name from branded_name_1 b where a.concept_code = b.concept_code)
-where exists (select concept_name from branded_name_1 b where a.concept_code = b.concept_code)
-;
---update drug_concept_stage with Clinical drugs 
-update drug_concept_stage a 
-set concept_name = (select concept_name from clinical_name_1 b where a.concept_code = b.concept_code)
-where exists (select concept_name from clinical_name_1 b where a.concept_code = b.concept_code)
-;
---replace '.05' entries to '0.05'
-update drug_concept_stage a 
-set concept_name = (select '0'||concept_name from drug_concept_stage b where concept_name like '.%' and a.concept_code = b.concept_code)
-where  exists (select '0'||concept_name from drug_concept_stage b where concept_name like '.%' and a.concept_code = b.concept_code)
-;
 drop table ingr purge;
 	drop table Brand purge;
 	drop TABLE Forms purge;
@@ -842,9 +664,13 @@ drop table ingr purge;
 	drop table Brand_names_mapping purge; 
 	drop table ingr_w_dos_1 purge; 
 	drop table  ingr_w_dos_3 purge; 
-	drop table drug_strength_rank  purge; 
-	drop table clinical_name_0 purge; 
-	drop table Branded_name_0 purge; 	
-	drop table clinical_name_1 purge; 
-	drop table branded_name_1 purge; 	
 drop table quant_to_drg purge; 
+drop table  france_names_translation purge;
+drop table INGR_NEED_TO_MAP_DONE ;
+drop table add_ingr purge ;
+drop table BRAND_NEED_TO_MAP_DONE  purge;
+drop table  new_form_name_mapping purge; 
+
+commit
+;
+--after executing this script please execute conc_stage_complete.sql

@@ -1,18 +1,20 @@
--- This is not fully ready and commented yet 12-Jan-2016
-
 /************************************************
-* Compare new drug vocabulary q to existing one r
+* This script takes a drug vocabulary q and     *
+* compares it to the existing drug vocabulary r *
+* As a result it creates records in the         *
+* concept_relationship_stage table              *
 ************************************************/
 
--- Create lookup tables for existing vocab (RxNorm and new ones)
+-- 1. Create lookup tables for existing vocab r (RxNorm and public country-specific ones)
 -- Create table containing ingredients for each drug
 create table r_drug_ing nologging as
   select de.concept_id as drug_id, an.concept_id as ing_id
   from concept_ancestor a 
-  join concept an on a.ancestor_concept_id=an.concept_id and an.concept_class_id='Ingredient' and an.vocabulary_id='RxNorm'
-  join concept de on de.concept_id=a.descendant_concept_id -- and de.concept_class_id!='Ingredient' -- and de.concept_class_id='Branded Drug Comp'
+  join concept an on a.ancestor_concept_id=an.concept_id and an.concept_class_id='Ingredient' 
+    and an.vocabulary_id in ('RxNorm') -- to be expanded as new vocabs are added
+  join concept de on de.concept_id=a.descendant_concept_id 
 ;
--- count number of ingredients for each drug
+-- Count number of ingredients for each drug
 create table r_ing_count nologging as
   select drug_id as did, count(*) as cnt from r_drug_ing group by drug_id
 ;
@@ -21,18 +23,19 @@ update r_ing_count set cnt=null where did in (select concept_id from concept whe
 
 create index x_r_drug_ing on r_drug_ing(drug_id, ing_id) nologging;
 
--- Create lookup tables for query vocab (new vocab)
+-- Create lookup tables for query vocab q (new vocab)
 create table q_drug_ing nologging as
--- for each drug code list standard ingredient (translated ID and original code)
-select drug.concept_code as drug_code, nvl(ing.concept_id, 0) as ing_id, i.concept_code as ing_code -- if ingredient is not mapped use 0 to get the right count
+select drug.concept_code as drug_code, nvl(ing.concept_id, 0) as ing_id, i.concept_code as ing_code -- if ingredient is not mapped use 0 to still get the right ingredient count
 from drug_concept_stage i
 left join relationship_to_concept r1 on r1.concept_code_1=i.concept_code
 left join concept ing on ing.concept_id=r1.concept_id_2 -- link standard ingredients to existing ones
 join internal_relationship_stage r2 on r2.concept_code_2=i.concept_code
-join drug_concept_stage drug on drug.concept_class_id not in ('Unit', 'Ingredient', 'Brand Name', 'Non-Drug Prod', 'Dose Form') and drug.concept_code=r2.concept_code_1
+join drug_concept_stage drug on drug.concept_class_id not in ('Unit', 'Ingredient', 'Brand Name', 'Non-Drug Prod', 'Dose Form', 'Device', 'Observation') -- include only drug product concept classes
+  and drug.concept_code=r2.concept_code_1
 where i.concept_class_id='Ingredient'
 ;
 
+-- Count ingredients per drug
 create table q_ing_count nologging as
   select drug_code as dcode, count(*) as cnt from q_drug_ing group by drug_code
 ;
@@ -45,14 +48,14 @@ create table match nologging as
 ;
 create index x_match on match(q_dcode, r_did) nologging;
 
--- create table with all drugs in q and r and the number of ingredients they share
+-- Create table with all drugs in q and r and the number of ingredients they share
 create table shared_ing nologging as
 select r_did, q_dcode, count(*) as cnt from match group by r_did, q_dcode
 ;
 -- Set all counts for Clinical Drug Comp to null, so in comparisons it can match whatever number necessary. Reason is that, like ingredients, Clinical Drug Comp is always only one ingredient
 update shared_ing set cnt=null where r_did in (select concept_id from concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
 
--- Create table that matches drugs q to r, based Form, Brand Name (if exists), and dose. Does not take into account box size or quantity
+-- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size or quantity are not yet compared
 create table q_to_r_anydose nologging as
 -- create table with all query drug codes q_dcode mapped to standard drug concept ids r_did, irrespective of the correct dose
 with m as (
@@ -71,8 +74,7 @@ select distinct
   m.rc_cnt -- get the number of ingredients in the r. It's set to null for ingredients and Clin Drug Comps, and we need that for the next step
 -- get ingredients and their counts to match
 from m m
-
--- get the Dose Forms for each q and r, if has no Form use 1, 0 if not mapped
+-- get the Dose Forms for each q and r
 left join (
   select r.concept_code_1, m.concept_id_2, nvl(m.precedence, 1) as precedence
   from internal_relationship_stage r -- if Dose Form exists but not mapped use 0
@@ -84,8 +86,7 @@ left join (
   join concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
   where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
 ) r_df on r_df.concept_id_1=m.r_did
-
--- get Brand Name for q and r, if not Branded use 1 for Clinical, 0 if not mapped
+-- get Brand Name for q and r
 left join (
   select r.concept_code_1, m.concept_id_2, nvl(m.precedence, 1) as precedence
   from internal_relationship_stage r 
@@ -93,40 +94,39 @@ left join (
   join relationship_to_concept m on m.concept_code_1=r.concept_code_2
 ) q_bn on q_bn.concept_code_1=m.q_dcode
 left join (
-  select r.concept_id_1, r.concept_id_2 -- if no Brand Name exists (Clinical Drug) return 0
+  select r.concept_id_1, r.concept_id_2 
   from concept_relationship r
   join concept on concept_id=r.concept_id_2 and concept_class_id ='Brand Name'
   where r.invalid_reason is null 
 ) r_bn on r_bn.concept_id_1=m.r_did and m.rc_cnt is not null -- only take Brand Names if they don't come from Ingredients or Clinical Drug Comps
-
+-- remove comments if mapping should be done both upwards (standard) and downwards (to find a possible unique low-granularity solution)
 where coalesce(q_bn.concept_id_2, /* q_bn.concept_id_2, */0)=coalesce(r_bn.concept_id_2, q_bn.concept_id_2, 0) -- Allow matching of the same Brand Name or no Brand Name, but not another Brand Name
 and coalesce(q_df.concept_id_2, /*q_df.concept_id_2, */0)=coalesce(r_df.concept_id_2, q_df.concept_id_2, 0) -- Allow matching of the same Dose Form or no Dose Form, but not another Dose Form´
--- and m.q_dcode='1016102' and m.q_icode='OMOP13735' 
 ;
 
--- Create temp tables for speed
--- create for each drug/ingredient q to r pair two coefficients: Do the amounts come close and do the units comply
+-- Add matching of dose and its units
 create table q_to_r_wdose nologging as
+-- Create two temp tables with all strength and unit information
 with q as (
   select q_ds.drug_concept_code, q_ds.ingredient_concept_code, 
-  q_ds.amount_value*q_ds_a.conversion_factor as amount_value, q_ds_a.concept_id_2 as amount_unit_concept_id, 
-  q_ds.numerator_value*q_ds_n.conversion_factor as numerator_value, q_ds_n.concept_id_2 as numerator_unit_concept_id,
-  nvl(q_ds.denominator_value, 1)*q_ds_d.conversion_factor as denominator_value, q_ds_d.concept_id_2 as denominator_unit_concept_id,
-  coalesce(q_ds_a.precedence, q_ds_n.precedence, q_ds_d.precedence) as u_prec
+    q_ds.amount_value*q_ds_a.conversion_factor as amount_value, q_ds_a.concept_id_2 as amount_unit_concept_id, 
+    q_ds.numerator_value*q_ds_n.conversion_factor as numerator_value, q_ds_n.concept_id_2 as numerator_unit_concept_id,
+    nvl(q_ds.denominator_value, 1)*q_ds_d.conversion_factor as denominator_value, q_ds_d.concept_id_2 as denominator_unit_concept_id,
+    coalesce(q_ds_a.precedence, q_ds_n.precedence, q_ds_d.precedence) as u_prec
   from drug_strength_stage q_ds
   left join relationship_to_concept q_ds_a on q_ds_a.concept_code_1=q_ds.amount_unit -- amount units
   left join relationship_to_concept q_ds_n on q_ds_n.concept_code_1=q_ds.numerator_unit -- numerator units
   left join relationship_to_concept q_ds_d on q_ds_d.concept_code_1=q_ds.denominator_unit -- denominator units
 ), r as (
--- drug_strength of r
   select 
     r_ds.drug_concept_id, r_ds.ingredient_concept_id, 
     r_ds.amount_value, r_ds.amount_unit_concept_id,
     r_ds.numerator_value, r_ds.numerator_unit_concept_id,
     nvl(r_ds.denominator_value, 1) as denominator_value, -- Quantified have a value in the denominator, the others haven't.
     r_ds.denominator_unit_concept_id
-  from da_france.drug_strength r_ds -- CHANGE BEFORE RELEASE and remove schema
+  from drug_strength r_ds 
 )
+-- Create variables div as r amount / q amount, and unit as 1 for matching and 0 as non-matching 
 select 
   q_dcode, q_icode, r_did, r_iid, nvl(df_prec, 100) as df_prec, nvl(bn_prec, 100) as bn_prec, nvl(u_prec, 100) as u_prec, i_prec,
   case when div>1 then 1/div else div end as div, -- the one the closest to 1 wins, but the range is 0-1, which is the opposite direction of the other ones
@@ -137,8 +137,8 @@ from (
       when r.drug_concept_id is null then 1 -- if no drug_strength exist (Drug Forms etc.)
       when q.amount_value is not null and r.amount_value is not null then q.amount_value/r.amount_value
       when q.numerator_unit_concept_id=8554 and r.numerator_unit_concept_id=8576 and r.denominator_unit_concept_id=8587 then (q.numerator_value*10)/(r.numerator_value/r.denominator_value) -- % vs mg/mL
-      when q.numerator_unit_concept_id=8554 and r.numerator_unit_concept_id!=8554 then (q.numerator_value/100)/(r.numerator_value/r.denominator_value) -- percent in one but not in the other
-      when q.numerator_unit_concept_id!=8554 and r.numerator_unit_concept_id=8554 then (q.numerator_value/q.denominator_value)/(r.numerator_value/100) -- percent in the other but not in one
+      when q.numerator_unit_concept_id=8554 and r.numerator_unit_concept_id!=8554 then (q.numerator_value/100)/(r.numerator_value/r.denominator_value) -- % in one but not in the other
+      when q.numerator_unit_concept_id!=8554 and r.numerator_unit_concept_id=8554 then (q.numerator_value/q.denominator_value)/(r.numerator_value/100) -- % in the other but not in one
       when q.numerator_value is not null and r.numerator_value is not null then (q.numerator_value/q.denominator_value)/(r.numerator_value/r.denominator_value) -- denominator empty unless Quant
     else 0 end as div,
     case 
@@ -157,7 +157,7 @@ from (
 )
 ;
 
--- remove all multiple mappings with close divs
+-- Remove all multiple mappings with close divs and keep the best
 delete from q_to_r_wdose
 where rowid in (
   select rowid from (
@@ -178,14 +178,13 @@ where 1=0;
 insert /*+ APPEND */ into q_to_r
 select 
   a.q_dcode, a.r_did, null as r_iid, a.bn_prec, a.df_prec, a.u_prec, a.rc_cnt
-from ( -- take the distinct set of drug-drug paris with the same brandname, doseform and unit precedence
-  select q_dcode, r_did, bn_prec, df_prec, u_prec, rc_cnt, count(8) as cnt from q_to_r_wdose where nvl(rc_cnt, 0)>1 -- only for those where multiple ingredients could be contained in the concept (everything but Ingredient and Clin Drug Comp)
--- and q_dcode = '3645105'
+from ( -- take the distinct set of drug-drug pairs with the same Brand Name, Dose Form and unit precedence
+-- only for those where multiple ingredients could be contained in the concept (everything but Ingredient and Clin Drug Comp)
+  select q_dcode, r_did, bn_prec, df_prec, u_prec, rc_cnt, count(8) as cnt from q_to_r_wdose where nvl(rc_cnt, 0)>1 
   group by q_dcode, r_did, bn_prec, df_prec, u_prec, rc_cnt
 ) a
 -- but make sure there are sufficient amount of components (ingredients) in each group
 where a.cnt=a.rc_cnt
--- group within each drug-to drug pair, with the same brandname, doseform and unit precedence numbers
 group by a.q_dcode, a.r_did, a.bn_prec, a.df_prec, a.u_prec, a.rc_cnt
 -- not one of the components should miss the match
 having not exists (
@@ -193,6 +192,7 @@ having not exists (
   from q_to_r_wdose m -- join the set of the same 
   where a.q_dcode=m.q_dcode and a.r_did=m.r_did
   and a.bn_prec=m.bn_prec and a.df_prec=m.df_prec and a.u_prec=m.u_prec
+-- Change the factor closer to 1 if matching should be tighter. Currently, anything within 10% amount will be considered a match.
   and (m.div<0.9 or m.u_match=0)
 )
 ;
@@ -207,17 +207,16 @@ and div>=0.9 and u_match=1
 ;
 commit;
 
--- Get the best possible mapping
+-- Get the best possible mapping that is unique in its concept class. Try bottom up from the lowest end of the drug hierarchy
 create table best_map nologging as
 with r as (
   select qr.*, c.concept_class_id from q_to_r qr join concept c on c.concept_id=qr.r_did
 )
 select distinct 
---   rcnt.*,
   rmap.* 
 from (
+-- get the best match within class, with the best brand name, dose form and unit precedence
   select 
--- cnt, cclass, bn_prec as p, df_prec as d, u_prec as u,
     q_dcode, 
     first_value(bn_prec) over (partition by q_dcode order by cclass, bn_prec, df_prec, u_prec) as bn_prec,
     first_value(df_prec) over (partition by q_dcode order by cclass, bn_prec, df_prec, u_prec) as df_prec,
@@ -227,8 +226,9 @@ from (
       select q_dcode, r_iid, bn_prec, df_prec, u_prec, cclass, count(8) as cnt
       from (
         select q_dcode, 
-          r_iid, -- we need to group by ingredient for the concept classes that keep ingredients individually (Ing, Clin Drug Comp)
+          r_iid, -- group by ingredient for the concept classes that keep ingredients individually (Ing, Clin Drug Comp)
           bn_prec, df_prec, u_prec, 
+-- Define the order by which to attempt the best match. Start at the bottom
           decode(concept_class_id,
             'Quant Branded Box', 1,
             'Quant Clinical Box', 2,
@@ -252,7 +252,6 @@ from (
   ) 
 ) rcnt
 join r rmap on rmap.q_dcode=rcnt.q_dcode and rmap.bn_prec=rcnt.bn_prec and rmap.df_prec=rcnt.df_prec and rmap.u_prec=rcnt.u_prec
--- where rcnt.q_dcode='1136003'-- '3195423' 3645105 1136004
 ;
 
 -- Write concept_relationship_stage

@@ -337,6 +337,38 @@ UPDATE concept_relationship d
        -- Deal with replacement relationships below, since they can only have one per deprecated concept
 ;
 
+-- and special hack for HCPCS to RxNorm relationships: deprecate old mappings from deprecated concept but only if we have a new one in concept_relationship_stage with the same source concept
+update concept_relationship d  
+set valid_end_date  = 
+        (SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+             FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+          WHERE c.concept_id IN (d.concept_id_1, d.concept_id_2) --take both concept ids to get proper latest_update
+        )
+      - 1, 
+      invalid_reason = 'D'
+where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
+(
+    select c1.concept_id, c2.concept_id, r.relationship_id From 
+    concept c1, 
+    concept c2, 
+    concept_relationship r, 
+    concept_relationship_stage cs
+    where c1.concept_id=r.concept_id_1
+    and c2.concept_id=r.concept_id_2
+    and r.invalid_reason is null
+    and (c1.valid_end_date<>to_date ('20991231', 'YYYYMMDD') or c2.valid_end_date<>to_date ('20991231', 'YYYYMMDD'))
+    and (
+        (cs.concept_code_1=c1.concept_code and cs.concept_code_2<>c2.concept_code and r.relationship_id='Maps to' and cs.vocabulary_id_1='HCPCS' and cs.vocabulary_id_2='RxNorm')
+        or
+        (cs.concept_code_1<>c1.concept_code and cs.concept_code_2=c2.concept_code and r.relationship_id='Mapped from' and cs.vocabulary_id_1='RxNorm' and cs.vocabulary_id_2='HCPCS')
+    )
+    and cs.vocabulary_id_1=c1.vocabulary_id
+    and cs.vocabulary_id_2=c2.vocabulary_id
+    and cs.relationship_id=r.relationship_id
+    and cs.invalid_reason is null
+);
+COMMIT;
+
 -- 10. Deprecate replacement concept_relationship records if we have a new one in concept_relationship_stage with the same source concept (deprecated concept)
 UPDATE concept_relationship d
    SET valid_end_date  = 

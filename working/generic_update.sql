@@ -174,7 +174,7 @@ where d.concept_id_1 in (
     and r.relationship_id='Maps to'
     and r.invalid_reason is null
 )
-and d.relationship_id in ('Maps to', 'Original maps to')
+and d.relationship_id = 'Maps to'
 and d.invalid_reason is null
 and d.concept_id_2 not in (
     -- do not deprecate mappings from active concepts 
@@ -189,6 +189,27 @@ and d.concept_id_2 not in (
     and c1.vocabulary_id=r.vocabulary_id_1
     and c1.concept_id=d.concept_id_1 
 );
+COMMIT;
+
+--Same for reverse
+merge into concept_relationship d
+using (
+	select r.* from concept c1, concept c2, concept_relationship r
+	where c1.concept_id=r.concept_id_1
+	and c2.concept_id=r.concept_id_2
+	and c1.vocabulary_id='NDC'
+	and c2.vocabulary_id='RxNorm'
+	and r.relationship_id='Maps to'	
+) i on (
+		d.concept_id_1=i.concept_id_2 
+    and d.concept_id_2=i.concept_id_1 
+    and d.relationship_id='Mapped from'
+	and (NVL(d.invalid_reason,'X')<>NVL(i.invalid_reason,'X') OR d.valid_end_date<>i.valid_end_date)
+)
+when matched then update
+    set d.invalid_reason=i.invalid_reason,
+        d.valid_end_date=i.valid_end_date;
+
 COMMIT;
 
 /****************************************

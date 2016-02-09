@@ -912,7 +912,7 @@ INSERT /*+ APPEND */
                   EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code_2,
                   'SNOMED' AS vocabulary_id_1,
                   'SNOMED' AS vocabulary_id_2,
-                  'SNOMED replaced by' AS relationship_id,
+                  'Concept replaced by' AS relationship_id,
                   (SELECT latest_update
                      FROM vocabulary
                     WHERE vocabulary_id = 'SNOMED')
@@ -931,7 +931,7 @@ INSERT /*+ APPEND */
                   EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code_2,
                   'SNOMED' AS vocabulary_id_1,
                   'SNOMED' AS vocabulary_id_2,
-                  'SNOMED replaced by' AS relationship_id,
+                  'Concept replaced by' AS relationship_id,
                   (SELECT latest_update
                      FROM vocabulary
                     WHERE vocabulary_id = 'SNOMED')
@@ -949,7 +949,7 @@ INSERT /*+ APPEND */
                   EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code_2,
                   'SNOMED' AS vocabulary_id_1,
                   'SNOMED' AS vocabulary_id_2,
-                  'SNOMED replaced by' AS relationship_id,
+                  'Concept replaced by' AS relationship_id,
                   (SELECT latest_update
                      FROM vocabulary
                     WHERE vocabulary_id = 'SNOMED')
@@ -968,7 +968,7 @@ INSERT /*+ APPEND */
                   EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code_2,
                   'SNOMED' AS vocabulary_id_1,
                   'SNOMED' AS vocabulary_id_2,
-                  'SNOMED replaced by' AS relationship_id,
+                  'Concept replaced by' AS relationship_id,
                   (SELECT latest_update
                      FROM vocabulary
                     WHERE vocabulary_id = 'SNOMED')
@@ -987,7 +987,7 @@ INSERT /*+ APPEND */
                   EXTRACTVALUE (VALUE (t), 'ING/ISID') AS concept_code_2,
                   'SNOMED' AS vocabulary_id_1,
                   'SNOMED' AS vocabulary_id_2,
-                  'SNOMED replaced by' AS relationship_id,
+                  'Concept replaced by' AS relationship_id,
                   (SELECT latest_update
                      FROM vocabulary
                     WHERE vocabulary_id = 'SNOMED')
@@ -1005,7 +1005,7 @@ INSERT /*+ APPEND */
                   EXTRACTVALUE (VALUE (t), 'VTM/VTMID') AS concept_code_2,
                   'SNOMED' AS vocabulary_id_1,
                   'SNOMED' AS vocabulary_id_2,
-                  'SNOMED replaced by' AS relationship_id,
+                  'Concept replaced by' AS relationship_id,
                   (SELECT latest_update
                      FROM vocabulary
                     WHERE vocabulary_id = 'SNOMED')
@@ -1024,7 +1024,7 @@ INSERT /*+ APPEND */
                   EXTRACTVALUE (VALUE (t), 'VMP/VPID') AS concept_code_2,
                   'SNOMED' AS vocabulary_id_1,
                   'SNOMED' AS vocabulary_id_2,
-                  'SNOMED replaced by' AS relationship_id,
+                  'Concept replaced by' AS relationship_id,
                   (SELECT latest_update
                      FROM vocabulary
                     WHERE vocabulary_id = 'SNOMED')

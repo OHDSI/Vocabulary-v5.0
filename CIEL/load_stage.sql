@@ -310,8 +310,7 @@ union
             'Concept poss_eq to',
             'Concept was_a to',
             'LOINC replaced by',
-            'RxNorm replaced by',
-            'SNOMED replaced by'
+            'RxNorm replaced by'
   )
 union
 -- Final terminators for RxNorm Ingredients

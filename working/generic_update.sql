@@ -305,7 +305,6 @@ UPDATE concept_relationship d
 										'Concept was_a to',
 										'LOINC replaced by',
 										'RxNorm replaced by',
-										'SNOMED replaced by',
 										'ICD9P replaced by'
 									)
 								)
@@ -386,7 +385,6 @@ UPDATE concept_relationship d
             'Concept was_a to',
             'LOINC replaced by',
             'RxNorm replaced by',
-            'SNOMED replaced by',
             'ICD9P replaced by'
         )
   AND EXISTS (
@@ -413,7 +411,6 @@ USING (
 		'Concept was_a to',
 		'LOINC replaced by',
 		'RxNorm replaced by',
-		'SNOMED replaced by',
 		'ICD9P replaced by'
     )
     and r_int.relationship_id=rel_int.relationship_id
@@ -606,7 +603,6 @@ WHERE EXISTS (
         'Concept was_a to',
         'LOINC replaced by',
         'RxNorm replaced by',
-        'SNOMED replaced by',
         'ICD9P replaced by'
       )      
   ) 
@@ -634,7 +630,6 @@ NOT EXISTS (
         'Concept was_a to',
         'LOINC replaced by',
         'RxNorm replaced by',
-        'SNOMED replaced by',
         'ICD9P replaced by'
       )      
   ) 

@@ -249,8 +249,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
+                                               'Concept was_a to'
                                              )
                       and NVL(invalid_reason, 'X') <> 'D'
                 CONNECT BY  
@@ -260,8 +259,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
+                                               'Concept was_a to'
                                              )
                        AND vocabulary_id_2=vocabulary_id_1                     
                        AND NVL(invalid_reason, 'X') <> 'D'
@@ -270,8 +268,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
+                                               'Concept was_a to'
                                               )
                       AND NVL(invalid_reason, 'X') <> 'D'
           ) sou 

@@ -1500,7 +1500,8 @@ end;
 commit;
 
 -- write drug_strength
-insert /*+ APPEND */ into drug_strength_stage
+truncate table drug_strength;
+insert /*+ APPEND */ into drug_strength
 select distinct
   d.concept_code as drug_concept_code,
   i.concept_code_2 as ingredient_concept_code,

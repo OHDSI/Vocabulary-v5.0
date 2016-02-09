@@ -685,9 +685,9 @@ INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                                                                               SHORT_DESCRIPTION));
 COMMIT;
 
---6 Run HCPCS/procedure_drug.sql. This will create all the input files for NewDrugVocab.sql
+--6 Run HCPCS/procedure_drug.sql. This will create all the input files for MapDrugVocabulary.sql
 
---7 Run the generic working/NewDrugVocab.sql. This will produce a concept_relationship_stage with HCPCS to RxNorm relatoinships
+--7 Run the generic working/MapDrugVocabulary.sql. This will produce a concept_relationship_stage with HCPCS to RxNorm relatoinships
 
 --8 Add all other relationships from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
@@ -901,8 +901,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
+                                               'Concept was_a to'
                                              )
                       and NVL(invalid_reason, 'X') <> 'D'
                 CONNECT BY  
@@ -912,8 +911,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
+                                               'Concept was_a to'
                                              )
                        AND vocabulary_id_2=vocabulary_id_1                     
                        AND NVL(invalid_reason, 'X') <> 'D'
@@ -922,8 +920,7 @@ INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
                                                'Concept same_as to',
                                                'Concept alt_to to',
                                                'Concept poss_eq to',
-                                               'Concept was_a to',
-                                               'Original maps to'
+                                               'Concept was_a to'
                                               )
                       AND NVL(invalid_reason, 'X') <> 'D'
           ) sou 

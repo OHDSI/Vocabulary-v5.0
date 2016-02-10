@@ -274,7 +274,194 @@ delete from relationship where relationship_id='Original mapped from';
 -- Fix upgraded ATC
 update concept set invalid_reason = 'D' where vocabulary_id='ATC' and invalid_reason = 'U';
 
+-- Remove GPI duplicates and create replacement relationships
+insert into concept_relationship
+with d as (
+  select distinct
+    first_value(concept_id) over (partition by concept_code order by length(concept_name) desc) as concept_id,
+    concept_code
+  from concept c
+  where c.vocabulary_id='GPI'
+  and concept_code in (
+    select concept_code from concept where vocabulary_id = 'GPI'
+    group by concept_code having count(8)>2
+  )
+)
+select distinct
+  d_in.concept_id as concept_id_1,
+  d_out.concept_id as concept_id_2,
+  'Concept replaces' as relationship_id,
+  '25-Jan-2016' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from d d_in 
+join concept d_out on d_out.concept_code=d_in.concept_code and d_out.concept_id!=d_in.concept_id and d_out.vocabulary_id='GPI'
+;
+
+insert into concept_relationship
+with d as (
+  select distinct
+    first_value(concept_id) over (partition by concept_code order by length(concept_name) desc) as concept_id,
+    concept_code
+  from concept c
+  where c.vocabulary_id='GPI'
+  and concept_code in (
+    select concept_code from concept where vocabulary_id = 'GPI'
+    group by concept_code having count(8)>2
+  )
+)
+select distinct
+  d_out.concept_id as concept_id_1,
+  d_in.concept_id as concept_id_2,
+  'Concept replaced by' as relationship_id,
+  '25-Jan-2016' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from d d_in 
+join concept d_out on d_out.concept_code=d_in.concept_code and d_out.concept_id!=d_in.concept_id and d_out.vocabulary_id='GPI'
+;
+
+
+update concept set 
+  concept_name = 'Duplicate of GPI Concept, do not use, use replacement from CONCEPT_RELATIONSHIP table instead',
+  concept_code = concept_id,
+  valid_end_date='25-Jan-2016',
+  invalid_reason = 'U'
+where rowid in (
+  select c.rowid from concept c 
+  join (
+    select distinct
+      first_value(concept_id) over (partition by concept_code order by length(concept_name) desc) as concept_id,
+      concept_code
+    from concept c
+    where c.vocabulary_id='GPI'
+    and concept_code in (
+      select concept_code from concept where vocabulary_id = 'GPI'
+      group by concept_code having count(8)>2
+    )
+  ) d on d.concept_code=c.concept_code and d.concept_id!=c.concept_id
+  where vocabulary_id='GPI' 
+);
+
+
+-- deprecate all relationships that are not replacement relationships from these
+update concept_relationship r set
+  r.valid_end_date = (select case when c.valid_end_date-1 < r.valid_end_date then c.valid_end_date-1 else r.valid_end_date end from concept c where c.concept_id = r.concept_id_1),
+  r.invalid_reason = 'D'
+where exists (
+  select 1 from concept c
+  where r.concept_id_1 = c.concept_id
+  and c.concept_name like '%do not use%' and c.vocabulary_id = 'GPI'
+)
+and r.relationship_id not like '%replace%'
+;
+
+
+update concept_relationship r set
+  r.valid_end_date = (select case when c.valid_end_date-1 < r.valid_end_date then c.valid_end_date-1 else r.valid_end_date end from concept c where c.concept_id = r.concept_id_2),
+  r.invalid_reason = 'D'
+where exists (
+  select 1 from concept c
+  where r.concept_id_2 = c.concept_id
+  and c.concept_name like '%do not use%' and c.vocabulary_id = 'GPI'
+)
+and r.relationship_id not like '%replace%'
+;
+
+-- Change mapping reported by George
+update concept_relationship set 
+  valid_end_date='3-Feb-2016',
+  invalid_reason='D'
+where concept_id_1=44830172 and concept_id_2=198185;
+
+insert into concept_relationship
+select 
+  44830172 as concept_id_1,
+  46271022 as concept_id_2,
+  'Maps to' as relationship_id,
+  '4-Feb-2016' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from dual
+;
+  
+insert into concept_relationship
+select 
+  46271022 as concept_id_1,
+  44830172 as concept_id_2,
+  'Mapped from' as relationship_id,
+  '4-Feb-2016' as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from dual
+;
+
+-- Remove SNOMED replaced by relationship
+delete from concept_relationship where rowid in (
+    select r1.rowid from concept_relationship r1, concept_relationship r2
+    where
+    r1.invalid_reason is null and r2.invalid_reason is null
+    and r1.relationship_id='SNOMED replaced by'
+    and r2.relationship_id='Concept replaced by'
+    and r1.concept_id_1=r2.concept_id_1 and r1.concept_id_2=r2.concept_id_2
+);
+
+delete from concept_relationship where rowid in (
+    select r1.rowid from concept_relationship r1, concept_relationship r2
+    where
+    r1.invalid_reason is not null 
+    and r1.relationship_id='Concept replaced by'
+    and r2.relationship_id='SNOMED replaced by'
+    and r1.concept_id_1=r2.concept_id_1 and r1.concept_id_2=r2.concept_id_2
+);
+
+update concept_relationship set relationship_id='Concept replaced by' 
+where relationship_id='SNOMED replaced by' and invalid_reason is null
+;
+
+update concept set
+  valid_end_date='8-Feb-2016',
+  invalid_reason='D'
+where concept_id=44818948;
+
+delete from concept_relationship where rowid in (
+    select r1.rowid from concept_relationship r1, concept_relationship r2
+    where
+    r1.invalid_reason is null and r2.invalid_reason is null
+    and r1.relationship_id='SNOMED replaces'
+    and r2.relationship_id='Concept replaces'
+    and r1.concept_id_1=r2.concept_id_1 and r1.concept_id_2=r2.concept_id_2
+);
+
+delete from concept_relationship where rowid in (
+    select r1.rowid from concept_relationship r1, concept_relationship r2
+    where
+    r1.invalid_reason is not null 
+    and r1.relationship_id='Concept replaces'
+    and r2.relationship_id='SNOMED replaces'
+    and r1.concept_id_1=r2.concept_id_1 and r1.concept_id_2=r2.concept_id_2
+);
+
+update concept_relationship set relationship_id='Concept replaced by' 
+where relationship_id='SNOMED replaces' and invalid_reason is null
+;
+
+update concept set
+  valid_end_date='8-Feb-2016',
+  invalid_reason='D'
+where concept_id=44818949;
+
+update relationship set reverse_relationship_id='Is a' where relationship_id='SNOMED replaces';
+update relationship set reverse_relationship_id='Is a' where relationship_id='SNOMED replaced by';
+delete from relationship where relationship_id='SNOMED replaces';
+delete from relationship where relationship_id='SNOMED replaced by';
+
 commit;
+
+-- Remove inferred class
+delete from concept_relationship where relationship_id='Inferred class of';
+delete from concept_relationship where relationship_id='Has inferred class';
+
 
 -- Change relationships for FDB vocabularies
 update relationship set defines_ancestry=0 where relationship_id = 'Inferred class of';

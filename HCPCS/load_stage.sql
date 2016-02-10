@@ -737,7 +737,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
                    'HCPCS' AS vocabulary_id_2,
                    valid_start_date,
                    valid_end_date,
-                   'U' AS invalid_reason
+                   null AS invalid_reason
      FROM (SELECT A.HCPC AS concept_code_1,
                   A.XREF1 AS concept_code_2,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT) AS valid_start_date,
@@ -787,8 +787,7 @@ COMMIT;
 
 
 --10 Create hierarchical relationships between HCPCS and HCPCS class
-INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
-                                        concept_id_2,
+INSERT /*+ APPEND */ INTO concept_relationship_stage (
                                         concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -798,24 +797,26 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
                                         valid_end_date,
                                         invalid_reason)
    SELECT DISTINCT
-          NULL AS concept_id_1,
-          NULL AS concept_id_2,
           A.HCPC AS concept_code_1,
           A.BETOS AS concept_code_2,
           'Is a' AS relationship_id,
           'HCPCS' AS vocabulary_id_1,
-          'HCPCS Class' AS vocabulary_id_2,
+          'HCPCS' AS vocabulary_id_2,
           COALESCE (A.ADD_DATE, A.ACT_EFF_DT) AS valid_start_date,
           COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
              AS valid_end_date,
           CASE
              WHEN TERM_DT IS NULL THEN NULL
              WHEN XREF1 IS NULL THEN 'D'                         -- deprecated
-             ELSE 'U'                                              -- upgraded
+             ELSE NULL                                             -- upgraded
           END
-             AS invalid_reason
+             AS invalid_reason,
+             c.invalid_reason
      FROM ANWEB_V2 a
-    WHERE A.BETOS IS NOT NULL;
+    JOIN concept c
+          ON     c.concept_code = A.BETOS
+             AND c.concept_class_id = 'HCPCS Class'
+             AND C.VOCABULARY_ID = 'HCPCS'; 
 COMMIT;	
 
 --11 Create text for Medical Coder with new codes and mappings

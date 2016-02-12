@@ -456,18 +456,29 @@ update relationship set reverse_relationship_id='Is a' where relationship_id='SN
 delete from relationship where relationship_id='SNOMED replaces';
 delete from relationship where relationship_id='SNOMED replaced by';
 
-commit;
+-- Remove foul relationships between drug class and RxNorm Brand Name
+update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where rowid in (
+  select r.rowid 
+  from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.vocabulary_id = 'ETC' and c2.concept_class_id='Brand Name'
+);
+
+update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where rowid in (
+  select r.rowid 
+  from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.concept_class_id='Brand Name' and c2.vocabulary_id = 'ETC'
+);
+
 
 -- Remove inferred class
-delete from concept_relationship where relationship_id='Inferred class of';
-delete from concept_relationship where relationship_id='Has inferred class';
+update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='Inferred class of';
+update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='Has inferred class';
 
-
--- Change relationships for FDB vocabularies
-update relationship set defines_ancestry=0 where relationship_id = 'Inferred class of';
-update relationship set is_hierarchical=3 where relationship_id in ('ETC - RxNorm', 'RxNorm - ETC', 'Has FDA-appr ind', 'Has off-label ind', 'Has CI', 'Is FDA-appr ind of', 'Is off-label ind of', 'Is CI of');
-update concept_relationship set valid_end_date = '10-Dec-2015', invalid_reason = 'D' where relationship_id = 'Inferred class of';
-
+commit;
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------

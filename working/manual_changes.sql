@@ -474,9 +474,17 @@ update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D'
 );
 
 
--- Remove inferred class
+-- Remove inferred class (should remove from relationship later)
 update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='Inferred class of';
 update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='Has inferred class';
+
+-- Remove relationship by name (should remove from relationship later)
+update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='RxNorm - ETC name';
+update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='ETC - RxNorm name';
+
+-- 
+update relationship set is_hierarchical=1 
+where relationship_id in ('Therap class of', 'Chem to Prep eq', 'NDFRT - RxNorm eq', 'NDFRT - RxNorm name', 'ETC - RxNorm name', 'Class - Multilex ing', 'Pharma prep in', 'Is standard ing of');
 
 commit;
 

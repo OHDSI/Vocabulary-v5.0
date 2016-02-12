@@ -482,7 +482,7 @@ update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D'
 update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='RxNorm - ETC name';
 update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='ETC - RxNorm name';
 
--- 
+-- Set hierarchical relationships to 1 even if we don't want to count them. That is already done by the fact that the concepts are standard_concept=null
 update relationship set is_hierarchical=1 
 where relationship_id in ('Therap class of', 'Chem to Prep eq', 'NDFRT - RxNorm eq', 'NDFRT - RxNorm name', 'ETC - RxNorm name', 'Class - Multilex ing', 'Pharma prep in', 'Is standard ing of');
 

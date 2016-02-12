@@ -265,7 +265,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 	'Concept replaced by' as relationship_id,
 	spl_date-1 as valid_start_date,
 	to_date('20991231','YYYYMMDD') as valid_end_date,
-	'U' as invalid_reason
+	NULL as invalid_reason
 	from (
 		select distinct first_value(s.concept_code) over (partition by l.replaced_spl order by s.valid_start_date, s.concept_code rows between unbounded preceding and unbounded following) spl_code, 
 		first_value(s.valid_start_date) over (partition by l.replaced_spl order by s.valid_start_date, s.concept_code rows between unbounded preceding and unbounded following) spl_date,

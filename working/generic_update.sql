@@ -593,7 +593,7 @@ WHERE EXISTS (
   SELECT 1
   FROM concept_relationship r
     WHERE r.concept_id_1 = c.concept_id 
-	  AND nvl(r.invalid_reason,'X') in ('X','U')
+	  AND r.invalid_reason IS NULL
       AND r.relationship_id in (
         'UCUM replaced by',
         'Concept replaced by',
@@ -620,7 +620,7 @@ NOT EXISTS (
   SELECT 1
   FROM concept_relationship r
     WHERE r.concept_id_1 = c.concept_id 
-	  AND nvl(r.invalid_reason,'X') in ('X','U')
+	  AND r.invalid_reason IS NULL
       AND r.relationship_id in (
         'UCUM replaced by',
         'Concept replaced by',

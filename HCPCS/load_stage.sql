@@ -714,12 +714,12 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
     WHERE     c.concept_id = r.concept_id_1
           AND c.vocabulary_id = 'HCPCS'
           AND c1.concept_id = r.concept_id_2
+		  AND r.relationship_id NOT IN ('Concept replaced by','Is a') --we add it below
 		  AND NOT (c1.vocabulary_id='RxNorm' AND r.relationship_id='Maps to'); 
 COMMIT;
 
 --9 Add upgrade relationships
-INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
-                                        concept_id_2,
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (
                                         concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -728,16 +728,14 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT DISTINCT NULL AS concept_id_1,
-                   NULL AS concept_id_2,
-                   concept_code_1,
+   SELECT DISTINCT concept_code_1,
                    concept_code_2,
                    'Concept replaced by' AS relationship_id,
                    'HCPCS' AS vocabulary_id_1,
                    'HCPCS' AS vocabulary_id_2,
                    valid_start_date,
                    valid_end_date,
-                   'U' AS invalid_reason
+                   NULL AS invalid_reason
      FROM (SELECT A.HCPC AS concept_code_1,
                   A.XREF1 AS concept_code_2,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT) AS valid_start_date,
@@ -782,13 +780,40 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
              FROM ANWEB_V2 a, ANWEB_V2 b
             WHERE     A.XREF5 = B.HCPC
                   AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL);
+                  AND B.TERM_DT IS NULL) i
+    WHERE NOT EXISTS
+             (SELECT 1
+                FROM concept_relationship_stage crs_int
+               WHERE     crs_int.concept_code_1 = i.concept_code_1
+                     AND crs_int.concept_code_2 = i.concept_code_2
+                     AND crs_int.vocabulary_id_1 = 'HCPCS'
+                     AND crs_int.vocabulary_id_2 = 'HCPCS'
+                     AND crs_int.relationship_id = 'Concept replaced by');
 COMMIT;		  
 
+--10 Delete duplicate mappings (one concept has multiply target concepts)
+DELETE FROM concept_relationship_stage
+      WHERE     concept_code_1 IN
+                   (  SELECT concept_code_1
+                        FROM concept_relationship_stage
+                       WHERE     relationship_id IN ('Concept replaced by',
+                                                     'Concept same_as to',
+                                                     'Concept alt_to to',
+                                                     'Concept poss_eq to',
+                                                     'Concept was_a to')
+                             AND invalid_reason IS NULL
+                             AND vocabulary_id_1 = vocabulary_id_2
+                    GROUP BY concept_code_1
+                      HAVING COUNT (DISTINCT concept_code_2) > 1)
+            AND relationship_id IN ('Concept replaced by',
+                                    'Concept same_as to',
+                                    'Concept alt_to to',
+                                    'Concept poss_eq to',
+                                    'Concept was_a to');
+COMMIT;
 
---10 Create hierarchical relationships between HCPCS and HCPCS class
-INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
-                                        concept_id_2,
+--11 Create hierarchical relationships between HCPCS and HCPCS class
+INSERT /*+ APPEND */ INTO concept_relationship_stage (
                                         concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -798,27 +823,68 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
                                         valid_end_date,
                                         invalid_reason)
    SELECT DISTINCT
-          NULL AS concept_id_1,
-          NULL AS concept_id_2,
           A.HCPC AS concept_code_1,
           A.BETOS AS concept_code_2,
           'Is a' AS relationship_id,
           'HCPCS' AS vocabulary_id_1,
-          'HCPCS Class' AS vocabulary_id_2,
+          'HCPCS' AS vocabulary_id_2,
           COALESCE (A.ADD_DATE, A.ACT_EFF_DT) AS valid_start_date,
           COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
              AS valid_end_date,
           CASE
              WHEN TERM_DT IS NULL THEN NULL
              WHEN XREF1 IS NULL THEN 'D'                         -- deprecated
-             ELSE 'U'                                              -- upgraded
+             ELSE NULL                                             -- upgraded
           END
              AS invalid_reason
      FROM ANWEB_V2 a
-    WHERE A.BETOS IS NOT NULL;
+    JOIN concept c
+          ON     c.concept_code = A.BETOS
+             AND c.concept_class_id = 'HCPCS Class'
+             AND C.VOCABULARY_ID = 'HCPCS'; 
 COMMIT;	
 
---11 Create text for Medical Coder with new codes and mappings
+--12 Add all other 'Concept replaced by' relationships
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        relationship_id,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT c.concept_code AS concept_code_1,
+          c1.concept_code AS concept_code_2,
+          r.relationship_id AS relationship_id,
+          c.vocabulary_id AS vocabulary_id_1,
+          c1.vocabulary_id AS vocabulary_id_2,
+          r.valid_start_date,
+          r.valid_end_date,
+          r.invalid_reason
+     FROM concept_relationship r, concept c, concept c1
+    WHERE     c.concept_id = r.concept_id_1
+          AND c.vocabulary_id = 'HCPCS'
+          AND c1.concept_id = r.concept_id_2
+          AND r.relationship_id IN ('Concept replaced by',
+                                    'Concept same_as to',
+                                    'Concept alt_to to',
+                                    'Concept poss_eq to',
+                                    'Concept was_a to')
+          AND r.invalid_reason IS NULL
+          AND (SELECT COUNT (*)
+                 FROM concept_relationship r_int
+                WHERE     r_int.concept_id_1 = r.concept_id_1
+                      AND r_int.relationship_id = r.relationship_id
+                      AND r_int.invalid_reason IS NULL) = 1
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM concept_relationship_stage crs
+                   WHERE     crs.concept_code_1 = c.concept_code
+                         AND crs.vocabulary_id_1 = c.vocabulary_id
+                         AND crs.relationship_id = r.relationship_id);
+COMMIT;						 
+
+--13 Create text for Medical Coder with new codes and mappings
 SELECT NULL AS concept_id_1,
        NULL AS concept_id_2,
        c.concept_code AS concept_code_1,
@@ -864,81 +930,66 @@ SELECT NULL AS concept_id_1,
        AND c.vocabulary_id = 'HCPCS'
        AND c.concept_class_id IN ('HCPCS', 'HCPCS Modifier');
 
---12 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--14 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 
---13. Add mapping from deprecated to fresh concepts
-INSERT  /*+ APPEND */  INTO concept_relationship_stage (concept_code_1,
+--15. Add mapping from deprecated to fresh concepts
+MERGE INTO concept_relationship_stage crs
+     USING (WITH upgraded_concepts
+                    AS (SELECT DISTINCT concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-    SELECT 
-      root,
-      concept_code_2,
-      root_vocabulary_id,
-      vocabulary_id_2,
-      'Maps to',
-      (SELECT latest_update FROM vocabulary WHERE vocabulary_id=root_vocabulary_id),
-      TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-      NULL
-    FROM 
-    (
-        SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2 FROM (
-          SELECT root_vocabulary_id, root, concept_code_2, vocabulary_id_2, dt,  ROW_NUMBER() OVER (PARTITION BY root_vocabulary_id, root ORDER BY dt DESC) rn
-            FROM (
-                SELECT 
-                      concept_code_2, 
-                      vocabulary_id_2,
-                      valid_start_date AS dt,
-                      CONNECT_BY_ROOT concept_code_1 AS root,
-                      CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id,
-                      CONNECT_BY_ISLEAF AS lf
-                FROM concept_relationship_stage
-                WHERE relationship_id IN ( 'Concept replaced by',
-                                               'Concept same_as to',
-                                               'Concept alt_to to',
-                                               'Concept poss_eq to',
-                                               'Concept was_a to'
-                                             )
-                      and NVL(invalid_reason, 'X') <> 'D'
-                CONNECT BY  
-                NOCYCLE  
-                PRIOR concept_code_2 = concept_code_1
-                      AND relationship_id IN ( 'Concept replaced by',
-                                               'Concept same_as to',
-                                               'Concept alt_to to',
-                                               'Concept poss_eq to',
-                                               'Concept was_a to'
-                                             )
-                       AND vocabulary_id_2=vocabulary_id_1                     
-                       AND NVL(invalid_reason, 'X') <> 'D'
-                                   
-                START WITH relationship_id IN ('Concept replaced by',
-                                               'Concept same_as to',
-                                               'Concept alt_to to',
-                                               'Concept poss_eq to',
-                                               'Concept was_a to'
-                                              )
-                      AND NVL(invalid_reason, 'X') <> 'D'
-          ) sou 
-          WHERE lf = 1
-        ) 
-        WHERE rn = 1
-    ) int_rel WHERE NOT EXISTS -- only new mapping we don't already have
-    (select 1 from concept_relationship_stage r where
-        int_rel.root=r.concept_code_1
-        and int_rel.concept_code_2=r.concept_code_2
-        and int_rel.root_vocabulary_id=r.vocabulary_id_1
-        and int_rel.vocabulary_id_2=r.vocabulary_id_2
-        and r.relationship_id='Maps to'
-    );
+                                        vocabulary_id_2
+                          FROM concept_relationship_stage
+                         WHERE     relationship_id IN ('Concept replaced by',
+                                                       'Concept same_as to',
+                                                       'Concept alt_to to',
+                                                       'Concept poss_eq to',
+                                                       'Concept was_a to')
+                               AND invalid_reason IS NULL
+                               AND vocabulary_id_1 = vocabulary_id_2)
+                SELECT CONNECT_BY_ROOT concept_code_1 AS root_concept_code_1,
+                       u.concept_code_2,
+                       CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id_1,
+                       vocabulary_id_2,
+                       'Maps to' AS relationship_id,
+                       (SELECT latest_update
+                          FROM vocabulary
+                         WHERE vocabulary_id = vocabulary_id_2)
+                          AS valid_start_date,
+                       TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+                       NULL AS invalid_reason
+                  FROM upgraded_concepts u
+                 WHERE CONNECT_BY_ISLEAF = 1
+            CONNECT BY NOCYCLE PRIOR concept_code_2 = concept_code_1
+            START WITH concept_code_1 NOT IN (SELECT concept_code_2
+                                                FROM upgraded_concepts)) i
+        ON (    crs.concept_code_1 = i.root_concept_code_1
+            AND crs.concept_code_2 = i.concept_code_2
+            AND crs.vocabulary_id_1 = i.root_vocabulary_id_1
+            AND crs.vocabulary_id_2 = i.vocabulary_id_2
+            AND crs.relationship_id = i.relationship_id)
+WHEN NOT MATCHED
+THEN
+   INSERT     (concept_code_1,
+               concept_code_2,
+               vocabulary_id_1,
+               vocabulary_id_2,
+               relationship_id,
+               valid_start_date,
+               valid_end_date,
+               invalid_reason)
+       VALUES (i.root_concept_code_1,
+               i.concept_code_2,
+               i.root_vocabulary_id_1,
+               i.vocabulary_id_2,
+               i.relationship_id,
+               i.valid_start_date,
+               i.valid_end_date,
+               i.invalid_reason);
 
 COMMIT;
 
---14 All the codes that have mapping to RxNorm should get domain_id='Drug'
+--16 All the codes that have mapping to RxNorm should get domain_id='Drug'
 UPDATE concept_stage cs
    SET cs.domain_id='Drug'
  WHERE     EXISTS
@@ -962,7 +1013,7 @@ UPDATE concept_stage cs
        AND cs.domain_id<>'Drug';
 COMMIT;
 
---15 Procedure Drugs who have a mapping to a Drug concept should not also be recorded as Procedures (no Standard Concepts)
+--17 Procedure Drugs who have a mapping to a Drug concept should not also be recorded as Procedures (no Standard Concepts)
 UPDATE concept_stage cs
    SET cs.standard_concept = NULL
  WHERE     EXISTS
@@ -988,12 +1039,12 @@ UPDATE concept_stage cs
        AND cs.standard_concept IS NOT NULL;
 COMMIT;
 
---16 Update concept_id in concept_stage from concept for existing concepts
+--18 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---17 Reinstate constraints and indices
+--19 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

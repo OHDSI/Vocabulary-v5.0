@@ -75,7 +75,7 @@ begin
 		'Concept replaced by' as relationship_id,
 		c1.valid_start_date as valid_start_date,
 		last_value(c2.valid_end_date) over (partition by c1.concept_id order by c2.invalid_reason ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as valid_end_date,
-		last_value(c2.invalid_reason) over (partition by c1.concept_id order by c2.invalid_reason ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as invalid_reason
+		null as invalid_reason
 		from concept c1, concept c2
 		where c1.concept_code=c2.concept_code
 		and c1.vocabulary_Id='DRG'

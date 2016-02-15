@@ -111,15 +111,19 @@ SELECT
        NULL AS invalid_reason
 FROM
 (
-   SELECT e.etc_id AS concept_code_1,
-          rx.rxaui AS concept_code_2,
-          MIN(e.etc_effective_date) AS valid_start_date
-     FROM rxnconso rx
-          JOIN rxnconso i
-             ON i.rxcui = rx.rxcui AND i.sab = 'NDDF' AND i.tty = 'IN' -- map to FDB ingredient
-          JOIN retchch0_etc_hicseqn_hist e ON e.hic_seqn = i.code
-    WHERE rx.sab = 'RXNORM' AND rx.tty = 'IN' -- pick RxNorm Ingredients to start with
-    GROUP BY rx.rxaui, e.etc_id
+	SELECT e.etc_id AS concept_code_1,
+		 rx.rxaui AS concept_code_2,
+		 MIN (e.etc_effective_date) AS valid_start_date
+	FROM rxnconso rx
+		 JOIN rxnconso i
+			ON i.rxcui = rx.rxcui AND i.sab = 'NDDF' AND i.tty = 'IN' -- map to FDB ingredient
+		 JOIN retchch0_etc_hicseqn_hist e ON e.hic_seqn = i.code
+		 JOIN concept c
+			ON c.concept_code = rx.rxaui AND c.vocabulary_id = 'RxNorm'
+	WHERE     rx.sab = 'RXNORM'
+		 AND rx.tty = 'IN'            -- pick RxNorm Ingredients to start with
+		 AND c.concept_class_id <> 'Brand Name'
+	GROUP BY rx.rxaui, e.etc_id
 );
 COMMIT;	
 

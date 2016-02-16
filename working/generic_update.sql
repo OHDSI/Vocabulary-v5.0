@@ -152,6 +152,7 @@ COMMIT;
 UPDATE concept c SET
   c.standard_concept = NULL
 WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD') 
+AND c.standard_concept IS NOT NULL
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 ;
 COMMIT;
@@ -588,7 +589,8 @@ COMMIT;
 -- 14. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
 UPDATE concept c SET
 	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
-	c.invalid_reason = 'U'
+	c.invalid_reason = 'U',
+	c.standard_concept = NULL
 WHERE EXISTS (
   SELECT 1
   FROM concept_relationship r
@@ -614,7 +616,8 @@ COMMIT;
 -- 15. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table for upgraded concepts
 UPDATE concept c SET
 	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
-	c.invalid_reason = 'D'
+	c.invalid_reason = 'D',
+	c.standard_concept = NULL
 WHERE
 NOT EXISTS (
   SELECT 1

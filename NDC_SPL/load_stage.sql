@@ -392,7 +392,7 @@ INSERT /*+ APPEND */ INTO MAIN_NDC (concept_id,
                    NULL AS invalid_reason
      FROM rxnsat s
           JOIN rxnconso c
-             ON c.sab = 'RXNORM' AND c.rxaui = s.rxaui AND c.rxcui = s.rxcui
+             ON c.sab = 'RXNORM' AND c.rxaui = s.rxaui AND c.rxcui = s.rxcui AND c.suppress = 'N'
           JOIN vocabulary v ON v.vocabulary_id = 'NDC'
     WHERE s.sab = 'RXNORM' AND s.atn = 'NDC';
 COMMIT;
@@ -573,7 +573,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 	AND NOT EXISTS (SELECT 1 FROM concept c WHERE c.concept_code=rm.concept_code AND c.vocabulary_id='RxNorm' AND c.concept_class_id='Ingredient');
 COMMIT;
 
---16 Add mapping from SPL to RxNorm through rxnconso
+--16 Add mapping from SPL to RxNorm through rxnsat
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -626,7 +626,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                    NULL AS invalid_reason
      FROM rxnsat s
           JOIN rxnconso c
-             ON c.sab = 'RXNORM' AND c.rxaui = s.rxaui AND c.rxcui = s.rxcui
+             ON c.sab = 'RXNORM' AND c.rxaui = s.rxaui AND c.rxcui = s.rxcui AND c.suppress = 'N'
           JOIN vocabulary v ON v.vocabulary_id = 'NDC'
     WHERE s.sab = 'RXNORM' AND s.atn = 'NDC';
 COMMIT;		
@@ -674,8 +674,8 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                   r.rxcui AS concept_code_2             -- RxNorm concept_code
              FROM product p
                   JOIN rxnconso c
-                     ON c.code = p.productndc AND c.sab = 'MTHSPL'
-                  JOIN rxnconso r ON r.rxcui = c.rxcui and r.sab='RXNORM'
+                     ON c.code = p.productndc AND c.sab = 'MTHSPL' AND c.suppress = 'N'
+                  JOIN rxnconso r ON r.rxcui = c.rxcui and r.sab='RXNORM' AND r.suppress = 'N'
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
 			

@@ -171,8 +171,8 @@ union
     'RxNorm-c' as vocabulary_id_2
   from rxnconso rx_min
   join rxnrel r on r.rxcui1=rx_min.rxcui
-  join rxnconso ing on ing.rxcui=r.rxcui2 and ing.sab='RXNORM' and ing.tty='IN'
-  where rx_min.sab='RXNORM' and rx_min.tty='MIN'
+  join rxnconso ing on ing.rxcui=r.rxcui2 and ing.sab='RXNORM' and ing.tty='IN' and ing.suppress = 'N'
+  where rx_min.sab='RXNORM' and rx_min.tty='MIN' and rx_min.suppress = 'N'
 union
 -- add concept_relationships between SNOMED and RxNorm
   select 

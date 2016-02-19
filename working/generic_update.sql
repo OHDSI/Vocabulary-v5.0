@@ -4,21 +4,17 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relati
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);
 
 
--- 1. Remove whitespaces from concept_name
-UPDATE concept_stage
-   SET concept_name =
-          TRANSLATE (concept_name,
-                     'X' || CHR (9) || CHR (10) || CHR (13),
-                     'X')
- WHERE concept_name <>
-          TRANSLATE (concept_name,
-                     'X' || CHR (9) || CHR (10) || CHR (13),
-                     'X');
+-- 1. clearing the concept_name
 
 --remove spaces					 
 UPDATE concept_stage
    SET concept_name = TRIM (concept_name)
  WHERE concept_name <> TRIM (concept_name);
+ 
+--remove double spaces, carriage return, newline, vertical tab and form feed
+UPDATE concept_stage
+   SET concept_name = REGEXP_REPLACE (concept_name, '[[:space:]]+', ' ')
+ WHERE REGEXP_LIKE (concept_name, '[[:space:]]+[[:space:]]+'); 
  
 
  --remove long dashes
@@ -689,21 +685,19 @@ DELETE FROM concept_synonym csyn
                                );
 
 -- 19. Add new synonyms for existing concepts
-INSERT
-      INTO  concept_synonym (concept_id,
+INSERT INTO concept_synonym (concept_id,
                              concept_synonym_name,
                              language_concept_id)
    SELECT c.concept_id,
-          TRANSLATE (TRIM (synonym_name),
-                     'X' || CHR (9) || CHR (10) || CHR (13),
-                     'X'),
+          REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' '),
           4093769                                               -- for English
      FROM concept_synonym_stage css, concept c, concept_stage cs
     WHERE     css.synonym_concept_code = c.concept_code
           AND css.synonym_vocabulary_id = c.vocabulary_id
           AND cs.concept_code = c.concept_code
           AND cs.vocabulary_id = c.vocabulary_id
-		  AND TRIM (synonym_name) IS NOT NULL; --fix for empty GPI names
+          AND REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' ')
+                 IS NOT NULL; --fix for empty GPI names
 COMMIT;
 
 -- 20. check if current vocabulary exists in vocabulary_conversion table

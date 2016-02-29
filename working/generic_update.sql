@@ -294,15 +294,11 @@ UPDATE concept_relationship d
 								(
 									SELECT relationship_id, reverse_relationship_id FROM relationship 
 									WHERE relationship_id in (
-										'UCUM replaced by',
 										'Concept replaced by',
 										'Concept same_as to',
 										'Concept alt_to to',
 										'Concept poss_eq to',
-										'Concept was_a to',
-										'LOINC replaced by',
-										'RxNorm replaced by',
-										'ICD9P replaced by'
+										'Concept was_a to'
 									)
 								)
 								UNPIVOT (rel_id FOR relationship_ids IN (relationship_id, reverse_relationship_id))
@@ -374,15 +370,11 @@ UPDATE concept_relationship d
           - 1,                                       -- day before release day
        invalid_reason = 'D'
   WHERE d.relationship_id in (
-            'UCUM replaced by',
             'Concept replaced by',
             'Concept same_as to',
             'Concept alt_to to',
             'Concept poss_eq to',
-            'Concept was_a to',
-            'LOINC replaced by',
-            'RxNorm replaced by',
-            'ICD9P replaced by'
+            'Concept was_a to'
         )
   AND EXISTS (
     SELECT 1 FROM concept_relationship_stage s, concept c1, concept c2
@@ -400,15 +392,11 @@ MERGE INTO concept_relationship d
 USING (
     select r_int.concept_id_1, r_int.concept_id_2, r_int.invalid_reason, r_int.valid_end_date, rel_int.reverse_relationship_id from concept_relationship r_int, relationship rel_int 
     where r_int.relationship_id IN (
-		'UCUM replaced by',
 		'Concept replaced by',
 		'Concept same_as to',
 		'Concept alt_to to',
 		'Concept poss_eq to',
-		'Concept was_a to',
-		'LOINC replaced by',
-		'RxNorm replaced by',
-		'ICD9P replaced by'
+		'Concept was_a to'
     )
     and r_int.relationship_id=rel_int.relationship_id
 ) i ON (
@@ -593,15 +581,11 @@ WHERE EXISTS (
     WHERE r.concept_id_1 = c.concept_id 
 	  AND r.invalid_reason IS NULL
       AND r.relationship_id in (
-        'UCUM replaced by',
         'Concept replaced by',
         'Concept same_as to',
         'Concept alt_to to',
         'Concept poss_eq to',
-        'Concept was_a to',
-        'LOINC replaced by',
-        'RxNorm replaced by',
-        'ICD9P replaced by'
+        'Concept was_a to'
       )      
   ) 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
@@ -621,15 +605,11 @@ NOT EXISTS (
     WHERE r.concept_id_1 = c.concept_id 
 	  AND r.invalid_reason IS NULL
       AND r.relationship_id in (
-        'UCUM replaced by',
         'Concept replaced by',
         'Concept same_as to',
         'Concept alt_to to',
         'Concept poss_eq to',
-        'Concept was_a to',
-        'LOINC replaced by',
-        'RxNorm replaced by',
-        'ICD9P replaced by'
+        'Concept was_a to'
       )      
   ) 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies

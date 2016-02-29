@@ -233,10 +233,10 @@ delete from concept_relationship where rowid in (
 );
 
 -- Fix asymmetrical deprecation in 'Concept replaced by'
-MERGE INTO concept_relationship r
-USING (
+merge into concept_relationship r
+using (
     select r_int.concept_id_1, r_int.concept_id_2, r_int.invalid_reason, r_int.valid_end_date, rel_int.reverse_relationship_id from concept_relationship r_int, relationship rel_int 
-    where r_int.relationship_id IN (
+    where r_int.relationship_id in (
         'ATC - RxNorm',
         'ATC - RxNorm name',
         'Concept replaced by',
@@ -253,14 +253,14 @@ USING (
         'Maps to value'
     )
     and r_int.relationship_id=rel_int.relationship_id
-) i ON (
+) i on (
     r.concept_id_1=i.concept_id_2 
     and r.concept_id_2=i.concept_id_1 
     and r.relationship_id=i.reverse_relationship_id
-    and (NVL(r.invalid_reason,'X')<>NVL(i.invalid_reason,'X') OR r.valid_end_date<>i.valid_end_date)
+    and (nvl(r.invalid_reason,'X')<>nvl(i.invalid_reason,'X') or r.valid_end_date<>i.valid_end_date)
 )
-WHEN MATCHED THEN UPDATE
-    SET r.invalid_reason=i.invalid_reason,
+when matched then update
+    set r.invalid_reason=i.invalid_reason,
         r.valid_end_date=i.valid_end_date
 ;
 
@@ -284,7 +284,7 @@ with d as (
   where c.vocabulary_id='GPI'
   and concept_code in (
     select concept_code from concept where vocabulary_id = 'GPI'
-    group by concept_code having count(8)>2
+    group by concept_code having count(8)>1
   )
 )
 select distinct
@@ -307,7 +307,7 @@ with d as (
   where c.vocabulary_id='GPI'
   and concept_code in (
     select concept_code from concept where vocabulary_id = 'GPI'
-    group by concept_code having count(8)>2
+    group by concept_code having count(8)>1
   )
 )
 select distinct
@@ -320,7 +320,6 @@ select distinct
 from d d_in 
 join concept d_out on d_out.concept_code=d_in.concept_code and d_out.concept_id!=d_in.concept_id and d_out.vocabulary_id='GPI'
 ;
-
 
 update concept set 
   concept_name = 'Duplicate of GPI Concept, do not use, use replacement from CONCEPT_RELATIONSHIP table instead',
@@ -337,7 +336,7 @@ where rowid in (
     where c.vocabulary_id='GPI'
     and concept_code in (
       select concept_code from concept where vocabulary_id = 'GPI'
-      group by concept_code having count(8)>2
+      group by concept_code having count(8)>1
     )
   ) d on d.concept_code=c.concept_code and d.concept_id!=c.concept_id
   where vocabulary_id='GPI' 
@@ -413,7 +412,7 @@ delete from concept_relationship where rowid in (
     and r1.relationship_id='Concept replaced by'
     and r2.relationship_id='SNOMED replaced by'
     and r1.concept_id_1=r2.concept_id_1 and r1.concept_id_2=r2.concept_id_2
-);
+); 
 
 update concept_relationship set relationship_id='Concept replaced by' 
 where relationship_id='SNOMED replaced by' and invalid_reason is null
@@ -473,7 +472,6 @@ update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D'
   where c1.concept_class_id='Brand Name' and c2.vocabulary_id = 'ETC'
 );
 
-
 -- Remove inferred class (should remove from relationship later)
 update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='Inferred class of';
 update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D' where relationship_id='Has inferred class';
@@ -485,6 +483,23 @@ update concept_relationship set valid_end_date='11-Feb-2016', invalid_reason='D'
 -- Set hierarchical relationships to 1 even if we don't want to count them. That is already done by the fact that the concepts are standard_concept=null
 update relationship set is_hierarchical=1 
 where relationship_id in ('Therap class of', 'Chem to Prep eq', 'NDFRT - RxNorm eq', 'NDFRT - RxNorm name', 'ETC - RxNorm name', 'Class - Multilex ing', 'Pharma prep in', 'Is standard ing of');
+
+-- Fix wrong replacement deprecations for Concept replaces/replaced by relationships.
+update concept_relationship set valid_end_date='31-Dec-2099'
+where valid_end_date<'31-Dec-2099'
+  and invalid_reason is null
+;
+
+--remove double spaces, carriage return, newline, vertical tab and form feed
+UPDATE concept
+SET concept_name = REGEXP_REPLACE (concept_name, '[[:space:]]+', ' ')
+WHERE REGEXP_LIKE (concept_name, '[[:space:]]+[[:space:]]+');
+
+-- Put standard concept to null if invalid
+UPDATE concept c SET
+c.standard_concept = NULL
+WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD')
+AND c.standard_concept IS NOT NULL;
 
 commit;
 

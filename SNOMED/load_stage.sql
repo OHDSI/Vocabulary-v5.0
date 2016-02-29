@@ -2277,12 +2277,13 @@ UPDATE concept_stage
    SET standard_concept =
           CASE domain_id
              WHEN 'Drug' THEN NULL                         -- Drugs are RxNorm
-             WHEN 'Metadata' THEN NULL                      -- Not used in CDM
-             WHEN 'Race' THEN NULL                             -- Race are CDC
-             WHEN 'Provider Specialty' THEN NULL -- got CMS and ABMS specialty
-             WHEN 'Place of Service' THEN NULL     -- got own place of service
-             WHEN 'Type Concept' THEN NULL   -- Type Concept in own OMOP vocabulary
-             WHEN 'Unit' THEN NULL                           -- Units are UCUM
+             WHEN 'Gender' THEN NULL                       -- Gender are OMOP
+             WHEN 'Metadata' THEN NULL                     -- Not used in CDM
+             WHEN 'Race' THEN NULL                         -- Race are CDC
+             WHEN 'Provider Specialty' THEN NULL           -- got CMS and ABMS specialty
+             WHEN 'Place of Service' THEN NULL             -- got own place of service
+             WHEN 'Type Concept' THEN NULL                 -- Type Concept in own OMOP vocabulary
+             WHEN 'Unit' THEN NULL                         -- Units are UCUM
              ELSE 'S'
           END
 WHERE vocabulary_id = 'SNOMED';

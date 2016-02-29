@@ -976,6 +976,7 @@ where concept_id_2 = 44819203 and concept_id_1 = 0 and relationship_id = 'Mapped
 update concept set
   valid_end_date = '1-Apr-2015',
   invalid_reason = 'U'
+  standard_concept=null
 where concept_id = 8528
 ;
 insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)

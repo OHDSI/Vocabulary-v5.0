@@ -591,7 +591,7 @@ WHERE EXISTS (
       )      
   ) 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-AND (c.invalid_reason IS NULL) -- not already upgraded
+AND (c.invalid_reason IS NULL OR c.invalid_reason = 'D') -- not already upgraded
 ;
 COMMIT;
 

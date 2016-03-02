@@ -793,23 +793,18 @@ COMMIT;
 
 --10 Delete duplicate mappings (one concept has multiply target concepts)
 DELETE FROM concept_relationship_stage
-      WHERE     concept_code_1 IN
-                   (  SELECT concept_code_1
-                        FROM concept_relationship_stage
-                       WHERE     relationship_id IN ('Concept replaced by',
-                                                     'Concept same_as to',
-                                                     'Concept alt_to to',
-                                                     'Concept poss_eq to',
-                                                     'Concept was_a to')
-                             AND invalid_reason IS NULL
-                             AND vocabulary_id_1 = vocabulary_id_2
-                    GROUP BY concept_code_1
-                      HAVING COUNT (DISTINCT concept_code_2) > 1)
-            AND relationship_id IN ('Concept replaced by',
-                                    'Concept same_as to',
-                                    'Concept alt_to to',
-                                    'Concept poss_eq to',
-                                    'Concept was_a to');
+      WHERE (concept_code_1, relationship_id) IN
+               (  SELECT concept_code_1, relationship_id
+                    FROM concept_relationship_stage
+                   WHERE     relationship_id IN ('Concept replaced by',
+                                                 'Concept same_as to',
+                                                 'Concept alt_to to',
+                                                 'Concept poss_eq to',
+                                                 'Concept was_a to')
+                         AND invalid_reason IS NULL
+                         AND vocabulary_id_1 = vocabulary_id_2
+                GROUP BY concept_code_1, relationship_id
+                  HAVING COUNT (DISTINCT concept_code_2) > 1);
 COMMIT;
 
 --11 Create hierarchical relationships between HCPCS and HCPCS class

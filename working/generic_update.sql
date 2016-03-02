@@ -244,6 +244,8 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
 COMMIT;		
 
 -- 8. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
+
 MERGE INTO concept_relationship d
     USING (
         WITH rel_id as ( -- concept_relationship with concept_ids filled in
@@ -589,7 +591,7 @@ WHERE EXISTS (
       )      
   ) 
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-AND (c.invalid_reason IS NULL OR c.invalid_reason = 'D') -- not already upgraded
+AND (c.invalid_reason IS NULL) -- not already upgraded
 ;
 COMMIT;
 

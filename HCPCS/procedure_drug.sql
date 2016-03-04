@@ -1,3 +1,9 @@
+/*********************************************
+* Script to create input tables according to *
+* http://www.ohdsi.org/web/wiki/doku.php?id=documentation:international_drugs *
+* for HCPCS procedure drugs                  *
+*********************************************/
+
 -- Create products
 create table drug_concept_stage (
   concept_name varchar2(255),

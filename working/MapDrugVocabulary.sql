@@ -297,7 +297,6 @@ commit;
 * Clean up
 *****************************/
 
-/*
 drop table drug_concept_stage purge;
 drop table relationship_to_concept purge;
 drop table internal_relationship_stage purge;
@@ -312,4 +311,3 @@ drop table q_to_r_anydose purge;
 drop table q_to_r_wdose purge;
 drop table q_to_r purge;
 drop table best_map purge;
-*/

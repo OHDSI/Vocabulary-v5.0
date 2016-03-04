@@ -501,7 +501,82 @@ c.standard_concept = NULL
 WHERE c.valid_end_date != TO_DATE ('20991231', 'YYYYMMDD')
 AND c.standard_concept IS NOT NULL;
 
-commit;
+-- de-standardize SNOMED gender concepts
+update concept set standard_concept=null where vocabulary_id='SNOMED' and domain_id='Gender';
+
+-- remove replacement links between vocabularies
+-- SNOMED to UCUM
+update concept_relationship set concept_id_2=9439 where concept_id_1=45891020 and concept_id_2=45756994;
+update concept_relationship set relationship_id='Mapped from'
+where rowid in (
+  select r.rowid
+  from concept_relationship r 
+  join concept c1 on r.concept_id_1=c1.concept_id 
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.vocabulary_id='UCUM' and c2.vocabulary_id='SNOMED' and r.relationship_id='Concept replaced by' and r.invalid_reason is null
+);
+
+update concept_relationship set concept_id_1=9439 where concept_id_2=45891020 and concept_id_1=45756994;
+update concept_relationship set relationship_id='Maps to'
+where rowid in (
+  select r.rowid
+  from concept_relationship r 
+  join concept c1 on r.concept_id_1=c1.concept_id 
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.vocabulary_id='SNOMED' and c2.vocabulary_id='UCUM' and r.invalid_reason is null and r.relationship_id='Concept replaced by' 
+);
+
+-- Dead ICD10 codes which are really ICD10CM codes. Delete all concpets, relationships and synonyms
+update concept set concept_name='DELETE'
+where concept_id in ( 
+  select concept_id_1
+  from concept_relationship r 
+  join concept c1 on r.concept_id_1=c1.concept_id 
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.vocabulary_id='ICD10' and c2.vocabulary_id='ICD10CM' and r.invalid_reason is null and r.relationship_id='Concept replaced by' 
+union
+  select concept_id_2
+  from concept_relationship r 
+  join concept c1 on r.concept_id_1=c1.concept_id 
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.vocabulary_id='ICD10CM' and c2.vocabulary_id='ICD10' and r.invalid_reason is null and r.relationship_id='Concept replaces' 
+);
+
+delete from concept_relationship 
+where rowid in (
+  select r.rowid
+  from concept_relationship r 
+  join concept c1 on r.concept_id_1=c1.concept_id 
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.vocabulary_id='ICD10' and c2.vocabulary_id='ICD10CM' and r.invalid_reason is null and r.relationship_id='Concept replaced by' 
+);
+
+delete from concept_relationship 
+where rowid in (
+  select r.rowid
+  from concept_relationship r 
+  join concept c1 on r.concept_id_1=c1.concept_id 
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where c1.vocabulary_id='ICD10CM' and c2.vocabulary_id='ICD10' and r.invalid_reason is null and r.relationship_id='Concept replaces' 
+);
+
+select c1.concept_id as c1_id, c1.concept_name as c1_name, c1.vocabulary_id as c1_vocab, c1.domain_id as c1_domain, c1.concept_class_id as c1_class, c1.invalid_reason as c1_ir,
+  r.relationship_id as rel, r.invalid_reason as r_ir, 
+  c2.concept_id as c2_id, c2.concept_name as c2_name, c2.vocabulary_id as c2_vocab, c2.domain_id as c2_domain, c2.concept_class_id as c2_class, c2.invalid_reason as c2_ir
+from concept c1
+join concept_relationship r on r.concept_id_1=c1.concept_id 
+join concept c2 on c2.concept_id=r.concept_id_2
+where c1.concept_name='DELETE';
+
+delete from concept_relationship where concept_id_1 in (select concept_id from concept where concept_name='DELETE');
+delete from concept_relationship where concept_id_2 in (select concept_id from concept where concept_name='DELETE');
+delete from concept_synonym where concept_id in (select concept_id from concept where concept_name='DELETE');
+delete from concept where concept_name='DELETE';
+
+-- Remove cyclical UCUM replacement
+update concept_relationship set relationship_id='Concept replaces' where concept_id_2=9439 and concept_id_1=45891020;
+	
+commit; 
 
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------

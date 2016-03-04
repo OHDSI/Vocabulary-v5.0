@@ -122,7 +122,6 @@ where dose_form is not null
 and dose_form not in ('Device', 'Procedure', 'Observation')
 -- and concept_name is not null
 ;
-
 commit;
 
 /*******************************
@@ -143,9 +142,9 @@ select * from drug_concept_stage where 1=0;
 insert /*+ APPEND */ into drug_concept_stage_tmp
 select 
   '' as concept_name, 'HCPCS' as vocabulary_id, 'Ingredient' as concept_class_id, null as standard_concept, 
-  regexp_replace(regexp_replace(lower(concept_name), 'injection, (iv, )?([^,]+).+', '\1|\2'), '.*?\|(.+)', '\1') as concept_code, 
+  regexp_replace(regexp_replace(lower(concept_name), 'injection,? (iv, )?([^,]+).*', '\1|\2'), '.*?\|(.+)', '\1') as concept_code, 
   null as possible_excipient, null as valid_start_date, null as valid_end_date, null as invalid_reason, null as dose_form
-from drug_concept_stage where dose_form='Injection'
+from drug_concept_stage where dose_form='Injection' -- and concept_name like '%betamethasone%'
 ;
 commit;
 -- Vaccines
@@ -268,7 +267,7 @@ commit;
 insert /*+ APPEND */ into internal_relationship_stage
 select 
   concept_code as concept_code_1, vocabulary_id as vocabulary_id_1, 
-  regexp_replace(regexp_replace(lower(concept_name), 'injection, (iv, )?([^,]+).+', '\1|\2'), '.*?\|(.+)', '\1') as concept_code_2, 
+  regexp_replace(regexp_replace(lower(concept_name), 'injection,? (iv, )?([^,]+).*', '\1|\2'), '.*?\|(.+)', '\1') as concept_code_2, 
   vocabulary_id as vocabulary_id_2
 from drug_concept_stage where dose_form='Injection' -- and length(regexp_substr(concept_name, ' [^,]+'))>3
 ;
@@ -386,18 +385,6 @@ commit;
 -- Manually create mappings from Ingredients to RxNorm ingredients
 begin
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('(e.g. liquid)', 'HCPCS', null, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose and 0.45% normal saline', 'HCPCS', 1560524, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose and 0.45% normal saline', 'HCPCS', 967823, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose in lactated ringer''s', 'HCPCS', 1560524, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose in lactated ringer''s', 'HCPCS', 19098979, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose with potassium chloride', 'HCPCS', 1560524, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose with potassium chloride', 'HCPCS', 19049105, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate', 'HCPCS', 19049105, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate', 'HCPCS', 19093848, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate', 'HCPCS', 967823, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate', 'HCPCS', 1560524, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose/normal saline (500 ml = 1 unit)', 'HCPCS', 967823, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose/normal saline (500 ml = 1 unit)', 'HCPCS', 1560524, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('5% dextrose/water (500 ml = 1 unit)', 'HCPCS', 1560524, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('abarelix', 'HCPCS', 19010868, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('abatacept', 'HCPCS', 1186087, null);
@@ -419,7 +406,6 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('alatrofloxacin mesylate', 'HCPCS', 19018154, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('albumin (human)', 'HCPCS', 1344143, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('albuterol', 'HCPCS', 1154343, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('albuterol/ipratropium bromide up to 0.5 mg', 'HCPCS', null, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('aldesleukin', 'HCPCS', 1309770, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('alefacept', 'HCPCS', 909959, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('alemtuzumab', 'HCPCS', 1312706, null);
@@ -433,7 +419,7 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('amifostine', 'HCPCS', 1350040, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('amikacin sulfate', 'HCPCS', 1790868, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('aminocaproic acid', 'HCPCS', 1369939, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('aminolevulinic acid hcl', 'HCPCS', 904351, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('aminolevulinic acid hcl', 'HCPCS', 19025194, null); -- it's meant methyl 5-aminolevulinate
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('aminophyllin', 'HCPCS', 1105775, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('amiodarone hydrochloride', 'HCPCS', 1309944, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('amitriptyline hcl', 'HCPCS', 710062, null);
@@ -443,15 +429,11 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('amphotericin b lipid complex', 'HCPCS', 19056402, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('amphotericin b liposome', 'HCPCS', 19056402, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ampicillin sodium', 'HCPCS', 1717327, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ampicillin sodium/sulbactam sodium', 'HCPCS', 1717327, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ampicillin sodium/sulbactam sodium', 'HCPCS', 1836241, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('anastrozole', 'HCPCS', 1348265, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('anidulafungin', 'HCPCS', 19026450, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('anistreplase', 'HCPCS', 19044890, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('anti-inhibitor', 'HCPCS', 19080406, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('antiemetic drug', 'HCPCS', null, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('antihemophilic factor viii/von willebrand factor complex (human)', 'HCPCS', 1352213, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('antihemophilic factor viii/von willebrand factor complex (human)', 'HCPCS', 44785885, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('antithrombin iii (human)', 'HCPCS', 1436169, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('antithrombin recombinant', 'HCPCS', 1436169, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('apomorphine hydrochloride', 'HCPCS', 837027, null);
@@ -486,13 +468,14 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('bendamustine hcl', 'HCPCS', 19015523, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('benztropine mesylate', 'HCPCS', 719174, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('betamethasone', 'HCPCS', 920458, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('betamethasone acetate 3mg and betamethasone sodium phosphate 3mg', 'HCPCS', 920458, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('betamethasone sodium phosphate', 'HCPCS', 40234201, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('betamethasone acetate 3 mg and betamethasone sodium phosphate 3 mg', 'HCPCS', 920458, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('betamethasone sodium phosphate', 'HCPCS', 920458, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('bethanechol chloride', 'HCPCS', 937439, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('bevacizumab', 'HCPCS', 1397141, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('biperiden lactate', 'HCPCS', 724908, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('bitolterol mesylate', 'HCPCS', 1138050, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('bivalirudin', 'HCPCS', 19084670, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('blinatumomab', 'HCPCS', 45892531, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('bleomycin sulfate', 'HCPCS', 1329241, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('bortezomib', 'HCPCS', 1336825, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('brentuximab vedotin', 'HCPCS', 40241969, null);
@@ -503,13 +486,13 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('bupivicaine hydrochloride', 'HCPCS', 732893, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('buprenorphine', 'HCPCS', 1133201, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('buprenorphine hydrochloride', 'HCPCS', 1133201, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('buprenorphine/naloxone', 'HCPCS', 1133201, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('buprenorphine/naloxone', 'HCPCS', 1114220, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('bupropion hcl sustained release tablet', 'HCPCS', 750982, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('busulfan', 'HCPCS', 1333357, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('butorphanol tartrate', 'HCPCS', 1133732, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('c-1 esterase inhibitor (human)', 'HCPCS', 45892906, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('c1 esterase inhibitor (human)', 'HCPCS', 45892906, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('c1 esterase inhibitor (recombinant)', 'HCPCS', 45892906, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('c-1 esterase inhibitor (recombinant)', 'HCPCS', 45892906, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('cabazitaxel', 'HCPCS', 40222431, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('cabergoline', 'HCPCS', 1558471, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('caffeine citrate', 'HCPCS', 1134439, null);
@@ -517,11 +500,11 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('calcitriol', 'HCPCS', 19035631, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('calcitrol', 'HCPCS', 19035631, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('calcium gluconate', 'HCPCS', 19037038, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('calcium glycerophosphate and calcium lactate', 'HCPCS', 19037038, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('calcium glycerophosphate and calcium lactate', 'HCPCS', 19058896, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('canakinumab', 'HCPCS', 40161669, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('cangrelor', 'HCPCS', 46275677, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('capecitabine', 'HCPCS', 1337620, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('capsaicin', 'HCPCS', 939881, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('capsaicin ', 'HCPCS', 939881, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('carboplatin', 'HCPCS', 1344905, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('carfilzomib', 'HCPCS', 42873638, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('carmustine', 'HCPCS', 1350066, null);
@@ -630,25 +613,16 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('doripenem', 'HCPCS', 1713905, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('dornase alfa', 'HCPCS', 1125443, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('doxercalciferol', 'HCPCS', 1512446, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('doxorubicin hydrochloride ', 'HCPCS', 1338512, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('doxorubicin hydrochloride', 'HCPCS', 1338512, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('doxorubicin hydrochloride liposomal', 'HCPCS', 19051649, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('dronabinol', 'HCPCS', 40125879, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('droperidol', 'HCPCS', 739323, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('droperidol and fentanyl citrate', 'HCPCS', 739323, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('droperidol and fentanyl citrate', 'HCPCS', 1154029, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('dyphylline', 'HCPCS', 1140088, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ecallantide', 'HCPCS', 40168938, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('eculizumab', 'HCPCS', 19080458, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('edetate calcium disodium', 'HCPCS', 43013616, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('edetate disodium', 'HCPCS', 19052936, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('efalizumab', 'HCPCS', 936429, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('elliotts'' b solution', 'HCPCS', 967823, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('elliotts'' b solution', 'HCPCS', 939506, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('elliotts'' b solution', 'HCPCS', 1560524, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('elliotts'' b solution', 'HCPCS', 19093848, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('elliotts'' b solution', 'HCPCS', 19049105, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('elliotts'' b solution', 'HCPCS', 19036781, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('elliotts'' b solution', 'HCPCS', 939871, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('elosulfase alfa', 'HCPCS', 44814525, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('enfuvirtide', 'HCPCS', 1717002, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('enoxaparin sodium', 'HCPCS', 1301025, null);
@@ -686,9 +660,11 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('factor viii (antihemophilic factor, recombinant)', 'HCPCS', 1352213, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('factor xiii (antihemophilic factor', 'HCPCS', 1352213, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('factor xiii a-subunit', 'HCPCS', 45776421, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('factor viii fc fusion (recombinant)', 'HCPCS', 45776421, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('famotidine', 'HCPCS', 953076, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('fentanyl citrate', 'HCPCS', 1154029, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ferric carboxymaltose', 'HCPCS', 43560392, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ferric pyrophosphate citrate solution', 'HCPCS', 46221255, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ferumoxytol', 'HCPCS', 40163731, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('filgrastim (g-csf)', 'HCPCS', 1304850, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('finasteride', 'HCPCS', 996416, null);
@@ -696,6 +672,7 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('fluconazole', 'HCPCS', 1754994, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('fludarabine phosphate', 'HCPCS', 1395557, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('flunisolide', 'HCPCS', 1196514, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('fluocinolone acetonide', 'HCPCS', 996541, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('fluocinolone acetonide intravitreal implant', 'HCPCS', 996541, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('fluorouracil', 'HCPCS', 955632, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('fluphenazine decanoate', 'HCPCS', 756018, null);
@@ -817,6 +794,8 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('iron dextran 267', 'HCPCS', 1381661, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('iron sucrose', 'HCPCS', 1395773, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('irrigation solution', 'HCPCS', null, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('isavuconazonium', 'HCPCS', 46221284, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('isavuconazonium sulfate', 'HCPCS', 46221284, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('isoetharine hcl', 'HCPCS', 1181809, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('isoproterenol hcl', 'HCPCS', 1183554, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('itraconazole', 'HCPCS', 1703653, null);
@@ -839,8 +818,6 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('levoleucovorin calcium', 'HCPCS', 40168303, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('levonorgestrel-releasing intrauterine contraceptive system', 'HCPCS', 1589505, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('levorphanol tartrate', 'HCPCS', 1189766, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('lidocaine /tetracaine ', 'HCPCS', 989878, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('lidocaine /tetracaine ', 'HCPCS', 1036884, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('lidocaine hcl for intravenous infusion', 'HCPCS', 989878, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('lincomycin hcl', 'HCPCS', 1790692, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('linezolid', 'HCPCS', 1736887, null);
@@ -855,14 +832,11 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('mecasermin', 'HCPCS', 1502877, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('mechlorethamine hydrochloride', 'HCPCS', 1394337, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('medroxyprogesterone acetate', 'HCPCS', 1500211, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('medroxyprogesterone acetate / estradiol cypionate', 'HCPCS', null, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('medroxyprogesterone acetate for contraceptive use', 'HCPCS', 1500211, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('megestrol acetate', 'HCPCS', 1300978, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('melphalan', 'HCPCS', 1301267, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('melphalan hydrochloride', 'HCPCS', 1301267, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('menotropins', 'HCPCS', 19125388, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('meperidine and promethazine hcl', 'HCPCS', 1153013, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('meperidine and promethazine hcl', 'HCPCS', 1102527, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('meperidine hydrochloride', 'HCPCS', 1102527, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('mepivacaine hydrochloride', 'HCPCS', 702774, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('mercaptopurine', 'HCPCS', 1436650, null);
@@ -877,7 +851,7 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('methotrexate', 'HCPCS', 1305058, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('methotrexate sodium', 'HCPCS', 1305058, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('methyl aminolevulinate (mal)', 'HCPCS', 924120, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('methyldopate  hcl', 'HCPCS', 1305496, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('methyldopate hcl', 'HCPCS', 1305496, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('methylene blue', 'HCPCS', 905518, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('methylergonovine maleate', 'HCPCS', 1305637, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('methylnaltrexone', 'HCPCS', 909841, null);
@@ -916,6 +890,7 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('neoxflo or clarixflo', 'HCPCS', 0, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('nesiritide', 'HCPCS', 1338985, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('nicotine', 'HCPCS', 718583, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('nivolumab', 'HCPCS', 45892628, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('noc drugs', 'HCPCS', null, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('non-radioactive', 'HCPCS', 0, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('normal saline solution', 'HCPCS', 967823, null);
@@ -954,7 +929,9 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('panitumumab', 'HCPCS', 19100985, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('pantoprazole sodium', 'HCPCS', 948078, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('papaverine hcl', 'HCPCS', 1326901, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('peramivir', 'HCPCS', 40167569, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('paricalcitol', 'HCPCS', 1517740, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('pasireotide long acting', 'HCPCS', 43012417, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('pegademase bovine', 'HCPCS', 581480, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('pegaptanib sodium', 'HCPCS', 19063605, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('pegaspargase', 'HCPCS', 1326481, null);
@@ -978,13 +955,10 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('pertuzumab', 'HCPCS', 42801287, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('phenobarbital sodium', 'HCPCS', 734275, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('phentolamine mesylate', 'HCPCS', 1335539, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('phenylephrine and ketorolac', 'HCPCS', 1136980, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('phenylephrine and ketorolac', 'HCPCS', 1135766, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('phenylephrine hcl', 'HCPCS', 1135766, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('phenytoin sodium', 'HCPCS', 740910, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('phytonadione (vitamin k)', 'HCPCS', 19044727, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('piperacillin sodium', 'HCPCS', 1746114, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('piperacillin sodium/tazobactam sodium', 'HCPCS', 1746114, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('plasma protein fraction (human)', 'HCPCS', 19025693, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('platelet rich plasma', 'HCPCS', 0, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('plerixafor', 'HCPCS', 19017581, null);
@@ -1014,8 +988,6 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('prothrombin complex concentrate (human), kcentra', 'HCPCS', 44507865, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('protirelin', 'HCPCS', 19001701, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('pyridoxine hcl', 'HCPCS', 42903728, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('quinupristin/dalfopristin', 'HCPCS', 1789515, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('quinupristin/dalfopristin', 'HCPCS', 1789517, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('radiesse', 'HCPCS', 0, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ramucirumab', 'HCPCS', 44818489, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ranibizumab', 'HCPCS', 19080982, null);
@@ -1029,7 +1001,6 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('rilonacept', 'HCPCS', 19023450, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('rimabotulinumtoxinb', 'HCPCS', 40166020, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('rimantadine hydrochloride', 'HCPCS', 1763339, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ringers lactate infusion', 'HCPCS', 19098979, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('risperidone', 'HCPCS', 735979, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('rituximab', 'HCPCS', 1314273, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('romidepsin', 'HCPCS', 40168385, null);
@@ -1045,6 +1016,7 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('single vitamin/mineral/trace element', 'HCPCS', null, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sipuleucel-t', 'HCPCS', 40224095, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sirolimus', 'HCPCS', 19034726, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('siltuximab', 'HCPCS', 44818461, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sodium chloride', 'HCPCS', 967823, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sodium ferric gluconate complex in sucrose injection', 'HCPCS', 1399177, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sodium hyaluronate', 'HCPCS', 787787, null);
@@ -1061,14 +1033,14 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('streptomycin', 'HCPCS', 1836191, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('streptozocin', 'HCPCS', 19136210, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('succinylcholine chloride', 'HCPCS', 836208, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sulfamethoxazole and trimethoprim', 'HCPCS', 1836430, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sulfamethoxazole and trimethoprim', 'HCPCS', 1705674, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sulfur hexafluoride lipid microsphere', 'HCPCS', 45892833, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sumatriptan succinate', 'HCPCS', 1140643, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('syringe', 'HCPCS', 0, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('syringe with needle', 'HCPCS', 0, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tacrine hydrochloride', 'HCPCS', 836654, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tacrolimus', 'HCPCS', 950637, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('taliglucerase alfa', 'HCPCS', 42800246, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('taliglucerace alfa', 'HCPCS', 42800246, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tamoxifen citrate', 'HCPCS', 1436678, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tbo-filgrastim', 'HCPCS', 43560301, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tedizolid phosphate', 'HCPCS', 45775686, null);
@@ -1080,12 +1052,11 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('terbutaline sulfate', 'HCPCS', 1236744, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('teriparatide', 'HCPCS', 1521987, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('testosterone cypionate', 'HCPCS', 1636780, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('testosterone cypionate and estradiol cypionate', 'HCPCS', 1636780, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('testosterone enanthate', 'HCPCS', 1636780, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('testosterone enanthate and estradiol valerate', 'HCPCS', 1636780, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('testosterone pellet', 'HCPCS', 1636780, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('testosterone propionate', 'HCPCS', 1636780, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('testosterone suspension', 'HCPCS', 1636780, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('testosterone undecanoate', 'HCPCS', 1636780, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tetanus immune globulin', 'HCPCS', 561401, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tetracycline', 'HCPCS', 1836948, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('theophylline', 'HCPCS', 1237049, null);
@@ -1093,8 +1064,6 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('thiethylperazine maleate', 'HCPCS', 1037358, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('thiotepa', 'HCPCS', 19137385, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('thyrotropin alpha', 'HCPCS', 19007721, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ticarcillin disodium and clavulanate potassium', 'HCPCS', 1759842, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ticarcillin disodium and clavulanate potassium', 'HCPCS', 1702364, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tigecycline', 'HCPCS', 1742432, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tinzaparin sodium', 'HCPCS', 1308473, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tirofiban hcl', 'HCPCS', 19017067, null);
@@ -1110,7 +1079,7 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('treprostinil', 'HCPCS', 1327256, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tretinoin', 'HCPCS', 903643, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('triamcinolone', 'HCPCS', 903963, null);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('triamcinolone  acetonide', 'HCPCS', 903963, null);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('triamcinolone acetonide', 'HCPCS', 903963, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('triamcinolone diacetate', 'HCPCS', 903963, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('triamcinolone hexacetonide', 'HCPCS', 903963, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('triflupromazine hcl', 'HCPCS', 19005104, null);
@@ -1148,6 +1117,273 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('zoledronic acid (reclast)', 'HCPCS', 1524674, null);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('zoledronic acid (zometa)', 'HCPCS', 1524674, null);
 end;
+commit;
+
+-- Add ingredients and their mappings that are not automatically generated
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('calcium chloride', 'HCPCS', 19036781, null); -- Ringer
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('calcium chloride', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sodium lactate', 'HCPCS', 19011035, null); -- Ringer. Lactate is precise ingredient
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('sodium lactate', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('dextrose', 'HCPCS', 1560524, null); -- Dextrose
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('dextrose', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sodium bicarbonate', 'HCPCS', 939506, null); -- Elliot's
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('sodium bicarbonate', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sodium phosphate', 'HCPCS', 939871, null); -- Elliot's
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('sodium phosphate', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sulbactam', 'HCPCS', 1836241, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('sulbactam', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tazobactam', 'HCPCS', 1741122, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('tazobactam', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('tetracaine', 'HCPCS', 1036884, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('tetracaine', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('quinupristin', 'HCPCS', 1789515, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('quinupristin', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('dalfopristin', 'HCPCS', 1789517, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('dalfopristin', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('calcium glycerophosphate', 'HCPCS', 1337159, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('calcium glycerophosphate', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('calcium lactate', 'HCPCS', 19058896, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('calcium lactate', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('avibactam', 'HCPCS', 46221507, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('avibactam', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ceftolozane', 'HCPCS', 45892599, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('ceftolozane', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('netupitant', 'HCPCS', 45774966, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('netupitant', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('sulfamethoxazole', 'HCPCS', 1836430, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('sulfamethoxazole', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('trimethoprim', 'HCPCS', 1705674, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('trimethoprim', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('ticarcillin', 'HCPCS', 1759842, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('ticarcillin', 'HCPCS', 'Ingredient');
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('clavulanate', 'HCPCS', 1702364, null);
+insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('clavulanate', 'HCPCS', 'Ingredient');
+
+-- Add ingredients for combination products
+-- 5% dextrose and 0.45% normal saline
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'dextrose' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose and 0.45% normal saline';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'normal saline solution' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose and 0.45% normal saline';
+delete from internal_relationship_stage where concept_code_2='5% dextrose and 0.45% normal saline';
+-- 5% dextrose in lactated ringer's
+-- Calcium Chloride 0.001 MEQ/ML / Glucose 50 MG/ML / Potassium Chloride 0.004 MEQ/ML / Sodium Chloride 0.103 MEQ/ML / Sodium Lactate 0.028 MEQ/ML Injectable Solution
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'dextrose' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringer''s';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'calcium chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringer''s';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'potassium chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringer''s';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'normal saline solution' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringer''s';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'sodium lactate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringer''s';
+delete from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringer''s';
+-- 5% dextrose in lactated ringers infusion
+-- Calcium Chloride 0.001 MEQ/ML / Glucose 50 MG/ML / Potassium Chloride 0.004 MEQ/ML / Sodium Chloride 0.103 MEQ/ML / Sodium Lactate 0.028 MEQ/ML Injectable Solution
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'dextrose' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringers infusion';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'calcium chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringers infusion';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'potassium chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringers infusion';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'normal saline solution' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringers infusion';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'sodium lactate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringers infusion';
+delete from internal_relationship_stage where concept_code_2='5% dextrose in lactated ringers infusion';
+-- 5% dextrose with potassium chloride
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'dextrose' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose with potassium chloride';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'potassium chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose with potassium chloride';
+delete from internal_relationship_stage where concept_code_2='5% dextrose with potassium chloride';
+-- both ingredients already defined 
+-- 5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'dextrose' as concept_code_2, 'HCPCS' as vocabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'normal saline solution' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'potassium chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'magnesium sulfate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate';
+delete from internal_relationship_stage where concept_code_2='5% dextrose/0.45% normal saline with potassium chloride and magnesium sulfate';
+-- all ingredients already defined
+-- 5% dextrose/normal saline (500 ml = 1 unit)
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'dextrose' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose/normal saline (500 ml = 1 unit)';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'normal saline solution' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='5% dextrose/normal saline (500 ml = 1 unit)';
+delete from internal_relationship_stage where concept_code_2='5% dextrose/normal saline (500 ml = 1 unit)';
+-- both ingredients already defined
+-- albuterol/ipratropium bromide up to 0.5 mg
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'albuterol' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='albuterol/ipratropium bromide up to 0.5 mg';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'ipratropium bromide' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='albuterol/ipratropium bromide up to 0.5 mg';
+delete from internal_relationship_stage where concept_code_2='albuterol/ipratropium bromide up to 0.5 mg';
+-- both ingredients already defined
+-- ampicillin sodium/sulbactam sodium
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'ampicillin sodium' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ampicillin sodium/sulbactam sodium';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'sulbactam' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ampicillin sodium/sulbactam sodium';
+delete from internal_relationship_stage where concept_code_2='ampicillin sodium/sulbactam sodium';
+-- antihemophilic factor viii/von willebrand factor complex (human)
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'factor viii' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='antihemophilic factor viii/von willebrand factor complex (human)';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'von willebrand factor complex' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='antihemophilic factor viii/von willebrand factor complex (human)';
+delete from internal_relationship_stage where concept_code_2='antihemophilic factor viii/von willebrand factor complex (human)';
+-- both ingredients already defined
+-- buprenorphine/naloxone
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'buprenorphine hydrochloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='buprenorphine/naloxone';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'naloxone hydrochloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='buprenorphine/naloxone';
+delete from internal_relationship_stage where concept_code_2='buprenorphine/naloxone';
+-- both ingredients defined already
+-- elliot b solution
+-- Calcium Chloride 0.00136 MEQ/ML / Glucose 0.8 MG/ML / Magnesium Sulfate 0.00122 MEQ/ML / Potassium Chloride 0.00403 MEQ/ML / Sodium Bicarbonate 0.0226 MEQ/ML / Sodium Chloride 0.125 MEQ/ML / sodium phosphate 0.000746 MEQ/ML Injectable Solution [Elliotts B
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'sodium bicarbonate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='elliotts'' b solution';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'sodium phosphate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='elliotts'' b solution';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'normal saline solution' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='elliotts'' b solution';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'dextrose' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='elliotts'' b solution';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'calcium chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='elliotts'' b solution';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'potassiuim chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='elliotts'' b solution';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'magnesium sulfate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='elliotts'' b solution';
+delete from internal_relationship_stage where concept_code_2='elliotts'' b solution';
+-- some of the ingredients are already defined
+-- immune globulin/hyaluronidase
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'immune globulin' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='immune globulin/hyaluronidase';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'hyaluronidase' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='immune globulin/hyaluronidase';
+delete from internal_relationship_stage where concept_code_2='immune globulin/hyaluronidase';
+-- both ingredients definded already
+-- lidocaine /tetracaine 
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'lidocaine hcl for intravenous infusion' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='lidocaine /tetracaine ';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'tetracaine' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='lidocaine /tetracaine ';
+delete from internal_relationship_stage where concept_code_2='lidocaine /tetracaine ';
+-- lidocaine already defined
+-- medroxyprogesterone acetate / estradiol cypionate
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'medroxyprogesterone acetate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='medroxyprogesterone acetate / estradiol cypionate';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'depo-estradiol cypionate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='medroxyprogesterone acetate / estradiol cypionate';
+delete from internal_relationship_stage where concept_code_2='medroxyprogesterone acetate / estradiol cypionate';
+-- both ingredients already defined
+-- piperacillin sodium/tazobactam sodium
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'piperacillin sodium' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='piperacillin sodium/tazobactam sodium';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'tazobactam' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='piperacillin sodium/tazobactam sodium';
+delete from internal_relationship_stage where concept_code_2='piperacillin sodium/tazobactam sodium';
+-- piperacillin already defined
+-- quinupristin/dalfopristin
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'quinupristin' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='quinupristin/dalfopristin';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'dalfopristin' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='quinupristin/dalfopristin';
+delete from internal_relationship_stage where concept_code_2='quinupristin/dalfopristin';
+-- calcium glycerophosphate and calcium lactate
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'calcium glycerophosphate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='calcium glycerophosphate and calcium lactate';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'calcium lactate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='calcium glycerophosphate and calcium lactate';
+delete from internal_relationship_stage where concept_code_2='calcium glycerophosphate and calcium lactate';
+--- ceftazidime and avibactam
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'ceftazidime' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ceftazidime and avibactam';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'avibactam' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ceftazidime and avibactam';
+delete from internal_relationship_stage where concept_code_2='ceftazidime and avibactam';
+-- ceftazidime already defined
+-- ceftolozane 50 mg and tazobactam 25 mg
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'ceftolozane' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ceftolozane 50 mg and tazobactam 25 mg';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'tazobactam' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ceftolozane 50 mg and tazobactam 25 mg';
+delete from internal_relationship_stage where concept_code_2='ceftolozane 50 mg and tazobactam 25 mg';
+-- tazobactam already defined
+-- droperidol and fentanyl citrate
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'droperidol' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='droperidol and fentanyl citrate';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'fentanyl citrate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='droperidol and fentanyl citrate';
+delete from internal_relationship_stage where concept_code_2='droperidol and fentanyl citrate';
+-- both ingredients already defined
+-- meperidine and promethazine hcl
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'meperidine hydrochloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='meperidine and promethazine hcl';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'promethazine hcl' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='meperidine and promethazine hcl';
+delete from internal_relationship_stage where concept_code_2='meperidine and promethazine hcl';
+-- Both ingredients already defined
+-- netupitant 300 mg and palonosetron 0.5 mg
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'netupitant' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='netupitant 300 mg and palonosetron 0.5 mg';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'palonosetron hcl' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='netupitant 300 mg and palonosetron 0.5 mg';
+delete from internal_relationship_stage where concept_code_2='netupitant 300 mg and palonosetron 0.5 mg';
+-- palonosetron already defined
+-- phenylephrine and ketorolac
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'phenylephrine hcl' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='phenylephrine and ketorolac';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'ketorolac tromethamine' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='phenylephrine and ketorolac';
+delete from internal_relationship_stage where concept_code_2='phenylephrine and ketorolac';
+-- both ingredients already defined
+-- ringers lactate infusion
+-- Calcium Chloride 0.0014 MEQ/ML / Potassium Chloride 0.004 MEQ/ML / Sodium Chloride 0.103 MEQ/ML / Sodium Lactate 0.028 MEQ/ML Injectable Solution
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'calcium chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ringers lactate infusion';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'potassium chloride' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ringers lactate infusion';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'normal saline solution' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ringers lactate infusion';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'sodium lactate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ringers lactate infusion';
+delete from internal_relationship_stage where concept_code_2='ringers lactate infusion';
+-- sulfamethoxazole and trimethoprim
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'sulfamethoxazole' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='sulfamethoxazole and trimethoprim';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'trimethoprim' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='sulfamethoxazole and trimethoprim';
+delete from internal_relationship_stage where concept_code_2='sulfamethoxazole and trimethoprim';
+-- testosterone cypionate and estradiol cypionate
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'testosterone cypionate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='testosterone cypionate and estradiol cypionate';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'depo-estradiol cypionate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='testosterone cypionate and estradiol cypionate';
+delete from internal_relationship_stage where concept_code_2='testosterone cypionate and estradiol cypionate';
+-- both ingredients already defined
+-- testosterone enanthate and estradiol valerate
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'testosterone enanthate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='testosterone enanthate and estradiol valerate';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'estradiol valerate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='testosterone enanthate and estradiol valerate';
+delete from internal_relationship_stage where concept_code_2='testosterone enanthate and estradiol valerate';
+-- both ingredients already defined
+-- ticarcillin disodium and clavulanate potassium
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'ticarcillin' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ticarcillin disodium and clavulanate potassium';
+insert into internal_relationship_stage
+select concept_code_1, 'HCPCS' as vocabulary_id_1, 'clavulanate' as concept_code_2, 'HCPCS' as voabulary_id_2 from internal_relationship_stage where concept_code_2='ticarcillin disodium and clavulanate potassium';
+delete from internal_relationship_stage where concept_code_2='ticarcillin disodium and clavulanate potassium';
+
+-- Add and remove ingredients
+delete from drug_concept_stage where concept_class_id='Ingredient' and concept_code not in (select concept_code_2 from internal_relationship_stage);
 commit;
 
 /*********************************************
@@ -1238,9 +1474,11 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Oral', 'HCPCS', 45775491, 39);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Oral', 'HCPCS', 45775492, 40);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Oral', 'HCPCS', 19111155, 41);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Oral', 'HCPCS', 19126316, 42);
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Oral', 'HCPCS', 19082285, 43);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Patch', 'HCPCS', 19082229, 1);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Patch', 'HCPCS', 19082701, 2);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Patch', 'HCPCS', 19082224, 3);
+-- insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Patch', 'HCPCS', 19082224, 3); -- Topical cream
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Patch', 'HCPCS', 19082049, 4);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Patch', 'HCPCS', 19082071, 5);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence) values ('Patch', 'HCPCS', 19082072, 6);
@@ -1444,9 +1682,9 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 end;
 commit;
 
-/******************************
+/*********************************
 * 4. Create and link Drug Strength
-******************************/
+*********************************/
 -- Write units
 insert /*+ APPEND */ into drug_concept_stage
 select distinct 
@@ -1490,25 +1728,26 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('milligram', 'HCPCS', 8576, 1, 1); -- to milligram
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('milligrams', 'HCPCS', 8576, 1, 1); -- to milligram
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('mcg', 'HCPCS', 8576, 1, 0.001); -- to milligram
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('meq', 'HCPCS', 9551, 1, 1); 
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('microgram', 'HCPCS', 8576, 1, 0.001); -- to milligram
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('micrograms', 'HCPCS', 8576, 1, 0.001); -- to milligram
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('ml', 'HCPCS', 8587, 1, 1); -- to milliliter
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('ml', 'HCPCS', 8576, 2, 1000); -- to milligram
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('cc', 'HCPCS', 8587, 1, 1); -- to milliliter
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('cc', 'HCPCS', 8576, 2, 1000); -- to milligram
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('%', 'HCPCS', 8554, 2, 1);
 end;
 commit;
 
 -- write drug_strength
-truncate table drug_strength;
-insert /*+ APPEND */ into drug_strength
+insert /*+ APPEND */ into drug_strength_stage
 select distinct
   d.concept_code as drug_concept_code,
   i.concept_code_2 as ingredient_concept_code,
-  d.v as amount_value,
-  d.u as amount_unit,
-  null as numerator_value,
-  null as numerator_unit,
+  case u when '%' then null else d.v end as amount_value, -- only percent goes into liquid drug_strength
+  case u when '%' then null else d.u end as amount_unit,
+  case u when '%' then d.v else null end as numerator_value,
+  case u when '%' then d.u else null end as numerator_unit,
   null as denominator_value,
   null as denominator_unit,
   null as box_size
@@ -1532,7 +1771,7 @@ from (
       select d.*, instr(dose, '|', 1, 1) as fst, instr(dose, '|', 1, 2) as snd, instr(dose, '|', 1, 3) as trd
       from (
         select 
-          regexp_replace(lower(concept_name), '([^0-9]+)([0-9][0-9\.,]*|per) *(mg|ml|micrograms?|units?|i\.?u\.?|grams?|gm|cc|mcg|milligrams?|million units)(.*)', '\1|\2|\3|\4') as dose, 
+          regexp_replace(lower(concept_name), '([^0-9]+)([0-9][0-9\.,]*|per) *(mg|ml|micrograms?|units?|i\.?u\.?|grams?|gm|cc|mcg|milligrams?|million units|%)(.*)', '\1|\2|\3|\4') as dose, 
           concept_code 
         from drug_concept_stage
       ) d
@@ -1545,6 +1784,94 @@ left join (
 where d.v is not null
 ;
 commit;
+
+-- Manually fix the combination products
+-- C9285 defined and correct
+-- C9447 not defined, will pass only as form or ingredient
+-- C9448 defined:
+update drug_strength_stage set amount_value=0.5 where drug_concept_code='C9448' and ingredient_concept_code='palonosetron hcl';
+-- C9452 defined:
+update drug_strength_stage set amount_value=25 where drug_concept_code='C9452' and ingredient_concept_code='tazobactam';
+-- J0295 only defined for ampicillin
+delete from drug_strength_stage where drug_concept_code='J0295' and ingredient_concept_code='sulbactam';
+-- J0571 - J0575 only defined for buprenorphine, will pass only as form or ingredient
+delete from drug_strength_stage where drug_concept_code='J0571' and ingredient_concept_code='naloxone hydrochloride';
+delete from drug_strength_stage where drug_concept_code='J0572' and ingredient_concept_code='naloxone hydrochloride';
+delete from drug_strength_stage where drug_concept_code='J0573' and ingredient_concept_code='naloxone hydrochloride';
+delete from drug_strength_stage where drug_concept_code='J0574' and ingredient_concept_code='naloxone hydrochloride';
+delete from drug_strength_stage where drug_concept_code='J0575' and ingredient_concept_code='naloxone hydrochloride';
+-- J0620 not defined, will pass only as form or ingredient
+-- J0695 defined:
+update drug_strength_stage set amount_value=25 where drug_concept_code='J0695' and ingredient_concept_code='tazobactam';
+-- J0900 not defined, will pass only as form or ingredient
+-- J1056 defined:
+update drug_strength_stage set amount_value=25 where drug_concept_code='J1056' and ingredient_concept_code='depo-estradiol cypionate';
+-- J1060 not defined, will pass only as form or ingredient
+-- J1575 not defined, will pass only as form or ingredient
+-- J1810 not defined, will pass only as form or ingredient
+-- J2180 defined:
+update drug_strength_stage set amount_value=25 where drug_concept_code='J2180' and ingredient_concept_code='promethazine hcl';
+-- J2543 defined:
+update drug_strength_stage set amount_value=125, amount_unit='mg' where drug_concept_code='J2543' and ingredient_concept_code='tazobactam';
+-- J2770 defined:
+update drug_strength_stage set amount_value=350 where drug_concept_code='J2770' and ingredient_concept_code='quinupristin';
+update drug_strength_stage set amount_value=150 where drug_concept_code='J2770' and ingredient_concept_code='dalfopristin';
+-- J7042 defined:
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J7042' and ingredient_concept_code='dextrose';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.154, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7042' and ingredient_concept_code='normal saline solution';
+-- J7060 defined:
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J7060' and ingredient_concept_code='dextrose';
+-- J7120 defined:
+-- Calcium Chloride 0.0014 MEQ/ML / Potassium Chloride 0.004 MEQ/ML / Sodium Chloride 0.103 MEQ/ML / Sodium Lactate 0.028 MEQ/ML Injectable Solution
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0014, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='calcium chloride';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.004, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='potassium chloride';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.103, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='normal saline solution';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.028, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='sodium lactate';
+-- J7121 defined:
+-- Calcium Chloride 0.001 MEQ/ML / Glucose 50 MG/ML / Potassium Chloride 0.004 MEQ/ML / Sodium Chloride 0.103 MEQ/ML / Sodium Lactate 0.028 MEQ/ML Injectable Solution
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='dextrose';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.001, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='calcium chloride';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.004, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='potassium chloride';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.103, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='normal saline solution';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.028, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='sodium lactate';
+-- J7620 defined:
+update drug_strength_stage set amount_value=2.5 where drug_concept_code='J7620' and ingredient_concept_code='albuterol';
+-- J9175 defined:
+-- Calcium Chloride 0.00136 MEQ/ML / Glucose 0.8 MG/ML / Magnesium Sulfate 0.00122 MEQ/ML / Potassium Chloride 0.00403 MEQ/ML / Sodium Bicarbonate 0.0226 MEQ/ML / Sodium Chloride 0.125 MEQ/ML / sodium phosphate 0.000746 MEQ/ML Injectable Solution [Elliotts B
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0226, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='sodium bicarbonate';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value= 0.000746, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='sodium phosphate';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.125, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='normal saline solution';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.8, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='dextrose';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.00136, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='calcium chloride';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.00403, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='potassium chloride';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.00122, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='magnesium sulfate';
+-- S0039: not defined, will pass only as form or ingredient
+-- S0040 somewhat defined. the 31 mg are in one milliliter andn are a sum of both ingredients:
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=30, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S0040' and ingredient_concept_code='ticarcillin';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=1, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S0040' and ingredient_concept_code='clavulanate';
+-- S5010: defined:
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5010' and ingredient_concept_code='dextrose';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0769, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5010' and ingredient_concept_code='normal saline solution';
+-- S5011
+-- Calcium Chloride 0.001 MEQ/ML / Glucose 50 MG/ML / Potassium Chloride 0.004 MEQ/ML / Sodium Chloride 0.103 MEQ/ML / Sodium Lactate 0.028 MEQ/ML Injectable Solution
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='dextrose';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.001, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='calcium chloride';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.004, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='potassium chloride';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.103, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='normal saline solution';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.028, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='sodium lactate';
+-- S5012: undefined, including the ingredients. Still:
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5012' and ingredient_concept_code='dextrose';
+delete from drug_strength_stage where drug_concept_code='S5012' and ingredient_concept_code='potassium chloride';
+-- S5013: undefined, but this we know:
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5013' and ingredient_concept_code='dextrose';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0769, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5013' and ingredient_concept_code='normal saline solution';
+delete from drug_strength_stage where drug_concept_code='S5013' and ingredient_concept_code='potassium chloride';
+delete from drug_strength_stage where drug_concept_code='S5013' and ingredient_concept_code='magnesium sulfate';
+-- S5014: undefined, but this we know:
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5014' and ingredient_concept_code='dextrose';
+update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0769, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5014' and ingredient_concept_code='normal saline solution';
+delete from drug_strength_stage where drug_concept_code='S5014' and ingredient_concept_code='potassium chloride';
+delete from drug_strength_stage where drug_concept_code='S5014' and ingredient_concept_code='magnesium sulfate';
 
 /******************************
 * 5. Create and link Brand Names *
@@ -1590,3 +1917,5 @@ commit;
 *****************************/
 -- remove dose forms from concept_stage table
 alter table drug_concept_stage drop column dose_form;
+drop table drug_concept_stage_tmp purge;
+drop table brandname purge;

@@ -1,9 +1,15 @@
-/************************************************
-* This script takes a drug vocabulary q and     *
-* compares it to the existing drug vocabulary r *
-* As a result it creates records in the         *
-* concept_relationship_stage table              *
-************************************************/
+/**************************************************
+* This script takes a drug vocabulary q and       *
+* compares it to the existing drug vocabulary r   *
+* The new vocabulary must be provided in the same *
+* format as for generating a new drug vocabulary: *
+* http://www.ohdsi.org/web/wiki/doku.php?id=documentation:international_drugs *
+* As a result it creates records in the           *
+* concept_relationship_stage table                *
+*                                                 *
+* To_do: Add quantification factor                *
+* Suppport writing amount field                   *
+**************************************************/
 
 -- 1. Create lookup tables for existing vocab r (RxNorm and public country-specific ones)
 -- Create table containing ingredients for each drug
@@ -13,7 +19,10 @@ create table r_drug_ing nologging as
   join concept an on a.ancestor_concept_id=an.concept_id and an.concept_class_id='Ingredient' 
     and an.vocabulary_id in ('RxNorm') -- to be expanded as new vocabs are added
   join concept de on de.concept_id=a.descendant_concept_id 
+    and de.vocabulary_id in ('RxNorm')
 ;
+-- Remove unparsable Albumin products that have no drug_strength entry: Albumin Human, USP 1 NS
+delete from r_drug_ing where drug_id in (19094500, 19080557);
 -- Count number of ingredients for each drug
 create table r_ing_count nologging as
   select drug_id as did, count(*) as cnt from r_drug_ing group by drug_id
@@ -23,7 +32,7 @@ update r_ing_count set cnt=null where did in (select concept_id from concept whe
 
 create index x_r_drug_ing on r_drug_ing(drug_id, ing_id) nologging;
 
--- Create lookup tables for query vocab q (new vocab)
+-- Create lookup table for query vocab q (new vocab)
 create table q_drug_ing nologging as
 select drug.concept_code as drug_code, nvl(ing.concept_id, 0) as ing_id, i.concept_code as ing_code -- if ingredient is not mapped use 0 to still get the right ingredient count
 from drug_concept_stage i
@@ -34,14 +43,13 @@ join drug_concept_stage drug on drug.concept_class_id not in ('Unit', 'Ingredien
   and drug.concept_code=r2.concept_code_1
 where i.concept_class_id='Ingredient'
 ;
-
 -- Count ingredients per drug
 create table q_ing_count nologging as
   select drug_code as dcode, count(*) as cnt from q_drug_ing group by drug_code
 ;
 create index x_q_drug_ing on q_drug_ing(drug_code, ing_id) nologging;
 
--- create table that lists for each ingredient all drugs continaing it from q and r
+-- Create table that lists for each ingredient all drugs containing it from q and r
 create table match nologging as
   select q.ing_id as r_iid, q.ing_code as q_icode, q.drug_code as q_dcode, r.drug_id as r_did
   from q_drug_ing q join r_drug_ing r on q.ing_id=r.ing_id -- match query and result drug on common ingredient
@@ -156,21 +164,23 @@ from (
   left join r on r.drug_concept_id=m.r_did and r.ingredient_concept_id=m.r_iid
 )
 ;
+commit;
 
 -- Remove all multiple mappings with close divs and keep the best
 delete from q_to_r_wdose
 where rowid in (
-  select rowid from (
-    select rowid,
-      row_number() over (partition by q_dcode, q_icode, df_prec, bn_prec, u_prec order by div desc, i_prec) rn
+  select r from (
+    select rowid as r,
+      rank() over (partition by q_dcode, q_icode, df_prec, bn_prec, u_prec order by div desc, i_prec) rn
     from q_to_r_wdose
   )
   where rn > 1    
 )
 ;
+commit;
 
 -- Remove all those where not everything fits
--- table has to be created separately because both subsequent queries define one field as null
+-- The table has to be created separately because both subsequent queries define one field as null
 create table q_to_r nologging as
 select q_dcode, r_did, r_iid, bn_prec, df_prec, u_prec, rc_cnt from q_to_r_wdose
 where 1=0;
@@ -202,7 +212,7 @@ commit;
 insert /*+ APPEND */ into q_to_r
 select distinct q_dcode, r_did, r_iid, bn_prec, df_prec, u_prec, null as rc_cnt
 from q_to_r_wdose
-where nvl(rc_cnt, 1)=1 -- process only those that done have combinations (ingredients and Clin Drug Components)
+where nvl(rc_cnt, 1)=1 -- process only those that don't have combinations (Ingredients and Clin Drug Components)
 and div>=0.9 and u_match=1
 ;
 commit;
@@ -210,49 +220,55 @@ commit;
 -- Get the best possible mapping that is unique in its concept class. Try bottom up from the lowest end of the drug hierarchy
 create table best_map nologging as
 with r as (
-  select qr.*, c.concept_class_id from q_to_r qr join concept c on c.concept_id=qr.r_did
+  select distinct qr.*, c.concept_class_id from q_to_r qr join concept c on c.concept_id=qr.r_did 
 )
 select distinct 
   rmap.* 
 from (
 -- get the best match within class, with the best brand name, dose form and unit precedence
-  select 
-    q_dcode, 
-    first_value(bn_prec) over (partition by q_dcode order by cclass, bn_prec, df_prec, u_prec) as bn_prec,
-    first_value(df_prec) over (partition by q_dcode order by cclass, bn_prec, df_prec, u_prec) as df_prec,
-    first_value(u_prec) over (partition by q_dcode order by cclass, bn_prec, df_prec, u_prec) as u_prec
+  select distinct
+    q_dcode, r_iid,
+    first_value(concept_class_id) over (partition by q_dcode, r_iid order by cclass) as concept_class_id
   from (  
-    select * from (
-      select q_dcode, r_iid, bn_prec, df_prec, u_prec, cclass, count(8) as cnt
+    select q_dcode, r_iid, concept_class_id,
+      decode(concept_class_id,
+        'Quant Branded Box', 1,
+        'Quant Clinical Box', 2,
+        'Branded Drug Box', 3,
+        'Clinical Drug Box', 4,
+        'Quant Clinical Drug', 5,
+        'Quant Branded Drug', 6,
+        'Branded Drug', 7,
+        'Clinical Drug', 8,
+        'Branded Drug Form', 9,
+        'Clinical Drug Form', 10,
+        'Branded Drug Comp', 11,
+        'Clinical Drug Comp', 12,
+        'Ingredient', 13,
+        20
+      ) as cclass    
+    from (
+      select q_dcode, r_iid, concept_class_id, count(8) as cnt
       from (
         select q_dcode, 
           r_iid, -- group by ingredient for the concept classes that keep ingredients individually (Ing, Clin Drug Comp)
-          bn_prec, df_prec, u_prec, 
--- Define the order by which to attempt the best match. Start at the bottom
-          decode(concept_class_id,
-            'Quant Branded Box', 1,
-            'Quant Clinical Box', 2,
-            'Branded Drug Box', 3,
-            'Clinical Drug Box', 4,
-            'Quant Clinical Drug', 5,
-            'Quant Branded Drug', 6,
-            'Branded Drug', 7,
-            'Clinical Drug', 8,
-            'Branded Drug Form', 9,
-            'Clinical Drug Form', 10,
-            'Branded Drug Comp', 11,
-            'Clinical Drug Comp', 12,
-            'Ingredient', 13,
-            20
-          ) as cclass
+          concept_class_id
         from r 
       )
-      group by q_dcode, r_iid, bn_prec, df_prec, u_prec, cclass
-    ) where cclass in (12, 13) or cnt<2 -- either Ingredient/Clinica Drug Comp or single map
+      group by q_dcode, r_iid, concept_class_id
+    ) where concept_class_id in ('Clinical Drug Comp', 'Ingredient') or cnt<2 -- either Ingredient/Clinica Drug Comp or single map
   ) 
 ) rcnt
-join r rmap on rmap.q_dcode=rcnt.q_dcode and rmap.bn_prec=rcnt.bn_prec and rmap.df_prec=rcnt.df_prec and rmap.u_prec=rcnt.u_prec
+join r rmap on rmap.q_dcode=rcnt.q_dcode and nvl(rmap.r_iid, 0)=nvl(rcnt.r_iid, 0) and rmap.concept_class_id=rcnt.concept_class_id
 ;
+
+-- Remove those which have both Ingredient/Drug Comp hits as well as other hits.
+delete from best_map with_i
+where with_i.r_iid is not null and exists (
+  select 1 from best_map no_i where with_i.q_dcode=no_i.q_dcode and no_i.r_iid is null
+);
+
+commit;
 
 -- Write concept_relationship_stage
 insert /*+ APPEND */ into concept_relationship_stage
@@ -281,9 +297,8 @@ commit;
 * Clean up
 *****************************/
 
+/*
 drop table drug_concept_stage purge;
-drop table drug_concept_stage_tmp purge;
-drop table brandname purge;
 drop table relationship_to_concept purge;
 drop table internal_relationship_stage purge;
 drop table drug_strength_stage purge;
@@ -297,3 +312,4 @@ drop table q_to_r_anydose purge;
 drop table q_to_r_wdose purge;
 drop table q_to_r purge;
 drop table best_map purge;
+*/

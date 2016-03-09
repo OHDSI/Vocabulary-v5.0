@@ -119,7 +119,7 @@ with q as (
   select q_ds.drug_concept_code, q_ds.ingredient_concept_code, 
     q_ds.amount_value*q_ds_a.conversion_factor as amount_value, q_ds_a.concept_id_2 as amount_unit_concept_id, 
     q_ds.numerator_value*q_ds_n.conversion_factor as numerator_value, q_ds_n.concept_id_2 as numerator_unit_concept_id,
-    nvl(q_ds.denominator_value, 1)*q_ds_d.conversion_factor as denominator_value, q_ds_d.concept_id_2 as denominator_unit_concept_id,
+    nvl(q_ds.denominator_value, 1)*nvl(q_ds_d.conversion_factor, 1) as denominator_value, q_ds_d.concept_id_2 as denominator_unit_concept_id,
     coalesce(q_ds_a.precedence, q_ds_n.precedence, q_ds_d.precedence) as u_prec
   from drug_strength_stage q_ds
   left join relationship_to_concept q_ds_a on q_ds_a.concept_code_1=q_ds.amount_unit -- amount units

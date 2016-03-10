@@ -511,6 +511,7 @@ COMMIT;
 -- 13. 'Maps to' or 'Mapped from' relationships should not exist where 
 -- a) the source concept has standard_concept = 'S', unless it is to self
 -- b) the target concept has standard_concept = 'C' or NULL
+-- c) the target concept has invalid_reason='D' or 'U'
 
 UPDATE concept_relationship d
    SET d.valid_end_date =
@@ -528,9 +529,9 @@ UPDATE concept_relationship d
                     WHERE     r.concept_id_1 = c1.concept_id
                           AND r.concept_id_2 = c2.concept_id
                           AND (       (c1.standard_concept = 'S'
-								  AND c1.vocabulary_id = c2.vocabulary_id
                                   AND c1.concept_id != c2.concept_id) -- rule a)
                                OR COALESCE (c2.standard_concept, 'X') != 'S' -- rule b)
+							   OR c2.invalid_reason IN ('U', 'D') -- rule c)
                                                                             )
                           AND c1.vocabulary_id = v.vocabulary_id
                           AND v.latest_update IS NOT NULL -- only the current vocabularies
@@ -556,9 +557,9 @@ UPDATE concept_relationship d
                     WHERE     r.concept_id_1 = c1.concept_id
                           AND r.concept_id_2 = c2.concept_id
                           AND (       (c2.standard_concept = 'S'
-								  AND c1.vocabulary_id = c2.vocabulary_id
                                   AND c1.concept_id != c2.concept_id) -- rule a)
                                OR COALESCE (c1.standard_concept, 'X') != 'S' -- rule b)
+							   OR c1.invalid_reason IN ('U', 'D') -- rule c)
                                                                             )
                           AND c2.vocabulary_id = v.vocabulary_id
                           AND v.latest_update IS NOT NULL -- only the current vocabularies

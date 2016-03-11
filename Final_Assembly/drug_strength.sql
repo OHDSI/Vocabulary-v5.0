@@ -15,7 +15,8 @@
  * This program creates for each drug and ingredient a record with the strength.
  * For drugs with absolute amount strength information, the value and unit are provided as
  * amount_value and amount_unit. For drugs with relative strength (concentration), the 
- * strength is provided as c_value, c_enum_unit and c_denom_unit.
+ * strength is provided as numerator_value, numerator_unit_concept_id and 
+ * denominator_unit_concept_id. For Quantified Drugs the denominator_value is also set
  *
  * Version 2.0
  * Author Christian Reich
@@ -115,7 +116,10 @@ values ('ir', 0, 'index of reactivity', 9693, 11, '14-Dec-2014', '31-Dec-2099', 
 
 /* 2. Build drug_strength table for '* Drugs' */
 
-truncate table drug_strength;
+delete from drug_strength where rowid in (
+  select ds.rowid from drug_strength ds join concept d on d.concept_id=drug_concept_id and d.vocabulary_id='RxNorm'
+);
+
 insert /*+ APPEND */ into drug_strength (
   drug_concept_id, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_unit_concept_id, valid_start_date, valid_end_date, invalid_reason
 )
@@ -521,7 +525,17 @@ where u='ML'
 
 commit;
 
-/* 5. Final diagnostic and clean up */
+/* 5. Shift percent from amount to numerator */
+
+update drug_strength set 
+  numerator_value=amount_value,
+  numerator_unit_concept_id=8554,
+  amount_value=null,
+  amount_unit_concept_id=null
+where amount_unit_concept_id=8554
+;
+
+/* 6. Final diagnostic and clean up */
 
 -- check unparsed records
 select * from drug_strength where amount_unit_concept_id is null and numerator_unit_concept_id is null;

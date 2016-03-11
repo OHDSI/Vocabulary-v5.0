@@ -1651,7 +1651,243 @@ ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 COMMIT;
 
--- 12. start building the hierarchy for progagating domain_ids from toop to bottom
+--12 Delete duplicate mappings (one concept has multiply target concepts)
+DELETE FROM concept_relationship_stage
+      WHERE (concept_code_1, relationship_id) IN
+               (  SELECT concept_code_1, relationship_id
+                    FROM concept_relationship_stage
+                   WHERE     relationship_id IN ('Concept replaced by',
+                                                 'Concept same_as to',
+                                                 'Concept alt_to to',
+                                                 'Concept poss_eq to',
+                                                 'Concept was_a to')
+                         AND invalid_reason IS NULL
+                         AND vocabulary_id_1 = vocabulary_id_2
+                GROUP BY concept_code_1, relationship_id
+                  HAVING COUNT (DISTINCT concept_code_2) > 1);
+COMMIT;
+
+--13 Delete self-connected mappings ("A 'Concept replaced by' B" and "B 'Concept replaced by' A")
+DELETE FROM concept_relationship_stage
+      WHERE ROWID IN (SELECT cs1.ROWID
+                        FROM concept_relationship_stage cs1, concept_relationship_stage cs2
+                       WHERE     cs1.invalid_reason IS NULL
+                             AND cs2.invalid_reason IS NULL
+                             AND cs1.concept_code_1 = cs2.concept_code_2
+                             AND cs1.concept_code_2 = cs2.concept_code_1
+                             AND cs1.vocabulary_id_1 = cs2.vocabulary_id_1
+                             AND cs2.vocabulary_id_2 = cs2.vocabulary_id_2
+                             AND cs1.vocabulary_id_1 = cs1.vocabulary_id_2
+                             AND cs1.relationship_id = cs2.relationship_id
+                             AND cs1.relationship_id IN ('Concept replaced by',
+                                                         'Concept same_as to',
+                                                         'Concept alt_to to',
+                                                         'Concept poss_eq to',
+                                                         'Concept was_a to'));
+COMMIT;
+
+--14 Deprecate concepts if we have no active replacement record in the concept_relationship_stage
+UPDATE concept_stage cs
+   SET cs.valid_end_date =
+          (SELECT v.latest_update - 1
+             FROM VOCABULARY v
+            WHERE v.vocabulary_id = cs.vocabulary_id),
+       cs.invalid_reason = 'D',
+       cs.standard_concept = NULL
+ WHERE     NOT EXISTS
+              (SELECT 1
+                 FROM concept_relationship_stage crs
+                WHERE     crs.concept_code_1 = cs.concept_code
+                      AND crs.vocabulary_id_1 = cs.vocabulary_id
+                      AND crs.invalid_reason IS NULL
+                      AND crs.relationship_id IN ('Concept replaced by',
+                                                  'Concept same_as to',
+                                                  'Concept alt_to to',
+                                                  'Concept poss_eq to',
+                                                  'Concept was_a to'))
+       AND cs.invalid_reason = 'U';		
+COMMIT;	
+
+--15 Deprecate replacement records if target concept was depreceted 
+MERGE INTO concept_relationship_stage r
+     USING (WITH upgraded_concepts
+                    AS (SELECT crs.concept_code_1,
+                               crs.vocabulary_id_1,
+                               crs.concept_code_2,
+                               crs.vocabulary_id_2,
+                               crs.relationship_id,
+                               cs.invalid_reason
+                          FROM concept_relationship_stage crs, concept_stage cs
+                         WHERE     crs.relationship_id IN ('Concept replaced by',
+                                                           'Concept same_as to',
+                                                           'Concept alt_to to',
+                                                           'Concept poss_eq to',
+                                                           'Concept was_a to')
+                               AND crs.invalid_reason IS NULL
+                               AND crs.concept_code_2 = cs.concept_code
+                               AND crs.vocabulary_id_2 = cs.vocabulary_id
+                               AND crs.vocabulary_id_1 = crs.vocabulary_id_2
+                               AND crs.concept_code_1 <> crs.concept_code_2)
+                SELECT u.concept_code_1,
+                       u.vocabulary_id_1,
+                       u.concept_code_2,
+                       u.vocabulary_id_2,
+                       u.relationship_id
+                  FROM upgraded_concepts u
+            CONNECT BY NOCYCLE PRIOR concept_code_1 = concept_code_2
+            START WITH concept_code_2 IN (SELECT concept_code_2
+                                            FROM upgraded_concepts
+                                           WHERE invalid_reason = 'D')) i
+        ON (    r.concept_code_1 = i.concept_code_1
+            AND r.vocabulary_id_1 = i.vocabulary_id_1
+            AND r.concept_code_2 = i.concept_code_2
+            AND r.vocabulary_id_2 = i.vocabulary_id_2
+            AND r.relationship_id = i.relationship_id)
+WHEN MATCHED
+THEN
+   UPDATE SET r.invalid_reason = 'D',
+              r.valid_end_date =
+                 (SELECT latest_update - 1
+                    FROM vocabulary
+                   WHERE vocabulary_id IN (r.vocabulary_id_1, r.vocabulary_id_2));
+COMMIT;
+
+--16 Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
+UPDATE concept_stage cs
+   SET cs.valid_end_date =
+          (SELECT v.latest_update - 1
+             FROM VOCABULARY v
+            WHERE v.vocabulary_id = cs.vocabulary_id),
+       cs.invalid_reason = 'D',
+       cs.standard_concept = NULL
+ WHERE     NOT EXISTS
+              (SELECT 1
+                 FROM concept_relationship_stage crs
+                WHERE     crs.concept_code_1 = cs.concept_code
+                      AND crs.vocabulary_id_1 = cs.vocabulary_id
+                      AND crs.invalid_reason IS NULL
+                      AND crs.relationship_id IN ('Concept replaced by',
+                                                  'Concept same_as to',
+                                                  'Concept alt_to to',
+                                                  'Concept poss_eq to',
+                                                  'Concept was_a to'))
+       AND cs.invalid_reason = 'U';				 
+COMMIT;
+
+--17 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+UPDATE concept_relationship_stage crs
+   SET crs.valid_end_date =
+          (SELECT latest_update - 1
+             FROM vocabulary
+            WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2)),
+       crs.invalid_reason = 'D'
+ WHERE     crs.relationship_id = 'Maps to'
+       AND crs.invalid_reason IS NULL
+       AND EXISTS
+              (SELECT 1
+                 FROM concept_stage cs
+                WHERE cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2 AND cs.invalid_reason IN ('U', 'D'));
+COMMIT;		
+
+--18 Add mapping from deprecated to fresh concepts
+MERGE INTO concept_relationship_stage crs
+     USING (WITH upgraded_concepts
+                    AS (SELECT DISTINCT concept_code_1,
+                                        FIRST_VALUE (concept_code_2) OVER (PARTITION BY concept_code_1 ORDER BY rel_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2
+                          FROM (SELECT crs.concept_code_1,
+                                       crs.concept_code_2,
+                                       crs.vocabulary_id_1,
+                                       crs.vocabulary_id_2,
+                                       --if concepts have more than one relationship_id, then we take only the one with following precedence
+                                       CASE
+                                          WHEN crs.relationship_id = 'Concept replaced by' THEN 1
+                                          WHEN crs.relationship_id = 'Concept same_as to' THEN 2
+                                          WHEN crs.relationship_id = 'Concept alt_to to' THEN 3
+                                          WHEN crs.relationship_id = 'Concept poss_eq to' THEN 4
+                                          WHEN crs.relationship_id = 'Concept was_a to' THEN 5
+                                          WHEN crs.relationship_id = 'Maps to' THEN 6
+                                       END
+                                          AS rel_id
+                                  FROM concept_relationship_stage crs, concept_stage cs
+                                 WHERE     (   crs.relationship_id IN ('Concept replaced by',
+                                                                       'Concept same_as to',
+                                                                       'Concept alt_to to',
+                                                                       'Concept poss_eq to',
+                                                                       'Concept was_a to')
+                                            OR (crs.relationship_id = 'Maps to' AND cs.invalid_reason = 'U'))
+                                       AND crs.invalid_reason IS NULL
+                                       AND ( (crs.vocabulary_id_1 = crs.vocabulary_id_2 AND crs.relationship_id <> 'Maps to') OR crs.relationship_id = 'Maps to')
+                                       AND crs.concept_code_2 = cs.concept_code
+                                       AND crs.vocabulary_id_2 = cs.vocabulary_id
+                                       AND crs.concept_code_1 <> crs.concept_code_2
+                                UNION ALL
+                                --some concepts might be in 'base' tables, but information about 'U' - in 'stage'
+                                SELECT c1.concept_code,
+                                       c2.concept_code,
+                                       c1.vocabulary_id,
+                                       c2.vocabulary_id,
+                                       6 AS rel_id
+                                  FROM concept c1,
+                                       concept c2,
+                                       concept_relationship r,
+                                       concept_stage cs
+                                 WHERE     c1.concept_id = r.concept_id_1
+                                       AND c2.concept_id = r.concept_id_2
+                                       AND r.concept_id_1 <> r.concept_id_2
+                                       AND r.invalid_reason IS NULL
+                                       AND r.relationship_id = 'Maps to'
+                                       AND cs.vocabulary_id = c2.vocabulary_id
+                                       AND cs.concept_code = c2.concept_code
+                                       AND cs.invalid_reason = 'U'))
+                SELECT CONNECT_BY_ROOT concept_code_1 AS root_concept_code_1,
+                       u.concept_code_2,
+                       CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id_1,
+                       vocabulary_id_2,
+                       'Maps to' AS relationship_id,
+                       (SELECT latest_update
+                          FROM vocabulary
+                         WHERE vocabulary_id = vocabulary_id_2)
+                          AS valid_start_date,
+                       TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+                       NULL AS invalid_reason
+                  FROM upgraded_concepts u
+                 WHERE CONNECT_BY_ISLEAF = 1
+            CONNECT BY NOCYCLE PRIOR concept_code_2 = concept_code_1
+            START WITH concept_code_1 IN (SELECT concept_code_1 FROM upgraded_concepts
+                                          MINUS
+                                          SELECT concept_code_2 FROM upgraded_concepts)) i
+        ON (    crs.concept_code_1 = i.root_concept_code_1
+            AND crs.concept_code_2 = i.concept_code_2
+            AND crs.vocabulary_id_1 = i.root_vocabulary_id_1
+            AND crs.vocabulary_id_2 = i.vocabulary_id_2
+            AND crs.relationship_id = i.relationship_id)
+WHEN NOT MATCHED
+THEN
+   INSERT     (concept_code_1,
+               concept_code_2,
+               vocabulary_id_1,
+               vocabulary_id_2,
+               relationship_id,
+               valid_start_date,
+               valid_end_date,
+               invalid_reason)
+       VALUES (i.root_concept_code_1,
+               i.concept_code_2,
+               i.root_vocabulary_id_1,
+               i.vocabulary_id_2,
+               i.relationship_id,
+               i.valid_start_date,
+               i.valid_end_date,
+               i.invalid_reason)
+WHEN MATCHED
+THEN
+   UPDATE SET crs.invalid_reason = NULL, crs.valid_end_date = i.valid_end_date
+           WHERE crs.invalid_reason IS NOT NULL;
+COMMIT;
+
+-- 19 start building the hierarchy for progagating domain_ids from toop to bottom
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 DECLARE
    vCnt          INTEGER;
@@ -1813,15 +2049,15 @@ BEGIN
    DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'snomed_ancestor', estimate_percent  => null, cascade  => true);
 END;
 
---13. Create domain_id
--- 13.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
+--20. Create domain_id
+-- 20.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
 CREATE TABLE peak (
 	peak_code VARCHAR(20), --the id of the top ancestor
 	peak_domain_id VARCHAR(20), -- the domain to assign to all its children
 	ranked INTEGER -- number for the order in which to assign
 );
 
--- 13.2 Fill in the various peak concepts
+-- 20.2 Fill in the various peak concepts
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (138875005, 'Metadata'); -- root
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (900000000000441003, 'Metadata'); -- SNOMED CT Model Component
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (105590001, 'Observation'); -- Substances
@@ -2003,7 +2239,7 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (46680005, 'Measurement'); -
 
 COMMIT;
 
--- 13.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
+-- 20.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 -- The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
 -- This could cause trouble if a parallel fork happens at the same height
@@ -2030,7 +2266,7 @@ UPDATE peak
 
 COMMIT;
 
--- 13.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
+-- 20.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
 -- This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
 -- The result should say "0 rows inserted"
 INSERT INTO peak -- before doing that check first out without the insert
@@ -2069,7 +2305,7 @@ INSERT INTO peak -- before doing that check first out without the insert
           AND c.vocabulary_id='SNOMED';
 COMMIT;
 
--- 13.5. Build domains, preassign all them with "Not assigned"
+-- 20.5. Build domains, preassign all them with "Not assigned"
 CREATE TABLE domain_snomed
 AS
    SELECT concept_code, CAST ('Not assigned' AS VARCHAR2(20)) AS domain_id
@@ -2178,7 +2414,7 @@ UPDATE domain_snomed d
 
 COMMIT;
 
--- 13.6. Update concept_stage from newly created domains.
+-- 20.6. Update concept_stage from newly created domains.
 CREATE INDEX idx_domain_cc
    ON domain_snomed (concept_code);
    
@@ -2190,7 +2426,7 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'SNOMED';
  COMMIT;
 
--- 13.7. Make manual changes according to rules
+-- 20.7. Make manual changes according to rules
 -- Create Route of Administration
 UPDATE concept_stage
    SET domain_id = 'Route'
@@ -2272,7 +2508,7 @@ UPDATE concept_stage
 
 COMMIT;
 
--- 13.8. Set standard_concept based on domain_id
+-- 20.8. Set standard_concept based on domain_id
 UPDATE concept_stage
    SET standard_concept =
           CASE domain_id
@@ -2299,8 +2535,8 @@ WHERE vocabulary_id = 'SNOMED'
 
 COMMIT;
 
--- 14 Return domain_id and concept_class_id for some concepts according to our rules
--- 14.1 Return domain_id
+-- 21 Return domain_id and concept_class_id for some concepts according to our rules
+-- 21.1 Return domain_id
 MERGE INTO concept_stage c
      USING (SELECT dmd_int.domain_id, dmd_int.concept_code
               FROM concept_stage_dmd dmd_int, concept_stage c_int
@@ -2318,7 +2554,7 @@ THEN
    UPDATE SET c.domain_id = dmd.domain_id;
 COMMIT;   
 
--- 14.2 Return concept_class_id
+-- 21.2 Return concept_class_id
 --for AMPPs (branded packs), AMPs (branded drugs) and VMPPs (clinical packs)
 MERGE INTO concept_stage c
      USING (SELECT dmd_int.concept_class_id, dmd_int.concept_code
@@ -2359,17 +2595,17 @@ THEN
    UPDATE SET c.concept_class_id = dmd.concept_class_id;     
 COMMIT;
 
--- 15. Update concept_id in concept_stage from concept for existing concepts
+-- 22. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
     
--- 16. Reinstate constraints and indices
+-- 23. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 
--- 17. Clean up
+-- 24. Clean up
 DROP TABLE peak PURGE;
 DROP TABLE domain_snomed PURGE;
 DROP TABLE concept_stage_dmd PURGE;

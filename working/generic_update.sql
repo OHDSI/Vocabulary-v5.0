@@ -154,66 +154,11 @@ AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update
 COMMIT;
 
 
--- 6. Deprecate old mappings to RxNorm from NDC (special hack for NDC)
-UPDATE concept_relationship d
-   SET valid_end_date  = 
-            (SELECT v.latest_update
-                 FROM vocabulary v WHERE v.vocabulary_id = 'NDC')
-          - 1,                                       -- day before release day
-       invalid_reason = 'D'
-where d.concept_id_1 in (
-    -- do not deprecate mappings from missing concepts 
-    select c.concept_id from concept c, concept_relationship_stage r
-    where c.concept_code=r.concept_code_1
-    and c.vocabulary_id=r.vocabulary_id_1
-    and r.vocabulary_id_1='NDC'
-    and r.vocabulary_id_2='RxNorm'
-    and r.relationship_id='Maps to'
-    and r.invalid_reason is null
-)
-and d.relationship_id = 'Maps to'
-and d.invalid_reason is null
-and d.concept_id_2 not in (
-    -- do not deprecate mappings from active concepts 
-    select c.concept_id from concept c, concept_relationship_stage r, concept c1
-    where c.concept_code=r.concept_code_2
-    and c.vocabulary_id=r.vocabulary_id_2
-    and r.vocabulary_id_1='NDC'
-    and r.vocabulary_id_2='RxNorm'
-    and r.relationship_id=d.relationship_id
-    and r.invalid_reason is null
-    and r.concept_code_1=c1.concept_code
-    and c1.vocabulary_id=r.vocabulary_id_1
-    and c1.concept_id=d.concept_id_1 
-);
-COMMIT;
-
---Same for reverse
-merge into concept_relationship d
-using (
-	select r.* from concept c1, concept c2, concept_relationship r
-	where c1.concept_id=r.concept_id_1
-	and c2.concept_id=r.concept_id_2
-	and c1.vocabulary_id='NDC'
-	and c2.vocabulary_id='RxNorm'
-	and r.relationship_id='Maps to'	
-) i on (
-		d.concept_id_1=i.concept_id_2 
-    and d.concept_id_2=i.concept_id_1 
-    and d.relationship_id='Mapped from'
-	and (NVL(d.invalid_reason,'X')<>NVL(i.invalid_reason,'X') OR d.valid_end_date<>i.valid_end_date)
-)
-when matched then update
-    set d.invalid_reason=i.invalid_reason,
-        d.valid_end_date=i.valid_end_date;
-
-COMMIT;
-
 /****************************************
 * Update the concept_relationship table *
 ****************************************/
 
--- 7. Turn all relationship records so they are symmetrical if necessary
+-- 6. Turn all relationship records so they are symmetrical if necessary
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -243,7 +188,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                      AND r.reverse_relationship_id = i.relationship_id);
 COMMIT;		
 
--- 8. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
+-- 7. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
 
 MERGE INTO concept_relationship d
@@ -263,7 +208,7 @@ WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reas
 
 COMMIT; 
 
--- 9. Deprecate missing relationships, but only if the concepts are fresh. If relationships are missing because of deprecated concepts, leave them intact.
+-- 8. Deprecate missing relationships, but only if the concepts are fresh. If relationships are missing because of deprecated concepts, leave them intact.
 -- Also, only relationships are considered missing if the combination of vocabulary_id_1, vocabulary_id_2 AND relationship_id is present in concept_relationship_stage
 -- The latter will prevent large-scale deprecations of relationships between vocabularies where the relationship is defined not here, but together with the other vocab
 
@@ -286,9 +231,6 @@ UPDATE concept_relationship d
 							-- Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except replacement relationships
                             SELECT r.vocabulary_id_1,r.vocabulary_id_2,r.relationship_id 
                             FROM concept_relationship_stage r
-                            --WHERE r.vocabulary_id_1 NOT IN ('NDC', 'SPL')
-                            --AND r.vocabulary_id_2 NOT IN ('NDC', 'SPL')
-                            --temporary exclude NDC
                             WHERE r.vocabulary_id_1 NOT IN ('SPL')
                             AND r.vocabulary_id_2 NOT IN ('SPL')  
                             AND r.relationship_id NOT IN (
@@ -300,7 +242,8 @@ UPDATE concept_relationship d
 										'Concept same_as to',
 										'Concept alt_to to',
 										'Concept poss_eq to',
-										'Concept was_a to'
+										'Concept was_a to',
+										'Maps to'
 									)
 								)
 								UNPIVOT (rel_id FOR relationship_ids IN (relationship_id, reverse_relationship_id))
@@ -331,7 +274,8 @@ UPDATE concept_relationship d
        -- Deal with replacement relationships below, since they can only have one per deprecated concept
 ;
 
--- and special hack for HCPCS to RxNorm relationships: deprecate old mappings from deprecated concept but only if we have a new one in concept_relationship_stage with the same source concept
+
+--9. Deprecate old 'Maps to' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
 update concept_relationship d  
 set valid_end_date  = 
         (SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
@@ -342,78 +286,40 @@ set valid_end_date  =
       invalid_reason = 'D'
 where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
 (
-    select c1.concept_id, c2.concept_id, r.relationship_id From 
-    concept c1, 
-    concept c2, 
-    concept_relationship r, 
-    concept_relationship_stage cs
-    where c1.concept_id=r.concept_id_1
-    and c2.concept_id=r.concept_id_2
-    and r.invalid_reason is null
-    and (c1.valid_end_date<>to_date ('20991231', 'YYYYMMDD') or c2.valid_end_date<>to_date ('20991231', 'YYYYMMDD'))
-    and (
-        (cs.concept_code_1=c1.concept_code and cs.concept_code_2<>c2.concept_code and r.relationship_id='Maps to' and cs.vocabulary_id_1='HCPCS' and cs.vocabulary_id_2='RxNorm')
-        or
-        (cs.concept_code_1<>c1.concept_code and cs.concept_code_2=c2.concept_code and r.relationship_id='Mapped from' and cs.vocabulary_id_1='RxNorm' and cs.vocabulary_id_2='HCPCS')
-    )
-    and cs.vocabulary_id_1=c1.vocabulary_id
-    and cs.vocabulary_id_2=c2.vocabulary_id
-    and cs.relationship_id=r.relationship_id
-    and cs.invalid_reason is null
-);
-COMMIT;
-
--- 10. Deprecate replacement concept_relationship records if we have a new one in concept_relationship_stage with the same source concept (deprecated concept)
-UPDATE concept_relationship d
-   SET valid_end_date  = 
-            (SELECT v.latest_update
-                 FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
-              WHERE c.concept_id = d.concept_id_1)
-          - 1,                                       -- day before release day
-       invalid_reason = 'D'
-  WHERE d.relationship_id in (
+    with relationships as (
+        SELECT relationship_id, reverse_relationship_id FROM relationship 
+        WHERE relationship_id in (
             'Concept replaced by',
             'Concept same_as to',
             'Concept alt_to to',
             'Concept poss_eq to',
-            'Concept was_a to'
+            'Concept was_a to',
+            'Maps to'
         )
-  AND EXISTS (
-    SELECT 1 FROM concept_relationship_stage s, concept c1, concept c2
-      WHERE s.concept_code_1 = c1.concept_code AND s.concept_code_2 = c2.concept_code
-      AND s.vocabulary_id_1 = c1.vocabulary_id AND s.vocabulary_id_2 = c2.vocabulary_id
-      AND c1.concept_id = d.concept_id_1 -- if exists a new one for the 1st concept
-      AND c2.concept_id <> d.concept_id_2 -- and the 2nd (replaced to) concept is different
-      AND s.relationship_id = d.relationship_id -- it is one of the above relationship_id
-  )
-  AND d.invalid_reason IS NULL -- not already deprecated
-;
-
--- Same for reverse
-MERGE INTO concept_relationship d
-USING (
-    select r_int.concept_id_1, r_int.concept_id_2, r_int.invalid_reason, r_int.valid_end_date, rel_int.reverse_relationship_id from concept_relationship r_int, relationship rel_int 
-    where r_int.relationship_id IN (
-		'Concept replaced by',
-		'Concept same_as to',
-		'Concept alt_to to',
-		'Concept poss_eq to',
-		'Concept was_a to'
     )
-    and r_int.relationship_id=rel_int.relationship_id
-) i ON (
-		d.concept_id_1=i.concept_id_2 
-    and d.concept_id_2=i.concept_id_1 
-    and d.relationship_id=i.reverse_relationship_id
-	and (NVL(d.invalid_reason,'X')<>NVL(i.invalid_reason,'X') OR d.valid_end_date<>i.valid_end_date)
-)
-WHEN MATCHED THEN UPDATE
-    SET d.invalid_reason=i.invalid_reason,
-        d.valid_end_date=i.valid_end_date;
-
+    select r.concept_id_1, r.concept_id_2, r.relationship_id From 
+    concept c1, 
+    concept c2, 
+    concept_relationship r, 
+    concept_relationship_stage crs,
+    relationships rel
+    where 
+    crs.concept_code_1=c1.concept_code
+    and crs.concept_code_2=c2.concept_code
+    and crs.vocabulary_id_1=c1.vocabulary_id
+    and crs.vocabulary_id_2=c2.vocabulary_id
+    and crs.relationship_id=r.relationship_id
+    and crs.invalid_reason is null    
+    and r.invalid_reason is null
+    and (
+        (c1.concept_id=r.concept_id_1 and c2.concept_id<>r.concept_id_2 and r.relationship_id=rel.relationship_id)
+        or
+        (c1.concept_id<>r.concept_id_1 and c2.concept_id=r.concept_id_2 and r.relationship_id=rel.reverse_relationship_id)
+    )    
+);
 COMMIT;
 
--- 11. Insert new relationships if they don't already exist
+-- 10. Insert new relationships if they don't already exist
 MERGE INTO concept_relationship r
 USING 
 (
@@ -453,7 +359,7 @@ COMMIT;
 -- The following are a bunch of rules for Maps to and Maps from relationships. 
 -- Since they work outside the _stage tables, they will be restricted to the vocabularies worked on 
 
--- 12. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S' 
+-- 11. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S' 
 INSERT /*+ APPEND */ INTO  concept_relationship (
                                         concept_id_1,
                                         concept_id_2,
@@ -508,7 +414,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship (
 
 COMMIT;
 
--- 13. 'Maps to' or 'Mapped from' relationships should not exist where 
+-- 12. 'Maps to' or 'Mapped from' relationships should not exist where 
 -- a) the source concept has standard_concept = 'S', unless it is to self
 -- b) the target concept has standard_concept = 'C' or NULL
 -- c) the target concept has invalid_reason='D' or 'U'
@@ -532,7 +438,7 @@ UPDATE concept_relationship d
                                   AND c1.concept_id != c2.concept_id) -- rule a)
                                OR COALESCE (c2.standard_concept, 'X') != 'S' -- rule b)
 							   OR c2.invalid_reason IN ('U', 'D') -- rule c)
-                                                                            )
+                              )
                           AND c1.vocabulary_id = v.vocabulary_id
                           AND v.latest_update IS NOT NULL -- only the current vocabularies
                           AND r.relationship_id = 'Maps to'
@@ -560,7 +466,7 @@ UPDATE concept_relationship d
                                   AND c1.concept_id != c2.concept_id) -- rule a)
                                OR COALESCE (c1.standard_concept, 'X') != 'S' -- rule b)
 							   OR c1.invalid_reason IN ('U', 'D') -- rule c)
-                                                                            )
+                              )
                           AND c2.vocabulary_id = v.vocabulary_id
                           AND v.latest_update IS NOT NULL -- only the current vocabularies
                           AND r.relationship_id = 'Mapped from'
@@ -573,7 +479,7 @@ COMMIT;
 * This should rarely happen                              *
 *********************************************************/
 
--- 14. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
+-- 13. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
 UPDATE concept c SET
 	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
 	c.invalid_reason = 'U',
@@ -596,7 +502,7 @@ AND (c.invalid_reason IS NULL OR c.invalid_reason = 'D') -- not already upgraded
 ;
 COMMIT;
 
--- 15. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table for upgraded concepts
+-- 14. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table for upgraded concepts
 UPDATE concept c SET
 	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
 	c.invalid_reason = 'D',
@@ -620,7 +526,7 @@ AND c.invalid_reason = 'U' -- not already deprecated
 ;
 COMMIT;
 
--- 16. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
+-- 15. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
 UPDATE concept SET
   invalid_reason = null
 WHERE valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
@@ -636,7 +542,7 @@ COMMIT;
 * Update the concept_synonym table *
 ************************************/
 
--- 17. Add all missing synonyms
+-- 16. Add all missing synonyms
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -655,7 +561,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                      AND css.synonym_vocabulary_id = c.vocabulary_id);
 COMMIT;					 
 
--- 18. Remove all existing synonyms for concepts that are in concept_stage
+-- 17. Remove all existing synonyms for concepts that are in concept_stage
 -- Synonyms are built from scratch each time, no life cycle
 
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);
@@ -667,7 +573,7 @@ DELETE FROM concept_synonym csyn
                                        AND cs.vocabulary_id = c.vocabulary_id
                                );
 
--- 19. Add new synonyms for existing concepts
+-- 18. Add new synonyms for existing concepts
 INSERT INTO concept_synonym (concept_id,
                              concept_synonym_name,
                              language_concept_id)
@@ -683,7 +589,7 @@ INSERT INTO concept_synonym (concept_id,
                  IS NOT NULL; --fix for empty GPI names
 COMMIT;
 
--- 20. check if current vocabulary exists in vocabulary_conversion table
+-- 19. check if current vocabulary exists in vocabulary_conversion table
 INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5)
    SELECT ROWNUM + (SELECT MAX (vocabulary_id_v4) FROM vocabulary_conversion)
              AS rn,
@@ -693,7 +599,7 @@ INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5)
            SELECT vocabulary_id_v5 FROM vocabulary_conversion);
 COMMIT;
 
--- 21. update latest_update on vocabulary_conversion		   
+-- 20. update latest_update on vocabulary_conversion		   
 MERGE INTO vocabulary_conversion vc
      USING (SELECT latest_update, vocabulary_id
               FROM vocabulary
@@ -704,7 +610,7 @@ THEN
    UPDATE SET vc.latest_update = v.latest_update;
 COMMIT;   
 
--- 22. drop column latest_update
+-- 21. drop column latest_update
 DECLARE
    z   vocabulary.vocabulary_id%TYPE;
 BEGIN

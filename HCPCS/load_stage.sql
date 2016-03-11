@@ -848,7 +848,7 @@ UPDATE concept_stage cs
        AND cs.invalid_reason = 'U';		
 COMMIT;				
 
---13 Deprecate replacement records if target concept was depreceted 
+--13 Deprecate replacement records if target concept was deprecated 
 MERGE INTO concept_relationship_stage r
      USING (WITH upgraded_concepts
                     AS (SELECT crs.concept_code_1,

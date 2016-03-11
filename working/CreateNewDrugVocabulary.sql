@@ -570,7 +570,7 @@ create table r_drug_ing as
   select de.concept_id as drug_id, an.concept_id as ing_id, de.concept_class_id
   from devv5.concept_ancestor a 
   join devv5.concept an on a.ancestor_concept_id=an.concept_id and an.concept_class_id='Ingredient' and an.vocabulary_id='RxNorm'
-  join devv5.concept de on de.concept_id=a.descendant_concept_id
+  join devv5.concept de on de.concept_id=a.descendant_concept_id and de.vocabulary_id='RxNorm'
 ;
 -- Remove unparsable Albumin products that have no drug_strength entry: Albumin Human, USP 1 NS
 delete from r_drug_ing where drug_id in (19094500, 19080557);
@@ -908,13 +908,13 @@ where q.concept_class_id = 'Dose Form' and q.domain_id='Drug'
 insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
 select 
   qr.q_dcode as concept_code_1,
-  dcs.vocabulary_id as vocabulary_id_1,
+  (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   c.concept_code concept_code_2,
   c.vocabulary_id as vocabulary_id_2,
   'Maps to' as relationship_id
 -- usual validity
 from q_to_r qr
-join drug_concept_stage dcs on dcs.concept_code=qr.q_dcode
+join complete_concept_stage ccs on ccs.concept_code=qr.q_dcode
 join devv5.concept c on c.concept_id=qr.r_did
 ;
 
@@ -1221,9 +1221,14 @@ where domain_id!='Drug'
 
 commit;
 
+/*
 -- 7. Create DRUG_STRENGTH from unique_ds
--- drop table drug_strength_dev purge;
-create table drug_strength_dev as
+delete from drug_strength where rowid in (
+  select ds.rowid from drug_strength ds join concept d on d.concept_id=drug_concept_id and d.vocabulary_id=(select distinct vocabulary_id from drug_concept_stage) 
+);
+
+/* pick the mapped ingredient */
+-- insert into drug_strength
 select
   ds.drug_concept_code, d.vocabulary_id as drug_vocabulary_id,
   nvl(i.concept_code, ds.ingredient_concept_code) as ingredient_concept_code, nvl(i.vocabulary_id, d.vocabulary_id) as ingredient_vocabulary_id,
@@ -1263,4 +1268,4 @@ join drug_concept_stage d on d.concept_code=ds.drug_concept_code
 left join relationship_to_concept r on r.concept_code_1=ds.ingredient_concept_code
 left join concept i on i.concept_id=r.concept_id_2
 ;
-
+*/

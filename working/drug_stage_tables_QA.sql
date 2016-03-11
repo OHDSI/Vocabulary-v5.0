@@ -4,10 +4,9 @@ join devv5.concept c on c.concept_id = r.concept_id_2
 where  a.concept_class_id !=  c.concept_class_id
 ;
 --concept_id's that don't exist
-select a.concept_name, a.concept_class_id, r.CONCEPT_ID_2, c.concept_name, c.concept_class_id/*, cc.concept_name, cc.concept_class_id */from relationship_to_concept r 
+select a.concept_name, a.concept_class_id, r.CONCEPT_ID_2, c.concept_name, c.concept_class_id from relationship_to_concept r 
 join drug_concept_stage a on a.concept_code= r.concept_code_1 
 left join devv5.concept c on c.concept_id = r.concept_id_2 and a.concept_class_id =  c.concept_class_id
---left join devv5.concept cc on cc.concept_code = r.concept_id_2 and cc.vocabulary_id = 'RxNorm'
 where  c.concept_name is null
 ; 
 --drug_strength_stage 
@@ -17,35 +16,30 @@ select * from drug_strength_stage where  amount_unit ='NIL'
 select distinct amount_unit  from drug_strength_stage
 ;
 -- drug codes not exist in a drug_concept_stage but present in drug_strength_stage
-select count(*) from drug_strength_stage s 
-left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id = 'Branded Drug'
+select * from drug_strength_stage s 
+left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id like  '%Drug%'
 left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
 where a.concept_code is null 
 ;
 -- ingredient codes not exist in a drug_concept_stage but present in drug_strength_stage
-select count(*) from drug_strength_stage s 
-left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id = 'Branded Drug'
+select * from drug_strength_stage s 
+left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id like '%Drug%'
 left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
 where b.concept_code is null 
 ;
 -- internal_relationship_stage has codes missing in drug_concept_stage
 --code_2
-select count (1) from internal_relationship_stage s
+select *from internal_relationship_stage s
 left join drug_concept_stage a on a.concept_code = s.concept_code_1 
 left join drug_concept_stage b on b.concept_code = s.concept_code_2 
 where b.concept_code is null 
 ;
 -- internal_relationship_stage has codes missing in drug_concept_stage
 --code_1
-select count (1) from internal_relationship_stage s
+select count(1) from internal_relationship_stage s
 left join drug_concept_stage a on a.concept_code = s.concept_code_1 
 left join drug_concept_stage b on b.concept_code = s.concept_code_2 
-where a.concept_code is  null 
-;
-select * from drug_strength_stage s  
-left join drug_concept_stage a on a.concept_code = s.drug_concept_code
-left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE
-where NUMERATOR_UNIT ='X'
+where a.concept_code is null 
 ;
 --strange combinations in drug_strength_stage table like we have strength but no unit of measurement
 select * from drug_strength_stage s where AMOUNT_VALUE is not null and AMOUNT_UNIT is null
@@ -81,3 +75,4 @@ internal_relationship_stage s on s.concept_code_1= a.concept_code and a.concept_
 --duplicates in drug_concept_stage table
 select * from drug_concept_stage where concept_code in (
 select concept_code from drug_concept_stage group by concept_code having count(8)>1)
+;

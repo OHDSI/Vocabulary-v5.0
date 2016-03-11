@@ -180,4 +180,82 @@ BEGIN
    EXECUTE IMMEDIATE 'drop table concept_ancestor_calc_bkp purge';
    
    DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_ancestor', estimate_percent  => null, cascade  => true);
-END;
+
+
+	-- Update existing records and add missing relationships between concepts
+	--update
+	merge into concept_ancestor ca
+	using (
+		select 
+		c.concept_id as ancestor_concept_id,
+		rxn_down.descendant_concept_id as descendant_concept_id,
+		min(c_up.min_levels_of_separation+jump.min_jump_level+rxn_down.min_levels_of_separation+rxn_up.min_levels_of_separation) as min_levels_of_separation,
+		max(c_up.max_levels_of_separation+jump.max_levels_of_separation+rxn_down.max_levels_of_separation+rxn_up.max_levels_of_separation) as max_levels_of_separation
+		from (
+			select concept_id, vocabulary_id, jump_concept_id, min_jump_level, max_levels_of_separation from (
+				select in_class.concept_id, in_class.vocabulary_id, jump.concept_id as jump_concept_id, min_levels_of_separation, max_levels_of_separation,
+				first_value(min_levels_of_separation) over(partition by in_class.concept_id order by min_levels_of_separation) as min_jump_level 
+				from concept_ancestor top_class 
+				join concept in_class on in_class.concept_id=top_class.ancestor_concept_id and in_class.vocabulary_id!='RxNorm' and in_class.standard_concept='C'
+				join concept jump on jump.concept_id=top_class.descendant_concept_id and jump.vocabulary_id='RxNorm' and jump.concept_class_id not in ('Branded Pack', 'Clinical Pack')
+			) where min_jump_level=min_levels_of_separation    
+		) jump
+		
+		join concept_ancestor c_up on c_up.descendant_concept_id=jump.concept_id
+		join concept c on c.concept_id=c_up.ancestor_concept_id and c.vocabulary_id=jump.vocabulary_id and c.standard_concept='C'
+
+
+		join concept_ancestor rxn_down on rxn_down.ancestor_concept_id=jump.jump_concept_id
+
+		join concept_ancestor rxn_up on rxn_up.descendant_concept_id=jump.jump_concept_id
+		join concept top_rxn on top_rxn.concept_id=rxn_up.ancestor_concept_id and top_rxn.vocabulary_id='RxNorm' and top_rxn.concept_class_id='Ingredient'
+		group by c.concept_id, rxn_down.descendant_concept_id
+	) i on (ca.ancestor_concept_id=i.ancestor_concept_id and ca.descendant_concept_id=i.descendant_concept_id)
+	when matched then
+		update set ca.min_levels_of_separation=i.min_levels_of_separation, ca.max_levels_of_separation=i.max_levels_of_separation
+		where ca.min_levels_of_separation<>i.min_levels_of_separation or ca.max_levels_of_separation<>i.max_levels_of_separation;
+	commit;
+
+	--insert
+	merge into concept_ancestor ca
+	using (
+		select 
+		c.concept_id as ancestor_concept_id,
+		top_rxn.concept_id as descendant_concept_id,
+		min((c_up.min_levels_of_separation+jump.min_jump_level)-rxn_up.min_levels_of_separation) as min_levels_of_separation,
+		max((c_up.max_levels_of_separation+jump.max_levels_of_separation)-rxn_up.max_levels_of_separation) as max_levels_of_separation
+		from (
+			select concept_id, vocabulary_id, jump_concept_id, min_jump_level, max_levels_of_separation, jump_concept_name from (
+				select in_class.concept_id, in_class.vocabulary_id, jump.concept_id as jump_concept_id, min_levels_of_separation, max_levels_of_separation,
+				jump.concept_name as jump_concept_name,
+				first_value(min_levels_of_separation) over(partition by in_class.concept_id order by min_levels_of_separation) as min_jump_level 
+				from concept_ancestor top_class 
+				join concept in_class on in_class.concept_id=top_class.ancestor_concept_id and in_class.vocabulary_id!='RxNorm' and in_class.standard_concept='C'
+				join concept jump on jump.concept_id=top_class.descendant_concept_id and jump.vocabulary_id='RxNorm' and jump.concept_class_id not in ('Branded Pack', 'Clinical Pack')
+			) where min_jump_level=min_levels_of_separation    
+		) jump 
+
+		join concept_ancestor c_up on c_up.descendant_concept_id=jump.concept_id
+		join concept c on c.concept_id=c_up.ancestor_concept_id and c.vocabulary_id=jump.vocabulary_id and c.standard_concept='C'
+
+		join concept_ancestor rxn_up on rxn_up.descendant_concept_id=jump.jump_concept_id
+		join concept top_rxn on top_rxn.concept_id=rxn_up.ancestor_concept_id and top_rxn.vocabulary_id='RxNorm' 
+		and 
+		(
+			(jump_concept_name like '% / %' and (
+				(top_rxn.concept_class_id not in ('Ingredient', 'Clinical Drug Comp') and lower(c.concept_name) not like '%combination%')
+				or
+				lower(c.concept_name) like '%combination%'
+				)
+			)
+			or
+			jump_concept_name not like '% / %'
+		)
+		group by c.concept_id, top_rxn.concept_id
+	) i on (ca.ancestor_concept_id=i.ancestor_concept_id and ca.descendant_concept_id=i.descendant_concept_id)
+	when not matched then 
+		insert values (i.ancestor_concept_id, i.descendant_concept_id, i.min_levels_of_separation, i.max_levels_of_separation);
+	commit;
+
+	DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_ancestor', estimate_percent  => null, cascade  => true);
+end;

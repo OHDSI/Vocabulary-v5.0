@@ -18,7 +18,7 @@ create table r_drug_ing nologging as
   from concept_ancestor a 
   join concept an on a.ancestor_concept_id=an.concept_id and an.concept_class_id='Ingredient' 
     and an.vocabulary_id in ('RxNorm') -- to be expanded as new vocabs are added
-  join concept de on de.concept_id=a.descendant_concept_id 
+  join concept de on de.concept_id=a.descendant_concept_id and de.concept_class_id='Ingredient' 
     and de.vocabulary_id in ('RxNorm')
 ;
 -- Remove unparsable Albumin products that have no drug_strength entry: Albumin Human, USP 1 NS

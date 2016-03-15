@@ -294,7 +294,7 @@ union
   left join df on df.concept_code=i.concept_code
   join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  where quant.concept_code is null and d.concept_code is null and bs.concept_code is null
+  where quant.concept_code is null and df.concept_code is null and bs.concept_code is null
 union
 -- Clinical Drug Component 
   select distinct 

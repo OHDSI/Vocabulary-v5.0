@@ -1,3 +1,22 @@
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Timur Vakhitov, Christian Reich
+* Date: 2016
+**************************************************************************/
+
 -- 1. Update latest_update field to new date 
 -- Use the later of the release dates of the international and UK versions. Usually, the UK is later.
 -- If the international version is already loaded, updating will not affect it
@@ -6,7 +25,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20151001','yyyymmdd'), vocabulary_version='SnomedCT Release 20151001' WHERE vocabulary_id='SNOMED'; 
+UPDATE vocabulary SET latest_update=to_date('20160131','yyyymmdd'), vocabulary_version='SnomedCT Release 20160131' WHERE vocabulary_id='SNOMED'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices

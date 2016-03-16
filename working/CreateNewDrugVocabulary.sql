@@ -445,7 +445,7 @@ insert into complete_name
 with spelled_out as (
   select 
     c.concept_code,
-    case when c.denominator_value=0 then '' else c.denominator_value||' '||d.denominator_unit end as quant,
+    case when c.denominator_value=0 then '' else c.denominator_value||' '||d.denominator_unit||' ' end as quant,
     comp.comp_name,
     sum(comp.comp_len) over (partition by c.concept_code order by comp.comp_name rows between unbounded preceding and current row) as agg_len,
     case when df.concept_name is null then '' else ' '||df.concept_name end as df_name,

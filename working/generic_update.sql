@@ -162,6 +162,8 @@ INSERT /*+ APPEND */ INTO concept (concept_id,
     WHERE cs.concept_id IS NULL; -- new because no concept_id could be found for the concept_code/vocabulary_id combination
 
 DROP SEQUENCE v5_concept;
+
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept', estimate_percent  => null, cascade  => true);
   
 COMMIT;
 
@@ -294,7 +296,7 @@ UPDATE concept_relationship d
 				) 
        -- Deal with replacement relationships below, since they can only have one per deprecated concept
 ;
-
+COMMIT;
 
 --9. Deprecate old 'Maps to' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
 update concept_relationship d  
@@ -557,6 +559,112 @@ AND invalid_reason IS NOT NULL -- if wrongly deprecated
 
 COMMIT;
 
+--16 Post-processing (some concepts might be deprecated when they missed in source, so load_stage doesn't know about them and DO NOT deprecate relatoinships proper)
+BEGIN
+--Deprecate replacement records if target concept was deprecated
+MERGE INTO concept_relationship r
+     USING (WITH upgraded_concepts
+                    AS (SELECT r.concept_id_1,
+                               r.concept_id_2,
+                               r.relationship_id,
+                               c2.invalid_reason
+                          FROM concept c1, concept c2, concept_relationship r
+                         WHERE     r.relationship_id IN ('Concept replaced by',
+                                                         'Concept same_as to',
+                                                         'Concept alt_to to',
+                                                         'Concept poss_eq to',
+                                                         'Concept was_a to')
+                               AND r.invalid_reason IS NULL
+                               AND c1.concept_id = r.concept_id_1
+                               AND c2.concept_id = r.concept_id_2
+                               AND c1.vocabulary_id = c2.vocabulary_id
+							   AND c1.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL)
+                               AND c2.concept_code <> 'OMOP generated'
+                               AND r.concept_id_1 <> r.concept_id_2)
+                SELECT u.concept_id_1, u.concept_id_2, u.relationship_id
+                  FROM upgraded_concepts u
+            CONNECT BY NOCYCLE PRIOR concept_id_1 = concept_id_2
+            START WITH concept_id_2 IN (SELECT concept_id_2
+                                          FROM upgraded_concepts
+                                         WHERE invalid_reason = 'D')) i
+        ON (r.concept_id_1 = i.concept_id_1 AND r.concept_id_2 = i.concept_id_2 AND r.relationship_id = i.relationship_id)
+WHEN MATCHED
+THEN
+   UPDATE SET r.invalid_reason = 'D',
+              r.valid_end_date =
+                   (SELECT MAX (v.latest_update)
+                      FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+                     WHERE c.concept_id IN (r.concept_id_1, r.concept_id_2))
+                 - 1;
+COMMIT;
+
+--Deprecate concepts if we have no active replacement record in the concept_relationship
+UPDATE concept c SET
+	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
+	c.invalid_reason = 'D',
+	c.standard_concept = NULL
+WHERE
+NOT EXISTS (
+  SELECT 1
+  FROM concept_relationship r
+    WHERE r.concept_id_1 = c.concept_id 
+	  AND r.invalid_reason IS NULL
+      AND r.relationship_id in (
+        'Concept replaced by',
+        'Concept same_as to',
+        'Concept alt_to to',
+        'Concept poss_eq to',
+        'Concept was_a to'
+      )      
+  ) 
+AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
+AND c.invalid_reason = 'U' -- not already deprecated
+;
+COMMIT;
+
+--Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+UPDATE concept_relationship r
+   SET r.valid_end_date =
+            (SELECT MAX (v.latest_update)
+               FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+              WHERE c.concept_id IN (r.concept_id_1, r.concept_id_2))
+          - 1,
+       r.invalid_reason = 'D'
+ WHERE     r.relationship_id = 'Maps to'
+       AND r.invalid_reason IS NULL
+       AND EXISTS
+              (SELECT 1
+                 FROM concept c
+                WHERE c.concept_id = r.concept_id_2 AND c.invalid_reason IN ('U', 'D'))
+       AND EXISTS
+              (SELECT 1
+                 FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+                WHERE c.concept_id IN (r.concept_id_1, r.concept_id_2) AND v.latest_update IS NOT NULL);
+COMMIT;
+   
+
+--Reverse for deprecating
+MERGE INTO concept_relationship r
+     USING (SELECT r.*, rel.reverse_relationship_id
+              FROM concept_relationship r, relationship rel
+             WHERE     r.relationship_id IN ('Concept replaced by',
+                                             'Concept same_as to',
+                                             'Concept alt_to to',
+                                             'Concept poss_eq to',
+                                             'Concept was_a to',
+                                             'Maps to')
+                   AND r.relationship_id = rel.relationship_id
+                   AND EXISTS
+                          (SELECT 1
+                             FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+                            WHERE c.concept_id IN (r.concept_id_1, r.concept_id_2) AND v.latest_update IS NOT NULL)) i
+        ON (r.concept_id_1 = i.concept_id_2 AND r.concept_id_2 = i.concept_id_1 AND r.relationship_id = i.reverse_relationship_id)
+WHEN MATCHED
+THEN
+   UPDATE SET r.invalid_reason = i.invalid_reason, r.valid_end_date = i.valid_end_date
+           WHERE (NVL (r.invalid_reason, 'X') <> NVL (i.invalid_reason, 'X') OR r.valid_end_date <> i.valid_end_date);
+COMMIT;		 
+END;
 
 
 /***********************************

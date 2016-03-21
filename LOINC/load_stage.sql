@@ -23,7 +23,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20150629','yyyymmdd'), vocabulary_version='LOINC 2.52' where vocabulary_id='LOINC'; commit;
+update vocabulary set latest_update=to_date('20151221','yyyymmdd'), vocabulary_version='LOINC 2.54' where vocabulary_id='LOINC'; commit;
 
 -- 2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;
@@ -70,10 +70,10 @@ INSERT INTO concept_stage (concept_id,
           CASE
              WHEN STATUS = 'ACTIVE' AND CHNG_TYPE = 'ADD'
              THEN
-                COALESCE (DATE_LAST_CHANGED, v.latest_update)
+                COALESCE (c.valid_start_date, v.latest_update)
              WHEN STATUS = 'TRIAL' AND CHNG_TYPE = 'ADD'
              THEN
-                COALESCE (DATE_LAST_CHANGED, v.latest_update)
+                COALESCE (c.valid_start_date, v.latest_update)
              ELSE
                 v.latest_update
           END
@@ -81,13 +81,13 @@ INSERT INTO concept_stage (concept_id,
           CASE
              WHEN STATUS = 'DISCOURAGED' AND CHNG_TYPE = 'DEL'
              THEN
-                DATE_LAST_CHANGED
+                CASE WHEN C.VALID_END_DATE>V.LATEST_UPDATE OR C.VALID_END_DATE  IS NULL THEN V.LATEST_UPDATE ELSE C.VALID_END_DATE END 
              WHEN STATUS = 'DISCOURAGED'
              THEN
-                v.latest_update
+                CASE WHEN C.VALID_END_DATE>V.LATEST_UPDATE OR C.VALID_END_DATE  IS NULL THEN V.LATEST_UPDATE ELSE C.VALID_END_DATE END
              WHEN STATUS = 'DEPRECATED'
              THEN
-                DATE_LAST_CHANGED
+                CASE WHEN C.VALID_END_DATE>V.LATEST_UPDATE OR C.VALID_END_DATE  IS NULL THEN V.LATEST_UPDATE ELSE C.VALID_END_DATE END
              ELSE
                 TO_DATE ('20991231', 'yyyymmdd')
           END
@@ -109,8 +109,10 @@ INSERT INTO concept_stage (concept_id,
                 NULL
           END
              AS invalid_reason
-     FROM LOINC l, vocabulary v
-    WHERE v.vocabulary_id = 'LOINC';
+     FROM LOINC l, vocabulary v, concept c
+    WHERE v.vocabulary_id = 'LOINC'
+    AND l.LOINC_NUM=c.concept_code(+)
+    AND c.vocabulary_id(+)='LOINC';
 COMMIT;					  
 
 --4 Load classes from loinc_class directly into concept_stage
@@ -326,8 +328,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
 COMMIT;	
 
 --13 Add LOINC to SNOMED map
-INSERT /*+ APPEND */
-      INTO  concept_relationship_stage (concept_code_1,
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -335,7 +336,7 @@ INSERT /*+ APPEND */
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT l.maptarget AS concept_code_1,
+   SELECT DISTINCT l.maptarget AS concept_code_1,
           l.referencedcomponentid AS concept_code_2,
           'LOINC' AS vocabulary_id_1,
           'SNOMED' AS vocabulary_id_2,

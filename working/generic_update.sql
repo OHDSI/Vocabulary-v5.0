@@ -320,7 +320,7 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
             'Maps to'
         )
     )
-    select r.concept_id_1, r.concept_id_2, r.relationship_id From 
+    select /*+ INDEX(C1 XPK_CONCEPT)*/ r.concept_id_1, r.concept_id_2, r.relationship_id From 
     concept c1, 
     concept c2, 
     concept_relationship r, 

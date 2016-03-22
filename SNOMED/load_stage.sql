@@ -2112,22 +2112,21 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (2949005, 'Observation'); --
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (404684003, 'Condition'); -- Clinical Finding
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (218496004, 'Condition'); -- Adverse reaction to primarily systemic agents
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (313413008, 'Condition'); -- Calculus observation
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (405533003, 'Observation'); -- 'adverse incident outcome categories'
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (365854008, 'Observation'); -- 'History finding'
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (118233009, 'Observation'); -- 'Finding of activity of daily living'
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (307824009, 'Observation');-- 'Administrative statuses'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (405533003, 'Observation'); -- Adverse incident outcome categories
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (365854008, 'Observation'); -- History finding
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (118233009, 'Observation'); -- Finding of activity of daily living
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (307824009, 'Observation');-- Administrative statuses
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (162408000, 'Observation'); -- Symptom description
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (105729006, 'Observation'); -- 'Health perception, health management pattern'
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (162566001, 'Observation'); --'Patient not aware of diagnosis'
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (65367001, 'Observation'); --'Victim status'
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (122869004, 'Measurement'); --'Measurement'
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (71388002, 'Procedure'); --'Procedure'
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (105729006, 'Observation'); -- Health perception, health management pattern
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (162566001, 'Observation'); --Patient not aware of diagnosis
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (122869004, 'Measurement'); --Measurement
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (71388002, 'Procedure'); -- Procedure
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (304252001, 'Observation'); -- Resuscitate
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (304253006, 'Observation'); --DNR
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (304253006, 'Observation'); -- DNR
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (113021009, 'Procedure'); -- Cardiovascular measurement
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (297249002, 'Observation'); --Family history of procedure
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (14734007, 'Observation'); --Administrative procedure
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (416940007, 'Observation'); --Past history of procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (297249002, 'Observation'); -- Family history of procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (14734007, 'Observation'); -- Administrative procedure
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (416940007, 'Observation'); -- Past history of procedure
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (183932001, 'Observation');-- Procedure contraindicated
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (438833006, 'Observation');-- Administration of drug or medicament contraindicated
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (410684002, 'Observation'); -- Drug therapy status
@@ -2139,8 +2138,8 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (106237007, 'Observation'); 
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (258666001, 'Unit'); -- Top unit
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (260245000, 'Meas Value'); -- Meas Value
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (125677006, 'Relationship'); -- Relationship
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (264301008, 'Observation'); -- psychoactive substance of abuse - non-pharmaceutical
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (226465004, 'Observation'); -- drinks
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (264301008, 'Observation'); -- Psychoactive substance of abuse - non-pharmaceutical
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (226465004, 'Observation'); -- Drinks
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (49062001, 'Device'); -- Device
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (289964002, 'Device'); -- Surgical material
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (260667007, 'Device'); -- Graft
@@ -2149,36 +2148,19 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (255922001, 'Device'); -- De
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (413674002, 'Observation'); -- Body material
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (118417008, 'Device'); -- Filling material
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (445214009, 'Device'); -- corneal storage medium
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (80631005, 'Observation'); -- 'clinical stage finding'
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (69449002, 'Observation'); -- Drug action
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (79899007, 'Observation'); -- Drug interaction
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (365858006, 'Observation'); -- Prognosis/outlook finding
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (444332001, 'Observation'); -- Aware of prognosis
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (444143004, 'Observation'); -- Carries emergency treatment
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (281037003, 'Observation'); -- Child health observations
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (284530008, 'Observation'); -- Communication, speech and language finding
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (13197004, 'Observation'); -- Contraception
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (105499002, 'Observation'); -- Convalescence
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (251859005, 'Observation'); -- Dialysis finding
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (422704000, 'Observation'); -- Difficulty obtaining contraception
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (301886001, 'Observation'); -- Drawing up knees
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (250869005, 'Observation'); -- Equipment finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (298304004, 'Observation'); -- Finding of balance
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (298339004, 'Observation'); -- Finding of body control
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (300577008, 'Observation'); -- Finding of lesion
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (298325004, 'Observation'); -- Finding of movement
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (427955007, 'Observation'); -- Finding related to status of agreement with prior finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (118222006, 'Observation'); -- General finding of observation of patient
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (249857004, 'Observation'); -- Loss of midline awareness
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (397745006, 'Observation'); -- Medical contraindication
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (217315002, 'Observation'); -- Onset of illness
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (300232005, 'Observation'); -- Oral cavity, dental and salivary finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (364830008, 'Observation'); -- Position of body and posture - finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (248982007, 'Observation'); -- Pregnancy, childbirth and puerperium finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (424092004, 'Observation'); -- Questionable explanation of injury
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (127362006, 'Observation'); -- Previous pregnancies
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (57797005, 'Procedure'); -- Termination of pregnancy
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (162511002, 'Observation'); -- Rare history finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (128254003, 'Observation'); -- Respiratory auscultation finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (397773008, 'Observation'); -- Surgical contraindication
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (413296003, 'Condition'); -- Depression requiring intervention
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (72670004, 'Condition'); -- Sign
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (124083000, 'Condition'); -- Urobilinogenemia
@@ -2201,37 +2183,7 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (15220000, 'Measurement'); -
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (441742003, 'Measurement'); -- Evaluation finding
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (365605003, 'Measurement'); -- Body measurement finding
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (106019003, 'Condition'); -- Elimination pattern
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (395557000, 'Observation'); -- Tumor finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (422989001, 'Condition'); -- Appendix with tumor involvement, with perforation not at tumor
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (384980008, 'Condition'); -- Atelectasis AND/OR obstructive pneumonitis of entire lung associated with direct extension of malignant neoplasm
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (396895006, 'Condition'); -- Endocrine pancreas tumor finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (422805009, 'Condition'); -- Erosion of esophageal tumor into bronchus
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (423018005, 'Condition'); -- Erosion of esophageal tumor into trachea
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (399527001, 'Condition'); -- Invasive ovarian tumor omental implants present
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (399600009, 'Condition'); -- Lymphoma finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (405928008, 'Condition'); -- Renal sinus vessel involved by tumor
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (405966006, 'Condition'); -- Renal tumor finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (385356007, 'Condition'); -- Tumor stage finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (13104003, 'Observation'); -- Clinical stage I
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (60333009, 'Observation'); -- Clinical stage II
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (50283003, 'Observation'); -- Clinical stage III
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (2640006, 'Observation'); -- Clinical stage IV
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (385358008, 'Observation'); -- Dukes stage finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (385362002, 'Observation'); -- FIGO stage finding for gynecological malignancy
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (405917009, 'Observation'); -- Intergroup rhabdomyosarcoma study post-surgical clinical group finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (409721000, 'Observation'); -- International neuroblastoma staging system stage finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (385389007, 'Observation'); -- Lymphoma stage finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (396532004, 'Observation'); -- Stage I: Tumor confined to gland, 5 cm or less
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (396533009, 'Observation'); -- Stage II: Tumor confined to gland, greater than 5 cm
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (396534003, 'Observation'); -- Stage III: Extraglandular extension of tumor without other organ involvement
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (396535002, 'Observation'); -- Stage IV: Distant metastasis or extension into other organs
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (399517007, 'Observation'); -- Tumor stage cannot be determined
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (67101007, 'Observation'); -- TX category
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (385385001, 'Observation'); -- pT category finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (385382003, 'Observation'); -- Node category finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (385380006, 'Observation'); -- Metastasis category finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (386702006, 'Condition'); -- Victim of abuse
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (95930005, 'Condition'); -- Victim of neglect
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (65367001, 'Observation'); -- Victim status
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (106146005, 'Condition'); -- Reflex finding
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (103020000, 'Condition'); -- Adrenarche
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (405729008, 'Condition'); -- Hematochezia
@@ -2241,19 +2193,9 @@ INSERT INTO peak (peak_code, peak_domain_id) VALUES (300393000, 'Condition'); --
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (239516002, 'Observation'); -- Monitoring procedure
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (243114000, 'Observation'); -- Support
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (300893006, 'Observation'); -- Nutritional finding
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (248536006, 'Observation'); -- Finding of functional performance and activity
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (116336009, 'Observation'); -- Eating / feeding / drinking finding
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (448717002, 'Measurement'); -- Decline in Edinburgh postnatal depression scale score
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (449413009, 'Measurement'); -- Decline in Edinburgh postnatal depression scale score at 8 months
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (37448008, 'Observation'); -- Disturbance in intuition
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (12200008, 'Observation'); -- Impaired insight
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (5988002, 'Observation'); -- Lack of intuition
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (1230003, 'Observation'); -- No diagnosis on Axis I
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (10125004, 'Observation'); -- No diagnosis on Axis II
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (51112002, 'Observation'); -- No diagnosis on Axis III
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (54427008, 'Observation'); -- No diagnosis on Axis IV
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (37768003, 'Observation'); -- No diagnosis on Axis V
-INSERT INTO peak (peak_code, peak_domain_id) VALUES (6811007, 'Observation'); -- Prejudice
 INSERT INTO peak (peak_code, peak_domain_id) VALUES (46680005, 'Measurement'); -- Vital signs
 
 COMMIT;

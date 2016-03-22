@@ -1,6 +1,6 @@
 options (direct=true, errors=0, SKIP=1)
 load data
-infile 'xder2_scccRefset_MapCorrelationOriginFull_INT_20140926.txt'
+infile 'xder2_scccRefset_LOINCMapCorrelationOriginFull_INT.txt'
 truncate
 into table scccRefset_MapCorrOrFull_INT
 fields terminated by WHITESPACE

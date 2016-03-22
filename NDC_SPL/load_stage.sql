@@ -23,8 +23,8 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20151016','yyyymmdd'), vocabulary_version='NDC 20151016' where vocabulary_id='NDC'; commit;
-update vocabulary set latest_update=to_date('20151016','yyyymmdd'), vocabulary_version='NDC 20151016' where vocabulary_id='SPL'; commit;
+update vocabulary set latest_update=to_date('20160318','yyyymmdd'), vocabulary_version='NDC 20160318' where vocabulary_id='NDC'; commit;
+update vocabulary set latest_update=to_date('20160318','yyyymmdd'), vocabulary_version='NDC 20160318' where vocabulary_id='SPL'; commit;
 
 --2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;

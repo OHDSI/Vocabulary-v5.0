@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Christian Reich
+* Authors: Dmitry Dymshyts, Christian Reich
 * Date: 2016
 **************************************************************************/
 

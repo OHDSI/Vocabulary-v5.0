@@ -13,6 +13,36 @@ BEGIN
 END;
 */
 
+-- Fix trailing zero problem in Race
+update concept set concept_code='2.10.' where concept_id=38003583;
+update concept set concept_code='2.20.' where concept_id=38003593;
+update concept set concept_code='3.10.' where concept_id=38003607;
+
+-- Remove unused domains
+-- Domain
+delete from concept_relationship where concept_id_1=1;
+delete from concept_synonym where concept_id=1;
+delete from domain where domain_id='Measurement';
+delete from concept where concept_id=1;
+
+-- Generic
+delete from concept_relationship where concept_id_1=40;
+delete from concept_synonym where concept_id=40;
+delete from domain where domain_id='Generic';
+delete from concept where concept_id=40;
+
+-- Fixing trailing dots for the race codes
+update concept set concept_code=regexp_replace(concept_code, '(.*)\.$', '\1') where vocabulary_id='Race' and regexp_like(concept_code, '.*\.$');
+
+-- Fixing bad concept_name for associiated with
+update concept set concept_name='Associated with finding (SNOMED)' where concept_id=44818792;
+update concept set concept_name='Finding associated with (SNOMED)' where concept_id=44818890;
+update relationship set relationship_name='Associated with finding (SNOMED)' where relationship_concept_id=44818792;
+update relationship set relationship_name='Finding associated with (SNOMED)' where relationship_concept_id=44818890;
+
+-- fix wrong order start_date and end_date
+update concept set valid_start_date=valid_end_date-1 where valid_end_date<valid_start_date;
+
 commit;
 
 

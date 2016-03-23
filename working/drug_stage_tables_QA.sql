@@ -30,8 +30,10 @@ left join devv5.concept c on c.concept_id = r.concept_id_2  and a.concept_class_
 where  c.concept_name is  null
 ; 
 -- drug_strength_stage
---look if we have some strange amount_units
-select distinct amount_unit  from drug_strength_stage
+--look if we have some unexpected amount_units
+select * from drug_strength_stage where UPPER ( amount_unit) not in ('G', 'MG', 'KG', 'UNITS', 'UNIT','MIU','IU', 'MMOL', 'MOL',
+'CELL','MU','L', 'ML', 'MEQ', 'MCG','CFU', 'MCCI','CH','DOSE','GALU','K','D','M','C','X','DH','B','PPM','TM','XMK')
+--also take a look on other unit columns
 ;
 -- drug codes are not exist in a drug_concept_stage but present in drug_strength_stage
 select * from drug_strength_stage s 

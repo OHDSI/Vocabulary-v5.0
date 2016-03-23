@@ -23,7 +23,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-update vocabulary set latest_update=to_date('20150917','yyyymmdd'), vocabulary_version='NHS READV2 20.0.0 20151001000001' where vocabulary_id='Read'; commit;
+update vocabulary set latest_update=to_date('20160318','yyyymmdd'), vocabulary_version='NHS READV2 21.0.0 20160401000001' where vocabulary_id='Read'; commit;
 
 --2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;

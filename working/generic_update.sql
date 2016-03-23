@@ -83,7 +83,7 @@ COMMIT;
 UPDATE concept c SET
 	c.invalid_reason = 'D',
 	c.valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
-WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from _stage
+WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from concept_stage
 AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 AND c.invalid_reason IS NULL -- not already deprecated
 AND CASE -- all vocabularies that give us a full list of active concepts at each release we can safely assume to deprecate missing ones (THEN 1)
@@ -157,15 +157,15 @@ INSERT /*+ APPEND */ INTO concept (concept_id,
           cs.concept_code,
           cs.valid_start_date,
           cs.valid_end_date,
-          NULL
+          cs.invalid_reason
      FROM concept_stage cs
     WHERE cs.concept_id IS NULL; -- new because no concept_id could be found for the concept_code/vocabulary_id combination
 
 DROP SEQUENCE v5_concept;
 
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept', estimate_percent  => null, cascade  => true);
-  
 COMMIT;
+
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept', cascade  => true);
 
 -- 5. Make sure that invalid concepts are standard_concept = NULL
 UPDATE concept c SET
@@ -212,7 +212,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
 COMMIT;		
 
 -- 7. Update all relationships existing in concept_relationship_stage, including undeprecation of formerly deprecated ones
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', cascade  => true);
 
 MERGE INTO concept_relationship d
     USING (
@@ -299,6 +299,7 @@ UPDATE concept_relationship d
 COMMIT;
 
 --9. Deprecate old 'Maps to' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
+--part 1 (direct mappings)
 update concept_relationship d  
 set valid_end_date  = 
         (SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
@@ -320,7 +321,7 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
             'Maps to'
         )
     )
-    select /*+ INDEX(C1 XPK_CONCEPT)*/ r.concept_id_1, r.concept_id_2, r.relationship_id From 
+    select r.concept_id_1, r.concept_id_2, r.relationship_id From 
     concept c1, 
     concept c2, 
     concept_relationship r, 
@@ -334,11 +335,46 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
     and crs.relationship_id=r.relationship_id
     and crs.invalid_reason is null    
     and r.invalid_reason is null
-    and (
-        (c1.concept_id=r.concept_id_1 and c2.concept_id<>r.concept_id_2 and r.relationship_id=rel.relationship_id)
-        or
-        (c1.concept_id<>r.concept_id_1 and c2.concept_id=r.concept_id_2 and r.relationship_id=rel.reverse_relationship_id)
-    )    
+    and c1.concept_id=r.concept_id_1 and c2.concept_id<>r.concept_id_2 and r.relationship_id=rel.relationship_id   
+);
+
+--part 2 (reverse mappings)
+update concept_relationship d  
+set valid_end_date  = 
+        (SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+             FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+          WHERE c.concept_id IN (d.concept_id_1, d.concept_id_2) --take both concept ids to get proper latest_update
+        )
+      - 1, 
+      invalid_reason = 'D'
+where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
+(
+    with relationships as (
+        SELECT relationship_id, reverse_relationship_id FROM relationship 
+        WHERE relationship_id in (
+            'Concept replaced by',
+            'Concept same_as to',
+            'Concept alt_to to',
+            'Concept poss_eq to',
+            'Concept was_a to',
+            'Maps to'
+        )
+    )
+    select r.concept_id_1, r.concept_id_2, r.relationship_id From 
+    concept c1, 
+    concept c2, 
+    concept_relationship r, 
+    concept_relationship_stage crs,
+    relationships rel
+    where 
+    crs.concept_code_1=c1.concept_code
+    and crs.concept_code_2=c2.concept_code
+    and crs.vocabulary_id_1=c1.vocabulary_id
+    and crs.vocabulary_id_2=c2.vocabulary_id
+    and crs.relationship_id=r.relationship_id
+    and crs.invalid_reason is null    
+    and r.invalid_reason is null
+    and c1.concept_id<>r.concept_id_1 and c2.concept_id=r.concept_id_2 and r.relationship_id=rel.reverse_relationship_id
 );
 COMMIT;
 
@@ -666,12 +702,20 @@ THEN
 COMMIT;		 
 END;
 
+--17. fix valid_start_date for incorrect concepts (bad data in sources)
+UPDATE concept c
+   SET c.valid_start_date = c.valid_end_date - 1
+ WHERE c.valid_end_date < c.valid_start_date
+ AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
+ ;
+ COMMIT;
+
 
 /***********************************
 * Update the concept_synonym table *
 ************************************/
 
--- 16. Add all missing synonyms
+-- 18. Add all missing synonyms
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -690,7 +734,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                      AND css.synonym_vocabulary_id = c.vocabulary_id);
 COMMIT;					 
 
--- 17. Remove all existing synonyms for concepts that are in concept_stage
+-- 19. Remove all existing synonyms for concepts that are in concept_stage
 -- Synonyms are built from scratch each time, no life cycle
 
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);
@@ -702,7 +746,7 @@ DELETE FROM concept_synonym csyn
                                        AND cs.vocabulary_id = c.vocabulary_id
                                );
 
--- 18. Add new synonyms for existing concepts
+-- 20. Add new synonyms for existing concepts
 INSERT INTO concept_synonym (concept_id,
                              concept_synonym_name,
                              language_concept_id)
@@ -718,7 +762,7 @@ INSERT INTO concept_synonym (concept_id,
                  IS NOT NULL; --fix for empty GPI names
 COMMIT;
 
--- 19. check if current vocabulary exists in vocabulary_conversion table
+-- 21. check if current vocabulary exists in vocabulary_conversion table
 INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5)
    SELECT ROWNUM + (SELECT MAX (vocabulary_id_v4) FROM vocabulary_conversion)
              AS rn,
@@ -728,7 +772,7 @@ INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5)
            SELECT vocabulary_id_v5 FROM vocabulary_conversion);
 COMMIT;
 
--- 20. update latest_update on vocabulary_conversion		   
+-- 22. update latest_update on vocabulary_conversion		   
 MERGE INTO vocabulary_conversion vc
      USING (SELECT latest_update, vocabulary_id
               FROM vocabulary
@@ -739,7 +783,7 @@ THEN
    UPDATE SET vc.latest_update = v.latest_update;
 COMMIT;   
 
--- 21. drop column latest_update
+-- 23. drop column latest_update
 DECLARE
    z   vocabulary.vocabulary_id%TYPE;
 BEGIN

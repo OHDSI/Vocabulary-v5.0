@@ -67,25 +67,9 @@ INSERT INTO concept_stage (concept_id,
              AS concept_class_id,
           'S' AS standard_concept,
           LOINC_NUM AS concept_code,
+          COALESCE (c.valid_start_date, v.latest_update) AS valid_start_date,
           CASE
-             WHEN STATUS = 'ACTIVE' AND CHNG_TYPE = 'ADD'
-             THEN
-                COALESCE (c.valid_start_date, v.latest_update)
-             WHEN STATUS = 'TRIAL' AND CHNG_TYPE = 'ADD'
-             THEN
-                COALESCE (c.valid_start_date, v.latest_update)
-             ELSE
-                v.latest_update
-          END
-             AS valid_start_date,
-          CASE
-             WHEN STATUS = 'DISCOURAGED' AND CHNG_TYPE = 'DEL'
-             THEN
-                CASE WHEN C.VALID_END_DATE>V.LATEST_UPDATE OR C.VALID_END_DATE  IS NULL THEN V.LATEST_UPDATE ELSE C.VALID_END_DATE END 
-             WHEN STATUS = 'DISCOURAGED'
-             THEN
-                CASE WHEN C.VALID_END_DATE>V.LATEST_UPDATE OR C.VALID_END_DATE  IS NULL THEN V.LATEST_UPDATE ELSE C.VALID_END_DATE END
-             WHEN STATUS = 'DEPRECATED'
+             WHEN STATUS IN ('DISCOURAGED', 'DEPRECATED') 
              THEN
                 CASE WHEN C.VALID_END_DATE>V.LATEST_UPDATE OR C.VALID_END_DATE  IS NULL THEN V.LATEST_UPDATE ELSE C.VALID_END_DATE END
              ELSE
@@ -370,10 +354,9 @@ INSERT /*+ APPEND */
     WHERE v.vocabulary_id = 'LOINC';
 COMMIT;	 
 
-/*
+
 --15 Add replacement relationships
-INSERT /*+ APPEND * /
-      INTO  concept_relationship_stage (concept_code_1,
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -392,7 +375,6 @@ INSERT /*+ APPEND * /
      FROM MAP_TO l, vocabulary v
     WHERE v.vocabulary_id = 'LOINC';
 COMMIT;
-*/
 
 --16 Delete duplicate mappings (one concept has multiply target concepts)
 DELETE FROM concept_relationship_stage

@@ -13,10 +13,11 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Christian Reich
+* Authors: Christian Reich, Dmitry Dymshyts
 * Date: 2016
 **************************************************************************/
 
+-- 1. relationship_to_concept
 --incorrect mapping to concept
 select a.concept_name, a.concept_class_id, c.concept_name, c.concept_class_id from relationship_to_concept r join drug_concept_stage a on a.concept_code= r.concept_code_1 
 join devv5.concept c on c.concept_id = r.concept_id_2
@@ -25,20 +26,19 @@ where  a.concept_class_id !=  c.concept_class_id
 --concept_id's that don't exist
 select a.concept_name, a.concept_class_id, r.CONCEPT_ID_2, c.concept_name, c.concept_class_id from relationship_to_concept r 
 join drug_concept_stage a on a.concept_code= r.concept_code_1 
-left join devv5.concept c on c.concept_id = r.concept_id_2 and a.concept_class_id =  c.concept_class_id
-where  c.concept_name is null
+left join devv5.concept c on c.concept_id = r.concept_id_2  and a.concept_class_id =  c.concept_class_id
+where  c.concept_name is  null
 ; 
---drug_strength_stage 
-select * from drug_strength_stage where  amount_unit ='NIL'
-;
+-- drug_strength_stage
 --look if we have some strange amount_units
 select distinct amount_unit  from drug_strength_stage
 ;
--- drug codes not exist in a drug_concept_stage but present in drug_strength_stage
+-- drug codes are not exist in a drug_concept_stage but present in drug_strength_stage
 select * from drug_strength_stage s 
 left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id like  '%Drug%'
 left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
-where a.concept_code is null 
+left join AP_IA_NON_DRUGS n on n.drug_code = s.drug_concept_code
+where a.concept_code is null and n.DRUG_CODE is not null
 ;
 -- ingredient codes not exist in a drug_concept_stage but present in drug_strength_stage
 select * from drug_strength_stage s 
@@ -46,52 +46,80 @@ left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.con
 left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
 where b.concept_code is null 
 ;
--- internal_relationship_stage has codes missing in drug_concept_stage
---code_2
-select *from internal_relationship_stage s
-left join drug_concept_stage a on a.concept_code = s.concept_code_1 
-left join drug_concept_stage b on b.concept_code = s.concept_code_2 
-where b.concept_code is null 
+--strange entries combinations in drug_strength_stage table , 
+select * from drug_strength_stage s where AMOUNT_VALUE is not null and AMOUNT_UNIT is null or 
+(denominator_VALUE is not null and denominator_UNIT is null) or (NUMERATOR_VALUE is not null and denominator_UNIT is null and DENOMINATOR_VALUE is null and NUMERATOR_UNIT !='%')
+or (AMOUNT_VALUE is  null and AMOUNT_UNIT is not null)
 ;
--- internal_relationship_stage has codes missing in drug_concept_stage
---code_1
-select count(1) from internal_relationship_stage s
-left join drug_concept_stage a on a.concept_code = s.concept_code_1 
-left join drug_concept_stage b on b.concept_code = s.concept_code_2 
-where a.concept_code is null 
+-- drugs aren't present in drug_strength table
+select * from drug_concept_stage where concept_code not in (select drug_concept_code from drug_strength_stage) and concept_class_id like '%Drug%'
 ;
---strange combinations in drug_strength_stage table like we have strength but no unit of measurement
-select * from drug_strength_stage s where AMOUNT_VALUE is not null and AMOUNT_UNIT is null
+--Quantitive drugs don't have denominator value 
+SELECT * FROM drug_strength_stage s WHERE DRUG_CONCEPT_CODE IN (
+select A.CONCEPT_CODE from drug_concept_stage a join  drug_strength_stage s on a.concept_code = s.drug_concept_code and a.concept_class_id like '%Quant%' and (s.DENOMINATOR_VALUE is null or NUMERATOR_VALUE is null))
 ;
-select * from drug_strength_stage s where denominator_VALUE is not null and denominator_UNIT is null
+--look if for some drugs we have empty and non-empty DENOMINATOR_VALUE fields
+select * from drug_strength_stage a join drug_strength_stage b on a.drug_concept_code = b.drug_concept_code and a.DENOMINATOR_VALUE is null and b.DENOMINATOR_VALUE is not null 
 ;
-select * from drug_strength_stage s where NUMERATOR_VALUE is not null and denominator_UNIT is null and DENOMINATOR_VALUE is null and NUMERATOR_UNIT !='%'
+-- volume units (ML or L) as amount units or denominator units
+select * from drug_strength_stage where drug_concept_code in (
+select drug_concept_code from  drug_strength_stage s where (amount_unit in ('ML', 'L') or NUMERATOR_unit in ('ML', 'L')))
 ;
-select * from drug_strength_stage s where AMOUNT_VALUE is  null and AMOUNT_UNIT is not null
+--different values for the same ingredient and drug, look separately on numerator_value, DENOMINATOR_VALUE and Units
+select DISTINCT A.* from DRUG_strength_STAGE a join DRUG_strength_STAGE b on a.drug_concept_code = b.drug_concept_code and a.INGREDIENT_CONCEPT_CODE = b.INGREDIENT_CONCEPT_CODE and a.numerator_value != b.numerator_value
 ;
--- manual review of internal_relationship_stage
-select a.concept_code, a.concept_name, a.concept_class_id, b.concept_code , b.concept_name, b.concept_class_id  from internal_relationship_stage s
-left join drug_concept_stage a on a.concept_code = s.concept_code_1 
-left join drug_concept_stage b on b.concept_code = s.concept_code_2 
-where a.concept_code is not null 
+select DISTINCT A.* from DRUG_strength_STAGE a join DRUG_strength_STAGE b on a.drug_concept_code = b.drug_concept_code and a.INGREDIENT_CONCEPT_CODE = b.INGREDIENT_CONCEPT_CODE and a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE
 ;
--- manual review of Brand Names
-select * from  drug_concept_stage
-where concept_class_id like 'Brand Name'
+select DISTINCT A.* from DRUG_strength_STAGE a join DRUG_strength_STAGE b on a.drug_concept_code = b.drug_concept_code and a.INGREDIENT_CONCEPT_CODE = b.INGREDIENT_CONCEPT_CODE and ( a.DENOMINATOR_UNIT != b.DENOMINATOR_UNIT OR A.NUMERATOR_UNIT != B.NUMERATOR_UNIT)
 ;
--- some drugs doesn't present in drug_strength table
+--internal_relationship
+
+--missing relationships:
+--Branded Drug to Brand Name
+--Drug to Ingredient
+--Drug (non Component) to Form
 select * from  drug_concept_stage a left join 
- drug_strength_stage s on s.drug_concept_code = a.concept_code
- where a.concept_class_id like '%Drug%'
- AND S.drug_concept_code IS NULL
-;
---Branded drug that doesn't have relationship to Brand Name, please find out why does it happen: is concept_class_id definition incorrect or relationship table?
-select * from  drug_concept_stage a left join 
-internal_relationship_stage s on s.concept_code_1= a.concept_code and a.concept_class_id like'%Brand%'
- where a.concept_class_id like '%Branded%'
+internal_relationship_stage s on s.concept_code_1= a.concept_code  
+ where  (
+ (a.concept_class_id like '%Branded%' and a.concept_class_id ='Brand Name')
+ or (a.concept_class_id like '%Drug%' and a.concept_class_id ='Ingredient')
+ or (a.concept_class_id like '%Drug%' and a.concept_class_id not like '%Comp%' and a.concept_class_id ='Dose Form')
+ )
  AND S.concept_code_1 IS NULL
  ;
 --duplicates in drug_concept_stage table
-select * from drug_concept_stage where concept_code in (
+select * from drug_concept_stage  
+where concept_code in (
 select concept_code from drug_concept_stage group by concept_code having count(8)>1)
+;
+--several brand names
+select * from drug_concept_stage a 
+join internal_relationship_stage s on a.concept_code = s.concept_code_1
+join drug_concept_stage b on b.concept_code =s.concept_code_2
+and b.concept_class_id = 'Brand Name'
+where a.concept_code in (
+select a.concept_code from drug_concept_stage a 
+join internal_relationship_stage s on a.concept_code = s.concept_code_1
+join drug_concept_stage b on b.concept_code =s.concept_code_2
+and b.concept_class_id = 'Brand Name'
+group by a.concept_code having count(1) >1)
+;
+--several Dose forms
+select * from drug_concept_stage a 
+join internal_relationship_stage s on a.concept_code = s.concept_code_1
+join drug_concept_stage b on b.concept_code =s.concept_code_2
+and b.concept_class_id = 'Dose Form'
+where a.concept_code in (
+select a.concept_code from drug_concept_stage a 
+join internal_relationship_stage s on a.concept_code = s.concept_code_1
+join drug_concept_stage b on b.concept_code =s.concept_code_2
+and b.concept_class_id = 'Dose Form'
+group by a.concept_code having count(1) >1)
+;
+--same names for different drug classes
+select * from drug_concept_stage where trim(lower(concept_name)) in (
+  select trim(lower(concept_name)) as n from drug_concept_stage where concept_class_id in ('Brand Name', 'Dose Form', 'Unit', 'Ingredient') group by trim(lower(concept_name)) having count(8)>1)
+  ;
+--short names but not a Unit
+select * from drug_concept_stage where length(concept_name)=1 and concept_class_id not in ('Unit')
 ;

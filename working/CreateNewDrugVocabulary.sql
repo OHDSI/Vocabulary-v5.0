@@ -33,14 +33,18 @@
 * drug_strength.                                                              *
 *******************************************************************************/
 
+/** IMPORTANT **/
+/* Add the latest_udpate and vesion information to the VOCABULARY table **/
+
 -- Create Sequences for new concepts
--- Create temporary for uniqe strength records
+-- Create temporary for uniqe strength recordsdrop sequence ds_seq;
 drop sequence ds_seq;
 create sequence ds_seq increment by 1 start with 1 nocycle cache 20 noorder;
 
 -- Create sequence for new OMOP-created standard concepts
 -- drop sequence new_vocab;
 drop sequence new_vocab;
+
 /*
 declare
  ex number;
@@ -52,7 +56,6 @@ begin
       when others then null;
   end;
 end;
-;
 */
 commit;
 
@@ -423,13 +426,13 @@ union
   join unique_ds d on i.ing_code=d.ingredient_concept_code 
 ) c
 left join existing_concept_stage e on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
-and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
+  and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
 ;
 
 -- Replace concept_code=0 with OMOP123 style concept codes. Use active sequence new_vocab
 update complete_concept_stage ccs 
   set concept_code='OMOP'||new_vocab.nextval -- make sure new_vocab is defined.
-where ccs.concept_code=0;
+where ccs.concept_code='0';
 
 -- 4. Auto-generate all names unless a name is provided
 
@@ -529,7 +532,7 @@ join (
 where c.concept_class_id = 'Clinical Drug Comp'
 ;
 
--- Drug Forms, which have no strength information
+-- Drug Forms - which have no strength information
 insert into complete_name
 with spelled_out as (
   select 
@@ -579,6 +582,72 @@ group by concept_code, df_name, bn_name
 ;
 
 commit;
+
+-- Add Packs
+insert into complete_concept_stage
+select 
+  concept_code,
+  0 as denominator_value,
+  ' ' as i_combo_code,
+  ' ' as d_combo_code,
+  ' ' as dose_form_code,
+  ' ' as brand_code,
+  0 as box_size,
+  concept_class_id
+from drug_concept_stage
+where concept_class_id like '%Pack';
+
+
+insert into complete_name
+-- Get the component parts
+with c as (
+  select 
+    pc.pack_concept_code as concept_code,
+    case when pc.amount is null then '' else pc.amount||' ' end||'('||cn.concept_name as content_name,
+    case when pc.amount is null then 0 else length(pc.amount)+1 end as a_len, -- length of the amount
+    length(concept_name) as n_len -- length of the concept_name
+  from pack_content pc
+  join existing_concept_stage e on e.concept_code=pc.component_concept_code
+  join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
+    and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
+  join complete_name cn on cn.concept_code=c.concept_code
+),
+-- Get the common part
+p as (
+  select 
+    concept_code, 
+    concept_name, 
+    length(concept_name) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
+  from drug_concept_stage where concept_class_id like '%Pack%'
+),
+-- Calculate total length of everything if space weren't the issue, and then calculate the factor that each concept_name needs to be shortened by
+l as (
+  select concept_code, 
+    (245-all_a_len-p.len)/all_n_len as factor -- 255-10 for common pack text (curly brackets, spaces)
+  from (
+    select distinct
+      concept_code,
+      sum(n_len) over (partition by concept_code) as all_n_len, -- 7: slashes, parentheses and spaces, minus the trailing ' / '
+      sum(a_len+5) over (partition by concept_code) -3 as all_a_len -- 7: slashes, parentheses and spaces, minus the trailing ' / '
+    from c
+  ) 
+  join p using(concept_code)
+),
+-- Cut the individual components by the factor and add ...
+c_p as (
+  select 
+    concept_code,
+    case when l.factor<1 then substr(c.content_name, 1, c.n_len*l.factor-3)||'...' else c.content_name end as concept_name
+  from l join c using(concept_code)
+-- where concept_code='2254581'
+)
+select 
+  concept_code,
+  '{'||listagg(c_p.concept_name, ') / ') within group (order by c_p.concept_name) ||') } Pack ['||p.concept_name||']' as concept_name
+from c_p -- components, possibly trimmed
+join p using(concept_code) -- common part
+group by concept_code, p.concept_name -- aggregate within concept_code
+;
 
 -- 4. Compare new drug vocabulary q to existing one r
 
@@ -832,29 +901,20 @@ commit;
 
 -- 5. Write out result tables
 
--- Prepare tables
-drop table concept_stage purge;
-create table concept_stage as
-select * from devv5.concept_stage where 1=0;
-alter table concept_stage modify valid_start_date date null;
-drop table concept_relationship_stage purge;
-create table concept_relationship_stage as
-select * from devv5.concept_relationship_stage where 1=0;
-
 -- Write Ingredients, Brand Names, Dose Forms
 insert into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select 
   null as concept_id, 
-  concept_name, -- take concept_name from equivalent 
+  dcs.concept_name, -- take concept_name from equivalent 
   'Drug' as domain_id,
-  vocabulary_id,
-  concept_class_id,
+  dcs.vocabulary_id,
+  dcs.concept_class_id,
   null as standard_concept, -- DA_France ingreidents are not standard, unless they are not mapped
-  concept_code,
-  null as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  dcs.concept_code,
+  nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
+  nvl(dcs.valid_end_date, '31-Dec-2099') as valid_end_date,
   null as invalid_reason
-from drug_concept_stage where concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name') and domain_id='Drug';
+from drug_concept_stage dcs where dcs.concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name') and dcs.domain_id='Drug';
 
 commit;
 
@@ -871,24 +931,28 @@ select distinct
   css.concept_class_id,
   case when qr.q_dcode is null then 'S' else null end as standard_concept, -- Standard Concept unless there is a map to RxNorm 
   css.concept_code,
-  null as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
+  nvl(dcs.valid_end_date, '31-Dec-2099') as valid_end_date,
   null as invalid_reason
 from complete_concept_stage css
 join complete_name cn on cn.concept_code=css.concept_code
+left join drug_concept_stage dcs on dcs.concept_code=css.concept_code
 left join q_to_r qr on qr.q_dcode=css.concept_code
 ;
 
 commit;
 
 -- Write equivalents from q to r Ingredients
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct 
   concept_code_1,
   q.vocabulary_id,
   first_value(r.concept_code) over (partition by concept_code_1 order by nvl(precedence, 1)) as concept_code_2, -- pick the one wiht the best precedence
   first_value(r.vocabulary_id) over (partition by concept_code_1 order by nvl(precedence, 1)) as vocabulary_id_2,
-  'Has standard ing' as relationship_id
+  'Has standard ing' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from drug_concept_stage q
 join relationship_to_concept on concept_code_1=q.concept_code
 join devv5.concept r on r.concept_id=concept_id_2
@@ -896,13 +960,16 @@ where q.concept_class_id = 'Ingredient' and q.domain_id='Drug'
 ;
 
 -- Write equivalents from q to r Brand Name
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct 
   concept_code_1,
   q.vocabulary_id,
   first_value(r.concept_code) over (partition by concept_code_1 order by nvl(precedence, 1)) as concept_code_2, -- pick the one with the best precedence
   first_value(r.vocabulary_id) over (partition by concept_code_1 order by nvl(precedence, 1)) as vocabulary_id_2,
-  'Has standard brand' as relationship_id
+  'Has standard brand' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from drug_concept_stage q
 join relationship_to_concept on concept_code_1=q.concept_code
 join devv5.concept r on r.concept_id=concept_id_2
@@ -910,13 +977,16 @@ where q.concept_class_id = 'Brand Name' and q.domain_id='Drug'
 ;
 
 -- Write equivalents from q to r Dose Form
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct 
   concept_code_1,
   q.vocabulary_id,
   first_value(r.concept_code) over (partition by concept_code_1 order by nvl(precedence, 1)) as concept_code_2,
   first_value(r.vocabulary_id) over (partition by concept_code_1 order by nvl(precedence, 1)) as vocabulary_id_2,
-  'Has standard form' as relationship_id
+  'Has standard form' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from drug_concept_stage q
 join relationship_to_concept on concept_code_1=q.concept_code
 join devv5.concept r on r.concept_id=concept_id_2
@@ -924,13 +994,16 @@ where q.concept_class_id = 'Dose Form' and q.domain_id='Drug'
 ;
 
 -- Write maps from complete_concept_stage to RxNorm
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   qr.q_dcode as concept_code_1,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   c.concept_code concept_code_2,
   c.vocabulary_id as vocabulary_id_2,
-  'Maps to' as relationship_id
+  'Maps to' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 -- usual validity
 from q_to_r qr
 join complete_concept_stage ccs on ccs.concept_code=qr.q_dcode
@@ -938,7 +1011,7 @@ join devv5.concept c on c.concept_id=qr.r_did
 ;
 
 -- write RxNorm-like relationships between concepts of all classes except Drug Forms and Clinical Drug Component based on matching components
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 with rl as (
 -- Pull relationship_id between concept classes from existing RxNorm
   select distinct c1.concept_class_id as concept_class_id_1, r.relationship_id, c2.concept_class_id as concept_class_id_2
@@ -972,7 +1045,10 @@ select
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   de.concept_code as concept_code_2,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_2,
-  rl.relationship_id
+  rl.relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from complete_concept_stage de
 join rl on rl.concept_class_id_2=de.concept_class_id
 join (
@@ -1005,7 +1081,7 @@ from complete_concept_stage
 create index x_an on an(i_combo_code);
 
 -- Write RxNorm-like relationships for Clinical Drug Forms (matching ingredient combinations)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 -- Pull relationship_id between concept classes from existing RxNorm
 with rl as (
   select distinct c1.concept_class_id as concept_class_id_1, r.relationship_id, c2.concept_class_id as concept_class_id_2
@@ -1022,7 +1098,10 @@ select
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   de.concept_code as concept_code_2,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_2,
-  rl.relationship_id
+  rl.relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from complete_concept_stage de
 join an on de.i_combo_code=an.i_combo_code and an.concept_code!=de.concept_code and an.concept_class_id='Clinical Drug Form'
 join rl on rl.concept_class_id_2=de.concept_class_id 
@@ -1030,13 +1109,16 @@ where de.dose_form_code=coalesce(an.dose_form_code, de.dose_form_code, ' ')
 ;
 
 -- write RxNorm-like relationships for Branded Drug Forms (matching ingredient combinations)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   an.concept_code as concept_code_1,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   de.concept_code as concept_code_2,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_2,
-  'RxNorm inverse is a' as relationship_id -- Need to take RxNorm out of these
+  'RxNorm inverse is a' as relationship_id, -- Need to take RxNorm out of these
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from complete_concept_stage de
 join an on de.i_combo_code=an.i_combo_code and an.concept_code!=de.concept_code and an.concept_class_id='Branded Drug Form'
 where de.concept_class_id in ('Branded Drug', 'Quant Branded Drug')
@@ -1045,7 +1127,7 @@ where de.concept_class_id in ('Branded Drug', 'Quant Branded Drug')
 ;
 
 -- Write relationship between Clinical Drug Comp (single Ingredient)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 -- Pull relationship_id between concept classes from existing RxNorm
 with rl as (
   select distinct c1.concept_class_id as concept_class_id_1, r.relationship_id, c2.concept_class_id as concept_class_id_2
@@ -1062,7 +1144,10 @@ select
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   de.concept_code as concept_code_2,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_2,
-  rl.relationship_id
+  rl.relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from complete_concept_stage de
 join (
   select distinct dc.combo_code, ds.ds_code
@@ -1073,13 +1158,16 @@ join rl on rl.concept_class_id_2=de.concept_class_id
 ;
 
 -- Write relationships between Ingredients and Clinical Drug Form and Clinical Drug Component (no Ingredient combinations)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   i.concept_code as concept_code_1,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   ccs.concept_code as concept_code_2,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_2,
-  'RxNorm ing of' as relationship_id
+  'RxNorm ing of' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from complete_concept_stage ccs
 join (
   select distinct ic.combo_code, ing.ing_code as concept_code 
@@ -1089,37 +1177,46 @@ where ccs.concept_class_id in ('Clinical Drug Form', 'Clinical Drug Comp')
 ;
 
 -- Write relationships between all of them and Dose Form
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   ccs.concept_code as concept_code_1,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   ccs.dose_form_code as concept_code_2,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_2,
-  'RxNorm has dose form' as relationship_id
+  'RxNorm has dose form' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from complete_concept_stage ccs
 where ccs.dose_form_code is not null
 ;
 
 -- Write relationships between Ingredients and Clinical Drug Form and Clinical Drug Component (no Ingredient combinations)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   ccs.concept_code as concept_code_1,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   ccs.brand_code as concept_code_2,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_2,
-  'RxNorm has ing' as relationship_id
+  'RxNorm has ing' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from complete_concept_stage ccs
 where ccs.brand_code is not null
 ;
 
 -- Write maps from drugs that didn't make it into complete_concept_stage but have drug strength (duplicates)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   e.concept_code as concept_code_1,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   c.concept_code concept_code_2,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_2,
-  'Maps to' as relationship_id
+  'Maps to' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from existing_concept_stage e 
 join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
 and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
@@ -1135,25 +1232,29 @@ select
   e.concept_class_id,
   null as standard_concept,
   e.concept_code,
-  null as valid_start_date,
+  nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from existing_concept_stage e 
 join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
   and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
 join complete_name cn on cn.concept_code=c.concept_code
+join drug_concept_stage dcs on dcs.concept_code=e.concept_code
 where e.concept_code!=c.concept_code;
 
 commit;
 
 -- Write links to Ingredients for drugs not covered by drug_strength (added next)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   m.concept_code as concept_code_1,
   dcs.vocabulary_id as vocabulary_id_1,
   dcs.concept_code as concept_code_2,
   dcs.vocabulary_id as vocabulary_id_2,
-  'RxNorm has ing' as relationship_id
+  'RxNorm has ing' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from (
   select concept_code from drug_concept_stage where (concept_class_id like '%Branded%' or concept_class_id like '%Clinical%') and domain_id='Drug'
   minus
@@ -1164,13 +1265,16 @@ join drug_concept_stage dcs on dcs.concept_code=r.concept_code_2 and dcs.concept
 ;
 
 -- Write links to Dose Forms for drugs not covered by drug_strength (added next)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   m.concept_code as concept_code_1,
   dcs.vocabulary_id as vocabulary_id_1,
   dcs.concept_code as concept_code_2,
   dcs.vocabulary_id as vocabulary_id_2,
-  'RxNorm has dose form' as relationship_id
+  'RxNorm has dose form' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from (
   select concept_code from drug_concept_stage where (concept_class_id like '%Branded%' or concept_class_id like '%Clinical%') and domain_id='Drug'
   minus
@@ -1181,13 +1285,16 @@ join drug_concept_stage dcs on dcs.concept_code=r.concept_code_2 and dcs.concept
 ;
 
 -- Write links to Brand Names for drugs not covered by drug_strength (added next)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   m.concept_code as concept_code_1,
   dcs.vocabulary_id as vocabulary_id_1,
   dcs.concept_code as concept_code_2,
   dcs.vocabulary_id as vocabulary_id_2,
-  'RxNorm has ing' as relationship_id
+  'RxNorm has ing' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
 from (
   select concept_code from drug_concept_stage where (concept_class_id like '%Branded%' or concept_class_id like '%Clinical%') and domain_id='Drug'
   minus
@@ -1209,7 +1316,7 @@ select
   c.concept_class_id,
   'S' as standard_concept,
   c.concept_code,
-  null as valid_start_date,
+  nvl(c.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from (
@@ -1231,14 +1338,15 @@ select
   concept_class_id,
   'S' as standard_concept,
   concept_code,
-  null as valid_start_date,
+--   nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date, 
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
-from drug_concept_stage
-where domain_id!='Drug'
+from non_drug
 ; 
 
 commit;
+
 
 /*
 -- 7. Create DRUG_STRENGTH from unique_ds

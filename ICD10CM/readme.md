@@ -6,10 +6,11 @@ Prerequisites:
 - Working directory ICD10CM.
 
 1. Run create_source_tables.sql
-2. Download ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/2015/ICD10CM_FY2015_code_descriptions.zip
-3. Extract icd10cm_order_2015.txt
-4. Load them into icd10cm_table with icd10cm.ctl.
-5. Run load_stage.sql
-6. Run generic_update.sql (from working directory)
+2. Download ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/20xx/ICD10CM_FY20xx_code_descriptions.zip
+3. Extract icd10cm_order_20xx.txt and rename to icd10cm.txt
+4. Load into icd10cm_table with icd10cm.ctl
+5. Unzip icd10cm2snomed.zip and load into icd10cm2snomed with icd10cm2snomed.ctl
+6. Run load_stage.sql
+7. Run generic_update.sql (from working directory)
 
  

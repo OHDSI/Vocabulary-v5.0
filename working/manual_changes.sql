@@ -43,9 +43,18 @@ update relationship set relationship_name='Finding associated with (SNOMED)' whe
 -- fix wrong order start_date and end_date
 update concept set valid_start_date=valid_end_date-1 where valid_end_date<valid_start_date;
 
+-- Add DPD
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'Drug Product Database (Health Canada)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
+  values ('DPD', 'Drug Product Database Canada (Health Canada)', 'http://open.canada.ca/data/en/dataset/bf55e42a-63cb-4556-bfd8-44f26e5a36fe', '2016-03-04', (select concept_id from concept where concept_name='Drug Product Database (Health Canada)'));
+select * from vocabulary_conversion;
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (74, 'DPD', null, null, null, null);
+
+-- Fix ABMS spelling
+update concept set concept_name='Hospice and Palliative Medicine' where concept_id=45756777;
+
 commit;
-
-
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------
 -- Remove invalid ICD10 codes

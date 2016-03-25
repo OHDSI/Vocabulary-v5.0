@@ -150,4 +150,9 @@ select concept_code, 'same names for different drug classes'  from drug_concept_
 --short names but not a Unit
 select concept_code, 'short names but not a Unit' from drug_concept_stage where length(concept_name)=1 and concept_class_id not in ('Unit')
 union 
+--concept_name is null
 select concept_code,'concept_name is null' from drug_concept_stage where concept_name is null;
+union
+--same concept_code_1 - concept_id_2 relationship but different precedence
+select distinct a.concept_code_1, 'same concept_code_1 - concept_id_2 relationship but different precedence' from relationship_to_concept a join relationship_to_concept b on a.CONCEPT_CODE_1 =b.CONCEPT_CODE_1 
+and a.CONCEPT_ID_2 = b.concept_id_2 and a.precedence !=b.precedence

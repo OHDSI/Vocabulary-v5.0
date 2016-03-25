@@ -222,6 +222,26 @@ FROM (
 				else 0
               end
           end
+        when 'DPD' then -- same as RxNorm
+          case 
+            when c.standard_concept is null then 0
+            else
+              case concept_class_id
+                when 'Ingredient' then 2
+                when 'Clinical Drug' then 1
+                when 'Branded Drug Box' then 1
+                when 'Clinical Drug Box' then 1
+                when 'Quant Branded Box' then 1
+                when 'Quant Clinical Box' then 1
+                when 'Quant Clinical Drug' then 1
+                when 'Quant Branded Drug' then 1
+                when 'Clinical Drug Comp' then 1
+                when 'Branded Drug Comp' then 1
+                when 'Branded Drug Form' then 1
+                when 'Clinical Drug Form' then 1
+				else 0
+              end
+          end		  
         when 'NDC' then 0
         when 'GPI' then 0
         when 'Race' then -- 2 level hierarchy

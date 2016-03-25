@@ -23,7 +23,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20150326','yyyymmdd'), vocabulary_version='ICD10CM FY2015 code descriptions' WHERE vocabulary_id='ICD10CM'; 
+UPDATE vocabulary SET latest_update=to_date('20160325','yyyymmdd'), vocabulary_version='ICD10CM FY2016 code descriptions' WHERE vocabulary_id='ICD10CM'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices
@@ -78,7 +78,27 @@ INSERT /*+ APPEND */ INTO concept_stage (concept_id,
      FROM ICD10CM_TABLE;
 COMMIT;					  
 
---4 load into concept_synonym_stage name from ICD10CM_TABLE
+--4 Add ICD10CM to SNOMED mappings
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        relationship_id,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT SOURCE_CODE AS concept_code_1,
+          TARGET_CODE AS concept_code_2,
+          MAPPING_TYPE AS relationship_id,
+          'ICD10CM' AS vocabulary_id_1,
+          'SNOMED' AS vocabulary_id_2,
+          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
+          TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM icd10cm2snomed;
+COMMIT;
+
+--5 Load into concept_synonym_stage name from ICD10CM_TABLE
 INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -99,6 +119,7 @@ INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                                  FOR DESCRIPTIONS
                                  IN (LONG_NAME, SHORT_NAME));
 COMMIT;
+
 
 ------------------------------------------
 

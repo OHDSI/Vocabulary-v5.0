@@ -1,6 +1,6 @@
 OPTIONS (errors=0, direct=true)
 LOAD DATA 
-INFILE 'icd10cm_order_2015.txt'
+INFILE 'icd10cm.txt'
 TRUNCATE
 INTO TABLE icd10cm_table
 (

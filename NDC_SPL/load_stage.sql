@@ -84,17 +84,16 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            valid_end_date,
                            invalid_reason)
     select spl_name as concept_name,
-    case when displayname in ('COSMETIC', 'MEDICAL FOOD') then 'Observation' 
-        when displayname in ('MEDICAL DEVICE','OTC MEDICAL DEVICE LABEL','PRESCRIPTION MEDICAL DEVICE LABEL') then 'Device'
+    case when displayname in ('COSMETIC') then 'Observation' 
+        when displayname in ('MEDICAL DEVICE','OTC MEDICAL DEVICE LABEL','PRESCRIPTION MEDICAL DEVICE LABEL', 'MEDICAL FOOD', 'DIETARY SUPPLEMENT') then 'Device'
         else 'Drug'
     end as domain_id,
     'SPL' as vocabulary_id,
     case when displayname in ('BULK INGREDIENT') then 'Ingredient'
-        when displayname in ('CELLULAR THERAPY') then 'Cellular Therapy'
+        when displayname in ('CELLULAR THERAPY', 'LICENSED MINIMALLY MANIPULATED CELLS LABEL') then 'Cellular Therapy'
         when displayname in ('COSMETIC') then 'Cosmetic'
         when displayname in ('DIETARY SUPPLEMENT') then 'Supplement'
         when displayname in ('HUMAN OTC DRUG LABEL') then 'OTC Drug'
-        when displayname in ('LICENSED MINIMALLY MANIPULATED CELLS LABEL') then 'Cellular Therapy'
         when displayname in ('MEDICAL DEVICE','OTC MEDICAL DEVICE LABEL','PRESCRIPTION MEDICAL DEVICE LABEL') then 'Device'
         when displayname in ('MEDICAL FOOD') then 'Food'
         when displayname in ('NON-STANDARDIZED ALLERGENIC LABEL') then 'Non-Stand Allergenic'

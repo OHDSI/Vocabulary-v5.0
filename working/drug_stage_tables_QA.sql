@@ -149,3 +149,5 @@ select concept_code, 'same names for different drug classes'  from drug_concept_
   union
 --short names but not a Unit
 select concept_code, 'short names but not a Unit' from drug_concept_stage where length(concept_name)=1 and concept_class_id not in ('Unit')
+union 
+select concept_code,'concept_name is null' from drug_concept_stage where concept_name is null;

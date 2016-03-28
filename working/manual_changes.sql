@@ -53,6 +53,24 @@ insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req,
 -- Fix ABMS spelling
 update concept set concept_name='Hospice and Palliative Medicine' where concept_id=45756777;
 
+-- Add dm+d
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'Dictionary of Medicines and Devices (NHS)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
+  values ('dm+d', 'Dictionary of Medicines and Devices (NHS)', 'https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/1/subpack/24/releases', '2016-03-04', (select concept_id from concept where concept_name='Dictionary of Medicines and Devices (NHS)'));
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (75, 'dm+d', null, null, null, null);
+
+-- Add drug equivalence relationships
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Drug to standard drug equivalent (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Drug to standard eq', 'Drug go standard drug equivalent (OMOP)', 0, 1, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Drug to standard drug equivalent (OMOP)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Standard drug to drug equivalent (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+values ('Standard to drug eq', 'Standard drug to drug equivalent (OMOP)', 0, 0, 'Drug to standard eq', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Standard drug to drug equivalent (OMOP)'));
+update relationship set reverse_relationship_id='Standard to drug eq' where relationship_id='Drug to standard eq';
+
 commit;
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------

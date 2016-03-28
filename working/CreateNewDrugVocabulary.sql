@@ -49,7 +49,7 @@ drop sequence new_vocab;
 declare
  ex number;
 begin
-  select max(cast(substr(concept_code, 5) as integer))+1 into ex from devv5.concept where concept_code like 'OMOP%' and concept_code not like '% %'; -- Last valid value of the OMOP123-type codes
+  select max(cast(substr(concept_code, 5) as integer))+1 into ex from drug_concept_stage where concept_code like 'OMOP%' and concept_code not like '% %'; -- Last valid value of the OMOP123-type codes
   begin
     execute immediate 'create sequence new_vocab increment by 1 start with ' || ex || ' nocycle cache 20 noorder';
     exception
@@ -993,7 +993,7 @@ join devv5.concept r on r.concept_id=concept_id_2
 where q.concept_class_id = 'Dose Form' and q.domain_id='Drug'
 ;
 
--- Write maps from complete_concept_stage to RxNorm
+-- Write maps from complete_concept_stage to RxNorm, both as Maps to as well as 'Drug eq to'
 insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   qr.q_dcode as concept_code_1,
@@ -1001,6 +1001,22 @@ select
   c.concept_code concept_code_2,
   c.vocabulary_id as vocabulary_id_2,
   'Maps to' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+-- usual validity
+from q_to_r qr
+join complete_concept_stage ccs on ccs.concept_code=qr.q_dcode
+join devv5.concept c on c.concept_id=qr.r_did
+;
+
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+select 
+  qr.q_dcode as concept_code_1,
+  (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
+  c.concept_code concept_code_2,
+  c.vocabulary_id as vocabulary_id_2,
+  'Drug eq to' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
@@ -1207,20 +1223,24 @@ where ccs.brand_code is not null
 ;
 
 -- Write maps from drugs that didn't make it into complete_concept_stage but have drug strength (duplicates)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
 select 
   e.concept_code as concept_code_1,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
-  c.concept_code concept_code_2,
-  (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_2,
+  nvl(r.concept_code, c.concept_code) as concept_code_2,
+  nvl(r.vocabulary_id, (select distinct vocabulary_id from drug_concept_stage)) as vocabulary_id_2,
   'Maps to' as relationship_id,
-  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  null as valid_start_date, -- (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from existing_concept_stage e 
 join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
-and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
-where e.concept_code!=c.concept_code;
+  and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size and e.concept_code!=c.concept_code
+-- try a map to RxNorm
+left join (
+  select qr.q_dcode, r.concept_code, r.vocabulary_id from q_to_r qr join devv5.concept r on r.concept_id=qr.r_did
+) r on r.q_dcode=c.concept_code
+;
 
 -- Write missing drugs that never made it into complete_concept_stage but have drug_strength (duplicates)
 insert into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)

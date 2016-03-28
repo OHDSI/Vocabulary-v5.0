@@ -51,7 +51,7 @@ union
 select distinct s.drug_concept_code, 'drug_strength_stage has drug_codes absent in drug_concept_stage' from drug_strength_stage s 
 left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id like  '%Drug%'
 left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
-where (a.concept_code is null and a.concept_code not in (select drug_code from non_drug) )
+where (a.concept_code is null and a.concept_code not in (select concept_code from non_drug) )
 union
 -- ingredient codes not exist in a drug_concept_stage but present in drug_strength_stage
 select distinct s.drug_concept_code, 'drug_strength_stage has ingredient_codes absent in drug_concept_stage' from drug_strength_stage s 
@@ -151,8 +151,20 @@ select concept_code, 'same names for different drug classes'  from drug_concept_
 select concept_code, 'short names but not a Unit' from drug_concept_stage where length(concept_name)=1 and concept_class_id not in ('Unit')
 union 
 --concept_name is null
-select concept_code,'concept_name is null' from drug_concept_stage where concept_name is null;
+select concept_code,'concept_name is null' from drug_concept_stage where concept_name is null
 union
 --same concept_code_1 - concept_id_2 relationship but different precedence
-select distinct a.concept_code_1, 'same concept_code_1 - concept_id_2 relationship but different precedence' from relationship_to_concept a join relationship_to_concept b on a.CONCEPT_CODE_1 =b.CONCEPT_CODE_1 
-and a.CONCEPT_ID_2 = b.concept_id_2 and a.precedence !=b.precedence
+select distinct a.concept_code_1, 'same concept_code_1 - concept_id_2 relationship but different precedence' from relationship_to_concept a 
+join relationship_to_concept b on a.CONCEPT_CODE_1 =b.CONCEPT_CODE_1 and a.CONCEPT_ID_2 = b.concept_id_2 and a.precedence !=b.precedence
+union
+--Brand Name doesnt relate to any drug
+select distinct a.concept_code, 'Brand Name doesnt relate to any drug' from drug_concept_stage a left join  internal_relationship_stage b on a.concept_code = b.concept_code_2
+where a.concept_class_id= 'Brand Name' and b.concept_code_1 is null
+union
+--Ingredient doesnt relate to any drug
+select distinct a.concept_code, 'Ingredient doesnt relate to any drug' from drug_concept_stage a left join  internal_relationship_stage b on a.concept_code = b.concept_code_2
+where a.concept_class_id= 'Ingredient' and b.concept_code_1 is null
+union
+--Dose Form doesnt relate to any drug
+select distinct a.concept_code, 'Dose Form doesnt relate to any drug' from drug_concept_stage a left join  internal_relationship_stage b on a.concept_code = b.concept_code_2
+where a.concept_class_id= 'Dose Form' and b.concept_code_1 is null

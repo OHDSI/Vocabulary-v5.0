@@ -23,7 +23,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20150706','yyyymmdd'), vocabulary_version='CVX code set' WHERE vocabulary_id = 'CVX';
+UPDATE vocabulary SET latest_update=to_date('20160216','yyyymmdd'), vocabulary_version='CVX code set' WHERE vocabulary_id = 'CVX';
 COMMIT;
 
 

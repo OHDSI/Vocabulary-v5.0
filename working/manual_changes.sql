@@ -62,14 +62,20 @@ insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req,
 
 -- Add drug equivalence relationships
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (v5_concept.nextval, 'Drug to standard drug equivalent (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+  values (v5_concept.nextval, 'Drug to standard drug equivalent (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
-values ('Drug to standard eq', 'Drug go standard drug equivalent (OMOP)', 0, 1, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Drug to standard drug equivalent (OMOP)'));
+  values ('Drug to standard eq', 'Drug go standard drug equivalent (OMOP)', 0, 1, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Drug to standard drug equivalent (OMOP)'));
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (v5_concept.nextval, 'Standard drug to drug equivalent (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+  values (v5_concept.nextval, 'Standard drug to drug equivalent (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
-values ('Standard to drug eq', 'Standard drug to drug equivalent (OMOP)', 0, 0, 'Drug to standard eq', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Standard drug to drug equivalent (OMOP)'));
+  values ('Standard to drug eq', 'Standard drug to drug equivalent (OMOP)', 0, 0, 'Drug to standard eq', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Standard drug to drug equivalent (OMOP)'));
 update relationship set reverse_relationship_id='Standard to drug eq' where relationship_id='Drug to standard eq';
+
+-- Add new domain Condition/Device for ICD10CM
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'Condition/Device', 'Metadata', 'Domain', 'Domain', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into domain (domain_id, domain_name, domain_concept_id)
+  values ('Condition/Device', 'Condition/Device', (select concept_id from concept where concept_name='Condition/Device'));
 
 commit;
 

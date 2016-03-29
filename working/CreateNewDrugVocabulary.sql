@@ -993,7 +993,7 @@ join devv5.concept r on r.concept_id=concept_id_2
 where q.concept_class_id = 'Dose Form' and q.domain_id='Drug'
 ;
 
--- Write maps from complete_concept_stage to RxNorm, both as Maps to as well as 'Drug eq to'
+-- Write maps from complete_concept_stage to RxNorm, both as Maps to as well as 'Drug to standard eq'
 insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   qr.q_dcode as concept_code_1,
@@ -1016,7 +1016,7 @@ select
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   c.concept_code concept_code_2,
   c.vocabulary_id as vocabulary_id_2,
-  'Drug eq to' as relationship_id,
+  'Drug to standard eq' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
@@ -1223,14 +1223,14 @@ where ccs.brand_code is not null
 ;
 
 -- Write maps from drugs that didn't make it into complete_concept_stage but have drug strength (duplicates)
-insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   e.concept_code as concept_code_1,
   (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
   nvl(r.concept_code, c.concept_code) as concept_code_2,
   nvl(r.vocabulary_id, (select distinct vocabulary_id from drug_concept_stage)) as vocabulary_id_2,
   'Maps to' as relationship_id,
-  null as valid_start_date, -- (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from existing_concept_stage e 

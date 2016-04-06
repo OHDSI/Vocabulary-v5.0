@@ -77,6 +77,30 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 insert into domain (domain_id, domain_name, domain_concept_id)
   values ('Condition/Device', 'Condition/Device', (select concept_id from concept where concept_name='Condition/Device'));
 
+-- add BDPM (French drugs)
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'Public Database of Medications (Social-Sante)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
+  values ('BDPM', 'Public Database of Medications (Social-Sante)', 'http://base-donnees-publique.medicaments.gouv.fr/telechargement.php', '2016-03-25', (select concept_id from concept where concept_name='Public Database of Medications (Social-Sante)'));
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (76, 'BDPM', null, null, null, null);
+
+-- add AMIS (German drugs)
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'Medicinal Products Information System (DIMDI)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
+  values ('AMIS', 'Medicinal Products Information System (DIMDI)', 'https://portal.dimdi.de/websearch/servlet/FlowController/AcceptFZK#__DEFANCHOR__', '2016-01-08', (select concept_id from concept where concept_name='Medicinal Products Information System (DIMDI)'));
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (77, 'AMIS', null, null, null, null);
+
+-- add AMT (Australian drugs)
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'Australian Medicines Terminology (NEHTA)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
+  values ('AMT', 'Australian Medicines Terminology (NEHTA)', 'https://www.nehta.gov.au/implementation-resources/terminology-access', '2016-03-31', (select concept_id from concept where concept_name='Australian Medicines Terminology (NEHTA)'));
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (77, 'AMIS', null, null, null, null);
+
+
+
+
 commit;
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------

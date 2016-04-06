@@ -41,11 +41,6 @@
 drop sequence ds_seq;
 create sequence ds_seq increment by 1 start with 1 nocycle cache 20 noorder;
 
--- Create temporary for new concepts created, of which only the ones that become standard_concept='S' survive;
-drop sequence o_seq;
-create sequence o_seq increment by 1 start with 1 nocycle cache 20 noorder;
-
-
 -- Create sequence for new OMOP-created standard concepts
 -- drop sequence new_vocab;
 drop sequence new_vocab;
@@ -434,9 +429,9 @@ left join existing_concept_stage e on c.denominator_value=e.denominator_value an
   and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
 ;
 
--- Replace concept_code=0 with XXX123 style temporary concept codes. They will be replaced with the OMOP123 ones at the end
+-- Replace concept_code=0 with OMOP123 style temporary concept codes. 
 update complete_concept_stage ccs 
-  set concept_code='XXX'||o_seq.nextval -- make sure new_vocab is defined.
+  set concept_code='XXX'||new_vocab.nextval -- make sure new_vocab is defined.
 where ccs.concept_code='0';
 
 -- 4. Auto-generate all names unless a name is provided
@@ -1199,11 +1194,33 @@ join rl on rl.concept_class_id_2=de.concept_class_id
 where de.concept_code not in (select q_dcode from q_to_r) -- the descendant cannot be RxNorm, as all RxNorm have RxNorm ancestors  
 ;
 
+-- remove duplications occurring when drug_strength_stage has entries that are fully 0
+delete from concept_relationship_stage where rowid not in (select max(rowid) from concept_relationship_stage group by concept_code_1, concept_code_2, relationship_id );
+
+commit;
+
+-- Write relationship between Drugs and Packs
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+select 
+  p.pack_concept_code as concept_code_1,
+  (select distinct vocabulary_id from drug_concept_stage) as vocabulary_id_1,
+  nvl(r_code, p.component_concept_code) as concept_code_2,
+  nvl(r_vocab_id, (select distinct vocabulary_id from drug_concept_stage)) as vocabulary_id_2,
+  'Contains',
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from pack_content p
+left join (
+  select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join devv5.concept r on r.concept_id=qr.r_did
+) on q_dcode=p.component_concept_code
+;
+
 commit;
 
 -- Write relationships between Ingredients and Clinical Drug Form and Clinical Drug Component (no Ingredient combinations)
 insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-select 
+select distinct
   nvl(crs.concept_code_2, i.concept_code) as concept_code_1,
   nvl(crs.vocabulary_id_2, (select vocabulary_id from drug_concept_stage where rownum=1)) as vocabulary_id_1,
   ccs.concept_code as concept_code_2,
@@ -1233,10 +1250,11 @@ select
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from complete_concept_stage ccs
+join concept_stage cs on cs.concept_code=ccs.concept_code
 where ccs.dose_form_code is not null
 ;
 
--- Write relationships between Ingredients and Clinical Drug Form and Clinical Drug Component (no Ingredient combinations)
+-- Write relationships between all of them and Dose Form
 insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
   ccs.concept_code as concept_code_1,
@@ -1248,6 +1266,7 @@ select
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from complete_concept_stage ccs
+join concept_stage cs on cs.concept_code=ccs.concept_code
 where ccs.brand_code is not null
 ;
 
@@ -1389,12 +1408,10 @@ where concept_code_1 like 'XXX%'
 ;
 
 update concept_relationship_stage
-set concept_code_2=replace(concept_code_1, 'XXX', 'OMOP') 
+set concept_code_2=replace(concept_code_2, 'XXX', 'OMOP') 
 where concept_code_2 like 'XXX%'
 ;
-
-commit;
-
+/*
 -- non drugs
 insert into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select
@@ -1411,7 +1428,7 @@ select
   null as invalid_reason
 from non_drug
 ; 
-
+*/
 commit;
 
 

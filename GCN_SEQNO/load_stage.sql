@@ -56,7 +56,7 @@ INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
 		 TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
      FROM rxnconso c
-    WHERE c.sab = 'NDDF' AND c.tty = 'CDC' AND c.suppress = 'N';
+    WHERE c.sab = 'NDDF' AND c.tty = 'CDC';
 COMMIT;
 
 --4. Load into concept_relationship_stage
@@ -77,8 +77,8 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
      FROM rxnconso gcn
-          JOIN rxnconso rxn ON rxn.rxcui = gcn.rxcui AND rxn.sab = 'RXNORM' AND rxn.suppress = 'N'
-    WHERE gcn.sab = 'NDDF' AND gcn.tty = 'CDC' AND gcn.suppress = 'N';
+          JOIN rxnconso rxn ON rxn.rxcui = gcn.rxcui AND rxn.sab = 'RXNORM'
+    WHERE gcn.sab = 'NDDF' AND gcn.tty = 'CDC';
 COMMIT;	 
 
 

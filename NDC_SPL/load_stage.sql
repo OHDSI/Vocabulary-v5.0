@@ -359,23 +359,22 @@ MERGE INTO concept_relationship_stage r
                                crs.concept_code_2,
                                crs.vocabulary_id_2,
                                crs.relationship_id,
-                               cs.invalid_reason
-                          FROM concept_relationship_stage crs, concept_stage cs
+                               CASE WHEN cs.concept_code IS NULL THEN 'D' ELSE cs.invalid_reason END AS invalid_reason
+                          FROM concept_relationship_stage crs 
+                          LEFT JOIN concept_stage cs ON crs.concept_code_2 = cs.concept_code AND crs.vocabulary_id_2 = cs.vocabulary_id
                          WHERE     crs.relationship_id IN ('Concept replaced by',
                                                            'Concept same_as to',
                                                            'Concept alt_to to',
                                                            'Concept poss_eq to',
                                                            'Concept was_a to')
-                               AND crs.invalid_reason IS NULL
-                               AND crs.concept_code_2 = cs.concept_code
-                               AND crs.vocabulary_id_2 = cs.vocabulary_id
                                AND crs.vocabulary_id_1 = crs.vocabulary_id_2
-                               AND crs.concept_code_1 <> crs.concept_code_2)
-                SELECT u.concept_code_1,
-                       u.vocabulary_id_1,
-                       u.concept_code_2,
-                       u.vocabulary_id_2,
-                       u.relationship_id
+                               AND crs.concept_code_1 <> crs.concept_code_2
+                               AND crs.invalid_reason IS NULL)
+                SELECT DISTINCT u.concept_code_1,
+                                u.vocabulary_id_1,
+                                u.concept_code_2,
+                                u.vocabulary_id_2,
+                                u.relationship_id
                   FROM upgraded_concepts u
             CONNECT BY NOCYCLE PRIOR concept_code_1 = concept_code_2
             START WITH concept_code_2 IN (SELECT concept_code_2
@@ -646,7 +645,7 @@ INSERT /*+ APPEND */ INTO MAIN_NDC (concept_id,
                    NULL AS invalid_reason
      FROM rxnsat s
           JOIN rxnconso c
-             ON c.sab = 'RXNORM' AND c.rxaui = s.rxaui AND c.rxcui = s.rxcui AND c.suppress = 'N'
+             ON c.sab = 'RXNORM' AND c.rxaui = s.rxaui AND c.rxcui = s.rxcui
           JOIN vocabulary v ON v.vocabulary_id = 'NDC'
     WHERE s.sab = 'RXNORM' AND s.atn = 'NDC';
 COMMIT;
@@ -880,7 +879,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                    NULL AS invalid_reason
      FROM rxnsat s
           JOIN rxnconso c
-             ON c.sab = 'RXNORM' AND c.rxaui = s.rxaui AND c.rxcui = s.rxcui AND c.suppress = 'N'
+             ON c.sab = 'RXNORM' AND c.rxaui = s.rxaui AND c.rxcui = s.rxcui
           JOIN vocabulary v ON v.vocabulary_id = 'NDC'
     WHERE s.sab = 'RXNORM' AND s.atn = 'NDC';
 COMMIT;		
@@ -928,8 +927,8 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                   r.rxcui AS concept_code_2             -- RxNorm concept_code
              FROM product p
                   JOIN rxnconso c
-                     ON c.code = p.productndc AND c.sab = 'MTHSPL' AND c.suppress = 'N'
-                  JOIN rxnconso r ON r.rxcui = c.rxcui and r.sab='RXNORM' AND r.suppress = 'N'
+                     ON c.code = p.productndc AND c.sab = 'MTHSPL'
+                  JOIN rxnconso r ON r.rxcui = c.rxcui and r.sab='RXNORM'
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
 			

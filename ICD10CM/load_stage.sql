@@ -182,7 +182,14 @@ CREATE UNIQUE INDEX idx_ICD10CM_domain ON ICD10CM_domain (concept_code) NOLOGGIN
 update ICD10CM_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
+
+--Reducing some domain_id if his length>20
+update ICD10CM_domain set domain_id='Condition/Meas' where domain_id='Condition/Measurement';
+
 COMMIT;
+
+-- Check that all domain_id are exists in domain table
+ALTER TABLE ICD10CM_domain ADD CONSTRAINT fk_ICD10CM_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);
 
 --7 Update each domain_id with the domains field from ICD10CM_domain.
 UPDATE concept_stage c

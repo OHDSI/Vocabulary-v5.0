@@ -473,23 +473,22 @@ MERGE INTO concept_relationship_stage r
                                crs.concept_code_2,
                                crs.vocabulary_id_2,
                                crs.relationship_id,
-                               cs.invalid_reason
-                          FROM concept_relationship_stage crs, concept_stage cs
+                               CASE WHEN cs.concept_code IS NULL THEN 'D' ELSE cs.invalid_reason END AS invalid_reason
+                          FROM concept_relationship_stage crs 
+                          LEFT JOIN concept_stage cs ON crs.concept_code_2 = cs.concept_code AND crs.vocabulary_id_2 = cs.vocabulary_id
                          WHERE     crs.relationship_id IN ('Concept replaced by',
                                                            'Concept same_as to',
                                                            'Concept alt_to to',
                                                            'Concept poss_eq to',
                                                            'Concept was_a to')
-                               AND crs.invalid_reason IS NULL
-                               AND crs.concept_code_2 = cs.concept_code
-                               AND crs.vocabulary_id_2 = cs.vocabulary_id
                                AND crs.vocabulary_id_1 = crs.vocabulary_id_2
-                               AND crs.concept_code_1 <> crs.concept_code_2)
-                SELECT u.concept_code_1,
-                       u.vocabulary_id_1,
-                       u.concept_code_2,
-                       u.vocabulary_id_2,
-                       u.relationship_id
+                               AND crs.concept_code_1 <> crs.concept_code_2
+                               AND crs.invalid_reason IS NULL)
+                SELECT DISTINCT u.concept_code_1,
+                                u.vocabulary_id_1,
+                                u.concept_code_2,
+                                u.vocabulary_id_2,
+                                u.relationship_id
                   FROM upgraded_concepts u
             CONNECT BY NOCYCLE PRIOR concept_code_1 = concept_code_2
             START WITH concept_code_2 IN (SELECT concept_code_2

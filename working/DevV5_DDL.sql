@@ -18,31 +18,51 @@
 **************************************************************************/
 
 -- Create tables
-CREATE TABLE source_to_concept_map (
-  source_code                VARCHAR(50)        NOT NULL,
-  source_vocabulary_id        VARCHAR(20)        NOT NULL,
-  source_code_description    VARCHAR(255)    NULL,
-  target_concept_id            INTEGER            NOT NULL,
-  target_vocabulary_id        VARCHAR(20)        NOT NULL,
-  valid_start_date            DATE            NOT NULL,
-  valid_end_date            DATE            NOT NULL,
-  invalid_reason            VARCHAR(1)        NULL)
-;
+CREATE TABLE source_to_concept_map
+(
+   source_code               VARCHAR (50) NOT NULL,
+   source_vocabulary_id      VARCHAR (20) NOT NULL,
+   source_code_description   VARCHAR (255) NULL,
+   target_concept_id         INTEGER NOT NULL,
+   target_vocabulary_id      VARCHAR (20) NOT NULL,
+   valid_start_date          DATE NOT NULL,
+   valid_end_date            DATE NOT NULL,
+   invalid_reason            VARCHAR (1) NULL
+);
 
-CREATE TABLE drug_strength (
-  drug_concept_id                INTEGER        NOT NULL,
-  ingredient_concept_id            INTEGER        NOT NULL,
-  amount_value                    FLOAT        NULL,
-  amount_unit_concept_id        INTEGER        NULL,
-  numerator_value                FLOAT        NULL,
-  numerator_unit_concept_id        INTEGER        NULL,
-  denominator_value               FLOAT        NULL,
-  denominator_unit_concept_id    INTEGER        NULL,
-  valid_start_date                DATE        NOT NULL,
-  valid_end_date                DATE        NOT NULL,
-  invalid_reason                VARCHAR(1)    NULL)
-NOLOGGING
-;
+CREATE TABLE drug_strength
+(
+   drug_concept_id               INTEGER NOT NULL,
+   ingredient_concept_id         INTEGER NOT NULL,
+   amount_value                  FLOAT NULL,
+   amount_unit_concept_id        INTEGER NULL,
+   numerator_value               FLOAT NULL,
+   numerator_unit_concept_id     INTEGER NULL,
+   denominator_value             FLOAT NULL,
+   denominator_unit_concept_id   INTEGER NULL,
+   valid_start_date              DATE NOT NULL,
+   valid_end_date                DATE NOT NULL,
+   invalid_reason                VARCHAR (1) NULL
+)
+NOLOGGING;
+
+CREATE TABLE drug_strength_stage
+(
+   drug_concept_code             CHAR (20) NOT NULL,
+   vocabulary_id_1               CHAR (20) NOT NULL,
+   ingredient_concept_code       CHAR (20) NOT NULL,
+   vocabulary_id_2               CHAR (20) NOT NULL,
+   amount_value                  FLOAT NULL,
+   amount_unit_concept_id        INTEGER NULL,
+   numerator_value               FLOAT NULL,
+   numerator_unit_concept_id     INTEGER NULL,
+   denominator_value             FLOAT NULL,
+   denominator_unit_concept_id   INTEGER NULL,
+   valid_start_date              DATE NOT NULL,
+   valid_end_date                DATE NOT NULL,
+   invalid_reason                VARCHAR (1) NULL
+)
+NOLOGGING;
 
 CREATE TABLE concept_stage
 (

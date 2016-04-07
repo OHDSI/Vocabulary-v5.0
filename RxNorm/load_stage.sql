@@ -70,7 +70,30 @@ INSERT INTO concept_stage (concept_name,
           (SELECT latest_update
              FROM vocabulary
             WHERE vocabulary_id = 'RxNorm'),
-          TO_DATE ('20991231', 'yyyymmdd'),
+          CASE
+             WHEN EXISTS
+                     (SELECT 1
+                        FROM rxnatomarchive arch
+                       WHERE     arch.rxcui = rx.rxcui
+                             AND sab = 'RXNORM'
+                             AND tty IN ('IN',
+                                         'DF',
+                                         'SCDC',
+                                         'SCDF',
+                                         'SCD',
+                                         'BN',
+                                         'SBDC',
+                                         'SBDF',
+                                         'SBD',
+                                         'PIN')
+                             AND rxcui <> merged_to_rxcui)
+             THEN
+			  (SELECT latest_update - 1
+				 FROM vocabulary
+				WHERE vocabulary_id = 'RxNorm')
+             ELSE
+                TO_DATE ('20991231', 'yyyymmdd')
+          END AS valid_end_date,
           CASE
              WHEN EXISTS
                      (SELECT 1
@@ -128,7 +151,30 @@ INSERT INTO concept_stage (concept_name,
           (SELECT latest_update
              FROM vocabulary
             WHERE vocabulary_id = 'RxNorm'),
-          TO_DATE ('20991231', 'yyyymmdd'),
+          CASE
+             WHEN EXISTS
+                     (SELECT 1
+                        FROM rxnatomarchive arch
+                       WHERE     arch.rxcui = rx.rxcui
+                             AND sab = 'RXNORM'
+                             AND tty IN ('IN',
+                                         'DF',
+                                         'SCDC',
+                                         'SCDF',
+                                         'SCD',
+                                         'BN',
+                                         'SBDC',
+                                         'SBDF',
+                                         'SBD',
+                                         'PIN')
+                             AND rxcui <> merged_to_rxcui)
+             THEN
+			  (SELECT latest_update - 1
+				 FROM vocabulary
+				WHERE vocabulary_id = 'RxNorm')
+             ELSE
+                TO_DATE ('20991231', 'yyyymmdd')
+          END AS valid_end_date,
           CASE
              WHEN EXISTS
                      (SELECT 1
@@ -151,7 +197,7 @@ INSERT INTO concept_stage (concept_name,
              ELSE
                 NULL
           END
-     FROM rxnconso
+     FROM rxnconso rx
     WHERE sab = 'RXNORM' AND tty IN ('BPCK', 'GPCK');
 COMMIT;	
 	
@@ -674,16 +720,16 @@ UPDATE concept_stage c
                 WHERE     r.relationship_id = 'Quantified form of'
                       and r.concept_code_1 = c.concept_code
                       and r.vocabulary_id_1=c.vocabulary_id);
-COMMIT;		
+COMMIT;
 
 --18 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 
---19 Run generic_update.sql from working directory
+--19 Run drug_strength_stage.sql from current directory
 
---20 Run drug_strength.sql from Final_Assembly directory
+--20 Run generic_update.sql from working directory
 
 --21 After previous step disable indexes and truncate tables again
 UPDATE vocabulary SET (latest_update, vocabulary_version)=

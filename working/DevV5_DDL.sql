@@ -48,10 +48,10 @@ NOLOGGING;
 
 CREATE TABLE drug_strength_stage
 (
-   drug_concept_code             CHAR (20) NOT NULL,
-   vocabulary_id_1               CHAR (20) NOT NULL,
-   ingredient_concept_code       CHAR (20) NOT NULL,
-   vocabulary_id_2               CHAR (20) NOT NULL,
+   drug_concept_code             VARCHAR2 (20) NOT NULL,
+   vocabulary_id_1               VARCHAR2 (20) NOT NULL,
+   ingredient_concept_code       VARCHAR2 (20) NOT NULL,
+   vocabulary_id_2               VARCHAR2 (20) NOT NULL,
    amount_value                  FLOAT NULL,
    amount_unit_concept_id        INTEGER NULL,
    numerator_value               FLOAT NULL,

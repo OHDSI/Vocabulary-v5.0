@@ -763,6 +763,40 @@ INSERT INTO concept_synonym (concept_id,
                  IS NOT NULL; --fix for empty GPI names
 COMMIT;
 
+-- 21. Fillig drug_strength
+DELETE FROM drug_strength
+      WHERE drug_concept_id IN (SELECT c.concept_id
+                                  FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
+                                 WHERE latest_update IS NOT NULL);
+COMMIT;	
+								 
+INSERT INTO drug_strength (drug_concept_id,
+                           ingredient_concept_id,
+                           amount_value,
+                           amount_unit_concept_id,
+                           numerator_value,
+                           numerator_unit_concept_id,
+                           denominator_value,
+                           denominator_unit_concept_id,
+                           valid_start_date,
+                           valid_end_date,
+                           invalid_reason)
+   SELECT c1.concept_id,
+          c2.concept_id,
+          ds.amount_value,
+          ds.amount_unit_concept_id,
+          ds.numerator_value,
+          ds.numerator_unit_concept_id,
+          ds.denominator_value,
+          ds.denominator_unit_concept_id,
+          ds.valid_start_date,
+          ds.valid_end_date,
+          ds.invalid_reason
+     FROM drug_strength_stage ds
+          JOIN concept c1 ON c1.concept_code = ds.drug_concept_code AND c1.vocabulary_id = ds.vocabulary_id_1
+          JOIN concept c2 ON c2.concept_code = ds.ingredient_concept_code AND c2.vocabulary_id = ds.vocabulary_id_2;
+COMMIT;		  
+
 -- 21. check if current vocabulary exists in vocabulary_conversion table
 INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5)
    SELECT ROWNUM + (SELECT MAX (vocabulary_id_v4) FROM vocabulary_conversion)

@@ -487,7 +487,7 @@ UPDATE concept_relationship_stage crs
    SET crs.valid_end_date =
           (SELECT latest_update - 1
              FROM vocabulary
-            WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2)),
+            WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2) AND latest_update IS NOT NULL),
        crs.invalid_reason = 'D'
  WHERE     crs.relationship_id = 'Maps to'
        AND crs.invalid_reason IS NULL

@@ -325,6 +325,7 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
     select r.concept_id_1, r.concept_id_2, r.relationship_id From 
     concept c1, 
     concept c2, 
+	concept c3,
     concept_relationship r, 
     concept_relationship_stage crs,
     relationships rel
@@ -335,8 +336,10 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
     and crs.vocabulary_id_2=c2.vocabulary_id
     and crs.relationship_id=r.relationship_id
     and crs.invalid_reason is null    
+	and r.concept_id_2=c3.concept_id
     and r.invalid_reason is null
-    and c1.concept_id=r.concept_id_1 and c2.concept_id<>r.concept_id_2 and r.relationship_id=rel.relationship_id   
+	and r.concept_id_1<>r.concept_id_2
+    and c1.concept_id=r.concept_id_1 and c2.concept_id<>r.concept_id_2 and r.relationship_id=rel.relationship_id and c2.vocabulary_id=c3.vocabulary_id  
 );
 
 --part 2 (reverse mappings)
@@ -364,6 +367,7 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
     select r.concept_id_1, r.concept_id_2, r.relationship_id From 
     concept c1, 
     concept c2, 
+	concept c3,
     concept_relationship r, 
     concept_relationship_stage crs,
     relationships rel
@@ -374,8 +378,10 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
     and crs.vocabulary_id_2=c2.vocabulary_id
     and crs.relationship_id=r.relationship_id
     and crs.invalid_reason is null    
+	and r.concept_id_1=c3.concept_id
     and r.invalid_reason is null
-    and c1.concept_id<>r.concept_id_1 and c2.concept_id=r.concept_id_2 and r.relationship_id=rel.reverse_relationship_id
+	and r.concept_id_1<>r.concept_id_2
+    and c1.concept_id<>r.concept_id_1 and c2.concept_id=r.concept_id_2 and r.relationship_id=rel.reverse_relationship_id and c1.vocabulary_id=c3.vocabulary_id  
 );
 COMMIT;
 

@@ -23,7 +23,6 @@
 ********************************************************************************/
 
 /* 1. Prepare components that will set off parser */
-
 --drop table component_replace;
 create table component_replace (
 component_name varchar(250),
@@ -123,7 +122,6 @@ where c.valid_end_date != to_date ('20991231', 'yyyymmdd') and c.standard_concep
 commit;
 
 /* 3. Create RxNorm's concept code ancestor */
-
 create table rxnorm_ancestor nologging as
 select ancestor_concept_code, ancestor_vocabulary_id, descendant_concept_code, descendant_vocabulary_id From (
     select ca.* From (    
@@ -180,7 +178,6 @@ where c.valid_end_date < c.valid_start_date and c.vocabulary_id='RxNorm';
 commit;
  
 /* 6. Build drug_strength_stage table for '* Drugs' */
-
 truncate table drug_strength_stage;
 
 insert /*+ APPEND */ into drug_strength_stage (
@@ -286,7 +283,6 @@ left join unit_to_concept_map du on du.source_code=ds.denominator_unit
 commit;
 
 /* 7. Write 'Clinical Drug Components' */
-
 insert /*+ APPEND */ into drug_strength_stage (
   drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value,  
   denominator_unit_concept_id, valid_start_date, valid_end_date, invalid_reason
@@ -387,7 +383,6 @@ left join unit_to_concept_map du on du.source_code=ds.denominator_unit
 commit;
 
 /* 8. Write 'Quantified * Drugs from Clinical Drugs */
-
 -- Quantity provided in "ACTUAT": They only exist for concentrations of ingredients
 insert /*+ APPEND */ into drug_strength_stage (
   drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value,  
@@ -418,7 +413,7 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
-      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.vocabulary_id='RxNorm'
+      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.standard_concept = 'S' and q.vocabulary_id='RxNorm'
     )
     where u='ACTUAT'
 ) group by drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value,  
@@ -455,7 +450,7 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
-      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.vocabulary_id='RxNorm'
+      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.standard_concept = 'S' and q.vocabulary_id='RxNorm'
     )
     where u='DAY'
 ) group by drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value,  
@@ -492,7 +487,7 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
-      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.vocabulary_id='RxNorm'
+      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.standard_concept = 'S' and q.vocabulary_id='RxNorm'
     )
     where u='UNT'
 ) group by drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value,  
@@ -535,7 +530,7 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
-      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.vocabulary_id='RxNorm'
+      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.standard_concept = 'S' and q.vocabulary_id='RxNorm'
     )
     where u='MG'
 ) group by drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value,  
@@ -581,7 +576,7 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
-      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.vocabulary_id='RxNorm'
+      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.standard_concept = 'S' and q.vocabulary_id='RxNorm'
     ) 
     where u='HR'
 ) group by drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value,  
@@ -633,7 +628,7 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
-      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.vocabulary_id='RxNorm'
+      join concept_stage q on q.concept_code=r.concept_code_2 and q.vocabulary_id=r.vocabulary_id_2 and q.concept_class_id like 'Quant%' and q.standard_concept = 'S' and q.vocabulary_id='RxNorm'
     ) 
     where u='ML'
 ) group by drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value,  
@@ -642,7 +637,6 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
 commit;
 
 /* 9. Shift percent from amount to numerator */
-
 update drug_strength_stage set 
   numerator_value=amount_value,
   numerator_unit_concept_id=8554,

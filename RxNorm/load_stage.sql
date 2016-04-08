@@ -356,9 +356,9 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         invalid_reason)
    SELECT DISTINCT d.concept_code AS concept_code_1,
                    e.concept_code AS concept_code_2,
-                   'SNOMED - RxNorm eq' AS relationship_id,
                    'SNOMED' AS vocabulary_id_1,
-                   'RxNorm' AS vocabulary_id_2,
+                   'RxNorm' AS vocabulary_id_2,				   
+                   'SNOMED - RxNorm eq' AS relationship_id,
                    d.valid_start_date,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
@@ -370,9 +370,9 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
    UNION ALL
    SELECT DISTINCT d.concept_code AS concept_code_1,
                    e.concept_code AS concept_code_2,
-                   'Maps to' AS relationship_id,
                    'SNOMED' AS vocabulary_id_1,
-                   'RxNorm' AS vocabulary_id_2,
+                   'RxNorm' AS vocabulary_id_2,				   
+                   'Maps to' AS relationship_id,
                    d.valid_start_date,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
                    NULL AS invalid_reason
@@ -561,7 +561,7 @@ UPDATE concept_relationship_stage crs
    SET crs.valid_end_date =
           (SELECT latest_update - 1
              FROM vocabulary
-            WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2)),
+            WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2) AND latest_update IS NOT NULL),
        crs.invalid_reason = 'D'
  WHERE     crs.relationship_id = 'Maps to'
        AND crs.invalid_reason IS NULL
@@ -1470,7 +1470,7 @@ UPDATE concept_relationship_stage crs
    SET crs.valid_end_date =
           (SELECT latest_update - 1
              FROM vocabulary
-            WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2)),
+            WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2) AND latest_update IS NOT NULL),
        crs.invalid_reason = 'D'
  WHERE     crs.relationship_id = 'Maps to'
        AND crs.invalid_reason IS NULL

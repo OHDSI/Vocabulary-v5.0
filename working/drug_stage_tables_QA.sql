@@ -21,6 +21,8 @@
 --for relationship_to_concept it gives concpept_code_1
 --for internal_relationship it gives concpept_code_1
 --for drug_concept_stage it gives concept_code
+
+--!! need to replace drug_strength_stage with ds_stage
 -- 1. relationship_to_concept
 --incorrect mapping to concept
 select a.concept_code, 'different classes in concept_code_1 and concept_id_2' as error_type from relationship_to_concept r 
@@ -168,3 +170,18 @@ union
 --Dose Form doesnt relate to any drug
 select distinct a.concept_code, 'Dose Form doesnt relate to any drug' from drug_concept_stage a left join  internal_relationship_stage b on a.concept_code = b.concept_code_2
 where a.concept_class_id= 'Dose Form' and b.concept_code_1 is null
+--Units don't have mappings
+union
+select c1.concept_code as c1_code, 'Units without mapping'
+from drug_concept_stage c1
+left join relationship_to_concept r on r.concept_code_1=c1.concept_code 
+left join concept c2 on c2.concept_id=r.concept_id_2
+where c1.concept_code in (select concept_code from drug_concept_stage where concept_class_id='Unit')
+and r.concept_code_1 is null;
+union
+--duplicates in ds_stage
+select drug_concept_code, 'duplicates in ds_stage'  from (
+select drug_concept_code, ingredient_concept_code, count(*) as cnt
+from ds_stage 
+group by drug_concept_code, ingredient_concept_code having count(*)>1
+);

@@ -17,72 +17,72 @@
 * Date: 2016
 **************************************************************************/
 --this algorithm shows you concept_code and an error type related to this code, 
---for drug_strength_stage it gets drug_concept_code
+--for ds_stage it gets drug_concept_code
 --for relationship_to_concept it gives concpept_code_1
 --for internal_relationship it gives concpept_code_1
 --for drug_concept_stage it gives concept_code
-
---!! need to replace drug_strength_stage with ds_stage
 -- 1. relationship_to_concept
 --incorrect mapping to concept
+--different classes in concept_code_1 and concept_id_2
 select a.concept_code, 'different classes in concept_code_1 and concept_id_2' as error_type from relationship_to_concept r 
 join drug_concept_stage a on a.concept_code= r.concept_code_1 
-join devv5.concept c on c.concept_id = r.concept_id_2
+join devv5.concept c on c.concept_id = r.concept_id_2 and c.vocabulary_id = 'RxNorm'
 where  a.concept_class_id !=  c.concept_class_id
 union
 --concept_id's that don't exist
 select a.concept_code, 'concept_id_2 exists but doesnt belong to any concept' from relationship_to_concept r 
 join drug_concept_stage a on a.concept_code= r.concept_code_1 
-left join devv5.concept c on c.concept_id = r.concept_id_2  and a.concept_class_id =  c.concept_class_id
+left join devv5.concept c on c.concept_id = r.concept_id_2  
 where  c.concept_name is  null
 union 
--- 2. drug_strength_stage
+-- 2. ds_stage
 --look if we have some strange amount_units
 --expand this table with units, need to think about
- select distinct drug_concept_code, 'amount_unit doesnt exist in concept_table' from drug_strength_stage where amount_unit not in (select concept_name from drug_concept_stage where concept_class_id ='Unit')
+ select distinct drug_concept_code, 'amount_unit doesnt exist in concept_table' from ds_stage where amount_unit not in (select concept_name from drug_concept_stage where concept_class_id ='Unit')
  union
-select distinct drug_concept_code, 'amount_unit doesnt exist in expected list' from drug_strength_stage where UPPER ( amount_unit) not in ('G', 'MG', 'KG', 'UNITS', 'UNIT','MIU','IU', 'MMOL', 'MOL','CELL','MU','L', 'ML', 'MEQ', 'MCG','CFU', 'MCCI','CH','DOSE','GALU','K','D','M','C','X','DH','B','PPM','TM','XMK')
+select distinct drug_concept_code, 'amount_unit doesnt exist in expected list' from ds_stage where UPPER ( amount_unit) not in ('G', 'MG', 'KG', 'UNITS', 'UNIT','MIU','IU', 'MMOL', 'MOL','CELL','MU','L', 'ML', 'MEQ', 'MCG','CFU', 'MCCI','CH','DOSE','GALU','K','D','M','C','X','DH','B','PPM','TM','XMK')
 union
-select distinct drug_concept_code, 'numerator_unit doesnt exist in expected list'  from drug_strength_stage where UPPER ( numerator_unit) not in (
+select distinct drug_concept_code, 'numerator_unit doesnt exist in expected list'  from ds_stage where UPPER ( numerator_unit) not in (
 'LF','TUB','U','LOG10 PFU','KIU','CCID50','MCMOL','%','GAL','PFU','LOG10 TCID50','CMK','MCL','FFU',
 'G', 'MG', 'KG', 'UNITS', 'UNIT','MIU','IU', 'MMOL', 'MOL','CELL','MU','L', 'ML', 'MEQ', 'MCG','CFU', 'MCCI','CH','DOSE','GALU','K','D','M','C','X','DH','B','PPM','TM','XMK')
 union
-select distinct drug_concept_code, 'denominator_unit doesnt exist in expected list' from drug_strength_stage where denominator_unit not in ('MG','Kg','ACT','SQ CM','CC','UNIT','CM','C','GM','TM','ML','L','G','HOUR','MCL')
+select distinct drug_concept_code, 'denominator_unit doesnt exist in expected list' from ds_stage where denominator_unit not in ('MG','Kg','ACT','SQ CM','CC','UNIT','CM','C','GM','TM','ML','L','G','HOUR','MCL')
 union
--- drug codes are not exist in a drug_concept_stage but present in drug_strength_stage
-select distinct s.drug_concept_code, 'drug_strength_stage has drug_codes absent in drug_concept_stage' from drug_strength_stage s 
+-- drug codes are not exist in a drug_concept_stage but present in ds_stage
+select distinct s.drug_concept_code, 'ds_stage has drug_codes absent in drug_concept_stage' from ds_stage s 
 left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id like  '%Drug%'
 left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
 where (a.concept_code is null and a.concept_code not in (select concept_code from non_drug) )
 union
--- ingredient codes not exist in a drug_concept_stage but present in drug_strength_stage
-select distinct s.drug_concept_code, 'drug_strength_stage has ingredient_codes absent in drug_concept_stage' from drug_strength_stage s 
+-- ingredient codes not exist in a drug_concept_stage but present in ds_stage
+select distinct s.drug_concept_code, 'ds_stage has ingredient_codes absent in drug_concept_stage' from ds_stage s 
 left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id like '%Drug%'
 left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
 where b.concept_code is null 
 union
---strange entries combinations in drug_strength_stage table
-select distinct s.drug_concept_code, 'impossible combination of values and units in drug_strength_stage' from drug_strength_stage s where AMOUNT_VALUE is not null and AMOUNT_UNIT is null or 
+--strange entries combinations in ds_stage table
+select distinct s.drug_concept_code, 'impossible combination of values and units in ds_stage' from ds_stage s where AMOUNT_VALUE is not null and AMOUNT_UNIT is null or 
 (denominator_VALUE is not null and denominator_UNIT is null) or (NUMERATOR_VALUE is not null and denominator_UNIT is null and DENOMINATOR_VALUE is null and NUMERATOR_UNIT !='%')
 or (AMOUNT_VALUE is  null and AMOUNT_UNIT is not null)
 union
 -- drugs aren't present in drug_strength table
-select distinct concept_code, 'Drug product doesnt have drug_strength info' from drug_concept_stage where concept_code not in (select drug_concept_code from drug_strength_stage) and concept_class_id like '%Drug%'
+select distinct concept_code, 'Drug product doesnt have drug_strength info' from drug_concept_stage
+ where concept_code not in (select drug_concept_code from ds_stage) and concept_class_id like '%Drug%'
 union
 --Quantitive drugs don't have denominator value or DENOMINATOR_unit
-select distinct A.CONCEPT_CODE, 'Quantitive drug doesnt have denominator value or DENOMINATOR_unit'  from drug_concept_stage a join  drug_strength_stage s on a.concept_code = s.drug_concept_code and a.concept_class_id like '%Quant%' 
+select distinct A.CONCEPT_CODE, 'Quantitive drug doesnt have denominator value or DENOMINATOR_unit'  from drug_concept_stage a join  ds_stage s on a.concept_code = s.drug_concept_code and a.concept_class_id like '%Quant%' 
 and (s.DENOMINATOR_VALUE is null or DENOMINATOR_unit is null)
 union
 --Different DENOMINATOR_VALUE or DENOMINATOR_VALUE in the same drug
 select distinct a.drug_concept_code, 'Different DENOMINATOR_VALUE or DENOMINATOR_unit in the same drug' 
- from drug_strength_stage a join drug_strength_stage b on a.drug_concept_code = b.drug_concept_code 
+ from ds_stage a join ds_stage b on a.drug_concept_code = b.drug_concept_code 
  and (a.DENOMINATOR_VALUE is null and b.DENOMINATOR_VALUE is not null  
  or a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE
  or a.DENOMINATOR_unit != b.DENOMINATOR_unit)
 union
 --different values for the same ingredient and drug, look separately on numerator_value, DENOMINATOR_VALUE and Units
 select a.drug_concept_code, 'different dosage for the same drug-ingredient combination' 
-from DRUG_strength_STAGE a join DRUG_strength_STAGE b on a.drug_concept_code = b.drug_concept_code and a.INGREDIENT_CONCEPT_CODE = b.INGREDIENT_CONCEPT_CODE and (
+from ds_stage a join ds_stage b on a.drug_concept_code = b.drug_concept_code and a.INGREDIENT_CONCEPT_CODE = b.INGREDIENT_CONCEPT_CODE and (
 a.numerator_value != b.numerator_value or a.numerator_unit != b.numerator_unit or a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE or a.DENOMINATOR_unit != b.DENOMINATOR_unit
 or a.numerator_value is null and  b.numerator_value is not null or a.numerator_unit is null and  b.numerator_unit is not null or a.DENOMINATOR_VALUE is null and b.DENOMINATOR_VALUE is not null or 
 a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null
@@ -170,18 +170,19 @@ union
 --Dose Form doesnt relate to any drug
 select distinct a.concept_code, 'Dose Form doesnt relate to any drug' from drug_concept_stage a left join  internal_relationship_stage b on a.concept_code = b.concept_code_2
 where a.concept_class_id= 'Dose Form' and b.concept_code_1 is null
---Units don't have mappings
-union
-select c1.concept_code as c1_code, 'Units without mapping'
-from drug_concept_stage c1
-left join relationship_to_concept r on r.concept_code_1=c1.concept_code 
-left join concept c2 on c2.concept_id=r.concept_id_2
-where c1.concept_code in (select concept_code from drug_concept_stage where concept_class_id='Unit')
-and r.concept_code_1 is null;
 union
 --duplicates in ds_stage
 select drug_concept_code, 'duplicates in ds_stage'  from (
 select drug_concept_code, ingredient_concept_code, count(*) as cnt
 from ds_stage 
 group by drug_concept_code, ingredient_concept_code having count(*)>1
-);
+)
+union
+--Concept_code_1 - Precedence duplicates
+select concept_code_1, 'Concept_code_1 - precedence duplicates' from (
+select  concept_code_1,precedence from relationship_to_concept group by concept_code_1,precedence having count (1) >1 )
+union
+----Concept_code_1 - Ingredient duplicates
+select concept_code_1, 'Concept_code_1 - precedence duplicates' from (
+select  concept_code_1,concept_id_2 from relationship_to_concept group by concept_code_1,concept_id_2 having count (1) >1 )
+;

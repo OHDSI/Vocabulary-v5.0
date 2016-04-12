@@ -185,4 +185,13 @@ union
 ----Concept_code_1 - Ingredient duplicates
 select concept_code_1, 'Concept_code_1 - precedence duplicates' from (
 select  concept_code_1,concept_id_2 from relationship_to_concept group by concept_code_1,concept_id_2 having count (1) >1 )
-;
+union
+--Unit without mapping
+select CONCEPT_CODE, 'Unit without mapping' from 
+drug_concept_Stage a left join relationship_to_concept b on a.concept_code = b.concept_code_1
+where concept_class_id in('Unit') and b.concept_code_1 is null
+union
+--Dose Form without mapping
+select CONCEPT_CODE, 'Dose Form without mapping' from 
+drug_concept_Stage a left join relationship_to_concept b on a.concept_code = b.concept_code_1
+where concept_class_id in('Dose Form') and b.concept_code_1 is null

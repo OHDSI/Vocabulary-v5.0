@@ -195,3 +195,27 @@ union
 select CONCEPT_CODE, 'Dose Form without mapping' from 
 drug_concept_Stage a left join relationship_to_concept b on a.concept_code = b.concept_code_1
 where concept_class_id in('Dose Form') and b.concept_code_1 is null
+union
+--duplicates will be present in drug_concept_stage, unable to summarize values
+select distinct   concept_code, 'concept overlaps with other one by target concept, please look also onto rigth sight of query result' from (
+select distinct a.amount_unit, a.numerator_unit ,cs.concept_code,  cs.concept_name as canada_name, rc.concept_name as RxName  , a.drug_concept_code from ds_stage a join relationship_to_concept b on a.ingredient_concept_code = b.concept_code_1
+join drug_Concept_stage cs on cs.concept_code = a.ingredient_concept_code
+join devv5.concept rc on rc.concept_id = b.concept_id_2
+join drug_Concept_stage rd on rd.concept_code = a.drug_concept_code
+join (
+select a.drug_concept_code, b.concept_id_2 from ds_stage a join relationship_to_concept b on a.ingredient_concept_code = b.concept_code_1
+group by a.drug_concept_code, b.concept_id_2 having count (1) > 1) c 
+on c.DRUG_CONCEPT_CODE= a.DRUG_CONCEPT_CODE and c.CONCEPT_ID_2 = b.CONCEPT_ID_2
+where precedence = 1) a
+join 
+(
+select distinct a.amount_unit, a.numerator_unit , cs.concept_name as canada_name, rc.concept_name  as RxName,a.drug_concept_code from ds_stage a join relationship_to_concept b on a.ingredient_concept_code = b.concept_code_1
+join drug_Concept_stage cs on cs.concept_code = a.ingredient_concept_code
+join devv5.concept rc on rc.concept_id = b.concept_id_2
+join drug_Concept_stage rd on rd.concept_code = a.drug_concept_code
+join (
+select a.drug_concept_code, b.concept_id_2 from ds_stage a join relationship_to_concept b on a.ingredient_concept_code = b.concept_code_1
+group by a.drug_concept_code, b.concept_id_2 having count (1) > 1) c 
+on c.DRUG_CONCEPT_CODE= a.DRUG_CONCEPT_CODE and c.CONCEPT_ID_2 = b.CONCEPT_ID_2
+where precedence = 1) b on a.RxName = b.RxName and a.drug_concept_code = b.drug_concept_code and (a.AMOUNT_UNIT !=b.amount_unit or a.NUMERATOR_UNIT != b.NUMERATOR_UNIT or a.NUMERATOR_UNIT is null and b.NUMERATOR_UNIT is not null
+or a.AMOUNT_UNIT is null and b.amount_unit is not null)

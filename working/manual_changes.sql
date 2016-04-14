@@ -60,17 +60,6 @@ insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vo
   values ('dm+d', 'Dictionary of Medicines and Devices (NHS)', 'https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/1/subpack/24/releases', '2016-03-04', (select concept_id from concept where concept_name='Dictionary of Medicines and Devices (NHS)'));
 insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (75, 'dm+d', null, null, null, null);
 
--- Add drug equivalence relationships
-insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'Drug to standard drug equivalent (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
-insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
-  values ('Drug to standard eq', 'Drug go standard drug equivalent (OMOP)', 0, 1, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Drug to standard drug equivalent (OMOP)'));
-insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'Standard drug to drug equivalent (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
-insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
-  values ('Standard to drug eq', 'Standard drug to drug equivalent (OMOP)', 0, 0, 'Drug to standard eq', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Standard drug to drug equivalent (OMOP)'));
-update relationship set reverse_relationship_id='Standard to drug eq' where relationship_id='Drug to standard eq';
-
 -- Add new domain Condition/Device for ICD10CM
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
   values (v5_concept.nextval, 'Condition/Device', 'Metadata', 'Domain', 'Domain', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
@@ -96,14 +85,61 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
   values(v5_concept.nextval, 'Australian Medicines Terminology (NEHTA)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
   values ('AMT', 'Australian Medicines Terminology (NEHTA)', 'https://www.nehta.gov.au/implementation-resources/terminology-access', '2016-03-31', (select concept_id from concept where concept_name='Australian Medicines Terminology (NEHTA)'));
-insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (77, 'AMIS', null, null, null, null);
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (78, 'AMT', null, null, null, null);
 
+-- add EU drugs
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'Community Register of Medicinal Products for Human Use (European Commission)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
+  values ('EU Product', 'Community Register of Medicinal Products for Human Use (European Commission)', 'http://ec.europa.eu/health/documents/community-register/html/index_en.htm', '2016-04-04', (select concept_id from concept where concept_name='Community Register of Medicinal Products for Human Use (European Commission)'));
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (79, 'EU Product', null, null, null, null);
 
+-- Add drug equivalence relationships
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'Drug class of drug (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+  values ('Drug class of drug', 'Drug class of drug (OMOP)', 1, 1, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Drug class of drug (OMOP)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'Drug has drug class (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+  values ('Drug has drug class', 'Drug has drug class (OMOP)', 1, 0, 'Drug class of drug', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Drug has drug class (OMOP)'));
+update relationship set reverse_relationship_id='Drug has drug class' where relationship_id='Drug class of drug';
 
+-- Add non-drug concept_classes
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Non-human drug class Disinfectant', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Disinfectant', 'Non-human drug class Disinfectant', (select concept_id from concept where concept_name = 'Non-human drug class Disinfectant'));
 
-commit;
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Non-human drug class Imaging Material', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Imaging Material', 'Non-human drug class Imaging Material', (select concept_id from concept where concept_name = 'Non-human drug class Imaging Material'));
 
-------------------------------------------------------------------------------------------------------------------------------------------------------
+update concept set concept_name='Non-human drug class Animal Drug' where concept_id=46277305;
+update concept set concept_name='Human drug class Cellular Therapy' where concept_id=45754861;
+update concept set concept_name='Human drug class Human OTC Drug' where concept_id=45754858;
+update concept set concept_name='Human drug class Non-Standardized Allergenic' where concept_id=45754860;
+update concept set concept_name='Human drug class Plasma Derivative' where concept_id=45754859;
+update concept set concept_name='Human drug class Human Prescription Drug' where concept_id=45754857;
+update concept set concept_name='Human drug class Vaccine' where concept_id=45754855;
+update concept set concept_name='Human drug class Standardized Allergenic' where concept_id=45754856;
+update concept set concept_name='Non-human drug class Food' where concept_id=46274137;
+update concept set concept_name='Non-human drug class Supplement' where concept_id=46274138;
+update concept set concept_name='Non-human drug class Cosmetic' where concept_id=46274139;
+
+update concept_class set concept_class_name='Non-human drug class Animal Drug' where concept_class_concept_id=46277305;
+update concept_class set concept_class_name='Human drug class Cellular Therapy' where concept_class_concept_id=45754861;
+update concept_class set concept_class_name='Human drug class Human OTC Drug' where concept_class_concept_id=45754858;
+update concept_class set concept_class_name='Human drug class Non-Standardized Allergenic' where concept_class_concept_id=45754860;
+update concept_class set concept_class_name='Human drug class Plasma Derivative' where concept_class_concept_id=45754859;
+update concept_class set concept_class_name='Human drug class Human Prescription Drug' where concept_class_concept_id=45754857;
+update concept_class set concept_class_name='Human drug class Vaccine' where concept_class_concept_id=45754855;
+update concept_class set concept_class_name='Human drug class Standardized Allergenic' where concept_class_concept_id=45754856;
+update concept_class set concept_class_name='Non-human drug class Food' where concept_class_concept_id=46274137;
+update concept_class set concept_class_name='Non-human drug class Supplement' where concept_class_concept_id=46274138;
+update concept_class set concept_class_name='Non-human drug class Cosmetic' where concept_class_concept_id=46274139;
+
 -- Remove invalid ICD10 codes
 delete 
 from concept_relationship r 
@@ -112,12 +148,25 @@ where exists (
 )
 ;
 
+delete 
+from concept_relationship r 
+where exists (
+  select 1 from concept c1 where r.concept_id_2=c1.concept_id and c1.vocabulary_id='ICD10CM' and c1.concept_class_id='ICD10 code'
+)
+;
+
 update concept set 
-  'Invalid ICD10 Concept, do not use' as concept_name, 
+  concept_name='Invalid ICD10 Concept, do not use', 
   vocabulary_id='ICD10', 
   concept_code=concept_id, -- so they can't even find them anymore by concept_code
-  '1-July-2015' as valid_end_date, 
-  'D' as invalid_reason
+  valid_end_date='13-Apr-2016', 
+  invalid_reason='D'
 where vocabulary_id='ICD10CM' 
 and concept_class_id='ICD10 code'
 ;
+
+commit;
+
+
+
+

@@ -121,7 +121,7 @@ with q as (
     q_ds.numerator_value*q_ds_n.conversion_factor as numerator_value, q_ds_n.concept_id_2 as numerator_unit_concept_id,
     nvl(q_ds.denominator_value, 1)*nvl(q_ds_d.conversion_factor, 1) as denominator_value, q_ds_d.concept_id_2 as denominator_unit_concept_id,
     coalesce(q_ds_a.precedence, q_ds_n.precedence, q_ds_d.precedence) as u_prec
-  from drug_strength_stage q_ds
+  from ds_stage q_ds
   left join relationship_to_concept q_ds_a on q_ds_a.concept_code_1=q_ds.amount_unit -- amount units
   left join relationship_to_concept q_ds_n on q_ds_n.concept_code_1=q_ds.numerator_unit -- numerator units
   left join relationship_to_concept q_ds_d on q_ds_d.concept_code_1=q_ds.denominator_unit -- denominator units
@@ -300,7 +300,7 @@ commit;
 drop table drug_concept_stage purge;
 drop table relationship_to_concept purge;
 drop table internal_relationship_stage purge;
-drop table drug_strength_stage purge;
+drop table ds_stage purge;
 drop table r_drug_ing purge;
 drop table r_ing_count purge;
 drop table q_drug_ing purge;

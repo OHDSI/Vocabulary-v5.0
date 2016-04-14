@@ -1944,4 +1944,3 @@ commit;
 alter table drug_concept_stage drop column dose_form;
 drop table drug_concept_stage_tmp purge;
 drop table brandname purge;
-drop table ds_stage;

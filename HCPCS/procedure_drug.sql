@@ -55,7 +55,7 @@ create table internal_relationship_stage (
 )
 NOLOGGING;
 
-create table drug_strength_stage (
+create table ds_stage (
   drug_concept_code	varchar2(255),  --	The source code of the Drug or Drug Component, either Branded or Clinical.
   ingredient_concept_code	varchar2(255), --	The source code for one of the Ingredients.
   amount_value float,	-- The numeric value for absolute content (usually solid formulations).
@@ -1765,7 +1765,7 @@ end;
 commit;
 
 -- write drug_strength
-insert /*+ APPEND */ into drug_strength_stage
+insert /*+ APPEND */ into ds_stage
 select distinct
   d.concept_code as drug_concept_code,
   i.concept_code_2 as ingredient_concept_code,
@@ -1814,89 +1814,89 @@ commit;
 -- C9285 defined and correct
 -- C9447 not defined, will pass only as form or ingredient
 -- C9448 defined:
-update drug_strength_stage set amount_value=0.5 where drug_concept_code='C9448' and ingredient_concept_code='palonosetron hcl';
+update ds_stage set amount_value=0.5 where drug_concept_code='C9448' and ingredient_concept_code='palonosetron hcl';
 -- C9452 defined:
-update drug_strength_stage set amount_value=25 where drug_concept_code='C9452' and ingredient_concept_code='tazobactam';
+update ds_stage set amount_value=25 where drug_concept_code='C9452' and ingredient_concept_code='tazobactam';
 -- J0295 only defined for ampicillin
-delete from drug_strength_stage where drug_concept_code='J0295' and ingredient_concept_code='sulbactam';
+delete from ds_stage where drug_concept_code='J0295' and ingredient_concept_code='sulbactam';
 -- J0571 - J0575 only defined for buprenorphine, will pass only as form or ingredient
-delete from drug_strength_stage where drug_concept_code='J0571' and ingredient_concept_code='naloxone hydrochloride';
-delete from drug_strength_stage where drug_concept_code='J0572' and ingredient_concept_code='naloxone hydrochloride';
-delete from drug_strength_stage where drug_concept_code='J0573' and ingredient_concept_code='naloxone hydrochloride';
-delete from drug_strength_stage where drug_concept_code='J0574' and ingredient_concept_code='naloxone hydrochloride';
-delete from drug_strength_stage where drug_concept_code='J0575' and ingredient_concept_code='naloxone hydrochloride';
+delete from ds_stage where drug_concept_code='J0571' and ingredient_concept_code='naloxone hydrochloride';
+delete from ds_stage where drug_concept_code='J0572' and ingredient_concept_code='naloxone hydrochloride';
+delete from ds_stage where drug_concept_code='J0573' and ingredient_concept_code='naloxone hydrochloride';
+delete from ds_stage where drug_concept_code='J0574' and ingredient_concept_code='naloxone hydrochloride';
+delete from ds_stage where drug_concept_code='J0575' and ingredient_concept_code='naloxone hydrochloride';
 -- J0620 not defined, will pass only as form or ingredient
 -- J0695 defined:
-update drug_strength_stage set amount_value=25 where drug_concept_code='J0695' and ingredient_concept_code='tazobactam';
+update ds_stage set amount_value=25 where drug_concept_code='J0695' and ingredient_concept_code='tazobactam';
 -- J0900 not defined, will pass only as form or ingredient
 -- J1056 defined:
-update drug_strength_stage set amount_value=25 where drug_concept_code='J1056' and ingredient_concept_code='depo-estradiol cypionate';
+update ds_stage set amount_value=25 where drug_concept_code='J1056' and ingredient_concept_code='depo-estradiol cypionate';
 -- J1060 not defined, will pass only as form or ingredient
 -- J1575 not defined, will pass only as form or ingredient
 -- J1810 not defined, will pass only as form or ingredient
 -- J2180 defined:
-update drug_strength_stage set amount_value=25 where drug_concept_code='J2180' and ingredient_concept_code='promethazine hcl';
+update ds_stage set amount_value=25 where drug_concept_code='J2180' and ingredient_concept_code='promethazine hcl';
 -- J2543 defined:
-update drug_strength_stage set amount_value=125, amount_unit='mg' where drug_concept_code='J2543' and ingredient_concept_code='tazobactam';
+update ds_stage set amount_value=125, amount_unit='mg' where drug_concept_code='J2543' and ingredient_concept_code='tazobactam';
 -- J2770 defined:
-update drug_strength_stage set amount_value=350 where drug_concept_code='J2770' and ingredient_concept_code='quinupristin';
-update drug_strength_stage set amount_value=150 where drug_concept_code='J2770' and ingredient_concept_code='dalfopristin';
+update ds_stage set amount_value=350 where drug_concept_code='J2770' and ingredient_concept_code='quinupristin';
+update ds_stage set amount_value=150 where drug_concept_code='J2770' and ingredient_concept_code='dalfopristin';
 -- J7042 defined:
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J7042' and ingredient_concept_code='dextrose';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.154, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7042' and ingredient_concept_code='normal saline solution';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J7042' and ingredient_concept_code='dextrose';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.154, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7042' and ingredient_concept_code='normal saline solution';
 -- J7060 defined:
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J7060' and ingredient_concept_code='dextrose';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J7060' and ingredient_concept_code='dextrose';
 -- J7120 defined:
 -- Calcium Chloride 0.0014 MEQ/ML / Potassium Chloride 0.004 MEQ/ML / Sodium Chloride 0.103 MEQ/ML / Sodium Lactate 0.028 MEQ/ML Injectable Solution
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0014, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='calcium chloride';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.004, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='potassium chloride';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.103, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='normal saline solution';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.028, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='sodium lactate';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.0014, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='calcium chloride';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.004, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='potassium chloride';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.103, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='normal saline solution';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.028, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7120' and ingredient_concept_code='sodium lactate';
 -- J7121 defined:
 -- Calcium Chloride 0.001 MEQ/ML / Glucose 50 MG/ML / Potassium Chloride 0.004 MEQ/ML / Sodium Chloride 0.103 MEQ/ML / Sodium Lactate 0.028 MEQ/ML Injectable Solution
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='dextrose';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.001, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='calcium chloride';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.004, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='potassium chloride';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.103, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='normal saline solution';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.028, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='sodium lactate';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='dextrose';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.001, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='calcium chloride';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.004, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='potassium chloride';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.103, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='normal saline solution';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.028, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J7121' and ingredient_concept_code='sodium lactate';
 -- J7620 defined:
-update drug_strength_stage set amount_value=2.5 where drug_concept_code='J7620' and ingredient_concept_code='albuterol';
+update ds_stage set amount_value=2.5 where drug_concept_code='J7620' and ingredient_concept_code='albuterol';
 -- J9175 defined:
 -- Calcium Chloride 0.00136 MEQ/ML / Glucose 0.8 MG/ML / Magnesium Sulfate 0.00122 MEQ/ML / Potassium Chloride 0.00403 MEQ/ML / Sodium Bicarbonate 0.0226 MEQ/ML / Sodium Chloride 0.125 MEQ/ML / sodium phosphate 0.000746 MEQ/ML Injectable Solution [Elliotts B
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0226, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='sodium bicarbonate';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value= 0.000746, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='sodium phosphate';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.125, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='normal saline solution';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.8, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='dextrose';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.00136, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='calcium chloride';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.00403, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='potassium chloride';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.00122, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='magnesium sulfate';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.0226, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='sodium bicarbonate';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value= 0.000746, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='sodium phosphate';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.125, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='normal saline solution';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.8, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='dextrose';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.00136, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='calcium chloride';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.00403, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='potassium chloride';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.00122, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='J9175' and ingredient_concept_code='magnesium sulfate';
 -- S0039: not defined, will pass only as form or ingredient
 -- S0040 somewhat defined. the 31 mg are in one milliliter andn are a sum of both ingredients:
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=30, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S0040' and ingredient_concept_code='ticarcillin';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=1, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S0040' and ingredient_concept_code='clavulanate';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=30, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S0040' and ingredient_concept_code='ticarcillin';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=1, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S0040' and ingredient_concept_code='clavulanate';
 -- S5010: defined:
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5010' and ingredient_concept_code='dextrose';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0769, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5010' and ingredient_concept_code='normal saline solution';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5010' and ingredient_concept_code='dextrose';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.0769, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5010' and ingredient_concept_code='normal saline solution';
 -- S5011
 -- Calcium Chloride 0.001 MEQ/ML / Glucose 50 MG/ML / Potassium Chloride 0.004 MEQ/ML / Sodium Chloride 0.103 MEQ/ML / Sodium Lactate 0.028 MEQ/ML Injectable Solution
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='dextrose';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.001, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='calcium chloride';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.004, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='potassium chloride';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.103, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='normal saline solution';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.028, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='sodium lactate';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='dextrose';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.001, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='calcium chloride';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.004, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='potassium chloride';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.103, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='normal saline solution';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.028, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5011' and ingredient_concept_code='sodium lactate';
 -- S5012: undefined, including the ingredients. Still:
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5012' and ingredient_concept_code='dextrose';
-delete from drug_strength_stage where drug_concept_code='S5012' and ingredient_concept_code='potassium chloride';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5012' and ingredient_concept_code='dextrose';
+delete from ds_stage where drug_concept_code='S5012' and ingredient_concept_code='potassium chloride';
 -- S5013: undefined, but this we know:
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5013' and ingredient_concept_code='dextrose';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0769, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5013' and ingredient_concept_code='normal saline solution';
-delete from drug_strength_stage where drug_concept_code='S5013' and ingredient_concept_code='potassium chloride';
-delete from drug_strength_stage where drug_concept_code='S5013' and ingredient_concept_code='magnesium sulfate';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5013' and ingredient_concept_code='dextrose';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.0769, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5013' and ingredient_concept_code='normal saline solution';
+delete from ds_stage where drug_concept_code='S5013' and ingredient_concept_code='potassium chloride';
+delete from ds_stage where drug_concept_code='S5013' and ingredient_concept_code='magnesium sulfate';
 -- S5014: undefined, but this we know:
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5014' and ingredient_concept_code='dextrose';
-update drug_strength_stage set amount_value=null, amount_unit=null, numerator_value=0.0769, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5014' and ingredient_concept_code='normal saline solution';
-delete from drug_strength_stage where drug_concept_code='S5014' and ingredient_concept_code='potassium chloride';
-delete from drug_strength_stage where drug_concept_code='S5014' and ingredient_concept_code='magnesium sulfate';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=50, numerator_unit='mg', denominator_unit='ml' where drug_concept_code='S5014' and ingredient_concept_code='dextrose';
+update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.0769, numerator_unit='meq', denominator_unit='ml' where drug_concept_code='S5014' and ingredient_concept_code='normal saline solution';
+delete from ds_stage where drug_concept_code='S5014' and ingredient_concept_code='potassium chloride';
+delete from ds_stage where drug_concept_code='S5014' and ingredient_concept_code='magnesium sulfate';
 
 /******************************
 * 5. Create and link Brand Names *
@@ -1944,3 +1944,4 @@ commit;
 alter table drug_concept_stage drop column dose_form;
 drop table drug_concept_stage_tmp purge;
 drop table brandname purge;
+drop table ds_stage;

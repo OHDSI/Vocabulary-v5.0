@@ -15,10 +15,10 @@
 -- Create table containing ingredients for each drug
 create table r_drug_ing nologging as
   select de.concept_id as drug_id, an.concept_id as ing_id
-  from devv5.concept_ancestor a 
-  join devv5.concept an on a.ancestor_concept_id=an.concept_id and an.concept_class_id='Ingredient' 
+  from concept_ancestor a 
+  join concept an on a.ancestor_concept_id=an.concept_id and an.concept_class_id='Ingredient' 
     and an.vocabulary_id in ('RxNorm') -- to be expanded as new vocabs are added
-  join devv5.concept de on de.concept_id=a.descendant_concept_id  
+  join concept de on de.concept_id=a.descendant_concept_id  
     and de.vocabulary_id in ('RxNorm')
 ;
 -- Remove unparsable Albumin products that have no drug_strength entry: Albumin Human, USP 1 NS
@@ -28,7 +28,7 @@ create table r_ing_count nologging as
   select drug_id as did, count(*) as cnt from r_drug_ing group by drug_id
 ;
 -- Set all counts for Ingredient and Clinical Drug Comp to null, so in comparisons it can match whatever number necessary. Reason is that, like ingredients, Clinical Drug Comp is always only one ingredient
-update r_ing_count set cnt=null where did in (select concept_id from devv5.concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
+update r_ing_count set cnt=null where did in (select concept_id from concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
 
 create index x_r_drug_ing on r_drug_ing(drug_id, ing_id) nologging;
 
@@ -37,7 +37,7 @@ create table q_drug_ing nologging as
 select drug.concept_code as drug_code, nvl(ing.concept_id, 0) as ing_id, i.concept_code as ing_code -- if ingredient is not mapped use 0 to still get the right ingredient count
 from drug_concept_stage i
 left join relationship_to_concept r1 on r1.concept_code_1=i.concept_code
-left join devv5.concept ing on ing.concept_id=r1.concept_id_2 -- link standard ingredients to existing ones
+left join concept ing on ing.concept_id=r1.concept_id_2 -- link standard ingredients to existing ones
 join internal_relationship_stage r2 on r2.concept_code_2=i.concept_code
 join drug_concept_stage drug on drug.concept_class_id not in ('Unit', 'Ingredient', 'Brand Name', 'Non-Drug Prod', 'Dose Form', 'Device', 'Observation') -- include only drug product concept classes
   and drug.concept_code=r2.concept_code_1
@@ -61,7 +61,7 @@ create table shared_ing nologging as
 select r_did, q_dcode, count(*) as cnt from match group by r_did, q_dcode
 ;
 -- Set all counts for Clinical Drug Comp to null, so in comparisons it can match whatever number necessary. Reason is that, like ingredients, Clinical Drug Comp is always only one ingredient
-update shared_ing set cnt=null where r_did in (select concept_id from devv5.concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
+update shared_ing set cnt=null where r_did in (select concept_id from concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
 
 -- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size or quantity are not yet compared
 create table q_to_r_anydose nologging as
@@ -90,8 +90,8 @@ left join (
   join relationship_to_concept m on m.concept_code_1=r.concept_code_2 -- left join if not 
 ) q_df on q_df.concept_code_1=m.q_dcode 
 left join (
-  select r.concept_id_1, r.concept_id_2 from devv5.concept_relationship r
-  join devv5.concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
+  select r.concept_id_1, r.concept_id_2 from concept_relationship r
+  join concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
   where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
 ) r_df on r_df.concept_id_1=m.r_did
 -- get Brand Name for q and r
@@ -103,8 +103,8 @@ left join (
 ) q_bn on q_bn.concept_code_1=m.q_dcode
 left join (
   select r.concept_id_1, r.concept_id_2 
-  from devv5.concept_relationship r
-  join devv5.concept on concept_id=r.concept_id_2 and concept_class_id ='Brand Name'
+  from concept_relationship r
+  join concept on concept_id=r.concept_id_2 and concept_class_id ='Brand Name'
   where r.invalid_reason is null 
 ) r_bn on r_bn.concept_id_1=m.r_did and m.rc_cnt is not null -- only take Brand Names if they don't come from Ingredients or Clinical Drug Comps
 -- remove comments if mapping should be done both upwards (standard) and downwards (to find a possible unique low-granularity solution)
@@ -132,7 +132,7 @@ with q as (
     r_ds.numerator_value, r_ds.numerator_unit_concept_id,
     nvl(r_ds.denominator_value, 1) as denominator_value, -- Quantified have a value in the denominator, the others haven't.
     r_ds.denominator_unit_concept_id
-  from devv5.drug_strength r_ds 
+  from drug_strength r_ds 
 )
 -- Create variables div as r amount / q amount, and unit as 1 for matching and 0 as non-matching 
 select 
@@ -220,7 +220,7 @@ commit;
 -- Get the best possible mapping that is unique in its concept class. Try bottom up from the lowest end of the drug hierarchy
 create table best_map nologging as
 with r as (
-  select distinct qr.*, c.concept_class_id from q_to_r qr join devv5.concept c on c.concept_id=qr.r_did 
+  select distinct qr.*, c.concept_class_id from q_to_r qr join concept c on c.concept_id=qr.r_did 
 )
 select distinct 
   rmap.* 

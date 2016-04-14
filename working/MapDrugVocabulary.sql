@@ -290,7 +290,7 @@ select
   TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
   null as invalid_reason
 from best_map m
-join devv5.concept c on c.concept_id=m.r_did and c.vocabulary_id='RxNorm';
+join concept c on c.concept_id=m.r_did and c.vocabulary_id='RxNorm';
 commit;
 
 /****************************

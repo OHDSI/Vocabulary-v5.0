@@ -283,10 +283,10 @@ insert /*+ APPEND */ into concept_relationship_stage
 select 
   q_dcode as concept_code_1,
   c.concept_code as concept_code_2,  
-  'HCPCS' as vocabulary_id_1,
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
   'RxNorm' as vocabulary_id_2,
   'Maps to' as relationship_id,
-  (SELECT latest_update FROM vocabulary WHERE vocabulary_id='HCPCS') as valid_start_date,
+  (SELECT latest_update FROM vocabulary WHERE vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
   null as invalid_reason
 from best_map m

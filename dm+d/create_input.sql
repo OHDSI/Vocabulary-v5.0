@@ -13,7 +13,7 @@ EXCEPTION WHEN OTHERS THEN NULL;
 END;
 */
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20160325','yyyymmdd'), vocabulary_version='dm+d Test version' WHERE vocabulary_id='dm+d'; 
+UPDATE vocabulary SET latest_update=to_date('20160325','yyyymmdd'), vocabulary_version='dm+d Version 3.2.0' WHERE vocabulary_id='dm+d'; 
 COMMIT;
 
 -- 2. Create drug_concept_stage
@@ -311,9 +311,45 @@ WHERE EXISTS (
 );
 COMMIT;					   
 
--- Remove duplicate Ingredients
--- !!!! Check whether the singletons all exist
+-- Remove all the drugs that have no entry in f_vmp2 or f_amp2. They are devices
+delete from drug_concept_stage where concept_code in (
+  select concept_code from drug_concept_stage where concept_class_id like 'Branded%' or concept_class_id like 'Clinical%'
+minus
+  select apid from f_amp2_ex
+minus 
+  select vpid from f_vmp2_ex
+);
+
+-- Remove combination 
+-- !!!! Check whether the singletons all exist and whether they aer mapped
 delete from drug_concept_stage where concept_name like '% + %' and concept_class_id='Ingredient';
+
+-- Remove duplicate Ingredients
+  select 
+    i.concept_code, i.concept_name, 
+    ins.concept_code, ins.concept_name
+  from drug_concept_stage i
+  join devv5.concept s1 on s1.vocabulary_id='SNOMED' and s1.concept_code=i.concept_code
+  join devv5.concept_relationship r on r.concept_id_1=s1.concept_id and r.invalid_reason is null and r.relationship_id in ('Subsumes', 'Active ing of')
+  join devv5.concept s2 on s2.concept_id=r.concept_id_2 and s2.vocabulary_id='SNOMED' 
+  join drug_concept_stage ins on ins.concept_code=s2.concept_code and ins.concept_class_id='Ingredient'
+  where i.concept_class_id='Ingredient'
+union
+  select 
+    i.concept_code, i.concept_name, 
+    ins.concept_code, ins.concept_name
+  from drug_concept_stage i
+  join devv5.concept s1 on s1.vocabulary_id='SNOMED' and s1.concept_code=i.concept_code
+  join devv5.concept s2 on instr(lower(s2.concept_name), lower(s1.concept_name))>0 and s2.vocabulary_id='SNOMED' and s1.concept_name!=s2.concept_name
+  join drug_concept_stage ins on ins.concept_code=s2.concept_code and ins.concept_class_id='Ingredient'
+  where i.concept_class_id='Ingredient'
+;
+
+
+
+
+
+
 
 create index x_drug_concept_stage on drug_concept_stage(concept_code);
 

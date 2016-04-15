@@ -165,6 +165,35 @@ where vocabulary_id='ICD10CM'
 and concept_class_id='ICD10 code'
 ;
 
+-- Fix domain assignment of existing procedure drugs
+-- Remove radiopharmaceutical
+update concept_relationship 
+  set valid_end_date = '15-Apr-2016', invalid_reason = 'D' 
+where concept_id_1=40664879 and concept_id_2=43531992;
+
+-- Turn into Drugs
+UPDATE concept c
+   SET c.domain_id='Drug'
+ WHERE     EXISTS (
+              SELECT 1
+                 FROM concept_relationship r, concept c2
+                WHERE     r.concept_id_1 = c.concept_id
+                      AND r.concept_id_2 = c2.concept_id
+                      AND r.invalid_reason IS NULL
+                      AND r.relationship_id = 'Maps to'
+                      AND c2.vocabulary_id = 'RxNorm'
+               UNION ALL
+               SELECT 1
+                 FROM concept_relationship_stage r
+                WHERE     r.concept_code_1 = c.concept_code
+                      AND r.vocabulary_id_1 = 'HCPCS'
+                      AND r.vocabulary_id_2 = 'RxNorm'
+                      AND r.invalid_reason IS NULL
+                      AND r.relationship_id = 'Maps to'
+              )
+       AND c.domain_id<>'Drug'
+       AND c.vocabulary_id='HCPCS'
+;
 commit;
 
 

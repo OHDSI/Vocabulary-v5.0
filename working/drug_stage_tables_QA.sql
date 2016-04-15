@@ -219,3 +219,11 @@ group by a.drug_concept_code, b.concept_id_2 having count (1) > 1) c
 on c.DRUG_CONCEPT_CODE= a.DRUG_CONCEPT_CODE and c.CONCEPT_ID_2 = b.CONCEPT_ID_2
 where precedence = 1) b on a.RxName = b.RxName and a.drug_concept_code = b.drug_concept_code and (a.AMOUNT_UNIT !=b.amount_unit or a.NUMERATOR_UNIT != b.NUMERATOR_UNIT or a.NUMERATOR_UNIT is null and b.NUMERATOR_UNIT is not null
 or a.AMOUNT_UNIT is null and b.amount_unit is not null)
+union
+--Improper valid_end_date
+select concept_code, 'Improper valid_end_date' from drug_concept_stage where concept_code not in (
+select concept_code  from drug_concept_stage
+where  valid_end_date <=SYSDATE or valid_end_date = to_date ('2099-12-31', 'YYYY-MM-DD') )
+union
+--Improper valid_start_date
+select concept_code, 'Improper valid_start_date' from drug_concept_stage where valid_start_date >  SYSDATE

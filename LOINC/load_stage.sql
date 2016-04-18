@@ -215,7 +215,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
            LOINC_NUM AS synonym_concept_code,
            SUBSTR (TO_CHAR (RELATEDNAMES2), 1, 1000) AS synonym_name,
            'LOINC' as synonym_vocabulary_id,
-           4093769 AS language_concept_id                           -- English
+           4180186 AS language_concept_id                           -- English
       FROM loinc
      WHERE TO_CHAR (RELATEDNAMES2) IS NOT NULL
     UNION
@@ -223,7 +223,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
            LOINC_NUM AS synonym_concept_code,
            SUBSTR (LONG_COMMON_NAME, 1, 1000) AS synonym_name,
            'LOINC' as synonym_vocabulary_id,
-           4093769 AS language_concept_id                           -- English
+           4180186 AS language_concept_id                           -- English
       FROM loinc
      WHERE LONG_COMMON_NAME IS NOT NULL
     UNION
@@ -231,7 +231,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
            LOINC_NUM AS synonym_concept_code,
            SHORTNAME AS synonym_name,
            'LOINC' as synonym_vocabulary_id,
-           4093769 AS language_concept_id                           -- English
+           4180186 AS language_concept_id                           -- English
       FROM loinc
      WHERE SHORTNAME IS NOT NULL);
 COMMIT;

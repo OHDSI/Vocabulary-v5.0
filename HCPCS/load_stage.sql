@@ -697,7 +697,7 @@ INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                    HCPC AS synonym_concept_code,
                    DESCRIPTION AS synonym_name,
                    'HCPCS' AS synonym_vocabulary_id,
-                   4093769 AS language_concept_id                   -- English
+                   4180186 AS language_concept_id                   -- English
      FROM (SELECT LONG_DESCRIPTION, SHORT_DESCRIPTION, HCPC FROM ANWEB_V2) UNPIVOT (DESCRIPTION --take both LONG_DESCRIPTION and SHORT_DESCRIPTION
                                                                            FOR DESCRIPTIONS
                                                                            IN (LONG_DESCRIPTION,

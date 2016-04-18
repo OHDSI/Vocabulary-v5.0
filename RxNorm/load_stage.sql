@@ -207,7 +207,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_name,
                                    synonym_vocabulary_id,
                                    language_concept_id)
-   SELECT NULL ,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4093769                    -- English
+   SELECT NULL ,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4180186                    -- English
      FROM rxnconso r
           JOIN concept_stage c
              ON     c.concept_code = r.rxcui
@@ -222,7 +222,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_name,
                                    synonym_vocabulary_id,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4093769                    -- English
+   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4180186                    -- English
      FROM rxnconso r
           JOIN concept_stage c
              ON     c.concept_code = r.code
@@ -1333,7 +1333,7 @@ SELECT DISTINCT
        END
           AS synonym_name,
        dv.vocabulary_id AS synonym_vocabulary_id,
-       4093769 AS language_concept_id
+       4180186 AS language_concept_id
   FROM drug_vocs dv
        JOIN rxnconso r
           ON     dv.code = r.code

@@ -73,7 +73,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                    cvx_code AS synonym_concept_code,
                    DESCRIPTION AS synonym_name,
                    'CVX' AS synonym_vocabulary_id,
-                   4093769 AS language_concept_id                   -- English
+                   4180186 AS language_concept_id                   -- English
      FROM (SELECT full_vaccine_name, short_description, cvx_code FROM CVX)
           UNPIVOT
              (DESCRIPTION  --take both full_vaccine_name and short_description

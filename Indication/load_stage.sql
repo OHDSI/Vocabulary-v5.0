@@ -94,7 +94,7 @@ INSERT /*+ APPEND */ INTO  concept_synonym_stage (synonym_concept_code,
    SELECT dxid AS synonym_concept_code,
           'Indication' AS synonym_vocabulary_id,
           DESCRIPTION AS synonym_name,
-          4093769 AS language_concept_id                            -- English
+          4180186 AS language_concept_id                            -- English
      FROM (SELECT dxid_syn_desc56, dxid_syn_desc100, dxid
              FROM RFMLSYN0_DXID_SYN
             WHERE dxid_syn_status = 0)
@@ -106,7 +106,7 @@ INSERT /*+ APPEND */ INTO  concept_synonym_stage (synonym_concept_code,
    SELECT dxid AS synonym_concept_code,
           'Indication' AS synonym_vocabulary_id,
           DESCRIPTION AS synonym_name,
-          4093769 AS language_concept_id                            -- English
+          4180186 AS language_concept_id                            -- English
      FROM (SELECT dxid_desc56, dxid_desc100, dxid FROM RFMLDX0_DXID)
           UNPIVOT
              (DESCRIPTION             --take both dxid_desc56 and dxid_desc100

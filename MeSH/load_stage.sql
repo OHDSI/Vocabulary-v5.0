@@ -141,7 +141,7 @@ INSERT /*+ APPEND */ INTO  concept_synonym_stage (synonym_concept_code,
 	select c.concept_code as synonym_concept_code,
 		'MeSH' as synonym_vocabulary_id,
 		 u.str as synonym_name, 
-		4093769 AS language_concept_id                    -- English 
+		4180186 AS language_concept_id                    -- English 
 	from concept_stage c
 	join umls.mrconso u on u.code=c.concept_code and u.sab = 'MSH' and u.suppress = 'N' and u.lat='ENG';
 COMMIT;

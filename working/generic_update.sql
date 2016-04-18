@@ -125,6 +125,11 @@ DECLARE
  ex NUMBER;
 BEGIN
   --SELECT MAX(concept_id)+1 INTO ex FROM concept WHERE concept_id<500000000; -- Last valid below HOI concept_id
+  BEGIN
+    EXECUTE IMMEDIATE 'DROP SEQUENCE v5_concept';
+    EXCEPTION
+      WHEN OTHERS THEN NULL;
+  END;	
 	SELECT concept_id + 1 INTO ex FROM (
 		SELECT concept_id, next_id, next_id - concept_id - 1 free_concept_ids
 		FROM (SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM concept where concept_id >= 1000 and concept_id < 500000000)
@@ -732,7 +737,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           c.concept_code AS synonym_concept_code,
           c.concept_name AS synonym_name,
           c.vocabulary_id AS synonym_vocabulary_id,
-          4093769 AS language_concept_id
+          4180186 AS language_concept_id
      FROM concept_stage c
     WHERE NOT EXISTS
              (SELECT 1
@@ -759,7 +764,7 @@ INSERT INTO concept_synonym (concept_id,
                              language_concept_id)
    SELECT c.concept_id,
           REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' '),
-          4093769                                               -- for English
+          4180186                                               -- for English
      FROM concept_synonym_stage css, concept c, concept_stage cs
     WHERE     css.synonym_concept_code = c.concept_code
           AND css.synonym_vocabulary_id = c.vocabulary_id

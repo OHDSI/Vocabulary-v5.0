@@ -136,7 +136,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
               AS synonym_concept_code,
            NAME AS synonym_name,
 		   'ICD9CM' as synonym_vocabulary_id,
-           4093769 AS language_concept_id                           -- English
+           4180186 AS language_concept_id                           -- English
       FROM (SELECT * FROM CMS_DESC_LONG_DX
             UNION
             SELECT * FROM CMS_DESC_SHORT_DX));
@@ -152,7 +152,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           code AS synonym_concept_code,
           SUBSTR (str, 1, 256) AS synonym_name,
           'ICD9CM' AS vocabulary_id,
-          4093769 AS language_concept_id                            -- English
+          4180186 AS language_concept_id                            -- English
      FROM UMLS.mrconso
     WHERE     sab = 'ICD9CM'
           AND NOT code LIKE '%-%'

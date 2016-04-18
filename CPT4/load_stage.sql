@@ -245,7 +245,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                    scui AS synonym_concept_code,
                    SUBSTR (str, 1, 1000) AS synonym_name,
 				   'CPT4' as synonym_vocabulary_id,
-                   4093769 AS language_concept_id
+                   4180186 AS language_concept_id
      FROM UMLS.mrconso
     WHERE sab IN ('CPT', 'HCPT') AND suppress NOT IN ('E', 'O', 'Y');
 COMMIT;	

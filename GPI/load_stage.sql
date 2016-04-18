@@ -139,7 +139,7 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                    concept_code,
                    concept_name,
                    'GPI',
-                   4093769                                          -- English
+                   4180186                                          -- English
      FROM (SELECT cs.concept_code, cs.concept_name
              FROM concept_stage cs
            UNION ALL

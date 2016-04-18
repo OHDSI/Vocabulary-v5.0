@@ -210,7 +210,7 @@ INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                    code AS synonym_concept_code,
                    DESCRIPTION AS synonym_name,
                    'ICD10CM' AS synonym_vocabulary_id,
-                   4093769 AS language_concept_id                   -- English
+                   4180186 AS language_concept_id                   -- English
      FROM (SELECT LONG_NAME,
                   SHORT_NAME,
                   REGEXP_REPLACE (code,

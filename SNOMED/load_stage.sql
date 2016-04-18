@@ -754,7 +754,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'ING/NM') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_ingredient2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -764,7 +764,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'VTM/NM') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_vtm2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -775,7 +775,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'VTM/ABBREVNM') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_vtm2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -787,7 +787,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'VMP/NM') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_vmp2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -798,7 +798,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'VMP/ABBREVNM') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_vmp2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -810,7 +810,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'VMP/NMPREV') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_vmp2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -822,7 +822,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'AMP/DESC') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_amp2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -833,7 +833,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'AMP/ABBREVNM') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_amp2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -845,7 +845,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'AMP/NMPREV') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_amp2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -857,7 +857,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'VMPP/NM') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_vmpp2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -868,7 +868,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'AMPP/NM') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_ampp2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -879,7 +879,7 @@ INSERT /*+ APPEND */
                      AS synonym_concept_code,
                   'SNOMED' AS synonym_vocabulary_id,
                   EXTRACTVALUE (VALUE (t), 'AMPP/ABBREVNM') AS synonym_name,
-                  4093769 AS language_concept_id                    -- English
+                  4180186 AS language_concept_id                    -- English
              FROM f_ampp2 t_xml,
                   TABLE (
                      XMLSEQUENCE (
@@ -899,7 +899,7 @@ INSERT  /*+ APPEND */  INTO concept_synonym_stage (synonym_concept_id,
           m.code,
           'SNOMED',
           SUBSTR (m.str, 1, 1000),
-          4093769 -- English
+          4180186 -- English
      FROM UMLS.mrconso m
     WHERE m.sab = 'SNOMEDCT_US' AND m.tty in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
 	AND NOT EXISTS (

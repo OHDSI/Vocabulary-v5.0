@@ -1,3 +1,21 @@
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Anna Ostropolets, Dmitry Dimschitz, Christian Reich
+* Date: April 2016
+**************************************************************************/
 --CREATING UNITED TABLES OUT 3 BATCHES THAT WE WERE GIVEN. AS DRUG_IDENTIFICATION_NUMBER IS UNIQUE WE USED IT INSTEAD OF DRUG CODE
 create table drug_product as (
 select drug_CODE as old_code,PRODUCT_CATEGORIZATION,CLASS,ltrim(DRUG_IDENTIFICATION_NUMBER,'0') as DRUG_CODE,BRAND_NAME,DESCRIPTOR,PEDIATRIC_FLAG,ACCESSION_NUMBER,NUMBER_OF_AIS,AI_GROUP_NO,

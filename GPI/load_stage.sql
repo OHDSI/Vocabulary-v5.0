@@ -37,8 +37,8 @@ ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --3. Load into concept_stage from rxxxref
-INSERT /*+ APPEND */
-      INTO  concept_stage (concept_name,
+
+INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
                            concept_class_id,
@@ -47,7 +47,8 @@ INSERT /*+ APPEND */
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT DISTINCT COALESCE (concept_name, --take name from concept table OR RxNorm
+/*
+						   SELECT DISTINCT COALESCE (concept_name, --take name from concept table OR RxNorm
                              drug_string,
                              rx_name,
                              ' ')
@@ -103,6 +104,20 @@ INSERT /*+ APPEND */
 						AND rx.invalid_reason IS NULL
             WHERE r.concept_type_id = 5                            -- GPI only
 );
+*/
+   SELECT gpi_desc AS concept_name,
+          'Drug' AS domain_id,
+          'GPI' AS vocabulary_id,
+          'GPI' AS concept_class_id,
+          NULL AS standard_concept,
+          gpi AS concept_code,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'GPI')
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM ndw_v_product;
 COMMIT;					  
 
 --4 Load into concept_relationship_stage name from rxxxref

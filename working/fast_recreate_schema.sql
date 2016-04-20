@@ -32,6 +32,7 @@ begin
     execute immediate 'drop table concept_synonym purge';
     execute immediate 'drop table vocabulary purge';
     execute immediate 'drop table relationship purge';
+	execute immediate 'drop table existing_ds purge';
     execute immediate 'truncate table CONCEPT_STAGE';
     execute immediate 'truncate table concept_relationship_stage';
 	execute immediate 'truncate table concept_synonym_stage';

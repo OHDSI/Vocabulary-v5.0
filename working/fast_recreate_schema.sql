@@ -50,6 +50,7 @@ begin
     execute immediate 'CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_synonym';
     execute immediate 'CREATE TABLE vocabulary NOLOGGING AS SELECT * FROM '||main_schema_name||'.vocabulary';
     execute immediate 'CREATE TABLE relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.relationship';
+	execute immediate 'CREATE TABLE existing_ds NOLOGGING AS SELECT * FROM '||main_schema_name||'.existing_ds';
 
     /*create indexes and constraints for main tables*/
     execute immediate 'ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id)';

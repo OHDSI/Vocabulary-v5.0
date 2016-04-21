@@ -1,6 +1,6 @@
 /*
 -- start new sequence
--- drop sequence v5_concept;
+drop sequence v5_concept;
 DECLARE
  ex NUMBER;
 BEGIN
@@ -194,8 +194,87 @@ UPDATE concept c
        AND c.domain_id<>'Drug'
        AND c.vocabulary_id='HCPCS'
 ;
+
+-- Add composite Death Type
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Other government reported or identified death', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+
+update vocabulary_conversion set available=null where vocabulary_id_v5='ICD10CM';
+update vocabulary_conversion set latest_update='28-Mar-2016' where vocabulary_id_v5='DPD';
+update vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='BDPM';
+update vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='AMIS';
+update vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='AMT';
+update vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='EU Product';
+update vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='dm+d';
+update vocabulary set vocabulary_name='Gemscript (Resip)', vocabulary_reference='http://www.resip.co.uk/downloads', vocabulary_version='March 2016' where vocabulary_id='Gemscript';
+update vocabulary set vocabulary_reference='http://www.whocc.no/atc_ddd_index/' where vocabulary_id='Gemscript';
+update vocabulary_conversion set click_disabled=null where vocabulary_id_v5='ICD10CM';
+
+update prodv5.vocabulary_conversion set available=null where vocabulary_id_v5='ICD10CM';
+update prodv5.vocabulary_conversion set latest_update='28-Mar-2016' where vocabulary_id_v5='DPD';
+update prodv5.vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='BDPM';
+update prodv5.vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='AMIS';
+update prodv5.vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='AMT';
+update prodv5.vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='EU Product';
+update prodv5.vocabulary_conversion set available='Currently not available' where vocabulary_id_v5='dm+d';
+update prodv5.vocabulary set vocabulary_name='Gemscript (Resip)', vocabulary_reference='http://www.resip.co.uk/downloads', vocabulary_version='March 2016' where vocabulary_id='Gemscript';
+update prodv5.vocabulary set vocabulary_reference='http://www.whocc.no/atc_ddd_index/' where vocabulary_id='Gemscript';
+update prodv5.vocabulary_conversion set click_disabled=null where vocabulary_id_v5='ICD10CM';
+update prodv5.vocabulary_conversion set click_disabled='Y' where vocabulary_id_v5='DA_France';
+update prodv5.vocabulary_conversion set click_disabled='Y' where vocabulary_id_v5='AMT';
+update prodv5.vocabulary_conversion set click_disabled='Y' where vocabulary_id_v5='AMIS';
+update prodv5.vocabulary_conversion set click_disabled='Y' where vocabulary_id_v5='EU Product';
+update prodv5.vocabulary_conversion set click_disabled='Y' where vocabulary_id_v5='BDPM';
+update prodv5.vocabulary_conversion set click_disabled='Y' where vocabulary_id_v5='dm+d';
+
 commit;
 
+-- Fix undeprecated old Maps to for HCPCS procedure drugs
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Maps to' and concept_id_1=43533174 and concept_id_2=44786563;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Maps to' and concept_id_1=43533174 and concept_id_2=42800248;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Mapped from' and concept_id_2=43533174 and concept_id_1=44786563;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Mapped from' and concept_id_2=43533174 and concept_id_1=42800248;
 
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Maps to' and concept_id_1=43533246 and concept_id_2=44786570;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Maps to' and concept_id_1=43533246 and concept_id_2=42801290;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Mapped from' and concept_id_2=43533246 and concept_id_1=44786570;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Mapped from' and concept_id_2=43533246 and concept_id_1=42801290;
 
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Maps to' and concept_id_1=43533298 and concept_id_2=44786568;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Maps to' and concept_id_1=43533298 and concept_id_2=42873620;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Mapped from' and concept_id_2=43533298 and concept_id_1=44786568;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Mapped from' and concept_id_2=43533298 and concept_id_1=42873620;
+
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Maps to' and concept_id_1=43533338 and concept_id_2=44786573;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Maps to' and concept_id_1=43533338 and concept_id_2=42874264;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Mapped from' and concept_id_2=43533338 and concept_id_1=44786573;
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' where relationship_id='Mapped from' and concept_id_2=43533338 and concept_id_1=42874264;
+
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' 
+where rowid in (
+  select r.rowid
+  from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null and r.relationship_id='Maps to'
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where 1=1
+  and c1.vocabulary_id='HCPCS' and c2.vocabulary_id='RxNorm'
+  and c1.concept_id in (select concept_id_1 from concept_relationship where invalid_reason is null and relationship_id='Maps to' group by concept_id_1 having count(8)>1)
+  and r.valid_start_date!='28-Oct-15'
+)
+;
+
+update concept_relationship set valid_end_date='27-Oct-2015', invalid_reason='D' 
+where rowid in (
+  select r.rowid
+  from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null and r.relationship_id='Mapped from'
+  join concept c2 on c2.concept_id=r.concept_id_2
+  where 1=1
+  and c2.vocabulary_id='HCPCS' and c1.vocabulary_id='RxNorm'
+  and c2.concept_id in (select concept_id_1 from concept_relationship where invalid_reason is null and relationship_id='Maps to' group by concept_id_1 having count(8)>1)
+  and r.valid_start_date!='28-Oct-15'
+)
+;
+
+rollback;
 

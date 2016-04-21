@@ -1553,7 +1553,7 @@ group by drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary
 commit;
 
 -- 8. Tidy up
-/*
+
 -- Replace concept_codes XXX123 with OMOP123
 update concept_stage
 set concept_code=replace(concept_code, 'XXX', 'OMOP') 
@@ -1570,6 +1570,5 @@ where concept_code_2 like 'XXX%';
 update drug_strength_stage
 set drug_concept_code=replace(drug_concept_code, 'XXX', 'OMOP') 
 where drug_concept_code like 'XXX%';
-*/
 
 commit;

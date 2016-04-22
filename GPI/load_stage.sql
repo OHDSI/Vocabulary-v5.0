@@ -47,64 +47,6 @@ INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-/*
-						   SELECT DISTINCT COALESCE (concept_name, --take name from concept table OR RxNorm
-                             drug_string,
-                             rx_name,
-                             ' ')
-                      AS concept_name,
-                   domain_id,
-                   vocabulary_id,
-                   concept_class_id,
-                   standard_concept,
-                   concept_code,
-                   valid_start_date,
-                   valid_end_date,
-                   invalid_reason
-     FROM (SELECT DISTINCT
-                  LAST_VALUE (
-                     c.concept_name)
-                  OVER (
-                     PARTITION BY r.concept_value
-                     ORDER BY LENGTH (c.concept_name), c.concept_name
-                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
-                     AS concept_name,
-                  'Drug' AS domain_id,
-                  'GPI' AS vocabulary_id,
-                  'GPI' AS concept_class_id,
-                  NULL AS standard_concept,
-                  r.concept_value AS concept_code,
-                  v.latest_update AS valid_start_date,
-                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-                  NULL AS invalid_reason,
-                  LAST_VALUE (
-                     gn.drug_string)
-                  OVER (
-                     PARTITION BY r.concept_value
-                     ORDER BY LENGTH (gn.drug_string), gn.drug_string
-                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
-                     AS drug_string,
-                  LAST_VALUE (
-                     rx.concept_name)
-                  OVER (
-                     PARTITION BY r.concept_value
-                     ORDER BY LENGTH (rx.concept_name), rx.concept_name
-                     ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
-                     AS rx_name
-             FROM rxxxref r
-                  JOIN vocabulary v ON v.vocabulary_id = 'GPI'
-                  LEFT JOIN concept c
-                     ON     r.concept_value = c.concept_code
-                        AND c.vocabulary_id = 'GPI'
-                        AND c.invalid_reason IS NULL
-                  LEFT JOIN gpi_name gn ON gn.gpi_code = r.concept_value
-                  LEFT JOIN concept rx
-                     ON     r.rxnorm_code = rx.concept_code
-                        AND rx.vocabulary_id = 'RxNorm'
-						AND rx.invalid_reason IS NULL
-            WHERE r.concept_type_id = 5                            -- GPI only
-);
-*/
    SELECT gpi_desc AS concept_name,
           'Drug' AS domain_id,
           'GPI' AS vocabulary_id,
@@ -117,11 +59,11 @@ INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
              AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
-     FROM ndw_v_product;
+     FROM ndw_v_product WHERE gpi IS NOT NULL;
 COMMIT;					  
 
 --4 Load into concept_relationship_stage name from rxxxref
-INSERT INTO concept_relationship_stage (concept_code_1,
+INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
                                         vocabulary_id_1,
@@ -129,19 +71,55 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT DISTINCT r.concept_value AS concept_code_1,
-                   r.rxnorm_code AS concept_code_2,
-                   'Maps to' AS relationship_id,
-                   'GPI' AS vocabulary_id_1,
-                   'RxNorm' AS vocabulary_id_2,
-                   v.latest_update AS valid_start_date,
-                   TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-                   NULL AS invalid_reason
-     FROM rxxxref r, vocabulary v
-    WHERE     r.concept_type_id = 5                                -- GPI only
-          AND r.match_type IN ('01', '02')
-          AND r.rxnorm_code IS NOT NULL
-          AND v.vocabulary_id = 'GPI';
+with map as (
+-- Get all possible chains through NDC and "Maps to" to RxNorm
+  select
+    n.gpi, 
+    rx.concept_id as rx_id, 
+    rx.concept_class_id as rx_class
+  from ndw_v_product n
+  join concept ndc on ndc.concept_code=n.ndc and ndc.vocabulary_id='NDC'-- and nvl(n.obsolete_dt, '31-Dec-2099')>ndc.valid_start_date
+  join concept_relationship r on r.invalid_reason is null and r.concept_id_1=ndc.concept_id and r.relationship_id='Maps to'
+  join concept rx on rx.concept_id=r.concept_id_2 and rx.concept_class_id in ('Branded Pack', 'Clinical Pack', 'Branded Drug', 'Clinical Drug', 'Quant Branded Drug', 'Quant Clinical Drug') and rx.vocabulary_id='RxNorm'
+  where n.gpi is not null
+    group by n.gpi, 
+    rx.concept_id, 
+    rx.concept_class_id
+),
+all_class as (
+-- Count the various concept_classes of the resulting concepts, and every ancestor, to find out if it is the same thing with different level of granularity
+  select map.gpi, c.concept_id, c.concept_class_id
+  from map
+  join concept_ancestor a on a.descendant_concept_id=map.rx_id
+  join concept c on c.concept_id=a.ancestor_concept_id and c.vocabulary_id='RxNorm' and c.concept_class_id in ('Branded Pack', 'Clinical Pack', 'Branded Drug', 'Clinical Drug', 'Quant Branded Drug', 'Quant Clinical Drug')
+union
+  select gpi, rx_id, rx_class from map
+),
+clean_class as (
+-- Pick only those where the concept_class_id count is 1 (which means unique target concept)
+  select gpi, concept_class_id, count(*) as cnt
+  from all_class
+  group by gpi, concept_class_id having count(*)=1
+)
+select distinct 
+  ac.gpi as concept_code_1,
+-- Pick the one which is the lowest but still unique
+  first_value(c.concept_code) over (partition by ac.gpi order by decode(ac.concept_class_id, 'Branded Pack', 1, 'Clinical Pack', 2, 'Quant Branded Drug', 3, 'Quant Clinical Drug', 4, 'Branded Drug', 5, 6)) as concept_code_2,
+  'Maps to' as relationship_id,
+  'GPI' as vocabulary_id_1,
+  'RxNorm' as vocabulary_id_2,
+  (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'GPI')
+             AS valid_start_date,
+  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+  NULL AS invalid_reason
+from clean_class cc
+join all_class ac on cc.gpi=ac.gpi and cc.concept_class_id=ac.concept_class_id
+join concept c on c.concept_id=ac.concept_id
+-- exclude all those that don't merge at a single Clinical Drug, i.e. coding for different target concepts
+where exists (select 1 from clean_class where gpi=cc.gpi and concept_class_id='Clinical Drug');
+
 COMMIT;
 
 --5. Add synonyms

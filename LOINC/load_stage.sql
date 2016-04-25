@@ -376,7 +376,25 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE v.vocabulary_id = 'LOINC';
 COMMIT;
 
---16 Delete duplicate mappings (one concept has multiply target concepts)
+--16 Delete ambiguous 'Maps to' mappings if target concept have domain_id='Drug' and concept_class_id NOT IN ('Ingredient', 'Clinical Drug Comp')
+DELETE FROM concept_relationship_stage r
+WHERE (concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2) IN (
+    SELECT concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2 FROM (      
+        SELECT concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2, 
+        COUNT(DISTINCT concept_code_2) OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2) AS cnt
+            FROM concept_relationship_stage cs, concept c
+           WHERE     relationship_id = 'Maps to'
+                 AND cs.invalid_reason IS NULL
+                 AND cs.concept_code_2 = c.concept_code
+                 AND cs.vocabulary_id_2 = c.vocabulary_id
+                 AND c.domain_id = 'Drug'
+                 AND c.concept_class_id NOT IN ('Ingredient', 'Clinical Drug Comp')
+        GROUP BY concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
+    ) WHERE cnt > 1 
+);
+COMMIT;
+
+--17 Delete duplicate replacement mappings (one concept has multiply target concepts)
 DELETE FROM concept_relationship_stage
       WHERE (concept_code_1, relationship_id) IN
                (  SELECT concept_code_1, relationship_id
@@ -392,7 +410,7 @@ DELETE FROM concept_relationship_stage
                   HAVING COUNT (DISTINCT concept_code_2) > 1);
 COMMIT;
 
---17 Delete self-connected mappings ("A 'Concept replaced by' B" and "B 'Concept replaced by' A")
+--18 Delete self-connected mappings ("A 'Concept replaced by' B" and "B 'Concept replaced by' A")
 DELETE FROM concept_relationship_stage
       WHERE ROWID IN (SELECT cs1.ROWID
                         FROM concept_relationship_stage cs1, concept_relationship_stage cs2
@@ -411,7 +429,7 @@ DELETE FROM concept_relationship_stage
                                                          'Concept was_a to'));
 COMMIT;
 
---18 Deprecate concepts if we have no active replacement record in the concept_relationship_stage
+--19 Deprecate concepts if we have no active replacement record in the concept_relationship_stage
 UPDATE concept_stage cs
    SET cs.valid_end_date =
           (SELECT v.latest_update - 1
@@ -433,7 +451,7 @@ UPDATE concept_stage cs
        AND cs.invalid_reason = 'U';		
 COMMIT;	
 
---19 Deprecate replacement records if target concept was depreceted 
+--20 Deprecate replacement records if target concept was depreceted 
 MERGE INTO concept_relationship_stage r
      USING (WITH upgraded_concepts
                     AS (SELECT crs.concept_code_1,
@@ -476,7 +494,7 @@ THEN
                    WHERE vocabulary_id IN (r.vocabulary_id_1, r.vocabulary_id_2));
 COMMIT;
 
---20 Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
+--21 Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
 UPDATE concept_stage cs
    SET cs.valid_end_date =
           (SELECT v.latest_update - 1
@@ -498,7 +516,7 @@ UPDATE concept_stage cs
        AND cs.invalid_reason = 'U';				 
 COMMIT;
 
---21 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--22 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 UPDATE concept_relationship_stage crs
    SET crs.valid_end_date =
           (SELECT latest_update - 1
@@ -513,7 +531,7 @@ UPDATE concept_relationship_stage crs
                 WHERE cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2 AND cs.invalid_reason IN ('U', 'D'));
 COMMIT;		
 
---22 Add mapping from deprecated to fresh concepts
+--23 Add mapping from deprecated to fresh concepts
 MERGE INTO concept_relationship_stage crs
      USING (WITH upgraded_concepts
                     AS (SELECT DISTINCT concept_code_1,
@@ -611,12 +629,12 @@ THEN
            WHERE crs.invalid_reason IS NOT NULL;
 COMMIT;
 
---23 Update concept_id in concept_stage from concept for existing concepts
+--24 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
---24 Reinstate constraints and indices
+--25 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

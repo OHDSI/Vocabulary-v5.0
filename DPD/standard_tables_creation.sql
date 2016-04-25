@@ -736,6 +736,9 @@ create table temp84 (drug_code varchar (255) ); INSERT INTO TEMP84(  DRUG_CODE)V
 INSERT INTO TEMP84(  DRUG_CODE)VALUES(  '505900'); INSERT INTO TEMP84(  DRUG_CODE)VALUES(  '509159'); INSERT INTO TEMP84(  DRUG_CODE)VALUES(  '510874'); INSERT INTO TEMP84(  DRUG_CODE)VALUES(  '724041'); 
 create table temp85 as (select c.drug_code from drug_product c join form b on c.drug_code=b.drug_code join form a on c.drug_code=a.drug_code where a.PHARMACEUTICAL_FORM='AEROSOL' and b.PHARMACEUTICAL_FORM='SHAMPOO');
 create table temp86 as (select c.drug_code from drug_product c join form b on c.drug_code=b.drug_code join form a on c.drug_code=a.drug_code where a.PHARMACEUTICAL_FORM='LOTION' and b.PHARMACEUTICAL_FORM='GEL'); 
+create table temp87 (drug_code varchar (255) ); INSERT INTO temp87(  DRUG_CODE)VALUES(  '773530'); INSERT INTO temp87(  DRUG_CODE)VALUES(  '730769'); INSERT INTO temp87(  DRUG_CODE)VALUES(  '726133'); INSERT INTO temp87(  DRUG_CODE)VALUES(  '556149');
+INSERT INTO temp87(  DRUG_CODE)VALUES(  '342408'); INSERT INTO temp87(  DRUG_CODE)VALUES(  '342394'); INSERT INTO temp87(  DRUG_CODE)VALUES(  '338265'); INSERT INTO temp87(  DRUG_CODE)VALUES(  '2239576'); INSERT INTO temp87(  DRUG_CODE)VALUES(  '2233291');
+create table temp88 (drug_code varchar (255) ); INSERT INTO temp88(  DRUG_CODE)VALUES(  '621811'); INSERT INTO temp88(  DRUG_CODE)VALUES(  '628166'); INSERT INTO temp88(  DRUG_CODE)VALUES(  '518638'); INSERT INTO temp88(  DRUG_CODE)VALUES(  '621811');
 
 CREATE TABLE FORM_1 AS (
 select case when drug_code in (select drug_code from temp1) then 'SUSPENSION'
@@ -823,6 +826,8 @@ when drug_code in (select drug_code from temp83) then 'TABLET'
 when drug_code in (select drug_code from temp84) then 'SOLUTION'
 when drug_code in (select drug_code from temp85) then 'SHAMPOO'
 when drug_code in (select drug_code from temp86) then 'LOTION'
+when drug_code in (select drug_code from temp87) then 'SOLUTION'
+when drug_code in (select drug_code from temp88) then 'CAPSULE'
 else PHARMACEUTICAL_FORM end as PHARMACEUTICAL_FORM, drug_code
 from form)
 ;
@@ -894,6 +899,8 @@ where a.drug_code in (select drug_code from brand_v2))
 UPDATE BRANDED_DRUG_P1    SET CONCEPT_NAME = 'TARO-CARBAMAZEPINE SUSPENSION' WHERE CONCEPT_NAME = 'TARO-CARBAMAZEPINE' AND   CONCEPT_CLASS_ID = 'Quant Branded Drug' AND   CONCEPT_CODE = '2367394';
 UPDATE BRANDED_DRUG_P1   SET CONCEPT_NAME = 'TARO-CARBAMAZEPINE TABLET' WHERE CONCEPT_NAME = 'TARO-CARBAMAZEPINE' AND   CONCEPT_CLASS_ID = 'Branded Drug' AND   CONCEPT_CODE = '2407515';
 UPDATE BRANDED_DRUG_P1   SET CONCEPT_NAME = 'CYSTADANE POWDER FOR SOLUTION' WHERE CONCEPT_NAME = 'CYSTADANE' AND   CONCEPT_CLASS_ID = 'Quant Branded Drug' AND   CONCEPT_CODE = '2238526';
+UPDATE BRANDED_DRUG_P1   SET CONCEPT_NAME = 'ACT TABLET' WHERE CONCEPT_NAME = 'ACT' AND   CONCEPT_CLASS_ID = 'Branded Drug' AND   CONCEPT_CODE = '2237004';
+
 
 --CREATE BRANDED DRUGS THAT ARE PRESENTED IN ORIGINAL TABLES IN PACKS
 create table branded_drug_p2 as 
@@ -914,7 +921,6 @@ select concept_code from branded_drug_p2)
 )
 ;
 --DRUG MANUFACTURER
-drop table manufacturer;
 create table manufacturer as (
 select distinct COMPANY_NAME  as concept_name,'Manufacturer' as concept_class_id from companies
 )
@@ -1096,7 +1102,7 @@ select  * from quant_to_drg_1
 union
 select  * from quant_to_drg_2)
 ;
-drop table comp_to_drug ;
+
 create table comp_to_drug as(
 select distinct a.concept_code as concept_code_2, n.drug_code as concept_code_1
 from drug_concept_stage a 
@@ -1138,7 +1144,7 @@ join drug_concept_stage b on b.concept_code = s.concept_code_2
 ))
 ;
 --DRUG_STRENGTH
-CREATE TABLE DRUG_STRENGTH_stage
+CREATE TABLE Ds_stage
 (
    DRUG_CONCEPT_CODE        VARCHAR2(255 Byte),
    INGREDIENT_CONCEPT_CODE  VARCHAR2(255 Byte),
@@ -1156,7 +1162,7 @@ select distinct STRENGTH, STRENGTH_unit,dosage_value, DOSAGE_UNIT, d.concept_cod
 join drug_concept_stage e on d.concept_name=e.concept_name 
 where e.concept_class_id='Ingredient')
 ;
-insert into drug_strength_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+insert into ds_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
 select distinct drug_code, concept_code, case when dosage_unit is null and strength_unit!='%' then cast(strength as float (126)) else null end as AMOUNT_VALUE,
 case when dosage_unit is null and strength_unit!='%' then strength_unit else null end as AMOUNT_unit,
 case when dosage_unit is not null or strength_unit='%'  then cast(strength as float (126)) else null end as NUMERATOR_VALUE,
@@ -1165,13 +1171,13 @@ case when dosage_unit  is not null then cast(dosage_value as float (126))  else 
 case when dosage_unit  is not null then dosage_unit else null end as DENOMINATOR_UNIT
 from  ds_0
 ;
-update DRUG_STRENGTH_STAGE 
+update Ds_STAGE 
 set denominator_unit=null where denominator_unit='%';
 --deleting pack codes that we will insert as OMOP-codes
-delete drug_strength_stage where drug_concept_code in (
+delete ds_stage where drug_concept_code in (
 select concept_code from branded_drug_p2)
 ;
-insert into drug_strength_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+insert into ds_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
 select distinct DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,cast( AMOUNT_VALUE as float (126)),AMOUNT_UNIT,cast( NUMERATOR_VALUE as float (126)),NUMERATOR_UNIT,cast( DENOMINATOR_VALUE as float (126)),DENOMINATOR_UNIT from pack_for_DSS;
 
 create table pack_content_0 as(
@@ -1277,7 +1283,7 @@ join drug_concept_stage on concept_name_1=concept_name
 where concept_class_id='Ingredient'
 ;
 insert into  RELATIONSHIP_TO_CONCEPT ( concept_code_1,  vocabulary_id_1	, concept_id_2	, precedence) 
-select concept_code,'DPD',CONCEPT_code_2,precedence from AUT_FORM_ALL_MAPPED 
+select concept_code,'DPD',CONCEPT_id_2,precedence from AUT_FORM_ALL_MAPPED 
 join drug_concept_stage on concept_name_1=concept_name and concept_class_id='Dose Form'
 ;
 insert into  RELATIONSHIP_TO_CONCEPT ( concept_code_1,  vocabulary_id_1	, concept_id_2, precedence) 

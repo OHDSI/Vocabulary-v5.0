@@ -39,7 +39,8 @@ from drug_concept_stage i
 left join relationship_to_concept r1 on r1.concept_code_1=i.concept_code
 left join concept ing on ing.concept_id=r1.concept_id_2 -- link standard ingredients to existing ones
 join internal_relationship_stage r2 on r2.concept_code_2=i.concept_code
-join drug_concept_stage drug on drug.concept_class_id not in ('Unit', 'Ingredient', 'Brand Name', 'Non-Drug Prod', 'Dose Form', 'Device', 'Observation') -- include only drug product concept classes
+join drug_concept_stage drug on drug.concept_class_id not in ('Unit', 'Ingredient', 'Brand Name', 'Non-Drug Prod', 'Dose Form', 'Device', 'Observation') 
+  and drug.domain_id='Drug' -- include only drug product concept classes
   and drug.concept_code=r2.concept_code_1
 where i.concept_class_id='Ingredient'
 ;

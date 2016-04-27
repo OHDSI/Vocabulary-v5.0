@@ -35,3 +35,15 @@ CREATE TABLE GPI_NAME
   GPI_CODE     VARCHAR2(100 BYTE),
   DRUG_STRING  VARCHAR2(100 BYTE)
 );
+
+CREATE TABLE NDW_V_PRODUCT
+(
+   NDC                          VARCHAR2 (500),
+   MKTED_PROD_FORMLTN_NM        VARCHAR2 (500),
+   MKTED_PROD_DETL_NM           VARCHAR2 (500),
+   MKTED_PROD_FORMLTN_LNCH_DT   DATE,
+   TPTY_RECV_ADD_DT             DATE,
+   OBSOLETE_DT                  DATE,
+   GPI                          VARCHAR2 (500),
+   GPI_DESC                     VARCHAR2 (500)
+);

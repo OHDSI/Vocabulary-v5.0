@@ -1236,7 +1236,7 @@ insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary
 select 
   p.pack_concept_code as concept_code_1,
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
-  nvl(r_code, p.component_concept_code) as concept_code_2,
+  nvl(r_code, p.drug_concept_code) as concept_code_2,
   nvl(r_vocab_id, (select vocabulary_id from drug_concept_stage where rownum=1)) as vocabulary_id_2,
   'Contains',
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
@@ -1245,7 +1245,7 @@ select
 from pack_content p
 left join (
   select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join devv5.concept r on r.concept_id=qr.r_did
-) on q_dcode=p.component_concept_code
+) on q_dcode=p.drug_concept_code
 ;
 commit;
 
@@ -1267,6 +1267,7 @@ join (
 ) i on ccs.i_combo_code=i.combo_code
 left join concept_relationship_stage crs on crs.concept_code_1=i.concept_code -- join a mapped Ingredient if exists
 where ccs.concept_class_id in ('Clinical Drug Form', 'Clinical Drug Comp')
+and   nvl(crs.concept_code_2, i.concept_code)='1007302'
 ;
 commit;
 
@@ -1349,7 +1350,7 @@ commit;
 
 -- Write links to Ingredients for drugs not covered by drug_strength (added next)
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-select 
+select distinct
   m.concept_code as concept_code_1,
   dcs.vocabulary_id as vocabulary_id_1,
   nvl(crs.concept_code_2, dcs.concept_code) as concept_code_2,
@@ -1471,8 +1472,13 @@ commit;
 
 
 -- 7. Create DRUG_STRENGTH from unique_ds
-
 truncate table drug_strength_stage;
+
+-- collect statistics so Oracle does the following in a reasonable approach
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'ds', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'complete_concept_stage', estimate_percent  => null, cascade  => true);
+
 insert /*+ APPEND */ into drug_strength_stage
 -- dedup same ingredient in product and sum up the amounts
 select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2,
@@ -1551,17 +1557,22 @@ create table xxx_replace (
   omop_code varchar2(50)
 )
 ;
+
 -- Replace concept_code with those generated in previous runs of this script: with drug_strength
 insert into xxx_replace
-select concept_code as xxx_code, drug_concept_code as omop_code
+select distinct
+  concept_code as xxx_code, 
+  first_value(drug_concept_code) over (partition by concept_code order by drug_concept_code desc) as omop_code -- if more than one pick the "newest"
 from (
-  select * from complete_concept_stage where d_combo_code!=' ' 
+  select * 
+  from complete_concept_stage 
+  join concept_stage using(concept_code)
+  where d_combo_code!=' ' 
     and concept_code like 'XXX%'
 )
 join (
   select drug_concept_code, denominator_value, 
     listagg(ds_code, '-') within group (order by ds_code) as d_combo_code, 
---    listagg(ingredient_concept_code, '-') within group (order by ingredient_concept_code) as i_combo_code, 
     dose_form_code, brand_code, box_size 
   from (
     select drug_concept_code, denominator_value, ingredient_concept_code, ds_code, dose_form_code, brand_code, box_size 
@@ -1587,9 +1598,13 @@ commit;
 
 -- without drug_strength (Drug Forms)
 insert into xxx_replace
-select concept_code as xxx_code, drug_concept_code as omop_code
+select distinct
+  concept_code as xxx_code, 
+  first_value(drug_concept_code) over (partition by concept_code order by drug_concept_code desc) as omop_code -- if more than one pick the "newest"
 from (
-  select * from complete_concept_stage where d_combo_code=' ' 
+  select * from complete_concept_stage 
+  join concept_stage using(concept_code)
+  where d_combo_code=' ' 
     and concept_code like 'XXX%'
 )
 join (
@@ -1622,7 +1637,7 @@ end;
 */
 
 insert into xxx_replace
-select xxx_code, 'OMOP'||new_vocab.nextval as omop_code
+select concept_code as xxx_code, 'OMOP'||new_vocab.nextval as omop_code
 from concept_stage 
 where concept_code like 'XXX%' 
 and concept_code not in (select xxx_code from xxx_replace)
@@ -1631,7 +1646,7 @@ commit;
 
 update concept_stage cs
 set cs.concept_code=(select xr.omop_code from xxx_replace xr where cs.concept_code=xr.xxx_code)
-where crs.concept_code like 'XXX%';
+where cs.concept_code like 'XXX%';
 
 update concept_relationship_stage crs
 set crs.concept_code_1=(select xr.omop_code from xxx_replace xr where crs.concept_code_1=xr.xxx_code)
@@ -1644,10 +1659,6 @@ where crs.concept_code_2 like 'XXX%';
 update drug_strength_stage dss
 set dss.drug_concept_code=(select xr.omop_code from xxx_replace xr where dss.drug_concept_code=xr.xxx_code)
 where dss.drug_concept_code like 'XXX%';
-
-update existing_ds ed
-set ed.drug_concept_code=(select xr.omop_code from xxx_replace xr where ed.drug_concept_code=xr.xxx_code)
-where ed.drug_concept_code like 'XXX%';
 
 commit;
 

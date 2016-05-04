@@ -18,8 +18,18 @@
 **************************************************************************/
 
 
+-- Prerequisites:
+-- Update concept_id in concept_stage from concept for existing concepts
+MERGE INTO concept_stage cs
+     USING (SELECT c.concept_id, LOWER (c.concept_code) AS concept_code, c.vocabulary_id
+              FROM concept c) i
+        ON (i.concept_code = LOWER (cs.concept_code) AND i.vocabulary_id = cs.vocabulary_id)
+WHEN MATCHED
+THEN
+   UPDATE SET cs.concept_id = i.concept_id;
+COMMIT;
 
--- GATHER_TABLE_STATS
+-- GATHER TABLE STATS
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);

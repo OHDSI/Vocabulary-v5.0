@@ -221,10 +221,15 @@ commit;
 -- Get the best possible mapping that is unique in its concept class. Try bottom up from the lowest end of the drug hierarchy
 create table best_map nologging as
 with r as (
-  select distinct qr.*, c.concept_class_id from q_to_r qr join concept c on c.concept_id=qr.r_did 
+  select distinct qr.*, cast(c.concept_code as integer) as concept_code, c.concept_class_id from q_to_r qr join concept c on c.concept_id=qr.r_did 
 )
 select distinct 
-  rmap.* 
+  rmap.q_dcode,  
+  first_value(rmap.r_did) over (partition by rmap.q_dcode, rmap.r_iid order by rmap.concept_code desc) as r_did, 
+rmap.r_iid,
+rmap.bn_prec,
+rmap.rc_cnt,
+rmap.concept_class_id
 from (
 -- get the best match within class, with the best brand name, dose form and unit precedence
   select distinct
@@ -261,6 +266,7 @@ from (
   ) 
 ) rcnt
 join r rmap on rmap.q_dcode=rcnt.q_dcode and nvl(rmap.r_iid, 0)=nvl(rcnt.r_iid, 0) and rmap.concept_class_id=rcnt.concept_class_id
+-- where rmap.q_dcode='C9285'
 ;
 
 -- Remove those which have both Ingredient/Drug Comp hits as well as other hits.
@@ -292,6 +298,7 @@ select
   null as invalid_reason
 from best_map m
 join concept c on c.concept_id=m.r_did and c.vocabulary_id='RxNorm';
+
 commit;
 
 /****************************

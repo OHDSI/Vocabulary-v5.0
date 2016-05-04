@@ -652,9 +652,9 @@ commit;
 drop table r_drug_ing purge;
 create table r_drug_ing nologging as
   select de.concept_id as drug_id, an.concept_id as ing_id, de.concept_class_id
-  from devv5.concept_ancestor a 
-  join devv5.concept an on a.ancestor_concept_id=an.concept_id and an.vocabulary_id in ('RxNorm') and an.concept_class_id='Ingredient' 
-  join devv5.concept de on de.concept_id=a.descendant_concept_id and de.vocabulary_id in ('RxNorm') and de.concept_class_id!='Ingredient' 
+  from concept_ancestor a 
+  join concept an on a.ancestor_concept_id=an.concept_id and an.vocabulary_id in ('RxNorm') and an.concept_class_id='Ingredient' 
+  join concept de on de.concept_id=a.descendant_concept_id and de.vocabulary_id in ('RxNorm') and de.concept_class_id!='Ingredient' 
 ;
 -- Remove unparsable Albumin products that have no drug_strength entry: Albumin Human, USP 1 NS
 delete from r_drug_ing where drug_id in (19094500, 19080557);
@@ -677,7 +677,7 @@ from (
   join ing i on i.concept_code=ic.concept_code
 ) i
 left join relationship_to_concept r on r.concept_code_1=i.ing_code
-left join devv5.concept c on c.concept_id=r.concept_id_2 -- link standard ingredients to existing ones
+left join concept c on c.concept_id=r.concept_id_2 -- link standard ingredients to existing ones
 ;
 -- Count ingredients per drug
 drop table q_ing_count purge;
@@ -731,8 +731,8 @@ commit;
 -- Create table with Dose Forms for r
 drop table r_df purge;
 create table r_df nologging as 
-select r.concept_id_1, r.concept_id_2 from devv5.concept_relationship r
-join devv5.concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
+select r.concept_id_1, r.concept_id_2 from concept_relationship r
+join concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
 where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
 ;
 commit;
@@ -755,8 +755,8 @@ commit;
 drop table r_bn purge;
 create table r_bn nologging as
 select r.concept_id_1, r.concept_id_2 
-from devv5.concept_relationship r
-join devv5.concept on concept_id=r.concept_id_2 and concept_class_id ='Brand Name'
+from concept_relationship r
+join concept on concept_id=r.concept_id_2 and concept_class_id ='Brand Name'
 where r.invalid_reason is null 
 ;
 commit;
@@ -782,7 +782,7 @@ join (
   select distinct concept_code as drug_concept_code, denominator_value as q_value from complete_concept_stage
 ) q_quant on q_quant.drug_concept_code=m.q_dcode
 left join ( -- RxNorm might not have drug_strength for all concept_class_id
-  select distinct drug_concept_id, nvl(denominator_value, 0) as q_value from devv5.drug_strength dss
+  select distinct drug_concept_id, nvl(denominator_value, 0) as q_value from drug_strength dss
 ) r_quant on r_quant.drug_concept_id=m.r_did
 -- check for matching 
 where q_df.concept_id_2=nvl(r_df.concept_id_2, 0) -- if no Dose Form match 0s
@@ -823,7 +823,7 @@ with q as (
     r_ds.numerator_value, r_ds.numerator_unit_concept_id,
     nvl(r_ds.denominator_value, 1) as denominator_value, -- Quantified have a value in the denominator, the others haven't.
     r_ds.denominator_unit_concept_id
-  from devv5.drug_strength r_ds 
+  from drug_strength r_ds 
 )
 select 
   q_dcode, q_icode, r_did, r_iid, nvl(df_prec, 100) as df_prec, nvl(bn_prec, 100) as bn_prec, nvl(u_prec, 100) as u_prec, i_prec,
@@ -981,13 +981,13 @@ select distinct
   null as invalid_reason
 from drug_concept_stage q
 join relationship_to_concept on concept_code_1=q.concept_code
-join devv5.concept r on r.concept_id=concept_id_2
+join concept r on r.concept_id=concept_id_2
 left join (
   select q_icode, rm.concept_code, rm.vocabulary_id -- mostly RxNorm
   from (
     select distinct q_icode, r_iid from q_to_r_wdose  -- instead of taking precedence 1 take the one that is actually found to map
   )
-  join devv5.concept rm on rm.concept_id=r_iid
+  join concept rm on rm.concept_id=r_iid
 ) m on m.q_icode=q.concept_code
 where q.concept_class_id = 'Ingredient' and q.domain_id='Drug'
 ;
@@ -1007,7 +1007,7 @@ select distinct
   null as invalid_reason
 from drug_concept_stage q
 join relationship_to_concept on concept_code_1=q.concept_code
-join devv5.concept r on r.concept_id=concept_id_2
+join concept r on r.concept_id=concept_id_2
 where q.concept_class_id='Brand Name' and q.domain_id='Drug'
 ;
 commit;
@@ -1026,7 +1026,7 @@ select distinct
   null as invalid_reason
 from drug_concept_stage q
 join relationship_to_concept on concept_code_1=q.concept_code
-join devv5.concept r on r.concept_id=concept_id_2
+join concept r on r.concept_id=concept_id_2
 where q.concept_class_id='Dose Form' and q.domain_id='Drug'
 ;
 commit;
@@ -1045,7 +1045,7 @@ select
 -- usual validity
 from q_to_r qr
 join concept_stage cs on cs.concept_code=qr.q_dcode -- limit to those that actually were written to concept_stage (either source codes or standard_concept='S')
-join devv5.concept c on c.concept_id=qr.r_did
+join concept c on c.concept_id=qr.r_did
 ;
 commit;
 
@@ -1054,11 +1054,11 @@ insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary
 with rl as (
 -- Pull relationship_id between concept classes from existing RxNorm
   select distinct c1.concept_class_id as concept_class_id_1, r.relationship_id, c2.concept_class_id as concept_class_id_2
-  from devv5.concept c1
-  join devv5.concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null 
+  from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null 
     and relationship_id not in ('Precise ing of', 'Reformulated in', 'RxNorm replaces', 'Maps to', 'Concept replaces', 'Has precise ing', 'Mapped from', 'Reformulation of', 'RxNorm replaced by', 'Concept replaced by', 'Contained in')
-  join devv5.relationship rl on rl.relationship_id=r.relationship_id and rl.defines_ancestry=1
-  join devv5.concept c2 on c2.concept_id=r.concept_id_2
+  join relationship rl on rl.relationship_id=r.relationship_id and rl.defines_ancestry=1
+  join concept c2 on c2.concept_id=r.concept_id_2
   where c1.vocabulary_id='RxNorm' and c2.vocabulary_id='RxNorm'
     and c1.concept_class_id not in ('Brand Name', 'Dose Form', 'Ingredient', 'Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug Comp', 'Branded Pack', 'Clinical Pack') 
 -- Add non-RxNorm concept_classes
@@ -1100,7 +1100,7 @@ from (
   from complete_concept_stage
 -- use RxNorm if mapped
   left join (
-    select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join devv5.concept r on r.concept_id=qr.r_did
+    select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join concept r on r.concept_id=qr.r_did
   ) on q_dcode=concept_code
   where concept_class_id not in ('Brand Name', 'Dose Form', 'Ingredient', 'Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug Comp', 'Branded Pack', 'Clinical Pack')
 ) an 
@@ -1130,7 +1130,7 @@ select
   concept_class_id
 from complete_concept_stage
 left join (
-  select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join devv5.concept r on r.concept_id=qr.r_did
+  select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join concept r on r.concept_id=qr.r_did
 ) on q_dcode=concept_code
 where concept_class_id in ('Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug Comp')
 ;
@@ -1142,11 +1142,11 @@ insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary
 -- Pull relationship_id between concept classes from existing RxNorm
 with rl as (
   select distinct r.relationship_id, c2.concept_class_id as concept_class_id_2
-  from devv5.concept c1
-  join devv5.concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null 
+  from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null 
     and relationship_id not in ('Precise ing of', 'Reformulated in', 'RxNorm replaces', 'Maps to', 'Concept replaces', 'Has precise ing', 'Mapped from', 'Reformulation of', 'RxNorm replaced by', 'Concept replaced by', 'Contained in')
-  join devv5.relationship rl on rl.relationship_id=r.relationship_id and rl.defines_ancestry=1
-  join devv5.concept c2 on c2.concept_id=r.concept_id_2
+  join relationship rl on rl.relationship_id=r.relationship_id and rl.defines_ancestry=1
+  join concept c2 on c2.concept_id=r.concept_id_2
   where c1.vocabulary_id='RxNorm' and c2.vocabulary_id='RxNorm'
     and c1.concept_class_id = 'Clinical Drug Form'
 ) 
@@ -1199,11 +1199,11 @@ insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary
 -- Pull relationship_id between concept classes from existing RxNorm
 with rl as (
   select distinct c1.concept_class_id as concept_class_id_1, r.relationship_id, c2.concept_class_id as concept_class_id_2
-  from devv5.concept c1
-  join devv5.concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null 
+  from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id and r.invalid_reason is null 
     and relationship_id not in ('Precise ing of', 'Reformulated in', 'RxNorm replaces', 'Maps to', 'Concept replaces', 'Has precise ing', 'Mapped from', 'Reformulation of', 'RxNorm replaced by', 'Concept replaced by', 'Contained in')
-  join devv5.relationship rl on rl.relationship_id=r.relationship_id and rl.defines_ancestry=1
-  join devv5.concept c2 on c2.concept_id=r.concept_id_2
+  join relationship rl on rl.relationship_id=r.relationship_id and rl.defines_ancestry=1
+  join concept c2 on c2.concept_id=r.concept_id_2
   where c1.vocabulary_id='RxNorm' and c2.vocabulary_id='RxNorm'
     and c1.concept_class_id = 'Clinical Drug Comp'
 ) 
@@ -1244,7 +1244,7 @@ select
   null as invalid_reason
 from pack_content p
 left join (
-  select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join devv5.concept r on r.concept_id=qr.r_did
+  select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join concept r on r.concept_id=qr.r_did
 ) on q_dcode=p.drug_concept_code
 ;
 commit;
@@ -1321,7 +1321,7 @@ join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i
   and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size and e.concept_code!=c.concept_code
 -- try a map to RxNorm
 left join (
-  select qr.q_dcode, r.concept_code, r.vocabulary_id from q_to_r qr join devv5.concept r on r.concept_id=qr.r_did
+  select qr.q_dcode, r.concept_code, r.vocabulary_id from q_to_r qr join concept r on r.concept_id=qr.r_did
 ) r on r.q_dcode=c.concept_code
 ;
 commit;

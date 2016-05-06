@@ -206,7 +206,12 @@ INSERT /*+ APPEND */
    SELECT NULL AS concept_id,
           SUBSTR (EXTRACTVALUE (VALUE (t), 'AMP/DESC'), 1, 255)
              AS concept_name,
-          'Drug' AS domain_id,
+          CASE EXTRACTVALUE (VALUE (t), 'AMP/LIC_AUTHCD')
+		  WHEN '0002' THEN 'Device'
+		  WHEN '0000' THEN 'Unknown'
+		  WHEN '0003' THEN 'Unknown'
+		  ELSE 'Drug'
+		  END AS domain_id,
           'dm+d' AS vocabulary_id,
           'Branded Drug' AS concept_class_id,
           NULL AS standard_concept,
@@ -291,7 +296,22 @@ INSERT /*+ APPEND */
           TABLE (
              XMLSEQUENCE (
                 t_xml.xmlfield.EXTRACT (
-                   'ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP'))) t;
+                   'ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP'))) t
+   UNION ALL
+   --Suppliers
+   SELECT NULL AS concept_id,
+          EXTRACTVALUE (VALUE (t), 'INFO/DESC') AS concept_name,
+          'Drug' AS domain_id,
+          'dm+d' AS vocabulary_id,
+          'Dose Form' AS concept_class_id,
+          NULL AS standard_concept,
+          EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code,
+          TO_DATE ('1970-01-01', 'YYYY-MM-DD') AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason,
+          16 AS insert_id
+     FROM f_lookup2 t_xml,
+          TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/SUPPLIER/INFO'))) t;
 COMMIT;                   
                    
 -- Delete duplicates, first of all concepts with invalid_reason='D', then 'U', last of all 'NULL'

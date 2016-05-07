@@ -303,7 +303,7 @@ INSERT /*+ APPEND */
           EXTRACTVALUE (VALUE (t), 'INFO/DESC') AS concept_name,
           'Drug' AS domain_id,
           'dm+d' AS vocabulary_id,
-          'Dose Form' AS concept_class_id,
+          'Supplier' AS concept_class_id,
           NULL AS standard_concept,
           EXTRACTVALUE (VALUE (t), 'INFO/CD') AS concept_code,
           TO_DATE ('1970-01-01', 'YYYY-MM-DD') AS valid_start_date,

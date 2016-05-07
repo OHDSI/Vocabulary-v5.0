@@ -13,14 +13,18 @@ BEGIN
 END;
 */
 
--- Add DPD
+-- Add EphMRA ATC
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
   values(v5_concept.nextval, 'Anatomical Classification of Pharmaceutical Products (EphMRA)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
   values ('EphMRA ATC', 'Anatomical Classification of Pharmaceutical Products (EphMRA)', 'http://www.ephmra.org/Anatomical-Classification', 'V2016', (select concept_id from concept where concept_name='Anatomical Classification of Pharmaceutical Products (EphMRA)'));
 insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (80, 'EphMRA ATC', null, null, null, null);
 
-
+-- Add Concept Class Supplier
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Supplier', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Supplier', 'Supplier: Manufacturer, Wholesaler', (select concept_id from concept where concept_name = 'Supplier'));
 
 commit;
 

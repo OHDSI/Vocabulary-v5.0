@@ -1324,7 +1324,24 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                   JOIN rxnrel r ON r.rxaui1 = r1.rxaui
                   JOIN rxnconso r2 ON r2.rxaui = r.rxaui2 AND r2.code != 'NOCODE'
                   JOIN drug_vocs e ON r2.code = e.code AND e.rxcui = r2.rxcui)
-    WHERE relationship_id IS NOT NULL;
+    WHERE relationship_id IS NOT NULL
+	UNION ALL
+	-- Hierarchy inside ATC
+	SELECT uppr.concept_code AS concept_code_1,
+		   lowr.concept_code AS concept_code_2,
+		   'Is a' AS relationship_id,
+		   'ATC' AS vocabulary_id_1,
+		   'ATC' AS vocabulary_id_2,
+		   v.latest_update AS valid_start_date,
+		   TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+		   NULL AS invalid_reason
+	  FROM concept_stage uppr, concept_stage lowr, vocabulary v
+	 WHERE     (   (LENGTH (uppr.concept_code) IN (4, 5) AND lowr.concept_code = SUBSTR (uppr.concept_code, 1, LENGTH (uppr.concept_code) - 1))
+				OR (LENGTH (uppr.concept_code) IN (3, 7) AND lowr.concept_code = SUBSTR (uppr.concept_code, 1, LENGTH (uppr.concept_code) - 2)))
+		   AND uppr.vocabulary_id = 'ATC'
+		   AND lowr.vocabulary_id = 'ATC'
+		   AND v.vocabulary_id = 'ATC';	
+	
 COMMIT;
 
 --27 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs

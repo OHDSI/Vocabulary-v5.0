@@ -23,7 +23,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20151109','yyyymmdd'), vocabulary_version='2016 Release' WHERE vocabulary_id='MeSH'; 
+UPDATE vocabulary SET latest_update=to_date('20160509','yyyymmdd'), vocabulary_version='2016 Release' WHERE vocabulary_id='MeSH'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices
@@ -57,7 +57,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 		'Main Heading' as concept_class_id,
 		null as standard_concept,
 		mh.code as concept_code,
-		TO_DATE ('19700101', 'yyyymmdd') as valid_start_date,
+		(select latest_update from vocabulary where vocabulary_id='MeSH') as valid_start_date,
 		TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
 		null as invalid_reason 
 	from umls.mrconso mh
@@ -90,7 +90,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 		'Suppl Concept' as concept_class_id,
 		null as standard_concept,
 		mh.code as concept_code,
-		TO_DATE ('19700101', 'yyyymmdd') as valid_start_date,
+		(select latest_update from vocabulary where vocabulary_id='MeSH') as valid_start_date,
 		TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
 		null as invalid_reason 
 	from umls.mrconso mh

@@ -1013,7 +1013,8 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (
     JOIN concept c
           ON     c.concept_code = A.BETOS
              AND c.concept_class_id = 'HCPCS Class'
-             AND C.VOCABULARY_ID = 'HCPCS'; 
+             AND c.VOCABULARY_ID = 'HCPCS'
+			 AND c.invalid_reason IS NULL; 
 COMMIT;	
 
 --19 Add all other 'Concept replaced by' relationships
@@ -1241,7 +1242,7 @@ UPDATE concept_stage cs
                       AND c1.vocabulary_id = cs.vocabulary_id
                UNION ALL
                SELECT 1
-                 FROM concept_relationship_stage r, concept_stage c2
+                 FROM concept_relationship_stage r, concept c2
                 WHERE     r.concept_code_1 = cs.concept_code
                       AND r.vocabulary_id_1 = cs.vocabulary_id
                       AND r.concept_code_2 = c2.concept_code

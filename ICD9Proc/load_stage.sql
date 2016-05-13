@@ -195,7 +195,7 @@ DELETE FROM concept_relationship_stage r
 WHERE (concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2) IN (
     SELECT concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2 FROM (      
         SELECT concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2, 
-        COUNT(DISTINCT concept_code_2) OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2) AS cnt
+        ROW_NUMBER() OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2 ORDER BY cs.valid_start_date DESC, c.valid_start_date DESC, c.concept_id DESC) AS rn
             FROM concept_relationship_stage cs, concept c
            WHERE     relationship_id = 'Maps to'
                  AND cs.invalid_reason IS NULL
@@ -203,8 +203,7 @@ WHERE (concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabul
                  AND cs.vocabulary_id_2 = c.vocabulary_id
                  AND c.domain_id = 'Drug'
                  AND c.concept_class_id NOT IN ('Ingredient', 'Clinical Drug Comp')
-        GROUP BY concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2
-    ) WHERE cnt > 1 
+    ) WHERE rn > 1 
 );
 COMMIT;
 

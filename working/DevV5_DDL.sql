@@ -30,22 +30,6 @@ CREATE TABLE source_to_concept_map
    invalid_reason            VARCHAR (1) NULL
 );
 
-CREATE TABLE drug_strength
-(
-   drug_concept_id               INTEGER NOT NULL,
-   ingredient_concept_id         INTEGER NOT NULL,
-   amount_value                  FLOAT NULL,
-   amount_unit_concept_id        INTEGER NULL,
-   numerator_value               FLOAT NULL,
-   numerator_unit_concept_id     INTEGER NULL,
-   denominator_value             FLOAT NULL,
-   denominator_unit_concept_id   INTEGER NULL,
-   valid_start_date              DATE NOT NULL,
-   valid_end_date                DATE NOT NULL,
-   invalid_reason                VARCHAR (1) NULL
-)
-NOLOGGING;
-
 CREATE TABLE drug_strength_stage
 (
    drug_concept_code             VARCHAR2 (20) NOT NULL,
@@ -144,6 +128,7 @@ CREATE TABLE vocabulary_conversion NOLOGGING AS SELECT * FROM devv5.vocabulary_c
 CREATE TABLE concept_class NOLOGGING AS SELECT * FROM devv5.concept_class;
 CREATE TABLE domain NOLOGGING AS SELECT * FROM devv5.domain;
 CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM devv5.concept_synonym;
+CREATE TABLE drug_strength NOLOGGING AS SELECT * FROM devv5.drug_strength;
 
 -- Create PKs
 ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);

@@ -36,8 +36,7 @@ ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --3. fill CONCEPT_STAGE and concept_relationship_stage from Read
-INSERT INTO CONCEPT_STAGE (concept_id,
-                           concept_name,
+INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
                            concept_class_id,
@@ -47,22 +46,20 @@ INSERT INTO CONCEPT_STAGE (concept_id,
                            valid_end_date,
                            invalid_reason)
    SELECT DISTINCT
-	      NULL,
-          coalesce(kv2.description_long, kv2.description, kv2.description_short),
-          NULL,
-          'Read',
-          'Read',
-          NULL,
-          kv2.readcode || kv2.termcode,
-          (select latest_update from vocabulary where vocabulary_id='Read'),
-          TO_DATE ('20991231', 'yyyymmdd'),
-          NULL
+          coalesce(kv2.description_long, kv2.description, kv2.description_short) as concept_name,
+          NULL as domain_id,
+          'Read' as vocabulary_id,
+          'Read' as concept_class_id,
+          NULL as standard_concept,
+          kv2.readcode || kv2.termcode as concept_code,
+          (select latest_update from vocabulary where vocabulary_id='Read') as valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
+          NULL as invalid_reason
      FROM keyv2 kv2;
 COMMIT;
 
-INSERT INTO concept_relationship_stage (concept_id_1,
-                                        concept_id_2,
-                                        concept_code_1,
+--Add 'Maps to' from Read to SNOMED
+INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
 										vocabulary_id_1,
@@ -71,9 +68,7 @@ INSERT INTO concept_relationship_stage (concept_id_1,
                                         valid_end_date,
                                         invalid_reason)
    SELECT DISTINCT
-          NULL,
-          NULL,
-          RSCCT.ReadCode || RSCCT.TermCode,
+          RSCCT.ReadCode || RSCCT.TermCode as concept_code_1,
           -- pick the best map: mapstatus=1, then is_assured=1, then target concept is fresh, then newest date
           FIRST_VALUE (
              RSCCT.conceptid)
@@ -82,15 +77,38 @@ INSERT INTO concept_relationship_stage (concept_id_1,
              ORDER BY
                 RSCCT.mapstatus DESC,
                 RSCCT.is_assured DESC,
-                RSCCT.effectivedate DESC),
-          'Maps to',
-		  'Read',
-		  'SNOMED',
-          (select latest_update from vocabulary where vocabulary_id='Read'),
-          TO_DATE ('20991231', 'yyyymmdd'),
-          NULL
+                RSCCT.effectivedate DESC) as concept_code_2,
+          'Maps to' as relationship_id,
+		  'Read' as vocabulary_id_1,
+		  'SNOMED' as vocabulary_id_2,
+          (select latest_update from vocabulary where vocabulary_id='Read') as valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
+          NULL as invalid_reason
      FROM RCSCTMAP2_UK RSCCT;
 COMMIT;
+
+--Add manual 'Maps to' from Read to RxNorm
+INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        relationship_id,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT concept_code_1,
+          concept_code_2,
+          relationship_id,
+          vocabulary_id_1,
+          vocabulary_id_2,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'Read')
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM concept_relationship_manual_rd;
+COMMIT;	 
 
 --4 Create mapping to self for fresh concepts
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
@@ -124,7 +142,7 @@ COMMIT;
 
 --5 Add "subsumes" relationship between concepts where the concept_code is like of another
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
-INSERT INTO concept_relationship_stage (concept_code_1,
+INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,

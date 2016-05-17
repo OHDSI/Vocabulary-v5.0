@@ -753,7 +753,7 @@ insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) v
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hydroxyzine hcl', 777221, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hydroxyzine pamoate', 777221, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hyoscyamine sulfate', 923672, null);
-insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hypertonic saline solution', null, null);
+insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hypertonic saline solution', 967823, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ibandronate sodium', 1512480, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ibuprofen', 1177480, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ibutilide fumarate', 19050087, null);
@@ -974,7 +974,7 @@ insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) v
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('plicamycin', 19009165, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('pneumococcal conjugate vaccine', 513909, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('pneumococcal vaccine', 513909, null);
-insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('porfimer sodium', 19087871, null);
+insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('porfimer sodium', 19090420, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('potassium chloride', 19049105, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('pralatrexate', 40166461, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('pralidoxime chloride', 1727468, null);

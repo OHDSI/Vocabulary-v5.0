@@ -532,73 +532,89 @@ COMMIT;
 
 --23 Add mapping from deprecated to fresh concepts
 MERGE INTO concept_relationship_stage crs
-     USING (WITH upgraded_concepts
-                    AS (SELECT DISTINCT concept_code_1,
-                                        FIRST_VALUE (concept_code_2) OVER (PARTITION BY concept_code_1 ORDER BY rel_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2
-                          FROM (SELECT crs.concept_code_1,
-                                       crs.concept_code_2,
-                                       crs.vocabulary_id_1,
-                                       crs.vocabulary_id_2,
-                                       --if concepts have more than one relationship_id, then we take only the one with following precedence
-                                       CASE
-                                          WHEN crs.relationship_id = 'Concept replaced by' THEN 1
-                                          WHEN crs.relationship_id = 'Concept same_as to' THEN 2
-                                          WHEN crs.relationship_id = 'Concept alt_to to' THEN 3
-                                          WHEN crs.relationship_id = 'Concept poss_eq to' THEN 4
-                                          WHEN crs.relationship_id = 'Concept was_a to' THEN 5
-                                          WHEN crs.relationship_id = 'Maps to' THEN 6
-                                       END
-                                          AS rel_id
-                                  FROM concept_relationship_stage crs, concept_stage cs
-                                 WHERE     (   crs.relationship_id IN ('Concept replaced by',
-                                                                       'Concept same_as to',
-                                                                       'Concept alt_to to',
-                                                                       'Concept poss_eq to',
-                                                                       'Concept was_a to')
-                                            OR (crs.relationship_id = 'Maps to' AND cs.invalid_reason = 'U'))
-                                       AND crs.invalid_reason IS NULL
-                                       AND ( (crs.vocabulary_id_1 = crs.vocabulary_id_2 AND crs.relationship_id <> 'Maps to') OR crs.relationship_id = 'Maps to')
-                                       AND crs.concept_code_2 = cs.concept_code
-                                       AND crs.vocabulary_id_2 = cs.vocabulary_id
-                                       AND crs.concept_code_1 <> crs.concept_code_2
-                                UNION ALL
-                                --some concepts might be in 'base' tables, but information about 'U' - in 'stage'
-                                SELECT c1.concept_code,
-                                       c2.concept_code,
-                                       c1.vocabulary_id,
-                                       c2.vocabulary_id,
-                                       6 AS rel_id
-                                  FROM concept c1,
-                                       concept c2,
-                                       concept_relationship r,
-                                       concept_stage cs
-                                 WHERE     c1.concept_id = r.concept_id_1
-                                       AND c2.concept_id = r.concept_id_2
-                                       AND r.concept_id_1 <> r.concept_id_2
-                                       AND r.invalid_reason IS NULL
-                                       AND r.relationship_id = 'Maps to'
-                                       AND cs.vocabulary_id = c2.vocabulary_id
-                                       AND cs.concept_code = c2.concept_code
-                                       AND cs.invalid_reason = 'U'))
-                SELECT CONNECT_BY_ROOT concept_code_1 AS root_concept_code_1,
-                       u.concept_code_2,
-                       CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id_1,
-                       vocabulary_id_2,
-                       'Maps to' AS relationship_id,
-                       (SELECT latest_update
-                          FROM vocabulary
-                         WHERE vocabulary_id = vocabulary_id_2)
-                          AS valid_start_date,
-                       TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
-                       NULL AS invalid_reason
-                  FROM upgraded_concepts u
-                 WHERE CONNECT_BY_ISLEAF = 1
-            CONNECT BY NOCYCLE PRIOR concept_code_2 = concept_code_1
-            START WITH concept_code_1 IN (SELECT concept_code_1 FROM upgraded_concepts
-                                          MINUS
-                                          SELECT concept_code_2 FROM upgraded_concepts)) i
+     USING (  SELECT root_concept_code_1,
+                     concept_code_2,
+                     root_vocabulary_id_1,
+                     vocabulary_id_2,
+                     relationship_id,
+                     (SELECT latest_update
+                        FROM vocabulary
+                       WHERE vocabulary_id = root_vocabulary_id_1)
+                        AS valid_start_date,
+                     TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+                     invalid_reason
+                FROM (WITH upgraded_concepts
+                              AS (SELECT DISTINCT
+                                         concept_code_1,
+                                         CASE
+                                            WHEN rel_id <> 6
+                                            THEN
+                                               FIRST_VALUE (concept_code_2) OVER (PARTITION BY concept_code_1 ORDER BY rel_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+                                            ELSE
+                                               concept_code_2
+                                         END
+                                            AS concept_code_2,
+                                         vocabulary_id_1,
+                                         vocabulary_id_2
+                                    FROM (SELECT crs.concept_code_1,
+                                                 crs.concept_code_2,
+                                                 crs.vocabulary_id_1,
+                                                 crs.vocabulary_id_2,
+                                                 --if concepts have more than one relationship_id, then we take only the one with following precedence
+                                                 CASE
+                                                    WHEN crs.relationship_id = 'Concept replaced by' THEN 1
+                                                    WHEN crs.relationship_id = 'Concept same_as to' THEN 2
+                                                    WHEN crs.relationship_id = 'Concept alt_to to' THEN 3
+                                                    WHEN crs.relationship_id = 'Concept poss_eq to' THEN 4
+                                                    WHEN crs.relationship_id = 'Concept was_a to' THEN 5
+                                                    WHEN crs.relationship_id = 'Maps to' THEN 6
+                                                 END
+                                                    AS rel_id
+                                            FROM concept_relationship_stage crs
+                                           WHERE     (   crs.relationship_id IN ('Concept replaced by',
+                                                                                 'Concept same_as to',
+                                                                                 'Concept alt_to to',
+                                                                                 'Concept poss_eq to',
+                                                                                 'Concept was_a to')
+                                                      OR (crs.relationship_id = 'Maps to'))
+                                                 AND crs.invalid_reason IS NULL
+                                                 AND ( (crs.vocabulary_id_1 = crs.vocabulary_id_2 AND crs.relationship_id <> 'Maps to') OR crs.relationship_id = 'Maps to')
+                                                 AND crs.concept_code_1 <> crs.concept_code_2
+                                          UNION ALL
+                                          --some concepts might be in 'base' tables
+                                          SELECT c1.concept_code,
+                                                 c2.concept_code,
+                                                 c1.vocabulary_id,
+                                                 c2.vocabulary_id,
+                                                 6 AS rel_id
+                                            FROM concept c1, concept c2, concept_relationship r
+                                           WHERE     c1.concept_id = r.concept_id_1
+                                                 AND c2.concept_id = r.concept_id_2
+                                                 AND r.concept_id_1 <> r.concept_id_2
+                                                 AND r.invalid_reason IS NULL
+                                                 AND r.relationship_id = 'Maps to'))
+                          SELECT CONNECT_BY_ROOT concept_code_1 AS root_concept_code_1,
+                                 u.concept_code_2,
+                                 CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id_1,
+                                 vocabulary_id_2,
+                                 'Maps to' AS relationship_id,
+                                 NULL AS invalid_reason
+                            FROM upgraded_concepts u
+                           WHERE CONNECT_BY_ISLEAF = 1
+                      CONNECT BY NOCYCLE PRIOR concept_code_2 = concept_code_1 AND PRIOR vocabulary_id_2 = vocabulary_id_1
+                      START WITH concept_code_1 IN (SELECT concept_code_1 FROM upgraded_concepts
+                                                    MINUS
+                                                    SELECT concept_code_2 FROM upgraded_concepts)) i
+               WHERE EXISTS
+                        (SELECT 1
+                           FROM concept_stage cs
+                          WHERE cs.concept_code = root_concept_code_1 AND cs.vocabulary_id = root_vocabulary_id_1)
+            GROUP BY root_concept_code_1,
+                     concept_code_2,
+                     root_vocabulary_id_1,
+                     vocabulary_id_2,
+                     relationship_id,
+                     invalid_reason) i
         ON (    crs.concept_code_1 = i.root_concept_code_1
             AND crs.concept_code_2 = i.concept_code_2
             AND crs.vocabulary_id_1 = i.root_vocabulary_id_1

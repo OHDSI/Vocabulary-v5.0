@@ -545,7 +545,59 @@ THEN
            WHERE crs.invalid_reason IS NOT NULL;
 COMMIT;
 
---14 Load NDC into temporary table from 'product'
+--14 Delete ambiguous 'Maps to' mappings following by rules:
+--1. if we have 'true' mappings to Ingredient or Clinical Drug Comp, then delete all others mappings
+--2. if we don't have 'true' mappings, then leave only one fresh mapping
+--3. if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
+DELETE FROM concept_relationship_stage
+      WHERE ROWID IN
+               (SELECT rid
+                  FROM (SELECT rid,
+                               concept_code_1,
+                               concept_code_2,
+                               pseudo_class_id,
+                               rn,
+                               MIN (pseudo_class_id) OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2) have_true_mapping,
+                               has_rel_with_comp
+                          FROM (SELECT cs.ROWID rid,
+                                       concept_code_1,
+                                       concept_code_2,
+                                       vocabulary_id_1,
+                                       vocabulary_id_2,
+                                       CASE WHEN c.concept_class_id IN ('Ingredient', 'Clinical Drug Comp') THEN 1 ELSE 2 END pseudo_class_id,
+                                       ROW_NUMBER () OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2 
+                                       ORDER BY cs.valid_start_date DESC, c.valid_start_date DESC, c.concept_id DESC) rn, --fresh mappings first
+                                       (
+                                        SELECT 1
+                                          FROM concept_relationship cr_int, concept_relationship_stage crs_int, concept c_int
+                                         WHERE     cr_int.invalid_reason IS NULL
+                                               AND cr_int.relationship_id = 'RxNorm ing of'
+                                               AND cr_int.concept_id_1 = c.concept_id
+                                               AND c.concept_class_id = 'Ingredient'
+                                               AND crs_int.relationship_id = 'Maps to'
+                                               AND crs_int.invalid_reason IS NULL
+                                               AND crs_int.concept_code_1 = cs.concept_code_1
+                                               AND crs_int.vocabulary_id_1 = cs.vocabulary_id_1
+                                               AND crs_int.concept_code_2 = c_int.concept_code
+                                               AND crs_int.vocabulary_id_2 = c_int.vocabulary_id
+                                               AND c_int.domain_id = 'Drug'
+                                               AND c_int.concept_class_id = 'Clinical Drug Comp'
+                                               AND cr_int.concept_id_2 = c_int.concept_id                                      
+                                       ) has_rel_with_comp
+                                  FROM concept_relationship_stage cs, concept c
+                                 WHERE     relationship_id = 'Maps to'
+                                       AND cs.invalid_reason IS NULL
+                                       AND cs.concept_code_2 = c.concept_code
+                                       AND cs.vocabulary_id_2 = c.vocabulary_id
+                                       AND c.domain_id = 'Drug'))
+                 WHERE ( 
+                     (have_true_mapping = 1 AND pseudo_class_id = 2) OR --if we have 'true' mappings to Ingredients or Clinical Drug Comps (pseudo_class_id=1), then delete all others mappings (pseudo_class_id=2)
+                     (have_true_mapping <> 1 AND rn > 1) OR --if we don't have 'true' mappings, then leave only one fresh mapping
+                     has_rel_with_comp=1 --if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
+                 ));
+COMMIT;
+
+--15 Load NDC into temporary table from 'product'
 CREATE TABLE MAIN_NDC NOLOGGING AS SELECT * FROM CONCEPT_STAGE WHERE 1=0;
 
 INSERT /*+ APPEND */ INTO MAIN_NDC 			   
@@ -638,7 +690,7 @@ INSERT /*+ APPEND */ INTO MAIN_NDC
 
 COMMIT;
 
---15 Add NDC to MAIN_NDC from rxnconso
+--16 Add NDC to MAIN_NDC from rxnconso
 INSERT /*+ APPEND */ INTO MAIN_NDC (concept_id,
                            concept_name,
                            domain_id,
@@ -666,7 +718,7 @@ INSERT /*+ APPEND */ INTO MAIN_NDC (concept_id,
     WHERE s.sab = 'RXNORM' AND s.atn = 'NDC';
 COMMIT;
 
---16 Add additional NDC with fresh dates and active mapping to RxCUI (source: http://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=xxx) [part 1 of 3]
+--17 Add additional NDC with fresh dates and active mapping to RxCUI (source: http://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=xxx) [part 1 of 3]
 INSERT /*+ APPEND */ INTO concept_stage (
                            concept_name,
                            domain_id,
@@ -712,7 +764,7 @@ from (
 ) where concept_name is not null;
 COMMIT;
 
---17 Create temporary table for NDC who have't activerxcui (same source). Take dates from coalesce(NDC API, big XML (SPL), MAIN_NDC, concept, default dates)
+--18 Create temporary table for NDC who have't activerxcui (same source). Take dates from coalesce(NDC API, big XML (SPL), MAIN_NDC, concept, default dates)
 CREATE TABLE ADDITIONALNDCINFO nologging AS
     WITH FUNCTION CheckNDCDate (pDate IN VARCHAR2, pDateDefault IN DATE)
             RETURN DATE
@@ -740,7 +792,7 @@ CREATE TABLE ADDITIONALNDCINFO nologging AS
     lateral (select max(CheckNDCDate(regexp_substr(n.high_value,'[^;]+', 1, level),coalesce(n.c_end_date1, n.c_end_date2, to_date('20991231','YYYYMMDD')))) ndc_valid_end_date from dual connect by regexp_substr(n.high_value, '[^;]+', 1, level) is not null) h
  group by concept_code, startdate, enddate, c_name1,c_name2;
 
---18 Add additional NDC with fresh dates from previous temporary table (ADDITIONALNDCINFO) [part 2 of 3]
+--19 Add additional NDC with fresh dates from previous temporary table (ADDITIONALNDCINFO) [part 2 of 3]
  INSERT /*+ APPEND */ INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -766,7 +818,7 @@ CREATE TABLE ADDITIONALNDCINFO nologging AS
      FROM ADDITIONALNDCINFO WHERE CONCEPT_NAME IS NOT NULL;
 COMMIT;	 
 
---19 Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
+--20 Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
 CREATE TABLE RXNORM2NDC_MAPPINGS_EXT NOLOGGING AS    
 select concept_code, ndc_code, startDate, endDate, invalid_reason, coalesce(c_name1,c_name2,last_rxnorm_name) concept_name from (
     select distinct mp.concept_code, mn.concept_name c_name1,c.concept_name c_name2,
@@ -782,7 +834,7 @@ select concept_code, ndc_code, startDate, endDate, invalid_reason, coalesce(c_na
     left join concept rxnorm on rxnorm.concept_code=mp.concept_code and rxnorm.vocabulary_id='RxNorm' --take name from RxNorm
 );
 
---20 Add additional NDC with fresh dates from previous temporary table (RXNORM2NDC_MAPPINGS_EXT) [part 3 of 3]
+--21 Add additional NDC with fresh dates from previous temporary table (RXNORM2NDC_MAPPINGS_EXT) [part 3 of 3]
 INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -809,7 +861,7 @@ INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
                      AND cs_int.vocabulary_id = 'NDC');
 COMMIT;	 
 
---21 Add all other NDC from 'product'
+--22 Add all other NDC from 'product'
 INSERT /*+ APPEND */ INTO  CONCEPT_STAGE
    SELECT *
      FROM MAIN_NDC m
@@ -820,7 +872,7 @@ INSERT /*+ APPEND */ INTO  CONCEPT_STAGE
                      AND cs_int.vocabulary_id = 'NDC');
 COMMIT;			 
 
---15 Add mapping from SPL to RxNorm through RxNorm API (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID)
+--23 Add mapping from SPL to RxNorm through RxNorm API (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID)
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -842,7 +894,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 	AND NOT EXISTS (SELECT 1 FROM concept c WHERE c.concept_code=rm.concept_code AND c.vocabulary_id='RxNorm' AND c.concept_class_id='Ingredient');
 COMMIT;
 
---22 Add mapping from SPL to RxNorm through rxnsat
+--24 Add mapping from SPL to RxNorm through rxnsat
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -876,7 +928,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 		  );
 COMMIT;
 
---23 Add mapping from NDC to RxNorm from rxnconso
+--25 Add mapping from NDC to RxNorm from rxnconso
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -948,7 +1000,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
 			
---24 Add additional mapping for NDC codes 
+--26 Add additional mapping for NDC codes 
 --The 9-digit NDC codes that have no mapping can be mapped to the same concept of the 11-digit NDC codes, if all 11-digit NDC codes agree on the same destination Concept
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
@@ -1020,7 +1072,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE cnt = 1;
 COMMIT;
 
---25 MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS_EXT). Add/merge only fresh mappings
+--27 MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS_EXT). Add/merge only fresh mappings
 MERGE INTO concept_relationship_stage crs
      USING (
         select distinct ndc_code, 
@@ -1062,7 +1114,7 @@ THEN
 COMMIT;  
 
 
---26 Add manual source
+--28 Add manual source
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -1083,7 +1135,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                      AND r_int.relationship_id = m_r.relationship_id);
 COMMIT;
 
---27 delete duplicate mappings to packs
+--29 delete duplicate mappings to packs
 delete from concept_relationship_stage r where
 r.relationship_id='Maps to' and r.invalid_reason is null
 and r.vocabulary_id_1='NDC'
@@ -1113,24 +1165,7 @@ and concept_code_2 not in (
 );
 COMMIT;
 
---28 Delete ambiguous 'Maps to' mappings if target concept have domain_id='Drug' and concept_class_id NOT IN ('Ingredient', 'Clinical Drug Comp')
-DELETE FROM concept_relationship_stage r
-WHERE (concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2) IN (
-    SELECT concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2 FROM (      
-        SELECT concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2, 
-        ROW_NUMBER() OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2 ORDER BY cs.valid_start_date DESC, c.valid_start_date DESC, c.concept_id DESC) AS rn
-            FROM concept_relationship_stage cs, concept c
-           WHERE     relationship_id = 'Maps to'
-                 AND cs.invalid_reason IS NULL
-                 AND cs.concept_code_2 = c.concept_code
-                 AND cs.vocabulary_id_2 = c.vocabulary_id
-                 AND c.domain_id = 'Drug'
-                 AND c.concept_class_id NOT IN ('Ingredient', 'Clinical Drug Comp')
-    ) WHERE rn > 1 
-);
-COMMIT;
-
---29 Delete duplicate replacement mappings (one concept has multiply target concepts)
+--30 Delete duplicate replacement mappings (one concept has multiply target concepts)
 DELETE FROM concept_relationship_stage
       WHERE (concept_code_1, relationship_id) IN
                (  SELECT concept_code_1, relationship_id
@@ -1146,7 +1181,7 @@ DELETE FROM concept_relationship_stage
                   HAVING COUNT (DISTINCT concept_code_2) > 1);
 COMMIT;
 
---30 Delete self-connected mappings ("A 'Concept replaced by' B" and "B 'Concept replaced by' A")
+--31 Delete self-connected mappings ("A 'Concept replaced by' B" and "B 'Concept replaced by' A")
 DELETE FROM concept_relationship_stage
       WHERE ROWID IN (SELECT cs1.ROWID
                         FROM concept_relationship_stage cs1, concept_relationship_stage cs2
@@ -1165,7 +1200,7 @@ DELETE FROM concept_relationship_stage
                                                          'Concept was_a to'));
 COMMIT;
 
---31 Deprecate concepts if we have no active replacement record in the concept_relationship_stage
+--32 Deprecate concepts if we have no active replacement record in the concept_relationship_stage
 UPDATE concept_stage cs
    SET cs.valid_end_date =
           (SELECT v.latest_update - 1
@@ -1187,7 +1222,7 @@ UPDATE concept_stage cs
        AND cs.invalid_reason = 'U';		
 COMMIT;	
 
---32 Deprecate replacement records if target concept was depreceted 
+--33 Deprecate replacement records if target concept was depreceted 
 MERGE INTO concept_relationship_stage r
      USING (WITH upgraded_concepts
                     AS (SELECT crs.concept_code_1,
@@ -1231,7 +1266,7 @@ THEN
                    WHERE vocabulary_id IN (r.vocabulary_id_1, r.vocabulary_id_2));
 COMMIT;
 
---33 Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
+--34 Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
 UPDATE concept_stage cs
    SET cs.valid_end_date =
           (SELECT v.latest_update - 1
@@ -1253,7 +1288,7 @@ UPDATE concept_stage cs
        AND cs.invalid_reason = 'U';				 
 COMMIT;
 
---34 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--35 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 UPDATE concept_relationship_stage crs
    SET crs.valid_end_date =
           (SELECT latest_update - 1
@@ -1268,7 +1303,7 @@ UPDATE concept_relationship_stage crs
                 WHERE cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2 AND cs.invalid_reason IN ('U', 'D'));
 COMMIT;		
 
---35 Add mapping from deprecated to fresh concepts
+--36 Add mapping from deprecated to fresh concepts
 MERGE INTO concept_relationship_stage crs
      USING (  SELECT root_concept_code_1,
                      concept_code_2,
@@ -1382,19 +1417,71 @@ THEN
            WHERE crs.invalid_reason IS NOT NULL;
 COMMIT;
 
---36 Update concept_id in concept_stage from concept for existing concepts
+--37 Delete ambiguous 'Maps to' mappings following by rules:
+--1. if we have 'true' mappings to Ingredient or Clinical Drug Comp, then delete all others mappings
+--2. if we don't have 'true' mappings, then leave only one fresh mapping
+--3. if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
+DELETE FROM concept_relationship_stage
+      WHERE ROWID IN
+               (SELECT rid
+                  FROM (SELECT rid,
+                               concept_code_1,
+                               concept_code_2,
+                               pseudo_class_id,
+                               rn,
+                               MIN (pseudo_class_id) OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2) have_true_mapping,
+                               has_rel_with_comp
+                          FROM (SELECT cs.ROWID rid,
+                                       concept_code_1,
+                                       concept_code_2,
+                                       vocabulary_id_1,
+                                       vocabulary_id_2,
+                                       CASE WHEN c.concept_class_id IN ('Ingredient', 'Clinical Drug Comp') THEN 1 ELSE 2 END pseudo_class_id,
+                                       ROW_NUMBER () OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2 
+                                       ORDER BY cs.valid_start_date DESC, c.valid_start_date DESC, c.concept_id DESC) rn, --fresh mappings first
+                                       (
+                                        SELECT 1
+                                          FROM concept_relationship cr_int, concept_relationship_stage crs_int, concept c_int
+                                         WHERE     cr_int.invalid_reason IS NULL
+                                               AND cr_int.relationship_id = 'RxNorm ing of'
+                                               AND cr_int.concept_id_1 = c.concept_id
+                                               AND c.concept_class_id = 'Ingredient'
+                                               AND crs_int.relationship_id = 'Maps to'
+                                               AND crs_int.invalid_reason IS NULL
+                                               AND crs_int.concept_code_1 = cs.concept_code_1
+                                               AND crs_int.vocabulary_id_1 = cs.vocabulary_id_1
+                                               AND crs_int.concept_code_2 = c_int.concept_code
+                                               AND crs_int.vocabulary_id_2 = c_int.vocabulary_id
+                                               AND c_int.domain_id = 'Drug'
+                                               AND c_int.concept_class_id = 'Clinical Drug Comp'
+                                               AND cr_int.concept_id_2 = c_int.concept_id                                      
+                                       ) has_rel_with_comp
+                                  FROM concept_relationship_stage cs, concept c
+                                 WHERE     relationship_id = 'Maps to'
+                                       AND cs.invalid_reason IS NULL
+                                       AND cs.concept_code_2 = c.concept_code
+                                       AND cs.vocabulary_id_2 = c.vocabulary_id
+                                       AND c.domain_id = 'Drug'))
+                 WHERE ( 
+                     (have_true_mapping = 1 AND pseudo_class_id = 2) OR --if we have 'true' mappings to Ingredients or Clinical Drug Comps (pseudo_class_id=1), then delete all others mappings (pseudo_class_id=2)
+                     (have_true_mapping <> 1 AND rn > 1) OR --if we don't have 'true' mappings, then leave only one fresh mapping
+                     has_rel_with_comp=1 --if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
+                 ));
+COMMIT;	
+
+--38 Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE lower(c.concept_code)=lower(cs.concept_code) AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 	
---37 Clean up
+--39 Clean up
 DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
 DROP TABLE MAIN_NDC PURGE;
 DROP TABLE ADDITIONALNDCINFO PURGE;
 DROP TABLE RXNORM2NDC_MAPPINGS_EXT PURGE;
 	
---38 Reinstate constraints and indices
+--40 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

@@ -689,6 +689,8 @@ COMMIT;
 --1. if we have 'true' mappings to Ingredient or Clinical Drug Comp, then delete all others mappings
 --2. if we don't have 'true' mappings, then leave only one fresh mapping
 --3. if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
+ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 DELETE FROM concept_relationship_stage
       WHERE ROWID IN
                (SELECT rid
@@ -792,8 +794,6 @@ COMMIT;
 
 --19 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 
 --20 Run drug_strength_stage.sql from current directory
 

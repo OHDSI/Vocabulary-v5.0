@@ -23,6 +23,11 @@
 ********************************************************************************/
 
 /* 1. Prepare components that will set off parser */
+
+--GATHER_TABLE_STATS
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
+
 --drop table component_replace;
 create table component_replace (
 component_name varchar(250),

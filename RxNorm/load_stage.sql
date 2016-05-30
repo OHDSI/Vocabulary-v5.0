@@ -1375,7 +1375,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                   JOIN rxnconso r2 ON r2.rxaui = r.rxaui2 AND r2.code != 'NOCODE'
                   JOIN drug_vocs e ON r2.code = e.code AND e.rxcui = r2.rxcui)
     WHERE relationship_id IS NOT NULL
-	UNION ALL
+	UNION
 	-- Hierarchy inside ATC
 	SELECT uppr.concept_code AS concept_code_1,
 		   lowr.concept_code AS concept_code_2,
@@ -1392,6 +1392,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
 		   AND lowr.vocabulary_id = 'ATC'
 		   AND v.vocabulary_id = 'ATC';	
 	
+
 COMMIT;
 
 --27 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs

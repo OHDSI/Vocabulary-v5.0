@@ -817,24 +817,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (
                      AND crs_int.relationship_id = 'Concept replaced by');
 COMMIT;		  
 
---11 Delete ambiguous 'Maps to' mappings if target concept have domain_id='Drug' and concept_class_id NOT IN ('Ingredient', 'Clinical Drug Comp')
-DELETE FROM concept_relationship_stage r
-WHERE (concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2) IN (
-    SELECT concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2 FROM (      
-        SELECT concept_code_1, vocabulary_id_1, relationship_id, concept_code_2, vocabulary_id_2, 
-        ROW_NUMBER() OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2 ORDER BY cs.valid_start_date DESC, c.valid_start_date DESC, c.concept_id DESC) AS rn
-            FROM concept_relationship_stage cs, concept c
-           WHERE     relationship_id = 'Maps to'
-                 AND cs.invalid_reason IS NULL
-                 AND cs.concept_code_2 = c.concept_code
-                 AND cs.vocabulary_id_2 = c.vocabulary_id
-                 AND c.domain_id = 'Drug'
-                 AND c.concept_class_id NOT IN ('Ingredient', 'Clinical Drug Comp')
-    ) WHERE rn > 1 
-);
-COMMIT;
-
---12 Delete duplicate replacement mappings (one concept has multiply target concepts)
+--11 Delete duplicate replacement mappings (one concept has multiply target concepts)
 DELETE FROM concept_relationship_stage
       WHERE (concept_code_1, relationship_id) IN
                (  SELECT concept_code_1, relationship_id
@@ -850,7 +833,7 @@ DELETE FROM concept_relationship_stage
                   HAVING COUNT (DISTINCT concept_code_2) > 1);
 COMMIT;
 
---13 Delete self-connected mappings ("A 'Concept replaced by' B" and "B 'Concept replaced by' A")
+--12 Delete self-connected mappings ("A 'Concept replaced by' B" and "B 'Concept replaced by' A")
 DELETE FROM concept_relationship_stage
       WHERE ROWID IN (SELECT cs1.ROWID
                         FROM concept_relationship_stage cs1, concept_relationship_stage cs2
@@ -869,7 +852,7 @@ DELETE FROM concept_relationship_stage
                                                          'Concept was_a to'));
 COMMIT;
 
---14 Deprecate concepts if we have no active replacement record in the concept_relationship_stage
+--13 Deprecate concepts if we have no active replacement record in the concept_relationship_stage
 UPDATE concept_stage cs
    SET cs.valid_end_date =
           (SELECT v.latest_update - 1
@@ -891,7 +874,7 @@ UPDATE concept_stage cs
        AND cs.invalid_reason = 'U';		
 COMMIT;				
 
---15 Deprecate replacement records if target concept was deprecated 
+--14 Deprecate replacement records if target concept was deprecated 
 MERGE INTO concept_relationship_stage r
      USING (WITH upgraded_concepts
                     AS (SELECT crs.concept_code_1,
@@ -935,7 +918,7 @@ THEN
                    WHERE vocabulary_id IN (r.vocabulary_id_1, r.vocabulary_id_2));
 COMMIT;
 
---16 Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
+--15 Deprecate concepts if we have no active replacement record in the concept_relationship_stage (yes, again)
 UPDATE concept_stage cs
    SET cs.valid_end_date =
           (SELECT v.latest_update - 1
@@ -957,7 +940,7 @@ UPDATE concept_stage cs
        AND cs.invalid_reason = 'U';				 
 COMMIT;
 
---17 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--16 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 UPDATE concept_relationship_stage crs
    SET crs.valid_end_date =
           (SELECT latest_update - 1
@@ -972,7 +955,7 @@ UPDATE concept_relationship_stage crs
                 WHERE cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2 AND cs.invalid_reason IN ('U', 'D'));
 COMMIT;				
 
---18 Create hierarchical relationships between HCPCS and HCPCS class
+--17 Create hierarchical relationships between HCPCS and HCPCS class
 INSERT /*+ APPEND */ INTO concept_relationship_stage (
                                         concept_code_1,
                                         concept_code_2,
@@ -1005,7 +988,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (
 			 AND c.invalid_reason IS NULL; 
 COMMIT;	
 
---19 Add all other 'Concept replaced by' relationships
+--18 Add all other 'Concept replaced by' relationships
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -1045,7 +1028,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                          AND crs.relationship_id = r.relationship_id);
 COMMIT;						 
 
---20 Create text for Medical Coder with new codes and mappings
+--19 Create text for Medical Coder with new codes and mappings
 SELECT NULL AS concept_id_1,
        NULL AS concept_id_2,
        c.concept_code AS concept_code_1,
@@ -1091,9 +1074,9 @@ SELECT NULL AS concept_id_1,
        AND c.vocabulary_id = 'HCPCS'
        AND c.concept_class_id IN ('HCPCS', 'HCPCS Modifier');
 
---21 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--20 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 
---22 Add mapping from deprecated to fresh concepts
+--21 Add mapping from deprecated to fresh concepts
 MERGE INTO concept_relationship_stage crs
      USING (  SELECT root_concept_code_1,
                      concept_code_2,
@@ -1207,7 +1190,7 @@ THEN
            WHERE crs.invalid_reason IS NOT NULL;
 COMMIT;		   
 
---23 Delete ambiguous 'Maps to' mappings following by rules:
+--22 Delete ambiguous 'Maps to' mappings following by rules:
 --1. if we have 'true' mappings to Ingredient or Clinical Drug Comp, then delete all others mappings
 --2. if we don't have 'true' mappings, then leave only one fresh mapping
 --3. if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
@@ -1259,7 +1242,7 @@ DELETE FROM concept_relationship_stage
                  ));
 COMMIT;				 
 
---24 All the codes that have mapping to RxNorm should get domain_id='Drug'
+--23 All the codes that have mapping to RxNorm should get domain_id='Drug'
 UPDATE concept_stage cs
    SET cs.domain_id='Drug'
  WHERE     EXISTS
@@ -1283,7 +1266,7 @@ UPDATE concept_stage cs
        AND cs.domain_id<>'Drug';
 COMMIT;
 
---25 Procedure Drugs who have a mapping to a Drug concept should not also be recorded as Procedures (no Standard Concepts)
+--24 Procedure Drugs who have a mapping to a Drug concept should not also be recorded as Procedures (no Standard Concepts)
 UPDATE concept_stage cs
    SET cs.standard_concept = NULL
  WHERE     EXISTS
@@ -1309,7 +1292,7 @@ UPDATE concept_stage cs
        AND cs.standard_concept IS NOT NULL;
 COMMIT;
 
---26 Reinstate constraints and indices
+--25 Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

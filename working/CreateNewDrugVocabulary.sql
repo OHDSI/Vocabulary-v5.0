@@ -18,7 +18,9 @@
 **************************************************************************/
 
 -- To do: Ingredient to Brand Name (has brand name), product to Brand Name (has tradename), possible excipient, mEq to mmol, other funny units
--- Reassign and treat properly drugs not caught in complete_concept_stage. E.g. Drug Form Boxes
+-- Add filter for standard_concept=null and pass through 'Concept_replaced_by' or 'Maps to' links (for Ingredients, Forms, Brand Names)
+-- Add 'Marketed Product', change from Clinical% and Branded% to Drug Product
+-- Put all "drops" to the end
 
 /******************************************************************************
 * This script creates a new drug vocabulary in the OMOP Standard Vocabularies *
@@ -47,7 +49,7 @@ commit;
 
 -- 1. Prepare drug components for new vocabularies: Create unique list and for each drug enumerate. This allows to create a single row for each drug.
 
--- Create distinct version of drug_strength (general version)
+-- Create distinct version of drug_strength 
 -- Replace nulls with 0 and ' '
 drop table unique_ds purge;
 create table unique_ds nologging as
@@ -103,7 +105,7 @@ select c.concept_code, i.concept_code as ing_code
 from drug_concept_stage c
 join internal_relationship_stage r on r.concept_code_1=c.concept_code
 join drug_concept_stage i on i.concept_code=r.concept_code_2 and i.concept_class_id='Ingredient'
-where (c.concept_class_id like '%Clinical%' or c.concept_class_id like '%Branded%') and c.domain_id='Drug';
+where (c.concept_class_id like '%Clinical%' or c.concept_class_id like '%Branded%') and c.domain_id='Drug'; -- Change to Marketed Product and Drug Product
 
 -- Create table with the combination of ingredients for each drug concept delimited by '-'
 drop table ing_combo purge;
@@ -154,7 +156,7 @@ from ds_stage where box_size is not null;
 -- Duplication rule 1: More than one definition per concept_code is illegal
 -- Duplication rule 2: More than one concept_code per definition needs deprecation of the duplicates
 
--- Collect all input drugs
+-- Collect all input drugs and create master matrix
 drop table existing_concept_stage purge;
 create table existing_concept_stage nologging as
 -- Quant Branded Box

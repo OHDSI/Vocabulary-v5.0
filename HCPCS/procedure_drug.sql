@@ -514,6 +514,7 @@ insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) v
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('capecitabine', 1337620, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('capsaicin', 939881, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('capsaicin ', 939881, null);
+insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('carbidopa', 740560, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('carboplatin', 1344905, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('carfilzomib', 42873638, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('carmustine', 1350066, null);
@@ -820,6 +821,7 @@ insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) v
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('leuprolide acetate', 1351541, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('leuprolide acetate (for depot suspension)', 1351541, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('levalbuterol', 1192218, null);
+insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('levodopa', 789578, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('levamisole hydrochloride', 1389464, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('levetiracetam', 711584, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('levocarnitine', 1553610, null);
@@ -898,6 +900,7 @@ insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) v
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('neostigmine methylsulfate', 717136, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('neoxflo or clarixflo', 0, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('nesiritide', 1338985, null);
+insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('netupitant', 45774966, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('nicotine', 718583, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('nivolumab', 45892628, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('noc drugs', null, null);
@@ -933,6 +936,7 @@ insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) v
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('paliperidone palmitate', 703244, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('paliperidone palmitate extended release', 703244, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('palivizumab-rsv-igm', 537647, null);
+insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('palonosetron', 911354, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('palonosetron hcl', 911354, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('pamidronate disodium', 1511646, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('panitumumab', 19100985, null);
@@ -1051,7 +1055,7 @@ insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) v
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('taliglucerase alfa', 42800246, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('taliglucerace alfa', 42800246, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('tamoxifen citrate', 1436678, null);
-insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('tbo-filgrastim', 43560301, null);
+insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('tbo-filgrastim', 1304850, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('tedizolid phosphate', 45775686, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('telavancin', 40166675, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('temozolomide', 1341149, null);
@@ -1121,7 +1125,7 @@ insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) v
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ziconotide', 19005061, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zidovudine', 1710612, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ziprasidone mesylate', 712615, null);
-insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ziv-aflibercept', 42874262, null);
+insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ziv-aflibercept', 40244266, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zoledronic acid', 1524674, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zoledronic acid (reclast)', 1524674, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zoledronic acid (zometa)', 1524674, null);

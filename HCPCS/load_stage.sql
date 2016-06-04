@@ -678,7 +678,7 @@ UPDATE concept_stage cs
 WHERE CS.DOMAIN_ID IS NULL AND CS.VOCABULARY_ID = 'HCPCS';
 COMMIT;
 
---Procedure codes are handled as Procedures, but this might change in near future. 
+--Procedure Drug codes are handled as Procedures, but this might change in near future. 
 --Therefore, we are keeping an interim domain_id='Procedure Drug'
 UPDATE concept_stage
    SET domain_id = 'Procedure'
@@ -1246,6 +1246,7 @@ COMMIT;
 UPDATE concept_stage cs
    SET cs.domain_id='Drug'
  WHERE     EXISTS
+-- existing in concept_relationship
               (SELECT 1
                  FROM concept_relationship r, concept c1, concept c2
                 WHERE     r.concept_id_1 = c1.concept_id
@@ -1256,6 +1257,7 @@ UPDATE concept_stage cs
                       AND c1.concept_code = cs.concept_code
                       AND c1.vocabulary_id = cs.vocabulary_id
                UNION ALL
+-- new in concept_relationship_stage
                SELECT 1
                  FROM concept_relationship_stage r
                 WHERE     r.concept_code_1 = cs.concept_code

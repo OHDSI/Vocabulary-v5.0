@@ -359,9 +359,11 @@ MERGE INTO concept_relationship_stage r
                                crs.concept_code_2,
                                crs.vocabulary_id_2,
                                crs.relationship_id,
-                               CASE WHEN cs.concept_code IS NULL THEN 'D' ELSE cs.invalid_reason END AS invalid_reason
-                          FROM concept_relationship_stage crs 
-                          LEFT JOIN concept_stage cs ON crs.concept_code_2 = cs.concept_code AND crs.vocabulary_id_2 = cs.vocabulary_id
+                               CASE WHEN COALESCE (cs.concept_code, c.concept_code) IS NULL THEN 'D' ELSE CASE WHEN cs.concept_code IS NOT NULL THEN cs.invalid_reason ELSE c.invalid_reason END END
+                                  AS invalid_reason
+                          FROM concept_relationship_stage crs
+                               LEFT JOIN concept_stage cs ON crs.concept_code_2 = cs.concept_code AND crs.vocabulary_id_2 = cs.vocabulary_id
+                               LEFT JOIN concept c ON crs.concept_code_2 = c.concept_code AND crs.vocabulary_id_2 = c.vocabulary_id
                          WHERE     crs.relationship_id IN ('Concept replaced by',
                                                            'Concept same_as to',
                                                            'Concept alt_to to',
@@ -438,9 +440,9 @@ MERGE INTO concept_relationship_stage crs
                      root_vocabulary_id_1,
                      vocabulary_id_2,
                      relationship_id,
-                     (SELECT latest_update
+                     (SELECT MAX (latest_update)
                         FROM vocabulary
-                       WHERE vocabulary_id = root_vocabulary_id_1)
+                       WHERE latest_update IS NOT NULL)
                         AS valid_start_date,
                      TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
                      invalid_reason
@@ -472,12 +474,12 @@ MERGE INTO concept_relationship_stage crs
                                                  END
                                                     AS rel_id
                                             FROM concept_relationship_stage crs
-                                           WHERE     (   crs.relationship_id IN ('Concept replaced by',
-                                                                                 'Concept same_as to',
-                                                                                 'Concept alt_to to',
-                                                                                 'Concept poss_eq to',
-                                                                                 'Concept was_a to')
-                                                      OR (crs.relationship_id = 'Maps to'))
+                                           WHERE     crs.relationship_id IN ('Concept replaced by',
+                                                                             'Concept same_as to',
+                                                                             'Concept alt_to to',
+                                                                             'Concept poss_eq to',
+                                                                             'Concept was_a to',
+                                                                             'Maps to')
                                                  AND crs.invalid_reason IS NULL
                                                  AND ( (crs.vocabulary_id_1 = crs.vocabulary_id_2 AND crs.relationship_id <> 'Maps to') OR crs.relationship_id = 'Maps to')
                                                  AND crs.concept_code_1 <> crs.concept_code_2
@@ -508,8 +510,8 @@ MERGE INTO concept_relationship_stage crs
                                                     SELECT concept_code_2 FROM upgraded_concepts)) i
                WHERE EXISTS
                         (SELECT 1
-                           FROM concept_stage cs
-                          WHERE cs.concept_code = root_concept_code_1 AND cs.vocabulary_id = root_vocabulary_id_1)
+                           FROM concept_relationship_stage crs
+                          WHERE crs.concept_code_1 = root_concept_code_1 AND crs.vocabulary_id_1 = root_vocabulary_id_1)
             GROUP BY root_concept_code_1,
                      concept_code_2,
                      root_vocabulary_id_1,
@@ -1230,23 +1232,24 @@ MERGE INTO concept_relationship_stage r
                                crs.concept_code_2,
                                crs.vocabulary_id_2,
                                crs.relationship_id,
-                               cs.invalid_reason
-                          FROM concept_relationship_stage crs, concept_stage cs
+                               CASE WHEN COALESCE (cs.concept_code, c.concept_code) IS NULL THEN 'D' ELSE CASE WHEN cs.concept_code IS NOT NULL THEN cs.invalid_reason ELSE c.invalid_reason END END
+                                  AS invalid_reason
+                          FROM concept_relationship_stage crs
+                               LEFT JOIN concept_stage cs ON crs.concept_code_2 = cs.concept_code AND crs.vocabulary_id_2 = cs.vocabulary_id
+                               LEFT JOIN concept c ON crs.concept_code_2 = c.concept_code AND crs.vocabulary_id_2 = c.vocabulary_id
                          WHERE     crs.relationship_id IN ('Concept replaced by',
                                                            'Concept same_as to',
                                                            'Concept alt_to to',
                                                            'Concept poss_eq to',
                                                            'Concept was_a to')
-                               AND crs.invalid_reason IS NULL
-                               AND crs.concept_code_2 = cs.concept_code
-                               AND crs.vocabulary_id_2 = cs.vocabulary_id
                                AND crs.vocabulary_id_1 = crs.vocabulary_id_2
-                               AND crs.concept_code_1 <> crs.concept_code_2)
-                SELECT u.concept_code_1,
-                       u.vocabulary_id_1,
-                       u.concept_code_2,
-                       u.vocabulary_id_2,
-                       u.relationship_id
+                               AND crs.concept_code_1 <> crs.concept_code_2
+                               AND crs.invalid_reason IS NULL)
+                SELECT DISTINCT u.concept_code_1,
+                                u.vocabulary_id_1,
+                                u.concept_code_2,
+                                u.vocabulary_id_2,
+                                u.relationship_id
                   FROM upgraded_concepts u
             CONNECT BY NOCYCLE PRIOR concept_code_1 = concept_code_2
             START WITH concept_code_2 IN (SELECT concept_code_2
@@ -1310,9 +1313,9 @@ MERGE INTO concept_relationship_stage crs
                      root_vocabulary_id_1,
                      vocabulary_id_2,
                      relationship_id,
-                     (SELECT latest_update
+                     (SELECT MAX (latest_update)
                         FROM vocabulary
-                       WHERE vocabulary_id = root_vocabulary_id_1)
+                       WHERE latest_update IS NOT NULL)
                         AS valid_start_date,
                      TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
                      invalid_reason
@@ -1344,12 +1347,12 @@ MERGE INTO concept_relationship_stage crs
                                                  END
                                                     AS rel_id
                                             FROM concept_relationship_stage crs
-                                           WHERE     (   crs.relationship_id IN ('Concept replaced by',
-                                                                                 'Concept same_as to',
-                                                                                 'Concept alt_to to',
-                                                                                 'Concept poss_eq to',
-                                                                                 'Concept was_a to')
-                                                      OR (crs.relationship_id = 'Maps to'))
+                                           WHERE     crs.relationship_id IN ('Concept replaced by',
+                                                                             'Concept same_as to',
+                                                                             'Concept alt_to to',
+                                                                             'Concept poss_eq to',
+                                                                             'Concept was_a to',
+                                                                             'Maps to')
                                                  AND crs.invalid_reason IS NULL
                                                  AND ( (crs.vocabulary_id_1 = crs.vocabulary_id_2 AND crs.relationship_id <> 'Maps to') OR crs.relationship_id = 'Maps to')
                                                  AND crs.concept_code_1 <> crs.concept_code_2
@@ -1380,8 +1383,8 @@ MERGE INTO concept_relationship_stage crs
                                                     SELECT concept_code_2 FROM upgraded_concepts)) i
                WHERE EXISTS
                         (SELECT 1
-                           FROM concept_stage cs
-                          WHERE cs.concept_code = root_concept_code_1 AND cs.vocabulary_id = root_vocabulary_id_1)
+                           FROM concept_relationship_stage crs
+                          WHERE crs.concept_code_1 = root_concept_code_1 AND crs.vocabulary_id_1 = root_vocabulary_id_1)
             GROUP BY root_concept_code_1,
                      concept_code_2,
                      root_vocabulary_id_1,

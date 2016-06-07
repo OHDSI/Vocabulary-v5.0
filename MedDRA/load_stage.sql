@@ -618,10 +618,7 @@ MERGE INTO concept_relationship_stage crs
                                  NULL AS invalid_reason
                             FROM upgraded_concepts u
                            WHERE CONNECT_BY_ISLEAF = 1
-                      CONNECT BY NOCYCLE PRIOR concept_code_2 = concept_code_1 AND PRIOR vocabulary_id_2 = vocabulary_id_1
-                      START WITH concept_code_1 IN (SELECT concept_code_1 FROM upgraded_concepts
-                                                    MINUS
-                                                    SELECT concept_code_2 FROM upgraded_concepts)) i
+                      CONNECT BY NOCYCLE PRIOR concept_code_2 = concept_code_1 AND PRIOR vocabulary_id_2 = vocabulary_id_1) i
                WHERE EXISTS
                         (SELECT 1
                            FROM concept_relationship_stage crs

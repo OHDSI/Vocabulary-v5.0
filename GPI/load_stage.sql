@@ -36,7 +36,7 @@ ALTER INDEX idx_cs_concept_id UNUSABLE;
 ALTER INDEX idx_concept_code_1 UNUSABLE;
 ALTER INDEX idx_concept_code_2 UNUSABLE;
 
---3. Load into concept_stage from rxxxref
+--3. Load into concept_stage from ndw_v_product
 
 INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
                            domain_id,
@@ -64,7 +64,7 @@ INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
    GROUP BY gpi;
 COMMIT;					  
 
---4 Load into concept_relationship_stage name from rxxxref
+--4 Load into concept_relationship_stage name from ndw_v_product
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,

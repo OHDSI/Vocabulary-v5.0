@@ -47,19 +47,21 @@ INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT gpi_desc AS concept_name,
-          'Drug' AS domain_id,
-          'GPI' AS vocabulary_id,
-          'GPI' AS concept_class_id,
-          NULL AS standard_concept,
-          gpi AS concept_code,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'GPI')
-             AS valid_start_date,
-          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM ndw_v_product WHERE gpi IS NOT NULL;
+     SELECT MAX (gpi_desc) AS concept_name,
+            'Drug' AS domain_id,
+            'GPI' AS vocabulary_id,
+            'GPI' AS concept_class_id,
+            NULL AS standard_concept,
+            gpi AS concept_code,
+            (SELECT latest_update
+               FROM vocabulary
+              WHERE vocabulary_id = 'GPI')
+               AS valid_start_date,
+            TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+            NULL AS invalid_reason
+       FROM ndw_v_product
+      WHERE gpi IS NOT NULL
+   GROUP BY gpi;
 COMMIT;					  
 
 --4 Load into concept_relationship_stage name from rxxxref
@@ -122,7 +124,187 @@ where exists (select 1 from clean_class where gpi=cc.gpi and concept_class_id='C
 
 COMMIT;
 
---5. Add synonyms
+--6. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+UPDATE concept_relationship_stage crs
+   SET crs.valid_end_date =
+          (SELECT latest_update - 1
+             FROM vocabulary
+            WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2) AND latest_update IS NOT NULL),
+       crs.invalid_reason = 'D'
+ WHERE     crs.relationship_id = 'Maps to'
+       AND crs.invalid_reason IS NULL
+       AND EXISTS
+              (SELECT 1
+                 FROM concept_stage cs
+                WHERE cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2 AND cs.invalid_reason IN ('U', 'D'));
+COMMIT;
+
+--7. Add mapping from deprecated to fresh concepts
+MERGE INTO concept_relationship_stage crs
+     USING (  SELECT root_concept_code_1,
+                     concept_code_2,
+                     root_vocabulary_id_1,
+                     vocabulary_id_2,
+                     relationship_id,
+                     (SELECT MAX (latest_update)
+                        FROM vocabulary
+                       WHERE latest_update IS NOT NULL)
+                        AS valid_start_date,
+                     TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
+                     invalid_reason
+                FROM (WITH upgraded_concepts
+                              AS (SELECT DISTINCT
+                                         concept_code_1,
+                                         CASE
+                                            WHEN rel_id <> 6
+                                            THEN
+                                               FIRST_VALUE (concept_code_2) OVER (PARTITION BY concept_code_1 ORDER BY rel_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
+                                            ELSE
+                                               concept_code_2
+                                         END
+                                            AS concept_code_2,
+                                         vocabulary_id_1,
+                                         vocabulary_id_2
+                                    FROM (SELECT crs.concept_code_1,
+                                                 crs.concept_code_2,
+                                                 crs.vocabulary_id_1,
+                                                 crs.vocabulary_id_2,
+                                                 --if concepts have more than one relationship_id, then we take only the one with following precedence
+                                                 CASE
+                                                    WHEN crs.relationship_id = 'Concept replaced by' THEN 1
+                                                    WHEN crs.relationship_id = 'Concept same_as to' THEN 2
+                                                    WHEN crs.relationship_id = 'Concept alt_to to' THEN 3
+                                                    WHEN crs.relationship_id = 'Concept poss_eq to' THEN 4
+                                                    WHEN crs.relationship_id = 'Concept was_a to' THEN 5
+                                                    WHEN crs.relationship_id = 'Maps to' THEN 6
+                                                 END
+                                                    AS rel_id
+                                            FROM concept_relationship_stage crs
+                                           WHERE     crs.relationship_id IN ('Concept replaced by',
+                                                                             'Concept same_as to',
+                                                                             'Concept alt_to to',
+                                                                             'Concept poss_eq to',
+                                                                             'Concept was_a to',
+                                                                             'Maps to')
+                                                 AND crs.invalid_reason IS NULL
+                                                 AND ( (crs.vocabulary_id_1 = crs.vocabulary_id_2 AND crs.relationship_id <> 'Maps to') OR crs.relationship_id = 'Maps to')
+                                                 AND crs.concept_code_1 <> crs.concept_code_2
+                                          UNION ALL
+                                          --some concepts might be in 'base' tables
+                                          SELECT c1.concept_code,
+                                                 c2.concept_code,
+                                                 c1.vocabulary_id,
+                                                 c2.vocabulary_id,
+                                                 6 AS rel_id
+                                            FROM concept c1, concept c2, concept_relationship r
+                                           WHERE     c1.concept_id = r.concept_id_1
+                                                 AND c2.concept_id = r.concept_id_2
+                                                 AND r.concept_id_1 <> r.concept_id_2
+                                                 AND r.invalid_reason IS NULL
+                                                 AND r.relationship_id = 'Maps to'))
+                          SELECT CONNECT_BY_ROOT concept_code_1 AS root_concept_code_1,
+                                 u.concept_code_2,
+                                 CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id_1,
+                                 vocabulary_id_2,
+                                 'Maps to' AS relationship_id,
+                                 NULL AS invalid_reason
+                            FROM upgraded_concepts u
+                           WHERE CONNECT_BY_ISLEAF = 1
+                      CONNECT BY NOCYCLE PRIOR concept_code_2 = concept_code_1 AND PRIOR vocabulary_id_2 = vocabulary_id_1) i
+               WHERE EXISTS
+                        (SELECT 1
+                           FROM concept_relationship_stage crs
+                          WHERE crs.concept_code_1 = root_concept_code_1 AND crs.vocabulary_id_1 = root_vocabulary_id_1)
+            GROUP BY root_concept_code_1,
+                     concept_code_2,
+                     root_vocabulary_id_1,
+                     vocabulary_id_2,
+                     relationship_id,
+                     invalid_reason) i
+        ON (    crs.concept_code_1 = i.root_concept_code_1
+            AND crs.concept_code_2 = i.concept_code_2
+            AND crs.vocabulary_id_1 = i.root_vocabulary_id_1
+            AND crs.vocabulary_id_2 = i.vocabulary_id_2
+            AND crs.relationship_id = i.relationship_id)
+WHEN NOT MATCHED
+THEN
+   INSERT     (concept_code_1,
+               concept_code_2,
+               vocabulary_id_1,
+               vocabulary_id_2,
+               relationship_id,
+               valid_start_date,
+               valid_end_date,
+               invalid_reason)
+       VALUES (i.root_concept_code_1,
+               i.concept_code_2,
+               i.root_vocabulary_id_1,
+               i.vocabulary_id_2,
+               i.relationship_id,
+               i.valid_start_date,
+               i.valid_end_date,
+               i.invalid_reason)
+WHEN MATCHED
+THEN
+   UPDATE SET crs.invalid_reason = NULL, crs.valid_end_date = i.valid_end_date
+           WHERE crs.invalid_reason IS NOT NULL;
+COMMIT;
+
+--8. Delete ambiguous 'Maps to' mappings following by rules:
+--1. if we have 'true' mappings to Ingredient or Clinical Drug Comp, then delete all others mappings
+--2. if we don't have 'true' mappings, then leave only one fresh mapping
+--3. if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
+ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
+ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
+DELETE FROM concept_relationship_stage
+      WHERE ROWID IN
+               (SELECT rid
+                  FROM (SELECT rid,
+                               concept_code_1,
+                               concept_code_2,
+                               pseudo_class_id,
+                               rn,
+                               MIN (pseudo_class_id) OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2) have_true_mapping,
+                               has_rel_with_comp
+                          FROM (SELECT cs.ROWID rid,
+                                       concept_code_1,
+                                       concept_code_2,
+                                       vocabulary_id_1,
+                                       vocabulary_id_2,
+                                       CASE WHEN c.concept_class_id IN ('Ingredient', 'Clinical Drug Comp') THEN 1 ELSE 2 END pseudo_class_id,
+                                       ROW_NUMBER () OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2 
+                                       ORDER BY cs.valid_start_date DESC, c.valid_start_date DESC, c.concept_id DESC) rn, --fresh mappings first
+                                       (
+                                        SELECT 1
+                                          FROM concept_relationship cr_int, concept_relationship_stage crs_int, concept c_int
+                                         WHERE     cr_int.invalid_reason IS NULL
+                                               AND cr_int.relationship_id = 'RxNorm ing of'
+                                               AND cr_int.concept_id_1 = c.concept_id
+                                               AND c.concept_class_id = 'Ingredient'
+                                               AND crs_int.relationship_id = 'Maps to'
+                                               AND crs_int.invalid_reason IS NULL
+                                               AND crs_int.concept_code_1 = cs.concept_code_1
+                                               AND crs_int.vocabulary_id_1 = cs.vocabulary_id_1
+                                               AND crs_int.concept_code_2 = c_int.concept_code
+                                               AND crs_int.vocabulary_id_2 = c_int.vocabulary_id
+                                               AND c_int.domain_id = 'Drug'
+                                               AND c_int.concept_class_id = 'Clinical Drug Comp'
+                                               AND cr_int.concept_id_2 = c_int.concept_id                                      
+                                       ) has_rel_with_comp
+                                  FROM concept_relationship_stage cs, concept c
+                                 WHERE     relationship_id = 'Maps to'
+                                       AND cs.invalid_reason IS NULL
+                                       AND cs.concept_code_2 = c.concept_code
+                                       AND cs.vocabulary_id_2 = c.vocabulary_id
+                                       AND c.domain_id = 'Drug'))
+                 WHERE ( 
+                     (have_true_mapping = 1 AND pseudo_class_id = 2) OR --if we have 'true' mappings to Ingredients or Clinical Drug Comps (pseudo_class_id=1), then delete all others mappings (pseudo_class_id=2)
+                     (have_true_mapping <> 1 AND rn > 1) OR --if we don't have 'true' mappings, then leave only one fresh mapping
+                     has_rel_with_comp=1 --if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
+                 ));
+COMMIT;	
+
+--9. Add synonyms
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -142,13 +324,13 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
     WHERE TRIM (concept_name) IS NOT NULL;
 COMMIT;
 
---6. Update concept_id in concept_stage from concept for existing concepts
+--10. Update concept_id in concept_stage from concept for existing concepts
 UPDATE concept_stage cs
     SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
     WHERE cs.concept_id IS NULL;
 
 
---7. Reinstate constraints and indices
+--11. Reinstate constraints and indices
 ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
 ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
 ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;

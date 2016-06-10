@@ -267,9 +267,18 @@ UPDATE concept_relationship d
 						FROM concept e1, concept e2, concept_relationship d1
 						WHERE e1.concept_id = d1.concept_id_1 AND e2.concept_id = d1.concept_id_2
                         AND (e1.vocabulary_id,e2.vocabulary_id,d1.relationship_id) IN (
-							-- Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except replacement relationships
+							-- Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except 'Maps' to and replacement relationships
+							-- Also excludes manual mappings from concept_relationship_manual
                             SELECT r.vocabulary_id_1,r.vocabulary_id_2,r.relationship_id 
-                            FROM concept_relationship_stage r
+                            FROM (SELECT DISTINCT VOCABULARY_ID_1, VOCABULARY_ID_2, RELATIONSHIP_ID
+                                  FROM (SELECT CONCEPT_CODE_1, CONCEPT_CODE_2, VOCABULARY_ID_1, VOCABULARY_ID_2, RELATIONSHIP_ID FROM concept_relationship_stage                                                                     --)
+                                        MINUS
+                                        (SELECT CONCEPT_CODE_1, CONCEPT_CODE_2, VOCABULARY_ID_1, VOCABULARY_ID_2, RELATIONSHIP_ID FROM CONCEPT_RELATIONSHIP_MANUAL
+                                         UNION ALL
+                                         --add reverse mappings for exclude
+                                         SELECT CONCEPT_CODE_2, CONCEPT_CODE_1, VOCABULARY_ID_2, VOCABULARY_ID_1, r.REVERSE_RELATIONSHIP_ID 
+                                         FROM concept_relationship_manual crm, relationship r  WHERE crm.relationship_id = r.relationship_id))
+                                 ) r
                             WHERE r.vocabulary_id_1 NOT IN ('SPL')
                             AND r.vocabulary_id_2 NOT IN ('SPL')  
                             AND r.relationship_id NOT IN (
@@ -875,6 +884,7 @@ BEGIN
    IF z <> 'RxNorm'
    THEN
       EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
+	  EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN dev_schema_name';
    END IF;
 END;
 COMMIT;

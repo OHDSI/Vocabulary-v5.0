@@ -26,6 +26,41 @@ values (v5_concept.nextval, 'Supplier', 'Metadata', 'Concept Class', 'Concept Cl
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
 values ('Supplier', 'Supplier: Manufacturer, Wholesaler', (select concept_id from concept where concept_name = 'Supplier'));
 
+-- Add EphMRA NFC
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'New Form Code (EphMRA)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
+  values ('NFC', 'New Form Code (EphMRA)', 'http://www.ephmra.org/New-Form-Codes-Classification', 'January 2016', (select concept_id from concept where concept_name='New Form Code (EphMRA)'));
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (81, 'NFC', null, null, null, null);
+
+-- Add Relationship Has Marketed Form and Marketed Form of
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'Has marketed form (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+  values ('Has marketed form', 'Has marketed form (OMOP)', 1, 1, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has marketed form (OMOP)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'Marketed form of (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+  values ('Marketed form of', 'Marketed form of (OMOP)', 1, 0, 'Has marketed form', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Marketed form of (OMOP)'));
+update relationship set reverse_relationship_id='Marketed form of' where relationship_id='Has marketed form';
+
+-- Add Relationship Has Supplier and Supplier of
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'Has supplier or manufacturer (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+  values ('Has supplier', 'Has supplier or manufacturer (OMOP)', 0, 0, 'Is a', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Has supplier or manufacturer (OMOP)'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'Supplier or manufacturer of (OMOP)', 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)			
+  values ('Supplier of', 'Supplier or manufacturer of (OMOP)', 0, 0, 'Has supplier', (select concept_id from concept where vocabulary_id = 'Relationship' and concept_name = 'Supplier or manufacturer of (OMOP)'));
+update relationship set reverse_relationship_id='Supplier of' where relationship_id='Has supplier';
+
+-- Add Concept Class Marketed Problem
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Marketed Product', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+values ('Marketed Product', 'Marketed Product', (select concept_id from concept where concept_name = 'Marketed Product'));
+
 commit;
 
 -- Add old NDC from GPI

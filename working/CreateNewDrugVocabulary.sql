@@ -120,6 +120,12 @@ drop table ing_to_ds purge;
 create table ing_to_ds nologging as
 select distinct i.combo_code as ing_combo_code, d.combo_code as ds_combo_code from ing_combo i join ds_combo d on d.concept_code=i.concept_code;
 
+-- Manufacturers (suppliers)
+create table manufact nologging as
+select irs.CONCEPT_CODE_1 as concept_code, irs.CONCEPT_CODE_2 as mf_code from drug_concept_stage dcs
+JOIN internal_relationship_stage irs on irs.concept_code_2=dcs.concept_code
+WHERE dcs.CONCEPT_CLASS_ID = 'Manufacturer';
+
 -- Create table with Quantity Factor information for each drug (if exists)
 drop table quant purge;
 create table quant nologging as
@@ -454,7 +460,7 @@ left join existing_concept_stage e on c.denominator_value=e.denominator_value an
 -- Add Packs
 insert /*+ APPEND */ into complete_concept_stage
 select 
-  0 as concept_code,
+  'NMF'||concept_code,
   0 as denominator_value,
   ' ' as i_combo_code,
   ' ' as d_combo_code,
@@ -466,6 +472,7 @@ select
 from drug_concept_stage
 where concept_class_id like '%Pack' and domain_id='Drug'
 ;
+commit;
 
 insert /*+ APPEND */ into complete_concept_stage
 select 
@@ -484,14 +491,6 @@ join drug_concept_stage dcsm ON irs.concept_code_2=dcsm.concept_code AND dcsm.co
 where dcs.concept_class_id like '%Pack' and dcs.domain_id='Drug'
 ;
 commit;
-
--- Replace remaining concept_code=0 with OMOP123 style temporary concept codes. 
-update complete_concept_stage ccs 
-  set concept_code='XXX'||xxx_seq.nextval -- make sure xxx_seq is defined.
-where ccs.concept_code='0';
-
-create index idx_ccs_concept_code ON complete_concept_stage (concept_code);
-create index idx_ccs_d_combo_code ON complete_concept_stage (d_combo_code);
 
 -- 4. Auto-generate all names unless a name is provided
 
@@ -512,7 +511,8 @@ with spelled_out as (
     sum(comp.comp_len) over (partition by c.concept_code order by comp.comp_name rows between unbounded preceding and current row) as agg_len,
     case when df.concept_name is null then '' else ' '||df.concept_name end as df_name,
     case when bn.concept_name is null then '' else ' ['||bn.concept_name||']' end as bn_name,
-    case when c.box_size=0 then '' else ' Box of '||c.box_size end as box
+    case when c.box_size=0 then '' else ' Box of '||c.box_size end as box,
+    case when mf.concept_name is null then '' else ' by '||mf.concept_name end as mf_name
   from complete_concept_stage c
   -- get component names and lengths
   join (
@@ -539,16 +539,17 @@ with spelled_out as (
   left join drug_concept_stage df on df.concept_code=c.dose_form_code
   -- get brand name
   left join drug_concept_stage bn on bn.concept_code=c.brand_code
+  left join drug_concept_stage mf on mf.concept_code=c.mf_code
   where c.concept_class_id not in ('Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug Comp')
 )
 select 
   concept_code,
 -- count the cumulative length of the components. The tildas are to make sure the three dots are put at the end of the list
-  replace(quant||listagg(comp_name, ' / ') within group (order by comp_name)||df_name||bn_name||box, '~~~', '...') as concept_name
+  replace(quant||listagg(comp_name, ' / ') within group (order by comp_name)||df_name||bn_name||box||mf_name, '~~~', '...') as concept_name
 from (
 -- keep only components where concatenation will leave enough space for the quant, dose form, brand name and box size
   select * from spelled_out s
-  where s.agg_len<=255-(nvl(length(s.quant), 0)+nvl(length(s.df_name), 0)+nvl(length(s.bn_name), 0)+nvl(length(s.box), 0)+3)
+  where s.agg_len<=255-(nvl(length(s.quant), 0)+nvl(length(s.df_name), 0)+nvl(length(s.bn_name), 0)+nvl(length(s.box), 0)+nvl(length(s.mf_name), 0)+3)
 -- Add three dots if ingredients are to be cut
 union
   select 
@@ -558,12 +559,13 @@ union
     1 as agg_len,
     df_name,
     bn_name,
-    box
+    box,
+    mf_name
   from spelled_out s
-  where s.agg_len>255-(nvl(length(s.quant), 0)+nvl(length(s.df_name), 0)+nvl(length(s.bn_name), 0)+nvl(length(s.box), 0)+6)
-  group by quant, concept_code, df_name, bn_name, box 
+  where s.agg_len>255-(nvl(length(s.quant), 0)+nvl(length(s.df_name), 0)+nvl(length(s.bn_name), 0)+nvl(length(s.box), 0)+nvl(length(s.mf_name), 0)+6)
+  group by quant, concept_code, df_name, bn_name, box, mf_name 
 )
-group by quant, concept_code, df_name, bn_name, box 
+group by quant, concept_code, df_name, bn_name, box, mf_name 
 ;
 commit;
 
@@ -643,6 +645,7 @@ group by concept_code, df_name, bn_name
 ;
 commit;
 
+-- Packs
 insert /*+ APPEND */ into complete_name
 -- Get the component parts
 with c as (
@@ -660,15 +663,20 @@ with c as (
 -- Get the common part
 p as (
   select 
-    concept_code, 
-    concept_name, 
-    length(concept_name) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
-  from drug_concept_stage where concept_class_id like '%Pack%' and domain_id='Drug'
+    ccs.concept_code, 
+    dcs.concept_name, 
+    case when mf.concept_name is null then '' else ' by '||mf.concept_name end as mf_name,
+    length(dcs.concept_name) + nvl(length(mf_name)+4,0) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
+  from complete_concept_stage ccs
+  JOIN drug_concept_stage dcs ON dcs.concept_code=ccs.concept_code OR 'NMTF'||dcs.concept_code=ccs.concept_code
+  LEFT JOIN (select dcsm.*, irs.concept_code_1 from internal_relationship_stage irs 
+    JOIN drug_concept_stage dcsm ON dcsm.concept_code=irs.concept_code_2 AND dcsm.concept_class_id = 'Manufacturer') mf ON mf.concept_code_1 = ccs.concept_code
+  where dcs.concept_class_id like '%Pack%' and dcs.domain_id='Drug'
 ),
 -- Calculate total length of everything if space weren't the issue, and then calculate the factor that each concept_name needs to be shortened by
 l as (
   select concept_code, 
-    (245-all_a_len-p.len)/all_n_len as factor -- 255-10 for common pack text (curly brackets, spaces)
+    (243-all_a_len-p.len)/all_n_len as factor -- 255-12 for common pack text (curly brackets, spaces)
   from (
     select distinct
       concept_code,
@@ -688,12 +696,24 @@ c_p as (
 )
 select 
   concept_code,
-  '{'||listagg(c_p.concept_name, ') / ') within group (order by c_p.concept_name) ||') } Pack ['||p.concept_name||']' as concept_name
+  '{'||listagg(c_p.concept_name, ') / ') within group (order by c_p.concept_name) ||') } Pack ['||p.concept_name||']' || p.mf_name as concept_name
 from c_p -- components, possibly trimmed
 join p using(concept_code) -- common part
-group by concept_code, p.concept_name -- aggregate within concept_code
+group by concept_code, p.concept_name, p.mf_name -- aggregate within concept_code
 ;
 commit;
+
+
+-- change code for packs
+--XXX update complete_concept_stage 
+
+-- Replace remaining concept_code=0 with OMOP123 style temporary concept codes. 
+update complete_concept_stage ccs 
+  set concept_code='XXX'||xxx_seq.nextval -- make sure xxx_seq is defined.
+where ccs.concept_code='0';
+
+create index idx_ccs_concept_code ON complete_concept_stage (concept_code);
+create index idx_ccs_d_combo_code ON complete_concept_stage (d_combo_code);
 
 
 -- 4. Compare new drug vocabulary q to existing one r
@@ -990,6 +1010,21 @@ select
   null as invalid_reason
 from drug_concept_stage dcs where dcs.concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name') and dcs.domain_id='Drug';
 
+commit;
+
+insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+select 
+  null as concept_id, 
+  dcs.concept_name, -- take concept_name from equivalent 
+  'Drug' as domain_id,
+  dcs.vocabulary_id,
+  'Supplier' as  concept_class_id,
+  null as standard_concept, -- DA_France ingreidents are not standard, unless they are not mapped
+  dcs.concept_code,
+  nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
+  nvl(dcs.valid_end_date, '31-Dec-2099') as valid_end_date,
+  invalid_reason 
+from drug_concept_stage dcs where dcs.concept_class_id = 'Manufacturer' and dcs.domain_id='Drug';
 commit;
 
 -- Promote non-mapped Ingredients to Standard

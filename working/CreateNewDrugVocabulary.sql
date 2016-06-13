@@ -466,22 +466,6 @@ left join existing_concept_stage e on c.denominator_value=e.denominator_value an
 -- Add Packs
 insert /*+ APPEND */ into complete_concept_stage
 select 
-  'NMF'||concept_code,
-  0 as denominator_value,
-  ' ' as i_combo_code,
-  ' ' as d_combo_code,
-  ' ' as dose_form_code,
-  ' ' as brand_code,
-  0 as box_size,
-  ' ' as mf_code,
-  concept_class_id
-from drug_concept_stage
-where concept_class_id like '%Pack' and domain_id='Drug'
-;
-commit;
-
-insert /*+ APPEND */ into complete_concept_stage
-select 
   dcs.concept_code,
   0 as denominator_value,
   ' ' as i_combo_code,
@@ -495,6 +479,37 @@ from drug_concept_stage dcs
 join internal_relationship_stage irs ON irs.concept_code_1=dcs.concept_code
 join drug_concept_stage dcsm ON irs.concept_code_2=dcsm.concept_code AND dcsm.concept_class_id = 'Manufacturer'
 where dcs.concept_class_id like '%Pack' and dcs.domain_id='Drug'
+;
+commit;
+
+drop table nmf_packs;
+create table nmf_packs (
+  concept_code varchar2(50),
+  nmf_code varchar2(50)
+);  
+
+insert /*+ APPEND */ into nmf_packs
+select 
+ dcs.concept_code,
+ 'XXX'||xxx_seq.nextval as nmf_code
+from drug_concept_stage dcs 
+join internal_relationship_stage irs ON irs.concept_code_1=dcs.concept_code
+join drug_concept_stage dcsm ON irs.concept_code_2=dcsm.concept_code AND dcsm.concept_class_id = 'Manufacturer'
+where dcs.concept_class_id like '%Pack' and dcs.domain_id='Drug';
+
+insert /*+ APPEND */ into complete_concept_stage
+select 
+  nmf_code as concept_code,
+  0 as denominator_value,
+  ' ' as i_combo_code,
+  ' ' as d_combo_code,
+  ' ' as dose_form_code,
+  ' ' as brand_code,
+  0 as box_size,
+  ' ' as mf_code,
+  concept_class_id
+from drug_concept_stage dcs JOIN nmf_packs nmf ON nmf.concept_code=dcs.concept_code
+where concept_class_id like '%Pack' and domain_id='Drug'
 ;
 commit;
 
@@ -1166,7 +1181,7 @@ select distinct
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
-from complete_concept_stage ccs1 JOIN complete_concept_stage ccs2 ON 'NMF'||ccs1.concept_code = ccs2.concept_code where ccs2.concept_code LIKE 'NMF%';
+from complete_concept_stage ccs1 JOIN nmf_packs nmf ON nmf.concept_code=ccs1.concept_code JOIN complete_concept_stage ccs2 ON ccs2.concept_code=nmf.nmf_code;
 commit;
 
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)

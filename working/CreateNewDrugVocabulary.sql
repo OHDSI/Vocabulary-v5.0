@@ -167,12 +167,15 @@ drop table existing_concept_stage purge;
 create table existing_concept_stage nologging as
 -- Marketed Product
   select distinct 
-    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, ' ' as dose_form_code, ' ' as brand_code, 0 as box_size, mf.mf_code as mf_code,
+    i.concept_code, nvl(quant.denominator_value,0) as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, nvl(df.dose_form_code,' ') as dose_form_code, nvl(bn.brand_code,' ') as brand_code, nvl(bs.box_size,0) as box_size, mf.mf_code as mf_code,
     'Marketed Product' as concept_class_id
   from ing_combo i
   join ds_combo d on d.concept_code=i.concept_code
   join df on df.concept_code=i.concept_code 
   join manufact mf on mf.concept_code=i.concept_code 
+  left join quant on quant.concept_code=i.concept_code
+  left join bn on bn.concept_code=i.concept_code
+  left join bs on bs.concept_code=i.concept_code
 union
 -- Quant Branded Box
   select distinct 
@@ -340,12 +343,15 @@ select distinct nvl(first_value(e.concept_code) over (partition by e.denominator
 from (
 -- Marketed Product
   select distinct 
-    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, ' ' as dose_form_code, ' ' as brand_code, 0 as box_size, mf.mf_code,
+    nvl(quant.denominator_value,0) as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code,  nvl(df.dose_form_code,' ') as dose_form_code, nvl(bn.brand_code,' ') as brand_code, nvl(bs.box_size,0) as box_size, mf.mf_code,
     'Marketed Product' as concept_class_id
   from ing_combo i
   join ds_combo d on d.concept_code=i.concept_code
   join df on df.concept_code=i.concept_code 
   join manufact mf on mf.concept_code=i.concept_code 
+  left join quant on quant.concept_code=i.concept_code
+  left join bn on bn.concept_code=i.concept_code
+  left join bs on bs.concept_code=i.concept_code
 union  
 -- Quant Branded Box
   select distinct 
@@ -666,7 +672,7 @@ p as (
     ccs.concept_code, 
     dcs.concept_name, 
     case when mf.concept_name is null then '' else ' by '||mf.concept_name end as mf_name,
-    length(dcs.concept_name) + nvl(length(mf_name)+4,0) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
+    length(dcs.concept_name) + nvl(length(mf.concept_name)+4,0) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
   from complete_concept_stage ccs
   JOIN drug_concept_stage dcs ON dcs.concept_code=ccs.concept_code OR 'NMTF'||dcs.concept_code=ccs.concept_code
   LEFT JOIN (select dcsm.*, irs.concept_code_1 from internal_relationship_stage irs 
@@ -1012,6 +1018,7 @@ from drug_concept_stage dcs where dcs.concept_class_id in ('Ingredient', 'Dose F
 
 commit;
 
+-- insert suppliers
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select 
   null as concept_id, 
@@ -1133,6 +1140,54 @@ from q_to_r qr
 join concept_stage cs on cs.concept_code=qr.q_dcode -- limit to those that actually were written to concept_stage (either source codes or standard_concept='S')
 join concept c on c.concept_id=qr.r_did
 ;
+commit;
+
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+select distinct 
+  concept_code concept_code_1,
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
+  mf_code as concept_code_2,
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
+  'Has Supplier' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from complete_concept_stage q
+where concept_class_id = 'Marketed Product';
+commit;
+
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+select distinct
+  ccs1.concept_code as concept_code_1,
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
+  ccs2.concept_code as concept_code_2,
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
+  'Marketed form of' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from complete_concept_stage ccs1 JOIN complete_concept_stage ccs2 ON 'NMF'||ccs1.concept_code = ccs2.concept_code where ccs2.concept_code LIKE 'NMF%';
+commit;
+
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+select distinct
+  ccs1.concept_code as concept_code_1,
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
+  ccs2.concept_code as concept_code_2,
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
+  'Marketed form of' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  '31-Dec-2099' as valid_end_date,
+  null as invalid_reason
+from complete_concept_stage ccs1 
+JOIN complete_concept_stage ccs2 
+ON  nvl(ccs1.denominator_value, '') = nvl(ccs2.denominator_value, '') 
+AND nvl(ccs1.i_combo_code, '') = nvl(ccs2.i_combo_code, '') 
+AND nvl(ccs1.d_combo_code, '') = nvl(ccs2.d_combo_code, '') 
+AND nvl(ccs1.dose_form_code, '') = nvl(ccs2.dose_form_code, '') 
+AND nvl(ccs1.brand_code, '') = nvl(ccs2.brand_code, '') 
+AND nvl(ccs1.box_size, 0) = nvl(ccs2.box_size, 0)
+where ccs1.concept_class_id='Marketed Product' AND ccs2.concept_class_id NOT IN ('Marketed Product');
 commit;
 
 -- write RxNorm-like relationships between concepts of all classes except Drug Forms and Clinical Drug Component based on matching components

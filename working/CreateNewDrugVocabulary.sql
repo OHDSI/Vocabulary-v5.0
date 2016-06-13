@@ -22,6 +22,7 @@
 -- Add 'Marketed Product', change from Clinical% and Branded% to Drug Product
 -- Put all "drops" to the end
 
+
 /******************************************************************************
 * This script creates a new drug vocabulary in the OMOP Standard Vocabularies *
 * The new drug vocabulary must be provided in the format described in         *
@@ -37,21 +38,21 @@
 /** IMPORTANT **/
 /* Add the latest_udpate and version information to the VOCABULARY table **/
 
--- Create temporary for uniqe strength recordsdrop sequence ds_seq;
-drop sequence ds_seq;
+-- Create temporary for uniqe strength records--drop sequence ds_seq;
+--drop sequence ds_seq;
 create sequence ds_seq increment by 1 start with 1 nocycle cache 20 noorder;
 
 -- Create sequence for temporary XXX concept codes
-drop sequence xxx_seq;
+--drop sequence xxx_seq;
 create sequence xxx_seq increment by 1 start with 1 nocycle cache 20 noorder;
 
 commit;
 
 -- 1. Prepare drug components for new vocabularies: Create unique list and for each drug enumerate. This allows to create a single row for each drug.
 
--- Create distinct version of drug_strength 
+-- Create distinct version of drug_strength (general version)
 -- Replace nulls with 0 and ' '
-drop table unique_ds purge;
+--drop table unique_ds purge;
 create table unique_ds nologging as
 select ds_seq.nextval as ds_code, ds.* from (
   select distinct ingredient_concept_code, 
@@ -72,7 +73,7 @@ select ds_seq.nextval as ds_code, ds.* from (
 
 
 -- Create table with all drug concept codes linked to the above unique components 
-drop table ds cascade constraints purge;
+--drop table ds cascade constraints purge;
 create table ds nologging as
 select dss.drug_concept_code as concept_code, uds.ds_code
 from ds_stage dss
@@ -91,7 +92,7 @@ join unique_ds uds on uds.ingredient_concept_code=dss.ingredient_concept_code
 create index idx_ds on ds (ds_code);
 
 -- Create table with the combination of components for each drug concept delimited by '-'
-drop table ds_combo purge;
+--drop table ds_combo purge;
 create table ds_combo as
 select distinct concept_code, listagg(ds_code, '-') within group (order by ds_code) as combo_code
 from ds
@@ -99,16 +100,16 @@ group by concept_code
 ;
 
 -- Create table with all drug concept codes linked to the codes of the ingredients (rather than full dose components)
-drop table ing purge;
+--drop table ing purge;
 create table ing nologging as
 select c.concept_code, i.concept_code as ing_code
 from drug_concept_stage c
 join internal_relationship_stage r on r.concept_code_1=c.concept_code
 join drug_concept_stage i on i.concept_code=r.concept_code_2 and i.concept_class_id='Ingredient'
-where (c.concept_class_id like '%Clinical%' or c.concept_class_id like '%Branded%') and c.domain_id='Drug'; -- Change to Marketed Product and Drug Product
+where (c.concept_class_id like '%Drug%') and c.domain_id='Drug';
 
 -- Create table with the combination of ingredients for each drug concept delimited by '-'
-drop table ing_combo purge;
+--drop table ing_combo purge;
 create table ing_combo nologging as
 select distinct concept_code, listagg(ing_code, '-') within group (order by ing_code) as combo_code
 from ing
@@ -116,18 +117,12 @@ group by concept_code
 ;
 
 -- Create table to convert from ingredients to components
-drop table ing_to_ds purge;
+--drop table ing_to_ds purge;
 create table ing_to_ds nologging as
 select distinct i.combo_code as ing_combo_code, d.combo_code as ds_combo_code from ing_combo i join ds_combo d on d.concept_code=i.concept_code;
 
--- Manufacturers (suppliers)
-create table manufact nologging as
-select irs.CONCEPT_CODE_1 as concept_code, irs.CONCEPT_CODE_2 as mf_code from drug_concept_stage dcs
-JOIN internal_relationship_stage irs on irs.concept_code_2=dcs.concept_code
-WHERE dcs.CONCEPT_CLASS_ID = 'Manufacturer';
-
 -- Create table with Quantity Factor information for each drug (if exists)
-drop table quant purge;
+--drop table quant purge;
 create table quant nologging as
 select distinct drug_concept_code as concept_code, denominator_value
 from ds_stage
@@ -135,7 +130,7 @@ where denominator_value is not null and denominator_value!=0
 ;
 
 -- Create table with Brand Name information for each drug (if exists)
-drop table bn purge;
+--drop table bn purge;
 create table bn nologging as
 select distinct ir.concept_code_1 as concept_code, b.concept_code as brand_code -- distinct only because source contains duplicated maps
 from internal_relationship_stage ir
@@ -143,7 +138,7 @@ join drug_concept_stage b on b.concept_code=ir.concept_code_2 and b.concept_clas
 ;
 
 -- Create table with Dose Form information for each drug (if exists)
-drop table df purge;
+--drop table df purge;
 create table df nologging as
 select distinct ir.concept_code_1 as concept_code, f.concept_code as dose_form_code -- distinct only because source contains duplicated maps
 from internal_relationship_stage ir
@@ -151,7 +146,7 @@ join drug_concept_stage f on f.concept_code=ir.concept_code_2 and f.concept_clas
 ;
 
 -- Create table with Box Size information for each drug (if exists)
-drop table bs purge;
+--drop table bs purge;
 create table bs nologging as
 select distinct drug_concept_code as concept_code, box_size 
 from ds_stage where box_size is not null;
@@ -162,24 +157,12 @@ from ds_stage where box_size is not null;
 -- Duplication rule 1: More than one definition per concept_code is illegal
 -- Duplication rule 2: More than one concept_code per definition needs deprecation of the duplicates
 
--- Collect all input drugs and create master matrix
-drop table existing_concept_stage purge;
+-- Collect all input drugs
+--drop table existing_concept_stage purge;
 create table existing_concept_stage nologging as
--- Marketed Product
-  select distinct 
-    i.concept_code, nvl(quant.denominator_value,0) as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, nvl(df.dose_form_code,' ') as dose_form_code, nvl(bn.brand_code,' ') as brand_code, nvl(bs.box_size,0) as box_size, mf.mf_code as mf_code,
-    'Marketed Product' as concept_class_id
-  from ing_combo i
-  join ds_combo d on d.concept_code=i.concept_code
-  join df on df.concept_code=i.concept_code 
-  join manufact mf on mf.concept_code=i.concept_code 
-  left join quant on quant.concept_code=i.concept_code
-  left join bn on bn.concept_code=i.concept_code
-  left join bs on bs.concept_code=i.concept_code
-union
 -- Quant Branded Box
   select distinct 
-    i.concept_code, quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, bs.box_size, ' ' as mf_code,
+    i.concept_code, quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, bs.box_size,
     'Quant Branded Box' as concept_class_id
   from ing_combo i
   join ds_combo d on d.concept_code=i.concept_code
@@ -187,25 +170,22 @@ union
   join df on df.concept_code=i.concept_code
   join bn on bn.concept_code=i.concept_code
   join bs on bs.concept_code=i.concept_code
-  left join manufact mf on mf.concept_code=i.concept_code 
-  where mf.mf_code is null
 union
 -- Quant Clinical Box
   select distinct 
-    i.concept_code, quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, bs.box_size, ' ' as mf_code,
+    i.concept_code, quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, bs.box_size,
     'Quant Clinical Box' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
   join quant on quant.concept_code=i.concept_code
   join df on df.concept_code=i.concept_code
   left join bn on bn.concept_code=i.concept_code
-  join bs on bs.concept_code=i.concept_code
-  left join manufact mf on mf.concept_code=i.concept_code 
-  where bn.concept_code is null and mf.mf_code is null
+  join bs on bs.concept_code=i.concept_code 
+  where bn.concept_code is null
 union
 -- Branded Drug Box
   select distinct 
-    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, bs.box_size, ' ' as mf_code,
+    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, bs.box_size,
     'Branded Drug Box' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -213,12 +193,11 @@ union
   join df on df.concept_code=i.concept_code
   join bn on bn.concept_code=i.concept_code
   join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code 
-  where quant.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null 
 union
 -- Clinical Drug Box
   select distinct 
-    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, bs.box_size, ' ' as mf_code,
+    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, bs.box_size,
     'Clinical Drug Box' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -226,12 +205,11 @@ union
   join df on df.concept_code=d.concept_code
   left join bn on bn.concept_code=d.concept_code
   join bs on bs.concept_code=d.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code 
-  where quant.concept_code is null and bn.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and bn.concept_code is null 
 union
 -- Quant Branded Drug
   select distinct 
-    i.concept_code, quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size, ' ' as mf_code,
+    i.concept_code, quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size,
     'Quant Branded Drug' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -239,12 +217,11 @@ union
   join df on df.concept_code=i.concept_code
   join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code 
-  where bs.concept_code is null and mf.mf_code is null
+  where bs.concept_code is null 
 union
 -- Quant Clinical Drug
   select distinct 
-    i.concept_code, quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size, ' ' as mf_code,
+    i.concept_code, quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size,
     'Quant Clinical Drug' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -252,12 +229,11 @@ union
   join df on df.concept_code=i.concept_code
   left join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where bn.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where bn.concept_code is null and bs.concept_code is null 
 union
 -- Branded Drug
   select distinct 
-    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size, ' ' as mf_code,
+    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size,
     'Branded Drug' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -265,12 +241,11 @@ union
   join df on df.concept_code=i.concept_code
   join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and bs.concept_code is null AND mf.mf_code is null
+  where quant.concept_code is null and bs.concept_code is null 
 union
 -- Clinical Drug
   select distinct 
-    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size, ' ' as mf_code,
+    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size,
     'Clinical Drug' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -278,12 +253,11 @@ union
   join df on df.concept_code=i.concept_code
   left join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and bn.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and bn.concept_code is null and bs.concept_code is null
 union
 -- Branded Drug Form
   select distinct 
-    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, ' ' as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size, ' ' as mf_code,
+    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, ' ' as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size,
     'Branded Drug Form' as concept_class_id
   from ing_combo i 
   left join ds_combo d on d.concept_code=i.concept_code
@@ -291,12 +265,11 @@ union
   join df on df.concept_code=i.concept_code
   join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and d.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and d.concept_code is null and bs.concept_code is null
 union
 -- Clinical Drug Form
   select distinct 
-    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, ' ' as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size, ' ' as mf_code,
+    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, ' ' as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size,
     'Clinical Drug Form' as concept_class_id
   from ing_combo i 
   left join ds_combo d on d.concept_code=i.concept_code
@@ -304,12 +277,11 @@ union
   join df on df.concept_code=i.concept_code
   left join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and d.concept_code is null and bn.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and d.concept_code is null and bn.concept_code is null and bs.concept_code is null
 union
 -- Branded Drug Component
   select distinct 
-    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, ' ' as dose_form_code, bn.brand_code, 0 as box_size, ' ' as mf_code,
+    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, ' ' as dose_form_code, bn.brand_code, 0 as box_size,
     'Branded Drug Comp' as concept_class_id
   from ing_combo i
   join ds_combo d on d.concept_code=i.concept_code
@@ -317,12 +289,11 @@ union
   left join df on df.concept_code=i.concept_code
   join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and df.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and df.concept_code is null and bs.concept_code is null
 union
 -- Clinical Drug Component 
   select distinct 
-    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size, ' ' as mf_code,
+    i.concept_code, 0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size,
     'Clinical Drug Comp' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -330,32 +301,19 @@ union
   left join df on df.concept_code=i.concept_code
   left join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and df.concept_code is null and bn.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and df.concept_code is null and bn.concept_code is null and bs.concept_code is null
 ;
 
 -- 3. Write all concept classes, whether existing or not from all possible combinations
 
-drop table complete_concept_stage cascade constraints purge;
+--drop table complete_concept_stage cascade constraints purge;
 create table complete_concept_stage nologging as
-select distinct nvl(first_value(e.concept_code) over (partition by e.denominator_value, e.i_combo_code, e.d_combo_code, e.dose_form_code, e.brand_code, e.box_size, e.mf_code order by concept_code desc), 0) as concept_code,
+select distinct nvl(first_value(e.concept_code) over (partition by e.denominator_value, e.i_combo_code, e.d_combo_code, e.dose_form_code, e.brand_code, e.box_size order by concept_code desc), 0) as concept_code,
   c.*
 from (
--- Marketed Product
-  select distinct 
-    nvl(quant.denominator_value,0) as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code,  nvl(df.dose_form_code,' ') as dose_form_code, nvl(bn.brand_code,' ') as brand_code, nvl(bs.box_size,0) as box_size, mf.mf_code,
-    'Marketed Product' as concept_class_id
-  from ing_combo i
-  join ds_combo d on d.concept_code=i.concept_code
-  join df on df.concept_code=i.concept_code 
-  join manufact mf on mf.concept_code=i.concept_code 
-  left join quant on quant.concept_code=i.concept_code
-  left join bn on bn.concept_code=i.concept_code
-  left join bs on bs.concept_code=i.concept_code
-union  
 -- Quant Branded Box
   select distinct 
-    quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, bs.box_size, ' ' as mf_code,
+    quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, bs.box_size,
     'Quant Branded Box' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -366,7 +324,7 @@ union
 union
 -- Quant Clinical Box
   select distinct 
-    quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, bs.box_size, ' ' as mf_code,
+    quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, bs.box_size,
     'Quant Clinical Box' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -376,7 +334,7 @@ union
 union
 -- Branded Drug Box
   select distinct 
-    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, bs.box_size, ' ' as mf_code,
+    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, bs.box_size,
     'Branded Drug Box' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -386,7 +344,7 @@ union
 union
 -- Clinical Drug Box
   select distinct 
-    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, bs.box_size, ' ' as mf_code,
+    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, bs.box_size,
     'Clinical Drug Box' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -395,7 +353,7 @@ union
 union
 -- Quant Branded Drug
   select distinct 
-    quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size, ' ' as mf_code,
+    quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size,
     'Quant Branded Drug' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -405,7 +363,7 @@ union
 union
 -- Quant Clinical Drug
   select distinct 
-    quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size, ' ' as mf_code,
+    quant.denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size,
     'Quant Clinical Drug' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -414,7 +372,7 @@ union
 union
 -- Branded Drug
   select distinct 
-    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size, ' ' as mf_code,
+    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size,
     'Branded Drug' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -423,7 +381,7 @@ union
 union
 -- Clinical Drug
   select distinct 
-    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size, ' ' as mf_code,
+    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size,
     'Clinical Drug' as concept_class_id
   from ing_combo i 
   join ds_combo d on d.concept_code=i.concept_code
@@ -431,7 +389,7 @@ union
 union
 -- Branded Drug Form
   select distinct 
-    0 as denominator_value, i.combo_code as i_combo_code, ' ' as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size, ' ' as mf_code,
+    0 as denominator_value, i.combo_code as i_combo_code, ' ' as d_combo_code, df.dose_form_code, bn.brand_code, 0 as box_size,
     'Branded Drug Form' as concept_class_id
   from ing_combo i 
   join df on df.concept_code=i.concept_code
@@ -439,14 +397,14 @@ union
 union
 -- Clinical Drug Form
   select distinct 
-    0 as denominator_value, i.combo_code as i_combo_code, ' ' as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size, ' ' as mf_code,
+    0 as denominator_value, i.combo_code as i_combo_code, ' ' as d_combo_code, df.dose_form_code, ' ' as brand_code, 0 as box_size,
     'Clinical Drug Form' as concept_class_id
   from ing_combo i 
   join df on df.concept_code=i.concept_code
 union
 -- Branded Drug Component
   select distinct 
-    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, ' ' as dose_form_code, bn.brand_code, 0 as box_size, ' ' as mf_code,
+    0 as denominator_value, i.combo_code as i_combo_code, d.combo_code as d_combo_code, ' ' as dose_form_code, bn.brand_code, 0 as box_size,
     'Branded Drug Comp' as concept_class_id
   from ing_combo i
   join ds_combo d on d.concept_code=i.concept_code
@@ -454,69 +412,27 @@ union
 union
 -- Clinical Drug Component - they are unique per ingredients
   select distinct 
-    0 as denominator_value, i.ing_code as i_combo_code, cast(d.ds_code as varchar(20)) as d_combo_code, ' ' as dose_form_code, ' ' as brand_code, 0 as box_size, ' ' as mf_code,
+    0 as denominator_value, i.ing_code as i_combo_code, cast(d.ds_code as varchar(20)) as d_combo_code, ' ' as dose_form_code, ' ' as brand_code, 0 as box_size,
     'Clinical Drug Comp' as concept_class_id
   from ing i 
   join unique_ds d on i.ing_code=d.ingredient_concept_code 
 ) c
 left join existing_concept_stage e on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
-  and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size AND c.mf_code=e.mf_code
+  and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
 ;
 
--- Add Packs
-insert /*+ APPEND */ into complete_concept_stage
-select 
-  dcs.concept_code,
-  0 as denominator_value,
-  ' ' as i_combo_code,
-  ' ' as d_combo_code,
-  ' ' as dose_form_code,
-  ' ' as brand_code,
-  0 as box_size,
-  dcsm.concept_code as mf_code,
-  'Marketed Product' as concept_class_id
-from drug_concept_stage dcs 
-join internal_relationship_stage irs ON irs.concept_code_1=dcs.concept_code
-join drug_concept_stage dcsm ON irs.concept_code_2=dcsm.concept_code AND dcsm.concept_class_id = 'Manufacturer'
-where dcs.concept_class_id like '%Pack' and dcs.domain_id='Drug'
-;
-commit;
+-- Replace remaining concept_code=0 with OMOP123 style temporary concept codes. 
+update complete_concept_stage ccs 
+  set concept_code='XXX'||xxx_seq.nextval -- make sure xxx_seq is defined.
+where ccs.concept_code='0';
 
-drop table nmf_packs;
-create table nmf_packs (
-  concept_code varchar2(50),
-  nmf_code varchar2(50)
-);  
-
-insert /*+ APPEND */ into nmf_packs
-select 
- dcs.concept_code,
- 'XXX'||xxx_seq.nextval as nmf_code
-from drug_concept_stage dcs 
-join internal_relationship_stage irs ON irs.concept_code_1=dcs.concept_code
-join drug_concept_stage dcsm ON irs.concept_code_2=dcsm.concept_code AND dcsm.concept_class_id = 'Manufacturer'
-where dcs.concept_class_id like '%Pack' and dcs.domain_id='Drug';
-
-insert /*+ APPEND */ into complete_concept_stage
-select 
-  nmf_code as concept_code,
-  0 as denominator_value,
-  ' ' as i_combo_code,
-  ' ' as d_combo_code,
-  ' ' as dose_form_code,
-  ' ' as brand_code,
-  0 as box_size,
-  ' ' as mf_code,
-  concept_class_id
-from drug_concept_stage dcs JOIN nmf_packs nmf ON nmf.concept_code=dcs.concept_code
-where concept_class_id like '%Pack' and domain_id='Drug'
-;
-commit;
+create index idx_ccs_concept_code ON complete_concept_stage (concept_code);
+create index idx_ccs_d_combo_code ON complete_concept_stage (d_combo_code);
 
 -- 4. Auto-generate all names unless a name is provided
 
 -- create table with all names, later to be joined with complete_concept_stage
-drop table complete_name;
+--drop table complete_name;
 create table complete_name (
   concept_code varchar2(50),
   concept_name varchar2(255)
@@ -532,8 +448,7 @@ with spelled_out as (
     sum(comp.comp_len) over (partition by c.concept_code order by comp.comp_name rows between unbounded preceding and current row) as agg_len,
     case when df.concept_name is null then '' else ' '||df.concept_name end as df_name,
     case when bn.concept_name is null then '' else ' ['||bn.concept_name||']' end as bn_name,
-    case when c.box_size=0 then '' else ' Box of '||c.box_size end as box,
-    case when mf.concept_name is null then '' else ' by '||mf.concept_name end as mf_name
+    case when c.box_size=0 then '' else ' Box of '||c.box_size end as box
   from complete_concept_stage c
   -- get component names and lengths
   join (
@@ -560,17 +475,16 @@ with spelled_out as (
   left join drug_concept_stage df on df.concept_code=c.dose_form_code
   -- get brand name
   left join drug_concept_stage bn on bn.concept_code=c.brand_code
-  left join drug_concept_stage mf on mf.concept_code=c.mf_code
   where c.concept_class_id not in ('Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug Comp')
 )
 select 
   concept_code,
 -- count the cumulative length of the components. The tildas are to make sure the three dots are put at the end of the list
-  replace(quant||listagg(comp_name, ' / ') within group (order by comp_name)||df_name||bn_name||box||mf_name, '~~~', '...') as concept_name
+  replace(quant||listagg(comp_name, ' / ') within group (order by comp_name)||df_name||bn_name||box, '~~~', '...') as concept_name
 from (
 -- keep only components where concatenation will leave enough space for the quant, dose form, brand name and box size
   select * from spelled_out s
-  where s.agg_len<=255-(nvl(length(s.quant), 0)+nvl(length(s.df_name), 0)+nvl(length(s.bn_name), 0)+nvl(length(s.box), 0)+nvl(length(s.mf_name), 0)+3)
+  where s.agg_len<=255-(nvl(length(s.quant), 0)+nvl(length(s.df_name), 0)+nvl(length(s.bn_name), 0)+nvl(length(s.box), 0)+3)
 -- Add three dots if ingredients are to be cut
 union
   select 
@@ -580,13 +494,12 @@ union
     1 as agg_len,
     df_name,
     bn_name,
-    box,
-    mf_name
+    box
   from spelled_out s
-  where s.agg_len>255-(nvl(length(s.quant), 0)+nvl(length(s.df_name), 0)+nvl(length(s.bn_name), 0)+nvl(length(s.box), 0)+nvl(length(s.mf_name), 0)+6)
-  group by quant, concept_code, df_name, bn_name, box, mf_name 
+  where s.agg_len>255-(nvl(length(s.quant), 0)+nvl(length(s.df_name), 0)+nvl(length(s.bn_name), 0)+nvl(length(s.box), 0)+6)
+  group by quant, concept_code, df_name, bn_name, box 
 )
-group by quant, concept_code, df_name, bn_name, box, mf_name 
+group by quant, concept_code, df_name, bn_name, box 
 ;
 commit;
 
@@ -666,7 +579,22 @@ group by concept_code, df_name, bn_name
 ;
 commit;
 
--- Packs
+-- Add Packs
+insert /*+ APPEND */ into complete_concept_stage
+select 
+  concept_code,
+  0 as denominator_value,
+  ' ' as i_combo_code,
+  ' ' as d_combo_code,
+  ' ' as dose_form_code,
+  ' ' as brand_code,
+  0 as box_size,
+  concept_class_id
+from drug_concept_stage
+where concept_class_id like '%Pack' and domain_id='Drug'
+;
+commit;
+
 insert /*+ APPEND */ into complete_name
 -- Get the component parts
 with c as (
@@ -684,20 +612,15 @@ with c as (
 -- Get the common part
 p as (
   select 
-    ccs.concept_code, 
-    dcs.concept_name, 
-    case when mf.concept_name is null then '' else ' by '||mf.concept_name end as mf_name,
-    length(dcs.concept_name) + nvl(length(mf.concept_name)+4,0) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
-  from complete_concept_stage ccs
-  JOIN drug_concept_stage dcs ON dcs.concept_code=ccs.concept_code OR 'NMTF'||dcs.concept_code=ccs.concept_code
-  LEFT JOIN (select dcsm.*, irs.concept_code_1 from internal_relationship_stage irs 
-    JOIN drug_concept_stage dcsm ON dcsm.concept_code=irs.concept_code_2 AND dcsm.concept_class_id = 'Manufacturer') mf ON mf.concept_code_1 = ccs.concept_code
-  where dcs.concept_class_id like '%Pack%' and dcs.domain_id='Drug'
+    concept_code, 
+    concept_name, 
+    length(concept_name) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
+  from drug_concept_stage where concept_class_id like '%Pack%' and domain_id='Drug'
 ),
 -- Calculate total length of everything if space weren't the issue, and then calculate the factor that each concept_name needs to be shortened by
 l as (
   select concept_code, 
-    (243-all_a_len-p.len)/all_n_len as factor -- 255-12 for common pack text (curly brackets, spaces)
+    (243-all_a_len-p.len)/all_n_len as factor -- 255-10 for common pack text (curly brackets, spaces) -- changed a bit because pack text is longer now for some reason
   from (
     select distinct
       concept_code,
@@ -717,31 +640,19 @@ c_p as (
 )
 select 
   concept_code,
-  '{'||listagg(c_p.concept_name, ') / ') within group (order by c_p.concept_name) ||') } Pack ['||p.concept_name||']' || p.mf_name as concept_name
+  '{'||listagg(c_p.concept_name, ') / ') within group (order by c_p.concept_name) ||') } Pack ['||p.concept_name||']' as concept_name
 from c_p -- components, possibly trimmed
 join p using(concept_code) -- common part
-group by concept_code, p.concept_name, p.mf_name -- aggregate within concept_code
+group by concept_code, p.concept_name -- aggregate within concept_code
 ;
 commit;
-
-
--- change code for packs
---XXX update complete_concept_stage 
-
--- Replace remaining concept_code=0 with OMOP123 style temporary concept codes. 
-update complete_concept_stage ccs 
-  set concept_code='XXX'||xxx_seq.nextval -- make sure xxx_seq is defined.
-where ccs.concept_code='0';
-
-create index idx_ccs_concept_code ON complete_concept_stage (concept_code);
-create index idx_ccs_d_combo_code ON complete_concept_stage (d_combo_code);
 
 
 -- 4. Compare new drug vocabulary q to existing one r
 
 -- Create lookup tables for existing vocab r (RxNorm and new ones)
 -- Create table containing ingredients for each drug
-drop table r_drug_ing purge;
+--drop table r_drug_ing purge;
 create table r_drug_ing nologging as
   select de.concept_id as drug_id, an.concept_id as ing_id, de.concept_class_id
   from concept_ancestor a 
@@ -753,14 +664,14 @@ delete from r_drug_ing where drug_id in (19094500, 19080557);
 commit;
 
 -- Count number of ingredients for each drug
-drop table r_ing_count purge;
+--drop table r_ing_count purge;
 create table r_ing_count nologging as
   select drug_id as did, count(*) as cnt from r_drug_ing group by drug_id
 ;
 commit;
 
 -- Create lookup table for query vocab q (new vocab)
-drop table q_drug_ing purge;
+--drop table q_drug_ing purge;
 create table q_drug_ing as
 select distinct i.concept_code as drug_code, nvl(c.concept_id, 0) as ing_id, i.ing_code, i.concept_class_id -- if ingredient is not mapped use 0 to get the right count
 from (
@@ -772,14 +683,14 @@ left join relationship_to_concept r on r.concept_code_1=i.ing_code
 left join concept c on c.concept_id=r.concept_id_2 -- link standard ingredients to existing ones
 ;
 -- Count ingredients per drug
-drop table q_ing_count purge;
+--drop table q_ing_count purge;
 create table q_ing_count nologging as
   select drug_code as dcode, count(*) as cnt from q_drug_ing group by drug_code
 ;
 commit;
 
 -- Create table that lists for each ingredient all drugs containing it from q and r
-drop table match purge;
+--drop table match purge;
 create table match nologging as
   select q.ing_id as r_iid, q.ing_code as q_icode, q.drug_code as q_dcode, r.drug_id as r_did
   from q_drug_ing q join r_drug_ing r on q.ing_id=r.ing_id and q.concept_class_id=r.concept_class_id-- match query and result drug on common ingredient
@@ -788,14 +699,14 @@ create index x_match on match(q_dcode, r_did);
 commit;
 
 -- Create table with all drugs in q and r and the number of ingredients they share
-drop table shared_ing purge;
+--drop table shared_ing purge;
 create table shared_ing nologging as
 select r_did, q_dcode, count(*) as cnt from match group by r_did, q_dcode
 ;
 commit;
 
 -- Create matching table for all drugs (q and r) that share ingredients and their total amount
-drop table m purge;
+--drop table m purge;
 create table m nologging as 
 select distinct m.*, rc.cnt as rc_cnt, r.precedence as i_prec
 from match m
@@ -807,7 +718,7 @@ join relationship_to_concept r on r.concept_code_1=m.q_icode and r.concept_id_2=
 commit;
 
 -- Create table with Dose Forms for q
-drop table q_df purge;
+--drop table q_df purge;
 create table q_df nologging as 
 select css.concept_code as concept_code_1, 
   case when css.dose_form_code=' ' then 0 -- No Dose Form
@@ -821,7 +732,7 @@ left join relationship_to_concept m on m.concept_code_1=css.dose_form_code
 commit;
 
 -- Create table with Dose Forms for r
-drop table r_df purge;
+--drop table r_df purge;
 create table r_df nologging as 
 select r.concept_id_1, r.concept_id_2 from concept_relationship r
 join concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
@@ -830,7 +741,7 @@ where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
 commit;
 
 -- Create table wiht Brand Names for q
-drop table q_bn purge;
+--drop table q_bn purge;
 create table q_bn nologging as
 select css.concept_code as concept_code_1, 
   case when css.brand_code=' ' then 0 -- No Brand Name
@@ -844,7 +755,7 @@ left join relationship_to_concept m on m.concept_code_1=css.brand_code
 commit;
 
 -- Create table with Brand Names for r
-drop table r_bn purge;
+--drop table r_bn purge;
 create table r_bn nologging as
 select r.concept_id_1, r.concept_id_2 
 from concept_relationship r
@@ -854,7 +765,7 @@ where r.invalid_reason is null
 commit;
 
 -- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size or quantity are not yet compared
-drop table q_to_r_anydose purge;
+--drop table q_to_r_anydose purge;
 create table q_to_r_anydose nologging as
 -- create table with all query drug codes q_dcode mapped to standard drug concept ids r_did, irrespective of the correct dose
 select distinct
@@ -884,7 +795,7 @@ and q_quant.q_value=nvl(r_quant.q_value, 0) -- if no Quantity factors  match 0s
 commit;
 
 -- Add matching of dose and its units
-drop table q_to_r_wdose purge;
+--drop table q_to_r_wdose purge;
 create table q_to_r_wdose nologging as
 -- q component with drug_strength in RxNorm speak (ids instead of codes) (check out '3507130' for problems with 2 precedences in liquids)
 with q as (
@@ -962,7 +873,7 @@ where rowid in (
 commit;
 
 -- Remove all those where not everything fits
-drop table q_to_r purge;
+--drop table q_to_r purge;
 -- table has to be created separately because both subsequent queries define one field as null
 create table q_to_r nologging as
 select q_dcode, r_did, r_iid, div, bn_prec, df_prec, u_prec, rc_cnt from q_to_r_wdose
@@ -1024,34 +935,19 @@ select
   'Drug' as domain_id,
   dcs.vocabulary_id,
   dcs.concept_class_id,
-  null as standard_concept, -- DA_France ingreidents are not standard, unless they are not mapped
+/*  null as */standard_concept, -- DA_France ingreidents are not standard, unless they are not mapped
   dcs.concept_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
   nvl(dcs.valid_end_date, '31-Dec-2099') as valid_end_date,
-  null as invalid_reason
+  /*null as */invalid_reason 
 from drug_concept_stage dcs where dcs.concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name') and dcs.domain_id='Drug';
 
 commit;
 
--- insert suppliers
-insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-select 
-  null as concept_id, 
-  dcs.concept_name, -- take concept_name from equivalent 
-  'Drug' as domain_id,
-  dcs.vocabulary_id,
-  'Supplier' as  concept_class_id,
-  null as standard_concept, -- DA_France ingreidents are not standard, unless they are not mapped
-  dcs.concept_code,
-  nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
-  nvl(dcs.valid_end_date, '31-Dec-2099') as valid_end_date,
-  invalid_reason 
-from drug_concept_stage dcs where dcs.concept_class_id = 'Manufacturer' and dcs.domain_id='Drug';
-commit;
-
 -- Promote non-mapped Ingredients to Standard
-update concept_stage set standard_concept='S' where concept_code not in (select concept_code_1 from relationship_to_concept) and concept_class_id='Ingredient';
-
+--add condition for non-standard concepts we have in drug_concept_stage 
+update concept_stage set standard_concept='S' where concept_code not in (select concept_code_1 from relationship_to_concept) and concept_class_id='Ingredient'
+;
 -- Write concepts from complete_concept_stage
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select distinct
@@ -1157,54 +1053,6 @@ join concept c on c.concept_id=qr.r_did
 ;
 commit;
 
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-select distinct 
-  concept_code concept_code_1,
-  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
-  mf_code as concept_code_2,
-  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
-  'Has Supplier' as relationship_id,
-  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
-  null as invalid_reason
-from complete_concept_stage q
-where concept_class_id = 'Marketed Product';
-commit;
-
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-select distinct
-  ccs1.concept_code as concept_code_1,
-  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
-  ccs2.concept_code as concept_code_2,
-  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
-  'Marketed form of' as relationship_id,
-  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
-  null as invalid_reason
-from complete_concept_stage ccs1 JOIN nmf_packs nmf ON nmf.concept_code=ccs1.concept_code JOIN complete_concept_stage ccs2 ON ccs2.concept_code=nmf.nmf_code;
-commit;
-
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-select distinct
-  ccs1.concept_code as concept_code_1,
-  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
-  ccs2.concept_code as concept_code_2,
-  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
-  'Marketed form of' as relationship_id,
-  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
-  null as invalid_reason
-from complete_concept_stage ccs1 
-JOIN complete_concept_stage ccs2 
-ON  nvl(ccs1.denominator_value, '') = nvl(ccs2.denominator_value, '') 
-AND nvl(ccs1.i_combo_code, '') = nvl(ccs2.i_combo_code, '') 
-AND nvl(ccs1.d_combo_code, '') = nvl(ccs2.d_combo_code, '') 
-AND nvl(ccs1.dose_form_code, '') = nvl(ccs2.dose_form_code, '') 
-AND nvl(ccs1.brand_code, '') = nvl(ccs2.brand_code, '') 
-AND nvl(ccs1.box_size, 0) = nvl(ccs2.box_size, 0)
-where ccs1.concept_class_id='Marketed Product' AND ccs2.concept_class_id NOT IN ('Marketed Product');
-commit;
-
 -- write RxNorm-like relationships between concepts of all classes except Drug Forms and Clinical Drug Component based on matching components
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 with rl as (
@@ -1275,7 +1123,7 @@ on de.denominator_value=coalesce(an.denominator_value, de.denominator_value, 0)
 commit;
 
 -- For speed up pull out indexed table
-drop table an purge;
+--drop table an purge;
 create table an nologging as
 select
   nvl(r_code, concept_code) as concept_code, nvl(r_vocab_id, (select vocabulary_id from drug_concept_stage where rownum=1)) as vocabulary_id, 
@@ -1392,7 +1240,7 @@ insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary
 select 
   p.pack_concept_code as concept_code_1,
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
-  nvl(r_code, p.drug_concept_code) as concept_code_2,
+  nvl(r_code, p.component_concept_code) as concept_code_2,
   nvl(r_vocab_id, (select vocabulary_id from drug_concept_stage where rownum=1)) as vocabulary_id_2,
   'Contains',
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
@@ -1401,7 +1249,7 @@ select
 from pack_content p
 left join (
   select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join concept r on r.concept_id=qr.r_did
-) on q_dcode=p.drug_concept_code
+) on q_dcode=p.component_concept_code
 ;
 commit;
 
@@ -1707,7 +1555,7 @@ commit;
 
 -- Replace concept_codes XXX123 with OMOP123
 -- Create replacement map
-drop table xxx_replace purge;
+--drop table xxx_replace purge;
 create table xxx_replace (
   xxx_code varchar2(50),
   omop_code varchar2(50)
@@ -1778,7 +1626,7 @@ join (
 commit;
 
 -- Create sequence for new OMOP-created standard concepts
-drop sequence new_vocab;
+--drop sequence new_vocab;
 /*
 declare
  ex number;
@@ -1793,7 +1641,7 @@ end;
 */
 
 insert into xxx_replace
-select concept_code as xxx_code, 'OMOP'||new_vocab.nextval as omop_code
+select concept_code as xxx_code, 'OMOP'||new_voc.nextval as omop_code
 from concept_stage 
 where concept_code like 'XXX%' 
 and concept_code not in (select xxx_code from xxx_replace)
@@ -1857,3 +1705,4 @@ where not exists (
 and css.concept_code like 'XXX%'
 ;
 commit;
+

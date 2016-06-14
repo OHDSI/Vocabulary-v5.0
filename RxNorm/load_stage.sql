@@ -23,7 +23,7 @@ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END;
 ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20160502','yyyymmdd'), vocabulary_version='RxNorm Full 20160502' WHERE vocabulary_id = 'RxNorm'; 
+UPDATE vocabulary SET latest_update=to_date('20160606','yyyymmdd'), vocabulary_version='RxNorm Full 20160606' WHERE vocabulary_id = 'RxNorm'; 
 COMMIT;
 
 -- 2. Truncate all working tables and remove indices
@@ -309,6 +309,13 @@ WHERE EXISTS (
         SELECT 1 FROM concept_stage d WHERE r.concept_code_1 = d.concept_code AND r.vocabulary_id_1 = d.vocabulary_id
             AND d.concept_class_id in ('Branded Drug', 'Clinical Drug')
     AND r.relationship_id = 'RxNorm has ing');
+COMMIT;
+-- and same for reverse
+DELETE FROM concept_relationship_stage r 
+WHERE EXISTS (
+        SELECT 1 FROM concept_stage d WHERE r.concept_code_2 = d.concept_code AND r.vocabulary_id_2 = d.vocabulary_id
+            AND d.concept_class_id in ('Branded Drug', 'Clinical Drug')
+    AND r.relationship_id = 'RxNorm ing of');
 COMMIT;
 
 --Rename 'Has tradename' to 'Has brand name'  where concept_id_1='Ingredient' and concept_id_2='Brand Name'

@@ -11,7 +11,7 @@ trailing nullcols
 (RXCUI	char(8),
 LUI	char(8),
 SUI	char(8),
-RXAUI	char(8),
+RXAUI	char(9),
 STYPE	char(50),
 CODE	char(50),
 ATUI	char(11),

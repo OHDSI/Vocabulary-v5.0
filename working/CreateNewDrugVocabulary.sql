@@ -604,7 +604,7 @@ with c as (
     case when pc.amount is null then 0 else length(pc.amount)+1 end as a_len, -- length of the amount
     length(concept_name) as n_len -- length of the concept_name
   from pack_content pc
-  join existing_concept_stage e on e.concept_code=pc.component_concept_code
+  join existing_concept_stage e on e.concept_code=pc.drug_concept_code
   join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
     and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
   join complete_name cn on cn.concept_code=c.concept_code
@@ -927,7 +927,13 @@ commit;
 
 -- 5. Write out result tables
 
+truncate table concept_stage;
+truncate table concept_relationship_stage;
+truncate table drug_strength_stage;
+delete from existing_ds where vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1);
+
 -- Write Ingredients, Brand Names, Dose Forms
+
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select 
   null as concept_id, 
@@ -1240,7 +1246,7 @@ insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary
 select 
   p.pack_concept_code as concept_code_1,
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
-  nvl(r_code, p.component_concept_code) as concept_code_2,
+  nvl(r_code, p.drug_concept_code) as concept_code_2,
   nvl(r_vocab_id, (select vocabulary_id from drug_concept_stage where rownum=1)) as vocabulary_id_2,
   'Contains',
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
@@ -1249,7 +1255,7 @@ select
 from pack_content p
 left join (
   select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join concept r on r.concept_id=qr.r_did
-) on q_dcode=p.component_concept_code
+) on q_dcode=p.drug_concept_code
 ;
 commit;
 
@@ -1476,7 +1482,6 @@ commit;
 
 
 -- 7. Create DRUG_STRENGTH from unique_ds
-truncate table drug_strength_stage;
 
 -- collect statistics so Oracle does the following in a reasonable approach
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
@@ -1648,26 +1653,53 @@ and concept_code not in (select xxx_code from xxx_replace)
 ;
 commit;
 
-update concept_stage cs
-set cs.concept_code=(select xr.omop_code from xxx_replace xr where cs.concept_code=xr.xxx_code)
-where cs.concept_code like 'XXX%';
+-- fast way to update codes require temporary tables. 
 
-update concept_relationship_stage crs
-set crs.concept_code_1=(select xr.omop_code from xxx_replace xr where crs.concept_code_1=xr.xxx_code)
-where crs.concept_code_1 like 'XXX%';
+create table cs_rowid_update as
+select cs.rowid as irowid, xr.omop_code as concept_code from xxx_replace xr JOIN concept_stage cs ON cs.concept_code=xr.xxx_code;
 
-update concept_relationship_stage crs
-set crs.concept_code_2=(select xr.omop_code from xxx_replace xr where crs.concept_code_2=xr.xxx_code)
-where crs.concept_code_2 like 'XXX%';
+MERGE INTO concept_stage cs
+USING   (
+select * from cs_rowid_update
+) d ON (d.irowid=cs.rowid)
+WHEN MATCHED THEN UPDATE
+    SET cs.concept_code = d.concept_code;
 
-update drug_strength_stage dss
-set dss.drug_concept_code=(select xr.omop_code from xxx_replace xr where dss.drug_concept_code=xr.xxx_code)
-where dss.drug_concept_code like 'XXX%';
+drop table cs_rowid_update;
+
+create table crs_rowid_update as
+select distinct crs.rowid as irowid, nvl(xr1.omop_code, crs.concept_code_1) as concept_code_1, nvl(xr2.omop_code, crs.concept_code_2) as concept_code_2 from concept_relationship_stage crs
+LEFT JOIN xxx_replace xr1 ON xr1.xxx_code=crs.concept_code_1 
+LEFT JOIN xxx_replace xr2 ON xr2.xxx_code=crs.concept_code_2
+WHERE xr1.omop_code IS NOT NULL OR xr2.omop_code IS NOT NULL;
+
+
+MERGE INTO concept_relationship_stage crs
+USING   (
+select * from crs_rowid_update
+) d ON (d.irowid=crs.rowid)
+WHEN MATCHED THEN UPDATE
+    SET crs.concept_code_1 = d.concept_code_1, crs.concept_code_2 = d.concept_code_2;
+
+drop table crs_rowid_update;
+
+
+create table dss_rowid_update as
+select dss.rowid as irowid, xr.omop_code as drug_concept_code from xxx_replace xr JOIN drug_strength_stage dss ON dss.drug_concept_code=xr.xxx_code;
+
+MERGE INTO drug_strength_stage dss
+USING   (
+select * from dss_rowid_update
+) d ON (d.irowid=dss.rowid)
+WHEN MATCHED THEN UPDATE
+    SET dss.drug_concept_code = d.drug_concept_code;
+
+drop table dss_rowid_update;
+
 
 commit;
 
 -- Save ds information for all concepts 
-delete from existing_ds where vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1);
 insert into existing_ds
 select distinct 
   css.concept_code as drug_concept_code, uds.ingredient_concept_code, (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,

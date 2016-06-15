@@ -22,6 +22,7 @@
 -- Add 'Marketed Product', change from Clinical% and Branded% to Drug Product
 -- Put all "drops" to the end
 
+
 /******************************************************************************
 * This script creates a new drug vocabulary in the OMOP Standard Vocabularies *
 * The new drug vocabulary must be provided in the format described in         *
@@ -37,21 +38,21 @@
 /** IMPORTANT **/
 /* Add the latest_udpate and version information to the VOCABULARY table **/
 
--- Create temporary for uniqe strength recordsdrop sequence ds_seq;
-drop sequence ds_seq;
+-- Create temporary for uniqe strength records--drop sequence ds_seq;
+--drop sequence ds_seq;
 create sequence ds_seq increment by 1 start with 1 nocycle cache 20 noorder;
 
 -- Create sequence for temporary XXX concept codes
-drop sequence xxx_seq;
+--drop sequence xxx_seq;
 create sequence xxx_seq increment by 1 start with 1 nocycle cache 20 noorder;
 
 commit;
 
 -- 1. Prepare drug components for new vocabularies: Create unique list and for each drug enumerate. This allows to create a single row for each drug.
 
--- Create distinct version of drug_strength 
+-- Create distinct version of drug_strength (general version)
 -- Replace nulls with 0 and ' '
-drop table unique_ds purge;
+--drop table unique_ds purge;
 create table unique_ds nologging as
 select ds_seq.nextval as ds_code, ds.* from (
   select distinct ingredient_concept_code, 
@@ -72,7 +73,7 @@ select ds_seq.nextval as ds_code, ds.* from (
 
 
 -- Create table with all drug concept codes linked to the above unique components 
-drop table ds cascade constraints purge;
+--drop table ds cascade constraints purge;
 create table ds nologging as
 select dss.drug_concept_code as concept_code, uds.ds_code
 from ds_stage dss
@@ -91,7 +92,7 @@ join unique_ds uds on uds.ingredient_concept_code=dss.ingredient_concept_code
 create index idx_ds on ds (ds_code);
 
 -- Create table with the combination of components for each drug concept delimited by '-'
-drop table ds_combo purge;
+--drop table ds_combo purge;
 create table ds_combo as
 select distinct concept_code, listagg(ds_code, '-') within group (order by ds_code) as combo_code
 from ds
@@ -99,16 +100,16 @@ group by concept_code
 ;
 
 -- Create table with all drug concept codes linked to the codes of the ingredients (rather than full dose components)
-drop table ing purge;
+--drop table ing purge;
 create table ing nologging as
 select c.concept_code, i.concept_code as ing_code
 from drug_concept_stage c
 join internal_relationship_stage r on r.concept_code_1=c.concept_code
 join drug_concept_stage i on i.concept_code=r.concept_code_2 and i.concept_class_id='Ingredient'
-where (c.concept_class_id like '%Clinical%' or c.concept_class_id like '%Branded%') and c.domain_id='Drug'; -- Change to Marketed Product and Drug Product
+where (c.concept_class_id like '%Drug%') and c.domain_id='Drug';
 
 -- Create table with the combination of ingredients for each drug concept delimited by '-'
-drop table ing_combo purge;
+--drop table ing_combo purge;
 create table ing_combo nologging as
 select distinct concept_code, listagg(ing_code, '-') within group (order by ing_code) as combo_code
 from ing
@@ -116,12 +117,12 @@ group by concept_code
 ;
 
 -- Create table to convert from ingredients to components
-drop table ing_to_ds purge;
+--drop table ing_to_ds purge;
 create table ing_to_ds nologging as
 select distinct i.combo_code as ing_combo_code, d.combo_code as ds_combo_code from ing_combo i join ds_combo d on d.concept_code=i.concept_code;
 
 -- Create table with Quantity Factor information for each drug (if exists)
-drop table quant purge;
+--drop table quant purge;
 create table quant nologging as
 select distinct drug_concept_code as concept_code, denominator_value
 from ds_stage
@@ -129,7 +130,7 @@ where denominator_value is not null and denominator_value!=0
 ;
 
 -- Create table with Brand Name information for each drug (if exists)
-drop table bn purge;
+--drop table bn purge;
 create table bn nologging as
 select distinct ir.concept_code_1 as concept_code, b.concept_code as brand_code -- distinct only because source contains duplicated maps
 from internal_relationship_stage ir
@@ -137,7 +138,7 @@ join drug_concept_stage b on b.concept_code=ir.concept_code_2 and b.concept_clas
 ;
 
 -- Create table with Dose Form information for each drug (if exists)
-drop table df purge;
+--drop table df purge;
 create table df nologging as
 select distinct ir.concept_code_1 as concept_code, f.concept_code as dose_form_code -- distinct only because source contains duplicated maps
 from internal_relationship_stage ir
@@ -145,7 +146,7 @@ join drug_concept_stage f on f.concept_code=ir.concept_code_2 and f.concept_clas
 ;
 
 -- Create table with Box Size information for each drug (if exists)
-drop table bs purge;
+--drop table bs purge;
 create table bs nologging as
 select distinct drug_concept_code as concept_code, box_size 
 from ds_stage where box_size is not null;
@@ -156,8 +157,8 @@ from ds_stage where box_size is not null;
 -- Duplication rule 1: More than one definition per concept_code is illegal
 -- Duplication rule 2: More than one concept_code per definition needs deprecation of the duplicates
 
--- Collect all input drugs and create master matrix
-drop table existing_concept_stage purge;
+-- Collect all input drugs
+--drop table existing_concept_stage purge;
 create table existing_concept_stage nologging as
 -- Quant Branded Box
   select distinct 
@@ -305,7 +306,7 @@ union
 
 -- 3. Write all concept classes, whether existing or not from all possible combinations
 
-drop table complete_concept_stage cascade constraints purge;
+--drop table complete_concept_stage cascade constraints purge;
 create table complete_concept_stage nologging as
 select distinct nvl(first_value(e.concept_code) over (partition by e.denominator_value, e.i_combo_code, e.d_combo_code, e.dose_form_code, e.brand_code, e.box_size order by concept_code desc), 0) as concept_code,
   c.*
@@ -431,7 +432,7 @@ create index idx_ccs_d_combo_code ON complete_concept_stage (d_combo_code);
 -- 4. Auto-generate all names unless a name is provided
 
 -- create table with all names, later to be joined with complete_concept_stage
-drop table complete_name;
+--drop table complete_name;
 create table complete_name (
   concept_code varchar2(50),
   concept_name varchar2(255)
@@ -603,7 +604,7 @@ with c as (
     case when pc.amount is null then 0 else length(pc.amount)+1 end as a_len, -- length of the amount
     length(concept_name) as n_len -- length of the concept_name
   from pack_content pc
-  join existing_concept_stage e on e.concept_code=pc.component_concept_code
+  join existing_concept_stage e on e.concept_code=pc.drug_concept_code
   join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
     and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size
   join complete_name cn on cn.concept_code=c.concept_code
@@ -619,7 +620,7 @@ p as (
 -- Calculate total length of everything if space weren't the issue, and then calculate the factor that each concept_name needs to be shortened by
 l as (
   select concept_code, 
-    (245-all_a_len-p.len)/all_n_len as factor -- 255-10 for common pack text (curly brackets, spaces)
+    (243-all_a_len-p.len)/all_n_len as factor -- 255-10 for common pack text (curly brackets, spaces) -- changed a bit because pack text is longer now for some reason
   from (
     select distinct
       concept_code,
@@ -651,7 +652,7 @@ commit;
 
 -- Create lookup tables for existing vocab r (RxNorm and new ones)
 -- Create table containing ingredients for each drug
-drop table r_drug_ing purge;
+--drop table r_drug_ing purge;
 create table r_drug_ing nologging as
   select de.concept_id as drug_id, an.concept_id as ing_id, de.concept_class_id
   from concept_ancestor a 
@@ -663,14 +664,14 @@ delete from r_drug_ing where drug_id in (19094500, 19080557);
 commit;
 
 -- Count number of ingredients for each drug
-drop table r_ing_count purge;
+--drop table r_ing_count purge;
 create table r_ing_count nologging as
   select drug_id as did, count(*) as cnt from r_drug_ing group by drug_id
 ;
 commit;
 
 -- Create lookup table for query vocab q (new vocab)
-drop table q_drug_ing purge;
+--drop table q_drug_ing purge;
 create table q_drug_ing as
 select distinct i.concept_code as drug_code, nvl(c.concept_id, 0) as ing_id, i.ing_code, i.concept_class_id -- if ingredient is not mapped use 0 to get the right count
 from (
@@ -682,14 +683,14 @@ left join relationship_to_concept r on r.concept_code_1=i.ing_code
 left join concept c on c.concept_id=r.concept_id_2 -- link standard ingredients to existing ones
 ;
 -- Count ingredients per drug
-drop table q_ing_count purge;
+--drop table q_ing_count purge;
 create table q_ing_count nologging as
   select drug_code as dcode, count(*) as cnt from q_drug_ing group by drug_code
 ;
 commit;
 
 -- Create table that lists for each ingredient all drugs containing it from q and r
-drop table match purge;
+--drop table match purge;
 create table match nologging as
   select q.ing_id as r_iid, q.ing_code as q_icode, q.drug_code as q_dcode, r.drug_id as r_did
   from q_drug_ing q join r_drug_ing r on q.ing_id=r.ing_id and q.concept_class_id=r.concept_class_id-- match query and result drug on common ingredient
@@ -698,14 +699,14 @@ create index x_match on match(q_dcode, r_did);
 commit;
 
 -- Create table with all drugs in q and r and the number of ingredients they share
-drop table shared_ing purge;
+--drop table shared_ing purge;
 create table shared_ing nologging as
 select r_did, q_dcode, count(*) as cnt from match group by r_did, q_dcode
 ;
 commit;
 
 -- Create matching table for all drugs (q and r) that share ingredients and their total amount
-drop table m purge;
+--drop table m purge;
 create table m nologging as 
 select distinct m.*, rc.cnt as rc_cnt, r.precedence as i_prec
 from match m
@@ -717,7 +718,7 @@ join relationship_to_concept r on r.concept_code_1=m.q_icode and r.concept_id_2=
 commit;
 
 -- Create table with Dose Forms for q
-drop table q_df purge;
+--drop table q_df purge;
 create table q_df nologging as 
 select css.concept_code as concept_code_1, 
   case when css.dose_form_code=' ' then 0 -- No Dose Form
@@ -731,7 +732,7 @@ left join relationship_to_concept m on m.concept_code_1=css.dose_form_code
 commit;
 
 -- Create table with Dose Forms for r
-drop table r_df purge;
+--drop table r_df purge;
 create table r_df nologging as 
 select r.concept_id_1, r.concept_id_2 from concept_relationship r
 join concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
@@ -740,7 +741,7 @@ where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
 commit;
 
 -- Create table wiht Brand Names for q
-drop table q_bn purge;
+--drop table q_bn purge;
 create table q_bn nologging as
 select css.concept_code as concept_code_1, 
   case when css.brand_code=' ' then 0 -- No Brand Name
@@ -754,7 +755,7 @@ left join relationship_to_concept m on m.concept_code_1=css.brand_code
 commit;
 
 -- Create table with Brand Names for r
-drop table r_bn purge;
+--drop table r_bn purge;
 create table r_bn nologging as
 select r.concept_id_1, r.concept_id_2 
 from concept_relationship r
@@ -764,7 +765,7 @@ where r.invalid_reason is null
 commit;
 
 -- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size or quantity are not yet compared
-drop table q_to_r_anydose purge;
+--drop table q_to_r_anydose purge;
 create table q_to_r_anydose nologging as
 -- create table with all query drug codes q_dcode mapped to standard drug concept ids r_did, irrespective of the correct dose
 select distinct
@@ -794,7 +795,7 @@ and q_quant.q_value=nvl(r_quant.q_value, 0) -- if no Quantity factors  match 0s
 commit;
 
 -- Add matching of dose and its units
-drop table q_to_r_wdose purge;
+--drop table q_to_r_wdose purge;
 create table q_to_r_wdose nologging as
 -- q component with drug_strength in RxNorm speak (ids instead of codes) (check out '3507130' for problems with 2 precedences in liquids)
 with q as (
@@ -872,7 +873,7 @@ where rowid in (
 commit;
 
 -- Remove all those where not everything fits
-drop table q_to_r purge;
+--drop table q_to_r purge;
 -- table has to be created separately because both subsequent queries define one field as null
 create table q_to_r nologging as
 select q_dcode, r_did, r_iid, div, bn_prec, df_prec, u_prec, rc_cnt from q_to_r_wdose
@@ -926,7 +927,13 @@ commit;
 
 -- 5. Write out result tables
 
+truncate table concept_stage;
+truncate table concept_relationship_stage;
+truncate table drug_strength_stage;
+delete from existing_ds where vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1);
+
 -- Write Ingredients, Brand Names, Dose Forms
+
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select 
   null as concept_id, 
@@ -934,18 +941,19 @@ select
   'Drug' as domain_id,
   dcs.vocabulary_id,
   dcs.concept_class_id,
-  null as standard_concept, -- DA_France ingreidents are not standard, unless they are not mapped
+/*  null as */standard_concept, -- DA_France ingreidents are not standard, unless they are not mapped
   dcs.concept_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
   nvl(dcs.valid_end_date, '31-Dec-2099') as valid_end_date,
-  null as invalid_reason
+  /*null as */invalid_reason 
 from drug_concept_stage dcs where dcs.concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name') and dcs.domain_id='Drug';
 
 commit;
 
 -- Promote non-mapped Ingredients to Standard
-update concept_stage set standard_concept='S' where concept_code not in (select concept_code_1 from relationship_to_concept) and concept_class_id='Ingredient';
-
+--add condition for non-standard concepts we have in drug_concept_stage 
+update concept_stage set standard_concept='S' where concept_code not in (select concept_code_1 from relationship_to_concept) and concept_class_id='Ingredient'
+;
 -- Write concepts from complete_concept_stage
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select distinct
@@ -1121,7 +1129,7 @@ on de.denominator_value=coalesce(an.denominator_value, de.denominator_value, 0)
 commit;
 
 -- For speed up pull out indexed table
-drop table an purge;
+--drop table an purge;
 create table an nologging as
 select
   nvl(r_code, concept_code) as concept_code, nvl(r_vocab_id, (select vocabulary_id from drug_concept_stage where rownum=1)) as vocabulary_id, 
@@ -1474,7 +1482,6 @@ commit;
 
 
 -- 7. Create DRUG_STRENGTH from unique_ds
-truncate table drug_strength_stage;
 
 -- collect statistics so Oracle does the following in a reasonable approach
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
@@ -1553,7 +1560,7 @@ commit;
 
 -- Replace concept_codes XXX123 with OMOP123
 -- Create replacement map
-drop table xxx_replace purge;
+--drop table xxx_replace purge;
 create table xxx_replace (
   xxx_code varchar2(50),
   omop_code varchar2(50)
@@ -1624,7 +1631,7 @@ join (
 commit;
 
 -- Create sequence for new OMOP-created standard concepts
-drop sequence new_vocab;
+--drop sequence new_vocab;
 /*
 declare
  ex number;
@@ -1639,33 +1646,60 @@ end;
 */
 
 insert into xxx_replace
-select concept_code as xxx_code, 'OMOP'||new_vocab.nextval as omop_code
+select concept_code as xxx_code, 'OMOP'||new_voc.nextval as omop_code
 from concept_stage 
 where concept_code like 'XXX%' 
 and concept_code not in (select xxx_code from xxx_replace)
 ;
 commit;
 
-update concept_stage cs
-set cs.concept_code=(select xr.omop_code from xxx_replace xr where cs.concept_code=xr.xxx_code)
-where cs.concept_code like 'XXX%';
+-- fast way to update codes require temporary tables. 
 
-update concept_relationship_stage crs
-set crs.concept_code_1=(select xr.omop_code from xxx_replace xr where crs.concept_code_1=xr.xxx_code)
-where crs.concept_code_1 like 'XXX%';
+create table cs_rowid_update as
+select cs.rowid as irowid, xr.omop_code as concept_code from xxx_replace xr JOIN concept_stage cs ON cs.concept_code=xr.xxx_code;
 
-update concept_relationship_stage crs
-set crs.concept_code_2=(select xr.omop_code from xxx_replace xr where crs.concept_code_2=xr.xxx_code)
-where crs.concept_code_2 like 'XXX%';
+MERGE INTO concept_stage cs
+USING   (
+select * from cs_rowid_update
+) d ON (d.irowid=cs.rowid)
+WHEN MATCHED THEN UPDATE
+    SET cs.concept_code = d.concept_code;
 
-update drug_strength_stage dss
-set dss.drug_concept_code=(select xr.omop_code from xxx_replace xr where dss.drug_concept_code=xr.xxx_code)
-where dss.drug_concept_code like 'XXX%';
+drop table cs_rowid_update;
+
+create table crs_rowid_update as
+select distinct crs.rowid as irowid, nvl(xr1.omop_code, crs.concept_code_1) as concept_code_1, nvl(xr2.omop_code, crs.concept_code_2) as concept_code_2 from concept_relationship_stage crs
+LEFT JOIN xxx_replace xr1 ON xr1.xxx_code=crs.concept_code_1 
+LEFT JOIN xxx_replace xr2 ON xr2.xxx_code=crs.concept_code_2
+WHERE xr1.omop_code IS NOT NULL OR xr2.omop_code IS NOT NULL;
+
+
+MERGE INTO concept_relationship_stage crs
+USING   (
+select * from crs_rowid_update
+) d ON (d.irowid=crs.rowid)
+WHEN MATCHED THEN UPDATE
+    SET crs.concept_code_1 = d.concept_code_1, crs.concept_code_2 = d.concept_code_2;
+
+drop table crs_rowid_update;
+
+
+create table dss_rowid_update as
+select dss.rowid as irowid, xr.omop_code as drug_concept_code from xxx_replace xr JOIN drug_strength_stage dss ON dss.drug_concept_code=xr.xxx_code;
+
+MERGE INTO drug_strength_stage dss
+USING   (
+select * from dss_rowid_update
+) d ON (d.irowid=dss.rowid)
+WHEN MATCHED THEN UPDATE
+    SET dss.drug_concept_code = d.drug_concept_code;
+
+drop table dss_rowid_update;
+
 
 commit;
 
 -- Save ds information for all concepts 
-delete from existing_ds where vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1);
 insert into existing_ds
 select distinct 
   css.concept_code as drug_concept_code, uds.ingredient_concept_code, (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
@@ -1703,3 +1737,4 @@ where not exists (
 and css.concept_code like 'XXX%'
 ;
 commit;
+

@@ -96,18 +96,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT concept_code_1,
-          concept_code_2,
-          relationship_id,
-          vocabulary_id_1,
-          vocabulary_id_2,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'Read')
-             AS valid_start_date,
-          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM concept_relationship_manual_rd;
+   SELECT * FROM CONCEPT_RELATIONSHIP_MANUAL;
 COMMIT;	 
 
 --4 Create mapping to self for fresh concepts

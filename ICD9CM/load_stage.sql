@@ -213,18 +213,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT concept_code_1,
-          concept_code_2,
-          vocabulary_id_1,
-          vocabulary_id_2,
-          relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'ICD9CM')
-             AS valid_start_date,
-          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM concept_relationship_manual9cm;
+   SELECT * FROM CONCEPT_RELATIONSHIP_MANUAL;
 COMMIT;
 
 

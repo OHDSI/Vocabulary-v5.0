@@ -81,21 +81,13 @@ COMMIT;
 --4 Add ICD10CM to SNOMED mappings
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
-                                        relationship_id,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
+										relationship_id,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT SOURCE_CODE AS concept_code_1,
-          TARGET_CODE AS concept_code_2,
-          MAPPING_TYPE AS relationship_id,
-          'ICD10CM' AS vocabulary_id_1,
-          'SNOMED' AS vocabulary_id_2,
-          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM icd10cm2snomed;
+   SELECT * FROM CONCEPT_RELATIONSHIP_MANUAL;
 COMMIT;
 
 --5 Update domain_id for ICD10CM from SNOMED

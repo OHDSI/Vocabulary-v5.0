@@ -1123,7 +1123,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         valid_end_date,
                                         invalid_reason)
    SELECT *
-     FROM manual_concept_relationship m_r
+     FROM CONCEPT_RELATIONSHIP_MANUAL m_r
     WHERE NOT EXISTS
              (SELECT 1
                 FROM concept_relationship_stage r_int

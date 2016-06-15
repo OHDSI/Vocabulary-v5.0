@@ -78,18 +78,7 @@ INSERT /*+ APPEND */
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT concept_code_1,
-          concept_code_2,
-          vocabulary_id_1,
-          vocabulary_id_2,
-          relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = 'ICD10')
-             AS valid_start_date,
-          TO_DATE ('31.12.2099', 'dd.mm.yyyy') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM concept_relationship_manual;
+   SELECT * FROM CONCEPT_RELATIONSHIP_MANUAL;
 COMMIT;	 
 
 --6 Delete duplicate replacement mappings (one concept has multiply target concepts)

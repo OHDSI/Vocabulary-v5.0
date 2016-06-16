@@ -1976,6 +1976,8 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (448717002, 'Measurement'); -- Decline in Edinburgh postnatal depression scale score
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (449413009, 'Measurement'); -- Decline in Edinburgh postnatal depression scale score at 8 months
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (46680005, 'Measurement'); -- Vital signs
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (363259005, 'Observation'); -- Patient management procedure
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (278414003, 'Procedure'); -- Pain management
 END;
 COMMIT;
 

@@ -19,22 +19,17 @@
 
 -- 1. Update latest_update field to new date 
 BEGIN
-   EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
-EXCEPTION WHEN OTHERS THEN NULL;
+   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'OPCS4',
+                                          pVocabularyDate        => TO_DATE ('20151001', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'OPCS4 nhs_dmwb_20.0.1_20151001000001',
+                                          pVocabularyDevSchema   => 'DEV_OPCS4');
 END;
-ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20151001','yyyymmdd'), vocabulary_version='OPCS4 nhs_dmwb_20.0.1_20151001000001' WHERE vocabulary_id='OPCS4'; 
 COMMIT;
 
--- 2. Truncate all working tables and remove indices
+-- 2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
-ALTER SESSION SET SKIP_UNUSABLE_INDEXES = TRUE; --disables error reporting of indexes and index partitions marked UNUSABLE
-ALTER INDEX idx_cs_concept_code UNUSABLE;
-ALTER INDEX idx_cs_concept_id UNUSABLE;
-ALTER INDEX idx_concept_code_1 UNUSABLE;
-ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --3. Load into concept_stage from opcs
  --remove long dashes
@@ -109,16 +104,5 @@ where concept_code in ( -- only codes that are valid
   and term not like 'CHAPTER %'
 );
 COMMIT;
-
---5 Update concept_id in concept_stage from concept for existing concepts
-UPDATE concept_stage cs
-    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
-    WHERE cs.concept_id IS NULL;
-
---6 Reinstate constraints and indices
-ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
-ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

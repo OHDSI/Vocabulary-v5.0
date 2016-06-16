@@ -19,22 +19,17 @@
 
 -- 1. Update latest_update field to new date 
 BEGIN
-   EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
-EXCEPTION WHEN OTHERS THEN NULL;
+   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'ICD10CM',
+                                          pVocabularyDate        => TO_DATE ('20160325', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'ICD10CM FY2016 code descriptions',
+                                          pVocabularyDevSchema   => 'DEV_ICD10CM');
 END;
-ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20160325','yyyymmdd'), vocabulary_version='ICD10CM FY2016 code descriptions' WHERE vocabulary_id='ICD10CM'; 
 COMMIT;
 
--- 2. Truncate all working tables and remove indices
+-- 2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
-ALTER SESSION SET SKIP_UNUSABLE_INDEXES = TRUE; --disables error reporting of indexes and index partitions marked UNUSABLE
-ALTER INDEX idx_cs_concept_code UNUSABLE;
-ALTER INDEX idx_cs_concept_id UNUSABLE;
-ALTER INDEX idx_concept_code_1 UNUSABLE;
-ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --3. Load into concept_stage from ICD10CM_TABLE
 INSERT /*+ APPEND */ INTO concept_stage (concept_id,
@@ -78,16 +73,10 @@ INSERT /*+ APPEND */ INTO concept_stage (concept_id,
      FROM ICD10CM_TABLE;
 COMMIT;					  
 
---4 Add ICD10CM to SNOMED mappings
-INSERT INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-										relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT * FROM CONCEPT_RELATIONSHIP_MANUAL;
+--4 Add ICD10CM to SNOMED manual mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
+END;
 COMMIT;
 
 --5 Update domain_id for ICD10CM from SNOMED
@@ -214,20 +203,9 @@ INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                                  IN (LONG_NAME, SHORT_NAME));
 COMMIT;
 
---9 Update concept_id in concept_stage from concept for existing concepts
-UPDATE concept_stage cs
-    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
-    WHERE cs.concept_id IS NULL;
-COMMIT;
-
---10 Clean up
+--9 Clean up
 DROP TABLE ICD10CM_domain PURGE;
 DROP TABLE filled_domain PURGE;	
 
---11 Reinstate constraints and indices
-ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
-ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

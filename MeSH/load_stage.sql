@@ -17,26 +17,21 @@
 * Date: 2016
 **************************************************************************/
 
--- 1. Update latest_update field to new date 
+--1 Update latest_update field to new date 
 BEGIN
-   EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
-EXCEPTION WHEN OTHERS THEN NULL;
+   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'MeSH',
+                                          pVocabularyDate        => TO_DATE ('20160509', 'yyyymmdd'),
+                                          pVocabularyVersion     => '2016 Release',
+                                          pVocabularyDevSchema   => 'DEV_MESH');
 END;
-ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET latest_update=to_date('20160509','yyyymmdd'), vocabulary_version='2016 Release' WHERE vocabulary_id='MeSH'; 
 COMMIT;
 
--- 2. Truncate all working tables and remove indices
+--2 Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
-ALTER SESSION SET SKIP_UNUSABLE_INDEXES = TRUE; --disables error reporting of indexes and index partitions marked UNUSABLE
-ALTER INDEX idx_cs_concept_code UNUSABLE;
-ALTER INDEX idx_cs_concept_id UNUSABLE;
-ALTER INDEX idx_concept_code_1 UNUSABLE;
-ALTER INDEX idx_concept_code_2 UNUSABLE;
 
---3. Load into concept_stage.
+--3 Load into concept_stage.
 -- Build Main Heading (Descriptors)
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
                            concept_name,
@@ -103,7 +98,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 	and mh.tty='NM';
 COMMIT;	
 
---4. Create concept_relationship_stage
+--4 Create concept_relationship_stage
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -132,7 +127,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 	and mh.tty in ('NM', 'MH');
 COMMIT;	 
 
---5. Add synonyms
+--5 Add synonyms
 INSERT /*+ APPEND */ INTO  concept_synonym_stage (synonym_concept_code,
                                    synonym_vocabulary_id,
                                    synonym_name,
@@ -146,16 +141,22 @@ INSERT /*+ APPEND */ INTO  concept_synonym_stage (synonym_concept_code,
 	join umls.mrconso u on u.code=c.concept_code and u.sab = 'MSH' and u.suppress = 'N' and u.lat='ENG';
 COMMIT;
 
---6 Update concept_id in concept_stage from concept for existing concepts
-UPDATE concept_stage cs
-    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
-    WHERE cs.concept_id IS NULL;
+--6 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
+END;
+COMMIT;	
 
+--7 Add mapping from deprecated to fresh concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
+END;
+COMMIT;		 
 
---7 Reinstate constraints and indices
-ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
-ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
+--8 Delete ambiguous 'Maps to' mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
+END;
+COMMIT;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

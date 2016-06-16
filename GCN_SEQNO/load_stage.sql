@@ -18,23 +18,25 @@
 **************************************************************************/
 
 -- 1. Update latest_update field to new date 
+DECLARE
+   cNDDFDate   DATE;
+   cNDDFVer    VARCHAR2 (100);
 BEGIN
-   EXECUTE IMMEDIATE 'ALTER TABLE vocabulary DROP COLUMN latest_update';
-EXCEPTION WHEN OTHERS THEN NULL;
+   SELECT TO_DATE (NDDF_VERSION, 'YYYYMMDD'), NDDF_VERSION || ' Release'
+     INTO cNDDFDate, cNDDFVer
+     FROM NDDF_PRODUCT_INFO;
+
+   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'GCN_SEQNO',
+                                          pVocabularyDate        => cNDDFDate,
+                                          pVocabularyVersion     => cNDDFVer,
+                                          pVocabularyDevSchema   => 'DEV_GCNSEQNO');
 END;
-ALTER TABLE vocabulary ADD latest_update DATE;
-UPDATE vocabulary SET (latest_update, vocabulary_version)=(select to_date(NDDF_VERSION,'YYYYMMDD'), NDDF_VERSION||' Release' from NDDF_PRODUCT_INFO) WHERE vocabulary_id='GCN_SEQNO';
 COMMIT;
 
--- 2. Truncate all working tables and remove indices
+-- 2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
-ALTER SESSION SET SKIP_UNUSABLE_INDEXES = TRUE; --disables error reporting of indexes and index partitions marked UNUSABLE
-ALTER INDEX idx_cs_concept_code UNUSABLE;
-ALTER INDEX idx_cs_concept_id UNUSABLE;
-ALTER INDEX idx_concept_code_1 UNUSABLE;
-ALTER INDEX idx_concept_code_2 UNUSABLE;
 
 --3. Add GCN_SEQNO to concept_stage from rxnconso
 INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
@@ -82,16 +84,22 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 COMMIT;	 
 
 
---5. Update concept_id in concept_stage from concept for existing concepts
-UPDATE concept_stage cs
-    SET cs.concept_id=(SELECT c.concept_id FROM concept c WHERE c.concept_code=cs.concept_code AND c.vocabulary_id=cs.vocabulary_id)
-    WHERE cs.concept_id IS NULL;
+--5. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
+END;
+COMMIT;	
 
+--6. Add mapping from deprecated to fresh concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
+END;
+COMMIT;		 
 
---6. Reinstate constraints and indices
-ALTER INDEX idx_cs_concept_code REBUILD NOLOGGING;
-ALTER INDEX idx_cs_concept_id REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_1 REBUILD NOLOGGING;
-ALTER INDEX idx_concept_code_2 REBUILD NOLOGGING;
+--7. Delete ambiguous 'Maps to' mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
+END;
+COMMIT;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

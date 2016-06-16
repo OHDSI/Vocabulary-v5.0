@@ -22,16 +22,21 @@ insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req,
 
 -- Add Concept Class Supplier
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (v5_concept.nextval, 'Supplier', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+  values (v5_concept.nextval, 'Supplier', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-values ('Supplier', 'Supplier: Manufacturer, Wholesaler', (select concept_id from concept where concept_name = 'Supplier'));
+  values ('Supplier', 'Supplier: Manufacturer, Wholesaler', (select concept_id from concept where concept_name = 'Supplier'));
 
--- Add EphMRA NFC
+-- Add EphMRA NFC vocab and concept class
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
   values(v5_concept.nextval, 'New Form Code (EphMRA)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
   values ('NFC', 'New Form Code (EphMRA)', 'http://www.ephmra.org/New-Form-Codes-Classification', 'January 2016', (select concept_id from concept where concept_name='New Form Code (EphMRA)'));
 insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (81, 'NFC', null, null, null, null);
+
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'NFC', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+  values ('NFC', 'New Form Code', (select concept_id from concept where concept_name = 'NFC'));
 
 -- Add Relationship Has Marketed Form and Marketed Form of
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -60,6 +65,35 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 values (v5_concept.nextval, 'Marketed Product', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
 values ('Marketed Product', 'Marketed Product', (select concept_id from concept where concept_name = 'Marketed Product'));
+
+-- Add RxNorm Extension
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'RxNorm Extension (OMOP)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
+  values ('RxNorm Extension', 'RxNorm Extension (OMOP)', 'OMOP generated', 'June 2016', (select concept_id from concept where concept_name='RxNorm Extension (OMOP)'));
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url) values (82, 'RxNorm Extension', null, 'Y', null, null);
+
+-- Fix UCUM codes
+update concept set concept_code='{wt}%{vol}' where concept_code='{wt]%{vol]' and vocabulary_id='UCUM';
+update concept set concept_code='[KIU]/mL' where concept_code='{KIU]/mL' and vocabulary_id='UCUM';
+update concept set concept_code='[ELU]/mL' where concept_code='{ELU]/mL' and vocabulary_id='UCUM';
+update concept set concept_code='%{of''lymphos}' where concept_code='%{of''lymphos]' and vocabulary_id='UCUM';
+update concept set concept_code='ng/h/mg{tot''prot}' where concept_code='ng/h/mg[{tot''prot}]' and vocabulary_id='UCUM';
+update concept set concept_code='%{calc}' where concept_code='%{calc]' and vocabulary_id='UCUM';
+
+-- Add ICD10PCS Hierarchy
+
+-- Add Death Types
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'EHR Record immediate cause', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'EHR Record contributory cause', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'EHR Record underlying cause', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+
+-- Add specialty Procedure Type for Visit Cost
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Hospitalization Cost Record', 'Type Concept', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 
 commit;
 

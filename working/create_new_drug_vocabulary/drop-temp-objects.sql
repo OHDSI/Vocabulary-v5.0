@@ -12,6 +12,9 @@ drop table bn purge;
 drop table df purge;
 drop table bs purge;
 
+drop table manufact purge;
+drop table nmf_packs purge;
+
 drop table existing_concept_stage purge;
 drop table complete_concept_stage cascade constraints purge;
 drop table complete_name;

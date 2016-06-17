@@ -291,8 +291,7 @@ union
   join df on df.concept_code=i.concept_code
   join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and d.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and d.concept_code is null and bs.concept_code is null
 union
 -- Clinical Drug Form
   select distinct 
@@ -304,8 +303,7 @@ union
   join df on df.concept_code=i.concept_code
   left join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and d.concept_code is null and bn.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and d.concept_code is null and bn.concept_code is null and bs.concept_code is null
 union
 -- Branded Drug Component
   select distinct 
@@ -317,8 +315,7 @@ union
   left join df on df.concept_code=i.concept_code
   join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and df.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and df.concept_code is null and bs.concept_code is null
 union
 -- Clinical Drug Component 
   select distinct 
@@ -330,14 +327,16 @@ union
   left join df on df.concept_code=i.concept_code
   left join bn on bn.concept_code=i.concept_code
   left join bs on bs.concept_code=i.concept_code 
-  left join manufact mf on mf.concept_code=i.concept_code
-  where quant.concept_code is null and df.concept_code is null and bn.concept_code is null and bs.concept_code is null and mf.mf_code is null
+  where quant.concept_code is null and df.concept_code is null and bn.concept_code is null and bs.concept_code is null
 ;
 
 -- 3. Write all concept classes, whether existing or not from all possible combinations
 
 --drop table complete_concept_stage cascade constraints purge;
 create table complete_concept_stage nologging as
+select distinct * from (
+select * from existing_concept_stage
+union
 select distinct nvl(first_value(e.concept_code) over (partition by e.denominator_value, e.i_combo_code, e.d_combo_code, e.dose_form_code, e.brand_code, e.box_size, e.mf_code order by concept_code desc), 0) as concept_code,
   c.*
 from (
@@ -461,6 +460,7 @@ union
 ) c
 left join existing_concept_stage e on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
   and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size AND c.mf_code=e.mf_code
+)
 ;
 
 -- Add Packs
@@ -695,11 +695,13 @@ with c as (
 p as (
   select 
     ccs.concept_code, 
-    dcs.concept_name, 
+    bn.concept_name, 
     case when mf.concept_name is null then '' else ' by '||mf.concept_name end as mf_name,
-    length(dcs.concept_name) + nvl(length(mf.concept_name)+4,0) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
+    length(bn.concept_name) + nvl(length(mf.concept_name)+4,0) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
   from complete_concept_stage ccs
   JOIN drug_concept_stage dcs ON dcs.concept_code=ccs.concept_code OR 'NMTF'||dcs.concept_code=ccs.concept_code
+  JOIN (select dcsbn.*, irs.concept_code_1 from internal_relationship_stage irs 
+    JOIN drug_concept_stage dcsbn ON dcsbn.concept_code=irs.concept_code_2 AND dcsbn.concept_class_id = 'Brand Name') bn ON bn.concept_code_1 = ccs.concept_code
   LEFT JOIN (select dcsm.*, irs.concept_code_1 from internal_relationship_stage irs 
     JOIN drug_concept_stage dcsm ON dcsm.concept_code=irs.concept_code_2 AND dcsm.concept_class_id = 'Manufacturer') mf ON mf.concept_code_1 = ccs.concept_code
   where dcs.concept_class_id like '%Pack%' and dcs.domain_id='Drug'
@@ -1262,7 +1264,7 @@ from (
   left join (
     select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join concept r on r.concept_id=qr.r_did
   ) on q_dcode=concept_code
-  where concept_class_id not in ('Brand Name', 'Dose Form', 'Ingredient', 'Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug Comp', 'Branded Pack', 'Clinical Pack')
+  where concept_class_id not in ('Brand Name', 'Dose Form', 'Ingredient', 'Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug Comp', 'Branded Pack', 'Clinical Pack', 'Marketed Product')
 ) an 
 join rl on rl.concept_class_id_1=an.concept_class_id
 join complete_concept_stage de
@@ -1272,7 +1274,7 @@ on de.denominator_value=coalesce(an.denominator_value, de.denominator_value, 0)
   and de.d_combo_code=an.d_combo_code
   and de.concept_code!=an.concept_code 
   and de.concept_class_id!=an.concept_class_id
-  and de.concept_class_id not in ('Brand Name', 'Dose Form', 'Ingredient', 'Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug Comp', 'Branded Pack', 'Clinical Pack')
+  and de.concept_class_id not in ('Brand Name', 'Dose Form', 'Ingredient', 'Clinical Drug Form', 'Branded Drug Form', 'Clinical Drug Comp', 'Branded Pack', 'Clinical Pack', 'Marketed Product')
   and de.concept_code not in (select q_dcode from q_to_r) -- the descendant cannot be RxNorm, as all RxNorm have RxNorm ancestors
   and rl.concept_class_id_2=de.concept_class_id
 ;
@@ -1445,7 +1447,7 @@ select
 from complete_concept_stage ccs
 join concept_stage cs on cs.concept_code=ccs.concept_code
 where ccs.dose_form_code is not null AND ccs.mf_code is null;
-;
+
 commit;
 
 -- Write relationships between all of them and Brand Name
@@ -1520,7 +1522,7 @@ select distinct
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from (
-  select concept_code from drug_concept_stage where (concept_class_id like '%Branded%' or concept_class_id like '%Clinical%') and domain_id='Drug'
+  select concept_code from drug_concept_stage where (concept_class_id like '%Drug%') and domain_id='Drug'
   minus
   select concept_code from concept_stage 
 ) m
@@ -1563,7 +1565,7 @@ select
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from (
-  select concept_code from drug_concept_stage where (concept_class_id like '%Branded%' or concept_class_id like '%Clinical%') and domain_id='Drug'
+  select concept_code from drug_concept_stage where (concept_class_id like '%Drug%') and domain_id='Drug'
   minus
   select concept_code from concept_stage 
 ) m
@@ -1586,7 +1588,7 @@ select
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from (
-  select concept_code from drug_concept_stage where (concept_class_id like '%Branded%' or concept_class_id like '%Clinical%') and domain_id='Drug'
+  select concept_code from drug_concept_stage where (concept_class_id like '%Drug%') and domain_id='Drug'
   minus
   select concept_code from concept_stage 
 ) m

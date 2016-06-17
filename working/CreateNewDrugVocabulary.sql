@@ -690,6 +690,17 @@ with c as (
   join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
     and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size and c.mf_code=' '
   join complete_name cn on cn.concept_code=c.concept_code
+  union
+  select 
+    nmfp.NMF_CODE as concept_code,
+    case when pc.amount is null then '' else pc.amount||' ' end||'('||cn.concept_name as content_name,
+    case when pc.amount is null then 0 else length(pc.amount)+1 end as a_len, -- length of the amount
+    length(concept_name) as n_len -- length of the concept_name
+  from nmf_packs nmfp JOIN pack_content pc ON pc.PACK_CONCEPT_CODE=nmfp.CONCEPT_CODE
+  join existing_concept_stage e on e.concept_code=pc.drug_concept_code
+  join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
+    and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size and c.mf_code=' '
+  join complete_name cn on cn.concept_code=c.concept_code
 ),
 -- Get the common part
 p as (
@@ -705,6 +716,16 @@ p as (
   LEFT JOIN (select dcsm.*, irs.concept_code_1 from internal_relationship_stage irs 
     JOIN drug_concept_stage dcsm ON dcsm.concept_code=irs.concept_code_2 AND dcsm.concept_class_id = 'Manufacturer') mf ON mf.concept_code_1 = ccs.concept_code
   where dcs.concept_class_id like '%Pack%' and dcs.domain_id='Drug'
+  union
+  select 
+    ccs.concept_code, 
+    bn.concept_name, 
+    '' as mf_name,
+    length(bn.concept_name) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
+  from complete_concept_stage ccs
+  JOIN nmf_packs nmfp ON nmfp.nmf_code=ccs.concept_code
+  JOIN (select dcsbn.*, irs.concept_code_1 from internal_relationship_stage irs 
+    JOIN drug_concept_stage dcsbn ON dcsbn.concept_code=irs.concept_code_2 AND dcsbn.concept_class_id = 'Brand Name') bn ON bn.concept_code_1 = nmfp.concept_code
 ),
 -- Calculate total length of everything if space weren't the issue, and then calculate the factor that each concept_name needs to be shortened by
 l as (
@@ -1032,7 +1053,7 @@ select
   null as standard_concept, -- DA_France ingreidents are not standard, unless they are not mapped
   dcs.concept_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
-  nvl(dcs.valid_end_date, '31-Dec-2099') as valid_end_date,
+  nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   null as invalid_reason
 from drug_concept_stage dcs where dcs.concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name') and dcs.domain_id='Drug';
 
@@ -1049,7 +1070,7 @@ select
   null as standard_concept, -- DA_France ingreidents are not standard, unless they are not mapped
   dcs.concept_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
-  nvl(dcs.valid_end_date, '31-Dec-2099') as valid_end_date,
+  nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   invalid_reason 
 from drug_concept_stage dcs where dcs.concept_class_id = 'Manufacturer' and dcs.domain_id='Drug';
 commit;
@@ -1068,7 +1089,7 @@ select distinct
   case when qr.q_dcode is null then 'S' else null end as standard_concept, -- Standard Concept unless there is a map to RxNorm 
   css.concept_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
-  nvl(dcs.valid_end_date, '31-Dec-2099') as valid_end_date,
+  nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   null as invalid_reason
 from complete_concept_stage css
 join complete_name cn on cn.concept_code=css.concept_code
@@ -1090,7 +1111,7 @@ select distinct
   nvl(m.vocabulary_id, first_value(r.vocabulary_id) over (partition by concept_code_1 order by nvl(precedence, 1))) as vocabulary_id_2,
   'Has standard ing' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from drug_concept_stage q
 join relationship_to_concept on concept_code_1=q.concept_code
@@ -1116,7 +1137,7 @@ select distinct
   first_value(r.vocabulary_id) over (partition by concept_code_1 order by nvl(precedence, 1)) as vocabulary_id_2,
   'Has standard brand' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from drug_concept_stage q
 join relationship_to_concept on concept_code_1=q.concept_code
@@ -1135,7 +1156,7 @@ select distinct
   first_value(r.vocabulary_id) over (partition by concept_code_1 order by nvl(precedence, 1)) as vocabulary_id_2,
   'Has standard form' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from drug_concept_stage q
 join relationship_to_concept on concept_code_1=q.concept_code
@@ -1153,7 +1174,7 @@ select
   c.vocabulary_id as vocabulary_id_2,
   'Maps to' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 -- usual validity
 from q_to_r qr
@@ -1170,7 +1191,7 @@ select distinct
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
   'Has Supplier' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_concept_stage q
 where concept_class_id = 'Marketed Product';
@@ -1184,7 +1205,7 @@ select distinct
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
   'Marketed form of' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_concept_stage ccs1 JOIN nmf_packs nmf ON nmf.concept_code=ccs1.concept_code JOIN complete_concept_stage ccs2 ON ccs2.concept_code=nmf.nmf_code;
 commit;
@@ -1197,7 +1218,7 @@ select distinct
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id,
   'Marketed form of' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_concept_stage ccs1 
 JOIN complete_concept_stage ccs2 
@@ -1248,7 +1269,7 @@ select
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
   rl.relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 -- get ancestors: RxNorm or DPD
 from (
@@ -1319,7 +1340,7 @@ select
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
   rl.relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from rl rl
 join (
@@ -1345,7 +1366,7 @@ select
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
   'RxNorm inverse is a' as relationship_id, -- Need to take RxNorm out of these
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_concept_stage de
 join an on de.i_combo_code=an.i_combo_code and an.concept_code!=de.concept_code and an.concept_class_id='Branded Drug Form'
@@ -1376,7 +1397,7 @@ select
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
   rl.relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_concept_stage de
 join (
@@ -1396,15 +1417,16 @@ commit;
 -- Write relationship between Drugs and Packs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
-  p.pack_concept_code as concept_code_1,
+  nmfp.nmf_code as concept_code_1,
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
   nvl(r_code, p.drug_concept_code) as concept_code_2,
   nvl(r_vocab_id, (select vocabulary_id from drug_concept_stage where rownum=1)) as vocabulary_id_2,
   'Contains',
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from pack_content p
+from nmf_packs nmfp 
+JOIN pack_content p ON p.pack_concept_code=nmfp.concept_code
 left join (
   select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab_id from q_to_r qr join concept r on r.concept_id=qr.r_did
 ) on q_dcode=p.drug_concept_code
@@ -1420,7 +1442,7 @@ select distinct
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
   'RxNorm ing of' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_concept_stage ccs
 join (
@@ -1442,7 +1464,7 @@ select
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
   'RxNorm has dose form' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_concept_stage ccs
 join concept_stage cs on cs.concept_code=ccs.concept_code
@@ -1459,7 +1481,7 @@ select
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_2,
   'RxNorm has ing' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_concept_stage ccs
 join concept_stage cs on cs.concept_code=ccs.concept_code
@@ -1476,7 +1498,7 @@ select
   nvl(r.vocabulary_id, (select vocabulary_id from drug_concept_stage where rownum=1)) as vocabulary_id_2,
   'Maps to' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from existing_concept_stage e 
 join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
@@ -1499,7 +1521,7 @@ select
   null as standard_concept,
   e.concept_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from existing_concept_stage e 
 join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
@@ -1519,7 +1541,7 @@ select distinct
   nvl(crs.vocabulary_id_2, dcs.vocabulary_id) as vocabulary_id_2,
   'RxNorm has ing' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from (
   select concept_code from drug_concept_stage where (concept_class_id like '%Drug%') and domain_id='Drug'
@@ -1541,7 +1563,7 @@ select
   dcs.vocabulary_id as vocabulary_id_2,
   'RxNorm has dose form' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from (
   select concept_code from drug_concept_stage where (concept_class_id like '%Drug%') and domain_id='Drug'
@@ -1562,7 +1584,7 @@ select
   dcs.vocabulary_id as vocabulary_id_2,
   'RxNorm has ing' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from (
   select concept_code from drug_concept_stage where (concept_class_id like '%Drug%') and domain_id='Drug'
@@ -1585,7 +1607,7 @@ select
   'S' as standard_concept,
   c.concept_code,
   nvl(c.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from (
   select concept_code from drug_concept_stage where (concept_class_id like '%Drug%') and domain_id='Drug'
@@ -1605,7 +1627,7 @@ select
   c2.vocabulary_id as vocabulary_id_2,
   'Drug has drug class' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from drug_concept_stage c1
 join relationship_to_concept r on r.concept_code_1=c1.concept_code 
@@ -1626,7 +1648,7 @@ select
   'S' as standard_concept,
   concept_code,
   nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date, 
-  '31-Dec-2099' as valid_end_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from drug_concept_stage where domain_id!='Drug'
 ; 
@@ -1658,7 +1680,7 @@ from (
     case numerator_value when 0 then null else numerator_value end as numerator_value, numerator_unit_concept_id,
     case denominator_value when 0 then null else denominator_value end as denominator_value, denominator_unit_concept_id,
     valid_start_date,
-    '31-Dec-2099' as valid_end_date, null as invalid_reason
+    to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date, null as invalid_reason
   from (
 -- select details, but with wrong null ids
     select distinct 

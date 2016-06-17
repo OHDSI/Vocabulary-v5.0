@@ -3,7 +3,9 @@ select cs.concept_code, count(distinct crs.rowid) from concept_stage cs LEFT JOI
 
 
 -- marketed products must have only the following relationships
-select crs.concept_code_1, crs.relationship_id from concept_stage cs JOIN concept_relationship_stage crs ON crs.CONCEPT_CODE_1=cs.concept_code AND crs.VOCABULARY_ID_1=cs.VOCABULARY_ID WHERE cs.concept_class_id like 'Marketed%' AND crs.RELATIONSHIP_ID not in ('Marketed form of', 'Has Supplier');
+select crs.concept_code_1, crs.relationship_id, crs.CONCEPT_CODE_2 from concept_stage cs JOIN concept_relationship_stage crs ON crs.CONCEPT_CODE_1=cs.concept_code AND crs.VOCABULARY_ID_1=cs.VOCABULARY_ID WHERE cs.concept_class_id like 'Marketed%' AND crs.RELATIONSHIP_ID not in ('Marketed form of', 'Has Supplier', 'Maps to');
+
+-- should we allow two-way `Maps to` ?
 
 
 select * from drug_concept_stage dcs left join concept_stage ecs ON dcs.concept_code = ecs.concept_code WHERE ecs.rowid is null and dcs.concept_class_id != 'Unit';

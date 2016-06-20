@@ -1054,7 +1054,7 @@ select
   dcs.concept_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
-  null as invalid_reason
+  invalid_reason
 from drug_concept_stage dcs where dcs.concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name') and dcs.domain_id='Drug';
 
 commit;
@@ -1090,7 +1090,7 @@ select distinct
   css.concept_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
-  null as invalid_reason
+  invalid_reason
 from complete_concept_stage css
 join complete_name cn on cn.concept_code=css.concept_code
 left join drug_concept_stage dcs on dcs.concept_code=css.concept_code
@@ -1451,7 +1451,7 @@ join (
 ) i on ccs.i_combo_code=i.combo_code
 left join concept_relationship_stage crs on crs.concept_code_1=i.concept_code -- join a mapped Ingredient if exists
 where ccs.concept_class_id in ('Clinical Drug Form', 'Clinical Drug Comp')
-and   nvl(crs.concept_code_2, i.concept_code)='1007302'
+--and   nvl(crs.concept_code_2, i.concept_code)='1007302'
 ;
 commit;
 
@@ -1522,7 +1522,7 @@ select
   e.concept_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
-  null as invalid_reason
+  invalid_reason
 from existing_concept_stage e 
 join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
   and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size and c.mf_code=e.mf_code
@@ -1608,7 +1608,7 @@ select
   c.concept_code,
   nvl(c.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
-  null as invalid_reason
+  invalid_reason
 from (
   select concept_code from drug_concept_stage where (concept_class_id like '%Drug%') and domain_id='Drug'
   minus
@@ -1649,7 +1649,7 @@ select
   concept_code,
   nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date, 
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
-  null as invalid_reason
+  invalid_reason
 from drug_concept_stage where domain_id!='Drug'
 ; 
 commit;
@@ -1806,7 +1806,7 @@ commit;
 
 -- generate OMOP codes for new concepts
 insert into xxx_replace
-select concept_code as xxx_code, 'OMOP'||new_voc.nextval as omop_code
+select concept_code as xxx_code, 'OMOP'||new_vocab.nextval as omop_code
 from concept_stage 
 where concept_code like 'XXX%' 
 and concept_code not in (select xxx_code from xxx_replace)

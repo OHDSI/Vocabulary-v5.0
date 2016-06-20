@@ -1526,9 +1526,10 @@ select
 from existing_concept_stage e 
 join complete_concept_stage c on c.denominator_value=e.denominator_value and c.i_combo_code=e.i_combo_code and c.d_combo_code=e.d_combo_code 
   and c.dose_form_code=e.dose_form_code and c.brand_code=e.brand_code and c.box_size=e.box_size and c.mf_code=e.mf_code
+left join complete_concept_stage c2 on c2.concept_code=e.concept_code
 join complete_name cn on cn.concept_code=c.concept_code
 join drug_concept_stage dcs on dcs.concept_code=e.concept_code and dcs.domain_id='Drug'
-where e.concept_code!=c.concept_code
+where e.concept_code!=c.concept_code AND c2.concept_code is null;
 ;
 commit;
 

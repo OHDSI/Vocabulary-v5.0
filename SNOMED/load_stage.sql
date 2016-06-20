@@ -1662,6 +1662,9 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
 COMMIT;
 
 --12 Working with replacement mappings
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
+
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;

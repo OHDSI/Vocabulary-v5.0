@@ -81,19 +81,44 @@ update concept set concept_code='%{of''lymphos}' where concept_code='%{of''lymph
 update concept set concept_code='ng/h/mg{tot''prot}' where concept_code='ng/h/mg[{tot''prot}]' and vocabulary_id='UCUM';
 update concept set concept_code='%{calc}' where concept_code='%{calc]' and vocabulary_id='UCUM';
 
--- Add ICD10PCS Hierarchy
+-- Add ICD10PCS 
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'ICD10PCS', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+  values ('ICD10PCS', 'ICD10PCS Code', (select concept_id from concept where concept_name = 'ICD10PCS'));
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'ICD10PCS Hierarchy', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
+  values ('ICD10PCS Hierarchy', 'ICD10PCS Hierarchical Code', (select concept_id from concept where concept_name = 'ICD10PCS Hierarchy'));
 
 -- Add Death Types
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (v5_concept.nextval, 'EHR Record immediate cause', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+  values (v5_concept.nextval, 'EHR Record immediate cause', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (v5_concept.nextval, 'EHR Record contributory cause', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+  values (v5_concept.nextval, 'EHR Record contributory cause', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-values (v5_concept.nextval, 'EHR Record underlying cause', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+  values (v5_concept.nextval, 'EHR Record underlying cause', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values (v5_concept.nextval, 'US Social Security Death Master File record', 'Type Concept', 'Death Type', 'Death Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 
 -- Add specialty Procedure Type for Visit Cost
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (v5_concept.nextval, 'Hospitalization Cost Record', 'Type Concept', 'Procedure Type', 'Procedure Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+
+-- remove old 'RxNorm has ing' relationships
+DELETE FROM concept_relationship r
+      WHERE     EXISTS
+                   (SELECT 1
+                      FROM concept c
+                     WHERE r.concept_id_1 = c.concept_id AND c.concept_class_id IN ('Branded Drug', 'Clinical Drug') AND C.INVALID_REASON IS NULL)
+            AND r.relationship_id = 'RxNorm has ing';
+--same for reverse
+DELETE FROM concept_relationship r
+      WHERE     EXISTS
+                   (SELECT 1
+                      FROM concept c
+                     WHERE r.concept_id_2 = c.concept_id AND c.concept_class_id IN ('Branded Drug', 'Clinical Drug') AND C.INVALID_REASON IS NULL)
+            AND r.relationship_id = 'RxNorm ing of';      
 
 commit;
 

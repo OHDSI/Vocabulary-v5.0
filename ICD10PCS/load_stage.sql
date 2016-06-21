@@ -20,8 +20,8 @@
 --1 Update latest_update field to new date
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'ICD10PCS',
-                                          pVocabularyDate        => TO_DATE ('20150718', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'ICD10PCS 20150718',
+                                          pVocabularyDate        => TO_DATE ('20160518', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'ICD10PCS 20160518',
                                           pVocabularyDevSchema   => 'DEV_ICD10PCS');
 END;
 COMMIT;
@@ -106,6 +106,43 @@ INSERT /*+ APPEND */ INTO  concept_synonym_stage (synonym_concept_code,
        FROM umls.mrconso
       WHERE sab = 'ICD10PCS'
    GROUP BY code, str;
-COMMIT;   
+COMMIT;
+
+--6 Add ICD10CM to RxNorm manual mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
+END;
+COMMIT;
+
+--7 Add "subsumes" relationship between concepts where the concept_code is like of another
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT c1.concept_code AS concept_code_1,
+          c2.concept_code AS concept_code_2,
+          c1.vocabulary_id AS vocabulary_id_1,
+          c1.vocabulary_id AS vocabulary_id_2,
+          'Subsumes' AS relationship_id,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = c1.vocabulary_id)
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM concept_stage c1, concept_stage c2
+    WHERE     c2.concept_code LIKE c1.concept_code || '%'
+          AND c1.concept_code <> c2.concept_code
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM concept_relationship_stage r_int
+                   WHERE     r_int.concept_code_1 = c1.concept_code
+                         AND r_int.concept_code_2 = c2.concept_code
+                         AND r_int.relationship_id = 'Subsumes');
+COMMIT;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

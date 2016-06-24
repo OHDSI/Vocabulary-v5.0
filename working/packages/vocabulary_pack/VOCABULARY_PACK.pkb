@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE PACKAGE BODY DEVV5.VOCABULARY_PACK
+CREATE OR REPLACE PACKAGE BODY DEVV5.VOCABULARY_PACK
 IS
    cManualTableName   CONSTANT VARCHAR2 (100) := 'CONCEPT_RELATIONSHIP_MANUAL';
    cMainDEVSchema     CONSTANT VARCHAR2 (100) := 'DEVV5';
@@ -296,7 +296,7 @@ IS
       THEN
          UPDATE SET r.invalid_reason = 'D',
                     r.valid_end_date =
-                       (SELECT latest_update - 1
+                       (SELECT MAX(latest_update) - 1
                           FROM vocabulary
                          WHERE vocabulary_id IN (r.vocabulary_id_1, r.vocabulary_id_2));
 
@@ -332,7 +332,7 @@ IS
       EXECUTE IMMEDIATE q'[
       UPDATE concept_relationship_stage crs
          SET crs.valid_end_date =
-                (SELECT latest_update - 1
+                (SELECT MAX(latest_update) - 1
                    FROM vocabulary
                   WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2) AND latest_update IS NOT NULL),
              crs.invalid_reason = 'D'

@@ -12,7 +12,7 @@ Prerequisites:
 1. Run create_source_tables.sql
 2. Unzip CIEL_CTL.zip
 3. Load *.ctl using SQL Loader
-4. Run load_stage.sql
+4. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 5. Run generic_update.sql (from working directory)
 
  

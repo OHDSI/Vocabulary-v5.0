@@ -37,7 +37,7 @@ Remove date from file name.
 15. Extract weekXXYYYY-rX_X-BNF.zip/f_bnf1_XXXXXXX.xml and rename him to dmdbonus.xml
 16. Load dmdbonus.xml using dmdbonus.ctl
 
-17. Run load_stage.sql
+17. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 18. Run generic_update.sql (from working directory)
 
  

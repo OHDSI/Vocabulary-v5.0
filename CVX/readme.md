@@ -9,7 +9,7 @@ Prerequisites:
 - Download Flat file http://www2a.cdc.gov/vaccines/IIS/IISStandards/downloads/cvx.txt and re-save in UTF-8 w/o BOM codepage
 3. Load cvx.txt into CVX using control file of the same name
 4. Load Vaccines administered (CVX) Value Set Updates from https://phinvads.cdc.gov/vads/ValueSetRssFeed.xml?oid=2.16.840.1.114222.4.11.934. Download all versions, except 4. Use cvx_vXXX control files.
-5. Run load_stage.sql
+5. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 6. Run generic_update.sql (from working directory)
 
  

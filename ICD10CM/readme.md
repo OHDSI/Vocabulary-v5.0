@@ -9,7 +9,7 @@ Prerequisites:
 2. Download ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/20xx/ICD10CM_FY20xx_code_descriptions.zip
 3. Extract icd10cm_order_20xx.txt and rename to icd10cm.txt
 4. Load into icd10cm_table with icd10cm.ctl
-5. Run load_stage.sql
+5. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 6. Run generic_update.sql (from working directory)
 
  

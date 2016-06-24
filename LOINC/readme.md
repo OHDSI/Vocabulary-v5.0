@@ -18,7 +18,7 @@ worksheet "FORMS" to table LOINC_FORMS (clear columns after Loinc, save as Unico
 10. Load him into scccRefset_MapCorrOrFull_INT using xder2_scccRefset_LOINCMapCorrelationOriginFull_INT.ctl
 11. Download LNCxxx_TO_CPT2005_MAPPINGS.zip from http://www.nlm.nih.gov/research/umls/mapping_projects/loinc_to_cpt_map.html
 12. Extract MRSMAP.RRF and load into CPT_MRSMAP using CPT_MRSMAP.ctl
-13. Run load_stage.sql
+13. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 14. Run generic_update.sql (from working directory)
 
  

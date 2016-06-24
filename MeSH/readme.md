@@ -5,7 +5,7 @@ Prerequisites:
 - Schema UMLS
 - Working directory MeSH.
 
-1. Run load_stage.sql
+1. Run load_stage.sql (with updated pVocabularyDate = latest update of UMLS)
 2. Run generic_update.sql (from working directory)
 
  

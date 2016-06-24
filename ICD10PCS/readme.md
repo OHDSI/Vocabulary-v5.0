@@ -9,7 +9,7 @@ Prerequisites:
 3. Exctract icd10pcs_codes_YYYY.txt and rename to icd10pcs.txt
 4. Load file into ICD10PCS. Use the control files of the same name.
 5. Change pVocabularyDate according file creation date
-6. Run load_stage.sql
+6. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 7. Run generic_update.sql (from working directory)
 
  

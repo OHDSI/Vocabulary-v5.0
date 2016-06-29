@@ -20,7 +20,8 @@ COMMIT;
 
 drop table drug_concept_stage purge;
 CREATE TABLE drug_concept_stage NOLOGGING AS SELECT * FROM concept_stage WHERE 1=0;
-ALTER TABLE drug_concept_stage ADD insert_id NUMBER;   
+ALTER TABLE drug_concept_stage ADD (insert_id NUMBER, source_concept_class_id VARCHAR2 (20));
+
 INSERT /*+ APPEND */
       INTO  drug_concept_stage (concept_id,
                                concept_name,
@@ -32,7 +33,8 @@ INSERT /*+ APPEND */
                                valid_start_date,
                                valid_end_date,
                                invalid_reason,
-                               insert_id)
+                               insert_id,
+							   source_concept_class_id)
    --Forms
    SELECT NULL AS concept_id,
           EXTRACTVALUE (VALUE (t), 'INFO/DESC') AS concept_name,
@@ -44,7 +46,8 @@ INSERT /*+ APPEND */
           TO_DATE (NVL (EXTRACTVALUE (VALUE (t), 'INFO/CDDT'), '1970-01-01'), 'YYYY-MM-DD') AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason,
-          3 AS insert_id
+          3 AS insert_id,
+		  'Form' AS source_concept_class_id 
      FROM f_lookup2 t_xml,
           TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/FORM/INFO'))) t
    UNION ALL
@@ -59,7 +62,8 @@ INSERT /*+ APPEND */
           TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
           NVL(TO_DATE (EXTRACTVALUE (VALUE (t), 'INFO/CDDT'), 'YYYY-MM-DD') - 1, (SELECT latest_update - 1 FROM vocabulary WHERE vocabulary_id = 'dm+d')) AS valid_end_date,
           'U' AS invalid_reason,
-          4 AS insert_id
+          4 AS insert_id,
+		  'Form' AS source_concept_class_id
      FROM f_lookup2 t_xml,
           TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/FORM/INFO'))) t
     WHERE EXTRACTVALUE (VALUE (t), 'INFO/CDPREV') IS NOT NULL
@@ -86,7 +90,8 @@ INSERT /*+ APPEND */
              ELSE NULL
           END
              AS invalid_reason,
-          7 AS insert_id
+          7 AS insert_id,
+		  'Ingredient' AS source_concept_class_id
      FROM f_ingredient2 t_xml,
           TABLE (
              XMLSEQUENCE (
@@ -103,7 +108,8 @@ INSERT /*+ APPEND */
           TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
           NVL(TO_DATE (EXTRACTVALUE (VALUE (t), 'ING/ISIDDT'), 'YYYY-MM-DD') - 1, (SELECT latest_update - 1 FROM vocabulary WHERE vocabulary_id = 'dm+d')) AS valid_end_date,
           'U' AS invalid_reason,
-          8 AS insert_id
+          8 AS insert_id,
+		  'Ingredient' AS source_concept_class_id
      FROM f_ingredient2 t_xml,
           TABLE (
              XMLSEQUENCE (
@@ -132,7 +138,8 @@ INSERT /*+ APPEND */
              ELSE NULL
           END
              AS invalid_reason,
-          9 AS insert_id
+          9 AS insert_id,
+		  'VTM' AS source_concept_class_id
      FROM f_vtm2 t_xml,
           TABLE (
              XMLSEQUENCE (
@@ -149,7 +156,8 @@ INSERT /*+ APPEND */
           TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
           NVL(TO_DATE (EXTRACTVALUE (VALUE (t), 'VTM/VTMIDDT'), 'YYYY-MM-DD') - 1, (SELECT latest_update - 1 FROM vocabulary WHERE vocabulary_id = 'dm+d')) AS valid_end_date,
           'U' AS invalid_reason,
-          10 AS insert_id
+          10 AS insert_id,
+		  'VTM' AS source_concept_class_id
      FROM f_vtm2 t_xml,
           TABLE (
              XMLSEQUENCE (
@@ -178,7 +186,8 @@ INSERT /*+ APPEND */
              ELSE NULL
           END
              AS invalid_reason,
-          11 AS insert_id
+          11 AS insert_id,
+		  'VMP' AS source_concept_class_id
      FROM f_vmp2 t_xml,
           TABLE (
              XMLSEQUENCE (
@@ -195,7 +204,8 @@ INSERT /*+ APPEND */
           TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
           NVL(TO_DATE (EXTRACTVALUE (VALUE (t), 'VMP/VPIDDT'), 'YYYY-MM-DD') - 1, (SELECT latest_update - 1 FROM vocabulary WHERE vocabulary_id = 'dm+d')) AS valid_end_date,
           'U' AS invalid_reason,
-          12 AS insert_id
+          12 AS insert_id,
+		  'VMP' AS source_concept_class_id
      FROM f_vmp2 t_xml,
           TABLE (
              XMLSEQUENCE (
@@ -232,7 +242,8 @@ INSERT /*+ APPEND */
              ELSE NULL
           END
              AS invalid_reason,
-          13 AS insert_id
+          13 AS insert_id,
+		  'AMP' AS source_concept_class_id
      FROM f_amp2 t_xml,
           TABLE (
              XMLSEQUENCE (
@@ -261,7 +272,8 @@ INSERT /*+ APPEND */
              ELSE NULL
           END
              AS invalid_reason,
-          14 AS insert_id
+          14 AS insert_id,
+		  'VMPP' AS source_concept_class_id
      FROM f_vmpp2 t_xml,
           TABLE (
              XMLSEQUENCE (
@@ -291,7 +303,8 @@ INSERT /*+ APPEND */
              ELSE NULL
           END
              AS invalid_reason,
-          15 AS insert_id
+          15 AS insert_id,
+		  'AMPP' AS source_concept_class_id
      FROM f_ampp2 t_xml,
           TABLE (
              XMLSEQUENCE (
@@ -309,7 +322,8 @@ INSERT /*+ APPEND */
           TO_DATE ('1970-01-01', 'YYYY-MM-DD') AS valid_start_date,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason,
-          16 AS insert_id
+          16 AS insert_id,
+		  'Supplier' AS source_concept_class_id
      FROM f_lookup2 t_xml,
           TABLE (XMLSEQUENCE (t_xml.xmlfield.EXTRACT ('LOOKUP/SUPPLIER/INFO'))) t;
 COMMIT;                   

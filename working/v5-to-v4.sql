@@ -357,6 +357,7 @@ FROM (
         when 'Gemscript' then 0
         when 'HES Specialty' then 0
         when 'ICD10CM' then 0
+		when 'EphMRA ATC' then 3 -- Classification
 		when 'DA_France' then -- specialized hierarchy
           case 
             when c.standard_concept is null then 0

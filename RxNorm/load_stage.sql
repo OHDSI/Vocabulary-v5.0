@@ -56,10 +56,13 @@ INSERT INTO concept_stage (concept_name,
              WHEN 'SBDC' THEN 'Branded Drug Comp'
              WHEN 'SBDF' THEN 'Branded Drug Form'
              WHEN 'SBD' THEN 'Branded Drug'
-             WHEN 'PIN' THEN 'Ingredient'
+             WHEN 'PIN' THEN 'Precise Ingredient'
+			 WHEN 'DFG' THEN 'Dose Form Group'
+			 WHEN 'SCDG' THEN 'Clinical Dose Group'
+			 WHEN 'SBDG' THEN 'Branded Dose Group'
           END,
           -- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
-          CASE tty WHEN 'PIN' THEN NULL WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
+          CASE tty WHEN 'PIN' THEN NULL WHEN 'DFG' THEN 'C' WHEN 'SCDG' THEN 'C' WHEN 'SBDG' THEN 'C' WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
           -- the code used in RxNorm
           rxcui,
           (SELECT latest_update
@@ -80,7 +83,10 @@ INSERT INTO concept_stage (concept_name,
                                          'SBDC',
                                          'SBDF',
                                          'SBD',
-                                         'PIN')
+                                         'PIN',
+										 'DFG',
+										 'SCDG',
+										 'SBDG')
                              AND rxcui <> merged_to_rxcui)
              THEN
 			  (SELECT latest_update - 1
@@ -104,7 +110,10 @@ INSERT INTO concept_stage (concept_name,
                                          'SBDC',
                                          'SBDF',
                                          'SBD',
-                                         'PIN')
+                                         'PIN',
+										 'DFG',
+										 'SCDG',
+										 'SBDG')
                              AND rxcui <> merged_to_rxcui)
              THEN
                 'U'
@@ -122,7 +131,10 @@ INSERT INTO concept_stage (concept_name,
                       'SBDC',
                       'SBDF',
                       'SBD',
-                      'PIN');
+                      'PIN',
+					  'DFG',
+					  'SCDG',
+					  'SBDG');
 COMMIT;					  
 
 -- Packs share rxcuis with Clinical Drugs and Branded Drugs, therefore use code as concept_code
@@ -161,7 +173,10 @@ INSERT INTO concept_stage (concept_name,
                                          'SBDC',
                                          'SBDF',
                                          'SBD',
-                                         'PIN')
+                                         'PIN',
+										 'DFG',
+										 'SCDG',
+										 'SBDG')
                              AND rxcui <> merged_to_rxcui)
              THEN
 			  (SELECT latest_update - 1
@@ -185,7 +200,10 @@ INSERT INTO concept_stage (concept_name,
                                          'SBDC',
                                          'SBDF',
                                          'SBD',
-                                         'PIN')
+                                         'PIN',
+										 'DFG',
+										 'SCDG',
+										 'SBDG')
                              AND rxcui <> merged_to_rxcui)
              THEN
                 'U'
@@ -410,7 +428,10 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                       'SBDC',
                       'SBDF',
                       'SBD',
-					  'PIN')
+					  'PIN',
+					  'DFG',
+					  'SCDG',
+					  'SBDG')
           AND rxcui <> merged_to_rxcui;
 		  /*
           AND NOT EXISTS

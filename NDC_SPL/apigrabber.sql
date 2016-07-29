@@ -189,7 +189,7 @@ CREATE OR REPLACE package body APIGrabber is
         DBMS_PARALLEL_EXECUTE.RUN_TASK(pTaskName, l_SQL_stmt, DBMS_SQL.NATIVE, parallel_level => l_ParallelLevel); -- execute the DML in parallel
         -- done with processing; drop the task
         if DBMS_PARALLEL_EXECUTE.TASK_STATUS(pTaskName)<>DBMS_PARALLEL_EXECUTE.FINISHED then
-            execute immediate 'INSERT /*+ APPEND */ INTO '||gChunkErrTable||' SELECT * FROM SYS.user_parallel_execute_chunks t WHERE t.TASK_NAME='||pTaskName;
+            execute immediate 'INSERT /*+ APPEND */ INTO '||gChunkErrTable||' SELECT * FROM SYS.user_parallel_execute_chunks t WHERE t.TASK_NAME=:1' using pTaskName;
             commit;
         end if;
         DBMS_PARALLEL_EXECUTE.DROP_TASK(pTaskName);

@@ -277,7 +277,8 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
              WHEN rela = 'form_of' THEN 'Form of'
              WHEN rela = 'reformulation_of' THEN 'Reformulation of'
              WHEN rela = 'tradename_of' THEN 'Tradename of'
-             WHEN rela = 'quantified_form_of' THEN 'Quantified form of'
+             WHEN rela = 'doseformgroup_of' THEN 'Dose form group of'
+			 WHEN rela = 'has_doseformgroup' THEN 'Has dose form group'
              ELSE 'non-existing'
           END
              AS relationship_id,

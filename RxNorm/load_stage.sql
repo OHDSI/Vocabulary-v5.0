@@ -268,6 +268,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
              WHEN rela = 'reformulated_to' THEN 'Reformulated in'
              WHEN rela = 'inverse_isa' THEN 'RxNorm inverse is a'
              WHEN rela = 'has_quantified_form' THEN 'Has quantified form' -- links extended release tablets to 12 HR extended release tablets
+			 WHEN rela = 'quantified_form_of' THEN 'Quantified form of'
              WHEN rela = 'consists_of' THEN 'Consists of'
              WHEN rela = 'ingredient_of' THEN 'RxNorm ing of'
              WHEN rela = 'precise_ingredient_of' THEN 'Precise ing of'
@@ -314,6 +315,58 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                            WHERE     vocabulary_id = 'RxNorm'
                                  AND concept_code = rxcui2));
 COMMIT;
+
+-- Add missing relationships between Branded Packs and their Brand Names
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   WITH pb
+           AS (SELECT *
+                 FROM (SELECT pack_code,
+                              pack_brand,
+                              brand_code,
+                              brand_name
+                         FROM (                                              -- The brand names are either listed as tty PSN (prescribing name) or SY (synonym). If they are not listed they don't exist
+                               SELECT p.rxcui AS pack_code, NVL (b.str, s.str) AS pack_brand
+                                 FROM rxnconso p
+                                      LEFT JOIN rxnconso b ON p.rxcui = b.rxcui AND b.sab = 'RXNORM' AND b.tty = 'PSN'
+                                      LEFT JOIN rxnconso s ON p.rxcui = s.rxcui AND s.sab = 'RXNORM' AND s.tty = 'SY'
+                                WHERE p.sab = 'RXNORM' AND p.tty = 'BPCK')
+                              JOIN (SELECT concept_code AS brand_code, concept_name AS brand_name
+                                      FROM concept_stage
+                                     WHERE vocabulary_id = 'RxNorm' AND concept_class_id = 'Brand Name')
+                                 ON INSTR (LOWER (REPLACE (pack_brand, '-', ' ')), LOWER (REPLACE (brand_name, '-', ' '))) > 0)
+                -- apply the slow regexp only to the ones preselected by instr
+                WHERE REGEXP_LIKE (REPLACE (pack_brand, '-', ' '), '(^|\s|\W)' || REPLACE (brand_name, '-', ' ') || '($|\s|\W)', 'i'))
+   SELECT pack_code AS concept_code_1,
+          brand_code AS concept_code_2,
+          'RxNorm' AS vocabulary_id_1,
+          'RxNorm' AS vocabulary_id_2,
+          'RxNorm has ing' AS relationship_id,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'RxNorm')
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM pb p
+    -- kick out those duplicates where one is part of antoher brand name (like 'Demulen' in 'Demulen 1/50', or those that cannot be part of each other.
+    WHERE     NOT EXISTS
+                 (SELECT 1
+                    FROM pb q
+                   WHERE     q.brand_code != p.brand_code
+                         AND p.pack_code = q.pack_code
+                         AND (INSTR (q.brand_name, p.brand_name) > 0 OR INSTR (q.brand_name, p.brand_name) = 0 AND INSTR (p.brand_name, q.brand_name) = 0))
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM concept_relationship_stage crs
+                   WHERE crs.concept_code_1 = pack_code AND crs.concept_code_2 = brand_code AND crs.relationship_id = 'RxNorm has ing');
+COMMIT;				   
 
 -- Remove shortcut 'RxNorm ing of' relationship between Branded Drug and Brand Name. For some strange reason it doesn't exist between Clinical Drug and Ingredient, but we kill it anyway.
 DELETE FROM concept_relationship_stage r 

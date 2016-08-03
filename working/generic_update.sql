@@ -473,10 +473,62 @@ VALUES (
 );
 COMMIT;
 
+/*********************************************************
+* Update the correct invalid reason in the concept table *
+* This should rarely happen                              *
+*********************************************************/
+
+-- 11. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
+UPDATE concept c SET
+	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
+	c.invalid_reason = 'U',
+	c.standard_concept = NULL
+WHERE EXISTS (
+  SELECT 1
+  FROM concept_relationship r
+    WHERE r.concept_id_1 = c.concept_id 
+	  AND r.invalid_reason IS NULL
+      AND r.relationship_id in (
+        'Concept replaced by',
+        'Concept same_as to',
+        'Concept alt_to to',
+        'Concept poss_eq to',
+        'Concept was_a to'
+      )      
+  ) 
+AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
+AND (c.invalid_reason IS NULL OR c.invalid_reason = 'D') -- not already upgraded
+;
+COMMIT;
+
+-- 12. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table for upgraded concepts
+UPDATE concept c SET
+	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
+	c.invalid_reason = 'D',
+	c.standard_concept = NULL
+WHERE
+NOT EXISTS (
+  SELECT 1
+  FROM concept_relationship r
+    WHERE r.concept_id_1 = c.concept_id 
+	  AND r.invalid_reason IS NULL
+      AND r.relationship_id in (
+        'Concept replaced by',
+        'Concept same_as to',
+        'Concept alt_to to',
+        'Concept poss_eq to',
+        'Concept was_a to'
+      )      
+  ) 
+AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
+AND c.invalid_reason = 'U' -- not already deprecated
+;
+COMMIT;
+
 -- The following are a bunch of rules for Maps to and Maps from relationships. 
 -- Since they work outside the _stage tables, they will be restricted to the vocabularies worked on 
 
--- 11. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S' 
+-- 13. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S' 
 INSERT /*+ APPEND */ INTO  concept_relationship (
                                         concept_id_1,
                                         concept_id_2,
@@ -531,7 +583,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship (
 
 COMMIT;
 
--- 12. 'Maps to' or 'Mapped from' relationships should not exist where 
+-- 14. 'Maps to' or 'Mapped from' relationships should not exist where 
 -- a) the source concept has standard_concept = 'S', unless it is to self
 -- b) the target concept has standard_concept = 'C' or NULL
 -- c) the target concept has invalid_reason='D' or 'U'
@@ -556,7 +608,7 @@ UPDATE concept_relationship d
                                OR COALESCE (c2.standard_concept, 'X') != 'S' -- rule b)
 							   OR c2.invalid_reason IN ('U', 'D') -- rule c)
                               )
-                          AND c1.vocabulary_id = v.vocabulary_id
+                          AND v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)
                           AND v.latest_update IS NOT NULL -- only the current vocabularies
                           AND r.relationship_id = 'Maps to'
                           AND r.invalid_reason IS NULL);
@@ -584,64 +636,14 @@ UPDATE concept_relationship d
                                OR COALESCE (c1.standard_concept, 'X') != 'S' -- rule b)
 							   OR c1.invalid_reason IN ('U', 'D') -- rule c)
                               )
-                          AND c2.vocabulary_id = v.vocabulary_id
+                          AND v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)
                           AND v.latest_update IS NOT NULL -- only the current vocabularies
                           AND r.relationship_id = 'Mapped from'
                           AND r.invalid_reason IS NULL);
 
 COMMIT;
 
-/*********************************************************
-* Update the correct invalid reason in the concept table *
-* This should rarely happen                              *
-*********************************************************/
 
--- 13. Make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
-UPDATE concept c SET
-	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
-	c.invalid_reason = 'U',
-	c.standard_concept = NULL
-WHERE EXISTS (
-  SELECT 1
-  FROM concept_relationship r
-    WHERE r.concept_id_1 = c.concept_id 
-	  AND r.invalid_reason IS NULL
-      AND r.relationship_id in (
-        'Concept replaced by',
-        'Concept same_as to',
-        'Concept alt_to to',
-        'Concept poss_eq to',
-        'Concept was_a to'
-      )      
-  ) 
-AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-AND (c.invalid_reason IS NULL OR c.invalid_reason = 'D') -- not already upgraded
-;
-COMMIT;
-
--- 14. Make sure invalid_reason = 'D' if we have no active replacement record in the concept_relationship table for upgraded concepts
-UPDATE concept c SET
-	c.valid_end_date = (SELECT v.latest_update FROM vocabulary v WHERE c.vocabulary_id = v.vocabulary_id) - 1, -- day before release day
-	c.invalid_reason = 'D',
-	c.standard_concept = NULL
-WHERE
-NOT EXISTS (
-  SELECT 1
-  FROM concept_relationship r
-    WHERE r.concept_id_1 = c.concept_id 
-	  AND r.invalid_reason IS NULL
-      AND r.relationship_id in (
-        'Concept replaced by',
-        'Concept same_as to',
-        'Concept alt_to to',
-        'Concept poss_eq to',
-        'Concept was_a to'
-      )      
-  ) 
-AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
-AND c.invalid_reason = 'U' -- not already deprecated
-;
-COMMIT;
 
 -- 15. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
 UPDATE concept SET

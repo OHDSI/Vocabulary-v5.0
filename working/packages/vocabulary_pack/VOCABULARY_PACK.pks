@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE PACKAGE DEVV5.VOCABULARY_PACK
+CREATE OR REPLACE PACKAGE DEVV5.VOCABULARY_PACK
    AUTHID CURRENT_USER
 IS
    /*
@@ -45,5 +45,12 @@ IS
     3. if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
    */
    PROCEDURE DeleteAmbiguousMAPSTO;
+
+
+   /*****testing*****/
+   FUNCTION UpdateVocabulary (pVocabularyName IN VARCHAR2)
+      RETURN VARCHAR2;
+
+   PROCEDURE CheckVocabularyUpdates;
 END VOCABULARY_PACK;
 /

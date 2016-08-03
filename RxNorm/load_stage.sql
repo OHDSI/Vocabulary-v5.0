@@ -365,7 +365,11 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
           AND NOT EXISTS
                  (SELECT 1
                     FROM concept_relationship_stage crs
-                   WHERE crs.concept_code_1 = pack_code AND crs.concept_code_2 = brand_code AND crs.relationship_id = 'RxNorm has ing');
+                   WHERE crs.concept_code_1 = pack_code AND crs.concept_code_2 = brand_code AND crs.relationship_id = 'RxNorm has ing')
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM concept_relationship_stage crs
+                   WHERE crs.concept_code_2 = pack_code AND crs.concept_code_1 = brand_code AND crs.relationship_id = 'RxNorm ing of');				   
 COMMIT;				   
 
 -- Remove shortcut 'RxNorm ing of' relationship between Branded Drug and Brand Name. For some strange reason it doesn't exist between Clinical Drug and Ingredient, but we kill it anyway.

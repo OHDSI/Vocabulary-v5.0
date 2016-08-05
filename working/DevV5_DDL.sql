@@ -48,6 +48,17 @@ CREATE TABLE drug_strength_stage
 )
 NOLOGGING;
 
+CREATE TABLE pack_content_stage
+(
+   pack_concept_code    VARCHAR2 (20) NOT NULL,
+   pack_vocabulary_id   VARCHAR2 (20) NOT NULL,
+   drug_concept_code    VARCHAR2 (20) NOT NULL,
+   drug_vocabulary_id   VARCHAR2 (20) NOT NULL,
+   amount               VARCHAR2 (4000),
+   box_size             NUMBER
+)
+NOLOGGING;
+
 CREATE TABLE concept_stage
 (
    concept_id         NUMBER,
@@ -143,6 +154,7 @@ CREATE TABLE concept_class NOLOGGING AS SELECT * FROM devv5.concept_class;
 CREATE TABLE domain NOLOGGING AS SELECT * FROM devv5.domain;
 CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM devv5.concept_synonym;
 CREATE TABLE drug_strength NOLOGGING AS SELECT * FROM devv5.drug_strength;
+CREATE TABLE pack_content NOLOGGING AS SELECT * FROM devv5.pack_content;
 
 -- Create PKs
 ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);
@@ -155,6 +167,7 @@ ALTER TABLE concept_ancestor ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (anc
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
 ALTER TABLE source_to_concept_map ADD CONSTRAINT xpk_source_to_concept_map PRIMARY KEY (source_vocabulary_id,target_concept_id,source_code,valid_end_date);
 ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id);
+ALTER TABLE pack_content ADD CONSTRAINT xpk_pack_content PRIMARY KEY (pack_concept_id, drug_concept_id, amount);
 
 -- Create external keys
 
@@ -179,6 +192,8 @@ ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_2 FOREIGN KEY
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_1 FOREIGN KEY (amount_unit_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_2 FOREIGN KEY (numerator_unit_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_3 FOREIGN KEY (denominator_unit_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
+ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_1 FOREIGN KEY (pack_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
+ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_2 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE;
 
 -- Create indexes
 
@@ -195,6 +210,8 @@ CREATE INDEX idx_source_to_concept_map_id_3 ON source_to_concept_map (target_con
 CREATE INDEX idx_source_to_concept_map_code ON source_to_concept_map (source_code ASC);
 CREATE INDEX idx_drug_strength_id_1 ON drug_strength (drug_concept_id ASC);
 CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id ASC);
+CREATE INDEX idx_pack_content_id_1 ON pack_content (pack_concept_id ASC);
+CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id ASC);
 CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
 CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
 CREATE INDEX idx_concept_code_1 ON concept_relationship_stage (concept_code_1);

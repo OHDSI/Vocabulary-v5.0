@@ -34,6 +34,7 @@ begin
     execute immediate 'drop table relationship purge';
 	execute immediate 'drop table existing_ds purge';
 	execute immediate 'drop table drug_strength purge';
+	execute immediate 'drop table pack_content purge';
     execute immediate 'truncate table CONCEPT_STAGE';
     execute immediate 'truncate table concept_relationship_stage';
 	execute immediate 'truncate table concept_synonym_stage';
@@ -54,6 +55,7 @@ begin
     execute immediate 'CREATE TABLE relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.relationship';
 	execute immediate 'CREATE TABLE existing_ds NOLOGGING AS SELECT * FROM '||main_schema_name||'.existing_ds';
 	execute immediate 'CREATE TABLE drug_strength NOLOGGING AS SELECT * FROM '||main_schema_name||'.drug_strength';
+	execute immediate 'CREATE TABLE pack_content NOLOGGING AS SELECT * FROM '||main_schema_name||'.pack_content';
 
     /*create indexes and constraints for main tables*/
     execute immediate 'ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id)';
@@ -75,11 +77,17 @@ begin
     execute immediate 'CREATE INDEX idx_concept_vocabluary_id ON concept (vocabulary_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_domain_id ON concept (domain_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_class_id ON concept (concept_class_id ASC) NOLOGGING';
-    execute immediate 'CREATE INDEX idx_concept_relationship_id_1 ON concept_relationship (concept_id_1 ASC) NOLOGGING'; 
-    execute immediate 'CREATE INDEX idx_concept_relationship_id_2 ON concept_relationship (concept_id_2 ASC) NOLOGGING'; 
-    execute immediate 'CREATE INDEX idx_concept_relationship_id_3 ON concept_relationship (relationship_id ASC) NOLOGGING';     
+    execute immediate 'CREATE INDEX idx_concept_relationship_id_1 ON concept_relationship (concept_id_1 ASC) NOLOGGING';
+    execute immediate 'CREATE INDEX idx_concept_relationship_id_2 ON concept_relationship (concept_id_2 ASC) NOLOGGING';
+    execute immediate 'CREATE INDEX idx_concept_relationship_id_3 ON concept_relationship (relationship_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_synonym_id ON concept_synonym (concept_id ASC) NOLOGGING';
-    execute immediate 'CREATE INDEX idx_csyn_concept_syn_name ON concept_synonym (concept_synonym_name) NOLOGGING';    
+    execute immediate 'CREATE INDEX idx_csyn_concept_syn_name ON concept_synonym (concept_synonym_name) NOLOGGING';
+	execute immediate 'CREATE INDEX idx_drug_strength_id_1 ON drug_strength (drug_concept_id) NOLOGGING';
+	execute immediate 'CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id) NOLOGGING';
+	execute immediate 'CREATE INDEX idx_pack_content_id_1 ON pack_content (pack_concept_id) NOLOGGING';
+	execute immediate 'CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id) NOLOGGING';
+	execute immediate 'ALTER TABLE pack_content ADD CONSTRAINT xpk_pack_content PRIMARY KEY (pack_concept_id, drug_concept_id, amount)';
+
 
     /*enable other constraints*/
     execute immediate 'ALTER TABLE domain ADD CONSTRAINT fpk_domain_concept FOREIGN KEY (domain_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
@@ -90,6 +98,8 @@ begin
     execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_1 FOREIGN KEY (amount_unit_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_2 FOREIGN KEY (numerator_unit_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_3 FOREIGN KEY (denominator_unit_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
+    execute immediate 'ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_1 FOREIGN KEY (pack_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';    
+    execute immediate 'ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_2 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_v_1 FOREIGN KEY (source_vocabulary_id) REFERENCES vocabulary (vocabulary_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_v_2 FOREIGN KEY (target_vocabulary_id) REFERENCES vocabulary (vocabulary_id) ENABLE NOVALIDATE';
 	

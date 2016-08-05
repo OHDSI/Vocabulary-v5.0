@@ -559,7 +559,8 @@ commit;
 drop table r_df purge;
 create table r_df nologging as 
 select r.concept_id_1, r.concept_id_2 from concept_relationship r
-join concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
+join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+join concept f on f.concept_id=r.concept_id_2 and f.concept_class_id ='Dose Form' 
 where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
 ;
 commit;
@@ -580,17 +581,27 @@ commit;
 
 -- Create table with Brand Names for r
 drop table r_bn purge;
-create table r_bn nologging as
+/* Original. XXXXXXXXXXXXXXXX remove 
+create table r_bn nologging as;
 select r.concept_id_1, r.concept_id_2 
 from concept_relationship r
-join concept on concept_id=r.concept_id_2 and concept_class_id ='Brand Name'
+join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+join concept b on b.concept_id=r.concept_id_2 and b.concept_class_id ='Brand Name' 
 where r.invalid_reason is null 
+*/
+;
+
+create table r_bn nologging as
+select distinct a.descendant_concept_id as concept_id_1, r.concept_id_2
+from concept_relationship r
+join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension') and concept_class_id!='Ingredient'
+join concept b on b.concept_id=r.concept_id_2 and b.concept_class_id ='Brand Name' 
+join concept_ancestor a on d.concept_id=a.ancestor_concept_id
+where r.invalid_reason is null
 ;
 commit;
 
---compare q and r using manufacturer, q_mf and r_mf need to buid!!!
-
--- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size or quantity are not yet compared
+-- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size and supplier are not yet compared
 drop table q_to_r_anydose purge;
 create table q_to_r_anydose nologging as
 -- create table with all query drug codes q_dcode mapped to standard drug concept ids r_did, irrespective of the correct dose
@@ -614,7 +625,8 @@ left join ( -- RxNorm might not have drug_strength for all concept_class_id
   select distinct drug_concept_id, nvl(denominator_value, 0) as q_value from drug_strength dss
 ) r_quant on r_quant.drug_concept_id=m.r_did
 -- check for matching 
-where q_df.concept_id_2=nvl(r_df.concept_id_2, 0) -- if no Dose Form match 0s
+where 1=1 
+and q_df.concept_id_2=nvl(r_df.concept_id_2, 0) -- if no Dose Form match 0s
 and q_bn.concept_id_2=nvl(r_bn.concept_id_2, 0) -- if no Brand Name match 0s
 and q_quant.q_value=nvl(r_quant.q_value, 0) -- if no Quantity factors  match 0s
 ;
@@ -1118,7 +1130,7 @@ select
   case when c.brand_code=' ' then '' else ' ['||nvl(cbn.concept_name, x_bn.q_name)||']' end as bn_name,
   case when c.box_size=0 then '' else ' Box of '||c.box_size end as box,
   case when c.supplier_code=' ' then '' -- remove stop words
-    else ' by '||replace(replace(replace(replace(replace(replace(replace(replace(nvl(cmf.concept_name, x_mf.q_name), ' Ltd'), ' Plc'), ' UK'), ' (UK)'), ' Pharma'), ' Pharmaceuticals'), ' GmbH'), 'Laboratories') 
+    else ' by '||replace(replace(replace(replace(replace(replace(replace(replace(nvl(cmf.concept_name, x_mf.q_name), ' Ltd'), ' Plc'), ' UK'), ' (UK)'), ' Pharmaceuticals'), ' Pharma'), ' GmbH'), 'Laboratories') 
   end as mf_name
 from complete_attribute c
 join (
@@ -1173,38 +1185,12 @@ group by quant, concept_code, df_name, bn_name, box, mf_name
 commit;
 
 -- Process Packs
--- Create new to existing based on components and their amount, but not box_size
-drop table pack_q_to_r purge;
-create table pack_q_to_r as
-select pp.* from (
-  select pack_concept_code, pack_concept_id, count(8) as cnt
-  from (
-    select * 
-    from (
-      select pack_concept_code, drug_concept_code, amount from pack_content
-    )
-    join (
-      select distinct pack_concept_id, e_code as drug_concept_code, amount from existing_to_complete join q_to_r on c_code=q_dcode join pc on pc.drug_concept_id=r_did
-    ) using (drug_concept_code, amount)
-  ) p_p 
-  group by pack_concept_code, pack_concept_id
-) pp
--- join to new with same number of components
-join (
-  select pack_concept_code, count(8) as cnt from pack_content group by pack_concept_code
-) pq on pq.pack_concept_code=pp.pack_concept_code and pq.cnt=pp.cnt
--- jon to existing with same amount of components
-join (
-  select pack_concept_id, count(8) as cnt from pc group by pack_concept_id
-) pr on pr.pack_concept_id=pp.pack_concept_id and pr.cnt=pp.cnt
-;
-commit;
-
+-- create XXX type concept_codes for hte new ones
 drop table pack_seq purge;
 create table pack_seq as
 select 
-  'XXX'||xxx_seq.nextval as pack_concept_code, old_code from (
-    select distinct pack_concept_code as old_code from pack_content
+  'XXX'||xxx_seq.nextval as pack_concept_code, source_code from (
+    select distinct pack_concept_code as source_code from pc_stage
   )
 ;
 commit;
@@ -1212,7 +1198,7 @@ commit;
 -- create an xxx version of the existing (later all) packs
 drop table complete_pack purge;
 create table complete_pack as
-select old_code, pack_concept_code, 'RxNorm Extension' as pack_vocabulary_id, drug_concept_code, drug_vocab, amount, box_size, brand_code, brand_vocab, supplier_code, supplier_vocab,
+select source_code, pack_concept_code, drug_concept_code, drug_vocab, amount, box_size, brand_code, brand_vocab, supplier_code, supplier_vocab,
   case
     when supplier_code is not null then 'Marketed Product'
     when box_size is not null and brand_code is not null then 'Branded Pack Box'
@@ -1220,31 +1206,84 @@ select old_code, pack_concept_code, 'RxNorm Extension' as pack_vocabulary_id, dr
     when brand_code is not null then 'Branded Pack'
     else 'Clinical Pack'
   end as concept_class_id
-from pack_seq
+from pack_seq -- just the new concept_codes
 join (
   select
-    pcs.pack_concept_code as old_code,
-    coalesce(qr.concept_code, etc.c_code, pcs.drug_concept_code) as drug_concept_code,
-    case when nvl(qr.concept_code, etc.c_code) is null then null else nvl(qr.vocabulary_id, 'RxNorm Extension') end as drug_vocab,
+    pcs.pack_concept_code as source_code,
+    nvl(qr.concept_code, etc.c_code) as drug_concept_code,
+    nvl(qr.vocabulary_id, 'RxNorm Extension') as drug_vocab,
     pcs.amount,
     pcs.box_size,
     bn.r_code as brand_code,
     case when bn.r_code is null then null else nvl(bn.r_vocab, 'RxNorm Extension') end as brand_vocab,
     mf.r_code as supplier_code,
     case when mf.r_code is null then null else nvl(mf.r_vocab, 'RxNorm Extension') end as supplier_vocab
-  from pack_content pcs
-  -- left join pack_q_to_r pqr on pqr.pack_concept_code=pcs.pack_concept_code -- try translating
-  left join existing_to_complete etc on etc.e_code=pcs.drug_concept_code
-  left join (
-    select q_dcode, c.concept_code, c.vocabulary_id from q_to_r join concept c on r_did=c.concept_id
-  ) qr on qr.q_dcode=etc.c_code
-  left join (
+  from pc_stage pcs
+-- Component drug
+  join existing_to_complete etc on etc.e_code=pcs.drug_concept_code -- only drugs that have sufficient definition, if not script will fail
+  left join ( -- try translating the drug to Rx/E
+    select q_dcode, c.concept_code, c.vocabulary_id
+    from q_to_r join concept c on r_did=c.concept_id
+  ) qr on qr.q_dcode=etc.c_code 
+  left join ( -- Obtain Brand Name
     select concept_code_1, r_code, r_vocab from internal_relationship_stage join x_bn on q_code=concept_code_2
   ) bn on bn.concept_code_1=pcs.pack_concept_code
-  left join (
+  left join ( -- Obtain Supplier
     select concept_code_1, r_code, r_vocab from internal_relationship_stage join x_mf on q_code=concept_code_2
   ) mf on mf.concept_code_1=pcs.pack_concept_code
-) using (old_code)
+) using (source_code)
+;
+commit;
+
+-- Create new to existing based on components and their amount, but not box_size, brand name and supplier (see below)
+drop table pack_q_to_r purge;
+create table pack_q_to_r as
+select * 
+from (
+  select distinct pp.pack_concept_code, pp.pack_concept_id as r_id,
+    case 
+      when nvl(cbn.concept_code, ' ')=nvl(cp.brand_code, ' ') and nvl(cbn.vocabulary_id, ' ')=nvl(cp.brand_vocab, ' ') -- RxNorm does only provide unreliable Brand Name info for Branded Drugs
+        and nvl(cmf.concept_code, ' ')=nvl(cp.supplier_code, ' ') and nvl(cmf.vocabulary_id, ' ')=nvl(cp.supplier_vocab, ' ') then 'Marketed'
+      when nvl(cbn.concept_code, ' ')=nvl(cp.brand_code, ' ') and nvl(cbn.vocabulary_id, ' ')=nvl(cp.brand_vocab, ' ') 
+        and cmf.concept_code is null then 'Branded' 
+      when nvl(cmf.concept_code, ' ')=nvl(cp.supplier_code, ' ') and nvl(cmf.vocabulary_id, ' ')=nvl(cp.supplier_vocab, ' ')
+        and cbn.concept_code is null then 'Supplied'
+      when nvl(cmf.concept_code, cbn.concept_code) is null then 'Clinical'
+      else 'Neither'
+    end as match
+  from (
+    select pack_concept_code, pack_concept_id, count(8) as cnt -- the number of content components and their amount per matching pack
+    from (
+      select * 
+      from (
+        select pack_concept_code, concept_id as drug_concept_id, amount from complete_pack join concept on concept_code=drug_concept_code and vocabulary_id=drug_vocab
+      )
+      join ( -- from Rx world
+        select distinct pack_concept_id, drug_concept_id, amount from pack_content
+      ) using (drug_concept_id, amount)
+    ) p_p 
+    group by pack_concept_code, pack_concept_id
+  ) pp
+  -- join to new with same number of components
+  join (
+    select pack_concept_code, count(8) as cnt from complete_pack group by pack_concept_code
+  ) pq on pq.pack_concept_code=pp.pack_concept_code and pq.cnt=pp.cnt
+  -- join to existing with same amount of components
+  join (
+    select pack_concept_id, count(8) as cnt from pack_content group by pack_concept_id
+  ) pr on pr.pack_concept_id=pp.pack_concept_id and pr.cnt=pp.cnt
+  join complete_pack cp on cp.pack_concept_code=pp.pack_concept_code
+  -- find brand name in Rx/e and match
+  join concept p on p.concept_id=pp.pack_concept_id -- to check whether it's a Branded Pack, which doesn't always have a relationship to a Brand Name
+  left join concept_relationship rb on rb.concept_id_1=pp.pack_concept_id and rb.relationship_id='RxNorm has ing'
+  left join concept cbn on (cbn.concept_id=rb.concept_id_2 or cbn.concept_id=1 and (p.concept_class_id='Branded Pack' and p.vocabulary_id='RxNorm'))-- need to find out if RxNorm or existing RxNorm Extension
+  -- find supplier in Rx/e and match
+  left join concept_relationship rs on rs.concept_id_1=pp.pack_concept_id and rs.relationship_id='Has marketed form'
+  left join concept cmf on cmf.concept_id=rs.concept_id_2 -- need to find out if RxNorm or RxNorm Extension
+)
+pivot (
+  sum(r_id) for match in ('Clinical' as clinical, 'Branded' as branded, 'Supplied' as supplied, 'Marketed' as marketed, 'Neither' as neither)
+)
 ;
 commit;
 
@@ -1347,7 +1386,7 @@ select
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   'Dose Form' as concept_class_id,
-  'S' as standard_concept,
+  null as standard_concept,
   x_df.r_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
@@ -1366,7 +1405,7 @@ select
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   'Brand Name' as concept_class_id,
-  'S' as standard_concept,
+  null as standard_concept,
   x_bn.r_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
@@ -1385,7 +1424,7 @@ select
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   'Supplier' as concept_class_id,
-  'S' as standard_concept,
+  null as standard_concept,
   x_mf.r_code,
   nvl(dcs.valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=dcs.vocabulary_id)) as valid_start_date,
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
@@ -1424,10 +1463,12 @@ relationship_id varchar2(20),
 concept_class_2 varchar2(20)
 );
 insert into rl
+-- Packs are not included
 select 'Brand Name', 'RxNorm ing of', 'Branded Drug Box' from dual union
 select 'Brand Name', 'RxNorm ing of', 'Branded Drug Comp' from dual union
 select 'Brand Name', 'RxNorm ing of', 'Branded Drug Form' from dual union
 select 'Brand Name', 'RxNorm ing of', 'Branded Drug' from dual union
+select 'Brand Name', 'RxNorm ing of', 'Branded Pack' from dual union
 select 'Brand Name', 'RxNorm ing of', 'Marketed Product' from dual union
 select 'Brand Name', 'RxNorm ing of', 'Quant Branded Box' from dual union
 select 'Brand Name', 'RxNorm ing of', 'Quant Branded Drug' from dual union
@@ -1438,11 +1479,6 @@ select 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' from dual unio
 select 'Branded Drug', 'Available as box', 'Branded Drug Box' from dual union
 select 'Branded Drug', 'Has marketed form', 'Marketed Product' from dual union
 select 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' from dual union
-select 'Branded Pack', 'Contains', 'Branded Drug' from dual union
-select 'Branded Pack', 'Contains', 'Clinical Drug' from dual union
-select 'Branded Pack', 'Contains', 'Quant Branded Drug' from dual union
-select 'Branded Pack', 'Contains', 'Quant Clinical Drug' from dual union
-select 'Branded Pack', 'Has marketed form', 'Marketed Product' from dual union
 select 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' from dual union
 select 'Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box' from dual union
 select 'Clinical Drug Box', 'Has tradename', 'Branded Drug Box' from dual union
@@ -1454,11 +1490,6 @@ select 'Clinical Drug', 'Available as box', 'Clinical Drug Box' from dual union
 select 'Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union
 select 'Clinical Drug', 'Has quantified form', 'Quant Clinical Drug' from dual union
 select 'Clinical Drug', 'Has tradename', 'Branded Drug' from dual union
-select 'Clinical Pack', 'Contains', 'Branded Drug' from dual union
-select 'Clinical Pack', 'Contains', 'Clinical Drug' from dual union
-select 'Clinical Pack', 'Contains', 'Quant Branded Drug' from dual union
-select 'Clinical Pack', 'Contains', 'Quant Clinical Drug' from dual union
-select 'Clinical Pack', 'Has marketed form', 'Marketed Product' from dual union
 select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Box' from dual union
 select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Form' from dual union
 select 'Dose Form', 'RxNorm dose form of', 'Branded Drug' from dual union
@@ -1475,6 +1506,7 @@ select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug' from dual union
 select 'Ingredient', 'Has brand name', 'Brand Name' from dual union
 select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' from dual union
 select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' from dual union
+select 'Marketed Product', 'Has marketed form', 'Marketed Product' from dual union 
 select 'Supplier', 'Supplier of', 'Marketed Product' from dual union
 select 'Quant Branded Box', 'Has marketed form', 'Marketed Product' from dual union
 select 'Quant Branded Drug', 'Available as box', 'Quant Branded Box' from dual union
@@ -1716,8 +1748,41 @@ join rl on concept_class_1='Ingredient' and concept_class_2='Brand Name'
 ;
 commit;
 
--- Remove duplications occurring in case ds_stage has entries that are fully 0
--- delete from concept_relationship_stage where rowid not in (select max(rowid) from concept_relationship_stage group by concept_code_1, concept_code_2, relationship_id);
+-- Write Packs
+insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+select distinct -- because records duplicate due to components
+  null as concept_id, 
+  concept_name,
+  'Drug' as domain_id,
+  'RxNorm Extension' as vocabulary_id,
+  concept_class_id,
+  'S' as standard_concept, -- all non-existing packs are Standard
+  cp.pack_concept_code as concept_code,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
+  null as invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
+from complete_pack cp join pack_name pn on pn.pack_concept_code=cp.pack_concept_code
+left join pack_q_to_r pqr on cp.pack_concept_code=pqr.pack_concept_code -- exclude those that can be fully mapped
+where pqr.marketed is null
+;
+commit;
+
+-- Write links between Packs and their containing Drugs
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+select distinct -- because drugs can be in a pack in several components
+  cp.pack_concept_code as concept_code_1,
+  'RxNorm Extension' as vocabulary_id_1,
+  cp.drug_concept_code as concept_code_2,
+  cp.drug_vocab as vocabulary_id_2,
+  'Contains' as relationship_id, -- the relationship_id is not taken from rl, but expicitly defined
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
+  null as invalid_reason
+from complete_pack cp 
+left join pack_q_to_r pqr on cp.pack_concept_code=pqr.pack_concept_code -- exclude those that can be fully mapped
+where pqr.marketed is null
+;
+commit;
 
 /************************
 * 8. Write source vocab *
@@ -1760,25 +1825,6 @@ where domain_id='Device'
 ;
 commit;
 
--- Write Packs
-insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-select distinct
-  null as concept_id, 
-  concept_name,
-  'Drug' as domain_id,
-  'RxNorm Extension' as vocabulary_id,
-  concept_class_id,
-  'S' as standard_concept, -- all non-existing packs are Standard
-  pack_concept_code as concept_code,
-  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
-  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
-  null as invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
-from complete_pack cp join pack_name pn using(pack_concept_code)
-where cp.old_code not in (select pack_concept_code from pack_q_to_r)
-;
-commit;
-
--- Write mappings
 -- Write maps for drugs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
@@ -1796,6 +1842,9 @@ left join concept rx on rx.concept_id=qr.r_did
 ;
 commit;
     
+-- Remove duplications occurring in case ds_stage has entries that are fully 0
+-- delete from concept_relationship_stage where rowid not in (select max(rowid) from concept_relationship_stage group by concept_code_1, concept_code_2, relationship_id);
+
 -- Write maps for upgraded drugs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct -- xxxxxxxxxxxxxxxxxxxxx
@@ -2200,20 +2249,21 @@ commit;
 
 -- Write mappings for Packs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-select distinct -- xxxxxxxxxxxxxxxx not clear why
-  cp.old_code as concept_code_1,
+select distinct -- because each pack has many drugs
+  cp.source_code as concept_code_1,
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
-  nvl(p.concept_code, cp.pack_concept_code) as concept_code_2,
-  nvl(p.vocabulary_id, 'RxNorm Extension') as vocabulary_id_2,
+  nvl(c.concept_code, cp.pack_concept_code) as concept_code_2,
+  nvl(c.vocabulary_id, 'RxNorm Extension') as vocabulary_id_2,
   'Maps to' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_pack cp
-left join pack_q_to_r qr on qr.pack_concept_code=cp.pack_concept_code
-left join concept p on p.concept_id=qr.pack_concept_id
+left join pack_q_to_r pqr on cp.pack_concept_code=pqr.pack_concept_code and pqr.marketed is not null
+left join concept c on c.concept_id=pqr.marketed
 ;
 commit;
+
 
 /*************
 * 9. Tidy up *

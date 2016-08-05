@@ -1035,8 +1035,41 @@ left join x_mf on x_mf.q_code=c.mf_code
 left join concept cmf on cmf.concept_code=x_mf.r_code and cmf.vocabulary_id=x_mf.r_vocab
 ;
 
--- Auto-generate all names 
+-- Dedup after normalizing the attributes
+-- Create mapping table
+drop table complete_dedup purge;
+create table complete_dedup as
+with def as (
+  select concept_code, quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab, ingredient_concept_code, ingredient_vocab,
+    nvl(amount_value, 0) as amount_value,
+    nvl(amount_unit_concept_id, 0) as amount_unit_concept_id,
+    nvl(numerator_value, 0) as numerator_value,
+    nvl(numerator_unit_concept_id, 0) as numerator_unit_concept_id,
+    nvl(denominator_value, 0) as denominator_value,
+    nvl(denominator_unit_concept_id, 0) as denominator_unit_concept_id
+  from complete_ds join complete_attribute on concept_code=drug_concept_code
+)
+select * from (
+  select 
+    concept_code as from_code,
+    first_value(concept_code) over (partition by quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab, ingredient_concept_code, ingredient_vocab, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value, denominator_unit_concept_id order by concept_code) as to_code
+  from def
+  join (
+    select quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab, ingredient_concept_code, ingredient_vocab, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value, denominator_unit_concept_id
+    from def
+    group by quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab, ingredient_concept_code, ingredient_vocab, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value, denominator_unit_concept_id
+    having count(8)>1
+  ) using (quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab, ingredient_concept_code, ingredient_vocab, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value, denominator_unit_concept_id)
+) where from_code!=to_code
+;
 
+-- Clean out staging tables
+delete from complete_concept_stage where concept_code in (select from_code from complete_dedup);
+delete from complete_attribute where concept_code in (select from_code from complete_dedup);
+delete from complete_ds where drug_concept_code in (select from_code from complete_dedup);
+update existing_to_complete set c_code=(select to_code from complete_dedup where e_code=from_code) where c_code in (select from_code from complete_dedup);
+
+-- Auto-generate all names 
 -- Create RxNorm-style units. UCUM units have no normalized abbreviation
 drop table concept_to_rxnorm_unit purge;
 create table concept_to_rxnorm_unit (rxn_unit varchar2(20), concept_id integer not null);

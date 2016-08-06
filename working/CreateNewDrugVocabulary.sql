@@ -2297,6 +2297,18 @@ left join concept c on c.concept_id=pqr.marketed
 ;
 commit;
 
+-- Build drug_strength_stage
+insert into drug_strength_stage;
+select 
+  drug_concept_code,
+  'RxNorm Extension' as vocabulary_id_1,
+  ingredient_concept_code,
+  case ingredient_vocab when ' ' then 'RxNorm Extension' else ingredient_vocab end as vocabulary_id_2,
+  amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value, denominator_unit_concept_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
+  null as invalid_reason
+from complete_ds;
 
 /*************
 * 9. Tidy up *

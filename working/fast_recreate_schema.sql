@@ -32,7 +32,6 @@ begin
     execute immediate 'drop table concept_synonym purge';
     execute immediate 'drop table vocabulary purge';
     execute immediate 'drop table relationship purge';
-	execute immediate 'drop table existing_ds purge';
 	execute immediate 'drop table drug_strength purge';
 	execute immediate 'drop table pack_content purge';
     execute immediate 'truncate table CONCEPT_STAGE';
@@ -53,7 +52,6 @@ begin
     execute immediate 'CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_synonym';
     execute immediate 'CREATE TABLE vocabulary NOLOGGING AS SELECT * FROM '||main_schema_name||'.vocabulary';
     execute immediate 'CREATE TABLE relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.relationship';
-	execute immediate 'CREATE TABLE existing_ds NOLOGGING AS SELECT * FROM '||main_schema_name||'.existing_ds';
 	execute immediate 'CREATE TABLE drug_strength NOLOGGING AS SELECT * FROM '||main_schema_name||'.drug_strength';
 	execute immediate 'CREATE TABLE pack_content NOLOGGING AS SELECT * FROM '||main_schema_name||'.pack_content';
 

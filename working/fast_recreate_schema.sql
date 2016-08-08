@@ -84,7 +84,8 @@ begin
 	execute immediate 'CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id) NOLOGGING';
 	execute immediate 'CREATE INDEX idx_pack_content_id_1 ON pack_content (pack_concept_id) NOLOGGING';
 	execute immediate 'CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id) NOLOGGING';
-	execute immediate 'ALTER TABLE pack_content ADD CONSTRAINT xpk_pack_content PRIMARY KEY (pack_concept_id, drug_concept_id, amount)';
+	execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id)';
+	execute immediate 'ALTER TABLE pack_content ADD CONSTRAINT u_pack_content unique (pack_concept_id, drug_concept_id, amount)';
 
 
     /*enable other constraints*/

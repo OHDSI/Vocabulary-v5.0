@@ -1,34 +1,19 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-* 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
-**************************************************************************/
+create or replace procedure v5_to_v4 
+is
+begin
 
-
-DROP TABLE concept CASCADE CONSTRAINTS PURGE;
-DROP TABLE relationship CASCADE CONSTRAINTS PURGE;
-DROP TABLE concept_relationship PURGE;
-DROP TABLE concept_ancestor PURGE;
-DROP TABLE concept_synonym PURGE;
-DROP TABLE source_to_concept_map PURGE;
-DROP TABLE drug_strength PURGE;
-DROP TABLE VOCABULARY PURGE;
+execute immediate 'DROP TABLE concept CASCADE CONSTRAINTS PURGE';
+execute immediate 'DROP TABLE relationship CASCADE CONSTRAINTS PURGE';
+execute immediate 'DROP TABLE concept_relationship PURGE';
+execute immediate 'DROP TABLE concept_ancestor PURGE';
+execute immediate 'DROP TABLE concept_synonym PURGE';
+execute immediate 'DROP TABLE source_to_concept_map PURGE';
+execute immediate 'DROP TABLE drug_strength PURGE';
+execute immediate 'DROP TABLE PACK_CONTENT PURGE';
+execute immediate 'DROP TABLE VOCABULARY PURGE';
 
 --add table RELATIONSHIP
-
+execute immediate '
 CREATE TABLE relationship
 (
   relationship_id       INTEGER                 NOT NULL,                     
@@ -36,32 +21,26 @@ CREATE TABLE relationship
   is_hierarchical       INTEGER                 NOT NULL,                     
   defines_ancestry      INTEGER                 DEFAULT 1                     NOT NULL,
   reverse_relationship  INTEGER                                            
-) NOLOGGING;  
+) NOLOGGING
+';
 
-COMMENT ON TABLE relationship IS 'A list of relationship between concepts. Some of these relationships are generic (e.g. "Subsumes" relationship), others are domain-specific.';
 
-COMMENT ON COLUMN relationship.relationship_id IS 'The type of relationship captured by the relationship record.';
-
-COMMENT ON COLUMN relationship.relationship_name IS 'The text that describes the relationship type.';
-
-COMMENT ON COLUMN relationship.is_hierarchical IS 'Defines whether a relationship defines concepts into classes or hierarchies. Values are Y for hierarchical relationship or NULL if not';
-
-COMMENT ON COLUMN relationship.defines_ancestry IS 'Defines whether a hierarchical relationship contributes to the concept_ancestor table. These are subsets of the hierarchical relationships. Valid values are Y or NULL.';
-
-COMMENT ON COLUMN relationship.reverse_relationship IS 'relationship ID of the reverse relationship to this one. Corresponding records of reverse relationships have their concept_id_1 and concept_id_2 swapped.';
-
+execute immediate '
 CREATE UNIQUE INDEX XPKRELATIONSHIP_TYPE ON relationship
-(relationship_id);
+(relationship_id)
+';
 
+execute immediate '
 ALTER TABLE relationship ADD (
   CONSTRAINT xpkrelationship_type
   PRIMARY KEY
   (relationship_id)
   USING INDEX xpkrelationship_type
-  ENABLE VALIDATE);
+  ENABLE VALIDATE)
+';
 
 --add table drug_strength
-
+execute immediate '
 CREATE TABLE drug_strength
 (
    drug_concept_id            INTEGER NOT NULL,
@@ -74,15 +53,27 @@ CREATE TABLE drug_strength
    valid_start_date           DATE NOT NULL,
    valid_end_date             DATE NOT NULL,
    invalid_reason             VARCHAR2 (1 BYTE)
-);
+) NOLOGGING
+';
+
+execute immediate '
+CREATE TABLE PACK_CONTENT
+(
+  PACK_CONCEPT_ID  NUMBER                       NOT NULL,
+  DRUG_CONCEPT_ID  NUMBER                       NOT NULL,
+  AMOUNT           VARCHAR2(4000 BYTE),
+  BOX_SIZE         NUMBER
+) NOLOGGING
+';
 
 --add table vocabulary
-
+execute immediate '
 CREATE TABLE VOCABULARY
 (
    VOCABULARY_ID     INTEGER NOT NULL,
    VOCABULARY_NAME   VARCHAR2 (256 BYTE) NOT NULL
-);
+)
+';
 
 --fill tables
 
@@ -99,7 +90,7 @@ INSERT INTO devv5.relationship_conversion (relationship_id,
            MINUS
            SELECT relationship_id_new FROM devv5.relationship_conversion);
 COMMIT;
-
+execute immediate '
 CREATE TABLE t_concept_class_conversion
 
 AS
@@ -120,7 +111,8 @@ AS
       FROM devv5.concept
     MINUS
     SELECT concept_class_id_new, concept_class_id_new
-      FROM devv5.concept_class_conversion);
+      FROM devv5.concept_class_conversion)
+';
            
  INSERT INTO relationship (relationship_id,
                           relationship_name,
@@ -139,6 +131,7 @@ AS
           AND r.reverse_relationship_id = rc_rev.relationship_id_new;
 COMMIT;
 
+execute immediate q'[
 CREATE TABLE concept NOLOGGING as
 SELECT concept_id,
                      concept_name,
@@ -163,7 +156,30 @@ FROM (
                 else 2 -- in the middle
               end
           end
-        when 'ICD9CM' then 0 -- all source
+      end as concept_level,
+      ccc.concept_class,
+              vc.vocabulary_id_v4 as vocabulary_id,
+              c.concept_code,
+              c.valid_start_date,
+              c.valid_end_date,
+              c.invalid_reason
+    from devv5.concept c
+    join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
+    join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
+    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
+    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
+    WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
+                        FROM devv5.concept c_int
+                       WHERE     c_int.vocabulary_id = c.vocabulary_id
+                             AND standard_concept in ('C', 'S')
+                  )  
+    OR c.concept_code in ('OMOP generated','No matching concept'))
+    and c.vocabulary_id='SNOMED'
+    
+    union all
+    select distinct
+      c.concept_id, c.concept_name,
+      case c.vocabulary_id 
         when 'ICD9Proc' then  -- hierarchy, but no top guys
           case 
             when c.standard_concept is null then 0
@@ -173,6 +189,30 @@ FROM (
                 else 2 -- in the middle
               end
           end
+      end as concept_level,
+      ccc.concept_class,
+              vc.vocabulary_id_v4 as vocabulary_id,
+              c.concept_code,
+              c.valid_start_date,
+              c.valid_end_date,
+              c.invalid_reason
+    from devv5.concept c
+    join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
+    join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
+    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
+    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
+    WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
+                        FROM devv5.concept c_int
+                       WHERE     c_int.vocabulary_id = c.vocabulary_id
+                             AND standard_concept in ('C', 'S')
+                  )  
+    OR c.concept_code in ('OMOP generated','No matching concept'))
+    and c.vocabulary_id='ICD9Proc'
+    
+    union all
+    select distinct
+      c.concept_id, c.concept_name,
+      case c.vocabulary_id 
         when 'CPT4' then -- full hierarchy
           case 
             when c.standard_concept is null then 0
@@ -183,6 +223,30 @@ FROM (
                 else 2 -- in the middle
               end
           end
+      end as concept_level,
+      ccc.concept_class,
+              vc.vocabulary_id_v4 as vocabulary_id,
+              c.concept_code,
+              c.valid_start_date,
+              c.valid_end_date,
+              c.invalid_reason
+    from devv5.concept c
+    join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
+    join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
+    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
+    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
+    WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
+                        FROM devv5.concept c_int
+                       WHERE     c_int.vocabulary_id = c.vocabulary_id
+                             AND standard_concept in ('C', 'S')
+                  )  
+    OR c.concept_code in ('OMOP generated','No matching concept'))
+    and c.vocabulary_id='CPT4'    
+    
+    union all
+    select distinct
+      c.concept_id, c.concept_name,
+      case c.vocabulary_id 
         when 'LOINC' then -- full hierarchy
           case 
             when c.standard_concept is null then 0
@@ -193,6 +257,30 @@ FROM (
                 else 2 -- in the middle
               end
           end
+      end as concept_level,
+      ccc.concept_class,
+              vc.vocabulary_id_v4 as vocabulary_id,
+              c.concept_code,
+              c.valid_start_date,
+              c.valid_end_date,
+              c.invalid_reason
+    from devv5.concept c
+    join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
+    join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
+    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
+    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
+    WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
+                        FROM devv5.concept c_int
+                       WHERE     c_int.vocabulary_id = c.vocabulary_id
+                             AND standard_concept in ('C', 'S')
+                  )  
+    OR c.concept_code in ('OMOP generated','No matching concept'))
+    and c.vocabulary_id='LOINC'     
+    
+    union all
+    select distinct
+      c.concept_id, c.concept_name,
+      case c.vocabulary_id 
         when 'NDFRT' then -- full hierarchy
           case 
             when c.standard_concept is null then 0
@@ -202,6 +290,77 @@ FROM (
                 else 3 -- in the middle
               end
           end
+        when 'ETC' then
+          case 
+            when c.standard_concept is null then 0
+            else 
+              case 
+                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
+                else 3 -- in the middle
+              end
+          end
+        when 'ATC' then 
+          case 
+            when c.standard_concept is null then 0
+            else 
+              case 
+                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
+                else 3 -- in the middle
+              end
+          end
+        when 'SMQ' then
+          case 
+            when c.standard_concept is null then 0
+            else 
+              case 
+                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
+                when p.ancestor_concept_id is null then 3 -- if it has no parents then top guy
+                else 2 -- in the middle
+              end
+          end
+        when 'VA Class' then 
+          case 
+            when c.standard_concept is null then 0
+            else 
+              case 
+                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
+                else 3 -- in the middle
+              end
+          end            
+        when 'Race' then -- 2 level hierarchy
+          case 
+            when c.standard_concept is null then 0
+            else 
+              case 
+                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
+                else 2 -- on top
+              end
+          end                  
+      end as concept_level,
+      ccc.concept_class,
+              vc.vocabulary_id_v4 as vocabulary_id,
+              c.concept_code,
+              c.valid_start_date,
+              c.valid_end_date,
+              c.invalid_reason
+    from devv5.concept c
+    join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
+    join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
+    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
+    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
+    WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
+                        FROM devv5.concept c_int
+                       WHERE     c_int.vocabulary_id = c.vocabulary_id
+                             AND standard_concept in ('C', 'S')
+                  )  
+    OR c.concept_code in ('OMOP generated','No matching concept'))
+    and c.vocabulary_id in ('NDFRT','ETC','ATC','SMQ','VA Class','Race')
+    
+    union all
+    select
+      c.concept_id, c.concept_name,
+      case c.vocabulary_id 
+        when 'ICD9CM' then 0 -- all source
         when 'RxNorm' then -- specialized hierarchy
           case 
             when c.standard_concept is null then 0
@@ -242,17 +401,29 @@ FROM (
 				else 0
               end
           end		  
-        when 'NDC' then 0
-        when 'GPI' then 0
-        when 'Race' then -- 2 level hierarchy
+        when 'RxNorm Extension' then -- same as RxNorm
           case 
             when c.standard_concept is null then 0
-            else 
-              case 
-                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
-                else 2 -- on top
+            else
+              case concept_class_id
+                when 'Ingredient' then 2
+                when 'Clinical Drug' then 1
+                when 'Branded Drug Box' then 1
+                when 'Clinical Drug Box' then 1
+                when 'Quant Branded Box' then 1
+                when 'Quant Clinical Box' then 1
+                when 'Quant Clinical Drug' then 1
+                when 'Quant Branded Drug' then 1
+                when 'Clinical Drug Comp' then 1
+                when 'Branded Drug Comp' then 1
+                when 'Branded Drug Form' then 1
+                when 'Clinical Drug Form' then 1
+				else 0
               end
-          end
+          end		  
+        when 'dm+d' then 0          
+        when 'NDC' then 0
+        when 'GPI' then 0
         when 'MedDRA' then -- specialized hierarchy
           case 
             when c.standard_concept is null then 0
@@ -273,24 +444,6 @@ FROM (
             when c.standard_concept is null then 0
             else 3 -- Drug hierarchy on top of Ingredient (level 2)
           end
-        when 'ETC' then
-          case 
-            when c.standard_concept is null then 0
-            else 
-              case 
-                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
-                else 3 -- in the middle
-              end
-          end
-        when 'ATC' then 
-          case 
-            when c.standard_concept is null then 0
-            else 
-              case 
-                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
-                else 3 -- in the middle
-              end
-          end
         when 'Multilex' then 
           case 
             when c.standard_concept is null then 0
@@ -308,25 +461,6 @@ FROM (
           case 
             when c.standard_concept is null then 0
             else 2 -- on top of place of service
-          end
-        when 'SMQ' then
-          case 
-            when c.standard_concept is null then 0
-            else 
-              case 
-                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
-                when p.ancestor_concept_id is null then 3 -- if it has no parents then top guy
-                else 2 -- in the middle
-              end
-          end
-        when 'VA Class' then 
-          case 
-            when c.standard_concept is null then 0
-            else 
-              case 
-                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
-                else 3 -- in the middle
-              end
           end
         when 'Cohort' then 0
         when 'ICD10' then 0
@@ -383,7 +517,7 @@ FROM (
           case
             when c.standard_concept is null then 0
             else 1
-          end
+          end                                    
       end as concept_level,
       ccc.concept_class,
               vc.vocabulary_id_v4 as vocabulary_id,
@@ -394,41 +528,23 @@ FROM (
     from devv5.concept c
     join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
     join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
-    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
-    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
-    WHERE EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
+    WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
                         FROM devv5.concept c_int
                        WHERE     c_int.vocabulary_id = c.vocabulary_id
                              AND standard_concept in ('C', 'S')
                   )  
-    OR c.concept_code in ('OMOP generated','No matching concept')
-);    
+    OR c.concept_code in ('OMOP generated','No matching concept'))
+    and c.vocabulary_id not in ('SNOMED','ICD9Proc','CPT4','LOINC','NDFRT','ETC','ATC','SMQ','VA Class','Race')        
+)
+]';    
 
-DROP TABLE t_concept_class_conversion PURGE;
+execute immediate 'DROP TABLE t_concept_class_conversion PURGE';
 
-COMMENT ON TABLE concept IS 'A list of all valid terminology concepts across domains and their attributes. Concepts are derived from existing standards.';
+execute immediate 'CREATE INDEX concept_code ON concept (concept_code, vocabulary_id) NOLOGGING';
 
-COMMENT ON COLUMN concept.concept_id IS 'A system-generated identifier to uniquely identify each concept across all concept types.';
+execute immediate 'CREATE UNIQUE INDEX XPKconcept ON concept (concept_id) NOLOGGING';
 
-COMMENT ON COLUMN concept.concept_name IS 'An unambiguous, meaningful and descriptive name for the concept.';
-
-COMMENT ON COLUMN concept.concept_level IS 'The level of hierarchy associated with the concept. Different concept levels are assigned to concepts to depict their seniority in a clearly defined hierarchy, such as drugs, conditions, etc. A concept level of 0 is assigned to concepts that are not part of a standard vocabulary, but are part of the vocabulary for reference purposes (e.g. drug form).';
-
-COMMENT ON COLUMN concept.concept_class IS 'The category or class of the concept along both the hierarchical tree as well as different domains within a vocabulary. Examples are ''Clinical Drug'', ''Ingredient'', ''Clinical Finding'' etc.';
-
-COMMENT ON COLUMN concept.vocabulary_id IS 'A foreign key to the vocabulary table indicating from which source the concept has been adapted.';
-
-COMMENT ON COLUMN concept.concept_code IS 'The concept code represents the identifier of the concept in the source data it originates from, such as SNOMED-CT concept IDs, RxNorm RXCUIs etc. Note that concept codes are not unique across vocabularies.';
-
-COMMENT ON COLUMN concept.valid_start_date IS 'The date when the was first recorded.';
-
-COMMENT ON COLUMN concept.valid_end_date IS 'The date when the concept became invalid because it was deleted or superseded (updated) by a new concept. The default value is 31-Dec-2099.';
-
-COMMENT ON COLUMN concept.invalid_reason IS 'Concepts that are replaced with a new concept are designated "Updated" (U) and concepts that are removed without replacement are "Deprecated" (D).';
-
-CREATE INDEX concept_code ON concept (concept_code, vocabulary_id) NOLOGGING;
-CREATE UNIQUE INDEX XPKconcept ON concept (concept_id) NOLOGGING;
-
+execute immediate q'[
 ALTER TABLE concept ADD (
   CHECK ( invalid_reason IN ('D', 'U'))
   ENABLE VALIDATE,
@@ -436,10 +552,11 @@ ALTER TABLE concept ADD (
   PRIMARY KEY
   (concept_id)
   USING INDEX XPKCONCEPT
-  ENABLE VALIDATE);      
+  ENABLE VALIDATE)
+  ]';      
 
 --add table concept_relationship
-
+execute immediate '
 CREATE TABLE concept_relationship NOLOGGING as
 SELECT concept_id_1,
                                   concept_id_2,
@@ -464,7 +581,8 @@ FROM (
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = r.concept_id_2)
-);
+)
+';
 
 
 INSERT /*+ APPEND */
@@ -513,24 +631,12 @@ INSERT /*+ APPEND */
                          AND relationship_id = 359);
 COMMIT;
 
-COMMENT ON TABLE concept_relationship IS 'A list of relationship between concepts. Some of these relationships are generic (e.g. ''Subsumes'' relationship), others are domain-specific.';
-
-COMMENT ON COLUMN concept_relationship.concept_id_1 IS 'A foreign key to the concept in the concept table associated with the relationship. relationships are directional, and this field represents the source concept designation.';
-
-COMMENT ON COLUMN concept_relationship.concept_id_2 IS 'A foreign key to the concept in the concept table associated with the relationship. relationships are directional, and this field represents the destination concept designation.';
-
-COMMENT ON COLUMN concept_relationship.relationship_id IS 'The type of relationship as defined in the relationship table.';
-
-COMMENT ON COLUMN concept_relationship.valid_start_date IS 'The date when the the relationship was first recorded.';
-
-COMMENT ON COLUMN concept_relationship.valid_end_date IS 'The date when the relationship became invalid because it was deleted or superseded (updated) by a new relationship. Default value is 31-Dec-2099.';
-
-COMMENT ON COLUMN concept_relationship.invalid_reason IS 'Reason the relationship was invalidated. Possible values are D (deleted), U (replaced with an update) or NULL when valid_end_date has the default  value.';
-
+execute immediate '
 CREATE UNIQUE INDEX xpkconcept_relationship ON concept_relationship
-(concept_id_1, concept_id_2, relationship_id) NOLOGGING; 
+(concept_id_1, concept_id_2, relationship_id) NOLOGGING
+'; 
 
-
+execute immediate q'[
 ALTER TABLE concept_relationship ADD (
   CHECK ( invalid_reason IN ('D', 'U'))
   ENABLE VALIDATE,
@@ -542,9 +648,10 @@ ALTER TABLE concept_relationship ADD (
   PRIMARY KEY
   (concept_id_1, concept_id_2, relationship_id)
   USING INDEX xpkconcept_relationship
-  ENABLE VALIDATE);
+  ENABLE VALIDATE)
+  ]';
 
- 
+execute immediate ' 
 ALTER TABLE concept_relationship ADD (
   CONSTRAINT concept_REL_CHILD_FK 
   FOREIGN KEY (concept_id_2) 
@@ -557,11 +664,12 @@ ALTER TABLE concept_relationship ADD (
   CONSTRAINT concept_REL_REL_type_FK 
   FOREIGN KEY (relationship_id) 
   REFERENCES relationship (relationship_id)
-  ENABLE VALIDATE);
+  ENABLE VALIDATE)
+';
 
 
 --add table concept_ancestor
-
+execute immediate '
 CREATE TABLE concept_ancestor NOLOGGING as
 SELECT ancestor_concept_id,
                               descendant_concept_id,
@@ -581,29 +689,24 @@ FROM (
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = ca.descendant_concept_id)
-);
+)
+';
 
-
-COMMENT ON TABLE concept_ancestor IS 'A specialized table containing only hierarchical relationship between concepts that may span several generations.';
-
-COMMENT ON COLUMN concept_ancestor.ancestor_concept_id IS 'A foreign key to the concept code in the concept table for the higher-level concept that forms the ancestor in the relationship.';
-
-COMMENT ON COLUMN concept_ancestor.descendant_concept_id IS 'A foreign key to the concept code in the concept table for the lower-level concept that forms the descendant in the relationship.';
-
-COMMENT ON COLUMN concept_ancestor.max_levels_of_separation IS 'The maximum separation in number of levels of hierarchy between ancestor and descendant concepts. This is an optional attribute that is used to simplify hierarchic analysis. ';
-
-COMMENT ON COLUMN concept_ancestor.min_levels_of_separation IS 'The minimum separation in number of levels of hierarchy between ancestor and descendant concepts. This is an optional attribute that is used to simplify hierarchic analysis.';
-
+execute immediate '
 CREATE UNIQUE INDEX xpkconcept_ancestor ON concept_ancestor
-(ancestor_concept_id, descendant_concept_id) NOLOGGING;
+(ancestor_concept_id, descendant_concept_id) NOLOGGING
+';
 
+execute immediate '
 ALTER TABLE concept_ancestor ADD (
   CONSTRAINT xpkconcept_ancestor
   PRIMARY KEY
   (ancestor_concept_id, descendant_concept_id)
   USING INDEX xpkconcept_ancestor
-  ENABLE VALIDATE);
+  ENABLE VALIDATE)
+  ';
 
+execute immediate '
 ALTER TABLE concept_ancestor ADD (
   CONSTRAINT concept_ancestor_FK 
   FOREIGN KEY (ancestor_concept_id) 
@@ -612,10 +715,11 @@ ALTER TABLE concept_ancestor ADD (
   CONSTRAINT concept_descendant_FK 
   FOREIGN KEY (descendant_concept_id) 
   REFERENCES concept (concept_id)
-  ENABLE VALIDATE);
+  ENABLE VALIDATE)
+';
 
 --add table concept_synonym
-
+execute immediate '
 CREATE TABLE concept_synonym NOLOGGING as
 SELECT concept_synonym_id,
                              concept_id,
@@ -629,33 +733,33 @@ FROM (
              (SELECT 1
                 FROM concept c_int
                WHERE c_int.concept_id = cs.concept_id)
-);     
+)
+';     
 
-COMMENT ON TABLE concept_synonym IS 'A table with synonyms for concepts that have more than one valid name or description.';
-
-COMMENT ON COLUMN concept_synonym.concept_synonym_id IS 'A system-generated unique identifier for each concept synonym.';
-
-COMMENT ON COLUMN concept_synonym.concept_id IS 'A foreign key to the concept in the concept table. ';
-
-COMMENT ON COLUMN concept_synonym.concept_synonym_name IS 'The alternative name for the concept.';
-
+execute immediate '
 CREATE UNIQUE INDEX xpkconcept_synonym ON concept_synonym
-(concept_synonym_id) NOLOGGING;
+(concept_synonym_id) NOLOGGING
+';
 
+execute immediate '
 ALTER TABLE concept_synonym ADD (
   CONSTRAINT xpkconcept_synonym
   PRIMARY KEY
   (concept_synonym_id)
   USING INDEX xpkconcept_synonym
-  ENABLE VALIDATE);
+  ENABLE VALIDATE)
+';
 
+execute immediate '
 ALTER TABLE concept_synonym ADD (
   CONSTRAINT concept_synonym_concept_FK 
   FOREIGN KEY (concept_id) 
   REFERENCES concept (concept_id)
-  ENABLE VALIDATE);
+  ENABLE VALIDATE)
+';
 
 --concepts with direct mappings
+execute immediate q'[
 CREATE TABLE source_to_concept_map NOLOGGING AS
 SELECT SOURCE_CODE,
                                    SOURCE_vocabulary_id,
@@ -695,7 +799,8 @@ FROM (
                  (SELECT 1
                     FROM concept c_int
                    WHERE c_int.concept_id = c2.concept_id)
-);
+)
+]';
 
 --unmapped concepts
 INSERT /*+ APPEND */
@@ -749,12 +854,17 @@ INSERT /*+ APPEND */
           AND c1.concept_class_id <> 'Concept Class';
 COMMIT;
 
+execute immediate '
 CREATE INDEX SOURCE_TO_concept_SOURCE_idX ON source_to_concept_map
-(SOURCE_CODE) NOLOGGING;
+(SOURCE_CODE) NOLOGGING
+';
 
+execute immediate '
 CREATE UNIQUE INDEX xpksource_to_concept_map ON source_to_concept_map
-(SOURCE_vocabulary_id, TARGET_concept_id, SOURCE_CODE, valid_end_date) NOLOGGING;
+(SOURCE_vocabulary_id, TARGET_concept_id, SOURCE_CODE, valid_end_date) NOLOGGING
+';
 
+execute immediate q'[
 ALTER TABLE source_to_concept_map ADD (
   CHECK (primary_map in ('Y'))
   ENABLE VALIDATE,
@@ -764,16 +874,20 @@ ALTER TABLE source_to_concept_map ADD (
   PRIMARY KEY
   (SOURCE_vocabulary_id, TARGET_concept_id, SOURCE_CODE, valid_end_date)
   USING INDEX xpksource_to_concept_map
-  ENABLE VALIDATE);
+  ENABLE VALIDATE)
+]';
 
+execute immediate '
 ALTER TABLE source_to_concept_map ADD (
   CONSTRAINT SOURCE_TO_concept_concept 
   FOREIGN KEY (TARGET_concept_id) 
   REFERENCES concept (concept_id)
-  ENABLE VALIDATE);
+  ENABLE VALIDATE)
+';
 
           
-INSERT INTO drug_strength
+INSERT /*+ APPEND */
+      INTO  drug_strength
    SELECT s.drug_concept_id,
           s.ingredient_concept_id,
           s.amount_value,
@@ -785,12 +899,24 @@ INSERT INTO drug_strength
           s.valid_end_date,
           s.invalid_reason
      FROM devv5.drug_strength s
-          LEFT JOIN concept au ON au.concept_id = s.amount_unit_concept_id
-          LEFT JOIN concept nu ON nu.concept_id = s.numerator_unit_concept_id
-          LEFT JOIN concept du
-             ON du.concept_id = s.denominator_unit_concept_id;
+          JOIN concept au ON au.concept_id = s.amount_unit_concept_id
+          JOIN concept nu ON nu.concept_id = s.numerator_unit_concept_id
+          JOIN concept du ON du.concept_id = s.denominator_unit_concept_id;
+
+COMMIT;
+
+INSERT /*+ APPEND */
+      INTO  pack_content
+   SELECT s.pack_concept_id,
+          s.drug_concept_id,
+          s.amount,
+          s.box_size
+     FROM devv5.pack_content s
+          JOIN concept au ON au.concept_id = s.pack_concept_id
+          JOIN concept nu ON nu.concept_id = s.drug_concept_id;
 COMMIT;
 
 INSERT INTO VOCABULARY
    SELECT vocabulary_id_v4, vocabulary_id_v5 FROM devv5.vocabulary_conversion;
 COMMIT;
+end;

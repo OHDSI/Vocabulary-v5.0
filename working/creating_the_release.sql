@@ -16,7 +16,7 @@ select * from table(DEVV5.QA_TESTS.GET_SUMMARY('concept_relationship'));
 select * from table(DEVV5.QA_TESTS.GET_SUMMARY('concept_ancestor'));
 select * from table(DEVV5.QA_TESTS.GET_CHECKS);
 
---4. start the release
+--4. start the release (concept_ancestor, v5-to-v4 conversion, copying data to PROD)
 --run in DEVV5
 exec vocabulary_pack.StartRelease;
 

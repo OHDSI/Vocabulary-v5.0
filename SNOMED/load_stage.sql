@@ -32,6 +32,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3 Create core version of DM+D
 --3.1. We need to create temporary table of DM+D with the same structure as concept_stage and pseudo-column 'insert_id'

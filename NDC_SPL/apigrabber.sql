@@ -181,6 +181,8 @@ CREATE OR REPLACE package body APIGrabber is
          
         DBMS_PARALLEL_EXECUTE.CREATE_TASK (pTaskName); --create the task
         DBMS_PARALLEL_EXECUTE.CREATE_CHUNKS_BY_ROWID(pTaskName, USER, upper(gConceptTable), true, 100); --chunk the gConceptTable by ROWID
+		UTL_HTTP.set_wallet ('file:/home/vtimur/wallet', 'wallet_password');
+		
         l_SQL_stmt:='
             INSERT /*+ APPEND */ INTO '||gRawTable||'
             SELECT CONCEPT_CODE, '||pSQLurl||' FROM '||gConceptTable||' WHERE ROWID BETWEEN :start_id AND :end_id

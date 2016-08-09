@@ -20,12 +20,12 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'NDC',
-                                          pVocabularyDate        => TO_DATE ('20160318', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'NDC 20160318',
+                                          pVocabularyDate        => TO_DATE ('20160729', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'NDC 20160729',
                                           pVocabularyDevSchema   => 'DEV_NDC');
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'SPL',
-                                          pVocabularyDate        => TO_DATE ('20160318', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'NDC 20160318',
+                                          pVocabularyDate        => TO_DATE ('20160729', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'NDC 20160729',
                                           pVocabularyDevSchema   => 'DEV_NDC',
                                           pAppendVocabulary      => TRUE);										  
 END;
@@ -35,6 +35,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --get aggregated dose
 CREATE OR REPLACE FUNCTION GetAggrDose (active_numerator_strength in varchar2, active_ingred_unit in varchar2) return varchar2 as

@@ -21,6 +21,28 @@
 use this script to recreate main tables (concept, concept_relationship, concept_synonym) without dropping your schema
 */
 
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Timur Vakhitov, Christian Reich
+* Date: 2016
+**************************************************************************/
+
+/*
+use this script to recreate main tables (concept, concept_relationship, concept_synonym) without dropping your schema
+*/
 
 declare
 main_schema_name constant varchar2(100):='DEVV5';
@@ -32,28 +54,28 @@ begin
     execute immediate 'drop table concept_synonym purge';
     execute immediate 'drop table vocabulary purge';
     execute immediate 'drop table relationship purge';
-	execute immediate 'drop table drug_strength purge';
-	execute immediate 'drop table pack_content purge';
+    execute immediate 'drop table drug_strength purge';
+    execute immediate 'drop table pack_content purge';
     execute immediate 'truncate table CONCEPT_STAGE';
     execute immediate 'truncate table concept_relationship_stage';
-	execute immediate 'truncate table concept_synonym_stage';
-	execute immediate 'truncate table concept_class';
-	execute immediate 'truncate table domain';
-	execute immediate 'truncate table vocabulary_conversion';
+    execute immediate 'truncate table concept_synonym_stage';
+    execute immediate 'truncate table concept_class';
+    execute immediate 'truncate table domain';
+    execute immediate 'truncate table vocabulary_conversion';
 
-	execute immediate 'insert into concept_class select * from '||main_schema_name||'.concept_class';
-	execute immediate 'insert into domain select * from '||main_schema_name||'.domain';
-	execute immediate 'insert into vocabulary_conversion select * from '||main_schema_name||'.vocabulary_conversion';
+    execute immediate 'insert into concept_class select * from '||main_schema_name||'.concept_class';
+    execute immediate 'insert into domain select * from '||main_schema_name||'.domain';
+    execute immediate 'insert into vocabulary_conversion select * from '||main_schema_name||'.vocabulary_conversion';
 
-    
+
     /*CTAS with NOLOGGING (faster)*/
     execute immediate 'CREATE TABLE concept NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept';
     execute immediate 'CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_relationship';
     execute immediate 'CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_synonym';
     execute immediate 'CREATE TABLE vocabulary NOLOGGING AS SELECT * FROM '||main_schema_name||'.vocabulary';
     execute immediate 'CREATE TABLE relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.relationship';
-	execute immediate 'CREATE TABLE drug_strength NOLOGGING AS SELECT * FROM '||main_schema_name||'.drug_strength';
-	execute immediate 'CREATE TABLE pack_content NOLOGGING AS SELECT * FROM '||main_schema_name||'.pack_content';
+    execute immediate 'CREATE TABLE drug_strength NOLOGGING AS SELECT * FROM '||main_schema_name||'.drug_strength';
+    execute immediate 'CREATE TABLE pack_content NOLOGGING AS SELECT * FROM '||main_schema_name||'.pack_content';
 
     /*create indexes and constraints for main tables*/
     execute immediate 'ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id)';
@@ -70,7 +92,7 @@ begin
     execute immediate 'ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_concept FOREIGN KEY (concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
-	execute immediate 'ALTER TABLE concept_synonym ADD CONSTRAINT unique_synonyms UNIQUE (concept_id,concept_synonym_name,language_concept_id)';
+    execute immediate 'ALTER TABLE concept_synonym ADD CONSTRAINT unique_synonyms UNIQUE (concept_id,concept_synonym_name,language_concept_id)';
     execute immediate 'CREATE INDEX idx_concept_code ON concept (concept_code ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_vocabluary_id ON concept (vocabulary_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_domain_id ON concept (domain_id ASC) NOLOGGING';
@@ -80,12 +102,12 @@ begin
     execute immediate 'CREATE INDEX idx_concept_relationship_id_3 ON concept_relationship (relationship_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_synonym_id ON concept_synonym (concept_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_csyn_concept_syn_name ON concept_synonym (concept_synonym_name) NOLOGGING';
-	execute immediate 'CREATE INDEX idx_drug_strength_id_1 ON drug_strength (drug_concept_id) NOLOGGING';
-	execute immediate 'CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id) NOLOGGING';
-	execute immediate 'CREATE INDEX idx_pack_content_id_1 ON pack_content (pack_concept_id) NOLOGGING';
-	execute immediate 'CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id) NOLOGGING';
-	execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id)';
-	execute immediate 'ALTER TABLE pack_content ADD CONSTRAINT u_pack_content unique (pack_concept_id, drug_concept_id, amount)';
+    execute immediate 'CREATE INDEX idx_drug_strength_id_1 ON drug_strength (drug_concept_id) NOLOGGING';
+    execute immediate 'CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id) NOLOGGING';
+    execute immediate 'CREATE INDEX idx_pack_content_id_1 ON pack_content (pack_concept_id) NOLOGGING';
+    execute immediate 'CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id) NOLOGGING';
+    execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id)';
+    execute immediate 'ALTER TABLE pack_content ADD CONSTRAINT u_pack_content unique (pack_concept_id, drug_concept_id, amount)';
 
 
     /*enable other constraints*/
@@ -101,9 +123,9 @@ begin
     execute immediate 'ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_2 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_v_1 FOREIGN KEY (source_vocabulary_id) REFERENCES vocabulary (vocabulary_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_v_2 FOREIGN KEY (target_vocabulary_id) REFERENCES vocabulary (vocabulary_id) ENABLE NOVALIDATE';
-	
-	/*GATHER_TABLE_STATS*/
-	DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept', estimate_percent => null, cascade => true);
-	DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_relationship', estimate_percent => null, cascade => true);
-	DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_synonym', estimate_percent => null, cascade => true);
+
+    /*GATHER_TABLE_STATS*/
+    DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept', estimate_percent => null, cascade => true);
+    DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_relationship', estimate_percent => null, cascade => true);
+    DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_synonym', estimate_percent => null, cascade => true);
 end;

@@ -22,8 +22,8 @@
 -- If the international version is already loaded, updating will not affect it
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'SNOMED',
-                                          pVocabularyDate        => TO_DATE ('20160131', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'SnomedCT Release 20160131',
+                                          pVocabularyDate        => TO_DATE ('20160731', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'SnomedCT Release 20160731',
                                           pVocabularyDevSchema   => 'DEV_SNOMED');
 END;
 COMMIT;

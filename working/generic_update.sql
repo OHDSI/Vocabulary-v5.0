@@ -808,19 +808,15 @@ DELETE FROM concept_synonym csyn
                                );
 
 -- 20. Add new synonyms for existing concepts
-INSERT INTO concept_synonym (concept_id,
-                             concept_synonym_name,
-                             language_concept_id)
-   SELECT c.concept_id,
-          REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' '),
-          4180186                                               -- for English
-     FROM concept_synonym_stage css, concept c, concept_stage cs
-    WHERE     css.synonym_concept_code = c.concept_code
-          AND css.synonym_vocabulary_id = c.vocabulary_id
-          AND cs.concept_code = c.concept_code
-          AND cs.vocabulary_id = c.vocabulary_id
-          AND REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' ')
-                 IS NOT NULL; --fix for empty GPI names
+INSERT INTO concept_synonym (concept_id, concept_synonym_name, language_concept_id)
+     SELECT c.concept_id, REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' '), 4180186 -- for English
+       FROM concept_synonym_stage css, concept c, concept_stage cs
+      WHERE     css.synonym_concept_code = c.concept_code
+            AND css.synonym_vocabulary_id = c.vocabulary_id
+            AND cs.concept_code = c.concept_code
+            AND cs.vocabulary_id = c.vocabulary_id
+            AND REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' ') IS NOT NULL --fix for empty GPI names
+   GROUP BY c.concept_id, REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' ');
 COMMIT;
 
 -- 21. Fillig drug_strength

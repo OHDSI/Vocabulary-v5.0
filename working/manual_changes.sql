@@ -28,49 +28,26 @@ BEGIN
 END;
 */
 
--- Add THIN Gemscript Class
+-- Add Cost Type vocabulary and concept classes
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'Gemscript THIN', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
+  values(v5_concept.nextval, 'OMOP Cost Type', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id) 
+  values ('Cost Type', 'OMOP Cost Type', 'OMOP generated', null, (select concept_id from concept where concept_name='OMOP Cost Type'));
+insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url, click_disabled) values (83, 'Cost Type', 'Y', 'Y', null, null, 'Y');
+
+-- Add concept_class
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (v5_concept.nextval, 'Cost Type', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-  values ('Gemscript THIN', 'Encrypted Gemscript for the THIN database', (select concept_id from concept where concept_name = 'Gemscript THIN'));
+values ('Cost Type', 'Cost Type', (select concept_id from concept where concept_name = 'Cost Type'));
 
--- Add Measurement Type for ordering
+-- Add Cost Type Concepts
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'Test ordered through EHR', 'Type Concept', 'Meas Type', 'Meas Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
-
--- Add parenteral to Route
-update concept set domain_id='Route' where concept_id=40491411;
-
--- Add concept_classes for dm+d
+  values (v5_concept.nextval, 'Amount paid by the patient or reimbursed by the payer', 'Type Concept', 'Cost Type', 'Cost Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'Actual Medicinal Product', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
-insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-  values ('AMP', 'Actual Medicinal Product', (select concept_id from concept where concept_name = 'Actual Medicinal Product'));
-
+  values (v5_concept.nextval, 'Amount charged to the patient or the payer by the provider, list price', 'Type Concept', 'Cost Type', 'Cost Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'Actual Medicinal Product Pack', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
-insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-  values ('AMPP', 'Actual Medicinal Product Pack', (select concept_id from concept where concept_name = 'Actual Medicinal Product Pack'));
-
-insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'Virtual Medicinal Product', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
-insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-  values ('VMP', 'Virtual Medicinal Product', (select concept_id from concept where concept_name = 'Virtual Medicinal Product'));
-
-insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'Virtual Medicinal Product Pack', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
-insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-  values ('VMPP', 'Virtual Medicinal Product Pack', (select concept_id from concept where concept_name = 'Virtual Medicinal Product Pack'));
-
-insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'dm+d Dose Form', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
-insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-  values ('Form', 'dm+d Dose Form', (select concept_id from concept where concept_name = 'dm+d Dose Form'));
-
-insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values (v5_concept.nextval, 'Virtual Therapeutic Moiety', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
-insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
-  values ('VTM', 'Virtual Therapeutic Moiety', (select concept_id from concept where concept_name = 'Virtual Therapeutic Moiety'));
+  values (v5_concept.nextval, 'Cost incurred by the provider', 'Type Concept', 'Cost Type', 'Cost Type', 'S', 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 
 commit;
 

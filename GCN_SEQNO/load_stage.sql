@@ -37,6 +37,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Add GCN_SEQNO to concept_stage from rxnconso
 INSERT /*+ APPEND */ INTO  concept_stage (concept_name,

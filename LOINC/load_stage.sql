@@ -20,8 +20,8 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'LOINC',
-                                          pVocabularyDate        => TO_DATE ('20151221', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'LOINC 2.54',
+                                          pVocabularyDate        => TO_DATE ('20160624', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'LOINC 2.56',
                                           pVocabularyDevSchema   => 'DEV_LOINC');
 END;
 COMMIT;
@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Create concept_stage from LOINC
 INSERT INTO concept_stage (concept_id,

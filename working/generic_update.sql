@@ -128,6 +128,7 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'EphMRA ATC' THEN 1
   WHEN c.vocabulary_id = 'dm+d' THEN 1
   WHEN c.vocabulary_id = 'RxNorm Extension' THEN 1
+  WHEN c.vocabulary_id = 'Gemscript' THEN 1
   ELSE 0 -- in default we will not deprecate
 END = 1
 ;
@@ -807,19 +808,15 @@ DELETE FROM concept_synonym csyn
                                );
 
 -- 20. Add new synonyms for existing concepts
-INSERT INTO concept_synonym (concept_id,
-                             concept_synonym_name,
-                             language_concept_id)
-   SELECT c.concept_id,
-          REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' '),
-          4180186                                               -- for English
-     FROM concept_synonym_stage css, concept c, concept_stage cs
-    WHERE     css.synonym_concept_code = c.concept_code
-          AND css.synonym_vocabulary_id = c.vocabulary_id
-          AND cs.concept_code = c.concept_code
-          AND cs.vocabulary_id = c.vocabulary_id
-          AND REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' ')
-                 IS NOT NULL; --fix for empty GPI names
+INSERT INTO concept_synonym (concept_id, concept_synonym_name, language_concept_id)
+     SELECT c.concept_id, REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' '), 4180186 -- for English
+       FROM concept_synonym_stage css, concept c, concept_stage cs
+      WHERE     css.synonym_concept_code = c.concept_code
+            AND css.synonym_vocabulary_id = c.vocabulary_id
+            AND cs.concept_code = c.concept_code
+            AND cs.vocabulary_id = c.vocabulary_id
+            AND REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' ') IS NOT NULL --fix for empty GPI names
+   GROUP BY c.concept_id, REGEXP_REPLACE (TRIM (synonym_name), '[[:space:]]+', ' ');
 COMMIT;
 
 -- 21. Fillig drug_strength

@@ -1574,6 +1574,7 @@ join rl on rl.concept_class_2=de.concept_class_id
 join complete_concept_stage an
   on rl.concept_class_1=an.concept_class_id
     and de.d_combo_code=an.d_combo_code -- the ds have to match completely
+    and de.i_combo_code=an.i_combo_code -- adding ingredient combinations, becauser of "empty" ds may create false relationships through only ds_combo
     and de.denominator_value=case an.denominator_value when 0 then de.denominator_value else an.denominator_value end 
     and de.dose_form_code=case an.dose_form_code when ' ' then de.dose_form_code else an.dose_form_code end 
     and de.brand_code=case an.brand_code when ' ' then de.brand_code else an.brand_code end
@@ -1603,6 +1604,7 @@ join rl on rl.concept_class_2=de.concept_class_id and rl.concept_class_1!='Marke
 join complete_concept_stage an
   on rl.concept_class_1=an.concept_class_id
     and de.d_combo_code=an.d_combo_code -- the ds have to match completely
+    and de.i_combo_code=an.i_combo_code -- adding ingredient combinations, becauser of "empty" ds may create false relationships through only ds_combo
     and de.denominator_value=an.denominator_value
     and de.dose_form_code=an.dose_form_code
     and de.brand_code=an.brand_code
@@ -1667,7 +1669,7 @@ join complete_concept_stage an
 left join (
   select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab from q_to_r qr join concept r on r.concept_id=qr.r_did
 ) on q_dcode=an.concept_code
-where de.concept_class_id in ('Branded Drug Comp', 'Clinical Drug') -- redundant but speeds things up
+where de.concept_class_id in ('Clinical Drug') -- redundant but speeds things up. 'Branded Drug Comp' taken out because no "Tradename of" relationship to Clinical Drug Comps defined in RxNorm
   and de.concept_code not in (select q_dcode from q_to_r) -- the descendant cannot be RxNorm, as all RxNorm have RxNorm ancestors)
 ;
 commit;

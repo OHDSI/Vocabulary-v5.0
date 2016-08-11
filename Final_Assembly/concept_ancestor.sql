@@ -74,6 +74,22 @@ BEGIN
          NULL;
    END;
 
+   BEGIN
+      EXECUTE IMMEDIATE 'drop table rxnorm_allowed_rel purge';
+   EXCEPTION
+      WHEN OTHERS
+      THEN
+         NULL;
+   END;
+
+   BEGIN
+      EXECUTE IMMEDIATE 'drop table rxnorm_wrong_rel purge';
+   EXCEPTION
+      WHEN OTHERS
+      THEN
+         NULL;
+   END;
+   
    -- Seed the table by loading all first-level (parent-child) relationships
 
    EXECUTE IMMEDIATE
@@ -357,66 +373,76 @@ BEGIN
 	--create table with neighbor relationships
 	EXECUTE IMMEDIATE q'[
 		create table rxnorm_allowed_rel nologging as (
-		select 'Brand Name' c_class_1, 'RxNorm ing of' relationship_id, 'Branded Drug Box' c_class_2 from dual union all
-		select 'Brand Name', 'RxNorm ing of', 'Branded Drug Comp' from dual union  all
-		select 'Brand Name', 'RxNorm ing of', 'Branded Drug Form' from dual union  all
-		select 'Brand Name', 'RxNorm ing of', 'Branded Drug' from dual union  all
-		select 'Brand Name', 'RxNorm ing of', 'Marketed Product' from dual union  all
-		select 'Brand Name', 'RxNorm ing of', 'Quant Branded Box' from dual union  all
-		select 'Brand Name', 'RxNorm ing of', 'Quant Branded Drug' from dual union  all
-		select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union  all
-		select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union  all
-		select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union  all
-		select 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' from dual union  all
-		select 'Branded Drug', 'Available as box', 'Branded Drug Box' from dual union  all
-		select 'Branded Drug', 'Has marketed form', 'Marketed Product' from dual union  all
-		select 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' from dual union  all
-		select 'Branded Pack', 'Contains', 'Branded Drug' from dual union  all
-		select 'Branded Pack', 'Contains', 'Clinical Drug' from dual union  all
-		select 'Branded Pack', 'Contains', 'Quant Branded Drug' from dual union  all
-		select 'Branded Pack', 'Contains', 'Quant Clinical Drug' from dual union all
-		select 'Branded Pack', 'Has marketed form', 'Marketed Product' from dual union  all
-		select 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' from dual union  all
-		select 'Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box' from dual union all
-		select 'Clinical Drug Box', 'Has tradename', 'Branded Drug Box' from dual union all
-		select 'Clinical Drug Comp', 'Constitutes', 'Clinical Drug' from dual union all
-		select 'Clinical Drug Comp', 'Has tradename', 'Branded Drug Comp' from dual union all
-		select 'Clinical Drug Form', 'Has tradename', 'Branded Drug Form' from dual union all
-		select 'Clinical Drug Form', 'RxNorm inverse is a', 'Clinical Drug' from dual union all
-		select 'Clinical Drug', 'Available as box', 'Clinical Drug Box' from dual union all
-		select 'Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
-		select 'Clinical Drug', 'Has quantified form', 'Quant Clinical Drug' from dual union all
-		select 'Clinical Drug', 'Has tradename', 'Branded Drug' from dual union all
-		select 'Clinical Pack', 'Contains', 'Branded Drug' from dual union all
-		select 'Clinical Pack', 'Contains', 'Clinical Drug' from dual union all
-		select 'Clinical Pack', 'Contains', 'Quant Branded Drug' from dual union all
-		select 'Clinical Pack', 'Contains', 'Quant Clinical Drug' from dual union all
-		select 'Clinical Pack', 'Has marketed form', 'Marketed Product' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Box' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Form' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Branded Drug' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Branded Pack' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Box' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Form' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Clinical Pack' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Marketed Product' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Quant Branded Box' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Quant Branded Drug' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Box' from dual union all
-		select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug' from dual union all
-		select 'Ingredient', 'Has brand name', 'Brand Name' from dual union all
-		select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' from dual union all
-		select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' from dual union all
-		select 'Supplier', 'Supplier of', 'Marketed Product' from dual union all
-		select 'Quant Branded Box', 'Has marketed form', 'Marketed Product' from dual union all
-		select 'Quant Branded Drug', 'Available as box', 'Quant Branded Box' from dual union all
-		select 'Quant Branded Drug', 'Has marketed form', 'Marketed Product' from dual union all
-		select 'Quant Clinical Box', 'Has marketed form', 'Marketed Product' from dual union all
-		select 'Quant Clinical Box', 'Has tradename', 'Quant Branded Box' from dual union all
-		select 'Quant Clinical Drug', 'Available as box', 'Quant Clinical Box' from dual union all
-		select 'Quant Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
-		select 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' from dual
+            select * From (
+                with t as (
+                select 'Brand Name' c_class_1, 'RxNorm ing of' relationship_id, 'Branded Drug Box' c_class_2 from dual union all
+                select 'Brand Name', 'RxNorm ing of', 'Branded Drug Comp' from dual union  all
+                select 'Brand Name', 'RxNorm ing of', 'Branded Drug Form' from dual union  all
+                select 'Brand Name', 'RxNorm ing of', 'Branded Drug' from dual union  all
+                select 'Brand Name', 'RxNorm ing of', 'Marketed Product' from dual union  all
+                select 'Brand Name', 'RxNorm ing of', 'Quant Branded Box' from dual union  all
+                select 'Brand Name', 'RxNorm ing of', 'Quant Branded Drug' from dual union  all
+                select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union  all
+                select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union  all
+                select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union  all
+                select 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' from dual union  all
+                select 'Branded Drug', 'Available as box', 'Branded Drug Box' from dual union  all
+                select 'Branded Drug', 'Has marketed form', 'Marketed Product' from dual union  all
+                select 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' from dual union  all
+                select 'Branded Pack', 'Contains', 'Branded Drug' from dual union  all
+                select 'Branded Pack', 'Contains', 'Clinical Drug' from dual union  all
+                select 'Branded Pack', 'Contains', 'Quant Branded Drug' from dual union  all
+                select 'Branded Pack', 'Contains', 'Quant Clinical Drug' from dual union all
+                select 'Branded Pack', 'Has marketed form', 'Marketed Product' from dual union  all
+                select 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' from dual union  all
+                select 'Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box' from dual union all
+                select 'Clinical Drug Box', 'Has tradename', 'Branded Drug Box' from dual union all
+                select 'Clinical Drug Comp', 'Constitutes', 'Clinical Drug' from dual union all
+                select 'Clinical Drug Comp', 'Has tradename', 'Branded Drug Comp' from dual union all
+                select 'Clinical Drug Form', 'Has tradename', 'Branded Drug Form' from dual union all
+                select 'Clinical Drug Form', 'RxNorm inverse is a', 'Clinical Drug' from dual union all
+                select 'Clinical Drug', 'Available as box', 'Clinical Drug Box' from dual union all
+                select 'Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Clinical Drug', 'Has quantified form', 'Quant Clinical Drug' from dual union all
+                select 'Clinical Drug', 'Has tradename', 'Branded Drug' from dual union all
+                select 'Clinical Pack', 'Contains', 'Branded Drug' from dual union all
+                select 'Clinical Pack', 'Contains', 'Clinical Drug' from dual union all
+                select 'Clinical Pack', 'Contains', 'Quant Branded Drug' from dual union all
+                select 'Clinical Pack', 'Contains', 'Quant Clinical Drug' from dual union all
+                select 'Clinical Pack', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Box' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Form' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Branded Drug' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Branded Pack' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Box' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Form' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Clinical Pack' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Marketed Product' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Quant Branded Box' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Quant Branded Drug' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Box' from dual union all
+                select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug' from dual union all
+                select 'Ingredient', 'Has brand name', 'Brand Name' from dual union all
+                select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' from dual union all
+                select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' from dual union all
+                select 'Supplier', 'Supplier of', 'Marketed Product' from dual union all
+                select 'Quant Branded Box', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Quant Branded Drug', 'Available as box', 'Quant Branded Box' from dual union all
+                select 'Quant Branded Drug', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Quant Clinical Box', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Quant Clinical Box', 'Has tradename', 'Quant Branded Box' from dual union all
+                select 'Quant Clinical Drug', 'Available as box', 'Quant Clinical Box' from dual union all
+                select 'Quant Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' from dual
+            ) 
+            select c_class_1, relationship_id, c_class_2, 1 as is_direct_mapping from t 
+            union all 
+			--add reverse
+            select c_class_2, r.reverse_relationship_id, c_class_1, 0
+            from t rra, relationship r
+            where rra.relationship_id=r.relationship_id
+        )
 	)]';
 
 	--create table with wrong relationships (non-neighbor relationships)
@@ -428,7 +454,8 @@ BEGIN
 		and r.invalid_reason is null
 		and c1.vocabulary_id='RxNorm'
 		and c2.vocabulary_id='RxNorm'
-		and r.relationship_id not in ('Maps to','Precise ing of','Concept replaces','Mapped from','Concept replaced by')
+		and r.relationship_id not in ('Maps to','Precise ing of','Has precise ing','Concept replaces','Mapped from','Concept replaced by')
+		and c1.concept_class_id not like '%Pack' 
 		and c2.concept_class_id not like '%Pack'
 		and (c1.concept_class_id,c2.concept_class_id) not in (select c_class_1, c_class_2 from rxnorm_allowed_rel)
 	]';
@@ -437,16 +464,27 @@ BEGIN
 	EXECUTE IMMEDIATE q'[
 	merge into concept_relationship r
 	using (
-		select ca1.ancestor_concept_id c_id1, ca2.ancestor_concept_id c_id2, rra.relationship_id From rxnorm_wrong_rel wr,
-		concept_ancestor ca1, concept_ancestor ca2, rxnorm_allowed_rel rra, concept c_dest 
-		where 
-		 ca1.descendant_concept_id=ca2.ancestor_concept_id
-		and ca1.ancestor_concept_id=wr.concept_id_1 and ca2.descendant_concept_id=wr.concept_id_2
-		and ca2.ancestor_concept_id<>ca2.descendant_concept_id
-		and ca2.ancestor_concept_id<>ca1.ancestor_concept_id
-		and c_dest.concept_id=ca2.ancestor_concept_id
-		and rra.c_class_1=wr.concept_class_id
-		and rra.c_class_2=c_dest.concept_class_id
+		select * from (
+            with t as (
+                select ca1.ancestor_concept_id c_id1, ca2.ancestor_concept_id c_id2, rra.relationship_id From rxnorm_wrong_rel wr,
+                concept_ancestor ca1, concept_ancestor ca2, rxnorm_allowed_rel rra, concept c_dest 
+                where 
+                 ca1.descendant_concept_id=ca2.ancestor_concept_id
+                and ca1.ancestor_concept_id=wr.concept_id_1 and ca2.descendant_concept_id=wr.concept_id_2
+                and ca2.ancestor_concept_id<>ca2.descendant_concept_id
+                and ca2.ancestor_concept_id<>ca1.ancestor_concept_id
+                and c_dest.concept_id=ca2.ancestor_concept_id
+                and rra.c_class_1=wr.concept_class_id
+                and rra.c_class_2=c_dest.concept_class_id
+                and rra.is_direct_mapping=1
+				and c_dest.vocabulary_id ='RxNorm'
+            )
+            select * from t
+            union all
+            select c_id2, c_id1, r.reverse_relationship_id 
+			from t, relationship r
+            where t.relationship_id=r.relationship_id
+		)
 	) i on (r.concept_id_1=i.c_id1 and r.concept_id_2=i.c_id2 and r.relationship_id=i.relationship_id)
 	when not matched then insert
 		(concept_id_1,

@@ -129,6 +129,7 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'dm+d' THEN 1
   WHEN c.vocabulary_id = 'RxNorm Extension' THEN 1
   WHEN c.vocabulary_id = 'Gemscript' THEN 1
+  WHEN c.vocabulary_id = 'Cost Type' THEN 1
   ELSE 0 -- in default we will not deprecate
 END = 1
 ;
@@ -845,6 +846,7 @@ INSERT INTO drug_strength (drug_concept_id,
           ds.numerator_unit_concept_id,
           ds.denominator_value,
           ds.denominator_unit_concept_id,
+		  regexp_replace(bs.concept_name, '.+Box of ([0-9]+).*', '\1') as box_size,
           ds.valid_start_date,
           ds.valid_end_date,
           ds.invalid_reason
@@ -852,6 +854,7 @@ INSERT INTO drug_strength (drug_concept_id,
           JOIN concept c1 ON c1.concept_code = ds.drug_concept_code AND c1.vocabulary_id = ds.vocabulary_id_1
           JOIN concept c2 ON c2.concept_code = ds.ingredient_concept_code AND c2.vocabulary_id = ds.vocabulary_id_2
           JOIN vocabulary v ON v.vocabulary_id = c1.vocabulary_id
+		  LEFT JOIN concept bs ON bs.concept_id = c1.concept_id and bs.vocabulary_id='RxNorm Extension' and bs.concept_name like '%Box of%'
     WHERE v.latest_update IS NOT NULL;
 COMMIT;	
 

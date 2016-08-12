@@ -1,32 +1,6 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-* 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
-**************************************************************************/
-
-CREATE OR REPLACE PACKAGE APIGrabber
-IS
-   PROCEDURE StartGrabber;
-END;
-/
-
-CREATE OR REPLACE package body APIGrabber is
+CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
     /*
         package gets data from the sources and parse into our tables
-		created by Vakhitov Timur
 
         working tables:
         concepts_ext_raw - raw XML values
@@ -124,31 +98,30 @@ CREATE OR REPLACE package body APIGrabber is
     gChunkErrTable constant varchar2(100):='chunks_errors';
     crlf varchar2(2) := utl_tcp.crlf;
     gCurrentSchema constant varchar2(50):= sys_context ('userenv', 'CURRENT_SCHEMA');
-    gMailTo constant varchar2(50):= 'e@mail.com'; --CHANGE THIS!
+    gMailTo constant varchar2(50):= 'timur.vakhitov@firstlinesoftware.com';
     
     procedure SendMailHTML (subject in varchar2, txt_email in varchar2) is
     /*
         procedure sends e-mail, including HTML-version
-		note: this example works fine with smtp.gmail.com and TLS
-		how to get SSL certificates and create a 'wallet' - please see in Oracle documentation
     */
-    mail_from varchar2(30):= 'bla-bla@bla.com'; --CHANGE THIS!
+    mail_from varchar2(30):= 'oraclemailnotify@gmail.com';
     c utl_smtp.connection;
     subj raw(2000) := utl_raw.cast_to_raw(convert('Subject: '||subject,'UTF8')||crlf);
     bod raw(32000) := utl_raw.cast_to_raw(convert(replace(txt_email,crlf,'<br>'),'UTF8')||crlf);
     begin
         utl_tcp.close_all_connections;
         c := utl_smtp.open_connection(
-            host => 'smtp.server.com', --CHANGE THIS!
+            host => 'smtp.gmail.com',
             port => 587,
-            wallet_path => 'file:/home/path/to/wallet', --CHANGE THIS!
-            wallet_password => 'wallet_password', --CHANGE THIS!
+            wallet_path => 'file:/home/vtimur/wallet',
+            wallet_password => 'wallet_password',
             secure_connection_before_smtp => FALSE);        
-        utl_smtp.ehlo(c,'smtp.server.com');  --CHANGE THIS!
+        utl_smtp.ehlo(c,'smtp.gmail.com');
         utl_smtp.starttls(c);
         utl_smtp.command(c, 'AUTH LOGIN');
-        utl_smtp.command(c, 'login_in_BASE64'); --CHANGE THIS!
-        utl_smtp.command(c, 'password_in_BASE64'); --CHANGE THIS!
+        utl_smtp.command(c, 'b3JhY2xlbWFpbG5vdGlmeUBnbWFpbC5jb20=');
+        utl_smtp.command(c, 'b3JhY2xlbWFpbG5vdGlmeTEyM29yYWNsZW1haWxub3RpZnk=');
+        --utl_smtp.auth(c,mail_from,'passwd', utl_smtp.all_schemes);     
         utl_smtp.mail(c,mail_from);
         utl_smtp.rcpt(c,gMailTo);
         utl_smtp.open_data(c);
@@ -163,6 +136,12 @@ CREATE OR REPLACE package body APIGrabber is
             utl_smtp.quit(c);          
             raise;
     end;
+    
+    function fhttpuritype(url in varchar2) return xmltype is
+    begin
+        UTL_HTTP.set_wallet ('file:/home/vtimur/wallet', 'wallet_password');
+        return HTTPURITYPE(url).getXML();
+    end;
     procedure RunTask (pTaskName in varchar2, pSQLsrc in varchar2, pSQLurl in varchar2) is
     /*
         procedure gets aggregated data using HTTPURITYPE and DBMS_PARALLEL_EXECUTE
@@ -172,6 +151,7 @@ CREATE OR REPLACE package body APIGrabber is
     z number; 
     
     begin
+    
         execute immediate 'truncate table '||gRawTable;
         execute immediate 'truncate table '||gConceptTable;
         execute immediate 'truncate table '||gLogTable;
@@ -181,14 +161,14 @@ CREATE OR REPLACE package body APIGrabber is
          
         DBMS_PARALLEL_EXECUTE.CREATE_TASK (pTaskName); --create the task
         DBMS_PARALLEL_EXECUTE.CREATE_CHUNKS_BY_ROWID(pTaskName, USER, upper(gConceptTable), true, 100); --chunk the gConceptTable by ROWID
-		UTL_HTTP.set_wallet ('file:/home/vtimur/wallet', 'wallet_password');
-		
+                
         l_SQL_stmt:='
-            INSERT /*+ APPEND */ INTO '||gRawTable||'
+            INSERT INTO '||gRawTable||'
             SELECT CONCEPT_CODE, '||pSQLurl||' FROM '||gConceptTable||' WHERE ROWID BETWEEN :start_id AND :end_id
             LOG ERRORS INTO '||gLogTable||' REJECT LIMIT UNLIMITED
         ';
         DBMS_PARALLEL_EXECUTE.RUN_TASK(pTaskName, l_SQL_stmt, DBMS_SQL.NATIVE, parallel_level => l_ParallelLevel); -- execute the DML in parallel
+        
         -- done with processing; drop the task
         if DBMS_PARALLEL_EXECUTE.TASK_STATUS(pTaskName)<>DBMS_PARALLEL_EXECUTE.FINISHED then
             execute immediate 'INSERT /*+ APPEND */ INTO '||gChunkErrTable||' SELECT * FROM SYS.user_parallel_execute_chunks t WHERE t.TASK_NAME=:1' using pTaskName;
@@ -236,7 +216,7 @@ CREATE OR REPLACE package body APIGrabber is
     
     procedure GetAllNDC is
     /*
-        gets all NDC statuses from http://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=xxx
+        gets all NDC statuses from https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=xxx
     */
     l_mail_subj varchar2(100);
     l_mail_body varchar2(1000);
@@ -256,7 +236,7 @@ CREATE OR REPLACE package body APIGrabber is
                             union
                             select sm.ndc_code from devv5.spl2ndc_mappings sm
                             ]',
-            pSQLurl     => q'[httpuritype('http://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc='||concept_code).getXML()]'
+            pSQLurl     => q'[APIGrabber.fhttpuritype('https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc='||concept_code)]'
         );
         commit;
         
@@ -297,7 +277,7 @@ CREATE OR REPLACE package body APIGrabber is
     
     procedure GetRxNorm2NDC_Mappings is
     /*
-        gets all RxNorm to NDC mappings from http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1
+        gets all RxNorm to NDC mappings from https://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1
     */
     l_mail_subj varchar2(100);
     l_mail_body varchar2(1000);
@@ -312,7 +292,7 @@ CREATE OR REPLACE package body APIGrabber is
         RunTask (
             pTaskName => l_taskname,
             pSQLsrc     => q'[select c.concept_code from devv5.concept c where c.vocabulary_id='RxNorm']',
-            pSQLurl     => q'[httpuritype('http://rxnav.nlm.nih.gov/REST/rxcui/'||concept_code||'/allndcs?history=1').getXML()]'
+            pSQLurl     => q'[APIGrabber.fhttpuritype('https://rxnav.nlm.nih.gov/REST/rxcui/'||concept_code||'/allndcs?history=1')]'
         );
         commit;
         
@@ -352,7 +332,7 @@ CREATE OR REPLACE package body APIGrabber is
     
     procedure GetRxNorm2SPL_Mappings is
     /*
-        gets all RxNorm to NDC mappings from http://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID
+        gets all RxNorm to NDC mappings from https://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID
     */
     l_mail_subj varchar2(100);
     l_mail_body varchar2(1000);
@@ -367,7 +347,7 @@ CREATE OR REPLACE package body APIGrabber is
         RunTask (
             pTaskName => l_taskname,
             pSQLsrc     => q'[select c.concept_code from devv5.concept c where c.vocabulary_id='RxNorm']',
-            pSQLurl     => q'[httpuritype('http://rxnav.nlm.nih.gov/REST/rxcui/'||concept_code||'/property?propName=SPL_SET_ID').getXML()]'
+            pSQLurl     => q'[APIGrabber.fhttpuritype('https://rxnav.nlm.nih.gov/REST/rxcui/'||concept_code||'/property?propName=SPL_SET_ID')]'
         );
         commit;
         
@@ -406,11 +386,11 @@ CREATE OR REPLACE package body APIGrabber is
     iCurrDay number;
     begin
         iCurrDay:= extract (DAY from sysdate);
-        if iCurrDay=1 then
+        if iCurrDay=12 then
             GetRxNorm2NDC_Mappings; --NDC mappings must be before GetAllNDC call
-        elsif iCurrDay=2 then
+        elsif iCurrDay=14 then
             GetRxNorm2SPL_Mappings;
-        elsif iCurrDay=3 then
+        elsif iCurrDay=15 then
             GetAllNDC;            
         end if;
         commit;

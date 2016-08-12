@@ -4,7 +4,7 @@ Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
 - RxNorm must be loaded first
 - Working directory NDC.
-- Create package ApiGrabber using apigrabber.sql
+- Create package ApiGrabber using \working\packages\APIgrabber
 
 1. Run create_source_tables.sql
 2. Download NDC code distrbution file

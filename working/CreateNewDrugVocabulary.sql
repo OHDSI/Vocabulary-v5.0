@@ -601,6 +601,30 @@ where r.invalid_reason is null
 ;
 commit;
 
+-- Create table with Suppliers for q
+drop table q_mf purge;
+create table q_mf nologging as 
+select css.concept_code as concept_code_1, 
+  case when css.mf_code=' ' then 0 -- No Supplier
+    when m.concept_id_2 is null then 1 -- Supplier, but not mapped
+    else m.concept_id_2 
+  end as concept_id_2, 
+  nvl(m.precedence, 1) as precedence
+from complete_concept_stage css
+left join relationship_to_concept m on m.concept_code_1=css.mf_code
+;
+commit;
+
+-- Create table with Dose Forms for r
+drop table r_mf purge;
+create table r_mf nologging as 
+select r.concept_id_1, r.concept_id_2 from concept_relationship r
+join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+join concept f on f.concept_id=r.concept_id_2 and f.concept_class_id ='Supplier' 
+where r.invalid_reason is null and r.relationship_id='Has supplier'
+;
+commit;
+
 -- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size and supplier are not yet compared
 drop table q_to_r_anydose purge;
 create table q_to_r_anydose nologging as
@@ -622,13 +646,24 @@ join (
   select distinct concept_code as drug_concept_code, denominator_value as q_value from complete_concept_stage
 ) q_quant on q_quant.drug_concept_code=m.q_dcode
 left join ( -- RxNorm might not have drug_strength for all concept_class_id
-  select distinct drug_concept_id, nvl(denominator_value, 0) as q_value from drug_strength dss
+  select distinct drug_concept_id, nvl(denominator_value, 0) as q_value from drug_strength
 ) r_quant on r_quant.drug_concept_id=m.r_did
+-- get the Supplier for each q and r
+join q_mf on q_mf.concept_code_1=m.q_dcode 
+left join r_mf on r_mf.concept_id_1=m.r_did -- RxNorm does not have Dose Forms for non-formed concept classes
+--get Box_size
+join (
+  select distinct concept_code as drug_concept_code, box_size as q_value from complete_concept_stage
+) q_bs on q_bs.drug_concept_code=m.q_dcode
+left join ( -- RxNorm might not have drug_strength for all concept_class_id
+  select distinct drug_concept_id, nvl(box_size, 0) as q_value from drug_strength
+) r_bs on r_bs.drug_concept_id=m.r_did
 -- check for matching 
-where 1=1 
-and q_df.concept_id_2=nvl(r_df.concept_id_2, 0) -- if no Dose Form match 0s
+where q_df.concept_id_2=nvl(r_df.concept_id_2, 0) -- if no Dose Form match 0s
 and q_bn.concept_id_2=nvl(r_bn.concept_id_2, 0) -- if no Brand Name match 0s
 and q_quant.q_value=nvl(r_quant.q_value, 0) -- if no Quantity factors  match 0s
+and q_mf.concept_id_2=nvl(r_mf.concept_id_2, 0) -- if no Dose Form match 0s
+and q_bs.q_value=nvl(r_bs.q_value, 0) -- if no box sizes match 0s
 ;
 commit;
 
@@ -768,7 +803,7 @@ commit;
 
 -- Create equivalence between existing_concept_stage and future RxNorm Extension (complete_concept_stage)
 drop table existing_to_complete purge;
-create table existing_to_complete as
+create table existing_to_complete nologging as
 select e.concept_code as e_code, c.concept_code as c_code
 from existing_concept_stage e
 join complete_concept_stage c using(denominator_value, i_combo_code, d_combo_code, dose_form_code, brand_code, box_size, mf_code)
@@ -825,7 +860,7 @@ commit;
 
 -- Dose Forms
 drop table x_df purge;
-create table x_df as
+create table nologging x_df as
 with x as (
   select irs.concept_code_2 as q_code, df.concept_name as q_name, r_drug.concept_code as r_code, r_drug.vocabulary_id as r_vocab
   from internal_relationship_stage irs 
@@ -871,7 +906,7 @@ commit;
 
 -- Brand Names
 drop table x_bn purge;
-create table x_bn as
+create table x_bn nologging as
 with x as (
   select irs.concept_code_2 as q_code, b.concept_name as q_name, r_drug.concept_code as r_code, r_drug.vocabulary_id as r_vocab
   from internal_relationship_stage irs 
@@ -916,7 +951,7 @@ commit;
 
 -- Suppliers
 drop table x_mf purge;
-create table x_mf as
+create table x_mf nologging as
 with x as (
   select irs.concept_code_2 as q_code, mf.concept_name as q_name, r_drug.concept_code as r_code, r_drug.vocabulary_id as r_vocab
   from internal_relationship_stage irs 
@@ -970,7 +1005,7 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'ds', estimate_
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'complete_concept_stage', estimate_percent  => null, cascade  => true);
 
 drop table complete_ds purge;
-create table complete_ds as
+create table complete_ds nologging as
 with q_ds as (
   select ccs.concept_code as drug_concept_code, 
     uds.ingredient_concept_code,
@@ -1012,7 +1047,7 @@ order by 1
 
 -- Create full RxNorm universe from complete_concept_stage
 drop table complete_attribute purge;
-create table complete_attribute as
+create table complete_attribute nologging as
 select distinct
   c.concept_code,
   c.denominator_value as quant,
@@ -1494,7 +1529,7 @@ commit;
 
 -- write RxNorm-like relationships between concepts of all classes except Drug Forms and Clinical Drug Component based on matching components
 drop table rl purge;
-create table rl (
+create table rl nologging (
 concept_class_1 varchar2(20),
 relationship_id varchar2(20),
 concept_class_2 varchar2(20)
@@ -2327,7 +2362,7 @@ commit;
 
 -- Build pack_content
 drop table pack_content_stage;
-create table pack_content_stage as
+create table pack_content_stage nologging as
 select distinct 
   pack_concept_code,
   'RxNorm Extension' as vocabulary_id_1,
@@ -2348,7 +2383,7 @@ commit;
 -- Replace concept_codes XXX123 with OMOP123
 -- Create replacement map
 drop table xxx_replace purge;
-create table xxx_replace (
+create table xxx_replace nologging (
   xxx_code varchar2(50),
   omop_code varchar2(50)
 )
@@ -2378,7 +2413,7 @@ commit;
 
 -- fast way to update codes require temporary tables. 
 -- replace concept_stage
-create table cs_rowid_update as
+create table cs_rowid_update nologging as
 select cs.rowid as irowid, xr.omop_code as concept_code from xxx_replace xr JOIN concept_stage cs ON cs.concept_code=xr.xxx_code;
 
 merge into concept_stage cs
@@ -2389,7 +2424,7 @@ when matched then update
 drop table cs_rowid_update purge;
 
 -- replace concept_relationship_stage
-create table crs_rowid_update as
+create table crs_rowid_update nologging as
 select distinct crs.rowid as irowid, nvl(xr1.omop_code, crs.concept_code_1) as concept_code_1, nvl(xr2.omop_code, crs.concept_code_2) as concept_code_2 from concept_relationship_stage crs
 left join xxx_replace xr1 ON xr1.xxx_code=crs.concept_code_1 
 left join xxx_replace xr2 ON xr2.xxx_code=crs.concept_code_2
@@ -2403,7 +2438,7 @@ when matched then update
 drop table crs_rowid_update purge;
 
 -- replace drugs in drug_strength
-create table dss_rowid_update as
+create table dss_rowid_update nologging as
 select dss.rowid as irowid, xr.omop_code as drug_concept_code from xxx_replace xr JOIN drug_strength_stage dss ON dss.drug_concept_code=xr.xxx_code;
 
 merge into drug_strength_stage dss
@@ -2414,7 +2449,7 @@ when matched then update
 drop table dss_rowid_update purge;
 
 -- replace ingredients in drug_strength
-create table dss_rowid_update as
+create table dss_rowid_update nologging as
 select dss.rowid as irowid, xr.omop_code as ingredient_concept_code from xxx_replace xr JOIN drug_strength_stage dss ON dss.ingredient_concept_code=xr.xxx_code;
 
 merge into drug_strength_stage dss
@@ -2425,7 +2460,7 @@ when matched then update
 drop table dss_rowid_update purge;
 
 -- replace packs in pack_content
-create table pcs_rowid_update as
+create table pcs_rowid_update nologging as
 select pcs.rowid as irowid, xr.omop_code as pack_concept_code from xxx_replace xr join pack_content_stage pcs on pcs.pack_concept_code=xr.xxx_code;
 
 merge into pack_content_stage pcs
@@ -2436,7 +2471,7 @@ when matched then update
 drop table pcs_rowid_update purge;
 
 -- replace drugs in pack_content
-create table pcs_rowid_update as
+create table pcs_rowid_update nologging as
 select pcs.rowid as irowid, xr.omop_code as drug_concept_code from xxx_replace xr join pack_content_stage pcs on pcs.drug_concept_code=xr.xxx_code;
 
 merge into pack_content_stage pcs

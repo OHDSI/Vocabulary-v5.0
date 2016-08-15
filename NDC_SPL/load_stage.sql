@@ -74,7 +74,19 @@ BEGIN
 END;
 /
 
---3 Load upgraded SPL concepts
+
+--3 Fix incorrect dates
+UPDATE SPL_EXT
+   SET valid_start_date =
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'SPL')
+ WHERE valid_start_date > (SELECT latest_update
+                             FROM vocabulary
+                            WHERE vocabulary_id = 'SPL');
+COMMIT;  
+
+--4 Load upgraded SPL concepts
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -123,7 +135,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
 	where spl_name is not null and displayname not in ('IDENTIFICATION OF CBER-REGULATED GENERIC DRUG FACILITY','INDEXING - PHARMACOLOGIC CLASS','INDEXING - SUBSTANCE', 'WHOLESALE DRUG DISTRIBUTORS AND THIRD-PARTY LOGISTICS FACILITY REPORT');
 COMMIT;
 
---4 Load main SPL concepts into concept_stage
+--5 Load main SPL concepts into concept_stage
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -166,7 +178,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
 	);	
 COMMIT;	
 
---5 Load other SPL into concept_stage (from 'product')
+--6 Load other SPL into concept_stage (from 'product')
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
                           concept_name,
                           domain_id,
@@ -267,7 +279,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
 
 COMMIT;
 
---6 Add upgrade SPL relationships
+--7 Add upgrade SPL relationships
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -295,31 +307,31 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---7 Working with replacement mappings
+--8 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---8 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--9 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;
 
---9 Add mapping from deprecated to fresh concepts
+--10 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;
 
---10 Delete ambiguous 'Maps to' mappings
+--11 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---11 Load NDC into temporary table from 'product'
+--12 Load NDC into temporary table from 'product'
 CREATE TABLE MAIN_NDC NOLOGGING AS SELECT * FROM CONCEPT_STAGE WHERE 1=0;
 
 INSERT /*+ APPEND */ INTO MAIN_NDC 			   
@@ -412,7 +424,7 @@ INSERT /*+ APPEND */ INTO MAIN_NDC
 
 COMMIT;
 
---12 Add NDC to MAIN_NDC from rxnconso
+--13 Add NDC to MAIN_NDC from rxnconso
 INSERT /*+ APPEND */ INTO MAIN_NDC (concept_id,
                            concept_name,
                            domain_id,
@@ -440,7 +452,7 @@ INSERT /*+ APPEND */ INTO MAIN_NDC (concept_id,
     WHERE s.sab = 'RXNORM' AND s.atn = 'NDC';
 COMMIT;
 
---13 Add additional NDC with fresh dates and active mapping to RxCUI (source: http://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=xxx) [part 1 of 3]
+--14 Add additional NDC with fresh dates and active mapping to RxCUI (source: http://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=xxx) [part 1 of 3]
 INSERT /*+ APPEND */ INTO concept_stage (
                            concept_name,
                            domain_id,
@@ -486,7 +498,7 @@ from (
 ) where concept_name is not null;
 COMMIT;
 
---14 Create temporary table for NDC who have't activerxcui (same source). Take dates from coalesce(NDC API, big XML (SPL), MAIN_NDC, concept, default dates)
+--15 Create temporary table for NDC who have't activerxcui (same source). Take dates from coalesce(NDC API, big XML (SPL), MAIN_NDC, concept, default dates)
 CREATE TABLE ADDITIONALNDCINFO nologging AS
     WITH FUNCTION CheckNDCDate (pDate IN VARCHAR2, pDateDefault IN DATE)
             RETURN DATE
@@ -514,7 +526,7 @@ CREATE TABLE ADDITIONALNDCINFO nologging AS
     lateral (select max(CheckNDCDate(regexp_substr(n.high_value,'[^;]+', 1, level),coalesce(n.c_end_date1, n.c_end_date2, to_date('20991231','YYYYMMDD')))) ndc_valid_end_date from dual connect by regexp_substr(n.high_value, '[^;]+', 1, level) is not null) h
  group by concept_code, startdate, enddate, c_name1,c_name2;
 
---15 Add additional NDC with fresh dates from previous temporary table (ADDITIONALNDCINFO) [part 2 of 3]
+--16 Add additional NDC with fresh dates from previous temporary table (ADDITIONALNDCINFO) [part 2 of 3]
  INSERT /*+ APPEND */ INTO concept_stage (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -540,7 +552,7 @@ CREATE TABLE ADDITIONALNDCINFO nologging AS
      FROM ADDITIONALNDCINFO WHERE CONCEPT_NAME IS NOT NULL;
 COMMIT;	 
 
---16 Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
+--17 Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
 CREATE TABLE RXNORM2NDC_MAPPINGS_EXT NOLOGGING AS    
 select concept_code, ndc_code, startDate, endDate, invalid_reason, coalesce(c_name1,c_name2,last_rxnorm_name) concept_name from (
     select distinct mp.concept_code, mn.concept_name c_name1,c.concept_name c_name2,
@@ -556,7 +568,7 @@ select concept_code, ndc_code, startDate, endDate, invalid_reason, coalesce(c_na
     left join concept rxnorm on rxnorm.concept_code=mp.concept_code and rxnorm.vocabulary_id='RxNorm' --take name from RxNorm
 );
 
---17 Add additional NDC with fresh dates from previous temporary table (RXNORM2NDC_MAPPINGS_EXT) [part 3 of 3]
+--18 Add additional NDC with fresh dates from previous temporary table (RXNORM2NDC_MAPPINGS_EXT) [part 3 of 3]
 INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -583,7 +595,7 @@ INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
                      AND cs_int.vocabulary_id = 'NDC');
 COMMIT;	 
 
---18 Add all other NDC from 'product'
+--19 Add all other NDC from 'product'
 INSERT /*+ APPEND */ INTO  CONCEPT_STAGE
    SELECT *
      FROM MAIN_NDC m
@@ -594,7 +606,7 @@ INSERT /*+ APPEND */ INTO  CONCEPT_STAGE
                      AND cs_int.vocabulary_id = 'NDC');
 COMMIT;			 
 
---19 Add mapping from SPL to RxNorm through RxNorm API (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID)
+--20 Add mapping from SPL to RxNorm through RxNorm API (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID)
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -616,7 +628,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 	AND NOT EXISTS (SELECT 1 FROM concept c WHERE c.concept_code=rm.concept_code AND c.vocabulary_id='RxNorm' AND c.concept_class_id='Ingredient');
 COMMIT;
 
---20 Add mapping from SPL to RxNorm through rxnsat
+--21 Add mapping from SPL to RxNorm through rxnsat
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -650,7 +662,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
 		  );
 COMMIT;
 
---21 Add mapping from NDC to RxNorm from rxnconso
+--22 Add mapping from NDC to RxNorm from rxnconso
 INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -722,7 +734,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                   JOIN vocabulary v ON v.vocabulary_id = 'NDC');
 COMMIT;		
 			
---22 Add additional mapping for NDC codes 
+--23 Add additional mapping for NDC codes 
 --The 9-digit NDC codes that have no mapping can be mapped to the same concept of the 11-digit NDC codes, if all 11-digit NDC codes agree on the same destination Concept
 
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
@@ -793,7 +805,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE cnt = 1;
 COMMIT;
 
---23 MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS_EXT). Add/merge only fresh mappings
+--24 MERGE concepts from fresh sources (RXNORM2NDC_MAPPINGS_EXT). Add/merge only fresh mappings
 MERGE INTO concept_relationship_stage crs
      USING (
         select distinct ndc_code, 
@@ -835,13 +847,13 @@ THEN
 COMMIT;  
 
 
---24 Add manual source
+--25 Add manual source
 BEGIN
    DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
 END;
 COMMIT;
 
---25 delete duplicate mappings to packs
+--26 delete duplicate mappings to packs
 delete from concept_relationship_stage r where
 r.relationship_id='Maps to' and r.invalid_reason is null
 and r.vocabulary_id_1='NDC'
@@ -871,31 +883,31 @@ and concept_code_2 not in (
 );
 COMMIT;
 
---26 Working with replacement mappings
+--27 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---27 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--28 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;		
 
---28 Add mapping from deprecated to fresh concepts
+--29 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;
 
---29 Delete ambiguous 'Maps to' mappings
+--30 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---30 Clean up
+--31 Clean up
 DROP FUNCTION GetAggrDose;
 DROP FUNCTION GetDistinctDose;
 DROP TABLE MAIN_NDC PURGE;

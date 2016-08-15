@@ -20,8 +20,8 @@
 --1 Update latest_update field to new date
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'CPT4',
-                                          pVocabularyDate        => TO_DATE ('20150511', 'yyyymmdd'),
-                                          pVocabularyVersion     => '2015AA',
+                                          pVocabularyDate        => TO_DATE ('20160509', 'yyyymmdd'),
+                                          pVocabularyVersion     => '2016AA',
                                           pVocabularyDevSchema   => 'DEV_CPT4');
 END;
 COMMIT;

@@ -20,12 +20,12 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'NDC',
-                                          pVocabularyDate        => TO_DATE ('20160729', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'NDC 20160729',
+                                          pVocabularyDate        => TO_DATE ('20160815', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'NDC 20160815',
                                           pVocabularyDevSchema   => 'DEV_NDC');
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'SPL',
-                                          pVocabularyDate        => TO_DATE ('20160729', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'NDC 20160729',
+                                          pVocabularyDate        => TO_DATE ('20160815', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'NDC 20160815',
                                           pVocabularyDevSchema   => 'DEV_NDC',
                                           pAppendVocabulary      => TRUE);										  
 END;

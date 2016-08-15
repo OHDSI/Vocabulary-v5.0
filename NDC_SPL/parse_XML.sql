@@ -83,7 +83,8 @@ INSERT /*+ APPEND */ INTO SPL_EXT
                 t.xmlfield.extract('/document/component/structuredBody/component/section/subject/manufacturedProduct/*/formCode/@displayName','xmlns="urn:hl7-org:v3"').getClobVal() as formcode_clob,
                 t.xmlfield.extract('/document/setId/@root','xmlns="urn:hl7-org:v3"').getStringVal() as concept_code,
                 --t.xmlfield.extract('/document/effectiveTime/@value','xmlns="urn:hl7-org:v3"').getStringVal() as valid_start_date, -- for unknown reason oracle may return incorrect result
-				extractvalue(t.xmlfield,'/document/effectiveTime[1]/text()','xmlns="urn:hl7-org:v3"') as valid_start_date,
+				--extractvalue(t.xmlfield,'/document/effectiveTime[1]/text()','xmlns="urn:hl7-org:v3"') as valid_start_date,
+				extractvalue(t.xmlfield,'/document/effectiveTime[1]/@value','xmlns="urn:hl7-org:v3"') as valid_start_date,
                 t.xmlfield.extract('/document/code/@displayName','xmlns="urn:hl7-org:v3"').getStringVal() as displayname,
                 --t.xmlfield.extract('/document/relatedDocument/relatedDocument/setId/@root','xmlns="urn:hl7-org:v3"').getStringVal() as replaced_spl,
                 xmlcast(xmlquery(( 'declare default element namespace "urn:hl7-org:v3"; (::) string-join(//child::text(),";")' ) passing 

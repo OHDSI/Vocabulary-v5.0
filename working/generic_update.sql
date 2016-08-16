@@ -306,27 +306,26 @@ UPDATE concept_relationship d
                         )
 						AND e1.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
 						AND e2.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
-      )
-      -- And the record is currently fresh and not already deprecated
-      AND d.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') 
-       -- And it was started before release date
-      AND d.valid_start_date <
-                (SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
-					-1 FROM vocabulary v, concept c
-					WHERE     v.vocabulary_id = c.vocabulary_id
-                        AND c.concept_id IN (d.concept_id_1, d.concept_id_2) --take both concept ids to get proper latest_update
-				)
-      -- And it is missing from the new concept_relationship_stage
-      AND NOT EXISTS (
-				  SELECT 1
-					 FROM concept_relationship_stage r
-					 JOIN concept r1 ON r1.concept_code = r.concept_code_1 AND r1.vocabulary_id = r.vocabulary_id_1
-					 JOIN concept r2 ON r2.concept_code = r.concept_code_2 AND r2.vocabulary_id = r.vocabulary_id_2
-					WHERE     d.concept_id_1 = r1.concept_id
-						  AND d.concept_id_2 = r2.concept_id
-						  AND d.relationship_id = r.relationship_id
-				) 
-       -- Deal with replacement relationships below, since they can only have one per deprecated concept
+						-- And the record is currently fresh and not already deprecated
+						AND d1.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD')
+						-- And it was started before release date
+						AND d1.valid_start_date <
+                                (SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+                                    -1 FROM vocabulary v, concept c
+                                    WHERE     v.vocabulary_id = c.vocabulary_id
+                                        AND c.concept_id IN (d1.concept_id_1, d1.concept_id_2) --take both concept ids to get proper latest_update
+                                                )
+                       -- And it is missing from the new concept_relationship_stage
+                       AND NOT EXISTS (
+                                  SELECT 1
+                                     FROM concept_relationship_stage r
+                                  WHERE r.concept_code_1=e1.concept_code
+                                    AND r.vocabulary_id_1=e1.vocabulary_id
+                                    AND r.concept_code_2=e2.concept_code
+                                    AND r.vocabulary_id_2=e2.vocabulary_id
+                                    AND r.relationship_id = d1.relationship_id
+                                )                                 											
+                      )
 ;
 COMMIT;
 
@@ -799,7 +798,7 @@ COMMIT;
 -- 19. Remove all existing synonyms for concepts that are in concept_stage
 -- Synonyms are built from scratch each time, no life cycle
 
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', cascade  => true);
 
 DELETE FROM concept_synonym csyn
       WHERE csyn.concept_id IN (SELECT c.concept_id
@@ -918,6 +917,11 @@ BEGIN
    END IF;
 END;
 COMMIT;
+
+-- 26. Final GATHER TABLE STATS for base tables
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept', cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship', cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym', cascade  => true);
 
 
 -- QA (should return NULL)

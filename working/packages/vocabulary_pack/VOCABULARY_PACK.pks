@@ -46,6 +46,16 @@ IS
    */
    PROCEDURE DeleteAmbiguousMAPSTO;
 
+   /*
+    Start the release:
+    1. filling concept_ancestor
+    2. v5 to v4 conversion
+    3. creating copy of PRODV5
+    5. creating new PRODV4
+    6. creating new PRODV5
+   */
+   PROCEDURE StartRelease;
+
 
    /*****testing*****/
    FUNCTION UpdateVocabulary (pVocabularyName IN VARCHAR2)

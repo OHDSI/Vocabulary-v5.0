@@ -161,7 +161,7 @@ IS
 
          EXECUTE IMMEDIATE 'TRUNCATE TABLE ' || cManualTableName;
 
-         EXECUTE IMMEDIATE 'INSERT /*+ APPEND */ INTO ' || cManualTableName || ' SELECT * FROM ' || cSchemaName || '.' || cManualTableName;
+         EXECUTE IMMEDIATE 'INSERT INTO ' || cManualTableName || ' SELECT * FROM ' || cSchemaName || '.' || cManualTableName;
       END IF;
 
       EXECUTE IMMEDIATE '
@@ -755,7 +755,7 @@ IS
          EXCEPTION
             WHEN OTHERS
             THEN
-               cRet := '<b>' || cVocab.vocabulary_id || '</b> returns error:' || crlf || SQLERRM;
+               cRet := '<b>' || cVocab.vocabulary_id || '</b> returns error:' || crlf || SQLERRM || crlf || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE;
 
                IF cMailText IS NULL
                THEN
@@ -770,6 +770,25 @@ IS
       THEN
          SendMailHTML (email, 'Vocabulary checks notification', cMailText);
       END IF;
+   END;
+
+   PROCEDURE StartRelease
+   IS
+      crlf    VARCHAR2 (2) := UTL_TCP.crlf;
+      email   var_array := var_array ('timur.vakhitov@firstlinesoftware.com','reich@ohdsi.org','reich@omop.org');
+      cRet    VARCHAR2 (5000);
+   BEGIN
+      pConceptAncestor;
+      DEVV4.v5_to_v4;
+      CREATE_PROD_BACKUP@link_prodv5;
+      CREATE_PRODV4@link_prodv5;
+      CREATE_PRODV5@link_prodv5;
+      SendMailHTML (email, 'Release status [OK]', 'Release completed');
+   EXCEPTION
+      WHEN OTHERS
+      THEN
+         cRet := SUBSTR ('Release completed with errors:' || crlf || SQLERRM || crlf || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE, 1, 5000);
+         SendMailHTML (email, 'Release status [ERROR]', cRet);
    END;
 END VOCABULARY_PACK;
 /

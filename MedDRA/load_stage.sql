@@ -429,10 +429,12 @@ END;
 COMMIT;
 
 --11 Create a relationship file for the Medical Coder
+/*
 select c.concept_code, c.concept_name, c.domain_id, c.concept_class_id, c1.concept_code concept_code_snomed 
 from concept_stage c
 left join concept_relationship_stage r on c.concept_code=r.concept_code_1 and r.relationship_id = 'MedDRA - SNOMED eq'
 left join concept c1 on c1.concept_code=r.concept_code_2 and c1.vocabulary_id='SNOMED';
+*/
 
 --12 Append result to concept_relationship_stage table
 BEGIN

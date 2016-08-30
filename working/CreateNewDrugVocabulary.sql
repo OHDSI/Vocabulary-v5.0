@@ -685,10 +685,10 @@ left join ( -- RxNorm might not have drug_strength for all concept_class_id
 ) r_bs on r_bs.drug_concept_id=m.r_did
 -- check for matching 
 where q_df.concept_id_2=nvl(r_df.concept_id_2, 0) -- if no Dose Form match 0s
-and q_bn.concept_id_2=nvl(r_bn.concept_id_2, 0) -- if no Brand Name match 0s
-and q_quant.q_value=nvl(r_quant.q_value, 0) -- if no Quantity factors  match 0s
-and q_mf.concept_id_2=nvl(r_mf.concept_id_2, 0) -- if no Dose Form match 0s
-and q_bs.q_value=nvl(r_bs.q_value, 0) -- if no box sizes match 0s
+-- and q_bn.concept_id_2=nvl(r_bn.concept_id_2, 0) -- if no Brand Name match 0s
+-- and q_quant.q_value=nvl(r_quant.q_value, 0) -- if no Quantity factors  match 0s
+-- and q_mf.concept_id_2=nvl(r_mf.concept_id_2, 0) -- if no Dose Form match 0s
+-- and q_bs.q_value=nvl(r_bs.q_value, 0) -- if no box sizes match 0s
 ;
 commit;
 
@@ -759,6 +759,7 @@ from (
   left join q on q.drug_concept_code=m.q_dcode and q.ingredient_concept_code=m.q_icode
   -- drug strength for each r ingredient 
   left join r on r.drug_concept_id=m.r_did and r.ingredient_concept_id=m.r_iid
+where q_dcode='XXX46219'
 )
 ;
 commit;
@@ -2495,7 +2496,11 @@ drop sequence omop_seq ;  --this is restricted!!! several times we rebuild previ
 declare
  ex number;
 begin
-  select max(cast(substr(concept_code, 5) as integer))+1 into ex from drug_concept_stage where concept_code like 'OMOP%' and concept_code not like '% %'; -- Last valid value of the OMOP123-type codes
+select max(iex)+1 into ex from (  
+    select cast(substr(concept_code, 5) as integer) as iex from drug_concept_stage where concept_code like 'OMOP%' and concept_code not like '% %' -- Last valid value of the OMOP123-type codes
+  union
+    select cast(substr(concept_code, 5) as integer) as iex from concept where concept_code like 'OMOP%' and concept_code not like '% %'
+);
   begin
     execute immediate 'create sequence omop_seq increment by 1 start with ' || ex || ' nocycle cache 20 noorder';
     exception

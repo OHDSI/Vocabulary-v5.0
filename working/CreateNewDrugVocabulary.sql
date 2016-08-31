@@ -759,7 +759,6 @@ from (
   left join q on q.drug_concept_code=m.q_dcode and q.ingredient_concept_code=m.q_icode
   -- drug strength for each r ingredient 
   left join r on r.drug_concept_id=m.r_did and r.ingredient_concept_id=m.r_iid
-where q_dcode='XXX46219'
 )
 ;
 commit;
@@ -1250,6 +1249,7 @@ with pre_u as (
   left join concept_to_rxnorm_unit de on de.concept_id=eds.denominator_unit_concept_id
   left join concept x on x.concept_code=eds.ingredient_concept_code and x.vocabulary_id=eds.ingredient_vocab -- join Rx ingredient
   left join x_ing i on i.r_code=eds.ingredient_concept_code and eds.ingredient_vocab=' ' -- join source ingredient
+where eds.drug_concept_code='XXX100082'
 union
 -- Add Drug Forms that are not in extension_ds
   select ccs.concept_code as concept_code, 
@@ -1267,12 +1267,12 @@ union
   left join concept_to_rxnorm_unit de on de.concept_id=denom.denominator_unit_concept_id
   where eds.drug_concept_code is null -- no record in extension_ds
 ),
--- Add a 0 before a leading dot
+-- Add a 0 before a leading dot and round
 u as (
   select
     concept_code, denominator_unit,
     ing_name|| -- Take Rx ingredient name, if possible, or name from source
-      case when v is null then null else ' '||regexp_replace(v, '^\.', '0.') ||' '||u end 
+      case when v is null then null else ' '||regexp_replace(round(v, 3-floor(log(10, v))-1), '^\.', '0.') ||' '||u end 
     as comp_name
     from pre_u
 )
@@ -1710,7 +1710,7 @@ where de.concept_class_id not in ('Clinical Drug Comp', 'Clinical Drug Form', 'C
 commit;
 
 -- Marketed Products: Everything has to agree except Supplier
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
 with ex as ( -- create a complete_concept_stage in extension notation
   select * from extension_attribute join extension_combo using(concept_code)
 )
@@ -1737,8 +1737,10 @@ join ex an
 left join (
   select qr.q_dcode, r.concept_code as r_code, r.vocabulary_id as r_vocab from q_to_r qr join concept r on r.concept_id=qr.r_did
 ) on q_dcode=an.concept_code
-where de.concept_code not in (select q_dcode from q_to_r) -- the descendant cannot be RxNorm, as all RxNorm have RxNorm ancestors
+where 1=1
+-- and de.concept_code not in (select q_dcode from q_to_r) -- the descendant cannot be RxNorm, as all RxNorm have RxNorm ancestors
 and de.concept_class_id ='Marketed Product'
+and de.concept_code='OMOP461078'
 ;
 commit;
 
@@ -1901,7 +1903,8 @@ select
   null as invalid_reason
 from extension_attribute join rl on concept_class_1='Supplier' and concept_class_2=concept_class_id
 where concept_code not in (select q_dcode from q_to_r) -- the descendant cannot be RxNorm, as all RxNorm have RxNorm ancestors)
-  and extension_attribute.supplier_code!=' ';
+  and extension_attribute.supplier_code!=' '
+;
 commit;
 
 -- Write relationships between Brand Name and Ingredient
@@ -1964,13 +1967,13 @@ commit;
 ************************/
 
 -- Write source drugs as non-standard
-insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason);
 select distinct
   null as concept_id, 
   concept_name,
   domain_id,
   vocabulary_id,
-  source_concept_class_id as concept_class_id,
+  nvl(source_concept_class_id, concept_class_id) as concept_class_id,
   null as standard_concept, -- Source Concept, no matter whether active or not
   concept_code,
   nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
@@ -1989,7 +1992,7 @@ select distinct
   concept_name,
   domain_id,
   vocabulary_id,
-  source_concept_class_id as concept_class_id,
+  nvl(source_concept_class_id, concept_class_id) as concept_class_id,
   case when invalid_reason is null then null else 'S' end as standard_concept, -- Devices are not mapped
   concept_code,
   nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
@@ -2586,5 +2589,11 @@ when matched then update
   set pcs.drug_concept_code=d.drug_concept_code;
 
 drop table pcs_rowid_update purge;
+
+commit;
+
+begin
+   devv5.vocabulary_pack.DeleteAmbiguousMAPSTO;
+end;
 
 commit;

@@ -127,7 +127,7 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'ICD10PCS' THEN 1
   WHEN c.vocabulary_id = 'EphMRA ATC' THEN 1
   WHEN c.vocabulary_id = 'dm+d' THEN 1
-  WHEN c.vocabulary_id = 'RxNorm Extension' THEN 1
+  WHEN c.vocabulary_id = 'RxNorm Extension' THEN 0
   WHEN c.vocabulary_id = 'Gemscript' THEN 1
   WHEN c.vocabulary_id = 'Cost Type' THEN 1
   ELSE 0 -- in default we will not deprecate
@@ -278,7 +278,7 @@ UPDATE concept_relationship d
 							-- Also excludes manual mappings from concept_relationship_manual
                             SELECT r.vocabulary_id_1,r.vocabulary_id_2,r.relationship_id 
                             FROM (SELECT /*+ no_merge */ VOCABULARY_ID_1, VOCABULARY_ID_2, RELATIONSHIP_ID
-                                  FROM (SELECT CONCEPT_CODE_1, CONCEPT_CODE_2, VOCABULARY_ID_1, VOCABULARY_ID_2, RELATIONSHIP_ID FROM concept_relationship_stage                                                                     --)
+                                  FROM (SELECT CONCEPT_CODE_1, CONCEPT_CODE_2, VOCABULARY_ID_1, VOCABULARY_ID_2, RELATIONSHIP_ID FROM CONCEPT_RELATIONSHIP_STAGE                                                                     --)
                                         MINUS
                                         (SELECT CONCEPT_CODE_1, CONCEPT_CODE_2, VOCABULARY_ID_1, VOCABULARY_ID_2, RELATIONSHIP_ID FROM CONCEPT_RELATIONSHIP_MANUAL
                                          UNION ALL
@@ -286,8 +286,8 @@ UPDATE concept_relationship d
                                          SELECT CONCEPT_CODE_2, CONCEPT_CODE_1, VOCABULARY_ID_2, VOCABULARY_ID_1, r.REVERSE_RELATIONSHIP_ID 
                                          FROM concept_relationship_manual crm, relationship r  WHERE crm.relationship_id = r.relationship_id))
                                  GROUP BY VOCABULARY_ID_1, VOCABULARY_ID_2, RELATIONSHIP_ID) r
-                            WHERE r.vocabulary_id_1 NOT IN ('SPL')
-                            AND r.vocabulary_id_2 NOT IN ('SPL')  
+                            WHERE r.vocabulary_id_1 NOT IN ('SPL','RxNorm Extension')
+                            AND r.vocabulary_id_2 NOT IN ('SPL','RxNorm Extension')  
                             AND r.relationship_id NOT IN (
 								SELECT rel_id FROM
 								(
@@ -656,7 +656,7 @@ AND invalid_reason IS NOT NULL -- if wrongly deprecated
 
 COMMIT;
 
---16 Post-processing (some concepts might be deprecated when they missed in source, so load_stage doesn't know about them and DO NOT deprecate relatoinships proper)
+--16 Post-processing (some concepts might be deprecated when they missed in source, so load_stage doesn't know about them and DO NOT deprecate relationships proper)
 BEGIN
 --Deprecate replacement records if target concept was deprecated
 MERGE INTO concept_relationship r
@@ -820,12 +820,24 @@ INSERT INTO concept_synonym (concept_id, concept_synonym_name, language_concept_
 COMMIT;
 
 -- 21. Fillig drug_strength
+-- Special rules for RxNorm Extension: same as 'Maps to' rules, but records from deprecated concepts will be deleted
 DELETE FROM drug_strength
       WHERE drug_concept_id IN (SELECT c.concept_id
                                   FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
-                                 WHERE latest_update IS NOT NULL);
+                                 WHERE latest_update IS NOT NULL AND v.vocabulary_id<>'RxNorm Extension');
 COMMIT;	
-								 
+
+-- Replace with fresh records (only for 'RxNorm Extension')
+DELETE FROM drug_strength ds
+      WHERE     EXISTS
+                   (SELECT 1
+                      FROM drug_strength_stage dss
+                           JOIN concept c1 ON c1.concept_code = dss.drug_concept_code AND c1.vocabulary_id = dss.vocabulary_id_1 AND ds.drug_concept_id = c1.concept_id
+                           JOIN vocabulary v ON v.vocabulary_id = c1.vocabulary_id
+                     WHERE v.latest_update IS NOT NULL AND v.vocabulary_id = 'RxNorm Extension');
+COMMIT;
+
+-- Insert new records
 INSERT INTO drug_strength (drug_concept_id,
                            ingredient_concept_id,
                            amount_value,
@@ -858,11 +870,30 @@ INSERT INTO drug_strength (drug_concept_id,
     WHERE v.latest_update IS NOT NULL;
 COMMIT;	
 
+-- Delete if concept is deprecated (only for 'RxNorm Extension')
+DELETE FROM drug_strength ds
+      WHERE EXISTS
+               (SELECT 1
+                  FROM concept c1 JOIN vocabulary v ON v.vocabulary_id = c1.vocabulary_id
+                 WHERE ds.drug_concept_id = c1.concept_id AND v.latest_update IS NOT NULL AND v.vocabulary_id = 'RxNorm Extension' AND c1.invalid_reason IS NOT NULL);
+COMMIT;
+
 -- 22. Fillig pack_content
+-- Special rules for RxNorm Extension: same as 'Maps to' rules, but records from deprecated concepts will be deleted
 DELETE FROM pack_content
       WHERE pack_concept_id IN (SELECT c.concept_id
                                   FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
-                                 WHERE latest_update IS NOT NULL);
+                                 WHERE latest_update IS NOT NULL AND v.vocabulary_id<>'RxNorm Extension');
+COMMIT;
+
+-- Replace with fresh records (only for 'RxNorm Extension')
+DELETE FROM pack_content pc
+      WHERE     EXISTS
+                   (SELECT 1
+                      FROM pack_content_stage pcs
+                           JOIN concept c1 ON c1.concept_code = pcs.pack_concept_code AND c1.vocabulary_id = pcs.pack_vocabulary_id AND pc.pack_concept_id = c1.concept_id
+                           JOIN vocabulary v ON v.vocabulary_id = c1.vocabulary_id
+                     WHERE v.latest_update IS NOT NULL AND v.vocabulary_id = 'RxNorm Extension');
 COMMIT;
 
 INSERT INTO pack_content (pack_concept_id,
@@ -878,7 +909,15 @@ INSERT INTO pack_content (pack_concept_id,
           JOIN concept c2 ON c2.concept_code = ds.drug_concept_code AND c2.vocabulary_id = ds.drug_vocabulary_id
           JOIN vocabulary v ON v.vocabulary_id = c1.vocabulary_id
     WHERE v.latest_update IS NOT NULL;
-COMMIT;	  
+COMMIT;
+
+-- Delete if concept is deprecated (only for 'RxNorm Extension')
+DELETE FROM pack_content pc
+      WHERE EXISTS
+               (SELECT 1
+                  FROM concept c1 JOIN vocabulary v ON v.vocabulary_id = c1.vocabulary_id
+                 WHERE pc.pack_concept_id = c1.concept_id AND v.latest_update IS NOT NULL AND v.vocabulary_id = 'RxNorm Extension' AND c1.invalid_reason IS NOT NULL);
+COMMIT;
 
 -- 23. check if current vocabulary exists in vocabulary_conversion table
 INSERT INTO vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5)

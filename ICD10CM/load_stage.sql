@@ -81,7 +81,32 @@ BEGIN
 END;
 COMMIT;
 
---5 Add "subsumes" relationship between concepts where the concept_code is like of another
+--5 Working with replacement mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
+END;
+COMMIT;
+
+--6 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
+END;
+COMMIT;		
+
+--7 Add mapping from deprecated to fresh concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
+END;
+COMMIT;
+
+--8 Delete ambiguous 'Maps to' mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
+END;
+COMMIT;
+
+
+--9 Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -112,7 +137,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Subsumes');
 COMMIT;
 
---6 Update domain_id for ICD10CM from SNOMED
+--10 Update domain_id for ICD10CM from SNOMED
 --create 1st temporary table ICD10CM_domain with direct mappings
 create table filled_domain NOLOGGING as
 	with domain_map2value as (--ICD10CM have direct "Maps to value" mapping
@@ -192,7 +217,7 @@ create table ICD10CM_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication
 CREATE UNIQUE INDEX idx_ICD10CM_domain ON ICD10CM_domain (concept_code) NOLOGGING;
 
---7 Simplify the list by removing Observations
+--11 Simplify the list by removing Observations
 update ICD10CM_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -205,7 +230,7 @@ COMMIT;
 -- Check that all domain_id are exists in domain table
 ALTER TABLE ICD10CM_domain ADD CONSTRAINT fk_ICD10CM_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);
 
---8 Update each domain_id with the domains field from ICD10CM_domain.
+--12 Update each domain_id with the domains field from ICD10CM_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
@@ -214,7 +239,7 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'ICD10CM';
 COMMIT;
 
---9 Load into concept_synonym_stage name from ICD10CM_TABLE
+--13 Load into concept_synonym_stage name from ICD10CM_TABLE
 INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -236,7 +261,7 @@ INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                                  IN (LONG_NAME, SHORT_NAME));
 COMMIT;
 
---10 Clean up
+--14 Clean up
 DROP TABLE ICD10CM_domain PURGE;
 DROP TABLE filled_domain PURGE;	
 

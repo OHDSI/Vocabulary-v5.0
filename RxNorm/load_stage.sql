@@ -375,18 +375,28 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
    GROUP BY pack_code, brand_code;	   
 COMMIT;				   
 
--- Remove shortcut 'RxNorm ing of' relationship between Branded Drug and Brand Name. For some strange reason it doesn't exist between Clinical Drug and Ingredient, but we kill it anyway.
-DELETE FROM concept_relationship_stage r 
-WHERE EXISTS (
-        SELECT 1 FROM concept_stage d WHERE r.concept_code_1 = d.concept_code AND r.vocabulary_id_1 = d.vocabulary_id
-            AND d.concept_class_id in ('Branded Drug', 'Clinical Drug')
-    AND r.relationship_id = 'RxNorm has ing');
+-- Remove shortcut 'RxNorm has ing' relationship between 'Clinical Drug', 'Quant Clinical Drug', 'Clinical Pack' and 'Ingredient'
+DELETE FROM concept_relationship_stage r
+      WHERE     EXISTS
+                   (SELECT 1
+                      FROM concept_stage d
+                     WHERE r.concept_code_1 = d.concept_code AND r.vocabulary_id_1 = d.vocabulary_id AND d.concept_class_id IN ('Clinical Drug', 'Quant Clinical Drug', 'Clinical Pack'))
+            AND EXISTS
+                   (SELECT 1
+                      FROM concept_stage d
+                     WHERE r.concept_code_2 = d.concept_code AND r.vocabulary_id_2 = d.vocabulary_id AND d.concept_class_id = 'Ingredient')
+            AND relationship_id = 'RxNorm has ing';
 -- and same for reverse
-DELETE FROM concept_relationship_stage r 
-WHERE EXISTS (
-        SELECT 1 FROM concept_stage d WHERE r.concept_code_2 = d.concept_code AND r.vocabulary_id_2 = d.vocabulary_id
-            AND d.concept_class_id in ('Branded Drug', 'Clinical Drug')
-    AND r.relationship_id = 'RxNorm ing of');
+DELETE FROM concept_relationship_stage r
+      WHERE     EXISTS
+                   (SELECT 1
+                      FROM concept_stage d
+                     WHERE r.concept_code_2 = d.concept_code AND r.vocabulary_id_1 = d.vocabulary_id AND d.concept_class_id IN ('Clinical Drug', 'Quant Clinical Drug', 'Clinical Pack'))
+            AND EXISTS
+                   (SELECT 1
+                      FROM concept_stage d
+                     WHERE r.concept_code_1 = d.concept_code AND r.vocabulary_id_2 = d.vocabulary_id AND d.concept_class_id = 'Ingredient')
+            AND relationship_id = 'RxNorm ing of';
 COMMIT;
 
 --Rename 'Has tradename' to 'Has brand name'  where concept_id_1='Ingredient' and concept_id_2='Brand Name'

@@ -140,19 +140,19 @@ select * from (
 commit;
 
 -- rewire
-create table from_r as
-select from_r.* from (
+create table from_r nologging as
+select from_r.to_id_1, from_r.to_id_2, from_r.relationship_id from (
   select 
     concept_id_1, nvl(nd1.to_id, concept_id_1) as to_id_1,
     concept_id_2, nvl(nd2.to_id, concept_id_2) as to_id_2,
     relationship_id
   from concept_relationship r
-  join name_dedup nd1 on r.concept_id_1=nd1.from_id
-  join name_dedup nd2 on r.concept_id_2=nd2.from_id
+  join concept c1 on c1.concept_id=r.concept_id_1 and c1.vocabulary_id like 'RxNorm%'
+  join concept c2 on c2.concept_id=r.concept_id_2 and c2.vocabulary_id like 'RxNorm%'  
+  left join name_dedup nd1 on r.concept_id_1=nd1.from_id
+  left join name_dedup nd2 on r.concept_id_2=nd2.from_id  
   where coalesce(nd1.to_id, nd2.to_id, 0)!=0 -- either one concept_id_ shouold have changed, otherwise we are redoing the entire table.
-) from_r
-left join concept_relationship s on s.concept_id_1=from_r.to_id_2 and s.concept_id_2=from_r.to_id_2 and from_r.relationship_id=s.relationship_id
-where s.concept_id_1 is null;
+) from_r;
 
 -- delete if rewired already exists
 delete from concept_relationship where rowid in (

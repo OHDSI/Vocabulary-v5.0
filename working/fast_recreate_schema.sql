@@ -21,29 +21,6 @@
 use this script to recreate main tables (concept, concept_relationship, concept_synonym) without dropping your schema
 */
 
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-* 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
-**************************************************************************/
-
-/*
-use this script to recreate main tables (concept, concept_relationship, concept_synonym) without dropping your schema
-*/
-
 declare
 main_schema_name constant varchar2(100):='DEVV5';
 begin 
@@ -125,7 +102,7 @@ begin
     execute immediate 'ALTER TABLE source_to_concept_map ADD CONSTRAINT fpk_source_to_concept_map_v_2 FOREIGN KEY (target_vocabulary_id) REFERENCES vocabulary (vocabulary_id) ENABLE NOVALIDATE';
 
     /*GATHER_TABLE_STATS*/
-    DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept', estimate_percent => null, cascade => true);
-    DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_relationship', estimate_percent => null, cascade => true);
-    DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_synonym', estimate_percent => null, cascade => true);
+    DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept', cascade => true);
+    DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_relationship', cascade => true);
+    DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'concept_synonym', cascade => true);
 end;

@@ -774,16 +774,36 @@ IS
 
    PROCEDURE StartRelease
    IS
-      crlf    VARCHAR2 (2) := UTL_TCP.crlf;
-      email   var_array := var_array ('timur.vakhitov@firstlinesoftware.com','reich@ohdsi.org','reich@omop.org');
-      cRet    VARCHAR2 (5000);
+      crlf      VARCHAR2 (2) := UTL_TCP.crlf;
+      email     var_array := var_array ('timur.vakhitov@firstlinesoftware.com', 'reich@ohdsi.org', 'reich@omop.org');
+      cRet      VARCHAR2 (5000);
+      cVocabs   VARCHAR2 (4000);
    BEGIN
       pConceptAncestor;
       DEVV4.v5_to_v4;
       CREATE_PROD_BACKUP@link_prodv5;
       CREATE_PRODV4@link_prodv5;
       CREATE_PRODV5@link_prodv5;
-      SendMailHTML (email, 'Release status [OK]', 'Release completed');
+
+      SELECT LISTAGG (vocabulary_id, ', ') WITHIN GROUP (ORDER BY vocabulary_id)
+        INTO cVocabs
+        FROM (SELECT DISTINCT vocabulary_id
+                FROM (SELECT *
+                        FROM prodv5.concept@link_prodv5
+                       WHERE invalid_reason IS NULL
+                      MINUS
+                      SELECT *
+                        FROM prodv5_backup.concept@link_prodv5
+                       WHERE invalid_reason IS NULL));
+
+      cRet := 'Release completed';
+
+      IF cVocabs IS NOT NULL
+      THEN
+         cRet := cRet || crlf || 'Affected vocabularies: ' || cVocabs;
+      END IF;
+
+      SendMailHTML (email, 'Release status [OK]', cRet);
    EXCEPTION
       WHEN OTHERS
       THEN

@@ -147,8 +147,8 @@ select from_r.* from (
     concept_id_2, nvl(nd2.to_id, concept_id_2) as to_id_2,
     relationship_id
   from concept_relationship r
-  left join name_dedup nd1 on r.concept_id_1=nd1.from_id
-  left join name_dedup nd2 on r.concept_id_2=nd2.from_id
+  join name_dedup nd1 on r.concept_id_1=nd1.from_id
+  join name_dedup nd2 on r.concept_id_2=nd2.from_id
   where coalesce(nd1.to_id, nd2.to_id, 0)!=0 -- either one concept_id_ shouold have changed, otherwise we are redoing the entire table.
 ) from_r
 left join concept_relationship s on s.concept_id_1=from_r.to_id_2 and s.concept_id_2=from_r.to_id_2 and from_r.relationship_id=s.relationship_id
@@ -160,7 +160,7 @@ delete from concept_relationship where rowid in (
 );
 
 insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-  select distinct to_id_1, to_id_2, relationship_id, sysdate, '31-Dec-2099', null 
+  select distinct to_id_1, to_id_2, relationship_id, trunc(sysdate), '31-Dec-2099', null 
   from from_r f 
   where not exists (
     select 1 from concept_relationship r where r.concept_id_1=f.to_id_1 and r.concept_id_2=f.to_id_2 and r.relationship_id=f.relationship_id
@@ -169,11 +169,11 @@ insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, v
 drop table from_r purge;
 
 -- Deprecate the duplicates and create forwarding relationships
-update concept set valid_end_date=sysdate-1, invalid_reason='U' where concept_id in (select from_id from name_dedup);
+update concept set valid_end_date=trunc(sysdate)-1, invalid_reason='U' where concept_id in (select from_id from name_dedup);
 insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-  select from_id, to_id, 'Concept replaced by', sysdate, '31-Dec-2099', null from name_dedup;
+  select from_id, to_id, 'Concept replaced by', trunc(sysdate), '31-Dec-2099', null from name_dedup;
 insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-  select to_id, from_id, 'Concept replaces', sysdate, '31-Dec-2099', null from name_dedup;
+  select to_id, from_id, 'Concept replaces', trunc(sysdate), '31-Dec-2099', null from name_dedup;
 
 drop table name_dedup;
 
@@ -207,7 +207,7 @@ with p as (
 select 
   concept_id_1, concept_id_2,
   'Tradename of' as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -215,7 +215,7 @@ union
 select 
   concept_id_2, concept_id_1, 
   'Has tradename'  as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -249,7 +249,7 @@ with p as (
 select 
   concept_id_1, concept_id_2,
   'Box of' as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -257,7 +257,7 @@ union
 select 
   concept_id_2, concept_id_1,
  'Available as box'  as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -292,7 +292,7 @@ with p as (
 select 
   concept_id_1, concept_id_2, 
   'Marketed form of'  as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -300,7 +300,7 @@ union
 select 
   concept_id_2, concept_id_1, 
  'Has marketed form'  as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -333,14 +333,14 @@ with p as (
 select 
   concept_id_1, concept_id_2, 
   'Quantified form of' as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
 union
 select concept_id_2, concept_id_1, 
   'Has quantified form'  as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -383,14 +383,14 @@ with p as (
 ) 
 select concept_id_1, concept_id_2,
   'Consists of' as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
 union
 select concept_id_2, concept_id_1, 
   'Constitutes'  as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -426,14 +426,14 @@ with p as (
 select 
   concept_id_1, concept_id_2, 
   'Consists of' as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
 union
 select concept_id_2, concept_id_1, 
   'Constitutes'  as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -485,7 +485,7 @@ with p as (
 select
   concept_id_1, concept_id_2,
   'Has component' as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -493,7 +493,7 @@ union
 select 
   concept_id_2, concept_id_1, 
   'Component of'  as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -526,7 +526,7 @@ insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, v
 select 
   concept_id_1, concept_id_2, 
   'Has component' as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p
@@ -534,7 +534,7 @@ union
 select 
   concept_id_2, concept_id_1, 
   'Component of'  as relationship_id,
-  sysdate as valid_start_date,
+  trunc(sysdate) as valid_start_date,
   '31-Dec-2099' as valid_end_date,
   null as invalid_reason
 from p

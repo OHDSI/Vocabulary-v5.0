@@ -1020,13 +1020,9 @@ union
   join complete_concept_stage ccs on ccs.d_combo_code=uds.ds_code and ccs.concept_class_id='Clinical Drug Comp' -- in Clinical Drug Comp no combinations of 
 )
 select num, drug_concept_code, ingredient_concept_code, ingredient_vocab, 
-  -- Round the numbers
-  round(amount_value, 3-floor(log(10, amount_value))-1) as amount_value, 
-  amount_unit_concept_id, 
-  round(numerator_value, 3-floor(log(10, numerator_value))-1) as numerator_value, 
-  numerator_unit_concept_id, 
-  round(denominator_value, 3-floor(log(10, denominator_value))-1) as denominator_value, 
-  denominator_unit_concept_id 
+  amount_value, amount_unit_concept_id, 
+  numerator_value, numerator_unit_concept_id, 
+  denominator_value, denominator_unit_concept_id 
 from (
 -- Create the numbers
   select distinct 
@@ -1072,11 +1068,11 @@ select distinct
   c.concept_class_id
 from complete_concept_stage c
 -- get general gues dose form
-left join x_df on x_df.q_code=dose_form_code
+left join x_df on x_df.q_code=c.dose_form_code
 left join concept cdf on cdf.concept_code=x_df.r_code and cdf.vocabulary_id=x_df.r_vocab
 -- get specific dose form of q_to_r equivalent in the tree
 left join (
-  select complete_concept_stage.concept_code, concept_id_2, denominator_value, i_combo_code, d_combo_code, dose_form_code, brand_code, box_size, mf_code, df.concept_code as tree_df_code, df.vocabulary_id as tree_df_vocab
+  select concept_id_2, denominator_value, i_combo_code, d_combo_code, dose_form_code, brand_code, box_size, mf_code, df.concept_code as tree_df_code, df.vocabulary_id as tree_df_vocab
   from complete_concept_stage
   join x_df on q_code=dose_form_code -- get best general translation
   join q_to_r on q_dcode=concept_code -- get specific equivalent
@@ -1110,60 +1106,96 @@ commit;
 -- Create an final version of the ds
 drop table extension_combo purge;
 create table extension_combo as
-select concept_code, i.combo_code as i_combo_code, nvl(d.combo_code, ' ') as d_combo_code
-from extension_attribute ca 
--- Create a new verion of i_combo, with XXX or Rx/E identifiers
-join (
-  select concept_code, listagg(ucode, '-') within group (order by ucode) as combo_code
+-- for each drug/ingredient/rounded ds pair get the lowest num from extension_ds
+with ueds as (
+-- Get the concept_code and the lowest record number of all unique ds records. Use the raw numbers, rounded to 3 and 2 signficant digits
+-- Perform the rounding to 2 significant digits
+  select distinct -- partition by rounding to 3 significant numbers
+    first_value(u3num) over (
+      partition by ingredient_concept_code, ingredient_vocab, 
+        units,
+        round(amount_value, 2-floor(log(10, amount_value))-1),
+        round(norm_num_value, 2-floor(log(10, norm_num_value))-1)
+      order by u3num range between unbounded preceding and unbounded following
+    ) as unum,
+    drug_concept_code, ingredient_concept_code, ingredient_vocab
   from (
-  -- get the concept_code and the smallest record number of all ingredient concept_codes - making it quasi unique. 
+-- Perform the rounding to 2 significant digits
+    select distinct -- partition by rounding to 3 significant numbers
+      units, amount_value, norm_num_value,
+      first_value(unum_unrounded) over (
+        partition by ingredient_concept_code, ingredient_vocab, 
+          units,
+          round(amount_value, 3-floor(log(10, amount_value))-1),
+          round(norm_num_value, 3-floor(log(10, norm_num_value))-1)
+        order by unum_unrounded range between unbounded preceding and unbounded following
+      ) as u3num,
+      drug_concept_code, ingredient_concept_code, ingredient_vocab
+    from (
+-- Partition by raw numerical values of amount and numerator/denominator
+      select distinct
+        units, amount_value, norm_num_value,    
+    -- round(numerator_value/nvl(denominator_value, 1), 2-floor(log(10, numerator_value/nvl(denominator_value, 1)))-1), -- take quant out
+        first_value(num) over (
+          partition by ingredient_concept_code, ingredient_vocab, 
+            units, amount_value, norm_num_value
+          order by num range between unbounded preceding and unbounded following
+        ) as unum_unrounded,
+        drug_concept_code, ingredient_concept_code, ingredient_vocab
+      from (
+        select 
+          num, drug_concept_code, ingredient_concept_code, ingredient_vocab,
+          amount_unit_concept_id||numerator_unit_concept_id||denominator_unit_concept_id as units,
+          amount_value, numerator_value/nvl(denominator_value, 1) as norm_num_value -- ds is normalized to denominator of 1        
+        from extension_ds -- number the ds records
+      ) 
+    )
+  )
+)
+-- All concept classes that can have combos
+select concept_code, i_combo_code, d_combo_code
+from extension_attribute
+join (
+  select concept_code, 
+    listagg(ucode, '-') within group (order by ucode) as i_combo_code,
+    case when concept_class_id like '%Form' then ' ' else listagg(nvl(to_char(unum), 'i'||ucode), '-') within group (order by ucode) end as d_combo_code -- use ingredient instead of ds if missing
+  from (
+-- get the concept_code and the smallest record number of all ingredient concept_codes - making it quasi unique. 
   -- Note that the cooncept codes are a mixture of XXX and existing OMOP (RxE) and RxNorm codes
-    select distinct ccs.concept_code, r_code as ucode
+    select distinct ccs.concept_code, ccs.concept_class_id, r_code as ucode, unum
     from complete_concept_stage ccs 
     join ing_combo ic on ccs.i_combo_code=ic.combo_code join ing on ing.concept_code=ic.concept_code
     join x_ing on q_code=ing.ing_code
-  union
-  -- The same thing for Clinical Drug Comps, which may not have no combinations in ing_combo
-    select distinct concept_code, r_code as ucode
-    from complete_concept_stage
-    join x_ing on q_code=i_combo_code
-    where concept_class_id='Clinical Drug Comp'
+    left join ueds on drug_concept_code=ccs.concept_code and ingredient_concept_code=r_code and ingredient_vocab=nvl(r_vocab, ' ') 
+    where ccs.concept_class_id!='Clinical Drug Comp'
   ) 
-  group by concept_code
-) i using (concept_code)
--- Create a new verion of d_combo, with extension_ds identifiers
-left join ( 
-  -- get the concept_code and the smallest record number of all ds records - making it quasi unique
-  select concept_code, listagg(unum, '-') within group (order by unum) as combo_code
-  from (
-    select -- get the concept_code and the lowest record number of all unique ds records
-      drug_concept_code as concept_code,
-      first_value(num) over (
-        partition by ingredient_concept_code, ingredient_vocab, 
-        amount_value, amount_unit_concept_id, 
-        numerator_value, numerator_unit_concept_id, 
-        denominator_value, denominator_unit_concept_id 
-        order by num
-      ) as unum
-    from extension_ds -- number the ds records
-  )
-  group by concept_code
-) d using (concept_code)
+  group by concept_code, concept_class_id
+) using (concept_code)
+union
+-- Clin Drug Comp
+select ea.concept_code, to_char(r_code) as i_combo_code, to_char(u.unum) as d_combo_code -- use ingredient instead of ds if missing
+from extension_attribute ea
+join complete_concept_stage ccs on ccs.concept_code=ea.concept_code
+join x_ing on q_code=ccs.i_combo_code
+join ueds u on u.drug_concept_code=ea.concept_code and u.ingredient_concept_code=r_code and u.ingredient_vocab=nvl(r_vocab, ' ') 
+where ea.concept_class_id='Clinical Drug Comp'
 ;
 commit;
 
--- Dedup after normalizing the attributes
--- Create mapping table
+-- Dedup and expand after normalizing the attributes
+-- Create table of attributes that can collapse
 drop table extension_dedup purge;
 create table extension_dedup as
 with def as (
-  select concept_code, i_combo_code, d_combo_code, quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab
+  select concept_code, i_combo_code, d_combo_code, case nvl(quant, 0) when 0 then 0 else round(quant, 3-floor(log(10, quant))-1) end as quant, 
+    dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab
   from extension_attribute join extension_combo using (concept_code)
 )
 select * from (
   select 
     concept_code as from_code,
-    first_value(concept_code) over (partition by i_combo_code, d_combo_code, quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab) as to_code
+    first_value(concept_code) over (partition by i_combo_code, d_combo_code, case nvl(quant, 0) when 0 then 0 else round(quant, 3-floor(log(10, quant))-1) end, 
+      dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab) as to_code
   from def
   join (
     select i_combo_code, d_combo_code, quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab
@@ -1179,9 +1211,129 @@ commit;
 -- delete from complete_concept_stage where concept_code in (select from_code from extension_dedup);
 delete from extension_combo where concept_code in (select from_code from extension_dedup);
 delete from extension_attribute where concept_code in (select from_code from extension_dedup);
-delete from extension_ds where drug_concept_code in (select from_code from extension_dedup);
+update extension_ds set drug_concept_code=0 where drug_concept_code in (select from_code from extension_dedup);
 update existing_to_complete set c_code=(select to_code from extension_dedup where c_code=from_code) where c_code in (select from_code from extension_dedup)
 ;
+commit;
+
+-- Expand missing combinations due to different translations of the same i, df, bn to Rx/E
+drop table extension_expand purge;
+create table extension_expand as
+with e as (
+  select distinct concept_code,
+    ec.i_combo_code as i, ec.d_combo_code as d, 
+    case ea.quant when 0 then 0 else round(ea.quant, 3-floor(log(10, ea.quant))-1) end as quant, ea.box_size as bs,
+    ea.dose_form_code as df, ea.dose_form_vocab as dv,
+    ea.brand_code as bn, brand_vocab as bv, ea.supplier_code as mf, ea.supplier_vocab as mv,
+    c.concept_class_id
+  from complete_concept_stage c join extension_combo ec using (concept_code) join extension_attribute ea using (concept_code) 
+), f as ( -- only the existing ones. NOte. They are not distinct with their attributes, because more than one code can point to one c_code in existing_ot_complete
+  select * from e join existing_to_complete on concept_code=c_code 
+)
+-- create missing: Pull descreasing number of attributes
+select 'XXX'||xxx_seq.nextval as concept_code, -- make sure xxx_seq is defined.
+  c.* -- Quant Branded Box
+from (
+  select f.i, f.d, f.quant, f.bs, f.df, f.dv, f.bn, f.bv, 'Quant Branded Box' as concept_class_id
+  from f
+  where 0!=all(f.quant, f.bs) and ' '!=all(f.i, f.d, f.df, f.bn)
+  union
+  -- Quant Clinical Box
+  select f.i, f.d, f.quant, f.bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Quant Clinical Box' as concept_class_id
+  from f
+  where 0!=all(f.quant, f.bs) and ' '!=all(f.i, f.d, f.df)
+  union
+  -- Branded Drug Box
+  select f.i, f.d, 0 as quant, f.bs, f.df, f.dv, f.bn, f.bv, 'Branded Drug Box' as concept_class_id
+  from f
+  where f.bs!=0 and ' '!=all(f.i, f.d, f.df, f.bn)
+  union
+  -- Clinical Drug Box
+  select f.i, f.d, 0 as quant, f.bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Clinical Drug Box' as concept_class_id
+  from f
+  where 0!=f.bs and ' '!=all(f.i, f.d, f.df)
+  union
+  -- Quant Branded Drug
+  select f.i, f.d, f.quant, 0 as bs, f.df, f.dv, f.bn, f.bv, 'Quant Branded Drug' as concept_class_id
+  from f
+  where 0!=f.quant and ' '!=all(f.i, f.d, f.df, f.bn)
+  union
+  -- Quant Clinical Drug
+  select f.i, f.d, f.quant, 0 as bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Quant Clinical Drug' as concept_class_id
+  from f
+  where 0!=f.quant and ' '!=all(f.i, f.d, f.df)
+  union
+  -- Branded Drug
+  select f.i, f.d, 0 as quant, 0 as bs, f.df, f.dv, f.bn, f.bv, 'Branded Drug' as concept_class_id
+  from f
+  where ' '!=all(f.i, f.d, f.df, f.bn)
+  union
+  -- Clinical Drug
+  select f.i, f.d, 0 as quant, 0 as bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Clinical Drug' as concept_class_id
+  from f
+  where ' '!=all(f.i, f.d, f.df)
+  union
+  -- Branded Drug Form
+  select f.i, ' ' as d, 0 as quant, 0 as bs, f.df, f.dv, f.bn, f.bv, 'Branded Drug Form' as concept_class_id
+  from f
+  where ' '!=all(f.i, f.df, f.bn)
+  union
+  -- Clinical Drug Form
+  select f.i, ' ' as d, 0 as quant, 0 as bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Clinical Drug Form' as concept_class_id
+  from f
+  where ' '!=all(f.i, f.d)
+  union
+  -- Branded Drug Component
+  select f.i, f.d, 0 as quant, 0 as bs, ' ' as df, ' ' as dv, f.bn, f.bv, 'Branded Drug Comp' as concept_class_id
+  from f
+  where ' '!=all(f.i, f.d, f.bn)
+  union
+  -- Clinical Drug Component - split i and d
+  select * from (
+    select 
+      trim(regexp_substr(f.i, '[^\-]+', 1, levels.column_value)) as i,
+      trim(regexp_substr(f.d, '[^\-]+', 1, levels.column_value)) as d,
+      0 as quant, 0 as bs, ' ' as df, ' ' as dv, ' ' as bn, ' ' as bv, 'Clinical Drug Comp' as concept_class_id
+    from f, table(cast(multiset(select level from dual connect by level <= length (regexp_replace(f.i, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+    where ' '!=all(f.i, f.d)
+  ) where substr(d, 1, 1)!='i' -- don't create when the component is only an ingredient
+  minus
+  select i, d, quant, bs, df, dv, bn, bv, concept_class_id
+  from e
+) c
+;
+commit;
+
+-- Add to the various tables
+insert into extension_attribute (concept_code, quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab, concept_class_id)
+select concept_code, quant, df, dv, bn, bv, bs, ' ' as supplier_code, ' ' as supplier_vocab, concept_class_id
+from extension_expand
+;
+
+insert into extension_ds (num, drug_concept_code, ingredient_concept_code, ingredient_vocab, amount_value, amount_unit_concept_id,
+  numerator_value, numerator_unit_concept_id, denominator_value, denominator_unit_concept_id)
+select
+  rownum+(select max(num) from extension_ds) as num,
+  concept_code as drug_concept_code, 
+  ingredient_concept_code, ingredient_vocab, 
+  amount_value, amount_unit_concept_id,
+  numerator_value/nvl(denominator_value, 1)*case quant when 0 then 1 else quant end as numerator_value, numerator_unit_concept_id,
+  case quant when 0 then null else quant end as denominator_value, denominator_unit_concept_id
+from (
+-- decompose d_combo_code
+  select * from (
+    select concept_code, quant,
+    trim(regexp_substr(d, '[^\-]+', 1, levels.column_value)) as num
+  from extension_expand, table(cast(multiset(select level from dual connect by level <= length (regexp_replace(d, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+  ) where substr(num, 1, 1)!='i' -- make sure tehre is no ingredient substitute for the ds
+) ee
+join extension_ds using(num)
+;
+
+insert into extension_combo (concept_code, i_combo_code, d_combo_code)
+select concept_code, i, d from extension_expand
+;
+
 commit;
 
 -- Auto-generate all names 
@@ -1249,23 +1401,27 @@ with pre_u as (
   left join concept_to_rxnorm_unit de on de.concept_id=eds.denominator_unit_concept_id
   left join concept x on x.concept_code=eds.ingredient_concept_code and x.vocabulary_id=eds.ingredient_vocab -- join Rx ingredient
   left join x_ing i on i.r_code=eds.ingredient_concept_code and eds.ingredient_vocab=' ' -- join source ingredient
-where eds.drug_concept_code='XXX100082'
-union
+union all -- don't kill duplicates of the same ingredient
 -- Add Drug Forms that are not in extension_ds
-  select ccs.concept_code as concept_code, 
-    de.rxn_unit as denominator_unit, -- for quant
-    nvl(x.concept_name, x_ing.q_name) as ing_name, -- Take Rx ingredient name, if possible, or name from source
+  select i.concept_code, 
+    null as denominator_unit, -- for quant
+    ing_name, -- Take Rx ingredient name, if possible, or name from source
     null as v, '' as u
-  from ing_combo ic join ing on ic.concept_code=ing.concept_code 
--- all those that have ingredient but no record in extension_ds
-  join complete_concept_stage ccs on ccs.i_combo_code=ic.combo_code 
-  -- and ccs.concept_class_id in ('Clinical Drug Form', 'Branded Drug Form') -- in Drug Forms no extension_ds entries
-  join x_ing on x_ing.q_code=ing.ing_code
-  left join extension_ds eds on eds.drug_concept_code=ccs.concept_code and eds.ingredient_concept_code=x_ing.r_code and eds.ingredient_vocab=x_ing.r_vocab
-  left join concept x on x.concept_code=x_ing.r_code and x.vocabulary_id=x_ing.r_vocab -- join Rx ingredient
-  left join extension_ds denom on denom.drug_concept_code=ccs.concept_code -- get another record from the same drug that might have a dnominator info
-  left join concept_to_rxnorm_unit de on de.concept_id=denom.denominator_unit_concept_id
-  where eds.drug_concept_code is null -- no record in extension_ds
+  from (
+    select 
+      ea.concept_class_id, ec.concept_code, 
+      trim(regexp_substr(ec.i_combo_code, '[^\-]+', 1, levels.column_value)) as ing_code,
+      trim(regexp_substr(ec.d_combo_code, '[^\-]+', 1, levels.column_value)) as ds_code
+      from extension_combo ec, extension_attribute ea,
+      table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ec.i_combo_code, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+      where ea.concept_code=ec.concept_code 
+  ) i
+  join ( -- create unique ingredient records, which could be duplicate if so in the source data
+    select distinct nvl(concept_name, q_name) as ing_name, r_code
+    from x_ing
+    left join concept x on x.concept_code=r_code and x.vocabulary_id=r_vocab
+  ) on i.ing_code=r_code
+  where (i.concept_class_id like '%Form' or substr(i.ds_code, 2)=i.ing_code)
 ),
 -- Add a 0 before a leading dot and round
 u as (
@@ -1279,7 +1435,7 @@ u as (
 -- build the entire component
 select 
   c.concept_code, 
-  case when c.quant=0 then '' else regexp_replace(c.quant, '^\.', '0.')||' '||comp.denominator_unit||' ' end as quant,
+  case when c.quant=0 then '' else regexp_replace(round(c.quant, 3-floor(log(10, c.quant))-1), '^\.', '0.')||' '||first_value(comp.denominator_unit) ignore nulls over (partition by c.concept_code)||' ' end as quant,
   comp.comp_name,
   sum(comp.comp_len) over (partition by c.concept_code order by comp.comp_name rows between unbounded preceding and current row) as agg_len,
   case when c.dose_form_code=' ' then '' else ' '||nvl(cdf.concept_name, x_df.q_name) end as df_name,
@@ -1591,6 +1747,8 @@ where dcs.invalid_reason is null and nvl(dcs.domain_id, 'Drug')='Drug'
 commit;
 
 -- Write concepts from extension_*
+-- This will miss all those added through extension_expand, but it shouldn't matter 
+-- because they only exist because of a low-level q_to_r connection picking something different than precedence 1
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select distinct
   null as concept_id,
@@ -1710,7 +1868,7 @@ where de.concept_class_id not in ('Clinical Drug Comp', 'Clinical Drug Form', 'C
 commit;
 
 -- Marketed Products: Everything has to agree except Supplier
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 with ex as ( -- create a complete_concept_stage in extension notation
   select * from extension_attribute join extension_combo using(concept_code)
 )
@@ -1740,7 +1898,6 @@ left join (
 where 1=1
 -- and de.concept_code not in (select q_dcode from q_to_r) -- the descendant cannot be RxNorm, as all RxNorm have RxNorm ancestors
 and de.concept_class_id ='Marketed Product'
-and de.concept_code='OMOP461078'
 ;
 commit;
 
@@ -1967,7 +2124,7 @@ commit;
 ************************/
 
 -- Write source drugs as non-standard
-insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason);
+insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select distinct
   null as concept_id, 
   concept_name,
@@ -2491,10 +2648,9 @@ drop table xxx_replace purge;
 create table xxx_replace (
   xxx_code varchar2(50),
   omop_code varchar2(50)
-)
-;
+);
 
-drop sequence omop_seq ;  --this is restricted!!! several times we rebuild previous tables, sequence is defined separately
+drop sequence omop_seq; 
 /*
 declare
  ex number;

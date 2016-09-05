@@ -152,6 +152,13 @@ select from_r.to_id_1, from_r.to_id_2, from_r.relationship_id from (
   left join name_dedup nd1 on r.concept_id_1=nd1.from_id
   left join name_dedup nd2 on r.concept_id_2=nd2.from_id  
   where coalesce(nd1.to_id, nd2.to_id, 0)!=0 -- either one concept_id_ shouold have changed, otherwise we are redoing the entire table.
+  and r.relationship_id not in (
+	'Concept replaced by',
+	'Concept same_as to',
+	'Concept alt_to to',
+	'Concept poss_eq to',
+	'Concept was_a to' 
+  )
 ) from_r;
 
 -- delete if rewired already exists
@@ -171,9 +178,9 @@ drop table from_r purge;
 -- Deprecate the duplicates and create forwarding relationships
 update concept set valid_end_date=trunc(sysdate)-1, invalid_reason='U' where concept_id in (select from_id from name_dedup);
 insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-  select from_id, to_id, 'Concept replaced by', trunc(sysdate), '31-Dec-2099', null from name_dedup;
+  select from_id, to_id, 'Concept replaced by', trunc(sysdate), '31-Dec-2099', null from name_dedup join concept c1 on c1.concept_id=from_id join concept c2 on c2.concept_id=to_id and c1.vocabulary_id=c2.vocabulary_id;
 insert into concept_relationship (concept_id_1, concept_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-  select to_id, from_id, 'Concept replaces', trunc(sysdate), '31-Dec-2099', null from name_dedup;
+  select to_id, from_id, 'Concept replaces', trunc(sysdate), '31-Dec-2099', null from name_dedup join concept c1 on c1.concept_id=from_id join concept c2 on c2.concept_id=to_id and c1.vocabulary_id=c2.vocabulary_id;
 
 drop table name_dedup;
 
@@ -545,6 +552,257 @@ drop table cnc_rel_class purge;
 drop table ri_agg purge;
 
 commit;
+
+--deprecate concepts if we have no active replacement record in the concept_relationship
+UPDATE concept c SET
+c.valid_end_date = TRUNC (SYSDATE),
+c.invalid_reason = 'D',
+c.standard_concept = NULL
+WHERE
+NOT EXISTS (
+  SELECT 1
+  FROM concept_relationship r
+  WHERE r.concept_id_1 = c.concept_id
+  AND r.invalid_reason IS NULL
+  AND r.relationship_id in (
+    'Concept replaced by',
+    'Concept same_as to',
+    'Concept alt_to to',
+    'Concept poss_eq to',
+    'Concept was_a to'
+  )
+)
+AND c.invalid_reason = 'U' ;
+
+--make sure invalid_reason = 'U' if we have an active replacement record in the concept_relationship table
+UPDATE concept c SET
+c.valid_end_date = TRUNC (SYSDATE),
+c.invalid_reason = 'U',
+c.standard_concept = NULL
+WHERE EXISTS (
+  SELECT 1
+  FROM concept_relationship r
+  WHERE r.concept_id_1 = c.concept_id
+  AND r.invalid_reason IS NULL
+  AND r.relationship_id in (
+    'Concept replaced by',
+    'Concept same_as to',
+    'Concept alt_to to',
+    'Concept poss_eq to',
+    'Concept was_a to'
+  )
+)
+AND (c.invalid_reason IS NULL OR c.invalid_reason = 'D')-- not already upgraded
+;
+
+--build new 'Maps to' mappings (or update existing) from deprecated to fresh concept
+MERGE INTO concept_relationship r
+USING (WITH upgraded_concepts
+AS (
+  SELECT DISTINCT
+  concept_id_1,
+  FIRST_VALUE (concept_id_2) OVER (PARTITION BY concept_id_1 ORDER BY rel_id ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS concept_id_2
+  FROM (
+    SELECT r.concept_id_1,
+      r.concept_id_2,
+      CASE
+        WHEN r.relationship_id = 'Concept replaced by' THEN 1
+        WHEN r.relationship_id = 'Concept same_as to' THEN 2
+        WHEN r.relationship_id = 'Concept alt_to to' THEN 3
+        WHEN r.relationship_id = 'Concept poss_eq to' THEN 4
+        WHEN r.relationship_id = 'Concept was_a to' THEN 5
+        WHEN r.relationship_id = 'Maps to' THEN 6
+      END AS rel_id
+    FROM concept c1, concept c2, concept_relationship r
+    WHERE (
+      r.relationship_id IN (
+        'Concept replaced by',
+        'Concept same_as to',
+        'Concept alt_to to',
+        'Concept poss_eq to',
+        'Concept was_a to'
+      )
+      OR (
+        r.relationship_id = 'Maps to'
+        AND c2.invalid_reason = 'U'
+      )
+    )
+    AND r.invalid_reason IS NULL
+    AND c1.concept_id = r.concept_id_1
+    AND c2.concept_id = r.concept_id_2
+    AND ((
+      c1.vocabulary_id = c2.vocabulary_id AND r.relationship_id <> 'Maps to') 
+      OR r.relationship_id = 'Maps to'
+    )
+    AND c2.concept_code <> 'OMOP generated'
+    AND r.concept_id_1 <> r.concept_id_2
+  )
+)
+SELECT 
+  CONNECT_BY_ROOT concept_id_1 AS root_concept_id_1, u.concept_id_2,
+  'Maps to' AS relationship_id,
+  TO_DATE ('19700101', 'YYYYMMDD') AS valid_start_date,
+  TO_DATE ('20991231', 'YYYYMMDD') AS valid_end_date,
+  NULL AS invalid_reason
+FROM upgraded_concepts u
+WHERE CONNECT_BY_ISLEAF = 1
+CONNECT BY NOCYCLE PRIOR concept_id_2 = concept_id_1
+) i ON ( r.concept_id_1 = i.root_concept_id_1
+  AND r.concept_id_2 = i.concept_id_2
+  AND r.relationship_id = i.relationship_id)
+WHEN NOT MATCHED THEN
+INSERT (
+  concept_id_1,
+  concept_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+VALUES (
+  i.root_concept_id_1,
+  i.concept_id_2,
+  i.relationship_id,
+  i.valid_start_date,
+  i.valid_end_date,
+  i.invalid_reason
+)
+WHEN MATCHED
+THEN
+UPDATE SET r.invalid_reason = NULL, r.valid_end_date = i.valid_end_date
+WHERE r.invalid_reason IS NOT NULL;
+
+-- 'Maps to' or 'Mapped from' relationships should not exist where
+-- a) the source concept has standard_concept = 'S', unless it is to self
+-- b) the target concept has standard_concept = 'C' or NULL
+
+UPDATE concept_relationship d
+SET d.valid_end_date = trunc(sysdate),
+d.invalid_reason = 'D'
+WHERE d.ROWID IN (
+  SELECT r.ROWID FROM concept_relationship r, concept c1, concept c2 WHERE
+  r.concept_id_1 = c1.concept_id
+  AND r.concept_id_2 = c2.concept_id
+  AND (
+  -- rule a)
+    (c1.standard_concept = 'S' AND c1.concept_id != c2.concept_id)
+  -- rule b)
+    OR COALESCE (c2.standard_concept, 'X') != 'S'
+  )
+  AND r.relationship_id = 'Maps to'
+  AND r.invalid_reason IS NULL
+);
+commit;
+
+--deprecate replacement records if target concept was deprecated
+MERGE INTO concept_relationship r
+USING (
+  WITH upgraded_concepts AS (
+    SELECT r.concept_id_1,
+    r.concept_id_2,
+    r.relationship_id,
+    c2.invalid_reason
+    FROM concept c1, concept c2, concept_relationship r
+    WHERE r.relationship_id IN (
+      'Concept replaced by',
+      'Concept same_as to',
+      'Concept alt_to to',
+      'Concept poss_eq to',
+      'Concept was_a to'
+    )
+    AND r.invalid_reason IS NULL
+    AND c1.concept_id = r.concept_id_1
+    AND c2.concept_id = r.concept_id_2
+    AND c1.vocabulary_id = c2.vocabulary_id
+    AND c2.concept_code <> 'OMOP generated'
+    AND r.concept_id_1 <> r.concept_id_2
+  )
+  SELECT u.concept_id_1, u.concept_id_2, u.relationship_id
+  FROM upgraded_concepts u
+  CONNECT BY NOCYCLE PRIOR concept_id_1 = concept_id_2
+  START WITH concept_id_2 IN (
+    SELECT concept_id_2
+    FROM upgraded_concepts
+    WHERE invalid_reason = 'D'
+  )
+) i
+ON (r.concept_id_1 = i.concept_id_1 AND r.concept_id_2 = i.concept_id_2 AND r.relationship_id = i.relationship_id)
+WHEN MATCHED
+THEN
+UPDATE SET r.invalid_reason = 'D', r.valid_end_date = TRUNC (SYSDATE);
+
+--deprecate concepts if we have no active replacement record in the concept_relationship
+UPDATE concept c SET
+c.valid_end_date = TRUNC (SYSDATE),
+c.invalid_reason = 'D',
+c.standard_concept = NULL
+WHERE
+NOT EXISTS (
+  SELECT 1
+  FROM concept_relationship r
+  WHERE r.concept_id_1 = c.concept_id
+  AND r.invalid_reason IS NULL
+  AND r.relationship_id in (
+    'Concept replaced by',
+    'Concept same_as to',
+    'Concept alt_to to',
+    'Concept poss_eq to',
+    'Concept was_a to'
+  )
+)
+AND c.invalid_reason = 'U' ;
+
+--deprecate 'Maps to' mappings to deprecated and upgraded concepts
+UPDATE concept_relationship r
+SET r.valid_end_date = TRUNC (SYSDATE), r.invalid_reason = 'D'
+WHERE r.relationship_id = 'Maps to'
+AND r.invalid_reason IS NULL
+AND EXISTS (
+  SELECT 1
+  FROM concept c
+  WHERE c.concept_id = r.concept_id_2 AND c.invalid_reason IN ('U', 'D')
+);
+
+--reverse (reversing new mappings and deprecate existings)
+MERGE INTO concept_relationship r
+USING (
+  SELECT r.*, rel.reverse_relationship_id
+  FROM concept_relationship r, relationship rel
+  WHERE r.relationship_id IN (
+    'Concept replaced by',
+    'Concept same_as to',
+    'Concept alt_to to',
+    'Concept poss_eq to',
+    'Concept was_a to',
+    'Maps to'
+  )
+  AND r.relationship_id = rel.relationship_id
+) i
+ON (r.concept_id_1 = i.concept_id_2 AND r.concept_id_2 = i.concept_id_1 AND r.relationship_id = i.reverse_relationship_id)
+WHEN NOT MATCHED
+THEN
+INSERT (
+  concept_id_1,
+  concept_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason)
+VALUES (
+  i.concept_id_2,
+  i.concept_id_1,
+  i.reverse_relationship_id,
+  i.valid_start_date,
+  i.valid_end_date,
+  i.invalid_reason
+)
+WHEN MATCHED
+THEN
+UPDATE SET r.invalid_reason = i.invalid_reason, r.valid_end_date = i.valid_end_date
+WHERE (NVL (r.invalid_reason, 'X') <> NVL (i.invalid_reason, 'X') OR r.valid_end_date <> i.valid_end_date);
+
+commit;
+
 
 
 

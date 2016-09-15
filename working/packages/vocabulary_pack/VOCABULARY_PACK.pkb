@@ -111,7 +111,7 @@ IS
              LEFT JOIN concept c1 ON c1.concept_code = crm.concept_code_1 AND c1.vocabulary_id = crm.vocabulary_id_1
              LEFT JOIN concept_stage cs1 ON cs1.concept_code = crm.concept_code_1 AND cs1.vocabulary_id = crm.vocabulary_id_1
              LEFT JOIN concept c2 ON c2.concept_code = crm.concept_code_2 AND c2.vocabulary_id = crm.vocabulary_id_2
-             LEFT JOIN concept_stage cs2 ON cs2.concept_code = crm.concept_code_1 AND cs2.vocabulary_id = crm.vocabulary_id_1
+             LEFT JOIN concept_stage cs2 ON cs2.concept_code = crm.concept_code_2 AND cs2.vocabulary_id = crm.vocabulary_id_2
              LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crm.vocabulary_id_1
              LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crm.vocabulary_id_2
              LEFT JOIN relationship rl ON rl.relationship_id = crm.relationship_id

@@ -141,7 +141,7 @@ commit;
 
 -- rewire
 create table from_r nologging as
-select from_r.to_id_1, from_r.to_id_2, from_r.relationship_id from (
+select from_r.* from (
   select 
     concept_id_1, nvl(nd1.to_id, concept_id_1) as to_id_1,
     concept_id_2, nvl(nd2.to_id, concept_id_2) as to_id_2,

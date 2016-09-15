@@ -801,6 +801,19 @@ THEN
 UPDATE SET r.invalid_reason = i.invalid_reason, r.valid_end_date = i.valid_end_date
 WHERE (NVL (r.invalid_reason, 'X') <> NVL (i.invalid_reason, 'X') OR r.valid_end_date <> i.valid_end_date);
 
+-- Remove ICD9CM mapping for Chris Knoll
+update concept_relationship set valid_end_date=trunc(sysdate)-1, invalid_reason='D' where concept_id_1=44831045 and concept_id_2=192279 and relationship_id='Maps to';
+update concept_relationship set valid_end_date='31-Dec-2099', invalid_reason=null where concept_id_1=44831045 and concept_id_2=443731 and relationship_id='Maps to';
+update concept_relationship set valid_end_date=trunc(sysdate)-1, invalid_reason='D' where concept_id_2=44831045 and concept_id_1=192279 and relationship_id='Mapped from';
+update concept_relationship set valid_end_date='31-Dec-2099', invalid_reason=null where concept_id_2=44831045 and concept_id_1=443731 and relationship_id='Mapped from';
+
+-- Fix MedDRA-SNOMED for rhabdomyelosis for Erica Voss
+select * from concept where concept_code in ('10039020');
+select * from concept where concept_id in (443731;
+select * from concept_relationship join concept on concept_id=concept_id_2 where concept_id_1 in ('36516888') and relationship_id='MedDRA - SNOMED eq';
+
+
+
 commit;
 
 

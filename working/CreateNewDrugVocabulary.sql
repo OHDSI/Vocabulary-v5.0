@@ -501,7 +501,7 @@ create table r_drug_ing nologging as
 ;
 
 -- Count number of ingredients for each drug
-drop table r_ing_count purge;
+  drop table r_ing_count purge;
 create table r_ing_count nologging as
   select drug_id as did, count(*) as cnt from r_drug_ing group by drug_id
 ;
@@ -789,9 +789,9 @@ where rowid in (
 commit;
 */
 
--- Create final best mapping from those that have the lowest preferences, a div>=0.9, matching units
-drop table q_to_r purge;
-create table q_to_r nologging as
+-- Create final best mapping from those that have the lowest preferences, a div>=0.9, matching units. Later, the expanded alternative df/bn/mf are added.
+drop table q_to_r_noex purge;
+create table q_to_r_noex nologging as
 select distinct
   q_dcode, 
   first_value(r_did) over (partition by q_dcode order by div desc, df_prec, bn_prec, u_prec) as r_did
@@ -829,7 +829,7 @@ with x as (
 -- get drug containing q ingredient
   join drug_concept_stage q_drug on q_drug.concept_code=irs.concept_code_1
   join existing_to_complete etc on etc.e_code=q_drug.concept_code
-  join q_to_r qr on qr.q_dcode=etc.c_code 
+  join q_to_r_noex qr on qr.q_dcode=etc.c_code 
 -- get translation of q ingredient to r ingredient
   join r_to_c r on r.concept_code_1=irs.concept_code_2
   join concept r_drug on r_drug.concept_id=r.concept_id_2 
@@ -848,7 +848,7 @@ join x using(q_code, r_code, r_vocab)
 ;
 commit;
 
--- Add those that have not been used in q_to_r from concept_relationship_stage (precedence=1)
+-- Add those that have not been used in q_to_r_noex from concept_relationship_stage (precedence=1)
 insert into x_ing
 select 
   q_ing.concept_code as q_code, 
@@ -861,7 +861,8 @@ left join (
   from r_to_c  join concept on concept_id=concept_id_2 and nvl(precedence, 1)=1
 ) r_ing on r_ing.concept_code_1=q_ing.concept_code
 where q_ing.concept_class_id='Ingredient'
-  and q_ing.standard_concept='S' and q_ing.invalid_reason is null
+--  and q_ing.standard_concept='S' 
+  and q_ing.invalid_reason is null
 and not exists (select 1 from x_ing where x_ing.q_code=q_ing.concept_code)
 ;
 commit;
@@ -877,7 +878,7 @@ with x as (
 -- get drug having q dose form
   join drug_concept_stage q_drug on q_drug.concept_code=irs.concept_code_1
   join existing_to_complete etc on etc.e_code=q_drug.concept_code
-  join q_to_r qr on qr.q_dcode=etc.c_code 
+  join q_to_r_noex qr on qr.q_dcode=etc.c_code 
 -- get translation of q dose form to r dose form
   join r_to_c r on r.concept_code_1=irs.concept_code_2
   join concept r_drug on r_drug.concept_id=r.concept_id_2 
@@ -895,7 +896,7 @@ join x using(q_code, r_code, r_vocab)
 ;
 commit;
 
--- Add those that have not been used in q_to_r, same as with Ingredients
+-- Add those that have not been used in q_to_r_noex, same as with Ingredients
 insert into x_df
 select 
   q_df.concept_code as q_code,
@@ -923,7 +924,7 @@ with x as (
 -- get drug having q dose form
   join drug_concept_stage q_drug on q_drug.concept_code=irs.concept_code_1
   join existing_to_complete etc on etc.e_code=q_drug.concept_code
-  join q_to_r qr on qr.q_dcode=etc.c_code 
+  join q_to_r_noex qr on qr.q_dcode=etc.c_code 
 -- get translation of q dose form to r dose form
   join r_to_c r on r.concept_code_1=irs.concept_code_2
   join concept r_drug on r_drug.concept_id=r.concept_id_2 
@@ -941,7 +942,7 @@ join x using(q_code, r_code, r_vocab)
 ;
 commit;
 
--- Add those that have not been used in q_to_r
+-- Add those that have not been used in q_to_r_noex
 insert into x_bn
 select 
   q_bn.concept_code as q_code, q_bn.concept_name as q_name,
@@ -968,7 +969,7 @@ with x as (
 -- get drug having q dose form
   join drug_concept_stage q_drug on q_drug.concept_code=irs.concept_code_1
   join existing_to_complete etc on etc.e_code=q_drug.concept_code
-  join q_to_r qr on qr.q_dcode=etc.c_code 
+  join q_to_r_noex qr on qr.q_dcode=etc.c_code 
 -- get translation of q dose form to r dose form
   join r_to_c r on r.concept_code_1=irs.concept_code_2
   join concept r_drug on r_drug.concept_id=r.concept_id_2 
@@ -987,7 +988,7 @@ join x using(q_code, r_code, r_vocab)
 ;
 commit;
 
--- Add those that have not been used in q_to_r
+-- Add those that have not been used in q_to_r_neox
 insert into x_mf
 select 
   q_mf.concept_code as q_code,
@@ -1063,7 +1064,7 @@ from (
 commit;
 
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'x_bn', estimate_percent  => null, cascade  => true);
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'q_to_r', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'q_to_r_noex', estimate_percent  => null, cascade  => true);
 
 -- Create full RxNorm universe from complete_concept_stage
 drop table extension_attribute purge;
@@ -1083,12 +1084,12 @@ from complete_concept_stage c
 -- get general gues dose form
 left join x_df on x_df.q_code=c.dose_form_code
 left join concept cdf on cdf.concept_code=x_df.r_code and cdf.vocabulary_id=x_df.r_vocab
--- get specific dose form of q_to_r equivalent in the tree
+-- get specific dose form of q_to_r_noex equivalent in the tree
 left join (
   select concept_id_2, denominator_value, i_combo_code, d_combo_code, dose_form_code, brand_code, box_size, mf_code, df.concept_code as tree_df_code, df.vocabulary_id as tree_df_vocab
   from complete_concept_stage
   join x_df on q_code=dose_form_code -- get best general translation
-  join q_to_r on q_dcode=concept_code -- get specific equivalent
+  join q_to_r_noex on q_dcode=concept_code -- get specific equivalent
   join concept_relationship on r_did=concept_id_1 and relationship_id='RxNorm has dose form' and invalid_reason is null -- retrieve Dose Form of specific equivalent
   join concept df on df.concept_id=concept_id_2 -- get concept for concept_code and vocabulary_id
   where (r_code!=df.concept_code or r_vocab!=df.vocabulary_id) -- only those where general and specific differ
@@ -1096,7 +1097,7 @@ left join (
 -- get brand name
 left join x_bn on x_bn.q_code=brand_code
 left join concept cbn on cbn.concept_code=x_bn.r_code and cbn.vocabulary_id=x_bn.r_vocab
--- get specific brand name of q_to_r equivalent in the tree
+-- get specific brand name of q_to_r_noex equivalent in the tree
 left join (
   select denominator_value, i_combo_code, d_combo_code, dose_form_code, brand_code, box_size, mf_code, 
   null as tree_bn_code, null as tree_bn_vocab
@@ -1230,74 +1231,81 @@ update existing_to_complete set c_code=(select to_code from extension_dedup wher
 commit;
 
 -- Expand missing combinations due to different translations of the same i, df, bn to Rx/E
-drop table extension_expand purge;
-create table extension_expand as
+drop table expand purge;
+create table expand as
 with e as (
   select distinct concept_code,
     ec.i_combo_code as i, ec.d_combo_code as d, 
     case ea.quant when 0 then 0 else round(ea.quant, 3-floor(log(10, ea.quant))-1) end as quant, ea.box_size as bs,
     ea.dose_form_code as df, ea.dose_form_vocab as dv,
-    ea.brand_code as bn, brand_vocab as bv, ea.supplier_code as mf, ea.supplier_vocab as mv,
+    c.dose_form_code as cf, -- the original ambiguous dose form
+    ea.brand_code as bn, brand_vocab as bv, 
+    c.brand_code as cb, -- the original ambiguous brand 
+    ea.supplier_code as mf, ea.supplier_vocab as mv,
+    c.mf_code as cm, -- the original ambiguous supplier
     c.concept_class_id
   from complete_concept_stage c join extension_combo ec using (concept_code) join extension_attribute ea using (concept_code) 
-), f as ( -- only the existing ones. NOte. They are not distinct with their attributes, because more than one code can point to one c_code in existing_to_complete
+), f as ( -- only the existing ones. Note. They are not distinct with their attributes, because more than one code can point to one c_code in existing_to_complete
   select * from e join existing_to_complete on concept_code=c_code 
 )
--- create missing: Pull descreasing number of attributes
-select 'XXX'||xxx_seq.nextval as concept_code, -- make sure xxx_seq is defined.
-  c.* -- Quant Branded Box
-from (
-  select f.i, f.d, f.quant, f.bs, f.df, f.dv, f.bn, f.bv, 'Quant Branded Box' as concept_class_id
+select * from (  
+  -- Marketed Product
+  select f.i, f.d, f.quant, f.bs, f.df, f.dv, f.cf, f.bn, f.bv, f.cb, f.mf, f.mv, f.cm, 'Marketed Product' as concept_class_id
+  from f
+  where ' '!=all(f.i, f.d, f.df, f.mf)
+  union
+  -- Quant Branded Box
+  select f.i, f.d, f.quant, f.bs, f.df, f.dv, f.cf, f.bn, f.bv, f.cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Quant Branded Box' as concept_class_id
   from f
   where 0!=all(f.quant, f.bs) and ' '!=all(f.i, f.d, f.df, f.bn)
   union
   -- Quant Clinical Box
-  select f.i, f.d, f.quant, f.bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Quant Clinical Box' as concept_class_id
+  select f.i, f.d, f.quant, f.bs, f.df, f.dv, f.cf, ' ' as bn, ' ' as bv, ' ' as cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Quant Clinical Box' as concept_class_id
   from f
   where 0!=all(f.quant, f.bs) and ' '!=all(f.i, f.d, f.df)
   union
   -- Branded Drug Box
-  select f.i, f.d, 0 as quant, f.bs, f.df, f.dv, f.bn, f.bv, 'Branded Drug Box' as concept_class_id
+  select f.i, f.d, 0 as quant, f.bs, f.df, f.dv, f.cf, f.bn, f.bv, f.cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Branded Drug Box' as concept_class_id
   from f
   where f.bs!=0 and ' '!=all(f.i, f.d, f.df, f.bn)
   union
   -- Clinical Drug Box
-  select f.i, f.d, 0 as quant, f.bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Clinical Drug Box' as concept_class_id
+  select f.i, f.d, 0 as quant, f.bs, f.df, f.dv, f.cf, ' ' as bn, ' ' as bv, ' ' as cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Clinical Drug Box' as concept_class_id
   from f
   where 0!=f.bs and ' '!=all(f.i, f.d, f.df)
   union
   -- Quant Branded Drug
-  select f.i, f.d, f.quant, 0 as bs, f.df, f.dv, f.bn, f.bv, 'Quant Branded Drug' as concept_class_id
+  select f.i, f.d, f.quant, 0 as bs, f.df, f.dv, f.cf, f.bn, f.bv, f.cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Quant Branded Drug' as concept_class_id
   from f
   where 0!=f.quant and ' '!=all(f.i, f.d, f.df, f.bn)
   union
   -- Quant Clinical Drug
-  select f.i, f.d, f.quant, 0 as bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Quant Clinical Drug' as concept_class_id
+  select f.i, f.d, f.quant, 0 as bs, f.df, f.dv, f.cf, ' ' as bn, ' ' as bv, ' ' as cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Quant Clinical Drug' as concept_class_id
   from f
   where 0!=f.quant and ' '!=all(f.i, f.d, f.df)
   union
   -- Branded Drug
-  select f.i, f.d, 0 as quant, 0 as bs, f.df, f.dv, f.bn, f.bv, 'Branded Drug' as concept_class_id
+  select f.i, f.d, 0 as quant, 0 as bs, f.df, f.dv, f.cf, f.bn, f.bv, f.cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Branded Drug' as concept_class_id
   from f
   where ' '!=all(f.i, f.d, f.df, f.bn)
   union
   -- Clinical Drug
-  select f.i, f.d, 0 as quant, 0 as bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Clinical Drug' as concept_class_id
+  select f.i, f.d, 0 as quant, 0 as bs, f.df, f.dv, f.cf, ' ' as bn, ' ' as bv, ' ' as cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Clinical Drug' as concept_class_id
   from f
   where ' '!=all(f.i, f.d, f.df)
   union
   -- Branded Drug Form
-  select f.i, ' ' as d, 0 as quant, 0 as bs, f.df, f.dv, f.bn, f.bv, 'Branded Drug Form' as concept_class_id
+  select f.i, ' ' as d, 0 as quant, 0 as bs, f.df, f.dv, f.cf, f.bn, f.bv, f.cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Branded Drug Form' as concept_class_id
   from f
   where ' '!=all(f.i, f.df, f.bn)
   union
   -- Clinical Drug Form
-  select f.i, ' ' as d, 0 as quant, 0 as bs, f.df, f.dv, ' ' as bn, ' ' as bv, 'Clinical Drug Form' as concept_class_id
+  select f.i, ' ' as d, 0 as quant, 0 as bs, f.df, f.dv, f.cf, ' ' as bn, ' ' as bv, ' ' as cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Clinical Drug Form' as concept_class_id
   from f
   where ' '!=all(f.i, f.df)
   union
   -- Branded Drug Component
-  select f.i, f.d, 0 as quant, 0 as bs, ' ' as df, ' ' as dv, f.bn, f.bv, 'Branded Drug Comp' as concept_class_id
+  select f.i, f.d, 0 as quant, 0 as bs, ' ' as df, ' ' as dv, ' ' as cf, f.bn, f.bv, f.cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Branded Drug Comp' as concept_class_id
   from f
   where ' '!=all(f.i, f.d, f.bn)
   union
@@ -1306,20 +1314,63 @@ from (
     select 
       trim(regexp_substr(f.i, '[^\-]+', 1, levels.column_value)) as i,
       trim(regexp_substr(f.d, '[^\-]+', 1, levels.column_value)) as d,
-      0 as quant, 0 as bs, ' ' as df, ' ' as dv, ' ' as bn, ' ' as bv, 'Clinical Drug Comp' as concept_class_id
+      0 as quant, 0 as bs, ' ' as df, ' ' as dv, ' ' as cf, ' ' as bn, ' ' as bv, ' ' as cb, ' ' as mf, ' ' as mv, ' ' as cm, 'Clinical Drug Comp' as concept_class_id
     from f, table(cast(multiset(select level from dual connect by level <= length (regexp_replace(f.i, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
     where ' '!=all(f.i, f.d)
   ) where substr(d, 1, 1)!='i' -- don't create when the component is only an ingredient
-  minus
-  select i, d, quant, bs, df, dv, bn, bv, concept_class_id
-  from e
-) c
+) g
+where not exists (
+  select 1 from e h where g.i=h.i and g.d=h.d and g.quant=h.quant and g.bs=h.bs and g.df=h.df and g.dv=h.dv and g.bn=h.bn and g.bv=h.bv and g.mf=h.mf and g.mv=h.mv
+    and g.concept_class_id=h.concept_class_id
+)
 ;
 commit;
 
+-- Create missing extension
+drop table extension_expand purge;
+create table extension_expand as
+-- create missing: Pull descreasing number of attributes
+select 'XXX'||xxx_seq.nextval as concept_code, -- make sure xxx_seq is defined.
+  c.*
+from (select distinct i, d, quant, bs, df, dv, bn, bv, mf, mv, concept_class_id from expand) c
+;
+commit;
+
+
 -- Add to the various tables
+-- transfer q_to_r_noex from alternative df, bn, mf and create q_to_r
+drop table q_to_r purge;
+create table q_to_r as
+with et as (
+  select distinct concept_code,
+    ec.i_combo_code as i, ec.d_combo_code as d, 
+    case ea.quant when 0 then 0 else round(ea.quant, 3-floor(log(10, ea.quant))-1) end as quant, ea.box_size as bs,
+    ea.dose_form_code as df, ea.dose_form_vocab as dv,
+    c.dose_form_code as cf, -- the original ambiguous dose form
+    ea.brand_code as bn, brand_vocab as bv, 
+    c.brand_code as cb, -- the original ambiguous brand 
+    ea.supplier_code as mf, ea.supplier_vocab as mv,
+    c.mf_code as cm, -- the original ambiguous supplier
+    c.concept_class_id, 
+    r_did
+  from complete_concept_stage c join extension_combo ec using (concept_code) join extension_attribute ea using (concept_code) 
+  join q_to_r_noex on q_dcode=concept_code 
+)
+select ee.concept_code as q_dcode, r_did
+from et
+-- join through the original dose form code, brand code and supplier code
+join expand ex on ex.i=et.i and ex.d=et.d and ex.quant=et.quant and ex.bs=et.bs and ex.cf=et.cf and ex.cb=et.cb and ex.cm=et.cm and ex.concept_class_id=et.concept_class_id
+-- join to get the new concept_code
+join extension_expand ee on ee.i=ex.i and ee.d=ex.d and ee.quant=ex.quant and ee.bs=ex.bs and ee.df=ex.df and ee.dv=ex.dv and ee.bn=ex.bn and ee.bv=ex.bv and ee.mf=ex.mf and ee.mv=ex.mv
+  and ee.concept_class_id=ex.concept_class_id
+-- add existing maps
+union 
+select * from q_to_r_noex
+;
+commit;
+
 insert into extension_attribute (concept_code, quant, dose_form_code, dose_form_vocab, brand_code, brand_vocab, box_size, supplier_code, supplier_vocab, concept_class_id)
-select concept_code, quant, df, dv, bn, bv, bs, ' ' as supplier_code, ' ' as supplier_vocab, concept_class_id
+select concept_code, quant, df, dv, bn, bv, bs, mf, mv, concept_class_id
 from extension_expand
 ;
 
@@ -1683,7 +1734,8 @@ commit;
 * 7. Write RxNorm Extension *
 ****************************/
 
--- Temporary till RxNorm is stable
+-- Temporary till q_to_r is stable. Currently, it misses alternative df/bn/mf
+
 insert into q_to_r (q_dcode, r_did)
 select cn.concept_code as q_dcode, c.concept_id as r_did
 from (
@@ -1707,7 +1759,7 @@ from pack_name pn join concept c using (concept_name) where c.vocabulary_id like
 and not exists ( select 1 from pack_q_to_r pqr where pn.pack_concept_code=pqr.pack_concept_code
 );
 
-
+-- Cut here after fixing q_to_r
 
 truncate table concept_stage;
 truncate table concept_relationship_stage;

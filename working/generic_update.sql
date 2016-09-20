@@ -130,6 +130,7 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'RxNorm Extension' THEN 0
   WHEN c.vocabulary_id = 'Gemscript' THEN 1
   WHEN c.vocabulary_id = 'Cost Type' THEN 1
+  WHEN c.vocabulary_id = 'BDPM' THEN 1
   ELSE 0 -- in default we will not deprecate
 END = 1
 ;

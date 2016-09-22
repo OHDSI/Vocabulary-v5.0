@@ -411,7 +411,16 @@ IS
                                                        AND c2.concept_id = r.concept_id_2
                                                        AND r.concept_id_1 <> r.concept_id_2
                                                        AND r.invalid_reason IS NULL
-                                                       AND r.relationship_id = 'Maps to'))
+                                                       AND r.relationship_id = 'Maps to'
+                                                       AND NOT EXISTS (
+                                                            SELECT 1 FROM concept_relationship_stage crs_int
+                                                            WHERE crs_int.concept_code_1=c1.concept_code
+                                                            AND crs_int.vocabulary_id_1=c1.vocabulary_id
+                                                            AND crs_int.concept_code_2=c2.concept_code
+                                                            AND crs_int.vocabulary_id_2=c2.vocabulary_id
+                                                            AND crs_int.relationship_id=r.relationship_id
+                                                            AND crs_int.invalid_reason IS NOT NULL
+                                                       )))                                                       
                                 SELECT CONNECT_BY_ROOT concept_code_1 AS root_concept_code_1,
                                        u.concept_code_2,
                                        CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id_1,
@@ -775,7 +784,7 @@ IS
    PROCEDURE StartRelease
    IS
       crlf      VARCHAR2 (2) := UTL_TCP.crlf;
-      email     var_array := var_array ('timur.vakhitov@firstlinesoftware.com', 'reich@ohdsi.org', 'reich@omop.org');
+      email     var_array := var_array ('reich@ohdsi.org', 'reich@omop.org');
       cRet      VARCHAR2 (5000);
       cVocabs   VARCHAR2 (4000);
    BEGIN

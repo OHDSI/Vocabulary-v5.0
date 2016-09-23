@@ -227,3 +227,33 @@ where  valid_end_date <=SYSDATE or valid_end_date = to_date ('2099-12-31', 'YYYY
 union
 --Improper valid_start_date
 select concept_code, 'Improper valid_start_date' from drug_concept_stage where valid_start_date >  SYSDATE
+union
+select concept_code_1,'Duplicates in relationship_to_concept' from relationship_to_concept 
+join (
+  select concept_code_1, precedence from relationship_to_concept group by concept_code_1, precedence having count (1) >1
+) using (concept_code_1, precedence)
+order by 1
+union
+select concept_code_1,'Wrong vocabulary mapping' from relationship_to_concept a
+join devv5.concept b on a.concept_id_2=b.concept_id 
+where b.concept_class_id not in ('ATC','UCUM','RxNorm','RxNorm Extension')
+union
+--Check ATC,RXE mappings
+select concept_code,'Wrong invalid reason' from drug_concept_stage where standard_concept='S' and invalid_reason is not null
+union
+select distinct 
+    r1.concept_code_1, 'A couple of ingredients in a drug is mapped on the same RxNorm ingredient'
+--  ing1.concept_name, r2.concept_code_1, ing2.concept_name,  r1.concept_id_2, c.concept_name,
+--  i1.concept_code_1, d.concept_name -- uncomment if you want to see the drugs
+from r_to_c r1 
+join r_to_c r2 on r1.concept_id_2=r2.concept_id_2 and r1.concept_code_1!=r2.concept_code_1
+join internal_relationship_stage i1 on i1.concept_code_2=r1.concept_code_1
+join internal_relationship_stage i2 on i2.concept_code_2=r2.concept_code_1 and i1.concept_code_1=i2.concept_code_1
+join drug_concept_stage d on d.concept_code=i1.concept_code_1
+join drug_concept_stage ing1 on ing1.concept_code=r1.concept_code_1
+join drug_concept_stage ing2 on ing2.concept_code=r2.concept_code_1
+join concept c on c.concept_id=r1.concept_id_2
+order by r1.concept_id_2
+union
+select drug_concept_code,'0 in values' 
+from ds_stage where amount_value=0 or denominator_value=0 or numerator_value=0;

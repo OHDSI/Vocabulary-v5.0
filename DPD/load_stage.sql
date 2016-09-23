@@ -32,11 +32,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
-ALTER SESSION SET SKIP_UNUSABLE_INDEXES = TRUE; --disables error reporting of indexes and index partitions marked UNUSABLE
-ALTER INDEX idx_cs_concept_code UNUSABLE;
-ALTER INDEX idx_cs_concept_id UNUSABLE;
-ALTER INDEX idx_concept_code_1 UNUSABLE;
-ALTER INDEX idx_concept_code_2 UNUSABLE;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Run Input script
 

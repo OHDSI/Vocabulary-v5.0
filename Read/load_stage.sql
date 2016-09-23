@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. fill CONCEPT_STAGE and concept_relationship_stage from Read
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,

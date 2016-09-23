@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3 Load into concept_stage.
 -- Build Main Heading (Descriptors)
@@ -138,7 +140,8 @@ INSERT /*+ APPEND */ INTO  concept_synonym_stage (synonym_concept_code,
 		 u.str as synonym_name, 
 		4180186 AS language_concept_id                    -- English 
 	from concept_stage c
-	join umls.mrconso u on u.code=c.concept_code and u.sab = 'MSH' and u.suppress = 'N' and u.lat='ENG';
+	join umls.mrconso u on u.code=c.concept_code and u.sab = 'MSH' and u.suppress = 'N' and u.lat='ENG'
+	group by c.concept_code, u.str;
 COMMIT;
 
 --6 Deprecate 'Maps to' mappings to deprecated and upgraded concepts

@@ -37,6 +37,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Add ETC to concept_stage from RETCTBL0_ETC_ID
 INSERT /*+ APPEND */ INTO concept_stage (concept_id,

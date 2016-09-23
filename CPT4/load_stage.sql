@@ -20,8 +20,8 @@
 --1 Update latest_update field to new date
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'CPT4',
-                                          pVocabularyDate        => TO_DATE ('20150511', 'yyyymmdd'),
-                                          pVocabularyVersion     => '2015AA',
+                                          pVocabularyDate        => TO_DATE ('20160509', 'yyyymmdd'),
+                                          pVocabularyVersion     => '2016AA',
                                           pVocabularyDevSchema   => 'DEV_CPT4');
 END;
 COMMIT;
@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3 Load concepts into concept_stage from MRCONSO
 -- Main CPT codes. Str picked in certain order to get best concept_name

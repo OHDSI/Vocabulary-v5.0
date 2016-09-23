@@ -5,7 +5,7 @@ Prerequisites:
 - Schema UMLS
 - Working directory ICD10.
 
-1. Run load_stage.sql
+1. Run load_stage.sql (with updated pVocabularyDate = latest update date)
 2. Run generic_update.sql (from working directory)
 
  

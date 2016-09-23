@@ -10,7 +10,7 @@ Prerequisites:
 3. Exctract HCPCYYYY_CONTR_ANWEB.xlsx
 4. Open file and resave to ANWEB_V2.csv
 5. Load them into ANWEB_V2. Use the control files of the same name.
-6. Run load_stage.sql
+6. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 7. Run generic_update.sql (from working directory)
 
  

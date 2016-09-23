@@ -100,6 +100,14 @@ CREATE TABLE RXNSAT
 )
 ;
 
+CREATE TABLE ATC_REPLACES
+(
+   OLD_ATC_CODE   VARCHAR2 (100),
+   NEW_ATC_CODE   VARCHAR2 (100),
+   REPLACE_YEAR   VARCHAR2 (100)
+)
+;
+
 create index x_rxnconso_str on rxnconso(str) nologging;
 create index x_rxnconso_rxcui on rxnconso(rxcui) nologging;
 create index x_rxnconso_tty on rxnconso(tty) nologging;

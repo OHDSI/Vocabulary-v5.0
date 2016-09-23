@@ -4,7 +4,7 @@ Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
 - RxNorm must be loaded first
 - Working directory NDC.
-- Create package ApiGrabber using apigrabber.sql
+- Create package ApiGrabber using \working\packages\APIgrabber
 
 1. Run create_source_tables.sql
 2. Download NDC code distrbution file
@@ -19,5 +19,5 @@ Open the site http://www.fda.gov/Drugs/InformationOnDrugs/ucm142438.htm
 6. Extract LABELS using unzipxml.sh and load xml files using loadxml.ctl
 7. Extract rxnorm_mappings.zip and load rxnorm_mappings.txt using rxnorm_mappings.ctl
 8. Run parse_XML.sql
-9. Run load_stage.sql
+9. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 10. Run generic_update.sql (from working directory)

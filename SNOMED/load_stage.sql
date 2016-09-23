@@ -22,8 +22,8 @@
 -- If the international version is already loaded, updating will not affect it
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'SNOMED',
-                                          pVocabularyDate        => TO_DATE ('20160131', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'SnomedCT Release 20160131',
+                                          pVocabularyDate        => TO_DATE ('20160731', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'SnomedCT Release 20160731',
                                           pVocabularyDevSchema   => 'DEV_SNOMED');
 END;
 COMMIT;
@@ -32,6 +32,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3 Create core version of DM+D
 --3.1. We need to create temporary table of DM+D with the same structure as concept_stage and pseudo-column 'insert_id'
@@ -1662,6 +1664,9 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
 COMMIT;
 
 --12 Working with replacement mappings
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
+
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;

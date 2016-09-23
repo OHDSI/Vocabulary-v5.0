@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Create concept_stage from HCPCS
 INSERT /*+ APPEND */ INTO concept_stage (concept_id,
@@ -741,8 +743,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
 COMMIT;
 
 --10 Add upgrade relationships
-INSERT /*+ APPEND */ INTO  concept_relationship_stage (
-                                        concept_code_1,
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
                                         vocabulary_id_1,
@@ -761,48 +762,37 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (
      FROM (SELECT A.HCPC AS concept_code_1,
                   A.XREF1 AS concept_code_2,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT) AS valid_start_date,
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
-                     AS valid_end_date
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF1 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL
+            WHERE A.XREF1 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL
            UNION ALL
            SELECT A.HCPC AS concept_code_1,
                   A.XREF2,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT),
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
+                  TO_DATE ('20991231', 'yyyymmdd')
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF2 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL
+            WHERE A.XREF2 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL
            UNION ALL
            SELECT A.HCPC AS concept_code_1,
                   A.XREF3,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT),
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
+                  TO_DATE ('20991231', 'yyyymmdd')
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF3 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL
+            WHERE A.XREF3 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL
            UNION ALL
            SELECT A.HCPC AS concept_code_1,
                   A.XREF4,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT),
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
+                  TO_DATE ('20991231', 'yyyymmdd')
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF4 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL
+            WHERE A.XREF4 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL
            UNION ALL
            SELECT A.HCPC AS concept_code_1,
                   A.XREF5,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT),
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
+                  TO_DATE ('20991231', 'yyyymmdd')
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF5 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL) i
+            WHERE A.XREF5 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL) i
     WHERE NOT EXISTS
              (SELECT 1
                 FROM concept_relationship_stage crs_int

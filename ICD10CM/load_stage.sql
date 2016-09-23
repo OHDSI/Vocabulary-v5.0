@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Load into concept_stage from ICD10CM_TABLE
 INSERT /*+ APPEND */ INTO concept_stage (concept_id,
@@ -79,7 +81,63 @@ BEGIN
 END;
 COMMIT;
 
---5 Update domain_id for ICD10CM from SNOMED
+--5 Working with replacement mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
+END;
+COMMIT;
+
+--6 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
+END;
+COMMIT;		
+
+--7 Add mapping from deprecated to fresh concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
+END;
+COMMIT;
+
+--8 Delete ambiguous 'Maps to' mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
+END;
+COMMIT;
+
+
+--9 Add "subsumes" relationship between concepts where the concept_code is like of another
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT c1.concept_code AS concept_code_1,
+          c2.concept_code AS concept_code_2,
+          c1.vocabulary_id AS vocabulary_id_1,
+          c1.vocabulary_id AS vocabulary_id_2,
+          'Subsumes' AS relationship_id,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = c1.vocabulary_id)
+             AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+          NULL AS invalid_reason
+     FROM concept_stage c1, concept_stage c2
+    WHERE     c2.concept_code LIKE c1.concept_code || '%'
+          AND c1.concept_code <> c2.concept_code
+          AND NOT EXISTS
+                 (SELECT 1
+                    FROM concept_relationship_stage r_int
+                   WHERE     r_int.concept_code_1 = c1.concept_code
+                         AND r_int.concept_code_2 = c2.concept_code
+                         AND r_int.relationship_id = 'Subsumes');
+COMMIT;
+
+--10 Update domain_id for ICD10CM from SNOMED
 --create 1st temporary table ICD10CM_domain with direct mappings
 create table filled_domain NOLOGGING as
 	with domain_map2value as (--ICD10CM have direct "Maps to value" mapping
@@ -159,7 +217,7 @@ create table ICD10CM_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication
 CREATE UNIQUE INDEX idx_ICD10CM_domain ON ICD10CM_domain (concept_code) NOLOGGING;
 
---6 Simplify the list by removing Observations
+--11 Simplify the list by removing Observations
 update ICD10CM_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -172,7 +230,7 @@ COMMIT;
 -- Check that all domain_id are exists in domain table
 ALTER TABLE ICD10CM_domain ADD CONSTRAINT fk_ICD10CM_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);
 
---7 Update each domain_id with the domains field from ICD10CM_domain.
+--12 Update each domain_id with the domains field from ICD10CM_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
@@ -181,7 +239,7 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'ICD10CM';
 COMMIT;
 
---8 Load into concept_synonym_stage name from ICD10CM_TABLE
+--13 Load into concept_synonym_stage name from ICD10CM_TABLE
 INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -203,7 +261,7 @@ INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                                  IN (LONG_NAME, SHORT_NAME));
 COMMIT;
 
---9 Clean up
+--14 Clean up
 DROP TABLE ICD10CM_domain PURGE;
 DROP TABLE filled_domain PURGE;	
 

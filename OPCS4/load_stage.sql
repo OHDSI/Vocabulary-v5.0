@@ -20,8 +20,8 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'OPCS4',
-                                          pVocabularyDate        => TO_DATE ('20151001', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'OPCS4 nhs_dmwb_20.0.1_20151001000001',
+                                          pVocabularyDate        => TO_DATE ('20160401', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'OPCS4 nhs_dmwb_21.0.0_20160401000001',
                                           pVocabularyDevSchema   => 'DEV_OPCS4');
 END;
 COMMIT;
@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Load into concept_stage from opcs
  --remove long dashes

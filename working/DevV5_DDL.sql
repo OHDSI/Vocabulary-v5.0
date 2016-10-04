@@ -151,7 +151,6 @@ ALTER TABLE concept_ancestor ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (anc
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
 ALTER TABLE source_to_concept_map ADD CONSTRAINT xpk_source_to_concept_map PRIMARY KEY (source_vocabulary_id,target_concept_id,source_code,valid_end_date);
 ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id);
-ALTER TABLE pack_content ADD CONSTRAINT xpk_pack_content PRIMARY KEY (pack_concept_id, drug_concept_id, amount);
 
 -- Create external keys
 
@@ -196,6 +195,7 @@ CREATE INDEX idx_drug_strength_id_1 ON drug_strength (drug_concept_id ASC);
 CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id ASC);
 CREATE INDEX idx_pack_content_id_1 ON pack_content (pack_concept_id ASC);
 CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id ASC);
+CREATE UNIQUE INDEX u_pack_content ON pack_content (pack_concept_id, drug_concept_id, amount);
 CREATE INDEX idx_cs_concept_code ON concept_stage (concept_code);
 CREATE INDEX idx_cs_concept_id ON concept_stage (concept_id);
 CREATE INDEX idx_concept_code_1 ON concept_relationship_stage (concept_code_1);

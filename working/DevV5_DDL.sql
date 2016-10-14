@@ -183,6 +183,7 @@ ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_2 FOREIGN KEY (
 CREATE INDEX idx_concept_voc_code ON concept (vocabulary_id, concept_code) NOLOGGING;
 CREATE INDEX idx_concept_domain_id ON concept (domain_id ASC) NOLOGGING;
 CREATE INDEX idx_concept_class_id ON concept (concept_class_id ASC) NOLOGGING;
+CREATE UNIQUE INDEX unique_concept_code ON concept (CASE WHEN vocabulary_id NOT IN ('DRG', 'SMQ') AND concept_code <> 'OMOP generated' THEN concept_code || '-!-' || vocabulary_id ELSE NULL END) NOLOGGING;
 CREATE INDEX idx_concept_relationship_id_2 ON concept_relationship (concept_id_2 ASC) NOLOGGING; 
 CREATE INDEX idx_concept_relationship_id_3 ON concept_relationship (relationship_id ASC) NOLOGGING; 
 CREATE INDEX idx_concept_synonym_id ON concept_synonym (concept_id ASC) NOLOGGING;

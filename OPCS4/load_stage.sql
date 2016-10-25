@@ -20,8 +20,8 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'OPCS4',
-                                          pVocabularyDate        => TO_DATE ('20160401', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'OPCS4 nhs_dmwb_21.0.0_20160401000001',
+                                          pVocabularyDate        => TO_DATE ('20161001', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'OPCS4 nhs_dmwb_22.0.0_20161001000001',
                                           pVocabularyDevSchema   => 'DEV_OPCS4');
 END;
 COMMIT;

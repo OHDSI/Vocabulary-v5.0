@@ -11,7 +11,7 @@ Prerequisites:
 hlgt_hlt.asc
 hlt.asc
 hlt_pt.asc
-intl_ord.asc
+hlgt.asc
 llt.asc
 mdhier.asc
 pt.asc

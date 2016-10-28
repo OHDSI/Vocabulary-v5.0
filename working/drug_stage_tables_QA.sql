@@ -50,13 +50,13 @@ select distinct drug_concept_code, 'denominator_unit doesnt exist in expected li
 union
 -- drug codes are not exist in a drug_concept_stage but present in ds_stage
 select distinct s.drug_concept_code, 'ds_stage has drug_codes absent in drug_concept_stage' from ds_stage s 
-left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id like  '%Drug%'
+left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id='Drug Product'
 left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
 where (a.concept_code is null and a.concept_code not in (select concept_code from non_drug) )
 union
 -- ingredient codes not exist in a drug_concept_stage but present in ds_stage
 select distinct s.drug_concept_code, 'ds_stage has ingredient_codes absent in drug_concept_stage' from ds_stage s 
-left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id like '%Drug%'
+left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id='Drug Product'
 left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
 where b.concept_code is null 
 union
@@ -67,7 +67,7 @@ or (AMOUNT_VALUE is  null and AMOUNT_UNIT is not null)
 union
 -- drugs aren't present in drug_strength table
 select distinct concept_code, 'Drug product doesnt have drug_strength info' from drug_concept_stage
- where concept_code not in (select drug_concept_code from ds_stage) and concept_class_id like '%Drug%'
+ where concept_code not in (select drug_concept_code from ds_stage) and concept_class_id='Drug Product'
 union
 --Quantitive drugs don't have denominator value or DENOMINATOR_unit
 select distinct A.CONCEPT_CODE, 'Quantitive drug doesnt have denominator value or DENOMINATOR_unit'  from drug_concept_stage a join  ds_stage s on a.concept_code = s.drug_concept_code and a.concept_class_id like '%Quant%' 
@@ -100,19 +100,21 @@ join drug_concept_stage b on b.concept_code = s.concept_code_2
 )
 union
 --Drug to Ingredient
-select distinct concept_code,'Missing relationship to Ingredient'  from drug_concept_stage where concept_class_id like '%Drug%' and concept_code not in(
+select distinct concept_code,'Missing relationship to Ingredient'  from drug_concept_stage where concept_class_id='Drug Product'
+and concept_code not in(
 select a.concept_code from  drug_concept_stage a 
 join internal_relationship_stage s on s.concept_code_1= a.concept_code  
 join drug_concept_stage b on b.concept_code = s.concept_code_2
- and  a.concept_class_id like '%Drug%' and b.concept_class_id ='Ingredient'
+ and  a.concept_class_id='Drug Product' and b.concept_class_id ='Ingredient'
 )
 union
 --Drug (non Component) to Form
-select distinct concept_code,'Missing relationship to Dose Form'  from drug_concept_stage where concept_class_id like '%Drug%' and concept_class_id not like '%Comp%' and concept_code not in(
+select distinct concept_code,'Missing relationship to Dose Form'  from drug_concept_stage where concept_class_id='Drug Product'
+and concept_class_id not like '%Comp%' and concept_code not in(
 select a.concept_code from  drug_concept_stage a 
 join internal_relationship_stage s on s.concept_code_1= a.concept_code  
 join drug_concept_stage b on b.concept_code = s.concept_code_2
- and  a.concept_class_id like '%Drug%' and a.concept_class_id not like '%Comp%' and b.concept_class_id ='Dose Form'
+ and  a.concept_class_id='Drug Product' and a.concept_class_id not like '%Comp%' and b.concept_class_id ='Dose Form'
 )
 union
 --several brand names

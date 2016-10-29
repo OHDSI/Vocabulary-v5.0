@@ -12,5 +12,6 @@ cat "09_internal_relationship_stage.sql" >> whole_script.sql
 cat "10_concept_synonym_stage_vs_relationship_to_concept.sql" >> whole_script.sql
 cat "10_ds_stage.sql" >> whole_script.sql
 cat "11_set_dates.sql" >> whole_script.sql
+cat "12_post_processing.sql" >> whole_script.sql
 
 echo "commit;" >> whole_script.sql

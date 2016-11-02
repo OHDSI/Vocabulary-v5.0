@@ -61,9 +61,8 @@ select distinct s.drug_concept_code, 'impossible combination of values and units
 (denominator_VALUE is not null and denominator_UNIT is null) or (NUMERATOR_VALUE is not null and denominator_UNIT is null and DENOMINATOR_VALUE is null and NUMERATOR_UNIT !='%')
 or (AMOUNT_VALUE is null and AMOUNT_UNIT is not null)
 union
-<<<<<<< HEAD
 --Different DENOMINATOR_VALUE or DENOMINATOR_unit in the same drug
-=======
+
 -- drugs aren't present in drug_strength table
 select distinct concept_code, 'Drug product doesnt have drug_strength info' from drug_concept_stage
  where concept_code not in (select drug_concept_code from ds_stage) and concept_class_id='Drug Product'
@@ -73,7 +72,6 @@ select distinct A.CONCEPT_CODE, 'Quantitive drug doesnt have denominator value o
 and (s.DENOMINATOR_VALUE is null or DENOMINATOR_unit is null)
 union
 --Different DENOMINATOR_VALUE or DENOMINATOR_VALUE in the same drug
->>>>>>> 6e812da8affc315d699db072c35136985fb70d9d
 select distinct a.drug_concept_code, 'Different DENOMINATOR_VALUE or DENOMINATOR_unit in the same drug' 
  from ds_stage a join ds_stage b on a.drug_concept_code = b.drug_concept_code 
  and (a.DENOMINATOR_VALUE is null and b.DENOMINATOR_VALUE is not null  

@@ -18,7 +18,7 @@
 **************************************************************************/
 --this algorithm shows you concept_code and an error type related to this code, 
 --for ds_stage it gets drug_concept_code
---for relationship_to_concept it gives concpept_code_1
+--for relationship_to_concept it gives concept_code_1
 --for internal_relationship it gives concpept_code_1
 --for drug_concept_stage it gives concept_code
 -- 1. relationship_to_concept
@@ -62,23 +62,12 @@ select distinct s.drug_concept_code, 'impossible combination of values and units
 or (AMOUNT_VALUE is null and AMOUNT_UNIT is not null)
 union
 --Different DENOMINATOR_VALUE or DENOMINATOR_unit in the same drug
-
--- drugs aren't present in drug_strength table
-select distinct concept_code, 'Drug product doesnt have drug_strength info' from drug_concept_stage
- where concept_code not in (select drug_concept_code from ds_stage) and concept_class_id='Drug Product'
-union
---Quantitive drugs don't have denominator value or DENOMINATOR_unit
-select distinct A.CONCEPT_CODE, 'Quantitive drug doesnt have denominator value or DENOMINATOR_unit'  from drug_concept_stage a join  ds_stage s on a.concept_code = s.drug_concept_code and a.concept_class_id like '%Quant%' 
-and (s.DENOMINATOR_VALUE is null or DENOMINATOR_unit is null)
-union
---Different DENOMINATOR_VALUE or DENOMINATOR_VALUE in the same drug
 select distinct a.drug_concept_code, 'Different DENOMINATOR_VALUE or DENOMINATOR_unit in the same drug' 
  from ds_stage a join ds_stage b on a.drug_concept_code = b.drug_concept_code 
  and (a.DENOMINATOR_VALUE is null and b.DENOMINATOR_VALUE is not null  
  or a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE
  or a.DENOMINATOR_unit != b.DENOMINATOR_unit)
 union
-<<<<<<< HEAD
 --ds_stage dublicates
 select drug_concept_code, 'ds_stage dublicates' from (
 select drug_concept_code, ingredient_concept_code from ds_stage group by drug_concept_code, ingredient_concept_code having count (1) > 1 
@@ -87,43 +76,6 @@ union
 --3. internal_relationship_dublicates
 select concept_code_1, 'internal_relationship_dublicates' from (
 select concept_code_1, concept_code_2 from internal_relationship_stage group by concept_code_1, concept_code_2 having count (1) > 1 
-=======
---different values for the same ingredient and drug, look separately on numerator_value, DENOMINATOR_VALUE and Units
-select a.drug_concept_code, 'different dosage for the same drug-ingredient combination' 
-from ds_stage a join ds_stage b on a.drug_concept_code = b.drug_concept_code and a.INGREDIENT_CONCEPT_CODE = b.INGREDIENT_CONCEPT_CODE and (
-a.numerator_value != b.numerator_value or a.numerator_unit != b.numerator_unit or a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE or a.DENOMINATOR_unit != b.DENOMINATOR_unit
-or a.numerator_value is null and  b.numerator_value is not null or a.numerator_unit is null and  b.numerator_unit is not null or a.DENOMINATOR_VALUE is null and b.DENOMINATOR_VALUE is not null or 
-a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null
-)
-union
---3. internal_relationship
---missing relationships:
---Branded Drug to Brand Name
-select distinct concept_code,'Missing relationship to Brand Name'  from drug_concept_stage where concept_class_id like '%Branded%' and concept_code not in(
-select a.concept_code from  drug_concept_stage a 
-join internal_relationship_stage s on s.concept_code_1= a.concept_code  
-join drug_concept_stage b on b.concept_code = s.concept_code_2
- and  
- a.concept_class_id like '%Branded%' and b.concept_class_id ='Brand Name'
-)
-union
---Drug to Ingredient
-select distinct concept_code,'Missing relationship to Ingredient'  from drug_concept_stage where concept_class_id='Drug Product'
-and concept_code not in(
-select a.concept_code from  drug_concept_stage a 
-join internal_relationship_stage s on s.concept_code_1= a.concept_code  
-join drug_concept_stage b on b.concept_code = s.concept_code_2
- and  a.concept_class_id='Drug Product' and b.concept_class_id ='Ingredient'
-)
-union
---Drug (non Component) to Form
-select distinct concept_code,'Missing relationship to Dose Form'  from drug_concept_stage where concept_class_id='Drug Product'
-and concept_class_id not like '%Comp%' and concept_code not in(
-select a.concept_code from  drug_concept_stage a 
-join internal_relationship_stage s on s.concept_code_1= a.concept_code  
-join drug_concept_stage b on b.concept_code = s.concept_code_2
- and  a.concept_class_id='Drug Product' and a.concept_class_id not like '%Comp%' and b.concept_class_id ='Dose Form'
->>>>>>> 6e812da8affc315d699db072c35136985fb70d9d
 )
 union
 --4.drug_concept_stage
@@ -246,7 +198,6 @@ lower (numerator_unit) in ('g')
 and lower (denominator_unit) in ('l')
 )
 and numerator_value / denominator_value > 1000
-
 union
 --wrong dosages ,> 1
 select drug_concept_code, 'wrong dosages > 1' from ds_stage 
@@ -279,7 +230,6 @@ join drug_concept_stage  b on b.concept_code = concept_code_2
 where b.concept_class_id = z.concept_class_id
 group by concept_code_1,b.concept_class_id having count (1) >1
 )
-
 union
 --sequence intersection
 select a.concept_code, 'sequence intersection' from drug_concept_stage a 
@@ -291,7 +241,6 @@ select concept_code_1,'invalid_concept_id_2' from relationship_to_concept
 join concept on concept_id = concept_id_2 
 where invalid_reason is not null
 union
-
 --map to non-stand_ingredient
 select concept_code_1,'map to non-stand_ingredient' from relationship_to_concept 
 join drug_concept_stage s on s.concept_code = concept_code_1  
@@ -305,9 +254,21 @@ where invalid_reason is not null
 union
 --standard but invalid concept
 select concept_code,'standard but invalid concept' from drug_concept_stage where standard_concept='S' and invalid_reason is not null
---union
---still don't have query to check incorrect Units mapping
---select concept_code, ''from relationship_to_concept a
---join concept c on concept_id_2 = concept_id
+union
+--standard ingredients have replacemt mapping 
+select concept_code,'standard ingredients have replacemt mapping'  from drug_concept_stage 
+join internal_relationship_stage on concept_code_1 = concept_code
+where concept_class_id ='Ingredient' and standard_concept is not null
+union
+--non-standard ingredients don't have replacemt mapping 
+select concept_code,'non-standard ingredients dont have replacemt mapping ' from drug_concept_stage 
+left join internal_relationship_stage on concept_code_1 = concept_code
+where concept_class_id ='Ingredient' and standard_concept is  null and concept_code_2 is null
+union
+--wrong dosages ,> 1000, with conversion
+select drug_concept_code, 'wrong dosages > 1000, with conversion' from ds_stage ds
+join relationship_to_concept n on numerator_unit = n.concept_code_1 and n.concept_id_2 = 8576
+join relationship_to_concept d on denominator_unit = d.concept_code_1 and d.concept_id_2 = 8587
+where  numerator_value*n.conversion_factor / (denominator_value*d.conversion_factor) > 1000
 ) group by error_type
 ;

@@ -179,7 +179,7 @@ select PACK_CONCEPT_CODE, DRUG_CONCEPT_CODE  from pc_stage group by DRUG_CONCEPT
 union 
 --non drug as a pack component
 select DRUG_CONCEPT_CODE, 'non drug as a pack component' from pc_stage 
-join drug_concept_stage on DRUG_CONCEPT_CODE = concept_code and concept_code !='Drug Product'
+join drug_concept_stage on DRUG_CONCEPT_CODE = concept_code and concept_class_id !='Drug Product'
 union
 --wrong drug classes
 select concept_code, 'wrong drug classes' from drug_concept_stage where concept_class_id not in ('Ingredient', 'Unit', 'Drug Product', 'Dose Form', 'Supplier', 'Brand Name')

@@ -3,9 +3,11 @@
 
 -- drugs absent in drug_strength table
 select distinct concept_code, 'Drug product doesnt have drug_strength info' from drug_concept_stage
- where concept_code not in (select drug_concept_code from ds_stage) and concept_class_id='Drug Product'
+ where concept_code not in (select drug_concept_code from ds_stage) and concept_class_id='Drug Product' and concept_code not in 
+ (select pack_concept_code from pc_stage)
  union
  select distinct concept_code,'Missing relationship to Ingredient'  from drug_concept_stage where concept_class_id='Drug Product'
+  and concept_code not in  (select pack_concept_code from pc_stage)
 and concept_code not in(
 select a.concept_code from  drug_concept_stage a 
 join internal_relationship_stage s on s.concept_code_1= a.concept_code  
@@ -31,7 +33,7 @@ select distinct amount_unit_concept_id from drug_strength join concept c on c.co
 union 
 select distinct numerator_unit_concept_id from drug_strength join concept c on c.concept_id = drug_concept_id and c.vocabulary_id = 'RxNorm'
 union 
-select distinct numerator_unit_concept_id from drug_strength join concept c on c.concept_id = drug_concept_id and c.vocabulary_id = 'RxNorm') where  amount_unit_concept_id is not null
+select distinct denominator_unit_concept_id from drug_strength join concept c on c.concept_id = drug_concept_id and c.vocabulary_id = 'RxNorm') where  amount_unit_concept_id is not null
 );
 --anyway need to look throught this table , mistakes here cost too much
 select * from relationship_to_concept 

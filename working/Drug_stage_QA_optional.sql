@@ -56,3 +56,151 @@ join relationship_to_concept b on ingredient_concept_code= concept_code_1 and pr
 group by  drug_concept_code, concept_id_2 having count (1) > 1)
 ;
 --select * from source_table where enr = '101149'
+
+-- some tests , have features usable only in AMT vocabulary, but can be reused with the other vocabularies
+select * from ds_stage 
+join drug_concept_stage on concept_code = drug_concept_code
+where denominator_value is not null and rownum < 100
+;
+select * from ds_stage 
+join drug_concept_stage on concept_code = drug_concept_code
+where denominator_value is  null 
+and regexp_like (concept_name , '\d+ Ml$')
+and regexp_substr (concept_name , '\d+ Ml$') != '5 Ml' and  regexp_substr (concept_name , '\d+ Ml$') != '10 Ml'
+and rownum < 100
+;
+select * from drug_concept_stage where domain_id is null or domain_id !='Drug'
+;
+select s.concept_name as source_name, S.concept_class_id as source_class, c.concept_name as target_name, c.concept_class_id as target_class, PRECEDENCE, CONVERSION_FACTOR
+ from relationship_to_concept  
+join concept c on concept_id = concept_id_2
+join drug_concept_stage s on s.concept_code = concept_code_1
+where s.concept_class_id = 'Ingredient'
+and UTL_MATCH.JARO_WINKLER_SIMILARITY (s.concept_name, c.concept_name) < 80
+;
+select * from ds_stage 
+join drug_concept_stage on drug_concept_code = concept_code
+where rownum < 2000
+;
+select * from ds_stage where AMOUNT_UNIT ='%' or NUMERATOR_UNIT ='%' or DENOMINATOR_UNIT ='%'
+;
+select distinct a.concept_class_id, b.concept_class_id from internal_relationship_stage i
+join drug_concept_stage a on i.concept_code_1= a.concept_code
+join drug_concept_stage b on i.concept_code_2= b.concept_code
+;
+--missing relationship to Dose Form
+select * from drug_concept_stage where concept_code not in (
+select distinct a.concept_code from internal_relationship_stage i
+join drug_concept_stage a on i.concept_code_1= a.concept_code
+join drug_concept_stage b on i.concept_code_2= b.concept_code
+where b.CONCEPT_CLASS_ID = 'Dose Form'
+)
+and concept_class_id = 'Drug Product'
+;
+--missing relationship to Brand Name
+select * from drug_concept_stage where concept_code not in (
+select distinct a.concept_code from internal_relationship_stage i
+join drug_concept_stage a on i.concept_code_1= a.concept_code
+join drug_concept_stage b on i.concept_code_2= b.concept_code
+where b.CONCEPT_CLASS_ID = 'Brand Name'
+)
+and SOURCE_CONCEPT_CLASS_ID = 'Trade Product Pack'
+and rownum < 1000
+;
+--missing relationship to Supplier
+select * from drug_concept_stage where concept_code not in (
+select distinct a.concept_code from internal_relationship_stage i
+join drug_concept_stage a on i.concept_code_1= a.concept_code
+join drug_concept_stage b on i.concept_code_2= b.concept_code
+where b.CONCEPT_CLASS_ID = 'Supplier'
+)
+and SOURCE_CONCEPT_CLASS_ID = 'Trade Product Pack' and regexp_like (concept_name, '\(...+\)')  
+and rownum < 1000
+;
+select * from drug_concept_stage
+;
+select s.concept_name as source_name, S.concept_class_id as source_class, c.concept_name as target_name, c.concept_class_id as target_class, PRECEDENCE, CONVERSION_FACTOR
+ from relationship_to_concept  
+join concept c on concept_id = concept_id_2
+join drug_concept_stage s on s.concept_code = concept_code_1
+where s.concept_class_id = 'Brand Name'
+and UTL_MATCH.JARO_WINKLER_SIMILARITY (lower (s.concept_name), lower (c.concept_name)) < 90
+;
+select count (1)
+--s.concept_name as source_name, S.concept_class_id as source_class, c.concept_name as target_name, c.concept_class_id as target_class, PRECEDENCE, CONVERSION_FACTOR
+ from relationship_to_concept  
+join concept c on concept_id = concept_id_2
+join drug_concept_stage s on s.concept_code = concept_code_1
+where s.concept_class_id = 'Supplier'
+--and UTL_MATCH.JARO_WINKLER_SIMILARITY (lower (s.concept_name), lower (c.concept_name)) < 90
+;
+select count (1) 
+--s.concept_name as source_name, S.concept_class_id as source_class, c.concept_name as target_name, c.concept_class_id as target_class, PRECEDENCE, CONVERSION_FACTOR
+ from relationship_to_concept  
+join concept c on concept_id = concept_id_2
+join drug_concept_stage s on s.concept_code = concept_code_1
+where s.concept_class_id = 'Brand Name'
+--and UTL_MATCH.JARO_WINKLER_SIMILARITY (lower (s.concept_name), lower (c.concept_name)) < 90
+;
+select count (1) 
+--s.concept_name as source_name, S.concept_class_id as source_class, c.concept_name as target_name, c.concept_class_id as target_class, PRECEDENCE, CONVERSION_FACTOR
+ from relationship_to_concept  
+join concept c on concept_id = concept_id_2
+join drug_concept_stage s on s.concept_code = concept_code_1
+where s.concept_class_id = 'Ingredient'
+;
+select s.concept_class_id , count (1) 
+ from relationship_to_concept  
+join concept c on concept_id = concept_id_2
+join drug_concept_stage s on s.concept_code = concept_code_1
+group by  s.concept_class_id 
+;
+select distinct b.concept_name from ds_stage a
+join drug_concept_stage b on a.ingredient_concept_code = concept_code
+ where ingredient_concept_code not in (select concept_code_1 from relationship_to_concept)
+ ;
+ select-- count (1) 
+s.concept_name as source_name, S.concept_class_id as source_class, c.concept_name as target_name, c.concept_class_id as target_class, PRECEDENCE, CONVERSION_FACTOR
+ from relationship_to_concept  
+join concept c on concept_id = concept_id_2
+join drug_concept_stage s on s.concept_code = concept_code_1
+where s.concept_class_id = 'Unit'
+;
+select * from concept where vocabulary_id = 'UCUM'
+;
+select b.concept_name, a.concept_name, p.* from pc_stage p
+join drug_concept_stage a on a.CONCEPT_CODE = p.DRUG_CONCEPT_CODE
+join drug_concept_stage b on b.CONCEPT_CODE = p.PACK_CONCEPT_CODE
+;
+--missing relationship to Brand Name
+select * from drug_concept_stage where concept_code not in (
+select distinct a.concept_code from internal_relationship_stage i
+join drug_concept_stage a on i.concept_code_1= a.concept_code
+join drug_concept_stage b on i.concept_code_2= b.concept_code
+where b.CONCEPT_CLASS_ID = 'Brand Name'
+)
+and SOURCE_CONCEPT_CLASS_ID = 'Trade Product Pack'
+and rownum < 1000
+;
+--missing relationship to Supplier
+select  * from drug_concept_stage where concept_code NOT in (
+select distinct a.concept_code from internal_relationship_stage i
+join drug_concept_stage a on i.concept_code_1= a.concept_code
+join drug_concept_stage b on i.concept_code_2= b.concept_code
+where b.CONCEPT_CLASS_ID = 'Supplier'
+)
+and SOURCE_CONCEPT_CLASS_ID = 'Trade Product Pack' --and LENGTH ( regexp_SUBSTR  (concept_name, '\(...+\)?')  ) < 20
+and concept_code in (select pack_concept_code from pc_stage)
+and rownum < 1000
+;
+--missing relationship to Brand Name
+select  * from drug_concept_stage where concept_code not in (
+select distinct a.concept_code from internal_relationship_stage i
+join drug_concept_stage a on i.concept_code_1= a.concept_code
+join drug_concept_stage b on i.concept_code_2= b.concept_code
+where b.CONCEPT_CLASS_ID = 'Brand Name' and a.concept_code is not null
+)
+and SOURCE_CONCEPT_CLASS_ID = 'Trade Product Pack' 
+and concept_code in (select pack_concept_code from pc_stage)
+and rownum < 1000
+;

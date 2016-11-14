@@ -397,7 +397,16 @@ IS
                                                                                    'Concept was_a to',
                                                                                    'Maps to')
                                                        AND crs.invalid_reason IS NULL
-                                                       AND ( (crs.vocabulary_id_1 = crs.vocabulary_id_2 AND crs.relationship_id <> 'Maps to') OR crs.relationship_id = 'Maps to')
+                                                       AND (
+                                                       (
+                                                         (
+                                                           (crs.vocabulary_id_1 = crs.vocabulary_id_2 AND crs.vocabulary_id_1 NOT IN ('RxNorm','RxNorm Extension') AND crs.vocabulary_id_2 NOT IN ('RxNorm','RxNorm Extension')) 
+                                                           OR (crs.vocabulary_id_1 IN ('RxNorm','RxNorm Extension') AND crs.vocabulary_id_2 IN ('RxNorm','RxNorm Extension'))
+                                                         ) 
+                                                         AND crs.relationship_id <> 'Maps to'
+                                                       ) 
+                                                         OR crs.relationship_id = 'Maps to'
+                                                       )                                                       
                                                        AND crs.concept_code_1 <> crs.concept_code_2
                                                 UNION ALL
                                                 --some concepts might be in 'base' tables
@@ -411,7 +420,17 @@ IS
                                                        AND c2.concept_id = r.concept_id_2
                                                        AND r.concept_id_1 <> r.concept_id_2
                                                        AND r.invalid_reason IS NULL
-                                                       AND r.relationship_id = 'Maps to'))
+                                                       AND r.relationship_id = 'Maps to'
+                                                       --don't use already deprecated relationships
+                                                       AND NOT EXISTS (
+                                                            SELECT 1 FROM concept_relationship_stage crs_int
+                                                            WHERE crs_int.concept_code_1=c1.concept_code
+                                                            AND crs_int.vocabulary_id_1=c1.vocabulary_id
+                                                            AND crs_int.concept_code_2=c2.concept_code
+                                                            AND crs_int.vocabulary_id_2=c2.vocabulary_id
+                                                            AND crs_int.relationship_id=r.relationship_id
+                                                            AND crs_int.invalid_reason IS NOT NULL
+                                                       )))                                                       
                                 SELECT CONNECT_BY_ROOT concept_code_1 AS root_concept_code_1,
                                        u.concept_code_2,
                                        CONNECT_BY_ROOT vocabulary_id_1 AS root_vocabulary_id_1,
@@ -420,11 +439,11 @@ IS
                                        NULL AS invalid_reason
                                   FROM upgraded_concepts u
                                  WHERE CONNECT_BY_ISLEAF = 1
-                            CONNECT BY NOCYCLE PRIOR concept_code_2 = concept_code_1 AND PRIOR vocabulary_id_2 = vocabulary_id_1) i
+                            CONNECT BY NOCYCLE PRIOR concept_code_2 = concept_code_1 AND PRIOR vocabulary_id_2 = vocabulary_id_1) int
                      WHERE EXISTS
                               (SELECT 1
                                  FROM concept_relationship_stage crs
-                                WHERE crs.concept_code_1 = root_concept_code_1 AND crs.vocabulary_id_1 = root_vocabulary_id_1)
+                                WHERE crs.concept_code_1 = int.root_concept_code_1 AND crs.vocabulary_id_1 = int.root_vocabulary_id_1)                    
                   GROUP BY root_concept_code_1,
                            concept_code_2,
                            root_vocabulary_id_1,
@@ -779,7 +798,7 @@ IS
       cRet      VARCHAR2 (5000);
       cVocabs   VARCHAR2 (4000);
    BEGIN
-      pConceptAncestor;
+      --pConceptAncestor;
       DEVV4.v5_to_v4;
       CREATE_PROD_BACKUP@link_prodv5;
       CREATE_PRODV4@link_prodv5;

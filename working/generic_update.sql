@@ -251,7 +251,8 @@ MERGE INTO concept_relationship d
         WHERE r.concept_id_1 = rel.concept_id_1 AND r.concept_id_2 = rel.concept_id_2 
           AND r.relationship_id = rel.relationship_id AND r.valid_end_date <> rel.valid_end_date  
     ) o ON (d.ROWID = o.rid)
-WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reason = o.invalid_reason;
+WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reason = o.invalid_reason
+WHERE (NVL (d.invalid_reason, 'X') <> NVL (o.invalid_reason, 'X') OR d.valid_end_date <> o.valid_end_date);
 
 COMMIT; 
 
@@ -531,58 +532,33 @@ COMMIT;
 -- Since they work outside the _stage tables, they will be restricted to the vocabularies worked on 
 
 -- 13. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S' 
-INSERT /*+ APPEND */ INTO  concept_relationship (
-                                        concept_id_1,
-                                        concept_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-	SELECT 
-      c.concept_id,
-      c.concept_id,
-      'Maps to' AS relationship_id,
-      v.latest_update, -- date of update
-      TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-      NULL
-	  FROM concept c
-    JOIN vocabulary v ON v.vocabulary_id = c.vocabulary_id
-	 WHERE v.latest_update IS NOT NULL -- only the current vocabs
-       AND c.standard_concept = 'S'
-		   AND NOT EXISTS -- a mapping like this
-				  (SELECT 1
-					 FROM concept_relationship i
-					WHERE c.concept_id = i.concept_id_1
-						  AND c.concept_id = i.concept_id_2
-						  AND i.relationship_id = 'Maps to')
-
-;
-
-INSERT /*+ APPEND */ INTO  concept_relationship (
-                                        concept_id_1,
-                                        concept_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-	SELECT 
-      c.concept_id,
-      c.concept_id,
-      'Mapped from' AS relationship_id,
-      v.latest_update, -- date of update
-      TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
-      NULL
-	  FROM concept c
-    JOIN vocabulary v ON v.vocabulary_id = c.vocabulary_id
-	 WHERE v.latest_update IS NOT NULL -- only the current vocabs
-       AND c.standard_concept = 'S'
-		   AND NOT EXISTS -- a mapping like this
-				  (SELECT 1
-					 FROM concept_relationship i
-					WHERE c.concept_id = i.concept_id_1
-						  AND c.concept_id = i.concept_id_2
-						  AND i.relationship_id = 'Mapped from');
-
+MERGE INTO concept_relationship r
+     USING (SELECT c.concept_id, v.latest_update, lat.relationship_id
+              FROM concept c,
+                   vocabulary v,
+                   LATERAL (    SELECT CASE WHEN LEVEL = 1 THEN 'Maps to' ELSE 'Mapped from' END relationship_id
+                                  FROM DUAL
+                            CONNECT BY LEVEL <= 2) lat
+             WHERE v.vocabulary_id = c.vocabulary_id AND v.latest_update IS NOT NULL AND c.standard_concept = 'S' AND invalid_reason IS NULL) i
+        ON (r.concept_id_1 = i.concept_id AND r.concept_id_2 = i.concept_id AND r.relationship_id = i.relationship_id)
+WHEN MATCHED
+THEN
+   UPDATE SET r.invalid_reason = NULL, r.valid_end_date = TO_DATE ('20991231', 'yyyymmdd')
+           WHERE (r.invalid_reason IS NOT NULL OR r.valid_end_date <> TO_DATE ('20991231', 'yyyymmdd'))
+WHEN NOT MATCHED
+THEN
+   INSERT     (concept_id_1,
+               concept_id_2,
+               relationship_id,
+               valid_start_date,
+               valid_end_date,
+               invalid_reason)
+       VALUES (i.concept_id,
+               i.concept_id,
+               i.relationship_id,
+               i.latest_update,
+               TO_DATE ('20991231', 'yyyymmdd'),
+               NULL);
 COMMIT;
 
 -- 14. 'Maps to' or 'Mapped from' relationships should not exist where 

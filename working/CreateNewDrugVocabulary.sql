@@ -1453,7 +1453,7 @@ with pre_u as (
       else null
     end as v,
     case
-      when nu.rxn_unit='%' then ' %' -- percent (gas in Rx)
+      when nu.rxn_unit='%' then '%' -- percent (gas in Rx)
       when eds.denominator_value is not null then nu.rxn_unit||'/'||de.rxn_unit -- concentration (liquid)
       when eds.numerator_value is not null then nu.rxn_unit||'/'||de.rxn_unit -- concentration (liquid)
       when eds.amount_value is not null then au.rxn_unit -- absolute (solid)
@@ -1558,6 +1558,29 @@ union
 group by quant, concept_code, df_name, bn_name, box, mf_name 
 ;
 commit;
+
+-- Temporary till q_to_r is stable. Currently, it misses alternative df/bn/mf
+
+drop table namesmate purge;
+create table namesmate as
+select concept_name 
+from (
+  select concept_name, concept_code from extension_name where not exists (select 1 from q_to_r where q_dcode=concept_code)
+)
+join (
+  select concept_name, concept_class_id from concept where concept.vocabulary_id like 'RxNorm%' and invalid_reason is null
+) using(concept_name)
+;
+
+insert into q_to_r (q_dcode, r_did)
+select cn.concept_code as q_dcode, c.concept_id as r_did
+from namesmate
+join extension_name cn using(concept_name)
+join concept c using(concept_name)
+where c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c.invalid_reason is null
+;
+commit;
+
 
 -- Process Packs
 -- create XXX type concept_codes for hte new ones
@@ -1734,25 +1757,7 @@ commit;
 * 7. Write RxNorm Extension *
 ****************************/
 
--- Temporary till q_to_r is stable. Currently, it misses alternative df/bn/mf
-
-insert into q_to_r (q_dcode, r_did)
-select cn.concept_code as q_dcode, c.concept_id as r_did
-from (
-  select concept_name 
-  from (
-    select concept_name, concept_code from extension_name where not exists (select 1 from q_to_r where q_dcode=concept_code)
-  )
-  join (
-    select concept_name, concept_class_id from concept where concept.vocabulary_id like 'RxNorm%' and invalid_reason is null
-  ) using(concept_name)
-)
-join extension_name cn using(concept_name)
-join concept c using(concept_name)
-where c.vocabulary_id like 'RxNorm%' and c.invalid_reason is null
-;
-commit;
-
+-- Temporary till stable xxxxxxxxxxxxxxxxxx
 insert into pack_q_to_r
 select pn.pack_concept_code, c.concept_id as clinical, null as branded, null as supplied, null as marketed, null as neither
 from pack_name pn join concept c using (concept_name) where c.vocabulary_id like 'RxNorm%' and invalid_reason is null 
@@ -2809,7 +2814,7 @@ create table xxx_replace (
 );
 
 drop sequence omop_seq; 
-/*
+
 declare
  ex number;
 begin
@@ -2824,7 +2829,6 @@ select max(iex)+1 into ex from (
       when others then null;
   end;
 end;
-*/
 
 -- generate OMOP codes for new concepts
 insert into xxx_replace

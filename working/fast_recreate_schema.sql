@@ -70,17 +70,23 @@ begin
     execute immediate 'ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_concept FOREIGN KEY (concept_id) REFERENCES concept (concept_id) ENABLE NOVALIDATE';
     execute immediate 'ALTER TABLE concept_synonym ADD CONSTRAINT unique_synonyms UNIQUE (concept_id,concept_synonym_name,language_concept_id)';
-    execute immediate 'CREATE INDEX idx_concept_code ON concept (concept_code ASC) NOLOGGING';
+    execute immediate 'CREATE INDEX idx_uniq_cc ON concept (vocabulary_id,concept_code) NOLOGGING';
+	/*
+	execute immediate 'CREATE INDEX idx_concept_code ON concept (concept_code ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_vocabluary_id ON concept (vocabulary_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_domain_id ON concept (domain_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_class_id ON concept (concept_class_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_relationship_id_1 ON concept_relationship (concept_id_1 ASC) NOLOGGING';
-    execute immediate 'CREATE INDEX idx_concept_relationship_id_2 ON concept_relationship (concept_id_2 ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_concept_relationship_id_3 ON concept_relationship (relationship_id ASC) NOLOGGING';
+	*/
+	execute immediate 'CREATE INDEX idx_concept_relationship_id_2 ON concept_relationship (concept_id_2) NOLOGGING';
+	execute immediate q'[CREATE UNIQUE INDEX unique_concept_code ON concept (CASE WHEN vocabulary_id NOT IN ('DRG', 'SMQ') AND concept_code <> 'OMOP generated' THEN concept_code || '-!-' || vocabulary_id ELSE NULL END) NOLOGGING]';
     execute immediate 'CREATE INDEX idx_concept_synonym_id ON concept_synonym (concept_id ASC) NOLOGGING';
     execute immediate 'CREATE INDEX idx_csyn_concept_syn_name ON concept_synonym (concept_synonym_name) NOLOGGING';
-    execute immediate 'CREATE INDEX idx_drug_strength_id_1 ON drug_strength (drug_concept_id) NOLOGGING';
+    /*
+	execute immediate 'CREATE INDEX idx_drug_strength_id_1 ON drug_strength (drug_concept_id) NOLOGGING';
     execute immediate 'CREATE INDEX idx_drug_strength_id_2 ON drug_strength (ingredient_concept_id) NOLOGGING';
+	*/
     execute immediate 'CREATE INDEX idx_pack_content_id_1 ON pack_content (pack_concept_id) NOLOGGING';
     execute immediate 'CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id) NOLOGGING';
     execute immediate 'ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id)';

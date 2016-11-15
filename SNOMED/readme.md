@@ -6,7 +6,7 @@ Prerequisites:
 - Working directory SNOMED.
 
 1. Run create_source_tables.sql
-2. Download the international SNOMED file SnomedCT_Release_INT_YYYYMMDD.zip (RF2 Release) from http://www.nlm.nih.gov/research/umls/licensedcontent/snomedctfiles.html.
+2. Download the international SNOMED file SnomedCT_Release_INT_YYYYMMDD.zip (RF2 Release) from https://www.nlm.nih.gov/healthit/snomedct/international.html.
 2. Extract the release date from the file name.
 3. Extract the following files from the folder SnomedCT_Release_INT_YYYYMMDD\Full\Terminology:
 - sct2_Concept_Full_INT_YYYYMMDD.txt

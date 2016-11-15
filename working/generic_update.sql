@@ -251,7 +251,8 @@ MERGE INTO concept_relationship d
         WHERE r.concept_id_1 = rel.concept_id_1 AND r.concept_id_2 = rel.concept_id_2 
           AND r.relationship_id = rel.relationship_id AND r.valid_end_date <> rel.valid_end_date  
     ) o ON (d.ROWID = o.rid)
-WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reason = o.invalid_reason;
+WHEN MATCHED THEN UPDATE SET d.valid_end_date = o.valid_end_date, d.invalid_reason = o.invalid_reason
+WHERE (NVL (d.invalid_reason, 'X') <> NVL (o.invalid_reason, 'X') OR d.valid_end_date <> o.valid_end_date);
 
 COMMIT; 
 

@@ -84,15 +84,18 @@ set amount_value=round(amount_value,5),
 update ds_0_2
 set new_denom_value=null where DENOMINATOR_UNIT='24 hours';
 
+update ds_0_2 
+set NUMERATOR_VALUE=NUMERATOR_VALUE/NEW_DENOM_VALUE 
+where drug_concept_code in (
+select concept_code from drug_concept_stage where regexp_like (concept_name , '/(10|5|15)\sMl')
+and concept_name like '%Oral%' and regexp_like (concept_name , '\s(10|5|15)\sMl$'));
+
 update ds_0_2
 set new_denom_value=null
 where drug_concept_code in (
 select concept_code from drug_concept_stage where regexp_like (concept_name , '/(10|5|15)\sMl')
 and concept_name like '%Oral%' and regexp_like (concept_name , '\s(10|5|15)\sMl$'));--not real volume
 
-update ds_0_2
-set NEW_DENOM_VALUE=trim(regexp_replace(regexp_substr(lower(concept_name),'(\d)+\s(ml|16 hours|hour|square cm|mg|g|drop|24 hours|actuation)'), '(ml|16 hours|hour|square cm|mg|g|drop|24 hours|actuation)'))
-where NEW_DENOM_VALUE is null and DENOMINATOR_UNIT is not null;
 
 update ds_0_2
 set amount_unit=initcap(amount_unit),
@@ -118,6 +121,10 @@ update ds_0_2
 set NUMERATOR_VALUE=NUMERATOR_VALUE*(regexp_substr(regexp_substr (concept_name , ',\s\d+ Ml$'),'\d+'))/new_denom_value,
 NEW_DENOM_VALUE=(regexp_substr(regexp_substr (concept_name , ',\s\d+ Ml$'),'\d+'))
 where new_denom_value in ('5','10','15')  and regexp_substr (concept_name , ',\s\d+ Ml$') != ', 10 Ml' and regexp_substr (concept_name , ',\s\d+ Ml$') != ', 15 Ml' and regexp_substr (concept_name , ',\s\d+ Ml$') != ', 5 Ml';
+
+update ds_0_2 
+set NEW_DENOM_VALUE=(regexp_substr(regexp_substr (concept_name , ',\s\d+ Ml$'),'\d+')),NUMERATOR_VALUE=NUMERATOR_VALUE*(regexp_substr(regexp_substr (concept_name , ',\s\d+ Ml$'),'\d+'))
+where new_denom_value is null and DENOMINATOR_UNIT='Ml' and regexp_substr (concept_name , ',\s\d+ Ml$') != ', 10 Ml' and regexp_substr (concept_name , ',\s\d+ Ml$') != ', 15 Ml' and regexp_substr (concept_name , ',\s\d+ Ml$') != ', 5 Ml';
 
 
 truncate table ds_stage ;

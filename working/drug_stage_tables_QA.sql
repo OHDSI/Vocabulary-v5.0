@@ -182,7 +182,7 @@ select DRUG_CONCEPT_CODE, 'non drug as a pack component' from pc_stage
 join drug_concept_stage on DRUG_CONCEPT_CODE = concept_code and concept_class_id !='Drug Product'
 union
 --wrong drug classes
-select concept_code, 'wrong drug classes' from drug_concept_stage where concept_class_id not in ('Ingredient', 'Unit', 'Drug Product', 'Dose Form', 'Supplier', 'Brand Name')
+select concept_code, 'wrong drug classes' from drug_concept_stage where concept_class_id not in ('Ingredient', 'Unit', 'Drug Product', 'Dose Form', 'Supplier', 'Brand Name', 'Device')
 union
 --wrong domains
 select concept_code, 'wrong domain_id' from drug_concept_stage where domain_id not in ('Drug', 'Device')

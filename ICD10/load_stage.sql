@@ -13,15 +13,15 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
+* Authors: Timur Vakhitov, Dmitry Dymshyts, Christian Reich
 * Date: 2016
 **************************************************************************/
 
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'ICD10',
-                                          pVocabularyDate        => TO_DATE ('20151109', 'yyyymmdd'),
-                                          pVocabularyVersion     => '2015 Release',
+                                          pVocabularyDate        => TO_DATE ('20150922', 'yyyymmdd'),
+                                          pVocabularyVersion     => '2016 Release',
                                           pVocabularyDevSchema   => 'DEV_ICD10');
 END;
 COMMIT;
@@ -33,9 +33,47 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Load CONCEPT_STAGE from the existing one. The reason is that there is no good source for these concepts
-INSERT INTO CONCEPT_STAGE (concept_id,
-                           concept_name,
+--3. Create temporary tables with classes and modifiers from XML source
+--modifier classes
+create table modifier_classes nologging as
+    SELECT t.modifierclass_code, t.modifierclass_modifier, t.superclass_code, t1.*
+    FROM ICDCLAML i, 
+    XMLTABLE ('/ClaML/ModifierClass' PASSING i.xmlfield 
+    COLUMNS
+    modifierclass_code VARCHAR2(100) PATH '@code',
+    modifierclass_modifier VARCHAR2(100) PATH '@modifier',
+    superclass_code VARCHAR2(100) PATH 'SuperClass/@code',
+    rubric XMLType path 'Rubric'
+    ) t,
+    XMLTABLE ('Rubric' PASSING t.rubric 
+    COLUMNS
+    rubric_id VARCHAR2(100) PATH '@id',  
+    rubric_kind VARCHAR2(100) PATH '@kind',
+    Label VARCHAR2(100) PATH 'Label'
+    ) t1; 
+  
+--classes
+create table classes nologging as
+    SELECT t.class_code, t1.rubric_kind, t.superclass_code, cast(substr(t1.Label,1,1000) as varchar(1000)) as Label
+    FROM ICDCLAML i, 
+    XMLTABLE ('/ClaML/Class' PASSING i.xmlfield 
+    COLUMNS
+    class_code VARCHAR2(100) PATH '@code',
+    superclass_code VARCHAR2(100) PATH 'SuperClass/@code',
+    rubric XMLType path 'Rubric'
+    ) t,
+    XMLTABLE ('Rubric' PASSING t.rubric 
+    COLUMNS
+    rubric_kind VARCHAR2(100) PATH '@kind',
+    Label CLOB PATH 'Label'
+    ) t1;
+
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'classes');
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'modifier_classes');	
+
+--4. Fill the concept_stage
+
+INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
                            concept_class_id,
@@ -44,58 +82,101 @@ INSERT INTO CONCEPT_STAGE (concept_id,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-   SELECT concept_id,
-          concept_name,
-          domain_id,
-          vocabulary_id,
-          concept_class_id,
-          standard_concept,
-          concept_code,
-          valid_start_date,
-          valid_end_date,
-          invalid_reason
-     FROM concept
-    WHERE vocabulary_id = 'ICD10' AND invalid_reason IS NULL;
+with
+codes_need_modified as (
+    --define all the concepts having modifiers, use filter a.RUBRIC_KIND ='modifierlink'
+    select  distinct a.CLASS_CODE, a.label,a.SUPERCLASS_CODE, b.CLASS_CODE as concept_code, b.label as concept_name, b.SUPERCLASS_CODE as super_concept_code 
+     from classes a 
+    join classes b on b.class_code like a.class_code|| '%' 
+      where a.RUBRIC_KIND =  'modifierlink' and b.RUBRIC_KIND = 'preferred' and b.class_code not like '%-%'
+),
+codes as (
+    select a.*, b.MODIFIERCLASS_CODE, b.label as modifer_name from codes_need_modified a 
+    left join modifier_classes b on class_code = regexp_replace (regexp_replace (MODIFIERCLASS_MODIFIER, '^(I\d\d)|(S\d\d)'), '_\d') and b.RUBRIC_KIND ='preferred' 
+    and MODIFIERCLASS_MODIFIER !='I70M10_4' --looks like a bug
+),
+concepts_modifiers as (
+    --add all the modifiers using patterns described in a table
+    --'I70M10_4' with or without gangrene related to gout, seems to be a bug, modifier says [See site code at the beginning of this chapter]
+    select a.concept_code||b.MODIFIERCLASS_CODE as concept_code, a.concept_name||','|| b.MODIFER_NAME as concept_name from codes a 
+    join codes b on (
+        (regexp_substr (a.label, '\D\d\d') = b.concept_code  and a.label=b.label and a.class_code != b.class_code)
+        or (a.label = '[See at the beginning of this block for subdivisions]' and a.label=b.label and a.class_code != b.class_code and b.concept_code ='K25')
+        or (a.label= '[See site code at the beginning of this chapter]' and a.label =b.label and a.class_code != b.class_code and b.concept_code like '_00' and regexp_substr (b.concept_code, '^\D')=regexp_substr (a.concept_code, '^\D'))
+    ) where (
+        (a.concept_code not like '%.%' and b.MODIFIERCLASS_CODE like '%.%') 
+        or (a.concept_code  like '%.%' and b.MODIFIERCLASS_CODE not like '%.%')
+    )
+    union 
+    --basic modifiers having relationship modifier - concept
+    select a.concept_code||a.MODIFIERCLASS_CODE as concept_code, a.concept_name||', '|| a.MODIFER_NAME from codes a
+    where (
+        (a.concept_code not like '%.%' and a.MODIFIERCLASS_CODE like '%.%') 
+        or (a.concept_code  like '%.%' and a.MODIFIERCLASS_CODE not like '%.%')
+    ) and a.MODIFIERCLASS_CODE is not null
+)
+select concept_name,
+    null as domain_id,
+    'ICD10' as vocabulary_id,
+    case 
+        when length(concept_code)=3 then 'ICD10 Hierarchy'
+    else 
+        'ICD10 code' 
+    end as concept_class_id,
+    null as standard_concept,
+    concept_code,
+    (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = 'ICD10')
+             AS valid_start_date,
+    to_date('20991231','YYYYMMDD') as valid_end_date,
+    null as invalid_reason
+from (
+    --full list of concepts 
+    select * from concepts_modifiers
+    union
+    select class_code, label from classes where RUBRIC_KIND ='preferred' and class_code not like '%-%'
+) where length(concept_code)>=3;
 COMMIT;	
 
---4. Create file with mappings for medical coder from the existing one
+--5. Create file with mappings for medical coder from the existing one
 SELECT *
   FROM concept c, concept_relationship r
  WHERE     c.concept_id = r.concept_id_1
        AND c.vocabulary_id = 'ICD10'
        AND r.invalid_reason IS NULL;
 
---5. Append file from medical coder to concept_relationship_stage
+--6. Append file from medical coder to concept_relationship_stage
 BEGIN
    DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
 END;
 COMMIT;
 
---6. Working with replacement mappings
+--7. Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---7. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--8. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;	
 
---8. Add mapping from deprecated to fresh concepts
+--9. Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;		 
 
---9. Delete ambiguous 'Maps to' mappings
+--10. Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---10. Add "subsumes" relationship between concepts where the concept_code is like of another
+--11. Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
@@ -126,7 +207,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Subsumes');
 COMMIT;
 
---11. update domain_id for ICD10 from SNOMED
+--12. update domain_id for ICD10 from SNOMED
 --create 1st temporary table ICD10_domain with direct mappings
 create table filled_domain NOLOGGING as
 	with domain_map2value as (--ICD10 have direct "Maps to value" mapping
@@ -206,7 +287,7 @@ create table ICD10_domain NOLOGGING as
 -- INDEX was set as UNIQUE to prevent concept_code duplication
 CREATE UNIQUE INDEX idx_ICD10_domain ON ICD10_domain (concept_code) NOLOGGING;
 
---16 Simplify the list by removing Observations
+--13. Simplify the list by removing Observations
 update ICD10_domain set domain_id=trim('/' FROM replace('/'||domain_id||'/','/Observation/','/'))
 where '/'||domain_id||'/' like '%/Observation/%'
 and instr(domain_id,'/')<>0;
@@ -221,7 +302,7 @@ update ICD10_domain set domain_id='Measurement' where domain_id='Meas Value/Meas
 update ICD10_domain set domain_id='Condition' where domain_id='Condition/Spec Disease Status';
 COMMIT;
 
---12. update each domain_id with the domains field from ICD10_domain.
+--14. update each domain_id with the domains field from ICD10_domain.
 UPDATE concept_stage c
    SET (domain_id) =
           (SELECT domain_id
@@ -230,8 +311,10 @@ UPDATE concept_stage c
  WHERE c.vocabulary_id = 'ICD10';
 COMMIT;
 
---13. Clean up
+--15. Clean up
 DROP TABLE ICD10_domain PURGE;
 DROP TABLE filled_domain PURGE;
+DROP TABLE modifier_classes PURGE;
+DROP TABLE classes PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

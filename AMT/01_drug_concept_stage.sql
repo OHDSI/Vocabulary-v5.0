@@ -21,10 +21,25 @@ drop table supplier_2;
 create table supplier_2 as
 select distinct supplier from supplier;
 INSERT INTO SUPPLIER_2 (SUPPLIER) VALUES('Apo');
+INSERT INTO SUPPLIER_2 (SUPPLIER) VALUES('Sun');
 INSERT INTO SUPPLIER_2 (SUPPLIER) VALUES('David Craig');
 INSERT INTO SUPPLIER_2 (SUPPLIER) VALUES ('Parke Davis');
-INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ( 'Bioceuticals');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Bioceuticals');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Ipc');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Rbx');
 INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Dakota');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Dbl');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Scp');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Myx');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Aft');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Douglas');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Omega');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Bnm');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Qv');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Gxp');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Fbm');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Drla');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Csl');
 
 alter table supplier_2
 add concept_Code varchar(255);
@@ -72,6 +87,12 @@ select distinct substr(CONCEPT_NAME,1,242)||' [Drug Pack]' as concept_name,'Drug
 CONCEPT_CLASS_ID in ('Contain Trade Pack','Med Product Pack','Trade Product Pack','Med Product Unit','Trade Product Unit')
 and (CONCEPT_NAME like '%(&)%' or  REGEXP_COUNT(concept_name,'\sx\s')>1 or concept_name like '%Trisequens, 28%')
  );  
+
+insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,domain_id,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, SOURCE_CONCEPT_CLASS_ID)
+select distinct CONCEPT_NAME, 'AMT', 'Device', '', CONCEPT_CODE, '','Device', TO_DATE('2016/11/01', 'yyyy/mm/dd') as valid_start_date,TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, '',CONCEPT_CLASS_ID
+from non_drug;
+
+
 DELETE DRUG_CONCEPT_STAGE WHERE CONCEPT_CODE in (select CONCEPT_CODE from non_drug);
  
 update drug_concept_stage 

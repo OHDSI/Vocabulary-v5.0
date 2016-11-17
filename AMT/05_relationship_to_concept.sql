@@ -47,3 +47,12 @@ insert into RELATIONSHIP_TO_CONCEPT
 select concept_code_1,'AMT',CONCEPT_id_2,cast (precedence as number),null from aut_ing_all_mapped;
 
 delete relationship_to_concept where concept_code_1='65191011000036105';
+
+update drug_concept_stage set concept_name='Independent Pharmacy Cooperative' where concept_name='Ipc';
+update drug_concept_stage set concept_name='Sun Pharmaceutical' where concept_name='Sun';
+update drug_concept_stage set concept_name='Boucher & Muir Pty Ltd' where concept_name='Bnm';
+update drug_concept_stage set concept_name='Pharma GXP' where concept_name='Gxp';
+update drug_concept_stage set concept_name='Douglas Pharmaceuticals' where concept_name='Douglas';
+update drug_concept_stage set concept_name='FBM-PHARMA' where concept_name='Fbm';
+
+

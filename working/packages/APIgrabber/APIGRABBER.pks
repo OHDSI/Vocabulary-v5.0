@@ -2,8 +2,6 @@ CREATE OR REPLACE PACKAGE DEV_TIMUR.APIGrabber
 IS
    PROCEDURE StartGrabber;
 
-   PROCEDURE GetRxNorm2NDC_Mappings;
-
    FUNCTION fhttpuritype (url IN VARCHAR2)
       RETURN XMLTYPE;
 END;

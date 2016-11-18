@@ -98,6 +98,7 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
     gChunkErrTable constant varchar2(100):='chunks_errors';
     crlf varchar2(2) := utl_tcp.crlf;
     gCurrentSchema constant varchar2(50):= sys_context ('userenv', 'CURRENT_SCHEMA');
+    gExecCounter number:=0;
     gMailTo constant varchar2(50):= 'timur.vakhitov@firstlinesoftware.com';
     
     procedure SendMailHTML (subject in varchar2, txt_email in varchar2) is
@@ -138,11 +139,15 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
     end;
     
     function fhttpuritype(url in varchar2) return xmltype is
+    /*
+        DBMS_PARALLEL_EXECUTE creates another sessions, so can't see our UTL_HTTP.set_wallet
+        this is workaround
+    */
     begin
         UTL_HTTP.set_wallet ('file:/home/vtimur/wallet', 'wallet_password');
         return HTTPURITYPE(url).getXML();
     end;
-    procedure RunTask (pTaskName in varchar2, pSQLsrc in varchar2, pSQLurl in varchar2) is
+    procedure RunTask (pTaskName in varchar2, pSQLsrc in varchar2, pSQLurl in varchar2, pResumeTask in boolean default false) is
     /*
         procedure gets aggregated data using HTTPURITYPE and DBMS_PARALLEL_EXECUTE
     */
@@ -152,7 +157,9 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
     
     begin
     
-        execute immediate 'truncate table '||gRawTable;
+        if not pResumeTask then
+            execute immediate 'truncate table '||gRawTable;
+        end if;
         execute immediate 'truncate table '||gConceptTable;
         execute immediate 'truncate table '||gLogTable;
         execute immediate 'truncate table '||gChunkErrTable;
@@ -160,7 +167,7 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
         commit;
          
         DBMS_PARALLEL_EXECUTE.CREATE_TASK (pTaskName); --create the task
-        DBMS_PARALLEL_EXECUTE.CREATE_CHUNKS_BY_ROWID(pTaskName, USER, upper(gConceptTable), true, 100); --chunk the gConceptTable by ROWID
+        DBMS_PARALLEL_EXECUTE.CREATE_CHUNKS_BY_ROWID(pTaskName, USER, upper(gConceptTable), by_row => true, chunk_size => 100); --split the gConceptTable by ROWID
                 
         l_SQL_stmt:='
             INSERT INTO '||gRawTable||'
@@ -189,8 +196,11 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
     l_sql_errors number;
     l_mail_subj varchar2(100);
     l_mail_body varchar2(1000);
+    l_txt_errors varchar2(4000);
     begin
-        execute immediate 'select count(*) from '||gChunkErrTable into l_chunk_errors;
+        --execute immediate 'select count(distinct error_message) from '||gChunkErrTable||' where status = ''PROCESSED_WITH_ERROR''' into l_chunk_errors;
+        execute immediate 'select count(error_message), listagg(error_message, '''||crlf||''') within group (order by error_message) 
+            from (select distinct error_message from '||gChunkErrTable||' where status = ''PROCESSED_WITH_ERROR'')' into l_chunk_errors, l_txt_errors;
         execute immediate 'select count(*) from '||gLogTable into l_sql_errors;
         
         if l_chunk_errors>0 or l_sql_errors>0 then
@@ -199,7 +209,8 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
             if l_chunk_errors=0 then 
                 l_mail_body:=l_mail_body||l_chunk_errors; 
             else 
-                l_mail_body:=l_mail_body||'<b>'||l_chunk_errors||'</b>, see SELECT * FROM '||gCurrentSchema||'.'||gChunkErrTable; 
+                l_mail_body:=l_mail_body||'<b>'||l_chunk_errors||'</b>, see SELECT * FROM '||gCurrentSchema||'.'||gChunkErrTable;
+                l_mail_body:=l_mail_body||crlf||l_txt_errors||crlf; 
             end if;
             l_mail_body:=l_mail_body||crlf||'Number of SQL errors: ';
             if l_sql_errors=0 then 
@@ -214,7 +225,7 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
         return l_chunk_errors+l_sql_errors;
     end;
     
-    procedure GetAllNDC is
+    procedure GetAllNDC (pResumeTask in boolean default false) is
     /*
         gets all NDC statuses from https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc=xxx
     */
@@ -224,24 +235,35 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
     l_taskname constant varchar2(100):='GetAllNDC';
     l_cnt_old number;
     l_cnt_now number;
+    l_SQLsrc varchar2(4000);
     begin
+        l_SQLsrc:=
+            q'[select c.concept_code from devv5.concept c where c.vocabulary_id='NDC' and c.concept_class_id='11-digit NDC'
+                union 
+                select rm.ndc_code from rxnorm2ndc_mappings rm
+                union
+                select sm.ndc_code from devv5.spl2ndc_mappings sm
+            ]';
+        if pResumeTask then
+            l_SQLsrc:='select concept_code from ('||l_SQLsrc||') minus select concept_code from '||gRawTable;
+        end if;
         l_mail_subj:='JOB "'||l_taskname||'" was started';
+        if gExecCounter<>0 then
+            l_mail_subj:=l_mail_subj||' [iteration='||(gExecCounter+1)||']';
+        end if;        
         l_mail_body:='Time: '||to_char(sysdate,'YYYYMMDD HH24:MI:SS');
         SendMailHTML(l_mail_subj,l_mail_body);    
         RunTask (
             pTaskName => l_taskname,
-            pSQLsrc     => q'[select c.concept_code from devv5.concept c where c.vocabulary_id='NDC' and c.concept_class_id='11-digit NDC'
-                            union 
-                            select rm.ndc_code from rxnorm2ndc_mappings rm
-                            union
-                            select sm.ndc_code from devv5.spl2ndc_mappings sm
-                            ]',
-            pSQLurl     => q'[APIGrabber.fhttpuritype('https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc='||concept_code)]'
+            pSQLsrc   => l_SQLsrc,          
+            pSQLurl     => q'[APIGrabber.fhttpuritype('https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc='||concept_code)]',
+            pResumeTask => pResumeTask
         );
         commit;
         
         if GetTaskStatus(l_taskname)=0 then
             --parse XML
+            gExecCounter:=0;
             execute immediate 'truncate table ndc_history_tmp';
             execute immediate 'insert /*+ APPEND */ into ndc_history_tmp 
             select c.concept_code,
@@ -264,6 +286,14 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
             l_mail_body:='Parsed concepts: <b>'||l_cnt_old||' -> '||l_cnt_now||'</b>';
             l_mail_body:=l_mail_body||crlf||'Time: '||to_char(sysdate,'YYYYMMDD HH24:MI:SS');
             SendMailHTML(l_mail_subj,l_mail_body);
+        else
+            --resume task
+            if gExecCounter < 5 then
+                gExecCounter:=gExecCounter+1;
+                GetAllNDC (pResumeTask=>true);
+            else
+                gExecCounter:=0;
+            end if;        
         end if;
         
         exception when others then
@@ -275,7 +305,7 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
             --raise;
     end;
     
-    procedure GetRxNorm2NDC_Mappings is
+    procedure GetRxNorm2NDC_Mappings (pResumeTask in boolean default false) is
     /*
         gets all RxNorm to NDC mappings from https://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1
     */
@@ -285,19 +315,29 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
     l_taskname constant varchar2(100):='RxNorm2NDC_Mappings';
     l_cnt_old number;
     l_cnt_now number;
+    l_SQLsrc varchar2(4000);
     begin
+        l_SQLsrc:= q'[select c.concept_code from devv5.concept c where c.vocabulary_id='RxNorm']';
+        if pResumeTask then
+            l_SQLsrc:='select concept_code from ('||l_SQLsrc||') minus select concept_code from '||gRawTable;
+        end if;
         l_mail_subj:='JOB "'||l_taskname||'" was started';
+        if gExecCounter<>0 then
+            l_mail_subj:=l_mail_subj||' [iteration='||(gExecCounter+1)||']';
+        end if;
         l_mail_body:='Time: '||to_char(sysdate,'YYYYMMDD HH24:MI:SS');
         SendMailHTML(l_mail_subj,l_mail_body);    
         RunTask (
-            pTaskName => l_taskname,
-            pSQLsrc     => q'[select c.concept_code from devv5.concept c where c.vocabulary_id='RxNorm']',
-            pSQLurl     => q'[APIGrabber.fhttpuritype('https://rxnav.nlm.nih.gov/REST/rxcui/'||concept_code||'/allndcs?history=1')]'
+            pTaskName   => l_taskname,
+            pSQLsrc     => l_SQLsrc,
+            pSQLurl     => q'[APIGrabber.fhttpuritype('https://rxnav.nlm.nih.gov/REST/rxcui/'||concept_code||'/allndcs?history=1')]',
+            pResumeTask => pResumeTask
         );
         commit;
         
         if GetTaskStatus(l_taskname)=0 then
             --parse XML
+            gExecCounter:=0;
             execute immediate 'truncate table rxnorm2ndc_mappings_tmp';
             execute immediate 'insert /*+ APPEND */ into rxnorm2ndc_mappings_tmp 
             select r.concept_code,
@@ -319,6 +359,14 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
             l_mail_body:='Parsed mappings: <b>'||l_cnt_old||' -> '||l_cnt_now||'</b>';
             l_mail_body:=l_mail_body||crlf||'Time: '||to_char(sysdate,'YYYYMMDD HH24:MI:SS');
             SendMailHTML(l_mail_subj,l_mail_body);
+        else
+            --resume task
+            if gExecCounter < 5 then
+                gExecCounter:=gExecCounter+1;
+                GetRxNorm2NDC_Mappings (pResumeTask=>true);
+            else
+                gExecCounter:=0;
+            end if;        
         end if;
         
         exception when others then
@@ -330,7 +378,7 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
             --raise;
     end;    
     
-    procedure GetRxNorm2SPL_Mappings is
+    procedure GetRxNorm2SPL_Mappings (pResumeTask in boolean default false) is
     /*
         gets all RxNorm to NDC mappings from https://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID
     */
@@ -340,19 +388,29 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
     l_taskname constant varchar2(100):='RxNorm2SPL_Mappings';
     l_cnt_old number;
     l_cnt_now number;
+    l_SQLsrc varchar2(4000);
     begin
+        l_SQLsrc:= q'[select c.concept_code from devv5.concept c where c.vocabulary_id='RxNorm']';
+        if pResumeTask then
+            l_SQLsrc:='select concept_code from ('||l_SQLsrc||') minus select concept_code from '||gRawTable;
+        end if;        
         l_mail_subj:='JOB "'||l_taskname||'" was started';
+        if gExecCounter<>0 then
+            l_mail_subj:=l_mail_subj||' [iteration='||(gExecCounter+1)||']';
+        end if;        
         l_mail_body:='Time: '||to_char(sysdate,'YYYYMMDD HH24:MI:SS');
         SendMailHTML(l_mail_subj,l_mail_body);    
         RunTask (
-            pTaskName => l_taskname,
-            pSQLsrc     => q'[select c.concept_code from devv5.concept c where c.vocabulary_id='RxNorm']',
-            pSQLurl     => q'[APIGrabber.fhttpuritype('https://rxnav.nlm.nih.gov/REST/rxcui/'||concept_code||'/property?propName=SPL_SET_ID')]'
+            pTaskName   => l_taskname,
+            pSQLsrc     => l_SQLsrc,
+            pSQLurl     => q'[APIGrabber.fhttpuritype('https://rxnav.nlm.nih.gov/REST/rxcui/'||concept_code||'/property?propName=SPL_SET_ID')]',
+            pResumeTask => pResumeTask
         );
         commit;
         
         if GetTaskStatus(l_taskname)=0 then
             --parse XML
+            gExecCounter:=0;
             execute immediate 'truncate table rxnorm2spl_mappings_tmp';
             execute immediate 'insert /*+ APPEND */ into rxnorm2spl_mappings_tmp 
             select r.concept_code,
@@ -372,6 +430,14 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
             l_mail_body:='Parsed mappings: <b>'||l_cnt_old||' -> '||l_cnt_now||'</b>';
             l_mail_body:=l_mail_body||crlf||'Time: '||to_char(sysdate,'YYYYMMDD HH24:MI:SS');
             SendMailHTML(l_mail_subj,l_mail_body);
+        else
+            --resume task
+            if gExecCounter < 5 then
+                gExecCounter:=gExecCounter+1;
+                GetRxNorm2SPL_Mappings (pResumeTask=>true);
+            else
+                gExecCounter:=0;
+            end if;        
         end if;
         
         exception when others then
@@ -386,11 +452,11 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
     iCurrDay number;
     begin
         iCurrDay:= extract (DAY from sysdate);
-        if iCurrDay=12 then
+        if iCurrDay=1 then
             GetRxNorm2NDC_Mappings; --NDC mappings must be before GetAllNDC call
-        elsif iCurrDay=14 then
+        elsif iCurrDay=2 then
             GetRxNorm2SPL_Mappings;
-        elsif iCurrDay=15 then
+        elsif iCurrDay=3 then
             GetAllNDC;            
         end if;
         commit;

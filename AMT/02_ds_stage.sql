@@ -72,7 +72,7 @@ set numerator_value=case when new_denom_value is not null and (lower(new_denom_u
 when new_denom_value is not null and lower(new_denom_unit) in ('g') and lower(denominator_unit) in ('mg') and lower(NUMERATOR_UNIT)='mg' then numerator_value*new_denom_value*1000
 when new_denom_value is not null and lower(new_denom_unit) in ('g') and lower(denominator_unit) in ('ml') and lower(NUMERATOR_UNIT)='mg' then numerator_value*new_denom_value
 when new_denom_value is not null and lower(new_denom_unit) in ('g') and lower(denominator_unit) in ('mg') and lower(NUMERATOR_UNIT)='microgram' then numerator_value*new_denom_value*1000000
-when new_denom_value is not null and lower(new_denom_unit) in ('g') and lower(denominator_unit) in ('ml') and lower(NUMERATOR_UNIT)='microgram' then numerator_value*new_denom_value*1000
+when new_denom_value is not null and lower(new_denom_unit) in ('g') and lower(denominator_unit) in ('ml') and lower(NUMERATOR_UNIT)='microgram' then numerator_value*new_denom_value
 when new_denom_value is not null and lower(new_denom_unit) in ('mg') and lower(denominator_unit) in ('g') and lower(NUMERATOR_UNIT)='mg' then numerator_value*new_denom_value/1000
 when new_denom_value is not null and lower(new_denom_unit) in ('ml') and lower(denominator_unit) in ('g') and lower(NUMERATOR_UNIT)='mg' then numerator_value*new_denom_value
 when new_denom_value is not null and lower(new_denom_unit) in ('ml') and denominator_unit is null  then numerator_value*new_denom_value
@@ -80,6 +80,7 @@ else cast(numerator_value as number) end ;
 
 update ds_0_2
 set denominator_unit=new_denom_unit where new_denom_unit is not null and amount_unit is null;
+
 
 update ds_0_2
 set amount_value=round(amount_value,5),
@@ -97,13 +98,15 @@ set new_denom_value=null where DENOMINATOR_UNIT='24 Hours' or  DENOMINATOR_UNIT=
 
 drop table ds_0_3 ;
 create table ds_0_3 as
-select a.*, regexp_substr(regexp_substr (b.concept_name, '(\d)+\sX\s(\d)+'),'(\d+)',1,1) as box_size 
+select a.*, regexp_substr(regexp_substr (concept_name, '(\d)+\sX\s(\d)+'),'(\d+)',1,1) as box_size 
 from ds_0_2 a;
 
 update ds_0_3 
 set box_size=regexp_substr(regexp_substr(concept_name, '(,\s\d+$)|(,\s\d+,\s.*$)'),'\d+') 
 where amount_value is not null and box_size is null;
 
+update ds_0_3
+set new_denom_value=null where amount_unit is not null;
 
 truncate table ds_stage ;
 insert into ds_stage --add box size
@@ -163,6 +166,8 @@ and NUMERATOR_UNIT='Microgram';
 
 update ds_stage 
 set numerator_value=numerator_value/1000,numerator_unit='Mg' where numerator_unit='Microgram' and numerator_value>999;
+update ds_stage 
+set amount_value=amount_value/1000,amount_unit='Mg' where amount_unit='Microgram' and numerator_value>999;
 
 update ds_stage set DENOMINATOR_UNIT='Actuation' where DENOMINATOR_UNIT='Actuations';
 update ds_stage set DENOMINATOR_UNIT='Ml',DENOMINATOR_VALUE=DENOMINATOR_VALUE*1000 where DENOMINATOR_UNIT='L';

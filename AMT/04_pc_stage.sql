@@ -1,7 +1,7 @@
 drop table pc_0 ;
 create table pc_0 as 
 select distinct a.concept_code as pack_code,a.concept_name as pack_name, c.concept_name,c.concept_code,c.concept_Class_id,c.SOURCE_CONCEPT_CLASS_ID 
-from drug_concept_stage a --3137
+from drug_concept_stage a 
 join SCT2_RELA_FULL_AU b on a.concept_code=sourceid
 join drug_concept_stage c on c.concept_code=destinationid
 WHERE a.concept_name like '%[Drug Pack]'
@@ -10,7 +10,7 @@ and typeid!='116680003'
 and c.SOURCE_CONCEPT_CLASS_ID in ('Trade Product Unit','Med Product Unit');--M Prod Pack and Cont Tr Prod Pack need to be excluded
 ;
 
-drop table pc_0_1_1;
+drop table pc_0_1_1;--start to extract amounts (drugs are separeted by &)
 create table pc_0_1_1 as 
 select pack_code,pack_name,concept_name,concept_code,pack_comp from (
 select distinct
@@ -20,7 +20,7 @@ table(cast(multiset(select level from dual connect by  level <= length (regexp_s
 where pack_name like '%(&)%';
 
 drop table pc_0_1;
-create table pc_0_1 as 
+create table pc_0_1 as --(drugs are separeted by ,)
 select pack_code,pack_name,concept_name,concept_code,pack_comp from (
 select distinct
 trim(regexp_substr( regexp_substr(PACK_NAME,'\(.*[0-9].*\)')  , '[^,]+', 1, levels.column_value))  as pack_comp , concept_name, concept_code ,pack_code,pack_name
@@ -62,7 +62,7 @@ UPDATE PC_0_2_1   SET AMOUNT = '7' WHERE PACK_CODE = '87246011000036105' AND   C
 insert into pc_0_2
 select * from pc_0_2_1;
 
-drop table pc_0_3;
+drop table pc_0_3;--add box size
 create table pc_0_3 as 
 select pack_code,pack_name,concept_name,concept_code,amount, regexp_substr ( regexp_substr (pack_name,'([0-9]+\sX\s[0-9]+\s\[Drug Pack\])|([0-9]+\sX\s[0-9]+\sTablets\s\[Drug Pack\])|([0-9]+\sX\s[0-9]+\sTablets,\sBlister\sPacks\s\[Drug Pack\])|([0-9]+\sX\s[0-9]+,\sBlister\sPacks\s\[Drug Pack\])'), '[0-9]+') as box_size from pc_0_2;
 

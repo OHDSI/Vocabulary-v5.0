@@ -17,7 +17,7 @@ update supplier
 set supplier=regexp_replace(supplier,'Night\s') where supplier like '%Night%';
 UPDATE SUPPLIER   SET SUPPLIER = 'Pfizer' WHERE SUPPLIER = 'Pfizer Perth';
 
-drop table supplier_2;
+drop table supplier_2;  --add suppliers with abbreviations
 create table supplier_2 as
 select distinct supplier from supplier;
 INSERT INTO SUPPLIER_2 (SUPPLIER) VALUES('Apo');
@@ -40,13 +40,17 @@ INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Gxp');
 INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Fbm');
 INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Drla');
 INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Csl');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Briemar');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Nature''S Way');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Sau');
+INSERT INTO SUPPLIER_2 (SUPPLIER ) VALUES ('Drx');
 
 alter table supplier_2
 add concept_Code varchar(255);
 update supplier_2
 set concept_code='OMOP'||new_voc.nextval;
 
-drop table unit;
+drop table unit; -- parse units as they looks like 'mg/ml' etc.
 create table unit as ( 
 SELECT distinct concept_name,CONCEPT_CLASS_ID,NEW_CONCEPT_CLASS_ID,concept_name as CONCEPT_CODE,UNITID from (
 select distinct
@@ -112,7 +116,7 @@ where a.concept_class_id='Brand Name'
 and  b.concept_class_id='Ingredient');
 
 
-MERGE --there are duplicates by name due to original data mistakes + Medicinal Product = Ingredient
+MERGE --there are names duplicates due to original data mistakes 
 INTO    drug_concept_stage dcs
 USING   (
 select concept_name, MIN(concept_code) m from drug_concept_stage WHERE concept_class_id in ('Ingredient','Dose Form','Brand Name','Unit') --and  source_concept_class_id not in ('Medicinal Product','Trade Product')
@@ -124,17 +128,14 @@ WHEN MATCHED THEN UPDATE
 
 delete  drug_concept_stage where lower(concept_name) in ('containered trade product pack','trade product pack','medicinal product unit of use','trade product unit of use','medicinal product pack','unit of use', 'unit of measure');
 
-delete  drug_concept_stage where initcap(concept_name) in 
+delete  drug_concept_stage where initcap(concept_name) in --delete all unnecessary concepts
 ('Alternate Strength Followed By Numerator/Denominator Strength','Alternate Strength Only','Australian Qualifier','Numerator/Denominator Strength','Numerator/Denominator Strength Followed By Alternate Strength','Preferred Strength Representation Type','Area Unit Of Measure','Square','Kbq','Dispenser Pack','Diluent','Tube','Tub','Carton','Unit Dose','Vial','Strip',
 'Biological Unit Of Measure','Composite Unit Of Measure','Descriptive Unit Of Measure','Medicinal Product','Mass Unit Of Measure','Microbiological Culture Unit Of Measure','Radiation Activity Unit Of Measure','Time Unit Of Measure','Australian Substance','Medicinal Substance','Volume Unit Of Measure',
 'Measure','Continuous','Dose','Ampoule','Bag','Bead','Bottle','Ampoule','Type Of International Unit','Type Of Pharmacopoeial Unit');
 
-delete drug_concept_stage 
+delete drug_concept_stage --as RxNorm doesn't have diluents in injectable drugs we will also delete them
 where (lower(concept_name) like '%inert%' or lower(concept_name) like '%diluent%') 
 and concept_class_id='Drug Product' and lower(concept_name) not like '%tablet%';
 
-delete drug_Concept_stage 
-where concept_code in ('48086011000036107','30383011000036100');--dispenser pack,form
-delete drug_concept_stage where concept_code in ('Square','Kbq');
 
 CREATE INDEX dcs_index ON drug_concept_stage (concept_code);

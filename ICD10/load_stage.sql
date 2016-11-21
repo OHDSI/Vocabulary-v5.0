@@ -317,4 +317,14 @@ DROP TABLE filled_domain PURGE;
 DROP TABLE modifier_classes PURGE;
 DROP TABLE classes PURGE;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script	
+
+/* --name analysis, figure out what goes to the synonim table, what - need to be improved
+select a.concept_name as new_name, b.concept_name as old_name , UTL_MATCH.JARO_WINKLER_SIMILARITY (a.concept_name , b.concept_name) as JARO_WINKLER_SIMIL, 
+UTL_MATCH.EDIT_DISTANCE_SIMILARITY (a.concept_name , b.concept_name) as EDIT_DISTANCE_SIMIL, 
+UTL_MATCH.EDIT_DISTANCE(a.concept_name , b.concept_name) as EDIT_DISTANCE,
+regexp_replace (a.concept_name , b.concept_name) as difference -- shows how to improve names 
+ from concept_stage a join devv5.concept b on a.concept_code = b.concept_code
+where b.vocabulary_id = 'ICD10' and b.invalid_reason is null and lower ( a.concept_name) != lower (b.concept_name)
+and not regexp_like (a.concept_name, '-') --to avoid the crash of regexp_replace (a.concept_name , b.concept_name), not the best decision, we lose for about 200 concepts
+*/

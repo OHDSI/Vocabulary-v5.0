@@ -1,3 +1,15 @@
+select * from ds_stage where drug_concept_code='691061000168106';!!!
+;
+update ds_0_2 
+set numerator_value=numerator_value/57,
+new_denom_value=null
+where
+NEW_DENOM_VALUE is not null and concept_name like '%, 5 Ml%' and concept_name like '%Oral%';
+
+
+
+
+
 Questions:
 --need to regexp 'agent' from substance
 --there are inert ingredients

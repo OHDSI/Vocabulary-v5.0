@@ -1,4 +1,4 @@
-drop table non_S_ing_to_S;
+drop table non_S_ing_to_S;--create relationship from non-standard ingredients to standard ingredients 
 create table non_S_ing_to_S as
 select distinct b.concept_code,a.concept_code as s_concept_Code
 from drug_concept_stage a
@@ -6,7 +6,7 @@ join drug_concept_stage b on lower(a.concept_name)=lower(b.concept_name)
 where a.STANDARD_CONCEPT='S' and a.CONCEPT_CLASS_ID='Ingredient'
 and b.STANDARD_CONCEPT is null and b.CONCEPT_CLASS_ID='Ingredient';
 
-drop table non_S_form_to_S;
+drop table non_S_form_to_S;--create relationship from non-standard forms to standard forms
 create table non_S_form_to_S as
 select distinct b.concept_code,a.concept_code as s_concept_Code
 from drug_concept_stage a
@@ -104,17 +104,6 @@ select distinct DRUG_CONCEPT_CODE,c.concept_Code from pc_stage a join internal_r
 join drug_Concept_stage c on concept_Code_2=c.concept_Code and concept_class_id='Brand Name'
 )
 ;
-/*
---Medicinal Product to ingr
-insert into internal_relationship_stage
-select distinct b.concept_Code,c.concept_code 
-from RF2_FULL_RELATIONSHIPS a 
-join drug_concept_stage b on SOURCEID=b.concept_code
-join drug_concept_stage c on DESTINATIONID=c.concept_code
-where b.source_concept_class_id='Medicinal Product'
-and c.source_concept_class_id='AU Substance'
-and b.concept_code not in (select concept_code_1 from internal_relationship_stage);
-*/
 
 --non standard concepts to standard
 insert into internal_relationship_stage
@@ -144,7 +133,7 @@ where b.concept_code!=c.concept_code
 and length(b.concept_name)=length(c.concept_name)
 and b.concept_code<c.concept_code;
 
-drop table irs_upd_2;
+drop table irs_upd_2; --fix those drugs that have 3 simimlar forms (like Tablet,Coated Tablet and Film Coated Tablet)
 create table irs_upd_2 as
 select a.concept_code_1,a.concept_code 
 from irs_upd a join irs_upd b on a.concept_code_1=b.concept_Code_1
@@ -155,7 +144,8 @@ delete irs_upd where concept_code_1 in (select concept_code_1 from irs_upd_2) ;
 insert into irs_upd 
 select * from irs_upd_2;
 
-delete internal_Relationship_stage where concept_code_1 in 
+delete internal_Relationship_stage 
+where concept_code_1 in 
 (select distinct a.concept_code from drug_concept_stage a 
 join internal_relationship_stage s on a.concept_code = s.concept_code_1
 join drug_concept_stage b on b.concept_code =s.concept_code_2

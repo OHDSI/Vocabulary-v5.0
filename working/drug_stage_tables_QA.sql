@@ -132,7 +132,7 @@ left join relationship_to_concept b on a.concept_code = b.concept_code_1
 where concept_class_id in('Dose Form') and b.concept_code_1 is null
 union
 --duplicates will be present in drug_concept_stage, unable to summarize values
-select distinct   concept_code, 'concept overlaps with other one by target concept, please look also onto rigth sight of query result' from (
+select distinct   a.drug_concept_code, 'concept overlaps with other one by target concept, please look also onto rigth sight of query result' from (
 select distinct a.amount_unit, a.numerator_unit ,cs.concept_code,  cs.concept_name as canada_name, rc.concept_name as RxName  , a.drug_concept_code from ds_stage a join relationship_to_concept b on a.ingredient_concept_code = b.concept_code_1
 join drug_Concept_stage cs on cs.concept_code = a.ingredient_concept_code
 join devv5.concept rc on rc.concept_id = b.concept_id_2

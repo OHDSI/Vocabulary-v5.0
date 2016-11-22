@@ -35,6 +35,7 @@ TRUNCATE TABLE drug_strength_stage;
 
 --3. Create temporary tables with classes and modifiers from XML source
 --modifier classes
+
 create table modifier_classes nologging as
     SELECT t.modifierclass_code, t.modifierclass_modifier, t.superclass_code, t1.*
     FROM ICDCLAML i, 
@@ -98,7 +99,11 @@ codes as (
 concepts_modifiers as (
     --add all the modifiers using patterns described in a table
     --'I70M10_4' with or without gangrene related to gout, seems to be a bug, modifier says [See site code at the beginning of this chapter]
-    select a.concept_code||b.MODIFIERCLASS_CODE as concept_code, a.concept_name||','|| b.MODIFER_NAME as concept_name from codes a 
+    select a.concept_code||b.MODIFIERCLASS_CODE as concept_code, case when b.MODIFER_NAME = 'Kimmelstiel-Wilson syndromeN08.3' --only one modifier that has capital letter in it
+    then regexp_substr ((a.concept_name||', '|| b.MODIFER_NAME), '\D\d\d(\.|-|$).*') -- remove related code (A52.7)
+    else regexp_substr (( a.concept_name||', '|| lower( b.MODIFER_NAME)), '\D\d\d(\.|-|$).*')
+     end 
+    as concept_name from codes a 
     join codes b on (
         (regexp_substr (a.label, '\D\d\d') = b.concept_code  and a.label=b.label and a.class_code != b.class_code)
         or (a.label = '[See at the beginning of this block for subdivisions]' and a.label=b.label and a.class_code != b.class_code and b.concept_code ='K25')
@@ -135,8 +140,11 @@ from (
     --full list of concepts 
     select * from concepts_modifiers
     union
-    select class_code, label from classes where RUBRIC_KIND ='preferred' and class_code not like '%-%'
-) where length(concept_code)>=3;
+    select class_code, case when label like 'Emergency use of%' then label else   regexp_replace (label,'\D\d\d(\.|-|$).*')  -- remove related code (A52.7) i.e.  Late syphilis of kidneyA52.7 but except of cases like "Emergency use of U07.0"
+     end as concept_name
+     from classes where RUBRIC_KIND ='preferred' and class_code not like '%-%'
+) where regexp_like (concept_code, '\D\d\d.*')
+;
 COMMIT;	
 
 --5. Create file with mappings for medical coder from the existing one
@@ -317,7 +325,7 @@ DROP TABLE filled_domain PURGE;
 DROP TABLE modifier_classes PURGE;
 DROP TABLE classes PURGE;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script	
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
 
 /* --name analysis, figure out what goes to the synonim table, what - need to be improved
 select a.concept_name as new_name, b.concept_name as old_name , UTL_MATCH.JARO_WINKLER_SIMILARITY (a.concept_name , b.concept_name) as JARO_WINKLER_SIMIL, 

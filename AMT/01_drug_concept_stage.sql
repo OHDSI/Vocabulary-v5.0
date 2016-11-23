@@ -9,13 +9,16 @@ and regexp_substr (concept_name,'(\(.*\))',1,1) is not null
 and not regexp_like (regexp_substr (concept_name,'(\(.*\))',1,1), '[0-9]')
 and not regexp_like (regexp_substr (concept_name,'(\(.*\))',1,1), 'blood|virus|inert|D|accidental|CSL|paraffin|once|extemporaneous|long chain|perindopril|triglycerides|Night Tablet')
 and length(regexp_substr (concept_name,'(\(.*\))',1,1))>5
-and replace(replace(regexp_substr (lower(concept_name),'(\(.*\))',1,1),'('),')')!='night';
+and replace(replace(regexp_substr (lower(concept_name),'(\(.*\))',1,1),'('),')')!='night'
+and replace(replace(regexp_substr (lower(concept_name),'(\(.*\))',1,1),'('),')')!='capsule';
 
 update supplier
 set supplier=regexp_replace(supplier,'Night\s') where supplier like '%Night%';
 update supplier
 set supplier=regexp_replace(supplier,'Night\s') where supplier like '%Night%';
-UPDATE SUPPLIER   SET SUPPLIER = 'Pfizer' WHERE SUPPLIER = 'Pfizer Perth';
+UPDATE SUPPLIER   SET SUPPLIER = 'Pfizer' WHERE SUPPLIER = 'Pfizer Perth'
+;
+
 
 drop table supplier_2;  --add suppliers with abbreviations
 create table supplier_2 as

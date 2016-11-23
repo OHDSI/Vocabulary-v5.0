@@ -1,0 +1,30 @@
+AMT readme
+upload / update of amt
+
+Prerequisites:
+
+Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
+
+Working directory dev_amt.
+
+Run create_source_tables.sql
+Download the latest file from https://www.digitalhealth.gov.au/implementation-resources/ehealth-foundations/clinical-terminology (file name Clinical Terminology vYYYYMMDD.zip ).
+Login and password are required.
+
+Exctract 
+sct2_Description_Full-en-AU_AU1000036_20160930.txt
+sct2_Relationship_Full_AU1000036_20160930.txt
+sct2_Concept_Full_AU1000036_20160930.txt
+sct2_Description_Full-en-AU_AU1000036_20160930.txt
+sct2_Relationship_Full_AU1000036_20160930.txt
+der2_Refset_ContaineredTradeProductPackFull_AU1000036_20160930.txt
+der2_Refset_MedicinalProductUnitOfUseFull_AU1000036_20160930.txt
+der2_Refset_TradeProductUnitOfUseFull_AU1000036_20160930.txt
+der2_Refset_TradeProductPackFull_AU1000036_20160930.txt
+der2_Refset_TradeProductFull_AU1000036_20160930.txt
+der2_Refset_MedicinalProductPackFull_AU1000036_20160930.txt
+der2_Refset_MedicinalProductFull_AU1000036_20160930.txt
+der2_ccsRefset_StrengthFull_AU1000036_20160930.txt
+der2_ccsRefset_UnitOfUseSizeFull_AU1000036_20160930.txt
+der2_ccsRefset_UnitOfUseQuantityFull_AU1000036_20160930.txt
+der2_cciRefset_SubpackQuantityFull_AU1000036_20160930.txt

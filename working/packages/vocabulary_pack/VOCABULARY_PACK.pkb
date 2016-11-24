@@ -532,7 +532,6 @@ IS
                                                                                                                                              ));
    END;
 
-   /******testing*****/
    FUNCTION UpdateVocabulary (pVocabularyName IN VARCHAR2)
       RETURN VARCHAR2
    IS
@@ -627,18 +626,21 @@ IS
       CASE
          WHEN pVocabularyName = 'RxNorm'
          THEN
-            cSearchString := 'http://download.nlm.nih.gov/umls/kss/rxnorm/RxNorm_full_';
+            cSearchString := 'https://download.nlm.nih.gov/umls/kss/rxnorm/RxNorm_full_';
             cPos1 := INSTR (cVocabHTML, cSearchString);
             cPos2 := INSTR (cVocabHTML, '.zip', cPos1);
             CheckPositions (cPos1, cPos2);
             cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'mmddyyyy');
          WHEN pVocabularyName = 'UMLS'
          THEN
-            cSearchString := '<span style="font-size: xx-small;">';
+            cSearchString := '<table class="umls_download">';
             cPos1 := INSTR (cVocabHTML, cSearchString);
-            cPos2 := INSTR (cVocabHTML, '</span>', cPos1);
+            cPos1 := INSTR (cVocabHTML, '<td>',cPos1+1);
+            cPos1 := INSTR (cVocabHTML, '<td>',cPos1+1);
+            cPos1 := INSTR (cVocabHTML, '<td>',cPos1+1);
+            cPos2 := INSTR (cVocabHTML, '</td>', cPos1);
             CheckPositions (cPos1, cPos2);
-            cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'mondd,yyyy');
+            cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + 4, cPos2 - cPos1 - 4), 'mondd,yyyy');
          WHEN pVocabularyName = 'SNOMED'
          THEN
             cSearchString := '<a class="btn btn-primary btn-md" href="';
@@ -798,7 +800,7 @@ IS
       cRet      VARCHAR2 (5000);
       cVocabs   VARCHAR2 (4000);
    BEGIN
-      --pConceptAncestor;
+      pConceptAncestor;
       DEVV4.v5_to_v4;
       CREATE_PROD_BACKUP@link_prodv5;
       CREATE_PRODV4@link_prodv5;

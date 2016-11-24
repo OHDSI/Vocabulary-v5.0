@@ -15,8 +15,6 @@ Exctract
 sct2_Description_Full-en-AU_AU1000036_20160930.txt
 sct2_Relationship_Full_AU1000036_20160930.txt
 sct2_Concept_Full_AU1000036_20160930.txt
-sct2_Description_Full-en-AU_AU1000036_20160930.txt
-sct2_Relationship_Full_AU1000036_20160930.txt
 der2_Refset_ContaineredTradeProductPackFull_AU1000036_20160930.txt
 der2_Refset_MedicinalProductUnitOfUseFull_AU1000036_20160930.txt
 der2_Refset_TradeProductUnitOfUseFull_AU1000036_20160930.txt
@@ -28,3 +26,27 @@ der2_ccsRefset_StrengthFull_AU1000036_20160930.txt
 der2_ccsRefset_UnitOfUseSizeFull_AU1000036_20160930.txt
 der2_ccsRefset_UnitOfUseQuantityFull_AU1000036_20160930.txt
 der2_cciRefset_SubpackQuantityFull_AU1000036_20160930.txt
+
+Open the files and resave them with .csv file extension
+Load them into the following tables:
+sct2_Description_Full-en-AU_AU1000168_20160930.csv - FULL_DESCR_DRUG_ONLY
+sct2_Relationship_Full_AU1000036_20160930.csv - rf2_full_relationships
+sct2_Concept_Full_AU1000036_20160930.csv - SCT2_CONCEPT_FULL_AU
+der2_Refset_ContaineredTradeProductPackFull_AU1000036_20160930.csv - rf2_ss_refset
+der2_Refset_MedicinalProductUnitOfUseFull_AU1000036_20160930.csv - rf2_ss_refset
+der2_Refset_TradeProductUnitOfUseFull_AU1000036_20160930.csv - rf2_ss_refset
+der2_Refset_TradeProductPackFull_AU1000036_20160930.csv - rf2_ss_refset
+der2_Refset_TradeProductFull_AU1000036_20160930.csv - rf2_ss_refset
+der2_Refset_MedicinalProductPackFull_AU1000036_20160930.csv - rf2_ss_refset
+der2_Refset_MedicinalProductFull_AU1000036_20160930.csv - rf2_ss_refset
+der2_ccsRefset_StrengthFull_AU1000036_20160930.csv - rf2_ss_strength_refset
+der2_ccsRefset_UnitOfUseSizeFull_AU1000036_20160930.csv - rf2_ss_unit_of_use_size_refset
+der2_ccsRefset_UnitOfUseQuantityFull_AU1000036_20160930.csv - rf2_ss_unit_of_use_qr
+der2_cciRefset_SubpackQuantityFull_AU1000036_20160930.csv - rf2_ss_subpack_quantity_refset
+
+
+Use the control files of the same name.
+
+Run concat.bat
+Run load_stage.sql
+Run generic_update.sql (from working directory);

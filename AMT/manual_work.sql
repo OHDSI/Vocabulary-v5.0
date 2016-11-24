@@ -455,9 +455,6 @@ UPDATE AUT_INGR_3   SET PRECEDENCE = '2' WHERE CONCEPT_CODE_1 = '320150110000361
 UPDATE AUT_INGR_3   SET CONCEPT_ID_2 = 19090809,       CONCEPT_NAME_2 = 'nicoboxil' WHERE CONCEPT_CODE_1 = '30875011000036109' AND   CONCEPT_NAME_1 = 'Butoxyethyl Nicotinate' AND   CONCEPT_ID_2 = 1517824 AND   CONCEPT_NAME_2 = 'Niacin' AND   PRECEDENCE = '1';
 UPDATE AUT_INGR_3   SET CONCEPT_ID_2 = 19018287,       CONCEPT_NAME_2 = '5-methyl-8-hydroxyquinoline' WHERE CONCEPT_CODE_1 = '2205011000036101' AND   CONCEPT_NAME_1 = 'Hydroxyquinoline Sulfate' AND   CONCEPT_ID_2 = 906874 AND   CONCEPT_NAME_2 = 'Oxyquinoline' AND   PRECEDENCE = '1';
 
-delete ingr_to_map where concept_code in 
-(select CONCEPT_CODE_1 from AUT_INGR_3 );
-
 create table AUT_INGR_4 as
 select a.concept_code as concept_code_1,a.concept_name as concept_name_1,b.concept_id as concept_id_2,b.concept_name as concept_name_2,'1' as precedence
  from ingr_to_map a

@@ -1,3 +1,7 @@
+create table ds_0 as
+select sourceid,destinationid, UNITID, VALUE from RF2_SS_STRENGTH_REFSET a
+join SCT2_RELA_FULL_AU b on referencedComponentId=b.id
+;
 
 drop table ds_0_1_1 ;
 create table ds_0_1_1 as -- still only MP

@@ -1,4 +1,4 @@
-drop table non_S_ing_to_S;--create relationship from non-standard ingredients to standard ingredients 
+--create relationship from non-standard ingredients to standard ingredients 
 create table non_S_ing_to_S as
 select distinct b.concept_code,a.concept_code as s_concept_Code
 from drug_concept_stage a
@@ -6,7 +6,7 @@ join drug_concept_stage b on lower(a.concept_name)=lower(b.concept_name)
 where a.STANDARD_CONCEPT='S' and a.CONCEPT_CLASS_ID='Ingredient'
 and b.STANDARD_CONCEPT is null and b.CONCEPT_CLASS_ID='Ingredient';
 
-drop table non_S_form_to_S;--create relationship from non-standard forms to standard forms
+--create relationship from non-standard forms to standard forms
 create table non_S_form_to_S as
 select distinct b.concept_code,a.concept_code as s_concept_Code
 from drug_concept_stage a
@@ -14,14 +14,14 @@ join drug_concept_stage b on lower(a.concept_name)=lower(b.concept_name)
 where a.STANDARD_CONCEPT='S' and a.CONCEPT_CLASS_ID='Dose Form'
 and b.STANDARD_CONCEPT is null and b.CONCEPT_CLASS_ID='Dose Form';
 
-drop table drug_to_supplier ;
+
 create table drug_to_supplier as
 select distinct a.concept_code,mf.concept_Code as supplier,mf.concept_name as s_name from drug_concept_Stage a
 join drug_concept_Stage mf on regexp_substr (initcap(a.concept_name), '\(.*\)+') like '%'||mf.concept_name||'%' 
 where mf.concept_class_id ='Supplier'
 and a.concept_class_id='Drug Product';
 
-drop table supp_upd;
+
 create table supp_upd as
 select a.concept_code,a.supplier
  from  drug_to_supplier a join drug_to_supplier d on d.concept_Code=a.concept_Code
@@ -32,8 +32,8 @@ delete drug_to_supplier where concept_code in (select concept_code from supp_upd
 insert into drug_to_supplier (concept_code,supplier) 
 select concept_code,supplier from supp_upd ;
 
-truncate table internal_relationship_stage;
 
+truncate table internal_relationship_stage;
 insert into internal_relationship_stage
 (concept_code_1,concept_code_2)
 
@@ -115,7 +115,7 @@ select concept_code,s_concept_Code from non_S_form_to_S );
 
 --fix drugs with 2 forms like capsule and enteric capsule 
 
-drop table irs_upd;
+
 create table irs_upd as
 select a.concept_code_1,c.concept_code
  from  internal_Relationship_stage a join drug_concept_stage b on b.concept_Code=a.concept_Code_2 and b.concept_Class_id='Dose Form'

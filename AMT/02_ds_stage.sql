@@ -3,7 +3,6 @@ select sourceid,destinationid, UNITID, VALUE from RF2_SS_STRENGTH_REFSET a
 join SCT2_RELA_FULL_AU b on referencedComponentId=b.id
 ;
 
-drop table ds_0_1_1 ;
 create table ds_0_1_1 as -- still only MP
 select distinct SOURCEID as drug_concept_code,DESTINATIONID as ingredient_concept_Code, b.concept_name,
 case when lower(a.concept_name) like '%/each%' or lower(a.concept_name) like '%/application%' or lower(a.concept_name) like '%/dose%' or lower(a.concept_name) like '%/square' then VALUE else null end as amount_value,
@@ -19,7 +18,7 @@ update ds_0_1_1
 set amount_value=null, amount_unit=null
 where lower(amount_unit)='ml';
 
-drop table ds_0_1_3 ;
+
 create table ds_0_1_3 as
 select  c.concept_code as  drug_concept_code, INGREDIENT_CONCEPT_CODE, amount_value,amount_unit,numerator_value,numerator_unit,denominator_unit,c.concept_name
 from ds_0_1_1 a join RF2_FULL_RELATIONSHIPS b on a.drug_concept_code=destinationid
@@ -28,7 +27,7 @@ where c.source_concept_class_id in ('Med Product Pack','Med Product Unit','Trade
 and c.CONCEPT_NAME not like '%[Drug Pack]%'
 and c.concept_code not in (select drug_concept_code from ds_0_1_1)
 ;
-drop table ds_0_1_4;
+
 create table ds_0_1_4 as
 select   c.concept_code as  drug_concept_code, INGREDIENT_CONCEPT_CODE, amount_value,amount_unit,numerator_value,numerator_unit,denominator_unit,c.concept_name
 from ds_0_1_1 a join RF2_FULL_RELATIONSHIPS b on a.drug_concept_code=destinationid
@@ -41,7 +40,7 @@ delete ds_0_1_4 where drug_concept_Code in (select drug_concept_code from ds_0_1
 
 
 
-drop table ds_0_2;
+
 create table ds_0_2 as
 select drug_concept_code, INGREDIENT_CONCEPT_CODE, amount_value,amount_unit,numerator_value,numerator_unit,denominator_unit,concept_name,
 trim(regexp_replace(regexp_replace(regexp_substr(concept_name, ',\s\d+\.?(\d)+\s(mg|ml|g|l|actuations)',1,1,'i'),',\s'),'\d+\.?\d+')) as new_denom_unit,--add real volume (, 50 Ml Vial)

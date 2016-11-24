@@ -6,14 +6,14 @@ into table rf2_full_relationships
 fields terminated by ';' OPTIONALLY ENCLOSED BY '"'
 trailing nullcols
 (
-id varchar (255),
-effectivetime varchar (255),
-active varchar (255),
-moduleid varchar (255), 
-sourceid varchar (255),
-destinationid varchar (255),
-relationshipgroup varchar (255),
-typeid varchar (255),
-characteristictypeid varchar (255),
-modifierid varchar (255)  
+ID CHAR (255),
+EFFECTIVETIME CHAR (255),
+ACTIVE CHAR (255),
+MODULEID CHAR (255), 
+SOURCEID CHAR (255),
+DESTINATIONID CHAR (255),
+RELATIONSHIPGROUP CHAR (255),
+TYPEID CHAR (255),
+CHARACTERISTICTYPEID CHAR (255),
+MODIFIERID CHAR (255)  
 );

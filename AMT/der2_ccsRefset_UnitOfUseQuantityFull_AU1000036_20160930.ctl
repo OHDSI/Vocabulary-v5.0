@@ -6,13 +6,13 @@ into table rf2_ss_unit_of_use_qr
 fields terminated by ';' OPTIONALLY ENCLOSED BY '"'
 trailing nullcols
 (
-id varchar (255),
-effectivetime varchar (255),
-active varchar (255),
-moduleid varchar (255), 
-refsetid varchar (255), 
-referencedcomponentid varchar (255), 
-unitid varchar (255), 
-operatorid varchar (255), 
-value varchar (255) 
+ID 			CHAR (255),
+EFFECTIVETIME 		CHAR (255),
+ACTIVE 			CHAR (255),
+MODULEID 		CHAR (255), 
+REFSETID 		CHAR (255), 
+REFERENCEDCOMPONENTID 	CHAR (255), 
+UNITID 			CHAR (255), 
+OPERATORID 		CHAR (255), 
+VALUE 			CHAR (255) 
 );

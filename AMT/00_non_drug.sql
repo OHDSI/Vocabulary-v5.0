@@ -1,4 +1,4 @@
-drop table non_drug;
+
 create table non_drug as
 select * from concept_stage_sn where
 regexp_like (lower(concept_name), 'dialysis|mma/pa|smoflipid|camino|maxamum|sno-pro|lubri|peptamen|pepti-junior|dressing|diagnostic|glove|supplement|containing|rope |procal|glytactin|gauze|keyomega|cystine|docomega|anamix|xlys|xmtvi |pku |tyr |msud |hcu |eaa |cranberry|pedialyte|msud|gastrolyte|movicol|hydralyte|hcu cooler|pouch|burger|needl|biscuits|wipes|kilocalories|cake|roll|adhesive|milk|dessert')       

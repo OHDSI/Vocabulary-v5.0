@@ -1,4 +1,4 @@
-drop table pc_0 ;
+
 create table pc_0 as 
 select distinct a.concept_code as pack_code,a.concept_name as pack_name, c.concept_name,c.concept_code,c.concept_Class_id,c.SOURCE_CONCEPT_CLASS_ID 
 from drug_concept_stage a 
@@ -19,7 +19,6 @@ from pc_0 t,
 table(cast(multiset(select level from dual connect by  level <= length (regexp_substr( regexp_substr(PACK_NAME,'\[(\d)+.*\]')  , '[^&]+'))  + 1) as sys.OdciNumberList)) levels)
 where pack_name like '%(&)%';
 
-drop table pc_0_1;
 create table pc_0_1 as --(drugs are separeted by ,)
 select pack_code,pack_name,concept_name,concept_code,pack_comp from (
 select distinct
@@ -29,13 +28,13 @@ table(cast(multiset(select level from dual connect by  level <= length (regexp_s
 where pack_code not in (select pack_code from pc_0_1_1);
 
 
-drop table pc_0_2;
+
 create table pc_0_2 as 
 select distinct pack_code,pack_name,concept_name,concept_code,
 case when regexp_like (regexp_substr (pack_comp,'(X\s)[0-9]+'),regexp_substr (concept_name,'[0-9]+')) then  replace(trim(regexp_substr (pack_comp,'[0-9]+\sX')),' X') else null end as amount 
 from pc_0_1 ;
 
-drop table pc_0_2_1;
+
 create table pc_0_2_1 as 
 select distinct pack_code,pack_name,concept_name,concept_code,
 case when regexp_like (regexp_substr (pack_comp,'\[[0-9]+.*\]'),regexp_substr (concept_name,'[0-9]+'))
@@ -62,7 +61,7 @@ UPDATE PC_0_2_1   SET AMOUNT = '7' WHERE PACK_CODE = '87246011000036105' AND   C
 insert into pc_0_2
 select * from pc_0_2_1;
 
-drop table pc_0_3;--add box size
+--add box size
 create table pc_0_3 as 
 select pack_code,pack_name,concept_name,concept_code,amount, regexp_substr ( regexp_substr (pack_name,'([0-9]+\sX\s[0-9]+\s\[Drug Pack\])|([0-9]+\sX\s[0-9]+\sTablets\s\[Drug Pack\])|([0-9]+\sX\s[0-9]+\sTablets,\sBlister\sPacks\s\[Drug Pack\])|([0-9]+\sX\s[0-9]+,\sBlister\sPacks\s\[Drug Pack\])'), '[0-9]+') as box_size from pc_0_2;
 
@@ -372,7 +371,6 @@ UPDATE PC_0_3   SET AMOUNT = '7' WHERE PACK_CODE = '12446011000036104' AND   CON
 UPDATE PC_0_3   SET AMOUNT = '7' WHERE PACK_CODE = '19147011000036107' AND   CONCEPT_CODE = '5193011000036100' AND   AMOUNT IS NULL;
 UPDATE PC_0_3   SET AMOUNT = '7' WHERE PACK_CODE = '12446011000036104' AND   CONCEPT_CODE = '5867011000036103' AND   AMOUNT IS NULL;
 UPDATE PC_0_3   SET AMOUNT = '7' WHERE PACK_CODE = '19147011000036107' AND   CONCEPT_CODE = '5867011000036103' AND   AMOUNT IS NULL;
-
 
 truncate table pc_stage;
 insert into pc_stage (PACK_CONCEPT_CODE,DRUG_CONCEPT_CODE,AMOUNT,BOX_SIZE)

@@ -6,9 +6,9 @@ into table sct2_Concept_Full_AU
 fields terminated by ';' OPTIONALLY ENCLOSED BY '"'
 trailing nullcols
 (
-id			    CHAR( 18)           ,		
-effectiveTime	CHAR(  8)           ,		
-active			CHAR(  1)           ,
-moduleId		CHAR( 18)           ,		
-statusId		CHAR(256)           
+ID			CHAR(255),		
+EFFECTIVETIME		CHAR(255),		
+ACTIVE			CHAR(255),
+MODULEID		CHAR(255),		
+STATUSID		CHAR(256)           
 );

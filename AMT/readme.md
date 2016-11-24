@@ -7,11 +7,11 @@ Schema DevV5 with copies of tables concept, concept_relationship and concept_syn
 
 Working directory dev_amt.
 
-Run create_source_tables.sql
-Download the latest file from https://www.digitalhealth.gov.au/implementation-resources/ehealth-foundations/clinical-terminology (file name Clinical Terminology vYYYYMMDD.zip ).
+1.Run create_source_tables.sql
+2.Download the latest file from https://www.digitalhealth.gov.au/implementation-resources/ehealth-foundations/clinical-terminology (file name Clinical Terminology vYYYYMMDD.zip ).
 Login and password are required.
 
-Exctract 
+3.Exctract 
 sct2_Description_Full-en-AU_AU1000036_20160930.txt
 sct2_Relationship_Full_AU1000036_20160930.txt
 sct2_Concept_Full_AU1000036_20160930.txt
@@ -27,7 +27,7 @@ der2_ccsRefset_UnitOfUseSizeFull_AU1000036_20160930.txt
 der2_ccsRefset_UnitOfUseQuantityFull_AU1000036_20160930.txt
 der2_cciRefset_SubpackQuantityFull_AU1000036_20160930.txt
 
-Open the files and resave them with .csv file extension
+4.Open the files and resave them with .csv file extension
 Load them into the following tables:
 sct2_Description_Full-en-AU_AU1000168_20160930.csv - FULL_DESCR_DRUG_ONLY
 sct2_Relationship_Full_AU1000036_20160930.csv - rf2_full_relationships
@@ -45,8 +45,8 @@ der2_ccsRefset_UnitOfUseQuantityFull_AU1000036_20160930.csv - rf2_ss_unit_of_use
 der2_cciRefset_SubpackQuantityFull_AU1000036_20160930.csv - rf2_ss_subpack_quantity_refset
 
 
-Use the control files of the same name.
+5.Use the control files of the same name.
 
-Run concat.bat
-Run load_stage.sql
-Run generic_update.sql (from working directory);
+6.Run concat.bat
+7.Run load_stage.sql
+8.Run generic_update.sql (from working directory);

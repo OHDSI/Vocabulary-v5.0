@@ -1,12 +1,11 @@
 --as sequence is changing we need to introduce table with names but with no codes
 
-drop table aut_bn_all_nc ;
+
 create table aut_bn_all_nc as (
 select concept_name_1,concept_id_2,precedence from aut_bn_2_1
 union
 select concept_name_1,concept_id_2,precedence from aut_bn_1);
 
-drop table relationship_to_concept_nc ;
 create table relationship_to_concept_nc as ( 
    select * from
 (
@@ -20,7 +19,7 @@ select concept_name_1,CONCEPT_id_2,cast (precedence as number),null from aut_bn_
 ))
 ;
 
-drop table RELATIONSHIP_TO_CONCEPT_2 ;
+
 create table RELATIONSHIP_TO_CONCEPT_2 as
 select a.*,concept_code as concept_code_1 from relationship_to_concept_nc a join drug_concept_stage b on lower(b.concept_name)=lower(a.concept_name_1);
 

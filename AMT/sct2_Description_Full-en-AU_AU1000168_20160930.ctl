@@ -6,14 +6,14 @@ into table FULL_DESCR_DRUG_ONLY
 fields terminated by ';' OPTIONALLY ENCLOSED BY '"'
 trailing nullcols
 (
-   ID                  VARCHAR2(255 Byte),
-   EFFECTIVETIME       VARCHAR2(255 Byte),
-   ACTIVE              VARCHAR2(255 Byte),
-   MODULEID            VARCHAR2(255 Byte),
-   CONCEPTID           VARCHAR2(255 Byte),
-   LANGUAGECODE        VARCHAR2(255 Byte),
-   TYPEID              VARCHAR2(255 Byte),
-   TERM                VARCHAR2(1555 Byte),
-   CASESIGNIFICANCEID  VARCHAR2(255 Byte)  
+   ID                  CHAR(255 Byte),
+   EFFECTIVETIME       CHAR(255 Byte),
+   ACTIVE              CHAR(255 Byte),
+   MODULEID            CHAR(255 Byte),
+   CONCEPTID           CHAR(255 Byte),
+   LANGUAGECODE        CHAR(255 Byte),
+   TYPEID              CHAR(255 Byte),
+   TERM                CHAR(1555 Byte),
+   CASESIGNIFICANCEID  CHAR(255 Byte)  
 );
 

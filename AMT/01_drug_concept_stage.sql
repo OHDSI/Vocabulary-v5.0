@@ -1,6 +1,4 @@
-DROP INDEX dcs_index ;
 
-drop table supplier;
 create table supplier as
 select distinct initcap(replace(replace(regexp_substr (concept_name,'(\(.*\))',1,1),'('),')')) as supplier,concept_code 
 from concept_stage_sn
@@ -20,7 +18,7 @@ UPDATE SUPPLIER   SET SUPPLIER = 'Pfizer' WHERE SUPPLIER = 'Pfizer Perth'
 ;
 
 
-drop table supplier_2;  --add suppliers with abbreviations
+--add suppliers with abbreviations
 create table supplier_2 as
 select distinct supplier from supplier;
 INSERT INTO SUPPLIER_2 (SUPPLIER) VALUES('Apo');
@@ -53,7 +51,7 @@ add concept_Code varchar(255);
 update supplier_2
 set concept_code='OMOP'||new_voc.nextval;
 
-drop table unit; -- parse units as they looks like 'mg/ml' etc.
+-- parse units as they looks like 'mg/ml' etc.
 create table unit as ( 
 SELECT distinct concept_name,CONCEPT_CLASS_ID,NEW_CONCEPT_CLASS_ID,concept_name as CONCEPT_CODE,UNITID from (
 select distinct
@@ -61,7 +59,7 @@ trim(regexp_substr(regexp_replace(b.concept_name,'(/)(unit|each|application|dose
 from ds_0 a join concept_stage_sn  b on UNITID=concept_code,
 table(cast(multiset(select level from dual connect by  level <= length (regexp_replace(b.concept_name, '[^/]+'))  + 1) as sys.OdciNumberList)) levels) where concept_name is not null);
 
-drop table form;
+
 create table form as
 select distinct a.CONCEPT_NAME, 'Dose Form' as NEW_CONCEPT_CLASS_ID,a.CONCEPT_CODE,a.CONCEPT_CLASS_ID from
 concept_stage_sn a join SCT2_RELA_FULL_AU b on a.concept_code=b.sourceid join concept_stage_sn  c on c.concept_Code=destinationid where a.concept_class_id='AU Qualifier' 
@@ -71,6 +69,7 @@ concept_stage_sn a join RF2_FULL_RELATIONSHIPS b on a.concept_code=b.sourceid jo
 and initcap(c.concept_name) in ('Area Unit Of Measure','Biological Unit Of Measure','Composite Unit Of Measure','Descriptive Unit Of Measure','Mass Unit Of Measure','Microbiological Culture Unit Of Measure',
 'Radiation Activity Unit Of Measure','Time Unit Of Measure','Volume Unit Of Measure','Type Of International Unit','Type Of Pharmacopoeial Unit'))
 and lower(a.concept_name) not in (select lower(concept_name) from unit);
+
 
 truncate table DRUG_concept_STAGE;
 insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,domain_id,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, SOURCE_CONCEPT_CLASS_ID)
@@ -139,6 +138,5 @@ delete  drug_concept_stage where initcap(concept_name) in --delete all unnecessa
 delete drug_concept_stage --as RxNorm doesn't have diluents in injectable drugs we will also delete them
 where (lower(concept_name) like '%inert%' or lower(concept_name) like '%diluent%') 
 and concept_class_id='Drug Product' and lower(concept_name) not like '%tablet%';
-
 
 CREATE INDEX dcs_index ON drug_concept_stage (concept_code);

@@ -9,8 +9,7 @@ CREATE TABLE FULL_DESCR_DRUG_ONLY
    TYPEID              VARCHAR2(255 Byte),
    TERM                VARCHAR2(1555 Byte),
    CASESIGNIFICANCEID  VARCHAR2(255 Byte)
-)
-TABLESPACE USERS;
+);
 
 CREATE SCT2_CONCEPT_FULL_AU
 (
@@ -23,72 +22,83 @@ CREATE SCT2_CONCEPT_FULL_AU
 TABLESPACE USERS;
 
 
-create table rf2_full_relationships (
-id varchar (255),
-effectivetime varchar (255),
-active varchar (255),
-moduleid varchar (255), 
-sourceid varchar (255),
-destinationid varchar (255),
-relationshipgroup varchar (255),
-typeid varchar (255),
-characteristictypeid varchar (255),
-modifierid varchar (255)
+CREATE TABLE RF2_FULL_RELATIONSHIPS
+(
+   ID                    VARCHAR2(255 Byte),
+   EFFECTIVETIME         VARCHAR2(255 Byte),
+   ACTIVE                VARCHAR2(255 Byte),
+   MODULEID              VARCHAR2(255 Byte),
+   SOURCEID              VARCHAR2(255 Byte),
+   DESTINATIONID         VARCHAR2(255 Byte),
+   RELATIONSHIPGROUP     VARCHAR2(255 Byte),
+   TYPEID                VARCHAR2(255 Byte),
+   CHARACTERISTICTYPEID  VARCHAR2(255 Byte),
+   MODIFIERID            VARCHAR2(255 Byte)
 );
 
-create table rf2_ss_refset (
-id varchar (255),
-effectivetime varchar (255),
-active varchar (255),
-moduleid varchar (255), 
-refsetid varchar (255), 
-referencedcomponentid varchar (255));
 
-
-create table rf2_ss_strength_refset (
-id varchar (255),
-effectivetime varchar (255),
-active varchar (255),
-moduleid varchar (255), 
-refsetid varchar (255), 
-referencedcomponentid varchar (255), 
-unitid varchar (255), 
-operatorid varchar (255), 
-value varchar (255)
+CREATE TABLE RF2_SS_REFSET
+(
+   ID                     VARCHAR2(255 Byte),
+   EFFECTIVETIME          VARCHAR2(255 Byte),
+   ACTIVE                 VARCHAR2(255 Byte),
+   MODULEID               VARCHAR2(255 Byte),
+   REFSETID               VARCHAR2(255 Byte),
+   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte)
 );
 
-create table rf2_ss_unit_of_use_size_refset (
-id varchar (255),
-effectivetime varchar (255),
-active varchar (255),
-moduleid varchar (255), 
-refsetid varchar (255), 
-referencedcomponentid varchar (255), 
-unitid varchar (255), 
-operatorid varchar (255), 
-value varchar (255)
+
+CREATE RF2_SS_STRENGTH_REFSET
+(
+   ID                     VARCHAR2(255 Byte),
+   EFFECTIVETIME          VARCHAR2(255 Byte),
+   ACTIVE                 VARCHAR2(255 Byte),
+   MODULEID               VARCHAR2(255 Byte),
+   REFSETID               VARCHAR2(255 Byte),
+   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte),
+   UNITID                 VARCHAR2(255 Byte),
+   OPERATORID             VARCHAR2(255 Byte),
+   VALUE                  VARCHAR2(255 Byte)
 );
 
-create table rf2_ss_unit_of_use_qr (
-id varchar (255),
-effectivetime varchar (255),
-active varchar (255),
-moduleid varchar (255), 
-refsetid varchar (255), 
-referencedcomponentid varchar (255), 
-unitid varchar (255), 
-operatorid varchar (255), 
-value varchar (255)
+
+CREATE RF2_SS_UNIT_OF_USE_SIZE_REFSET
+(
+   ID                     VARCHAR2(255 Byte),
+   EFFECTIVETIME          VARCHAR2(255 Byte),
+   ACTIVE                 VARCHAR2(255 Byte),
+   MODULEID               VARCHAR2(255 Byte),
+   REFSETID               VARCHAR2(255 Byte),
+   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte),
+   UNITID                 VARCHAR2(255 Byte),
+   OPERATORID             VARCHAR2(255 Byte),
+   VALUE                  VARCHAR2(255 Byte)
 );
 
-create table rf2_ss_subpack_quantity_refset (
-id varchar (255),
-effectivetime varchar (255),
-active varchar (255),
-moduleid varchar (255), 
-refsetid varchar (255), 
-referencedcomponentid varchar (255), 
-unitid varchar (255), 
-operatorid varchar (255), 
-value varchar (255));
+CREATE TABLE RF2_SS_UNIT_OF_USE_QR
+(
+   ID                     VARCHAR2(255 Byte),
+   EFFECTIVETIME          VARCHAR2(255 Byte),
+   ACTIVE                 VARCHAR2(255 Byte),
+   MODULEID               VARCHAR2(255 Byte),
+   REFSETID               VARCHAR2(255 Byte),
+   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte),
+   UNITID                 VARCHAR2(255 Byte),
+   OPERATORID             VARCHAR2(255 Byte),
+   VALUE                  VARCHAR2(255 Byte)
+);
+
+CREATE TABLE RF2_SS_SUBPACK_QUANTITY_REFSET
+(
+   ID                     VARCHAR2(255 Byte),
+   EFFECTIVETIME          VARCHAR2(255 Byte),
+   ACTIVE                 VARCHAR2(255 Byte),
+   MODULEID               VARCHAR2(255 Byte),
+   REFSETID               VARCHAR2(255 Byte),
+   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte),
+   UNITID                 VARCHAR2(255 Byte),
+   OPERATORID             VARCHAR2(255 Byte),
+   VALUE                  VARCHAR2(255 Byte)
+);
+
 

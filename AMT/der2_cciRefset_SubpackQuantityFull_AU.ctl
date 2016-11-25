@@ -1,6 +1,6 @@
 options (direct=true, errors=0, SKIP=1)
 load data
-infile 'der2_cciRefset_SubpackQuantityFull_AU1000036_20160930.csv' 
+infile 'der2_cciRefset_SubpackQuantityFull_AU.csv' 
 truncate
 into table rf2_ss_subpack_quantity_refset
 fields terminated by ';' OPTIONALLY ENCLOSED BY '"'

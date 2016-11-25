@@ -1,6 +1,6 @@
 options (direct=true, errors=0, SKIP=1)
 load data
-infile 'sct2_Description_Full-en-AU_AU1000168_20160930.csv' 
+infile 'sct2_Description_Full-en-AU_AU.csv' 
 truncate
 into table FULL_DESCR_DRUG_ONLY
 fields terminated by ';' OPTIONALLY ENCLOSED BY '"'

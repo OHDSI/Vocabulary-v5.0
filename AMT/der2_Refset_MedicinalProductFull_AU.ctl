@@ -1,7 +1,6 @@
 options (direct=true, errors=0, SKIP=1)
 load data
-infile 'der2_Refset_ContaineredTradeProductPackFull_AU1000036_20160930.csv' 
-truncate
+infile 'der2_Refset_MedicinalProductFull_AU.csv' 
 into table rf2_ss_refset
 fields terminated by ';' OPTIONALLY ENCLOSED BY '"'
 trailing nullcols

@@ -16,13 +16,14 @@
 * Authors: Christian Reich, Anna Ostropolets, Dmitry Dymshyts
 * Date: 2016
 **************************************************************************/
-select concept_code,error_type from (
+select error_type, count (1) from (
 
 --Marketed products
 select cs.concept_code,'Marketed product represents more than one sub-product' as error_type 
 from concept_stage cs 
 LEFT JOIN concept_relationship_stage crs ON crs.CONCEPT_CODE_1=cs.concept_code and crs.RELATIONSHIP_ID ='Marketed form of' 
-WHERE cs.concept_class_id like 'Marketed%' GROUP BY cs.concept_code HAVING count(distinct crs.rowid) != 1
+LEFT JOIN  concept_relationship_stage CR2 ON cs.concept_code=CR2.concept_code_2 OR cs.concept_code=CR2.concept_code_1 and cr2.RELATIONSHIP_ID ='Has marketed form' 
+WHERE cs.concept_class_id like 'Marketed%' and crs.CONCEPT_CODE_1 IS NULL AND CR2.CONCEPT_CODE_2 IS NULL
 
 union
 
@@ -30,7 +31,7 @@ select concept_code_1 as concept_Code , 'Marketed products have relationships ot
 select crs.concept_code_1, crs.relationship_id from concept_stage cs 
 JOIN concept_relationship_stage crs ON crs.CONCEPT_CODE_1=cs.concept_code 
 AND crs.VOCABULARY_ID_1=cs.VOCABULARY_ID WHERE cs.concept_class_id like 'Marketed%' 
-AND crs.RELATIONSHIP_ID not in ('Marketed form of', 'Has Supplier'))
+AND crs.RELATIONSHIP_ID not in ('Marketed form of', 'Has Supplier', 'Contains'))
 
 union
 
@@ -39,19 +40,19 @@ from existing_concept_stage group by concept_Code having count(1)>1
 
 union
 
-select concept_Code,'Duplicates in concept_relationship_stage' from
+select concept_Code_1,'Duplicates in concept_relationship_stage' from
 (select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON
 from concept_relationship_stage group by CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON having count(1)>1)
 
 union 
 
 select concept_code_2,'Missing concept_code_1'
-from concept_relationship_stgae where concept_code_1 is null
+from concept_relationship_stage where concept_code_1 is null
 
 union
  
 select concept_code_1,'Missing concept_code_2'
-from concept_relationship_stgae where concept_code_2 is null
+from concept_relationship_stage where concept_code_2 is null
 
 
 
@@ -61,8 +62,9 @@ select distinct relationship_id,'Wrong relationship_id in concept_relationship_s
 from concept_relationship_stage where relationship_id not in (select distinct relationship_id from devv5.concept_relationship)
 
 union
+--important query - without it we'll ruin Generic_update
 select distinct concept_class_id,'Wrong concept_class_id in concept_stage'
-from concept_stage where concept_class_id not in (select distinct concept_class_id from devv5.concept)
+from concept_stage where concept_class_id not in (select distinct concept_class_id from devv5.concept_class)
 
 union
 
@@ -88,8 +90,12 @@ RIGHT JOIN concept cs ON cs.concept_id=crs.concept_id_1
 RIGHT JOIN concept cs2 ON crs.concept_id_2=cs2.concept_id
 WHERE crs.concept_id_1 IS NULL AND crs.concept_id_2 IS NULL and cs2.vocabulary_id='RxNorm' and cs2.invalid_reason is null
 */
-select cs.concept_code, 'Concepts from concept_stage do not have any relationship' from 
-concept_stage cs LEFT JOIN concept_relationship_stage crs ON cs.concept_code=crs.concept_code_1 OR cs.concept_code=crs.concept_code_2 WHERE crs.CONCEPT_CODE_1 IS NULL
+select cs.concept_code, 'Concepts from concept_stage do not have any relationship'  
+from concept_stage cs
+ LEFT JOIN concept_relationship_stage crs ON cs.concept_code=crs.concept_code_1 OR cs.concept_code=crs.concept_code_2 
+LEFT JOIN  concept_relationship_stage CR2 ON cs.concept_code=CR2.concept_code_2 OR cs.concept_code=CR2.concept_code_1
+WHERE crs.CONCEPT_CODE_1 IS NULL AND CR2.CONCEPT_CODE_2 IS NULL
+and cs.domain_id = 'Drug'
 
 union
 --Check for duplicates, different standard_concept might be a problem
@@ -175,20 +181,46 @@ where  valid_end_date <=SYSDATE or valid_end_date = to_date ('2099-12-31', 'YYYY
 union
 --Improper valid_start_date
 select concept_code, 'Improper valid_start_date' from concept_stage where valid_start_date > SYSDATE
-
 union
-
---Improper concentrations
-select concept_Code,'Improper concentrations' from complete_name where concept_name like '%MG/MG%' and regexp_substr (concept_name, '[[:digit:]\.]+') >1
+-- duplicated Attributes
+with new_concept as (select * from  concept union  select * from  concept_stage), 
+new_concept_relat as (
+select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_relationship_stage
 union
-select concept_Code,'Improper concentrations'  from complete_name where concept_name like '%MG/ML%' and regexp_substr (concept_name, '[[:digit:]\.]+') >1000
-
+select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_2,CONCEPT_CODE_1,VOCABULARY_ID_1,VOCABULARY_ID_2,'reverse '||RELATIONSHIP_ID as RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_relationship_stage
+)
+ select  *
+  from new_concept_relat r
+join new_concept b on concept_code_1 = b.concept_code
+join new_concept c on concept_code_2 = c.concept_code
+where c.concept_class_id in ('Dose Form', 'Brand Name', 'Supplier')
+and b.vocabulary_id like 'RxNorm%' and c.vocabulary_id like 'RxNorm%' and r.invalid_reason is null and (b.concept_class_id like '%Drug%' or b.concept_class_id like '%Marketed%' or  b.concept_class_id like '%Box%' ) --And relationship_id = 'RxNorm has dose form'
+group by concept_code_1, c.concept_class_id having count (1) >1 
 union
-
---Mapping to invalid concepts
-select cn.concept_Code,'Invalid concepts' from q_to_r qr
-join complete_name cn on qr.Q_DCODE = cn.concept_code
-join concept c on qr.r_did = c.concept_id
-where c.invalid_reason is not null
-
-);
+select 
+select concept_name from concept_stage where vocabulary_id = 'RxNorm Extension' and concept_name not like '%...%' group by concept_name , invalid_reason 
+ having count (1) > 1
+)
+group by error_type
+;
+--some really stupid stuf
+select concept_name from concept_stage where vocabulary_id = 'RxNorm Extension' and concept_name not like '%...%' group by concept_name , invalid_reason 
+ having count (1) > 1
+;
+create table new_concept as (select * from  concept union  select * from  concept_stage);
+create table concept_relat_two_ways as (
+select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_relationship_stage
+union
+select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_2,CONCEPT_CODE_1,VOCABULARY_ID_1,VOCABULARY_ID_2,'reverse '||RELATIONSHIP_ID as RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_relationship_stage
+)
+;
+--need to finish tomorrow
+with dupl as (
+ select concept_code_1, c.concept_class_id from concept_relat_two_ways r
+join new_concept b on concept_code_1 = b.concept_code
+join new_concept c on concept_code_2 = c.concept_code
+where c.concept_class_id in ('Dose Form', 'Brand Name', 'Supplier')
+and b.vocabulary_id like 'RxNorm%' and c.vocabulary_id like 'RxNorm%' and r.invalid_reason is null and (b.concept_class_id like '%Drug%' or b.concept_class_id like '%Marketed%' or  b.concept_class_id like '%Box%' ) --And relationship_id = 'RxNorm has dose form'
+group by concept_code_1, c.concept_class_id having count (1) >1 
+)
+select * from concept_relationship_stage r join dupl on r.concept_code_1 = dupl.concept_code_1 and dupl.concept_class_id = 

@@ -54,6 +54,7 @@ create table modifier_classes nologging as
     ) t1; 
   
 --classes
+drop table classes;
 create table classes nologging as
     SELECT t.class_code, t1.rubric_kind, t.superclass_code, cast(substr(t1.Label,1,1000) as varchar(1000)) as Label
     FROM ICDCLAML i, 
@@ -70,10 +71,21 @@ create table classes nologging as
     ) t1;
 
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'classes');
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'modifier_classes');	
+--exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'modifier_classes');	
 
+--modify classes_table replacing  preferred name to preferredLong where it's possible
+create table classes_temp as
+select a.CLASS_CODE,a.RUBRIC_KIND,a.SUPERCLASS_CODE, nvl (b.LABEL, a.label) as label from classes a 
+ left join classes b on a.class_code =b.class_code and a.rubric_kind = 'preferred' and b.rubric_kind = 'preferredLong'
+ where a.rubric_kind != 'preferredLong'
+ ;
+truncate table classes
+;
+insert into classes select * from classes_temp
+;
+drop table classes_temp purge
+;
 --4. Fill the concept_stage
-
 INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            domain_id,
                            vocabulary_id,
@@ -100,14 +112,17 @@ concepts_modifiers as (
     --add all the modifiers using patterns described in a table
     --'I70M10_4' with or without gangrene related to gout, seems to be a bug, modifier says [See site code at the beginning of this chapter]
     select a.concept_code||b.MODIFIERCLASS_CODE as concept_code, case when b.MODIFER_NAME = 'Kimmelstiel-Wilson syndromeN08.3' --only one modifier that has capital letter in it
-    then regexp_substr ((a.concept_name||', '|| b.MODIFER_NAME), '\D\d\d(\.|-|$).*') -- remove related code (A52.7)
-    else regexp_substr (( a.concept_name||', '|| lower( b.MODIFER_NAME)), '\D\d\d(\.|-|$).*')
+    then regexp_replace (a.concept_name, '[A-Z]\d\d(\.|-|$).*')||', '||  regexp_replace (b.MODIFER_NAME, '[A-Z]\d\d(\.|-|$).*') -- remove related code (A52.7)
+    else  regexp_replace (a.concept_name, '[A-Z]\d\d(\.|-|$).*')||', '|| lower( regexp_replace (b.MODIFER_NAME, '[A-Z]\d\d(\.|-|$).*'))
      end 
     as concept_name from codes a 
     join codes b on (
         (regexp_substr (a.label, '\D\d\d') = b.concept_code  and a.label=b.label and a.class_code != b.class_code)
         or (a.label = '[See at the beginning of this block for subdivisions]' and a.label=b.label and a.class_code != b.class_code and b.concept_code ='K25')
-        or (a.label= '[See site code at the beginning of this chapter]' and a.label =b.label and a.class_code != b.class_code and b.concept_code like '_00' and regexp_substr (b.concept_code, '^\D')=regexp_substr (a.concept_code, '^\D'))
+        or (a.label= '[See site code at the beginning of this chapter]' and a.label =b.label and a.class_code != b.class_code and b.concept_code like '_00' and regexp_substr (b.concept_code, '^\D')=regexp_substr (a.concept_code, '^\D')
+            and a.concept_code not like 'M91%' -- seems to be ICD10 bag, M91% don't need additional modifiers  
+            and a.concept_code not like 'M21.4%'   --Flat foot [pes planus] (acquired)
+           )
     ) where (
         (a.concept_code not like '%.%' and b.MODIFIERCLASS_CODE like '%.%') 
         or (a.concept_code  like '%.%' and b.MODIFIERCLASS_CODE not like '%.%')
@@ -140,10 +155,10 @@ from (
     --full list of concepts 
     select * from concepts_modifiers
     union
-    select class_code, case when label like 'Emergency use of%' then label else   regexp_replace (label,'\D\d\d(\.|-|$).*')  -- remove related code (A52.7) i.e.  Late syphilis of kidneyA52.7 but except of cases like "Emergency use of U07.0"
+    select class_code, case when label like 'Emergency use of%' then label else   regexp_replace (label,'[A-Z]\d\d(\.|-|$).*')  -- remove related code (A52.7) i.e.  Late syphilis of kidneyA52.7 but except of cases like "Emergency use of U07.0"
      end as concept_name
      from classes where RUBRIC_KIND ='preferred' and class_code not like '%-%'
-) where regexp_like (concept_code, '\D\d\d.*')
+) where regexp_like (concept_code, '[A-Z]\d\d.*')
 ;
 COMMIT;	
 
@@ -327,12 +342,20 @@ DROP TABLE classes PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
 
-/* --name analysis, figure out what goes to the synonim table, what - need to be improved
-select a.concept_name as new_name, b.concept_name as old_name , UTL_MATCH.JARO_WINKLER_SIMILARITY (a.concept_name , b.concept_name) as JARO_WINKLER_SIMIL, 
+
+
+/*
+
+--name analysis, figure out what goes to the synonim table, what - need to be improved
+select a.concept_code, a.concept_name as new_name, b.concept_name as old_name , c.concept_name as ICD10CM_name,  UTL_MATCH.JARO_WINKLER_SIMILARITY (a.concept_name , b.concept_name) as JARO_WINKLER_SIMIL, 
 UTL_MATCH.EDIT_DISTANCE_SIMILARITY (a.concept_name , b.concept_name) as EDIT_DISTANCE_SIMIL, 
 UTL_MATCH.EDIT_DISTANCE(a.concept_name , b.concept_name) as EDIT_DISTANCE,
-regexp_replace (a.concept_name , b.concept_name) as difference -- shows how to improve names 
- from concept_stage a join devv5.concept b on a.concept_code = b.concept_code
-where b.vocabulary_id = 'ICD10' and b.invalid_reason is null and lower ( a.concept_name) != lower (b.concept_name)
+regexp_replace (b.concept_name , a.concept_name) as difference, -- shows how to improve names
+ regexp_substr (b.concept_name , a.concept_name) as similarity 
+ from concept_stage a
+  join devv5.concept b on a.concept_code = b.concept_code
+  join devv5.concept c on a.concept_code = c.concept_code
+where b.vocabulary_id = 'ICD10' and b.invalid_reason is null and lower ( a.concept_name) != lower (b.concept_name) 
+and c.vocabulary_id = 'ICD10CM' and C.invalid_reason is null
 and not regexp_like (a.concept_name, '-') --to avoid the crash of regexp_replace (a.concept_name , b.concept_name), not the best decision, we lose for about 200 concepts
 */

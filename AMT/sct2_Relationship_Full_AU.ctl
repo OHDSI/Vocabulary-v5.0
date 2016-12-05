@@ -1,6 +1,6 @@
 options (direct=true, errors=0, SKIP=1)
 load data
-infile 'sct2_Relationship_Full_AU1000036_20160930.csv' 
+infile 'sct2_Relationship_Full_AU.csv' 
 truncate
 into table rf2_full_relationships
 fields terminated by ';' OPTIONALLY ENCLOSED BY '"'

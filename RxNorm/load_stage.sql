@@ -1215,7 +1215,31 @@ INSERT INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---22 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
+--22 Remove direct links to RxNorm Ingredients for all those ATC5 concepts that are ambiguous and likely are either defined as combinations or with certain Drug Forms only
+DELETE FROM concept_relationship_stage
+  WHERE ROWID IN
+		   (SELECT crs.ROWID
+			  FROM concept_stage c1, concept c2, concept_relationship_stage crs
+			 WHERE     c1.concept_code = crs.concept_code_1
+				   AND c1.vocabulary_id = crs.vocabulary_id_1
+				   AND c2.concept_code = crs.concept_code_2
+				   AND c2.vocabulary_id = crs.vocabulary_id_2
+				   AND c1.vocabulary_id = 'ATC'
+				   AND c1.concept_class_id = 'ATC 5th'
+				   AND c1.invalid_reason IS NULL
+				   AND c2.vocabulary_id = 'RxNorm'
+				   AND c2.concept_class_id = 'Ingredient'
+				   AND crs.relationship_id = 'ATC - RxNorm'
+				   AND crs.invalid_reason IS NULL
+				   AND c1.concept_name IN (  SELECT c_int.concept_name
+											   FROM concept_stage c_int
+											  WHERE c_int.vocabulary_id = 'ATC' AND c_int.concept_class_id = 'ATC 5th' AND c_int.invalid_reason IS NULL AND c_int.concept_name <> 'combinations'
+										   GROUP BY c_int.concept_name
+											 HAVING COUNT (*) > 1));
+
+COMMIT;
+											 
+--23 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -1248,31 +1272,31 @@ SELECT DISTINCT
              AND r.lat = 'ENG';
 COMMIT;
 
---23 Working with replacement mappings
+--24 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---24 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--25 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;	
 
---25 Add mapping from deprecated to fresh concepts
+--26 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;		 
 
---26 Delete ambiguous 'Maps to' mappings
+--27 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---27 Clean up
+--28 Clean up
 DROP TABLE drug_vocs PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

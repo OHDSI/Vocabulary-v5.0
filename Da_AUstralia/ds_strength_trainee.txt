@@ -1,0 +1,197 @@
+﻿drop table ds_strength_trainee purge;
+
+create table ds_strength_trainee (DRUG_CONCEPT_CODE VARCHAR2(255 Byte),INGREDIENT_NAME VARCHAR2(255 Byte),BOX_SIZE NUMBER,AMOUNT_VALUE FLOAT(126),AMOUNT_UNIT VARCHAR2(255 Byte),NUMERATOR_VALUE FLOAT(126),NUMERATOR_UNIT VARCHAR2(255 Byte),DENOMINATOR_VALUE FLOAT(126), 
+DENOMINATOR_UNIT VARCHAR2(255 Byte));
+
+
+--1 molecule where %--
+
+insert into ds_strength_trainee (DRUG_CONCEPT_CODE ,INGREDIENT_NAME ,NUMERATOR_VALUE ,NUMERATOR_UNIT ,DENOMINATOR_UNIT )
+
+SELECT CONCEPT_CODE AS DRUG_CONCEPT_CODE, MOL_NAME AS INGREDIENT_NAME, cast(dosage as number)*10 AS NUMERATOR_VALUE, 'mg' as NUMERATOR_UNIT, 'ml' as DENOMINATOR_UNIT
+FROM (
+SELECT CONCEPT_CODE, MOL_NAME, DOSAGE,UNIT,
+ DOSAGE2, UNIT2,
+ DOSAGE3, UNIT3
+FROM DRUG_CONCEPT_STAGE JOIN FO_PRODUCT
+ON CONCEPT_CODE = FO_PRD_ID 
+WHERE CONCEPT_CLASS_ID = 'Drug Product' and mol_name not like '%/%' and unit2 is null and unit like '%!%%' escape '!')
+;
+--1 molecule not %--
+insert into ds_strength_trainee (DRUG_CONCEPT_CODE ,INGREDIENT_NAME ,AMOUNT_VALUE,AMOUNT_UNIT)
+SELECT CONCEPT_CODE, MOL_NAME, DOSAGE,UNIT
+FROM DRUG_CONCEPT_STAGE JOIN FO_PRODUCT
+ON CONCEPT_CODE = FO_PRD_ID 
+WHERE CONCEPT_CLASS_ID = 'Drug Product' and mol_name not like '%/%' and unit2 is null and unit not like '%!%%' escape '!' and dosage2 is null
+;
+
+
+--1 molecule not % where dosage 2 not null--
+insert into ds_strength_trainee (DRUG_CONCEPT_CODE ,INGREDIENT_NAME ,AMOUNT_VALUE,AMOUNT_UNIT)
+SELECT CONCEPT_CODE, MOL_NAME, DOSAGE,UNIT
+FROM DRUG_CONCEPT_STAGE JOIN FO_PRODUCT
+ON CONCEPT_CODE = FO_PRD_ID 
+WHERE CONCEPT_CLASS_ID = 'Drug Product' and mol_name not like '%/%' and unit2 is null and unit not like '%!%%' escape '!' and dosage2 is not null and (prd_name like '%/__H%' or prd_name like '%(%MG)' or dosage2 = '-1')
+;
+--NEED MANUAL PROCEDURE( NEARLY 20 ROWS) WHERE CONCEPT_CLASS_ID = 'Drug Product' and mol_name not like '%/%' and unit2 is null and unit not like '%!%%' escape '!' and dosage2 is not null and NOT NULL  (prd_name like '%/__H%' or prd_name like '%(%MG)' or dosage2 = '-1')--
+
+
+
+--liquid ingr with 1 molecule and no % anywhere--
+insert into ds_strength_trainee (DRUG_CONCEPT_CODE ,INGREDIENT_NAME ,NUMERATOR_VALUE,NUMERATOR_UNIT, DENOMINATOR_VALUE,DENOMINATOR_UNIT )
+SELECT CONCEPT_CODE, MOL_NAME, DOSAGE, UNIT, DOSAGE2,UNIT2
+FROM
+DRUG_CONCEPT_STAGE JOIN FO_PRODUCT
+ON CONCEPT_CODE = FO_PRD_ID 
+WHERE CONCEPT_CLASS_ID = 'Drug Product' and FO_PRODUCT.MOL_NAME  not like '%/%' and unit2 is not null and unit not like '%!%%' escape '!' and unit2 not like '%!%%' escape '!'
+;
+
+
+--NEED MANUAL PROCEDURE( NEARLY 40 ROWS) WHERE CONCEPT_CLASS_ID = 'Drug Product' and FO_PRODUCT.MOL_NAME  not like '%/%' and unit2 is not null and (unit like '%!%%' escape '!' or unit2  like '%!%%' escape '!')--
+
+--multiple ingr--
+--multiple with pattern ' -%-%-/'--
+create or replace view multiple_liquid as
+select FO_PRD_ID, PRD_NAME,regexp_replace(regexp_substr( prd_name, '(\d+(\.\d+)?\D*-)+\d+(\.\d+)?\D*'), '/.*') as AA,
+regexp_substr(regexp_substr(regexp_substr(prd_name, '(\d+(\.\d+)?\D*-)+\d+(\.\d+)?\D*/.*'),'/\d+.*\s?'), '(\d+(\.\d)?)' ) as DENOMINATOR_VALUE ,
+regexp_substr(regexp_substr(regexp_substr( prd_name, '(\d+(\.\d+)?\D*-)+\d+(\.\d+)?\D*/.*'),'/.*'), '(MG|IU|%|G|ML|MCG|MMOL|BILLION.*|MILLION.*|\D*UNITS.|L|LOZ|LOZENGE|Âµg|U){1}')  as DENOMINATOR_UNIT, mol_name
+from
+(select * from drugs where regexp_like(prd_name, '(\d+(\.\d+)?\D*-)+\d+(\.\d+)?\D*/{1}\d?(\.\d+)?\D*') and MOL_NAME like '%/%')
+;
+
+create or replace view ds_multiple_liquid as
+select FO_PRD_ID,PRD_NAME,G,
+regexp_substr(W,'\d+(\.\d+)?') as numerator_value, 
+regexp_substr(W,'MG|IU|%|G|ML|MCG|MMOL.*|BILLION.*|MILLION.*|\D*UNITS|DOSE|L|LOZ|Âµg|U') as numerator_unit,
+DENOMINATOR_VALUE, DENOMINATOR_UNIT
+from
+(select FO_PRD_ID,PRD_NAME,DENOMINATOR_VALUE,DENOMINATOR_UNIT,
+regexp_substr(AA, '[^-]+',1,level)as w,
+regexp_substr(MOL_NAME , '[^/]+',1,level) as g 
+from multiple_liquid
+connect by FO_PRD_ID=prior FO_PRD_ID and prior dbms_random.value is not null 
+and ( regexp_substr(AA, '[^-]+',1,level) is not null 
+or regexp_substr(MOL_NAME , '[^/]+',1,level) is not null))
+;
+--multiple with pattern '/' --
+create or replace view ds_multiple1 as
+select FO_PRD_ID,PRD_NAME,A, mol_name from (
+select regexp_substr(prd_name,'\d+.?\d*(MG|IU|%|G|ML|MCG|MMOL|BILLION.*|MILLION.*| \D*UNITS|L|LOZ|Âµg|U){1}/\d+.*') as A, PRD_NAME,FO_PRD_ID, mol_name
+from drugs 
+where mol_name like '%/%' and FO_PRD_ID not in (select distinct FO_PRD_ID from ds_multiple_liquid) and FO_PRD_ID not in (select FO_PRD_ID from non_drug)) where A is not null
+;
+
+--multiple with pattern '-'--
+create or replace view ds_multiple2 as
+select FO_PRD_ID, PRD_NAME, b, mol_name from (
+select regexp_substr(prd_name,'\d.?\d*(MG|IU|%|G|ML|MCG|MMOL|BILLION.*|MILLION.*|\D*UNITS|L|LOZ|Âµg|U){1}-\d.*') as b, PRD_NAME,fo_prd_id, mol_name
+from drugs 
+where mol_name like '%/%' and FO_PRD_ID not in (select distinct FO_PRD_ID from ds_multiple_liquid) and FO_PRD_ID not in (select FO_PRD_ID from non_drug)) where b is not null
+;
+--connecticng ingredient to comp. dosage--
+drop table MULTIPLE_INGREDIENTS;
+create table MULTIPLE_INGREDIENTS as
+select FO_PRD_ID, PRD_NAME,
+regexp_substr(A, '[^/]+',1,level)as w, 
+regexp_substr(MOL_NAME , '[^/]+',1,level) as g 
+from ds_multiple1
+connect by FO_PRD_ID=prior FO_PRD_ID and prior dbms_random.value is not null 
+and ( regexp_substr( A, '[^/]+',1,level) is not null 
+or regexp_substr(MOL_NAME , '[^/]+',1,level) is not null)
+union
+select FO_PRD_ID, PRD_NAME,
+regexp_substr(b, '[^-]+',1,level) w, 
+regexp_substr(MOL_NAME , '[^/]+',1,level) 
+from ds_multiple2
+connect by FO_PRD_ID=prior FO_PRD_ID and prior dbms_random.value is not null 
+and ( regexp_substr( b, '[^-]+',1,level) is not null 
+or regexp_substr(MOL_NAME , '[^/]+',1,level) is not null)
+;
+
+insert into ds_strength_trainee (DRUG_CONCEPT_CODE ,INGREDIENT_NAME ,NUMERATOR_VALUE ,NUMERATOR_UNIT ,DENOMINATOR_UNIT )
+select CONCEPT_CODE AS DRUG_CONCEPT_CODE, AA.MOL_NAME AS INGREDIENT_NAME, cast(AA.dosage as number)*10 AS NUMERATOR_VALUE, 'mg' as NUMERATOR_UNIT, 'ml' as DENOMINATOR_UNIT
+from DRUG_CONCEPT_STAGE JOIN
+(select FO_PRD_ID, PRD_NAME, regexp_substr(W,'\d+(\.\d*)?') as dosage, regexp_substr (W,'MG|IU|%|G|ML|MCG|MMOL|BILLION.*|MILLION.*|\D*UNITS|L|LOZ|Âµg|U' ) as unit, g as mol_name from MULTIPLE_INGREDIENTS ) AA
+on CONCEPT_CODE = FO_PRD_ID 
+where CONCEPT_CLASS_ID = 'Drug Product' and unit like '%!%%' escape '!'
+;
+
+insert into ds_strength_trainee (DRUG_CONCEPT_CODE ,INGREDIENT_NAME ,AMOUNT_VALUE,AMOUNT_UNIT)
+SELECT CONCEPT_CODE, BB.MOL_NAME, BB.DOSAGE, BB.UNIT
+from DRUG_CONCEPT_STAGE JOIN
+(select FO_PRD_ID, PRD_NAME, regexp_substr(W,'\d+(\.\d*)?') as dosage, regexp_substr (W,'MG|IU|%|G|ML|MCG|MMOL|BILLION.*|MILLION.*|\D*UNITS|L|LOZ|Âµg|U' ) as unit, g as mol_name from MULTIPLE_INGREDIENTS )BB
+on CONCEPT_CODE = FO_PRD_ID 
+where CONCEPT_CLASS_ID = 'Drug Product'  and unit not like '%!%%' escape '!'
+;
+ insert into ds_strength_trainee (DRUG_CONCEPT_CODE ,INGREDIENT_NAME ,NUMERATOR_VALUE ,NUMERATOR_UNIT ,DENOMINATOR_VALUE, DENOMINATOR_UNIT )
+ select FO_PRD_ID as DRUG_CONCEPT_CODE,G as INGREDIENT_NAME, NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT from ds_multiple_liquid;
+ 
+
+-- NB!!! number of ingr doesnt match with number of doses:select FO_PRD_ID, PRD_NAME, regexp_substr(W,'\d+(\.\d*)?') as dosage, regexp_substr (W,'MG|IU|%|G|ML|MCG|MMOL|BILLION.*|MILLION.*|.*UNITS.*' ) as unit, g as mol_name from MULTIPLE_INGREDIENTS  where regexp_substr(W,'\d+(\.\d*)?') is null--
+
+drop table ds_trainee_upd;
+create table ds_trainee_upd as
+select DRUG_CONCEPT_CODE,INGREDIENT_NAME,regexp_substr(regexp_substr(PRD_NAME,'\d+\w+/(\d)?(\.)?(\d)?\w+'),'(\d+)\w+') as numerator, regexp_replace(regexp_substr(PRD_NAME,'\d+\w+/(\d)?(\.)?(\d)?\w+'),'(\d+)\w+/') as denominator
+from ds_strength_trainee a join drugs b on fo_prd_id=drug_Concept_code
+where PRD_NAME like '%/%' and amount_value is not null and mol_name not like '%/%'
+and not regexp_like (regexp_substr(PRD_NAME,'(\d)+\w+/(\d)?(\.)?(\d)?\w+'),'SPRAY|PUMP|SACHET|INHAL|PUFF|DROP|DOSE|CAP|DO|SQUARE|LOZ|ELECTROLYTES|APPLICATI|BLIS|VIAL|BLIST');
+
+drop table ds_trainee_upd_2;
+create table ds_trainee_upd_2 as
+select DRUG_CONCEPT_CODE,INGREDIENT_NAME,
+case when denominator='STRAIN' then '0.1' when  denominator='33' then '33.6' when denominator like '%2%'  then '24' else regexp_substr(DENOMINATOR,'\d+') end as denominator_value,
+case when denominator like '%H%' then 'HOUR' when denominator like '%L%' then 'L' when denominator='33' then 'MG' when denominator='STRAIN' then 'ML' when denominator like '%ACTUA%' then 'ACTUATION'
+ when denominator like '%2%' then 'HOUR' else regexp_replace(DENOMINATOR,'\d+') end as denominator_unit,
+ regexp_replace(NUMERATOR,'\d+') as numerator_unit,
+regexp_substr(NUMERATOR,'\d+') as numerator_value
+from ds_trainee_upd
+;
+
+delete ds_strength_trainee where drug_concept_code in (select drug_concept_code from  ds_trainee_upd_2);
+insert into ds_strength_trainee(DRUG_CONCEPT_CODE,INGREDIENT_NAME,denominator_value,denominator_unit,numerator_unit,numerator_value)
+select DRUG_CONCEPT_CODE,INGREDIENT_NAME,denominator_value,denominator_unit,numerator_unit,numerator_value
+from ds_trainee_upd_2;
+
+drop table ds_stage_manual;
+create table ds_stage_manual
+(
+DRUG_CONCEPT_CODE	VARCHAR2(255),
+INGREDIENT_NAME	VARCHAR2(255),
+BOX_SIZE	NUMBER,
+AMOUNT_VALUE	FLOAT(126),
+AMOUNT_UNIT	VARCHAR2(255),	
+NUMERATOR_VALUE	FLOAT(126),	
+NUMERATOR_UNIT	VARCHAR2(255),	
+DENOMINATOR_VALUE	FLOAT(126),
+DENOMINATOR_UNIT	VARCHAR2(255)	
+);
+WbImport -file=C:/Users/eallakhverdiiev/Desktop/ds_stage_manual.txt
+         -type=text
+         -table=DS_STAGE_MANUAL
+         -encoding="ISO-8859-15"
+         -header=true
+         -decode=false
+         -dateFormat="yyyy-MM-dd"
+         -timestampFormat="yyyy-MM-dd HH:mm:ss"
+         -delimiter='\t'
+         -decimal=.
+         -fileColumns=DRUG_CONCEPT_CODE,$wb_skip$,$wb_skip$,INGREDIENT_NAME,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT
+         -quoteCharEscaping=none
+         -ignoreIdentityColumns=false
+         -deleteTarget=true
+         -continueOnError=false
+         -batchSize=100;
+
+ delete ds_strength_trainee 
+where drug_concept_code in (select drug_concept_code from ds_stage_manual);      
+insert into ds_strength_trainee select * from ds_stage_manual;
+--some new units appeared--
+insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
+
+select amount_unit,'AMT','Unit','',amount_unit,'Drug', TO_DATE('2016/10/01', 'yyyy/mm/dd'),TO_DATE('2099/12/31', 'yyyy/mm/dd'), ''
+ from (select amount_unit from ds_strength_trainee union select NUMERATOR_UNIT from ds_strength_trainee union select DENOMINATOR_UNIT from ds_strength_trainee minus (select concept_name from DRUG_concept_STAGE where concept_class_id like 'Unit'));
+ delete from DRUG_concept_STAGE where regexp_like(CONCEPT_CODE, '%');
+
+
+
+

@@ -210,23 +210,7 @@ CREATE TABLE DRUG_MAPPING_3
    UNIT_ID2         VARCHAR2(255 Byte),
    MOL_NAME         VARCHAR2(255 Byte)
 )
-TABLESPACE USERS;
-WbImport -file=C:/Users/eallakhverdiiev/Desktop/AUSLOCAL/NEW SOURCE/drug_mapping.csv
-         -type=text
-         -table=DRUG_MAPPING_3
-         -encoding="ISO-8859-15"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter="';'"
-         -decimal=.
-         -fileColumns=PRD_EID,LPDORIGINALNAME,FCC,DESCRIPTION,MANUFACTURER,EPHMRA_ATC_CODE,NFC_CODE,PRD_NAME,MAST_PRD_NAME,WHO_ATC_EID,PRD_DOSAGE,UNIT,PRD_DOSAGE2,UNIT_ID2,MOL_NAME,$wb_skip$
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=false
-         -continueOnError=false
-         -batchSize=1000;
+
          
 
 CREATE TABLE FO_PRODUCT_3
@@ -291,30 +275,6 @@ CREATE TABLE FO_PRODUCT_3
    GMP_ID                 VARCHAR2(255 Byte),
    PRD_ID_DC              VARCHAR2(255 Byte)
 )
-TABLESPACE USERS;
-
-WbImport -file=C:/Users/eallakhverdiiev/Desktop/AUSLOCAL/NEW SOURCE/fo_product.csv
-         -type=text
-         -table=FO_PRODUCT_3
-         -encoding="ISO-8859-15"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter="';'"
-         -decimal=.
-         -fileColumns=FO_PRD_ID,PRD_EID,PRD_NAME,MAST_PRD_NAME,INT_BRAND_NAME,DOSAGE,DOSAGE_AS_TEXT,UNIT,DOSAGE2,DOSAGE2_AS_TEXT,UNIT2,DOSAGE3,DOSAGE3_AS_TEXT,UNIT3,NBDOSE,NBDOSE_AS_TEXT,GALENIC,NBDOSE2,NBDOSE2_AS_TEXT,GALENIC2,IS_PRD_REFUNDABLE,PRD_REFUNDABLE_RATE,PRD_PRICE,CANCELED_DAT,CREATION_DAT,MANUFACTURER_NAME,IS_GENERIC,IS_HOSP,PRD_START_DAT,PRD_END_DAT,REGROUPING_CODE,EPH_CODE,EPH_NAME,EPH_TYPE,EPH_STATE,MOL_EID,MOL_NAME,ATCCODE,ATC_NAME,ATC_MOL,ATC_TYPE,ATC_STATE,BNF_EID,BNF_NAME,VERSION,UPDATED,MIN_DOSAGE_BY_DAY_REF,MAX_DOSAGE_BY_DAY_REF,GAL_ID,GAL_ID2,FIRST_PRD_DATE,FIRST_PRE_TRA_ID,FIRST_TRA_DATE,DDL_ID,DDL_LBL,PRD_VAT,REGROUPING_CODE_2,GMP_ID,PRD_ID_DC
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=false
-         -continueOnError=false
-         -batchSize=1000;
-
-drop table drugs;
-create table drugs as
-select distinct fo_prd_id,a.PRD_NAME,a.MAST_PRD_NAME,a.DOSAGE,a.UNIT,a.DOSAGE2,a.UNIT2,a.MOL_EID,a.MOL_NAME,b.MOL_NAME as MOL_NAME_2, ATCCODE,ATC_NAME,NFC_CODE,MANUFACTURER
-from fo_product_3 a join drug_mapping_3  b on a.prd_eid=b.prd_eid;
-
 
 
 drop table drugs_3;

@@ -7,7 +7,7 @@ Schema DevV5 with copies of tables concept, concept_relationship and concept_syn
 Working directory dev_aus.
 
 1.Run create_source_tables.sql 
-2.Download and extract the latest file from
+2.Download and extract files from \\kha-file01\Odysseus\DA_AUstralia
 
 3.Load them into the tables with the same names.
 

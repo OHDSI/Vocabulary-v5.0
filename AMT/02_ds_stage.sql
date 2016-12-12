@@ -2,7 +2,6 @@ create table ds_0 as
 select sourceid,destinationid, UNITID, VALUE from RF2_SS_STRENGTH_REFSET a
 join SCT2_RELA_FULL_AU b on referencedComponentId=b.id
 ;
-
 create table ds_0_1_1 as -- still only MP
 select distinct SOURCEID as drug_concept_code,DESTINATIONID as ingredient_concept_Code, b.concept_name,
 case when lower(a.concept_name) like '%/each%' or lower(a.concept_name) like '%/application%' or lower(a.concept_name) like '%/dose%' or lower(a.concept_name) like '%/square' then VALUE else null end as amount_value,
@@ -18,28 +17,23 @@ update ds_0_1_1
 set amount_value=null, amount_unit=null
 where lower(amount_unit)='ml';
 
-
 create table ds_0_1_3 as
 select  c.concept_code as  drug_concept_code, INGREDIENT_CONCEPT_CODE, amount_value,amount_unit,numerator_value,numerator_unit,denominator_unit,c.concept_name
 from ds_0_1_1 a join RF2_FULL_RELATIONSHIPS b on a.drug_concept_code=destinationid
 join drug_concept_stage c on sourceid=concept_code
-where c.source_concept_class_id in ('Med Product Pack','Med Product Unit','Trade Product Unit','Trade Product Pack','Contain Trade Pack')
+where c.source_concept_class_id in ('Med Product Pack','Med Product Unit','Trade Product Unit','Trade Product Pack','Containered Pack')
 and c.CONCEPT_NAME not like '%[Drug Pack]%'
 and c.concept_code not in (select drug_concept_code from ds_0_1_1)
 ;
-
 create table ds_0_1_4 as
 select   c.concept_code as  drug_concept_code, INGREDIENT_CONCEPT_CODE, amount_value,amount_unit,numerator_value,numerator_unit,denominator_unit,c.concept_name
 from ds_0_1_1 a join RF2_FULL_RELATIONSHIPS b on a.drug_concept_code=destinationid
 join RF2_FULL_RELATIONSHIPS b2 on b.sourceid=b2.destinationid
 join drug_concept_stage c on b2.sourceid=concept_code
-where c.source_concept_class_id in ('Med Product Pack','Med Product Unit','Trade Product Unit','Trade Product Pack','Contain Trade Pack')
+where c.source_concept_class_id in ('Med Product Pack','Med Product Unit','Trade Product Unit','Trade Product Pack','Containered Pack')
 and c.CONCEPT_NAME not like '%[Drug Pack]%'
 ;
 delete ds_0_1_4 where drug_concept_Code in (select drug_concept_code from ds_0_1_1 union select drug_concept_code from ds_0_1_3);
-
-
-
 
 create table ds_0_2 as
 select drug_concept_code, INGREDIENT_CONCEPT_CODE, amount_value,amount_unit,numerator_value,numerator_unit,denominator_unit,concept_name,
@@ -66,8 +60,7 @@ where amount_value is not null and NEW_DENOM_UNIT is not null and NEW_DENOM_UNIT
 update ds_0_2
 set new_denom_value=null
 where drug_concept_code in (
-select concept_code from drug_concept_stage where regexp_like (concept_name , '/5\sMl')
-and concept_name like '%Oral%' and regexp_like (concept_name , '\s5\sMl$'));
+select concept_code from drug_concept_stage where concept_name like '%Oral%' and regexp_like (concept_name , '\s5\sMl$'));
 
 --select distinct * from ds_0_2 where new_denom_unit is not null and denominator_unit is null; 
 update ds_0_2
@@ -99,7 +92,6 @@ denominator_unit=initcap(denominator_unit);
 update ds_0_2
 set new_denom_value=null where DENOMINATOR_UNIT='24 Hours' or  DENOMINATOR_UNIT='16 Hours';
 
-drop table ds_0_3 ;
 create table ds_0_3 as
 select a.*, regexp_substr(regexp_substr (concept_name, '(\d)+\sX\s(\d)+'),'(\d+)',1,1) as box_size 
 from ds_0_2 a;
@@ -172,6 +164,42 @@ set numerator_value=numerator_value/1000,numerator_unit='Mg' where numerator_uni
 update ds_stage 
 set amount_value=amount_value/1000,amount_unit='Mg' where amount_unit='Microgram' and numerator_value>999;
 
+update ds_stage set DENOMINATOR_VALUE=null, NUMERATOR_VALUE=NUMERATOR_VALUE/5 where DRUG_CONCEPT_CODE in
+(select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage on drug_concept_code=concept_code  where DENOMINATOR_VALUE='5' and concept_name like '%Oral%Measure%');
+
 update ds_stage set DENOMINATOR_UNIT='Actuation' where DENOMINATOR_UNIT='Actuations';
 update ds_stage set DENOMINATOR_UNIT='Ml',DENOMINATOR_VALUE=DENOMINATOR_VALUE*1000 where DENOMINATOR_UNIT='L';
+
+update ds_stage a
+set ingredient_concept_code=(select  s_concept_code from non_S_ing_to_S where CONCEPT_CODE=ingredient_concept_code ) where ingredient_concept_code in (select CONCEPT_CODE from non_S_ing_to_S);
+
+update ds_stage --fix patches
+set denominator_unit='Hour',denominator_value=24
+where denominator_unit='24 Hours';
+update ds_stage
+set denominator_unit='Hour',denominator_value=16
+where denominator_unit='16 Hours';
+
+
+
+--Movicol
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 8000,       NUMERATOR_UNIT = 'Unit',       DENOMINATOR_VALUE = 20,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '94311000036106' AND   INGREDIENT_CONCEPT_CODE = '1981011000036104'; 
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 8000,       NUMERATOR_UNIT = 'Unit',       DENOMINATOR_VALUE = 20,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '94321000036104' AND   INGREDIENT_CONCEPT_CODE = '1981011000036104';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 100000,       NUMERATOR_UNIT = 'Unit',       DENOMINATOR_VALUE = 50,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '94331000036102' AND   INGREDIENT_CONCEPT_CODE = '1981011000036104';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 100000,       NUMERATOR_UNIT = 'Unit',       DENOMINATOR_VALUE = 50,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '94341000036107' AND   INGREDIENT_CONCEPT_CODE = '1981011000036104';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 46.6,       NUMERATOR_UNIT = 'Mg',       DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652501000168101' AND   INGREDIENT_CONCEPT_CODE = '2500011000036101';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 46.6,       NUMERATOR_UNIT = 'Mg',       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652511000168103' AND   INGREDIENT_CONCEPT_CODE = '2500011000036101';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 932,      NUMERATOR_UNIT = 'Mg',       DENOMINATOR_VALUE = 500,      DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652521000168105' AND   INGREDIENT_CONCEPT_CODE = '2500011000036101';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 350.7,       NUMERATOR_UNIT = 'Mg',      DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652501000168101' AND   INGREDIENT_CONCEPT_CODE = '2591011000036106';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 350.7,       NUMERATOR_UNIT = 'Mg',       DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652511000168103' AND   INGREDIENT_CONCEPT_CODE = '2591011000036106';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 7014,       NUMERATOR_UNIT = 'Mg',       DENOMINATOR_VALUE = 500,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652521000168105' AND   INGREDIENT_CONCEPT_CODE = '2591011000036106';
+UPDATE DS_STAGE   SET DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652501000168101' AND   INGREDIENT_CONCEPT_CODE = '2735011000036100';
+UPDATE DS_STAGE   SET DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652511000168103' AND   INGREDIENT_CONCEPT_CODE = '2735011000036100';
+UPDATE DS_STAGE   SET DENOMINATOR_VALUE = 500,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652521000168105' AND   INGREDIENT_CONCEPT_CODE = '2735011000036100';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 178.5,       NUMERATOR_UNIT = 'Mg',       DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652501000168101' AND   INGREDIENT_CONCEPT_CODE = '2736011000036107';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 178.5,       NUMERATOR_UNIT = 'Mg',       DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652511000168103' AND   INGREDIENT_CONCEPT_CODE = '2736011000036107';
+ UPDATE DS_STAGE   SET NUMERATOR_VALUE = 3570,       NUMERATOR_UNIT = 'Mg',       DENOMINATOR_VALUE = 500,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652521000168105' AND   INGREDIENT_CONCEPT_CODE = '2736011000036107';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 13125,       NUMERATOR_UNIT = 'Mg',       DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652501000168101' AND   INGREDIENT_CONCEPT_CODE = '2799011000036106';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 13125,       NUMERATOR_UNIT = 'Mg', DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652511000168103' AND   INGREDIENT_CONCEPT_CODE = '2799011000036106';
+UPDATE DS_STAGE   SET AMOUNT_UNIT = '',       NUMERATOR_VALUE = 262.5,       NUMERATOR_UNIT = 'G',       DENOMINATOR_VALUE = 500,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652521000168105' AND   INGREDIENT_CONCEPT_CODE = '2799011000036106';
 

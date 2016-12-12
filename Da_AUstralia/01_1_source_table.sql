@@ -1,4 +1,4 @@
---create source tables, later use WbImport to insert original data
+--create source tables--
 
 CREATE TABLE FO_PRODUCT
 (

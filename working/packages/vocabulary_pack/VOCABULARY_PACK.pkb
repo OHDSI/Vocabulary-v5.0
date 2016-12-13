@@ -652,8 +652,8 @@ IS
          THEN
             SELECT TO_DATE ( (MAX (t.title) - 1) || '0101', 'yyyymmdd')
               INTO cVocabDate
-              FROM XMLTABLE ('/rss/channel/item' PASSING xmltype (cVocabHTML) COLUMNS title NUMBER PATH 'title', description VARCHAR2 (500) PATH 'description') t
-             WHERE t.description LIKE '%Alpha-Numeric HCPCS File%' AND t.description NOT LIKE '%orrections%';
+              FROM XMLTABLE ('/rss/channel/item' PASSING xmltype (cVocabHTML) COLUMNS title NUMBER PATH 'title', description VARCHAR2 (500) PATH 'link') t
+             WHERE t.description LIKE '%Alpha-Numeric-HCPCS-File%' AND t.description NOT LIKE '%orrections%';
          WHEN pVocabularyName IN ('ICD9CM', 'ICD9Proc')
          THEN
             cSearchString := '<a type="application/zip" href="/Medicare/Coding/ICD9ProviderDiagnosticCodes/Downloads';
@@ -796,7 +796,7 @@ IS
    PROCEDURE StartRelease
    IS
       crlf      VARCHAR2 (2) := UTL_TCP.crlf;
-      email     var_array := var_array ('timur.vakhitov@firstlinesoftware.com', 'reich@ohdsi.org', 'reich@omop.org');
+      email     var_array := var_array ('timur.vakhitov@firstlinesoftware.com', 'reich@ohdsi.org', 'reich@omop.org', 'alexander.yatsenko@odysseusinc.com');
       cRet      VARCHAR2 (5000);
       cVocabs   VARCHAR2 (4000);
    BEGIN

@@ -6,6 +6,7 @@ select concept_name_1,concept_id_2,precedence from aut_bn_2_1
 union
 select concept_name_1,concept_id_2,precedence from aut_bn_1);
 
+
 create table relationship_to_concept_nc as ( 
    select * from
 (

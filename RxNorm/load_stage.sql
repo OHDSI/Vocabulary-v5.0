@@ -318,6 +318,24 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                  AND concept_code = rxcui2));
 COMMIT;
 
+--Rename "RxNorm has ing" to "Has brand name" if concept_code_2 has the concept_class_id='Brand Name' and reverse
+UPDATE concept_relationship_stage
+   SET RELATIONSHIP_ID = 'Has brand name'
+ WHERE ROWID IN (SELECT crs.ROWID
+                   FROM concept_relationship_stage crs
+                        LEFT JOIN concept_stage cs ON cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2 AND cs.concept_class_id = 'Brand Name'
+                        LEFT JOIN concept c ON c.concept_code = crs.concept_code_2 AND c.vocabulary_id = crs.vocabulary_id_2 AND c.concept_class_id = 'Brand Name'
+                  WHERE crs.invalid_reason IS NULL AND crs.relationship_id = 'RxNorm has ing' AND COALESCE (cs.concept_code, c.concept_code) IS NOT NULL);
+--reverse
+UPDATE concept_relationship_stage
+   SET RELATIONSHIP_ID = 'Brand name of'
+ WHERE ROWID IN (SELECT crs.ROWID
+                   FROM concept_relationship_stage crs
+                        LEFT JOIN concept_stage cs ON cs.concept_code = crs.concept_code_1 AND cs.vocabulary_id = crs.vocabulary_id_1 AND cs.concept_class_id = 'Brand Name'
+                        LEFT JOIN concept c ON c.concept_code = crs.concept_code_1 AND c.vocabulary_id = crs.vocabulary_id_1 AND c.concept_class_id = 'Brand Name'
+                  WHERE crs.invalid_reason IS NULL AND crs.relationship_id = 'RxNorm ing of' AND COALESCE (cs.concept_code, c.concept_code) IS NOT NULL);
+COMMIT;
+
 -- Add missing relationships between Branded Packs and their Brand Names
 INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
@@ -349,7 +367,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
             brand_code AS concept_code_2,
             'RxNorm' AS vocabulary_id_1,
             'RxNorm' AS vocabulary_id_2,
-            'RxNorm has ing' AS relationship_id,
+            'Has brand name' AS relationship_id,
             (SELECT latest_update
                FROM vocabulary
               WHERE vocabulary_id = 'RxNorm')
@@ -367,11 +385,11 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
             AND NOT EXISTS
                    (SELECT 1
                       FROM concept_relationship_stage crs
-                     WHERE crs.concept_code_1 = pack_code AND crs.concept_code_2 = brand_code AND crs.relationship_id = 'RxNorm has ing')
+                     WHERE crs.concept_code_1 = pack_code AND crs.concept_code_2 = brand_code AND crs.relationship_id = 'Has brand name')
             AND NOT EXISTS
                    (SELECT 1
                       FROM concept_relationship_stage crs
-                     WHERE crs.concept_code_2 = pack_code AND crs.concept_code_1 = brand_code AND crs.relationship_id = 'RxNorm ing of')
+                     WHERE crs.concept_code_2 = pack_code AND crs.concept_code_1 = brand_code AND crs.relationship_id = 'Brand name of')
    GROUP BY pack_code, brand_code;	   
 COMMIT;				   
 
@@ -730,9 +748,7 @@ AS
           code,
           concept_name,
           'ATC' AS vocabulary_id,
-          CASE concept_class_id WHEN 'ATC 5th' THEN NULL -- need later to promote those to 'S' that are missing FROM RxNorm
-                                                        ELSE 'C' END
-             AS standard_concept,
+          'C' AS standard_concept,
           concept_code,
           concept_class_id
      FROM (SELECT DISTINCT
@@ -1051,6 +1067,8 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                 AND e.vocabulary_id = 'RxNorm'
                 AND e.invalid_reason IS NULL
     WHERE d.vocabulary_id = 'ATC' AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
+   -- DO NOT add ATC to RxNorm mapping, because of bad min/max levels of separation [AVOF-82]
+   /*
    -- add ATC to RxNorm mapping. ATC is both a classification (ATC 1-4) AND a source (ATC 5th)
    UNION ALL
    SELECT DISTINCT d.concept_code AS concept_code_1,
@@ -1069,6 +1087,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                 AND e.vocabulary_id = 'RxNorm'
                 AND e.invalid_reason IS NULL
     WHERE d.vocabulary_id = 'ATC' AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
+	*/
    -- add ATC to RxNorm by name, but exclude the ones the previous query did already
    UNION ALL
    SELECT DISTINCT d.concept_code AS concept_code_1,

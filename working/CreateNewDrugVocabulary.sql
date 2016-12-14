@@ -621,8 +621,10 @@ create table r_bn nologging as
 select distinct descendant_concept_id as concept_id_1, concept_id_2
 from concept_relationship join concept_ancestor on ancestor_concept_id=concept_id_1 
 join concept bn on concept_id_2=bn.concept_id and bn.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bn.concept_class_id='Brand Name'
+join dev_rxnorm.concept c on concept_id_1=c.concept_id and bd.vocabulary_id like 'RxNorm%'
 join concept bd on descendant_concept_id=bd.concept_id and bd.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bd.concept_class_id in ('Branded Drug Box', 'Quantified Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product') 
-where concept_relationship.invalid_reason is null and relationship_id='RxNorm has ing'
+where concept_relationship.invalid_reason is null and relationship_id='Has brand name'
+and c.concept_class_id !='Ingredient' and c.invalid_reason is null and c.vocabulary_id like 'RxNorm%
 ;
 commit;
 
@@ -928,7 +930,7 @@ with x as (
 -- get translation of q dose form to r dose form
   join r_to_c r on r.concept_code_1=irs.concept_code_2
   join concept r_drug on r_drug.concept_id=r.concept_id_2 
-  join concept_relationship cr on cr.concept_id_2=r_drug.concept_id and qr.r_did=cr.concept_id_1 and cr.relationship_id in ('RxNorm has ing', 'Has brand name')
+  join concept_relationship cr on cr.concept_id_2=r_drug.concept_id and qr.r_did=cr.concept_id_1 and cr.relationship_id in ('Has brand name')
   where q_drug.concept_class_id not in ('Ingredient', 'Device', 'Unit', 'Supplier', 'Dose Form', 'Brand Name') -- exclude upgrade links 
 )
 select distinct
@@ -1106,7 +1108,7 @@ left join (
 /* Needs fixing XXXXXX
   join x_bn on q_code=brand_code -- get best general translation
   join q_to_r on q_dcode=concept_code -- get specific equivalent
-  join concept_relationship on r_did=concept_id_1 and relationship_id='RxNorm has ing' -- retrieve Brand Name of specific equivalent
+  join concept_relationship on r_did=concept_id_1 and relationship_id='Has brand name' -- retrieve Brand Name of specific equivalent !!! check for Ingredients problem
   join concept bn on bn.concept_id=concept_id_2 -- get concept for concept_code and vocabulary_id
   where r_code!=bn.concept_code or r_vocab!=bn.vocabulary_id -- only those where general and specific differ
 */
@@ -1677,7 +1679,7 @@ from (
   join complete_pack cp on cp.pack_concept_code=pp.pack_concept_code
   -- find brand name in Rx/e and match
   join concept p on p.concept_id=pp.pack_concept_id -- to check whether it's a Branded Pack, which doesn't always have a relationship to a Brand Name
-  left join concept_relationship rb on rb.concept_id_1=pp.pack_concept_id and rb.relationship_id='RxNorm has ing'
+  left join concept_relationship rb on rb.concept_id_1=pp.pack_concept_id and rb.relationship_id='Has brand name' --!!! check for ingredients problems
   left join concept cbn on (cbn.concept_id=rb.concept_id_2 or cbn.concept_id=1 and (p.concept_class_id='Branded Pack' and p.vocabulary_id='RxNorm'))-- need to find out if RxNorm or existing RxNorm Extension
   -- find supplier in Rx/e and match
   left join concept_relationship rs on rs.concept_id_1=pp.pack_concept_id and rs.relationship_id='Has marketed form'
@@ -1878,15 +1880,15 @@ concept_class_2 varchar2(20)
 );
 insert into rl
 -- Packs are not included
-select 'Brand Name', 'RxNorm ing of', 'Branded Drug Box' from dual union
-select 'Brand Name', 'RxNorm ing of', 'Branded Drug Comp' from dual union
-select 'Brand Name', 'RxNorm ing of', 'Branded Drug Form' from dual union
-select 'Brand Name', 'RxNorm ing of', 'Branded Drug' from dual union
-select 'Brand Name', 'RxNorm ing of', 'Branded Pack' from dual union
-select 'Brand Name', 'RxNorm ing of', 'Branded Pack Box' from dual union
-select 'Brand Name', 'RxNorm ing of', 'Marketed Product' from dual union
-select 'Brand Name', 'RxNorm ing of', 'Quant Branded Box' from dual union
-select 'Brand Name', 'RxNorm ing of', 'Quant Branded Drug' from dual union
+select 'Brand Name', 'Has brand name', 'Branded Drug Box' from dual union
+select 'Brand Name', 'Has brand name', 'Branded Drug Comp' from dual union
+select 'Brand Name', 'Has brand name', 'Branded Drug Form' from dual union
+select 'Brand Name', 'Has brand name', 'Branded Drug' from dual union
+select 'Brand Name', 'Has brand name', 'Branded Pack' from dual union
+select 'Brand Name', 'Has brand name', 'Branded Pack Box' from dual union
+select 'Brand Name', 'Has brand name', 'Marketed Product' from dual union
+select 'Brand Name', 'Has brand name', 'Quant Branded Box' from dual union
+select 'Brand Name', 'Has brand name', 'Quant Branded Drug' from dual union
 select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union
 select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union
 select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union

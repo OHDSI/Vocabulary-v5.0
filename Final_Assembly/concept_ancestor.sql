@@ -559,6 +559,101 @@ BEGIN
 			   WHERE r.invalid_reason IS NOT NULL;
 	COMMIT;
 	
+	--reverse
+	MERGE INTO concept_relationship r
+		 USING (SELECT DISTINCT c1.concept_id                    AS concept_id_1,
+								c2.concept_id                    AS concept_id_2,
+								'Brand name of'                 AS relationship_id,
+								TRUNC (SYSDATE)                  AS valid_start_date,
+								TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date
+				  FROM concept_ancestor     ca,
+                        concept_relationship r,
+                        concept              c1,
+                        concept              c2
+                  WHERE     ca.ancestor_concept_id = r.concept_id_2
+                        AND r.invalid_reason IS NULL
+                        AND relationship_id = 'RxNorm ing of'
+                        AND ca.descendant_concept_id = c2.concept_id
+                        AND c2.vocabulary_id = 'RxNorm'
+                        AND c2.concept_class_id IN ('Branded Drug Box',
+                                                    'Quant Branded Box',
+                                                    'Branded Drug Comp',
+                                                    'Quant Branded Drug',
+                                                    'Branded Drug Form',
+                                                    'Branded Drug',
+                                                    'Marketed Product')
+                        AND r.concept_id_1 = c1.concept_id
+                        AND c1.vocabulary_id LIKE 'RxNorm%'
+                        AND c1.concept_class_id = 'Brand Name') i
+			ON (r.concept_id_1 = i.concept_id_1 AND r.concept_id_2 = i.concept_id_2 AND r.relationship_id = i.relationship_id)
+	WHEN NOT MATCHED
+	THEN
+	   INSERT     (concept_id_1,
+				   concept_id_2,
+				   relationship_id,
+				   valid_start_date,
+				   valid_end_date,
+				   invalid_reason)
+		   VALUES (i.concept_id_1,
+				   i.concept_id_2,
+				   i.relationship_id,
+				   i.valid_start_date,
+				   i.valid_end_date,
+				   NULL)
+	WHEN MATCHED
+	THEN
+	   UPDATE SET r.invalid_reason = NULL, r.valid_end_date = i.valid_end_date
+			   WHERE r.invalid_reason IS NOT NULL;
+	COMMIT;
+	
+	--deprecate old 'RxNorm has ing' links
+	UPDATE concept_relationship
+	   SET valid_end_date = TRUNC (SYSDATE), invalid_reason = 'D'
+	 WHERE ROWID IN (SELECT r.ROWID
+					   FROM concept_ancestor     ca,
+							concept_relationship r,
+							concept              c1,
+							concept              c2
+					  WHERE     ca.ancestor_concept_id = r.concept_id_1
+							AND r.invalid_reason IS NULL
+							AND relationship_id = 'RxNorm has ing'
+							AND ca.descendant_concept_id = c1.concept_id
+							AND c1.vocabulary_id = 'RxNorm'
+							AND c1.concept_class_id IN ('Branded Drug Box',
+														'Quant Branded Box',
+														'Branded Drug Comp',
+														'Quant Branded Drug',
+														'Branded Drug Form',
+														'Branded Drug',
+														'Marketed Product')
+							AND r.concept_id_2 = c2.concept_id
+							AND c2.vocabulary_id LIKE 'RxNorm%'
+							AND c2.concept_class_id = 'Brand Name');
+	--reverse
+	UPDATE concept_relationship
+	   SET valid_end_date = TRUNC (SYSDATE), invalid_reason = 'D'
+	 WHERE ROWID IN (SELECT r.ROWID
+					   FROM concept_ancestor     ca,
+							concept_relationship r,
+							concept              c1,
+							concept              c2
+					  WHERE     ca.ancestor_concept_id = r.concept_id_2
+							AND r.invalid_reason IS NULL
+							AND relationship_id = 'RxNorm ing of'
+							AND ca.descendant_concept_id = c2.concept_id
+							AND c2.vocabulary_id = 'RxNorm'
+							AND c2.concept_class_id IN ('Branded Drug Box',
+														'Quant Branded Box',
+														'Branded Drug Comp',
+														'Quant Branded Drug',
+														'Branded Drug Form',
+														'Branded Drug',
+														'Marketed Product')
+							AND r.concept_id_1 = c1.concept_id
+							AND c1.vocabulary_id LIKE 'RxNorm%'
+							AND c1.concept_class_id = 'Brand Name');	
+	COMMIT;
+	
 	--clean up
 	EXECUTE IMMEDIATE 'drop table rxnorm_allowed_rel purge';
 	EXECUTE IMMEDIATE 'drop table rxnorm_wrong_rel purge';

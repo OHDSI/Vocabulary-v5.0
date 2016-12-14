@@ -5,7 +5,6 @@ from drug_concept_stage a
 join drug_concept_stage b on lower(a.concept_name)=lower(b.concept_name)
 where a.STANDARD_CONCEPT='S' and a.CONCEPT_CLASS_ID='Ingredient'
 and b.STANDARD_CONCEPT is null and b.CONCEPT_CLASS_ID='Ingredient';
-
 --create relationship from non-standard forms to standard forms
 create table non_S_form_to_S as
 select distinct b.concept_code,a.concept_code as s_concept_Code
@@ -13,6 +12,15 @@ from drug_concept_stage a
 join drug_concept_stage b on lower(a.concept_name)=lower(b.concept_name)
 where a.STANDARD_CONCEPT='S' and a.CONCEPT_CLASS_ID='Dose Form'
 and b.STANDARD_CONCEPT is null and b.CONCEPT_CLASS_ID='Dose Form';
+
+--create relationship from non-standard bn to standard bn
+create table non_S_bn_to_S as
+select distinct b.concept_code,a.concept_code as s_concept_Code
+from drug_concept_stage a
+join drug_concept_stage b on lower(a.concept_name)=lower(b.concept_name)
+where a.STANDARD_CONCEPT='S' and a.CONCEPT_CLASS_ID='Brand Name'
+and b.STANDARD_CONCEPT is null and b.CONCEPT_CLASS_ID='Brand Name';
+
 
 
 create table drug_to_supplier as
@@ -32,8 +40,8 @@ delete drug_to_supplier where concept_code in (select concept_code from supp_upd
 insert into drug_to_supplier (concept_code,supplier) 
 select concept_code,supplier from supp_upd ;
 
-
 truncate table internal_relationship_stage;
+
 insert into internal_relationship_stage
 (concept_code_1,concept_code_2)
 
@@ -81,27 +89,33 @@ and a.sourceid not in (select pack_concept_Code from pc_stage)
 
 union
 
- select b.concept_Code,c.concept_code from RF2_FULL_RELATIONSHIPS a
+ select b.concept_Code,case when c.concept_code in (select concept_Code from non_S_bn_to_S) then s_concept_Code else c.concept_code end as concept_Code_2
+ from RF2_FULL_RELATIONSHIPS a
 join drug_concept_stage b on SOURCEID=b.concept_code
 join drug_concept_stage c on DESTINATIONID=c.concept_code
-where b.source_concept_class_id in ('Trade Product Unit','Trade Product Pack','Contain Trade Pack')
+left join non_S_bn_to_S d on d.concept_code=c.concept_code
+where b.source_concept_class_id in ('Trade Product Unit','Trade Product Pack','Containered Pack')
 and c.concept_class_id='Brand Name'
 
 union
 
-select a.sourceid,c.concept_code  from RF2_FULL_RELATIONSHIPS a 
+select a.sourceid,case when c.concept_code in (select concept_Code from non_S_bn_to_S) then s_concept_Code else c.concept_code end as concept_Code_2
+from RF2_FULL_RELATIONSHIPS a 
 join drug_concept_stage d2 on d2.concept_code=a.sourceid
 join RF2_FULL_RELATIONSHIPS b on a.destinationid =b.sourceid 
 join drug_concept_stage c on b.destinationid=c.concept_code
+left join non_S_bn_to_S d on d.concept_code=c.concept_code
 where c.concept_class_id='Brand Name'  
 and a.sourceid not in (select pack_concept_Code from pc_stage)
-and d2.source_concept_class_id in ('Trade Product Unit','Trade Product Pack','Contain Trade Pack')
+and d2.source_concept_class_id in ('Trade Product Unit','Trade Product Pack','Containered Pack')
 
 union
 
 --drugs from packs
-select distinct DRUG_CONCEPT_CODE,c.concept_Code from pc_stage a join internal_relationship_stage b on pack_concept_code=concept_Code_1
+select distinct DRUG_CONCEPT_CODE,case when c.concept_code in (select concept_Code from non_S_bn_to_S) then s_concept_Code else c.concept_code end as concept_Code_2
+ from pc_stage a join internal_relationship_stage b on pack_concept_code=concept_Code_1
 join drug_Concept_stage c on concept_Code_2=c.concept_Code and concept_class_id='Brand Name'
+left join non_S_bn_to_S d on d.concept_code=c.concept_code
 )
 ;
 
@@ -111,7 +125,9 @@ insert into internal_relationship_stage
 select distinct * from (
 select  concept_code,s_concept_Code from non_S_ing_to_S 
 union
-select concept_code,s_concept_Code from non_S_form_to_S );
+select concept_code,s_concept_Code from non_S_form_to_S 
+union
+select concept_code,s_concept_Code from non_S_bn_to_S);
 
 --fix drugs with 2 forms like capsule and enteric capsule 
 
@@ -133,7 +149,7 @@ where b.concept_code!=c.concept_code
 and length(b.concept_name)=length(c.concept_name)
 and b.concept_code<c.concept_code;
 
-drop table irs_upd_2; --fix those drugs that have 3 simimlar forms (like Tablet,Coated Tablet and Film Coated Tablet)
+ --fix those drugs that have 3 simimlar forms (like Tablet,Coated Tablet and Film Coated Tablet)
 create table irs_upd_2 as
 select a.concept_code_1,a.concept_code 
 from irs_upd a join irs_upd b on a.concept_code_1=b.concept_Code_1
@@ -167,10 +183,14 @@ where a.concept_class_id= 'Dose Form' and b.concept_code_1 is null)
 and STANDARD_CONCEPT='S';
 
 
-delete internal_relationship_stage where concept_code_2='701581000168103'; --2 BN
+delete internal_relationship_stage 
+where concept_code_2='701581000168103'; --2 BN
+DELETE INTERNAL_RELATIONSHIP_STAGE
+WHERE CONCEPT_CODE_1 in ( '770161000168102','770171000168108','770191000168109','770201000168107') AND   CONCEPT_CODE_2 = '769981000168106';
+
+
 --estragest,estracombi,estraderm
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = '933225691000036100' AND   CONCEPT_CODE_2 = '13821000168101';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = '933225691000036100' AND   CONCEPT_CODE_2 = '4174011000036102';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = '933231511000036106' AND   CONCEPT_CODE_2 = '13821000168101';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = '933231511000036106' AND   CONCEPT_CODE_2 = '4174011000036102';
-

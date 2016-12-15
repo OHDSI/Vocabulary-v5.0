@@ -624,7 +624,7 @@ join concept bn on concept_id_2=bn.concept_id and bn.vocabulary_id in ('RxNorm',
 join dev_rxnorm.concept c on concept_id_1=c.concept_id and bd.vocabulary_id like 'RxNorm%'
 join concept bd on descendant_concept_id=bd.concept_id and bd.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bd.concept_class_id in ('Branded Drug Box', 'Quantified Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product') 
 where concept_relationship.invalid_reason is null and relationship_id='Has brand name'
-and c.concept_class_id !='Ingredient' and c.invalid_reason is null and c.vocabulary_id like 'RxNorm%
+and c.concept_class_id !='Ingredient' and c.invalid_reason is null and c.vocabulary_id like 'RxNorm%'
 ;
 commit;
 
@@ -642,13 +642,13 @@ left join r_to_c m on m.concept_code_1=css.mf_code
 ;
 commit;
 
--- Create table with Dose Forms for r
+-- Create table with Suppliers for r
 drop table r_mf purge;
 create table r_mf nologging as 
 select r.concept_id_1, r.concept_id_2 from concept_relationship r
 join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension')
 join concept f on f.concept_id=r.concept_id_2 and f.concept_class_id ='Supplier' 
-where r.invalid_reason is null and r.relationship_id='Has supplier'
+where r.invalid_reason is null and r.relationship_id in ('Has supplier', 'RxNorm has ing') -- need to be only 'Has supplier', don't know why now 'RxNorm has ing' defines some relatoinships
 ;
 commit;
 
@@ -930,7 +930,9 @@ with x as (
 -- get translation of q dose form to r dose form
   join r_to_c r on r.concept_code_1=irs.concept_code_2
   join concept r_drug on r_drug.concept_id=r.concept_id_2 
+    join concept c on qr.r_did = c.concept_id and  c.concept_class_id !='Ingredient' and c.invalid_reason is null and c.vocabulary_id like 'RxNorm%'
   join concept_relationship cr on cr.concept_id_2=r_drug.concept_id and qr.r_did=cr.concept_id_1 and cr.relationship_id in ('Has brand name')
+
   where q_drug.concept_class_id not in ('Ingredient', 'Device', 'Unit', 'Supplier', 'Dose Form', 'Brand Name') -- exclude upgrade links 
 )
 select distinct
@@ -1923,7 +1925,7 @@ select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug' from dual union
 select 'Ingredient', 'Has brand name', 'Brand Name' from dual union
 select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' from dual union
 select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' from dual union
-select 'Marketed Product', 'Has marketed form', 'Marketed Product' from dual union 
+select 'Marketed Product', 'Has Supplier', 'Supplier' from dual union 
 select 'Supplier', 'Supplier of', 'Marketed Product' from dual union
 select 'Quant Branded Box', 'Has marketed form', 'Marketed Product' from dual union
 select 'Quant Branded Drug', 'Available as box', 'Quant Branded Box' from dual union

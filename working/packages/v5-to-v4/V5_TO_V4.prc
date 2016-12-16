@@ -382,26 +382,10 @@ FROM (
 				else 0
               end
           end
-        when 'DPD' then -- same as RxNorm
-          case 
-            when c.standard_concept is null then 0
-            else
-              case concept_class_id
-                when 'Ingredient' then 2
-                when 'Clinical Drug' then 1
-                when 'Branded Drug Box' then 1
-                when 'Clinical Drug Box' then 1
-                when 'Quant Branded Box' then 1
-                when 'Quant Clinical Box' then 1
-                when 'Quant Clinical Drug' then 1
-                when 'Quant Branded Drug' then 1
-                when 'Clinical Drug Comp' then 1
-                when 'Branded Drug Comp' then 1
-                when 'Branded Drug Form' then 1
-                when 'Clinical Drug Form' then 1
-				else 0
-              end
-          end		  
+		when 'DPD' then -- specialized hierarchy
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end			  
         when 'RxNorm Extension' then -- same as RxNorm
           case 
             when c.standard_concept is null then 0
@@ -421,8 +405,11 @@ FROM (
                 when 'Clinical Drug Form' then 1
 				else 0
               end
-          end		  
-        when 'dm+d' then 0          
+          end		   
+		when 'dm+d' then -- specialized hierarchy
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end	                 
         when 'NDC' then 0
         when 'GPI' then 0
         when 'MedDRA' then -- specialized hierarchy
@@ -489,16 +476,34 @@ FROM (
         when 'GCN_SEQNO' then 0
         when 'CCS' then 0
         when 'OPCS4' then 1
-        when 'Gemscript' then 0
+		when 'Gemscript' then -- specialized hierarchy
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end	        
         when 'HES Specialty' then 0
         when 'ICD10CM' then 0
-        when 'BDPM' then 0
+		when 'BDPM' then -- specialized hierarchy
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end	        
 		when 'EphMRA ATC' then 3 -- Classification
 		when 'DA_France' then -- specialized hierarchy
-        case 
-            when c.standard_concept = 'S' then 1 else 0
-        end		
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end	
+		when 'AMIS' then -- specialized hierarchy
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end		            	
         when 'NFC' then 4
+		when 'AMT' then -- specialized hierarchy
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end	
+		when 'LPD_Australia' then -- specialized hierarchy
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end	                    
 		else -- flat list
           case
             when c.standard_concept is null then 0

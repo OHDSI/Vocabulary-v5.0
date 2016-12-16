@@ -83,6 +83,14 @@ BEGIN
       THEN
          NULL;
    END;
+
+   BEGIN
+      EXECUTE IMMEDIATE 'drop table pair_tbl purge';
+   EXCEPTION
+      WHEN OTHERS
+      THEN
+         NULL;
+   END;   
    
    -- Seed the table by loading all first-level (parent-child) relationships
 
@@ -114,6 +122,7 @@ BEGIN
         from concept_ancestor_calc uppr 
         join concept_ancestor_calc lowr on uppr.descendant_concept_id=lowr.ancestor_concept_id
         union all select * from concept_ancestor_calc';
+        
 
       vCnt := SQL%ROWCOUNT;
 
@@ -210,157 +219,65 @@ BEGIN
    
    DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_ancestor', cascade  => true);
 
+   --create temp table 'pair'
+    EXECUTE IMMEDIATE q'[CREATE TABLE pair_tbl
+    NOLOGGING
+    AS
+       SELECT DISTINCT /* there are many redundant pairs*/
+                      class_rxn.ancestor_concept_id AS class_concept_id, rxn_up.concept_id AS rxn_concept_id
+         FROM concept_ancestor class_rxn
+              -- get all hierarchical relationships between concepts 'C' ...
+              JOIN concept dc ON dc.concept_id = class_rxn.ancestor_concept_id AND dc.standard_concept = 'C' AND dc.domain_id = 'Drug'
+              -- ... and 'S'
+              JOIN concept rxn
+                 ON     rxn.concept_id = class_rxn.descendant_concept_id
+                    AND rxn.standard_concept = 'S'
+                    AND rxn.domain_id = 'Drug'
+                    --AND rxn.concept_class_id NOT IN ('Branded Pack', 'Clinical Pack')
+                    AND rxn.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+              -- connect all concepts inside the rxn hierachy. Some of them might be above the jump
+              JOIN concept_ancestor in_rxn ON in_rxn.descendant_concept_id = rxn.concept_id
+              JOIN concept rxn_up
+                 ON     rxn_up.concept_id = in_rxn.ancestor_concept_id
+                    AND rxn_up.standard_concept = 'S'
+                    AND rxn_up.domain_id = 'Drug'
+                    --AND rxn_up.concept_class_id NOT IN ('Branded Pack', 'Clinical Pack')
+                    AND rxn_up.vocabulary_id IN ('RxNorm', 'RxNorm Extension')]';
 
-	-- Update existing records and add missing relationships between concepts for RxNorm
-	--update
-	merge into concept_ancestor ca
-	using (
-		select 
-		c.concept_id as ancestor_concept_id,
-		rxn_down.descendant_concept_id as descendant_concept_id,
-		min(c_up.min_levels_of_separation+jump.min_jump_level+rxn_down.min_levels_of_separation+rxn_up.min_levels_of_separation) as min_levels_of_separation,
-		max(c_up.max_levels_of_separation+jump.max_levels_of_separation+rxn_down.max_levels_of_separation+rxn_up.max_levels_of_separation) as max_levels_of_separation
-		from (
-			select concept_id, vocabulary_id, jump_concept_id, min_jump_level, max_levels_of_separation from (
-				select in_class.concept_id, in_class.vocabulary_id, jump.concept_id as jump_concept_id, min_levels_of_separation, max_levels_of_separation,
-				first_value(min_levels_of_separation) over(partition by in_class.concept_id order by min_levels_of_separation) as min_jump_level 
-				from concept_ancestor top_class 
-				join concept in_class on in_class.concept_id=top_class.ancestor_concept_id and in_class.vocabulary_id!='RxNorm' and in_class.standard_concept='C'
-				join concept jump on jump.concept_id=top_class.descendant_concept_id and jump.vocabulary_id='RxNorm' and jump.concept_class_id not in ('Branded Pack', 'Clinical Pack')
-			) where min_jump_level=min_levels_of_separation    
-		) jump
-		
-		join concept_ancestor c_up on c_up.descendant_concept_id=jump.concept_id
-		join concept c on c.concept_id=c_up.ancestor_concept_id and c.vocabulary_id=jump.vocabulary_id and c.standard_concept='C'
+    --and index
+    EXECUTE IMMEDIATE 'CREATE INDEX idx_pair ON pair_tbl (class_concept_id) NOLOGGING';    
+    DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'pair_tbl', cascade  => true);
 
-
-		join concept_ancestor rxn_down on rxn_down.ancestor_concept_id=jump.jump_concept_id
-
-		join concept_ancestor rxn_up on rxn_up.descendant_concept_id=jump.jump_concept_id
-		join concept top_rxn on top_rxn.concept_id=rxn_up.ancestor_concept_id and top_rxn.vocabulary_id='RxNorm' and top_rxn.concept_class_id='Ingredient'
-		group by c.concept_id, rxn_down.descendant_concept_id
-	) i on (ca.ancestor_concept_id=i.ancestor_concept_id and ca.descendant_concept_id=i.descendant_concept_id)
-	when matched then
-		update set ca.min_levels_of_separation=i.min_levels_of_separation, ca.max_levels_of_separation=i.max_levels_of_separation
-		where ca.min_levels_of_separation<>i.min_levels_of_separation or ca.max_levels_of_separation<>i.max_levels_of_separation;
-	commit;
-
-	--insert
-	merge into concept_ancestor ca
-	using (
-		select 
-		c.concept_id as ancestor_concept_id,
-		top_rxn.concept_id as descendant_concept_id,
-		min((c_up.min_levels_of_separation+jump.min_jump_level)-rxn_up.min_levels_of_separation) as min_levels_of_separation,
-		max((c_up.max_levels_of_separation+jump.max_levels_of_separation)-rxn_up.max_levels_of_separation) as max_levels_of_separation
-		from (
-			select concept_id, vocabulary_id, jump_concept_id, min_jump_level, max_levels_of_separation, jump_concept_name from (
-				select in_class.concept_id, in_class.vocabulary_id, jump.concept_id as jump_concept_id, min_levels_of_separation, max_levels_of_separation,
-				jump.concept_name as jump_concept_name,
-				first_value(min_levels_of_separation) over(partition by in_class.concept_id order by min_levels_of_separation) as min_jump_level 
-				from concept_ancestor top_class 
-				join concept in_class on in_class.concept_id=top_class.ancestor_concept_id and in_class.vocabulary_id!='RxNorm' and in_class.standard_concept='C'
-				join concept jump on jump.concept_id=top_class.descendant_concept_id and jump.vocabulary_id='RxNorm' and jump.concept_class_id not in ('Branded Pack', 'Clinical Pack')
-			) where min_jump_level=min_levels_of_separation    
-		) jump 
-
-		join concept_ancestor c_up on c_up.descendant_concept_id=jump.concept_id
-		join concept c on c.concept_id=c_up.ancestor_concept_id and c.vocabulary_id=jump.vocabulary_id and c.standard_concept='C'
-
-		join concept_ancestor rxn_up on rxn_up.descendant_concept_id=jump.jump_concept_id
-		join concept top_rxn on top_rxn.concept_id=rxn_up.ancestor_concept_id and top_rxn.vocabulary_id='RxNorm' 
-		and 
-		(
-			(jump_concept_name like '% / %' and (
-				(top_rxn.concept_class_id not in ('Ingredient', 'Clinical Drug Comp') and lower(c.concept_name) not like '%combination%')
-				or
-				lower(c.concept_name) like '%combination%'
-				)
-			)
-			or
-			jump_concept_name not like '% / %'
-		)
-		group by c.concept_id, top_rxn.concept_id
-	) i on (ca.ancestor_concept_id=i.ancestor_concept_id and ca.descendant_concept_id=i.descendant_concept_id)
-	when not matched then 
-		insert values (i.ancestor_concept_id, i.descendant_concept_id, i.min_levels_of_separation, i.max_levels_of_separation);
-	commit;
-
-	-- Update existing records and add missing relationships between concepts for RxNorm Extension
-	--update	
-	merge into concept_ancestor ca
-	using (
-		select 
-		c.concept_id as ancestor_concept_id,
-		rxn_down.descendant_concept_id as descendant_concept_id,
-		min(c_up.min_levels_of_separation+jump.min_jump_level+rxn_down.min_levels_of_separation+rxn_up.min_levels_of_separation) as min_levels_of_separation,
-		max(c_up.max_levels_of_separation+jump.max_levels_of_separation+rxn_down.max_levels_of_separation+rxn_up.max_levels_of_separation) as max_levels_of_separation
-		from (
-			select concept_id, vocabulary_id, jump_concept_id, min_jump_level, max_levels_of_separation from (
-				select in_class.concept_id, in_class.vocabulary_id, jump.concept_id as jump_concept_id, min_levels_of_separation, max_levels_of_separation,
-				first_value(min_levels_of_separation) over(partition by in_class.concept_id order by min_levels_of_separation) as min_jump_level 
-				from concept_ancestor top_class 
-				join concept in_class on in_class.concept_id=top_class.ancestor_concept_id and in_class.vocabulary_id!='RxNorm Extension' and in_class.standard_concept='C'
-				join concept jump on jump.concept_id=top_class.descendant_concept_id and jump.vocabulary_id='RxNorm Extension' and jump.concept_class_id not in ('Branded Pack', 'Clinical Pack')
-			) where min_jump_level=min_levels_of_separation    
-		) jump
-		
-		join concept_ancestor c_up on c_up.descendant_concept_id=jump.concept_id
-		join concept c on c.concept_id=c_up.ancestor_concept_id and c.vocabulary_id=jump.vocabulary_id and c.standard_concept='C'
-
-
-		join concept_ancestor rxn_down on rxn_down.ancestor_concept_id=jump.jump_concept_id
-
-		join concept_ancestor rxn_up on rxn_up.descendant_concept_id=jump.jump_concept_id
-		join concept top_rxn on top_rxn.concept_id=rxn_up.ancestor_concept_id and top_rxn.vocabulary_id='RxNorm Extension' and top_rxn.concept_class_id='Ingredient'
-		group by c.concept_id, rxn_down.descendant_concept_id
-	) i on (ca.ancestor_concept_id=i.ancestor_concept_id and ca.descendant_concept_id=i.descendant_concept_id)
-	when matched then
-		update set ca.min_levels_of_separation=i.min_levels_of_separation, ca.max_levels_of_separation=i.max_levels_of_separation
-		where ca.min_levels_of_separation<>i.min_levels_of_separation or ca.max_levels_of_separation<>i.max_levels_of_separation;
-	commit;
-
-	--insert
-	merge into concept_ancestor ca
-	using (
-		select 
-		c.concept_id as ancestor_concept_id,
-		top_rxn.concept_id as descendant_concept_id,
-		min((c_up.min_levels_of_separation+jump.min_jump_level)-rxn_up.min_levels_of_separation) as min_levels_of_separation,
-		max((c_up.max_levels_of_separation+jump.max_levels_of_separation)-rxn_up.max_levels_of_separation) as max_levels_of_separation
-		from (
-			select concept_id, vocabulary_id, jump_concept_id, min_jump_level, max_levels_of_separation, jump_concept_name from (
-				select in_class.concept_id, in_class.vocabulary_id, jump.concept_id as jump_concept_id, min_levels_of_separation, max_levels_of_separation,
-				jump.concept_name as jump_concept_name,
-				first_value(min_levels_of_separation) over(partition by in_class.concept_id order by min_levels_of_separation) as min_jump_level 
-				from concept_ancestor top_class 
-				join concept in_class on in_class.concept_id=top_class.ancestor_concept_id and in_class.vocabulary_id!='RxNorm Extension' and in_class.standard_concept='C'
-				join concept jump on jump.concept_id=top_class.descendant_concept_id and jump.vocabulary_id='RxNorm Extension' and jump.concept_class_id not in ('Branded Pack', 'Clinical Pack')
-			) where min_jump_level=min_levels_of_separation    
-		) jump 
-
-		join concept_ancestor c_up on c_up.descendant_concept_id=jump.concept_id
-		join concept c on c.concept_id=c_up.ancestor_concept_id and c.vocabulary_id=jump.vocabulary_id and c.standard_concept='C'
-
-		join concept_ancestor rxn_up on rxn_up.descendant_concept_id=jump.jump_concept_id
-		join concept top_rxn on top_rxn.concept_id=rxn_up.ancestor_concept_id and top_rxn.vocabulary_id='RxNorm Extension' 
-		and 
-		(
-			(jump_concept_name like '% / %' and (
-				(top_rxn.concept_class_id not in ('Ingredient', 'Clinical Drug Comp') and lower(c.concept_name) not like '%combination%')
-				or
-				lower(c.concept_name) like '%combination%'
-				)
-			)
-			or
-			jump_concept_name not like '% / %'
-		)
-		group by c.concept_id, top_rxn.concept_id
-	) i on (ca.ancestor_concept_id=i.ancestor_concept_id and ca.descendant_concept_id=i.descendant_concept_id)
-	when not matched then 
-		insert values (i.ancestor_concept_id, i.descendant_concept_id, i.min_levels_of_separation, i.max_levels_of_separation);
-	commit;
-
+    --Update existing records and add missing relationships between concepts for RxNorm/RxE
+    EXECUTE IMMEDIATE q'[
+    merge into concept_ancestor ca
+    using (
+    select distinct
+    pair.class_concept_id as ancestor_concept_id, -- concept in drug class
+    pair.rxn_concept_id as descendant_concept_id, -- concept in RxNorm hierarchy above cross-over from class to RxNorm (jump)
+    min(to_bottom.min_levels_of_separation+to_ing.min_levels_of_separation) as min_levels_of_separation, -- levels in class plus the distance from ingredient to RxNorm concept
+    max(to_bottom.max_levels_of_separation+to_ing.max_levels_of_separation) as max_levels_of_separation
+    from pair_tbl pair
+    -- get distance from class concept to lowest possible class concept
+    join (
+        select  ancestor_concept_id, max(min_levels_of_separation) as min_levels_of_separation, max(max_levels_of_separation) as max_levels_of_separation
+        from concept_ancestor
+        join concept on concept_id=descendant_concept_id and standard_concept='C' and domain_id='Drug'
+        group by ancestor_concept_id
+    ) to_bottom on to_bottom.ancestor_concept_id=pair.class_concept_id
+    -- get distance from rxn concept to highest possible (Ingredient) rxn concept
+    join concept_ancestor to_ing on to_ing.descendant_concept_id=pair.rxn_concept_id
+    join concept ing on ing.concept_id=to_ing.ancestor_concept_id and ing.vocabulary_id in ('RxNorm', 'RxNorm Extension') and ing.concept_class_id='Ingredient'
+    group by pair.class_concept_id, pair.rxn_concept_id
+    ) i on (ca.ancestor_concept_id=i.ancestor_concept_id and ca.descendant_concept_id=i.descendant_concept_id)
+    when matched then
+            update set ca.min_levels_of_separation=i.min_levels_of_separation, ca.max_levels_of_separation=i.max_levels_of_separation
+            where ca.min_levels_of_separation<>i.min_levels_of_separation or ca.max_levels_of_separation<>i.max_levels_of_separation
+    when not matched then 
+            insert values (i.ancestor_concept_id, i.descendant_concept_id, i.min_levels_of_separation, i.max_levels_of_separation)
+    ]';             
+    commit;
+    
 	DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_ancestor', estimate_percent  => null, cascade  => true);
 	
 	--replace all RxNorm internal links so only "neighbor" concepts are connected
@@ -369,26 +286,23 @@ BEGIN
 		create table rxnorm_allowed_rel nologging as (
             select * From (
                 with t as (
-                select 'Brand Name' c_class_1, 'RxNorm ing of' relationship_id, 'Branded Drug Box' c_class_2 from dual union all
-                select 'Brand Name', 'RxNorm ing of', 'Branded Drug Comp' from dual union  all
-                select 'Brand Name', 'RxNorm ing of', 'Branded Drug Form' from dual union  all
-                select 'Brand Name', 'RxNorm ing of', 'Branded Drug' from dual union  all
-                select 'Brand Name', 'RxNorm ing of', 'Marketed Product' from dual union  all
-                select 'Brand Name', 'RxNorm ing of', 'Quant Branded Box' from dual union  all
-                select 'Brand Name', 'RxNorm ing of', 'Quant Branded Drug' from dual union  all
-                select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union  all
-                select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union  all
-                select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union  all
-                select 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' from dual union  all
-                select 'Branded Drug', 'Available as box', 'Branded Drug Box' from dual union  all
-                select 'Branded Drug', 'Has marketed form', 'Marketed Product' from dual union  all
-                select 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' from dual union  all
-                select 'Branded Pack', 'Contains', 'Branded Drug' from dual union  all
-                select 'Branded Pack', 'Contains', 'Clinical Drug' from dual union  all
-                select 'Branded Pack', 'Contains', 'Quant Branded Drug' from dual union  all
-                select 'Branded Pack', 'Contains', 'Quant Clinical Drug' from dual union all
-                select 'Branded Pack', 'Has marketed form', 'Marketed Product' from dual union  all
-                select 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' from dual union  all
+                select 'Brand Name' c_class_1, 'Has brand name' relationship_id, 'Branded Drug Box' c_class_2 from dual union all
+                select 'Brand Name', 'Has brand name', 'Branded Drug Comp' from dual union all
+                select 'Brand Name', 'Has brand name', 'Branded Drug Form' from dual union all
+                select 'Brand Name', 'Has brand name', 'Branded Drug' from dual union all
+                select 'Brand Name', 'Has brand name', 'Branded Pack' from dual union all
+                select 'Brand Name', 'Has brand name', 'Branded Pack Box' from dual union all
+                select 'Brand Name', 'Has brand name', 'Marketed Product' from dual union all
+                select 'Brand Name', 'Has brand name', 'Quant Branded Box' from dual union all
+                select 'Brand Name', 'Has brand name', 'Quant Branded Drug' from dual union all
+                select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union all
+                select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union all
+                select 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' from dual union all
+                select 'Branded Drug', 'Available as box', 'Branded Drug Box' from dual union all
+                select 'Branded Drug', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' from dual union all
+                select 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' from dual union
                 select 'Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box' from dual union all
                 select 'Clinical Drug Box', 'Has tradename', 'Branded Drug Box' from dual union all
                 select 'Clinical Drug Comp', 'Constitutes', 'Clinical Drug' from dual union all
@@ -399,11 +313,6 @@ BEGIN
                 select 'Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
                 select 'Clinical Drug', 'Has quantified form', 'Quant Clinical Drug' from dual union all
                 select 'Clinical Drug', 'Has tradename', 'Branded Drug' from dual union all
-                select 'Clinical Pack', 'Contains', 'Branded Drug' from dual union all
-                select 'Clinical Pack', 'Contains', 'Clinical Drug' from dual union all
-                select 'Clinical Pack', 'Contains', 'Quant Branded Drug' from dual union all
-                select 'Clinical Pack', 'Contains', 'Quant Clinical Drug' from dual union all
-                select 'Clinical Pack', 'Has marketed form', 'Marketed Product' from dual union all
                 select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Box' from dual union all
                 select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Form' from dual union all
                 select 'Dose Form', 'RxNorm dose form of', 'Branded Drug' from dual union all
@@ -420,6 +329,7 @@ BEGIN
                 select 'Ingredient', 'Has brand name', 'Brand Name' from dual union all
                 select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' from dual union all
                 select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' from dual union all
+                select 'Marketed Product', 'Has marketed form', 'Marketed Product' from dual union all 
                 select 'Supplier', 'Supplier of', 'Marketed Product' from dual union all
                 select 'Quant Branded Box', 'Has marketed form', 'Marketed Product' from dual union all
                 select 'Quant Branded Drug', 'Available as box', 'Quant Branded Box' from dual union all
@@ -493,13 +403,113 @@ BEGIN
 	and invalid_reason is null
 	]';
 	commit;
+ 
+	--create direct links between Branded* and Brand Names
+    MERGE INTO concept_relationship r
+         USING (SELECT DISTINCT c1.concept_id                    AS concept_id_1,
+                                c2.concept_id                    AS concept_id_2,
+                                'Has brand name'                 AS relationship_id,
+                                TRUNC (SYSDATE)                  AS valid_start_date,
+                                TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date
+                  FROM concept_ancestor     ca,
+                       concept_relationship r,
+                       concept              c1,
+                       concept              c2,
+                       concept              c3
+                 WHERE     ca.ancestor_concept_id = r.concept_id_1
+                       AND r.invalid_reason IS NULL
+                       AND relationship_id = 'Has brand name'
+                       AND ca.descendant_concept_id = c1.concept_id
+                       AND c1.vocabulary_id LIKE 'RxNorm%'
+                       AND c1.concept_class_id IN ('Branded Drug Box',
+                                                   'Quant Branded Box',
+                                                   'Branded Drug Comp',
+                                                   'Quant Branded Drug',
+                                                   'Branded Drug Form',
+                                                   'Branded Drug',
+                                                   'Marketed Product',
+                                                   'Branded Pack',
+                                                   'Branded Pack Box')
+                       AND r.concept_id_2 = c2.concept_id
+                       AND c2.vocabulary_id LIKE 'RxNorm%'
+                       AND c2.concept_class_id = 'Brand Name'
+                       AND c3.concept_id = r.concept_id_1
+                       AND c3.concept_class_id <> 'Ingredient') i
+            ON (r.concept_id_1 = i.concept_id_1 AND r.concept_id_2 = i.concept_id_2 AND r.relationship_id = i.relationship_id)
+    WHEN NOT MATCHED
+    THEN
+       INSERT     (concept_id_1,
+                   concept_id_2,
+                   relationship_id,
+                   valid_start_date,
+                   valid_end_date,
+                   invalid_reason)
+           VALUES (i.concept_id_1,
+                   i.concept_id_2,
+                   i.relationship_id,
+                   i.valid_start_date,
+                   i.valid_end_date,
+                   NULL)
+    WHEN MATCHED
+    THEN
+       UPDATE SET r.invalid_reason = NULL, r.valid_end_date = i.valid_end_date
+               WHERE r.invalid_reason IS NOT NULL;
+
+     --reverse
+    MERGE INTO concept_relationship r
+         USING (SELECT DISTINCT c1.concept_id                    AS concept_id_1,
+                                c2.concept_id                    AS concept_id_2,
+                                'Brand name of'                  AS relationship_id,
+                                TRUNC (SYSDATE)                  AS valid_start_date,
+                                TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date
+                  FROM concept_ancestor     ca,
+                       concept_relationship r,
+                       concept              c1,
+                       concept              c2,
+                       concept              c3
+                 WHERE     ca.ancestor_concept_id = r.concept_id_2
+                       AND r.invalid_reason IS NULL
+                       AND relationship_id = 'Brand name of'
+                       AND ca.descendant_concept_id = c2.concept_id
+                       AND c2.vocabulary_id LIKE 'RxNorm%'
+                       AND c2.concept_class_id IN ('Branded Drug Box',
+                                                   'Quant Branded Box',
+                                                   'Branded Drug Comp',
+                                                   'Quant Branded Drug',
+                                                   'Branded Drug Form',
+                                                   'Branded Drug',
+                                                   'Marketed Product',
+                                                   'Branded Pack',
+                                                   'Branded Pack Box')
+                       AND r.concept_id_1 = c1.concept_id
+                       AND c1.vocabulary_id LIKE 'RxNorm%'
+                       AND c1.concept_class_id = 'Brand Name'
+                       AND c3.concept_id = r.concept_id_2
+                       AND c3.concept_class_id <> 'Ingredient') i
+            ON (r.concept_id_1 = i.concept_id_1 AND r.concept_id_2 = i.concept_id_2 AND r.relationship_id = i.relationship_id)
+    WHEN NOT MATCHED
+    THEN
+       INSERT     (concept_id_1,
+                   concept_id_2,
+                   relationship_id,
+                   valid_start_date,
+                   valid_end_date,
+                   invalid_reason)
+           VALUES (i.concept_id_1,
+                   i.concept_id_2,
+                   i.relationship_id,
+                   i.valid_start_date,
+                   i.valid_end_date,
+                   NULL)
+    WHEN MATCHED
+    THEN
+       UPDATE SET r.invalid_reason = NULL, r.valid_end_date = i.valid_end_date
+               WHERE r.invalid_reason IS NOT NULL;
+	COMMIT;
 
 	--clean up
 	EXECUTE IMMEDIATE 'drop table rxnorm_allowed_rel purge';
 	EXECUTE IMMEDIATE 'drop table rxnorm_wrong_rel purge';
-	
-	begin
-    devv5.SendMailHTML (devv5.var_array('reich@ohdsi.org', 'reich@omop.org'), 'small concept ancestor in '||USER||' [ok]', 'small concept ancestor in '||USER||' completed');
-    end;
-end;
+	EXECUTE IMMEDIATE 'drop table pair_tbl purge';   
+	end;
 /

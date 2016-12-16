@@ -1,5 +1,5 @@
 /**************************************************
-* Th  is script takes a drug vocabulary q and       *
+* Th  is script takes a drug vocabulary q and     *
 * compares it to the existing drug vocabulary r   *
 * The new vocabulary must be provided in the same *
 * format as for generating a new drug vocabulary: *
@@ -10,10 +10,11 @@
 * To_do: Add quantification factor                *
 * Suppport writing amount field                   *
 **************************************************/
+truncate table concept_stage;
 truncate table concept_relationship_stage;
 -- 1. Create lookup tables for existing vocab r (RxNorm and public country-specific ones)
 -- Create table containing ingredients for each drug
---drop table r_drug_ing nologging;
+drop table r_drug_ing ;
 create table r_drug_ing nologging as
   select de.concept_id as drug_id, an.concept_id as ing_id
   from concept_ancestor a 
@@ -25,7 +26,7 @@ create table r_drug_ing nologging as
 -- Remove unparsable Albumin products that have no drug_strength entry: Albumin Human, USP 1 NS
 delete from r_drug_ing where drug_id in (19094500, 19080557);
 -- Count number of ingredients for each drug
---drop table r_ing_count;
+drop table r_ing_count;
 create table r_ing_count nologging as
   select drug_id as did, count(*) as cnt from r_drug_ing group by drug_id
 ;
@@ -36,7 +37,7 @@ update r_ing_count set cnt=null where did in (select concept_id from concept whe
 create index x_r_drug_ing on r_drug_ing(drug_id, ing_id) nologging;
 
 -- Create lookup table for query vocab q (new vocab)
---drop table  q_drug_ing;
+drop table  q_drug_ing;
 create table q_drug_ing nologging as
 select drug.concept_code as drug_code, nvl(ing.concept_id, 0) as ing_id, i.concept_code as ing_code -- if ingredient is not mapped use 0 to still get the right ingredient count
 from drug_concept_stage i
@@ -49,12 +50,14 @@ join drug_concept_stage drug on drug.concept_class_id not in ('Unit', 'Ingredien
 where i.concept_class_id='Ingredient'
 ;
 -- Count ingredients per drug
+drop table q_ing_count;
 create table q_ing_count nologging as
   select drug_code as dcode, count(*) as cnt from q_drug_ing group by drug_code
 ;
 create index x_q_drug_ing on q_drug_ing(drug_code, ing_id) nologging;
 
 -- Create table that lists for each ingredient all drugs containing it from q and r
+drop table match;
 create table match nologging as
   select q.ing_id as r_iid, q.ing_code as q_icode, q.drug_code as q_dcode, r.drug_id as r_did
   from q_drug_ing q join r_drug_ing r on q.ing_id=r.ing_id -- match query and result drug on common ingredient
@@ -64,6 +67,7 @@ create index x_match on match(q_dcode, r_did) nologging;
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'match', estimate_percent => null, cascade => true);
 
 -- Create table with all drugs in q and r and the number of ingredients they share
+drop table shared_ing;
 create table shared_ing nologging as
 select r_did, q_dcode, count(*) as cnt from match group by r_did, q_dcode
 ;
@@ -75,11 +79,18 @@ create table r_bn nologging as
 select distinct descendant_concept_id as concept_id_1, concept_id_2
 from concept_relationship join concept_ancestor on ancestor_concept_id=concept_id_1 
 join concept bn on concept_id_2=bn.concept_id and bn.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bn.concept_class_id='Brand Name'
-join concept bd on descendant_concept_id=bd.concept_id and bd.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bd.concept_class_id in ('Branded Drug Box', 'Quantified Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product') 
-where concept_relationship.invalid_reason is null and relationship_id='RxNorm has ing'
+join concept c on concept_id_1=c.concept_id 
+join concept bd on descendant_concept_id=bd.concept_id and bd.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bd.concept_class_id in
+ ('Branded Drug Box', 'Quantified Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product', 'Branded Pack', 'Clinical Pack') 
+where concept_relationship.invalid_reason is null and relationship_id='Has brand name'
+and c.concept_class_id !='Ingredient' and c.invalid_reason is null and c.vocabulary_id like 'RxNorm%'
+;
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'r_bn', estimate_percent => null, cascade => true);
+;
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'shared_ing', estimate_percent => null, cascade => true)
 ;
 -- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size or quantity are not yet compared
---drop table q_to_r_anydose; 
+drop table q_to_r_anydose; 
 create table q_to_r_anydose nologging as
 -- create table with all query drug codes q_dcode mapped to standard drug concept ids r_did, irrespective of the correct dose
 with m as (
@@ -158,7 +169,7 @@ and coalesce(q_qnt.quant_f, /*r_sp.concept_id_2, */'X')=coalesce(r_qnt.quant_f, 
 --select * from q_to_r_wdose
 --;
 -- Add matching of dose and its units
---drop table q_to_r_wdose ;
+drop table q_to_r_wdose ;
 create table q_to_r_wdose nologging as
 -- Create two temp tables with all strength and unit information
 with q as (
@@ -227,7 +238,7 @@ commit;
 
 -- Remove all those where not everything fits
 -- The table has to be created separately because both subsequent queries define one field as null
---drop table q_to_r ;
+drop table q_to_r ;
 create table q_to_r nologging as
 select q_dcode, r_did, r_iid, bn_prec, df_prec, u_prec, rc_cnt from q_to_r_wdose
 where 1=0;
@@ -310,7 +321,7 @@ select concept_code, concept_id from poss_map b where not exists (select 1 from 
 ;
 commit;
 --full relationship with classes within RxNorm
---drop table cnc_rel_class; 
+drop table cnc_rel_class; 
 create table cnc_rel_class as
 select ri.*, ci.concept_class_id as concept_class_id_1 , c2.concept_class_id as concept_class_id_2 
 from devv5.concept_relationSHIp ri 
@@ -320,7 +331,7 @@ where ci.vocabulary_id like  'RxNorm%' and ri.invalid_reason is null and ci.inva
 and  c2.vocabulary_id like 'RxNorm%'  and ci.invalid_reason is null 
 ;
 --define order as combination of attributes number and each attribute weight
---DROP table attrib_cnt; 
+drop table attrib_cnt; 
 create table attrib_cnt as
 select concept_id_1, count (1)|| max(weight) as weight  from (
 --need to go throught Drug Form / Component to get the Brand Name
@@ -345,7 +356,7 @@ union
 select concept_id , '0' from concept where concept_class_id ='Ingredient' and vocabulary_id like 'RxNorm%'
 ;
 --best map
---drop table best_map;
+drop table best_map;
 create table best_map as 
 select distinct  first_value(concept_id_1) over (partition by q_dcode order by weight desc) as r_did , q_dcode
 from attrib_cnt join q_to_r on r_did  = concept_id_1;
@@ -378,3 +389,40 @@ join concept c on c.concept_id=m.r_did and c.vocabulary_id like 'RxNorm%'
 ;
 commit
 ;
+--add source drugs as a part concept_stage
+-- Write source drugs as non-standard
+insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+select distinct
+  null as concept_id, 
+  concept_name,
+  domain_id,
+  vocabulary_id,
+  nvl(source_concept_class_id, concept_class_id) as concept_class_id,
+  null as standard_concept, -- Source Concept, no matter whether active or not
+  concept_code,
+  nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
+  nvl(valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
+  case invalid_reason when 'U' then 'D' else invalid_reason end as invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
+from drug_concept_stage
+where concept_class_id in ('Ingredient', 'Drug Product', 'Supplier', 'Dose Form', 'Brand Name') -- but no Unit
+  and nvl(domain_id, 'Drug')='Drug'
+;
+commit;
+
+-- Write source devices as standard (unless deprecated)
+insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+select distinct
+  null as concept_id, 
+  concept_name,
+  domain_id,
+  vocabulary_id,
+  nvl(source_concept_class_id, concept_class_id) as concept_class_id,
+  case when invalid_reason is not null then null else 'S' end as standard_concept, -- Devices are not mapped
+  concept_code,
+  nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
+  nvl(valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
+  invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
+from drug_concept_stage
+where domain_id='Device'
+;
+commit;

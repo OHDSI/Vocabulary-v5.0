@@ -621,8 +621,9 @@ create table r_bn nologging as
 select distinct descendant_concept_id as concept_id_1, concept_id_2
 from concept_relationship join concept_ancestor on ancestor_concept_id=concept_id_1 
 join concept bn on concept_id_2=bn.concept_id and bn.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bn.concept_class_id='Brand Name'
-join dev_rxnorm.concept c on concept_id_1=c.concept_id and bd.vocabulary_id like 'RxNorm%'
-join concept bd on descendant_concept_id=bd.concept_id and bd.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bd.concept_class_id in ('Branded Drug Box', 'Quantified Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product') 
+join concept c on concept_id_1=c.concept_id and ?.vocabulary_id like 'RxNorm%'
+join concept bd on descendant_concept_id=bd.concept_id and bd.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+ and bd.concept_class_id in ('Branded Drug Box', 'Quantified Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product', 'Branded Pack', 'Clinical Pack') 
 where concept_relationship.invalid_reason is null and relationship_id='Has brand name'
 and c.concept_class_id !='Ingredient' and c.invalid_reason is null and c.vocabulary_id like 'RxNorm%'
 ;
@@ -2919,3 +2920,28 @@ begin
 end;
 
 commit;
+
+--6 Working with replacement mappings
+
+BEGIN
+   DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
+END;
+COMMIT;
+
+--7 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
+END;
+COMMIT;
+
+--8 Add mapping from deprecated to fresh concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
+END;
+COMMIT;
+
+--9 Delete ambiguous 'Maps to' mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
+END;
+COMMIT;

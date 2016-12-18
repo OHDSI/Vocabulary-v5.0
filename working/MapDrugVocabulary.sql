@@ -89,6 +89,8 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'r_bn', estimate_
 ;
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'shared_ing', estimate_percent => null, cascade => true)
 ;
+create index x_shared_ing on shared_ing(q_dcode, r_did) nologging
+;
 -- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size or quantity are not yet compared
 drop table q_to_r_anydose; 
 create table q_to_r_anydose nologging as
@@ -243,6 +245,11 @@ create table q_to_r nologging as
 select q_dcode, r_did, r_iid, bn_prec, df_prec, u_prec, rc_cnt from q_to_r_wdose
 where 1=0;
 
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'q_to_r_wdose', estimate_percent => null, cascade => true)
+;
+create index q_to_r_wdose_q on q_to_r_wdose(q_dcode)nologging
+;
+
 insert /*+ APPEND */ into q_to_r
 select 
   a.q_dcode, a.r_did, null as r_iid, a.bn_prec, a.df_prec, a.u_prec, a.rc_cnt
@@ -355,17 +362,36 @@ select * from drug_strength where DENOMINATOR_VALUE is not null)
 union
 select concept_id , '0' from concept where concept_class_id ='Ingredient' and vocabulary_id like 'RxNorm%'
 ;
---best map
+drop table Q_DCODE_to_hlc
+;
+create table Q_DCODE_to_hlc as
+select q.Q_DCODE from q_to_r q join concept c on concept_id = q.R_DID where ( CONCEPT_CLASS_ID in 
+('Branded Drug Box', 'Quant Branded Box', 'Quant Branded Drug', 'Branded Drug', 'Marketed Product', 'Branded Pack', 'Clinical Pack' , 
+'Clinical Drug Box', 'Quant Clinical Box', 'Clinical Branded Drug',  'Clinical Drug', 'Marketed Product')
+or concept_name like '% / %' ) and c.standard_concept = 'S' 
+;
+drop table dupl;
+create table dupl as(
+select st.*, c.concept_class_id,attrib_cnt.*  from q_to_r q join attrib_cnt on r_did  = concept_id_1 
+join drug_concept_stage ds on Q_DCODE = ds.concept_code
+join concept c on c.concept_id = q.R_DID 
+join (select drug_concept_code, count (1) as cnt from ds_stage group by drug_concept_code having count(1) >1)st on drug_concept_code = Q_DCODE 
+where Q_DCODE not in (select Q_DCODE from Q_DCODE_to_hlc)
+)
+;
+ --best map
 drop table best_map;
 create table best_map as 
 select distinct  first_value(concept_id_1) over (partition by q_dcode order by weight desc) as r_did , q_dcode
-from attrib_cnt join q_to_r on r_did  = concept_id_1;
+from attrib_cnt join q_to_r on r_did  = concept_id_1 
+where Q_DCODE not in ( select drug_concept_code from dupl)
+union select CONCEPT_ID_1, drug_concept_code from dupl where WEIGHT = 0
 ;
---select * from best_map;
+
 commit;
 -- Write concept_relationship_stage
 --still thinking about update process
-
+truncate table concept_relationship_stage;
 insert /*+ APPEND */ into concept_relationship_stage
 						(concept_code_1,
 						concept_code_2,
@@ -397,7 +423,7 @@ select distinct
   concept_name,
   domain_id,
   vocabulary_id,
-  nvl(source_concept_class_id, concept_class_id) as concept_class_id,
+ concept_class_id as concept_class_id,
   null as standard_concept, -- Source Concept, no matter whether active or not
   concept_code,
   nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
@@ -409,6 +435,23 @@ where concept_class_id in ('Ingredient', 'Drug Product', 'Supplier', 'Dose Form'
 ;
 commit;
 
+-- Write source devices as standard (unless deprecated)
+insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+select distinct
+  null as concept_id, 
+  concept_name,
+  domain_id,
+  vocabulary_id,
+  nvl(source_concept_class_id, concept_class_id) as concept_class_id,
+  case when invalid_reason is not null then null else 'S' end as standard_concept, -- Devices are not mapped
+  concept_code,
+  nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
+  nvl(valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
+  invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
+from drug_concept_stage
+where domain_id='Device'
+;
+commit;
 -- Write source devices as standard (unless deprecated)
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select distinct

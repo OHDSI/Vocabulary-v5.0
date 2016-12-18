@@ -623,7 +623,7 @@ from concept_relationship join concept_ancestor on ancestor_concept_id=concept_i
 join concept bn on concept_id_2=bn.concept_id and bn.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bn.concept_class_id='Brand Name'
 join concept c on concept_id_1=c.concept_id and ?.vocabulary_id like 'RxNorm%'
 join concept bd on descendant_concept_id=bd.concept_id and bd.vocabulary_id in ('RxNorm', 'RxNorm Extension')
- and bd.concept_class_id in ('Branded Drug Box', 'Quantified Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product', 'Branded Pack', 'Clinical Pack') 
+ and bd.concept_class_id in ('Branded Drug Box', 'Quant Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product', 'Branded Pack')
 where concept_relationship.invalid_reason is null and relationship_id='Has brand name'
 and c.concept_class_id !='Ingredient' and c.invalid_reason is null and c.vocabulary_id like 'RxNorm%'
 ;
@@ -1883,15 +1883,15 @@ concept_class_2 varchar2(20)
 );
 insert into rl
 -- Packs are not included
-select 'Brand Name', 'Has brand name', 'Branded Drug Box' from dual union
-select 'Brand Name', 'Has brand name', 'Branded Drug Comp' from dual union
-select 'Brand Name', 'Has brand name', 'Branded Drug Form' from dual union
-select 'Brand Name', 'Has brand name', 'Branded Drug' from dual union
-select 'Brand Name', 'Has brand name', 'Branded Pack' from dual union
-select 'Brand Name', 'Has brand name', 'Branded Pack Box' from dual union
-select 'Brand Name', 'Has brand name', 'Marketed Product' from dual union
-select 'Brand Name', 'Has brand name', 'Quant Branded Box' from dual union
-select 'Brand Name', 'Has brand name', 'Quant Branded Drug' from dual union
+select 'Brand Name', 'Brand name of', 'Branded Drug Box' from dual union
+select 'Brand Name', 'Brand name of', 'Branded Drug Comp' from dual union
+select 'Brand Name', 'Brand name of', 'Branded Drug Form' from dual union
+select 'Brand Name', 'Brand name of', 'Branded Drug' from dual union
+select 'Brand Name', 'Brand name of', 'Branded Pack' from dual union
+select 'Brand Name', 'Brand name of', 'Branded Pack Box' from dual union
+select 'Brand Name', 'Brand name of', 'Marketed Product' from dual union
+select 'Brand Name', 'Brand name of', 'Quant Branded Box' from dual union
+select 'Brand Name', 'Brand name of', 'Quant Branded Drug' from dual union
 select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union
 select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union
 select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union

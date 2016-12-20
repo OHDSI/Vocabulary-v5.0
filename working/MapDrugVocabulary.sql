@@ -14,7 +14,7 @@ truncate table concept_stage;
 truncate table concept_relationship_stage;
 -- 1. Create lookup tables for existing vocab r (RxNorm and public country-specific ones)
 -- Create table containing ingredients for each drug
-drop table r_drug_ing ;
+--drop table r_drug_ing ;
 create table r_drug_ing nologging as
   select de.concept_id as drug_id, an.concept_id as ing_id
   from concept_ancestor a 
@@ -22,11 +22,12 @@ create table r_drug_ing nologging as
     and an.vocabulary_id in ('RxNorm', 'RxNorm Extension') -- to be expanded as new vocabs are added
   join concept de on de.concept_id=a.descendant_concept_id  
     and de.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+    where an.invalid_reason is null 
 ;
 -- Remove unparsable Albumin products that have no drug_strength entry: Albumin Human, USP 1 NS
 delete from r_drug_ing where drug_id in (19094500, 19080557);
 -- Count number of ingredients for each drug
-drop table r_ing_count;
+--drop table r_ing_count;
 create table r_ing_count nologging as
   select drug_id as did, count(*) as cnt from r_drug_ing group by drug_id
 ;
@@ -37,7 +38,7 @@ update r_ing_count set cnt=null where did in (select concept_id from concept whe
 create index x_r_drug_ing on r_drug_ing(drug_id, ing_id) nologging;
 
 -- Create lookup table for query vocab q (new vocab)
-drop table  q_drug_ing;
+--drop table  q_drug_ing;
 create table q_drug_ing nologging as
 select drug.concept_code as drug_code, nvl(ing.concept_id, 0) as ing_id, i.concept_code as ing_code -- if ingredient is not mapped use 0 to still get the right ingredient count
 from drug_concept_stage i
@@ -48,16 +49,17 @@ join drug_concept_stage drug on drug.concept_class_id not in ('Unit', 'Ingredien
   and drug.domain_id='Drug' -- include only drug product concept classes
   and drug.concept_code=r2.concept_code_1
 where i.concept_class_id='Ingredient'
+and ing.invalid_reason is null
 ;
 -- Count ingredients per drug
-drop table q_ing_count;
+--drop table q_ing_count;
 create table q_ing_count nologging as
   select drug_code as dcode, count(*) as cnt from q_drug_ing group by drug_code
 ;
 create index x_q_drug_ing on q_drug_ing(drug_code, ing_id) nologging;
 
 -- Create table that lists for each ingredient all drugs containing it from q and r
-drop table match;
+--drop table match;
 create table match nologging as
   select q.ing_id as r_iid, q.ing_code as q_icode, q.drug_code as q_dcode, r.drug_id as r_did
   from q_drug_ing q join r_drug_ing r on q.ing_id=r.ing_id -- match query and result drug on common ingredient
@@ -67,14 +69,14 @@ create index x_match on match(q_dcode, r_did) nologging;
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'match', estimate_percent => null, cascade => true);
 
 -- Create table with all drugs in q and r and the number of ingredients they share
-drop table shared_ing;
+--drop table shared_ing;
 create table shared_ing nologging as
 select r_did, q_dcode, count(*) as cnt from match group by r_did, q_dcode
 ;
 -- Set all counts for Clinical Drug Comp to null, so in comparisons it can match whatever number necessary. Reason is that, like ingredients, Clinical Drug Comp is always only one ingredient
 update shared_ing set cnt=null where r_did in (select concept_id from concept where concept_class_id in ('Clinical Drug Comp', 'Ingredient'));
 
-drop table r_bn;
+--drop table r_bn;
 create table r_bn nologging as
 select distinct descendant_concept_id as concept_id_1, concept_id_2
 from concept_relationship join concept_ancestor on ancestor_concept_id=concept_id_1 
@@ -84,6 +86,7 @@ join concept bd on descendant_concept_id=bd.concept_id and bd.vocabulary_id in (
  ('Branded Drug Box', 'Quantified Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product', 'Branded Pack', 'Clinical Pack') 
 where concept_relationship.invalid_reason is null and relationship_id='Has brand name'
 and c.concept_class_id !='Ingredient' and c.invalid_reason is null and c.vocabulary_id like 'RxNorm%'
+and bd.invalid_reason is null and bn.invalid_reason is null
 ;
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'r_bn', estimate_percent => null, cascade => true);
 ;
@@ -92,7 +95,7 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'shared_ing', est
 create index x_shared_ing on shared_ing(q_dcode, r_did) nologging
 ;
 -- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size or quantity are not yet compared
-drop table q_to_r_anydose; 
+--drop table q_to_r_anydose; 
 create table q_to_r_anydose nologging as
 -- create table with all query drug codes q_dcode mapped to standard drug concept ids r_did, irrespective of the correct dose
 with m as (
@@ -122,7 +125,7 @@ left join (
 left join (
   select r.concept_id_1, r.concept_id_2 from concept_relationship r
   join concept on concept_id=r.concept_id_2 and concept_class_id ='Dose Form' -- Dose Form of r
-  where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
+  where r.invalid_reason is null and r.relationship_id='RxNorm has dose form' and concept.invalid_reason is null
 ) r_df on r_df.concept_id_1=m.r_did
 -- get Brand Name for q and r
 left join (
@@ -171,7 +174,7 @@ and coalesce(q_qnt.quant_f, /*r_sp.concept_id_2, */'X')=coalesce(r_qnt.quant_f, 
 --select * from q_to_r_wdose
 --;
 -- Add matching of dose and its units
-drop table q_to_r_wdose ;
+--drop table q_to_r_wdose ;
 create table q_to_r_wdose nologging as
 -- Create two temp tables with all strength and unit information
 with q as (
@@ -240,7 +243,7 @@ commit;
 
 -- Remove all those where not everything fits
 -- The table has to be created separately because both subsequent queries define one field as null
-drop table q_to_r ;
+--drop table q_to_r ;
 create table q_to_r nologging as
 select q_dcode, r_did, r_iid, bn_prec, df_prec, u_prec, rc_cnt from q_to_r_wdose
 where 1=0;
@@ -290,7 +293,7 @@ join drug_strength ds2 on r_did = drug_concept_id and r_iid = ingredient_concept
 and 'x'|| nvl (ds1.numerator_value/nvl (ds1.DENOMINATOR_VALUE, 1), '0') = 'x'|| nvl (ds2.numerator_value/nvl (ds2.DENOMINATOR_VALUE, 1), '0')
 and 'x'|| nvl (ds1.amount_value, '0')= 'x'|| nvl (ds2.amount_value, '0') 
 join drug_concept_stage dcs on dcs.concept_code = Q_DCODE 
-join concept on concept_id = R_DID
+join concept on concept_id = R_DID and concept.invalid_reason is null
 where rc_cnt >1 
 group by dcs.concept_name,dcs.concept_code, concept.concept_name, concept.concept_id, RC_CNT,  ingredient_concept_id
 ) a-- where cnt >= rc_cnt
@@ -303,7 +306,7 @@ join drug_strength ds2 on r_did = drug_concept_id and r_iid = ingredient_concept
 and 'x'|| nvl (ds1.numerator_value/nvl (ds1.DENOMINATOR_VALUE, 1), '0') = 'x'|| nvl (ds2.numerator_value/nvl (ds2.DENOMINATOR_VALUE, 1), '0')
 and 'x'|| nvl (ds1.amount_value, '0')= 'x'|| nvl (ds2.amount_value, '0') 
 join drug_concept_stage dcs on dcs.concept_code = Q_DCODE 
-join concept on concept_id = R_DID
+join concept on concept_id = R_DID and concept.invalid_reason is null
 where rc_cnt >1 
 group by dcs.concept_name,dcs.concept_code, concept.concept_name, concept.concept_id ,RC_CNT
 ) b on a.CONCEPT_CODE = b.concept_code and a.concept_id = b.concept_id
@@ -315,7 +318,7 @@ join drug_strength ds2 on r_did = drug_concept_id and r_iid = ingredient_concept
 and 'x'|| nvl (ds1.numerator_value/nvl (ds1.DENOMINATOR_VALUE, 1), '0') = 'x'|| nvl (ds2.numerator_value/nvl (ds2.DENOMINATOR_VALUE, 1), '0')
 and 'x'|| nvl (ds1.amount_value, '0')= 'x'|| nvl (ds2.amount_value, '0') 
 join drug_concept_stage dcs on dcs.concept_code = Q_DCODE 
-join concept on concept_id = R_DID
+join concept on concept_id = R_DID and concept.invalid_reason is null
 where rc_cnt >1 
 group by dcs.concept_name,dcs.concept_code, concept.concept_name, concept.concept_id, RC_CNT,  ingredient_concept_code
 ) c
@@ -328,17 +331,17 @@ select concept_code, concept_id from poss_map b where not exists (select 1 from 
 ;
 commit;
 --full relationship with classes within RxNorm
-drop table cnc_rel_class; 
+--drop table cnc_rel_class; 
 create table cnc_rel_class as
 select ri.*, ci.concept_class_id as concept_class_id_1 , c2.concept_class_id as concept_class_id_2 
 from devv5.concept_relationSHIp ri 
 join devv5.concept ci on ci.concept_id = ri.concept_id_1 
 join devv5.concept c2 on c2.concept_id = ri.concept_id_2 
 where ci.vocabulary_id like  'RxNorm%' and ri.invalid_reason is null and ci.invalid_reason is null 
-and  c2.vocabulary_id like 'RxNorm%'  and ci.invalid_reason is null 
+and  c2.vocabulary_id like 'RxNorm%'  and c2.invalid_reason is null 
 ;
 --define order as combination of attributes number and each attribute weight
-drop table attrib_cnt; 
+--drop table attrib_cnt; 
 create table attrib_cnt as
 select concept_id_1, count (1)|| max(weight) as weight  from (
 --need to go throught Drug Form / Component to get the Brand Name
@@ -362,7 +365,7 @@ select * from drug_strength where DENOMINATOR_VALUE is not null)
 union
 select concept_id , '0' from concept where concept_class_id ='Ingredient' and vocabulary_id like 'RxNorm%'
 ;
-drop table Q_DCODE_to_hlc
+--drop table Q_DCODE_to_hlc
 ;
 create table Q_DCODE_to_hlc as
 select q.Q_DCODE from q_to_r q join concept c on concept_id = q.R_DID where ( CONCEPT_CLASS_ID in 
@@ -370,7 +373,7 @@ select q.Q_DCODE from q_to_r q join concept c on concept_id = q.R_DID where ( CO
 'Clinical Drug Box', 'Quant Clinical Box', 'Clinical Branded Drug',  'Clinical Drug', 'Marketed Product')
 or concept_name like '% / %' ) and c.standard_concept = 'S' 
 ;
-drop table dupl;
+--drop table dupl;
 create table dupl as(
 select st.*, c.concept_class_id,attrib_cnt.*  from q_to_r q join attrib_cnt on r_did  = concept_id_1 
 join drug_concept_stage ds on Q_DCODE = ds.concept_code
@@ -380,7 +383,7 @@ where Q_DCODE not in (select Q_DCODE from Q_DCODE_to_hlc)
 )
 ;
  --best map
-drop table best_map;
+--drop table best_map;
 create table best_map as 
 select distinct  first_value(concept_id_1) over (partition by q_dcode order by weight desc) as r_did , q_dcode
 from attrib_cnt join q_to_r on r_did  = concept_id_1 

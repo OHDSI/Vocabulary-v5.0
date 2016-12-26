@@ -162,6 +162,38 @@ from (
 ;
 COMMIT;	
 
+
+delete from concept_stage where regexp_like
+(concept_code, 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+')
+;
+COMMIT;	
+drop table name_impr
+;
+create table name_impr as 
+select c.concept_code, cs.concept_name ||' '|| lower (c.concept_name) as new_name from concept_stage c
+left join classes cl on c.concept_code = cl.CLASS_CODE
+left join concept_stage cs on cl.SUPERCLASS_CODE = cs.concept_code
+where  regexp_like (c.concept_code , '((Y06)|(Y07)).+')
+and RUBRIC_KIND = 'preferred'
+union
+select c.concept_code, c.concept_name ||' as the cause of abnormal reaction of the patient, or of later complication, without mention of misadventure at the time of the procedure' from concept_stage c
+where  regexp_like (c.concept_code , '((Y83)|(Y84)).+')
+union
+select c.concept_code, 'Adverse effects in the therapeutic use of ' || lower (concept_name) from concept_stage c
+where concept_code>='Y40' and concept_code<'Y60'
+union
+select c.concept_code, replace (cs.concept_name, 'during%')  ||' '|| lower (c.concept_name) from concept_stage c
+left join classes cl on c.concept_code = cl.CLASS_CODE
+left join concept_stage cs on cl.SUPERCLASS_CODE = cs.concept_code
+where  regexp_like (c.concept_code , '((Y60)|(Y61)|(Y62)).+')
+and RUBRIC_KIND = 'preferred'
+;
+update concept_stage a set concept_name = (select new_name from name_impr b where a.concept_code = b.concept_code)
+where exists (select 1 from name_impr b where a.concept_code = b.concept_code)
+;
+commit
+;
+
 --5. Create file with mappings for medical coder from the existing one
 SELECT *
   FROM concept c, concept_relationship r

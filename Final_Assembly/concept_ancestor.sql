@@ -305,14 +305,14 @@ BEGIN
             select * From (
                 with t as (
                 select 'Brand Name' c_class_1, 'Brand name of' relationship_id, 'Branded Drug Box' c_class_2 from dual union all
-                select 'Brand Name', 'Brand name of', 'Branded Drug Comp' from dual union
-		select 'Brand Name', 'Brand name of', 'Branded Drug Form' from dual union
-		select 'Brand Name', 'Brand name of', 'Branded Drug' from dual union
-		select 'Brand Name', 'Brand name of', 'Branded Pack' from dual union
-		select 'Brand Name', 'Brand name of', 'Branded Pack Box' from dual union
-		select 'Brand Name', 'Brand name of', 'Marketed Product' from dual union
-		select 'Brand Name', 'Brand name of', 'Quant Branded Box' from dual union
-		select 'Brand Name', 'Brand name of', 'Quant Branded Drug' from dual union
+                select 'Brand Name', 'Brand name of', 'Branded Drug Comp' from dual union all
+				select 'Brand Name', 'Brand name of', 'Branded Drug Form' from dual union all
+				select 'Brand Name', 'Brand name of', 'Branded Drug' from dual union all
+				select 'Brand Name', 'Brand name of', 'Branded Pack' from dual union all
+				select 'Brand Name', 'Brand name of', 'Branded Pack Box' from dual union all
+				select 'Brand Name', 'Brand name of', 'Marketed Product' from dual union all
+				select 'Brand Name', 'Brand name of', 'Quant Branded Box' from dual union all
+				select 'Brand Name', 'Brand name of', 'Quant Branded Drug' from dual union all
                 select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union all
                 select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union all
                 select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union all

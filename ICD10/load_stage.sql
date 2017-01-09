@@ -167,8 +167,7 @@ delete from concept_stage where regexp_like
 (concept_code, 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+')
 ;
 COMMIT;	
-drop table name_impr
-;
+
 create table name_impr as 
 select c.concept_code, cs.concept_name ||' '|| lower (c.concept_name) as new_name from concept_stage c
 left join classes cl on c.concept_code = cl.CLASS_CODE
@@ -371,6 +370,7 @@ DROP TABLE ICD10_domain PURGE;
 DROP TABLE filled_domain PURGE;
 DROP TABLE modifier_classes PURGE;
 DROP TABLE classes PURGE;
+DROP TABLE name_impr PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
 

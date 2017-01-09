@@ -1983,7 +1983,7 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (46680005, 'Measurement'); -- Vital signs
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (363259005, 'Observation'); -- Patient management procedure
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (278414003, 'Procedure'); -- Pain management
--- Added Jan 2017
+	-- Added Jan 2017
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (46285103, 'Observation'); -- Aware of overall cardiovascular disease risk
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (45773499, 'Observation'); -- Appropriate use of walk-in centre
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (45770005, 'Observation'); -- Appropriate use of accident and emergency service
@@ -2006,7 +2006,7 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (4301716, 'Observation'); -- Finding related to compliance with treatment
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (4046893, 'Observation'); -- Lifestyle
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (4021939, 'Observation'); -- Finding relating to advocacy
-  INSERT INTO peak (peak_code, peak_domain_id) VALUES (44792958, 'Measurement'); -- DFT: dynamic function test
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (44792958, 'Measurement'); -- DFT: dynamic function test
 
 END;
 COMMIT;

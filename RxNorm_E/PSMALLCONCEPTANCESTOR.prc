@@ -1,4 +1,4 @@
-CREATE OR REPLACE PROCEDURE DEVV5.pSmallConceptAncestor AUTHID CURRENT_USER is
+CREATE OR REPLACE procedure DEVV5.pSmallConceptAncestor AUTHID CURRENT_USER is
    vCnt          INTEGER;
    vCnt_old      INTEGER;
    vSumMax       INTEGER;
@@ -286,15 +286,15 @@ BEGIN
 		create table rxnorm_allowed_rel nologging as (
             select * From (
                 with t as (
-                select 'Brand Name' c_class_1, 'Has brand name' relationship_id, 'Branded Drug Box' c_class_2 from dual union all
-                select 'Brand Name', 'Has brand name', 'Branded Drug Comp' from dual union all
-                select 'Brand Name', 'Has brand name', 'Branded Drug Form' from dual union all
-                select 'Brand Name', 'Has brand name', 'Branded Drug' from dual union all
-                select 'Brand Name', 'Has brand name', 'Branded Pack' from dual union all
-                select 'Brand Name', 'Has brand name', 'Branded Pack Box' from dual union all
-                select 'Brand Name', 'Has brand name', 'Marketed Product' from dual union all
-                select 'Brand Name', 'Has brand name', 'Quant Branded Box' from dual union all
-                select 'Brand Name', 'Has brand name', 'Quant Branded Drug' from dual union all
+                select 'Brand Name' c_class_1, 'Brand name of' relationship_id, 'Branded Drug Box' c_class_2 from dual union all
+                select 'Brand Name', 'Brand name of', 'Branded Drug Comp' from dual union all
+                select 'Brand Name', 'Brand name of', 'Branded Drug Form' from dual union all
+                select 'Brand Name', 'Brand name of', 'Branded Drug' from dual union all
+                select 'Brand Name', 'Brand name of', 'Branded Pack' from dual union all
+                select 'Brand Name', 'Brand name of', 'Branded Pack Box' from dual union all
+                select 'Brand Name', 'Brand name of', 'Marketed Product' from dual union all
+                select 'Brand Name', 'Brand name of', 'Quant Branded Box' from dual union all
+                select 'Brand Name', 'Brand name of', 'Quant Branded Drug' from dual union all
                 select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union all
                 select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union all
                 select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union all
@@ -511,5 +511,6 @@ BEGIN
 	EXECUTE IMMEDIATE 'drop table rxnorm_allowed_rel purge';
 	EXECUTE IMMEDIATE 'drop table rxnorm_wrong_rel purge';
 	EXECUTE IMMEDIATE 'drop table pair_tbl purge';   
-	end;
+
+end;
 /

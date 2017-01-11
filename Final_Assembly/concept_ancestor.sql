@@ -303,9 +303,9 @@ BEGIN
 	EXECUTE IMMEDIATE q'[
 		create table rxnorm_allowed_rel nologging as (
             select * From (
-                with t as (
-                select 'Brand Name' c_class_1, 'Brand name of' relationship_id, 'Branded Drug Box' c_class_2 from dual union all
-                select 'Brand Name', 'Brand name of', 'Branded Drug Comp' from dual union all
+				with t as (
+				select 'Brand Name' c_class_1, 'Brand name of' relationship_id, 'Branded Drug Box' c_class_2 from dual union all
+				select 'Brand Name', 'Brand name of', 'Branded Drug Comp' from dual union all
 				select 'Brand Name', 'Brand name of', 'Branded Drug Form' from dual union all
 				select 'Brand Name', 'Brand name of', 'Branded Drug' from dual union all
 				select 'Brand Name', 'Brand name of', 'Branded Pack' from dual union all
@@ -313,50 +313,50 @@ BEGIN
 				select 'Brand Name', 'Brand name of', 'Marketed Product' from dual union all
 				select 'Brand Name', 'Brand name of', 'Quant Branded Box' from dual union all
 				select 'Brand Name', 'Brand name of', 'Quant Branded Drug' from dual union all
-                select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union all
-                select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union all
-                select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union all
-                select 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' from dual union all
-                select 'Branded Drug', 'Available as box', 'Branded Drug Box' from dual union all
-                select 'Branded Drug', 'Has marketed form', 'Marketed Product' from dual union all
-                select 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' from dual union all
-                select 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' from dual union
-                select 'Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box' from dual union all
-                select 'Clinical Drug Box', 'Has tradename', 'Branded Drug Box' from dual union all
-                select 'Clinical Drug Comp', 'Constitutes', 'Clinical Drug' from dual union all
-                select 'Clinical Drug Comp', 'Has tradename', 'Branded Drug Comp' from dual union all
-                select 'Clinical Drug Form', 'Has tradename', 'Branded Drug Form' from dual union all
-                select 'Clinical Drug Form', 'RxNorm inverse is a', 'Clinical Drug' from dual union all
-                select 'Clinical Drug', 'Available as box', 'Clinical Drug Box' from dual union all
-                select 'Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
-                select 'Clinical Drug', 'Has quantified form', 'Quant Clinical Drug' from dual union all
-                select 'Clinical Drug', 'Has tradename', 'Branded Drug' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Box' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Form' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Branded Drug' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Branded Pack' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Box' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Form' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Clinical Pack' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Marketed Product' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Quant Branded Box' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Quant Branded Drug' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Box' from dual union all
-                select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug' from dual union all
-                select 'Ingredient', 'Has brand name', 'Brand Name' from dual union all
-                select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' from dual union all
-                select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' from dual union all
-                select 'Marketed Product', 'Has marketed form', 'Marketed Product' from dual union all 
-                select 'Supplier', 'Supplier of', 'Marketed Product' from dual union all
-                select 'Quant Branded Box', 'Has marketed form', 'Marketed Product' from dual union all
-                select 'Quant Branded Drug', 'Available as box', 'Quant Branded Box' from dual union all
-                select 'Quant Branded Drug', 'Has marketed form', 'Marketed Product' from dual union all
-                select 'Quant Clinical Box', 'Has marketed form', 'Marketed Product' from dual union all
-                select 'Quant Clinical Box', 'Has tradename', 'Quant Branded Box' from dual union all
-                select 'Quant Clinical Drug', 'Available as box', 'Quant Clinical Box' from dual union all
-                select 'Quant Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
-                select 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' from dual
+				select 'Branded Drug Box', 'Has marketed form', 'Marketed Product' from dual union all
+				select 'Branded Drug Box', 'Has quantified form', 'Quant Branded Box' from dual union all
+				select 'Branded Drug Comp', 'Constitutes', 'Branded Drug' from dual union all
+				select 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' from dual union all
+				select 'Branded Drug', 'Available as box', 'Branded Drug Box' from dual union all
+				select 'Branded Drug', 'Has marketed form', 'Marketed Product' from dual union all
+				select 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' from dual union all
+				select 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' from dual union
+				select 'Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box' from dual union all
+				select 'Clinical Drug Box', 'Has tradename', 'Branded Drug Box' from dual union all
+				select 'Clinical Drug Comp', 'Constitutes', 'Clinical Drug' from dual union all
+				select 'Clinical Drug Comp', 'Has tradename', 'Branded Drug Comp' from dual union all
+				select 'Clinical Drug Form', 'Has tradename', 'Branded Drug Form' from dual union all
+				select 'Clinical Drug Form', 'RxNorm inverse is a', 'Clinical Drug' from dual union all
+				select 'Clinical Drug', 'Available as box', 'Clinical Drug Box' from dual union all
+				select 'Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
+				select 'Clinical Drug', 'Has quantified form', 'Quant Clinical Drug' from dual union all
+				select 'Clinical Drug', 'Has tradename', 'Branded Drug' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Box' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Form' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Branded Drug' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Branded Pack' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Box' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug Form' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Clinical Drug' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Clinical Pack' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Marketed Product' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Quant Branded Box' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Quant Branded Drug' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Box' from dual union all
+				select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug' from dual union all
+				select 'Ingredient', 'Has brand name', 'Brand Name' from dual union all
+				select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' from dual union all
+				select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' from dual union all
+				select 'Marketed Product', 'Has marketed form', 'Marketed Product' from dual union all 
+				select 'Supplier', 'Supplier of', 'Marketed Product' from dual union all
+				select 'Quant Branded Box', 'Has marketed form', 'Marketed Product' from dual union all
+				select 'Quant Branded Drug', 'Available as box', 'Quant Branded Box' from dual union all
+				select 'Quant Branded Drug', 'Has marketed form', 'Marketed Product' from dual union all
+				select 'Quant Clinical Box', 'Has marketed form', 'Marketed Product' from dual union all
+				select 'Quant Clinical Box', 'Has tradename', 'Quant Branded Box' from dual union all
+				select 'Quant Clinical Drug', 'Available as box', 'Quant Clinical Box' from dual union all
+				select 'Quant Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
+				select 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' from dual
             ) 
             select * from t 
             union all 

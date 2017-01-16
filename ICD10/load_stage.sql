@@ -168,8 +168,7 @@ delete from concept_stage where regexp_like
 ;
 COMMIT;	
 --drop table name_impr
-;
-create table name_impr as 
+;create table name_impr as 
 select c.concept_code, cs.concept_name ||' '|| lower (c.concept_name) as new_name from concept_stage c
 left join classes cl on c.concept_code = cl.CLASS_CODE
 left join concept_stage cs on cl.SUPERCLASS_CODE = cs.concept_code
@@ -412,7 +411,6 @@ DROP TABLE filled_domain PURGE;
 DROP TABLE modifier_classes PURGE;
 DROP TABLE classes PURGE;
 DROP TABLE name_impr purge;
-
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
 

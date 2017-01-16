@@ -292,8 +292,6 @@ IS
                 AND r.concept_id_1 <> r.concept_id_2
                 AND r_int.relationship_id = r.relationship_id
                 AND r_int.invalid_reason IS NULL
-                AND r.relationship_id IN (SELECT *
-                                            FROM t)
                 AND NVL (check_id, 1) = 1
          UNION ALL
          --opposing relationships between same pair of concepts
@@ -306,8 +304,6 @@ IS
                 AND r.concept_id_1 <> r.concept_id_2
                 AND r_int.relationship_id = rel.reverse_relationship_id
                 AND r_int.invalid_reason IS NULL
-                AND r.relationship_id IN (SELECT *
-                                            FROM t)
                 AND NVL (check_id, 2) = 2
          UNION ALL
          --relationships without reverse

@@ -329,6 +329,7 @@ IS
    PROCEDURE DeprecateWrongMAPSTO
    IS
    BEGIN
+      /* the code doesn't check the concept table, so deprecated
       EXECUTE IMMEDIATE q'[
       UPDATE concept_relationship_stage crs
          SET crs.valid_end_date =
@@ -343,6 +344,37 @@ IS
                        FROM concept_stage cs
                       WHERE cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2 AND cs.invalid_reason IN ('U', 'D'))
    ]';
+   */
+    EXECUTE IMMEDIATE q'[
+    UPDATE concept_relationship_stage crs
+       SET crs.valid_end_date =
+              (SELECT MAX (latest_update) - 1
+                 FROM vocabulary
+                WHERE vocabulary_id IN (crs.vocabulary_id_1, crs.vocabulary_id_2) AND latest_update IS NOT NULL),
+           crs.invalid_reason = 'D'
+     WHERE     crs.relationship_id = 'Maps to'
+           AND crs.invalid_reason IS NULL
+           AND EXISTS
+                  (SELECT 1
+                     FROM (     SELECT 1
+                                  FROM (                     --taking invalid_reason of concept_code_2, first from the concept_stage, next from the concept (if concept doesn't exists in the concept_stage)
+                                        SELECT cs.concept_code,
+                                               cs.vocabulary_id,
+                                               cs.invalid_reason,
+                                               1 AS source_id
+                                          FROM concept_stage cs
+                                         WHERE cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2
+                                        UNION ALL
+                                        SELECT c.concept_code,
+                                               c.vocabulary_id,
+                                               c.invalid_reason,
+                                               2 AS source_id
+                                          FROM concept c
+                                         WHERE c.concept_code = crs.concept_code_2 AND c.vocabulary_id = crs.vocabulary_id_2)
+                              ORDER BY source_id
+                           FETCH FIRST 1 ROW ONLY)
+                    WHERE invalid_reason IN ('U', 'D'))   
+    ]';
    END;
 
    PROCEDURE AddFreshMAPSTO

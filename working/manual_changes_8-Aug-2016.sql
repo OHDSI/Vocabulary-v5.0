@@ -54,13 +54,13 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
   values ('Dose Form Group', 'Dose Form Group', (select concept_id from concept where concept_name = 'Dose Form Group'));
 
--- Add Dose Form Group Class
+-- Add Clinical Dose Group Class
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
   values (v5_concept.nextval, 'Semantic Clinical Dose Group', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)
   values ('Clinical Dose Group', 'Semantic Clinical Dose Group', (select concept_id from concept where concept_name = 'Semantic Clinical Dose Group'));
 
--- Add Dose Form Group Class
+-- Add Branded Dose Group Class
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
   values (v5_concept.nextval, 'Semantic Branded Dose Group', 'Metadata', 'Concept Class', 'Concept Class', null, 'OMOP generated', '01-JAN-1970', '31-DEC-2099', null);
 insert into concept_class (concept_class_id, concept_class_name, concept_class_concept_id)

@@ -20,10 +20,11 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'ICD10',
-                                          pVocabularyDate        => TO_DATE ('20150922', 'yyyymmdd'),
+                                          pVocabularyDate        => TO_DATE ('20161201', 'yyyymmdd'),
                                           pVocabularyVersion     => '2016 Release',
                                           pVocabularyDevSchema   => 'DEV_ICD10');
 END;
+/
 COMMIT;
 
 --2. Truncate all working tables
@@ -35,7 +36,7 @@ TRUNCATE TABLE drug_strength_stage;
 
 --3. Create temporary tables with classes and modifiers from XML source
 --modifier classes
-
+--drop table modifier_classes;
 create table modifier_classes nologging as
     SELECT t.modifierclass_code, t.modifierclass_modifier, t.superclass_code, t1.*
     FROM ICDCLAML i, 
@@ -54,7 +55,7 @@ create table modifier_classes nologging as
     ) t1; 
   
 --classes
-drop table classes;
+--drop table classes;
 create table classes nologging as
     SELECT t.class_code, t1.rubric_kind, t.superclass_code, cast(substr(t1.Label,1,1000) as varchar(1000)) as Label
     FROM ICDCLAML i, 
@@ -162,12 +163,11 @@ from (
 ;
 COMMIT;	
 
-
 delete from concept_stage where regexp_like
-(concept_code, 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+')
+(concept_code, 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.0|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+')
 ;
 COMMIT;	
-drop table name_impr
+--drop table name_impr
 ;
 create table name_impr as 
 select c.concept_code, cs.concept_name ||' '|| lower (c.concept_name) as new_name from concept_stage c
@@ -194,43 +194,80 @@ where exists (select 1 from name_impr b where a.concept_code = b.concept_code)
 commit
 ;
 
+--create 'Maps to' and 'Maps to value' relationship from file created by the medical coders
+truncate table concept_relationship_stage;
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT  concept_code_1,
+            concept_code_2,
+         vocabulary_id_1,
+           vocabulary_id_2,
+         relationship_id,
+          (SELECT latest_update
+             FROM vocabulary
+            WHERE vocabulary_id = vocabulary_id_1)  AS valid_start_date,
+          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+NULL AS invalid_reason
+from icd10_all_mapped_by_super_team where concept_code_2 is not null--manual file
+-- AND NOT EXISTS ... --I'm not sure do we need to exclude the existing mapping from here, need to check it with generic upd
+;
+commit
+;
+--select count (1) from concept_relationship_stage-- where invalid_reason ='D'
+--;
+--select * from devv5.concept_relationship_manual
+--;
+--select * from icd10_all_mapped_by_super_team join concept on icd10_all_mapped_by_super_team.CONCEPT_CODE_2 = concept_code and vocabulary_id = 'SNOMED' and invalid_reason is not null;
+/*
 --5. Create file with mappings for medical coder from the existing one
 SELECT *
   FROM concept c, concept_relationship r
  WHERE     c.concept_id = r.concept_id_1
        AND c.vocabulary_id = 'ICD10'
        AND r.invalid_reason IS NULL;
-
+       */
+/*
 --6. Append file from medical coder to concept_relationship_stage
 BEGIN
    DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
 END;
+/
 COMMIT;
 
 --7. Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
+/
 COMMIT;
 
 --8. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
+/
 COMMIT;	
 
 --9. Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
+/
 COMMIT;		 
 
 --10. Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
+/
 COMMIT;
-
+*/
 --11. Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
@@ -296,6 +333,9 @@ create table filled_domain NOLOGGING as
 			 when domain_id='Observation/Procedure' then 'Observation'
 			 when domain_id='Measurement/Observation' then 'Observation'
 			 when domain_id='Measurement/Procedure' then 'Measurement'
+			when domain_id='Condition/Measurement/Procedure' then 'Measurement'
+  when domain_id='Condition/Meas'  then 'Measurement'
+  when domain_id='Condition/Spec Anatomic Site' then 'Condition'
 			 else domain_id
 		end domain_id
 		from (--ICD10 have direct "Maps to" mapping
@@ -371,6 +411,8 @@ DROP TABLE ICD10_domain PURGE;
 DROP TABLE filled_domain PURGE;
 DROP TABLE modifier_classes PURGE;
 DROP TABLE classes PURGE;
+DROP TABLE name_impr purge;
+
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
 
@@ -390,4 +432,3 @@ regexp_replace (b.concept_name , a.concept_name) as difference, -- shows how to 
 where b.vocabulary_id = 'ICD10' and b.invalid_reason is null and lower ( a.concept_name) != lower (b.concept_name) 
 and c.vocabulary_id = 'ICD10CM' and C.invalid_reason is null
 and not regexp_like (a.concept_name, '-') --to avoid the crash of regexp_replace (a.concept_name , b.concept_name), not the best decision, we lose for about 200 concepts
-*/

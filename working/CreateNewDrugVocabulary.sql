@@ -356,7 +356,7 @@ union
 * 3. Write all concept classes, whether existing or not from all possible combinations *
 ***************************************************************************************/
 
-drop table complete_concept_stage cascade constraints purge;
+drop table complete_concept_stage cascade constraints purge;-- select * from complete_concept_stage where rownum < 100;
 create table complete_concept_stage nologging as
 select 'XXX'||xxx_seq.nextval as concept_code, -- make sure xxx_seq is defined.
   c.*
@@ -621,7 +621,7 @@ create table r_bn nologging as
 select distinct descendant_concept_id as concept_id_1, concept_id_2
 from concept_relationship join concept_ancestor on ancestor_concept_id=concept_id_1 
 join concept bn on concept_id_2=bn.concept_id and bn.vocabulary_id in ('RxNorm', 'RxNorm Extension') and bn.concept_class_id='Brand Name'
-join concept c on concept_id_1=c.concept_id and ?.vocabulary_id like 'RxNorm%'
+join concept c on concept_id_1=c.concept_id and c.vocabulary_id like 'RxNorm%'
 join concept bd on descendant_concept_id=bd.concept_id and bd.vocabulary_id in ('RxNorm', 'RxNorm Extension')
  and bd.concept_class_id in ('Branded Drug Box', 'Quant Branded Box', 'Branded Drug Comp', 'Quant Branded Drug', 'Branded Drug Form', 'Branded Drug', 'Marketed Product', 'Branded Pack')
 where concept_relationship.invalid_reason is null and relationship_id='Has brand name'
@@ -773,7 +773,11 @@ from (
   -- drug strength for each r ingredient 
   left join r on r.drug_concept_id=m.r_did and r.ingredient_concept_id=m.r_iid
 )
-where div>0.9 and u_match=1
+where div>0.9 
+--added correct definition of div
+and div<1.12
+
+and u_match=1
 ;
 commit;
 
@@ -2834,7 +2838,7 @@ select max(iex)+1 into ex from (
       when others then null;
   end;
 end;
-
+/
 -- generate OMOP codes for new concepts
 insert into xxx_replace
 select concept_code as xxx_code, 'OMOP'||omop_seq.nextval as omop_code
@@ -2915,33 +2919,35 @@ drop table pcs_rowid_update purge;
 
 commit;
 
-begin
-   devv5.vocabulary_pack.DeleteAmbiguousMAPSTO;
-end;
-
-commit;
-
---6 Working with replacement mappings
-
+--get duplicates for some reason 
+delete from concept_relationship_stage a where exists (select 1 from  (
+  select concept_code_1,concept_code_2,relationship_id, max (rowid) as rid from concept_relationship_stage group by concept_code_1,concept_code_2,relationship_id having count ( 1) >1 ) x 
+  where  a.concept_code_1= x.concept_code_1 and a.concept_code_2= x.concept_code_2 and a.relationship_id =x.relationship_id and x.rid = a.rowid)
+;  
+--6 Working with replacement mappings;
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
+/
 COMMIT;
 
 --7 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
+/
 COMMIT;
 
 --8 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
+/
 COMMIT;
 
 --9 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
+/
 COMMIT;

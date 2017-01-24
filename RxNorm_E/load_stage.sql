@@ -78,31 +78,85 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE c1.concept_id = r.concept_id_1 AND c2.concept_id = r.concept_id_2 AND 'RxNorm Extension' IN (c1.vocabulary_id, c2.vocabulary_id);
 COMMIT;
 
---5 
+
+--5 Load full list of RxNorm Extension drug strength
+INSERT /*+ APPEND */
+      INTO  drug_strength_stage (drug_concept_code,
+                                 vocabulary_id_1,
+                                 ingredient_concept_code,
+                                 vocabulary_id_2,
+                                 amount_value,
+                                 amount_unit_concept_id,
+                                 numerator_value,
+                                 numerator_unit_concept_id,
+                                 denominator_value,
+                                 denominator_unit_concept_id,
+                                 valid_start_date,
+                                 valid_end_date,
+                                 invalid_reason)
+   SELECT c.concept_code,
+          c.vocabulary_id,
+          c2.concept_code,
+          c2.vocabulary_id,
+          amount_value,
+          amount_unit_concept_id,
+          numerator_value,
+          numerator_unit_concept_id,
+          denominator_value,
+          denominator_unit_concept_id,
+          ds.valid_start_date,
+          ds.valid_end_date,
+          ds.invalid_reason
+     FROM concept c
+          JOIN drug_strength ds ON ds.DRUG_CONCEPT_ID = c.CONCEPT_ID
+          JOIN concept c2 ON ds.INGREDIENT_CONCEPT_ID = c2.CONCEPT_ID
+    WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
+COMMIT;
+
+--6 Load full list of RxNorm Extension pack content
+INSERT /*+ APPEND */
+      INTO  pack_content_stage (pack_concept_code,
+                                pack_vocabulary_id,
+                                drug_concept_code,
+                                drug_vocabulary_id,
+                                amount,
+                                box_size)
+   SELECT c.concept_code,
+          c.vocabulary_id,
+          c2.concept_code,
+          c2.vocabulary_id,
+          amount,
+          box_size
+     FROM pack_content pc
+          JOIN concept c ON pc.PACK_CONCEPT_ID = c.CONCEPT_ID
+          JOIN concept c2 ON pc.DRUG_CONCEPT_ID = c2.CONCEPT_ID;
+COMMIT;		  
+
+--7
 /*
 Main work HERE
 For 'RxNorm Extension' we should directly deprecate concepts and relationships
 */
 
---6 Working with replacement mappings
+--8 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---7 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--9 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;
 
---8 Add mapping from deprecated to fresh concepts
+--10 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;
 
---9 Delete ambiguous 'Maps to' mappings
+--11 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;

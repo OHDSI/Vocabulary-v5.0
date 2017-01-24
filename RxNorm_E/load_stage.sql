@@ -22,7 +22,7 @@ BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'RxNorm Extension',
                                           pVocabularyDate        => TRUNC(SYSDATE),
                                           pVocabularyVersion     => 'RxNorm Extension '||SYSDATE,
-                                          pVocabularyDevSchema   => 'DEV_DMD');									  
+                                          pVocabularyDevSchema   => 'DEV_RXE');									  
 END;
 COMMIT;
 

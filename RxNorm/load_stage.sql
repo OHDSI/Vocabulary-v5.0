@@ -20,8 +20,8 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'RxNorm',
-                                          pVocabularyDate        => TO_DATE ('20161003', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'RxNorm Full 20161003',
+                                          pVocabularyDate        => TO_DATE ('20170103', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'RxNorm Full 20170103',
                                           pVocabularyDevSchema   => 'DEV_RXNORM');
 END;
 COMMIT;

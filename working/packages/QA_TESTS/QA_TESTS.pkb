@@ -272,8 +272,8 @@ IS
       CURSOR C
       IS
          WITH t
-              AS (SELECT rel_id
-                    FROM (SELECT relationship_id, reverse_relationship_id
+              AS (SELECT rel_id, CASE WHEN rel_id = direct_mapping THEN 1 ELSE 0 END AS direct_mapping
+                    FROM (SELECT relationship_id, reverse_relationship_id, relationship_id AS direct_mapping
                             FROM relationship
                            WHERE relationship_id IN ('Concept replaced by',
                                                      'Concept same_as to',
@@ -327,7 +327,7 @@ IS
                 AND c2.concept_id = r.concept_id_2
                 AND c1.vocabulary_id <> c2.vocabulary_id
                 AND NOT (c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension') AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension'))
-                AND r.relationship_id IN (SELECT *
+                AND r.relationship_id IN (SELECT rel_id
                                             FROM t
                                            WHERE rel_id NOT IN ('Maps to', 'Mapped from'))
                 AND NVL (check_id, 4) = 4
@@ -407,7 +407,20 @@ IS
                            ON LOWER (c.concept_name) = LOWER (d.concept_name) AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL) c_int
                 JOIN concept c1 ON c1.concept_id = c_int.concept_id_1
                 JOIN concept c2 ON c2.concept_id = c_int.concept_id_2
-          WHERE concept_id_1 <> concept_id_2 AND NOT (c1.vocabulary_id = 'RxNorm' AND c2.vocabulary_id = 'RxNorm') AND NVL (check_id, 9) = 9;
+          WHERE concept_id_1 <> concept_id_2 AND NOT (c1.vocabulary_id = 'RxNorm' AND c2.vocabulary_id = 'RxNorm') AND NVL (check_id, 9) = 9
+         UNION ALL
+         --one concept has multiple replaces
+         SELECT 10 check_id, r.*
+           FROM concept_relationship r
+          WHERE     (r.concept_id_1, r.relationship_id) IN (  SELECT r_int.concept_id_1, r_int.relationship_id
+                                                                FROM concept_relationship r_int
+                                                               WHERE     r_int.relationship_id IN (SELECT rel_id
+                                                                                                     FROM t
+                                                                                                    WHERE rel_id NOT IN ('Maps to', 'Mapped from') AND direct_mapping = 1)
+                                                                     AND r_int.invalid_reason IS NULL
+                                                            GROUP BY r_int.concept_id_1, r_int.relationship_id
+                                                              HAVING COUNT (*) > 1)
+                AND NVL (check_id, 10) = 10;
    BEGIN
       FOR R IN C
       LOOP

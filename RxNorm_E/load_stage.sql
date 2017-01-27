@@ -130,9 +130,57 @@ INSERT /*+ APPEND */
      FROM pack_content pc
           JOIN concept c ON pc.PACK_CONCEPT_ID = c.CONCEPT_ID
           JOIN concept c2 ON pc.DRUG_CONCEPT_ID = c2.CONCEPT_ID;
-COMMIT;		  
+COMMIT;
 
 --7
+--do a rounding amount_value, numerator_value and denominator_value
+update drug_strength_stage set 
+    amount_value=round(amount_value, 3-floor(log(10, amount_value))-1),
+    numerator_value=round(numerator_value, 3-floor(log(10, numerator_value))-1),
+    denominator_value=round(denominator_value, 3-floor(log(10, denominator_value))-1)
+where amount_value<>round(amount_value, 3-floor(log(10, amount_value))-1)
+or numerator_value<>round(numerator_value, 3-floor(log(10, numerator_value))-1)
+or denominator_value<>round(denominator_value, 3-floor(log(10, denominator_value))-1);
+commit;
+
+--8
+--deprecate drugs that link to each other and has different strength
+update concept_relationship_stage crs set crs.invalid_reason='D', 
+crs.valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
+where crs.invalid_reason is null 
+and (concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) in (
+    select concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2 from (
+        select concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2 from (
+            select distinct dss1.drug_concept_code as concept_code_1, dss1.vocabulary_id_1 as vocabulary_id_1, 
+            dss2.drug_concept_code as concept_code_2, dss2.vocabulary_id_1 as vocabulary_id_2 
+            from drug_strength_stage dss1, drug_strength_stage dss2
+            where dss1.vocabulary_id_1 like 'RxNorm%'
+            and dss2.vocabulary_id_1 like 'RxNorm%'
+            and dss1.ingredient_concept_code=dss2.ingredient_concept_code
+            and dss1.vocabulary_id_2=dss2.vocabulary_id_2
+            and not (dss1.vocabulary_id_1='RxNorm' and dss2.vocabulary_id_1='RxNorm')
+            and exists (
+                select 1 from concept_relationship_stage crs
+                where crs.concept_code_1=dss1.drug_concept_code 
+                and crs.vocabulary_id_1=dss1.vocabulary_id_1
+                and crs.concept_code_2=dss2.drug_concept_code 
+                and crs.vocabulary_id_2=dss2.vocabulary_id_1
+                and crs.invalid_reason is null
+            )
+            and (
+                nvl (dss1.amount_value, dss1.numerator_value / nvl (dss1.denominator_value, 1)) / nvl (dss2.amount_value, dss2.numerator_value / nvl( dss2.denominator_value, 1)) >1.12
+                or nvl (dss1.amount_value, dss1.numerator_value / nvl (dss1.denominator_value, 1)) / nvl (dss2.amount_value, dss2.numerator_value / nvl( dss2.denominator_value, 1)) < 0.9
+            )
+            and nvl (dss1.amount_unit_concept_id, (dss1.numerator_unit_concept_id+dss1.denominator_unit_concept_id)) = nvl (dss2.amount_unit_concept_id, (dss2.numerator_unit_concept_id+dss2.denominator_unit_concept_id))
+        )
+        --add a reverse
+        unpivot ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) 
+		FOR relationships IN ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2),(concept_code_2,vocabulary_id_2,concept_code_1,vocabulary_id_1)))
+    )
+);
+commit;
+
+--9
 --deprecate all mappings (except 'Maps to' and 'Drug has drug class') if RxE-concept was deprecated 
 update concept_relationship_stage crs set crs.invalid_reason='D', 
 crs.valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -158,7 +206,7 @@ and crs.relationship_id not in ('Mapped from','Drug class of drug')
 and crs.invalid_reason is null;
 commit;
 
---8
+--10
 --create temporary table with old mappings and fresh concepts (after all 'Concept replaced by')
 create table rxe_tmp_replaces nologging as
 with
@@ -313,31 +361,31 @@ in (
 );
 commit;
 
---9 Working with replacement mappings
+--11 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---10 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--12 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;
 
---11 Add mapping from deprecated to fresh concepts
+--13 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;
 
---12 Delete ambiguous 'Maps to' mappings
+--14 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---13 Clean upd
+--15 Clean upd
 DROP TABLE rxe_tmp_replaces PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

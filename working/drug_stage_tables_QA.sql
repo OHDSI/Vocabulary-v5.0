@@ -247,6 +247,18 @@ join drug_concept_stage s on s.concept_code = concept_code_1
 join concept c on c.concept_id = concept_id_2 
 where c.standard_concept is null and s.concept_class_id = 'Ingredient'
 union
+ --map to unit that doesn't exist in RxNorm
+select a.concept_code_1,'map to unit that doesn''t exist in RxNorm'  from relationship_to_concept a 
+join drug_concept_stage b on concept_code_1=concept_code  
+join concept on concept_id_2=concept_id
+where b.concept_class_id='Unit' and concept_id_2 not in (
+select distinct nvl(AMOUNT_UNIT_CONCEPT_ID,NUMERATOR_UNIT_CONCEPT_ID) from drug_strength a 
+join concept b on drug_concept_id=concept_id and vocabulary_id='RxNorm' 
+where nvl(AMOUNT_UNIT_CONCEPT_ID,NUMERATOR_UNIT_CONCEPT_ID) is not null
+union select distinct DENOMINATOR_UNIT_CONCEPT_ID from drug_strength a 
+join concept b on drug_concept_id=concept_id and vocabulary_id='RxNorm' 
+where DENOMINATOR_UNIT_CONCEPT_ID is not null)
+union
 --replacement with invalid concept
 select concept_code_1, 'replacement with invalid concept' from internal_relationship_stage
 join drug_concept_stage on concept_code = concept_code_2 

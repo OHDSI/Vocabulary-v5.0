@@ -203,24 +203,3 @@ select concept_name from concept_stage where vocabulary_id = 'RxNorm Extension' 
 )
 group by error_type
 ;
---some really stupid stuf
-select concept_name from concept_stage where vocabulary_id = 'RxNorm Extension' and concept_name not like '%...%' group by concept_name , invalid_reason 
- having count (1) > 1
-;
-create table new_concept as (select * from  concept union  select * from  concept_stage);
-create table concept_relat_two_ways as (
-select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_relationship_stage
-union
-select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_2,CONCEPT_CODE_1,VOCABULARY_ID_1,VOCABULARY_ID_2,'reverse '||RELATIONSHIP_ID as RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_relationship_stage
-)
-;
---need to finish tomorrow
-with dupl as (
- select concept_code_1, c.concept_class_id from concept_relat_two_ways r
-join new_concept b on concept_code_1 = b.concept_code
-join new_concept c on concept_code_2 = c.concept_code
-where c.concept_class_id in ('Dose Form', 'Brand Name', 'Supplier')
-and b.vocabulary_id like 'RxNorm%' and c.vocabulary_id like 'RxNorm%' and r.invalid_reason is null and (b.concept_class_id like '%Drug%' or b.concept_class_id like '%Marketed%' or  b.concept_class_id like '%Box%' ) --And relationship_id = 'RxNorm has dose form'
-group by concept_code_1, c.concept_class_id having count (1) >1 
-)
-select * from concept_relationship_stage r join dupl on r.concept_code_1 = dupl.concept_code_1 and dupl.concept_class_id = 

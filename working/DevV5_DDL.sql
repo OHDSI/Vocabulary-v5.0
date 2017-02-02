@@ -63,11 +63,11 @@ CREATE TABLE concept_stage
 (
    concept_id         NUMBER,
    concept_name       VARCHAR2 (255),
-   domain_id          VARCHAR (200),
+   domain_id          VARCHAR (20),
    vocabulary_id      VARCHAR (20) NOT NULL,
    concept_class_id   VARCHAR (20),
    standard_concept   VARCHAR2 (1 BYTE),
-   concept_code       VARCHAR2 (40 BYTE) NOT NULL,
+   concept_code       VARCHAR2 (50 BYTE) NOT NULL,
    VALID_START_DATE   DATE NOT NULL,
    VALID_END_DATE     DATE NOT NULL,
    invalid_reason     VARCHAR2 (1 BYTE)

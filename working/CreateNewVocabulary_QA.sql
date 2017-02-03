@@ -215,7 +215,7 @@ UNION
 
 --drug_strength
 
-select distinct drug_concept_id, 'Impossible dosages' 
+select distinct drug_concept_code, 'Impossible dosages' 
 from drug_strength_stage 
 where ( NUMERATOR_UNIT_CONCEPT_ID=8576 and DENOMINATOR_UNIT_CONCEPT_ID=8587 and NUMERATOR_VALUE / DENOMINATOR_VALUE > 1000 )
 or 
@@ -225,7 +225,7 @@ or
 UNION
 
 
-select distinct drug_concept_id, 'Percents in wrong place' 
+select distinct drug_concept_code, 'Percents in wrong place' 
 from drug_strength_stage 
 where (NUMERATOR_UNIT_CONCEPT_ID=8554 and DENOMINATOR_UNIT_CONCEPT_ID is not null) or AMOUNT_UNIT_CONCEPT_ID=8554
 
@@ -234,7 +234,7 @@ UNION
 
 
 --ancestor
-select an_id,'wrong ancestor RxE to descedant RxNorm'
+select cast (an_id as varchar(255)),'wrong ancestor RxE to descedant RxNorm'
 from
 (select a.min_levels_of_separation as a_min,
   an.concept_id as an_id, an.concept_name as an_name, an.vocabulary_id as an_vocab, an.domain_id as an_domain, an.concept_class_id as an_class,

@@ -259,6 +259,10 @@ union select distinct DENOMINATOR_UNIT_CONCEPT_ID from drug_strength a
 join concept b on drug_concept_id=concept_id and vocabulary_id='RxNorm' 
 where DENOMINATOR_UNIT_CONCEPT_ID is not null)
 union
+select concept_code_1,'Empty conversion factor'
+from relationship_to_concept a join drug_concept_stage b on concept_code_1=concept_code and concept_class_id='Unit'
+ where conversion_factor is null
+union
 --replacement with invalid concept
 select concept_code_1, 'replacement with invalid concept' from internal_relationship_stage
 join drug_concept_stage on concept_code = concept_code_2 

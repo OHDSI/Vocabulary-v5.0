@@ -706,7 +706,7 @@ with q as (
     q_ds.amount_value*nvl(q_ds_a.conversion_factor, 0) as amount_value, 
     q_ds_a.concept_id_2 as amount_unit_concept_id, 
     case q_ds.denominator_value 
-      when 0 then q_ds.numerator_value*nvl(q_ds_n.conversion_factor, 0)/nvl(q_ds_d.conversion_factor, 1) -- non-quantified, apply both conversions to the numerator
+      when 0 then q_ds.numerator_value*nvl(q_ds_n.conversion_factor, 1)/nvl(q_ds_d.conversion_factor, 1) -- non-quantified, apply both conversions to the numerator
       else q_ds.numerator_value*nvl(q_ds_n.conversion_factor, 0) -- quantified, don't fix the numerator
     end as numerator_value, 
     q_ds_n.concept_id_2 as numerator_unit_concept_id,
@@ -757,7 +757,7 @@ from (
       when q.numerator_unit_concept_id=8554 and r.numerator_unit_concept_id!=8554 then (q.numerator_value/100)/(r.numerator_value/r.denominator_value) -- % in one but not in the other
       when q.numerator_unit_concept_id!=8554 and r.numerator_unit_concept_id=8554 then (q.numerator_value/q.denominator_value)/(r.numerator_value/100) -- % in the other but not in one
       when q.denominator_value/r.denominator_value>.9 and r.denominator_value/q.denominator_value>.9 then q.numerator_value/r.numerator_value -- if same quant compare only numerators
---       when q.numerator_value!=0 and r.numerator_value is not null then (q.numerator_value/q.denominator_value)/(r.numerator_value/r.denominator_value) -- denominator empty unless Quant
+      when q.numerator_value!=0 and r.numerator_value is not null then (q.numerator_value/q.denominator_value)/(r.numerator_value/r.denominator_value) -- denominator empty unless Quant
     else 0 end as div,
     case 
       when r.drug_concept_id is null then 1 -- if no drug_strength exist (Drug Forms etc.)

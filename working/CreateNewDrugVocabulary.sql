@@ -67,6 +67,17 @@ and c1.concept_code not in (select concept_code_1 from relationship_to_concept w
 * 1. Prepare drug components for new vocabularies: Create unique list and for each drug enumerate. This allows to create a single row for each drug. *
 *****************************************************************************************************************************************************/
 
+--- Round dosages in input table DS_STAGE to three significant digits1
+update ds_stage dss
+set dss.amount_value = decode(coalesce(dss.amount_value, 0), 0, dss.amount_value, round(dss.amount_value, 3-floor(log(10, dss.amount_value))-1)),
+    dss.numerator_value = decode(coalesce(dss.numerator_value, 0), 0, dss.numerator_value, round(dss.numerator_value, 3-floor(log(10, dss.numerator_value))-1)),
+    dss.denominator_value = decode(coalesce(dss.denominator_value, 0), 0, dss.denominator_value, round(dss.denominator_value, 3-floor(log(10, dss.denominator_value))-1))
+where dss.amount_value is not null
+   or dss.numerator_value is not null
+   or dss.denominator_value is not null
+;
+
+
 -- Create distinct version of drug_strength 
 -- Replace nulls with 0 and ' '
 drop table unique_ds purge;

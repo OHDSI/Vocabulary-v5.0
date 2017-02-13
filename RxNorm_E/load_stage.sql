@@ -288,13 +288,59 @@ commit;
 
 --14
 --deprecate the drugs that have inaccurate dosage due to difference in ingredients subvarieties
+--for ingredients with not null amount_value
 update concept_stage c set invalid_reason='D',
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
 where (concept_code, vocabulary_id) in (
     select dss.drug_concept_code, dss.vocabulary_id_1 from (
-        select ingredient_concept_code, dosage, flag, count(distinct flag) over (partition by ingredient_concept_code, dosage_group) cnt_flags from (
+        select ingredient_concept_code, dosage, flag, count(distinct flag) over (partition by ingredient_concept_code, dosage_group) cnt_flags, 
+		min (dosage) over (partition by ingredient_concept_code, dosage_group) min_dosage from (
             select rxe.ingredient_concept_code, rxe.dosage, rxe.dosage_group, nvl(rx.flag,rxe.flag) as flag from (
-                select distinct ingredient_concept_code, dosage, dosage_group, 'rxe' as flag 
+                select distinct ingredient_concept_code, dosage, dosage_group, 'bad' as flag 
+                from (
+                    select ingredient_concept_code, dosage, dosage_group, count(*) over(partition by ingredient_concept_code, dosage_group) as cnt_gr
+                    from (
+                        select ingredient_concept_code, dosage, sum(group_trigger) over (partition by ingredient_concept_code order by dosage)+1 dosage_group from (
+                            select ingredient_concept_code, dosage, prev_dosage, abs(round((dosage-prev_dosage)*100/prev_dosage)) perc_dosage, 
+                            case when abs(round((dosage-prev_dosage)*100/prev_dosage))<=5 then 0 else 1 end group_trigger from (
+                                select 
+                                ingredient_concept_code, dosage, lag(dosage,1,dosage) over (partition by ingredient_concept_code order by dosage) prev_dosage 
+                                from (
+                                    select distinct ingredient_concept_code, amount_value as dosage
+                                    from drug_strength_stage  where vocabulary_id_1='RxNorm Extension' and  amount_value is not null             
+                                )
+                            ) 
+                        )
+                    )
+                ) where cnt_gr > 1
+            ) rxe,
+            (
+                select distinct ingredient_concept_code, amount_value as dosage, 'good' as flag 
+                from drug_strength_stage  where vocabulary_id_1='RxNorm' and amount_value is not null
+            ) rx
+            where rxe.ingredient_concept_code=rx.ingredient_concept_code(+)
+            and rxe.dosage=rx.dosage(+)
+        )
+    ) merged_rxe, drug_strength_stage dss 
+    where (
+        merged_rxe.flag='bad' and merged_rxe.cnt_flags=2 or
+        merged_rxe.flag='bad' and merged_rxe.cnt_flags=1 and dosage<>min_dosage
+    )
+    and dss.ingredient_concept_code=merged_rxe.ingredient_concept_code
+    and dss.amount_value=merged_rxe.dosage
+    and dss.vocabulary_id_1='RxNorm Extension'
+)
+and invalid_reason is null;
+
+--same, but for ingredients with null amount_value (instead, we use numerator_value or numerator_value/denominator_value)
+update concept_stage c set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
+where (concept_code, vocabulary_id) in (
+    select dss.drug_concept_code, dss.vocabulary_id_1 from (
+        select ingredient_concept_code, dosage, flag, count(distinct flag) over (partition by ingredient_concept_code, dosage_group) cnt_flags,
+		min (dosage) over (partition by ingredient_concept_code, dosage_group) min_dosage from (
+            select rxe.ingredient_concept_code, rxe.dosage, rxe.dosage_group, nvl(rx.flag,rxe.flag) as flag from (
+                select distinct ingredient_concept_code, dosage, dosage_group, 'bad' as flag 
                 from (
                     select ingredient_concept_code, dosage, dosage_group, count(*) over(partition by ingredient_concept_code, dosage_group) as cnt_gr
                     from (
@@ -307,17 +353,13 @@ where (concept_code, vocabulary_id) in (
                                     select distinct ingredient_concept_code, round(dosage, 3-floor(log(10, dosage))-1) as dosage   
                                     from ( 
                                         select ingredient_concept_code,
-                                        case when amount_value is not null then
-                                            amount_value
-                                        else
-                                            case when amount_value is null and denominator_value is null then 
-                                                numerator_value
-                                            else 
-                                                numerator_value/denominator_value
-                                            end 
+                                        case when amount_value is null and denominator_value is null then 
+                                            numerator_value
+                                        else 
+                                            numerator_value/denominator_value
                                         end as dosage
-                                        from drug_strength_stage  where vocabulary_id_1='RxNorm Extension'
-                                    )              
+                                        from drug_strength_stage  where vocabulary_id_1='RxNorm Extension' and amount_value is null
+                                    )           
                                 )
                             ) 
                         )
@@ -325,24 +367,25 @@ where (concept_code, vocabulary_id) in (
                 ) where cnt_gr > 1
             ) rxe,
             (
-                select distinct ingredient_concept_code,
-                case when amount_value is not null then
-                    amount_value
-                else
+                select distinct ingredient_concept_code, round(dosage, 3-floor(log(10, dosage))-1) as dosage, 'good' as flag from 
+                ( 
+                    select ingredient_concept_code,
                     case when amount_value is null and denominator_value is null then 
                         numerator_value
                     else 
                         numerator_value/denominator_value
-                    end 
-                end as dosage,
-                'rx' as flag 
-                from drug_strength_stage  where vocabulary_id_1='RxNorm'
+                    end as dosage                
+                    from drug_strength_stage  where vocabulary_id_1='RxNorm' and amount_value is null
+                )
             ) rx
             where rxe.ingredient_concept_code=rx.ingredient_concept_code(+)
             and rxe.dosage=rx.dosage(+)
         )
     ) merged_rxe, drug_strength_stage dss 
-    where merged_rxe.flag='rxe' and merged_rxe.cnt_flags=2
+    where (
+        merged_rxe.flag='bad' and merged_rxe.cnt_flags=2 or
+        merged_rxe.flag='bad' and merged_rxe.cnt_flags=1 and dosage<>min_dosage
+    )
     and dss.ingredient_concept_code=merged_rxe.ingredient_concept_code
     and dss.amount_value=merged_rxe.dosage
     and dss.vocabulary_id_1='RxNorm Extension'

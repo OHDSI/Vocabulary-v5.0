@@ -387,7 +387,11 @@ where (concept_code, vocabulary_id) in (
         merged_rxe.flag='bad' and merged_rxe.cnt_flags=1 and dosage<>min_dosage
     )
     and dss.ingredient_concept_code=merged_rxe.ingredient_concept_code
-    and dss.amount_value=merged_rxe.dosage
+    case when dss.amount_value is null and dss.denominator_value is null then 
+        round(dss.numerator_value, 3-floor(log(10, dss.numerator_value))-1)
+    else 
+        round(dss.numerator_value/dss.denominator_value, 3-floor(log(10, dss.numerator_value/dss.denominator_value))-1)
+    end = merged_rxe.dosage
     and dss.vocabulary_id_1='RxNorm Extension'
 )
 and invalid_reason is null;

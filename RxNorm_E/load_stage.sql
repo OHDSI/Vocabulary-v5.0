@@ -260,8 +260,8 @@ and (concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) in (
             select distinct dss1.drug_concept_code as concept_code_1, dss1.vocabulary_id_1 as vocabulary_id_1, 
             dss2.drug_concept_code as concept_code_2, dss2.vocabulary_id_1 as vocabulary_id_2 
             from drug_strength_stage dss1, drug_strength_stage dss2
-            where dss1.vocabulary_id_1 like 'RxNorm%'
-            and dss2.vocabulary_id_1 like 'RxNorm%'
+            where dss1.vocabulary_id_1 in ('RxNorm', 'RxNorm Extension')
+            and dss2.vocabulary_id_1 in ('RxNorm', 'RxNorm Extension')
             and dss1.ingredient_concept_code=dss2.ingredient_concept_code
             and dss1.vocabulary_id_2=dss2.vocabulary_id_2
             and not (dss1.vocabulary_id_1='RxNorm' and dss2.vocabulary_id_1='RxNorm')
@@ -274,10 +274,10 @@ and (concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) in (
                 and crs.invalid_reason is null
             )
             and (
-                nvl (dss1.amount_value, dss1.numerator_value / nvl (dss1.denominator_value, 1)) / nvl (dss2.amount_value, dss2.numerator_value / nvl( dss2.denominator_value, 1)) >1.12
-                or nvl (dss1.amount_value, dss1.numerator_value / nvl (dss1.denominator_value, 1)) / nvl (dss2.amount_value, dss2.numerator_value / nvl( dss2.denominator_value, 1)) < 0.9
+                coalesce (dss1.amount_value, dss1.numerator_value / coalesce (dss1.denominator_value, 1)) / coalesce (dss2.amount_value, dss2.numerator_value / coalesce( dss2.denominator_value, 1)) >1.12
+                or coalesce (dss1.amount_value, dss1.numerator_value / coalesce (dss1.denominator_value, 1)) / coalesce (dss2.amount_value, dss2.numerator_value / coalesce( dss2.denominator_value, 1)) < 0.9
             )
-            and nvl (dss1.amount_unit_concept_id, (dss1.numerator_unit_concept_id+dss1.denominator_unit_concept_id)) = nvl (dss2.amount_unit_concept_id, (dss2.numerator_unit_concept_id+dss2.denominator_unit_concept_id))
+            and coalesce (dss1.amount_unit_concept_id, (dss1.numerator_unit_concept_id+dss1.denominator_unit_concept_id)) = coalesce (dss2.amount_unit_concept_id, (dss2.numerator_unit_concept_id+dss2.denominator_unit_concept_id))
         )
         --add a reverse
         unpivot ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) 

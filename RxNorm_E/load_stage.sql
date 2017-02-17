@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
+* Authors: Timur Vakhitov, Anna Ostropolets, Christian Reich
 * Date: 2016
 **************************************************************************/
 
@@ -387,7 +387,7 @@ where (concept_code, vocabulary_id) in (
         merged_rxe.flag='bad' and merged_rxe.cnt_flags=1 and dosage<>min_dosage
     )
     and dss.ingredient_concept_code=merged_rxe.ingredient_concept_code
-    case when dss.amount_value is null and dss.denominator_value is null then 
+    and case when dss.amount_value is null and dss.denominator_value is null then 
         round(dss.numerator_value, 3-floor(log(10, dss.numerator_value))-1)
     else 
         round(dss.numerator_value/dss.denominator_value, 3-floor(log(10, dss.numerator_value/dss.denominator_value))-1)
@@ -578,31 +578,97 @@ in (
 );
 commit;
 
---17 Working with replacement mappings
+--17
+--deprecate relationships to multiple drug forms or suppliers
+update concept_relationship_stage crs set crs.invalid_reason='D', 
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
+where (crs.concept_code_1, crs.vocabulary_id_1, crs.concept_code_2, crs.vocabulary_id_2)
+in (
+    select concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2 from (
+        select concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2 from (
+            select cs1.concept_code as concept_code_1, cs1.vocabulary_id as vocabulary_id_1, 
+            c2.concept_code as concept_code_2, c2.vocabulary_id as vocabulary_id_2 from concept_stage cs1 
+            join (--for c2 we cannot use stage table, because we need rx classes
+                select crs.concept_code_1, c2.concept_class_id from concept_stage cs1, concept c2, concept_relationship_stage crs
+                where cs1.concept_code=crs.concept_code_1
+                and cs1.vocabulary_id=crs.vocabulary_id_1
+                and cs1.vocabulary_id='RxNorm Extension'
+                and c2.concept_code=crs.concept_code_2
+                and c2.vocabulary_id=crs.vocabulary_id_2
+                and c2.concept_class_id in ('Dose Form','Supplier') 
+                and crs.invalid_reason is null
+                group by crs.concept_code_1, c2.concept_class_id having count (*)>1
+            ) d on d.concept_code_1=cs1.concept_code and cs1.concept_class_id not in ('Dose Form','Supplier','Ingredient','Brand Name') and cs1.vocabulary_id='RxNorm Extension'
+            join concept_relationship_stage crs on crs.concept_code_1=d.concept_code_1 and crs.vocabulary_id_1='RxNorm Extension' and crs.invalid_reason is null
+            --for c2 we cannot use stage table, because we need rx classes
+            join concept c2 on c2.concept_code=crs.concept_code_2 and c2.vocabulary_id=crs.vocabulary_id_2 and c2.concept_class_id=d.concept_class_id
+            where cs1.concept_name not like '%'||c2.concept_name||'%'
+        )
+        unpivot ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) 
+        FOR relationships IN ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2),(concept_code_2,vocabulary_id_2,concept_code_1,vocabulary_id_1)))
+    )    
+)
+and crs.invalid_reason is null;
+commit;
+
+--18
+--deprecate relationship from Pack to Brand Names of it's components
+update concept_relationship_stage crs set crs.invalid_reason='D', 
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
+where (crs.concept_code_1, crs.vocabulary_id_1, crs.concept_code_2, crs.vocabulary_id_2)
+in (
+    select concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2 from (
+        select concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2 from (
+            select cs1.concept_code as concept_code_1, cs1.vocabulary_id as vocabulary_id_1, 
+            c2.concept_code as concept_code_2, c2.vocabulary_id as vocabulary_id_2 from concept_stage cs1 
+            join (--for c2 we cannot use stage table, because we need rx classes
+                select crs.concept_code_1 from concept_stage cs1, concept c2, concept_relationship_stage crs
+                where cs1.concept_code=crs.concept_code_1
+                and cs1.vocabulary_id=crs.vocabulary_id_1
+                and cs1.vocabulary_id='RxNorm Extension'
+                and c2.concept_code=crs.concept_code_2
+                and c2.vocabulary_id=crs.vocabulary_id_2
+                and c2.concept_class_id='Brand Name' 
+                and crs.invalid_reason is null
+                group by crs.concept_code_1, c2.concept_class_id having count (*)>1
+            ) d on d.concept_code_1=cs1.concept_code and cs1.concept_class_id not in ('Dose Form','Supplier','Ingredient','Brand Name') and cs1.vocabulary_id='RxNorm Extension'
+            join concept_relationship_stage crs on crs.concept_code_1=d.concept_code_1 and crs.vocabulary_id_1='RxNorm Extension' and crs.invalid_reason is null
+            --for c2 we cannot use stage table, because we need rx classes
+            join concept c2 on c2.concept_code=crs.concept_code_2 and c2.vocabulary_id=crs.vocabulary_id_2 and c2.concept_class_id ='Brand Name'
+            where replace(replace(regexp_substr(regexp_substr (cs1.concept_name,'Pack.*'),'\[.*\]'),'['),']')<>c2.concept_name
+        )
+        unpivot ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) 
+        FOR relationships IN ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2),(concept_code_2,vocabulary_id_2,concept_code_1,vocabulary_id_1)))
+    )    
+)
+and crs.invalid_reason is null;
+commit;
+
+--19 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---18 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--20 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;
 
---19 Add mapping from deprecated to fresh concepts
+--21 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;
 
---20 Delete ambiguous 'Maps to' mappings
+--22 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---21 Clean up
+--23 Clean up
 DROP TABLE rxe_tmp_replaces PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

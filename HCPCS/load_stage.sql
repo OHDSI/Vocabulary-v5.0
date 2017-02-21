@@ -20,8 +20,8 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'HCPCS',
-                                          pVocabularyDate        => TO_DATE ('20151028', 'yyyymmdd'),
-                                          pVocabularyVersion     => '2016 Alpha Numeric HCPCS File',
+                                          pVocabularyDate        => TO_DATE ('20161117', 'yyyymmdd'),
+                                          pVocabularyVersion     => '2017 Alpha Numeric HCPCS File',
                                           pVocabularyDevSchema   => 'DEV_HCPCS');
 END;
 COMMIT;

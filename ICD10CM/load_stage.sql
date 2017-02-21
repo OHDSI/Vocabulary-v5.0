@@ -76,6 +76,7 @@ INSERT /*+ APPEND */ INTO concept_stage (concept_id,
      /
 COMMIT;					  
 
+/* temporary disabled for later use
 select * from concept_stage
 ;
 drop TABLE CONCEPT_RELATION_pre_MANUAL;
@@ -123,6 +124,7 @@ select CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHI
 ;
 commit
 ;
+*/
 --4 Add ICD10CM to SNOMED manual mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.ProcessManualRelationships;

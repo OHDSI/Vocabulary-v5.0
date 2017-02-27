@@ -6,9 +6,9 @@ Prerequisites:
 - Working directory SNOMED.
 
 1. Run create_source_tables.sql
-2. Download the international SNOMED file SnomedCT_Release_INT_YYYYMMDD.zip (RF2 Release) from https://www.nlm.nih.gov/healthit/snomedct/international.html.
+2. Download the international SNOMED file SnomedCT_InternationalRF2_Production_YYYYMMDDTzzzzzz.zip (RF2 Release) from https://www.nlm.nih.gov/healthit/snomedct/international.html.
 2. Extract the release date from the file name.
-3. Extract the following files from the folder SnomedCT_Release_INT_YYYYMMDD\Full\Terminology:
+3. Extract the following files from the folder \Full\Terminology:
 - sct2_Concept_Full_INT_YYYYMMDD.txt
 - sct2_Description_Full-en_INT_YYYYMMDD.txt
 - sct2_Relationship_Full_INT_YYYYMMDD.txt
@@ -25,7 +25,7 @@ Remove date from file name.
 Remove date from file name and rename to sct2_Concept_Full-UK.txt, sct2_Description_Full-UK.txt, sct2_Relationship_Full-UK.txt
 8. Load them into SCT2_CONCEPT_FULL_UK, SCT2_DESC_FULL_UK, SCT2_RELA_FULL_UK. Use the control files in Vocabulary-v5.0\SNOMED
 
-9. Extract der2_cRefset_AssociationReferenceFull_INT_YYYYMMDD.txt from SnomedCT_RF2Release_INT_YYYYMMDD\Full\Refset\Content 
+9. Extract der2_cRefset_AssociationReferenceFull_INT_YYYYMMDD.txt from SnomedCT_InternationalRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content 
 and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT_RF2Release_GB1000000_YYYYMMDD\Full\Refset\Content
 
 Remove date from file name and rename to der2_cRefset_AssociationReferenceFull_UK.txt, der2_cRefset_AssociationReferenceFull_INT.txt

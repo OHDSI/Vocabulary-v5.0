@@ -553,8 +553,6 @@ fresh_codes as (
         select * from concept_relationship_stage crs
         where crs.relationship_id='Concept replaced by'
         and crs.invalid_reason is null
-        and crs.vocabulary_id_1='RxNorm Extension'
-        and crs.vocabulary_id_2='RxNorm Extension'
     ) 
     where connect_by_isleaf = 1
     connect by nocycle prior concept_code_2 = concept_code_1 and prior vocabulary_id_2 = vocabulary_id_1
@@ -562,7 +560,8 @@ fresh_codes as (
 select src.src_code, src.src_vocab, src.upd_code, src.upd_vocab, src.upd_class_id, src.src_rel, fr.new_code, fr.new_vocab
 from src_codes src, fresh_codes fr
 where src.upd_code=fr.upd_code
-and src.upd_vocab=fr.upd_vocab;
+and src.upd_vocab=fr.upd_vocab
+and not (src.src_vocab='RxNorm' and fr.new_vocab='RxNorm');
 
 --deprecate old relationships
 update concept_relationship_stage crs set crs.invalid_reason='D', 

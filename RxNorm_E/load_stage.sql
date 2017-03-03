@@ -232,6 +232,39 @@ END;
 COMMIT;
 
 --8
+--normalizing
+update drug_strength_stage
+set NUMERATOR_UNIT_CONCEPT_ID=8576,NUMERATOR_VALUE=NUMERATOR_VALUE/1000 -- 'mg'
+where NUMERATOR_UNIT_CONCEPT_ID=9655 -- 'ug'
+and vocabulary_id_1='RxNorm Extension';
+
+update drug_strength_stage
+set AMOUNT_UNIT_CONCEPT_ID=8576,AMOUNT_VALUE=AMOUNT_VALUE/1000 -- 'mg'
+where AMOUNT_UNIT_CONCEPT_ID=9655 -- 'ug'
+and vocabulary_id_1='RxNorm Extension';
+
+update drug_strength_stage
+set AMOUNT_UNIT_CONCEPT_ID=8510,AMOUNT_VALUE=AMOUNT_VALUE*1000000 -- 'U'
+where AMOUNT_UNIT_CONCEPT_ID=44777647 -- 'ukat'
+and vocabulary_id_1='RxNorm Extension';
+
+update drug_strength_stage
+set NUMERATOR_UNIT_CONCEPT_ID=8510
+where NUMERATOR_UNIT_CONCEPT_ID=8718 -- 'iU'
+and vocabulary_id_1='RxNorm Extension';
+
+update drug_strength_stage
+set DENOMINATOR_UNIT_CONCEPT_ID=8510
+where DENOMINATOR_UNIT_CONCEPT_ID=8718 -- 'iU'
+and vocabulary_id_1='RxNorm Extension';
+
+update drug_strength_stage
+set AMOUNT_UNIT_CONCEPT_ID=8510 -- 'U'
+where AMOUNT_UNIT_CONCEPT_ID=8718 -- 'iU'
+and vocabulary_id_1='RxNorm Extension';
+commit;
+
+--9
 --do a rounding amount_value, numerator_value and denominator_value
 update drug_strength_stage set 
     amount_value=round(amount_value, 3-floor(log(10, amount_value))-1),
@@ -239,10 +272,11 @@ update drug_strength_stage set
     denominator_value=round(denominator_value, 3-floor(log(10, denominator_value))-1)
 where amount_value<>round(amount_value, 3-floor(log(10, amount_value))-1)
 or numerator_value<>round(numerator_value, 3-floor(log(10, numerator_value))-1)
-or denominator_value<>round(denominator_value, 3-floor(log(10, denominator_value))-1);
+or denominator_value<>round(denominator_value, 3-floor(log(10, denominator_value))-1)
+and vocabulary_id_1='RxNorm Extension';
 commit;
 
---9 
+--10 
 --wrong ancestor
 update concept_stage set invalid_reason='D',
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -252,7 +286,7 @@ join concept de on de.concept_id=a.descendant_concept_id and de.vocabulary_id='R
 and invalid_reason is null;
 commit;
 
---10 
+--11 
 --impossible dosages
 update concept_stage set invalid_reason='D',
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
@@ -266,7 +300,7 @@ and vocabulary_id_1='RxNorm Extension')
 and invalid_reason is null;
 commit;
 
---11 
+--12 
 --wrong pack components
 update concept_stage  set invalid_reason='D',
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
@@ -275,7 +309,7 @@ select pack_concept_code, pack_vocabulary_id  from pack_content_stage where pack
 and invalid_reason is null;
 commit;
 
---12
+--13
 --deprecate drugs that have different number of ingredients in ancestor and drug_strength
 update concept_stage set invalid_reason='D',
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -333,7 +367,7 @@ where (concept_code, vocabulary_id) in (
 and invalid_reason is null;
 commit;
 
---13
+--14
 --deprecate drugs that have deprecated ingredients (all)
 update concept_stage c set invalid_reason='D',
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -351,7 +385,7 @@ commit;
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'drug_strength_stage', cascade  => true);
 
---14
+--15
 --deprecate drugs that link to each other and has different strength
 update concept_relationship_stage crs set crs.invalid_reason='D', 
 crs.valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
@@ -388,7 +422,7 @@ and (concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) in (
 );
 commit;
 
---15
+--16
 --deprecate the drugs that have inaccurate dosage due to difference in ingredients subvarieties
 --for ingredients with not null amount_value
 update concept_stage c set invalid_reason='D',
@@ -499,7 +533,7 @@ where (concept_code, vocabulary_id) in (
 and invalid_reason is null;
 commit;
 
---16
+--17
 --deprecate all mappings (except 'Maps to' and 'Drug has drug class') if RxE-concept was deprecated 
 update concept_relationship_stage crs set crs.invalid_reason='D', 
 crs.valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -525,7 +559,7 @@ and crs.relationship_id not in ('Mapped from','Drug class of drug')
 and crs.invalid_reason is null;
 commit;
 
---17
+--18
 --create temporary table with old mappings and fresh concepts (after all 'Concept replaced by')
 create table rxe_tmp_replaces nologging as
 with
@@ -679,7 +713,7 @@ in (
 );
 commit;
 
---18
+--19
 --deprecate relationships to multiple drug forms or suppliers
 update concept_relationship_stage crs set crs.invalid_reason='D', 
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -703,7 +737,7 @@ in (
             join concept_relationship_stage crs on crs.concept_code_1=d.concept_code_1 and crs.vocabulary_id_1='RxNorm Extension' and crs.invalid_reason is null
             --for c2 we cannot use stage table, because we need rx classes
             join concept c2 on c2.concept_code=crs.concept_code_2 and c2.vocabulary_id=crs.vocabulary_id_2 and c2.concept_class_id=d.concept_class_id
-            where cs1.concept_name not like '%'||c2.concept_name||'%'
+            where lower(cs1.concept_name) not like '%'||lower(c2.concept_name)||'%'
         )
         unpivot ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) 
         FOR relationships IN ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2),(concept_code_2,vocabulary_id_2,concept_code_1,vocabulary_id_1)))
@@ -712,7 +746,7 @@ in (
 and crs.invalid_reason is null;
 commit;
 
---19
+--20
 --deprecate relationship from Pack to Brand Names of it's components
 update concept_relationship_stage crs set crs.invalid_reason='D', 
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -745,31 +779,164 @@ in (
 and crs.invalid_reason is null;
 commit;
 
---20 Working with replacement mappings
+--21
+--turn 'Brand name of' and RxNorm ing of to 'Supplier of' (between 'Supplier' and 'Marketed Product')
+merge into concept_relationship_stage crs
+using (
+    select crs.concept_code_1, crs.concept_code_2, crs.relationship_id, 'Supplier of' new_relationship_id from 
+    concept_stage cs1, concept_stage cs2, concept_relationship_stage crs
+    where cs1.concept_code=crs.concept_code_1
+    and cs1.vocabulary_id=crs.vocabulary_id_1
+    and cs1.vocabulary_id='RxNorm Extension'
+    and cs2.concept_code=crs.concept_code_2
+    and cs2.vocabulary_id=crs.vocabulary_id_2
+    and cs2.vocabulary_id='RxNorm Extension'
+    and cs1.concept_class_id='Supplier'
+    and cs2.concept_class_id='Marketed Product'
+    and crs.relationship_id in ('Brand name of','RxNorm ing of')
+    and crs.invalid_reason is null
+) i
+on (
+    i.concept_code_1=crs.concept_code_1
+    and crs.vocabulary_id_1='RxNorm Extension'
+    and i.concept_code_2=crs.concept_code_2
+    and crs.vocabulary_id_2='RxNorm Extension'
+    and i.new_relationship_id=crs.relationship_id
+)
+when matched then 
+    update set crs.invalid_reason=null, crs.valid_end_date=to_date ('20991231', 'YYYYMMDD') where crs.invalid_reason is not null
+when not matched then insert
+(
+    crs.concept_code_1,
+    crs.vocabulary_id_1,
+    crs.concept_code_2,
+    crs.vocabulary_id_2,
+    crs.relationship_id,
+    crs.valid_start_date,
+    crs.valid_end_date,
+    crs.invalid_reason    
+)
+values
+(
+    i.concept_code_1,
+    'RxNorm Extension',
+    i.concept_code_2,
+    'RxNorm Extension',
+    i.new_relationship_id,
+    (SELECT latest_update FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension'),
+    to_date ('20991231', 'YYYYMMDD'),
+    null  
+);
+
+--turn 'Has brand name' and to 'Has supplier' (reverse)
+merge into concept_relationship_stage crs
+using (
+    select crs.concept_code_1, crs.concept_code_2, crs.relationship_id, 'Has supplier' new_relationship_id from 
+    concept_stage cs1, concept_stage cs2, concept_relationship_stage crs
+    where cs1.concept_code=crs.concept_code_1
+    and cs1.vocabulary_id=crs.vocabulary_id_1
+    and cs1.vocabulary_id='RxNorm Extension'
+    and cs2.concept_code=crs.concept_code_2
+    and cs2.vocabulary_id=crs.vocabulary_id_2
+    and cs2.vocabulary_id='RxNorm Extension'
+    and cs1.concept_class_id='Marketed Product'
+    and cs2.concept_class_id='Supplier'
+    and crs.relationship_id in ('Has brand name','RxNorm has ing')
+    and crs.invalid_reason is null
+) i
+on (
+    i.concept_code_1=crs.concept_code_1
+    and crs.vocabulary_id_1='RxNorm Extension'
+    and i.concept_code_2=crs.concept_code_2
+    and crs.vocabulary_id_2='RxNorm Extension'
+    and i.new_relationship_id=crs.relationship_id
+)
+when matched then 
+    update set crs.invalid_reason=null, crs.valid_end_date=to_date ('20991231', 'YYYYMMDD') where crs.invalid_reason is not null
+when not matched then insert
+(
+    crs.concept_code_1,
+    crs.vocabulary_id_1,
+    crs.concept_code_2,
+    crs.vocabulary_id_2,
+    crs.relationship_id,
+    crs.valid_start_date,
+    crs.valid_end_date,
+    crs.invalid_reason    
+)
+values
+(
+    i.concept_code_1,
+    'RxNorm Extension',
+    i.concept_code_2,
+    'RxNorm Extension',
+    i.new_relationship_id,
+    (SELECT latest_update FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension'),
+    to_date ('20991231', 'YYYYMMDD'),
+    null  
+);
+
+--deprecate wrong relationship_ids
+--('Supplier'<->'Marketed Product' via relationship_id in ('Has brand name','Brand name of','RxNorm has ing','RxNorm ing of'))
+update concept_relationship_stage  set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
+where rowid in (
+    select crs.rowid from 
+    concept_stage cs1, concept_stage cs2, concept_relationship_stage crs
+    where cs1.concept_code=crs.concept_code_1
+    and cs1.vocabulary_id=crs.vocabulary_id_1
+    and cs1.vocabulary_id='RxNorm Extension'
+    and cs2.concept_code=crs.concept_code_2
+    and cs2.vocabulary_id=crs.vocabulary_id_2
+    and cs2.vocabulary_id='RxNorm Extension'
+    and cs1.concept_class_id in ('Supplier','Marketed Product')
+    and cs2.concept_class_id in ('Supplier','Marketed Product')
+    and crs.relationship_id in ('Has brand name','Brand name of','RxNorm has ing','RxNorm ing of')
+    and crs.invalid_reason is null
+);
+commit;
+
+--22 little manual fixes
+--update supplier
+update concept_stage c set standard_concept=null where concept_code='OMOP897375' and vocabulary_id='RxNorm Extension' and standard_concept='S';
+
+--deprecate wrong links to brand name because we already have new ones
+update concept_relationship_stage  set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
+where concept_code_1 in ('OMOP559924','OMOP560898') and concept_code_2='848161' and relationship_id='Has brand name'
+and invalid_reason is null;
+--reverse
+update concept_relationship_stage  set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
+where concept_code_2 in ('OMOP559924','OMOP560898') and concept_code_1='848161' and relationship_id='Brand name of'
+and invalid_reason is null;
+commit;
+
+--23 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---21 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--24 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;
 
---22 Add mapping from deprecated to fresh concepts
+--25 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;
 
---23 Delete ambiguous 'Maps to' mappings
+--26 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---23 Clean up
+--27 Clean up
 DROP TABLE rxe_tmp_replaces PURGE;
 DROP TABLE wrong_rxe_replacements PURGE;
 

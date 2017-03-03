@@ -908,6 +908,31 @@ update concept_relationship_stage  set invalid_reason='D',
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
 where concept_code_2 in ('OMOP559924','OMOP560898') and concept_code_1='848161' and relationship_id='Brand name of'
 and invalid_reason is null;
+
+update concept_relationship_stage set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
+where (concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2, relationship_id) in
+(
+    select concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2, relationship_id From (
+        select crs.concept_code_1, crs.vocabulary_id_1, crs.concept_code_2, crs.vocabulary_id_2, 
+        crs.relationship_id, rl.reverse_relationship_id
+        from concept_stage cs1, concept c2, 
+        concept_relationship_stage crs, relationship rl
+        where cs1.concept_code=crs.concept_code_1
+        and cs1.vocabulary_id=crs.vocabulary_id_1
+        and cs1.vocabulary_id='RxNorm Extension'
+        and c2.concept_code=crs.concept_code_2
+        and c2.vocabulary_id=crs.vocabulary_id_2
+        and c2.vocabulary_id='RxNorm'
+        and cs1.concept_class_id ='Brand Name'
+        and (c2.concept_class_id like '%Drug%' or c2.concept_class_id like '%Pack%' or c2.concept_class_id like '%Box%') 
+        and crs.invalid_reason is null
+        and crs.relationship_id=rl.relationship_id
+    )
+    unpivot ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2, relationship_id) 
+    FOR relationships IN ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2, relationship_id),(concept_code_2,vocabulary_id_2,concept_code_1,vocabulary_id_1, reverse_relationship_id)))
+)
+and invalid_reason is null;
 commit;
 
 --23 Working with replacement mappings

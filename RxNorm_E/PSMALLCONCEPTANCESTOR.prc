@@ -427,9 +427,8 @@ BEGIN
                                                    'Quant Branded Drug',
                                                    'Branded Drug Form',
                                                    'Branded Drug',
-                                                   'Marketed Product',
-                                                   'Branded Pack',
-                                                   'Branded Pack Box')
+                                                   'Marketed Product'
+												   )
                        AND r.concept_id_2 = c2.concept_id
                        AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                        AND c2.concept_class_id = 'Brand Name'
@@ -479,9 +478,8 @@ BEGIN
                                                    'Quant Branded Drug',
                                                    'Branded Drug Form',
                                                    'Branded Drug',
-                                                   'Marketed Product',
-                                                   'Branded Pack',
-                                                   'Branded Pack Box')
+                                                   'Marketed Product'
+												   )
                        AND r.concept_id_1 = c1.concept_id
                        AND c1.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                        AND c1.concept_class_id = 'Brand Name'

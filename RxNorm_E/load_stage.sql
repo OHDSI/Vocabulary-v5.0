@@ -757,10 +757,8 @@ in (
             select cs1.concept_code as concept_code_1, cs1.vocabulary_id as vocabulary_id_1, 
             c2.concept_code as concept_code_2, c2.vocabulary_id as vocabulary_id_2 from concept_stage cs1 
             join (--for c2 we cannot use stage table, because we need rx classes
-                select crs.concept_code_1 from concept_stage cs1, concept c2, concept_relationship_stage crs
-                where cs1.concept_code=crs.concept_code_1
-                and cs1.vocabulary_id=crs.vocabulary_id_1
-                and cs1.vocabulary_id='RxNorm Extension'
+                select crs.concept_code_1 from concept c2, concept_relationship_stage crs
+                where crs.vocabulary_id_1='RxNorm Extension'
                 and c2.concept_code=crs.concept_code_2
                 and c2.vocabulary_id=crs.vocabulary_id_2
                 and c2.concept_class_id='Brand Name' 
@@ -770,7 +768,7 @@ in (
             join concept_relationship_stage crs on crs.concept_code_1=d.concept_code_1 and crs.vocabulary_id_1='RxNorm Extension' and crs.invalid_reason is null
             --for c2 we cannot use stage table, because we need rx classes
             join concept c2 on c2.concept_code=crs.concept_code_2 and c2.vocabulary_id=crs.vocabulary_id_2 and c2.concept_class_id ='Brand Name'
-            where replace(replace(regexp_substr(regexp_substr (cs1.concept_name,'Pack.*'),'\[.*\]'),'['),']')<>c2.concept_name
+			where lower(regexp_replace (cs1.concept_name,'.* Pack .*\[(.*)\]','\1'))<>lower(c2.concept_name)
         )
         unpivot ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2) 
         FOR relationships IN ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2),(concept_code_2,vocabulary_id_2,concept_code_1,vocabulary_id_1)))

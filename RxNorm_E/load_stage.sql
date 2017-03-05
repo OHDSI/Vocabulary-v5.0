@@ -260,13 +260,7 @@ using (
     and ds.drug_concept_code=cs.concept_code
     and ds.vocabulary_id_1=cs.vocabulary_id
     and cs.vocabulary_id='RxNorm Extension'
-) l on (cs.concept_code=l.concept_code and cs.vocabulary_id='RxNorm Extension')
-when matched then 
-    update set cs.concept_name=l.new_name where cs.concept_name<>l.new_name;
-
-
-merge into concept_stage cs
-using (
+	union all
     select cs.concept_code, l.new_name
     from drug_strength_stage ds, concept_stage cs,
     lateral (
@@ -323,6 +317,7 @@ set AMOUNT_UNIT_CONCEPT_ID=8510,AMOUNT_VALUE=AMOUNT_VALUE*1000000 -- 'U'
 where AMOUNT_UNIT_CONCEPT_ID=44777647 -- 'ukat'
 and vocabulary_id_1='RxNorm Extension';
 
+/* temporary disabled
 --deprecate concepts with iU
 update concept_stage set invalid_reason='D',
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -331,6 +326,7 @@ WHERE concept_code in (
     where (NUMERATOR_UNIT_CONCEPT_ID=8718 or DENOMINATOR_UNIT_CONCEPT_ID=8718 or AMOUNT_UNIT_CONCEPT_ID=8718) -- 'iU'
     and vocabulary_id_1='RxNorm Extension'
 );
+*/
 
 update drug_strength_stage
 set NUMERATOR_UNIT_CONCEPT_ID=8510

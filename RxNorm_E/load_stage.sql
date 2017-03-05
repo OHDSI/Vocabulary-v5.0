@@ -286,7 +286,7 @@ using (
         select listagg(
         case when splitted_name='0.9'
             then
-                splitted_name*1000000||' U'
+                splitted_name*1000000||' UNT'
             else
               splitted_name
         end,' ') WITHIN GROUP (order by lv) new_name from (

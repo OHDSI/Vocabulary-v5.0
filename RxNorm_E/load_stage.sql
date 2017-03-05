@@ -233,6 +233,81 @@ COMMIT;
 
 --8
 --normalizing
+merge into concept_stage cs
+using (
+    select cs.concept_code, l.new_name
+    from drug_strength_stage ds, concept_stage cs,
+    lateral (
+        select listagg(
+        case when ld='/HR' 
+            then 
+                rtrim(to_char(splitted_name/1000,'fm999999999990d99999999999999999999'), '.,') 
+            else 
+                case when splitted_name='/HR' 
+                    then 
+                        'MG/HR' 
+                    else 
+                        splitted_name
+                    end
+        end,' ') WITHIN GROUP (order by lv) new_name from (
+            select splitted_name, lead(splitted_name) over (order by lv) ld, lv from (
+            select regexp_substr(cs.concept_name,'[^ ]+', 1, level) splitted_name, level lv from dual 
+            connect by regexp_substr(cs.concept_name, '[^ ]+', 1, level) is not null
+            )
+        )
+    ) l 
+    where ds.numerator_unit_concept_id=9655
+    and ds.drug_concept_code=cs.concept_code
+    and ds.vocabulary_id_1=cs.vocabulary_id
+    and cs.vocabulary_id='RxNorm Extension'
+) l on (cs.concept_code=l.concept_code and cs.vocabulary_id='RxNorm Extension')
+when matched then 
+    update set cs.concept_name=l.new_name where cs.concept_name<>l.new_name;
+
+
+merge into concept_stage cs
+using (
+    select cs.concept_code, l.new_name
+    from drug_strength_stage ds, concept_stage cs,
+    lateral (
+        select listagg(
+        case when regexp_substr(splitted_name,'[[:digit:]]+') is not null
+            then
+                rtrim(to_char(splitted_name/1000,'fm999999999990d99999999999999999999'), '.,')||' MG'
+            else
+              splitted_name
+        end,' ') WITHIN GROUP (order by lv) new_name from (
+            select regexp_substr(cs.concept_name,'[^ ]+', 1, level) splitted_name, level lv from dual
+            connect by regexp_substr(cs.concept_name, '[^ ]+', 1, level) is not null
+        )
+    ) l
+    where ds.amount_unit_concept_id=9655
+    and ds.drug_concept_code=cs.concept_code
+    and ds.vocabulary_id_1=cs.vocabulary_id
+    and cs.vocabulary_id='RxNorm Extension'
+    union all
+    select cs.concept_code, l.new_name
+    from drug_strength_stage ds, concept_stage cs,
+    lateral (
+        select listagg(
+        case when splitted_name='0.9'
+            then
+                splitted_name*1000000||' U'
+            else
+              splitted_name
+        end,' ') WITHIN GROUP (order by lv) new_name from (
+            select regexp_substr(cs.concept_name,'[^ ]+', 1, level) splitted_name, level lv from dual
+            connect by regexp_substr(cs.concept_name, '[^ ]+', 1, level) is not null
+        )
+    ) l
+    where ds.amount_unit_concept_id=44777647
+    and ds.drug_concept_code=cs.concept_code
+    and ds.vocabulary_id_1=cs.vocabulary_id
+    and cs.vocabulary_id='RxNorm Extension'
+) l on (cs.concept_code=l.concept_code and cs.vocabulary_id='RxNorm Extension')
+when matched then 
+    update set cs.concept_name=l.new_name where cs.concept_name<>l.new_name;
+
 update drug_strength_stage
 set NUMERATOR_UNIT_CONCEPT_ID=8576,NUMERATOR_VALUE=NUMERATOR_VALUE/1000 -- 'mg'
 where NUMERATOR_UNIT_CONCEPT_ID=9655 -- 'ug'
@@ -247,6 +322,15 @@ update drug_strength_stage
 set AMOUNT_UNIT_CONCEPT_ID=8510,AMOUNT_VALUE=AMOUNT_VALUE*1000000 -- 'U'
 where AMOUNT_UNIT_CONCEPT_ID=44777647 -- 'ukat'
 and vocabulary_id_1='RxNorm Extension';
+
+--deprecate concepts with iU
+update concept_stage set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
+WHERE concept_code in (
+    select drug_concept_code from drug_strength_stage
+    where (NUMERATOR_UNIT_CONCEPT_ID=8718 or DENOMINATOR_UNIT_CONCEPT_ID=8718 or AMOUNT_UNIT_CONCEPT_ID=8718) -- 'iU'
+    and vocabulary_id_1='RxNorm Extension'
+);
 
 update drug_strength_stage
 set NUMERATOR_UNIT_CONCEPT_ID=8510

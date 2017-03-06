@@ -298,6 +298,50 @@ using (
     and ds.drug_concept_code=cs.concept_code
     and ds.vocabulary_id_1=cs.vocabulary_id
     and cs.vocabulary_id='RxNorm Extension'
+	union all
+	select distinct cs.concept_code, replace(cs.concept_name,'IU/','UNT/') new_name
+	from drug_strength_stage ds, concept_stage cs
+	where ds.numerator_unit_concept_id=8718
+    and ds.drug_concept_code=cs.concept_code
+    and ds.vocabulary_id_1=cs.vocabulary_id
+    and cs.vocabulary_id='RxNorm Extension'
+	union all
+	select distinct cs.concept_code, replace(replace(replace(cs.concept_name,' IU ',' UNT '),'IU/','UNT/'),'/IU','/UNT') new_name
+	from drug_strength_stage ds, concept_stage cs
+	where ds.denominator_unit_concept_id=8718
+    and ds.drug_concept_code=cs.concept_code
+    and ds.vocabulary_id_1=cs.vocabulary_id
+    and cs.vocabulary_id='RxNorm Extension'	
+	union all --two merges for amount_unit_concept_id=8718 (one for IU and one MIU)
+	select distinct cs.concept_code, trim(regexp_replace(cs.concept_name,' IU | IU$',' UNT ')) new_name
+	from drug_strength_stage ds, concept_stage cs
+	where ds.amount_unit_concept_id=8718
+    and ds.drug_concept_code=cs.concept_code
+    and ds.vocabulary_id_1=cs.vocabulary_id
+    and cs.vocabulary_id='RxNorm Extension'	
+	and cs.concept_name like '% IU%'
+	union all
+    select distinct cs.concept_code, l.new_name
+    from drug_strength_stage ds, concept_stage cs,
+	lateral (
+		select listagg(
+		case when ld='MIU' 
+			then 
+				to_char(splitted_name*1e6)
+			else 
+				splitted_name
+		end,' ') WITHIN GROUP (order by lv) new_name from (
+			select splitted_name, lead(splitted_name) over (order by lv) ld, lv from (
+			select regexp_substr(cs.concept_name,'[^ ]+', 1, level) splitted_name, level lv from dual 
+			connect by regexp_substr(cs.concept_name, '[^ ]+', 1, level) is not null
+			)
+		)
+	) l
+    where ds.amount_unit_concept_id=8718
+    and ds.drug_concept_code=cs.concept_code
+    and ds.vocabulary_id_1=cs.vocabulary_id
+    and cs.vocabulary_id='RxNorm Extension'
+	and cs.concept_name like '% MIU%'
 ) l on (cs.concept_code=l.concept_code and cs.vocabulary_id='RxNorm Extension')
 when matched then 
     update set cs.concept_name=l.new_name where cs.concept_name<>l.new_name;
@@ -328,6 +372,7 @@ WHERE concept_code in (
 );
 */
 
+
 update drug_strength_stage
 set NUMERATOR_UNIT_CONCEPT_ID=8510
 where NUMERATOR_UNIT_CONCEPT_ID=8718 -- 'iU'
@@ -342,6 +387,15 @@ update drug_strength_stage
 set AMOUNT_UNIT_CONCEPT_ID=8510 -- 'U'
 where AMOUNT_UNIT_CONCEPT_ID=8718 -- 'iU'
 and vocabulary_id_1='RxNorm Extension';
+
+--deprecate transdermal patches with cm and mm as unit in order to rebuild them
+update concept_stage set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
+WHERE concept_code in (
+	select drug_concept_code from drug_strength_stage
+	where  denominator_unit_concept_id in (8582,8588)
+	and vocabulary_id_1='RxNorm Extension'
+);
 commit;
 
 --9

@@ -235,7 +235,7 @@ COMMIT;
 --normalizing
 merge into concept_stage cs
 using (
-    select cs.concept_code, l.new_name
+    select distinct cs.concept_code, l.new_name
     from drug_strength_stage ds, concept_stage cs,
     lateral (
         select listagg(
@@ -261,7 +261,7 @@ using (
     and ds.vocabulary_id_1=cs.vocabulary_id
     and cs.vocabulary_id='RxNorm Extension'
 	union all
-    select cs.concept_code, l.new_name
+    select distinct cs.concept_code, l.new_name
     from drug_strength_stage ds, concept_stage cs,
     lateral (
         select listagg(
@@ -280,7 +280,7 @@ using (
     and ds.vocabulary_id_1=cs.vocabulary_id
     and cs.vocabulary_id='RxNorm Extension'
     union all
-    select cs.concept_code, l.new_name
+    select distinct cs.concept_code, l.new_name
     from drug_strength_stage ds, concept_stage cs,
     lateral (
         select listagg(

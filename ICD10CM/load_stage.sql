@@ -73,8 +73,58 @@ INSERT /*+ APPEND */ INTO concept_stage (concept_id,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
      FROM ICD10CM_TABLE;
+     /
 COMMIT;					  
 
+/* temporary disabled for later use
+select * from concept_stage
+;
+drop TABLE CONCEPT_RELATION_pre_MANUAL;
+CREATE TABLE CONCEPT_RELATION_pre_MANUAL
+(
+   CONCEPT_CODE_1     VARCHAR2 (50 BYTE) ,
+   concept_name_1 varchar (250),
+   VOCABULARY_ID_1    VARCHAR (20), 
+   invalid_reason_1  VARCHAR2 (1 BYTE),
+   CONCEPT_CODE_2     VARCHAR2 (50 BYTE) ,
+   concept_name_2 varchar (250),
+   concept_class_id_2 varchar (250),
+   VOCABULARY_ID_2    VARCHAR (20) ,
+   invalid_reason_2  VARCHAR2 (1 BYTE),
+   RELATIONSHIP_ID    VARCHAR2 (20 BYTE) ,
+   VALID_START_DATE   DATE,
+   VALID_END_DATE     DATE,
+   INVALID_REASON     VARCHAR2 (1 BYTE)
+)
+NOLOGGING
+;
+
+
+--5. Create file with mappings for medical coder from the existing one
+-- instead of concept use concept_stage (medical coders need to review new concepts also)
+-- need to add more useful attributes exactly to concept_relationship_manual to make the manual mapping process easier
+-- create temporary table CONCEPT_RELATION_pre_MANUAL that will be filled by the medical coder
+truncate table CONCEPT_RELATION_pre_MANUAL;
+insert into CONCEPT_RELATION_pre_MANUAL (CONCEPT_CODE_1,CONCEPT_NAME_1,VOCABULARY_ID_1,invalid_reason_1, CONCEPT_CODE_2,CONCEPT_NAME_2,CONCEPT_CLASS_ID_2,VOCABULARY_ID_2,invalid_reason_2, RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
+SELECT c.concept_code,c.concept_name,c.vocabulary_id,c.invalid_reason, t.concept_code, t.concept_name,t.concept_class_id,t.vocabulary_id,t.invalid_reason, r.RELATIONSHIP_ID, r.VALID_START_DATE, r.VALID_END_DATE, r.INVALID_REASON
+  FROM concept_stage c
+ left join  concept_relationship r on c.concept_id = r.concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') -- for this case other relationships shouldn't be checked manualy
+ left join concept t on t.concept_id = r.concept_id_2
+;
+select * from CONCEPT_RELATION_pre_MANUAL
+;
+!!!Stop sctipt - give the result to medical coder who will fill concept_relationship_manual based on CONCEPT_RELATION_pre_MANUAL--, remember concept_relatopnshoip_stage is empty for now
+--need to think if we need to give only those where concept_code_2 is null or it's mappped only to deprecated concept
+-- if medical coder wants to change relatoinship (i.e. found a better mapping - set an old row as deprecated, add a new row to concept_relationship)
+;
+--do it once CONCEPT_RELATION_pre_MANUAL is done by medical coder
+--or probably another temporary table can be used where we put the result of manual mappings
+insert into concept_relationship_manual (CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
+select CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from CONCEPT_RELATION_pre_MANUAL
+;
+commit
+;
+*/
 --4 Add ICD10CM to SNOMED manual mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
@@ -137,6 +187,8 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                          AND r_int.relationship_id = 'Subsumes');
 COMMIT;
 
+
+---!!! what if concepts doesn't have mapping???
 --10 Update domain_id for ICD10CM from SNOMED
 --create 1st temporary table ICD10CM_domain with direct mappings
 create table filled_domain NOLOGGING as
@@ -264,6 +316,5 @@ COMMIT;
 --14 Clean up
 DROP TABLE ICD10CM_domain PURGE;
 DROP TABLE filled_domain PURGE;	
-
-
+drop TABLE CONCEPT_RELATION_pre_MANUAL;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

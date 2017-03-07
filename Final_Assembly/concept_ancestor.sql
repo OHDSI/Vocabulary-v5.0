@@ -438,19 +438,19 @@ BEGIN
                        AND r.invalid_reason IS NULL
                        AND relationship_id = 'Has brand name'
                        AND ca.descendant_concept_id = c1.concept_id
-                       AND c1.vocabulary_id LIKE 'RxNorm%'
+                       AND c1.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                        AND c1.concept_class_id IN ('Branded Drug Box',
                                                    'Quant Branded Box',
                                                    'Branded Drug Comp',
                                                    'Quant Branded Drug',
                                                    'Branded Drug Form',
                                                    'Branded Drug',
-                                                   'Marketed Product',
-                                                   'Branded Pack',
-                                                   'Branded Pack Box')
+                                                   'Marketed Product'
+												   )
                        AND r.concept_id_2 = c2.concept_id
-                       AND c2.vocabulary_id LIKE 'RxNorm%'
+                       AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                        AND c2.concept_class_id = 'Brand Name'
+					   AND c2.invalid_reason IS NULL
                        AND c3.concept_id = r.concept_id_1
                        AND c3.concept_class_id <> 'Ingredient') i
             ON (r.concept_id_1 = i.concept_id_1 AND r.concept_id_2 = i.concept_id_2 AND r.relationship_id = i.relationship_id)
@@ -489,19 +489,19 @@ BEGIN
                        AND r.invalid_reason IS NULL
                        AND relationship_id = 'Brand name of'
                        AND ca.descendant_concept_id = c2.concept_id
-                       AND c2.vocabulary_id LIKE 'RxNorm%'
+                       AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                        AND c2.concept_class_id IN ('Branded Drug Box',
                                                    'Quant Branded Box',
                                                    'Branded Drug Comp',
                                                    'Quant Branded Drug',
                                                    'Branded Drug Form',
                                                    'Branded Drug',
-                                                   'Marketed Product',
-                                                   'Branded Pack',
-                                                   'Branded Pack Box')
+                                                   'Marketed Product'
+												   )
                        AND r.concept_id_1 = c1.concept_id
-                       AND c1.vocabulary_id LIKE 'RxNorm%'
+                       AND c1.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                        AND c1.concept_class_id = 'Brand Name'
+					   AND c1.invalid_reason IS NULL
                        AND c3.concept_id = r.concept_id_2
                        AND c3.concept_class_id <> 'Ingredient') i
             ON (r.concept_id_1 = i.concept_id_1 AND r.concept_id_2 = i.concept_id_2 AND r.relationship_id = i.relationship_id)

@@ -10,8 +10,8 @@
 * To_do: Add quantification factor                *
 * Suppport writing amount field                   *
 **************************************************/
-truncate table concept_stage;
-truncate table concept_relationship_stage;
+--truncate table concept_stage;
+--truncate table concept_relationship_stage;
 -- 1. Create lookup tables for existing vocab r (RxNorm and public country-specific ones)
 -- Create table containing ingredients for each drug
 --drop table r_drug_ing ;
@@ -96,7 +96,7 @@ create index x_shared_ing on shared_ing(q_dcode, r_did) nologging
 ;
 -- Create table that matches drugs q to r, based on Ingredient, Dose Form and Brand Name (if exist). Dose, box size or quantity are not yet compared
 --drop table q_to_r_anydose; 
-create table q_to_r_anydose nologging as
+create table q_to_r_anydose nologging as -- took 3.5 hours to finish it
 -- create table with all query drug codes q_dcode mapped to standard drug concept ids r_did, irrespective of the correct dose
 with m as (
 select distinct m.*, rc.cnt as rc_cnt, r.precedence as i_prec
@@ -334,9 +334,9 @@ commit;
 --drop table cnc_rel_class; 
 create table cnc_rel_class as
 select ri.*, ci.concept_class_id as concept_class_id_1 , c2.concept_class_id as concept_class_id_2 
-from devv5.concept_relationSHIp ri 
-join devv5.concept ci on ci.concept_id = ri.concept_id_1 
-join devv5.concept c2 on c2.concept_id = ri.concept_id_2 
+from concept_relationSHIp ri 
+join concept ci on ci.concept_id = ri.concept_id_1 
+join concept c2 on c2.concept_id = ri.concept_id_2 
 where ci.vocabulary_id like  'RxNorm%' and ri.invalid_reason is null and ci.invalid_reason is null 
 and  c2.vocabulary_id like 'RxNorm%'  and c2.invalid_reason is null 
 ;
@@ -394,7 +394,7 @@ union select CONCEPT_ID_1, drug_concept_code from dupl where WEIGHT = 0
 commit;
 -- Write concept_relationship_stage
 --still thinking about update process
-truncate table concept_relationship_stage;
+--truncate table concept_relationship_stage;
 insert /*+ APPEND */ into concept_relationship_stage
 						(concept_code_1,
 						concept_code_2,
@@ -418,9 +418,11 @@ join concept c on c.concept_id=m.r_did and c.vocabulary_id like 'RxNorm%'
 ;
 commit
 ;
+--uncomment when it's a part of a drug vocabulary when creating concept_stage with this script 
+/* 
 --add source drugs as a part concept_stage
 -- Write source drugs as non-standard
-insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+insert into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select distinct
   null as concept_id, 
   concept_name,
@@ -433,13 +435,15 @@ select distinct
   nvl(valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   case invalid_reason when 'U' then 'D' else invalid_reason end as invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
 from drug_concept_stage
-where concept_class_id in ('Ingredient', 'Drug Product', 'Supplier', 'Dose Form', 'Brand Name') -- but no Unit
+where concept_class_id in ('Procedure Drug') -- but no Unit
   and nvl(domain_id, 'Drug')='Drug'
 ;
+*/
 commit;
-
+/*
+--uncomment when it's a part of a drug vocabulary when creating concept_stage with this script
 -- Write source devices as standard (unless deprecated)
-insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+insert  into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select distinct
   null as concept_id, 
   concept_name,
@@ -455,20 +459,22 @@ from drug_concept_stage
 where domain_id='Device'
 ;
 commit;
--- Write source devices as standard (unless deprecated)
-insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-select distinct
-  null as concept_id, 
-  concept_name,
-  domain_id,
-  vocabulary_id,
-  nvl(source_concept_class_id, concept_class_id) as concept_class_id,
-  case when invalid_reason is not null then null else 'S' end as standard_concept, -- Devices are not mapped
-  concept_code,
-  nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
-  nvl(valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
-  invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
-from drug_concept_stage
-where domain_id='Device'
+*/
+--Clean up
+drop table r_drug_ing
+drop table r_ing_count
+drop table q_drug_ing
+drop table q_ing_count
+drop table match;
+drop table shared_ing;
+drop table r_bn;
+drop table q_to_r_anydose;
+drop table q_to_r_wdose ;
+drop table q_to_r ;
+drop table poss_map
+drop table cnc_rel_class; 
+drop table attrib_cnt;
+drop table Q_DCODE_to_hlc
+drop table dupl;
+drop table best_map;
 ;
-commit;

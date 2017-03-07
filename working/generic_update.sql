@@ -850,7 +850,7 @@ INSERT INTO drug_strength (drug_concept_id,
     WHERE v.latest_update IS NOT NULL;
 COMMIT;	
 
--- Delete if concept is deprecated (only for 'RxNorm Extension')
+-- Delete drug if concept is deprecated (only for 'RxNorm Extension')
 DELETE FROM drug_strength ds
       WHERE EXISTS
                (SELECT 1

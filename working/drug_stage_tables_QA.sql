@@ -44,6 +44,11 @@ or numerator_unit not in (select concept_code from drug_concept_stage where conc
 or denominator_unit not in (select concept_code from drug_concept_stage where concept_class_id ='Unit')
 )
 union
+--0 in ds_stage values
+select drug_concept_code,'0 in values'
+from ds_stage where 0 in (numerator_value,amount_value,denominator_value)
+
+union
 -- drug codes are not exist in a drug_concept_stage but present in ds_stage
 select distinct s.drug_concept_code, 'ds_stage has drug_codes absent in drug_concept_stage' from ds_stage s 
 left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id='Drug Product'

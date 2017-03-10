@@ -757,7 +757,7 @@ from (
       when q.numerator_unit_concept_id=8554 and r.numerator_unit_concept_id!=8554 then (q.numerator_value/100)/(r.numerator_value/r.denominator_value) -- % in one but not in the other
       when q.numerator_unit_concept_id!=8554 and r.numerator_unit_concept_id=8554 then (q.numerator_value/q.denominator_value)/(r.numerator_value/100) -- % in the other but not in one
       when q.denominator_value/r.denominator_value>.9 and r.denominator_value/q.denominator_value>.9 then q.numerator_value/r.numerator_value -- if same quant compare only numerators
-      when q.numerator_value!=0 and r.numerator_value is not null then (q.numerator_value/q.denominator_value)/(r.numerator_value/r.denominator_value) -- denominator empty unless Quant
+--      when q.numerator_value!=0 and r.numerator_value is not null then (q.numerator_value/q.denominator_value)/(r.numerator_value/r.denominator_value) -- denominator empty unless Quant
     else 0 end as div,
     case 
       when r.drug_concept_id is null then 1 -- if no drug_strength exist (Drug Forms etc.)
@@ -776,7 +776,6 @@ from (
 where div>0.9 
 --added correct definition of div
 and div<1.12
-
 and u_match=1
 ;
 commit;
@@ -2787,7 +2786,7 @@ from (
   select drug_concept_code, ingredient_concept_code, ingredient_vocab, 
   sum(amount_value) as amount_value, amount_unit_concept_id, 
   sum(numerator_value) as numerator_value, numerator_unit_concept_id, 
-  sum(denominator_value) as denominator_value, denominator_unit_concept_id
+  denominator_value, denominator_unit_concept_id
   from extension_ds
   join concept_stage cs on cs.concept_code=drug_concept_code
   group by drug_concept_code, ingredient_concept_code, ingredient_vocab, amount_unit_concept_id, numerator_unit_concept_id, denominator_unit_concept_id

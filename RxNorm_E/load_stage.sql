@@ -1093,8 +1093,20 @@ and vocabulary_id = 'RxNorm Extension'
 and invalid_reason is null;
 commit;
 
+--25
+--deprecate drugs with insignificant volume
+update concept_stage set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
+where concept_code in (
+    select drug_concept_code From drug_strength_stage where denominator_value<0.05 
+    and vocabulary_id_1='RxNorm Extension'
+    and denominator_unit_concept_id=8587
+)
+and vocabulary_id = 'RxNorm Extension'
+and invalid_reason is null;
+commit;
 
---25 little manual fixes
+--26 little manual fixes
 --update supplier
 update concept_stage c set standard_concept=null where concept_code='OMOP897375' and vocabulary_id='RxNorm Extension' and standard_concept='S';
 
@@ -1139,31 +1151,31 @@ update concept_stage set concept_name='Ascorbic Acid 25 MG/ML / Biotin 0.0138 MG
 update concept_stage set concept_name='Bordetella pertussis 0.05 MG/ML / acellular pertussis vaccine, inactivated 0.05 MG/ML / diphtheria toxoid vaccine, inactivated 60 UNT/ML / ... Injectable Suspension [TETRAVAC-ACELLULAIRE] Box of 10' where concept_code='OMOP445896' and vocabulary_id='RxNorm Extension';
 commit;
 
---26 Working with replacement mappings
+--27 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---27 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--28 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;
 
---28 Add mapping from deprecated to fresh concepts
+--29 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;
 
---29 Delete ambiguous 'Maps to' mappings
+--30 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---30 Clean up
+--31 Clean up
 DROP TABLE rxe_tmp_replaces PURGE;
 DROP TABLE wrong_rxe_replacements PURGE;
 

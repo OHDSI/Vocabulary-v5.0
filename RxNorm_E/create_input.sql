@@ -48,8 +48,13 @@ from (
       )
 ;
 
-delete from drug_concept_stage where concept_code in (
+delete drug_concept_stage where concept_code in (
 select concept_code from concept where vocabulary_id like 'RxNorm%' and invalid_reason='D' and VALID_END_DATE<'02-Feb-2017');
+
+delete drug_concept_stage 
+where concept_code in (
+select concept_code from concept c join drug_strength ds on drug_concept_id=concept_id and vocabulary_id='RxNorm Extension' and c.invalid_reason is null
+where denominator_value<0.05 and denominator_unit_concept_id=8587);
 
 --insert into drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON) 
 --select CONCEPT_NAME,DOMAIN_ID,'Rxfix',CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_stage where concept_name='Fotemustine' and invalid_reason is null;
@@ -228,6 +233,13 @@ select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_con
 where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
 and b.concept_name like '%Nicotine%' and NUMERATOR_VALUE in ('5.57','5.14','36','78'));
 
+--Povidone-Iodine
+update ds_stage
+set numerator_value='100', denominator_value=null,DENOMINATOR_UNIT='ml'
+where drug_concept_code in (
+select drug_concept_code from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
+where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm') and concept_name like '%Povidone-Iodine%' ); 
+
 
 --the other cm
 UPDATE ds_stage
@@ -281,12 +293,22 @@ and c.vocabulary_id!='RxNorm';
 delete ds_stage where drug_concept_code in (select concept_code from dogs);
 drop table dogs; */
 
+--delete drugs that have denominator_value less than 0.05
+
+delete ds_stage
+where drug_concept_code in (
+select drug_concept_code from ds_stage
+where denominator_value<0.05 and denominator_unit='mL');
+
+delete ds_stage
+where drug_concept_code in (
+select concept_code from concept c join drug_strength ds on drug_concept_id=concept_id and vocabulary_id='RxNorm Extension' and c.invalid_reason is null
+where denominator_value<0.05 and denominator_unit_concept_id=8587);
+
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420658' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420659' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420660' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420661' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
-
-
 
 
 --checked that denominator_unit=Quant factor unit,updated to make denominator_value=quant factor
@@ -332,6 +354,24 @@ SET DENOMINATOR_VALUE=DENOMINATOR_VALUE/1000,
     NUMERATOR_VALUE=NUMERATOR_VALUE/1000
  ;   
 
+--update drugs that have soluble and solid ingredients in the same drug 
+update ds_stage ds
+set numerator_value=amount_value,numerator_unit=amount_unit,amount_unit=null,amount_value=null,
+denominator_unit='mL'
+where drug_concept_code in (
+select drug_concept_code from ds_Stage a join ds_stage b using (drug_concept_code) 
+where a.amount_value is not null 
+and b.numerator_value is not null and b.DENOMINATOR_UNIT='mL')
+and amount_value is not null;
+
+update ds_stage ds
+set numerator_value=amount_value,numerator_unit=amount_unit,amount_unit=null,amount_value=null,
+denominator_unit='mg'
+where drug_concept_code in (
+select drug_concept_code from ds_Stage a join ds_stage b using (drug_concept_code) 
+where a.amount_value is not null 
+and b.numerator_value is not null and b.DENOMINATOR_UNIT='mg')
+and amount_value is not null;
 
 --rounding
 
@@ -432,8 +472,18 @@ from drug_concept_stage dc
 join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
 join concept_relationship cr on c.concept_id=concept_id_1 and cr.invalid_reason is null
 join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Supplier' and c2.VOCABULARY_ID like 'Rx%' and c2.invalid_reason is null 
-
 ;
+--insert relationships to those packs that do not have Pack's BN
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+select distinct a.concept_code,c2.concept_code
+ from concept a join concept_relationship b on concept_id_1=a.concept_id and a.vocabulary_id='RxNorm Extension'
+and a.concept_class_id like '%Branded%Pack%'
+left join concept c2 on c2.concept_name=replace(replace(regexp_substr(regexp_substr (a.concept_name, 'Pack\s\[.*\]'),'\[.*\]'),'['),']')
+and c2.vocabulary_id like 'RxNorm%' and c2.concept_class_id='Brand Name'
+where concept_id_1 not in (
+select concept_id_1 from concept a join concept_relationship b on concept_id_1=a.concept_id and a.vocabulary_id='RxNorm Extension'
+and a.concept_class_id like '%Pack%'
+join concept c on concept_id_2=c.concept_id and c.CONCEPT_CLASS_ID='Brand Name' and b.invalid_reason is null);
 
 --Delete baxter(where baxter and baxter ltd)
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP432125' AND   CONCEPT_CODE_2 = 'OMOP439843';
@@ -648,12 +698,7 @@ AND   CONCEPT_ID_2 = 9655
 ;
 
 
-
-
-
-
-
---srange staff
+--strange staff
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP572936'

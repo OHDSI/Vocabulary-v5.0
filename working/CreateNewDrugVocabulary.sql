@@ -2786,7 +2786,7 @@ from (
   select drug_concept_code, ingredient_concept_code, ingredient_vocab, 
   sum(amount_value) as amount_value, amount_unit_concept_id, 
   sum(numerator_value) as numerator_value, numerator_unit_concept_id, 
-  sum(denominator_value) as denominator_value, denominator_unit_concept_id
+  denominator_value, denominator_unit_concept_id
   from extension_ds
   join concept_stage cs on cs.concept_code=drug_concept_code
   group by drug_concept_code, ingredient_concept_code, ingredient_vocab, amount_unit_concept_id, numerator_unit_concept_id, denominator_unit_concept_id

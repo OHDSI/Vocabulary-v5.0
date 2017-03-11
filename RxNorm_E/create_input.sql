@@ -53,7 +53,7 @@ select concept_code from concept where vocabulary_id like 'RxNorm%' and invalid_
 
 delete drug_concept_stage 
 where concept_code in (
-select concept_code from concept c join drug_strength ds on drug_concept_id=concept_id and vocabulary_id='RxNorm Extension' and c.invalid_reason is null
+select concept_code from concept c join devv5.drug_strength ds on drug_concept_id=concept_id and vocabulary_id='RxNorm Extension' and c.invalid_reason is null
 where denominator_value<0.05 and denominator_unit_concept_id=8587);
 
 --insert into drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON) 
@@ -63,7 +63,7 @@ truncate table ds_stage;
 insert into ds_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
 select c.concept_code, c2.concept_code,box_size,AMOUNT_VALUE,c3.CONCEPT_CODE,NUMERATOR_VALUE,c4.CONCEPT_CODE,DENOMINATOR_VALUE,c5.CONCEPT_CODE
 FROM concept c
-JOIN drug_strength ds on ds.DRUG_CONCEPT_ID=c.CONCEPT_ID
+JOIN devv5.drug_strength ds on ds.DRUG_CONCEPT_ID=c.CONCEPT_ID
 JOIN concept c2 on ds.INGREDIENT_CONCEPT_ID=c2.CONCEPT_ID
 left join concept c3 on AMOUNT_UNIT_CONCEPT_ID=c3.CONCEPT_ID
 left join concept c4 on NUMERATOR_UNIT_CONCEPT_ID=c4.CONCEPT_ID
@@ -235,7 +235,7 @@ and b.concept_name like '%Nicotine%' and NUMERATOR_VALUE in ('5.57','5.14','36',
 
 --Povidone-Iodine
 update ds_stage
-set numerator_value='100', denominator_value=null,DENOMINATOR_UNIT='ml'
+set numerator_value='100', denominator_value=null,DENOMINATOR_UNIT='mL'
 where drug_concept_code in (
 select drug_concept_code from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
 where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm') and concept_name like '%Povidone-Iodine%' ); 
@@ -249,14 +249,6 @@ select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_con
 where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm'));
 
 commit;
-
---delete huge dosages
-delete ds_stage where drug_concept_code in (
-select  drug_concept_code from ds_stage 
-where (( lower (numerator_unit) in ('mg') and lower (denominator_unit) in ('ml','g') or  lower (numerator_unit) in ('g') and lower (denominator_unit) in ('l') ) and numerator_value / denominator_value > 1000 )
-or (lower (numerator_unit) in ('g') and lower (denominator_unit) in ('ml') and numerator_value / denominator_value > 1));
-
-delete ds_stage where ( (AMOUNT_UNIT='%' and amount_value>100) or (NUMERATOR_UNIT='%' and NUMERATOR_VALUE>100));
 
 --delete 3 leg dogs
 delete ds_stage where drug_concept_code in(
@@ -310,7 +302,7 @@ UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHE
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420660' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420661' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 
-
+/*
 --checked that denominator_unit=Quant factor unit,updated to make denominator_value=quant factor
 MERGE  INTO ds_stage ds
 USING   (
@@ -353,7 +345,7 @@ WHEN MATCHED THEN UPDATE
 SET DENOMINATOR_VALUE=DENOMINATOR_VALUE/1000,
     NUMERATOR_VALUE=NUMERATOR_VALUE/1000
  ;   
-
+*/
 --update drugs that have soluble and solid ingredients in the same drug 
 update ds_stage ds
 set numerator_value=amount_value,numerator_unit=amount_unit,amount_unit=null,amount_value=null,
@@ -428,6 +420,13 @@ where NUMERATOR_UNIT='%' and NUMERATOR_VALUE  in ('0.000283','0.1','35.3');
 
 delete ds_Stage where NUMERATOR_UNIT='%' and DENOMINATOR_UNIT is not null;
 
+--delete huge dosages
+delete ds_stage where drug_concept_code in (
+select  drug_concept_code from ds_stage 
+where (( lower (numerator_unit) in ('mg') and lower (denominator_unit) in ('ml','g') or  lower (numerator_unit) in ('g') and lower (denominator_unit) in ('l') ) and numerator_value / denominator_value > 1000 )
+or (lower (numerator_unit) in ('g') and lower (denominator_unit) in ('ml') and numerator_value / denominator_value > 1));
+
+delete ds_stage where ( (AMOUNT_UNIT='%' and amount_value>100) or (NUMERATOR_UNIT='%' and NUMERATOR_VALUE>100));
 
 --delete deprecated ingredients
 delete ds_stage where INGREDIENT_CONCEPT_CODE in (

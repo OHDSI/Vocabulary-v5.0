@@ -691,6 +691,54 @@ and invalid_reason is null;
 commit;
 
 --18
+--deprecate drugs with insignificant volume
+update concept_stage set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
+where concept_code in (
+    select drug_concept_code From drug_strength_stage where denominator_value<0.05 
+    and vocabulary_id_1='RxNorm Extension'
+    and denominator_unit_concept_id=8587
+)
+and vocabulary_id = 'RxNorm Extension'
+and invalid_reason is null;
+commit;
+
+--19
+--deprecate all impossible drug_strength_stage inputs
+update concept_stage set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
+where concept_code in (
+	select drug_concept_code from (
+		select distinct drug_concept_code, denominator_value, denominator_unit_concept_id from 
+		drug_strength_stage where invalid_reason is null
+		and vocabulary_id_1='RxNorm Extension'
+	) group by drug_concept_code having count(*)>1
+)
+and vocabulary_id = 'RxNorm Extension'
+and invalid_reason is null;
+commit;
+
+--20
+--Deprecate concepts that have ingredients both in soluble and solid form
+update concept_stage set invalid_reason='D',
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
+where concept_code in (
+	select drug_concept_code from drug_strength_stage ds
+	where ds.amount_value is not null
+	and exists (
+		select 1 from drug_strength_stage ds_int
+		where ds_int.drug_concept_code=ds.drug_concept_code
+		and ds_int.vocabulary_id_1=ds.vocabulary_id_1
+		and not (ds_int.ingredient_concept_code=ds.ingredient_concept_code and ds_int.vocabulary_id_2=ds.vocabulary_id_2)
+		and ds_int.numerator_value is not null
+	)
+	and ds.vocabulary_id_1='RxNorm Extension'
+)
+and vocabulary_id = 'RxNorm Extension'
+and invalid_reason is null;
+commit;
+
+--21
 --deprecate all mappings (except 'Maps to' and 'Drug has drug class') if RxE-concept was deprecated 
 update concept_relationship_stage crs set crs.invalid_reason='D', 
 crs.valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -716,7 +764,7 @@ and crs.relationship_id not in ('Mapped from','Drug class of drug')
 and crs.invalid_reason is null;
 commit;
 
---19
+--22
 --create temporary table with old mappings and fresh concepts (after all 'Concept replaced by')
 create table rxe_tmp_replaces nologging as
 with
@@ -870,7 +918,7 @@ in (
 );
 commit;
 
---20
+--23
 --deprecate relationships to multiple drug forms or suppliers
 update concept_relationship_stage crs set crs.invalid_reason='D', 
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -903,7 +951,7 @@ in (
 and crs.invalid_reason is null;
 commit;
 
---21
+--24
 --deprecate relationship from Pack to Brand Names of it's components
 update concept_relationship_stage crs set crs.invalid_reason='D', 
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
@@ -934,7 +982,7 @@ in (
 and crs.invalid_reason is null;
 commit;
 
---22 deprecate branded packs without links to brand names
+--25 deprecate branded packs without links to brand names
 update concept_stage set invalid_reason='D',
 valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
 WHERE concept_code in (
@@ -956,7 +1004,7 @@ and vocabulary_id = 'RxNorm Extension'
 and invalid_reason is null;
 commit;
 
---23
+--26
 --turn 'Brand name of' and RxNorm ing of to 'Supplier of' (between 'Supplier' and 'Marketed Product')
 merge into concept_relationship_stage crs
 using (
@@ -1073,40 +1121,7 @@ where rowid in (
 );
 commit;
 
---24
---Deprecate concepts that have ingredients both in soluble and solid form
-update concept_stage set invalid_reason='D',
-valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
-where concept_code in (
-	select drug_concept_code from drug_strength_stage ds
-	where ds.amount_value is not null
-	and exists (
-		select 1 from drug_strength_stage ds_int
-		where ds_int.drug_concept_code=ds.drug_concept_code
-		and ds_int.vocabulary_id_1=ds.vocabulary_id_1
-		and not (ds_int.ingredient_concept_code=ds.ingredient_concept_code and ds_int.vocabulary_id_2=ds.vocabulary_id_2)
-		and ds_int.numerator_value is not null
-	)
-	and ds.vocabulary_id_1='RxNorm Extension'
-)
-and vocabulary_id = 'RxNorm Extension'
-and invalid_reason is null;
-commit;
-
---25
---deprecate drugs with insignificant volume
-update concept_stage set invalid_reason='D',
-valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension') 
-where concept_code in (
-    select drug_concept_code From drug_strength_stage where denominator_value<0.05 
-    and vocabulary_id_1='RxNorm Extension'
-    and denominator_unit_concept_id=8587
-)
-and vocabulary_id = 'RxNorm Extension'
-and invalid_reason is null;
-commit;
-
---26 little manual fixes
+--27 little manual fixes
 --update supplier
 update concept_stage c set standard_concept=null where concept_code='OMOP897375' and vocabulary_id='RxNorm Extension' and standard_concept='S';
 
@@ -1151,31 +1166,31 @@ update concept_stage set concept_name='Ascorbic Acid 25 MG/ML / Biotin 0.0138 MG
 update concept_stage set concept_name='Bordetella pertussis 0.05 MG/ML / acellular pertussis vaccine, inactivated 0.05 MG/ML / diphtheria toxoid vaccine, inactivated 60 UNT/ML / ... Injectable Suspension [TETRAVAC-ACELLULAIRE] Box of 10' where concept_code='OMOP445896' and vocabulary_id='RxNorm Extension';
 commit;
 
---27 Working with replacement mappings
+--28 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---28 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--29 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;
 
---29 Add mapping from deprecated to fresh concepts
+--30 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;
 
---30 Delete ambiguous 'Maps to' mappings
+--31 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---31 Clean up
+--32 Clean up
 DROP TABLE rxe_tmp_replaces PURGE;
 DROP TABLE wrong_rxe_replacements PURGE;
 

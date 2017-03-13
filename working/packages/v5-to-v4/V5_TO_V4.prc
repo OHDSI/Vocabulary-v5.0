@@ -814,7 +814,7 @@ INSERT /*+ APPEND */
                    'Y' AS PRIMARY_MAP,
                    c1.valid_start_date AS valid_start_date,
                    c1.valid_end_date AS valid_end_date,
-                   NULL AS invalid_reason
+                   case when c1.invalid_reason='U' then 'D' else c1.invalid_reason end
      FROM devv5.concept c1
           LEFT JOIN devv5.concept_relationship r
              ON     r.concept_id_1 = c1.concept_id

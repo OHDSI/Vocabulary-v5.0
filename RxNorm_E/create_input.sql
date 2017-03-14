@@ -70,6 +70,16 @@ left join concept c4 on NUMERATOR_UNIT_CONCEPT_ID=c4.CONCEPT_ID
 left join concept c5 on DENOMINATOR_UNIT_CONCEPT_ID=c5.CONCEPT_ID
 WHERE c.vocabulary_id='RxNorm Extension' ;
 
+--update ds_stage from homeopathy
+update ds_stage set 
+    amount_value=numerator_value, 
+    amount_unit=numerator_unit,
+    numerator_value=null,
+    numerator_unit=null,
+    denominator_value=null,
+    denominator_unit=null
+where numerator_unit in ('[hp_X]','[hp_C]');
+
 --add units absent in drug_strength
 UPDATE DS_STAGE   SET AMOUNT_UNIT = '[U]' WHERE DRUG_CONCEPT_CODE = 'OMOP467711' AND   INGREDIENT_CONCEPT_CODE = '560';
 UPDATE DS_STAGE   SET AMOUNT_UNIT = '[U]' WHERE DRUG_CONCEPT_CODE = 'OMOP467709' AND   INGREDIENT_CONCEPT_CODE = '560';
@@ -448,7 +458,8 @@ select distinct dc.concept_code,c2.concept_code
 from drug_concept_stage dc 
 join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
 join concept_relationship cr on c.concept_id=concept_id_1 and cr.invalid_reason is null
-join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Dose Form' and c2.VOCABULARY_ID like 'Rx%' and c2.invalid_reason is null 
+join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Dose Form' 
+and c2.VOCABULARY_ID like 'Rx%' and c2.invalid_reason is null 
 --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
 ;
 insert into internal_relationship_stage (concept_code_1,concept_code_2)

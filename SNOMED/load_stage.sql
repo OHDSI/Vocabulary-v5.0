@@ -1602,6 +1602,15 @@ FROM (
 				WHEN term = 'VMP prescribing status' THEN 'VMP has prescr stat'
 				WHEN term = 'Legal category' THEN 'Has legal category'
 				WHEN term = 'Caused by' THEN 'Caused by'
+				WHEN term = 'Precondition' THEN 'Has precondition'
+				WHEN term = 'Inherent location' THEN 'Has inherent loc'
+				WHEN term = 'Technique' THEN 'Has technique'
+				WHEN term = 'Relative to part of' THEN 'Has relative part'
+				WHEN term = 'Process output' THEN 'Has process output'
+				WHEN term = 'Property type' THEN 'Has property type'
+				WHEN term = 'Inheres in' THEN 'Inheres in'
+				WHEN term = 'Direct site' THEN 'Has direct site'
+				WHEN term = 'Characterizes' THEN 'Characterizes'				
 				ELSE 'non-existing'      
 			END AS relationship_id,
 			(select latest_update From vocabulary where vocabulary_id='SNOMED') as valid_start_date,
@@ -1614,6 +1623,10 @@ FROM (
 	AND crs.relationship_id=sn.relationship_id
 );
 COMMIT;
+
+--check for non-existing relationships
+ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
+ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 
 -- 11. add replacement relationships. They are handled in a different SNOMED table
 INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,

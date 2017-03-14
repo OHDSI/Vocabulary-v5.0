@@ -363,6 +363,16 @@ using (
     and ds.vocabulary_id_1=cs.vocabulary_id
     and cs.vocabulary_id='RxNorm Extension'
 	and cs.concept_name like '% MIU%'
+	union all
+	--change the drug strength for homeopathy (p1)
+	select distinct cs.concept_code, replace(cs.concept_name,'/'||upper(c.concept_code),'') new_name
+	from drug_strength_stage ds, concept_stage cs, concept c
+	where ds.numerator_unit_concept_id in (9324,9325)
+    and ds.drug_concept_code=cs.concept_code
+    and ds.vocabulary_id_1=cs.vocabulary_id
+    and cs.vocabulary_id='RxNorm Extension'
+    and c.concept_id=ds.denominator_unit_concept_id
+	
 ) l on (cs.concept_code=l.concept_code and cs.vocabulary_id='RxNorm Extension')
 when matched then 
 	update set cs.concept_name=case when length(l.new_name)>255 then substr(substr(l.new_name, 1, 255),1,length(substr(l.new_name, 1, 255))-3)||'...' else l.new_name end 
@@ -419,6 +429,17 @@ WHERE concept_code in (
 	and vocabulary_id_1='RxNorm Extension'
 )
 and invalid_reason is null;
+
+--change the drug strength for homeopathy (p2)
+update drug_strength_stage ds set 
+    ds.amount_value=ds.numerator_value, 
+    ds.amount_unit_concept_id=ds.numerator_unit_concept_id,
+    ds.numerator_value=null,
+    ds.numerator_unit_concept_id=null,
+    ds.denominator_value=null,
+    ds.denominator_unit_concept_id=null
+where ds.numerator_unit_concept_id in (9324,9325)
+and ds.vocabulary_id_1='RxNorm Extension';
 commit;
 
 --10

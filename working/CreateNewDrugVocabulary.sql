@@ -2789,7 +2789,7 @@ from (
   denominator_value, denominator_unit_concept_id
   from extension_ds
   join concept_stage cs on cs.concept_code=drug_concept_code
-  group by drug_concept_code, ingredient_concept_code, ingredient_vocab, amount_unit_concept_id, numerator_unit_concept_id, denominator_unit_concept_id
+  group by drug_concept_code, ingredient_concept_code, ingredient_vocab, amount_unit_concept_id, numerator_unit_concept_id, denominator_value, denominator_unit_concept_id
 )
 ;
 commit;

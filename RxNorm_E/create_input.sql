@@ -404,6 +404,15 @@ WHEN MATCHED THEN UPDATE
 SET DENOMINATOR_VALUE=cx
 WHERE d.DRUG_CONCEPT_CODE=ds.DRUG_CONCEPT_CODE
  ;
+ 
+delete ds_stage where (drug_concept_code,denominator_value) in
+(select distinct a.drug_concept_code,a.denominator_value
+ from ds_stage a join ds_stage b on a.drug_concept_code = b.drug_concept_code 
+ and (a.DENOMINATOR_VALUE is null and b.DENOMINATOR_VALUE is not null  
+ or a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE
+ or a.DENOMINATOR_unit != b.DENOMINATOR_unit)
+ join drug_concept_stage on concept_code=a.drug_concept_code and a.denominator_value!=regexp_substr(concept_name,'\d+(\.\d+)?'));
+ 
  commit;
 
 --percent
@@ -455,9 +464,10 @@ commit;
 
 
 truncate table internal_relationship_stage;
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
+insert into internal_relationship_stage (concept_code_1,concept_code_2) 
+select distinct concept_code,concept_Code_2 from (
 --Drug to form
-select distinct dc.concept_code,c2.concept_code
+select distinct dc.concept_code,c2.concept_code as concept_code_2
 from drug_concept_stage dc 
 join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
 join concept_relationship cr on c.concept_id=concept_id_1 
@@ -466,24 +476,40 @@ and c2.VOCABULARY_ID like 'Rx%'
 where (( c2.invalid_reason is null and cr.invalid_reason is null) or ( c.invalid_reason is not null and cr.invalid_reason is not null
 and cr.VALID_END_DATE<'02-Feb-2017') )
 --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
-;
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
+
+union
+
 --Drug to BN
 select distinct dc.concept_code,c2.concept_code
 from drug_concept_stage dc 
 join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
+and (dc.SOURCE_CONCEPT_CLASS_ID not like '%Pack%' or (dc.SOURCE_CONCEPT_CLASS_ID='Marketed Product' and dc.concept_name not like '%Pack%') )
 join concept_relationship cr on c.concept_id=concept_id_1 
 join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Brand Name' 
 and c2.VOCABULARY_ID like 'Rx%' 
 where (( c2.invalid_reason is null and cr.invalid_reason is null) 
        or ( c.invalid_reason is not null and cr.invalid_reason is not null and cr.VALID_END_DATE<'02-Feb-2017') )
 and regexp_like (c.concept_name,c2.concept_name)
-;
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
+
+union
+
+--Packs to BN
+select distinct dc.concept_code,c2.concept_code
+from drug_concept_stage dc 
+join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
+and dc.SOURCE_CONCEPT_CLASS_ID like '%Pack%'
+join concept_relationship cr on c.concept_id=concept_id_1 
+join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Brand Name' 
+and c2.VOCABULARY_ID like 'Rx%' 
+where c2.concept_name=replace(replace(regexp_substr(regexp_substr(c.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['), ']')
+
+union
+
 select distinct DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE
 from ds_Stage
-;
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
+
+union
+
 --Drug to supplier
 select distinct dc.concept_code,c2.concept_code
 from drug_concept_stage dc 
@@ -493,9 +519,10 @@ join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Supplier'
 and c2.VOCABULARY_ID like 'Rx%' 
 where (( c2.invalid_reason is null and cr.invalid_reason is null) 
        or ( c.invalid_reason is not null and cr.invalid_reason is not null and cr.VALID_END_DATE<'02-Feb-2017') )
-;
+
+union
+
 --insert relationships to those packs that do not have Pack's BN
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
 select distinct a.concept_code,c2.concept_code
  from concept a join concept_relationship b on concept_id_1=a.concept_id and a.vocabulary_id='RxNorm Extension'
 and a.concept_class_id like '%Branded%Pack%'
@@ -504,7 +531,7 @@ and c2.vocabulary_id like 'RxNorm%' and c2.concept_class_id='Brand Name'
 where concept_id_1 not in (
 select concept_id_1 from concept a join concept_relationship b on concept_id_1=a.concept_id and a.vocabulary_id='RxNorm Extension'
 and a.concept_class_id like '%Pack%'
-join concept c on concept_id_2=c.concept_id and c.CONCEPT_CLASS_ID='Brand Name' and b.invalid_reason is null);
+join concept c on concept_id_2=c.concept_id and c.CONCEPT_CLASS_ID='Brand Name' and b.invalid_reason is null));
 
 --Delete baxter(where baxter and baxter ltd)
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP432125' AND   CONCEPT_CODE_2 = 'OMOP439843';
@@ -672,6 +699,15 @@ insert into pc_stage (PACK_CONCEPT_CODE,DRUG_CONCEPT_CODE,AMOUNT,BOX_SIZE)
 select c.CONCEPT_CODE,c2.CONCEPT_CODE,AMOUNT,BOX_SIZE
 from pack_content join concept c on PACK_CONCEPT_ID=c.CONCEPT_ID and c.vocabulary_id='RxNorm Extension'
 join concept c2 on DRUG_CONCEPT_ID=c2.CONCEPT_ID;
+
+--need to think of amount
+/*select c.concept_name,c2.concept_name, regexp_substr(regexp_substr(c.concept_name,'box\sof\s.*'),'\d+')
+ from concept c 
+join concept_relationship cr on concept_id=concept_id_1 and relationship_id='Contains' and c.vocabulary_id='RxNorm Extension'
+join concept c2 on c2.concept_id=concept_id_2
+ where c.concept_class_id like '%Pack%' and c.concept_code not in (select pack_concept_code from pc_stage)
+ and c.invalid_reason is null;*/
+
 
 --fix 2 equal components
 DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP339574' AND   DRUG_CONCEPT_CODE = '197659' AND   AMOUNT = 12;

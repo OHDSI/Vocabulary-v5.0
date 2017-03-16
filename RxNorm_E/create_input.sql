@@ -731,6 +731,28 @@ DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP339895' AND   DRUG_CONCEPT_C
 UPDATE PC_STAGE   SET AMOUNT = 12 WHERE PACK_CONCEPT_CODE = 'OMOP339633' AND   DRUG_CONCEPT_CODE = '310463' AND   AMOUNT = 7;
 UPDATE PC_STAGE   SET AMOUNT = 12 WHERE PACK_CONCEPT_CODE = 'OMOP339814' AND   DRUG_CONCEPT_CODE = '310463' AND   AMOUNT = 7;
 
+--insert missing packs
+insert into pc_stage (pack_concept_code,drug_concept_code,amount,box_size)
+select distinct ac.concept_code,ac2.concept_code,pcs.amount,pcs.box_size
+from dev_amt.pc_stage pcs join concept c on c.concept_code=pcs.pack_Concept_code and c.vocabulary_id='AMT' and c.invalid_reason is null
+join concept_relationship cr on cr.concept_id_1=c.concept_id and cr.relationship_id='Maps to'
+join concept ac on ac.concept_id=cr.concept_id_2 and ac.vocabulary_id='RxNorm Extension' and ac.invalid_Reason is null
+join concept c2 on c2.concept_code=pcs.drug_concept_code and c.vocabulary_id='AMT' and c2.invalid_reason is null
+join concept_relationship cr2 on cr2.concept_id_1=c2.concept_id and cr2.relationship_id='Maps to'
+join concept ac2 on ac2.concept_id=cr2.concept_id_2 and ac2.vocabulary_id like 'RxNorm%' and ac2.invalid_Reason is null
+where c.concept_id not in (select pack_concept_id from pack_content)
+and c.concept_id in (select c.concept_id from
+dev_amt.pc_stage pcs join concept c on c.concept_code=pcs.pack_Concept_code and c.vocabulary_id='AMT' and c.invalid_reason is null
+join concept_relationship cr on cr.concept_id_1=c.concept_id and cr.relationship_id='Maps to'
+join concept ac on ac.concept_id=cr.concept_id_2 and ac.vocabulary_id='RxNorm Extension' and ac.invalid_Reason is null
+join concept c2 on c2.concept_code=pcs.drug_concept_code and c.vocabulary_id='AMT' and c2.invalid_reason is null
+join concept_relationship cr2 on cr2.concept_id_1=c2.concept_id and cr2.relationship_id='Maps to'
+join concept ac2 on ac2.concept_id=cr2.concept_id_2 and ac2.vocabulary_id like 'RxNorm%'
+where c.concept_id not in (select pack_concept_id from pack_content)
+group by c.concept_id  having count(c.concept_id)>1
+;
+
+                     
 commit;
 
 truncate table relationship_to_concept;

@@ -608,7 +608,7 @@ valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'Rx
 where (concept_code, vocabulary_id) in (
     select dss.drug_concept_code, dss.vocabulary_id_1 from (
         select ingredient_concept_code, dosage, flag, count(distinct flag) over (partition by ingredient_concept_code, dosage_group) cnt_flags, 
-		first_value (dosage) over (partition by ingredient_concept_code, dosage_group order by length(dosage), dosage) true_dosage from (
+		first_value (dosage) over (partition by ingredient_concept_code, dosage_group order by length(regexp_replace(dosage,'[^1-9]')), dosage) true_dosage from (
             select rxe.ingredient_concept_code, rxe.dosage, rxe.dosage_group, nvl(rx.flag,rxe.flag) as flag from (
                 select distinct ingredient_concept_code, dosage, dosage_group, 'bad' as flag 
                 from (
@@ -652,7 +652,8 @@ valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'Rx
 where (concept_code, vocabulary_id) in (
     select dss.drug_concept_code, dss.vocabulary_id_1 from (
         select ingredient_concept_code, dosage, flag, count(distinct flag) over (partition by ingredient_concept_code, dosage_group) cnt_flags,
-		min (dosage) over (partition by ingredient_concept_code, dosage_group) min_dosage from (
+		--min (dosage) over (partition by ingredient_concept_code, dosage_group) min_dosage from (
+		first_value (dosage) over (partition by ingredient_concept_code, dosage_group order by length(regexp_replace(dosage,'[^1-9]')), dosage) true_dosage from (
             select rxe.ingredient_concept_code, rxe.dosage, rxe.dosage_group, nvl(rx.flag,rxe.flag) as flag from (
                 select distinct ingredient_concept_code, dosage, dosage_group, 'bad' as flag 
                 from (
@@ -698,7 +699,7 @@ where (concept_code, vocabulary_id) in (
     ) merged_rxe, drug_strength_stage dss 
     where (
         merged_rxe.flag='bad' and merged_rxe.cnt_flags=2 or
-        merged_rxe.flag='bad' and merged_rxe.cnt_flags=1 and dosage<>min_dosage
+        merged_rxe.flag='bad' and merged_rxe.cnt_flags=1 and dosage<>true_dosage
     )
     and dss.ingredient_concept_code=merged_rxe.ingredient_concept_code
     and case when dss.amount_value is null and dss.denominator_value is null then 

@@ -132,106 +132,7 @@ INSERT /*+ APPEND */
           JOIN concept c2 ON pc.DRUG_CONCEPT_ID = c2.CONCEPT_ID;
 COMMIT;
 
---7
---create the table with rxe's wrong replacements (concept_code_1 has multiply 'Concept replaced by')
-create table wrong_rxe_replacements nologging as
-select concept_code, true_concept from (
-    select concept_code, count(*) over (partition by lower(concept_name), concept_class_id) cnt, 
-    first_value(concept_code) over (partition by lower(concept_name), concept_class_id order by concept_code) true_concept
-    from concept_stage
-    where concept_name not like '%...%'
-    and nvl(invalid_reason,'x')<>'D'
-    and vocabulary_id='RxNorm Extension'
-) where cnt>1 and concept_code<>true_concept;
-
---deprecate old replacements
-update concept_relationship_stage crs set crs.invalid_reason='D', 
-valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
-where concept_code_1 in (select concepts from wrong_rxe_replacements unpivot (concepts for concepts_codes in (concept_code,true_concept)))
-and concept_code_2 in (select concepts from wrong_rxe_replacements unpivot (concepts for concepts_codes in (concept_code,true_concept)))
-and crs.vocabulary_id_1='RxNorm Extension'
-and crs.vocabulary_id_2='RxNorm Extension'
-and crs.relationship_id in ('Concept replaced by','Concept replaces')
-and crs.invalid_reason is null;
-
---build new ones or update existing
-merge into concept_relationship_stage crs
-using (
-    select concept_code,true_concept, relationship_id from
-    (select concept_code,true_concept, 'Concept replaced by' as relationship_id,'Concept replaces' as reverse_relationship_id from wrong_rxe_replacements)
-    unpivot ((concept_code,true_concept, relationship_id) for relationships in ((concept_code,true_concept,relationship_id),(true_concept, concept_code, reverse_relationship_id)))
-) i
-on (
-    i.concept_code=crs.concept_code_1
-    and crs.vocabulary_id_1='RxNorm Extension'
-    and i.true_concept=crs.concept_code_2
-    and crs.vocabulary_id_2='RxNorm Extension'
-    and crs.relationship_id=i.relationship_id
-)
-when matched then 
-    update set crs.invalid_reason=null, crs.valid_end_date=to_date ('20991231', 'YYYYMMDD') where crs.invalid_reason is not null
-when not matched then insert
-(
-    crs.concept_code_1,
-    crs.vocabulary_id_1,
-    crs.concept_code_2,
-    crs.vocabulary_id_2,
-    crs.relationship_id,
-    crs.valid_start_date,
-    crs.valid_end_date,
-    crs.invalid_reason    
-)
-values
-(
-    i.concept_code,
-    'RxNorm Extension',    
-    i.true_concept,
-    'RxNorm Extension',
-    i.relationship_id,
-    (SELECT latest_update FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension'),
-    to_date ('20991231', 'YYYYMMDD'),
-    null  
-);
-
---update invalid_reason and standard_concept in the concept
-update concept_stage set invalid_reason=null, valid_end_date=to_date ('20991231', 'YYYYMMDD'), standard_concept='S' 
-where concept_code in (select true_concept from wrong_rxe_replacements)
-and vocabulary_id='RxNorm Extension'
-and invalid_reason is not null;
-
-update concept_stage set invalid_reason='U', 
-valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension'), 
-standard_concept=null 
-where concept_code in (select concept_code from wrong_rxe_replacements)
-and vocabulary_id='RxNorm Extension'
-and nvl(invalid_reason,'x')<>'U';
-commit;
-
---Working with new replacement mappings
-BEGIN
-   DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
-END;
-COMMIT;
-
---Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-BEGIN
-   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
-END;
-COMMIT;
-
---Add mapping from deprecated to fresh concepts
-BEGIN
-   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
-END;
-COMMIT;
-
---Delete ambiguous 'Maps to' mappings
-BEGIN
-   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
-END;
-COMMIT;
-
---8 
+--7 name and dosage udpates
 --fix names and dosage for rxe-concepts with various denominator_unit_concept_id
 update concept_stage set concept_name='Polymyxin B 10 000 MG/ML / Trimethoprim 1 MG/ML [Polytrim]'
 where vocabulary_id='RxNorm Extension' 
@@ -259,7 +160,7 @@ and denominator_unit_concept_id=8576;
 
 commit;
 
---9
+--8
 --normalizing
 merge into concept_stage cs
 using (
@@ -441,6 +342,175 @@ update drug_strength_stage ds set
 where ds.numerator_unit_concept_id in (9324,9325)
 and ds.vocabulary_id_1='RxNorm Extension';
 commit;
+
+--direct manual update (names too long)
+update concept_stage set concept_name='Ascorbic Acid 25 MG/ML / Biotin 0.0138 MG/ML / Cholecalciferol 44 UNT/ML / Folic Acid 0.0828 MG/ML / Niacinamide 9.2 MG/ML / Pantothenic Acid 3.45 MG/ML / Riboflavin 0.828 MG/ML / Thiamine 0.702 MG/ML / ... Prefilled Syringe Box of 1' where concept_code='OMOP441099' and vocabulary_id='RxNorm Extension';
+update concept_stage set concept_name='Bordetella pertussis 0.05 MG/ML / acellular pertussis vaccine, inactivated 0.05 MG/ML / diphtheria toxoid vaccine, inactivated 60 UNT/ML / ... Injectable Suspension [TETRAVAC-ACELLULAIRE] Box of 10' where concept_code='OMOP445896' and vocabulary_id='RxNorm Extension';
+commit;
+
+--9
+--create the table with rxe's wrong replacements (concept_code_1 has multiply 'Concept replaced by')
+create table wrong_rxe_replacements nologging as
+select concept_code, true_concept from (
+    select concept_code, count(*) over (partition by lower(concept_name), concept_class_id) cnt, 
+    first_value(concept_code) over (partition by lower(concept_name), concept_class_id order by invalid_reason nulls first, concept_code) true_concept
+    from concept_stage
+    where concept_name not like '%...%'
+    and nvl(invalid_reason,'x')<>'D'
+    and vocabulary_id='RxNorm Extension'
+) where cnt>1 and concept_code<>true_concept;
+
+--deprecate old replacements
+update concept_relationship_stage crs set crs.invalid_reason='D', 
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension')
+where concept_code_1 in (select concepts from wrong_rxe_replacements unpivot (concepts for concepts_codes in (concept_code,true_concept)))
+and concept_code_2 in (select concepts from wrong_rxe_replacements unpivot (concepts for concepts_codes in (concept_code,true_concept)))
+and crs.vocabulary_id_1='RxNorm Extension'
+and crs.vocabulary_id_2='RxNorm Extension'
+and crs.relationship_id in ('Concept replaced by','Concept replaces')
+and crs.invalid_reason is null;
+
+--build new ones or update existing
+merge into concept_relationship_stage crs
+using (
+    select concept_code,true_concept, relationship_id from
+    (select concept_code,true_concept, 'Concept replaced by' as relationship_id,'Concept replaces' as reverse_relationship_id from wrong_rxe_replacements)
+    unpivot ((concept_code,true_concept, relationship_id) for relationships in ((concept_code,true_concept,relationship_id),(true_concept, concept_code, reverse_relationship_id)))
+) i
+on (
+    i.concept_code=crs.concept_code_1
+    and crs.vocabulary_id_1='RxNorm Extension'
+    and i.true_concept=crs.concept_code_2
+    and crs.vocabulary_id_2='RxNorm Extension'
+    and crs.relationship_id=i.relationship_id
+)
+when matched then 
+    update set crs.invalid_reason=null, crs.valid_end_date=to_date ('20991231', 'YYYYMMDD') where crs.invalid_reason is not null
+when not matched then insert
+(
+    crs.concept_code_1,
+    crs.vocabulary_id_1,
+    crs.concept_code_2,
+    crs.vocabulary_id_2,
+    crs.relationship_id,
+    crs.valid_start_date,
+    crs.valid_end_date,
+    crs.invalid_reason    
+)
+values
+(
+    i.concept_code,
+    'RxNorm Extension',    
+    i.true_concept,
+    'RxNorm Extension',
+    i.relationship_id,
+    (SELECT latest_update FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension'),
+    to_date ('20991231', 'YYYYMMDD'),
+    null  
+);
+
+--update invalid_reason and standard_concept in the concept
+update concept_stage set invalid_reason=null, valid_end_date=to_date ('20991231', 'YYYYMMDD'), standard_concept='S' 
+where concept_code in (select true_concept from wrong_rxe_replacements)
+and vocabulary_id='RxNorm Extension'
+and invalid_reason is not null;
+
+update concept_stage set invalid_reason='U', 
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension'), 
+standard_concept=null 
+where concept_code in (select concept_code from wrong_rxe_replacements)
+and vocabulary_id='RxNorm Extension'
+and nvl(invalid_reason,'x')<>'U';
+commit;
+
+--after rxe name's update we have duplicates with rx. fix it
+--build new ones replacements or update existing 
+merge into concept_relationship_stage crs
+using (
+	select cs.concept_code rxe_code, c.concept_code rx_code
+	from concept_stage cs, concept c 
+	where cs.vocabulary_id='RxNorm Extension'
+	and cs.concept_name not like '%...%'
+	and cs.invalid_reason is null
+	and c.vocabulary_id='RxNorm'
+	and c.invalid_reason is null
+	and lower(cs.concept_name)=lower(c.concept_name)
+	and cs.concept_class_id=c.concept_class_id
+) i
+on (
+    i.rxe_code=crs.concept_code_1
+    and crs.vocabulary_id_1='RxNorm Extension'
+    and i.rx_code=crs.concept_code_2
+    and crs.vocabulary_id_2='RxNorm'
+    and crs.relationship_id='Concept replaced by'
+)
+when matched then 
+    update set crs.invalid_reason=null, crs.valid_end_date=to_date ('20991231', 'YYYYMMDD') where crs.invalid_reason is not null
+when not matched then insert
+(
+    crs.concept_code_1,
+    crs.vocabulary_id_1,
+    crs.concept_code_2,
+    crs.vocabulary_id_2,
+    crs.relationship_id,
+    crs.valid_start_date,
+    crs.valid_end_date,
+    crs.invalid_reason    
+)
+values
+(
+    i.rxe_code,
+    'RxNorm Extension',    
+    i.rx_code,
+    'RxNorm',
+    'Concept replaced by',
+    (SELECT latest_update FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension'),
+    to_date ('20991231', 'YYYYMMDD'),
+    null  
+);
+
+--set 'U'
+update concept_stage set invalid_reason='U', 
+valid_end_date=(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = 'RxNorm Extension'), 
+standard_concept=null 
+where concept_code in (
+	select cs.concept_code
+	from concept_stage cs, concept c 
+	where cs.vocabulary_id='RxNorm Extension'
+	and cs.concept_name not like '%...%'
+	and cs.invalid_reason is null
+	and c.vocabulary_id='RxNorm'
+	and c.invalid_reason is null
+	and lower(cs.concept_name)=lower(c.concept_name)
+	and cs.concept_class_id=c.concept_class_id
+)
+and vocabulary_id='RxNorm Extension'
+and invalid_reason is null;
+commit;
+
+--Working with new replacement mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
+END;
+COMMIT;
+
+--Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
+END;
+COMMIT;
+
+--Add mapping from deprecated to fresh concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
+END;
+COMMIT;
+
+--Delete ambiguous 'Maps to' mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
+END;
+COMMIT;
 
 --10
 --do a rounding amount_value, numerator_value and denominator_value
@@ -1182,10 +1252,6 @@ where (concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2, relationsh
     FOR relationships IN ((concept_code_1,vocabulary_id_1,concept_code_2,vocabulary_id_2, relationship_id),(concept_code_2,vocabulary_id_2,concept_code_1,vocabulary_id_1, reverse_relationship_id)))
 )
 and invalid_reason is null;
-commit;
-
-update concept_stage set concept_name='Ascorbic Acid 25 MG/ML / Biotin 0.0138 MG/ML / Cholecalciferol 44 UNT/ML / Folic Acid 0.0828 MG/ML / Niacinamide 9.2 MG/ML / Pantothenic Acid 3.45 MG/ML / Riboflavin 0.828 MG/ML / Thiamine 0.702 MG/ML / ... Prefilled Syringe Box of 1' where concept_code='OMOP441099' and vocabulary_id='RxNorm Extension';
-update concept_stage set concept_name='Bordetella pertussis 0.05 MG/ML / acellular pertussis vaccine, inactivated 0.05 MG/ML / diphtheria toxoid vaccine, inactivated 60 UNT/ML / ... Injectable Suspension [TETRAVAC-ACELLULAIRE] Box of 10' where concept_code='OMOP445896' and vocabulary_id='RxNorm Extension';
 commit;
 
 --28 Working with replacement mappings

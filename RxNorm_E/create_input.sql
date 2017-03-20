@@ -285,25 +285,6 @@ from a join b on a.drug_concept_id=b.descendant_concept_id
 join concept c on drug_concept_id=concept_id 
 where cnt1<cnt2
 and c.vocabulary_id!='RxNorm');
-/*
-create table dogs as
-with a as (
-select drug_concept_id,count(drug_concept_id) as cnt1 from drug_strength 
-group by drug_concept_id
-),
-b as (
-select descendant_concept_id, count(descendant_concept_id) as cnt2 from concept_ancestor a 
-join concept b on ancestor_concept_id=b.concept_id and concept_class_id='Ingredient'
-join concept b2 on descendant_concept_id=b2.concept_id where b2.concept_class_id not like '%Comp%'
-group by descendant_concept_id)
-select  concept_code
-from a join b on a.drug_concept_id=b.descendant_concept_id
-join concept c on drug_concept_id=concept_id 
-where cnt1<cnt2
-and c.vocabulary_id!='RxNorm';
-delete ds_stage where drug_concept_code in (select concept_code from dogs);
-drop table dogs; */
-
 --delete drugs that have denominator_value less than 0.05
 
 delete ds_stage
@@ -410,7 +391,20 @@ WHEN MATCHED THEN UPDATE
 SET DENOMINATOR_VALUE=cx
 WHERE d.DRUG_CONCEPT_CODE=ds.DRUG_CONCEPT_CODE
  ;
- 
+ --fix solid forms with denominator
+ update ds_Stage 
+set amount_unit=numerator_unit,
+amount_value=numerator_value,
+numerator_value=null,
+numerator_unit=null,
+denominator_value=null,
+denominator_unit=null
+where drug_concept_Code in (
+      select a.concept_Code from concept a
+      join drug_strength d on concept_id=drug_concept_id and denominator_unit_concept_id is not null
+      and regexp_like (concept_name,'Tablet|Capsule') and vocabulary_id='RxNorm Extension');
+
+
 delete ds_stage where (drug_concept_code,denominator_value) in
 (select distinct a.drug_concept_code,a.denominator_value
  from ds_stage a join ds_stage b on a.drug_concept_code = b.drug_concept_code 

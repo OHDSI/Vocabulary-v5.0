@@ -8,6 +8,14 @@ from concept_relationship a
 join concept b on concept_id_1=b.concept_id and regexp_like(b.concept_class_id,'Drug|Pack|Box|Marketed') and b.vocabulary_id='RxNorm Extension' and a.invalid_reason is null
 join concept b2 on concept_id_2=b2.concept_id and b2.concept_class_id in ('Dose Form','Brand Name','Supplier') and b2.vocabulary_id like 'Rx%' and b2.invalid_reason is null
 UNION
+--RxNorm pack components
+select distinct b2.CONCEPT_NAME, 'Rxfix', 'Drug Product', '', b2.CONCEPT_CODE, '',b2.domain_id, b2.valid_start_date, b2.valid_end_date, b2.INVALID_REASON,b2.CONCEPT_CLASS_ID
+from concept_relationship a 
+join concept b on concept_id_1=b.concept_id and regexp_like(b.concept_class_id,'Pack') 
+and b.vocabulary_id='RxNorm Extension' and a.invalid_reason is null and a.RELATIONSHIP_ID='Contains'
+join concept b2 on concept_id_2=b2.concept_id and regexp_like(b2.concept_class_id,'Drug|Marketed') 
+and b2.vocabulary_id='RxNorm' and b2.invalid_reason is null
+UNION
 select distinct b3.CONCEPT_NAME, 'Rxfix', b3.CONCEPT_CLASS_ID, '', b3.CONCEPT_CODE, '',b3.domain_id, b3.valid_start_date, b3.valid_end_date, b3.INVALID_REASON,b3.CONCEPT_CLASS_ID -- add fresh attributes instead of invalid
 from concept_relationship a 
 join concept b on concept_id_1=b.concept_id and regexp_like(b.concept_class_id,'Drug|Pack|Box|Marketed') and b.vocabulary_id='RxNorm Extension'
@@ -43,9 +51,7 @@ from (
              FROM concept c
              JOIN drug_strength ds on ds.DRUG_CONCEPT_ID=c.CONCEPT_ID and c.vocabulary_id='RxNorm Extension'
              join concept c1 on DENOMINATOR_UNIT_CONCEPT_ID=c1.CONCEPT_ID)
-             
-
-      )
+              )
 ;
 
 delete drug_concept_stage where concept_code in (
@@ -78,7 +84,7 @@ update ds_stage set
     numerator_unit=null,
     denominator_value=null,
     denominator_unit=null
-where numerator_unit in ('[hp_X]','[hp_C]');
+where drug_Concept_Code in (select drug_concept_code from ds_Stage where numerator_unit in ('[hp_X]','[hp_C]'));
 
 --add units absent in drug_strength
 UPDATE DS_STAGE   SET AMOUNT_UNIT = '[U]' WHERE DRUG_CONCEPT_CODE = 'OMOP467711' AND   INGREDIENT_CONCEPT_CODE = '560';
@@ -460,6 +466,11 @@ delete ds_stage where INGREDIENT_CONCEPT_CODE in (
 --kind of strange drugs
 delete ds_Stage where drug_concept_code in (select DRUG_CONCEPT_CODE from ds_Stage where NUMERATOR_UNIT='mg' and DENOMINATOR_UNIT='mg' and NUMERATOR_VALUE/DENOMINATOR_VALUE>1);
 
+delete ds_stage where drug_concept_code in (Select drug_Concept_code from ds_stage s 
+left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id='Drug Product'
+left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
+where a.concept_code is null);
+
 commit;
 
 
@@ -696,7 +707,7 @@ commit;
 
 truncate table pc_stage;
 insert into pc_stage (PACK_CONCEPT_CODE,DRUG_CONCEPT_CODE,AMOUNT,BOX_SIZE)
-select c.CONCEPT_CODE,c2.CONCEPT_CODE,AMOUNT,BOX_SIZE
+select distinct c.CONCEPT_CODE,c2.CONCEPT_CODE,AMOUNT,BOX_SIZE
 from pack_content join concept c on PACK_CONCEPT_ID=c.CONCEPT_ID and c.vocabulary_id='RxNorm Extension'
 join concept c2 on DRUG_CONCEPT_ID=c2.CONCEPT_ID;
 
@@ -749,7 +760,8 @@ join concept c2 on c2.concept_code=pcs.drug_concept_code and c.vocabulary_id='AM
 join concept_relationship cr2 on cr2.concept_id_1=c2.concept_id and cr2.relationship_id='Maps to'
 join concept ac2 on ac2.concept_id=cr2.concept_id_2 and ac2.vocabulary_id like 'RxNorm%'
 where c.concept_id not in (select pack_concept_id from pack_content)
-group by c.concept_id  having count(c.concept_id)>1
+group by c.concept_id  having count(c.concept_id)>1)
+and ac.concept_code not in (select pack_concept_code from pc_stage)
 ;
 
                      
@@ -810,3 +822,5 @@ DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP573146'
 AND   CONCEPT_CODE_2 = 'OMOP571237';
+
+--Fotemustine

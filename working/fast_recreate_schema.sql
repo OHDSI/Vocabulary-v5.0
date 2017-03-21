@@ -23,6 +23,8 @@ use this script to recreate main tables (concept, concept_relationship, concept_
 
 declare
 main_schema_name constant varchar2(100):='DEVV5';
+include_synonyms constant boolean:=false;
+include_deprecated_rels constant boolean:=false;
 begin 
     execute immediate 'ALTER TABLE source_to_concept_map DROP CONSTRAINT fpk_source_to_concept_map_v_1';
     execute immediate 'ALTER TABLE source_to_concept_map DROP CONSTRAINT fpk_source_to_concept_map_v_2';
@@ -47,10 +49,18 @@ begin
 
     /*CTAS with NOLOGGING (faster)*/
     execute immediate 'CREATE TABLE concept NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept';
-    execute immediate 'CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_relationship';
-    execute immediate 'CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_synonym';
+    if include_deprecated_rels then
+		execute immediate 'CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_relationship';
+	else
+		execute immediate 'CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_relationship where invalid_reason is null';
+	end if;
+    if include_synonyms then
+		execute immediate 'CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_synonym';
+	else
+		execute immediate 'CREATE TABLE concept_synonym NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_synonym where 1=0';
+	end if;
     execute immediate 'CREATE TABLE vocabulary NOLOGGING AS SELECT * FROM '||main_schema_name||'.vocabulary';
-    execute immediate 'CREATE TABLE relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.relationship';
+	execute immediate 'CREATE TABLE relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.relationship';
     execute immediate 'CREATE TABLE drug_strength NOLOGGING AS SELECT * FROM '||main_schema_name||'.drug_strength';
     execute immediate 'CREATE TABLE pack_content NOLOGGING AS SELECT * FROM '||main_schema_name||'.pack_content';
 

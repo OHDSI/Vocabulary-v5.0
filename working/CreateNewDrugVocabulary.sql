@@ -1021,6 +1021,7 @@ commit;
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'ds', estimate_percent  => null, cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'complete_concept_stage', estimate_percent  => null, cascade  => true);
 
+-- extension_ds differes from unique_ds by converting the units (applying the conversion_factors)
 drop table extension_ds purge;
 create table extension_ds nologging as
 with q_ds as (
@@ -1142,7 +1143,7 @@ with ueds as (
     ) as unum,
     drug_concept_code, ingredient_concept_code, ingredient_vocab
   from (
--- Perform the rounding to 2 significant digits
+-- Perform the rounding to 3 significant digits
     select distinct -- partition by rounding to 3 significant numbers
       units, amount_value, norm_num_value,
       first_value(unum_unrounded) over (
@@ -2274,10 +2275,10 @@ select distinct
   cp.pack_concept_code as concept_code_2,
   'RxNorm Extension' as vocabulary_id_2,
   rl.relationship_id,
-  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+--  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from complete_pack cp join rl on rl.concept_class_1='Brand Name' and rl.concept_class_2=cp.concept_class_id
+from complete_pack cp join rl on rl.concept_class_1='Supplier' and rl.concept_class_2=cp.concept_class_id
 left join pack_q_to_r pqr on cp.pack_concept_code=pqr.pack_concept_code -- exclude those that can be fully mapped
 where pqr.pack_concept_code is null
 and supplier_code!=' '
@@ -2804,7 +2805,7 @@ select distinct
   cp.drug_vocab as drug_vocabulary_id,
   cp.amount, cp.box_size
 from complete_pack cp
-join pack_q_to_r pqr on pqr.pack_concept_code=cp.pack_concept_code
+left join pack_q_to_r pqr on pqr.pack_concept_code=cp.pack_concept_code
 where pqr.pack_concept_code is null -- only those that have no translation.
 ;
 commit;

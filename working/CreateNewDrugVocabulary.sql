@@ -1886,7 +1886,6 @@ relationship_id varchar2(20),
 concept_class_2 varchar2(20)
 );
 insert into rl
--- Packs are not included
 select 'Brand Name', 'Brand name of', 'Branded Drug Box' from dual union
 select 'Brand Name', 'Brand name of', 'Branded Drug Comp' from dual union
 select 'Brand Name', 'Brand name of', 'Branded Drug Form' from dual union
@@ -2275,7 +2274,7 @@ select distinct
   cp.pack_concept_code as concept_code_2,
   'RxNorm Extension' as vocabulary_id_2,
   rl.relationship_id,
---  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from complete_pack cp join rl on rl.concept_class_1='Supplier' and rl.concept_class_2=cp.concept_class_id

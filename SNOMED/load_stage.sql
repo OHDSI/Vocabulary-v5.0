@@ -1602,6 +1602,15 @@ FROM (
 				WHEN term = 'VMP prescribing status' THEN 'VMP has prescr stat'
 				WHEN term = 'Legal category' THEN 'Has legal category'
 				WHEN term = 'Caused by' THEN 'Caused by'
+				WHEN term = 'Precondition' THEN 'Has precondition'
+				WHEN term = 'Inherent location' THEN 'Has inherent loc'
+				WHEN term = 'Technique' THEN 'Has technique'
+				WHEN term = 'Relative to part of' THEN 'Has relative part'
+				WHEN term = 'Process output' THEN 'Has process output'
+				WHEN term = 'Property type' THEN 'Has property type'
+				WHEN term = 'Inheres in' THEN 'Inheres in'
+				WHEN term = 'Direct site' THEN 'Has direct site'
+				WHEN term = 'Characterizes' THEN 'Characterizes'				
 				ELSE 'non-existing'      
 			END AS relationship_id,
 			(select latest_update From vocabulary where vocabulary_id='SNOMED') as valid_start_date,
@@ -1614,6 +1623,10 @@ FROM (
 	AND crs.relationship_id=sn.relationship_id
 );
 COMMIT;
+
+--check for non-existing relationships
+ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
+ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 
 -- 11. add replacement relationships. They are handled in a different SNOMED table
 INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
@@ -1984,29 +1997,25 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (363259005, 'Observation'); -- Patient management procedure
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (278414003, 'Procedure'); -- Pain management
 	-- Added Jan 2017
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('225831004', 'Observation'); -- Finding relating to advocacy
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('13197004', 'Observation'); -- Contraception
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('134436002', 'Observation'); -- Lifestyle
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('250869005', 'Observation'); -- Equipment finding
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('365980008', 'Observation'); -- Tobacco use and exposure - finding
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('386091000', 'Observation'); -- Finding related to compliance with treatment
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('424092004', 'Observation'); -- Questionable explanation of injury
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('444332001', 'Observation'); -- Aware of prognosis
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('444143004', 'Observation'); -- Carries emergency treatment
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('364721000000101', 'Measurement'); -- DFT: dynamic function test
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('749211000000106', 'Observation'); -- NHS Sickle Cell and Thalassaemia Screening Programme family origin
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('91291000000109', 'Observation'); -- Health of the Nation Outcome Scale interpretation
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('900781000000102', 'Observation'); -- Noncompliance with dietetic intervention
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('784891000000108', 'Observation'); -- Injury inconsistent with history given
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('863811000000102', 'Observation'); -- Injury within last 48 hours
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('920911000000100', 'Observation'); -- Appropriate use of accident and emergency service
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('927031000000106', 'Observation'); -- Inappropriate use of walk-in centre
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('927041000000102', 'Observation'); -- Inappropriate use of accident and emergency service
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('927901000000101', 'Observation'); -- Inappropriate triage decision
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('927921000000105', 'Observation'); -- Appropriate triage decision
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('921071000000100', 'Observation'); -- Appropriate use of walk-in centre
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('962871000000107', 'Observation'); -- Aware of overall cardiovascular disease risk
- 	INSERT INTO peak (peak_code, peak_domain_id VALUES ('968521000000109', 'Observation'); -- Inappropriate use of general practitioner service
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (225831004, 'Observation'); -- Finding relating to advocacy
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (134436002, 'Observation'); -- Lifestyle
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (365980008, 'Observation'); -- Tobacco use and exposure - finding
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (386091000, 'Observation'); -- Finding related to compliance with treatment
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (424092004, 'Observation'); -- Questionable explanation of injury
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (364721000000101, 'Measurement'); -- DFT: dynamic function test
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (749211000000106, 'Observation'); -- NHS Sickle Cell and Thalassaemia Screening Programme family origin
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (91291000000109, 'Observation'); -- Health of the Nation Outcome Scale interpretation
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (900781000000102, 'Observation'); -- Noncompliance with dietetic intervention
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (784891000000108, 'Observation'); -- Injury inconsistent with history given
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (863811000000102, 'Observation'); -- Injury within last 48 hours
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (920911000000100, 'Observation'); -- Appropriate use of accident and emergency service
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (927031000000106, 'Observation'); -- Inappropriate use of walk-in centre
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (927041000000102, 'Observation'); -- Inappropriate use of accident and emergency service
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (927901000000101, 'Observation'); -- Inappropriate triage decision
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (927921000000105, 'Observation'); -- Appropriate triage decision
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (921071000000100, 'Observation'); -- Appropriate use of walk-in centre
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (962871000000107, 'Observation'); -- Aware of overall cardiovascular disease risk
+ 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (968521000000109, 'Observation'); -- Inappropriate use of general practitioner service
 
 END;
 COMMIT;

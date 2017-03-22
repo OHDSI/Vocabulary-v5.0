@@ -8,6 +8,14 @@ from concept_relationship a
 join concept b on concept_id_1=b.concept_id and regexp_like(b.concept_class_id,'Drug|Pack|Box|Marketed') and b.vocabulary_id='RxNorm Extension' and a.invalid_reason is null
 join concept b2 on concept_id_2=b2.concept_id and b2.concept_class_id in ('Dose Form','Brand Name','Supplier') and b2.vocabulary_id like 'Rx%' and b2.invalid_reason is null
 UNION
+--RxNorm pack components
+select distinct b2.CONCEPT_NAME, 'Rxfix', 'Drug Product', '', b2.CONCEPT_CODE, '',b2.domain_id, b2.valid_start_date, b2.valid_end_date, b2.INVALID_REASON,b2.CONCEPT_CLASS_ID
+from concept_relationship a 
+join concept b on concept_id_1=b.concept_id and regexp_like(b.concept_class_id,'Pack') 
+and b.vocabulary_id='RxNorm Extension' and a.invalid_reason is null and a.RELATIONSHIP_ID='Contains'
+join concept b2 on concept_id_2=b2.concept_id and regexp_like(b2.concept_class_id,'Drug|Marketed') 
+and b2.vocabulary_id='RxNorm' and b2.invalid_reason is null
+UNION
 select distinct b3.CONCEPT_NAME, 'Rxfix', b3.CONCEPT_CLASS_ID, '', b3.CONCEPT_CODE, '',b3.domain_id, b3.valid_start_date, b3.valid_end_date, b3.INVALID_REASON,b3.CONCEPT_CLASS_ID -- add fresh attributes instead of invalid
 from concept_relationship a 
 join concept b on concept_id_1=b.concept_id and regexp_like(b.concept_class_id,'Drug|Pack|Box|Marketed') and b.vocabulary_id='RxNorm Extension'
@@ -43,9 +51,7 @@ from (
              FROM concept c
              JOIN drug_strength ds on ds.DRUG_CONCEPT_ID=c.CONCEPT_ID and c.vocabulary_id='RxNorm Extension'
              join concept c1 on DENOMINATOR_UNIT_CONCEPT_ID=c1.CONCEPT_ID)
-             
-
-      )
+              )
 ;
 
 delete drug_concept_stage where concept_code in (
@@ -69,6 +75,16 @@ left join concept c3 on AMOUNT_UNIT_CONCEPT_ID=c3.CONCEPT_ID
 left join concept c4 on NUMERATOR_UNIT_CONCEPT_ID=c4.CONCEPT_ID
 left join concept c5 on DENOMINATOR_UNIT_CONCEPT_ID=c5.CONCEPT_ID
 WHERE c.vocabulary_id='RxNorm Extension' ;
+
+--update ds_stage from homeopathy
+update ds_stage set 
+    amount_value=numerator_value, 
+    amount_unit=numerator_unit,
+    numerator_value=null,
+    numerator_unit=null,
+    denominator_value=null,
+    denominator_unit=null
+where drug_Concept_Code in (select drug_concept_code from ds_Stage where numerator_unit in ('[hp_X]','[hp_C]'));
 
 --add units absent in drug_strength
 UPDATE DS_STAGE   SET AMOUNT_UNIT = '[U]' WHERE DRUG_CONCEPT_CODE = 'OMOP467711' AND   INGREDIENT_CONCEPT_CODE = '560';
@@ -116,90 +132,93 @@ where AMOUNT_UNIT='[iU]';
 UPDATE ds_stage
 set AMOUNT_VALUE=NUMERATOR_VALUE,AMOUNT_UNIT=NUMERATOR_UNIT,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT=null ,NUMERATOR_UNIT=null,NUMERATOR_VALUE=null
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and ( b.concept_name like '%Buccal Film%' or b.concept_name like '%Breakyl Start%'));
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code 
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and ( b.concept_name like '%Buccal Film%' or b.concept_name like '%Breakyl Start%')
+                              );
 
 --Fentanyl buccal film
 UPDATE ds_stage
 set AMOUNT_VALUE=NUMERATOR_VALUE,AMOUNT_UNIT=NUMERATOR_UNIT,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT=null ,NUMERATOR_UNIT=null,NUMERATOR_VALUE=null
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and ( b.concept_name like '%Buccal Film%' or b.concept_name like '%Breakyl Start%' or NUMERATOR_VALUE in ('0.808','1.21','1.62')));
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code 
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm') 
+      and ( b.concept_name like '%Buccal Film%' or b.concept_name like '%Breakyl Start%' or NUMERATOR_VALUE in ('0.808','1.21','1.62'))
+                              );
 
 --add denominator to trandermal patch
 
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.012,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h',AMOUNT_UNIT=null,AMOUNT_VALUE=null,NUMERATOR_UNIT='mg'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --also found like 0.4*5.25 cm=2.1 mg=0.012/h
-where  b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('2.55','2.1','2.5','0.4','1.38'))
-;
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --also found like 0.4*5.25 cm=2.1 mg=0.012/h 
+      where  b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('2.55','2.1','2.5','0.4','1.38')
+                              );
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.025,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h',AMOUNT_UNIT=null,AMOUNT_VALUE=null,NUMERATOR_UNIT='mg'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code 
-where b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('0.275','2.75','3.72','4.2','5.1','0.6','0.319','0.25','5','4.8'))
-;
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code 
+      where b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('0.275','2.75','3.72','4.2','5.1','0.6','0.319','0.25','5','4.8')
+                              );
 
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.05,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h',AMOUNT_UNIT=null,AMOUNT_VALUE=null,NUMERATOR_UNIT='mg'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where  b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('5.5','10.2','7.5','8.25','8.4','0.875','9.6','14.4','15.5'))
-;
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
+      where  b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('5.5','10.2','7.5','8.25','8.4','0.875','9.6','14.4','15.5')
+                              );
+                              
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.075,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h',AMOUNT_UNIT=null,AMOUNT_VALUE=null,NUMERATOR_UNIT='mg'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --168
-where  b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('12.6','15.3','12.4','19.2','23.1'))
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --168
+      where  b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('12.6','15.3','12.4','19.2','23.1'))
 ;
 
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.1,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h',AMOUNT_UNIT=null,AMOUNT_VALUE=null,NUMERATOR_UNIT='mg'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --168
-where  b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('16.8','10','11','20.4','16.5'))
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --168
+      where  b.concept_name like '%Fentanyl%Transdermal%' and AMOUNT_VALUE in ('16.8','10','11','20.4','16.5'))
 ;
 
 -- Fentanyl topical
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.012,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --also found like 0.4*5.25 cm=2.1 mg=0.012/h
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('2.55','2.1','2.5','0.4'))
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --also found like 0.4*5.25 cm=2.1 mg=0.012/h
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('2.55','2.1','2.5','0.4'))
 ;
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.025,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code 
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('0.275','2.75','3.72','4.2','5.1','0.6','0.319','0.25','5'))
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code 
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('0.275','2.75','3.72','4.2','5.1','0.6','0.319','0.25','5'))
 ;
 
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.05,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('5.5','10.2','7.5','8.25','8.4','0.875'))
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('5.5','10.2','7.5','8.25','8.4','0.875'))
 ;
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.075,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --168
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('12.6','15.3'))
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --168
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('12.6','15.3'))
 ;
 
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.1,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --168
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('16.8','10','11','20.4'))
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code --168
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('16.8','10','11','20.4'))
 ;
 
 --rivastigmine
@@ -207,95 +226,76 @@ and regexp_like(b.concept_name,'Fentanyl') and NUMERATOR_VALUE in ('16.8','10','
 UPDATE ds_stage
 set NUMERATOR_VALUE=13.3, DENOMINATOR_VALUE=24,DENOMINATOR_UNIT='h'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and b.concept_name like '%rivastigmine%' and NUMERATOR_VALUE=27);
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and b.concept_name like '%rivastigmine%' and NUMERATOR_VALUE=27);
 
 UPDATE ds_stage
 set NUMERATOR_VALUE=case when DENOMINATOR_VALUE is null then NUMERATOR_VALUE*24  else NUMERATOR_VALUE/DENOMINATOR_VALUE*24 end, DENOMINATOR_VALUE=24,DENOMINATOR_UNIT='h'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and b.concept_name like '%rivastigmine%');
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and b.concept_name like '%rivastigmine%');
 
 --nicotine
 UPDATE ds_stage
 set NUMERATOR_VALUE=case when DENOMINATOR_VALUE is null then NUMERATOR_VALUE*16 else NUMERATOR_VALUE/DENOMINATOR_VALUE*16 end,DENOMINATOR_VALUE=16,DENOMINATOR_UNIT='h'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and b.concept_name like '%Nicotine%' and NUMERATOR_VALUE in ('0.625','0.938','1.56','35.2'));
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code 
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and b.concept_name like '%Nicotine%' and NUMERATOR_VALUE in ('0.625','0.938','1.56','35.2'));
 
 UPDATE ds_stage
 set NUMERATOR_VALUE=14,DENOMINATOR_VALUE=24,DENOMINATOR_UNIT='h'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
-and b.concept_name like '%Nicotine%' and NUMERATOR_VALUE in ('5.57','5.14','36','78'));
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code 
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
+      and b.concept_name like '%Nicotine%' and NUMERATOR_VALUE in ('5.57','5.14','36','78'));
 
 --Povidone-Iodine
 update ds_stage
 set numerator_value='100', denominator_value=null,DENOMINATOR_UNIT='mL'
 where drug_concept_code in (
-select drug_concept_code from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm') and concept_name like '%Povidone-Iodine%' ); 
+      select drug_concept_code from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm') and concept_name like '%Povidone-Iodine%' ); 
 
 
 --the other cm
 UPDATE ds_stage
 set DENOMINATOR_UNIT='cm2'
 where DRUG_CONCEPT_CODE in (
-select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
-where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm'));
+      select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
+      where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm'));
 
 commit;
 
 --delete 3 leg dogs
 delete ds_stage where drug_concept_code in(
 with a as (
-select drug_concept_id,count(drug_concept_id) as cnt1 from drug_strength 
-group by drug_concept_id
+      select drug_concept_id,count(drug_concept_id) as cnt1 from drug_strength 
+      group by drug_concept_id
 ),
 b as (
-select descendant_concept_id, count(descendant_concept_id) as cnt2 from concept_ancestor a 
-join concept b on ancestor_concept_id=b.concept_id and concept_class_id='Ingredient'
-join concept b2 on descendant_concept_id=b2.concept_id where b2.concept_class_id not like '%Comp%'
-group by descendant_concept_id)
+      select descendant_concept_id, count(descendant_concept_id) as cnt2 from concept_ancestor a 
+      join concept b on ancestor_concept_id=b.concept_id and concept_class_id='Ingredient'
+      join concept b2 on descendant_concept_id=b2.concept_id where b2.concept_class_id not like '%Comp%'
+      group by descendant_concept_id)
 select  concept_code
 from a join b on a.drug_concept_id=b.descendant_concept_id
 join concept c on drug_concept_id=concept_id 
 where cnt1<cnt2
 and c.vocabulary_id!='RxNorm');
-/*
-create table dogs as
-with a as (
-select drug_concept_id,count(drug_concept_id) as cnt1 from drug_strength 
-group by drug_concept_id
-),
-b as (
-select descendant_concept_id, count(descendant_concept_id) as cnt2 from concept_ancestor a 
-join concept b on ancestor_concept_id=b.concept_id and concept_class_id='Ingredient'
-join concept b2 on descendant_concept_id=b2.concept_id where b2.concept_class_id not like '%Comp%'
-group by descendant_concept_id)
-select  concept_code
-from a join b on a.drug_concept_id=b.descendant_concept_id
-join concept c on drug_concept_id=concept_id 
-where cnt1<cnt2
-and c.vocabulary_id!='RxNorm';
-delete ds_stage where drug_concept_code in (select concept_code from dogs);
-drop table dogs; */
-
 --delete drugs that have denominator_value less than 0.05
 
 delete ds_stage
-where drug_concept_code in (
-select drug_concept_code from ds_stage
-where denominator_value<0.05 and denominator_unit='mL');
+where drug_concept_code in ( 
+      select drug_concept_code from ds_stage 
+      where denominator_value<0.05 and denominator_unit='mL');
 
 delete ds_stage
 where drug_concept_code in (
-select concept_code from concept c join drug_strength ds on drug_concept_id=concept_id and vocabulary_id='RxNorm Extension' and c.invalid_reason is null
-where denominator_value<0.05 and denominator_unit_concept_id=8587);
+      select concept_code from concept c join drug_strength ds on drug_concept_id=concept_id and vocabulary_id='RxNorm Extension' and c.invalid_reason is null 
+      where denominator_value<0.05 and denominator_unit_concept_id=8587);
 
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420658' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420659' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
@@ -351,19 +351,19 @@ update ds_stage ds
 set numerator_value=amount_value,numerator_unit=amount_unit,amount_unit=null,amount_value=null,
 denominator_unit='mL'
 where drug_concept_code in (
-select drug_concept_code from ds_Stage a join ds_stage b using (drug_concept_code) 
-where a.amount_value is not null 
-and b.numerator_value is not null and b.DENOMINATOR_UNIT='mL')
-and amount_value is not null;
+      select drug_concept_code from ds_Stage a join ds_stage b using (drug_concept_code) 
+      where a.amount_value is not null 
+      and b.numerator_value is not null and b.DENOMINATOR_UNIT='mL')
+      and amount_value is not null;
 
 update ds_stage ds
 set numerator_value=amount_value,numerator_unit=amount_unit,amount_unit=null,amount_value=null,
 denominator_unit='mg'
 where drug_concept_code in (
-select drug_concept_code from ds_Stage a join ds_stage b using (drug_concept_code) 
-where a.amount_value is not null 
-and b.numerator_value is not null and b.DENOMINATOR_UNIT='mg')
-and amount_value is not null;
+      select drug_concept_code from ds_Stage a join ds_stage b using (drug_concept_code) 
+      where a.amount_value is not null 
+      and b.numerator_value is not null and b.DENOMINATOR_UNIT='mg')
+      and amount_value is not null;
 
 --rounding
 
@@ -378,11 +378,11 @@ commit;
 --update different denominator units
 MERGE  INTO ds_stage ds
 USING   (
-select distinct a.DRUG_CONCEPT_CODE, regexp_substr (concept_name,'^\d+(\.\d+)?') as cx
- from ds_stage a join ds_stage b 
- on a.drug_concept_code = b.drug_concept_code 
- join concept_stage c on c.concept_code=a.drug_concept_code and c.vocabulary_id='RxNorm Extension'
- where a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE
+      select distinct a.DRUG_CONCEPT_CODE, regexp_substr (concept_name,'^\d+(\.\d+)?') as cx
+      from ds_stage a join ds_stage b 
+      on a.drug_concept_code = b.drug_concept_code 
+      join concept_stage c on c.concept_code=a.drug_concept_code and c.vocabulary_id='RxNorm Extension'
+      where a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE
  )  d 
 
 ON (d.DRUG_CONCEPT_CODE=ds.DRUG_CONCEPT_CODE)
@@ -391,6 +391,28 @@ WHEN MATCHED THEN UPDATE
 SET DENOMINATOR_VALUE=cx
 WHERE d.DRUG_CONCEPT_CODE=ds.DRUG_CONCEPT_CODE
  ;
+ --fix solid forms with denominator
+ update ds_Stage 
+set amount_unit=numerator_unit,
+amount_value=numerator_value,
+numerator_value=null,
+numerator_unit=null,
+denominator_value=null,
+denominator_unit=null
+where drug_concept_Code in (
+      select a.concept_Code from concept a
+      join drug_strength d on concept_id=drug_concept_id and denominator_unit_concept_id is not null
+      and regexp_like (concept_name,'Tablet|Capsule') and vocabulary_id='RxNorm Extension');
+
+
+delete ds_stage where (drug_concept_code,denominator_value) in
+(select distinct a.drug_concept_code,a.denominator_value
+ from ds_stage a join ds_stage b on a.drug_concept_code = b.drug_concept_code 
+ and (a.DENOMINATOR_VALUE is null and b.DENOMINATOR_VALUE is not null  
+ or a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE
+ or a.DENOMINATOR_unit != b.DENOMINATOR_unit)
+ join drug_concept_stage on concept_code=a.drug_concept_code and a.denominator_value!=regexp_substr(concept_name,'\d+(\.\d+)?'));
+ 
  commit;
 
 --percent
@@ -430,50 +452,82 @@ delete ds_stage where ( (AMOUNT_UNIT='%' and amount_value>100) or (NUMERATOR_UNI
 
 --delete deprecated ingredients
 delete ds_stage where INGREDIENT_CONCEPT_CODE in (
-select distinct INGREDIENT_CONCEPT_CODE from ds_stage s 
-left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
-join concept c on  s.INGREDIENT_CONCEPT_CODE =c.concept_code and c.VOCABULARY_ID like 'Rx%' and c.INVALID_REASON='D'
-where b.concept_code is null);
+      select distinct INGREDIENT_CONCEPT_CODE from ds_stage s 
+      left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
+      join concept c on  s.INGREDIENT_CONCEPT_CODE =c.concept_code and c.VOCABULARY_ID like 'Rx%' and c.INVALID_REASON='D'
+      where b.concept_code is null);
 
 --kind of strange drugs
 delete ds_Stage where drug_concept_code in (select DRUG_CONCEPT_CODE from ds_Stage where NUMERATOR_UNIT='mg' and DENOMINATOR_UNIT='mg' and NUMERATOR_VALUE/DENOMINATOR_VALUE>1);
+
+delete ds_stage where drug_concept_code in (Select drug_Concept_code from ds_stage s 
+left join drug_concept_stage a on a.concept_code = s.drug_concept_code and a.concept_class_id='Drug Product'
+left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
+where a.concept_code is null);
 
 commit;
 
 
 truncate table internal_relationship_stage;
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
+insert into internal_relationship_stage (concept_code_1,concept_code_2) 
+select distinct concept_code,concept_Code_2 from (
 --Drug to form
-select distinct dc.concept_code,c2.concept_code
+select distinct dc.concept_code,c2.concept_code as concept_code_2
 from drug_concept_stage dc 
 join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
-join concept_relationship cr on c.concept_id=concept_id_1 and cr.invalid_reason is null
-join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Dose Form' and c2.VOCABULARY_ID like 'Rx%' and c2.invalid_reason is null 
+join concept_relationship cr on c.concept_id=concept_id_1 
+join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Dose Form' 
+and c2.VOCABULARY_ID like 'Rx%' 
+where (( c2.invalid_reason is null and cr.invalid_reason is null) or ( c.invalid_reason is not null and cr.invalid_reason is not null
+and cr.VALID_END_DATE<'02-Feb-2017') )
 --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
-;
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
+
+union
+
 --Drug to BN
 select distinct dc.concept_code,c2.concept_code
 from drug_concept_stage dc 
 join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
-join concept_relationship cr on c.concept_id=concept_id_1 and cr.invalid_reason is null
-join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Brand Name' and c2.VOCABULARY_ID like 'Rx%' and c2.invalid_reason is null 
-where regexp_like (c.concept_name,c2.concept_name)
-;
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
+and (dc.SOURCE_CONCEPT_CLASS_ID not like '%Pack%' or (dc.SOURCE_CONCEPT_CLASS_ID='Marketed Product' and dc.concept_name not like '%Pack%') )
+join concept_relationship cr on c.concept_id=concept_id_1 
+join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Brand Name' 
+and c2.VOCABULARY_ID like 'Rx%' 
+where (( c2.invalid_reason is null and cr.invalid_reason is null) 
+       or ( c.invalid_reason is not null and cr.invalid_reason is not null and cr.VALID_END_DATE<'02-Feb-2017') )
+and regexp_like (c.concept_name,c2.concept_name)
+
+union
+
+--Packs to BN
+select distinct dc.concept_code,c2.concept_code
+from drug_concept_stage dc 
+join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
+and dc.SOURCE_CONCEPT_CLASS_ID like '%Pack%'
+join concept_relationship cr on c.concept_id=concept_id_1 
+join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Brand Name' 
+and c2.VOCABULARY_ID like 'Rx%' 
+where c2.concept_name=replace(replace(regexp_substr(regexp_substr(c.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['), ']')
+
+union
+
 select distinct DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE
 from ds_Stage
-;
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
+
+union
+
 --Drug to supplier
 select distinct dc.concept_code,c2.concept_code
 from drug_concept_stage dc 
 join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
-join concept_relationship cr on c.concept_id=concept_id_1 and cr.invalid_reason is null
-join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Supplier' and c2.VOCABULARY_ID like 'Rx%' and c2.invalid_reason is null 
-;
+join concept_relationship cr on c.concept_id=concept_id_1 
+join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Supplier' 
+and c2.VOCABULARY_ID like 'Rx%' 
+where (( c2.invalid_reason is null and cr.invalid_reason is null) 
+       or ( c.invalid_reason is not null and cr.invalid_reason is not null and cr.VALID_END_DATE<'02-Feb-2017') )
+
+union
+
 --insert relationships to those packs that do not have Pack's BN
-insert into internal_relationship_stage (concept_code_1,concept_code_2)
 select distinct a.concept_code,c2.concept_code
  from concept a join concept_relationship b on concept_id_1=a.concept_id and a.vocabulary_id='RxNorm Extension'
 and a.concept_class_id like '%Branded%Pack%'
@@ -482,7 +536,7 @@ and c2.vocabulary_id like 'RxNorm%' and c2.concept_class_id='Brand Name'
 where concept_id_1 not in (
 select concept_id_1 from concept a join concept_relationship b on concept_id_1=a.concept_id and a.vocabulary_id='RxNorm Extension'
 and a.concept_class_id like '%Pack%'
-join concept c on concept_id_2=c.concept_id and c.CONCEPT_CLASS_ID='Brand Name' and b.invalid_reason is null);
+join concept c on concept_id_2=c.concept_id and c.CONCEPT_CLASS_ID='Brand Name' and b.invalid_reason is null));
 
 --Delete baxter(where baxter and baxter ltd)
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP432125' AND   CONCEPT_CODE_2 = 'OMOP439843';
@@ -647,9 +701,18 @@ commit;
 
 truncate table pc_stage;
 insert into pc_stage (PACK_CONCEPT_CODE,DRUG_CONCEPT_CODE,AMOUNT,BOX_SIZE)
-select c.CONCEPT_CODE,c2.CONCEPT_CODE,AMOUNT,BOX_SIZE
+select distinct c.CONCEPT_CODE,c2.CONCEPT_CODE,AMOUNT,BOX_SIZE
 from pack_content join concept c on PACK_CONCEPT_ID=c.CONCEPT_ID and c.vocabulary_id='RxNorm Extension'
 join concept c2 on DRUG_CONCEPT_ID=c2.CONCEPT_ID;
+
+--need to think of amount
+/*select c.concept_name,c2.concept_name, regexp_substr(regexp_substr(c.concept_name,'box\sof\s.*'),'\d+')
+ from concept c 
+join concept_relationship cr on concept_id=concept_id_1 and relationship_id='Contains' and c.vocabulary_id='RxNorm Extension'
+join concept c2 on c2.concept_id=concept_id_2
+ where c.concept_class_id like '%Pack%' and c.concept_code not in (select pack_concept_code from pc_stage)
+ and c.invalid_reason is null;*/
+
 
 --fix 2 equal components
 DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP339574' AND   DRUG_CONCEPT_CODE = '197659' AND   AMOUNT = 12;
@@ -673,17 +736,61 @@ DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP339895' AND   DRUG_CONCEPT_C
 UPDATE PC_STAGE   SET AMOUNT = 12 WHERE PACK_CONCEPT_CODE = 'OMOP339633' AND   DRUG_CONCEPT_CODE = '310463' AND   AMOUNT = 7;
 UPDATE PC_STAGE   SET AMOUNT = 12 WHERE PACK_CONCEPT_CODE = 'OMOP339814' AND   DRUG_CONCEPT_CODE = '310463' AND   AMOUNT = 7;
 
+--insert missing packs
+insert into pc_stage (pack_concept_code,drug_concept_code,amount,box_size)
+select distinct ac.concept_code,ac2.concept_code,pcs.amount,pcs.box_size
+from dev_amt.pc_stage pcs join concept c on c.concept_code=pcs.pack_Concept_code and c.vocabulary_id='AMT' and c.invalid_reason is null
+join concept_relationship cr on cr.concept_id_1=c.concept_id and cr.relationship_id='Maps to'
+join concept ac on ac.concept_id=cr.concept_id_2 and ac.vocabulary_id='RxNorm Extension' and ac.invalid_Reason is null
+join concept c2 on c2.concept_code=pcs.drug_concept_code and c.vocabulary_id='AMT' and c2.invalid_reason is null
+join concept_relationship cr2 on cr2.concept_id_1=c2.concept_id and cr2.relationship_id='Maps to'
+join concept ac2 on ac2.concept_id=cr2.concept_id_2 and ac2.vocabulary_id like 'RxNorm%' and ac2.invalid_Reason is null
+where c.concept_id not in (select pack_concept_id from pack_content)
+and c.concept_id in (select c.concept_id from
+dev_amt.pc_stage pcs join concept c on c.concept_code=pcs.pack_Concept_code and c.vocabulary_id='AMT' and c.invalid_reason is null
+join concept_relationship cr on cr.concept_id_1=c.concept_id and cr.relationship_id='Maps to'
+join concept ac on ac.concept_id=cr.concept_id_2 and ac.vocabulary_id='RxNorm Extension' and ac.invalid_Reason is null
+join concept c2 on c2.concept_code=pcs.drug_concept_code and c.vocabulary_id='AMT' and c2.invalid_reason is null
+join concept_relationship cr2 on cr2.concept_id_1=c2.concept_id and cr2.relationship_id='Maps to'
+join concept ac2 on ac2.concept_id=cr2.concept_id_2 and ac2.vocabulary_id like 'RxNorm%'
+where c.concept_id not in (select pack_concept_id from pack_content)
+group by c.concept_id  having count(c.concept_id)>1)
+and ac.concept_code not in (select pack_concept_code from pc_stage)
+;
+insert into pc_stage (pack_concept_code,drug_concept_code,amount,box_size)
+select distinct ac.concept_code,ac2.concept_code,pcs.amount,pcs.box_size
+from dev_amis.pc_stage pcs join concept c on c.concept_code=pcs.pack_Concept_code and c.vocabulary_id='AMIS' and c.invalid_reason is null
+join concept_relationship cr on cr.concept_id_1=c.concept_id and cr.relationship_id='Maps to'
+join concept ac on ac.concept_id=cr.concept_id_2 and ac.vocabulary_id='RxNorm Extension' and ac.invalid_Reason is null
+join concept c2 on c2.concept_code=pcs.drug_concept_code and c.vocabulary_id='AMIS' and c2.invalid_reason is null
+join concept_relationship cr2 on cr2.concept_id_1=c2.concept_id and cr2.relationship_id='Maps to'
+join concept ac2 on ac2.concept_id=cr2.concept_id_2 and ac2.vocabulary_id like 'RxNorm%' and ac2.invalid_Reason is null
+where c.concept_id not in (select pack_concept_id from pack_content)
+and c.concept_id in (select c.concept_id from
+dev_amis.pc_stage pcs join concept c on c.concept_code=pcs.pack_Concept_code and c.vocabulary_id='AMIS' and c.invalid_reason is null
+join concept_relationship cr on cr.concept_id_1=c.concept_id and cr.relationship_id='Maps to'
+join concept ac on ac.concept_id=cr.concept_id_2 and ac.vocabulary_id='RxNorm Extension' and ac.invalid_Reason is null
+join concept c2 on c2.concept_code=pcs.drug_concept_code and c.vocabulary_id='AMIS' 
+join concept_relationship cr2 on cr2.concept_id_1=c2.concept_id and cr2.relationship_id='Maps to'
+join concept ac2 on ac2.concept_id=cr2.concept_id_2 and ac2.vocabulary_id like 'RxNorm%'
+where c.concept_id not in (select pack_concept_id from pack_content)
+group by c.concept_id  having count(c.concept_id)>1)
+and ac.concept_code not in (select pack_concept_code from pc_stage)
+;
+
+                     
 commit;
 
 truncate table relationship_to_concept;
+
 insert into relationship_to_concept (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
 select a.concept_code, a.VOCABULARY_ID,b.concept_id,1
- from drug_concept_stage a 
+from drug_concept_stage a 
 join concept b on a.concept_code=b.concept_code and b.vocabulary_id in ('RxNorm','RxNorm Extension') and a.concept_class_id in ('Dose Form','Brand Name','Supplier','Ingredient') ;
 
 insert into relationship_to_concept (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
 select a.concept_code, a.VOCABULARY_ID,b.concept_id,1,1
- from drug_concept_stage a 
+from drug_concept_stage a 
 join concept b on a.concept_code=b.concept_code and a.concept_class_id='Unit' and b.vocabulary_id='UCUM' ;
 
 UPDATE RELATIONSHIP_TO_CONCEPT   SET CONCEPT_ID_2 = 19011438
@@ -695,7 +802,6 @@ UPDATE RELATIONSHIP_TO_CONCEPT
 WHERE CONCEPT_CODE_1 = 'ug'
 AND   CONCEPT_ID_2 = 9655
 ;
-
 
 --strange staff
 DELETE
@@ -726,8 +832,9 @@ DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP572848'
 AND   CONCEPT_CODE_2 = 'OMOP571012';
-
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP573146'
 AND   CONCEPT_CODE_2 = 'OMOP571237';
+
+--Fotemustine

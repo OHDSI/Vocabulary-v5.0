@@ -1630,13 +1630,13 @@ ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 
 -- 11. add replacement relationships. They are handled in a different SNOMED table
 INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                    		vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
+														concept_code_2,
+														vocabulary_id_1,
+														vocabulary_id_2,
+														relationship_id,
+														valid_start_date,
+														valid_end_date,
+														invalid_reason)
    SELECT DISTINCT
           sn.concept_code_1,
           sn.concept_code_2,
@@ -1675,6 +1675,44 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
 		AND crs.relationship_id=sn.relationship_id	
 	);
 COMMIT;
+
+--sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
+INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
+														concept_code_2,
+														vocabulary_id_1,
+														vocabulary_id_2,
+														relationship_id,
+														valid_start_date,
+														valid_end_date,
+														invalid_reason)
+	select cs.concept_code as concept_code_1, c2.concept_code as concept_code_2, 
+	'SNOMED' as vocabulary_id_1, 'SNOMED' as vocabulary_id_2, cr.relationship_id, 
+	cr.valid_start_date,(SELECT latest_update - 1 FROM vocabulary WHERE vocabulary_id = 'SNOMED') as valid_end_date, 
+	'D' as invalid_reason
+from concept_stage cs
+left join concept_relationship_stage crs on crs.concept_code_1=cs.concept_code 
+    and crs.vocabulary_id_1=cs.vocabulary_id and crs.relationship_id in (
+    'Concept replaced by',
+    'Concept same_as to',
+    'Concept alt_to to',
+    'Concept poss_eq to',
+    'Concept was_a to'
+    )
+join concept c1 on c1.concept_code=cs.concept_code and c1.vocabulary_id=cs.vocabulary_id
+join concept_relationship cr on cr.concept_id_1=c1.concept_id 
+    and cr.invalid_reason is null and cr.relationship_id in (
+    'Concept replaced by',
+    'Concept same_as to',
+    'Concept alt_to to',
+    'Concept poss_eq to',
+    'Concept was_a to'
+    )
+join concept c2 on c2.concept_id=cr.concept_id_2    
+where cs.invalid_reason is null
+and c1.invalid_reason='U'
+and cs.vocabulary_id='SNOMED'
+and crs.concept_code_1 is null;
+commit;
 
 --12 Working with replacement mappings
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);

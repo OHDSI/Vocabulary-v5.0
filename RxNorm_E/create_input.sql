@@ -1,14 +1,19 @@
+-- COMMENTS!!!
+
+-- Create Concepts
 truncate table DRUG_CONCEPT_STAGE;
+-- Get products
 insert into DRUG_CONCEPT_STAGE (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,domain_id,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select distinct CONCEPT_NAME, 'Rxfix', 'Drug Product', '', CONCEPT_CODE, '',domain_id, valid_start_date, valid_end_date, INVALID_REASON,CONCEPT_CLASS_ID
 from concept where regexp_like(concept_class_id,'Drug|Pack|Box|Marketed') and vocabulary_id='RxNorm Extension' and VALID_END_DATE>'02-Feb-2017' -- add constriction
 UNION
+-- Get Dose Forms, Brand Names, Supplier, including RxNorm
 select distinct b2.CONCEPT_NAME, 'Rxfix', b2.CONCEPT_CLASS_ID, '', b2.CONCEPT_CODE, '',b2.domain_id, b2.valid_start_date, b2.valid_end_date, b2.INVALID_REASON,b2.CONCEPT_CLASS_ID
 from concept_relationship a 
 join concept b on concept_id_1=b.concept_id and regexp_like(b.concept_class_id,'Drug|Pack|Box|Marketed') and b.vocabulary_id='RxNorm Extension' and a.invalid_reason is null
 join concept b2 on concept_id_2=b2.concept_id and b2.concept_class_id in ('Dose Form','Brand Name','Supplier') and b2.vocabulary_id like 'Rx%' and b2.invalid_reason is null
 UNION
---RxNorm pack components
+--Get RxNorm pack components from RxNorm
 select distinct b2.CONCEPT_NAME, 'Rxfix', 'Drug Product', '', b2.CONCEPT_CODE, '',b2.domain_id, b2.valid_start_date, b2.valid_end_date, b2.INVALID_REASON,b2.CONCEPT_CLASS_ID
 from concept_relationship a 
 join concept b on concept_id_1=b.concept_id and regexp_like(b.concept_class_id,'Pack') 
@@ -16,6 +21,7 @@ and b.vocabulary_id='RxNorm Extension' and a.invalid_reason is null and a.RELATI
 join concept b2 on concept_id_2=b2.concept_id and regexp_like(b2.concept_class_id,'Drug|Marketed') 
 and b2.vocabulary_id='RxNorm' and b2.invalid_reason is null
 UNION
+-- Get upgraded Dose Forms, Brand Names, Supplier
 select distinct b3.CONCEPT_NAME, 'Rxfix', b3.CONCEPT_CLASS_ID, '', b3.CONCEPT_CODE, '',b3.domain_id, b3.valid_start_date, b3.valid_end_date, b3.INVALID_REASON,b3.CONCEPT_CLASS_ID -- add fresh attributes instead of invalid
 from concept_relationship a 
 join concept b on concept_id_1=b.concept_id and regexp_like(b.concept_class_id,'Drug|Pack|Box|Marketed') and b.vocabulary_id='RxNorm Extension'
@@ -23,6 +29,8 @@ join concept b2 on concept_id_2=b2.concept_id and b2.concept_class_id in ('Dose 
 join concept_relationship a2 on a2.concept_id_1=b2.concept_id and a2.RELATIONSHIP_ID='Concept replaced by'
 join concept b3 on a2.concept_id_2=b3.concept_id and b3.concept_class_id in ('Dose Form','Brand Name','Supplier') and b3.vocabulary_id like 'Rx%' 
 UNION
+-- Ingredients: Need to check what happens to deprecated
+-- Get ingredients from drug_strength (XXX might not be necessary) 
 select distinct CONCEPT_NAME, 'Rxfix', 'Ingredient', 'S',CONCEPT_CODE, '',domain_id, valid_start_date, valid_end_date, INVALID_REASON,'Ingredient'
 from 
 (select b.concept_name, b.concept_code, b.domain_id, b.valid_start_date, b.valid_end_date,b.INVALID_REASON
@@ -30,10 +38,12 @@ from drug_strength a join concept b on a.ingredient_concept_id=b.concept_id and 
 join concept c on a.drug_concept_id=c.concept_id and c.vocabulary_id='RxNorm Extension'
 where b.vocabulary_id like 'Rx%'
 union
+-- Get ingredients from hierarchy
 select a.concept_name, a.concept_code, a.domain_id, a.valid_start_date, a.valid_end_date ,a.INVALID_REASON --add ingredients from ancestor
 from concept a join concept_ancestor b on a.concept_id=ancestor_concept_id and a.concept_class_id='Ingredient'
 join concept a2 on descendant_concept_id=a2.concept_id and a2.vocabulary_id='RxNorm Extension')
 UNION
+-- Units
 select distinct CONCEPT_NAME, 'Rxfix', 'Unit', '', CONCEPT_CODE, '','Drug',TO_DATE('2017/01/24', 'yyyy/mm/dd'),TO_DATE('2099/12/31', 'yyyy/mm/dd'), '','Unit'
 from (
       select distinct CONCEPT_NAME,CONCEPT_CODE from 
@@ -54,9 +64,11 @@ from (
               )
 ;
 
+-- Remove all deprecated
 delete drug_concept_stage where concept_code in (
 select concept_code from concept where vocabulary_id like 'RxNorm%' and invalid_reason='D' and VALID_END_DATE<'02-Feb-2017');
 
+-- Remove all where there is less than total of 0.05 mL
 delete drug_concept_stage 
 where concept_code in (
 select concept_code from concept c join devv5.drug_strength ds on drug_concept_id=concept_id and vocabulary_id='RxNorm Extension' and c.invalid_reason is null
@@ -65,6 +77,7 @@ where denominator_value<0.05 and denominator_unit_concept_id=8587);
 --insert into drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON) 
 --select CONCEPT_NAME,DOMAIN_ID,'Rxfix',CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_stage where concept_name='Fotemustine' and invalid_reason is null;
 
+-- drug_strength
 truncate table ds_stage;
 insert into ds_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
 select c.concept_code, c2.concept_code,box_size,AMOUNT_VALUE,c3.CONCEPT_CODE,NUMERATOR_VALUE,c4.CONCEPT_CODE,DENOMINATOR_VALUE,c5.CONCEPT_CODE
@@ -76,7 +89,7 @@ left join concept c4 on NUMERATOR_UNIT_CONCEPT_ID=c4.CONCEPT_ID
 left join concept c5 on DENOMINATOR_UNIT_CONCEPT_ID=c5.CONCEPT_ID
 WHERE c.vocabulary_id='RxNorm Extension' ;
 
---update ds_stage from homeopathy
+--update ds_stage for homeopathic drugs
 update ds_stage set 
     amount_value=numerator_value, 
     amount_unit=numerator_unit,
@@ -86,7 +99,7 @@ update ds_stage set
     denominator_unit=null
 where drug_Concept_Code in (select drug_concept_code from ds_Stage where numerator_unit in ('[hp_X]','[hp_C]'));
 
---add units absent in drug_strength
+-- Manually add absent units in drug_strength
 UPDATE DS_STAGE   SET AMOUNT_UNIT = '[U]' WHERE DRUG_CONCEPT_CODE = 'OMOP467711' AND   INGREDIENT_CONCEPT_CODE = '560';
 UPDATE DS_STAGE   SET AMOUNT_UNIT = '[U]' WHERE DRUG_CONCEPT_CODE = 'OMOP467709' AND   INGREDIENT_CONCEPT_CODE = '560';
 UPDATE DS_STAGE   SET AMOUNT_VALUE = 100,       AMOUNT_UNIT = 'mg',       NUMERATOR_VALUE = NULL,       NUMERATOR_UNIT = '' WHERE DRUG_CONCEPT_CODE = 'OMOP420833' AND   INGREDIENT_CONCEPT_CODE = '1202';
@@ -106,7 +119,7 @@ UPDATE DS_STAGE   SET AMOUNT_VALUE = 100,       AMOUNT_UNIT = 'mg',       NUMERA
 UPDATE DS_STAGE   SET AMOUNT_VALUE = 25,       AMOUNT_UNIT = 'mg',       NUMERATOR_VALUE = NULL,       NUMERATOR_UNIT = '' WHERE DRUG_CONCEPT_CODE = 'OMOP420833' AND   INGREDIENT_CONCEPT_CODE = '2409';
 UPDATE DS_STAGE   SET AMOUNT_VALUE = 100,       AMOUNT_UNIT = 'mg',       NUMERATOR_VALUE = NULL,       NUMERATOR_UNIT = '' WHERE DRUG_CONCEPT_CODE = 'OMOP420835' AND   INGREDIENT_CONCEPT_CODE = '1202';
 
-
+-- Fix micrograms and iU
 update ds_stage
 set NUMERATOR_UNIT='mg',NUMERATOR_VALUE=NUMERATOR_VALUE/1000
 where NUMERATOR_UNIT='ug';
@@ -127,17 +140,17 @@ update ds_stage
 set AMOUNT_UNIT='[U]'
 where AMOUNT_UNIT='[iU]';
 
-
---Fentanyl buccal film
+-- Do all sorts of manual fixes
+-- Fentanyl buccal film
 UPDATE ds_stage
 set AMOUNT_VALUE=NUMERATOR_VALUE,AMOUNT_UNIT=NUMERATOR_UNIT,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT=null ,NUMERATOR_UNIT=null,NUMERATOR_VALUE=null
 where DRUG_CONCEPT_CODE in (
       select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code 
       where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm')
       and ( b.concept_name like '%Buccal Film%' or b.concept_name like '%Breakyl Start%')
-                              );
-
---Fentanyl buccal film
+);
+                              
+-- Fentanyl buccal film
 UPDATE ds_stage
 set AMOUNT_VALUE=NUMERATOR_VALUE,AMOUNT_UNIT=NUMERATOR_UNIT,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT=null ,NUMERATOR_UNIT=null,NUMERATOR_VALUE=null
 where DRUG_CONCEPT_CODE in (
@@ -146,8 +159,7 @@ where DRUG_CONCEPT_CODE in (
       and ( b.concept_name like '%Buccal Film%' or b.concept_name like '%Breakyl Start%' or NUMERATOR_VALUE in ('0.808','1.21','1.62'))
                               );
 
---add denominator to trandermal patch
-
+-- Add denominator to trandermal patch
 UPDATE ds_stage 
 set NUMERATOR_VALUE=0.012,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='h',AMOUNT_UNIT=null,AMOUNT_VALUE=null,NUMERATOR_UNIT='mg'
 where DRUG_CONCEPT_CODE in (
@@ -259,17 +271,18 @@ where drug_concept_code in (
       select drug_concept_code from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
       where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm') and concept_name like '%Povidone-Iodine%' ); 
 
-
+-- XXX Delete cm2 if RxNorm doesn't have it +++
 --the other cm
-UPDATE ds_stage
-set DENOMINATOR_UNIT='cm2'
+DELETE ds_stage
 where DRUG_CONCEPT_CODE in (
       select DRUG_CONCEPT_CODE from ds_stage a join drug_concept_stage b on a.drug_concept_code=b.concept_code
       where nvl(AMOUNT_UNIT,NUMERATOR_UNIT) in ('cm','mm' ) or DENOMINATOR_UNIT in ('cm','mm'));
 
 commit;
 
---delete 3 leg dogs
+-- XXX ??????! Check ingredients first
+-- Delete 3 legged dogs
+
 delete ds_stage where drug_concept_code in(
 with a as (
       select drug_concept_id,count(drug_concept_id) as cnt1 from drug_strength 
@@ -285,68 +298,21 @@ from a join b on a.drug_concept_id=b.descendant_concept_id
 join concept c on drug_concept_id=concept_id 
 where cnt1<cnt2
 and c.vocabulary_id!='RxNorm');
---delete drugs that have denominator_value less than 0.05
 
+--delete drugs that have denominator_value less than 0.05
+-- Remove those with less than 0.05 ml in denominator
 delete ds_stage
 where drug_concept_code in ( 
       select drug_concept_code from ds_stage 
       where denominator_value<0.05 and denominator_unit='mL');
 
-delete ds_stage
-where drug_concept_code in (
-      select concept_code from concept c join drug_strength ds on drug_concept_id=concept_id and vocabulary_id='RxNorm Extension' and c.invalid_reason is null 
-      where denominator_value<0.05 and denominator_unit_concept_id=8587);
-
+-- Fixes U/mg to U/mL
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420658' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420659' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420660' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 10000,       DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE = 'OMOP420661' AND   INGREDIENT_CONCEPT_CODE = '8536' AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 10 AND   NUMERATOR_UNIT = '[U]' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'mg';
 
-/*
---checked that denominator_unit=Quant factor unit,updated to make denominator_value=quant factor
-MERGE  INTO ds_stage ds
-USING   (
-select distinct a.DRUG_CONCEPT_CODE
- from ds_stage a
- join concept_stage c on c.concept_code=a.drug_concept_code and c.vocabulary_id='RxNorm Extension'
-where denominator_value!=regexp_substr (concept_name,'^\d+(\.\d+)?')
-and a.DRUG_CONCEPT_CODE not in (
-select distinct a.DRUG_CONCEPT_CODE
- from ds_stage a join ds_stage b 
- on a.drug_concept_code = b.drug_concept_code 
- where a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE)
- )  d 
-
-ON (d.DRUG_CONCEPT_CODE=ds.DRUG_CONCEPT_CODE)
-                   
-WHEN MATCHED THEN UPDATE
-SET DENOMINATOR_VALUE=DENOMINATOR_VALUE/1000,
-    NUMERATOR_VALUE=NUMERATOR_VALUE/1000
- ;
-
- -- update denominator and numerator keeping in mind Quant factor
-MERGE  INTO ds_stage ds
-USING   (
-select distinct a.DRUG_CONCEPT_CODE
- from ds_stage a
- join concept_stage c on c.concept_code=a.drug_concept_code and c.vocabulary_id='RxNorm Extension'
-where denominator_value!=regexp_substr (concept_name,'^\d+(\.\d+)?')
-and a.DRUG_CONCEPT_CODE  in (
-select distinct a.DRUG_CONCEPT_CODE
- from ds_stage a join ds_stage b 
- on a.drug_concept_code = b.drug_concept_code 
- where a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE)
- and length (denominator_value)>3  and (length (regexp_substr (concept_name,'^\d+(\.\d+)?'))<3 or (regexp_substr (concept_name,'^\d+(\.\d+)?')) like '%.%')
- )  d 
-
-ON (d.DRUG_CONCEPT_CODE=ds.DRUG_CONCEPT_CODE)
-                   
-WHEN MATCHED THEN UPDATE
-SET DENOMINATOR_VALUE=DENOMINATOR_VALUE/1000,
-    NUMERATOR_VALUE=NUMERATOR_VALUE/1000
- ;   
-*/
---update drugs that have soluble and solid ingredients in the same drug 
+-- Create consolidated denominator unit for drugs that have soluble and solid ingredients in the same drug 
 update ds_stage ds
 set numerator_value=amount_value,numerator_unit=amount_unit,amount_unit=null,amount_value=null,
 denominator_unit='mL'
@@ -365,16 +331,6 @@ where drug_concept_code in (
       and b.numerator_value is not null and b.DENOMINATOR_UNIT='mg')
       and amount_value is not null;
 
---rounding
-
-update ds_stage
-set 
-AMOUNT_VALUE=round(AMOUNT_VALUE, 3-floor(log(10, AMOUNT_VALUE))-1),
-NUMERATOR_VALUE=round(NUMERATOR_VALUE, 3-floor(log(10, NUMERATOR_VALUE))-1),
-DENOMINATOR_VALUE=round(DENOMINATOR_VALUE, 3-floor(log(10, DENOMINATOR_VALUE))-1)
-;
-commit;
-
 --update different denominator units
 MERGE  INTO ds_stage ds
 USING   (
@@ -385,12 +341,23 @@ USING   (
       where a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE
  )  d 
 
-ON (d.DRUG_CONCEPT_CODE=ds.DRUG_CONCEPT_CODE)
-                   
+ON (d.DRUG_CONCEPT_CODE=ds.DRUG_CONCEPT_CODE) 
 WHEN MATCHED THEN UPDATE
 SET DENOMINATOR_VALUE=cx
 WHERE d.DRUG_CONCEPT_CODE=ds.DRUG_CONCEPT_CODE
- ;
+;
+
+-- XXX ?? ????
+--rounding
+update ds_stage
+set 
+AMOUNT_VALUE=round(AMOUNT_VALUE, 3-floor(log(10, AMOUNT_VALUE))-1),
+NUMERATOR_VALUE=round(NUMERATOR_VALUE, 3-floor(log(10, NUMERATOR_VALUE))-1),
+DENOMINATOR_VALUE=round(DENOMINATOR_VALUE, 3-floor(log(10, DENOMINATOR_VALUE))-1)
+;
+commit;
+
+
  --fix solid forms with denominator
  update ds_Stage 
 set amount_unit=numerator_unit,
@@ -405,6 +372,7 @@ where drug_concept_Code in (
       and regexp_like (concept_name,'Tablet|Capsule') and vocabulary_id='RxNorm Extension');
 
 
+-- Delete combination drugs where denominators don't match
 delete ds_stage where (drug_concept_code,denominator_value) in
 (select distinct a.drug_concept_code,a.denominator_value
  from ds_stage a join ds_stage b on a.drug_concept_code = b.drug_concept_code 
@@ -413,14 +381,15 @@ delete ds_stage where (drug_concept_code,denominator_value) in
  or a.DENOMINATOR_unit != b.DENOMINATOR_unit)
  join drug_concept_stage on concept_code=a.drug_concept_code and a.denominator_value!=regexp_substr(concept_name,'\d+(\.\d+)?'));
  
- commit;
+commit;
 
---percent
+-- Put percent into the numerator, not amount
 update ds_stage
 set numerator_unit=amount_unit,NUMERATOR_VALUE=AMOUNT_VALUE,AMOUNT_VALUE=null,amount_unit=null
 where  amount_unit ='%' 
 ;
 
+-- More manual fixes
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 25 WHERE DRUG_CONCEPT_CODE = 'OMOP303266';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 25 WHERE DRUG_CONCEPT_CODE = 'OMOP303267';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 25 WHERE DRUG_CONCEPT_CODE = 'OMOP303268';
@@ -432,14 +401,19 @@ UPDATE DS_STAGE   SET NUMERATOR_VALUE = 1 WHERE DRUG_CONCEPT_CODE = 'OMOP317480'
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 1 WHERE DRUG_CONCEPT_CODE = 'OMOP317480';
 UPDATE DS_STAGE   SET DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE in ( 'OMOP420658','OMOP420659','OMOP420660','OMOP420661') ;
 
+-- XXX Check this with Christian  obviosly it's just a percent so I changed it to mg/ml select * from devv5.drug_strength join devv5.concept on drug_Concept_id=concept_id where denominator_unit_concept_id=45744809 and numerator_unit_Concept_id=8554 ;
+-- Change %/actuat into mg/mL
 update ds_stage
 set NUMERATOR_VALUE=NUMERATOR_VALUE*10,NUMERATOR_UNIT='mg',DENOMINATOR_VALUE=null,DENOMINATOR_UNIT='mL' 
 where DENOMINATOR_UNIT='{actuat}' and NUMERATOR_UNIT='%'
 ;
+
+-- Manual fixes with strange % values
 update ds_stage 
 set NUMERATOR_VALUE=100,DENOMINATOR_VALUE=null,DENOMINATOR_UNIT=null
 where NUMERATOR_UNIT='%' and NUMERATOR_VALUE  in ('0.000283','0.1','35.3');
 
+-- Remove all %/mg etc.
 delete ds_Stage where NUMERATOR_UNIT='%' and DENOMINATOR_UNIT is not null;
 
 --delete huge dosages
@@ -448,9 +422,11 @@ select  drug_concept_code from ds_stage
 where (( lower (numerator_unit) in ('mg') and lower (denominator_unit) in ('ml','g') or  lower (numerator_unit) in ('g') and lower (denominator_unit) in ('l') ) and numerator_value / denominator_value > 1000 )
 or (lower (numerator_unit) in ('g') and lower (denominator_unit) in ('ml') and numerator_value / denominator_value > 1));
 
+-- Delete more than 100%
 delete ds_stage where ( (AMOUNT_UNIT='%' and amount_value>100) or (NUMERATOR_UNIT='%' and NUMERATOR_VALUE>100));
 
---delete deprecated ingredients
+-- XXX Check this
+--delete deprecated ingredients  I deprecate those ingredients that had died before 2 Feb 2017 (and so they dont exist in drug_concept_stage)
 delete ds_stage where INGREDIENT_CONCEPT_CODE in (
       select distinct INGREDIENT_CONCEPT_CODE from ds_stage s 
       left join drug_concept_stage b on b.concept_code = s.INGREDIENT_CONCEPT_CODE and b.concept_class_id = 'Ingredient'
@@ -485,16 +461,16 @@ and cr.VALID_END_DATE<'02-Feb-2017') )
 union
 
 --Drug to BN
-select distinct dc.concept_code,c2.concept_code
-from drug_concept_stage dc 
-join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
-and (dc.SOURCE_CONCEPT_CLASS_ID not like '%Pack%' or (dc.SOURCE_CONCEPT_CLASS_ID='Marketed Product' and dc.concept_name not like '%Pack%') )
-join concept_relationship cr on c.concept_id=concept_id_1 
-join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Brand Name' 
-and c2.VOCABULARY_ID like 'Rx%' 
-where (( c2.invalid_reason is null and cr.invalid_reason is null) 
-       or ( c.invalid_reason is not null and cr.invalid_reason is not null and cr.VALID_END_DATE<'02-Feb-2017') )
-and regexp_like (c.concept_name,c2.concept_name)
+	select distinct dc.concept_code,c2.concept_code
+	from drug_concept_stage dc 
+	join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
+	and (dc.SOURCE_CONCEPT_CLASS_ID not like '%Pack%' or (dc.SOURCE_CONCEPT_CLASS_ID='Marketed Product' and dc.concept_name not like '%Pack%') )
+	join concept_relationship cr on c.concept_id=concept_id_1 
+	join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Brand Name' 
+	and c2.VOCABULARY_ID like 'Rx%' 
+	where (( c2.invalid_reason is null and cr.invalid_reason is null) 
+	       or ( c.invalid_reason is not null and cr.invalid_reason is not null and cr.VALID_END_DATE<'02-Feb-2017') )
+	and regexp_like (c.concept_name,c2.concept_name)
 
 union
 
@@ -502,7 +478,7 @@ union
 select distinct dc.concept_code,c2.concept_code
 from drug_concept_stage dc 
 join concept c on c.concept_code=dc.concept_code and c.vocabulary_id='RxNorm Extension' and dc.concept_class_id='Drug Product'
-and dc.SOURCE_CONCEPT_CLASS_ID like '%Pack%'
+and dc.concept_name like '%Pack%[%]%'
 join concept_relationship cr on c.concept_id=concept_id_1 
 join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Brand Name' 
 and c2.VOCABULARY_ID like 'Rx%' 
@@ -551,142 +527,20 @@ DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339638' AND 
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339638' AND   CONCEPT_CODE_2 = 'OMOP335369';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339724' AND   CONCEPT_CODE_2 = 'OMOP332839';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339724' AND   CONCEPT_CODE_2 = 'OMOP335369';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339725' AND   CONCEPT_CODE_2 = 'OMOP335369';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339764' AND   CONCEPT_CODE_2 = 'OMOP332839';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339764' AND   CONCEPT_CODE_2 = 'OMOP335369';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339816' AND   CONCEPT_CODE_2 = 'OMOP337535';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP340066' AND   CONCEPT_CODE_2 = 'OMOP337535';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP340021' AND   CONCEPT_CODE_2 = 'OMOP337535';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339872' AND   CONCEPT_CODE_2 = 'OMOP337535';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339858' AND   CONCEPT_CODE_2 = 'OMOP337535';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP340000' AND   CONCEPT_CODE_2 = 'OMOP335369';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339960' AND   CONCEPT_CODE_2 = 'OMOP335369';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP339960' AND   CONCEPT_CODE_2 = 'OMOP332839';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572794' AND   CONCEPT_CODE_2 = '352943';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572847' AND   CONCEPT_CODE_2 = '352943';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572888' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572925' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572982' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572989' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573017' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573133' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573182' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573216' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573251' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573269' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573316' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573326' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573372' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573421' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573424' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573452' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573458' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573503' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573506' AND   CONCEPT_CODE_2 = '352943';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572794' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572888' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572982' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572989' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573017' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573182' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573216' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573326' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573372' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573421' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573424' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573458' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573506' AND   CONCEPT_CODE_2 = 'OMOP571753';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572847' AND   CONCEPT_CODE_2 = 'OMOP570448';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572925' AND   CONCEPT_CODE_2 = 'OMOP570448';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573133' AND   CONCEPT_CODE_2 = 'OMOP570448';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573251' AND   CONCEPT_CODE_2 = 'OMOP570448';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573269' AND   CONCEPT_CODE_2 = 'OMOP570448';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573316' AND   CONCEPT_CODE_2 = 'OMOP570448';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573452' AND   CONCEPT_CODE_2 = 'OMOP570448';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573503' AND   CONCEPT_CODE_2 = 'OMOP570448';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP420941' AND   CONCEPT_CODE_2 = 'OMOP336140';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP420949' AND   CONCEPT_CODE_2 = 'OMOP336140';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572812' AND   CONCEPT_CODE_2 = 'OMOP569970';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572814' AND   CONCEPT_CODE_2 = 'OMOP572251';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572829' AND   CONCEPT_CODE_2 = 'OMOP572079';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572832' AND   CONCEPT_CODE_2 = 'OMOP334155';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572835' AND   CONCEPT_CODE_2 = 'OMOP570365';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572838' AND   CONCEPT_CODE_2 = 'OMOP434173';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572858' AND   CONCEPT_CODE_2 = 'OMOP333380';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572861' AND   CONCEPT_CODE_2 = 'OMOP571775';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572861' AND   CONCEPT_CODE_2 = 'OMOP571394';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572881' AND   CONCEPT_CODE_2 = '352555';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572923' AND   CONCEPT_CODE_2 = 'OMOP572251';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572928' AND   CONCEPT_CODE_2 = 'OMOP570811';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572928' AND   CONCEPT_CODE_2 = 'OMOP572263';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572961' AND   CONCEPT_CODE_2 = 'OMOP333380';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572991' AND   CONCEPT_CODE_2 = '352555';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP572992' AND   CONCEPT_CODE_2 = 'OMOP334155';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573012' AND   CONCEPT_CODE_2 = 'OMOP571351';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573012' AND   CONCEPT_CODE_2 = '58328';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573013' AND   CONCEPT_CODE_2 = 'OMOP334155';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573021' AND   CONCEPT_CODE_2 = 'OMOP571439';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573035' AND   CONCEPT_CODE_2 = 'OMOP571371';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573041' AND   CONCEPT_CODE_2 = 'OMOP572263';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573041' AND   CONCEPT_CODE_2 = 'OMOP571272';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573057' AND   CONCEPT_CODE_2 = 'OMOP334155';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573066' AND   CONCEPT_CODE_2 = 'OMOP569970';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573077' AND   CONCEPT_CODE_2 = 'OMOP569970';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573100' AND   CONCEPT_CODE_2 = 'OMOP334155';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573507' AND   CONCEPT_CODE_2 = '352555';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573301' AND   CONCEPT_CODE_2 = '352555';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573288' AND   CONCEPT_CODE_2 = '352555';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573250' AND   CONCEPT_CODE_2 = '352555';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573138' AND   CONCEPT_CODE_2 = '352555';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573108' AND   CONCEPT_CODE_2 = '352555';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573478' AND   CONCEPT_CODE_2 = 'OMOP571351';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573196' AND   CONCEPT_CODE_2 = 'OMOP571351';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573383' AND   CONCEPT_CODE_2 = 'OMOP571322';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573373' AND   CONCEPT_CODE_2 = 'OMOP334155';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573353' AND   CONCEPT_CODE_2 = 'OMOP334155';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573297' AND   CONCEPT_CODE_2 = 'OMOP334155';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573522' AND   CONCEPT_CODE_2 = 'OMOP571012';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573267' AND   CONCEPT_CODE_2 = 'OMOP571828';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573238' AND   CONCEPT_CODE_2 = 'OMOP572315';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573367' AND   CONCEPT_CODE_2 = 'OMOP335602';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573405' AND   CONCEPT_CODE_2 = 'OMOP572079';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573210' AND   CONCEPT_CODE_2 = 'OMOP571751';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573376' AND   CONCEPT_CODE_2 = 'OMOP571371';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573172' AND   CONCEPT_CODE_2 = 'OMOP570221';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573172' AND   CONCEPT_CODE_2 = 'OMOP571433';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573478' AND   CONCEPT_CODE_2 = '58328';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573196' AND   CONCEPT_CODE_2 = '58328';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573463' AND   CONCEPT_CODE_2 = 'OMOP333380';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573402' AND   CONCEPT_CODE_2 = 'OMOP333380';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573393' AND   CONCEPT_CODE_2 = 'OMOP333380';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573300' AND   CONCEPT_CODE_2 = 'OMOP333380';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573183' AND   CONCEPT_CODE_2 = 'OMOP333380';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573267' AND   CONCEPT_CODE_2 = 'OMOP571237';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573271' AND   CONCEPT_CODE_2 = 'OMOP571972';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573460' AND   CONCEPT_CODE_2 = 'OMOP570215';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573119' AND   CONCEPT_CODE_2 = 'OMOP570740';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573132' AND   CONCEPT_CODE_2 = 'OMOP571249';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573144' AND   CONCEPT_CODE_2 = 'OMOP571698';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573144' AND   CONCEPT_CODE_2 = 'OMOP337652';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573173' AND   CONCEPT_CODE_2 = 'OMOP571249';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573181' AND   CONCEPT_CODE_2 = 'OMOP571775';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573181' AND   CONCEPT_CODE_2 = 'OMOP571394';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573199' AND   CONCEPT_CODE_2 = 'OMOP570811';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573199' AND   CONCEPT_CODE_2 = '203169';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573215' AND   CONCEPT_CODE_2 = 'OMOP571394';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573222' AND   CONCEPT_CODE_2 = 'OMOP571394';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573215' AND   CONCEPT_CODE_2 = 'OMOP569968';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573222' AND   CONCEPT_CODE_2 = 'OMOP569968';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573238' AND   CONCEPT_CODE_2 = '225684';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573259' AND   CONCEPT_CODE_2 = 'OMOP570740';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573270' AND   CONCEPT_CODE_2 = 'OMOP570365';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573278' AND   CONCEPT_CODE_2 = 'OMOP333665';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573314' AND   CONCEPT_CODE_2 = 'OMOP571249';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573345' AND   CONCEPT_CODE_2 = 'OMOP570091';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573350' AND   CONCEPT_CODE_2 = 'OMOP571249';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573399' AND   CONCEPT_CODE_2 = 'OMOP571439';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573422' AND   CONCEPT_CODE_2 = 'OMOP569837';
-DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573422' AND   CONCEPT_CODE_2 = 'OMOP333665';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573428' AND   CONCEPT_CODE_2 = '151629';
 DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP573428' AND   CONCEPT_CODE_2 = 'OMOP570803';
 

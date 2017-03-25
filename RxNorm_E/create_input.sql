@@ -74,6 +74,20 @@ where concept_code in (
 select concept_code from concept c join devv5.drug_strength ds on drug_concept_id=concept_id and vocabulary_id='RxNorm Extension' and c.invalid_reason is null
 where denominator_value<0.05 and denominator_unit_concept_id=8587);
 
+--Remove wrong brand names
+
+delete drug_concept_stage where concept_code in (
+
+	select d1.concept_code from drug_concept_stage d1 
+	join concept c on lower(d1.concept_name)=lower(c.concept_name)
+	and d1.concept_class_id='Brand Name' and c.concept_class_id in
+		('ATC 5th','ATC 4th','ATC 3rd','AU Substance','AU Qualifier','Chemical Structure','CPT4 Hierarchy','Gemscript','Gemscript THIN','GPI','Ingredient','Substance','LOINC Hierarchy','Main Heading','Organism','Pharma Preparation')
+union
+select concept_code from drug_concept_stage 
+where concept_class_id='Brand Name' and regexp_like(concept_name,'Comp\s|Comp$|Praeparatum') and not regexp_like (concept_name,'Ratioph|Zentiva|Actavis|Teva|Hormosan|Dura|Ass|Provas|Rami|Al |Pharma|Abz|-Q|Peritrast|Beloc|Hexal|Corax|Solgar|Winthrop')
+);
+
+
 --insert into drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON) 
 --select CONCEPT_NAME,DOMAIN_ID,'Rxfix',CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_stage where concept_name='Fotemustine' and invalid_reason is null;
 
@@ -394,10 +408,7 @@ UPDATE DS_STAGE   SET NUMERATOR_VALUE = 25 WHERE DRUG_CONCEPT_CODE = 'OMOP303266
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 25 WHERE DRUG_CONCEPT_CODE = 'OMOP303267';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 25 WHERE DRUG_CONCEPT_CODE = 'OMOP303268';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 1 WHERE DRUG_CONCEPT_CODE = 'OMOP317478';
-UPDATE DS_STAGE   SET NUMERATOR_VALUE = 1 WHERE DRUG_CONCEPT_CODE = 'OMOP317478';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 1 WHERE DRUG_CONCEPT_CODE = 'OMOP317479';
-UPDATE DS_STAGE   SET NUMERATOR_VALUE = 1 WHERE DRUG_CONCEPT_CODE = 'OMOP317479';
-UPDATE DS_STAGE   SET NUMERATOR_VALUE = 1 WHERE DRUG_CONCEPT_CODE = 'OMOP317480';
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 1 WHERE DRUG_CONCEPT_CODE = 'OMOP317480';
 UPDATE DS_STAGE   SET DENOMINATOR_UNIT = 'mL' WHERE DRUG_CONCEPT_CODE in ( 'OMOP420658','OMOP420659','OMOP420660','OMOP420661') ;
 

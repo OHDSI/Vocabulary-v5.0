@@ -466,7 +466,7 @@ join concept_relationship cr on c.concept_id=concept_id_1
 join concept c2 on concept_id_2=c2.concept_id and c2.concept_class_id='Dose Form' 
 and c2.VOCABULARY_ID like 'Rx%' 
 where (( c2.invalid_reason is null and cr.invalid_reason is null) or ( c.invalid_reason is not null and cr.invalid_reason is not null
-and cr.VALID_END_DATE<'02-Feb-2017') )
+and cr.VALID_END_DATE>'02-Feb-2017') )
 --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
 
 union

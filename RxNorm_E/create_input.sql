@@ -1338,7 +1338,8 @@ WHERE PACK_CONCEPT_CODE = 'OMOP339814'
 AND   DRUG_CONCEPT_CODE = '310463'
 AND   AMOUNT = 7;
 
---insert missing packs from AMIS and AMT (only those taht have => 2 components)
+--insert missing packs (only those that have => 2 components)
+--AMT
 INSERT INTO pc_stage
 (
   pack_concept_code,
@@ -1402,6 +1403,7 @@ AND   c.concept_id IN (SELECT c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
 
+--AMIS
 INSERT INTO pc_stage
 (
   pack_concept_code,
@@ -1453,6 +1455,134 @@ AND   c.concept_id IN (SELECT c.concept_id
                          JOIN concept c2
                            ON c2.concept_code = pcs.drug_concept_code
                           AND c.vocabulary_id = 'AMIS'
+                         JOIN concept_relationship cr2
+                           ON cr2.concept_id_1 = c2.concept_id
+                          AND cr2.relationship_id = 'Maps to'
+                         JOIN concept ac2
+                           ON ac2.concept_id = cr2.concept_id_2
+                          AND ac2.vocabulary_id LIKE 'RxNorm%'
+                       WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
+                       GROUP BY c.concept_id
+                       HAVING COUNT(c.concept_id) > 1)
+AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
+
+--BDPM
+INSERT INTO pc_stage
+(
+  pack_concept_code,
+  drug_concept_code,
+  amount,
+  box_size
+)
+SELECT DISTINCT ac.concept_code,
+       ac2.concept_code,
+       pcs.amount,
+       pcs.box_size
+FROM dev_bdpm.pc_stage pcs
+  JOIN concept c
+    ON c.concept_code = pcs.pack_Concept_code
+   AND c.vocabulary_id = 'BDPM'
+   AND c.invalid_reason IS NULL
+  JOIN concept_relationship cr
+    ON cr.concept_id_1 = c.concept_id
+   AND cr.relationship_id = 'Maps to'
+  JOIN concept ac
+    ON ac.concept_id = cr.concept_id_2
+   AND ac.vocabulary_id = 'RxNorm Extension'
+   AND ac.invalid_Reason IS NULL
+  JOIN concept c2
+    ON c2.concept_code = pcs.drug_concept_code
+   AND c.vocabulary_id = 'BDPM'
+   AND c2.invalid_reason IS NULL
+  JOIN concept_relationship cr2
+    ON cr2.concept_id_1 = c2.concept_id
+   AND cr2.relationship_id = 'Maps to'
+  JOIN concept ac2
+    ON ac2.concept_id = cr2.concept_id_2
+   AND ac2.vocabulary_id LIKE 'RxNorm%'
+   AND ac2.invalid_Reason IS NULL
+WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
+AND   c.concept_id IN (SELECT c.concept_id
+                       FROM dev_bdpm.pc_stage pcs
+                         JOIN concept c
+                           ON c.concept_code = pcs.pack_Concept_code
+                          AND c.vocabulary_id = 'BDPM'
+                          AND c.invalid_reason IS NULL
+                         JOIN concept_relationship cr
+                           ON cr.concept_id_1 = c.concept_id
+                          AND cr.relationship_id = 'Maps to'
+                         JOIN concept ac
+                           ON ac.concept_id = cr.concept_id_2
+                          AND ac.vocabulary_id = 'RxNorm Extension'
+                          AND ac.invalid_Reason IS NULL
+                         JOIN concept c2
+                           ON c2.concept_code = pcs.drug_concept_code
+                          AND c.vocabulary_id = 'BDPM'
+                          AND c2.invalid_reason IS NULL
+                         JOIN concept_relationship cr2
+                           ON cr2.concept_id_1 = c2.concept_id
+                          AND cr2.relationship_id = 'Maps to'
+                         JOIN concept ac2
+                           ON ac2.concept_id = cr2.concept_id_2
+                          AND ac2.vocabulary_id LIKE 'RxNorm%'
+                       WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
+                       GROUP BY c.concept_id
+                       HAVING COUNT(c.concept_id) > 1)
+AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
+
+--dm+d
+INSERT INTO pc_stage
+(
+  pack_concept_code,
+  drug_concept_code,
+  amount,
+  box_size
+)
+SELECT DISTINCT ac.concept_code,
+       ac2.concept_code,
+       pcs.amount,
+       pcs.box_size
+FROM dev_dmd.pc_stage pcs
+  JOIN concept c
+    ON c.concept_code = pcs.pack_Concept_code
+   AND c.vocabulary_id = 'dm+d'
+   AND c.invalid_reason IS NULL
+  JOIN concept_relationship cr
+    ON cr.concept_id_1 = c.concept_id
+   AND cr.relationship_id = 'Maps to'
+  JOIN concept ac
+    ON ac.concept_id = cr.concept_id_2
+   AND ac.vocabulary_id = 'RxNorm Extension'
+   AND ac.invalid_Reason IS NULL
+  JOIN concept c2
+    ON c2.concept_code = pcs.drug_concept_code
+   AND c.vocabulary_id = 'dm+d'
+   AND c2.invalid_reason IS NULL
+  JOIN concept_relationship cr2
+    ON cr2.concept_id_1 = c2.concept_id
+   AND cr2.relationship_id = 'Maps to'
+  JOIN concept ac2
+    ON ac2.concept_id = cr2.concept_id_2
+   AND ac2.vocabulary_id LIKE 'RxNorm%'
+   AND ac2.invalid_Reason IS NULL
+WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
+AND   c.concept_id IN (SELECT c.concept_id
+                       FROM dev_dmd.pc_stage pcs
+                         JOIN concept c
+                           ON c.concept_code = pcs.pack_Concept_code
+                          AND c.vocabulary_id = 'dm+d'
+                          AND c.invalid_reason IS NULL
+                         JOIN concept_relationship cr
+                           ON cr.concept_id_1 = c.concept_id
+                          AND cr.relationship_id = 'Maps to'
+                         JOIN concept ac
+                           ON ac.concept_id = cr.concept_id_2
+                          AND ac.vocabulary_id = 'RxNorm Extension'
+                          AND ac.invalid_Reason IS NULL
+                         JOIN concept c2
+                           ON c2.concept_code = pcs.drug_concept_code
+                          AND c.vocabulary_id = 'dm+d'
+                          AND c2.invalid_reason IS NULL
                          JOIN concept_relationship cr2
                            ON cr2.concept_id_1 = c2.concept_id
                           AND cr2.relationship_id = 'Maps to'

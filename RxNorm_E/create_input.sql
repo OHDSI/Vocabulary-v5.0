@@ -809,13 +809,15 @@ USING
 WHEN MATCHED THEN UPDATE
   SET DENOMINATOR_VALUE = cx WHERE d.DRUG_CONCEPT_CODE = ds.DRUG_CONCEPT_CODE;
 
+
+/*
 -- XXX ?? ????
 --rounding
 UPDATE ds_stage
    SET AMOUNT_VALUE = ROUND(AMOUNT_VALUE,3 - FLOOR(LOG(10,AMOUNT_VALUE)) -1),
        NUMERATOR_VALUE = ROUND(NUMERATOR_VALUE,3 - FLOOR(LOG(10,NUMERATOR_VALUE)) -1),
        DENOMINATOR_VALUE = ROUND(DENOMINATOR_VALUE,3 - FLOOR(LOG(10,DENOMINATOR_VALUE)) -1);
-
+*/
 COMMIT;
 
 --fix solid forms with denominator
@@ -859,7 +861,7 @@ UPDATE ds_stage
        amount_unit = NULL
 WHERE amount_unit = '%';
 
--- More manual fixes
+-- More manual fixes (insert numerator_value in order to proceed it in the next query)
 UPDATE DS_STAGE
    SET NUMERATOR_VALUE = 25
 WHERE DRUG_CONCEPT_CODE = 'OMOP303266';
@@ -922,8 +924,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
 DELETE ds_stage
 WHERE ((AMOUNT_UNIT = '%' AND amount_value > 100) OR (NUMERATOR_UNIT = '%' AND NUMERATOR_VALUE > 100));
 
--- XXX Check this
---delete deprecated ingredients  I deprecate those ingredients that had died before 2 Feb 2017 (and so they dont exist in drug_concept_stage)
+--deprecate ingredients that had died before 2 Feb 2017 (and so they dont exist in drug_concept_stage)
 DELETE ds_stage
 WHERE INGREDIENT_CONCEPT_CODE IN (SELECT DISTINCT INGREDIENT_CONCEPT_CODE
                                   FROM ds_stage s
@@ -1060,7 +1061,7 @@ WHERE concept_id_1 NOT IN (SELECT concept_id_1
                               AND c.CONCEPT_CLASS_ID = 'Brand Name'
                               AND b.invalid_reason IS NULL));
 
---Delete baxter(where baxter and baxter ltd)
+--Delete relationship to multiple suppliers(e.g. baxter and baxter ltd)
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP432125'
@@ -1081,7 +1082,7 @@ FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP425698'
 AND   CONCEPT_CODE_2 = 'OMOP440161';
 
---Packs BN
+--Delete relationship from packs to their components' brand names
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP339685'
@@ -1201,7 +1202,7 @@ TRUNCATE TABLE pc_stage;
 
 INSERT INTO pc_stage
 (
-  PACK_CONCEPT_CODE,
+  PACK_CONCEPT_CODE, 
   DRUG_CONCEPT_CODE,
   AMOUNT,
   BOX_SIZE
@@ -1216,13 +1217,6 @@ FROM pack_content
    AND c.vocabulary_id = 'RxNorm Extension'
   JOIN concept c2 ON DRUG_CONCEPT_ID = c2.CONCEPT_ID;
 
---need to think of amount
-/*select c.concept_name,c2.concept_name, regexp_substr(regexp_substr(c.concept_name,'box\sof\s.*'),'\d+')
- from concept c 
-join concept_relationship cr on concept_id=concept_id_1 and relationship_id='Contains' and c.vocabulary_id='RxNorm Extension'
-join concept c2 on c2.concept_id=concept_id_2
- where c.concept_class_id like '%Pack%' and c.concept_code not in (select pack_concept_code from pc_stage)
- and c.invalid_reason is null;*/ 
 --fix 2 equal components
 DELETE
 FROM PC_STAGE
@@ -1344,7 +1338,7 @@ WHERE PACK_CONCEPT_CODE = 'OMOP339814'
 AND   DRUG_CONCEPT_CODE = '310463'
 AND   AMOUNT = 7;
 
---insert missing packs
+--insert missing packs from AMIS and AMT (only those taht have => 2 components)
 INSERT INTO pc_stage
 (
   pack_concept_code,

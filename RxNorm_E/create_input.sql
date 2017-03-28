@@ -1531,6 +1531,10 @@ set amount='7'
  from pc_stage p join drug_concept_stage d on d.concept_code=p.drug_concept_code and concept_name like '%Inert%' and p.amount='21'
 join pc_stage p2 on p.pack_concept_code=p2.pack_concept_code and  p.drug_concept_code!=p2.drug_concept_code and p.amount='21');
 
+--update Inert Ingredients / Inert Ingredients 1 MG Oral Tablet to Inert Ingredient Oral Tablet
+update pc_stage
+set drug_concept_code='748796'
+where drug_concept_code='OMOP285209';
 
 --Fixing existing packs in order to remove duplicates
 DELETE

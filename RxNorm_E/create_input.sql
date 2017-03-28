@@ -1521,6 +1521,17 @@ AND   c.concept_id IN (SELECT c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
 
+
+--fix inert ingredients in contraceptive packs
+
+update pc_stage
+set amount='7'
+ where (pack_concept_code,drug_concept_code) in
+(select p.pack_concept_code,p.drug_concept_code
+ from pc_stage p join drug_concept_stage d on d.concept_code=p.drug_concept_code and concept_name like '%Inert%' and p.amount='21'
+join pc_stage p2 on p.pack_concept_code=p2.pack_concept_code and  p.drug_concept_code!=p2.drug_concept_code and p.amount='21');
+
+
 --Fixing existing packs in order to remove duplicates
 DELETE
 FROM PC_STAGE

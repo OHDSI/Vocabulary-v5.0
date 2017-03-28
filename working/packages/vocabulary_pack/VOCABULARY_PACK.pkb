@@ -207,7 +207,6 @@ IS
                                                                                          'Concept poss_eq to',
                                                                                          'Concept was_a to')
                                                                  AND invalid_reason IS NULL
-                                                                 AND vocabulary_id_1 = vocabulary_id_2
                                                         GROUP BY concept_code_1, relationship_id
                                                           HAVING COUNT (DISTINCT concept_code_2) > 1);
 
@@ -274,7 +273,6 @@ IS
                                                                  'Concept alt_to to',
                                                                  'Concept poss_eq to',
                                                                  'Concept was_a to')
-                                     AND crs.vocabulary_id_1 = crs.vocabulary_id_2
                                      AND crs.concept_code_1 <> crs.concept_code_2
                                      AND crs.invalid_reason IS NULL)
                       SELECT DISTINCT u.concept_code_1,
@@ -323,7 +321,7 @@ IS
                                                         'Concept was_a to'))
              AND cs.invalid_reason = 'U';
    END;
-   ]';
+   ]'  ;
    END;
 
    PROCEDURE DeprecateWrongMAPSTO
@@ -345,7 +343,8 @@ IS
                       WHERE cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2 AND cs.invalid_reason IN ('U', 'D'))
    ]';
    */
-    EXECUTE IMMEDIATE q'[
+      EXECUTE IMMEDIATE
+         q'[
     UPDATE concept_relationship_stage crs
        SET crs.valid_end_date =
               (SELECT MAX (latest_update) - 1
@@ -374,7 +373,7 @@ IS
                               ORDER BY source_id
                            FETCH FIRST 1 ROW ONLY)
                     WHERE invalid_reason IN ('U', 'D'))   
-    ]';
+    ]' ;
    END;
 
    PROCEDURE AddFreshMAPSTO
@@ -509,7 +508,7 @@ IS
       THEN
          UPDATE SET crs.invalid_reason = NULL, crs.valid_end_date = i.valid_end_date
                  WHERE crs.invalid_reason IS NOT NULL
-   ]';
+   ]'  ;
    END;
 
    PROCEDURE DeleteAmbiguousMAPSTO
@@ -525,7 +524,7 @@ IS
                                      rn,
                                      MIN (pseudo_class_id) OVER (PARTITION BY concept_code_1, vocabulary_id_1, vocabulary_id_2) have_true_mapping,
                                      has_rel_with_comp
-                                FROM (SELECT cs.ROWID rid,
+                                FROM (SELECT cs.ROWID                                                                               rid,
                                              concept_code_1,
                                              concept_code_2,
                                              vocabulary_id_1,
@@ -667,9 +666,9 @@ IS
          THEN
             cSearchString := '<table class="umls_download">';
             cPos1 := INSTR (cVocabHTML, cSearchString);
-            cPos1 := INSTR (cVocabHTML, '<td>',cPos1+1);
-            cPos1 := INSTR (cVocabHTML, '<td>',cPos1+1);
-            cPos1 := INSTR (cVocabHTML, '<td>',cPos1+1);
+            cPos1 := INSTR (cVocabHTML, '<td>', cPos1 + 1);
+            cPos1 := INSTR (cVocabHTML, '<td>', cPos1 + 1);
+            cPos1 := INSTR (cVocabHTML, '<td>', cPos1 + 1);
             cPos2 := INSTR (cVocabHTML, '</td>', cPos1);
             CheckPositions (cPos1, cPos2);
             cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + 4, cPos2 - cPos1 - 4), 'mondd,yyyy');
@@ -679,7 +678,7 @@ IS
             cPos1 := INSTR (cVocabHTML, cSearchString);
             cPos2 := INSTR (cVocabHTML, '.zip">Download RF2 Files Now!</a>', cPos1);
             CheckPositions (cPos1, cPos2);
-            cVocabDate := TO_DATE (REGEXP_SUBSTR (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:digit:]]+$'), 'yyyymmdd');
+            cVocabDate := TO_DATE (REGEXP_SUBSTR (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:digit:]]+'), 'yyyymmdd');
          WHEN pVocabularyName = 'HCPCS'
          THEN
             SELECT TO_DATE ( (MAX (t.title) - 1) || '0101', 'yyyymmdd')
@@ -716,7 +715,8 @@ IS
             cPos1 := INSTR (cVocabHTML, cSearchString, cPos1);
             cPos2 := INSTR (cVocabHTML, '</a>', cPos1);
             CheckPositions (cPos1, cPos2);
-            cVocabDate := TO_DATE (TO_NUMBER (REGEXP_SUBSTR (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '^[[:digit:]]+')) - 1 || '0101', 'yyyymmdd');
+            cVocabDate :=
+               TO_DATE (TO_NUMBER (REGEXP_SUBSTR (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '^[[:digit:]]+')) - 1 || '0101', 'yyyymmdd');
          WHEN pVocabularyName = 'LOINC'
          THEN
             cSearchString := 'LOINC Table';
@@ -825,10 +825,58 @@ IS
       END IF;
    END;
 
+   PROCEDURE StartReleaseNEW
+   IS
+      crlf        VARCHAR2 (2) := UTL_TCP.crlf;
+      email     var_array := var_array ('timur.vakhitov@firstlinesoftware.com');
+      cRet        VARCHAR2 (5000);
+      l_output    DBMS_OUTPUT.chararr;
+      l_lines     INTEGER := 1000;
+      l_outline   VARCHAR2 (4000);
+      l_outall    VARCHAR2 (32000);
+   BEGIN
+      DBMS_OUTPUT.enable (1000000);
+      DBMS_JAVA.set_output (1000000);
+
+      --pConceptAncestor;
+      --DEVV4.v5_to_v4;
+
+      csv.generate ('VOCAB_DUMP', 'concept.csv', p_query => 'SELECT * FROM concept where rownum<100');
+      csv.generate ('VOCAB_DUMP', 'concept_relationship.csv', p_query => 'SELECT * FROM concept_relationship where rownum<100');
+      host_command ('/home/vocab_dump/upload_vocab.sh');
+      DBMS_OUTPUT.get_lines (l_output, l_lines);
+
+      FOR i IN 1 .. l_lines
+      LOOP
+         l_outline := TRIM (REGEXP_REPLACE (l_output (i), '[[:space:]]+', ' '));
+
+         IF l_outline IS NOT NULL
+         THEN
+            l_outall := l_outall || crlf || l_outline;
+         END IF;
+      END LOOP;
+
+      l_outall := SUBSTR (l_outall, 3, 4000);
+
+      IF l_outall IS NOT NULL
+      THEN
+         raise_application_error (-20000, l_outall);
+      END IF;
+
+      cRet := 'Release completed';
+
+      SendMailHTML (email, 'Release status [OK]', cRet);
+   EXCEPTION
+      WHEN OTHERS
+      THEN
+         cRet := SUBSTR ('Release completed with errors:' || crlf || SQLERRM || crlf || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE, 1, 5000);
+         SendMailHTML (email, 'Release status [ERROR]', cRet);
+   END;
+
    PROCEDURE StartRelease
    IS
       crlf      VARCHAR2 (2) := UTL_TCP.crlf;
-      email     var_array := var_array ('timur.vakhitov@firstlinesoftware.com', 'reich@ohdsi.org', 'reich@omop.org', 'alexander.yatsenko@odysseusinc.com');
+      email     var_array := var_array ('timur.vakhitov@firstlinesoftware.com', 'reich@ohdsi.org', 'reich@omop.org', 'alexander.yatsenko@odysseusinc.com','anna.ostropolets@odysseusinc.com');
       cRet      VARCHAR2 (5000);
       cVocabs   VARCHAR2 (4000);
    BEGIN

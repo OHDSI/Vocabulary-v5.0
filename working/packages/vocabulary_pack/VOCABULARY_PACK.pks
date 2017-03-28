@@ -55,9 +55,17 @@ IS
     6. creating new PRODV5
    */
    PROCEDURE StartRelease;
+   
+   /*
+    Start the release (new version, testing):
+    1. filling concept_ancestor
+    2. v5 to v4 conversion
+    3. export base tables to csv files
+    4. run bash script that compresses csv, uploads them to prod-server and imports into PostgreSQL
+   */
+   PROCEDURE StartReleaseNEW;   
 
 
-   /*****testing*****/
    FUNCTION UpdateVocabulary (pVocabularyName IN VARCHAR2)
       RETURN VARCHAR2;
 

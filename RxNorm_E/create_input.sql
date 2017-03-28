@@ -958,6 +958,7 @@ WHERE drug_concept_code IN (SELECT drug_Concept_code
 
 COMMIT;
 
+
 TRUNCATE TABLE internal_relationship_stage;
 
 INSERT INTO internal_relationship_stage
@@ -1061,132 +1062,58 @@ WHERE concept_id_1 NOT IN (SELECT concept_id_1
                               AND c.CONCEPT_CLASS_ID = 'Brand Name'
                               AND b.invalid_reason IS NULL));
 
---Delete relationship to multiple suppliers(e.g. baxter and baxter ltd)
+--delete multiple r4elationships to attributes
+CREATE TABLE ird 
+AS
+SELECT concept_code_1,
+       concept_code_2
+FROM internal_relationship_stage
+  JOIN drug_concept_stage b
+    ON concept_code_2 = b.concept_code
+   AND b.concept_class_id IN ('Supplier', 'Dose Form', 'Brand Name')
+ 
+  JOIN drug_concept_stage c ON c.concept_code = concept_code_1
+WHERE concept_code_1 IN (SELECT concept_code_1
+                         FROM internal_relationship_stage a
+                           JOIN drug_concept_stage b ON concept_code = concept_code_2
+                         WHERE b.concept_class_id IN ('Supplier','Dose Form','Brand Name')
+                         GROUP BY concept_code_1,
+                                  b.concept_class_id
+                         HAVING COUNT(1) > 1)
+AND   NOT REGEXP_LIKE (c.concept_name,b.concept_name)
+UNION
+SELECT concept_code_1,
+       concept_code_2
+FROM internal_relationship_stage
+  JOIN drug_concept_stage b
+    ON concept_code_2 = b.concept_code
+   AND b.concept_class_id IN ('Supplier', 'Dose Form', 'Brand Name')
+ 
+  JOIN drug_concept_stage c ON c.concept_code = concept_code_1
+WHERE concept_code_1 IN (SELECT concept_code_1
+                         FROM internal_relationship_stage a
+                           JOIN drug_concept_stage b ON concept_code = concept_code_2
+                         WHERE b.concept_class_id IN ('Supplier','Dose Form','Brand Name')
+                         GROUP BY concept_code_1,
+                                  b.concept_class_id
+                         HAVING COUNT(1) > 1)
+AND   NOT REGEXP_LIKE (REGEXP_SUBSTR(c.concept_name,'Pack\s.*'),b.concept_name);
+
 DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP432125'
-AND   CONCEPT_CODE_2 = 'OMOP439843';
+FROM internal_relationship_stage
+WHERE (concept_code_1,concept_code_2) IN (SELECT concept_code_1, concept_code_2 FROM ird);
+
+DROP TABLE ird;
 
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP431603'
-AND   CONCEPT_CODE_2 = 'OMOP439843';
+WHERE CONCEPT_CODE_1 = 'OMOP572812'
+AND   CONCEPT_CODE_2 = 'OMOP569970';
 
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP430700'
-AND   CONCEPT_CODE_2 = 'OMOP439843';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP425698'
-AND   CONCEPT_CODE_2 = 'OMOP440161';
-
---Delete relationship from packs to their components' brand names
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP339685'
-AND   CONCEPT_CODE_2 = 'OMOP337535';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP339638'
-AND   CONCEPT_CODE_2 = 'OMOP332839';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP339638'
-AND   CONCEPT_CODE_2 = 'OMOP335369';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP339724'
-AND   CONCEPT_CODE_2 = 'OMOP332839';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP339724'
-AND   CONCEPT_CODE_2 = 'OMOP335369';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP339816'
-AND   CONCEPT_CODE_2 = 'OMOP337535';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP340000'
-AND   CONCEPT_CODE_2 = 'OMOP335369';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP572794'
-AND   CONCEPT_CODE_2 = '352943';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP572847'
-AND   CONCEPT_CODE_2 = '352943';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP572888'
-AND   CONCEPT_CODE_2 = '352943';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573373'
-AND   CONCEPT_CODE_2 = 'OMOP334155';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573353'
-AND   CONCEPT_CODE_2 = 'OMOP334155';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573297'
-AND   CONCEPT_CODE_2 = 'OMOP334155';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573367'
-AND   CONCEPT_CODE_2 = 'OMOP335602';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573196'
-AND   CONCEPT_CODE_2 = '58328';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573393'
-AND   CONCEPT_CODE_2 = 'OMOP333380';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573300'
-AND   CONCEPT_CODE_2 = 'OMOP333380';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573267'
-AND   CONCEPT_CODE_2 = 'OMOP571237';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573238'
-AND   CONCEPT_CODE_2 = '225684';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573428'
-AND   CONCEPT_CODE_2 = '151629';
-
-DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 = 'OMOP573428'
-AND   CONCEPT_CODE_2 = 'OMOP570803';
+WHERE CONCEPT_CODE_1 = 'OMOP573077'
+AND   CONCEPT_CODE_2 = 'OMOP569970';
 
 --delete deprecated concepts
 DELETE internal_relationship_stage

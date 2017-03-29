@@ -1,4 +1,6 @@
--- COMMENTS!!!
+-- XXX Put all manual modifications that are only done now into a separate block. So we can do this in future again. 	
+-- As I said we cannot do that.
+-- XXX add the logic of deprecated concepts and concept_relationships from load_stage here. 
 -- Create Concepts
 TRUNCATE TABLE DRUG_CONCEPT_STAGE;
 
@@ -32,7 +34,7 @@ FROM concept
 WHERE REGEXP_LIKE (concept_class_id,'Drug|Pack|Box|Marketed') -- all the "Drug" Classes
 AND   vocabulary_id = 'RxNorm Extension'
 AND   VALID_END_DATE > '02-Feb-2017' -- don't take drugs deprecated long time ago during various CNDV runs
--- add constriction !!! constriction, Anna, what do you mean?
+-- add constriction !!! constriction, Anna, what do you mean? 
 UNION
 -- Get Dose Forms, Brand Names, Supplier, including RxNorm
 SELECT DISTINCT b2.CONCEPT_NAME,
@@ -114,7 +116,7 @@ SELECT DISTINCT b3.CONCEPT_NAME,
    AND b3.vocabulary_id LIKE 'Rx%'
 UNION
 -- Ingredients: Need to check what happens to deprecated
--- Get ingredients from drug_strength (XXX might not be necessary) 
+-- Get ingredients from drug_strength
 SELECT DISTINCT CONCEPT_NAME,
        'Rxfix',
        'Ingredient',
@@ -159,6 +161,7 @@ FROM (SELECT b.concept_name,
 UNION
 -- Units
 -- !!!Anna, why not just to include all the units as it was in a first version of script?
+-- Why should we include units that we don't use?
 SELECT DISTINCT CONCEPT_NAME,
        'Rxfix',
        'Unit',
@@ -195,15 +198,6 @@ FROM (SELECT DISTINCT CONCEPT_NAME,
                 ON ds.DRUG_CONCEPT_ID = c.CONCEPT_ID
                AND c.vocabulary_id = 'RxNorm Extension'
               JOIN concept c1 ON DENOMINATOR_UNIT_CONCEPT_ID = c1.CONCEPT_ID));
-
--- Remove all deprecated
---!!! Anna, how did they suppose to get here?
-DELETE drug_concept_stage
-WHERE concept_code IN (SELECT concept_code
-                       FROM concept
-                       WHERE vocabulary_id LIKE 'RxNorm%'
-                       AND   invalid_reason = 'D'
-                       AND   VALID_END_DATE < '02-Feb-2017');
 
 -- Remove all where there is less than total of 0.05 mL
 --!!!Christian, source gives exactly like this, I'm still concerned about this decision
@@ -248,10 +242,6 @@ UNION
                        WHERE concept_class_id = 'Brand Name'
                        AND   REGEXP_LIKE (concept_name,'Comp\s|Comp$|Praeparatum')
                        AND   NOT REGEXP_LIKE (concept_name,'Ratioph|Zentiva|Actavis|Teva|Hormosan|Dura|Ass|Provas|Rami|Al |Pharma|Abz|-Q|Peritrast|Beloc|Hexal|Corax|Solgar|Winthrop'));
-
---!!!Anna, what's here?
---insert into drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON) 
---select CONCEPT_NAME,DOMAIN_ID,'Rxfix',CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_stage where concept_name='Fotemustine' and invalid_reason is null;
 
 -- drug_strength
 TRUNCATE TABLE ds_stage;
@@ -444,7 +434,7 @@ WHERE AMOUNT_UNIT = '[iU]';
 
 -- Do all sorts of manual fixes
 -- Fentanyl buccal film
--- AMOUNT_VALUE insted of NUMERATOR_VALUE
+-- AMOUNT_VALUE instead of NUMERATOR_VALUE
 UPDATE ds_stage
    SET AMOUNT_VALUE = NUMERATOR_VALUE,
        AMOUNT_UNIT = NUMERATOR_UNIT,
@@ -460,7 +450,7 @@ WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
                             AND   (b.concept_name LIKE '%Buccal Film%' OR b.concept_name LIKE '%Breakyl Start%'));
 
 -- Fentanyl buccal film
--- AMOUNT_VALUE insted of NUMERATOR_VALUE
+-- AMOUNT_VALUE instead of NUMERATOR_VALUE
 UPDATE ds_stage
    SET AMOUNT_VALUE = NUMERATOR_VALUE,
        AMOUNT_UNIT = NUMERATOR_UNIT,
@@ -690,6 +680,7 @@ WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
 COMMIT;
 
 -- XXX ??????! Check ingredients first
+--Christian, it has already been decided
 -- Delete 3 legged dogs
 DELETE ds_stage
 WHERE drug_concept_code IN (WITH a AS
@@ -805,7 +796,6 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
 AND   amount_value IS NOT NULL;
 
 --update different denominator units
--- !!! Anna, so how do choose wich one to insert
 MERGE INTO ds_stage ds
 USING
 (
@@ -820,17 +810,7 @@ USING
 ) d ON (d.DRUG_CONCEPT_CODE = ds.DRUG_CONCEPT_CODE)
 WHEN MATCHED THEN UPDATE
   SET DENOMINATOR_VALUE = cx WHERE d.DRUG_CONCEPT_CODE = ds.DRUG_CONCEPT_CODE;
-
-
-/*
--- XXX ?? ????
-
---rounding
-UPDATE ds_stage
-   SET AMOUNT_VALUE = ROUND(AMOUNT_VALUE,3 - FLOOR(LOG(10,AMOUNT_VALUE)) -1),
-       NUMERATOR_VALUE = ROUND(NUMERATOR_VALUE,3 - FLOOR(LOG(10,NUMERATOR_VALUE)) -1),
-       DENOMINATOR_VALUE = ROUND(DENOMINATOR_VALUE,3 - FLOOR(LOG(10,DENOMINATOR_VALUE)) -1);
-*/
+  
 COMMIT;
 
 --fix solid forms with denominator
@@ -903,7 +883,7 @@ UPDATE DS_STAGE
    SET DENOMINATOR_UNIT = 'mL'
 WHERE DRUG_CONCEPT_CODE IN ('OMOP420658','OMOP420659','OMOP420660','OMOP420661');
 
--- XXX Check this with Christian  obviosly it's just a percent so I changed it to mg/ml select * from devv5.drug_strength join devv5.concept on drug_Concept_id=concept_id where denominator_unit_concept_id=45744809 and numerator_unit_Concept_id=8554 ;
+-- XXX Check this with Christian obviosly it's just a percent so I changed it to mg/ml select * from devv5.drug_strength join devv5.concept on drug_Concept_id=concept_id where denominator_unit_concept_id=45744809 and numerator_unit_Concept_id=8554 ;
 -- Change %/actuat into mg/mL
 UPDATE ds_stage
    SET NUMERATOR_VALUE = NUMERATOR_VALUE*10,
@@ -926,17 +906,6 @@ DELETE ds_Stage
 WHERE NUMERATOR_UNIT = '%'
 AND   DENOMINATOR_UNIT IS NOT NULL;
 
---delete huge dosages
-DELETE ds_stage
-WHERE drug_concept_code IN (SELECT drug_concept_code
-                            FROM ds_stage
-                            WHERE ((LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('ml','g') OR LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('l')) AND numerator_value / denominator_value > 1000)
-                            OR    (LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('ml') AND numerator_value / denominator_value > 1));
-
--- Delete more than 100%
-DELETE ds_stage
-WHERE ((AMOUNT_UNIT = '%' AND amount_value > 100) OR (NUMERATOR_UNIT = '%' AND NUMERATOR_VALUE > 100));
-
 --deprecate ingredients that had died before 2 Feb 2017 (and so they dont exist in drug_concept_stage)
 DELETE ds_stage
 WHERE INGREDIENT_CONCEPT_CODE IN (SELECT DISTINCT INGREDIENT_CONCEPT_CODE
@@ -950,14 +919,18 @@ WHERE INGREDIENT_CONCEPT_CODE IN (SELECT DISTINCT INGREDIENT_CONCEPT_CODE
                                      AND c.INVALID_REASON = 'D'
                                   WHERE b.concept_code IS NULL);
 
---impossible dosages
-DELETE ds_Stage
-WHERE drug_concept_code IN (SELECT DRUG_CONCEPT_CODE
-                            FROM ds_Stage
-                            WHERE NUMERATOR_UNIT = 'mg'
-                            AND   DENOMINATOR_UNIT = 'mg'
-                            AND   NUMERATOR_VALUE / DENOMINATOR_VALUE > 1);
+--delete huge dosages
+DELETE ds_stage
+WHERE drug_concept_code IN (SELECT drug_concept_code
+                            FROM ds_stage
+                            WHERE ((LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('ml','g') OR LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('l')) AND numerator_value / denominator_value > 1000)
+                            OR    (LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('ml') AND numerator_value / denominator_value > 1)
+                            OR    (LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('mg') AND numerator_value / denominator_value > 1)
+                            OR    ((AMOUNT_UNIT = '%' AND amount_value > 100) OR (NUMERATOR_UNIT = '%' AND NUMERATOR_VALUE > 100))
+                            
+                            );
 --!!!Anna, really, did we get such a concepts in a ds_stage?
+--We obviously did
 DELETE ds_stage
 WHERE drug_concept_code IN (SELECT drug_Concept_code
                             FROM ds_stage s
@@ -969,8 +942,7 @@ WHERE drug_concept_code IN (SELECT drug_Concept_code
                                     AND b.concept_class_id = 'Ingredient'
                             WHERE a.concept_code IS NULL);
                             
---update 'U' ingredients to fresh ones      (Fotemustine)                     
-
+--update 'U' ingredients to fresh ones (Fotemustine)                     
 update ds_stage
 set ingredient_concept_code='OMOP569695'
 where ingredient_concept_code='OMOP432915'
@@ -979,17 +951,18 @@ and exists (select * from concept where concept_code='OMOP569695' and invalid_re
 COMMIT;
 
 TRUNCATE TABLE internal_relationship_stage;
-
+-- Build internal_relationship_stage 
 INSERT INTO internal_relationship_stage
 (
   concept_code_1,
   concept_code_2
 )
-SELECT DISTINCT concept_code,
+SELECT concept_code,
        concept_Code_2
 FROM (
 --Drug to form
-     SELECT DISTINCT dc.concept_code,c2.concept_code AS concept_code_2 
+--- XXX the logic of which relationships to trust,   and which to abandon, should be done here, and not in load_stage. Otherwise this is intransparent. 
+     SELECT dc.concept_code,c2.concept_code AS concept_code_2 
      FROM drug_concept_stage dc
   JOIN concept c
     ON c.concept_code = dc.concept_code
@@ -1004,7 +977,7 @@ WHERE ((c2.invalid_reason IS NULL AND cr.invalid_reason IS NULL) OR (c.invalid_r
 --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
 UNION
 --Drug to BN
-SELECT DISTINCT dc.concept_code,
+SELECT dc.concept_code,
        c2.concept_code
 FROM drug_concept_stage dc
   JOIN concept c
@@ -1023,7 +996,7 @@ WHERE ((c2.invalid_reason IS NULL AND cr.invalid_reason IS NULL) OR (c.invalid_r
 AND   REGEXP_LIKE (c.concept_name,c2.concept_name)
 UNION
 --Packs to BN
-SELECT DISTINCT dc.concept_code,
+SELECT dc.concept_code,
        c2.concept_code
 FROM drug_concept_stage dc
   JOIN concept c
@@ -1038,13 +1011,15 @@ FROM drug_concept_stage dc
    AND c2.VOCABULARY_ID LIKE 'Rx%'
 WHERE c2.concept_name = REPLACE(REPLACE(REGEXP_SUBSTR(REGEXP_SUBSTR(c.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']')
 UNION
+  -- XXX what about Drug Forms   
+  --Christian, what about drug forms?I don't understand the question.
   --drug to ingredient
-SELECT DISTINCT DRUG_CONCEPT_CODE,
+SELECT DRUG_CONCEPT_CODE,
        INGREDIENT_CONCEPT_CODE
 FROM ds_Stage
 UNION
 --Drug to supplier
-SELECT DISTINCT dc.concept_code,
+SELECT dc.concept_code,
        c2.concept_code
 FROM drug_concept_stage dc
   JOIN concept c
@@ -1059,7 +1034,7 @@ FROM drug_concept_stage dc
 WHERE ((c2.invalid_reason IS NULL AND cr.invalid_reason IS NULL) OR (c.invalid_reason IS NOT NULL AND cr.invalid_reason IS NOT NULL AND cr.VALID_END_DATE < '02-Feb-2017'))
 UNION
 --insert relationships to those packs that do not have Pack's BN
-SELECT DISTINCT a.concept_code,
+SELECT a.concept_code,
        c2.concept_code
 FROM concept a
   JOIN concept_relationship b
@@ -1125,7 +1100,7 @@ WHERE (concept_code_1,concept_code_2) IN (SELECT concept_code_1, concept_code_2 
 
 DROP TABLE ird;
 
---!!!what??
+--delete 2 brand names that don't fit the rule as the brand name of the pack looks like the brand name of component (e.g. [Risedronate] and [Risedronate EC])
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP572812'
@@ -1288,7 +1263,7 @@ AND   DRUG_CONCEPT_CODE = '310463'
 AND   AMOUNT = 7;
 
 --insert missing packs (only those that have => 2 components) - take them from the source tables
---!!! do we have packs with 1 component?
+--!!! do we have packs with 1 component? Dima, it is a bug so we do not include them. You can actually look at existing packs with one component.
 
 --AMT
 INSERT INTO pc_stage
@@ -1604,7 +1579,9 @@ AND   AMOUNT = 5;
 COMMIT;
 
 TRUNCATE TABLE relationship_to_concept;
-
+-- XXX all from concept 	
+-- Christian, what do you mean?
+-- Create links to self 
 INSERT INTO relationship_to_concept
 (
   CONCEPT_CODE_1,
@@ -1622,6 +1599,7 @@ FROM drug_concept_stage a
    AND b.vocabulary_id IN ('RxNorm', 'RxNorm Extension') 
    AND a.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier', 'Ingredient');
 
+--insert relationship to units
 INSERT INTO relationship_to_concept
 (
   CONCEPT_CODE_1,
@@ -1640,7 +1618,8 @@ FROM drug_concept_stage a
     ON a.concept_code = b.concept_code
    AND a.concept_class_id = 'Unit'
    AND b.vocabulary_id = 'UCUM';
-
+   
+-- !!! need to check what is going on
 UPDATE RELATIONSHIP_TO_CONCEPT
    SET CONCEPT_ID_2 = 19011438
 WHERE CONCEPT_CODE_1 = '1428040';

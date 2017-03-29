@@ -956,13 +956,12 @@ WHERE drug_concept_code IN (SELECT drug_Concept_code
                                     AND b.concept_class_id = 'Ingredient'
                             WHERE a.concept_code IS NULL);
                             
---update 'U' ingredients to fresh ones                          
-UPDATE ds_stage ds
-   SET ds.INGREDIENT_CONCEPT_CODE = (SELECT c2.concept_code
-                                     FROM concept c
-                                       JOIN concept_relationship ON concept_id_1 = c.concept_id AND c.concept_class_id = 'Ingredient' AND c.invalid_reason = 'U'
-                                       JOIN concept c2 ON c2.concept_id = concept_id_2 AND c2.concept_class_id = 'Ingredient' AND c2.invalid_reason IS NULL AND relationship_id = 'Concept replaced by'
-                                     WHERE ds.INGREDIENT_CONCEPT_CODE = c.concept_code);
+--update 'U' ingredients to fresh ones      (Fotemustine)                     
+
+update ds_stage
+set ingredient_concept_code='OMOP569695'
+where ingredient_concept_code='OMOP432915'
+and exists (select * from concept where concept_code='OMOP569695' and invalid_reason is null );
 
 COMMIT;
 
@@ -1636,8 +1635,3 @@ UPDATE RELATIONSHIP_TO_CONCEPT
        CONVERSION_FACTOR = 0.001
 WHERE CONCEPT_CODE_1 = 'ug'
 AND   CONCEPT_ID_2 = 9655;
-
-
-
---Fotemustine
-

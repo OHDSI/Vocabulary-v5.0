@@ -854,30 +854,15 @@ UPDATE ds_stage
        amount_unit = NULL
 WHERE amount_unit = '%';
 
--- More manual fixes (insert numerator_value in order to proceed it in the next query)
+-- Fixes of various ill-defined drugs violating with RxNorm editorial policies 
+--!!!!
 UPDATE DS_STAGE
    SET NUMERATOR_VALUE = 25
-WHERE DRUG_CONCEPT_CODE = 'OMOP303266';
-
-UPDATE DS_STAGE
-   SET NUMERATOR_VALUE = 25
-WHERE DRUG_CONCEPT_CODE = 'OMOP303267';
-
-UPDATE DS_STAGE
-   SET NUMERATOR_VALUE = 25
-WHERE DRUG_CONCEPT_CODE = 'OMOP303268';
+WHERE DRUG_CONCEPT_CODE in ('OMOP303266','OMOP303267','OMOP303268');
 
 UPDATE DS_STAGE
    SET NUMERATOR_VALUE = 1
-WHERE DRUG_CONCEPT_CODE = 'OMOP317478';
-
-UPDATE DS_STAGE
-   SET NUMERATOR_VALUE = 1
-WHERE DRUG_CONCEPT_CODE = 'OMOP317479';
-
-UPDATE DS_STAGE
-   SET NUMERATOR_VALUE = 1
-WHERE DRUG_CONCEPT_CODE = 'OMOP317480';
+WHERE DRUG_CONCEPT_CODE in ( 'OMOP317478','OMOP317479','OMOP317480');
 
 UPDATE DS_STAGE
    SET DENOMINATOR_UNIT = 'mL'
@@ -901,11 +886,6 @@ UPDATE ds_stage
 WHERE NUMERATOR_UNIT = '%'
 AND   NUMERATOR_VALUE IN ('0.000283','0.1','35.3');
 
--- Remove all %/mg etc.
-DELETE ds_Stage
-WHERE NUMERATOR_UNIT = '%'
-AND   DENOMINATOR_UNIT IS NOT NULL;
-
 --deprecate ingredients that had died before 2 Feb 2017 (and so they dont exist in drug_concept_stage)
 DELETE ds_stage
 WHERE INGREDIENT_CONCEPT_CODE IN (SELECT DISTINCT INGREDIENT_CONCEPT_CODE
@@ -919,7 +899,7 @@ WHERE INGREDIENT_CONCEPT_CODE IN (SELECT DISTINCT INGREDIENT_CONCEPT_CODE
                                      AND c.INVALID_REASON = 'D'
                                   WHERE b.concept_code IS NULL);
 
---delete huge dosages
+--delete impossible dosages
 DELETE ds_stage
 WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
@@ -927,7 +907,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             OR    (LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('ml') AND numerator_value / denominator_value > 1)
                             OR    (LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('mg') AND numerator_value / denominator_value > 1)
                             OR    ((AMOUNT_UNIT = '%' AND amount_value > 100) OR (NUMERATOR_UNIT = '%' AND NUMERATOR_VALUE > 100))
-                            
+                            OR    (NUMERATOR_UNIT = '%' AND   DENOMINATOR_UNIT IS NOT NULL)
                             );
 --!!!Anna, really, did we get such a concepts in a ds_stage?
 --We obviously did

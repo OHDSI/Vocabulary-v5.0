@@ -29,10 +29,10 @@ SELECT DISTINCT CONCEPT_NAME,
        INVALID_REASON,
        CONCEPT_CLASS_ID
 FROM concept
-WHERE REGEXP_LIKE (concept_class_id,'Drug|Pack|Box|Marketed')
+WHERE REGEXP_LIKE (concept_class_id,'Drug|Pack|Box|Marketed') -- all the "Drug" Classes
 AND   vocabulary_id = 'RxNorm Extension'
-AND   VALID_END_DATE > '02-Feb-2017'
--- add constriction
+AND   VALID_END_DATE > '02-Feb-2017' -- don't take drugs deprecated long time ago during various CNDV runs
+-- add constriction !!! constriction, Anna, what do you mean?
 UNION
 -- Get Dose Forms, Brand Names, Supplier, including RxNorm
 SELECT DISTINCT b2.CONCEPT_NAME,
@@ -49,12 +49,12 @@ SELECT DISTINCT b2.CONCEPT_NAME,
 FROM concept_relationship a
   JOIN concept b
     ON concept_id_1 = b.concept_id
-   AND REGEXP_LIKE (b.concept_class_id,'Drug|Pack|Box|Marketed')
+   AND REGEXP_LIKE (b.concept_class_id,'Drug|Pack|Box|Marketed') -- the same list of the products 
    AND b.vocabulary_id = 'RxNorm Extension'
    AND a.invalid_reason IS NULL
   JOIN concept b2
     ON concept_id_2 = b2.concept_id
-   AND b2.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier') 
+   AND b2.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier') --their attributes
    AND b2.vocabulary_id LIKE 'Rx%'
    AND b2.invalid_reason IS NULL
 UNION
@@ -79,7 +79,7 @@ FROM concept_relationship a
    AND a.RELATIONSHIP_ID = 'Contains'
   JOIN concept b2
     ON concept_id_2 = b2.concept_id
-   AND REGEXP_LIKE (b2.concept_class_id,'Drug|Marketed')
+   AND REGEXP_LIKE (b2.concept_class_id,'Drug|Marketed') --only Drugs
    AND b2.vocabulary_id = 'RxNorm'
    AND b2.invalid_reason IS NULL
 UNION
@@ -107,7 +107,7 @@ SELECT DISTINCT b3.CONCEPT_NAME,
    AND b2.invalid_reason IS NOT NULL
   JOIN concept_relationship a2
     ON a2.concept_id_1 = b2.concept_id
-   AND a2.RELATIONSHIP_ID = 'Concept replaced by'
+   AND a2.RELATIONSHIP_ID = 'Concept replaced by' -- add replacements for attributes defined in a concept_relationship
   JOIN concept b3
     ON a2.concept_id_2 = b3.concept_id
    AND b3.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier') 
@@ -142,6 +142,7 @@ FROM (SELECT b.concept_name,
       WHERE b.vocabulary_id LIKE 'Rx%'
       UNION
       -- Get ingredients from hierarchy
+      --!!! Anna, Why do we need them? - anyway here nobody cares - it's just a list of the concepts
       SELECT a.concept_name,
              a.concept_code,
              a.domain_id,
@@ -157,6 +158,7 @@ FROM (SELECT b.concept_name,
          AND a2.vocabulary_id = 'RxNorm Extension')
 UNION
 -- Units
+-- !!!Anna, why not just to include all the units as it was in a first version of script?
 SELECT DISTINCT CONCEPT_NAME,
        'Rxfix',
        'Unit',
@@ -195,6 +197,7 @@ FROM (SELECT DISTINCT CONCEPT_NAME,
               JOIN concept c1 ON DENOMINATOR_UNIT_CONCEPT_ID = c1.CONCEPT_ID));
 
 -- Remove all deprecated
+--!!! Anna, how did they suppose to get here?
 DELETE drug_concept_stage
 WHERE concept_code IN (SELECT concept_code
                        FROM concept
@@ -203,6 +206,7 @@ WHERE concept_code IN (SELECT concept_code
                        AND   VALID_END_DATE < '02-Feb-2017');
 
 -- Remove all where there is less than total of 0.05 mL
+--!!!Christian, source gives exactly like this, I'm still concerned about this decision
 DELETE drug_concept_stage
 WHERE concept_code IN (SELECT concept_code
                        FROM concept c
@@ -214,6 +218,7 @@ WHERE concept_code IN (SELECT concept_code
                        AND   denominator_unit_concept_id = 8587);
 
 --Remove wrong brand names
+--!!! Anna, so all these drugs become Clinical in the future, OK, make sense
 DELETE drug_concept_stage
 WHERE concept_code IN (SELECT d1.concept_code
                        FROM drug_concept_stage d1
@@ -244,11 +249,13 @@ UNION
                        AND   REGEXP_LIKE (concept_name,'Comp\s|Comp$|Praeparatum')
                        AND   NOT REGEXP_LIKE (concept_name,'Ratioph|Zentiva|Actavis|Teva|Hormosan|Dura|Ass|Provas|Rami|Al |Pharma|Abz|-Q|Peritrast|Beloc|Hexal|Corax|Solgar|Winthrop'));
 
+--!!!Anna, what's here?
 --insert into drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON) 
 --select CONCEPT_NAME,DOMAIN_ID,'Rxfix',CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_stage where concept_name='Fotemustine' and invalid_reason is null;
+
 -- drug_strength
 TRUNCATE TABLE ds_stage;
-
+--just turn drug_strength into ds_stage replacing concept_ids with concept_codes
 INSERT INTO ds_stage
 (
   DRUG_CONCEPT_CODE,
@@ -279,6 +286,7 @@ FROM concept c
 WHERE c.vocabulary_id = 'RxNorm Extension';
 
 --update ds_stage for homeopathic drugs
+-- homeopatic unit is not a real concentration
 UPDATE ds_stage
    SET amount_value = numerator_value,
        amount_unit = numerator_unit,
@@ -290,7 +298,7 @@ WHERE drug_Concept_Code IN (SELECT drug_concept_code
                             FROM ds_Stage
                             WHERE numerator_unit IN ('[hp_X]','[hp_C]'));
 
--- Manually add absent units in drug_strength
+-- Manually add absent units in drug_strength (due to source table issues)
 UPDATE DS_STAGE
    SET AMOUNT_UNIT = '[U]'
 WHERE DRUG_CONCEPT_CODE = 'OMOP467711'
@@ -436,6 +444,7 @@ WHERE AMOUNT_UNIT = '[iU]';
 
 -- Do all sorts of manual fixes
 -- Fentanyl buccal film
+-- AMOUNT_VALUE insted of NUMERATOR_VALUE
 UPDATE ds_stage
    SET AMOUNT_VALUE = NUMERATOR_VALUE,
        AMOUNT_UNIT = NUMERATOR_UNIT,
@@ -451,6 +460,7 @@ WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
                             AND   (b.concept_name LIKE '%Buccal Film%' OR b.concept_name LIKE '%Breakyl Start%'));
 
 -- Fentanyl buccal film
+-- AMOUNT_VALUE insted of NUMERATOR_VALUE
 UPDATE ds_stage
    SET AMOUNT_VALUE = NUMERATOR_VALUE,
        AMOUNT_UNIT = NUMERATOR_UNIT,
@@ -466,6 +476,7 @@ WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
                             AND   (b.concept_name LIKE '%Buccal Film%' OR b.concept_name LIKE '%Breakyl Start%' OR NUMERATOR_VALUE IN ('0.808','1.21','1.62')));
 
 -- Add denominator to trandermal patch
+-- manualy defined dosages
 UPDATE ds_stage
    SET NUMERATOR_VALUE = 0.012,
        DENOMINATOR_VALUE = NULL,
@@ -715,7 +726,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             WHERE denominator_value < 0.05
                             AND   denominator_unit = 'mL');
 
--- Fixes U/mg to U/mL
+-- Fixes: turn U/mg to U/mL
 UPDATE DS_STAGE
    SET NUMERATOR_VALUE = 10000,
        DENOMINATOR_UNIT = 'mL'
@@ -764,7 +775,7 @@ AND   NUMERATOR_UNIT = '[U]'
 AND   DENOMINATOR_VALUE IS NULL
 AND   DENOMINATOR_UNIT = 'mg';
 
--- Create consolidated denominator unit for drugs that have soluble and solid ingredients in the same drug 
+-- Create consolidated denominator unit for drugs that have soluble and solid ingredients in the same drug (if some drug-ingredient row row has amount, another - nominator)
 UPDATE ds_stage ds
    SET numerator_value = amount_value,
        numerator_unit = amount_unit,
@@ -794,11 +805,12 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
 AND   amount_value IS NOT NULL;
 
 --update different denominator units
+-- !!! Anna, so how do choose wich one to insert
 MERGE INTO ds_stage ds
 USING
 (
   SELECT DISTINCT a.DRUG_CONCEPT_CODE,
-         REGEXP_SUBSTR(concept_name,'^\d+(\.\d+)?') AS cx
+         REGEXP_SUBSTR(concept_name,'^\d+(\.\d+)?') AS cx -- choose denominator from the Name
   FROM ds_stage a
     JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code
     JOIN concept_stage c
@@ -812,6 +824,7 @@ WHEN MATCHED THEN UPDATE
 
 /*
 -- XXX ?? ????
+
 --rounding
 UPDATE ds_stage
    SET AMOUNT_VALUE = ROUND(AMOUNT_VALUE,3 - FLOOR(LOG(10,AMOUNT_VALUE)) -1),
@@ -833,7 +846,7 @@ WHERE drug_concept_Code IN (SELECT a.concept_Code
                               JOIN drug_strength d
                                 ON concept_id = drug_concept_id
                                AND denominator_unit_concept_id IS NOT NULL
-                               AND REGEXP_LIKE (concept_name,'Tablet|Capsule')
+                               AND REGEXP_LIKE (concept_name,'Tablet|Capsule') -- solid forms defined by their forms
                                AND vocabulary_id = 'RxNorm Extension');
 
 -- Delete combination drugs where denominators don't match
@@ -937,14 +950,14 @@ WHERE INGREDIENT_CONCEPT_CODE IN (SELECT DISTINCT INGREDIENT_CONCEPT_CODE
                                      AND c.INVALID_REASON = 'D'
                                   WHERE b.concept_code IS NULL);
 
---kind of strange drugs
+--impossible dosages
 DELETE ds_Stage
 WHERE drug_concept_code IN (SELECT DRUG_CONCEPT_CODE
                             FROM ds_Stage
                             WHERE NUMERATOR_UNIT = 'mg'
                             AND   DENOMINATOR_UNIT = 'mg'
                             AND   NUMERATOR_VALUE / DENOMINATOR_VALUE > 1);
-
+--!!!Anna, really, did we get such a concepts in a ds_stage?
 DELETE ds_stage
 WHERE drug_concept_code IN (SELECT drug_Concept_code
                             FROM ds_stage s
@@ -965,7 +978,6 @@ and exists (select * from concept where concept_code='OMOP569695' and invalid_re
 
 COMMIT;
 
-
 TRUNCATE TABLE internal_relationship_stage;
 
 INSERT INTO internal_relationship_stage
@@ -977,7 +989,6 @@ SELECT DISTINCT concept_code,
        concept_Code_2
 FROM (
 --Drug to form
-
      SELECT DISTINCT dc.concept_code,c2.concept_code AS concept_code_2 
      FROM drug_concept_stage dc
   JOIN concept c
@@ -1056,7 +1067,7 @@ FROM concept a
    AND a.vocabulary_id = 'RxNorm Extension'
    AND a.concept_class_id LIKE '%Branded%Pack%'
   LEFT JOIN concept c2
-         ON c2.concept_name = REPLACE (REPLACE (REGEXP_SUBSTR (REGEXP_SUBSTR (a.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']')
+         ON c2.concept_name = REPLACE (REPLACE (REGEXP_SUBSTR (REGEXP_SUBSTR (a.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']') -- take it from name
         AND c2.vocabulary_id LIKE 'RxNorm%'
         AND c2.concept_class_id = 'Brand Name'
 WHERE concept_id_1 NOT IN (SELECT concept_id_1
@@ -1071,6 +1082,7 @@ WHERE concept_id_1 NOT IN (SELECT concept_id_1
                               AND b.invalid_reason IS NULL));
 
 --delete multiple relationships to attributes
+--define concept_1, concept_2 pairs need to be deleted
 CREATE TABLE ird 
 AS
 SELECT concept_code_1,
@@ -1088,7 +1100,7 @@ WHERE concept_code_1 IN (SELECT concept_code_1
                          GROUP BY concept_code_1,
                                   b.concept_class_id
                          HAVING COUNT(1) > 1)
-AND   NOT REGEXP_LIKE (c.concept_name,b.concept_name)
+AND   NOT REGEXP_LIKE (c.concept_name,b.concept_name) --Attribute is not a part of a name
 UNION
 SELECT concept_code_1,
        concept_code_2
@@ -1105,7 +1117,7 @@ WHERE concept_code_1 IN (SELECT concept_code_1
                          GROUP BY concept_code_1,
                                   b.concept_class_id
                          HAVING COUNT(1) > 1)
-AND   NOT REGEXP_LIKE (REGEXP_SUBSTR(c.concept_name,'Pack\s.*'),b.concept_name);
+AND   NOT REGEXP_LIKE (REGEXP_SUBSTR(c.concept_name,'Pack\s.*'),b.concept_name); --!!! Anna, why do you do this? does 'Pack\s.*' removal affects REGEXP_LIKE query?
 
 DELETE
 FROM internal_relationship_stage
@@ -1113,11 +1125,13 @@ WHERE (concept_code_1,concept_code_2) IN (SELECT concept_code_1, concept_code_2 
 
 DROP TABLE ird;
 
+--!!!what??
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP572812'
 AND   CONCEPT_CODE_2 = 'OMOP569970';
 
+--!!!what??
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
 WHERE CONCEPT_CODE_1 = 'OMOP573077'
@@ -1134,7 +1148,7 @@ WHERE concept_code_2 IN (SELECT concept_code
 COMMIT;
 
 TRUNCATE TABLE pc_stage;
-
+--just take it from the pack_content
 INSERT INTO pc_stage
 (
   PACK_CONCEPT_CODE, 
@@ -1152,7 +1166,7 @@ FROM pack_content
    AND c.vocabulary_id = 'RxNorm Extension'
   JOIN concept c2 ON DRUG_CONCEPT_ID = c2.CONCEPT_ID;
 
---fix 2 equal components
+--fix 2 equal components manualy
 DELETE
 FROM PC_STAGE
 WHERE PACK_CONCEPT_CODE = 'OMOP339574'
@@ -1273,7 +1287,9 @@ WHERE PACK_CONCEPT_CODE = 'OMOP339814'
 AND   DRUG_CONCEPT_CODE = '310463'
 AND   AMOUNT = 7;
 
---insert missing packs (only those that have => 2 components)
+--insert missing packs (only those that have => 2 components) - take them from the source tables
+--!!! do we have packs with 1 component?
+
 --AMT
 INSERT INTO pc_stage
 (
@@ -1531,7 +1547,6 @@ AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
 
 
 --fix inert ingredients in contraceptive packs
-
 update pc_stage
 set amount='7'
  where (pack_concept_code,drug_concept_code) in

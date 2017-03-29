@@ -654,8 +654,7 @@ MERGE INTO concept_relationship r
                                AND r.invalid_reason IS NULL
                                AND c1.concept_id = r.concept_id_1
                                AND c2.concept_id = r.concept_id_2
-                               AND c1.vocabulary_id = c2.vocabulary_id
-							   AND c1.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL)
+							   AND EXISTS (SELECT 1 FROM vocabulary WHERE latest_update IS NOT NULL AND vocabulary_id IN (c1.vocabulary_id,c2.vocabulary_id))
                                AND c2.concept_code <> 'OMOP generated'
                                AND r.concept_id_1 <> r.concept_id_2)
                 SELECT u.concept_id_1, u.concept_id_2, u.relationship_id

@@ -955,6 +955,14 @@ WHERE drug_concept_code IN (SELECT drug_Concept_code
                                      ON b.concept_code = s.INGREDIENT_CONCEPT_CODE
                                     AND b.concept_class_id = 'Ingredient'
                             WHERE a.concept_code IS NULL);
+                            
+--update 'U' ingredients to fresh ones                          
+UPDATE ds_stage ds
+   SET ds.INGREDIENT_CONCEPT_CODE = (SELECT c2.concept_code
+                                     FROM concept c
+                                       JOIN concept_relationship ON concept_id_1 = c.concept_id AND c.concept_class_id = 'Ingredient' AND c.invalid_reason = 'U'
+                                       JOIN concept c2 ON c2.concept_id = concept_id_2 AND c2.concept_class_id = 'Ingredient' AND c2.invalid_reason IS NULL AND relationship_id = 'Concept replaced by'
+                                     WHERE ds.INGREDIENT_CONCEPT_CODE = c.concept_code);
 
 COMMIT;
 
@@ -1020,6 +1028,7 @@ FROM drug_concept_stage dc
    AND c2.VOCABULARY_ID LIKE 'Rx%'
 WHERE c2.concept_name = REPLACE(REPLACE(REGEXP_SUBSTR(REGEXP_SUBSTR(c.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']')
 UNION
+  --drug to ingredient
 SELECT DISTINCT DRUG_CONCEPT_CODE,
        INGREDIENT_CONCEPT_CODE
 FROM ds_Stage
@@ -1062,7 +1071,7 @@ WHERE concept_id_1 NOT IN (SELECT concept_id_1
                               AND c.CONCEPT_CLASS_ID = 'Brand Name'
                               AND b.invalid_reason IS NULL));
 
---delete multiple r4elationships to attributes
+--delete multiple relationships to attributes
 CREATE TABLE ird 
 AS
 SELECT concept_code_1,

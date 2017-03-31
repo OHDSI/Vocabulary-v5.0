@@ -119,7 +119,7 @@ CREATE TABLE RELATIONSHIP_TO_CONCEPT NOLOGGING
 
 --4 Create Concepts
 --4.1 Get products
-INSERT INTO DRUG_CONCEPT_STAGE
+INSERT /*+ APPEND */ INTO DRUG_CONCEPT_STAGE
 (
   CONCEPT_NAME,
   VOCABULARY_ID,
@@ -145,11 +145,12 @@ SELECT CONCEPT_NAME,
        INVALID_REASON,
        CONCEPT_CLASS_ID
 FROM concept
-WHERE REGEXP_LIKE (concept_class_id,'Drug|Pack|Box|Marketed') -- all the "Drug" Classes
+WHERE --REGEXP_LIKE (concept_class_id,'Drug|Pack|Box|Marketed') -- all the "Drug" Classes
+(concept_class_id LIKE '%Drug%' or concept_class_id LIKE '%Pack%' or concept_class_id LIKE '%Box%' or concept_class_id LIKE '%Marketed%')
 AND   vocabulary_id = 'RxNorm Extension'
 AND   VALID_END_DATE > '02-Feb-2017' -- don't take drugs deprecated long time ago during various CNDV runs
 -- add constriction !!! constriction, Anna, what do you mean? 
-UNION
+UNION ALL
 -- Get Dose Forms, Brand Names, Supplier, including RxNorm
 SELECT  b2.CONCEPT_NAME,
        'Rxfix',
@@ -165,7 +166,8 @@ SELECT  b2.CONCEPT_NAME,
 FROM concept_relationship a
   JOIN concept b
     ON concept_id_1 = b.concept_id
-   AND REGEXP_LIKE (b.concept_class_id,'Drug|Pack|Box|Marketed') -- the same list of the products 
+   --AND REGEXP_LIKE (b.concept_class_id,'Drug|Pack|Box|Marketed') -- the same list of the products 
+   AND (b.concept_class_id LIKE '%Drug%' or b.concept_class_id LIKE '%Pack%' or b.concept_class_id LIKE '%Box%' or b.concept_class_id LIKE '%Marketed%')
    AND b.vocabulary_id = 'RxNorm Extension'
    AND a.invalid_reason IS NULL
   JOIN concept b2

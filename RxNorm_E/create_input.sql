@@ -425,7 +425,7 @@ WHERE DRUG_CONCEPT_CODE in ( 'OMOP317478','OMOP317479','OMOP317480');
 UPDATE DS_STAGE
    SET NUMERATOR_VALUE = 10000,
        DENOMINATOR_UNIT = 'mL'
-WHERE DRUG_CONCEPT_CODE = ('OMOP420658' AND INGREDIENT_CONCEPT_CODE = '8536') 
+WHERE INGREDIENT_CONCEPT_CODE = '8536'
 AND DRUG_CONCEPT_CODE in ('OMOP420658','OMOP420659','OMOP420660','OMOP420661');
 
 -- XXX Check this with Christian obviosly it's just a percent so I changed it to mg/ml select * from devv5.drug_strength join devv5.concept on drug_Concept_id=concept_id where denominator_unit_concept_id=45744809 and numerator_unit_Concept_id=8554 ;

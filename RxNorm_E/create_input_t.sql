@@ -799,9 +799,9 @@ COMMIT;
 
 UPDATE ds_stage
    SET numerator_value = 1.4,
-       numeraot_unit = 'mg',
+       numerator_unit = 'mg',
        denominator_value = NULL
-WHERE DRUG_CONCEPT_CODE(SELECT DRUG_CONCEPT_CODE
+WHERE DRUG_CONCEPT_CODE  IN (SELECT DRUG_CONCEPT_CODE
                         FROM ds_stage a
                           JOIN drug_concept_stage ON drug_concept_code = concept_code
                         WHERE ((numerator_value IS NOT NULL AND numerator_unit IS NULL) 
@@ -812,7 +812,7 @@ WHERE DRUG_CONCEPT_CODE(SELECT DRUG_CONCEPT_CODE
 --update wrong dosages in Varicella Virus Vaccine
 UPDATE ds_stage
    SET numerator_unit = 'mg'
-WHERE DRUG_CONCEPT_CODE(SELECT DRUG_CONCEPT_CODE
+WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
                         FROM ds_stage a
                           JOIN drug_concept_stage ON drug_concept_code = concept_code
                         WHERE ((numerator_value IS NOT NULL AND numerator_unit IS NULL) 
@@ -823,7 +823,7 @@ WHERE DRUG_CONCEPT_CODE(SELECT DRUG_CONCEPT_CODE
 --update wrong dosages in alpha-amylase
 UPDATE ds_stage
    SET numerator_unit = '[U]'
-WHERE DRUG_CONCEPT_CODE(SELECT DRUG_CONCEPT_CODE
+WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
                         FROM ds_stage a
                           JOIN drug_concept_stage ON drug_concept_code = concept_code
                         WHERE ((numerator_value IS NOT NULL AND numerator_unit IS NULL)

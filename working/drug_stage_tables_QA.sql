@@ -78,6 +78,11 @@ select drug_concept_code, 'ds_stage dublicates' from (
 select drug_concept_code, ingredient_concept_code from ds_stage group by drug_concept_code, ingredient_concept_code having count (1) > 1 
 )
 union
+select drug_concept_code,'missing unit'
+from ds_stage where (numerator_value is not null and numerator_unit is null)
+OR  (denominator_value is not null and denominator_unit is null)
+OR  (amount_value is not null and amount_unit is null);
+union
 --3. internal_relationship_dublicates
 select concept_code_1, 'internal_relationship_dublicates' from (
 select concept_code_1, concept_code_2 from internal_relationship_stage group by concept_code_1, concept_code_2 having count (1) > 1 

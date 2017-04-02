@@ -146,10 +146,9 @@ SELECT CONCEPT_NAME,
        CONCEPT_CLASS_ID
 FROM concept
 WHERE --REGEXP_LIKE (concept_class_id,'Drug|Pack|Box|Marketed') -- all the "Drug" Classes
-(concept_class_id LIKE '%Drug%' or concept_class_id LIKE '%Pack%' or concept_class_id LIKE '%Box%' or concept_class_id LIKE '%Marketed%')
+(concept_class_id LIKE '%Drug%' or concept_class_id LIKE '%Pack%' or concept_class_id LIKE '%Box%' 
+or concept_class_id LIKE '%Marketed%')
 AND   vocabulary_id = 'RxNorm Extension'
-AND   VALID_END_DATE > '02-Feb-2017' -- don't take drugs deprecated long time ago during various CNDV runs
--- add constriction !!! constriction, Anna, what do you mean? 
 UNION ALL
 -- Get Dose Forms, Brand Names, Supplier, including RxNorm
 SELECT  b2.CONCEPT_NAME,

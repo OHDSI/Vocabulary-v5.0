@@ -1090,8 +1090,8 @@ DROP TABLE ird;
 --delete 2 brand names that don't fit the rule as the brand name of the pack looks like the brand name of component (e.g. [Risedronate] and [Risedronate EC])
 DELETE
 FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE (CONCEPT_CODE_1 = 'OMOP572812' AND   CONCEPT_CODE_2 = 'OMOP569970')
-OR (CONCEPT_CODE_1 = 'OMOP573077' AND   CONCEPT_CODE_2 = 'OMOP569970');
+WHERE CONCEPT_CODE_1 in  ('OMOP572812','OMOP573077' ,'OMOP573035','OMOP573066','OMOP573376')
+ AND   CONCEPT_CODE_2  in  ('OMOP571371','OMOP569970');
 
 --delete deprecated concepts
 DELETE internal_relationship_stage

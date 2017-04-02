@@ -798,6 +798,46 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
 
 COMMIT;
 
+UPDATE ds_stage
+   SET numerator_value = 1.4,
+       numeraot_unit = 'mg',
+       denominator_value = NULL
+WHERE DRUG_CONCEPT_CODE(SELECT DRUG_CONCEPT_CODE
+                        FROM ds_stage a
+                          JOIN drug_concept_stage ON drug_concept_code = concept_code
+                        WHERE ((numerator_value IS NOT NULL AND numerator_unit IS NULL) 
+                        OR (denominator_value IS NOT NULL AND denominator_unit IS NULL) 
+                        OR (amount_value IS NOT NULL AND amount_unit IS NULL))
+                        AND   concept_name LIKE '%Aprotinin 10000 /ML%');
+
+--update wrong dosages in Varicella Virus Vaccine
+UPDATE ds_stage
+   SET numerator_unit = 'mg'
+WHERE DRUG_CONCEPT_CODE(SELECT DRUG_CONCEPT_CODE
+                        FROM ds_stage a
+                          JOIN drug_concept_stage ON drug_concept_code = concept_code
+                        WHERE ((numerator_value IS NOT NULL AND numerator_unit IS NULL) 
+                        OR (denominator_value IS NOT NULL AND denominator_unit IS NULL) 
+                        OR (amount_value IS NOT NULL AND amount_unit IS NULL))
+                        AND   concept_name LIKE '%Varicella Virus Vaccine Live (Oka-Merck) strain 29800 /ML%');
+
+--update wrong dosages in alpha-amylase
+UPDATE ds_stage
+   SET numerator_unit = '[U]'
+WHERE DRUG_CONCEPT_CODE(SELECT DRUG_CONCEPT_CODE
+                        FROM ds_stage a
+                          JOIN drug_concept_stage ON drug_concept_code = concept_code
+                        WHERE ((numerator_value IS NOT NULL AND numerator_unit IS NULL)
+                        OR (denominator_value IS NOT NULL AND denominator_unit IS NULL) 
+                        OR (amount_value IS NOT NULL AND amount_unit IS NULL))
+                        AND   concept_name LIKE '%alpha-amylase 200 /ML%');
+
+--delete drugs that are missing units
+DELETE ds_stage
+WHERE (numerator_value IS NOT NULL AND numerator_unit IS NULL)
+OR    (denominator_value IS NOT NULL AND denominator_unit IS NULL)
+OR    (amount_value IS NOT NULL AND amount_unit IS NULL);
+
 -- Delete 3 legged dogs
 DELETE ds_stage
 WHERE drug_concept_code IN (WITH a AS

@@ -281,7 +281,7 @@ INSERT /*+ APPEND */
     WHERE NOT EXISTS
              (SELECT 1
                 FROM DRUG_CONCEPT_STAGE dcs
-               WHERE dcs.concept_code = a.concept_code AND dcs.domain_id = b.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
+               WHERE dcs.concept_code = b.concept_code AND dcs.domain_id = b.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
 COMMIT;
 
 --4.4 Get ingredients from hierarchy
@@ -504,7 +504,7 @@ UPDATE ds_stage
    SET AMOUNT_UNIT = '[U]'
 WHERE AMOUNT_UNIT = '[iU]';
 
-- Create consolidated denominator unit for drugs that have soluble and solid ingredients
+-- Create consolidated denominator unit for drugs that have soluble and solid ingredients
 -- in the same drug (if some drug-ingredient row row has amount, another - nominator)
 UPDATE ds_stage ds
    SET numerator_value = amount_value,

@@ -119,6 +119,7 @@ CREATE TABLE RELATIONSHIP_TO_CONCEPT NOLOGGING
 
 --4 Create Concepts
 --4.1 Get products
+TRUNCATE TABLE DRUG_CONCEPT_STAGE;
 INSERT /*+ APPEND */ INTO DRUG_CONCEPT_STAGE
 (
   CONCEPT_NAME,
@@ -411,6 +412,7 @@ UNION
 
 -- drug_strength
 --just turn drug_strength into ds_stage replacing concept_ids with concept_codes
+TRUNCATE TABLE DS_STAGE;
 INSERT INTO ds_stage
 (
   DRUG_CONCEPT_CODE,
@@ -995,6 +997,7 @@ and exists (select * from concept where concept_code='OMOP569695' and invalid_re
 COMMIT;
 
 -- Build internal_relationship_stage 
+TRUNCATE TABLE INTERNAL_RELATIONSHIP_STAGE;
 INSERT INTO internal_relationship_stage
 (
   concept_code_1,concept_code_2
@@ -1184,6 +1187,7 @@ WHERE concept_code_2 IN (SELECT concept_code
 COMMIT;
 
 --just take it from the pack_content
+TRUNCATE TABLE PC_STAGE;
 INSERT INTO pc_stage
 (
   PACK_CONCEPT_CODE, 

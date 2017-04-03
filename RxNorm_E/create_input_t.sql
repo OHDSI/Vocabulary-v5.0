@@ -148,7 +148,7 @@ FROM concept
 WHERE 
 -- all the "Drug" Classes
 (concept_class_id LIKE '%Drug%' or concept_class_id LIKE '%Pack%' or concept_class_id LIKE '%Box%' or concept_class_id LIKE '%Marketed%')
-AND vocabulary_id = 'RxNorm Extension'
+AND vocabulary_id = 'RxNorm Extension' AND invalid_reason IS NULL
 UNION ALL
 -- Get Dose Forms, Brand Names, Supplier, including RxNorm
 SELECT  b2.CONCEPT_NAME,
@@ -327,34 +327,39 @@ UNION
 SELECT  CONCEPT_NAME,
        'Rxfix',
        'Unit',
-       '',
+       NULL,
        CONCEPT_CODE,
-       '',
+       NULL,
        'Drug',
-       TO_DATE('2017/01/24','yyyy/mm/dd'),
-       TO_DATE('2099/12/31','yyyy/mm/dd'),
-       '',
+       VALID_START_DATE,
+       VALID_END_DATE,
+       NULL,
        'Unit'
-FROM (SELECT DISTINCT CONCEPT_NAME,
-             CONCEPT_CODE
+FROM (SELECT DISTINCT CONCEPT_NAME,CONCEPT_CODE
       FROM (SELECT c3.CONCEPT_CODE AS concept_name,
-                   c3.CONCEPT_CODE AS concept_code
+                   c3.CONCEPT_CODE AS concept_code,
+	    	   c3.VALID_START_DATE,
+	    	   c3.VALID_END_DATE
             FROM concept c
               JOIN drug_strength ds
                 ON ds.DRUG_CONCEPT_ID = c.CONCEPT_ID
                AND c.vocabulary_id = 'RxNorm Extension'
               JOIN concept c3 ON AMOUNT_UNIT_CONCEPT_ID = c3.CONCEPT_ID
-            UNION
+            UNION ALL
             SELECT c2.CONCEPT_CODE,
-                   c2.CONCEPT_CODE
+                   c2.CONCEPT_CODE,
+	    	   c2.VALID_START_DATE,
+	    	   c2.VALID_END_DATE
             FROM concept c
               JOIN drug_strength ds
                 ON ds.DRUG_CONCEPT_ID = c.CONCEPT_ID
                AND c.vocabulary_id = 'RxNorm Extension'
               JOIN concept c2 ON NUMERATOR_UNIT_CONCEPT_ID = c2.CONCEPT_ID
-            UNION
+            UNION ALL
             SELECT c1.CONCEPT_CODE,
-                   c1.CONCEPT_CODE
+                   c1.CONCEPT_CODE,
+	    	   c1.VALID_START_DATE,
+	    	   c1.VALID_END_DATE
             FROM concept c
               JOIN drug_strength ds
                 ON ds.DRUG_CONCEPT_ID = c.CONCEPT_ID
@@ -992,11 +997,9 @@ COMMIT;
 -- Build internal_relationship_stage 
 INSERT INTO internal_relationship_stage
 (
-  concept_code_1,
-  concept_code_2
+  concept_code_1,concept_code_2
 )
-SELECT concept_code,
-       concept_Code_2
+SELECT concept_code,concept_Code_2
 FROM (
 --Drug to form
      SELECT dc.concept_code,c2.concept_code AS concept_code_2 
@@ -1089,7 +1092,37 @@ WHERE concept_id_1 NOT IN (SELECT concept_id_1
                                ON concept_id_2 = c.concept_id
                               AND c.CONCEPT_CLASS_ID = 'Brand Name'
                               AND b.invalid_reason IS NULL));
-
+			      
+-- Add all the attributes which relationships are missing in basic tables (separate query to speed up)
+INSERT INTO internal_relationship_stage
+(
+  concept_code_1,concept_code_2
+)
+SELECT concept_code,concept_Code_2
+FROM (
+--missing bn
+     SELECT dc.concept_code,dc2.concept_code AS concept_code_2 
+     FROM drug_concept_stage dc
+  JOIN concept c
+    ON c.concept_code = dc.concept_code
+   AND c.vocabulary_id = 'RxNorm Extension'
+   AND dc.concept_class_id = 'Drug Product'
+   AND dc.concept_name LIKE '%Pack%[%]%'
+  JOIN drug_concept_stage dc2
+    ON dc2.concept_name = REPLACE (REPLACE (REGEXP_SUBSTR (REGEXP_SUBSTR (c.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']')
+   AND dc2.concept_class_id = 'Brand Name'
+UNION ALL
+--add missing suppliers
+SELECT dc.concept_code,dc2.concept_code
+FROM drug_concept_stage dc
+  JOIN concept c
+    ON c.concept_code = dc.concept_code
+   AND c.vocabulary_id = 'RxNorm Extension'
+   AND dc.SOURCE_CONCEPT_CLASS_ID = 'Marketed Product'
+  JOIN drug_concept_stage dc2
+    ON REGEXP_LIKE (c.concept_name,dc2.concept_name)
+   AND dc2.concept_class_id = 'Supplier');
+	
 --delete multiple relationships to attributes
 --define concept_1, concept_2 pairs need to be deleted
 CREATE TABLE ird 

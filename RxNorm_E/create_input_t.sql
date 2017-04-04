@@ -107,7 +107,7 @@ CREATE TABLE PC_STAGE
 ) NOLOGGING;
 
 --3.5 5th input table: RELATIONSHIP_TO_CONCEPT
-CREATE TABLE RELATIONSHIP_TO_CONCEPT NOLOGGING
+CREATE TABLE RELATIONSHIP_TO_CONCEPT
 (
    CONCEPT_CODE_1     VARCHAR2(50),
    VOCABULARY_ID_1    VARCHAR2(20),
@@ -759,10 +759,10 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             AND   b.concept_name LIKE '%rivastigmine%'
                             AND   a.numerator_value = 27));
 
-UPDATE ds_stage
+UPDATE ds_stage 
    SET NUMERATOR_VALUE = CASE
-                           WHEN a.denominator_value IS NULL THEN a.numerator_value*24
-                           ELSE a.numerator_value / a.denominator_value*24
+                           WHEN denominator_value IS NULL THEN numerator_value*24
+                           ELSE numerator_value / a.denominator_value*24
                          END,
        DENOMINATOR_VALUE = 24,
        DENOMINATOR_UNIT = 'h'
@@ -777,8 +777,8 @@ COMMIT;
 --17.5 nicotine
 UPDATE ds_stage
    SET NUMERATOR_VALUE = CASE
-                           WHEN a.denominator_value IS NULL THEN a.numerator_value*16
-                           ELSE a.numerator_value / a.denominator_value*16
+                           WHEN denominator_value IS NULL THEN numerator_value*16
+                           ELSE numerator_value / denominator_value*16
                          END,
        DENOMINATOR_VALUE = 16,
        DENOMINATOR_UNIT = 'h'
@@ -833,7 +833,7 @@ COMMIT;
 --update wrong dosages in Varicella Virus Vaccine
 UPDATE ds_stage
    SET numerator_unit = 'mg'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                         FROM ds_stage a
                           JOIN drug_concept_stage ON drug_concept_code = concept_code
                         WHERE ((numerator_value IS NOT NULL AND numerator_unit IS NULL) 
@@ -844,7 +844,7 @@ WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
 --update wrong dosages in alpha-amylase
 UPDATE ds_stage
    SET numerator_unit = '[U]'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                         FROM ds_stage a
                           JOIN drug_concept_stage ON drug_concept_code = concept_code
                         WHERE ((numerator_value IS NOT NULL AND numerator_unit IS NULL)
@@ -895,11 +895,11 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             
 -- Delete drugs with cm in denominator that we weren't able to fix
 DELETE ds_stage
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                               JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
-                            WHERE NVL(AMOUNT_UNIT,NUMERATOR_UNIT) IN ('cm','mm')
-                            OR    DENOMINATOR_UNIT IN ('cm','mm'));
+                            WHERE nvl(amount_unit,numerator_unit) IN ('cm','mm')
+                            OR    denominator_unit IN ('cm','mm'));
 -
 
 -- Delete combination drugs where denominators don't match
@@ -909,10 +909,10 @@ WHERE (drug_concept_code,denominator_value) IN (SELECT DISTINCT a.drug_concept_c
                                                 FROM ds_stage a
                                                   JOIN ds_stage b
                                                     ON a.drug_concept_code = b.drug_concept_code
-                                                   AND (a.DENOMINATOR_VALUE IS NULL
-                                                   AND b.DENOMINATOR_VALUE IS NOT NULL
-                                                    OR a.DENOMINATOR_VALUE != b.DENOMINATOR_VALUE
-                                                    OR a.DENOMINATOR_unit != b.DENOMINATOR_unit)
+                                                   AND (a.denominator_value IS NULL
+                                                   AND b.denominator_value IS NOT NULL
+                                                    OR a.denominator_value != b.denominator_value
+                                                    OR a.denominator_unit != b.denominator_unit)
                                                   JOIN drug_concept_stage
                                                     ON concept_code = a.drug_concept_code
                                                    AND a.denominator_value != REGEXP_SUBSTR (concept_name,'\d+(\.\d+)?'));
@@ -921,15 +921,15 @@ COMMIT;
 
 --deprecate ingredients that had died before 2 Feb 2017 (and so they dont exist in drug_concept_stage)
 DELETE ds_stage
-WHERE INGREDIENT_CONCEPT_CODE IN (SELECT DISTINCT INGREDIENT_CONCEPT_CODE
+WHERE ingredient_concept_code IN (SELECT DISTINCT ingredient_concept_code
                                   FROM ds_stage s
                                     LEFT JOIN drug_concept_stage b
                                            ON b.concept_code = s.INGREDIENT_CONCEPT_CODE
                                           AND b.concept_class_id = 'Ingredient'
                                     JOIN concept c
-                                      ON s.INGREDIENT_CONCEPT_CODE = c.concept_code
-                                     AND c.VOCABULARY_ID LIKE 'Rx%'
-                                     AND c.INVALID_REASON = 'D'
+                                      ON s.ingredient_concept_code = c.concept_code
+                                     AND c.vocabulary_id LIKE 'Rx%'
+                                     AND c.invalid_reason = 'D'
                                   WHERE b.concept_code IS NULL);
 
 --delete impossible dosages
@@ -939,13 +939,13 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             WHERE ((LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('ml','g') OR LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('l')) AND numerator_value / denominator_value > 1000)
                             OR    (LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('ml') AND numerator_value / denominator_value > 1)
                             OR    (LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('mg') AND numerator_value / denominator_value > 1)
-                            OR    ((AMOUNT_UNIT = '%' AND amount_value > 100) OR (NUMERATOR_UNIT = '%' AND NUMERATOR_VALUE > 100))
-                            OR    (NUMERATOR_UNIT = '%' AND   DENOMINATOR_UNIT IS NOT NULL)
+                            OR    ((amount_unit = '%' AND amount_value > 100) OR (numerator_unit = '%' AND numerator_value > 100))
+                            OR    (numerator_unit = '%' AND   denominator_unit IS NOT NULL)
                             );
 --!!!Anna, really, did we get such a concepts in a ds_stage?
 --We obviously did
 DELETE ds_stage
-WHERE drug_concept_code IN (SELECT drug_Concept_code
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage s
                               LEFT JOIN drug_concept_stage a
                                      ON a.concept_code = s.drug_concept_code
@@ -992,14 +992,14 @@ FROM drug_concept_stage dc
     ON c.concept_code = dc.concept_code
    AND c.vocabulary_id = 'RxNorm Extension'
    AND dc.concept_class_id = 'Drug Product'
-   AND (dc.SOURCE_CONCEPT_CLASS_ID NOT LIKE '%Pack%'
-    OR (dc.SOURCE_CONCEPT_CLASS_ID = 'Marketed Product'
+   AND (dc.source_concept_class_id NOT LIKE '%Pack%'
+    OR (dc.source_concept_class_id = 'Marketed Product'
    AND dc.concept_name NOT LIKE '%Pack%'))
   JOIN concept_relationship cr ON c.concept_id = concept_id_1
   JOIN concept c2
     ON concept_id_2 = c2.concept_id
    AND c2.concept_class_id = 'Brand Name'
-   AND c2.VOCABULARY_ID LIKE 'Rx%'
+   AND c2.vocabulary_id LIKE 'Rx%'
 AND   REGEXP_LIKE (c.concept_name,c2.concept_name)
 UNION
 --Packs to BN
@@ -1021,8 +1021,8 @@ UNION
   -- XXX what about Drug Forms   
   --Christian, what about drug forms?I don't understand the question.
   --drug to ingredient
-SELECT DRUG_CONCEPT_CODE,
-       INGREDIENT_CONCEPT_CODE
+SELECT drug_concept_code,
+       ingredient_concept_code
 FROM ds_Stage
 UNION
 --Drug to supplier
@@ -1037,7 +1037,7 @@ FROM drug_concept_stage dc
   JOIN concept c2
     ON concept_id_2 = c2.concept_id
    AND c2.concept_class_id = 'Supplier'
-   AND c2.VOCABULARY_ID LIKE 'Rx%'
+   AND c2.vocabulary_id LIKE 'Rx%'
 UNION
 --insert relationships to those packs that do not have Pack's BN
 SELECT a.concept_code,
@@ -1059,7 +1059,7 @@ WHERE concept_id_1 NOT IN (SELECT concept_id_1
                               AND a.concept_class_id LIKE '%Pack%'
                              JOIN concept c
                                ON concept_id_2 = c.concept_id
-                              AND c.CONCEPT_CLASS_ID = 'Brand Name'
+                              AND c.concept_class_id = 'Brand Name'
                               AND b.invalid_reason IS NULL));
 			      
 -- Add all the attributes which relationships are missing in basic tables (separate query to speed up)
@@ -1067,8 +1067,6 @@ INSERT INTO internal_relationship_stage
 (
   concept_code_1,concept_code_2
 )
-SELECT concept_code,concept_Code_2
-FROM (
 --missing bn
      SELECT dc.concept_code,dc2.concept_code AS concept_code_2 
      FROM drug_concept_stage dc
@@ -1079,18 +1077,22 @@ FROM (
    AND dc.concept_name LIKE '%Pack%[%]%'
   JOIN drug_concept_stage dc2
     ON dc2.concept_name = REPLACE (REPLACE (REGEXP_SUBSTR (REGEXP_SUBSTR (c.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']')
-   AND dc2.concept_class_id = 'Brand Name'
-UNION ALL
+   AND dc2.concept_class_id = 'Brand Name';
+   
+INSERT INTO internal_relationship_stage
+(
+  concept_code_1,concept_code_2
+)
 --add missing suppliers
 SELECT dc.concept_code,dc2.concept_code
 FROM drug_concept_stage dc
   JOIN concept c
     ON c.concept_code = dc.concept_code
    AND c.vocabulary_id = 'RxNorm Extension'
-   AND dc.SOURCE_CONCEPT_CLASS_ID = 'Marketed Product'
+   AND dc.source_concept_class_id = 'Marketed Product'
   JOIN drug_concept_stage dc2
-    ON REGEXP_LIKE (c.concept_name,dc2.concept_name)
-   AND dc2.concept_class_id = 'Supplier');
+    ON LOWER (c.concept_name) LIKE '%'||LOWER(dc2.concept_name)||'%'
+   AND dc2.concept_class_id = 'Supplier';
 	
 --delete multiple relationships to attributes
 --define concept_1, concept_2 pairs need to be deleted
@@ -1138,16 +1140,16 @@ DROP TABLE ird;
 
 --delete 2 brand names that don't fit the rule as the brand name of the pack looks like the brand name of component (e.g. [Risedronate] and [Risedronate EC])
 DELETE
-FROM INTERNAL_RELATIONSHIP_STAGE
-WHERE CONCEPT_CODE_1 in  ('OMOP572812','OMOP573077' ,'OMOP573035','OMOP573066','OMOP573376')
- AND   CONCEPT_CODE_2  in  ('OMOP571371','OMOP569970');
+FROM internal_relationship_stage
+WHERE concept_code_1 in  ('OMOP572812','OMOP573077' ,'OMOP573035','OMOP573066','OMOP573376')
+AND  concept_code_2  in  ('OMOP571371','OMOP569970');
 
 --delete deprecated concepts
 DELETE internal_relationship_stage
 WHERE concept_code_2 IN (SELECT concept_code
                          FROM concept c
-                         WHERE c.VOCABULARY_ID LIKE 'Rx%'
-                         AND   c.INVALID_REASON = 'D'
+                         WHERE c.vocabulary_id LIKE 'Rx%'
+                         AND   c.invalid_reason = 'D'
                          AND   concept_class_id = 'Ingredient');
 
 COMMIT;
@@ -1160,124 +1162,37 @@ INSERT INTO pc_stage
   AMOUNT,
   BOX_SIZE
 )
-SELECT DISTINCT c.CONCEPT_CODE,
-       c2.CONCEPT_CODE,
-       AMOUNT,
-       BOX_SIZE
+SELECT DISTINCT c.concept_code,
+       c2.concept_code,
+       amount,
+       box_size
 FROM devv5.pack_content
   JOIN concept c
-    ON PACK_CONCEPT_ID = c.CONCEPT_ID
+    ON pack_concept_id = c.CONCEPT_ID
    AND c.vocabulary_id = 'RxNorm Extension'
-  JOIN concept c2 ON DRUG_CONCEPT_ID = c2.CONCEPT_ID;
+  JOIN concept c2 ON drug_concept_id = c2.concept_id;
 
 --fix 2 equal components manualy
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339574'
-AND   DRUG_CONCEPT_CODE = '197659'
-AND   AMOUNT = 12;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339579'
-AND   DRUG_CONCEPT_CODE = '311704'
-AND   AMOUNT IS NULL;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339579'
-AND   DRUG_CONCEPT_CODE = '317128'
-AND   AMOUNT IS NULL;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339728'
-AND   DRUG_CONCEPT_CODE = '1363273'
-AND   AMOUNT = 7;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339876'
-AND   DRUG_CONCEPT_CODE = '864686'
-AND   AMOUNT IS NULL;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339876'
-AND   DRUG_CONCEPT_CODE = '1117531'
-AND   AMOUNT IS NULL;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339900'
-AND   DRUG_CONCEPT_CODE = '392651'
-AND   AMOUNT IS NULL;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339900'
-AND   DRUG_CONCEPT_CODE = '197662'
-AND   AMOUNT IS NULL;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339913'
-AND   DRUG_CONCEPT_CODE = '199797'
-AND   AMOUNT IS NULL;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339913'
-AND   DRUG_CONCEPT_CODE = '199796'
-AND   AMOUNT IS NULL;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP340051'
-AND   DRUG_CONCEPT_CODE = '1363273'
-AND   AMOUNT = 7;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP340128'
-AND   DRUG_CONCEPT_CODE = '197659'
-AND   AMOUNT = 12;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339633'
-AND   DRUG_CONCEPT_CODE = '310463'
-AND   AMOUNT = 5;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339814'
-AND   DRUG_CONCEPT_CODE = '310463'
-AND   AMOUNT = 5;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339886'
-AND   DRUG_CONCEPT_CODE = '312309'
-AND   AMOUNT = 6;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339886'
-AND   DRUG_CONCEPT_CODE = '312308'
-AND   AMOUNT = 109;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339895'
-AND   DRUG_CONCEPT_CODE = '312309'
-AND   AMOUNT = 6;
-
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP339895'
-AND   DRUG_CONCEPT_CODE = '312308'
-AND   AMOUNT = 109;
+DELETE PC_STAGE
+WHERE
+   ( PACK_CONCEPT_CODE = 'OMOP339574' AND   DRUG_CONCEPT_CODE = '197659' AND   AMOUNT = 12)
+OR ( PACK_CONCEPT_CODE = 'OMOP339579' AND   DRUG_CONCEPT_CODE = '311704' AND   AMOUNT IS NULL)
+OR ( PACK_CONCEPT_CODE = 'OMOP339579' AND   DRUG_CONCEPT_CODE = '317128' AND   AMOUNT IS NULL)
+OR ( PACK_CONCEPT_CODE = 'OMOP339728' AND   DRUG_CONCEPT_CODE = '1363273'AND   AMOUNT = 7)
+OR ( PACK_CONCEPT_CODE = 'OMOP339876' AND   DRUG_CONCEPT_CODE = '864686' AND   AMOUNT IS NULL)
+OR ( PACK_CONCEPT_CODE = 'OMOP339876' AND   DRUG_CONCEPT_CODE = '1117531' AND   AMOUNT IS NULL)
+OR ( PACK_CONCEPT_CODE = 'OMOP339900' AND   DRUG_CONCEPT_CODE = '392651' AND   AMOUNT IS NULL)
+OR ( PACK_CONCEPT_CODE = 'OMOP339900' AND   DRUG_CONCEPT_CODE = '197662' AND   AMOUNT IS NULL)
+OR ( PACK_CONCEPT_CODE = 'OMOP339913' AND   DRUG_CONCEPT_CODE = '199797' AND   AMOUNT IS NULL)
+OR ( PACK_CONCEPT_CODE = 'OMOP339913' AND   DRUG_CONCEPT_CODE = '199796' AND   AMOUNT IS NULL)
+OR ( PACK_CONCEPT_CODE = 'OMOP340051' AND   DRUG_CONCEPT_CODE = '1363273' AND   AMOUNT = 7)
+OR ( PACK_CONCEPT_CODE = 'OMOP340128' AND   DRUG_CONCEPT_CODE = '197659' AND   AMOUNT = 12)
+OR ( PACK_CONCEPT_CODE = 'OMOP339633' AND   DRUG_CONCEPT_CODE = '310463' AND   AMOUNT = 5)
+OR ( PACK_CONCEPT_CODE = 'OMOP339814' AND   DRUG_CONCEPT_CODE = '310463' AND   AMOUNT = 5)
+OR ( PACK_CONCEPT_CODE = 'OMOP339886' AND   DRUG_CONCEPT_CODE = '312309' AND   AMOUNT = 6)
+OR ( PACK_CONCEPT_CODE = 'OMOP339886' AND   DRUG_CONCEPT_CODE = '312308' AND   AMOUNT = 109)
+OR ( PACK_CONCEPT_CODE = 'OMOP339895' AND   DRUG_CONCEPT_CODE = '312309' AND   AMOUNT = 6)
+OR ( PACK_CONCEPT_CODE = 'OMOP339895' AND   DRUG_CONCEPT_CODE = '312308' AND   AMOUNT = 109);
 
 UPDATE PC_STAGE
    SET AMOUNT = 12
@@ -1637,7 +1552,7 @@ INSERT INTO relationship_to_concept
   CONVERSION_FACTOR
 )
 SELECT a.concept_code,
-       a.VOCABULARY_ID,
+       a.vocabulary_id,
        b.concept_id,
        1,
        1

@@ -590,7 +590,7 @@ UPDATE ds_stage
        DENOMINATOR_VALUE = NULL,
        DENOMINATOR_UNIT = NULL
 WHERE NUMERATOR_UNIT = '%'
-AND   NUMERATOR_VALUE IN ('0.000283','0.1','35.3');
+AND   NUMERATOR_VALUE IN (0.000283,0.1,35.3);
 COMMIT;
 							   
 --17 Do all sorts of manual fixes
@@ -623,7 +623,7 @@ UPDATE ds_stage
        AMOUNT_UNIT = NULL,
        AMOUNT_VALUE = NULL,
        NUMERATOR_UNIT = 'mg'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                               JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             --also found like 0.4*5.25 cm=2.1 mg=0.012/h 
@@ -637,7 +637,7 @@ UPDATE ds_stage
        AMOUNT_UNIT = NULL,
        AMOUNT_VALUE = NULL,
        NUMERATOR_UNIT = 'mg'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                               JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE b.concept_name LIKE '%Fentanyl%Transdermal%'
@@ -650,7 +650,7 @@ UPDATE ds_stage
        AMOUNT_UNIT = NULL,
        AMOUNT_VALUE = NULL,
        NUMERATOR_UNIT = 'mg'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE b.concept_name LIKE '%Fentanyl%Transdermal%'
@@ -663,7 +663,7 @@ UPDATE ds_stage
        AMOUNT_UNIT = NULL,
        AMOUNT_VALUE = NULL,
        NUMERATOR_UNIT = 'mg'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE b.concept_name LIKE '%Fentanyl%Transdermal%'
@@ -676,7 +676,7 @@ UPDATE ds_stage
        AMOUNT_UNIT = NULL,
        AMOUNT_VALUE = NULL,
        NUMERATOR_UNIT = 'mg'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE b.concept_name LIKE '%Fentanyl%Transdermal%'
@@ -688,7 +688,7 @@ UPDATE ds_stage
    SET NUMERATOR_VALUE = 0.012,
        DENOMINATOR_VALUE = NULL,
        DENOMINATOR_UNIT = 'h'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             --also found like 0.4*5.25 cm=2.1 mg=0.012/h
@@ -701,7 +701,7 @@ UPDATE ds_stage
    SET NUMERATOR_VALUE = 0.025,
        DENOMINATOR_VALUE = NULL,
        DENOMINATOR_UNIT = 'h'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE NVL(a.amount_unit,a.numerator_unit) IN ('cm','mm')
@@ -713,7 +713,7 @@ UPDATE ds_stage
    SET NUMERATOR_VALUE = 0.05,
        DENOMINATOR_VALUE = NULL,
        DENOMINATOR_UNIT = 'h'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE NVL(a.amount_unit,a.numerator_unit) IN ('cm','mm')
@@ -725,7 +725,7 @@ UPDATE ds_stage
    SET NUMERATOR_VALUE = 0.075,
        DENOMINATOR_VALUE = NULL,
        DENOMINATOR_UNIT = 'h'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE NVL(a.amount_unit,a.numerator_unit) IN ('cm','mm')
@@ -737,7 +737,7 @@ UPDATE ds_stage
    SET NUMERATOR_VALUE = 0.1,
        DENOMINATOR_VALUE = NULL,
        DENOMINATOR_UNIT = 'h'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE NVL(a.amount_unit,a.numerator_unit) IN ('cm','mm')
@@ -751,7 +751,7 @@ UPDATE ds_stage
    SET NUMERATOR_VALUE = 13.3,
        DENOMINATOR_VALUE = 24,
        DENOMINATOR_UNIT = 'h'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE NVL(a.amount_unit,a.numerator_unit) IN ('cm','mm')
@@ -766,7 +766,7 @@ UPDATE ds_stage
                          END,
        DENOMINATOR_VALUE = 24,
        DENOMINATOR_UNIT = 'h'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE NVL(amount_unit,numerator_unit) IN ('cm','mm')
@@ -782,7 +782,7 @@ UPDATE ds_stage
                          END,
        DENOMINATOR_VALUE = 16,
        DENOMINATOR_UNIT = 'h'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE NVL(a.amount_unit,a.numerator_unit) IN ('cm','mm')
@@ -794,7 +794,7 @@ UPDATE ds_stage
    SET NUMERATOR_VALUE = 14,
        DENOMINATOR_VALUE = 24,
        DENOMINATOR_UNIT = 'h'
-WHERE DRUG_CONCEPT_CODE IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage a
                             JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE NVL(a.amount_unit,a.numerator_unit) IN ('cm','mm')
@@ -819,7 +819,7 @@ UPDATE ds_stage
    SET NUMERATOR_VALUE = 1.4,
        NUMERATOR_UNIT = 'mg',
        DENOMINATOR_VALUE = NULL
-WHERE DRUG_CONCEPT_CODE  IN (SELECT DRUG_CONCEPT_CODE
+WHERE drug_concept_code IN (SELECT drug_concept_code
                         FROM ds_stage a
                           JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                         WHERE ((a.numerator_value IS NOT NULL AND a.numerator_unit IS NULL) 

@@ -900,7 +900,6 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                               JOIN drug_concept_stage b ON a.drug_concept_code = b.concept_code
                             WHERE nvl(amount_unit,numerator_unit) IN ('cm','mm')
                             OR    denominator_unit IN ('cm','mm'));
--
 
 -- Delete combination drugs where denominators don't match
 DELETE ds_stage
@@ -1113,24 +1112,8 @@ WHERE concept_code_1 IN (SELECT concept_code_1
                          GROUP BY concept_code_1,
                                   b.concept_class_id
                          HAVING COUNT(1) > 1)
-AND NOT REGEXP_LIKE (c.concept_name,b.concept_name) --Attribute is not a part of a name
-UNION
-SELECT concept_code_1,
-       concept_code_2
-FROM internal_relationship_stage
-  JOIN drug_concept_stage b
-    ON concept_code_2 = b.concept_code
-   AND b.concept_class_id IN ('Supplier', 'Dose Form', 'Brand Name')
- 
-  JOIN drug_concept_stage c ON c.concept_code = concept_code_1
-WHERE concept_code_1 IN (SELECT concept_code_1
-                         FROM internal_relationship_stage a
-                           JOIN drug_concept_stage b ON concept_code = concept_code_2
-                         WHERE b.concept_class_id IN ('Supplier','Dose Form','Brand Name')
-                         GROUP BY concept_code_1,
-                                  b.concept_class_id
-                         HAVING COUNT(1) > 1)
-AND NOT REGEXP_LIKE (REGEXP_SUBSTR(c.concept_name,'Pack\s.*'),b.concept_name);
+AND ((c.concept_name not like '%'||b.concept_name||'%') OR (REGEXP_SUBSTR(c.concept_name,'Pack\s.*') NOT LIKE '%'||b.concept_name||'%')); --Attribute is not a part of a name
+
 
 DELETE
 FROM internal_relationship_stage

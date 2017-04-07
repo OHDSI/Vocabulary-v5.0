@@ -1084,14 +1084,17 @@ INSERT /*+ APPEND */ INTO internal_relationship_stage
 COMMIT;
 
 --add missing suppliers
-INSERT /*+ APPEND */ INTO internal_relationship_stage
-SELECT dc.concept_code,dc2.concept_code
-FROM drug_concept_stage dc
-  JOIN drug_concept_stage dc2
-    ON LOWER (dc.concept_name) LIKE '%'||LOWER(dc2.concept_name)||'%'
-WHERE dc.source_concept_class_id = 'Marketed Product' AND dc2.concept_class_id = 'Supplier';
+INSERT /*+ APPEND */ INTO  internal_relationship_stage
+   WITH dc
+        AS (SELECT /*+ materialize */
+                  LOWER (concept_name) concept_name, concept_code
+              FROM drug_concept_stage
+             WHERE source_concept_class_id = 'Marketed Product')
+   SELECT dc.concept_code, dc2.concept_code
+     FROM dc JOIN drug_concept_stage dc2 ON dc.concept_name LIKE '% ' || LOWER (dc2.concept_name) AND dc2.concept_class_id = 'Supplier';
+
 COMMIT;
-*************************need to optimize!!!*******************
+*************************not completed*******************
 	
 --27 delete multiple relationships to attributes
 --define concept_1, concept_2 pairs need to be deleted

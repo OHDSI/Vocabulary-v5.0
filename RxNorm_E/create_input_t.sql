@@ -1531,7 +1531,8 @@ INSERT INTO relationship_to_concept
   CONCEPT_ID_2,
   PRECEDENCE
 )
-SELECT a.concept_code,
+SELECT distinct
+       a.concept_code,
        a.VOCABULARY_ID,
        b.concept_id,
        1
@@ -1550,7 +1551,8 @@ INSERT INTO relationship_to_concept
   PRECEDENCE,
   CONVERSION_FACTOR
 )
-SELECT a.concept_code,
+SELECT distinct
+       a.concept_code,
        a.vocabulary_id,
        b.concept_id,
        1,

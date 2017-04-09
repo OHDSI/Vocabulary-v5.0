@@ -762,7 +762,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
 UPDATE ds_stage 
    SET NUMERATOR_VALUE = CASE
                            WHEN denominator_value IS NULL THEN numerator_value*24
-                           ELSE numerator_value / a.denominator_value*24
+                           ELSE numerator_value / denominator_value*24
                          END,
        DENOMINATOR_VALUE = 24,
        DENOMINATOR_UNIT = 'h'
@@ -1113,9 +1113,9 @@ WHERE a.concept_code_1 IN (SELECT a_int.concept_code_1
                          WHERE b.concept_class_id IN ('Supplier','Dose Form','Brand Name')
                          GROUP BY a_int.concept_code_1, b.concept_class_id
                          HAVING COUNT(1) > 1)
-AND NOT LOWER (c.concept_name) LIKE '%'||LOWER(b.concept_name)||'%' --Attribute is not a part of a name
+AND NOT LOWER (c.concept_name) LIKE '%'||LOWER(b.concept_name)||'%' ; --Attribute is not a part of a name
 --REGEXP_LIKE (c.concept_name,b.concept_name)
-UNION
+INSERT INTO ird
 SELECT concept_code_1,
        concept_code_2
 FROM internal_relationship_stage a

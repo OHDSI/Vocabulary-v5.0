@@ -1561,11 +1561,7 @@ FROM drug_concept_stage a
    AND a.concept_class_id = 'Unit'
    AND b.vocabulary_id = 'UCUM';
    
--- !!! need to check what is going on
-UPDATE RELATIONSHIP_TO_CONCEPT
-   SET CONCEPT_ID_2 = 19011438
-WHERE CONCEPT_CODE_1 = '1428040';
-
+-- transform micrograms into milligrams
 UPDATE RELATIONSHIP_TO_CONCEPT
    SET CONCEPT_ID_2 = 8576,
        CONVERSION_FACTOR = 0.001

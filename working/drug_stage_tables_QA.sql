@@ -81,7 +81,7 @@ union
 select drug_concept_code,'missing unit'
 from ds_stage where (numerator_value is not null and numerator_unit is null)
 OR  (denominator_value is not null and denominator_unit is null)
-OR  (amount_value is not null and amount_unit is null);
+OR  (amount_value is not null and amount_unit is null)
 union
 --3. internal_relationship_dublicates
 select concept_code_1, 'internal_relationship_dublicates' from (

@@ -138,7 +138,7 @@ select * from (
     when regexp_like(concept_name, 'cd54\+ cell', 'i') then 'Unknown'    
     when regexp_like (concept_name, '([;,] |per |up to )[0-9\.,]+ ?(g|mg|ml|microgram|units?|cc)', 'i') then 'Unknown'
   end as dose_form -- will be turned into a relationship
-  from concept
+  from concept_stage
   where vocabulary_id='HCPCS'
 )
 where dose_form is not null
@@ -1894,7 +1894,7 @@ with bn as (
   select d.concept_code, b.concept_id, b.brandname
   from drug_concept_stage d
   join (
-    select concept_id, lower(concept_name) as brandname from concept where vocabulary_id='RxNorm' and concept_class_id='Brand Name' 
+    select concept_id, lower(concept_name) as brandname from concept_stage where vocabulary_id='RxNorm' and concept_class_id='Brand Name' 
   ) b on instr(lower(d.concept_name), b.brandname)>0
   where d.concept_class_id='Procedure Drug'
   and regexp_like(lower(d.concept_name), '[^a-z]'||b.brandname||'[^a-z]') -- regexp very slow compared to instr (2 lines above), therefore pre-filter with instr and then regexp

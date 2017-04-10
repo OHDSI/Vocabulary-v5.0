@@ -978,7 +978,7 @@ COMMIT;
 
 --25 Build internal_relationship_stage 
 INSERT /*+ APPEND */ INTO internal_relationship_stage
-SELECT concept_code,concept_code_2
+SELECT distinct concept_code,concept_code_2
 FROM (
 --Drug to form
      SELECT dc.concept_code,c2.concept_code AS concept_code_2 
@@ -1078,7 +1078,7 @@ COMMIT;
 --26 Add all the attributes which relationships are missing in basic tables (separate query to speed up)
 INSERT /*+ APPEND */ INTO internal_relationship_stage
 --missing bn
-     SELECT dc.concept_code,dc2.concept_code AS concept_code_2 
+     SELECT distinct dc.concept_code,dc2.concept_code AS concept_code_2 
      FROM drug_concept_stage dc
   JOIN concept c
     ON c.concept_code = dc.concept_code
@@ -1095,7 +1095,7 @@ COMMIT;
 INSERT /*+ APPEND */ INTO  internal_relationship_stage
    WITH dc
         AS (SELECT /*+ materialize */
-                  LOWER (concept_name) concept_name, concept_code
+                  distinct LOWER (concept_name) concept_name, concept_code
               FROM drug_concept_stage
              WHERE source_concept_class_id = 'Marketed Product')
    SELECT dc.concept_code, dc2.concept_code

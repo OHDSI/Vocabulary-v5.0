@@ -1101,6 +1101,19 @@ INSERT /*+ APPEND */ INTO  internal_relationship_stage
    SELECT dc.concept_code, dc2.concept_code
      FROM dc JOIN drug_concept_stage dc2 ON dc.concept_name LIKE '% ' || LOWER (dc2.concept_name) AND dc2.concept_class_id = 'Supplier';
 
+delete internal_relationship_stage 
+where (concept_code_1,concept_code_2) in ( 
+with a as (select concept_code_1 from internal_relationship_stage a
+join drug_concept_stage  b on concept_code = concept_code_2 
+where b.concept_class_id in ('Supplier')
+group by concept_code_1,b.concept_class_id having count (1) >1)
+select b2.concept_code_1,b2.concept_code_2 from internal_relationship_stage b join a on a.concept_code_1=b.concept_code_1
+join internal_relationship_stage b2 on b2.concept_code_1=b.concept_code_1 and b.concept_code_2!=b2.concept_code_2
+join drug_concept_stage c on c.concept_code=b.concept_code_2 and c.concept_class_id='Supplier'
+join drug_concept_stage c2 on c2.concept_code=b2.concept_code_2 and c2.concept_class_id='Supplier'
+where length(c.concept_name)<length(c2.concept_name)
+);
+
 COMMIT;
 *************************not completed*******************
 	

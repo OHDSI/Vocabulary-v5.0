@@ -651,7 +651,7 @@ IS
         12. OPCS4
         13. Read
       */
-      UTL_HTTP.set_wallet ('file:/home/vtimur/wallet', 'wallet_password');
+      UTL_HTTP.set_wallet ('file:/home/oracle/wallet', 'wallet_password');
       cVocabHTML := HTTPURITYPE (cURL).getCLOB ();
 
       CASE

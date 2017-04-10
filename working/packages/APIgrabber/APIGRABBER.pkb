@@ -114,7 +114,7 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
         c := utl_smtp.open_connection(
             host => 'smtp.gmail.com',
             port => 587,
-            wallet_path => 'file:/home/vtimur/wallet',
+            wallet_path => 'file:/home/oracle/wallet',
             wallet_password => 'wallet_password',
             secure_connection_before_smtp => FALSE);        
         utl_smtp.ehlo(c,'smtp.gmail.com');
@@ -144,7 +144,7 @@ CREATE OR REPLACE PACKAGE BODY DEV_TIMUR.APIGrabber is
         this is workaround
     */
     begin
-        UTL_HTTP.set_wallet ('file:/home/vtimur/wallet', 'wallet_password');
+        UTL_HTTP.set_wallet ('file:/home/oracle/wallet', 'wallet_password');
         return HTTPURITYPE(url).getXML();
     end;
     procedure RunTask (pTaskName in varchar2, pSQLsrc in varchar2, pSQLurl in varchar2, pResumeTask in boolean default false) is

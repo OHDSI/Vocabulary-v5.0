@@ -133,7 +133,8 @@ INSERT /*+ APPEND */ INTO DRUG_CONCEPT_STAGE
   INVALID_REASON,
   SOURCE_CONCEPT_CLASS_ID
 )
-select concept_name,
+select distinct
+	concept_name,
        'Rxfix',
        'Drug Product',
        null,
@@ -151,7 +152,8 @@ WHERE
 AND vocabulary_id = 'RxNorm Extension' AND invalid_reason IS NULL
 UNION ALL
 -- Get Dose Forms, Brand Names, Supplier, including RxNorm
-SELECT  b2.concept_name,
+SELECT distinct	
+	b2.concept_name,
        'Rxfix',
        b2.concept_class_id,
        null,
@@ -176,7 +178,8 @@ FROM concept_relationship a
 WHERE a.invalid_reason IS NULL
 UNION ALL
 --Get RxNorm pack components from RxNorm
-SELECT  b2.concept_name,
+SELECT  distinct
+	b2.concept_name,
        'Rxfix',
        'Drug Product',
        null,
@@ -214,7 +217,8 @@ INSERT /*+ APPEND */
                                 VALID_END_DATE,
                                 INVALID_REASON,
                                 SOURCE_CONCEPT_CLASS_ID)
-   SELECT b3.concept_name,
+   SELECT distinct
+   	  b3.concept_name,
           'Rxfix',
           b3.concept_class_id,
           NULL,
@@ -264,7 +268,8 @@ INSERT /*+ APPEND */
                                 VALID_END_DATE,
                                 INVALID_REASON,
                                 SOURCE_CONCEPT_CLASS_ID)
-   SELECT b.concept_name,
+   SELECT distinct
+   	   b.concept_name,
           'Rxfix',
           'Ingredient',
           'S',
@@ -297,7 +302,8 @@ INSERT /*+ APPEND */
                                 VALID_END_DATE,
                                 INVALID_REASON,
                                 SOURCE_CONCEPT_CLASS_ID)
-   SELECT a.concept_name,
+   SELECT distinct
+   	   a.concept_name,
           'Rxfix',
           'Ingredient',
           'S',
@@ -333,7 +339,8 @@ INSERT /*+ APPEND */
                                 VALID_END_DATE,
                                 INVALID_REASON,
                                 SOURCE_CONCEPT_CLASS_ID)
-   SELECT c.concept_name,
+   SELECT distinct
+   	  c.concept_name,
           'Rxfix',
           'Unit',
           NULL,
@@ -402,7 +409,8 @@ INSERT /*+ APPEND */
                       NUMERATOR_UNIT,
                       DENOMINATOR_VALUE,
                       DENOMINATOR_UNIT)
-   SELECT c.concept_code,
+   SELECT distinct
+   	  c.concept_code,
           c2.concept_code,
           ds.box_size,
           amount_value,

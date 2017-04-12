@@ -17,7 +17,7 @@ Remove date from file name.
 
 5. Download the British SNOMED file uk_sct2clfull_xx.x.x__YYYYMMDD000001.zip from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/26/subpack/102/releases.
 6. Extract the release date from the file name.
-7. Extract the following files from the folder SnomedCT_RF2Release_GB1000000_YYYYMMDD\Full\Terminology into a working folder:
+7. Extract the following files from the folder SnomedCT_UKClinicalRF2_Production_YYYYMMDDTzzzzzz\Full\Terminology into a working folder:
 - sct2_Concept_Full_GB1000000_YYYYMMDD.txt
 - sct2_Description_Full-en-GB_GB1000000_YYYYMMDD.txt
 - sct2_Relationship_Full-GB_GB1000000_YYYYMMDD.txt
@@ -26,7 +26,7 @@ Remove date from file name and rename to sct2_Concept_Full-UK.txt, sct2_Descript
 8. Load them into SCT2_CONCEPT_FULL_UK, SCT2_DESC_FULL_UK, SCT2_RELA_FULL_UK. Use the control files in Vocabulary-v5.0\SNOMED
 
 9. Extract der2_cRefset_AssociationReferenceFull_INT_YYYYMMDD.txt from SnomedCT_InternationalRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content 
-and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT_RF2Release_GB1000000_YYYYMMDD\Full\Refset\Content
+and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT_UKClinicalRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content
 
 Remove date from file name and rename to der2_cRefset_AssociationReferenceFull_UK.txt, der2_cRefset_AssociationReferenceFull_INT.txt
 10. Load them into der2_cRefset_AssRefFull_INT and der2_cRefset_AssRefFull_UK.

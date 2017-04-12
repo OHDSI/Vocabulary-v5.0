@@ -338,7 +338,26 @@ BEGIN
                 select 'Quant Clinical Box', 'Has tradename', 'Quant Branded Box' from dual union all
                 select 'Quant Clinical Drug', 'Available as box', 'Quant Clinical Box' from dual union all
                 select 'Quant Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union all
-                select 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' from dual
+                select 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' from dual union all
+                --new relationships 20170412
+                select 'Branded Dose Group', 'Has brand name', 'Brand Name' from dual union all
+                select 'Branded Dose Group', 'Has dose form group', 'Dose Form Group' from dual union all
+                select 'Branded Dose Group', 'Marketed form of', 'Dose Form Group' from dual union all
+                select 'Branded Dose Group', 'RxNorm has ing', 'Brand Name' from dual union all
+                select 'Branded Dose Group', 'RxNorm inverse is a', 'Branded Drug Form' from dual union all
+                select 'Branded Dose Group', 'RxNorm inverse is a', 'Branded Drug' from dual union all
+                select 'Branded Dose Group', 'RxNorm inverse is a', 'Quant Branded Drug' from dual union all
+                select 'Branded Dose Group', 'RxNorm inverse is a', 'Quant Clinical Drug' from dual union all
+                select 'Branded Dose Group', 'Tradename of', 'Clinical Dose Group' from dual union all
+                select 'Clinical Dose Group', 'Has dose form group', 'Dose Form Group' from dual union all
+                select 'Clinical Dose Group', 'Marketed form of', 'Dose Form Group' from dual union all
+                select 'Clinical Dose Group', 'RxNorm has ing', 'Ingredient' from dual union all
+                select 'Clinical Dose Group', 'RxNorm has ing', 'Precise Ingredient' from dual union all
+                select 'Clinical Dose Group', 'RxNorm inverse is a', 'Clinical Drug Form' from dual union all
+                select 'Clinical Dose Group', 'RxNorm inverse is a', 'Clinical Drug' from dual union all
+                select 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Branded Drug' from dual union all
+                select 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Clinical Drug' from dual union all
+                select 'Dose Form Group', 'RxNorm inverse is a', 'Dose Form' from dual              
             ) 
             select * from t 
             union all 
@@ -428,11 +447,11 @@ BEGIN
                                                    'Branded Drug Form',
                                                    'Branded Drug',
                                                    'Marketed Product'
-												   )
+                                                   )
                        AND r.concept_id_2 = c2.concept_id
                        AND c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                        AND c2.concept_class_id = 'Brand Name'
-					   AND c2.invalid_reason IS NULL
+                       AND c2.invalid_reason IS NULL
                        AND c3.concept_id = r.concept_id_1
                        AND c3.concept_class_id <> 'Ingredient') i
             ON (r.concept_id_1 = i.concept_id_1 AND r.concept_id_2 = i.concept_id_2 AND r.relationship_id = i.relationship_id)
@@ -479,11 +498,11 @@ BEGIN
                                                    'Branded Drug Form',
                                                    'Branded Drug',
                                                    'Marketed Product'
-												   )
+                                                   )
                        AND r.concept_id_1 = c1.concept_id
                        AND c1.vocabulary_id in ('RxNorm', 'RxNorm Extension')
                        AND c1.concept_class_id = 'Brand Name'
-					   AND c1.invalid_reason IS NULL
+                       AND c1.invalid_reason IS NULL
                        AND c3.concept_id = r.concept_id_2
                        AND c3.concept_class_id <> 'Ingredient') i
             ON (r.concept_id_1 = i.concept_id_1 AND r.concept_id_2 = i.concept_id_2 AND r.relationship_id = i.relationship_id)

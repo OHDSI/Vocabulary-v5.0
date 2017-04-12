@@ -663,6 +663,13 @@ update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and
 update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code='XS'; --Separate structure, a service that is distinct because it was performed on a separate organ/structure
 update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code='XU'; --Unusual non-overlapping service, the use of a service that is distinct because it does not overlap usual components of the main service
 update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code='ZA'; --Novartis/sandoz
+--2017 release added domains
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='FX'; --X-ray taken using film
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='PN'; --Non-excepted service provided at an off-campus, outpatient, provider-based department of a hospital
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='V1'; --Demonstration modifier 1
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='V2'; --Demonstration modifier 2
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='V3'; --Demonstration modifier 3
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='ZB'; --Pfizer/hospira
 end;
 COMMIT;
 

@@ -1129,6 +1129,10 @@ insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) v
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zoledronic acid', 1524674, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zoledronic acid (reclast)', 1524674, null);
 insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zoledronic acid (zometa)', 1524674, null);
+insert into relationship_to_concept (CONCEPT_CODE_1,CONCEPT_ID_2,PRECEDENCE) values ('hydrocortisone sodium phosphate',975125,1);
+insert into relationship_to_concept (CONCEPT_CODE_1,CONCEPT_ID_2,PRECEDENCE) values ('sulfur hexafluoride lipid microspheres',45892833,1);
+insert into relationship_to_concept (CONCEPT_CODE_1,CONCEPT_ID_2,PRECEDENCE) values ('estrogen conjugated',1549080,1);
+insert into relationship_to_concept (CONCEPT_CODE_1,CONCEPT_ID_2,PRECEDENCE) values ('ondansetron hydrochloride 8 mg',1000560,1);
 end;
 commit;
 

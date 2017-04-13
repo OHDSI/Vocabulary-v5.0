@@ -871,6 +871,32 @@ IS
         END IF;
     END;
 
+    PROCEDURE CreateLocalPROD
+    IS
+    /*
+    This procedure creates the local copy of DEVV5 after release (aka PROD)
+    and this local copy is used by QA_TESTS.get_summary
+    */
+    BEGIN
+        EXECUTE IMMEDIATE 'TRUNCATE TABLE PRODV5.CONCEPT';
+
+        EXECUTE IMMEDIATE 'INSERT /*+ APPEND */ INTO PRODV5.CONCEPT SELECT * FROM CONCEPT';
+
+        COMMIT;
+
+        EXECUTE IMMEDIATE 'TRUNCATE TABLE PRODV5.CONCEPT_RELATIONSHIP';
+
+        EXECUTE IMMEDIATE 'INSERT /*+ APPEND */ INTO PRODV5.CONCEPT_RELATIONSHIP SELECT * FROM CONCEPT_RELATIONSHIP';
+
+        COMMIT;
+
+        EXECUTE IMMEDIATE 'TRUNCATE TABLE PRODV5.CONCEPT_ANCESTOR';
+
+        EXECUTE IMMEDIATE 'INSERT /*+ APPEND */ INTO PRODV5.CONCEPT_ANCESTOR SELECT * FROM CONCEPT_ANCESTOR';
+
+        COMMIT;
+    END;
+
     PROCEDURE StartReleaseNEW
     IS
         crlf        VARCHAR2 (2) := UTL_TCP.crlf;
@@ -932,6 +958,7 @@ IS
         cVocabs   VARCHAR2 (4000);
     BEGIN
         pConceptAncestor;
+        CreateLocalPROD;
         DEVV4.v5_to_v4;
         CREATE_PROD_BACKUP@link_prodv5;
         CREATE_PRODV4@link_prodv5;

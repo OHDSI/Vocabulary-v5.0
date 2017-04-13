@@ -430,7 +430,7 @@ COMMIT;
 
 --8 update ds_stage for homeopathic drugs
 -- homeopatic unit is not a real concentration
-UPDATE ds_stage
+/*UPDATE ds_stage
    SET amount_value = numerator_value,
        amount_unit = numerator_unit,
        numerator_value = NULL,
@@ -441,7 +441,7 @@ UPDATE ds_stage
                                    FROM ds_stage
                                   WHERE numerator_unit IN ('[hp_X]', '[hp_C]'));
 COMMIT;							  
-
+*/
 						
 --9 Manually add absent units in drug_strength (due to source table issues)
 UPDATE DS_STAGE

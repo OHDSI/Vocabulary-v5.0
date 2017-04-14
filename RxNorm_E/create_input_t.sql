@@ -992,105 +992,71 @@ COMMIT;
 
 ***********
 --25 Build internal_relationship_stage 
-INSERT /*+ APPEND */ INTO internal_relationship_stage
-SELECT distinct concept_code,concept_code_2
-FROM (
---Drug to form
-     SELECT dc.concept_code,c2.concept_code AS concept_code_2 
-     FROM drug_concept_stage dc
-  JOIN concept c
-    ON c.concept_code = dc.concept_code
-   AND c.vocabulary_id = 'RxNorm Extension'
-   AND dc.concept_class_id = 'Drug Product'
-  JOIN concept_relationship cr ON c.concept_id = cr.concept_id_1
-  JOIN concept c2
-    ON c2.concept_id=cr.concept_id_2
-   AND c2.concept_class_id = 'Dose Form'
-   AND c2.VOCABULARY_ID LIKE 'Rx%'
-	--where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
-UNION
---Drug to BN
-SELECT dc.concept_code,
-       c2.concept_code
-FROM drug_concept_stage dc
-  JOIN concept c
-    ON c.concept_code = dc.concept_code
-   AND c.vocabulary_id = 'RxNorm Extension'
-   AND dc.concept_class_id = 'Drug Product'
-   AND (dc.source_concept_class_id NOT LIKE '%Pack%'
-    OR (dc.source_concept_class_id = 'Marketed Product'
-   AND dc.concept_name NOT LIKE '%Pack%'))
-  JOIN concept_relationship cr ON c.concept_id = concept_id_1
-  JOIN concept c2
-    ON concept_id_2 = c2.concept_id
-   AND c2.concept_class_id = 'Brand Name'
-   AND c2.vocabulary_id LIKE 'Rx%'
-   AND LOWER(c.concept_name) like '%'||LOWER(c2.concept_name)||'%'
-UNION
---Packs to BN
-SELECT dc.concept_code,
-       c2.concept_code
-FROM drug_concept_stage dc
-  JOIN concept c
-    ON c.concept_code = dc.concept_code
-   AND c.vocabulary_id = 'RxNorm Extension'
-   AND dc.concept_class_id = 'Drug Product'
-   AND dc.concept_name LIKE '%Pack%[%]%'
-  JOIN concept_relationship cr ON c.concept_id = concept_id_1
-  JOIN concept c2
-    ON concept_id_2 = c2.concept_id
-   AND c2.concept_class_id = 'Brand Name'
-   AND c2.VOCABULARY_ID LIKE 'Rx%'
-WHERE c2.concept_name = regexp_replace (c.concept_name,'.* Pack .*\[(.*)\]','\1')
---REPLACE(REPLACE(REGEXP_SUBSTR(REGEXP_SUBSTR(c.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']')
-UNION
-  --drug to ingredient
-SELECT drug_concept_code,
-       ingredient_concept_code
-FROM ds_Stage
-UNION
---Drug Form to ingredient
-select c.concept_code,c2.concept_code from concept c join concept_relationship cr on cr.concept_id_1=c.concept_id and c.concept_class_id in ('Clinical Drug Form', 'Branded Drug Form')
-and c.vocabulary_id='RxNorm Extension' and c.invalid_reason is null
-join concept c2 on c2.concept_id=cr.concept_id_2 and c2.concept_class_id='Ingredient'
-UNION
---Drug to supplier
-SELECT dc.concept_code,
-       c2.concept_code
-FROM drug_concept_stage dc
-  JOIN concept c
-    ON c.concept_code = dc.concept_code
-   AND c.vocabulary_id = 'RxNorm Extension'
-   AND dc.concept_class_id = 'Drug Product'
-  JOIN concept_relationship cr ON c.concept_id = concept_id_1
-  JOIN concept c2
-    ON concept_id_2 = c2.concept_id
-   AND c2.concept_class_id = 'Supplier'
-   AND c2.vocabulary_id LIKE 'Rx%'
-UNION
---insert relationships to those packs that do not have Pack's BN
-SELECT a.concept_code,
-       c2.concept_code
-FROM concept a
-  JOIN concept_relationship b
-    ON concept_id_1 = a.concept_id
-   AND a.vocabulary_id = 'RxNorm Extension'
-   AND a.concept_class_id LIKE '%Branded%Pack%'
-  LEFT JOIN concept c2
-         ON c2.concept_name = regexp_replace (a.concept_name,'.* Pack .*\[(.*)\]','\1') -- take it from name
-		 --REPLACE (REPLACE (REGEXP_SUBSTR (REGEXP_SUBSTR (a.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']') -- take it from name
-        AND c2.vocabulary_id LIKE 'RxNorm%'
-        AND c2.concept_class_id = 'Brand Name'
-WHERE concept_id_1 NOT IN (SELECT concept_id_1
-                           FROM concept a
-                             JOIN concept_relationship b
-                               ON b.concept_id_1 = a.concept_id
-                              AND a.vocabulary_id = 'RxNorm Extension'
-                              AND a.concept_class_id LIKE '%Pack%'
-                             JOIN concept c
-                               ON b.concept_id_2 = c.concept_id
-                              AND c.concept_class_id = 'Brand Name'
-                              AND b.invalid_reason IS NULL));
+INSERT /*+ APPEND */
+      INTO  internal_relationship_stage
+    SELECT concept_code, concept_code_2
+      FROM (--Drug to form
+            SELECT dc.concept_code, c2.concept_code AS concept_code_2
+              FROM drug_concept_stage dc
+                   JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
+                   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.VOCABULARY_ID LIKE 'Rx%'
+            --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
+            UNION ALL
+            --Drug to BN
+            SELECT dc.concept_code, c2.concept_code
+              FROM drug_concept_stage dc
+                   JOIN concept c
+                       ON     c.concept_code = dc.concept_code
+                          AND c.vocabulary_id = 'RxNorm Extension'
+                          AND dc.concept_class_id = 'Drug Product'
+                          AND (dc.source_concept_class_id NOT LIKE '%Pack%' OR (dc.source_concept_class_id = 'Marketed Product' AND dc.concept_name NOT LIKE '%Pack%'))
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
+                   JOIN concept c2
+                       ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.vocabulary_id LIKE 'Rx%' AND LOWER (c.concept_name) LIKE '%' || LOWER (c2.concept_name) || '%'
+            UNION ALL
+            --Packs to BN
+            SELECT concept_code_1, concept_code_2
+              FROM (WITH t
+                         AS (SELECT /*+ materialize*/
+                                   dc.concept_code AS concept_code_1,
+                                    c2.concept_code AS concept_code_2,
+                                    c2.concept_name AS concept_name_2,
+                                    c.concept_name AS concept_name_1
+                               FROM drug_concept_stage dc
+                                    JOIN concept c
+                                        ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product' AND dc.concept_name LIKE '%Pack%[%]%'
+                                    JOIN concept_relationship cr ON c.concept_id = concept_id_1 AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
+                                    JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.VOCABULARY_ID LIKE 'Rx%')
+                    SELECT concept_code_1, concept_code_2
+                      FROM t
+                     WHERE concept_name_2 = REGEXP_REPLACE (concept_name_1, '.* Pack .*\[(.*)\]', '\1'))
+            UNION ALL
+            --drug to ingredient
+            SELECT drug_concept_code, ingredient_concept_code FROM ds_Stage
+            UNION ALL
+            --Drug Form to ingredient
+            SELECT c.concept_code, c2.concept_code
+              FROM concept c
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' AND cr.INVALID_REASON IS NULL
+                   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Ingredient'
+             WHERE c.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form') AND c.vocabulary_id = 'RxNorm Extension' AND c.invalid_reason IS NULL
+            UNION ALL
+            --Drug to supplier
+            SELECT dc.concept_code, c2.concept_code
+              FROM drug_concept_stage dc
+                   JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.INVALID_REASON IS NULL
+                   JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Supplier' AND c2.vocabulary_id LIKE 'Rx%'
+            UNION ALL
+            --insert relationships to those packs that do not have Pack's BN
+            SELECT c.concept_code, c3.concept_code
+              FROM concept c
+                   LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
+                   LEFT JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Brand Name'
+                   -- take it from name
+                   LEFT JOIN concept c3 ON c3.concept_name = REGEXP_REPLACE (c.concept_name, '.* Pack .*\[(.*)\]', '\1') AND c3.vocabulary_id LIKE 'RxNorm%' AND c3.concept_class_id = 'Brand Name'
+             WHERE c.vocabulary_id = 'RxNorm Extension' AND c.concept_class_id LIKE '%Branded%Pack%' AND c2.concept_id IS NULL);
 COMMIT;
 			      
 --26 Add all the attributes which relationships are missing in basic tables (separate query to speed up)

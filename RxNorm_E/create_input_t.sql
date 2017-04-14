@@ -133,8 +133,8 @@ INSERT /*+ APPEND */ INTO DRUG_CONCEPT_STAGE
   INVALID_REASON,
   SOURCE_CONCEPT_CLASS_ID
 )
-select distinct
-	concept_name,
+select
+		concept_name,
        'Rxfix',
        'Drug Product',
        null,
@@ -152,56 +152,57 @@ WHERE
 AND vocabulary_id = 'RxNorm Extension' AND invalid_reason IS NULL
 UNION ALL
 -- Get Dose Forms, Brand Names, Supplier, including RxNorm
-SELECT distinct	
-	b2.concept_name,
+SELECT c.concept_name,
        'Rxfix',
-       b2.concept_class_id,
+       c.concept_class_id,
        null,
-       b2.concept_code,
+       c.concept_code,
        null,
-       b2.domain_id,
-       b2.valid_start_date,
-       b2.valid_end_date,
-       b2.invalid_reason,
-       b2.concept_class_id
-FROM concept_relationship a
-  JOIN concept b
-    ON concept_id_1 = b.concept_id
-	-- the same list of the products 
-   AND (b.concept_class_id LIKE '%Drug%' or b.concept_class_id LIKE '%Pack%' or b.concept_class_id LIKE '%Box%' or b.concept_class_id LIKE '%Marketed%')
-   AND b.vocabulary_id = 'RxNorm Extension'
-  JOIN concept b2
-    ON concept_id_2 = b2.concept_id
-   AND b2.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier') --their attributes
-   AND b2.vocabulary_id LIKE 'Rx%'
-   AND b2.invalid_reason IS NULL
-WHERE a.invalid_reason IS NULL
+       c.domain_id,
+       c.valid_start_date,
+       c.valid_end_date,
+       c.invalid_reason,
+       c.concept_class_id
+  FROM concept c
+ --their attributes
+ WHERE     c.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier')
+       AND c.vocabulary_id LIKE 'Rx%'
+       AND c.invalid_reason IS NULL
+       AND EXISTS
+       (SELECT 1
+            FROM concept_relationship cr
+            JOIN concept c_int ON c_int.concept_id=cr.concept_id_1
+            -- the same list of the products
+            AND (c_int.concept_class_id LIKE '%Drug%' OR c_int.concept_class_id LIKE '%Pack%' OR c_int.concept_class_id LIKE '%Box%' OR c_int.concept_class_id LIKE '%Marketed%')
+            AND c_int.vocabulary_id = 'RxNorm Extension'
+            WHERE cr.concept_id_2 = c.concept_id AND cr.invalid_reason IS NULL
+         )
 UNION ALL
 --Get RxNorm pack components from RxNorm
-SELECT  distinct
-	b2.concept_name,
+SELECT c.concept_name,
        'Rxfix',
        'Drug Product',
-       null,
-       b2.concept_code,
-       null,
-       b2.domain_id,
-       b2.valid_start_date,
-       b2.valid_end_date,
-       b2.invalid_reason,
-       b2.concept_class_id
-FROM concept_relationship a
-  JOIN concept b
-    ON concept_id_1 = b.concept_id
-   AND b.concept_class_id LIKE '%Pack%'
-   AND b.vocabulary_id = 'RxNorm Extension'
-  JOIN concept b2
-    ON concept_id_2 = b2.concept_id
-   --only Drugs
-   AND (b2.concept_class_id LIKE '%Drug%' or b2.concept_class_id LIKE '%Marketed%')
-   AND b2.vocabulary_id = 'RxNorm'
-   AND b2.invalid_reason IS NULL
-WHERE a.invalid_reason IS NULL AND a.invalid_reason IS NULL;
+       NULL,
+       c.concept_code,
+       NULL,
+       c.domain_id,
+       c.valid_start_date,
+       c.valid_end_date,
+       c.invalid_reason,
+       c.concept_class_id
+  FROM concept c
+ --only Drugs
+ WHERE     (c.concept_class_id LIKE '%Drug%' OR c.concept_class_id LIKE '%Marketed%')
+       AND c.vocabulary_id = 'RxNorm'
+       AND c.invalid_reason IS NULL
+       AND EXISTS
+       (SELECT 1
+          FROM concept_relationship cr 
+          JOIN concept c_int ON c_int.concept_id = cr.concept_id_1 
+          AND c_int.concept_class_id LIKE '%Pack%' 
+          AND c_int.vocabulary_id = 'RxNorm Extension'
+         WHERE cr.concept_id_2 = c.concept_id AND cr.invalid_reason IS NULL
+       );
 COMMIT;
 
 --4.2 Get upgraded Dose Forms, Brand Names, Supplier
@@ -217,41 +218,46 @@ INSERT /*+ APPEND */
                                 VALID_END_DATE,
                                 INVALID_REASON,
                                 SOURCE_CONCEPT_CLASS_ID)
-   SELECT distinct
-   	  b3.concept_name,
-          'Rxfix',
-          b3.concept_class_id,
-          NULL,
-          b3.concept_code,
-          NULL,
-          b3.domain_id,
-          b3.valid_start_date,
-          b3.valid_end_date,
-          b3.invalid_reason,
-          b3.concept_class_id
-     -- add fresh attributes instead of invalid
-     FROM concept_relationship a
-          JOIN concept b
-             ON     concept_id_1 = b.concept_id
-                AND (b.concept_class_id LIKE '%Drug%' OR b.concept_class_id LIKE '%Pack%' OR b.concept_class_id LIKE '%Box%' OR b.concept_class_id LIKE '%Marketed%')
-                AND b.vocabulary_id = 'RxNorm Extension'
-          JOIN concept b2 ON concept_id_2 = b2.concept_id AND b2.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier') AND b2.vocabulary_id LIKE 'Rx%' AND b2.invalid_reason IS NOT NULL
-          --get last fresh attributes
-          JOIN (    SELECT CONNECT_BY_ROOT concept_id_1 AS root_concept_id_1, u.concept_id_2
-                      FROM (SELECT r.*
-                              FROM concept_relationship r
-                                   JOIN concept c1 ON c1.concept_id = r.concept_id_1 AND c1.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier') AND c1.vocabulary_id LIKE 'Rx%'
-                                   JOIN concept c2 ON c2.concept_id = r.concept_id_2 AND c2.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier') AND c2.vocabulary_id LIKE 'Rx%'
-                             WHERE r.relationship_id = 'Concept replaced by' AND r.invalid_reason IS NULL) u
-                     WHERE CONNECT_BY_ISLEAF = 1
-                CONNECT BY NOCYCLE PRIOR u.concept_id_2 = u.concept_id_1) a2
-             ON a2.root_concept_id_1 = b2.concept_id
-          JOIN concept b3 ON a2.concept_id_2 = b3.concept_id
-    WHERE     a.invalid_reason IS NULL
-          AND NOT EXISTS
-                 (SELECT 1
-                    FROM DRUG_CONCEPT_STAGE dcs
-                   WHERE dcs.concept_code = b3.concept_code AND dcs.domain_id = b3.domain_id AND dcs.concept_class_id = b3.concept_class_id AND dcs.source_concept_class_id = b3.concept_class_id);
+    SELECT c.concept_name,
+       'Rxfix',
+       c.concept_class_id,
+       NULL,
+       c.concept_code,
+       NULL,
+       c.domain_id,
+       c.valid_start_date,
+       c.valid_end_date,
+       c.invalid_reason,
+       c.concept_class_id
+  FROM concept c
+ -- add fresh attributes instead of invalid
+ WHERE     EXISTS
+               (SELECT 1
+                  FROM concept_relationship cr
+                       JOIN concept c_int1
+                           ON     c_int1.concept_id = cr.concept_id_1
+                              AND (c_int1.concept_class_id LIKE '%Drug%' OR c_int1.concept_class_id LIKE '%Pack%' OR c_int1.concept_class_id LIKE '%Box%' OR c_int1.concept_class_id LIKE '%Marketed%')
+                              AND c_int1.vocabulary_id = 'RxNorm Extension'
+                       JOIN concept c_int2
+                           ON     c_int2.concept_id = cr.concept_id_2
+                              AND c_int2.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier')
+                              AND c_int2.vocabulary_id LIKE 'Rx%'
+                              AND c_int2.invalid_reason IS NOT NULL
+                       --get last fresh attributes
+                       JOIN (    SELECT CONNECT_BY_ROOT concept_id_1 AS root_concept_id_1, u.concept_id_2
+                                   FROM (SELECT r.*
+                                           FROM concept_relationship r
+                                                JOIN concept c1 ON c1.concept_id = r.concept_id_1 AND c1.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier') AND c1.vocabulary_id LIKE 'Rx%'
+                                                JOIN concept c2 ON c2.concept_id = r.concept_id_2 AND c2.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier') AND c2.vocabulary_id LIKE 'Rx%'
+                                          WHERE r.relationship_id = 'Concept replaced by' AND r.invalid_reason IS NULL) u
+                                  WHERE CONNECT_BY_ISLEAF = 1
+                             CONNECT BY NOCYCLE PRIOR u.concept_id_2 = u.concept_id_1) lf
+                           ON lf.root_concept_id_1 = c_int2.concept_id
+                 WHERE lf.concept_id_2 = c.concept_id AND cr.invalid_reason IS NULL)
+       AND NOT EXISTS
+               (SELECT 1
+                  FROM DRUG_CONCEPT_STAGE dcs
+                 WHERE dcs.concept_code = c.concept_code AND dcs.domain_id = c.domain_id AND dcs.concept_class_id = c.concept_class_id AND dcs.source_concept_class_id = c.concept_class_id);
 COMMIT;
 
 --4.3 Ingredients: Need to check what happens to deprecated
@@ -268,25 +274,28 @@ INSERT /*+ APPEND */
                                 VALID_END_DATE,
                                 INVALID_REASON,
                                 SOURCE_CONCEPT_CLASS_ID)
-   SELECT distinct
-   	   b.concept_name,
-          'Rxfix',
-          'Ingredient',
-          'S',
-          b.concept_code,
-          NULL,
-          b.domain_id,
-          b.valid_start_date,
-          b.valid_end_date,
-          b.invalid_reason,
-          'Ingredient'
-     FROM drug_strength a
-          JOIN concept b ON a.ingredient_concept_id = b.concept_id AND b.invalid_reason IS NULL AND b.vocabulary_id LIKE 'Rx%'
-          JOIN concept c ON a.drug_concept_id = c.concept_id AND c.vocabulary_id = 'RxNorm Extension'
-    WHERE NOT EXISTS
-             (SELECT 1
-                FROM DRUG_CONCEPT_STAGE dcs
-               WHERE dcs.concept_code = b.concept_code AND dcs.domain_id = b.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
+	SELECT c.concept_name,
+		   'Rxfix',
+		   'Ingredient',
+		   'S',
+		   c.concept_code,
+		   NULL,
+		   c.domain_id,
+		   c.valid_start_date,
+		   c.valid_end_date,
+		   c.invalid_reason,
+		   'Ingredient'
+	  FROM concept c
+	 WHERE     c.invalid_reason IS NULL
+		   AND c.vocabulary_id LIKE 'Rx%'
+		   AND EXISTS
+				   (SELECT 1
+					  FROM drug_strength ds JOIN concept c_int ON c_int.concept_id = ds.drug_concept_id AND c_int.vocabulary_id = 'RxNorm Extension'
+					 WHERE ds.ingredient_concept_id = c.concept_id)
+		   AND NOT EXISTS
+				   (SELECT 1
+					  FROM DRUG_CONCEPT_STAGE dcs
+					 WHERE dcs.concept_code = c.concept_code AND dcs.domain_id = c.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
 COMMIT;
 
 --4.4 Get ingredients from hierarchy
@@ -302,28 +311,29 @@ INSERT /*+ APPEND */
                                 VALID_END_DATE,
                                 INVALID_REASON,
                                 SOURCE_CONCEPT_CLASS_ID)
-   SELECT distinct
-   	   a.concept_name,
-          'Rxfix',
-          'Ingredient',
-          'S',
-          a.concept_code,
-          NULL,
-          a.domain_id,
-          a.valid_start_date,
-          a.valid_end_date,
-          a.invalid_reason,
-          'Ingredient'
-     --add ingredients from ancestor
-     FROM concept a
-          JOIN concept_ancestor b ON a.concept_id = b.ancestor_concept_id
-          JOIN concept a2 ON b.descendant_concept_id = a2.concept_id AND a2.vocabulary_id = 'RxNorm Extension'
-    WHERE     a.concept_class_id = 'Ingredient'
-          AND a.vocabulary_id LIKE 'Rx%'
-          AND NOT EXISTS
-                 (SELECT 1
-                    FROM DRUG_CONCEPT_STAGE dcs
-                   WHERE dcs.concept_code = a.concept_code AND dcs.domain_id = a.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
+	SELECT c.concept_name,
+		   'Rxfix',
+		   'Ingredient',
+		   'S',
+		   c.concept_code,
+		   NULL,
+		   c.domain_id,
+		   c.valid_start_date,
+		   c.valid_end_date,
+		   c.invalid_reason,
+		   'Ingredient'
+	  FROM concept c
+	 WHERE     c.concept_class_id = 'Ingredient'
+		   AND c.vocabulary_id LIKE 'Rx%'
+		   --add ingredients from ancestor
+		   AND EXISTS
+				   (SELECT 1
+					  FROM concept_ancestor ca JOIN concept c_int ON c_int.concept_id = ca.descendant_concept_id AND c_int.vocabulary_id = 'RxNorm Extension'
+					 WHERE ca.ancestor_concept_id = c.concept_id)
+		   AND NOT EXISTS
+				   (SELECT 1
+					  FROM DRUG_CONCEPT_STAGE dcs
+					 WHERE dcs.concept_code = c.concept_code AND dcs.domain_id = c.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
 COMMIT;			   
 
 --4.5 Get all Units
@@ -339,23 +349,22 @@ INSERT /*+ APPEND */
                                 VALID_END_DATE,
                                 INVALID_REASON,
                                 SOURCE_CONCEPT_CLASS_ID)
-   SELECT distinct
-   	  c.concept_name,
-          'Rxfix',
-          'Unit',
-          NULL,
-          c.concept_code,
-          NULL,
-          'Drug',
-          c.valid_start_date,
-          c.valid_end_date,
-          NULL,
-          'Unit'
-     FROM concept c
-    WHERE c.concept_id IN (SELECT ds.units
-                             FROM (SELECT units, drug_concept_id
-                                     FROM drug_strength UNPIVOT (units FOR units_ids IN (amount_unit_concept_id, numerator_unit_concept_id, denominator_unit_concept_id))) ds
-                                  JOIN concept c_int ON c_int.concept_id = ds.drug_concept_id AND c_int.vocabulary_id = 'RxNorm Extension');
+	SELECT c.concept_name,
+		   'Rxfix',
+		   'Unit',
+		   NULL,
+		   c.concept_code,
+		   NULL,
+		   'Drug',
+		   c.valid_start_date,
+		   c.valid_end_date,
+		   NULL,
+		   'Unit'
+	  FROM concept c
+	 WHERE c.concept_id IN (SELECT ds.units
+							  FROM (SELECT units, drug_concept_id
+									  FROM drug_strength UNPIVOT (units FOR units_ids IN (amount_unit_concept_id, numerator_unit_concept_id, denominator_unit_concept_id))) ds
+								   JOIN concept c_int ON c_int.concept_id = ds.drug_concept_id AND c_int.vocabulary_id = 'RxNorm Extension');
 COMMIT;								  
 
 --5 Remove all where there is less than total of 0.05 mL
@@ -396,7 +405,7 @@ COMMIT;
                        AND REGEXP_LIKE (concept_name, 'Comp\s|Comp$|Praeparatum')
                        AND NOT REGEXP_LIKE (concept_name, 'Ratioph|Zentiva|Actavis|Teva|Hormosan|Dura|Ass|Provas|Rami|Al |Pharma|Abz|-Q|Peritrast|Beloc|Hexal|Corax|Solgar|Winthrop'));
 COMMIT;					   
-
+*/
 --7 filling drug_strength
 --just turn drug_strength into ds_stage replacing concept_ids with concept_codes
 INSERT /*+ APPEND */

@@ -365,8 +365,8 @@ DELETE FROM DRUG_CONCEPT_STAGE
                               WHERE c.vocabulary_id = 'RxNorm Extension' AND c.invalid_reason IS NULL AND ds.denominator_value < 0.05 AND ds.denominator_unit_concept_id = 8587);
 COMMIT;							  
 
---6 Remove wrong brand names
-DELETE FROM DRUG_CONCEPT_STAGE
+--6 Remove wrong brand names (need to save for the later clean up)
+/*DELETE FROM DRUG_CONCEPT_STAGE
       WHERE concept_code IN
                (SELECT dcs.concept_code
                   FROM drug_concept_stage dcs
@@ -1029,12 +1029,15 @@ FROM drug_concept_stage dc
 WHERE c2.concept_name = regexp_replace (c.concept_name,'.* Pack .*\[(.*)\]','\1')
 --REPLACE(REPLACE(REGEXP_SUBSTR(REGEXP_SUBSTR(c.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']')
 UNION
-  -- XXX what about Drug Forms   
-  --Christian, what about drug forms?I don't understand the question.
   --drug to ingredient
 SELECT drug_concept_code,
        ingredient_concept_code
 FROM ds_Stage
+UNION
+--Drug Form to ingredient
+select c.concept_code,c2.concept_code from concept c join concept_relationship cr on cr.concept_id_1=c.concept_id and c.concept_class_id in ('Clinical Drug Form', 'Branded Drug Form')
+and c.vocabulary_id='RxNorm Extension' and c.invalid_reason is null
+join concept c2 on c2.concept_id=cr.concept_id_2 and c2.concept_class_id='Ingredient'
 UNION
 --Drug to supplier
 SELECT dc.concept_code,

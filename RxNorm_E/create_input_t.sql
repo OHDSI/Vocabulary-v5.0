@@ -902,7 +902,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                         AND   ds.concept_name LIKE '%alpha-amylase 200 /ML%');
 COMMIT;
 
---17.9 delete drugs from DCS to remove them totally
+--17.9 delete drugs that are missing units. delete drugs from DCS to remove them totally
 DELETE FROM drug_concept_stage
       WHERE concept_code IN
                 (SELECT drug_concept_code
@@ -948,7 +948,7 @@ WHERE drug_concept_code IN (WITH a AS
 COMMIT;
 
 
---19 Delete those drugs from DCS to remove them totally
+--19 Remove those with less than 0.05 ml in denominator. Delete those drugs from DCS to remove them totally
 DELETE FROM drug_concept_stage
       WHERE concept_code IN (SELECT drug_concept_code
                                FROM ds_stage
@@ -1004,7 +1004,7 @@ DELETE FROM ds_stage
 									  WHERE b.concept_code IS NULL);
 COMMIT;								  
 
---23 Delete those drugs from DCS to remove them totally
+--23 Delete impossible dosages. Delete those drugs from DCS to remove them totally
 DELETE FROM drug_concept_stage
 WHERE concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
@@ -1053,7 +1053,6 @@ UPDATE ds_stage
 
 COMMIT;
 
-***********
 --25 Build internal_relationship_stage 
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage
@@ -1124,137 +1123,98 @@ COMMIT;
 			      
 --26 Add all the attributes which relationships are missing in basic tables (separate query to speed up)
 INSERT /*+ APPEND */ INTO internal_relationship_stage
---missing bn
-     SELECT distinct dc.concept_code,dc2.concept_code AS concept_code_2 
-     FROM drug_concept_stage dc
-  JOIN concept c
-    ON c.concept_code = dc.concept_code
-   AND c.vocabulary_id = 'RxNorm Extension'
-   AND dc.concept_class_id = 'Drug Product'
-   AND dc.concept_name LIKE '%Pack%[%]%'
-  JOIN drug_concept_stage dc2
-    ON dc2.concept_name = regexp_replace (c.concept_name,'.* Pack .*\[(.*)\]','\1') 
-	--REPLACE (REPLACE (REGEXP_SUBSTR (REGEXP_SUBSTR (c.concept_name,'Pack\s\[.*\]'),'\[.*\]'),'['),']')
-   AND dc2.concept_class_id = 'Brand Name';
+	--missing bn
+	WITH t
+		 AS (SELECT /*+ materialize */
+				   dc.concept_code, c.concept_name
+			   FROM drug_concept_stage dc JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension'
+			  WHERE dc.concept_class_id = 'Drug Product' AND dc.concept_name LIKE '%Pack%[%]%')
+	SELECT t.concept_code, dc2.concept_code
+	  FROM t JOIN drug_concept_stage dc2 ON dc2.concept_name = REGEXP_REPLACE (t.concept_name, '.* Pack .*\[(.*)\]', '\1') 
+	  AND dc2.concept_class_id = 'Brand Name';
 COMMIT;
 
---add missing suppliers
+--26.1 Add missing suppliers
 INSERT /*+ APPEND */ INTO  internal_relationship_stage
    WITH dc
         AS (SELECT /*+ materialize */
-                  distinct LOWER (concept_name) concept_name, concept_code
+                  LOWER (concept_name) concept_name, concept_code
               FROM drug_concept_stage
              WHERE source_concept_class_id = 'Marketed Product')
    SELECT dc.concept_code, dc2.concept_code
      FROM dc JOIN drug_concept_stage dc2 ON dc.concept_name LIKE '% ' || LOWER (dc2.concept_name) AND dc2.concept_class_id = 'Supplier';
+COMMIT;
 
-DELETE internal_relationship_stage
-WHERE (concept_code_1,concept_code_2) IN (WITH a AS
-                                          (
-                                            SELECT concept_code_1
-                                            FROM internal_relationship_stage a
-                                              JOIN drug_concept_stage b ON concept_code = concept_code_2
-                                            WHERE b.concept_class_id IN ('Supplier')
-                                            GROUP BY concept_code_1,
-                                                     b.concept_class_id
-                                            HAVING COUNT(1) > 1
-                                          )
-                                          SELECT b2.concept_code_1,
-                                                 b2.concept_code_2
-                                          FROM internal_relationship_stage b
-                                            JOIN a ON a.concept_code_1 = b.concept_code_1
-                                            JOIN internal_relationship_stage b2
-                                              ON b2.concept_code_1 = b.concept_code_1
-                                             AND b.concept_code_2 != b2.concept_code_2
-                                            JOIN drug_concept_stage c
-                                              ON c.concept_code = b.concept_code_2
-                                             AND c.concept_class_id = 'Supplier'
-                                            JOIN drug_concept_stage c2
-                                              ON c2.concept_code = b2.concept_code_2
-                                             AND c2.concept_class_id = 'Supplier'
-                                          WHERE LENGTH(c.concept_name) <LENGTH(c2.concept_name));
+--26.2 ???
+DELETE FROM internal_relationship_stage
+ WHERE (concept_code_1, concept_code_2) IN 
+    (SELECT b2.concept_code_1, b2.concept_code_2
+    FROM (  SELECT concept_code_1
+            FROM internal_relationship_stage a JOIN drug_concept_stage b ON concept_code = concept_code_2
+           WHERE b.concept_class_id = 'Supplier'
+        GROUP BY concept_code_1, b.concept_class_id
+          HAVING COUNT (1) > 1) a
+       JOIN internal_relationship_stage b ON b.concept_code_1 = a.concept_code_1
+       JOIN internal_relationship_stage b2 ON b2.concept_code_1 = b.concept_code_1 AND b.concept_code_2 != b2.concept_code_2
+       JOIN drug_concept_stage c ON c.concept_code = b.concept_code_2 AND c.concept_class_id = 'Supplier'
+       JOIN drug_concept_stage c2 ON c2.concept_code = b2.concept_code_2 AND c2.concept_class_id = 'Supplier'
+    WHERE LENGTH (c.concept_name) < LENGTH (c2.concept_name));
 
 COMMIT;
-*************************not completed*******************
 	
 --27 delete multiple relationships to attributes
---define concept_1, concept_2 pairs need to be deleted
-CREATE TABLE ird
-AS
-SELECT concept_code_1,
-       concept_code_2
-FROM internal_relationship_stage a
-  JOIN drug_concept_stage b
-    ON a.concept_code_2 = b.concept_code
-   AND b.concept_class_id IN ('Supplier', 'Dose Form', 'Brand Name')
-  JOIN drug_concept_stage c ON c.concept_code = a.concept_code_1
-WHERE a.concept_code_1 IN (SELECT a_int.concept_code_1
-                         FROM internal_relationship_stage a_int
-                           JOIN drug_concept_stage b ON b.concept_code = a_int.concept_code_2
-                         WHERE b.concept_class_id IN ('Supplier','Dose Form','Brand Name')
-                         GROUP BY a_int.concept_code_1, b.concept_class_id
-                         HAVING COUNT(1) > 1)
-AND NOT LOWER (c.concept_name) LIKE '%'||LOWER(b.concept_name)||'%' ; --Attribute is not a part of a name
---REGEXP_LIKE (c.concept_name,b.concept_name)
-INSERT INTO ird
-SELECT concept_code_1,
-       concept_code_2
-FROM internal_relationship_stage a
-  JOIN drug_concept_stage b
-    ON a.concept_code_2 = b.concept_code
-   AND b.concept_class_id IN ('Supplier', 'Dose Form', 'Brand Name')
-  JOIN drug_concept_stage c ON c.concept_code = concept_code_1
-WHERE concept_code_1 IN (SELECT a_int.concept_code_1
-                         FROM internal_relationship_stage a_int
-                           JOIN drug_concept_stage b ON b.concept_code = a_int.concept_code_2
-                         WHERE b.concept_class_id IN ('Supplier','Dose Form','Brand Name')
-                         GROUP BY a_int.concept_code_1, b.concept_class_id
-                         HAVING COUNT(1) > 1)
---AND NOT REGEXP_LIKE (REGEXP_SUBSTR(c.concept_name,'Pack\s.*'),b.concept_name);
-AND  REGEXP_SUBSTR(c.concept_name,'Pack\s.*') NOT LIKE '%'||b.concept_name||'%';
-
-DELETE
-FROM internal_relationship_stage
-WHERE (concept_code_1,concept_code_2) IN (SELECT concept_code_1, concept_code_2 FROM ird);
-
-DROP TABLE ird;
-
---delete 2 brand names that don't fit the rule as the brand name of the pack looks like the brand name of component (e.g. [Risedronate] and [Risedronate EC])
-DELETE
-FROM internal_relationship_stage
-WHERE concept_code_1 in  ('OMOP572812','OMOP573077' ,'OMOP573035','OMOP573066','OMOP573376')
-AND  concept_code_2  in  ('OMOP571371','OMOP569970');
-
---delete deprecated concepts
-DELETE internal_relationship_stage
-WHERE concept_code_2 IN (SELECT concept_code
-                         FROM concept c
-                         WHERE c.vocabulary_id LIKE 'Rx%'
-                         AND   c.invalid_reason = 'D'
-                         AND   concept_class_id = 'Ingredient');
-
+--27.1 define concept_1, concept_2 pairs need to be deleted
+DELETE FROM internal_relationship_stage
+      WHERE (concept_code_1, concept_code_2) IN
+                (SELECT concept_code_1, concept_code_2
+                   FROM internal_relationship_stage a
+                        JOIN drug_concept_stage b ON a.concept_code_2 = b.concept_code AND b.concept_class_id IN ('Supplier', 'Dose Form', 'Brand Name')
+                        JOIN drug_concept_stage c ON c.concept_code = a.concept_code_1
+                  WHERE     a.concept_code_1 IN (  SELECT a_int.concept_code_1
+                                                     FROM internal_relationship_stage a_int JOIN drug_concept_stage b ON b.concept_code = a_int.concept_code_2
+                                                    WHERE b.concept_class_id IN ('Supplier', 'Dose Form', 'Brand Name')
+                                                 GROUP BY a_int.concept_code_1, b.concept_class_id
+                                                   HAVING COUNT (1) > 1)
+                        --Attribute is not a part of a name
+                        AND (LOWER (c.concept_name) NOT LIKE '%' || LOWER (b.concept_name) || '%' OR REGEXP_SUBSTR (c.concept_name, 'Pack\s.*') NOT LIKE '%' || b.concept_name || '%'));
 COMMIT;
 
---just take it from the pack_content
-INSERT INTO pc_stage
+--27.2 delete 2 brand names that don't fit the rule as the brand name of the pack looks like the brand name of component (e.g. [Risedronate] and [Risedronate EC])
+DELETE FROM internal_relationship_stage
+      WHERE     concept_code_1 IN ('OMOP572812',
+                                   'OMOP573077',
+                                   'OMOP573035',
+                                   'OMOP573066',
+                                   'OMOP573376')
+            AND concept_code_2 IN ('OMOP571371', 'OMOP569970');
+COMMIT;
+
+--27.3 delete deprecated concepts
+DELETE FROM internal_relationship_stage
+      WHERE concept_code_2 IN (SELECT concept_code
+                                 FROM concept c
+                                WHERE c.vocabulary_id LIKE 'Rx%' AND c.invalid_reason = 'D' AND concept_class_id = 'Ingredient');
+COMMIT;
+
+--28 just take it from the pack_content
+INSERT /*+ APPEND */ INTO pc_stage
 (
   PACK_CONCEPT_CODE, 
   DRUG_CONCEPT_CODE,
   AMOUNT,
   BOX_SIZE
 )
-SELECT DISTINCT c.concept_code,
+SELECT c.concept_code,
        c2.concept_code,
-       amount,
-       box_size
-FROM devv5.pack_content
-  JOIN concept c
-    ON pack_concept_id = c.CONCEPT_ID
-   AND c.vocabulary_id = 'RxNorm Extension'
-  JOIN concept c2 ON drug_concept_id = c2.concept_id;
+       pc.amount,
+       pc.box_size
+  FROM pack_content pc
+       JOIN concept c ON c.concept_id = pc.pack_concept_id AND c.vocabulary_id = 'RxNorm Extension'
+       JOIN concept c2 ON c2.concept_id = pc.drug_concept_id;
+COMMIT;
 
---fix 2 equal components manualy
-DELETE PC_STAGE
+--28.1 fix 2 equal components manualy
+DELETE FROM pc_stage
 WHERE
    ( PACK_CONCEPT_CODE = 'OMOP339574' AND   DRUG_CONCEPT_CODE = '197659' AND   AMOUNT = 12)
 OR ( PACK_CONCEPT_CODE = 'OMOP339579' AND   DRUG_CONCEPT_CODE = '311704' AND   AMOUNT IS NULL)
@@ -1275,23 +1235,28 @@ OR ( PACK_CONCEPT_CODE = 'OMOP339886' AND   DRUG_CONCEPT_CODE = '312308' AND   A
 OR ( PACK_CONCEPT_CODE = 'OMOP339895' AND   DRUG_CONCEPT_CODE = '312309' AND   AMOUNT = 6)
 OR ( PACK_CONCEPT_CODE = 'OMOP339895' AND   DRUG_CONCEPT_CODE = '312308' AND   AMOUNT = 109);
 
-UPDATE PC_STAGE
+UPDATE pc_stage
    SET AMOUNT = 12
 WHERE PACK_CONCEPT_CODE = 'OMOP339633'
 AND   DRUG_CONCEPT_CODE = '310463'
 AND   AMOUNT = 7;
 
-UPDATE PC_STAGE
+UPDATE pc_stage
    SET AMOUNT = 12
 WHERE PACK_CONCEPT_CODE = 'OMOP339814'
 AND   DRUG_CONCEPT_CODE = '310463'
 AND   AMOUNT = 7;
+COMMIT;
 
---insert missing packs (only those that have => 2 components) - take them from the source tables
+--29 insert missing packs (only those that have => 2 components) - take them from the source tables
+/* 
+	we need to think about how we can get rid of these schemas (dev_amt, dev_amis, dev_bdpm, dev_dmd*) 
+*/
+
 --!!! do we have packs with 1 component? Dima, it is a bug so we do not include them. You can actually look at existing packs with one component.
 
---AMT
-INSERT INTO pc_stage
+--29.1 AMT
+INSERT /*+ APPEND */ INTO pc_stage
 (
   pack_concept_code,
   drug_concept_code,
@@ -1353,9 +1318,10 @@ AND   c.concept_id IN (SELECT c.concept_id
                        GROUP BY c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
+COMMIT;
 
---AMIS
-INSERT INTO pc_stage
+--29.2 AMIS
+INSERT /*+ APPEND */ INTO pc_stage
 (
   pack_concept_code,
   drug_concept_code,
@@ -1416,9 +1382,10 @@ AND   c.concept_id IN (SELECT c.concept_id
                        GROUP BY c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
+COMMIT;
 
---BDPM
-INSERT INTO pc_stage
+--29.3 BDPM
+INSERT /*+ APPEND */ INTO pc_stage
 (
   pack_concept_code,
   drug_concept_code,
@@ -1480,9 +1447,10 @@ AND   c.concept_id IN (SELECT c.concept_id
                        GROUP BY c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
+COMMIT;
 
---dm+d
-INSERT INTO pc_stage
+--29.4 dm+d
+INSERT /*+ APPEND */ INTO pc_stage
 (
   pack_concept_code,
   drug_concept_code,
@@ -1544,88 +1512,87 @@ AND   c.concept_id IN (SELECT c.concept_id
                        GROUP BY c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
+COMMIT;
 
+--30 fix inert ingredients in contraceptive packs
+UPDATE pc_stage
+   SET amount = 7
+ WHERE (pack_concept_code, drug_concept_code) IN (SELECT p.pack_concept_code, p.drug_concept_code
+                                                    FROM pc_stage p
+                                                         JOIN drug_concept_stage d ON d.concept_code = p.drug_concept_code AND concept_name LIKE '%Inert%' AND p.amount = 21
+                                                         JOIN pc_stage p2 ON p.pack_concept_code = p2.pack_concept_code AND p.drug_concept_code != p2.drug_concept_code AND p.amount = 21);
+COMMIT;
 
---fix inert ingredients in contraceptive packs
-update pc_stage
-set amount='7'
- where (pack_concept_code,drug_concept_code) in
-(select p.pack_concept_code,p.drug_concept_code
- from pc_stage p join drug_concept_stage d on d.concept_code=p.drug_concept_code and concept_name like '%Inert%' and p.amount='21'
-join pc_stage p2 on p.pack_concept_code=p2.pack_concept_code and  p.drug_concept_code!=p2.drug_concept_code and p.amount='21');
+--31 update Inert Ingredients / Inert Ingredients 1 MG Oral Tablet to Inert Ingredient Oral Tablet
+UPDATE pc_stage
+   SET drug_concept_code = '748796'
+ WHERE drug_concept_code = 'OMOP285209';
+COMMIT;
 
---update Inert Ingredients / Inert Ingredients 1 MG Oral Tablet to Inert Ingredient Oral Tablet
-update pc_stage
-set drug_concept_code='748796'
-where drug_concept_code='OMOP285209';
+--32 fixing existing packs in order to remove duplicates
+DELETE FROM pc_stage
+WHERE pack_concept_code = 'OMOP420950'
+AND   drug_concept_code = '310463'
+AND   amount = 5;
+DELETE FROM pc_stage
+WHERE pack_concept_code = 'OMOP420969'
+AND   drug_concept_code = '310463'
+AND   amount = 7;
+DELETE FROM pc_stage
+WHERE pack_concept_code = 'OMOP420978'
+AND   drug_concept_code = '392651'
+AND   amount IS NULL;
+DELETE FROM pc_stage
+WHERE pack_concept_code = 'OMOP420978'
+AND   drug_concept_code = '197662'
+AND   amount IS NULL;
+DELETE FROM pc_stage
+WHERE pack_concept_code = 'OMOP902613'
+AND   drug_concept_code = 'OMOP918399'
+AND   amount = 7;
+COMMIT;
 
---Fixing existing packs in order to remove duplicates
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP420950'
-AND   DRUG_CONCEPT_CODE = '310463'
-AND   AMOUNT = 5;
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP420969'
-AND   DRUG_CONCEPT_CODE = '310463'
-AND   AMOUNT = 7;
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP420978'
-AND   DRUG_CONCEPT_CODE = '392651'
-AND   AMOUNT IS NULL;
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP420978'
-AND   DRUG_CONCEPT_CODE = '197662'
-AND   AMOUNT IS NULL;
-DELETE
-FROM PC_STAGE
-WHERE PACK_CONCEPT_CODE = 'OMOP902613'
-AND   DRUG_CONCEPT_CODE = 'OMOP918399'
-AND   AMOUNT = 7;
-UPDATE PC_STAGE
-   SET AMOUNT = 12
-WHERE PACK_CONCEPT_CODE = 'OMOP420950'
-AND   DRUG_CONCEPT_CODE = '310463'
-AND   AMOUNT = 7;
-UPDATE PC_STAGE
-   SET AMOUNT = 12
-WHERE PACK_CONCEPT_CODE = 'OMOP420969'
-AND   DRUG_CONCEPT_CODE = '310463'
-AND   AMOUNT = 5;
-UPDATE PC_STAGE
-   SET AMOUNT = 12
-WHERE PACK_CONCEPT_CODE = 'OMOP902613'
-AND   DRUG_CONCEPT_CODE = 'OMOP918399'
-AND   AMOUNT = 5;
+UPDATE pc_stage
+   SET amount = 12
+WHERE pack_concept_code = 'OMOP420950'
+AND   drug_concept_code = '310463'
+AND   amount = 7;
+UPDATE pc_stage
+   SET amount = 12
+WHERE pack_concept_code = 'OMOP420969'
+AND   drug_concept_code = '310463'
+AND   amount = 5;
+UPDATE pc_stage
+   SET amount = 12
+WHERE pack_concept_code = 'OMOP902613'
+AND   drug_concept_code = 'OMOP918399'
+AND   amount = 5;
 
 COMMIT;
 
--- XXX all from concept 	
+--33 XXX all from concept 	
 -- Christian, what do you mean?
--- Create links to self 
-INSERT INTO relationship_to_concept
+--33.1 Create links to self 
+INSERT /*+ APPEND */ INTO relationship_to_concept
 (
   CONCEPT_CODE_1,
   VOCABULARY_ID_1,
   CONCEPT_ID_2,
   PRECEDENCE
 )
-SELECT distinct
-       a.concept_code,
+SELECT a.concept_code,
        a.VOCABULARY_ID,
        b.concept_id,
        1
-FROM drug_concept_stage a
-  JOIN concept b
-    ON a.concept_code = b.concept_code
-   AND b.vocabulary_id IN ('RxNorm', 'RxNorm Extension') 
-   AND a.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier', 'Ingredient');
+  FROM drug_concept_stage a JOIN concept b ON b.concept_code = a.concept_code AND b.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+ WHERE a.concept_class_id IN ('Dose Form',
+                              'Brand Name',
+                              'Supplier',
+                              'Ingredient');
+COMMIT;
 
---insert relationship to units
-INSERT INTO relationship_to_concept
+--33.2 insert relationship to units
+INSERT /*+ APPEND */ INTO relationship_to_concept
 (
   CONCEPT_CODE_1,
   VOCABULARY_ID_1,
@@ -1633,21 +1600,20 @@ INSERT INTO relationship_to_concept
   PRECEDENCE,
   CONVERSION_FACTOR
 )
-SELECT distinct
-       a.concept_code,
+SELECT a.concept_code,
        a.vocabulary_id,
        b.concept_id,
        1,
        1
-FROM drug_concept_stage a
-  JOIN concept b
-    ON a.concept_code = b.concept_code
-   AND a.concept_class_id = 'Unit'
-   AND b.vocabulary_id = 'UCUM';
-   
--- transform micrograms into milligrams
+  FROM drug_concept_stage a 
+  JOIN concept b ON b.concept_code = a.concept_code AND b.vocabulary_id = 'UCUM'
+ WHERE a.concept_class_id = 'Unit';
+COMMIT;
+
+--33.3 transform micrograms into milligrams
 UPDATE RELATIONSHIP_TO_CONCEPT
    SET CONCEPT_ID_2 = 8576,
        CONVERSION_FACTOR = 0.001
 WHERE CONCEPT_CODE_1 = 'ug'
 AND   CONCEPT_ID_2 = 9655;
+COMMIT;

@@ -1570,8 +1570,6 @@ AND   amount = 5;
 
 COMMIT;
 
---33 XXX all from concept 	
--- Christian, what do you mean?
 --33.1 Create links to self 
 INSERT /*+ APPEND */ INTO relationship_to_concept
 (
@@ -1610,7 +1608,44 @@ SELECT a.concept_code,
  WHERE a.concept_class_id = 'Unit';
 COMMIT;
 
---33.3 transform micrograms into milligrams
+--33.3 insert additional mapping that doesn't exist in concept
+INSERT INTO relationship_to_concept
+(
+  CONCEPT_CODE_1,
+  VOCABULARY_ID_1,
+  CONCEPT_ID_2,
+  PRECEDENCE,
+  CONVERSION_FACTOR
+)
+VALUES
+(
+  'mL',
+  'Rxfix',
+  8576,
+  2,
+  1000
+);
+
+INSERT INTO relationship_to_concept
+(
+  CONCEPT_CODE_1,
+  VOCABULARY_ID_1,
+  CONCEPT_ID_2,
+  PRECEDENCE,
+  CONVERSION_FACTOR
+)
+VALUES
+(
+  'mg',
+  'Rxfix',
+  8587,
+  2,
+  0.001
+);
+
+
+
+--33.4 transform micrograms into milligrams
 UPDATE RELATIONSHIP_TO_CONCEPT
    SET CONCEPT_ID_2 = 8576,
        CONVERSION_FACTOR = 0.001

@@ -1058,7 +1058,7 @@ INSERT /*+ APPEND */
       INTO  internal_relationship_stage
     SELECT concept_code, concept_code_2
       FROM (--Drug to form
-            SELECT dc.concept_code, c2.concept_code AS concept_code_2
+            SELECT dc.concept_code, CASE WHEN c2.concept_code='OMOP881524' THEN '316975' ELSE c2.concept_code END  AS concept_code_2 --Rectal Creame and Rectal Cream 
               FROM drug_concept_stage dc
                    JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
                    JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL

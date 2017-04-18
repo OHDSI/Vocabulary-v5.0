@@ -209,6 +209,9 @@ and lower (denominator_unit) in ('l')
 )
 and numerator_value / denominator_value > 1000
 union
+select drug_concept_code,'mg/mg >1' from ds_stage where numerator_unit='mg' and denominator_unit='mg' and (numerator_value/denominator_value>1 
+or (numerator_value>1 and denominator_vALUE IS NULL))
+ union
 --wrong dosages ,> 1
 select drug_concept_code, 'wrong dosages > 1' from ds_stage 
 

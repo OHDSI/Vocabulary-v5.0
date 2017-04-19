@@ -1061,8 +1061,8 @@ INSERT /*+ APPEND */
             SELECT dc.concept_code, CASE WHEN c2.concept_code='OMOP881524' THEN '316975' ELSE c2.concept_code END  AS concept_code_2 --Rectal Creame and Rectal Cream 
               FROM drug_concept_stage dc
                    JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
-                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
-                   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.VOCABULARY_ID LIKE 'Rx%'
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' 
+	      	   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.VOCABULARY_ID LIKE 'Rx%'
             --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
             UNION ALL
             --Drug to BN

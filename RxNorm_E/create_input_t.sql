@@ -1052,7 +1052,6 @@ UPDATE ds_stage
                  WHERE c_int.concept_code = 'OMOP569695' AND c_int.invalid_reason IS NULL);
 
 COMMIT;
-
 --25 Build internal_relationship_stage 
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage
@@ -1061,7 +1060,7 @@ INSERT /*+ APPEND */
             SELECT dc.concept_code, CASE WHEN c2.concept_code='OMOP881524' THEN '316975' ELSE c2.concept_code END  AS concept_code_2 --Rectal Creame and Rectal Cream 
               FROM drug_concept_stage dc
                    JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
-                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' 
+                   JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' 
 	      	   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.VOCABULARY_ID LIKE 'Rx%'
             --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
             UNION ALL
@@ -1073,7 +1072,7 @@ INSERT /*+ APPEND */
                           AND c.vocabulary_id = 'RxNorm Extension'
                           AND dc.concept_class_id = 'Drug Product'
                           AND (dc.source_concept_class_id NOT LIKE '%Pack%' OR (dc.source_concept_class_id = 'Marketed Product' AND dc.concept_name NOT LIKE '%Pack%'))
-                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
+                   JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' 
                    JOIN concept c2
                        ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.vocabulary_id LIKE 'Rx%' AND LOWER (c.concept_name) LIKE '%' || LOWER (c2.concept_name) || '%'
             UNION ALL
@@ -1088,7 +1087,7 @@ INSERT /*+ APPEND */
                                FROM drug_concept_stage dc
                                     JOIN concept c
                                         ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product' AND dc.concept_name LIKE '%Pack%[%]%'
-                                    JOIN concept_relationship cr ON c.concept_id = concept_id_1 AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
+                                    JOIN devv5.concept_relationship cr ON c.concept_id = concept_id_1 AND cr.relationship_id = 'Has brand name' 
                                     JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.VOCABULARY_ID LIKE 'Rx%')
                     SELECT concept_code_1, concept_code_2
                       FROM t
@@ -1100,7 +1099,7 @@ INSERT /*+ APPEND */
             --Drug Form to ingredient
             SELECT c.concept_code, c2.concept_code
               FROM concept c
-                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' AND cr.INVALID_REASON IS NULL
+                   JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' 
                    JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Ingredient'
              WHERE c.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form') AND c.vocabulary_id = 'RxNorm Extension' AND c.invalid_reason IS NULL
             UNION ALL
@@ -1108,13 +1107,13 @@ INSERT /*+ APPEND */
             SELECT dc.concept_code, c2.concept_code
               FROM drug_concept_stage dc
                    JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
-                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.INVALID_REASON IS NULL
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id 
                    JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Supplier' AND c2.vocabulary_id LIKE 'Rx%'
             UNION ALL
             --insert relationships to those packs that do not have Pack's BN
             SELECT c.concept_code, c3.concept_code
               FROM concept c
-                   LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
+                   LEFT JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' 
                    LEFT JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Brand Name'
                    -- take it from name
                    LEFT JOIN concept c3 ON c3.concept_name = REGEXP_REPLACE (c.concept_name, '.* Pack .*\[(.*)\]', '\1') AND c3.vocabulary_id LIKE 'RxNorm%' AND c3.concept_class_id = 'Brand Name'
@@ -1131,7 +1130,8 @@ INSERT /*+ APPEND */ INTO internal_relationship_stage
 			  WHERE dc.concept_class_id = 'Drug Product' AND dc.concept_name LIKE '%Pack%[%]%')
 	SELECT t.concept_code, dc2.concept_code
 	  FROM t JOIN drug_concept_stage dc2 ON dc2.concept_name = REGEXP_REPLACE (t.concept_name, '.* Pack .*\[(.*)\]', '\1') 
-	  AND dc2.concept_class_id = 'Brand Name';
+	  AND dc2.concept_class_id = 'Brand Name'
+	  WHERE  t.concept_code NOT IN (SELECT concept_code_1 FROM internal_relationship_stage JOIN drug_concept_stage ON concept_code=concept_code_2 AND concept_class_id = 'Brand Name' );
 COMMIT;
 
 --26.1 Add missing suppliers
@@ -1142,7 +1142,8 @@ INSERT /*+ APPEND */ INTO  internal_relationship_stage
               FROM drug_concept_stage
              WHERE source_concept_class_id = 'Marketed Product')
    SELECT dc.concept_code, dc2.concept_code
-     FROM dc JOIN drug_concept_stage dc2 ON dc.concept_name LIKE '% ' || LOWER (dc2.concept_name) AND dc2.concept_class_id = 'Supplier';
+     FROM dc JOIN drug_concept_stage dc2 ON dc.concept_name LIKE '% ' || LOWER (dc2.concept_name) AND dc2.concept_class_id = 'Supplier'
+     WHERE  dc.concept_code NOT IN (SELECT concept_code_1 FROM internal_relationship_stage JOIN drug_concept_stage ON concept_code=concept_code_2 AND concept_class_id = 'Brand Name');
 COMMIT;
 
 --26.2 ???
@@ -1652,3 +1653,4 @@ UPDATE RELATIONSHIP_TO_CONCEPT
 WHERE CONCEPT_CODE_1 = 'ug'
 AND   CONCEPT_ID_2 = 9655;
 COMMIT;
+

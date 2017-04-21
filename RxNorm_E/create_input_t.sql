@@ -17,6 +17,127 @@
 * Date: 2017
 **************************************************************************/
 
+--0 Update latest_update field to new date 
+BEGIN
+   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'RxNorm Extension',
+                                          pVocabularyDate        => TRUNC(SYSDATE),
+                                          pVocabularyVersion     => 'RxNorm Extension '||SYSDATE,
+                                          pVocabularyDevSchema   => 'DEV_RXE');									  
+END;
+COMMIT;
+
+--1 Rivive relationships in order to use them in list item #22
+UPDATE concept_relationship
+SET invalid_reason=null, valid_end_date=TO_DATE ('20991231', 'YYYYMMDD') 
+WHERE relatonship_id IN ('RxNorm has dose form','RxNorm dose form of')
+AND invalid_reason='D';
+COMMIT;
+
+--2 Truncate all working tables
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
+
+--3 Load full list of RxNorm Extension concepts
+INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
+                           domain_id,
+                           vocabulary_id,
+                           concept_class_id,
+                           standard_concept,
+                           concept_code,
+                           valid_start_date,
+                           valid_end_date,
+                           invalid_reason)
+   SELECT concept_name,
+          domain_id,
+          vocabulary_id,
+          concept_class_id,
+          standard_concept,
+          concept_code,
+          valid_start_date,
+          valid_end_date,
+          invalid_reason
+     FROM concept
+    WHERE vocabulary_id = 'RxNorm Extension';			   
+COMMIT;
+
+
+--4 Load full list of RxNorm Extension relationships
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   SELECT c1.concept_code,
+          c2.concept_code,
+          c1.vocabulary_id,
+          c2.vocabulary_id,
+          r.relationship_id,
+          r.valid_start_date,
+          r.valid_end_date,
+          r.invalid_reason
+     FROM concept c1, concept c2, concept_relationship r
+    WHERE c1.concept_id = r.concept_id_1 AND c2.concept_id = r.concept_id_2 AND 'RxNorm Extension' IN (c1.vocabulary_id, c2.vocabulary_id);
+COMMIT;
+
+
+--5 Load full list of RxNorm Extension drug strength
+INSERT /*+ APPEND */
+      INTO  drug_strength_stage (drug_concept_code,
+                                 vocabulary_id_1,
+                                 ingredient_concept_code,
+                                 vocabulary_id_2,
+                                 amount_value,
+                                 amount_unit_concept_id,
+                                 numerator_value,
+                                 numerator_unit_concept_id,
+                                 denominator_value,
+                                 denominator_unit_concept_id,
+                                 valid_start_date,
+                                 valid_end_date,
+                                 invalid_reason)
+   SELECT c.concept_code,
+          c.vocabulary_id,
+          c2.concept_code,
+          c2.vocabulary_id,
+          amount_value,
+          amount_unit_concept_id,
+          numerator_value,
+          numerator_unit_concept_id,
+          denominator_value,
+          denominator_unit_concept_id,
+          ds.valid_start_date,
+          ds.valid_end_date,
+          ds.invalid_reason
+     FROM concept c
+          JOIN drug_strength ds ON ds.DRUG_CONCEPT_ID = c.CONCEPT_ID
+          JOIN concept c2 ON ds.INGREDIENT_CONCEPT_ID = c2.CONCEPT_ID
+    WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
+COMMIT;
+
+--6 Load full list of RxNorm Extension pack content
+INSERT /*+ APPEND */
+      INTO  pack_content_stage (pack_concept_code,
+                                pack_vocabulary_id,
+                                drug_concept_code,
+                                drug_vocabulary_id,
+                                amount,
+                                box_size)
+   SELECT c.concept_code,
+          c.vocabulary_id,
+          c2.concept_code,
+          c2.vocabulary_id,
+          amount,
+          box_size
+     FROM pack_content pc
+          JOIN concept c ON pc.PACK_CONCEPT_ID = c.CONCEPT_ID
+          JOIN concept c2 ON pc.DRUG_CONCEPT_ID = c2.CONCEPT_ID;
+COMMIT;
 --1 Add new temporary vocabulary named Rxfix to the vocabulary table
 INSERT INTO concept (concept_id,
                      concept_name,
@@ -1060,7 +1181,7 @@ INSERT /*+ APPEND */
             SELECT dc.concept_code, CASE WHEN c2.concept_code='OMOP881524' THEN '316975' ELSE c2.concept_code END  AS concept_code_2 --Rectal Creame and Rectal Cream 
               FROM drug_concept_stage dc
                    JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
-                   JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' 
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
 	      	   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.VOCABULARY_ID LIKE 'Rx%'
             --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
             UNION ALL
@@ -1072,7 +1193,7 @@ INSERT /*+ APPEND */
                           AND c.vocabulary_id = 'RxNorm Extension'
                           AND dc.concept_class_id = 'Drug Product'
                           AND (dc.source_concept_class_id NOT LIKE '%Pack%' OR (dc.source_concept_class_id = 'Marketed Product' AND dc.concept_name NOT LIKE '%Pack%'))
-                   JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' 
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
                    JOIN concept c2
                        ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.vocabulary_id LIKE 'Rx%' AND LOWER (c.concept_name) LIKE '%' || LOWER (c2.concept_name) || '%'
             UNION ALL
@@ -1087,7 +1208,7 @@ INSERT /*+ APPEND */
                                FROM drug_concept_stage dc
                                     JOIN concept c
                                         ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product' AND dc.concept_name LIKE '%Pack%[%]%'
-                                    JOIN devv5.concept_relationship cr ON c.concept_id = concept_id_1 AND cr.relationship_id = 'Has brand name' 
+                                    JOIN concept_relationship cr ON c.concept_id = concept_id_1 AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
                                     JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.VOCABULARY_ID LIKE 'Rx%')
                     SELECT concept_code_1, concept_code_2
                       FROM t
@@ -1099,7 +1220,7 @@ INSERT /*+ APPEND */
             --Drug Form to ingredient
             SELECT c.concept_code, c2.concept_code
               FROM concept c
-                   JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' 
+                   JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' AND cr.invalid_reason IS NULL
                    JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Ingredient'
              WHERE c.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form') AND c.vocabulary_id = 'RxNorm Extension' AND c.invalid_reason IS NULL
             UNION ALL
@@ -1107,13 +1228,13 @@ INSERT /*+ APPEND */
             SELECT dc.concept_code, c2.concept_code
               FROM drug_concept_stage dc
                    JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
-                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id 
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.invalid_reason IS NULL
                    JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Supplier' AND c2.vocabulary_id LIKE 'Rx%'
             UNION ALL
             --insert relationships to those packs that do not have Pack's BN
             SELECT c.concept_code, c3.concept_code
               FROM concept c
-                   LEFT JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' 
+                   LEFT JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
                    LEFT JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Brand Name'
                    -- take it from name
                    LEFT JOIN concept c3 ON c3.concept_name = REGEXP_REPLACE (c.concept_name, '.* Pack .*\[(.*)\]', '\1') AND c3.vocabulary_id LIKE 'RxNorm%' AND c3.concept_class_id = 'Brand Name'

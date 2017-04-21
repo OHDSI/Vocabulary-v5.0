@@ -17,19 +17,10 @@
 * Date: 2017
 **************************************************************************/
 
---0 Update latest_update field to new date 
-BEGIN
-   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'RxNorm Extension',
-                                          pVocabularyDate        => TRUNC(SYSDATE),
-                                          pVocabularyVersion     => 'RxNorm Extension '||SYSDATE,
-                                          pVocabularyDevSchema   => 'DEV_RXE');									  
-END;
-COMMIT;
-
 --1 Rivive relationships in order to use them in list item #22
 UPDATE concept_relationship
 SET invalid_reason=null, valid_end_date=TO_DATE ('20991231', 'YYYYMMDD') 
-WHERE relatonship_id IN ('RxNorm has dose form','RxNorm dose form of')
+WHERE relationship_id IN ('RxNorm has dose form','RxNorm dose form of')
 AND invalid_reason='D';
 COMMIT;
 
@@ -590,23 +581,8 @@ INSERT /*+ APPEND */
           LEFT JOIN concept c5 ON c5.concept_id = ds.denominator_unit_concept_id
     WHERE c.vocabulary_id = 'RxNorm Extension';
 COMMIT;	
-
---8 update ds_stage for homeopathic drugs
--- homeopatic unit is not a real concentration
-/*UPDATE ds_stage
-   SET amount_value = numerator_value,
-       amount_unit = numerator_unit,
-       numerator_value = NULL,
-       numerator_unit = NULL,
-       denominator_value = NULL,
-       denominator_unit = NULL
- WHERE     drug_concept_code IN (SELECT drug_concept_code
-                                   FROM ds_stage
-                                  WHERE numerator_unit IN ('[hp_X]', '[hp_C]'));
-COMMIT;							  
-*/
-						
---9 Manually add absent units in drug_strength (due to source table issues)
+				
+--8 Manually add absent units in drug_strength (due to source table issues)
 UPDATE ds_stage
    SET AMOUNT_UNIT = '[U]'
 WHERE ingredient_concept_code = '560'
@@ -629,7 +605,7 @@ WHERE drug_concept_code IN ('OMOP420832','OMOP420835','OMOP420834','OMOP420833')
 AND   ingredient_concept_code = '1202';
 COMMIT;
 
---10 Fix micrograms and iU
+--9 Fix micrograms and iU
 UPDATE ds_stage
    SET NUMERATOR_UNIT = 'mg',
        NUMERATOR_VALUE = NUMERATOR_VALUE / 1000
@@ -658,7 +634,7 @@ UPDATE ds_stage
 WHERE amount_unit = '[iU]';
 COMMIT;
 
---11 Create consolidated denominator unit for drugs that have soluble and solid ingredients
+--10 create consolidated denominator unit for drugs that have soluble and solid ingredients
 -- in the same drug (if some drug-ingredient row row has amount, another - nominator)
 UPDATE ds_stage ds
    SET numerator_value = amount_value,
@@ -683,7 +659,7 @@ UPDATE ds_stage ds
        AND amount_value IS NOT NULL;
 COMMIT;
 
---12 update different denominator units
+--11 update different denominator units
 MERGE INTO ds_stage ds
      USING (SELECT DISTINCT a.drug_concept_code, REGEXP_SUBSTR (c.concept_name, '^\d+(\.\d+)?') AS cx -- choose denominator from the Name
               FROM ds_stage a
@@ -697,7 +673,7 @@ THEN
            WHERE ds.drug_concept_code = d.drug_concept_code;
 COMMIT;
 
---13 Fix solid forms with denominator
+--12 Fix solid forms with denominator
 UPDATE ds_stage
    SET amount_unit = numerator_unit,
        amount_value = numerator_value,
@@ -716,7 +692,7 @@ UPDATE ds_stage
 COMMIT;
 							   
 							   
---14 Put percent into the numerator, not amount
+--13 Put percent into the numerator, not amount
 UPDATE ds_stage
    SET numerator_unit = amount_unit,
        NUMERATOR_VALUE = AMOUNT_VALUE,
@@ -725,7 +701,7 @@ UPDATE ds_stage
 WHERE amount_unit = '%';
 COMMIT;
 
---15 Fixes of various ill-defined drugs violating with RxNorm editorial policies 
+--14 Fixes of various ill-defined drugs violating with RxNorm editorial policies 
 UPDATE ds_stage
    SET NUMERATOR_VALUE = 25
 WHERE drug_concept_code IN ('OMOP303266','OMOP303267','OMOP303268');
@@ -741,12 +717,7 @@ WHERE INGREDIENT_CONCEPT_CODE = '8536'
 AND drug_concept_code IN ('OMOP420658','OMOP420659','OMOP420660','OMOP420661');
 COMMIT;
 
---16 
-/*
-	XXX Check this with Christian obviosly it's just a percent so I changed it to mg/ml 
-	select * from devv5.drug_strength join devv5.concept on drug_Concept_id=concept_id where denominator_unit_concept_id=45744809 and numerator_unit_Concept_id=8554 ;
-*/
--- Change %/actuat into mg/mL
+--15 Change %/actuat into mg/mL
 UPDATE ds_stage
    SET NUMERATOR_VALUE = NUMERATOR_VALUE*10,
        NUMERATOR_UNIT = 'mg',
@@ -764,8 +735,8 @@ WHERE numerator_unit = '%'
 AND   numerator_value IN (0.000283,0.1,35.3);
 COMMIT;
 							   
---17 Do all sorts of manual fixes
---17.1 Fentanyl buccal film
+--16 Do all sorts of manual fixes
+--16.1 Fentanyl buccal film
 -- AMOUNT_VALUE instead of NUMERATOR_VALUE
 UPDATE ds_stage
    SET amount_value = numerator_value,
@@ -785,7 +756,7 @@ UPDATE ds_stage
           );
 COMMIT;
 
---17.2 Add denominator to trandermal patch
+--16.2 Add denominator to trandermal patch
 -- manualy defined dosages
 UPDATE ds_stage
    SET NUMERATOR_VALUE = 0.012,
@@ -854,7 +825,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             AND   a.amount_value IN (16.8,10,11,20.4,16.5));
 COMMIT;
 
---17.3 Fentanyl topical
+--16.3 Fentanyl topical
 UPDATE ds_stage
    SET NUMERATOR_VALUE = 0.012,
        DENOMINATOR_VALUE = NULL,
@@ -917,7 +888,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             AND   a.numerator_value IN (16.8,10,11,20.4)));
 COMMIT;
 
---17.4 rivastigmine
+--16.4 rivastigmine
 UPDATE ds_stage
    SET NUMERATOR_VALUE = 13.3,
        DENOMINATOR_VALUE = 24,
@@ -945,7 +916,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             AND   b.concept_name LIKE '%rivastigmine%'));
 COMMIT;
 
---17.5 nicotine
+--16.5 nicotine
 UPDATE ds_stage
    SET NUMERATOR_VALUE = CASE
                            WHEN denominator_value IS NULL THEN numerator_value*16
@@ -974,7 +945,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             AND   a.numerator_value IN (5.57,5.14,36,78)));
 COMMIT;
 
---17.6 Povidone-Iodine
+--16.6 Povidone-Iodine
 UPDATE ds_stage
    SET NUMERATOR_VALUE = 100,
        DENOMINATOR_VALUE = NULL,
@@ -1011,7 +982,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                         AND   ds.concept_name LIKE '%Varicella Virus Vaccine Live (Oka-Merck) strain 29800 /ML%');
 COMMIT;
 
---17.8 update wrong dosages in alpha-amylase
+--16.8 update wrong dosages in alpha-amylase
 UPDATE ds_stage
    SET numerator_unit = '[U]'
 WHERE drug_concept_code IN (SELECT drug_concept_code
@@ -1023,7 +994,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                         AND   ds.concept_name LIKE '%alpha-amylase 200 /ML%');
 COMMIT;
 
---17.9 delete drugs that are missing units. delete drugs from DCS to remove them totally
+--16.9 delete drugs that are missing units. delete drugs from DCS to remove them totally
 DELETE FROM drug_concept_stage
       WHERE concept_code IN
                 (SELECT drug_concept_code
@@ -1033,14 +1004,36 @@ DELETE FROM drug_concept_stage
                   OR (amount_value IS NOT NULL AND amount_unit IS NULL));
 COMMIT;
 
---17.10 delete drugs that are missing units
+--16.10 delete drugs that are missing units
 DELETE FROM ds_stage
 	WHERE (numerator_value IS NOT NULL AND numerator_unit IS NULL)
 	OR    (denominator_value IS NOT NULL AND denominator_unit IS NULL)
 	OR    (amount_value IS NOT NULL AND amount_unit IS NULL);
 COMMIT;
 
---18 Delete 3 legged dogs
+--16.11 working on drugs that presented in way of mL/mL
+UPDATE ds_stage
+   SET numerator_unit = 'mg'
+WHERE drug_concept_code IN (SELECT drug_concept_code
+                            FROM ds_stage
+                              JOIN drug_concept_stage
+                                ON drug_concept_code = concept_code
+                               AND concept_name LIKE '%Paclitaxel%'
+                               AND numerator_unit = 'mL'
+                               AND denominator_unit = 'mL');
+                               
+UPDATE ds_stage
+   SET numerator_unit = 'mg',numerator_value=denominator_value*1000
+WHERE drug_concept_code IN (SELECT drug_concept_code
+                            FROM ds_stage
+                              JOIN drug_concept_stage
+                                ON drug_concept_code = concept_code
+                               AND concept_name LIKE '%Water%'
+                               AND numerator_unit = 'mL'
+                               AND denominator_unit = 'mL');
+
+
+--17 Delete 3 legged dogs
 DELETE FROM ds_stage
 WHERE drug_concept_code IN (WITH a AS
                             (
@@ -1069,7 +1062,7 @@ WHERE drug_concept_code IN (WITH a AS
 COMMIT;
 
 
---19 Remove those with less than 0.05 ml in denominator. Delete those drugs from DCS to remove them totally
+--18 Remove those with less than 0.05 ml in denominator. Delete those drugs from DCS to remove them totally
 DELETE FROM drug_concept_stage
       WHERE concept_code IN (SELECT drug_concept_code
                                FROM ds_stage
@@ -1077,7 +1070,7 @@ DELETE FROM drug_concept_stage
                               AND denominator_unit = 'mL');
 COMMIT;
 
---19.1 Remove those with less than 0.05 ml in denominator
+--18.1 Remove those with less than 0.05 ml in denominator
 DELETE FROM ds_stage
       WHERE drug_concept_code IN (SELECT drug_concept_code
                                     FROM ds_stage
@@ -1085,7 +1078,7 @@ DELETE FROM ds_stage
                                    AND denominator_unit = 'mL');
 COMMIT;
                             
---20 Delete drugs with cm in denominator that we weren't able to fix
+--19 Delete drugs with cm in denominator that we weren't able to fix
 DELETE FROM ds_stage
 	WHERE drug_concept_code IN (SELECT drug_concept_code
 								FROM ds_stage a
@@ -1094,7 +1087,7 @@ DELETE FROM ds_stage
 								OR    denominator_unit IN ('cm','mm'));
 COMMIT;
 
---21 Delete combination drugs where denominators don't match
+--20 Delete combination drugs where denominators don't match
 DELETE FROM ds_stage
 	WHERE (drug_concept_code,denominator_value) IN (SELECT a.drug_concept_code,
 														   a.denominator_value
@@ -1110,8 +1103,8 @@ DELETE FROM ds_stage
 													   AND a.denominator_value != REGEXP_SUBSTR (ds.concept_name,'\d+(\.\d+)?'));
 
 COMMIT;
-
---22 Deprecate ingredients that had died before 2 Feb 2017 (and so they dont exist in drug_concept_stage)
+/*
+--???? Deprecate ingredients that had died before 2 Feb 2017 (and so they dont exist in drug_concept_stage)
 DELETE FROM ds_stage
 	WHERE ingredient_concept_code IN (SELECT ingredient_concept_code
 									  FROM ds_stage s
@@ -1124,31 +1117,30 @@ DELETE FROM ds_stage
 										 AND c.invalid_reason = 'D'
 									  WHERE b.concept_code IS NULL);
 COMMIT;								  
-
---23 Delete impossible dosages. Delete those drugs from DCS to remove them totally
+*/
+--21 Delete impossible dosages. Delete those drugs from DCS to remove them totally
 DELETE FROM drug_concept_stage
 WHERE concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
-							WHERE ((LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('ml','g') OR LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('l')) AND numerator_value / denominator_value > 1000)
-							OR    (LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('ml') AND numerator_value / denominator_value > 1)
-							OR    (LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('mg') AND numerator_value / denominator_value > 1)
+							WHERE (((LOWER(numerator_unit)='mg' AND LOWER(denominator_unit) IN ('ml','g')) OR (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='l')) AND numerator_value / denominator_value > 1000)
+							OR    (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='ml' AND numerator_value / denominator_value > 1)
+							OR    (LOWER(numerator_unit)='mg' AND LOWER(denominator_unit)='mg' AND numerator_value / denominator_value > 1)
 							OR    ((amount_unit = '%' AND amount_value > 100) OR (numerator_unit = '%' AND numerator_value > 100))
 							OR    (numerator_unit = '%' AND   denominator_unit IS NOT NULL)
                             );
 							
---23.1 Delete impossible dosages
+--21.1 Delete impossible dosages
 DELETE FROM ds_stage
-	WHERE drug_concept_code IN (
-		SELECT drug_concept_code
-		FROM ds_stage
-		WHERE ((LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('ml','g') OR LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('l')) AND numerator_value / denominator_value > 1000)
-		OR    (LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('ml') AND numerator_value / denominator_value > 1)
-		OR    (LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('mg') AND numerator_value / denominator_value > 1)
-		OR    ((amount_unit = '%' AND amount_value > 100) OR (numerator_unit = '%' AND numerator_value > 100))
-		OR    (numerator_unit = '%' AND   denominator_unit IS NOT NULL)
-	);
+	WHERE drug_concept_code IN (SELECT drug_concept_code
+                            FROM ds_stage
+							WHERE (((LOWER(numerator_unit)='mg' AND LOWER(denominator_unit) IN ('ml','g')) OR (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='l')) AND numerator_value / denominator_value > 1000)
+							OR    (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='ml' AND numerator_value / denominator_value > 1)
+							OR    (LOWER(numerator_unit)='mg' AND LOWER(denominator_unit)='mg' AND numerator_value / denominator_value > 1)
+							OR    ((amount_unit = '%' AND amount_value > 100) OR (numerator_unit = '%' AND numerator_value > 100))
+							OR    (numerator_unit = '%' AND   denominator_unit IS NOT NULL)
+                            );
 COMMIT;
-							
+/*???							
 --!!!Anna, really, did we get such a concepts in a ds_stage?
 --We obviously did
 DELETE FROM ds_stage
@@ -1161,9 +1153,9 @@ DELETE FROM ds_stage
 										 ON b.concept_code = s.ingredient_concept_code
 										AND b.concept_class_id = 'Ingredient'
 								WHERE a.concept_code IS NULL);
-COMMIT;
+COMMIT;*/
                             
---24 Update 'U' ingredients to fresh ones (Fotemustine)                     
+--22 Update 'U' ingredients to fresh ones (Fotemustine)                     
 UPDATE ds_stage
    SET ingredient_concept_code = 'OMOP569695'
  WHERE     ingredient_concept_code = 'OMOP432915'
@@ -1173,7 +1165,7 @@ UPDATE ds_stage
                  WHERE c_int.concept_code = 'OMOP569695' AND c_int.invalid_reason IS NULL);
 
 COMMIT;
---25 Build internal_relationship_stage 
+--23 Build internal_relationship_stage 
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage
     SELECT concept_code, concept_code_2
@@ -1241,7 +1233,7 @@ INSERT /*+ APPEND */
              WHERE c.vocabulary_id = 'RxNorm Extension' AND c.concept_class_id LIKE '%Branded%Pack%' AND c2.concept_id IS NULL);
 COMMIT;
 			      
---26 Add all the attributes which relationships are missing in basic tables (separate query to speed up)
+--24 Add all the attributes which relationships are missing in basic tables (separate query to speed up)
 INSERT /*+ APPEND */ INTO internal_relationship_stage
 	--missing bn
 	WITH t
@@ -1255,7 +1247,7 @@ INSERT /*+ APPEND */ INTO internal_relationship_stage
 	  WHERE  t.concept_code NOT IN (SELECT concept_code_1 FROM internal_relationship_stage JOIN drug_concept_stage ON concept_code=concept_code_2 AND concept_class_id = 'Brand Name' );
 COMMIT;
 
---26.1 Add missing suppliers
+--24.1 Add missing suppliers
 INSERT /*+ APPEND */ INTO  internal_relationship_stage
    WITH dc
         AS (SELECT /*+ materialize */
@@ -1267,7 +1259,7 @@ INSERT /*+ APPEND */ INTO  internal_relationship_stage
      WHERE  dc.concept_code NOT IN (SELECT concept_code_1 FROM internal_relationship_stage JOIN drug_concept_stage ON concept_code=concept_code_2 AND concept_class_id = 'Brand Name');
 COMMIT;
 
---26.2 ???
+--24.2 Fix suppliers like Baxter and Baxter ltd
 DELETE FROM internal_relationship_stage
  WHERE (concept_code_1, concept_code_2) IN 
     (SELECT b2.concept_code_1, b2.concept_code_2
@@ -1284,8 +1276,8 @@ DELETE FROM internal_relationship_stage
 
 COMMIT;
 	
---27 delete multiple relationships to attributes
---27.1 define concept_1, concept_2 pairs need to be deleted
+--25 delete multiple relationships to attributes
+--25.1 define concept_1, concept_2 pairs need to be deleted
 DELETE FROM internal_relationship_stage
       WHERE (concept_code_1, concept_code_2) IN
                 (SELECT concept_code_1, concept_code_2
@@ -1301,7 +1293,7 @@ DELETE FROM internal_relationship_stage
                         AND (LOWER (c.concept_name) NOT LIKE '%' || LOWER (b.concept_name) || '%' OR REGEXP_SUBSTR (c.concept_name, 'Pack\s.*') NOT LIKE '%' || b.concept_name || '%'));
 COMMIT;
 
---27.2 delete 2 brand names that don't fit the rule as the brand name of the pack looks like the brand name of component (e.g. [Risedronate] and [Risedronate EC])
+--25.2 delete 2 brand names that don't fit the rule as the brand name of the pack looks like the brand name of component (e.g. [Risedronate] and [Risedronate EC])
 DELETE FROM internal_relationship_stage
       WHERE     concept_code_1 IN ('OMOP572812',
                                    'OMOP573077',
@@ -1311,14 +1303,14 @@ DELETE FROM internal_relationship_stage
             AND concept_code_2 IN ('OMOP571371', 'OMOP569970');
 COMMIT;
 
---27.3 delete deprecated concepts
+--25.3 delete deprecated concepts
 DELETE FROM internal_relationship_stage
       WHERE concept_code_2 IN (SELECT concept_code
                                  FROM concept c
                                 WHERE c.vocabulary_id LIKE 'Rx%' AND c.invalid_reason = 'D' AND concept_class_id = 'Ingredient');
 COMMIT;
 
---28 just take it from the pack_content
+--26 just take it from the pack_content
 INSERT /*+ APPEND */ INTO pc_stage
 (
   PACK_CONCEPT_CODE, 
@@ -1335,7 +1327,7 @@ SELECT c.concept_code,
        JOIN concept c2 ON c2.concept_id = pc.drug_concept_id;
 COMMIT;
 
---28.1 fix 2 equal components manualy
+--26.1 fix 2 equal components manualy
 DELETE FROM pc_stage
 WHERE
    ( PACK_CONCEPT_CODE = 'OMOP339574' AND   DRUG_CONCEPT_CODE = '197659' AND   AMOUNT = 12)
@@ -1370,14 +1362,14 @@ AND   DRUG_CONCEPT_CODE = '310463'
 AND   AMOUNT = 7;
 COMMIT;
 
---29 insert missing packs (only those that have => 2 components) - take them from the source tables
+--27 insert missing packs (only those that have => 2 components) - take them from the source tables
 /* 
 	we need to think about how we can get rid of these schemas (dev_amt, dev_amis, dev_bdpm, dev_dmd*) 
 */
 
 --!!! do we have packs with 1 component? Dima, it is a bug so we do not include them. You can actually look at existing packs with one component.
 
---29.1 AMT
+--27.1 AMT
 INSERT /*+ APPEND */ INTO pc_stage
 (
   pack_concept_code,
@@ -1442,7 +1434,7 @@ AND   c.concept_id IN (SELECT c.concept_id
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
 COMMIT;
 
---29.2 AMIS
+--27.2 AMIS
 INSERT /*+ APPEND */ INTO pc_stage
 (
   pack_concept_code,
@@ -1506,7 +1498,7 @@ AND   c.concept_id IN (SELECT c.concept_id
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
 COMMIT;
 
---29.3 BDPM
+--27.3 BDPM
 INSERT /*+ APPEND */ INTO pc_stage
 (
   pack_concept_code,
@@ -1571,7 +1563,7 @@ AND   c.concept_id IN (SELECT c.concept_id
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
 COMMIT;
 
---29.4 dm+d
+--27.4 dm+d
 INSERT /*+ APPEND */ INTO pc_stage
 (
   pack_concept_code,
@@ -1636,7 +1628,7 @@ AND   c.concept_id IN (SELECT c.concept_id
 AND   ac.concept_code NOT IN (SELECT pack_concept_code FROM pc_stage);
 COMMIT;
 
---30 fix inert ingredients in contraceptive packs
+--28 fix inert ingredients in contraceptive packs
 UPDATE pc_stage
    SET amount = 7
  WHERE (pack_concept_code, drug_concept_code) IN (SELECT p.pack_concept_code, p.drug_concept_code
@@ -1645,13 +1637,13 @@ UPDATE pc_stage
                                                          JOIN pc_stage p2 ON p.pack_concept_code = p2.pack_concept_code AND p.drug_concept_code != p2.drug_concept_code AND p.amount = 21);
 COMMIT;
 
---31 update Inert Ingredients / Inert Ingredients 1 MG Oral Tablet to Inert Ingredient Oral Tablet
+--29 update Inert Ingredients / Inert Ingredients 1 MG Oral Tablet to Inert Ingredient Oral Tablet
 UPDATE pc_stage
    SET drug_concept_code = '748796'
  WHERE drug_concept_code = 'OMOP285209';
 COMMIT;
 
---32 fixing existing packs in order to remove duplicates
+--30 fixing existing packs in order to remove duplicates
 DELETE FROM pc_stage
 WHERE pack_concept_code = 'OMOP420950'
 AND   drug_concept_code = '310463'
@@ -1692,7 +1684,7 @@ AND   amount = 5;
 
 COMMIT;
 
---33.1 Create links to self 
+--31.1 Create links to self 
 INSERT /*+ APPEND */ INTO relationship_to_concept
 (
   CONCEPT_CODE_1,
@@ -1711,7 +1703,7 @@ SELECT a.concept_code,
                               'Ingredient');
 COMMIT;
 
---33.2 insert relationship to units
+--31.2 insert relationship to units
 INSERT /*+ APPEND */ INTO relationship_to_concept
 (
   CONCEPT_CODE_1,
@@ -1730,7 +1722,7 @@ SELECT a.concept_code,
  WHERE a.concept_class_id = 'Unit';
 COMMIT;
 
---33.3 insert additional mapping that doesn't exist in concept
+--31.3 insert additional mapping that doesn't exist in concept
 INSERT INTO relationship_to_concept
 (
   CONCEPT_CODE_1,
@@ -1767,7 +1759,7 @@ VALUES
 
 
 
---33.4 transform micrograms into milligrams
+--31.4 transform micrograms into milligrams
 UPDATE RELATIONSHIP_TO_CONCEPT
    SET CONCEPT_ID_2 = 8576,
        CONVERSION_FACTOR = 0.001

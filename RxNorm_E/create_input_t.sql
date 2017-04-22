@@ -446,9 +446,37 @@ INSERT /*+ APPEND */
 				   (SELECT 1
 					  FROM DRUG_CONCEPT_STAGE dcs
 					 WHERE dcs.concept_code = c.concept_code AND dcs.domain_id = c.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
-COMMIT;			   
+COMMIT;		
 
---4.5 Get all Units
+--4.5 Insert dead RxNorm's 'Yeasts' in order to revive it in RxE + add Kentucky grass
+INSERT /*+ APPEND */
+      INTO  DRUG_CONCEPT_STAGE (CONCEPT_NAME,
+                                VOCABULARY_ID,
+                                CONCEPT_CLASS_ID,
+                                STANDARD_CONCEPT,
+                                CONCEPT_CODE,
+                                POSSIBLE_EXCIPIENT,
+                                domain_id,
+                                VALID_START_DATE,
+                                VALID_END_DATE,
+                                INVALID_REASON,
+                                SOURCE_CONCEPT_CLASS_ID)
+	SELECT c.concept_name,
+		   'Rxfix',
+		   'Ingredient',
+		   'S',
+		   c.concept_code,
+		   NULL,
+		   c.domain_id,
+		   c.valid_start_date,
+		   TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date,
+		   c.invalid_reason,
+		   'Ingredient'
+	  FROM concept c
+	 WHERE c.concept_name in ('Yeasts','Kentucky bluegrass pollen extract') and c.vocabulary_id='RxNorm';
+COMMIT;		 	   
+
+--4.6 Get all Units
 INSERT /*+ APPEND */
       INTO  DRUG_CONCEPT_STAGE (CONCEPT_NAME,
                                 VOCABULARY_ID,
@@ -479,7 +507,7 @@ INSERT /*+ APPEND */
 								   JOIN concept c_int ON c_int.concept_id = ds.drug_concept_id AND c_int.vocabulary_id = 'RxNorm Extension');
 COMMIT;
 
---4.6 Get a supplier that hadn't been connected to any drug
+--4.7 Get a supplier that hadn't been connected to any drug
 INSERT /*+ APPEND */
       INTO  DRUG_CONCEPT_STAGE (CONCEPT_NAME,
                                 VOCABULARY_ID,
@@ -554,34 +582,40 @@ COMMIT;
 --7 filling drug_strength
 --just turn drug_strength into ds_stage replacing concept_ids with concept_codes
 INSERT /*+ APPEND */
-      INTO  ds_stage (DRUG_CONCEPT_CODE,
-                      INGREDIENT_CONCEPT_CODE,
-                      BOX_SIZE,
-                      AMOUNT_VALUE,
-                      AMOUNT_UNIT,
-                      NUMERATOR_VALUE,
-                      NUMERATOR_UNIT,
-                      DENOMINATOR_VALUE,
-                      DENOMINATOR_UNIT)
-   SELECT
-		  c.concept_code,
-          c2.concept_code,
-          ds.box_size,
-          amount_value,
-          c3.concept_code,
-          ds.numerator_value,
-          c4.concept_code,
-          ds.denominator_value,
-          c5.concept_code
-     FROM concept c
-          JOIN drug_strength ds ON ds.drug_concept_id = c.concept_id
-          JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id
-          LEFT JOIN concept c3 ON c3.concept_id = ds.amount_unit_concept_id
-          LEFT JOIN concept c4 ON c4.concept_id = ds.numerator_unit_concept_id
-          LEFT JOIN concept c5 ON c5.concept_id = ds.denominator_unit_concept_id
-    WHERE c.vocabulary_id = 'RxNorm Extension';
+      INTO  ds_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+   SELECT  drug_concept_code, 
+           CASE WHEN ingredient_concept_code='314375'     THEN '852834' --ALLERGENIC EXTRACT, GRASS, KENTUCKY BLUE
+                WHEN ingredient_concept_code='OMOP332154' THEN '748794' --Inert Ingredients
+                WHEN ingredient_concept_code='314329'     THEN '1309815' --ALLERGENIC EXTRACT, BIRCH
+                WHEN ingredient_concept_code='1428040'    THEN '1406' --STYRAX BENZOIN RESIN   + leave 11384 Yeasts as it is
+                ELSE ingredient_concept_code END,
+           box_size,amount_value,amount_unit,numerator_value,numerator_unit,denominator_value,denominator_unit 
+     FROM (
+            SELECT  c.concept_code as drug_concept_code, c2.concept_code as ingredient_concept_code,ds.box_size,amount_value,c3.concept_code as amount_unit,ds.numerator_value,c4.concept_code as numerator_unit,ds.denominator_value,c5.concept_code as denominator_unit 
+              FROM concept c
+                   JOIN drug_strength ds ON ds.drug_concept_id = c.concept_id AND c.vocabulary_id = 'RxNorm Extension' AND c.invalid_reason IS NULL
+                   JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.invalid_reason!='U'
+                   LEFT JOIN concept c3 ON c3.concept_id = ds.amount_unit_concept_id
+                   LEFT JOIN concept c4 ON c4.concept_id = ds.numerator_unit_concept_id
+                   LEFT JOIN concept c5 ON c5.concept_id = ds.denominator_unit_concept_id
+            UNION ALL                 --add fresh concepts
+            SELECT c1.concept_code,lf.concept_code,ds.box_size,amount_value,c3.concept_code,ds.numerator_value,c4.concept_code,ds.denominator_value,c5.concept_code 
+              FROM concept c1
+                   JOIN drug_strength ds ON c1.concept_id=ds.drug_concept_id AND c1.vocabulary_id = 'RxNorm Extension' AND c1.invalid_reason IS NULL
+                   JOIN (    SELECT CONNECT_BY_ROOT concept_id_1 AS root_concept_id_1, u.concept_id_2,concept_code
+                                   FROM (SELECT r.*,c2.concept_code
+                                           FROM concept_relationship r
+                                                JOIN concept c1 ON c1.concept_id = r.concept_id_1 AND c1.concept_class_id = 'Ingredient' AND c1.vocabulary_id LIKE 'Rx%'
+                                                JOIN concept c2 ON c2.concept_id = r.concept_id_2 AND c2.concept_class_id = 'Ingredient' AND c2.vocabulary_id LIKE 'Rx%'
+                                          WHERE r.relationship_id = 'Concept replaced by' AND r.invalid_reason IS NULL) u
+                                  WHERE CONNECT_BY_ISLEAF = 1
+                             CONNECT BY NOCYCLE PRIOR u.concept_id_2 = u.concept_id_1) lf
+                             ON lf.root_concept_id_1=ds.ingredient_concept_id  
+                   LEFT JOIN concept c3 ON c3.concept_id = ds.amount_unit_concept_id
+                   LEFT JOIN concept c4 ON c4.concept_id = ds.numerator_unit_concept_id
+                   LEFT JOIN concept c5 ON c5.concept_id = ds.denominator_unit_concept_id);
 COMMIT;	
-				
+
 --8 Manually add absent units in drug_strength (due to source table issues)
 UPDATE ds_stage
    SET AMOUNT_UNIT = '[U]'
@@ -1103,21 +1137,7 @@ DELETE FROM ds_stage
 													   AND a.denominator_value != REGEXP_SUBSTR (ds.concept_name,'\d+(\.\d+)?'));
 
 COMMIT;
-/*
---???? Deprecate ingredients that had died before 2 Feb 2017 (and so they dont exist in drug_concept_stage)
-DELETE FROM ds_stage
-	WHERE ingredient_concept_code IN (SELECT ingredient_concept_code
-									  FROM ds_stage s
-										LEFT JOIN drug_concept_stage b
-											   ON b.concept_code = s.ingredient_concept_code
-											  AND b.concept_class_id = 'Ingredient'
-										JOIN concept c
-										  ON s.ingredient_concept_code = c.concept_code
-										 AND c.vocabulary_id LIKE 'Rx%'
-										 AND c.invalid_reason = 'D'
-									  WHERE b.concept_code IS NULL);
-COMMIT;								  
-*/
+
 --21 Delete impossible dosages. Delete those drugs from DCS to remove them totally
 DELETE FROM drug_concept_stage
 WHERE concept_code IN (SELECT drug_concept_code
@@ -1140,31 +1160,7 @@ DELETE FROM ds_stage
 							OR    (numerator_unit = '%' AND   denominator_unit IS NOT NULL)
                             );
 COMMIT;
-/*???							
---!!!Anna, really, did we get such a concepts in a ds_stage?
---We obviously did
-DELETE FROM ds_stage
-	WHERE drug_concept_code IN (SELECT s.drug_concept_code
-								FROM ds_stage s
-								  LEFT JOIN drug_concept_stage a
-										 ON a.concept_code = s.drug_concept_code
-										AND a.concept_class_id = 'Drug Product'
-								  LEFT JOIN drug_concept_stage b
-										 ON b.concept_code = s.ingredient_concept_code
-										AND b.concept_class_id = 'Ingredient'
-								WHERE a.concept_code IS NULL);
-COMMIT;*/
-                            
---22 Update 'U' ingredients to fresh ones (Fotemustine)                     
-UPDATE ds_stage
-   SET ingredient_concept_code = 'OMOP569695'
- WHERE     ingredient_concept_code = 'OMOP432915'
-       AND EXISTS
-               (SELECT 1
-                  FROM concept c_int
-                 WHERE c_int.concept_code = 'OMOP569695' AND c_int.invalid_reason IS NULL);
 
-COMMIT;
 --23 Build internal_relationship_stage 
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage
@@ -1174,7 +1170,7 @@ INSERT /*+ APPEND */
               FROM drug_concept_stage dc
                    JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
                    JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
-	      	   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.VOCABULARY_ID LIKE 'Rx%'
+	      	   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.VOCABULARY_ID LIKE 'Rx%' AND c2.invalid_reason IS NULL
             --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
             UNION ALL
             --Drug to BN
@@ -1187,7 +1183,7 @@ INSERT /*+ APPEND */
                           AND (dc.source_concept_class_id NOT LIKE '%Pack%' OR (dc.source_concept_class_id = 'Marketed Product' AND dc.concept_name NOT LIKE '%Pack%'))
                    JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
                    JOIN concept c2
-                       ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.vocabulary_id LIKE 'Rx%' AND LOWER (c.concept_name) LIKE '%' || LOWER (c2.concept_name) || '%'
+                       ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.vocabulary_id LIKE 'Rx%' AND LOWER (c.concept_name) LIKE '%' || LOWER (c2.concept_name) || '%' AND c2.invalid_reason IS NULL
             UNION ALL
             --Packs to BN
             SELECT concept_code_1, concept_code_2
@@ -1201,7 +1197,7 @@ INSERT /*+ APPEND */
                                     JOIN concept c
                                         ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product' AND dc.concept_name LIKE '%Pack%[%]%'
                                     JOIN concept_relationship cr ON c.concept_id = concept_id_1 AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
-                                    JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.VOCABULARY_ID LIKE 'Rx%')
+                                    JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Brand Name' AND c2.VOCABULARY_ID LIKE 'Rx%' AND c2.invalid_reason IS NULL)
                     SELECT concept_code_1, concept_code_2
                       FROM t
                      WHERE concept_name_2 = REGEXP_REPLACE (concept_name_1, '.* Pack .*\[(.*)\]', '\1'))
@@ -1213,15 +1209,15 @@ INSERT /*+ APPEND */
             SELECT c.concept_code, c2.concept_code
               FROM concept c
                    JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' AND cr.invalid_reason IS NULL
-                   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Ingredient'
+                   JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Ingredient' AND c2.invalid_reason IS NULL
              WHERE c.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form') AND c.vocabulary_id = 'RxNorm Extension' AND c.invalid_reason IS NULL
             UNION ALL
             --Drug to supplier
             SELECT dc.concept_code, c2.concept_code
               FROM drug_concept_stage dc
                    JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
-                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.invalid_reason IS NULL
-                   JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Supplier' AND c2.vocabulary_id LIKE 'Rx%'
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.invalid_reason IS NULL 
+                   JOIN concept c2 ON concept_id_2 = c2.concept_id AND c2.concept_class_id = 'Supplier' AND c2.vocabulary_id LIKE 'Rx%' AND c2.invalid_reason IS NULL
             UNION ALL
             --insert relationships to those packs that do not have Pack's BN
             SELECT c.concept_code, c3.concept_code
@@ -1229,10 +1225,24 @@ INSERT /*+ APPEND */
                    LEFT JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
                    LEFT JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Brand Name'
                    -- take it from name
-                   LEFT JOIN concept c3 ON c3.concept_name = REGEXP_REPLACE (c.concept_name, '.* Pack .*\[(.*)\]', '\1') AND c3.vocabulary_id LIKE 'RxNorm%' AND c3.concept_class_id = 'Brand Name'
-             WHERE c.vocabulary_id = 'RxNorm Extension' AND c.concept_class_id LIKE '%Branded%Pack%' AND c2.concept_id IS NULL);
+                   LEFT JOIN concept c3 ON c3.concept_name = REGEXP_REPLACE (c.concept_name, '.* Pack .*\[(.*)\]', '\1') AND c3.vocabulary_id LIKE 'RxNorm%' AND c3.concept_class_id = 'Brand Name' AND c3.invalid_reason IS NULL
+             WHERE c.vocabulary_id = 'RxNorm Extension' AND c.concept_class_id LIKE '%Branded%Pack%' AND c2.concept_id IS NULL
+             UNION ALL
+             --add fresh concepts
+             SELECT c1.concept_code,lf.concept_code 
+               FROM concept c1 
+                    JOIN concept_relationship cr ON c1.concept_id=cr.concept_id_1 AND c1.vocabulary_id='RxNorm Extension' AND c1.invalid_reason IS NULL
+                    JOIN (    SELECT CONNECT_BY_ROOT concept_id_1 AS root_concept_id_1, u.concept_id_2,concept_code
+                                   FROM (SELECT r.*,c2.concept_code
+                                           FROM concept_relationship r
+                                                JOIN concept c1 ON c1.concept_id = r.concept_id_1 AND c1.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier','Ingredient') AND c1.vocabulary_id LIKE 'Rx%'
+                                                JOIN concept c2 ON c2.concept_id = r.concept_id_2 AND c2.concept_class_id IN ('Dose Form', 'Brand Name', 'Supplier','Ingredient') AND c2.vocabulary_id LIKE 'Rx%'
+                                          WHERE r.relationship_id = 'Concept replaced by' AND r.invalid_reason IS NULL) u
+                                  WHERE CONNECT_BY_ISLEAF = 1
+                             CONNECT BY NOCYCLE PRIOR u.concept_id_2 = u.concept_id_1) lf
+                             ON lf.root_concept_id_1=cr.concept_id_2  );
 COMMIT;
-			      
+ 		      
 --24 Add all the attributes which relationships are missing in basic tables (separate query to speed up)
 INSERT /*+ APPEND */ INTO internal_relationship_stage
 	--missing bn
@@ -1301,13 +1311,6 @@ DELETE FROM internal_relationship_stage
                                    'OMOP573066',
                                    'OMOP573376')
             AND concept_code_2 IN ('OMOP571371', 'OMOP569970');
-COMMIT;
-
---25.3 delete deprecated concepts
-DELETE FROM internal_relationship_stage
-      WHERE concept_code_2 IN (SELECT concept_code
-                                 FROM concept c
-                                WHERE c.vocabulary_id LIKE 'Rx%' AND c.invalid_reason = 'D' AND concept_class_id = 'Ingredient');
 COMMIT;
 
 --26 just take it from the pack_content
@@ -1700,7 +1703,9 @@ SELECT a.concept_code,
  WHERE a.concept_class_id IN ('Dose Form',
                               'Brand Name',
                               'Supplier',
-                              'Ingredient');
+                              'Ingredient')
+ AND  a.concept_code!='11384' -- remove dead RxNorm's 'Yeasts' in order to revive it in RxE
+ ;
 COMMIT;
 
 --31.2 insert relationship to units
@@ -1757,8 +1762,6 @@ VALUES
   0.001
 );
 
-
-
 --31.4 transform micrograms into milligrams
 UPDATE RELATIONSHIP_TO_CONCEPT
    SET CONCEPT_ID_2 = 8576,
@@ -1766,4 +1769,3 @@ UPDATE RELATIONSHIP_TO_CONCEPT
 WHERE CONCEPT_CODE_1 = 'ug'
 AND   CONCEPT_ID_2 = 9655;
 COMMIT;
-

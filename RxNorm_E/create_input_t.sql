@@ -594,7 +594,7 @@ INSERT /*+ APPEND */
             SELECT  c.concept_code as drug_concept_code, c2.concept_code as ingredient_concept_code,ds.box_size,amount_value,c3.concept_code as amount_unit,ds.numerator_value,c4.concept_code as numerator_unit,ds.denominator_value,c5.concept_code as denominator_unit 
               FROM concept c
                    JOIN drug_strength ds ON ds.drug_concept_id = c.concept_id AND c.vocabulary_id = 'RxNorm Extension' AND c.invalid_reason IS NULL
-                   JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.invalid_reason!='U'
+                   JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND (c2.invalid_reason='D' OR c2.invalid_reason IS NULL)
                    LEFT JOIN concept c3 ON c3.concept_id = ds.amount_unit_concept_id
                    LEFT JOIN concept c4 ON c4.concept_id = ds.numerator_unit_concept_id
                    LEFT JOIN concept c5 ON c5.concept_id = ds.denominator_unit_concept_id

@@ -1208,7 +1208,7 @@ INSERT /*+ APPEND */
             --Drug Form to ingredient
             SELECT c.concept_code, c2.concept_code
               FROM concept c
-                   JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' AND cr.invalid_reason IS NULL
+                   JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' AND cr.invalid_reason IS NULL
                    JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Ingredient' AND c2.invalid_reason IS NULL
              WHERE c.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form') AND c.vocabulary_id = 'RxNorm Extension' AND c.invalid_reason IS NULL
             UNION ALL
@@ -1222,7 +1222,7 @@ INSERT /*+ APPEND */
             --insert relationships to those packs that do not have Pack's BN
             SELECT c.concept_code, c3.concept_code
               FROM concept c
-                   LEFT JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
+                   LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
                    LEFT JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Brand Name'
                    -- take it from name
                    LEFT JOIN concept c3 ON c3.concept_name = REGEXP_REPLACE (c.concept_name, '.* Pack .*\[(.*)\]', '\1') AND c3.vocabulary_id LIKE 'RxNorm%' AND c3.concept_class_id = 'Brand Name' AND c3.invalid_reason IS NULL

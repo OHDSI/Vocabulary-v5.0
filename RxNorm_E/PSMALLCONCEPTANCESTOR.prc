@@ -357,7 +357,9 @@ BEGIN
                 select 'Clinical Dose Group', 'RxNorm inverse is a', 'Clinical Drug' from dual union all
                 select 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Branded Drug' from dual union all
                 select 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Clinical Drug' from dual union all
-                select 'Dose Form Group', 'RxNorm inverse is a', 'Dose Form' from dual              
+                select 'Dose Form Group', 'RxNorm inverse is a', 'Dose Form' from dual union all
+                --added 24.04.2017 (AVOF-341)
+                select 'Precise Ingredient', 'Form of', 'Ingredient' from dual				
             ) 
             select * from t 
             union all 

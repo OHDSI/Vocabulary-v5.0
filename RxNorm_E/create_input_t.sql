@@ -1380,15 +1380,42 @@ DELETE FROM internal_relationship_stage
       WHERE (concept_code_1, concept_code_2) IN
                 (SELECT concept_code_1, concept_code_2
                    FROM internal_relationship_stage a
-                        JOIN drug_concept_stage b ON a.concept_code_2 = b.concept_code AND b.concept_class_id IN ('Supplier', 'Dose Form', 'Brand Name')
+                        JOIN drug_concept_stage b ON a.concept_code_2 = b.concept_code AND b.concept_class_id IN ('Supplier')
                         JOIN drug_concept_stage c ON c.concept_code = a.concept_code_1
                   WHERE     a.concept_code_1 IN (  SELECT a_int.concept_code_1
                                                      FROM internal_relationship_stage a_int JOIN drug_concept_stage b ON b.concept_code = a_int.concept_code_2
-                                                    WHERE b.concept_class_id IN ('Supplier', 'Dose Form', 'Brand Name')
+                                                    WHERE b.concept_class_id IN ('Supplier')
                                                  GROUP BY a_int.concept_code_1, b.concept_class_id
                                                    HAVING COUNT (1) > 1)
                         --Attribute is not a part of a name
                         AND (LOWER (c.concept_name) NOT LIKE '%' || LOWER (b.concept_name) || '%' OR REGEXP_SUBSTR (c.concept_name, 'Pack\s.*') NOT LIKE '%' || b.concept_name || '%'));
+DELETE FROM internal_relationship_stage
+      WHERE (concept_code_1, concept_code_2) IN
+                (SELECT concept_code_1, concept_code_2
+                   FROM internal_relationship_stage a
+                        JOIN drug_concept_stage b ON a.concept_code_2 = b.concept_code AND b.concept_class_id IN ('Dose Form')
+                        JOIN drug_concept_stage c ON c.concept_code = a.concept_code_1
+                  WHERE     a.concept_code_1 IN (  SELECT a_int.concept_code_1
+                                                     FROM internal_relationship_stage a_int JOIN drug_concept_stage b ON b.concept_code = a_int.concept_code_2
+                                                    WHERE b.concept_class_id IN ('Dose Form')
+                                                 GROUP BY a_int.concept_code_1, b.concept_class_id
+                                                   HAVING COUNT (1) > 1)
+                        --Attribute is not a part of a name
+                        AND (LOWER (c.concept_name) NOT LIKE '%' || LOWER (b.concept_name) || '%' OR REGEXP_SUBSTR (c.concept_name, 'Pack\s.*') NOT LIKE '%' || b.concept_name || '%'));
+DELETE FROM internal_relationship_stage
+      WHERE (concept_code_1, concept_code_2) IN
+                (SELECT concept_code_1, concept_code_2
+                   FROM internal_relationship_stage a
+                        JOIN drug_concept_stage b ON a.concept_code_2 = b.concept_code AND b.concept_class_id IN ('Brand Name')
+                        JOIN drug_concept_stage c ON c.concept_code = a.concept_code_1
+                  WHERE     a.concept_code_1 IN (  SELECT a_int.concept_code_1
+                                                     FROM internal_relationship_stage a_int JOIN drug_concept_stage b ON b.concept_code = a_int.concept_code_2
+                                                    WHERE b.concept_class_id IN ('Brand Name')
+                                                 GROUP BY a_int.concept_code_1, b.concept_class_id
+                                                   HAVING COUNT (1) > 1)
+                        --Attribute is not a part of a name
+                        AND (LOWER (c.concept_name) NOT LIKE '%' || LOWER (b.concept_name) || '%' OR REGEXP_SUBSTR (c.concept_name, 'Pack\s.*') NOT LIKE '%' || b.concept_name || '%'));
+
 COMMIT;
 
 --25.2 delete 2 brand names that don't fit the rule as the brand name of the pack looks like the brand name of component (e.g. [Risedronate] and [Risedronate EC])

@@ -1264,8 +1264,11 @@ DELETE FROM concept_relationship_stage
 
 COMMIT;
 
---24 Remove ATC's duplicate: diphtheria immunoglobulin
+--24 Remove ATC's duplicates (AVOF-322)
+--diphtheria immunoglobulin
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'J06BB10' AND concept_code_2 = '3510' AND relationship_id = 'ATC - RxNorm';
+--hydroquinine
+DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'M09AA01' AND concept_code_2 = '27220' AND relationship_id = 'ATC - RxNorm';
 COMMIT;
 
 --25 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs

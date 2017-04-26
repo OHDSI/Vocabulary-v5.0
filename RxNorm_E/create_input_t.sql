@@ -593,7 +593,8 @@ INSERT /*+ APPEND */
      FROM (
             SELECT  c.concept_code as drug_concept_code, c2.concept_code as ingredient_concept_code,ds.box_size,amount_value,c3.concept_code as amount_unit,ds.numerator_value,c4.concept_code as numerator_unit,ds.denominator_value,c5.concept_code as denominator_unit 
               FROM concept c
-                   JOIN drug_strength ds ON ds.drug_concept_id = c.concept_id AND c.vocabulary_id = 'RxNorm Extension' AND c.invalid_reason IS NULL
+                   JOIN drug_concept_stage dc on dc.concept_code=c.concept_code
+                   JOIN drug_strength ds ON ds.drug_concept_id = c.concept_id AND c.vocabulary_id like 'RxNorm%' AND c.invalid_reason IS NULL
                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND (c2.invalid_reason='D' OR c2.invalid_reason IS NULL)
                    LEFT JOIN concept c3 ON c3.concept_id = ds.amount_unit_concept_id
                    LEFT JOIN concept c4 ON c4.concept_id = ds.numerator_unit_concept_id
@@ -1088,8 +1089,8 @@ WHERE drug_concept_code IN (WITH a AS
                               FROM concept_ancestor a
                                 JOIN concept b
                                   ON ancestor_concept_id = b.concept_id
-                                 AND concept_class_id = 'Ingredient' AND b.vocabulary_id LIKE 'RxNorm%'
-                                JOIN concept b2 ON descendant_concept_id = b2.concept_id AND b2.concept_class_id NOT LIKE '%Comp%'
+                                 AND concept_class_id = 'Ingredient' AND b.vocabulary_id LIKE 'RxNorm%' 
+                                JOIN concept b2 ON descendant_concept_id = b2.concept_id AND b2.concept_class_id NOT LIKE '%Comp%' AND b2.concept_name like '% / %'
                               GROUP BY descendant_concept_id
                             )
                             SELECT concept_code
@@ -1099,7 +1100,6 @@ WHERE drug_concept_code IN (WITH a AS
                             WHERE cnt1 < cnt2
                             AND   c.vocabulary_id != 'RxNorm');
 COMMIT;
-
 
 --18 Remove those with less than 0.05 ml in denominator. Delete those drugs from DCS to remove them totally
 DELETE FROM drug_concept_stage
@@ -1172,7 +1172,7 @@ INSERT /*+ APPEND */
       INTO  internal_relationship_stage
     SELECT dc.concept_code, CASE WHEN c2.concept_code = 'OMOP881524' THEN '316975' ELSE c2.concept_code END AS concept_code_2                                           --Rectal Creame and Rectal Cream
       FROM drug_concept_stage dc
-           JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension' AND dc.concept_class_id = 'Drug Product'
+           JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id like 'RxNorm%' AND dc.concept_class_id = 'Drug Product'
            JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
            JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.vocabulary_id LIKE 'Rx%' AND c2.invalid_reason IS NULL;
 
@@ -1184,7 +1184,7 @@ INSERT /*+ APPEND */
       INTO  internal_relationship_stage
     SELECT dc.concept_code, c2.concept_code
       FROM drug_concept_stage dc
-           JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension'
+           JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id like 'RxNorm%'
            JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Has brand name' AND cr.invalid_reason IS NULL
            JOIN concept c2
                ON     concept_id_2 = c2.concept_id
@@ -1237,18 +1237,15 @@ INSERT /*+ APPEND */
 
 COMMIT;
 
-
-
 --Drug Form to ingredient
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage
     SELECT c.concept_code, c2.concept_code
       FROM concept c
+           JOIN drug_concept_stage dc ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL
            JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' AND cr.invalid_reason IS NULL
            JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Ingredient' AND c2.invalid_reason IS NULL
      WHERE     c.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form')
-           AND c.vocabulary_id = 'RxNorm Extension'
-           AND c.invalid_reason IS NULL
            AND NOT EXISTS
                    (SELECT 1
                       FROM internal_relationship_stage irs_int
@@ -1296,7 +1293,6 @@ INSERT /*+ APPEND */
 
 COMMIT;
 
-
 --add fresh concepts
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage
@@ -1327,7 +1323,7 @@ INSERT /*+ APPEND */
                  WHERE irs_int.concept_code_1 = c1.concept_code AND irs_int.concept_code_2 = lf.concept_code);
 
 COMMIT;
- 		      
+
 --23 Add all the attributes which relationships are missing in basic tables (separate query to speed up)
 INSERT /*+ APPEND */ INTO internal_relationship_stage
 	--missing bn

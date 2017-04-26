@@ -1065,6 +1065,11 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                                AND concept_name LIKE '%Water%'
                                AND numerator_unit = 'mL'
                                AND denominator_unit = 'mL');
+			       
+--16.12 cromolyn Inhalation powder change to 5mg/actuat
+UPDATE ds_stage
+   SET numerator_value=amount_value,numerator_unit=amount_unit,denominator_unit='{actuat}',amount_value=NULL,amount_unit=NULL
+WHERE drug_concept_code IN ('OMOP391197','OMOP391198','OMOP391199');
 
 
 --17 Delete 3 legged dogs
@@ -1373,6 +1378,13 @@ DELETE FROM internal_relationship_stage
     WHERE LENGTH (c.concept_name) < LENGTH (c2.concept_name));
 
 COMMIT;
+
+--24.3 Cromolyn Inhalation powder
+INSERT INTO internal_relationship_stage (concept_code_1,concept_code_2) VALUES ('OMOP391197','317000');
+INSERT INTO internal_relationship_stage (concept_code_1,concept_code_2) VALUES ('OMOP391198','317000');
+INSERT INTO internal_relationship_stage (concept_code_1,concept_code_2) VALUES ('OMOP391199','317000');
+INSERT INTO internal_relationship_stage (concept_code_1,concept_code_2) VALUES ('OMOP391019','317000');
+INSERT INTO internal_relationship_stage (concept_code_1,concept_code_2) VALUES ('OMOP391020','317000');
 	
 --25 delete multiple relationships to attributes
 --25.1 define concept_1, concept_2 pairs need to be deleted

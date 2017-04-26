@@ -21,7 +21,7 @@ dmd_drug_name as concept_name,
 null as standard_concept,
 gemscript_drug_code as concept_code,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-'31-Dec-2099' as valid_end_date,
+to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
 from gemscript_dmd_map
 ;
@@ -39,7 +39,7 @@ PRODUCTNAME as concept_name,
 null as standard_concept,
 GEMSCRIPTCODE as concept_code,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date, -- TRUNC(SYSDATE)
-'31-Dec-2099' as valid_end_date,
+to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
 from gemscript_reference where GEMSCRIPTCODE not in (select concept_code from concept_stage)
 ;
@@ -56,7 +56,7 @@ BRAND as concept_name,
 null as standard_concept,
 GEMSCRIPT_DRUGCODE as concept_code,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date, -- TRUNC(SYSDATE)
-'31-Dec-2099' as valid_end_date,
+to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
 from THIN_GEMSC_DMD_0417 where GEMSCRIPT_DRUGCODE not in (select concept_code from concept_stage)
 ;
@@ -73,7 +73,7 @@ GENERIC as concept_name,
 null as standard_concept,
 ENCRYPTED_DRUGCODE as concept_code,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date, -- TRUNC(SYSDATE)
-'31-Dec-2099' as valid_end_date,
+to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
 from THIN_GEMSC_DMD_0417 
 ;
@@ -99,24 +99,24 @@ DMD_CODE as concept_code_2,
 'dm+d' as vocabulary_id_2,
 'Maps to' as relationship_id,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date,
-'31-Dec-2099' as valid_end_date,
+to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
 from THIN_GEMSC_DMD_0417
  ;
 commit
 ;
 --old table from Christian
-insert into concept_relationship_stage
+insert into concept_relationship_stage 
 select 
 null as CONCEPT_ID_1, 
 null as CONCEPT_ID_2,
-'Gemscript' as vocabulary_id_1,
 GEMSCRIPT_DRUG_CODE as concept_code_1,
 DMD_CODE as concept_code_2,
+'Gemscript' as vocabulary_id_1,
 'dm+d' as vocabulary_id_2,
 'Maps to' as relationship_id,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date,
-'31-Dec-2099' as valid_end_date,
+to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
 from gemscript_dmd_map  where  GEMSCRIPT_DRUG_CODE not in (select concept_code_1 from  concept_relationship_stage  )
 ;
@@ -133,7 +133,7 @@ GEMSCRIPT_DRUGCODE as concept_code_2,
 'Gemscript' as vocabulary_id_2,
 'Maps to' as relationship_id,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date,
-'31-Dec-2099' as valid_end_date,
+to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
 from THIN_GEMSC_DMD_0417  
 ;
@@ -143,44 +143,43 @@ commit
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', cascade  => true)
 ;
---apply checks
--- join everything: THIN to Gemscript to dm+d to RxE
-select count(*) from concept_stage th
-join concept_relationship_stage tr on th.concept_code = tr.concept_code_1 and th.vocabulary_id = 'Gemscript' and th.concept_class_id = 'Gemscript THIN'
-join concept_stage ge on tr.concept_code_2 = ge.concept_code-- and ge.vocabulary_id = 'Gemscript' and ge.concept_class_id = 'Gemscript'
-join concept_relationship_stage gr on ge.concept_code = gr.concept_code_1 
-join concept dmd on dmd.concept_code = gr.concept_code_2 and dmd.vocabulary_id = 'dm+d'
---43705
-join concept_relationship rx on rx.concept_id_1 = dmd.concept_id and rx.relationship_id ='Maps to' and rx.invalid_reason is null
-join concept x on x.concept_id = rx.concept_id_2 and x.vocabulary_id like 'Rx%'
---got only 20910 in the end, need to check where do we lose such a lot of things -- probably - non-drugs,
---OK generic 
+-- Working with replacement mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
+END;
+/
+COMMIT;
 
-;
-explain plan for 
-select count(*) from concept_stage th
-join concept_relationship_stage tr on th.concept_code = tr.concept_code_1 and th.vocabulary_id = 'Gemscript' and th.concept_class_id = 'Gemscript THIN'
-join concept_stage ge on tr.concept_code_2 = ge.concept_code and ge.vocabulary_id = 'Gemscript' and ge.concept_class_id = 'Gemscript'
-join concept_relationship_stage gr on ge.concept_code = gr.concept_code_1 
-;
- SELECT * FROM TABLE (dbms_xplan.display);
+-- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
+END;
+/
+COMMIT;
 
-select count(*) from concept_relationship_stage --where concept_code_1 is null-- 237832
+-- Add mapping from deprecated to fresh concepts, and also from non-standard to standard concepts
+BEGIN
+   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
+END;
+/
+COMMIT;
+
+-- Delete ambiguous 'Maps to' mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
+END;
+/
+COMMIT;
+
+--workaround with concept_relatoinship_stage with deprecated relatinships, making a real full update
+insert into concept_relationship_stage 
+select distinct
+null, null, a.concept_code, b.concept_code, a.vocabulary_id, b.vocabulary_id, r.relationship_id, r.valid_start_date, (select latest_update -1 from vocabulary where vocabulary_id = 'Gemscript'), 'D'
+ from concept a
+join concept_relationship r on concept_id_1 = a.concept_id
+join  concept b on concept_id_2 = b.concept_id
+join concept_relationship_stage rs on rs.concept_code_1 = a.concept_code and rs.vocabulary_id_1 = a.vocabulary_id
+and r.relationship_id = 'Maps to' and rs.concept_code_2 !=b.concept_code and rs.vocabulary_id_2 in ('RxNorm','RxNorm Extension') and b.vocabulary_id in ('RxNorm','RxNorm Extension')
 ;
- select count(*) from concept_stage -- 238594 --now it's ok
-;
- select * from THIN_GEMSC_DMD_0417;
-  select count(*) from concept_stage where concept_code  is null
-  ;
-  update concept_stage set concept_code = regexp_substr (concept_code, '\d+')
-  ;
-  update concept_relationship_stage set concept_code_1 = regexp_substr (concept_code_1, '\d+')
-  ;
-    update concept_relationship_stage set concept_code_2 = regexp_substr (concept_code_2, '\d+')
-  ;
-  commit
-  ;
-select * from concept_stage where concept_code= '96722990'
-;
-select * from concept_relationship_stage where concept_code_1= '96722990'
+commit
 ;

@@ -1876,11 +1876,20 @@ BEGIN
       vSumMax_old := vSumMax;
    END LOOP;     /********** Repeat till no new records are written *********/
 
-   EXECUTE IMMEDIATE 'truncate table snomed_ancestor';
+   --EXECUTE IMMEDIATE 'truncate table snomed_ancestor';
+   EXECUTE IMMEDIATE '
+	CREATE TABLE SNOMED_ANCESTOR
+	(
+	  ANCESTOR_CONCEPT_CODE     VARCHAR2(50 CHAR),
+	  DESCENDANT_CONCEPT_CODE   VARCHAR2(50 CHAR),
+	  MIN_LEVELS_OF_SEPARATION  NUMBER,
+	  MAX_LEVELS_OF_SEPARATION  NUMBER
+	) 
+	NOLOGGING   
+   ';
 
    -- drop snomed_ancestor indexes before mass insert.
-   EXECUTE IMMEDIATE
-      'alter table snomed_ancestor disable constraint XPKSNOMED_ANCESTOR';
+   --EXECUTE IMMEDIATE 'alter table snomed_ancestor disable constraint XPKSNOMED_ANCESTOR';
 	  
    EXECUTE IMMEDIATE
     'insert /*+ APPEND */ into snomed_ancestor
@@ -1891,8 +1900,7 @@ BEGIN
 
    COMMIT;
 
-   EXECUTE IMMEDIATE
-      'alter table snomed_ancestor enable constraint XPKSNOMED_ANCESTOR';
+   EXECUTE IMMEDIATE 'ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code)';
 
    -- Clean up
    EXECUTE IMMEDIATE 'drop table snomed_ancestor_calc purge';
@@ -2417,5 +2425,6 @@ DROP TABLE peak PURGE;
 DROP TABLE domain_snomed PURGE;
 DROP TABLE concept_stage_dmd PURGE;
 DROP TABLE tmp_rel PURGE;
+DROP TABLE snomed_ancestor PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

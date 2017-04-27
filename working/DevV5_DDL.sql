@@ -116,16 +116,6 @@ CREATE TABLE concept_synonym_stage
 NOLOGGING
 ;
 
-CREATE TABLE SNOMED_ANCESTOR
-(
-  ANCESTOR_CONCEPT_CODE     VARCHAR2(50 CHAR),
-  DESCENDANT_CONCEPT_CODE   VARCHAR2(50 CHAR),
-  MIN_LEVELS_OF_SEPARATION  NUMBER,
-  MAX_LEVELS_OF_SEPARATION  NUMBER
-) 
-NOLOGGING
-;
-
 -- Create copies of table
 
 CREATE TABLE concept_ancestor NOLOGGING AS SELECT * FROM devv5.concept_ancestor;
@@ -148,7 +138,6 @@ ALTER TABLE concept_class ADD CONSTRAINT xpk_concept_class PRIMARY KEY (concept_
 ALTER TABLE concept_relationship ADD CONSTRAINT xpk_concept_relationship PRIMARY KEY (concept_id_1,concept_id_2,relationship_id);
 ALTER TABLE relationship ADD CONSTRAINT xpk_relationship PRIMARY KEY (relationship_id);
 ALTER TABLE concept_ancestor ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (ancestor_concept_id,descendant_concept_id);
-ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
 ALTER TABLE source_to_concept_map ADD CONSTRAINT xpk_source_to_concept_map PRIMARY KEY (source_vocabulary_id,target_concept_id,source_code,valid_end_date);
 ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id);
 

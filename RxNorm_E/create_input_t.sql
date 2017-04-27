@@ -1098,6 +1098,7 @@ WHERE drug_concept_code IN (WITH a AS
                               JOIN b ON a.drug_concept_id = b.descendant_concept_id
                               JOIN concept c ON drug_concept_id = concept_id
                             WHERE cnt1 < cnt2
+			    AND cnt1=regexp_count (c.concept_name,' / ')
                             AND   c.vocabulary_id != 'RxNorm');
 COMMIT;
 

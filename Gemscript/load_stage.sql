@@ -139,6 +139,10 @@ from THIN_GEMSC_DMD_0417
 ;
 commit
 ;
+--delete mappings to non-existing dm+ds
+delete from concept_relationship_stage 
+where vocabulary_id_2 ='dm+d' and concept_code_2 not in (select concept_code from concept where vocabulary_id = 'dm+d')
+;
 -- GATHER TABLE STATS
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', cascade  => true)
@@ -170,7 +174,17 @@ BEGIN
 END;
 /
 COMMIT;
-
+--build the mappings using the name equivalence
+--1st part - work with Gemscript concepts
+/* --apply this next time
+select count(*) from concept_stage cg
+join concept_stage cm on lower(cm.concept_name) = lower(cg.concept_name) 
+join concept_relationship_stage rm on cm.concept_code = rm.concept_code_1 and cm.vocabulary_id = rm.vocabulary_id_1 and rm.invalid_reason is null
+left join concept_relationship_stage rg on cg.concept_code = rg.concept_code_1 and cg.vocabulary_id = rg.vocabulary_id_1 and rg.invalid_reason is null
+where rg.concept_code_2 is null
+and cg.concept_class_id = 'Gemscript THIN'
+*/
+;
 --workaround with concept_relatoinship_stage with deprecated relatinships, making a real full update
 insert into concept_relationship_stage 
 select distinct

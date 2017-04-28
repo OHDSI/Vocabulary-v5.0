@@ -153,7 +153,7 @@ BEGIN
   END;	
 	SELECT concept_id + 1 INTO ex FROM (
 		SELECT concept_id, next_id, next_id - concept_id - 1 free_concept_ids
-		FROM (SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM concept where concept_id >= 1000 and concept_id < 500000000)
+		FROM (SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM concept where concept_id >= 581480 and concept_id < 500000000)
 		WHERE concept_id <> next_id - 1 AND next_id - concept_id > (SELECT COUNT (*) FROM concept_stage WHERE concept_id IS NULL)
 		ORDER BY next_id - concept_id
 		FETCH FIRST 1 ROW ONLY

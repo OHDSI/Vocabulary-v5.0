@@ -178,27 +178,46 @@ END;
 /
 COMMIT; 
 
+--only real mappings!
+update concept_relationship_stage set invalid_reason ='D'
+;
+update concept_relationship_stage set invalid_reason = null where (concept_code_1, concept_Code_2, vocabulary_id_2)  in (
+select concept_code_1, concept_Code_2, vocabulary_id_2 from concept_relationship_stage join concept on concept_code = concept_code_2 and vocabulary_id = vocabulary_id_2 and standard_concept ='S' 
+)
+;
+commit
+;
+
+
 --define drug domain (Drug set by default)
 --ORA-01427: single-row subquery returns more than one row 
 --need to check, if don't match it puts null?
-update concept_stage cs ; 
+update concept_stage cs 
 set domain_id = (select domain_id from (
 select distinct --beware of multiple mappings
  r.concept_code_1,r.vocabulary_id_1, c.domain_id
  from
 concept_relationship_stage r -- concept_code_1 = s1.concept_code and vocabulary_id_1 = vocabulary_id
-join concept c on c.concept_code = r.concept_code_2 and r.vocabulary_id_2 = c.vocabulary_id and r.invalid_reason is null  and r.vocabulary_id_2 in ('dm+d', 'RxNorm', 'RxNorm Extension')
+join concept c on c.concept_code = r.concept_code_2 and r.vocabulary_id_2 = c.vocabulary_id and r.invalid_reason is null -- and r.vocabulary_id_2 in ('dm+d', 'RxNorm', 'RxNorm Extension')
 join 
 (select concept_code_1 from (
 select distinct --beware of multiple mappings
  r.concept_code_1,r.vocabulary_id_1, c.domain_id
  from
 concept_relationship_stage r -- concept_code_1 = s1.concept_code and vocabulary_id_1 = vocabulary_id
- join concept c on c.concept_code = r.concept_code_2 and r.vocabulary_id_2 = c.vocabulary_id and r.invalid_reason is null  and r.vocabulary_id_2 in ('dm+d', 'RxNorm', 'RxNorm Extension')
+ join concept c on c.concept_code = r.concept_code_2 and r.vocabulary_id_2 = c.vocabulary_id and r.invalid_reason is null -- and r.vocabulary_id_2 in ('dm+d', 'RxNorm', 'RxNorm Extension')
 ) group by concept_code_1 having count(1) =1) zz 
 on zz.concept_code_1 = r.concept_code_1
 ) rr
 where rr.concept_code_1 = cs.concept_code and rr.vocabulary_id_1 = cs.vocabulary_id)
+;
+commit
+;
+--well, laziness to write a proper script is not good
+update concept_stage
+set domain_id = 'Drug' where domain_id is null
+;
+commit
 ;
 --for development purpose use temporary THIN_need_to_map table:  
 drop table THIN_need_to_map;  --18457 the old version, 13965 --new version (join concept), well, really a big difference. not sure if those existing mappings are correct, 13877 - concept_relationship_stage version, why?
@@ -207,11 +226,27 @@ select --c.*
  c.concept_code as THIN_code, c.concept_name as THIN_name, t.GEMSCRIPT_DRUGCODE as GEMSCRIPT_code, t.BRAND as GEMSCRIPT_name, c.domain_id--why it's not drug by defaild
  from  concept_stage c
   join THIN_GEMSC_DMD_0417 t on t.ENCRYPTED_DRUGCODE = c.concept_code
-left join  concept_relationship_stage r on c.concept_code = r.concept_code_1 and r.invalid_reason is null and r.vocabulary_id_2 in ('dm+d', 'RxNorm', 'RxNorm Extension') and relationship_id = 'Maps to' 
+left join  concept_relationship_stage r on c.concept_code = r.concept_code_1 and r.invalid_reason is null --and r.vocabulary_id_2 in ('dm+d', 'RxNorm', 'RxNorm Extension') and relationship_id = 'Maps to' 
 where    c.concept_class_id =  'Gemscript THIN' --for a current THIN task
 and r.concept_code_2 is null
 ;
-select count (1) from THIN_need_to_map-- well 13877, but if use generic and so on we get more concepts , OK, keep in mind, we have for about 100 difference
+/*
+--doesn't work, just 107, so forget at least about this
+--name thing, few concepts make a lot of troubles with duplicates, just skip them
+select * from (
+ select r.*, count ( concept_code_2) over (partition by thin_code) as cnt from (
+select distinct m.*, crs.concept_code_2, vocabulary_id_2 , cc.concept_name
+ from  THIN_need_to_map m
+ join concept_stage  c on  lower(GEMSCRIPT_name) = lower (concept_Name)
+ join concept_relationship_stage crs on crs.concept_code_1 = c.concept_Code 
+ join concept cc on cc.concept_code = crs.concept_code_2 and cc.vocabulary_id = crs.vocabulary_id_2 and crs.invalid_reason is null
+and c.concept_code not in (select thin_code from THIN_need_to_map) and c.concept_code not in (select GEMSCRIPT_code from THIN_need_to_map)
+) r) x where x.cnt =1
+--3549 due to the duplicates ,but really just 107
+*/
+  --   count(c1.concept_id) over (partition by c2.concept_id) as cnt 
+
+-- well 13877, but if use generic and so on we get more concepts , OK, keep in mind, we have for about 100 difference
 ; 
 --define domain_id
 update THIN_need_to_map n set domain_id = 'Device'
@@ -220,6 +255,8 @@ where regexp_like (PRODUCTNAME, '[a-z]')  --at least 1 [a-z] charachter
 and regexp_count(PRODUCTNAME, '[a-z]')>5 -- sometime we have these non HCl, mg as a part of UPPER case concept_name
 and DRUGSUBSTANCE is null and  g.GEMSCRIPTCODE = n.GEMSCRIPT_CODE )
 --4758
+;
+commit
 ;
 update thin_need_to_map
 set domain_id = 'Device' 
@@ -240,15 +277,15 @@ and domain_id ='Drug'
 ;
 commit
 ;
---update thin_need_to_map
---set domain_id = 'Device'
---put these into concept above
-select * from  thin_need_to_map
+update thin_need_to_map
+set domain_id = 'Device'
+--put these into script above
+--select * from  thin_need_to_map
  where GEMSCRIPT_CODE in (
 select GEMSCRIPT_CODE from thin_need_to_map where
-regexp_like (lower(THIN_name),'bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(THIN_name),'spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 or 
-regexp_like (lower(gemscript_name),'bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(gemscript_name),'spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 )
 and domain_id ='Drug'
 ;
@@ -296,9 +333,39 @@ and n.domain_id='Device' and lower( formulation) in (
 'Suspension for injection',
 'Spansule',
 'lozenge', 
-'cream'
+'cream',
+'Intravenous Infusion'
 )
 )
 ;
-commit
+/*
+--in general that's pretty good
+select * from thin_need_to_map where domain_id ='Device'
 ;
+
+--exeptions:
+--make a Drug
+--30106978	Adalimumab 40mg/0.4ml solution for injection pre-filled disposable devices	69893021	Humira 40mg/0.4ml solution for injection pre-filled pen (AbbVie Ltd)	Device
+;
+select * from thin_need_to_map n
+left join gemscript_reference r on n.GEMSCRIPT_CODE = r.GEMSCRIPTCODE
+where n.domain_id ='Drug'
+;
+--use gemscript_reference
+for example Carbamazepine 200mg Tablet (IVAX Pharmaceuticals UK Ltd)
+Ingedient from DRUGSUBSTANCE
+Drug Form from FORMULATION 
+Supplier from the name in the Brackets
+but a lot things dont have either formulations from both parts
+;
+select * from (
+select distinct nvl (r.formulation, th.formulation) as fff from thin_need_to_map n
+left join gemscript_reference r on n.GEMSCRIPT_CODE = r.GEMSCRIPTCODE
+left join THIN_REFERNCE_0516 th on th.DRUG_CODE = n.thin_code
+where n.domain_id ='Drug' 
+) aa left join FORMS_MAPPED fm on  aa.fff = fm.formulation
+;
+
+select * from thin_need_to_map where thin_code = '93969992'
+;
+*/

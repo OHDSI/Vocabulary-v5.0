@@ -49,4 +49,16 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
   values(5087, 'Physician Global Assessment', 'Observation', 'MMI', 'Survey', 'S', 'OMOP generated', '28-Apr-1970', '31-Dec-2099', null);
 
+-- Add Itch NRS
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'Itch Numeric Rating Scale', 'Observation', 'MMI', 'Survey', 'S', 'Itch NRS', '28-Apr-1970', '31-Dec-2099', null);
+
+-- Add TBSA
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'Total Body Surface Area affected', 'Observation', 'MMI', 'Survey', 'S', 'TBSA', '28-Apr-1970', '31-Dec-2099', null);
+  
+-- Add TBSA
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'MMI Psoriasis Disease Severity Score', 'Observation', 'MMI', 'Survey', 'S', 'MMI composite', '28-Apr-1970', '31-Dec-2099', null);
+
 commit;

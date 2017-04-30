@@ -283,9 +283,9 @@ set domain_id = 'Device'
 --select * from  thin_need_to_map
  where GEMSCRIPT_CODE in (
 select GEMSCRIPT_CODE from thin_need_to_map where
-regexp_like (lower(THIN_name),'spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(THIN_name),'oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 or 
-regexp_like (lower(gemscript_name),'spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(gemscript_name),'oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 )
 and domain_id ='Drug'
 ;
@@ -369,3 +369,110 @@ where n.domain_id ='Drug'
 select * from thin_need_to_map where thin_code = '93969992'
 ;
 */
+--volume
+--correct way of the volume definition
+select regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)'),
+a.*  from thin_need_to_map a where domain_id= 'Drug'
+;
+select n.*, r.DRUGSUBSTANCE, nvl(r.formulation, t.formulation) as formulation, nvl(r.strength, t.STRENGTH), units as formulation from thin_need_to_map n
+left join gemscript_reference  r on n.gemscript_code = r.gemscriptcode
+left join THIN_REFERNCE_0516 t on t.DRUG_CODE = thin_code  
+where domain_ID= 'Drug' 
+--and DRUGSUBSTANCE like'%/%'
+--ok so for DRUGSUBSTANCE use ingredient from the existing vocabulary
+;
+select n.*, r.DRUGSUBSTANCE, nvl(r.formulation, t.formulation) as formulation, nvl(r.strength, t.STRENGTH), units as formulation from thin_need_to_map n
+left join gemscript_reference  r on n.gemscript_code = r.gemscriptcode
+left join THIN_REFERNCE_0516 t on t.DRUG_CODE = thin_code  
+where domain_ID= 'Drug' and thin_code = '85146998'
+--and DRUGSUBSTANCE like'%/%'
+;
+select 1 from dual
+;
+--BTW, change ' / ' to ! in THIN name and we even have all the scripts ready!
+--getting the dosage, instead of Drug Component take Drug itself, there are really small amount of this "multicomponent Drugs"
+--drop table drug_concept_stage_tmp_0; 
+--create table drug_concept_stage_tmp_0 as 
+--FIND an a mistake here! we can use Component 
+select regexp_substr 
+(a.thin_name, 
+'[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)/*[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)*') as dosage
+, A.* from (
+select distinct
+trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!'), '[^!]+', 1, levels.column_value))  as drug_comp , t.* 
+from thin_need_to_map t,
+table(cast(multiset(select level from dual connect by  level <= length (regexp_replace(regexp_replace (t.thin_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels) a
+;
+
+
+--dosage distribution along the ds_Stage
+drop table ds_all;
+create table ds_all as 
+select 
+case when regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units|unit dose|drop)') = dosage 
+and not regexp_like (dosage, '%') 
+then regexp_replace (regexp_substr (dosage, '[[:digit:]\,\.]+'), ',')
+else  null end 
+as amount_value,
+
+case when regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units|unit dose|drop)') = dosage 
+and not regexp_like (dosage, '%') 
+then  regexp_replace  (dosage, '[[:digit:]\,\.]+') 
+else  null end
+as amount_unit,
+
+case when 
+regexp_substr (dosage,
+ '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = dosage
+or regexp_like (dosage, '%') 
+then regexp_replace (regexp_substr (dosage, '^[[:digit:]\,\.]+') , ',')
+else  null end
+as numerator_value,
+
+case when regexp_substr (dosage, 
+'[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = dosage
+or regexp_like (dosage, '%') 
+then regexp_substr (dosage, 'mg|%|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|microlitres', 1,1) 
+else  null end
+as numerator_unit,
+
+case when 
+(
+regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)|h|square cm|microlitres|unit dose|drop)') = dosage
+or regexp_like (dosage, '%')
+)
+and volume is null
+then regexp_replace( regexp_replace (regexp_substr (dosage, '/[[:digit:]\,\.]+'), ','), '/')
+when  volume is not  null then  regexp_substr (volume, '[[:digit:]\,\.]+')
+else  null end
+as denominator_value,
+
+case when 
+(regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|microlitres|hour(s)*|h|square cm|unit dose|drop)') = dosage
+or regexp_like (dosage, '%')
+) and volume is null
+then regexp_substr (dosage, '(g|dose|ml|mg|ampoule|litre|hour(s)*|h*|square cm|microlitres|unit dose|drop)$') 
+when volume is not  null then  regexp_replace (volume, '[[:digit:]\,\.]+')
+else null end
+as denominator_unit,
+concept_code, concept_name, DOSAGE, DRUG_COMP, INGREDIENT_CONCEPT_CODE, INGREDIENT_CONCEPT_NAME
+from ds_all_tmp 
+;
+--how to define Ingredient
+select * from 
+(
+select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id, RANK() OVER (PARTITION BY a.thin_code ORDER BY b.vocabulary_id desc, length(b.concept_name)  desc) as rank1
+--look what happened to previous 4 
+from  thin_need_to_map a 
+left join gemscript_reference  r on a.gemscript_code = r.gemscriptcode 
+join  devv5.concept b
+on  lower (thin_name) like lower (b.concept_name)||' %'
+--usually the name starts from the Ingredient 
+--or  lower (concept_name) LIKE lower (b.concept_name) 
+where vocabulary_id in( 'RxNorm', 'dm+d') and b.concept_class_id = 'Ingredient' and r.DRUGSUBSTANCE is null and b.invalid_reason is null
+and a.domain_id ='Drug')
+where rank1 = 1 --take the longest ingredient, if this works, rough dm+d is better, becuase it has Sodium bla-bla-nate and RxNorm has just bla-bla-nate 
+--looks nice, then add mapping to RxNorm and we'are good here with ingredients
+--next steps:
+--check the ingredient info given by the default
+--check the dosage definition algorithm

@@ -35,7 +35,7 @@ END;
 select * from vocabulary_conversion order by 1 desc;
 
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values(v5_concept.nextval, 'Modernizing Medicine (MMI)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
+  values(581367, 'Modernizing Medicine (MMI)', 'Metadata', 'Vocabulary', 'Vocabulary', null, 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id)
   values('MMI', 'Modernizing Medicine (MMI)', 'MMI proprietary', null, (select concept_id from concept where concept_name='Modernizing Medicine (MMI)'));
 insert into vocabulary_conversion (vocabulary_id_v4, vocabulary_id_v5, omop_req, click_default, available, url, click_disabled, latest_update)
@@ -51,14 +51,14 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 
 -- Add Itch NRS
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values(v5_concept.nextval, 'Itch Numeric Rating Scale', 'Observation', 'MMI', 'Survey', 'S', 'Itch NRS', '28-Apr-1970', '31-Dec-2099', null);
+  values(581368, 'Itch Numeric Rating Scale', 'Observation', 'MMI', 'Survey', 'S', 'Itch NRS', '28-Apr-1970', '31-Dec-2099', null);
 
 -- Add TBSA
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values(v5_concept.nextval, 'Total Body Surface Area affected', 'Observation', 'MMI', 'Survey', 'S', 'TBSA', '28-Apr-1970', '31-Dec-2099', null);
+  values(581369, 'Total Body Surface Area affected', 'Observation', 'MMI', 'Survey', 'S', 'TBSA', '28-Apr-1970', '31-Dec-2099', null);
   
--- Add TBSA
+-- Add MMI composite
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-  values(v5_concept.nextval, 'MMI Psoriasis Disease Severity Score', 'Observation', 'MMI', 'Survey', 'S', 'MMI composite', '28-Apr-1970', '31-Dec-2099', null);
+  values(581370, 'MMI Psoriasis Disease Severity Score', 'Observation', 'MMI', 'Survey', 'S', 'MMI composite', '28-Apr-1970', '31-Dec-2099', null);
 
 commit;

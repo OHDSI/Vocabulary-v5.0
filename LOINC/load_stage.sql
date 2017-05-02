@@ -202,6 +202,11 @@ INSERT INTO concept_relationship_stage (concept_id_1,
      FROM LOINC_CLASS lc, loinc l
     WHERE lc.concept_code = l.class;
 COMMIT;
+
+--And delete wrong relationship ('History & Physical order set' to 'FLACC pain assessment panel', AVOF-352)
+DELETE FROM concept_relationship_stage
+      WHERE concept_code_1 = 'PANEL.H&P' AND concept_code_2 = '38213-5' AND relationship_id = 'Subsumes';
+COMMIT;
 	
 --9 Create CONCEPT_SYNONYM_STAGE
 INSERT INTO concept_synonym_stage (synonym_concept_id,

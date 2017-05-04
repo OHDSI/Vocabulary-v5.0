@@ -20,8 +20,8 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'LOINC',
-                                          pVocabularyDate        => TO_DATE ('20160624', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'LOINC 2.56',
+                                          pVocabularyDate        => TO_DATE ('20170221', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'LOINC 2.59',
                                           pVocabularyDevSchema   => 'DEV_LOINC');
 END;
 COMMIT;
@@ -203,9 +203,10 @@ INSERT INTO concept_relationship_stage (concept_id_1,
     WHERE lc.concept_code = l.class;
 COMMIT;
 
---And delete wrong relationship ('History & Physical order set' to 'FLACC pain assessment panel', AVOF-352)
+--And delete wrong relationship ('History & Physical order set' to 'FLACC pain assessment panel', AVOF-352). 
+--chr(38)=&
 DELETE FROM concept_relationship_stage
-      WHERE concept_code_1 = 'PANEL.H&P' AND concept_code_2 = '38213-5' AND relationship_id = 'Subsumes';
+      WHERE concept_code_1 = 'PANEL.H'||chr(38)||'P' AND concept_code_2 = '38213-5' AND relationship_id = 'Subsumes';
 COMMIT;
 	
 --9 Create CONCEPT_SYNONYM_STAGE
@@ -376,7 +377,34 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
      FROM MAP_TO l, vocabulary v
-    WHERE v.vocabulary_id = 'LOINC';
+    WHERE v.vocabulary_id = 'LOINC'
+	UNION ALL
+	/*
+	for some pairs of concepts LOINC gives us a reverse mapping 'Concept replaced by'
+	so we need to deprecate old mappings
+	*/
+	SELECT c1.concept_code,
+		   c2.concept_code,
+		   c1.vocabulary_id,		   
+		   c2.vocabulary_id,
+		   r.relationship_id,
+		   r.valid_start_date,
+		   (SELECT latest_update - 1
+			  FROM vocabulary
+			 WHERE vocabulary_id = 'LOINC' AND latest_update IS NOT NULL),
+		   'D'
+	  FROM concept c1,
+		   concept c2,
+		   concept_relationship r,
+		   map_to mt
+	 WHERE     c1.concept_id = r.concept_id_1
+		   AND c2.concept_id = r.concept_id_2
+		   AND c1.vocabulary_id = 'LOINC'
+		   AND c2.vocabulary_id = 'LOINC'
+		   AND r.relationship_id IN ('Concept replaced by', 'Maps to')
+		   AND r.invalid_reason IS NULL
+		   AND mt.map_to = c1.concept_code
+		   AND mt.loinc = c2.concept_code;
 COMMIT;
 
 --16 Working with replacement mappings
@@ -401,6 +429,30 @@ COMMIT;
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
+COMMIT;
+
+--20 Set the proper concept_class_id for children of "Document ontology" (AVOF-352)
+UPDATE concept_stage
+   SET concept_class_id = 'LOINC Document Type'
+ WHERE concept_code IN
+           (SELECT descendant_concept_code
+              FROM (  SELECT descendant_concept_code, descendant_vocabulary_id
+                        FROM (    SELECT descendant_concept_code, descendant_vocabulary_id
+                                    FROM (SELECT crs.concept_code_1 AS ancestor_concept_code,
+                                                 crs.vocabulary_id_1 AS ancestor_vocabulary_id,
+                                                 crs.concept_code_2 AS descendant_concept_code,
+                                                 crs.vocabulary_id_2 AS descendant_vocabulary_id
+                                            FROM concept_relationship_stage crs
+                                                 JOIN relationship s ON s.relationship_id = crs.relationship_id AND s.defines_ancestry = 1
+                                                 JOIN concept_stage c1
+                                                     ON c1.concept_code = crs.concept_code_1 AND c1.vocabulary_id = crs.vocabulary_id_1 AND c1.invalid_reason IS NULL AND c1.vocabulary_id = 'LOINC'
+                                                 JOIN concept_stage c2
+                                                     ON c2.concept_code = crs.concept_code_2 AND c1.vocabulary_id = crs.vocabulary_id_2 AND c2.invalid_reason IS NULL AND c2.vocabulary_id = 'LOINC'
+                                           WHERE crs.invalid_reason IS NULL)
+                              CONNECT BY PRIOR descendant_concept_code = ancestor_concept_code AND descendant_vocabulary_id = ancestor_vocabulary_id
+                              START WITH ancestor_concept_code = 'LP76352-1')
+                    GROUP BY descendant_concept_code, descendant_vocabulary_id) ca
+                   JOIN concept_stage c2 ON c2.concept_code = ca.descendant_concept_code AND c2.vocabulary_id = ca.descendant_vocabulary_id AND c2.standard_concept IS NOT NULL);
 COMMIT;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

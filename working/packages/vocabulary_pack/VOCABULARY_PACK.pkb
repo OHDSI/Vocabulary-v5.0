@@ -122,6 +122,8 @@ IS
                OR rl.relationship_id IS NULL
                OR crm.valid_start_date > SYSDATE
                OR crm.valid_end_date < crm.valid_start_date
+               OR TRUNC(crm.valid_start_date) <> crm.valid_start_date
+               OR TRUNC(crm.valid_end_date) <> crm.valid_end_date
                OR (crm.invalid_reason IS NULL AND crm.valid_end_date <> TO_DATE ('20991231', 'yyyymmdd'));
 
         IF z > 0
@@ -876,6 +878,9 @@ IS
     /*
     This procedure creates the local copy of DEVV5 after release (aka PROD)
     and this local copy is used by QA_TESTS.get_summary
+    Necessary grants:
+    grant drop any table to devv5;
+    grant insert on <concept, concept_relationship, concept_ancestor> to devv5;    
     */
     BEGIN
         EXECUTE IMMEDIATE 'TRUNCATE TABLE PRODV5.CONCEPT';
@@ -915,7 +920,8 @@ IS
 
         csv.generate ('VOCAB_DUMP', 'concept.csv', p_query => 'SELECT * FROM concept where rownum<100');
         csv.generate ('VOCAB_DUMP', 'concept_relationship.csv', p_query => 'SELECT * FROM concept_relationship where rownum<100');
-        host_command ('/home/vocab_dump/upload_vocab.sh');
+        --host_command ('/home/vocab_dump/upload_vocab.sh');
+        host_command('export PGPASSWORD=xxx && /usr/bin/psql -t -p xxx -d postgres -U xxx -c "SELECT import_tables();"');
         DBMS_OUTPUT.get_lines (l_output, l_lines);
 
         FOR i IN 1 .. l_lines

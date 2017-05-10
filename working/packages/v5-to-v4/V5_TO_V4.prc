@@ -631,10 +631,6 @@ execute immediate q'[
 ALTER TABLE concept_relationship ADD (
   CHECK ( invalid_reason IN ('D', 'U'))
   ENABLE VALIDATE,
-  CHECK ( invalid_reason IN ('D', 'U'))
-  ENABLE VALIDATE,
-  CHECK (invalid_reason in ('D', 'U'))
-  ENABLE VALIDATE,
   CONSTRAINT xpkconcept_relationship
   PRIMARY KEY
   (concept_id_1, concept_id_2, relationship_id)

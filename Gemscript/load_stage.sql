@@ -362,7 +362,7 @@ select * from thin_need_to_map where THIN_NAME like '% / %'
 drop table thin_comp;
 create table thin_comp as 
 select regexp_substr 
-(a.thin_name, 
+(a.drug_comp, 
 '[[:digit:]\,\.]+(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)/*[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)*') as dosage
 , A.* from (
 select distinct
@@ -387,128 +387,48 @@ where regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg)
  and (  regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)') != dosage or dosage is null)
 --it gives only 57 rows, needs further checks 
 ;
---dosage distribution along the ds_Stage
-drop table ds_all;
-create table ds_all as 
-select 
-case when regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units|unit dose|drop)') = dosage 
-and not regexp_like (dosage, '%') 
-then regexp_replace (regexp_substr (dosage, '[[:digit:]\,\.]+'), ',')
-else  null end 
-as amount_value,
-
-case when regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units|unit dose|drop)') = dosage 
-and not regexp_like (dosage, '%') 
-then  regexp_replace  (dosage, '[[:digit:]\,\.]+') 
-else  null end
-as amount_unit,
-
-case when 
-regexp_substr (dosage,
- '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = dosage
-or regexp_like (dosage, '%') 
-then regexp_replace (regexp_substr (dosage, '^[[:digit:]\,\.]+') , ',')
-else  null end
-as numerator_value,
-
-case when regexp_substr (dosage, 
-'[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = dosage
-or regexp_like (dosage, '%') 
-then regexp_substr (dosage, 'mg|%|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|microlitres', 1,1) 
-else  null end
-as numerator_unit,
-
-case when 
-(
-regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)|h|square cm|microlitres|unit dose|drop)') = dosage
-or regexp_like (dosage, '%')
-)
-and volume is null
-then regexp_replace( regexp_replace (regexp_substr (dosage, '/[[:digit:]\,\.]+'), ','), '/')
-when  volume is not  null then  regexp_substr (volume, '[[:digit:]\,\.]+')
-else  null end
-as denominator_value,
-
-case when 
-(regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|microlitres|hour(s)*|h|square cm|unit dose|drop)') = dosage
-or regexp_like (dosage, '%')
-) and volume is null
-then regexp_substr (dosage, '(g|dose|ml|mg|ampoule|litre|hour(s)*|h*|square cm|microlitres|unit dose|drop)$') 
-when volume is not  null then  regexp_replace (volume, '[[:digit:]\,\.]+')
-else null end
-as denominator_unit,
-concept_code, concept_name, DOSAGE, DRUG_COMP, INGREDIENT_CONCEPT_CODE, INGREDIENT_CONCEPT_NAME
-from ds_all_tmp 
-;
-
-CREATE INDEX need_to_map_ln ON thin_need_to_map (lower (thin_name))  
+CREATE INDEX drug_comp_ix ON thin_comp (lower (drug_comp))  
 ;
 --how to define Ingredient, change scripts to COMPONENTS and use only (  lower (a.thin_name) like lower (b.concept_name)||' %' tomorrow!!!
 --take the longest ingredient, if this works, rough dm+d is better, becuase it has Sodium bla-bla-nate and RxNorm has just bla-bla-nate 
-drop table i_map_2;
-create table i_map_2 as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
+--don't need to have two parts here
+--Execution time: 57.41s
+--Execution time: 1m 41s when more vocabularies added 
+drop table i_map;
+create table i_map as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
 select * from 
 (
-select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id, r.DRUGSUBSTANCE, RANK() OVER (PARTITION BY a.thin_code ORDER BY b.vocabulary_id desc, length(b.concept_name)  desc) as rank1
+select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id,  RANK() OVER (PARTITION BY a.drug_comp ORDER BY b.vocabulary_id desc, length(b.concept_name)  desc) as rank1
 --look what happened to previous 4 
-from  thin_need_to_map a 
+from  thin_comp a 
  join  devv5.concept b
-on (  lower (a.thin_name) like lower (b.concept_name)||' %'
- or lower (a.thin_name) like  '% '||lower(b.concept_name)||' %')
---usually the name starts from the Ingredient 
---or  lower (concept_name) LIKE lower (b.concept_name) 
-and vocabulary_id in( 'RxNorm', 'dm+d') and b.concept_class_id in ( 'Ingredient', 'VTM')  and b.invalid_reason is null
-left join gemscript_reference  r on a.gemscript_code = r.gemscriptcode and r.DRUGSUBSTANCE is null
+on (  
+ lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
+ )
+and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and invalid_reason is null
 where a.domain_id ='Drug')
+--take the longest ingredient
 where rank1 = 1 
 )
 ;
-create table i_map_subst -- DRUGSUBSTANCE is not null
- as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
-select * from 
-(
-select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id, r.DRUGSUBSTANCE, RANK() OVER (PARTITION BY a.thin_code ORDER BY b.vocabulary_id desc, length(b.concept_name)  desc) as rank1
---look what happened to previous 4 
-from  thin_need_to_map a 
- join  devv5.concept b
-on (  lower (a.thin_name) like lower (b.concept_name)||' %'
- or lower (a.thin_name) like  '% '||lower(b.concept_name)||' %')
---usually the name starts from the Ingredient 
---or  lower (concept_name) LIKE lower (b.concept_name) 
-and vocabulary_id in( 'RxNorm', 'dm+d') and b.concept_class_id in ( 'Ingredient', 'VTM')  and b.invalid_reason is null
-left join gemscript_reference  r on a.gemscript_code = r.gemscriptcode and r.DRUGSUBSTANCE is not null
-where a.domain_id ='Drug')
-where rank1 = 1 
-)
+select count (1) from concept where vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and invalid_reason is null
 ;
-select * from i_map_subst
+select * from i_map
 ;
 --21179046 Co-codamol??
-
-;
-select distinct concept_class_id from concept where vocabulary_id = 'dm+d'
-;
-select distinct SOURCE_CONCEPT_CLASS_ID from dev_dmd.drug_concept_stage where concept_class_id = 'Ingredient'
-;
-select count(1) from concept where vocabulary_id in( 'RxNorm', 'dm+d') and concept_class_id in ( 'VTM')
-;
 --ok. define ingredients
-select * from concept where concept_name = 'Menotrophin'
 ;
 --i_map generated ingredient is better when it's mono-component drug
 --somehow it should be reviewed manualy
 drop table rel_to_ing_1 ;
 create table rel_to_ing_1 as
-select distinct   THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID, TARGET_ID,TARGET_NAME,TARGET_VOCAB, TARGET_CLASS from (
-select i.*, b.concept_id as target_id, b.concept_name as target_name, b.vocabulary_id as target_vocab, b.concept_class_id as target_class from 
-(select * from i_map_2 
-union 
-select * from i_map_subst where DRUGSUBSTANCE not like '%/%') i
+select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.GEMSCRIPT_NAME,i.VOLUME
+, b.concept_id as target_id, b.concept_name as target_name, b.vocabulary_id as target_vocab, b.concept_class_id as target_class from 
+i_map i
  join concept_relationship r on i.concept_id = r.concept_id_1 and relationship_id ='Maps to' and r.invalid_reason is null
   join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%'
-  )
 ;
-select * from rel_to_ing_1 where thin_code = '31085978'
+select * from rel_to_ing_1 where thin_name ='Diazepam 5mg/5ml oral suspension'
 ;
 select * from thin_need_to_map where thin_code not in (
 select thin_code from rel_to_ing_1
@@ -522,21 +442,32 @@ Colecalciferol 1,000unit capsules
 select * from concept where concept_name ='Diazepam'
 ;
 select * from concept i 
- join concept_relationship r on i.concept_id = r.concept_id_1 and relationship_id ='Maps to' and r.invalid_reason is null
-  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and i.vocabulary_id = 'RxNorm' and i.concept_class_id= 'Ingredient'
+ join concept_relationship r on i.concept_id = r.concept_id_1 --and relationship_id ='Maps to' 
+ and r.invalid_reason is null
+  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' -- and i.concept_class_id= 'Ingredient' 
+  and i.vocabulary_id ='LPD_Australia' 
   ;
-  --what happens to 31085978 Diazepam 5mg/5ml oral suspension?
-select * from thin_need_to_map where thin_code = '31085978'
-;
+  select *from concept where vocabulary_id ='LPD_Australia' -- AU Substance
+  ;  
 
-select * from i_map_subst where thin_code =  '31085978'
-;
+  --what happens to 31085978 Diazepam 5mg/5ml oral suspension?
+ 
 --looks nice, then add mapping to RxNorm and we'are good here with ingredients
 --next steps:
 --check the ingredient info given by the default
 --check the dosage definition algorithm
 --most of drugs that not covered by name equal algorithm are bullshit
 --but some are good anyway, put to a manual part
+
+select * from concept where lower( concept_name) = 'albamycin'
+;
+select * from rel_to_ing_1 where thin_name ='Diazepam 5mg/5ml oral suspension'
+;
+select count(1) from i_map
+;
+
+
+
 94489992	Lederdopa 125 mg tablet	5510007	LEDERDOPA 125 MG TAB	Drug
 94279992	Phenobarbitone 22.5 mg tablet	5720007	PHENOBARBITONE 22.5 MG TAB	Drug
 96472992	Sulphamethizole 100 mg syringe	3527007	SULPHAMETHIZOLE 100 MG SYR	Drug
@@ -564,3 +495,30 @@ select * from i_map_subst where thin_code =  '31085978'
 ;
 select * from rel_to_ing_1 where THIN_NAME like '% / %'
 ;
+select * from rel_to_ing_1 where thin_code = '97255992'
+;
+select * from concept where lower (concept_name) = 'insulin'
+;
+select * from concept i 
+ join concept_relationship r on i.concept_id = r.concept_id_1 --and relationship_id ='Maps to' 
+ and r.invalid_reason is null
+  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' -- and i.concept_class_id= 'Ingredient' 
+  and i.vocabulary_id ='LPD_Australia' 
+  ;
+  select * from concept where concept_name ='Meprobamate'
+  ;
+  select * from i_map where THIN_CODE =
+  '99685998'
+  ;
+  select * from thin_comp where THIN_CODE =
+  '99685998'
+  ;
+  select * from thin_comp 
+  left join rel_to_ing_1 using (DOSAGE,DRUG_COMP,THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME)
+ -- where thin_name like 'Co-%'
+-- where THIN_CODE ='97296997'
+  ;
+  select * from thin_comp
+
+  ;
+select * from  rel_to_ing_1

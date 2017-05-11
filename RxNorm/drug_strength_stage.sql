@@ -61,6 +61,7 @@ insert into component_replace (component_name, replace_with) values ('secretin 7
 create table unit_to_concept_map as
 select * from source_to_concept_map where 1=0;
 
+begin
 insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
 values ('%', 0, 'percent', 8554, 11, '1-Jan-1970', '31-Dec-2099', null);
 insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
@@ -117,6 +118,7 @@ insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_
 values ('unt', 0, 'unit', 8510, 11, '1-Jan-1970', '31-Dec-2099', null);
 insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
 values ('ir', 0, 'index of reactivity', 9693, 11, '14-Dec-2014', '31-Dec-2099', null);
+end;
 
 commit;
 
@@ -651,15 +653,19 @@ where amount_unit_concept_id=8554;
 
 commit;
 
-/* 10. Final diagnostic and clean up */
 
-/*
+/* 10. Final diagnostic and clean up */
 -- check unparsed records
-select * from drug_strength_stage where amount_unit_concept_id is null and numerator_unit_concept_id is null;
+--select * from drug_strength_stage where amount_unit_concept_id is null and numerator_unit_concept_id is null;
+alter table drug_strength_stage add constraint check_units check(coalesce(amount_unit_concept_id,numerator_unit_concept_id,-1)<>-1);
+alter table drug_strength_stage drop constraint check_units;
 
 -- check that numbers are all valid
-select * from drug_strength_stage where (amount_value=0 or numerator_value=0);
+--select * from drug_strength_stage where (amount_value=0 or numerator_value=0);
+alter table drug_strength_stage add constraint check_values check(coalesce(amount_value,1)>0 and coalesce(numerator_value,1)>0);
+alter table drug_strength_stage drop constraint check_values;
 
+/*
 -- check that all units are valid
 select a.concept_name as amount_unit, n.concept_name as numerator_unit, d.concept_name as denominator_unit, count(8) as cnt
 from drug_strength_stage 

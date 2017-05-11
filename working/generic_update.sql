@@ -857,6 +857,14 @@ DELETE FROM drug_strength ds
                  WHERE ds.drug_concept_id = c1.concept_id AND v.latest_update IS NOT NULL AND v.vocabulary_id = 'RxNorm Extension' AND c1.invalid_reason IS NOT NULL);
 COMMIT;
 
+-- Remove from drug_strength where the denominator_unit_concept_id doesn't match for multi_ingredient concepts (AVOF-365)
+DELETE FROM drug_strength WHERE drug_concept_id IN (
+    SELECT drug_concept_id FROM drug_strength
+    GROUP BY drug_concept_id
+    HAVING COUNT (DISTINCT COALESCE (denominator_unit_concept_id, 0)) > 1
+);
+COMMIT;
+
 -- 22. Fillig pack_content
 -- Special rules for RxNorm Extension: same as 'Maps to' rules, but records from deprecated concepts will be deleted
 DELETE FROM pack_content

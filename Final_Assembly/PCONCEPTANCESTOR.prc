@@ -1,23 +1,4 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-* 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
-**************************************************************************/
-
-DECLARE
+CREATE OR REPLACE PROCEDURE DEVV5.pConceptAncestor is
    vCnt          INTEGER;
    vCnt_old      INTEGER;
    vSumMax       INTEGER;
@@ -377,7 +358,7 @@ BEGIN
                 select 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Clinical Drug' from dual union all
                 select 'Dose Form Group', 'RxNorm inverse is a', 'Dose Form' from dual union all
                 --added 24.04.2017 (AVOF-341)
-                select 'Precise Ingredient', 'Form of', 'Ingredient' from dual				
+                select 'Precise Ingredient', 'Form of', 'Ingredient' from dual                
             ) 
             select * from t 
             union all 
@@ -546,6 +527,80 @@ BEGIN
                WHERE r.invalid_reason IS NOT NULL;
 	COMMIT;
 
+    --section for units of ingredients and drug forms. this is after the RxNorm and RxNorm Extensions are in there (AVOF-365)
+    DELETE FROM drug_strength
+          WHERE amount_unit_concept_id IS NOT NULL AND amount_value IS NULL;
+    INSERT INTO drug_strength
+        SELECT *
+          FROM (WITH ingredient_unit
+                     AS (SELECT DISTINCT
+                                -- pick the most common unit for an ingredient. If there is a draw, pick always the same by sorting by unit_concept_id
+                                ingredient_concept_code, vocabulary_id, FIRST_VALUE (unit_concept_id) OVER (PARTITION BY ingredient_concept_code ORDER BY cnt DESC, unit_concept_id) AS unit_concept_id
+                           FROM (  -- sum the counts coming from amount and numerator
+                                   SELECT ingredient_concept_code,
+                                          vocabulary_id,
+                                          unit_concept_id,
+                                          SUM (cnt) AS cnt
+                                     FROM (
+                                           -- count ingredients, their units and the frequency
+                                           SELECT   c2.concept_code AS ingredient_concept_code,
+                                                    c2.vocabulary_id,
+                                                    ds.amount_unit_concept_id AS unit_concept_id,
+                                                    COUNT (*) AS cnt
+                                               FROM drug_strength ds
+                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id = 'RxNorm'
+                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id = 'RxNorm'
+                                              WHERE ds.amount_value <> 0
+                                           GROUP BY c2.concept_code, c2.vocabulary_id, ds.amount_unit_concept_id
+                                           UNION
+                                             SELECT c2.concept_code AS ingredient_concept_code,
+                                                    c2.vocabulary_id,
+                                                    ds.numerator_unit_concept_id AS unit_concept_id,
+                                                    COUNT (*) AS cnt
+                                               FROM drug_strength ds
+                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id = 'RxNorm'
+                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id = 'RxNorm'
+                                              WHERE ds.numerator_value <> 0
+                                           GROUP BY c2.concept_code, c2.vocabulary_id, ds.numerator_unit_concept_id)
+                                 GROUP BY ingredient_concept_code, vocabulary_id, unit_concept_id))
+                -- Create drug_strength for ingredients
+                SELECT c.concept_id AS drug_concept_id,
+                       c.concept_id AS ingredient_concept_id,
+                       NULL AS amount_value,
+                       iu.unit_concept_id AS amount_unit_concept_id,
+                       NULL AS numerator_value,
+                       NULL AS numerator_unit_concept_id,
+                       NULL AS denominator_value,
+                       NULL AS denominator_unit_concept_id,
+                       NULL AS box_size,
+                       c.valid_start_date,
+                       c.valid_end_date,
+                       c.invalid_reason
+                  FROM ingredient_unit iu JOIN concept c ON c.concept_code = iu.ingredient_concept_code AND c.vocabulary_id = iu.vocabulary_id
+                UNION
+                -- Create drug_strength for drug forms
+                SELECT de.concept_id AS drug_concept_code,
+                       an.concept_id AS ingredient_concept_code,
+                       NULL AS amount_value,
+                       iu.unit_concept_id AS amount_unit_concept_id,
+                       NULL AS numerator_value,
+                       NULL AS numerator_unit_concept_id,
+                       NULL AS denominator_value,
+                       NULL AS denominator_unit_concept_id,
+                       NULL AS box_size,
+                       an.valid_start_date,
+                       an.valid_end_date,
+                       an.invalid_reason
+                  FROM concept an
+                       JOIN concept_ancestor a ON a.ancestor_concept_id = an.concept_id
+                       JOIN concept de ON de.concept_id = a.descendant_concept_id
+                       JOIN ingredient_unit iu ON iu.ingredient_concept_code = an.concept_code AND iu.vocabulary_id = an.vocabulary_id
+                 WHERE     an.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                       AND an.concept_class_id = 'Ingredient'
+                       AND de.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                       AND de.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form'));
+    COMMIT;
+	
 	--clean up
 	EXECUTE IMMEDIATE 'drop table rxnorm_allowed_rel purge';
 	EXECUTE IMMEDIATE 'drop table rxnorm_wrong_rel purge';

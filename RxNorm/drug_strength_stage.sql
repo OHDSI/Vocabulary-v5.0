@@ -653,8 +653,15 @@ where amount_unit_concept_id=8554;
 
 commit;
 
+/* 10. Remove from drug_strength where the denominator_unit_concept_id doesn't match for multi_ingredient concepts*/
+delete from drug_strength_stage where (drug_concept_code, vocabulary_id_1) in (
+    select drug_concept_code, vocabulary_id_1 from drug_strength_stage
+    group by drug_concept_code, vocabulary_id_1
+    having count (distinct coalesce (denominator_unit_concept_id, 0)) > 1
+);
+commit;
 
-/* 10. Final diagnostic and clean up */
+/* 11. Final diagnostic and clean up */
 -- check unparsed records
 --select * from drug_strength_stage where amount_unit_concept_id is null and numerator_unit_concept_id is null;
 alter table drug_strength_stage add constraint check_units check(coalesce(amount_unit_concept_id,numerator_unit_concept_id,-1)<>-1);

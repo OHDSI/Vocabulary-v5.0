@@ -841,11 +841,37 @@ select  lower (concept_name ) from concept where concept_class_id ='Ingredient' 
 ;
 select distinct source_concept_class_id from dev_dmd.drug_concept_stage
 ;
-select distinct b.concept_id, b.concept_name from b_map_0 b 
-join concept c on lower (b.concept_name) = lower (c.concept_name) 
-where c.concept_class_id = 'Ingredient' and c.invalid_reason is null
+select *from b_map_0
+;
+drop table b_map_1;
+create table b_map_1 AS
+select  T.GEMSCRIPT_CODE, T.GEMSCRIPT_NAME, T.THIN_CODE, T.THIN_NAME , C.CONCEPT_ID, C.CONCEPT_NAME, C.vocabulary_id from THIN_NEED_TO_MAP T
+join concept c on lower (THin_name) like lower(c.concept_name)||' %' 
+where c.concept_class_id = 'Brand Name' and invalid_reason is null and vocabulary_id in('RxNorm', 'RxNorm Extension')
+--exclude ingredients that accindally got into Brand Names massive
+and lower(c.concept_name) not in (
+select  lower (concept_name ) from concept where concept_class_id ='Ingredient' and invalid_reason is null)
+and t.domain_id ='Drug'
+and t.thin_code not in (select thin_code from b_map_0)
+;
+select * from concept where vocabulary_id in('dm+d') and  invalid_reason is null and concept_class_id = 'Brand Name'
+;
+
+
+--next steps 
+--add to the b_map_0 creation search by the other vocabularies, at least dm+d -- empty here
+--check the same with thin_name
+--check the Brand Name definition algorithm used in dm+d
+--look onto the Ingredient combination we can get from known Brand Names
+--look onto Ingredients based on Gemscript name
+--Brand Names Based on THIN_name, will we get something?
+
+--check the Brand Name definition algorithm used in dm+d
+
 ;
 --next steps 
+--add to the b_map_0 creation search by the other vocabularies, at least dm+d
+--check the same with thin_name
 --check the Brand Name definition algorithm used in dm+d
 --look onto the Ingredient combination we can get from known Brand Names
 --look onto Ingredients based on Gemscript name

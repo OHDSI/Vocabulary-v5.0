@@ -588,6 +588,7 @@ INSERT /*+ APPEND */
                 WHEN ingredient_concept_code='OMOP332154' THEN '748794' --Inert Ingredients
                 WHEN ingredient_concept_code='314329'     THEN '1309815' --ALLERGENIC EXTRACT, BIRCH
                 WHEN ingredient_concept_code='1428040'    THEN '1406' --STYRAX BENZOIN RESIN   + leave 11384 Yeasts as it is
+		WHEN ingredient_concept_code='236340'    THEN '644634'
                 ELSE ingredient_concept_code END,
            box_size,amount_value,amount_unit,numerator_value,numerator_unit,denominator_value,denominator_unit 
      FROM (

@@ -420,14 +420,14 @@ from  thin_comp a
 on (  
  lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
  )
-and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'DPD'
-'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and invalid_reason is null
+and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT',-- 'LPD_Australia', 'DPD',
+'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and b.invalid_reason is null
 where a.domain_id ='Drug')
 --take the longest ingredient
 where rank1 = 1 
 )
 ;
-select count (1) from concept where vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and invalid_reason is null
+--select count (1) from concept where vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and invalid_reason is null
 ;
 --select * from i_map
 ;
@@ -441,7 +441,9 @@ create table rel_to_ing_1 as
 select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.GEMSCRIPT_NAME,i.VOLUME
 , b.concept_id as target_id, b.concept_name as target_name, b.vocabulary_id as target_vocab, b.concept_class_id as target_class from 
 i_map i
- join concept_relationship r on i.concept_id = r.concept_id_1 and relationship_id ='Maps to' and r.invalid_reason is null
+ join (
+select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
+) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq') 
   join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%'
 ;
 
@@ -563,8 +565,8 @@ insert into DS_STAGE (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMO
 select  CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT from ds_all
 ;
 --somewhere we don't have a number due to wrong parsing
-select * from ds_all
-;
+--select * from ds_all
+--;
 -- update denominator with existing value for concepts having empty and non-emty denominator value/unit
 
 ;
@@ -737,6 +739,9 @@ thin_name = regexp_replace (thin_name, 'spansules$','capsule' )
 update thin_need_to_map set 
 thin_name = regexp_replace (thin_name, 'globuli$','granules' )
 ;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'sach$','sachet' )
+;
 commit
 ;
 --select * from thin_need_to_map
@@ -762,19 +767,14 @@ on (
 regexp_like ( lower (a.thin_name), lower  (' '||b.concept_name||'( |$|s|es)')) 
 or regexp_like ( lower (a.thin_name), lower  (' '||regexp_replace  (b.concept_name, 'y$', 'ies') ||'( |$)')) 
 )
-/*
-(  
- lower (a.thin_name) like lower '% '||(b.concept_name) or 
- lower (a.drug_comp)=like lower '% '||(b.concept_name) || ' %'
- )
- */
+
 and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'BDPM', 'AMIS', 'Multilex', 'DPD', 'LPD_Australia') and concept_class_id in ( 'Dose Form', 'Form', 'AU Qualifier')   and invalid_reason is null
 join 
 (
 select  c.concept_id as source_id, nvl (d.concept_name, c.concept_name) as concept_name_2, nvl (d.concept_id, c.concept_id) as concept_id_2 ,nvl (d.vocabulary_id, c.vocabulary_id) as vocabulary_id_2 from concept c
 left join 
 (
-select concept_id_1,relationship_id, concept_id_2 from concept_relationship union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
+select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
 ) r  on c.concept_id = r.concept_id_1 and relationship_id ='Source - RxNorm eq'
 left join concept d on d.concept_id = r.concept_id_2  and d.vocabulary_id like 'RxNorm%' and d.invalid_reason is null and d.concept_class_id = 'Dose Form'
 where c.vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'BDPM', 'AMIS', 'Multilex', 'DPD', 'LPD_Australia') and c.concept_class_id in ( 'Dose Form', 'Form', 'AU Qualifier')  and c.invalid_reason is null
@@ -804,3 +804,73 @@ and concept_id_2 in (21308470, 46234469, 19082227)
 ;
 commit
 ;
+--make Suppliers, some clean up
+UPDATE THIN_NEED_TO_MAP
+   SET GEMSCRIPT_NAME =GEMSCRIPT_NAME||')' where GEMSCRIPT_NAME like '%(Neon Diagnostics'
+;
+drop table s_rel;
+create table s_rel as
+select  regexp_replace( regexp_replace (regexp_substr (GEMSCRIPT_NAME, '\([A-Z].+\)$'), '^\('), '\)$')   as Supplier, n.*
+ from thin_need_to_map n where domain_id = 'Drug'
+;
+create table s_map as
+select distinct s.thin_code, s.thin_name, sss.concept_id_2,concept_name_2,vocabulary_id_2  from s_rel s
+join concept c on  lower (s.Supplier) = lower (c.concept_name)
+ join (
+select  c.concept_id as source_id, nvl (d.concept_name, c.concept_name) as concept_name_2, nvl (d.concept_id, c.concept_id) as concept_id_2 ,nvl (d.vocabulary_id, c.vocabulary_id) as vocabulary_id_2 from concept c
+left join 
+(
+select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
+) r  on c.concept_id = r.concept_id_1 and relationship_id ='Source - RxNorm eq'
+left join concept d on d.concept_id = r.concept_id_2  and d.vocabulary_id like 'RxNorm%' and d.invalid_reason is null and d.concept_class_id = 'Supplier'
+where c.concept_class_id in ( 'Supplier')  and c.invalid_reason is null
+) sss on sss.source_id = c.concept_id 
+where c.concept_class_id = 'Supplier'
+;
+--make Brand Names
+select * from THIN_NEED_TO_MAP where thin_name like 'Generic%'
+;
+drop table b_map_0;
+create table b_map_0 AS
+select  T.GEMSCRIPT_CODE, T.GEMSCRIPT_NAME, T.THIN_CODE, T.THIN_NAME , C.CONCEPT_ID, C.CONCEPT_NAME, C.vocabulary_id from THIN_NEED_TO_MAP T
+join concept c on lower (GEMSCRIPT_NAME) like lower(c.concept_name)||' %' 
+where c.concept_class_id = 'Brand Name' and invalid_reason is null and vocabulary_id in('RxNorm', 'RxNorm Extension')
+--exclude ingredients that accindally got into Brand Names massive
+and lower(c.concept_name) not in (
+select  lower (concept_name ) from concept where concept_class_id ='Ingredient' and invalid_reason is null)
+;
+select distinct source_concept_class_id from dev_dmd.drug_concept_stage
+;
+select distinct b.concept_id, b.concept_name from b_map_0 b 
+join concept c on lower (b.concept_name) = lower (c.concept_name) 
+where c.concept_class_id = 'Ingredient' and c.invalid_reason is null
+;
+--next steps 
+--check the Brand Name definition algorithm used in dm+d
+--look onto the Ingredient combination we can get from known Brand Names
+--look onto Ingredients based on Gemscript name
+--Brand Names Based on THIN_name, will we get something?
+
+--check the Brand Name definition algorithm used in dm+d
+ drop table branded_drug_to_brand_name;
+create table branded_drug_to_brand_name as 
+select distinct concept_code, concept_name,  
+regexp_replace (regexp_replace ( regexp_replace(concept_name, '\s\d.*'), ' \(.*'), 
+ '(\s(tablet(s?)|cream|capsule(s?)|gel|powder|ointment|suppositories|emollient|liquid|sachets.*|transdermal patches|infusion|solution for.*|lotion|oral solution|chewable.*|effervescent.*irrigation.*|caplets.*|oral 
+|oral powder|soluble tablets sugar free|lozenges)$)') 
+as  BRAND_NAME from drug_concept_stage
+where (concept_class_id = 'Branded Drug' and  concept_name not like 'Generic %')
+union
+select concept_code, concept_name,  regexp_replace(concept_name, '\s.*') as  BRAND_NAME from drug_concept_stage
+where concept_class_id = 'Clinical Drug' and   concept_name like 'Co-%'
+union select concept_code, concept_name,
+regexp_replace ( regexp_replace ( regexp_replace(concept_name, 'Generic '), '\s\d.*') ,
+ '(\s(tablet(s?)|cream|capsule(s?)|gel|powder|ointment|suppositories|emollient|liquid|sachets.*|transdermal patches|infusion|solution for.*|lotion|oral solution|chewable.*|effervescent.*irrigation.*|caplets.*|oral drops|oral powder|soluble tablets sugar free|lozenges)$)')
+  as BRAND_NAME
+from drug_concept_stage where concept_name like 'Generic %'
+;
+delete from branded_drug_to_brand_name a where exists (select 1 from
+drug_concept_stage b where lower (a.BRAND_NAME) = lower (b.concept_name) 
+ and b.concept_class_id = 'Ingredient' and concept_name not like 'Co-%')
+ ;
+ 

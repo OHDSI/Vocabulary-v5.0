@@ -129,7 +129,7 @@ select ds_seq.nextval as ds_code, q_ds.* from (
 ;
 
 -- Create table with all drug concept codes linked to the above unique components 
-drop table q_ds cascade constraints purge;
+drop table q_ds purge;
 create table q_ds nologging as
 select dss.drug_concept_code as concept_code, dss.ingredient_concept_code as i_code, uds.ds_code
 from ds_stage dss
@@ -225,7 +225,7 @@ from ds_stage where box_size is not null
 /******************************
 * 3. Collect atributes for r  *
 ******************************/
--- Create xxx-type codes for the ingredients, so we can add them
+-- Create xxx-type codes for r ingredients, so we can add them
 drop table ing_stage purge;
 create table ing_stage as
 select 'XXX'||xxx_seq.nextval as i_code, i_id from (
@@ -361,7 +361,7 @@ where box_size is not null
 ;
 
 /*************************************************************************
-* 3. Create translation tables between q and r attributes with corridors *
+* 4. Create translation tables between q and r attributes with corridors *
 **************************************************************************/
 
 -- Create comparison between q_uds and r_uds for everything in the 90% corridor
@@ -565,7 +565,6 @@ select * from (
 )
 where round(q_div*50)=50 -- making it a 2% corridor
 ;
-select * from r_ing;
 
 -- Translation between Ingredients
 drop table qr_i purge;
@@ -579,7 +578,6 @@ join (
   select distinct i_id, i_code from r_ing
 ) r on concept_id_2=r.i_id 
 ;
-
 
 -- Translation between Dose Forms
 drop table qr_df purge;
@@ -623,7 +621,7 @@ join (
 -- No need for translating box sizes
 
 /**************************************************************************
-* 2. Create the list of all all existing q products in attribute notation * 
+* 5. Create the list of all all existing q products in attribute notation * 
 ***************************************************************************/
 
 -- Duplication rule 1: More than one definition per concept_code is illegal
@@ -791,7 +789,7 @@ union
 ;
 
 /***************************************************************************************
-* 3. Write all concept classes, whether existing in source or not from all possible combinations *
+* 6. Write all concept classes, whether existing in source or not from all possible combinations *
 ***************************************************************************************/
 
 drop table complete_q purge;
@@ -935,7 +933,7 @@ join complete_q c using(quant_value, quant_unit, i_combo, d_combo, df_code, bn_c
 commit;
 
 /**************************************************************************
-* 2. Create the list of all all existing r products in attribute notation * 
+* 7. Create the list of all all existing r products in attribute notation * 
 ***************************************************************************/
 drop table existing_r purge;
 create table existing_r nologging as
@@ -1107,7 +1105,7 @@ delete from existing_r where rowid in (
 ;
 
 /*****************************************************
-* 4. Compare new drug vocabulary q to existing one r *
+* 8. Compare new drug vocabulary q to existing one r *
 *****************************************************/
 -- Strategy: replace attributes with existing ones. Since there are multiple choices for quant, i_combo, d_combo, df_code, bn_code and mf_code, start with lowest (most defined) concept_classes and move up
 -- If there is a conflict (more than one equally good choices despite precs and div), split up
@@ -1392,7 +1390,7 @@ where not exists (
 ;
 commit;
 
--- 4. Add any translations not found in the data, but provided by the input tables
+-- 4. Add any translations not found in the data, but provided by the input tables and have drugs containing them
 insert into x_ing
 select distinct
   qi_code as qi_combo,
@@ -1405,9 +1403,41 @@ where not exists (
 ;
 commit;
 
-select distinct i_code from q_ing
+-- 5. Add any translations not found in the data, but provided by the input tables even if no drug contains them
+-- (qr_i contains only ingredients that have a drug as a descendent)
+insert into x_ing
+select distinct
+  concept_code_1 as qi_combo,
+  first_value (i_code) over (partition by concept_code_1 order by precedence) as ri_combo, -- pick the best translation
+  ' ' as df_code, 0 as df_id, 5 as diag
+from r_to_c rc
+join ing_stage on i_id=concept_id_2 -- limit to ingredients and get xxx-code
+where not exists (
+  select 1 from x_ing where qi_combo=concept_code_1
+)
+;
+commit;
+
+/*********************************************
+* 9. Create Extension Ingredients and combos *
+*********************************************/
+
+question here: Should I first find identical products, und erst dann versuchen, die fehlenden Kompenten zu erzeugen, oder erst die Kompoenten erzeugen und dann 
+
+-- create table with ingredients in q that have no translation, no matter what method
+drop table extension_ing purge;
+create table extension_ing as
+select 'XXX'||xxx_seq.nextval as i_code, i_id from (
+  select distinct i_code from q_ing
+  minus
+  select qi_combo from x_ing
+);
+select * from q_ing;
+
+  select concept_code from drug_concept_stage where concept_class_id='Ingredient'
 minus
-select qi_combo from x_ing;
+  select qi_combo from x_ing
+;
 select i_combo from q_combo
 minus
 select qi_combo from x_ing

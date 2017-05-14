@@ -8,23 +8,25 @@ END;
 /
 COMMIT;
 --make empty input tables
-
+drop table ds_stage;
 create table ds_stage as select * from dev_dmd.ds_stage where rownum =0
 ;
+drop table drug_concept_stage;
 create table drug_concept_stage as select * from dev_dmd.drug_concept_stage where rownum =0
 ;
 alter table drug_concept_stage modify concept_code varchar (250) 
 ;
---drop table relationship_to_concept;
+ drop table relationship_to_concept;
 create table relationship_to_concept as select * from dev_dmd.relationship_to_concept where rownum =0
 ;
---drop table  internal_relationship_stage;
+ drop table  internal_relationship_stage;
 create table internal_relationship_stage as select * from dev_dmd.internal_relationship_stage where rownum =0;
 alter table internal_relationship_stage modify concept_code_1 varchar (250) ;
 alter table internal_relationship_stage modify concept_code_2 varchar (250) 
 ;
 select * from internal_relationship_stage
 ;
+drop table pc_stage;
 create table pc_stage as  select * from dev_dmd.pc_Stage where rownum =0 
 ;
 --add Gemscript concept set, 
@@ -589,6 +591,21 @@ update ds_stage a set (a.DENOMINATOR_VALUE, a.DENOMINATOR_unit )=
  ds_stage b where a.drug_concept_code = b.drug_concept_code 
  and a.DENOMINATOR_VALUE is null and b.DENOMINATOR_VALUE is not null )
  ;
+ --fix wierd units
+update ds_Stage
+set amount_unit = 'unit' where amount_unit in('u', 'iu')
+;
+update ds_Stage
+set NUMERATOR_UNIT = 'unit' where NUMERATOR_UNIT in('u', 'iu')
+;
+update ds_Stage
+set DENOMINATOR_UNIT = '' where DENOMINATOR_UNIT ='ampoule'
+;
+update ds_Stage
+set DENOMINATOR_UNIT = replace (DENOMINATOR_UNIT, ' ') where DENOMINATOR_UNIT like '% %'
+ ;
+commit
+; 
 --percents
 --update ds_stage changing % to mg/ml, mg/g, etc.
 --simple, when we have denominator_unit so we can define numerator based on denominator_unit
@@ -628,7 +645,8 @@ and denominator_unit is null and denominator_value is null
 and exists (select 1 from thin_need_to_map dcs  where dcs.thin_code  = ds.drug_concept_code and not regexp_like (thin_name, 'vial|drops|foam'))
 ;
 commit
-;  
+;
+
 /*
 select * from ds_stage ds
 join ds_all da on DRUG_CONCEPT_CODE = CONCEPT_CODE and ds.INGREDIENT_CONCEPT_CODE =da.INGREDIENT_CONCEPT_CODE
@@ -973,6 +991,7 @@ select concept_code_1, CONCEPT_ID_2, precedence, conversion_factor from dev_dmd.
 --take it from back up as dm+d is already under construction and DRUG_CONCEPT_STAGE doesn't have units yet
 join dev_dmd.DRUG_CONCEPT_STAGE_042017 on concept_code = concept_code_1 WHERE concept_class_id= 'Unit' 
 and precedence = 1
+--need to change the mapping from mcg to 1000 mg
 ;
 commit
 ;

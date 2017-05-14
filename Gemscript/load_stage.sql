@@ -8,20 +8,24 @@ END;
 /
 COMMIT;
 --make empty input tables
-/*
+
 create table ds_stage as select * from dev_dmd.ds_stage where rownum =0
 ;
 create table drug_concept_stage as select * from dev_dmd.drug_concept_stage where rownum =0
+;
+alter table drug_concept_stage modify concept_code varchar (250) 
 ;
 drop table relationship_to_concept;
 create table relationship_to_concept as select * from dev_dmd.relationship_to_concept where rownum =0
 ;
 drop table  internal_relationship_stage;
-create table internal_relationship_stage as select * from dev_dmd.internal_relationship_stage where rownum =0
+create table internal_relationship_stage as select * from dev_dmd.internal_relationship_stage where rownum =0;
+alter table internal_relationship_stage modify concept_code_1 varchar (250) ;
+alter table internal_relationship_stage modify concept_code_2 varchar (250) 
 ;
 select * from internal_relationship_stage
 ;
-*/
+
 --add Gemscript concept set, 
 --dm+d variant is better 
 TRUNCATE TABLE concept_stage
@@ -296,9 +300,9 @@ set domain_id = 'Device'
 --put these into script above
  where GEMSCRIPT_CODE in (
 select GEMSCRIPT_CODE from thin_need_to_map where
-regexp_like (lower(THIN_name),'physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(THIN_name),'pizza|physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 or 
-regexp_like (lower(gemscript_name),'physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(gemscript_name),'pizza|physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 )
 and domain_id ='Drug'
 ;
@@ -416,7 +420,7 @@ select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id,  RANK() OVE
 length(b.concept_name)  desc, b.vocabulary_id desc) as rank1
 --look what happened to previous 4 
 from  thin_comp a 
- join  devv5.concept b
+ join  concept b
 on (  
  lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
  )
@@ -838,39 +842,108 @@ where c.concept_class_id = 'Brand Name' and invalid_reason is null and vocabular
 --exclude ingredients that accindally got into Brand Names massive
 and lower(c.concept_name) not in (
 select  lower (concept_name ) from concept where concept_class_id ='Ingredient' and invalid_reason is null)
+and t.domain_id ='Drug'
 ;
-select distinct source_concept_class_id from dev_dmd.drug_concept_stage
+delete from b_map_0 where CONCEPT_NAME in (
+'Gamma',
+'Mst',
+'Gx',
+'Simple',
+'Saline',
+'DF'
+)
 ;
-select distinct b.concept_id, b.concept_name from b_map_0 b 
-join concept c on lower (b.concept_name) = lower (c.concept_name) 
-where c.concept_class_id = 'Ingredient' and c.invalid_reason is null
+commit
 ;
---next steps 
---check the Brand Name definition algorithm used in dm+d
---look onto the Ingredient combination we can get from known Brand Names
---look onto Ingredients based on Gemscript name
---Brand Names Based on THIN_name, will we get something?
-
---check the Brand Name definition algorithm used in dm+d
- drop table branded_drug_to_brand_name;
-create table branded_drug_to_brand_name as 
-select distinct concept_code, concept_name,  
-regexp_replace (regexp_replace ( regexp_replace(concept_name, '\s\d.*'), ' \(.*'), 
- '(\s(tablet(s?)|cream|capsule(s?)|gel|powder|ointment|suppositories|emollient|liquid|sachets.*|transdermal patches|infusion|solution for.*|lotion|oral solution|chewable.*|effervescent.*irrigation.*|caplets.*|oral 
-|oral powder|soluble tablets sugar free|lozenges)$)') 
-as  BRAND_NAME from drug_concept_stage
-where (concept_class_id = 'Branded Drug' and  concept_name not like 'Generic %')
+drop table b_map_1;
+create table b_map_1 AS
+select  T.GEMSCRIPT_CODE, T.GEMSCRIPT_NAME, T.THIN_CODE, T.THIN_NAME , C.CONCEPT_ID, C.CONCEPT_NAME, C.vocabulary_id from THIN_NEED_TO_MAP T
+join concept c on lower (THin_name) like lower(c.concept_name)||' %' 
+where c.concept_class_id = 'Brand Name' and invalid_reason is null and vocabulary_id in('RxNorm', 'RxNorm Extension')
+--exclude ingredients that accindally got into Brand Names massive
+and lower(c.concept_name) not in (
+select  lower (concept_name ) from concept where concept_class_id ='Ingredient' and invalid_reason is null)
+and t.domain_id ='Drug'
+and t.thin_code not in (select thin_code from b_map_0)
+;
+delete from b_map_1 where CONCEPT_NAME in ( 
+'Natrum muriaticum',
+'Pulsatilla nigricans',
+'Multivitamin',
+'Saline',
+'Simple'
+)
+;
+commit
+;
+create table b_map as
+select * from b_map_0
 union
-select concept_code, concept_name,  regexp_replace(concept_name, '\s.*') as  BRAND_NAME from drug_concept_stage
-where concept_class_id = 'Clinical Drug' and   concept_name like 'Co-%'
-union select concept_code, concept_name,
-regexp_replace ( regexp_replace ( regexp_replace(concept_name, 'Generic '), '\s\d.*') ,
- '(\s(tablet(s?)|cream|capsule(s?)|gel|powder|ointment|suppositories|emollient|liquid|sachets.*|transdermal patches|infusion|solution for.*|lotion|oral solution|chewable.*|effervescent.*irrigation.*|caplets.*|oral drops|oral powder|soluble tablets sugar free|lozenges)$)')
-  as BRAND_NAME
-from drug_concept_stage where concept_name like 'Generic %'
+select * from b_map_1
 ;
-delete from branded_drug_to_brand_name a where exists (select 1 from
-drug_concept_stage b where lower (a.BRAND_NAME) = lower (b.concept_name) 
- and b.concept_class_id = 'Ingredient' and concept_name not like 'Co-%')
+--still need to improve the ds_stage
+
+
+--making input tables
+--drug_concept_stage
+truncate table drug_concept_stage
+;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select '', THIN_name,domain_id, 'Gemscript', 'Drug Product',  '', THIN_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from thin_need_to_map where domain_id = 'Drug'
+;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select '', THIN_name,domain_id, 'Gemscript', 'Device', '', THIN_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from thin_need_to_map where domain_id = 'Device'
+;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select distinct '', Ingredient_concept_code, 'Drug', 'Gemscript', 'Ingredient', '', Ingredient_concept_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from ds_stage
+--only 1041 --looks susprecious
+;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select distinct '', CONCEPT_NAME_2, 'Drug', 'Gemscript', 'Supplier', '', CONCEPT_NAME_2, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from s_map
  ;
- 
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select distinct '', CONCEPT_NAME_2, 'Drug', 'Gemscript', 'Dose Form', '', CONCEPT_NAME_2, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from f_map
+ ;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select distinct '', CONCEPT_NAME, 'Drug', 'Gemscript', 'Brand Name', '', CONCEPT_NAME, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from b_map
+ ;
+commit
+;
+--internal_relationship_stage
+insert into internal_relationship_stage
+select THIN_CODE,CONCEPT_NAME  from  b_map
+union
+select THIN_CODE,CONCEPT_NAME_2  from f_map
+union 
+select THIN_CODE,CONCEPT_NAME_2  from s_map
+union
+select distinct drug_concept_code,ingredient_concept_code from ds_stage
+;
+--check
+ --fix these duplicates
+select drug_concept_code,ingredient_concept_code from ds_stage group by drug_concept_code,ingredient_concept_code having count(1) >1
+ ; 
+insert into relationship_to_concept  (concept_code_1, concept_id_2)
+
+select distinct  CONCEPT_NAME, concept_id  from  b_map
+union
+select distinct  CONCEPT_NAME_2, concept_id_2  from f_map
+union 
+select distinct  CONCEPT_NAME_2 , concept_id_2 from s_map
+union
+select distinct TARGET_NAME , TARGET_ID from REL_TO_ING_1
+;
+commit
+;

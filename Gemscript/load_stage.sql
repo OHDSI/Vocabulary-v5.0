@@ -8,20 +8,25 @@ END;
 /
 COMMIT;
 --make empty input tables
-/*
+
 create table ds_stage as select * from dev_dmd.ds_stage where rownum =0
 ;
 create table drug_concept_stage as select * from dev_dmd.drug_concept_stage where rownum =0
 ;
-drop table relationship_to_concept;
+alter table drug_concept_stage modify concept_code varchar (250) 
+;
+--drop table relationship_to_concept;
 create table relationship_to_concept as select * from dev_dmd.relationship_to_concept where rownum =0
 ;
-drop table  internal_relationship_stage;
-create table internal_relationship_stage as select * from dev_dmd.internal_relationship_stage where rownum =0
+--drop table  internal_relationship_stage;
+create table internal_relationship_stage as select * from dev_dmd.internal_relationship_stage where rownum =0;
+alter table internal_relationship_stage modify concept_code_1 varchar (250) ;
+alter table internal_relationship_stage modify concept_code_2 varchar (250) 
 ;
 select * from internal_relationship_stage
 ;
-*/
+create table pc_stage as  select * from dev_dmd.pc_Stage where rownum =0 
+;
 --add Gemscript concept set, 
 --dm+d variant is better 
 TRUNCATE TABLE concept_stage
@@ -296,9 +301,9 @@ set domain_id = 'Device'
 --put these into script above
  where GEMSCRIPT_CODE in (
 select GEMSCRIPT_CODE from thin_need_to_map where
-regexp_like (lower(THIN_name),'physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(THIN_name),'pizza|physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 or 
-regexp_like (lower(gemscript_name),'physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(gemscript_name),'pizza|physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 )
 and domain_id ='Drug'
 ;
@@ -396,9 +401,14 @@ where a.domain_id ='Drug'
 ALTER TABLE thin_comp
 ADD volume varchar (20)
 ;
- update thin_comp set volume = regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)')
-where regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)') is not null
- and (  regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)') != dosage or dosage is null)
+--seems to be better volume definition
+update thin_comp set volume = regexp_substr  (thin_name,' [[:digit:]\.]+(litre(s?)|ml)')
+where regexp_Like (thin_name,' [[:digit:]\.]+(litre(s?)|ml)')
+--209 rows 
+;
+-- update thin_comp set volume = regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)')
+--where regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)') is not null
+-- and (  regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)') != dosage or dosage is null)
 --it gives only 57 rows, needs further checks 
 ;
 CREATE INDEX drug_comp_ix ON thin_comp (lower (drug_comp))  
@@ -416,7 +426,7 @@ select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id,  RANK() OVE
 length(b.concept_name)  desc, b.vocabulary_id desc) as rank1
 --look what happened to previous 4 
 from  thin_comp a 
- join  devv5.concept b
+ join  concept b
 on (  
  lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
  )
@@ -524,6 +534,7 @@ concept_code, concept_name, DOSAGE, DRUG_COMP, INGREDIENT_CONCEPT_CODE, INGREDIE
 from ds_all_tmp 
 ;
 --!!!check the previous script for dmd -patterns should be similar here
+--add missing denominator if for the other combination it exist
 update ds_all a set (a.DENOMINATOR_VALUE, a.DENOMINATOR_unit )= 
 (select b.DENOMINATOR_VALUE, b.DENOMINATOR_unit  from 
  ds_all b where a.CONCEPT_CODE = b.CONCEPT_CODE 
@@ -535,8 +546,11 @@ update ds_all a set (a.DENOMINATOR_VALUE, a.DENOMINATOR_unit )=
 --select * from ds_all where coalesce (AMOUNT_VALUE, DENOMINATOR_VALUE, NUMERATOR_VALUE) is null
 ;
 --need to comment
-update ds_all set amount_value = null, amount_unit = null where regexp_like (concept_name, '[[:digit:]\.]+(litre|ml)') and not regexp_like (concept_name, '/[[:digit:]\.]+(litre|ml)') and amount_value is not null and AMOUNT_UNIT in ('litre', 'ml');
--- need to comment
+--it's OK for "Amyl nitrite vitrellae 0.2ml" 
+update ds_all set amount_value = null, amount_unit = null where regexp_like (concept_name, '[[:digit:]\.]+(litre|ml)') 
+and not regexp_like (concept_name, '/[[:digit:]\.]+(litre|ml)') and amount_value is not null and AMOUNT_UNIT in ('litre', 'ml')
+;
+-- take the "volume" if it wasn't take in the step 
 update ds_all set denominator_value = regexp_substr (regexp_substr(concept_name, ' [[:digit:]\.]+(litre(s?)|ml)') , '[[:digit:]\.]+'), denominator_unit = regexp_substr (regexp_substr(concept_name, ' [[:digit:]\.]+(litre(s?)|ml)') , '(litre(s?)|ml)')
 where regexp_like (concept_name, '\d+(litre(s?)|ml)') and not regexp_like (concept_name, '/[[:digit:]\.]+(litre(s?)|ml)')
 and denominator_value is  null
@@ -544,10 +558,6 @@ and denominator_value is  null
 --recalculate ds_stage accordong to fake denominators
 --!!!
 --Noradrenaline (base) 320micrograms/ml solution for infusion 950ml bottles for such concepts we need to keep denominator_value as true value and 
-update ds_all a
-set numerator_value =numerator_value*denominator_value
-where concept_code in (select concept_code from thin_need_to_map where regexp_like (thin_name , '[[:digit:]\.]+.*/ml.*[[:digit:]\.]+ml'))
-and numerator_value is not null and denominator_value is not null and numerator_unit !='%'
 ;
 update ds_all
  set amount_VALUE = null where amount_VALUE ='.'
@@ -813,6 +823,7 @@ create table s_rel as
 select  regexp_replace( regexp_replace (regexp_substr (GEMSCRIPT_NAME, '\([A-Z].+\)$'), '^\('), '\)$')   as Supplier, n.*
  from thin_need_to_map n where domain_id = 'Drug'
 ;
+drop table s_map;
 create table s_map as
 select distinct s.thin_code, s.thin_name, sss.concept_id_2,concept_name_2,vocabulary_id_2  from s_rel s
 join concept c on  lower (s.Supplier) = lower (c.concept_name)
@@ -828,7 +839,7 @@ where c.concept_class_id in ( 'Supplier')  and c.invalid_reason is null
 where c.concept_class_id = 'Supplier'
 ;
 --make Brand Names
-select * from THIN_NEED_TO_MAP where thin_name like 'Generic%'
+--select * from THIN_NEED_TO_MAP where thin_name like 'Generic%'
 ;
 drop table b_map_0;
 create table b_map_0 AS
@@ -838,10 +849,18 @@ where c.concept_class_id = 'Brand Name' and invalid_reason is null and vocabular
 --exclude ingredients that accindally got into Brand Names massive
 and lower(c.concept_name) not in (
 select  lower (concept_name ) from concept where concept_class_id ='Ingredient' and invalid_reason is null)
+and t.domain_id ='Drug'
 ;
-select distinct source_concept_class_id from dev_dmd.drug_concept_stage
+delete from b_map_0 where CONCEPT_NAME in (
+'Gamma',
+'Mst',
+'Gx',
+'Simple',
+'Saline',
+'DF'
+)
 ;
-select *from b_map_0
+commit
 ;
 drop table b_map_1;
 create table b_map_1 AS
@@ -854,49 +873,115 @@ select  lower (concept_name ) from concept where concept_class_id ='Ingredient' 
 and t.domain_id ='Drug'
 and t.thin_code not in (select thin_code from b_map_0)
 ;
-select * from concept where vocabulary_id in('dm+d') and  invalid_reason is null and concept_class_id = 'Brand Name'
+delete from b_map_1 where CONCEPT_NAME in ( 
+'Natrum muriaticum',
+'Pulsatilla nigricans',
+'Multivitamin',
+'Saline',
+'Simple'
+)
 ;
-
-
---next steps 
---add to the b_map_0 creation search by the other vocabularies, at least dm+d -- empty here
---check the same with thin_name
---check the Brand Name definition algorithm used in dm+d
---look onto the Ingredient combination we can get from known Brand Names
---look onto Ingredients based on Gemscript name
---Brand Names Based on THIN_name, will we get something?
-
---check the Brand Name definition algorithm used in dm+d
-
+commit
 ;
---next steps 
---add to the b_map_0 creation search by the other vocabularies, at least dm+d
---check the same with thin_name
---check the Brand Name definition algorithm used in dm+d
---look onto the Ingredient combination we can get from known Brand Names
---look onto Ingredients based on Gemscript name
---Brand Names Based on THIN_name, will we get something?
-
---check the Brand Name definition algorithm used in dm+d
- drop table branded_drug_to_brand_name;
-create table branded_drug_to_brand_name as 
-select distinct concept_code, concept_name,  
-regexp_replace (regexp_replace ( regexp_replace(concept_name, '\s\d.*'), ' \(.*'), 
- '(\s(tablet(s?)|cream|capsule(s?)|gel|powder|ointment|suppositories|emollient|liquid|sachets.*|transdermal patches|infusion|solution for.*|lotion|oral solution|chewable.*|effervescent.*irrigation.*|caplets.*|oral 
-|oral powder|soluble tablets sugar free|lozenges)$)') 
-as  BRAND_NAME from drug_concept_stage
-where (concept_class_id = 'Branded Drug' and  concept_name not like 'Generic %')
+drop table b_map
+;
+ create table b_map as
+select * from (
+select z.*, 
+RANK() OVER (PARTITION BY THIN_CODE ORDER BY
+length(concept_name)  desc ) as rank1
+from (
+select * from b_map_0
 union
-select concept_code, concept_name,  regexp_replace(concept_name, '\s.*') as  BRAND_NAME from drug_concept_stage
-where concept_class_id = 'Clinical Drug' and   concept_name like 'Co-%'
-union select concept_code, concept_name,
-regexp_replace ( regexp_replace ( regexp_replace(concept_name, 'Generic '), '\s\d.*') ,
- '(\s(tablet(s?)|cream|capsule(s?)|gel|powder|ointment|suppositories|emollient|liquid|sachets.*|transdermal patches|infusion|solution for.*|lotion|oral solution|chewable.*|effervescent.*irrigation.*|caplets.*|oral drops|oral powder|soluble tablets sugar free|lozenges)$)')
-  as BRAND_NAME
-from drug_concept_stage where concept_name like 'Generic %'
+select * from b_map_1
+) z ) x where x.rank1 = 1
 ;
-delete from branded_drug_to_brand_name a where exists (select 1 from
-drug_concept_stage b where lower (a.BRAND_NAME) = lower (b.concept_name) 
- and b.concept_class_id = 'Ingredient' and concept_name not like 'Co-%')
- ;
  
+
+--still need to improve the ds_stage
+
+
+--making input tables
+--drug_concept_stage
+truncate table drug_concept_stage
+;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select '', THIN_name,domain_id, 'Gemscript', 'Drug Product',  '', THIN_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from thin_need_to_map where domain_id = 'Drug'
+;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select '', THIN_name,domain_id, 'Gemscript', 'Device', '', THIN_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from thin_need_to_map where domain_id = 'Device'
+;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select distinct '', Ingredient_concept_code, 'Drug', 'Gemscript', 'Ingredient', '', Ingredient_concept_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from ds_stage
+--only 1041 --looks susprecious
+;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select distinct '', CONCEPT_NAME_2, 'Drug', 'Gemscript', 'Supplier', '', CONCEPT_NAME_2, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from s_map
+ ;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select distinct '', CONCEPT_NAME_2, 'Drug', 'Gemscript', 'Dose Form', '', CONCEPT_NAME_2, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from f_map
+ ;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select distinct '', CONCEPT_NAME, 'Drug', 'Gemscript', 'Brand Name', '', CONCEPT_NAME, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from b_map
+;
+insert into drug_concept_stage 
+(CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
+select distinct '', CONCEPT_NAME, 'Drug', 'Gemscript', 'Unit', '', CONCEPT_NAME, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN' from dev_dmd.DRUG_CONCEPT_STAGE_042017  WHERE concept_class_id= 'Unit' 
+ ;
+commit
+;
+--internal_relationship_stage
+insert into internal_relationship_stage
+select THIN_CODE,CONCEPT_NAME  from  b_map
+union
+select THIN_CODE,CONCEPT_NAME_2  from f_map
+union 
+select THIN_CODE,CONCEPT_NAME_2  from s_map
+union
+select distinct drug_concept_code,ingredient_concept_code from ds_stage
+;
+--check
+ --fix these duplicates
+select drug_concept_code,ingredient_concept_code from ds_stage group by drug_concept_code,ingredient_concept_code having count(1) >1
+ ; 
+ truncate table relationship_to_concept;
+insert into relationship_to_concept  (concept_code_1, concept_id_2, precedence, conversion_factor)
+--existing concepts used in mappings
+select distinct  CONCEPT_NAME, concept_id, 1, 1  from  b_map
+union
+select distinct  CONCEPT_NAME_2, concept_id_2, 1, 1 from f_map
+union 
+select distinct  CONCEPT_NAME_2 , concept_id_2, 1, 1   from s_map
+union
+select distinct TARGET_NAME , TARGET_ID, 1, 1 from REL_TO_ING_1
+union
+--add units from dm+D
+select concept_code_1, CONCEPT_ID_2, precedence, conversion_factor from dev_dmd.relationship_to_concept 
+--take it from back up as dm+d is already under construction and DRUG_CONCEPT_STAGE doesn't have units yet
+join dev_dmd.DRUG_CONCEPT_STAGE_042017 on concept_code = concept_code_1 WHERE concept_class_id= 'Unit' 
+and precedence = 1
+;
+commit
+;
+--for now it runs for about 15 min from the beginning to the end 
+--Co-phenotrope 2.5mg/0.025mg tablets -- need to fix this? how to distiguish it from the concentration
+--Lactulose 10g/15ml oral solution 15ml sachets sugar free  -- somehow it multiplying when there are 10g/15ml
+
+--so why the hell did we used this in dm+d? need to check dm+d
+--update ds_all a
+--set numerator_value =numerator_value*denominator_value
+--where concept_code in (select concept_code from thin_need_to_map where regexp_like (thin_name , '[[:digit:]\.]+.*/ml.*[[:digit:]\.]+ml'))
+--and numerator_value is not null and denominator_value is not null and numerator_unit !='%'

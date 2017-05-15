@@ -272,7 +272,9 @@ update THIN_need_to_map n set domain_id = 'Device'
 where exists (select 1 from gemscript_reference g 
 where regexp_like (PRODUCTNAME, '[a-z]')  --at least 1 [a-z] charachter
 and regexp_count(PRODUCTNAME, '[a-z]')>5 -- sometime we have these non HCl, mg as a part of UPPER case concept_name
-and DRUGSUBSTANCE is null and  g.GEMSCRIPTCODE = n.GEMSCRIPT_CODE )
+and
+( DRUGSUBSTANCE is null or DRUGSUBSTANCE ='Syringe For Injection') 
+and  g.GEMSCRIPTCODE = n.GEMSCRIPT_CODE )
 --4758
 ;
 commit
@@ -377,9 +379,6 @@ where regexp_like (thin_name, ' and ') and not regexp_like (thin_name, ' and \d'
 ; 
 commit
 ;
-select * from thin_need_to_map where THIN_NAME like '% / %'
-;
-
 drop table thin_comp;
 create table thin_comp as 
 select regexp_substr 
@@ -390,7 +389,12 @@ select distinct
 trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp , t.* 
 from thin_need_to_map t,
 table(cast(multiset(select level from dual connect by  level <= length (regexp_replace(regexp_replace (t.thin_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels) a
-where a.domain_id ='Drug'
+where a.domain_id ='Drug' 
+--exclusions
+--Bendroflumethiazide / potassium 2.5mg+7.7mmol modified release tablets 
+and not regexp_like (thin_name, '[[:digit:]\,\.].*\+[[:digit:]\,\.].*') 
+--Co-triamterzide 50mg/25mg tablets
+and not regexp_like (thin_name, '\dm(c*)g/[[:digit:]\,\.]+m(c*)g')
 ;
 --select * from thin_comp where lower( thin_name) LIKE '%hypromellose%'
 ;
@@ -407,11 +411,6 @@ ADD volume varchar (20)
 update thin_comp set volume = regexp_substr  (thin_name,' [[:digit:]\.]+(litre(s?)|ml)')
 where regexp_Like (thin_name,' [[:digit:]\.]+(litre(s?)|ml)')
 --209 rows 
-;
--- update thin_comp set volume = regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)')
---where regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)') is not null
--- and (  regexp_substr (regexp_substr (thin_name, '[[:digit:]\.]+\s*(ml|g|litre|mg) (pre-filled syringes|bags|bottles|vials|applicators|sachets|ampoules)'), '[[:digit:]\.]+\s*(ml|g|litre|mg)') != dosage or dosage is null)
---it gives only 57 rows, needs further checks 
 ;
 CREATE INDEX drug_comp_ix ON thin_comp (lower (drug_comp))  
 ;
@@ -433,21 +432,12 @@ on (
  lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
  )
 and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT',-- 'LPD_Australia', 'DPD',
-'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and b.invalid_reason is null
+'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and ( b.invalid_reason is null or b.invalid_reason ='U')
 where a.domain_id ='Drug')
 --take the longest ingredient
 where rank1 = 1 
 )
 ;
---select count (1) from concept where vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and invalid_reason is null
-;
---select * from i_map
-;
---21179046 Co-codamol??
---ok. define ingredients
-;
---i_map generated ingredient is better when it's mono-component drug
---somehow it should be reviewed manualy
 drop table rel_to_ing_1 ;
 create table rel_to_ing_1 as
 select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.GEMSCRIPT_NAME,i.VOLUME
@@ -455,27 +445,112 @@ select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.
 i_map i
  join (
 select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
-) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq') 
+) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by' ) 
   join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%'
 ;
+--the same but with gemscript_name
+--make standard representation of multicomponent drugs
 
---select * from rel_to_ing_1 where thin_name ='Diazepam 5mg/5ml oral suspension'
+update thin_need_to_map 
+set gemscript_name = regexp_replace (gemscript_name, '%/','% / ') 
+where regexp_like (gemscript_name, '%/') and domain_id= 'Drug'
 ;
---select * from thin_need_to_map where thin_code not in (
---select thin_code from rel_to_ing_1
---)
---and domain_id = 'Drug'
+update thin_need_to_map 
+set gemscript_name = regexp_replace (gemscript_name, ' with ',' / ') 
+where regexp_like (gemscript_name, ' with ') and not regexp_like (gemscript_name, ' with \d')  and domain_id= 'Drug'
 ;
---!!! give it as a manaul table
---  select * from thin_comp where volume is not  null;
---  left join rel_to_ing_1 using (DOSAGE,DRUG_COMP,THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME)
+update thin_need_to_map 
+set gemscript_name = regexp_replace (gemscript_name, ' & ',' / ') 
+where regexp_like (gemscript_name, ' & ') and not regexp_like (gemscript_name, ' & \d') and domain_id= 'Drug'
 ;
---take manual table and use it further
+update thin_need_to_map 
+set gemscript_name = regexp_replace (gemscript_name, ' and ',' / ') 
+where regexp_like (gemscript_name, ' and ') and not regexp_like (gemscript_name, ' and \d') and domain_id= 'Drug'
+; 
+commit
 ;
+drop table thin_comp2;
+create table thin_comp2 as 
+select regexp_substr 
+(lower (a.drug_comp), 
+'[[:digit:]\,\.]+(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)/*[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)*')
+ as dosage
+, A.* from (
+select distinct
+trim(regexp_substr(  (regexp_replace (t.gemscript_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp , t.* 
+from thin_need_to_map t,
+table(cast(multiset(select level from dual connect by  level <= length (regexp_replace(regexp_replace (t.gemscript_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels) a
+where a.domain_id ='Drug' 
+--exclusions
+--Bendroflumethiazide / potassium 2.5mg+7.7mmol modified release tablets 
+and not regexp_like (gemscript_name, '[[:digit:]\,\.].*\+[[:digit:]\,\.].*') 
+--Co-triamterzide 50mg/25mg tablets
+and not regexp_like (gemscript_name, '\dm(c*)g/[[:digit:]\,\.]+m(c*)g')
+and thin_code not in (select thin_code from i_map)
+;
+ALTER TABLE thin_comp2
+ADD volume varchar (20)
+;
+--seems to be better volume definition
+update thin_comp2 set volume = regexp_substr  (thin_name,' [[:digit:]\.]+(litre(s?)|ml)')
+where regexp_Like (thin_name,' [[:digit:]\.]+(litre(s?)|ml)')
+;
+ drop table i_map2;
+create table i_map2 as ( -- enhanced algorithm added  lower (a.gemscript_name) like lower '% '||(b.concept_name)||' %'
+select * from 
+(
+select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id,  RANK() OVER (PARTITION BY a.drug_comp ORDER BY
+length(b.concept_name)  desc, b.vocabulary_id desc) as rank1
+--look what happened to previous 4 
+from  thin_comp2 a 
+ join  concept b
+on (  
+ lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
+ )
+and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT',-- 'LPD_Australia', 'DPD',
+'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and b.invalid_reason is null
+where a.domain_id ='Drug')
+--take the longest ingredient
+where rank1 = 1 
+)
+;
+select * from i_map2
+;
+drop table rel_to_ing_2 ;
+create table rel_to_ing_2 as
+select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.GEMSCRIPT_NAME
+, b.concept_id as target_id, b.concept_name as target_name, b.vocabulary_id as target_vocab, b.concept_class_id as target_class from 
+i_map2 i
+ join (
+select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
+) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by') 
+  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%'
+;
+select * from rel_to_ing_2
+; 
+--work with " + + +"
+--create table bla-bla
+with d_plus as (
+select regexp_substr (thin_name, '[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms))*') as dosage_0, t.* from 
+thin_need_to_map t
+where regexp_like (thin_name, '[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms))*') and domain_id ='Drug' 
+)
+select 
+trim (regexp_substr(dosage_0, '[^+]+',1,levels.column_value))  as dosage, 
+trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp ,
+  t.* 
+from d_plus t,
+table(cast(multiset(select level from dual connect by level <= length (regexp_replace(regexp_replace (t.thin_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels 
+;
+
+
+
 --make temp tables as it was in dmd drug procedure
 drop table ds_all_tmp;
 create table ds_all_tmp as 
-select dosage, drug_comp, thin_name as concept_name, thin_code as concept_code, target_name as INGREDIENT_CONCEPT_CODE, target_name as ingredient_concept_name, volume from rel_to_ing_1
+select dosage, drug_comp, thin_name as concept_name, thin_code as concept_code, target_name as INGREDIENT_CONCEPT_CODE, target_name as ingredient_concept_name, volume from rel_to_ing_1 
+union 
+select dosage, drug_comp, thin_name as concept_name, thin_code as concept_code, target_name as INGREDIENT_CONCEPT_CODE, target_name as ingredient_concept_name, volume from rel_to_ing_2
 ;
 --remove ' ' inside the dosage to make the same as it was before in dmd
 update ds_all_tmp set dosage = replace (dosage, ' ')
@@ -998,9 +1073,74 @@ commit
 --for now it runs for about 15 min from the beginning to the end 
 --Co-phenotrope 2.5mg/0.025mg tablets -- need to fix this? how to distiguish it from the concentration
 --Lactulose 10g/15ml oral solution 15ml sachets sugar free  -- somehow it multiplying when there are 10g/15ml
+ 
+/*
+--get some ingredients from the reference table -- shit!
+select * from gemscript_reference ge
+join thin_need_to_map t on gemscript_code = ge.GEMSCRIPTCODE
+left join ds_stage ds on t.thin_code = ds.drug_concept_code 
+where ds.drug_concept_code  is null and t.domain_id = 'Drug' and DRUGSUBSTANCE !='Homoeopathic Remedy'
+;
+--deal with incorrect dosage
+select * from thin_comp where regexp_like (dosage, '\dmg/\d+mg') -- 106
+;
+select * from ds_stage where drug_concept_code = '95351998'
+;
+--this table can be modified, OK to put dosage in a right way
+select * from ds_all_tmp 
+join thin_need_to_map on concept_code = thin_code
+where regexp_like (dosage, '\dm(c*)g/[[:digit:]\,\.]+m(c*)g')
+;
+--if use this approach we can't know which dosage belongs to which drug
+select * from ds_all_tmp 
+join thin_need_to_map on concept_code = thin_code
+--1)
+where regexp_like (thin_name, '\dm(c*)g/[[:digit:]\,\.]+m(c*)g')
+;
+select concept_name from concept where concept_name like '%[Co-trimoxazole]' and concept_class_id = 'Branded Drug'
+;
+ 
+select * from  thin_need_to_map 
+where regexp_like (thin_name, '[[:digit:]\,\.].*\+.*[[:digit:]\,\.].*')
+and domain_id = 'Drug'
+;
+select * from  thin_need_to_map 
+where regexp_like (thin_name, '[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)')
+and domain_id = 'Drug'
+ ;
+drop table thin_comp;
+create table thin_comp as 
+select regexp_substr 
+(a.drug_comp, 
+'[[:digit:]\,\.]+(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)/*[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)*(\+[[:digit:]\,\.]+(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)/*[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)*)*')
+ as dosage
+, A.* from (
+select distinct
+trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp , t.* 
+from thin_need_to_map t,
+table(cast(multiset(select level from dual connect by  level <= length (regexp_replace(regexp_replace (t.thin_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels) a
+where a.domain_id ='Drug' 
+--exclusions
+--Bendroflumethiazide / potassium 2.5mg+7.7mmol modified release tablets 
+and not regexp_like (thin_name, '[[:digit:]\,\.].*\+[[:digit:]\,\.].*') 
+--Co-triamterzide 50mg/25mg tablets
+and not regexp_like (thin_name, '\dm(c*)g/[[:digit:]\,\.]+m(c*)g')
+;
 
---so why the hell did we used this in dm+d? need to check dm+d
---update ds_all a
---set numerator_value =numerator_value*denominator_value
---where concept_code in (select concept_code from thin_need_to_map where regexp_like (thin_name , '[[:digit:]\.]+.*/ml.*[[:digit:]\.]+ml'))
---and numerator_value is not null and denominator_value is not null and numerator_unit !='%'
+
+--packs 
+select * from thin_need_to_map where regexp_like (thin_name, 'Ethinylestradiol')
+;
+*/
+with d_plus as (
+select regexp_substr (thin_name, '[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms))*') as dosage_0, t.* from 
+thin_need_to_map t
+where regexp_like (thin_name, '[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms))*') and domain_id ='Drug' 
+)
+select 
+trim (regexp_substr(dosage_0, '[^+]+',1,levels.column_value))  as dosage, 
+trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp ,
+  t.* 
+from d_plus t,
+table(cast(multiset(select level from dual connect by level <= length (regexp_replace(regexp_replace (t.thin_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels 
+;

@@ -1271,7 +1271,28 @@ DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'J06BB10' AND conc
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'M09AA01' AND concept_code_2 = '27220' AND relationship_id = 'ATC - RxNorm';
 COMMIT;
 
---25 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
+--25 Deprecate relationships between multi ingredient drugs and a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
+delete from concept_relationship_stage
+  where rowid in (
+    select drug2atc.row_id from (
+        select c.concept_code From drug_strength ds
+        join concept c on c.concept_id=ds.drug_concept_id and c.vocabulary_id='RxNorm'
+        group by c.concept_code having count(*)>1
+    ) all_drugs
+    join (
+        select * from (
+            select crs.rowid row_id, crs.concept_code_2, count(*) over(partition by crs.concept_code_2) cnt_atc 
+            from concept_relationship_stage crs
+            join concept_stage cs on cs.concept_code=crs.concept_code_1 and cs.vocabulary_id=crs.vocabulary_id_1 and cs.vocabulary_id='ATC' and cs.concept_class_id='ATC 5th'
+            and not regexp_like (cs.concept_name,'preparations|virus|antigen|-|/|organisms|insulin|etc\.|influenza|human menopausal gonadotrophin|combination|amino acids|electrolytes| and |excl\.| with |others|various')  
+            join concept c on  c.concept_code=crs.concept_code_2 and c.vocabulary_id=crs.vocabulary_id_2 and c.vocabulary_id='RxNorm'  
+            where crs.relationship_id='ATC - RxNorm' and crs.invalid_reason is null
+        ) where cnt_atc=1
+    ) drug2atc on drug2atc.concept_code_2=all_drugs.concept_code
+);
+commit;
+
+--26 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -1304,31 +1325,31 @@ SELECT DISTINCT
              AND r.lat = 'ENG';
 COMMIT;
 
---26 Working with replacement mappings
+--27 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---27 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--28 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;	
 
---28 Add mapping from deprecated to fresh concepts
+--29 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;		 
 
---29 Delete ambiguous 'Maps to' mappings
+--30 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---30 Clean up
+--31 Clean up
 DROP TABLE drug_vocs PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

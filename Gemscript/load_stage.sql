@@ -1127,4 +1127,17 @@ check this one after next run
 ;
 select * from ds_all_tmp where CONCEPT_CODE = '60321979'
 ;
+
+QA - 05/18/2017 morning
+ 
+non-standard ingredients dont have replacemt mapping 	1115
+mg/mg >1	18
+ds_stage dublicates	4
+impossible combination of values and units in ds_stage	3
+concept overlaps with other one by target concept, please look also onto rigth sight of query result	3
+map to unit that doesn't exist in RxNorm	3
+short names but not a Unit	1
+different classes in concept_code_1 and concept_id_2	1
+Concept_code_1 - precedence duplicates	1
+map to non-stand_ingredient	1
 */

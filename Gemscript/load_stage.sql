@@ -1132,6 +1132,11 @@ check thin one after next run
 select * from ds_all_tmp where CONCEPT_CODE = '60321979'
 ;
 
+<<<<<<< HEAD
+=======
+QA - 05/18/2017 morning
+ 
+>>>>>>> 69cc3f67ca94beaa919856e50e70598265d580a5
 non-standard ingredients dont have replacemt mapping 	1115
 mg/mg >1	18
 ds_stage dublicates	4
@@ -1142,7 +1147,11 @@ short names but not a Unit	1
 different classes in concept_code_1 and concept_id_2	1
 Concept_code_1 - precedence duplicates	1
 map to non-stand_ingredient	1
+<<<<<<< HEAD
 relationship_to_concept concept_code_1_2 duplicates	1
 */
 
 --!!! exclude .c .d combinations from dosage definition
+=======
+*/
+>>>>>>> 69cc3f67ca94beaa919856e50e70598265d580a5

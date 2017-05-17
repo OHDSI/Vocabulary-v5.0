@@ -483,7 +483,7 @@ i_map i
  join (
 select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
 ) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by' ) 
-  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%'
+  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null
 ;
 
 --check the cases when not the all components are mapped:
@@ -551,7 +551,7 @@ i_map2 i
  join (
 select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
 ) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by') 
-  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%'
+  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null
  ;
  select * from rel_to_ing_2
 ; 
@@ -593,7 +593,7 @@ then regexp_replace (regexp_substr (dosage, '^[[:digit:]\,\.]+') , ',')
     when ( regexp_substr (dosage,
  '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = dosage
 or regexp_like (dosage, '%') 
-) and regexp_substr (volume, '[[:digit:]\,\.]+') is not null then cast (  regexp_substr (volume, '[[:digit:]\,\.]+') * regexp_replace (regexp_substr (dosage, '^[[:digit:]\,\.]+') , ',') as varchar (250))
+) and regexp_substr (volume, '[[:digit:]\,\.]+') is not null then cast (  regexp_substr (volume, '[[:digit:]\,\.]+') * regexp_replace (regexp_substr (dosage, '^[[:digit:]\,\.]+') , ',') as varchar (250)) / nvl ( denominator_value, 1)
 else  null end
 as numerator_value,
 
@@ -674,6 +674,10 @@ set DENOMINATOR_UNIT = '' where DENOMINATOR_UNIT ='ampoule'
 update ds_Stage
 set DENOMINATOR_UNIT = replace (DENOMINATOR_UNIT, ' ') where DENOMINATOR_UNIT like '% %'
  ;
+delete from ds_Stage where ingredient_concept_code ='Syrup'
+;
+delete from ds_Stage where 0 in (numerator_value,amount_value,denominator_value)
+;
 commit
 ; 
 --percents
@@ -872,7 +876,7 @@ where rank1 = 1
 ;
 --fix inacurracies
 --change from vaginal gel to Topical gel
-update f_map set concept_id_2 =  19095973
+update f_map set concept_id_2 =  19095973, CONCEPT_NAME_2 = 'Topical Gel'
 where 
 concept_id_2 = 
 19010880
@@ -1014,7 +1018,7 @@ to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from 
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select distinct '', CONCEPT_NAME, 'Drug', 'Gemscript', 'Unit', '', CONCEPT_NAME, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN' from dev_dmd.DRUG_CONCEPT_STAGE_042017  WHERE concept_class_id= 'Unit' 
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN' from dev_dmd.DRUG_CONCEPT_STAGE_042017  WHERE concept_class_id= 'Unit' and concept_code !='ml '
  ;
 commit
 ;
@@ -1051,3 +1055,24 @@ and precedence = 1
 --need to change the mapping from mcg to 1000 mg
 ;
 commit
+--mapping to the wrong vocab , check the "old" table consists from relationship_to_concept
+;
+QA results table:
+non-standard ingredients dont have replacemt mapping 	1119
+wrong dosages > 1000, with conversion	20
+wrong dosages > 1000	19
+mg/mg >1	18
+ds_stage dublicates	12
+impossible combination of values and units in ds_stage	8
+concept overlaps with other one by target concept, please look also onto rigth sight of query result	6
+map to unit that doesn't exist in RxNorm	4
+Wrong vocabulary mapping	3
+map to non-stand_ingredient	3
+different classes in concept_code_1 and concept_id_2	2
+Concept_code_1 - precedence duplicates	2
+relationship_to_concept concept_code_1_2 duplicates	2
+short names but not a Unit	1
+wrong dosages > 1	1
+invalid_concept_id_2	1
+Unit without mapping	1
+Duplicate concept code	1

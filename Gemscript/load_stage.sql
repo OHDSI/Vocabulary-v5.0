@@ -563,19 +563,19 @@ select concept_id_1,relationship_id, concept_id_2 from concept_relationship wher
  ;
  select * from rel_to_ing_2
 ; 
---!!! manual table
-select * from ds_all_tmp where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g');
---then merge it with ds_all_tmp, for now temporary decision - make dosages NULL to avoid bug
-update ds_all_tmp set dosage = null where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g')
-;
-commit
-;
 --make temp tables as it was in dmd drug procedure
 drop table ds_all_tmp; 
 create table ds_all_tmp as 
 select dosage, drug_comp, thin_name as concept_name, thin_code as concept_code, target_name as INGREDIENT_CONCEPT_CODE, target_name as ingredient_concept_name, trim (volume) as volume from rel_to_ing_1 
 union 
 select dosage, drug_comp, thin_name as concept_name, thin_code as concept_code, target_name as INGREDIENT_CONCEPT_CODE, target_name as ingredient_concept_name, trim (volume)  as volume  from rel_to_ing_2
+;
+--!!! manual table
+select * from ds_all_tmp where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g');
+--then merge it with ds_all_tmp, for now temporary decision - make dosages NULL to avoid bug
+update ds_all_tmp set dosage = null where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g')
+;
+commit
 ;
 --remove ' ' inside the dosage to make the same as it was before in dmd
 update ds_all_tmp set dosage = replace (dosage, ' ')
@@ -1120,11 +1120,29 @@ wrong dosages > 1	1
 invalid_concept_id_2	1
 Unit without mapping	1
 Duplicate concept code	1
-
 ;
-check this one after next run
+Packs 
+91130998
+32321978
+83792998   Sodium valproate / valproic acid 500mg modified release granules
+;
+check thin one after next run
 60321979 Lactulose 10g/15ml oral solution 15ml sachets sugar free, should be 10g/15 ml, not a 150 g / 15 ml
 ;
 select * from ds_all_tmp where CONCEPT_CODE = '60321979'
 ;
+
+non-standard ingredients dont have replacemt mapping 	1115
+mg/mg >1	18
+ds_stage dublicates	4
+impossible combination of values and units in ds_stage	3
+concept overlaps with other one by target concept, please look also onto rigth sight of query result	3
+map to unit that doesn't exist in RxNorm	3
+short names but not a Unit	1
+different classes in concept_code_1 and concept_id_2	1
+Concept_code_1 - precedence duplicates	1
+map to non-stand_ingredient	1
+relationship_to_concept concept_code_1_2 duplicates	1
 */
+
+--!!! exclude .c .d combinations from dosage definition

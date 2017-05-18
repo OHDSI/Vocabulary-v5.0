@@ -408,16 +408,19 @@ where regexp_like (gemscript_name, ' & ') and not regexp_like (gemscript_name, '
 update thin_need_to_map 
 set gemscript_name = regexp_replace (gemscript_name, ' and ',' / ') 
 where regexp_like (gemscript_name, ' and ') and not regexp_like (gemscript_name, ' and \d') and domain_id= 'Drug'
-; 
-commit
 ;
-select * from thin_need_to_map where gemscript_name like '% / %' and thin_name not like '% / %'
+update thin_need_to_map set THIN_NAME = regexp_replace (THIN_NAME, 'i.u.','iu')  where thin_name like '%i.u.%'
+;
+update thin_need_to_map set gemscript_name = regexp_replace (gemscript_name, 'i.u.','iu')  where gemscript_name like '%i.u.%'
+;
+commit
+ 
 ;
 drop table thin_comp;
 create table thin_comp as 
 select regexp_substr 
 (a.drug_comp, 
-'[[:digit:]\,\.]+(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)/*[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)*') as dosage
+'((\d)*[.,]*\d+)(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)(/((\d)*[.,]*\d+)*(\s*)(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop))*') as dosage
 ,  replace ( trim (regexp_substr  (thin_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume, A.* 
  from (
 select distinct
@@ -438,12 +441,12 @@ trim (regexp_substr(dosage_0, '[^+]+',1,levels.column_value)) ||denom
 trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp 
     ,THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID 
 from (
-select regexp_substr (thin_name, '[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
+select regexp_substr (thin_name, '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
 regexp_substr (THIN_NAME , '/[[:digit:]\,\.]+(ml| hr)') as denom,
 replace ( trim (regexp_substr  (thin_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume,
  t.* from 
 thin_need_to_map t
-where regexp_like (thin_name, '[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms))*') and domain_id ='Drug' 
+where regexp_like (thin_name, '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*') and domain_id ='Drug' 
 ) t,
 table(cast(multiset(select level from dual connect by level <= length (regexp_replace(regexp_replace (t.thin_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels 
 ;
@@ -491,7 +494,8 @@ i_map i
  join (
 select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
 ) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by' ) 
-  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null
+  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null 
+  and b.concept_id !=  21014036 -- Syrup Ingredient
 ;
 
 --check the cases when not the all components are mapped:
@@ -508,7 +512,7 @@ drop table thin_comp2;
 create table thin_comp2 as 
 select regexp_substr 
 (lower (a.drug_comp), 
-'[[:digit:]\,\.]+(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)/*[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)*')
+'((\d)*[.,]*\d+)(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)(/((\d)*[.,]*\d+)(\s)*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop))*')
  as dosage
 , A.* from (
 select distinct
@@ -560,8 +564,7 @@ i_map2 i
 select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
 ) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by') 
   join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null
- ;
- select * from rel_to_ing_2
+    and b.concept_id !=  21014036 -- Syrup Ingredient
 ; 
 --make temp tables as it was in dmd drug procedure
 drop table ds_all_tmp; 
@@ -571,7 +574,12 @@ union
 select dosage, drug_comp, thin_name as concept_name, thin_code as concept_code, target_name as INGREDIENT_CONCEPT_CODE, target_name as ingredient_concept_name, trim (volume)  as volume  from rel_to_ing_2
 ;
 --!!! manual table
-select * from ds_all_tmp where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g');
+select t.*, gemscript_name from ds_all_tmp t
+join thin_need_to_map on concept_code = thin_code
+where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g');
+
+merge 
+
 --then merge it with ds_all_tmp, for now temporary decision - make dosages NULL to avoid bug
 update ds_all_tmp set dosage = null where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g')
 ;
@@ -1095,63 +1103,78 @@ UPDATE RELATIONSHIP_TO_CONCEPT
        CONVERSION_FACTOR = 0.001
 WHERE CONCEPT_CODE_1 = 'mcg'
 ;
+update relationship_to_concept set concept_id_2 = 19069149 where concept_id_2 = 46274409
+;
+--mapping to U instead of iU
+update relationship_to_concept set concept_id_2 = 8510  where concept_id_2 =  8718
+;
+--RxE builder requires Ingredients used in relationships to be a standard
+update drug_concept_stage set Standard_concept ='S' where concept_class_id = 'Ingredient'
+;
 commit
 ;
+--ds_stage shouldn't have empty dosage
+delete from 
+  ds_stage 
+ where coalesce(amount_value, numerator_value, 0)=0 -- needs to have at least one value, zeros don't count
+  or coalesce(amount_unit, numerator_unit) is null -- needs to have at least one unit
+  or (amount_value is not null and amount_unit is null) -- if there is an amount record, there must be a unit
+  or (nvl(numerator_value, 0)!=0 and coalesce(numerator_unit, denominator_unit) is null) -- if there is a concentration record there must be a unit in both numerator and denominator
+  or amount_unit='%' -- % should be in the numerator_unit
+  ;
+commit
+;  
 
---mapping to the wrong vocab , check the "old" table consists from relationship_to_concept
+declare
+ ex number;
+begin
+select max(iex)+1 into ex from (  
+    select cast(substr(concept_code, 5) as integer) as iex from drug_concept_stage where concept_code like 'OMOP%' and concept_code not like '% %' -- Last valid value of the OMOP123-type codes
+  union
+    select cast(substr(concept_code, 5) as integer) as iex from concept where concept_code like 'OMOP%' and concept_code not like '% %'
+);
+  begin
+    execute immediate 'create sequence code_seq increment by 1 start with ' || ex || ' nocycle cache 20 noorder';
+    exception
+      when others then null;
+  end;
+end;
+/
 
-/*
-QA results table (05/17/2017):
-non-standard ingredients dont have replacemt mapping 	1119
-wrong dosages > 1000, with conversion	20
-wrong dosages > 1000	19
-mg/mg >1	18
-ds_stage dublicates	12
-impossible combination of values and units in ds_stage	8
-concept overlaps with other one by target concept, please look also onto rigth sight of query result	6 -- check what extension_ds is - is it already converted?
-map to unit that doesn't exist in RxNorm	4
-Wrong vocabulary mapping	3 --looks suspicious --need to check then 
-map to non-stand_ingredient	3
-different classes in concept_code_1 and concept_id_2	2
-Concept_code_1 - precedence duplicates	2
-relationship_to_concept concept_code_1_2 duplicates	2
-short names but not a Unit	1
-wrong dosages > 1	1
-invalid_concept_id_2	1
-Unit without mapping	1
-Duplicate concept code	1
+drop table    omop_replace; code_replace;
+ create table code_replace as 
+ select 'OMOP'||code_seq.nextval as new_code, concept_code as old_code from (
+select distinct  concept_code from drug_concept_stage where concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form')
+)
 ;
-Packs 
-91130998
-32321978
-83792998   Sodium valproate / valproic acid 500mg modified release granules
+update drug_concept_stage a set concept_code = (select new_code from code_replace b where a.concept_code = b.old_code) 
+where a.concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form')
+;--select * from code_replace where old_code ='OMOP28663';
+commit
 ;
-check thin one after next run
-60321979 Lactulose 10g/15ml oral solution 15ml sachets sugar free, should be 10g/15 ml, not a 150 g / 15 ml
+update relationship_to_concept a  set concept_code_1 = (select new_code from code_replace b where a.concept_code_1 = b.old_code)
+where exists (select 1 from code_replace b where a.concept_code_1 = b.old_code)
 ;
-select * from ds_all_tmp where CONCEPT_CODE = '60321979'
+commit
 ;
-
-<<<<<<< HEAD
-=======
-QA - 05/18/2017 morning
+update ds_stage a  set ingredient_concept_code = (select new_code from code_replace b where a.ingredient_concept_code = b.old_code)
+where exists (select 1 from code_replace b where a.ingredient_concept_code = b.old_code)
+;
+commit
+;
  
->>>>>>> 69cc3f67ca94beaa919856e50e70598265d580a5
-non-standard ingredients dont have replacemt mapping 	1115
-mg/mg >1	18
-ds_stage dublicates	4
-impossible combination of values and units in ds_stage	3
-concept overlaps with other one by target concept, please look also onto rigth sight of query result	3
-map to unit that doesn't exist in RxNorm	3
-short names but not a Unit	1
-different classes in concept_code_1 and concept_id_2	1
-Concept_code_1 - precedence duplicates	1
-map to non-stand_ingredient	1
-<<<<<<< HEAD
-relationship_to_concept concept_code_1_2 duplicates	1
-*/
-
---!!! exclude .c .d combinations from dosage definition
-=======
-*/
->>>>>>> 69cc3f67ca94beaa919856e50e70598265d580a5
+update internal_relationship_stage a  set concept_code_1 = (select new_code from code_replace b where a.concept_code_1 = b.old_code)
+where exists (select 1 from code_replace b where a.concept_code_1 = b.old_code)
+;
+commit
+;
+update internal_relationship_stage a  set concept_code_2 = (select new_code from code_replace b where a.concept_code_2 = b.old_code)
+where exists (select 1 from code_replace b where a.concept_code_2 = b.old_code)
+;
+commit
+;
+update pc_stage a  set DRUG_CONCEPT_CODE = (select new_code from code_replace b where a.DRUG_CONCEPT_CODE = b.old_code)
+where exists (select 1 from code_replace b where a.DRUG_CONCEPT_CODE = b.old_code)
+;
+commit
+;

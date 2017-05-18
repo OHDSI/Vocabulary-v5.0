@@ -686,7 +686,7 @@ order by 4 desc;
 -- clean up
 drop table component_replace purge;
 drop table unit_to_concept_map purge;
-drop table rxnorm_ancestor purge;
+--drop table rxnorm_ancestor purge; --cannot drop because the table needs later in load_stage
 
 -- delete unparsable records
 delete from drug_strength_stage where coalesce(amount_unit_concept_id, 0)=0 and coalesce(numerator_unit_concept_id, 0)=0;

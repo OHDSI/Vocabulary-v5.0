@@ -1253,15 +1253,14 @@ DELETE FROM concept_relationship_stage
 				   AND c1.concept_class_id = 'ATC 5th'
 				   AND c1.invalid_reason IS NULL
 				   AND c2.vocabulary_id = 'RxNorm'
-				   AND c2.concept_class_id IN ('Ingredient','Precise Ingredient') /*AVOF-322*/
-				   AND crs.relationship_id = 'ATC - RxNorm'
+				   --AND c2.concept_class_id IN ('Ingredient','Precise Ingredient') /*AVOF-322*/
+				   AND crs.relationship_id in ('ATC - RxNorm','ATC - RxNorm name')
 				   AND crs.invalid_reason IS NULL
 				   AND c1.concept_name IN (  SELECT c_int.concept_name
 											   FROM concept_stage c_int
 											  WHERE c_int.vocabulary_id = 'ATC' AND c_int.concept_class_id = 'ATC 5th' AND c_int.invalid_reason IS NULL AND c_int.concept_name <> 'combinations'
 										   GROUP BY c_int.concept_name
 											 HAVING COUNT (*) > 1));
-
 COMMIT;
 
 --24 Remove ATC's duplicates (AVOF-322)
@@ -1272,12 +1271,63 @@ DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'M09AA01' AND conc
 COMMIT;
 
 --25 Deprecate relationships between multi ingredient drugs and a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
+--25.1 Create temporary table drug_strength_ext (same code as in concept_ancestor, but we exclude ds for ingredients (because we use count(*)>1 and ds for ingredients having count(*)=1) and only for RxNorm)
+CREATE TABLE drug_strength_ext as
+        SELECT *
+          FROM (WITH ingredient_unit
+                     AS (SELECT DISTINCT
+                                -- pick the most common unit for an ingredient. If there is a draw, pick always the same by sorting by unit_concept_id
+                                ingredient_concept_code, vocabulary_id, FIRST_VALUE (unit_concept_id) OVER (PARTITION BY ingredient_concept_code ORDER BY cnt DESC, unit_concept_id) AS unit_concept_id
+                           FROM (  -- sum the counts coming from amount and numerator
+                                   SELECT ingredient_concept_code,
+                                          vocabulary_id,
+                                          unit_concept_id,
+                                          SUM (cnt) AS cnt
+                                     FROM (
+                                           -- count ingredients, their units and the frequency
+                                           SELECT   c2.concept_code AS ingredient_concept_code,
+                                                    c2.vocabulary_id,
+                                                    ds.amount_unit_concept_id AS unit_concept_id,
+                                                    COUNT (*) AS cnt
+                                               FROM drug_strength ds
+                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id = 'RxNorm'
+                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id = 'RxNorm'
+                                              WHERE ds.amount_value <> 0
+                                           GROUP BY c2.concept_code, c2.vocabulary_id, ds.amount_unit_concept_id
+                                           UNION
+                                             SELECT c2.concept_code AS ingredient_concept_code,
+                                                    c2.vocabulary_id,
+                                                    ds.numerator_unit_concept_id AS unit_concept_id,
+                                                    COUNT (*) AS cnt
+                                               FROM drug_strength ds
+                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id = 'RxNorm'
+                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id = 'RxNorm'
+                                              WHERE ds.numerator_value <> 0
+                                           GROUP BY c2.concept_code, c2.vocabulary_id, ds.numerator_unit_concept_id)
+                                 GROUP BY ingredient_concept_code, vocabulary_id, unit_concept_id))
+                -- Create drug_strength for drug forms
+                SELECT de.concept_code AS drug_concept_code,
+                       an.concept_code AS ingredient_concept_code
+                  FROM concept an
+                       JOIN rxnorm_ancestor a ON a.ancestor_concept_code = an.concept_code and a.ancestor_vocabulary_id=an.vocabulary_id
+                       JOIN concept de ON de.concept_code = a.descendant_concept_code and de.vocabulary_id=a.descendant_vocabulary_id
+                       JOIN ingredient_unit iu ON iu.ingredient_concept_code = an.concept_code AND iu.vocabulary_id = an.vocabulary_id
+                 WHERE     an.vocabulary_id = 'RxNorm'
+                       AND an.concept_class_id = 'Ingredient'
+                       AND de.vocabulary_id = 'RxNorm'
+                       AND de.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form'));
+--25.2 Do deprecation
 delete from concept_relationship_stage
   where rowid in (
     select drug2atc.row_id from (
-        select c.concept_code From drug_strength ds
-        join concept c on c.concept_id=ds.drug_concept_id and c.vocabulary_id='RxNorm'
-        group by c.concept_code having count(*)>1
+        select drug_concept_code from (
+			select c1.concept_code as drug_concept_code, c2.concept_code from drug_strength ds
+			join concept c1 on c1.concept_id=ds.drug_concept_id and c1.vocabulary_id='RxNorm'
+			join concept c2 on c2.concept_id=ds.ingredient_concept_id
+			union
+			select drug_concept_code, ingredient_concept_code from drug_strength_ext
+		)
+        group by drug_concept_code having count(*)>1
     ) all_drugs
     join (
         select * from (
@@ -1288,7 +1338,7 @@ delete from concept_relationship_stage
             join concept c on  c.concept_code=crs.concept_code_2 and c.vocabulary_id=crs.vocabulary_id_2 and c.vocabulary_id='RxNorm'  
             where crs.relationship_id='ATC - RxNorm' and crs.invalid_reason is null
         ) where cnt_atc=1
-    ) drug2atc on drug2atc.concept_code_2=all_drugs.concept_code
+    ) drug2atc on drug2atc.concept_code_2=all_drugs.drug_concept_code
 );
 commit;
 
@@ -1351,5 +1401,7 @@ COMMIT;
 
 --31 Clean up
 DROP TABLE drug_vocs PURGE;
+DROP TABLE rxnorm_ancestor PURGE;
+DROP TABLE drug_strength_ext PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

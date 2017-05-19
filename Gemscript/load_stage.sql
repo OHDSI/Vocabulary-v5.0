@@ -380,8 +380,12 @@ set THIN_NAME = regexp_replace (THIN_NAME, '%/','% / ')
 where regexp_like (thin_name, '%/') and domain_id= 'Drug'
 ;
 update thin_need_to_map 
-set THIN_NAME = regexp_replace (THIN_NAME, ' with ',' / ') 
-where regexp_like (thin_name, ' with ') and not regexp_like (thin_name, ' with \d')  and domain_id= 'Drug'
+set THIN_NAME = regexp_replace (thin_name, '( with )(\D)',' / \2')
+where regexp_like (thin_name, ' with ') and domain_id= 'Drug'
+;
+update thin_need_to_map 
+set THIN_NAME = regexp_replace (thin_name, '( with )(\d)','+\2')
+where regexp_like (thin_name, ' with ') and domain_id= 'Drug'
 ;
 update thin_need_to_map 
 set THIN_NAME = regexp_replace (THIN_NAME, ' & ',' / ') 
@@ -398,8 +402,12 @@ set gemscript_name = regexp_replace (gemscript_name, '%/','% / ')
 where regexp_like (gemscript_name, '%/') and domain_id= 'Drug'
 ;
 update thin_need_to_map 
-set gemscript_name = regexp_replace (gemscript_name, ' with ',' / ') 
-where regexp_like (gemscript_name, ' with ') and not regexp_like (gemscript_name, ' with \d')  and domain_id= 'Drug'
+set gemscript_name = regexp_replace (gemscript_name, '( with )(\D)',' / \2')
+where regexp_like (gemscript_name, ' with ')   and domain_id= 'Drug'
+;
+update thin_need_to_map 
+set THIN_NAME = regexp_replace (gemscript_name, '( with )(\d)','+\2')
+where regexp_like (gemscript_name, ' with ') and domain_id= 'Drug'
 ;
 update thin_need_to_map 
 set gemscript_name = regexp_replace (gemscript_name, ' & ',' / ') 
@@ -414,7 +422,6 @@ update thin_need_to_map set THIN_NAME = regexp_replace (THIN_NAME, 'i.u.','iu') 
 update thin_need_to_map set gemscript_name = regexp_replace (gemscript_name, 'i.u.','iu')  where gemscript_name like '%i.u.%'
 ;
 commit
- 
 ;
 drop table thin_comp;
 create table thin_comp as 
@@ -441,12 +448,12 @@ trim (regexp_substr(dosage_0, '[^+]+',1,levels.column_value)) ||denom
 trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp 
     ,THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID 
 from (
-select regexp_substr (thin_name, '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
+select regexp_substr (thin_name, '((\d)*[.,]*\d+)(\s)*(g|mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(g|mg|%|mcg|iu|mmol|micrograms|ku)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(g|mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
 regexp_substr (THIN_NAME , '/[[:digit:]\,\.]+(ml| hr)') as denom,
 replace ( trim (regexp_substr  (thin_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume,
  t.* from 
 thin_need_to_map t
-where regexp_like (thin_name, '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*') and domain_id ='Drug' 
+where regexp_like (thin_name, '((\d)*[.,]*\d+)(\s)*(g|mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(g|mg|%|mcg|iu|mmol|micrograms|ku)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(g|mg|%|mcg|iu|mmol|micrograms))*') and domain_id ='Drug' 
 ) t,
 table(cast(multiset(select level from dual connect by level <= length (regexp_replace(regexp_replace (t.thin_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels 
 ;
@@ -508,13 +515,15 @@ where cnt != sl_cnt +1
 */ 
 --the same but with gemscript_name
 --make standard representation of multicomponent drugs
+--select count(*) from thin_comp2 ; select * from thin_comp where thin_code = '97245997'; select * from rel_to_ing_1 where thin_code is null;
+;
 drop table thin_comp2;
 create table thin_comp2 as 
 select regexp_substr 
-(lower (a.drug_comp), 
-'((\d)*[.,]*\d+)(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)(/((\d)*[.,]*\d+)(\s)*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop))*')
- as dosage
-, A.* from (
+(a.drug_comp, 
+'((\d)*[.,]*\d+)(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)(/((\d)*[.,]*\d+)*(\s*)(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop))*') as dosage
+,  replace ( trim (regexp_substr  (gemscript_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume, A.* 
+ from (
 select distinct
 trim(regexp_substr(  (regexp_replace (t.gemscript_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp , t.* 
 from thin_need_to_map t,
@@ -522,19 +531,37 @@ table(cast(multiset(select level from dual connect by  level <= length (regexp_r
 where a.domain_id ='Drug' 
 --exclusions
 --Bendroflumethiazide / potassium 2.5mg+7.7mmol modified release tablets 
-and not regexp_like (gemscript_name, '[[:digit:]\,\.].*\+[[:digit:]\,\.].*') 
+and not regexp_like (gemscript_name, '[[:digit:]\,\.]+.*\+(\s*)[[:digit:]\,\.].*') 
+and thin_code not in (select thin_code from rel_to_ing_1)
 --Co-triamterzide 50mg/25mg tablets
-and not regexp_like (gemscript_name, '\dm(c*)g/[[:digit:]\,\.]+m(c*)g')
-and thin_code not in (select thin_code from i_map)
+--and not regexp_like (gemscript_name, '\dm(c*)g/[[:digit:]\,\.]+m(c*)g')
+union
+--Bendroflumethiazide / potassium 2.5mg+7.7mmol modified release tablets 
+ select 
+trim (regexp_substr(dosage_0, '[^+]+',1,levels.column_value)) ||denom  
+  as dosage, volume,
+trim(regexp_substr(  (regexp_replace (t.gemscript_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp 
+    ,THIN_CODE,gemscript_name,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID 
+from (
+select regexp_substr (gemscript_name, '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
+regexp_substr (gemscript_name , '/[[:digit:]\,\.]+(ml| hr)') as denom,
+replace ( trim (regexp_substr  (gemscript_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume,
+ t.* from 
+thin_need_to_map t
+where regexp_like (gemscript_name, '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*')
+ and domain_id ='Drug' and thin_code not in (select thin_code from rel_to_ing_1)
+) t,
+table(cast(multiset(select level from dual connect by level <= length (regexp_replace(regexp_replace (t.gemscript_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels 
 ;
-ALTER TABLE thin_comp2
-ADD volume varchar (20)
+--/ampoule is treated as denominator then
+update thin_comp2 set dosage = replace (dosage, '/ampoule') where dosage like '%/ampoule'
 ;
---seems to be better volume definition
-update thin_comp2 set volume = regexp_substr  (thin_name,' [[:digit:]\.]+(litre(s?)|ml)')
-where regexp_Like (thin_name,' [[:digit:]\.]+(litre(s?)|ml)')
+--',c is treated as dosage
+update thin_comp2 set dosage = null where regexp_like (dosage, '^\,')
 ;
- drop table i_map2;
+commit
+;
+drop table i_map2;
 create table i_map2 as ( -- enhanced algorithm added  lower (a.gemscript_name) like lower '% '||(b.concept_name)||' %'
 select * from 
 (
@@ -574,11 +601,46 @@ union
 select dosage, drug_comp, thin_name as concept_name, thin_code as concept_code, target_name as INGREDIENT_CONCEPT_CODE, target_name as ingredient_concept_name, trim (volume)  as volume  from rel_to_ing_2
 ;
 --!!! manual table
-select t.*, gemscript_name from ds_all_tmp t
+drop table manual_out_co_dose ;
+create table manual_out_co_dose as
+select DOSAGE	VOLUME	,INGREDIENT_CONCEPT_CODE,	CONCEPT_NAME,	CONCEPT_CODE
+, gemscript_name from ds_all_tmp t
 join thin_need_to_map on concept_code = thin_code
 where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g');
 
-merge 
+
+--!!! give it to medical coder
+;
+drop table manual_in_co_dose;
+create table manual_in_co_dose as
+select DOSAGE	,VOLUME	,INGREDIENT_CONCEPT_CODE,	CONCEPT_NAME,	CONCEPT_CODE
+, gemscript_name from ds_all_tmp t
+join thin_need_to_map on concept_code = thin_code
+where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g')
+and rownum =0
+;
+--here goes import script, file manual_in_co_dose.txt (tab delimited is on a github)
+WbImport -file=C:/work/manual_in_co_dose.txt
+         -type=text
+         -table=MANUAL_IN_CO_DOSE
+         -encoding="ISO-8859-15"
+         -header=true
+         -decode=false
+         -dateFormat="yyyy-MM-dd"
+         -timestampFormat="yyyy-MM-dd HH:mm:ss"
+         -delimiter='\t'
+         -decimal=.
+         -fileColumns=DOSAGE,VOLUME,INGREDIENT_CONCEPT_CODE,CONCEPT_NAME,CONCEPT_CODE,GEMSCRIPT_NAME
+         -quoteCharEscaping=none
+         -ignoreIdentityColumns=false
+         -deleteTarget=false
+         -continueOnError=false
+         -batchSize=100
+;
+
+
+
+
 
 --then merge it with ds_all_tmp, for now temporary decision - make dosages NULL to avoid bug
 update ds_all_tmp set dosage = null where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g')
@@ -936,6 +998,13 @@ and concept_id_2 in (21308470, 46234469, 19082227)
 ;
 commit
 ;
+--manual table for Dose Forms
+select * from thin_need_to_map
+where thin_code not in (select thin_code from b_map)
+and domain_id ='Drug'
+;
+--then insert into f_map (also look for domains)
+;
 --make Suppliers, some clean up
 UPDATE THIN_NEED_TO_MAP
    SET GEMSCRIPT_NAME =GEMSCRIPT_NAME||')' where GEMSCRIPT_NAME like '%(Neon Diagnostics'
@@ -1019,10 +1088,6 @@ select * from b_map_1
 ) z where z.vocabulary_id in ( 'RxNorm', 'RxNorm Extension') --not clear, need to fix in the future
 ) x where x.rank1 = 1
 ;
- 
-
---still need to improve the ds_stage
-
 
 --making input tables
 --drug_concept_stage
@@ -1066,6 +1131,13 @@ to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN' from d
  ;
 commit
 ;
+--here comes another manual table - to find what I haven't covered with ds_stage definition
+select * from thin_need_to_map where domain_id ='Drug' 
+and thin_code not in (select drug_concept_code from ds_stage)
+;
+--then  make insert into ds_stage where ingredient_id is not null
+--merge with drug_concept_stage making domain_id
+
 --internal_relationship_stage
 insert into internal_relationship_stage
 select THIN_CODE,CONCEPT_NAME  from  b_map
@@ -1089,7 +1161,7 @@ select distinct  CONCEPT_NAME_2, concept_id_2, 1, 1 from f_map
 union 
 select distinct  CONCEPT_NAME_2 , concept_id_2, 1, 1   from s_map
 union
-select distinct TARGET_NAME , TARGET_ID, 1, 1 from REL_TO_ING_1
+select distinct TARGET_NAME , TARGET_ID, 1, 1 from REL_TO_ING_1 union select distinct TARGET_NAME , TARGET_ID, 1, 1 from REL_TO_ING_2
 union
 --add units from dm+D
 select concept_code_1, CONCEPT_ID_2, precedence, conversion_factor from dev_dmd.relationship_to_concept 

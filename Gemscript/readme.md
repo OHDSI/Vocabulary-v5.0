@@ -11,3 +11,4 @@ try the same algorith I used for Ingredients
 ;
 
  
+manual_in_co_dose.txt is used for such "Co-amilozide 5mg/50mg tablets" dosaging parsing

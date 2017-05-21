@@ -1059,7 +1059,9 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                                AND denominator_unit = 'mL');
                                
 UPDATE ds_stage
-   SET numerator_unit = 'mg',numerator_value=denominator_value*1000
+   SET numerator_unit = 'mg',numerator_value=CASE WHEN denominator_value IS NOT NULL 
+						  THEN denominator_value*1000 
+						  ELSE 1 END
 WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
                               JOIN drug_concept_stage

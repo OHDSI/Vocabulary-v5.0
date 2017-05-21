@@ -1251,10 +1251,81 @@ INSERT /*+ APPEND */
            AND NOT EXISTS
                    (SELECT 1
                       FROM internal_relationship_stage irs_int
-                     WHERE irs_int.concept_code_1 = c.concept_code AND irs_int.concept_code_2 = c2.concept_code);
+                      JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
+                    WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient');
+
+INSERT /*+ APPEND */ 
+      INTO internal_relationship_stage (concept_Code_1,concept_code_2)
+    SELECT DISTINCT dc.concept_code,ds.ingredient_concept_code
+      FROM concept c
+           JOIN drug_concept_stage dc ON dc.concept_code = c.concept_code AND c.vocabulary_id LIKE 'RxNorm%'  AND c.invalid_reason IS NULL AND c.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form')
+           JOIN concept_relationship cr ON concept_id_1 = c.concept_id AND cr.invalid_reason IS NULL
+           JOIN concept c2 ON c2.concept_id = concept_id_2 AND c.vocabulary_id LIKE 'RxNorm%'AND c2.invalid_reason IS NULL
+           JOIN ds_stage ds ON c2.concept_code = drug_concept_code
+      WHERE NOT EXISTS 
+                (SELECT 1
+                   FROM internal_relationship_stage irs_int
+                   JOIN drug_concept_stage dcs ON dcs.concept_code = irs_int.concept_code_2
+                 WHERE irs_int.concept_code_1 = c.concept_code
+                 AND   dcs.concept_class_id = 'Ingredient');
+
+--add all kinds of missing ingredients
+DROP TABLE ing_temp;
+CREATE TABLE ing_temp AS
+       SELECT distinct  c.concept_code as concept_Code_1,c.concept_name as concept_name_1,c.concept_class_id as cci1, cr2.relationship_id,c2.concept_code,c2.concept_name , c2.concept_class_id
+         FROM concept c
+              JOIN drug_concept_stage dc ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id NOT LIKE  '%Pack%' AND dc.concept_name NOT LIKE '%Pack%'
+              JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.invalid_reason IS NULL
+              JOIN concept_relationship cr2 ON cr2.concept_id_1 = cr.concept_id_2 AND cr2.invalid_reason IS NULL AND cr2.relationship_id IN ('Brand name of','RxNorm has ing')
+              JOIN concept c2 ON c2.concept_id = cr2.concept_id_2 AND c2.concept_class_id = 'Ingredient' AND c2.invalid_reason IS NULL
+         WHERE NOT EXISTS
+                   (SELECT 1
+                      FROM internal_relationship_stage irs_int
+                      JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
+                    WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient')
+                    AND UPPER(c.concept_name) like '%'||UPPER(c2.concept_name)||'%'; 
+
+--ing_temp_2
+INSERT /*+ APPEND */
+      INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
+    SELECT ds.concept_code_1, concept_code
+      --Aspirin / Aspirin / Caffeine Oral Tablet [Mipyrin]
+      FROM ing_temp 
+    WHERE concept_code_1 IN 
+              (SELECT i.concept_code_1 
+                 FROM ing_temp i 
+                      JOIN (SELECT count (concept_code) OVER (PARTITION BY concept_Code_1) AS cnt,concept_code_1
+                              FROM (SELECT distinct concept_code_1,concept_name_1,concept_code,concept_name 
+                                      FROM ing_temp)
+                            ORDER BY concept_Code) a 
+                      ON i.concept_Code_1 = a.concept_Code_1 AND regexp_count(concept_name_1,' / ')+1!= a.cnt
+              	      AND (concept_name_1 like '%...%' or REGEXP_REPLACE (REGEXP_SUBSTR(UPPER(concept_name_1),' / \w+(\s\w+)?'),' / ') LIKE '%'||UPPER(concept_name)||'%' AND  REGEXP_SUBSTR (UPPER(concept_name_1),'\w+(\s\w+)?') LIKE '%'||UPPER(concept_name)||'%'))
+       UNION
+     SELECT distinct i.* 
+       FROM ing_temp i 
+            JOIN (SELECT count(concept_code) over (partition by concept_Code_1) as cnt,concept_code_1
+                    FROM (SELECT distinct concept_code_1,concept_name_1,concept_code,concept_name 
+                            FROM ing_temp)
+                  ORDER BY concept_Code) a 
+	    ON i.concept_Code_1=a.concept_Code_1 
+     WHERE regexp_count(concept_name_1,' / ')+1= a.cnt
+;
+
+INSERT /*+ APPEND */
+      INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
+    SELECT dc.concept_code,c2.concept_code
+      FROM drug_concept_stage dc
+           JOIN concept c ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id not like '%Pack%' AND dc.concept_name NOT LIKE '%Pack%'
+           JOIN devv5.concept_ancestor ca ON descendant_concept_id=c.concept_id
+           JOIN concept c2 ON ancestor_concept_id=c2.concept_id AND c2.concept_class_id='Ingredient'
+    WHERE NOT EXISTS
+                   (SELECT 1
+                      FROM internal_relationship_stage irs_int
+                           JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
+                    WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient')
+    AND UPPER(c.concept_name) LIKE '%'||UPPER(c2.concept_name)||'%';
 
 COMMIT;
-
 
 --Drug to supplier
 INSERT /*+ APPEND */

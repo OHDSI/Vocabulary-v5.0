@@ -214,15 +214,21 @@ or (numerator_value>1 and denominator_vALUE IS NULL))
  union
 --wrong dosages ,> 1
 select drug_concept_code, 'wrong dosages > 1' from ds_stage 
-
 where lower (numerator_unit) in ('g')
 and lower (denominator_unit) in ('ml')
-
 and numerator_value / denominator_value > 1
 union
 --% in ds_stage 
 select drug_concept_code, '% in ds_stage' from ds_stage 
-where numerator_unit='%' or amount_unit ='%' or denominator_unit ='%'
+where numerator_unit in ('%','pct','percent' )
+or amount_unit in ('%','pct','percent' ) -- % should be in the numerator_unit
+or denominator_unit in ('%','pct','percent' )
+union
+select drug_concept_code,'problems in ds_stage' from ds_stage
+where coalesce(amount_value, numerator_value, 0)=0 -- needs to have at least one value, zeros don't count
+or coalesce(amount_unit, numerator_unit) is null -- needs to have at least one unit
+or (amount_value is not null and amount_unit is null) -- if there is an amount record, there must be a unit
+or (nvl(numerator_value, 0)!=0 and coalesce(numerator_unit, denominator_unit) is null) -- if there is a concentration record there must be a unit in both numerator and denominator
 union
 -- as we don't have the mapping all the decives should be standard
 select concept_code , 'non-standard devices' from drug_concept_stage where domain_id = 'Device' and standard_concept is null

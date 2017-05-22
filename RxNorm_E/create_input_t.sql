@@ -1327,6 +1327,15 @@ INSERT /*+ APPEND */
                     WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient')
     AND UPPER(c.concept_name) LIKE '%'||UPPER(c2.concept_name)||'%';
 
+INSERT INTO internal_relationship_stage(concept_code_1,concept_code_2)
+ (SELECT concept_code,  '11384'
+FROM drug_concept_stage
+WHERE concept_name LIKE '%Yeasts%'
+AND   concept_code NOT IN (SELECT concept_code_1
+                           FROM internal_relationship_stage
+                           WHERE concept_code_2 = '11384')
+AND   concept_class_id = 'Drug Product');
+
 COMMIT;
 
 --Drug to supplier

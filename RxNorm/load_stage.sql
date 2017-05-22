@@ -20,8 +20,8 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'RxNorm',
-                                          pVocabularyDate        => TO_DATE ('20170403', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'RxNorm Full 20170403',
+                                          pVocabularyDate        => TO_DATE ('20170501', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'RxNorm Full 20170501',
                                           pVocabularyDevSchema   => 'DEV_RXNORM');
 END;
 COMMIT;
@@ -217,33 +217,43 @@ INSERT INTO concept_stage (concept_name,
 COMMIT;	
 	
 --4. Add synonyms - for all classes except the packs (they use code as concept_code)
-INSERT INTO concept_synonym_stage (synonym_concept_id,
-                                   synonym_concept_code,
+INSERT INTO concept_synonym_stage (synonym_concept_code,
                                    synonym_name,
                                    synonym_vocabulary_id,
                                    language_concept_id)
-   SELECT NULL ,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4180186                    -- English
-     FROM rxnconso r
-          JOIN concept_stage c
-             ON     c.concept_code = r.rxcui
-                AND NOT c.concept_class_id IN ('Clinical Pack',
-                                               'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY'
-	AND c.vocabulary_id='RxNorm';
+    SELECT DISTINCT rxcui,
+                    SUBSTR (r.str, 1, 1000),
+                    'RxNorm',
+                    4180186 -- English
+      FROM rxnconso r JOIN concept_stage c ON c.concept_code = r.rxcui AND c.concept_class_id NOT IN ('Clinical Pack', 'Branded Pack')
+     WHERE     sab = 'RXNORM'
+           AND tty IN ('IN',
+                       'DF',
+                       'SCDC',
+                       'SCDF',
+                       'SCD',
+                       'BN',
+                       'SBDC',
+                       'SBDF',
+                       'SBD',
+                       'PIN',
+                       'DFG',
+                       'SCDG',
+                       'SBDG',
+                       'SY')
+           AND c.vocabulary_id = 'RxNorm';
 
 -- Add synonyms for packs
-INSERT INTO concept_synonym_stage (synonym_concept_id,
-                                   synonym_concept_code,
+INSERT INTO concept_synonym_stage (synonym_concept_code,
                                    synonym_name,
                                    synonym_vocabulary_id,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4180186                    -- English
-     FROM rxnconso r
-          JOIN concept_stage c
-             ON     c.concept_code = r.code
-                AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY'
-	AND c.vocabulary_id='RxNorm';
+    SELECT DISTINCT code,
+                    SUBSTR (r.str, 1, 1000),
+                    'RxNorm',
+                    4180186 -- English
+      FROM rxnconso r JOIN concept_stage c ON c.concept_code = r.code AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
+     WHERE sab = 'RXNORM' AND tty IN ('BPCK', 'GPCK', 'SY') AND c.vocabulary_id = 'RxNorm';
 COMMIT;	
 
 --5 Add inner-RxNorm relationships

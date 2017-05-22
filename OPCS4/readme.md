@@ -6,7 +6,7 @@ Prerequisites:
 - Working directory OPCS4.
 
 1. Run create_source_tables.sql
-2. Download the latest Data Migration Workbench from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/1/subpack/98/releases
+2. Download the latest Data Migration Workbench from https://isd.digital.nhs.uk/trud3/user/guest/group/0/pack/1/subpack/98/releases
 3. Extract the nhs_dmwb_xxxx.zip\UKTC NHS Data Migration Maps.mdb file.
 4. Open UKTC NHS Data Migration Maps.mdb in Microsoft Access and do the export OPCS and OPCSSCTMAP tables into txt format with default settings (but use UTF-8!)
 5. Load OPCS.txt and OPCSSCTMAP.txt into OPCS and OPCSSCTMAP using control files of the same name

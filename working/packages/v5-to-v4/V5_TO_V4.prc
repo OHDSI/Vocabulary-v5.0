@@ -144,16 +144,20 @@ SELECT concept_id,
                      valid_end_date,
                      invalid_reason
 FROM (
-    select distinct
+    select
       c.concept_id, c.concept_name,
       case c.vocabulary_id 
         when 'SNOMED' then -- full hierarchy
           case 
             when c.standard_concept is null then 0
             else 
-              case 
-                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
-                when p.ancestor_concept_id is null then 3 -- if it has no parents then top guy
+              case
+                -- get children
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.ancestor_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)
+                    then 1 -- if it has no children then leaf
+                -- get parents
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.descendant_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)
+                    then 3 -- if it has no parents then top guy
                 else 2 -- in the middle
               end
           end
@@ -167,8 +171,6 @@ FROM (
     from devv5.concept c
     join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
     join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
-    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
-    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
     WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
                         FROM devv5.concept c_int
                        WHERE     c_int.vocabulary_id = c.vocabulary_id
@@ -178,15 +180,17 @@ FROM (
     and c.vocabulary_id='SNOMED'
     
     union all
-    select distinct
+    select
       c.concept_id, c.concept_name,
       case c.vocabulary_id 
         when 'ICD9Proc' then  -- hierarchy, but no top guys
           case 
             when c.standard_concept is null then 0
             else 
-              case 
-                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
+              case
+                -- get children 
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.ancestor_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id) 
+                    then 1 -- if it has no children then leaf
                 else 2 -- in the middle
               end
           end
@@ -200,8 +204,6 @@ FROM (
     from devv5.concept c
     join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
     join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
-    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
-    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
     WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
                         FROM devv5.concept c_int
                        WHERE     c_int.vocabulary_id = c.vocabulary_id
@@ -211,7 +213,7 @@ FROM (
     and c.vocabulary_id='ICD9Proc'
     
     union all
-    select distinct
+    select
       c.concept_id, c.concept_name,
       case c.vocabulary_id 
         when 'CPT4' then -- full hierarchy
@@ -219,8 +221,12 @@ FROM (
             when c.standard_concept is null then 0
             else 
               case 
-                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
-                when p.ancestor_concept_id is null then 3 -- if it has no parents then top guy
+                -- get children
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.ancestor_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)
+                    then 1 -- if it has no children then leaf
+                -- get parents
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.descendant_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)
+                    then 3 -- if it has no parents then top guy
                 else 2 -- in the middle
               end
           end
@@ -234,8 +240,6 @@ FROM (
     from devv5.concept c
     join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
     join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
-    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
-    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
     WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
                         FROM devv5.concept c_int
                        WHERE     c_int.vocabulary_id = c.vocabulary_id
@@ -245,16 +249,20 @@ FROM (
     and c.vocabulary_id='CPT4'    
     
     union all
-    select distinct
+    select
       c.concept_id, c.concept_name,
       case c.vocabulary_id 
         when 'LOINC' then -- full hierarchy
           case 
             when c.standard_concept is null then 0
             else 
-              case 
-                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
-                when p.ancestor_concept_id is null then 3 -- if it has no parents then top guy
+              case
+                -- get children
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.ancestor_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)
+                    then 1 -- if it has no children then leaf
+                -- get parents
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.descendant_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)
+                    then 3 -- if it has no parents then top guy
                 else 2 -- in the middle
               end
           end
@@ -268,8 +276,6 @@ FROM (
     from devv5.concept c
     join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
     join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
-    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
-    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
     WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
                         FROM devv5.concept c_int
                        WHERE     c_int.vocabulary_id = c.vocabulary_id
@@ -279,7 +285,7 @@ FROM (
     and c.vocabulary_id='LOINC'     
     
     union all
-    select distinct
+    select
       c.concept_id, c.concept_name,
       case c.vocabulary_id 
         when 'NDFRT' then -- full hierarchy
@@ -287,7 +293,9 @@ FROM (
             when c.standard_concept is null then 0
             else 
               case 
-                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
+                -- get parents 
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.descendant_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)              
+                    then 4 -- if it has no parents then top guy
                 else 3 -- in the middle
               end
           end
@@ -296,7 +304,9 @@ FROM (
             when c.standard_concept is null then 0
             else 
               case 
-                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
+                -- get parents 
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.descendant_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id) 
+                    then 4 -- if it has no parents then top guy
                 else 3 -- in the middle
               end
           end
@@ -304,8 +314,10 @@ FROM (
           case 
             when c.standard_concept is null then 0
             else 
-              case 
-                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
+              case
+                -- get parents 
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.descendant_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)                  
+                    then 4 -- if it has no parents then top guy
                 else 3 -- in the middle
               end
           end
@@ -314,8 +326,12 @@ FROM (
             when c.standard_concept is null then 0
             else 
               case 
-                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
-                when p.ancestor_concept_id is null then 3 -- if it has no parents then top guy
+                -- get childrens 
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.ancestor_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)    
+                    then 1 -- if it has no children then leaf
+                -- get parents 
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.descendant_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)    
+                    then 3 -- if it has no parents then top guy
                 else 2 -- in the middle
               end
           end
@@ -324,7 +340,9 @@ FROM (
             when c.standard_concept is null then 0
             else 
               case 
-                when p.ancestor_concept_id is null then 4 -- if it has no parents then top guy
+                -- get parents 
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.descendant_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id) 
+                    then 4 -- if it has no parents then top guy
                 else 3 -- in the middle
               end
           end            
@@ -333,7 +351,9 @@ FROM (
             when c.standard_concept is null then 0
             else 
               case 
-                when c.descendant_concept_id is null then 1 -- if it has no children then leaf
+                -- get childrens 
+                when not exists (select 1 from devv5.concept_ancestor ca where ca.ancestor_concept_id = c.concept_id and ca.ancestor_concept_id <> ca.descendant_concept_id)    
+                    then 1 -- if it has no children then leaf
                 else 2 -- on top
               end
           end                  
@@ -347,8 +367,6 @@ FROM (
     from devv5.concept c
     join t_concept_class_conversion ccc on ccc.concept_class_id_new = c.concept_class_id
     join devv5.vocabulary_conversion vc on vc.vocabulary_id_v5 = c.vocabulary_id
-    left join devv5.concept_ancestor p on p.descendant_concept_id = c.concept_id and p.ancestor_concept_id!=p.descendant_concept_id -- get parents
-    left join devv5.concept_ancestor c on c.ancestor_concept_id = c.concept_id and c.ancestor_concept_id!=c.descendant_concept_id -- get children
     WHERE (EXISTS (SELECT 1 -- where there is at least one standard concept in the same vocabulary
                         FROM devv5.concept c_int
                        WHERE     c_int.vocabulary_id = c.vocabulary_id

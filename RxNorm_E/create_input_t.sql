@@ -1255,7 +1255,7 @@ INSERT /*+ APPEND */
                       FROM internal_relationship_stage irs_int
                       JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
                     WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient');
-
+COMMIT;
 INSERT /*+ APPEND */ 
       INTO internal_relationship_stage (concept_Code_1,concept_code_2)
     SELECT DISTINCT dc.concept_code,ds.ingredient_concept_code
@@ -1270,7 +1270,7 @@ INSERT /*+ APPEND */
                    JOIN drug_concept_stage dcs ON dcs.concept_code = irs_int.concept_code_2
                  WHERE irs_int.concept_code_1 = c.concept_code
                  AND   dcs.concept_class_id = 'Ingredient');
-
+COMMIT;
 --add all kinds of missing ingredients
 DROP TABLE ing_temp;
 CREATE TABLE ing_temp AS
@@ -1286,11 +1286,11 @@ CREATE TABLE ing_temp AS
                       JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
                     WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient')
                     AND UPPER(c.concept_name) like '%'||UPPER(c2.concept_name)||'%'; 
-
+COMMIT;
 --ing_temp_2
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
-    SELECT ds.concept_code_1, concept_code
+    SELECT concept_code_1, concept_code
       --Aspirin / Aspirin / Caffeine Oral Tablet [Mipyrin]
       FROM ing_temp 
     WHERE concept_code_1 IN 
@@ -1303,7 +1303,7 @@ INSERT /*+ APPEND */
                       ON i.concept_Code_1 = a.concept_Code_1 AND regexp_count(concept_name_1,' / ')+1!= a.cnt
               	      AND (concept_name_1 like '%...%' or REGEXP_REPLACE (REGEXP_SUBSTR(UPPER(concept_name_1),' / \w+(\s\w+)?'),' / ') LIKE '%'||UPPER(concept_name)||'%' AND  REGEXP_SUBSTR (UPPER(concept_name_1),'\w+(\s\w+)?') LIKE '%'||UPPER(concept_name)||'%'))
        UNION
-     SELECT distinct i.* 
+     SELECT distinct i.concept_code_1, concept_code 
        FROM ing_temp i 
             JOIN (SELECT count(concept_code) over (partition by concept_Code_1) as cnt,concept_code_1
                     FROM (SELECT distinct concept_code_1,concept_name_1,concept_code,concept_name 
@@ -1312,7 +1312,7 @@ INSERT /*+ APPEND */
 	    ON i.concept_Code_1=a.concept_Code_1 
      WHERE regexp_count(concept_name_1,' / ')+1= a.cnt
 ;
-
+COMMIT;
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
     SELECT dc.concept_code,c2.concept_code
@@ -1326,7 +1326,7 @@ INSERT /*+ APPEND */
                            JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
                     WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient')
     AND UPPER(c.concept_name) LIKE '%'||UPPER(c2.concept_name)||'%';
-
+COMMIT;
 INSERT INTO internal_relationship_stage(concept_code_1,concept_code_2)
  (SELECT concept_code,  '11384'
 FROM drug_concept_stage

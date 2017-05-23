@@ -122,8 +122,8 @@ IS
                OR rl.relationship_id IS NULL
                OR crm.valid_start_date > SYSDATE
                OR crm.valid_end_date < crm.valid_start_date
-               OR TRUNC(crm.valid_start_date) <> crm.valid_start_date
-               OR TRUNC(crm.valid_end_date) <> crm.valid_end_date
+               OR TRUNC (crm.valid_start_date) <> crm.valid_start_date
+               OR TRUNC (crm.valid_end_date) <> crm.valid_end_date
                OR (crm.invalid_reason IS NULL AND crm.valid_end_date <> TO_DATE ('20991231', 'yyyymmdd'));
 
         IF z > 0
@@ -583,9 +583,14 @@ IS
     BEGIN
         UTL_HTTP.set_wallet ('file:/home/oracle/wallet', 'wallet_password');
 
+        /* deprecated (redirects to isd.digital.nhs.uk)
         IF LOWER (SUBSTR (pURL, 1, 24)) = 'https://isd.hscic.gov.uk'
         THEN
             cPieces := UTL_HTTP.REQUEST_PIECES (url => pURL, https_host => 'www.isd.hscic.gov.uk');
+        */
+        IF LOWER (SUBSTR (pURL, 1, 26)) = 'https://isd.digital.nhs.uk'
+        THEN
+            cPieces := UTL_HTTP.REQUEST_PIECES (url => pURL, https_host => 'www.isd.digital.nhs.uk');
         ELSIF LOWER (SUBSTR (pURL, 1, 30)) = 'https://www.accessdata.fda.gov'
         THEN
             cPieces := UTL_HTTP.REQUEST_PIECES (url => pURL, https_host => 'www.fda.gov');
@@ -793,23 +798,19 @@ IS
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'mondd,yyyy');
             WHEN pVocabularyName IN ('OPCS4', 'Read')
             THEN
-                cSearchString := '<h2 class="available no-bottom-margin">';
+                cSearchString := '<div class="release available">';
                 cPos1 := INSTR (cVocabHTML, cSearchString);
                 /*
                 gets 21.0.0_YYYYMMDD000001
                 cPos2 := INSTR (cVocabHTML, '</h2>', cPos1);
                 cVocabDate:=to_date(regexp_substr(TRIM (REGEXP_REPLACE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:space:]]+', ' ')),'[[:digit:]]{8}'),'yyyymmdd');
+                --new: Friday, 18 March 2016
                 */
                 cSearchString := 'Released on';
                 cPos1 := INSTR (cVocabHTML, cSearchString, cPos1);
-                cPos2 := INSTR (cVocabHTML, '</h3>', cPos1);
+                cPos2 := INSTR (cVocabHTML, '</p>', cPos1);
                 CheckPositions (cPos1, cPos2);
-                cVocabDate :=
-                    TO_DATE (
-                        REGEXP_REPLACE (TRIM (REGEXP_REPLACE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:space:]]+', ' ')),
-                                        '([[:alpha:] ]+)([[:digit:]]+)(st|nd|th|rd)',
-                                        '\2'),
-                        'dd month yyyy');
+                cVocabDate := TO_DATE (TRIM (REGEXP_REPLACE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:space:]]+', ' ')), 'day, dd mon yyyy');
             ELSE
                 raise_application_error (-20000, pVocabularyName || ' are not supported at this time!');
         END CASE;
@@ -880,7 +881,7 @@ IS
     and this local copy is used by QA_TESTS.get_summary
     Necessary grants:
     grant drop any table to devv5;
-    grant insert on <concept, concept_relationship, concept_ancestor> to devv5;    
+    grant insert on <concept, concept_relationship, concept_ancestor> to devv5;
     */
     BEGIN
         EXECUTE IMMEDIATE 'TRUNCATE TABLE PRODV5.CONCEPT';
@@ -921,7 +922,7 @@ IS
         csv.generate ('VOCAB_DUMP', 'concept.csv', p_query => 'SELECT * FROM concept where rownum<100');
         csv.generate ('VOCAB_DUMP', 'concept_relationship.csv', p_query => 'SELECT * FROM concept_relationship where rownum<100');
         --host_command ('/home/vocab_dump/upload_vocab.sh');
-        host_command('export PGPASSWORD=xxx && /usr/bin/psql -t -p xxx -d postgres -U xxx -c "SELECT import_tables();"');
+        host_command ('export PGPASSWORD=xxx && /usr/bin/psql -t -p xxx -d postgres -U xxx -c "SELECT import_tables();"');
         DBMS_OUTPUT.get_lines (l_output, l_lines);
 
         FOR i IN 1 .. l_lines

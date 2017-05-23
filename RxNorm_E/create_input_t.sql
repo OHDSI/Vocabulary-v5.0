@@ -1181,6 +1181,7 @@ INSERT /*+ APPEND */
            JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.vocabulary_id LIKE 'Rx%' AND c2.invalid_reason IS NULL;
 
             --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
+
 COMMIT;
 
  --Drug to BN
@@ -1255,7 +1256,9 @@ INSERT /*+ APPEND */
                       FROM internal_relationship_stage irs_int
                       JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
                     WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient');
+
 COMMIT;
+
 INSERT /*+ APPEND */ 
       INTO internal_relationship_stage (concept_Code_1,concept_code_2)
     SELECT DISTINCT dc.concept_code,ds.ingredient_concept_code
@@ -1270,7 +1273,9 @@ INSERT /*+ APPEND */
                    JOIN drug_concept_stage dcs ON dcs.concept_code = irs_int.concept_code_2
                  WHERE irs_int.concept_code_1 = c.concept_code
                  AND   dcs.concept_class_id = 'Ingredient');
+
 COMMIT;
+
 --add all kinds of missing ingredients
 DROP TABLE ing_temp;
 CREATE TABLE ing_temp AS
@@ -1286,7 +1291,9 @@ CREATE TABLE ing_temp AS
                       JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
                     WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient')
                     AND UPPER(c.concept_name) like '%'||UPPER(c2.concept_name)||'%'; 
+
 COMMIT;
+
 --ing_temp_2
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
@@ -1312,7 +1319,9 @@ INSERT /*+ APPEND */
 	    ON i.concept_Code_1=a.concept_Code_1 
      WHERE regexp_count(concept_name_1,' / ')+1= a.cnt
 ;
+
 COMMIT;
+
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
     SELECT dc.concept_code,c2.concept_code

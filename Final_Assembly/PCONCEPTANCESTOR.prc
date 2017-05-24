@@ -41,6 +41,7 @@ BEGIN
     --table doesn't exists, creating...
       EXECUTE IMMEDIATE 'CREATE TABLE CONCEPT_ANCESTOR NOLOGGING AS SELECT * FROM DEVV5.CONCEPT_ANCESTOR WHERE 1=0';
       EXECUTE IMMEDIATE 'ALTER TABLE CONCEPT_ANCESTOR ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (ancestor_concept_id,descendant_concept_id)';
+      EXECUTE IMMEDIATE 'CREATE INDEX idx_ca_descendant ON concept_ancestor (descendant_concept_id)';
     END IF;
 
    -- Clean up before
@@ -176,6 +177,8 @@ BEGIN
    -- drop concept_ancestor indexes before mass insert.
    EXECUTE IMMEDIATE
       'alter table concept_ancestor disable constraint XPKCONCEPT_ANCESTOR';
+      
+   EXECUTE IMMEDIATE 'DROP INDEX idx_ca_descendant';      
 
    EXECUTE IMMEDIATE
       'insert /*+ APPEND */ into concept_ancestor
@@ -210,6 +213,8 @@ BEGIN
 
    EXECUTE IMMEDIATE
       'alter table concept_ancestor enable constraint XPKCONCEPT_ANCESTOR';
+   
+   EXECUTE IMMEDIATE 'DROP INDEX idx_ca_descendant';      
 
    -- Clean up
    EXECUTE IMMEDIATE 'drop table concept_ancestor_calc purge';
@@ -219,10 +224,12 @@ BEGIN
    DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_ancestor', estimate_percent  => null, cascade  => true);
 
     --create temp table 'pair'
+    --old version
+    /*
     EXECUTE IMMEDIATE q'[CREATE TABLE pair_tbl
     NOLOGGING
     AS
-       SELECT DISTINCT /* there are many redundant pairs*/
+       SELECT DISTINCT -- there are many redundant pairs
                       class_rxn.ancestor_concept_id AS class_concept_id, rxn_up.concept_id AS rxn_concept_id
          FROM concept_ancestor class_rxn
               -- get all hierarchical relationships between concepts 'C' ...
@@ -242,7 +249,36 @@ BEGIN
                     AND rxn_up.domain_id = 'Drug'
                     --AND rxn_up.concept_class_id NOT IN ('Branded Pack', 'Clinical Pack')
                     AND rxn_up.vocabulary_id IN ('RxNorm', 'RxNorm Extension')]';
-
+    */
+    --new version
+    EXECUTE IMMEDIATE q'[CREATE TABLE pair_tbl
+    NOLOGGING AS    
+    with jump as (
+      SELECT DISTINCT /* there are many redundant pairs*/
+        dc.concept_id AS class_concept_id, rxn.concept_id AS rxn_concept_id
+      FROM concept_ancestor class_rxn
+      -- get all hierarchical relationships between concepts 'C' ...
+      JOIN concept dc ON dc.concept_id = class_rxn.ancestor_concept_id AND dc.standard_concept = 'C' AND dc.domain_id = 'Drug'
+      -- ... and 'S'
+      JOIN concept rxn on rxn.concept_id = class_rxn.descendant_concept_id
+        AND rxn.standard_concept = 'S'
+        AND rxn.domain_id = 'Drug'
+        AND rxn.vocabulary_id IN ('RxNorm')
+      -- connect all concepts inside the rxn hierachy. Some of them might be above the jump
+    )
+    select distinct low.class_concept_id, rxn_up.concept_id as rxn_concept_id
+    from jump low 
+    JOIN concept_ancestor in_rxn ON in_rxn.descendant_concept_id = low.rxn_concept_id
+    JOIN concept rxn_up on rxn_up.concept_id = in_rxn.ancestor_concept_id
+      AND rxn_up.standard_concept = 'S'
+      AND rxn_up.domain_id = 'Drug'
+      AND rxn_up.vocabulary_id IN ('RxNorm')
+    where not exists (
+      select 1 from jump high 
+      join concept_ancestor ca on ca.ancestor_concept_id=high.rxn_concept_id and ca.descendant_concept_id=low.rxn_concept_id and ca.ancestor_concept_id<>ca.descendant_concept_id
+      where low.class_concept_id=high.class_concept_id
+    )]';
+       
     --and index
     EXECUTE IMMEDIATE 'CREATE INDEX idx_pair ON pair_tbl (class_concept_id) NOLOGGING';    
     DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'pair_tbl', cascade  => true);
@@ -251,19 +287,20 @@ BEGIN
     EXECUTE IMMEDIATE q'[
     merge into concept_ancestor ca
     using (
-    select distinct
+    with t as (
+        select /*+ materialize*/ ancestor_concept_id, max(min_levels_of_separation) as min_levels_of_separation, max(max_levels_of_separation) as max_levels_of_separation
+        from concept_ancestor
+        join concept on concept_id=descendant_concept_id and standard_concept='C' and domain_id='Drug'
+        group by ancestor_concept_id    
+    )
+    select
     pair.class_concept_id as ancestor_concept_id, -- concept in drug class
     pair.rxn_concept_id as descendant_concept_id, -- concept in RxNorm hierarchy above cross-over from class to RxNorm (jump)
     min(to_bottom.min_levels_of_separation+to_ing.min_levels_of_separation) as min_levels_of_separation, -- levels in class plus the distance from ingredient to RxNorm concept
     max(to_bottom.max_levels_of_separation+to_ing.max_levels_of_separation) as max_levels_of_separation
     from pair_tbl pair
     -- get distance from class concept to lowest possible class concept
-    join (
-        select  ancestor_concept_id, max(min_levels_of_separation) as min_levels_of_separation, max(max_levels_of_separation) as max_levels_of_separation
-        from concept_ancestor
-        join concept on concept_id=descendant_concept_id and standard_concept='C' and domain_id='Drug'
-        group by ancestor_concept_id
-    ) to_bottom on to_bottom.ancestor_concept_id=pair.class_concept_id
+    join t to_bottom on to_bottom.ancestor_concept_id=pair.class_concept_id
     -- get distance from rxn concept to highest possible (Ingredient) rxn concept
     join concept_ancestor to_ing on to_ing.descendant_concept_id=pair.rxn_concept_id
     join concept ing on ing.concept_id=to_ing.ancestor_concept_id and ing.vocabulary_id in ('RxNorm', 'RxNorm Extension') and ing.concept_class_id='Ingredient'
@@ -274,7 +311,7 @@ BEGIN
             where ca.min_levels_of_separation<>i.min_levels_of_separation or ca.max_levels_of_separation<>i.max_levels_of_separation
     when not matched then 
             insert values (i.ancestor_concept_id, i.descendant_concept_id, i.min_levels_of_separation, i.max_levels_of_separation)
-    ]';             
+    ]';          
     commit;
     
 	DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_ancestor', estimate_percent  => null, cascade  => true);

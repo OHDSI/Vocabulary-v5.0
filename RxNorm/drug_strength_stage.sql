@@ -27,6 +27,7 @@
 --GATHER_TABLE_STATS
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_synonym_stage', estimate_percent  => null, cascade  => true);
 
 --drop table component_replace;
 create table component_replace (
@@ -35,26 +36,29 @@ replace_with varchar(250)
 );
 
 -- load replacement component names so that they match ingredient names and unit names and number conventions
-insert into component_replace (component_name, replace_with) values ('aspergillus fumigatus fumigatus 1:500', 'Aspergillus fumigatus extract 20 MG/ML');
-insert into component_replace (component_name, replace_with) values ('benzalkonium 1:5000', 'benzalkonium 2 mg/ml');
-insert into component_replace (component_name, replace_with) values ('candida albicans albicans 1:500', 'candida albicans extract 20 MG/ML');
-insert into component_replace (component_name, replace_with) values ('ginkgo biloba leaf leaf 1:2', 'ginkgo biloba leaf 0.5 ');
-insert into component_replace (component_name, replace_with) values ('histoplasmin 1:100', 'Histoplasmin 10 MG/ML');
-insert into component_replace (component_name, replace_with) values ('trichophyton preparation 1 :500', 'Trichophyton 2 MG/ML');
-insert into component_replace (component_name, replace_with) values ('interferon alfa-2b million unt/ml', 'Interferon Alfa-2b 10000000 UNT/ML');
-insert into component_replace (component_name, replace_with) values ('papain million unt', 'Papain 1000000 UNT');
-insert into component_replace (component_name, replace_with) values ('penicillin g million unt', 'Penicillin G 1000000 UNT');
-insert into component_replace (component_name, replace_with) values ('poliovirus vaccine, inactivated antigen u/ml', '');
-insert into component_replace (component_name, replace_with) values ('pseudoephedrine', 'Pseudoephedrine 120 MG');
-insert into component_replace (component_name, replace_with) values ('strontium-89 148mbq-4mci', 'strontium-89 4 MCI');
-insert into component_replace (component_name, replace_with) values ('technetium 99m 99m ns', '');
-insert into component_replace (component_name, replace_with) values ('trichopyton mentagrophytes mentagrophytes 1:500', 'Trichophyton 2 MG/ML');
-insert into component_replace (component_name, replace_with) values ('samarium sm 153 lexidronam 1850 mbq/ml', 'samarium-153 lexidronam 1850 mbq/ml');
-insert into component_replace (component_name, replace_with) values ('saw palmetto extract extract 1:5', 'Saw palmetto extract 0.5 ');
-insert into component_replace (component_name, replace_with) values ('sodium phosphate, dibasic 88-30 mg/ml', 'Sodium Phosphate, Dibasic 88 MG/ML');
-insert into component_replace (component_name, replace_with) values ('monobasic potassium phosphate 63-30 mg/ml', 'Monobasic potassium phosphate 63 mg/ml');
-insert into component_replace (component_name, replace_with) values ('short ragweed pollen extract 12 amb a 1-u', 'short ragweed pollen extract 12 UNT');
-insert into component_replace (component_name, replace_with) values ('secretin 75 cu/vial', 'Secretin 10 CU/ML'); -- the vial is supposed to be reconsituted in 7.5 mL of saline
+begin
+	insert into component_replace (component_name, replace_with) values ('aspergillus fumigatus fumigatus 1:500', 'Aspergillus fumigatus extract 20 MG/ML');
+	insert into component_replace (component_name, replace_with) values ('benzalkonium 1:5000', 'benzalkonium 2 mg/ml');
+	insert into component_replace (component_name, replace_with) values ('candida albicans albicans 1:500', 'candida albicans extract 20 MG/ML');
+	insert into component_replace (component_name, replace_with) values ('ginkgo biloba leaf leaf 1:2', 'ginkgo biloba leaf 0.5 ');
+	insert into component_replace (component_name, replace_with) values ('histoplasmin 1:100', 'Histoplasmin 10 MG/ML');
+	insert into component_replace (component_name, replace_with) values ('trichophyton preparation 1 :500', 'Trichophyton 2 MG/ML');
+	insert into component_replace (component_name, replace_with) values ('interferon alfa-2b million unt/ml', 'Interferon Alfa-2b 10000000 UNT/ML');
+	insert into component_replace (component_name, replace_with) values ('papain million unt', 'Papain 1000000 UNT');
+	insert into component_replace (component_name, replace_with) values ('penicillin g million unt', 'Penicillin G 1000000 UNT');
+	insert into component_replace (component_name, replace_with) values ('poliovirus vaccine, inactivated antigen u/ml', '');
+	insert into component_replace (component_name, replace_with) values ('pseudoephedrine', 'Pseudoephedrine 120 MG');
+	insert into component_replace (component_name, replace_with) values ('strontium-89 148mbq-4mci', 'strontium-89 4 MCI');
+	insert into component_replace (component_name, replace_with) values ('technetium 99m 99m ns', '');
+	insert into component_replace (component_name, replace_with) values ('trichopyton mentagrophytes mentagrophytes 1:500', 'Trichophyton 2 MG/ML');
+	insert into component_replace (component_name, replace_with) values ('samarium sm 153 lexidronam 1850 mbq/ml', 'samarium-153 lexidronam 1850 mbq/ml');
+	insert into component_replace (component_name, replace_with) values ('saw palmetto extract extract 1:5', 'Saw palmetto extract 0.5 ');
+	insert into component_replace (component_name, replace_with) values ('sodium phosphate, dibasic 88-30 mg/ml', 'Sodium Phosphate, Dibasic 88 MG/ML');
+	insert into component_replace (component_name, replace_with) values ('monobasic potassium phosphate 63-30 mg/ml', 'Monobasic potassium phosphate 63 mg/ml');
+	insert into component_replace (component_name, replace_with) values ('short ragweed pollen extract 12 amb a 1-u', 'short ragweed pollen extract 12 UNT');
+	insert into component_replace (component_name, replace_with) values ('secretin 75 cu/vial', 'Secretin 10 CU/ML'); -- the vial is supposed to be reconsituted in 7.5 mL of saline
+end;
+commit;
 
 -- Create Unit mappingselect * from source_to_concept_map;
 -- drop table unit_to_concept_map;
@@ -62,62 +66,62 @@ create table unit_to_concept_map as
 select * from source_to_concept_map where 1=0;
 
 begin
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('%', 0, 'percent', 8554, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('actuat', 0, '{actuat}', 45744809, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('au', 0, 'allergenic unit', 45744811, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('bau', 0, 'bioequivalent allergenic unit', 45744810, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('cells', 0, 'cells', 45744812, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('cfu', 0, 'colony forming unit', 9278, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('cu', 0, 'clinical unit', 45744813, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('hr', 0, 'hour', 8505, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('iu', 0, 'international unit', 8718, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('lfu', 0, 'limit of flocculation unit', 45744814, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('mci', 0, 'millicurie', 44819154, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('meq', 0, 'milliequivalent', 9551, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('mg', 0, 'milligram', 8576, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('mil', 0, 'milliliter', 8587, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('min', 0, 'minim', 9367, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('ml', 0, 'milliliter', 8587, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('mmol', 0, 'millimole', 9573, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('mmole', 0, 'millimole', 9573, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('mu', 0, 'mega-international unit', 9439, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('ns', 0, 'unmapped', 0, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('org', 0, 'unmapped', 0, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('organisms', 0, 'bacteria', 45744815, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('pfu', 0, 'plaque forming unit', 9379, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('pnu', 0, 'protein nitrogen unit', 45744816, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('sqcm', 0, 'square centimeter', 9483, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('tcid', 0, '50% tissue culture infectious dose', 9414, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('unt', 0, 'unit', 8510, 11, '1-Jan-1970', '31-Dec-2099', null);
-insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
-values ('ir', 0, 'index of reactivity', 9693, 11, '14-Dec-2014', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('%', 0, 'percent', 8554, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('actuat', 0, '{actuat}', 45744809, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('au', 0, 'allergenic unit', 45744811, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('bau', 0, 'bioequivalent allergenic unit', 45744810, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('cells', 0, 'cells', 45744812, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('cfu', 0, 'colony forming unit', 9278, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('cu', 0, 'clinical unit', 45744813, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('hr', 0, 'hour', 8505, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('iu', 0, 'international unit', 8718, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('lfu', 0, 'limit of flocculation unit', 45744814, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('mci', 0, 'millicurie', 44819154, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('meq', 0, 'milliequivalent', 9551, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('mg', 0, 'milligram', 8576, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('mil', 0, 'milliliter', 8587, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('min', 0, 'minim', 9367, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('ml', 0, 'milliliter', 8587, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('mmol', 0, 'millimole', 9573, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('mmole', 0, 'millimole', 9573, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('mu', 0, 'mega-international unit', 9439, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('ns', 0, 'unmapped', 0, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('org', 0, 'unmapped', 0, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('organisms', 0, 'bacteria', 45744815, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('pfu', 0, 'plaque forming unit', 9379, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('pnu', 0, 'protein nitrogen unit', 45744816, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('sqcm', 0, 'square centimeter', 9483, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('tcid', 0, '50% tissue culture infectious dose', 9414, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('unt', 0, 'unit', 8510, 11, '1-Jan-1970', '31-Dec-2099', null);
+	insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+	values ('ir', 0, 'index of reactivity', 9693, 11, '14-Dec-2014', '31-Dec-2099', null);
 end;
 
 commit;
@@ -257,14 +261,30 @@ from (
             -- pick the latest ingredient
             regexp_replace(lower( first_value (ingredient_name) over (partition by component_concept_code order by valid_end_date desc)), 'ic\s+acid', 'ate') as ingredient_name
           from (
-            select distinct -- select for each drug the drug_component(s) and ingredient(s), and replace the component name if necessary
+            select -- select for each drug the drug_component(s) and ingredient(s), and replace the component name if necessary
               d.concept_code as drug_concept_code,
               c.concept_code as component_concept_code,
               c.valid_start_date as component_start_date,
               c.valid_end_date as component_end_date,
-              nvl(r.replace_with, c.concept_name) as component_name,
+              coalesce(r.replace_with, 
+                  (
+                      select c_css.synonym_name from concept_synonym_stage c_css 
+                      where c_css.synonym_concept_code=c.concept_code and c_css.synonym_vocabulary_id=c.vocabulary_id and c_css.synonym_name like c.concept_name||'%'
+                      and length(c.concept_name)=255
+                      order by length(c_css.synonym_name) desc 
+                      fetch first 1 row only
+                  ), c.concept_name
+              ) as component_name,
               i.concept_code as ingredient_concept_code,
-              i.concept_name as ingredient_name,
+              coalesce(
+                (
+                    select i_css.synonym_name from concept_synonym_stage i_css 
+                    where i_css.synonym_concept_code=i.concept_code and i_css.synonym_vocabulary_id=i.vocabulary_id and i_css.synonym_name like i.concept_name||'%'
+                    and length(i.concept_name)=255
+                    order by length(i_css.synonym_name) desc 
+                    fetch first 1 row only
+                ), i.concept_name
+            ) as ingredient_name,
               i.valid_end_date
             from concept_stage d
             join rxnorm_ancestor a1 on a1.descendant_concept_code=d.concept_code and a1.descendant_vocabulary_id=d.vocabulary_id
@@ -365,9 +385,25 @@ from (
               c.concept_code as component_concept_code,
               c.valid_start_date as component_start_date,
               c.valid_end_date as component_end_date,
-              nvl(r.replace_with, c.concept_name) as component_name,
+              coalesce(r.replace_with, 
+                  (
+                      select c_css.synonym_name from concept_synonym_stage c_css 
+                      where c_css.synonym_concept_code=c.concept_code and c_css.synonym_vocabulary_id=c.vocabulary_id and c_css.synonym_name like c.concept_name||'%'
+                      and length(c.concept_name)=255
+                      order by length(c_css.synonym_name) desc 
+                      fetch first 1 row only
+                  ), c.concept_name
+              ) as component_name,
               i.concept_code as ingredient_concept_code,
-              i.concept_name as ingredient_name,
+              coalesce(
+                (
+                    select i_css.synonym_name from concept_synonym_stage i_css 
+                    where i_css.synonym_concept_code=i.concept_code and i_css.synonym_vocabulary_id=i.vocabulary_id and i_css.synonym_name like i.concept_name||'%'
+                    and length(i.concept_name)=255
+                    order by length(i_css.synonym_name) desc 
+                    fetch first 1 row only
+                ), i.concept_name
+            ) as ingredient_name,
               i.valid_end_date
             from concept_stage c
             join rxnorm_ancestor a2 on a2.descendant_concept_code=c.concept_code and a2.descendant_vocabulary_id=c.vocabulary_id
@@ -416,7 +452,28 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
         q.concept_code as drug_concept_code, ds.vocabulary_id_1, ds.ingredient_concept_code,  ds.vocabulary_id_2,
         ds.numerator_value, ds.numerator_unit_concept_id, ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
         ds.valid_start_date, ds.valid_end_date,
-        regexp_substr(q.concept_name, '^[0-9\.]+')as v,  regexp_substr(q.concept_name, '[^ 0-9\.]+') as u -- parsing out the quantity
+		regexp_substr(
+			coalesce(
+				(
+					select v_css.synonym_name from concept_synonym_stage v_css 
+					where v_css.synonym_concept_code=q.concept_code and v_css.synonym_vocabulary_id=q.vocabulary_id and v_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(v_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'^[0-9\.]+') as v,		
+		regexp_substr(
+			coalesce(
+				(
+					select u_css.synonym_name from concept_synonym_stage u_css 
+					where u_css.synonym_concept_code=q.concept_code and u_css.synonym_vocabulary_id=q.vocabulary_id and u_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(u_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'[^ 0-9\.]+') as u	-- parsing out the quantity
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
@@ -453,7 +510,28 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
         q.concept_code as drug_concept_code, ds.vocabulary_id_1, ds.ingredient_concept_code,  ds.vocabulary_id_2, 
         ds.numerator_value, ds.numerator_unit_concept_id, ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
         ds.valid_start_date, ds.valid_end_date,
-        regexp_substr(q.concept_name, '^[0-9\.]+')as v,  regexp_substr(q.concept_name, '[^ 0-9\.]+') as u -- parsing out the quantity
+		regexp_substr(
+			coalesce(
+				(
+					select v_css.synonym_name from concept_synonym_stage v_css 
+					where v_css.synonym_concept_code=q.concept_code and v_css.synonym_vocabulary_id=q.vocabulary_id and v_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(v_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'^[0-9\.]+') as v,		
+		regexp_substr(
+			coalesce(
+				(
+					select u_css.synonym_name from concept_synonym_stage u_css 
+					where u_css.synonym_concept_code=q.concept_code and u_css.synonym_vocabulary_id=q.vocabulary_id and u_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(u_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'[^ 0-9\.]+') as u	-- parsing out the quantity
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
@@ -490,7 +568,28 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
         q.concept_code as drug_concept_code, ds.vocabulary_id_1, ds.ingredient_concept_code,  ds.vocabulary_id_2, 
         ds.numerator_value, ds.numerator_unit_concept_id, ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
         ds.valid_start_date, ds.valid_end_date,
-        regexp_substr(q.concept_name, '^[0-9\.]+')as v,  regexp_substr(q.concept_name, '[^ 0-9\.]+') as u -- parsing out the quantity
+		regexp_substr(
+			coalesce(
+				(
+					select v_css.synonym_name from concept_synonym_stage v_css 
+					where v_css.synonym_concept_code=q.concept_code and v_css.synonym_vocabulary_id=q.vocabulary_id and v_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(v_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'^[0-9\.]+') as v,		
+		regexp_substr(
+			coalesce(
+				(
+					select u_css.synonym_name from concept_synonym_stage u_css 
+					where u_css.synonym_concept_code=q.concept_code and u_css.synonym_vocabulary_id=q.vocabulary_id and u_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(u_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'[^ 0-9\.]+') as u	-- parsing out the quantity
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
@@ -533,7 +632,28 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
         q.concept_code as drug_concept_code, ds.vocabulary_id_1, ds.ingredient_concept_code,  ds.vocabulary_id_2, 
         ds.numerator_value, ds.numerator_unit_concept_id, ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
         ds.valid_start_date, ds.valid_end_date,
-        regexp_substr(q.concept_name, '^[0-9\.]+')as v,  regexp_substr(q.concept_name, '[^ 0-9\.]+') as u -- parsing out the quantity
+		regexp_substr(
+			coalesce(
+				(
+					select v_css.synonym_name from concept_synonym_stage v_css 
+					where v_css.synonym_concept_code=q.concept_code and v_css.synonym_vocabulary_id=q.vocabulary_id and v_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(v_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'^[0-9\.]+') as v,		
+		regexp_substr(
+			coalesce(
+				(
+					select u_css.synonym_name from concept_synonym_stage u_css 
+					where u_css.synonym_concept_code=q.concept_code and u_css.synonym_vocabulary_id=q.vocabulary_id and u_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(u_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'[^ 0-9\.]+') as u	-- parsing out the quantity
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
@@ -579,7 +699,28 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
         ds.amount_value, ds.amount_unit_concept_id,
         ds.numerator_value, ds.numerator_unit_concept_id, ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
         ds.valid_start_date, ds.valid_end_date,
-        regexp_substr(q.concept_name, '^[0-9\.]+')as v,  regexp_substr(q.concept_name, '[^ 0-9\.]+') as u -- parsing out the quantity
+		regexp_substr(
+			coalesce(
+				(
+					select v_css.synonym_name from concept_synonym_stage v_css 
+					where v_css.synonym_concept_code=q.concept_code and v_css.synonym_vocabulary_id=q.vocabulary_id and v_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(v_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'^[0-9\.]+') as v,		
+		regexp_substr(
+			coalesce(
+				(
+					select u_css.synonym_name from concept_synonym_stage u_css 
+					where u_css.synonym_concept_code=q.concept_code and u_css.synonym_vocabulary_id=q.vocabulary_id and u_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(u_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'[^ 0-9\.]+') as u	-- parsing out the quantity
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null
@@ -631,7 +772,28 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
         ds.amount_value, ds.amount_unit_concept_id,
         ds.numerator_value, ds.numerator_unit_concept_id, ds.denominator_unit_concept_id, 
         ds.valid_start_date, ds.valid_end_date,
-        regexp_substr(q.concept_name, '^[0-9\.]+')as v,  regexp_substr(q.concept_name, '[^ 0-9\.]+') as u -- parsing out the quantity
+		regexp_substr(
+			coalesce(
+				(
+					select v_css.synonym_name from concept_synonym_stage v_css 
+					where v_css.synonym_concept_code=q.concept_code and v_css.synonym_vocabulary_id=q.vocabulary_id and v_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(v_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'^[0-9\.]+') as v,		
+		regexp_substr(
+			coalesce(
+				(
+					select u_css.synonym_name from concept_synonym_stage u_css 
+					where u_css.synonym_concept_code=q.concept_code and u_css.synonym_vocabulary_id=q.vocabulary_id and u_css.synonym_name like q.concept_name||'%'
+					and length(q.concept_name)=255
+					order by length(u_css.synonym_name) desc 
+					fetch first 1 row only
+				), q.concept_name
+			), 
+		'[^ 0-9\.]+') as u	-- parsing out the quantity
       from drug_strength_stage ds
       join concept_stage d on d.concept_code=ds.drug_concept_code and d.vocabulary_id=ds.vocabulary_id_1 and d.concept_class_id in ('Clinical Drug', 'Branded Drug') and d.vocabulary_id='RxNorm'
       join concept_relationship_stage r on r.concept_code_1=ds.drug_concept_code and r.vocabulary_id_1=ds.vocabulary_id_1 and r.invalid_reason is null

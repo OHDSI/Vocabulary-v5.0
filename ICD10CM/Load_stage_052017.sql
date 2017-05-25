@@ -131,6 +131,7 @@ truncate table concept_relationship_manual
 ;
 commit
 ;
+--existing mappings
 insert into concept_relationship_manual (CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select c.concept_code, d.concept_code, c.vocabulary_id, d.vocabulary_id,r.relationship_id, r.VALID_START_DATE, r.VALID_END_DATE, r.INVALID_REASON from concept c
 join concept_relationship r on c.concept_id = r.concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
@@ -138,8 +139,16 @@ join concept d on d.concept_id = r.concept_id_2 and d.invalid_reason is null
 and c.vocabulary_id = 'ICD10CM'
 where c.concept_code not in (select concept_code_1 from MAP_052017) and c.invalid_reason is null
 ;
+--add the concepts from Erica and Ajit
 insert into concept_relationship_manual (CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID, TRUNC(SYSDATE) -1, to_date  ('31122099', 'ddmmyyyy') , null from MAP_052017
+;
+--add the concepts from the manual work done before that somehow didn't present in concept_relationship now
+insert into concept_relationship_manual (CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
+select source_code, target_code,'ICD10CM', 'SNOMED', MAPPING_TYPE, TRUNC(SYSDATE) -1, to_date  ('31122099', 'ddmmyyyy') , null  from ims_map.ICD10CM_MAP120316 
+join concept i on i.concept_code = SOURCE_CODE and i.vocabulary_id ='ICD10CM'
+join concept s on s.concept_code = TARGET_CODE and s.vocabulary_id = 'SNOMED' and (s.invalid_reason is null or s.invalid_reason='U')
+where SOURCE_CODE not in (select concept_code_1 from concept_relationship_manual)
 ;
 commit
 ;

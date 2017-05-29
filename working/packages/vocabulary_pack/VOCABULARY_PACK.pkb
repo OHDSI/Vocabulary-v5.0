@@ -115,6 +115,11 @@ IS
                LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crm.vocabulary_id_1
                LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crm.vocabulary_id_2
                LEFT JOIN relationship rl ON rl.relationship_id = crm.relationship_id
+               LEFT JOIN (SELECT crm_int.concept_code_1, crm_int.vocabulary_id_1, crm_int.concept_code_2, crm_int.vocabulary_id_2, crm_int.relationship_id 
+                   FROM concept_relationship_manual crm_int 
+                   GROUP BY crm_int.concept_code_1, crm_int.vocabulary_id_1, crm_int.concept_code_2, crm_int.vocabulary_id_2, crm_int.relationship_id  
+                   HAVING COUNT(*)>1) c_i ON c_i.concept_code_1=crm.concept_code_1 AND c_i.vocabulary_id_1=crm.vocabulary_id_1 AND c_i.concept_code_2=crm.concept_code_2
+                   AND c_i.vocabulary_id_2=crm.vocabulary_id_2 AND c_i.relationship_id=crm.relationship_id               
          WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
                OR (c2.concept_code IS NULL AND cs2.concept_code IS NULL)
                OR v1.vocabulary_id IS NULL
@@ -124,7 +129,8 @@ IS
                OR crm.valid_end_date < crm.valid_start_date
                OR TRUNC (crm.valid_start_date) <> crm.valid_start_date
                OR TRUNC (crm.valid_end_date) <> crm.valid_end_date
-               OR (crm.invalid_reason IS NULL AND crm.valid_end_date <> TO_DATE ('20991231', 'yyyymmdd'));
+               OR (crm.invalid_reason IS NULL AND crm.valid_end_date <> TO_DATE ('20991231', 'yyyymmdd'))
+               OR c_i.concept_code_1 IS NOT NULL;
 
         IF z > 0
         THEN

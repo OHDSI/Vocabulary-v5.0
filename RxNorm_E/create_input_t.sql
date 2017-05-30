@@ -1646,12 +1646,7 @@ COMMIT;
 --27 insert missing packs (only those that have => 2 components) - take them from the source tables
 --27.1 AMT
 INSERT /*+ APPEND */ INTO pc_stage
-(
-  pack_concept_code,
-  drug_concept_code,
-  amount,
-  box_size
-)
+(pack_concept_code,drug_concept_code,amount,box_size)
 SELECT DISTINCT ac.concept_code,
        ac2.concept_code,
        pcs.amount,
@@ -1711,12 +1706,7 @@ COMMIT;
 
 --27.2 AMIS
 INSERT /*+ APPEND */ INTO pc_stage
-(
-  pack_concept_code,
-  drug_concept_code,
-  amount,
-  box_size
-)
+(pack_concept_code,drug_concept_code,amount,box_size)
 SELECT DISTINCT ac.concept_code,
        ac2.concept_code,
        pcs.amount,
@@ -1775,12 +1765,7 @@ COMMIT;
 
 --27.3 BDPM
 INSERT /*+ APPEND */ INTO pc_stage
-(
-  pack_concept_code,
-  drug_concept_code,
-  amount,
-  box_size
-)
+(pack_concept_code,drug_concept_code,amount,box_size)
 SELECT DISTINCT ac.concept_code,
        ac2.concept_code,
        pcs.amount,
@@ -1840,12 +1825,7 @@ COMMIT;
 
 --27.4 dm+d
 INSERT /*+ APPEND */ INTO pc_stage
-(
-  pack_concept_code,
-  drug_concept_code,
-  amount,
-  box_size
-)
+(pack_concept_code,drug_concept_code,amount,box_size)
 SELECT DISTINCT ac.concept_code,
        ac2.concept_code,
        pcs.amount,

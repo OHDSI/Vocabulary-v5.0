@@ -1,0 +1,4 @@
+file=C:/Users/aostropolets/Desktop/bdpm files/ingredient translation all.txt
+WbImport -file=C:/Users/aostropolets/Desktop/bdpm files/aut_unit_all_mapped.txt
+...
+all these tables should be posted on github, so any of the team members can edit them

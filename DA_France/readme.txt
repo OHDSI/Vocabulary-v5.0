@@ -9,3 +9,4 @@ Additional information about these tables you can get from http://www.ohdsi.org/
 4. Run complete_concept_stage_name.sql
 Using tables with all generated classes create full names for concepts we have
 
+!!! need script refactoring and manual tables work

@@ -1,0 +1,33 @@
+Plan of final assembly
+
+drug_concept_stage
+  brand name - done 
+  manufacturer - done
+  ingredient - its OK include translation - done
+  Dose_forms - its  OK include translation - done
+  pack_components
+  all_drugs 
+  non_drugs - under constuction
+  
+DO NOT set possible_expicient='1' where concept_code='4401' (sterile water as the only ingredient);
+ds_stage
+  ds_1 - need check then, need to add ing_parsing with dosage recalc
+  ds_pack_1 -need recreate after 
+  
+internal_relationship
+  Drug to Brand Name - just join "brand_name" and dcs_bn
+  Drug to manufacturer  dcs_manufacturer join with Drug
+  Drug to ingredient  -take from ds_stage when done 
+  Drug to form - join including translations and pack_components check
+  Ingred to ingred - 
+  
+pack_comtent
+  PACK_CONT_1  - need to review manualy, set amounts  
+
+relationship_to_concept
+full mapping of ingredients --done AUT_INGR_MAPPED_ALL
+full mapping of Forms --done AUT_FORM_ALL_MAPPED
+full mapping of Brand Names  --done AUT_BN_MAPPED_ALL
+full mapping of units --done AUT_UNIT_ALL_MAPPED (first need to look at unit translation from UNIT_TRANSLATION)
+full mapping of Manufacturer -- not to forget to check when we'll have RxNorm Extension
+   

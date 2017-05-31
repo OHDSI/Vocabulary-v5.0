@@ -258,12 +258,12 @@ BEGIN
         dc.concept_id AS class_concept_id, rxn.concept_id AS rxn_concept_id
       FROM concept_ancestor class_rxn
       -- get all hierarchical relationships between concepts 'C' ...
-      JOIN concept dc ON dc.concept_id = class_rxn.ancestor_concept_id AND dc.standard_concept = 'C' AND dc.domain_id = 'Drug'
+      JOIN concept dc ON dc.concept_id = class_rxn.ancestor_concept_id AND dc.standard_concept = 'C' AND dc.domain_id = 'Drug' and dc.concept_class_id not in ('Dose Form Group','Clinical Dose Group','Branded Dose Group')
       -- ... and 'S'
       JOIN concept rxn on rxn.concept_id = class_rxn.descendant_concept_id
         AND rxn.standard_concept = 'S'
         AND rxn.domain_id = 'Drug'
-        AND rxn.vocabulary_id IN ('RxNorm')
+        AND rxn.vocabulary_id = 'RxNorm'
       -- connect all concepts inside the rxn hierachy. Some of them might be above the jump
     )
     select distinct low.class_concept_id, rxn_up.concept_id as rxn_concept_id
@@ -272,7 +272,7 @@ BEGIN
     JOIN concept rxn_up on rxn_up.concept_id = in_rxn.ancestor_concept_id
       AND rxn_up.standard_concept = 'S'
       AND rxn_up.domain_id = 'Drug'
-      AND rxn_up.vocabulary_id IN ('RxNorm')
+      AND rxn_up.vocabulary_id = 'RxNorm'
     where not exists (
       select 1 from jump high 
       join concept_ancestor ca on ca.ancestor_concept_id=high.rxn_concept_id and ca.descendant_concept_id=low.rxn_concept_id and ca.ancestor_concept_id<>ca.descendant_concept_id
@@ -288,21 +288,23 @@ BEGIN
     merge into concept_ancestor ca
     using (
     with t as (
-        select /*+ materialize*/ ancestor_concept_id, max(min_levels_of_separation) as min_levels_of_separation, max(max_levels_of_separation) as max_levels_of_separation
-        from concept_ancestor
-        join concept on concept_id=descendant_concept_id and standard_concept='C' and domain_id='Drug'
+        select /*+ materialize*/ ca.ancestor_concept_id, max(ca.min_levels_of_separation) as min_levels_of_separation, max(ca.max_levels_of_separation) as max_levels_of_separation
+        from concept_ancestor ca
+        join concept c on c.concept_id=ca.descendant_concept_id and c.standard_concept='C' and c.domain_id='Drug' and c.concept_class_id not in ('Dose Form Group','Clinical Dose Group','Branded Dose Group')
         group by ancestor_concept_id    
     )
     select
     pair.class_concept_id as ancestor_concept_id, -- concept in drug class
     pair.rxn_concept_id as descendant_concept_id, -- concept in RxNorm hierarchy above cross-over from class to RxNorm (jump)
-    min(to_bottom.min_levels_of_separation+to_ing.min_levels_of_separation) as min_levels_of_separation, -- levels in class plus the distance from ingredient to RxNorm concept
-    max(to_bottom.max_levels_of_separation+to_ing.max_levels_of_separation) as max_levels_of_separation
+    --direct relationship from ATC4 to Ingredient and no relationship to corresponding ATC5 gives min_level_of_separation = 0, but should be '1'
+    min(to_bottom.min_levels_of_separation+case when c.concept_class_id='ATC 4th' then 1 else to_ing.min_levels_of_separation end) as min_levels_of_separation, -- levels in class plus the distance from ingredient to RxNorm concept
+    max(to_bottom.max_levels_of_separation+case when c.concept_class_id='ATC 4th' then 1 else to_ing.max_levels_of_separation end) as max_levels_of_separation
     from pair_tbl pair
     -- get distance from class concept to lowest possible class concept
     join t to_bottom on to_bottom.ancestor_concept_id=pair.class_concept_id
     -- get distance from rxn concept to highest possible (Ingredient) rxn concept
     join concept_ancestor to_ing on to_ing.descendant_concept_id=pair.rxn_concept_id
+    join concept c on c.concept_id=pair.class_concept_id
     join concept ing on ing.concept_id=to_ing.ancestor_concept_id and ing.vocabulary_id in ('RxNorm', 'RxNorm Extension') and ing.concept_class_id='Ingredient'
     group by pair.class_concept_id, pair.rxn_concept_id
     ) i on (ca.ancestor_concept_id=i.ancestor_concept_id and ca.descendant_concept_id=i.descendant_concept_id)
@@ -311,7 +313,7 @@ BEGIN
             where ca.min_levels_of_separation<>i.min_levels_of_separation or ca.max_levels_of_separation<>i.max_levels_of_separation
     when not matched then 
             insert values (i.ancestor_concept_id, i.descendant_concept_id, i.min_levels_of_separation, i.max_levels_of_separation)
-    ]';          
+    ]';             
     commit;
     
 	DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_ancestor', estimate_percent  => null, cascade  => true);

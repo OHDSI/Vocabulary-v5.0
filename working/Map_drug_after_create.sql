@@ -1,3 +1,7 @@
+--before generic update was run (not a perfect idea because we can't make the whole script in the devv5 but only copying stage tables)
+--run ancestor on the data get with RxE builder
+exec devv5.psmallconceptancestor
+;
 --choose the closest by hierarchy concept --how will "first value" work with duplicates??
 create table anc_lev as
 select c.concept_id, min (a.MAX_LEVELS_OF_SEPARATION) S_level from concept c
@@ -7,8 +11,8 @@ join concept cr on a.ANCESTOR_CONCEPT_ID = cr.concept_id
 
 where cr.vocabulary_id in ('RxNorm' , 'RxNorm Extension') and cr.invalid_reason is null 
 and r.invalid_reason is null
-and c.invalid_reason is null and c.vocabulary_id = 'GRR'
-and cr.VALID_START_DATE < TO_DATE ('20161222', 'yyyymmdd')
+and c.invalid_reason is null and c.vocabulary_id = (select vocabulary_id from drug_concept_stage where rownum=1)
+and cr.VALID_START_DATE <  (SELECT latest_update FROM vocabulary_conversion WHERE vocabulary_id_v5=(select vocabulary_id from drug_concept_stage where rownum=1)) --exclude RxNorm concepts made in this release --not a problem because in dev_vocab schema there will be no other vocabularies updated
 group by c.concept_id
 ;
 create table rel_anc as
@@ -19,8 +23,8 @@ join concept cr on a.ANCESTOR_CONCEPT_ID = cr.concept_id
 
 where cr.vocabulary_id in ('RxNorm' , 'RxNorm Extension') and cr.invalid_reason is null 
 and r.invalid_reason is null
-and c.invalid_reason is null and c.vocabulary_id = 'GRR'
-and cr.VALID_START_DATE < TO_DATE ('20161222', 'yyyymmdd')
+and c.invalid_reason is null and c.vocabulary_id = (select vocabulary_id from drug_concept_stage where rownum=1)
+and cr.VALID_START_DATE <  (SELECT latest_update FROM vocabulary_conversion WHERE vocabulary_id_v5=(select vocabulary_id from drug_concept_stage where rownum=1)) --exclude RxNorm concepts made in this release --not a problem because in dev_vocab schema there will be no other vocabularies updated
 ;
 --add codes
 create table rel_fin as 
@@ -92,3 +96,56 @@ from attrib_cnt join q_to_rn on r_did  = concept_id_1
 where Q_DCODE not in ( select drug_concept_code from dupl)
 union select CONCEPT_ID_1, drug_concept_code from dupl where WEIGHT = 0
 ;
+--postprocessing with all excess information removal
+--still a question - should we keep all the Attributes for local vocabularies
+--convention made for now - not to keep, so the query looks like this:
+-- all the newly generated concepts should be removed 
+--devices already added in RxE builder
+delete from concept_stage where concept_code like '%OMOP%' 
+;
+--only mappings (results of "best_map") should exist in concept_relationship_stage
+truncate table concept_relationship_stage
+;
+-- Write concept_relationship_stage
+truncate table concept_relationship_stage;
+insert /*+ APPEND */ into concept_relationship_stage
+						(concept_code_1,
+						concept_code_2,
+						vocabulary_id_1,
+						vocabulary_id_2,
+						relationship_id,
+						valid_start_date,
+						valid_end_date,
+						invalid_reason)
+select 
+  q_dcode as concept_code_1,
+  c.concept_code as concept_code_2,  
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
+  c.vocabulary_id as vocabulary_id_2,
+  'Maps to' as relationship_id,
+  (SELECT latest_update FROM vocabulary_conversion WHERE vocabulary_id_v5=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
+  null as invalid_reason
+from best_map m
+join concept c on c.concept_id=m.r_did and c.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+;
+--add mapping of Devices to itself (do we have it in RxE build?)
+insert /*+ APPEND */ into concept_relationship_stage
+						(concept_code_1,
+						concept_code_2,
+						vocabulary_id_1,
+						vocabulary_id_2,
+						relationship_id,
+						valid_start_date,
+						valid_end_date,
+						invalid_reason)
+select 
+  concept_code as concept_code_1,
+  concept_code as concept_code_2,  
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
+   (select vocabulary_id from drug_concept_stage where rownum=1)  as vocabulary_id_2,
+  'Maps to' as relationship_id,
+  (SELECT latest_update FROM vocabulary_conversion WHERE vocabulary_id_v5=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
+  null as invalid_reason
+from concept_stage  

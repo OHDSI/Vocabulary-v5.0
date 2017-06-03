@@ -88,6 +88,11 @@ select concept_code_1, 'internal_relationship_dublicates' from (
 select concept_code_1, concept_code_2 from internal_relationship_stage group by concept_code_1, concept_code_2 having count (1) > 1 
 )
 union
+ --drugs without ingredients won't be proceeded
+ select concept_code,'missing relationship to ingredient' from
+ drug_concept_stage where concept_code not in (select concept_code_1 from internal_relationship_stage join drug_concept_stage on concept_code_1 and concept_class_id='Ingredient')
+ and concept_code not in (select pack_concept_code from pc_stage)
+ union
 --4.drug_concept_stage
 --duplicates in drug_concept_stage table
 select distinct concept_code,'Duplicate concept code' from drug_concept_stage  

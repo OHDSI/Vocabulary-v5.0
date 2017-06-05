@@ -37,7 +37,7 @@ IS
         EXECUTE IMMEDIATE 'TRUNCATE TABLE DEV_SUMMARY';
     END;
 
-    FUNCTION get_summary (table_name IN VARCHAR2)
+    FUNCTION get_summary (table_name IN VARCHAR2, pCompareWith IN VARCHAR2 DEFAULT 'PRODV5')
         RETURN rep_t_GetSummary
     IS
         Res                    rep_t_GetSummary := rep_t_GetSummary ();
@@ -59,8 +59,9 @@ IS
         IF z = 0
         THEN
             --summary for 'concept'
+            EXECUTE IMMEDIATE '
             INSERT INTO DEV_SUMMARY
-                  SELECT 'concept' AS table_name,
+                  SELECT ''concept'' AS table_name,
                          c.vocabulary_id,
                          NULL,
                          concept_class_id,
@@ -68,8 +69,8 @@ IS
                          invalid_reason,
                          COUNT (*) AS cnt,
                          NULL AS cnt_delta
-                    FROM prodv5.concept c
-                GROUP BY c.vocabulary_id, concept_class_id, invalid_reason;
+                    FROM '     || pCompareWith || '.concept c
+                GROUP BY c.vocabulary_id, concept_class_id, invalid_reason';
 
             MERGE INTO DEV_SUMMARY t1
                  USING (  SELECT 'concept' AS table_name,
@@ -102,8 +103,9 @@ IS
                                    t2.cnt);
 
             --summary for 'concept_relationship'
+            EXECUTE IMMEDIATE '
             INSERT INTO DEV_SUMMARY
-                  SELECT 'concept_relationship' AS table_name,
+                  SELECT ''concept_relationship'' AS table_name,
                          c1.vocabulary_id,
                          c2.vocabulary_id,
                          NULL AS concept_class_id,
@@ -111,12 +113,12 @@ IS
                          r.invalid_reason,
                          COUNT (*) AS cnt,
                          NULL AS cnt_delta
-                    FROM prodv5.concept c1, prodv5.concept c2, prodv5.concept_relationship r
+                    FROM '     || pCompareWith || '.concept c1, ' || pCompareWith || '.concept c2, ' || pCompareWith || '.concept_relationship r
                    WHERE c1.concept_id = r.concept_id_1 AND c2.concept_id = r.concept_id_2
                 GROUP BY c1.vocabulary_id,
                          c2.vocabulary_id,
                          r.relationship_id,
-                         r.invalid_reason;
+                         r.invalid_reason';
 
             MERGE INTO DEV_SUMMARY t1
                  USING (  SELECT 'concept_relationship' AS table_name,
@@ -154,8 +156,9 @@ IS
                                    t2.cnt);
 
             --summary for 'concept_ancestor'
+            EXECUTE IMMEDIATE '
             INSERT INTO DEV_SUMMARY
-                  SELECT 'concept_ancestor' AS table_name,
+                  SELECT ''concept_ancestor'' AS table_name,
                          c.vocabulary_id,
                          NULL,
                          NULL AS concept_class_id,
@@ -163,9 +166,9 @@ IS
                          NULL AS invalid_reason,
                          COUNT (*) AS cnt,
                          NULL AS cnt_delta
-                    FROM prodv5.concept c, prodv5.concept_ancestor ca
+                    FROM '     || pCompareWith || '.concept c, ' || pCompareWith || '.concept_ancestor ca
                    WHERE c.concept_id = CA.ANCESTOR_CONCEPT_ID
-                GROUP BY c.vocabulary_id;
+                GROUP BY c.vocabulary_id';
 
             MERGE INTO DEV_SUMMARY t1
                  USING (  SELECT 'concept_ancestor' AS table_name,

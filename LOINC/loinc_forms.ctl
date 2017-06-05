@@ -1,6 +1,6 @@
 OPTIONS (errors=0, SKIP=1, direct=true)
 LOAD DATA
-INFILE 'LOINC_FORMS.txt'
+INFILE 'LOINC_FORMS.txt' "str '\r\n'"
 BADFILE 'LOINC_FORMS.bad'
 DISCARDFILE 'LOINC_FORMS.dsc'                                                           
 TRUNCATE

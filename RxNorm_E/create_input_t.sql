@@ -546,9 +546,9 @@ COMMIT;
 DELETE drug_concept_stage where concept_code IN
 (SELECT c.concept_code 
    FROM concept_ancestor a 
-        JOIN concept c ON c.concept_id = descendant_concept_id AND ancestor_concept_id = 43563483
-UNION
-SELECT 'OMOP881482' from dual);
+        JOIN concept c ON c.concept_id = descendant_concept_id AND ancestor_concept_id = 43563483);
+DELETE drug_concept_stage where concept_code IN
+('OMOP881482','OMOP341519','OMOP346740','OMOP714610');
 
 
 /* Remove wrong brand names (need to save for the later clean up)
@@ -1010,15 +1010,12 @@ COMMIT;
 
 --15.7 update wrong dosages in Varicella Virus Vaccine
 UPDATE ds_stage
-   SET numerator_unit = 'mg'
+   SET numerator_unit = '[U]', numerator_value = 29800
 WHERE drug_concept_code IN (SELECT drug_concept_code
                         FROM ds_stage a
                           JOIN drug_concept_stage ds ON a.drug_concept_code = ds.concept_code
-                        WHERE ((a.numerator_value IS NOT NULL AND a.numerator_unit IS NULL) 
-                        OR (a.denominator_value IS NOT NULL AND a.denominator_unit IS NULL) 
-                        OR (a.amount_value IS NOT NULL AND a.amount_unit IS NULL))
-                        AND   ds.concept_name LIKE '%Varicella Virus Vaccine Live (Oka-Merck) strain 29800 /ML%');
-COMMIT;
+                        WHERE ds.concept_name LIKE '%Varicella Virus Vaccine Live (Oka-Merck) strain 29800 /ML%');
+COMMIT;		
 
 --15.8 update wrong dosages in alpha-amylase
 UPDATE ds_stage
@@ -1067,10 +1064,7 @@ UPDATE ds_stage
 WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
                               JOIN drug_concept_stage
-                                ON drug_concept_code = concept_code
-                               AND concept_name LIKE '%Water%'
-                               AND numerator_unit = 'mL'
-                               AND denominator_unit = 'mL');
+                                ON drug_concept_code = concept_code AND concept_name LIKE '%Water%' AND numerator_unit = 'mL' AND denominator_unit = 'mL');
 			       
 --15.12 cromolyn Inhalation powder change to 5mg/actuat
 UPDATE ds_stage
@@ -1081,65 +1075,73 @@ WHERE drug_concept_code IN ('OMOP391197','OMOP391198','OMOP391199');
 UPDATE ds_stage
    SET numerator_unit = '%',numerator_value = '95',denominator_unit = NULL,denominator_value = NULL
 WHERE drug_concept_code IN (SELECT concept_code
-                            FROM concept_stage
+                            FROM drug_concept_stage
                               JOIN ds_stage ON concept_code = drug_concept_code
-                            WHERE concept_name LIKE '%950 MG/%ML%Gas for Inhalation%')
-AND   ingredient_concept_code = '7806';
+                             WHERE REGEXP_LIKE (concept_name,'Oxygen\s((950 MG/ML)|(0.95 MG/MG)|(950 MG/MG)|(950000 MG/ML)|(950000000 MG/ML))'))
+AND   ingredient_concept_code = '7806' AND   numerator_unit != '%';
 
 UPDATE ds_stage
    SET numerator_unit = '%',numerator_value = '5',denominator_unit = NULL,denominator_value = NULL
 WHERE drug_concept_code IN (SELECT concept_code
-                            FROM concept_stage
+                            FROM drug_concept_stage
                               JOIN ds_stage ON concept_code = drug_concept_code
-                            WHERE concept_name LIKE '%950 MG/%ML%Gas for Inhalation%')
-AND   ingredient_concept_code = '2034';
+                            WHERE REGEXP_LIKE (concept_name,'Carbon Dioxide\s((50 MG/)|(0.05 MG/MG)|(50000 MG/ML)|(50000000 MG/ML))'))
+AND   ingredient_concept_code = '2034' AND   numerator_unit != '%';
 
 UPDATE ds_stage
    SET numerator_unit = '%',numerator_value = '50',denominator_unit = NULL,denominator_value = NULL
 WHERE drug_concept_code IN (SELECT concept_code
-                            FROM concept_stage
+                            FROM drug_concept_stage
                               JOIN ds_stage ON concept_code = drug_concept_code
-                            WHERE concept_name LIKE '%500 MG/%ML%Gas for Inhalation%'
-                            OR    concept_name LIKE '%500000000 MG/%ML%Gas for Inhalation%'
-                            OR    concept_name LIKE '%270 MG/%ML%Gas for Inhalation%');
-
+                            WHERE REGEXP_LIKE (concept_name,'(Nitrous Oxide|Oxygen|Carbon Dioxide)\s((500 MG/.*ML)|(500000000 MG/.*ML)|(270 MG/.*ML)|(500000 MG/ML)|(500 MG/MG)|(0.00025 ML/ML))')
+                            AND   numerator_unit != '%');
+                           
 UPDATE ds_stage
    SET numerator_unit = '%',numerator_value = '79',denominator_unit = NULL,denominator_value = NULL
 WHERE drug_concept_code IN (SELECT concept_code
-                            FROM concept_stage
+                            FROM drug_concept_stage
                               JOIN ds_stage ON concept_code = drug_concept_code
-                            WHERE concept_name LIKE '%790%MG/%ML%Gas for Inhalation%')
-AND   ingredient_concept_code = '5140';
+                            WHERE concept_name LIKE '%Helium%79%MG/%')
+AND   ingredient_concept_code = '5140' AND   numerator_unit != '%';
 
 UPDATE ds_stage
    SET numerator_unit = '%', numerator_value = '21', denominator_unit = NULL,denominator_value = NULL
 WHERE drug_concept_code IN (SELECT concept_code
-                            FROM concept_stage
+                            FROM drug_concept_stage
                               JOIN ds_stage ON concept_code = drug_concept_code
-                            WHERE concept_name LIKE '%790%MG/%ML%Gas for Inhalation%')
-AND   ingredient_concept_code = '7806';
+                            WHERE concept_name LIKE '%Oxygen%21%MG/%')
+AND   ingredient_concept_code = '7806' AND   numerator_unit != '%';
 
+UPDATE ds_stage
+   SET numerator_unit = '%',
+       numerator_value = CASE
+                           WHEN numerator_unit = 'mg' AND denominator_unit = 'mL' THEN numerator_value / NVL(denominator_value,1)*0.1
+                           WHEN numerator_value/nvl(denominator_value,1)<0.09 THEN numerator_value / NVL(denominator_value,1)*1000
+                           ELSE numerator_value / NVL(denominator_value,1)*100 END ,
+       denominator_unit = NULL, denominator_value = NULL
+WHERE drug_concept_code IN (SELECT concept_code
+                            FROM drug_concept_stage
+                              JOIN ds_stage ON concept_code = drug_concept_code
+                            WHERE REGEXP_LIKE (concept_name,'((Nitrous Oxide)|(Xenon)|(Isoflurane)|(Oxygen)) (\d+\.)?(\d+\s((MG/MG)|(ML/ML)))') AND numerator_unit != '%')
+;
 
 --16 Delete 3 legged dogs
 DELETE FROM ds_stage
 WHERE drug_concept_code IN (WITH a AS
-                            (
-                              SELECT drug_concept_id,
+                            ( SELECT drug_concept_id,
                                      COUNT(drug_concept_id) AS cnt1
                               FROM drug_strength
                               GROUP BY drug_concept_id
                             ),
                             b AS
-                            (
-                              SELECT descendant_concept_id,
+                            ( SELECT descendant_concept_id,
                                      COUNT(descendant_concept_id) AS cnt2
                               FROM concept_ancestor a
                                 JOIN concept b
                                   ON ancestor_concept_id = b.concept_id
                                  AND concept_class_id = 'Ingredient' AND b.vocabulary_id LIKE 'RxNorm%' 
                                 JOIN concept b2 ON descendant_concept_id = b2.concept_id AND b2.concept_class_id NOT LIKE '%Comp%' AND b2.concept_name like '% / %'
-                              GROUP BY descendant_concept_id
-                            )
+                              GROUP BY descendant_concept_id)
                             SELECT concept_code
                             FROM a
                               JOIN b ON a.drug_concept_id = b.descendant_concept_id
@@ -1165,7 +1167,39 @@ DELETE FROM ds_stage
                                    AND denominator_unit = 'mL');
 
 
---18 
+--18 Fix all the enormous dosages that we can
+UPDATE ds_stage
+SET numerator_value='100'
+WHERE drug_concept_code IN
+(SELECT concept_code FROM drug_concept_stage WHERE concept_name LIKE '%Hydrocortisone 140%');         
+
+UPDATE ds_stage
+SET numerator_value='20'
+WHERE drug_concept_code IN
+(SELECT concept_code FROM drug_concept_stage WHERE concept_name LIKE '%Benzocaine 120 %');  
+
+UPDATE ds_stage
+SET numerator_value=numerator_value/10
+WHERE drug_concept_code IN
+(SELECT concept_code FROM ds_stage a
+                          JOIN drug_concept_stage ds ON a.drug_concept_code = ds.concept_code
+                        WHERE concept_name LIKE '%Albumin Human, USP%'  AND numerator_value/nvl(denominator_value, 1)>1000);  
+                        
+UPDATE ds_stage
+SET numerator_value = numerator_value/1000000
+WHERE drug_concept_code IN
+(SELECT concept_code FROM ds_stage a
+                          JOIN drug_concept_stage ds ON a.drug_concept_code = ds.concept_code
+                        WHERE  REGEXP_LIKE (concept_name, 'Glucose (100000000|200000000|40000000|50000000)|Gelatin 40000000|Bupivacaine|Fentanyl|sodium citrate|(Glucose 50000000 MG/ML  Injectable Solution)|(Glucose 50000000 MG/ML / Potassium Chloride 1500000 MG/ML)|Potassium Cloride (75000000|4500000|30000000|2000000|1500000)|Sodium|Peracetic acid') 
+                          AND numerator_value/nvl(denominator_value, 1)>10000);
+                          
+UPDATE ds_stage
+SET numerator_value = numerator_value/100000
+WHERE drug_concept_code IN
+(SELECT concept_code FROM ds_stage a
+                          JOIN drug_concept_stage ds ON a.drug_concept_code = ds.concept_code
+                        WHERE  REGEXP_LIKE (concept_name, '(Morphine (1000000|2000000))|Sorbitol|Mannitol') 
+                          AND numerator_value/nvl(denominator_value, 1)>1000);                          
 UPDATE ds_stage
    SET denominator_unit = 'mL'
 WHERE drug_concept_code IN (SELECT drug_concept_code
@@ -1173,7 +1207,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                                JOIN drug_concept_stage ON drug_concept_code = concept_code
                              WHERE numerator_unit = 'mg'
                              AND   denominator_unit = 'mg'
-                             AND   (numerator_value / denominator_value > 1 OR (numerator_value > 1 AND denominator_value IS NULL)));
+                             AND   numerator_value / nvl(denominator_value,1) > 1);
 COMMIT;
                             
 --19 Delete drugs with cm in denominator that we weren't able to fix
@@ -1206,9 +1240,9 @@ COMMIT;
 DELETE FROM drug_concept_stage
 WHERE concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
-							WHERE (((LOWER(numerator_unit)='mg' AND LOWER(denominator_unit) IN ('ml','g')) OR (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='l')) AND numerator_value / denominator_value > 1000)
-							OR    (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='ml' AND numerator_value / denominator_value > 1)
-							OR    (LOWER(numerator_unit)='mg' AND LOWER(denominator_unit)='mg' AND numerator_value / denominator_value > 1)
+							WHERE (((LOWER(numerator_unit)='mg' AND LOWER(denominator_unit) IN ('ml','g')) OR (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='l')) AND numerator_value / nvl(denominator_value,1) > 1000)
+							OR    (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='ml' AND numerator_value / nvl(denominator_value,1) > 1)
+							OR    (LOWER(numerator_unit)='mg' AND LOWER(denominator_unit)='mg' AND numerator_value / nvl(denominator_value,1) > 1)
 							OR    ((amount_unit = '%' AND amount_value > 100) OR (numerator_unit = '%' AND numerator_value > 100))
 							OR    (numerator_unit = '%' AND   denominator_unit IS NOT NULL)
                             );
@@ -1217,9 +1251,9 @@ WHERE concept_code IN (SELECT drug_concept_code
 DELETE FROM ds_stage
 	WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
-							WHERE (((LOWER(numerator_unit)='mg' AND LOWER(denominator_unit) IN ('ml','g')) OR (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='l')) AND numerator_value / denominator_value > 1000)
-							OR    (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='ml' AND numerator_value / denominator_value > 1)
-							OR    (LOWER(numerator_unit)='mg' AND LOWER(denominator_unit)='mg' AND numerator_value / denominator_value > 1)
+							WHERE (((LOWER(numerator_unit)='mg' AND LOWER(denominator_unit) IN ('ml','g')) OR (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='l')) AND numerator_value / nvl(denominator_value,1) > 1000)
+							OR    (LOWER(numerator_unit)='g' AND LOWER(denominator_unit)='ml' AND numerator_value / nvl(denominator_value,1) > 1)
+							OR    (LOWER(numerator_unit)='mg' AND LOWER(denominator_unit)='mg' AND numerator_value / nvl(denominator_value,1) > 1)
 							OR    ((amount_unit = '%' AND amount_value > 100) OR (numerator_unit = '%' AND numerator_value > 100))
 							OR    (numerator_unit = '%' AND   denominator_unit IS NOT NULL)
                             );
@@ -1532,6 +1566,20 @@ INSERT INTO internal_relationship_stage (concept_code_1,concept_code_2) VALUES (
 INSERT INTO internal_relationship_stage (concept_code_1,concept_code_2) VALUES ('OMOP391019','317000');
 INSERT INTO internal_relationship_stage (concept_code_1,concept_code_2) VALUES ('OMOP391020','317000');
 	
+--24.4 Manually add missing ingredients
+
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP418619','10582');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP421053','854930');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP420104','7994');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP417742','6313');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP417551','5666');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP412170','4141');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP421199','105695');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP421200','105695');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP421053','854930');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP299955','5333');
+INSERT INTO  internal_relationship_stage  (concept_code_1,concept_code_2) VALUES ('OMOP419715','3616');
+	
 --25 delete multiple relationships to attributes
 --25.1 define concept_1, concept_2 pairs need to be deleted
 DELETE FROM internal_relationship_stage
@@ -1647,57 +1695,23 @@ COMMIT;
 --27.1 AMT
 INSERT /*+ APPEND */ INTO pc_stage
 (pack_concept_code,drug_concept_code,amount,box_size)
-SELECT DISTINCT ac.concept_code,
-       ac2.concept_code,
-       pcs.amount,
-       pcs.box_size
+SELECT DISTINCT ac.concept_code,ac2.concept_code,pcs.amount,pcs.box_size
 FROM dev_amt.pc_stage pcs
-  JOIN concept c
-    ON c.concept_code = pcs.pack_Concept_code
-   AND c.vocabulary_id = 'AMT'
-   AND c.invalid_reason IS NULL
-  JOIN concept_relationship cr
-    ON cr.concept_id_1 = c.concept_id
-   AND cr.relationship_id = 'Maps to'
-  JOIN concept ac
-    ON ac.concept_id = cr.concept_id_2
-   AND ac.vocabulary_id = 'RxNorm Extension'
-   AND ac.invalid_Reason IS NULL
-  JOIN concept c2
-    ON c2.concept_code = pcs.drug_concept_code
-   AND c.vocabulary_id = 'AMT'
-   AND c2.invalid_reason IS NULL
-  JOIN concept_relationship cr2
-    ON cr2.concept_id_1 = c2.concept_id
-   AND cr2.relationship_id = 'Maps to'
-  JOIN concept ac2
-    ON ac2.concept_id = cr2.concept_id_2
-   AND ac2.vocabulary_id LIKE 'RxNorm%'
-   AND ac2.invalid_Reason IS NULL
+  JOIN concept c ON c.concept_code = pcs.pack_Concept_code AND c.vocabulary_id = 'AMT' AND c.invalid_reason IS NULL
+  JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id   AND cr.relationship_id = 'Maps to'
+  JOIN concept ac ON ac.concept_id = cr.concept_id_2 AND ac.vocabulary_id = 'RxNorm Extension' AND ac.invalid_Reason IS NULL
+  JOIN concept c2 ON c2.concept_code = pcs.drug_concept_code AND c.vocabulary_id = 'AMT' AND c2.invalid_reason IS NULL
+  JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id AND cr2.relationship_id = 'Maps to'
+  JOIN concept ac2 ON ac2.concept_id = cr2.concept_id_2 AND ac2.vocabulary_id LIKE 'RxNorm%' AND ac2.invalid_Reason IS NULL
 WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
 AND   c.concept_id IN (SELECT c.concept_id
                        FROM dev_amt.pc_stage pcs
-                         JOIN concept c
-                           ON c.concept_code = pcs.pack_Concept_code
-                          AND c.vocabulary_id = 'AMT'
-                          AND c.invalid_reason IS NULL
-                         JOIN concept_relationship cr
-                           ON cr.concept_id_1 = c.concept_id
-                          AND cr.relationship_id = 'Maps to'
-                         JOIN concept ac
-                           ON ac.concept_id = cr.concept_id_2
-                          AND ac.vocabulary_id = 'RxNorm Extension'
-                          AND ac.invalid_Reason IS NULL
-                         JOIN concept c2
-                           ON c2.concept_code = pcs.drug_concept_code
-                          AND c.vocabulary_id = 'AMT'
-                          AND c2.invalid_reason IS NULL
-                         JOIN concept_relationship cr2
-                           ON cr2.concept_id_1 = c2.concept_id
-                          AND cr2.relationship_id = 'Maps to'
-                         JOIN concept ac2
-                           ON ac2.concept_id = cr2.concept_id_2
-                          AND ac2.vocabulary_id LIKE 'RxNorm%'
+                         JOIN concept c ON c.concept_code = pcs.pack_Concept_code AND c.vocabulary_id = 'AMT' AND c.invalid_reason IS NULL
+                         JOIN concept_relationship cr  ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Maps to'
+                         JOIN concept ac ON ac.concept_id = cr.concept_id_2 AND ac.vocabulary_id = 'RxNorm Extension' AND ac.invalid_Reason IS NULL
+                         JOIN concept c2 ON c2.concept_code = pcs.drug_concept_code  AND c.vocabulary_id = 'AMT' AND c2.invalid_reason IS NULL
+                         JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id AND cr2.relationship_id = 'Maps to'
+                         JOIN concept ac2 ON ac2.concept_id = cr2.concept_id_2 AND ac2.vocabulary_id LIKE 'RxNorm%'
                        WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
                        GROUP BY c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
@@ -1707,56 +1721,23 @@ COMMIT;
 --27.2 AMIS
 INSERT /*+ APPEND */ INTO pc_stage
 (pack_concept_code,drug_concept_code,amount,box_size)
-SELECT DISTINCT ac.concept_code,
-       ac2.concept_code,
-       pcs.amount,
-       pcs.box_size
+SELECT DISTINCT ac.concept_code,ac2.concept_code,pcs.amount,pcs.box_size
 FROM dev_amis.pc_stage pcs
-  JOIN concept c
-    ON c.concept_code = pcs.pack_Concept_code
-   AND c.vocabulary_id = 'AMIS'
-   AND c.invalid_reason IS NULL
-  JOIN concept_relationship cr
-    ON cr.concept_id_1 = c.concept_id
-   AND cr.relationship_id = 'Maps to'
-  JOIN concept ac
-    ON ac.concept_id = cr.concept_id_2
-   AND ac.vocabulary_id = 'RxNorm Extension'
-   AND ac.invalid_Reason IS NULL
-  JOIN concept c2
-    ON c2.concept_code = pcs.drug_concept_code
-   AND c.vocabulary_id = 'AMIS'
-   AND c2.invalid_reason IS NULL
-  JOIN concept_relationship cr2
-    ON cr2.concept_id_1 = c2.concept_id
-   AND cr2.relationship_id = 'Maps to'
-  JOIN concept ac2
-    ON ac2.concept_id = cr2.concept_id_2
-   AND ac2.vocabulary_id LIKE 'RxNorm%'
-   AND ac2.invalid_Reason IS NULL
+  JOIN concept c ON c.concept_code = pcs.pack_Concept_code AND c.vocabulary_id = 'AMIS' AND c.invalid_reason IS NULL
+  JOIN concept_relationship cr    ON cr.concept_id_1 = c.concept_id   AND cr.relationship_id = 'Maps to'
+  JOIN concept ac ON ac.concept_id = cr.concept_id_2 AND ac.vocabulary_id = 'RxNorm Extension' AND ac.invalid_Reason IS NULL
+  JOIN concept c2 ON c2.concept_code = pcs.drug_concept_code AND c.vocabulary_id = 'AMIS' AND c2.invalid_reason IS NULL
+  JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id AND cr2.relationship_id = 'Maps to'
+  JOIN concept ac2 ON ac2.concept_id = cr2.concept_id_2 AND ac2.vocabulary_id LIKE 'RxNorm%' AND ac2.invalid_Reason IS NULL
 WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
 AND   c.concept_id IN (SELECT c.concept_id
                        FROM dev_amis.pc_stage pcs
-                         JOIN concept c
-                           ON c.concept_code = pcs.pack_Concept_code
-                          AND c.vocabulary_id = 'AMIS'
-                          AND c.invalid_reason IS NULL
-                         JOIN concept_relationship cr
-                           ON cr.concept_id_1 = c.concept_id
-                          AND cr.relationship_id = 'Maps to'
-                         JOIN concept ac
-                           ON ac.concept_id = cr.concept_id_2
-                          AND ac.vocabulary_id = 'RxNorm Extension'
-                          AND ac.invalid_Reason IS NULL
-                         JOIN concept c2
-                           ON c2.concept_code = pcs.drug_concept_code
-                          AND c.vocabulary_id = 'AMIS'
-                         JOIN concept_relationship cr2
-                           ON cr2.concept_id_1 = c2.concept_id
-                          AND cr2.relationship_id = 'Maps to'
-                         JOIN concept ac2
-                           ON ac2.concept_id = cr2.concept_id_2
-                          AND ac2.vocabulary_id LIKE 'RxNorm%'
+                         JOIN concept c ON c.concept_code = pcs.pack_Concept_code AND c.vocabulary_id = 'AMIS' AND c.invalid_reason IS NULL
+                         JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Maps to'
+                         JOIN concept ac  ON ac.concept_id = cr.concept_id_2 AND ac.vocabulary_id = 'RxNorm Extension' AND ac.invalid_Reason IS NULL
+                         JOIN concept c2 ON c2.concept_code = pcs.drug_concept_code AND c.vocabulary_id = 'AMIS'
+                         JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id AND cr2.relationship_id = 'Maps to'
+                         JOIN concept ac2 ON ac2.concept_id = cr2.concept_id_2 AND ac2.vocabulary_id LIKE 'RxNorm%'
                        WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
                        GROUP BY c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
@@ -1766,57 +1747,23 @@ COMMIT;
 --27.3 BDPM
 INSERT /*+ APPEND */ INTO pc_stage
 (pack_concept_code,drug_concept_code,amount,box_size)
-SELECT DISTINCT ac.concept_code,
-       ac2.concept_code,
-       pcs.amount,
-       pcs.box_size
+SELECT DISTINCT ac.concept_code,ac2.concept_code,pcs.amount,pcs.box_size
 FROM dev_bdpm.pc_stage pcs
-  JOIN concept c
-    ON c.concept_code = pcs.pack_Concept_code
-   AND c.vocabulary_id = 'BDPM'
-   AND c.invalid_reason IS NULL
-  JOIN concept_relationship cr
-    ON cr.concept_id_1 = c.concept_id
-   AND cr.relationship_id = 'Maps to'
-  JOIN concept ac
-    ON ac.concept_id = cr.concept_id_2
-   AND ac.vocabulary_id = 'RxNorm Extension'
-   AND ac.invalid_Reason IS NULL
-  JOIN concept c2
-    ON c2.concept_code = pcs.drug_concept_code
-   AND c.vocabulary_id = 'BDPM'
-   AND c2.invalid_reason IS NULL
-  JOIN concept_relationship cr2
-    ON cr2.concept_id_1 = c2.concept_id
-   AND cr2.relationship_id = 'Maps to'
-  JOIN concept ac2
-    ON ac2.concept_id = cr2.concept_id_2
-   AND ac2.vocabulary_id LIKE 'RxNorm%'
-   AND ac2.invalid_Reason IS NULL
+  JOIN concept c ON c.concept_code = pcs.pack_Concept_code AND c.vocabulary_id = 'BDPM' AND c.invalid_reason IS NULL
+  JOIN concept_relationship cr    ON cr.concept_id_1 = c.concept_id   AND cr.relationship_id = 'Maps to'
+  JOIN concept ac ON ac.concept_id = cr.concept_id_2 AND ac.vocabulary_id = 'RxNorm Extension' AND ac.invalid_Reason IS NULL
+  JOIN concept c2 ON c2.concept_code = pcs.drug_concept_code AND c.vocabulary_id = 'BDPM' AND c2.invalid_reason IS NULL
+  JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id AND cr2.relationship_id = 'Maps to'
+  JOIN concept ac2 ON ac2.concept_id = cr2.concept_id_2 AND ac2.vocabulary_id LIKE 'RxNorm%' AND ac2.invalid_Reason IS NULL
 WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
 AND   c.concept_id IN (SELECT c.concept_id
                        FROM dev_bdpm.pc_stage pcs
-                         JOIN concept c
-                           ON c.concept_code = pcs.pack_Concept_code
-                          AND c.vocabulary_id = 'BDPM'
-                          AND c.invalid_reason IS NULL
-                         JOIN concept_relationship cr
-                           ON cr.concept_id_1 = c.concept_id
-                          AND cr.relationship_id = 'Maps to'
-                         JOIN concept ac
-                           ON ac.concept_id = cr.concept_id_2
-                          AND ac.vocabulary_id = 'RxNorm Extension'
-                          AND ac.invalid_Reason IS NULL
-                         JOIN concept c2
-                           ON c2.concept_code = pcs.drug_concept_code
-                          AND c.vocabulary_id = 'BDPM'
-                          AND c2.invalid_reason IS NULL
-                         JOIN concept_relationship cr2
-                           ON cr2.concept_id_1 = c2.concept_id
-                          AND cr2.relationship_id = 'Maps to'
-                         JOIN concept ac2
-                           ON ac2.concept_id = cr2.concept_id_2
-                          AND ac2.vocabulary_id LIKE 'RxNorm%'
+                         JOIN concept c ON c.concept_code = pcs.pack_Concept_code AND c.vocabulary_id = 'BDPM' AND c.invalid_reason IS NULL
+                         JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Maps to'
+                         JOIN concept ac  ON ac.concept_id = cr.concept_id_2 AND ac.vocabulary_id = 'RxNorm Extension' AND ac.invalid_Reason IS NULL
+                         JOIN concept c2 ON c2.concept_code = pcs.drug_concept_code AND c.vocabulary_id = 'BDPM'
+                         JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id AND cr2.relationship_id = 'Maps to'
+                         JOIN concept ac2 ON ac2.concept_id = cr2.concept_id_2 AND ac2.vocabulary_id LIKE 'RxNorm%'
                        WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
                        GROUP BY c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
@@ -1826,57 +1773,23 @@ COMMIT;
 --27.4 dm+d
 INSERT /*+ APPEND */ INTO pc_stage
 (pack_concept_code,drug_concept_code,amount,box_size)
-SELECT DISTINCT ac.concept_code,
-       ac2.concept_code,
-       pcs.amount,
-       pcs.box_size
+SELECT DISTINCT ac.concept_code,ac2.concept_code,pcs.amount,pcs.box_size
 FROM dev_dmd.pc_stage pcs
-  JOIN concept c
-    ON c.concept_code = pcs.pack_Concept_code
-   AND c.vocabulary_id = 'dm+d'
-   AND c.invalid_reason IS NULL
-  JOIN concept_relationship cr
-    ON cr.concept_id_1 = c.concept_id
-   AND cr.relationship_id = 'Maps to'
-  JOIN concept ac
-    ON ac.concept_id = cr.concept_id_2
-   AND ac.vocabulary_id = 'RxNorm Extension'
-   AND ac.invalid_Reason IS NULL
-  JOIN concept c2
-    ON c2.concept_code = pcs.drug_concept_code
-   AND c.vocabulary_id = 'dm+d'
-   AND c2.invalid_reason IS NULL
-  JOIN concept_relationship cr2
-    ON cr2.concept_id_1 = c2.concept_id
-   AND cr2.relationship_id = 'Maps to'
-  JOIN concept ac2
-    ON ac2.concept_id = cr2.concept_id_2
-   AND ac2.vocabulary_id LIKE 'RxNorm%'
-   AND ac2.invalid_Reason IS NULL
+  JOIN concept c ON c.concept_code = pcs.pack_Concept_code AND c.vocabulary_id = 'dm+d' AND c.invalid_reason IS NULL
+  JOIN concept_relationship cr    ON cr.concept_id_1 = c.concept_id   AND cr.relationship_id = 'Maps to'
+  JOIN concept ac ON ac.concept_id = cr.concept_id_2 AND ac.vocabulary_id = 'RxNorm Extension' AND ac.invalid_Reason IS NULL
+  JOIN concept c2 ON c2.concept_code = pcs.drug_concept_code AND c.vocabulary_id = 'dm+d' AND c2.invalid_reason IS NULL
+  JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id AND cr2.relationship_id = 'Maps to'
+  JOIN concept ac2 ON ac2.concept_id = cr2.concept_id_2 AND ac2.vocabulary_id LIKE 'RxNorm%' AND ac2.invalid_Reason IS NULL
 WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
 AND   c.concept_id IN (SELECT c.concept_id
                        FROM dev_dmd.pc_stage pcs
-                         JOIN concept c
-                           ON c.concept_code = pcs.pack_Concept_code
-                          AND c.vocabulary_id = 'dm+d'
-                          AND c.invalid_reason IS NULL
-                         JOIN concept_relationship cr
-                           ON cr.concept_id_1 = c.concept_id
-                          AND cr.relationship_id = 'Maps to'
-                         JOIN concept ac
-                           ON ac.concept_id = cr.concept_id_2
-                          AND ac.vocabulary_id = 'RxNorm Extension'
-                          AND ac.invalid_Reason IS NULL
-                         JOIN concept c2
-                           ON c2.concept_code = pcs.drug_concept_code
-                          AND c.vocabulary_id = 'dm+d'
-                          AND c2.invalid_reason IS NULL
-                         JOIN concept_relationship cr2
-                           ON cr2.concept_id_1 = c2.concept_id
-                          AND cr2.relationship_id = 'Maps to'
-                         JOIN concept ac2
-                           ON ac2.concept_id = cr2.concept_id_2
-                          AND ac2.vocabulary_id LIKE 'RxNorm%'
+                         JOIN concept c ON c.concept_code = pcs.pack_Concept_code AND c.vocabulary_id = 'dm+d' AND c.invalid_reason IS NULL
+                         JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'Maps to'
+                         JOIN concept ac  ON ac.concept_id = cr.concept_id_2 AND ac.vocabulary_id = 'RxNorm Extension' AND ac.invalid_Reason IS NULL
+                         JOIN concept c2 ON c2.concept_code = pcs.drug_concept_code AND c.vocabulary_id = 'dm+d'
+                         JOIN concept_relationship cr2 ON cr2.concept_id_1 = c2.concept_id AND cr2.relationship_id = 'Maps to'
+                         JOIN concept ac2 ON ac2.concept_id = cr2.concept_id_2 AND ac2.vocabulary_id LIKE 'RxNorm%'
                        WHERE c.concept_id NOT IN (SELECT pack_concept_id FROM pack_content)
                        GROUP BY c.concept_id
                        HAVING COUNT(c.concept_id) > 1)
@@ -1944,10 +1857,7 @@ INSERT /*+ APPEND */ INTO relationship_to_concept
 (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
 SELECT a.concept_code,a.VOCABULARY_ID,b.concept_id, 1
   FROM drug_concept_stage a JOIN concept b ON b.concept_code = a.concept_code AND b.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
- WHERE a.concept_class_id IN ('Dose Form',
-                              'Brand Name',
-                              'Supplier',
-                              'Ingredient')
+ WHERE a.concept_class_id IN ('Dose Form','Brand Name', 'Supplier', 'Ingredient')
  AND  a.concept_code!='11384' -- remove dead RxNorm's 'Yeasts' in order to revive it in RxE
  ;
 COMMIT;

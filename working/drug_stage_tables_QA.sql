@@ -202,22 +202,16 @@ union
 --wrong domains
 select concept_code, 'wrong domain_id' from drug_concept_stage where domain_id not in ('Drug', 'Device')
 union
---wrong dosages ,> 1000
+--wrong dosages > 1000
 select drug_concept_code, 'wrong dosages > 1000' from ds_stage 
-
-where (
-lower (numerator_unit) in ('mg')
-and lower (denominator_unit) in ('ml','g')
-or 
-lower (numerator_unit) in ('g')
-and lower (denominator_unit) in ('l')
-)
-and numerator_value / denominator_value > 1000
+where (lower (numerator_unit) in ('mg') and lower (denominator_unit) in ('ml','g')
+or  lower (numerator_unit) in ('g')and lower (denominator_unit) in ('l'))
+and numerator_value/nvl(denominator_value, 1)>1000
 union
-select drug_concept_code,'mg/mg >1' from ds_stage where numerator_unit='mg' and denominator_unit='mg' and (numerator_value/denominator_value>1 
-or (numerator_value>1 and denominator_vALUE IS NULL))
+select drug_concept_code,'mg/mg >1' 
+from ds_stage where numerator_unit='mg' and denominator_unit='mg' and numerator_value/nvl(denominator_value, 1)>1 
  union
---wrong dosages ,> 1
+--wrong dosages > 1
 select drug_concept_code, 'wrong dosages > 1' from ds_stage 
 where lower (numerator_unit) in ('g')
 and lower (denominator_unit) in ('ml')

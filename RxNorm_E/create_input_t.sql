@@ -550,7 +550,6 @@ DELETE drug_concept_stage where concept_code IN
 DELETE drug_concept_stage where concept_code IN
 ('OMOP881482','OMOP341519','OMOP346740','OMOP714610');
 
-
 /* Remove wrong brand names (need to save for the later clean up)
 DELETE FROM DRUG_CONCEPT_STAGE
       WHERE concept_code IN

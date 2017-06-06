@@ -102,5 +102,7 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 -- Remove Multilex links from participating in the concept_ancestor constructor
 update relationship set defines_ancestry=0 where relationship_id like 'Multilex ing of';
 
+-- Add telemedicine
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+  values(v5_concept.nextval, 'Interactive Telemedicine Service', 'Place of Service', 'Place of Service', 'Place of Service', 'S', 'OMOP generated', '1-Jan-1970', '31-Dec-2099', null);
 commit;
-

@@ -1234,6 +1234,12 @@ DELETE FROM ds_stage
 														ON ds.concept_code = a.drug_concept_code
 													   AND a.denominator_value != REGEXP_SUBSTR (ds.concept_name,'\d+(\.\d+)?'));
 
+--20.1 move homeopathy to numerator
+UPDATE ds_stage
+SET numerator_value = amount_value, numerator_unit = amount_unit, amount_value=NULL,amount_unit=NULL
+WHERE drug_concept_code IN (
+SELECT drug_concept_code FROM ds_stage WHERE amount_unit IN ('[hp_C]','[hp_X]'));
+
 COMMIT;
 
 --21 Delete impossible dosages. Delete those drugs from DCS to remove them totally

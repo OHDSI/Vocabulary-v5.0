@@ -1361,15 +1361,15 @@ delete from dfg where dfg_id=36217213 -- Nasal Product
 -- 1. Match all 4: d_combo, df, bn and mf have to match - Marketed Products
 drop table x_pattern purge;
 create table x_pattern as
-select distinct 
+select distinct
   qi_combo, first_value(ri_combo) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as ri_combo,     
   qd_combo, first_value(rd_combo) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as rd_combo,   
   df_code, first_value(df_id) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as df_id, 
-    first_value(dfg_id) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as dfg_id, 
-  bn_code, first_value(bn_id) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as bn_id, 
+    first_value(dfg_id) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as dfg_id,
+  bn_code, first_value(bn_id) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as bn_id,
   mf_code, first_value(mf_id) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as mf_id,
-  first_value(q.quant_unit) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as quant_unit, 
-  first_value(q.quant_unit_id) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as quant_unit_id, 
+  first_value(q.quant_unit) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as quant_unit,
+  first_value(q.quant_unit_id) over (partition by qd_combo, df_code, bn_code, mf_code order by q.mf_prec, q.bn_prec, q.df_prec, q.div desc, q.i_prec, q.u_prec) as quant_unit_id,
   1 as prec
 from ( -- create existing_q with all attributes extended to their r-corridors
   select 
@@ -2418,7 +2418,6 @@ ds_comp as (
   select 
     -- ds_code, i_code, 
     d_combo as rd_combo, concept_name,
-    de.rxn_unit as denominator_unit, -- for quant
     amount_value+numerator_value as v, -- one of them is null
     case
       when numerator_unit_concept_id in (8554, 9325, 9324) then nu.rxn_unit -- percent and homeopathics 
@@ -2443,7 +2442,7 @@ ds_comp as (
 -- Add a 0 before a leading dot and round
 u as (
   select
-    rd_combo, denominator_unit,
+    rd_combo,
     concept_name||
       case when v is null then null else ' '||regexp_replace(v, '^\.', '0.') ||' '||u end 
     as comp_name
@@ -2452,7 +2451,7 @@ u as (
 -- build the component
 select
   c.concept_id,
-  case when c.r_value=0 then '' else regexp_replace(r_value, '^\.', '0.')||' '||first_value(comp.denominator_unit) ignore nulls over (partition by c.concept_id)||' ' end as quant,
+  case when c.r_value=0 then '' else regexp_replace(r_value, '^\.', '0.')||' '||first_value(q.rxn_unit) ignore nulls over (partition by c.concept_id)))||' ' end as quant,
   comp.comp_name,
   sum(comp.comp_len) over (partition by c.concept_id order by comp.comp_name rows between unbounded preceding and current row) as agg_len,
   case when df_id=0 then '' else ' '||nvl(edf.concept_name, df.concept_name) end as df_name,
@@ -2463,10 +2462,12 @@ select
     else ' by '||replace(replace(replace(replace(replace(replace(replace(replace(nvl(emf.concept_name, mf.concept_name), ' Ltd'), ' Plc'), ' UK'), ' (UK)'), ' Pharmaceuticals'), ' Pharma'), ' GmbH'), 'Laboratories') 
   end as mf_name
 from extension_attribute c
-join (
+join ( -- resolve the rd_combo to uds details
   select rd_combo, denominator_unit, comp_name, length(comp_name)+3 as comp_len -- length plus 3 characters for ' / '
   from u
 ) comp using(rd_combo)
+-- get quant unit in RxNorm notation
+left join rxnorm_unit q on q.concept_id=unit_id
 -- get dose form from Rx or source
 left join extension_df edf using(df_id)
 left join concept df on df_id=df.concept_id
@@ -3158,7 +3159,7 @@ where ex.concept_id<0 and mf_id!=0
 commit;
 
 -- Write relationships between Brand Name and Ingredient
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 with ri_bn as (
   select distinct ri_combo, bn_id from extension_attribute where concept_id<0
 )
@@ -3305,17 +3306,21 @@ where domain_id='Device'
 commit;
 
 -- Write maps for drugs
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
 select 
-  concept_code as concept_code_1,
+dcs.concept_name, nvl(c.concept_name, cs.concept_name), to_id,
+  from_code as concept_code_1,
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
-  nvl(rx.concept_code, etc.c_code) as concept_code_2,
-  nvl(rx.vocabulary_id, 'RxNorm Extension') as vocabulary_id_2,
+  nvl(c.concept_code, cs.concept_code) as concept_code_2,
+  nvl(c.vocabulary_id, 'RxNorm Extension') as vocabulary_id_2,
   'Maps to' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from ex join maps_to using(concept_id);
+from maps_to left join concept_stage cs on to_id=cs.concept_id left join concept c on to_id=c.concept_id
+join drug_concept_stage dcs on from_code=dcs.concept_code
+where cs.concept_code is not null
+;
 commit;
 
 -- Write maps for upgraded drugs

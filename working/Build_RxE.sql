@@ -2451,7 +2451,7 @@ u as (
 -- build the component
 select
   c.concept_id,
-  case when c.r_value=0 then '' else regexp_replace(r_value, '^\.', '0.')||' '||first_value(q.rxn_unit) ignore nulls over (partition by c.concept_id)))||' ' end as quant,
+  case when c.r_value=0 then '' else regexp_replace(r_value, '^\.', '0.')||' '||first_value(q.rxn_unit) ignore nulls over (partition by c.concept_id)||' ' end as quant,
   comp.comp_name,
   sum(comp.comp_len) over (partition by c.concept_id order by comp.comp_name rows between unbounded preceding and current row) as agg_len,
   case when df_id=0 then '' else ' '||nvl(edf.concept_name, df.concept_name) end as df_name,
@@ -2463,11 +2463,11 @@ select
   end as mf_name
 from extension_attribute c
 join ( -- resolve the rd_combo to uds details
-  select rd_combo, denominator_unit, comp_name, length(comp_name)+3 as comp_len -- length plus 3 characters for ' / '
+  select rd_combo, comp_name, length(comp_name)+3 as comp_len -- length plus 3 characters for ' / '
   from u
 ) comp using(rd_combo)
 -- get quant unit in RxNorm notation
-left join rxnorm_unit q on q.concept_id=unit_id
+left join rxnorm_unit q on q.concept_id=q.concept_id
 -- get dose form from Rx or source
 left join extension_df edf using(df_id)
 left join concept df on df_id=df.concept_id
@@ -2479,6 +2479,8 @@ left join extension_mf emf using(mf_id)
 left join concept mf on mf_id=mf.concept_id
 where c.concept_id<0 and rd_combo!=' ' -- Exclude Drug Forms, do these in the next step
 ;
+
+select * from rxnorm_unit;
 
 -- Add Drug Forms
 insert /*+ APPEND */ into spelled_out

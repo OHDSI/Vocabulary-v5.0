@@ -278,7 +278,9 @@ SELECT c.concept_name,
             AND c_int.vocabulary_id = 'RxNorm Extension'
             WHERE cr.concept_id_2 = c.concept_id AND cr.invalid_reason IS NULL
          );
-INSERT /*+ APPEND */ INTO DRUG_CONCEPT_STAGE
+	 
+COMMIT;
+INSERT  INTO DRUG_CONCEPT_STAGE
 (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,
   INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 --Get RxNorm pack components from RxNorm
@@ -293,7 +295,8 @@ JOIN concept_relationship cr ON c.concept_id=cr.concept_id_1
 JOIN concept c2 ON c2.concept_id=concept_id_2
 AND c2.vocabulary_id='RxNorm Extension' AND c2.concept_class_id LIKE '%Pack%'
 WHERE relationship_id = 'Contained in'
-c.concept_code NOT IN (SELECT concept_code FROM drug_Concept_stage);;
+and c.concept_code NOT IN (SELECT concept_code FROM drug_Concept_stage);
+
 COMMIT;
 
 --4.2 Get upgraded Dose Forms, Brand Names, Supplier

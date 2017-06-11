@@ -142,7 +142,7 @@ INSERT INTO concept (concept_id,
                      invalid_reason)
      VALUES (100,
              'Rxfix',
-             'Metadata',
+             'Drug',
              'Vocabulary',
              'Vocabulary',
              NULL,
@@ -232,21 +232,10 @@ CREATE TABLE RELATIONSHIP_TO_CONCEPT
 --4 Create Concepts
 --4.1 Get products
 INSERT /*+ APPEND */ INTO DRUG_CONCEPT_STAGE
-(
-  CONCEPT_NAME,
-  VOCABULARY_ID,
-  CONCEPT_CLASS_ID,
-  STANDARD_CONCEPT,
-  CONCEPT_CODE,
-  POSSIBLE_EXCIPIENT,
-  domain_id,
-  VALID_START_DATE,
-  VALID_END_DATE,
-  INVALID_REASON,
-  SOURCE_CONCEPT_CLASS_ID
-)
+(CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,
+  INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select
-		concept_name,
+	concept_name,
        'Rxfix',
        'Drug Product',
        null,
@@ -288,24 +277,23 @@ SELECT c.concept_name,
             AND (c_int.concept_class_id LIKE '%Drug%' OR c_int.concept_class_id LIKE '%Pack%' OR c_int.concept_class_id LIKE '%Box%' OR c_int.concept_class_id LIKE '%Marketed%')
             AND c_int.vocabulary_id = 'RxNorm Extension'
             WHERE cr.concept_id_2 = c.concept_id AND cr.invalid_reason IS NULL
-         )
-UNION ALL
+         );
+INSERT /*+ APPEND */ INTO DRUG_CONCEPT_STAGE
+(CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,
+  INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 --Get RxNorm pack components from RxNorm
-SELECT c2.concept_name
-       'Rxfix',
-       'Drug Product',
-       NULL,
-       c2.concept_code,
-       NULL,
-       c2.domain_id,
-       c2.valid_start_date,
-       c2.valid_end_date,
-       c2.invalid_reason,
-       c2.concept_class_id
+SELECT c2.concept_name,'Rxfix','Drug Product',NULL,c2.concept_code,NULL, c2.domain_id, c2.valid_start_date,c2.valid_end_date,c2.invalid_reason,c2.concept_class_id
    FROM pack_content pc
        JOIN concept c ON c.concept_id = pc.pack_concept_id AND c.vocabulary_id = 'RxNorm Extension'
        JOIN concept c2 ON c2.concept_id = pc.drug_concept_id AND c2.vocabulary_id = 'RxNorm'
-       ;
+UNION
+SELECT c.concept_name,'Rxfix','Drug Product',NULL,c.concept_code,NULL, c.domain_id, c.valid_start_date,c.valid_end_date,c.invalid_reason,c.concept_class_id
+   FROM concept c 
+JOIN concept_relationship cr ON c.concept_id=cr.concept_id_1 
+JOIN concept c2 ON c2.concept_id=concept_id_2
+AND c2.vocabulary_id='RxNorm Extension' AND c2.concept_class_id LIKE '%Pack%'
+WHERE relationship_id = 'Contained in'
+c.concept_code NOT IN (SELECT concept_code FROM drug_Concept_stage);;
 COMMIT;
 
 --4.2 Get upgraded Dose Forms, Brand Names, Supplier

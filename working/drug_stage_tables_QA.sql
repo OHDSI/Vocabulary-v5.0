@@ -304,5 +304,12 @@ select drug_concept_code, 'wrong dosages > 1000, with conversion' from ds_stage 
 join relationship_to_concept n on numerator_unit = n.concept_code_1 and n.concept_id_2 = 8576
 join relationship_to_concept d on denominator_unit = d.concept_code_1 and d.concept_id_2 = 8587
 where  numerator_value*n.conversion_factor / (denominator_value*d.conversion_factor) > 1000
+union
+ --pack(drug)_concept_code doesn't exist in drug_concept_stage
+select drug_concept_code from pc_stage
+where drug_concept_code not in (select concept_code from drug_concept_stage)
+union
+select pack_concept_code from pc_stage
+where pack_concept_code not in (select concept_code from drug_concept_stage)
 ) group by error_type
 ;

@@ -40,11 +40,6 @@ create index idx_dcs_concept_code on drug_concept_stage (concept_code)
 ;
 commit;
 
-update relationship_to_concept set concept_id_2=9379, conversion_factor=0.7 where concept_code_1='[CCID_50]';
-update relationship_to_concept set concept_id_2=45744815, conversion_factor=1000000 where concept_code_1='10*6';
-update relationship_to_concept set concept_id_2=45744815, conversion_factor=1000000000 where concept_code_1='10*9';
-;
-
 -- Add existing mappings from previous runs. 
 drop view r_to_c;
 create view r_to_c as
@@ -2439,14 +2434,12 @@ ds_comp as (
   left join rxnorm_unit nu on nu.concept_id=numerator_unit_concept_id
   left join rxnorm_unit de on de.concept_id=denominator_unit_concept_id
 ),
--- Add a 0 before a leading dot and round
+-- Add a 0 before a leading dot
 u as (
   select
     rd_combo,
-    concept_name||
-      case when v is null then null else ' '||regexp_replace(v, '^\.', '0.') ||' '||u end 
-    as comp_name
-    from ds_comp
+    concept_name||case when v is null then null else ' '||regexp_replace(v, '^\.', '0.') ||' '||u end as comp_name
+  from ds_comp
 )
 -- build the component
 select
@@ -2467,7 +2460,7 @@ join ( -- resolve the rd_combo to uds details
   from u
 ) comp using(rd_combo)
 -- get quant unit in RxNorm notation
-left join rxnorm_unit q on q.concept_id=q.concept_id
+left join rxnorm_unit q on q.concept_id=c.quant_unit_id
 -- get dose form from Rx or source
 left join extension_df edf using(df_id)
 left join concept df on df_id=df.concept_id
@@ -2479,8 +2472,7 @@ left join extension_mf emf using(mf_id)
 left join concept mf on mf_id=mf.concept_id
 where c.concept_id<0 and rd_combo!=' ' -- Exclude Drug Forms, do these in the next step
 ;
-
-select * from rxnorm_unit;
+commit;
 
 -- Add Drug Forms
 insert /*+ APPEND */ into spelled_out
@@ -2568,8 +2560,7 @@ commit;
 ********************/
 
 /*
-
--- create XXX type concept_codes for hte new ones
+-- create XXX type concept_codes for new packs
 drop table pack_seq purge;
 create table pack_seq as
 select 
@@ -2578,6 +2569,8 @@ select
   )
 ;
 commit;
+
+select * from q_mf;
 
 -- create an xxx version of the existing (later all) packs
 drop table complete_pack purge;
@@ -2914,8 +2907,8 @@ select 'Dose Form', 'RxNorm dose form of', 'Quant Branded Drug' from dual union
 select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Box' from dual union
 select 'Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug' from dual union
 select 'Ingredient', 'Has brand name', 'Brand Name' from dual union
-select 'Ingredient', 'RxNorm q_ing of', 'Clinical Drug Comp' from dual union
-select 'Ingredient', 'RxNorm q_ing of', 'Clinical Drug Form' from dual union
+select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Comp' from dual union
+select 'Ingredient', 'RxNorm ing of', 'Clinical Drug Form' from dual union
 select 'Marketed Product', 'Has Supplier', 'Supplier' from dual union 
 select 'Supplier', 'Supplier of', 'Marketed Product' from dual union
 select 'Quant Branded Box', 'Has marketed form', 'Marketed Product' from dual union

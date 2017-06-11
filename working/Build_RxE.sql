@@ -590,7 +590,7 @@ commit;
 drop table ing_stage purge;
 create table ing_stage as
 select 'XXX'||xxx_seq.nextval as i_code, i_id from (
-  select concept_id as i_id from concept where vocabulary_id in ('RxNorm', 'RxNorm Extension1') and concept_class_id='Ingredient' -- XXXX remove 1
+  select concept_id as i_id from concept where vocabulary_id in ('RxNorm', 'RxNorm Extension') and concept_class_id='Ingredient'
 );
 
 -- Create table with all drug concepts linked to the codes of the ingredients (rather than full dose components)
@@ -599,11 +599,11 @@ create table r_ing nologging as
 select * from (
   select de.concept_id as concept_id, an.concept_id as i_id
   from concept_ancestor a 
-  join concept an on a.ancestor_concept_id=an.concept_id and an.vocabulary_id in ('RxNorm', 'RxNorm Extension1') and an.concept_class_id='Ingredient' -- XXXX remove 1
-  join concept de on de.concept_id=a.descendant_concept_id and de.vocabulary_id in ('RxNorm', 'RxNorm Extension1') and de.concept_class_id not in ('Ingredient', 'Clinical Dose Group', 'Branded Dose Group') -- XXXX remove 1
+  join concept an on a.ancestor_concept_id=an.concept_id and an.vocabulary_id in ('RxNorm', 'RxNorm Extension') and an.concept_class_id='Ingredient'
+  join concept de on de.concept_id=a.descendant_concept_id and de.vocabulary_id in ('RxNorm', 'RxNorm Extension') and de.concept_class_id not in ('Ingredient', 'Clinical Dose Group', 'Branded Dose Group')
 union
   select drug_concept_id as concept_id, ingredient_concept_id as i_id from drug_strength -- just in case, won't hurt if the internal_relationship table forgot something
-join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension1') -- XXXX remove!!!!!!!!
+join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
   where drug_concept_id!=ingredient_concept_id -- in future, ingredients will also have records, where drug and ingredient ids are the same
 )
 join ing_stage using(i_id)
@@ -627,7 +627,7 @@ select ds_seq.nextval as ds_code, ds.* from ( -- reuse the same sequence for q_d
       else nvl(denominator_unit_concept_id, 0) 
     end as denominator_unit_concept_id
   from drug_strength join ing_stage on ingredient_concept_id=i_id
-join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension1') -- XXXX remove!!!!!!!!
+join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
 ) ds
 ;
 
@@ -647,7 +647,7 @@ from (
       else nvl(denominator_unit_concept_id, 0) 
     end as denominator_unit_concept_id
   from drug_strength join ing_stage on ingredient_concept_id=i_id
-join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension1') -- XXXX remove!!!!!!!!
+join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
   and r.concept_class_id not in ('Ingredient', 'Clinical Drug Form', 'Branded Drug Form')
 ) ds 
 join r_uds uds using(ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id)
@@ -690,7 +690,7 @@ drop table r_quant purge;
 create table r_quant nologging as
 select distinct drug_concept_id as concept_id, denominator_value as value, denominator_unit_concept_id as unit_id
 from drug_strength
-join concept on concept_id=drug_concept_id and vocabulary_id in ('RxNorm', 'RxNorm Extension1') -- XXXX remove!!!!!!!!
+join concept on concept_id=drug_concept_id and vocabulary_id in ('RxNorm', 'RxNorm Extension')
 where denominator_value is not null and numerator_value is not null and drug_concept_id!=ingredient_concept_id
 ;
 
@@ -698,7 +698,7 @@ where denominator_value is not null and numerator_value is not null and drug_con
 drop table r_df purge;
 create table r_df nologging as
 select r.concept_id_1 as concept_id, r.concept_id_2 as df_id from concept_relationship r
-join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension1') and d.standard_concept='S' -- XXXX remove 1
+join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension') and d.standard_concept='S'
 join concept f on f.concept_id=r.concept_id_2 and f.concept_class_id ='Dose Form' and f.invalid_reason is null
 where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
 ;
@@ -707,7 +707,7 @@ where r.invalid_reason is null and r.relationship_id='RxNorm has dose form'
 drop table r_bn purge;
 create table r_bn nologging as
 select r.concept_id_1 as concept_id, r.concept_id_2 as bn_id from concept_relationship r
-join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension1') and d.standard_concept='S' -- XXXX remove 1
+join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension') and d.standard_concept='S'
 join concept f on f.concept_id=r.concept_id_2 and f.concept_class_id ='Brand Name' and f.invalid_reason is null
 where r.invalid_reason is null and r.relationship_id='Has brand name'
 ;
@@ -716,7 +716,7 @@ where r.invalid_reason is null and r.relationship_id='Has brand name'
 drop table r_mf purge;
 create table r_mf nologging as
 select r.concept_id_1 as concept_id, r.concept_id_2 as mf_id from concept_relationship r
-join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension1') and d.standard_concept='S' -- XXXX remove 1
+join concept d on d.concept_id=r.concept_id_1 and d.vocabulary_id in ('RxNorm', 'RxNorm Extension') and d.standard_concept='S'
 join concept f on f.concept_id=r.concept_id_2 and f.concept_class_id ='Supplier' and f.invalid_reason is null
 where r.invalid_reason is null and r.relationship_id='Has supplier';
 
@@ -725,7 +725,7 @@ drop table r_bs purge;
 create table r_bs nologging as
 select distinct drug_concept_id as concept_id, box_size as bs
 from drug_strength 
-join concept d on d.concept_id=drug_concept_id and d.vocabulary_id in ('RxNorm', 'RxNorm Extension1') -- XXXX remove entirely
+join concept d on d.concept_id=drug_concept_id and d.vocabulary_id in ('RxNorm', 'RxNorm Extension') -- XXXX remove aftr DPD is gone
 where box_size is not null
 ;
 
@@ -2346,10 +2346,19 @@ from ( -- make new ones
 ;
 
 -- Add existing
-insert /*+ Append */into extension_attribute 
+insert /*+ Append */ into extension_attribute 
 select distinct concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id from full_corpus where concept_id is not null
 ;
 commit;
+
+-- Create ea in both concept_id and concept_code/vocabulary_id notation
+drop table ex purge;
+create table ex nologging as -- create extension_attribute in concept_code/vocabulary_id notation
+select 
+  nvl(c.concept_code, cs.concept_code) as concept_code, nvl(c.vocabulary_id, cs.vocabulary_id) as vocabulary_id, 
+  concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, extension_attribute.concept_class_id
+from extension_attribute left join concept c using(concept_id) left join concept_stage cs using(concept_id)
+;
 
 -- Connect existing_q concept codes (from drug_concept_stage) to existing corpus or new extensions
 drop table maps_to purge;
@@ -2558,50 +2567,40 @@ commit;
 /********************
 * 12. Process Packs *
 ********************/
-
 /*
 -- create XXX type concept_codes for new packs
 drop table pack_seq purge;
 create table pack_seq as
-select 
-  'XXX'||xxx_seq.nextval as pack_concept_code, source_code from (
-    select distinct pack_concept_code as source_code from pc_stage
-  )
+select
+  pack_concept_code, omop_seq.nextval as pack_concept_id 
+from pc_stage
 ;
 commit;
 
 select * from q_mf;
-
+select * from pc_stage;
+select * from ex where concept_id<0;
 -- create an xxx version of the existing (later all) packs
-drop table complete_pack purge;
-create table complete_pack as
-select distinct -- because the content in some packs, albeit different in drug_concept_stage, becomes identical after mapping
-  pack_concept_code, drug_concept_code, drug_vocab, amount, box_size, bn_code, brand_vocab, supplier_code, supplier_vocab,
+drop table existing_pack purge;
+create table existing_pack as;
+select distinct * -- because the content in some packs, albeit different in drug_concept_stage, becomes identical after mapping
+/*
+  pack_concept_code, drug_concept_id, amount, box_size, bn_code, mf_code,
   case
-    when supplier_code is not null then 'Marketed Product'
+    when mf_code is not null then 'Marketed Product'
     when box_size is not null and bn_code is not null then 'Branded Pack Box'
     when box_size is not null then 'Clinical Pack Box'
     when bn_code is not null then 'Branded Pack'
     else 'Clinical Pack'
   end as concept_class_id
-from pack_seq -- just the new concept_codes
-join (
-  select
-    pcs.pack_concept_code as source_code,
-    nvl(qr.concept_code, etc.c_code) as drug_concept_code,
-    nvl(qr.vocabulary_id, 'RxNorm Extension') as drug_vocab,
-    pcs.amount,
-    pcs.box_size,
-    q_bn.r_code as bn_code,
-    case when q_bn.r_code is null then null else nvl(q_bn.r_vocab, 'RxNorm Extension') end as brand_vocab,
-    q_mf.r_code as supplier_code,
-    case when q_mf.r_code is null then null else nvl(q_mf.r_vocab, 'RxNorm Extension') end as supplier_vocab
-  from pc_stage pcs
+*/
+from pc_stage
 -- Component drug
-  join existing_to_complete etc on etc.e_code=pcs.drug_concept_code -- only drugs that have sufficient definition, if not script will fail
-  left join ( -- try translating the drug to Rx/E
-    select q_dcode, c.concept_code, c.vocabulary_id
-    from q_to_r join concept c on r_did=c.concept_id
+left join maps_to on drug_concept_code=from_code
+where maps_to.to_id is null;
+
+select 
+
   ) qr on qr.q_dcode=etc.c_code 
   left join ( -- Obtain Brand Name
     select concept_code_1, r_code, r_vocab from internal_relationship_stage join x_bn on q_code=concept_code_2
@@ -2609,7 +2608,7 @@ join (
   left join ( -- Obtain Supplier
     select concept_code_1, r_code, r_vocab from internal_relationship_stage join x_mf on q_code=concept_code_2
   ) q_mf on q_mf.concept_code_1=pcs.pack_concept_code
-) using (source_code)
+) using ()
 ;
 commit;
 
@@ -2744,10 +2743,6 @@ and not exists ( select 1 from pack_q_to_r pqr where pn.pack_concept_code=pqr.pa
 * 13. Write RxNorm Extension *
 ****************************/
 
-truncate table concept_stage;
-truncate table concept_relationship_stage;
-truncate table drug_strength_stage;
-
 -- Create sequence that starts after existing OMOP???-style concept codes
 drop sequence omop_seq; 
 /* XXXX uncomment
@@ -2767,10 +2762,14 @@ select max(iex)+1 into ex from (
 end;
 */
 
+truncate table concept_stage;
+truncate table concept_relationship_stage;
+truncate table drug_strength_stage;
+
 -- Write RxNorm Extension into concept_stage
 -- Write Ingredients that have no equivalent. Ingredients are written in code notation. Therefore, concept_id is null, and the XXX code is in concept_code
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-select 
+select
   null as concept_id,
   dcs.concept_name,
   'Drug' as domain_id,
@@ -2921,15 +2920,6 @@ select 'Quant Clinical Drug', 'Has marketed form', 'Marketed Product' from dual 
 select 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' from dual
 ;
 commit;
-
--- Create ea in both concept_id and concept_code/vocabulary_id notation
-drop table ex purge;
-create table ex nologging as -- create extension_attribute in concept_code/vocabulary_id notation
-select 
-  nvl(c.concept_code, cs.concept_code) as concept_code, nvl(c.vocabulary_id, cs.vocabulary_id) as vocabulary_id, 
-  concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, extension_attribute.concept_class_id
-from extension_attribute left join concept c using(concept_id) left join concept_stage cs using(concept_id)
-;
 
 -- Write inner-RxNorm Extension relationships, mimicking RxNorm
 -- Everything but the Drug Forms, Clinical Drug Comp and Marketed Products

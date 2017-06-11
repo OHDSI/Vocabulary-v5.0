@@ -291,30 +291,21 @@ SELECT c.concept_name,
          )
 UNION ALL
 --Get RxNorm pack components from RxNorm
-SELECT c.concept_name,
+SELECT c2.concept_name
        'Rxfix',
        'Drug Product',
        NULL,
-       c.concept_code,
+       c2.concept_code,
        NULL,
-       c.domain_id,
-       c.valid_start_date,
-       c.valid_end_date,
-       c.invalid_reason,
-       c.concept_class_id
-  FROM concept c
- --only Drugs
- WHERE     (c.concept_class_id LIKE '%Drug%' OR c.concept_class_id LIKE '%Marketed%')
-       AND c.vocabulary_id = 'RxNorm'
-       AND c.invalid_reason IS NULL
-       AND EXISTS
-       (SELECT 1
-          FROM concept_relationship cr 
-          JOIN concept c_int ON c_int.concept_id = cr.concept_id_1 
-          AND c_int.concept_class_id LIKE '%Pack%' 
-          AND c_int.vocabulary_id = 'RxNorm Extension'
-         WHERE cr.concept_id_2 = c.concept_id AND cr.invalid_reason IS NULL
-       );
+       c2.domain_id,
+       c2.valid_start_date,
+       c2.valid_end_date,
+       c2.invalid_reason,
+       c2.concept_class_id
+   FROM pack_content pc
+       JOIN concept c ON c.concept_id = pc.pack_concept_id AND c.vocabulary_id = 'RxNorm Extension'
+       JOIN concept c2 ON c2.concept_id = pc.drug_concept_id AND c2.vocabulary_id = 'RxNorm'
+       ;
 COMMIT;
 
 --4.2 Get upgraded Dose Forms, Brand Names, Supplier
@@ -1123,6 +1114,10 @@ WHERE drug_concept_code IN (SELECT concept_code
                               JOIN ds_stage ON concept_code = drug_concept_code
                             WHERE REGEXP_LIKE (concept_name,'((Nitrous Oxide)|(Xenon)|(Isoflurane)|(Oxygen)) (\d+\.)?(\d+\s((MG/MG)|(ML/ML)))') AND numerator_unit != '%')
 ;
+--15.14 aprotinin
+UPDATE ds_stage
+   SET numerator_unit = '[U]'
+WHERE ingredients_concept_code = '1056' and numerator_unit is null and numaretor_value is not null;
 
 --16 Delete 3 legged dogs
 DELETE FROM ds_stage
@@ -1893,3 +1888,16 @@ COMMIT;
 --31.5 delete precise ingredients
 DELETE relationship_to_concept
 WHERE concept_code_1 in ('1371041','236340');
+
+--32 Rename RxE to RxO
+INSERT INTO vocabulary (vocabulary_id, vocabulary_name, vocabulary_concept_id)
+     VALUES ('RxO', 'RxO', 100000);
+
+UPDATE concept
+SET vocabulary_id = 'RxO' 
+WHERE vocabulary_id = 'RxNorm Extension';
+
+UPDATE concept_relationship
+SET invalid_reason = 'D'
+WHERE concept_id_1 IN (SELECT concept_id_1 FROM concept_relationship JOIN concept ON concept_id_1 = concept_id AND vocabulary_id = 'RxO')
+OR concept_id_2 IN (SELECT concept_id_2 FROM concept_relationship JOIN concept ON concept_id_2 = concept_id AND vocabulary_id = 'RxO');     

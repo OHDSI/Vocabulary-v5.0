@@ -1117,7 +1117,7 @@ WHERE drug_concept_code IN (SELECT concept_code
 --15.14 aprotinin
 UPDATE ds_stage
    SET numerator_unit = '[U]'
-WHERE ingredients_concept_code = '1056' and numerator_unit is null and numaretor_value is not null;
+WHERE ingredient_concept_code = '1056' and numerator_unit is null and numerator_value is not null;
 
 --16 Delete 3 legged dogs
 DELETE FROM ds_stage

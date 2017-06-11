@@ -1879,7 +1879,7 @@ WHERE concept_code_1 in ('1371041','236340');
 
 --32 Rename RxE to RxO
 INSERT INTO vocabulary (vocabulary_id, vocabulary_name, vocabulary_concept_id)
-     VALUES ('RxO', 'RxO', 100000);
+     VALUES ('RxO', 'RxO', 0);
 
 UPDATE concept
 SET vocabulary_id = 'RxO' 

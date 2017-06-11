@@ -248,7 +248,7 @@ from internal_relationship_stage ir
 join drug_concept_stage f on f.concept_code=ir.concept_code_2 and f.concept_class_id='Dose Form' and f.domain_id='Drug' -- Dose Form of a drug
 ;
 
--- Create table with Brand Name information for each drug (if exists)
+-- Create table with Brand Name information for each drug including packs (if exists)
 drop table q_bn purge;
 create table q_bn nologging as
 select distinct ir.concept_code_1 as concept_code, b.concept_code as bn_code -- distinct only because source contains duplicated maps
@@ -256,7 +256,7 @@ from internal_relationship_stage ir
 join drug_concept_stage b on b.concept_code=ir.concept_code_2 and b.concept_class_id='Brand Name' and b.domain_id='Drug' -- Brand Name of a drug
 ;
 
--- Create table with Suppliers (manufacturers)
+-- Create table with Suppliers (manufacturers) including packs
 drop table q_mf purge;
 create table q_mf nologging as
 select irs.concept_code_1 as concept_code, irs.concept_code_2 as mf_code from drug_concept_stage dcs
@@ -1190,11 +1190,11 @@ join (
 drop table qr_bn purge;
 create table qr_bn as
 select q.bn_code, r.bn_id, precedence as bn_prec
-from (
+from ( -- limit to brand names in q
   select distinct bn_code from q_bn
 ) q
 join r_to_c on concept_code_1=q.bn_code
-join (
+join ( -- limit to brand names in r
   select distinct bn_id from r_bn
 ) r on concept_id_2=r.bn_id 
 ;
@@ -1203,11 +1203,11 @@ join (
 drop table qr_mf purge;
 create table qr_mf as
 select q.mf_code, r.mf_id, precedence as mf_prec
-from (
+from ( -- limit to supplier in q
   select distinct mf_code from q_mf
 ) q
 join r_to_c on concept_code_1=q.mf_code
-join (
+join ( -- limit to supplier in r
   select distinct mf_id from r_mf
 ) r on concept_id_2=r.mf_id 
 ;
@@ -1728,7 +1728,7 @@ and df_prec=1
 ;
 commit;
 
--- Preferred Brand Name translations. Most of them are one-to-one
+-- Preferred Brand Name translations. Usually brands are one-to-one
 drop table x_bn purge;
 create table x_bn nologging as
 select distinct 
@@ -1899,7 +1899,7 @@ join drug_concept_stage on drug_concept_stage.concept_code=df_code
 where df_code not in (select df_code from x_df) -- those that already have a translation
 ;
 
--- Create BN extension records for those Dose Forms that don't exist
+-- Create BN extension records for those Dose Forms that do not exist
 drop table extension_bn purge;
 create table extension_bn nologging as
 select bn_code as bn_code, concept_name, extension_id.nextval as bn_id
@@ -2335,7 +2335,7 @@ left join (select concept_id, i_combo as ri_combo, d_combo as rd_combo from exis
 ;
 commit;
 
--- Create full set of extensions with all attribute and negative concept_id
+-- Create full set of extensions with all attribute (left side of full_corpus)
 -- It includes the existing concepts with positive existing concept_id
 drop table extension_attribute purge;
 create table extension_attribute nologging as
@@ -2567,7 +2567,7 @@ commit;
 /********************
 * 12. Process Packs *
 ********************/
-/*
+
 -- create XXX type concept_codes for new packs
 drop table pack_seq purge;
 create table pack_seq as
@@ -2577,95 +2577,91 @@ from pc_stage
 ;
 commit;
 
-select * from q_mf;
-select * from pc_stage;
-select * from ex where concept_id<0;
--- create an xxx version of the existing (later all) packs
+-- create a complete set of packs with attributes
 drop table existing_pack purge;
-create table existing_pack as;
-select distinct * -- because the content in some packs, albeit different in drug_concept_stage, becomes identical after mapping
-/*
-  pack_concept_code, drug_concept_id, amount, box_size, bn_code, mf_code,
+create table existing_pack as
+select distinct -- because the content in some packs, albeit different in drug_concept_stage, becomes identical after mapping
+  pack_concept_code, maps_to.to_id as drug_concept_id, nvl(amount, 0) as amount, nvl(box_size, 0) as bs, nvl(bn_id, 0) as bn_id, nvl(mf_id, 0) as mf_id,
   case
-    when mf_code is not null then 'Marketed Product'
-    when box_size is not null and bn_code is not null then 'Branded Pack Box'
+    when mf_id is not null then 'Marketed Product'
+    when box_size is not null and bn_id is not null then 'Branded Pack Box'
     when box_size is not null then 'Clinical Pack Box'
-    when bn_code is not null then 'Branded Pack'
+    when bn_id is not null then 'Branded Pack'
     else 'Clinical Pack'
   end as concept_class_id
-*/
 from pc_stage
 -- Component drug
-left join maps_to on drug_concept_code=from_code
-where maps_to.to_id is null;
-
-select 
-
-  ) qr on qr.q_dcode=etc.c_code 
-  left join ( -- Obtain Brand Name
-    select concept_code_1, r_code, r_vocab from internal_relationship_stage join x_bn on q_code=concept_code_2
-  ) q_bn on q_bn.concept_code_1=pcs.pack_concept_code
-  left join ( -- Obtain Supplier
-    select concept_code_1, r_code, r_vocab from internal_relationship_stage join x_mf on q_code=concept_code_2
-  ) q_mf on q_mf.concept_code_1=pcs.pack_concept_code
-) using ()
+join maps_to on drug_concept_code=from_code -- all components should exist, either in RxE or in the new tables
+left join ( -- Obtain Brand Name if exists, could be more than one effective r_to_c
+  select distinct concept_code, nvl(x.bn_id, ex.bn_id) as bn_id from q_bn left join x_bn x using(bn_code) left join extension_bn ex using(bn_code)
+) q_bn on q_bn.concept_code=pack_concept_code 
+left join ( -- Obtain Supplier if exists, could be more than one effective r_to_c
+  select distinct concept_code, nvl(x.mf_id, ex.mf_id) as mf_id from q_mf left join x_mf x using(mf_code) left join extension_mf ex using(mf_code)
+) q_mf on q_mf.concept_code=pack_concept_code
 ;
 commit;
 
--- Create new to existing based on components and their amount, but not box_size, brand name and supplier (see below)
-drop table pack_q_to_r purge;
-create table pack_q_to_r as
-select * 
+-- Create pack hierarchy
+drop table complete_pack purge;
+create table complete_pack as
+select * from existing_pack where concept_class_id='Marketed Product';
+
+-- Branded Pack Box. Definition: bn and bs, but no mf.
+insert into complete_pack
+select pack_concept_code, drug_concept_id, amount, bs, bn_id, 0 as mf_id, 'Branded Pack Box' as concept_class_id 
 from (
-  select distinct pp.pack_concept_code, pp.pack_concept_id as r_id,
-    case 
-      when nvl(cbn.concept_code, ' ')=nvl(cp.bn_code, ' ') and nvl(cbn.vocabulary_id, ' ')=nvl(cp.brand_vocab, ' ') -- RxNorm does only provide unreliable Brand Name info for Branded Drugs
-        and nvl(cmf.concept_code, ' ')=nvl(cp.supplier_code, ' ') and nvl(cmf.vocabulary_id, ' ')=nvl(cp.supplier_vocab, ' ') then 'Marketed'
-      when nvl(cbn.concept_code, ' ')=nvl(cp.bn_code, ' ') and nvl(cbn.vocabulary_id, ' ')=nvl(cp.brand_vocab, ' ') 
-        and cmf.concept_code is null then 'Branded' 
-      when nvl(cmf.concept_code, ' ')=nvl(cp.supplier_code, ' ') and nvl(cmf.vocabulary_id, ' ')=nvl(cp.supplier_vocab, ' ')
-        and cbn.concept_code is null then 'Supplied'
-      when nvl(cmf.concept_code, cbn.concept_code) is null then 'Clinical'
-      else 'Neither'
-    end as match
-  from (
-    select pack_concept_code, pack_concept_id, count(8) as cnt -- the number of content components and their amount per matching pack
--- get those pack/component combinations that are mappable and whose amount matches
-    from (
-      select * 
--- extract the translatable drug components per pack
-      from (
-        select pack_concept_code, concept_id as drug_concept_id, amount from complete_pack join concept on concept_code=drug_concept_code and vocabulary_id=drug_vocab
-      )
--- extract the drug components per pack in RxE
-      join ( -- from RxE
-        select distinct pack_concept_id, drug_concept_id, amount from pack_content
-      ) using (drug_concept_id, amount)
-    ) p_p 
-    group by pack_concept_code, pack_concept_id
-  ) pp
-  -- join to new with same number of components
-  join (
-    select pack_concept_code, count(8) as cnt from complete_pack group by pack_concept_code
-  ) pq on pq.pack_concept_code=pp.pack_concept_code and pq.cnt=pp.cnt
-  -- join to existing with same amount of components
-  join (
-    select pack_concept_id, count(8) as cnt from pack_content group by pack_concept_id
-  ) pr on pr.pack_concept_id=pp.pack_concept_id and pr.cnt=pp.cnt
-  join complete_pack cp on cp.pack_concept_code=pp.pack_concept_code
-  -- find brand name in Rx/e and match
-  join concept p on p.concept_id=pp.pack_concept_id -- to check whether it's a Branded Pack, which doesn't always have a relationship to a Brand Name
-  left join concept_relationship rb on rb.concept_id_1=pp.pack_concept_id and rb.relationship_id='Has brand name' --!!! check for ingredients problems
-  left join concept cbn on (cbn.concept_id=rb.concept_id_2 or cbn.concept_id=1 and (p.concept_class_id='Branded Pack' and p.vocabulary_id='RxNorm'))-- need to find out if RxNorm or existing RxNorm Extension
-  -- find supplier in Rx/e and match
-  left join concept_relationship rs on rs.concept_id_1=pp.pack_concept_id and rs.relationship_id='Has marketed form'
-  left join concept cmf on cmf.concept_id=rs.concept_id_2 -- need to find out if RxNorm or RxNorm Extension
+  select pack_concept_code, drug_concept_id, amount, bs, bn_id from complete_pack
+union
+  select pack_concept_code, drug_concept_id, amount, bs, bn_id from existing_pack where bs!=0 and bn_id!=0 and mf_id=0
+);
+commit;
+
+-- Clinical Pack Box. Definition: bs, but no bn or mf.
+insert into complete_pack
+select pack_concept_code, drug_concept_id, amount, bs, 0 as bn_id, 0 as mf_id, 'Clinical Pack Box' as concept_class_id 
+from (
+  select pack_concept_code, drug_concept_id, amount, bs from complete_pack
+union
+  select pack_concept_code, drug_concept_id, amount, bs from existing_pack where bs!=0 and bn_id=0 and mf_id=0
+);
+
+-- Branded Pack. Definition: bn, but no bs or mf.
+insert into complete_pack
+select pack_concept_code, drug_concept_id, amount, 0 as bs, bn_id, 0 as mf_id, 'Branded Pack' as concept_class_id 
+from (
+  select pack_concept_code, drug_concept_id, amount, bn_id from complete_pack
+union
+  select pack_concept_code, drug_concept_id, amount, bn_id from existing_pack where bn_id!=0 and bs=0 and mf_id=0
+);
+
+-- Clinical Pack. Definition: neither bn, bs nor mf.
+insert into complete_pack
+select pack_concept_code, drug_concept_id, amount, 0 as bs, 0 as bn_id, 0 as mf_id, 'Clinical Pack' as concept_class_id 
+from (
+  select pack_concept_code, drug_concept_id, amount from complete_pack
+union
+  select pack_concept_code, drug_concept_id, amount from existing_pack where bn_id=0 and bs=0 and mf_id=0
+);
+commit;
+
+-- Match to existing 
+drop table qr_pack purge;
+create table qr_pack nologging as
+with q_pc as (
+  select pack_concept_code, drug_concept_id, amount, bs, bn_id, mf_id, cnt from complete_pack join(select pack_concept_code, count(8) as cnt from complete_pack group by pack_concept_code having count(8)>1) using(pack_concept_code)
+),
+pc as (
+  select pack_concept_id, drug_concept_id, nvl(amount, 0) as amount, nvl(box_size, 0) as bs, nvl(bn_id, 0) as bn_id, nvl(mf_id, 0) as mf_id
+  from pack_content pc
+  left join r_bn on drug_concept_id=r_bn.concept_id
+  left join r_mf on drug_concept_id=r_mf.concept_id
+  join concept on pack_concept_id=concept.concept_id and vocabulary_id='RxNorm'
+),
+r_pc as (-- includes counts of components
+  select pack_concept_id, drug_concept_id, amount, bs, bn_id, mf_id, cnt from pc join(select pack_concept_id, count(8) as cnt from pc group by pack_concept_id having count(8)>1) using(pack_concept_id)
 )
--- create 4 columns out of rows 
-pivot (
-  min(r_id) for match in ('Clinical' as clinical, 'Branded' as branded, 'Supplied' as supplied, 'Marketed' as marketed, 'Neither' as neither)
-)
-;
+select distinct pack_concept_code, pack_concept_id from q_pc join r_pc using(drug_concept_id, amount, bs, bn_id, mf_id, cnt)
+order by 1;
 commit;
 
 drop table pack_name purge;

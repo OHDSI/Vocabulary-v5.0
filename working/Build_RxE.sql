@@ -1681,7 +1681,7 @@ where qi_code not in (
 commit;
 
 -- Translation of individual ingredients, whether found in r or not
--- x_i_combo is for i_comob translations in Drug Forms, x_ing for translations of individual ingredients, such as in extension_uds
+-- x_i_combo is for i_combo translations in Drug Forms, x_ing for translations of individual ingredients, such as in extension_uds
 -- Get all the ones in x_i_combo, which contains everything that is translated
 drop table x_ing purge;
 create table x_ing nologging as 
@@ -1839,10 +1839,10 @@ union
   select i_code, cast(ds_code as varchar2(50)), ds_code, i_code, quant_unit
   from q_ds
 )
-join ( -- translations for the ds_code
+join ( -- translations for the ds_code in q_ds
 -- get the newly defined uds from extension_uds
   select ds_code as q_ds, ds_code as r_ds, i_code as r_i, denominator_unit_concept_id as quant_unit_id from extension_uds
-union -- and the translated ones
+union -- and the translated ones since they get mixed with the new ones in combos
   select cast(qd_combo as number) as q_ds, cast(rd_combo as number) as r_ds, ri_combo as r_i, quant_unit_id from x_d_combo
   where qd_combo not like '%-%'
 ) on q_ds=ds_code
@@ -2272,13 +2272,13 @@ left join (select concept_id, i_combo as ri_combo, d_combo as rd_combo, bn_id fr
 commit;
 
 -- Break up multi-ingredient ds and r for Clinical Drug Components
-drop table singleton_q purge;
-create table singleton_q nologging as 
+drop table q_singleton purge;
+create table q_singleton nologging as 
 select distinct d_combo as qd_combo, i_code as q_i, ds_code as q_ds
 from q_combo join q_ds using(concept_code) 
 ;
-drop table singleton_r purge;
-create table singleton_r nologging as 
+drop table r_singleton purge;
+create table r_singleton nologging as 
   select distinct d_combo as rd_combo, i_code as r_i, ds_code as r_ds from r_ds join r_combo using(concept_id) 
 union
   select distinct rd_combo, r_i, r_ds from extension_combo left join extension_ds on d_combo=qd_combo where d_combo!=' '
@@ -2288,25 +2288,25 @@ union
 -- Definition: broken up d_combo, no quant, df, bn bs and mf
 insert /*+ APPEND */ into full_corpus
 with ex as (
-  select q_i as qi_combo, cast(q_ds as varchar2(50)) as qd_combo, r_i as ri_combo, cast(r_ds as varchar2(50)) as rd_combo
+  select distinct q_i as qi_combo, cast(q_ds as varchar2(50)) as qd_combo, r_i as ri_combo, cast(r_ds as varchar2(50)) as rd_combo
 -- get all singleton translations
   from (select distinct qd_combo, rd_combo from full_corpus)
 -- break up qd_combo
-  join singleton_q using(qd_combo)
+  join q_singleton using(qd_combo)
   -- break up rd_combo
-  join singleton_r using(rd_combo)
+  join r_singleton using(rd_combo)
 -- combine the ones that belong together
   join (
-    select q_ds, r_ds from extension_ds
+    select qi_code as q_i, ri_code as r_i from qr_i
   union
-    select ds_code, ds_code from q_uds -- the same ds_code is used for both q and r, if r is a newly created extension_uds
-  ) using(q_ds, r_ds)
+    select qi_code, ri_code from extension_i
+  ) using(q_i, r_i)
 ),
 c as (
   select
     q_i as qi_combo, cast(q_ds as varchar2(50)) as qd_combo
   from q_combo
-  join singleton_q on d_combo=qd_combo
+  join q_singleton on d_combo=qd_combo
   where d_combo!=' ' 
 minus
 -- exclude the combinations already translated previously
@@ -2346,19 +2346,12 @@ from ( -- make new ones
 ;
 
 -- Add existing
-insert /*+ Append */ into extension_attribute 
+insert /*+ Append */ into extension_attribute;
 select distinct concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id from full_corpus where concept_id is not null
 ;
 commit;
 
--- Create ea in both concept_id and concept_code/vocabulary_id notation
-drop table ex purge;
-create table ex nologging as -- create extension_attribute in concept_code/vocabulary_id notation
-select 
-  nvl(c.concept_code, cs.concept_code) as concept_code, nvl(c.vocabulary_id, cs.vocabulary_id) as vocabulary_id, 
-  concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, extension_attribute.concept_class_id
-from extension_attribute left join concept c using(concept_id) left join concept_stage cs using(concept_id)
-;
+select * from concept where concept_id=40229490;
 
 -- Connect existing_q concept codes (from drug_concept_stage) to existing corpus or new extensions
 drop table maps_to purge;
@@ -2568,27 +2561,25 @@ commit;
 * 12. Process Packs *
 ********************/
 
--- create XXX type concept_codes for new packs
-drop table pack_seq purge;
-create table pack_seq as
-select
-  pack_concept_code, omop_seq.nextval as pack_concept_id 
-from pc_stage
-;
-commit;
-
 -- create a complete set of packs with attributes
-drop table existing_pack purge;
-create table existing_pack as
+drop table existing_pack_q purge;
+create table existing_pack_q as
 select distinct -- because the content in some packs, albeit different in drug_concept_stage, becomes identical after mapping
-  pack_concept_code, maps_to.to_id as drug_concept_id, nvl(amount, 0) as amount, nvl(box_size, 0) as bs, nvl(bn_id, 0) as bn_id, nvl(mf_id, 0) as mf_id,
-  case
-    when mf_id is not null then 'Marketed Product'
-    when box_size is not null and bn_id is not null then 'Branded Pack Box'
-    when box_size is not null then 'Clinical Pack Box'
-    when bn_id is not null then 'Branded Pack'
-    else 'Clinical Pack'
-  end as concept_class_id
+  pack_concept_code, 
+  listagg(maps_to.to_id, '/') within group (order by to_id) as components, 
+  count(8) as cnt,
+  max(nvl(amount, 0)) as amount, 
+  max(nvl(bn_id, 0)) as bn_id, 
+  max(nvl(box_size, 0)) as bs, 
+  max(nvl(mf_id, 0)) as mf_id,
+  max(
+    case
+      when mf_id is not null then 'Marketed Product'
+      when box_size is not null and bn_id is not null then 'Branded Pack Box'
+      when box_size is not null then 'Clinical Pack Box'
+      when bn_id is not null then 'Branded Pack'
+      else 'Clinical Pack'
+    end) as concept_class_id
 from pc_stage
 -- Component drug
 join maps_to on drug_concept_code=from_code -- all components should exist, either in RxE or in the new tables
@@ -2598,142 +2589,154 @@ left join ( -- Obtain Brand Name if exists, could be more than one effective r_t
 left join ( -- Obtain Supplier if exists, could be more than one effective r_to_c
   select distinct concept_code, nvl(x.mf_id, ex.mf_id) as mf_id from q_mf left join x_mf x using(mf_code) left join extension_mf ex using(mf_code)
 ) q_mf on q_mf.concept_code=pack_concept_code
+group by pack_concept_code
 ;
 commit;
 
--- Create pack hierarchy
-drop table complete_pack purge;
-create table complete_pack as
-select * from existing_pack where concept_class_id='Marketed Product';
-
--- Branded Pack Box. Definition: bn and bs, but no mf.
-insert into complete_pack
-select pack_concept_code, drug_concept_id, amount, bs, bn_id, 0 as mf_id, 'Branded Pack Box' as concept_class_id 
+drop table existing_pack_r purge;
+create table existing_pack_r nologging as
+select pack_concept_id, 
+  listagg(drug_concept_id, '/') within group (order by drug_concept_id) as components,
+  count(8) as cnt,
+  amount, bn_id, bs, mf_id
 from (
-  select pack_concept_code, drug_concept_id, amount, bs, bn_id from complete_pack
-union
-  select pack_concept_code, drug_concept_id, amount, bs, bn_id from existing_pack where bs!=0 and bn_id!=0 and mf_id=0
-);
-commit;
-
--- Clinical Pack Box. Definition: bs, but no bn or mf.
-insert into complete_pack
-select pack_concept_code, drug_concept_id, amount, bs, 0 as bn_id, 0 as mf_id, 'Clinical Pack Box' as concept_class_id 
-from (
-  select pack_concept_code, drug_concept_id, amount, bs from complete_pack
-union
-  select pack_concept_code, drug_concept_id, amount, bs from existing_pack where bs!=0 and bn_id=0 and mf_id=0
-);
-
--- Branded Pack. Definition: bn, but no bs or mf.
-insert into complete_pack
-select pack_concept_code, drug_concept_id, amount, 0 as bs, bn_id, 0 as mf_id, 'Branded Pack' as concept_class_id 
-from (
-  select pack_concept_code, drug_concept_id, amount, bn_id from complete_pack
-union
-  select pack_concept_code, drug_concept_id, amount, bn_id from existing_pack where bn_id!=0 and bs=0 and mf_id=0
-);
-
--- Clinical Pack. Definition: neither bn, bs nor mf.
-insert into complete_pack
-select pack_concept_code, drug_concept_id, amount, 0 as bs, 0 as bn_id, 0 as mf_id, 'Clinical Pack' as concept_class_id 
-from (
-  select pack_concept_code, drug_concept_id, amount from complete_pack
-union
-  select pack_concept_code, drug_concept_id, amount from existing_pack where bn_id=0 and bs=0 and mf_id=0
-);
-commit;
-
--- Match to existing 
-drop table qr_pack purge;
-create table qr_pack nologging as
-with q_pc as (
-  select pack_concept_code, drug_concept_id, amount, bs, bn_id, mf_id, cnt from complete_pack join(select pack_concept_code, count(8) as cnt from complete_pack group by pack_concept_code having count(8)>1) using(pack_concept_code)
-),
-pc as (
   select pack_concept_id, drug_concept_id, nvl(amount, 0) as amount, nvl(box_size, 0) as bs, nvl(bn_id, 0) as bn_id, nvl(mf_id, 0) as mf_id
   from pack_content pc
   left join r_bn on drug_concept_id=r_bn.concept_id
   left join r_mf on drug_concept_id=r_mf.concept_id
   join concept on pack_concept_id=concept.concept_id and vocabulary_id='RxNorm'
-),
-r_pc as (-- includes counts of components
-  select pack_concept_id, drug_concept_id, amount, bs, bn_id, mf_id, cnt from pc join(select pack_concept_id, count(8) as cnt from pc group by pack_concept_id having count(8)>1) using(pack_concept_id)
 )
-select distinct pack_concept_code, pack_concept_id from q_pc join r_pc using(drug_concept_id, amount, bs, bn_id, mf_id, cnt)
-order by 1;
+group by pack_concept_id, amount, bn_id, bs, mf_id
+;
+
+-- Create pack hierarchy
+drop table extension_pack purge;
+create table extension_pack as
+select extension_id.nextval as concept_id, 
+  pack_concept_code, pack_concept_id, components, cnt, amount, bn_id, bs, mf_id, concept_class_id
+from existing_pack_q 
+left join existing_pack_r using(components, cnt, amount, bn_id, bs, mf_id)
+where concept_class_id='Marketed Product';
 commit;
 
+-- Branded Pack Box. Definition: bn and bs, but no mf.
+insert into extension_pack
+select extension_id.nextval as concept_id, 
+  pack_concept_code, pack_concept_id as r_concept_id, components, cnt, amount, bn_id, bs, 0 as mf_id, 'Branded Pack Box' as concept_class_id 
+from (
+  select components, cnt, amount, bn_id, bs from extension_pack where bn_id!=0 and bs!=0
+union
+  select components, cnt, amount, bn_id, bs from existing_pack_q where bn_id!=0 and bs!=0 and mf_id=0
+)
+left join (select pack_concept_code, components, cnt, amount, bn_id, bs from existing_pack_q where mf_id=0) using(components, cnt, amount, bn_id, bs)
+left join (select pack_concept_id, components, cnt, amount, bn_id, bs from existing_pack_r where mf_id=0) using(components, cnt, amount, bn_id, bs)
+;
+commit;
+
+-- Branded Pack. Definition: bn, but no bs or mf.
+insert into extension_pack
+select extension_id.nextval as concept_id, 
+  pack_concept_code, pack_concept_id as r_concept_id, components, cnt, amount, bn_id, 0 as bs, 0 as mf_id, 'Branded Pack' as concept_class_id 
+from (
+  select components, cnt, amount, bn_id from extension_pack where bn_id!=0
+union
+  select components, cnt, amount, bn_id from existing_pack_q where bn_id!=0 and bs=0 and mf_id=0
+)
+left join (select pack_concept_code, components, cnt, amount, bn_id from existing_pack_q where bs=0 and mf_id=0) using(components, cnt, amount, bn_id)
+left join (select pack_concept_id, components, cnt, amount, bn_id from existing_pack_r where bs=0 and mf_id=0) using(components, cnt, amount, bn_id)
+;
+
+-- Clinical Pack Box. Definition: bs, but no bn or mf.
+insert into extension_pack
+select extension_id.nextval as concept_id, 
+  pack_concept_code, pack_concept_id as r_concept_id, components, cnt, amount, 0 as bn_id, bs, 0 as mf_id, 'Clinical Pack Box' as concept_class_id 
+from (
+  select components, cnt, amount, bs from extension_pack where bs!=0
+union
+  select components, cnt, amount, bs from existing_pack_q where bs!=0 and bn_id=0 and mf_id=0
+)
+left join (select pack_concept_code, components, cnt, amount, bs from existing_pack_q where bn_id=0 and mf_id=0) using(components, cnt, amount, bs)
+left join (select pack_concept_id, components, cnt, amount, bs from existing_pack_r where bn_id=0 and mf_id=0) using(components, cnt, amount, bs)
+;
+
+-- Clinical Pack. Definition: neither bn, bs nor mf.
+insert into extension_pack
+select extension_id.nextval as concept_id, 
+  pack_concept_code, pack_concept_id as r_concept_id, components, cnt, amount, 0 as bn_id, 0 as bs, 0 as mf_id, 'Clinical Pack' as concept_class_id 
+from (
+  select components, cnt, amount from extension_pack where bn_id=0 and bs=0 and mf_id=0
+union
+  select components, cnt, amount from existing_pack_q where bn_id=0 and bs=0 and mf_id=0
+)
+left join (select pack_concept_code, components, cnt, amount from existing_pack_q where bn_id=0 and bs=0 and mf_id=0) using(components, cnt, amount)
+left join (select pack_concept_id, components, cnt, amount from existing_pack_r where bn_id=0 and bs=0 and mf_id=0) using(components, cnt, amount)
+;
+commit;
+
+-- Create names for each pack in extension_pack
 drop table pack_name purge;
 create table pack_name as
 -- Get the component parts
 with c as (
   select 
-    cp.pack_concept_code,
-    case when cp.amount is null then '' else cp.amount||' ' end||'('||coalesce(cr.concept_name, en.concept_name) as content_name,
-    case when cp.amount is null then 0 else length(cp.amount)+1 end as a_len, -- length of the amount
-    length(coalesce(cr.concept_name, en.concept_name)) as n_len -- length of the concept_name
-  from complete_pack cp
-  left join concept cr on cr.concept_code=cp.drug_concept_code and cr.vocabulary_id=cp.drug_vocab
-  left join extension_name en on en.concept_code=cp.drug_concept_code and cp.drug_vocab='RxNorm Extension'
---  left join drug_concept_stage cd on cd.concept_code=cp.drug_concept_code and cp.drug_vocab is null
+    cp.concept_id,
+    case when cp.amount=0 then '' else cp.amount||' ' end||'('||coalesce(cr.concept_name, en.concept_name) as content_name,
+    case when cp.amount=0 then 0 else length(cp.amount)+1 end as a_len, -- length of the amount
+    length(nvl(cr.concept_name, en.concept_name)) as n_len -- length of the concept_name
+  from (
+    select concept_id, amount, trim(regexp_substr(components, '[^\/]+', 1, levels.column_value)) as drug_concept_id
+    from extension_pack, -- extension_combo contains i_combos as well
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^\/]+'))  + 1) as sys.OdciNumberList)) levels
+  ) cp
+  left join concept cr on cr.concept_id=cp.drug_concept_id
+  left join extension_name en on en.concept_id=cp.drug_concept_id
 ),
 -- Get the common part
 pd as (
   select distinct
-    cp.pack_concept_code, 
-    case when cp.bn_code is null then '' else ' ['||nvl(br.concept_name, x_bn.q_name)||']' end as brand_name,
-    case when cp.box_size is null then '' else ' box of '||box_size||' ' end as bs_name,
-    case when cp.supplier_code is null then '' else ' by '||nvl(sr.concept_name, x_mf.q_name) end as supplier_name
-  from complete_pack cp
-  left join concept br on br.concept_code=cp.bn_code and br.vocabulary_id=cp.brand_vocab
-  left join x_bn on x_bn.r_code=cp.bn_code and cp.brand_vocab='RxNorm Extension' and x_bn.r_vocab is null
-  left join concept sr on sr.concept_code=cp.supplier_code and sr.vocabulary_id=cp.supplier_vocab
-  left join x_mf on x_mf.r_code=cp.supplier_code and cp.supplier_vocab='RxNorm Extension' and x_mf.r_vocab is null
+    cp.concept_id, 
+    case when cp.bn_id=0 then '' else ' ['||nvl(bn.concept_name, ebn.concept_name)||']' end as bn_name,
+    case when cp.bs=0 then '' else ' box of '||bs||' ' end as bs_name,
+    case when cp.mf_id=0 then '' else ' by '||nvl(mf.concept_name, emf.concept_name) end as mf_name
+  from extension_pack cp
+  left join concept bn on bn.concept_id=cp.bn_id left join extension_bn ebn on ebn.bn_id=cp.bn_id
+  left join concept mf on mf.concept_id=cp.mf_id left join extension_mf emf on emf.mf_id=cp.mf_id
 ),
 -- Calculate total length of everything if space weren't the issue, and then calculate the factor that each concept_name needs to be shortened by
 p as (
   select 
-    pd.pack_concept_code,
-    pd.brand_name||pd.bs_name||pd.supplier_name as concept_name,
-    nvl(length(pd.bs_name), 0)+nvl(length(pd.brand_name), 0)+nvl(length(pd.supplier_name), 0) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
-    from pd
+    pd.concept_id,
+    pd.bn_name||pd.bs_name||pd.mf_name as concept_name,
+    nvl(length(pd.bs_name), 0)+nvl(length(pd.bn_name), 0)+nvl(length(pd.mf_name), 0) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
+  from pd
 ),
 l as (
-  select pack_concept_code, 
+  select concept_id, 
     (245-all_a_len-p.len)/all_n_len as factor -- 255-10 for common pack text (curly brackets, spaces)
   from (
     select distinct
-      pack_concept_code,
-      sum(n_len) over (partition by pack_concept_code) as all_n_len, -- 7: slashes, parentheses and spaces, minus the trailing ' / '
-      sum(a_len+5) over (partition by pack_concept_code) -3 as all_a_len -- 7: slashes, parentheses and spaces, minus the trailing ' / '
+      concept_id,
+      sum(n_len) over (partition by concept_id) as all_n_len, -- 7: slashes, parentheses and spaces, minus the trailing ' / '
+      sum(a_len+5) over (partition by concept_id) -3 as all_a_len -- 7: slashes, parentheses and spaces, minus the trailing ' / '
     from c
   ) 
-  join p using(pack_concept_code)
+  join p using(concept_id)
 ),
 -- Cut the individual components by the factor and add ...
 c_p as (
   select 
-    pack_concept_code,
+    concept_id,
     case when l.factor<1 then substr(c.content_name, 1, c.n_len*l.factor-3)||'...' else c.content_name end as concept_name
-  from l join c using(pack_concept_code)
+  from l join c using(concept_id)
 )
 select 
-  pack_concept_code,
+  concept_id,
   '{'||listagg(c_p.concept_name, ') / ') within group (order by c_p.concept_name) ||') } Pack'||p.concept_name as concept_name
 from c_p -- components, possibly trimmed
-join p using(pack_concept_code) -- common part
-group by pack_concept_code, p.concept_name -- aggregate within concept_code
+join p using(concept_id) -- common part
+group by concept_id, p.concept_name -- aggregate within concept_code
 ;
 commit;
-
--- Temporary till stable xxxxxxxxxxxxxxxxxx
-insert /*+ APPEND */ into pack_q_to_r
-select pn.pack_concept_code, c.concept_id as clinical, null as branded, null as supplied, null as marketed, null as neither
-from pack_name pn join concept c using (concept_name) where c.vocabulary_id like 'RxNorm%' and invalid_reason is null 
-and not exists ( select 1 from pack_q_to_r pqr where pn.pack_concept_code=pqr.pack_concept_code
-);
-*/
 
 /****************************
 * 13. Write RxNorm Extension *
@@ -2758,6 +2761,7 @@ select max(iex)+1 into ex from (
 end;
 */
 
+-- Empty concept_stage in case there are remnants from a previous run.
 truncate table concept_stage;
 truncate table concept_relationship_stage;
 truncate table drug_strength_stage;
@@ -2917,6 +2921,15 @@ select 'Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug' from dual
 ;
 commit;
 
+-- Create ea in both concept_id and concept_code/vocabulary_id notation
+drop table ex purge;
+create table ex nologging as -- create extension_attribute in concept_code/vocabulary_id notation
+select 
+  nvl(c.concept_code, cs.concept_code) as concept_code, nvl(c.vocabulary_id, cs.vocabulary_id) as vocabulary_id, 
+  concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, extension_attribute.concept_class_id
+from extension_attribute left join concept c using(concept_id) left join concept_stage cs using(concept_id)
+;
+
 -- Write inner-RxNorm Extension relationships, mimicking RxNorm
 -- Everything but the Drug Forms, Clinical Drug Comp and Marketed Products
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
@@ -2999,20 +3012,21 @@ commit;
 
 -- Clinical Drug Comp - ds_combo is really only singleton q_ds and needs be decomposed
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-select distinct
+select distinct 
   an.concept_code as concept_code_1, 
   an.vocabulary_id as vocabulary_id_1,
   de.concept_code as concept_code_2,
   de.vocabulary_id as vocabulary_id_2,
   rl.relationship_id,
-  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+--  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from ( -- Create de that has ds_code instead of d_combo by splitting them up
   select cast(r_ds as varchar2(50)) as r_ds, -- component ds from rd_combo
   concept_code, vocabulary_id, concept_id, r_value, quant_unit_id, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id
-  from ex join singleton_r using(rd_combo)
+  from ex join r_singleton using(rd_combo)
   where concept_class_id in ('Clinical Drug', 'Branded Drug Comp') -- the only concept class it connects to
+and rd_combo='25795-42645'
 ) de 
 join rl on rl.concept_class_2=de.concept_class_id and rl.concept_class_1='Clinical Drug Comp'
 join ex an
@@ -3173,22 +3187,25 @@ union
 ;
 commit;
 
+-----------------------------------------------------------------------------
+-- ?? ????, ??????
+-----------------------------------------------------------------------------
+
 -- Write Packs
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-select distinct -- because records duplicate due to components
-  null as concept_id, 
+select -- because records duplicate due to components
+  concept_id, 
   concept_name,
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   concept_class_id,
   'S' as standard_concept, -- all non-existing packs are Standard
-  cp.pack_concept_code as concept_code,
+  'OMOP'||omop_seq.nextval as concept_code,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
-from complete_pack cp join pack_name pn on pn.pack_concept_code=cp.pack_concept_code
-left join pack_q_to_r pqr on cp.pack_concept_code=pqr.pack_concept_code -- exclude those that can be fully mapped
-where pqr.pack_concept_code is null
+from extension_pack join pack_name using(concept_id)
+where pack_concept_id is null -- doesn't have an existing translation
 ;
 commit;
 
@@ -3287,7 +3304,7 @@ where domain_id='Device'
 commit;
 
 -- Write maps for drugs
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select 
 dcs.concept_name, nvl(c.concept_name, cs.concept_name), to_id,
   from_code as concept_code_1,

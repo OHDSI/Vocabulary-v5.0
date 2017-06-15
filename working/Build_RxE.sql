@@ -2346,7 +2346,7 @@ from ( -- make new ones
 ;
 
 -- Add existing
-insert /*+ Append */ into extension_attribute;
+insert /*+ Append */ into extension_attribute
 select distinct concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id from full_corpus where concept_id is not null
 ;
 commit;
@@ -2564,9 +2564,17 @@ commit;
 -- create a complete set of packs with attributes
 drop table existing_pack_q purge;
 create table existing_pack_q as
+with component as (
+-- Clip all component attributes but df_id and quant, making them (Quant) Clinical Drugs. Brand Names and Suppliers should sit with the Pack, and Box Size is irrelevant in a compnent because a duplication of amount
+select drug_concept_code, ac.concept_id
+from (select distinct drug_concept_code from pc_stage) -- get list of components
+join maps_to mo on from_code=drug_concept_code -- get their concept_id
+join extension_attribute ao on mo.to_id=ao.concept_id -- get full attribute set in r
+join (select distinct concept_id, r_value, quant_unit_id, rd_combo, df_id from extension_attribute where rd_combo!=' ' and bn_id=0 and bs=0 and mf_id=0) ac using(r_value, quant_unit_id, rd_combo, df_id) -- Get the Clinical equivalent
+)
 select distinct -- because the content in some packs, albeit different in drug_concept_stage, becomes identical after mapping
   pack_concept_code, 
-  listagg(maps_to.to_id, '/') within group (order by to_id) as components, 
+  listagg(component.concept_id, '/') within group (order by component.concept_id) as components, 
   count(8) as cnt,
   max(nvl(amount, 0)) as amount, 
   max(nvl(bn_id, 0)) as bn_id, 
@@ -2582,7 +2590,7 @@ select distinct -- because the content in some packs, albeit different in drug_c
     end) as concept_class_id
 from pc_stage
 -- Component drug
-join maps_to on drug_concept_code=from_code -- all components should exist, either in RxE or in the new tables
+join component using(drug_concept_code)
 left join ( -- Obtain Brand Name if exists, could be more than one effective r_to_c
   select distinct concept_code, nvl(x.bn_id, ex.bn_id) as bn_id from q_bn left join x_bn x using(bn_code) left join extension_bn ex using(bn_code)
 ) q_bn on q_bn.concept_code=pack_concept_code 
@@ -2743,7 +2751,7 @@ commit;
 ****************************/
 
 -- Create sequence that starts after existing OMOP???-style concept codes
-drop sequence omop_seq; 
+drop sequence omop_seq;
 /* XXXX uncomment
 declare
  ex number;
@@ -3018,7 +3026,7 @@ select distinct
   de.concept_code as concept_code_2,
   de.vocabulary_id as vocabulary_id_2,
   rl.relationship_id,
---  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from ( -- Create de that has ds_code instead of d_combo by splitting them up
@@ -3026,7 +3034,6 @@ from ( -- Create de that has ds_code instead of d_combo by splitting them up
   concept_code, vocabulary_id, concept_id, r_value, quant_unit_id, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id
   from ex join r_singleton using(rd_combo)
   where concept_class_id in ('Clinical Drug', 'Branded Drug Comp') -- the only concept class it connects to
-and rd_combo='25795-42645'
 ) de 
 join rl on rl.concept_class_2=de.concept_class_id and rl.concept_class_1='Clinical Drug Comp'
 join ex an
@@ -3187,13 +3194,9 @@ union
 ;
 commit;
 
------------------------------------------------------------------------------
--- ?? ????, ??????
------------------------------------------------------------------------------
-
 -- Write Packs
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-select -- because records duplicate due to components
+select 
   concept_id, 
   concept_name,
   'Drug' as domain_id,
@@ -3203,7 +3206,7 @@ select -- because records duplicate due to components
   'OMOP'||omop_seq.nextval as concept_code,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
-  null as invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
+  null as invalid_reason 
 from extension_pack join pack_name using(concept_id)
 where pack_concept_id is null -- doesn't have an existing translation
 ;
@@ -3212,53 +3215,61 @@ commit;
 -- Write links between Packs and their containing Drugs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct -- because drugs can be in a pack in several components
-  cp.pack_concept_code as concept_code_1,
+  p.concept_code as concept_code_1,
   'RxNorm Extension' as vocabulary_id_1,
-  cp.drug_concept_code as concept_code_2,
-  cp.drug_vocab as vocabulary_id_2,
+  nvl(cs.concept_code, c.concept_code) as concept_code_2,
+  nvl(cs.vocabulary_id, c.vocabulary_id) as vocabulary_id_2,
   'Contains' as relationship_id, -- the relationship_id is not taken from rl, but expicitly defined
-  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+--  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from complete_pack cp 
-left join pack_q_to_r pqr on cp.pack_concept_code=pqr.pack_concept_code -- exclude those that can be fully mapped
-where pqr.pack_concept_code is null
+from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
+join ( -- split components by '/'
+  select p.concept_id, trim(regexp_substr(components, '[^\/]+', 1, levels.column_value)) as drug_concept_id
+  from extension_pack p, 
+  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^\/]+'))  + 1) as sys.OdciNumberList)) levels
+) c using(concept_id)
+left join concept_stage cs on drug_concept_id=cs.concept_id -- get concept_code/vocab for new drug
+left join concept c on drug_concept_id=c.concept_id -- or existing drug
+where pack_concept_id is null
 ;
 commit;
 
 -- Write Brand Names for Packs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct
-  cp.bn_code as concept_code_1,
-  nvl(cp.brand_vocab, 'RxNorm Extension') as vocabulary_id_1,
-  cp.pack_concept_code as concept_code_2,
+  nvl(bs.concept_code, b.concept_code) as concept_code_1,
+  nvl(bs.vocabulary_id, b.vocabulary_id) as vocabulary_id_1,
+  p.concept_code as concept_code_2,
   'RxNorm Extension' as vocabulary_id_2,
   rl.relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from complete_pack cp join rl on rl.concept_class_1='Brand Name' and rl.concept_class_2=cp.concept_class_id
-left join pack_q_to_r pqr on cp.pack_concept_code=pqr.pack_concept_code -- exclude those that can be fully mapped
-where pqr.pack_concept_code is null
-and bn_code!=' '
+from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
+join rl on rl.concept_class_1='Brand Name' and rl.concept_class_2=p.concept_class_id
+left join concept_stage bs on bn_id=bs.concept_id
+left join concept b on bn_id=b.concept_id
+where pack_concept_id is null and bn_id!=0 -- has no translation and has brand name
 ;
 commit;
 
 -- Write Suppliers for Packs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct
-  cp.supplier_code as concept_code_1,
-  nvl(cp.supplier_vocab, 'RxNorm Extension') as vocabulary_id_1,
-  cp.pack_concept_code as concept_code_2,
+  nvl(ms.concept_code, m.concept_code) as concept_code_1,
+  nvl(ms.vocabulary_id, m.vocabulary_id) as vocabulary_id_1,
+  p.concept_code as concept_code_2,
   'RxNorm Extension' as vocabulary_id_2,
   rl.relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from complete_pack cp join rl on rl.concept_class_1='Supplier' and rl.concept_class_2=cp.concept_class_id
-left join pack_q_to_r pqr on cp.pack_concept_code=pqr.pack_concept_code -- exclude those that can be fully mapped
-where pqr.pack_concept_code is null
-and supplier_code!=' '
+from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
+join rl on rl.concept_class_1='Supplier' and rl.concept_class_2=p.concept_class_id
+left join concept_stage ms on mf_id=ms.concept_id
+left join concept m on mf_id=m.concept_id
+where pack_concept_id is null and mf_id!=0 -- has no translation and has brand name
 ;
 commit;
 
@@ -3278,7 +3289,7 @@ select distinct
   concept_code,
   nvl(valid_start_date, (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1))) as valid_start_date,
   nvl(valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
-  case invalid_reason when 'U' then 'D' else invalid_reason end as invalid_reason -- if they are 'U' they get mapped using Maps to to RxNorm/E anyway
+  case invalid_reason when 'U' then 'D' else invalid_reason end as invalid_reason
 from drug_concept_stage
 where concept_class_id in ('Ingredient', 'Drug Product', 'Supplier', 'Dose Form', 'Brand Name') -- but no Unit
   and nvl(domain_id, 'Drug')='Drug'

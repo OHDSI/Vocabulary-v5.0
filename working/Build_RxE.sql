@@ -3219,7 +3219,7 @@ select distinct -- because drugs can be in a pack in several components
   nvl(cs.concept_code, c.concept_code) as concept_code_2,
   nvl(cs.vocabulary_id, c.vocabulary_id) as vocabulary_id_2,
   'Contains' as relationship_id, -- the relationship_id is not taken from rl, but expicitly defined
---  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack

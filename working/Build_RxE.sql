@@ -149,11 +149,11 @@ commit;
 -- Create table with all drug concept codes linked to the above unique components 
 drop table q_ds purge;
 create table q_ds nologging as
-select drug_concept_code as concept_code, ingredient_concept_code as i_code, ds_code, d as quant_unit
--- nvl denominator so null can be matched with null for % and homeopathics
-from (select drug_concept_code, ingredient_concept_code, amount_value, amount_unit, numerator_value, numerator_unit, nvl(denominator_unit, 'null') as d from ds_rounded)
+select drug_concept_code as concept_code, ingredient_concept_code as i_code, ds_code, case d when 'undef' then null else d end as quant_unit -- convert back to null
+-- nvl denominator so null can be matched with null for % and homeopathics, where the denominator_unit is null, rather than ' '
+from (select drug_concept_code, ingredient_concept_code, amount_value, amount_unit, numerator_value, numerator_unit, nvl(denominator_unit, 'undef') as d from ds_rounded)
 join (
-  select ds_code, ingredient_concept_code, amount_value, amount_unit, numerator_value, numerator_unit, nvl(denominator_unit, 'null') as d from q_uds 
+  select ds_code, ingredient_concept_code, amount_value, amount_unit, numerator_value, numerator_unit, nvl(denominator_unit, 'undef') as d from q_uds 
 ) using(ingredient_concept_code, amount_value, amount_unit, numerator_value, numerator_unit, d)
 ;
 create index idx_q_ds_dscode on q_ds (ds_code);
@@ -1950,9 +1950,9 @@ from (
   from (
     select distinct
       c.*,
-      coalesce(first_value(x.ri_combo) over (partition by x.qd_combo order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
-      coalesce(first_value(x.rd_combo) over (partition by x.qd_combo order by x.prec), combo.rd_combo, ec.rd_combo) as rd_combo,
-      coalesce(first_value(x.quant_unit_id) over (partition by x.qd_combo order by x.prec), combo.quant_unit_id, ec.quant_unit_id) as quant_unit_id,
+      coalesce(first_value(x.ri_combo) over (partition by c.qd_combo, c.df_code, c.bn_code, c.mf_code order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
+      coalesce(first_value(x.rd_combo) over (partition by c.qd_combo, c.df_code, c.bn_code, c.mf_code order by x.prec), combo.rd_combo, ec.rd_combo) as rd_combo,
+      coalesce(first_value(x.quant_unit_id) over (partition by c.qd_combo, c.df_code, c.bn_code, c.mf_code order by x.prec), combo.quant_unit_id, ec.quant_unit_id) as quant_unit_id,
       coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id,
       coalesce(x.bn_id, x_bn.bn_id, ebn.bn_id, 0) as bn_id,
       coalesce(x.mf_id, x_mf.mf_id, emf.mf_id, 0) as mf_id
@@ -1964,9 +1964,10 @@ from (
     left join x_bn on c.bn_code=x_bn.bn_code left join extension_bn ebn on c.bn_code=ebn.bn_code
     left join x_mf on c.mf_code=x_mf.mf_code left join extension_mf emf on c.mf_code=emf.mf_code
   ) p
-  left join qr_quant q on q.q_value=p.q_value and q.quant_unit=p.quant_unit and p.quant_unit_id=q.quant_unit_id 
+  left join qr_quant q on q.q_value=p.q_value and q.quant_unit=p.quant_unit and nvl(p.quant_unit_id, q.quant_unit_id)=q.quant_unit_id -- q.quant_unit_id can be null in homeopathics and %
   -- If units are null (undefined, usually after % or the homeopathics), then match no matter what, after trying everything else
-  left join x_unit on x_unit.unit_code=nvl(p.quant_unit, x_unit.unit_code) and x_unit.unit_id=nvl(p.quant_unit_id, x_unit.unit_id)
+  -- if more than one match for unit_code (different conversion factors), pick the one that matches unit_id, and if that's null, pick the one which is 1
+  left join x_unit on x_unit.unit_code=p.quant_unit and nvl(p.quant_unit_id, x_unit.unit_id)=x_unit.unit_id and case when p.quant_unit_id is null then 1 else conversion_factor end = conversion_factor
 ) m
 left join (select concept_code, quant_value as q_value, quant_unit, i_combo as qi_combo, d_combo as qd_combo, df_code, bn_code, bs, mf_code from existing_q) using(q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, mf_code)
 left join (select concept_id, quant_value as r_value, quant_unit_id, i_combo as ri_combo, d_combo as rd_combo, df_id, bn_id, bs, mf_id from existing_r) using(r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id)
@@ -2042,9 +2043,9 @@ union
   from (
     select distinct
       c.*,
-      coalesce(first_value(x.ri_combo) over (partition by x.qd_combo order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
-      coalesce(first_value(x.rd_combo) over (partition by x.qd_combo order by x.prec), combo.rd_combo, ec.rd_combo) as rd_combo,
-      coalesce(first_value(x.quant_unit_id) over (partition by x.qd_combo order by x.prec), combo.quant_unit_id, ec.quant_unit_id) as quant_unit_id,
+      coalesce(first_value(x.ri_combo) over (partition by c.qd_combo, c.df_code, c.bn_code order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
+      coalesce(first_value(x.rd_combo) over (partition by c.qd_combo, c.df_code, c.bn_code order by x.prec), combo.rd_combo, ec.rd_combo) as rd_combo,
+      coalesce(first_value(x.quant_unit_id) over (partition by c.qd_combo, c.df_code, c.bn_code order by x.prec), combo.quant_unit_id, ec.quant_unit_id) as quant_unit_id,
       coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id,
       coalesce(x.bn_id, x_bn.bn_id, ebn.bn_id, 0) as bn_id
     from c
@@ -2054,8 +2055,8 @@ union
     left join x_df on c.df_code=x_df.df_code left join extension_df edf on c.df_code=edf.df_code
     left join x_bn on c.bn_code=x_bn.bn_code left join extension_bn ebn on c.bn_code=ebn.bn_code
   ) p
-  left join qr_quant q on q.q_value=p.q_value and q.quant_unit=p.quant_unit and p.quant_unit_id=q.quant_unit_id 
-  left join x_unit on x_unit.unit_code=nvl(p.quant_unit, x_unit.unit_code) and x_unit.unit_id=p.quant_unit_id 
+  left join qr_quant q on q.q_value=p.q_value and q.quant_unit=p.quant_unit and nvl(p.quant_unit_id, q.quant_unit_id)=q.quant_unit_id -- q.quant_unit_id can be null in homeopathics and %
+  left join x_unit on x_unit.unit_code=p.quant_unit and nvl(p.quant_unit_id, x_unit.unit_id)=x_unit.unit_id and case when p.quant_unit_id is null then 1 else conversion_factor end = conversion_factor
 ) m
 left join (select concept_code, quant_value as q_value, quant_unit, i_combo as qi_combo, d_combo as qd_combo, df_code, bn_code, bs from existing_q where mf_code=' ') using(q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs)
 left join (select concept_id, quant_value as r_value, quant_unit_id, i_combo as ri_combo, d_combo as rd_combo, df_id, bn_id, bs from existing_r where mf_id=0) using(r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs)
@@ -2127,9 +2128,9 @@ union
   from (
     select distinct
       c.*,
-      coalesce(first_value(x.ri_combo) over (partition by x.qd_combo order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
-      coalesce(first_value(x.rd_combo) over (partition by x.qd_combo order by x.prec), combo.rd_combo, ec.rd_combo) as rd_combo,
-      coalesce(first_value(x.quant_unit_id) over (partition by x.qd_combo order by x.prec), combo.quant_unit_id, ec.quant_unit_id) as quant_unit_id,
+      coalesce(first_value(x.ri_combo) over (partition by c.qd_combo, c.df_code order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
+      coalesce(first_value(x.rd_combo) over (partition by c.qd_combo, c.df_code order by x.prec), combo.rd_combo, ec.rd_combo) as rd_combo,
+      coalesce(first_value(x.quant_unit_id) over (partition by c.qd_combo, c.df_code order by x.prec), combo.quant_unit_id, ec.quant_unit_id) as quant_unit_id,
       coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id
     from c
     left join x_pattern x on c.qd_combo=x.qd_combo and c.df_code=nvl(x.df_code, c.df_code)
@@ -2137,8 +2138,8 @@ union
     left join extension_combo ec on c.qd_combo=ec.qd_combo
     left join x_df on c.df_code=x_df.df_code left join extension_df edf on c.df_code=edf.df_code
   ) p
-  left join qr_quant q on q.q_value=p.q_value and q.quant_unit=p.quant_unit and p.quant_unit_id=q.quant_unit_id 
-  left join x_unit on x_unit.unit_code=nvl(p.quant_unit, x_unit.unit_code) and x_unit.unit_id=p.quant_unit_id 
+  left join qr_quant q on q.q_value=p.q_value and q.quant_unit=p.quant_unit and nvl(p.quant_unit_id, q.quant_unit_id)=q.quant_unit_id -- q.quant_unit_id can be null in homeopathics and %
+  left join x_unit on x_unit.unit_code=p.quant_unit and nvl(p.quant_unit_id, x_unit.unit_id)=x_unit.unit_id and case when p.quant_unit_id is null then 1 else conversion_factor end = conversion_factor
 ) m
 left join (select concept_code, quant_value as q_value, quant_unit, i_combo as qi_combo, d_combo as qd_combo, df_code, bs from existing_q where mf_code=' ' and bn_code=' ') using(q_value, quant_unit, qi_combo, qd_combo, df_code, bs)
 left join (select concept_id, quant_value as r_value, quant_unit_id, i_combo as ri_combo, d_combo as rd_combo, df_id, bs from existing_r where mf_id=0 and bn_id=0) using(r_value, quant_unit_id, ri_combo, rd_combo, df_id, bs)
@@ -2173,7 +2174,7 @@ from (
 union
   select distinct
     c.*,
-    coalesce(first_value(x.ri_combo) over (partition by x.qi_combo order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
+    coalesce(first_value(x.ri_combo) over (partition by c.qi_combo, c.df_code, c.bn_code order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
     coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id,
     coalesce(x.bn_id, x_bn.bn_id, ebn.bn_id, 0) as bn_id
   from c
@@ -2215,7 +2216,7 @@ from (
 union
   select distinct
     c.*,
-    coalesce(first_value(x.ri_combo) over (partition by x.qi_combo order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
+    coalesce(first_value(x.ri_combo) over (partition by c.qi_combo, c.df_code order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
     coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id
   from c
   left join x_pattern x on c.qi_combo=x.qi_combo and c.df_code=nvl(x.df_code, c.df_code)
@@ -2257,8 +2258,8 @@ from (
 union
   select distinct
     c.*,
-    coalesce(first_value(x.ri_combo) over (partition by x.qd_combo order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
-    coalesce(first_value(x.rd_combo) over (partition by x.qd_combo order by x.prec), combo.rd_combo, ec.rd_combo) as rd_combo,
+    coalesce(first_value(x.ri_combo) over (partition by c.qd_combo, c.bn_code order by x.prec), combo.ri_combo, ec.ri_combo) as ri_combo,
+    coalesce(first_value(x.rd_combo) over (partition by c.qd_combo, c.bn_code order by x.prec), combo.rd_combo, ec.rd_combo) as rd_combo,
     coalesce(x.bn_id, x_bn.bn_id, ebn.bn_id, 0) as bn_id
   from c
   left join x_pattern x on c.qd_combo=x.qd_combo and c.bn_code=nvl(x.bn_code, c.bn_code)
@@ -2350,8 +2351,6 @@ insert /*+ Append */ into extension_attribute
 select distinct concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id from full_corpus where concept_id is not null
 ;
 commit;
-
-select * from concept where concept_id=40229490;
 
 -- Connect existing_q concept codes (from drug_concept_stage) to existing corpus or new extensions
 drop table maps_to purge;

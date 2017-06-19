@@ -224,7 +224,7 @@ select concept_code_1, concept_Code_2, vocabulary_id_2 from concept_relationship
 ;
 commit
 ;
---define drug domain (Drug set by default)
+--define drug domain (Drug set by default) based on target concept domain
 update concept_stage cs 
 set domain_id = (select domain_id from (
 select distinct --beware of multiple mappings
@@ -250,18 +250,22 @@ commit
 update concept_stage
 set domain_id = 'Drug' where domain_id is null
 ;
+select distinct domain_id from concept_stage
+;
 commit
 ;
+--why in this way????
 --for development purpose use temporary THIN_need_to_map table:  
 drop table THIN_need_to_map;  --18457 the old version, 13965 --new version (join concept), well, really a big difference. not sure if those existing mappings are correct, 13877 - concept_relationship_stage version, why?
-create table THIN_need_to_map as 
+create table THIN_need_to_map as --;select count (1) from THIN_need_to_map; 
 select --c.*
- t.ENCRYPTED_DRUGCODE as THIN_code, t.GENERIC as THIN_name, gr.GEMSCRIPTCODE as GEMSCRIPT_code, gr.PRODUCTNAME as GEMSCRIPT_name--, c.domain_id--why it's not drug by defaild
+t.ENCRYPTED_DRUGCODE as THIN_code, t.GENERIC as THIN_name, nvl (gr.GEMSCRIPTCODE, t.GEMSCRIPT_DRUGCODE) as GEMSCRIPT_code,  nvl ( gr.PRODUCTNAME, t.BRAND)  as GEMSCRIPT_name, c.domain_id
  from THIN_GEMSC_DMD_0417 t 
  full outer join gemscript_reference gr on gr.GEMSCRIPTCODE = t.GEMSCRIPT_DRUGCODE
-  left join  concept_relationship_stage r on nvl  = r.concept_code_1 and r.invalid_reason is null --and r.vocabulary_id_2 in ('dm+d', 'RxNorm', 'RxNorm Extension') and relationship_id = 'Maps to' 
-where    c.concept_class_id =  'Gemscript THIN' --for a current THIN task
-and r.concept_code_2 is null
+  left join  concept_relationship_stage r on nvl (gr.GEMSCRIPTCODE, t.GEMSCRIPT_DRUGCODE)  = r.concept_code_1 and r.invalid_reason is null --and r.vocabulary_id_2 in ('dm+d', 'RxNorm', 'RxNorm Extension') and relationship_id = 'Maps to' 
+   join concept_stage c -- join and left join gives us different results because of   !1360102 AND   !5264101 codes, so exclude those !!-CODES
+   on nvl (gr.GEMSCRIPTCODE, t.GEMSCRIPT_DRUGCODE) = c.concept_code and c.concept_class_id = 'Gemscript'
+where r.concept_code_2 is null
 --!!! add left join with Gemscript_reference, take GEMSCRIPT_code from it
 ;
 /*
@@ -555,7 +559,7 @@ replace ( trim (regexp_substr  (gemscript_name,'(\s|\()[[:digit:]\.]+(\s*)(litre
  t.* from 
 thin_need_to_map t
 where regexp_like (gemscript_name, '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*')
- and domain_id ='Drug' and thin_code not in (select thin_code from rel_to_ing_1)
+ and domain_id ='Drug' and gemscript_code not in (select gemscript_code from rel_to_ing_1)
 ) t,
 table(cast(multiset(select level from dual connect by level <= length (regexp_replace(regexp_replace (t.gemscript_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels 
 ;
@@ -955,7 +959,7 @@ drop table f_map;
 create table f_map as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
 select * from 
 (
-select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id, mm.concept_name_2, mm.concept_id_2, mm.vocabulary_id_2,  RANK() OVER (PARTITION BY a.thin_code ORDER BY  length(b.concept_name) desc, b.vocabulary_id desc) as rank1
+select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id, mm.concept_name_2, mm.concept_id_2, mm.vocabulary_id_2,  RANK() OVER (PARTITION BY a.gemscript_code ORDER BY  length(b.concept_name) desc, b.vocabulary_id desc) as rank1
  
 from  thin_need_to_map a 
  join  concept b
@@ -1028,7 +1032,7 @@ select  regexp_replace( regexp_replace (regexp_substr (GEMSCRIPT_NAME, '\([A-Z].
 ;
 drop table s_map;
 create table s_map as
-select distinct s.thin_code, s.thin_name, sss.concept_id_2,concept_name_2,vocabulary_id_2  from s_rel s
+select distinct s.gemscript_code, s.GEMSCRIPT_NAME, sss.concept_id_2,concept_name_2,vocabulary_id_2  from s_rel s
 join concept c on  lower (s.Supplier) = lower (c.concept_name)
  join (
 select  c.concept_id as source_id, nvl (d.concept_name, c.concept_name) as concept_name_2, nvl (d.concept_id, c.concept_id) as concept_id_2 ,nvl (d.vocabulary_id, c.vocabulary_id) as vocabulary_id_2 from concept c
@@ -1074,7 +1078,7 @@ where c.concept_class_id = 'Brand Name' and invalid_reason is null and vocabular
 and lower(c.concept_name) not in (
 select  lower (concept_name ) from concept where concept_class_id ='Ingredient' and invalid_reason is null)
 and t.domain_id ='Drug'
-and t.thin_code not in (select thin_code from b_map_0)
+and t.gemscript_code not in (select gemscript_code from b_map_0)
 ;
 delete from b_map_1 where CONCEPT_NAME in ( 
 'Natrum muriaticum',
@@ -1091,7 +1095,7 @@ drop table b_map
  create table b_map as
 select * from (
 select z.*, 
-RANK() OVER (PARTITION BY THIN_CODE ORDER BY
+RANK() OVER (PARTITION BY gemscript_code ORDER BY
 length(concept_name)  desc ) as rank1
 from (
 select * from b_map_0
@@ -1109,42 +1113,42 @@ truncate table drug_concept_stage
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select '', THIN_name,domain_id, 'Gemscript', 'Drug Product',  '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from thin_need_to_map where domain_id = 'Drug'
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_need_to_map where domain_id = 'Drug'
 ;
 --Device
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select '', THIN_name,domain_id, 'Gemscript', 'Device', '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from thin_need_to_map where domain_id = 'Device'
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_need_to_map where domain_id = 'Device'
 ;
 --Ingredient
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select distinct '', Ingredient_concept_code, 'Drug', 'Gemscript', 'Ingredient', '', Ingredient_concept_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from ds_stage
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from ds_stage
 --only 1041 --looks susprecious
 ;
 --Supplier
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select distinct '', CONCEPT_NAME_2, 'Drug', 'Gemscript', 'Supplier', '', CONCEPT_NAME_2, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from s_map
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from s_map
  ;
  --Dose Form
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select distinct '', CONCEPT_NAME_2, 'Drug', 'Gemscript', 'Dose Form', '', CONCEPT_NAME_2, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from f_map
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from f_map
  ;
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select distinct '', CONCEPT_NAME, 'Drug', 'Gemscript', 'Brand Name', '', CONCEPT_NAME, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN'  from b_map
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from b_map
 ;
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select distinct '', CONCEPT_NAME, 'Drug', 'Gemscript', 'Unit', '', CONCEPT_NAME, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript THIN' from dev_dmd.DRUG_CONCEPT_STAGE_042017  WHERE concept_class_id= 'Unit' and concept_code !='ml '
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript' from dev_dmd.DRUG_CONCEPT_STAGE_042017  WHERE concept_class_id= 'Unit' and concept_code !='ml '
  ;
 commit
 ;
@@ -1159,11 +1163,11 @@ and thin_code not in (select drug_concept_code from ds_stage)
 
 --internal_relationship_stage
 insert into internal_relationship_stage
-select THIN_CODE,CONCEPT_NAME  from  b_map
+select GEMSCRIPT_CODE,CONCEPT_NAME  from  b_map
 union
-select THIN_CODE,CONCEPT_NAME_2  from f_map
+select GEMSCRIPT_CODE,CONCEPT_NAME_2  from f_map
 union 
-select THIN_CODE,CONCEPT_NAME_2  from s_map
+select GEMSCRIPT_CODE,CONCEPT_NAME_2  from s_map
 union
 select distinct drug_concept_code,ingredient_concept_code from ds_stage
 ;
@@ -1269,4 +1273,9 @@ where exists (select 1 from code_replace b where a.DRUG_CONCEPT_CODE = b.old_cod
 ;
 commit
 ;
-
+--for further work with CNDV and then mapping creation roundabound, make copies of existing concept_stage and concept_relationship_stage
+create table basic_concept_stage as select * from concept_stage
+;
+create table basic_con_rel_stage as select * from concept_relationship_stage
+;
+--then use CNDV and then generic --well, it's not very good approach, need to fix it later

@@ -1401,6 +1401,31 @@ left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
 ;
 commit;
 
+-- Break up multi-combos and write back leaving all other patterns unchanged
+-- This is necessary for Clinical Drug Comps where comobos only exist in multi-versions in both q and r
+insert /*+ APPEND */ into x_pattern
+  select distinct 
+    q.qi_combo, r.ri_combo, 
+    cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
+    x.df_code, x.df_id, x.dfg_id,
+    x.bn_code, x.bn_id, 
+    x.mf_code, x.mf_id,
+    x.quant_unit, x.quant_unit_id,
+    prec -- as already exists
+  from ( -- break up all combos for q
+    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
+  ) q
+  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
+  join ( -- break up all combos for r
+    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
+  ) r using(rd_combo) 
+  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+minus
+  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
+  from x_pattern
+;
+commit;
+
 -- 3. and 4. Match d_combo, df, bn, but not mf - Branded Drug, quantified and boxed
 insert /*+ APPEND */ into x_pattern
 -- take out null values from union for performance
@@ -1441,6 +1466,32 @@ union -- get existing patterns
 )
 left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
 ;
+commit;
+
+-- Break up multi-combos
+insert /*+ APPEND */ into x_pattern
+select 
+  qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, prec
+from (
+  select distinct 
+    q.qi_combo, r.ri_combo, 
+    cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
+    x.df_code, x.df_id, x.dfg_id,
+    x.bn_code, x.bn_id, 
+    x.quant_unit, x.quant_unit_id,
+    prec -- as already exists
+  from ( -- break up all combos for q
+    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
+  ) q
+  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
+  join ( -- break up all combos for r
+    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
+  ) r using(rd_combo) 
+  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+minus
+  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, quant_unit, quant_unit_id, prec
+  from x_pattern
+);
 commit;
 
 -- 5. and 6. Match d_combo, df, mf, but not bn - Marketed Products without Brand, quantified or boxed
@@ -1484,8 +1535,36 @@ left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
 ;
 commit;
 
+-- Break up multi-combos
+insert /*+ APPEND */ into x_pattern
+select 
+  qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
+from (
+  select distinct 
+    q.qi_combo, r.ri_combo, 
+    cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
+    x.df_code, x.df_id, x.dfg_id,
+    x.mf_code, x.mf_id, 
+    x.quant_unit, x.quant_unit_id,
+    prec -- as already exists
+  from ( -- break up all combos for q
+    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
+  ) q
+  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
+  join ( -- break up all combos for r
+    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
+  ) r using(rd_combo) 
+  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+minus
+  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
+  from x_pattern
+);
+commit;
+
 -- the next one needs some tidying up first
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'x_pattern', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'existing_q', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'existing_r', estimate_percent  => null, cascade  => true);
 
 -- 7. and 8. Match d_combo, df, but not bn, mf - Clinical Drug, quantified or boxed
 insert /*+ APPEND */ into x_pattern
@@ -1527,6 +1606,31 @@ left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
 ;
 commit;
 
+-- Break up multi-combos
+insert /*+ APPEND */ into x_pattern
+select 
+  qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, prec
+from (
+  select distinct 
+    q.qi_combo, r.ri_combo, 
+    cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
+    x.df_code, x.df_id, x.dfg_id,
+    x.quant_unit, x.quant_unit_id,
+    prec -- as already exists
+  from ( -- break up all combos for q
+    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
+  ) q
+  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
+  join ( -- break up all combos for r
+    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
+  ) r using(rd_combo) 
+  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+minus
+  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, quant_unit, quant_unit_id, prec
+  from x_pattern
+);
+commit;
+
 -- 9. and 10. Match d_combo, bn, but not df, mf - Branded Component
 insert /*+ APPEND */ into x_pattern
 select qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id,
@@ -1563,6 +1667,31 @@ left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
 ;
 commit;
 
+-- Break up multi-combos
+insert /*+ APPEND */ into x_pattern
+select 
+  qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, prec
+from (
+  select distinct 
+    q.qi_combo, r.ri_combo, 
+    cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
+    x.bn_code, x.bn_id, 
+    x.quant_unit, x.quant_unit_id,
+    prec -- as already exists
+  from ( -- break up all combos for q
+    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
+  ) q
+  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
+  join ( -- break up all combos for r
+    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
+  ) r using(rd_combo) 
+  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+minus
+  select qi_combo, ri_combo, qd_combo, rd_combo, bn_code, bn_id, quant_unit, quant_unit_id, prec
+  from x_pattern
+);
+commit;
+
 -- 11 and 12. Match d_combo, but not df, bn, mf - Clinical Component
 insert /*+ APPEND */ into x_pattern
 select qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, 
@@ -1597,27 +1726,26 @@ left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
 commit;
 
 -- Break up multi-combos and write back leaving all other patterns unchanged
--- This is necessary for Clinical Drug Comps where comobos only exist in multi-versions in both q and r
 insert /*+ APPEND */ into x_pattern
-select distinct 
-  q.qi_combo, r.ri_combo, 
-  cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
-  x.df_code, x.df_id, dfg.dfg_id,
-  x.bn_code, x.bn_id, 
-  x.mf_code, x.mf_id,
-  x.quant_unit, x.quant_unit_id,
-  prec -- as already exists
-from ( -- break up all combos for q
-  select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
-) q
-join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
-join ( -- break up all combos for r
-  select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
-) r using(rd_combo) 
-join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
-join dfg on dfg.df_id=x.df_id
-where not exists ( -- Check we don't already have that dosage covered
-  select 1 from x_pattern e where e.qd_combo=cast(q_ds as varchar2(20)) and e.rd_combo=cast(r_ds as varchar2(20))
+select 
+  qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, prec
+from (
+  select distinct 
+    q.qi_combo, r.ri_combo, 
+    cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
+    x.quant_unit, x.quant_unit_id,
+    prec -- as already exists
+  from ( -- break up all combos for q
+    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
+  ) q
+  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
+  join ( -- break up all combos for r
+    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
+  ) r using(rd_combo) 
+  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+minus
+  select qi_combo, ri_combo, qd_combo, rd_combo, quant_unit, quant_unit_id, prec
+  from x_pattern
 );
 commit;
 
@@ -1651,6 +1779,37 @@ union
 );
 commit;
 
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'x_pattern', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'qr_i', estimate_percent  => null, cascade  => true);
+
+-- Break up mulit-i_combos and write back leaving all other patterns unchanged
+insert /*+ APPEND */ into x_pattern
+  select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, prec
+from (
+  select 
+    qi_combo, ri_combo, 
+    x.df_code, x.df_id, x.dfg_id,
+    x.bn_code, x.bn_id,
+    x.prec
+  from x_pattern x
+  join ( -- break up qi_combo from actual combo code, there is no easy way of doing it similar to q_ds
+    select qi_combo, trim(regexp_substr(qi_combo, '[^\-]+', 1, levels.column_value)) as qi_code
+    from (select distinct qi_combo from x_pattern), -- extension_combo contains i_combos as well
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(qi_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+  ) q using(qi_combo)
+  join ( -- break up ri_combo
+    select ri_combo, trim(regexp_substr(ri_combo, '[^\-]+', 1, levels.column_value)) as ri_code
+    from (select distinct ri_combo from x_pattern), -- extension_combo contains i_combos as well
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+  ) r using(ri_combo)
+  join qr_i using(qi_code, ri_code) -- get right component in a combination aligned
+  where qd_combo is null -- only Form patterns
+minus
+  select qi_combo, ri_combo, df_code, df_id, dfg_id, bn_code, bn_id, prec
+  from x_pattern
+);
+commit;
+
 -- 14. Match i_combo, df but not bn, mf - Clinical Forms
 insert /*+ APPEND */ into x_pattern
 select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, 14 as prec
@@ -1679,31 +1838,29 @@ union
 commit;
 
 -- Break up mulit-i_combos and write back leaving all other patterns unchanged
--- This is necessary for Drug Forms where those combos only exist in multi-versions in both q and r
 insert /*+ APPEND */ into x_pattern
-select distinct 
-  qi_combo, ri_combo, 
-  null as qd_combo, null as rd_combo,
-  x.df_code, x.df_id, x.dfg_id,
-  x.bn_code, x.bn_id,
-  null as mf_code, null as mf_id,
-  null as quant_unit, null as quant_unit_id,
-  x.prec
-from x_pattern x
-join ( -- break up qi_combo from actual combo code, there is no easy way of doing it similar to q_ds
-  select qi_combo, trim(regexp_substr(qi_combo, '[^\-]+', 1, levels.column_value)) as qi_code
-  from (select distinct qi_combo from x_pattern), -- extension_combo contains i_combos as well
-  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(qi_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
-) q using(qi_combo)
-join ( -- break up ri_combo
-  select ri_combo, trim(regexp_substr(ri_combo, '[^\-]+', 1, levels.column_value)) as ri_code
-  from (select distinct ri_combo from x_pattern), -- extension_combo contains i_combos as well
-  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
-) r using(ri_combo)
-join qr_i using(qi_code, ri_code) -- get right component in a combination aligned
-where rd_combo is null -- only Form patterns
-and not exists ( -- Check we don't already have that ingrs are covered
-  select 1 from x_pattern e where e.qi_combo=qi_combo and e.ri_combo=ri_combo and e.quant_unit_id=quant_unit_id
+  select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, prec
+from (
+  select
+    qi_combo, ri_combo, 
+    x.df_code, x.df_id, x.dfg_id,
+    x.prec
+  from x_pattern x
+  join ( -- break up qi_combo from actual combo code, there is no easy way of doing it similar to q_ds
+    select qi_combo, trim(regexp_substr(qi_combo, '[^\-]+', 1, levels.column_value)) as qi_code
+    from (select distinct qi_combo from x_pattern), -- extension_combo contains i_combos as well
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(qi_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+  ) q using(qi_combo)
+  join ( -- break up ri_combo
+    select ri_combo, trim(regexp_substr(ri_combo, '[^\-]+', 1, levels.column_value)) as ri_code
+    from (select distinct ri_combo from x_pattern), -- extension_combo contains i_combos as well
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+  ) r using(ri_combo)
+  join qr_i using(qi_code, ri_code) -- get right component in a combination aligned
+  where qd_combo is null -- only Form patterns
+minus
+  select qi_combo, ri_combo, df_code, df_id, dfg_id, prec
+  from x_pattern
 );
 commit;
 
@@ -2871,7 +3028,6 @@ commit;
 
 -- Create sequence that starts after existing OMOP???-style concept codes
 drop sequence omop_seq;
--- /* XXXX uncomment
 declare
  ex number;
 begin
@@ -2886,7 +3042,6 @@ select max(iex)+1 into ex from (
       when others then null;
   end;
 end;
---*/
 
 -- Empty concept_stage in case there are remnants from a previous run.
 truncate table concept_stage;
@@ -2897,7 +3052,7 @@ truncate table drug_strength_stage;
 -- Write Ingredients that have no equivalent. Ingredients are written in code notation. Therefore, concept_id is null, and the XXX code is in concept_code
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select
-  null as concept_id,
+  0 as concept_id,
   dcs.concept_name,
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
@@ -3399,7 +3554,7 @@ commit;
 -- Write source drugs as non-standard
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select distinct
-  null as concept_id, 
+  0 as concept_id, 
   concept_name,
   domain_id,
   vocabulary_id,
@@ -3418,7 +3573,7 @@ commit;
 -- Write source devices as standard (unless deprecated)
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select distinct
-  null as concept_id, 
+  0 as concept_id, 
   concept_name,
   domain_id,
   vocabulary_id,
@@ -3526,23 +3681,25 @@ from extension_pack join concept c on c.concept_id=pack_concept_id
 ;
 commit;
 
------------------------------------------------
--- Anya: Till here
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_stage', estimate_percent  => null, cascade  => true);
 
 -- Build drug_strength_stage
 insert /*+ APPEND */ into drug_strength_stage
 select 
   d.concept_code as drug_concept_code, d.vocabulary_id as drug_vocabulary_id,
   nvl(ingredient_concept_code, i_code) as ingredient_concept_code,  nvl(ingredient_vocabulary_id, 'RxNorm Extension') as ingredient_concept_code, 
-  amount_value, amount_unit_concept_id, 
+  case amount_value when 0 then null else amount_value end as amount_value, 
+  case amount_unit_concept_id when 0 then null else amount_unit_concept_id end as amount_unit_concept_id, 
   case r_value
-    when 0 then numerator_value
+    when 0 then case numerator_value when 0 then null else numerator_value end
     else numerator_value*r_value
-  end as numerator_value, numerator_unit_concept_id,
+  end as numerator_value, 
+  case numerator_unit_concept_id when 0 then null else numerator_unit_concept_id end as numerator_unit_concept_id,
   case r_value
     when 0 then null
     else r_value
-  end as denominator_value, denominator_unit_concept_id,
+  end as denominator_value, 
+  case denominator_unit_concept_id when 0 then null else denominator_unit_concept_id end as denominator_unit_concept_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
@@ -3555,37 +3712,7 @@ join concept_stage d using(concept_id)
 left join (
   select i_id as ingredient_concept_id, concept_code as ingredient_concept_code, vocabulary_id as ingredient_vocabulary_id from ing_stage left join concept on i_id=concept_id
 ) i using(ingredient_concept_id)
-order by 1
-;
-
-select * from ing_stage;
-select * from r_uds;
-select * from r_singleton where rd_combo='10121-29823';
-
-select * from extension_name where concept_id=-344373;
-select * from extension_attribute where concept_id=-344373;
-select * from extension_ds 
-join r_singleton_r on d_combo=rd_combo
-order by 2;
-
-select * from r_singleton;
-drop table q_singleton purge;
-
-select * from r_combo;
-
-select * from extension_uds;
--- Build pack_content
-drop table pack_content_stage;
-create table pack_content_stage nologging as
-select distinct 
-  cp.pack_concept_code,
-  'RxNorm Extension' as pack_vocabulary_id,
-  cp.drug_concept_code,
-  cp.drug_vocab as drug_vocabulary_id,
-  cp.amount, cp.box_size
-from complete_pack cp
-left join pack_q_to_r pqr on pqr.pack_concept_code=cp.pack_concept_code
-where pqr.pack_concept_code is null -- only those that have no translation.
+where concept_id<1
 ;
 commit;
 
@@ -3681,11 +3808,13 @@ drop table pcs_rowid_update purge;
 
 commit;
 
+/*
 --get duplicates for some reason 
 delete from concept_relationship_stage a where exists (select 1 from  (
-  select concept_code_1,concept_code_2,relationship_id, max (rowid) as rid from concept_relationship_stage group by concept_code_1,concept_code_2,relationship_id having count ( 1) >1 ) x 
+  select concept_code_1,concept_code_2,relationship_id, max(rowid) as rid from concept_relationship_stage group by concept_code_1,concept_code_2,relationship_id having count(1)>1) x 
   where  a.concept_code_1= x.concept_code_1 and a.concept_code_2= x.concept_code_2 and a.relationship_id =x.relationship_id and x.rid = a.rowid)
 ;  
+
 --6 Working with replacement mappings;
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
@@ -3713,3 +3842,4 @@ BEGIN
 END;
 /
 COMMIT;
+*/

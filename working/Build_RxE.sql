@@ -1218,6 +1218,15 @@ join ( -- limit to supplier in r
 -- Strategy: Find the optimal match for a varying number of existing component matches: d_combo/i_combo, df, bn and mf
 -- Don't worry about duplication or conflicts. The actual matching of complete q to r will go top down and pull in incomplete patterns if they haven't been found yet
 
+-- Create translations of units. Do it now, because it is needed for x_pattern to decide precedence
+drop table x_unit purge;
+create table x_unit as
+select concept_code_1 as unit_code, concept_id_2 as unit_id, precedence, conversion_factor 
+from r_to_c join drug_concept_stage on concept_code=concept_code_1 
+where concept_class_id='Unit'
+;
+commit;
+
 -- Prep dose form groups (with some additions for RxNorm Extension) as a way to stratify drug_strength translation within such group
 drop table dfg purge;
 create table dfg as
@@ -1351,44 +1360,55 @@ delete from dfg where dfg_id=36217213 -- Nasal Product
     19011167 -- Nasal Spray
 );
 
--- 1. Match all 4: d_combo, df, bn and mf have to match - Marketed Products. Marketed Products without bn is prec=3
+-- 1. and 2. Match all 4: d_combo, df, bn and mf have to match - Marketed Products. Marketed Products without bn is prec=5 and 6
 drop table x_pattern purge;
 create table x_pattern as
-select distinct
-  qi_combo, first_value(ri_combo) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as ri_combo,     
-  qd_combo, first_value(rd_combo) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as rd_combo,   
-  df_code, first_value(df_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as df_id, 
-    first_value(dfg_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as dfg_id,
-  bn_code, first_value(bn_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as bn_id,
-  mf_code, first_value(mf_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as mf_id,
-  first_value(quant_unit) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as quant_unit,
-  first_value(quant_unit_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as quant_unit_id,
-  1 as prec
-from ( -- create existing_q with all attributes extended to their r-corridors
-  select 
-    eq.i_combo as qi_combo, c.ri_combo,
-    eq.d_combo as qd_combo, c.rd_combo, c.u_prec, c.i_prec, c.div, 
-    eq.df_code, df.df_id, df.df_prec, dfg.dfg_id,
-    eq.bn_code, bn.bn_id, bn.bn_prec,
-    eq.mf_code, mf.mf_id, mf.mf_prec,
-    c.quant_unit, c.quant_unit_id -- unit combination, needed to translate quant correctly
-  from existing_q eq
-  join qr_d_combo c on c.qd_combo=eq.d_combo -- get all potential rd_combos
-  join qr_df df on df.df_code=eq.df_code -- get potential df_ids
-  join dfg on dfg.df_id=df.df_id -- get larger df group
-  left join qr_bn bn on bn.bn_code=eq.bn_code -- get potential brand names, may not exist in Marketed Products
-  join qr_mf mf on mf.mf_code=eq.mf_code -- get potential manufacturers
+select q.*,
+  case -- if the translation keeps the favorite quant_unit_id give it a better prec 
+    when precedence is null then 1 -- solid drug
+    when precedence=1 then 1 -- quant_unit and quant_unit_id match according to prec
+  else 2 end as prec
+from (
+  select distinct
+    qi_combo, first_value(ri_combo) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as ri_combo,     
+    qd_combo, first_value(rd_combo) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as rd_combo,   
+    df_code, first_value(df_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as df_id, 
+      first_value(dfg_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as dfg_id,
+    bn_code, first_value(bn_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as bn_id,
+    mf_code, first_value(mf_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as mf_id,
+    first_value(quant_unit) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as quant_unit,
+    first_value(quant_unit_id) over (partition by qd_combo, df_code, bn_code, mf_code order by mf_prec, bn_prec, df_prec, div desc, i_prec, u_prec) as quant_unit_id
+  from ( -- create existing_q with all attributes extended to their r-corridors
+    select 
+      eq.i_combo as qi_combo, c.ri_combo,
+      eq.d_combo as qd_combo, c.rd_combo, c.u_prec, c.i_prec, c.div, 
+      eq.df_code, df.df_id, df.df_prec, dfg.dfg_id,
+      eq.bn_code, bn.bn_id, bn.bn_prec,
+      eq.mf_code, mf.mf_id, mf.mf_prec,
+      c.quant_unit, c.quant_unit_id -- unit combination, needed to translate quant correctly
+    from existing_q eq
+    join qr_d_combo c on c.qd_combo=eq.d_combo -- get all potential rd_combos
+    join qr_df df on df.df_code=eq.df_code -- get potential df_ids
+    join dfg on dfg.df_id=df.df_id -- get larger df group
+    left join qr_bn bn on bn.bn_code=eq.bn_code -- get potential brand names, may not exist in Marketed Products
+    join qr_mf mf on mf.mf_code=eq.mf_code -- get potential manufacturers
+  ) q
+  join ( -- pick those rd_combos that actually exist in combination with dose form, brand name and manufacturer
+    select distinct d_combo as rd_combo, df_id, bn_id, mf_id from existing_r 
+  ) r using(rd_combo, df_id, bn_id, mf_id)
 ) q
-join ( -- pick those rd_combos that actually exist in combination with dose form, brand name and manufacturer
-  select distinct d_combo as rd_combo, df_id, bn_id, mf_id from existing_r 
-) r using(rd_combo, df_id, bn_id, mf_id)
+left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
 ;
 commit;
 
--- 2. Match d_combo, df, bn, but not mf - Branded Drug, quantified and boxed
+-- 3. and 4. Match d_combo, df, bn, but not mf - Branded Drug, quantified and boxed
 insert /*+ APPEND */ into x_pattern
 -- take out null values from union for performance
-select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, 2 as prec
+select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id,
+  case -- if the translation keeps the favorite quant_unit_id give it a better prec 
+    when precedence is null then 3-- solid drug
+    when precedence=1 then 3 -- quant_unit and quant_unit_id match according to prec
+  else 4 end as prec
 from (
   select
     qi_combo, first_value(ri_combo) over (partition by qd_combo, df_code, bn_code order by bn_prec, df_prec, div desc, i_prec, u_prec) as ri_combo,     
@@ -1418,12 +1438,18 @@ from (
 union -- get existing patterns
   select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, quant_unit, quant_unit_id
   from x_pattern where df_code is not null and bn_code is not null
-);
+)
+left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
+;
 commit;
 
--- 3. Match d_combo, df, mf, but not bn - Marketed Products without Brand, quantified or boxed
+-- 5. and 6. Match d_combo, df, mf, but not bn - Marketed Products without Brand, quantified or boxed
 insert /*+ APPEND */ into x_pattern
-select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, mf_code, mf_id, quant_unit, quant_unit_id, 3 as prec
+select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, mf_code, mf_id, quant_unit, quant_unit_id,
+  case -- if the translation keeps the favorite quant_unit_id give it a better prec 
+    when precedence is null then 5-- solid drug
+    when precedence=1 then 5 -- quant_unit and quant_unit_id match according to prec
+  else 6 end as prec
 from (
   select
     qi_combo, first_value(ri_combo) over (partition by qd_combo, df_code, mf_code order by mf_prec, df_prec, div desc, i_prec, u_prec) as ri_combo,     
@@ -1453,17 +1479,23 @@ from (
 union -- get existing pattern
   select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, mf_code, mf_id, quant_unit, quant_unit_id
   from x_pattern where df_code is not null and mf_code is not null
-);
+)
+left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
+;
 commit;
 
 -- the next one needs some tidying up first
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'x_pattern', estimate_percent  => null, cascade  => true);
 
--- 4. Match d_combo, df, but not bn, mf - Clinical Drug, quantified or boxed
+-- 7. and 8. Match d_combo, df, but not bn, mf - Clinical Drug, quantified or boxed
 insert /*+ APPEND */ into x_pattern
 select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, 
   null as bn_code, null as bn_id, null as mf_code, null as mf_id,
-  quant_unit, quant_unit_id, 4 as prec
+  quant_unit, quant_unit_id,
+  case -- if the translation keeps the favorite quant_unit_id give it a better prec 
+    when precedence is null then 7-- solid drug
+    when precedence=1 then 7 -- quant_unit and quant_unit_id match according to prec
+  else 8 end as prec
 from (
   select distinct 
     qi_combo, first_value(ri_combo) over (partition by qd_combo, df_code order by df_prec, div desc, i_prec, u_prec) as ri_combo,     
@@ -1490,12 +1522,18 @@ from (
 union
   select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, quant_unit, quant_unit_id
   from x_pattern where df_code is not null
-);
+)
+left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
+;
 commit;
 
--- 5. Match d_combo, bn, but not df, mf - Branded Component
+-- 9. and 10. Match d_combo, bn, but not df, mf - Branded Component
 insert /*+ APPEND */ into x_pattern
-select qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, 5 as prec
+select qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id,
+  case -- if the translation keeps the favorite quant_unit_id give it a better prec 
+    when precedence is null then 9-- solid drug
+    when precedence=1 then 9 -- quant_unit and quant_unit_id match according to prec
+  else 10 end as prec
 from (
   select distinct
     qi_combo, first_value(ri_combo) over (partition by qd_combo, bn_code order by bn_prec, div desc, i_prec, u_prec) as ri_combo,     
@@ -1520,12 +1558,18 @@ from (
 union
   select qi_combo, ri_combo, qd_combo, rd_combo, bn_code, bn_id, quant_unit, quant_unit_id
   from x_pattern where bn_code is not null
-);
+)
+left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
+;
 commit;
 
--- 6. Match d_combo, but not df, bn, mf - Clinical Component
+-- 11 and 12. Match d_combo, but not df, bn, mf - Clinical Component
 insert /*+ APPEND */ into x_pattern
-select qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, 6 as prec
+select qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, 
+  case -- if the translation keeps the favorite quant_unit_id give it a better prec 
+    when precedence is null then 11-- solid drug
+    when precedence=1 then 11 -- quant_unit and quant_unit_id match according to prec
+  else 12 end as prec
 from (
   select distinct
     qi_combo, first_value(ri_combo) over (partition by qd_combo order by div desc, i_prec, u_prec) as ri_combo,     
@@ -1547,7 +1591,9 @@ from (
 union
   select qi_combo, ri_combo, qd_combo, rd_combo, quant_unit, quant_unit_id
   from x_pattern 
-);
+)
+left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
+;
 commit;
 
 -- Break up multi-combos and write back leaving all other patterns unchanged
@@ -1575,9 +1621,9 @@ where not exists ( -- Check we don't already have that dosage covered
 );
 commit;
 
--- 7. Match i_combo, df, bn but no mf - Branded Forms
+-- 13. Match i_combo, df, bn but no mf - Branded Forms
 insert /*+ APPEND */ into x_pattern
-select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, 7 as prec
+select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, 13 as prec
 from (
   select distinct 
     qi_combo, first_value(ri_combo) over (partition by qi_combo, df_code, bn_code order by bn_prec, df_prec, i_prec) as ri_combo,     
@@ -1605,9 +1651,9 @@ union
 );
 commit;
 
--- 8. Match i_combo, df but not bn, mf - Clinical Forms
+-- 14. Match i_combo, df but not bn, mf - Clinical Forms
 insert /*+ APPEND */ into x_pattern
-select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, 8 as prec
+select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, 14 as prec
 from (
   select distinct 
     qi_combo, first_value(ri_combo) over (partition by qi_combo, df_code order by df_prec, i_prec) as ri_combo,     
@@ -1661,10 +1707,15 @@ and not exists ( -- Check we don't already have that ingrs are covered
 );
 commit;
 
--- 9. If nothing works and no patterns exist, add the best translations (usually Clinical Drug Comps with no descendants)
+-- 15. and 16. If nothing works and no patterns exist, add the best translations (usually Clinical Drug Comps with no descendants)
 -- Pick the best translation for each qd_combo and quant_unit_id, so there is a choice when combining in extension_combo
 insert /*+ APPEND */ into x_pattern
-select q.* from (
+select q.*,
+  case -- if the translation keeps the favorite quant_unit_id give it a better prec 
+    when precedence is null then 15-- solid drug
+    when precedence=1 then 15 -- quant_unit and quant_unit_id match according to prec
+  else 16 end as prec
+from (
   select distinct 
     qi_combo, first_value(ri_combo) over (partition by qd_combo, quant_unit_id order by div desc, i_prec, u_prec) as ri_combo,     
     qd_combo, first_value(rd_combo) over (partition by qd_combo, quant_unit_id  order by div desc, i_prec, u_prec) as rd_combo,   
@@ -1672,17 +1723,17 @@ select q.* from (
     null as bn_code, null as bn_id,
     null as mf_code, null as mf_id,
     first_value(quant_unit) over (partition by qd_combo, quant_unit_id order by div desc, i_prec, u_prec) as quant_unit,
-    quant_unit_id,
-    9 as prec
+    quant_unit_id
   from qr_d_combo q
 ) q
 -- compare to existing to make sure pattern isn't already covered
+left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
 left join x_pattern x on q.qd_combo=x.qd_combo and q.quant_unit_id=x.quant_unit_id
 where x.rd_combo is null
 ;
 commit;
 
--- 10. Add those i_combos that are not in x_pattern, but can be inferred from qr_i_combo (singleton drug forms)
+-- 17. Add those i_combos that are not in x_pattern, but can be inferred from qr_i_combo (singleton drug forms)
 insert /*+ APPEND */ into x_pattern
   select 
     qi_combo, ri_combo,
@@ -1691,7 +1742,7 @@ insert /*+ APPEND */ into x_pattern
     null as bn_code, null as bn_id,
     null as mf_code, null as mf_id,
     null as quant_unit, null as quant_unit_id,
-    10 as prec
+    17 as prec
   from (
     select distinct 
       qi_combo, first_value (ri_combo) over (partition by qi_combo order by i_prec) as ri_combo
@@ -1704,7 +1755,7 @@ union
 );
 commit;
 
--- 11. Add ingredient translations not found in the data, but provided by the input tables and have drugs containing them
+-- 18. Add ingredient translations not found in the data, but provided by the input tables and have drugs containing them
 insert /*+ APPEND */ into x_pattern
 select distinct
   qi_code as qi_combo, first_value (ri_code) over (partition by qi_code order by prec) as ri_combo, -- pick the best translation
@@ -1713,20 +1764,13 @@ select distinct
   null as bn_code, null as bn_id,
   null as mf_code, null as mf_id,
   null as quant_unit, null as quant_unit_id,
-  11 as prec
+  18 as prec
 from qr_i
 where qi_code not in (select qi_combo from x_pattern)
 ;
 commit;
 
-/*
--- Remove duplicate mappings for the same qd_combo, df_code, bn_code, mf_code. They happen because of situations like 1000 mg/mL vs 1 mg/mg
-delete from x_pattern where rowid not in (
-  select first_value(x_pattern.rowid) over (partition by qd_combo, df_code, bn_code, mf_code order by div desc, i_prec, u_prec, rd_combo) from x_pattern
-  join qr_uds on cast(q_ds as varchar2(50))=qd_combo and cast(r_ds as varchar2(50))=rd_combo
-);
-commit;
-*/
+-- 19. and 20. All untranslatable are going to be added from extension_combo to x_pattern
 
 -- Create individual translation tables all starting with x_, with one best record for each q *
 -- Strategy: First use what's found in the patterns, then use precedences from relationship_to_concept and div between uds
@@ -1823,15 +1867,6 @@ select mf_code, mf_id, concept_name
 from qr_mf join concept on concept_id=mf_id
 where mf_code not in (select mf_code from x_mf) -- don't translate the ones already there
 and mf_prec=1
-;
-commit;
-
--- All unit translations, since we don't know what unit combinations we get
-drop table x_unit purge;
-create table x_unit as
-select concept_code_1 as unit_code, concept_id_2 as unit_id, precedence, conversion_factor 
-from r_to_c join drug_concept_stage on concept_code=concept_code_1 
-where concept_class_id='Unit'
 ;
 commit;
 
@@ -1954,8 +1989,8 @@ insert /*+ APPEND */ into extension_combo
 select distinct
   i_combo as qi_combo,
   listagg(ri_code, '-') within group (order by ri_code) as ri_combo,
-  ' ' as qd_combo,
-  ' ' as rd_combo,
+  null as qd_combo,
+  null as rd_combo,
   null as quant_unit, null as quant_unit_id
 from (
 -- i_combos in q_combo but not translated (x_i_combo) or added through d_combo
@@ -1971,6 +2006,22 @@ union
   select * from x_ing-- use only the generic, not specific translation
 ) on i_code=qi_code
 group by i_combo
+;
+commit;
+
+-- Add to x_pattern as least preferred translation
+insert /*+ APPEND */ into x_pattern
+select qi_combo, ri_combo, qd_combo, rd_combo,
+  null as df_code, null as df_id, null as dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, 
+  quant_unit, quant_unit_id,
+  case -- if the translation keeps the favorite quant_unit_id give it a better prec 
+    when precedence is null then 19-- solid drug
+    when precedence=1 then 19 -- quant_unit and quant_unit_id match according to prec
+  else 20 end as prec
+from extension_combo
+left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
+left join x_pattern using(qi_combo, ri_combo, qd_combo, rd_combo, quant_unit, quant_unit_id)
+where x_pattern.prec is null
 ;
 commit;
 
@@ -2034,15 +2085,14 @@ from (
   from (
     select distinct
       c.*,
-      coalesce(first_value(x.ri_combo) over (partition by c.qd_combo, c.df_code, c.bn_code, c.mf_code order by x.prec), ec.ri_combo) as ri_combo,
-      coalesce(first_value(x.rd_combo) over (partition by c.qd_combo, c.df_code, c.bn_code, c.mf_code order by x.prec), ec.rd_combo) as rd_combo,
-      coalesce(first_value(x.quant_unit_id) over (partition by c.qd_combo, c.df_code, c.bn_code, c.mf_code order by x.prec), ec.quant_unit_id) as quant_unit_id,
-      coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id,
+      first_value(x.ri_combo) over (partition by c.qd_combo, c.df_code, c.bn_code, c.mf_code order by x.prec) as ri_combo,
+      first_value(x.rd_combo) over (partition by c.qd_combo, c.df_code, c.bn_code, c.mf_code order by x.prec) as rd_combo,
+      first_value(x.quant_unit_id) over (partition by c.qd_combo, c.df_code, c.bn_code, c.mf_code order by x.prec) as quant_unit_id,
+      coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id, -- pick from pattern, when no pattern from best translation, when no from new
       coalesce(x.bn_id, x_bn.bn_id, ebn.bn_id, 0) as bn_id,
       coalesce(x.mf_id, x_mf.mf_id, emf.mf_id, 0) as mf_id
     from c
     left join x_pattern x on c.qd_combo=x.qd_combo and c.df_code=nvl(x.df_code, c.df_code) and c.bn_code=nvl(x.bn_code, c.bn_code) and c.mf_code=nvl(x.mf_code, c.mf_code)
-    left join extension_combo ec on c.qd_combo=ec.qd_combo
     left join x_df on c.df_code=x_df.df_code left join extension_df edf on c.df_code=edf.df_code
     left join x_bn on c.bn_code=x_bn.bn_code left join extension_bn ebn on c.bn_code=ebn.bn_code
     left join x_mf on c.mf_code=x_mf.mf_code left join extension_mf emf on c.mf_code=emf.mf_code
@@ -2126,14 +2176,13 @@ union
   from (
     select distinct
       c.*,
-      coalesce(first_value(x.ri_combo) over (partition by c.qd_combo, c.df_code, c.bn_code order by x.prec), ec.ri_combo) as ri_combo,
-      coalesce(first_value(x.rd_combo) over (partition by c.qd_combo, c.df_code, c.bn_code order by x.prec), ec.rd_combo) as rd_combo,
-      coalesce(first_value(x.quant_unit_id) over (partition by c.qd_combo, c.df_code, c.bn_code order by x.prec), ec.quant_unit_id) as quant_unit_id,
+      first_value(x.ri_combo) over (partition by c.qd_combo, c.df_code, c.bn_code order by x.prec) as ri_combo,
+      first_value(x.rd_combo) over (partition by c.qd_combo, c.df_code, c.bn_code order by x.prec) as rd_combo,
+      first_value(x.quant_unit_id) over (partition by c.qd_combo, c.df_code, c.bn_code order by x.prec) as quant_unit_id,
       coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id,
       coalesce(x.bn_id, x_bn.bn_id, ebn.bn_id, 0) as bn_id
     from c
     left join x_pattern x on c.qd_combo=x.qd_combo and c.df_code=nvl(x.df_code, c.df_code) and c.bn_code=nvl(x.bn_code, c.bn_code)
-    left join extension_combo ec on c.qd_combo=ec.qd_combo
     left join x_df on c.df_code=x_df.df_code left join extension_df edf on c.df_code=edf.df_code
     left join x_bn on c.bn_code=x_bn.bn_code left join extension_bn ebn on c.bn_code=ebn.bn_code
   ) p
@@ -2210,13 +2259,12 @@ union
   from (
     select distinct
       c.*,
-      coalesce(first_value(x.ri_combo) over (partition by c.qd_combo, c.df_code order by x.prec), ec.ri_combo) as ri_combo,
-      coalesce(first_value(x.rd_combo) over (partition by c.qd_combo, c.df_code order by x.prec), ec.rd_combo) as rd_combo,
-      coalesce(first_value(x.quant_unit_id) over (partition by c.qd_combo, c.df_code order by x.prec), ec.quant_unit_id) as quant_unit_id,
+      first_value(x.ri_combo) over (partition by c.qd_combo, c.df_code order by x.prec) as ri_combo,
+      first_value(x.rd_combo) over (partition by c.qd_combo, c.df_code order by x.prec) as rd_combo,
+      first_value(x.quant_unit_id) over (partition by c.qd_combo, c.df_code order by x.prec) as quant_unit_id,
       coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id
     from c
     left join x_pattern x on c.qd_combo=x.qd_combo and c.df_code=nvl(x.df_code, c.df_code)
-    left join extension_combo ec on c.qd_combo=ec.qd_combo
     left join x_df on c.df_code=x_df.df_code left join extension_df edf on c.df_code=edf.df_code
   ) p
   left join qr_quant q on q.q_value=p.q_value and q.quant_unit=p.quant_unit and nvl(p.quant_unit_id, q.quant_unit_id)=q.quant_unit_id -- q.quant_unit_id can be null in homeopathics and %
@@ -2255,12 +2303,11 @@ from (
 union
   select distinct
     c.*,
-    coalesce(first_value(x.ri_combo) over (partition by c.qi_combo, c.df_code, c.bn_code order by x.prec), ec.ri_combo) as ri_combo,
+    first_value(x.ri_combo) over (partition by c.qi_combo, c.df_code, c.bn_code order by x.prec) as ri_combo,
     coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id,
     coalesce(x.bn_id, x_bn.bn_id, ebn.bn_id, 0) as bn_id
   from c
   left join x_pattern x on c.qi_combo=x.qi_combo and c.df_code=nvl(x.df_code, c.df_code) and c.bn_code=nvl(x.bn_code, c.bn_code)
-  left join extension_combo ec on c.qi_combo=ec.qi_combo
   left join x_df on c.df_code=x_df.df_code left join extension_df edf on c.df_code=edf.df_code
   left join x_bn on c.bn_code=x_bn.bn_code left join extension_bn ebn on c.bn_code=ebn.bn_code
 ) m
@@ -2296,11 +2343,10 @@ from (
 union
   select distinct
     c.*,
-    coalesce(first_value(x.ri_combo) over (partition by c.qi_combo, c.df_code order by x.prec), ec.ri_combo) as ri_combo,
+    first_value(x.ri_combo) over (partition by c.qi_combo, c.df_code order by x.prec) as ri_combo,
     coalesce(x.df_id, x_df.df_id, edf.df_id, 0) as df_id
   from c
   left join x_pattern x on c.qi_combo=x.qi_combo and c.df_code=nvl(x.df_code, c.df_code)
-  left join extension_combo ec on c.qi_combo=ec.qi_combo
   left join x_df on c.df_code=x_df.df_code left join extension_df edf on c.df_code=edf.df_code
 ) m
 left join (select concept_code, i_combo as qi_combo, df_code from existing_q where quant_value=0 and d_combo=' ' and bn_code=' ' and bs=0 and mf_code=' ') using(qi_combo, df_code)
@@ -2337,12 +2383,11 @@ from (
 union
   select distinct
     c.*,
-    coalesce(first_value(x.ri_combo) over (partition by c.qd_combo, c.bn_code order by x.prec), ec.ri_combo) as ri_combo,
-    coalesce(first_value(x.rd_combo) over (partition by c.qd_combo, c.bn_code order by x.prec), ec.rd_combo) as rd_combo,
+    first_value(x.ri_combo) over (partition by c.qd_combo, c.bn_code order by x.prec) as ri_combo,
+    first_value(x.rd_combo) over (partition by c.qd_combo, c.bn_code order by x.prec) as rd_combo,
     coalesce(x.bn_id, x_bn.bn_id, ebn.bn_id, 0) as bn_id
   from c
   left join x_pattern x on c.qd_combo=x.qd_combo and c.bn_code=nvl(x.bn_code, c.bn_code)
-  left join extension_combo ec on c.qd_combo=ec.qd_combo
   left join x_bn on c.bn_code=x_bn.bn_code left join extension_bn ebn on c.bn_code=ebn.bn_code
 ) m
 left join (select concept_code, i_combo as qi_combo, d_combo as qd_combo, bn_code from existing_q where quant_value=0 and df_code=' ' and bs=0 and mf_code=' ') using(qi_combo, qd_combo, bn_code)
@@ -2358,14 +2403,13 @@ from q_combo join q_ds using(concept_code)
 ;
 drop table r_singleton purge;
 create table r_singleton nologging as 
-  select distinct d_combo as rd_combo, i_code as r_i, ds_code as r_ds from r_ds join r_combo using(concept_id) 
-union
-  select rd_combo, nvl(r.i_code, e.i_code) as r_i, ds_code as r_ds from (
-    select rd_combo, cast(trim(regexp_substr(rd_combo, '[^\-]+', 1, levels.column_value)) as number) as ds_code
-    from (select distinct rd_combo from x_pattern), -- extension_combo contains i_combos as well
-    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(rd_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
-  )
-  left join r_uds r using(ds_code) left join extension_uds e using(ds_code)
+select rd_combo, nvl(r.i_code, e.i_code) as r_i, ds_code as r_ds from (
+-- break up all rd_combos in x_pattern
+  select rd_combo, cast(trim(regexp_substr(rd_combo, '[^\-]+', 1, levels.column_value)) as number) as ds_code
+  from (select distinct rd_combo from x_pattern),
+  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(rd_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+)
+left join r_uds r using(ds_code) left join extension_uds e using(ds_code) -- get i_code
 ;
 
 -- Clinical Drug Component
@@ -2407,11 +2451,10 @@ from (
 union
   select distinct
     c.*,
-    coalesce(first_value(x.ri_combo) over (partition by x.qd_combo order by x.prec), ec.ri_combo) as ri_combo,
-    coalesce(first_value(x.rd_combo) over (partition by x.qd_combo order by x.prec), ec.rd_combo) as rd_combo
+    first_value(x.ri_combo) over (partition by x.qd_combo order by x.prec) as ri_combo,
+    first_value(x.rd_combo) over (partition by x.qd_combo order by x.prec) as rd_combo
   from c
   left join x_pattern x on c.qd_combo=x.qd_combo
-  left join extension_combo ec on c.qd_combo=ec.qd_combo
 ) m
 left join (select concept_code, i_combo as qi_combo, d_combo as qd_combo from existing_q where quant_value=0 and df_code=' ' and bn_code=' ' and bs=0 and mf_code=' ') using(qi_combo, qd_combo)
 left join (select concept_id, i_combo as ri_combo, d_combo as rd_combo from existing_r where quant_value=0 and df_id=0 and bn_id=0 and bs=0 and mf_id=0) using(ri_combo, rd_combo)
@@ -2494,8 +2537,7 @@ union
 -- Get all ds
 ds_comp as (
   select 
-    -- ds_code, i_code, 
-    d_combo as rd_combo, concept_name,
+    rd_combo, concept_name,
     amount_value+numerator_value as v, -- one of them is null
     case
       when numerator_unit_concept_id in (8554, 9325, 9324) then nu.rxn_unit -- percent and homeopathics 
@@ -2506,12 +2548,8 @@ ds_comp as (
     select * from extension_uds union
     select * from r_uds -- adding them even though they already exist because they might be one of many components
   )
-  join ( -- get combo to ds_code and i_code resolution
-    select distinct d_combo, ds_code from r_ds join r_combo using(concept_id)
-  union
-    select distinct rd_combo, r_ds from extension_combo left join extension_ds on d_combo=qd_combo
-  ) using(ds_code)
-  join n using(i_code) -- get name
+  join r_singleton on ds_code=r_ds -- break up combos
+  join n using(i_code) -- get names
 -- translate units back to RxNorm lingo
   left join rxnorm_unit au on au.concept_id=amount_unit_concept_id
   left join rxnorm_unit nu on nu.concept_id=numerator_unit_concept_id
@@ -3494,38 +3532,34 @@ commit;
 -- Build drug_strength_stage
 insert /*+ APPEND */ into drug_strength_stage
 select 
-  drug_concept_code,
-  'RxNorm Extension' as vocabulary_id_1,
-  ingredient_concept_code,
-  case ingredient_vocab when ' ' then 'RxNorm Extension' else ingredient_vocab end as vocabulary_id_2,
-  amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_value, denominator_unit_concept_id,
+  d.concept_code as drug_concept_code, d.vocabulary_id as drug_vocabulary_id,
+  nvl(ingredient_concept_code, i_code) as ingredient_concept_code,  nvl(ingredient_vocabulary_id, 'RxNorm Extension') as ingredient_concept_code, 
+  amount_value, amount_unit_concept_id, 
+  case r_value
+    when 0 then numerator_value
+    else numerator_value*r_value
+  end as numerator_value, numerator_unit_concept_id,
+  case r_value
+    when 0 then null
+    else r_value
+  end as denominator_value, denominator_unit_concept_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from (
-  select drug_concept_code, ingredient_concept_code, ingredient_vocab, 
-  sum(amount_value) as amount_value, amount_unit_concept_id, 
-  sum(numerator_value) as numerator_value, numerator_unit_concept_id, 
-  denominator_value, denominator_unit_concept_id
-  from extension_uds
-  join concept_stage cs on cs.concept_code=drug_concept_code
-  group by drug_concept_code, ingredient_concept_code, ingredient_vocab, amount_unit_concept_id, numerator_unit_concept_id, denominator_value, denominator_unit_concept_id
-)
-;
-commit;
-
-select * from extension_attribute 
+from extension_attribute
 join r_singleton using(rd_combo)
 join (
-  select * from r_uds
-union
-  select * from extension_uds
+  select * from r_uds union select * from extension_uds
 ) on ds_code=r_ds
-where concept_id<0
-and quant_unit_id!=0 and quant_unit_id!=denominator_unit_concept_id
-and rd_combo='10121-29823'
-order by 1;
+join concept_stage d using(concept_id)
+left join (
+  select i_id as ingredient_concept_id, concept_code as ingredient_concept_code, vocabulary_id as ingredient_vocabulary_id from ing_stage left join concept on i_id=concept_id
+) i using(ingredient_concept_id)
+order by 1
+;
 
+select * from ing_stage;
+select * from r_uds;
 select * from r_singleton where rd_combo='10121-29823';
 
 select * from extension_name where concept_id=-344373;

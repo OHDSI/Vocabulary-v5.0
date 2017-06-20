@@ -328,9 +328,9 @@ set domain_id = 'Device'
 --put these into script above
  where GEMSCRIPT_CODE in (
 select GEMSCRIPT_CODE from thin_need_to_map where
-regexp_like (lower(THIN_name),'pizza|physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(THIN_name),'breath test|pizza|physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 or 
-regexp_like (lower(gemscript_name),'pizza|physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
+regexp_like (lower(gemscript_name),'breath test|pizza|physical|diet food|sunscreen|tubing|nutrison|elasticated vest|oxygen|spaghetti|irrigation |sunscreen cream|sheaths|lancet| wash|contact lens|bag|gluten|plast|wax|catheter|device|needle|needle|emollient|feeding|colostomy| toe |rubber|flange|cotton|stockinette|urostomy|tube |ostomy|cracker|shield|larve|belt|pasta|garments|bread')
 )
 and domain_id ='Drug'
 ;
@@ -1112,13 +1112,13 @@ truncate table drug_concept_stage
 --Drug Product
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
-select '', THIN_name,domain_id, 'Gemscript', 'Drug Product',  '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+select '', gemscript_name ,domain_id, 'Gemscript', 'Drug Product',  '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_need_to_map where domain_id = 'Drug'
 ;
 --Device
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
-select '', THIN_name,domain_id, 'Gemscript', 'Device', '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+select '', gemscript_name,domain_id, 'Gemscript', 'Device', '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_need_to_map where domain_id = 'Device'
 ;
 --Ingredient
@@ -1219,7 +1219,10 @@ delete from
   ;
 commit
 ;  
-
+delete from internal_relationship_stage where concept_code_1 = '4915007' and concept_code_2 = 'Chewing Gum'
+;
+commit
+;
 declare
  ex number;
 begin
@@ -1274,8 +1277,10 @@ where exists (select 1 from code_replace b where a.DRUG_CONCEPT_CODE = b.old_cod
 commit
 ;
 --for further work with CNDV and then mapping creation roundabound, make copies of existing concept_stage and concept_relationship_stage
+
 create table basic_concept_stage as select * from concept_stage
 ;
 create table basic_con_rel_stage as select * from concept_relationship_stage
 ;
---then use CNDV and then generic --well, it's not very good approach, need to fix it later
+--then use CNDV and then generic --well, it's bad aproach in general but still
+

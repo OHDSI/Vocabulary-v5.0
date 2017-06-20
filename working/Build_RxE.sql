@@ -2805,9 +2805,9 @@ group by concept_id, p.concept_name -- aggregate within concept_code
 ;
 commit;
 
-/****************************
+/*****************************
 * 13. Write RxNorm Extension *
-****************************/
+*****************************/
 
 -- Create sequence that starts after existing OMOP???-style concept codes
 declare
@@ -2824,13 +2824,13 @@ select max(iex)+1 into ex from (
       when others then null;
   end;
 end;
+/
 
 -- Empty concept_stage in case there are remnants from a previous run.
 truncate table concept_stage;
 truncate table concept_relationship_stage;
 truncate table drug_strength_stage;
 
--- Write RxNorm Extension into concept_stage
 -- Write Ingredients that have no equivalent. Ingredients are written in code notation. Therefore, concept_id is null, and the XXX code is in concept_code
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select
@@ -2848,6 +2848,8 @@ from extension_i
 join drug_concept_stage dcs on qi_code=dcs.concept_code
 ;
 commit;
+
+select * from extension_i;
 
 -- Write Dose Forms that have no equivalent. Dose forms have negative ids
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -3472,7 +3474,7 @@ select
   case amount_unit_concept_id when 0 then null else amount_unit_concept_id end as amount_unit_concept_id, 
   case r_value
     when 0 then case numerator_value when 0 then null else numerator_value end
-    else numerator_value*r_value
+    else case numerator_value*r_value when 0 then 0 else round(numerator_value*r_value, 3-floor(log(10, numerator_value*r_value))-1) end
   end as numerator_value, 
   case numerator_unit_concept_id when 0 then null else numerator_unit_concept_id end as numerator_unit_concept_id,
   case r_value
@@ -3484,21 +3486,21 @@ select
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from extension_attribute
-join r_singleton using(rd_combo)
-join (
+join r_singleton using(rd_combo) -- resolve combos
+join ( -- get the strength detail, either from r or the new extension
   select * from r_uds union select * from extension_uds
 ) on ds_code=r_ds
-join concept_stage d using(concept_id)
-left join (
-  select i_id as ingredient_concept_id, concept_code as ingredient_concept_code, vocabulary_id as ingredient_vocabulary_id from ing_stage left join concept on i_id=concept_id
-) i using(ingredient_concept_id)
+join concept_stage d using(concept_id) -- get concept_code/vocab representation, instead of concept_id
+left join ( -- resolve ingredients
+  select i_code, concept_code as ingredient_concept_code, vocabulary_id as ingredient_vocabulary_id from ing_stage left join concept on i_id=concept_id
+) i using(i_code)
 where concept_id<1
 ;
 commit;
 
-/*************
+/**************
 * 15. Tidy up *
-*************/
+**************/
 
 -- Replace concept_codes XXX123 with OMOP123
 -- Create replacement map
@@ -3586,7 +3588,7 @@ when matched then update
 drop table pcs_rowid_update purge;
 
 -- Remove concept_ids from concept_stage
-update concept_stage set concept_id=null where concept_id=0;
+update concept_stage set concept_id=null;
 
 commit;
 

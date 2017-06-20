@@ -36,10 +36,12 @@ set invalid_reason = 'D'
 where concept_id_1 in (select concept_id_1 from concept_relationship JOIN concept on concept_id_1 = concept_id and vocabulary_id = 'RxO')
   or concept_id_2 in (select concept_id_2 from concept_relationship JOIN concept on concept_id_2 = concept_id and vocabulary_id = 'RxO');     
 
+commit;
 begin
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'Rxfix',
                                           pVocabularyDate        => TRUNC(sysdate),
                                           pVocabularyVersion     => 'Rxfix '||sysdate,
                                           pVocabularyDevSchema   => 'DEV_RXE');           
 end;
+/
 commit;

@@ -65,13 +65,13 @@ select max(iex)+1 into ex from (
 end;
 
 create table keep_rxe nologging (
-  sparce_code varchar2(50),
+  sparse_code varchar2(50),
   tight_code varchar2(50)
 );
 
 -- generate OMOP codes for new concepts
 insert /*+ APPEND */ into keep_rxe
-select concept_code as sparce_code, 'OMOP'||omop_seq.nextval as tight_code
+select concept_code as sparse_code, 'OMOP'||omop_seq.nextval as tight_code
 from concept_stage 
 where vocabulary_id='RxNorm Extension'
 and concept_code not in (select rxe_code from drop_rxe) -- those will be replaced

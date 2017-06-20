@@ -1628,6 +1628,30 @@ DELETE FROM internal_relationship_stage
 DELETE internal_relationship_stage
 WHERE concept_code_2 in ('236340','1371041');
 
+--25.4 add missing relationship to dose form
+INSERT INTO internal_relationship_stage
+(concept_code_1,concept_code_2)
+SELECT dc.concept_code,
+       CASE
+         WHEN dc.concept_name LIKE '%Prefilled Syringe%' THEN 721656
+         WHEN dc.concept_name LIKE '%Injection%' THEN 46234469
+         WHEN dc.concept_name LIKE '%Injectable Solution%' OR dc.concept_name LIKE '% Solution for injection%' THEN 316949
+         WHEN dc.concept_name LIKE '%Topical Solution%' THEN 316986
+         WHEN dc.concept_name LIKE '%Liquid%' THEN 19082170
+         WHEN dc.concept_name LIKE '%Powder%' THEN 346289
+         ELSE NULL
+       END 
+FROM drug_concept_stage dc
+WHERE dc.concept_class_id = 'Drug Product'
+AND   dc.source_concept_class_id NOT LIKE '%Comp%'
+AND   dc.concept_name NOT LIKE '% Pack %'
+AND   dc.source_concept_class_id NOT LIKE '%Pack%'
+AND   dc.concept_code NOT IN (SELECT concept_code_1
+                              FROM internal_relationship_stage
+                                JOIN drug_concept_stage
+                                  ON concept_code_2 = concept_code
+                                 AND concept_class_id = 'Dose Form');
+
 COMMIT;
 
 --26 just take it from the pack_content

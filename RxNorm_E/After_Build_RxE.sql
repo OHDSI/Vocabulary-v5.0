@@ -102,6 +102,9 @@ update concept_relationship_stage set relationship_id='Concept replaced by' wher
 /********************************************************************
 * 3. Change the concept_codes of the RxE we give the old codes back *
 ********************************************************************/
+create index idx_rxe_code on drop_rxe (rxe_code);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'drop_rxe', estimate_percent => null, cascade => true);
+
 -- Replace RxNorm Extension concept_codes in concept_stage and concept_relationship_stage with old RxO codes
 update concept_stage set (vocabulary_id, concept_code)=(
   select 'RxNorm Extension', rxf_code from drop_rxe where concept_code=rxe_code

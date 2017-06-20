@@ -40,7 +40,7 @@ with maps as (
   where relationship_id='Maps to' and vocabulary_id_1='Rxfix' and vocabulary_id_2='RxNorm Extension'
 ),
 maps2 as ( -- flipping length difference l to be between 0 and 1
-  select c1_code, c1_name, c2_code, c2_name, match, case when l>1 then 1/l else l end as l
+  select c1_code, c2_code, match, case when l>1 then 1/l else l end as l
   from maps
 )
 select distinct 
@@ -64,10 +64,10 @@ select max(iex)+1 into ex from (
   end;
 end;
 
-create table keep_rxe nologging (
+create table keep_rxe (
   sparce_code varchar2(50),
   tight_code varchar2(50)
-);
+) nologging;
 
 -- generate OMOP codes for new concepts
 insert /*+ APPEND */ into keep_rxe
@@ -91,9 +91,10 @@ delete from concept_relationship_stage where rowid in (
 delete from concept where concept_code in (select rxf_code from drop_rxe where vocabulary_id='Rxfix');
 
 -- Obsolete the remaining ones
-update concept set (vocabulary_id, invalid_reason)=('RxNorm Extension', 'U') where exists (
-  select 1 from concept_relationship_stage where concept_code_1=concept_code and vocabulary_id_1='Rxfix' and relationship_id='Maps to'
-)
+update concept set vocabulary_id='RxNorm Extension', invalid_reason='U'
+where concept_code in (
+  select concept_code_1 from concept_relationship_stage where vocabulary_id_1='Rxfix' and relationship_id='Maps to'
+) and vocabulary_id='RxO';
 
 -- Change Maps to to Concept replaced by since it is both RxNorm Extension now
 update concept_relationship_stage set relationship_id='Concept replaced by' where relationship_id='Maps to';

@@ -1499,7 +1499,7 @@ INSERT /*+ APPEND */
 
 COMMIT;
 
---23 Add all the attributes which relationships are missing in basic tables (separate query to speed up)
+--23.1 Add all the attributes which relationships are missing in basic tables (separate query to speed up)
 INSERT /*+ APPEND */ INTO internal_relationship_stage
 	--missing bn
 	WITH t
@@ -1508,13 +1508,38 @@ INSERT /*+ APPEND */ INTO internal_relationship_stage
 			   FROM drug_concept_stage dc JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension'
 			  WHERE dc.concept_class_id = 'Drug Product' AND dc.concept_name LIKE '%Pack%[%]%')
 	SELECT t.concept_code, dc2.concept_code
-	  FROM t JOIN drug_concept_stage dc2 ON dc2.concept_name = REGEXP_REPLACE (t.concept_name, '.* Pack .*\[(.*)\]', '\1') 
-	  AND dc2.concept_class_id = 'Brand Name'
+	  FROM t JOIN concept dc2 ON dc2.concept_name = REGEXP_REPLACE (REGEXP_REPLACE (REGEXP_SUBSTR (dc.concept_name,'.* Pack \[(.*)\]'),'.*\['),'\]')
+	  AND dc2.concept_class_id = 'Brand Name' AND dc2.vocabulary_id like 'Rx%' AND dc2.invalid_reason IS NULL
 	  --WHERE  t.concept_code NOT IN (SELECT concept_code_1 FROM internal_relationship_stage irs_int JOIN drug_concept_stage dcs_int ON dcs_int.concept_code=irs_int.concept_code_2 AND dcs_int.concept_class_id = 'Brand Name' );
       WHERE NOT EXISTS
                (SELECT 1
                   FROM internal_relationship_stage irs_int
                  WHERE irs_int.concept_code_1 = t.concept_code AND irs_int.concept_code_2 = dc2.concept_code);	  
+INSERT /*+ APPEND */ INTO internal_relationship_stage
+	--missing bn
+	WITH t
+		 AS (SELECT /*+ materialize */
+				   dc.concept_code, c.concept_name
+			   FROM drug_concept_stage dc JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension'
+			  WHERE dc.concept_class_id = 'Drug Product' AND dc.concept_name LIKE '%Pack%[%]%')
+	SELECT t.concept_code, dc2.concept_code
+	  FROM t JOIN concept dc2 ON dc2.concept_name = REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_SUBSTR (dc.concept_name, '\[(.*)\]'),'.*\['),'\]')
+	  AND dc2.concept_class_id = 'Brand Name' AND dc2.vocabulary_id like 'Rx%' AND dc2.invalid_reason IS NULL
+	  --WHERE  t.concept_code NOT IN (SELECT concept_code_1 FROM internal_relationship_stage irs_int JOIN drug_concept_stage dcs_int ON dcs_int.concept_code=irs_int.concept_code_2 AND dcs_int.concept_class_id = 'Brand Name' );
+      WHERE NOT EXISTS
+               (SELECT 1
+                  FROM internal_relationship_stage irs_int
+                 WHERE irs_int.concept_code_1 = t.concept_code AND irs_int.concept_code_2 = dc2.concept_code);	  
+		 
+INSERT INTO drug_concept_stage
+(CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,SOURCE_CONCEPT_CLASS_ID, CONCEPT_CLASS_ID, STANDARD_CONCEPT, CONCEPT_CODE, VALID_START_DATE, VALID_END_DATE, INVALID_REASON)
+SELECT DISTINCT CONCEPT_NAME, DOMAIN_ID,'Rxfix', CONCEPT_CLASS_ID, 'Drug Product',STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE, VALID_END_DATE, INVALID_REASON
+FROM internal_relationship_stage a
+  JOIN concept c
+    ON c.concept_code = concept_code_2
+   AND c.vocabulary_id LIKE 'Rx%'
+WHERE concept_code_2 NOT IN (SELECT concept_code FROM drug_concept_stage);
+
 COMMIT;
 
 --24.1 Add missing suppliers

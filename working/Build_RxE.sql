@@ -2681,7 +2681,7 @@ from (
 group by pack_concept_id, bn_id, bs, mf_id
 ;
 
--- XXXX Remove Branded Packs that have no Brand Name
+-- XXXX Remove Branded Packs that have no Brand Name. this is no longer needed when RxNorm adds Brand Names for Packs
 delete from existing_pack_r where rowid in (select p.rowid from existing_pack_r p join concept on pack_concept_id=concept_id where bn_id=0 and concept_class_id='Branded Pack');
 
 -- Create pack hierarchy
@@ -3279,7 +3279,7 @@ where pack_concept_id is null -- doesn't have an existing translation
 commit;
 
 -- Write links between Packs and their containing Drugs
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
 select distinct -- because drugs can be in a pack in several components
   p.concept_code as concept_code_1,
   'RxNorm Extension' as vocabulary_id_1,
@@ -3290,16 +3290,19 @@ select distinct -- because drugs can be in a pack in several components
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
-join ( -- split components by '/'
-  select p.concept_id, trim(regexp_substr(components, '[^\/]+', 1, levels.column_value)) as drug_concept_id
-  from extension_pack p, 
-  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^\/]+'))  + 1) as sys.OdciNumberList)) levels
+join ( -- split components by ';' and extract the drug (behind '/')
+  select concept_id, substr(component, instr(component, '/', 1)+1) as drug_concept_id from (
+    select p.concept_id, trim(regexp_substr(components, '[^;]+', 1, levels.column_value)) as component
+    from extension_pack p, 
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))  + 1) as sys.OdciNumberList)) levels
+  )
 ) c using(concept_id)
 left join concept_stage cs on drug_concept_id=cs.concept_id -- get concept_code/vocab for new drug
 left join concept c on drug_concept_id=c.concept_id -- or existing drug
 where pack_concept_id is null
 ;
 commit;
+select * from extension_pack;
 
 -- Write Brand Names for Packs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
@@ -3338,6 +3341,26 @@ left join concept m on mf_id=m.concept_id
 where pack_concept_id is null and mf_id!=0 -- has no translation and has brand name
 ;
 commit;
+
+create table pack_content_stage nologging as
+select 
+  p.concept_code as pack_concept_code, p.vocabulary_id as pack_vocabulary_id, 
+  nvl(ds.concept_code, dc.concept_code) as drug_concept_code, nvl(ds.vocabulary_id, dc.vocabulary_id) drug_vocabulary_id, 
+  case amount when 0 then null else amount end as amount, case bs when 0 then null else bs end as box_size
+from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
+join ( -- split components by ';' and extract the drug (behind '/')
+  select concept_id, 
+    cast (substr(component, 1, instr(component, '/', 1)-1) as number) as amount,
+    substr(component, instr(component, '/', 1)+1) as drug_concept_id
+  from ( -- break up the components string
+    select concept_id, trim(regexp_substr(components, '[^;]+', 1, levels.column_value)) as component
+    from extension_pack, -- extension_combo contains i_combos as well
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))  + 1) as sys.OdciNumberList)) levels
+  )
+) c using(concept_id)
+left join concept_stage ds on ds.concept_id=drug_concept_id left join concept dc on dc.concept_id=drug_concept_id
+where pack_concept_id is null -- no mapping to existing exists
+;
 
 /************************
 * 14. Write source vocab *
@@ -3702,4 +3725,5 @@ drop table pack_name purge;
 drop sequence omop_seq;
 drop table rl purge;
 drop table ex purge;
+drop table pack_content_stage purge;
 drop table xxx_replace purge;

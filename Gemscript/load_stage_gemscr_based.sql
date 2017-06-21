@@ -59,7 +59,7 @@ gemscript_drug_code as concept_code,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
-from gemscript_dmd_map
+from gemscript_dmd_map --table we had before, only God knows how we got this table
 ;
 commit
 ;
@@ -436,9 +436,9 @@ commit
 drop table thin_comp;
 create table thin_comp as 
 select regexp_substr 
-(a.drug_comp, 
+(lower (a.drug_comp), 
 '((\d)*[.,]*\d+)(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)(/((\d)*[.,]*\d+)*(\s*)(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop))*') as dosage
-,  replace ( trim (regexp_substr  (thin_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume, A.* 
+,  replace ( trim (regexp_substr  (lower (thin_name),'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume, A.* 
  from (
 select distinct
 trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp , t.* 
@@ -447,7 +447,7 @@ table(cast(multiset(select level from dual connect by  level <= length (regexp_r
 where a.domain_id ='Drug' 
 --exclusions
 --Bendroflumethiazide / potassium 2.5mg+7.7mmol modified release tablets 
-and not regexp_like (thin_name, '[[:digit:]\,\.]+.*\+(\s*)[[:digit:]\,\.].*') 
+and not regexp_like (lower (thin_name), '[[:digit:]\,\.]+.*\+(\s*)[[:digit:]\,\.].*') 
 --Co-triamterzide 50mg/25mg tablets
 --and not regexp_like (thin_name, '\dm(c*)g/[[:digit:]\,\.]+m(c*)g')
 union
@@ -458,12 +458,12 @@ trim (regexp_substr(dosage_0, '[^+]+',1,levels.column_value)) ||denom
 trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp 
     ,THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID 
 from (
-select regexp_substr (thin_name, '((\d)*[.,]*\d+)(\s)*(g|mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(g|mg|%|mcg|iu|mmol|micrograms|ku)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(g|mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
-regexp_substr (THIN_NAME , '/[[:digit:]\,\.]+(ml| hr)') as denom,
+select regexp_substr (lower (thin_name), '((\d)*[.,]*\d+)(\s)*(g|mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(g|mg|%|mcg|iu|mmol|micrograms|ku)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(g|mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
+regexp_substr (lower (THIN_NAME) , '/[[:digit:]\,\.]+(ml| hr)') as denom,
 replace ( trim (regexp_substr  (thin_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume,
  t.* from 
 thin_need_to_map t
-where regexp_like (thin_name, '((\d)*[.,]*\d+)(\s)*(g|mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(g|mg|%|mcg|iu|mmol|micrograms|ku)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(g|mg|%|mcg|iu|mmol|micrograms))*') and domain_id ='Drug' 
+where regexp_like (thin_name, '((\d)*[.,]*\d+)(\s)*(g|mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(g|mg|%|mcg|iu|mmol|micrograms|ku)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(g|mg|%|mcg|iu|mmol|micrograms))*', 'i') and domain_id ='Drug' 
 ) t,
 table(cast(multiset(select level from dual connect by level <= length (regexp_replace(regexp_replace (t.thin_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels 
 ;
@@ -514,7 +514,6 @@ select concept_id_1,relationship_id, concept_id_2 from concept_relationship wher
   join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null 
   and b.concept_id !=  21014036 -- Syrup Ingredient
 ;
-
 --check the cases when not the all components are mapped:
 /*
 select * from (
@@ -530,9 +529,9 @@ where cnt != sl_cnt +1
 drop table thin_comp2; 
 create table thin_comp2 as 
 select regexp_substr 
-(a.drug_comp, 
+(lower (a.drug_comp), 
 '((\d)*[.,]*\d+)(\s)*(mg|%|ml|mcg|hr|hours|unit(s?)|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit(s?)|nanogram(s)*|x|ppm|million units| Kallikrein inactivator units|kBq|microlitres|MBq|molar|micromol)(/((\d)*[.,]*\d+)*(\s*)(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop))*') as dosage
-,  replace ( trim (regexp_substr  (gemscript_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume, A.* 
+,  replace ( trim (regexp_substr  (lower (gemscript_name),'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume, A.* 
  from (
 select distinct
 trim(regexp_substr(  (regexp_replace (t.gemscript_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp , t.* 
@@ -541,7 +540,7 @@ table(cast(multiset(select level from dual connect by  level <= length (regexp_r
 where a.domain_id ='Drug' 
 --exclusions
 --Bendroflumethiazide / potassium 2.5mg+7.7mmol modified release tablets 
-and not regexp_like (gemscript_name, '[[:digit:]\,\.]+.*\+(\s*)[[:digit:]\,\.].*') 
+and not regexp_like (gemscript_name, '[[:digit:]\,\.]+.*\+(\s*)[[:digit:]\,\.].*', 'i') 
 and gemscript_code not in (select gemscript_code from rel_to_ing_1)
 --Co-triamterzide 50mg/25mg tablets
 --and not regexp_like (gemscript_name, '\dm(c*)g/[[:digit:]\,\.]+m(c*)g')
@@ -553,12 +552,12 @@ trim (regexp_substr(dosage_0, '[^+]+',1,levels.column_value)) ||denom
 trim(regexp_substr(  (regexp_replace (t.gemscript_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp 
     ,THIN_CODE,gemscript_name,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID 
 from (
-select regexp_substr (gemscript_name, '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
-regexp_substr (gemscript_name , '/[[:digit:]\,\.]+(ml| hr)') as denom,
-replace ( trim (regexp_substr  (gemscript_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume,
+select regexp_substr (lower (gemscript_name), '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
+regexp_substr (lower (gemscript_name) , '/[[:digit:]\,\.]+(ml| hr)') as denom,
+replace ( trim (regexp_substr  (lower (gemscript_name),'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume,
  t.* from 
 thin_need_to_map t
-where regexp_like (gemscript_name, '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*')
+where regexp_like (lower (gemscript_name), '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*')
  and domain_id ='Drug' and gemscript_code not in (select gemscript_code from rel_to_ing_1)
 ) t,
 table(cast(multiset(select level from dual connect by level <= length (regexp_replace(regexp_replace (t.gemscript_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels 
@@ -649,10 +648,17 @@ WbImport -file=C:/work/manual_in_co_dose.txt
          -continueOnError=false
          -batchSize=100
 ;
+!!!
+--due to thin/gemscript change - made the manual table codes as gemscript_codes
+merge into manual_in_co_dose m using (select thin_code, gemscript_code from thin_need_to_map ) t on (t.thin_code = m.concept_code) when matched then update set m.concept_code = t.gemscript_code
+;
+commit
+;
+
 */
 
 --then merge it with ds_all_tmp, for now temporary decision - make dosages NULL to avoid bug
-update ds_all_tmp set dosage = null where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g')
+update ds_all_tmp set dosage = null where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g', 'i')
 ;
 commit
 ;
@@ -835,116 +841,230 @@ select * from ds_all where regexp_like (dosage, '/$')
 --apply the dose form updates then to extract them from the original names
 --make a proper dose form from the short terms used in a concept_names
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'oin$','ointment' )
+thin_name = regexp_replace (thin_name, 'oin$','ointment' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'tab$','tablet' )
+thin_name = regexp_replace (thin_name, 'tab$','tablet' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'inj$','injection' )
+thin_name = regexp_replace (thin_name, 'inj$','injection' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'cre$','cream' )
+thin_name = regexp_replace (thin_name, 'cre$','cream' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'lin$','linctus' )
+thin_name = regexp_replace (thin_name, 'lin$','linctus', 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'sol$','solution' )
+thin_name = regexp_replace (thin_name, 'sol$','solution' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'cap$','capsule' )
+thin_name = regexp_replace (thin_name, 'cap$','capsule' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'loz$','lozenge' )
+thin_name = regexp_replace (thin_name, 'loz$','lozenge' , 1,1,'i')
 ;
 update thin_need_to_map set  
-thin_name = regexp_replace (thin_name, 'lozenge$','lozenges' )
+thin_name = regexp_replace (thin_name, 'lozenge$','lozenges' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'sus$','suspension' )
+thin_name = regexp_replace (thin_name, 'sus$','suspension' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'eli$','oral tablet' )
+thin_name = regexp_replace (thin_name, 'eli$','oral tablet' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'sup$','suppositories' )
+thin_name = regexp_replace (thin_name, 'sup$','suppositories' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'gra$','granules' )
+thin_name = regexp_replace (thin_name, 'gra$','granules' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'pow$','powder' )
+thin_name = regexp_replace (thin_name, 'pow$','powder' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'pel$','pellets' )
+thin_name = regexp_replace (thin_name, 'pel$','pellets' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'lot$','lotion' )
+thin_name = regexp_replace (thin_name, 'lot$','lotion' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'syr$','syringe' )
+thin_name = regexp_replace (thin_name, 'syr$','syringe' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'app$','applicator' )
+thin_name = regexp_replace (thin_name, 'app$','applicator' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'dro$','drops' )
+thin_name = regexp_replace (thin_name, 'dro$','drops' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'aer$','aerosol' )
+thin_name = regexp_replace (thin_name, 'aer$','aerosol' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'liq$','liquid' )
+thin_name = regexp_replace (thin_name, 'liq$','liquid' ,1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'homeopathic pillules$','pillules' )
+thin_name = regexp_replace (thin_name, 'homeopathic pillules$','pillules' ,1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'spa$','spansules' )
+thin_name = regexp_replace (thin_name, 'spa$','spansules' ,1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'emu$','emulsion' )
+thin_name = regexp_replace (thin_name, 'emu$','emulsion' ,1,1,'i')
 ;
 --paste
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'pas$','paste' )
+thin_name = regexp_replace (thin_name, 'pas$','paste' ,1,1,'i')
 ;
 --pillules
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'pills$','pillules' )
+thin_name = regexp_replace (thin_name, 'pills$','pillules' ,1,1,'i')
 ;
 --spray
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'spr$','spray' )
+thin_name = regexp_replace (thin_name, 'spr$','spray' ,1,1,'i')
 ;
 --inhalation
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'inh$','inhalation' )
+thin_name = regexp_replace (thin_name, 'inh$','inhalation' ,1,1,'i')
 ;
 --suppositories
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'suppository$','suppositories' )
+thin_name = regexp_replace (thin_name, 'suppository$','suppositories' ,1,1,'i')
 ;
 --oitnment
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'oitnment$','ointment' )
+thin_name = regexp_replace (thin_name, 'oitnment$','ointment' ,1,1,'i')
 ;
 --pessary
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'pes$','pessary' )
+thin_name = regexp_replace (thin_name, 'pes$','pessary' ,1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'pessary$','pessaries' )
+thin_name = regexp_replace (thin_name, 'pessary$','pessaries' ,1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'spansules$','capsule' ) 
+thin_name = regexp_replace (thin_name, 'spansules$','capsule' ,1,1,'i') 
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'globuli$','granules' )
+thin_name = regexp_replace (thin_name, 'globuli$','granules' ,1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'sach$','sachet' )
+thin_name = regexp_replace (thin_name, 'sach$','sachet' ,1,1,'i')
+;
+commit
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'oin$','ointment' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'tab$','tablet' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'inj$','injection' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'cre$','cream' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'lin$','linctus', 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'sol$','solution' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'cap$','capsule' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'loz$','lozenge' , 1,1,'i')
+;
+update thin_need_to_map set  
+thin_name = regexp_replace (thin_name, 'lozenge$','lozenges' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'sus$','suspension' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'eli$','oral tablet' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'sup$','suppositories' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'gra$','granules' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'pow$','powder' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'pel$','pellets' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'lot$','lotion' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'syr$','syringe' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'app$','applicator' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'dro$','drops' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'aer$','aerosol' , 1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'liq$','liquid' ,1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'homeopathic pillules$','pillules' ,1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'spa$','spansules' ,1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'emu$','emulsion' ,1,1,'i')
+;
+--paste
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'pas$','paste' ,1,1,'i')
+;
+--pillules
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'pills$','pillules' ,1,1,'i')
+;
+--spray
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'spr$','spray' ,1,1,'i')
+;
+--inhalation
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'inh$','inhalation' ,1,1,'i')
+;
+--suppositories
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'suppository$','suppositories' ,1,1,'i')
+;
+--oitnment
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'oitnment$','ointment' ,1,1,'i')
+;
+--pessary
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'pes$','pessary' ,1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'pessary$','pessaries' ,1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'spansules$','capsule' ,1,1,'i') 
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'globuli$','granules' ,1,1,'i')
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'sach$','sachet' ,1,1,'i')
 ;
 commit
 ;
@@ -1010,7 +1130,7 @@ and concept_id_2 in (21308470, 46234469, 19082227)
 ;
 commit
 ;
---comment this manual table work for now
+ --comment this manual table work for now
 /*
 --manual table for Dose Forms
 select * from thin_need_to_map
@@ -1277,9 +1397,10 @@ where exists (select 1 from code_replace b where a.DRUG_CONCEPT_CODE = b.old_cod
 commit
 ;
 --for further work with CNDV and then mapping creation roundabound, make copies of existing concept_stage and concept_relationship_stage
-
+drop table basic_concept_stage;
 create table basic_concept_stage as select * from concept_stage
 ;
+drop table basic_con_rel_stage;
 create table basic_con_rel_stage as select * from concept_relationship_stage
 ;
 --then use CNDV and then generic --well, it's bad aproach in general but still

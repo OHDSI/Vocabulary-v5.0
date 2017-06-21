@@ -37,18 +37,19 @@ with maps as (
   from concept_relationship_stage 
   join drug_concept_stage c1 on c1.concept_code=concept_code_1
   join concept_stage c2 on c2.concept_code=concept_code_2
-  where relationship_id='Maps to' and vocabulary_id_1='Rxfix' and vocabulary_id_2='RxNorm Extension'
+  where relationship_id in ('Maps to', 'Source - RxNorm eq') and vocabulary_id_1='Rxfix' and vocabulary_id_2='RxNorm Extension'
 ),
 maps2 as ( -- flipping length difference l to be between 0 and 1
-  select c1_code, c1_name, c2_code, c2_name, match, case when l>1 then 1/l else l end as l
+  select c1_code, c2_code, match, case when l>1 then 1/l else l end as l
   from maps
 )
 select distinct 
-  first_value(c1_code) over (partition by c2_code order by match, l, c1_code) as rxf_code,
+  first_value(c1_code) over (partition by c2_code order by match, l desc, c1_code) as rxf_code,
   c2_code as rxe_code
 from maps2
 ;
 
+-- create sequence for "tight" OMOP codes
 declare
  ex number;
 begin
@@ -63,82 +64,102 @@ select max(iex)+1 into ex from (
       when others then null;
   end;
 end;
+/
 
-create table keep_rxe nologging (
-  sparce_code varchar2(50),
+create table keep_rxe ( 
+  sparse_code varchar2(50),
   tight_code varchar2(50)
-);
+) nologging;
 
 -- generate OMOP codes for new concepts
 insert /*+ APPEND */ into keep_rxe
-select concept_code as sparce_code, 'OMOP'||omop_seq.nextval as tight_code
+select concept_code as sparse_code, 'OMOP'||omop_seq.nextval as tight_code
 from concept_stage 
 where vocabulary_id='RxNorm Extension'
-and concept_code not in (select rxe_code from drop_rxe) -- those will be replaced
+and concept_code not in (select rxe_code from drop_rxe) -- those will be gone
 ;
 commit;
 
 /*************************************
 * 2. Fix the Rxfix/RxO end of things *
 *************************************/
--- Delete those Maps to relationships for the ones that are updated with the old codes
+-- Delete those Maps to/Source - RxNorm eq relationships, since we are making them the same concept
 delete from concept_relationship_stage where rowid in (
   select r.rowid from concept_relationship_stage r join drop_rxe on r.concept_code_1=rxf_code and r.concept_code_2=rxe_code 
-  where r.relationship_id='Maps to' and r.vocabulary_id_1='Rxfix' and r.vocabulary_id_2='RxNorm Extension'
+  where r.relationship_id in ('Maps to', 'Source - RxNorm eq') and r.vocabulary_id_1='Rxfix' and r.vocabulary_id_2='RxNorm Extension'
 );
 
 -- Delete those Rxfix concepts that are updated in RxE
-delete from concept where concept_code in (select rxf_code from drop_rxe where vocabulary_id='Rxfix');
+delete from concept_stage where concept_code in (select rxf_code from drop_rxe where vocabulary_id='Rxfix');
 
 -- Obsolete the remaining ones
-update concept set (vocabulary_id, invalid_reason)=('RxNorm Extension', 'U') where exists (
-  select 1 from concept_relationship_stage where concept_code_1=concept_code and vocabulary_id_1='Rxfix' and relationship_id='Maps to'
-) and vocabulary_id='RxO';
+update concept_stage set vocabulary_id='RxNorm Extension', valid_end_date=sysdate-1, invalid_reason='U' where exists (
+  select 1 from concept_relationship_stage where concept_code_1=concept_code and vocabulary_id_1='Rxfix' and relationship_id in ('Maps to', 'Source - RxNorm eq')
+) and vocabulary_id='Rxfix';
+
+-- Obsolete the remaining ones
+update concept_stage set vocabulary_id='RxNorm Extension', valid_end_date=sysdate-1, invalid_reason='D' where vocabulary_id='Rxfix';
 
 -- Change Maps to to Concept replaced by since it is both RxNorm Extension now
-update concept_relationship_stage set relationship_id='Concept replaced by' where relationship_id='Maps to';
+update concept_relationship_stage set relationship_id='Concept replaced by' where relationship_id in ('Maps to', 'Source - RxNorm eq');
+
+--------------------------------------
+-- ?? ????
+
+
+select * from concept_stage where concept_code in (
+  select concept_code from (
+    select * from concept_stage 
+    join concept_relationship_stage on concept_code_1=concept_code and vocabulary_id_1='Rxfix' and relationship_id in ('Maps to', 'Source - RxNorm eq')
+    where vocabulary_id='Rxfix'
+  ) group by concept_code having count(8)>1
+)
+order by concept_code; -- 4036, 14 duplicates
+
+select count(8) from concept_stage where exists (
+  select 1 from concept_relationship_stage where concept_code_1=concept_code and vocabulary_id_1='Rxfix' and relationship_id in ('Maps to', 'Source - RxNorm eq')
+) and vocabulary_id='Rxfix'
+; -- 3962
+
+select count(8) from concept_relationship_stage where relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by') and vocabulary_id_1='Rxfix'
+; -- 4065
+
+select * from concept_stage where vocabulary_id='Rxfix';
+select concept_code from concept_stage where vocabulary_id='Rxfix'
+minus
+select concept_code_1 from concept_relationship_stage where relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by') and vocabulary_id_1='Rxfix'
+;
+
 
 /********************************************************************
 * 3. Change the concept_codes of the RxE we give the old codes back *
 ********************************************************************/
--- Replace RxNorm Extension concept_codes in concept_stage and concept_relationship_stage with old RxO codes
 create index idx_rxe_code on drop_rxe (rxe_code);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'drop_rxe', estimate_percent => null, cascade => true);
 
-update concept_stage set (vocabulary_id, concept_code)=(
-  select 'RxNorm Extension', rxf_code from drop_rxe where concept_code=rxe_code
-)
-where exists (
-  select 1 from drop_rxe where concept_code=rxe_code
-);
+-- Replace RxNorm Extension concept_codes in concept_stage and concept_relationship_stage with old RxO codes
+update concept_stage set (vocabulary_id, concept_code)=(select 'RxNorm Extension', rxf_code from drop_rxe where concept_code=rxe_code)
+where exists (select 1 from drop_rxe where concept_code=rxe_code);
 
-update concept_relationship_stage set (concept_code_1, vocabulary_id_1)=(
-  select rxf_code, 'RxNorm Extension' from drop_rxe where concept_code_1=rxe_code
-)
-where exists (
-  select 1 from drop_rxe where concept_code_1=rxe_code and vocabulary_id_1='RxNorm Extension'
-);
+update concept_relationship_stage set (concept_code_1, vocabulary_id_1)=(select rxf_code, 'RxNorm Extension' from drop_rxe where concept_code_1=rxe_code)
+where exists (select 1 from drop_rxe where concept_code_1=rxe_code and vocabulary_id_1='RxNorm Extension');
 
-update concept_relationship_stage set (concept_code_2, vocabulary_id_2)=(
-  select rxf_code, 'RxNorm Extension' from drop_rxe where concept_code_2=rxe_code
-)
-where exists (
-  select 1 from drop_rxe where concept_code_2=rxe_code and vocabulary_id_2='RxNorm Extension'
-);
+update concept_relationship_stage set (concept_code_2, vocabulary_id_2)=(select rxf_code, 'RxNorm Extension' from drop_rxe where concept_code_2=rxe_code)
+where exists (  select 1 from drop_rxe where concept_code_2=rxe_code and vocabulary_id_2='RxNorm Extension');
 
 /**********************************************************************************************
 * 4. Condense the remaining RxNorm Extension codes so they don't take up as much number space *
 **********************************************************************************************/
--- Replace RxNorm Extension concept_codes in concept_stage and concept_relationship_stage with old RxO codes
-update concept_stage set (vocabulary_id, concept_code)=(select 'RxNorm Extension', tight_code from keep_rxe where concept_code=sparce_code)
-where exists (select 1 from drop_rxe where concept_code=sparce_code and vocabulary_id_1='RxNorm Extension');
+-- Replace newly formed RxNorm Extension concept_codes (not deleted in previous step) with condensed ones
+update concept_stage set (vocabulary_id, concept_code)=(select 'RxNorm Extension', tight_code from keep_rxe where concept_code=sparse_code)
+where exists (select 1 from keep_rxe where concept_code=sparse_code and vocabulary_id_1='RxNorm Extension');
 
 -- Replace the sparse with the tight RxNorm Extension code
-update concept_relationship_stage set concept_code_1=(select tight_code from keep_rxe where concept_code_1=sparce_code)
-where exists (select 1 from keep_rxe where concept_code_1=sparce_code and vocabulary_id_1='RxNorm Extension');
+update concept_relationship_stage set concept_code_1=(select tight_code from keep_rxe where concept_code_1=sparse_code)
+where exists (select 1 from keep_rxe where concept_code_1=sparse_code and vocabulary_id_1='RxNorm Extension');
 
-update concept_relationship_stage set concept_code_2=(select tight_code from keep_rxe where concept_code_2=sparce_code)
-where exists (select 1 from keep_rxe where concept_code_2=sparce_code and vocabulary_id_2='RxNorm Extension');
+update concept_relationship_stage set concept_code_2=(select tight_code from keep_rxe where concept_code_2=sparse_code)
+where exists (select 1 from keep_rxe where concept_code_2=sparse_code and vocabulary_id_2='RxNorm Extension');
 
 /**************
 * 5. Clean up *

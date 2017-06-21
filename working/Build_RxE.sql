@@ -2681,6 +2681,9 @@ from (
 group by pack_concept_id, bn_id, bs, mf_id
 ;
 
+-- XXXX Remove Branded Packs that have no Brand Name
+delete from existing_pack_r where rowid in (select p.rowid from existing_pack_r p join concept on pack_concept_id=concept_id where bn_id=0 and concept_class_id='Branded Pack');
+
 -- Create pack hierarchy
 create table extension_pack as
 select extension_id.nextval as concept_id, 
@@ -3455,7 +3458,7 @@ where dc.vocabulary_id in (select distinct vocabulary_id from concept where doma
 ;
 commit;
 
--- Write mappings for Packs
+-- Write maps for Packs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct -- because each pack has many drugs
   pack_concept_code as concept_code_1,

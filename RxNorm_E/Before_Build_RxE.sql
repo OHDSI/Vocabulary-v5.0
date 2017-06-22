@@ -32,7 +32,7 @@ set vocabulary_id = 'RxO'
 where vocabulary_id = 'RxNorm Extension';
 
 update concept_relationship
-set invalid_reason = 'D'
+set invalid_reason = 'D', valid_end_date = sysdate-1
 where concept_id_1 in (select concept_id_1 from concept_relationship JOIN concept on concept_id_1 = concept_id and vocabulary_id = 'RxO')
   or concept_id_2 in (select concept_id_2 from concept_relationship JOIN concept on concept_id_2 = concept_id and vocabulary_id = 'RxO');     
 

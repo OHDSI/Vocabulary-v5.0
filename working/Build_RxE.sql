@@ -232,9 +232,9 @@ join drug_concept_stage b on b.concept_code=ir.concept_code_2 and b.concept_clas
 
 -- Create table with Suppliers (manufacturers) including packs
 create table q_mf nologging as
-select irs.concept_code_1 as concept_code, irs.concept_code_2 as mf_code from drug_concept_stage dcs
-join internal_relationship_stage irs on irs.concept_code_2=dcs.concept_code
-where dcs.concept_class_id='Supplier'
+select distinct ir.concept_code_1 as concept_code, mf.concept_code as mf_code -- distinct only because source contains duplicated maps
+from internal_relationship_stage ir
+join drug_concept_stage mf on mf.concept_code=ir.concept_code_2 and mf.concept_class_id='Supplier' and mf.domain_id='Drug' -- Supplier of a drug
 ;
 
 -- Create table with Box Size information 
@@ -3279,7 +3279,7 @@ where pack_concept_id is null -- doesn't have an existing translation
 commit;
 
 -- Write links between Packs and their containing Drugs
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct -- because drugs can be in a pack in several components
   p.concept_code as concept_code_1,
   'RxNorm Extension' as vocabulary_id_1,
@@ -3302,7 +3302,6 @@ left join concept c on drug_concept_id=c.concept_id -- or existing drug
 where pack_concept_id is null
 ;
 commit;
-select * from extension_pack;
 
 -- Write Brand Names for Packs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
@@ -3342,6 +3341,7 @@ where pack_concept_id is null and mf_id!=0 -- has no translation and has brand n
 ;
 commit;
 
+-- Create content for packs
 create table pack_content_stage nologging as
 select 
   p.concept_code as pack_concept_code, p.vocabulary_id as pack_vocabulary_id, 
@@ -3405,7 +3405,7 @@ commit;
 
 -- Write maps for drugs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-select 
+select
   from_code as concept_code_1,
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
   ex.concept_code as concept_code_2,
@@ -3415,6 +3415,26 @@ select
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from maps_to join ex on to_id=concept_id
+where maps_to.from_code='792497'
+;
+commit;
+
+-- Write maps for Ingredients
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+select
+  i_code as concept_code_1,
+  (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
+  concept_code as concept_code_2,
+  vocabulary_id as vocabulary_id_2,
+  'Source - RxNorm eq' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
+  null as invalid_reason
+from (
+  select qi_combo as i_code, concept_code, vocabulary_id from x_ing join ing_stage on ri_combo=i_code join concept on concept_id=i_id -- translate to existing RxE ones
+union
+  select qi_code as i_code, qi_code as concept_code, 'RxNorm Extension' from extension_i -- translate to new RxNorm Extension ones, lookup in concept_stage no necessary as it still has the XXX code
+)
 ;
 commit;
 
@@ -3429,7 +3449,11 @@ select
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from x_df join concept on concept_id=df_id
+from (
+  select df_code, concept_code, vocabulary_id from x_df join concept on concept_id=df_id -- translate to existing RxE ones
+union
+  select df_code, concept_code, vocabulary_id from extension_df join concept_stage on concept_id=df_id -- translate to new RxNorm Extension ones
+)
 ;
 commit;
 
@@ -3444,7 +3468,11 @@ select
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from x_bn join concept on concept_id=bn_id
+from (
+  select bn_code, concept_code, vocabulary_id from x_bn join concept on concept_id=bn_id
+union
+  select bn_code, concept_code, vocabulary_id from extension_bn join concept_stage on concept_id=bn_id
+)
 ;
 commit;
 
@@ -3459,7 +3487,11 @@ select
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from x_mf join concept on concept_id=mf_id
+from (
+  select mf_code, concept_code, vocabulary_id from x_mf join concept on concept_id=mf_id
+union
+  select mf_code, concept_code, vocabulary_id from extension_mf join concept_stage on concept_id=mf_id
+)
 ;
 commit;
 
@@ -3492,7 +3524,8 @@ select distinct -- because each pack has many drugs
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from extension_pack join concept c on c.concept_id=pack_concept_id
+from extension_pack join concept_stage c using(concept_id)
+where pack_concept_code is not null
 ;
 commit;
 
@@ -3576,17 +3609,6 @@ when matched then update
 
 drop table crs_rowid_update purge;
 
--- replace drugs in drug_strength
-create table dss_rowid_update nologging as
-select dss.rowid as irowid, xr.omop_code as drug_concept_code from xxx_replace xr JOIN drug_strength_stage dss ON dss.drug_concept_code=xr.xxx_code;
-
-merge into drug_strength_stage dss
-using (select * from dss_rowid_update) d on (d.irowid=dss.rowid)
-when matched then update
-  set dss.drug_concept_code=d.drug_concept_code;
-
-drop table dss_rowid_update purge;
-
 -- replace ingredients in drug_strength
 create table dss_rowid_update nologging as
 select dss.rowid as irowid, xr.omop_code as ingredient_concept_code from xxx_replace xr JOIN drug_strength_stage dss ON dss.ingredient_concept_code=xr.xxx_code;
@@ -3597,30 +3619,9 @@ when matched then update
   set dss.ingredient_concept_code=d.ingredient_concept_code;
 
 drop table dss_rowid_update purge;
+commit;
 
--- replace packs in pack_content
-create table pcs_rowid_update nologging as
-select pcs.rowid as irowid, xr.omop_code as pack_concept_code from xxx_replace xr join pack_content_stage pcs on pcs.pack_concept_code=xr.xxx_code;
-
-merge into pack_content_stage pcs
-using (select * from pcs_rowid_update) d on (d.irowid=pcs.rowid)
-when matched then update
-  set pcs.pack_concept_code=d.pack_concept_code;
-
-drop table pcs_rowid_update purge;
-
--- replace drugs in pack_content
-create table pcs_rowid_update nologging as
-select pcs.rowid as irowid, xr.omop_code as drug_concept_code from xxx_replace xr join pack_content_stage pcs on pcs.drug_concept_code=xr.xxx_code;
-
-merge into pack_content_stage pcs
-using (select * from pcs_rowid_update) d on (d.irowid=pcs.rowid)
-when matched then update
-  set pcs.drug_concept_code=d.drug_concept_code;
-
-drop table pcs_rowid_update purge;
-
--- Remove concept_ids from concept_stage
+-- Remove negative and 0 concept_ids from concept_stage
 update concept_stage set concept_id=null;
 
 commit;
@@ -3661,7 +3662,7 @@ END;
 /
 COMMIT;
 
-
+-- Clean up tables
 drop view r_to_c;
 drop sequence ds_seq;
 drop sequence xxx_seq;

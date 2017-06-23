@@ -2786,7 +2786,7 @@ p as (
   select 
     pd.concept_id,
     pd.bn_name||pd.bs_name||pd.mf_name as concept_name,
-    nvl(length(pd.bs_name), 0)+nvl(length(pd.bn_name), 0)+nvl(length(pd.mf_name), 0) as len -- length of the Brand Name of the Pack plus extra characters making up the name minus the ' / ' at the last component
+    nvl(length(pd.bs_name), 0)+nvl(length(pd.bn_name), 0)+nvl(length(pd.mf_name), 0) as len -- length of the brand name the Pack plus extra characters making up the name minus the ' / ' at the last component
   from pd
 ),
 l as (
@@ -2865,7 +2865,7 @@ commit;
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select
   df_id as concept_id, -- will be replaced with null after writing all relationships
-  dcs.concept_name,
+  concept_name,
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   'Dose Form' as concept_class_id,
@@ -2875,7 +2875,6 @@ select
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   null as invalid_reason
 from extension_df
-join drug_concept_stage dcs on df_code=dcs.concept_code
 ;
 commit;
 
@@ -2883,7 +2882,7 @@ commit;
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select
   bn_id as concept_id, -- will be replaced with null after writing all relationships
-  dcs.concept_name,
+  concept_name,
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   'Brand Name' as concept_class_id,
@@ -2893,7 +2892,6 @@ select
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   null as invalid_reason
 from extension_bn
-join drug_concept_stage dcs on bn_code=dcs.concept_code
 ;
 commit;
 
@@ -2901,7 +2899,7 @@ commit;
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select
   mf_id as concept_id, -- will be replaced with null after writing all relationships
-  dcs.concept_name,
+  concept_name,
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   'Supplier' as concept_class_id,
@@ -2911,7 +2909,6 @@ select
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   null as invalid_reason
 from extension_mf
-join drug_concept_stage dcs on mf_code=dcs.concept_code
 ;
 commit;
 
@@ -3314,7 +3311,7 @@ from extension_pack join concept_stage p using(concept_id) -- get concept_code/v
 join rl on rl.concept_class_1='Brand Name' and rl.concept_class_2=p.concept_class_id
 left join concept_stage bs on bn_id=bs.concept_id
 left join concept b on bn_id=b.concept_id
-where pack_concept_id is null and bn_id!=0 -- has no translation and Has brand name
+where pack_concept_id is null and bn_id!=0 -- has no translation and brand name
 ;
 commit;
 
@@ -3333,7 +3330,7 @@ from extension_pack join concept_stage p using(concept_id) -- get concept_code/v
 join rl on rl.concept_class_1='Supplier' and rl.concept_class_2=p.concept_class_id
 left join concept_stage ms on mf_id=ms.concept_id
 left join concept m on mf_id=m.concept_id
-where pack_concept_id is null and mf_id!=0 -- has no translation and Has brand name
+where pack_concept_id is null and mf_id!=0 -- has no translation and supplier
 ;
 commit;
 

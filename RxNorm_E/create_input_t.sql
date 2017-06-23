@@ -545,7 +545,7 @@ DELETE drug_concept_stage where concept_code IN
 
 DELETE drug_concept_stage
 WHERE concept_code IN
-('OMOP881482','OMOP341519','OMOP346740','OMOP714610','721654','1021221','317004')
+('OMOP881482','OMOP341519','OMOP346740','OMOP714610','721654','1021221','317004','1371041','236340')--apo-trastumab,gas etc.
 OR (lower(concept_name) like '%apotheke%' AND concept_class_id='Supplier');
 
 /* Remove wrong brand names (need to save for the later clean up)
@@ -1984,7 +1984,6 @@ WHERE pack_concept_code = 'OMOP902613'
 AND   drug_concept_code = 'OMOP918399'
 AND   amount = 7;
 COMMIT;
-
 UPDATE pc_stage
    SET amount = 12
 WHERE pack_concept_code = 'OMOP420950'
@@ -2000,6 +1999,17 @@ UPDATE pc_stage
 WHERE pack_concept_code = 'OMOP902613'
 AND   drug_concept_code = 'OMOP918399'
 AND   amount = 5;
+DELETE
+FROM pc_stage
+WHERE pack_concept_code = 'OMOP902009'
+AND   drug_concept_code = 'OMOP706163'
+AND   amount = 28;
+UPDATE pc_stage
+   SET amount = 31
+WHERE pack_concept_code = 'OMOP902009'
+AND   drug_concept_code = 'OMOP706163'
+AND   amount = 3;
+
 
 COMMIT;
 

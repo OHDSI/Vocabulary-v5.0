@@ -20,23 +20,23 @@
 * This script post-processes the result of Build_RxE.sql run against Rxfix    *
 * (instead of a real drug database. It needs to be run before                 *
 * generic_update.sql. It replaces all newly generated RxNorm Extension codes  *
-* with the existing ones. It then condenses the few truly new RxNorm          *
+* with the existing ones. It then new_rxes the few truly new RxNorm          *
 * Extension ones                                                              *
 ******************************************************************************/
 
 /***********************************************************************************************************
 * 1. Create table with replacement of RxNorm Extension concept_codes with existing Rxfix/RxO concept_codes *
-* and the ones remaining, who's codes need to be condensed                                                 *
+* and the ones remaining, who's codes need to be new_rxed                                                 *
 ***********************************************************************************************************/
--- Pick the one to keep that matches best by concept_name and then by length
-create table drop_rxe nologging as
+-- For Rxfix-RxE relationship, pick the best one by name and name length
+create table equiv_rxe nologging as
 with maps as (
   select concept_code_1 as c1_code, concept_code_2 as c2_code,
     case when lower(c1.concept_name)=lower(c2.concept_name) then 1 else 2 end as match,
     length(c1.concept_name)/length(c2.concept_name) as l
   from concept_relationship_stage 
-  join drug_concept_stage c1 on c1.concept_code=concept_code_1
-  join concept_stage c2 on c2.concept_code=concept_code_2
+  join drug_concept_stage c1 on c1.concept_code=concept_code_1 -- for name comparison
+  join concept_stage c2 on c2.concept_code=concept_code_2 -- for name comparison
   where relationship_id in ('Maps to', 'Source - RxNorm eq') and vocabulary_id_1='Rxfix' and vocabulary_id_2='RxNorm Extension'
 ),
 maps2 as ( -- flipping length difference l to be between 0 and 1
@@ -48,6 +48,10 @@ select distinct
   c2_code as rxe_code
 from maps2
 ;
+
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'equiv_rxe', estimate_percent => null, cascade => true);
+create index idx_equiv_rxe on equiv_rxe(rxe_code);
+create index idx_equiv_rxf on equiv_rxe(rxf_code);
 
 -- create sequence for "tight" OMOP codes
 declare
@@ -66,126 +70,188 @@ select max(iex)+1 into ex from (
 end;
 /
 
-create table keep_rxe ( 
+-- new_rxe the new RxE codes, where no traditional will be equiv_rxed
+create table new_rxe ( 
   sparse_code varchar2(50),
   tight_code varchar2(50)
 ) nologging;
 
--- generate OMOP codes for new concepts
-insert /*+ APPEND */ into keep_rxe
-select concept_code as sparse_code, 'OMOP'||omop_seq.nextval as tight_code
-from concept_stage 
-where vocabulary_id='RxNorm Extension'
-and concept_code not in (select rxe_code from drop_rxe) -- those will be gone
+insert /*+ APPEND */ into new_rxe
+select rxe.concept_code as sparse_code, 'OMOP'||omop_seq.nextval as tight_code
+from concept_stage rxe
+left join concept rxn on rxn.concept_code=rxe.concept_code and rxn.vocabulary_id='RxNorm' -- remove the Rxfix which are really RxNorm
+where rxe.vocabulary_id='RxNorm Extension'
+and rxe.concept_code not in (select rxe_code from equiv_rxe) -- those will be kept intact
+and rxn.concept_id is null
 ;
 commit;
 
-/*************************************
-* 2. Fix the Rxfix/RxO end of things *
-*************************************/
--- Delete those Maps to/Source - RxNorm eq relationships, since we are making them the same concept
-delete from concept_relationship_stage where rowid in (
-  select r.rowid from concept_relationship_stage r join drop_rxe on r.concept_code_1=rxf_code and r.concept_code_2=rxe_code 
-  where r.relationship_id in ('Maps to', 'Source - RxNorm eq') and r.vocabulary_id_1='Rxfix' and r.vocabulary_id_2='RxNorm Extension'
-);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'new_rxe', estimate_percent => null, cascade => true);
+create index idx_new_sparse on new_rxe(sparse_code);
 
--- Delete those Rxfix concepts that will merge with their corresponding RxNorm Extension records
-delete from concept_stage where concept_code in (select rxf_code from drop_rxe where vocabulary_id='Rxfix');
+-- Invalidate Rxfix records that are not equiv_rxed and rename their link to 'Concept replaced by'
+create table inval_rxe nologging as
+select rxf.concept_code 
+from concept_stage rxf
+left join concept rxn on rxn.concept_code=rxf.concept_code and rxn.vocabulary_id='RxNorm' -- remove the Rxfix which are really RxNorm
+where rxf.vocabulary_id='Rxfix'
+and rxf.concept_code not in (select rxf_code from equiv_rxe) -- those will be gone
+and rxn.concept_id is null
+;
 
--- Delete those records that like RxNorm codes
-delete from concept_relationship_stage where rowid in (
-  select r.rowid from concept_relationship_stage r join concept on r.concept_code_1=concept_code and vocabulary_id='RxNorm'
-  where r.relationship_id in ('Maps to', 'Source - RxNorm eq') and r.vocabulary_id_1='Rxfix'
-);
+-- For Rxfix records that have RxNorm equivalents, rxe_rxn drug_strengh_stage and pack_content_stage records, or replace components with RxNorm
+create table rxn_rxn nologging as
+select concept_code_1 as rxf_code, concept_code_2 as rxn_code
+from concept_relationship_stage 
+join concept on concept_code=concept_code_1 and vocabulary_id='RxNorm' -- remove the Rxfix which are really RxNorm
+where relationship_id in ('Maps to', 'Source - RxNorm eq') and vocabulary_id_1='Rxfix' and vocabulary_id_2='RxNorm'
+;
 
--- Delete RxNorm records from concept_stage
-delete from concept_stage where concept_code in (select concept_code from concept where vocabulary_id='RxNorm');
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'rxn_rxn', estimate_percent => null, cascade => true);
+create index idx_rxn_rxf on rxn_rxn(rxf_code);
 
--- Delete RxNorm records from concept_stage
-delete from drug_strength_stage where drug_concept_code in (select concept_code from concept where vocabulary_id='RxNorm');
+/*******************************************************
+* 2. Deal with equivalent rxf-rxe concepts (equiv_rxe) *
+*******************************************************/
+-- Delete identity relationships 
+delete from concept_relationship_stage where concept_code_1 in (select rxf_code from equiv_rxe) and vocabulary_id_1='Rxfix';
 
--- Obsolete the remaining ones that have a link - to Upgrade
-update concept_stage set vocabulary_id='RxNorm Extension', valid_end_date=sysdate-1, invalid_reason='U' where exists (
-  select 1 from concept_relationship_stage where concept_code_1=concept_code and vocabulary_id_1='Rxfix' and relationship_id in ('Maps to', 'Source - RxNorm eq')
-) and vocabulary_id='Rxfix';
+-- Delete no longer needed Rxfix concepts 
+delete from concept_stage where concept_code in (select rxf_code from equiv_rxe) and vocabulary_id='Rxfix';
 
--- Obsolete the remaining ones - to Deprecated
-update concept_stage set vocabulary_id='RxNorm Extension', valid_end_date=sysdate-1, invalid_reason='D' where vocabulary_id='Rxfix';
+-- Restore concept_stage: Replace RxNorm Extension concept_codes with the original RxNorm Extension codes from Rxfix
+update concept_stage set concept_code=(select rxf_code from equiv_rxe where concept_code=rxe_code)
+where exists (select 1 from equiv_rxe where concept_code=rxe_code) and vocabulary_id='RxNorm Extension';
 
--- Change Maps to to Concept replaced by since it is both RxNorm Extension now
-update concept_relationship_stage set relationship_id='Concept replaced by' where relationship_id in ('Maps to', 'Source - RxNorm eq');
+-- Restore concept_relationship_stage
+update concept_relationship_stage set concept_code_1=(select rxf_code from equiv_rxe where concept_code_1=rxe_code)
+where exists (select 1 from equiv_rxe where concept_code_1=rxe_code) and vocabulary_id_1='RxNorm Extension';
 
-/********************************************************************
-* 3. Change the concept_codes of the RxE we give the old codes back *
-********************************************************************/
-create index idx_rxe_code on drop_rxe (rxe_code);
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname=> USER, tabname => 'drop_rxe', estimate_percent => null, cascade => true);
+update concept_relationship_stage set concept_code_2=(select rxf_code from equiv_rxe where concept_code_2=rxe_code)
+where exists (select 1 from equiv_rxe where concept_code_2=rxe_code) and vocabulary_id_2='RxNorm Extension';
 
--- Fis concept_stage: Replace RxNorm Extension concept_codes with the original RxNorm Extension codes
-update concept_stage set (vocabulary_id, concept_code)=(select 'RxNorm Extension', rxf_code from drop_rxe where concept_code=rxe_code)
-where exists (select 1 from drop_rxe where concept_code=rxe_code);
+-- Restore drug_strength_stage
+update drug_strength_stage set drug_concept_code=(select rxf_code from equiv_rxe where drug_concept_code=rxe_code)
+where exists (select 1 from equiv_rxe where drug_concept_code=rxe_code) and vocabulary_id_1='RxNorm Extension';
 
--- Fix concept_relationship_stage
-update concept_relationship_stage set concept_code_1=(select rxf_code from drop_rxe where concept_code_1=rxe_code)
-where exists (select 1 from drop_rxe where concept_code_1=rxe_code and vocabulary_id_1='RxNorm Extension');
+update drug_strength_stage set ingredient_concept_code=(select rxf_code from equiv_rxe where ingredient_concept_code=rxe_code)
+where exists (select 1 from equiv_rxe where ingredient_concept_code=rxe_code) and vocabulary_id_2='RxNorm Extension';
 
-update concept_relationship_stage set concept_code_2=(select rxf_code from drop_rxe where concept_code_2=rxe_code)
-where exists (select 1 from drop_rxe where concept_code_2=rxe_code and vocabulary_id_2='RxNorm Extension');
+-- Restore pack_concent_stage
+update pack_content_stage set pack_concept_code=(select rxf_code from equiv_rxe where pack_concept_code=rxe_code)
+where exists (select 1 from equiv_rxe where pack_concept_code=rxe_code) and pack_vocabulary_id='RxNorm Extension';
 
--- Fix drug_strength_stage
-update drug_strength_stage set drug_concept_code=(select rxf_code from drop_rxe where drug_concept_code=rxe_code)
-where exists (select 1 from drop_rxe where ingredient_concept_code=rxe_code and drug_vocabulary_id='RxNorm Extension');
+update pack_content_stage set drug_concept_code=(select rxf_code from equiv_rxe where drug_concept_code=rxe_code)
+where exists (select 1 from equiv_rxe where drug_concept_code=rxe_code) and drug_vocabulary_id='RxNorm Extension';
 
-update drug_strength_stage set ingredient_concept_code=(select rxf_code from drop_rxe where ingredient_concept_code=rxe_code)
-where exists (select 1 from drop_rxe where ingredient_concept_code=rxe_code and ingredient_vocabulary_id='RxNorm Extension');
+/*******************************************************************
+* 3. Invalidate RxE concepts that are no longer needed (inval_rxe) *
+*******************************************************************/
+-- Fix the ones with a 'Maps to'
+update concept_stage c set c.vocabulary_id='RxNorm Extension', c.valid_end_date=(select latest_update-1 from vocabulary where vocabulary_id='Rxfix')-1, c.invalid_reason='U'
+where exists (select 1 from inval_rxe i where c.concept_code=i.concept_code) -- is not slotted for turning into active RxE
+and exists (select 1 from concept_relationship_stage where concept_code_1=c.concept_code) -- has a relationship to something
+and vocabulary_id='Rxfix';
 
--- Fix pack_concent_stage
-update pack_content_stage set pack_concept_code=(select rxf_code from drop_rxe where pack_concept_code=rxe_code)
-where exists (select 1 from drop_rxe where pack_concept_code=rxe_code and vocabulary_id_2='RxNorm Extension');
+-- Obsolete the remaining ones 
+update concept_stage c set c.vocabulary_id='RxNorm Extension', c.valid_end_date=(select latest_update-1 from vocabulary where vocabulary_id='Rxfix')-1, c.invalid_reason='U'
+where exists (select 1 from inval_rxe i where c.concept_code=i.concept_code) -- is not slotted for turning into active RxE
+and not exists (select 1 from concept_relationship_stage where concept_code_1=c.concept_code) -- has a relationship to something
+and vocabulary_id='Rxfix';
 
-update drug_content_stage set pack_concept_code=(select rxf_code from drop_rxe where drug_concept_code=rxe_code)
-where exists (select 1 from drop_rxe where drug_concept_code=rxe_code and vocabulary_id_2='RxNorm Extension');
+-- Change vocabulary_id for all those in concept_relationship_stage
+update concept_relationship_stage c set vocabulary_id_1='RxNorm Extension'
+where concept_code_1 in (select concept_code from inval_rxe) -- is not slotted for turning into active RxE
+and vocabulary_id_1='Rxfix';
 
+/***************************************************
+* 4. Remove Rxfix that are really RxNorm (rxn_rxn) *
+****************************************************/
+-- Delete relationships 
+delete from concept_relationship_stage where concept_code_1 in (select rxf_code from rxn_rxn) and vocabulary_id_1='Rxfix';
 
-select * from concept_relationship_stage where concept_code_2='792497';
-select * from maps_to where from_code='792497';
-select * from concept_relationship_stage where relationship_id='Maps to';
-update drug_strength_stage set (ingredient_concept_code, vocabulary_id_1)=(select rxf_code, 'RxNorm Extension' from drop_rxe where ingredient_concept_code=rxe_code)
-where exists (select 1 from drop_rxe where ingredient_concept_code=rxe_code and vocabulary_id_2='RxNorm Extension');
+-- Delete concepts 
+delete from concept_stage where concept_code in (select rxf_code from rxn_rxn) and vocabulary_id='Rxfix';
 
-select * from drug_strength_stage join drop_rxe on drug_concept_code=rxe_code and rxf_code not like 'OMOP%';
-select * from drop_rxe where rxf_code not like 'OMOP%';
 /**********************************************************************************************
-* 4. Condense the remaining RxNorm Extension codes so they don't take up as much number space *
+* 5. Condense the remaining RxNorm Extension codes so they don't take up as much number space *
 **********************************************************************************************/
--- Replace newly formed RxNorm Extension concept_codes (not deleted in previous step) with condensed ones
-update concept_stage set vocabulary_id=(select tight_code from keep_rxe where concept_code=sparse_code)
-where exists (select 1 from keep_rxe where concept_code=sparse_code and vocabulary_id_1='RxNorm Extension');
+-- Fix concept_stage
+update concept_stage set concept_code=(select tight_code from new_rxe where concept_code=sparse_code)
+where exists (select 1 from new_rxe where concept_code=sparse_code) and vocabulary_id='RxNorm Extension';
 
 -- Fix concept_relationship_stage
-update concept_relationship_stage set concept_code_1=(select tight_code from keep_rxe where concept_code_1=sparse_code)
-where exists (select 1 from keep_rxe where concept_code_1=sparse_code and vocabulary_id_1='RxNorm Extension');
+update concept_relationship_stage set concept_code_1=(select tight_code from new_rxe where concept_code_1=sparse_code)
+where exists (select 1 from new_rxe where concept_code_1=sparse_code) and vocabulary_id_1='RxNorm Extension';
 
-update concept_relationship_stage set concept_code_2=(select tight_code from keep_rxe where concept_code_2=sparse_code)
-where exists (select 1 from keep_rxe where concept_code_2=sparse_code and vocabulary_id_2='RxNorm Extension');
+update concept_relationship_stage set concept_code_2=(select tight_code from new_rxe where concept_code_2=sparse_code)
+where exists (select 1 from new_rxe where concept_code_2=sparse_code) and vocabulary_id_2='RxNorm Extension';
 
 -- Fix drug_strength_stage
-update drug_strength_stage set drug_concept_code=(select tight_code from keep_rxe where drug_concept_code=sparse_code)
-where exists (select 1 from keep_rxe where drug_concept_code=sparse_code and drug_vocabulary_id='RxNorm Extension');
+update drug_strength_stage set drug_concept_code=(select tight_code from new_rxe where drug_concept_code=sparse_code)
+where exists (select 1 from new_rxe where drug_concept_code=sparse_code) and vocabulary_id_1='RxNorm Extension';
 
-update ingredient_strength_stage set drug_concept_code=(select tight_code from keep_rxe where ingredient_concept_code=sparse_code)
-where exists (select 1 from keep_rxe where ingredient_concept_code=sparse_code and ingredient_vocabulary_id='RxNorm Extension');
+update drug_strength_stage set ingredient_concept_code=(select tight_code from new_rxe where ingredient_concept_code=sparse_code)
+where exists (select 1 from new_rxe where ingredient_concept_code=sparse_code) and vocabulary_id_2='RxNorm Extension';
 
 -- Fix pack_content_stage
-update pack_content_stage set pack_concept_code=(select tight_code from keep_rxe where pack_concept_code=sparse_code)
-where exists (select 1 from keep_rxe where pack_concept_code=sparse_code and pack_vocabulary_id='RxNorm Extension');
+update pack_content_stage set pack_concept_code=(select tight_code from new_rxe where pack_concept_code=sparse_code)
+where exists (select 1 from new_rxe where pack_concept_code=sparse_code) and pack_vocabulary_id='RxNorm Extension';
 
-update pack_content_stage set drug_concept_code=(select tight_code from keep_rxe where drug_concept_code=sparse_code)
-where exists (select 1 from keep_rxe where drug_concept_code=sparse_code and drug_vocabulary_id='RxNorm Extension');
+update pack_content_stage set drug_concept_code=(select tight_code from new_rxe where drug_concept_code=sparse_code)
+where exists (select 1 from new_rxe where drug_concept_code=sparse_code) and drug_vocabulary_id='RxNorm Extension';
+
+/******************************************************************************************
+* 6. Rename all 'Maps to' and 'Source – RxNorm eq' relationships to 'Concept replaced by' *
+******************************************************************************************/
+update concept_relationship_stage set relationship_id='Concept replaced by' where relationship_id in ('Maps to', 'Source - RxNorm eq');
+commit;
+
+/******************************************************************************
+* 7. Return all relationships that were in the base tables but no longer here *
+*    The internal RxE will be deprecated, those to ATC will be copied         *
+******************************************************************************/
+-- Within RxE
+insert /*+ APPEND */ into concept_relationship_stage
+select 
+  null as concept_id_1, null as concept_id_2, 
+  concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id,
+  r.valid_start_date, (select latest_update-1 from vocabulary where vocabulary_id='Rxfix')-1 as valid_end_date, 'D' as invalid_reason
+from (
+  select 
+    c1.concept_code as concept_code_1, c1.vocabulary_id as vocabulary_id_1, c2.concept_code as concept_code_2, c2.vocabulary_id as vocabulary_id_2,
+    relationship_id, r.valid_start_date
+  from devv5.concept_relationship r
+  join devv5.concept c1 on r.concept_id_1=c1.concept_id
+  join devv5.concept c2 on r.concept_id_2=c2.concept_id
+  -- only within RxE, and but no RxNorm to RxNorm
+  where c1.vocabulary_id='RxNorm Extension' and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+    or c1.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c2.vocabulary_id='RxNorm Extension'
+) r
+left join concept_relationship_stage s using(concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
+where s.valid_start_date is null
+;
+commit;
+
+-- To ATC etc.
+insert  /*+ APPEND */ into concept_relationship_stage
+select 
+  null as concept_id_1, null as concept_id_2, 
+  c1.concept_code as concept_code_1, c1.vocabulary_id as vocabulary_id_1, c2.concept_code as concept_code_2, c2.vocabulary_id as vocabulary_id_2,
+  relationship_id, r.valid_start_date, r.valid_end_date, r.invalid_reason
+from devv5.concept_relationship r
+join devv5.concept c1 on r.concept_id_1=c1.concept_id
+join devv5.concept c2 on r.concept_id_2=c2.concept_id
+where c1.vocabulary_id='RxNorm Extension' and c2.domain_id='Drug' and c2.standard_concept='C'
+  or c2.domain_id='Drug' and c1.standard_concept='C' and c2.vocabulary_id='RxNorm Extension'
+;
+commit;
 
 /**************
-* 5. Clean up *
+* 8. Clean up *
 **************/
-drop table drop_rxe purge;
-drop table keep_rxe purge;
-drop sequence omop_replace purge;
+drop table equiv_rxe purge;
+drop table new_rxe purge;
+drop sequence omop_seq;
+drop table inval_rxe purge;
+drop table rxn_rxn purge;

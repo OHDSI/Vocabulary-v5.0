@@ -433,7 +433,58 @@ update thin_need_to_map set gemscript_name = regexp_replace (gemscript_name, 'i.
 ;
 commit
 ;
-drop table thin_comp;
+--define what's a pack based on the concept_name, then manually parse this out, then add pack_component names as a codes (check the code replacing script) and add pack_components as a drug components in ds_stage creation algorithms
+drop table packs_out;
+create table packs_out as
+select  THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME , cast ('' as varchar (250)) as pack_component , cast ('' as int) as amount
+ from   
+  thin_need_to_map t  
+where  t.domain_id = 'Drug' and gemscript_name not like 'Becloforte%'
+and (
+gemscript_name like '% pack%'
+or
+gemscript_code in
+--packs defined manually
+ ('67678021', '76122020', '80033020', '1637007')
+ or
+ regexp_like (thin_name, '(\d\s*x\s*\d)|(estradiol.*\+)')
+ or 
+ regexp_count (thin_name, 'tablet| cream|capsule')>1
+ )
+ ;
+ /*
+ drop table  packs_in;
+create table  packs_in as select * from packs_out where rownum =0
+;
+WbImport -file=C:/work/gemscript_packs_in.txt
+         -type=text
+         -table=PACKS_IN
+         -encoding="ISO-8859-15"
+         -header=true
+         -decode=false
+         -dateFormat="yyyy-MM-dd"
+         -timestampFormat="yyyy-MM-dd HH:mm:ss"
+         -delimiter='\t'
+         -decimal=.
+         -fileColumns=GEMSCRIPT_CODE,THIN_NAME,GEMSCRIPT_NAME,PACK_COMPONENT,AMOUNT,$wb_skip$
+         -quoteCharEscaping=none
+         -ignoreIdentityColumns=false
+         -deleteTarget=false
+         -continueOnError=false
+         -batchSize=100;
+*/
+; 
+ insert into pc_stage (PACK_CONCEPT_CODE,DRUG_CONCEPT_CODE,AMOUNT,BOX_SIZE)
+ select GEMSCRIPT_CODE, PACK_COMPONENT,AMOUNT, ''  from packs_in
+;
+ commit
+ ;
+insert into thin_need_to_map (THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID)
+select '', DRUG_CONCEPT_CODE, DRUG_CONCEPT_CODE,DRUG_CONCEPT_CODE, 'Drug' from pc_stage
+;
+commit
+;
+ drop table thin_comp;
 create table thin_comp as 
 select regexp_substr 
 (lower (a.drug_comp), 
@@ -442,7 +493,7 @@ select regexp_substr
  from (
 select distinct
 trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, levels.column_value))  as drug_comp , t.* 
-from thin_need_to_map t,
+from thin_need_to_map t, --(!!!select * from thin_need_to_map union select ... from packs_in) t
 table(cast(multiset(select level from dual connect by  level <= length (regexp_replace(regexp_replace (t.thin_name, ' / ', '!'), '[^!]+'))  + 1) as sys.OdciNumberList)) levels) a
 where a.domain_id ='Drug' 
 --exclusions
@@ -503,6 +554,7 @@ where a.domain_id ='Drug')
 where rank1 = 1 
 )
 ;
+--map Ingredients derived from different vocabularies to RxNorm(E)
 drop table rel_to_ing_1 ;
 create table rel_to_ing_1 as
 select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.GEMSCRIPT_NAME,i.VOLUME
@@ -621,19 +673,18 @@ where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g');
 
 --!!! give it to medical coder
 ;
-drop table manual_in_co_dose;
-create table manual_in_co_dose as
+drop table manual_in_co_dose_1;
+create table manual_in_co_dose_1 as
 select DOSAGE	,VOLUME	,INGREDIENT_CONCEPT_CODE,	CONCEPT_NAME,	CONCEPT_CODE
 , gemscript_name from ds_all_tmp t
 join thin_need_to_map on concept_code = thin_code
-where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g')
 and rownum =0
 ;
 --here goes import script, file manual_in_co_dose.txt (tab delimited is on a github)
 --and where the hell is a script adding this to ds_stage?
-WbImport -file=C:/work/manual_in_co_dose.txt 
+WbImport -file=C:/work/manual_in_co_dose_1.txt 
          -type=text
-         -table=MANUAL_IN_CO_DOSE
+         -table=MANUAL_IN_CO_DOSE_1
          -encoding="ISO-8859-15"
          -header=true
          -decode=false
@@ -648,20 +699,53 @@ WbImport -file=C:/work/manual_in_co_dose.txt
          -continueOnError=false
          -batchSize=100
 ;
-!!!
---due to thin/gemscript change - made the manual table codes as gemscript_codes
-merge into manual_in_co_dose m using (select thin_code, gemscript_code from thin_need_to_map ) t on (t.thin_code = m.concept_code) when matched then update set m.concept_code = t.gemscript_code
+!!!done
+update manual_in_co_dose_1 m set concept_code = (select t.gemscript_code from thin_need_to_map t where t.thin_code = m.concept_code)
+where exists (select 1 from thin_need_to_map t where t.thin_code = m.concept_code)
 ;
 commit
 ;
+create table manual_in_co_dose_2 as
+select DOSAGE	,VOLUME	,INGREDIENT_CONCEPT_CODE,	CONCEPT_NAME,	CONCEPT_CODE
+, gemscript_name from ds_all_tmp t
+join thin_need_to_map on concept_code = thin_code
+and rownum =0
+;
+WbImport -file=C:/work/manual_in_co_dose_2.txt
+         -type=text
+         -table=MANUAL_IN_CO_DOSE_2
+         -encoding="ISO-8859-15"
+         -header=true
+         -decode=false
+         -dateFormat="yyyy-MM-dd"
+         -timestampFormat="yyyy-MM-dd HH:mm:ss"
+         -delimiter='\t'
+         -decimal=.
+         -fileColumns=DOSAGE,VOLUME,INGREDIENT_CONCEPT_CODE,CONCEPT_NAME,CONCEPT_CODE,GEMSCRIPT_NAME
+         -quoteCharEscaping=none
+         -ignoreIdentityColumns=false
+         -deleteTarget=false
+         -continueOnError=false
+         -batchSize=100;
 
+--;
+--select * from manual_in_co_dose_1 left join thin_need_to_map on concept_code = gemscript_code where gemscript_code is not null
+create table manual_in_co_dose as
+select * from manual_in_co_dose_1
+union
+select * from manual_in_co_dose_2
+;
 */
+delete from ds_all_tmp where concept_code in (select concept_code from manual_in_co_dose);
 
---then merge it with ds_all_tmp, for now temporary decision - make dosages NULL to avoid bug
-update ds_all_tmp set dosage = null where regexp_like (dosage, '[[:digit:]\.\,]+m(c*)g/[[:digit:]\.\,]+m(c*)g', 'i')
+commit
+;
+insert into ds_all_tmp (DOSAGE,DRUG_COMP,CONCEPT_NAME,CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,INGREDIENT_CONCEPT_NAME,VOLUME)
+select DOSAGE, '', CONCEPT_NAME, CONCEPT_CODE, INGREDIENT_CONCEPT_CODE, INGREDIENT_CONCEPT_CODE, volume from manual_in_co_dose
 ;
 commit
 ;
+--then merge it with ds_all_tmp, for now temporary decision - make dosages NULL to avoid bug
 --remove ' ' inside the dosage to make the same as it was before in dmd
 update ds_all_tmp set dosage = replace (dosage, ' ')
 ;
@@ -1292,7 +1376,7 @@ union
 select distinct drug_concept_code,ingredient_concept_code from ds_stage
 ;
 --check
- --fix these duplicates
+ --fix these duplicates !!!
 select drug_concept_code,ingredient_concept_code from ds_stage group by drug_concept_code,ingredient_concept_code having count(1) >1
  ; 
  truncate table relationship_to_concept;
@@ -1312,6 +1396,13 @@ select concept_code_1, CONCEPT_ID_2, precedence, conversion_factor from dev_dmd.
 join dev_dmd.DRUG_CONCEPT_STAGE_042017 on concept_code = concept_code_1 WHERE concept_class_id= 'Unit' 
 and precedence = 1
 --need to change the mapping from mcg to 0.001 mg
+;
+--some ingredients may not get into the relationship_to_concept !!!
+insert into relationship_to_concept  (concept_code_1, concept_id_2, precedence, conversion_factor)
+select concept_name, concept_id , 1, 1 from concept where lower ( concept_name) in (select lower (concept_code) from drug_concept_stage where concept_class_id ='Ingredient') and concept_name not in (select concept_code_1 from relationship_to_concept) 
+and concept_class_id = 'Ingredient' and vocabulary_id like 'Rx%' and invalid_reason is null
+;
+commit
 ;
 UPDATE RELATIONSHIP_TO_CONCEPT
    SET CONCEPT_ID_2 = 8576,
@@ -1362,7 +1453,7 @@ end;
 drop table  code_replace;
  create table code_replace as 
  select 'OMOP'||code_seq.nextval as new_code, concept_code as old_code from (
-select distinct  concept_code from drug_concept_stage where concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form')
+select distinct  concept_code from drug_concept_stage where concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form') or concept_code in (select drug_concept_code from pc_stage)
 )
 ;
 update drug_concept_stage a set concept_code = (select new_code from code_replace b where a.concept_code = b.old_code) 

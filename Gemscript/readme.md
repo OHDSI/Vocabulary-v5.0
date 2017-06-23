@@ -1,14 +1,7 @@
-1.need to describe how we get a the source_tables
-2. make proper ctl-files.
-3. 
-plan for 05/12/
-Dose Form
-Add those short forms update
-update gemscr_3 set 
-GENERIC_NAME = regexp_replace (GENERIC_NAME, 'pes$','pessary' )
-;
-try the same algorith I used for Ingredients
-;
-
- 
-manual_in_co_dose.txt is used for such "Co-amilozide 5mg/50mg tablets" dosaging parsing
+1. load_stage_gemscr_based.sql
+2. RxE builder
+3. generic_update
+4. map_after_RxE
+5. fast_recreate
+6. final_part -- so we got the nice stage tables
+7. generic or copy to devv5.

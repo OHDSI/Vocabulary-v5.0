@@ -34,13 +34,9 @@
 /** IMPORTANT **/
 /* Add the latest_udpate and version information to the VOCABULARY table **/
 
-create index idx_dcs_concept_code on drug_concept_stage (concept_code)
-;
-commit;
-
 -- Add existing mappings from previous runs. 
 create view r_to_c as
-  select * from relationship_to_concept where concept_code_1 is not null
+  select r.* from relationship_to_concept r join concept on concept_id=r.concept_id_2 and vocabulary_id in ('RxNorm', 'RxNorm Extension', 'UCUM') where r.concept_code_1 is not null
 union
   select c1.concept_code as concept_code_1, c1.vocabulary_id as vocabulary_id_1, r.concept_id_2, 1, null
   from concept c1
@@ -994,6 +990,17 @@ join (
 ) r on concept_id_2=r.df_id 
 ;
 
+-- Add those that are not used in r, but exist and are used in q
+insert into qr_df
+select q.df_code, 
+  first_value(concept_id_2) over (partition by q.df_code order by nvl(precedence, 1)) as df_id, 1 as df_prec
+from (
+  select distinct df_code from q_df
+) q
+join r_to_c on concept_code_1=q.df_code
+and df_code not in (select df_code from qr_df)
+;
+
 -- Translation between Dose Forms
 create table qr_bn as
 select q.bn_code, r.bn_id, precedence as bn_prec
@@ -1006,6 +1013,17 @@ join ( -- limit to brand names in r
 ) r on concept_id_2=r.bn_id 
 ;
 
+-- Add those that are not used in r, but exist and are used in q
+insert into qr_bn
+select q.bn_code, 
+  first_value(concept_id_2) over (partition by q.bn_code order by nvl(precedence, 1)) as bn_id, 1 as bn_prec
+from (
+  select distinct bn_code from q_bn
+) q
+join r_to_c on concept_code_1=q.bn_code
+and bn_code not in (select bn_code from qr_bn)
+;
+
 -- Translation between Dose Forms
 create table qr_mf as
 select q.mf_code, r.mf_id, precedence as mf_prec
@@ -1016,6 +1034,17 @@ join r_to_c on concept_code_1=q.mf_code
 join ( -- limit to supplier in r
   select distinct mf_id from r_mf
 ) r on concept_id_2=r.mf_id 
+;
+
+-- Add those that are not used in r, but exist and are used in q
+insert into qr_mf
+select q.mf_code, 
+  first_value(concept_id_2) over (partition by q.mf_code order by nvl(precedence, 1)) as mf_id, 1 as mf_prec
+from (
+  select distinct mf_code from q_mf
+) q
+join r_to_c on concept_code_1=q.mf_code
+and mf_code not in (select mf_code from qr_mf)
 ;
 
 -- No need for translating box sizes 
@@ -2865,7 +2894,7 @@ commit;
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select
   df_id as concept_id, -- will be replaced with null after writing all relationships
-  concept_name,
+  dcs.concept_name,
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   'Dose Form' as concept_class_id,
@@ -2875,6 +2904,7 @@ select
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   null as invalid_reason
 from extension_df
+join drug_concept_stage dcs on df_code=dcs.concept_code
 ;
 commit;
 
@@ -2882,7 +2912,7 @@ commit;
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select
   bn_id as concept_id, -- will be replaced with null after writing all relationships
-  concept_name,
+  dcs.concept_name,
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   'Brand Name' as concept_class_id,
@@ -2892,6 +2922,7 @@ select
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   null as invalid_reason
 from extension_bn
+join drug_concept_stage dcs on bn_code=dcs.concept_code
 ;
 commit;
 
@@ -2899,7 +2930,7 @@ commit;
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 select
   mf_id as concept_id, -- will be replaced with null after writing all relationships
-  concept_name,
+  dcs.concept_name,
   'Drug' as domain_id,
   'RxNorm Extension' as vocabulary_id,
   'Supplier' as concept_class_id,
@@ -2909,6 +2940,7 @@ select
   nvl(dcs.valid_end_date, to_date('2099-12-31', 'yyyy-mm-dd')) as valid_end_date,
   null as invalid_reason
 from extension_mf
+join drug_concept_stage dcs on mf_code=dcs.concept_code
 ;
 commit;
 
@@ -3329,7 +3361,7 @@ select distinct
 from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
 join rl on rl.concept_class_1='Supplier' and rl.concept_class_2=p.concept_class_id
 left join concept_stage ms on mf_id=ms.concept_id
-left join concept m on mf_id=m.concept_id
+left join concept m on mf_id=m.concept_id 
 where pack_concept_id is null and mf_id!=0 -- has no translation and supplier
 ;
 commit;
@@ -3719,10 +3751,4 @@ drop table pack_name purge;
 drop sequence omop_seq;
 drop table rl purge;
 drop table ex purge;
-drop table pack_content_stage purge;
 drop table xxx_replace purge;
--- drop table drug_concept_stage purge;
--- drop table ds_stage purge;
--- drop table internal_relationship_stage purge;
--- drop table pc_stage purge;
--- drop table relationship_to_concept purge;

@@ -464,12 +464,12 @@ INSERT /*+ APPEND */
 		   NULL,
 		   c.domain_id,
 		   c.valid_start_date,
-		   TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
+		   c.valid_end_date,
 		   c.invalid_reason,
 		   'Ingredient'
 	  FROM concept c
 	 WHERE c.concept_name IN ('Yeasts','Kentucky bluegrass pollen extract') AND c.vocabulary_id='RxNorm';
-COMMIT;		 	   
+COMMIT;	
 
 --4.6 Get all Units
 INSERT /*+ APPEND */

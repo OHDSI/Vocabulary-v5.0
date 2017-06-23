@@ -159,9 +159,14 @@ COMMIT;
 --2 Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'Rxfix',
-                                          pVocabularyDate        => TRUNC(SYSDATE),
-                                          pVocabularyVersion     => 'Rxfix '||SYSDATE,
-                                          pVocabularyDevSchema   => 'DEV_RXE');									  
+                                          pVocabularyDate        => TRUNC(sysdate),
+                                          pVocabularyVersion     => 'Rxfix '||sysdate,
+                                          pVocabularyDevSchema   => 'DEV_RXE');
+   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'RxNorm Extension',
+                                          pVocabularyDate        => TRUNC(sysdate),
+                                          pVocabularyVersion     => 'RxNorm Extension '||sysdate,
+                                          pVocabularyDevSchema   => 'DEV_RXE',
+                                          pAppendVocabulary      => TRUE);            
 END;
 COMMIT;
 

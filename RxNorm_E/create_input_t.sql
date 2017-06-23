@@ -545,7 +545,7 @@ DELETE drug_concept_stage where concept_code IN
 
 DELETE drug_concept_stage
 WHERE concept_code IN
-('OMOP881482','OMOP341519','OMOP346740','OMOP714610')
+('OMOP881482','OMOP341519','OMOP346740','OMOP714610','721654','1021221','317004')
 OR (lower(concept_name) like '%apotheke%' AND concept_class_id='Supplier');
 
 /* Remove wrong brand names (need to save for the later clean up)

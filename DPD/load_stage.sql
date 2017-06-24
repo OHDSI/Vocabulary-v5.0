@@ -241,7 +241,7 @@ CREATE TABLE drug_product
 AS
 (SELECT DRUG_CODE AS OLD_CODE,PRODUCT_CATEGORIZATION,CLASS,LTRIM(DRUG_IDENTIFICATION_NUMBER,'0') AS DRUG_CODE,BRAND_NAME,DESCRIPTOR,PEDIATRIC_FLAG,ACCESSION_NUMBER,NUMBER_OF_AIS, AI_GROUP_NO,
        CASE
-         WHEN DRUG_IDENTIFICATION_NUMBER IN (SELECT DRUG_IDENTIFICATION_NUMBER FROM drug_product_ia) THEN 'D'
+         WHEN DRUG_IDENTIFICATION_NUMBER IN (SELECT DRUG_IDENTIFICATION_NUMBER FROM drug_ia) THEN 'D'
          ELSE NULL
        END AS INVALID_REASON
   FROM (SELECT * FROM drug_ia
@@ -346,7 +346,7 @@ AS
 	SELECT * FROM packaging_ap) a
  JOIN drug_product b ON old_code = a.drug_Code);
 
-DROP TABLE status;
+
 CREATE TABLE status 
 AS
 (SELECT b.DRUG_CODE,STATUS,HISTORY_DATE,CURRENT_STATUS_FLAG
@@ -423,8 +423,6 @@ AND NOT REGEXP_LIKE ( concept_name,'(\()HUMAN|RABBIT|RECOMBINANT|SYNTHETIC|ACTIV
 UPDATE ingr
 SET concept_name = REGEXP_REPLACE (concept_name,' \(.*\)')
 WHERE concept_name LIKE '%(%BASIC%)' AND concept_name NOT LIKE '%(DIBASIC)' AND concept_name NOT LIKE '%(TRIBASIC)';
-UPDATE ingr
-SET concept_name = REGEXP_REPLACE (concept_name,' \(.*\)') WHERE concept_name LIKE '%(%,%)%' AND drug_code IN (SELECT drug_code FROM ingr_OMOP);
 
 --CREATE TABLE WITH PRECISE NAME TAKEN FROM ORIGINAL TABLE TO USE LATER
 CREATE TABLE ingr_OMOP 
@@ -466,6 +464,9 @@ WHERE DRUG_CODE = '593710' AND   AIC = '105' AND   CONCEPT_NAME = 'MAGNESIUM OXI
 
 DELETE INGR_OMOP
 WHERE DRUG_CODE = '94498' AND   AIC = '778' AND   CONCEPT_NAME = 'MAGNESIUM CITRATE';
+
+UPDATE ingr
+SET concept_name = REGEXP_REPLACE (concept_name,' \(.*\)') WHERE concept_name LIKE '%(%,%)%' AND drug_code IN (SELECT drug_code FROM ingr_OMOP);
 
 
 --CREATING TABLE WITH FINAL INGREDIENT NAMES, ALSO WILL BE USED IN DRUG_STRENGTH_STAGE.PICN STANDS FOR PRECISE INGREDIENT CONCEPT NAME
@@ -823,15 +824,15 @@ CREATE TABLE list_temp AS (
 SELECT a.*, conc_stage_seq.NEXTVAL AS concept_code FROM ( SELECT * FROM 
 (SELECT concept_name,'Ingredient' AS concept_class_id,'S' AS standard_concept FROM ingr_2 WHERE concept_name IS NOT NULL
 UNION 
-SELECT new_name,'Brand Name','' FROM brand_name  WHERE new_name IS NOT NULL
+SELECT distinct new_name,'Brand Name','' FROM brand_name  WHERE new_name IS NOT NULL
 UNION 
-SELECT brand_name,'Brand Name','' FROM new_pack WHERE brand_name IS NOT NULL
+SELECT distinct brand_name,'Brand Name','' FROM new_pack WHERE brand_name IS NOT NULL
 UNION 
-SELECT concept_name,concept_class_id,'' FROM forms_2 WHERE concept_name IS NOT NULL
+SELECT distinct concept_name,concept_class_id,'' FROM forms_2 WHERE concept_name IS NOT NULL
 UNION
-SELECT concept_name, 'Drug Product','' FROM new_pack
+SELECT distinct concept_name, 'Drug Product','' FROM new_pack
 UNION
-SELECT concept_name,concept_class_id,'' FROM manufacturer WHERE concept_name IS NOT NULL)) a)
+SELECT distinct concept_name,concept_class_id,'' FROM manufacturer WHERE concept_name IS NOT NULL)) a)
 ;
 --CONCEPT-STAGE CREATION
 TRUNCATE TABLE drug_concept_stage;
@@ -1123,6 +1124,30 @@ LEFT JOIN brand_name bn ON bn.drug_code=ai.drug_code --left join form packs that
 JOIN drug_product dp ON dp.drug_code=ai.drug_code
 WHERE ai.drug_code IN ('763047','690082','2405024','773530','2451727','2445131','2239730','2241159','2238525','2239371'  ));
 
+DELETE FROM DS_STAG EWHERE DRUG_CONCEPT_CODE = '2087286' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE = 10 AND   AMOUNT_UNIT = 'ML' AND   NUMERATOR_VALUE IS NULL AND   NUMERATOR_UNIT IS NULL AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT IS NULL;
+DELETE FROM DS_STAGE WHERE DRUG_CONCEPT_CODE = '2087286' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE = 10 AND   AMOUNT_UNIT = 'ML' AND   NUMERATOR_VALUE IS NULL AND   NUMERATOR_UNIT IS NULL AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT IS NULL;
+DELETE FROM DS_STAGE WHERE DRUG_CONCEPT_CODE = '2245464' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 500 AND   NUMERATOR_UNIT = 'MCG' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'ML';
+DELETE FROM DS_STAGE WHERE DRUG_CONCEPT_CODE = '2202034' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 20 AND   NUMERATOR_UNIT = 'UNIT' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'UNIT';
+UPDATE DS_STAGE   SET NUMERATOR_VALUE = 27.5 WHERE DRUG_CONCEPT_CODE = '2245464' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 27 AND   NUMERATOR_UNIT = 'MG' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'ML';
+
+--delete all the impossible variations
+UPDATE ds_stage
+   SET amount_value = numerator_value, amount_unit = numerator_unit, numerator_unit = NULL,numerator_value = NULL, denominator_unit = NULL, denominator_value = NULL
+WHERE (denominator_unit = numerator_unit AND numerator_value / NVL(denominator_value,1) > 1)
+OR    drug_concept_code IN (SELECT a.drug_concept_code
+                            FROM ds_stage a
+                              JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code AND a.amount_unit IS NOT NULL AND b.numerator_unit IS NOT NULL);
+ 
+DELETE ds_stage
+WHERE drug_concept_code IN (SELECT drug_concept_code  FROM ds_stage WHERE amount_unit = 'ML' OR  numerator_unit = 'ML')
+OR drug_concept_code IN  (SELECT drug_concept_code  FROM ds_stage WHERE amount_unit IS NULL AND numerator_unit IS NULL);
+
+--3-leg dogs
+DELETE ds_stage WHERE  drug_concept_code IN (SELECT a.drug_concept_code
+                            FROM ds_stage a
+                              JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code AND a.ingredient_concept_code != b.ingredient_concept_code AND nvl(a.amount_unit,a.numerator_unit) IS NOT NULL AND nvl(b.amount_unit,b.numerator_unit) IS NULL);
+
+
 TRUNCATE TABLE pc_stage;
 INSERT INTO pc_stage (pack_concept_code,drug_Concept_code,amount,box_size)
 SELECT distinct dcs.concept_code,dcs2.concept_code,amount,box_size
@@ -1188,11 +1213,93 @@ and c.vocabulary_id like 'RxNorm%'
 where UPPER(a.concept_name) NOT IN (SELECT UPPER(concept_name_1) FROM new_rtc)
 and c.invalid_reason is null;
 
+INSERT INTO new_rtc (CONCEPT_NAME_1,CONCEPT_CLASS_ID_1,CONCEPT_ID_2,CONCEPT_NAME_2,PRECEDENCE)
+select d.concept_name, d.concept_class_id,c.concept_id,c.concept_name,1
+from drug_concept_stage d 
+join concept c on lower(d.concept_name)=lower(c.concept_name)
+where d.concept_class_id='Supplier' and c.concept_class_id='Supplier' and c.invalid_reason is null and c.vocabulary_id like 'Rx%';
+
+INSERT INTO new_rtc (CONCEPT_NAME_1,CONCEPT_CLASS_ID_1,CONCEPT_ID_2,CONCEPT_NAME_2,PRECEDENCE)
+select d.concept_name, d.concept_class_id,c.concept_id,c.concept_name,1
+from drug_concept_stage d 
+join concept c on lower(d.concept_name) like '%'||lower(c.concept_name)||'%'
+where d.concept_class_id='Supplier' and c.concept_class_id='Supplier' and c.invalid_reason is null and c.vocabulary_id like 'Rx%'
+and (d.concept_name,c.concept_name) not in (select concept_name_1,concept_name_2 from new_rtc);
+
+INSERT INTO new_rtc (CONCEPT_NAME_1,CONCEPT_CLASS_ID_1,CONCEPT_ID_2,CONCEPT_NAME_2,PRECEDENCE)
+select d.concept_name, d.concept_class_id,c.concept_id,c.concept_name,1
+from drug_concept_stage d 
+join concept c on lower(c.concept_name) like '%'||lower(d.concept_name)||'%'
+where d.concept_class_id='Supplier' and c.concept_class_id='Supplier' and c.invalid_reason is null and c.vocabulary_id like 'Rx%'
+and (d.concept_name,c.concept_name) not in (select concept_name_1,concept_name_2 from new_rtc);
+
+
+INSERT INTO new_rtc (CONCEPT_NAME_1,CONCEPT_CLASS_ID_1,CONCEPT_ID_2,CONCEPT_NAME_2,PRECEDENCE)
+select d.concept_name, d.concept_class_id,c.concept_id,c.concept_name,1
+from drug_concept_stage d 
+join concept c on regexp_substr(c.concept_name,'\w+\s\w+')=regexp_substr(d.concept_name,'\w+\s\w+')
+where d.concept_class_id='Supplier' and c.concept_class_id='Supplier' and c.vocabulary_id like 'Rx%' and c.invalid_reason is null
+and (d.concept_name,c.concept_name) not in (select concept_name_1,concept_name_2 from new_rtc);
+
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Laboratoires Thea' AND   CONCEPT_NAME_2 = 'THEA' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Aurobindo Pharma Limited (Unit Iii)' AND   CONCEPT_NAME_2 = 'Auro' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Aurobindo Pharma Limited (Unit Vi)' AND   CONCEPT_NAME_2 = 'Auro' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Bristol-Myers Squibb  AND Gilead Sciences Llc' AND   CONCEPT_NAME_2 = 'GILEAD SCIENCES' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Can-Med Pharma Inc.' AND   CONCEPT_NAME_2 = 'Rodisma-Med Pharma GmbH' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Can-Med Pharma Inc.' AND   CONCEPT_NAME_2 = 'Med Pharma Service GmbH' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Forest Laboratories Canada Inc' AND   CONCEPT_NAME_2 = 'Forest Laboratories UK Ltd' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Forest Laboratories Uk Ltd' AND   CONCEPT_NAME_2 = 'Forest Laboratories Europe' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Pharmazeutische Fabrik Montavit Ges M.B.H.' AND   CONCEPT_NAME_2 = 'Pharmazeutische Fabrik Evers GmbH & Co. KG' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Pharmazeutische Fabrik Montavit Ges M.B.H.' AND   CONCEPT_NAME_2 = 'Chemisch-Pharmazeutische Fabrik Goeppingen' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Reckitt Benckiser (Canada) Inc' AND   CONCEPT_NAME_2 = 'Reckitt Benckiser Healthcare (UK) Ltd' AND   PRECEDENCE = '1';
+DELETE FROM NEW_RTC WHERE CONCEPT_NAME_1 = 'Stiefel Laboratories (Irel AND) Limited' AND   CONCEPT_NAME_2 = 'Stiefel Laboratories (UK) Ltd' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Agila Specialties Private Limited' AND   CONCEPT_NAME_2 = 'Agila' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Astellas Pharma Canada Inc' AND   CONCEPT_NAME_2 = 'ASTELLAS PHARMA' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Baxter Healthcare Corporation' AND   CONCEPT_NAME_2 = 'BAXTER' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Boehringer Ingelheim (Canada) Ltd Ltee' AND   CONCEPT_NAME_2 = 'Boehringer Ingelheim Self-Medication Division' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Gilead Sciences Canada Inc' AND   CONCEPT_NAME_2 = 'GILEAD SCIENCES' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Gilead Sciences Inc' AND   CONCEPT_NAME_2 = 'GILEAD SCIENCES' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Maco Pharma' AND   CONCEPT_NAME_2 = 'Maco Pharma (UK) Ltd' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Novartis Pharmaceuticals Canada Inc' AND   CONCEPT_NAME_2 = 'Novartis Pharmaceuticals UK Ltd' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Novo Nordisk A/S' AND   CONCEPT_NAME_2 = 'NOVO NORDISK' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Novo Nordisk Canada Inc' AND   CONCEPT_NAME_2 = 'NOVO NORDISK' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Pfizer Consumer Healthcare A Division Of Pfizer Canada Inc' AND   CONCEPT_NAME_2 = 'PFIZER' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Pierre Fabre Dermo-Cosmetique Canada Inc' AND   CONCEPT_NAME_2 = 'Pierre Fabre Ltd' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Pierre Fabre Dermo-Cosmétique' AND   CONCEPT_NAME_2 = 'Pierre Fabre Ltd' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Pierre Fabre Pharma Canada Inc' AND   CONCEPT_NAME_2 = 'Pierre Fabre Dermo-Cosmetique' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Reckitt Benckiser (Canada) Inc' AND   CONCEPT_NAME_2 = 'Reckitt Benckiser Holding GmbH & Co. KG' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Chiesi Farmaceutici S.P.A.' AND   CONCEPT_NAME_2 = 'CHIESI FARMACEUTICI' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Glaxosmithkline Consumer Healthcare Inc.' AND   CONCEPT_NAME_2 = 'GLAXOSMITHKLINE' AND  PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Laboratoire Hra Pharma' AND   CONCEPT_NAME_2 = 'HRA PHARMA' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Novartis Ophthalmics Novartis Pharmaceuticals (Canada) Inc' AND   CONCEPT_NAME_2 = 'NOVARTIS PHARMA' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Sanofi Pasteur Inc' AND   CONCEPT_NAME_2 = 'Sanofi' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Sanofi Pasteur Limited' AND   CONCEPT_NAME_2 = 'Sanofi' AND   PRECEDENCE = '1';
+UPDATE NEW_RTC   SET PRECEDENCE = '2' WHERE CONCEPT_NAME_1 = 'Weleda (Uk) Ltd.' AND   CONCEPT_NAME_2 = 'WELEDA' AND   PRECEDENCE = '1';
+
+update new_rtc 
+set concept_id_2='19012956' where concept_id_2='40161817';--"ALLERGENIC EXTRACT, HOUSE DUST EXTRACT CONCENTRATE"
+update new_rtc 
+set concept_id_2='40161026' where concept_id_2='40173533';--American cockroach extract
+update new_rtc 
+set concept_id_2='42898658' where concept_id_2='43013479';--Astacus astacus preparation
+update new_rtc 
+set concept_id_2='42898759' where concept_id_2='42904020';--Chelone glabra extract
+update new_rtc 
+set concept_id_2='43012336' where concept_id_2='42903968';--Cnicus Benedictus extract
+ 
 UPDATE new_rtc 
 SET CONCEPT_NAME_1 = REGEXP_REPLACE (CONCEPT_NAME_1,'"'),
     CONCEPT_NAME_2 = REGEXP_REPLACE (CONCEPT_NAME_2,'"');
+
+INSERT INTO relationship_to_concept (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
+select distinct d.concept_code, d.vocabulary_id,rt.concept_id_2, precedence,conversion_factor
+from new_rtc rt join drug_concept_stage d on upper(CONCEPT_NAME_1)=upper(CONCEPT_NAME);
  
 INSERT INTO relationship_to_concept (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
 select distinct d.concept_code, d.vocabulary_id,rt.concept_id_2, precedence,conversion_factor
 from new_rtc rt join drug_concept_stage d on upper(CONCEPT_NAME_1)=upper(CONCEPT_NAME);
+
+delete from relationship_to_concept where rowid not in (
+  select first_value(rowid) over (partition by concept_code_1,concept_id_2 order by concept_code_1 desc) from relationship_to_concept 
+);
 commit; 

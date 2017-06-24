@@ -480,7 +480,7 @@ WbImport -file=C:/work/gemscript_packs_in.txt
  commit
  ;
 insert into thin_need_to_map (THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID)
-select '', DRUG_CONCEPT_CODE, DRUG_CONCEPT_CODE,DRUG_CONCEPT_CODE, 'Drug' from pc_stage
+select distinct '', DRUG_CONCEPT_CODE, DRUG_CONCEPT_CODE,DRUG_CONCEPT_CODE, 'Drug' from pc_stage
 ;
 commit
 ;
@@ -711,7 +711,7 @@ select DOSAGE	,VOLUME	,INGREDIENT_CONCEPT_CODE,	CONCEPT_NAME,	CONCEPT_CODE
 join thin_need_to_map on concept_code = thin_code
 and rownum =0
 ;
-WbImport -file=C:/work/manual_in_co_dose_2.txt
+WbImport -file=C:\Users\Dmitry\Desktop\manual_dosage_3.txt
          -type=text
          -table=MANUAL_IN_CO_DOSE_2
          -encoding="ISO-8859-15"
@@ -730,14 +730,20 @@ WbImport -file=C:/work/manual_in_co_dose_2.txt
 
 --;
 --select * from manual_in_co_dose_1 left join thin_need_to_map on concept_code = gemscript_code where gemscript_code is not null
+drop table manual_in_co_dose;
 create table manual_in_co_dose as
 select * from manual_in_co_dose_1
 union
 select * from manual_in_co_dose_2
-;
-*/
-delete from ds_all_tmp where concept_code in (select concept_code from manual_in_co_dose);
 
+; 
+*/
+;
+delete from ds_all_tmp where concept_code in (select concept_code from manual_in_co_dose);
+commit
+;
+delete from ds_all_tmp where concept_code in (Select drug_concept_code from pc_stage)
+;
 commit
 ;
 insert into ds_all_tmp (DOSAGE,DRUG_COMP,CONCEPT_NAME,CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,INGREDIENT_CONCEPT_NAME,VOLUME)
@@ -909,7 +915,9 @@ denominator_unit = 'ml'
 where numerator_unit = '%' 
 and denominator_unit is null and denominator_value is null
 ;
-delete from ds_stage where amount_value is null and drug_concept_code = 83792998
+commit
+;
+delete from ds_stage where drug_concept_code in (Select pack_concept_code from pc_stage)
 ;
 commit
 ;
@@ -1159,6 +1167,7 @@ commit
 --how to make plural: add 's' or 'y' replace with 'ies'
 --apply the same algotithm as used for ingredients
 --Execution time: 3m 28s when "mm" is used
+ 
 drop table f_map;
 create table f_map as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
 select * from 
@@ -1214,8 +1223,9 @@ and concept_id_2 in (21308470, 46234469, 19082227)
 ;
 commit
 ;
+
  --comment this manual table work for now
-/*
+
 --manual table for Dose Forms
 select * from thin_need_to_map
 where thin_code not in (select thin_code from b_map)
@@ -1223,7 +1233,7 @@ and domain_id ='Drug'
 ;
 
 --then insert into f_map (also look for domains)
-*/
+
 ;
 --make Suppliers, some clean up
 UPDATE THIN_NEED_TO_MAP
@@ -1252,6 +1262,7 @@ where c.concept_class_id = 'Supplier'
 --make Brand Names
 --select * from THIN_NEED_TO_MAP where thin_name like 'Generic%'
 ;
+ 
 drop table b_map_0;
 create table b_map_0 AS
 select  T.GEMSCRIPT_CODE, T.GEMSCRIPT_NAME, T.THIN_CODE, T.THIN_NAME , C.CONCEPT_ID, C.CONCEPT_NAME, C.vocabulary_id from THIN_NEED_TO_MAP T
@@ -1313,6 +1324,7 @@ select * from b_map_1
 --drug_concept_stage
 truncate table drug_concept_stage
 ;
+ 
 --Drug Product
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
@@ -1322,7 +1334,7 @@ to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_
 --Device
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
-select '', gemscript_name,domain_id, 'Gemscript', 'Device', '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+select '', gemscript_name,domain_id, 'Gemscript', 'Device', 'S', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_need_to_map where domain_id = 'Device'
 ;
 --Ingredient
@@ -1457,7 +1469,7 @@ select distinct  concept_code from drug_concept_stage where concept_class_id in 
 )
 ;
 update drug_concept_stage a set concept_code = (select new_code from code_replace b where a.concept_code = b.old_code) 
-where a.concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form')
+where a.concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form') or concept_code in (select drug_concept_code from pc_stage)
 ;--select * from code_replace where old_code ='OMOP28663';
 commit
 ;
@@ -1468,6 +1480,11 @@ commit
 ;
 update ds_stage a  set ingredient_concept_code = (select new_code from code_replace b where a.ingredient_concept_code = b.old_code)
 where exists (select 1 from code_replace b where a.ingredient_concept_code = b.old_code)
+;
+commit
+;
+update ds_stage a  set drug_concept_code = (select new_code from code_replace b where a.drug_concept_code = b.old_code)
+where exists (select 1 from code_replace b where a.drug_concept_code = b.old_code)
 ;
 commit
 ;

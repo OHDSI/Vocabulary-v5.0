@@ -150,13 +150,13 @@ where exists (select 1 from equiv_rxe where drug_concept_code=rxe_code) and drug
 * 3. Invalidate RxE concepts that are no longer needed (inval_rxe) *
 *******************************************************************/
 -- Fix the ones with a 'Maps to'
-update concept_stage c set c.vocabulary_id='RxNorm Extension', c.valid_end_date=(select latest_update-1 from vocabulary where vocabulary_id='Rxfix')-1, c.invalid_reason='U'
+update concept_stage c set c.vocabulary_id='RxNorm Extension', c.valid_end_date=(select latest_update from vocabulary where vocabulary_id='Rxfix')-1, c.invalid_reason='U'
 where exists (select 1 from inval_rxe i where c.concept_code=i.concept_code) -- is not slotted for turning into active RxE
 and exists (select 1 from concept_relationship_stage where concept_code_1=c.concept_code) -- has a relationship to something
 and vocabulary_id='Rxfix';
 
 -- Obsolete the remaining ones 
-update concept_stage c set c.vocabulary_id='RxNorm Extension', c.valid_end_date=(select latest_update-1 from vocabulary where vocabulary_id='Rxfix')-1, c.invalid_reason='D'
+update concept_stage c set c.vocabulary_id='RxNorm Extension', c.valid_end_date=(select latest_update from vocabulary where vocabulary_id='Rxfix')-1, c.invalid_reason='D'
 where exists (select 1 from inval_rxe i where c.concept_code=i.concept_code) -- is not slotted for turning into active RxE
 and not exists (select 1 from concept_relationship_stage where concept_code_1=c.concept_code) -- has a relationship to something
 and vocabulary_id='Rxfix';
@@ -177,14 +177,14 @@ delete from concept_stage where concept_code in (select rxf_code from rxn_rxn) a
 
 -- Turn target into RxNorm extension 
 update concept_stage c set c.vocabulary_id='RxNorm Extension'
-where exists (select 1 from concept_relationship_stage where concept_code_2=concept_code and vocabulary_id_1='Rxfix'
+where exists (select 1 from concept_relationship_stage where concept_code_2=concept_code and vocabulary_id_1='Rxfix');
 
 -- Add replacement code to new_rxe
 insert into new_rxe
 select concept_code_2, 'OMOP'||omop_seq.nextval from concept_relationship_stage where vocabulary_id_1='Rxfix';
 
 -- Turn source into RxNorm
-update concept_stage c set c.vocabulary_id='RxNorm', c.valid_end_date=nvl(nullif(c.valid_end_date, to_date('20991231', 'yyyymmdd'), (select latest_update-1 from vocabulary where vocabulary_id='Rxfix')-1)), c.invalid_reason='U'
+update concept_stage c set c.vocabulary_id='RxNorm', c.valid_end_date=nvl(nullif(c.valid_end_date, to_date('20991231', 'yyyymmdd')), (select latest_update from vocabulary where vocabulary_id='Rxfix')-1), c.invalid_reason='U'
 where vocabulary_id='Rxfix';
 
 -- Fix concept_relationship_stage
@@ -233,21 +233,26 @@ commit;
 insert /*+ APPEND */ into concept_relationship_stage
 select 
   null as concept_id_1, null as concept_id_2, 
-  concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id,
-  r.valid_start_date, (select latest_update-1 from vocabulary where vocabulary_id='Rxfix')-1 as valid_end_date, 'D' as invalid_reason
+  r.concept_code_1, r.concept_code_2, r.vocabulary_id_1, r.vocabulary_id_2,
+  r.relationship_id, r.valid_start_date, (select latest_update from vocabulary where vocabulary_id='Rxfix')-1 as valid_end_date, 'D' as invalid_reason
 from (
   select 
-    c1.concept_code as concept_code_1, c1.vocabulary_id as vocabulary_id_1, c2.concept_code as concept_code_2, c2.vocabulary_id as vocabulary_id_2,
-    relationship_id, r.valid_start_date
-  from devv5.concept_relationship r
-  join devv5.concept c1 on r.concept_id_1=c1.concept_id
-  join devv5.concept c2 on r.concept_id_2=c2.concept_id
+    c1.concept_code as concept_code_1, c2.concept_code as concept_code_2, 
+    case c1.vocabulary_id when 'RxO' then 'RxNorm Extension' else c1.vocabulary_id end as vocabulary_id_1, 
+    case c2.vocabulary_id when 'RxO' then 'RxNorm Extension' else c2.vocabulary_id end as vocabulary_id_2, 
+    relationship_id, r.valid_start_date, rel.reverse_relationship_id
+  from concept_relationship r
+  join concept c1 on r.concept_id_1=c1.concept_id
+  join concept c2 on r.concept_id_2=c2.concept_id
+  join relationship rel using(relationship_id)
   -- only within RxE, and but no RxNorm to RxNorm
-  where c1.vocabulary_id='RxNorm Extension' and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-    or c1.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c2.vocabulary_id='RxNorm Extension'
+  where relationship_id not in ('Maps to', 'Mapped from')
+  and (c1.vocabulary_id='RxO' and c2.vocabulary_id in ('RxNorm', 'RxO') or c1.vocabulary_id in ('RxNorm', 'RxO') and c2.vocabulary_id='RxO')
 ) r
-left join concept_relationship_stage s using(concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id)
-where s.valid_start_date is null
+where not exists (select 1 from concept_relationship_stage s where s.concept_code_1=r.concept_code_1 and s.vocabulary_id_1=r.vocabulary_id_1 
+    and s.concept_code_2=r.concept_code_2 and s.vocabulary_id_2=r.vocabulary_id_2 and s.relationship_id=r.relationship_id)
+and not exists (select 1 from concept_relationship_stage s1 where s1.concept_code_1=r.concept_code_2 and s1.vocabulary_id_1=r.vocabulary_id_2 
+    and s1.concept_code_2=r.concept_code_1 and s1.vocabulary_id_2=r.vocabulary_id_1 and s1.relationship_id=r.reverse_relationship_id)
 ;
 commit;
 
@@ -265,14 +270,6 @@ where c1.vocabulary_id='RxNorm Extension' and c2.domain_id='Drug' and c2.standar
 ;
 commit;
 
-begin
-DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'RxNorm Extension',
-                                          pVocabularyDate        => TO_DATE ('20170610', 'yyyymmdd'), --The 2017 changes became effective on October 1, 2016.
-                                          pVocabularyVersion     => '0',
-                                          pVocabularyDevSchema   => 'DEV_RXE');
-END;
-/
-
 /**************
 * 8. Clean up *
 **************/
@@ -282,7 +279,6 @@ drop sequence omop_seq;
 drop table inval_rxe purge;
 drop table rxn_rxn purge;
 
-/*
 delete from vocabulary where vocabulary_id in ('RxO','Rxfix'); 
 
 begin
@@ -304,4 +300,3 @@ drop table ds_stage purge;
 drop table internal_relationship_stage purge;
 drop table pc_stage purge;
 drop table relationship_to_concept purge;
-*/

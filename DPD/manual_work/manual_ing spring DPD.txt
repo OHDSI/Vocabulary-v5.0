@@ -1,0 +1,504 @@
+concept_code_1	concept_name_1	concept_class_id_1	concept_id_2	concept_name_2	precedence
+DPD102839	Dock	Ingredient	42709315	pale dock pollen extract	1
+DPD102839	Dock	Ingredient	40228117	bitter dock pollen extract	2
+DPD102839	Dock	Ingredient	40228792	white (mexican) dock pollen extract	3
+DPD102839	Dock	Ingredient	40162170	yellow dock pollen extract	4
+DPD115083	Sumach	Ingredient	46276350	Rhus spp whole extract	1
+DPD100353	Cahinca	Ingredient	46275554	Chiococca alba root extract	1
+DPD107159	Linaria Canadensis	Ingredient	46234337	Linaria vulgaris extract	1
+DPD101213	Cimicifuga Racemosa	Ingredient	46233901		1
+DPD98170	Amygdalus Persica	Ingredient	46233877	Peach juice	1
+DPD111385	Pitcher Plant	Ingredient	46221620	Sarracenia purpurea extract	1
+DPD101526	Coccinella Septempunctata	Ingredient	46221576	Coccinella septempunctata preparation	1
+DPD110733	Parotid Gland Tissue	Ingredient	45892611		1
+DPD116227	Toxicophis Pugnax	Ingredient	45892383	Cottonmouth venom	1
+DPD109986	Ocimum Sanctum	Ingredient	45776905	Ocimum africanum leaf extract	1
+DPD108843	Myristica Oil	Ingredient	45776901	Myristica fragrans whole extract	1
+DPD111431	Plectranthus Fruticosus	Ingredient	45776878	Plectranthus barbatus whole extract	1
+DPD99494	Baryta Iodata	Ingredient	45776742	barium iodate	1
+DPD113262	Rhizoma Alismatis	Ingredient	45776741	Alisma plantago-aquatica whole extract	1
+DPD115563	Teucrium Scorodonia	Ingredient	45776474	Teucrium scorodonia whole extract	1
+DPD111420	Platina Homeo Chemical	Ingredient	45776472	platinic chloride	1
+DPD115904	Thiosinamine	Ingredient	45775986	Brassica juncea seed oil	1
+DPD114751	Spinach	Ingredient	45775818	Spinacia oleracea root extract	1
+DPD114750	Spilanthes Oleracea	Ingredient	45775608	Acmella oleracea whole extract	1
+DPD109059	Neisseria Catarrhalis	Ingredient	45775445	MORAXELLA CATARRHALIS SUBSP. CATARRHALIS	1
+DPD114144	Sedum Telephium	Ingredient	45774950	Sedum roseum whole extract	1
+DPD98858	Argemone Mexicana	Ingredient	44818508	Argemone mexicana extract	1
+DPD113978	Sanguinarina Nitrica	Ingredient	44818507	sanguinarine	1
+DPD113731	"Salix Vitellina, Flos"	Ingredient	44816296	Salix alba flower extract	1
+DPD114975	Strophanthus Sarmentosus	Ingredient	44814447	Strophanthus kombe whole extract	1
+DPD110517	Ox Lip Flower	Ingredient	44785730	PRIMULA VERIS FLOWER EXTRACT	1
+DPD114380	Sinapis Alba	Ingredient	44785494	white mustard seed extract	1
+DPD99492	Baryta Acetica	Ingredient	44785147	Barium Acetate	1
+DPD101894	Corylus Avellana	Ingredient	44784749	Common hazel pollen extract	1
+DPD111890	Polygonum Punctatum	Ingredient	44507756	Persicaria punctata extract	1
+DPD100264	Burnet	Ingredient	44507634	Sanguisorba officinalis whole extract	1
+DPD110370	Oreodaphne Californica	Ingredient	44507595	Litsea cubeba fruit extract	1
+DPD107547	"Malus Pumila, Flos"	Ingredient	44507587	Malus domestica whole extract	1
+DPD102606	Dictamnus Albus	Ingredient	44507537	Dictamnus dasycarpus whole extract	1
+DPD97675	Agaricus Emeticus	Ingredient	44506795	Russula emetica preparation	1
+DPD111418	Platanus Orientalis	Ingredient	44506776	Platanus occidentalis whole extract	1
+DPD114951	Streptococcus Non-Hemolytic	Ingredient	43563438	streptococcus faecalis	1
+DPD113628	Rupatadine Fumarate	Ingredient	43563399	rupatadine fumarate	1
+DPD104412	Formica	Ingredient	43563358	formica rufa extract	1
+DPD104413	Formica Rufa	Ingredient	43563358	formica rufa extract	1
+DPD107601	Manna	Ingredient	43563283	manna	1
+DPD110427	Orthosiphon Leaf	Ingredient	43563238	orthosiphon leaf extract	1
+DPD101711	Common Bean Garden	Ingredient	43563152	phaseolus vulgaris extract	1
+DPD101548	Codonopsitis	Ingredient	43560329	codonopsis lanceolata root extract	1
+DPD116522	Tussilago Fragrans	Ingredient	43533053	Petasites fragrans extract	1
+DPD111333	Pilewort Herb	Ingredient	43532999	Erechtites hieraciifolius extract	1
+DPD106482	Juglans Pulv	Ingredient	43532432	juglans regia shell extract	1
+DPD117713	Zizyphus Spinosa	Ingredient	43532231	Ziziphus extract	1
+DPD112475	Psorinum	Ingredient	43532163	SCABIES LESION LYSATE (HUMAN)	1
+DPD107582	Manganese Organic Complex	Ingredient	43532017	Magnesium Cation	1
+DPD106823	Lachnanthes Tinctoria	Ingredient	43531987	Lachnanthes caroliniana extract	1
+DPD100706	Cassia Alata	Ingredient	43526359	Senna alata whole extract	1
+DPD109301	Ningo Figwort Root	Ingredient	43526357	Scrophularia ningpoensis root extract	1
+DPD114639	Solomon'S Seal	Ingredient	43525911	Polygonatum biflorum root etxract	1
+DPD113263	Rhizoma Atractylodis	Ingredient	43525881	Atractylodes macrocephala root extract	1
+DPD114174	Selenium Yeast	Ingredient	43252063	High Selenium Yeast	1
+DPD107858	Medusa	Ingredient	43252049	Box Jellyfish Antivenom	1
+DPD98205	Anatherum Muricatum	Ingredient	43126084	Anantherum muricatum for homeopathic preparations	1
+DPD98183	Anacardium Orientale	Ingredient	43126072	Anacardium Orientale for homeopathic preparations	1
+DPD106862	Ladyslipper	Ingredient	43126066	Cypripedium Pubescens for homeopathic preparations	1
+DPD105266	Heracleum Sphondylium	Ingredient	43126064	Heracleum sphondylium for homeopathic preparations	1
+DPD97698	Agraphis Nutans	Ingredient	43126056	Agraphis Nutans for homeopathic preparations	1
+DPD99029	Aspidium	Ingredient	43126053	Aspidium Filix Mas for homeopathic preparations	1
+DPD97762	Alchemilla Vulgaris	Ingredient	43126049	Alchemilla Vulgaris for homeopathic preparations	1
+DPD98057	Ambra Grisea	Ingredient	43126028	Ambra Grisea for homeopathic preparations	1
+DPD105201	Helonias	Ingredient	43126018	Helonias Dioica for homeopathic preparations	1
+DPD100366	Caladium Seguinum	Ingredient	43126006	Caladium seguinum for homeopathic preparations	1
+DPD111413	Plasmafibronectin	Ingredient	43125990	Fibronectin	1
+DPD110591	Outer Membrane Vesicles (Neisseria Meningitidis Group B Nz98/254 Strain)	Ingredient	43125956	Neisseria meningitidis Group B Membrane vesicles External Omv	1
+DPD104908	Gnaphalium Polycephalum	Ingredient	43125948	Gnaphalium polycephalum for homeopathic preparations	1
+DPD113240	Rhamnus Californica	Ingredient	43125917	Rhamnus Frangula for homeopathic preparations	1
+DPD113665	Sabadilla	Ingredient	43125907	Sabadilla for homeopathic preparations	1
+DPD111869	Polistes Spp Venom Protein Extract	Ingredient	43125905	Polistes wasp venom	1
+DPD114891	Sticta Pulmonaria	Ingredient	43125871	Sticta Pulmonaria for homeopathic preparations	1
+DPD114521	Sodium Auro-Chloride	Ingredient	43014194	tetrachloroaurate	1
+DPD114580	Sodium Tetrachloroaurate(Iii)	Ingredient	43014194	tetrachloroaurate	1
+DPD115322	Tallow	Ingredient	43013945	beef tallow preparation	1
+DPD100829	Centaurium Umbellatum	Ingredient	43013538	Centaurium erythraea preparation	1
+DPD100830	"Centaurium Umbellatum, Flos"	Ingredient	43013538	Centaurium erythraea preparation	1
+DPD116395	Trifolium	Ingredient	43013016	Trifolium pratense leaf extract	1
+DPD105544	Hura Brasiliensis	Ingredient	43012733	Hura crepitans sap extract	1
+DPD116891	Various Types Mixture	Ingredient	43012408		1
+DPD102768	Diplococcus	Ingredient	43012408		1
+DPD113766	Sambucus Ebulus	Ingredient	43012403	Sambucus nigra whole extract	1
+DPD100007	Blessed Thistle	Ingredient	43012336	Cnicus Benedictus extract	1
+DPD101493	Cnicus Benedictus	Ingredient	43012336	Cnicus Benedictus extract	1
+DPD113624	Rumex Obtusifolius	Ingredient	43012310	Rumex acetosa whole extract	1
+DPD103631	Eschscholtzia Californica	Ingredient	42904296	Eschscholzia californica extract	1
+DPD116005	Tiger Lily	Ingredient	42904260	Lilium lancifolium whole extract	1
+DPD114185	Semen Biotae Orientalis	Ingredient	42904249	Thuja occidentalis whole extract	1
+DPD115945	Thuja Lobbi	Ingredient	42904249	Thuja occidentalis whole extract	1
+DPD115841	Thea Sinensis	Ingredient	42904180	Camellia sinensis whole extract	1
+DPD98790	Apricot	Ingredient	42904131	apricot extract	1
+DPD113310	Rhus Aromatica	Ingredient	42904126	Rhus aromatica root bark extract	1
+DPD98098	Ammi Visnaga	Ingredient	42904123	Ammi visnaga fruit extract	1
+DPD103545	Epiphegus Virginiana	Ingredient	42904122	Epifagus virginiana extract	1
+DPD117432	Woodruff Herb	Ingredient	42904105	Galium odoratum extract	1
+DPD105193	Helleborus	Ingredient	42904103	Helleborus extract	1
+DPD103850	Euphorbia Pilulifera	Ingredient	42904088	Euphorbia hirta extract	1
+DPD110520	Oxalis Acetosella	Ingredient	42904039	Oxalis montana leaf extract	1
+DPD110581	Oxyurus Vermicularis Homeopathic Animal	Ingredient	42904022	Enterobius vermicularis preparation	1
+DPD114092	Scouring Rush	Ingredient	42904018	Equisetum hyemale extract	1
+DPD101209	Cimex Lectularius	Ingredient	42904010		1
+DPD114141	Sedum Acre	Ingredient	42904009	Sedum acre extract	1
+DPD112812	Ranunculus Acris	Ingredient	42903993	Ranunculus bulbosus extract	1
+DPD100240	Bufo Vulgaris	Ingredient	42903986	Bufo bufo cutaneous gland preparation	1
+DPD102070	Cusparia Trifoliata	Ingredient	42903979	Angostura bark extract	1
+DPD101260	Cistus Canadensis	Ingredient	42903965		1
+DPD111014	Periwinkle	Ingredient	42903949	Vinca minor extract	1
+DPD103911	Exocarpium Citri	Ingredient	42903894	lemon peel extract	1
+DPD98101	Ammoniacum Gummi	Ingredient	42903733	Ammoniac	1
+DPD113774	Sandalwood White	Ingredient	42903721	Santalum album seed extract	1
+DPD103185	Dulse	Ingredient	42903517	dulse extract	1
+DPD98103	Ammonium Benzoicum	Ingredient	42903464	ammonium benzoate	1
+DPD113592	Rough Pigweed	Ingredient	42900429	redroot pigweed whole allergenic extract	1
+DPD106939	Latrodectus Katipo	Ingredient	42900394	black widow spider venom	1
+DPD104211	Fir	Ingredient	42900333	balsam fir leefy twig extract	1
+DPD100196	Brucine	Ingredient	42900327	brucine sulfate	1
+DPD105407	Hoang Nan	Ingredient	42900209	Strychnos wallichiana bark extract	1
+DPD103826	Eugenia Jambosa	Ingredient	42900201	Syzygium jambos leaf extract	1
+DPD114465	Skunk Cabbage	Ingredient	42900197	Symplocarpus foetidus root extract	1
+DPD115244	Symphoricarpus Racemosus	Ingredient	42900195	Symphoricarpos albus fruit extract	1
+DPD107549	Mamma	Ingredient	42900158	Sus scrofa mammary gland preparation	1
+DPD114909	Stillingia	Ingredient	42900118	Stillingia sylvatica root extract	1
+DPD114609	Solaninum	Ingredient	42900074	Solanum dulcamara stem extract	1
+DPD114610	Solanum	Ingredient	42900074	Solanum dulcamara stem extract	1
+DPD116396	Trifolium Pratense	Ingredient	42900047	Trifolium pratense flower extract	1
+DPD117470	Xanthoxylum	Ingredient	42900035	Zanthoxylum americanum bark extract	1
+DPD117023	Viburnum Lantana	Ingredient	42900008	Viburnum prunifolium bark extract	1
+DPD114179	Self Heal	Ingredient	42899952	Prunella vulgaris flowering top extract	1
+DPD106694	Knot Grass	Ingredient	42899948	Polygonum aviculare top extract	1
+DPD99455	Balloon Flower	Ingredient	42899925	Platycodon grandiflorum root extract	1
+DPD102027	Cubeba Officinalis	Ingredient	42899903	Piper cubeba fruit extract	1
+DPD100363	Calabar Bean	Ingredient	42899880	Physostigma venenosum seed extract	1
+DPD112644	Quercus Glandium Spiritus	Ingredient	42899835	Quercus robur nut extract	1
+DPD114383	"Sinapis Arvensis, Flos"	Ingredient	42899807	Sinapsis arvensis flowering-fruiting top extract	1
+DPD113286	Rhododendron Chrysanthum	Ingredient	42899791	Rhododendron aureum leaf extract	1
+DPD112701	Radix Ledebouriella Seseloides	Ingredient	42899731	Saposhnikovia divaricata root extract	1
+DPD114334	Siler Divaricatum	Ingredient	42899731	Saposhnikovia divaricata root extract	1
+DPD113985	Sanicula	Ingredient	42899726	Sanicula europaea extract	1
+DPD111113	Phellandrium Aquaticum	Ingredient	42899531	Oenanthe aquatica fruit extract	1
+DPD106159	Ipomoea Stans	Ingredient	42899502	Ipomoea nil seed extract	1
+DPD113188	Resina Laricis	Ingredient	42899489	Larix decidua resin extract	1
+DPD107534	Malabar Nut	Ingredient	42899485	Justicia adhatoda leaf extract	1
+DPD114030	Savin Oil	Ingredient	42899466	JUNIPERUS VIRGINIANA OIL	1
+DPD107388	Lycopus Europaeus	Ingredient	42899362	Lycopus virginicus extract	1
+DPD116126	Tonka Bean	Ingredient	42899077	Dipteryx odorata seed extract	1
+DPD114104	Scurvy Grass	Ingredient	42898946	Cochlearia officinalis flowering top extract	1
+DPD101041	Chinese Pagoda	Ingredient	42898943		1
+DPD114937	Stramonium	Ingredient	42898908	Datura stramonium extract	1
+DPD102230	Daphne Indica	Ingredient	42898907	Daphne odora bark extract	1
+DPD99459	Balmony	Ingredient	42898759	Chelone glabra extract	1
+DPD105588	Hydrocotyle	Ingredient	42898716	Centella asiatica extract	1
+DPD99062	Asterias Rubens	Ingredient	42898659	Asterias rubens preparation	1
+DPD99058	Astacus Fluviatilis	Ingredient	42898658	Astacus astacus preparation	1
+DPD101801	Copaiva Officinalis	Ingredient	42898468	Copaifera officinalis Resin	1
+DPD105028	Guinea Pepper	Ingredient	42898422	Aframomum angustifolium seed extract	1
+DPD101881	Cortex Albizziae Julibrissin	Ingredient	42898414	Albizia julibrissin bark extract	1
+DPD98832	Aquilaria Agallocha	Ingredient	42898345	Aquilaria malaccensis stem extract	1
+DPD99030	Aspidosperma	Ingredient	42898319	Aspidosperma quebracho-blanco bark extract	1
+DPD102788	Dithiobis	Ingredient	42898238	"2,2'-DITHIOBISBENZOTHIAZOLE"	1
+DPD101183	Cicer Arietinum	Ingredient	40226438	chickpea allergenic extract	1
+DPD110603	Pacific Weeds	Ingredient	40225727		1
+DPD101043	Chinese Tinospora Stem	Ingredient	40221258	Tinospora cordifolia stem extract	1
+DPD110056	Oil Of Cajeput	Ingredient	40221068	Melaleuca cajuputi leaf oil	1
+DPD111948	Poria Cocos	Ingredient	40220850	Wolfiporia extensa whole extract	1
+DPD116978	Veronica Beccabunga	Ingredient	40220741	Veronica officinalis leaf extract	1
+DPD115236	Sycamore	Ingredient	40220734	Acer pseudoplatanus pollen extract	1
+DPD116286	Tree Of Heaven	Ingredient	40220651	Ailanthus altissima whole extract	1
+DPD101289	Clam	Ingredient	40170543	clam allergenic extract	1
+DPD102853	Dog Hair	Ingredient	40170475	dog hair extract	1
+DPD103113	Dried Yeast	Ingredient	40169420	Baker's yeast allergenic extract	1
+DPD114290	Sheep Sorrel	Ingredient	40162235	sheep sorrel pollen extract	1
+DPD112180	Privet	Ingredient	40162001	privet pollen extract	1
+DPD99998	Blatta Americana	Ingredient	40161026	American cockroach extract	1
+DPD103215	Dwarf Pine	Ingredient	36249961	Pinus mugo subsp. mugo leafy twig extract	1
+DPD116755	Vaccinium Macrocarpon	Ingredient	36249484	Vaccinium macrocarpon whole extract	1
+DPD110884	Penghawar	Ingredient	36249468		1
+DPD113724	Salix Discolor	Ingredient	36249385	Salix alba whole extract	1
+DPD105519	Human Immunoglobulins (Tetanus Immune Globulin (Human))	Ingredient	35604680	Tetanus immune globulin	1
+DPD103535	Epilobium Palustre	Ingredient	35604447	Epilobium fleischeri whole extract	1
+DPD112987	Rattlesnake	Ingredient	35603744	Crotalus horridus horridus whole extract	1
+DPD107175	Linum Usitatissimum	Ingredient	35603444	Linum catharticum extract	1
+DPD104192	Ficus Religiosa	Ingredient	35603211	Ficus religiosa leafy twig extract	1
+DPD100702	Cascarilla	Ingredient	35602850	Croton eluteria bark extract	1
+DPD114757	Spirea Latifolia	Ingredient	21014164	Meadowsweet	1
+DPD104160	Ferrum Sidereum	Ingredient	21014160	Homeopathic ferrum sidereum	1
+DPD111302	Phytolacca Decandra	Ingredient	21014156	Homeopathic phytolacca decandra	1
+DPD107575	Manganese Fumarate	Ingredient	21014108	Magnesium monoethyl fumarate	1
+DPD100301	Bilastine	Ingredient	21014068	Bilastine	1
+DPD114445	Sitaxsentan Sodium	Ingredient	21014051	Sitaxentan	1
+DPD108024	Metallum Album Homeo Chemical	Ingredient	21014034	Homeopathic arsenicum album	1
+DPD113742	Salt Flower	Ingredient	19136030	"Saline Solution, Hypertonic"	1
+DPD113330	Ribonucleic Acid	Ingredient	19136013	RNA	1
+DPD114164	Selenium Chelate	Ingredient	19112412	SELENIUM HVP CHELATE	1
+DPD111973	Potassium Aminoacid Chelate	Ingredient	19098530	"POTASSIUM,CHELATED"	1
+DPD106171	Iris Florentina	Ingredient	19097155	ALLERGENIC EXTRACT- ORRIS ROOTIRIS FLORENTINA	1
+DPD101154	Chromium Amino Acid Chelate	Ingredient	19096766	"CHROMIUM, CHELATED"	1
+DPD117308	Wallflower	Ingredient	19082733	Erysimum preparation	1
+DPD114748	Spigelia Marylandica	Ingredient	19071807	Spigelia marilandica preparation	1
+DPD102332	Delphininum	Ingredient	19070925	Delphinium Staphisagria Preparation	1
+DPD114337	Silica Marina	Ingredient	19066865	Silicon Dioxide	1
+DPD98347	Antivenin Crotaline Polyvalent	Ingredient	19061403	Polyvalent crotalidae antivenin	1
+DPD97592	Adrenal Tissue	Ingredient	19061053	Adrenal cortex extract	1
+DPD107579	Manganese Hvp Amino Acid Chelate	Ingredient	19060896	magnesium amino acid chelate	1
+DPD112522	Purified Protein Derivative Battey Bacillus	Ingredient	19058274	Purified Protein Derivative of Tuberculin	1
+DPD102050	Cupric Sulfate Basic	Ingredient	19057346	Copper Sulfate	1
+DPD116011	Tilia Tomentosa	Ingredient	19056118	Tilia extract	1
+DPD111870	Pollen	Ingredient	19055260	POLLEN EXTRACTS	1
+DPD111871	Pollen And Non Pollen	Ingredient	19055260	POLLEN EXTRACTS	1
+DPD111895	Polyoxyethylene Lauryl Ether	Ingredient	19055216	POLYOXYETHYLENE ETHER	1
+DPD117222	Vitamin D2 (Ergosterol)	Ingredient	19045045	ergocalciferol	1
+DPD117663	Zinc Organic Complex	Ingredient	19044317	zinc chloride	1
+DPD116860	Vanadium Sulfate	Ingredient	19043266	vanadyl sulfate	1
+DPD115198	Surfactant-Associated Proteins Sp-B And Sp-C	Ingredient	19042852		1
+DPD112446	Provitamin A	Ingredient	19037223	Beta Carotene	1
+DPD105520	Human Plasma	Ingredient	19025693		1
+DPD111879	Poloxamer (Poloxamer 188)	Ingredient	19024636	Poloxamer 188	1
+DPD110694	Papayotin	Ingredient	19016494	Carica Papaya preparation	1
+DPD97871	Allergen Extract - Alum Precipitated	Ingredient	19014818	Allergenic extract	1
+DPD97872	Allergen Extract - Diagnostic	Ingredient	19014818	Allergenic extract	1
+DPD97876	Allergenic Extract Non-Pollen	Ingredient	19014818	Allergenic extract	1
+DPD97880	Allergenic Extracts Pollens	Ingredient	19014818	Allergenic extract	1
+DPD99404	Bacillus Calmette-Guerin (Bcg)  Substrain Montreal	Ingredient	19013730	"BCG, Live, Montreal Strain"	1
+DPD103209	Dust Concentrate	Ingredient	19012956	"ALLERGENIC EXTRACT, HOUSE DUST EXTRACT CONCENTRATE"	1
+DPD107581	Manganese Maleate	Ingredient	19004283	Magnesium malate	1
+DPD104634	Gatifloxacin Hemihydrate	Ingredient	1789276	gatifloxacin	1
+DPD103825	Eugenia Jambolana	Ingredient	1718916	Syzygium cumini fruit extract	1
+DPD100118	Brayera	Ingredient	1718843	Hagenia abyssinica flower extract	1
+DPD106472	Jonesia Asoca	Ingredient	1718841	Saraca indica bark extract	1
+DPD104753	Gentiana Cruciata	Ingredient	1718822	Gentiana cruciata root extract	1
+DPD104572	Galega Officinalis	Ingredient	1718821	Galega officinalis extract	1
+DPD98847	Arbutus Andrachne	Ingredient	1718628	Arbutus andrachne leafy shoot extract	1
+DPD98877	Aristolochia Milhomens	Ingredient	1718588	Aristolochia cymbifera flower extract	1
+DPD103835	Eupatorium Aromaticum	Ingredient	1718173	Eutrochium purpureum flowering top extract	1
+DPD103839	Eupatorium Purpureum	Ingredient	1718173	Eutrochium purpureum flowering top extract	1
+DPD116482	Trumpet Weed	Ingredient	1718173	Eutrochium purpureum flowering top extract	1
+DPD97633	Aesculus Indica	Ingredient	1315140	Horse Chestnut Preparation	1
+	Melphalan 	Ingredient	1301267		1
+DPD98027	Aluminum Hydroxide-Magnesium Carbonate-Co Dried Gel	Ingredient	985247	Aluminum Hydroxide	1
+DPD98028	Aluminum Hydroxide-Sucrose Dried Gel	Ingredient	985247	Aluminum Hydroxide	1
+DPD114169	Selenium Organic Complex	Ingredient	966282		1
+DPD116390	Triethanolamine Polypeptide Cocoate Condensate	Ingredient	942765	TRIETHANOLAMINE POLYPEPTIDE OLEATE CONDENSATE	1
+DPD100464	Calcium Sennosides A & B	Ingredient	938268	"sennosides, USP"	1
+DPD112687	Rabies Vaccine Inactivated (Human Diploid-Cell Culture)	Ingredient	544505	"rabies virus vaccine wistar strain PM-1503-3M (Human), Inactivated"	1
+DPD112688	Rabies Vaccine Inactivated (Purified Chick Embryo Cell Culture)	Ingredient	544411	rabies virus vaccine flury-lep strain	1
+DPD116556	Typhoid Vaccine (Salmonella Typhi Ty21a)	Ingredient	523202	Typhoid Vaccine Live Ty21a	1
+DPD102839	Dock	Ingredient	40162170	yellow dock pollen extract	4
+DPD102839	Dock	Ingredient	40228792	white (mexican) dock pollen extract	3
+DPD102839	Dock	Ingredient	40228117	bitter dock pollen extract	2
+DPD102839	Dock	Ingredient	42709315	pale dock pollen extract	1
+DPD117713	Zizyphus Spinosa	Ingredient	43532231	Ziziphus extract	1
+DPD117663	Zinc Organic Complex	Ingredient	19044317	zinc chloride	1
+DPD117470	Xanthoxylum	Ingredient	42900035	Zanthoxylum americanum bark extract	1
+DPD111948	Poria Cocos	Ingredient	40220850	Wolfiporia extensa whole extract	1
+DPD114380	Sinapis Alba	Ingredient	44785494	white mustard seed extract	1
+DPD111014	Periwinkle	Ingredient	42903949	Vinca minor extract	1
+DPD117023	Viburnum Lantana	Ingredient	42900008	Viburnum prunifolium bark extract	1
+DPD116978	Veronica Beccabunga	Ingredient	40220741	Veronica officinalis leaf extract	1
+DPD116860	Vanadium Sulfate	Ingredient	19043266	vanadyl sulfate	1
+DPD116755	Vaccinium Macrocarpon	Ingredient	36249484	Vaccinium macrocarpon whole extract	1
+DPD116556	Typhoid Vaccine (Salmonella Typhi Ty21a)	Ingredient	523202	Typhoid Vaccine Live Ty21a	1
+DPD116395	Trifolium	Ingredient	43013016	Trifolium pratense leaf extract	1
+DPD116396	Trifolium Pratense	Ingredient	42900047	Trifolium pratense flower extract	1
+DPD116390	Triethanolamine Polypeptide Cocoate Condensate	Ingredient	942765	TRIETHANOLAMINE POLYPEPTIDE OLEATE CONDENSATE	1
+DPD101043	Chinese Tinospora Stem	Ingredient	40221258	Tinospora cordifolia stem extract	1
+DPD116011	Tilia Tomentosa	Ingredient	19056118	Tilia extract	1
+DPD114185	Semen Biotae Orientalis	Ingredient	42904249	Thuja occidentalis whole extract	1
+DPD115945	Thuja Lobbi	Ingredient	42904249	Thuja occidentalis whole extract	1
+DPD115563	Teucrium Scorodonia	Ingredient	45776474	Teucrium scorodonia whole extract	1
+DPD114521	Sodium Auro-Chloride	Ingredient	43014194	tetrachloroaurate	1
+DPD114580	Sodium Tetrachloroaurate(Iii)	Ingredient	43014194	tetrachloroaurate	1
+DPD105519	Human Immunoglobulins (Tetanus Immune Globulin (Human))	Ingredient	35604680	Tetanus immune globulin	1
+DPD103826	Eugenia Jambosa	Ingredient	42900201	Syzygium jambos leaf extract	1
+DPD103825	Eugenia Jambolana	Ingredient	1718916	Syzygium cumini fruit extract	1
+DPD114465	Skunk Cabbage	Ingredient	42900197	Symplocarpus foetidus root extract	1
+DPD115244	Symphoricarpus Racemosus	Ingredient	42900195	Symphoricarpos albus fruit extract	1
+DPD107549	Mamma	Ingredient	42900158	Sus scrofa mammary gland preparation	1
+DPD105407	Hoang Nan	Ingredient	42900209	Strychnos wallichiana bark extract	1
+DPD114975	Strophanthus Sarmentosus	Ingredient	44814447	Strophanthus kombe whole extract	1
+DPD114951	Streptococcus Non-Hemolytic	Ingredient	43563438	streptococcus faecalis	1
+DPD114909	Stillingia	Ingredient	42900118	Stillingia sylvatica root extract	1
+DPD114891	Sticta Pulmonaria	Ingredient	43125871	Sticta Pulmonaria for homeopathic preparations	1
+DPD114751	Spinach	Ingredient	45775818	Spinacia oleracea root extract	1
+DPD114748	Spigelia Marylandica	Ingredient	19071807	Spigelia marilandica preparation	1
+DPD114609	Solaninum	Ingredient	42900074	Solanum dulcamara stem extract	1
+DPD114610	Solanum	Ingredient	42900074	Solanum dulcamara stem extract	1
+DPD114445	Sitaxsentan Sodium	Ingredient	21014051	Sitaxentan	1
+DPD114383	"Sinapis Arvensis, Flos"	Ingredient	42899807	Sinapsis arvensis flowering-fruiting top extract	1
+DPD114337	Silica Marina	Ingredient	19066865	Silicon Dioxide	1
+DPD114290	Sheep Sorrel	Ingredient	40162235	sheep sorrel pollen extract	1
+DPD100464	Calcium Sennosides A & B	Ingredient	938268	"sennosides, USP"	1
+DPD100706	Cassia Alata	Ingredient	43526359	Senna alata whole extract	1
+DPD114164	Selenium Chelate	Ingredient	19112412	SELENIUM HVP CHELATE	1
+DPD114144	Sedum Telephium	Ingredient	45774950	Sedum roseum whole extract	1
+DPD114141	Sedum Acre	Ingredient	42904009	Sedum acre extract	1
+DPD109301	Ningo Figwort Root	Ingredient	43526357	Scrophularia ningpoensis root extract	1
+DPD112475	Psorinum	Ingredient	43532163	SCABIES LESION LYSATE (HUMAN)	1
+DPD111385	Pitcher Plant	Ingredient	46221620	Sarracenia purpurea extract	1
+DPD106472	Jonesia Asoca	Ingredient	1718841	Saraca indica bark extract	1
+DPD112701	Radix Ledebouriella Seseloides	Ingredient	42899731	Saposhnikovia divaricata root extract	1
+DPD114334	Siler Divaricatum	Ingredient	42899731	Saposhnikovia divaricata root extract	1
+DPD113774	Sandalwood White	Ingredient	42903721	Santalum album seed extract	1
+DPD113985	Sanicula	Ingredient	42899726	Sanicula europaea extract	1
+DPD100264	Burnet	Ingredient	44507634	Sanguisorba officinalis whole extract	1
+DPD113978	Sanguinarina Nitrica	Ingredient	44818507	sanguinarine	1
+DPD113766	Sambucus Ebulus	Ingredient	43012403	Sambucus nigra whole extract	1
+DPD113724	Salix Discolor	Ingredient	36249385	Salix alba whole extract	1
+DPD113731	"Salix Vitellina, Flos"	Ingredient	44816296	Salix alba flower extract	1
+DPD113742	Salt Flower	Ingredient	19136030	"Saline Solution, Hypertonic"	1
+DPD113665	Sabadilla	Ingredient	43125907	Sabadilla for homeopathic preparations	1
+DPD97675	Agaricus Emeticus	Ingredient	44506795	Russula emetica preparation	1
+DPD113628	Rupatadine Fumarate	Ingredient	43563399	rupatadine fumarate	1
+DPD113624	Rumex Obtusifolius	Ingredient	43012310	Rumex acetosa whole extract	1
+DPD113330	Ribonucleic Acid	Ingredient	19136013	RNA	1
+DPD115083	Sumach	Ingredient	46276350	Rhus spp whole extract	1
+DPD113310	Rhus Aromatica	Ingredient	42904126	Rhus aromatica root bark extract	1
+DPD113286	Rhododendron Chrysanthum	Ingredient	42899791	Rhododendron aureum leaf extract	1
+DPD113240	Rhamnus Californica	Ingredient	43125917	Rhamnus Frangula for homeopathic preparations	1
+DPD113592	Rough Pigweed	Ingredient	42900429	redroot pigweed whole allergenic extract	1
+DPD112812	Ranunculus Acris	Ingredient	42903993	Ranunculus bulbosus extract	1
+DPD112687	Rabies Vaccine Inactivated (Human Diploid-Cell Culture)	Ingredient	544505	"rabies virus vaccine wistar strain PM-1503-3M (Human), Inactivated"	1
+DPD112688	Rabies Vaccine Inactivated (Purified Chick Embryo Cell Culture)	Ingredient	544411	rabies virus vaccine flury-lep strain	1
+DPD112644	Quercus Glandium Spiritus	Ingredient	42899835	Quercus robur nut extract	1
+DPD112522	Purified Protein Derivative Battey Bacillus	Ingredient	19058274	Purified Protein Derivative of Tuberculin	1
+DPD114179	Self Heal	Ingredient	42899952	Prunella vulgaris flowering top extract	1
+DPD112180	Privet	Ingredient	40162001	privet pollen extract	1
+DPD110517	Ox Lip Flower	Ingredient	44785730	PRIMULA VERIS FLOWER EXTRACT	1
+DPD111973	Potassium Aminoacid Chelate	Ingredient	19098530	"POTASSIUM,CHELATED"	1
+DPD98347	Antivenin Crotaline Polyvalent	Ingredient	19061403	Polyvalent crotalidae antivenin	1
+DPD111895	Polyoxyethylene Lauryl Ether	Ingredient	19055216	POLYOXYETHYLENE ETHER	1
+DPD106694	Knot Grass	Ingredient	42899948	Polygonum aviculare top extract	1
+DPD114639	Solomon'S Seal	Ingredient	43525911	Polygonatum biflorum root etxract	1
+DPD111879	Poloxamer (Poloxamer 188)	Ingredient	19024636	Poloxamer 188	1
+DPD111870	Pollen	Ingredient	19055260	POLLEN EXTRACTS	1
+DPD111871	Pollen And Non Pollen	Ingredient	19055260	POLLEN EXTRACTS	1
+DPD111869	Polistes Spp Venom Protein Extract	Ingredient	43125905	Polistes wasp venom	1
+DPD111431	Plectranthus Fruticosus	Ingredient	45776878	Plectranthus barbatus whole extract	1
+DPD99455	Balloon Flower	Ingredient	42899925	Platycodon grandiflorum root extract	1
+DPD111420	Platina Homeo Chemical	Ingredient	45776472	platinic chloride	1
+DPD111418	Platanus Orientalis	Ingredient	44506776	Platanus occidentalis whole extract	1
+DPD102027	Cubeba Officinalis	Ingredient	42899903	Piper cubeba fruit extract	1
+DPD103215	Dwarf Pine	Ingredient	36249961	Pinus mugo subsp. mugo leafy twig extract	1
+DPD100363	Calabar Bean	Ingredient	42899880	Physostigma venenosum seed extract	1
+DPD101711	Common Bean Garden	Ingredient	43563152	phaseolus vulgaris extract	1
+DPD116522	Tussilago Fragrans	Ingredient	43533053	Petasites fragrans extract	1
+DPD111890	Polygonum Punctatum	Ingredient	44507756	Persicaria punctata extract	1
+DPD98170	Amygdalus Persica	Ingredient	46233877	Peach juice	1
+DPD110520	Oxalis Acetosella	Ingredient	42904039	Oxalis montana leaf extract	1
+DPD110427	Orthosiphon Leaf	Ingredient	43563238	orthosiphon leaf extract	1
+DPD111113	Phellandrium Aquaticum	Ingredient	42899531	Oenanthe aquatica fruit extract	1
+DPD109986	Ocimum Sanctum	Ingredient	45776905	Ocimum africanum leaf extract	1
+DPD110591	Outer Membrane Vesicles (Neisseria Meningitidis Group B Nz98/254 Strain)	Ingredient	43125956	Neisseria meningitidis Group B Membrane vesicles External Omv	1
+DPD108843	Myristica Oil	Ingredient	45776901	Myristica fragrans whole extract	1
+DPD109059	Neisseria Catarrhalis	Ingredient	45775445	MORAXELLA CATARRHALIS SUBSP. CATARRHALIS	1
+DPD110056	Oil Of Cajeput	Ingredient	40221068	Melaleuca cajuputi leaf oil	1
+DPD114757	Spirea Latifolia	Ingredient	21014164	Meadowsweet	1
+DPD107601	Manna	Ingredient	43563283	manna	1
+DPD107547	"Malus Pumila, Flos"	Ingredient	44507587	Malus domestica whole extract	1
+DPD107575	Manganese Fumarate	Ingredient	21014108	Magnesium monoethyl fumarate	1
+DPD107581	Manganese Maleate	Ingredient	19004283	Magnesium malate	1
+DPD107582	Manganese Organic Complex	Ingredient	43532017	Magnesium Cation	1
+DPD107579	Manganese Hvp Amino Acid Chelate	Ingredient	19060896	magnesium amino acid chelate	1
+DPD107388	Lycopus Europaeus	Ingredient	42899362	Lycopus virginicus extract	1
+DPD110370	Oreodaphne Californica	Ingredient	44507595	Litsea cubeba fruit extract	1
+DPD107175	Linum Usitatissimum	Ingredient	35603444	Linum catharticum extract	1
+DPD107159	Linaria Canadensis	Ingredient	46234337	Linaria vulgaris extract	1
+DPD116005	Tiger Lily	Ingredient	42904260	Lilium lancifolium whole extract	1
+DPD103911	Exocarpium Citri	Ingredient	42903894	lemon peel extract	1
+DPD113188	Resina Laricis	Ingredient	42899489	Larix decidua resin extract	1
+DPD106823	Lachnanthes Tinctoria	Ingredient	43531987	Lachnanthes caroliniana extract	1
+DPD107534	Malabar Nut	Ingredient	42899485	Justicia adhatoda leaf extract	1
+DPD114030	Savin Oil	Ingredient	42899466	JUNIPERUS VIRGINIANA OIL	1
+DPD106482	Juglans Pulv	Ingredient	43532432	juglans regia shell extract	1
+DPD106159	Ipomoea Stans	Ingredient	42899502	Ipomoea nil seed extract	1
+DPD105544	Hura Brasiliensis	Ingredient	43012733	Hura crepitans sap extract	1
+DPD97633	Aesculus Indica	Ingredient	1315140	Horse Chestnut Preparation	1
+DPD111302	Phytolacca Decandra	Ingredient	21014156	Homeopathic phytolacca decandra	1
+DPD104160	Ferrum Sidereum	Ingredient	21014160	Homeopathic ferrum sidereum	1
+DPD108024	Metallum Album Homeo Chemical	Ingredient	21014034	Homeopathic arsenicum album	1
+DPD114174	Selenium Yeast	Ingredient	43252063	High Selenium Yeast	1
+DPD105266	Heracleum Sphondylium	Ingredient	43126064	Heracleum sphondylium for homeopathic preparations	1
+DPD105201	Helonias	Ingredient	43126018	Helonias Dioica for homeopathic preparations	1
+DPD105193	Helleborus	Ingredient	42904103	Helleborus extract	1
+DPD100118	Brayera	Ingredient	1718843	Hagenia abyssinica flower extract	1
+DPD104908	Gnaphalium Polycephalum	Ingredient	43125948	Gnaphalium polycephalum for homeopathic preparations	1
+DPD104753	Gentiana Cruciata	Ingredient	1718822	Gentiana cruciata root extract	1
+DPD104634	Gatifloxacin Hemihydrate	Ingredient	1789276	gatifloxacin	1
+DPD117432	Woodruff Herb	Ingredient	42904105	Galium odoratum extract	1
+DPD104572	Galega Officinalis	Ingredient	1718821	Galega officinalis extract	1
+DPD104412	Formica	Ingredient	43563358	formica rufa extract	1
+DPD104413	Formica Rufa	Ingredient	43563358	formica rufa extract	1
+DPD104192	Ficus Religiosa	Ingredient	35603211	Ficus religiosa leafy twig extract	1
+DPD111413	Plasmafibronectin	Ingredient	43125990	Fibronectin	1
+DPD103835	Eupatorium Aromaticum	Ingredient	1718173	Eutrochium purpureum flowering top extract	1
+DPD103839	Eupatorium Purpureum	Ingredient	1718173	Eutrochium purpureum flowering top extract	1
+DPD116482	Trumpet Weed	Ingredient	1718173	Eutrochium purpureum flowering top extract	1
+DPD103850	Euphorbia Pilulifera	Ingredient	42904088	Euphorbia hirta extract	1
+DPD103631	Eschscholtzia Californica	Ingredient	42904296	Eschscholzia californica extract	1
+DPD117308	Wallflower	Ingredient	19082733	Erysimum preparation	1
+DPD117222	Vitamin D2 (Ergosterol)	Ingredient	19045045	ergocalciferol	1
+DPD111333	Pilewort Herb	Ingredient	43532999	Erechtites hieraciifolius extract	1
+DPD114092	Scouring Rush	Ingredient	42904018	Equisetum hyemale extract	1
+DPD103535	Epilobium Palustre	Ingredient	35604447	Epilobium fleischeri whole extract	1
+DPD103545	Epiphegus Virginiana	Ingredient	42904122	Epifagus virginiana extract	1
+DPD110581	Oxyurus Vermicularis Homeopathic Animal	Ingredient	42904022	Enterobius vermicularis preparation	1
+DPD103185	Dulse	Ingredient	42903517	dulse extract	1
+DPD102853	Dog Hair	Ingredient	40170475	dog hair extract	1
+DPD116126	Tonka Bean	Ingredient	42899077	Dipteryx odorata seed extract	1
+DPD102606	Dictamnus Albus	Ingredient	44507537	Dictamnus dasycarpus whole extract	1
+DPD102332	Delphininum	Ingredient	19070925	Delphinium Staphisagria Preparation	1
+DPD114937	Stramonium	Ingredient	42898908	Datura stramonium extract	1
+DPD102230	Daphne Indica	Ingredient	42898907	Daphne odora bark extract	1
+DPD106862	Ladyslipper	Ingredient	43126066	Cypripedium Pubescens for homeopathic preparations	1
+DPD100702	Cascarilla	Ingredient	35602850	Croton eluteria bark extract	1
+DPD112987	Rattlesnake	Ingredient	35603744	Crotalus horridus horridus whole extract	1
+DPD116227	Toxicophis Pugnax	Ingredient	45892383	Cottonmouth venom	1
+DPD102050	Cupric Sulfate Basic	Ingredient	19057346	Copper Sulfate	1
+DPD101801	Copaiva Officinalis	Ingredient	42898468	Copaifera officinalis Resin	1
+DPD101894	Corylus Avellana	Ingredient	44784749	Common hazel pollen extract	1
+DPD101548	Codonopsitis	Ingredient	43560329	codonopsis lanceolata root extract	1
+DPD114104	Scurvy Grass	Ingredient	42898946	Cochlearia officinalis flowering top extract	1
+DPD101526	Coccinella Septempunctata	Ingredient	46221576	Coccinella septempunctata preparation	1
+DPD100007	Blessed Thistle	Ingredient	43012336	Cnicus Benedictus extract	1
+DPD101493	Cnicus Benedictus	Ingredient	43012336	Cnicus Benedictus extract	1
+DPD101289	Clam	Ingredient	40170543	clam allergenic extract	1
+DPD101154	Chromium Amino Acid Chelate	Ingredient	19096766	"CHROMIUM, CHELATED"	1
+DPD100353	Cahinca	Ingredient	46275554	Chiococca alba root extract	1
+DPD101183	Cicer Arietinum	Ingredient	40226438	chickpea allergenic extract	1
+DPD99459	Balmony	Ingredient	42898759	Chelone glabra extract	1
+DPD105588	Hydrocotyle	Ingredient	42898716	Centella asiatica extract	1
+DPD100829	Centaurium Umbellatum	Ingredient	43013538	Centaurium erythraea preparation	1
+DPD100830	"Centaurium Umbellatum, Flos"	Ingredient	43013538	Centaurium erythraea preparation	1
+DPD110694	Papayotin	Ingredient	19016494	Carica Papaya preparation	1
+DPD115841	Thea Sinensis	Ingredient	42904180	Camellia sinensis whole extract	1
+DPD100366	Caladium Seguinum	Ingredient	43126006	Caladium seguinum for homeopathic preparations	1
+DPD100240	Bufo Vulgaris	Ingredient	42903986	Bufo bufo cutaneous gland preparation	1
+DPD100196	Brucine	Ingredient	42900327	brucine sulfate	1
+DPD115904	Thiosinamine	Ingredient	45775986	Brassica juncea seed oil	1
+DPD107858	Medusa	Ingredient	43252049	Box Jellyfish Antivenom	1
+DPD99582	Beef Extract Powder	Ingredient	42898530	Bos taurus mesenchyme preparation	1
+DPD106939	Latrodectus Katipo	Ingredient	42900394	black widow spider venom	1
+DPD100301	Bilastine	Ingredient	21014068	Bilastine	1
+DPD112446	Provitamin A	Ingredient	19037223	Beta Carotene	1
+DPD115322	Tallow	Ingredient	43013945	beef tallow preparation	1
+DPD99404	Bacillus Calmette-Guerin (Bcg)  Substrain Montreal	Ingredient	19013730	"BCG, Live, Montreal Strain"	1
+DPD99494	Baryta Iodata	Ingredient	45776742	barium iodate	1
+DPD99492	Baryta Acetica	Ingredient	44785147	Barium Acetate	1
+DPD104211	Fir	Ingredient	42900333	balsam fir leefy twig extract	1
+DPD103113	Dried Yeast	Ingredient	40169420	Baker's yeast allergenic extract	1
+DPD113263	Rhizoma Atractylodis	Ingredient	43525881	Atractylodes macrocephala root extract	1
+DPD99062	Asterias Rubens	Ingredient	42898659	Asterias rubens preparation	1
+DPD99058	Astacus Fluviatilis	Ingredient	42898658	Astacus astacus preparation	1
+DPD99030	Aspidosperma	Ingredient	42898319	Aspidosperma quebracho-blanco bark extract	1
+DPD99029	Aspidium	Ingredient	43126053	Aspidium Filix Mas for homeopathic preparations	1
+DPD98877	Aristolochia Milhomens	Ingredient	1718588	Aristolochia cymbifera flower extract	1
+DPD98858	Argemone Mexicana	Ingredient	44818508	Argemone mexicana extract	1
+DPD98847	Arbutus Andrachne	Ingredient	1718628	Arbutus andrachne leafy shoot extract	1
+DPD98832	Aquilaria Agallocha	Ingredient	42898345	Aquilaria malaccensis stem extract	1
+DPD98790	Apricot	Ingredient	42904131	apricot extract	1
+DPD102070	Cusparia Trifoliata	Ingredient	42903979	Angostura bark extract	1
+DPD98205	Anatherum Muricatum	Ingredient	43126084	Anantherum muricatum for homeopathic preparations	1
+DPD98183	Anacardium Orientale	Ingredient	43126072	Anacardium Orientale for homeopathic preparations	1
+DPD98103	Ammonium Benzoicum	Ingredient	42903464	ammonium benzoate	1
+DPD98101	Ammoniacum Gummi	Ingredient	42903733	Ammoniac	1
+DPD98098	Ammi Visnaga	Ingredient	42904123	Ammi visnaga fruit extract	1
+DPD99998	Blatta Americana	Ingredient	40161026	American cockroach extract	1
+DPD98057	Ambra Grisea	Ingredient	43126028	Ambra Grisea for homeopathic preparations	1
+DPD98027	Aluminum Hydroxide-Magnesium Carbonate-Co Dried Gel	Ingredient	985247	Aluminum Hydroxide	1
+DPD98028	Aluminum Hydroxide-Sucrose Dried Gel	Ingredient	985247	Aluminum Hydroxide	1
+DPD103209	Dust Concentrate	Ingredient	19012956	"ALLERGENIC EXTRACT, HOUSE DUST EXTRACT CONCENTRATE"	1
+DPD106171	Iris Florentina	Ingredient	19097155	ALLERGENIC EXTRACT- ORRIS ROOTIRIS FLORENTINA	1
+DPD97871	Allergen Extract - Alum Precipitated	Ingredient	19014818	Allergenic extract	1
+DPD97872	Allergen Extract - Diagnostic	Ingredient	19014818	Allergenic extract	1
+DPD97876	Allergenic Extract Non-Pollen	Ingredient	19014818	Allergenic extract	1
+DPD97880	Allergenic Extracts Pollens	Ingredient	19014818	Allergenic extract	1
+DPD113262	Rhizoma Alismatis	Ingredient	45776741	Alisma plantago-aquatica whole extract	1
+DPD97762	Alchemilla Vulgaris	Ingredient	43126049	Alchemilla Vulgaris for homeopathic preparations	1
+DPD101881	Cortex Albizziae Julibrissin	Ingredient	42898414	Albizia julibrissin bark extract	1
+DPD116286	Tree Of Heaven	Ingredient	40220651	Ailanthus altissima whole extract	1
+DPD97698	Agraphis Nutans	Ingredient	43126056	Agraphis Nutans for homeopathic preparations	1
+DPD105028	Guinea Pepper	Ingredient	42898422	Aframomum angustifolium seed extract	1
+DPD97592	Adrenal Tissue	Ingredient	19061053	Adrenal cortex extract	1
+DPD114750	Spilanthes Oleracea	Ingredient	45775608	Acmella oleracea whole extract	1
+DPD115236	Sycamore	Ingredient	40220734	Acer pseudoplatanus pollen extract	1
+DPD102788	Dithiobis	Ingredient	42898238	"2,2'-DITHIOBISBENZOTHIAZOLE"	1
+DPD101213	Cimicifuga Racemosa	Ingredient	46233901	Actaea racemosa whole extract	1
+DPD110733	Parotid Gland Tissue	Ingredient	45892611	Human parathyroid preparation	1
+DPD116891	Various Types Mixture	Ingredient	43012408	Streptococcus pneumoniae	1
+DPD102768	Diplococcus	Ingredient	43012408	Streptococcus pneumoniae	1
+DPD101209	Cimex Lectularius	Ingredient	42904010	Cimex lectularius preparation	1
+DPD101260	Cistus Canadensis	Ingredient	42903965	Helianthemum canadense extract	1
+DPD101041	Chinese Pagoda	Ingredient	42898943	Clerodendranthus spicatus leaf extract	1
+DPD110603	Pacific Weeds	Ingredient	40225727	tall oat grass pollen extract	1
+DPD110884	Penghawar	Ingredient	36249468	Cibotium barometz root extract	1
+DPD115198	Surfactant-Associated Proteins Sp-B And Sp-C	Ingredient	19042852	Phospholipids	1
+DPD105520	Human Plasma	Ingredient	19025693	plasma protein fraction	1
+	Melphalan 	Ingredient	1301267	Melphalan	1
+DPD114169	Selenium Organic Complex	Ingredient	966282	Selenium	1

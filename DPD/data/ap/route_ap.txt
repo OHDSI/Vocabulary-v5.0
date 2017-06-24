@@ -1,0 +1,6382 @@
+10025	55	OPHTHALMIC								
+10025	57	OTIC								
+10991	70	TOPICAL								
+10992	74	VAGINAL								
+10993	74	VAGINAL								
+2030	56	ORAL								
+2049	56	ORAL								
+21854	8	DISINFECTANT (Food Premises)								
+21854	9	DISINFECTANT (Hospital/HC Facilities)								
+21854	94	DISINFECTANT (Institutional/Industrial)								
+21855	8	DISINFECTANT (Food Premises)								
+21855	9	DISINFECTANT (Hospital/HC Facilities)								
+21855	94	DISINFECTANT (Institutional/Industrial)								
+22567	70	TOPICAL								
+2390	22	INTRAMUSCULAR								
+2390	49	INTRAVENOUS								
+2390	65	SUBCUTANEOUS								
+25876	8	DISINFECTANT (Food Premises)								
+25876	9	DISINFECTANT (Hospital/HC Facilities)								
+25876	94	DISINFECTANT (Institutional/Industrial)								
+25882	8	DISINFECTANT (Food Premises)								
+25882	9	DISINFECTANT (Hospital/HC Facilities)								
+25882	94	DISINFECTANT (Institutional/Industrial)								
+2780	56	ORAL								
+35657	56	ORAL								
+36233	56	ORAL								
+36818	56	ORAL								
+37495	22	INTRAMUSCULAR								
+37495	49	INTRAVENOUS								
+42924	22	INTRAMUSCULAR								
+42924	65	SUBCUTANEOUS								
+42925	22	INTRAMUSCULAR								
+42925	65	SUBCUTANEOUS								
+42929	49	INTRAVENOUS								
+42941	22	INTRAMUSCULAR								
+42942	22	INTRAMUSCULAR								
+42972	55	OPHTHALMIC								
+42973	55	OPHTHALMIC								
+43007	56	ORAL								
+43008	56	ORAL								
+43064	56	ORAL								
+43065	56	ORAL								
+43066	56	ORAL								
+43255	49	INTRAVENOUS								
+43256	49	INTRAVENOUS								
+43342	56	ORAL								
+43379	49	INTRAVENOUS								
+43380	49	INTRAVENOUS								
+43397	56	ORAL								
+43603	97	INTRAVASCULAR								
+43612	56	ORAL								
+43679	56	ORAL								
+43680	56	ORAL								
+43681	56	ORAL								
+43757	56	ORAL								
+43922	56	ORAL								
+43968	22	INTRAMUSCULAR								
+43968	49	INTRAVENOUS								
+43968	65	SUBCUTANEOUS								
+44028	56	ORAL								
+44037	56	ORAL								
+44038	56	ORAL								
+44097	71	TRANSDERMAL								
+44174	56	ORAL								
+47228	56	ORAL								
+47256	56	ORAL								
+47356	10	INTRA-ARTICULAR								
+47436	56	ORAL								
+47471	56	ORAL								
+47472	56	ORAL								
+47473	56	ORAL								
+47474	56	ORAL								
+47494	56	ORAL								
+47505	56	ORAL								
+47506	56	ORAL								
+47507	56	ORAL								
+47508	56	ORAL								
+47509	56	ORAL								
+47516	56	ORAL								
+47517	56	ORAL								
+47529	56	ORAL								
+47539	56	ORAL								
+47545	56	ORAL								
+47555	56	ORAL								
+47751	56	ORAL								
+47760	56	ORAL								
+47861	70	TOPICAL								
+48025	8	DISINFECTANT (Food Premises)								
+48025	9	DISINFECTANT (Hospital/HC Facilities)								
+48052	70	TOPICAL								
+48058	70	TOPICAL								
+48112	56	ORAL								
+48118	8	DISINFECTANT (Food Premises)								
+48119	56	ORAL								
+48120	56	ORAL								
+48121	56	ORAL								
+48173	56	ORAL								
+48174	56	ORAL								
+48204	8	DISINFECTANT (Food Premises)								
+48225	70	TOPICAL								
+48228	70	TOPICAL								
+48328	56	ORAL								
+48332	56	ORAL								
+48347	56	ORAL								
+48398	70	TOPICAL								
+48416	56	ORAL								
+48420	70	TOPICAL								
+48422	56	ORAL								
+48620	56	ORAL								
+48632	56	ORAL								
+48633	56	ORAL								
+48703	56	ORAL								
+48706	56	ORAL								
+48709	56	ORAL								
+48731	56	ORAL								
+48840	56	ORAL								
+48849	56	ORAL								
+48874	66	SUBLINGUAL								
+48894	70	TOPICAL								
+48905	56	ORAL								
+48906	56	ORAL								
+48908	56	ORAL								
+48927	56	ORAL								
+48928	56	ORAL								
+48946	56	ORAL								
+48962	9	DISINFECTANT (Hospital/HC Facilities)								
+48965	56	ORAL								
+48992	70	TOPICAL								
+48993	70	TOPICAL								
+49008	22	INTRAMUSCULAR								
+49052	22	INTRAMUSCULAR								
+49052	49	INTRAVENOUS								
+49053	49	INTRAVENOUS								
+49054	22	INTRAMUSCULAR								
+49054	49	INTRAVENOUS								
+49071	56	ORAL								
+49072	56	ORAL								
+49073	56	ORAL								
+49074	56	ORAL								
+49077	56	ORAL								
+49078	56	ORAL								
+49081	56	ORAL								
+49083	56	ORAL								
+49119	32	INTRAOCULAR								
+49178	56	ORAL								
+49239	62	RECTAL								
+49246	22	INTRAMUSCULAR								
+49285	56	ORAL								
+49306	56	ORAL								
+49311	70	TOPICAL								
+49458	9	DISINFECTANT (Hospital/HC Facilities)								
+49459	30	DISINFECTANT (Medical Instruments)								
+49534	5	DENTAL								
+49552	56	ORAL								
+49572	56	ORAL								
+49593	56	ORAL								
+49624	56	ORAL								
+49625	56	ORAL								
+49626	56	ORAL								
+49627	56	ORAL								
+49628	56	ORAL								
+49629	56	ORAL								
+49644	56	ORAL								
+49656	56	ORAL								
+49781	56	ORAL								
+49783	56	ORAL								
+49790	56	ORAL								
+49791	56	ORAL								
+49814	56	ORAL								
+49815	56	ORAL								
+49918	56	ORAL								
+49971	56	ORAL								
+49976	56	ORAL								
+49987	56	ORAL								
+49988	56	ORAL								
+49989	56	ORAL								
+50033	53	NASAL								
+50039	56	ORAL								
+50063	8	DISINFECTANT (Food Premises)								
+50063	9	DISINFECTANT (Hospital/HC Facilities)								
+50066	56	ORAL								
+50131	70	TOPICAL								
+50139	65	SUBCUTANEOUS								
+50213	56	ORAL								
+50221	56	ORAL								
+50298	56	ORAL								
+50325	87	DISINFECTANT (Contact Lens)								
+50336	56	ORAL								
+50341	56	ORAL								
+50358	56	ORAL								
+50364	70	TOPICAL								
+50371	56	ORAL								
+50372	56	ORAL								
+50375	56	ORAL								
+50381	56	ORAL								
+50382	56	ORAL								
+50383	56	ORAL								
+50384	56	ORAL								
+50388	56	ORAL								
+50430	56	ORAL								
+50444	70	TOPICAL								
+50445	70	TOPICAL								
+50446	70	TOPICAL								
+50447	70	TOPICAL								
+50448	70	TOPICAL								
+50482	56	ORAL								
+50506	56	ORAL								
+50555	56	ORAL								
+50556	56	ORAL								
+50557	56	ORAL								
+50558	56	ORAL								
+50559	56	ORAL								
+50560	56	ORAL								
+50561	56	ORAL								
+50562	56	ORAL								
+50564	64	SUBARACHNOIDAL								
+50565	59	PARENTERAL (UNSPECIFIED)								
+50567	97	INTRAVASCULAR								
+50568	97	INTRAVASCULAR								
+50595	56	ORAL								
+50601	56	ORAL								
+50610	56	ORAL								
+50629	18	INTRACUTANEOUS								
+50629	65	SUBCUTANEOUS								
+50630	18	INTRACUTANEOUS								
+50630	65	SUBCUTANEOUS								
+50658	70	TOPICAL								
+50659	70	TOPICAL								
+50660	53	NASAL								
+50712	56	ORAL								
+50713	56	ORAL								
+50714	56	ORAL								
+50721	85	PERCUTANEOUS								
+50742	62	RECTAL								
+50752	56	ORAL								
+50762	56	ORAL								
+50763	56	ORAL								
+50764	56	ORAL								
+50826	56	ORAL								
+50856	8	DISINFECTANT (Food Premises)								
+50856	9	DISINFECTANT (Hospital/HC Facilities)								
+50859	65	SUBCUTANEOUS								
+50860	65	SUBCUTANEOUS								
+50864	70	TOPICAL								
+50884	56	ORAL								
+50888	56	ORAL								
+50889	56	ORAL								
+50891	56	ORAL								
+50892	56	ORAL								
+50893	56	ORAL								
+50902	56	ORAL								
+50903	56	ORAL								
+50904	56	ORAL								
+50905	56	ORAL								
+50907	56	ORAL								
+50908	56	ORAL								
+50910	56	ORAL								
+50990	70	TOPICAL								
+50991	70	TOPICAL								
+51006	56	ORAL								
+51023	5	DENTAL								
+51032	22	INTRAMUSCULAR								
+51032	49	INTRAVENOUS								
+51045	56	ORAL								
+51057	9	DISINFECTANT (Hospital/HC Facilities)								
+51059	9	DISINFECTANT (Hospital/HC Facilities)								
+51081	70	TOPICAL								
+51113	70	TOPICAL								
+51130	56	ORAL								
+51135	5	DENTAL								
+51136	5	DENTAL								
+51137	5	DENTAL								
+51138	5	DENTAL								
+51139	5	DENTAL								
+51140	56	ORAL								
+51145	56	ORAL								
+51149	56	ORAL								
+51152	56	ORAL								
+51206	70	TOPICAL								
+51278	70	TOPICAL								
+51363	56	ORAL								
+51471	56	ORAL								
+51472	56	ORAL								
+51727	5	DENTAL								
+51738	56	ORAL								
+51740	56	ORAL								
+51909	49	INTRAVENOUS								
+51910	49	INTRAVENOUS								
+51911	49	INTRAVENOUS								
+51919	56	ORAL								
+52014	56	ORAL								
+52015	56	ORAL								
+52016	56	ORAL								
+52017	56	ORAL								
+52018	56	ORAL								
+52019	70	TOPICAL								
+52020	56	ORAL								
+52021	56	ORAL								
+52022	56	ORAL								
+52023	56	ORAL								
+52024	56	ORAL								
+52025	56	ORAL								
+52030	56	ORAL								
+52035	56	ORAL								
+52037	56	ORAL								
+52038	56	ORAL								
+52039	56	ORAL								
+52141	56	ORAL								
+52142	56	ORAL								
+52143	56	ORAL								
+52144	56	ORAL								
+52145	56	ORAL								
+52210	56	ORAL								
+52211	56	ORAL								
+52212	56	ORAL								
+52213	56	ORAL								
+52214	56	ORAL								
+52215	56	ORAL								
+52216	56	ORAL								
+52217	56	ORAL								
+52218	56	ORAL								
+52219	56	ORAL								
+52220	56	ORAL								
+52231	56	ORAL								
+52232	56	ORAL								
+52233	56	ORAL								
+52234	56	ORAL								
+52235	56	ORAL								
+52236	56	ORAL								
+52237	56	ORAL								
+52238	56	ORAL								
+52239	56	ORAL								
+52241	56	ORAL								
+52243	56	ORAL								
+52244	56	ORAL								
+52245	56	ORAL								
+52246	56	ORAL								
+52247	56	ORAL								
+52248	56	ORAL								
+52425	56	ORAL								
+52450	56	ORAL								
+52451	56	ORAL								
+52458	56	ORAL								
+52461	22	INTRAMUSCULAR								
+52462	56	ORAL								
+52470	56	ORAL								
+52471	56	ORAL								
+52473	56	ORAL								
+52474	56	ORAL								
+52500	70	TOPICAL								
+52503	56	ORAL								
+52505	56	ORAL								
+52506	56	ORAL								
+52507	56	ORAL								
+52517	65	SUBCUTANEOUS								
+52519	56	ORAL								
+52533	9	DISINFECTANT (Hospital/HC Facilities)								
+53271	70	TOPICAL								
+53272	70	TOPICAL								
+53431	56	ORAL								
+53432	56	ORAL								
+53433	56	ORAL								
+53434	56	ORAL								
+53435	56	ORAL								
+53436	56	ORAL								
+53437	56	ORAL								
+53438	56	ORAL								
+53440	56	ORAL								
+53441	56	ORAL								
+53442	56	ORAL								
+53443	56	ORAL								
+53445	56	ORAL								
+53447	56	ORAL								
+53450	56	ORAL								
+53451	56	ORAL								
+53452	56	ORAL								
+53453	56	ORAL								
+53454	56	ORAL								
+53455	56	ORAL								
+53456	56	ORAL								
+53458	56	ORAL								
+53459	56	ORAL								
+53461	56	ORAL								
+53462	56	ORAL								
+53463	56	ORAL								
+53464	56	ORAL								
+53465	56	ORAL								
+53466	56	ORAL								
+53467	56	ORAL								
+53869	22	INTRAMUSCULAR								
+53869	49	INTRAVENOUS								
+53870	22	INTRAMUSCULAR								
+53870	49	INTRAVENOUS								
+53871	22	INTRAMUSCULAR								
+53871	49	INTRAVENOUS								
+53874	56	ORAL								
+54228	56	ORAL								
+54231	55	OPHTHALMIC								
+54700	56	ORAL								
+54701	56	ORAL								
+54702	56	ORAL								
+54703	56	ORAL								
+55859	56	ORAL								
+5617	56	ORAL								
+57340	19	INTRADERMAL								
+57340	65	SUBCUTANEOUS								
+59706	56	ORAL								
+59716	56	ORAL								
+59717	56	ORAL								
+59871	56	ORAL								
+59888	56	ORAL								
+59895	70	TOPICAL								
+59933	56	ORAL								
+59944	70	TOPICAL								
+60010	56	ORAL								
+60011	56	ORAL								
+60029	70	TOPICAL								
+60032	70	TOPICAL								
+60044	56	ORAL								
+60045	56	ORAL								
+60049	56	ORAL								
+60060	56	ORAL								
+60061	56	ORAL								
+60064	53	NASAL								
+60069	70	TOPICAL								
+60077	70	TOPICAL								
+60080	55	OPHTHALMIC								
+60081	55	OPHTHALMIC								
+60089	56	ORAL								
+60100	56	ORAL								
+60134	70	TOPICAL								
+60181	70	TOPICAL								
+60199	55	OPHTHALMIC								
+60216	22	INTRAMUSCULAR								
+60217	56	ORAL								
+60219	56	ORAL								
+60233	56	ORAL								
+60253	62	RECTAL								
+60254	62	RECTAL								
+60255	62	RECTAL								
+60256	62	RECTAL								
+60260	62	RECTAL								
+60271	56	ORAL								
+60272	56	ORAL								
+60299	56	ORAL								
+60300	55	OPHTHALMIC								
+60304	56	ORAL								
+60309	56	ORAL								
+60316	70	TOPICAL								
+60336	56	ORAL								
+60337	56	ORAL								
+60338	56	ORAL								
+60339	56	ORAL								
+60343	30	DISINFECTANT (Medical Instruments)								
+60353	70	TOPICAL								
+60356	56	ORAL								
+60357	56	ORAL								
+60362	70	TOPICAL								
+60364	56	ORAL								
+60365	56	ORAL								
+60366	56	ORAL								
+60368	56	ORAL								
+60418	56	ORAL								
+60434	56	ORAL								
+60472	56	ORAL								
+60517	70	TOPICAL								
+60524	56	ORAL								
+60528	56	ORAL								
+60550	70	TOPICAL								
+60552	70	TOPICAL								
+60553	70	TOPICAL								
+60650	56	ORAL								
+60652	56	ORAL								
+60652	70	TOPICAL								
+60654	5	DENTAL								
+60658	70	TOPICAL								
+60682	70	TOPICAL								
+60683	70	TOPICAL								
+60684	70	TOPICAL								
+60685	70	TOPICAL								
+60686	70	TOPICAL								
+60687	70	TOPICAL								
+60695	56	ORAL								
+60709	70	TOPICAL								
+60759	49	INTRAVENOUS								
+60780	56	ORAL								
+60787	56	ORAL								
+60788	56	ORAL								
+60789	56	ORAL								
+60892	56	ORAL								
+60893	56	ORAL								
+60908	70	TOPICAL								
+60909	70	TOPICAL								
+60911	56	ORAL								
+60921	56	ORAL								
+60952	8	DISINFECTANT (Food Premises)								
+60952	9	DISINFECTANT (Hospital/HC Facilities)								
+60953	8	DISINFECTANT (Food Premises)								
+60953	9	DISINFECTANT (Hospital/HC Facilities)								
+60955	8	DISINFECTANT (Food Premises)								
+60955	9	DISINFECTANT (Hospital/HC Facilities)								
+60955	93	DISINFECTANT (Domestic)								
+60955	94	DISINFECTANT (Institutional/Industrial)								
+60973	56	ORAL								
+61023	56	ORAL								
+61035	55	OPHTHALMIC								
+61045	56	ORAL								
+61054	56	ORAL								
+61079	56	ORAL								
+61081	8	DISINFECTANT (Food Premises)								
+61081	9	DISINFECTANT (Hospital/HC Facilities)								
+61108	56	ORAL								
+61129	56	ORAL								
+61186	56	ORAL								
+61187	70	TOPICAL								
+61198	70	TOPICAL								
+61211	56	ORAL								
+61231	49	INTRAVENOUS								
+61232	49	INTRAVENOUS								
+61233	49	INTRAVENOUS								
+61257	56	ORAL								
+61260	56	ORAL								
+61261	56	ORAL								
+61318	70	TOPICAL								
+61322	70	TOPICAL								
+61359	56	ORAL								
+61373	56	ORAL								
+61375	56	ORAL								
+61404	56	ORAL								
+61408	56	ORAL								
+61414	56	ORAL								
+61428	56	ORAL								
+61433	56	ORAL								
+61434	56	ORAL								
+61435	56	ORAL								
+61453	56	ORAL								
+61478	56	ORAL								
+61520	56	ORAL								
+61521	56	ORAL								
+61522	56	ORAL								
+61523	56	ORAL								
+61524	56	ORAL								
+61535	70	TOPICAL								
+61574	56	ORAL								
+61575	4	INTRACAUDAL								
+61575	7	EPIDURAL								
+61634	56	ORAL								
+61653	70	TOPICAL								
+61655	56	ORAL								
+61668	30	DISINFECTANT (Medical Instruments)								
+61668	9	DISINFECTANT (Hospital/HC Facilities)								
+61674	56	ORAL								
+61703	56	ORAL								
+61731	56	ORAL								
+61732	56	ORAL								
+61734	56	ORAL								
+61749	56	ORAL								
+61750	56	ORAL								
+61751	70	TOPICAL								
+61781	56	ORAL								
+61789	70	TOPICAL								
+61798	56	ORAL								
+61803	8	DISINFECTANT (Food Premises)								
+61803	9	DISINFECTANT (Hospital/HC Facilities)								
+61812	5	DENTAL								
+61875	70	TOPICAL								
+61894	19	INTRADERMAL								
+61895	19	INTRADERMAL								
+61903	19	INTRADERMAL								
+61904	19	INTRADERMAL								
+61907	19	INTRADERMAL								
+61908	19	INTRADERMAL								
+61911	19	INTRADERMAL								
+61912	19	INTRADERMAL								
+61915	19	INTRADERMAL								
+61916	19	INTRADERMAL								
+61920	19	INTRADERMAL								
+61921	19	INTRADERMAL								
+61924	19	INTRADERMAL								
+61925	19	INTRADERMAL								
+61957	56	ORAL								
+61962	55	OPHTHALMIC								
+61988	56	ORAL								
+61999	30	DISINFECTANT (Medical Instruments)								
+62000	70	TOPICAL								
+62007	56	ORAL								
+62020	72	URETHRAL								
+62041	56	ORAL								
+62102	56	ORAL								
+62103	56	ORAL								
+62104	56	ORAL								
+62115	22	INTRAMUSCULAR								
+62116	22	INTRAMUSCULAR								
+62118	56	ORAL								
+62132	73	UDDER WASH								
+62133	73	UDDER WASH								
+62148	8	DISINFECTANT (Food Premises)								
+62148	9	DISINFECTANT (Hospital/HC Facilities)								
+62148	94	DISINFECTANT (Institutional/Industrial)								
+62152	56	ORAL								
+62154	56	ORAL								
+62155	56	ORAL								
+62156	56	ORAL								
+62157	56	ORAL								
+62172	56	ORAL								
+62176	70	TOPICAL								
+62188	56	ORAL								
+62194	56	ORAL								
+62195	56	ORAL								
+62213	73	UDDER WASH								
+62223	70	TOPICAL								
+62226	56	ORAL								
+62227	56	ORAL								
+62228	56	ORAL								
+62229	56	ORAL								
+62230	3	BUCCAL								
+62238	56	ORAL								
+62255	55	OPHTHALMIC								
+62255	57	OTIC								
+62256	55	OPHTHALMIC								
+62256	57	OTIC								
+62265	56	ORAL								
+62266	56	ORAL								
+62347	70	TOPICAL								
+62351	70	TOPICAL								
+62377	56	ORAL								
+62378	56	ORAL								
+62379	56	ORAL								
+62380	56	ORAL								
+62381	56	ORAL								
+62382	56	ORAL								
+62383	56	ORAL								
+62384	56	ORAL								
+62385	56	ORAL								
+62386	56	ORAL								
+62387	56	ORAL								
+62388	56	ORAL								
+62392	56	ORAL								
+62393	56	ORAL								
+62394	56	ORAL								
+62395	56	ORAL								
+62396	56	ORAL								
+62397	56	ORAL								
+62399	56	ORAL								
+62400	8	DISINFECTANT (Food Premises)								
+62400	9	DISINFECTANT (Hospital/HC Facilities)								
+62446	56	ORAL								
+62453	56	ORAL								
+62484	56	ORAL								
+62485	56	ORAL								
+62486	56	ORAL								
+62493	56	ORAL								
+62494	56	ORAL								
+62496	56	ORAL								
+62515	56	ORAL								
+62525	56	ORAL								
+62526	56	ORAL								
+62527	56	ORAL								
+62529	29	INHALATION								
+62530	56	ORAL								
+62531	56	ORAL								
+62535	56	ORAL								
+62537	56	ORAL								
+62565	56	ORAL								
+62569	70	TOPICAL								
+62570	70	TOPICAL								
+62571	70	TOPICAL								
+62572	8	DISINFECTANT (Food Premises)								
+62572	9	DISINFECTANT (Hospital/HC Facilities)								
+62573	70	TOPICAL								
+62574	56	ORAL								
+62588	56	ORAL								
+62608	56	ORAL								
+62609	56	ORAL								
+62618	70	TOPICAL								
+62619	56	ORAL								
+62620	56	ORAL								
+62621	56	ORAL								
+62639	56	ORAL								
+62652	70	TOPICAL								
+62653	70	TOPICAL								
+62659	56	ORAL								
+62660	56	ORAL								
+62676	56	ORAL								
+62677	56	ORAL								
+62678	56	ORAL								
+62679	56	ORAL								
+62680	56	ORAL								
+62681	66	SUBLINGUAL								
+62682	56	ORAL								
+62683	56	ORAL								
+62686	56	ORAL								
+62687	56	ORAL								
+62688	56	ORAL								
+62689	56	ORAL								
+62690	56	ORAL								
+62691	56	ORAL								
+62692	56	ORAL								
+62693	56	ORAL								
+62696	56	ORAL								
+62697	56	ORAL								
+62701	55	OPHTHALMIC								
+62702	55	OPHTHALMIC								
+62703	55	OPHTHALMIC								
+62704	55	OPHTHALMIC								
+62705	55	OPHTHALMIC								
+62720	56	ORAL								
+62723	70	TOPICAL								
+62724	56	ORAL								
+62752	8	DISINFECTANT (Food Premises)								
+62752	9	DISINFECTANT (Hospital/HC Facilities)								
+62773	56	ORAL								
+62801	8	DISINFECTANT (Food Premises)								
+62801	9	DISINFECTANT (Hospital/HC Facilities)								
+62837	56	ORAL								
+62838	56	ORAL								
+62843	56	ORAL								
+62862	56	ORAL								
+62871	56	ORAL								
+62874	2	DISINFECTANT (Barn)								
+62874	8	DISINFECTANT (Food Premises)								
+62874	9	DISINFECTANT (Hospital/HC Facilities)								
+62874	93	DISINFECTANT (Domestic)								
+62874	94	DISINFECTANT (Institutional/Industrial)								
+62875	8	DISINFECTANT (Food Premises)								
+62875	9	DISINFECTANT (Hospital/HC Facilities)								
+62876	2	DISINFECTANT (Barn)								
+62876	8	DISINFECTANT (Food Premises)								
+62876	9	DISINFECTANT (Hospital/HC Facilities)								
+62876	93	DISINFECTANT (Domestic)								
+62876	94	DISINFECTANT (Institutional/Industrial)								
+62891	56	ORAL								
+62893	56	ORAL								
+62894	56	ORAL								
+62902	56	ORAL								
+62904	56	ORAL								
+62913	56	ORAL								
+62914	56	ORAL								
+62915	56	ORAL								
+62916	56	ORAL								
+62917	56	ORAL								
+62921	70	TOPICAL								
+62930	56	ORAL								
+62933	56	ORAL								
+62935	56	ORAL								
+62936	56	ORAL								
+62937	8	DISINFECTANT (Food Premises)								
+62937	9	DISINFECTANT (Hospital/HC Facilities)								
+62938	70	TOPICAL								
+62981	70	TOPICAL								
+62982	56	ORAL								
+62986	56	ORAL								
+63005	56	ORAL								
+63016	56	ORAL								
+63017	56	ORAL								
+63018	56	ORAL								
+63023	70	TOPICAL								
+63025	56	ORAL								
+63044	56	ORAL								
+63045	56	ORAL								
+63048	56	ORAL								
+63050	56	ORAL								
+63053	49	INTRAVENOUS								
+63053	65	SUBCUTANEOUS								
+63054	49	INTRAVENOUS								
+63057	8	DISINFECTANT (Food Premises)								
+63057	9	DISINFECTANT (Hospital/HC Facilities)								
+63057	94	DISINFECTANT (Institutional/Industrial)								
+63058	8	DISINFECTANT (Food Premises)								
+63058	9	DISINFECTANT (Hospital/HC Facilities)								
+63061	8	DISINFECTANT (Food Premises)								
+63061	9	DISINFECTANT (Hospital/HC Facilities)								
+63062	8	DISINFECTANT (Food Premises)								
+63062	9	DISINFECTANT (Hospital/HC Facilities)								
+63063	8	DISINFECTANT (Food Premises)								
+63063	9	DISINFECTANT (Hospital/HC Facilities)								
+63063	94	DISINFECTANT (Institutional/Industrial)								
+63064	8	DISINFECTANT (Food Premises)								
+63064	9	DISINFECTANT (Hospital/HC Facilities)								
+63064	94	DISINFECTANT (Institutional/Industrial)								
+63065	8	DISINFECTANT (Food Premises)								
+63065	9	DISINFECTANT (Hospital/HC Facilities)								
+63076	56	ORAL								
+63081	56	ORAL								
+63092	56	ORAL								
+63096	56	ORAL								
+63097	56	ORAL								
+63110	56	ORAL								
+63113	70	TOPICAL								
+63114	70	TOPICAL								
+63117	56	ORAL								
+63134	56	ORAL								
+63208	56	ORAL								
+63218	56	ORAL								
+63291	56	ORAL								
+63318	56	ORAL								
+63323	56	ORAL								
+63353	56	ORAL								
+63364	70	TOPICAL								
+63366	8	DISINFECTANT (Food Premises)								
+63366	9	DISINFECTANT (Hospital/HC Facilities)								
+63377	56	ORAL								
+63378	56	ORAL								
+63383	56	ORAL								
+63384	56	ORAL								
+63391	70	TOPICAL								
+63394	56	ORAL								
+63430	56	ORAL								
+63433	56	ORAL								
+63435	56	ORAL								
+63436	56	ORAL								
+63444	22	INTRAMUSCULAR								
+63453	9	DISINFECTANT (Hospital/HC Facilities)								
+63453	94	DISINFECTANT (Institutional/Industrial)								
+63467	56	ORAL								
+63473	70	TOPICAL								
+63474	70	TOPICAL								
+63486	56	ORAL								
+63491	56	ORAL								
+63499	56	ORAL								
+63500	56	ORAL								
+63501	56	ORAL								
+63502	56	ORAL								
+63503	56	ORAL								
+63504	56	ORAL								
+63505	56	ORAL								
+63506	56	ORAL								
+63531	70	TOPICAL								
+63536	56	ORAL								
+63559	55	OPHTHALMIC								
+63566	8	DISINFECTANT (Food Premises)								
+63566	9	DISINFECTANT (Hospital/HC Facilities)								
+63566	94	DISINFECTANT (Institutional/Industrial)								
+63574	70	TOPICAL								
+63580	30	DISINFECTANT (Medical Instruments)								
+63610	56	ORAL								
+63611	56	ORAL								
+63612	56	ORAL								
+63613	56	ORAL								
+63634	56	ORAL								
+63638	56	ORAL								
+63640	70	TOPICAL								
+63651	70	TOPICAL								
+63669	56	ORAL								
+63670	56	ORAL								
+63671	56	ORAL								
+63672	56	ORAL								
+63673	56	ORAL								
+63674	56	ORAL								
+63675	56	ORAL								
+63682	70	TOPICAL								
+63683	70	TOPICAL								
+63690	69	TEAT-DIP								
+63691	73	UDDER WASH								
+63692	73	UDDER WASH								
+63693	69	TEAT-DIP								
+63694	73	UDDER WASH								
+63697	56	ORAL								
+63710	56	ORAL								
+63726	56	ORAL								
+63734	56	ORAL								
+63744	56	ORAL								
+63750	70	TOPICAL								
+63751	70	TOPICAL								
+63752	70	TOPICAL								
+63761	65	SUBCUTANEOUS								
+63794	2	DISINFECTANT (Barn)								
+63794	8	DISINFECTANT (Food Premises)								
+63794	9	DISINFECTANT (Hospital/HC Facilities)								
+63794	94	DISINFECTANT (Institutional/Industrial)								
+63799	22	INTRAMUSCULAR								
+63799	65	SUBCUTANEOUS								
+63812	56	ORAL								
+63828	70	TOPICAL								
+63860	56	ORAL								
+63868	70	TOPICAL								
+63879	30	DISINFECTANT (Medical Instruments)								
+63879	9	DISINFECTANT (Hospital/HC Facilities)								
+63880	56	ORAL								
+63890	56	ORAL								
+63895	29	INHALATION								
+63896	56	ORAL								
+63897	56	ORAL								
+63919	70	TOPICAL								
+63930	56	ORAL								
+63971	56	ORAL								
+63986	56	ORAL								
+64005	56	ORAL								
+64006	56	ORAL								
+64041	29	INHALATION								
+64093	56	ORAL								
+64095	56	ORAL								
+64098	70	TOPICAL								
+64104	56	ORAL								
+64105	70	TOPICAL								
+64118	56	ORAL								
+64124	56	ORAL								
+64127	56	ORAL								
+64137	56	ORAL								
+64138	56	ORAL								
+64146	56	ORAL								
+64149	56	ORAL								
+64154	56	ORAL								
+64155	70	TOPICAL								
+64156	56	ORAL								
+64165	56	ORAL								
+64168	70	TOPICAL								
+64171	56	ORAL								
+64179	70	TOPICAL								
+64187	56	ORAL								
+64198	56	ORAL								
+64199	56	ORAL								
+64201	56	ORAL								
+64210	56	ORAL								
+64235	70	TOPICAL								
+64236	70	TOPICAL								
+64240	56	ORAL								
+64283	56	ORAL								
+64284	56	ORAL								
+64294	56	ORAL								
+64302	56	ORAL								
+64304	56	ORAL								
+64328	56	ORAL								
+64354	56	ORAL								
+64385	56	ORAL								
+64432	56	ORAL								
+64433	56	ORAL								
+64455	56	ORAL								
+64462	56	ORAL								
+64485	56	ORAL								
+64495	56	ORAL								
+64496	70	TOPICAL								
+64497	70	TOPICAL								
+64541	8	DISINFECTANT (Food Premises)								
+64541	9	DISINFECTANT (Hospital/HC Facilities)								
+64543	56	ORAL								
+64544	56	ORAL								
+64545	22	INTRAMUSCULAR								
+64545	49	INTRAVENOUS								
+64545	65	SUBCUTANEOUS								
+64591	56	ORAL								
+64592	56	ORAL								
+64593	56	ORAL								
+64622	56	ORAL								
+64623	62	RECTAL								
+64631	56	ORAL								
+64632	56	ORAL								
+64638	56	ORAL								
+64640	56	ORAL								
+64642	56	ORAL								
+64643	56	ORAL								
+64650	70	TOPICAL								
+64654	56	ORAL								
+64658	56	ORAL								
+64721	56	ORAL								
+64722	56	ORAL								
+64723	56	ORAL								
+64724	56	ORAL								
+64742	56	ORAL								
+64745	56	ORAL								
+64750	56	ORAL								
+64751	56	ORAL								
+64772	8	DISINFECTANT (Food Premises)								
+64772	9	DISINFECTANT (Hospital/HC Facilities)								
+64772	94	DISINFECTANT (Institutional/Industrial)								
+64791	56	ORAL								
+64795	56	ORAL								
+64796	56	ORAL								
+64797	56	ORAL								
+64812	70	TOPICAL								
+64846	56	ORAL								
+64848	8	DISINFECTANT (Food Premises)								
+64848	9	DISINFECTANT (Hospital/HC Facilities)								
+64848	94	DISINFECTANT (Institutional/Industrial)								
+64849	8	DISINFECTANT (Food Premises)								
+64849	9	DISINFECTANT (Hospital/HC Facilities)								
+64849	94	DISINFECTANT (Institutional/Industrial)								
+64850	8	DISINFECTANT (Food Premises)								
+64850	9	DISINFECTANT (Hospital/HC Facilities)								
+64850	94	DISINFECTANT (Institutional/Industrial)								
+64851	8	DISINFECTANT (Food Premises)								
+64851	9	DISINFECTANT (Hospital/HC Facilities)								
+64851	94	DISINFECTANT (Institutional/Industrial)								
+64870	56	ORAL								
+64872	56	ORAL								
+64873	56	ORAL								
+64874	56	ORAL								
+64875	56	ORAL								
+64876	56	ORAL								
+64889	56	ORAL								
+64896	29	INHALATION								
+64896	70	TOPICAL								
+64905	56	ORAL								
+64906	56	ORAL								
+64958	70	TOPICAL								
+64972	56	ORAL								
+64987	56	ORAL								
+65028	56	ORAL								
+65033	56	ORAL								
+65034	56	ORAL								
+65035	56	ORAL								
+65036	56	ORAL								
+65037	56	ORAL								
+65044	30	DISINFECTANT (Medical Instruments)								
+65062	56	ORAL								
+65063	56	ORAL								
+65064	56	ORAL								
+65066	56	ORAL								
+65067	56	ORAL								
+65068	56	ORAL								
+65069	56	ORAL								
+65070	56	ORAL								
+65071	56	ORAL								
+65072	56	ORAL								
+65073	56	ORAL								
+65074	56	ORAL								
+65075	56	ORAL								
+65077	56	ORAL								
+65079	49	INTRAVENOUS								
+65084	56	ORAL								
+65085	56	ORAL								
+65087	56	ORAL								
+65105	56	ORAL								
+65113	56	ORAL								
+65139	56	ORAL								
+65143	56	ORAL								
+65224	9	DISINFECTANT (Hospital/HC Facilities)								
+65261	29	INHALATION								
+65262	29	INHALATION								
+65263	29	INHALATION								
+65264	29	INHALATION								
+65267	56	ORAL								
+65267	70	TOPICAL								
+65321	70	TOPICAL								
+65322	56	ORAL								
+65360	70	TOPICAL								
+65416	22	INTRAMUSCULAR								
+65416	49	INTRAVENOUS								
+65417	22	INTRAMUSCULAR								
+65417	49	INTRAVENOUS								
+65421	56	ORAL								
+65422	56	ORAL								
+65456	56	ORAL								
+65480	70	TOPICAL								
+65481	70	TOPICAL								
+65492	56	ORAL								
+65493	56	ORAL								
+65627	49	INTRAVENOUS								
+65689	56	ORAL								
+65693	56	ORAL								
+65698	56	ORAL								
+65699	56	ORAL								
+65885	56	ORAL								
+65886	56	ORAL								
+65930	70	TOPICAL								
+66107	56	ORAL								
+66123	53	NASAL								
+66132	8	DISINFECTANT (Food Premises)								
+66132	9	DISINFECTANT (Hospital/HC Facilities)								
+66176	22	INTRAMUSCULAR								
+66176	49	INTRAVENOUS								
+66176	65	SUBCUTANEOUS								
+66233	22	INTRAMUSCULAR								
+66294	56	ORAL								
+66295	56	ORAL								
+66296	56	ORAL								
+66318	56	ORAL								
+66435	22	INTRAMUSCULAR								
+66435	49	INTRAVENOUS								
+66436	22	INTRAMUSCULAR								
+66436	49	INTRAVENOUS								
+66456	18	INTRACUTANEOUS								
+66456	65	SUBCUTANEOUS								
+66458	18	INTRACUTANEOUS								
+66458	65	SUBCUTANEOUS								
+66460	18	INTRACUTANEOUS								
+66460	65	SUBCUTANEOUS								
+66462	18	INTRACUTANEOUS								
+66462	65	SUBCUTANEOUS								
+66464	18	INTRACUTANEOUS								
+66464	65	SUBCUTANEOUS								
+66514	56	ORAL								
+66515	56	ORAL								
+66516	56	ORAL								
+66517	56	ORAL								
+66545	57	OTIC								
+66655	56	ORAL								
+66656	56	ORAL								
+66657	56	ORAL								
+66658	56	ORAL								
+66659	56	ORAL								
+66660	56	ORAL								
+66695	22	INTRAMUSCULAR								
+66712	56	ORAL								
+66742	56	ORAL								
+66743	56	ORAL								
+66838	56	ORAL								
+66903	8	DISINFECTANT (Food Premises)								
+66903	9	DISINFECTANT (Hospital/HC Facilities)								
+66904	8	DISINFECTANT (Food Premises)								
+66904	9	DISINFECTANT (Hospital/HC Facilities)								
+66905	8	DISINFECTANT (Food Premises)								
+66905	9	DISINFECTANT (Hospital/HC Facilities)								
+66970	22	INTRAMUSCULAR								
+66970	49	INTRAVENOUS								
+66970	65	SUBCUTANEOUS								
+66971	22	INTRAMUSCULAR								
+66971	49	INTRAVENOUS								
+66971	65	SUBCUTANEOUS								
+66987	56	ORAL								
+66990	22	INTRAMUSCULAR								
+66990	49	INTRAVENOUS								
+67107	56	ORAL								
+67108	56	ORAL								
+67200	87	DISINFECTANT (Contact Lens)								
+67231	70	TOPICAL								
+67283	70	TOPICAL								
+67381	56	ORAL								
+67382	56	ORAL								
+67383	56	ORAL								
+67390	9	DISINFECTANT (Hospital/HC Facilities)								
+67442	22	INTRAMUSCULAR								
+67443	22	INTRAMUSCULAR								
+67443	49	INTRAVENOUS								
+67501	70	TOPICAL								
+67510	70	TOPICAL								
+67561	8	DISINFECTANT (Food Premises)								
+67561	9	DISINFECTANT (Hospital/HC Facilities)								
+67602	70	TOPICAL								
+67603	70	TOPICAL								
+67610	22	INTRAMUSCULAR								
+67610	49	INTRAVENOUS								
+67665	70	TOPICAL								
+67683	22	INTRAMUSCULAR								
+67774	56	ORAL								
+67869	56	ORAL								
+67977	8	DISINFECTANT (Food Premises)								
+67977	9	DISINFECTANT (Hospital/HC Facilities)								
+67984	70	TOPICAL								
+67992	8	DISINFECTANT (Food Premises)								
+67992	9	DISINFECTANT (Hospital/HC Facilities)								
+68036	6	DIALYSIS								
+68056	6	DIALYSIS								
+68057	6	DIALYSIS								
+68058	6	DIALYSIS								
+68065	30	DISINFECTANT (Medical Instruments)								
+68065	8	DISINFECTANT (Food Premises)								
+68065	9	DISINFECTANT (Hospital/HC Facilities)								
+68067	30	DISINFECTANT (Medical Instruments)								
+68067	8	DISINFECTANT (Food Premises)								
+68067	9	DISINFECTANT (Hospital/HC Facilities)								
+68068	30	DISINFECTANT (Medical Instruments)								
+68068	8	DISINFECTANT (Food Premises)								
+68068	9	DISINFECTANT (Hospital/HC Facilities)								
+68069	30	DISINFECTANT (Medical Instruments)								
+68069	9	DISINFECTANT (Hospital/HC Facilities)								
+68069	94	DISINFECTANT (Institutional/Industrial)								
+68070	30	DISINFECTANT (Medical Instruments)								
+68070	9	DISINFECTANT (Hospital/HC Facilities)								
+68070	94	DISINFECTANT (Institutional/Industrial)								
+68071	30	DISINFECTANT (Medical Instruments)								
+68071	9	DISINFECTANT (Hospital/HC Facilities)								
+68071	94	DISINFECTANT (Institutional/Industrial)								
+68075	56	ORAL								
+68093	49	INTRAVENOUS								
+68115	8	DISINFECTANT (Food Premises)								
+68115	9	DISINFECTANT (Hospital/HC Facilities)								
+68116	8	DISINFECTANT (Food Premises)								
+68116	9	DISINFECTANT (Hospital/HC Facilities)								
+68279	70	TOPICAL								
+68300	56	ORAL								
+68329	70	TOPICAL								
+68427	56	ORAL								
+68468	56	ORAL								
+68547	70	TOPICAL								
+68592	70	TOPICAL								
+68610	70	TOPICAL								
+68626	56	ORAL								
+68627	56	ORAL								
+68629	56	ORAL								
+68630	56	ORAL								
+68631	56	ORAL								
+68632	56	ORAL								
+68654	70	TOPICAL								
+68655	70	TOPICAL								
+68656	70	TOPICAL								
+68657	70	TOPICAL								
+68658	70	TOPICAL								
+68659	70	TOPICAL								
+68660	70	TOPICAL								
+68682	56	ORAL								
+68719	56	ORAL								
+68739	70	TOPICAL								
+68755	70	TOPICAL								
+68756	70	TOPICAL								
+68757	70	TOPICAL								
+68856	56	ORAL								
+68991	70	TOPICAL								
+68993	70	TOPICAL								
+68994	70	TOPICAL								
+68995	70	TOPICAL								
+69020	56	ORAL								
+69040	70	TOPICAL								
+69063	56	ORAL								
+69087	56	ORAL								
+69106	56	ORAL								
+69301	70	TOPICAL								
+69416	70	TOPICAL								
+69421	56	ORAL								
+69442	8	DISINFECTANT (Food Premises)								
+69442	9	DISINFECTANT (Hospital/HC Facilities)								
+69443	8	DISINFECTANT (Food Premises)								
+69443	9	DISINFECTANT (Hospital/HC Facilities)								
+69526	70	TOPICAL								
+69638	29	INHALATION								
+69639	29	INHALATION								
+69678	56	ORAL								
+69679	56	ORAL								
+69700	56	ORAL								
+69709	70	TOPICAL								
+69715	56	ORAL								
+69736	8	DISINFECTANT (Food Premises)								
+69736	9	DISINFECTANT (Hospital/HC Facilities)								
+69770	56	ORAL								
+69785	56	ORAL								
+69794	56	ORAL								
+69891	56	ORAL								
+69916	70	TOPICAL								
+69950	56	ORAL								
+69951	56	ORAL								
+69958	70	TOPICAL								
+69960	70	TOPICAL								
+69975	55	OPHTHALMIC								
+70005	56	ORAL								
+70008	56	ORAL								
+70009	56	ORAL								
+70010	56	ORAL								
+70066	55	OPHTHALMIC								
+70071	22	INTRAMUSCULAR								
+70071	49	INTRAVENOUS								
+70099	56	ORAL								
+70160	8	DISINFECTANT (Food Premises)								
+70160	9	DISINFECTANT (Hospital/HC Facilities)								
+70173	8	DISINFECTANT (Food Premises)								
+70173	9	DISINFECTANT (Hospital/HC Facilities)								
+70228	70	TOPICAL								
+70241	56	ORAL								
+70275	93	DISINFECTANT (Domestic)								
+70283	56	ORAL								
+70370	8	DISINFECTANT (Food Premises)								
+70370	9	DISINFECTANT (Hospital/HC Facilities)								
+70387	93	DISINFECTANT (Domestic)								
+70402	56	ORAL								
+70424	93	DISINFECTANT (Domestic)								
+70439	93	DISINFECTANT (Domestic)								
+70440	93	DISINFECTANT (Domestic)								
+70444	55	OPHTHALMIC								
+70446	55	OPHTHALMIC								
+70461	70	TOPICAL								
+70476	93	DISINFECTANT (Domestic)								
+70519	49	INTRAVENOUS								
+70519	65	SUBCUTANEOUS								
+70522	49	INTRAVENOUS								
+70522	65	SUBCUTANEOUS								
+70525	49	INTRAVENOUS								
+70525	65	SUBCUTANEOUS								
+70530	49	INTRAVENOUS								
+70550	93	DISINFECTANT (Domestic)								
+70557	70	TOPICAL								
+70558	62	RECTAL								
+70566	8	DISINFECTANT (Food Premises)								
+70566	9	DISINFECTANT (Hospital/HC Facilities)								
+70566	93	DISINFECTANT (Domestic)								
+70566	94	DISINFECTANT (Institutional/Industrial)								
+70574	56	ORAL								
+70625	56	ORAL								
+70626	56	ORAL								
+70678	56	ORAL								
+70708	70	TOPICAL								
+70749	49	INTRAVENOUS								
+70774	56	ORAL								
+70775	56	ORAL								
+70780	56	ORAL								
+70801	56	ORAL								
+70802	56	ORAL								
+70901	70	TOPICAL								
+70902	70	TOPICAL								
+70915	93	DISINFECTANT (Domestic)								
+70932	70	TOPICAL								
+70933	70	TOPICAL								
+70939	56	ORAL								
+70940	56	ORAL								
+70941	56	ORAL								
+70942	70	TOPICAL								
+70965	69	TEAT-DIP								
+71001	93	DISINFECTANT (Domestic)								
+71003	56	ORAL								
+71022	56	ORAL								
+71023	56	ORAL								
+71084	56	ORAL								
+71092	69	TEAT-DIP								
+71132	70	TOPICAL								
+71165	56	ORAL								
+71169	56	ORAL								
+71189	56	ORAL								
+71286	56	ORAL								
+71287	56	ORAL								
+71352	56	ORAL								
+71414	56	ORAL								
+71434	56	ORAL								
+71442	56	ORAL								
+71443	56	ORAL								
+71444	56	ORAL								
+71445	56	ORAL								
+71447	8	DISINFECTANT (Food Premises)								
+71447	9	DISINFECTANT (Hospital/HC Facilities)								
+71447	93	DISINFECTANT (Domestic)								
+71448	8	DISINFECTANT (Food Premises)								
+71448	9	DISINFECTANT (Hospital/HC Facilities)								
+71448	93	DISINFECTANT (Domestic)								
+71449	8	DISINFECTANT (Food Premises)								
+71449	9	DISINFECTANT (Hospital/HC Facilities)								
+71449	93	DISINFECTANT (Domestic)								
+71516	8	DISINFECTANT (Food Premises)								
+71516	9	DISINFECTANT (Hospital/HC Facilities)								
+71517	94	DISINFECTANT (Institutional/Industrial)								
+71518	8	DISINFECTANT (Food Premises)								
+71518	9	DISINFECTANT (Hospital/HC Facilities)								
+71519	8	DISINFECTANT (Food Premises)								
+71519	9	DISINFECTANT (Hospital/HC Facilities)								
+71520	2	DISINFECTANT (Barn)								
+71520	8	DISINFECTANT (Food Premises)								
+71520	9	DISINFECTANT (Hospital/HC Facilities)								
+71520	94	DISINFECTANT (Institutional/Industrial)								
+71521	9	DISINFECTANT (Hospital/HC Facilities)								
+71556	9	DISINFECTANT (Hospital/HC Facilities)								
+71576	70	TOPICAL								
+71577	70	TOPICAL								
+71578	70	TOPICAL								
+71579	70	TOPICAL								
+71580	70	TOPICAL								
+71581	70	TOPICAL								
+71599	9	DISINFECTANT (Hospital/HC Facilities)								
+71620	22	INTRAMUSCULAR								
+71620	49	INTRAVENOUS								
+71633	56	ORAL								
+71646	55	OPHTHALMIC								
+71651	70	TOPICAL								
+71652	70	TOPICAL								
+71692	55	OPHTHALMIC								
+71692	57	OTIC								
+71710	2	DISINFECTANT (Barn)								
+71710	8	DISINFECTANT (Food Premises)								
+71710	9	DISINFECTANT (Hospital/HC Facilities)								
+71710	94	DISINFECTANT (Institutional/Industrial)								
+71711	2	DISINFECTANT (Barn)								
+71711	8	DISINFECTANT (Food Premises)								
+71711	9	DISINFECTANT (Hospital/HC Facilities)								
+71711	94	DISINFECTANT (Institutional/Industrial)								
+71712	2	DISINFECTANT (Barn)								
+71712	8	DISINFECTANT (Food Premises)								
+71712	9	DISINFECTANT (Hospital/HC Facilities)								
+71712	94	DISINFECTANT (Institutional/Industrial)								
+71762	56	ORAL								
+71763	56	ORAL								
+71805	56	ORAL								
+71872	56	ORAL								
+71873	56	ORAL								
+71891	8	DISINFECTANT (Food Premises)								
+71891	9	DISINFECTANT (Hospital/HC Facilities)								
+71901	70	TOPICAL								
+71922	56	ORAL								
+71924	56	ORAL								
+71928	9	DISINFECTANT (Hospital/HC Facilities)								
+71928	94	DISINFECTANT (Institutional/Industrial)								
+71929	94	DISINFECTANT (Institutional/Industrial)								
+71930	8	DISINFECTANT (Food Premises)								
+71931	8	DISINFECTANT (Food Premises)								
+71931	9	DISINFECTANT (Hospital/HC Facilities)								
+71931	94	DISINFECTANT (Institutional/Industrial)								
+71957	56	ORAL								
+71960	56	ORAL								
+71961	56	ORAL								
+71962	56	ORAL								
+71967	93	DISINFECTANT (Domestic)								
+71982	8	DISINFECTANT (Food Premises)								
+71982	9	DISINFECTANT (Hospital/HC Facilities)								
+71982	94	DISINFECTANT (Institutional/Industrial)								
+71984	8	DISINFECTANT (Food Premises)								
+71984	9	DISINFECTANT (Hospital/HC Facilities)								
+71984	94	DISINFECTANT (Institutional/Industrial)								
+71988	93	DISINFECTANT (Domestic)								
+71990	2	DISINFECTANT (Barn)								
+72007	56	ORAL								
+72010	56	ORAL								
+72055	56	ORAL								
+72074	70	TOPICAL								
+72078	56	ORAL								
+72092	56	ORAL								
+72100	56	ORAL								
+72101	70	TOPICAL								
+72215	56	ORAL								
+72277	56	ORAL								
+72298	94	DISINFECTANT (Institutional/Industrial)								
+72343	8	DISINFECTANT (Food Premises)								
+72372	56	ORAL								
+72373	56	ORAL								
+72374	56	ORAL								
+72375	56	ORAL								
+72395	56	ORAL								
+72396	56	ORAL								
+72435	56	ORAL								
+72446	55	OPHTHALMIC								
+72530	49	INTRAVENOUS								
+72555	29	INHALATION								
+72558	56	ORAL								
+72559	56	ORAL								
+72578	70	TOPICAL								
+72579	70	TOPICAL								
+72584	70	TOPICAL								
+72590	56	ORAL								
+72612	30	DISINFECTANT (Medical Instruments)								
+72612	9	DISINFECTANT (Hospital/HC Facilities)								
+72625	62	RECTAL								
+72667	56	ORAL								
+72694	70	TOPICAL								
+72698	8	DISINFECTANT (Food Premises)								
+72698	94	DISINFECTANT (Institutional/Industrial)								
+72721	70	TOPICAL								
+72722	70	TOPICAL								
+72769	49	INTRAVENOUS								
+72787	56	ORAL								
+72842	70	TOPICAL								
+72843	70	TOPICAL								
+72875	56	ORAL								
+72891	56	ORAL								
+72900	55	OPHTHALMIC								
+72903	56	ORAL								
+72904	56	ORAL								
+72905	56	ORAL								
+72906	56	ORAL								
+72959	70	TOPICAL								
+72965	56	ORAL								
+73049	70	TOPICAL								
+73051	56	ORAL								
+73068	56	ORAL								
+73071	56	ORAL								
+73079	56	ORAL								
+73080	56	ORAL								
+73081	56	ORAL								
+73082	56	ORAL								
+73083	56	ORAL								
+73084	56	ORAL								
+73085	56	ORAL								
+73097	56	ORAL								
+73099	49	INTRAVENOUS								
+73101	56	ORAL								
+73213	56	ORAL								
+73221	70	TOPICAL								
+73239	56	ORAL								
+73279	56	ORAL								
+73280	56	ORAL								
+73281	56	ORAL								
+73282	56	ORAL								
+73290	70	TOPICAL								
+73301	70	TOPICAL								
+73302	70	TOPICAL								
+73381	56	ORAL								
+73382	56	ORAL								
+73388	93	DISINFECTANT (Domestic)								
+73392	49	INTRAVENOUS								
+73393	8	DISINFECTANT (Food Premises)								
+73393	9	DISINFECTANT (Hospital/HC Facilities)								
+73394	8	DISINFECTANT (Food Premises)								
+73394	9	DISINFECTANT (Hospital/HC Facilities)								
+73415	56	ORAL								
+73428	55	OPHTHALMIC								
+73431	56	ORAL								
+73434	49	INTRAVENOUS								
+73435	56	ORAL								
+73443	56	ORAL								
+73444	56	ORAL								
+73445	56	ORAL								
+73446	56	ORAL								
+73455	56	ORAL								
+73473	62	RECTAL								
+73477	49	INTRAVENOUS								
+73481	56	ORAL								
+73500	56	ORAL								
+73501	56	ORAL								
+73508	22	INTRAMUSCULAR								
+73508	49	INTRAVENOUS								
+73514	56	ORAL								
+73563	56	ORAL								
+73564	56	ORAL								
+73575	94	DISINFECTANT (Institutional/Industrial)								
+73576	6	DIALYSIS								
+73577	6	DIALYSIS								
+73578	6	DIALYSIS								
+73582	56	ORAL								
+73584	56	ORAL								
+73585	56	ORAL								
+73617	56	ORAL								
+73621	56	ORAL								
+73625	56	ORAL								
+73659	56	ORAL								
+73660	56	ORAL								
+73661	56	ORAL								
+73662	56	ORAL								
+73663	56	ORAL								
+73664	56	ORAL								
+73670	56	ORAL								
+73672	56	ORAL								
+73679	56	ORAL								
+73717	22	INTRAMUSCULAR								
+73763	56	ORAL								
+73764	56	ORAL								
+73771	56	ORAL								
+73776	56	ORAL								
+73777	56	ORAL								
+73808	56	ORAL								
+73818	56	ORAL								
+73826	70	TOPICAL								
+73827	70	TOPICAL								
+73835	70	TOPICAL								
+73857	56	ORAL								
+73860	56	ORAL								
+73861	56	ORAL								
+73862	56	ORAL								
+73863	56	ORAL								
+73907	70	TOPICAL								
+73910	56	ORAL								
+73911	56	ORAL								
+73912	56	ORAL								
+73913	56	ORAL								
+73914	56	ORAL								
+73926	6	DIALYSIS								
+73928	6	DIALYSIS								
+73987	56	ORAL								
+74006	56	ORAL								
+74008	56	ORAL								
+74013	56	ORAL								
+74059	70	TOPICAL								
+74081	56	ORAL								
+74082	56	ORAL								
+74101	22	INTRAMUSCULAR								
+74101	70	TOPICAL								
+74103	56	ORAL								
+74104	56	ORAL								
+74129	56	ORAL								
+74130	56	ORAL								
+74141	8	DISINFECTANT (Food Premises)								
+74141	9	DISINFECTANT (Hospital/HC Facilities)								
+74141	94	DISINFECTANT (Institutional/Industrial)								
+74222	56	ORAL								
+74223	56	ORAL								
+74224	56	ORAL								
+74259	56	ORAL								
+74261	70	TOPICAL								
+74289	56	ORAL								
+74290	56	ORAL								
+74300	56	ORAL								
+74309	22	INTRAMUSCULAR								
+74309	49	INTRAVENOUS								
+74310	22	INTRAMUSCULAR								
+74310	49	INTRAVENOUS								
+74315	22	INTRAMUSCULAR								
+74339	56	ORAL								
+74340	56	ORAL								
+74347	56	ORAL								
+74349	56	ORAL								
+74350	56	ORAL								
+74351	56	ORAL								
+74352	56	ORAL								
+74362	70	TOPICAL								
+74370	9	DISINFECTANT (Hospital/HC Facilities)								
+74382	56	ORAL								
+74383	56	ORAL								
+74384	56	ORAL								
+74385	56	ORAL								
+74386	56	ORAL								
+74387	56	ORAL								
+74395	56	ORAL								
+74396	22	INTRAMUSCULAR								
+74396	49	INTRAVENOUS								
+74397	22	INTRAMUSCULAR								
+74397	49	INTRAVENOUS								
+74401	56	ORAL								
+74426	56	ORAL								
+74428	56	ORAL								
+74429	56	ORAL								
+74439	56	ORAL								
+74443	22	INTRAMUSCULAR								
+74443	49	INTRAVENOUS								
+74443	65	SUBCUTANEOUS								
+74479	56	ORAL								
+74480	56	ORAL								
+74481	56	ORAL								
+74482	56	ORAL								
+74484	29	INHALATION								
+74497	56	ORAL								
+74498	56	ORAL								
+74499	56	ORAL								
+74504	56	ORAL								
+74505	56	ORAL								
+74514	56	ORAL								
+74532	70	TOPICAL								
+74599	56	ORAL								
+74611	56	ORAL								
+74636	56	ORAL								
+74641	6	DIALYSIS								
+74643	56	ORAL								
+74644	56	ORAL								
+74645	6	DIALYSIS								
+74646	6	DIALYSIS								
+74664	55	OPHTHALMIC								
+74672	29	INHALATION								
+74672	56	ORAL								
+74687	22	INTRAMUSCULAR								
+74687	49	INTRAVENOUS								
+74769	56	ORAL								
+74770	56	ORAL								
+74788	6	DIALYSIS								
+74789	6	DIALYSIS								
+74794	6	DIALYSIS								
+74795	56	ORAL								
+74813	70	TOPICAL								
+74815	70	TOPICAL								
+74857	49	INTRAVENOUS								
+74857	65	SUBCUTANEOUS								
+74858	49	INTRAVENOUS								
+74858	65	SUBCUTANEOUS								
+74859	49	INTRAVENOUS								
+74859	65	SUBCUTANEOUS								
+74860	49	INTRAVENOUS								
+74860	65	SUBCUTANEOUS								
+74861	56	ORAL								
+74863	56	ORAL								
+74888	56	ORAL								
+74907	49	INTRAVENOUS								
+74915	70	TOPICAL								
+74917	56	ORAL								
+74928	56	ORAL								
+74929	56	ORAL								
+74936	56	ORAL								
+75007	29	INHALATION								
+75018	56	ORAL								
+75020	56	ORAL								
+75032	56	ORAL								
+75054	56	ORAL								
+75056	56	ORAL								
+75074	56	ORAL								
+75105	56	ORAL								
+75106	56	ORAL								
+75110	56	ORAL								
+75111	56	ORAL								
+75112	56	ORAL								
+75113	56	ORAL								
+75114	56	ORAL								
+75130	56	ORAL								
+75131	56	ORAL								
+75155	56	ORAL								
+75185	56	ORAL								
+75192	70	TOPICAL								
+75218	56	ORAL								
+75219	56	ORAL								
+75220	49	INTRAVENOUS								
+75221	49	INTRAVENOUS								
+75240	56	ORAL								
+75253	2	DISINFECTANT (Barn)								
+75253	8	DISINFECTANT (Food Premises)								
+75253	9	DISINFECTANT (Hospital/HC Facilities)								
+75253	93	DISINFECTANT (Domestic)								
+75253	94	DISINFECTANT (Institutional/Industrial)								
+75255	70	TOPICAL								
+75257	70	TOPICAL								
+75260	93	DISINFECTANT (Domestic)								
+75281	70	TOPICAL								
+75284	56	ORAL								
+75300	22	INTRAMUSCULAR								
+75312	56	ORAL								
+75313	49	INTRAVENOUS								
+75382	56	ORAL								
+75384	56	ORAL								
+75388	56	ORAL								
+75399	56	ORAL								
+75416	56	ORAL								
+75417	56	ORAL								
+75419	70	TOPICAL								
+75435	56	ORAL								
+75439	56	ORAL								
+75476	6	DIALYSIS								
+75477	6	DIALYSIS								
+75478	6	DIALYSIS								
+75496	56	ORAL								
+75533	56	ORAL								
+75547	56	ORAL								
+75548	56	ORAL								
+75568	56	ORAL								
+75569	56	ORAL								
+75570	56	ORAL								
+75573	56	ORAL								
+75574	56	ORAL								
+75590	56	ORAL								
+75592	56	ORAL								
+75593	56	ORAL								
+75598	56	ORAL								
+75605	56	ORAL								
+75629	56	ORAL								
+75678	56	ORAL								
+75685	49	INTRAVENOUS								
+75734	70	TOPICAL								
+75735	56	ORAL								
+75787	56	ORAL								
+75788	56	ORAL								
+75801	56	ORAL								
+75803	6	DIALYSIS								
+75806	6	DIALYSIS								
+75807	6	DIALYSIS								
+75809	6	DIALYSIS								
+75813	6	DIALYSIS								
+75816	2	DISINFECTANT (Barn)								
+75816	8	DISINFECTANT (Food Premises)								
+75816	9	DISINFECTANT (Hospital/HC Facilities)								
+75816	93	DISINFECTANT (Domestic)								
+75816	94	DISINFECTANT (Institutional/Industrial)								
+75817	8	DISINFECTANT (Food Premises)								
+75817	9	DISINFECTANT (Hospital/HC Facilities)								
+75818	93	DISINFECTANT (Domestic)								
+75822	70	TOPICAL								
+75838	70	TOPICAL								
+75845	70	TOPICAL								
+75859	70	TOPICAL								
+75885	93	DISINFECTANT (Domestic)								
+75892	56	ORAL								
+75908	56	ORAL								
+75909	56	ORAL								
+75910	8	DISINFECTANT (Food Premises)								
+75910	93	DISINFECTANT (Domestic)								
+75925	70	TOPICAL								
+75927	70	TOPICAL								
+75960	49	INTRAVENOUS								
+75961	70	TOPICAL								
+75963	56	ORAL								
+75995	56	ORAL								
+75996	56	ORAL								
+75997	56	ORAL								
+76048	8	DISINFECTANT (Food Premises)								
+76048	93	DISINFECTANT (Domestic)								
+76051	8	DISINFECTANT (Food Premises)								
+76051	9	DISINFECTANT (Hospital/HC Facilities)								
+76051	93	DISINFECTANT (Domestic)								
+76051	94	DISINFECTANT (Institutional/Industrial)								
+76052	2	DISINFECTANT (Barn)								
+76052	8	DISINFECTANT (Food Premises)								
+76052	94	DISINFECTANT (Institutional/Industrial)								
+76053	2	DISINFECTANT (Barn)								
+76053	8	DISINFECTANT (Food Premises)								
+76053	9	DISINFECTANT (Hospital/HC Facilities)								
+76053	93	DISINFECTANT (Domestic)								
+76053	94	DISINFECTANT (Institutional/Industrial)								
+76083	70	TOPICAL								
+76084	70	TOPICAL								
+76101	70	TOPICAL								
+76111	8	DISINFECTANT (Food Premises)								
+76111	9	DISINFECTANT (Hospital/HC Facilities)								
+76116	70	TOPICAL								
+76127	56	ORAL								
+76128	56	ORAL								
+76141	70	TOPICAL								
+76143	56	ORAL								
+76154	56	ORAL								
+76156	56	ORAL								
+76180	70	TOPICAL								
+76194	56	ORAL								
+76197	56	ORAL								
+76207	56	ORAL								
+76209	65	SUBCUTANEOUS								
+76211	56	ORAL								
+76212	56	ORAL								
+76219	56	ORAL								
+76223	29	INHALATION								
+76224	29	INHALATION								
+76228	56	ORAL								
+76246	56	ORAL								
+76251	56	ORAL								
+76252	56	ORAL								
+76262	9	DISINFECTANT (Hospital/HC Facilities)								
+76262	94	DISINFECTANT (Institutional/Industrial)								
+76267	70	TOPICAL								
+76268	70	TOPICAL								
+76269	70	TOPICAL								
+76296	56	ORAL								
+76297	56	ORAL								
+76306	56	ORAL								
+76319	56	ORAL								
+76324	56	ORAL								
+76336	70	TOPICAL								
+76337	70	TOPICAL								
+76341	56	ORAL								
+76342	56	ORAL								
+76344	56	ORAL								
+76358	70	TOPICAL								
+76359	70	TOPICAL								
+76361	56	ORAL								
+76389	56	ORAL								
+76390	56	ORAL								
+76391	9	DISINFECTANT (Hospital/HC Facilities)								
+76391	94	DISINFECTANT (Institutional/Industrial)								
+76417	56	ORAL								
+76433	56	ORAL								
+76454	56	ORAL								
+76474	56	ORAL								
+76508	65	SUBCUTANEOUS								
+76515	70	TOPICAL								
+76521	70	TOPICAL								
+76523	56	ORAL								
+76543	22	INTRAMUSCULAR								
+76543	49	INTRAVENOUS								
+76554	55	OPHTHALMIC								
+76562	56	ORAL								
+76563	56	ORAL								
+76572	56	ORAL								
+76573	56	ORAL								
+76574	56	ORAL								
+76576	70	TOPICAL								
+76626	70	TOPICAL								
+76627	70	TOPICAL								
+76632	56	ORAL								
+76641	56	ORAL								
+76642	56	ORAL								
+76672	56	ORAL								
+76675	56	ORAL								
+76677	56	ORAL								
+76680	56	ORAL								
+76701	56	ORAL								
+76733	56	ORAL								
+76734	56	ORAL								
+76735	56	ORAL								
+76750	70	TOPICAL								
+76751	70	TOPICAL								
+76752	70	TOPICAL								
+76753	70	TOPICAL								
+76754	70	TOPICAL								
+76755	70	TOPICAL								
+76756	56	ORAL								
+76757	56	ORAL								
+76758	56	ORAL								
+76759	70	TOPICAL								
+76760	56	ORAL								
+76761	56	ORAL								
+76762	56	ORAL								
+76798	56	ORAL								
+76807	56	ORAL								
+76808	56	ORAL								
+76835	56	ORAL								
+76853	70	TOPICAL								
+76868	70	TOPICAL								
+76874	56	ORAL								
+76893	70	TOPICAL								
+76905	56	ORAL								
+76923	56	ORAL								
+76927	56	ORAL								
+76933	29	INHALATION								
+76955	70	TOPICAL								
+76972	56	ORAL								
+76991	70	TOPICAL								
+76993	70	TOPICAL								
+77025	8	DISINFECTANT (Food Premises)								
+77025	9	DISINFECTANT (Hospital/HC Facilities)								
+77025	94	DISINFECTANT (Institutional/Industrial)								
+77071	56	ORAL								
+77087	49	INTRAVENOUS								
+77105	56	ORAL								
+77226	56	ORAL								
+77237	56	ORAL								
+77238	56	ORAL								
+77239	56	ORAL								
+77240	56	ORAL								
+77252	70	TOPICAL								
+77253	70	TOPICAL								
+77294	70	TOPICAL								
+77296	70	TOPICAL								
+77297	56	ORAL								
+77298	56	ORAL								
+77327	70	TOPICAL								
+77345	56	ORAL								
+77404	45	INTRATRACHEAL								
+77452	8	DISINFECTANT (Food Premises)								
+77452	9	DISINFECTANT (Hospital/HC Facilities)								
+77452	94	DISINFECTANT (Institutional/Industrial)								
+77467	56	ORAL								
+77474	56	ORAL								
+77478	56	ORAL								
+77479	56	ORAL								
+77501	22	INTRAMUSCULAR								
+77501	49	INTRAVENOUS								
+77502	22	INTRAMUSCULAR								
+77502	49	INTRAVENOUS								
+77503	22	INTRAMUSCULAR								
+77503	49	INTRAVENOUS								
+77504	22	INTRAMUSCULAR								
+77504	49	INTRAVENOUS								
+77505	22	INTRAMUSCULAR								
+77505	49	INTRAVENOUS								
+77507	70	TOPICAL								
+77516	56	ORAL								
+77520	56	ORAL								
+77521	70	TOPICAL								
+77532	70	TOPICAL								
+77534	70	TOPICAL								
+77535	22	INTRAMUSCULAR								
+77535	49	INTRAVENOUS								
+77535	65	SUBCUTANEOUS								
+77537	70	TOPICAL								
+77538	70	TOPICAL								
+77559	8	DISINFECTANT (Food Premises)								
+77559	9	DISINFECTANT (Hospital/HC Facilities)								
+77559	93	DISINFECTANT (Domestic)								
+77579	56	ORAL								
+77609	56	ORAL								
+77625	56	ORAL								
+77626	56	ORAL								
+77634	56	ORAL								
+77665	56	ORAL								
+77666	56	ORAL								
+77667	70	TOPICAL								
+77670	56	ORAL								
+77680	56	ORAL								
+77717	56	ORAL								
+77718	70	TOPICAL								
+77719	70	TOPICAL								
+77720	70	TOPICAL								
+77744	70	TOPICAL								
+77746	70	TOPICAL								
+77766	8	DISINFECTANT (Food Premises)								
+77766	9	DISINFECTANT (Hospital/HC Facilities)								
+77767	56	ORAL								
+77771	56	ORAL								
+77788	93	DISINFECTANT (Domestic)								
+77789	56	ORAL								
+77790	56	ORAL								
+77804	70	TOPICAL								
+77805	8	DISINFECTANT (Food Premises)								
+77805	9	DISINFECTANT (Hospital/HC Facilities)								
+77805	93	DISINFECTANT (Domestic)								
+77805	94	DISINFECTANT (Institutional/Industrial)								
+77813	56	ORAL								
+77841	56	ORAL								
+77842	56	ORAL								
+77843	56	ORAL								
+77861	56	ORAL								
+77862	56	ORAL								
+77897	70	TOPICAL								
+77902	8	DISINFECTANT (Food Premises)								
+77902	9	DISINFECTANT (Hospital/HC Facilities)								
+77902	94	DISINFECTANT (Institutional/Industrial)								
+77904	93	DISINFECTANT (Domestic)								
+77905	93	DISINFECTANT (Domestic)								
+77906	93	DISINFECTANT (Domestic)								
+77929	56	ORAL								
+77930	56	ORAL								
+77931	56	ORAL								
+77939	56	ORAL								
+77954	70	TOPICAL								
+77955	70	TOPICAL								
+77964	93	DISINFECTANT (Domestic)								
+77970	56	ORAL								
+77971	56	ORAL								
+77978	56	ORAL								
+77979	56	ORAL								
+77980	56	ORAL								
+77981	56	ORAL								
+77982	56	ORAL								
+77983	56	ORAL								
+77984	56	ORAL								
+77985	56	ORAL								
+77990	56	ORAL								
+77993	56	ORAL								
+78000	49	INTRAVENOUS								
+78002	49	INTRAVENOUS								
+78007	56	ORAL								
+78008	56	ORAL								
+78011	6	DIALYSIS								
+78026	70	TOPICAL								
+78027	70	TOPICAL								
+78036	70	TOPICAL								
+78042	56	ORAL								
+78048	70	TOPICAL								
+78049	70	TOPICAL								
+78050	70	TOPICAL								
+78051	70	TOPICAL								
+78052	70	TOPICAL								
+78053	9	DISINFECTANT (Hospital/HC Facilities)								
+78064	56	ORAL								
+78065	56	ORAL								
+78073	8	DISINFECTANT (Food Premises)								
+78074	56	ORAL								
+78075	9	DISINFECTANT (Hospital/HC Facilities)								
+78075	94	DISINFECTANT (Institutional/Industrial)								
+78076	2	DISINFECTANT (Barn)								
+78076	8	DISINFECTANT (Food Premises)								
+78077	2	DISINFECTANT (Barn)								
+78077	8	DISINFECTANT (Food Premises)								
+78077	9	DISINFECTANT (Hospital/HC Facilities)								
+78077	93	DISINFECTANT (Domestic)								
+78077	94	DISINFECTANT (Institutional/Industrial)								
+78088	56	ORAL								
+78113	56	ORAL								
+78115	56	ORAL								
+78122	62	RECTAL								
+78128	8	DISINFECTANT (Food Premises)								
+78128	9	DISINFECTANT (Hospital/HC Facilities)								
+78132	56	ORAL								
+78133	70	TOPICAL								
+78134	70	TOPICAL								
+78137	56	ORAL								
+78140	56	ORAL								
+78141	55	OPHTHALMIC								
+78151	22	INTRAMUSCULAR								
+78151	49	INTRAVENOUS								
+78182	8	DISINFECTANT (Food Premises)								
+78182	9	DISINFECTANT (Hospital/HC Facilities)								
+78190	56	ORAL								
+78231	56	ORAL								
+78237	8	DISINFECTANT (Food Premises)								
+78237	9	DISINFECTANT (Hospital/HC Facilities)								
+78241	56	ORAL								
+78250	56	ORAL								
+78251	56	ORAL								
+78252	56	ORAL								
+78253	56	ORAL								
+78254	56	ORAL								
+78257	22	INTRAMUSCULAR								
+78257	49	INTRAVENOUS								
+78293	56	ORAL								
+78294	56	ORAL								
+78295	56	ORAL								
+78296	56	ORAL								
+78306	56	ORAL								
+78336	49	INTRAVENOUS								
+78336	65	SUBCUTANEOUS								
+78354	49	INTRAVENOUS								
+78361	22	INTRAMUSCULAR								
+78361	65	SUBCUTANEOUS								
+78371	56	ORAL								
+78374	56	ORAL								
+78375	56	ORAL								
+78379	70	TOPICAL								
+78386	56	ORAL								
+78401	56	ORAL								
+78403	70	TOPICAL								
+78404	70	TOPICAL								
+78407	65	SUBCUTANEOUS								
+78419	70	TOPICAL								
+78421	65	SUBCUTANEOUS								
+78438	56	ORAL								
+78442	56	ORAL								
+78471	56	ORAL								
+78472	56	ORAL								
+78473	56	ORAL								
+78486	56	ORAL								
+78505	6	DIALYSIS								
+78506	6	DIALYSIS								
+78507	6	DIALYSIS								
+78512	56	ORAL								
+78513	56	ORAL								
+78514	56	ORAL								
+78515	56	ORAL								
+78556	56	ORAL								
+78562	56	ORAL								
+78572	65	SUBCUTANEOUS								
+78577	22	INTRAMUSCULAR								
+78577	49	INTRAVENOUS								
+78579	22	INTRAMUSCULAR								
+78579	49	INTRAVENOUS								
+78582	29	INHALATION								
+78583	22	INTRAMUSCULAR								
+78583	49	INTRAVENOUS								
+78583	65	SUBCUTANEOUS								
+78585	53	NASAL								
+78586	53	NASAL								
+78644	2	DISINFECTANT (Barn)								
+78644	8	DISINFECTANT (Food Premises)								
+78644	9	DISINFECTANT (Hospital/HC Facilities)								
+78644	93	DISINFECTANT (Domestic)								
+78644	94	DISINFECTANT (Institutional/Industrial)								
+78645	93	DISINFECTANT (Domestic)								
+78653	70	TOPICAL								
+78702	70	TOPICAL								
+78731	70	TOPICAL								
+78757	70	TOPICAL								
+78759	70	TOPICAL								
+78760	70	TOPICAL								
+78761	70	TOPICAL								
+78762	70	TOPICAL								
+78763	70	TOPICAL								
+78764	70	TOPICAL								
+78765	70	TOPICAL								
+78784	56	ORAL								
+78785	56	ORAL								
+78789	22	INTRAMUSCULAR								
+78789	49	INTRAVENOUS								
+78790	22	INTRAMUSCULAR								
+78790	49	INTRAVENOUS								
+78802	55	OPHTHALMIC								
+78878	70	TOPICAL								
+78925	56	ORAL								
+78927	56	ORAL								
+78931	49	INTRAVENOUS								
+78943	71	TRANSDERMAL								
+78944	71	TRANSDERMAL								
+78945	71	TRANSDERMAL								
+78946	71	TRANSDERMAL								
+78949	70	TOPICAL								
+78952	22	INTRAMUSCULAR								
+78952	49	INTRAVENOUS								
+78967	8	DISINFECTANT (Food Premises)								
+78967	9	DISINFECTANT (Hospital/HC Facilities)								
+78967	94	DISINFECTANT (Institutional/Industrial)								
+78968	8	DISINFECTANT (Food Premises)								
+78968	9	DISINFECTANT (Hospital/HC Facilities)								
+78968	94	DISINFECTANT (Institutional/Industrial)								
+78969	93	DISINFECTANT (Domestic)								
+78970	93	DISINFECTANT (Domestic)								
+78986	56	ORAL								
+78987	56	ORAL								
+79010	56	ORAL								
+79013	8	DISINFECTANT (Food Premises)								
+79013	9	DISINFECTANT (Hospital/HC Facilities)								
+79013	93	DISINFECTANT (Domestic)								
+79013	94	DISINFECTANT (Institutional/Industrial)								
+79015	70	TOPICAL								
+79022	93	DISINFECTANT (Domestic)								
+79043	56	ORAL								
+79054	56	ORAL								
+79059	56	ORAL								
+79060	56	ORAL								
+79061	56	ORAL								
+79072	70	TOPICAL								
+79091	70	TOPICAL								
+79109	56	ORAL								
+79119	49	INTRAVENOUS								
+79120	49	INTRAVENOUS								
+79121	49	INTRAVENOUS								
+79123	70	TOPICAL								
+79172	56	ORAL								
+79173	56	ORAL								
+79174	56	ORAL								
+79188	56	ORAL								
+79241	70	TOPICAL								
+79243	56	ORAL								
+79254	70	TOPICAL								
+79258	56	ORAL								
+79270	70	TOPICAL								
+79272	56	ORAL								
+79273	56	ORAL								
+79277	56	ORAL								
+79282	56	ORAL								
+79283	56	ORAL								
+79284	56	ORAL								
+79285	56	ORAL								
+79286	56	ORAL								
+79299	56	ORAL								
+79300	56	ORAL								
+79301	56	ORAL								
+79302	56	ORAL								
+79303	56	ORAL								
+79304	56	ORAL								
+79305	56	ORAL								
+79306	56	ORAL								
+79307	56	ORAL								
+79318	70	TOPICAL								
+79326	56	ORAL								
+79327	56	ORAL								
+79328	56	ORAL								
+79337	56	ORAL								
+79338	56	ORAL								
+79339	56	ORAL								
+79340	56	ORAL								
+79342	56	ORAL								
+79343	56	ORAL								
+79368	49	INTRAVENOUS								
+79368	65	SUBCUTANEOUS								
+79369	49	INTRAVENOUS								
+79369	65	SUBCUTANEOUS								
+79370	49	INTRAVENOUS								
+79370	65	SUBCUTANEOUS								
+79371	49	INTRAVENOUS								
+79371	65	SUBCUTANEOUS								
+79372	49	INTRAVENOUS								
+79372	65	SUBCUTANEOUS								
+79373	49	INTRAVENOUS								
+79373	65	SUBCUTANEOUS								
+79374	49	INTRAVENOUS								
+79374	65	SUBCUTANEOUS								
+79375	49	INTRAVENOUS								
+79375	65	SUBCUTANEOUS								
+79376	49	INTRAVENOUS								
+79376	65	SUBCUTANEOUS								
+79377	49	INTRAVENOUS								
+79377	65	SUBCUTANEOUS								
+79378	49	INTRAVENOUS								
+79378	65	SUBCUTANEOUS								
+79379	49	INTRAVENOUS								
+79379	65	SUBCUTANEOUS								
+79380	49	INTRAVENOUS								
+79380	65	SUBCUTANEOUS								
+79381	49	INTRAVENOUS								
+79381	65	SUBCUTANEOUS								
+79382	49	INTRAVENOUS								
+79382	65	SUBCUTANEOUS								
+79383	56	ORAL								
+79384	56	ORAL								
+79385	56	ORAL								
+79386	56	ORAL								
+79389	56	ORAL								
+79390	56	ORAL								
+79391	56	ORAL								
+79392	56	ORAL								
+79393	56	ORAL								
+79394	56	ORAL								
+79401	29	INHALATION								
+79404	56	ORAL								
+79411	56	ORAL								
+79413	49	INTRAVENOUS								
+79463	56	ORAL								
+79464	56	ORAL								
+79465	56	ORAL								
+79478	56	ORAL								
+79481	70	TOPICAL								
+79482	70	TOPICAL								
+79495	56	ORAL								
+79496	56	ORAL								
+79500	56	ORAL								
+79501	56	ORAL								
+79502	56	ORAL								
+79503	56	ORAL								
+79505	56	ORAL								
+79521	56	ORAL								
+79523	56	ORAL								
+79528	56	ORAL								
+79530	56	ORAL								
+79535	70	TOPICAL								
+79545	56	ORAL								
+79549	56	ORAL								
+79556	56	ORAL								
+79563	8	DISINFECTANT (Food Premises)								
+79563	9	DISINFECTANT (Hospital/HC Facilities)								
+79567	56	ORAL								
+79570	56	ORAL								
+79572	56	ORAL								
+79573	56	ORAL								
+79576	56	ORAL								
+79577	56	ORAL								
+79604	56	ORAL								
+79621	70	TOPICAL								
+79637	70	TOPICAL								
+79641	70	TOPICAL								
+79642	56	ORAL								
+79682	56	ORAL								
+79683	56	ORAL								
+79723	56	ORAL								
+79732	56	ORAL								
+79734	70	TOPICAL								
+79743	49	INTRAVENOUS								
+79754	56	ORAL								
+79755	56	ORAL								
+79756	56	ORAL								
+79764	49	INTRAVENOUS								
+79785	56	ORAL								
+79789	56	ORAL								
+79790	93	DISINFECTANT (Domestic)								
+79796	70	TOPICAL								
+79797	70	TOPICAL								
+79809	56	ORAL								
+79810	56	ORAL								
+79813	70	TOPICAL								
+79870	70	TOPICAL								
+79907	56	ORAL								
+79942	70	TOPICAL								
+79956	56	ORAL								
+79996	93	DISINFECTANT (Domestic)								
+80004	93	DISINFECTANT (Domestic)								
+80044	70	TOPICAL								
+80136	55	OPHTHALMIC								
+80147	56	ORAL								
+80158	56	ORAL								
+80159	56	ORAL								
+80163	56	ORAL								
+80180	56	ORAL								
+80183	56	ORAL								
+80184	56	ORAL								
+80185	56	ORAL								
+80186	56	ORAL								
+80187	56	ORAL								
+80188	56	ORAL								
+80189	56	ORAL								
+80193	70	TOPICAL								
+80194	70	TOPICAL								
+80196	56	ORAL								
+80211	56	ORAL								
+80212	56	ORAL								
+80222	56	ORAL								
+80260	56	ORAL								
+80261	56	ORAL								
+80262	56	ORAL								
+80282	56	ORAL								
+80306	30	DISINFECTANT (Medical Instruments)								
+80306	9	DISINFECTANT (Hospital/HC Facilities)								
+80330	56	ORAL								
+80331	56	ORAL								
+80348	70	TOPICAL								
+80352	70	TOPICAL								
+80360	56	ORAL								
+80361	56	ORAL								
+80373	70	TOPICAL								
+80378	65	SUBCUTANEOUS								
+80385	9	DISINFECTANT (Hospital/HC Facilities)								
+80387	9	DISINFECTANT (Hospital/HC Facilities)								
+80387	94	DISINFECTANT (Institutional/Industrial)								
+80389	9	DISINFECTANT (Hospital/HC Facilities)								
+80399	56	ORAL								
+80401	56	ORAL								
+80402	56	ORAL								
+80404	56	ORAL								
+80405	56	ORAL								
+80410	70	TOPICAL								
+80413	56	ORAL								
+80434	56	ORAL								
+80437	56	ORAL								
+80439	56	ORAL								
+80440	56	ORAL								
+80445	8	DISINFECTANT (Food Premises)								
+80451	22	INTRAMUSCULAR								
+80451	49	INTRAVENOUS								
+80462	70	TOPICAL								
+80506	56	ORAL								
+80507	56	ORAL								
+80514	70	TOPICAL								
+80553	56	ORAL								
+80554	56	ORAL								
+80555	56	ORAL								
+80556	56	ORAL								
+80557	56	ORAL								
+80573	70	TOPICAL								
+80578	70	TOPICAL								
+80579	56	ORAL								
+80587	56	ORAL								
+80625	56	ORAL								
+80633	56	ORAL								
+80647	70	TOPICAL								
+80648	70	TOPICAL								
+80680	70	TOPICAL								
+80684	56	ORAL								
+80706	55	OPHTHALMIC								
+80711	2	DISINFECTANT (Barn)								
+80711	9	DISINFECTANT (Hospital/HC Facilities)								
+80711	94	DISINFECTANT (Institutional/Industrial)								
+80732	56	ORAL								
+80752	56	ORAL								
+80753	56	ORAL								
+80757	56	ORAL								
+80765	8	DISINFECTANT (Food Premises)								
+80765	9	DISINFECTANT (Hospital/HC Facilities)								
+80765	93	DISINFECTANT (Domestic)								
+80765	94	DISINFECTANT (Institutional/Industrial)								
+80766	56	ORAL								
+80767	22	INTRAMUSCULAR								
+80767	33	INTRAPERITONEAL								
+80767	49	INTRAVENOUS								
+80767	65	SUBCUTANEOUS								
+80768	56	ORAL								
+80769	56	ORAL								
+80770	49	INTRAVENOUS								
+80772	56	ORAL								
+80787	56	ORAL								
+80788	56	ORAL								
+80789	56	ORAL								
+80796	70	TOPICAL								
+80808	49	INTRAVENOUS								
+80813	70	TOPICAL								
+80814	70	TOPICAL								
+80817	70	TOPICAL								
+80818	70	TOPICAL								
+80819	70	TOPICAL								
+80823	70	TOPICAL								
+80839	56	ORAL								
+80848	8	DISINFECTANT (Food Premises)								
+80848	9	DISINFECTANT (Hospital/HC Facilities)								
+80848	93	DISINFECTANT (Domestic)								
+80848	94	DISINFECTANT (Institutional/Industrial)								
+80849	49	INTRAVENOUS								
+80861	56	ORAL								
+80862	56	ORAL								
+80863	93	DISINFECTANT (Domestic)								
+80872	8	DISINFECTANT (Food Premises)								
+80872	93	DISINFECTANT (Domestic)								
+80873	8	DISINFECTANT (Food Premises)								
+80873	9	DISINFECTANT (Hospital/HC Facilities)								
+80873	93	DISINFECTANT (Domestic)								
+80873	94	DISINFECTANT (Institutional/Industrial)								
+80874	8	DISINFECTANT (Food Premises)								
+80874	9	DISINFECTANT (Hospital/HC Facilities)								
+80874	93	DISINFECTANT (Domestic)								
+80874	94	DISINFECTANT (Institutional/Industrial)								
+80885	8	DISINFECTANT (Food Premises)								
+80885	9	DISINFECTANT (Hospital/HC Facilities)								
+80885	93	DISINFECTANT (Domestic)								
+80885	94	DISINFECTANT (Institutional/Industrial)								
+80886	8	DISINFECTANT (Food Premises)								
+80886	9	DISINFECTANT (Hospital/HC Facilities)								
+80886	93	DISINFECTANT (Domestic)								
+80886	94	DISINFECTANT (Institutional/Industrial)								
+80888	8	DISINFECTANT (Food Premises)								
+80888	9	DISINFECTANT (Hospital/HC Facilities)								
+80888	94	DISINFECTANT (Institutional/Industrial)								
+80940	56	ORAL								
+80941	56	ORAL								
+80942	56	ORAL								
+80943	70	TOPICAL								
+80954	56	ORAL								
+80962	49	INTRAVENOUS								
+80974	8	DISINFECTANT (Food Premises)								
+80974	9	DISINFECTANT (Hospital/HC Facilities)								
+80974	94	DISINFECTANT (Institutional/Industrial)								
+80989	8	DISINFECTANT (Food Premises)								
+80989	9	DISINFECTANT (Hospital/HC Facilities)								
+80989	94	DISINFECTANT (Institutional/Industrial)								
+80992	56	ORAL								
+81000	8	DISINFECTANT (Food Premises)								
+81000	9	DISINFECTANT (Hospital/HC Facilities)								
+81000	94	DISINFECTANT (Institutional/Industrial)								
+81008	56	ORAL								
+81023	56	ORAL								
+81024	56	ORAL								
+81035	70	TOPICAL								
+81047	65	SUBCUTANEOUS								
+81097	22	INTRAMUSCULAR								
+81097	49	INTRAVENOUS								
+81101	6	DIALYSIS								
+81135	8	DISINFECTANT (Food Premises)								
+81135	9	DISINFECTANT (Hospital/HC Facilities)								
+81135	93	DISINFECTANT (Domestic)								
+81135	94	DISINFECTANT (Institutional/Industrial)								
+81136	8	DISINFECTANT (Food Premises)								
+81136	9	DISINFECTANT (Hospital/HC Facilities)								
+81136	93	DISINFECTANT (Domestic)								
+81136	94	DISINFECTANT (Institutional/Industrial)								
+81143	56	ORAL								
+81155	22	INTRAMUSCULAR								
+81155	49	INTRAVENOUS								
+81160	56	ORAL								
+81161	56	ORAL								
+81162	56	ORAL								
+81163	56	ORAL								
+81173	56	ORAL								
+81174	56	ORAL								
+81183	104	TOPICAL (HOUSEHOLD)								
+81183	105	TOPICAL (COMMERCIAL)								
+81196	56	ORAL								
+81203	56	ORAL								
+81219	56	ORAL								
+81220	56	ORAL								
+81221	56	ORAL								
+81223	56	ORAL								
+81256	55	OPHTHALMIC								
+81257	70	TOPICAL								
+81269	70	TOPICAL								
+81304	49	INTRAVENOUS								
+81314	49	INTRAVENOUS								
+81315	49	INTRAVENOUS								
+81316	49	INTRAVENOUS								
+81328	49	INTRAVENOUS								
+81329	39	INSTILLATION								
+81329	49	INTRAVENOUS								
+81329	56	ORAL								
+81334	49	INTRAVENOUS								
+81336	56	ORAL								
+81338	29	INHALATION								
+81339	29	INHALATION								
+81342	49	INTRAVENOUS								
+81343	70	TOPICAL								
+81344	49	INTRAVENOUS								
+81346	49	INTRAVENOUS								
+81349	49	INTRAVENOUS								
+81407	39	INSTILLATION								
+81407	49	INTRAVENOUS								
+81407	56	ORAL								
+81408	39	INSTILLATION								
+81408	49	INTRAVENOUS								
+81408	56	ORAL								
+81409	39	INSTILLATION								
+81409	49	INTRAVENOUS								
+81409	56	ORAL								
+81412	56	ORAL								
+81418	49	INTRAVENOUS								
+81433	49	INTRAVENOUS								
+81437	49	INTRAVENOUS								
+81438	29	INHALATION								
+81439	49	INTRAVENOUS								
+81441	49	INTRAVENOUS								
+81442	49	INTRAVENOUS								
+81447	8	DISINFECTANT (Food Premises)								
+81447	9	DISINFECTANT (Hospital/HC Facilities)								
+81447	93	DISINFECTANT (Domestic)								
+81447	94	DISINFECTANT (Institutional/Industrial)								
+81455	70	TOPICAL								
+81458	49	INTRAVENOUS								
+81459	49	INTRAVENOUS								
+81460	49	INTRAVENOUS								
+81461	49	INTRAVENOUS								
+81462	56	ORAL								
+81463	56	ORAL								
+81464	56	ORAL								
+81467	49	INTRAVENOUS								
+81468	49	INTRAVENOUS								
+81469	49	INTRAVENOUS								
+81473	56	ORAL								
+81474	49	INTRAVENOUS								
+81477	49	INTRAVENOUS								
+81478	49	INTRAVENOUS								
+81479	31	INTRATHECAL								
+81480	49	INTRAVENOUS								
+81481	49	INTRAVENOUS								
+81482	49	INTRAVENOUS								
+81492	49	INTRAVENOUS								
+81494	49	INTRAVENOUS								
+81495	49	INTRAVENOUS								
+81497	49	INTRAVENOUS								
+81499	49	INTRAVENOUS								
+81500	49	INTRAVENOUS								
+81501	39	INSTILLATION								
+81508	49	INTRAVENOUS								
+81509	49	INTRAVENOUS								
+81509	56	ORAL								
+81510	49	INTRAVENOUS								
+81510	56	ORAL								
+81511	49	INTRAVENOUS								
+81511	56	ORAL								
+81512	49	INTRAVENOUS								
+81512	56	ORAL								
+81513	49	INTRAVENOUS								
+81513	56	ORAL								
+81514	49	INTRAVENOUS								
+81514	56	ORAL								
+81515	49	INTRAVENOUS								
+81516	49	INTRAVENOUS								
+81519	49	INTRAVENOUS								
+81520	49	INTRAVENOUS								
+81521	49	INTRAVENOUS								
+81522	56	ORAL								
+81523	56	ORAL								
+81524	56	ORAL								
+81525	56	ORAL								
+81526	56	ORAL								
+81527	56	ORAL								
+81528	56	ORAL								
+81529	56	ORAL								
+81530	56	ORAL								
+81531	56	ORAL								
+81532	56	ORAL								
+81533	56	ORAL								
+81534	56	ORAL								
+81535	56	ORAL								
+81536	56	ORAL								
+81537	56	ORAL								
+81538	56	ORAL								
+81539	56	ORAL								
+81540	56	ORAL								
+81541	56	ORAL								
+81542	56	ORAL								
+81543	49	INTRAVENOUS								
+81544	49	INTRAVENOUS								
+81545	49	INTRAVENOUS								
+81546	56	ORAL								
+81547	56	ORAL								
+81548	56	ORAL								
+81549	56	ORAL								
+81550	49	INTRAVENOUS								
+81551	49	INTRAVENOUS								
+81551	56	ORAL								
+81552	49	INTRAVENOUS								
+81555	49	INTRAVENOUS								
+81556	49	INTRAVENOUS								
+81559	49	INTRAVENOUS								
+81559	97	INTRAVASCULAR								
+81561	55	OPHTHALMIC								
+81563	55	OPHTHALMIC								
+81565	70	TOPICAL								
+81575	49	INTRAVENOUS								
+81575	97	INTRAVASCULAR								
+81583	49	INTRAVENOUS								
+81617	56	ORAL								
+81629	33	INTRAPERITONEAL								
+81629	49	INTRAVENOUS								
+81629	65	SUBCUTANEOUS								
+81630	65	SUBCUTANEOUS								
+81631	8	DISINFECTANT (Food Premises)								
+81631	9	DISINFECTANT (Hospital/HC Facilities)								
+81631	94	DISINFECTANT (Institutional/Industrial)								
+81647	49	INTRAVENOUS								
+81652	70	TOPICAL								
+81658	70	TOPICAL								
+81659	70	TOPICAL								
+81665	56	ORAL								
+81667	56	ORAL								
+81668	56	ORAL								
+81687	56	ORAL								
+81688	56	ORAL								
+81689	56	ORAL								
+81690	56	ORAL								
+81691	56	ORAL								
+81692	56	ORAL								
+81693	56	ORAL								
+81694	56	ORAL								
+81695	56	ORAL								
+81696	56	ORAL								
+81713	70	TOPICAL								
+81741	22	INTRAMUSCULAR								
+81744	56	ORAL								
+81746	56	ORAL								
+81747	56	ORAL								
+81752	56	ORAL								
+81761	56	ORAL								
+81762	56	ORAL								
+81763	56	ORAL								
+81764	56	ORAL								
+81765	56	ORAL								
+81766	56	ORAL								
+81767	56	ORAL								
+81768	56	ORAL								
+81769	56	ORAL								
+81770	56	ORAL								
+81771	56	ORAL								
+81772	56	ORAL								
+81773	56	ORAL								
+81774	56	ORAL								
+81775	56	ORAL								
+81776	56	ORAL								
+81777	56	ORAL								
+81778	56	ORAL								
+81780	56	ORAL								
+81781	56	ORAL								
+81782	56	ORAL								
+81783	56	ORAL								
+81784	56	ORAL								
+81785	56	ORAL								
+81786	56	ORAL								
+81787	56	ORAL								
+81788	56	ORAL								
+81795	56	ORAL								
+81796	56	ORAL								
+81797	56	ORAL								
+81798	56	ORAL								
+81799	70	TOPICAL								
+81800	70	TOPICAL								
+81802	56	ORAL								
+81806	56	ORAL								
+81807	56	ORAL								
+81808	56	ORAL								
+81809	56	ORAL								
+81823	56	ORAL								
+81824	56	ORAL								
+81825	56	ORAL								
+81826	56	ORAL								
+81827	56	ORAL								
+81835	56	ORAL								
+81843	8	DISINFECTANT (Food Premises)								
+81843	9	DISINFECTANT (Hospital/HC Facilities)								
+81843	94	DISINFECTANT (Institutional/Industrial)								
+81851	8	DISINFECTANT (Food Premises)								
+81853	33	INTRAPERITONEAL								
+81853	49	INTRAVENOUS								
+81864	56	ORAL								
+81867	12	INTRA-ARTERIAL								
+81867	22	INTRAMUSCULAR								
+81867	31	INTRATHECAL								
+81867	49	INTRAVENOUS								
+81868	56	ORAL								
+81869	56	ORAL								
+81870	56	ORAL								
+81871	56	ORAL								
+81879	49	INTRAVENOUS								
+81880	49	INTRAVENOUS								
+81883	49	INTRAVENOUS								
+81885	55	OPHTHALMIC								
+81891	104	TOPICAL (HOUSEHOLD)								
+81897	56	ORAL								
+81900	56	ORAL								
+81901	56	ORAL								
+81902	56	ORAL								
+81905	56	ORAL								
+81934	56	ORAL								
+81935	56	ORAL								
+81936	56	ORAL								
+81937	56	ORAL								
+81959	9	DISINFECTANT (Hospital/HC Facilities)								
+81960	2	DISINFECTANT (Barn)								
+81960	8	DISINFECTANT (Food Premises)								
+81960	9	DISINFECTANT (Hospital/HC Facilities)								
+81960	93	DISINFECTANT (Domestic)								
+81960	94	DISINFECTANT (Institutional/Industrial)								
+81991	8	DISINFECTANT (Food Premises)								
+81991	9	DISINFECTANT (Hospital/HC Facilities)								
+81991	94	DISINFECTANT (Institutional/Industrial)								
+81999	56	ORAL								
+82000	56	ORAL								
+82001	56	ORAL								
+82002	56	ORAL								
+82004	56	ORAL								
+82005	56	ORAL								
+82006	56	ORAL								
+82007	56	ORAL								
+82008	56	ORAL								
+82009	56	ORAL								
+82021	56	ORAL								
+82022	56	ORAL								
+82023	56	ORAL								
+82041	56	ORAL								
+82058	56	ORAL								
+82059	49	INTRAVENOUS								
+82064	56	ORAL								
+82073	49	INTRAVENOUS								
+82087	56	ORAL								
+82088	56	ORAL								
+82091	56	ORAL								
+82092	56	ORAL								
+82107	56	ORAL								
+82108	56	ORAL								
+82109	56	ORAL								
+82110	56	ORAL								
+82111	56	ORAL								
+82112	56	ORAL								
+82118	56	ORAL								
+82119	56	ORAL								
+82121	56	ORAL								
+82122	56	ORAL								
+82123	56	ORAL								
+82124	56	ORAL								
+82125	56	ORAL								
+82126	56	ORAL								
+82127	56	ORAL								
+82135	56	ORAL								
+82139	56	ORAL								
+82140	56	ORAL								
+82142	56	ORAL								
+82143	56	ORAL								
+82144	56	ORAL								
+82145	56	ORAL								
+82153	70	TOPICAL								
+82158	22	INTRAMUSCULAR								
+82158	49	INTRAVENOUS								
+82164	56	ORAL								
+82165	56	ORAL								
+82166	56	ORAL								
+82169	56	ORAL								
+82170	56	ORAL								
+82171	53	NASAL								
+82172	56	ORAL								
+82173	56	ORAL								
+82174	56	ORAL								
+82176	56	ORAL								
+82177	56	ORAL								
+82178	56	ORAL								
+82182	56	ORAL								
+82183	56	ORAL								
+82184	56	ORAL								
+82185	56	ORAL								
+82186	56	ORAL								
+82187	56	ORAL								
+82189	56	ORAL								
+82190	56	ORAL								
+82191	56	ORAL								
+82192	56	ORAL								
+82193	56	ORAL								
+82194	56	ORAL								
+82195	56	ORAL								
+82196	56	ORAL								
+82197	56	ORAL								
+82198	53	NASAL								
+82199	56	ORAL								
+82200	56	ORAL								
+82201	56	ORAL								
+82202	56	ORAL								
+82204	56	ORAL								
+82208	56	ORAL								
+82209	56	ORAL								
+82211	56	ORAL								
+82212	56	ORAL								
+82213	56	ORAL								
+82214	56	ORAL								
+82215	56	ORAL								
+82216	56	ORAL								
+82232	55	OPHTHALMIC								
+82238	56	ORAL								
+82239	56	ORAL								
+82240	56	ORAL								
+82265	70	TOPICAL								
+82272	56	ORAL								
+82284	70	TOPICAL								
+82292	56	ORAL								
+82293	56	ORAL								
+82294	56	ORAL								
+82295	56	ORAL								
+82296	56	ORAL								
+82297	56	ORAL								
+82298	56	ORAL								
+82324	56	ORAL								
+82325	22	INTRAMUSCULAR								
+82338	56	ORAL								
+82339	56	ORAL								
+82340	56	ORAL								
+82341	56	ORAL								
+82342	56	ORAL								
+82343	56	ORAL								
+82344	56	ORAL								
+82358	56	ORAL								
+82359	56	ORAL								
+82360	56	ORAL								
+82376	56	ORAL								
+82377	56	ORAL								
+82378	56	ORAL								
+82379	56	ORAL								
+82400	56	ORAL								
+82401	56	ORAL								
+82404	56	ORAL								
+82405	56	ORAL								
+82409	56	ORAL								
+82424	70	TOPICAL								
+82430	8	DISINFECTANT (Food Premises)								
+82430	94	DISINFECTANT (Institutional/Industrial)								
+82499	56	ORAL								
+82500	56	ORAL								
+82517	56	ORAL								
+82531	8	DISINFECTANT (Food Premises)								
+82531	9	DISINFECTANT (Hospital/HC Facilities)								
+82531	94	DISINFECTANT (Institutional/Industrial)								
+82534	65	SUBCUTANEOUS								
+82542	70	TOPICAL								
+82545	8	DISINFECTANT (Food Premises)								
+82545	9	DISINFECTANT (Hospital/HC Facilities)								
+82545	94	DISINFECTANT (Institutional/Industrial)								
+82546	8	DISINFECTANT (Food Premises)								
+82546	9	DISINFECTANT (Hospital/HC Facilities)								
+82547	8	DISINFECTANT (Food Premises)								
+82547	9	DISINFECTANT (Hospital/HC Facilities)								
+82547	94	DISINFECTANT (Institutional/Industrial)								
+82552	22	INTRAMUSCULAR								
+82552	65	SUBCUTANEOUS								
+82555	104	TOPICAL (HOUSEHOLD)								
+82557	104	TOPICAL (HOUSEHOLD)								
+82558	9	DISINFECTANT (Hospital/HC Facilities)								
+82560	56	ORAL								
+82576	49	INTRAVENOUS								
+82586	70	TOPICAL								
+82594	30	DISINFECTANT (Medical Instruments)								
+82594	9	DISINFECTANT (Hospital/HC Facilities)								
+82594	94	DISINFECTANT (Institutional/Industrial)								
+82595	30	DISINFECTANT (Medical Instruments)								
+82595	9	DISINFECTANT (Hospital/HC Facilities)								
+82595	94	DISINFECTANT (Institutional/Industrial)								
+82596	2	DISINFECTANT (Barn)								
+82596	9	DISINFECTANT (Hospital/HC Facilities)								
+82596	94	DISINFECTANT (Institutional/Industrial)								
+82597	30	DISINFECTANT (Medical Instruments)								
+82597	9	DISINFECTANT (Hospital/HC Facilities)								
+82597	94	DISINFECTANT (Institutional/Industrial)								
+82598	30	DISINFECTANT (Medical Instruments)								
+82598	9	DISINFECTANT (Hospital/HC Facilities)								
+82598	94	DISINFECTANT (Institutional/Industrial)								
+82599	30	DISINFECTANT (Medical Instruments)								
+82599	9	DISINFECTANT (Hospital/HC Facilities)								
+82599	94	DISINFECTANT (Institutional/Industrial)								
+82606	70	TOPICAL								
+82607	70	TOPICAL								
+82608	70	TOPICAL								
+82609	70	TOPICAL								
+82611	70	TOPICAL								
+82620	70	TOPICAL								
+82626	8	DISINFECTANT (Food Premises)								
+82626	9	DISINFECTANT (Hospital/HC Facilities)								
+82626	94	DISINFECTANT (Institutional/Industrial)								
+82707	70	TOPICAL								
+82712	56	ORAL								
+82727	56	ORAL								
+82728	56	ORAL								
+82729	56	ORAL								
+82750	49	INTRAVENOUS								
+82751	49	INTRAVENOUS								
+82751	97	INTRAVASCULAR								
+82752	49	INTRAVENOUS								
+82752	97	INTRAVASCULAR								
+82755	56	ORAL								
+82756	56	ORAL								
+82757	22	INTRAMUSCULAR								
+82769	8	DISINFECTANT (Food Premises)								
+82769	9	DISINFECTANT (Hospital/HC Facilities)								
+82769	93	DISINFECTANT (Domestic)								
+82769	94	DISINFECTANT (Institutional/Industrial)								
+82782	56	ORAL								
+82783	56	ORAL								
+82784	56	ORAL								
+82785	56	ORAL								
+82786	56	ORAL								
+82787	56	ORAL								
+82788	56	ORAL								
+82789	56	ORAL								
+82790	56	ORAL								
+82793	56	ORAL								
+82794	56	ORAL								
+82795	56	ORAL								
+82796	56	ORAL								
+82797	56	ORAL								
+82798	56	ORAL								
+82809	56	ORAL								
+82810	56	ORAL								
+82811	56	ORAL								
+82812	56	ORAL								
+82813	56	ORAL								
+82814	56	ORAL								
+82815	56	ORAL								
+82816	56	ORAL								
+82817	56	ORAL								
+82818	56	ORAL								
+82820	56	ORAL								
+82821	56	ORAL								
+82822	49	INTRAVENOUS								
+82826	56	ORAL								
+82827	56	ORAL								
+82881	56	ORAL								
+82882	56	ORAL								
+82883	56	ORAL								
+82886	56	ORAL								
+82887	56	ORAL								
+82888	56	ORAL								
+82889	56	ORAL								
+82890	56	ORAL								
+82891	56	ORAL								
+82892	56	ORAL								
+82893	56	ORAL								
+82894	56	ORAL								
+82900	65	SUBCUTANEOUS								
+82901	56	ORAL								
+82902	56	ORAL								
+82903	56	ORAL								
+82904	56	ORAL								
+82905	56	ORAL								
+82906	56	ORAL								
+82907	56	ORAL								
+82908	56	ORAL								
+82914	56	ORAL								
+82915	56	ORAL								
+82916	56	ORAL								
+82917	56	ORAL								
+82918	56	ORAL								
+82919	56	ORAL								
+82920	56	ORAL								
+82924	56	ORAL								
+82925	56	ORAL								
+82926	56	ORAL								
+82927	56	ORAL								
+82928	56	ORAL								
+82929	56	ORAL								
+82932	56	ORAL								
+82933	56	ORAL								
+82935	56	ORAL								
+82936	56	ORAL								
+82937	56	ORAL								
+82953	104	TOPICAL (HOUSEHOLD)								
+82967	56	ORAL								
+82968	56	ORAL								
+82969	56	ORAL								
+82970	56	ORAL								
+82982	56	ORAL								
+82983	56	ORAL								
+82993	49	INTRAVENOUS								
+82994	49	INTRAVENOUS								
+83005	70	TOPICAL								
+83007	56	ORAL								
+83008	56	ORAL								
+83009	56	ORAL								
+83018	30	DISINFECTANT (Medical Instruments)								
+83018	9	DISINFECTANT (Hospital/HC Facilities)								
+83019	56	ORAL								
+83020	56	ORAL								
+83021	56	ORAL								
+83022	56	ORAL								
+83023	56	ORAL								
+83024	56	ORAL								
+83025	56	ORAL								
+83027	56	ORAL								
+83028	56	ORAL								
+83032	56	ORAL								
+83033	56	ORAL								
+83034	56	ORAL								
+83035	56	ORAL								
+83036	56	ORAL								
+83043	70	TOPICAL								
+83044	70	TOPICAL								
+83048	70	TOPICAL								
+83049	1	BLOCK/INFILTRATION								
+83057	56	ORAL								
+83058	56	ORAL								
+83059	56	ORAL								
+83060	56	ORAL								
+83061	56	ORAL								
+83062	56	ORAL								
+83063	56	ORAL								
+83064	56	ORAL								
+83065	56	ORAL								
+83066	56	ORAL								
+83068	56	ORAL								
+83069	56	ORAL								
+83070	56	ORAL								
+83092	55	OPHTHALMIC								
+83113	49	INTRAVENOUS								
+83114	49	INTRAVENOUS								
+83117	56	ORAL								
+83118	56	ORAL								
+83119	56	ORAL								
+83124	56	ORAL								
+83131	49	INTRAVENOUS								
+83145	49	INTRAVENOUS								
+83156	8	DISINFECTANT (Food Premises)								
+83156	9	DISINFECTANT (Hospital/HC Facilities)								
+83156	93	DISINFECTANT (Domestic)								
+83162	93	DISINFECTANT (Domestic)								
+83208	104	TOPICAL (HOUSEHOLD)								
+83210	8	DISINFECTANT (Food Premises)								
+83210	9	DISINFECTANT (Hospital/HC Facilities)								
+83210	93	DISINFECTANT (Domestic)								
+83210	94	DISINFECTANT (Institutional/Industrial)								
+83211	8	DISINFECTANT (Food Premises)								
+83211	9	DISINFECTANT (Hospital/HC Facilities)								
+83211	93	DISINFECTANT (Domestic)								
+83211	94	DISINFECTANT (Institutional/Industrial)								
+83212	8	DISINFECTANT (Food Premises)								
+83212	9	DISINFECTANT (Hospital/HC Facilities)								
+83212	93	DISINFECTANT (Domestic)								
+83212	94	DISINFECTANT (Institutional/Industrial)								
+83213	8	DISINFECTANT (Food Premises)								
+83213	9	DISINFECTANT (Hospital/HC Facilities)								
+83213	93	DISINFECTANT (Domestic)								
+83213	94	DISINFECTANT (Institutional/Industrial)								
+83234	104	TOPICAL (HOUSEHOLD)								
+83246	93	DISINFECTANT (Domestic)								
+83250	56	ORAL								
+83273	56	ORAL								
+83274	56	ORAL								
+83331	56	ORAL								
+83332	56	ORAL								
+83333	56	ORAL								
+83383	56	ORAL								
+83390	104	TOPICAL (HOUSEHOLD)								
+83396	8	DISINFECTANT (Food Premises)								
+83396	9	DISINFECTANT (Hospital/HC Facilities)								
+83396	93	DISINFECTANT (Domestic)								
+83396	94	DISINFECTANT (Institutional/Industrial)								
+83447	9	DISINFECTANT (Hospital/HC Facilities)								
+83447	94	DISINFECTANT (Institutional/Industrial)								
+83475	92	0-UNASSIGNED								
+83477	92	0-UNASSIGNED								
+83478	92	0-UNASSIGNED								
+83480	92	0-UNASSIGNED								
+83492	49	INTRAVENOUS								
+83510	8	DISINFECTANT (Food Premises)								
+83510	9	DISINFECTANT (Hospital/HC Facilities)								
+83510	93	DISINFECTANT (Domestic)								
+83510	94	DISINFECTANT (Institutional/Industrial)								
+83530	70	TOPICAL								
+83543	56	ORAL								
+83544	56	ORAL								
+83556	22	INTRAMUSCULAR								
+83556	49	INTRAVENOUS								
+83556	65	SUBCUTANEOUS								
+83574	22	INTRAMUSCULAR								
+83575	70	TOPICAL								
+83583	62	RECTAL								
+83607	104	TOPICAL (HOUSEHOLD)								
+83634	70	TOPICAL								
+83636	56	ORAL								
+83637	56	ORAL								
+83638	56	ORAL								
+83639	56	ORAL								
+83650	33	INTRAPERITONEAL								
+83650	49	INTRAVENOUS								
+83650	65	SUBCUTANEOUS								
+83699	49	INTRAVENOUS								
+83707	56	ORAL								
+83708	56	ORAL								
+83709	56	ORAL								
+83727	56	ORAL								
+83740	22	INTRAMUSCULAR								
+83740	49	INTRAVENOUS								
+83741	22	INTRAMUSCULAR								
+83741	49	INTRAVENOUS								
+83742	22	INTRAMUSCULAR								
+83742	49	INTRAVENOUS								
+83743	93	DISINFECTANT (Domestic)								
+83746	8	DISINFECTANT (Food Premises)								
+83746	9	DISINFECTANT (Hospital/HC Facilities)								
+83746	94	DISINFECTANT (Institutional/Industrial)								
+83751	22	INTRAMUSCULAR								
+83751	49	INTRAVENOUS								
+83751	65	SUBCUTANEOUS								
+83759	56	ORAL								
+83771	104	TOPICAL (HOUSEHOLD)								
+83776	49	INTRAVENOUS								
+83814	70	TOPICAL								
+83823	56	ORAL								
+83826	70	TOPICAL								
+83831	70	TOPICAL								
+83883	56	ORAL								
+83884	56	ORAL								
+83885	56	ORAL								
+83918	70	TOPICAL								
+83920	56	ORAL								
+83922	56	ORAL								
+83923	56	ORAL								
+83924	56	ORAL								
+83925	56	ORAL								
+83940	22	INTRAMUSCULAR								
+83958	70	TOPICAL								
+83959	56	ORAL								
+83960	56	ORAL								
+83961	56	ORAL								
+83973	70	TOPICAL								
+83981	9	DISINFECTANT (Hospital/HC Facilities)								
+83982	70	TOPICAL								
+83986	19	INTRADERMAL								
+83986	49	INTRAVENOUS								
+83986	65	SUBCUTANEOUS								
+84021	70	TOPICAL								
+84037	56	ORAL								
+84047	56	ORAL								
+84062	70	TOPICAL								
+84066	104	TOPICAL (HOUSEHOLD)								
+84080	56	ORAL								
+84081	56	ORAL								
+84082	56	ORAL								
+84086	56	ORAL								
+84094	70	TOPICAL								
+84100	104	TOPICAL (HOUSEHOLD)								
+84105	56	ORAL								
+84127	8	DISINFECTANT (Food Premises)								
+84127	9	DISINFECTANT (Hospital/HC Facilities)								
+84127	93	DISINFECTANT (Domestic)								
+84127	94	DISINFECTANT (Institutional/Industrial)								
+84143	55	OPHTHALMIC								
+84147	9	DISINFECTANT (Hospital/HC Facilities)								
+84149	70	TOPICAL								
+84150	70	TOPICAL								
+84153	94	DISINFECTANT (Institutional/Industrial)								
+84159	70	TOPICAL								
+84164	65	SUBCUTANEOUS								
+84165	65	SUBCUTANEOUS								
+84192	56	ORAL								
+84218	56	ORAL								
+84245	56	ORAL								
+84248	8	DISINFECTANT (Food Premises)								
+84248	9	DISINFECTANT (Hospital/HC Facilities)								
+84248	93	DISINFECTANT (Domestic)								
+84248	94	DISINFECTANT (Institutional/Industrial)								
+84255	49	INTRAVENOUS								
+84265	56	ORAL								
+84271	2	DISINFECTANT (Barn)								
+84271	94	DISINFECTANT (Institutional/Industrial)								
+84295	56	ORAL								
+84298	56	ORAL								
+84299	56	ORAL								
+84300	56	ORAL								
+84301	56	ORAL								
+84302	56	ORAL								
+84303	56	ORAL								
+84335	104	TOPICAL (HOUSEHOLD)								
+84343	70	TOPICAL								
+84345	56	ORAL								
+84346	56	ORAL								
+84355	56	ORAL								
+84359	9	DISINFECTANT (Hospital/HC Facilities)								
+84359	93	DISINFECTANT (Domestic)								
+84359	94	DISINFECTANT (Institutional/Industrial)								
+84374	56	ORAL								
+84375	56	ORAL								
+84376	56	ORAL								
+84377	49	INTRAVENOUS								
+84385	49	INTRAVENOUS								
+84397	56	ORAL								
+84405	93	DISINFECTANT (Domestic)								
+84408	56	ORAL								
+84409	56	ORAL								
+84410	56	ORAL								
+84411	56	ORAL								
+84412	56	ORAL								
+84413	56	ORAL								
+84418	56	ORAL								
+84433	8	DISINFECTANT (Food Premises)								
+84433	9	DISINFECTANT (Hospital/HC Facilities)								
+84433	94	DISINFECTANT (Institutional/Industrial)								
+84436	9	DISINFECTANT (Hospital/HC Facilities)								
+84437	22	INTRAMUSCULAR								
+84437	49	INTRAVENOUS								
+84437	65	SUBCUTANEOUS								
+84444	70	TOPICAL								
+84445	70	TOPICAL								
+84446	9	DISINFECTANT (Hospital/HC Facilities)								
+84446	94	DISINFECTANT (Institutional/Industrial)								
+84469	56	ORAL								
+84477	70	TOPICAL								
+84489	55	OPHTHALMIC								
+84491	56	ORAL								
+84506	56	ORAL								
+84517	9	DISINFECTANT (Hospital/HC Facilities)								
+84517	94	DISINFECTANT (Institutional/Industrial)								
+84518	9	DISINFECTANT (Hospital/HC Facilities)								
+84518	94	DISINFECTANT (Institutional/Industrial)								
+84521	29	INHALATION								
+84522	29	INHALATION								
+84524	56	ORAL								
+84525	56	ORAL								
+84526	56	ORAL								
+84540	8	DISINFECTANT (Food Premises)								
+84540	9	DISINFECTANT (Hospital/HC Facilities)								
+84540	94	DISINFECTANT (Institutional/Industrial)								
+84542	105	TOPICAL (COMMERCIAL)								
+84568	56	ORAL								
+84575	8	DISINFECTANT (Food Premises)								
+84575	9	DISINFECTANT (Hospital/HC Facilities)								
+84575	94	DISINFECTANT (Institutional/Industrial)								
+84577	70	TOPICAL								
+84578	70	TOPICAL								
+84585	49	INTRAVENOUS								
+84612	56	ORAL								
+84613	93	DISINFECTANT (Domestic)								
+84614	8	DISINFECTANT (Food Premises)								
+84614	9	DISINFECTANT (Hospital/HC Facilities)								
+84614	93	DISINFECTANT (Domestic)								
+84614	94	DISINFECTANT (Institutional/Industrial)								
+84630	56	ORAL								
+84645	49	INTRAVENOUS								
+84665	8	DISINFECTANT (Food Premises)								
+84665	9	DISINFECTANT (Hospital/HC Facilities)								
+84665	94	DISINFECTANT (Institutional/Industrial)								
+84669	9	DISINFECTANT (Hospital/HC Facilities)								
+84669	93	DISINFECTANT (Domestic)								
+84669	94	DISINFECTANT (Institutional/Industrial)								
+84671	8	DISINFECTANT (Food Premises)								
+84671	9	DISINFECTANT (Hospital/HC Facilities)								
+84671	93	DISINFECTANT (Domestic)								
+84671	94	DISINFECTANT (Institutional/Industrial)								
+84714	70	TOPICAL								
+84740	56	ORAL								
+84742	56	ORAL								
+84755	104	TOPICAL (HOUSEHOLD)								
+84771	104	TOPICAL (HOUSEHOLD)								
+84773	8	DISINFECTANT (Food Premises)								
+84773	9	DISINFECTANT (Hospital/HC Facilities)								
+84773	93	DISINFECTANT (Domestic)								
+84773	94	DISINFECTANT (Institutional/Industrial)								
+84798	56	ORAL								
+84799	56	ORAL								
+84800	56	ORAL								
+84815	70	TOPICAL								
+84819	104	TOPICAL (HOUSEHOLD)								
+84880	70	TOPICAL								
+84958	8	DISINFECTANT (Food Premises)								
+84958	9	DISINFECTANT (Hospital/HC Facilities)								
+84958	94	DISINFECTANT (Institutional/Industrial)								
+84986	55	OPHTHALMIC								
+85008	55	OPHTHALMIC								
+85009	56	ORAL								
+85010	56	ORAL								
+85011	56	ORAL								
+85024	70	TOPICAL								
+85039	56	ORAL								
+85040	56	ORAL								
+85041	8	DISINFECTANT (Food Premises)								
+85041	9	DISINFECTANT (Hospital/HC Facilities)								
+85041	93	DISINFECTANT (Domestic)								
+85041	94	DISINFECTANT (Institutional/Industrial)								
+85047	104	TOPICAL (HOUSEHOLD)								
+85054	49	INTRAVENOUS								
+85066	56	ORAL								
+85076	56	ORAL								
+85077	56	ORAL								
+85078	56	ORAL								
+85084	49	INTRAVENOUS								
+85085	49	INTRAVENOUS								
+85100	70	TOPICAL								
+85104	105	TOPICAL (COMMERCIAL)								
+85105	105	TOPICAL (COMMERCIAL)								
+85107	22	INTRAMUSCULAR								
+85107	33	INTRAPERITONEAL								
+85107	49	INTRAVENOUS								
+85107	65	SUBCUTANEOUS								
+85108	49	INTRAVENOUS								
+85114	70	TOPICAL								
+85126	105	TOPICAL (COMMERCIAL)								
+85128	56	ORAL								
+85129	56	ORAL								
+85133	49	INTRAVENOUS								
+85138	3	BUCCAL								
+85148	8	DISINFECTANT (Food Premises)								
+85148	9	DISINFECTANT (Hospital/HC Facilities)								
+85148	94	DISINFECTANT (Institutional/Industrial)								
+85156	70	TOPICAL								
+85171	2	DISINFECTANT (Barn)								
+85206	56	ORAL								
+85209	49	INTRAVENOUS								
+85220	22	INTRAMUSCULAR								
+85220	34	INTRAPLEURAL								
+85220	49	INTRAVENOUS								
+85220	65	SUBCUTANEOUS								
+85233	56	ORAL								
+85246	56	ORAL								
+85249	56	ORAL								
+85252	104	TOPICAL (HOUSEHOLD)								
+85282	56	ORAL								
+85316	22	INTRAMUSCULAR								
+85316	49	INTRAVENOUS								
+85316	65	SUBCUTANEOUS								
+85320	56	ORAL								
+85329	70	TOPICAL								
+85330	70	TOPICAL								
+85334	56	ORAL								
+85336	9	DISINFECTANT (Hospital/HC Facilities)								
+85336	94	DISINFECTANT (Institutional/Industrial)								
+85337	56	ORAL								
+85338	56	ORAL								
+85339	56	ORAL								
+85342	56	ORAL								
+85368	104	TOPICAL (HOUSEHOLD)								
+85371	56	ORAL								
+85375	70	TOPICAL								
+85376	93	DISINFECTANT (Domestic)								
+85378	8	DISINFECTANT (Food Premises)								
+85378	9	DISINFECTANT (Hospital/HC Facilities)								
+85378	93	DISINFECTANT (Domestic)								
+85378	94	DISINFECTANT (Institutional/Industrial)								
+85380	56	ORAL								
+85402	56	ORAL								
+85403	56	ORAL								
+85404	56	ORAL								
+85406	56	ORAL								
+85407	56	ORAL								
+85408	56	ORAL								
+85411	56	ORAL								
+85412	56	ORAL								
+85413	56	ORAL								
+85415	70	TOPICAL								
+85416	56	ORAL								
+85429	56	ORAL								
+85430	56	ORAL								
+85440	70	TOPICAL								
+85443	8	DISINFECTANT (Food Premises)								
+85443	9	DISINFECTANT (Hospital/HC Facilities)								
+85443	94	DISINFECTANT (Institutional/Industrial)								
+85447	56	ORAL								
+85458	56	ORAL								
+85459	56	ORAL								
+85465	19	INTRADERMAL								
+85465	65	SUBCUTANEOUS								
+85466	19	INTRADERMAL								
+85466	65	SUBCUTANEOUS								
+85485	56	ORAL								
+85486	56	ORAL								
+85496	22	INTRAMUSCULAR								
+85496	49	INTRAVENOUS								
+85496	65	SUBCUTANEOUS								
+85499	56	ORAL								
+85516	56	ORAL								
+85537	56	ORAL								
+85539	56	ORAL								
+85540	56	ORAL								
+85542	56	ORAL								
+85563	56	ORAL								
+85571	29	INHALATION								
+85591	56	ORAL								
+85594	56	ORAL								
+85595	56	ORAL								
+85620	56	ORAL								
+85629	70	TOPICAL								
+85630	56	ORAL								
+85639	70	TOPICAL								
+85664	56	ORAL								
+85672	70	TOPICAL								
+85674	70	TOPICAL								
+85679	56	ORAL								
+85725	56	ORAL								
+85728	70	TOPICAL								
+85733	56	ORAL								
+85735	56	ORAL								
+85737	56	ORAL								
+85739	56	ORAL								
+85740	56	ORAL								
+85753	56	ORAL								
+85802	70	TOPICAL								
+85822	70	TOPICAL								
+85833	70	TOPICAL								
+85842	104	TOPICAL (HOUSEHOLD)								
+85853	56	ORAL								
+85854	56	ORAL								
+85855	56	ORAL								
+85856	56	ORAL								
+85906	56	ORAL								
+85907	56	ORAL								
+85908	56	ORAL								
+85925	49	INTRAVENOUS								
+85926	49	INTRAVENOUS								
+85930	56	ORAL								
+85931	56	ORAL								
+85936	56	ORAL								
+85944	70	TOPICAL								
+85949	49	INTRAVENOUS								
+85961	56	ORAL								
+85962	56	ORAL								
+85979	56	ORAL								
+85981	2	DISINFECTANT (Barn)								
+85981	8	DISINFECTANT (Food Premises)								
+85981	9	DISINFECTANT (Hospital/HC Facilities)								
+85981	93	DISINFECTANT (Domestic)								
+85981	94	DISINFECTANT (Institutional/Industrial)								
+85991	56	ORAL								
+85992	56	ORAL								
+85995	56	ORAL								
+85996	56	ORAL								
+85997	56	ORAL								
+85998	56	ORAL								
+85999	56	ORAL								
+86009	70	TOPICAL								
+86012	70	TOPICAL								
+86026	9	DISINFECTANT (Hospital/HC Facilities)								
+86026	94	DISINFECTANT (Institutional/Industrial)								
+86028	70	TOPICAL								
+86038	70	TOPICAL								
+86048	56	ORAL								
+86049	56	ORAL								
+86050	32	INTRAOCULAR								
+86050	36	IRRIGATION								
+86052	56	ORAL								
+86062	56	ORAL								
+86063	56	ORAL								
+86067	56	ORAL								
+86073	55	OPHTHALMIC								
+86075	2	DISINFECTANT (Barn)								
+86075	9	DISINFECTANT (Hospital/HC Facilities)								
+86075	94	DISINFECTANT (Institutional/Industrial)								
+86077	8	DISINFECTANT (Food Premises)								
+86077	9	DISINFECTANT (Hospital/HC Facilities)								
+86077	93	DISINFECTANT (Domestic)								
+86077	94	DISINFECTANT (Institutional/Industrial)								
+86079	56	ORAL								
+86085	49	INTRAVENOUS								
+86086	49	INTRAVENOUS								
+86114	56	ORAL								
+86115	56	ORAL								
+86116	56	ORAL								
+86117	56	ORAL								
+86120	70	TOPICAL								
+86130	56	ORAL								
+86131	56	ORAL								
+86132	56	ORAL								
+86150	56	ORAL								
+86151	56	ORAL								
+86152	56	ORAL								
+86153	56	ORAL								
+86154	56	ORAL								
+86160	70	TOPICAL								
+86161	70	TOPICAL								
+86162	70	TOPICAL								
+86176	56	ORAL								
+86177	56	ORAL								
+86178	56	ORAL								
+86179	56	ORAL								
+86181	49	INTRAVENOUS								
+86187	56	ORAL								
+86199	6	DIALYSIS								
+86200	6	DIALYSIS								
+86201	6	DIALYSIS								
+86206	22	INTRAMUSCULAR								
+86207	22	INTRAMUSCULAR								
+86207	49	INTRAVENOUS								
+86207	65	SUBCUTANEOUS								
+86218	56	ORAL								
+86219	56	ORAL								
+86220	56	ORAL								
+86221	70	TOPICAL								
+86235	71	TRANSDERMAL								
+86236	71	TRANSDERMAL								
+86237	71	TRANSDERMAL								
+86238	71	TRANSDERMAL								
+86239	71	TRANSDERMAL								
+86241	56	ORAL								
+86242	56	ORAL								
+86243	56	ORAL								
+86258	105	TOPICAL (COMMERCIAL)								
+86272	9	DISINFECTANT (Hospital/HC Facilities)								
+86272	94	DISINFECTANT (Institutional/Industrial)								
+86281	56	ORAL								
+86294	104	TOPICAL (HOUSEHOLD)								
+86303	56	ORAL								
+86304	56	ORAL								
+86305	56	ORAL								
+86306	56	ORAL								
+86313	92	0-UNASSIGNED								
+86321	70	TOPICAL								
+86326	70	TOPICAL								
+86327	70	TOPICAL								
+86338	70	TOPICAL								
+86343	12	INTRA-ARTERIAL								
+86343	22	INTRAMUSCULAR								
+86343	31	INTRATHECAL								
+86343	49	INTRAVENOUS								
+86357	56	ORAL								
+86361	56	ORAL								
+86362	56	ORAL								
+86364	56	ORAL								
+86365	56	ORAL								
+86366	56	ORAL								
+86379	22	INTRAMUSCULAR								
+86379	33	INTRAPERITONEAL								
+86379	49	INTRAVENOUS								
+86379	65	SUBCUTANEOUS								
+86383	56	ORAL								
+86384	56	ORAL								
+86388	70	TOPICAL								
+86389	56	ORAL								
+86390	56	ORAL								
+86392	104	TOPICAL (HOUSEHOLD)								
+86393	8	DISINFECTANT (Food Premises)								
+86393	9	DISINFECTANT (Hospital/HC Facilities)								
+86393	93	DISINFECTANT (Domestic)								
+86393	94	DISINFECTANT (Institutional/Industrial)								
+86394	8	DISINFECTANT (Food Premises)								
+86394	9	DISINFECTANT (Hospital/HC Facilities)								
+86394	93	DISINFECTANT (Domestic)								
+86394	94	DISINFECTANT (Institutional/Industrial)								
+86406	70	TOPICAL								
+86414	56	ORAL								
+86425	65	SUBCUTANEOUS								
+86444	56	ORAL								
+86447	56	ORAL								
+86456	56	ORAL								
+86457	56	ORAL								
+86458	56	ORAL								
+86459	56	ORAL								
+86461	56	ORAL								
+86471	70	TOPICAL								
+86472	56	ORAL								
+86473	56	ORAL								
+86474	56	ORAL								
+86492	56	ORAL								
+86493	56	ORAL								
+86500	56	ORAL								
+86505	56	ORAL								
+86518	56	ORAL								
+86528	56	ORAL								
+86535	22	INTRAMUSCULAR								
+86537	22	INTRAMUSCULAR								
+86547	70	TOPICAL								
+86549	22	INTRAMUSCULAR								
+86553	56	ORAL								
+86597	70	TOPICAL								
+86603	56	ORAL								
+86604	56	ORAL								
+86610	56	ORAL								
+86612	56	ORAL								
+86615	56	ORAL								
+86620	56	ORAL								
+86621	56	ORAL								
+86622	56	ORAL								
+86623	56	ORAL								
+86624	56	ORAL								
+86654	70	TOPICAL								
+86665	56	ORAL								
+86670	8	DISINFECTANT (Food Premises)								
+86670	9	DISINFECTANT (Hospital/HC Facilities)								
+86670	94	DISINFECTANT (Institutional/Industrial)								
+86716	70	TOPICAL								
+86725	8	DISINFECTANT (Food Premises)								
+86725	9	DISINFECTANT (Hospital/HC Facilities)								
+86725	93	DISINFECTANT (Domestic)								
+86725	94	DISINFECTANT (Institutional/Industrial)								
+86729	70	TOPICAL								
+86755	56	ORAL								
+86764	56	ORAL								
+86765	56	ORAL								
+86766	56	ORAL								
+86778	56	ORAL								
+86788	22	INTRAMUSCULAR								
+86788	49	INTRAVENOUS								
+86789	22	INTRAMUSCULAR								
+86789	49	INTRAVENOUS								
+86800	49	INTRAVENOUS								
+86804	70	TOPICAL								
+86807	70	TOPICAL								
+86808	56	ORAL								
+86809	56	ORAL								
+86810	56	ORAL								
+86811	56	ORAL								
+86812	56	ORAL								
+86813	56	ORAL								
+86851	56	ORAL								
+86876	22	INTRAMUSCULAR								
+86876	49	INTRAVENOUS								
+86876	65	SUBCUTANEOUS								
+86877	22	INTRAMUSCULAR								
+86877	49	INTRAVENOUS								
+86877	65	SUBCUTANEOUS								
+86879	22	INTRAMUSCULAR								
+86879	49	INTRAVENOUS								
+86879	65	SUBCUTANEOUS								
+86886	49	INTRAVENOUS								
+86887	49	INTRAVENOUS								
+86894	49	INTRAVENOUS								
+86895	56	ORAL								
+86896	56	ORAL								
+86899	22	INTRAMUSCULAR								
+86899	65	SUBCUTANEOUS								
+86900	22	INTRAMUSCULAR								
+86900	65	SUBCUTANEOUS								
+86914	56	ORAL								
+86925	49	INTRAVENOUS								
+86933	22	INTRAMUSCULAR								
+86933	49	INTRAVENOUS								
+86934	22	INTRAMUSCULAR								
+86934	49	INTRAVENOUS								
+86944	56	ORAL								
+86951	22	INTRAMUSCULAR								
+86952	22	INTRAMUSCULAR								
+86985	49	INTRAVENOUS								
+86997	8	DISINFECTANT (Food Premises)								
+86997	9	DISINFECTANT (Hospital/HC Facilities)								
+86997	93	DISINFECTANT (Domestic)								
+86997	94	DISINFECTANT (Institutional/Industrial)								
+87005	56	ORAL								
+87015	8	DISINFECTANT (Food Premises)								
+87015	93	DISINFECTANT (Domestic)								
+87015	94	DISINFECTANT (Institutional/Industrial)								
+87065	56	ORAL								
+87066	56	ORAL								
+87068	56	ORAL								
+87069	56	ORAL								
+87077	49	INTRAVENOUS								
+87085	22	INTRAMUSCULAR								
+87085	49	INTRAVENOUS								
+87085	65	SUBCUTANEOUS								
+87086	22	INTRAMUSCULAR								
+87086	49	INTRAVENOUS								
+87086	65	SUBCUTANEOUS								
+87087	70	TOPICAL								
+87090	56	ORAL								
+87100	56	ORAL								
+87113	56	ORAL								
+87114	56	ORAL								
+87115	56	ORAL								
+87116	56	ORAL								
+87117	56	ORAL								
+87120	56	ORAL								
+87121	56	ORAL								
+87129	22	INTRAMUSCULAR								
+87129	42	INTRASYNOVIAL								
+87129	49	INTRAVENOUS								
+87130	22	INTRAMUSCULAR								
+87130	42	INTRASYNOVIAL								
+87130	49	INTRAVENOUS								
+87131	56	ORAL								
+87134	33	INTRAPERITONEAL								
+87135	33	INTRAPERITONEAL								
+87146	70	TOPICAL								
+87152	56	ORAL								
+87169	56	ORAL								
+87172	56	ORAL								
+87184	56	ORAL								
+87195	49	INTRAVENOUS								
+87217	70	TOPICAL								
+87218	70	TOPICAL								
+87226	70	TOPICAL								
+87233	56	ORAL								
+87234	49	INTRAVENOUS								
+87235	56	ORAL								
+87236	56	ORAL								
+87239	56	ORAL								
+87244	71	TRANSDERMAL								
+87250	92	0-UNASSIGNED								
+87256	2	DISINFECTANT (Barn)								
+87256	8	DISINFECTANT (Food Premises)								
+87256	9	DISINFECTANT (Hospital/HC Facilities)								
+87256	94	DISINFECTANT (Institutional/Industrial)								
+87259	49	INTRAVENOUS								
+87264	70	TOPICAL								
+87267	56	ORAL								
+87268	56	ORAL								
+87269	56	ORAL								
+87286	56	ORAL								
+87290	22	INTRAMUSCULAR								
+87290	49	INTRAVENOUS								
+87291	22	INTRAMUSCULAR								
+87291	49	INTRAVENOUS								
+87295	49	INTRAVENOUS								
+87296	49	INTRAVENOUS								
+87303	97	INTRAVASCULAR								
+87311	56	ORAL								
+87312	56	ORAL								
+87313	56	ORAL								
+87314	56	ORAL								
+87321	2	DISINFECTANT (Barn)								
+87321	8	DISINFECTANT (Food Premises)								
+87321	9	DISINFECTANT (Hospital/HC Facilities)								
+87321	94	DISINFECTANT (Institutional/Industrial)								
+87329	49	INTRAVENOUS								
+87392	56	ORAL								
+87393	56	ORAL								
+87394	56	ORAL								
+87395	56	ORAL								
+87418	70	TOPICAL								
+87419	56	ORAL								
+87425	56	ORAL								
+87426	56	ORAL								
+87427	56	ORAL								
+87430	56	ORAL								
+87434	8	DISINFECTANT (Food Premises)								
+87434	9	DISINFECTANT (Hospital/HC Facilities)								
+87434	94	DISINFECTANT (Institutional/Industrial)								
+87452	49	INTRAVENOUS								
+87464	56	ORAL								
+87465	56	ORAL								
+87466	56	ORAL								
+87470	49	INTRAVENOUS								
+87471	49	INTRAVENOUS								
+87481	56	ORAL								
+87482	56	ORAL								
+87483	56	ORAL								
+87484	56	ORAL								
+87485	56	ORAL								
+87491	56	ORAL								
+87492	56	ORAL								
+87493	56	ORAL								
+87504	56	ORAL								
+87505	56	ORAL								
+87506	56	ORAL								
+87507	56	ORAL								
+87508	56	ORAL								
+87523	56	ORAL								
+87525	9	DISINFECTANT (Hospital/HC Facilities)								
+87525	94	DISINFECTANT (Institutional/Industrial)								
+87536	30	DISINFECTANT (Medical Instruments)								
+87537	56	ORAL								
+87539	56	ORAL								
+87541	56	ORAL								
+87542	56	ORAL								
+87543	70	TOPICAL								
+87548	2	DISINFECTANT (Barn)								
+87548	8	DISINFECTANT (Food Premises)								
+87548	9	DISINFECTANT (Hospital/HC Facilities)								
+87548	93	DISINFECTANT (Domestic)								
+87548	94	DISINFECTANT (Institutional/Industrial)								
+87551	2	DISINFECTANT (Barn)								
+87551	8	DISINFECTANT (Food Premises)								
+87551	9	DISINFECTANT (Hospital/HC Facilities)								
+87551	93	DISINFECTANT (Domestic)								
+87551	94	DISINFECTANT (Institutional/Industrial)								
+87557	56	ORAL								
+87558	56	ORAL								
+87559	56	ORAL								
+87560	56	ORAL								
+87561	56	ORAL								
+87562	56	ORAL								
+87563	56	ORAL								
+87565	56	ORAL								
+87568	56	ORAL								
+87573	70	TOPICAL								
+87589	56	ORAL								
+87590	56	ORAL								
+87598	49	INTRAVENOUS								
+87617	70	TOPICAL								
+87618	70	TOPICAL								
+87619	56	ORAL								
+87632	70	TOPICAL								
+87633	56	ORAL								
+87634	56	ORAL								
+87635	56	ORAL								
+87638	56	ORAL								
+87652	70	TOPICAL								
+87653	70	TOPICAL								
+87666	56	ORAL								
+87667	56	ORAL								
+87674	56	ORAL								
+87675	56	ORAL								
+87676	56	ORAL								
+87695	56	ORAL								
+87696	56	ORAL								
+87697	56	ORAL								
+87698	56	ORAL								
+87701	104	TOPICAL (HOUSEHOLD)								
+87702	56	ORAL								
+87705	49	INTRAVENOUS								
+87705	65	SUBCUTANEOUS								
+87713	49	INTRAVENOUS								
+87713	65	SUBCUTANEOUS								
+87715	49	INTRAVENOUS								
+87715	65	SUBCUTANEOUS								
+87730	93	DISINFECTANT (Domestic)								
+87730	94	DISINFECTANT (Institutional/Industrial)								
+87732	93	DISINFECTANT (Domestic)								
+87732	94	DISINFECTANT (Institutional/Industrial)								
+87734	70	TOPICAL								
+87735	8	DISINFECTANT (Food Premises)								
+87735	9	DISINFECTANT (Hospital/HC Facilities)								
+87735	94	DISINFECTANT (Institutional/Industrial)								
+87737	8	DISINFECTANT (Food Premises)								
+87737	9	DISINFECTANT (Hospital/HC Facilities)								
+87737	94	DISINFECTANT (Institutional/Industrial)								
+87744	56	ORAL								
+87756	56	ORAL								
+87757	56	ORAL								
+87758	56	ORAL								
+87772	49	INTRAVENOUS								
+87787	56	ORAL								
+87788	56	ORAL								
+87794	56	ORAL								
+87796	56	ORAL								
+87797	56	ORAL								
+87800	56	ORAL								
+87803	49	INTRAVENOUS								
+87839	49	INTRAVENOUS								
+87840	49	INTRAVENOUS								
+87841	49	INTRAVENOUS								
+87842	49	INTRAVENOUS								
+87844	49	INTRAVENOUS								
+87845	49	INTRAVENOUS								
+87857	70	TOPICAL								
+87882	8	DISINFECTANT (Food Premises)								
+87882	9	DISINFECTANT (Hospital/HC Facilities)								
+87882	94	DISINFECTANT (Institutional/Industrial)								
+87884	8	DISINFECTANT (Food Premises)								
+87884	9	DISINFECTANT (Hospital/HC Facilities)								
+87884	94	DISINFECTANT (Institutional/Industrial)								
+87889	70	TOPICAL								
+87892	70	TOPICAL								
+87896	70	TOPICAL								
+87897	70	TOPICAL								
+87898	70	TOPICAL								
+87902	49	INTRAVENOUS								
+87920	70	TOPICAL								
+87938	49	INTRAVENOUS								
+87960	70	TOPICAL								
+87962	70	TOPICAL								
+87986	56	ORAL								
+87988	56	ORAL								
+87989	56	ORAL								
+87994	56	ORAL								
+88001	56	ORAL								
+88005	31	INTRATHECAL								
+88005	49	INTRAVENOUS								
+88005	65	SUBCUTANEOUS								
+88006	56	ORAL								
+88008	70	TOPICAL								
+88016	70	TOPICAL								
+88018	70	TOPICAL								
+88020	70	TOPICAL								
+88021	70	TOPICAL								
+88023	56	ORAL								
+88026	55	OPHTHALMIC								
+88028	56	ORAL								
+88030	62	RECTAL								
+88031	56	ORAL								
+88032	56	ORAL								
+88033	56	ORAL								
+88041	56	ORAL								
+88043	56	ORAL								
+88044	56	ORAL								
+88045	56	ORAL								
+88049	55	OPHTHALMIC								
+88066	56	ORAL								
+88067	56	ORAL								
+88078	56	ORAL								
+88083	56	ORAL								
+88084	56	ORAL								
+88086	56	ORAL								
+88087	56	ORAL								
+88088	56	ORAL								
+88089	70	TOPICAL								
+88090	70	TOPICAL								
+88092	70	TOPICAL								
+88095	70	TOPICAL								
+88098	70	TOPICAL								
+88101	70	TOPICAL								
+88107	56	ORAL								
+88108	56	ORAL								
+88109	56	ORAL								
+88111	70	TOPICAL								
+88122	70	TOPICAL								
+88123	62	RECTAL								
+88124	56	ORAL								
+88126	56	ORAL								
+88161	56	ORAL								
+88162	56	ORAL								
+88168	49	INTRAVENOUS								
+88169	56	ORAL								
+88181	56	ORAL								
+88182	56	ORAL								
+88183	56	ORAL								
+88186	55	OPHTHALMIC								
+88188	58	PERIOSTEAL								
+88202	56	ORAL								
+88203	56	ORAL								
+88204	56	ORAL								
+88205	56	ORAL								
+88216	70	TOPICAL								
+88217	105	TOPICAL (COMMERCIAL)								
+88219	70	TOPICAL								
+88220	56	ORAL								
+88221	56	ORAL								
+88222	56	ORAL								
+88223	56	ORAL								
+88224	56	ORAL								
+88230	56	ORAL								
+88232	56	ORAL								
+88245	56	ORAL								
+88246	104	TOPICAL (HOUSEHOLD)								
+88247	56	ORAL								
+88248	56	ORAL								
+88249	56	ORAL								
+88250	56	ORAL								
+88262	56	ORAL								
+88263	56	ORAL								
+88265	70	TOPICAL								
+88275	56	ORAL								
+88295	56	ORAL								
+88298	56	ORAL								
+88315	56	ORAL								
+88316	56	ORAL								
+88317	56	ORAL								
+88318	56	ORAL								
+88322	56	ORAL								
+88323	55	OPHTHALMIC								
+88324	56	ORAL								
+88326	56	ORAL								
+88327	56	ORAL								
+88367	70	TOPICAL								
+88368	70	TOPICAL								
+88371	56	ORAL								
+88381	56	ORAL								
+88382	56	ORAL								
+88384	70	TOPICAL								
+88412	56	ORAL								
+88413	56	ORAL								
+88417	70	TOPICAL								
+88439	56	ORAL								
+88451	70	TOPICAL								
+88457	70	TOPICAL								
+88460	8	DISINFECTANT (Food Premises)								
+88460	9	DISINFECTANT (Hospital/HC Facilities)								
+88460	93	DISINFECTANT (Domestic)								
+88460	94	DISINFECTANT (Institutional/Industrial)								
+88461	56	ORAL								
+88475	49	INTRAVENOUS								
+88478	8	DISINFECTANT (Food Premises)								
+88478	9	DISINFECTANT (Hospital/HC Facilities)								
+88498	55	OPHTHALMIC								
+88502	70	TOPICAL								
+88538	56	ORAL								
+88539	56	ORAL								
+88541	49	INTRAVENOUS								
+88541	96	INTRAVESICAL								
+88547	56	ORAL								
+88548	56	ORAL								
+88549	56	ORAL								
+88550	56	ORAL								
+88551	56	ORAL								
+88575	70	TOPICAL								
+88580	56	ORAL								
+88581	49	INTRAVENOUS								
+88584	56	ORAL								
+88587	56	ORAL								
+88588	56	ORAL								
+88620	70	TOPICAL								
+88628	56	ORAL								
+88629	56	ORAL								
+88630	56	ORAL								
+88631	33	INTRAPERITONEAL								
+88631	49	INTRAVENOUS								
+88643	56	ORAL								
+88645	56	ORAL								
+88647	70	TOPICAL								
+88648	70	TOPICAL								
+88658	65	SUBCUTANEOUS								
+88662	65	SUBCUTANEOUS								
+88663	65	SUBCUTANEOUS								
+88673	56	ORAL								
+88674	56	ORAL								
+88675	56	ORAL								
+88676	22	INTRAMUSCULAR								
+88681	70	TOPICAL								
+88682	56	ORAL								
+88683	56	ORAL								
+88689	49	INTRAVENOUS								
+88692	33	INTRAPERITONEAL								
+88692	49	INTRAVENOUS								
+88692	65	SUBCUTANEOUS								
+88706	31	INTRATHECAL								
+88706	49	INTRAVENOUS								
+88706	65	SUBCUTANEOUS								
+88727	2	DISINFECTANT (Barn)								
+88727	8	DISINFECTANT (Food Premises)								
+88727	9	DISINFECTANT (Hospital/HC Facilities)								
+88727	93	DISINFECTANT (Domestic)								
+88727	94	DISINFECTANT (Institutional/Industrial)								
+88729	93	DISINFECTANT (Domestic)								
+88733	70	TOPICAL								
+88734	70	TOPICAL								
+88735	56	ORAL								
+88736	56	ORAL								
+88742	56	ORAL								
+88743	56	ORAL								
+88759	70	TOPICAL								
+88768	49	INTRAVENOUS								
+88769	49	INTRAVENOUS								
+88777	56	ORAL								
+88779	56	ORAL								
+88794	56	ORAL								
+88795	56	ORAL								
+88802	56	ORAL								
+88810	1	BLOCK/INFILTRATION								
+88838	56	ORAL								
+88839	56	ORAL								
+88841	104	TOPICAL (HOUSEHOLD)								
+88846	9	DISINFECTANT (Hospital/HC Facilities)								
+88846	93	DISINFECTANT (Domestic)								
+88846	94	DISINFECTANT (Institutional/Industrial)								
+88854	56	ORAL								
+88855	56	ORAL								
+88856	56	ORAL								
+88857	56	ORAL								
+88858	56	ORAL								
+88859	31	INTRATHECAL								
+88859	49	INTRAVENOUS								
+88859	65	SUBCUTANEOUS								
+88860	31	INTRATHECAL								
+88860	49	INTRAVENOUS								
+88860	65	SUBCUTANEOUS								
+88861	70	TOPICAL								
+88862	70	TOPICAL								
+88863	70	TOPICAL								
+88875	70	TOPICAL								
+88876	56	ORAL								
+88877	56	ORAL								
+88878	56	ORAL								
+88880	55	OPHTHALMIC								
+88886	22	INTRAMUSCULAR								
+88886	49	INTRAVENOUS								
+88892	56	ORAL								
+88894	55	OPHTHALMIC								
+88895	56	ORAL								
+88920	56	ORAL								
+88935	55	OPHTHALMIC								
+88936	22	INTRAMUSCULAR								
+88946	56	ORAL								
+88947	56	ORAL								
+88950	56	ORAL								
+88952	56	ORAL								
+88953	56	ORAL								
+88955	56	ORAL								
+88957	70	TOPICAL								
+88959	56	ORAL								
+88960	56	ORAL								
+88977	70	TOPICAL								
+88986	49	INTRAVENOUS								
+88992	3	BUCCAL								
+89003	56	ORAL								
+89004	56	ORAL								
+89005	53	NASAL								
+89006	53	NASAL								
+89007	70	TOPICAL								
+89008	70	TOPICAL								
+89009	70	TOPICAL								
+89010	70	TOPICAL								
+89011	70	TOPICAL								
+89012	70	TOPICAL								
+89016	56	ORAL								
+89017	56	ORAL								
+89018	56	ORAL								
+89019	56	ORAL								
+89020	56	ORAL								
+89021	56	ORAL								
+89022	56	ORAL								
+89023	56	ORAL								
+89024	56	ORAL								
+89025	56	ORAL								
+89026	56	ORAL								
+89027	56	ORAL								
+89029	56	ORAL								
+89030	56	ORAL								
+89031	56	ORAL								
+89059	49	INTRAVENOUS								
+89076	49	INTRAVENOUS								
+89077	56	ORAL								
+89078	56	ORAL								
+89079	2	DISINFECTANT (Barn)								
+89079	8	DISINFECTANT (Food Premises)								
+89079	9	DISINFECTANT (Hospital/HC Facilities)								
+89079	93	DISINFECTANT (Domestic)								
+89079	94	DISINFECTANT (Institutional/Industrial)								
+89080	8	DISINFECTANT (Food Premises)								
+89080	9	DISINFECTANT (Hospital/HC Facilities)								
+89080	94	DISINFECTANT (Institutional/Industrial)								
+89081	2	DISINFECTANT (Barn)								
+89081	8	DISINFECTANT (Food Premises)								
+89081	9	DISINFECTANT (Hospital/HC Facilities)								
+89081	93	DISINFECTANT (Domestic)								
+89081	94	DISINFECTANT (Institutional/Industrial)								
+89082	2	DISINFECTANT (Barn)								
+89082	8	DISINFECTANT (Food Premises)								
+89082	9	DISINFECTANT (Hospital/HC Facilities)								
+89082	93	DISINFECTANT (Domestic)								
+89082	94	DISINFECTANT (Institutional/Industrial)								
+89097	70	TOPICAL								
+89098	70	TOPICAL								
+89099	70	TOPICAL								
+89100	56	ORAL								
+89101	56	ORAL								
+89105	56	ORAL								
+89110	49	INTRAVENOUS								
+89113	49	INTRAVENOUS								
+89117	56	ORAL								
+89118	56	ORAL								
+89119	56	ORAL								
+89120	56	ORAL								
+89121	49	INTRAVENOUS								
+89122	49	INTRAVENOUS								
+89123	49	INTRAVENOUS								
+89124	49	INTRAVENOUS								
+89125	49	INTRAVENOUS								
+89126	49	INTRAVENOUS								
+89127	56	ORAL								
+89128	56	ORAL								
+89129	56	ORAL								
+89130	56	ORAL								
+89136	49	INTRAVENOUS								
+89146	56	ORAL								
+89147	56	ORAL								
+89152	2	DISINFECTANT (Barn)								
+89152	8	DISINFECTANT (Food Premises)								
+89152	9	DISINFECTANT (Hospital/HC Facilities)								
+89152	94	DISINFECTANT (Institutional/Industrial)								
+89155	65	SUBCUTANEOUS								
+89157	65	SUBCUTANEOUS								
+89161	56	ORAL								
+89176	19	INTRADERMAL								
+89176	65	SUBCUTANEOUS								
+89176	85	PERCUTANEOUS								
+89186	56	ORAL								
+89187	56	ORAL								
+89188	56	ORAL								
+89200	49	INTRAVENOUS								
+89211	56	ORAL								
+89222	56	ORAL								
+89233	56	ORAL								
+89237	56	ORAL								
+89238	56	ORAL								
+89239	56	ORAL								
+89257	29	INHALATION								
+89265	49	INTRAVENOUS								
+89269	56	ORAL								
+89275	49	INTRAVENOUS								
+89276	49	INTRAVENOUS								
+89305	49	INTRAVENOUS								
+89320	49	INTRAVENOUS								
+89325	49	INTRAVENOUS								
+89332	1	BLOCK/INFILTRATION								
+89332	7	EPIDURAL								
+89334	56	ORAL								
+89335	56	ORAL								
+89347	56	ORAL								
+89349	56	ORAL								
+89355	70	TOPICAL								
+89363	56	ORAL								
+89364	56	ORAL								
+89365	56	ORAL								
+89367	56	ORAL								
+89368	56	ORAL								
+89381	49	INTRAVENOUS								
+89387	104	TOPICAL (HOUSEHOLD)								
+89390	49	INTRAVENOUS								
+89391	49	INTRAVENOUS								
+89403	2	DISINFECTANT (Barn)								
+89403	8	DISINFECTANT (Food Premises)								
+89403	9	DISINFECTANT (Hospital/HC Facilities)								
+89403	94	DISINFECTANT (Institutional/Industrial)								
+89408	49	INTRAVENOUS								
+89409	9	DISINFECTANT (Hospital/HC Facilities)								
+89410	56	ORAL								
+89411	56	ORAL								
+89425	70	TOPICAL								
+89427	49	INTRAVENOUS								
+89428	70	TOPICAL								
+89432	56	ORAL								
+89437	56	ORAL								
+89438	70	TOPICAL								
+89442	70	TOPICAL								
+89448	70	TOPICAL								
+89453	70	TOPICAL								
+89454	56	ORAL								
+89457	56	ORAL								
+89458	56	ORAL								
+89459	49	INTRAVENOUS								
+89460	49	INTRAVENOUS								
+89468	56	ORAL								
+89476	56	ORAL								
+89478	49	INTRAVENOUS								
+89479	49	INTRAVENOUS								
+89480	70	TOPICAL								
+89481	56	ORAL								
+89482	56	ORAL								
+89483	56	ORAL								
+89484	56	ORAL								
+89485	56	ORAL								
+89486	56	ORAL								
+89487	56	ORAL								
+89500	49	INTRAVENOUS								
+89510	56	ORAL								
+89511	56	ORAL								
+89512	56	ORAL								
+89513	56	ORAL								
+89514	56	ORAL								
+89515	56	ORAL								
+89516	56	ORAL								
+89517	56	ORAL								
+89518	53	NASAL								
+89535	62	RECTAL								
+89536	62	RECTAL								
+89547	56	ORAL								
+89548	56	ORAL								
+89549	56	ORAL								
+89554	70	TOPICAL								
+89558	56	ORAL								
+89559	56	ORAL								
+89560	56	ORAL								
+89561	56	ORAL								
+89565	49	INTRAVENOUS								
+89566	49	INTRAVENOUS								
+89569	70	TOPICAL								
+89572	70	TOPICAL								
+89577	56	ORAL								
+89578	56	ORAL								
+89579	56	ORAL								
+89582	56	ORAL								
+89583	56	ORAL								
+89600	56	ORAL								
+89604	56	ORAL								
+89605	56	ORAL								
+89607	56	ORAL								
+89608	56	ORAL								
+89615	70	TOPICAL								
+89636	56	ORAL								
+89637	56	ORAL								
+89639	2	DISINFECTANT (Barn)								
+89639	8	DISINFECTANT (Food Premises)								
+89639	94	DISINFECTANT (Institutional/Industrial)								
+89640	8	DISINFECTANT (Food Premises)								
+89640	94	DISINFECTANT (Institutional/Industrial)								
+89642	8	DISINFECTANT (Food Premises)								
+89642	9	DISINFECTANT (Hospital/HC Facilities)								
+89642	94	DISINFECTANT (Institutional/Industrial)								
+89657	70	TOPICAL								
+89658	56	ORAL								
+89659	56	ORAL								
+89662	22	INTRAMUSCULAR								
+89662	49	INTRAVENOUS								
+89662	65	SUBCUTANEOUS								
+89663	70	TOPICAL								
+89664	70	TOPICAL								
+89666	49	INTRAVENOUS								
+89667	49	INTRAVENOUS								
+89668	49	INTRAVENOUS								
+89672	56	ORAL								
+89683	22	INTRAMUSCULAR								
+89683	65	SUBCUTANEOUS								
+89686	104	TOPICAL (HOUSEHOLD)								
+89695	70	TOPICAL								
+89702	104	TOPICAL (HOUSEHOLD)								
+89704	104	TOPICAL (HOUSEHOLD)								
+89705	104	TOPICAL (HOUSEHOLD)								
+89706	70	TOPICAL								
+89719	70	TOPICAL								
+89720	70	TOPICAL								
+89721	70	TOPICAL								
+89722	70	TOPICAL								
+89723	70	TOPICAL								
+89724	70	TOPICAL								
+89725	70	TOPICAL								
+89726	70	TOPICAL								
+89727	70	TOPICAL								
+89728	70	TOPICAL								
+89737	70	TOPICAL								
+89738	70	TOPICAL								
+89739	70	TOPICAL								
+89740	70	TOPICAL								
+89741	70	TOPICAL								
+89744	70	TOPICAL								
+89749	49	INTRAVENOUS								
+89755	70	TOPICAL								
+89758	10	INTRA-ARTICULAR								
+89758	21	INTRALESIONAL								
+89758	22	INTRAMUSCULAR								
+89758	49	INTRAVENOUS								
+89758	63	SOFT TISSUE INJECTION								
+89761	22	INTRAMUSCULAR								
+89761	49	INTRAVENOUS								
+89770	56	ORAL								
+89771	56	ORAL								
+89776	56	ORAL								
+89777	56	ORAL								
+89778	56	ORAL								
+89779	56	ORAL								
+89780	56	ORAL								
+89781	56	ORAL								
+89790	49	INTRAVENOUS								
+89792	56	ORAL								
+89794	56	ORAL								
+89795	56	ORAL								
+89800	70	TOPICAL								
+89811	70	TOPICAL								
+89812	56	ORAL								
+89813	56	ORAL								
+89823	70	TOPICAL								
+89831	70	TOPICAL								
+89832	56	ORAL								
+89833	56	ORAL								
+89841	49	INTRAVENOUS								
+89846	55	OPHTHALMIC								
+89849	49	INTRAVENOUS								
+89850	49	INTRAVENOUS								
+89851	55	OPHTHALMIC								
+89852	6	DIALYSIS								
+89853	6	DIALYSIS								
+89854	55	OPHTHALMIC								
+89855	6	DIALYSIS								
+89856	6	DIALYSIS								
+89857	6	DIALYSIS								
+89859	6	DIALYSIS								
+89860	6	DIALYSIS								
+89861	6	DIALYSIS								
+89873	70	TOPICAL								
+89880	56	ORAL								
+89882	56	ORAL								
+89883	56	ORAL								
+89894	55	OPHTHALMIC								
+89897	2	DISINFECTANT (Barn)								
+89897	8	DISINFECTANT (Food Premises)								
+89897	9	DISINFECTANT (Hospital/HC Facilities)								
+89897	94	DISINFECTANT (Institutional/Industrial)								
+89900	2	DISINFECTANT (Barn)								
+89900	8	DISINFECTANT (Food Premises)								
+89900	9	DISINFECTANT (Hospital/HC Facilities)								
+89900	93	DISINFECTANT (Domestic)								
+89900	94	DISINFECTANT (Institutional/Industrial)								
+89902	56	ORAL								
+89903	56	ORAL								
+89904	56	ORAL								
+89909	56	ORAL								
+89910	56	ORAL								
+89911	56	ORAL								
+89912	56	ORAL								
+89913	56	ORAL								
+89914	56	ORAL								
+89915	56	ORAL								
+89926	56	ORAL								
+89927	56	ORAL								
+89928	56	ORAL								
+89933	6	DIALYSIS								
+89936	8	DISINFECTANT (Food Premises)								
+89936	9	DISINFECTANT (Hospital/HC Facilities)								
+89936	93	DISINFECTANT (Domestic)								
+89936	94	DISINFECTANT (Institutional/Industrial)								
+89939	56	ORAL								
+89947	6	DIALYSIS								
+89958	56	ORAL								
+89959	56	ORAL								
+89960	56	ORAL								
+89985	56	ORAL								
+89986	56	ORAL								
+89987	56	ORAL								
+89988	56	ORAL								
+89990	56	ORAL								
+89991	56	ORAL								
+89992	55	OPHTHALMIC								
+90008	6	DIALYSIS								
+90010	6	DIALYSIS								
+90031	70	TOPICAL								
+90032	70	TOPICAL								
+90034	70	TOPICAL								
+90035	2	DISINFECTANT (Barn)								
+90035	8	DISINFECTANT (Food Premises)								
+90035	9	DISINFECTANT (Hospital/HC Facilities)								
+90035	93	DISINFECTANT (Domestic)								
+90035	94	DISINFECTANT (Institutional/Industrial)								
+90038	56	ORAL								
+90059	70	TOPICAL								
+90062	70	TOPICAL								
+90064	49	INTRAVENOUS								
+90072	56	ORAL								
+90073	56	ORAL								
+90074	56	ORAL								
+90075	56	ORAL								
+90076	56	ORAL								
+90077	56	ORAL								
+90078	56	ORAL								
+90079	56	ORAL								
+90080	56	ORAL								
+90083	56	ORAL								
+90084	70	TOPICAL								
+90085	70	TOPICAL								
+90089	56	ORAL								
+90090	56	ORAL								
+90091	56	ORAL								
+90092	56	ORAL								
+90093	56	ORAL								
+90095	70	TOPICAL								
+90109	56	ORAL								
+90110	56	ORAL								
+90111	56	ORAL								
+90115	56	ORAL								
+90125	70	TOPICAL								
+90126	56	ORAL								
+90127	56	ORAL								
+90128	56	ORAL								
+90129	56	ORAL								
+90130	56	ORAL								
+90131	56	ORAL								
+90132	56	ORAL								
+90133	56	ORAL								
+90149	93	DISINFECTANT (Domestic)								
+90150	70	TOPICAL								
+90155	70	TOPICAL								
+90162	70	TOPICAL								
+90168	56	ORAL								
+90169	56	ORAL								
+90170	56	ORAL								
+90177	49	INTRAVENOUS								
+90205	56	ORAL								
+90210	56	ORAL								
+90212	56	ORAL								
+90213	56	ORAL								
+90214	56	ORAL								
+90219	56	ORAL								
+90221	56	ORAL								
+90233	70	TOPICAL								
+90234	70	TOPICAL								
+90238	70	TOPICAL								
+90239	70	TOPICAL								
+90248	56	ORAL								
+90251	70	TOPICAL								
+90258	93	DISINFECTANT (Domestic)								
+90260	56	ORAL								
+90261	56	ORAL								
+90262	56	ORAL								
+90264	70	TOPICAL								
+90268	56	ORAL								
+90274	56	ORAL								
+90276	70	TOPICAL								
+90283	70	TOPICAL								
+90289	56	ORAL								
+90295	56	ORAL								
+90296	56	ORAL								
+90297	49	INTRAVENOUS								
+90304	56	ORAL								
+90317	56	ORAL								
+90318	56	ORAL								
+90321	8	DISINFECTANT (Food Premises)								
+90321	9	DISINFECTANT (Hospital/HC Facilities)								
+90322	9	DISINFECTANT (Hospital/HC Facilities)								
+90327	56	ORAL								
+90328	56	ORAL								
+90334	8	DISINFECTANT (Food Premises)								
+90334	9	DISINFECTANT (Hospital/HC Facilities)								
+90334	94	DISINFECTANT (Institutional/Industrial)								
+90335	8	DISINFECTANT (Food Premises)								
+90335	9	DISINFECTANT (Hospital/HC Facilities)								
+90335	94	DISINFECTANT (Institutional/Industrial)								
+90339	56	ORAL								
+90340	56	ORAL								
+90341	56	ORAL								
+90342	56	ORAL								
+90343	56	ORAL								
+90346	56	ORAL								
+90350	56	ORAL								
+90352	56	ORAL								
+90353	56	ORAL								
+90354	56	ORAL								
+90355	56	ORAL								
+90356	56	ORAL								
+90357	56	ORAL								
+90362	70	TOPICAL								
+90376	56	ORAL								
+90377	56	ORAL								
+90378	56	ORAL								
+90379	56	ORAL								
+90383	56	ORAL								
+90384	56	ORAL								
+90385	56	ORAL								
+90386	56	ORAL								
+90387	56	ORAL								
+90388	56	ORAL								
+90401	56	ORAL								
+90402	56	ORAL								
+90403	56	ORAL								
+90404	56	ORAL								
+90405	56	ORAL								
+90406	56	ORAL								
+90407	56	ORAL								
+90417	56	ORAL								
+90418	56	ORAL								
+90419	56	ORAL								
+90438	70	TOPICAL								
+90441	56	ORAL								
+90442	56	ORAL								
+90446	8	DISINFECTANT (Food Premises)								
+90446	9	DISINFECTANT (Hospital/HC Facilities)								
+90446	93	DISINFECTANT (Domestic)								
+90446	94	DISINFECTANT (Institutional/Industrial)								
+90455	70	TOPICAL								
+90456	70	TOPICAL								
+90458	8	DISINFECTANT (Food Premises)								
+90458	9	DISINFECTANT (Hospital/HC Facilities)								
+90458	93	DISINFECTANT (Domestic)								
+90458	94	DISINFECTANT (Institutional/Industrial)								
+90461	56	ORAL								
+90462	56	ORAL								
+90463	56	ORAL								
+90468	70	TOPICAL								
+90481	49	INTRAVENOUS								
+90483	56	ORAL								
+90484	56	ORAL								
+90509	55	OPHTHALMIC								
+90521	22	INTRAMUSCULAR								
+90522	22	INTRAMUSCULAR								
+90523	22	INTRAMUSCULAR								
+90525	56	ORAL								
+90528	70	TOPICAL								
+90529	70	TOPICAL								
+90532	56	ORAL								
+90533	56	ORAL								
+90534	56	ORAL								
+90536	56	ORAL								
+90537	56	ORAL								
+90551	56	ORAL								
+90556	49	INTRAVENOUS								
+90559	56	ORAL								
+90560	56	ORAL								
+90561	56	ORAL								
+90569	56	ORAL								
+90572	56	ORAL								
+90573	92	0-UNASSIGNED								
+90574	55	OPHTHALMIC								
+90575	92	0-UNASSIGNED								
+90576	56	ORAL								
+90577	56	ORAL								
+90579	70	TOPICAL								
+90592	56	ORAL								
+90593	56	ORAL								
+90606	56	ORAL								
+90607	56	ORAL								
+90608	56	ORAL								
+90609	56	ORAL								
+90612	49	INTRAVENOUS								
+90613	49	INTRAVENOUS								
+90621	56	ORAL								
+90622	56	ORAL								
+90638	49	INTRAVENOUS								
+90657	56	ORAL								
+90658	56	ORAL								
+90659	56	ORAL								
+90660	56	ORAL								
+90665	70	TOPICAL								
+90674	49	INTRAVENOUS								
+90685	70	TOPICAL								
+90686	49	INTRAVENOUS								
+90696	56	ORAL								
+90703	9	DISINFECTANT (Hospital/HC Facilities)								
+90703	94	DISINFECTANT (Institutional/Industrial)								
+90707	70	TOPICAL								
+90708	70	TOPICAL								
+90709	6	DIALYSIS								
+90710	6	DIALYSIS								
+90713	8	DISINFECTANT (Food Premises)								
+90713	9	DISINFECTANT (Hospital/HC Facilities)								
+90713	93	DISINFECTANT (Domestic)								
+90713	94	DISINFECTANT (Institutional/Industrial)								
+90715	56	ORAL								
+90716	56	ORAL								
+90717	56	ORAL								
+90719	56	ORAL								
+90720	56	ORAL								
+90721	56	ORAL								
+90724	6	DIALYSIS								
+90725	6	DIALYSIS								
+90726	6	DIALYSIS								
+90727	6	DIALYSIS								
+90730	6	DIALYSIS								
+90731	6	DIALYSIS								
+90734	8	DISINFECTANT (Food Premises)								
+90734	9	DISINFECTANT (Hospital/HC Facilities)								
+90734	94	DISINFECTANT (Institutional/Industrial)								
+90740	56	ORAL								
+90748	56	ORAL								
+90749	56	ORAL								
+90750	49	INTRAVENOUS								
+90751	49	INTRAVENOUS								
+90754	56	ORAL								
+90755	56	ORAL								
+90756	49	INTRAVENOUS								
+90763	62	RECTAL								
+90774	9	DISINFECTANT (Hospital/HC Facilities)								
+90774	94	DISINFECTANT (Institutional/Industrial)								
+90777	56	ORAL								
+90778	56	ORAL								
+90779	56	ORAL								
+90781	9	DISINFECTANT (Hospital/HC Facilities)								
+90781	93	DISINFECTANT (Domestic)								
+90781	94	DISINFECTANT (Institutional/Industrial)								
+90782	9	DISINFECTANT (Hospital/HC Facilities)								
+90782	94	DISINFECTANT (Institutional/Industrial)								
+90783	9	DISINFECTANT (Hospital/HC Facilities)								
+90783	94	DISINFECTANT (Institutional/Industrial)								
+90784	9	DISINFECTANT (Hospital/HC Facilities)								
+90784	94	DISINFECTANT (Institutional/Industrial)								
+90785	9	DISINFECTANT (Hospital/HC Facilities)								
+90785	94	DISINFECTANT (Institutional/Industrial)								
+90786	9	DISINFECTANT (Hospital/HC Facilities)								
+90786	93	DISINFECTANT (Domestic)								
+90786	94	DISINFECTANT (Institutional/Industrial)								
+90788	9	DISINFECTANT (Hospital/HC Facilities)								
+90788	94	DISINFECTANT (Institutional/Industrial)								
+90789	9	DISINFECTANT (Hospital/HC Facilities)								
+90789	94	DISINFECTANT (Institutional/Industrial)								
+90790	9	DISINFECTANT (Hospital/HC Facilities)								
+90790	94	DISINFECTANT (Institutional/Industrial)								
+90791	8	DISINFECTANT (Food Premises)								
+90791	9	DISINFECTANT (Hospital/HC Facilities)								
+90791	94	DISINFECTANT (Institutional/Industrial)								
+90792	8	DISINFECTANT (Food Premises)								
+90792	9	DISINFECTANT (Hospital/HC Facilities)								
+90792	94	DISINFECTANT (Institutional/Industrial)								
+90794	56	ORAL								
+90796	49	INTRAVENOUS								
+90801	56	ORAL								
+90809	93	DISINFECTANT (Domestic)								
+90810	56	ORAL								
+90811	56	ORAL								
+90819	56	ORAL								
+90821	56	ORAL								
+90824	71	TRANSDERMAL								
+90825	71	TRANSDERMAL								
+90832	70	TOPICAL								
+90833	70	TOPICAL								
+90838	65	SUBCUTANEOUS								
+90841	70	TOPICAL								
+90847	49	INTRAVENOUS								
+90848	49	INTRAVENOUS								
+90849	56	ORAL								
+90853	56	ORAL								
+90855	8	DISINFECTANT (Food Premises)								
+90855	9	DISINFECTANT (Hospital/HC Facilities)								
+90855	94	DISINFECTANT (Institutional/Industrial)								
+90876	56	ORAL								
+90877	56	ORAL								
+90882	56	ORAL								
+90883	56	ORAL								
+90884	56	ORAL								
+90891	56	ORAL								
+90893	56	ORAL								
+90894	56	ORAL								
+90895	56	ORAL								
+90899	56	ORAL								
+90900	56	ORAL								
+90901	56	ORAL								
+90906	70	TOPICAL								
+90914	56	ORAL								
+90915	56	ORAL								
+90916	55	OPHTHALMIC								
+90918	56	ORAL								
+90919	56	ORAL								
+90925	57	OTIC								
+90931	56	ORAL								
+90932	56	ORAL								
+90933	56	ORAL								
+90935	70	TOPICAL								
+90938	53	NASAL								
+90939	53	NASAL								
+90940	56	ORAL								
+90941	56	ORAL								
+90942	8	DISINFECTANT (Food Premises)								
+90942	9	DISINFECTANT (Hospital/HC Facilities)								
+90942	93	DISINFECTANT (Domestic)								
+90942	94	DISINFECTANT (Institutional/Industrial)								
+90949	70	TOPICAL								
+90956	49	INTRAVENOUS								
+90980	55	OPHTHALMIC								
+91000	56	ORAL								
+91001	56	ORAL								
+91020	70	TOPICAL								
+91038	56	ORAL								
+91051	56	ORAL								
+91058	56	ORAL								
+91059	56	ORAL								
+91060	56	ORAL								
+91063	93	DISINFECTANT (Domestic)								
+91064	9	DISINFECTANT (Hospital/HC Facilities)								
+91067	70	TOPICAL								
+91068	70	TOPICAL								
+91071	70	TOPICAL								
+91072	56	ORAL								
+91073	56	ORAL								
+91088	22	INTRAMUSCULAR								
+91088	49	INTRAVENOUS								
+91088	65	SUBCUTANEOUS								
+91091	56	ORAL								
+91092	56	ORAL								
+91099	49	INTRAVENOUS								
+91100	22	INTRAMUSCULAR								
+91112	70	TOPICAL								
+91123	70	TOPICAL								
+91124	70	TOPICAL								
+91131	8	DISINFECTANT (Food Premises)								
+91131	9	DISINFECTANT (Hospital/HC Facilities)								
+91131	93	DISINFECTANT (Domestic)								
+91131	94	DISINFECTANT (Institutional/Industrial)								
+91134	85	PERCUTANEOUS								
+91139	56	ORAL								
+91140	56	ORAL								
+91156	56	ORAL								
+91157	56	ORAL								
+91158	56	ORAL								
+91159	56	ORAL								
+91160	56	ORAL								
+91165	56	ORAL								
+91168	56	ORAL								
+91174	56	ORAL								
+91175	56	ORAL								
+91176	56	ORAL								
+91177	56	ORAL								
+91178	56	ORAL								
+91179	56	ORAL								
+91180	56	ORAL								
+91181	56	ORAL								
+91182	56	ORAL								
+91183	56	ORAL								
+91184	56	ORAL								
+91185	56	ORAL								
+91186	56	ORAL								
+91187	56	ORAL								
+91190	56	ORAL								
+91191	56	ORAL								
+91192	56	ORAL								
+91201	56	ORAL								
+91202	56	ORAL								
+91203	56	ORAL								
+91204	8	DISINFECTANT (Food Premises)								
+91204	9	DISINFECTANT (Hospital/HC Facilities)								
+91204	93	DISINFECTANT (Domestic)								
+91204	94	DISINFECTANT (Institutional/Industrial)								
+91206	56	ORAL								
+91212	56	ORAL								
+91213	56	ORAL								
+91214	56	ORAL								
+91219	56	ORAL								
+91220	56	ORAL								
+91221	56	ORAL								
+91222	56	ORAL								
+91223	56	ORAL								
+91224	56	ORAL								
+91233	56	ORAL								
+91234	56	ORAL								
+91241	56	ORAL								
+91242	56	ORAL								
+91245	56	ORAL								
+91246	56	ORAL								
+91247	56	ORAL								
+91248	2	DISINFECTANT (Barn)								
+91248	8	DISINFECTANT (Food Premises)								
+91248	9	DISINFECTANT (Hospital/HC Facilities)								
+91248	94	DISINFECTANT (Institutional/Industrial)								
+91256	70	TOPICAL								
+91257	70	TOPICAL								
+91258	70	TOPICAL								
+91259	70	TOPICAL								
+91261	55	OPHTHALMIC								
+91267	8	DISINFECTANT (Food Premises)								
+91267	94	DISINFECTANT (Institutional/Industrial)								
+91272	56	ORAL								
+91273	56	ORAL								
+91279	56	ORAL								
+91280	56	ORAL								
+91281	56	ORAL								
+91282	56	ORAL								
+91286	8	DISINFECTANT (Food Premises)								
+91286	9	DISINFECTANT (Hospital/HC Facilities)								
+91286	94	DISINFECTANT (Institutional/Industrial)								
+91287	56	ORAL								
+91288	70	TOPICAL								
+91290	70	TOPICAL								
+91302	70	TOPICAL								
+91303	70	TOPICAL								
+91305	6	DIALYSIS								
+91306	6	DIALYSIS								
+91313	53	NASAL								
+91314	70	TOPICAL								
+91322	49	INTRAVENOUS								
+91323	49	INTRAVENOUS								
+91324	49	INTRAVENOUS								
+91328	56	ORAL								
+91330	56	ORAL								
+91340	2	DISINFECTANT (Barn)								
+91340	93	DISINFECTANT (Domestic)								
+91340	94	DISINFECTANT (Institutional/Industrial)								
+91342	55	OPHTHALMIC								
+91353	56	ORAL								
+91354	56	ORAL								
+91355	56	ORAL								
+91356	56	ORAL								
+91360	49	INTRAVENOUS								
+91363	49	INTRAVENOUS								
+91364	49	INTRAVENOUS								
+91369	56	ORAL								
+91370	70	TOPICAL								
+91371	70	TOPICAL								
+91398	49	INTRAVENOUS								
+91399	56	ORAL								
+91400	56	ORAL								
+91401	56	ORAL								
+91404	56	ORAL								
+91405	56	ORAL								
+91406	56	ORAL								
+91407	56	ORAL								
+91408	56	ORAL								
+91409	56	ORAL								
+91417	70	TOPICAL								
+91418	93	DISINFECTANT (Domestic)								
+91421	56	ORAL								
+91424	56	ORAL								
+91427	8	DISINFECTANT (Food Premises)								
+91427	9	DISINFECTANT (Hospital/HC Facilities)								
+91427	94	DISINFECTANT (Institutional/Industrial)								
+91428	8	DISINFECTANT (Food Premises)								
+91428	9	DISINFECTANT (Hospital/HC Facilities)								
+91428	94	DISINFECTANT (Institutional/Industrial)								
+91429	8	DISINFECTANT (Food Premises)								
+91429	9	DISINFECTANT (Hospital/HC Facilities)								
+91429	94	DISINFECTANT (Institutional/Industrial)								
+91439	22	INTRAMUSCULAR								
+91440	70	TOPICAL								
+91441	56	ORAL								
+91442	56	ORAL								
+91443	56	ORAL								
+91444	56	ORAL								
+91446	70	TOPICAL								
+91447	56	ORAL								
+91448	56	ORAL								
+91449	70	TOPICAL								
+91450	70	TOPICAL								
+91452	70	TOPICAL								
+91454	70	TOPICAL								
+91456	49	INTRAVENOUS								
+91457	56	ORAL								
+91458	56	ORAL								
+91471	70	TOPICAL								
+91472	70	TOPICAL								
+91473	70	TOPICAL								
+91474	70	TOPICAL								
+91488	70	TOPICAL								
+91490	56	ORAL								
+91491	56	ORAL								
+91492	56	ORAL								
+91493	56	ORAL								
+91498	49	INTRAVENOUS								
+91499	49	INTRAVENOUS								
+91500	49	INTRAVENOUS								
+91501	49	INTRAVENOUS								
+91516	22	INTRAMUSCULAR								
+91517	70	TOPICAL								
+91531	1	BLOCK/INFILTRATION								
+91531	7	EPIDURAL								
+91532	1	BLOCK/INFILTRATION								
+91532	7	EPIDURAL								
+91533	60	RETROBULBAR								
+91533	7	EPIDURAL								
+91534	1	BLOCK/INFILTRATION								
+91535	1	BLOCK/INFILTRATION								
+91539	56	ORAL								
+91540	56	ORAL								
+91541	56	ORAL								
+91544	56	ORAL								
+91545	56	ORAL								
+91546	56	ORAL								
+91548	56	ORAL								
+91554	8	DISINFECTANT (Food Premises)								
+91554	9	DISINFECTANT (Hospital/HC Facilities)								
+91554	93	DISINFECTANT (Domestic)								
+91554	94	DISINFECTANT (Institutional/Industrial)								
+91557	49	INTRAVENOUS								
+91558	2	DISINFECTANT (Barn)								
+91558	8	DISINFECTANT (Food Premises)								
+91558	9	DISINFECTANT (Hospital/HC Facilities)								
+91558	94	DISINFECTANT (Institutional/Industrial)								
+91559	2	DISINFECTANT (Barn)								
+91559	8	DISINFECTANT (Food Premises)								
+91559	9	DISINFECTANT (Hospital/HC Facilities)								
+91559	94	DISINFECTANT (Institutional/Industrial)								
+91562	56	ORAL								
+91563	56	ORAL								
+91565	56	ORAL								
+91567	70	TOPICAL								
+91568	55	OPHTHALMIC								
+91569	55	OPHTHALMIC								
+91573	56	ORAL								
+91575	56	ORAL								
+91577	70	TOPICAL								
+91587	9	DISINFECTANT (Hospital/HC Facilities)								
+91587	93	DISINFECTANT (Domestic)								
+91587	94	DISINFECTANT (Institutional/Industrial)								
+91591	107	TOPICAL (HOSPITAL/HC FACILITIES)								
+91594	70	TOPICAL								
+91595	49	INTRAVENOUS								
+91605	56	ORAL								
+91606	56	ORAL								
+91607	56	ORAL								
+91608	56	ORAL								
+91609	56	ORAL								
+91614	9	DISINFECTANT (Hospital/HC Facilities)								
+91615	9	DISINFECTANT (Hospital/HC Facilities)								
+91616	49	INTRAVENOUS								
+91620	2	DISINFECTANT (Barn)								
+91620	8	DISINFECTANT (Food Premises)								
+91620	9	DISINFECTANT (Hospital/HC Facilities)								
+91620	94	DISINFECTANT (Institutional/Industrial)								
+91623	49	INTRAVENOUS								
+91631	56	ORAL								
+91632	56	ORAL								
+91636	70	TOPICAL								
+91639	49	INTRAVENOUS								
+91640	49	INTRAVENOUS								
+91641	49	INTRAVENOUS								
+91642	49	INTRAVENOUS								
+91643	49	INTRAVENOUS								
+91644	56	ORAL								
+91645	56	ORAL								
+91647	56	ORAL								
+91648	104	TOPICAL (HOUSEHOLD)								
+91649	56	ORAL								
+91650	56	ORAL								
+91651	56	ORAL								
+91652	56	ORAL								
+91653	56	ORAL								
+91659	70	TOPICAL								
+91670	56	ORAL								
+91673	1	BLOCK/INFILTRATION								
+91673	7	EPIDURAL								
+91674	1	BLOCK/INFILTRATION								
+91675	1	BLOCK/INFILTRATION								
+91675	7	EPIDURAL								
+91676	1	BLOCK/INFILTRATION								
+91677	56	ORAL								
+91678	56	ORAL								
+91681	56	ORAL								
+91682	56	ORAL								
+91683	70	TOPICAL								
+91690	70	TOPICAL								
+91691	56	ORAL								
+91698	56	ORAL								
+91704	70	TOPICAL								
+91711	56	ORAL								
+91712	56	ORAL								
+91716	56	ORAL								
+91717	22	INTRAMUSCULAR								
+91724	70	TOPICAL								
+91725	70	TOPICAL								
+91734	56	ORAL								
+91749	49	INTRAVENOUS								
+91750	56	ORAL								
+91751	8	DISINFECTANT (Food Premises)								
+91751	9	DISINFECTANT (Hospital/HC Facilities)								
+91751	94	DISINFECTANT (Institutional/Industrial)								
+91753	56	ORAL								
+91754	56	ORAL								
+91755	56	ORAL								
+91756	56	ORAL								
+91757	56	ORAL								
+91758	56	ORAL								
+91759	56	ORAL								
+91760	49	INTRAVENOUS								
+91763	49	INTRAVENOUS								
+91764	56	ORAL								
+91765	56	ORAL								
+91767	70	TOPICAL								
+91768	56	ORAL								
+91769	56	ORAL								
+91770	56	ORAL								
+91771	56	ORAL								
+91772	56	ORAL								
+91773	56	ORAL								
+91774	56	ORAL								
+91775	56	ORAL								
+91776	56	ORAL								
+91777	56	ORAL								
+91779	56	ORAL								
+91780	56	ORAL								
+91781	56	ORAL								
+91782	56	ORAL								
+91784	56	ORAL								
+91788	70	TOPICAL								
+91795	56	ORAL								
+91796	56	ORAL								
+91797	56	ORAL								
+91798	56	ORAL								
+91799	56	ORAL								
+91800	56	ORAL								
+91801	56	ORAL								
+91802	56	ORAL								
+91803	56	ORAL								
+91813	56	ORAL								
+91814	56	ORAL								
+91815	56	ORAL								
+91816	56	ORAL								
+91817	56	ORAL								
+91818	56	ORAL								
+91819	56	ORAL								
+91821	56	ORAL								
+91822	56	ORAL								
+91823	56	ORAL								
+91824	56	ORAL								
+91828	56	ORAL								
+91830	56	ORAL								
+91831	56	ORAL								
+91832	56	ORAL								
+91834	22	INTRAMUSCULAR								
+91841	56	ORAL								
+91842	56	ORAL								
+91843	22	INTRAMUSCULAR								
+91843	49	INTRAVENOUS								
+91846	70	TOPICAL								
+91854	8	DISINFECTANT (Food Premises)								
+91854	9	DISINFECTANT (Hospital/HC Facilities)								
+91854	94	DISINFECTANT (Institutional/Industrial)								
+91855	2	DISINFECTANT (Barn)								
+91855	8	DISINFECTANT (Food Premises)								
+91855	9	DISINFECTANT (Hospital/HC Facilities)								
+91855	94	DISINFECTANT (Institutional/Industrial)								
+91857	2	DISINFECTANT (Barn)								
+91857	8	DISINFECTANT (Food Premises)								
+91857	9	DISINFECTANT (Hospital/HC Facilities)								
+91857	94	DISINFECTANT (Institutional/Industrial)								
+91861	56	ORAL								
+91862	56	ORAL								
+91863	56	ORAL								
+91869	56	ORAL								
+91870	56	ORAL								
+91871	56	ORAL								
+91872	105	TOPICAL (COMMERCIAL)								
+91879	56	ORAL								
+91883	56	ORAL								
+91884	56	ORAL								
+91885	56	ORAL								
+91891	53	NASAL								
+91892	56	ORAL								
+91893	56	ORAL								
+91894	56	ORAL								
+91895	56	ORAL								
+91898	56	ORAL								
+91899	56	ORAL								
+91900	56	ORAL								
+91901	56	ORAL								
+91902	56	ORAL								
+91904	8	DISINFECTANT (Food Premises)								
+91904	94	DISINFECTANT (Institutional/Industrial)								
+91907	8	DISINFECTANT (Food Premises)								
+91907	9	DISINFECTANT (Hospital/HC Facilities)								
+91907	94	DISINFECTANT (Institutional/Industrial)								
+91908	2	DISINFECTANT (Barn)								
+91908	8	DISINFECTANT (Food Premises)								
+91908	94	DISINFECTANT (Institutional/Industrial)								
+91912	56	ORAL								
+91913	56	ORAL								
+91920	93	DISINFECTANT (Domestic)								
+91920	94	DISINFECTANT (Institutional/Industrial)								
+91921	93	DISINFECTANT (Domestic)								
+91921	94	DISINFECTANT (Institutional/Industrial)								
+91922	56	ORAL								
+91924	56	ORAL								
+91925	56	ORAL								
+91927	70	TOPICAL								
+91928	70	TOPICAL								
+91930	70	TOPICAL								
+91934	70	TOPICAL								
+91935	70	TOPICAL								
+91938	9	DISINFECTANT (Hospital/HC Facilities)								
+91938	94	DISINFECTANT (Institutional/Industrial)								
+91943	93	DISINFECTANT (Domestic)								
+91943	94	DISINFECTANT (Institutional/Industrial)								
+91944	70	TOPICAL								
+91946	49	INTRAVENOUS								
+91947	49	INTRAVENOUS								
+91948	49	INTRAVENOUS								
+91949	49	INTRAVENOUS								
+91950	49	INTRAVENOUS								
+91951	49	INTRAVENOUS								
+91953	49	INTRAVENOUS								
+91956	56	ORAL								
+91957	56	ORAL								
+91958	56	ORAL								
+91959	56	ORAL								
+91969	70	TOPICAL								
+91970	70	TOPICAL								
+91972	56	ORAL								
+91974	56	ORAL								
+91975	56	ORAL								
+91976	56	ORAL								
+91980	70	TOPICAL								
+91999	56	ORAL								
+92003	8	DISINFECTANT (Food Premises)								
+92003	9	DISINFECTANT (Hospital/HC Facilities)								
+92003	93	DISINFECTANT (Domestic)								
+92003	94	DISINFECTANT (Institutional/Industrial)								
+92004	49	INTRAVENOUS								
+92006	49	INTRAVENOUS								
+92007	49	INTRAVENOUS								
+92009	56	ORAL								
+92010	70	TOPICAL								
+92011	70	TOPICAL								
+92022	6	DIALYSIS								
+92030	6	DIALYSIS								
+92043	56	ORAL								
+92044	56	ORAL								
+92045	56	ORAL								
+92053	49	INTRAVENOUS								
+92054	49	INTRAVENOUS								
+92055	56	ORAL								
+92059	49	INTRAVENOUS								
+92060	2	DISINFECTANT (Barn)								
+92060	9	DISINFECTANT (Hospital/HC Facilities)								
+92060	94	DISINFECTANT (Institutional/Industrial)								
+92061	57	OTIC								
+92070	70	TOPICAL								
+92071	49	INTRAVENOUS								
+92072	49	INTRAVENOUS								
+92073	49	INTRAVENOUS								
+92078	22	INTRAMUSCULAR								
+92078	65	SUBCUTANEOUS								
+92080	70	TOPICAL								
+92081	70	TOPICAL								
+92083	49	INTRAVENOUS								
+92085	56	ORAL								
+92089	56	ORAL								
+92090	56	ORAL								
+92091	56	ORAL								
+92095	56	ORAL								
+92103	56	ORAL								
+92112	56	ORAL								
+92113	56	ORAL								
+92115	8	DISINFECTANT (Food Premises)								
+92115	9	DISINFECTANT (Hospital/HC Facilities)								
+92115	94	DISINFECTANT (Institutional/Industrial)								
+92118	56	ORAL								
+92119	56	ORAL								
+92120	56	ORAL								
+92124	56	ORAL								
+92125	56	ORAL								
+92126	56	ORAL								
+92144	56	ORAL								
+92146	49	INTRAVENOUS								
+92147	49	INTRAVENOUS								
+92148	49	INTRAVENOUS								
+92151	56	ORAL								
+92152	56	ORAL								
+92154	8	DISINFECTANT (Food Premises)								
+92154	9	DISINFECTANT (Hospital/HC Facilities)								
+92154	93	DISINFECTANT (Domestic)								
+92154	94	DISINFECTANT (Institutional/Industrial)								
+92166	56	ORAL								
+92167	56	ORAL								
+92183	70	TOPICAL								
+92188	70	TOPICAL								
+92189	70	TOPICAL								
+92190	56	ORAL								
+92191	56	ORAL								
+92192	70	TOPICAL								
+92193	70	TOPICAL								
+92194	56	ORAL								
+92195	56	ORAL								
+92204	9	DISINFECTANT (Hospital/HC Facilities)								
+92204	93	DISINFECTANT (Domestic)								
+92204	94	DISINFECTANT (Institutional/Industrial)								
+92205	9	DISINFECTANT (Hospital/HC Facilities)								
+92205	93	DISINFECTANT (Domestic)								
+92205	94	DISINFECTANT (Institutional/Industrial)								
+92206	70	TOPICAL								
+92208	70	TOPICAL								
+92209	70	TOPICAL								
+92211	70	TOPICAL								
+92212	56	ORAL								
+92213	56	ORAL								
+92218	8	DISINFECTANT (Food Premises)								
+92218	9	DISINFECTANT (Hospital/HC Facilities)								
+92218	93	DISINFECTANT (Domestic)								
+92218	94	DISINFECTANT (Institutional/Industrial)								
+92219	55	OPHTHALMIC								
+92220	8	DISINFECTANT (Food Premises)								
+92220	9	DISINFECTANT (Hospital/HC Facilities)								
+92220	93	DISINFECTANT (Domestic)								
+92220	94	DISINFECTANT (Institutional/Industrial)								
+92225	56	ORAL								
+92227	56	ORAL								
+92228	56	ORAL								
+92229	56	ORAL								
+92230	56	ORAL								
+92232	62	RECTAL								
+92239	56	ORAL								
+92242	65	SUBCUTANEOUS								
+92244	56	ORAL								
+92245	56	ORAL								
+92246	93	DISINFECTANT (Domestic)								
+92250	56	ORAL								
+92251	56	ORAL								
+92252	56	ORAL								
+92253	56	ORAL								
+92254	56	ORAL								
+92255	56	ORAL								
+92256	56	ORAL								
+92257	56	ORAL								
+92266	56	ORAL								
+92267	56	ORAL								
+92270	56	ORAL								
+92273	56	ORAL								
+92276	49	INTRAVENOUS								
+92279	93	DISINFECTANT (Domestic)								
+92280	8	DISINFECTANT (Food Premises)								
+92280	9	DISINFECTANT (Hospital/HC Facilities)								
+92280	94	DISINFECTANT (Institutional/Industrial)								
+92281	56	ORAL								
+92282	56	ORAL								
+92283	56	ORAL								
+92285	56	ORAL								
+92286	56	ORAL								
+92287	56	ORAL								
+92288	56	ORAL								
+92289	2	DISINFECTANT (Barn)								
+92289	9	DISINFECTANT (Hospital/HC Facilities)								
+92289	94	DISINFECTANT (Institutional/Industrial)								
+92295	49	INTRAVENOUS								
+92299	70	TOPICAL								
+92300	56	ORAL								
+92301	49	INTRAVENOUS								
+92303	56	ORAL								
+92306	49	INTRAVENOUS								
+92307	49	INTRAVENOUS								
+92312	93	DISINFECTANT (Domestic)								
+92317	56	ORAL								
+92320	56	ORAL								
+92321	56	ORAL								
+92322	56	ORAL								
+92323	56	ORAL								
+92329	56	ORAL								
+92330	56	ORAL								
+92331	56	ORAL								
+92332	56	ORAL								
+92334	70	TOPICAL								
+92339	70	TOPICAL								
+92340	70	TOPICAL								
+92343	56	ORAL								
+92344	62	RECTAL								
+92345	70	TOPICAL								
+92346	70	TOPICAL								
+92361	56	ORAL								
+92368	8	DISINFECTANT (Food Premises)								
+92368	9	DISINFECTANT (Hospital/HC Facilities)								
+92368	94	DISINFECTANT (Institutional/Industrial)								
+92369	56	ORAL								
+92372	56	ORAL								
+92373	56	ORAL								
+92374	111	INFILTRATION								
+92374	7	EPIDURAL								
+92375	1	BLOCK/INFILTRATION								
+92375	7	EPIDURAL								
+92376	110	NERVE BLOCK								
+92376	7	EPIDURAL								
+92377	7	EPIDURAL								
+92378	1	BLOCK/INFILTRATION								
+92382	1	BLOCK/INFILTRATION								
+92383	1	BLOCK/INFILTRATION								
+92383	7	EPIDURAL								
+92384	1	BLOCK/INFILTRATION								
+92384	7	EPIDURAL								
+92386	56	ORAL								
+92389	56	ORAL								
+92393	85	PERCUTANEOUS								
+92403	66	SUBLINGUAL								
+92404	66	SUBLINGUAL								
+92407	70	TOPICAL								
+92409	56	ORAL								
+92410	56	ORAL								
+92411	56	ORAL								
+92414	56	ORAL								
+92415	56	ORAL								
+92416	56	ORAL								
+92417	70	TOPICAL								
+92418	56	ORAL								
+92419	56	ORAL								
+92420	56	ORAL								
+92421	56	ORAL								
+92422	56	ORAL								
+92423	56	ORAL								
+92424	49	INTRAVENOUS								
+92425	49	INTRAVENOUS								
+92426	70	TOPICAL								
+92427	70	TOPICAL								
+92429	70	TOPICAL								
+92430	56	ORAL								
+92437	22	INTRAMUSCULAR								
+92448	22	INTRAMUSCULAR								
+92448	49	INTRAVENOUS								
+92461	56	ORAL								
+92462	56	ORAL								
+92463	56	ORAL								
+92464	56	ORAL								
+92465	56	ORAL								
+92471	56	ORAL								
+92496	56	ORAL								
+92499	70	TOPICAL								
+92501	56	ORAL								
+92502	56	ORAL								
+92503	56	ORAL								
+92511	56	ORAL								
+92512	56	ORAL								
+92514	70	TOPICAL								
+92515	70	TOPICAL								
+92527	104	TOPICAL (HOUSEHOLD)								
+92529	70	TOPICAL								
+92540	2	DISINFECTANT (Barn)								
+92540	8	DISINFECTANT (Food Premises)								
+92540	9	DISINFECTANT (Hospital/HC Facilities)								
+92540	94	DISINFECTANT (Institutional/Industrial)								
+92541	56	ORAL								
+92543	49	INTRAVENOUS								
+92557	70	TOPICAL								
+92559	56	ORAL								
+92560	56	ORAL								
+92561	56	ORAL								
+92562	49	INTRAVENOUS								
+92563	49	INTRAVENOUS								
+92565	70	TOPICAL								
+92571	70	TOPICAL								
+92575	56	ORAL								
+92576	56	ORAL								
+92577	56	ORAL								
+92578	56	ORAL								
+92579	56	ORAL								
+92580	56	ORAL								
+92582	65	SUBCUTANEOUS								
+92584	59	PARENTERAL (UNSPECIFIED)								
+92585	22	INTRAMUSCULAR								
+92585	49	INTRAVENOUS								
+92585	65	SUBCUTANEOUS								
+92588	56	ORAL								
+92589	56	ORAL								
+92590	56	ORAL								
+92591	49	INTRAVENOUS								
+92597	8	DISINFECTANT (Food Premises)								
+92597	9	DISINFECTANT (Hospital/HC Facilities)								
+92597	94	DISINFECTANT (Institutional/Industrial)								
+92599	49	INTRAVENOUS								
+92599	56	ORAL								
+92605	56	ORAL								
+92606	56	ORAL								
+92607	49	INTRAVENOUS								
+92610	22	INTRAMUSCULAR								
+92610	49	INTRAVENOUS								
+92611	22	INTRAMUSCULAR								
+92611	49	INTRAVENOUS								
+92612	22	INTRAMUSCULAR								
+92612	49	INTRAVENOUS								
+92613	22	INTRAMUSCULAR								
+92613	49	INTRAVENOUS								
+92614	22	INTRAMUSCULAR								
+92614	49	INTRAVENOUS								
+92615	70	TOPICAL								
+92616	49	INTRAVENOUS								
+92617	70	TOPICAL								
+92618	70	TOPICAL								
+92619	70	TOPICAL								
+92620	70	TOPICAL								
+92622	70	TOPICAL								
+92627	56	ORAL								
+92628	56	ORAL								
+92629	56	ORAL								
+92634	70	TOPICAL								
+92635	70	TOPICAL								
+92644	56	ORAL								
+92645	56	ORAL								
+92646	70	TOPICAL								
+92650	56	ORAL								
+92651	56	ORAL								
+92660	70	TOPICAL								
+92668	8	DISINFECTANT (Food Premises)								
+92668	9	DISINFECTANT (Hospital/HC Facilities)								
+92668	93	DISINFECTANT (Domestic)								
+92668	94	DISINFECTANT (Institutional/Industrial)								
+92669	8	DISINFECTANT (Food Premises)								
+92669	9	DISINFECTANT (Hospital/HC Facilities)								
+92669	94	DISINFECTANT (Institutional/Industrial)								
+92672	56	ORAL								
+92673	56	ORAL								
+92674	56	ORAL								
+92675	56	ORAL								
+92676	56	ORAL								
+92682	70	TOPICAL								
+92703	56	ORAL								
+92704	56	ORAL								
+92705	56	ORAL								
+92709	56	ORAL								
+92713	49	INTRAVENOUS								
+92720	56	ORAL								
+92721	56	ORAL								
+92726	56	ORAL								
+92727	56	ORAL								
+92729	56	ORAL								
+92730	49	INTRAVENOUS								
+92739	56	ORAL								
+92740	56	ORAL								
+92745	56	ORAL								
+92754	56	ORAL								
+92766	56	ORAL								
+92770	8	DISINFECTANT (Food Premises)								
+92770	9	DISINFECTANT (Hospital/HC Facilities)								
+92770	94	DISINFECTANT (Institutional/Industrial)								
+92783	70	TOPICAL								
+92804	70	TOPICAL								
+92808	70	TOPICAL								
+92812	49	INTRAVENOUS								
+92814	56	ORAL								
+92816	56	ORAL								
+92819	70	TOPICAL								
+92822	56	ORAL								
+92826	70	TOPICAL								
+92828	56	ORAL								
+92829	56	ORAL								
+92832	65	SUBCUTANEOUS								
+92833	65	SUBCUTANEOUS								
+92835	56	ORAL								
+92844	56	ORAL								
+92845	56	ORAL								
+92846	56	ORAL								
+92847	56	ORAL								
+92848	56	ORAL								
+92850	56	ORAL								
+92851	56	ORAL								
+92852	70	TOPICAL								
+92861	70	TOPICAL								
+92865	56	ORAL								
+92866	56	ORAL								
+92874	65	SUBCUTANEOUS								
+92876	56	ORAL								
+92877	56	ORAL								
+92878	56	ORAL								
+92879	56	ORAL								
+92880	56	ORAL								
+92889	70	TOPICAL								
+92916	70	TOPICAL								
+92918	70	TOPICAL								
+92922	49	INTRAVENOUS								
+92925	56	ORAL								
+92926	56	ORAL								
+92927	56	ORAL								
+92941	65	SUBCUTANEOUS								
+92942	65	SUBCUTANEOUS								
+92949	70	TOPICAL								
+92950	56	ORAL								
+92951	56	ORAL								
+92952	56	ORAL								
+92957	56	ORAL								
+92958	56	ORAL								
+92959	56	ORAL								
+92960	56	ORAL								
+92961	56	ORAL								
+92962	56	ORAL								
+92963	56	ORAL								
+92964	56	ORAL								
+92968	65	SUBCUTANEOUS								
+92975	55	OPHTHALMIC								
+92982	70	TOPICAL								
+92984	70	TOPICAL								
+92987	56	ORAL								
+92998	56	ORAL								
+92999	56	ORAL								
+93000	70	TOPICAL								
+93003	49	INTRAVENOUS								
+93008	56	ORAL								
+93010	70	TOPICAL								
+93012	56	ORAL								
+93016	56	ORAL								
+93017	56	ORAL								
+93038	93	DISINFECTANT (Domestic)								
+93040	56	ORAL								
+93041	56	ORAL								
+93045	70	TOPICAL								
+93046	105	TOPICAL (COMMERCIAL)								
+93047	105	TOPICAL (COMMERCIAL)								
+93049	70	TOPICAL								
+93050	70	TOPICAL								
+93052	70	TOPICAL								
+93056	56	ORAL								
+93067	56	ORAL								
+93074	56	ORAL								
+93075	56	ORAL								
+93077	56	ORAL								
+93078	56	ORAL								
+93079	56	ORAL								
+93080	56	ORAL								
+93081	56	ORAL								
+93082	56	ORAL								
+93085	2	DISINFECTANT (Barn)								
+93085	9	DISINFECTANT (Hospital/HC Facilities)								
+93085	94	DISINFECTANT (Institutional/Industrial)								
+93086	55	OPHTHALMIC								
+93090	56	ORAL								
+93091	55	OPHTHALMIC								
+93092	22	INTRAMUSCULAR								
+93094	22	INTRAMUSCULAR								
+93097	56	ORAL								
+93098	56	ORAL								
+93101	56	ORAL								
+93102	70	TOPICAL								
+93104	70	TOPICAL								
+93112	56	ORAL								
+93113	56	ORAL								
+93133	56	ORAL								
+93145	70	TOPICAL								
+93146	56	ORAL								
+93148	70	TOPICAL								
+93151	49	INTRAVENOUS								
+93160	8	DISINFECTANT (Food Premises)								
+93160	9	DISINFECTANT (Hospital/HC Facilities)								
+93160	93	DISINFECTANT (Domestic)								
+93160	94	DISINFECTANT (Institutional/Industrial)								
+93169	56	ORAL								
+93170	56	ORAL								
+93202	56	ORAL								
+93203	56	ORAL								
+93210	56	ORAL								
+93211	56	ORAL								
+93212	49	INTRAVENOUS								
+93221	56	ORAL								
+93222	56	ORAL								
+93223	56	ORAL								
+93229	70	TOPICAL								
+93230	56	ORAL								
+93231	56	ORAL								
+93244	70	TOPICAL								
+93246	70	TOPICAL								
+93253	70	TOPICAL								
+93257	56	ORAL								
+93258	56	ORAL								
+93260	56	ORAL								
+93261	56	ORAL								
+93267	56	ORAL								
+93273	93	DISINFECTANT (Domestic)								
+93275	18	INTRACUTANEOUS								
+93275	65	SUBCUTANEOUS								
+93278	56	ORAL								
+93286	1	BLOCK/INFILTRATION								
+93295	56	ORAL								
+93301	56	ORAL								
+93302	56	ORAL								
+93307	70	TOPICAL								
+93308	70	TOPICAL								
+93317	9	DISINFECTANT (Hospital/HC Facilities)								
+93317	94	DISINFECTANT (Institutional/Industrial)								
+93318	9	DISINFECTANT (Hospital/HC Facilities)								
+93318	94	DISINFECTANT (Institutional/Industrial)								
+93319	9	DISINFECTANT (Hospital/HC Facilities)								
+93319	94	DISINFECTANT (Institutional/Industrial)								
+93329	70	TOPICAL								
+93330	70	TOPICAL								
+93334	70	TOPICAL								
+93338	9	DISINFECTANT (Hospital/HC Facilities)								
+93338	94	DISINFECTANT (Institutional/Industrial)								
+93339	56	ORAL								
+93341	56	ORAL								
+93342	56	ORAL								
+93343	56	ORAL								
+93354	49	INTRAVENOUS								
+93356	56	ORAL								
+93357	8	DISINFECTANT (Food Premises)								
+93357	9	DISINFECTANT (Hospital/HC Facilities)								
+93358	8	DISINFECTANT (Food Premises)								
+93358	9	DISINFECTANT (Hospital/HC Facilities)								
+93396	56	ORAL								
+93399	56	ORAL								
+93400	56	ORAL								
+93401	56	ORAL								
+93402	56	ORAL								
+93409	56	ORAL								
+93410	56	ORAL								
+93419	56	ORAL								
+93421	2	DISINFECTANT (Barn)								
+93421	8	DISINFECTANT (Food Premises)								
+93421	9	DISINFECTANT (Hospital/HC Facilities)								
+93421	94	DISINFECTANT (Institutional/Industrial)								
+93428	65	SUBCUTANEOUS								
+93429	65	SUBCUTANEOUS								
+93437	56	ORAL								
+93438	56	ORAL								
+93439	56	ORAL								
+93440	56	ORAL								
+93453	56	ORAL								
+93456	49	INTRAVENOUS								
+93457	49	INTRAVENOUS								
+93465	70	TOPICAL								
+93467	70	TOPICAL								
+93469	70	TOPICAL								
+93470	9	DISINFECTANT (Hospital/HC Facilities)								
+93470	94	DISINFECTANT (Institutional/Industrial)								
+93482	56	ORAL								
+93483	56	ORAL								
+93484	56	ORAL								
+93485	56	ORAL								
+93489	56	ORAL								
+93490	56	ORAL								
+93492	56	ORAL								
+93500	56	ORAL								
+93501	56	ORAL								
+93504	55	OPHTHALMIC								
+93506	2	DISINFECTANT (Barn)								
+93515	56	ORAL								
+93516	56	ORAL								
+93517	56	ORAL								
+93518	56	ORAL								
+93519	56	ORAL								
+93526	105	TOPICAL (COMMERCIAL)								
+93527	56	ORAL								
+93528	56	ORAL								
+93529	56	ORAL								
+93530	56	ORAL								
+93531	56	ORAL								
+93534	56	ORAL								
+93535	8	DISINFECTANT (Food Premises)								
+93535	9	DISINFECTANT (Hospital/HC Facilities)								
+93535	94	DISINFECTANT (Institutional/Industrial)								
+93541	56	ORAL								
+93542	56	ORAL								
+93543	55	OPHTHALMIC								
+93545	70	TOPICAL								
+93546	70	TOPICAL								
+93547	70	TOPICAL								
+93548	70	TOPICAL								
+93549	70	TOPICAL								
+93550	70	TOPICAL								
+93552	49	INTRAVENOUS								
+93553	56	ORAL								
+93554	56	ORAL								
+93555	56	ORAL								
+93556	56	ORAL								
+93557	56	ORAL								
+93558	56	ORAL								
+93559	56	ORAL								
+93569	56	ORAL								
+93570	56	ORAL								
+93571	56	ORAL								
+93572	56	ORAL								
+93573	56	ORAL								
+93574	56	ORAL								
+93575	56	ORAL								
+93576	56	ORAL								
+93594	8	DISINFECTANT (Food Premises)								
+93594	93	DISINFECTANT (Domestic)								
+93594	94	DISINFECTANT (Institutional/Industrial)								
+93599	70	TOPICAL								
+93610	49	INTRAVENOUS								
+93612	56	ORAL								
+93613	56	ORAL								
+93614	56	ORAL								
+93615	56	ORAL								
+93616	56	ORAL								
+93617	56	ORAL								
+93618	56	ORAL								
+93619	56	ORAL								
+93620	56	ORAL								
+93621	56	ORAL								
+93636	105	TOPICAL (COMMERCIAL)								
+93647	56	ORAL								
+93648	56	ORAL								
+93649	56	ORAL								
+93650	56	ORAL								
+93651	56	ORAL								
+93652	56	ORAL								
+93653	49	INTRAVENOUS								
+93660	56	ORAL								
+93661	56	ORAL								
+93672	70	TOPICAL								
+93673	70	TOPICAL								
+93685	2	DISINFECTANT (Barn)								
+93685	8	DISINFECTANT (Food Premises)								
+93685	9	DISINFECTANT (Hospital/HC Facilities)								
+93685	94	DISINFECTANT (Institutional/Industrial)								
+93686	8	DISINFECTANT (Food Premises)								
+93686	9	DISINFECTANT (Hospital/HC Facilities)								
+93686	94	DISINFECTANT (Institutional/Industrial)								
+93690	70	TOPICAL								
+93699	56	ORAL								
+93700	56	ORAL								
+93701	56	ORAL								
+93702	56	ORAL								
+93703	56	ORAL								
+93713	56	ORAL								
+93718	56	ORAL								
+93719	56	ORAL								
+93720	56	ORAL								
+93721	56	ORAL								
+93726	56	ORAL								
+93727	70	TOPICAL								
+93736	93	DISINFECTANT (Domestic)								
+93737	93	DISINFECTANT (Domestic)								
+93739	56	ORAL								
+93749	56	ORAL								
+93750	56	ORAL								
+93752	56	ORAL								
+93754	2	DISINFECTANT (Barn)								
+93754	8	DISINFECTANT (Food Premises)								
+93754	9	DISINFECTANT (Hospital/HC Facilities)								
+93754	94	DISINFECTANT (Institutional/Industrial)								
+93755	56	ORAL								
+93758	49	INTRAVENOUS								
+93759	49	INTRAVENOUS								
+93760	49	INTRAVENOUS								
+93761	49	INTRAVENOUS								
+93763	56	ORAL								
+93764	56	ORAL								
+93771	56	ORAL								
+93772	94	DISINFECTANT (Institutional/Industrial)								
+93780	2	DISINFECTANT (Barn)								
+93780	8	DISINFECTANT (Food Premises)								
+93780	9	DISINFECTANT (Hospital/HC Facilities)								
+93780	94	DISINFECTANT (Institutional/Industrial)								
+93790	56	ORAL								
+93792	56	ORAL								
+93794	49	INTRAVENOUS								
+93795	49	INTRAVENOUS								
+93796	49	INTRAVENOUS								
+93797	49	INTRAVENOUS								
+93798	49	INTRAVENOUS								
+93809	53	NASAL								
+93826	53	NASAL								
+93829	56	ORAL								
+93834	2	DISINFECTANT (Barn)								
+93834	9	DISINFECTANT (Hospital/HC Facilities)								
+93834	93	DISINFECTANT (Domestic)								
+93834	94	DISINFECTANT (Institutional/Industrial)								
+93846	56	ORAL								
+93855	56	ORAL								
+93860	80	INTRAVITREAL								
+93861	8	DISINFECTANT (Food Premises)								
+93861	9	DISINFECTANT (Hospital/HC Facilities)								
+93861	94	DISINFECTANT (Institutional/Industrial)								
+93869	56	ORAL								
+93871	56	ORAL								
+93878	56	ORAL								
+93879	56	ORAL								
+93881	49	INTRAVENOUS								
+93889	56	ORAL								
+93890	56	ORAL								
+93891	9	DISINFECTANT (Hospital/HC Facilities)								
+93891	94	DISINFECTANT (Institutional/Industrial)								
+93892	49	INTRAVENOUS								
+93893	49	INTRAVENOUS								
+93894	49	INTRAVENOUS								
+93895	49	INTRAVENOUS								
+93896	49	INTRAVENOUS								
+93897	70	TOPICAL								
+93907	8	DISINFECTANT (Food Premises)								
+93907	9	DISINFECTANT (Hospital/HC Facilities)								
+93918	8	DISINFECTANT (Food Premises)								
+93918	9	DISINFECTANT (Hospital/HC Facilities)								
+93918	93	DISINFECTANT (Domestic)								
+93918	94	DISINFECTANT (Institutional/Industrial)								
+93922	53	NASAL								
+93927	53	NASAL								
+93928	70	TOPICAL								
+93931	57	OTIC								
+93938	56	ORAL								
+93939	49	INTRAVENOUS								
+93941	9	DISINFECTANT (Hospital/HC Facilities)								
+93941	94	DISINFECTANT (Institutional/Industrial)								
+93942	33	INTRAPERITONEAL								
+93943	33	INTRAPERITONEAL								
+93944	33	INTRAPERITONEAL								
+93945	33	INTRAPERITONEAL								
+93964	56	ORAL								
+93965	56	ORAL								
+93967	2	DISINFECTANT (Barn)								
+93967	8	DISINFECTANT (Food Premises)								
+93967	94	DISINFECTANT (Institutional/Industrial)								
+93972	62	RECTAL								
+93974	56	ORAL								
+93975	56	ORAL								
+93976	56	ORAL								
+93979	22	INTRAMUSCULAR								
+93979	49	INTRAVENOUS								
+93979	65	SUBCUTANEOUS								
+93987	55	OPHTHALMIC								
+93988	55	OPHTHALMIC								
+93992	56	ORAL								
+93993	56	ORAL								
+93995	49	INTRAVENOUS								
+93997	56	ORAL								
+93998	70	TOPICAL								
+94004	49	INTRAVENOUS								
+94004	65	SUBCUTANEOUS								
+94008	70	TOPICAL								
+94009	70	TOPICAL								
+94014	56	ORAL								
+94015	56	ORAL								
+94027	53	NASAL								
+94031	55	OPHTHALMIC								
+94032	8	DISINFECTANT (Food Premises)								
+94032	9	DISINFECTANT (Hospital/HC Facilities)								
+94032	94	DISINFECTANT (Institutional/Industrial)								
+94033	56	ORAL								
+94034	56	ORAL								
+94036	56	ORAL								
+94038	56	ORAL								
+94039	56	ORAL								
+94040	56	ORAL								
+94043	66	SUBLINGUAL								
+94044	66	SUBLINGUAL								
+94046	56	ORAL								
+94049	70	TOPICAL								
+94050	56	ORAL								
+94051	2	DISINFECTANT (Barn)								
+94051	8	DISINFECTANT (Food Premises)								
+94051	9	DISINFECTANT (Hospital/HC Facilities)								
+94051	94	DISINFECTANT (Institutional/Industrial)								
+94052	70	TOPICAL								
+94054	56	ORAL								
+94055	56	ORAL								
+94056	56	ORAL								
+94057	56	ORAL								
+94058	56	ORAL								
+94060	49	INTRAVENOUS								
+94064	70	TOPICAL								
+94067	70	TOPICAL								
+94068	56	ORAL								
+94069	56	ORAL								
+94070	70	TOPICAL								
+94076	56	ORAL								
+94078	70	TOPICAL								
+94083	56	ORAL								
+94084	56	ORAL								
+94093	56	ORAL								
+94094	53	NASAL								
+94095	93	DISINFECTANT (Domestic)								
+94101	9	DISINFECTANT (Hospital/HC Facilities)								
+94101	94	DISINFECTANT (Institutional/Industrial)								
+94102	71	TRANSDERMAL								
+94106	49	INTRAVENOUS								
+94107	49	INTRAVENOUS								
+94108	55	OPHTHALMIC								
+94118	56	ORAL								
+94132	49	INTRAVENOUS								
+94133	49	INTRAVENOUS								
+94134	49	INTRAVENOUS								
+94139	56	ORAL								
+94140	56	ORAL								
+94142	56	ORAL								
+94144	65	SUBCUTANEOUS								
+94147	49	INTRAVENOUS								
+94159	56	ORAL								
+94160	65	SUBCUTANEOUS								
+94161	65	SUBCUTANEOUS								
+94162	65	SUBCUTANEOUS								
+94168	56	ORAL								
+94170	2	DISINFECTANT (Barn)								
+94170	8	DISINFECTANT (Food Premises)								
+94170	9	DISINFECTANT (Hospital/HC Facilities)								
+94170	94	DISINFECTANT (Institutional/Industrial)								
+94171	56	ORAL								
+94173	70	TOPICAL								
+94174	70	TOPICAL								
+94175	70	TOPICAL								
+94176	70	TOPICAL								
+94177	70	TOPICAL								
+94178	70	TOPICAL								
+94179	70	TOPICAL								
+94180	70	TOPICAL								
+94183	70	TOPICAL								
+94184	70	TOPICAL								
+94185	70	TOPICAL								
+94196	70	TOPICAL								
+94197	49	INTRAVENOUS								
+94198	56	ORAL								
+94199	70	TOPICAL								
+94200	56	ORAL								
+94201	56	ORAL								
+94202	56	ORAL								
+94203	56	ORAL								
+94206	2	DISINFECTANT (Barn)								
+94206	8	DISINFECTANT (Food Premises)								
+94206	9	DISINFECTANT (Hospital/HC Facilities)								
+94206	94	DISINFECTANT (Institutional/Industrial)								
+94208	30	DISINFECTANT (Medical Instruments)								
+94209	30	DISINFECTANT (Medical Instruments)								
+94210	55	OPHTHALMIC								
+94211	55	OPHTHALMIC								
+94219	49	INTRAVENOUS								
+94227	70	TOPICAL								
+94229	49	INTRAVENOUS								
+94230	49	INTRAVENOUS								
+94238	55	OPHTHALMIC								
+94241	22	INTRAMUSCULAR								
+94244	56	ORAL								
+94245	56	ORAL								
+94246	56	ORAL								
+94247	56	ORAL								
+94248	56	ORAL								
+94249	56	ORAL								
+94250	56	ORAL								
+94251	56	ORAL								
+94252	56	ORAL								
+94254	49	INTRAVENOUS								
+94255	56	ORAL								
+94256	56	ORAL								
+94262	93	DISINFECTANT (Domestic)								
+94263	93	DISINFECTANT (Domestic)								
+94265	70	TOPICAL								
+94269	56	ORAL								
+94270	56	ORAL								
+94271	70	TOPICAL								
+94272	53	NASAL								
+94277	49	INTRAVENOUS								
+94278	49	INTRAVENOUS								
+94279	49	INTRAVENOUS								
+94292	8	DISINFECTANT (Food Premises)								
+94292	9	DISINFECTANT (Hospital/HC Facilities)								
+94292	93	DISINFECTANT (Domestic)								
+94292	94	DISINFECTANT (Institutional/Industrial)								
+94294	56	ORAL								
+94295	56	ORAL								
+94297	49	INTRAVENOUS								
+94298	49	INTRAVENOUS								
+94300	55	OPHTHALMIC								
+94301	49	INTRAVENOUS								
+94301	65	SUBCUTANEOUS								
+94302	70	TOPICAL								
+94312	55	OPHTHALMIC								
+94314	56	ORAL								
+94315	70	TOPICAL								
+94318	56	ORAL								
+94329	56	ORAL								
+94333	9	DISINFECTANT (Hospital/HC Facilities)								
+94333	94	DISINFECTANT (Institutional/Industrial)								
+94337	53	NASAL								
+94338	53	NASAL								
+94339	53	NASAL								
+94340	53	NASAL								
+94341	49	INTRAVENOUS								
+94351	70	TOPICAL								
+94355	56	ORAL								
+94363	70	TOPICAL								
+94364	70	TOPICAL								
+94365	56	ORAL								
+94366	56	ORAL								
+94367	56	ORAL								
+94368	56	ORAL								
+94369	56	ORAL								
+94370	70	TOPICAL								
+94371	56	ORAL								
+94372	56	ORAL								
+94373	56	ORAL								
+94374	56	ORAL								
+94375	56	ORAL								
+94386	2	DISINFECTANT (Barn)								
+94386	8	DISINFECTANT (Food Premises)								
+94386	9	DISINFECTANT (Hospital/HC Facilities)								
+94386	93	DISINFECTANT (Domestic)								
+94386	94	DISINFECTANT (Institutional/Industrial)								
+94387	2	DISINFECTANT (Barn)								
+94387	8	DISINFECTANT (Food Premises)								
+94387	9	DISINFECTANT (Hospital/HC Facilities)								
+94387	93	DISINFECTANT (Domestic)								
+94387	94	DISINFECTANT (Institutional/Industrial)								
+94388	49	INTRAVENOUS								
+94389	56	ORAL								
+94390	56	ORAL								
+94391	56	ORAL								
+94392	56	ORAL								
+94401	56	ORAL								
+94402	56	ORAL								
+94403	56	ORAL								
+94410	56	ORAL								
+94411	70	TOPICAL								
+94413	49	INTRAVENOUS								
+94414	31	INTRATHECAL								
+94415	31	INTRATHECAL								
+94416	31	INTRATHECAL								
+94417	70	TOPICAL								
+94419	70	TOPICAL								
+94421	56	ORAL								
+94424	56	ORAL								
+94425	56	ORAL								
+94427	56	ORAL								
+94428	56	ORAL								
+94429	55	OPHTHALMIC								
+94430	56	ORAL								
+94431	56	ORAL								
+94432	56	ORAL								
+94433	56	ORAL								
+94434	56	ORAL								
+94444	49	INTRAVENOUS								
+94447	56	ORAL								
+94448	49	INTRAVENOUS								
+94449	49	INTRAVENOUS								
+94452	49	INTRAVENOUS								
+94453	49	INTRAVENOUS								
+94454	56	ORAL								
+94455	56	ORAL								
+94456	55	OPHTHALMIC								
+94456	57	OTIC								
+94457	2	DISINFECTANT (Barn)								
+94457	8	DISINFECTANT (Food Premises)								
+94457	9	DISINFECTANT (Hospital/HC Facilities)								
+94457	94	DISINFECTANT (Institutional/Industrial)								
+94458	29	INHALATION								
+94459	55	OPHTHALMIC								
+94460	1	BLOCK/INFILTRATION								
+94460	7	EPIDURAL								
+94461	1	BLOCK/INFILTRATION								
+94461	7	EPIDURAL								
+94463	70	TOPICAL								
+94464	56	ORAL								
+94465	56	ORAL								
+94466	56	ORAL								
+94467	56	ORAL								
+94468	56	ORAL								
+94469	56	ORAL								
+94470	56	ORAL								
+94471	56	ORAL								
+94472	56	ORAL								
+94473	56	ORAL								
+94478	56	ORAL								
+94479	56	ORAL								
+94480	56	ORAL								
+94481	56	ORAL								
+94482	70	TOPICAL								
+94483	70	TOPICAL								
+94484	56	ORAL								
+94485	70	TOPICAL								
+94486	70	TOPICAL								
+94487	70	TOPICAL								
+94490	56	ORAL								
+94491	56	ORAL								
+94492	56	ORAL								
+94493	56	ORAL								
+94495	49	INTRAVENOUS								
+94497	56	ORAL								
+94507	70	TOPICAL								
+94508	49	INTRAVENOUS								
+94515	9	DISINFECTANT (Hospital/HC Facilities)								
+94515	94	DISINFECTANT (Institutional/Industrial)								
+94517	70	TOPICAL								
+94522	53	NASAL								
+94523	53	NASAL								
+94524	70	TOPICAL								
+94526	70	TOPICAL								
+94537	2	DISINFECTANT (Barn)								
+94537	8	DISINFECTANT (Food Premises)								
+94537	94	DISINFECTANT (Institutional/Industrial)								
+94538	70	TOPICAL								
+94539	70	TOPICAL								
+94540	70	TOPICAL								
+94541	70	TOPICAL								
+94544	55	OPHTHALMIC								
+94545	70	TOPICAL								
+94547	56	ORAL								
+94548	56	ORAL								
+94551	49	INTRAVENOUS								
+94555	55	OPHTHALMIC								
+94560	56	ORAL								
+94562	8	DISINFECTANT (Food Premises)								
+94562	9	DISINFECTANT (Hospital/HC Facilities)								
+94562	94	DISINFECTANT (Institutional/Industrial)								
+94565	22	INTRAMUSCULAR								
+94565	65	SUBCUTANEOUS								
+94571	55	OPHTHALMIC								
+94572	22	INTRAMUSCULAR								
+94572	49	INTRAVENOUS								
+94572	65	SUBCUTANEOUS								
+94573	56	ORAL								
+94574	56	ORAL								
+94584	56	ORAL								
+94586	57	OTIC								
+94587	55	OPHTHALMIC								
+94591	56	ORAL								
+94592	56	ORAL								
+94593	56	ORAL								
+94594	56	ORAL								
+94595	56	ORAL								
+94596	56	ORAL								
+94597	56	ORAL								
+94598	56	ORAL								
+94599	56	ORAL								
+94601	70	TOPICAL								
+94602	62	RECTAL								
+94603	62	RECTAL								
+94604	22	INTRAMUSCULAR								
+94604	65	SUBCUTANEOUS								
+94605	57	OTIC								
+94605	70	TOPICAL								
+94611	49	INTRAVENOUS								
+94613	56	ORAL								
+94614	56	ORAL								
+94615	56	ORAL								
+94619	49	INTRAVENOUS								
+94620	49	INTRAVENOUS								
+94621	49	INTRAVENOUS								
+94622	49	INTRAVENOUS								
+94629	2	DISINFECTANT (Barn)								
+94629	8	DISINFECTANT (Food Premises)								
+94629	9	DISINFECTANT (Hospital/HC Facilities)								
+94629	93	DISINFECTANT (Domestic)								
+94629	94	DISINFECTANT (Institutional/Industrial)								
+94630	2	DISINFECTANT (Barn)								
+94630	8	DISINFECTANT (Food Premises)								
+94630	9	DISINFECTANT (Hospital/HC Facilities)								
+94630	93	DISINFECTANT (Domestic)								
+94630	94	DISINFECTANT (Institutional/Industrial)								
+94631	56	ORAL								
+94632	65	SUBCUTANEOUS								
+94633	65	SUBCUTANEOUS								
+94634	9	DISINFECTANT (Hospital/HC Facilities)								
+94634	94	DISINFECTANT (Institutional/Industrial)								
+94635	2	DISINFECTANT (Barn)								
+94635	8	DISINFECTANT (Food Premises)								
+94635	9	DISINFECTANT (Hospital/HC Facilities)								
+94635	94	DISINFECTANT (Institutional/Industrial)								
+94636	56	ORAL								
+94637	56	ORAL								
+94638	56	ORAL								
+94640	56	ORAL								
+94641	56	ORAL								
+94642	56	ORAL								
+94644	55	OPHTHALMIC								
+94652	49	INTRAVENOUS								
+94653	70	TOPICAL								
+94667	49	INTRAVENOUS								
+94668	2	DISINFECTANT (Barn)								
+94668	8	DISINFECTANT (Food Premises)								
+94668	9	DISINFECTANT (Hospital/HC Facilities)								
+94668	94	DISINFECTANT (Institutional/Industrial)								
+94669	56	ORAL								
+94670	56	ORAL								
+94673	56	ORAL								
+94674	56	ORAL								
+94685	49	INTRAVENOUS								
+94686	49	INTRAVENOUS								
+94687	49	INTRAVENOUS								
+94688	49	INTRAVENOUS								
+94689	49	INTRAVENOUS								
+94690	49	INTRAVENOUS								
+94691	49	INTRAVENOUS								
+94692	49	INTRAVENOUS								
+94695	65	SUBCUTANEOUS								
+94696	57	OTIC								
+94708	56	ORAL								
+94711	65	SUBCUTANEOUS								
+94712	65	SUBCUTANEOUS								
+94716	56	ORAL								
+94718	56	ORAL								
+94719	56	ORAL								
+94720	22	INTRAMUSCULAR								
+94720	49	INTRAVENOUS								
+94720	65	SUBCUTANEOUS								
+94721	29	INHALATION								
+94721	49	INTRAVENOUS								
+94721	56	ORAL								
+94722	56	ORAL								
+94723	56	ORAL								
+94739	56	ORAL								
+94742	49	INTRAVENOUS								
+94744	70	TOPICAL								
+94745	70	TOPICAL								
+94748	70	TOPICAL								
+94751	55	OPHTHALMIC								
+94752	56	ORAL								
+94753	56	ORAL								
+94754	56	ORAL								
+94755	56	ORAL								
+94756	56	ORAL								
+94758	56	ORAL								
+94760	49	INTRAVENOUS								
+94767	65	SUBCUTANEOUS								
+94769	49	INTRAVENOUS								
+94770	49	INTRAVENOUS								
+94771	22	INTRAMUSCULAR								
+94771	65	SUBCUTANEOUS								
+94779	8	DISINFECTANT (Food Premises)								
+94779	9	DISINFECTANT (Hospital/HC Facilities)								
+94779	94	DISINFECTANT (Institutional/Industrial)								
+94783	53	NASAL								
+94784	56	ORAL								
+94795	53	NASAL								
+94800	53	NASAL								
+94801	53	NASAL								
+94802	53	NASAL								
+94803	22	INTRAMUSCULAR								
+94803	49	INTRAVENOUS								
+94803	65	SUBCUTANEOUS								
+94804	22	INTRAMUSCULAR								
+94804	49	INTRAVENOUS								
+94804	65	SUBCUTANEOUS								
+94805	8	DISINFECTANT (Food Premises)								
+94805	9	DISINFECTANT (Hospital/HC Facilities)								
+94805	93	DISINFECTANT (Domestic)								
+94805	94	DISINFECTANT (Institutional/Industrial)								
+94807	40	INTRASPINAL								
+94808	56	ORAL								
+94809	65	SUBCUTANEOUS								
+94810	2	DISINFECTANT (Barn)								
+94810	8	DISINFECTANT (Food Premises)								
+94810	9	DISINFECTANT (Hospital/HC Facilities)								
+94810	93	DISINFECTANT (Domestic)								
+94810	94	DISINFECTANT (Institutional/Industrial)								
+94812	8	DISINFECTANT (Food Premises)								
+94812	9	DISINFECTANT (Hospital/HC Facilities)								
+94814	56	ORAL								
+94822	49	INTRAVENOUS								
+94824	56	ORAL								
+94825	8	DISINFECTANT (Food Premises)								
+94825	9	DISINFECTANT (Hospital/HC Facilities)								
+94825	93	DISINFECTANT (Domestic)								
+94825	94	DISINFECTANT (Institutional/Industrial)								
+94826	56	ORAL								
+94827	56	ORAL								
+94828	56	ORAL								
+94829	56	ORAL								
+94830	56	ORAL								
+94831	56	ORAL								
+94832	56	ORAL								
+94833	56	ORAL								
+94840	56	ORAL								
+94841	56	ORAL								
+94843	56	ORAL								
+94844	56	ORAL								
+94845	56	ORAL								
+94846	49	INTRAVENOUS								
+94847	49	INTRAVENOUS								
+94859	56	ORAL								
+94860	9	DISINFECTANT (Hospital/HC Facilities)								
+94860	94	DISINFECTANT (Institutional/Industrial)								
+94862	22	INTRAMUSCULAR								
+94863	56	ORAL								
+94864	56	ORAL								
+94865	56	ORAL								
+94871	56	ORAL								
+94872	56	ORAL								
+94883	56	ORAL								
+94884	56	ORAL								
+94894	56	ORAL								
+94898	94	DISINFECTANT (Institutional/Industrial)								
+94899	22	INTRAMUSCULAR								
+94899	49	INTRAVENOUS								
+94903	49	INTRAVENOUS								
+94906	70	TOPICAL								
+94908	56	ORAL								
+94911	56	ORAL								
+94916	65	SUBCUTANEOUS								
+94926	56	ORAL								
+94928	56	ORAL								
+94929	56	ORAL								
+94930	56	ORAL								
+94943	65	SUBCUTANEOUS								
+94945	70	TOPICAL								
+94948	22	INTRAMUSCULAR								
+94948	49	INTRAVENOUS								
+94949	22	INTRAMUSCULAR								
+94949	49	INTRAVENOUS								
+94960	56	ORAL								
+94961	56	ORAL								
+94962	56	ORAL								
+94964	49	INTRAVENOUS								
+94965	22	INTRAMUSCULAR								
+94965	49	INTRAVENOUS								
+94966	65	SUBCUTANEOUS								
+94968	49	INTRAVENOUS								
+94969	8	DISINFECTANT (Food Premises)								
+94969	94	DISINFECTANT (Institutional/Industrial)								
+94972	70	TOPICAL								
+94973	56	ORAL								
+94974	56	ORAL								
+94975	56	ORAL								
+94976	56	ORAL								
+94983	56	ORAL								
+94984	56	ORAL								
+94988	49	INTRAVENOUS								
+94989	56	ORAL								
+94992	56	ORAL								
+94993	56	ORAL								
+94995	49	INTRAVENOUS								
+94996	49	INTRAVENOUS								
+94998	70	TOPICAL								
+95001	56	ORAL								
+95011	49	INTRAVENOUS								
+95012	49	INTRAVENOUS								
+95015	70	TOPICAL								
+95016	49	INTRAVENOUS								
+95017	70	TOPICAL								
+95018	1	BLOCK/INFILTRATION								
+95019	1	BLOCK/INFILTRATION								
+95020	1	BLOCK/INFILTRATION								
+95021	1	BLOCK/INFILTRATION								
+95022	49	INTRAVENOUS								
+95023	55	OPHTHALMIC								
+95029	70	TOPICAL								
+95030	70	TOPICAL								
+95031	56	ORAL								
+95032	56	ORAL								
+95045	56	ORAL								
+95047	56	ORAL								
+95050	49	INTRAVENOUS								
+95051	49	INTRAVENOUS								
+95052	22	INTRAMUSCULAR								
+95055	49	INTRAVENOUS								
+95057	56	ORAL								
+95058	56	ORAL								
+95059	56	ORAL								
+95060	56	ORAL								
+95062	56	ORAL								
+95063	56	ORAL								
+95066	74	VAGINAL								
+95069	56	ORAL								
+95071	3	BUCCAL								
+95072	65	SUBCUTANEOUS								
+95073	65	SUBCUTANEOUS								
+95074	65	SUBCUTANEOUS								
+95075	49	INTRAVENOUS								
+95076	49	INTRAVENOUS								
+95081	49	INTRAVENOUS								
+95083	49	INTRAVENOUS								
+95085	8	DISINFECTANT (Food Premises)								
+95085	9	DISINFECTANT (Hospital/HC Facilities)								
+95085	93	DISINFECTANT (Domestic)								
+95085	94	DISINFECTANT (Institutional/Industrial)								
+95086	56	ORAL								
+95089	49	INTRAVENOUS								
+95090	56	ORAL								
+95091	56	ORAL								
+95092	56	ORAL								
+95093	3	BUCCAL								
+95094	56	ORAL								
+95095	65	SUBCUTANEOUS								
+95096	65	SUBCUTANEOUS								
+95098	49	INTRAVENOUS								
+95102	56	ORAL								
+95103	3	BUCCAL								
+95104	56	ORAL								
+95105	56	ORAL								
+95109	94	DISINFECTANT (Institutional/Industrial)								
+95111	70	TOPICAL								
+95112	70	TOPICAL								
+95117	56	ORAL								
+95131	56	ORAL								
+95134	56	ORAL								
+95135	56	ORAL								
+95136	22	INTRAMUSCULAR								
+95136	65	SUBCUTANEOUS								
+95144	70	TOPICAL								
+95145	70	TOPICAL								
+95153	2	DISINFECTANT (Barn)								
+95153	8	DISINFECTANT (Food Premises)								
+95153	9	DISINFECTANT (Hospital/HC Facilities)								
+95153	93	DISINFECTANT (Domestic)								
+95153	94	DISINFECTANT (Institutional/Industrial)								
+95160	70	TOPICAL								

@@ -229,16 +229,16 @@ commit;
 * 7. Return all concepts and concept_relationships that were in the base tables but no longer here *
 *    The internal RxE will be deprecated, those to ATC will be copied                              *
 ****************************************************************************************************/
-select * from concept_stage;
-insert /*+ APPEND */ into concept_stage;
+-- Add old RxNorm Extension concepts that no longer are part of the corpus, and deprecate
+insert /*+ APPEND */ into concept_stage
 select 
-  null as concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date
+  null as concept_id, concept_name, domain_id, 'RxNorm Extension', concept_class_id, standard_concept, concept_code, valid_start_date,
   (select latest_update from vocabulary where vocabulary_id='Rxfix')-1 as valid_end_date, 'D' as invalid_reason
 from concept where vocabulary_id='RxO' and concept_code not in (select concept_code from concept_stage where vocabulary_id='RxNorm Extension')
 ;
 commit;
 
--- Within RxE
+-- ... and their relationships
 insert /*+ APPEND */ into concept_relationship_stage
 select 
   null as concept_id_1, null as concept_id_2, 

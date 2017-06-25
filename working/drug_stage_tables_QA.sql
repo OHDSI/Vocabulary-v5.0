@@ -208,6 +208,9 @@ where (lower (numerator_unit) in ('mg') and lower (denominator_unit) in ('ml','g
 or  lower (numerator_unit) in ('g')and lower (denominator_unit) in ('l'))
 and numerator_value/nvl(denominator_value, 1)>1000
 union
+select a.drug_concept_code,'3-leg dogs'
+from ds_stage a join ds_stage b on a.drug_concept_code=b.drug_concept_code and a.ingredient_concept_code!=b.ingredient_concept_code and a.amount_unit is null and b.amount_unit is not null 
+union
 select drug_concept_code,'mg/mg >1' 
 from ds_stage where numerator_unit='mg' and denominator_unit='mg' and numerator_value/nvl(denominator_value, 1)>1 
  union

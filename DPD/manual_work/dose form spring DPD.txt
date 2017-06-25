@@ -368,7 +368,8 @@ ORAL TABLET FOR SUSPENSION	Dose Form	19082573	Oral Tablet		2
 ORAL TEA (HERBAL)	Dose Form	19082170	Oral Solution		1	
 ORAL TINCTURE	Dose Form	19082170	Oral Solution		1	
 ORAL TOOTHPASTE	Dose Form	19009068	Toothpaste		1	
-ORAL WAFER	Dose Form	19082251	Oral Wafer		1	
+ORAL WAFER	Dose Form	19082251	Chewable Tablet		1	
+ORAL WAFER	Dose Form	19082573	Oral Tablet		2	
 OTIC DROPS	Dose Form	19082195	Otic Solution		1	
 OTIC DROPS	Dose Form	19082196	Otic Suspension		2	
 OTIC LIQUID	Dose Form	19082195	Otic Solution		1	

@@ -301,13 +301,28 @@ update active_ingredients set dosage_value = null,dosage_unit = null where drug_
 
 update active_ingredients 
 set ingredient = 'Melphalan' where ingredient = 'BUFFER SOLUTION';
-/*
---DELETING DUPLICATES
-DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '2439042' AND   ACTIVE_INGREDIENT_CODE = 11564;
-DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '2246512' AND   ACTIVE_INGREDIENT_CODE = 6487;
-DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '2210614' AND   ACTIVE_INGREDIENT_CODE = 331;
-DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '2210622' AND   ACTIVE_INGREDIENT_CODE = 331;
-*/
+
+DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '1900609' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXAL-5-PHOSPHATE)';
+DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '1901109' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXAL-5-PHOSPHATE)';
+DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '1901117' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXAL-5-PHOSPHATE)';
+DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '2231701' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXAL-5-PHOSPHATE)';
+DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '678961' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXAL-5-PHOSPHATE)';
+DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '839167' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXAL-5-PHOSPHATE)';
+DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '849863' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXAL-5-PHOSPHATE)';
+DELETE FROM ACTIVE_INGREDIENTS WHERE DRUG_CODE = '899917' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXAL-5-PHOSPHATE)';
+DELETE FROM ACTIVE_INGREDIENTS WHERE   INGREDIENT = 'SURFACTANT-ASSOCIATED PROTEINS SP-B AND SP-C';
+UPDATE ACTIVE_INGREDIENTS   SET STRENGTH = '27.5' WHERE DRUG_CODE = '2245464' AND   INGREDIENT = 'PHOSPHOLIPID';
+UPDATE ACTIVE_INGREDIENTS   SET STRENGTH = '50' WHERE DRUG_CODE = '1900609' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE)';
+UPDATE ACTIVE_INGREDIENTS   SET STRENGTH = '5' WHERE DRUG_CODE = '1901109' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE)';
+UPDATE ACTIVE_INGREDIENTS   SET STRENGTH = '125' WHERE DRUG_CODE = '1901117' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE)';
+UPDATE ACTIVE_INGREDIENTS   SET STRENGTH = '31.6' WHERE DRUG_CODE = '2231701' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE)';
+UPDATE ACTIVE_INGREDIENTS   SET STRENGTH = '31' WHERE DRUG_CODE = '678961' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE)';
+UPDATE ACTIVE_INGREDIENTS   SET STRENGTH = '12.5' WHERE DRUG_CODE = '839167' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE)';
+UPDATE ACTIVE_INGREDIENTS   SET STRENGTH = '50' WHERE DRUG_CODE = '849863' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE)';
+UPDATE ACTIVE_INGREDIENTS   SET STRENGTH = '10' WHERE DRUG_CODE = '899917' AND   INGREDIENT = 'VITAMIN B6 (PYRIDOXINE HYDROCHLORIDE)';
+
+
+
 
 CREATE TABLE route 
 AS
@@ -849,7 +864,7 @@ SELECT DISTINCT CONCEPT_NAME, 'DPD', CONCEPT_CLASS_ID, STANDARD_CONCEPT, CONCEPT
 TO_DATE('2099/12/31', 'yyyy/mm/dd') AS valid_end_date, ''
  FROM 
 (
-SELECT INITCAP (CONCEPT_NAME) AS CONCEPT_NAME, CONCEPT_CLASS_ID,STANDARD_CONCEPT, 'DPD'||CONCEPT_CODE AS concept_code FROM list_temp --ADD 'OMOP' to all OMOP-generated concepts
+SELECT INITCAP (CONCEPT_NAME) AS CONCEPT_NAME, CONCEPT_CLASS_ID,STANDARD_CONCEPT, 'OMOP'||CONCEPT_CODE AS concept_code FROM list_temp --ADD 'OMOP' to all OMOP-generated concepts
 UNION
 SELECT CONCEPT_NAME,CONCEPT_CLASS_ID,'',CONCEPT_CODE FROM unit
 UNION
@@ -1044,8 +1059,9 @@ FROM (SELECT drug_concept_code,ingredient_concept_code, box_size,
              CASE WHEN amount_unit = 'G' THEN amount_value*1000 WHEN amount_unit = 'MCG' THEN amount_value/1000  ELSE amount_value END AS amount_value,-- make amount units similar
              CASE WHEN amount_unit in ('G','MCG') THEN 'MG' ELSE amount_unit END AS amount_unit,
              CASE WHEN numerator_unit = 'G' THEN numerator_value*1000 WHEN numerator_unit = 'MCG' THEN numerator_value/1000 ELSE numerator_value END AS numerator_value,
-             CASE WHEN numerator_unit in ('G','MCG') THEN 'MG' ELSE numerator_unit END AS numerator_unit,
-             denominator_value,denominator_unit
+             CASE WHEN numerator_unit in ('G','MCG') THEN 'MG' WHEN numerator_unit = 'Kg' THEN 'KG' WHEN numerator_unit = 'mEq' THEN 'MEQ' ELSE numerator_unit END AS numerator_unit,
+             denominator_value,
+	     CASE WHEN denominator_unit = 'Kg' THEN 'KG' WHEN denominator_unit = 'mEq' THEN 'MEQ' ELSE denominator_unit END AS denominator_unit 
       FROM ds_stage_1 a
       WHERE (drug_concept_code,ingredient_concept_code) IN (SELECT drug_concept_code,ingredient_concept_code
                                                             FROM ds_stage_1 GROUP BY drug_concept_code,ingredient_concept_code HAVING COUNT(1) > 1)
@@ -1104,6 +1120,11 @@ update ds_stage
 set numerator_unit='%',numerator_value=amount_value/10000,amount_value=null,amount_unit=null
 where AMOUNT_UNIT='PPM';
 
+--homeopathy should be in numerator
+update ds_stage
+set numerator_unit=amount_unit,numerator_value=amount_value,amount_unit=null,amount_value=null
+where amount_unit in ('DH','C','CH','D','TM','X','XMK');
+
 --inserting ingredients that are absent in original data
 INSERT INTO ds_stage (drug_concept_code,ingredient_concept_code)
     WITH a AS (SELECT MAX(LENGTH(concept_name)) OVER (PARTITION BY drug_code) AS l1,dp.drug_code, dcs.concept_code
@@ -1127,16 +1148,17 @@ SELECT dp.drug_code,dcs2.concept_code
                  JOIN drug_concept_stage dcs ON brand_name LIKE '%' ||upper (concept_name) || '%' AND dcs.concept_class_id = 'Ingredient' AND REGEXP_LIKE (brand_name,'HCTZ|AND HYDROCHLOROTHIAZIDE')
                  LEFT JOIN drug_concept_stage dcs2 ON upper(dcs2.concept_name)='HYDROCHLOROTHIAZIDE'
                WHERE dp.drug_code NOT IN (SELECT drug_code FROM active_ingredients) ;
-DELETE ds_stage
-WHERE amount_unit IS NULL AND numerator_unit IS NULL AND denominator_unit IS NULL;INSERT INTO PC_STAGE_MANUAL (CONCEPT_NAME_1,CONCEPT_NAME_2 )
-SELECT DISTINCT brand_name||' [Drug]',drug_name||' ['||new_name||']'         FROM
-(SELECT DISTINCT listagg (INGREDIENT, '/') WITHIN GROUP (ORDER BY DOSAGE_UNIT) OVER (PARTITION BY ai.drug_code,DOSAGE_UNIT ) AS drug_name,ai.*,new_name,dp.brand_name FROM 
-active_ingredients ai
-LEFT JOIN brand_name bn ON bn.drug_code=ai.drug_code --left join form packs that don't have BN
-JOIN drug_product dp ON dp.drug_code=ai.drug_code
-WHERE ai.drug_code IN ('763047','690082','2405024','773530','2451727','2445131','2239730','2241159','2238525','2239371'  ));
 
-DELETE FROM DS_STAG EWHERE DRUG_CONCEPT_CODE = '2087286' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE = 10 AND   AMOUNT_UNIT = 'ML' AND   NUMERATOR_VALUE IS NULL AND   NUMERATOR_UNIT IS NULL AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT IS NULL;
+insert into ds_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+select distinct dcs.concept_code,dcs2.concept_code,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT
+ FROM new_pack np
+  JOIN drug_concept_stage dcs ON INITCAP (np.concept_name) = dcs.concept_name AND dcs.concept_class_id = 'Drug Product'
+  JOIN drug_concept_stage dcs2 ON INITCAP (np.INGREDIENT) = dcs2.concept_name AND dcs2.concept_class_id = 'Ingredient';
+
+DELETE ds_stage
+WHERE amount_unit IS NULL AND numerator_unit IS NULL AND denominator_unit IS NULL;
+
+DELETE FROM DS_STAGE WHERE DRUG_CONCEPT_CODE = '2087286' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE = 10 AND   AMOUNT_UNIT = 'ML' AND   NUMERATOR_VALUE IS NULL AND   NUMERATOR_UNIT IS NULL AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT IS NULL;
 DELETE FROM DS_STAGE WHERE DRUG_CONCEPT_CODE = '2087286' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE = 10 AND   AMOUNT_UNIT = 'ML' AND   NUMERATOR_VALUE IS NULL AND   NUMERATOR_UNIT IS NULL AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT IS NULL;
 DELETE FROM DS_STAGE WHERE DRUG_CONCEPT_CODE = '2245464' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 500 AND   NUMERATOR_UNIT = 'MCG' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'ML';
 DELETE FROM DS_STAGE WHERE DRUG_CONCEPT_CODE = '2202034' AND   BOX_SIZE IS NULL AND   AMOUNT_VALUE IS NULL AND   AMOUNT_UNIT IS NULL AND   NUMERATOR_VALUE = 20 AND   NUMERATOR_UNIT = 'UNIT' AND   DENOMINATOR_VALUE IS NULL AND   DENOMINATOR_UNIT = 'UNIT';
@@ -1160,6 +1182,14 @@ DELETE ds_stage WHERE  drug_concept_code IN (SELECT a.drug_concept_code
                             FROM ds_stage a
                               JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code AND a.ingredient_concept_code != b.ingredient_concept_code AND nvl(a.amount_unit,a.numerator_unit) IS NOT NULL AND nvl(b.amount_unit,b.numerator_unit) IS NULL);
 
+
+INSERT INTO PC_STAGE_MANUAL (CONCEPT_NAME_1,CONCEPT_NAME_2 )
+SELECT DISTINCT brand_name||' [Drug]',drug_name||' ['||new_name||']'         FROM
+(SELECT DISTINCT listagg (INGREDIENT, '/') WITHIN GROUP (ORDER BY DOSAGE_UNIT) OVER (PARTITION BY ai.drug_code,DOSAGE_UNIT ) AS drug_name,ai.*,new_name,dp.brand_name FROM 
+active_ingredients ai
+LEFT JOIN brand_name bn ON bn.drug_code=ai.drug_code --left join form packs that don't have BN
+JOIN drug_product dp ON dp.drug_code=ai.drug_code
+WHERE ai.drug_code IN ('763047','690082','2405024','773530','2451727','2445131','2239730','2241159','2238525','2239371'  ));
 
 TRUNCATE TABLE pc_stage;
 INSERT INTO pc_stage (pack_concept_code,drug_Concept_code,amount,box_size)

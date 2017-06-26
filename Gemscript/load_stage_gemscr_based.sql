@@ -306,13 +306,13 @@ update thin_need_to_map
 set domain_id = 'Device' 
 where GEMSCRIPT_CODE in (
 select GEMSCRIPT_CODE from thin_need_to_map where
-regexp_like (lower(THIN_name), 'dialysis|smoflipid|camino|maxamum|sno-pro|lubri|peptamen|pepti-junior|dressing|diagnostic|glove|supplement| rope|weight|resource|accu-chek|accutrend|procal|glytactin|gauze|keyomega|cystine|docomega|anamixcranberry|pedialyte|hydralyte|hcu cooler|pouch')
+regexp_like (lower(THIN_name), 'amidotrizoate|dialysis|smoflipid|camino|maxamum|sno-pro|lubri|peptamen|pepti-junior|dressing|diagnostic|glove|supplement| rope|weight|resource|accu-chek|accutrend|procal|glytactin|gauze|keyomega|cystine|docomega|anamixcranberry|pedialyte|hydralyte|hcu cooler|pouch')
 union 
 select GEMSCRIPT_CODE from thin_need_to_map where
 regexp_like (lower(THIN_name),'burger|biscuits|stocking|strip|remover|chamber|gauze|supply|beverage|cleanser|soup|protector|nutrision|repellent|wipes|kilocalories|cake|roll|adhesive|milk|dessert|medium chain|prozero|amino acid supplement|long chain|low protein|pouches|ribbon|cannula|swabs|bandage|cylinder')
 union
 select GEMSCRIPT_CODE from  thin_need_to_map where
-regexp_like (lower(gemscript_name),'burger|biscuits|stocking|strip|remover|chamber|gauze|supply|beverage|cleanser|soup|protector|nutrision|repellent|wipes|kilocalories|cake|roll|adhesive|milk|dessert|medium chain|prozero|amino acid supplement|long chain|low protein|pouches|ribbon|cannula|swabs|bandage|cylinder')
+regexp_like (lower(gemscript_name),'amidotrizoate|burger|biscuits|stocking|strip|remover|chamber|gauze|supply|beverage|cleanser|soup|protector|nutrision|repellent|wipes|kilocalories|cake|roll|adhesive|milk|dessert|medium chain|prozero|amino acid supplement|long chain|low protein|pouches|ribbon|cannula|swabs|bandage|cylinder')
 union
 select GEMSCRIPT_CODE from  thin_need_to_map where
 regexp_like (lower(gemscript_name), 'dialysis|smoflipid|camino|maxamum|sno-pro|lubri|peptamen|pepti-junior|dressing|diagnostic|glove|supplement| rope|weight|resource|accu-chek|accutrend|procal|glytactin|gauze|keyomega|cystine|docomega|anamixcranberry|pedialyte|hydralyte|hcu cooler|pouch')
@@ -480,7 +480,7 @@ WbImport -file=C:/work/gemscript_packs_in.txt
  commit
  ;
 insert into thin_need_to_map (THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID)
-select '', DRUG_CONCEPT_CODE, DRUG_CONCEPT_CODE,DRUG_CONCEPT_CODE, 'Drug' from pc_stage
+select distinct '', DRUG_CONCEPT_CODE, DRUG_CONCEPT_CODE,DRUG_CONCEPT_CODE, 'Drug' from pc_stage
 ;
 commit
 ;
@@ -711,7 +711,7 @@ select DOSAGE	,VOLUME	,INGREDIENT_CONCEPT_CODE,	CONCEPT_NAME,	CONCEPT_CODE
 join thin_need_to_map on concept_code = thin_code
 and rownum =0
 ;
-WbImport -file=C:/work/manual_in_co_dose_2.txt
+WbImport -file=C:\Users\Dmitry\Desktop\manual_dosage_3.txt
          -type=text
          -table=MANUAL_IN_CO_DOSE_2
          -encoding="ISO-8859-15"
@@ -730,20 +730,75 @@ WbImport -file=C:/work/manual_in_co_dose_2.txt
 
 --;
 --select * from manual_in_co_dose_1 left join thin_need_to_map on concept_code = gemscript_code where gemscript_code is not null
+drop table manual_in_co_dose;
 create table manual_in_co_dose as
 select * from manual_in_co_dose_1
 union
 select * from manual_in_co_dose_2
+
+WbImport -file=C:/work/thin_manual_260617.txt
+         -type=text
+         -table=THIN_MANUAL_260617
+         -encoding="ISO-8859-15"
+         -header=true
+         -decode=false
+         -dateFormat="yyyy-MM-dd"
+         -timestampFormat="yyyy-MM-dd HH:mm:ss"
+         -delimiter='\t'
+         -decimal=.
+         -fileColumns=THIN_CODE,THIN_NAME,GEMSCRIPT_NAME,DOMAIN_ID,INGREDIENT_ID,INGREDIENT_CONCEPT_CODE,DOSAGE,VOLUME
+         -quoteCharEscaping=none
+         -ignoreIdentityColumns=false
+         -deleteTarget=false
+         -continueOnError=false
+         -batchSize=1000;
+         
+update thin_manual_260617 m set thin_code = (select t.gemscript_code from thin_need_to_map t where t.thin_code = m.thin_code)
+where exists (select 1 from thin_need_to_map t where t.thin_code = m.thin_code)         
+
+
+; 
+drop table thin_manual_260617 
+;
+create table thin_manual_260617 ( THIN_CODE	varchar (250),THIN_NAME varchar (2500),	GEMSCRIPT_NAME varchar (2500),	DOMAIN_ID varchar (250),	ingredient_id int, 	INGREDIENT_CONCEPT_CODE varchar (250),	DOSAGE varchar (250),	VOLUME varchar (250)
+)
+;
+alter table thin_manual_260617 rename column thin_code to gemscript_code
 ;
 */
-delete from ds_all_tmp where concept_code in (select concept_code from manual_in_co_dose);
+;
+update thin_manual_260617 set dosage = null where dosage = '0'
+;
+update thin_manual_260617 set dosage = replace (dosage, ',')
+;
+commit
+;
 
+delete from ds_all_tmp where concept_code in (select concept_code from manual_in_co_dose);
+commit
+;
+delete from ds_all_tmp where concept_code in ( select gemscript_code from thin_manual_260617 where INGREDIENT_ID !=0 and gemscript_code not in (select concept_code from manual_in_co_dose))
+;
+commit
+;
+--packs after manual table in case if in manual table there will be packs
 commit
 ;
 insert into ds_all_tmp (DOSAGE,DRUG_COMP,CONCEPT_NAME,CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,INGREDIENT_CONCEPT_NAME,VOLUME)
 select DOSAGE, '', CONCEPT_NAME, CONCEPT_CODE, INGREDIENT_CONCEPT_CODE, INGREDIENT_CONCEPT_CODE, volume from manual_in_co_dose
 ;
+--there were two steps (and already hard to figure out what's included in which table, so two steps)
+insert into ds_all_tmp (DOSAGE,DRUG_COMP,CONCEPT_NAME,CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,INGREDIENT_CONCEPT_NAME,VOLUME)
+select DOSAGE, '', GEMSCRIPT_NAME, gemscript_CODE, INGREDIENT_CONCEPT_CODE, INGREDIENT_CONCEPT_CODE, volume from thin_manual_260617 where gemscript_code not in (select CONCEPT_CODE from manual_in_co_dose) and INGREDIENT_ID !=0
+;
+--set the proper domain_id based on the manual table
+update  thin_need_to_map t set domain_id = (select distinct domain_id from thin_manual_260617 m where t.gemscript_code = m.gemscript_code)
+where exists (select 1 from thin_manual_260617 m where t.gemscript_code = m.gemscript_code)
+;
 commit
+;
+--packs after manual table in case if in manual table there will be packs
+delete from ds_all_tmp where concept_code in (Select drug_concept_code from pc_stage)
 ;
 --then merge it with ds_all_tmp, for now temporary decision - make dosages NULL to avoid bug
 --remove ' ' inside the dosage to make the same as it was before in dmd
@@ -864,6 +919,13 @@ delete from ds_Stage where ingredient_concept_code ='Syrup'
 ;
 delete from ds_Stage where 0 in (numerator_value,amount_value,denominator_value)
 ;
+--sum up the Zinc undecenoate 20% / Undecenoic acid 5% cream
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '1637007' AND   INGREDIENT_CONCEPT_CODE = 'OMOP1021956' AND   NUMERATOR_VALUE = 50;
+UPDATE DS_STAGE    SET NUMERATOR_VALUE = 250
+WHERE DRUG_CONCEPT_CODE = '1637007' AND   INGREDIENT_CONCEPT_CODE = 'OMOP1021956' AND   NUMERATOR_VALUE = 200;
+
 --redefine packs later
 /*
 --remove Packs from ds_stage !!! need to find more
@@ -909,10 +971,16 @@ denominator_unit = 'ml'
 where numerator_unit = '%' 
 and denominator_unit is null and denominator_value is null
 ;
-delete from ds_stage where amount_value is null and drug_concept_code = 83792998
+commit
+;
+delete from ds_stage where drug_concept_code in (Select pack_concept_code from pc_stage)
 ;
 commit
 ;
+select * from thin_need_to_map where gemscript_code not in (select drug_concept_code from ds_stage ) and gemscript_code not in (select gemscript_code from thin_manual_260617 where gemscript_code is not null) and domain_id = 'Drug' 
+and gemscript_code not in (select pack_concept_code from pc_stage)
+;
+--stop here!
 /*
 select * from ds_stage ds
 join ds_all da on DRUG_CONCEPT_CODE = CONCEPT_CODE and ds.INGREDIENT_CONCEPT_CODE =da.INGREDIENT_CONCEPT_CODE
@@ -955,7 +1023,7 @@ update thin_need_to_map set
 thin_name = regexp_replace (thin_name, 'sus$','suspension' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'eli$','oral tablet' , 1,1,'i')
+thin_name = regexp_replace (thin_name, 'eli$','elixir' , 1,1,'i')
 ;
 update thin_need_to_map set 
 thin_name = regexp_replace (thin_name, 'sup$','suppositories' , 1,1,'i')
@@ -973,7 +1041,10 @@ update thin_need_to_map set
 thin_name = regexp_replace (thin_name, 'lot$','lotion' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'syr$','syringe' , 1,1,'i')
+thin_name = regexp_replace (thin_name, 'pre-filled syr$','pre-filled syringe' , 1,1,'i') 
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'syr$','syrup' , 1,1,'i') 
 ;
 update thin_need_to_map set 
 thin_name = regexp_replace (thin_name, 'app$','applicator' , 1,1,'i')
@@ -1069,7 +1140,7 @@ update thin_need_to_map set
 thin_name = regexp_replace (thin_name, 'sus$','suspension' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'eli$','oral tablet' , 1,1,'i')
+thin_name = regexp_replace (thin_name, 'eli$','elixir' , 1,1,'i')
 ;
 update thin_need_to_map set 
 thin_name = regexp_replace (thin_name, 'sup$','suppositories' , 1,1,'i')
@@ -1087,7 +1158,10 @@ update thin_need_to_map set
 thin_name = regexp_replace (thin_name, 'lot$','lotion' , 1,1,'i')
 ;
 update thin_need_to_map set 
-thin_name = regexp_replace (thin_name, 'syr$','syringe' , 1,1,'i')
+thin_name = regexp_replace (thin_name, 'pre-filled syr$','pre-filled syringe' , 1,1,'i') 
+;
+update thin_need_to_map set 
+thin_name = regexp_replace (thin_name, 'syr$','syrup' , 1,1,'i') 
 ;
 update thin_need_to_map set 
 thin_name = regexp_replace (thin_name, 'app$','applicator' , 1,1,'i')
@@ -1159,6 +1233,7 @@ commit
 --how to make plural: add 's' or 'y' replace with 'ies'
 --apply the same algotithm as used for ingredients
 --Execution time: 3m 28s when "mm" is used
+ 
 drop table f_map;
 create table f_map as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
 select * from 
@@ -1214,8 +1289,9 @@ and concept_id_2 in (21308470, 46234469, 19082227)
 ;
 commit
 ;
+
  --comment this manual table work for now
-/*
+
 --manual table for Dose Forms
 select * from thin_need_to_map
 where thin_code not in (select thin_code from b_map)
@@ -1223,7 +1299,7 @@ and domain_id ='Drug'
 ;
 
 --then insert into f_map (also look for domains)
-*/
+
 ;
 --make Suppliers, some clean up
 UPDATE THIN_NEED_TO_MAP
@@ -1252,6 +1328,7 @@ where c.concept_class_id = 'Supplier'
 --make Brand Names
 --select * from THIN_NEED_TO_MAP where thin_name like 'Generic%'
 ;
+ 
 drop table b_map_0;
 create table b_map_0 AS
 select  T.GEMSCRIPT_CODE, T.GEMSCRIPT_NAME, T.THIN_CODE, T.THIN_NAME , C.CONCEPT_ID, C.CONCEPT_NAME, C.vocabulary_id from THIN_NEED_TO_MAP T
@@ -1313,6 +1390,7 @@ select * from b_map_1
 --drug_concept_stage
 truncate table drug_concept_stage
 ;
+ 
 --Drug Product
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
@@ -1322,7 +1400,7 @@ to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_
 --Device
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
-select '', gemscript_name,domain_id, 'Gemscript', 'Device', '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+select '', gemscript_name,domain_id, 'Gemscript', 'Device', 'S', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_need_to_map where domain_id = 'Device'
 ;
 --Ingredient
@@ -1457,7 +1535,7 @@ select distinct  concept_code from drug_concept_stage where concept_class_id in 
 )
 ;
 update drug_concept_stage a set concept_code = (select new_code from code_replace b where a.concept_code = b.old_code) 
-where a.concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form')
+where a.concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form') or concept_code in (select drug_concept_code from pc_stage)
 ;--select * from code_replace where old_code ='OMOP28663';
 commit
 ;
@@ -1468,6 +1546,11 @@ commit
 ;
 update ds_stage a  set ingredient_concept_code = (select new_code from code_replace b where a.ingredient_concept_code = b.old_code)
 where exists (select 1 from code_replace b where a.ingredient_concept_code = b.old_code)
+;
+commit
+;
+update ds_stage a  set drug_concept_code = (select new_code from code_replace b where a.drug_concept_code = b.old_code)
+where exists (select 1 from code_replace b where a.drug_concept_code = b.old_code)
 ;
 commit
 ;
@@ -1495,4 +1578,3 @@ drop table basic_con_rel_stage;
 create table basic_con_rel_stage as select * from concept_relationship_stage
 ;
 --then use CNDV and then generic --well, it's bad aproach in general but still
-

@@ -1,0 +1,562 @@
+CONCEPT_NAME_1	CONCEPT_CLASS_ID_1	CONCEPT_ID_2	CONCEPT_NAME_2	INVALID_REASON_2	PRECEDENCE	CONVERSION_FACTOR
+BLOCK/INFILTRATION KIT	Dose Form	19082103	Injectable Solution		1	
+BLOCK/INFILTRATION LIQUID	Dose Form	19082103	Injectable Solution		1	
+BLOCK/INFILTRATION SOLUTION	Dose Form	19082103	Injectable Solution		1	
+"BUCCAL FILM, SOLUBLE"	Dose Form	40164192	Buccal Film		1	
+BUCCAL GEL	Dose Form	19095916	Oral Gel		1	
+BUCCAL LIQUID	Dose Form	19082170	Oral Solution		1	
+BUCCAL LIQUID	Dose Form	19082191	Oral Suspension		2	
+BUCCAL LOZENGE	Dose Form	19082253	Oral Lozenge		2	
+BUCCAL LOZENGE	Dose Form	19082573	Oral Tablet		3	
+BUCCAL LOZENGE	Dose Form	40175589	Buccal Tablet		1	
+BUCCAL MOUTHWASH/GARGLE	Dose Form	19126590	Mouthwash		1	
+BUCCAL SOLUTION	Dose Form	19082170	Oral Solution		1	
+BUCCAL SOLUTION	Dose Form	19082191	Oral Suspension		2	
+BUCCAL SPRAY	Dose Form	19095911	Oral Spray		1	
+Buccal Tablet (Effervescent)	Dose Form	40175589	Buccal Tablet		1	
+BUCCAL TABLET (EXTENDED-RELEASE)	Dose Form	19082079	Extended Release Oral Tablet		1	
+BUCCAL TABLET (EXTENDED-RELEASE)	Dose Form	40175589	Buccal Tablet		2	
+BUCCAL TOOTHPASTE	Dose Form	19009068	Toothpaste		1	
+DENTAL AEROSOL	Dose Form	19095911	Oral Spray		1	
+DENTAL CORD	Dose Form	19126316	Oral Strip		1	
+DENTAL FLOSS	Dose Form	19126316	Oral Strip		1	
+DENTAL GEL	Dose Form	19095916	Oral Gel		1	
+DENTAL GUM	Dose Form	19102296	Chewing Gum		1	
+Dental Kit	Dose Form	19126590	Mouthwash		1	
+DENTAL LIQUID	Dose Form	19082170	Oral Solution		1	
+DENTAL LIQUID	Dose Form	19082191	Oral Suspension		2	
+DENTAL LOTION	Dose Form	19082170	Oral Solution		2	
+DENTAL LOTION	Dose Form	19082191	Oral Suspension		1	
+DENTAL METERED-DOSE AEROSOL	Dose Form	19126918	Metered Dose Inhaler		2	
+DENTAL METERED-DOSE AEROSOL	Dose Form	19095911	Oral Spray		1	
+DENTAL MISCELLANEOUS	Dose Form	19124968	Drug Implant		1	
+DENTAL MOUTHWASH/GARGLE	Dose Form	19126590	Mouthwash		1	
+DENTAL PAD	Dose Form	19130307	Medicated Pad		1	
+DENTAL PASTE	Dose Form	19082169	Oral Cream		2	
+DENTAL PASTE	Dose Form	19095918	Oral Paste		1	
+DENTAL PELLET (DENTAL)	Dose Form	19082573	Oral Tablet		2	
+DENTAL PELLET (DENTAL)	Dose Form	19082652	Oral Pellet		1	
+DENTAL POWDER	Dose Form	19095976	Oral Powder		1	
+Dental Powder For Solution	Dose Form	19095976	Oral Powder		1	
+DENTAL SOLUTION	Dose Form	19082170	Oral Solution		1	
+DENTAL SUSPENSION	Dose Form	19082191	Oral Suspension		1	
+DENTAL SWAB	Dose Form	19130307	Medicated Pad		1	
+DENTAL SYRUP	Dose Form	19082170	Oral Solution		1	
+DENTAL SYRUP	Dose Form	19082191	Oral Suspension		2	
+DENTAL TABLET	Dose Form	19082573	Oral Tablet		1	
+DENTAL TOOTHPASTE	Dose Form	19009068	Toothpaste		1	
+Epidural Kit	Dose Form	19082103	Injectable Solution		1	
+EPIDURAL LIQUID	Dose Form	19082103	Injectable Solution		1	
+EPIDURAL LIQUID	Dose Form	19082104	Injectable Suspension		2	
+EPIDURAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+EPIDURAL SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+EXTRACORPOREAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+EXTRACORPOREAL SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+IMPLANT IMPLANT	Dose Form	19124968	Drug Implant		1	
+Infiltration Solution	Dose Form	19082103	Injectable Solution		1	
+INHALATION AEROSOL	Dose Form	19082258	Gas for Inhalation		1	
+"INHALATION AEROSOL, METERED DOSE"	Dose Form	19126918	Metered Dose Inhaler		1	
+INHALATION CAPSULE	Dose Form	19126918	Metered Dose Inhaler		1	
+INHALATION GAS	Dose Form	19082258	Gas for Inhalation		1	
+INHALATION LIQUID	Dose Form	19095898	Inhalant Solution		1	
+INHALATION METERED-DOSE AEROSOL	Dose Form	19126918	Metered Dose Inhaler		1	
+INHALATION OINTMENT	Dose Form	19126918	Metered Dose Inhaler		1	
+INHALATION PAD	Dose Form	19126918	Metered Dose Inhaler		1	
+INHALATION POWDER	Dose Form	19127579	Dry Powder Inhaler		2	
+INHALATION POWDER	Dose Form	19082259	Inhalant Powder		1	
+INHALATION POWDER (METERED DOSE)	Dose Form	19127579	Dry Powder Inhaler		2	
+INHALATION POWDER (METERED DOSE)	Dose Form	19082259	Inhalant Powder		1	
+INHALATION POWDER FOR SOLUTION	Dose Form	19127579	Dry Powder Inhaler		2	
+INHALATION POWDER FOR SOLUTION	Dose Form	19082259	Inhalant Powder		1	
+INHALATION SOLUTION	Dose Form	19095898	Inhalant Solution		1	
+INHALATION SPRAY	Dose Form	19126918	Metered Dose Inhaler		1	
+INHALATION SUSPENSION	Dose Form	19095898	Inhalant Solution		1	
+Inhalation Tincture	Dose Form	19095898	Inhalant Solution		1	
+INSTILLATION POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INSTILLATION POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INSTILLATION SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INSTILLATION SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRA-AMNIOTIC KIT	Dose Form	19082103	Injectable Solution		1	
+INTRA-AMNIOTIC KIT	Dose Form	19082104	Injectable Suspension		2	
+INTRA-AMNIOTIC SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRA-AMNIOTIC SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+Intra-Arterial Liquid	Dose Form	19082103	Injectable Solution		1	
+Intra-Arterial Liquid	Dose Form	19082104	Injectable Suspension		2	
+Intra-Arterial Solution	Dose Form	19082103	Injectable Solution		1	
+INTRA-ARTICULAR LIQUID	Dose Form	19082103	Injectable Solution		1	
+INTRA-ARTICULAR LIQUID	Dose Form	19082104	Injectable Suspension		2	
+Intra-Articular Solution	Dose Form	19082103	Injectable Solution		1	
+INTRA-ARTICULAR SUSPENSION	Dose Form	19082103	Injectable Solution		2	
+INTRA-ARTICULAR SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+Intrabursal Solution	Dose Form	19082103	Injectable Solution		1	
+Intrabursal Suspension	Dose Form	19082104	Injectable Suspension		1	
+Intracardiac Liquid	Dose Form	19082103	Injectable Solution		1	
+Intracardiac Liquid	Dose Form	19082104	Injectable Suspension		2	
+Intracardiac Solution	Dose Form	19082103	Injectable Solution		1	
+Intracaudal Liquid	Dose Form	19082104	Injectable Suspension		2	
+Intracaudal Liquid	Dose Form	19082103	Injectable Solution		1	
+Intracaudal Solution	Dose Form	19082103	Injectable Solution		1	
+INTRACAVERNOSAL LIQUID	Dose Form	19082103	Injectable Solution		1	
+INTRACAVERNOSAL LIQUID	Dose Form	19082104	Injectable Suspension		2	
+INTRACAVERNOSAL POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRACAVERNOSAL POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+Intracavitary Powder For Solution	Dose Form	19082103	Injectable Solution		1	
+INTRACERVICAL GEL	Dose Form	19010880	Vaginal Gel		1	
+Intracoronary Powder For Solution	Dose Form	19082103	Injectable Solution		1	
+INTRACRANIAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRACRANIAL SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+Intracutaneous Liquid	Dose Form	19082103	Injectable Solution		1	
+Intracutaneous Liquid	Dose Form	19082104	Injectable Suspension		2	
+Intracutaneous Solution	Dose Form	19082103	Injectable Solution		1	
+INTRADERMAL IMPLANT	Dose Form	19124968	Drug Implant		1	
+Intradermal Kit	Dose Form	19082103	Injectable Solution		1	
+INTRADERMAL LIQUID	Dose Form	19082103	Injectable Solution		1	
+INTRADERMAL LIQUID	Dose Form	19082104	Injectable Suspension		2	
+INTRADERMAL POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRADERMAL POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRADERMAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRADERMAL SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRADERMAL SUSPENSION	Dose Form	19082103	Injectable Solution		2	
+INTRADERMAL SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+INTRADISCAL POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRADISCAL POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRAGANGLIONAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRAGANGLIONAL SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+Intralesional Kit	Dose Form	19082103	Injectable Solution		1	
+Intralesional Liquid	Dose Form	19082103	Injectable Solution		1	
+INTRALESIONAL POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRALESIONAL POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRALESIONAL SUSPENSION	Dose Form	19082103	Injectable Solution		2	
+INTRALESIONAL SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+INTRALESIONAL WAFER	Dose Form	19124968	Drug Implant		1	
+INTRAMUSCULAR EMULSION	Dose Form	19082103	Injectable Solution		2	
+INTRAMUSCULAR EMULSION	Dose Form	19082104	Injectable Suspension		1	
+Intramuscular Kit	Dose Form	19082103	Injectable Solution		1	
+INTRAMUSCULAR LIQUID	Dose Form	19082103	Injectable Solution		1	
+INTRAMUSCULAR LIQUID	Dose Form	19082104	Injectable Suspension		2	
+INTRAMUSCULAR POWDER	Dose Form	19082103	Injectable Solution		1	
+INTRAMUSCULAR POWDER	Dose Form	19082104	Injectable Suspension		2	
+INTRAMUSCULAR POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRAMUSCULAR POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRAMUSCULAR POWDER FOR SUSPENSION	Dose Form	19082103	Injectable Solution		2	
+INTRAMUSCULAR POWDER FOR SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+"INTRAMUSCULAR POWDER FOR SUSPENSION, SUSTAINED-RELEASE"	Dose Form	19082103	Injectable Solution		2	
+"INTRAMUSCULAR POWDER FOR SUSPENSION, SUSTAINED-RELEASE"	Dose Form	19082104	Injectable Suspension		1	
+INTRAMUSCULAR SOLUTION	Dose Form	19095913	Intramuscular Solution		1	
+INTRAMUSCULAR SUSPENSION	Dose Form	19095914	Intramuscular Suspension		1	
+INTRAMUSCULAR SUSPENSION	Dose Form	19082104	Injectable Suspension		2	
+INTRAMUSCULAR SUSPENSION (EXTENDED-RELEASE)	Dose Form	19082103	Injectable Solution		2	
+INTRAMUSCULAR SUSPENSION (EXTENDED-RELEASE)	Dose Form	19082104	Injectable Suspension		1	
+Intramuscular Suspension (Ultra-Lente)	Dose Form	19082104	Injectable Suspension		1	
+INTRAOCULAR DROPS	Dose Form	19129634	Ophthalmic Solution		1	
+INTRAOCULAR DROPS	Dose Form	19082167	Ophthalmic Suspension		2	
+INTRAOCULAR IMPLANT	Dose Form	19124968	Drug Implant		1	
+INTRAOCULAR LIQUID	Dose Form	19129634	Ophthalmic Solution		1	
+INTRAOCULAR LIQUID	Dose Form	19082167	Ophthalmic Suspension		2	
+INTRAOCULAR POWDER FOR SOLUTION	Dose Form	19129634	Ophthalmic Solution		1	
+INTRAOCULAR POWDER FOR SOLUTION	Dose Form	19082167	Ophthalmic Suspension		2	
+INTRAOCULAR SOLUTION	Dose Form	19129634	Ophthalmic Solution		1	
+INTRAOCULAR SOLUTION	Dose Form	19082167	Ophthalmic Suspension		2	
+INTRAPERITONEAL LIQUID	Dose Form	19082103	Injectable Solution		1	
+INTRAPERITONEAL LIQUID	Dose Form	19082104	Injectable Suspension		2	
+Intraperitoneal Powder For Solution	Dose Form	19082103	Injectable Solution		1	
+INTRAPERITONEAL SOLUTION	Dose Form	19082105	Intraperitoneal Solution		1	
+Intrapleural Powder For Solution	Dose Form	19082103	Injectable Solution		1	
+INTRASPINAL LIQUID	Dose Form	19082103	Injectable Solution		1	
+INTRASPINAL LIQUID	Dose Form	19082104	Injectable Suspension		2	
+INTRASPINAL POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRASPINAL POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRASPINAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRASPINAL SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+Intrasynovial Liquid	Dose Form	19082103	Injectable Solution		1	
+Intrasynovial Liquid	Dose Form	19082104	Injectable Suspension	Injectable Suspension	2	
+Intrasynovial Suspension	Dose Form	19082104	Injectable Suspension		1	
+Intrasynovial Suspension	Dose Form	19082103	Injectable Solution		2	
+Intrathecal Liquid	Dose Form	19082103	Injectable Solution		1	
+Intrathecal Liquid	Dose Form	19082104	Injectable Suspension		2	
+Intrathecal Powder For Solution	Dose Form	19082103	Injectable Solution		1	
+Intrathecal Powder For Solution	Dose Form	19082104	Injectable Suspension		2	
+INTRATHECAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRATHECAL SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRATHECAL SUSPENSION	Dose Form	19082260	Intrathecal Suspension		1	
+INTRATHECAL SUSPENSION	Dose Form	19082104	Injectable Suspension		2	
+Intrathoracic Liquid	Dose Form	19082103	Injectable Solution		1	
+Intrathoracic Liquid	Dose Form	19082104	Injectable Suspension		2	
+INTRATRACHEAL LIQUID	Dose Form	19082110	Mucous Membrane Topical Solution		1	
+INTRATRACHEAL POWDER FOR SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+INTRATRACHEAL SUSPENSION	Dose Form	35606051	Intratracheal Suspension		1	
+INTRAUTERINE INSERT (EXTENDED-RELEASE)	Dose Form	19124968	Drug Implant		1	
+INTRAUTERINE LIQUID	Dose Form	19082103	Injectable Solution		1	
+Intrauterine Powder For Suspension	Dose Form	19082104	Injectable Suspension		1	
+INTRAVASCULAR LIQUID	Dose Form	19082103	Injectable Solution		1	
+INTRAVASCULAR LIQUID	Dose Form	19082104	Injectable Suspension		2	
+INTRAVASCULAR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRAVASCULAR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRAVENOUS EMULSION	Dose Form	19082103	Injectable Solution		2	
+INTRAVENOUS EMULSION	Dose Form	19082104	Injectable Suspension		1	
+INTRAVENOUS FOAM	Dose Form	19082103	Injectable Solution		1	
+INTRAVENOUS FOAM	Dose Form	19082104	Injectable Suspension		2	
+INTRAVENOUS KIT	Dose Form	19082103	Injectable Solution		1	
+INTRAVENOUS KIT	Dose Form	19082104	Injectable Suspension		2	
+INTRAVENOUS LIPOSOMES	Dose Form	19082104	Injectable Suspension		1	
+INTRAVENOUS LIQUID	Dose Form	19082103	Injectable Solution		1	
+INTRAVENOUS LIQUID	Dose Form	19082104	Injectable Suspension		2	
+INTRAVENOUS POWDER	Dose Form	19082103	Injectable Solution		1	
+INTRAVENOUS POWDER	Dose Form	19082104	Injectable Suspension		2	
+INTRAVENOUS POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRAVENOUS POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRAVENOUS POWDER FOR SUSPENSION	Dose Form	19082103	Injectable Solution		2	
+INTRAVENOUS POWDER FOR SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+INTRAVENOUS SOLUTION	Dose Form	19082106	Intravenous Solution		1	
+INTRAVENOUS SUSPENSION	Dose Form	19082104	Injectable Suspension		2	
+INTRAVENOUS SUSPENSION	Dose Form	19095915	Intravenous Suspension		1	
+Intravesical Kit	Dose Form	19082228	Topical Solution		1	
+INTRAVESICAL POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRAVESICAL POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRAVESICAL POWDER FOR SUSPENSION	Dose Form	19082103	Injectable Solution		2	
+INTRAVESICAL POWDER FOR SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+INTRAVESICAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRAVESICAL SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRAVESICULAR LIQUID	Dose Form	19082103	Injectable Solution		1	
+INTRAVESICULAR LIQUID	Dose Form	19082104	Injectable Suspension		2	
+INTRAVESICULAR POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRAVESICULAR POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+INTRAVITREAL IMPLANT	Dose Form	19124968	Drug Implant		1	
+INTRAVITREAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+INTRAVITREAL SOLUTION	Dose Form	46234469	Injection		2	
+INTRAVITREAL SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+IRRIGATION LIQUID	Dose Form	19016586	Irrigation Solution		1	
+IRRIGATION POWDER FOR SOLUTION	Dose Form	19016586	Irrigation Solution		1	
+IRRIGATION SOLUTION	Dose Form	19016586	Irrigation Solution		1	
+IRRIGATION TABLET	Dose Form	19016586	Irrigation Solution		1	
+Liquid	Dose Form	19082103	Injectable Solution		1	
+Liquid	Dose Form	19082170	Oral Solution		2	
+Liquid	Dose Form	19082228	Topical Solution		3	
+Miscellaneous Syrup	Dose Form	19082170	Oral Solution		1	
+Miscellaneous Syrup	Dose Form	19082191	Oral Suspension		2	
+"NASAL AEROSOL, METERED DOSE"	Dose Form	19126919	Nasal Inhaler		1	
+"NASAL AEROSOL, METERED DOSE"	Dose Form	19011167	Nasal Spray		2	
+NASAL DROPS	Dose Form	19082165	Nasal Solution		1	
+NASAL GEL	Dose Form	19082163	Nasal Gel		1	
+NASAL JELLY	Dose Form	19082163	Nasal Gel		1	
+NASAL LIQUID	Dose Form	19082165	Nasal Solution		1	
+NASAL METERED-DOSE AEROSOL	Dose Form	19126919	Nasal Inhaler		1	
+NASAL METERED-DOSE AEROSOL	Dose Form	19011167	Nasal Spray		2	
+NASAL METERED-DOSE PUMP	Dose Form	19126919	Nasal Inhaler		1	
+NASAL METERED-DOSE PUMP	Dose Form	19011167	Nasal Spray		2	
+NASAL OINTMENT	Dose Form	19082164	Nasal Ointment		1	
+Nasal Powder	Dose Form	19126919	Nasal Inhaler		1	
+NASAL SOLUTION	Dose Form	19082165	Nasal Solution		1	
+NASAL SPRAY	Dose Form	19011167	Nasal Spray		1	
+"NASAL SPRAY, METERED DOSE"	Dose Form	19011167	Nasal Spray		1	
+NASAL SUSPENSION	Dose Form	19095977	Nasal Suspension		1	
+Nasogastric Capsule (Delayed Release)	Dose Form	19082255	Delayed Release Oral Capsule		1	
+Nasogastric Powder For Solution	Dose Form	19095976	Oral Powder		1	
+Nasogastric Powder For Solution	Dose Form	19082170	Oral Solution		2	
+OPHTHALMIC DROPS	Dose Form	19129634	Ophthalmic Solution		1	
+OPHTHALMIC EMULSION	Dose Form	19082167	Ophthalmic Suspension		1	
+OPHTHALMIC GEL	Dose Form	19082166	Ophthalmic Gel		1	
+OPHTHALMIC INSERT	Dose Form	19124968	Drug Implant		1	
+Ophthalmic Kit	Dose Form	19129634	Ophthalmic Solution		1	
+OPHTHALMIC LIQUID	Dose Form	19129634	Ophthalmic Solution		1	
+OPHTHALMIC LOTION	Dose Form	19082167	Ophthalmic Suspension		1	
+OPHTHALMIC OINTMENT	Dose Form	19135925	Ophthalmic Ointment		1	
+OPHTHALMIC POWDER FOR SOLUTION	Dose Form	19129634	Ophthalmic Solution		1	
+OPHTHALMIC SOLUTION	Dose Form	19129634	Ophthalmic Solution		1	
+OPHTHALMIC SOLUTION (LONG-ACTING)	Dose Form	19129634	Ophthalmic Solution		1	
+OPHTHALMIC STRIP	Dose Form	19124968	Drug Implant		1	
+OPHTHALMIC SUSPENSION	Dose Form	19082167	Ophthalmic Suspension		1	
+ORAL AEROSOL	Dose Form	19095911	Oral Spray		1	
+ORAL BAR (CHEWABLE)	Dose Form	19082075	Chewable Bar		1	
+ORAL CAPSULE	Dose Form	19082168	Oral Capsule		1	
+ORAL CAPSULE (CONTROLLED-DELIVERY)	Dose Form	19082077	Extended Release Oral Capsule		1	
+ORAL CAPSULE (DELAYED RELEASE)	Dose Form	19082255	Delayed Release Oral Capsule		1	
+ORAL CAPSULE (ENTERIC-COATED)	Dose Form	19082255	Delayed Release Oral Capsule		1	
+ORAL CAPSULE (EXTENDED RELEASE)	Dose Form	19082077	Extended Release Oral Capsule		1	
+ORAL CAPSULE (IMMEDIATE AND DELAYED RELEASE)	Dose Form	19082077	Extended Release Oral Capsule		1	
+ORAL CAPSULE (IMMEDIATE AND DELAYED RELEASE)	Dose Form	19082255	Delayed Release Oral Capsule		2	
+ORAL CAPSULE (IMMEDIATE AND EXTENDED RELEASE)	Dose Form	19082077	Extended Release Oral Capsule		1	
+ORAL CAPSULE (IMMEDIATE AND EXTENDED RELEASE)	Dose Form	19082255	Delayed Release Oral Capsule		2	
+ORAL CAPSULE (IMMEDIATE RELEASE)	Dose Form	19082077	Extended Release Oral Capsule		1	
+ORAL CAPSULE (SUSTAINED-RELEASE)	Dose Form	19082077	Extended Release Oral Capsule		1	
+ORAL CAPSULE (SUSTAINED-RELEASE)	Dose Form	19082255	Delayed Release Oral Capsule		2	
+ORAL CREAM	Dose Form	19082169	Oral Cream		1	
+ORAL DROPS	Dose Form	19082170	Oral Solution		1	
+ORAL ELIXIR	Dose Form	19082191	Oral Suspension		1	
+ORAL EMULSION	Dose Form	19082191	Oral Suspension		1	
+"ORAL FILM, SOLUBLE"	Dose Form	19082076	Disintegrating Oral Tablet		1	
+Oral Gas	Dose Form	19082258	Gas for Inhalation			
+ORAL GEL	Dose Form	19095916	Oral Gel		1	
+ORAL GLOBULES	Dose Form	19082573	Oral Tablet		1	
+ORAL GRANULES	Dose Form	19082651	Oral Granules		1	
+Oral Granules (Effervescents)	Dose Form	19082651	Oral Granules			
+ORAL GRANULES FOR SOLUTION	Dose Form	19082170	Oral Solution		2	
+ORAL GRANULES FOR SOLUTION	Dose Form	19082651	Oral Granules		1	
+ORAL GRANULES FOR SUSPENSION	Dose Form	19082191	Oral Suspension		2	
+ORAL GRANULES FOR SUSPENSION	Dose Form	19082651	Oral Granules		1	
+"ORAL GRANULES FOR SUSPENSION, DELAYED RELEASE"	Dose Form	19082191	Oral Suspension		2	
+"ORAL GRANULES FOR SUSPENSION, DELAYED RELEASE"	Dose Form	19082651	Oral Granules		1	
+"ORAL GRANULES FOR SUSPENSION,EXTENDED RELEASE"	Dose Form	19082191	Oral Suspension		2	
+"ORAL GRANULES FOR SUSPENSION,EXTENDED RELEASE"	Dose Form	19082651	Oral Granules		1	
+ORAL GUM	Dose Form	19102296	Chewing Gum		1	
+ORAL JAM	Dose Form	19095916	Oral Gel		1	
+ORAL JAM	Dose Form	19095918	Oral Paste		2	
+ORAL KIT	Dose Form	19082168	Oral Capsule		1	
+ORAL KIT	Dose Form	19082170	Oral Solution		2	
+ORAL KIT	Dose Form	19082573	Oral Tablet		3	
+ORAL LEAF	Dose Form	19082651	Oral Granules		1	
+ORAL LIQUID	Dose Form	19082170	Oral Solution		1	
+ORAL LIQUID	Dose Form	19082191	Oral Suspension		2	
+ORAL LOTION	Dose Form	19082169	Oral Cream		2	
+ORAL LOTION	Dose Form	19082191	Oral Suspension		1	
+ORAL LOZENGE	Dose Form	19082253	Oral Lozenge		1	
+ORAL LOZENGE	Dose Form	19082573	Oral Tablet		2	
+ORAL METERED-DOSE AEROSOL	Dose Form	19126918	Metered Dose Inhaler		1	
+ORAL MOUTHWASH/GARGLE	Dose Form	19126590	Mouthwash		1	
+ORAL PACKAGE	Dose Form	19082168	Oral Capsule		1	
+ORAL PACKAGE	Dose Form	19082170	Oral Solution		3	
+ORAL PACKAGE	Dose Form	19082573	Oral Tablet		2	
+ORAL PAINT	Dose Form	19082253	Oral Lozenge		1	
+ORAL PASTE	Dose Form	19082169	Oral Cream		2	
+ORAL PASTE	Dose Form	19095918	Oral Paste		1	
+ORAL PELLET	Dose Form	19082573	Oral Tablet		2	
+ORAL PELLET	Dose Form	19082652	Oral Pellet		1	
+ORAL PIECE (CHEWABLE)	Dose Form	19135866	Chewable Tablet		1	
+ORAL PIECE (CHEWABLE)	Dose Form	19082573	Oral Tablet		2	
+ORAL POWDER	Dose Form	19095976	Oral Powder		1	
+ORAL POWDER (EFFERVESCENT)	Dose Form	19095976	Oral Powder		1	
+ORAL POWDER (EFFERVESCENT)	Dose Form	19082170	Oral Solution		2	
+ORAL POWDER (ENTERIC-COATED)	Dose Form	19095976	Oral Powder		1	
+ORAL POWDER FOR SOLUTION	Dose Form	19095976	Oral Powder		1	
+ORAL POWDER FOR SOLUTION	Dose Form	19082170	Oral Solution		2	
+ORAL POWDER FOR SUSPENSION	Dose Form	19095976	Oral Powder		1	
+ORAL POWDER FOR SUSPENSION	Dose Form	19082191	Oral Suspension		2	
+ORAL SEED	Dose Form	19082651	Oral Granules		1	
+ORAL SOLUTION	Dose Form	19082170	Oral Solution		1	
+ORAL SPRAY	Dose Form	19095911	Oral Spray		1	
+ORAL STRIP	Dose Form	19126316	Oral Strip		1	
+Oral Suppository	Dose Form	19082573	Oral Tablet		1	
+ORAL SUSPENSION	Dose Form	19082191	Oral Suspension		1	
+ORAL SWAB	Dose Form	19130307	Medicated Pad		1	
+ORAL SYRUP	Dose Form	19082170	Oral Solution		1	
+ORAL SYRUP	Dose Form	19082191	Oral Suspension		2	
+ORAL SYRUP (EXTENDED-RELEASE)	Dose Form	19082170	Oral Solution		1	
+ORAL SYRUP (EXTENDED-RELEASE)	Dose Form	19082191	Oral Suspension		2	
+ORAL TABLET	Dose Form	19082573	Oral Tablet		1	
+ORAL TABLET (CHEWABLE)	Dose Form	19135866	Chewable Tablet		1	
+ORAL TABLET (CHEWABLE)	Dose Form	19082573	Oral Tablet		2	
+ORAL TABLET (COMBINED RELEASE)	Dose Form	19082079	Extended Release Oral Tablet		2	
+ORAL TABLET (COMBINED RELEASE)	Dose Form	19001949	Delayed Release Oral Tablet		1	
+ORAL TABLET (DELAYED AND EXTENDED RELEASE)	Dose Form	19082080	Extended Release Suspension		2	
+ORAL TABLET (DELAYED AND EXTENDED RELEASE)	Dose Form	19001949	Delayed Release Oral Tablet		1	
+ORAL TABLET (DELAYED-RELEASE)	Dose Form	19001949	Delayed Release Oral Tablet		1	
+ORAL TABLET (EFFERVESCENT)	Dose Form	19082076	Disintegrating Oral Tablet		1	
+ORAL TABLET (EFFERVESCENT)	Dose Form	19082573	Oral Tablet		2	
+ORAL TABLET (ENTERIC-COATED)	Dose Form	19001949	Delayed Release Oral Tablet		1	
+ORAL TABLET (EXTENDED-RELEASE)	Dose Form	19082079	Extended Release Oral Tablet		1	
+ORAL TABLET (IMMEDIATE AND DELAYED-RELEASE)	Dose Form	19082079	Extended Release Oral Tablet		1	
+ORAL TABLET (IMMEDIATE AND DELAYED-RELEASE)	Dose Form	19001949	Delayed Release Oral Tablet		2	
+ORAL TABLET (IMMEDIATE AND EXTENDED RELEASE)	Dose Form	19082079	Extended Release Oral Tablet		1	
+ORAL TABLET (IMMEDIATE AND EXTENDED RELEASE)	Dose Form	19001949	Delayed Release Oral Tablet		2	
+ORAL TABLET (IMMEDIATE RELEASE)	Dose Form	19082079	Extended Release Oral Tablet		1	
+ORAL TABLET (ORALLY DISINTEGRATING)	Dose Form	19082076	Disintegrating Oral Tablet		1	
+ORAL TABLET (ORALLY DISINTEGRATING)	Dose Form	19082573	Oral Tablet		2	
+ORAL TABLET (SLOW-RELEASE)	Dose Form	19082079	Extended Release Oral Tablet		1	
+ORAL TABLET (SLOW-RELEASE)	Dose Form	19001949	Delayed Release Oral Tablet		2	
+ORAL TABLET FOR SUSPENSION	Dose Form	19082076	Disintegrating Oral Tablet		1	
+ORAL TABLET FOR SUSPENSION	Dose Form	19082573	Oral Tablet		2	
+ORAL TEA (HERBAL)	Dose Form	19082170	Oral Solution		1	
+ORAL TINCTURE	Dose Form	19082170	Oral Solution		1	
+ORAL TOOTHPASTE	Dose Form	19009068	Toothpaste		1	
+ORAL WAFER	Dose Form	19082251	Chewable Tablet		1	
+ORAL WAFER	Dose Form	19082573	Oral Tablet		2	
+OTIC DROPS	Dose Form	19082195	Otic Solution		1	
+OTIC DROPS	Dose Form	19082196	Otic Suspension		2	
+OTIC LIQUID	Dose Form	19082195	Otic Solution		1	
+OTIC LIQUID	Dose Form	19082196	Otic Suspension		2	
+OTIC SOLUTION	Dose Form	19082195	Otic Solution		1	
+OTIC SUSPENSION	Dose Form	19082196	Otic Suspension		1	
+PARENTERAL (UNSPECIFIED) LIQUID	Dose Form	19082103	Injectable Solution		1	
+PARENTERAL (UNSPECIFIED) LIQUID	Dose Form	19082104	Injectable Suspension		2	
+PARENTERAL (UNSPECIFIED) POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+PARENTERAL (UNSPECIFIED) POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+PARENTERAL (UNSPECIFIED) SOLUTION	Dose Form	19082103	Injectable Solution		1	
+PARENTERAL (UNSPECIFIED) SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+PERCUTANEOUS LIQUID	Dose Form	19082103	Injectable Solution		1	
+PERCUTANEOUS LIQUID	Dose Form	19082104	Injectable Suspension		2	
+PERCUTANEOUS SOLUTION	Dose Form	19082103	Injectable Solution		1	
+PERCUTANEOUS SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+Powder	Dose Form	19095976	Oral Powder		1	
+RECTAL AEROSOL	Dose Form	19082199	Rectal Spray		1	
+Rectal Cream	Dose Form	19082197	Rectal Cream		1	
+Rectal Cream	Dose Form	19082282	Rectal Ointment		2	
+RECTAL ENEMA	Dose Form	19082627	Enema		1	
+RECTAL ENEMA	Dose Form	19082283	Rectal Solution		2	
+RECTAL ENEMA	Dose Form	19082221	Rectal Suspension		3	
+RECTAL GEL	Dose Form	19095917	Rectal Gel		1	
+Rectal Kit	Dose Form	19082627	Enema		1	
+RECTAL LIQUID	Dose Form	19082283	Rectal Solution		1	
+RECTAL LIQUID	Dose Form	19082221	Rectal Suspension		2	
+RECTAL OINTMENT	Dose Form	19082282	Rectal Ointment		1	
+RECTAL PASTE	Dose Form	19082282	Rectal Ointment		2	
+RECTAL PASTE	Dose Form	19082197	Rectal Cream		1	
+Rectal Powder	Dose Form	19082198	Rectal Powder			
+RECTAL POWDER FOR SOLUTION	Dose Form	19082198	Rectal Powder		1	
+RECTAL POWDER FOR SOLUTION	Dose Form	19082283	Rectal Solution		2	
+RECTAL SOLUTION	Dose Form	19082283	Rectal Solution		1	
+RECTAL SUPPOSITORY	Dose Form	19082200	Rectal Suppository		1	
+RECTAL SUPPOSITORY (SUSTAINED-RELEASE)	Dose Form	19082200	Rectal Suppository		1	
+RECTAL SUSPENSION	Dose Form	19082221	Rectal Suspension		1	
+Rectal Syrup	Dose Form	19082283	Rectal Solution		1	
+REFER (SEE DOSAGE FORM) GAS	Dose Form	19082258	Gas for Inhalation		1	
+REFER (SEE DOSAGE FORM) IMPLANT	Dose Form	19124968	Drug Implant		1	
+REFER (SEE DOSAGE FORM) LIQUID	Dose Form	19082170	Oral Solution		3	
+REFER (SEE DOSAGE FORM) LIQUID	Dose Form	19082103	Injectable Solution		1	
+REFER (SEE DOSAGE FORM) LIQUID	Dose Form	19082104	Injectable Suspension		2	
+REFER (SEE DOSAGE FORM) MOUTHWASH/GARGLE	Dose Form	19126590	Mouthwash		1	
+REFER (SEE DOSAGE FORM) POWDER	Dose Form	19095976	Oral Powder		1	
+REFER (SEE DOSAGE FORM) POWDER	Dose Form	19082259	Inhalant Powder		4	
+REFER (SEE DOSAGE FORM) POWDER	Dose Form	19082103	Injectable Solution		3	
+REFER (SEE DOSAGE FORM) POWDER	Dose Form	19082286	Topical Powder		2	
+Refer (See Dosage Form) Tablet	Dose Form	19082573	Oral Tablet		1	
+Refer (See Dosage Form) Toothpaste	Dose Form	19009068	Toothpaste		1	
+Retrobulbar Liquid	Dose Form	19082103	Injectable Solution		1	
+Retrobulbar Solution	Dose Form	19082103	Injectable Solution		1	
+Soft Tissue Injection Suspension	Dose Form	19082104	Injectable Suspension			
+SOLUTION	Dose Form	19082170	Oral Solution		3	
+SOLUTION	Dose Form	19082228	Topical Solution		1	
+SOLUTION	Dose Form	46234466	Auto-Injector		4	
+SUBARACHNOIDAL LIQUID	Dose Form	19082103	Injectable Solution		1	
+SUBARACHNOIDAL LIQUID	Dose Form	19082104	Injectable Suspension		2	
+SUBARACHNOIDAL SOLUTION	Dose Form	19082103	Injectable Solution		1	
+SUBARACHNOIDAL SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+Subcutaneous Capsule	Dose Form	19082168	Oral Capsule		1	
+Subcutaneous Gel	Dose Form	19082103	Injectable Solution			
+SUBCUTANEOUS IMPLANT	Dose Form	19124968	Drug Implant		1	
+Subcutaneous Kit	Dose Form	19082103	Injectable Solution		1	
+Subcutaneous Kit	Dose Form	19082104	Injectable Suspension		2	
+SUBCUTANEOUS LIQUID	Dose Form	19082103	Injectable Solution		1	
+SUBCUTANEOUS LIQUID	Dose Form	19082104	Injectable Suspension		2	
+Subcutaneous Powder	Dose Form	19082103	Injectable Solution			
+SUBCUTANEOUS POWDER FOR SOLUTION	Dose Form	19082103	Injectable Solution		1	
+SUBCUTANEOUS POWDER FOR SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+SUBCUTANEOUS POWDER FOR SUSPENSION	Dose Form	19082103	Injectable Solution		2	
+SUBCUTANEOUS POWDER FOR SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+"SUBCUTANEOUS POWDER FOR SUSPENSION, SUSTAINED-RELEASE"	Dose Form	19082103	Injectable Solution		2	
+"SUBCUTANEOUS POWDER FOR SUSPENSION, SUSTAINED-RELEASE"	Dose Form	19082104	Injectable Suspension		1	
+SUBCUTANEOUS SOLUTION	Dose Form	19082103	Injectable Solution		1	
+SUBCUTANEOUS SOLUTION	Dose Form	19082104	Injectable Suspension		2	
+SUBCUTANEOUS SOLUTION (EXTENDED RELEASE)	Dose Form	19082103	Injectable Solution		1	
+SUBCUTANEOUS SOLUTION (EXTENDED RELEASE)	Dose Form	19082104	Injectable Suspension		2	
+SUBCUTANEOUS SUSPENSION	Dose Form	19082103	Injectable Solution		2	
+SUBCUTANEOUS SUSPENSION	Dose Form	19082104	Injectable Suspension		1	
+SUBCUTANEOUS SUSPENSION (LENTE)	Dose Form	19082103	Injectable Solution		2	
+SUBCUTANEOUS SUSPENSION (LENTE)	Dose Form	19082104	Injectable Suspension		1	
+SUBGINGIVAL GEL (CONTROLLED-RELEASE)	Dose Form	19095916	Oral Gel		1	
+SUBGINGIVAL GEL (CONTROLLED-RELEASE)	Dose Form	19082170	Oral Solution		2	
+SUBGINGIVAL POWDER (EXTENDED RELEASE)	Dose Form	19095976	Oral Powder		1	
+Sublingual Drops	Dose Form	19082170	Oral Solution		1	
+Sublingual Drops	Dose Form	19082191	Oral Suspension		2	
+Sublingual Globules	Dose Form	19082651	Oral Granules		1	
+SUBLINGUAL LIQUID	Dose Form	19082170	Oral Solution		1	
+SUBLINGUAL LIQUID	Dose Form	19082191	Oral Suspension		2	
+SUBLINGUAL METERED-DOSE AEROSOL	Dose Form	19126918	Metered Dose Inhaler		1	
+SUBLINGUAL METERED-DOSE PUMP	Dose Form	19126918	Metered Dose Inhaler		1	
+SUBLINGUAL POWDER	Dose Form	19095976	Oral Powder		1	
+SUBLINGUAL TABLET	Dose Form	19082285	Sublingual Tablet		1	
+Sublingual Tablet (Effervescent)	Dose Form	40164192	Buccal Film		1	
+SUBLINGUAL TABLET (ORALLY DISINTEGRATING)	Dose Form	19082285	Sublingual Tablet		1	
+SUBLINGUAL TABLET (ORALLY DISINTEGRATING)	Dose Form	19082076	Disintegrating Oral Tablet		2	
+SUBMUCOSAL SOLUTION	Dose Form	19082170	Oral Solution		1	
+SUBMUCOSAL SOLUTION	Dose Form	19082191	Oral Suspension		2	
+TOPICAL 0-UNASSIGNED	Dose Form	19082228	Topical Solution		1	
+TOPICAL AEROSOL	Dose Form	19095912	Topical Spray		1	
+"TOPICAL AEROSOL, FOAM"	Dose Form	19095972	Topical Foam		1	
+"TOPICAL AEROSOL, FOAM"	Dose Form	19095912	Topical Spray		2	
+TOPICAL CREAM	Dose Form	19082224	Topical Cream		1	
+TOPICAL DISC	Dose Form	19124968	Drug Implant		1	
+TOPICAL DRESSING	Dose Form	19082227	Topical Ointment		2	
+TOPICAL DRESSING	Dose Form	19082228	Topical Solution		1	
+TOPICAL DROPS	Dose Form	19082228	Topical Solution		1	
+TOPICAL EMULSION	Dose Form	46234410	Topical Suspension		1	
+TOPICAL GEL	Dose Form	19095973	Topical Gel		1	
+TOPICAL JELLY	Dose Form	19095973	Topical Gel		1	
+TOPICAL KIT	Dose Form	19082224	Topical Cream		2	
+TOPICAL KIT	Dose Form	19082228	Topical Solution		1	
+TOPICAL LIQUID	Dose Form	19082228	Topical Solution		1	
+TOPICAL LOTION	Dose Form	19082225	Topical Lotion		1	
+TOPICAL METERED-DOSE AEROSOL	Dose Form	19126918	Metered Dose Inhaler		1	
+TOPICAL METERED-DOSE PUMP	Dose Form	19126918	Metered Dose Inhaler		1	
+TOPICAL OINTMENT	Dose Form	19082227	Topical Ointment		1	
+TOPICAL PAD	Dose Form	19082229	Transdermal System		1	
+TOPICAL PASTE	Dose Form	19082224	Topical Cream		1	
+TOPICAL PASTE	Dose Form	19082227	Topical Ointment		2	
+TOPICAL PATCH	Dose Form	19082229	Transdermal System		1	
+TOPICAL PLASTER	Dose Form	19082229	Transdermal System		1	
+TOPICAL POWDER	Dose Form	19082286	Topical Powder		1	
+TOPICAL POWDER FOR SOLUTION	Dose Form	19082228	Topical Solution		1	
+TOPICAL SHAMPOO	Dose Form	19008697	Medicated Shampoo		1	
+TOPICAL SOAP BAR	Dose Form	19082108	Medicated Bar Soap		1	
+TOPICAL SOLUTION	Dose Form	19082228	Topical Solution		1	
+TOPICAL SPONGE	Dose Form	19130307	Medicated Pad		2	
+TOPICAL SPONGE	Dose Form	19082228	Topical Solution		1	
+TOPICAL SPRAY	Dose Form	19095912	Topical Spray		1	
+"TOPICAL SPRAY, BAG-ON-VALVE"	Dose Form	19095912	Topical Spray		1	
+"TOPICAL SPRAY, METERED DOSE"	Dose Form	19095912	Topical Spray		1	
+TOPICAL STRIP	Dose Form	19082229	Transdermal System		1	
+Topical Suppository	Dose Form	19093368	Vaginal Suppository		1	
+TOPICAL SUSPENSION	Dose Form	46234410	Topical Suspension		1	
+TOPICAL SWAB	Dose Form	19130307	Medicated Pad		2	
+TOPICAL SWAB	Dose Form	19082228	Topical Solution		1	
+TOPICAL TABLET	Dose Form	19082573	Oral Tablet		1	
+TOPICAL TAPE	Dose Form	19130329	Medicated Tape		1	
+TOPICAL TINCTURE	Dose Form	19082228	Topical Solution		1	
+TOPICAL TOOTHPASTE	Dose Form	19009068	Toothpaste		1	
+Topical Vaginal Tablet	Dose Form	19010962	Vaginal Tablet		1	
+TOPICAL WIPE	Dose Form	19130307	Medicated Pad		2	
+TOPICAL WIPE	Dose Form	19082228	Topical Solution		1	
+TRANSDERMAL GEL	Dose Form	19095973	Topical Gel		1	
+TRANSDERMAL PATCH	Dose Form	19082229	Transdermal System		1	
+TRANSDERMAL PATCH (EXTENDED RELEASE)	Dose Form	19082229	Transdermal System		1	
+URETHRAL JELLY	Dose Form	19095974	Urethral Gel		1	
+URETHRAL LIQUID	Dose Form	19095974	Urethral Gel		1	
+URETHRAL SOLUTION	Dose Form	19095974	Urethral Gel		1	
+URETHRAL SUPPOSITORY	Dose Form	19082575	Urethral Suppository		1	
+Vaginal Capsule	Dose Form	19093368	Vaginal Suppository		1	
+Vaginal Capsule	Dose Form	19010962	Vaginal Tablet		2	
+VAGINAL CREAM	Dose Form	19010878	Vaginal Cream		1	
+VAGINAL DOUCHE	Dose Form	19010880	Vaginal Gel		1	
+VAGINAL GEL	Dose Form	19010880	Vaginal Gel		1	
+VAGINAL INSERT	Dose Form	40167393	Vaginal Ring		1	
+VAGINAL LIQUID	Dose Form	19010880	Vaginal Gel		1	
+VAGINAL OINTMENT	Dose Form	19082287	Vaginal Ointment		1	
+VAGINAL OVULE	Dose Form	19010962	Vaginal Tablet		1	
+VAGINAL POWDER	Dose Form	19082230	Vaginal Powder		1	
+Vaginal Powder For Solution	Dose Form	19082103	Injectable Solution		1	
+VAGINAL RING (SLOW-RELEASE)	Dose Form	40167393	Vaginal Ring		1	
+VAGINAL SUPPOSITORY	Dose Form	19093368	Vaginal Suppository		1	
+VAGINAL TABLET	Dose Form	19010962	Vaginal Tablet		1	
+VAGINAL VAGINAL TABLET	Dose Form	19010962	Vaginal Tablet		1	
+"VAGINAL VAGINAL TABLET, EFFERVESCENT"	Dose Form	19010962	Vaginal Tablet		1	
+Paste	Dose Form	19009068	Toothpaste		1	
+Oral Metered-Dose Pump	Dose Form	19095973	Topical Gel		1	
+Intraintestinal (Upper) Gel	Dose Form	19082191	Oral Suspension		1	
+Toothpaste	Dose Form	19009068	Toothpaste		1	
+Nasal Gas	Dose Form	19082258	Gas for Inhalation		1	
+Miscellaneous Tablet	Dose Form	19082573	Oral Tablet		1	
+Ophthalmic Powder	Dose Form	19129634	Ophthalmic Solution		1	
+Otic Ointment	Dose Form	19082194	Otic Ointment		1	
+Nerve Block Solution	Dose Form	19082103	Injectable Solution		1	
+Intratracheal Solution	Dose Form	19082103	Injectable Solution		1	
+Implant	Dose Form	19124968	Drug Implant		1	
+Intraventricular Solution	Dose Form	19082103	Injectable Solution		1	
+Intra-Arterial Powder For Solution	Dose Form	19082103	Injectable Solution		1	
+Intralesional Powder	Dose Form	19082103	Injectable Solution		1	
+Intratracheal Kit	Dose Form	19095898	Inhalant Solution		1	
+Intraocular Kit	Dose Form	19129634	Ophthalmic Solution		1	
+Intraocular Kit	Dose Form	19059413	Ophthalmic Irrigation Solution		2	
+Subcutaneous Suspension (Ultra-Lente)	Dose Form	19082104	Injectable Suspension		1	
+Nasal Aerosol	Dose Form	19095898	Inhalant Solution		1	
+Inhalation Kit	Dose Form	19095898	Inhalant Solution		1	
+Buccal Kit	Dose Form	19126590	Mouthwash		1	
+Buccal Kit	Dose Form	19082170	Oral Solution		2	

@@ -474,7 +474,7 @@ join r_uds uds using(ingredient_concept_id, amount_value, amount_unit_concept_id
 where nvl(ds.denominator_unit_concept_id, -1)=nvl(uds.denominator_unit_concept_id, -1) -- match nulls for % and homeopathics
 ;
 create index idx_r_ds_dscode on r_ds (ds_code);
-create index idx_r_ds_concode on q_ds (concept_code);
+create index idx_r_ds_concode on r_ds (concept_id);
 
 -- Create table with the combination of ds components for each drug concept delimited by '-'
 -- Add corresponding ingredient combos
@@ -1195,6 +1195,10 @@ delete from dfg where dfg_id=36217213 -- Nasal Product
     19011167 -- Nasal Spray
 );
 
+-- for the subsequent build
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'q_existing', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'r_existing', estimate_percent  => null, cascade  => true);
+
 -- 1. and 2. Match all 4: d_combo, df, bn and mf have to match - Marketed Products. Marketed Products without bn is prec=5 and 6
 create table x_pattern as
 select q.*,
@@ -1369,6 +1373,9 @@ left join x_unit on unit_code=quant_unit and unit_id=quant_unit_id
 ;
 commit;
 
+-- clean up again
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'x_pattern', estimate_percent  => null, cascade  => true);
+
 -- Break up multi-combos
 insert /*+ APPEND */ into x_pattern
 select 
@@ -1395,7 +1402,7 @@ minus
 );
 commit;
 
--- the next one needs some tidying up first
+-- clean up again
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'x_pattern', estimate_percent  => null, cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'q_existing', estimate_percent  => null, cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'r_existing', estimate_percent  => null, cascade  => true);
@@ -1901,9 +1908,24 @@ left join ( -- check whether or not we have the qd_combo (ds_code)-quant_unit_id
 where x.ds_code is null
 ;
 
+-- Create list of identical extension_uds (different q_uds, but after translation identical)
+drop table reduce_euds purge;
+create table reduce_euds nologging as
+with euds as (
+  select ds_code, i_code, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, nvl(denominator_unit_concept_id, -1) as denominator_unit_concept_id from extension_uds
+),
+uds as (
+  select distinct i_code, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, nvl(denominator_unit_concept_id, -1) as denominator_unit_concept_id from euds
+)
+select 
+  ds_code as from_code, 
+  first_value(ds_code) over (partition by i_code, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_unit_concept_id order by ds_code) as to_code
+from uds join euds using(i_code, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_unit_concept_id)
+;
+
 -- Create table linking the q and translated r or extended uds to their q combos (including all singletons)
 -- Translated q_uds could be multiple, the best (lowest prec) for each quant_unit_id 
-create table extension_ds as
+create table extension_ds nologging as
 select distinct
   i_combo, d_combo, q_ds, r_ds, q_i, r_i, quant_unit, quant_unit_id
 from (
@@ -1917,16 +1939,18 @@ union -- union all singletons for Clin Comps, q_combo has only those that are me
 )
 join ( -- translations for the ds_code in q_ds to r notation (either extension or x_pattern singletons)
 -- get the newly defined uds from extension_uds
-  select ds_code as q_ds, ds_code as r_ds, i_code as r_i, denominator_unit_concept_id as quant_unit_id from extension_uds
+  select distinct ds_code as q_ds, to_code as r_ds, i_code as r_i, denominator_unit_concept_id as quant_unit_id
+  from extension_uds join reduce_euds on from_code=ds_code
 union -- and the translated ones since they get mixed with the new ones in combos
-  select cast(qd_combo as number) as q_ds, cast(rd_combo as number) as r_ds, ri_combo as r_i, quant_unit_id 
+  select cast(qd_combo as number) as q_ds, nvl(to_code, rd) as r_ds, ri_combo as r_i, quant_unit_id 
   from (
     select distinct 
-      qd_combo, first_value(rd_combo) over (partition by qd_combo, quant_unit_id order by prec, cnt desc, rd_combo) as rd_combo, -- get the best translation for each quant_unit_id
+      qd_combo, cast(first_value(rd_combo) over (partition by qd_combo, quant_unit_id order by prec, cnt desc, rd_combo) as number) as rd, -- get the best translation for each quant_unit_id
       ri_combo, quant_unit_id
     -- count translations for each quant_unit_id
     from (select qd_combo, rd_combo, ri_combo, quant_unit_id, min(prec) as prec, count(8) as cnt from x_pattern where qd_combo not like '%-%' group by qd_combo, rd_combo, ri_combo, quant_unit_id) 
   )
+  left join reduce_euds on from_code=rd
 ) on q_ds=ds_code
 ;
 commit;
@@ -2871,6 +2895,7 @@ end;
 truncate table concept_stage;
 truncate table concept_relationship_stage;
 truncate table drug_strength_stage;
+truncate table pack_content_stage;
 
 -- Write Ingredients that have no equivalent. Ingredients are written in code notation. Therefore, concept_id is null, and the XXX code is in concept_code
 insert /*+ APPEND */ into concept_stage (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -3367,8 +3392,8 @@ where pack_concept_id is null and mf_id!=0 -- has no translation and supplier
 commit;
 
 -- Create content for packs
-create table pack_content_stage nologging as
-select 
+insert /*+ APPEND */ into pack_content_stage
+select distinct
   p.concept_code as pack_concept_code, p.vocabulary_id as pack_vocabulary_id, 
   nvl(ds.concept_code, dc.concept_code) as drug_concept_code, nvl(ds.vocabulary_id, dc.vocabulary_id) drug_vocabulary_id, 
   case amount when 0 then null else amount end as amount, case bs when 0 then null else bs end as box_size
@@ -3381,7 +3406,7 @@ join ( -- split components by ';' and extract the drug (behind '/')
     select concept_id, trim(regexp_substr(components, '[^;]+', 1, levels.column_value)) as component
     from extension_pack, -- extension_combo contains i_combos as well
     table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))  + 1) as sys.OdciNumberList)) levels
-  )
+  )F
 ) c using(concept_id)
 left join concept_stage ds on ds.concept_id=drug_concept_id left join concept dc on dc.concept_id=drug_concept_id
 where pack_concept_id is null -- no mapping to existing exists
@@ -3730,6 +3755,7 @@ drop table x_bn purge;
 drop table x_mf purge;
 drop table extension_i purge;
 drop table extension_uds purge;
+drop table reduce_euds purge;
 drop table extension_ds purge;
 drop table extension_combo purge;
 drop table extension_df purge;

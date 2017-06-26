@@ -168,6 +168,7 @@ BEGIN
                                           pVocabularyDevSchema   => 'DEV_RXE',
                                           pAppendVocabulary      => TRUE);            
 END;
+/
 COMMIT;
 
 --3 create input tables 
@@ -443,7 +444,7 @@ INSERT /*+ APPEND */
 					 WHERE dcs.concept_code = c.concept_code AND dcs.domain_id = c.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
 COMMIT;		
 
---4.5 Insert dead RxNorm's 'Yeasts' in order to revive it in RxE + add Kentucky grass
+--4.5 Insert Kentucky grass
 INSERT /*+ APPEND */
       INTO  DRUG_CONCEPT_STAGE (CONCEPT_NAME,
                                 VOCABULARY_ID,
@@ -468,7 +469,7 @@ INSERT /*+ APPEND */
 		   c.invalid_reason,
 		   'Ingredient'
 	  FROM concept c
-	 WHERE c.concept_name IN ('Yeasts','Kentucky bluegrass pollen extract') AND c.vocabulary_id='RxNorm';
+	 WHERE c.concept_name IN ('Kentucky bluegrass pollen extract') AND c.vocabulary_id='RxNorm';
 COMMIT;	
 
 --4.6 Get all Units
@@ -545,8 +546,9 @@ DELETE drug_concept_stage where concept_code IN
 
 DELETE drug_concept_stage
 WHERE concept_code IN
-('OMOP881482','OMOP341519','OMOP346740','OMOP714610','721654','1021221','317004')
+('OMOP881482','OMOP341519','OMOP346740','OMOP714610','721654','1021221','317004','1371041','OMOP881524','236340')--apo-trastumab,gas etc.
 OR (lower(concept_name) like '%apotheke%' AND concept_class_id='Supplier');
+
 
 /* Remove wrong brand names (need to save for the later clean up)
 DELETE FROM DRUG_CONCEPT_STAGE
@@ -583,13 +585,15 @@ COMMIT;
 --7 filling drug_strength
 --just turn drug_strength into ds_stage replacing concept_ids with concept_codes
 INSERT /*+ APPEND */
-      INTO  ds_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+      INTO  ds_stage (DRUG_CONCEPT_CODE,
+            INGREDIENT_CONCEPT_CODE,BOX_SIZE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
    SELECT  drug_concept_code, 
            CASE WHEN ingredient_concept_code='314375'     THEN '852834' --ALLERGENIC EXTRACT, GRASS, KENTUCKY BLUE
                 WHEN ingredient_concept_code='OMOP332154' THEN '748794' --Inert Ingredients
                 WHEN ingredient_concept_code='314329'     THEN '1309815' --ALLERGENIC EXTRACT, BIRCH
-                WHEN ingredient_concept_code='1428040'    THEN '1406' --STYRAX BENZOIN RESIN   + leave 11384 Yeasts as it is
+                WHEN ingredient_concept_code='1428040'    THEN '1406' --STYRAX BENZOIN RESIN  
 		WHEN ingredient_concept_code='236340'    THEN '644634'
+		WHEN ingredient_concept_code='11384'    THEN 'OMOP418532' --Yeasts
                 ELSE ingredient_concept_code END,
            box_size,amount_value,amount_unit,numerator_value,numerator_unit,denominator_value,denominator_unit 
      FROM (
@@ -637,7 +641,8 @@ INSERT /*+ APPEND */
                              ON lf.root_concept_id_1=ds.ingredient_concept_id  
                    LEFT JOIN concept c3 ON c3.concept_id = ds.amount_unit_concept_id
                    LEFT JOIN concept c4 ON c4.concept_id = ds.numerator_unit_concept_id
-                   LEFT JOIN concept c5 ON c5.concept_id = ds.denominator_unit_concept_id);
+                   LEFT JOIN concept c5 ON c5.concept_id = ds.denominator_unit_concept_id)
+     WHERE ingredient_concept_code!='OMOP881482';
 COMMIT;	
 
 --8 Manually add absent units in drug_strength (due to source table issues)
@@ -1281,6 +1286,7 @@ WHERE amount_unit IS NULL AND numerator_unit IS NULL AND denominator_unit IS NUL
 
 COMMIT;
 
+truncate table internal_relationship_stage;
 --22 Build internal_relationship_stage 
 --Drug to form
 INSERT /*+ APPEND */
@@ -1292,8 +1298,7 @@ INSERT /*+ APPEND */
            JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id like 'RxNorm%' AND dc.concept_class_id = 'Drug Product'
            JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
            JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Dose Form' AND c2.vocabulary_id LIKE 'Rx%' AND c2.invalid_reason IS NULL;
-
-            --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
+ --where regexp_like (c.concept_name,c2.concept_name) --Problem with Transdermal patch/system
 
 COMMIT;
 
@@ -1358,7 +1363,9 @@ COMMIT;
 --Drug Form to ingredient
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage
-    SELECT distinct c.concept_code, c2.concept_code
+    SELECT distinct c.concept_code, 
+                    CASE WHEN c2.concept_code='11384' THEN 'OMOP418532' --Yeasts
+			 ELSE c2.concept_code END
       FROM concept c
            JOIN drug_concept_stage dc ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL
            JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' AND cr.invalid_reason IS NULL
@@ -1368,13 +1375,15 @@ INSERT /*+ APPEND */
                    (SELECT 1
                       FROM internal_relationship_stage irs_int
                       JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
-                    WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient');
-
+                    WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient')
+          AND c2.concept_code not in ('1371041','OMOP881482');                  
 COMMIT;
 
 INSERT /*+ APPEND */ 
       INTO internal_relationship_stage (concept_Code_1,concept_code_2)
-    SELECT DISTINCT dc.concept_code,ds.ingredient_concept_code
+    SELECT DISTINCT dc.concept_code,
+                    CASE WHEN ds.ingredient_concept_code='11384' THEN 'OMOP418532' 
+			 ELSE ds.ingredient_concept_code END 
       FROM concept c
            JOIN drug_concept_stage dc ON dc.concept_code = c.concept_code AND c.vocabulary_id LIKE 'RxNorm%'  AND c.invalid_reason IS NULL AND c.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form')
            JOIN concept_relationship cr ON concept_id_1 = c.concept_id AND cr.invalid_reason IS NULL
@@ -1384,8 +1393,9 @@ INSERT /*+ APPEND */
                 (SELECT 1
                    FROM internal_relationship_stage irs_int
                    JOIN drug_concept_stage dcs ON dcs.concept_code = irs_int.concept_code_2
-                 WHERE irs_int.concept_code_1 = c.concept_code
-                 AND   dcs.concept_class_id = 'Ingredient');
+                 WHERE irs_int.concept_code_1 = dc.concept_code
+                 AND   dcs.concept_class_id = 'Ingredient')
+      AND ds.ingredient_concept_code not in ('1371041','OMOP881482');           
 
 COMMIT;
 
@@ -1403,41 +1413,70 @@ CREATE TABLE ing_temp AS
                       FROM internal_relationship_stage irs_int
                       JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
                     WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient')
-                    AND UPPER(c.concept_name) like '%'||UPPER(c2.concept_name)||'%'; 
+               AND UPPER(c.concept_name) like '%'||UPPER(c2.concept_name)||'%'
+               AND  c2.concept_code not in ('1371041','OMOP881482'); 
 
 COMMIT;
 
 --ing_temp_2
-INSERT /*+ APPEND */
-      INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
-    SELECT distinct concept_code_1, concept_code
+DROP TABLE ing_temp_2 ;
+CREATE TABLE ing_temp_2 as (
+SELECT distinct c.concept_code_1,c.concept_code
+FROM (SELECT concept_code_1,
+             concept_code
       --Aspirin / Aspirin / Caffeine Oral Tablet [Mipyrin]
-      FROM ing_temp 
-    WHERE concept_code_1 IN 
-              (SELECT i.concept_code_1 
-                 FROM ing_temp i 
-                      JOIN (SELECT count (concept_code) OVER (PARTITION BY concept_Code_1) AS cnt,concept_code_1
-                              FROM (SELECT distinct concept_code_1,concept_name_1,concept_code,concept_name 
-                                      FROM ing_temp)
-                            ORDER BY concept_Code) a 
-                      ON i.concept_Code_1 = a.concept_Code_1 AND regexp_count(concept_name_1,' / ')+1!= a.cnt
-              	      AND (concept_name_1 like '%...%' or REGEXP_REPLACE (REGEXP_SUBSTR(UPPER(concept_name_1),' / \w+(\s\w+)?'),' / ') LIKE '%'||UPPER(concept_name)||'%' AND  REGEXP_SUBSTR (UPPER(concept_name_1),'\w+(\s\w+)?') LIKE '%'||UPPER(concept_name)||'%'))
-       UNION
-     SELECT distinct i.concept_code_1, concept_code 
-       FROM ing_temp i 
-            JOIN (SELECT count(concept_code) over (partition by concept_Code_1) as cnt,concept_code_1
-                    FROM (SELECT distinct concept_code_1,concept_name_1,concept_code,concept_name 
-                            FROM ing_temp)
-                  ORDER BY concept_Code) a 
-	    ON i.concept_Code_1=a.concept_Code_1 
-     WHERE regexp_count(concept_name_1,' / ')+1= a.cnt
-;
+             FROM ing_temp
+      WHERE concept_code_1 IN (SELECT i.concept_code_1
+                               FROM ing_temp i
+                                 JOIN (SELECT COUNT(concept_code) OVER (PARTITION BY concept_code_1) AS cnt,
+                                              concept_code_1
+                                       FROM (SELECT DISTINCT concept_code_1,
+                                                    concept_name_1,
+                                                    concept_code,
+                                                    concept_name
+                                             FROM ing_temp)
+                                       ORDER BY concept_code) a
+                                   ON i.concept_Code_1 = a.concept_Code_1
+                                  AND REGEXP_COUNT (concept_name_1,' / ') +1 != a.cnt
+                                  AND (concept_name_1 LIKE '%...%'
+                                   OR REGEXP_REPLACE (REGEXP_SUBSTR (UPPER (concept_name_1),' / \w+(\s\w+)?'),' / ') LIKE '%' ||UPPER (concept_name) || '%'
+                                  AND REGEXP_SUBSTR (UPPER (concept_name_1),'\w+(\s\w+)?') LIKE '%' ||UPPER (concept_name) || '%'))
+      UNION
+      SELECT i.concept_code_1,
+             concept_code
+      FROM ing_temp i
+        JOIN (SELECT COUNT(concept_code) OVER (PARTITION BY concept_code_1) AS cnt,
+                     concept_code_1
+              FROM (SELECT DISTINCT concept_code_1,
+                           concept_name_1,
+                           concept_code,
+                           concept_name
+                    FROM ing_temp)
+              ORDER BY concept_code) a ON i.concept_code_1 = a.concept_code_1
+      WHERE REGEXP_COUNT(concept_name_1,' / ') +1 = a.cnt) c
+WHERE NOT EXISTS (SELECT 1
+                  FROM internal_relationship_stage irs_int
+                    JOIN drug_concept_stage dcs ON dcs.concept_code = irs_int.concept_code_2
+                  WHERE irs_int.concept_code_1 = c.concept_code_1
+                  AND   dcs.concept_class_id = 'Ingredient'));
+                  
+INSERT 
+INTO internal_relationship_stage
+(concept_Code_1,  concept_code_2)
+SELECT DISTINCT concept_code_1,concept_code
+FROM ing_temp_2 it where  NOT EXISTS (SELECT 1
+                  FROM internal_relationship_stage irs_int
+                    JOIN drug_concept_stage dcs ON dcs.concept_code = irs_int.concept_code_2
+                  WHERE irs_int.concept_code_1 = it.concept_code_1
+                  AND   dcs.concept_class_id = 'Ingredient');
 
 COMMIT;
 
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
-    SELECT distinct dc.concept_code,c2.concept_code
+    SELECT distinct dc.concept_code,
+                    CASE WHEN c2.concept_code='11384' THEN 'OMOP418532' 
+			 ELSE c2.concept_code END  
       FROM drug_concept_stage dc
            JOIN concept c ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id not like '%Pack%' AND dc.concept_name NOT LIKE '%Pack%'
            JOIN devv5.concept_ancestor ca ON descendant_concept_id=c.concept_id
@@ -1446,19 +1485,10 @@ INSERT /*+ APPEND */
                    (SELECT 1
                       FROM internal_relationship_stage irs_int
                            JOIN drug_concept_stage dcs ON dcs.concept_code=irs_int.concept_code_2
-                    WHERE irs_int.concept_code_1 = c.concept_code AND dcs.concept_class_id='Ingredient')
-    AND UPPER(c.concept_name) LIKE '%'||UPPER(c2.concept_name)||'%';
-COMMIT;
-
-INSERT INTO internal_relationship_stage(concept_code_1,concept_code_2)
- (SELECT concept_code,  '11384'
-FROM drug_concept_stage
-WHERE concept_name LIKE '%Yeasts%'
-AND   concept_code NOT IN (SELECT concept_code_1
-                           FROM internal_relationship_stage
-                           WHERE concept_code_2 = '11384')
-AND   concept_class_id = 'Drug Product');
-
+                    WHERE irs_int.concept_code_1 = dc.concept_code AND dcs.concept_class_id='Ingredient')
+                    
+    AND UPPER(c.concept_name) LIKE '%'||UPPER(c2.concept_name)||'%'
+    AND  c2.concept_code not in ('1371041','OMOP881482');
 COMMIT;
 
 --Drug to supplier
@@ -1557,7 +1587,7 @@ INSERT /*+ APPEND */ INTO internal_relationship_stage
 				distinct dc.concept_code, c.concept_name
 			   FROM drug_concept_stage dc JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id = 'RxNorm Extension'
 			  WHERE dc.concept_class_id = 'Drug Product' AND dc.concept_name LIKE '%Pack%[%]%')
-	SELECT t.concept_code, dc2.concept_code
+	SELECT distinct t.concept_code, dc2.concept_code
 	  FROM t JOIN concept dc2 ON dc2.concept_name = REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_SUBSTR (t.concept_name, '\[(.*)\]'),'.*\['),'\]')
 	  AND dc2.concept_class_id = 'Brand Name' AND dc2.vocabulary_id like 'Rx%' AND dc2.invalid_reason IS NULL
 	  --WHERE  t.concept_code NOT IN (SELECT concept_code_1 FROM internal_relationship_stage irs_int JOIN drug_concept_stage dcs_int ON dcs_int.concept_code=irs_int.concept_code_2 AND dcs_int.concept_class_id = 'Brand Name' );
@@ -1565,17 +1595,19 @@ INSERT /*+ APPEND */ INTO internal_relationship_stage
                (SELECT 1
                   FROM internal_relationship_stage irs_int
                  WHERE irs_int.concept_code_1 = t.concept_code AND irs_int.concept_code_2 = dc2.concept_code);	  
-				 
+ 
 commit;
 	 
 INSERT INTO drug_concept_stage
 (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,SOURCE_CONCEPT_CLASS_ID, CONCEPT_CLASS_ID, STANDARD_CONCEPT, CONCEPT_CODE, VALID_START_DATE, VALID_END_DATE, INVALID_REASON)
 SELECT DISTINCT CONCEPT_NAME, DOMAIN_ID,'Rxfix', CONCEPT_CLASS_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE, VALID_END_DATE, INVALID_REASON
-FROM internal_relationship_stage a
-  JOIN concept c
-    ON c.concept_code = concept_code_2
-   AND c.vocabulary_id LIKE 'Rx%'
-WHERE concept_code_2 NOT IN (SELECT concept_code FROM drug_concept_stage);
+  FROM internal_relationship_stage a
+    JOIN concept c
+      ON c.concept_code = concept_code_2
+      AND c.vocabulary_id LIKE 'Rx%'
+  WHERE concept_code_2 NOT IN (SELECT concept_code FROM drug_concept_stage)
+  AND concept_code_2 NOT IN ('721654','317004','OMOP881524')--unneccesary DF
+  ;
 
 COMMIT;
 
@@ -1695,7 +1727,7 @@ DELETE FROM INTERNAL_RELATIONSHIP_STAGE WHERE CONCEPT_CODE_1 = 'OMOP340161' AND 
 
 --25.3 delete precise ingredients
 DELETE internal_relationship_stage
-WHERE concept_code_2 in ('236340','1371041');
+WHERE concept_code_2 in ('236340','1371041','721654','317004','OMOP881524');--unnecessary DF
 
 --25.4 add missing relationship to dose form
 INSERT INTO internal_relationship_stage
@@ -1721,8 +1753,14 @@ AND   dc.concept_code NOT IN (SELECT concept_code_1
                                   ON concept_code_2 = concept_code
                                  AND concept_class_id = 'Dose Form');
 
-
 COMMIT;
+
+--need to check ing_temp_1
+delete from internal_relationship_stage where rowid not in (
+  select first_value(rowid) over (partition by concept_code_1,concept_code_2 order by concept_code_1 desc) from internal_relationship_stage
+);
+delete drug_concept_stage where  concept_class_id='Drug Product' and concept_name not like '%Pack%'
+and concept_code not in (select concept_code_1 from internal_Relationship_stage join drug_concept_stage on concept_code_2=concept_code and concept_class_id='Ingredient');
 
 --26 just take it from the pack_content
 INSERT /*+ APPEND */ INTO pc_stage
@@ -1775,72 +1813,6 @@ WHERE PACK_CONCEPT_CODE = 'OMOP339814'
 AND   DRUG_CONCEPT_CODE = '310463'
 AND   AMOUNT = 7;
 COMMIT;
-
---26.2 fix strange pack conponents
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440999' AND   DRUG_CONCEPT_CODE in ('OMOP416771','OMOP416622','OMOP416816');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440908' AND   DRUG_CONCEPT_CODE in ('OMOP416653','OMOP416613','OMOP416703','OMOP416794','OMOP416792');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440909' AND   DRUG_CONCEPT_CODE in ('OMOP416799','OMOP416662');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440914' AND   DRUG_CONCEPT_CODE in ('OMOP416623','OMOP416626');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440915' AND   DRUG_CONCEPT_CODE in ('OMOP416727','OMOP416922');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440916' AND   DRUG_CONCEPT_CODE in ('OMOP416851','OMOP416789');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440918' AND   DRUG_CONCEPT_CODE in ('OMOP416727','OMOP416780','OMOP416922');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440919' AND   DRUG_CONCEPT_CODE in ( 'OMOP416699');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440997' AND   DRUG_CONCEPT_CODE in ( 'OMOP416843','OMOP416786' );
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440995' AND   DRUG_CONCEPT_CODE in ( 'OMOP416749','OMOP416845');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440994' AND   DRUG_CONCEPT_CODE in ( 'OMOP416905','OMOP416850');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440993' AND   DRUG_CONCEPT_CODE in ( 'OMOP416696','OMOP416928');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440992' AND   DRUG_CONCEPT_CODE in ( 'OMOP416568','OMOP416907','OMOP416612');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440990' AND   DRUG_CONCEPT_CODE in ( 'OMOP416786','OMOP416843');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440989' AND   DRUG_CONCEPT_CODE in ( 'OMOP416713','OMOP416762');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440988' AND   DRUG_CONCEPT_CODE in ( 'OMOP416893','OMOP416742');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440986' AND   DRUG_CONCEPT_CODE in ( 'OMOP416589');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440985' AND   DRUG_CONCEPT_CODE in ( 'OMOP416731','OMOP416688');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440986' AND   DRUG_CONCEPT_CODE in ( 'OMOP416734');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440984' AND   DRUG_CONCEPT_CODE in ( 'OMOP416828','OMOP416829');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440983' AND   DRUG_CONCEPT_CODE in ( 'OMOP416685','OMOP416778','OMOP416776','OMOP416877');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440982' AND   DRUG_CONCEPT_CODE in ( 'OMOP416755','OMOP416616');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440978' AND   DRUG_CONCEPT_CODE in ( 'OMOP416880','OMOP416825');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440977' AND   DRUG_CONCEPT_CODE in ( 'OMOP416722','OMOP416676','OMOP416871');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440976' AND   DRUG_CONCEPT_CODE in ( 'OMOP416862','OMOP416658','OMOP416572');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440975' AND   DRUG_CONCEPT_CODE in ( 'OMOP416622','OMOP416816','OMOP416771' );
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440974' AND   DRUG_CONCEPT_CODE in ( 'OMOP416598','OMOP416837','OMOP416596');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440972' AND   DRUG_CONCEPT_CODE in ( 'OMOP416822', 'OMOP416820');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440971' AND   DRUG_CONCEPT_CODE in ( 'OMOP416913','OMOP416806');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440969' AND   DRUG_CONCEPT_CODE in ( 'OMOP416630','OMOP416689');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440966' AND   DRUG_CONCEPT_CODE in ( 'OMOP416738','OMOP416831','OMOP416635','OMOP416884');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440965' AND   DRUG_CONCEPT_CODE in ( 'OMOP416808','OMOP416719');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440964' AND   DRUG_CONCEPT_CODE in ( 'OMOP416742''OMOP416893');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440963' AND   DRUG_CONCEPT_CODE in ( 'OMOP416889','OMOP416891');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440961' AND   DRUG_CONCEPT_CODE in ( 'OMOP416796','OMOP416864','OMOP416659');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440960' AND   DRUG_CONCEPT_CODE in ( 'OMOP416659','OMOP416864','OMOP416796');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440959' AND   DRUG_CONCEPT_CODE in ( 'OMOP416679','OMOP416873');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440958' AND   DRUG_CONCEPT_CODE in ( 'OMOP416789','OMOP416851');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440957' AND   DRUG_CONCEPT_CODE in ( 'OMOP416663','OMOP416665');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440956' AND   DRUG_CONCEPT_CODE in ( 'OMOP416877','OMOP416685','OMOP416776','OMOP416778');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440954' AND   DRUG_CONCEPT_CODE in ( 'OMOP416594','OMOP416930');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440952' AND   DRUG_CONCEPT_CODE in ( 'OMOP416592','OMOP416887');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440950' AND   DRUG_CONCEPT_CODE in ( 'OMOP416676','OMOP416871','OMOP416722');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440949' AND   DRUG_CONCEPT_CODE in ( 'OMOP416644','OMOP416840');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440947' AND   DRUG_CONCEPT_CODE in ( 'OMOP416760','OMOP416804');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440946' AND   DRUG_CONCEPT_CODE in ( 'OMOP416859','OMOP416810','OMOP416909','OMOP416709');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440943' AND   DRUG_CONCEPT_CODE in ( 'OMOP416812','OMOP416672');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440942' AND   DRUG_CONCEPT_CODE in ( 'OMOP416568','OMOP416907','OMOP416612');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440939' AND   DRUG_CONCEPT_CODE in ( 'OMOP416899','OMOP416848','OMOP416683','OMOP416725');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440938' AND   DRUG_CONCEPT_CODE in ( 'OMOP416707','OMOP416705','OMOP416656');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440937' AND   DRUG_CONCEPT_CODE in ( 'OMOP416895');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440936' AND   DRUG_CONCEPT_CODE in ( 'OMOP416875','OMOP416774');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440934' AND   DRUG_CONCEPT_CODE in ( 'OMOP416638','OMOP416743');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440932' AND   DRUG_CONCEPT_CODE in ( 'OMOP416881','OMOP416926');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440931' AND   DRUG_CONCEPT_CODE in ( 'OMOP416730','OMOP416924');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440928' AND   DRUG_CONCEPT_CODE in ( 'OMOP416897','OMOP416641');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440926' AND   DRUG_CONCEPT_CODE in ( 'OMOP416886','OMOP416693','OMOP416736','OMOP416631');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440924' AND   DRUG_CONCEPT_CODE in ( 'OMOP416866', 'OMOP416667');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440923' AND   DRUG_CONCEPT_CODE in ( 'OMOP416870','OMOP416917');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440922' AND   DRUG_CONCEPT_CODE in ( 'OMOP416630','OMOP416689');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440920' AND   DRUG_CONCEPT_CODE in ( 'OMOP416674', 'OMOP416770');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440915' AND   DRUG_CONCEPT_CODE in ( 'OMOP416780');
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440910' AND   DRUG_CONCEPT_CODE in ( 'OMOP416716','OMOP340415','OMOP416585' ,'OMOP416620'); 
-DELETE FROM PC_STAGE WHERE PACK_CONCEPT_CODE = 'OMOP440907' AND   DRUG_CONCEPT_CODE in ( 'OMOP432309','OMOP432308','OMOP416740','OMOP416932','OMOP416835');
 
 --27 insert missing packs (only those that have => 2 components) - take them from the source tables
 --27.1 AMT
@@ -1984,7 +1956,6 @@ WHERE pack_concept_code = 'OMOP902613'
 AND   drug_concept_code = 'OMOP918399'
 AND   amount = 7;
 COMMIT;
-
 UPDATE pc_stage
    SET amount = 12
 WHERE pack_concept_code = 'OMOP420950'
@@ -2000,6 +1971,16 @@ UPDATE pc_stage
 WHERE pack_concept_code = 'OMOP902613'
 AND   drug_concept_code = 'OMOP918399'
 AND   amount = 5;
+DELETE
+FROM pc_stage
+WHERE pack_concept_code = 'OMOP902009'
+AND   drug_concept_code = 'OMOP706163'
+AND   amount = 28;
+UPDATE pc_stage
+   SET amount = 31
+WHERE pack_concept_code = 'OMOP902009'
+AND   drug_concept_code = 'OMOP706163'
+AND   amount = 3;
 
 COMMIT;
 
@@ -2008,9 +1989,7 @@ INSERT /*+ APPEND */ INTO relationship_to_concept
 (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
 SELECT a.concept_code,a.VOCABULARY_ID,b.concept_id, 1
   FROM drug_concept_stage a JOIN concept b ON b.concept_code = a.concept_code AND b.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
- WHERE a.concept_class_id IN ('Dose Form','Brand Name', 'Supplier', 'Ingredient')
- AND  a.concept_code!='11384' -- remove dead RxNorm's 'Yeasts' in order to revive it in RxE
- ;
+ WHERE a.concept_class_id IN ('Dose Form','Brand Name', 'Supplier', 'Ingredient') ;
 COMMIT;
 
 --31.2 insert relationship to units
@@ -2042,10 +2021,6 @@ WHERE CONCEPT_CODE_1 = 'ug'
 AND   CONCEPT_ID_2 = 9655;
 COMMIT;
 
---31.5 delete precise ingredients
-DELETE relationship_to_concept
-WHERE concept_code_1 in ('1371041','236340');
-
 --32 Before Build_RxE
 insert into vocabulary (vocabulary_id, vocabulary_name, vocabulary_concept_id)
      values ('RxO', 'RxO', 0);
@@ -2058,5 +2033,5 @@ update concept_relationship
 set invalid_reason = 'D', valid_end_date = trunc (sysdate)-1
 where concept_id_1 in (select concept_id_1 from concept_relationship JOIN concept on concept_id_1 = concept_id and vocabulary_id = 'RxO')
   or concept_id_2 in (select concept_id_2 from concept_relationship JOIN concept on concept_id_2 = concept_id and vocabulary_id = 'RxO'); 
-    
+
 commit;

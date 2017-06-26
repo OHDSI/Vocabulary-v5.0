@@ -1,0 +1,42 @@
+CONCEPT_NAME_1	CONCEPT_CLASS_ID_1	CONCEPT_ID_2	CONCEPT_NAME_2	PRECEDENCE	CONVERSION_FACTOR
+%	Unit	8554	percent	1	1
+ACT	Unit	45744809		1	1
+B	Unit	8510	unit	1	1000000000
+C	Unit	9324	homeopathic potency of centesimal series	1	1
+CCID50	Unit	9379	plaque forming unit	1	0.7
+CELL	Unit	45744812	cells	1	1
+CFU	Unit	9278	colony forming unit	1	1
+CH	Unit	9324	homeopathic potency of centesimal series	1	1
+CMK	Unit	9324	homeopathic potency of centesimal series	1	1000000
+D	Unit	9325	homeopathic potency of decimal series	1	1
+DH	Unit	9325	homeopathic potency of decimal series	1	1
+FFU	Unit	9302	focus forming unit	1	1
+G	Unit	8576	milligram	1	1000
+GAL	Unit	8587	milliliter	1	3790
+GALU	Unit	8510	unit	1	1
+HOUR	Unit	8505	hour	1	1
+IU	Unit	8510	unit	1	1
+K	Unit	8510	unit	1	1000
+Kg	Unit	8576	milligram	1	1000000
+KIU	Unit	8510	unit	1	1000
+L	Unit	8587	milliliter	1	1000
+LF	Unit	45744814	limit of flocculation unit	1	1
+M	Unit	8510	unit	1	1000000
+MCG	Unit	8576	milligram	1	0.001
+MCL	Unit	8587	milliliter	1	0.001
+MCMOL	Unit	9573	millimole	1	0.001
+MEQ	Unit	9551	milliequivalent	1	1
+mEq	Unit	9551	milliequivalent	1	1
+MG	Unit	8576	milligram	1	1
+MIU	Unit	8510	unit	1	1000000
+ML	Unit	8587	milliliter	1	1
+MMOL	Unit	9573	millimole	1	1
+MU	Unit	8510	unit	1	1000000
+PFU	Unit	9379	plaque forming unit	1	1
+SQ CM	Unit	9483	square centimeter	1	1
+U	Unit	8510	unit	1	1
+UNIT	Unit	8510	unit	1	1
+UNITS	Unit	8510	unit	1	1
+X	Unit	9325	homeopathic potency of decimal series	1	1
+XMK	Unit	9324	homeopathic potency of centesimal series	1	10000
+TUB	Unit	8510	unit	1	1000

@@ -159,12 +159,13 @@ drop table drug_to_ingred;
 create table drug_to_ingred as (
 select a.pfc as concept_code_1, b.concept_code as concept_code_2 from drug_to_ingr_name a join drug_concept_stage b on a.ingred = b.concept_name)
 ;
---brand_to_ingred
+--brand_to_ingred, --don't need anymore
 drop table brand_to_ingr;
 create table brand_to_ingr as (
 select distinct a.concept_code_2 as concept_code_1, b.concept_code_2 from drug_to_brnd_name a join drug_to_ingred b on a.concept_code_1 = b.concept_code_1
 )
 ;
+--don't need anymore
 drop table quant_to_drg;
 create table quant_to_drg as (
 select  a.concept_code AS concept_code_1, b.concept_code as concept_code_2
@@ -274,7 +275,7 @@ select CONCEPT_CODE_1,'DA_France', CONCEPT_ID_2, 1, '' from ingredients_mapping
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
 select b.concept_code,'DA_France', a.concept_id, a.precedence, '' from add_ingr a join drug_concept_stage  b on a.source_name = b.concept_name
 ;
---insert addition form mapping
+--insert addition form mapping, !!! get rid of this - make the one manual table
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor)
 select b.concept_code,'DA_France', a.rn_id, a.precedence, '' from add_forms a left outer join drug_concept_stage  b on regexp_replace (a.france_name, '\s+', ' ') = b.concept_name
 ;
@@ -299,7 +300,7 @@ join devv5.concept c2 on c2.concept_id=r.concept_id_2
 join relationship_to_concept rc on rc.concept_id_2 = c1.concept_id
 where a.concept_code_1 = rc.concept_code_1 and rc.precedence = 1)
 ;
---drug strength
+--drug strength !!! change to ds_stage 
 DROP TABLE DRUG_STRENGTH_STAGE;
 CREATE TABLE DRUG_STRENGTH_STAGE
 (
@@ -314,7 +315,7 @@ denominator_unit		varchar(255)	,
 box_size	integer
 )
 ;
---insert there concepts info step by step moving from easiest to more complicated cases
+--insert there concepts info step by step moving from easiest to more complicated cases !!! why not to use dm+d (gemscript algorithm)?
 --doesn't have a volume and drug has only one ingredient
 insert into DRUG_STRENGTH_STAGE (drug_concept_code, ingredient_concept_code	, amount_value, amount_unit,BOX_SIZE 	)
 select a.concept_code_1, a.concept_code_2, strg_unit, STRG_MEAS, packsize
@@ -322,7 +323,7 @@ select a.concept_code_1, a.concept_code_2, strg_unit, STRG_MEAS, packsize
 join drug_concept_stage c on a.concept_code_2 = c.concept_code and c.concept_class_id = 'Ingredient'
 join france d on pfc = a.concept_code_1 and volume ='NULL' AND strg_unit !='NULL' AND MOLECULE NOT LIKE '%+%' AND strg_meas != '%'
 ;
---√ƒ≈ ≈—“‹ Œ¡⁄≈Ã » Õ≈“ —Œ—“¿¬Õ€’ ƒŒ«»–Œ¬Œ 
+--√ƒ≈ ≈—“‹ Œ¡⁄≈Ã » Õ≈“ —Œ—“¿¬Õ€’ ƒŒ«»–Œ¬Œ  
 insert into DRUG_STRENGTH_STAGE (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE, NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT,BOX_SIZE)
 select a.concept_code_1, a.concept_code_2, REPLACE (strg_unit, 'NULL'), replace( STRG_MEAS, 'NULL'), regexp_substr (volume, '[[:digit:]]+(\.[[:digit:]]+)?') as denominator_value,
 regexp_replace (volume, '[[:digit:]]+(\.[[:digit:]]+)?') as denominator_unit,  packsize
@@ -330,7 +331,7 @@ regexp_replace (volume, '[[:digit:]]+(\.[[:digit:]]+)?') as denominator_unit,  p
 join drug_concept_stage c on a.concept_code_2 = c.concept_code and c.concept_class_id = 'Ingredient'
 join france d on pfc = a.concept_code_1 and (volume !='NULL' OR strg_meas = '%' ) AND MOLECULE NOT LIKE '%+%'
 ;
--- ŒÃœÀ≈ —Õ€≈ - ‚˚Ú‡ÒÍË‚‡ÂÏ ‰ÓÁËÓ‚ÍË
+--parsing the dosage and molecule simulaneously
 drop table ingr_w_dos_1;
 create table ingr_w_dos_1 as (
 select distinct
@@ -493,12 +494,13 @@ from ingr_w_dos_3 a join drug_concept_stage c on a.INGRED = c.concept_name and c
 join france d on a.pfc = d.pfc and volume !='NULL' AND MOLECULE LIKE '%+%' 
 ;
 
---DRUG_STRENGTH_STAGE almost done, add drugs not having dosage
+--DRUG_STRENGTH_STAGE almost done, add drugs not having dosage !!! don't need this anymore
 insert into  DRUG_STRENGTH_STAGE (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE, DENOMINATOR_VALUE, DENOMINATOR_UNIT, BOX_SIZE)
 select CAST (concept_code_1 AS VARCHAR (250)), CAST (concept_CODE_2 AS VARCHAR (250)), replace (regexp_substr (volume, '[[:digit:]]+(\.[[:digit:]]+)?'), 'NULL',''),
 replace (regexp_replace (volume, '[[:digit:]]+(\.[[:digit:]]+)?'), 'NULL',''),  REPLACE (packsize, ' ', '')  from drug_to_ingred a  join france b on cAST (b.PFC AS VARCHAR (250))= a.concept_code_1
 where concept_code_1 not in (select drug_concept_code from DRUG_STRENGTH_STAGE  )
 ;
+--something not parceable
 UPDATE DRUG_STRENGTH_STAGE
    SET AMOUNT_UNIT = 'MG'
 WHERE DRUG_CONCEPT_CODE = '2558101'
@@ -634,7 +636,7 @@ UPDATE DRUG_STRENGTH_STAGE
    SET DENOMINATOR_UNIT =''
 WHERE DENOMINATOR_UNIT = 'NULL'
 ;
---we have several duplicate values because of structure source table 
+--we have several duplicate values because of structure of the source table !!! delete them in the very beginning instead of this
 --delete them using select DISTINCT statement
 CREATE TABLE  DRUG_STRENGTH_STAGE_V3 AS (
 SELECT DISTINCT DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT,BOX_SIZE FROM  DRUG_STRENGTH_STAGE)
@@ -645,7 +647,7 @@ CREATE TABLE DRUG_STRENGTH_STAGE AS (SELECT * FROM DRUG_STRENGTH_STAGE_V3)
 ;
 drop table DRUG_STRENGTH_STAGE_V3
 ;
---based on tables we already have create normal names 
+--based on tables we already have create normal names !!! don't need this also (was a big work done, eh)
 --create ranked DRUG_STRENGTH_STAGE to define bind each ingredient with dosage corresponding
 drop table drug_strength_rank ;
 create table drug_strength_rank as 
@@ -726,6 +728,7 @@ join ( select drug_concept_code, count(1) as cnt from  drug_strength_stage group
 join drug_concept_stage f on  f.concept_code = a.pfc and f.concept_class_id like '%Clinical%'
 )
 ;
+---!!! don't need
 drop table Branded_name_0;
 create table Branded_name_0 as (
 select distinct 
@@ -796,7 +799,6 @@ left join drug_concept_stage d3 on d3.concept_code = s3.INGREDIENT_CONCEPT_CODE
 join ( select drug_concept_code, count(1) as cnt from  drug_strength_stage group by drug_concept_code) sc on sc.drug_concept_code =a.pfc 
 join drug_concept_stage f on  f.concept_code = a.pfc and f.concept_class_id like '%Branded%'
 )
-;
 ;
 --inaccuracy occured in names such as '0.001' turned to '.001', and several spaces in a row because some entries in name could be null
 --replace those inaccuaries

@@ -10,3 +10,8 @@ Additional information about these tables you can get from http://www.ohdsi.org/
 Using tables with all generated classes create full names for concepts we have
 
 !!! need script refactoring and manual tables work
+
+to do
+1. consolidate all the scripts into load_stage (non_drug_concept_stage.sql + so called "load stage" + france_table_creation)
+2. tranform 1000 of inserts into manual table and publish it on a github
+3. add algorithms that compares new manual and old manual tables

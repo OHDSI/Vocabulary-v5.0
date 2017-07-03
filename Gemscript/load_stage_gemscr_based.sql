@@ -694,7 +694,7 @@ delete from ds_all_tmp where concept_code in (select gemscript_code from full_ma
 commit
 ;
 insert into ds_all_tmp (DOSAGE,DRUG_COMP,CONCEPT_NAME,CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,INGREDIENT_CONCEPT_NAME,VOLUME)
-select distinct DOSAGE, '', nvl (thin_name, gemscript_name), gemscript_CODE, INGREDIENT_CONCEPT_CODE, INGREDIENT_CONCEPT_CODE, volume from full_manual
+select distinct DOSAGE, '', nvl (thin_name, gemscript_name), gemscript_CODE, INGREDIENT_CONCEPT_CODE, INGREDIENT_CONCEPT_CODE, volume from full_manual  where ingredient_concept_code is not null
 ;
 --domain_id definition
 update  thin_need_to_map t set domain_id = (select distinct domain_id from full_manual m where t.gemscript_code = m.gemscript_code)
@@ -866,9 +866,13 @@ delete from ds_stage where drug_concept_code in (Select pack_concept_code from p
 commit
 ;
 --check for non ds_stage cover
-select * from thin_need_to_map where gemscript_code not in (select drug_concept_code from ds_stage ) and gemscript_code not in (select gemscript_code from full_manaul) and domain_id = 'Drug' 
-and gemscript_code not in (select pack_concept_code from pc_stage)
+select * from thin_need_to_map where gemscript_code not in (select drug_concept_code from ds_stage where drug_concept_code is not null)
+ and gemscript_code not in (select gemscript_code from full_manual where gemscript_code is not null) and domain_id = 'Drug' 
+and gemscript_code not in (select pack_concept_code from pc_stage where pack_concept_code is not null )
 ;
+select * from ds_stage where drug_concept_code is  null
+;
+
 --stop here!
 /*
 select * from ds_stage ds
@@ -1419,7 +1423,7 @@ select max(iex)+1 into ex from (
 end;
 /
 
-drop table  code_replace;
+drop table  code_replace; 
  create table code_replace as 
  select 'OMOP'||code_seq.nextval as new_code, concept_code as old_code from (
 select distinct  concept_code from drug_concept_stage where concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form') or concept_code in (select drug_concept_code from pc_stage)
@@ -1468,3 +1472,4 @@ create table basic_concept_stage as select * from concept_stage
 drop table basic_con_rel_stage;
 create table basic_con_rel_stage as select * from concept_relationship_stage
 ;
+

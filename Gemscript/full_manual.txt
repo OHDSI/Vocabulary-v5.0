@@ -288,16 +288,16 @@ d4		Generic cinnabar d20 / pyrites d4 homeopathic tablets	Cinnabar D20 / Pyrites
 		Presept 2.5 gm tablet	PRESEPT 2.5 GM TAB	0	97954992			Device
 		Surgicare accuseal system size 1 small	SURGICARE ACCUSEAL SYSTEM SIZE 1 SMALL	0	98759992			Device
 1000mg		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19011773	97987992		Ascorbic Acid	Drug
-700 µg RE		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19008339	97987992		Vitamin A	Drug
-10 µg		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19009405	97987992		Vitamin D	Drug
+700 ?g RE		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19008339	97987992		Vitamin A	Drug
+10 ?g		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19009405	97987992		Vitamin D	Drug
 45 mg a-TE		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19009540	97987992		Vitamin E	Drug
 6.5 mg		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	1353228	97987992		Vitamin B6	Drug
-9.6 µg		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19111620	97987992		Folic Acid	Drug
-400 µg		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	1308738	97987992		Vitamin B 12	Drug
+9.6 ?g		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19111620	97987992		Folic Acid	Drug
+400 ?g		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	1308738	97987992		Vitamin B 12	Drug
 10 mg		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19010696	97987992		Zinc	Drug
 5 mg		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	1360067	97987992		Iron	Drug
 0.9 mg		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	19071128	97987992		Copper	Drug
-110 µg		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	966282	97987992		Selenium	Drug
+110 ?g		Redoxon multivitamin tablet	REDOXON MULTIVITAMIN TAB	966282	97987992		Selenium	Drug
 500mg		Uriben 500 mg tablet	URIBEN 500 MG TAB	986864	98225992		Nalidixate	Drug
 		Vitamin b / c weak intra-muscular injection	Parentrovite intramuscular maintenance Injection (Bencard)	0	98350998			Drug
 		Ileal bladder appliance mark iii mitcham	ILEAL BLADDER APPLIANCE MARK III MITCHAM	0	99270992			Device
@@ -366,7 +366,7 @@ d4		Generic cinnabar d20 / pyrites d4 homeopathic tablets	Cinnabar D20 / Pyrites
 		Sol	SOL	0	95767992			Drug
 		Generic Ceanel Concentrate shampoo	Ceanel shampoo [quinoderm] 150ml Shampoo (Quinoderm Ltd)	0	97639994			Device
 		Nux vomica acid mix	NUX VOMICA ACID MIX	0	97816992			Drug
-3.8 µg	200ml	Osteocare (200mls) liquid	OSTEOCARE (200MLS) LIQ	19009405	97834992		Vitamin D	Drug
+3.8 ?g	200ml	Osteocare (200mls) liquid	OSTEOCARE (200MLS) LIQ	19009405	97834992		Vitamin D	Drug
 300 mg	200ml	Osteocare (200mls) liquid	OSTEOCARE (200MLS) LIQ	19018544	97834992		Calcium	Drug
 150 mg	200ml	Osteocare (200mls) liquid	OSTEOCARE (200MLS) LIQ	19124906	97834992		Magnesium	Drug
 6 mg	200ml	Osteocare (200mls) liquid	OSTEOCARE (200MLS) LIQ	19010696	97834992		Zinc	Drug
@@ -1879,7 +1879,7 @@ d4		Generic cinnabar d20 / pyrites d4 homeopathic tablets	Cinnabar D20 / Pyrites
 		Generic Anbesol liquid	ANBESOL ORAL ANTISEPTIC LIQ	0	94644992			Device
 2 mg		Physeptone 2 mg linctus	PHYSEPTONE 2 MG LIN	1103640	95440992		Methadone	Drug
 5 mg	1 ml	Antistin-privine drops eye	ANTISTIN-PRIVINE DROPS EYE	951237	93815992		Antazoline	Drug
-0.25mg	1 ml	Antistin-privine drops eye	ANTISTIN-PRIVINE DROPS EYE	914533	93815993		Naphazoline	Drug
+0.25mg	1 ml	Antistin-privine drops eye	ANTISTIN-PRIVINE DROPS EYE	914533	93815992		Naphazoline	Drug
 		Generic Veil cover cream	Veil Cream (Thomas Blake Cosmetic Creams Ltd)	0	94968994			Device
 		Biotrol-30 integrale	BIOTROL-30 INTEGRALE	0	96790992			Device
 25 mg/ml		Percorten m 25 mg injection	PERCORTEN M 25 MG INJ	19017895	95397992		desoxycorticosterone	Drug
@@ -1900,9 +1900,9 @@ d4		Generic cinnabar d20 / pyrites d4 homeopathic tablets	Cinnabar D20 / Pyrites
 		Clearasil max 10 cream	CLEARASIL MAX 10 CRE	0	93222992			Device
 		Generic Scandishake Mix oral powder 85g sachets	Scandishake mix Sachets (SHS International Ltd)	0	93490994			Device
 2.5 mg	10 ml	Otoseptil drops ear	OTOSEPTIL DROPS EAR	996541	93938992		fluocinolone	Drug
-10 000 iu	10 ml	Otoseptil drops ear	OTOSEPTIL DROPS EAR	948582	93938993		Polymyxin B	Drug
-35 mg	10 ml	Otoseptil drops ear	OTOSEPTIL DROPS EAR	915981	93938994		Neomycin	Drug
-200 mg	10 ml	Otoseptil drops ear	OTOSEPTIL DROPS EAR	989878	93938995		Lidocaine	Drug
+10 000 iu	10 ml	Otoseptil drops ear	OTOSEPTIL DROPS EAR	948582	93938992		Polymyxin B	Drug
+35 mg	10 ml	Otoseptil drops ear	OTOSEPTIL DROPS EAR	915981	93938992		Neomycin	Drug
+200 mg	10 ml	Otoseptil drops ear	OTOSEPTIL DROPS EAR	989878	93938992		Lidocaine	Drug
 		Ring foam disposan	RING FOAM DISPOSAN	0	99349992			Device
 160 mg		"Ferrous sulphate, dried s/r 160 mg tablet"	"FERROUS SULPHATE, DRIED S/R 160 MG TAB"	1396131	96072992		ferrous sulfate	Drug
 		Pulsatilla nigricans 30c pillules	Pulsatilla nigricans 30c pillules	0	86360998			Drug
@@ -2436,7 +2436,6 @@ d4		Generic cinnabar d20 / pyrites d4 homeopathic tablets	Cinnabar D20 / Pyrites
 		Kalium muriaticum 30c tablet	Kalium muriaticum 30c Tablet (Weleda (UK) Ltd)	0	97289990			Drug
 		Generic Ensure liquid	ENSURE (CHICKEN) LIQ	0	97349992			Device
 		Staphisagria 30c tablet	Staphisagria 30c tablet	0	88645998			Drug
-		Aglutella azeta sticklets (bastoncini)	AGLUTELLA AZETA STICKLETS (BASTONCINI)	0	9997992			Device
 325 mg		Neurogesic 500 mg capsule	NEUROGESIC 500 MG CAP	1125315	97798992		Acetaminophen	Drug
 50mg		Neurogesic 500 mg capsule	NEUROGESIC 500 MG CAP	1124300	97798992		Diclofenac	Drug
 		Generic Dioralyte oral powder sachets	DIORALYTE POW	0	93861992			Device
@@ -3565,9 +3564,9 @@ D3		Arnica planta tota 2t d3 / formica 1t d3 injection	Arnica planta tota 2T D3 
 8mg		Generic Solpadeine Plus tablets	Paracetamol 500mg / codeine phosphate 8mg / caffeine 30mg tablet			77680020	Codeine	Drug
 100000unit/g		Clobetasol propionate / neomycin / nystatin 0.05%+0.5%+100000 unit/g Cream (Essential Generics Ltd)	Clobetasol propionate / neomycin / nystatin 0.05% with 0.5% with 100000 unit/g Cream (Essential Generics Ltd)			78077020	Nystatin	Drug
 5 mg/g		Clobetasol propionate / neomycin / nystatin 0.05%+0.5%+100000 unit/g Cream (Essential Generics Ltd)	Clobetasol propionate / neomycin / nystatin 0.05% with 0.5% with 100000 unit/g Cream (Essential Generics Ltd)			78077020	Neomycin	Drug
-0.5 mg/g		Clobetasol propionate / neomycin / nystatin 0.05%+0.5%+100000 unit/g Cream (Essential Generics Ltd)	Clobetasol propionate / neomycin / nystatin 0.05% with 0.5% with 100000 unit/g Cream (Essential Generics Ltd)			78077020	Clobetasol	Drug
+0.5ámg/g		Clobetasol propionate / neomycin / nystatin 0.05%+0.5%+100000 unit/g Cream (Essential Generics Ltd)	Clobetasol propionate / neomycin / nystatin 0.05% with 0.5% with 100000 unit/g Cream (Essential Generics Ltd)			78077020	Clobetasol	Drug
 100000unit/g		Clobetasol propionate / neomycin / nystatin 0.05%+0.5%+100000 unit/g ointment (Essential Generics Ltd)	Clobetasol propionate / neomycin / nystatin 0.05% with 0.5% with 100000 unit/g ointment (Essential Generics Ltd)			78079020	Nystatin	Drug
-0.5 mg/g		Clobetasol propionate / neomycin / nystatin 0.05%+0.5%+100000 unit/g ointment (Essential Generics Ltd)	Clobetasol propionate / neomycin / nystatin 0.05% with 0.5% with 100000 unit/g ointment (Essential Generics Ltd)			78079020	Clobetasol	Drug
+0.5ámg/g		Clobetasol propionate / neomycin / nystatin 0.05%+0.5%+100000 unit/g ointment (Essential Generics Ltd)	Clobetasol propionate / neomycin / nystatin 0.05% with 0.5% with 100000 unit/g ointment (Essential Generics Ltd)			78079020	Clobetasol	Drug
 5 mg/g		Clobetasol propionate / neomycin / nystatin 0.05%+0.5%+100000 unit/g ointment (Essential Generics Ltd)	Clobetasol propionate / neomycin / nystatin 0.05% with 0.5% with 100000 unit/g ointment (Essential Generics Ltd)			78079020	Neomycin	Drug
 2%		Crude coal tar / zinc oxide / starch in pma 2%+2%+12% paste	Crude coal tar / zinc oxide / starch in pma 2%+2%+12% Paste			79226020	coal tar	Drug
 2%		Crude coal tar / zinc oxide / starch in pma 2%+2%+12% paste	Crude coal tar / zinc oxide / starch in pma 2%+2%+12% Paste			79226020	Zinc Oxide	Drug

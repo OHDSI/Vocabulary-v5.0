@@ -1,4 +1,3 @@
---define drug packs
 create table pack_st_1 as
 select drug_code, drug_form, form_code
 from ingredient_step_1 where drug_code in (
@@ -9,17 +8,20 @@ select distinct drug_code, drug_form from ingredient_step_1) group by drug_code 
 AND drug_code not in (select drug_code from non_drug)
 and drug_code not in (select drug_code from HOMEOP_DRUG)
 ;
+delete from pack_st_1 where drug_code in (64122611,67657035);
+
 --sequence will be used in pack component definition
-CREATE SEQUENCE PACK_SEQ
+CREATE SEQUENCE PACK_SEQUENCE
   MINVALUE 1
   MAXVALUE 1000000
   START WITH 1
   INCREMENT BY 1
   CACHE 100
   ;
+
 --take all the pack components 
   CREATE TABLE PACK_COMP_LIST AS 
-  select 'PACK'||PACK_SEQ.nextval as pack_component_code, 
+  select 'PACK'||PACK_SEQUENCE.nextval as pack_component_code, 
   a.*  
   from (
 select distinct 
@@ -38,6 +40,9 @@ and a.DRUG_DESCR = b.DRUG_DESCR
 and nvl(a.DENOMINATOR_VALUE, '0') = nvl (b.DENOMINATOR_VALUE, '0') 
 and nvl (a.DENOMINATOR_UNIT, '0') = nvl (b.DENOMINATOR_UNIT, '0')
 ;
+update PACK_CONT_1 set pack_component_name='INERT INGREDIENT Metered Dose Inhaler' where concept_code='5731866' and pack_component_name like 'ARIDOL, poudre pour inhalation en gélule gélule transparente';
+
+
 --ds_stage for Pack_components 
 create table ds_pack_1 as
 select    PACK_COMPONENT_CODE,a.DRUG_FORM,INGREDIENT_CODE,INGREDIENT_NAME,

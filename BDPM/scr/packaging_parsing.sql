@@ -1,4 +1,4 @@
---using general rule: mostly packaging begins with Box_size and de% contains quantitve info 
+
 create table packaging_pars_1 as 
 select din_7, drug_code,  PACKAGING, 
 case when  regexp_like  (packaging, '^[[:digit:]\.\,]+\s*(mg|g|ml|litre|l)(\s|$|\,)') then regexp_substr (packaging, '^[[:digit:]\.\,]+\s*(mg|g|ml|litre|l)') else
@@ -135,6 +135,9 @@ update ingredient_step_1 set DOSAGE = regexp_replace (DOSAGE,'([[:digit:]\,]+) (
   update ingredient_step_1 set volume = regexp_replace (volume,'([[:digit:]\,]+) ([[:digit:]\,]+)' , '\1\2' )
  where regexp_like (volume,'[[:digit:]\,]+ [[:digit:]\,]+')
 ;
+
+
+
 --manual fix of dosages
 update ingredient_step_1 set dosage = '31250000000 U' where dosage ='31,25 * 10^9 bactéries';
  update ingredient_step_1 set dosage = '1000 DICC50' where dosage ='au minimum 10^^3,0 DICC50';
@@ -194,15 +197,13 @@ WHERE DOSAGE_VALUE = '19.000.000';
 
 --recalculate all the possible combinations between packaging info and ingredient info
 create table ds_1 as 
-select distinct din_7 as concept_code, a.drug_code, DRUG_FORM, form_code as ingredient_code, ingredient as ingredient_name, packaging, d.drug_descr, dosage_value, dosage_unit, volume_value, volume_unit, amount_value as pack_amount_value, amount_unit as pack_amount_unit,
+select distinct din_7 as concept_code, a.drug_code, DRUG_FORM, form_code as ingredient_code, ingredient as ingredient_name, packaging, d.drug_descr, dosage_value, 
+dosage_unit, volume_value, volume_unit, amount_value as pack_amount_value, amount_unit as pack_amount_unit,
 case when volume_value is null and AMOUNT_VALUE is null and dosage_unit !='%' then dosage_value else null end as amount_value,
 case when volume_value is null and AMOUNT_VALUE is null and dosage_unit !='%' then dosage_unit else null end as  amount_unit ,
-
-case
-when volume_value is not null and amount_value is not null 
+case when volume_value is not null and amount_value is not null 
 and dosage_unit !='%' and (lower (nvl( volume_unit, AMOUNT_unit)) = lower (nvl( AMOUNT_unit, volume_unit)) 
 or volume_unit = 'g' and amount_unit = 'ml')
-
 then dosage_value/volume_value*amount_value
 when volume_value is not null and amount_value is null 
 and dosage_unit !='%' and lower (nvl( volume_unit, AMOUNT_unit)) = lower (nvl( AMOUNT_unit, volume_unit)) then cast (dosage_value as float)
@@ -273,6 +274,8 @@ regexp_substr (DRUG_DESCR,
 where regexp_like (DRUG_DESCR, 
  '[[:digit:]\.\,]+\s*%')and amount_value is null and numerator_value is null
 ;
+
+
 --UPDATE UNITS WITH TRANSLATION OF UNITS
 --HERE SHOULD BE KIND OF MANUAL TABLES DESCRIPTION, BECAUSE UNIT_TRANSLATION WE GOT FROM ds_1 BEFORE THIS UPDATE
 UPDATE ds_1 set
@@ -309,4 +312,3 @@ and amount_value is null and  amount_unit is null
 ;
 COMMIT
 ;
-

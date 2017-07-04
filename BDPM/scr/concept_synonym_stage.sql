@@ -7,5 +7,4 @@ union
 Select '',FORM_ROUTE, CONCEPT_CODE , 'BDPM',  '4180190' from FORM_TRANSLATION ft
 join DRUG_CONCEPT_STAGE dcs on ft.TRANSLATION= dcs.concept_name 
 union
-select '', concept_name, concept_code, 'BDPM', '4180186' from drug_concept_stage where concept_class_id != 'Unit'
-;
+select '', concept_name, concept_code, 'BDPM', '4180186' from drug_concept_stage where concept_class_id != 'Unit';

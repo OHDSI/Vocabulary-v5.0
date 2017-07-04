@@ -1,4 +1,4 @@
-﻿--manufacturers
+--manufacturers
 create table dcs_manufacturer as 
 (select distinct manufacturer as concept_name,'Supplier' as concept_class_id from drug);
 update dcs_manufacturer
@@ -8,9 +8,9 @@ update dcs_manufacturer
 create table brand_name as (select regexp_substr (drug_descr, '^([A-Z]+(\s)?-?/?[A-Z]+(\s)?[A-Z]?)+') as brand_name,drug_code from drug where drug_descr not like '%degré de dilution compris entre%' and regexp_substr (drug_descr, '^([A-Z]+(\s)?-?[A-Z]+)+') is not null) ;
 UPDATE BRAND_NAME   SET BRAND_NAME = 'NP100 PREMATURES AP-HP' WHERE DRUG_CODE = '60208447';
 UPDATE BRAND_NAME   SET BRAND_NAME = 'NP2 ENFANTS AP-HP' WHERE DRUG_CODE = '66809426';
-UPDATE BRAND_NAME  SET BRAND_NAME = 'PO 12 2 POUR CENT' WHERE DRUG_CODE = '64593595';
-update brand_name 
- set brand_name=rtrim(brand_name,' ');
+UPDATE BRAND_NAME   SET BRAND_NAME = 'PO 12 2 POUR CENT' WHERE DRUG_CODE = '64593595';
+update brand_name   set brand_name=rtrim(brand_name,' ');
+ 
  --Brand name = Ingredient (RxNorm)
 delete brand_name where upper(brand_name) in (select upper(concept_name) from devv5.concept where concept_Class_id='Ingredient');
  --Brand name = Ingredient (BDPM translated)
@@ -25,6 +25,7 @@ where brand_name not in (select brand_name from BRAND_NAME_EXCEPTION-- previousl
 )
 and drug_code not in (select drug_code from non_drug));
 
+
 --list of Dose Form (translated before)
 create table list as (
 select distinct translation as concept_name ,'Dose Form' as concept_class_id,'1000000000' as concept_Code from FORM_TRANSLATION --manual table
@@ -35,7 +36,8 @@ union
 --manufacturers
 select distinct concept_name,concept_class_id,'100000000000' from dcs_manufacturer
 );
-
+delete from list where concept_name like 'Enteric Oral Capsule';
+insert into list  values ('inert ingredients','Ingredient','100000000000');
 --temporary sequence 
 CREATE SEQUENCE new_vocc
   MINVALUE 1
@@ -47,10 +49,11 @@ CREATE SEQUENCE new_vocc
 update list
 set concept_code='OMOP'||new_vocc.nextval;
 ;
+
 --Fill drug_concept_stage
 --Drug Product
 insert into drug_concept_stage (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select SUBSTR( d.drug_descr,1, 240) ,'BDPM', 'Drug Product', '', cast (din_7 as varchar (200)), '', 'Drug', APPROVAL_DATE, TO_DATE ('20991231', 'yyyymmdd'), ''
+select SUBSTR( d.drug_descr,1, 240) ,'BDPM', 'Drug Product', '', cast (din_7 as varchar (200)), '', 'Drug',APPROVAL_DATE, TO_DATE ('20991231', 'yyyymmdd'), ''
 from drug d join packaging p on p.drug_code = d.drug_code
 where d.drug_code not in( select drug_code from non_drug)
 and d.drug_code not in( select drug_code from pack_st_1)
@@ -68,7 +71,7 @@ from list
 ;
 -- units 
 insert into drug_concept_stage (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select distinct CONCEPT_CODE,'BDPM', 'Unit', '', CONCEPT_CODE, '', 'Unit', TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), ''
+select distinct CONCEPT_CODE,'BDPM', 'Unit', '', CONCEPT_CODE, '', 'Drug', TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), ''
 from aut_unit_all_mapped
 ;
 -- Pack_components 
@@ -81,6 +84,7 @@ insert into drug_concept_stage (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STAN
 select distinct SUBSTR(PACK_NAME,1, 240) ,'BDPM', 'Drug Pack', '', CONCEPT_CODE, '', 'Drug', TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), ''
 from PACK_CONT_1
 ;
+
 --Ingredients 
 insert into drug_concept_stage (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select distinct TRANSLATION ,'BDPM', 'Ingredient', '', concept_code, '', 'Drug', TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), ''

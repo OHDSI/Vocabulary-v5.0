@@ -1,4 +1,3 @@
-
 drop table non_drug;
 
 --01_seq
@@ -11,14 +10,18 @@ drop table PF_from_pack_comp_list;
 
 --list
 drop table brand_name;
+drop table ds_inhaler;
 drop table dcs_manufacturer CASCADE CONSTRAINTS PURGE;
 drop table dcs_bn CASCADE CONSTRAINTS PURGE;
 drop table list;
 drop sequence new_vocc;
-
+drop sequence new_vocab;
 --pack_content
 drop table p_c_amount;
-
+--inside tables
+drop table RxE_BR_n_st_0;
+drop table RxE_Man_st_0;
+drop table RxE_Ing_st_0;
 --packaging_parsing
 drop table packaging_pars_1;
 drop table packaging_pars_2;
@@ -33,7 +36,7 @@ drop table ds_1;
 DROP table pack_st_1 ;
 drop TABLE PACK_CONT_1;
 drop table ds_pack_1;
-drop sequence PACK_SEQ;
+drop sequence PACK_SEQUENCE;
 drop TABLE PACK_COMP_LIST;
 
 truncate table drug_concept_stage;
@@ -42,5 +45,3 @@ truncate table internal_relationship_stage;
 truncate table relationship_to_concept;
 truncate table pc_stage;
 truncate table Concept_synonym_stage;
-
-

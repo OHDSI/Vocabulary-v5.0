@@ -1,7 +1,7 @@
 create table non_drug as
 select b.drug_Code,drug_Descr,ingredient,form,form_code from ingredient a join drug b 
 on a.drug_code=b.drug_code
-where form_code in ('4307','9354','77898','87188','94901') 
+where form_code in ('4307','9354','77898','87188','94901','41804','14832','72310') 
 or dosage like '%Bq%' or form like '%dialyse%';
 --insert radiopharmaceutical drugs
 insert into non_drug (drug_Code,drug_descr,ingredient,form,form_code)
@@ -28,6 +28,6 @@ and a.drug_code not in (select drug_code from non_drug) ;
 insert into non_drug ( drug_Code,drug_descr,ingredient,form,form_code)
 Select a.drug_Code,drug_descr,ingredient,form,form_code from 
 drug a
-join ingredient b on a.drug_Code=b.drug_code
-where regexp_like (drug_descr, 'hémofiltration|AMINOMIX|dialys|test|radiopharmaceutique|MIBG|STRUCTOKABIVEN', 'i') 
+left join ingredient b on a.drug_Code=b.drug_code
+where regexp_like (drug_descr, 'hémofiltration|AMINOMIX|dialys|test|radiopharmaceutique|MIBG|STRUCTOKABIVEN|NUMETAN|NUMETAH|REANUTRIFLEX|CLINIMIX|REVITALOSE|CONTROLE', 'i') 
 and a.drug_code not in (select drug_code from non_drug);

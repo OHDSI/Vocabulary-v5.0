@@ -29,7 +29,6 @@ UPDATE DS_STAGE   SET AMOUNT_VALUE = 500 WHERE DRUG_CONCEPT_CODE = '3354164'  AN
 UPDATE DS_STAGE   SET AMOUNT_VALUE = 250 WHERE DRUG_CONCEPT_CODE = '3404695'  AND   INGREDIENT_CONCEPT_CODE = '2202'  AND   BOX_SIZE = 24  AND   AMOUNT_VALUE = 187.5  AND   AMOUNT_UNIT = 'mg';
 UPDATE DS_STAGE   SET AMOUNT_VALUE = 700 WHERE DRUG_CONCEPT_CODE = '3584846'  AND   INGREDIENT_CONCEPT_CODE = '1023'  AND   BOX_SIZE = 30  AND   AMOUNT_VALUE = 200  AND   AMOUNT_UNIT = 'mg';
 UPDATE DS_STAGE   SET AMOUNT_VALUE = 1.53 WHERE DRUG_CONCEPT_CODE = '5758486'  AND   INGREDIENT_CONCEPT_CODE = '29848'  AND   BOX_SIZE = 30  AND   AMOUNT_VALUE = 1.31  AND   AMOUNT_UNIT = 'mg';
-
 --sometimes denominator is just a sum of components, so in this case we need to ignore denominators
 update ds_stage 
  set 
@@ -63,16 +62,53 @@ set DENOMINATOR_VALUE=null,
     DENOMINATOR_UNIT=null
 where DENOMINATOR_UNIT is not null and NUMERATOR_UNIT is null;
 
+merge into ds_stage a 
+using ds_stage_update b
+on (a.drug_concept_code=b.drug_concept_code and a.ingredient_concept_code=b.ingredient_concept_code and a.box_size=b.box_size)
+when matched then update set
+a.AMOUNT_VALUE=b.AMOUNT_VALUE,
+a.AMOUNT_UNIT=b.AMOUNT_UNIT,
+a.NUMERATOR_VALUE=b.NUMERATOR_VALUE,
+a.NUMERATOR_UNIT=b.NUMERATOR_UNIT,
+a.DENOMINATOR_VALUE=b.DENOMINATOR_VALUE,
+a.DENOMINATOR_UNIT=b.DENOMINATOR_UNIT
+;
+update ds_stage set NUMERATOR_VALUE=AMOUNT_VALUE*30,NUMERATOR_UNIT=AMOUNT_UNIT,DENOMINATOR_VALUE=30,DENOMINATOR_UNIT='ACTUAT', AMOUNT_VALUE=null,AMOUNT_UNIT=null
+where drug_concept_code in ('2761996','3000459');
+update ds_stage set NUMERATOR_VALUE=power(10,NUMERATOR_VALUE), NUMERATOR_UNIT='CCID_50' where NUMERATOR_UNIT='log CCID_50';
+update ds_stage set NUMERATOR_VALUE=10 where drug_concept_code='5704697' and ingredient_concept_code='51742';
+update ds_stage set NUMERATOR_VALUE=20 where drug_concept_code='5704711' and ingredient_concept_code='51742';
+update ds_stage set NUMERATOR_VALUE=10 where drug_concept_code='5750852' and ingredient_concept_code='51742';
+update ds_stage set NUMERATOR_VALUE=20 where drug_concept_code='5750875' and ingredient_concept_code='51742';
+update ds_stage set NUMERATOR_VALUE=10 where drug_concept_code='5756211' and ingredient_concept_code='51742';
+update ds_stage set NUMERATOR_VALUE=20 where drug_concept_code='5756228' and ingredient_concept_code='51742';
+delete from ds_stage where ingredient_concept_code='3011' and amount_value='0';
+--update dosages for inhalers
+create table ds_inhaler as
+with a as (
+select DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT,packaging,
+trim(regexp_replace(regexp_substr(PACKAGING,'(\d*)(\s*) dose'),'dose')) as num_coef,regexp_replace(regexp_substr(PACKAGING,'\d* (plaquette|cartouche|flacon|inhalateur)'),'plaquette|cartouche|flacon|inhalateur') as box_coef
+ from ds_stage a join packaging b on drug_concept_code=cast(din_7 as varchar(20)) where packaging like 'dose%inhal%' or packaging like '%inhal%dose%')
+select distinct drug_concept_code,ingredient_concept_code, box_coef as box_size,' ' as AMOUNT_VALUE,' ' as AMOUNT_UNIT,a.AMOUNT_VALUE*num_coef as NUMERATOR_VALUE,a.AMOUNT_UNIT as NUMERATOR_UNIT, num_coef as DENOMINATOR_VALUE, 'ACTUAT' as DENOMINATOR_UNIT
+ from a where num_coef is not null;
+ insert into ds_inhaler (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+ values ('3812112','4179','1','12000','mcg','120','ACTUAT');
+ insert into ds_inhaler (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+ values ('3812112','30613','1','720','mcg','120','ACTUAT');
+  insert into ds_inhaler (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+ values ('3814128','4179','1','12000','mcg','120','ACTUAT');
+  insert into ds_inhaler (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+ values ('3814128','30613','1','720','mcg','120','ACTUAT'); 
 
-UPDATE DS_STAGE
-   SET DENOMINATOR_VALUE = 0.5,
-       DENOMINATOR_UNIT = 'ml'
-WHERE DRUG_CONCEPT_CODE = '3293617'
-AND   INGREDIENT_CONCEPT_CODE = '5717'
-AND   BOX_SIZE = 1
-AND   AMOUNT_VALUE IS NULL
-AND   AMOUNT_UNIT IS NULL
-AND   NUMERATOR_VALUE IS NULL
-AND   NUMERATOR_UNIT IS NULL
-AND   DENOMINATOR_VALUE IS NULL
-AND   DENOMINATOR_UNIT IS NULL;
+merge into ds_stage a 
+using ds_inhaler b
+on (a.drug_concept_code=b.drug_concept_code and a.ingredient_concept_code=b.ingredient_concept_code)
+when matched then update set
+a.BOX_SIZE=b.BOX_SIZE,
+a.AMOUNT_VALUE=null,
+a.AMOUNT_UNIT=null,
+a.NUMERATOR_VALUE=b.NUMERATOR_VALUE,
+a.NUMERATOR_UNIT=b.NUMERATOR_UNIT,
+a.DENOMINATOR_VALUE=b.DENOMINATOR_VALUE,
+a.DENOMINATOR_UNIT=b.DENOMINATOR_UNIT
+;

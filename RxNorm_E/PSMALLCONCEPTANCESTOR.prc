@@ -41,7 +41,7 @@ BEGIN
     --table doesn't exists, creating...
       EXECUTE IMMEDIATE 'CREATE TABLE CONCEPT_ANCESTOR NOLOGGING AS SELECT * FROM DEVV5.CONCEPT_ANCESTOR WHERE 1=0';
       EXECUTE IMMEDIATE 'ALTER TABLE CONCEPT_ANCESTOR ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (ancestor_concept_id,descendant_concept_id)';
-      EXECUTE IMMEDIATE 'CREATE INDEX idx_ca_descendant ON concept_ancestor (descendant_concept_id)';
+      EXECUTE IMMEDIATE 'CREATE INDEX idx_ca_descendant ON concept_ancestor (descendant_concept_id) NOLOGGING';
     END IF;
         
    -- Clean up before
@@ -215,7 +215,7 @@ BEGIN
    EXECUTE IMMEDIATE
       'alter table concept_ancestor enable constraint XPKCONCEPT_ANCESTOR';
 
-   EXECUTE IMMEDIATE 'CREATE INDEX idx_ca_descendant ON concept_ancestor (descendant_concept_id)';      
+   EXECUTE IMMEDIATE 'CREATE INDEX idx_ca_descendant ON concept_ancestor (descendant_concept_id) NOLOGGING';      
 
    -- Clean up
    EXECUTE IMMEDIATE 'drop table concept_ancestor_calc purge';

@@ -307,7 +307,11 @@ UNION
 UNION
       SELECT a.drug_concept_code, '3-leg dogs'
       FROM ds_stage a
-        JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code  AND a.ingredient_concept_code != b.ingredient_concept_code AND a.amount_unit IS NULL AND b.amount_unit IS NOT NULL
+        JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code  AND a.ingredient_concept_code != b.ingredient_concept_code AND   a.amount_unit IS NULL AND b.amount_unit IS NOT NULL  
+        union
+          SELECT a.drug_concept_code, '3-leg dogs'
+      FROM ds_stage a
+        JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code  AND a.ingredient_concept_code != b.ingredient_concept_code AND   a.numerator_unit IS NULL AND b.numerator_unit IS NOT NULL 
 UNION
       SELECT drug_concept_code, 'mg/mg >1'
       FROM ds_stage
@@ -381,7 +385,7 @@ UNION
       SELECT a.concept_code_1, 'map to unit that doesn''t exist in RxNorm'
       FROM relationship_to_concept a
         JOIN drug_concept_stage b ON concept_code_1 = concept_code
-        JOIN concept ON concept_id_2 = concept_id
+        JOIN concept c ON concept_id_2 = c.concept_id
       WHERE b.concept_class_id = 'Unit'
       AND   concept_id_2 NOT IN (SELECT DISTINCT NVL(AMOUNT_UNIT_CONCEPT_ID,NUMERATOR_UNIT_CONCEPT_ID)
                                  FROM drug_strength a
@@ -438,3 +442,5 @@ UNION
       FROM pc_stage
       WHERE pack_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage))
 GROUP BY error_type;
+
+

@@ -371,18 +371,19 @@ IS
                    c.valid_end_date,
                    c.invalid_reason
               FROM concept c
-             WHERE    c.valid_end_date < c.valid_start_date
-                   OR (valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NOT NULL)
-                   OR (valid_end_date <> TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NULL)
-                   OR valid_start_date > SYSDATE AND NVL (check_id, 7) = 7
+             WHERE     (   c.valid_end_date < c.valid_start_date
+                        OR (valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NOT NULL)
+                        OR (valid_end_date <> TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NULL)
+                        OR valid_start_date > SYSDATE)
+                   AND NVL (check_id, 7) = 7
             UNION ALL
             -- wrong valid_start_date, valid_end_date or invalid_reason for the concept_relationship
             SELECT 8 check_id, r.*
               FROM concept_relationship r
-             WHERE                                                                                                                                                --valid_end_date < valid_start_date OR
-                   (  valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NOT NULL)
-                   OR (valid_end_date <> TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NULL)
-                   OR valid_start_date > SYSDATE AND NVL (check_id, 8) = 8
+             WHERE     (   (valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NOT NULL)
+                        OR (valid_end_date <> TO_DATE ('20991231', 'YYYYMMDD') AND invalid_reason IS NULL)
+                        OR valid_start_date > SYSDATE)
+                   AND NVL (check_id, 8) = 8
             UNION ALL
             -- Rxnorm/Rxnorm Extension name duplications
             SELECT 9 check_id,

@@ -440,7 +440,15 @@ UNION
 UNION
       SELECT pack_concept_code, 'pc missing'
       FROM pc_stage
-      WHERE pack_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage))
+      WHERE pack_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage)
+union      
+--name_equal_mapping absence
+select dcs.concept_code, 'name_equal_mapping absence' from drug_concept_stage dcs
+join concept cc on lower (cc.concept_name) = lower (dcs.concept_name) and cc.concept_class_id = dcs.concept_class_id and cc.vocabulary_id like 'RxNorm%'
+left join relationship_to_concept cr on dcs.concept_code = cr.concept_code_1
+where concept_code_1 is null
+and dcs.concept_class_id in ('Ingredient', 'Brand Name', 'Dose Form', 'Supplier')
+)
 GROUP BY error_type;
 
 

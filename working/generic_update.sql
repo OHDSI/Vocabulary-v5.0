@@ -347,7 +347,7 @@ set valid_end_date  =
 where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
 (
     with relationships as (
-        SELECT relationship_id, reverse_relationship_id FROM relationship 
+        SELECT relationship_id FROM relationship 
         WHERE relationship_id in (
             'Concept replaced by',
             'Concept same_as to',
@@ -357,9 +357,9 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
             'Maps to'
         )
     )
-    select r.concept_id_1, r.concept_id_2, r.relationship_id From 
+    select r.concept_id_1, r.concept_id_2, r.relationship_id from
 	concept c,
-    concept_relationship r, 
+    concept_relationship r,
     relationships rel
     where 
     r.concept_id_2=c.concept_id
@@ -371,20 +371,25 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
         where crs.concept_code_1=c1.concept_code 
         and crs.vocabulary_id_1=c1.vocabulary_id
         and crs.relationship_id=r.relationship_id
-        and crs.invalid_reason is null    
+        and crs.invalid_reason is null
         and c1.concept_id=r.concept_id_1
-        and crs.vocabulary_id_2=c.vocabulary_id
+        and (
+            crs.vocabulary_id_2=c.vocabulary_id 
+            or (/*AVOF-459*/
+                crs.vocabulary_id_2 in ('RxNorm','RxNorm Extension') and c.vocabulary_id in ('RxNorm','RxNorm Extension')
+            )
+        )
     )
     and not exists (
         select 1 from concept_relationship_stage crs, concept c1, concept c2
         where crs.concept_code_1=c1.concept_code 
-        and crs.vocabulary_id_1=c1.vocabulary_id             
+        and crs.vocabulary_id_1=c1.vocabulary_id
         and crs.concept_code_2=c2.concept_code 
         and crs.vocabulary_id_2=c2.vocabulary_id
-        and crs.relationship_id=r.relationship_id    
-        and crs.invalid_reason is null    
+        and crs.relationship_id=r.relationship_id
+        and crs.invalid_reason is null
         and c1.concept_id=r.concept_id_1
-        and c2.concept_id=r.concept_id_2 
+        and c2.concept_id=r.concept_id_2
     )
 );
 
@@ -400,7 +405,7 @@ set valid_end_date  =
 where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
 (
     with relationships as (
-        SELECT relationship_id, reverse_relationship_id FROM relationship 
+        SELECT reverse_relationship_id FROM relationship 
         WHERE relationship_id in (
             'Concept replaced by',
             'Concept same_as to',
@@ -410,9 +415,9 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
             'Maps to'
         )
     )
-    select r.concept_id_1, r.concept_id_2, r.relationship_id From 
+    select r.concept_id_1, r.concept_id_2, r.relationship_id from
 	concept c,
-    concept_relationship r, 
+    concept_relationship r,
     relationships rel
     where 
     r.concept_id_1=c.concept_id
@@ -424,20 +429,25 @@ where (d.concept_id_1, d.concept_id_2, d.relationship_id) in
         where crs.concept_code_2=c1.concept_code 
         and crs.vocabulary_id_2=c1.vocabulary_id
         and crs.relationship_id=r.relationship_id
-        and crs.invalid_reason is null    
+        and crs.invalid_reason is null
         and c1.concept_id=r.concept_id_2
-        and crs.vocabulary_id_1=c.vocabulary_id
+        and (
+            crs.vocabulary_id_1=c.vocabulary_id 
+            or (/*AVOF-459*/
+                crs.vocabulary_id_1 in ('RxNorm','RxNorm Extension') and c.vocabulary_id in ('RxNorm','RxNorm Extension')
+            )
+        )
     )
     and not exists (
         select 1 from concept_relationship_stage crs, concept c1, concept c2
-        where crs.concept_code_1=c1.concept_code 
-        and crs.vocabulary_id_1=c1.vocabulary_id             
+        where crs.concept_code_1=c1.concept_code
+        and crs.vocabulary_id_1=c1.vocabulary_id
         and crs.concept_code_2=c2.concept_code 
         and crs.vocabulary_id_2=c2.vocabulary_id
-        and crs.relationship_id=r.relationship_id    
-        and crs.invalid_reason is null    
+        and crs.relationship_id=r.relationship_id
+        and crs.invalid_reason is null
         and c1.concept_id=r.concept_id_1
-        and c2.concept_id=r.concept_id_2 
+        and c2.concept_id=r.concept_id_2
     )
 );
 COMMIT;

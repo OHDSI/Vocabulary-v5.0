@@ -190,13 +190,7 @@ UNION
             FROM relationship_to_concept
             GROUP BY concept_code_1, precedence HAVING COUNT(1) > 1)
 UNION
-      --'obvious RTC is missing'
-      SELECT d.concept_code FROM drug_concept_stage d
-      JOIN concept c ON lower(c.concept_name) = lower(d.concept_name) AND d.concept_class_id=c.concept_class_id AND c.vocabulary_id LIKE '%Rx%'
-      AND c.invalid_reason IS NULL
-      LEFT JOIN relationship_to_concept r ON concept_code_1 = d.concept_code 
-      WHERE concept_code_1 IS NULL
-UNION      
+   
       --Brand Name doesnt relate to any drug
       SELECT DISTINCT a.concept_code, 'Brand Name doesnt relate to any drug'
       FROM drug_concept_stage a

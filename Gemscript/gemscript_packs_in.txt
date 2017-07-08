@@ -1,0 +1,94 @@
+GEMSCRIPT_CODE	THIN_NAME	GEMSCRIPT_NAME	pack_component	amount	non p
+51247020	Clarithromycin 500mg / metronidazole 400mg / lansoprazole 30mg triple pack	Clarithromycin 500mg / metronidazole 400mg / lansoprazole 30mg triple pack	Clarithromycin 500mg tablet		
+51247020	Clarithromycin 500mg / metronidazole 400mg / lansoprazole 30mg triple pack	Clarithromycin 500mg / metronidazole 400mg / lansoprazole 30mg triple pack	metronidazole 400mg tablet		
+51247020	Clarithromycin 500mg / metronidazole 400mg / lansoprazole 30mg triple pack	Clarithromycin 500mg / metronidazole 400mg / lansoprazole 30mg triple pack	lansoprazole 30mg tablet		
+55223020	Ethinylestradiol / norethisterone 35mcg+1mg tablets	Neocon 1/35 Tablet (Cilag Pharmaceuticals Ltd)	Norethindrone 1mg  / ethinyl estradiol 35mcg tablet	21	
+55223020	Ethinylestradiol / norethisterone 35mcg+1mg tablets	Neocon 1/35 Tablet (Cilag Pharmaceuticals Ltd)	inert ingredient tablet	7	
+55244020	Ethinylestradiol / norethisterone - triphasic / placebo 7 x 35+500mcg; 7 x 35+750mcg; 7 x 35mcg+1mg tablet	Trinovum ed ED tablets (Janssen-Cilag Ltd)	norethisteron 500microgram / ethinylestradiol 35microgram tablet	7	
+55244020	Ethinylestradiol / norethisterone - triphasic / placebo 7 x 35+500mcg; 7 x 35+750mcg; 7 x 35mcg+1mg tablet	Trinovum ed ED tablets (Janssen-Cilag Ltd)	norethisteron 750microgram / ethinylestradiol 35microgram tablet	7	
+55244020	Ethinylestradiol / norethisterone - triphasic / placebo 7 x 35+500mcg; 7 x 35+750mcg; 7 x 35mcg+1mg tablet	Trinovum ed ED tablets (Janssen-Cilag Ltd)	norethisteron 1mg / ethinylestradiol 35microgram tablet	7	
+56900020	Isosorbide mononitrate 10mg+20mg starter pack	Ismo Starter pack (Roche Products Ltd)	Isosorbide mononitrate 10mg		
+56900020	Isosorbide mononitrate 10mg+20mg starter pack	Ismo Starter pack (Roche Products Ltd)	Isosorbide mononitrate 20mg		
+56953020	Estradiol / (estradiol / norethisterone acetate) 50mcg/24 hr / (50mcg+250mcg/24 hr) twice weekly patch	Estradiol / (estradiol / norethisterone acetate) 50mcg/24 hr / (50mcg+250mcg/24 hr) twice weekly patch	estradiol 50mcg patch	1	
+56953020	Estradiol / (estradiol / norethisterone acetate) 50mcg/24 hr / (50mcg+250mcg/24 hr) twice weekly patch	Estradiol / (estradiol / norethisterone acetate) 50mcg/24 hr / (50mcg+250mcg/24 hr) twice weekly patch	estradiol 50mcg / norethisterone acetate 250mcg patch	1	
+57503020	Estradiol valerate and (estradiol valerate / norethisterone) 1mg / (1mg+1mg) tablets	Estradiol valerate / (estradiol valerate / norethisterone) 1mg / (1mg with 1mg) tablets	Estradiol valerate 1mg tablet	16	
+57503020	Estradiol valerate and (estradiol valerate / norethisterone) 1mg / (1mg+1mg) tablets	Estradiol valerate / (estradiol valerate / norethisterone) 1mg / (1mg with 1mg) tablets	estradiol valerate 1mg / norethisterone 1mg  tablet	12	
+57504020	Estradiol valerate and (estradiol valerate / norethisterone) 2mg / (2mg+1 mg) tablets	Estradiol valerate / (estradiol valerate / norethisterone) 2mg / (2mg with 1 mg) tablets	Estradiol valerate 1mg tablet	16	
+57504020	Estradiol valerate and (estradiol valerate / norethisterone) 2mg / (2mg+1 mg) tablets	Estradiol valerate / (estradiol valerate / norethisterone) 2mg / (2mg with 1 mg) tablets	estradiol valerate 2mg / norethisterone 1mg  tablet	12	
+58080020	Ethinylestradiol / norethisterone / placebo 50mcg + 1mg tablet	Minovlar ed Tablet (Schering Health Care Ltd)	Ethinylestradiol 50mcg / norethisterone 1mg 	21	
+58080020	Ethinylestradiol / norethisterone / placebo 50mcg + 1mg tablet	Minovlar ed Tablet (Schering Health Care Ltd)	inert ingredient tablet	7	
+61534020	Clotrimazole 100mg pessary+1% cream pack	Clotrimazole 100mg pessary with 1% cream pack	Clotrimazole 100mg pessary	6	
+61534020	Clotrimazole 100mg pessary+1% cream pack	Clotrimazole 100mg pessary with 1% cream pack	Clotrimazole 1% cream 	1	
+65145020	Conjugated oestrogens 1.25mg tablets / Norgestrel 150microgram tablets	Norgestrel / conjugated oestrogens (equine) 150micrograms + 1.25mg Tablet	conjugated oestrogens 1.25mg tablet	16	
+65145020	Conjugated oestrogens 1.25mg tablets / Norgestrel 150microgram tablets	Norgestrel / conjugated oestrogens (equine) 150micrograms + 1.25mg Tablet	Norgestrel 150microgram / conjugated oestrogen1.25mg tablet	12	
+65289020	Estradiol valerate and (estradiol valerate / levonorgestrel) 2mg / (2mg+75micrograms) tablets	Estradiol valerate / (estradiol valerate / levonorgestrel) 2mg / (2mg with 75micrograms) tablets	Estradiol valerate 2mg tablet	16	
+65289020	Estradiol valerate and (estradiol valerate / levonorgestrel) 2mg / (2mg+75micrograms) tablets	Estradiol valerate / (estradiol valerate / levonorgestrel) 2mg / (2mg with 75micrograms) tablets	estradiol valerate 2mg / levonorgestrel  75microgram tablet	12	
+65290020	Estradiol valerate and (estradiol valerate / levonorgestrel) 1mg / (1mg+250micrograms) tablets	Estradiol valerate / (estradiol valerate / levonorgestrel) 1mg / (1mg with 250micrograms) tablets	Estradiol valerate 1mg tablet	16	
+65290020	Estradiol valerate and (estradiol valerate / levonorgestrel) 1mg / (1mg+250micrograms) tablets	Estradiol valerate / (estradiol valerate / levonorgestrel) 1mg / (1mg with 250micrograms) tablets	estradiol valerate 1mg  / levonorgestrel 250microgram tablet	12	
+67678021	Varenicline 1mg tablets / Varenicline 500microgram tablets	Champix 0.5mg/1mg 4 week treatment initiation pack (Pfizer Ltd)	Varenicline 500microgram tablet	11	
+67678021	Varenicline 1mg tablets / Varenicline 500microgram tablets	Champix 0.5mg/1mg 4 week treatment initiation pack (Pfizer Ltd)	Varenicline 1mg tablet	14	
+70657020	Estradiol valerate and (estradiol valerate / norgestrel) 2mg / (2mg+500micrograms) tablets	Estradiol valerate / (estradiol valerate / norgestrel) 2mg / (2mg with 500micrograms) tablets	Estradiol valerate 2mg tablet	12	
+70657020	Estradiol valerate and (estradiol valerate / norgestrel) 2mg / (2mg+500micrograms) tablets	Estradiol valerate / (estradiol valerate / norgestrel) 2mg / (2mg with 500micrograms) tablets	estradiol valerate 2mg / norgestrel 500microgram tablet	10	
+70660020	Estradiol and (estradiol / norethisterone) and (estradiol) 2mg / (2mg+1mg) tablets	Estradiol / (estradiol / norethisterone) / (estradiol) 2mg / (2mg with 1mg) tablets	Estradiol 2mg  tablet	16	
+70660020	Estradiol and (estradiol / norethisterone) and (estradiol) 2mg / (2mg+1mg) tablets	Estradiol / (estradiol / norethisterone) / (estradiol) 2mg / (2mg with 1mg) tablets	estradiol 2mg / norethisterone 1mg tablet	12	
+70661020	Estradiol and (estradiol / norethisterone) and (estradiol) triphasic forte 4mg / (4mg+1mg) / (1mg) tablets	Estradiol / (estradiol / norethisterone) / (estradiol) triphasic forte 4mg / (4mg with 1mg) / (1mg) tablets	Estradiol 4mg tablet	16	
+70661020	Estradiol and (estradiol / norethisterone) and (estradiol) triphasic forte 4mg / (4mg+1mg) / (1mg) tablets	Estradiol / (estradiol / norethisterone) / (estradiol) triphasic forte 4mg / (4mg with 1mg) / (1mg) tablets	estradiol 4mg / norethisterone 1mg tablet	12	
+76122020	Quinagolide 50microgram tablets / Quinagolide 25microgram tablets	Norprolac Starter pack (Novartis Pharmaceuticals UK Ltd)	Quinagolide 50microgram tablet	3	
+76122020	Quinagolide 50microgram tablets / Quinagolide 25microgram tablets	Norprolac Starter pack (Novartis Pharmaceuticals UK Ltd)	Quinagolide 25microgram tablet	3	
+77080020	Estradiol / (estradiol / norethisterone acetate) 1mg / (1mg+1mg) tablets	Estradiol / (estradiol / norethisterone acetate) 1mg / (1mg with 1mg) tablets	Estradiol 1mg tablet	16	
+77080020	Estradiol / (estradiol / norethisterone acetate) 1mg / (1mg+1mg) tablets	Estradiol / (estradiol / norethisterone acetate) 1mg / (1mg with 1mg) tablets	estradiol 1mg / norethisterone acetate 1mg tablet	12	
+77604020	Amoxicillin 500mg / clarithromycin 500mg / lansoprazole 30mg triple pack	Amoxicillin 500mg / Clarithromycin 500mg / Lansoprazole 30mg triple pack	Amoxicillin 500mg tablet		
+77604020	Amoxicillin 500mg / clarithromycin 500mg / lansoprazole 30mg triple pack	Amoxicillin 500mg / Clarithromycin 500mg / Lansoprazole 30mg triple pack	Clarithromycin 500mg  tablet		
+77604020	Amoxicillin 500mg / clarithromycin 500mg / lansoprazole 30mg triple pack	Amoxicillin 500mg / Clarithromycin 500mg / Lansoprazole 30mg triple pack	Lansoprazole 30mg tablet		
+77880020	Pergolide starter pack (pergolide 50 micrograms tablet / pergolide 250 micrograms tablet) 81 tablets	Pergolide Starter Pack (Pergolide 50 micrograms tablet / Pergolide 250 micrograms tablet) 81 tablets	Pergolide 50 microgram tablet		
+77880020	Pergolide starter pack (pergolide 50 micrograms tablet / pergolide 250 micrograms tablet) 81 tablets	Pergolide Starter Pack (Pergolide 50 micrograms tablet / Pergolide 250 micrograms tablet) 81 tablets	Pergolide 250 microgram tablet		
+79116020	Estradiol and (estradiol / norethisterone) 2mg / (2mg+1mg) tablets	Estradiol / (estradiol / norethisterone) 2mg / (2mg with 1mg) tablets	Estradiol 2mg  tablet	16	
+79116020	Estradiol and (estradiol / norethisterone) 2mg / (2mg+1mg) tablets	Estradiol / (estradiol / norethisterone) 2mg / (2mg with 1mg) tablets	estradiol 2mg / norethisterone 1mg tablet	12	
+79241020	Estradiol valerate and (estradiol valerate / medroxyprogesterone acetate) / placebo 2mg / (2mg+20mg)+7 placebo tablets	Estradiol valerate / (estradiol valerate / medroxyprogesterone acetate) / placebo 2mg / (2mg with 20mg) with 7 placebo tablets	Estradiol valerate 2 mg tablet	71	
+79241020	Estradiol valerate and (estradiol valerate / medroxyprogesterone acetate) / placebo 2mg / (2mg+20mg)+7 placebo tablets	Estradiol valerate / (estradiol valerate / medroxyprogesterone acetate) / placebo 2mg / (2mg with 20mg) with 7 placebo tablets	estradiol valerate 2mg / medroxyprogesterone acetate 20mg tablet	14	
+79241020	Estradiol valerate and (estradiol valerate / medroxyprogesterone acetate) / placebo 2mg / (2mg+20mg)+7 placebo tablets	Estradiol valerate / (estradiol valerate / medroxyprogesterone acetate) / placebo 2mg / (2mg with 20mg) with 7 placebo tablets	inert ingredient tablet	6	
+79259020	Estradiol / (estradiol / levonorgestrel) 50mcg/24hrs / (50mcg+10mcg/24hrs) once weekly patch	Estradiol / (estradiol / levonorgestrel) 50mcg/24hrs / (50mcg+10mcg/24hrs) once weekly patch	Estradiol 50mcg patch		
+79259020	Estradiol / (estradiol / levonorgestrel) 50mcg/24hrs / (50mcg+10mcg/24hrs) once weekly patch	Estradiol / (estradiol / levonorgestrel) 50mcg/24hrs / (50mcg+10mcg/24hrs) once weekly patch	estradiol 50mcg / levonorgestrel 10mcg patch		
+79440020	Estradiol and (estradiol / dydrogesterone) 1mg / (1mg+10mg) tablets	Estradiol / (estradiol / dydrogesterone) 1mg / (1mg with 10mg) tablets	Estradiol 1mg tablet	16	
+79440020	Estradiol and (estradiol / dydrogesterone) 1mg / (1mg+10mg) tablets	Estradiol / (estradiol / dydrogesterone) 1mg / (1mg with 10mg) tablets	estradiol 1mg / dydrogesterone 10mg tablet	12	
+79441020	Estradiol and (estradiol / dydrogesterone) 2mg / (2mg+10 mg) tablets	Estradiol / (estradiol / dydrogesterone) 2mg / (2mg with 10 mg) tablets	Estradiol 2mg  tablet	16	
+79441020	Estradiol and (estradiol / dydrogesterone) 2mg / (2mg+10 mg) tablets	Estradiol / (estradiol / dydrogesterone) 2mg / (2mg with 10 mg) tablets	estradiol 2mg / dydrogesterone mg tablet	12	
+79442020	Estradiol and (estradiol / dydrogesterone) 2mg / (2mg+20mg) tablets	Estradiol / (estradiol / dydrogesterone) 2mg / (2mg with 20mg) tablets	Estradiol 2mg  tablet	16	
+79442020	Estradiol and (estradiol / dydrogesterone) 2mg / (2mg+20mg) tablets	Estradiol / (estradiol / dydrogesterone) 2mg / (2mg with 20mg) tablets	estradiol 2mg / dydrogesterone 20mg tablet	12	
+80033020	Clotrimazole 500mg pessary / Clotrimazole 1% cream	Canesten combi 500mg+1% Cream (Bayer Plc)	Clotrimazole 500mg pessary	1	
+80036020	Clotrimazole 500mg pessary+1% cream pack	Clotrimazole 500mg pessary with 1% cream pack	Clotrimazole 1% cream	1	
+80133020	Estradiol / (estradiol / norethisterone acetate) 2mg / (2mg+1 mg) tablets	Estradiol / (estradiol / norethisterone acetate) 2mg / (2mg with 1 mg) tablets	Estradiol 2mg  tablet	16	
+80133020	Estradiol / (estradiol / norethisterone acetate) 2mg / (2mg+1 mg) tablets	Estradiol / (estradiol / norethisterone acetate) 2mg / (2mg with 1 mg) tablets	estradiol 2mg / norethisterone acetate 1mg  tablet	12	
+80916020	Ethinylestradiol / norethisterone - triphasic 7x35+500mcg; 9x35mcg+1mg; 5x35+500mcg tablet	Ethinylestradiol / norethisterone - triphasic 7x35+500mcg; 9x35mcg+1mg; 5x35+500mcg Tablet	Ethinylestradiol 35mcg / norethisterone 500mcg tablet	12	
+80916020	Ethinylestradiol / norethisterone - triphasic 7x35+500mcg; 9x35mcg+1mg; 5x35+500mcg tablet	Ethinylestradiol / norethisterone - triphasic 7x35+500mcg; 9x35mcg+1mg; 5x35+500mcg Tablet	Ethinylestradiol 35mcg / norethisterone 1mg tablet	9	
+80917020	Ethinylestradiol / norethisterone - triphasic 7 x 35+500mcg; 7 x 35+750mcg; 7 x 35mcg+1mg tablet	Ethinylestradiol / norethisterone - triphasic 7 x 35+500mcg; 7 x 35+750mcg; 7 x 35mcg+1mg Tablet	Ethinylestradiol 35mcg / norethisterone 500mcg tablet	7	
+80917020	Ethinylestradiol / norethisterone - triphasic 7 x 35+500mcg; 7 x 35+750mcg; 7 x 35mcg+1mg tablet	Ethinylestradiol / norethisterone - triphasic 7 x 35+500mcg; 7 x 35+750mcg; 7 x 35mcg+1mg Tablet	Ethinylestradiol  35mcg / norethisterone 750mcg tablet	7	
+80917020	Ethinylestradiol / norethisterone - triphasic 7 x 35+500mcg; 7 x 35+750mcg; 7 x 35mcg+1mg tablet	Ethinylestradiol / norethisterone - triphasic 7 x 35+500mcg; 7 x 35+750mcg; 7 x 35mcg+1mg Tablet	Ethinylestradiol 35mcg / norethisterone 1mg tablet	7	
+81197020	Ethinylestradiol / norethisterone - biphasic 7 x 35mcg+500mcg; 14 x 35mcg+1mg tablet	Ethinylestradiol / norethisterone - biphasic 7 x 35mcg+500mcg; 14 x 35mcg+1mg Tablet	Ethinylestradiol 35mcg / norethisterone 500mcg tablet	7	
+81197020	Ethinylestradiol / norethisterone - biphasic 7 x 35mcg+500mcg; 14 x 35mcg+1mg tablet	Ethinylestradiol / norethisterone - biphasic 7 x 35mcg+500mcg; 14 x 35mcg+1mg Tablet	Ethinylestradiol 35mcg / norethisterone 1mg tablet	14	
+83746020	Terazosin BPH starter pack 7x1mg+14x2mg+7x5mg	Terazosin BPH starter pack 7x1mg with 14x2mg with 7x5mg	Terazosin 1mg tablet	7	
+83746020	Terazosin BPH starter pack 7x1mg+14x2mg+7x5mg	Terazosin BPH starter pack 7x1mg with 14x2mg with 7x5mg	Terazosin 2mg tablet	14	
+83746020	Terazosin BPH starter pack 7x1mg+14x2mg+7x5mg	Terazosin BPH starter pack 7x1mg with 14x2mg with 7x5mg	Terazosin 5mg tablet	7	
+84154020	Estradiol / (estradiol / levonorgestrel) 80mcg/24hrs / (50mcg+20mcg/24hr) twice weekly patch	Estradiol / (estradiol / levonorgestrel) 80mcg/24hrs / (50mcg+20mcg/24hr) twice weekly patch	Estradiol 80mcg patch		
+84154020	Estradiol / (estradiol / levonorgestrel) 80mcg/24hrs / (50mcg+20mcg/24hr) twice weekly patch	Estradiol / (estradiol / levonorgestrel) 80mcg/24hrs / (50mcg+20mcg/24hr) twice weekly patch	estradiol 50mcg  / levonorgestrel 20mcg patch		
+86585020	Naproxen / misoprostol (1x56+56) 500mg+200mcg tablets	Condrotec 500mg+200microgram Tablet (Pharmacia Ltd)	Naproxen 500mg		
+86585020	Naproxen / misoprostol (1x56+56) 500mg+200mcg tablets	Condrotec 500mg+200microgram Tablet (Pharmacia Ltd)	misoprostol 200mcg		
+86832020	Clarithromycin 500mg / lansoprazole 30mg / amoxicillin 500mg triple pack	Clarithromycin 500mg / lansoprazole 30mg / amoxicillin 500mg triple pack	amoxicillin 500mg 		
+86832020	Clarithromycin 500mg / lansoprazole 30mg / amoxicillin 500mg triple pack	Clarithromycin 500mg / lansoprazole 30mg / amoxicillin 500mg triple pack	lansoprazole 30mg		
+86832020	Clarithromycin 500mg / lansoprazole 30mg / amoxicillin 500mg triple pack	Clarithromycin 500mg / lansoprazole 30mg / amoxicillin 500mg triple pack	Clarithromycin 500mg 		
+86834020	Lansoprazole / amoxicillin / clarithromycin 30mg + 500mg + 500mg triple pack	Lansoprazole / amoxicillin / clarithromycin 30mg + 500mg + 500mg Triple pack	amoxicillin 500mg 		
+86834020	Lansoprazole / amoxicillin / clarithromycin 30mg + 500mg + 500mg triple pack	Lansoprazole / amoxicillin / clarithromycin 30mg + 500mg + 500mg Triple pack	lansoprazole 30mg		
+86834020	Lansoprazole / amoxicillin / clarithromycin 30mg + 500mg + 500mg triple pack	Lansoprazole / amoxicillin / clarithromycin 30mg + 500mg + 500mg Triple pack	Clarithromycin 500mg 		
+87646020	Fluconazole 150mg capsule / Clotrimazole 2% cream	Clotrimazole 2% cream / Fluconazole 150mg capsules	Fluconazole 150mg caps	1	
+87646020	Fluconazole 150mg capsule / Clotrimazole 2% cream	Clotrimazole 2% cream / Fluconazole 150mg capsules	Clotrimazole 2% cream 20 mg	1	
+81046020	Ethinylestradiol / levonorgestrel - triphasic 6x30+50mcg; 5x40+75mcg; 10x30+125mcg Tablet	Generic Logynon tablets	Ethinylestradiol 30mcg / levonorgestrel 50mcg oral tablet	6	
+81046020	Ethinylestradiol / levonorgestrel - triphasic 6x30+50mcg; 5x40+75mcg; 10x30+125mcg Tablet	Generic Logynon tablets	Ethinylestradiol 40mcg / levonorgestrel 75mcg oral tablet	5	
+81046020	Ethinylestradiol / levonorgestrel - triphasic 6x30+50mcg; 5x40+75mcg; 10x30+125mcg Tablet	Generic Logynon tablets	Ethinylestradiol 30mcg /  levonorgestrel 125mcg oral tablet	10	
+81052020	Ethinylestradiol / levonorgestrel - triphasic / placebo 6x30+50mcg; 5x40+75mcg; 10x30+125mcg Tablet	Generic Logynon ED tablets	Ethinylestradiol 30mcg / levonorgestrel 50mcg oral tablet	6	
+81052020	Ethinylestradiol / levonorgestrel - triphasic / placebo 6x30+50mcg; 5x40+75mcg; 10x30+125mcg Tablet	Generic Logynon ED tablets	Ethinylestradiol 40mcg / levonorgestrel 75mcg oral tablet	5	
+81052020	Ethinylestradiol / levonorgestrel - triphasic / placebo 6x30+50mcg; 5x40+75mcg; 10x30+125mcg Tablet	Generic Logynon ED tablets	Ethinylestradiol 30mcg /  levonorgestrel 125mcg oral tablet	10	
+80794020	Ethinylestradiol / gestodene - triphasic 6 x 30+50mcg; 5 x 40+70mcg; 10 x 30+100mcg Tablet	Generic Tri-Minulet tablets	Ethinylestradiol 30mcg / gestodene 50mcg oral tablet	6	
+80794020	Ethinylestradiol / gestodene - triphasic 6 x 30+50mcg; 5 x 40+70mcg; 10 x 30+100mcg Tablet	Generic Tri-Minulet tablets	Ethinylestradiol 40mcg / gestodene 70mcg oral tablet	5	
+80794020	Ethinylestradiol / gestodene - triphasic 6 x 30+50mcg; 5 x 40+70mcg; 10 x 30+100mcg Tablet	Generic Tri-Minulet tablets	Ethinylestradiol 30mcg /  gestodene 100mcg oral tablet	10	
+48547020	Clotrimazole 100mg pessary+1% cream pack	Clotrimazole 100mg pessary with 1% cream pack	Clotrimazole 100mg pessary	6	
+48547020	Clotrimazole 100mg pessary+1% cream pack	Clotrimazole 100mg pessary with 1% cream pack	Clotrimazole 1% cream 	1	

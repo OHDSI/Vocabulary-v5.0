@@ -312,13 +312,12 @@ IS
             --relationships without reverse
             SELECT 3 check_id, r.*
               FROM concept_relationship r, relationship rel
-             WHERE     r.invalid_reason IS NULL
-                   AND r.relationship_id = rel.relationship_id
+             WHERE r.relationship_id = rel.relationship_id
                    AND r.concept_id_1 <> r.concept_id_2
                    AND NOT EXISTS
                            (SELECT 1
                               FROM concept_relationship r_int
-                             WHERE r_int.relationship_id = rel.reverse_relationship_id AND r_int.invalid_reason IS NULL AND r_int.concept_id_1 = r.concept_id_2 AND r_int.concept_id_2 = r.concept_id_1)
+                             WHERE r_int.relationship_id = rel.reverse_relationship_id AND r_int.concept_id_1 = r.concept_id_2 AND r_int.concept_id_2 = r.concept_id_1)
                    AND NVL (check_id, 3) = 3
             UNION ALL
             --replacement relationships between different vocabularies (exclude RxNorm to RxNorm Ext OR RxNorm Ext to RxNorm replacement relationships)

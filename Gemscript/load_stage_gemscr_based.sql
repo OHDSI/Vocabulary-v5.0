@@ -8,20 +8,7 @@ END;
 /
 COMMIT;
 
---take mappings from existing relationship_to_concept tables
-/*
-drop table rel_to_conc_old;
-create table rel_to_conc_old as 
-select c.concept_id as concept_id_1 , 'Source - RxNorm eq' as relationship_id, concept_id_2 from 
-(
-select * from dev_dpd.relationship_to_concept where PRECEDENCE  =1 
-union 
-select * from dev_aus.relationship_to_concept where PRECEDENCE  =1 
-) a 
-join concept c on c.concept_code = a.concept_code_1 and c.vocabulary_id = a.vocabulary_id_1
-;
-*/
---make empty input tables
+ 
 drop table ds_stage;
 create table ds_stage as select * from dev_dmd.ds_stage where rownum =0
 ;
@@ -266,25 +253,9 @@ t.ENCRYPTED_DRUGCODE as THIN_code, t.GENERIC as THIN_name, nvl (gr.GEMSCRIPTCODE
    join concept_stage c -- join and left join gives us different results because of   !1360102 AND   !5264101 codes, so exclude those !!-CODES
    on nvl (gr.GEMSCRIPTCODE, t.GEMSCRIPT_DRUGCODE) = c.concept_code and c.concept_class_id = 'Gemscript'
 where r.concept_code_2 is null
---!!! add left join with Gemscript_reference, take GEMSCRIPT_code from it
-;
-/*
---doesn't work, just 107, so forget at least about this
---name thing, few concepts make a lot of troubles with duplicates, just skip them
-select * from (
- select r.*, count ( concept_code_2) over (partition by thin_code) as cnt from (
-select distinct m.*, crs.concept_code_2, vocabulary_id_2 , cc.concept_name
- from  THIN_need_to_map m
- join concept_stage  c on  lower(GEMSCRIPT_name) = lower (concept_Name)
- join concept_relationship_stage crs on crs.concept_code_1 = c.concept_Code 
- join concept cc on cc.concept_code = crs.concept_code_2 and cc.vocabulary_id = crs.vocabulary_id_2 and crs.invalid_reason is null
-and c.concept_code not in (select thin_code from THIN_need_to_map) and c.concept_code not in (select GEMSCRIPT_code from THIN_need_to_map)
-) r) x where x.cnt =1
---3549 due to the duplicates ,but really just 107
-*/
-  --   count(c1.concept_id) over (partition by c2.concept_id) as cnt 
 
--- well 13877, but if use generic and so on we get more concepts , OK, keep in mind, we have for about 100 difference
+;
+
 
 --define domain_id
 --DRUGSUBSTANCE is null and lower
@@ -452,7 +423,7 @@ gemscript_code in
  regexp_count (thin_name, 'tablet| cream|capsule')>1
  )
  ;
- /*
+ 
  drop table  packs_in;
 create table  packs_in as select * from packs_out where rownum =0
 ;
@@ -472,7 +443,7 @@ WbImport -file=C:/work/gemscript_packs_in.txt
          -deleteTarget=false
          -continueOnError=false
          -batchSize=100;
-*/
+ 
 ; 
  insert into pc_stage (PACK_CONCEPT_CODE,DRUG_CONCEPT_CODE,AMOUNT,BOX_SIZE)
  select GEMSCRIPT_CODE, PACK_COMPONENT,AMOUNT, ''  from packs_in
@@ -484,6 +455,7 @@ select distinct '', DRUG_CONCEPT_CODE, DRUG_CONCEPT_CODE,DRUG_CONCEPT_CODE, 'Dru
 ;
 commit
 ;
+ /*
  drop table thin_comp;
 create table thin_comp as 
 select regexp_substr 
@@ -510,7 +482,7 @@ trim(regexp_substr(  (regexp_replace (t.thin_name, ' / ', '!')), '[^!]+', 1, lev
     ,THIN_CODE,THIN_NAME,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID 
 from (
 select regexp_substr (lower (thin_name), '((\d)*[.,]*\d+)(\s)*(g|mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(g|mg|%|mcg|iu|mmol|micrograms|ku)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(g|mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
-regexp_substr (lower (THIN_NAME) , '/[[:digit:]\,\.]+(ml| hr)') as denom,
+regexp_substr (lower (THIN_NAME) , '/[[:digit:]\,\.]+(ml| hr|g|mg)') as denom,
 replace ( trim (regexp_substr  (thin_name,'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume,
  t.* from 
 thin_need_to_map t
@@ -535,6 +507,7 @@ CREATE INDEX drug_comp_ix ON thin_comp (lower (drug_comp))
 --don't need to have two parts here
 --Execution time: 57.41s
 --Execution time: 1m 41s when more vocabularies added 
+
 drop table i_map;
 create table i_map as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
 select * from 
@@ -566,14 +539,7 @@ select concept_id_1,relationship_id, concept_id_2 from concept_relationship wher
   join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null 
   and b.concept_id !=  21014036 -- Syrup Ingredient
 ;
---check the cases when not the all components are mapped:
-/*
-select * from (
-select    t.*, count(target_id) over (partition by THIN_CODE) as cnt, regexp_count (thin_name, ' / ') as sl_cnt from rel_to_ing_1 t
-)
-where cnt != sl_cnt +1
-; 
-*/ 
+
 --the same but with gemscript_name
 --make standard representation of multicomponent drugs
 --select count(*) from thin_comp2 ; select * from thin_comp where thin_code = '97245997'; select * from rel_to_ing_1 where thin_code is null;
@@ -605,7 +571,7 @@ trim(regexp_substr(  (regexp_replace (t.gemscript_name, ' / ', '!')), '[^!]+', 1
     ,THIN_CODE,gemscript_name,GEMSCRIPT_CODE,GEMSCRIPT_NAME,DOMAIN_ID 
 from (
 select regexp_substr (lower (gemscript_name), '((\d)*[.,]*\d+)(\s)*(mg|%|mcg|iu|mmol|micrograms)(\s)*\+(\s)*[[:digit:]\,\.]+(mg|%|mcg|iu|mmol|micrograms)((\s)*\+(\s)*((\d)*[.,]*\d+)*(\s)*(mg|%|mcg|iu|mmol|micrograms))*') as dosage_0,
-regexp_substr (lower (gemscript_name) , '/[[:digit:]\,\.]+(ml| hr)') as denom,
+regexp_substr (lower (gemscript_name) , '/[[:digit:]\,\.]+(ml| hr|g|mg)') as denom,
 replace ( trim (regexp_substr  (lower (gemscript_name),'(\s|\()[[:digit:]\.]+(\s*)(litre(s?)|ml)')),'(')  as volume,
  t.* from 
 thin_need_to_map t
@@ -641,8 +607,7 @@ where a.domain_id ='Drug')
 where rank1 = 1 
 )
 --;
---select * from i_map2
-;
+
 drop table rel_to_ing_2 ;
 create table rel_to_ing_2 as
 select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.GEMSCRIPT_NAME, i.volume
@@ -654,6 +619,7 @@ select concept_id_1,relationship_id, concept_id_2 from concept_relationship wher
   join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null
     and b.concept_id !=  21014036 -- Syrup Ingredient
 ; 
+*/
 --make temp tables as it was in dmd drug procedure
 drop table ds_all_tmp; 
 create table ds_all_tmp as 
@@ -662,7 +628,7 @@ union
 select dosage, drug_comp, thin_name as concept_name, gemscript_code as concept_code, target_name as INGREDIENT_CONCEPT_CODE, target_name as ingredient_concept_name, trim (volume)  as volume  from rel_to_ing_2
 ;
 --!!! manual table
-/*
+ 
 drop table full_manual;
 create table full_manual 
 (
@@ -686,10 +652,21 @@ WbImport -file=C:/work/gemscript_manual/full_manual.txt
          -continueOnError=false
          -batchSize=1000;
 
-update full_manual m set   GEMSCRIPT_CODE = (select t.gemscript_code from thin_need_to_map t where t.thin_code = m.thin_code)
-where exists   (select 1 from thin_need_to_map t where t.thin_code = m.thin_code)
 ;
-*/
+  update full_manual set ingredient_concept_code = initcap (ingredient_concept_code)
+  ;
+  update full_manual set dosage = lower (dosage)
+  ;
+  commit
+  ;
+  --!!! run this tomorrow, then avoid all this playing around with initcap then use ds_all to get all the ingredients, and concept table to get all relationship_to_concept
+  update full_manual m set INGREDIENT_ID = (select concept_Id from concept c where vocabulary_id like 'RxNorm%' and lower ( c.concept_name) =lower(m.INGREDIENT_CONCEPT_CODE) and concept_class_id = 'Ingredient' and invalid_reason is null)
+  where exists (select 1 from concept c where vocabulary_id like 'RxNorm%' and lower ( c.concept_name) =lower(m.INGREDIENT_CONCEPT_CODE) and concept_class_id = 'Ingredient' and invalid_reason is null)
+  ;
+  commit
+  ;
+ select * from full_manual
+ ;
 delete from ds_all_tmp where concept_code in (select gemscript_code from full_manual where INGREDIENT_CONCEPT_CODE is not null);
 commit
 ;
@@ -717,35 +694,35 @@ update ds_all_tmp set dosage =  replace(dosage, '/') where regexp_like (dosage, 
 drop table ds_all;
 create table ds_all as 
 select distinct
-case when regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units|unit dose|drop)') = dosage 
+case when regexp_substr (lower (dosage), '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units|unit dose|drop)') = lower (dosage) 
 and not regexp_like (dosage, '%') 
 then regexp_replace (regexp_substr (dosage, '[[:digit:]\,\.]+'), ',')
 else  null end 
 as amount_value,
 
-case when regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units|unit dose|drop)') = dosage 
+case when regexp_substr (lower (dosage), '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units|unit dose|drop)') = lower (dosage) 
 and not regexp_like (dosage, '%') 
-then  regexp_replace  (dosage, '[[:digit:]\,\.]+') 
+then  regexp_replace  (lower (dosage), '[[:digit:]\,\.]+') 
 else  null end
 as amount_unit,
 
 case when 
-( regexp_substr (dosage,
- '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = dosage
+( regexp_substr (lower (dosage),
+ '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = lower (dosage)
 
  and regexp_substr (volume, '[[:digit:]\,\.]+') is null or regexp_like (dosage, '%') )
 then regexp_replace (regexp_substr (dosage, '^[[:digit:]\,\.]+') , ',')
-    when  regexp_substr (dosage,
- '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = dosage
+    when  regexp_substr (lower (dosage),
+ '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = lower (dosage)
   and regexp_substr (volume, '[[:digit:]\,\.]+') is not null then
  cast (  regexp_substr (volume, '[[:digit:]\,\.]+') * regexp_replace (regexp_substr (dosage, '^[[:digit:]\,\.]+') , ',')  / nvl ( regexp_replace( regexp_replace (regexp_substr (dosage, '/[[:digit:]\,\.]+'), ','), '/'), 1)  as varchar (250))
 else  null end
 as numerator_value,
 
-case when regexp_substr (dosage, 
-'[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = dosage
+case when regexp_substr (lower (dosage), 
+'[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = lower (dosage)
 or regexp_like (dosage, '%') 
-then regexp_substr (dosage, 'mg|%|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|microlitres', 1,1) 
+then regexp_substr (dosage, 'mg|%|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|microlitres', 1,1, 'i') 
 else  null end
 as numerator_unit,
 
@@ -777,22 +754,18 @@ update ds_all a set (a.DENOMINATOR_VALUE, a.DENOMINATOR_unit )=
 (select distinct b.DENOMINATOR_VALUE, b.DENOMINATOR_unit  from 
  ds_all b where a.CONCEPT_CODE = b.CONCEPT_CODE 
  and a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null )
+-- a.numerator_value= a.amount_value,a.numerator_unit= a.amount_unit,a.amount_value = null, a.amount_unit = null
  where exists 
  (select 1 from 
  ds_all b where a.CONCEPT_CODE = b.CONCEPT_CODE 
  and a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null )
---select * from ds_all where coalesce (AMOUNT_VALUE, DENOMINATOR_VALUE, NUMERATOR_VALUE) is null
 ;
---need to comment
---it's OK for "Amyl nitrite vitrellae 0.2ml" 
-/*
-update ds_all set amount_value = null, amount_unit = null where regexp_like (concept_name, '[[:digit:]\.]+(litre|ml)') 
-and not regexp_like (concept_name, '/[[:digit:]\.]+(litre|ml)') and amount_value is not null and AMOUNT_UNIT in ('litre', 'ml')
-*/
+--somehow we get amount +denominator
+update ds_all a  set  a.numerator_value= a.amount_value,a.numerator_unit= a.amount_unit,a.amount_value = null, a.amount_unit = null
+where a.denominator_unit is not null and numerator_unit is null
 ;
---recalculate ds_stage accordong to fake denominators?
---!!!
---Noradrenaline (base) 320micrograms/ml solution for infusion 950ml bottles for such concepts we need to keep denominator_value as true value and 
+commit
+
 ;
 update ds_all
  set amount_VALUE = null where amount_VALUE ='.'
@@ -804,9 +777,7 @@ select distinct
 --add distinct here because of Paracetamol / pseudoephedrine / paracetamol / diphenhydramine tablet
  CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT from ds_all
 ;
---somewhere we don't have a number due to wrong parsing
---select * from ds_all
---;
+
 -- update denominator with existing value for concepts having empty and non-emty denominator value/unit
  --fix wierd units
 update ds_Stage
@@ -870,22 +841,13 @@ select * from thin_need_to_map where gemscript_code not in (select drug_concept_
  and gemscript_code not in (select gemscript_code from full_manual where gemscript_code is not null) and domain_id = 'Drug' 
 and gemscript_code not in (select pack_concept_code from pc_stage where pack_concept_code is not null )
 ;
-select * from ds_stage where drug_concept_code is  null
-;
+ update ds_stage set ingredient_concept_code = initcap (ingredient_concept_code);
+ commit
 
---stop here!
-/*
-select * from ds_stage ds
-join ds_all da on DRUG_CONCEPT_CODE = CONCEPT_CODE and ds.INGREDIENT_CONCEPT_CODE =da.INGREDIENT_CONCEPT_CODE
-;
-select * from ds_all where regexp_like (dosage, '/$')
-; 
-*/
---ds_stage is relatively correct now
-
+ ;
 --apply the dose form updates then to extract them from the original names
 --make a proper dose form from the short terms used in a concept_names
-
+/*
 update thin_need_to_map set 
 thin_name = regexp_replace (thin_name, 'oin$','ointment' , 1,1,'i')
 ;
@@ -1265,7 +1227,6 @@ delete from b_map_1 where CONCEPT_NAME in (
 ;
 commit
 ;
-
 drop table b_map
 ;
  create table b_map as
@@ -1280,29 +1241,28 @@ select * from b_map_1
 ) z where z.vocabulary_id in ( 'RxNorm', 'RxNorm Extension') --not clear, need to fix in the future
 ) x where x.rank1 = 1
 ;
-
 --making input tables
 --drug_concept_stage
 truncate table drug_concept_stage
 ;
- 
+ */
 --Drug Product
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
-select '', gemscript_name ,domain_id, 'Gemscript', 'Drug Product',  '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_need_to_map where domain_id = 'Drug'
+select distinct '', gemscript_name ,domain_id, 'Gemscript', 'Drug Product',  '', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_need_to_map where domain_id = 'Drug' 
 ;
 --Device
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
-select '', gemscript_name,domain_id, 'Gemscript', 'Device', 'S', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+select distinct '', gemscript_name,domain_id, 'Gemscript', 'Device', 'S', gemscript_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from thin_need_to_map where domain_id = 'Device'
 ;
 --Ingredient
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
-select distinct '', Ingredient_concept_code, 'Drug', 'Gemscript', 'Ingredient', '', Ingredient_concept_code, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from ds_stage
+select distinct '', initcap (Ingredient_concept_code), 'Drug', 'Gemscript', 'Ingredient', '', initcap (Ingredient_concept_code), (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from ds_all
 --only 1041 --looks susprecious
 ;
 --Supplier
@@ -1317,6 +1277,7 @@ insert into drug_concept_stage
 select distinct '', CONCEPT_NAME_2, 'Drug', 'Gemscript', 'Dose Form', '', CONCEPT_NAME_2, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from f_map
  ;
+ --Brand Name
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select distinct '', CONCEPT_NAME, 'Drug', 'Gemscript', 'Brand Name', '', CONCEPT_NAME, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
@@ -1326,18 +1287,9 @@ insert into drug_concept_stage
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
 select distinct '', CONCEPT_NAME, 'Drug', 'Gemscript', 'Unit', '', CONCEPT_NAME, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript' from dev_dmd.DRUG_CONCEPT_STAGE_042017  WHERE concept_class_id= 'Unit' and concept_code !='ml '
- ;
+;
 commit
 ;
-/*
---here comes another manual table - to find what I haven't covered with ds_stage definition
-select * from thin_need_to_map where domain_id ='Drug' 
-and thin_code not in (select drug_concept_code from ds_stage)
-;
-*/
---then  make insert into ds_stage where ingredient_id is not null
---merge with drug_concept_stage making domain_id
-
 --internal_relationship_stage
 insert into internal_relationship_stage
 select GEMSCRIPT_CODE,CONCEPT_NAME  from  b_map
@@ -1347,33 +1299,36 @@ union
 select GEMSCRIPT_CODE,CONCEPT_NAME_2  from s_map
 union
 select distinct drug_concept_code,ingredient_concept_code from ds_stage
-;
---check
- --fix these duplicates !!!
-select drug_concept_code,ingredient_concept_code from ds_stage group by drug_concept_code,ingredient_concept_code having count(1) >1
  ; 
  truncate table relationship_to_concept;
 insert into relationship_to_concept  (concept_code_1, concept_id_2, precedence, conversion_factor)
 --existing concepts used in mappings
-select distinct  CONCEPT_NAME, concept_id, 1, 1  from  b_map
+--bug in RxE, so take the first_value of concept_id_2
+select distinct concept_code_1, first_value (concept_id_2) over (PARTITION BY concept_code_1,   precedence, conversion_factor order by concept_id_2) as  concept_id_2 , precedence, conversion_factor 
+from (
+select distinct   CONCEPT_NAME  as concept_code_1, concept_id as CONCEPT_ID_2, 1 as precedence, 1 as conversion_factor  from  b_map
 union
 select distinct  CONCEPT_NAME_2, concept_id_2, 1, 1 from f_map
 union 
 select distinct  CONCEPT_NAME_2 , concept_id_2, 1, 1   from s_map
 union
-select distinct TARGET_NAME , TARGET_ID, 1, 1 from REL_TO_ING_1 union select distinct TARGET_NAME , TARGET_ID, 1, 1 from REL_TO_ING_2
+select distinct initcap (TARGET_NAME ), TARGET_ID, 1, 1 from REL_TO_ING_1 union select distinct initcap ( TARGET_NAME) , TARGET_ID, 1, 1 from REL_TO_ING_2
 union
 --add units from dm+D
 select concept_code_1, CONCEPT_ID_2, precedence, conversion_factor from dev_dmd.relationship_to_concept 
---take it from back up as dm+d is already under construction and DRUG_CONCEPT_STAGE doesn't have units yet
 join dev_dmd.DRUG_CONCEPT_STAGE_042017 on concept_code = concept_code_1 WHERE concept_class_id= 'Unit' 
 and precedence = 1
+)  
 --need to change the mapping from mcg to 0.001 mg
 ;
 --some ingredients may not get into the relationship_to_concept !!!
+--using first_value due to RxE bugs
 insert into relationship_to_concept  (concept_code_1, concept_id_2, precedence, conversion_factor)
-select concept_name, concept_id , 1, 1 from concept where lower ( concept_name) in (select lower (concept_code) from drug_concept_stage where concept_class_id ='Ingredient') and concept_name not in (select concept_code_1 from relationship_to_concept) 
+select distinct concept_code_1, first_value (concept_id_2) over (PARTITION BY concept_code_1,   precedence, conversion_factor order by concept_id_2) as  concept_id_2 , precedence, conversion_factor from (
+select initcap ( CONCEPT_NAME) as concept_code_1, concept_id as CONCEPT_ID_2, 1 as precedence, 1 as conversion_factor
+ from concept where lower ( concept_name) in (select lower (concept_code) from drug_concept_stage where concept_class_id ='Ingredient') and concept_name not in (select concept_code_1 from relationship_to_concept ) 
 and concept_class_id = 'Ingredient' and vocabulary_id like 'Rx%' and invalid_reason is null
+)
 ;
 commit
 ;
@@ -1393,19 +1348,23 @@ update drug_concept_stage set Standard_concept ='S' where concept_class_id = 'In
 commit
 ;
 --ds_stage shouldn't have empty dosage
-delete from 
+delete from ds_stage where drug_concept_code in (
+select drug_concept_code from 
   ds_stage 
  where coalesce(amount_value, numerator_value, 0)=0 -- needs to have at least one value, zeros don't count
   or coalesce(amount_unit, numerator_unit) is null -- needs to have at least one unit
   or (amount_value is not null and amount_unit is null) -- if there is an amount record, there must be a unit
   or (nvl(numerator_value, 0)!=0 and coalesce(numerator_unit, denominator_unit) is null) -- if there is a concentration record there must be a unit in both numerator and denominator
   or amount_unit='%' -- % should be in the numerator_unit
-  ;
+)  
+;
 commit
 ;  
 delete from internal_relationship_stage where concept_code_1 = '4915007' and concept_code_2 = 'Chewing Gum'
 ;
 commit
+;
+drop sequence code_seq
 ;
 declare
  ex number;
@@ -1434,7 +1393,7 @@ where a.concept_class_id in ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form'
 ;--select * from code_replace where old_code ='OMOP28663';
 commit
 ;
-update relationship_to_concept a  set concept_code_1 = (select new_code from code_replace b where a.concept_code_1 = b.old_code)
+update relationship_to_concept a  set concept_code_1 = (select new_code from code_replace b where lower (a.concept_code_1) = lower (b.old_code))
 where exists (select 1 from code_replace b where a.concept_code_1 = b.old_code)
 ;
 commit
@@ -1465,6 +1424,33 @@ where exists (select 1 from code_replace b where a.DRUG_CONCEPT_CODE = b.old_cod
 ;
 commit
 ;
+--Marketed Product must have strength and dose form otherwise Supplier needs to be removed
+delete from internal_relationship_stage where   (concept_code_1,  concept_code_2) in (
+SELECT irs.concept_code_1, irs.concept_code_2
+FROM internal_relationship_stage irs
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+left join ds_stage ds on drug_concept_code = irs.concept_code_1
+left join   
+(SELECT concept_code_1  FROM internal_relationship_stage
+ JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form') rf on rf.concept_code_1 = irs.concept_code_1
+where ds.drug_concept_code is null or rf.concept_code_1 is null
+)
+;
+--some 
+ update ds_stage a set  a.DENOMINATOR_unit  = 
+(select distinct b.DENOMINATOR_unit  from 
+ ds_stage b where a.drug_CONCEPT_CODE = b.drug_CONCEPT_CODE 
+ and a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null ) 
+ where exists 
+ (select 1 from 
+ ds_stage b where a.drug_CONCEPT_CODE = b.drug_CONCEPT_CODE 
+ and a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null )
+ ;
+ update ds_stage a  set  a.numerator_value= a.amount_value,a.numerator_unit= a.amount_unit,a.amount_value = null, a.amount_unit = null
+where a.denominator_unit is not null and numerator_unit is null
+;
+commit
+;
 --for further work with CNDV and then mapping creation roundabound, make copies of existing concept_stage and concept_relationship_stage
 drop table basic_concept_stage;
 create table basic_concept_stage as select * from concept_stage
@@ -1472,4 +1458,4 @@ create table basic_concept_stage as select * from concept_stage
 drop table basic_con_rel_stage;
 create table basic_con_rel_stage as select * from concept_relationship_stage
 ;
-
+  --!!!  then avoid all this playing around with initcap then use ds_all to get all the ingredients, and concept table to get all relationship_to_concept

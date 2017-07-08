@@ -189,7 +189,14 @@ UNION
       FROM (SELECT concept_code_1, precedence
             FROM relationship_to_concept
             GROUP BY concept_code_1, precedence HAVING COUNT(1) > 1)
-      UNION
+UNION
+      --'obvious RTC is missing'
+      SELECT d.concept_code FROM drug_concept_stage d
+      JOIN concept c ON lower(c.concept_name) = lower(d.concept_name) AND d.concept_class_id=c.concept_class_id AND c.vocabulary_id LIKE '%Rx%'
+      AND c.invalid_reason IS NULL
+      LEFT JOIN relationship_to_concept r ON concept_code_1 = d.concept_code 
+      WHERE concept_code_1 IS NULL
+UNION      
       --Brand Name doesnt relate to any drug
       SELECT DISTINCT a.concept_code, 'Brand Name doesnt relate to any drug'
       FROM drug_concept_stage a
@@ -307,7 +314,11 @@ UNION
 UNION
       SELECT a.drug_concept_code, '3-leg dogs'
       FROM ds_stage a
-        JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code  AND a.ingredient_concept_code != b.ingredient_concept_code AND a.amount_unit IS NULL AND b.amount_unit IS NOT NULL
+        JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code  AND a.ingredient_concept_code != b.ingredient_concept_code AND   a.amount_unit IS NULL AND b.amount_unit IS NOT NULL  
+        union
+          SELECT a.drug_concept_code, '3-leg dogs'
+      FROM ds_stage a
+        JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code  AND a.ingredient_concept_code != b.ingredient_concept_code AND   a.numerator_unit IS NULL AND b.numerator_unit IS NOT NULL 
 UNION
       SELECT drug_concept_code, 'mg/mg >1'
       FROM ds_stage
@@ -381,7 +392,7 @@ UNION
       SELECT a.concept_code_1, 'map to unit that doesn''t exist in RxNorm'
       FROM relationship_to_concept a
         JOIN drug_concept_stage b ON concept_code_1 = concept_code
-        JOIN concept ON concept_id_2 = concept_id
+        JOIN concept c ON concept_id_2 = c.concept_id
       WHERE b.concept_class_id = 'Unit'
       AND   concept_id_2 NOT IN (SELECT DISTINCT NVL(AMOUNT_UNIT_CONCEPT_ID,NUMERATOR_UNIT_CONCEPT_ID)
                                  FROM drug_strength a
@@ -436,5 +447,15 @@ UNION
 UNION
       SELECT pack_concept_code, 'pc missing'
       FROM pc_stage
-      WHERE pack_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage))
+      WHERE pack_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage)
+union      
+--name_equal_mapping absence
+select dcs.concept_code, 'name_equal_mapping absence' from drug_concept_stage dcs
+join concept cc on lower (cc.concept_name) = lower (dcs.concept_name) and cc.concept_class_id = dcs.concept_class_id and cc.vocabulary_id like 'RxNorm%'
+left join relationship_to_concept cr on dcs.concept_code = cr.concept_code_1
+where concept_code_1 is null
+and dcs.concept_class_id in ('Ingredient', 'Brand Name', 'Dose Form', 'Supplier')
+)
 GROUP BY error_type;
+
+

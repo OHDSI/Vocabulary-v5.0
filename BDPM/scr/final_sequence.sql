@@ -1,5 +1,3 @@
-
-
 -- Create sequence for new OMOP-created standard concepts
 declare
  ex number;
@@ -59,4 +57,4 @@ where concept_class_id ='Ingredient' and standard_concept is not null);
 commit;
 update drug_concept_stage set concept_class_id = 'Drug Product' where concept_class_id='Drug Pack';
 commit; 
-commit; 
+

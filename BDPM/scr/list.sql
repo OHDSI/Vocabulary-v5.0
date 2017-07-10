@@ -9,6 +9,12 @@ create table brand_name as (select regexp_substr (drug_descr, '^([A-Z]+(\s)?-?/?
 UPDATE BRAND_NAME   SET BRAND_NAME = 'NP100 PREMATURES AP-HP' WHERE DRUG_CODE = '60208447';
 UPDATE BRAND_NAME   SET BRAND_NAME = 'NP2 ENFANTS AP-HP' WHERE DRUG_CODE = '66809426';
 UPDATE BRAND_NAME   SET BRAND_NAME = 'PO 12 2 POUR CENT' WHERE DRUG_CODE = '64593595';
+update BRAND_NAME set BRAND_NAME ='HUMEXLIB' where brand_name like 'HUMEXLIB%';
+update BRAND_NAME set BRAND_NAME ='HUMEX' where brand_name like 'HUMEX %';
+update BRAND_NAME set BRAND_NAME ='CLARIX' where brand_name like 'CLARIX %';
+update BRAND_NAME set BRAND_NAME ='ACTIVOX' where brand_name like 'ACTIVOX %';
+
+
 update brand_name   set brand_name=rtrim(brand_name,' ');
  
  --Brand name = Ingredient (RxNorm)
@@ -18,6 +24,11 @@ delete brand_name where lower(brand_name) in (select lower(translation) from ing
 ;
  --Brand name = Ingredient (BDPM original)
 delete brand_name where lower(brand_name) in (select lower(CONCEPT_NAME) from ingr_translation_all); 
+delete brand_name where brand_name in ('ARGENTUM COMPLEXE N','ESTERS ETHYLIQUES D','ACIDUM PHOSPHORICUM COMPLEXE N','POTASSIUM H','FUCUS COMPLEXE N','CREME AU CALENDULA','CRATAEGUS COMPLEXE N',
+'BADIAGA COMPLEXE N','BERBERIS COMPLEXE N');
+update brand_name set brand_name=regexp_replace(brand_name,'ADULTES|ENFANTS|NOURRISSONS') where upper(brand_name) like 'SUPPOSITOIRE%';
+
+
 --list for drug_concept_stage
 create table dcs_bn as (
 select distinct brand_name as concept_name, 'Brand Name' as concept_class_id from brand_name 
@@ -28,16 +39,17 @@ and drug_code not in (select drug_code from non_drug));
 
 --list of Dose Form (translated before)
 create table list as (
-select distinct translation as concept_name ,'Dose Form' as concept_class_id,'1000000000' as concept_Code from FORM_TRANSLATION --manual table
+select distinct trim(translation) as concept_name ,'Dose Form' as concept_class_id,'1000000000' as concept_Code from FORM_TRANSLATION --manual table
 union
 --Brand Names
-select distinct concept_name,concept_class_id,'100000000000' from dcs_bn
+select distinct trim(concept_name),concept_class_id,'100000000000' from dcs_bn
 union 
 --manufacturers
-select distinct concept_name,concept_class_id,'100000000000' from dcs_manufacturer
+select distinct trim(concept_name),concept_class_id,'100000000000' from dcs_manufacturer
 );
 delete from list where concept_name like 'Enteric Oral Capsule';
 insert into list  values ('inert ingredients','Ingredient','100000000000');
+ 
 --temporary sequence 
 CREATE SEQUENCE new_vocc
   MINVALUE 1
@@ -66,7 +78,7 @@ where d.drug_code  in( select drug_code from non_drug)
 ;
 --Brand Names and Dose forms and manufacturers
 insert into drug_concept_stage (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select concept_name,'BDPM', concept_class_id, '', CONCEPT_CODE, '', 'Drug', TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), ''
+select distinct concept_name,'BDPM', concept_class_id, '', CONCEPT_CODE, '', 'Drug', TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), ''
 from list
 ;
 -- units 
@@ -90,6 +102,7 @@ insert into drug_concept_stage (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STAN
 select distinct TRANSLATION ,'BDPM', 'Ingredient', '', concept_code, '', 'Drug', TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), ''
 from ingr_translation_all 
 ;
+delete from drug_concept_stage where concept_code in ('89969','49487','24033','72310','31035','66548','16621','31035');
 --standard concept definition, not sure if we need this
 MERGE
 INTO    drug_concept_stage dcs

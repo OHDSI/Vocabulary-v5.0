@@ -1,4 +1,3 @@
-
 create table packaging_pars_1 as 
 select din_7, drug_code,  PACKAGING, 
 case when  regexp_like  (packaging, '^[[:digit:]\.\,]+\s*(mg|g|ml|litre|l)(\s|$|\,)') then regexp_substr (packaging, '^[[:digit:]\.\,]+\s*(mg|g|ml|litre|l)') else

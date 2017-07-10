@@ -1,4 +1,4 @@
-type "01_Z_drop_temporary_tables.sql" >> whole_script.sql
+type "01_Z_drop_temporary_tables.sql" > whole_script.sql
 type "01_4_non_drug.sql" >> whole_script.sql
 type "02_packs_and_homeopathy.sql" >> whole_script.sql
 type "packaging_parsing.sql" >> whole_script.sql

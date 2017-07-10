@@ -1,7 +1,7 @@
 create table non_drug as
 select b.drug_Code,drug_Descr,ingredient,form,form_code from ingredient a join drug b 
 on a.drug_code=b.drug_code
-where form_code in ('4307','9354','77898','87188','94901','41804','14832','72310') 
+where form_code in ('4307','9354','77898','87188','94901','41804','14832','72310','89969','49487','24033','31035','66548','16621','31035') 
 or dosage like '%Bq%' or form like '%dialyse%';
 --insert radiopharmaceutical drugs
 insert into non_drug (drug_Code,drug_descr,ingredient,form,form_code)

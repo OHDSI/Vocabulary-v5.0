@@ -20,6 +20,30 @@ insert into relationship_to_concept  (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_
 select concept_code, 'BDPM', CONCEPT_ID, PRECEDENCE, '' 
 from AUT_INGR_MAPPED_ALL  --manual table
 ;
+drop table ingr_map_update;
+create table ingr_map_update as 
+with a as
+(SELECT a.concept_code,a.concept_name,VOCABULARY_ID_1,precedence,rank() over (partition by a.concept_code order by c2.concept_id) as rank,
+c2.concept_id,c2.standard_concept from
+      drug_concept_stage a 
+        join  relationship_to_concept rc on a.concept_code=rc.concept_code_1
+        JOIN concept c1 ON c1.concept_id = concept_id_2
+        join concept c2 on trim(regexp_replace(lower(c1.concept_name),'for homeopathic preparations|tartrate|phosphate'))=trim(regexp_replace(lower(c2.concept_name),'for homeopathic preparations'))
+         and c2.standard_concept='S' and c2.concept_class_id='Ingredient'
+      WHERE c1.invalid_reason IS NOT NULL)
+select CONCEPT_CODE,CONCEPT_NAME,VOCABULARY_ID_1,PRECEDENCE,CONCEPT_ID,STANDARD_CONCEPT from a where concept_code in (select concept_code from a group by concept_code having count(concept_code)=1)
+union
+select CONCEPT_CODE,CONCEPT_NAME,VOCABULARY_ID_1,rank,CONCEPT_ID,STANDARD_CONCEPT from a where concept_code in (select concept_code from a group by concept_code having count(concept_code)!=1)
+;
+delete from relationship_to_concept where (concept_code_1,concept_id_2) in (
+SELECT concept_code_1, concept_id_2
+      FROM relationship_to_concept
+        JOIN drug_concept_stage s ON s.concept_code = concept_code_1
+        JOIN concept c ON c.concept_id = concept_id_2
+      WHERE c.standard_concept IS NULL  AND   s.concept_class_id = 'Ingredient');
+     
+insert into relationship_to_concept select CONCEPT_CODE,VOCABULARY_ID_1,CONCEPT_ID,PRECEDENCE,''
+ from ingr_map_update;
 --add RxNorm Extension
 create table RxE_Ing_st_0 as
 select a.concept_code as concept_code_1,a.concept_name as concept_name_1,
@@ -38,22 +62,30 @@ from RxE_Ing_st_0  -- RxNormExtension name equivalence
 insert into relationship_to_concept  (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
 values (538, 'BDPM', 21014151, 1, '') 
 ;
-insert into relationship_to_concept (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
-values ('OMOP8395','BDPM',19127890,1,'');
+insert into relationship_to_concept 
+select concept_code,'BDPM',19127890,1,'' from drug_concept_stage where concept_name like 'inert ingredients';
 --need to add manufacturer lately
 
 --manufacturer
 create table RxE_Man_st_0 as
 select a.concept_code as concept_code_1,a.concept_name as concept_name_1,
-c.concept_id, c.concept_name
- concept from drug_concept_stage a 
-join devv5.concept c on lower (a.concept_name )= lower (c.concept_name)
+c.concept_id, c.concept_name concept, rank() over (partition by a.concept_code order by c.concept_id) as precedence
+ from drug_concept_stage a 
+join devv5.concept c on 
+regexp_replace(lower(a.concept_name),' ltd| plc| uk| \(.*\)| pharmaceuticals| pharma| gmbh| laboratories| ab| international| france| imaging')=
+regexp_replace(lower(c.concept_name),' ltd| plc| uk| \(.*\)| pharmaceuticals| pharma| gmbh| laboratories| ab| international| france| imaging')
 where a.concept_class_id = 'Supplier' 
 and a.concept_code not in (select concept_code_1 from relationship_to_concept)
-and c.vocabulary_id ='RxNorm Extension' and c.concept_class_id=  'Supplier' and c.invalid_reason is null
+and c.vocabulary_id like 'RxNorm%' and c.concept_class_id=  'Supplier' and c.invalid_reason is null
 ;
+
+insert into relationship_to_concept 
+select concept_code,'BDPM', concept_id, precedence,''
+from aut_supp_mapped a join drug_concept_stage b using(concept_name);--suppliers found manually
+
+
 insert into relationship_to_concept  (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
-select concept_code_1, 'BDPM', CONCEPT_ID, 1, '' 
+select concept_code_1, 'BDPM', CONCEPT_ID, precedence, '' 
 from RxE_Man_st_0  -- RxNormExtension name equivalence
 ;
 --Brands from RxE
@@ -65,7 +97,7 @@ c.concept_id, c.concept_name
 join devv5.concept c on lower (a.concept_name )= lower (c.concept_name)
 where a.concept_class_id = 'Brand Name' 
 and a.concept_code not in (select concept_code_1 from relationship_to_concept)
-and c.vocabulary_id ='RxNorm Extension' and c.concept_class_id=  'Brand Name' and c.invalid_reason is null
+and c.vocabulary_id like 'RxNorm%' and c.concept_class_id=  'Brand Name' and c.invalid_reason is null
 ;
 insert into relationship_to_concept  (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
 select concept_code_1, 'BDPM', CONCEPT_ID, 1, '' 
@@ -132,4 +164,4 @@ SELECT distinct concept_code_1,concept_code_2
       where  (b.concept_code NOT IN (SELECT concept_code_1
                                   FROM internal_relationship_stage
                                     JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form') OR b.concept_code NOT IN (SELECT drug_concept_code FROM ds_stage)))
-;                                   
+;  

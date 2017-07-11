@@ -870,20 +870,21 @@ delete from qr_uds where rowid not in (
 commit;
 
 -- Create all possible translations for combos and their closeness attributes
-create table qr_d_combo as
+-- This table still contains individual q_ds and r_ds enumerated, but aligned to each other, which is necessary for breaking up combos in x_pattern
+create table qr_ds as
 -- Create unique list of combo codes and ds components for both q and r
 with q as (
-  select distinct d_combo, i_combo, ds_code, quant_unit
+  select distinct d_combo, i_combo, i_code, ds_code, quant_unit
   from q_combo
   join q_ds using(concept_code)
 ), r as (
-  select distinct d_combo, i_combo, ds_code, quant_unit_id
+  select distinct d_combo, i_combo, i_code, ds_code, quant_unit_id
   from r_combo
   join r_ds using(concept_id)
 ), 
 -- Create all combinations of combos that share at least one ds, and calculate their size of the combos
 q_to_r as (
-  select qc.i_combo as qi_combo, qc.d_combo as qd_combo, q_ds, rc.i_combo as ri_combo, rc.d_combo as rd_combo, r_ds, u_prec, i_prec, div, qc.cnt, qr_uds.quant_unit, qr_uds.quant_unit_id
+  select qc.i_combo as qi_combo, qc.d_combo as qd_combo, qc.i_code as q_i, q_ds, rc.i_combo as ri_combo, rc.d_combo as rd_combo, rc.i_code as r_i, r_ds, u_prec, i_prec, div, qc.cnt, qr_uds.quant_unit, qr_uds.quant_unit_id
   from qr_uds 
 -- Create q and the number of ds components
   join (
@@ -895,11 +896,17 @@ q_to_r as (
   ) rc on rc.ds_code=r_ds and qc.cnt=rc.cnt -- join q to r through qr_uds, and also the size of hte combos
 )
 -- Now filter those where the size of the q and r combos (already the same) is the same as the number of qr_uds matches between the combos
+select qi_combo, ri_combo, qd_combo, rd_combo, q_i, q_ds, r_i, r_ds, u_prec, i_prec, div, quant_unit, quant_unit_id
+from (select qd_combo, rd_combo, count(8) as cnt from q_to_r group by qd_combo, rd_combo) 
+join q_to_r using(qd_combo, rd_combo, cnt) -- makes sure that the qd-rd combos have the same ds count as the individual ones
+;
+
+-- Now create unique combos, shedding the q_ds and r_ds enumeration
+create table qr_d_combo as 
 select qi_combo, ri_combo, qd_combo, rd_combo, avg(u_prec) as u_prec, avg(i_prec) as i_prec, avg(div) as div, -- for successful matches, calculate aggregate u_prec, i_prec and div
   max(quant_unit) as quant_unit, max(quant_unit_id) as quant_unit_id
-from (select qi_combo, ri_combo, qd_combo, rd_combo, count(8) as cnt from q_to_r group by qi_combo, ri_combo, qd_combo, rd_combo) 
-join q_to_r using(qi_combo, ri_combo, qd_combo, rd_combo, cnt)
-group by qi_combo, ri_combo, qd_combo, rd_combo, cnt having count(distinct quant_unit_id)=1 -- count the number of different quanti_unit_ids. Discard if more than one (different denominators)
+from qr_ds
+group by qi_combo, ri_combo, qd_combo, rd_combo having count(distinct quant_unit_id)=1 -- count the number of different quant_unit_ids. Discard if more than one (non-matching denominators)
 ;
 
 -- Add singleton combos from qr_uds. Some of them will be necessary as they don't exist as singletons in q, but x_i_combo will need them for translating ingredient combos in Forms
@@ -916,8 +923,8 @@ from qr_uds join q_uds on q_uds.ds_code=q_ds join r_uds on r_uds.ds_code=r_ds
 commit;
 
 -- Same for ingredient combinations only (used for Drug Forms)
-create table qr_i_combo as
--- Add translations of ingredient combos only (where there are no matching ds)
+-- First, create table with q_i and r_i listed
+create table qr_i as -- qr_ing is for single ingredients
 with q as (
   select distinct i_combo, i_code
   from q_combo
@@ -944,11 +951,17 @@ q_to_r as (
   ) rc on rc.i_code=r_ing and qc.cnt=rc.cnt -- join q to r through q_to_r_uds, and also the size of the combos
 )
 -- Now filter those where the size of the q and r combos (already the same) is the same as the number of q_to_r_uds matches between the combos
-select 
-  q_combo as qi_combo, r_combo as ri_combo, 
-  cnt, avg(i_prec) as i_prec  -- for successful matches, calculate aggregate i_prec
+select
+  q_ing as q_i, q_combo as qi_combo, r_ing as r_i, r_combo as ri_combo, i_prec
 from (select q_combo, r_combo, count(8) as cnt from q_to_r group by q_combo, r_combo) join q_to_r using(q_combo, r_combo, cnt)
-group by q_combo, r_combo, cnt
+;
+
+-- Second, group and average the prec
+create table qr_i_combo as
+select
+  qi_combo, ri_combo, avg(i_prec) as i_prec  -- for successful matches, calculate aggregate i_prec
+from qr_i 
+group by qi_combo, ri_combo
 ;
 
 -- Create translations between quants. Value and unit have to work in tandem
@@ -967,7 +980,7 @@ where round(q_div*50)=50 -- making it a 2% corridor
 ;
 
 -- Translation between individual Ingredients
-create table qr_i as
+create table qr_ing as
 select q.i_code as qi_code, r.i_code as ri_code, precedence as prec
 from (
   select distinct i_code from q_ing
@@ -1243,21 +1256,15 @@ commit;
 -- This is necessary for Clinical Drug Comps where comobos only exist in multi-versions in both q and r
 insert /*+ APPEND */ into x_pattern
   select distinct 
-    q.qi_combo, r.ri_combo, 
+    q.q_i as qi_combo, q.r_i as ri_combo, 
     cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
     x.df_code, x.df_id, x.dfg_id,
     x.bn_code, x.bn_id, 
     x.mf_code, x.mf_id,
     x.quant_unit, x.quant_unit_id,
     prec -- as already exists
-  from ( -- break up all combos for q
-    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
-  ) q
-  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
-  join ( -- break up all combos for r
-    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
-  ) r using(rd_combo) 
-  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+  from x_pattern x 
+  join qr_ds q using (qd_combo, rd_combo)
 minus
   select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
   from x_pattern
@@ -1308,28 +1315,20 @@ commit;
 
 -- Break up multi-combos
 insert /*+ APPEND */ into x_pattern
-select 
-  qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, prec
-from (
   select distinct 
-    q.qi_combo, r.ri_combo, 
+    q.q_i as qi_combo, q.r_i as ri_combo, 
     cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
     x.df_code, x.df_id, x.dfg_id,
     x.bn_code, x.bn_id, 
+    x.mf_code, x.mf_id,
     x.quant_unit, x.quant_unit_id,
     prec -- as already exists
-  from ( -- break up all combos for q
-    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
-  ) q
-  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
-  join ( -- break up all combos for r
-    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
-  ) r using(rd_combo) 
-  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+  from x_pattern x 
+  join qr_ds q using (qd_combo, rd_combo)
 minus
-  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, quant_unit, quant_unit_id, prec
+  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
   from x_pattern
-);
+;
 commit;
 
 -- 5. and 6. Match d_combo, df, mf, but not bn - Marketed Products without Brand, quantified or boxed
@@ -1378,28 +1377,20 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'x_pattern', es
 
 -- Break up multi-combos
 insert /*+ APPEND */ into x_pattern
-select 
-  qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
-from (
   select distinct 
-    q.qi_combo, r.ri_combo, 
+    q.q_i as qi_combo, q.r_i as ri_combo, 
     cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
     x.df_code, x.df_id, x.dfg_id,
-    x.mf_code, x.mf_id, 
+    x.bn_code, x.bn_id, 
+    x.mf_code, x.mf_id,
     x.quant_unit, x.quant_unit_id,
     prec -- as already exists
-  from ( -- break up all combos for q
-    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
-  ) q
-  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
-  join ( -- break up all combos for r
-    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
-  ) r using(rd_combo) 
-  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+  from x_pattern x 
+  join qr_ds q using (qd_combo, rd_combo)
 minus
-  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
+  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
   from x_pattern
-);
+;
 commit;
 
 -- clean up again
@@ -1449,27 +1440,20 @@ commit;
 
 -- Break up multi-combos
 insert /*+ APPEND */ into x_pattern
-select 
-  qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, prec
-from (
   select distinct 
-    q.qi_combo, r.ri_combo, 
+    q.q_i as qi_combo, q.r_i as ri_combo, 
     cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
     x.df_code, x.df_id, x.dfg_id,
+    x.bn_code, x.bn_id, 
+    x.mf_code, x.mf_id,
     x.quant_unit, x.quant_unit_id,
     prec -- as already exists
-  from ( -- break up all combos for q
-    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
-  ) q
-  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
-  join ( -- break up all combos for r
-    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
-  ) r using(rd_combo) 
-  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+  from x_pattern x 
+  join qr_ds q using (qd_combo, rd_combo)
 minus
-  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, quant_unit, quant_unit_id, prec
+  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
   from x_pattern
-);
+;
 commit;
 
 -- 9. and 10. Match d_combo, bn, but not df, mf - Branded Component
@@ -1510,27 +1494,20 @@ commit;
 
 -- Break up multi-combos
 insert /*+ APPEND */ into x_pattern
-select 
-  qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, prec
-from (
   select distinct 
-    q.qi_combo, r.ri_combo, 
+    q.q_i as qi_combo, q.r_i as ri_combo, 
     cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
+    x.df_code, x.df_id, x.dfg_id,
     x.bn_code, x.bn_id, 
+    x.mf_code, x.mf_id,
     x.quant_unit, x.quant_unit_id,
     prec -- as already exists
-  from ( -- break up all combos for q
-    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
-  ) q
-  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
-  join ( -- break up all combos for r
-    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
-  ) r using(rd_combo) 
-  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+  from x_pattern x 
+  join qr_ds q using (qd_combo, rd_combo)
 minus
-  select qi_combo, ri_combo, qd_combo, rd_combo, bn_code, bn_id, quant_unit, quant_unit_id, prec
+  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
   from x_pattern
-);
+;
 commit;
 
 -- 11 and 12. Match d_combo, but not df, bn, mf - Clinical Component
@@ -1568,26 +1545,20 @@ commit;
 
 -- Break up multi-combos and write back leaving all other patterns unchanged
 insert /*+ APPEND */ into x_pattern
-select 
-  qi_combo, ri_combo, qd_combo, rd_combo, null as df_code, null as df_id, null as dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, quant_unit, quant_unit_id, prec
-from (
   select distinct 
-    q.qi_combo, r.ri_combo, 
+    q.q_i as qi_combo, q.r_i as ri_combo, 
     cast(q_ds as varchar2(20)) as qd_combo, cast(r_ds as varchar2(20)) as rd_combo, 
+    x.df_code, x.df_id, x.dfg_id,
+    x.bn_code, x.bn_id, 
+    x.mf_code, x.mf_id,
     x.quant_unit, x.quant_unit_id,
     prec -- as already exists
-  from ( -- break up all combos for q
-    select distinct d_combo as qd_combo, i_code as qi_combo, ds_code as q_ds from q_ds join q_combo using(concept_code) where d_combo like '%-%'
-  ) q
-  join x_pattern x using(qd_combo) -- find them in the existing complete p to existing r 
-  join ( -- break up all combos for r
-    select distinct d_combo as rd_combo, i_code as ri_combo, ds_code as r_ds from r_ds join r_combo using(concept_id) where d_combo like '%-%'
-  ) r using(rd_combo) 
-  join qr_uds using(q_ds, r_ds) -- get right component in a combination aligned
+  from x_pattern x 
+  join qr_ds q using (qd_combo, rd_combo)
 minus
-  select qi_combo, ri_combo, qd_combo, rd_combo, quant_unit, quant_unit_id, prec
+  select qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
   from x_pattern
-);
+;
 commit;
 
 -- 13. Match i_combo, df, bn but no mf - Branded Forms
@@ -1621,30 +1592,21 @@ union
 commit;
 
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'x_pattern', estimate_percent  => null, cascade  => true);
-exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'qr_i', estimate_percent  => null, cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'qr_ing', estimate_percent  => null, cascade  => true);
 
 -- Break up mulit-i_combos and write back leaving all other patterns unchanged
 insert /*+ APPEND */ into x_pattern
   select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, prec
 from (
   select 
-    qi_combo, ri_combo, 
+    q_i as qi_combo, r_i as ri_combo, 
     x.df_code, x.df_id, x.dfg_id,
     x.bn_code, x.bn_id,
     x.prec
   from x_pattern x
-  join ( -- break up qi_combo from actual combo code, there is no easy way of doing it similar to q_ds
-    select qi_combo, trim(regexp_substr(qi_combo, '[^\-]+', 1, levels.column_value)) as qi_code
-    from (select distinct qi_combo from x_pattern), -- extension_combo contains i_combos as well
-    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(qi_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
-  ) q using(qi_combo)
-  join ( -- break up ri_combo
-    select ri_combo, trim(regexp_substr(ri_combo, '[^\-]+', 1, levels.column_value)) as ri_code
-    from (select distinct ri_combo from x_pattern), -- extension_combo contains i_combos as well
-    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
-  ) r using(ri_combo)
-  join qr_i using(qi_code, ri_code) -- get right component in a combination aligned
+  join qr_i using(qi_combo, ri_combo) -- get right component in a combination aligned
   where qd_combo is null -- only Form patterns
+  and qi_combo like '%-%' -- only combinations, otherwise nothing to break up
 minus
   select qi_combo, ri_combo, df_code, df_id, dfg_id, bn_code, bn_id, prec
   from x_pattern
@@ -1680,27 +1642,19 @@ commit;
 
 -- Break up mulit-i_combos and write back leaving all other patterns unchanged
 insert /*+ APPEND */ into x_pattern
-  select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, null as bn_code, null as bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, prec
+  select qi_combo, ri_combo, null as qd_combo, null as rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, null as mf_code, null as mf_id, null as quant_unit, null as quant_unit_id, prec
 from (
-  select
-    qi_combo, ri_combo, 
+  select 
+    q_i as qi_combo, r_i as ri_combo, 
     x.df_code, x.df_id, x.dfg_id,
+    x.bn_code, x.bn_id,
     x.prec
   from x_pattern x
-  join ( -- break up qi_combo from actual combo code, there is no easy way of doing it similar to q_ds
-    select qi_combo, trim(regexp_substr(qi_combo, '[^\-]+', 1, levels.column_value)) as qi_code
-    from (select distinct qi_combo from x_pattern), -- extension_combo contains i_combos as well
-    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(qi_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
-  ) q using(qi_combo)
-  join ( -- break up ri_combo
-    select ri_combo, trim(regexp_substr(ri_combo, '[^\-]+', 1, levels.column_value)) as ri_code
-    from (select distinct ri_combo from x_pattern), -- extension_combo contains i_combos as well
-    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
-  ) r using(ri_combo)
-  join qr_i using(qi_code, ri_code) -- get right component in a combination aligned
+  join qr_i using(qi_combo, ri_combo) -- get right component in a combination aligned
   where qd_combo is null -- only Form patterns
+  and qi_combo like '%-%' -- only combinations, otherwise nothing to break up
 minus
-  select qi_combo, ri_combo, df_code, df_id, dfg_id, prec
+  select qi_combo, ri_combo, df_code, df_id, dfg_id, bn_code, bn_id, prec
   from x_pattern
 );
 commit;
@@ -1731,7 +1685,7 @@ where x.rd_combo is null
 ;
 commit;
 
--- 17. Add those i_combos that are not in x_pattern, but can be inferred from qr_i_combo (singleton drug forms)
+-- 17. Add i_combos that are not in x_pattern, but can be inferred from qr_i_combo (singleton drug forms)
 insert /*+ APPEND */ into x_pattern
   select 
     qi_combo, ri_combo,
@@ -1746,14 +1700,14 @@ insert /*+ APPEND */ into x_pattern
       qi_combo, first_value (ri_combo) over (partition by qi_combo order by i_prec) as ri_combo
     from qr_i_combo
   -- Make sure it is not already covered
-  -- compare to existing to make sure pattern isn't already doveredis not already covered
+  -- compare to existing to make sure pattern isn't already covered
 union
   select qi_combo, ri_combo
   from x_pattern
 );
 commit;
 
--- 18. Add ingredient translations not found in the data, but provided by the input tables and have drugs containing them
+-- 18. Add single ingredient translations not found in the data, but provided by the input tables and have drugs containing them
 insert /*+ APPEND */ into x_pattern
 select distinct
   qi_code as qi_combo, first_value (ri_code) over (partition by qi_code order by prec) as ri_combo, -- pick the best translation
@@ -1763,7 +1717,7 @@ select distinct
   null as mf_code, null as mf_id,
   null as quant_unit, null as quant_unit_id,
   18 as prec
-from qr_i
+from qr_ing
 where qi_code not in (select qi_combo from x_pattern)
 ;
 commit;
@@ -1909,7 +1863,6 @@ where x.ds_code is null
 ;
 
 -- Create list of identical extension_uds (different q_uds, but after translation identical)
-drop table reduce_euds purge;
 create table reduce_euds nologging as
 with euds as (
   select ds_code, i_code, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, nvl(denominator_unit_concept_id, -1) as denominator_unit_concept_id from extension_uds
@@ -1996,8 +1949,7 @@ insert /*+ APPEND */ into extension_combo
 select distinct
   i_combo as qi_combo,
   listagg(ri_code, '-') within group (order by ri_code) as ri_combo,
-  null as qd_combo,
-  null as rd_combo,
+  null as qd_combo, null as rd_combo,
   null as quant_unit, null as quant_unit_id
 from (
 -- i_combos in q_combo but not translated (x_i_combo) or added through d_combo
@@ -2409,7 +2361,7 @@ select rd_combo, nvl(r.i_code, e.i_code) as r_i, ds_code as r_ds from (
 -- break up all rd_combos in x_pattern
   select rd_combo, cast(trim(regexp_substr(rd_combo, '[^\-]+', 1, levels.column_value)) as number) as ds_code
   from (select distinct rd_combo from x_pattern),
-  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(rd_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(rd_combo, '[^\-]+'))+1) as sys.OdciNumberList)) levels
 )
 left join r_uds r using(ds_code) left join extension_uds e using(ds_code) -- get i_code
 ;
@@ -2427,7 +2379,7 @@ with ex as (
   join r_singleton using(rd_combo)
 -- combine the ones that belong together
   join (
-    select qi_code as q_i, ri_code as r_i from qr_i
+    select qi_code as q_i, ri_code as r_i from qr_ing
   union
     select qi_code, ri_code from extension_i
   ) using(q_i, r_i)
@@ -2612,7 +2564,7 @@ u as (
 -- get combo to i_code resolution
     select ri_combo as i_combo, trim(regexp_substr(ri_combo, '[^\-]+', 1, levels.column_value)) as i_code
     from (select distinct ri_combo from extension_attribute where concept_id<0), -- extension_combo contains i_combos as well
-    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))+1) as sys.OdciNumberList)) levels
   )
   join n using(i_code) -- get name
 )
@@ -2734,28 +2686,31 @@ from (
 group by pack_concept_id, bn_id, bs, mf_id
 ;
 
--- XXXX Remove Branded Packs that have no Brand Name. this is no longer needed when RxNorm adds Brand Names for Packs
+-- XXXX Remove Branded Packs that have no Brand Name. This will no longer be needed when RxNorm starts adding Brand Names for Packs
 delete from r_existing_pack where rowid in (select p.rowid from r_existing_pack p join concept on pack_concept_id=concept_id where bn_id=0 and concept_class_id='Branded Pack');
+
+drop table extension_pack purge;
 
 -- Create pack hierarchy
 create table extension_pack as
-select extension_id.nextval as concept_id, 
-  pack_concept_code, pack_concept_id, components, cnt, bn_id, bs, mf_id, concept_class_id
-from q_existing_pack 
+select extension_id.nextval as concept_id, pack_concept_id as r_concept_id, components, cnt, bn_id, bs, mf_id, concept_class_id
+from ( -- get distinct content of q_existing_pack
+  select distinct components, cnt, bn_id, bs, mf_id, concept_class_id from q_existing_pack
+  where concept_class_id='Marketed Product'
+) q
 left join r_existing_pack using(components, cnt, bn_id, bs, mf_id)
-where concept_class_id='Marketed Product';
+;
 commit;
 
 -- Branded Pack Box. Definition: bn and bs, but no mf.
 insert into extension_pack
 select extension_id.nextval as concept_id, 
-  pack_concept_code, pack_concept_id as r_concept_id, components, cnt, bn_id, bs, 0 as mf_id, 'Branded Pack Box' as concept_class_id 
-from (
+  pack_concept_id as r_concept_id, components, cnt, bn_id, bs, 0 as mf_id, 'Branded Pack Box' as concept_class_id 
+from ( -- get those we already have
   select components, cnt, bn_id, bs from extension_pack where bn_id!=0 and bs!=0
-union
+union -- add more from q
   select components, cnt, bn_id, bs from q_existing_pack where bn_id!=0 and bs!=0 and mf_id=0
 )
-left join (select pack_concept_code, components, cnt, bn_id, bs from q_existing_pack where mf_id=0) using(components, cnt, bn_id, bs)
 left join (select pack_concept_id, components, cnt, bn_id, bs from r_existing_pack where mf_id=0) using(components, cnt, bn_id, bs)
 ;
 commit;
@@ -2763,42 +2718,49 @@ commit;
 -- Branded Pack. Definition: bn, but no bs or mf.
 insert into extension_pack
 select extension_id.nextval as concept_id, 
-  pack_concept_code, pack_concept_id as r_concept_id, components, cnt, bn_id, 0 as bs, 0 as mf_id, 'Branded Pack' as concept_class_id 
+  pack_concept_id as r_concept_id, components, cnt, bn_id, 0 as bs, 0 as mf_id, 'Branded Pack' as concept_class_id 
 from (
   select components, cnt, bn_id from extension_pack where bn_id!=0
 union
   select components, cnt, bn_id from q_existing_pack where bn_id!=0 and bs=0 and mf_id=0
 )
-left join (select pack_concept_code, components, cnt, bn_id from q_existing_pack where bs=0 and mf_id=0) using(components, cnt, bn_id)
 left join (select pack_concept_id, components, cnt, bn_id from r_existing_pack where bs=0 and mf_id=0) using(components, cnt, bn_id)
 ;
+commit;
 
 -- Clinical Pack Box. Definition: bs, but no bn or mf.
 insert into extension_pack
 select extension_id.nextval as concept_id, 
-  pack_concept_code, pack_concept_id as r_concept_id, components, cnt, 0 as bn_id, bs, 0 as mf_id, 'Clinical Pack Box' as concept_class_id 
+  pack_concept_id as r_concept_id, components, cnt, 0 as bn_id, bs, 0 as mf_id, 'Clinical Pack Box' as concept_class_id 
 from (
   select components, cnt, bs from extension_pack where bs!=0
 union
   select components, cnt, bs from q_existing_pack where bs!=0 and bn_id=0 and mf_id=0
 )
-left join (select pack_concept_code, components, cnt, bs from q_existing_pack where bn_id=0 and mf_id=0) using(components, cnt, bs)
 left join (select pack_concept_id, components, cnt, bs from r_existing_pack where bn_id=0 and mf_id=0) using(components, cnt, bs)
 ;
+commit;
 
 -- Clinical Pack. Definition: neither bn, bs nor mf.
 insert into extension_pack
 select extension_id.nextval as concept_id, 
-  pack_concept_code, pack_concept_id as r_concept_id, components, cnt, 0 as bn_id, 0 as bs, 0 as mf_id, 'Clinical Pack' as concept_class_id 
+  pack_concept_id as r_concept_id, components, cnt, 0 as bn_id, 0 as bs, 0 as mf_id, 'Clinical Pack' as concept_class_id 
 from (
   select components, cnt from extension_pack where bn_id=0 and bs=0 and mf_id=0
 union
   select components, cnt from q_existing_pack where bn_id=0 and bs=0 and mf_id=0
 )
-left join (select pack_concept_code, components, cnt from q_existing_pack where bn_id=0 and bs=0 and mf_id=0) using(components, cnt)
 left join (select pack_concept_id, components, cnt from r_existing_pack where bn_id=0 and bs=0 and mf_id=0) using(components, cnt)
 ;
 commit;
+
+left join (select pack_concept_code, components, cnt, bn_id, bs from q_existing_pack where mf_id=0) using(components, cnt, bn_id, bs)
+left join (select pack_concept_code, components, cnt, bn_id from q_existing_pack where bs=0 and mf_id=0) using(components, cnt, bn_id)
+left join (select pack_concept_code, components, cnt, bs from q_existing_pack where bn_id=0 and mf_id=0) using(components, cnt, bs)
+left join (select pack_concept_code, components, cnt from q_existing_pack where bn_id=0 and bs=0 and mf_id=0) using(components, cnt)
+
+
+
 
 -- Create names for each pack in extension_pack
 create table pack_name as
@@ -2817,7 +2779,7 @@ with c as (
     from ( -- break up the components string
       select concept_id, trim(regexp_substr(components, '[^;]+', 1, levels.column_value)) as component
       from extension_pack, -- extension_combo contains i_combos as well
-      table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))  + 1) as sys.OdciNumberList)) levels
+      table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))+1) as sys.OdciNumberList)) levels
     )
   ) cp
   left join concept cr on cr.concept_id=cp.drug_concept_id
@@ -3206,7 +3168,7 @@ join ( -- resolve ri_combo into i_codes and create rx notation
   union
     select ri_code, ri_code, 'RxNorm Extension' from extension_i
   ), 
-  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))+1) as sys.OdciNumberList)) levels
   where trim(regexp_substr(ri_combo, '[^\-]+', 1, levels.column_value))=i_code
 ) an using(ri_combo)
 where de.concept_id<0 and de.concept_class_id='Clinical Drug Form'
@@ -3303,7 +3265,7 @@ join ( -- resolve ri_combo into i_codes and create rx notation
   union
     select ri_code, ri_code, 'RxNorm Extension' from extension_i
   ), 
-  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))  + 1) as sys.OdciNumberList)) levels
+  table(cast(multiset(select level from dual connect by level <= length (regexp_replace(ri_combo, '[^\-]+'))+1) as sys.OdciNumberList)) levels
   where trim(regexp_substr(ri_combo, '[^\-]+', 1, levels.column_value))=i_code
 ) ing using(ri_combo)
 join concept_stage bn on bn_id=bn.concept_id -- resolve id to code/vocab
@@ -3344,7 +3306,7 @@ join ( -- split components by ';' and extract the drug (behind '/')
   select concept_id, substr(component, instr(component, '/', 1)+1) as drug_concept_id from (
     select p.concept_id, trim(regexp_substr(components, '[^;]+', 1, levels.column_value)) as component
     from extension_pack p, 
-    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))  + 1) as sys.OdciNumberList)) levels
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))+1) as sys.OdciNumberList)) levels
   )
 ) c using(concept_id)
 left join concept_stage cs on drug_concept_id=cs.concept_id -- get concept_code/vocab for new drug
@@ -3405,8 +3367,8 @@ join ( -- split components by ';' and extract the drug (behind '/')
   from ( -- break up the components string
     select concept_id, trim(regexp_substr(components, '[^;]+', 1, levels.column_value)) as component
     from extension_pack, -- extension_combo contains i_combos as well
-    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))  + 1) as sys.OdciNumberList)) levels
-  )F
+    table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))+1) as sys.OdciNumberList)) levels
+  )
 ) c using(concept_id)
 left join concept_stage ds on ds.concept_id=drug_concept_id left join concept dc on dc.concept_id=drug_concept_id
 where pack_concept_id is null -- no mapping to existing exists
@@ -3739,10 +3701,12 @@ drop table r_mf purge;
 drop table r_bs purge;
 drop table r_existing purge;
 drop table qr_uds purge;
+drop table qr_ds purge;
 drop table qr_d_combo purge;
+drop table qr_i purge;
 drop table qr_i_combo purge;
 drop table qr_quant purge;
-drop table qr_i purge;
+drop table qr_ing purge;
 drop table qr_df purge;
 drop table qr_bn purge;
 drop table qr_mf purge;

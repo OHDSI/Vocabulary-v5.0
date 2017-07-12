@@ -449,7 +449,7 @@ select ds_seq.nextval as ds_code, ds.* from ( -- reuse the same sequence for q_d
       else nvl(denominator_unit_concept_id, 0) 
     end as denominator_unit_concept_id
   from drug_strength join ing_stage on ingredient_concept_id=i_id
-join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+  join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
 ) ds
 ;
 
@@ -460,7 +460,8 @@ from (
   select drug_concept_id, ingredient_concept_id, i_code, nvl(amount_value, 0) as amount_value, nvl(amount_unit_concept_id, 0) as amount_unit_concept_id, 
     case -- turn into concentration mode
       when numerator_unit_concept_id in (8554, 9325, 9324) then nvl(numerator_value, 0) -- don't for % and homeopathic units C, X
-      else nvl(numerator_value, 0)/nvl(denominator_value, 1)
+      when denominator_value is not null then round(nvl(numerator_value, 0)/nvl(denominator_value, 1), 3-floor(log(10, nvl(numerator_value, 0)/nvl(denominator_value, 1)))-1) -- round if there is a denominator
+      else numerator_value
     end as numerator_value, 
     nvl(numerator_unit_concept_id, 0) as numerator_unit_concept_id, 
     case -- % and homeopathics should not have an undefined denominator_unit. r_quant will get it from ds_stage.
@@ -3321,7 +3322,7 @@ where not exists (select 1 from full_pack fp where concept_id=fp.concept_id and 
 commit;
 
 -- Write inner relationships for Packs: has tradename, available as box, has marketed form
-insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct
   ancs.concept_code as concept_code_1,
   ancs.vocabulary_id as vocabulary_id_1,
@@ -3662,7 +3663,7 @@ drop table dss_rowid_update purge;
 commit;
 
 -- Remove negative and 0 concept_ids from concept_stage
-am
+update concept_stage set concept_id=null;
 commit;
 
 --get duplicates for some reason 

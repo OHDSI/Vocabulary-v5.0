@@ -17,7 +17,14 @@
 * Date: 2016-2017
 **************************************************************************/
 
--- To do: Possible excipient, mEq to mmol, other funny units, use dfg_id for best pattern search
+/***************************************************************************
+To do list: 
+- Possible excipient, 
+- mEq to mmol, 
+- other funny units, 
+- use dfg_id for best pattern search
+- don't use quantifieds for r_uds, use the equivalent non-quantified one, otherwise rounding error possible
+
 
 /******************************************************************************
 * This script creates a new drug vocabulary in the OMOP Standard Vocabularies *
@@ -441,7 +448,7 @@ select ds_seq.nextval as ds_code, ds.* from ( -- reuse the same sequence for q_d
     case -- turn into concentration mode
       when numerator_unit_concept_id in (8554, 9325, 9324) then nvl(numerator_value, 0) -- don't for % and homeopathic units C, X
       when denominator_value is not null then round(nvl(numerator_value, 0)/nvl(denominator_value, 1), 3-floor(log(10, nvl(numerator_value, 0)/nvl(denominator_value, 1)))-1) -- round if there is a denominator
-      else numerator_value
+      else nvl(numerator_value, 0)
     end as numerator_value, 
     nvl(numerator_unit_concept_id, 0) as numerator_unit_concept_id,
     case -- % and homeopathics should not have an undefined denominator_unit. r_quant will get it from ds_stage.
@@ -461,7 +468,7 @@ from (
     case -- turn into concentration mode
       when numerator_unit_concept_id in (8554, 9325, 9324) then nvl(numerator_value, 0) -- don't for % and homeopathic units C, X
       when denominator_value is not null then round(nvl(numerator_value, 0)/nvl(denominator_value, 1), 3-floor(log(10, nvl(numerator_value, 0)/nvl(denominator_value, 1)))-1) -- round if there is a denominator
-      else numerator_value
+      else nvl(numerator_value, 0)
     end as numerator_value, 
     nvl(numerator_unit_concept_id, 0) as numerator_unit_concept_id, 
     case -- % and homeopathics should not have an undefined denominator_unit. r_quant will get it from ds_stage.

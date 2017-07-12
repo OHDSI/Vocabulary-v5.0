@@ -440,7 +440,8 @@ select ds_seq.nextval as ds_code, ds.* from ( -- reuse the same sequence for q_d
     nvl(amount_value, 0) as amount_value, nvl(amount_unit_concept_id, 0) as amount_unit_concept_id,
     case -- turn into concentration mode
       when numerator_unit_concept_id in (8554, 9325, 9324) then nvl(numerator_value, 0) -- don't for % and homeopathic units C, X
-      else nvl(numerator_value, 0)/nvl(denominator_value, 1)
+      when denominator_value is not null then round(nvl(numerator_value, 0)/nvl(denominator_value, 1), 3-floor(log(10, nvl(numerator_value, 0)/nvl(denominator_value, 1)))-1) -- round if there is a denominator
+      else numerator_value
     end as numerator_value, 
     nvl(numerator_unit_concept_id, 0) as numerator_unit_concept_id,
     case -- % and homeopathics should not have an undefined denominator_unit. r_quant will get it from ds_stage.
@@ -2689,13 +2690,11 @@ group by pack_concept_id, bn_id, bs, mf_id
 -- XXXX Remove Branded Packs that have no Brand Name. This will no longer be needed when RxNorm starts adding Brand Names for Packs
 delete from r_existing_pack where rowid in (select p.rowid from r_existing_pack p join concept on pack_concept_id=concept_id where bn_id=0 and concept_class_id='Branded Pack');
 
-drop table extension_pack purge;
-
 -- Create pack hierarchy
-create table extension_pack as
-select extension_id.nextval as concept_id, pack_concept_id as r_concept_id, components, cnt, bn_id, bs, mf_id, concept_class_id
+create table full_pack as
+select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, pack_concept_id as r_concept_id, components, cnt, bn_id, bs, mf_id, concept_class_id
 from ( -- get distinct content of q_existing_pack
-  select distinct components, cnt, bn_id, bs, mf_id, concept_class_id from q_existing_pack
+  select distinct pack_concept_code, components, cnt, bn_id, bs, mf_id, concept_class_id from q_existing_pack
   where concept_class_id='Marketed Product'
 ) q
 left join r_existing_pack using(components, cnt, bn_id, bs, mf_id)
@@ -2703,66 +2702,66 @@ left join r_existing_pack using(components, cnt, bn_id, bs, mf_id)
 commit;
 
 -- Branded Pack Box. Definition: bn and bs, but no mf.
-insert into extension_pack
-select extension_id.nextval as concept_id, 
+insert into full_pack
+select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, 
   pack_concept_id as r_concept_id, components, cnt, bn_id, bs, 0 as mf_id, 'Branded Pack Box' as concept_class_id 
 from ( -- get those we already have
-  select components, cnt, bn_id, bs from extension_pack where bn_id!=0 and bs!=0
+  select components, cnt, bn_id, bs from full_pack where bn_id!=0 and bs!=0
 union -- add more from q
   select components, cnt, bn_id, bs from q_existing_pack where bn_id!=0 and bs!=0 and mf_id=0
 )
+left join (select pack_concept_code, components, cnt, bn_id, bs from q_existing_pack where mf_id=0) using(components, cnt, bn_id, bs)
 left join (select pack_concept_id, components, cnt, bn_id, bs from r_existing_pack where mf_id=0) using(components, cnt, bn_id, bs)
 ;
 commit;
 
 -- Branded Pack. Definition: bn, but no bs or mf.
-insert into extension_pack
-select extension_id.nextval as concept_id, 
+insert into full_pack
+select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, 
   pack_concept_id as r_concept_id, components, cnt, bn_id, 0 as bs, 0 as mf_id, 'Branded Pack' as concept_class_id 
 from (
-  select components, cnt, bn_id from extension_pack where bn_id!=0
+  select components, cnt, bn_id from full_pack where bn_id!=0
 union
   select components, cnt, bn_id from q_existing_pack where bn_id!=0 and bs=0 and mf_id=0
 )
+left join (select pack_concept_code, components, cnt, bn_id from q_existing_pack where bs=0 and mf_id=0) using(components, cnt, bn_id)
 left join (select pack_concept_id, components, cnt, bn_id from r_existing_pack where bs=0 and mf_id=0) using(components, cnt, bn_id)
 ;
 commit;
 
 -- Clinical Pack Box. Definition: bs, but no bn or mf.
-insert into extension_pack
-select extension_id.nextval as concept_id, 
+insert into full_pack
+select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, 
   pack_concept_id as r_concept_id, components, cnt, 0 as bn_id, bs, 0 as mf_id, 'Clinical Pack Box' as concept_class_id 
 from (
-  select components, cnt, bs from extension_pack where bs!=0
+  select components, cnt, bs from full_pack where bs!=0
 union
   select components, cnt, bs from q_existing_pack where bs!=0 and bn_id=0 and mf_id=0
 )
+left join (select pack_concept_code, components, cnt, bs from q_existing_pack where bn_id=0 and mf_id=0) using(components, cnt, bs)
 left join (select pack_concept_id, components, cnt, bs from r_existing_pack where bn_id=0 and mf_id=0) using(components, cnt, bs)
 ;
 commit;
 
 -- Clinical Pack. Definition: neither bn, bs nor mf.
-insert into extension_pack
-select extension_id.nextval as concept_id, 
+insert into full_pack
+select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, 
   pack_concept_id as r_concept_id, components, cnt, 0 as bn_id, 0 as bs, 0 as mf_id, 'Clinical Pack' as concept_class_id 
 from (
-  select components, cnt from extension_pack where bn_id=0 and bs=0 and mf_id=0
+  select components, cnt from full_pack where bn_id=0 and bs=0 and mf_id=0
 union
   select components, cnt from q_existing_pack where bn_id=0 and bs=0 and mf_id=0
 )
+left join (select pack_concept_code, components, cnt from q_existing_pack where bn_id=0 and bs=0 and mf_id=0) using(components, cnt)
 left join (select pack_concept_id, components, cnt from r_existing_pack where bn_id=0 and bs=0 and mf_id=0) using(components, cnt)
 ;
 commit;
 
-left join (select pack_concept_code, components, cnt, bn_id, bs from q_existing_pack where mf_id=0) using(components, cnt, bn_id, bs)
-left join (select pack_concept_code, components, cnt, bn_id from q_existing_pack where bs=0 and mf_id=0) using(components, cnt, bn_id)
-left join (select pack_concept_code, components, cnt, bs from q_existing_pack where bn_id=0 and mf_id=0) using(components, cnt, bs)
-left join (select pack_concept_code, components, cnt from q_existing_pack where bn_id=0 and bs=0 and mf_id=0) using(components, cnt)
+-- Create a distinct set, since q may contain duplicates. R shouldn't, but doesn't hurt kicking them out, too
+create table pack_attribute as
+select distinct concept_id, components, cnt, bn_id, bs, mf_id, concept_class_id from full_pack;
 
-
-
-
--- Create names for each pack in extension_pack
+-- Create names for each pack in full_pack
 create table pack_name as
 -- Get the component parts
 with c as (
@@ -2778,7 +2777,7 @@ with c as (
       substr(component, instr(component, '/', 1)+1) as drug_concept_id
     from ( -- break up the components string
       select concept_id, trim(regexp_substr(components, '[^;]+', 1, levels.column_value)) as component
-      from extension_pack, -- extension_combo contains i_combos as well
+      from pack_attribute, -- extension_combo contains i_combos as well
       table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))+1) as sys.OdciNumberList)) levels
     )
   ) cp
@@ -2792,7 +2791,7 @@ pd as (
     case when cp.bn_id=0 then '' else ' ['||nvl(bn.concept_name, ebn.concept_name)||']' end as bn_name,
     case when cp.bs=0 then '' else ' box of '||bs||' ' end as bs_name,
     case when cp.mf_id=0 then '' else ' by '||nvl(mf.concept_name, emf.concept_name) end as mf_name
-  from extension_pack cp
+  from pack_attribute cp
   left join concept bn on bn.concept_id=cp.bn_id left join extension_bn ebn on ebn.bn_id=cp.bn_id
   left join concept mf on mf.concept_id=cp.mf_id left join extension_mf emf on emf.mf_id=cp.mf_id
 ),
@@ -2972,6 +2971,8 @@ select 'Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug' from dual unio
 select 'Branded Drug', 'Available as box', 'Branded Drug Box' from dual union
 select 'Branded Drug', 'Has marketed form', 'Marketed Product' from dual union
 select 'Branded Drug', 'Has quantified form', 'Quant Branded Drug' from dual union
+select 'Branded Pack', 'Has marketed form', 'Marketed Product' from dual union
+select 'Branded Pack', 'Available as box', 'Branded Pack Box' from dual union
 select 'Clinical Drug Box', 'Has marketed form', 'Marketed Product' from dual union
 select 'Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box' from dual union
 select 'Clinical Drug Box', 'Has tradename', 'Branded Drug Box' from dual union
@@ -2983,6 +2984,10 @@ select 'Clinical Drug', 'Available as box', 'Clinical Drug Box' from dual union
 select 'Clinical Drug', 'Has marketed form', 'Marketed Product' from dual union
 select 'Clinical Drug', 'Has quantified form', 'Quant Clinical Drug' from dual union
 select 'Clinical Drug', 'Has tradename', 'Branded Drug' from dual union
+select 'Clinical Pack', 'Has marketed form', 'Marketed Product' from dual union
+select 'Clinical Pack', 'Has tradename', 'Branded Pack' from dual union
+select 'Clinical Pack', 'Available as box', 'Clinical Pack Box' from dual union
+select 'Clinical Pack Box', 'Has tradename', 'Branded Pack Box' from dual union
 select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Box' from dual union
 select 'Dose Form', 'RxNorm dose form of', 'Branded Drug Form' from dual union
 select 'Dose Form', 'RxNorm dose form of', 'Branded Drug' from dual union
@@ -3285,8 +3290,8 @@ select
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason 
-from extension_pack join pack_name using(concept_id)
-where pack_concept_id is null -- doesn't have an existing translation
+from pack_attribute pa join pack_name using(concept_id)
+where not exists (select 1 from full_pack fp where concept_id=fp.concept_id and fp.r_concept_id is not null) -- doesn't have an existing translation
 ;
 commit;
 
@@ -3301,17 +3306,41 @@ select distinct -- because drugs can be in a pack in several components
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
+from pack_attribute join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack, equivalent of ex
 join ( -- split components by ';' and extract the drug (behind '/')
   select concept_id, substr(component, instr(component, '/', 1)+1) as drug_concept_id from (
     select p.concept_id, trim(regexp_substr(components, '[^;]+', 1, levels.column_value)) as component
-    from extension_pack p, 
+    from pack_attribute p, 
     table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))+1) as sys.OdciNumberList)) levels
   )
 ) c using(concept_id)
 left join concept_stage cs on drug_concept_id=cs.concept_id -- get concept_code/vocab for new drug
 left join concept c on drug_concept_id=c.concept_id -- or existing drug
-where pack_concept_id is null
+where not exists (select 1 from full_pack fp where concept_id=fp.concept_id and fp.r_concept_id is not null) -- doesn't have an existing translation
+;
+commit;
+
+-- Write inner relationships for Packs: has tradename, available as box, has marketed form
+insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason);
+select distinct
+  ancs.concept_code as concept_code_1,
+  ancs.vocabulary_id as vocabulary_id_1,
+  decs.concept_code as concept_code_2,
+  decs.vocabulary_id as vocabulary_id_2,
+  rl.relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
+  to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
+  null as invalid_reason
+from pack_attribute de join concept_stage decs on de.concept_id=decs.concept_id -- get concept_code/vocab pair of pack
+join rl on rl.concept_class_2=de.concept_class_id
+join pack_attribute an join concept_stage ancs on an.concept_id=ancs.concept_id 
+  on rl.concept_class_1=an.concept_class_id
+    and de.components=an.components -- the d_combos have to match completely
+    and de.bn_id=case an.bn_id when 0 then de.bn_id else an.bn_id end -- the descendant may not have a bn
+    and de.bs=case an.bs when 0 then de.bs else an.bs end -- the descendant may not have bs
+    and de.bn_id=case an.bn_id when 0 then de.bn_id else an.bn_id end -- the descendant may not have a bn
+    and de.concept_id!=an.concept_id -- to avoid linking to self
+where not exists (select 1 from full_pack fp where de.concept_id=fp.concept_id and fp.r_concept_id is not null) -- doesn't have an existing translation
 ;
 commit;
 
@@ -3326,7 +3355,7 @@ select distinct
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
+from pack_attribute join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
 join rl on rl.concept_class_1='Brand Name' and rl.concept_class_2=p.concept_class_id
 left join concept_stage bs on bn_id=bs.concept_id
 left join concept b on bn_id=b.concept_id
@@ -3345,7 +3374,7 @@ select distinct
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
+from pack_attribute join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
 join rl on rl.concept_class_1='Supplier' and rl.concept_class_2=p.concept_class_id
 left join concept_stage ms on mf_id=ms.concept_id
 left join concept m on mf_id=m.concept_id 
@@ -3359,14 +3388,14 @@ select distinct
   p.concept_code as pack_concept_code, p.vocabulary_id as pack_vocabulary_id, 
   nvl(ds.concept_code, dc.concept_code) as drug_concept_code, nvl(ds.vocabulary_id, dc.vocabulary_id) drug_vocabulary_id, 
   case amount when 0 then null else amount end as amount, case bs when 0 then null else bs end as box_size
-from extension_pack join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack
+from pack_attribute join concept_stage p using(concept_id) -- get concept_code/vocab pair of pack, equivalent of ex
 join ( -- split components by ';' and extract the drug (behind '/')
   select concept_id, 
     cast (substr(component, 1, instr(component, '/', 1)-1) as number) as amount,
     substr(component, instr(component, '/', 1)+1) as drug_concept_id
   from ( -- break up the components string
     select concept_id, trim(regexp_substr(components, '[^;]+', 1, levels.column_value)) as component
-    from extension_pack, -- extension_combo contains i_combos as well
+    from pack_attribute, -- extension_combo contains i_combos as well
     table(cast(multiset(select level from dual connect by level <= length (regexp_replace(components, '[^;]+'))+1) as sys.OdciNumberList)) levels
   )
 ) c using(concept_id)
@@ -3535,7 +3564,7 @@ select distinct -- because each pack has many drugs
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from extension_pack join concept_stage c using(concept_id)
+from full_pack join concept_stage c using(concept_id)
 where pack_concept_code is not null
 ;
 commit;
@@ -3633,8 +3662,7 @@ drop table dss_rowid_update purge;
 commit;
 
 -- Remove negative and 0 concept_ids from concept_stage
-update concept_stage set concept_id=null;
-
+am
 commit;
 
 --get duplicates for some reason 
@@ -3735,7 +3763,8 @@ drop table spelled_out purge;
 drop table extension_name purge;
 drop table q_existing_pack purge;
 drop table r_existing_pack purge;
-drop table extension_pack purge;
+drop table full_pack purge;
+drop table pack_attribute purge;
 drop table pack_name purge;
 
 drop sequence omop_seq;

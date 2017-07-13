@@ -397,7 +397,33 @@ BEGIN
                 select 'Clinical Dose Group', 'RxNorm inverse is a', 'Quant Clinical Drug' from dual union all
                 select 'Dose Form Group', 'RxNorm inverse is a', 'Dose Form' from dual union all
                 --added 24.04.2017 (AVOF-341)
-                select 'Precise Ingredient', 'Form of', 'Ingredient' from dual                
+                select 'Precise Ingredient', 'Form of', 'Ingredient' from dual union all
+                --added 13.07.2017 (AVOF-468)
+                select 'Clinical Drug', 'Contained in', 'Clinical Pack' from dual union all
+                select 'Clinical Drug', 'Contained in', 'Clinical Pack Box' from dual union all
+                select 'Clinical Drug', 'Contained in', 'Branded Pack' from dual union all
+                select 'Clinical Drug', 'Contained in', 'Branded Pack Box' from dual union all
+                select 'Clinical Drug', 'Contained in', 'Marketed Product' from dual union all
+                select 'Branded Drug', 'Contained in', 'Branded Pack' from dual union all
+                select 'Branded Drug', 'Contained in', 'Branded Pack Box' from dual union all
+                select 'Branded Drug', 'Contained in', 'Marketed Product' from dual union all
+                select 'Quant Clinical Drug', 'Contained in', 'Clinical Pack' from dual union all
+                select 'Quant Clinical Drug', 'Contained in', 'Clinical Pack Box' from dual union all
+                select 'Quant Clinical Drug', 'Contained in', 'Branded Pack' from dual union all
+                select 'Quant Clinical Drug', 'Contained in', 'Branded Pack Box' from dual union all
+                select 'Quant Clinical Drug', 'Contained in', 'Marketed Product' from dual union all
+                select 'Quant Branded Drug', 'Contained in', 'Branded Pack' from dual union all
+                select 'Quant Branded Drug', 'Contained in', 'Branded Pack Box' from dual union all
+                select 'Quant Branded Drug', 'Contained in', 'Marketed Product' from dual union all
+                --inner-pack relationship
+                select 'Branded Pack', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Branded Pack Box', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Branded Pack', 'Available as box', 'Branded Pack Box' from dual union all
+                select 'Clinical Pack', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Clinical Pack Box', 'Has marketed form', 'Marketed Product' from dual union all
+                select 'Clinical Pack', 'Has tradename', 'Branded Pack' from dual union all
+                select 'Clinical Pack', 'Available as box', 'Clinical Pack Box' from dual union all
+                select 'Clinical Pack Box', 'Has tradename', 'Branded Pack Box' from dual               
             ) 
             select * from t 
             union all 

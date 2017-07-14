@@ -48,7 +48,7 @@ union
   select c1.concept_code as concept_code_1, c1.vocabulary_id as vocabulary_id_1, r.concept_id_2, 1, null
   from concept c1
   join concept_relationship r on r.concept_id_1=c1.concept_id and r.relationship_id in ('Maps to', 'Source - RxNorm eq') and r.invalid_reason is null
-  join concept c2 on c2.concept_id=r.concept_id_2 and c2.standard_concept='S'
+  join concept c2 on c2.concept_id=r.concept_id_2 and c2.invalid_reason is null
   where c1.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)
   and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension') 
   and c2.concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name', 'Supplier')
@@ -3211,7 +3211,7 @@ where ex.concept_id<0 and df_id!=0
 ;
 commit;
 
--- Brand Name 
+-- Brand Names
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct
   bn.concept_code as concept_code_1,
@@ -3586,8 +3586,9 @@ select
   nvl(ingredient_concept_code, i_code) as ingredient_concept_code,  nvl(ingredient_vocabulary_id, 'RxNorm Extension') as ingredient_concept_code, 
   case amount_value when 0 then null else amount_value end as amount_value, 
   case amount_unit_concept_id when 0 then null else amount_unit_concept_id end as amount_unit_concept_id, 
-  case r_value
-    when 0 then case numerator_value when 0 then null else numerator_value end
+  case 
+    when numerator_unit_concept_id in (8554, 9325, 9324) then numerator_value -- don't multiply with denominator for %, D, X
+    when r_value=0 then case numerator_value when 0 then null else numerator_value end -- non-quantified
     else case numerator_value*r_value when 0 then 0 else round(numerator_value*r_value, 3-floor(log(10, numerator_value*r_value))-1) end
   end as numerator_value, 
   case numerator_unit_concept_id when 0 then null else numerator_unit_concept_id end as numerator_unit_concept_id,

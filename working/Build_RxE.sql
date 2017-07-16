@@ -2780,7 +2780,7 @@ create table pack_attribute as
 select extension_id.nextval as concept_id, fp.* from (
   select distinct components, cnt, bn_id, bs, mf_id, concept_class_id 
   from full_pack
-);
+) fp;
 
 -- Create names for each pack in pack_attribute
 create table pack_name as
@@ -3383,7 +3383,9 @@ from pack_attribute join concept_stage p using(concept_id) -- get concept_code/v
 join rl on rl.concept_class_1='Brand Name' and rl.concept_class_2=p.concept_class_id
 left join concept_stage bs on bn_id=bs.concept_id
 left join concept b on bn_id=b.concept_id
-where pack_concept_id is null and bn_id!=0 -- has no translation and brand name
+where not exists (select 1 from full_pack fp where components=fp.components and bn_id=fp.bn_id and bs=fp.bs and mf_id=fp.mf_id
+  and fp.r_concept_id is not null) -- doesn't have an existing translation
+and bn_id!=0 -- has no translation and brand name
 ;
 commit;
 
@@ -3402,7 +3404,9 @@ from pack_attribute join concept_stage p using(concept_id) -- get concept_code/v
 join rl on rl.concept_class_1='Supplier' and rl.concept_class_2=p.concept_class_id
 left join concept_stage ms on mf_id=ms.concept_id
 left join concept m on mf_id=m.concept_id 
-where pack_concept_id is null and mf_id!=0 -- has no translation and supplier
+where not exists (select 1 from full_pack fp where components=fp.components and bn_id=fp.bn_id and bs=fp.bs and mf_id=fp.mf_id
+  and fp.r_concept_id is not null) -- doesn't have an existing translation
+and mf_id!=0 -- has no translation and supplier
 ;
 commit;
 
@@ -3424,7 +3428,8 @@ join ( -- split components by ';' and extract the drug (behind '/')
   )
 ) c using(concept_id)
 left join concept_stage ds on ds.concept_id=drug_concept_id left join concept dc on dc.concept_id=drug_concept_id
-where pack_concept_id is null -- no mapping to existing exists
+where not exists (select 1 from full_pack fp where components=fp.components and bn_id=fp.bn_id and bs=fp.bs and mf_id=fp.mf_id
+  and fp.r_concept_id is not null) -- doesn't have an existing translation
 ;
 
 /************************

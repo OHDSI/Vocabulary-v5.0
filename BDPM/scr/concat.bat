@@ -10,6 +10,6 @@ type "relationship_to_concept.sql" >> whole_script.sql
 type "pack_content.sql" >> whole_script.sql
 type "concept_synonym_stage.sql" >> whole_script.sql
 type "final_sequence.sql" >> whole_script.sql
-
+type "delete_pc_stage(temp).sql">> whole_script.sql
 
 echo commit; >> whole_script.sql

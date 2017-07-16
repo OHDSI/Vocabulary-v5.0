@@ -3589,6 +3589,7 @@ select distinct -- because each pack has many drugs
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from pack_attribute join concept_stage c using(concept_id)
+join full_pack using(components, bn_id, bs, mf_id)
 where pack_concept_code is not null
 ;
 commit;

@@ -1,0 +1,302 @@
+DOSE_FORM	DOSE_FORM_NAME
+FLAC.INJECT.RETARD IM	Vial with Injectable Solution for Intramuscular Injection with Delayed Release
+FLAC.INJECT.RETARD LYOPH	Injectable Suspension with Delayed Release
+FLAC.INJECT.RETARD SC	Vial with Injectable Solution with Delayed Release
+FLAC.INJECT.US.OPHTALMO.	Vial with Ophtalmic Solution
+FLACON LYOPH  A USA.EXT.	Vial with Suspension for Topical Administration
+FLACONS INJECT..ORDIN.	Ordinary Vial with Injectable Solution
+FLACONS INJECT.ORD.IM	Ordinary Vial with Injectable Solution for Intramuscular Injection
+FLACONS INJECT.ORD.IV	Ordinary Vial with Injectable Solution for Intravenous Injection
+FLACONS INJECT.ORD.LYOPH	Ordinary Vial with Injectable Suspension
+FLACONS INJECT.ORD.SC	Ordinary Vial with Injectable Solution
+FLACONS INJECT.RETARD	Vial with Delayed Release Injectable Solution
+GAZE/OUATE+SU.A USA.EXT.	Medicated Pad with Gaze or Cotton
+GEL DOUCHE    A USA.EXT.	Shower Gel
+GEL EMULSION  A USA.EXT.	Topical Emulsion Gel
+GEL GOUTTES    OPHTALMO.	Ophthalmic Gel In Drops
+GEL/SOL         TOPIQUE	Topical Gel or Solution
+GEL/SOL         VAGINALE	Vaginal Gel Or Solution
+GEL/SOL        OPHTALMO.	Ophtalmic Solution or Gel
+GEL/SOL       A USA.INT.	Oral Gel Or Solution
+GEL/SOL OR.TOPIQUE	Oral Topical Gel or Solution
+GELS/SOLS OPHTALM UNID	Ophtalmic Unidose Solution or Gel
+GELS/SOLS TOP EXT UNID	Topical Solution or Gel
+GELS/SOLS TOPIQUES DOSES	Topical Metered Dose Gel or Solution
+GELS/SOLS VAG TOP UNID	Vaginal Unidose Gel or Solution
+GLOBULE     OR.SOL.INST.	Round Oral Tablet
+GOUTTE        A USA.EXT.	Topical Solution in Drops
+GOUTTE        OTOLOGIQUE	Otic Solution in Drops
+GOUTTE      OR.LIQ.INST.	Drops for Oral Administration
+GOUTTE LYOPH   OPHTALMO.	Ophthalmic Suspension in Drops
+GOUTTE ORAL TOPIQUE	Oral Topical Solution in Drops
+GOUTTES       RHINOL.LOC	Nasal Solution in Drops
+GOUTTES RHINOL    SYSTEM.	Nasal Solution in Drops
+GRANULE     OR.SOL.INST.	Oral Granules
+HUILE         A USA.EXT.	Topical Oil
+HUILE         RHINOL.LOC	Nasal Oil
+HUILE       OR.LIQ.INST.	Oral Oil
+IMPLANTS     PARENT.RET.	Drug Implant with Delayed Release
+INCONNU       INCONNU	Unknown Form
+INFUS SACH  OR.LIQ.INST.	Oral Solution in Bag
+INFUSIONS   OR.LIQ.INST.	Oral Solution
+INSTR.CONE    A USA.EXT.	Urethral Suppository
+LAQUE         A USA.EXT.	Topical Laquer
+LIQ LAV V.RECTALE SYST.	Liquid Rectal Enema
+LIQ.COMBINE   A USA.EXT.	Combined Topical Solution
+LIQ.EMULSION    VAGINALE	Vaginal Emulsion
+LIQ.INHAL.       PULMON.	Inhalant Solution
+LIQ.LAVEM.    A USA.EXT.	Liquid Enema for Topical Administration
+LIQ.SUBLING.OR.LIQ.INST.	Oral Sublingual Solution
+LIQU.INHAL.   A USA.EXT.	Inhalant Solution
+LIQUIDE         VAGINALE	Vaginal Solution
+LIQUIDE        OPHTALMO.	Ophthalmic Solution
+LIQUIDE       A USA.EXT.	Topical Solution
+LIQUIDE       OTOLOGIQUE	Otic Solution
+LIQUIDE     OR.LIQ.INST.	Oral Solution
+LIQUIDE    NON US.HUMAIN	Solution for Administration not to Human Being
+LIQUIDE DOSE VOIE PULMON	Inhalant Metered Dose Solution
+LIQUIDE ORAL TOPIQUE	Oral Topical Solution
+LOTION          VAGINALE	Vaginal Lotion
+LOTION        A USA.EXT.	Topical Lotion
+MICRO ENEMA   A USA.EXT.	Microenema for Topical Administration
+MOUS PRES V.RECTALE SYST.	Rectal Foam
+MOUSSE        A USA.EXT.	Topical Foam
+MOUSSE PRESSUR  VAGINALE	Vaginal Foam Spray
+ONGUENT         VAGINALE	Vaginal Ointment
+ONGUENT        OPHTALMO.	Ophthalmic Ointment
+ONGUENT       A USA.EXT.	Topical Ointment
+ONGUENT       A USA.INT.	Ointment for Oral Administration
+ONGUENT       RHINOL.LOC	Nasal Ointment
+ONGUENT ORAL TOPIQUE	Oral Topical Ointment
+OVULE           VAGINALE	Vaginal Tablet
+PANS COLLOID. A USA.EXT.	Transdermal Colloid Patch
+PANS+SUB.COMB.A USA.EXT.	Combined Transdermal Patch
+PANS.ADHE+SUB.A USA.EXT.	Transdermal Adhesive Patch
+PANS.TRANSDERM.USA.INT.	Transdermal Patch
+PANSEMENT SS SUBS US EXT	Transdermal Patch
+PARA.COMBI.   INCONNU	Unknown Combination
+PATE          A USA.EXT.	Topical Paste
+PATE        OR.SOL.INST.	Oral Paste
+PATE ORAL TOPIQUE	Oral Topical Paste
+PDR           A USA.EXT.	Powder for Topical Administration
+PDR        NON US.HUMAIN	Powder for Administration not to Human Being
+PDR DERMATO.  A USA.EXT.	Dermatological Powder
+PDR DOS APP RECH PULMON.	Metered Dose Powder Inhaler
+PDR DOS APP US.UN.PULMON.	Metered Dose Powder Inhaler
+PDR DOSE        VAGINALE	Vaginal Powder
+PDR DOSE      A USA.EXT.	Topical Powder
+PDR DOSE     OR.SOL.RET.	Metered Dose Powder with Delayed Release
+PDR DOSE    OR.LIQ.INST.	"Oral Metered Dose Powder, Liquid Form"
+PDR DOSE    OR.SOL.INST.	"Oral Metered Dose Powder, Solid Form"
+PDR LAV V.RECTALE SYST.	Rectal Powder Enema
+PDR LAVEMENT  A USA.EXT.	Powder Enema for Topical Administration
+PDR SOLUBLE OR.LIQ.INST.	Oral Soluble Powder
+PDR SUBLING.OR.SOL.INST.	Oral Sublingual Powder
+PDR.SOL UNID OR.LIQ.RET.	Oral Powder with Delayed Release
+PDR/GR EFF. OR.LIQ.INST.	"Oral Effervescent Powder, Liquid Form"
+PESSAIRE AV SUB.VAGINALE	Vaginal Ring
+POCHES PERF PARENT.INST.	Pen Injector for Parenteral Administration
+POM/PATES OPHT UNID	Ophthalmic Ointment or Cream
+POM/PATES TOP EXT UNID	Topical Cream or Ointment
+POUDRE        RHINOL.LOC	Nasal Powder
+POUDRE      OR.SOL.INST.	"Oral Powder, Solid Form"
+POUDRE DOSE      PULMON.	Metered Dose Powder Inhaler
+POUDRE DOSE   RHINOL.LOC	Nasal Metered Dose Powder
+POUDRE DOSE ORAL TOPIQUE	Oral Metered Dose Topical Powder
+POUDRE ORAL TOPIQUE	Oral Topical Powder
+PROMOTIONNEL  INCONNU	Dose Form for Promotional Purposes
+ROLL ON STICK A USA.EXT.	Roll on Stick
+SAV LIQ/BAIN  A USA.EXT.	Medicated Liquid Soap
+SAVON PATE    A USA.EXT.	Paste Soap
+SAVON/PAIN    A USA.EXT.	Bar Soap
+SER PRE I.M.PARENT.INST.	Prefilled Syringe for Intramuscular Injection
+SER PRE I.V.PARENT.INST.	Prefilled Syringe for Intramuscular Injection
+SER PRE IM   PARENT.RET.	Prefilled Syringe for Intramuscular Injection with Delayed Release
+SER PREREMP PARENT.INST.	Prefilled Syringe for Parenteral Administration 
+SER PREREMPL  A USA.EXT.	Prefilled Syringe for Topical Administration
+SER PREREMPL PARENT.RET.	Prefilled Syringe for Parenteral Administration with Delayed Release
+SER PREREMPLIE OPHTALMO.	Prefilled Syringe with Ophthalmic Solution
+SER.PRE.AUT.PARENT.INST.	Prefilled Syringe for Parenteral Administration
+SER.PRE.COM.PARENT.INST.	Combined Prefilled Syringe for Parenteral Administration
+SERING PREREM SC ORD.	Ordinary Prefilled Syringe
+SERING PREREM SC RET	Prefilled Syringe with Delayed Release
+SERING.PRE.LYOP..RETARD	Prefilled Syringe with Injectable Suspension with Delayed Release
+SERING.PRE.LYOPH..ORDIN.	Ordinary Prefilled Syringe with Injectable Suspension
+SIROP       OR.LIQ.INST.	Oral Syrup
+SIROP SEC   OR.LIQ.INST.	Oral Syrup
+SOL.PR INHAL. RHINOL.LOC	Nasal Inhalant Solution
+SOL.UNID. RHINOL SYSTEM.	Nasal Unidose Solution
+SOLUT-DOSE  OR.LIQ.INST.	Oral Metered Dose Solution
+SOLUT-DOSE RHINOL SYSTEM.	Nasal Metered Dose Solution
+SOLUT.DOSES.ORAL TOPIQUE	Oral Metered Dose Topical Solution
+SOLUT.UNID. OR.LIQ.INST.	Oral Unidose Solution
+SOLUT.UNID.NON US.HUMAIN	Solution for Administration not to Human Being
+SOLUT.UNID.ORAL TOPIQUE	Oral Solution for Rinsing
+SOLUT.UNIDOS. A USA.EXT.	Topical Unidose Solution
+SOLUT.UNIDOS. RHINOL.LOC	Nasal Unidose Solution
+SOLUT.UNIDOSE   VAGINALE	Vaginal Unidose Solution
+SOLUT.UNIDOSE  OPHTALMO.	Ophthalmic Unidose Solution
+SOLUT.UNIDOSE  V.PULMON.	Inhalant Unidose Solution
+SOLUT.UNIDOSE OTOLOGIQUE	Otic Unidose Solution
+SOLUTION      RHINOL.LOC	Nasal Solution
+SOLUTION-DOSE OTOLOGIQUE	Otic Metered Dose Solution
+SOLUTION-DOSE.RHINOL.LOC	Nasal Metered Dose Solution
+SP.IN S.CFC A.RES PULMON.	Inhalant Spray
+SPR IN.DOS.SS CFC PULMON.	Metered Dose Inhalant Spray
+SPR INH ACT RESP PULMON.	Inhalant Spray
+SPRAY MOUSSE  A USA.EXT.	Topical Foam Spray
+SPRAY ONGU.   A USA.EXT.	Topical Cream Spray
+SPRAY PDR     A USA.EXT.	Topical Powder Spray
+SPRAY S GAZ OR.LIQ.INST.	Oral Spray
+SPRAY SAV/BAIN  USA.EXT.	Shower Spray
+SPRAY SS GAZ  A USA.EXT.	Topical Spray
+SPRAY SS GAZ  RHINOL.LOC	Nasal Spray
+SPRAY SS GAZ NON US HUM	Spray for Administration not to Human Being
+SPRAY SS GAZ ORAL TOPIQ	Oral Topical Spray
+STICK.ROLL-ON RHINOL.LOC	Nasal Swab
+STYLOS PRER LYO PAR RET	Pen Injector with Injectable Suspension with Delayed Release
+STYLOS PREREMP PAR INST	Pen Injector for Parenteral Administration
+STYLOS PREREMPL PAR RET	Pen Injector with Injectable Solution with Delayed Release
+SUP AD        A USA.EXT.	Suppository
+SUP PEDIAT    A USA.EXT.	Rectal Children Suppository
+SUPPO AD V.RECTALE SYST.	Rectal Suppository
+SUPPO ENF V.RECTALE SYST.	Rectal Suppository
+SUPPO V.RECTALE SYST.	Rectal Suppository
+SUPPOS        A USA.EXT.	Suppository
+SUSPENSION     OPHTALMO.	Ophthalmic Suspension
+SUSPENSION    A USA.EXT.	Topical Suspension
+SUSPENSION  OR.LIQ.INST.	Oral Suspension
+SYST.THERAPEUT.OPHTALMO.	Ophthalmic Applicator
+TABLETTE    OR.SOL.INST.	Oral Tablet
+TABLETTE ORAL TOPIQUE	Oral Lozenge
+TAMPON ACTIF+SUBST VAG	Vaginal Tampon
+TAMPON AV SUBST OPHTALMO.	Ophthalmic Swab
+TEST SF BD NON US.HUMAIN	Diagnostic Tests not for Human Being
+A-INJ PREREMP PARENT ORD	Ordinary Auto-Injector for Parenteral Administration
+A.PANS+SUBS.ORAL TOPIQUE	Oral Applicator
+A.PROD PARAPH  A USA.EXT.	Transdermal Paraffin Patch
+A.SERING.PRER A USA.EXT.	Prefilled Syringe for Topical Administration
+AERO DOSE   OR.LIQ.INST.	Oral Metered Dose Aerosol
+AEROS.DOSE ORAL TOPIQUE	Oral Metered Dose Topical Aerosol
+AEROS.PRESSUR. OPHTALMO.	Ophthalmic Aerosol
+AEROS.UNID RHINOL SYSTEM.	Nasal Unidose Aerosol
+AEROSOL       A USA.EXT.	Topical Aerosol
+AEROSOL    NON US.HUMAIN	Aerosol for Administration not to Human Being
+AEROSOL DOSE     PULMON.	Pulmonary Metered Dose Aerosol
+AEROSOL DOSE  A USA.EXT.	Aerosol for Topical Administration
+AEROSOL DOSE  RHINOL.LOC	Nasal Metered Dose Aerosol
+AEROSOL ORAL TOPIQUE	Oral Topical Aerosol
+AEROSOL PRESS RHINOL.LOC	Nasal Aerosol
+ALIM NN PAE OR.LIQ.INST.	"Dietary Supplement, Liquid Form"
+ALIM.NON PR.OR.SOL.INST.	"Dietary Supplement, Solid Form"
+ALIMENT PAE.OR.LIQ.INST.	"Dietary Supplement, Liquid Form"
+ALIMENT PRE.OR.SOL.INST.	"Dietary Supplement, Solid Form"
+AMP          PARENT.RET.	Ampoule for Injection with Delayed Release
+AMP         PARENT.INST.	Ampoule for Injection
+AMP LYOPH   PARENT.INST.	Injectable Suspension
+AMP.PERF.   PARENT.INST.	Ampoule for Injection
+AMPOULE       A USA.EXT.	Ampoule with Fluid for Topical Administration
+AMPOULE I.M.PARENT.INST.	Injectable Solution for Intramuscular Injection
+AMPOULE I.V.PARENT.INST.	Injectable Solution for Intravenous Injection
+AMPOULE IM   PARENT.RET.	Ampoule for Intramuscular Injection with Delayed Release
+AMPOULE LYOPH A USA.EXT.	Ampoule with Injectable Suspension
+AMPOULE S.C.PARENT.INST.	Ampoule for Parenteral Administration
+AUT CARTOUC DOS UNI SYST	Other Cartridge
+AUT GELS/SOLS SYS DOSES	Other Gel or Solution
+AUT GELS/SOLS SYS UNID	Other Gel or Solution
+AUT.FORM.SPEC.  VAGINALE	Other Vaginal Forms
+AUTRE AMP.   PARENT.RET.	Other Ampoule for Injection with Delayed Release
+AUTRE AMPOULE A USA.EXT.	Other Ampoule for Topical Administration
+AUTRE CAPS   OR.SOL.RET.	Other Delayed Release Oral Capsule
+AUTRE FLACON  A USA.EXT.	Other Vial with Solution for Topical Administration
+AUTRE PANS+SU A USA.EXT.	Other Transdermal Patch
+AUTRE PARA.NON US.HUMAIN	Other Drugs for Administration not to Human Being
+AUTRE PDR     A USA.EXT.	Other Topical Powder
+AUTRE PDR   OR.SOL.INST.	Other Oral Powder
+AUTRE PERF. PARENT.INST.	Other Injectable Solution
+AUTRE SPRAY   A USA.EXT.	Other Topical Spray
+AUTRE THE   OR.LIQ.INST.	Other Oral Liquid Form
+AUTRES      OR.SOL.INST.	Other Oral Solid Form
+AUTRES CAPS OR.SOL.INST.	Other Oral Capsule
+AUTRES CPR   OR.SOL.RET.	Other Delayed Release Oral Tablet
+AUTRES CPR  OR.SOL.INST.	Other Oral Tablet
+AUTRES DIV. OR.LIQ.INST.	Other Oral Liquid Form
+AUTRES DRG  OR.SOL.INST.	Other Oral Dragee
+BAIN EMULSION A USA.EXT.	Shower Emulsion
+BAIN HUILE    A USA.EXT.	Shower Oil
+BAIN MOUSSE   A USA.EXT.	Shower Foam
+BAIN PDR.SEL  A USA.EXT.	Shower Powder
+BAIN SOLIDE   A USA.EXT.	Bar Soap
+BAND. DIAG.NON US.HUMAIN	Diagnostic Tests not for Human Being
+BANDAGE S SUB.A USA.EXT.	Topical Bandage
+BANDAGE+SUBST.A USA.EXT.	Topical Bandage
+CACHETS     OR.SOL.INST.	Oral Waffer
+CAPS BUCCAL OR.SOL.INST.	Buccal Capsule
+CAPS COMBI. OR.SOL.INST.	Combined Oral Capsule
+CAPS ENR ENT.OR.SOL.INST.	Oral Enteric Coated Capsule
+CAPS INHAL    RHINOL.LOC	Capsules for Nasal Inhalation
+CAPS INHAL.      PULMON.	Capsule for Inhalation
+CAPS MACH.  OR.SOL.INST.	Chewable Capsule
+CAPSULE         VAGINALE	Vaginal Capsule
+CAPSULE TOPIQUE	Capsule for Inhalation
+CAPSULES     OR.SOL.RET.	Delayed Release Oral Capsule
+CAPSULES    OR.SOL.INST.	Oral Capsule
+CART. PERF  PARENT.INST.	Cartridge for Parenteral Administration
+CARTOUC LYO PARENT INST	Cartridge with Injectable Suspension
+CARTOUCHES PARENT INST	Cartridge for Parenteral Administration
+CARTOUCHES PARENT RET	Cartridge for Injection with Delayed Release
+CATAPLASME    A USA.EXT.	Topical Poultice
+CHEW.GUM    OR.SOL.INST.	Chewing Gum
+COLLYRE        OPHTALMO.	Eye Drops
+COMPRIME        VAGINALE	Combined Vaginal Tablet
+COMPRIME     OR.SOL.RET.	Combined Delayed Release Oral Tablet
+COMPRIME    OR.SOL.INST.	Combined Oral Tablet
+CONF+BONBON OR.SOL.INST.	Lollipop or Candy
+COTON AV.SUBS.A USA.EXT.	Cotton Applicator for Topical Administration
+COUSSIN.+SUBST  USA.EXT.	Medicated Pad
+COUSSIN.SS SUBS USA.EXT.	Topical Compress
+CPR        NON US.HUMAIN	Oral Tablet for Administration not to Human Being
+CPR BUCCAL  OR.SOL.INST.	Buccal Tablet
+CPR BUCCAL ORAL TOPIQUE	Buccal Lozenge
+CPR COMBI. NON US.HUMAIN	Combined Oral Tablet for Administration not to Human Being
+CPR COMBIN. OR.SOL.INST.	Combined Oral Tablet
+CPR DBL REV. OR.SOL.RET.	Delayed Release Oral Tablet
+CPR DBL REV.OR.SOL.INST.	Oral Tablet
+CPR EFFER. NON US.HUMAIN	Effervescent Oral Tablet for Administration not to Human Being
+CPR EFFERV.   A USA.EXT.	Effervescent Compress
+CPR EFFERV. OR.SOL.INST.	Effervescent Oral Tablet
+CPR ENTERIQ.OR.SOL.INST.	Oral Enteric Coated Tablet
+CPR MACHER  OR.SOL.INST.	Chewable Tablet
+CPR MEMBR.   OR.SOL.RET.	Delayed Release Oral Tablet
+CPR ORODISP OR SOL INST.	Oral Tablet Disintegrating in Mouth
+CPR PELLIC.  OR.SOL.RET.	Delayed Release Oral Tablet
+CPR PELLIC. OR.SOL.INST.	Oral Enteric Coated Tablet
+CPR SOLUB. NON US.HUMAIN	Disintegrating Oral Tablet for Administration not to Human Being
+CPR SOLUBLE   A USA.EXT.	Disintegrating Compress
+CPR SOLUBLE OR.SOL.INST.	Disintegrating Oral Tablet
+CPR SUBLING OR.SOL.INST.	Sublingual Tablet
+CPR SUBLING ORAL TOPIQUE	Sublingual Topical Tablet
+CREME           VAGINALE	Vaginal Cream
+CREME         A USA.EXT.	Topical Cream
+CREME COMBI.  A USA.EXT.	Combined Topical Cream
+CREME COMBINE.  VAGINALE	Combined Vaginal Cream
+CREME EMUL.   A USA.EXT.	Topical Cream Emulsion
+CREME ORAL TOPIQUE	Oral Topical Cream
+CREME SAV/BAIN  USA.EXT.	Cream Soap
+CREMES TOPIQ UNIDOSE	Topical Unidose Cream
+CREMES VAGIN UNIDOSE	Vaginal Unidose Cream
+CUBES       OR.SOL.INST.	Oral Tablet
+DISP.INTRA-UTER VAGINALE	Vaginal Applicator
+DIVERS        A USA.EXT.	Miscellaneous External Form
+DRAGEE       OR.SOL.RET.	Delayed Release Oral Dragee
+DRAGEE      OR.SOL.INST.	Oral Dragee
+DRG COMBIN. OR.SOL.INST.	Combined Oral Dragee
+DRG MACHER  OR.SOL.INST.	Chewable Dragee
+DRG SUBLING OR.SOL.INST.	Sublingual Dragee
+EMUL.ONGUENT  A USA.EXT.	Topical Lotion
+EMULSION      A USA.EXT.	Topical Emulsion
+EMULSION    OR.LIQ.INST.	Oral Emulsion
+EPONGE+SUBST. A USA.EXT.	Medicated Pad
+FL LYO PERF PARENT.INST.	Vial with Injectable Suspension
+FL.DIALYSE    A USA.EXT.	Vial with Solution for Topical Administration
+FLAC PERF   PARENT.INST.	Vial with Injectable Solution

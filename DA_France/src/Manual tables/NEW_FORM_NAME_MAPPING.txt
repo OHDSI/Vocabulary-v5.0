@@ -1,0 +1,598 @@
+DOSE_FORM_NAME	CONCEPT_ID_2	PRECEDENCE	CONCEPT_NAME
+Oral Metered Dose Topical Solution	19082170	1	Oral Solution
+Oral Metered Dose Topical Solution	19082191	2	Oral Suspension
+Oral Metered Dose Topical Solution	19082223	3	Syrup
+Oral Oil	40228565	1	Oil
+Oral Oil	19082191	2	Oral Suspension
+Oral Paste	19095918	1	Oral Paste
+Oral Paste	19082169	2	Oral Cream
+Oral Powder with Delayed Release	19095976	1	Oral Powder
+Oral Powder with Delayed Release	19082170	2	Oral Solution
+Oral Powder, Solid Form	19095976	1	Oral Powder
+Oral Powder, Solid Form	19082170	2	Oral Solution
+Oral Soluble Powder	19095976	1	Oral Powder
+Oral Soluble Powder	19082076	2	Disintegrating Oral Tablet
+Oral Solution	19082170	1	Oral Solution
+Oral Solution	19082191	2	Oral Suspension
+Oral Solution	19082223	3	Syrup
+Oral Solution for Rinsing	19082170	1	Oral Solution
+Oral Solution for Rinsing	19082191	2	Oral Suspension
+Oral Solution for Rinsing	19082223	3	Syrup
+Oral Solution in Bag	19082170	1	Oral Solution
+Oral Solution in Bag	19082191	2	Oral Suspension
+Oral Spray	19095911	1	Oral Spray
+Oral Spray	19082170	2	Oral Solution
+Oral Spray	19082191	3	Oral Suspension
+Oral Sublingual Powder	19095976	1	Oral Powder
+Oral Sublingual Powder	19082170	2	Oral Solution
+Oral Sublingual Powder	19082285	3	Sublingual Tablet
+Oral Sublingual Solution	19082170	1	Oral Solution
+Oral Sublingual Solution	19082191	2	Oral Suspension
+Oral Sublingual Solution	19082223	3	Syrup
+Oral Suspension	19082170	1	Oral Solution
+Oral Suspension	19082191	2	Oral Suspension
+Oral Suspension	19082223	3	Syrup
+Oral Syrup	19082170	1	Oral Solution
+Oral Syrup	19082191	2	Oral Suspension
+Oral Syrup	19082223	3	Syrup
+Oral Tablet	19082079	2	Extended Release Oral Tablet
+Oral Tablet	19082573	1	Oral Tablet
+Oral Tablet	19082253	3	Oral Lozenge
+Oral Tablet Disintegrating in Mouth	19082076	1	Disintegrating Oral Tablet
+Oral Tablet Disintegrating in Mouth	19082573	2	Oral Tablet
+Oral Tablet for Administration not to Human Being	19082573	1	Oral Tablet
+Oral Topical Aerosol	19095911	1	Oral Spray
+Oral Topical Aerosol	19095900	2	Mucosal Spray
+Oral Topical Aerosol	19082170	3	Oral Solution
+Oral Topical Cream	19082169	1	Oral Cream
+Oral Topical Cream	19095975	2	Oral Ointment
+Oral Topical Gel or Solution	19095916	1	Oral Gel
+Oral Topical Gel or Solution	19082170	2	Oral Solution
+Oral Topical Gel or Solution	19082191	3	Oral Suspension
+Oral Topical Ointment	19095975	1	Oral Ointment
+Oral Topical Ointment	19082169	2	Oral Cream
+Oral Topical Ointment	19082191	3	Oral Suspension
+Oral Topical Paste	19095918	1	Oral Paste
+Oral Topical Paste	19095975	2	Oral Ointment
+Oral Topical Paste	19082169	3	Oral Cream
+Oral Topical Powder	19095976	1	Oral Powder
+Oral Topical Powder	19082170	2	Oral Solution
+Oral Topical Powder	19082223	3	Syrup
+Oral Topical Solution	19082170	1	Oral Solution
+Oral Topical Solution	19082191	2	Oral Suspension
+Oral Topical Solution	19082223	3	Syrup
+Oral Topical Solution in Drops	19082170	1	Oral Solution
+Oral Topical Solution in Drops	19082191	2	Oral Suspension
+Oral Topical Solution in Drops	19082223	3	Syrup
+Oral Topical Spray	19095911	1	Oral Spray
+Oral Topical Spray	19082170	2	Oral Solution
+Oral Topical Spray	19082223	3	Syrup
+Oral Unidose Solution	19082170	1	Oral Solution
+Oral Unidose Solution	19082191	2	Oral Suspension
+Oral Unidose Solution	19082223	3	Syrup
+Oral Waffer	19082573	1	Oral Tablet
+Oral Waffer	19082652	2	Oral Pellet
+Oral Waffer	19082253	3	Oral Lozenge
+Ordinary Auto-Injector for Parenteral Administration	46234466	1	Auto-Injector
+Ordinary Auto-Injector for Parenteral Administration	19126920	2	Prefilled Syringe
+Ordinary Auto-Injector for Parenteral Administration	19082103	3	Injectable Solution
+Ordinary Auto-Injector for Parenteral Administration	46234469	4	Injection
+Ordinary Prefilled Syringe	19126920	1	Prefilled Syringe
+Ordinary Prefilled Syringe	46234469	2	Injection
+Ordinary Prefilled Syringe	19082103	3	Injectable Solution
+Ordinary Prefilled Syringe with Injectable Suspension	19126920	1	Prefilled Syringe
+Ordinary Prefilled Syringe with Injectable Suspension	46234469	2	Injection
+Ordinary Prefilled Syringe with Injectable Suspension	19082103	3	Injectable Solution
+Ordinary Prefilled Syringe with Injectable Suspension	19124968	4	Drug Implant
+Ordinary Vial with Injectable Solution	19082103	1	Injectable Solution
+Ordinary Vial with Injectable Solution	19082104	2	Injectable Suspension
+Ordinary Vial with Injectable Solution for Intramuscular Injection	19082103	1	Injectable Solution
+Ordinary Vial with Injectable Solution for Intramuscular Injection	19082104	2	Injectable Suspension
+Ordinary Vial with Injectable Solution for Intravenous Injection	19082103	1	Injectable Solution
+Ordinary Vial with Injectable Solution for Intravenous Injection	19082104	2	Injectable Suspension
+Ordinary Vial with Injectable Suspension	19082104	1	Injectable Suspension
+Ordinary Vial with Injectable Suspension	19082103	2	Injectable Solution
+Other Ampoule for Injection with Delayed Release	19082103	1	Injectable Solution
+Other Ampoule for Injection with Delayed Release	19082104	2	Injectable Suspension
+Other Ampoule for Topical Administration	19082103	1	Injectable Solution
+Other Ampoule for Topical Administration	19082104	2	Injectable Suspension
+Other Cartridge	19126918	1	Metered Dose Inhaler
+Other Delayed Release Oral Capsule	19082255	2	Delayed Release Oral Capsule
+Other Delayed Release Oral Capsule	19082077	1	Extended Release Oral Capsule
+Other Delayed Release Oral Capsule	19082168	3	Oral Capsule
+Other Delayed Release Oral Tablet	19082079	1	Extended Release Oral Tablet
+Other Delayed Release Oral Tablet	19082573	3	Oral Tablet
+Other Delayed Release Oral Tablet	19001949	2	Delayed Release Oral Tablet
+Other Gel or Solution	19095973	1	Topical Gel
+Other Gel or Solution	19095916	2	Oral Gel
+Other Gel or Solution	19082651	3	Oral Granules
+Other Gel or Solution	19082229	4	Transdermal Patch
+Other Gel or Solution	19111148	5	Oral Crystals
+Other Injectable Solution	19082103	1	Injectable Solution
+Other Injectable Solution	19082104	2	Injectable Suspension
+Other Oral Capsule	19082168	1	Oral Capsule
+Other Oral Capsule	19082255	2	Delayed Release Oral Capsule
+Other Oral Dragee	19082573	1	Oral Tablet
+Other Oral Dragee	19082652	2	Oral Pellet
+Other Oral Dragee	19082253	3	Oral Lozenge
+Other Oral Liquid Form	19082170	1	Oral Solution
+Other Oral Liquid Form	19082191	2	Oral Suspension
+Other Oral Powder	19095976	1	Oral Powder
+Other Oral Powder	19082170	2	Oral Solution
+Other Oral Powder	19082191	3	Oral Suspension
+Other Oral Solid Form	19082573	1	Oral Tablet
+Other Oral Tablet	19082573	1	Oral Tablet
+Other Oral Tablet	19082652	2	Oral Pellet
+Other Oral Tablet	19082253	3	Oral Lozenge
+Other Topical Powder	19135790	1	Powder
+Other Topical Powder	19082286	2	Topical Powder
+Other Topical Spray	46234410	3	Topical Suspension
+Other Topical Spray	19095912	1	Topical Spray
+Other Topical Spray	19082228	2	Topical Solution
+Other Transdermal Patch	19082229	1	Transdermal Patch
+Other Transdermal Patch	19130307	2	Medicated Pad
+Other Vaginal Forms	19010962	1	Vaginal Tablet
+Other Vaginal Forms	19112649	2	Vaginal Spray
+Other Vaginal Forms	19093368	3	Vaginal Suppository
+Other Vial with Solution for Topical Administration	19082103	1	Injectable Solution
+Other Vial with Solution for Topical Administration	19082104	2	Injectable Suspension
+Otic Metered Dose Solution	19082195	1	Otic Solution
+Otic Metered Dose Solution	19082196	2	Otic Suspension
+Otic Metered Dose Solution	19082228	3	Topical Solution
+Otic Solution	19082195	1	Otic Solution
+Otic Solution	19082196	2	Otic Suspension
+Otic Solution	19082228	3	Topical Solution
+Otic Solution in Drops	19082195	1	Otic Solution
+Otic Solution in Drops	19082196	2	Otic Suspension
+Otic Solution in Drops	19082228	3	Topical Solution
+Otic Unidose Solution	19082195	1	Otic Solution
+Otic Unidose Solution	19082196	2	Otic Suspension
+Otic Unidose Solution	19082228	3	Topical Solution
+Paste Soap	19082108	1	Medicated Bar Soap
+Paste Soap	19082109	2	Medicated Liquid Soap
+Paste Soap	19008697	3	Medicated Shampoo
+Pen Injector for Parenteral Administration	46234467	1	Pen Injector
+Pen Injector for Parenteral Administration	46234466	2	Auto-Injector
+Pen Injector for Parenteral Administration	19082103	3	Injectable Solution
+Pen Injector for Parenteral Administration	19126920	4	Prefilled Syringe
+Pen Injector with Injectable Solution with Delayed Release	46234467	1	Pen Injector
+Pen Injector with Injectable Solution with Delayed Release	46234466	2	Auto-Injector
+Pen Injector with Injectable Solution with Delayed Release	19082103	3	Injectable Solution
+Pen Injector with Injectable Solution with Delayed Release	19126920	4	Prefilled Syringe
+Pen Injector with Injectable Suspension with Delayed Release	46234467	1	Pen Injector
+Pen Injector with Injectable Suspension with Delayed Release	46234466	2	Auto-Injector
+Pen Injector with Injectable Suspension with Delayed Release	19082104	3	Injectable Suspension
+Pen Injector with Injectable Suspension with Delayed Release	19126920	4	Prefilled Syringe
+Pen Injector with Injectable Suspension with Delayed Release	19082103	5	Injectable Solution
+Powder Enema for Topical Administration	19082198	1	Rectal Powder
+Powder Enema for Topical Administration	19082283	2	Rectal Solution
+Powder for Administration not to Human Being	19135790	1	Powder
+Powder for Administration not to Human Being	19082286	2	Topical Powder
+Powder for Topical Administration	19135790	1	Powder
+Powder for Topical Administration	19082286	2	Topical Powder
+Prefilled Syringe for Intramuscular Injection	19126920	1	Prefilled Syringe
+Prefilled Syringe for Intramuscular Injection	46234469	2	Injection
+Prefilled Syringe for Intramuscular Injection	19082103	3	Injectable Solution
+Prefilled Syringe for Intramuscular Injection with Delayed Release	19126920	1	Prefilled Syringe
+Prefilled Syringe for Intramuscular Injection with Delayed Release	46234469	2	Injection
+Prefilled Syringe for Intramuscular Injection with Delayed Release	19082103	3	Injectable Solution
+Prefilled Syringe for Parenteral Administration	19126920	1	Prefilled Syringe
+Prefilled Syringe for Parenteral Administration	46234469	2	Injection
+Prefilled Syringe for Parenteral Administration	19082103	3	Injectable Solution
+Prefilled Syringe for Parenteral Administration 	19126920	1	Prefilled Syringe
+Prefilled Syringe for Parenteral Administration 	46234469	2	Injection
+Prefilled Syringe for Parenteral Administration 	19082103	3	Injectable Solution
+Prefilled Syringe for Parenteral Administration with Delayed Release	19126920	1	Prefilled Syringe
+Prefilled Syringe for Parenteral Administration with Delayed Release	46234469	2	Injection
+Prefilled Syringe for Parenteral Administration with Delayed Release	19082103	3	Injectable Solution
+Prefilled Syringe for Topical Administration	19126920	1	Prefilled Syringe
+Prefilled Syringe for Topical Administration	46234469	2	Injection
+Prefilled Syringe for Topical Administration	19082103	3	Injectable Solution
+Prefilled Syringe with Delayed Release	19126920	1	Prefilled Syringe
+Prefilled Syringe with Delayed Release	46234469	2	Injection
+Prefilled Syringe with Delayed Release	19082103	3	Injectable Solution
+Prefilled Syringe with Injectable Suspension with Delayed Release	19126920	1	Prefilled Syringe
+Prefilled Syringe with Injectable Suspension with Delayed Release	46234469	2	Injection
+Prefilled Syringe with Injectable Suspension with Delayed Release	19082104	3	Injectable Suspension
+Prefilled Syringe with Injectable Suspension with Delayed Release	19124968	4	Drug Implant
+Prefilled Syringe with Ophthalmic Solution	19126920	1	Prefilled Syringe
+Prefilled Syringe with Ophthalmic Solution	46234469	2	Injection
+Prefilled Syringe with Ophthalmic Solution	19082103	3	Injectable Solution
+Pulmonary Metered Dose Aerosol	19095898	1	Inhalant Solution
+Pulmonary Metered Dose Aerosol	19126918	2	Metered Dose Inhaler
+Rectal Children Suppository	19082200	1	Rectal Suppository
+Rectal Children Suppository	19093368	2	Vaginal Suppository
+Rectal Foam	19082574	1	Rectal Foam
+Rectal Foam	19095917	2	Rectal Gel
+Rectal Powder Enema	19082198	1	Rectal Powder
+Rectal Powder Enema	19082283	2	Rectal Solution
+Rectal Suppository	19082200	1	Rectal Suppository
+Round Oral Tablet	19082253	1	Oral Lozenge
+Round Oral Tablet	19082573	2	Oral Tablet
+Round Oral Tablet	19082168	3	Oral Capsule
+Shower Emulsion	19082109	1	Medicated Liquid Soap
+Shower Emulsion	19082108	2	Medicated Bar Soap
+Shower Emulsion	19008697	3	Medicated Shampoo
+Shower Foam	19082109	1	Medicated Liquid Soap
+Shower Foam	19082108	2	Medicated Bar Soap
+Shower Foam	19008697	3	Medicated Shampoo
+Shower Gel	19095973	1	Topical Gel
+Shower Gel	19082225	2	Topical Lotion
+Shower Gel	46234410	3	Topical Suspension
+Shower Oil	19082226	1	Topical Oil
+Shower Powder	19082109	1	Medicated Liquid Soap
+Shower Powder	19082108	2	Medicated Bar Soap
+Shower Powder	19008697	3	Medicated Shampoo
+Shower Spray	19095912	1	Topical Spray
+Sublingual Dragee	19082285	1	Sublingual Tablet
+Sublingual Dragee	19082573	2	Oral Tablet
+Sublingual Tablet	19082285	1	Sublingual Tablet
+Sublingual Tablet	19082573	2	Oral Tablet
+Sublingual Topical Tablet	19082285	1	Sublingual Tablet
+Sublingual Topical Tablet	19082573	2	Oral Tablet
+Suppository	19082200	1	Rectal Suppository
+Suppository	19093368	2	Vaginal Suppository
+Topical Aerosol	19095899	1	Spray
+Topical Aerosol	19095912	2	Topical Spray
+Topical Aerosol	19082228	3	Topical Solution
+Topical Compress	19082228	1	Topical Solution
+Topical Compress	19082224	2	Topical Cream
+Topical Compress	19082227	3	Topical Ointment
+Topical Cream	19082224	1	Topical Cream
+Topical Cream	19082227	2	Topical Ointment
+Topical Cream Emulsion	19082224	1	Topical Cream
+Topical Cream Emulsion	19082227	2	Topical Ointment
+Topical Cream Spray	19095912	1	Topical Spray
+Topical Cream Spray	19082227	2	Topical Ointment
+Topical Cream or Ointment	19082224	1	Topical Cream
+Topical Cream or Ointment	19082227	2	Topical Ointment
+Topical Emulsion	19082225	1	Topical Lotion
+Topical Emulsion	19082224	2	Topical Cream
+Topical Emulsion	19082227	3	Topical Ointment
+Topical Emulsion Gel	19095973	1	Topical Gel
+Topical Emulsion Gel	19082225	2	Topical Lotion
+Topical Emulsion Gel	46234410	3	Topical Suspension
+Topical Foam	19095973	1	Topical Gel
+Topical Foam	19095972	2	Topical Foam
+Topical Foam	19082228	3	Topical Solution
+Topical Foam Spray	19095912	1	Topical Spray
+Topical Foam Spray	19095973	2	Topical Gel
+Topical Gel or Solution	19095973	1	Topical Gel
+Topical Gel or Solution	19082225	2	Topical Lotion
+Topical Gel or Solution	46234410	3	Topical Suspension
+Topical Laquer	19082224	1	Topical Cream
+Topical Laquer	19082227	2	Topical Ointment
+Topical Lotion	19082225	1	Topical Lotion
+Topical Lotion	19082224	2	Topical Cream
+Topical Lotion	46234410	3	Topical Suspension
+Topical Lotion	19082227	4	Topical Ointment
+Topical Metered Dose Gel or Solution	19095973	1	Topical Gel
+Topical Metered Dose Gel or Solution	19082225	2	Topical Lotion
+Topical Metered Dose Gel or Solution	46234410	3	Topical Suspension
+Topical Oil	19082226	1	Topical Oil
+Topical Oil	19082225	2	Topical Lotion
+Topical Oil	46234410	3	Topical Suspension
+Topical Ointment	19082227	1	Topical Ointment
+Topical Ointment	19082224	2	Topical Cream
+Topical Paste	19082224	1	Topical Cream
+Topical Paste	19082227	2	Topical Ointment
+Topical Poultice	19130307	1	Medicated Pad
+Topical Poultice	19082229	2	Transdermal Patch
+Topical Powder	19135790	1	Powder
+Topical Powder	19082286	2	Topical Powder
+Topical Powder Spray	19095912	1	Topical Spray
+Topical Powder Spray	19082286	2	Topical Powder
+Topical Solution	19082103	1	Injectable Solution
+Topical Solution	19082104	2	Injectable Suspension
+Topical Solution in Drops	19082228	1	Topical Solution
+Topical Solution in Drops	46234410	2	Topical Suspension
+Topical Solution or Gel	19082228	1	Topical Solution
+Topical Solution or Gel	19095973	2	Topical Gel
+Topical Spray	19095912	1	Topical Spray
+Topical Suspension	19082104	1	Injectable Suspension
+Topical Suspension	19082103	2	Injectable Solution
+Topical Unidose Cream	19082224	1	Topical Cream
+Topical Unidose Cream	19082227	2	Topical Ointment
+Topical Unidose Solution	19082103	1	Injectable Solution
+Topical Unidose Solution	19082104	2	Injectable Suspension
+Transdermal Adhesive Patch	19082229	1	Transdermal Patch
+Transdermal Adhesive Patch	19130307	2	Medicated Pad
+Transdermal Colloid Patch	19082229	1	Transdermal Patch
+Transdermal Colloid Patch	19130307	2	Medicated Pad
+Transdermal Paraffin Patch	19082229	1	Transdermal Patch
+Transdermal Patch	19082229	1	Transdermal Patch
+Transdermal Patch	19130307	2	Medicated Pad
+Urethral Suppository	19082575	1	Urethral Suppository
+Vaginal Applicator	40167393	1	Vaginal Ring
+Vaginal Applicator	19093368	2	Vaginal Suppository
+Vaginal Capsule	19093368	1	Vaginal Suppository
+Vaginal Cream	19010878	1	Vaginal Cream
+Vaginal Cream	19082287	2	Vaginal Ointment
+Vaginal Emulsion	19010878	1	Vaginal Cream
+Vaginal Emulsion	19082287	2	Vaginal Ointment
+Vaginal Foam Spray	19112649	1	Vaginal Spray
+Vaginal Foam Spray	19082228	2	Topical Solution
+Vaginal Gel Or Solution	19010880	1	Vaginal Gel
+Vaginal Gel Or Solution	19112649	2	Vaginal Spray
+Vaginal Gel Or Solution	19010879	3	Vaginal Foam
+Vaginal Lotion	19010878	1	Vaginal Cream
+Vaginal Lotion	19082287	2	Vaginal Ointment
+Vaginal Ointment	19082287	1	Vaginal Ointment
+Vaginal Ointment	19010878	2	Vaginal Cream
+Vaginal Powder	19082230	1	Vaginal Powder
+Vaginal Ring	40167393	1	Vaginal Ring
+Vaginal Solution	19112649	1	Vaginal Spray
+Vaginal Solution	19082228	2	Topical Solution
+Vaginal Tablet	19010962	1	Vaginal Tablet
+Vaginal Tablet	19093368	2	Vaginal Suppository
+Vaginal Tampon	19093368	1	Vaginal Suppository
+Vaginal Tampon	19129139	2	Prefilled Applicator
+Vaginal Unidose Cream	19010878	1	Vaginal Cream
+Vaginal Unidose Cream	19082287	2	Vaginal Ointment
+Vaginal Unidose Gel or Solution	19010880	1	Vaginal Gel
+Vaginal Unidose Gel or Solution	19112649	2	Vaginal Spray
+Vaginal Unidose Gel or Solution	19010879	3	Vaginal Foam
+Vaginal Unidose Solution	19010880	1	Vaginal Gel
+Vaginal Unidose Solution	19112649	2	Vaginal Spray
+Vaginal Unidose Solution	19010879	3	Vaginal Foam
+Vial with Delayed Release Injectable Solution	19082103	1	Injectable Solution
+Vial with Delayed Release Injectable Solution	19082104	2	Injectable Suspension
+Vial with Injectable Solution	19082103	1	Injectable Solution
+Vial with Injectable Solution	19082104	2	Injectable Suspension
+Vial with Injectable Solution for Intramuscular Injection with Delayed Release	19082103	1	Injectable Solution
+Vial with Injectable Solution for Intramuscular Injection with Delayed Release	19082104	2	Injectable Suspension
+Vial with Injectable Solution with Delayed Release	19082103	1	Injectable Solution
+Vial with Injectable Solution with Delayed Release	19082104	2	Injectable Suspension
+Vial with Injectable Suspension	19082104	1	Injectable Suspension
+Vial with Injectable Suspension	19082103	2	Injectable Solution
+Vial with Ophtalmic Solution	19129634	1	Ophthalmic Solution
+Vial with Ophtalmic Solution	19082167	2	Ophthalmic Suspension
+Vial with Solution for Topical Administration	19082103	1	Injectable Solution
+Vial with Solution for Topical Administration	19082104	2	Injectable Suspension
+Vial with Suspension for Topical Administration	19082103	1	Injectable Solution
+Vial with Suspension for Topical Administration	19082104	2	Injectable Suspension
+Aerosol for Administration not to Human Being	19095898	1	Inhalant Solution
+Aerosol for Administration not to Human Being	19126918	2	Metered Dose Inhaler
+Aerosol for Topical Administration	19095898	1	Inhalant Solution
+Aerosol for Topical Administration	19126918	2	Metered Dose Inhaler
+Ampoule for Injection	19082103	1	Injectable Solution
+Ampoule for Injection	19082104	2	Injectable Suspension
+Ampoule for Injection with Delayed Release	19082103	1	Injectable Solution
+Ampoule for Injection with Delayed Release	19082104	2	Injectable Suspension
+Ampoule for Intramuscular Injection with Delayed Release	19082103	1	Injectable Solution
+Ampoule for Intramuscular Injection with Delayed Release	19082104	2	Injectable Suspension
+Ampoule for Parenteral Administration	19082103	1	Injectable Solution
+Ampoule for Parenteral Administration	19082104	2	Injectable Suspension
+Ampoule for Parenteral Administration	46234469	3	Injection
+Ampoule with Fluid for Topical Administration	19082103	1	Injectable Solution
+Ampoule with Fluid for Topical Administration	19082104	2	Injectable Suspension
+Ampoule with Injectable Suspension	19082104	1	Injectable Suspension
+Ampoule with Injectable Suspension	19082103	2	Injectable Solution
+Ampoule with Injectable Suspension	46234469	3	Injection
+Bar Soap	19082108	1	Medicated Bar Soap
+Bar Soap	19008697	2	Medicated Shampoo
+Bar Soap	19082109	3	Medicated Liquid Soap
+Buccal Capsule	19082168	1	Oral Capsule
+Buccal Lozenge	40175589	1	Buccal Tablet
+Buccal Lozenge	19082573	2	Oral Tablet
+Buccal Tablet	40175589	1	Buccal Tablet
+Buccal Tablet	19082573	2	Oral Tablet
+Capsule for Inhalation	19127579	1	Dry Powder Inhaler
+Capsule for Inhalation	19126918	2	Metered Dose Inhaler
+Capsule for Inhalation	19082259	3	Inhalant Powder
+Capsules for Nasal Inhalation	19082259	1	Inhalant Powder
+Capsules for Nasal Inhalation	19095898	2	Inhalant Solution
+Cartridge for Injection with Delayed Release	46234468	1	Cartridge
+Cartridge for Injection with Delayed Release	19082104	2	Injectable Suspension
+Cartridge for Injection with Delayed Release	19126920	3	Prefilled Syringe
+Cartridge for Injection with Delayed Release	19082103	4	Injectable Solution
+Cartridge for Parenteral Administration	46234468	1	Cartridge
+Cartridge for Parenteral Administration	19082104	2	Injectable Suspension
+Cartridge for Parenteral Administration	19126920	3	Prefilled Syringe
+Cartridge for Parenteral Administration	19082103	4	Injectable Solution
+Cartridge with Injectable Suspension	46234468	1	Cartridge
+Cartridge with Injectable Suspension	19082104	2	Injectable Suspension
+Cartridge with Injectable Suspension	19126920	3	Prefilled Syringe
+Cartridge with Injectable Suspension	19082103	4	Injectable Solution
+Chewable Capsule	19082168	1	Oral Capsule
+Chewable Dragee	19135866	1	Chewable Tablet
+Chewable Dragee	19082573	2	Oral Tablet
+Chewable Tablet	19135866	1	Chewable Tablet
+Chewable Tablet	19082573	2	Oral Tablet
+Chewing Gum	19102296	1	Chewing Gum
+Combined Delayed Release Oral Tablet	19082079	1	Extended Release Oral Tablet
+Combined Delayed Release Oral Tablet	19001949	2	Delayed Release Oral Tablet
+Combined Delayed Release Oral Tablet	19082573	3	Oral Tablet
+Combined Oral Capsule	19082168	1	Oral Capsule
+Combined Oral Dragee	19082573	1	Oral Tablet
+Combined Oral Tablet	19082573	1	Oral Tablet
+Combined Oral Tablet for Administration not to Human Being	19082573	1	Oral Tablet
+Combined Prefilled Syringe for Parenteral Administration	19126920	1	Prefilled Syringe
+Combined Prefilled Syringe for Parenteral Administration	46234469	2	Injection
+Combined Prefilled Syringe for Parenteral Administration	19082103	3	Injectable Solution
+Combined Topical Cream	19082224	1	Topical Cream
+Combined Topical Cream	19082227	2	Topical Ointment
+Combined Topical Solution	19082103	1	Injectable Solution
+Combined Topical Solution	19082104	2	Injectable Suspension
+Combined Transdermal Patch	19082229	1	Transdermal Patch
+Combined Transdermal Patch	19130307	2	Medicated Pad
+Combined Vaginal Cream	19010878	1	Vaginal Cream
+Combined Vaginal Cream	19082287	2	Vaginal Ointment
+Combined Vaginal Tablet	19010962	1	Vaginal Tablet
+Cotton Applicator for Topical Administration	19129139	1	Prefilled Applicator
+Cotton Applicator for Topical Administration	19130307	2	Medicated Pad
+Cream Soap	19082224	1	Topical Cream
+Cream Soap	19082227	2	Topical Ointment
+Delayed Release Oral Capsule	19082077	1	Extended Release Oral Capsule
+Delayed Release Oral Capsule	19082255	2	Delayed Release Oral Capsule
+Delayed Release Oral Capsule	19082168	3	Oral Capsule
+Delayed Release Oral Dragee	19082079	1	Extended Release Oral Tablet
+Delayed Release Oral Dragee	19082573	3	Oral Tablet
+Delayed Release Oral Tablet	19082079	1	Extended Release Oral Tablet
+Delayed Release Oral Tablet	19082573	3	Oral Tablet
+Delayed Release Oral Tablet	19001949	4	Delayed Release Oral Tablet
+Dermatological Powder	19082286	1	Topical Powder
+Dietary Supplement, Liquid Form	19082170	1	Oral Solution
+Dietary Supplement, Liquid Form	19082191	2	Oral Suspension
+Dietary Supplement, Liquid Form	19095976	3	Oral Powder
+Dietary Supplement, Solid Form	19082170	1	Oral Solution
+Dietary Supplement, Solid Form	19082191	2	Oral Suspension
+Dietary Supplement, Solid Form	19095976	3	Oral Powder
+Disintegrating Compress	19082076	1	Disintegrating Oral Tablet
+Disintegrating Compress	19082573	2	Oral Tablet
+Disintegrating Oral Tablet	19082076	1	Disintegrating Oral Tablet
+Disintegrating Oral Tablet	19082573	2	Oral Tablet
+Disintegrating Oral Tablet for Administration not to Human Being	19082076	1	Disintegrating Oral Tablet
+Disintegrating Oral Tablet for Administration not to Human Being	19082573	2	Oral Tablet
+Drops for Oral Administration	19082170	1	Oral Solution
+Drops for Oral Administration	19082191	2	Oral Suspension
+Drops for Oral Administration	19082223	3	Syrup
+Drug Implant with Delayed Release	19124968	1	Drug Implant
+Effervescent Compress	44817840	1	Effervescent Oral Tablet
+Effervescent Compress	19082573	2	Oral Tablet
+Effervescent Oral Tablet	44817840	1	Effervescent Oral Tablet
+Effervescent Oral Tablet	19082573	2	Oral Tablet
+Effervescent Oral Tablet for Administration not to Human Being	44817840	1	Effervescent Oral Tablet
+Effervescent Oral Tablet for Administration not to Human Being	19082573	2	Oral Tablet
+Eye Drops	19129139	7	Prefilled Applicator
+Eye drops	19129634	1	Ophthalmic Solution
+Eye drops	19082576	6	Ophthalmic Cream
+Eye drops	19082167	2	Ophthalmic Suspension
+Eye drops	19059413	3	Ophthalmic Irrigation Solution
+Inhalant Metered Dose Solution	19095898	1	Inhalant Solution
+Inhalant Metered Dose Solution	19126918	2	Metered Dose Inhaler
+Inhalant Solution	19095898	1	Inhalant Solution
+Inhalant Solution	19082259	2	Inhalant Powder
+Inhalant Solution	19126918	3	Metered Dose Inhaler
+Inhalant Spray	19127579	1	Dry Powder Inhaler
+Inhalant Spray	19126918	2	Metered Dose Inhaler
+Inhalant Unidose Solution	19095898	1	Inhalant Solution
+Inhalant Unidose Solution	19126918	2	Metered Dose Inhaler
+Injectable Solution for Intramuscular Injection	19082103	1	Injectable Solution
+Injectable Solution for Intramuscular Injection	19082104	2	Injectable Suspension
+Injectable Solution for Intramuscular Injection	46234469	3	Injection
+Injectable Solution for Intravenous Injection	19082103	1	Injectable Solution
+Injectable Solution for Intravenous Injection	19082104	2	Injectable Suspension
+Injectable Solution for Intravenous Injection	46234469	3	Injection
+Injectable Suspension	19082104	1	Injectable Suspension
+Injectable Suspension	19082103	2	Injectable Solution
+Injectable Suspension with Delayed Release	19082103	1	Injectable Solution
+Injectable Suspension with Delayed Release	19082104	2	Injectable Suspension
+Liquid Enema for Topical Administration	19082103	1	Injectable Solution
+Liquid Enema for Topical Administration	19082104	2	Injectable Suspension
+Liquid Rectal Enema	19082283	1	Rectal Solution
+Liquid Rectal Enema	19082228	2	Topical Solution
+Lollipop or Candy	19082573	1	Oral Tablet
+Lollipop or Candy	19082253	2	Oral Lozenge
+Medicated Liquid Soap	19082108	1	Medicated Bar Soap
+Medicated Liquid Soap	19082109	2	Medicated Liquid Soap
+Medicated Liquid Soap	19008697	3	Medicated Shampoo
+Medicated Pad	19130307	1	Medicated Pad
+Medicated Pad	19082229	2	Transdermal Patch
+Medicated Pad	19082224	3	Topical Cream
+Medicated Pad with Gaze or Cotton	19130307	1	Medicated Pad
+Medicated Pad with Gaze or Cotton	19082229	2	Transdermal Patch
+Metered Dose Inhalant Spray	19127579	1	Dry Powder Inhaler
+Metered Dose Inhalant Spray	19126918	2	Metered Dose Inhaler
+Metered Dose Powder Inhaler	19127579	1	Dry Powder Inhaler
+Metered Dose Powder Inhaler	19082259	2	Inhalant Powder
+Metered Dose Powder Inhaler	19126918	3	Metered Dose Inhaler
+Metered Dose Powder with Delayed Release	19082080	1	Extended Release Suspension
+Metered Dose Powder with Delayed Release	19095976	2	Oral Powder
+Metered Dose Powder with Delayed Release	19082170	3	Oral Solution
+Microenema for Topical Administration	19082627	1	Enema
+Microenema for Topical Administration	19095973	2	Topical Gel
+Nasal Aerosol	19011167	1	Nasal Spray
+Nasal Aerosol	19082162	2	Nasal Inhalant
+Nasal Inhalant Solution	19082165	1	Nasal Solution
+Nasal Inhalant Solution	19095977	2	Nasal Suspension
+Nasal Metered Dose Aerosol	19011167	1	Nasal Spray
+Nasal Metered Dose Aerosol	19082162	2	Nasal Inhalant
+Nasal Metered Dose Powder	19082165	1	Nasal Solution
+Nasal Metered Dose Powder	19095977	2	Nasal Suspension
+Nasal Metered Dose Solution	19011167	1	Nasal Spray
+Nasal Metered Dose Solution	19095898	2	Inhalant Solution
+Nasal Metered Dose Solution	19126918	3	Metered Dose Inhaler
+Nasal Metered Dose Solution	19082165	4	Nasal Solution
+Nasal Metered Dose Solution	19095977	5	Nasal Suspension
+Nasal Oil	40228565	1	Oil
+Nasal Oil	19095977	2	Nasal Suspension
+Nasal Ointment	19082164	1	Nasal Ointment
+Nasal Ointment	19082161	2	Nasal Cream
+Nasal Powder	19127579	1	Dry Powder Inhaler
+Nasal Solution	19082165	1	Nasal Solution
+Nasal Solution	19095977	2	Nasal Suspension
+Nasal Solution in Drops	19095898	1	Inhalant Solution
+Nasal Solution in Drops	19082165	2	Nasal Solution
+Nasal Solution in Drops	19095977	3	Nasal Suspension
+Nasal Solution in Drops	19126918	4	Metered Dose Inhaler
+Nasal Spray	19095977	1	Nasal Suspension
+Nasal Spray	19082165	2	Nasal Solution
+Nasal Swab	19082259	1	Inhalant Powder
+Nasal Swab	19095898	2	Inhalant Solution
+Nasal Unidose Aerosol	19095898	1	Inhalant Solution
+Nasal Unidose Aerosol	19126918	2	Metered Dose Inhaler
+Nasal Unidose Solution	19082165	1	Nasal Solution
+Nasal Unidose Solution	19095898	2	Inhalant Solution
+Nasal Unidose Solution	19095977	3	Nasal Suspension
+Nasal Unidose Solution	19126918	4	Metered Dose Inhaler
+Ointment for Oral Administration	19082227	1	Topical Ointment
+Ointment for Oral Administration	19082224	2	Topical Cream
+Ophtalmic Solution or Gel	19129634	1	Ophthalmic Solution
+Ophtalmic Solution or Gel	19082166	2	Ophthalmic Gel
+Ophtalmic Unidose Solution or Gel	19129634	1	Ophthalmic Solution
+Ophtalmic Unidose Solution or Gel	19082166	2	Ophthalmic Gel
+Ophthalmic Aerosol	19059413	1	Ophthalmic Irrigation Solution
+Ophthalmic Aerosol	19129634	2	Ophthalmic Solution
+Ophthalmic Aerosol	19082167	3	Ophthalmic Suspension
+Ophthalmic Applicator	19129139	1	Prefilled Applicator
+Ophthalmic Gel In Drops	19129634	1	Ophthalmic Solution
+Ophthalmic Gel In Drops	19082166	2	Ophthalmic Gel
+Ophthalmic Ointment	19135925	1	Ophthalmic Ointment
+Ophthalmic Ointment	19082576	2	Ophthalmic Cream
+Ophthalmic Ointment or Cream	19135925	1	Ophthalmic Ointment
+Ophthalmic Ointment or Cream	19082576	2	Ophthalmic Cream
+Ophthalmic Solution	19129634	1	Ophthalmic Solution
+Ophthalmic Solution	19082167	2	Ophthalmic Suspension
+Ophthalmic Solution	19082228	3	Topical Solution
+Ophthalmic Suspension	19129634	1	Ophthalmic Solution
+Ophthalmic Suspension	19082167	2	Ophthalmic Suspension
+Ophthalmic Suspension	19082228	3	Topical Solution
+Ophthalmic Suspension in Drops	19082167	1	Ophthalmic Suspension
+Ophthalmic Suspension in Drops	19129634	2	Ophthalmic Solution
+Ophthalmic Swab	19129139	1	Prefilled Applicator
+Ophthalmic Unidose Solution	19129634	1	Ophthalmic Solution
+Ophthalmic Unidose Solution	19082167	2	Ophthalmic Suspension
+Ophthalmic Unidose Solution	19059413	3	Ophthalmic Irrigation Solution
+Oral Applicator	19082170	1	Oral Solution
+Oral Applicator	19082191	2	Oral Suspension
+Oral Applicator	19082223	3	Syrup
+Oral Capsule	19082168	1	Oral Capsule
+Oral Dragee	19082573	1	Oral Tablet
+Oral Effervescent Powder, Liquid Form	19095976	1	Oral Powder
+Oral Effervescent Powder, Liquid Form	44817840	2	Effervescent Oral Tablet
+Oral Emulsion	19082191	1	Oral Suspension
+Oral Emulsion	19082170	2	Oral Solution
+Oral Enteric Coated Capsule	19082168	1	Oral Capsule
+Oral Enteric Coated Tablet	19082573	1	Oral Tablet
+Oral Enteric Coated Tablet	19001949	2	Delayed Release Oral Tablet
+Oral Gel Or Solution	19082228	1	Topical Solution
+Oral Gel Or Solution	19095973	2	Topical Gel
+Oral Granules	19082651	1	Oral Granules
+Oral Granules	19095976	2	Oral Powder
+Oral Lozenge	19082573	1	Oral Tablet
+Oral Metered Dose Aerosol	19095911	1	Oral Spray
+Oral Metered Dose Aerosol	19095900	2	Mucosal Spray
+Oral Metered Dose Powder, Liquid Form	19082170	1	Oral Solution
+Oral Metered Dose Powder, Liquid Form	19082191	2	Oral Suspension
+Oral Metered Dose Powder, Solid Form	19095976	1	Oral Powder
+Oral Metered Dose Powder, Solid Form	19082170	2	Oral Solution
+Oral Metered Dose Solution	19082170	1	Oral Solution
+Oral Metered Dose Solution	19082191	2	Oral Suspension
+Oral Metered Dose Solution	19082223	3	Syrup
+Oral Metered Dose Topical Aerosol	19095911	1	Oral Spray
+Oral Metered Dose Topical Aerosol	19095900	2	Mucosal Spray
+Oral Metered Dose Topical Aerosol	19082170	3	Oral Solution
+Oral Metered Dose Topical Powder	19095976	1	Oral Powder
+Oral Metered Dose Topical Powder	19082170	2	Oral Solution
+Oral Metered Dose Topical Powder	19082191	3	Oral Suspension

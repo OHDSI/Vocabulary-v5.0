@@ -24,7 +24,26 @@ truncate table DS_STAGE;
 truncate table relationship_to_concept;
 truncate table pc_stage;
 
---delte duplicate pfc
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Eldar Allakhverdiiev, Dmitry Dymshyts, Christian Reich
+* Date: 2017
+**************************************************************************/
+
+--delete duplicates
 delete from france where PFC IN (SELECT PFC FROM FRANCE GROUP BY PFC HAVING COUNT (1) >1) and
 rowid not in (
 select distinct min(rowid) over (partition by pfc) from  FRANCE); 
@@ -534,13 +553,12 @@ select distinct a.concept_code,a.VOCABULARY_ID,c.concept_id,
 rank() over (partition by a.concept_code order by concept_id_2) as precedence,
 '' as conversion_factor
 from drug_concept_stage a 
-join ingredient_all_completed b using (concept_name)
+join ingredient_all_completed b on a.concept_name=b.concept_name
 join devv5.concept c on c.concept_id=concept_id_2
 where a.concept_class_id='Ingredient'
-and concept_id_2 !=0 
-and (concept_code_1,concept_id_2) not in (select concept_code_1,concept_id_2 from relationship_to_concept)
+and (b.concept_name,concept_id_2) not in (select concept_name,concept_id_2 from drug_concept_stage 
+join relationship_to_concept on concept_code=concept_code_1 and concept_class_id='Ingredient')
 ;
-
 
 --Brand Names
 --using full match of concept_names

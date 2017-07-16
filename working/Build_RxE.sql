@@ -2724,7 +2724,7 @@ insert into full_pack
 select pack_concept_code as q_concept_code, 
   pack_concept_id as r_concept_id, components, cnt, bn_id, bs, 0 as mf_id, 'Branded Pack Box' as concept_class_id 
 from ( -- get those we already have
-  select components, cnt, bn_id, bs from full_pack
+  select components, cnt, bn_id, bs, 0 as mf_id from full_pack where bn_id!=0 and bs!=0
 union -- add more from q
   select components, cnt, bn_id, bs from q_existing_pack where bn_id!=0 and bs!=0 and mf_id=0
 )
@@ -3585,7 +3585,7 @@ commit;
 -- Write maps for Packs
 insert /*+ APPEND */ into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 select distinct -- because each pack has many drugs
-  pack_concept_code as concept_code_1,
+  q_concept_code as concept_code_1,
   (select vocabulary_id from drug_concept_stage where rownum=1) as vocabulary_id_1,
   c.concept_code as concept_code_2,
   c.vocabulary_id as vocabulary_id_2,
@@ -3595,7 +3595,7 @@ select distinct -- because each pack has many drugs
   null as invalid_reason
 from pack_attribute join concept_stage c using(concept_id)
 join full_pack using(components, bn_id, bs, mf_id)
-where pack_concept_code is not null
+where q_concept_code is not null
 ;
 commit;
 

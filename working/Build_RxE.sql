@@ -444,40 +444,48 @@ select ds_seq.nextval as ds_code, ds.* from ( -- reuse the same sequence for q_d
   select distinct
     i_code, -- use internal codes instead of concept id, so new ones can be added later.
     ingredient_concept_id, -- still keep it for faster creation of r_ds, but don't use it otherwise
-    nvl(amount_value, 0) as amount_value, nvl(amount_unit_concept_id, 0) as amount_unit_concept_id,
-    case -- turn into concentration mode
-      when numerator_unit_concept_id in (8554, 9325, 9324) then nvl(numerator_value, 0) -- don't for % and homeopathic units C, X
-      when denominator_value is not null then round(nvl(numerator_value, 0)/nvl(denominator_value, 1), 3-floor(log(10, nvl(numerator_value, 0)/nvl(denominator_value, 1)))-1) -- round if there is a denominator
-      else nvl(numerator_value, 0)
-    end as numerator_value, 
+    nvl(amount_value, 0) as amount_value, nvl(amount_unit_concept_id, 0) as amount_unit_concept_id, nvl(numerator_value, 0) as numerator_value, 
     nvl(numerator_unit_concept_id, 0) as numerator_unit_concept_id,
-    case -- % and homeopathics should not have an undefined denominator_unit. r_quant will get it from ds_stage.
+    case -- % and homeopathics should have an undefined denominator_unit. r_quant will eventually get it from ds_stage.
       when numerator_unit_concept_id in (8554, 9325, 9324) then null
       else nvl(denominator_unit_concept_id, 0) 
     end as denominator_unit_concept_id
   from drug_strength join ing_stage on ingredient_concept_id=i_id
   join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+    and r.concept_class_id not in ('Ingredient', 'Clinical Drug Form', 'Branded Drug Form') -- exclude these, since they are now part of drug_strength, but don't have strength information
+  where denominator_value is null -- don't use Quant Drugs, because their numerator value is rounded in drug_strength. Use the non-quantified version instead
 ) ds
 ;
 
 -- Create table with all drug concept codes linked to the above unique components 
 create table r_ds nologging as 
-select ds.drug_concept_id as concept_id, uds.i_code, uds.ds_code, uds.denominator_unit_concept_id as quant_unit_id
-from (
-  select drug_concept_id, ingredient_concept_id, i_code, nvl(amount_value, 0) as amount_value, nvl(amount_unit_concept_id, 0) as amount_unit_concept_id, 
-    case -- turn into concentration mode
-      when numerator_unit_concept_id in (8554, 9325, 9324) then nvl(numerator_value, 0) -- don't for % and homeopathic units C, X
-      when denominator_value is not null then round(nvl(numerator_value, 0)/nvl(denominator_value, 1), 3-floor(log(10, nvl(numerator_value, 0)/nvl(denominator_value, 1)))-1) -- round if there is a denominator
-      else nvl(numerator_value, 0)
-    end as numerator_value, 
+with uds as (
+  select drug_concept_id, ingredient_concept_id, i_code, nvl(amount_value, 0) as amount_value, nvl(amount_unit_concept_id, 0) as amount_unit_concept_id, nvl(numerator_value, 0) as numerator_value,
     nvl(numerator_unit_concept_id, 0) as numerator_unit_concept_id, 
-    case -- % and homeopathics should not have an undefined denominator_unit. r_quant will get it from ds_stage.
+    case -- % and homeopathics should have an undefined denominator_unit. r_quant will get it eventually from ds_stage.
       when numerator_unit_concept_id in (8554, 9325, 9324) then null
       else nvl(denominator_unit_concept_id, 0) 
     end as denominator_unit_concept_id
   from drug_strength join ing_stage on ingredient_concept_id=i_id
-join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
-  and r.concept_class_id not in ('Ingredient', 'Clinical Drug Form', 'Branded Drug Form')
+  where denominator_value is null -- don't use Quant Drugs, because their numerator value is rounded in drug_strength. Use the non-quantified version instead
+)
+select ds.drug_concept_id as concept_id, uds.i_code, uds.ds_code, uds.denominator_unit_concept_id as quant_unit_id
+from (
+  select drug_concept_id, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_unit_concept_id
+  from uds
+  join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+  and r.concept_class_id not in ('Ingredient', 'Clinical Drug Form', 'Branded Drug Form') -- exclude these, since they are now part of drug_strength, but don't have strength information
+union -- get the drug strength information for the quantified versions of a drug from the non-quantified
+  select r.concept_id_2, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_unit_concept_id
+  from uds
+  join concept d on d.concept_id=drug_concept_id and d.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+  join concept_relationship r on r.concept_id_1=d.concept_id and r.invalid_reason is null and r.relationship_id='Has quantified form'
+union -- get the drug strength information for Marketed Products from the non-quantified version of the non-marketed quant drug
+  select s.concept_id_2, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_unit_concept_id
+  from uds
+  join concept d on d.concept_id=drug_concept_id and d.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+  join concept_relationship r on r.concept_id_1=d.concept_id and r.invalid_reason is null and r.relationship_id='Has quantified form'
+  join concept_relationship s on s.concept_id_1=r.concept_id_2 and s.invalid_reason is null and s.relationship_id='Has marketed form'
 ) ds 
 join r_uds uds using(ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id)
 where nvl(ds.denominator_unit_concept_id, -1)=nvl(uds.denominator_unit_concept_id, -1) -- match nulls for % and homeopathics
@@ -1907,8 +1915,10 @@ union -- and the translated ones since they get mixed with the new ones in combo
   select cast(qd_combo as number) as q_ds, nvl(to_code, rd) as r_ds, ri_combo as r_i, quant_unit_id 
   from (
     select distinct 
-      qd_combo, cast(first_value(rd_combo) over (partition by qd_combo, quant_unit_id order by prec, cnt desc, rd_combo) as number) as rd, -- get the best translation for each quant_unit_id
-      ri_combo, quant_unit_id
+      qd_combo, 
+      cast(first_value(rd_combo) over (partition by qd_combo, quant_unit_id order by prec, cnt desc, rd_combo) as number) as rd, -- get the best translation for each quant_unit_id
+      first_value(ri_combo) over (partition by qd_combo, quant_unit_id order by prec, cnt desc, rd_combo) as ri_combo, 
+      quant_unit_id
     -- count translations for each quant_unit_id
     from (select qd_combo, rd_combo, ri_combo, quant_unit_id, min(prec) as prec, count(8) as cnt from x_pattern where qd_combo not like '%-%' group by qd_combo, rd_combo, ri_combo, quant_unit_id) 
   )
@@ -2700,7 +2710,7 @@ delete from r_existing_pack where rowid in (select p.rowid from r_existing_pack 
 
 -- Create pack hierarchy
 create table full_pack as
-select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, pack_concept_id as r_concept_id, components, cnt, bn_id, bs, mf_id, concept_class_id
+select pack_concept_code as q_concept_code, pack_concept_id as r_concept_id, components, cnt, bn_id, bs, mf_id, concept_class_id
 from ( -- get distinct content of q_existing_pack
   select distinct pack_concept_code, components, cnt, bn_id, bs, mf_id, concept_class_id from q_existing_pack
   where concept_class_id='Marketed Product'
@@ -2711,10 +2721,10 @@ commit;
 
 -- Branded Pack Box. Definition: bn and bs, but no mf.
 insert into full_pack
-select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, 
+select pack_concept_code as q_concept_code, 
   pack_concept_id as r_concept_id, components, cnt, bn_id, bs, 0 as mf_id, 'Branded Pack Box' as concept_class_id 
 from ( -- get those we already have
-  select components, cnt, bn_id, bs from full_pack where bn_id!=0 and bs!=0
+  select components, cnt, bn_id, bs from full_pack
 union -- add more from q
   select components, cnt, bn_id, bs from q_existing_pack where bn_id!=0 and bs!=0 and mf_id=0
 )
@@ -2725,10 +2735,10 @@ commit;
 
 -- Branded Pack. Definition: bn, but no bs or mf.
 insert into full_pack
-select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, 
+select pack_concept_code as q_concept_code, 
   pack_concept_id as r_concept_id, components, cnt, bn_id, 0 as bs, 0 as mf_id, 'Branded Pack' as concept_class_id 
 from (
-  select components, cnt, bn_id from full_pack where bn_id!=0
+  select components, cnt, bn_id from full_pack
 union
   select components, cnt, bn_id from q_existing_pack where bn_id!=0 and bs=0 and mf_id=0
 )
@@ -2739,10 +2749,10 @@ commit;
 
 -- Clinical Pack Box. Definition: bs, but no bn or mf.
 insert into full_pack
-select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, 
+select pack_concept_code as q_concept_code, 
   pack_concept_id as r_concept_id, components, cnt, 0 as bn_id, bs, 0 as mf_id, 'Clinical Pack Box' as concept_class_id 
 from (
-  select components, cnt, bs from full_pack where bs!=0
+  select components, cnt, bs from full_pack
 union
   select components, cnt, bs from q_existing_pack where bs!=0 and bn_id=0 and mf_id=0
 )
@@ -2753,10 +2763,10 @@ commit;
 
 -- Clinical Pack. Definition: neither bn, bs nor mf.
 insert into full_pack
-select extension_id.nextval as concept_id, pack_concept_code as q_concept_code, 
+select pack_concept_code as q_concept_code, 
   pack_concept_id as r_concept_id, components, cnt, 0 as bn_id, 0 as bs, 0 as mf_id, 'Clinical Pack' as concept_class_id 
 from (
-  select components, cnt from full_pack where bn_id=0 and bs=0 and mf_id=0
+  select components, cnt from full_pack
 union
   select components, cnt from q_existing_pack where bn_id=0 and bs=0 and mf_id=0
 )
@@ -2767,9 +2777,12 @@ commit;
 
 -- Create a distinct set, since q may contain duplicates. R shouldn't, but doesn't hurt kicking them out, too
 create table pack_attribute as
-select distinct concept_id, components, cnt, bn_id, bs, mf_id, concept_class_id from full_pack;
+select extension_id.nextval as concept_id, fp.* from (
+  select distinct components, cnt, bn_id, bs, mf_id, concept_class_id 
+  from full_pack
+);
 
--- Create names for each pack in full_pack
+-- Create names for each pack in pack_attribute
 create table pack_name as
 -- Get the component parts
 with c as (
@@ -3299,7 +3312,8 @@ select
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason 
 from pack_attribute pa join pack_name using(concept_id)
-where not exists (select 1 from full_pack fp where concept_id=fp.concept_id and fp.r_concept_id is not null) -- doesn't have an existing translation
+where not exists (select 1 from full_pack fp where components=fp.components and bn_id=fp.bn_id and bs=fp.bs and mf_id=fp.mf_id
+  and fp.r_concept_id is not null) -- doesn't have an existing translation
 ;
 commit;
 
@@ -3324,7 +3338,8 @@ join ( -- split components by ';' and extract the drug (behind '/')
 ) c using(concept_id)
 left join concept_stage cs on drug_concept_id=cs.concept_id -- get concept_code/vocab for new drug
 left join concept c on drug_concept_id=c.concept_id -- or existing drug
-where not exists (select 1 from full_pack fp where concept_id=fp.concept_id and fp.r_concept_id is not null) -- doesn't have an existing translation
+where not exists (select 1 from full_pack fp where components=fp.components and bn_id=fp.bn_id and bs=fp.bs and mf_id=fp.mf_id
+  and fp.r_concept_id is not null) -- doesn't have an existing translation
 ;
 commit;
 
@@ -3348,7 +3363,8 @@ join pack_attribute an join concept_stage ancs on an.concept_id=ancs.concept_id
     and de.bs=case an.bs when 0 then de.bs else an.bs end -- the descendant may not have bs
     and de.bn_id=case an.bn_id when 0 then de.bn_id else an.bn_id end -- the descendant may not have a bn
     and de.concept_id!=an.concept_id -- to avoid linking to self
-where not exists (select 1 from full_pack fp where de.concept_id=fp.concept_id and fp.r_concept_id is not null) -- doesn't have an existing translation
+where not exists (select 1 from full_pack fp where components=fp.components and bn_id=fp.bn_id and bs=fp.bs and mf_id=fp.mf_id
+  and fp.r_concept_id is not null) -- doesn't have an existing translation
 ;
 commit;
 
@@ -3572,7 +3588,7 @@ select distinct -- because each pack has many drugs
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
-from full_pack join concept_stage c using(concept_id)
+from pack_attribute join concept_stage c using(concept_id)
 where pack_concept_code is not null
 ;
 commit;

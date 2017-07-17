@@ -40,7 +40,7 @@ SELECT product_desc AS concept_name , pfc,
  FROM  france_1 where pfc not in (select distinct pfc from non_drugs)
  and pfc not in (select distinct pfc from france_1 where molecule='NULL')
  and PRODUCT_DESC not like '%DCI%'
- and upper(PRODUCT_DESC) not in (select upper(concept_name) from devv5.concept where concept_class_id like 'Ingredient' and standard_concept='S')
+ and upper(PRODUCT_DESC)	not in (select upper(concept_name) from devv5.concept where concept_class_id like 'Ingredient' and standard_concept='S')
  )
  ;
  

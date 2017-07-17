@@ -185,7 +185,7 @@ select distinct concept_name,concept_class_id from Forms
 --fill drug_concept_stage
 
 insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,DOMAIN_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select CONCEPT_NAME, 'DA_France','Drug', CONCEPT_CLASS_ID, 'S', CONCEPT_CODE, '', TO_DATE('2015/12/12', 'yyyy/mm/dd') as valid_start_date, --check start date
+select CONCEPT_NAME, 'DA_France','Drug', CONCEPT_CLASS_ID, 'S', CONCEPT_CODE, '', TO_DATE(sysdate, 'yyyy/mm/dd') as valid_start_date, --check start date
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
  from (
  select * from list_temp
@@ -204,11 +204,12 @@ substr(volume||' '||case molecule
   when 'NULL' then '' else dosage_add||' ' end||case form_desc when 'NULL' then '' else form_desc 
    end||case product_desc when 'NULL' then '' else ' ['||product_desc||']' end||' Box of '||packsize , 1,255
    )
-      as concept_name, 'Da_France','Device', 'Device', 'S', pfc, '', TO_DATE('2015/12/12', 'yyyy/mm/dd') as valid_start_date, --check start date
+      as concept_name, 'DA_France','Device', 'Device', 'S', pfc, '', TO_DATE(sysdate, 'yyyy/mm/dd') as valid_start_date, --check start date
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
 from non_drugs;
 
-
+alter table drug_concept_stage add source_concept_class_id  varchar (50)
+;
 
 --fill IRS
 --Drug to Ingredients
@@ -572,7 +573,7 @@ where a.concept_class_id = 'Brand Name';
 
 --manually found after utl_match
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1,concept_id_2, precedence)
-select concept_code,'Da_France',concept_id_2,rank() over (partition by concept_code order by concept_id_2)
+select concept_code,'DA_France',concept_id_2,rank() over (partition by concept_code order by concept_id_2)
 from  brand_names_manual a join drug_concept_stage b on upper(a.concept_name) =upper(b.concept_name)
 ;
 
@@ -615,7 +616,7 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('H', 'DA_France',8505,1,1);
 insert into concept_synonym_stage
 (SYNONYM_NAME,SYNONYM_CONCEPT_CODE,SYNONYM_VOCABULARY_ID,LANGUAGE_CONCEPT_ID)
-select dose_form,concept_code,'Da_France','4180190' -- French language 
+select dose_form,concept_code,'DA_France','4180190' -- French language 
 from 
 france_names_translation a join drug_concept_stage
 on trim(upper(DOSE_FORM_NAME))=upper(concept_name);

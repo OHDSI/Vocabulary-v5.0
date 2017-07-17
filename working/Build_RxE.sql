@@ -478,14 +478,17 @@ from (
 union -- get the drug strength information for the quantified versions of a drug from the non-quantified
   select r.concept_id_2, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_unit_concept_id
   from uds
-  join concept d on d.concept_id=drug_concept_id and d.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+  join concept d on d.concept_id=drug_concept_id and d.vocabulary_id in ('RxNorm', 'RxNorm Extension') and d.invalid_reason is null
   join concept_relationship r on r.concept_id_1=d.concept_id and r.invalid_reason is null and r.relationship_id='Has quantified form'
+  join concept e on e.concept_id=r.concept_id_2 and e.invalid_reason is null -- check that resulting quantified is valid
 union -- get the drug strength information for Marketed Products from the non-quantified version of the non-marketed quant drug
   select s.concept_id_2, ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id, denominator_unit_concept_id
   from uds
-  join concept d on d.concept_id=drug_concept_id and d.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+  join concept d on d.concept_id=drug_concept_id and d.vocabulary_id in ('RxNorm', 'RxNorm Extension') and d.invalid_reason is null
   join concept_relationship r on r.concept_id_1=d.concept_id and r.invalid_reason is null and r.relationship_id='Has quantified form'
+  join concept e on e.concept_id=r.concept_id_2 and e.invalid_reason is null -- check that resulting quantified is valid
   join concept_relationship s on s.concept_id_1=r.concept_id_2 and s.invalid_reason is null and s.relationship_id='Has marketed form'
+  join concept f on f.concept_id=s.concept_id_2 and f.invalid_reason is null -- check that resulting marketed is valid
 ) ds 
 join r_uds uds using(ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id)
 where nvl(ds.denominator_unit_concept_id, -1)=nvl(uds.denominator_unit_concept_id, -1) -- match nulls for % and homeopathics

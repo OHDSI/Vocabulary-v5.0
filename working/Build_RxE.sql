@@ -3498,7 +3498,7 @@ select
 from (
   select qi_combo as i_code, concept_code, vocabulary_id from x_ing join ing_stage on ri_combo=i_code join concept on concept_id=i_id -- translate to existing RxE ones
 union
-  select qi_code as i_code, qi_code as concept_code, 'RxNorm Extension' from extension_i -- translate to new RxNorm Extension ones, lookup in concept_stage no necessary as it still has the XXX code
+  select qi_code, ri_code, 'RxNorm Extension' from extension_i -- translate to new RxNorm Extension ones, lookup in concept_stage no necessary as it still has the XXX code
 )
 ;
 commit;

@@ -1857,7 +1857,7 @@ select q.* from (
     ds_code, -- the original ds_code from q_combo can be used as there is a one-to-one relationship (no ingredient or unit splitting)
     ri_code as i_code, 0 as ingredient_concept_id, -- only placeholder so extension_uds can be unioned with r_uds later 
     amount_value*nvl(xu_a.conversion_factor, 1) as amount_value, nvl(xu_a.unit_id, 0) as amount_unit_concept_id,
-    numerator_value*nvl(xu_n.conversion_factor, 1) as numerator_value, nvl(xu_n.unit_id, 0) as numerator_unit_concept_id,
+    numerator_value*nvl(xu_n.conversion_factor, 1)/nvl(xu_d.conversion_factor, 1) as numerator_value, nvl(xu_n.unit_id, 0) as numerator_unit_concept_id,
     case -- don't replace null in denominator_unit with 0 for the homeopathics and 0
       when xu_n.unit_id in (8554, 9325, 9324) then null
       else nvl(xu_d.unit_id, 0) 

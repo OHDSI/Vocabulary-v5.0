@@ -103,6 +103,7 @@ SELECT product_desc AS concept_name , pfc,
  FROM  france_1 where pfc not in (select distinct pfc from non_drugs)
  and pfc not in (select distinct pfc from france_1 where molecule='NULL')
  and PRODUCT_DESC not like '%DCI%'
+ and upper(PRODUCT_DESC)	not in (select upper(concept_name) from devv5.concept where concept_class_id like 'Ingredient' and standard_concept='S')
  )
  ;
  
@@ -183,8 +184,8 @@ select distinct concept_name,concept_class_id from Forms
 ;
 --fill drug_concept_stage
 
-insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select CONCEPT_NAME, 'DA_France', CONCEPT_CLASS_ID, 'S', CONCEPT_CODE, '', TO_DATE('2015/12/12', 'yyyy/mm/dd') as valid_start_date, --check start date
+insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,DOMAIN_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
+select CONCEPT_NAME, 'DA_France','Drug', CONCEPT_CLASS_ID, 'S', CONCEPT_CODE, '', TO_DATE('2015/12/12', 'yyyy/mm/dd') as valid_start_date, --check start date
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
  from (
  select * from list_temp
@@ -195,7 +196,7 @@ TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
 ;
 
 --DEVICES (rebuild names)
-insert into drug_concept_stage (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
+insert into drug_concept_stage (CONCEPT_NAME,VOCABULARY_ID,DOMAIN_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select distinct
 substr(volume||' '||case molecule 
  when 'NULL' then '' else molecule||' ' end||case dosage
@@ -203,7 +204,7 @@ substr(volume||' '||case molecule
   when 'NULL' then '' else dosage_add||' ' end||case form_desc when 'NULL' then '' else form_desc 
    end||case product_desc when 'NULL' then '' else ' ['||product_desc||']' end||' Box of '||packsize , 1,255
    )
-      as concept_name, 'Da_France', 'Device', 'S', pfc, '', TO_DATE('2015/12/12', 'yyyy/mm/dd') as valid_start_date, --check start date
+      as concept_name, 'Da_France','Device', 'Device', 'S', pfc, '', TO_DATE('2015/12/12', 'yyyy/mm/dd') as valid_start_date, --check start date
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
 from non_drugs;
 

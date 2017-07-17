@@ -31,7 +31,7 @@ where a.concept_class_id = 'Brand Name';
 
 --manually found after utl_match
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1,concept_id_2, precedence)
-select concept_code,'Da_France',concept_id_2,rank() over (partition by concept_code order by concept_id_2)
+select concept_code,'DA_France',concept_id_2,rank() over (partition by concept_code order by concept_id_2)
 from  brand_names_manual a join drug_concept_stage b on upper(a.concept_name) =upper(b.concept_name)
 ;
 

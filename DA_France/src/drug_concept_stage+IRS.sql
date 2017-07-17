@@ -20,11 +20,12 @@ substr(volume||' '||case molecule
   when 'NULL' then '' else dosage_add||' ' end||case form_desc when 'NULL' then '' else form_desc 
    end||case product_desc when 'NULL' then '' else ' ['||product_desc||']' end||' Box of '||packsize , 1,255
    )
-      as concept_name, 'Da_France','Device', 'Device', 'S', pfc, '', TO_DATE('2015/12/12', 'yyyy/mm/dd') as valid_start_date, --check start date
+      as concept_name, 'DA_France','Device', 'Device', 'S', pfc, '', TO_DATE('2015/12/12', 'yyyy/mm/dd') as valid_start_date, --check start date
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
 from non_drugs;
 
-
+alter table drug_concept_stage add source_concept_class_id  varchar (50)
+;
 
 --fill IRS
 --Drug to Ingredients

@@ -76,7 +76,7 @@ insert into non_drug ( drug_Code,drug_descr,ingredient,form,form_code)
 Select a.drug_Code,drug_descr,ingredient,form,form_code from 
 drug a
 left join ingredient b on a.drug_Code=b.drug_code
-where regexp_like (drug_descr, 'hémofiltration|AMINOMIX|dialys|test|radiopharmaceutique|MIBG|STRUCTOKABIVEN|NUMETAN|NUMETAH|REANUTRIFLEX|CLINIMIX|REVITALOSE|CONTROLE', 'i') 
+where regexp_like (drug_descr, 'hémofiltration|AMINOMIX|dialys|test|radiopharmaceutique|MIBG|STRUCTOKABIVEN|NUMETAN|NUMETAH|REANUTRIFLEX|CLINIMIX|REVITALOSE|CONTROLE|IOMERON|HEXABRIX|XENETIX', 'i') 
 and a.drug_code not in (select drug_code from non_drug);
 --create table with homeopathic drugs as they will be proceeded in different way
 create table homeop_drug as 

@@ -616,7 +616,7 @@ BEGIN
                                                FROM drug_strength ds
                                                     JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
                                                     JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-                                              WHERE ds.amount_value <> 0
+                                              WHERE ds.amount_value <> 0 AND ds.amount_unit_concept_id IS NOT NULL
                                            GROUP BY c2.concept_code, c2.vocabulary_id, ds.amount_unit_concept_id
                                            UNION
                                              SELECT c2.concept_code AS ingredient_concept_code,
@@ -626,7 +626,7 @@ BEGIN
                                                FROM drug_strength ds
                                                     JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
                                                     JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
-                                              WHERE ds.numerator_value <> 0
+                                              WHERE ds.numerator_value <> 0 AND ds.numerator_unit_concept_id IS NOT NULL
                                            GROUP BY c2.concept_code, c2.vocabulary_id, ds.numerator_unit_concept_id)
                                  GROUP BY ingredient_concept_code, vocabulary_id, unit_concept_id))
                 -- Create drug_strength for ingredients
@@ -673,6 +673,7 @@ BEGIN
 	EXECUTE IMMEDIATE 'drop table pair_tbl purge';   
 	
     devv5.SendMailHTML (devv5.var_array('timur.vakhitov@firstlinesoftware.com', 'reich@ohdsi.org', 'reich@omop.org','ddymshyts@odysseusinc.com','anna.ostropolets@odysseusinc.com'), 'small concept ancestor in '||USER||' [ok]', 'small concept ancestor in '||USER||' completed');
-    --devv5.SendMailHTML (devv5.var_array('timur.vakhitov@firstlinesoftware.com'), 'small concept ancestor in '||USER||' [ok]', 'small concept ancestor in '||USER||' completed');
+    EXCEPTION WHEN OTHERS THEN
+        devv5.SendMailHTML (devv5.var_array('timur.vakhitov@firstlinesoftware.com', 'reich@ohdsi.org', 'reich@omop.org','ddymshyts@odysseusinc.com','anna.ostropolets@odysseusinc.com'), 'small concept ancestor in '||USER||' [error]', 'small concept ancestor in '||USER||' completed with error:<br>'||DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
 end;
 /

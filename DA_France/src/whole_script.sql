@@ -102,7 +102,7 @@ SELECT product_desc AS concept_name , pfc,
 'Brand Name' as concept_class_id
  FROM  france_1 where pfc not in (select distinct pfc from non_drugs)
  and pfc not in (select distinct pfc from france_1 where molecule='NULL')
- and PRODUCT_DESC not like '%DCI%'
+ and PRODUCT_DESC not like '%DCI%' and not regexp_like(PRODUCT_DESC,'L\.IND|LAB IND|^VAC |VACCIN')
  and upper(PRODUCT_DESC)	not in (select upper(concept_name) from devv5.concept where concept_class_id like 'Ingredient' and standard_concept='S')
  )
  ;
@@ -208,8 +208,6 @@ substr(volume||' '||case molecule
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
 from non_drugs;
 
-alter table drug_concept_stage add source_concept_class_id  varchar (50)
-;
 
 --fill IRS
 --Drug to Ingredients
@@ -563,18 +561,20 @@ join relationship_to_concept on concept_code=concept_code_1 and concept_class_id
 ;
 
 --Brand Names
---using full match of concept_names
-insert into relationship_to_concept (concept_code_1,vocabulary_id_1,concept_id_2,precedence)
-select a.concept_code as concept_code_1,'DA_France',c.concept_id as concept_id_2 , rank() over (partition by a.concept_code order by concept_id) as precedence 
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1,concept_id_2, precedence)
+with a as (
+select a.concept_code as concept_code_1,c.concept_id as concept_id_2 
 from drug_concept_stage a join devv5.concept c 
 on upper (c.concept_name) = upper(a.concept_name) and c.concept_class_id = 'Brand Name' and c.vocabulary_id like 'Rx%' and c.invalid_reason is null
-where a.concept_class_id = 'Brand Name';
-
-
---manually found after utl_match
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1,concept_id_2, precedence)
-select concept_code,'DA_France',concept_id_2,rank() over (partition by concept_code order by concept_id_2)
+where a.concept_class_id = 'Brand Name'
+),
+b as (
+select concept_code,cast(concept_id_2 as number)
 from  brand_names_manual a join drug_concept_stage b on upper(a.concept_name) =upper(b.concept_name)
+and (concept_code,concept_id_2) not in (select concept_code_1,concept_id_2 from relationship_to_concept)
+)
+select concept_code_1, 'DA_France',concept_id_2, rank() over (partition by concept_code_1 order by concept_id_2)
+from (select concept_code_1,concept_id_2 from a union select * from b)
 ;
 
 

@@ -24,8 +24,6 @@ substr(volume||' '||case molecule
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
 from non_drugs;
 
-alter table drug_concept_stage add source_concept_class_id  varchar (50)
-;
 
 --fill IRS
 --Drug to Ingredients

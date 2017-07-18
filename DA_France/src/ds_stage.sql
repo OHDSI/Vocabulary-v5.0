@@ -21,9 +21,6 @@ join drug_concept_stage dcs on concept_code_2=dcs.concept_code and dcs.concept_c
 ;
 
 
-
-
-
 -- for delayed (mh/H) drugs
 
 create table ds_for_prolonged as
@@ -114,15 +111,28 @@ join drug_concept_stage dcs on concept_code_2=dcs.concept_code and dcs.concept_c
 --one ingredient dosage like %, descr_pck not like '%DOS%'
 insert into DS_STAGE (drug_concept_code,ingredient_concept_code,numerator_value,numerator_unit,denominator_value,denominator_unit,box_size)
 select distinct pfc,concept_code_2,
-STRG_UNIT*(regexp_substr(volume,'\d*(\.)?(\d)*'))/100 as numerator_value,
-regexp_replace(volume,'\d*(\.)?(\d)*') as numerator_unit,
+case 
+when regexp_replace(volume,'\d*(\.)?(\d)*') in ('L','ML')
+then STRG_UNIT*(regexp_substr(volume,'\d*(\.)?(\d)*'))*10 
+when regexp_replace(volume,'\d*(\.)?(\d)*') in ('KG','G')
+then STRG_UNIT*(regexp_substr(volume,'\d*(\.)?(\d)*'))/100 
+else null end
+as numerator_value,
+case
+when regexp_replace(volume,'\d*(\.)?(\d)*')  ='ML'
+then 'MG'
+when regexp_replace(volume,'\d*(\.)?(\d)*')  ='L'
+then 'G'
+else 
+regexp_replace(volume,'\d*(\.)?(\d)*') 
+end as numerator_unit,
 regexp_substr(volume,'\d*(\.)?(\d)*') as denominator_value,regexp_replace(volume,'\d*(\.)?(\d)*') as denominator_unit,
 packsize
 from france_1 f join  internal_relationship_stage irs
 on f.pfc=irs.concept_code_1
 join drug_concept_stage dcs on concept_code_2=dcs.concept_code and dcs.concept_class_id='Ingredient'
 where volume !='NULL' and strg_meas = '%'  AND MOLECULE NOT LIKE '%+%' and lower(descr_pck) not like '/%dos%' and MOLECULE NOT LIKE '%NULL%'
-and pfc not in (select drug_concept_code from ds_stage)
+;
 ;
 
 
@@ -143,7 +153,9 @@ select pfc,concept_code_2, regexp_substr(volume,'\d*(\.)?(\d)*') as amount_value
 on f.pfc=irs.concept_code_1
 join drug_concept_stage dcs on concept_code_2=dcs.concept_code and dcs.concept_class_id='Ingredient'
 where volume !='NULL' and strg_unit='NULL' and MOLECULE NOT LIKE '%+%' and MOLECULE NOT LIKE '%NULL%'
-and pfc not in (select drug_concept_code from ds_stage);
+and pfc not in (select drug_concept_code from ds_stage)
+and regexp_replace(volume,'\d*(\.)?(\d)*') not in ('L','ML')
+;
 
 -- need to extract dosages from descr_pck where  MOLECULE NOT LIKE '%+%' and volume ='NULL' and strg_unit='NULL'
 
@@ -307,5 +319,4 @@ where ingredient_concept_code in (select concept_code from drug_concept_stage wh
 and drug_concept_code='4671001'
 ;
 delete from ds_stage where drug_concept_code ='2935001';
-
 COMMIT;

@@ -39,7 +39,7 @@ SELECT product_desc AS concept_name , pfc,
 'Brand Name' as concept_class_id
  FROM  france_1 where pfc not in (select distinct pfc from non_drugs)
  and pfc not in (select distinct pfc from france_1 where molecule='NULL')
- and PRODUCT_DESC not like '%DCI%'
+ and PRODUCT_DESC not like '%DCI%' and not regexp_like(PRODUCT_DESC,'L\.IND|LAB IND|^VAC |VACCIN')
  and upper(PRODUCT_DESC)	not in (select upper(concept_name) from devv5.concept where concept_class_id like 'Ingredient' and standard_concept='S')
  )
  ;

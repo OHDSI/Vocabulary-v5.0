@@ -20,7 +20,7 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'ICD10CM',
-                                          pVocabularyDate        => TO_DATE ('20161001', 'yyyymmdd'), --The 2017 changes became effective on October 1, 2016.
+                                          pVocabularyDate        => TO_DATE ('20170428', 'yyyymmdd'), --The 2017 changes became effective on October 1, 2016.
                                           pVocabularyVersion     => 'ICD10CM FY2017 code descriptions',
                                           pVocabularyDevSchema   => 'DEV_ICD10CM');
 END;

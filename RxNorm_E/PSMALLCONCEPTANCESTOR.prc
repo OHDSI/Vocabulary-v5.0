@@ -614,8 +614,8 @@ BEGIN
                                                     ds.amount_unit_concept_id AS unit_concept_id,
                                                     COUNT (*) AS cnt
                                                FROM drug_strength ds
-                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id = 'RxNorm'
-                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id = 'RxNorm'
+                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
                                               WHERE ds.amount_value <> 0
                                            GROUP BY c2.concept_code, c2.vocabulary_id, ds.amount_unit_concept_id
                                            UNION
@@ -624,8 +624,8 @@ BEGIN
                                                     ds.numerator_unit_concept_id AS unit_concept_id,
                                                     COUNT (*) AS cnt
                                                FROM drug_strength ds
-                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id = 'RxNorm'
-                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id = 'RxNorm'
+                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
                                               WHERE ds.numerator_value <> 0
                                            GROUP BY c2.concept_code, c2.vocabulary_id, ds.numerator_unit_concept_id)
                                  GROUP BY ingredient_concept_code, vocabulary_id, unit_concept_id))

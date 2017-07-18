@@ -487,7 +487,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
    SELECT DISTINCT d.concept_code AS concept_code_1,
                    e.concept_code AS concept_code_2,
                    'SNOMED' AS vocabulary_id_1,
-                   'RxNorm' AS vocabulary_id_2,				   
+                   'RxNorm' AS vocabulary_id_2,
                    'Maps to' AS relationship_id,
                    d.valid_start_date,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
@@ -498,8 +498,9 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE d.vocabulary_id = 'SNOMED' AND d.invalid_reason IS NULL AND d.concept_class_id NOT IN ('Dose Form', 'Brand Name');
 COMMIT;
 	
---7 Add upgrade relationships
-INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
+--7 Add upgrade relationships (concept_code_2 shouldn't exists in rxnsat with atn = 'RXN_QUALITATIVE_DISTINCTION')
+INSERT /*+ APPEND */
+      INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -507,31 +508,100 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT DISTINCT rxcui AS concept_code_1,
-          merged_to_rxcui AS concept_code_2,
-          'RxNorm' AS vocabulary_id_1,
-          'RxNorm' AS vocabulary_id_2,
-          'Concept replaced by' AS relationship_id,
-          latest_update AS valid_start_date,
-          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM rxnatomarchive, vocabulary
-    WHERE     sab = 'RXNORM'
-          AND vocabulary_id = 'RxNorm' -- for getting the latest_update
-          AND tty IN ('IN',
-                      'DF',
-                      'SCDC',
-                      'SCDF',
-                      'SCD',
-                      'BN',
-                      'SBDC',
-                      'SBDF',
-                      'SBD',
-					  'PIN',
-					  'DFG',
-					  'SCDG',
-					  'SBDG')
-          AND rxcui <> merged_to_rxcui;  
+    SELECT DISTINCT raa.rxcui AS concept_code_1,
+                    raa.merged_to_rxcui AS concept_code_2,
+                    'RxNorm' AS vocabulary_id_1,
+                    'RxNorm' AS vocabulary_id_2,
+                    'Concept replaced by' AS relationship_id,
+                    v.latest_update AS valid_start_date,
+                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                    NULL AS invalid_reason
+      FROM rxnatomarchive raa
+           JOIN vocabulary v ON v.vocabulary_id = 'RxNorm'  -- for getting the latest_update
+           LEFT JOIN rxnsat rxs ON rxs.rxcui = raa.merged_to_rxcui AND rxs.atn = 'RXN_QUALITATIVE_DISTINCTION' AND rxs.sab = raa.sab
+     WHERE     raa.sab = 'RXNORM'
+           AND raa.tty IN ('IN',
+                           'DF',
+                           'SCDC',
+                           'SCDF',
+                           'SCD',
+                           'BN',
+                           'SBDC',
+                           'SBDF',
+                           'SBD',
+                           'PIN',
+                           'DFG',
+                           'SCDG',
+                           'SBDG')
+           AND raa.rxcui <> raa.merged_to_rxcui
+           AND rxs.rxcui IS NULL;
+COMMIT;
+
+--7.1 Add 'Maps to' between RXN_QUALITATIVE_DISTINCTION and fresh concepts (AVOF-457)
+INSERT /*+ APPEND */
+      INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+    SELECT raa.merged_to_rxcui AS concept_code_1,
+           crs.concept_code_2 AS concept_code_2,
+           'RxNorm' AS vocabulary_id_1,
+           'RxNorm' AS vocabulary_id_2,
+           'Maps to' AS relationship_id,
+           v.latest_update AS valid_start_date,
+           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+           NULL AS invalid_reason
+      FROM concept_relationship_stage crs
+           JOIN rxnatomarchive raa
+               ON     raa.sab = 'RXNORM'
+                  AND raa.tty IN ('IN',
+                                  'DF',
+                                  'SCDC',
+                                  'SCDF',
+                                  'SCD',
+                                  'BN',
+                                  'SBDC',
+                                  'SBDF',
+                                  'SBD',
+                                  'PIN',
+                                  'DFG',
+                                  'SCDG',
+                                  'SBDG')
+                  AND raa.rxcui = crs.concept_code_1
+                  AND raa.merged_to_rxcui <> crs.concept_code_2
+           JOIN rxnsat rxs ON rxs.rxcui = raa.merged_to_rxcui AND rxs.atn = 'RXN_QUALITATIVE_DISTINCTION' AND rxs.sab = raa.sab
+           JOIN vocabulary v ON v.vocabulary_id = 'RxNorm'
+     WHERE crs.relationship_id = 'Concept replaced by' AND crs.invalid_reason IS NULL AND crs.vocabulary_id_1 = 'RxNorm' AND crs.vocabulary_id_2 = 'RxNorm';
+COMMIT;
+
+--7.2 Set standard_concept = NULL for all affected codes with RXN_QUALITATIVE_DISTINCTION (AVOF-457)
+UPDATE concept_stage
+   SET standard_concept = NULL
+ WHERE (concept_code, vocabulary_id) IN (SELECT raa.merged_to_rxcui, crs.vocabulary_id_2
+                                           FROM concept_relationship_stage crs
+                                                JOIN rxnatomarchive raa
+                                                    ON     raa.sab = 'RXNORM'
+                                                       AND raa.tty IN ('IN',
+                                                                       'DF',
+                                                                       'SCDC',
+                                                                       'SCDF',
+                                                                       'SCD',
+                                                                       'BN',
+                                                                       'SBDC',
+                                                                       'SBDF',
+                                                                       'SBD',
+                                                                       'PIN',
+                                                                       'DFG',
+                                                                       'SCDG',
+                                                                       'SBDG')
+                                                       AND raa.rxcui = crs.concept_code_1
+                                                       AND raa.merged_to_rxcui <> crs.concept_code_2
+                                                JOIN rxnsat rxs ON rxs.rxcui = raa.merged_to_rxcui AND rxs.atn = 'RXN_QUALITATIVE_DISTINCTION' AND rxs.sab = raa.sab
+                                          WHERE crs.relationship_id = 'Concept replaced by' AND crs.invalid_reason IS NULL AND crs.vocabulary_id_1 = 'RxNorm' AND crs.vocabulary_id_2 = 'RxNorm');
 COMMIT;
 
 --8 Working with replacement mappings

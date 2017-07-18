@@ -497,7 +497,11 @@ FROM (
 		when 'Gemscript' then -- specialized hierarchy
             case when c.domain_id = 'Drug' then 0
             else case when c.standard_concept = 'S' then 1 else 0 end 
-            end	        
+            end
+		when 'GRR' then -- specialized hierarchy
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end	                   
         when 'HES Specialty' then 0
         when 'ICD10CM' then 0
 		when 'BDPM' then -- specialized hierarchy

@@ -2090,7 +2090,20 @@ commit;
 -- Definition: d_combo, df and bn, no mf, quant and bs optional
 insert /*+ APPEND */ into full_corpus
 with ex as (
+-- Quant Branded Box
   select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id
+  from full_corpus where df_id!=0 and bn_id!=0
+union
+-- Branded Box
+  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id, bn_id
+  from full_corpus where df_id!=0 and bn_id!=0
+union
+-- Quant Branded Drug
+  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, 0 as bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id
+  from full_corpus where df_id!=0 and bn_id!=0
+union
+-- Branded Drug
+  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, bn_code, 0 as bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id, bn_id
   from full_corpus where df_id!=0 and bn_id!=0
 ),
 c as (
@@ -2177,7 +2190,20 @@ commit;
 -- Definition: d_combo, df, no bn and mf, quant and bs optional
 insert /*+ APPEND */ into full_corpus
 with ex as (
+-- Quant Clinical Box
   select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id
+  from full_corpus where df_id!=0
+union
+-- Clinical Box
+  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id
+  from full_corpus where df_id!=0
+union
+-- Quant Clinical Drug
+  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, 0 as bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id
+  from full_corpus where df_id!=0
+union
+-- Clinical Drug
+  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, 0 as bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id
   from full_corpus where df_id!=0
 ),
 c as (

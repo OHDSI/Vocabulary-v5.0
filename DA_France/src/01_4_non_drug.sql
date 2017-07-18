@@ -17,6 +17,7 @@
 * Date: 2017
 **************************************************************************/
 
+
 --delete duplicates
 delete from france where PFC IN (SELECT PFC FROM FRANCE GROUP BY PFC HAVING COUNT (1) >1) and
 rowid not in (

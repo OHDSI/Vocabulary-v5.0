@@ -426,13 +426,15 @@ select 'XXX'||xxx_seq.nextval as i_code, i_id from (
 -- Create table with all drug concepts linked to the codes of the ingredients (rather than full dose components)
 create table r_ing nologging as
 select * from (
+/*
   select de.concept_id as concept_id, an.concept_id as i_id
   from concept_ancestor a 
   join concept an on a.ancestor_concept_id=an.concept_id and an.vocabulary_id in ('RxNorm', 'RxNorm Extension') and an.concept_class_id='Ingredient'
   join concept de on de.concept_id=a.descendant_concept_id and de.vocabulary_id in ('RxNorm', 'RxNorm Extension') and de.concept_class_id not in ('Ingredient', 'Clinical Dose Group', 'Branded Dose Group')
 union
+*/
   select drug_concept_id as concept_id, ingredient_concept_id as i_id from drug_strength -- just in case, won't hurt if the internal_relationship table forgot something
-join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
+  join concept r on r.concept_id=drug_concept_id and r.vocabulary_id in ('RxNorm', 'RxNorm Extension')
   where drug_concept_id!=ingredient_concept_id -- in future, ingredients will also have records, where drug and ingredient ids are the same
 )
 join ing_stage using(i_id)

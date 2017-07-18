@@ -186,7 +186,7 @@ select distinct concept_name,concept_class_id from Forms
 --fill drug_concept_stage
 
 insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,DOMAIN_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select CONCEPT_NAME, 'DA_France','Drug', CONCEPT_CLASS_ID, 'S', CONCEPT_CODE, '', TO_DATE(sysdate, 'yyyy/mm/dd') as valid_start_date, --check start date
+select CONCEPT_NAME, 'DA_France','Drug', CONCEPT_CLASS_ID, 'S', CONCEPT_CODE, '', trunc(sysdate) as valid_start_date, --check start date
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
  from (
  select * from list_temp
@@ -205,7 +205,7 @@ substr(volume||' '||case molecule
   when 'NULL' then '' else dosage_add||' ' end||case form_desc when 'NULL' then '' else form_desc 
    end||case product_desc when 'NULL' then '' else ' ['||product_desc||']' end||' Box of '||packsize , 1,255
    )
-      as concept_name, 'DA_France','Device', 'Device', 'S', pfc, '', TO_DATE(sysdate, 'yyyy/mm/dd') as valid_start_date, --check start date
+      as concept_name, 'DA_France','Device', 'Device', 'S', pfc, '', trunc(sysdate) as valid_start_date, --check start date
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
 from non_drugs;
 
@@ -629,6 +629,44 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('MU', 'DA_France',8510,2,0.000001);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('MU', 'DA_France',8718,3,0.000001);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('H', 'DA_France',8505,1,1);
+
+
+
+
+--update ds_stage after relationship_to concept found identical ingredients
+drop table ds_sum;
+create table ds_sum as 
+with a  as (
+SELECT distinct ds.drug_concept_code,ds.ingredient_concept_code,ds.box_size, ds.AMOUNT_VALUE,ds.AMOUNT_UNIT,ds.NUMERATOR_VALUE,ds.NUMERATOR_UNIT,ds.DENOMINATOR_VALUE,ds.DENOMINATOR_UNIT,rc.concept_id_2
+      FROM ds_stage ds
+        JOIN ds_stage ds2 ON ds.drug_concept_code = ds2.drug_concept_code AND ds.ingredient_concept_code != ds2.ingredient_concept_code
+        JOIN relationship_to_concept rc ON ds.ingredient_concept_code = rc.concept_code_1
+        JOIN relationship_to_concept rc2 ON ds2.ingredient_concept_code = rc2.concept_code_1
+            WHERE rc.concept_id_2 = rc2.concept_id_2
+            )
+ select distinct DRUG_CONCEPT_CODE,max(INGREDIENT_CONCEPT_CODE)over (partition by DRUG_CONCEPT_CODE,concept_id_2) as ingredient_concept_code,box_size,
+ sum(AMOUNT_VALUE) over (partition by DRUG_CONCEPT_CODE)as AMOUNT_VALUE,AMOUNT_UNIT,sum(NUMERATOR_VALUE) over (partition by DRUG_CONCEPT_CODE,concept_id_2)as NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT
+ from a
+ union
+ select DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,box_size, null as AMOUNT_VALUE, '' as AMOUNT_UNIT, null as NUMERATOR_VALUE, '' as NUMERATOR_UNIT, null as DENOMINATOR_VALUE, '' as DENOMINATOR_UNIT 
+ from a where (drug_concept_code,ingredient_concept_code) not in (select drug_concept_code, max(ingredient_concept_code) from a group by drug_concept_code);
+delete from ds_stage where  (drug_concept_code,ingredient_concept_code) in (select drug_concept_code,ingredient_concept_code from ds_sum);
+INSERT INTO DS_STAGE SELECT * FROM DS_SUM where nvl(AMOUNT_VALUE,NUMERATOR_VALUE) is not null;
+--update irs after relationship_to concept found identical ingredients
+delete from internal_relationship_stage where (concept_code_1,concept_code_2) in (
+SELECT concept_code_1,concept_code_2
+      FROM (SELECT DISTINCT concept_code_1,concept_code_2, COUNT(concept_code_2) OVER (PARTITION BY concept_code_1) AS irs_cnt
+            FROM internal_relationship_stage
+              JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Ingredient') irs
+        JOIN (SELECT DISTINCT drug_concept_code, COUNT(ingredient_concept_code) OVER (PARTITION BY drug_concept_code) AS ds_cnt
+              FROM ds_stage) ds
+          ON drug_concept_code = concept_code_1   AND irs_cnt != ds_cnt)
+and  (concept_code_1,concept_code_2) not in (select drug_concept_code,ingredient_concept_code from ds_stage)        
+;
+
+
+
+
 insert into concept_synonym_stage
 (SYNONYM_NAME,SYNONYM_CONCEPT_CODE,SYNONYM_VOCABULARY_ID,LANGUAGE_CONCEPT_ID)
 select dose_form,concept_code,'DA_France','4180190' -- French language 

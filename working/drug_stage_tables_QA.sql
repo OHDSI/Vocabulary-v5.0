@@ -330,6 +330,11 @@ UNION
       OR    amount_unit IN ('%','pct','percent')
       OR    denominator_unit IN ('%','pct','percent')
 UNION
+      SELECT drug_concept_code,'wrong dosage with ml'
+      FROM ds_stage
+      WHERE lower(numerator_unit) IN ('ml')
+      OR    lower(amount_unit) IN ('ml')
+UNION      
       SELECT drug_concept_code, 'problems in ds_stage'
       FROM ds_stage
       WHERE COALESCE(amount_value,numerator_value,0) = 0
@@ -451,5 +456,3 @@ where concept_code_1 is null and cc.invalid_reason is null
 and dcs.concept_class_id in ('Ingredient', 'Brand Name', 'Dose Form', 'Supplier')
 )
 GROUP BY error_type;
-
-

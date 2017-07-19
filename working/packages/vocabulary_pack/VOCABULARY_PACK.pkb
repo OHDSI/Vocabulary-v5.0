@@ -965,8 +965,8 @@ IS
                       := var_array ('timur.vakhitov@firstlinesoftware.com',
                                     'reich@ohdsi.org',
                                     'reich@omop.org',
-                                    'alexander.yatsenko@odysseusinc.com',
-                                    'anna.ostropolets@odysseusinc.com');
+                                    'anna.ostropolets@odysseusinc.com',
+                                    'ddymshyts@odysseusinc.com');
         cRet      VARCHAR2 (5000);
         cVocabs   VARCHAR2 (4000);
     BEGIN

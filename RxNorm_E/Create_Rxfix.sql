@@ -463,7 +463,7 @@ INSERT /*+ APPEND */
             INGREDIENT_CONCEPT_CODE,BOX_SIZE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
    SELECT  drug_concept_code, ingredient_concept_code,box_size,amount_value,amount_unit,numerator_value,numerator_unit,denominator_value,denominator_unit 
      FROM (
-            SELECT  c.concept_code as drug_concept_code, c2.concept_code as ingredient_concept_code,ds.box_size,amount_value,c3.concept_code END AS amount_unit,ds.numerator_value END AS numerator_value,c4.concept_code END AS numerator_unit,
+            SELECT  c.concept_code as drug_concept_code, c2.concept_code as ingredient_concept_code,ds.box_size,amount_value,c3.concept_code AS amount_unit,ds.numerator_value AS numerator_value,c4.concept_code AS numerator_unit,
             ds.denominator_value,c5.concept_code AS denominator_unit 
               FROM concept c
                    JOIN drug_concept_stage dc on dc.concept_code=c.concept_code AND dc.concept_class_id='Drug Product'

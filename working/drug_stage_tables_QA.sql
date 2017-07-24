@@ -444,6 +444,9 @@ UNION
       FROM pc_stage
       WHERE drug_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage)
 UNION
+
+ select drug_concept_code, 'drug_ingr relationship is missing from irs' from ds_Stage where (drug_concept_code, ingredient_concept_code) not in (select concept_code_1, concept_code_2 from internal_relationship_stage)
+union
       SELECT pack_concept_code, 'pc missing'
       FROM pc_stage
       WHERE pack_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage)

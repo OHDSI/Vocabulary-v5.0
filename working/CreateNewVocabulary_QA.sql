@@ -149,7 +149,7 @@ union all
 select lower(concept_name) from concept  where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
 )
 group by concept_name having count(1)>1)
-
+and vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
 union
 
 

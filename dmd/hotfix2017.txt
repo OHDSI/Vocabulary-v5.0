@@ -71,6 +71,7 @@ delete from relationship_to_concept where  CONCEPT_ID_2 in (
       ;
 commit
 ;
+ select * from ds_stage_1;
 drop table ds_stage_1;
 create table ds_stage_1 as select * from ds_stage;
 TRUNCATE TABLE ds_stage; 
@@ -102,6 +103,76 @@ delete from ds_stage where ingredient_concept_code is null
 ;
 commit
 ;
+delete drug_concept_stage where concept_code in (select pack_concept_code from pc_stage);
+delete drug_concept_stage where concept_code in (select drug_concept_code from pc_stage);
+delete internal_relationship_stage where concept_code_1 in (select pack_concept_code from pc_stage);
+delete internal_relationship_stage where concept_code_1 in (select drug_concept_code from pc_stage);
+delete ds_stage where drug_concept_code in (select drug_concept_code from pc_stage);commit; 
+truncate table pc_stage;
 
+delete drug_concept_stage where concept_code in (select drug_concept_code from  ds_stage where upper (numerator_unit) in ('DH','C','CH','D','TM','X','XMK') and denominator_value is not null);
+delete internal_relationship_stage where concept_code_1 in (select drug_concept_code from  ds_stage where upper (numerator_unit)  in ('DH','C','CH','D','TM','X','XMK') and denominator_value is not null);
+delete ds_stage where upper (numerator_unit) in ('DH','C','CH','D','TM','X','XMK') and denominator_value is not null;
+commit
+;
+--PUT ALREADY UP-TO date concepts into internal_relationship_stage 
+update internal_relationship_stage rr set concept_code_2 = (
 
-
+select irs2_concept_code_2 from 
+(
+  SELECT irs1.concept_code_1 as irs1_concept_code_1, irs1.concept_code_2 as irs1_concept_code_2, irs2.concept_code_2 as irs2_concept_code_2  
+      FROM internal_relationship_stage irs1
+        JOIN drug_concept_stage dcs1 ON dcs1.concept_code = irs1.concept_code_2
+       JOIN  internal_relationship_stage irs2 on irs1.concept_code_2 = irs2.concept_code_1
+       join drug_concept_stage dcs2 on dcs2.concept_code = irs2.concept_code_2 and dcs2.concept_class_id = dcs1.concept_ClasS_id and dcs2.invalid_reason is null
+      WHERE dcs1.invalid_reason IS NOT NULL
+      ) a  where a.irs1_concept_code_1 = rr.concept_code_1  and a.irs1_concept_code_1 = rr.concept_code_1 )
+WHERE EXISTS (
+select 1 from 
+(
+  SELECT irs1.concept_code_1 as irs1_concept_code_1, irs1.concept_code_2 as irs1_concept_code_2, irs2.concept_code_2 as irs2_concept_code_2  
+      FROM internal_relationship_stage irs1
+        JOIN drug_concept_stage dcs1 ON dcs1.concept_code = irs1.concept_code_2
+       JOIN  internal_relationship_stage irs2 on irs1.concept_code_2 = irs2.concept_code_1
+       join drug_concept_stage dcs2 on dcs2.concept_code = irs2.concept_code_2 and dcs2.concept_class_id = dcs1.concept_ClasS_id and dcs2.invalid_reason is null
+      WHERE dcs1.invalid_reason IS NOT NULL
+      ) a  where a.irs1_concept_code_1 = rr.concept_code_1  and a.irs1_concept_code_1 = rr.concept_code_1 )
+;
+create table irs_tmp as      select distinct * from internal_relationship_stage
+;
+drop table internal_relationship_stage
+;
+create table  internal_relationship_stage  as  select distinct * from irs_tmp
+;
+drop table irs_tmp
+;
+--ML is not allowed as a dosage
+   delete from ds_Stage where  DRUG_CONCEPT_CODE in ( SELECT DRUG_CONCEPT_CODE
+      FROM ds_stage
+      join drug_concept_stage on DRUG_CONCEPT_CODE = concept_code
+      WHERE lower(numerator_unit) IN ('ml')
+      OR    lower(amount_unit) IN ('ml')
+      )
+      ;
+commit
+;
+--insert name equal mappings
+insert into relationship_to_concept ( concept_code_1,  concept_id_2, precedence) 
+select   concept_code,  concept_id ,  rank() over (partition by concept_code order by  concept_id) as precedence  from (
+select distinct dcs.concept_code, cc.concept_id 
+from drug_concept_stage dcs
+join concept cc on lower (cc.concept_name) = lower (dcs.concept_name) and cc.concept_class_id = dcs.concept_class_id and cc.vocabulary_id like 'RxNorm%'
+left join relationship_to_concept cr on dcs.concept_code = cr.concept_code_1
+where concept_code_1 is null and cc.invalid_reason is null
+and dcs.concept_class_id in ('Ingredient', 'Brand Name', 'Dose Form', 'Supplier')
+)
+;
+commit
+;
+--PPM problem, solve it later, ppm = 0.0001 % = 1 mg/L 
+delete from ds_stage where amount_unit = 'ppm'
+;
+delete from ds_stage where NUMERATOR_UNIT = 'ppm'
+;
+commit
+;

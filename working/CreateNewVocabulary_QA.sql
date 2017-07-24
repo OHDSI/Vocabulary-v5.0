@@ -139,6 +139,19 @@ from drug_strength_stage
 where (NUMERATOR_UNIT_CONCEPT_ID=8554 and DENOMINATOR_UNIT_CONCEPT_ID is not null) or AMOUNT_UNIT_CONCEPT_ID=8554
 
 UNION
+--same name in concept and concept_stage
+select concept_name, 'same name in concept and concept_stage'
+
+  from concept_stage where lower(concept_name) in (select concept_name from
+(
+select lower(concept_name)as concept_name from concept_stage where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+union all
+select lower(concept_name) from concept  where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+)
+group by concept_name having count(1)>1)
+
+union
+
 
 select r.concept_code_1 as concept_code, 'Concept_replaced by many concepts' --count(*) 
 From concept_stage c1, concept_stage c2, concept_relationship_stage r

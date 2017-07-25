@@ -115,6 +115,11 @@ delete internal_relationship_stage where concept_code_1 in (select drug_concept_
 delete ds_stage where upper (numerator_unit) in ('DH','C','CH','D','TM','X','XMK') and denominator_value is not null;
 commit
 ;
+delete drug_concept_stage where concept_code in (select drug_concept_code from  ds_stage where upper (amount_unit) in ('DH','C','CH','D','TM','X','XMK') );
+delete internal_relationship_stage where concept_code_1 in (select drug_concept_code from  ds_stage where upper (amount_unit)  in ('DH','C','CH','D','TM','X','XMK') );
+delete ds_stage where drug_concept_code in (select drug_concept_code from  ds_stage where upper (amount_unit)  in ('DH','C','CH','D','TM','X','XMK') )  ;
+commit
+;
 --PUT ALREADY UP-TO date concepts into internal_relationship_stage 
 update internal_relationship_stage rr set concept_code_2 = (
 
@@ -176,3 +181,67 @@ delete from ds_stage where NUMERATOR_UNIT = 'ppm'
 ;
 commit
 ;
+update relationship_to_concept set precedence =1 where   precedence is null
+;
+commit
+;
+--add various mappgings to Suppliers
+drop table RxE_Man_st_0;
+create table RxE_Man_st_0 as
+select concept_code_1 as concept_code_1 ,
+  concept_id,  rank() over (partition by concept_code_1 order by concept_id) as precedence
+from (
+select concept_code_1, c.concept_id  from relationship_to_concept
+join concept c on concept_id_2 = concept_id where concept_class_id = 'Supplier'
+union
+select a.concept_code, c.concept_id from drug_concept_stage a 
+join devv5.concept c on 
+regexp_replace(lower(a.concept_name),' ltd| plc| uk| \(.*\)| pharmaceuticals| pharma| gmbh| laboratories| ab| international| france| imaging')=
+regexp_replace(lower(c.concept_name),' ltd| plc| uk| \(.*\)| pharmaceuticals| pharma| gmbh| laboratories| ab| international| france| imaging')
+where a.concept_class_id = 'Supplier' 
+and (a.concept_code, c.concept_Id) not in (select concept_code_1, concept_id_2 from relationship_to_concept)
+and c.vocabulary_id like 'RxNorm%' and c.concept_class_id=  'Supplier' and c.invalid_reason is null
+)
+;
+select count(*) from RxE_Man_st_0
+;
+delete from relationship_to_concept where concept_code_1 in (select concept_code_1 from RxE_Man_st_0)
+;
+insert into relationship_to_concept  (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
+select concept_code_1, 'dm+d', CONCEPT_ID, precedence, '' 
+from RxE_Man_st_0  -- RxNormExtension name equivalence
+;
+commit
+;
+--more duplicates fixing
+delete from ds_Stage where drug_concept_code in (
+select CONCEPT_CODE_1
+  from concept_stage 
+join concept_relationshiP_stage on concept_code_2 = concept_code and relationship_id ='Maps to'
+where lower(concept_name) in (select concept_name from
+(
+select lower(concept_name)as concept_name from concept_stage where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+union all
+select lower(concept_name) from concept  where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+)
+group by concept_name having count(1)>1)
+and vocabulary_id like 'Rx%'
+)
+;
+ delete internal_relationship_stage where concept_code_1 in
+(
+select CONCEPT_CODE_1
+  from concept_stage 
+join concept_relationshiP_stage on concept_code_2 = concept_code and relationship_id ='Maps to'
+where lower(concept_name) in (select concept_name from
+(
+select lower(concept_name)as concept_name from concept_stage where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+union all
+select lower(concept_name) from concept  where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+)
+group by concept_name having count(1)>1)
+and vocabulary_id like 'Rx%'
+)
+;
+commit
+; 

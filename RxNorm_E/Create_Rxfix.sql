@@ -494,7 +494,7 @@ COMMIT;
 --Drug to form
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage
-    SELECT distinct dc.concept_code, c2.concept_code END AS concept_code_2  
+    SELECT distinct dc.concept_code, c2.concept_code AS concept_code_2  
       FROM drug_concept_stage dc
            JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id like 'RxNorm%' AND dc.concept_class_id = 'Drug Product'
            JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL

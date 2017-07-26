@@ -454,6 +454,9 @@ INSERT /*+ APPEND */
 									  FROM drug_strength UNPIVOT (units FOR units_ids IN (amount_unit_concept_id, numerator_unit_concept_id, denominator_unit_concept_id))) ds
 								   JOIN concept c_int ON c_int.concept_id = ds.drug_concept_id AND c_int.vocabulary_id = 'RxNorm Extension')
 ;
+DELETE drug_concept_stage 
+WHERE invalid_reason is not null;
+
 COMMIT;
 
 --10 filling drug_strength
@@ -521,11 +524,21 @@ INSERT /*+ APPEND */
 COMMIT;
 
  --drug to ingredient
+
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
     SELECT distinct dc.concept_code,c2.concept_code
       FROM drug_concept_stage dc
-           JOIN concept c ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id not like '%Pack%' AND dc.concept_name NOT LIKE '%Pack%'
+           JOIN concept c ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id not like '%Pack%' AND dc.concept_name NOT LIKE '%} Pack%'
+           JOIN drug_strength on drug_concept_id=c.concept_id
+           JOIN concept c2 ON ingredient_concept_id=c2.concept_id AND c2.concept_class_id='Ingredient'
+;
+
+INSERT /*+ APPEND */
+      INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
+    SELECT distinct dc.concept_code,c2.concept_code
+      FROM drug_concept_stage dc
+           JOIN concept c ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id not like '%Pack%' AND dc.concept_name NOT LIKE '%} Pack%'
            JOIN concept_ancestor ca ON descendant_concept_id=c.concept_id
            JOIN concept c2 ON ancestor_concept_id=c2.concept_id AND c2.concept_class_id='Ingredient'
     WHERE NOT EXISTS
@@ -620,8 +633,10 @@ UPDATE concept_relationship
    SET invalid_reason = 'D', valid_end_date = TRUNC(SYSDATE) -1
 WHERE concept_id_1 IN (SELECT concept_id_1
                        FROM concept_relationship
-                         JOIN concept ON concept_id_1 = concept_id AND vocabulary_id = 'RxO')
-OR    concept_id_2 IN (SELECT concept_id_2
+                         JOIN concept ON concept_id_1 = concept_id AND vocabulary_id = 'RxO');
+UPDATE concept_relationship
+   SET invalid_reason = 'D', valid_end_date = TRUNC(SYSDATE) -1
+WHERE concept_id_2 IN (SELECT concept_id_2
                        FROM concept_relationship
                          JOIN concept ON concept_id_2 = concept_id AND vocabulary_id = 'RxO');
 COMMIT;

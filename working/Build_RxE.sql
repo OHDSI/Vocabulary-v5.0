@@ -2399,16 +2399,19 @@ left join (select concept_id, i_combo as ri_combo, d_combo as rd_combo, bn_id fr
 commit;
 
 -- Break up multi-ingredient ds and r for Clinical Drug Components
-create table q_singleton nologging as 
-select distinct d_combo as qd_combo, i_code as q_i, ds_code as q_ds
-from q_combo join q_ds using(concept_code) 
+-- Note that q_breakup contains both singletons (those taht exist and those that are part of a combo, and combos. r_breakup contains only combos and needs to be unioned.
+create table q_breakup nologging as 
+-- break up all rd_combos in q_combo
+select d_combo as qd_combo, i_code as q_i, ds_code as q_ds from q_combo join q_ds using(concept_code) 
+union
+select cast(ds_code as varchar2(50)), ingredient_concept_code, ds_code from q_uds
 ;
 
-create table r_singleton nologging as 
+create table r_breakup nologging as 
 select rd_combo, nvl(r.i_code, e.i_code) as r_i, ds_code as r_ds from (
 -- break up all rd_combos in x_pattern
   select rd_combo, cast(trim(regexp_substr(rd_combo, '[^\-]+', 1, levels.column_value)) as number) as ds_code
-  from (select distinct rd_combo from x_pattern),
+  from (select distinct rd_combo from x_pattern where rd_combo like '%-%'), -- only resolve multi-combos, in contrast to q_breakup
   table(cast(multiset(select level from dual connect by level <= length (regexp_replace(rd_combo, '[^\-]+'))+1) as sys.OdciNumberList)) levels
 )
 left join r_uds r using(ds_code) left join extension_uds e using(ds_code) -- get i_code
@@ -2422,9 +2425,14 @@ with ex as (
 -- get all singleton translations
   from (select distinct qd_combo, rd_combo from full_corpus)
 -- break up qd_combo
-  join q_singleton using(qd_combo)
+  join q_breakup using(qd_combo)
   -- break up rd_combo
-  join r_singleton using(rd_combo)
+  join (
+    select * from r_breakup -- break up combos
+  union
+    select rd_combo, ri_combo, cast(rd_combo as number) as ds_code from x_pattern where rd_combo not like '%-%' and rd_combo is not null -- singletons
+order by 1
+  ) using(rd_combo)
 -- combine the ones that belong together
   join (
     select qi_code as q_i, ri_code as r_i from qr_ing
@@ -2436,7 +2444,7 @@ c as (
   select
     q_i as qi_combo, cast(q_ds as varchar2(50)) as qd_combo
   from q_combo
-  join q_singleton on d_combo=qd_combo
+  join q_breakup on d_combo=qd_combo
   where d_combo!=' ' 
 minus
 -- exclude the combinations already translated previously
@@ -2536,10 +2544,15 @@ with n as ( -- translate i_code to ingredient name
 union
   select ri_code, concept_name from extension_i join drug_concept_stage on concept_code=qi_code
 ),
+combo as ( -- resolve combos and keep singletons
+  select rd_combo, cast(rd_combo as number) as ds_code from extension_attribute where rd_combo not like '%-%' and rd_combo!=' '-- singletons
+union
+  select rd_combo, r_ds as ds_code from r_breakup -- break up combos
+),
 -- Get all ds
 ds_comp as (
   select 
-    rd_combo, concept_name,
+    ds_code, concept_name,
     amount_value+numerator_value as v, -- one of them is null
     case
       when numerator_unit_concept_id in (8554, 9325, 9324) then nu.rxn_unit -- percent and homeopathics 
@@ -2550,19 +2563,20 @@ ds_comp as (
     select * from extension_uds union
     select * from r_uds -- adding them even though they already exist because they might be one of many components
   )
-  join r_singleton on ds_code=r_ds -- break up combos
   join n using(i_code) -- get names
 -- translate units back to RxNorm lingo
   left join rxnorm_unit au on au.concept_id=amount_unit_concept_id
   left join rxnorm_unit nu on nu.concept_id=numerator_unit_concept_id
   left join rxnorm_unit de on de.concept_id=denominator_unit_concept_id
 ),
--- Add a 0 before a leading dot
-u as (
-  select
-    rd_combo,
+c as ( -- combine with combos
+  select rd_combo, concept_name, v, u
+  from ds_comp join combo using(ds_code)
+),
+u as ( -- build component and add a 0 before a leading dot
+  select rd_combo,
     concept_name||case when v is null then null else ' '||regexp_replace(v, '^\.', '0.') ||' '||u end as comp_name
-  from ds_comp
+  from c
 )
 -- build the component
 select
@@ -3169,9 +3183,13 @@ select distinct
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from ( -- Create de that has ds_code instead of d_combo by splitting them up
-  select cast(r_ds as varchar2(50)) as r_ds, -- component ds from rd_combo
+  select nvl(cast(r_ds as varchar2(50)), rd_combo) as r_ds, -- component ds from rd_combo
   concept_code, vocabulary_id, concept_id, r_value, quant_unit_id, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id
-  from ex join r_singleton using(rd_combo)
+  from ex join (
+    select rd_combo, cast(rd_combo as number) as r_ds from extension_attribute where rd_combo not like '%-%' and rd_combo!=' ' -- singletons
+  union
+    select rd_combo, r_ds as ds_code from r_breakup -- break up combos
+  ) using(rd_combo) -- singleton misses singletons that are not in combos. They never get added.
   where concept_class_id in ('Clinical Drug', 'Branded Drug Comp') -- the only concept class it connects to
 ) de 
 join rl on rl.concept_class_2=de.concept_class_id and rl.concept_class_1='Clinical Drug Comp'
@@ -3648,7 +3666,11 @@ select
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason
 from extension_attribute
-join r_singleton using(rd_combo) -- resolve combos
+join (
+  select rd_combo, cast(rd_combo as number) as r_ds from extension_attribute where rd_combo not like '%-%' and rd_combo!=' ' -- singletons
+union
+  select rd_combo, r_ds as ds_code from r_breakup -- break up combos
+) using(rd_combo) -- resolve combos
 join ( -- get the strength detail, either from r or the new extension
   select * from r_uds union select * from extension_uds
 ) on ds_code=r_ds
@@ -3810,8 +3832,8 @@ drop table extension_df purge;
 drop table extension_bn purge;
 drop table extension_mf purge;
 drop table full_corpus purge;
-drop table q_singleton purge;
-drop table r_singleton purge;
+drop table q_breakup purge;
+drop table r_breakup purge;
 drop table extension_attribute purge;
 drop table maps_to purge;
 drop table rxnorm_unit purge;

@@ -244,4 +244,28 @@ and vocabulary_id like 'Rx%'
 )
 ;
 commit
-; 
+;
+--should be changed to mg/L when ds_stage was created
+delete from relationship_to_concept where concept_code_1 ='ppm'
+;
+--Marketed Drugs without the dosage or Drug Form are not allowed
+delete from internal_relationship_stage where (concept_code_1, concept_code_2) in 
+(
+select concept_code_1,concept_code_2   from drug_concept_stage  dcs
+join (
+SELECT concept_code_1, concept_code_2
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+left join ds_stage on drug_concept_code = concept_code_1 
+where drug_concept_code is null
+union 
+SELECT concept_code_1, concept_code_2
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+where concept_code_1 not in (SELECT concept_code_1
+                                  FROM internal_relationship_stage
+                                    JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form')
+) s on s.concept_code_1 = dcs.concept_code
+where dcs.concept_class_id = 'Drug Product' and invalid_reason is null 
+)
+;

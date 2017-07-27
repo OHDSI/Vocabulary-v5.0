@@ -25,6 +25,7 @@ declare
 main_schema_name constant varchar2(100):='DEVV5';
 include_synonyms constant boolean:=false;
 include_deprecated_rels constant boolean:=false;
+include_concept_ancestor constant boolean:=true;
 begin 
 	execute immediate 'ALTER TABLE source_to_concept_map DROP CONSTRAINT fpk_source_to_concept_map_v_1';
 	execute immediate 'ALTER TABLE source_to_concept_map DROP CONSTRAINT fpk_source_to_concept_map_v_2';
@@ -49,7 +50,11 @@ begin
 
 
 	/*CTAS with NOLOGGING (faster)*/
-	execute immediate 'CREATE TABLE concept_ancestor NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_ancestor';
+	if include_concept_ancestor then
+		execute immediate 'CREATE TABLE concept_ancestor NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_ancestor';
+	else
+		execute immediate 'CREATE TABLE concept_ancestor NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_ancestor where 1=0';
+	end if;
 	execute immediate 'CREATE TABLE concept NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept';
 	if include_deprecated_rels then
 		execute immediate 'CREATE TABLE concept_relationship NOLOGGING AS SELECT * FROM '||main_schema_name||'.concept_relationship';

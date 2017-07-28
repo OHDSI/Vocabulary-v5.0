@@ -6,7 +6,7 @@
 
 4.Run drug_stage_tables_QA.sql from working directory
 
-5.Run Build_RxE.sql with concept_relationship_stage replacement.sql
+5.Run Build_RxE.sql 
  
 6.Run CreateNewVocabulary_QA.sql
 

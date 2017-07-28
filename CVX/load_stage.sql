@@ -60,6 +60,7 @@ INSERT INTO concept_stage (concept_name,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
      FROM CVX c;
+
 COMMIT;			
 
 --4. load into concept_synonym_stage

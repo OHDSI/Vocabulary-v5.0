@@ -288,8 +288,6 @@ drop sequence omop_seq;
 drop table inval_rxe purge;
 drop table rxn_rxn purge;
 
-delete from vocabulary where vocabulary_id in ('RxO','Rxfix'); 
-
 begin
     delete from drug_strength ds where drug_concept_id in (select concept_id from concept where vocabulary_id='RxO');
     delete from drug_strength ds where ingredient_concept_id in (select concept_id from concept where vocabulary_id='RxO');
@@ -299,6 +297,7 @@ begin
     delete from concept_relationship where concept_id_2 in (select concept_id from concept where vocabulary_id='RxO');
     delete from concept_synonym where concept_id in (select concept_id from concept where vocabulary_id='RxO');
     delete from concept where vocabulary_id='RxO';
+    delete from vocabulary where vocabulary_id in ('RxO', 'Rxfix'); 
 end;
 /
 commit;

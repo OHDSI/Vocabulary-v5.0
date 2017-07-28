@@ -138,15 +138,23 @@ UNION
               FROM ds_stage) ds
           ON drug_concept_code = concept_code_1   AND irs_cnt != ds_cnt
  UNION
-      SELECT concept_code, 'Marketed Product must have strength and dose form otherwise Supplier needs to be removed'
-      FROM drug_concept_stage
-      WHERE concept_class_id = 'Drug Product'
-      AND   concept_code IN (SELECT concept_code_1
-                             FROM internal_relationship_stage
-                               JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier')
-      AND   (concept_code NOT IN (SELECT concept_code_1
+      --Marketed Drugs without the dosage or Drug Form
+select concept_code, 'Marketed Drugs without the dosage or Drug Form' from drug_concept_stage  dcs
+join (
+SELECT concept_code_1
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+left join ds_stage on drug_concept_code = concept_code_1 
+where drug_concept_code is null
+union 
+SELECT concept_code_1
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+where concept_code_1 not in (SELECT concept_code_1
                                   FROM internal_relationship_stage
-                                    JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form') OR concept_code NOT IN (SELECT drug_concept_code FROM ds_stage))
+                                    JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form')
+) s on s.concept_code_1 = dcs.concept_code
+where dcs.concept_class_id = 'Drug Product' and invalid_reason is null 
 UNION
       --4.drug_concept_stage
       --duplicates in drug_concept_stage table
@@ -330,6 +338,11 @@ UNION
       OR    amount_unit IN ('%','pct','percent')
       OR    denominator_unit IN ('%','pct','percent')
 UNION
+      SELECT drug_concept_code,'wrong dosage with ml'
+      FROM ds_stage
+      WHERE lower(numerator_unit) IN ('ml')
+      OR    lower(amount_unit) IN ('ml')
+UNION      
       SELECT drug_concept_code, 'problems in ds_stage'
       FROM ds_stage
       WHERE COALESCE(amount_value,numerator_value,0) = 0
@@ -439,6 +452,9 @@ UNION
       FROM pc_stage
       WHERE drug_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage)
 UNION
+
+ select drug_concept_code, 'drug_ingr relationship is missing from irs' from ds_Stage where (drug_concept_code, ingredient_concept_code) not in (select concept_code_1, concept_code_2 from internal_relationship_stage)
+union
       SELECT pack_concept_code, 'pc missing'
       FROM pc_stage
       WHERE pack_concept_code NOT IN (SELECT concept_code FROM drug_concept_stage)
@@ -451,5 +467,3 @@ where concept_code_1 is null and cc.invalid_reason is null
 and dcs.concept_class_id in ('Ingredient', 'Brand Name', 'Dose Form', 'Supplier')
 )
 GROUP BY error_type;
-
-

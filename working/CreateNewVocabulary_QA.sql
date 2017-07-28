@@ -18,50 +18,17 @@
 **************************************************************************/
 select error_type, count (1) from (
 
---Improper valid_end_date
-select concept_code, 'Improper valid_end_date'  as error_type from concept_stage where concept_code not in (
-select concept_code  from concept_stage
-where  valid_end_date <=SYSDATE or valid_end_date = to_date ('2099-12-31', 'YYYY-MM-DD') )
-UNION
---Improper valid_start_date
-select concept_code, 'Improper valid_start_date' from concept_stage where valid_start_date > SYSDATE
-
-UNION
-
 --dublicates
-select concept_Code,'Duplicates in existing_concept_stage' 
-from existing_concept_stage group by concept_Code having count(1)>1
+select concept_Code,'Duplicate codes in concept_stage'  as error_type
+from concept_stage group by concept_Code having count(1)>1
 
 UNION
 
-select concept_Code_1,'Duplicates in concept_relationship_stage' from
-(select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON
-from concept_relationship_stage group by CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON having count(1)>1)
-
-UNION
-
---complete_concept_stage
-
---Check if the name in complete_concept_stage is correct
-select cs.concept_Code,'Wrong Brand Name in concept_stage' from
-concept_stage cs  LEFT JOIN xxx_replace x ON x.omop_code=cs.concept_code
-LEFT JOIN complete_concept_stage ccs on ccs.concept_code=x.xxx_code
-LEFT JOIN complete_concept_stage ccs2 on ccs2.concept_code=cs.concept_code
-LEFT JOIN drug_concept_stage dcs ON coalesce(ccs.brand_code,ccs2.brand_code)=dcs.concept_code
---LEFT JOIN drug_concept_stage dcs ON ccs2.brand_code=dcs.concept_code
-WHERE (regexp_substr(cs.concept_name,'\[.*\]',1,2))!='['||dcs.concept_name||']' AND cs.concept_class_id like '%Branded%'
-
-UNION
-
-select exs.concept_code,'Compete_concept_stage dont have concepts which are present in existing_Concept_stage'
-from existing_Concept_stage exs 
-LEFT JOIN complete_concept_stage ccs ON ccs.i_combo_code=exs.i_Combo_code AND ccs.DENOMINATOR_VALUE=exs.DENOMINATOR_VALUE
-AND ccs.D_COMBO_CODE=exs.D_COMBO_CODE AND ccs.dose_form_code=exs.dose_form_code AND exs.brand_Code=ccs.brand_code AND ccs.box_size=exs.box_size and ccs.mf_code=exs.mf_Code
-WHERE ccs.concept_code IS NULL
+select concept_name,'Duplicate names in concept_stage (RxE)' 
+from concept_stage where lower(concept_name) in (select lower(concept_name) from concept_stage where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' group by concept_name having count(1)>1)
 
 UNION
 --concept_relationship_stage
-
 select concept_code_2,'Missing concept_code_1'
 from concept_relationship_stage where concept_code_1 is null
 
@@ -82,16 +49,6 @@ concept_relationship_stage crs
 LEFT JOIN concept_stage cs ON cs.concept_code=crs.concept_code_1
 WHERE cs.concept_code is null
 AND crs.vocabulary_id_1=cs.vocabulary_id
-
-UNION
-
-
-select cs.concept_code, 'Concepts from concept_stage do not have any relationship'  
-from concept_stage cs
- LEFT JOIN concept_relationship_stage crs ON cs.concept_code=crs.concept_code_1 OR cs.concept_code=crs.concept_code_2 
-LEFT JOIN  concept_relationship_stage CR2 ON cs.concept_code=CR2.concept_code_2 OR cs.concept_code=CR2.concept_code_1
-WHERE crs.CONCEPT_CODE_1 IS NULL AND CR2.CONCEPT_CODE_2 IS NULL
-and cs.domain_id = 'Drug'
 
 UNION
 
@@ -143,36 +100,11 @@ OR cs2.concept_class_id not like '%Comp%')
 
 
 UNION
-
 --concept_stage
-
---Check for duplicates, different standard_concept might be a problem
-select concept_code,'Duplicates in concept_stage'
-from concept_stage GROUP BY concept_Code HAVING COUNT (1)>1
-
-UNION
-
---Marketed products
-select cs.concept_code,'Marketed product represents more than one sub-product'
-from concept_stage cs 
-LEFT JOIN concept_relationship_stage crs ON crs.CONCEPT_CODE_1=cs.concept_code and crs.RELATIONSHIP_ID ='Marketed form of' 
-LEFT JOIN  concept_relationship_stage CR2 ON cs.concept_code=CR2.concept_code_2 OR cs.concept_code=CR2.concept_code_1 and cr2.RELATIONSHIP_ID ='Has marketed form' 
-WHERE cs.concept_class_id like 'Marketed%' and crs.CONCEPT_CODE_1 IS NULL AND CR2.CONCEPT_CODE_2 IS NULL
-
-UNION
-
-select concept_code_1 as concept_Code , 'Marketed products have relationships other than Marketed form of,Has Supplier'  from (
-select crs.concept_code_1, crs.relationship_id from concept_stage cs 
-JOIN concept_relationship_stage crs ON crs.CONCEPT_CODE_1=cs.concept_code 
-AND crs.VOCABULARY_ID_1=cs.VOCABULARY_ID WHERE cs.concept_class_id like 'Marketed%' 
-AND crs.RELATIONSHIP_ID not in ('Marketed form of', 'Has Supplier', 'Contains'))
-
-UNION
 
 --important query - without it we'll ruin Generic_update
 select distinct concept_class_id,'Wrong concept_class_id in concept_stage'
 from concept_stage where concept_class_id not in (select distinct concept_class_id from devv5.concept_class)
-
 
 UNION
 
@@ -186,64 +118,40 @@ from concept_stage c JOIN concept_relationship_stage cr ON cr.concept_code_2=c.c
 WHERE c.standard_concept='S' and (c.invalid_reason='U' or c.invalid_reason='D')
 
 UNION
-
--- duplicated attributes
-/*with new_concept as (select * from  concept UNION  select * from  concept_stage), 
-new_concept_relat as (
-select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_relationship_stage
-UNION
-select CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_2,CONCEPT_CODE_1,VOCABULARY_ID_1,VOCABULARY_ID_2,'reverse '||RELATIONSHIP_ID as RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from concept_relationship_stage
-)
- select  concept_code_1, 'duplicated attributes'
-  from new_concept_relat r
-join new_concept b on concept_code_1 = b.concept_code
-join new_concept c on concept_code_2 = c.concept_code
-where c.concept_class_id in ('Dose Form', 'Brand Name', 'Supplier')
-and b.vocabulary_id like 'RxNorm%' and c.vocabulary_id like 'RxNorm%' and r.invalid_reason is null and (b.concept_class_id like '%Drug%' or b.concept_class_id like '%Marketed%' or  b.concept_class_id like '%Box%' ) --And relationship_id = 'RxNorm has dose form'
-group by concept_code_1, c.concept_class_id having count (1) >1 
-
-UNION
- 
-*/
-
-select concept_name,'Valid dublicates'
- from concept_stage where vocabulary_id = 'RxNorm Extension' and concept_name not like '%...%' and invalid_reason is null
-group by concept_name , invalid_reason 
- having count (1) > 1
-
-UNION
-
 --drug_strength
-
 select distinct drug_concept_code, 'Impossible dosages' 
 from drug_strength_stage 
 where ( NUMERATOR_UNIT_CONCEPT_ID=8576 and DENOMINATOR_UNIT_CONCEPT_ID=8587 and NUMERATOR_VALUE / DENOMINATOR_VALUE > 1000 )
 or 
 (NUMERATOR_UNIT_CONCEPT_ID=8576 and DENOMINATOR_UNIT_CONCEPT_ID=8576 and NUMERATOR_VALUE / DENOMINATOR_VALUE > 1 )
-
-
 UNION
 
+SELECT drug_concept_code, 'missing unit'
+      FROM drug_strength_stage
+      WHERE (numerator_value IS NOT NULL AND numerator_unit_concept_id IS NULL)
+      OR    (denominator_value IS NOT NULL AND denominator_unit_concept_id IS NULL)
+      OR    (amount_value IS NOT NULL AND amount_unit_concept_id IS NULL)
+
+UNION
 
 select distinct drug_concept_code, 'Percents in wrong place' 
 from drug_strength_stage 
 where (NUMERATOR_UNIT_CONCEPT_ID=8554 and DENOMINATOR_UNIT_CONCEPT_ID is not null) or AMOUNT_UNIT_CONCEPT_ID=8554
 
-
 UNION
+--same name in concept and concept_stage
+select concept_name, 'same name in concept and concept_stage'
 
+  from concept_stage where lower(concept_name) in (select concept_name from
+(
+select lower(concept_name)as concept_name from concept_stage where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+union all
+select lower(concept_name) from concept  where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+)
+group by concept_name having count(1)>1)
+and vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+union
 
---ancestor
-select cast (an_id as varchar(255)),'wrong ancestor RxE to descedant RxNorm'
-from
-(select a.min_levels_of_separation as a_min,
-  an.concept_id as an_id, an.concept_name as an_name, an.vocabulary_id as an_vocab, an.domain_id as an_domain, an.concept_class_id as an_class,
-  de.concept_id as de_id, de.concept_name as de_name, de.vocabulary_id as de_vocab, de.domain_id as de_domain, de.concept_class_id as de_class
-from concept an
-join concept_ancestor a on a.ancestor_concept_id=an.concept_id and an.vocabulary_id='RxNorm Extension'
-join concept de on de.concept_id=a.descendant_concept_id and de.vocabulary_id='RxNorm')
-
-UNION
 
 select r.concept_code_1 as concept_code, 'Concept_replaced by many concepts' --count(*) 
 From concept_stage c1, concept_stage c2, concept_relationship_stage r

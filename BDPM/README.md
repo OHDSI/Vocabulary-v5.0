@@ -9,6 +9,7 @@ Working directory dev_bdpm.
 
 1.Run create_source_tables.sql 
 2 download files from BDPM\data\data_2017
+source: http://base-donnees-publique.medicaments.gouv.fr/telechargement.php 
 3.Load files:
 CIS_bdpm.txt > table DRUG
 CIS_CIP_bdpm.txt > table PACKAGING

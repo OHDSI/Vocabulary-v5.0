@@ -23,105 +23,8 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---2 Load full list of RxNorm Extension concepts
-INSERT /*+ APPEND */ INTO  CONCEPT_STAGE (concept_name,
-                           domain_id,
-                           vocabulary_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-   SELECT concept_name,
-          domain_id,
-          vocabulary_id,
-          concept_class_id,
-          standard_concept,
-          concept_code,
-          valid_start_date,
-          valid_end_date,
-          invalid_reason
-     FROM concept
-    WHERE vocabulary_id = 'RxNorm Extension';			   
-COMMIT;
 
-
---3 Load full list of RxNorm Extension relationships
-INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT c1.concept_code,
-          c2.concept_code,
-          c1.vocabulary_id,
-          c2.vocabulary_id,
-          r.relationship_id,
-          r.valid_start_date,
-          r.valid_end_date,
-          r.invalid_reason
-     FROM concept c1, concept c2, concept_relationship r
-    WHERE c1.concept_id = r.concept_id_1 AND c2.concept_id = r.concept_id_2 AND 'RxNorm Extension' IN (c1.vocabulary_id, c2.vocabulary_id);
-COMMIT;
-
-
---4 Load full list of RxNorm Extension drug strength
-INSERT /*+ APPEND */
-      INTO  drug_strength_stage (drug_concept_code,
-                                 vocabulary_id_1,
-                                 ingredient_concept_code,
-                                 vocabulary_id_2,
-                                 amount_value,
-                                 amount_unit_concept_id,
-                                 numerator_value,
-                                 numerator_unit_concept_id,
-                                 denominator_value,
-                                 denominator_unit_concept_id,
-                                 valid_start_date,
-                                 valid_end_date,
-                                 invalid_reason)
-   SELECT c.concept_code,
-          c.vocabulary_id,
-          c2.concept_code,
-          c2.vocabulary_id,
-          amount_value,
-          amount_unit_concept_id,
-          numerator_value,
-          numerator_unit_concept_id,
-          denominator_value,
-          denominator_unit_concept_id,
-          ds.valid_start_date,
-          ds.valid_end_date,
-          ds.invalid_reason
-     FROM concept c
-          JOIN drug_strength ds ON ds.DRUG_CONCEPT_ID = c.CONCEPT_ID
-          JOIN concept c2 ON ds.INGREDIENT_CONCEPT_ID = c2.CONCEPT_ID
-    WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension');
-COMMIT;
-
---5 Load full list of RxNorm Extension pack content
-INSERT /*+ APPEND */
-      INTO  pack_content_stage (pack_concept_code,
-                                pack_vocabulary_id,
-                                drug_concept_code,
-                                drug_vocabulary_id,
-                                amount,
-                                box_size)
-   SELECT c.concept_code,
-          c.vocabulary_id,
-          c2.concept_code,
-          c2.vocabulary_id,
-          amount,
-          box_size
-     FROM pack_content pc
-          JOIN concept c ON pc.PACK_CONCEPT_ID = c.CONCEPT_ID
-          JOIN concept c2 ON pc.DRUG_CONCEPT_ID = c2.CONCEPT_ID;
-COMMIT;
---6 Add new temporary vocabulary named Rxfix to the vocabulary table
+--2 Add new temporary vocabulary named Rxfix to the vocabulary table
 INSERT INTO concept (concept_id,
                      concept_name,
                      domain_id,
@@ -148,7 +51,7 @@ INSERT INTO vocabulary (vocabulary_id, vocabulary_name, vocabulary_concept_id)
 
 COMMIT;	 
 	 
---7 Update latest_update field to new date 
+--3 Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'Rxfix',
                                           pVocabularyDate        => TRUNC(sysdate),
@@ -163,14 +66,14 @@ END;
 /
 COMMIT;
 
---8 create input tables 
+--4 create input tables 
 DROP TABLE DRUG_CONCEPT_STAGE PURGE; --temporary!!!!! later we should to move all drops to the end of this script (or cndv?)
 DROP TABLE DS_STAGE PURGE;
 DROP TABLE INTERNAL_RELATIONSHIP_STAGE PURGE;
 DROP TABLE PC_STAGE PURGE;
 DROP TABLE RELATIONSHIP_TO_CONCEPT PURGE;
 
---8.1 1st input table: DRUG_CONCEPT_STAGE
+--4.1 1st input table: DRUG_CONCEPT_STAGE
 CREATE TABLE DRUG_CONCEPT_STAGE
 (
    CONCEPT_NAME        VARCHAR2(255),
@@ -186,7 +89,7 @@ CREATE TABLE DRUG_CONCEPT_STAGE
    SOURCE_CONCEPT_CLASS_ID VARCHAR2(20)
 ) NOLOGGING;
 
---8.2 2nd input table: DS_STAGE
+--4.2 2nd input table: DS_STAGE
 CREATE TABLE DS_STAGE
 (
    DRUG_CONCEPT_CODE        VARCHAR2(50),
@@ -200,14 +103,14 @@ CREATE TABLE DS_STAGE
    DENOMINATOR_UNIT         VARCHAR2(50)
 ) NOLOGGING;
 
---8.3 3rd input table: INTERNAL_RELATIONSHIP_STAGE
+--4.3 3rd input table: INTERNAL_RELATIONSHIP_STAGE
 CREATE TABLE INTERNAL_RELATIONSHIP_STAGE
 (
    CONCEPT_CODE_1     VARCHAR2(50),
    CONCEPT_CODE_2     VARCHAR2(50)
 ) NOLOGGING;
 
---8.4 4th input table: PC_STAGE
+--4.4 4th input table: PC_STAGE
 CREATE TABLE PC_STAGE
 (
    PACK_CONCEPT_CODE  VARCHAR2(50),
@@ -216,7 +119,7 @@ CREATE TABLE PC_STAGE
    BOX_SIZE           NUMBER
 ) NOLOGGING;
 
---8.5 5th input table: RELATIONSHIP_TO_CONCEPT
+--4.5 5th input table: RELATIONSHIP_TO_CONCEPT
 CREATE TABLE RELATIONSHIP_TO_CONCEPT
 (
    CONCEPT_CODE_1     VARCHAR2(50),
@@ -227,8 +130,8 @@ CREATE TABLE RELATIONSHIP_TO_CONCEPT
 ) NOLOGGING;
 
 
---9 Create Concepts
---9.1 Get products
+--5 Create Concepts
+--5.1 Get products
 INSERT /*+ APPEND */ INTO DRUG_CONCEPT_STAGE
 (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,
   INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
@@ -304,7 +207,7 @@ and c.concept_code NOT IN (SELECT concept_code FROM drug_Concept_stage);
 
 COMMIT;
 
---9.2 Get upgraded Dose Forms, Brand Names, Supplier
+--5.2 Get upgraded Dose Forms, Brand Names, Supplier
 INSERT /*+ APPEND */
       INTO  DRUG_CONCEPT_STAGE (CONCEPT_NAME,
                                 VOCABULARY_ID,
@@ -359,7 +262,7 @@ INSERT /*+ APPEND */
                  WHERE dcs.concept_code = c.concept_code AND dcs.domain_id = c.domain_id AND dcs.concept_class_id = c.concept_class_id AND dcs.source_concept_class_id = c.concept_class_id);
 COMMIT;
 
---9.3 Ingredients: Need to check what happens to deprecated
+--5.3 Ingredients: Need to check what happens to deprecated
 -- Get ingredients from drug_strength
 INSERT /*+ APPEND */
       INTO  DRUG_CONCEPT_STAGE (CONCEPT_NAME,
@@ -397,7 +300,7 @@ INSERT /*+ APPEND */
 					 WHERE dcs.concept_code = c.concept_code AND dcs.domain_id = c.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
 COMMIT;
 
---9.4 Get ingredients from hierarchy
+--5.4 Get ingredients from hierarchy
 INSERT /*+ APPEND */
       INTO  DRUG_CONCEPT_STAGE (CONCEPT_NAME,VOCABULARY_ID,
                                 CONCEPT_CLASS_ID,
@@ -434,7 +337,7 @@ INSERT /*+ APPEND */
 					 WHERE dcs.concept_code = c.concept_code AND dcs.domain_id = c.domain_id AND dcs.concept_class_id = 'Ingredient' AND dcs.source_concept_class_id = 'Ingredient');
 COMMIT;		
 
---9.5 Get all Units
+--5.5 Get all Units
 INSERT /*+ APPEND */
       INTO  DRUG_CONCEPT_STAGE (CONCEPT_NAME,
                                 VOCABULARY_ID,
@@ -454,16 +357,19 @@ INSERT /*+ APPEND */
 									  FROM drug_strength UNPIVOT (units FOR units_ids IN (amount_unit_concept_id, numerator_unit_concept_id, denominator_unit_concept_id))) ds
 								   JOIN concept c_int ON c_int.concept_id = ds.drug_concept_id AND c_int.vocabulary_id = 'RxNorm Extension')
 ;
+DELETE drug_concept_stage 
+WHERE invalid_reason is not null;
+
 COMMIT;
 
---10 filling drug_strength
+--6 filling drug_strength
 --just turn drug_strength into ds_stage replacing concept_ids with concept_codes
 INSERT /*+ APPEND */
       INTO  ds_stage (DRUG_CONCEPT_CODE,
             INGREDIENT_CONCEPT_CODE,BOX_SIZE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
    SELECT  drug_concept_code, ingredient_concept_code,box_size,amount_value,amount_unit,numerator_value,numerator_unit,denominator_value,denominator_unit 
      FROM (
-            SELECT  c.concept_code as drug_concept_code, c2.concept_code as ingredient_concept_code,ds.box_size,amount_value,c3.concept_code END AS amount_unit,ds.numerator_value END AS numerator_value,c4.concept_code END AS numerator_unit,
+            SELECT  c.concept_code as drug_concept_code, c2.concept_code as ingredient_concept_code,ds.box_size,amount_value,c3.concept_code AS amount_unit,ds.numerator_value AS numerator_value,c4.concept_code AS numerator_unit,
             ds.denominator_value,c5.concept_code AS denominator_unit 
               FROM concept c
                    JOIN drug_concept_stage dc on dc.concept_code=c.concept_code AND dc.concept_class_id='Drug Product'
@@ -490,11 +396,11 @@ INSERT /*+ APPEND */
                    LEFT JOIN concept c5 ON c5.concept_id = ds.denominator_unit_concept_id);
 COMMIT;	
 
---11 Build internal_relationship_stage 
+--7 Build internal_relationship_stage 
 --Drug to form
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage
-    SELECT distinct dc.concept_code, c2.concept_code END AS concept_code_2  
+    SELECT distinct dc.concept_code, c2.concept_code AS concept_code_2  
       FROM drug_concept_stage dc
            JOIN concept c ON c.concept_code = dc.concept_code AND c.vocabulary_id like 'RxNorm%' AND dc.concept_class_id = 'Drug Product'
            JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.relationship_id = 'RxNorm has dose form' AND cr.invalid_reason IS NULL
@@ -521,11 +427,21 @@ INSERT /*+ APPEND */
 COMMIT;
 
  --drug to ingredient
+
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
     SELECT distinct dc.concept_code,c2.concept_code
       FROM drug_concept_stage dc
-           JOIN concept c ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id not like '%Pack%' AND dc.concept_name NOT LIKE '%Pack%'
+           JOIN concept c ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id not like '%Pack%' AND dc.concept_name NOT LIKE '%} Pack%'
+           JOIN drug_strength on drug_concept_id=c.concept_id
+           JOIN concept c2 ON ingredient_concept_id=c2.concept_id AND c2.concept_class_id='Ingredient'
+;
+
+INSERT /*+ APPEND */
+      INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
+    SELECT distinct dc.concept_code,c2.concept_code
+      FROM drug_concept_stage dc
+           JOIN concept c ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id not like '%Pack%' AND dc.concept_name NOT LIKE '%} Pack%'
            JOIN concept_ancestor ca ON descendant_concept_id=c.concept_id
            JOIN concept c2 ON ancestor_concept_id=c2.concept_id AND c2.concept_class_id='Ingredient'
     WHERE NOT EXISTS
@@ -582,7 +498,7 @@ INSERT /*+ APPEND */
 
 COMMIT;
 
---14 just take it from the pack_content
+--8 just take it from the pack_content
 INSERT /*+ APPEND */ INTO pc_stage
 (PACK_CONCEPT_CODE,  DRUG_CONCEPT_CODE,AMOUNT, BOX_SIZE)
 SELECT c.concept_code, c2.concept_code,pc.amount, pc.box_size
@@ -592,7 +508,7 @@ SELECT c.concept_code, c2.concept_code,pc.amount, pc.box_size
 COMMIT;
 
 
---15 Create links to self 
+--9 Create links to self 
 INSERT /*+ APPEND */ INTO relationship_to_concept
 (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
 SELECT a.concept_code,a.VOCABULARY_ID,b.concept_id, 1
@@ -600,7 +516,7 @@ SELECT a.concept_code,a.VOCABULARY_ID,b.concept_id, 1
  WHERE a.concept_class_id IN ('Dose Form','Brand Name', 'Supplier', 'Ingredient') ;
 COMMIT;
 
---15.2 insert relationship to units
+--9.2 insert relationship to units
 INSERT /*+ APPEND */ INTO relationship_to_concept (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
 SELECT a.concept_code,a.vocabulary_id,b.concept_id,1,1
   FROM drug_concept_stage a 
@@ -608,7 +524,7 @@ SELECT a.concept_code,a.vocabulary_id,b.concept_id,1,1
  WHERE a.concept_class_id = 'Unit';
 COMMIT;
 
---16 Before Build_RxE
+--10 Before Build_RxE
 INSERT INTO vocabulary (vocabulary_id,vocabulary_name,vocabulary_concept_id)
 VALUES ('RxO','RxO', 0);
 
@@ -620,8 +536,23 @@ UPDATE concept_relationship
    SET invalid_reason = 'D', valid_end_date = TRUNC(SYSDATE) -1
 WHERE concept_id_1 IN (SELECT concept_id_1
                        FROM concept_relationship
-                         JOIN concept ON concept_id_1 = concept_id AND vocabulary_id = 'RxO')
-OR    concept_id_2 IN (SELECT concept_id_2
+                         JOIN concept ON concept_id_1 = concept_id AND vocabulary_id = 'RxO');
+UPDATE concept_relationship
+   SET invalid_reason = 'D', valid_end_date = TRUNC(SYSDATE) -1
+WHERE concept_id_2 IN (SELECT concept_id_2
                        FROM concept_relationship
                          JOIN concept ON concept_id_2 = concept_id AND vocabulary_id = 'RxO');
+
+
+--11 Creating manual table with concept_code_1 representing attribute (Brand Name,Supplier, Dose Form)
+that you want to replace by another already existing one (concept_code_2)
+insert into concept_relationship_stage
+(CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE)
+select concept_code_1,concept_code_2,'Rxfix','Rxfix','Concept replaced by',trunc(sysdate),TO_DATE('2099/12/31', 'yyyy/mm/dd')
+from suppliers_to_repl
+where concept_code_1 in 
+(select concept_code from drug_concept_stage)
+and concept_code_2 in 
+(select concept_code from drug_concept_stage);
+
 COMMIT;

@@ -543,16 +543,4 @@ WHERE concept_id_2 IN (SELECT concept_id_2
                        FROM concept_relationship
                          JOIN concept ON concept_id_2 = concept_id AND vocabulary_id = 'RxO');
 
-
---11 Creating manual table with concept_code_1 representing attribute (Brand Name,Supplier, Dose Form)
-that you want to replace by another already existing one (concept_code_2)
-insert into concept_relationship_stage
-(CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE)
-select concept_code_1,concept_code_2,'Rxfix','Rxfix','Concept replaced by',trunc(sysdate),TO_DATE('2099/12/31', 'yyyy/mm/dd')
-from suppliers_to_repl
-where concept_code_1 in 
-(select concept_code from drug_concept_stage)
-and concept_code_2 in 
-(select concept_code from drug_concept_stage);
-
 COMMIT;

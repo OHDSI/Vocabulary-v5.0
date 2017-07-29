@@ -10,10 +10,12 @@
  
 6.Run CreateNewVocabulary_QA.sql
 
-7.Run After_Build_RxE.sql
+7.Run Attribute_repl.sql (if needed)
 
-8.Run generic_update.sql,  should return null
+8.Run After_Build_RxE.sql
 
-9.Run exec devv5.psmallconceptancestor
+9.Run generic_update.sql,  should return null
 
-10.Run Basic_tables_QA.sql
+10.Run exec devv5.psmallconceptancestor
+
+11.Run Basic_tables_QA.sql

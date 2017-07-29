@@ -8,7 +8,16 @@ END;
 /
 COMMIT;
 
- 
+drop table rel_to_conc_old;
+create table rel_to_conc_old as 
+select c.concept_id as concept_id_1 , 'Source - RxNorm eq' as relationship_id, concept_id_2 from 
+(
+select * from dev_dpd.relationship_to_concept where PRECEDENCE  =1 
+union 
+select * from dev_aus.relationship_to_concept where PRECEDENCE  =1 
+) a 
+join concept c on c.concept_code = a.concept_code_1 and c.vocabulary_id = a.vocabulary_id_1 and c.invalid_reason is null
+;
 drop table ds_stage;
 create table ds_stage as select * from dev_dmd.ds_stage where rownum =0
 ;
@@ -1152,17 +1161,19 @@ where thin_code in (
 '98481997',
 '99895992',
 '97322998'
+
 )
 and concept_id_2 in (21308470, 46234469, 19082227)
 ;
+--gel and oil have the same damn length
+delete from f_map where gemscript_code in  ('61770020', '76284020') and concept_id = 21308470  
+;
 commit
 ;
-
- --comment this manual table work for now
-
+ 
 --manual table for Dose Forms
 select * from thin_need_to_map
-where thin_code not in (select thin_code from b_map)
+where gemscript_code not in (select gemscript_code from f_map where gemscript_code is not null)
 and domain_id ='Drug'
 ;
 
@@ -1213,7 +1224,8 @@ delete from b_map_0 where CONCEPT_NAME in (
 'Gx',
 'Simple',
 'Saline',
-'DF'
+'DF', 
+'Stibium'
 )
 ;
 commit
@@ -1461,4 +1473,130 @@ create table basic_concept_stage as select * from concept_stage
 drop table basic_con_rel_stage;
 create table basic_con_rel_stage as select * from concept_relationship_stage
 ;
+   UPDATE DS_STAGE
+   SET DENOMINATOR_VALUE = 30
+WHERE DRUG_CONCEPT_CODE = '4231007'
+AND   DENOMINATOR_VALUE is null
+;
+select * from drug_concept_stage where concept_name in (
+'Eftrenonacog alfa 250unit powder / solvent for solution for injection vials',
+'Odefsey 200mg/25mg/25mg tablets (Gilead Sciences International Ltd)',
+'Insuman rapid 100iu/ml Injection (Aventis Pharma)',
+'Engerix b 10microgram/0.5ml Paediatric vaccination (GlaxoSmithKline UK Ltd)',
+'Ethyloestranol 2mg Tablet'
+)
+;
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 10,
+       NUMERATOR_UNIT = 'mg'
+WHERE DRUG_CONCEPT_CODE = '6912007'
+AND   NUMERATOR_VALUE = 5
+AND   NUMERATOR_UNIT = 'ml';
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 20,
+       NUMERATOR_UNIT = 'mg'
+WHERE DRUG_CONCEPT_CODE = '6916007'
+AND   NUMERATOR_VALUE = 10
+AND   NUMERATOR_UNIT = 'ml';
+UPDATE DS_STAGE
+   SET AMOUNT_VALUE = NULL,
+       AMOUNT_UNIT = '',
+       NUMERATOR_VALUE = 10000000,
+       NUMERATOR_UNIT = 'unit',
+       DENOMINATOR_VALUE = 1,
+       DENOMINATOR_UNIT = 'ml'
+WHERE DRUG_CONCEPT_CODE = '94291020'
+AND   NUMERATOR_VALUE IS NULL
+AND   NUMERATOR_UNIT IS NULL;
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 4,
+       NUMERATOR_UNIT = 'mg'
+WHERE DRUG_CONCEPT_CODE = '49537020'
+AND   NUMERATOR_VALUE = 8
+AND   NUMERATOR_UNIT = 'ml';
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 20,
+       NUMERATOR_UNIT = 'mg'
+WHERE DRUG_CONCEPT_CODE = '3252007'
+AND   NUMERATOR_VALUE = 10
+AND   NUMERATOR_UNIT = 'ml';
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 30,
+       NUMERATOR_UNIT = 'mg'
+WHERE DRUG_CONCEPT_CODE = '81443020'
+AND   NUMERATOR_VALUE = 10
+AND   NUMERATOR_UNIT = 'ml';
+UPDATE DS_STAGE
+   SET AMOUNT_VALUE = NULL,
+       AMOUNT_UNIT = '',
+       NUMERATOR_VALUE = 6000000,
+       NUMERATOR_UNIT = 'unit',
+       DENOMINATOR_VALUE = 1,
+       DENOMINATOR_UNIT = 'ml'
+WHERE DRUG_CONCEPT_CODE = '80015020'
+AND   NUMERATOR_VALUE IS NULL
+AND   NUMERATOR_UNIT IS NULL;
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 40,
+       NUMERATOR_UNIT = 'mg'
+WHERE DRUG_CONCEPT_CODE = '58170020'
+AND   NUMERATOR_VALUE = 20
+AND   NUMERATOR_UNIT = 'ml';
+UPDATE DS_STAGE
+   SET NUMERATOR_UNIT = 'mg'
+WHERE DRUG_CONCEPT_CODE = '58166020'
+AND   NUMERATOR_VALUE = 50
+AND   NUMERATOR_UNIT = 'ml';
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 60,
+       NUMERATOR_UNIT = 'mg'
+WHERE DRUG_CONCEPT_CODE = '2113007'
+AND   NUMERATOR_VALUE = 10
+AND   NUMERATOR_UNIT = 'ml';
+UPDATE DS_STAGE
+   SET AMOUNT_VALUE = NULL,
+       AMOUNT_UNIT = '',
+       NUMERATOR_VALUE = 50,
+       NUMERATOR_UNIT = 'mcg',
+       DENOMINATOR_VALUE = 5,
+       DENOMINATOR_UNIT = 'ml'
+WHERE DRUG_CONCEPT_CODE = '67456020'
+AND   NUMERATOR_VALUE IS NULL
+AND   NUMERATOR_UNIT IS NULL;
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 10,
+       NUMERATOR_UNIT = 'mg'
+WHERE DRUG_CONCEPT_CODE = '58165020'
+AND   NUMERATOR_VALUE = 20
+AND   NUMERATOR_UNIT = 'ml';
 
+commit
+;
+delete from ds_stage where drug_concept_Code in (
+SELECT drug_concept_Code 
+      FROM ds_stage
+      join thin_need_to_map on gemscript_code = DRUG_CONCEPT_CODE
+      WHERE lower(numerator_unit) IN ('ml')
+      OR    lower(amount_unit) IN ('ml')
+      )
+;      
+commit
+;
+      delete from ds_stage where DRUG_CONCEPT_CODE in (
+      SELECT DRUG_CONCEPT_CODE 
+      FROM ds_stage s
+          JOIN drug_concept_stage a ON a.concept_code = s.drug_concept_code  AND a.concept_class_id = 'Device'
+)
+;
+commit
+;   
+delete 
+      FROM drug_concept_stage
+      WHERE concept_name = 'Syrup' and concept_class_id = 'Ingredient'
+                             ;
+                             delete 
+      FROM drug_concept_stage
+      WHERE concept_name = 'Stibium' and concept_class_id = 'Brand Name'
+                             ;
+                             commit
+                             ;

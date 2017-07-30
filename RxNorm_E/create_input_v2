@@ -1,0 +1,1477 @@
+--DCS
+delete drug_concept_stage
+where concept_code='OMOP1131419';   --Acetarsol   
+delete drug_concept_stage
+where concept_code='OMOP1000382';   --Bilastine   
+delete drug_concept_stage
+where concept_code='OMOP2721034';   --Calcium   
+delete drug_concept_stage
+where concept_code='OMOP1131501';   --Camphene   
+delete drug_concept_stage
+where concept_code='OMOP1131504';   --Carbetocin   
+delete drug_concept_stage
+where concept_code='OMOP1131611';   --manna   
+delete drug_concept_stage
+where concept_code='OMOP1131633';   --Oxetacaine   
+delete drug_concept_stage
+where concept_code='OMOP2721400';   --Potassium   
+delete drug_concept_stage
+where concept_code='OMOP997623';   --Rupatadine Fumarate   
+delete drug_concept_stage
+where concept_code='OMOP2721452';   --Sodium   
+delete drug_concept_stage
+where concept_code='OMOP1131687';   --Stiripentol  
+
+-- BN work
+update drug_concept_stage
+set concept_name=initcap(regexp_replace(lower(concept_name),'( ltd)|( inc\.)| uk |( eu)( llc)|( limited)| ulc| (ltee)|( msd)|( ulc)|( plc)|( pharmaceuticals)|( gmbh)|( lab.*)|( - .*)| \(royaume-uni\)| france| \(pay-bas\)| canada| uk| \(u\.k\.\)| \(allemagne\)| \(grande-bretagne\)| \(grande bretagne\) \(autriche\)| \(belgique\)| \(irlande\)| \(danemark\)| \(societe\)| \(portugal\)| \(luxmebourg\)| \(republique tcheque\)'))
+where concept_class_id='Supplier'
+and concept_code not in (select concept_code_1 from suppliers_to_repl)
+and concept_name not like '%GmbH & Co%';
+
+update drug_concept_stage
+set concept_name=regexp_replace(concept_name,'\(.*')
+where concept_class_id='Supplier'
+and concept_code not in (select concept_code_1 from suppliers_to_repl);
+
+
+update drug_concept_stage 
+set concept_name=initcap(regexp_replace(lower(concept_name),' comp'))
+where concepT_class_id='Brand Name' and regexp_like(concept_name,'-Q|Beloc|Enala|Prelis|Dormiphen|Eryfer|Provas|Isozid| Al | Ass |Quadronal|Dormiphen|Latanomed|Estramon|Valsacor|Dispadex');
+
+update drug_concept_stage 
+set concept_name=regexp_replace(concept_name,' INJECTABLE')
+where concepT_class_id='Brand Name' and regexp_like(concept_name,'ASPEGIC|AZANTAC|SPASMAG|TRIVASTAL|UNACIM');
+
+delete internal_relationship_stage where concept_code_2 in 
+(select concept_code from drug_concept_stage where concepT_class_id='Brand Name'
+and regexp_like (lower(concept_name),'( comp$)|comprim|compound|(um .*um )|praeparatum| rh | injectable|zinci|phosphorus|(\d+(\.\d+)? m )|unguentum|molar|zincum|codeinum|apis| oel | oel$|((thym|baum|castor|halibut|lavandula|seed).*( tee | oleum| oil))|graveolens')
+and not regexp_like(upper(concept_name),'PHARM|ABTEI|HEEL|INJEE|WINTHROP| ASS | AL |ROCHE|HEUMANN|MERCK|BLUESFISH|WESTERN|PHARMA|ZENTIVA|PFIZER|PHARMA|MEDE|MEDAC|FAIR|HAMELN|ACCORD|RATIO|AXCOUNT|STADA|SANDOZ|SOLVAY|GLENMARK|APOTHEKE|HEXAL|TEVA|AUROBINDO|ORION|SYXYL|NEURAX|KOHNE|ACTAVIS|CLARIS|NOVUM|ABZ|AXCOUNT|MYLAN|ARISTO|KABI|BENE|HORMOSAN|ZENTIVA|PUREN|BIOMO|ACIS|RATIOPH|SYNOMED|ALPHA|ROTEXMEDICA|BERCO|DURA|DAGO|GASTREU|FORTE|VITAL|VERLA|ONKOVIS|ONCOTRADE|NEOCORP')
+and not regexp_like(lower(concept_name),'asa-|lambert|balneovit|similiaplex|heidac'))
+;
+delete drug_concept_stage where concepT_class_id='Brand Name'
+and regexp_like (lower(concept_name),'( comp$)|comprim|compound|(um .*um )|praeparatum| rh | injectable|zinci|phosphorus|(\d+(\.\d+)? m )|unguentum|molar|zincum|codeinum|apis| oel | oel$|((thym|baum|castor|halibut|lavandula|seed).*( tee | oleum| oil))|graveolens')
+and not regexp_like(upper(concept_name),'PHARM|ABTEI|HEEL|INJEE|WINTHROP| ASS | AL |ROCHE|HEUMANN|MERCK|BLUESFISH|WESTERN|PHARMA|ZENTIVA|PFIZER|PHARMA|MEDE|MEDAC|FAIR|HAMELN|ACCORD|RATIO|AXCOUNT|STADA|SANDOZ|SOLVAY|GLENMARK|APOTHEKE|HEXAL|TEVA|AUROBINDO|ORION|SYXYL|NEURAX|KOHNE|ACTAVIS|CLARIS|NOVUM|ABZ|AXCOUNT|MYLAN|ARISTO|KABI|BENE|HORMOSAN|ZENTIVA|PUREN|BIOMO|ACIS|RATIOPH|SYNOMED|ALPHA|ROTEXMEDICA|BERCO|DURA|DAGO|GASTREU|FORTE|VITAL|VERLA|ONKOVIS|ONCOTRADE|NEOCORP')
+and not regexp_like(lower(concept_name),'asa-|lambert|balneovit|similiaplex|heidac')
+;
+delete internal_relationship_stage where concept_code_2 in (
+SELECT d1.concept_code
+                       FROM drug_concept_stage d1
+                         JOIN devv5.concept c
+                           ON LOWER (d1.concept_name) = LOWER (c.concept_name) AND d1.concept_class_id = 'Brand Name'
+                          AND c.concept_class_id IN ('ATC 5th','ATC 4th','ATC 3rd','AU Substance','AU Qualifier','Chemical Structure','CPT4 Hierarchy', 'Gemscript', 'Gemscript THIN', 'GPI', 'Ingredient','Substance','LOINC Hierarchy','Main Heading','Organism','Pharma Preparation')
+                       );
+DELETE drug_concept_stage
+WHERE concept_code IN (SELECT d1.concept_code
+                       FROM drug_concept_stage d1
+                         JOIN devv5.concept c
+                           ON LOWER (d1.concept_name) = LOWER (c.concept_name) AND d1.concept_class_id = 'Brand Name'
+                          AND c.concept_class_id IN ('ATC 5th','ATC 4th','ATC 3rd','AU Substance','AU Qualifier','Chemical Structure','CPT4 Hierarchy', 'Gemscript', 'Gemscript THIN', 'GPI', 'Ingredient','Substance','LOINC Hierarchy','Main Heading','Organism','Pharma Preparation')
+                                                                            );
+    
+--Suppliers
+update drug_concept_stage
+set concept_name=regexp_replace(concept_name,',.*')
+where  (concept_name) LIKE '%,%' and concept_class_id='Supplier';
+
+UPDATE DRUG_CONCEPT_STAGE
+   SET CONCEPT_NAME = 'Les Laboratories Servier'
+WHERE CONCEPT_CODE = 'OMOP439865';
+UPDATE DRUG_CONCEPT_STAGE
+   SET CONCEPT_NAME = 'Les Laboratoires Bio-Sante'
+WHERE CONCEPT_CODE = 'OMOP1019085';
+UPDATE DRUG_CONCEPT_STAGE
+   SET CONCEPT_NAME = 'Les Laboratoires Du Saint-Laurent'
+WHERE CONCEPT_CODE = 'OMOP1019086';
+UPDATE DRUG_CONCEPT_STAGE
+   SET CONCEPT_NAME = 'Les Laboratoires Swisse'
+WHERE CONCEPT_CODE = 'OMOP1019087';
+UPDATE DRUG_CONCEPT_STAGE
+   SET CONCEPT_NAME = 'Les Laboratoires Vachon'
+WHERE CONCEPT_CODE = 'OMOP1019088';
+
+delete drug_concept_stage where concept_code in 
+(select a.concept_code from drug_concept_stage a join drug_concept_stage b on a.concept_name=b.concept_name
+and a.concept_class_id='Brand Name' and b.concept_class_id in ('Supplier','Ingredient'));
+
+delete drug_concept_stage where concept_code in (
+select dcs.concept_code from drug_concept_stage dcs
+join concept c on  lower(dcs.Concept_name)=lower(c.Concept_name) and c.vocabulary_id='RxNorm' and 
+dcs.concept_class_id='Brand Name' and c.concept_class_id='Ingredient');
+
+delete drug_concept_stage where concept_class_id='Supplier' and concept_name like '%Imported%';
+delete drug_concept_stage where concept_name in ('Ultracare','Ultrabalance','Tussin','Triad','Aplicare','Lactaid') and concept_class_id='Supplier';
+delete drug_concept_stage where concept_name='Cream' and concept_class_id='Brand Name';
+
+--semi-manual suppl
+delete internal_relationship_stage  --syrup
+where concept_code_2='OMOP993256';
+delete drug_concept_stage where concept_code='OMOP993256';
+
+delete internal_relationship_stage --gomenol
+where concept_code_2='OMOP439967';
+delete drug_concept_stage where concept_code='OMOP439967';
+
+delete internal_relationship_stage  -- graphytes
+where concept_code_2='OMOP336422';
+delete drug_concept_stage where concept_code='OMOP336422';
+
+delete internal_relationship_stage --healthaid
+where concept_code_2='OMOP336747';
+delete drug_concept_stage where concept_code='OMOP336747';
+
+--hepatoum
+delete internal_relationship_stage 
+where concept_code_2='OMOP440244';
+
+delete drug_concept_stage where concept_code='OMOP440244';
+
+--disso blabla
+delete internal_relationship_stage 
+where concept_code_2='OMOP440141';
+delete drug_concept_stage where concept_code='OMOP440141';
+--changing supplier's names
+
+
+
+merge into drug_concept_stage dcs
+using
+(select c.concept_name,c.concept_code from drug_concept_stage dcs2 join devv5.concept c on c.concept_code=dcs2.concept_code and c.vocabulary_id='RxNorm Extension' and c.concept_class_id='Supplier') c
+on (dcs.concept_code=c.concept_code)
+when matched then update
+set dcs.concept_name=c.concept_name;
+
+ update drug_concept_stage
+ set concept_name=regexp_replace(concept_name,'Pharmaceuticals\.|Pharmaceuticals|Pharmaceutical Products|Pharmaceutical Product|Pharmaceutical|Pharmazeutische Produkte|Pharma|Pharms| Pharm$| Pharm ','',1,0,'i')
+  where  lower(concept_name) like '% pharm%' and concept_class_id='Supplier';
+  
+ update drug_concept_stage
+ set concept_name=regexp_replace(concept_name,'Incorporated|Inc\.|Inc')
+  where  lower(concept_name) like '% inc%';
+ 
+ update drug_concept_stage
+ set concept_name=regexp_replace(concept_name,'GmbH & Co\. KG|GmbH & Co\.|GmbH & Co|GmbH|mbH & Co\.KG','',1,0,'i')
+ where (lower(concept_name) like '% mbh%' or lower(concept_name) like '% gmbh%') and concept_class_id='Supplier';
+
+ update drug_concept_stage
+ set concept_name=regexp_replace(concept_name,'Group','',1,0,'i')
+ where concept_class_id='Supplier' and concept_name not like '%Le Group%';
+  
+update drug_concept_stage
+set concept_name=regexp_replace(concept_name,'Technologies|Limited|Specialty|Corporation|European|Europe| SERVICES|Manufacturing|Regulatory Solutions|Environmental Solutions|Mobility Solutions|Solutions|Vaccines and Diagnostics|Diagnostics|Life Sciences|Therapeutics|Deutschland|NETHERLANDS|TRADING|Medical Products|Medical','',1,0,'i')
+where  concept_class_id='Supplier'
+and not regexp_like(concept_name,'^Laboratories|^Healthcare|^Arzneimittel|^International|^Medical|^Product|^Nutrition|^Commercial');
+update drug_concept_stage
+set concept_name=trim(regexp_replace(regexp_replace(concept_name,'-$'),'  ',' '));
+
+update drug_concept_stage
+set concept_name=regexp_replace(concept_name,'Laboratories|Sweden|Healthcare Products|Healthcare|Commercial|Sales Services|Health Care|Management|Arzneimittel|Canada|Company|\(.*\)|Registration|Nutritionals|Nutrition|Consumer Health|Consumer|Sante| SCIENCES| MALTA|FRANCE|International| Inc\.?| Ltee| Ltd\.?| Plc| PLC| Llc| Ulc| UK| \(UK\)| \(U\.K\.\)|U\.K\.| EU$| Ab$| A/S| AG$|&$| and$| of$','',1,0,'i')
+where  concept_class_id='Supplier'
+and not regexp_like(concept_name,'^Laboratories|^Healthcare|^Arzneimittel|^International|^Medical|^Product|^Nutrition|^Commercial');
+
+update drug_concept_stage
+set concept_name=regexp_replace(concept_name,' \[HIST\]|e\.k\.','',1,0,'i') where concept_class_id='Supplier'
+;
+update DRUG_CONCEPT_STAGE
+set concept_name=initcap(concept_name)
+where concept_class_id='Supplier' and regexp_count (concept_name,'[[:upper:]]') >5;
+
+update drug_concept_stage
+set concept_name=trim(regexp_replace(regexp_replace(concept_name,'-$'),'  ',' '));
+
+
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'FIDIA FARMACEUTICI' WHERE CONCEPT_CODE = 'OMOP898169';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Dentinox' WHERE CONCEPT_CODE = 'OMOP897991';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Miles' WHERE CONCEPT_CODE = 'OMOP1018785';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Labs Nordic Laboratories' WHERE CONCEPT_CODE = 'OMOP1019043';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Lilly' WHERE CONCEPT_CODE = 'OMOP339232';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'TEVA' WHERE CONCEPT_CODE = 'OMOP439847';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Gentium' WHERE CONCEPT_CODE = 'OMOP338026';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'ALK' WHERE CONCEPT_CODE = 'OMOP1018216';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Janssen' WHERE CONCEPT_CODE = 'OMOP440202';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Fresenius'  WHERE CONCEPT_CODE = 'OMOP338813';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Cutter'  WHERE CONCEPT_CODE = 'OMOP1018742';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Ahorn Apotheke' WHERE CONCEPT_CODE = 'OMOP898024';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Amsco' WHERE CONCEPT_CODE = 'OMOP1018273';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Anpharm' WHERE CONCEPT_CODE = 'OMOP1018280';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'BASILEA' WHERE CONCEPT_CODE = 'OMOP440251';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'BRISTOL-MYERS SQUIBB' WHERE CONCEPT_CODE = 'OMOP439842';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Colgate' WHERE CONCEPT_CODE = 'OMOP1018724';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Diomed' WHERE CONCEPT_CODE = 'OMOP900358';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Dr. Kade' WHERE CONCEPT_CODE = 'OMOP900325';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Dr.Mewes Heilmittel' WHERE CONCEPT_CODE = 'OMOP897388';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'FirstGenerixGermany' WHERE CONCEPT_CODE = 'OMOP899895';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Golden Pride' WHERE CONCEPT_CODE = 'OMOP1018524';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Hobon' WHERE CONCEPT_CODE = 'OMOP1019157';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Huronia' WHERE CONCEPT_CODE = 'OMOP1019139';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = ' Intega Skin' WHERE CONCEPT_CODE = 'OMOP1019141';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Canus Goat''S Milk' WHERE CONCEPT_CODE = 'OMOP1019089';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Lotus Lab' WHERE CONCEPT_CODE = 'OMOP899585';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'PINNACLE' WHERE CONCEPT_CODE = 'OMOP440335';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Professional' WHERE CONCEPT_CODE = 'OMOP1019339';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Sifi North America' WHERE CONCEPT_CODE = 'OMOP1019711';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Valeant' WHERE CONCEPT_CODE = 'OMOP1019618';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Vallee' WHERE CONCEPT_CODE = 'OMOP1019486';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'H & S Tee' WHERE CONCEPT_CODE = 'OMOP898496';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Herbalife' WHERE CONCEPT_CODE = 'OMOP1019125';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Biogen' WHERE CONCEPT_CODE = 'OMOP338399';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Bencard' WHERE CONCEPT_CODE = 'OMOP899463';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Cambridge' WHERE CONCEPT_CODE = 'OMOP2018411';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Ayrton' WHERE CONCEPT_CODE = 'OMOP572464';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Braun' WHERE CONCEPT_CODE = 'OMOP440014';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Aventis' WHERE CONCEPT_CODE = 'OMOP1018338';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Carter' WHERE CONCEPT_CODE = 'OMOP1018469';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Casen' WHERE CONCEPT_CODE = 'OMOP338684';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Celltrion' WHERE CONCEPT_CODE = 'OMOP1018695';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Colgate' WHERE CONCEPT_CODE = 'OMOP339265';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'GDS' WHERE CONCEPT_CODE = 'OMOP2018500';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Gentium' WHERE CONCEPT_CODE = 'OMOP338026';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Bailleul' WHERE CONCEPT_CODE = 'OMOP440079';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Lek' WHERE CONCEPT_CODE = 'OMOP898216';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Merrell' WHERE CONCEPT_CODE = 'OMOP1018914';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Neovii' WHERE CONCEPT_CODE = 'OMOP338079';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Nuron B.V' WHERE CONCEPT_CODE = 'OMOP1019368';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Olympus' WHERE CONCEPT_CODE = 'OMOP338444';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Buchholz' WHERE CONCEPT_CODE = 'OMOP2018737';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Mar' WHERE CONCEPT_CODE = 'OMOP440422';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Rapidscan' WHERE CONCEPT_CODE = 'OMOP338461';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Regent' WHERE CONCEPT_CODE = 'OMOP439892';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Rhone-Poulenc' WHERE CONCEPT_CODE = 'OMOP1019253';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Guttroff' WHERE CONCEPT_CODE = 'OMOP899637';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Schoening' WHERE CONCEPT_CODE = 'OMOP2018824';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Schwarzkopf' WHERE CONCEPT_CODE = 'OMOP1019775';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Scott' WHERE CONCEPT_CODE = 'OMOP1019793';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Bernburg' WHERE CONCEPT_CODE = 'OMOP897672';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Squibb' WHERE CONCEPT_CODE = 'OMOP900126';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Sterling' WHERE CONCEPT_CODE = 'OMOP1019625';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Sobi' WHERE CONCEPT_CODE = 'OMOP338479';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Wampole' WHERE CONCEPT_CODE = 'OMOP1019503';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Produits Sanitaires' WHERE CONCEPT_CODE = 'OMOP1019336';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Actavis' WHERE CONCEPT_CODE = 'OMOP1018198';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Cambridge' WHERE CONCEPT_CODE = 'OMOP2018411';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Ayrton' WHERE CONCEPT_CODE = 'OMOP572464';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Braun' WHERE CONCEPT_CODE = 'OMOP440014';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Aventis' WHERE CONCEPT_CODE = 'OMOP1018338';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Carter' WHERE CONCEPT_CODE = 'OMOP1018469';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Casen' WHERE CONCEPT_CODE = 'OMOP338684';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Celltrion' WHERE CONCEPT_CODE = 'OMOP1018695';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Colgate' WHERE CONCEPT_CODE = 'OMOP339265';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'GDS' WHERE CONCEPT_CODE = 'OMOP2018500';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Gentium' WHERE CONCEPT_CODE = 'OMOP338026';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Bailleul' WHERE CONCEPT_CODE = 'OMOP440079';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Lek' WHERE CONCEPT_CODE = 'OMOP898216';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Merrell' WHERE CONCEPT_CODE = 'OMOP1018914';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Neovii' WHERE CONCEPT_CODE = 'OMOP338079';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Nuron B.V' WHERE CONCEPT_CODE = 'OMOP1019368';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Olympus' WHERE CONCEPT_CODE = 'OMOP338444';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Buchholz' WHERE CONCEPT_CODE = 'OMOP2018737';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Mar' WHERE CONCEPT_CODE = 'OMOP440422';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Rapidscan' WHERE CONCEPT_CODE = 'OMOP338461';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Regent' WHERE CONCEPT_CODE = 'OMOP439892';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Rhone-Poulenc' WHERE CONCEPT_CODE = 'OMOP1019253';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Guttroff' WHERE CONCEPT_CODE = 'OMOP899637';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Schoening' WHERE CONCEPT_CODE = 'OMOP2018824';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Schwarzkopf' WHERE CONCEPT_CODE = 'OMOP1019775';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Scott' WHERE CONCEPT_CODE = 'OMOP1019793';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Bernburg' WHERE CONCEPT_CODE = 'OMOP897672';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Squibb' WHERE CONCEPT_CODE = 'OMOP900126';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Sterling' WHERE CONCEPT_CODE = 'OMOP1019625';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Sobi' WHERE CONCEPT_CODE = 'OMOP338479';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Wampole' WHERE CONCEPT_CODE = 'OMOP1019503';
+UPDATE DRUG_CONCEPT_STAGE   SET CONCEPT_NAME = 'Produits Sanitaires' WHERE CONCEPT_CODE = 'OMOP1019336'
+
+
+update drug_concept_stage set concept_name = '1 A' where concept_code = 'OMOP897322';
+update drug_concept_stage set concept_name = '2care4' where concept_code = 'OMOP2018281';
+update drug_concept_stage set concept_name = 'A Baur' where concept_code = 'OMOP898745';
+update drug_concept_stage set concept_name = 'A Menarini' where concept_code = 'OMOP338242';
+update drug_concept_stage set concept_name = 'A Nattermann' where concept_code = 'OMOP900145';
+update drug_concept_stage set concept_name = 'Aaston' where concept_code = 'OMOP2018285';
+update drug_concept_stage set concept_name = 'Aatal-Apotheke Christina Schrick' where concept_code = 'OMOP898717';
+update drug_concept_stage set concept_name = 'ABF' where concept_code = 'OMOP899680';
+update drug_concept_stage set concept_name = 'Abis' where concept_code = 'OMOP2018288';
+update drug_concept_stage set concept_name = 'ABJ' where concept_code = 'OMOP1018170';
+update drug_concept_stage set concept_name = 'Abo & Painex' where concept_code = 'OMOP899329';
+update drug_concept_stage set concept_name = 'Abtswinder Naturheilmittel' where concept_code = 'OMOP897951';
+update drug_concept_stage set concept_name = 'AC' where concept_code = 'OMOP899626';
+update drug_concept_stage set concept_name = 'Accura' where concept_code = 'OMOP338685';
+update drug_concept_stage set concept_name = 'ACS' where concept_code = 'OMOP898101';
+update drug_concept_stage set concept_name = 'Adams' where concept_code = 'OMOP1018202';
+update drug_concept_stage set concept_name = 'Adler-Apotheke Dr Christian & Dr Alfons Tenner' where concept_code = 'OMOP899205';
+update drug_concept_stage set concept_name = 'Adler-Apotheke Dr Gerhard Haubold Jun' where concept_code = 'OMOP900457';
+update drug_concept_stage set concept_name = 'Adler-Apotheke Erhard & Ernst Sprakel' where concept_code = 'OMOP899756';
+update drug_concept_stage set concept_name = 'Adler-Apotheke Johannes Jaenicke' where concept_code = 'OMOP900016';
+update drug_concept_stage set concept_name = 'Adler-Apotheke Karl Aisslinger & Kurt Suesser' where concept_code = 'OMOP897511';
+update drug_concept_stage set concept_name = 'ADOH' where concept_code = 'OMOP899203';
+update drug_concept_stage set concept_name = 'Adolf Haupt' where concept_code = 'OMOP898754';
+update drug_concept_stage set concept_name = 'Aframed' where concept_code = 'OMOP898297';
+update drug_concept_stage set concept_name = 'Agence Conseil' where concept_code = 'OMOP440113';
+update drug_concept_stage set concept_name = 'Agepha' where concept_code = 'OMOP337876';
+update drug_concept_stage set concept_name = 'Agfa' where concept_code = 'OMOP440197';
+update drug_concept_stage set concept_name = 'Aktiv' where concept_code = 'OMOP897472';
+update drug_concept_stage set concept_name = 'Alembic' where concept_code = 'OMOP338847';
+update drug_concept_stage set concept_name = 'Alexander-Apotheke Inhaber Anja Henkel' where concept_code = 'OMOP897788';
+update drug_concept_stage set concept_name = 'Alissa' where concept_code = 'OMOP338699';
+update drug_concept_stage set concept_name = 'Alkaloid-Int' where concept_code = 'OMOP897758';
+update drug_concept_stage set concept_name = 'All Star' where concept_code = 'OMOP1018218';
+update drug_concept_stage set concept_name = 'Allcura' where concept_code = 'OMOP897812';
+update drug_concept_stage set concept_name = 'Allens' where concept_code = 'OMOP338994';
+update drug_concept_stage set concept_name = 'Allgaeu Apotheke Inh Erich Pfister' where concept_code = 'OMOP900467';
+update drug_concept_stage set concept_name = 'Allgaeuer Heilmoor Ehrlich' where concept_code = 'OMOP898952';
+update drug_concept_stage set concept_name = 'Aloex' where concept_code = 'OMOP1019328';
+update drug_concept_stage set concept_name = 'Alpenlaendisches Kraeuterhaus' where concept_code = 'OMOP898172';
+update drug_concept_stage set concept_name = 'Alpenpharma' where concept_code = 'OMOP898310';
+update drug_concept_stage set concept_name = 'Alsi' where concept_code = 'OMOP1018249';
+update drug_concept_stage set concept_name = 'Alte Apotheke Beate & Ekkehard Dochtermann' where concept_code = 'OMOP898625';
+update drug_concept_stage set concept_name = 'Alte Apotheke Dieter Bueller' where concept_code = 'OMOP899446';
+update drug_concept_stage set concept_name = 'Alte Apotheke Dr Josef Knipp' where concept_code = 'OMOP899937';
+update drug_concept_stage set concept_name = 'Alte Apotheke Guenter Verres' where concept_code = 'OMOP897437';
+update drug_concept_stage set concept_name = 'Alte Apotheke In Rissen Kurt Moog' where concept_code = 'OMOP900223';
+update drug_concept_stage set concept_name = 'Alte Apotheke Sabine Francke' where concept_code = 'OMOP900095';
+update drug_concept_stage set concept_name = 'Alte Eilbeker Apotheke Nils Bomholt' where concept_code = 'OMOP899152';
+update drug_concept_stage set concept_name = 'Alte Stadt-Apotheke Hans-Juergen Schneider' where concept_code = 'OMOP898175';
+update drug_concept_stage set concept_name = 'Alter' where concept_code = 'OMOP440184';
+update drug_concept_stage set concept_name = 'Altstadt-Apotheke S Wimmer & W Praun' where concept_code = 'OMOP899371';
+update drug_concept_stage set concept_name = 'Alvogen Ipcor L' where concept_code = 'OMOP898941';
+update drug_concept_stage set concept_name = 'AME' where concept_code = 'OMOP897995';
+update drug_concept_stage set concept_name = 'Andreas-Apotheke Baerlehner & Seelentag' where concept_code = 'OMOP897957';
+update drug_concept_stage set concept_name = 'Anton Huebner' where concept_code = 'OMOP898787';
+update drug_concept_stage set concept_name = 'AOP' where concept_code = 'OMOP440303';
+update drug_concept_stage set concept_name = 'APC' where concept_code = 'OMOP338977';
+update drug_concept_stage set concept_name = 'APM' where concept_code = 'OMOP1018267';
+update drug_concept_stage set concept_name = 'Apoforte' where concept_code = 'OMOP899013';
+update drug_concept_stage set concept_name = 'Apollinaris Brands' where concept_code = 'OMOP900030';
+update drug_concept_stage set concept_name = 'Apothex' where concept_code = 'OMOP898849';
+update drug_concept_stage set concept_name = 'Aptevo' where concept_code = 'OMOP1018284';
+update drug_concept_stage set concept_name = 'Ardey Quelle' where concept_code = 'OMOP898660';
+update drug_concept_stage set concept_name = 'Arens Marien Apotheke Andreas Hebenstreit' where concept_code = 'OMOP899168';
+update drug_concept_stage set concept_name = 'Argonal' where concept_code = 'OMOP1018303';
+update drug_concept_stage set concept_name = 'Arjun' where concept_code = 'OMOP338610';
+update drug_concept_stage set concept_name = 'Arkomedika' where concept_code = 'OMOP899199';
+update drug_concept_stage set concept_name = 'Arnica-Apotheke Enno Peppmeierfm' where concept_code = 'OMOP897719';
+update drug_concept_stage set concept_name = 'Arnulf Apotheke Johann Thoma' where concept_code = 'OMOP899097';
+update drug_concept_stage set concept_name = 'Arzneimittel-Heilmittel-Diaetetika' where concept_code = 'OMOP899959';
+update drug_concept_stage set concept_name = 'Asconex' where concept_code = 'OMOP2018322';
+update drug_concept_stage set concept_name = 'AST' where concept_code = 'OMOP1018300';
+update drug_concept_stage set concept_name = 'Athenstaedt' where concept_code = 'OMOP899622';
+update drug_concept_stage set concept_name = 'Atlantic Multipower' where concept_code = 'OMOP899512';
+update drug_concept_stage set concept_name = 'Atlantis-Apotheke Wolfgang & Gisela Langenberg' where concept_code = 'OMOP899411';
+update drug_concept_stage set concept_name = 'Atlas Co' where concept_code = 'OMOP1018311';
+update drug_concept_stage set concept_name = 'Auden Mckenzie' where concept_code = 'OMOP339527';
+update drug_concept_stage set concept_name = 'Australian Bush Oil' where concept_code = 'OMOP572437';
+update drug_concept_stage set concept_name = 'Auvex' where concept_code = 'OMOP440150';
+update drug_concept_stage set concept_name = 'Avondale' where concept_code = 'OMOP1018342';
+update drug_concept_stage set concept_name = 'Azar Baradaran-Kazem Zadeh Galenus-Apotheke' where concept_code = 'OMOP899408';
+update drug_concept_stage set concept_name = 'Azevedos' where concept_code = 'OMOP899880';
+update drug_concept_stage set concept_name = 'Aziende Chimiche Riunite Angelini Sco' where concept_code = 'OMOP338034';
+update drug_concept_stage set concept_name = 'B F Ascher ' where concept_code = 'OMOP1018318';
+update drug_concept_stage set concept_name = 'Basi' where concept_code = 'OMOP899813';
+update drug_concept_stage set concept_name = 'Basi Schoeberl' where concept_code = 'OMOP898935';
+update drug_concept_stage set concept_name = 'Basilea' where concept_code = 'OMOP337947';
+update drug_concept_stage set concept_name = 'Bastian' where concept_code = 'OMOP900183';
+update drug_concept_stage set concept_name = 'Bayard' where concept_code = 'OMOP440269';
+update drug_concept_stage set concept_name = 'Bee' where concept_code = 'OMOP339160';
+update drug_concept_stage set concept_name = 'Behany' where concept_code = 'OMOP1018348';
+update drug_concept_stage set concept_name = 'Behring' where concept_code = 'OMOP1019553';
+update drug_concept_stage set concept_name = 'Bene' where concept_code = 'OMOP899796';
+update drug_concept_stage set concept_name = 'Berco- Gottfried Herzberg' where concept_code = 'OMOP900152';
+update drug_concept_stage set concept_name = 'Betz"sche Apotheke Kurt Betz' where concept_code = 'OMOP898580';
+update drug_concept_stage set concept_name = 'BGP' where concept_code = 'OMOP338465';
+update drug_concept_stage set concept_name = 'Bieffe Medital' where concept_code = 'OMOP899967';
+update drug_concept_stage set concept_name = 'Billev' where concept_code = 'OMOP897540';
+update drug_concept_stage set concept_name = 'Bindergass-Apotheke' where concept_code = 'OMOP899665';
+update drug_concept_stage set concept_name = 'Bio Breizh' where concept_code = 'OMOP1018420';
+update drug_concept_stage set concept_name = 'Bio Oil' where concept_code = 'OMOP1018421';
+update drug_concept_stage set concept_name = 'Bio Products' where concept_code = 'OMOP337883';
+update drug_concept_stage set concept_name = 'Bio-Diaet-Berlin' where concept_code = 'OMOP900239';
+update drug_concept_stage set concept_name = 'Biokirch' where concept_code = 'OMOP898593';
+update drug_concept_stage set concept_name = 'Biokosma' where concept_code = 'OMOP1018396';
+update drug_concept_stage set concept_name = 'Biological Homeopathic' where concept_code = 'OMOP1018397';
+update drug_concept_stage set concept_name = 'Biomendi' where concept_code = 'OMOP897608';
+update drug_concept_stage set concept_name = 'Bionorica' where concept_code = 'OMOP899944';
+update drug_concept_stage set concept_name = 'Birnbaum-Apotheke Dr Claus Gernet' where concept_code = 'OMOP898490';
+update drug_concept_stage set concept_name = 'Bischoff' where concept_code = 'OMOP2018390';
+update drug_concept_stage set concept_name = 'Biscova' where concept_code = 'OMOP900444';
+update drug_concept_stage set concept_name = 'Bittermedizin' where concept_code = 'OMOP898837';
+update drug_concept_stage set concept_name = 'Bles' where concept_code = 'OMOP1018370';
+update drug_concept_stage set concept_name = 'Bluecher-Schering' where concept_code = 'OMOP898539';
+update drug_concept_stage set concept_name = 'BMG' where concept_code = 'OMOP1019013';
+update drug_concept_stage set concept_name = 'Boettger' where concept_code = 'OMOP899729';
+update drug_concept_stage set concept_name = 'Bohumil' where concept_code = 'OMOP439996';
+update drug_concept_stage set concept_name = 'Boxo' where concept_code = 'OMOP899723';
+update drug_concept_stage set concept_name = 'Brahms-Apotheke Eckart & Ilse Volke' where concept_code = 'OMOP897913';
+update drug_concept_stage set concept_name = 'Buckley"s' where concept_code = 'OMOP1019673';
+update drug_concept_stage set concept_name = 'C.D.' where concept_code = 'OMOP2018374';
+update drug_concept_stage set concept_name = 'C.P.' where concept_code = 'OMOP339405';
+update drug_concept_stage set concept_name = 'C.P.M.' where concept_code = 'OMOP898357';
+update drug_concept_stage set concept_name = 'Cabot' where concept_code = 'OMOP440411';
+update drug_concept_stage set concept_name = 'Cadillac' where concept_code = 'OMOP1019329';
+update drug_concept_stage set concept_name = 'Calcorp 55' where concept_code = 'OMOP1018443';
+update drug_concept_stage set concept_name = 'Canea' where concept_code = 'OMOP897747';
+update drug_concept_stage set concept_name = 'Cantassium' where concept_code = 'OMOP337895';
+update drug_concept_stage set concept_name = 'Cardinal' where concept_code = 'OMOP1018457';
+update drug_concept_stage set concept_name = 'Carl-Schurz-Apotheke Eva & Sabine Knoll' where concept_code = 'OMOP899390';
+update drug_concept_stage set concept_name = 'Carmaran' where concept_code = 'OMOP1018465';
+update drug_concept_stage set concept_name = 'Cascan' where concept_code = 'OMOP899430';
+update drug_concept_stage set concept_name = 'Casen Recordati' where concept_code = 'OMOP338684';
+update drug_concept_stage set concept_name = 'Cassella-Med' where concept_code = 'OMOP897422';
+update drug_concept_stage set concept_name = 'Cathapham' where concept_code = 'OMOP898759';
+update drug_concept_stage set concept_name = 'CCA' where concept_code = 'OMOP1018455';
+update drug_concept_stage set concept_name = 'Cd' where concept_code = 'OMOP337853';
+update drug_concept_stage set concept_name = 'Cedona' where concept_code = 'OMOP1018456';
+update drug_concept_stage set concept_name = 'Cefak' where concept_code = 'OMOP899365';
+update drug_concept_stage set concept_name = 'Cellex' where concept_code = 'OMOP900072';
+update drug_concept_stage set concept_name = 'Celltrion' where concept_code = 'OMOP1018695';
+update drug_concept_stage set concept_name = 'Cetylite' where concept_code = 'OMOP1018705';
+update drug_concept_stage set concept_name = 'Challenge' where concept_code = 'OMOP1018706';
+update drug_concept_stage set concept_name = 'Charton' where concept_code = 'OMOP1019026';
+update drug_concept_stage set concept_name = 'Chem Affairs Deutschland' where concept_code = 'OMOP898127';
+update drug_concept_stage set concept_name = 'Chemo Iberica Barcelona' where concept_code = 'OMOP897876';
+update drug_concept_stage set concept_name = 'Chephasaar' where concept_code = 'OMOP897883';
+update drug_concept_stage set concept_name = 'Commerce Pharmaceutics' where concept_code = 'OMOP1018749';
+update drug_concept_stage set concept_name = 'Confab' where concept_code = 'OMOP1019027';
+update drug_concept_stage set concept_name = 'Consilient' where concept_code = 'OMOP338172';
+update drug_concept_stage set concept_name = 'Coralite' where concept_code = 'OMOP1018774';
+update drug_concept_stage set concept_name = 'Corden' where concept_code = 'OMOP898038';
+update drug_concept_stage set concept_name = 'Cormontapharm' where concept_code = 'OMOP898590';
+update drug_concept_stage set concept_name = 'Cortunon' where concept_code = 'OMOP1019028';
+update drug_concept_stage set concept_name = 'Country' where concept_code = 'OMOP1018701';
+update drug_concept_stage set concept_name = 'Croma' where concept_code = 'OMOP2018425';
+update drug_concept_stage set concept_name = 'Crucell' where concept_code = 'OMOP899357';
+update drug_concept_stage set concept_name = 'CTRS' where concept_code = 'OMOP338414';
+update drug_concept_stage set concept_name = 'Cusanus-Apotheke Sarah Sauer' where concept_code = 'OMOP899949';
+update drug_concept_stage set concept_name = 'Cuxson Gerrard' where concept_code = 'OMOP1018744';
+update drug_concept_stage set concept_name = 'Cyathus Exquirere' where concept_code = 'OMOP900310';
+update drug_concept_stage set concept_name = 'Cyndea' where concept_code = 'OMOP898743';
+update drug_concept_stage set concept_name = 'D.A.V.I.D.' where concept_code = 'OMOP898429';
+update drug_concept_stage set concept_name = 'D.C.' where concept_code = 'OMOP1018763';
+update drug_concept_stage set concept_name = 'Dana' where concept_code = 'OMOP1018769';
+update drug_concept_stage set concept_name = 'Dauner Sprudel O Hommes' where concept_code = 'OMOP898892';
+update drug_concept_stage set concept_name = 'Debregeas' where concept_code = 'OMOP440467';
+update drug_concept_stage set concept_name = 'Decleor' where concept_code = 'OMOP1019029';
+update drug_concept_stage set concept_name = 'Defiante Sa' where concept_code = 'OMOP440119';
+update drug_concept_stage set concept_name = 'Del' where concept_code = 'OMOP1018667';
+update drug_concept_stage set concept_name = 'Delbert' where concept_code = 'OMOP439840';
+update drug_concept_stage set concept_name = 'Delon' where concept_code = 'OMOP1019030';
+update drug_concept_stage set concept_name = 'Delphin-Apotheke Ruediger Becker' where concept_code = 'OMOP897652';
+update drug_concept_stage set concept_name = 'Demo' where concept_code = 'OMOP899213';
+update drug_concept_stage set concept_name = 'Denorex' where concept_code = 'OMOP1019675';
+update drug_concept_stage set concept_name = 'Dental Health' where concept_code = 'OMOP338245';
+update drug_concept_stage set concept_name = 'Dermo-Cosmetik' where concept_code = 'OMOP1019031';
+update drug_concept_stage set concept_name = 'Desbergers' where concept_code = 'OMOP1018675';
+update drug_concept_stage set concept_name = 'Desomed Dr Trippen' where concept_code = 'OMOP898424';
+update drug_concept_stage set concept_name = 'Deutsche Homoeopathie-Union Dhu' where concept_code = 'OMOP897882';
+update drug_concept_stage set concept_name = 'Diamed' where concept_code = 'OMOP900236';
+update drug_concept_stage set concept_name = 'Diamo' where concept_code = 'OMOP899346';
+update drug_concept_stage set concept_name = 'Dibropharm Distribution' where concept_code = 'OMOP899312';
+update drug_concept_stage set concept_name = 'Die Renchtal-Apotheke Rainer Fettig' where concept_code = 'OMOP900066';
+update drug_concept_stage set concept_name = 'Die Thor-Apotheke Sylvia Thorwarth' where concept_code = 'OMOP898733';
+update drug_concept_stage set concept_name = 'Disphar' where concept_code = 'OMOP900249';
+update drug_concept_stage set concept_name = 'Dm-Drogerie Markt' where concept_code = 'OMOP897833';
+update drug_concept_stage set concept_name = 'Docmorris Apotheke Bad Hersfeldfrkia Hildwein' where concept_code = 'OMOP898621';
+update drug_concept_stage set concept_name = 'Docpharm' where concept_code = 'OMOP897483';
+update drug_concept_stage set concept_name = 'Doliage' where concept_code = 'OMOP440174';
+update drug_concept_stage set concept_name = 'Donovan' where concept_code = 'OMOP1018689';
+update drug_concept_stage set concept_name = 'Dotopharma' where concept_code = 'OMOP897464';
+update drug_concept_stage set concept_name = 'Dovital' where concept_code = 'OMOP900270';
+update drug_concept_stage set concept_name = 'Dr B Scheffler' where concept_code = 'OMOP898458';
+update drug_concept_stage set concept_name = 'Dr Behre' where concept_code = 'OMOP899309';
+update drug_concept_stage set concept_name = 'Dr Blasberg-Apotheke Dr Matthias Grundmann' where concept_code = 'OMOP898639';
+update drug_concept_stage set concept_name = 'Dr Daniel' where concept_code = 'OMOP1018565';
+update drug_concept_stage set concept_name = 'Dr Deppe' where concept_code = 'OMOP898451';
+update drug_concept_stage set concept_name = 'Dr Die Neue Apotheke' where concept_code = 'OMOP897577';
+update drug_concept_stage set concept_name = 'Dr Karl Thomae' where concept_code = 'OMOP897504';
+update drug_concept_stage set concept_name = 'Dr Felgentraeger Oeko-Chem' where concept_code = 'OMOP899627';
+update drug_concept_stage set concept_name = 'Dr Franz Koehler Chemie Mit Beschraenkter' where concept_code = 'OMOP899467';
+update drug_concept_stage set concept_name = 'Dr Friedrichse' where concept_code = 'OMOP899409';
+update drug_concept_stage set concept_name = 'Dr Gerhard Mann' where concept_code = 'OMOP897500';
+update drug_concept_stage set concept_name = 'Dr Kuhns Apotheke Dr Arne Kuhn' where concept_code = 'OMOP900013';
+update drug_concept_stage set concept_name = 'Dr Loges' where concept_code = 'OMOP897631';
+update drug_concept_stage set concept_name = 'Dr Marien-Apothekefm' where concept_code = 'OMOP899081';
+update drug_concept_stage set concept_name = 'Dr Markt-Apotheke 24' where concept_code = 'OMOP897439';
+update drug_concept_stage set concept_name = 'Dr Med Mainz' where concept_code = 'OMOP899023';
+update drug_concept_stage set concept_name = 'Dr Poehlmann' where concept_code = 'OMOP900334';
+update drug_concept_stage set concept_name = 'Dr R Pfleger' where concept_code = 'OMOP897364';
+update drug_concept_stage set concept_name = 'Dr Ritsert' where concept_code = 'OMOP898212';
+update drug_concept_stage set concept_name = 'Dr Rosen Apotheke' where concept_code = 'OMOP898027';
+update drug_concept_stage set concept_name = 'Dr Roshdy Ismail' where concept_code = 'OMOP899384';
+update drug_concept_stage set concept_name = 'Dr Stadt-Apotheke' where concept_code = 'OMOP899140';
+update drug_concept_stage set concept_name = 'Dreisessel-Apotheke' where concept_code = 'OMOP898389';
+update drug_concept_stage set concept_name = 'DRK-Blutspendedienst Baden-Wuerttemberg-Hessen' where concept_code = 'OMOP900192';
+update drug_concept_stage set concept_name = 'Drossapharm' where concept_code = 'OMOP900006';
+update drug_concept_stage set concept_name = 'Drula' where concept_code = 'OMOP1018572';
+update drug_concept_stage set concept_name = 'Dtr Dermal Therapy' where concept_code = 'OMOP1018578';
+update drug_concept_stage set concept_name = 'Dustbane' where concept_code = 'OMOP1018591';
+update drug_concept_stage set concept_name = 'Dutch Ophthalmic' where concept_code = 'OMOP1018592';
+update drug_concept_stage set concept_name = 'Dyckerhoff' where concept_code = 'OMOP900446';
+update drug_concept_stage set concept_name = 'Dymatize' where concept_code = 'OMOP1018593';
+update drug_concept_stage set concept_name = 'E.R.I.' where concept_code = 'OMOP1018605';
+update drug_concept_stage set concept_name = 'Easy Motion' where concept_code = 'OMOP1018609';
+update drug_concept_stage set concept_name = 'Easyapotheke' where concept_code = 'OMOP897406';
+update drug_concept_stage set concept_name = 'Eduard Gerlach' where concept_code = 'OMOP898066';
+update drug_concept_stage set concept_name = 'Edwards' where concept_code = 'OMOP1018626';
+update drug_concept_stage set concept_name = 'Efamol' where concept_code = 'OMOP1018627';
+update drug_concept_stage set concept_name = 'Eichendorff Apotheke Patric Sengfm' where concept_code = 'OMOP898648';
+update drug_concept_stage set concept_name = 'Eimsbuetteler-Apotheke' where concept_code = 'OMOP900285';
+update drug_concept_stage set concept_name = 'EKR' where concept_code = 'OMOP1018629';
+update drug_concept_stage set concept_name = 'Elasten' where concept_code = 'OMOP897296';
+update drug_concept_stage set concept_name = 'Elc Group' where concept_code = 'OMOP898926';
+update drug_concept_stage set concept_name = 'Elpen' where concept_code = 'OMOP898786';
+update drug_concept_stage set concept_name = 'Elsass-Apotheke Luecker' where concept_code = 'OMOP898267';
+update drug_concept_stage set concept_name = 'Emasdi' where concept_code = 'OMOP897469';
+update drug_concept_stage set concept_name = 'Emergent Sales And Marketing' where concept_code = 'OMOP899679';
+update drug_concept_stage set concept_name = 'Emu Man L C' where concept_code = 'OMOP1019676';
+update drug_concept_stage set concept_name = 'Engarde' where concept_code = 'OMOP1018475';
+update drug_concept_stage set concept_name = 'Engelhard' where concept_code = 'OMOP898631';
+update drug_concept_stage set concept_name = 'Ernest Jackson' where concept_code = 'OMOP338199';
+update drug_concept_stage set concept_name = 'Espen-Apotheke Gundhilt Mueller' where concept_code = 'OMOP900213';
+update drug_concept_stage set concept_name = 'Ester-C' where concept_code = 'OMOP1018601';
+update drug_concept_stage set concept_name = 'Eu Rho' where concept_code = 'OMOP899651';
+update drug_concept_stage set concept_name = 'Euro-Apotheke Eurapon' where concept_code = 'OMOP899251';
+update drug_concept_stage set concept_name = 'Eurogenerics' where concept_code = 'OMOP439862';
+update drug_concept_stage set concept_name = 'Evepacks' where concept_code = 'OMOP900055';
+update drug_concept_stage set concept_name = 'Exeltis' where concept_code = 'OMOP898491';
+update drug_concept_stage set concept_name = 'F Maltby' where concept_code = 'OMOP338835';
+update drug_concept_stage set concept_name = 'Farmaryn' where concept_code = 'OMOP898695';
+update drug_concept_stage set concept_name = 'Farmigea' where concept_code = 'OMOP339522';
+update drug_concept_stage set concept_name = 'Ferrer' where concept_code = 'OMOP439931';
+update drug_concept_stage set concept_name = 'FGK' where concept_code = 'OMOP899136';
+update drug_concept_stage set concept_name = 'Fides' where concept_code = 'OMOP899970';
+update drug_concept_stage set concept_name = 'Fitne Gesundheits Und Wellness' where concept_code = 'OMOP900471';
+update drug_concept_stage set concept_name = 'Flora-Apotheke Dr Bernhard Cuntze' where concept_code = 'OMOP898225';
+update drug_concept_stage set concept_name = 'Fontus' where concept_code = 'OMOP337973';
+update drug_concept_stage set concept_name = 'Fournier S' where concept_code = 'OMOP1019032';
+update drug_concept_stage set concept_name = 'Frank W Kerr' where concept_code = 'OMOP1018619';
+update drug_concept_stage set concept_name = 'Franken Brunnen' where concept_code = 'OMOP898058';
+update drug_concept_stage set concept_name = 'Frank"s' where concept_code = 'OMOP1018620';
+update drug_concept_stage set concept_name = 'Freesen-Apotheke Petra Engel' where concept_code = 'OMOP899749';
+update drug_concept_stage set concept_name = 'Friedrich Kremer Jr Inh Hans Kremer' where concept_code = 'OMOP900008';
+update drug_concept_stage set concept_name = 'Fritz Oskar Michallik' where concept_code = 'OMOP900245';
+update drug_concept_stage set concept_name = 'Friulchem' where concept_code = 'OMOP899958';
+update drug_concept_stage set concept_name = 'Fujisawa' where concept_code = 'OMOP1018633';
+update drug_concept_stage set concept_name = 'Fuller Brush' where concept_code = 'OMOP1018634';
+update drug_concept_stage set concept_name = 'G & G Food' where concept_code = 'OMOP338808';
+update drug_concept_stage set concept_name = 'G.A.' where concept_code = 'OMOP900031';
+update drug_concept_stage set concept_name = 'G.E.S.' where concept_code = 'OMOP900255';
+update drug_concept_stage set concept_name = 'G.L.' where concept_code = 'OMOP898333';
+update drug_concept_stage set concept_name = 'G2D' where concept_code = 'OMOP440396';
+update drug_concept_stage set concept_name = 'Galenica' where concept_code = 'OMOP899942';
+update drug_concept_stage set concept_name = 'Galenicum' where concept_code = 'OMOP897562';
+update drug_concept_stage set concept_name = 'GDS' where concept_code = 'OMOP2018500';
+update drug_concept_stage set concept_name = 'Gebr Waaning-Tilly' where concept_code = 'OMOP899700';
+update drug_concept_stage set concept_name = 'Geiser' where concept_code = 'OMOP898649';
+update drug_concept_stage set concept_name = 'Genericon' where concept_code = 'OMOP900438';
+update drug_concept_stage set concept_name = 'Genfarma' where concept_code = 'OMOP898020';
+update drug_concept_stage set concept_name = 'Genius- Apotheke' where concept_code = 'OMOP898586';
+update drug_concept_stage set concept_name = 'Genpharm' where concept_code = 'OMOP1018500';
+update drug_concept_stage set concept_name = 'Genzyme' where concept_code = 'OMOP337872';
+update drug_concept_stage set concept_name = 'Gerd Rehme Apotheke Am Behnhaus' where concept_code = 'OMOP899362';
+update drug_concept_stage set concept_name = 'Gerda' where concept_code = 'OMOP440064';
+update drug_concept_stage set concept_name = 'Gernetic' where concept_code = 'OMOP1019015';
+update drug_concept_stage set concept_name = 'Geschwister Popp & Goldmann' where concept_code = 'OMOP899262';
+update drug_concept_stage set concept_name = 'Geymonat' where concept_code = 'OMOP900020';
+update drug_concept_stage set concept_name = 'Gingi-Pak' where concept_code = 'OMOP1018508';
+update drug_concept_stage set concept_name = 'Giovanni Lorenzini' where concept_code = 'OMOP899417';
+update drug_concept_stage set concept_name = 'Gojo' where concept_code = 'OMOP1018519';
+update drug_concept_stage set concept_name = 'Good Oil' where concept_code = 'OMOP572456';
+update drug_concept_stage set concept_name = 'Gothaplast' where concept_code = 'OMOP900357';
+update drug_concept_stage set concept_name = 'Graham' where concept_code = 'OMOP1018528';
+update drug_concept_stage set concept_name = 'Graichen Produktions' where concept_code = 'OMOP899414';
+update drug_concept_stage set concept_name = 'Green' where concept_code = 'OMOP1018531';
+update drug_concept_stage set concept_name = 'Green Medicine' where concept_code = 'OMOP1019677';
+update drug_concept_stage set concept_name = 'Grunitz' where concept_code = 'OMOP1018561';
+update drug_concept_stage set concept_name = 'GSE' where concept_code = 'OMOP2018519';
+update drug_concept_stage set concept_name = 'H C Stark' where concept_code = 'OMOP898402';
+update drug_concept_stage set concept_name = 'H.J. Sutton' where concept_code = 'OMOP1018540';
+update drug_concept_stage set concept_name = 'Hager & Werken' where concept_code = 'OMOP900053';
+update drug_concept_stage set concept_name = 'Hair Cosmetics' where concept_code = 'OMOP1018228';
+update drug_concept_stage set concept_name = 'Hannemarie Brandt' where concept_code = 'OMOP900395';
+update drug_concept_stage set concept_name = 'Haupt Ag' where concept_code = 'OMOP899255';
+update drug_concept_stage set concept_name = 'Haus Schaeben' where concept_code = 'OMOP900156';
+update drug_concept_stage set concept_name = 'HBM' where concept_code = 'OMOP899631';
+update drug_concept_stage set concept_name = 'Health 4 All' where concept_code = 'OMOP1018548';
+update drug_concept_stage set concept_name = 'Health Way' where concept_code = 'OMOP1018552';
+update drug_concept_stage set concept_name = 'Healthcare Sales & Service' where concept_code = 'OMOP339068';
+update drug_concept_stage set concept_name = 'Heilbad Bad Neuenahr-Ahrweiler' where concept_code = 'OMOP900384';
+update drug_concept_stage set concept_name = 'Heinrich Klenk' where concept_code = 'OMOP898908';
+update drug_concept_stage set concept_name = 'Heinrich Kleppe' where concept_code = 'OMOP900459';
+update drug_concept_stage set concept_name = 'Heinrich Mickan' where concept_code = 'OMOP899728';
+update drug_concept_stage set concept_name = 'Heinrich-Heine-Apotheke Alexandra Tscheuschner' where concept_code = 'OMOP897565';
+update drug_concept_stage set concept_name = 'Helenen-Apotheke Dr Rer Nat Guenter Lang' where concept_code = 'OMOP899003';
+update drug_concept_stage set concept_name = 'Henkel Agaa' where concept_code = 'OMOP899137';
+update drug_concept_stage set concept_name = 'Herbages Naturbec' where concept_code = 'OMOP1018556';
+update drug_concept_stage set concept_name = 'Herbalist & Doc' where concept_code = 'OMOP897770';
+update drug_concept_stage set concept_name = 'Herbrand' where concept_code = 'OMOP898314';
+update drug_concept_stage set concept_name = 'Herzogen-Apotheke Sabina Van Dornick' where concept_code = 'OMOP899664';
+update drug_concept_stage set concept_name = 'Heumann' where concept_code = 'OMOP899775';
+update drug_concept_stage set concept_name = 'Hevert' where concept_code = 'OMOP900091';
+update drug_concept_stage set concept_name = 'HFC Prestige' where concept_code = 'OMOP1019135';
+update drug_concept_stage set concept_name = 'Hi-Ga' where concept_code = 'OMOP1019148';
+update drug_concept_stage set concept_name = 'High' where concept_code = 'OMOP1019149';
+update drug_concept_stage set concept_name = 'Highcrest' where concept_code = 'OMOP1019150';
+update drug_concept_stage set concept_name = 'Hilary"s' where concept_code = 'OMOP1019151';
+update drug_concept_stage set concept_name = 'Hipp' where concept_code = 'OMOP899260';
+update drug_concept_stage set concept_name = 'Hirundo' where concept_code = 'OMOP2018567';
+update drug_concept_stage set concept_name = 'HLS' where concept_code = 'OMOP1019156';
+update drug_concept_stage set concept_name = 'Holistic' where concept_code = 'OMOP1019161';
+update drug_concept_stage set concept_name = 'Horizon' where concept_code = 'OMOP1018962';
+update drug_concept_stage set concept_name = 'Hormosan' where concept_code = 'OMOP897339';
+update drug_concept_stage set concept_name = 'Hospal' where concept_code = 'OMOP898256';
+update drug_concept_stage set concept_name = 'Houbigant' where concept_code = 'OMOP1018984';
+update drug_concept_stage set concept_name = 'Humanus' where concept_code = 'OMOP2018547';
+update drug_concept_stage set concept_name = 'Hunza' where concept_code = 'OMOP338496';
+update drug_concept_stage set concept_name = 'Hustadt-Apotheke Dietmar Streit' where concept_code = 'OMOP899090';
+update drug_concept_stage set concept_name = 'HWI Analytik' where concept_code = 'OMOP898464';
+update drug_concept_stage set concept_name = 'I.B.' where concept_code = 'OMOP898694';
+update drug_concept_stage set concept_name = 'I.S.N.' where concept_code = 'OMOP900179';
+update drug_concept_stage set concept_name = 'Ibigen ' where concept_code = 'OMOP899025';
+update drug_concept_stage set concept_name = 'ID bio' where concept_code = 'OMOP1019189';
+update drug_concept_stage set concept_name = 'IDD' where concept_code = 'OMOP899396';
+update drug_concept_stage set concept_name = 'Idelle' where concept_code = 'OMOP1019190';
+update drug_concept_stage set concept_name = 'IDL' where concept_code = 'OMOP440280';
+update drug_concept_stage set concept_name = 'IHN-Allaire' where concept_code = 'OMOP1018968';
+update drug_concept_stage set concept_name = 'IIP-Institut' where concept_code = 'OMOP898848';
+update drug_concept_stage set concept_name = 'I-Med' where concept_code = 'OMOP899862';
+update drug_concept_stage set concept_name = 'IMG Institut' where concept_code = 'OMOP899361';
+update drug_concept_stage set concept_name = 'Impuls' where concept_code = 'OMOP2018740';
+update drug_concept_stage set concept_name = 'Incyte' where concept_code = 'OMOP1140334';
+update drug_concept_stage set concept_name = 'Infectopharm' where concept_code = 'OMOP897767';
+update drug_concept_stage set concept_name = 'Inn-Farm' where concept_code = 'OMOP898007';
+update drug_concept_stage set concept_name = 'Innovapharm' where concept_code = 'OMOP899604';
+update drug_concept_stage set concept_name = 'INO' where concept_code = 'OMOP1018987';
+update drug_concept_stage set concept_name = 'Inter Pharm' where concept_code = 'OMOP2018575';
+update drug_concept_stage set concept_name = 'Interdos' where concept_code = 'OMOP899123';
+update drug_concept_stage set concept_name = 'International Medication Systems' where concept_code = 'OMOP337798';
+update drug_concept_stage set concept_name = 'Invent Farma' where concept_code = 'OMOP898866';
+update drug_concept_stage set concept_name = 'Inverma Johannes Lange' where concept_code = 'OMOP898455';
+update drug_concept_stage set concept_name = 'Iovate' where concept_code = 'OMOP1019168';
+update drug_concept_stage set concept_name = 'IPP' where concept_code = 'OMOP897924';
+update drug_concept_stage set concept_name = 'IPS' where concept_code = 'OMOP338599';
+update drug_concept_stage set concept_name = 'Iroko' where concept_code = 'OMOP440366';
+update drug_concept_stage set concept_name = 'Isis' where concept_code = 'OMOP338975';
+update drug_concept_stage set concept_name = 'Ispex' where concept_code = 'OMOP899889';
+update drug_concept_stage set concept_name = 'IVC' where concept_code = 'OMOP1019213';
+update drug_concept_stage set concept_name = 'J Carl Pflueger' where concept_code = 'OMOP898087';
+update drug_concept_stage set concept_name = 'J L Mathieu' where concept_code = 'OMOP1019215';
+update drug_concept_stage set concept_name = 'Jadran Galenski Laboratorij D D' where concept_code = 'OMOP899915';
+update drug_concept_stage set concept_name = 'Jan Marini' where concept_code = 'OMOP1019169';
+update drug_concept_stage set concept_name = 'Jane' where concept_code = 'OMOP1019170';
+update drug_concept_stage set concept_name = 'Jazz' where concept_code = 'OMOP1019172';
+update drug_concept_stage set concept_name = 'Jedmon' where concept_code = 'OMOP1019174';
+update drug_concept_stage set concept_name = 'Jenson' where concept_code = 'OMOP899196';
+update drug_concept_stage set concept_name = 'Jr Carlson' where concept_code = 'OMOP1019180';
+update drug_concept_stage set concept_name = 'Jubilant' where concept_code = 'OMOP897378';
+update drug_concept_stage set concept_name = 'Jura Gollwitzer' where concept_code = 'OMOP900141';
+update drug_concept_stage set concept_name = 'Juvise' where concept_code = 'OMOP440440';
+update drug_concept_stage set concept_name = 'Kabi' where concept_code = 'OMOP1019187';
+update drug_concept_stage set concept_name = 'Kabivitrum' where concept_code = 'OMOP2018607';
+update drug_concept_stage set concept_name = 'Kao' where concept_code = 'OMOP1019204';
+update drug_concept_stage set concept_name = 'Karmed' where concept_code = 'OMOP899891';
+update drug_concept_stage set concept_name = 'Kedrion' where concept_code = 'OMOP899873';
+update drug_concept_stage set concept_name = 'Kerastase' where concept_code = 'OMOP1019223';
+update drug_concept_stage set concept_name = 'Kimed' where concept_code = 'OMOP898990';
+update drug_concept_stage set concept_name = 'Klaire' where concept_code = 'OMOP1018979';
+update drug_concept_stage set concept_name = 'Klemens-Apotheke Dr F U H Reiter' where concept_code = 'OMOP899229';
+update drug_concept_stage set concept_name = 'Klemenz' where concept_code = 'OMOP898008';
+update drug_concept_stage set concept_name = 'Koeniglich Privilegierte Adler Apotheke' where concept_code = 'OMOP897590';
+update drug_concept_stage set concept_name = 'Korea Ginseng' where concept_code = 'OMOP899208';
+update drug_concept_stage set concept_name = 'Kowa' where concept_code = 'OMOP897871';
+update drug_concept_stage set concept_name = 'Kraeuterhaus Sanct Bernhard' where concept_code = 'OMOP897290';
+update drug_concept_stage set concept_name = 'Kraeuterpfarrer Kuenzle' where concept_code = 'OMOP897949';
+update drug_concept_stage set concept_name = 'Kraiss & Friz' where concept_code = 'OMOP898345';
+update drug_concept_stage set concept_name = 'Kreuzapotheke Ruelzheim Inhaber Gabriele Deutsch' where concept_code = 'OMOP899030';
+update drug_concept_stage set concept_name = 'Kroeger Herb' where concept_code = 'OMOP1019001';
+update drug_concept_stage set concept_name = 'Krueger' where concept_code = 'OMOP897999';
+update drug_concept_stage set concept_name = 'KSK-Pharma' where concept_code = 'OMOP900456';
+update drug_concept_stage set concept_name = 'Kutol' where concept_code = 'OMOP1019003';
+update drug_concept_stage set concept_name = 'L & S' where concept_code = 'OMOP1019007';
+update drug_concept_stage set concept_name = 'L Molteni & C Dei F Lli Alitti' where concept_code = 'OMOP898281';
+update drug_concept_stage set concept_name = 'Laboratoire Larima' where concept_code = 'OMOP1019021';
+update drug_concept_stage set concept_name = 'Laboratori Diaco Bioi' where concept_code = 'OMOP899334';
+update drug_concept_stage set concept_name = 'Laboratori Guidotti' where concept_code = 'OMOP900432';
+update drug_concept_stage set concept_name = 'Laboratories For Applied Biology' where concept_code = 'OMOP339479';
+update drug_concept_stage set concept_name = 'Lacorium' where concept_code = 'OMOP1019046';
+update drug_concept_stage set concept_name = 'Laderma' where concept_code = 'OMOP1019048';
+update drug_concept_stage set concept_name = 'Laer' where concept_code = 'OMOP1019049';
+update drug_concept_stage set concept_name = 'Lakeridge Health' where concept_code = 'OMOP1019050';
+update drug_concept_stage set concept_name = 'Lane' where concept_code = 'OMOP1019055';
+update drug_concept_stage set concept_name = 'Lannacher Heilmittel' where concept_code = 'OMOP898993';
+update drug_concept_stage set concept_name = 'Lantheus' where concept_code = 'OMOP440450';
+update drug_concept_stage set concept_name = 'Larose & Fils' where concept_code = 'OMOP1019057';
+update drug_concept_stage set concept_name = 'Laurentius-Apotheke Stephanie Macagnino' where concept_code = 'OMOP899597';
+update drug_concept_stage set concept_name = 'Le Nigen N' where concept_code = 'OMOP1019064';
+update drug_concept_stage set concept_name = 'Lebewohl' where concept_code = 'OMOP900115';
+update drug_concept_stage set concept_name = 'Leda Innovations' where concept_code = 'OMOP1019067';
+update drug_concept_stage set concept_name = 'Lege Artis' where concept_code = 'OMOP898302';
+update drug_concept_stage set concept_name = 'Lek D D' where concept_code = 'OMOP898216';
+update drug_concept_stage set concept_name = 'Bio-SantГ©' where concept_code = 'OMOP1019085';
+update drug_concept_stage set concept_name = 'Chimiques B O D' where concept_code = 'OMOP1019081';
+update drug_concept_stage set concept_name = 'Saint-Laurent' where concept_code = 'OMOP1019086';
+update drug_concept_stage set concept_name = 'Entreprises Plein Sol' where concept_code = 'OMOP1019082';
+update drug_concept_stage set concept_name = 'Servier' where concept_code = 'OMOP439865';
+update drug_concept_stage set concept_name = 'Swisse' where concept_code = 'OMOP1019087';
+update drug_concept_stage set concept_name = 'Lever' where concept_code = 'OMOP1019094';
+update drug_concept_stage set concept_name = 'Lichtenheldt' where concept_code = 'OMOP900352';
+update drug_concept_stage set concept_name = 'Lichtenstein Zeutica' where concept_code = 'OMOP899822';
+update drug_concept_stage set concept_name = 'Lichtwer' where concept_code = 'OMOP1019097';
+update drug_concept_stage set concept_name = 'Liebermann' where concept_code = 'OMOP900077';
+update drug_concept_stage set concept_name = 'Lifeplan' where concept_code = 'OMOP338187';
+update drug_concept_stage set concept_name = 'Lil" Drug Store' where concept_code = 'OMOP1019101';
+update drug_concept_stage set concept_name = 'Limes-Apotheke Andreas Gruenebaum' where concept_code = 'OMOP897276';
+update drug_concept_stage set concept_name = 'Linden' where concept_code = 'OMOP898334';
+update drug_concept_stage set concept_name = 'Logenex' where concept_code = 'OMOP898067';
+update drug_concept_stage set concept_name = 'Lomapharm Rudolf Lohmann' where concept_code = 'OMOP898507';
+update drug_concept_stage set concept_name = 'Lousal' where concept_code = 'OMOP1019109';
+update drug_concept_stage set concept_name = 'Lyocentre' where concept_code = 'OMOP439941';
+update drug_concept_stage set concept_name = 'Vachon' where concept_code = 'OMOP1019060';
+update drug_concept_stage set concept_name = 'Mainopharm' where concept_code = 'OMOP898732';
+update drug_concept_stage set concept_name = 'Majorelle' where concept_code = 'OMOP440465';
+update drug_concept_stage set concept_name = 'Mameca' where concept_code = 'OMOP1019331';
+update drug_concept_stage set concept_name = 'Manai' where concept_code = 'OMOP898742';
+update drug_concept_stage set concept_name = 'Maney Paul' where concept_code = 'OMOP1019042';
+update drug_concept_stage set concept_name = 'Marien-Apotheke Roland Leikertfm' where concept_code = 'OMOP897383';
+update drug_concept_stage set concept_name = 'Martin-Apotheke Guenter Stephan Gisela Heidt-Templin' where concept_code = 'OMOP897454';
+update drug_concept_stage set concept_name = 'Martinus-Apotheke Bernhard Gievert' where concept_code = 'OMOP898969';
+update drug_concept_stage set concept_name = 'Matol Botanique' where concept_code = 'OMOP1018943';
+update drug_concept_stage set concept_name = 'Matramed Mfg' where concept_code = 'OMOP1018947';
+update drug_concept_stage set concept_name = 'Mauermann' where concept_code = 'OMOP899774';
+update drug_concept_stage set concept_name = 'Mavena' where concept_code = 'OMOP897966';
+update drug_concept_stage set concept_name = 'Mayne' where concept_code = 'OMOP338706';
+update drug_concept_stage set concept_name = 'Mayoly Spindler' where concept_code = 'OMOP440326';
+update drug_concept_stage set concept_name = 'Mco' where concept_code = 'OMOP2018657';
+update drug_concept_stage set concept_name = 'Media pharmaceutic' where concept_code = 'OMOP2018649';
+update drug_concept_stage set concept_name = 'Medic Laboratory' where concept_code = 'OMOP1018795';
+update drug_concept_stage set concept_name = 'Medicines' where concept_code = 'OMOP339238';
+update drug_concept_stage set concept_name = 'Medicon' where concept_code = 'OMOP899143';
+update drug_concept_stage set concept_name = 'Medique/Unifirst' where concept_code = 'OMOP1018879';
+update drug_concept_stage set concept_name = 'Medix Team' where concept_code = 'OMOP338143';
+update drug_concept_stage set concept_name = 'Medline' where concept_code = 'OMOP1018880';
+update drug_concept_stage set concept_name = 'Medopharm' where concept_code = 'OMOP899724';
+update drug_concept_stage set concept_name = 'Medrx Llp' where concept_code = 'OMOP338764';
+update drug_concept_stage set concept_name = 'Mekos' where concept_code = 'OMOP1018892';
+update drug_concept_stage set concept_name = 'Menarini' where concept_code = 'OMOP440135';
+update drug_concept_stage set concept_name = 'Merus Luxco' where concept_code = 'OMOP339442';
+update drug_concept_stage set concept_name = 'Metrex' where concept_code = 'OMOP1018944';
+update drug_concept_stage set concept_name = 'Meuselbach' where concept_code = 'OMOP897791';
+update drug_concept_stage set concept_name = 'Meyer Zall' where concept_code = 'OMOP1018946';
+update drug_concept_stage set concept_name = 'Mickan' where concept_code = 'OMOP899067';
+update drug_concept_stage set concept_name = 'Micro-Labs' where concept_code = 'OMOP897870';
+update drug_concept_stage set concept_name = 'Mineralbrunnen Ueberkingen-Teinach' where concept_code = 'OMOP900279';
+update drug_concept_stage set concept_name = 'Mithra' where concept_code = 'OMOP899197';
+update drug_concept_stage set concept_name = 'MM' where concept_code = 'OMOP1018928';
+update drug_concept_stage set concept_name = 'Momaja Elc-Group' where concept_code = 'OMOP897730';
+update drug_concept_stage set concept_name = 'Monarch' where concept_code = 'OMOP440034';
+update drug_concept_stage set concept_name = 'Montavit' where concept_code = 'OMOP1019363';
+update drug_concept_stage set concept_name = 'Montreal Veterinary' where concept_code = 'OMOP1018930';
+update drug_concept_stage set concept_name = 'Morex' where concept_code = 'OMOP1018931';
+update drug_concept_stage set concept_name = 'Mustermann' where concept_code = 'OMOP900061';
+update drug_concept_stage set concept_name = 'mv-Pharma' where concept_code = 'OMOP899956';
+update drug_concept_stage set concept_name = 'Mycare' where concept_code = 'OMOP898371';
+update drug_concept_stage set concept_name = 'Nabisco' where concept_code = 'OMOP1018809';
+update drug_concept_stage set concept_name = 'Nadeau' where concept_code = 'OMOP1019016';
+update drug_concept_stage set concept_name = 'Natali' where concept_code = 'OMOP1018815';
+update drug_concept_stage set concept_name = 'Natural Factors' where concept_code = 'OMOP1018823';
+update drug_concept_stage set concept_name = 'Naturasanitas' where concept_code = 'OMOP897530';
+update drug_concept_stage set concept_name = 'Nature"s Sunshine' where concept_code = 'OMOP1018834';
+update drug_concept_stage set concept_name = 'Negma' where concept_code = 'OMOP440260';
+update drug_concept_stage set concept_name = 'Neitum' where concept_code = 'OMOP440140';
+update drug_concept_stage set concept_name = 'NEL' where concept_code = 'OMOP897935';
+update drug_concept_stage set concept_name = 'Neogen' where concept_code = 'OMOP899630';
+update drug_concept_stage set concept_name = 'Nepenthes' where concept_code = 'OMOP440152';
+update drug_concept_stage set concept_name = 'Nephro Medica' where concept_code = 'OMOP899462';
+update drug_concept_stage set concept_name = 'Nestle' where concept_code = 'OMOP339543';
+update drug_concept_stage set concept_name = 'New Era' where concept_code = 'OMOP1018847';
+update drug_concept_stage set concept_name = 'New Life' where concept_code = 'OMOP1018848';
+update drug_concept_stage set concept_name = 'Newline' where concept_code = 'OMOP897567';
+update drug_concept_stage set concept_name = 'Nibelungen-Apotheke Andreas Hammer' where concept_code = 'OMOP898834';
+update drug_concept_stage set concept_name = 'NM Vital Apotheke' where concept_code = 'OMOP898060';
+update drug_concept_stage set concept_name = 'Nobel' where concept_code = 'OMOP1018857';
+update drug_concept_stage set concept_name = 'Norit' where concept_code = 'OMOP898029';
+update drug_concept_stage set concept_name = 'Normon' where concept_code = 'OMOP899802';
+update drug_concept_stage set concept_name = 'Norwood' where concept_code = 'OMOP1018873';
+update drug_concept_stage set concept_name = 'Novesia' where concept_code = 'OMOP899980';
+update drug_concept_stage set concept_name = 'Nuron Biotech' where concept_code = 'OMOP1019368';
+update drug_concept_stage set concept_name = 'Nutra' where concept_code = 'OMOP1019370';
+update drug_concept_stage set concept_name = 'Nutri' where concept_code = 'OMOP440158';
+update drug_concept_stage set concept_name = 'Nutri-Chem' where concept_code = 'OMOP1019396';
+update drug_concept_stage set concept_name = 'Nutri-Dyn' where concept_code = 'OMOP1019398';
+update drug_concept_stage set concept_name = 'Nutrimedika' where concept_code = 'OMOP1019406';
+update drug_concept_stage set concept_name = 'Nutrivac' where concept_code = 'OMOP1019415';
+update drug_concept_stage set concept_name = 'Nuvo' where concept_code = 'OMOP900311';
+update drug_concept_stage set concept_name = 'Obagi' where concept_code = 'OMOP1019426';
+update drug_concept_stage set concept_name = 'Olympia-Apothekecha Strehmel' where concept_code = 'OMOP898118';
+update drug_concept_stage set concept_name = 'Omrix' where concept_code = 'OMOP440069';
+update drug_concept_stage set concept_name = 'Opti' where concept_code = 'OMOP2018726';
+update drug_concept_stage set concept_name = 'Organika' where concept_code = 'OMOP1019417';
+update drug_concept_stage set concept_name = 'Orpha Devel' where concept_code = 'OMOP440321';
+update drug_concept_stage set concept_name = 'Oshawa Group' where concept_code = 'OMOP1019678';
+update drug_concept_stage set concept_name = 'Osterholz' where concept_code = 'OMOP897556';
+update drug_concept_stage set concept_name = 'P.T. New Tombak' where concept_code = 'OMOP1019462';
+update drug_concept_stage set concept_name = 'Paladin' where concept_code = 'OMOP338178';
+update drug_concept_stage set concept_name = 'Panacea Biotec' where concept_code = 'OMOP899217';
+update drug_concept_stage set concept_name = 'Parall' where concept_code = 'OMOP1019356';
+update drug_concept_stage set concept_name = 'Parfums Parquet' where concept_code = 'OMOP1019376';
+update drug_concept_stage set concept_name = 'Parthenon' where concept_code = 'OMOP1019679';
+update drug_concept_stage set concept_name = 'Pascoe' where concept_code = 'OMOP899450';
+update drug_concept_stage set concept_name = 'Pasteur Apotheke Barbara Henkel' where concept_code = 'OMOP899835';
+update drug_concept_stage set concept_name = 'Patroklus Apotheke Dr F Tenbieg' where concept_code = 'OMOP898248';
+update drug_concept_stage set concept_name = 'Paul Cors' where concept_code = 'OMOP900244';
+update drug_concept_stage set concept_name = 'Paulus Apotheke' where concept_code = 'OMOP897617';
+update drug_concept_stage set concept_name = 'PE' where concept_code = 'OMOP2018766';
+update drug_concept_stage set concept_name = 'Performance' where concept_code = 'OMOP1019464';
+update drug_concept_stage set concept_name = 'Pern' where concept_code = 'OMOP339504';
+update drug_concept_stage set concept_name = 'Pfingstweide-Apotheke Juergen Duerrwang' where concept_code = 'OMOP899590';
+update drug_concept_stage set concept_name = 'Pharma Aktiva-Bitte Nicht Zum Codieren Verwenden ' where concept_code = 'OMOP897536';
+update drug_concept_stage set concept_name = 'Pharma Aldenhoven' where concept_code = 'OMOP900158';
+update drug_concept_stage set concept_name = 'Pharmacal' where concept_code = 'OMOP1019475';
+update drug_concept_stage set concept_name = 'Pharmaceuticals Sales & Development' where concept_code = 'OMOP897889';
+update drug_concept_stage set concept_name = 'Pharmachemie' where concept_code = 'OMOP897460';
+update drug_concept_stage set concept_name = 'Pharmacie Centrale Des Armees' where concept_code = 'OMOP440167';
+update drug_concept_stage set concept_name = 'Pharmafrid' where concept_code = 'OMOP900134';
+update drug_concept_stage set concept_name = 'Pharmaki' where concept_code = 'OMOP440339';
+update drug_concept_stage set concept_name = 'Pharmaselect' where concept_code = 'OMOP440121';
+update drug_concept_stage set concept_name = 'Pharmaswiss' where concept_code = 'OMOP440436';
+update drug_concept_stage set concept_name = 'Pharmtek' where concept_code = 'OMOP1019034';
+update drug_concept_stage set concept_name = 'Pharos-Oriented' where concept_code = 'OMOP899703';
+update drug_concept_stage set concept_name = 'Phytocon' where concept_code = 'OMOP898049';
+update drug_concept_stage set concept_name = 'Pierre Rolland' where concept_code = 'OMOP440166';
+update drug_concept_stage set concept_name = 'Pittsburgh Plastics' where concept_code = 'OMOP1019389';
+update drug_concept_stage set concept_name = 'PKH' where concept_code = 'OMOP899320';
+update drug_concept_stage set concept_name = 'Plosspharma' where concept_code = 'OMOP897465';
+update drug_concept_stage set concept_name = 'PNS' where concept_code = 'OMOP1019310';
+update drug_concept_stage set concept_name = 'Preval' where concept_code = 'OMOP1019290';
+update drug_concept_stage set concept_name = 'Prime' where concept_code = 'OMOP1019297';
+update drug_concept_stage set concept_name = 'Pro Med' where concept_code = 'OMOP439851';
+update drug_concept_stage set concept_name = 'Proactiv' where concept_code = 'OMOP1019680';
+update drug_concept_stage set concept_name = 'ProCura hymed' where concept_code = 'OMOP898572';
+update drug_concept_stage set concept_name = 'Prodeal' where concept_code = 'OMOP1019061';
+update drug_concept_stage set concept_name = 'Prodene Klint' where concept_code = 'OMOP1019035';
+update drug_concept_stage set concept_name = 'Produits Francais' where concept_code = 'OMOP1019330';
+update drug_concept_stage set concept_name = 'Produits Sani Professionel' where concept_code = 'OMOP1019334';
+update drug_concept_stage set concept_name = 'Pronova' where concept_code = 'OMOP439878';
+update drug_concept_stage set concept_name = 'Protina' where concept_code = 'OMOP900424';
+update drug_concept_stage set concept_name = 'PS' where concept_code = 'OMOP900282';
+update drug_concept_stage set concept_name = 'Purity Life' where concept_code = 'OMOP1019294';
+update drug_concept_stage set concept_name = 'QD' where concept_code = 'OMOP1019300';
+update drug_concept_stage set concept_name = 'Quigley' where concept_code = 'OMOP1019681';
+update drug_concept_stage set concept_name = 'Quintessenz' where concept_code = 'OMOP2018792';
+update drug_concept_stage set concept_name = 'Quisisana' where concept_code = 'OMOP900114';
+update drug_concept_stage set concept_name = 'R.I.S.' where concept_code = 'OMOP338280';
+update drug_concept_stage set concept_name = 'Rafarm' where concept_code = 'OMOP900201';
+update drug_concept_stage set concept_name = 'Ramprie' where concept_code = 'OMOP572413';
+update drug_concept_stage set concept_name = 'Rapidscan' where concept_code = 'OMOP338461';
+update drug_concept_stage set concept_name = 'Ratingsee-Apotheke M Roth' where concept_code = 'OMOP898258';
+update drug_concept_stage set concept_name = 'Ravensberg' where concept_code = 'OMOP898541';
+update drug_concept_stage set concept_name = 'Redken' where concept_code = 'OMOP1019342';
+update drug_concept_stage set concept_name = 'Regent' where concept_code = 'OMOP439892';
+update drug_concept_stage set concept_name = 'Regime' where concept_code = 'OMOP1019346';
+update drug_concept_stage set concept_name = 'Repha' where concept_code = 'OMOP899520';
+update drug_concept_stage set concept_name = 'Reusch' where concept_code = 'OMOP2018744';
+update drug_concept_stage set concept_name = 'RMC' where concept_code = 'OMOP1019260';
+update drug_concept_stage set concept_name = 'Robugen' where concept_code = 'OMOP899282';
+update drug_concept_stage set concept_name = 'Ronneburg-Apotheke Peter Frank' where concept_code = 'OMOP899569';
+update drug_concept_stage set concept_name = 'Root' where concept_code = 'OMOP1019276';
+update drug_concept_stage set concept_name = 'Rotexmedica' where concept_code = 'OMOP898924';
+update drug_concept_stage set concept_name = 'Roth' where concept_code = 'OMOP900155';
+update drug_concept_stage set concept_name = 'Rotop' where concept_code = 'OMOP440342';
+update drug_concept_stage set concept_name = 'Rowa-Wagner' where concept_code = 'OMOP899494';
+update drug_concept_stage set concept_name = 'RW' where concept_code = 'OMOP1019277';
+update drug_concept_stage set concept_name = 'S.C. Polipharma' where concept_code = 'OMOP900313';
+update drug_concept_stage set concept_name = 'S+H' where concept_code = 'OMOP2018796';
+update drug_concept_stage set concept_name = 'Saale-Apotheke Kaulsdorf Uta Seitz' where concept_code = 'OMOP897505';
+update drug_concept_stage set concept_name = 'Safetex' where concept_code = 'OMOP1019271';
+update drug_concept_stage set concept_name = 'Sage' where concept_code = 'OMOP899924';
+update drug_concept_stage set concept_name = 'Salzach Apotheke' where concept_code = 'OMOP899550';
+update drug_concept_stage set concept_name = 'Saneca' where concept_code = 'OMOP897305';
+update drug_concept_stage set concept_name = 'Sanesco' where concept_code = 'OMOP899955';
+update drug_concept_stage set concept_name = 'Sanis' where concept_code = 'OMOP1019745';
+update drug_concept_stage set concept_name = 'Sano' where concept_code = 'OMOP899855';
+update drug_concept_stage set concept_name = 'Sanorell' where concept_code = 'OMOP897707';
+update drug_concept_stage set concept_name = 'SantГ© Nature' where concept_code = 'OMOP1019201';
+update drug_concept_stage set concept_name = 'SantГ© Naturelle' where concept_code = 'OMOP1019751';
+update drug_concept_stage set concept_name = 'Sanum Kehlbeck' where concept_code = 'OMOP900302';
+update drug_concept_stage set concept_name = 'Saraya' where concept_code = 'OMOP898032';
+update drug_concept_stage set concept_name = 'SBS' where concept_code = 'OMOP1019770';
+update drug_concept_stage set concept_name = 'SC Infomed Fluids' where concept_code = 'OMOP900168';
+update drug_concept_stage set concept_name = 'Schaper & Bruemmer' where concept_code = 'OMOP900288';
+update drug_concept_stage set concept_name = 'Scholl' where concept_code = 'OMOP337824';
+update drug_concept_stage set concept_name = 'Schubert-Apotheke Dr Matthias Oechsner' where concept_code = 'OMOP898434';
+update drug_concept_stage set concept_name = 'Schuck' where concept_code = 'OMOP899844';
+update drug_concept_stage set concept_name = 'Schumann Apotheke Nadya Hannoudi' where concept_code = 'OMOP899671';
+update drug_concept_stage set concept_name = 'Schur' where concept_code = 'OMOP898177';
+update drug_concept_stage set concept_name = 'Schwarzhaupt' where concept_code = 'OMOP899460';
+update drug_concept_stage set concept_name = 'Schwoerer' where concept_code = 'OMOP899276';
+update drug_concept_stage set concept_name = 'Searle' where concept_code = 'OMOP1019796';
+update drug_concept_stage set concept_name = 'Semmelweis-Apotheke Brigitte Rump' where concept_code = 'OMOP899686';
+update drug_concept_stage set concept_name = 'SFDB' where concept_code = 'OMOP440049';
+update drug_concept_stage set concept_name = 'Siemens' where concept_code = 'OMOP338512';
+update drug_concept_stage set concept_name = 'Sintetica' where concept_code = 'OMOP337930';
+update drug_concept_stage set concept_name = 'Sisir Gupta' where concept_code = 'OMOP899317';
+update drug_concept_stage set concept_name = 'Sivem' where concept_code = 'OMOP1019753';
+update drug_concept_stage set concept_name = 'Smiths ASD' where concept_code = 'OMOP1019784';
+update drug_concept_stage set concept_name = 'Solar Cosmetic' where concept_code = 'OMOP1019685';
+update drug_concept_stage set concept_name = 'Solgar' where concept_code = 'OMOP337880';
+update drug_concept_stage set concept_name = 'Somex' where concept_code = 'OMOP338743';
+update drug_concept_stage set concept_name = 'Sopherion' where concept_code = 'OMOP1019696';
+update drug_concept_stage set concept_name = 'Source Of Life' where concept_code = 'OMOP1019716';
+update drug_concept_stage set concept_name = 'Speciality' where concept_code = 'OMOP339172';
+update drug_concept_stage set concept_name = 'Spitzweg-Apotheke Gertrud Heim' where concept_code = 'OMOP898702';
+update drug_concept_stage set concept_name = 'Sportscience' where concept_code = 'OMOP1019723';
+update drug_concept_stage set concept_name = 'Sprakita' where concept_code = 'OMOP1019732';
+update drug_concept_stage set concept_name = 'SRH Zentralklinikum Suhl' where concept_code = 'OMOP900042';
+update drug_concept_stage set concept_name = 'St Antonius-Apotheke Hans Tauber' where concept_code = 'OMOP899594';
+update drug_concept_stage set concept_name = 'St Johanser Naturmittel' where concept_code = 'OMOP898201';
+update drug_concept_stage set concept_name = 'Stadtbruecken-Apotheke Swetlana Koslowski' where concept_code = 'OMOP900233';
+update drug_concept_stage set concept_name = 'Steierl' where concept_code = 'OMOP898852';
+update drug_concept_stage set concept_name = 'Sterigen' where concept_code = 'OMOP1019036';
+update drug_concept_stage set concept_name = 'Stroschein' where concept_code = 'OMOP2018745';
+update drug_concept_stage set concept_name = 'Stulln' where concept_code = 'OMOP897905';
+update drug_concept_stage set concept_name = 'Summerberry' where concept_code = 'OMOP1019720';
+update drug_concept_stage set concept_name = 'Sunlife' where concept_code = 'OMOP899993';
+update drug_concept_stage set concept_name = 'Sun-Rype' where concept_code = 'OMOP1019725';
+update drug_concept_stage set concept_name = 'Super Diet' where concept_code = 'OMOP440189';
+update drug_concept_stage set concept_name = 'Superieures Solutions' where concept_code = 'OMOP1019741';
+update drug_concept_stage set concept_name = 'Syxyl' where concept_code = 'OMOP900097';
+update drug_concept_stage set concept_name = 'Talecris' where concept_code = 'OMOP1019633';
+update drug_concept_stage set concept_name = 'Tanning' where concept_code = 'OMOP1019634';
+update drug_concept_stage set concept_name = 'Taoasis Natur' where concept_code = 'OMOP898523';
+update drug_concept_stage set concept_name = 'Thermyc' where concept_code = 'OMOP1019025';
+update drug_concept_stage set concept_name = 'Thorne' where concept_code = 'OMOP1019663';
+update drug_concept_stage set concept_name = 'Tianshi' where concept_code = 'OMOP1019671';
+update drug_concept_stage set concept_name = 'Titus-Apotheke Dr Roland Herbst' where concept_code = 'OMOP898287';
+update drug_concept_stage set concept_name = 'Togal-Werk' where concept_code = 'OMOP897840';
+update drug_concept_stage set concept_name = 'Topfit' where concept_code = 'OMOP338256';
+update drug_concept_stage set concept_name = 'TP' where concept_code = 'OMOP1019582';
+update drug_concept_stage set concept_name = 'Trafalgar' where concept_code = 'OMOP1019585';
+update drug_concept_stage set concept_name = 'Trans' where concept_code = 'OMOP1019598';
+update drug_concept_stage set concept_name = 'Trianon' where concept_code = 'OMOP1019037';
+update drug_concept_stage set concept_name = 'Trillium' where concept_code = 'OMOP1019509';
+update drug_concept_stage set concept_name = 'Tyczka' where concept_code = 'OMOP898552';
+update drug_concept_stage set concept_name = 'Tyler' where concept_code = 'OMOP1019568';
+update drug_concept_stage set concept_name = 'Ultra-Love' where concept_code = 'OMOP1019573';
+update drug_concept_stage set concept_name = 'Ultrapac' where concept_code = 'OMOP1019062';
+update drug_concept_stage set concept_name = 'Uni- Kleon Tsetis' where concept_code = 'OMOP899250';
+update drug_concept_stage set concept_name = 'Unichem' where concept_code = 'OMOP899523';
+update drug_concept_stage set concept_name = 'Unimark Remedies' where concept_code = 'OMOP897723';
+update drug_concept_stage set concept_name = 'Unither' where concept_code = 'OMOP440370';
+update drug_concept_stage set concept_name = 'Valda' where concept_code = 'OMOP1019044';
+update drug_concept_stage set concept_name = 'Valmo' where concept_code = 'OMOP1019017';
+update drug_concept_stage set concept_name = 'Velvian' where concept_code = 'OMOP440177';
+update drug_concept_stage set concept_name = 'Vemedia' where concept_code = 'OMOP900102';
+update drug_concept_stage set concept_name = 'Vitalia' where concept_code = 'OMOP900410';
+update drug_concept_stage set concept_name = 'Vitavie Au Naturel' where concept_code = 'OMOP1019605';
+update drug_concept_stage set concept_name = 'Vocate' where concept_code = 'OMOP897604';
+update drug_concept_stage set concept_name = 'W.H. Werk' where concept_code = 'OMOP2018900';
+update drug_concept_stage set concept_name = 'Walter Ritter' where concept_code = 'OMOP897988';
+update drug_concept_stage set concept_name = 'Wampole' where concept_code = 'OMOP1019503';
+update drug_concept_stage set concept_name = 'Wappen' where concept_code = 'OMOP2018892';
+update drug_concept_stage set concept_name = 'Weider' where concept_code = 'OMOP1019513';
+update drug_concept_stage set concept_name = 'Welding' where concept_code = 'OMOP899381';
+update drug_concept_stage set concept_name = 'Welfen-Apotheke Moritz Bringmann' where concept_code = 'OMOP897921';
+update drug_concept_stage set concept_name = 'Welk' where concept_code = 'OMOP2018747';
+update drug_concept_stage set concept_name = 'Wero- Werner Michallik' where concept_code = 'OMOP898592';
+update drug_concept_stage set concept_name = 'Wes Pak' where concept_code = 'OMOP1019519';
+update drug_concept_stage set concept_name = 'Wesergold' where concept_code = 'OMOP897726';
+update drug_concept_stage set concept_name = 'West Chemical' where concept_code = 'OMOP1019521';
+update drug_concept_stage set concept_name = 'Westfalen-Apotheke Hans-Peter Dasbach' where concept_code = 'OMOP897552';
+update drug_concept_stage set concept_name = 'Wieb Pharm' where concept_code = 'OMOP897433';
+update drug_concept_stage set concept_name = 'Wiedemann' where concept_code = 'OMOP898936';
+update drug_concept_stage set concept_name = 'Wilhelm Horn' where concept_code = 'OMOP898133';
+update drug_concept_stage set concept_name = 'WIN Medicare' where concept_code = 'OMOP899745';
+update drug_concept_stage set concept_name = 'Wolf' where concept_code = 'OMOP2018749';
+update drug_concept_stage set concept_name = 'Xo' where concept_code = 'OMOP440101';
+update drug_concept_stage set concept_name = 'Yves Ponroy' where concept_code = 'OMOP1018992';
+update drug_concept_stage set concept_name = 'Zep' where concept_code = 'OMOP1019549';
+
+update drug_concept_stage 
+set concept_name=initcap(concept_name)
+where concept_code in (
+'OMOP1019746','OMOP1140332','OMOP338156','OMOP339265','OMOP439864','OMOP439886','OMOP439966','OMOP440103','OMOP440239','OMOP440255','OMOP440361','OMOP440377','OMOP440390',
+'OMOP440444','OMOP899887','OMOP897787','OMOP440036','OMOP440162','OMOP440311','OMOP440117','OMOP1140336','OMOP897922','OMOP440455','OMOP899299','OMOP1140328','OMOP899903','OMOP899517','OMOP2018490','OMOP440013',
+'OMOP898959','OMOP897843','OMOP440087','OMOP440054','OMOP440424','OMOP900406','OMOP900170','OMOP897576','OMOP898690','OMOP899948','OMOP338526','OMOP898887','OMOP338667','OMOP898603','OMOP899663','OMOP897447',
+'OMOP899827','OMOP897515','OMOP338334','OMOP440052','OMOP1018733','OMOP440380','OMOP898311','OMOP898655','OMOP338104','OMOP440289','OMOP440181','OMOP440146','OMOP898628','OMOP899289','OMOP439979','OMOP899432',
+'OMOP1140327','OMOP898170','OMOP440051','OMOP440071','OMOP440348','OMOP900428','OMOP900167','OMOP899487','OMOP440402','OMOP900154','OMOP899825','OMOP897804','OMOP900318','OMOP440131','OMOP439987','OMOP900452',
+'OMOP440012','OMOP440142','OMOP439963','OMOP897635','OMOP440043','OMOP900241','OMOP440416','OMOP338332','OMOP898096','OMOP899395','OMOP899245','OMOP899978','OMOP897647','OMOP1140335','OMOP899641','OMOP1140340',
+'OMOP898152','OMOP440292','OMOP440068','OMOP898010','OMOP899764','OMOP900050','OMOP440233','OMOP440124','OMOP439970','OMOP899653','OMOP338039','OMOP899256','OMOP1018924','OMOP898373','OMOP440205','OMOP440063',
+'OMOP439969','OMOP440250','OMOP898347','OMOP898814','OMOP440257','OMOP898428','OMOP439905','OMOP439845','OMOP440434','OMOP440053','OMOP898398','OMOP440224','OMOP338500','OMOP440297','OMOP440372','OMOP899611',
+'OMOP899818','OMOP900469','OMOP439981','OMOP338651','OMOP440022','OMOP440284','OMOP899957','OMOP899007','OMOP898853','OMOP898589','OMOP898121','OMOP440449','OMOP440262','OMOP898698','OMOP900307','OMOP439920',
+'OMOP440462','OMOP900109','OMOP898555','OMOP338556','OMOP899730','OMOP440473');
+
+UPDATE DRUG_CONCEPT_STAGE
+   SET CONCEPT_NAME=upper(CONCEPT_NAME)
+WHERE CONCEPT_CODE in ('OMOP440196','OMOP1018189','OMOP1019188',
+'OMOP2018283','OMOP2018329','OMOP2018371','OMOP1018653','OMOP337858','OMOP2018480','OMOP338558','OMOP2018558','OMOP440033','OMOP898426','OMOP2018544','OMOP1019140','OMOP2018569',
+'OMOP1019173','OMOP1019206','OMOP1019002','OMOP2018615','OMOP1018927','OMOP2018664','OMOP2018690','OMOP1019438','OMOP2018765','OMOP1019472','OMOP2018734','OMOP1019248','OMOP2018853');
+
+--ds_stage
+--fix quant homeopathy that is missing unit
+update ds_stage
+set denominator_unit='mL'
+where numerator_unit in ('[hp_X]','[hp_C]') and denominator_value is not null
+and denominator_unit is null
+and drug_concept_code in (
+select concept_code 
+from drug_concept_stage 
+where regexp_like (concept_name,'^\d+(\.\d+)? ML '));
+
+update ds_stage
+set denominator_unit='mg'
+where numerator_unit in ('[hp_X]','[hp_C]') and denominator_value is not null
+and denominator_unit is null
+and drug_concept_code in (
+select concept_code 
+from drug_concept_stage 
+where regexp_like (concept_name,'^\d+(\.\d+)? MG '));
+
+--fix wrong numerator calculation in homeopathy
+update ds_stage
+set numerator_value=numerator_value/denominator_value
+where numerator_unit in ('[hp_X]','[hp_C]')
+and denominator_value is not null
+and drug_concept_code in
+(select drug_concept_code from 
+ds_stage
+join drug_concept_stage on concept_code=drug_concept_code
+and regexp_substr(regexp_substr(concept_name, '\s\d+\s(X|C)\s'),'\d+')!=numerator_value
+);
+
+--fix gases
+update ds_stage
+set denominator_value=null
+where numerator_unit = '%' and denominator_value is not null;
+
+--need to somehow figure it out
+update ds_stage
+set numerator_unit='{cells}' -- M cells
+where numerator_unit is null
+and amount_unit is null
+and drug_concept_code in
+(select drug_concept_code from 
+ds_stage
+join drug_concept_stage on concept_code=drug_concept_code
+and lower(concept_name) like '%strain%'
+);
+
+update ds_stage
+set numerator_unit='[hp_C]'
+where numerator_unit is null
+and amount_unit is null;
+
+--quant homeopathy shouldn't exist without denominator_value
+update ds_stage
+set denominator_unit=null
+where denominator_value is null and  numerator_unit in ('[hp_X]','[hp_C]');
+
+--Fix solid forms with denominator
+UPDATE ds_stage
+   SET amount_unit = numerator_unit,
+       amount_value = numerator_value,
+       numerator_value = NULL,
+       numerator_unit = NULL,
+       denominator_value = NULL,
+       denominator_unit = NULL
+ WHERE drug_concept_code IN (select drug_concept_code from ds_stage where numerator_unit in ('[hp_X]','[hp_C]') )
+ AND drug_concept_code IN
+          (SELECT a.concept_code
+             FROM drug_concept_stage a
+WHERE (concept_name LIKE '%Tablet%' OR concept_name LIKE '%Capsule%' OR concept_name LIKE '%Suppositor%'  
+OR concept_name LIKE '%Lozenge%' OR concept_name LIKE '%Pellet%' OR concept_name LIKE '%Granules%'  OR concept_name LIKE '%Powder%') -- solid forms defined by their forms
+                        );
+ 
+ --also fixing those that are Components
+UPDATE ds_stage
+   SET amount_unit = numerator_unit,
+       amount_value = numerator_value,
+       numerator_value = NULL,
+       numerator_unit = NULL,
+       denominator_value = NULL,
+       denominator_unit = NULL
+WHERE drug_concept_code IN(       
+select c2.concept_code from drug_strength 
+join concept c on drug_concept_id=c.concept_id 
+join concept_ancestor on drug_concept_id=descendant_concept_id
+join concept c2 on c2.concept_id=ancestor_concept_id and c2.concept_class_id in ('Clinical Drug Comp','Branded Drug Comp')
+where numerator_unit_concept_id in (9325,9324) 
+and (c.concept_name LIKE '%Tablet%' OR c.concept_name LIKE '%Capsule%' OR c.concept_name LIKE '%Suppositor%'
+OR c.concept_name LIKE '%Lozenge%' OR c.concept_name LIKE '%Pellet%' OR c.concept_name LIKE '%Granules%'  OR c.concept_name LIKE '%Powder%'));
+
+update ds_stage
+set ingredient_concept_code='OMOP995215'
+where ingredient_concept_code='OMOP1131419';   --Acetarsol   
+update ds_stage
+set ingredient_concept_code='OMOP995215'
+where ingredient_concept_code='OMOP1000382';   --Bilastine   
+update ds_stage
+set ingredient_concept_code='1895'
+where ingredient_concept_code='OMOP2721034';   --Calcium   
+update ds_stage
+set ingredient_concept_code='OMOP994745'
+where ingredient_concept_code='OMOP1131501';   --Camphene   
+update ds_stage
+set ingredient_concept_code='OMOP1001875'
+where ingredient_concept_code='OMOP1131504';   --Carbetocin   
+update ds_stage
+set ingredient_concept_code='OMOP998052'
+where ingredient_concept_code='OMOP1131611';   --manna   
+update ds_stage
+set ingredient_concept_code='OMOP991296'
+where ingredient_concept_code='OMOP1131633';   --Oxetacaine   
+update ds_stage
+set ingredient_concept_code='8588'
+where ingredient_concept_code='OMOP2721400';   --Potassium   
+update ds_stage
+set ingredient_concept_code='OMOP1131662'
+where ingredient_concept_code='OMOP997623';   --Rupatadine Fumarate   
+update ds_stage
+set ingredient_concept_code='9853'
+where ingredient_concept_code='OMOP2721452';   --Sodium   
+update ds_stage
+set ingredient_concept_code='OMOP1001157'
+where ingredient_concept_code='OMOP1131687';   --Stiripentol   
+      
+--IRS
+--insert missing ingredients
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+ SELECT concept_code,'4850'
+      FROM drug_concept_stage
+      WHERE concept_code NOT IN (SELECT concept_code_1
+                                 FROM internal_relationship_stage
+                                   JOIN drug_concept_stage ON concept_code_2 = concept_code  AND concept_class_id = 'Ingredient')
+      AND   concept_code NOT IN (SELECT pack_concept_code FROM pc_stage)
+      AND   concept_class_id = 'Drug Product' and concept_name like '%Glucose%';
+      
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+ SELECT concept_code,'9853'
+      FROM drug_concept_stage
+      WHERE concept_code NOT IN (SELECT concept_code_1
+                                 FROM internal_relationship_stage
+                                   JOIN drug_concept_stage ON concept_code_2 = concept_code  AND concept_class_id = 'Ingredient')
+      AND   concept_code NOT IN (SELECT pack_concept_code FROM pc_stage)
+      AND   concept_class_id = 'Drug Product' and concept_name like '%Sodium%';
+
+update internal_relationship_stage
+set concept_code_2='OMOP995215'
+where concept_code_2='OMOP1131419';   --Acetarsol   
+update internal_relationship_stage
+set concept_code_2='OMOP995215'
+where concept_code_2='OMOP1000382';   --Bilastine   
+update internal_relationship_stage
+set concept_code_2='1895'
+where concept_code_2='OMOP2721034';   --Calcium   
+update internal_relationship_stage
+set concept_code_2='OMOP994745'
+where concept_code_2='OMOP1131501';   --Camphene   
+update internal_relationship_stage
+set concept_code_2='OMOP1001875'
+where concept_code_2='OMOP1131504';   --Carbetocin   
+update internal_relationship_stage
+set concept_code_2='OMOP998052'
+where concept_code_2='OMOP1131611';   --manna   
+update internal_relationship_stage
+set concept_code_2='OMOP991296'
+where concept_code_2='OMOP1131633';   --Oxetacaine   
+update internal_relationship_stage
+set concept_code_2='8588'
+where concept_code_2='OMOP2721400';   --Potassium   
+update internal_relationship_stage
+set concept_code_2='OMOP1131662'
+where concept_code_2='OMOP997623';   --Rupatadine Fumarate   
+update internal_relationship_stage
+set concept_code_2='9853'
+where concept_code_2='OMOP2721452';   --Sodium   
+update internal_relationship_stage
+set concept_code_2='OMOP1001157'
+where concept_code_2='OMOP1131687';   --Stiripentol  
+
+-- change drug form to gas
+update internal_relationship_stage
+set concept_code_2='316999'
+where concept_code_2='346161'
+and concept_code_1 in (
+select concept_code from drug_concept_stage where regexp_like(concept_name,'ML.*%.*Inhalant Solution'));
+
+--all the supplier work
+delete internal_relationship_stage where concept_code_2 in
+(select a.concept_code from drug_concept_stage a join drug_concept_stage b on a.concept_name=b.concept_name
+and a.concept_class_id='Brand Name' and b.concept_class_id in ('Supplier','Ingredient'));
+
+delete internal_relationship_stage where concept_code_2 in (
+select  concept_code from drug_concept_stage where concept_class_id='Supplier' and concept_name like '%Imported%');
+
+delete relationship_to_concept where concept_code_1 in (
+select  concept_code from drug_concept_stage where concept_class_id='Supplier' and concept_name like '%Imported%');
+
+delete internal_relationship_stage where concept_code_2 in 
+(select dcs.concept_code from drug_concept_stage dcs
+join concept c on  lower(dcs.Concept_name)=lower(c.Concept_name) and c.vocabulary_id='RxNorm' and 
+dcs.concept_class_id='Brand Name' and c.concept_class_id='Ingredient');
+
+--real BN
+delete internal_reationship_stage where concept_code_2 in (
+select concept_code from drug_concept_stage where concept_name in ('Ultracare','Ultrabalance','Tussin','Triad','Aplicare','Lactaid') and concept_class_id='Supplier');
+
+--semi-manual
+update internal_relationship_stage 
+set concept_code_2='OMOP1017600'
+where concept_code_2='OMOP1017607';
+delete drug_concept_stage where concept_code='OMOP1017607'
+;
+update internal_relationship_stage 
+set concept_code_2='220323'
+where concept_code_2='OMOP1016513';
+delete drug_concept_stage where concept_code='OMOP1016513';
+
+update internal_relationship_stage 
+set concept_code_2='OMOP1018323'
+where concept_code_2='OMOP1018324';
+delete drug_concept_stage where concept_code='OMOP1018324'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP440130'
+where concept_code_2='OMOP1018429';
+delete drug_concept_stage where concept_code='OMOP1018429'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP1018685'
+where concept_code_2='OMOP1018686';
+delete drug_concept_stage where concept_code='OMOP1018686'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP572515'
+where concept_code_2='OMOP1018691';
+delete drug_concept_stage where concept_code='OMOP1018691'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP339439'
+where concept_code_2='OMOP338286';
+delete drug_concept_stage where concept_code='OMOP338286'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP338031'
+where concept_code_2='OMOP1018618';
+delete drug_concept_stage where concept_code='OMOP1018618'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP440349'
+where concept_code_2='OMOP440208';
+delete drug_concept_stage where concept_code='OMOP440208'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP1019137'
+where concept_code_2='OMOP1019138';
+delete drug_concept_stage where concept_code='OMOP1019138'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP440416'
+where concept_code_2='OMOP440408';
+delete drug_concept_stage where concept_code='OMOP440408'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP440149'
+where concept_code_2='OMOP1019102';
+delete drug_concept_stage where concept_code='OMOP1019102'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP897383'
+where concept_code_2='OMOP897539';
+delete drug_concept_stage where concept_code='OMOP897539'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP1018819'
+where concept_code_2='OMOP2018692';
+delete drug_concept_stage where concept_code='OMOP2018692'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP337929'
+where concept_code_2='OMOP1019418';
+delete drug_concept_stage where concept_code='OMOP1019418'
+;
+delete internal_relationship_stage 
+where concept_code_2 in ('OMOP2018741','OMOP440362');
+delete drug_concept_stage where concept_code in ('OMOP2018741','OMOP440362')
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP897860'
+where concept_code_2='OMOP1019590';
+delete drug_concept_stage where concept_code='OMOP1019590'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP339047'
+where concept_code_2='OMOP1019539';
+delete drug_concept_stage where concept_code='OMOP1019539'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP1017600'
+where concept_code_2='OMOP1017607';
+delete drug_concept_stage where concept_code='OMOP1017607'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP440424'
+where concept_code_2='OMOP339350';
+delete drug_concept_stage where concept_code='OMOP339350'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP440068'
+where concept_code_2='OMOP337877';
+delete drug_concept_stage where concept_code='OMOP337877'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP898387'
+where concept_code_2='OMOP898911';
+delete drug_concept_stage where concept_code='OMOP898911'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP439969'
+where concept_code_2='OMOP337870';
+delete drug_concept_stage where concept_code='OMOP337870'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP1019538'
+where concept_code_2='OMOP338727';
+delete drug_concept_stage where concept_code='OMOP338727'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP439969'
+where concept_code_2='OMOP337870';
+delete drug_concept_stage where concept_code='OMOP337870'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP339321'
+where concept_code_2 in ('OMOP1018727','OMOP440341');
+delete drug_concept_stage where concept_code in ('OMOP1018727','OMOP440341');
+
+update internal_relationship_stage 
+set concept_code_2='OMOP1018327'
+where concept_code_2='OMOP338814';
+delete drug_concept_stage where concept_code='OMOP338814'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP337838'
+where concept_code_2='OMOP1019712';
+delete drug_concept_stage where concept_code='OMOP1019712'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP338930'
+where concept_code_2='OMOP440306';
+delete drug_concept_stage where concept_code='OMOP440306'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP339321'
+where concept_code_2 in ('OMOP897524');
+delete drug_concept_stage where concept_code in ('OMOP897524');
+
+--fix packs
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+select c2.concept_code,c.concept_code,
+case when c2.concept_name like '%24%' then '4' else '7' end
+from concept c
+join concept_relationship cr on c.concept_id=concept_id_1 and cr.relationship_id='Has brand name'
+join concept_relationship cr2 on cr.concept_id_2=cr2.concept_id_1 and cr2.relationship_id='Has brand name'
+join concept c2 on c2.concept_id=cr2.concept_id_2 and c2.vocabulary_id='RxNorm Extension'
+where c.concept_name like 'Inert%' and c.vocabulary_id='RxNorm Extension' and c.concept_class_id='Branded Drug Form'
+and c2.concept_code in (select pack_concept_code from pc_stage);
+
+--somehow active pack_comp has amount=7 instead of 21
+update pc_stage
+set amount='21'
+where pack_concept_code 
+in ('OMOP573433','OMOP573537','OMOP573357','OMOP573533','OMOP572820','OMOP573009','OMOP1131307','OMOP1131349','OMOP1131350') and drug_concept_code!='748796';
+
+--Linessa 28
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+values ('OMOP1131349','748796','7');
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+values ('OMOP573433','748796','7');
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+values ('OMOP573537','748796','7');
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+values ('OMOP573357','748796','7');
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+values ('OMOP1131350','748796','7');
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+values ('OMOP573533','748796','7');
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+values ('OMOP1131307','748796','7');
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+values ('OMOP572820','748796','7');
+insert into pc_stage (pack_concept_code,drug_concept_code,amount)
+values ('OMOP573009','748796','7');
+
+
+--RTC
+delete relationship_to_concept where concept_code_1 in(
+select dcs.concept_code from drug_concept_stage dcs
+join concept c on  lower(dcs.Concept_name)=lower(c.Concept_name) and c.vocabulary_id='RxNorm' and c.invalid_reason is null and
+dcs.concept_class_id='Brand Name' and c.concept_class_id='Brand Name' and dcs.concept_code!=c.concept_code)
+;
+
+insert into relationship_to_concept (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
+select dcs.concept_code,'Rxfix',c.concept_id,1 from drug_concept_stage dcs
+join concept c on  lower(dcs.Concept_name)=lower(c.Concept_name) and c.vocabulary_id='RxNorm' and c.invalid_reason is null and
+dcs.concept_class_id='Brand Name' and c.concept_class_id='Brand Name' and dcs.concept_code!=c.concept_code;
+;
+update relationship_to_concept 
+set concept_id_2=19089602 
+where concept_code_1='OMOP1004367';
+update relationship_to_concept 
+set concept_id_2=1539954 
+where concept_code_1='OMOP1131570';
+update relationship_to_concept 
+set concept_id_2=1505346 
+where concept_code_1='OMOP1000349';
+
+update relationship_to_concept --inj susp
+set concept_id_2=19082260 
+where concept_code_1='OMOP1007430';
+update relationship_to_concept --Intravenous Suspension
+set concept_id_2=19095915 
+where concept_code_1='OMOP1007431';
+update relationship_to_concept 
+set concept_id_2=19082198 --Rectal Powder
+where concept_code_1='OMOP1007432';
+
+--ingredients
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 35604657
+WHERE CONCEPT_CODE_1 = 'OMOP1131431';
+
+update relationship_to_concept 
+set concept_id_2=43532537 
+where concept_code_1='OMOP1005778';
+
+update relationship_to_concept 
+set concept_id_2=44784806 
+where concept_code_1='OMOP997397';
+
+update relationship_to_concept 
+set concept_id_2=1352213 
+where concept_code_1='OMOP2721447';
+
+update relationship_to_concept 
+set concept_id_2=1505346 
+where concept_code_1='OMOP1000349';
+
+update relationship_to_concept 
+set concept_id_2=19137312 
+where concept_code_1='OMOP2721489';
+
+update relationship_to_concept 
+set concept_id_2=46221433 
+where concept_code_1='OMOP1131599';
+
+update relationship_to_concept 
+set concept_id_2=1539954 
+where concept_code_1='OMOP1131570';
+
+update relationship_to_concept 
+set concept_id_2=35605804 
+where concept_code_1='OMOP1131529';
+
+update relationship_to_concept 
+set concept_id_2=35604657 
+where concept_code_1='OMOP1131431';
+
+update relationship_to_concept 
+set concept_id_2=42903942 
+where concept_code_1='OMOP2721481'
+;

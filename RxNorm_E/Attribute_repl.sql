@@ -2,7 +2,8 @@
 
 insert into concept_relationship_stage
 (CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE)
-select cr1.concept_code_2,cr2.concept_code_2,cr1.vocabulary_id_2,cr2.vocabulary_id_2,'Concept replaced by',cr1.valid_start_date,cr1.valid_end_date
+select distinct
+cr1.concept_code_2,cr2.concept_code_2,cr1.vocabulary_id_2,cr2.vocabulary_id_2,'Concept replaced by',cr1.valid_start_date,cr1.valid_end_date
 from suppliers_to_repl s 
 join concept_relationship_stage cr1 on s.concept_code_1=cr1.concept_code_1 and cr1.relationship_id='Source - RxNorm eq'
 join concept_relationship_stage cr2 on s.concept_code_2=cr2.concept_code_1 and cr2.relationship_id='Source - RxNorm eq'
@@ -15,7 +16,6 @@ from suppliers_to_repl s
 join concept_relationship_stage cr1 on s.concept_code_1=cr1.concept_code_1 and cr1.relationship_id='Source - RxNorm eq')
 ;
 
-drop table rxe_tmp_replaces;
 --create temporary table with old mappings and fresh concepts (after all 'Concept replaced by')
 create table rxe_tmp_replaces nologging as
 with
@@ -100,6 +100,14 @@ values
     null  
 );
 commit;
+
+--get duplicates for some reason 
+delete from concept_relationship_stage a where exists (
+  select 1 from  (
+    select concept_code_1,concept_code_2,relationship_id, max(rowid) as rid from concept_relationship_stage group by concept_code_1,concept_code_2,relationship_id having count(1)>1
+  ) x 
+  where a.concept_code_1= x.concept_code_1 and a.concept_code_2=x.concept_code_2 and a.relationship_id=x.relationship_id and x.rid=a.rowid
+);
 
 drop table rxe_tmp_replaces;
 

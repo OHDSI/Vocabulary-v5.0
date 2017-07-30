@@ -3660,8 +3660,12 @@ select
   case r_value
     when 0 then null
     else r_value
-  end as denominator_value, 
-  case denominator_unit_concept_id when 0 then null else denominator_unit_concept_id end as denominator_unit_concept_id,
+  end as denominator_value,
+  case 
+    when denominator_unit_concept_id=0 then null 
+    when denominator_unit_concept_id is null then quant_unit_id
+    else denominator_unit_concept_id
+  end as denominator_unit_concept_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)) as valid_start_date,
   to_date('2099-12-31', 'yyyy-mm-dd') as valid_end_date,
   null as invalid_reason

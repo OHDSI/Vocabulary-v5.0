@@ -1475,3 +1475,78 @@ update relationship_to_concept
 set concept_id_2=42903942 
 where concept_code_1='OMOP2721481'
 ;
+
+--additional suppl work
+create table irs_suppl as
+select irs.concept_code_1,
+case when s.concept_code_2 is not null then s.concept_code_2 else irs.concept_code_2 end as concept_code_2
+from internal_relationship_stage irs
+left join suppliers_to_repl s
+on s.concept_code_1=irs.concept_code_2;
+
+truncate table internal_relationship_stage;
+insert into internal_relationship_stage ( concept_code_1,concept_code_2)
+select distinct concept_code_1,concept_code_2 from irs_suppl;
+
+--Suppl+BN
+
+delete internal_relationship_stage where concept_code_2 in
+ (select b.concept_code from drug_concept_stage a 
+join drug_Concept_stage b on lower(a.concept_name)=lower(b.concept_name)
+and a.concept_class_id='Supplier' and b.concept_class_id='Brand Name')
+and concept_code_2 not in  ('OMOP881621','OMOP335576') and concept_code_2 like '%OMOP%';
+
+delete drug_concept_stage where concept_code in (select b.concept_code from drug_concept_stage a 
+join drug_Concept_stage b on lower(a.concept_name)=lower(b.concept_name)
+and a.concept_class_id='Supplier' and b.concept_class_id='Brand Name')
+and concept_code not in  ('OMOP881621','OMOP335576') and concept_code like '%OMOP%';
+
+
+update internal_relationship_stage 
+set concept_code_2='OMOP1018666'--DEl
+where concept_code_2='OMOP1018667';
+delete drug_concept_stage where concept_code='OMOP1018667'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP440135'
+where concept_code_2='OMOP440228';
+delete drug_concept_stage where concept_code='OMOP440228'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP897860'--menarini
+where concept_code_2='OMOP1019590';
+delete drug_concept_stage where concept_code='OMOP1019590'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP439865'
+where concept_code_2='OMOP1019692';--servier
+delete drug_concept_stage where concept_code='OMOP1019692'
+;
+update internal_relationship_stage 
+set concept_code_2='OMOP337896'
+where concept_code_2='OMOP1019636'--Taro
+delete drug_concept_stage where concept_code='OMOP1019636'
+;
+create table irs_bn as
+select irs.concept_code_1,
+case when s.cc2 is not null then s.cc2 else irs.concept_code_2 end as concept_code_2
+from internal_relationship_stage irs
+left join (select b.concept_code as cc1,a.concept_code as cc2 from drug_concept_stage a 
+join drug_Concept_stage b on lower(a.concept_name)=lower(b.concept_name) and a.concept_code<b.concept_code
+and a.concept_class_id='Brand Name' and b.concept_class_id='Brand Name') s
+on s.cc1=irs.concept_code_2;
+
+truncate table internal_relationship_stage;
+insert into internal_relationship_stage ( concept_code_1,concept_code_2)
+select distinct concept_code_1,concept_code_2 from irs_bn;
+
+delete drug_concept_stage where concept_code in (
+select b.concept_code from drug_concept_stage a 
+join drug_Concept_stage b on lower(a.concept_name)=lower(b.concept_name) and a.concept_code<b.concept_code
+and a.concept_class_id='Brand Name' and b.concept_class_id='Brand Name') ;
+
+--Merck KG
+update internal_relationship_stage
+set concept_code_2='OMOP339289'
+where concept_code_2='OMOP1018908'
+and concept_code_1 in ('OMOP759641','OMOP759638','OMOP759635','OMOP759905','OMOP759907','OMOP760169','OMOP760171','OMOP517968','OMOP427799');

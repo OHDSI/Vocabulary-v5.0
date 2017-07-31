@@ -20,8 +20,8 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'Read',
-                                          pVocabularyDate        => TO_DATE ('20160318', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'NHS READV2 21.0.0 20160401000001',
+                                          pVocabularyDate        => TO_DATE ('20170403', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'NHS READV2 21.0.0 20160401000001 + DATAMIGRATION_23.0.0_20170403000001',
                                           pVocabularyDevSchema   => 'DEV_READ');
 END;
 COMMIT;

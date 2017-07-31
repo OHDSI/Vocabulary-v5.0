@@ -73,7 +73,7 @@ UNION
       FROM concept
       WHERE concept_id IN (SELECT descendant_concept_id
                      FROM concept_ancestor
-                     GROUP BY descendant_concept_idHAVING COUNT(1) = 1)
+                     GROUP BY descendant_concept_id HAVING COUNT(1) = 1)
       AND   concept_class_id != 'Ingredient'
       AND   vocabulary_id = 'RxNorm Extension'            
             )

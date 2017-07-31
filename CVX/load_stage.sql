@@ -53,8 +53,8 @@ INSERT INTO concept_stage (concept_name,
    SELECT SUBSTR (full_vaccine_name, 1, 255) AS concept_name,
           'CVX' AS vocabulary_id,
           'Drug' AS domain_id,
-          'Drug Class' AS concept_class_id,
-          'C' AS standard_concept,
+          'CVX' AS concept_class_id,
+          'S' AS standard_concept,
           cvx_code AS concept_code,
           nvl((SELECT MIN(concept_date) FROM CVX_DATES d WHERE D.CVX_CODE=C.CVX_CODE),to_date (LAST_UPDATED_DATE, 'mm/dd/yyyy'))  AS valid_start_date, --get concept date from true source
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
@@ -83,7 +83,7 @@ COMMIT;
 
 insert into concept_relationship_stage (CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,valid_end_date)
 select distinct
-CVX_CODE,b.concept_code,'CVX',b.VOCABULARY_ID,'CVX_to_RxNorm' , TO_DATE ('20170728', 'yyyymmdd') AS VALID_START_DATE,
+CVX_CODE,b.concept_code,'CVX',b.VOCABULARY_ID,'CVX RxNorm' , TO_DATE ('20170728', 'yyyymmdd') AS VALID_START_DATE,
 TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date from 
 (select distinct cvx_code,concept_id,VOCABULARY_ID from CVX_TO_RX_USING_LENA
 union 

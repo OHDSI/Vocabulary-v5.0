@@ -85,7 +85,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
      FROM RCSCTMAP2_UK RSCCT;
 COMMIT;
 
---Add manual 'Maps to' from Read to RxNorm
+--Add manual 'Maps to' from Read to RxNorm and CVX
 BEGIN
    DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
 END;
@@ -251,7 +251,25 @@ BEGIN
 END;
 COMMIT;
 
---13 Clean up
+--13 fix domain_ids for mappings to RxNorm and CVX
+merge into concept_stage cs
+using (
+	select distinct first_value(c.domain_id) over (partition by crs.concept_code_1 order by crs.vocabulary_id_2, crs.concept_code_2) as domain_id, 
+	crs.concept_code_1, crs.vocabulary_id_1 
+	from concept c, concept_relationship_stage crs
+	where c.concept_code=crs.concept_code_2
+	and c.vocabulary_id=crs.vocabulary_id_2
+	and crs.relationship_id='Maps to'
+	and crs.invalid_reason is null
+	and crs.vocabulary_id_2 in ('RxNorm','CVX')
+	and crs.vocabulary_id_1='Read'
+) i on (i.concept_code_1=cs.concept_code and i.vocabulary_id_1=cs.vocabulary_id)
+when matched then 
+update set cs.domain_id=i.domain_id;
+
+COMMIT;
+
+--14 Clean up
 DROP TABLE read_domain PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

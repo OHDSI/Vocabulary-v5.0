@@ -14,7 +14,7 @@ select c.concept_id as concept_id_1 , 'Source - RxNorm eq' as relationship_id, c
 (
 select * from dev_dpd.relationship_to_concept where PRECEDENCE  =1 
 union 
-select * from dev_aus.relationship_to_concept where PRECEDENCE  =1 
+select * from dev_aus.relationship_to_concept where PRECEDENCE  =1  
 ) a 
 join concept c on c.concept_code = a.concept_code_1 and c.vocabulary_id = a.vocabulary_id_1 and c.invalid_reason is null
 ;
@@ -530,7 +530,7 @@ from  thin_comp a
 on (  
  lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
  )
-and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'DPD',
+and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'DPD', 'GRR',
 'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and ( b.invalid_reason is null or b.invalid_reason ='U')
 where a.domain_id ='Drug')
 --take the longest ingredient
@@ -610,7 +610,7 @@ from  thin_comp2 a
 on (  
  lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
  )
-and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'DPD',
+and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'DPD', 'GRR',
 'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and b.invalid_reason is null
 where a.domain_id ='Drug')
 --take the longest ingredient
@@ -1416,6 +1416,7 @@ commit
 update ds_stage a  set ingredient_concept_code = (select new_code from code_replace b where a.ingredient_concept_code = b.old_code)
 where exists (select 1 from code_replace b where a.ingredient_concept_code = b.old_code)
 ;
+
 commit
 ;
 update ds_stage a  set drug_concept_code = (select new_code from code_replace b where a.drug_concept_code = b.old_code)
@@ -1486,6 +1487,8 @@ select * from drug_concept_stage where concept_name in (
 'Ethyloestranol 2mg Tablet'
 )
 ;
+--clean up
+--ds_stage was parsed wrongly by some reasons
 UPDATE DS_STAGE
    SET NUMERATOR_VALUE = 10,
        NUMERATOR_UNIT = 'mg'
@@ -1600,3 +1603,52 @@ delete
                              ;
                              commit
                              ;
+
+--Marketed Drugs without the dosage or Drug Form are not allowed
+delete from internal_relationship_stage where (concept_code_1, concept_code_2) in 
+(
+select concept_code_1,concept_code_2   from drug_concept_stage  dcs
+join (
+SELECT concept_code_1, concept_code_2
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+left join ds_stage on drug_concept_code = concept_code_1 
+where drug_concept_code is null
+union 
+SELECT concept_code_1, concept_code_2
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+where concept_code_1 not in (SELECT concept_code_1
+                                  FROM internal_relationship_stage
+                                    JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form')
+) s on s.concept_code_1 = dcs.concept_code
+where dcs.concept_class_id = 'Drug Product' and invalid_reason is null 
+)
+;
+commit
+;
+--not smart clean up
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 44012620
+AND   CONCEPT_ID_2 = 43125877;
+
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 1505346
+AND   CONCEPT_ID_2 = 36878682;
+
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 36879003
+AND   CONCEPT_ID_2 = 21014145;
+
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 44784806
+AND   CONCEPT_ID_2 = 36878894
+;
+  delete from ds_Stage where drug_concept_code ='63620020'
+  ;
+  commit
+  ;
+  UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 21020188
+WHERE CONCEPT_ID_2 = 19131170
+;

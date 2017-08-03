@@ -27,7 +27,7 @@ DOSAGE	VOLUME	THIN_NAME	GEMSCRIPT_NAME	INGREDIENT_ID	THIN_CODE	GEMSCRIPT_CODE	IN
 		Caustic applicator 75 %	CAUSTIC APPLICATOR 75 %		99914992	85007		Device
 		Caustic applicator 95 %	CAUSTIC APPLICATOR 95 %		99913992	86007		Device
 		Caustic points 75 %	CAUSTIC POINTS 75 %		99912992	87007		Device
-		Wysoy powder	WYSOY POW		99908992	91007		Deivce
+		Wysoy powder	WYSOY POW		99908992	91007		Device
 		Aspirin/caffeine/dextropropoxyphene naps pul	ASPIRIN/CAFFEINE/DEXTROPROPOXYPHENE NAPS PUL	1112807	99904992	95007	Aspirin	Drug
 		Aspirin/caffeine/dextropropoxyphene naps pul	ASPIRIN/CAFFEINE/DEXTROPROPOXYPHENE NAPS PUL	1134439	99904992	95007	Caffeine	Drug
 		Aspirin/caffeine/dextropropoxyphene naps pul	ASPIRIN/CAFFEINE/DEXTROPROPOXYPHENE NAPS PUL	1153664	99904992	95007	Propoxyphene	Drug
@@ -46,7 +46,6 @@ DOSAGE	VOLUME	THIN_NAME	GEMSCRIPT_NAME	INGREDIENT_ID	THIN_CODE	GEMSCRIPT_CODE	IN
 		Alginic ac./alum.hydrox.gel dried/mag.tr mg tablet	ALGINIC AC./ALUM.HYDROX.GEL DRIED/MAG.TR MG TAB	908730	99868992	131007	magnesium trisilicate	Drug
 		Alginic ac./alum.hydrox.gel dried/mag.tr 600 mg tablet	ALGINIC AC./ALUM.HYDROX.GEL DRIED/MAG.TR 600 MG TAB		99867992	132007		Drug
 5 g		Bephenium granules	ALCOPAR SACHETS 5 GM		99863992	136007	Bephenium Hydroxynapthoate	Drug
-12.5mg		Adderall xr 20mg Modified-release capsule (Imported)	Adderall xr 20mg Modified-release capsule (Imported)	714785	81273998	136021	Amphetamine	Drug
 		Aproten butterscotch chip cookies	APROTEN BUTTERSCOTCH CHIP COOKIES		99862992	137007		Device
 300 mg		Yeast dried 300 mg tablet	YEAST DRIED 300 MG TAB	36878709	99861992	138007	Dried yeast	Drug
 		Ammononium chloride /diphenhyd.hyd /ment 135 mg oral tablet	AMMONONIUM CHLORIDE /DIPHENHYD.HYD /MENT 135 MG ELI		99856992	143007		Drug
@@ -3889,3 +3888,28 @@ d1		Passiflora d1 oral drops	Passiflora D1 oral drops	1306905	83235998	96295020	
 		"Vitamin a, c / e / minerals (zinc / copper) capsules"	Preservision original soft gels (Bausch / Lomb UK Ltd)		81747998	99214020		Drug
 		Rhus toxicodendron 30c oral drops	Rhus toxicodendron 30c oral drops		81446998	99799020		Drug
 500 mg			Femstrual 500mg Tablet (Manx Healthcare Ltd)	1303425		99857020	Tranexamic Acid	Drug
+200 mg			Odefsey 200mg/25mg/25mg tablets (Gilead Sciences International Ltd)	1703069		70299021	emtricitabine	Drug
+25 mg			Odefsey 200mg/25mg/25mg tablets (Gilead Sciences International Ltd)	40238930		70299021	Rilpivirine	Drug
+25 mg			Odefsey 200mg/25mg/25mg tablets (Gilead Sciences International Ltd)	35605546		70299021	tenofovir alafenamide	Drug
+250unit 			Eftrenonacog alfa 250unit powder / solvent for solution for injection vials	44818493		70934021	coagulation factor IX recombinant immunoglobulin G1 fusion protein	Drug
+100 iu			INSULIN ISOPHANE (HIGHLY PURIFIED) 100 I/U INJ	46221581		3707007	"insulin, isophane"	Drug
+			INSULIN BP 100 I/U			3955007		Drug
+100 iu			INSULIN SEMITARD 100 I/U INJ	1513849		3935007	"Insulin, Zinc, Human"	Drug
+100 iu			INSULIN ISOPHANE 100 I/U	46221581		6860007	"insulin, isophane"	Drug
+100 iu			INSULIN PUR-IN MIX 50/50 100 I/U INJ	1513876		3207007	"Insulin, Protamine Lispro, Human"	Drug
+100 iu			INSULIN QUICKSOL (SOLUBLE NEUTRAL) 100 I/U INJ	1596977		3704007	"Regular Insulin, Human"	Drug
+100 iu			INSULIN ISOPHANE (HUMAN) 100 I/U INJ	46221581		6862007	"insulin, isophane"	Drug
+70 iu			INSULIN HUMULIN M CARTRIDGE 100 I/U	46221581		3451007	"insulin, isophane"	Drug
+30 iu			INSULIN HUMULIN M CARTRIDGE 100 I/U	1596977		3451007	"Regular Insulin, Human"	Drug
+100 iu			INSULIN HYPURIN PROTAMINE ZINC 100 I/U INJ	19090180		3714007	"insulin, protamine zinc, beef"	Drug
+100 iu			INSULIN PUR-IN ISOPHANE 100 I/U INJ	19090180		3204007	"insulin, protamine zinc, beef"	Drug
+100 iu			INSULIN ZINC BOVINE susp 100 I/U INJ	19090180		3705007	"insulin, protamine zinc, beef"	Drug
+60 iu			INSULIN HUMULIN M4 100 I/U INJ	46221581		3715007	"insulin, isophane"	Drug
+40 iu			INSULIN HUMULIN M4 100 I/U INJ	1596977		3715007	"Regular Insulin, Human"	Drug
+100 iu			INSULIN ISOPHANE (PURIFIED) 100 I/U INJ	46221581		21007	"insulin, isophane"	Drug
+100 iu			INSULIN NEUSULIN (NEUTRAL)(PURIFIED) 100 I/U INJ	19013951		5797007	"Insulin, Regular, Beef"	Drug
+50 iu			INSULIN ISOPHANE 50% / NEUTRAL 50% 100 I/U INJ	46221581		22007	"insulin, isophane"	Drug
+50 iu			INSULIN ISOPHANE 50% / NEUTRAL 50% 100 I/U INJ	1596977		22007	"Regular Insulin, Human"	Drug
+40 iu			INSULIN SEMITARD 40 I/U INJ	1513849		4831007	"Insulin, Zinc, Human"	Drug
+40 iu			INSULIN SOLUBLE 40 I/U INJ	1596977		2397007	"Regular Insulin, Human"	Drug
+100 iu			INSULIN SOLUBLE 100 I/U INJ	1596977		23007	"Regular Insulin, Human"	Drug

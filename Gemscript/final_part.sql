@@ -61,6 +61,15 @@ and b.concept_code not in (select concept_code_1 from concept_relationship_stage
 ;
 commit
 ;
+--hard to follow the script that build relationships for Gemscript THIN
+ delete from concept_relationship_stage cr where concept_code_1 in  (select concept_code from concept_stage where concept_class_id = 'Gemscript THIN' )
+ ;
+  insert into concept_relationship_stage 
+( select '','', ENCRYPTED_DRUGCODE, concept_code_2 , 'Gemscript', vocabulary_id_2, relationship_id, VALID_START_DATE, VALID_END_DATE, INVALID_REASON
+ from THIN_GEMSC_DMD_0717 join concept_relationship_stage on GEMSCRIPT_DRUGCODE = concept_code_1)
+ ;
+ commit
+ ;
 --procedures 
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;

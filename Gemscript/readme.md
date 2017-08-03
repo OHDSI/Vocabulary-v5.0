@@ -1,7 +1,17 @@
-1. load_stage_gemscr_based.sql
-2. RxE builder
-3. generic_update
-4. map_after_RxE
-5. fast_recreate
-6. final_part -- so we got the nice stage tables
-7. generic or copy to devv5.
+issues:
+--1. still wrong domain_id definition, for example:
+/*update concept_stage 
+set domain_id ='Drug'
+where concept_code  in (
+'82867998',
+'91097998',
+'97563998',
+'97482998',
+'97482997',
+'91389998',
+'94472997'
+)
+;
+*/
+
+--2. Suppliers and Brand Names can be mapped better

@@ -37,6 +37,17 @@ UNION
       WHERE (NUMERATOR_UNIT_CONCEPT_ID = 8554 AND DENOMINATOR_UNIT_CONCEPT_ID IS NOT NULL)
       OR    AMOUNT_UNIT_CONCEPT_ID = 8554
 UNION
+      SELECT concept_id, 'solid forms have denominator'
+      FROM concept
+      JOIN drug_strength
+      ON drug_concept_id = concept_id  AND (concept_name LIKE '%Tablet%'  OR concept_name LIKE '%Capsule%'  OR concept_name LIKE '%Lozenge%' OR concept_name LIKE '%Pellet%')-- solid forms defined by their forms 
+      AND numerator_value IS NOT NULL
+UNION
+      SELECT concept_id, 'ML in amount/numerator'
+      FROM concept
+      JOIN drug_strength ON drug_concept_id = concept_id
+      WHERE numerator_unit_concept_id = 8587 OR amount_unit_concept_id = 8587
+UNION
       SELECT an_id, 'wrong ancestor RxE to descedant RxNorm'
       FROM (SELECT a.min_levels_of_separation AS a_min, an.concept_id AS an_id, an.concept_name AS an_name,an.vocabulary_id AS an_vocab,an.domain_id AS an_domain, an.concept_class_id AS an_class,de.concept_id AS de_id,de.concept_name AS de_name,de.vocabulary_id AS de_vocab,de.domain_id AS de_domain, de.concept_class_id AS de_class
             FROM concept an

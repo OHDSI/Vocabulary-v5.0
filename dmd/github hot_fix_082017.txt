@@ -1,0 +1,130 @@
+
+delete from relationship_to_concept where concept_code_1 in (
+select concept_code from drug_concept_stage where concept_class_id='Brand Name' and lower(concept_name) in (select lower(concept_name) from concept where concept_class_id='Ingredient' and invalid_reason is null));
+delete from internal_relationship_stage  where concept_code_2 in (
+select concept_code from drug_concept_stage where concept_class_id='Brand Name' and lower(concept_name) in (select lower(concept_name) from concept where concept_class_id='Ingredient' and invalid_reason is null));
+delete from drug_concept_stage where concept_class_id='Brand Name' and lower(concept_name) in (select lower(concept_name) from concept where concept_class_id='Ingredient' and invalid_reason is null);
+delete from relationship_to_concept where concept_code_1 in (
+select concept_code from drug_concept_stage where concept_class_id='Supplier' and lower(concept_name) like 'imported%');
+
+delete from internal_relationship_stage  where concept_code_2 in (
+select concept_code from drug_concept_stage where concept_class_id='Supplier' and lower(concept_name) like 'imported%');
+delete from drug_concept_stage where concept_class_id='Supplier' and lower(concept_name) like 'imported%'; 
+
+
+
+insert into relationship_to_concept
+ select distinct dcs.concept_code,dcs.VOCABULARY_ID,c.concept_id,rank() over (partition by dcs.concept_code order by c.concept_id),''
+ from Drug_concept_stage dcs 
+join concept c on lower (c.concept_name)= lower (dcs.concept_name)  and c.concept_class_id=dcs.concept_class_id   and  c.invalid_reason IS  NULL and c.vocabulary_id like 'Rx%'
+where dcs.concept_code in (
+      select concept_code_1
+      FROM relationship_to_concept
+        JOIN concept  c ON concept_id = concept_id_2
+      WHERE c.invalid_reason IS NOT NULL
+      )
+      and c.vocabulary_id like 'Rx%' and c.invalid_reason is null
+    ;
+ insert into  relationship_to_concept
+     SELECT distinct  dcs.concept_code,dcs.vocabulary_id,x.concept_id, rank () over (partition by dcs.concept_code order by x.concept_id),''
+      from drug_concept_stage dcs join 
+      relationship_to_concept on dcs.concept_code=concept_code_1
+        JOIN concept  c ON c.concept_id = concept_id_2
+        join dev_rxe.suppl_for_Dima ss on ss.CONCEPT_CODE_1 = c.concept_code
+        join concept x on ss.CONCEPT_CODE_2 = x.concept_code 
+      WHERE c.invalid_reason IS NOT NULL and x.invalid_reason IS NULL;
+      
+
+delete from relationship_to_concept where (concept_code_1,concept_id_2) in (
+     SELECT a.concept_code_1,c.concept_id
+      FROM relationship_to_concept a
+        JOIN concept  c ON concept_id = concept_id_2
+        join dev_rxe.suppl_for_Dima ss on ss.CONCEPT_CODE_1 = c.concept_code
+        join concept x on ss.CONCEPT_CODE_2 = x.concept_code 
+      WHERE c.invalid_reason IS NOT NULL and x.invalid_reason IS NULL
+      )
+      ;
+      
+delete from relationship_to_concept where concept_code_1 in (select concept_code from drug_concept_stage where concept_name in (
+'Aserbine','Atopiclair','Avomine','Clintec','Optrex','Ovex','Rapiscan', 'TISSEEL Ready to use'));
+
+delete from drug_concept_stage where concept_code in 
+ (select concept_code_1 from   relationship_to_concept 
+        JOIN concept  c ON c.concept_id = concept_id_2
+      WHERE c.invalid_reason IS NOT NULL) and concept_class_id='Brand Name';
+      
+delete from internal_relationship_stage where concept_code_2 not in (select concept_code from drug_concept_stage);
+delete from relationship_to_concept where concept_code_1 not in (select concept_code from drug_concept_stage);
+delete from  relationship_to_concept 
+where (concept_code_1,concept_id_2) in
+(select concept_code_1,concept_id_2 from 
+relationship_to_concept JOIN concept  c ON c.concept_id = concept_id_2
+      WHERE c.invalid_reason IS NOT NULL) and concept_code_1 in (select concept_code_1 from 
+      relationship_to_concept JOIN concept  c ON c.concept_id = concept_id_2
+      WHERE c.invalid_reason IS  NULL)
+;
+update relationship_to_concept set concept_id_2=1505346 where concept_id_2=36878682;
+update relationship_to_concept set concept_id_2=19089602 where concept_id_2=36879088;
+update relationship_to_concept set concept_id_2=1352213 where concept_id_2=40799096;
+  delete from relationship_to_concept where (concept_code_1,concept_id_2) in 
+  (select concept_code_1,concept_id_2 from 
+   relationship_to_concept 
+        JOIN concept  c ON c.concept_id = concept_id_2
+      WHERE c.invalid_reason='D');
+
+drop table fff1;
+create table fff1 as select distinct CONCEPT_CODE_1,'dm+d' as VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR from relationship_to_concept;
+drop table relationship_to_concept;
+create table relationship_to_concept as select CONCEPT_CODE_1,
+VOCABULARY_ID_1,CONCEPT_ID_2,rank() over (partition by concept_code_1 order by concept_id_2) as precedence,CONVERSION_FACTOR
+from fff1;
+
+
+drop table ds_sum;
+create table ds_sum as 
+with a  as (
+SELECT distinct ds.drug_concept_code,ds.ingredient_concept_code,ds.box_size, ds.AMOUNT_VALUE,ds.AMOUNT_UNIT,ds.NUMERATOR_VALUE,ds.NUMERATOR_UNIT,ds.DENOMINATOR_VALUE,ds.DENOMINATOR_UNIT,rc.concept_id_2
+      FROM ds_stage ds
+        JOIN ds_stage ds2 ON ds.drug_concept_code = ds2.drug_concept_code AND ds.ingredient_concept_code != ds2.ingredient_concept_code
+        JOIN relationship_to_concept rc ON ds.ingredient_concept_code = rc.concept_code_1
+        JOIN relationship_to_concept rc2 ON ds2.ingredient_concept_code = rc2.concept_code_1
+            WHERE rc.concept_id_2 = rc2.concept_id_2
+            )
+ select distinct DRUG_CONCEPT_CODE,max(INGREDIENT_CONCEPT_CODE)over (partition by DRUG_CONCEPT_CODE,concept_id_2) as ingredient_concept_code,box_size,
+ sum(AMOUNT_VALUE) over (partition by DRUG_CONCEPT_CODE)as AMOUNT_VALUE,AMOUNT_UNIT,sum(NUMERATOR_VALUE) over (partition by DRUG_CONCEPT_CODE,concept_id_2)as NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT
+ from a
+ union
+ select DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,box_size, null as AMOUNT_VALUE, '' as AMOUNT_UNIT, null as NUMERATOR_VALUE, '' as NUMERATOR_UNIT, null as DENOMINATOR_VALUE, '' as DENOMINATOR_UNIT 
+ from a where (drug_concept_code,ingredient_concept_code) not in (select drug_concept_code, max(ingredient_concept_code) from a group by drug_concept_code);
+ 
+delete from ds_stage where  (drug_concept_code,ingredient_concept_code) in (select drug_concept_code,ingredient_concept_code from ds_sum);
+INSERT INTO DS_STAGE (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT)
+SELECT * FROM DS_SUM where nvl(AMOUNT_VALUE,NUMERATOR_VALUE) is not null;
+--update irs after relationship_to concept found identical ingredients
+delete from internal_relationship_stage where (concept_code_1,concept_code_2) in (
+SELECT concept_code_1,concept_code_2
+      FROM (SELECT DISTINCT concept_code_1,concept_code_2, COUNT(concept_code_2) OVER (PARTITION BY concept_code_1) AS irs_cnt
+            FROM internal_relationship_stage
+              JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Ingredient') irs
+        JOIN (SELECT DISTINCT drug_concept_code, COUNT(ingredient_concept_code) OVER (PARTITION BY drug_concept_code) AS ds_cnt
+              FROM ds_stage) ds
+          ON drug_concept_code = concept_code_1   AND irs_cnt != ds_cnt)
+and  (concept_code_1,concept_code_2) not in (select drug_concept_code,ingredient_concept_code from ds_stage)        
+;
+insert into relationship_to_concept 
+select dcs.concept_code,'dm+d',cc.concept_id,rank() over (partition by dcs.concept_code order by cc.concept_id),''
+ from drug_concept_stage dcs
+join concept cc on lower (cc.concept_name) = lower (dcs.concept_name) and cc.concept_class_id = dcs.concept_class_id and cc.vocabulary_id like 'RxNorm%'
+left join relationship_to_concept cr on dcs.concept_code = cr.concept_code_1
+where concept_code_1 is null and cc.invalid_reason is null
+and dcs.concept_class_id in ('Ingredient', 'Brand Name', 'Dose Form', 'Supplier')
+;
+update ds_stage set drug_concept_code=trim(drug_concept_code);
+
+insert into internal_relationship_stage select distinct 
+drug_concept_code,ingredient_concept_code from ds_stage where (drug_concept_code, ingredient_concept_code) not in (select concept_code_1, concept_code_2 from internal_relationship_stage);
+
+
+
+
+

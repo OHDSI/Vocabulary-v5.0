@@ -26,6 +26,7 @@ BEGIN
                                           pVocabularyVersion     => 'SnomedCT Release 20170401',
                                           pVocabularyDevSchema   => 'DEV_SNOMED');
 END;
+/
 COMMIT;
 
 -- 2. Truncate all working tables
@@ -1721,24 +1722,28 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relati
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
+/
 COMMIT;
 
 --13 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
+/
 COMMIT;	
 
 --14 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
+/
 COMMIT;		 
 
 --15 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
+/
 COMMIT;
 
 -- 16 start building the hierarchy for progagating domain_ids from toop to bottom
@@ -1773,6 +1778,7 @@ DECLARE
 
       RETURN res;
    END;
+   
 BEGIN
    -- Clean up before
    BEGIN
@@ -1909,9 +1915,10 @@ BEGIN
    
    DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'snomed_ancestor', estimate_percent  => null, cascade  => true);
 END;
-
+/
 --17. Create domain_id
 -- 17.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
+
 CREATE TABLE peak (
 	peak_code VARCHAR(20), --the id of the top ancestor
 	peak_domain_id VARCHAR(20), -- the domain to assign to all its children
@@ -1953,7 +1960,7 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (373782009, 'Observation'); -- diagnostic substance, exception of drug
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (2949005, 'Observation'); -- diagnostic aid (exclusion from drugs)
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (404684003, 'Condition'); -- Clinical Finding
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (218496004, 'Condition'); -- Adverse reaction to primarily systemic agents
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (62014003, 'Condition'); -- Adverse reaction to drug
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (313413008, 'Condition'); -- Calculus observation
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (405533003, 'Observation'); -- Adverse incident outcome categories
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (365854008, 'Observation'); -- History finding
@@ -2023,8 +2030,8 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (303163003, 'Observation'); -- Treatments administered under the provisions of the law
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (429159005, 'Procedure'); -- Child psychotherapy
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (15220000, 'Measurement'); -- Laboratory test
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (441742003, 'Measurement'); -- Evaluation finding
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (365605003, 'Measurement'); -- Body measurement finding
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (441742003, 'Condition'); -- Evaluation finding
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (365605003, 'Observation'); -- Body measurement finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (106019003, 'Condition'); -- Elimination pattern
 	-- INSERT INTO peak (peak_code, peak_domain_id) VALUES (65367001, 'Observation'); -- Victim status
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (106146005, 'Condition'); -- Reflex finding
@@ -2037,9 +2044,9 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (243114000, 'Observation'); -- Support
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (300893006, 'Observation'); -- Nutritional finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (116336009, 'Observation'); -- Eating / feeding / drinking finding
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (448717002, 'Measurement'); -- Decline in Edinburgh postnatal depression scale score
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (449413009, 'Measurement'); -- Decline in Edinburgh postnatal depression scale score at 8 months
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (46680005, 'Measurement'); -- Vital signs
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (448717002, 'Condition'); -- Decline in Edinburgh postnatal depression scale score
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (449413009, 'Condition'); -- Decline in Edinburgh postnatal depression scale score at 8 months
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (118227000, 'Condition'); -- Vital signs finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (363259005, 'Observation'); -- Patient management procedure
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (278414003, 'Procedure'); -- Pain management
 	-- Added Jan 2017
@@ -2064,6 +2071,7 @@ BEGIN
  	INSERT INTO peak (peak_code, peak_domain_id) VALUES (968521000000109, 'Observation'); -- Inappropriate use of general practitioner service
 
 END;
+/
 COMMIT;
 
 -- 17.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
@@ -2184,9 +2192,8 @@ BEGIN
                             AND p.ranked = A.ranked
                             AND a.descendant_concept_code = d.concept_code);
    END LOOP;
-END
-;
-
+END;
+/
 -- Assign domains of peaks themselves (snomed_ancestor doesn't include self-descendants)
 MERGE INTO domain_snomed d
      USING (SELECT peak_code, peak_domain_id FROM peak) v

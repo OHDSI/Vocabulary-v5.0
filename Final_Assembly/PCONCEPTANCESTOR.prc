@@ -258,7 +258,7 @@ BEGIN
         dc.concept_id AS class_concept_id, rxn.concept_id AS rxn_concept_id
       FROM concept_ancestor class_rxn
       -- get all hierarchical relationships between concepts 'C' ...
-      JOIN concept dc ON dc.concept_id = class_rxn.ancestor_concept_id AND dc.standard_concept = 'C' AND dc.domain_id = 'Drug' and dc.concept_class_id not in ('Dose Form Group','Clinical Dose Group','Branded Dose Group')
+      JOIN concept dc ON dc.concept_id = class_rxn.ancestor_concept_id AND dc.standard_concept = CASE WHEN dc.vocabulary_id='CVX' THEN 'S' ELSE 'C' END AND dc.domain_id = 'Drug' and dc.concept_class_id not in ('Dose Form Group','Clinical Dose Group','Branded Dose Group')
       -- ... and 'S'
       JOIN concept rxn on rxn.concept_id = class_rxn.descendant_concept_id
         AND rxn.standard_concept = 'S'
@@ -266,7 +266,7 @@ BEGIN
         AND rxn.vocabulary_id = 'RxNorm'
       -- connect all concepts inside the rxn hierachy. Some of them might be above the jump
     )
-    select distinct low.class_concept_id, rxn_up.concept_id as rxn_concept_id
+    select distinct low.class_concept_id, rxn_up.concept_id as rxn_concept_id, low.rxn_concept_id as jump_rxn_concept_id
     from jump low 
     JOIN concept_ancestor in_rxn ON in_rxn.descendant_concept_id = low.rxn_concept_id
     JOIN concept rxn_up on rxn_up.concept_id = in_rxn.ancestor_concept_id
@@ -290,7 +290,7 @@ BEGIN
     with t as (
         select /*+ materialize*/ ca.ancestor_concept_id, max(ca.min_levels_of_separation) as min_levels_of_separation, max(ca.max_levels_of_separation) as max_levels_of_separation
         from concept_ancestor ca
-        join concept c on c.concept_id=ca.descendant_concept_id and c.standard_concept='C' and c.domain_id='Drug' and c.concept_class_id not in ('Dose Form Group','Clinical Dose Group','Branded Dose Group')
+        join concept c on c.concept_id=ca.descendant_concept_id and c.standard_concept=CASE WHEN c.vocabulary_id='CVX' THEN 'S' ELSE 'C' END and c.domain_id='Drug' and c.concept_class_id not in ('Dose Form Group','Clinical Dose Group','Branded Dose Group')
         group by ancestor_concept_id    
     )
     select
@@ -305,7 +305,20 @@ BEGIN
     -- get distance from rxn concept to highest possible (Ingredient) rxn concept
     join concept_ancestor to_ing on to_ing.descendant_concept_id=pair.rxn_concept_id
     join concept c on c.concept_id=pair.class_concept_id
-    join concept ing on ing.concept_id=to_ing.ancestor_concept_id and ing.vocabulary_id in ('RxNorm', 'RxNorm Extension') and ing.concept_class_id='Ingredient'
+    join concept ing on ing.concept_id=to_ing.ancestor_concept_id and ing.vocabulary_id in ('RxNorm', 'RxNorm Extension') --and ing.concept_class_id='Ingredient'
+    and ing.concept_class_id=
+    case when c.vocabulary_id in ('ATC','CVX') and 
+    (
+        select count(*) from 
+        (select r.concept_id_1, r.concept_id_2 from concept_relationship r 
+        join concept c_int on c_int.concept_id=r.concept_id_2 and c_int.vocabulary_id like 'RxNorm%' and c_int.concept_class_id='Ingredient' and c_int.invalid_reason is null
+        where r.invalid_reason is null and r.concept_id_1=pair.jump_rxn_concept_id
+        union
+        select ds.drug_concept_id, ds.ingredient_concept_id from drug_strength ds where ds.invalid_reason is null and ds.drug_concept_id=pair.jump_rxn_concept_id
+        )
+    )>1 then 'Clinical Drug Form' 
+    else 'Ingredient'
+    end    
     group by pair.class_concept_id, pair.rxn_concept_id
     ) i on (ca.ancestor_concept_id=i.ancestor_concept_id and ca.descendant_concept_id=i.descendant_concept_id)
     when matched then

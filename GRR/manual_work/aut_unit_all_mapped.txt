@@ -1,0 +1,27 @@
+CONCEPT_CODE	CONCEPT_ID_2	CONCEPT_NAME_2	CONVERSION_FACTOR	PRECEDENCE
+IU	8718	international unit	1	1
+%	8554	percent	1	1
+C	9324	homeopathic potency of centesimal series	1	1
+G	8576	milligram	1000	1
+L	8587	milliliter	1000	1
+ML	8587	milliliter	1	1
+D	9325	homeopathic potency of decimal series	1	1
+M	8510	unit	1000000	2
+KG	8576	milligram	1000000	1
+Y	8576	milligram	0.001	1
+MG	8576	milligram	1	1
+IU	8510	unit	1	2
+K	8718	international unit	1000	1
+NG	9600	nanogram	1	2
+K	8510	unit	1000	2
+M	8718	international unit	1000000	1
+NG	8576	milligram	0.000001	1
+Y	9655	microgram	1	2
+HOUR	8505	hour	1	1
+CM	8582	centimeter	1	1
+MCG	8576	milligram	0.001	1
+MCG	9655	microgram	1	2
+ACTUAT	45744809	Actuation	1	1
+C	9324	homeopathic potency of centesimal series	1	1
+D	9325	homeopathic potency of decimal series	1	1
+MO	9573	millimole	1000	1

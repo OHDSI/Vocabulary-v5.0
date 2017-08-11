@@ -167,7 +167,7 @@ select   concept_code,  concept_id ,  rank() over (partition by concept_code ord
 select distinct dcs.concept_code, cc.concept_id 
 from drug_concept_stage dcs
 join concept cc on lower (cc.concept_name) = lower (dcs.concept_name) and cc.concept_class_id = dcs.concept_class_id and cc.vocabulary_id like 'RxNorm%'
-left join relationship_to_concept cr on dcs.concept_code = cr.concept_code_1
+left join (select * from relationship_to_concept join concept on concept_id = concept_id_2 and invalid_reason is null) cr on dcs.concept_code = cr.concept_code_1
 where concept_code_1 is null and cc.invalid_reason is null
 and dcs.concept_class_id in ('Ingredient', 'Brand Name', 'Dose Form', 'Supplier')
 )
@@ -269,3 +269,79 @@ where concept_code_1 not in (SELECT concept_code_1
 where dcs.concept_class_id = 'Drug Product' and invalid_reason is null 
 )
 ;
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24510411000001102'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437911000001107'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437811000001102'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437711000001105'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437611000001101'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437511000001100'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437411000001104'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437311000001106'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437211000001103'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143711000001105'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143611000001101'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143511000001100'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143411000001104'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143311000001106'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143211000001103'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+
+
+delete from internal_relationship_stage where concept_code_2 in 
+('229862008', '4672911000001107', '4245911000001102')
+;
+commit
+;
+--set Gases as a Devices --check o
+  update drug_concept_stage set domain_id = 'Device' where concept_code in (
+      select concept_code from drug_concept_stage where regexp_like  (concept_name, 'Oxygen|Nitrous Oxide|Carbon Dioxide|Nitrous oxide|Air |Equanox | cylinders ')
+      )
+      ;
+      delete from ds_stage where drug_concept_code in (  select concept_code from drug_concept_stage where domain_id ='Device')
+      ;
+      commit
+      ;

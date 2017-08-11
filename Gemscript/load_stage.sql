@@ -14,7 +14,7 @@ select c.concept_id as concept_id_1 , 'Source - RxNorm eq' as relationship_id, c
 (
 select * from dev_dpd.relationship_to_concept where PRECEDENCE  =1 
 union 
-select * from dev_aus.relationship_to_concept where PRECEDENCE  =1 
+select * from dev_aus.relationship_to_concept where PRECEDENCE  =1  
 ) a 
 join concept c on c.concept_code = a.concept_code_1 and c.vocabulary_id = a.vocabulary_id_1 and c.invalid_reason is null
 ;
@@ -264,9 +264,20 @@ t.ENCRYPTED_DRUGCODE as THIN_code, t.GENERIC as THIN_name, nvl (gr.GEMSCRIPTCODE
    join concept_stage c -- join and left join gives us different results because of   !1360102 AND   !5264101 codes, so exclude those !!-CODES
    on nvl (gr.GEMSCRIPTCODE, t.GEMSCRIPT_DRUGCODE) = c.concept_code and c.concept_class_id = 'Gemscript'
 where r.concept_code_2 is null
-
 ;
 
+CREATE INDEX th_th_n_ix ON THIN_need_to_map (lower (thin_name))  
+;
+CREATE INDEX th_ge_n_ix ON THIN_need_to_map (lower (gemscript_name))  
+;
+
+update thin_need_to_map set thin_name = replace (thin_name, 'polymixin b ','polymyxin b');
+update thin_need_to_map set thin_name = replace (thin_name, 'ipecacuhana','ipecacuanha');
+update thin_need_to_map set thin_name = replace (thin_name, 'chloesterol','cholesterol');
+update thin_need_to_map set thin_name = replace (thin_name, 'capsicin','capsaicin');
+update thin_need_to_map set thin_name = replace (thin_name, 'glycolsalicylate','glycol salicylate');
+update thin_need_to_map set thin_name = replace (thin_name, 'azatidine','azacytidine');
+update thin_need_to_map set thin_name = replace (thin_name, 'benzalkonium, chlorhexidine','benzalkonium / chlorhexidine');
 
 --define domain_id
 --DRUGSUBSTANCE is null and lower
@@ -415,6 +426,9 @@ update thin_need_to_map set gemscript_name = regexp_replace (gemscript_name, 'i.
 ;
 commit
 ;
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'thin_need_to_map', cascade  => true);
+
+
 --define what's a pack based on the concept_name, then manually parse this out, then add pack_component names as a codes (check the code replacing script) and add pack_components as a drug components in ds_stage creation algorithms
 drop table packs_out;
 create table packs_out as
@@ -519,35 +533,43 @@ CREATE INDEX drug_comp_ix ON thin_comp (lower (drug_comp))
 --Execution time: 1m 41s when more vocabularies added 
 
 drop table i_map;
-create table i_map as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
-select * from 
-(
-select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id,  RANK() OVER (PARTITION BY a.drug_comp ORDER BY
-length(b.concept_name)  desc, b.vocabulary_id desc) as rank1
---look what happened to previous 4 
-from  thin_comp a 
- join  concept b
-on (  
- lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
- )
-and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'DPD',
-'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and ( b.invalid_reason is null or b.invalid_reason ='U')
-where a.domain_id ='Drug')
---take the longest ingredient
-where rank1 = 1 
-)
-;
+create table i_map as  -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
+    SELECT *
+      FROM (SELECT DISTINCT i.DOSAGE,
+                            i.thin_name,
+                            i.THIN_CODE,
+                            i.DRUG_COMP,
+                            i.GEMSCRIPT_CODE,
+                            i.GEMSCRIPT_NAME,
+                            i.VOLUME,
+                            i.concept_id,
+                            i.concept_name,
+                            i.vocabulary_id,
+                            RANK () OVER (PARTITION BY i.DRUG_COMP ORDER BY LENGTH (i.concept_name) DESC, i.vocabulary_id DESC, i.concept_id ASC) AS rank1
+              FROM (SELECT /*+ index(a drug_comp_ix)*/ DISTINCT
+                           a.*,
+                           rx.concept_id,
+                           rx.concept_name,
+                           rx.vocabulary_id
+                         
+                      FROM thin_comp a
+                           JOIN devv5.concept_synonym s ON (LOWER (a.DRUG_COMP) LIKE LOWER (s.CONCEPT_SYNONYM_NAME) || ' %' OR LOWER (a.DRUG_COMP) = LOWER (s.CONCEPT_SYNONYM_NAME))
+                           JOIN concept_relationship r ON s.concept_id = r.concept_id_1 AND r.invalid_reason IS NULL
+                           JOIN concept rx
+                               ON     r.concept_id_2 = rx.concept_id
+                                  AND rx.vocabulary_id LIKE 'Rx%'
+                                  AND rx.concept_class_id = 'Ingredient'
+                                  AND rx.invalid_reason IS NULL
+                  ) i)
+     --take the longest ingredient
+     WHERE rank1 = 1;
+; 
 --map Ingredients derived from different vocabularies to RxNorm(E)
-drop table rel_to_ing_1 ;
+
+drop table rel_to_ing_1;
 create table rel_to_ing_1 as
 select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.GEMSCRIPT_NAME,i.VOLUME
-, b.concept_id as target_id, b.concept_name as target_name, b.vocabulary_id as target_vocab, b.concept_class_id as target_class from 
-i_map i
- join (
-select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
-) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by' ) 
-  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null 
-  and b.concept_id !=  21014036 -- Syrup Ingredient
+,  concept_id as target_id,  concept_name as target_name,  vocabulary_id as target_vocab  from i_map i
 ;
 
 --the same but with gemscript_name
@@ -598,37 +620,49 @@ update thin_comp2 set dosage = null where regexp_like (dosage, '^\,')
 ;
 commit
 ;
-drop table i_map2;
-create table i_map2 as ( -- enhanced algorithm added  lower (a.gemscript_name) like lower '% '||(b.concept_name)||' %'
-select * from 
-(
-select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id,  RANK() OVER (PARTITION BY a.drug_comp ORDER BY
-length(b.concept_name)  desc, b.vocabulary_id desc) as rank1
---look what happened to previous 4 
-from  thin_comp2 a 
- join  concept b
-on (  
- lower (a.drug_comp) like lower (b.concept_name)||' %' or lower (a.drug_comp)=lower (b.concept_name) 
- )
-and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'LPD_Australia', 'DPD',
-'BDPM', 'AMIS', 'Multilex') and concept_class_id in ( 'Ingredient', 'VTM', 'AU Substance')  and b.invalid_reason is null
-where a.domain_id ='Drug')
---take the longest ingredient
-where rank1 = 1 
-)
+CREATE INDEX drug_comp_ix_2 ON thin_comp2 (lower (drug_comp))  
 ;
 
-drop table rel_to_ing_2 ;
-create table rel_to_ing_2 as
-select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.GEMSCRIPT_NAME, i.volume
-, b.concept_id as target_id, b.concept_name as target_name, b.vocabulary_id as target_vocab, b.concept_class_id as target_class from 
-i_map2 i
- join (
-select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
-) r on i.concept_id = r.concept_id_1 and relationship_id in ('Maps to', 'Source - RxNorm eq', 'Concept replaced by') 
-  join concept b on b.concept_id = r.concept_id_2  and b.vocabulary_id like 'RxNorm%' and b.invalid_reason is null
-    and b.concept_id !=  21014036 -- Syrup Ingredient
+  drop table i_map_2;
+create table i_map_2 as  -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
+    SELECT *
+      FROM (SELECT DISTINCT i.DOSAGE,
+                            i.thin_name,
+                            i.THIN_CODE,
+                            i.DRUG_COMP,
+                            i.GEMSCRIPT_CODE,
+                            i.GEMSCRIPT_NAME,
+                            i.VOLUME,
+                            i.concept_id,
+                            i.concept_name,
+                            i.vocabulary_id,
+                            RANK () OVER (PARTITION BY i.DRUG_COMP ORDER BY LENGTH (i.concept_name) DESC, i.vocabulary_id DESC, i.concept_id ASC) AS rank1
+              FROM (SELECT /*+ index(a drug_comp_ix_2)*/ DISTINCT
+                           a.*,
+                           rx.concept_id,
+                           rx.concept_name,
+                           rx.vocabulary_id
+                         
+                      FROM thin_comp2 a
+                           JOIN devv5.concept_synonym s ON (LOWER (a.DRUG_COMP) LIKE LOWER (s.CONCEPT_SYNONYM_NAME) || ' %' OR LOWER (a.DRUG_COMP) = LOWER (s.CONCEPT_SYNONYM_NAME))
+                           JOIN concept_relationship r ON s.concept_id = r.concept_id_1 AND r.invalid_reason IS NULL
+                           JOIN concept rx
+                               ON     r.concept_id_2 = rx.concept_id
+                                  AND rx.vocabulary_id LIKE 'Rx%'
+                                  AND rx.concept_class_id = 'Ingredient'
+                                  AND rx.invalid_reason IS NULL
+                  ) i)
+     --take the longest ingredient
+     WHERE rank1 = 1;
 ; 
+--map Ingredients derived from different vocabularies to RxNorm(E)
+
+drop table rel_to_ing_2;
+create table rel_to_ing_2 as
+select distinct i.DOSAGE,i.DRUG_COMP,i.THIN_CODE,i.THIN_NAME,i.GEMSCRIPT_CODE,i.GEMSCRIPT_NAME,i.VOLUME
+,  concept_id as target_id,  concept_name as target_name,  vocabulary_id as target_vocab  from i_map_2 i
+;
+
 
 --make temp tables as it was in dmd drug procedure
 drop table ds_all_tmp;  
@@ -1103,14 +1137,10 @@ thin_name = regexp_replace (thin_name, 'sach$','sachet' ,1,1,'i')
 ;
 commit
 ;
---Capsules
---;
---select  * from concept where lower( concept_name) ='capsules'
-;
---how to make plural: add 's' or 'y' replace with 'ies'
---apply the same algotithm as used for ingredients
 --Execution time: 3m 28s when "mm" is used
  
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'thin_need_to_map', cascade  => true);
+
 drop table f_map;
 create table f_map as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
 select * from 
@@ -1416,6 +1446,7 @@ commit
 update ds_stage a  set ingredient_concept_code = (select new_code from code_replace b where a.ingredient_concept_code = b.old_code)
 where exists (select 1 from code_replace b where a.ingredient_concept_code = b.old_code)
 ;
+
 commit
 ;
 update ds_stage a  set drug_concept_code = (select new_code from code_replace b where a.drug_concept_code = b.old_code)
@@ -1486,6 +1517,8 @@ select * from drug_concept_stage where concept_name in (
 'Ethyloestranol 2mg Tablet'
 )
 ;
+--clean up
+--ds_stage was parsed wrongly by some reasons
 UPDATE DS_STAGE
    SET NUMERATOR_VALUE = 10,
        NUMERATOR_UNIT = 'mg'
@@ -1600,3 +1633,92 @@ delete
                              ;
                              commit
                              ;
+
+--Marketed Drugs without the dosage or Drug Form are not allowed
+delete from internal_relationship_stage where (concept_code_1, concept_code_2) in 
+(
+select concept_code_1,concept_code_2   from drug_concept_stage  dcs
+join (
+SELECT concept_code_1, concept_code_2
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+left join ds_stage on drug_concept_code = concept_code_1 
+where drug_concept_code is null
+union 
+SELECT concept_code_1, concept_code_2
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+where concept_code_1 not in (SELECT concept_code_1
+                                  FROM internal_relationship_stage
+                                    JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form')
+) s on s.concept_code_1 = dcs.concept_code
+where dcs.concept_class_id = 'Drug Product' and invalid_reason is null 
+)
+;
+commit
+;
+--not smart clean up
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 44012620
+where   CONCEPT_ID_2 = 43125877;
+
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 1505346
+where  CONCEPT_ID_2 = 36878682;
+
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 36879003
+where   CONCEPT_ID_2 = 21014145;
+
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 44784806
+where  CONCEPT_ID_2 = 36878894
+;
+  delete from ds_Stage where drug_concept_code ='63620020'
+  ;
+  commit
+  ;
+  UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 21020188
+WHERE CONCEPT_ID_2 = 19131170
+;
+delete from relationship_to_concept where concept_id_2 in (
+SELECT concept_id_2
+      FROM relationship_to_concept
+        JOIN concept ON concept_id = concept_id_2
+      WHERE invalid_reason IS NOT NULL
+      )
+      ;
+      commit
+      ;
+               delete from internal_relationship_stage where concept_code_1 in ('74777020', '66641020', '74778020') and concept_code_2 in (select concept_code from drug_concept_stage where concept_name  = 'Colgate' and concept_class_id = 'Brand Name')
+         ;
+         commit
+         ;
+         DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '80989020'
+AND   NUMERATOR_VALUE = 10.8;
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '98751020'
+AND   NUMERATOR_VALUE = 30;
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 35.2
+WHERE DRUG_CONCEPT_CODE = '80989020'
+AND   NUMERATOR_VALUE = 24.4;
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 110
+WHERE DRUG_CONCEPT_CODE = '98751020'
+AND   NUMERATOR_VALUE = 80;
+
+delete 
+      FROM drug_concept_stage where concept_name  = 'Colgate' and concept_class_id = 'Brand Name' 
+       ;
+       commit
+       ;
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'internal_relationship_stage', cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'drug_concept_stage', cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'ds_stage', cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'relationship_to_concept', cascade  => true);
+

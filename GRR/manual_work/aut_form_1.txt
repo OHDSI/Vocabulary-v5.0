@@ -1,0 +1,1046 @@
+CONCEPT_CODE	CONCEPT_NAME	CONCEPT_NAME_2	CONCEPT_ID	PRECEDENCE
+GRF	Parenteral Retard Pre-Filled Pens	Auto-Injector	46234466	2
+GRG	Parenteral Retard Dry Pre-Filled Pens	Injectable Solution	19082103	5
+GRG	Parenteral Retard Dry Pre-Filled Pens	Prefilled Syringe	19126920	4
+GRG	Parenteral Retard Dry Pre-Filled Pens	Pen Injector	46234467	1
+GRG	Parenteral Retard Dry Pre-Filled Pens	Auto-Injector	46234466	2
+GRG	Parenteral Retard Dry Pre-Filled Pens	Injectable Suspension	19082104	3
+GRP	Parenteral Retard Unit Dose Cartridges	Prefilled Syringe	19126920	5
+GRP	Parenteral Retard Unit Dose Cartridges	Drug Implant	19124968	2
+GRP	Parenteral Retard Unit Dose Cartridges	Pen Injector	46234467	3
+GRP	Parenteral Retard Unit Dose Cartridges	Auto-Injector	46234466	4
+GRP	Parenteral Retard Unit Dose Cartridges	Cartridge	46234468	1
+GYV	Parenteral Retard Implants	Drug Implant	19124968	1
+HAX	Rectal Systemic Enema Tablets	Rectal Suspension	19082221	3
+HAX	Rectal Systemic Enema Tablets	Rectal Solution	19082283	2
+HAX	Rectal Systemic Enema Tablets	Enema	19082627	1
+HAX	Rectal Systemic Enema Tablets	Enema	19082627	1
+HCA	Rectal Systemic Capsules	Rectal Suppository	19082200	1
+HGX	Rectal Systemic Enema Liquids	Topical Solution	19082228	2
+HGX	Rectal Systemic Enema Liquids	Rectal Solution	19082283	1
+HHP	Rectal Systemic Metered-Dose Pressurised Aerosols	Rectal Spray	19082199	1
+HHP	Rectal Systemic Metered-Dose Pressurised Aerosols	Rectal Solution	19082283	2
+HHT	Rectal Systemic Pressurised Foams	Rectal Foam	19082574	1
+HHT	Rectal Systemic Pressurised Foams	Rectal Gel	19095917	2
+HLA	Rectal Systemic Suppositories	Rectal Suppository	19082200	1
+HLB	Rectal Systemic Adult Suppositories	Rectal Suppository	19082200	1
+HLC	Rectal Systemic Paediatric Suppositories	Rectal Suppository	19082200	1
+HLX	Rectal Systemic Micro-Enemas	Rectal Suspension	19082221	3
+HLX	Rectal Systemic Micro-Enemas	Rectal Solution	19082283	2
+HLX	Rectal Systemic Micro-Enemas	Enema	19082627	1
+IGB	Nasal Systemic Drops	Inhalant Solution	19095898	1
+IGB	Nasal Systemic Drops	Nasal Solution	19082165	2
+IGB	Nasal Systemic Drops	Metered Dose Inhaler	19126918	4
+IGB	Nasal Systemic Drops	Nasal Suspension	19095977	3
+IGN	Nasal Systemic Unit Dose Liquids	Nasal Suspension	19095977	3
+IGN	Nasal Systemic Unit Dose Liquids	Metered Dose Inhaler	19126918	4
+IGN	Nasal Systemic Unit Dose Liquids	Nasal Solution	19082165	1
+IGN	Nasal Systemic Unit Dose Liquids	Inhalant Solution	19095898	2
+IGP	Nasal Systemic Metered-Dose Liquids	Nasal Spray	19011167	1
+IGP	Nasal Systemic Metered-Dose Liquids	Nasal Suspension	19095977	5
+IGP	Nasal Systemic Metered-Dose Liquids	Nasal Solution	19082165	4
+IGP	Nasal Systemic Metered-Dose Liquids	Metered Dose Inhaler	19126918	3
+IGP	Nasal Systemic Metered-Dose Liquids	Inhalant Solution	19095898	2
+IHP	Nasal Systemic Unit Dose Aerosols	Metered Dose Inhaler	19126918	2
+IHP	Nasal Systemic Unit Dose Aerosols	Inhalant Solution	19095898	1
+JCV	Other Systemic Capsules for Topical Application	Oral Capsule	19082168	1
+JCV	Other Systemic Capsules for Topical Application	Extended Release Oral Capsule	19082077	2
+JCV	Other Systemic Capsules for Topical Application	Delayed Release Oral Capsule	19082255	3
+JDY	Other Systemic Special Solids	Buccal Tablet	40175589	1
+JDY	Other Systemic Special Solids	Oral Tablet	19082573	2
+JEN	Other Systemic Unit Dose Powder Inhaler Refillable	Dry Powder Inhaler	19127579	2
+JEN	Other Systemic Unit Dose Powder Inhaler Refillable	Inhalant	19018195	4
+JEN	Other Systemic Unit Dose Powder Inhaler Refillable	Inhalant Powder	19082259	1
+JEN	Other Systemic Unit Dose Powder Inhaler Refillable	Metered Dose Inhaler	19126918	3
+JEY	Other Systemic Other Powders/Granules	Dry Powder Inhaler	19127579	1
+JFA	Other Systemic Gases For Inhalation	Gas for Inhalation	19082258	
+JGB	Other Systemic Drops	Injectable Solution	19082103	1
+JGB	Other Systemic Drops	Injectable Suspension	19082104	2
+JGC	Other Systemic Sprays Without Gas	Inhalant	19018195	3
+JGC	Other Systemic Sprays Without Gas	Inhalant Solution	19095898	4
+JGC	Other Systemic Sprays Without Gas	Powder Spray	19082281	5
+JGC	Other Systemic Sprays Without Gas	Nasal Inhalant	19082162	6
+JGC	Other Systemic Sprays Without Gas	Nasal Inhaler	19126919	7
+JGC	Other Systemic Sprays Without Gas	Nasal Spray	19011167	1
+JGC	Other Systemic Sprays Without Gas	Mucosal Spray	19095900	2
+JGE	Other Systemic Liquid Inhalations	Inhalant	19018195	2
+JGE	Other Systemic Liquid Inhalations	Inhalant Solution	19095898	1
+JGE	Other Systemic Liquid Inhalations	Metered Dose Inhaler	19126918	3
+JGH	Other Systemic Oils	Topical Oil	19082226	1
+JGN	Other Systemic Unit Dose Liquids	Topical Solution	19082228	1
+JGN	Other Systemic Unit Dose Liquids	Topical Suspension	46234410	2
+JGP	Other Systemic Metered-Dose Liquids	Topical Spray	19095912	1
+JGP	Other Systemic Metered-Dose Liquids	Topical Solution	19082228	2
+JGP	Other Systemic Metered-Dose Liquids	Topical Suspension	46234410	3
+JGP	Other Systemic Metered-Dose Liquids	Oral Spray	19095911	4
+JGP	Other Systemic Metered-Dose Liquids	Oral Solution	19082170	5
+JHP	Other Systemic Unit Dose Pressurised Aerosols	Inhalant	19018195	2
+JHP	Other Systemic Unit Dose Pressurised Aerosols	Inhalant Solution	19095898	1
+JHP	Other Systemic Unit Dose Pressurised Aerosols	Metered Dose Inhaler	19126918	3
+JHP	Other Systemic Unit Dose Pressurised Aerosols	Dry Powder Inhaler	19127579	4
+JRP	Other Systemic Unit Dose Cartridges	Metered Dose Inhaler	19126918	1
+JSA	Other Systemic Ointments	Topical Cream	19082224	2
+JSA	Other Systemic Ointments	Topical Ointment	19082227	1
+JTA	Other Systemic Creams	Topical Cream	19082224	1
+JTA	Other Systemic Creams	Topical Ointment	19082227	2
+JVA	Other Systemic Gels And Sols	Topical Solution	19082228	1
+JVA	Other Systemic Gels And Sols	Topical Gel	19095973	2
+JVN	Other Systemic Unit Dose Gels/Sols	Transdermal Patch	19082229	4
+JVN	Other Systemic Unit Dose Gels/Sols	Oral Crystals	19111148	5
+JVN	Other Systemic Unit Dose Gels/Sols	Topical Gel	19095973	1
+JVN	Other Systemic Unit Dose Gels/Sols	Oral Gel	19095916	2
+JVN	Other Systemic Unit Dose Gels/Sols	Oral Granules	19082651	3
+JVP	Other Systemic Metered-Dose Gels/Sols	Topical Gel	19095973	1
+JVP	Other Systemic Metered-Dose Gels/Sols	Oral Crystals	19111148	5
+JVP	Other Systemic Metered-Dose Gels/Sols	Oral Gel	19095916	2
+JVP	Other Systemic Metered-Dose Gels/Sols	Oral Granules	19082651	3
+JVP	Other Systemic Metered-Dose Gels/Sols	Transdermal Patch	19082229	4
+JWN	Other Systemic Transdermal Patches	Medicated Pad	19130307	2
+JWN	Other Systemic Transdermal Patches	Transdermal Patch	19082229	1
+KAE	Oral Topical Buccal Tablets	Oral Tablet	19082573	2
+KAE	Oral Topical Buccal Tablets	Buccal Tablet	40175589	1
+KAG	Oral Topical Chewable Tablets	Delayed Release Oral Tablet	19001949	3
+KAG	Oral Topical Chewable Tablets	Extended Release Oral Tablet	19082079	4
+KAG	Oral Topical Chewable Tablets	Oral Tablet	19082573	2
+KAG	Oral Topical Chewable Tablets	Chewable Tablet	19135866	1
+KAK	Oral Topical Soluble Tablets	Disintegrating Oral Tablet	19082076	1
+KAK	Oral Topical Soluble Tablets	Oral Tablet	19082573	2
+KAK	Oral Topical Soluble Tablets	Delayed Release Oral Tablet	19001949	3
+KAK	Oral Topical Soluble Tablets	Extended Release Oral Tablet	19082079	4
+KCA	Oral Topical Capsules	Extended Release Oral Capsule	19082077	3
+KCA	Oral Topical Capsules	Oral Capsule	19082168	1
+KCA	Oral Topical Capsules	Delayed Release Oral Capsule	19082255	2
+KDD	Oral Topical Pellets	Delayed Release Oral Tablet	19001949	3
+KDD	Oral Topical Pellets	Extended Release Oral Tablet	19082079	4
+KDD	Oral Topical Pellets	Oral Tablet	19082573	2
+KDD	Oral Topical Pellets	Oral Pellet	19082652	1
+KDE	Oral Topical Lozenges	Oral Tablet	19082573	1
+KDF	Oral Topical Chewing Gum	Chewing Gum	19102296	1
+KDG	Oral Topical Sweets/Candy/Bonbons	Oral Lozenge	19082253	1
+KDG	Oral Topical Sweets/Candy/Bonbons	Oral Tablet	19082573	2
+KEA	Oral Topical Powders	Oral Powder	19095976	1
+KEA	Oral Topical Powders	Syrup	19082223	3
+KEA	Oral Topical Powders	Oral Solution	19082170	2
+KEK	Oral Topical Soluble Powders	Oral Solution	19082170	4
+KEK	Oral Topical Soluble Powders	Oral Suspension	19082191	5
+KEK	Oral Topical Soluble Powders	Oral Powder	19095976	1
+KEK	Oral Topical Soluble Powders	Powder for Oral Solution	45775491	2
+KEK	Oral Topical Soluble Powders	Powder for Oral Suspension	45775492	3
+KEP	Oral Topical Unit Dose Powders	Oral Powder	19095976	1
+KEP	Oral Topical Unit Dose Powders	Oral Suspension	19082191	3
+KEP	Oral Topical Unit Dose Powders	Oral Solution	19082170	2
+KEZ	Oral Topical Combination Pack/Powder/Granules	Oral Paste	19095918	1
+KGA	Oral Topical Liquids	Oral Solution	19082170	1
+KGA	Oral Topical Liquids	Syrup	19082223	3
+KGA	Oral Topical Liquids	Oral Suspension	19082191	2
+KGB	Oral Topical Drops	Syrup	19082223	3
+KGB	Oral Topical Drops	Oral Suspension	19082191	2
+KGB	Oral Topical Drops	Oral Solution	19082170	1
+KGC	Oral Topical Sprays Without Gas	Oral Spray	19095911	1
+KGC	Oral Topical Sprays Without Gas	Syrup	19082223	3
+KGC	Oral Topical Sprays Without Gas	Oral Solution	19082170	2
+KGD	Oral Topical Collodion/Lacquers	Oral Solution	19082170	1
+KGD	Oral Topical Collodion/Lacquers	Oral Suspension	19082191	2
+KGD	Oral Topical Collodion/Lacquers	Oral Cream	19082169	3
+KGD	Oral Topical Collodion/Lacquers	Oral Paste	19095918	4
+KGH	Oral Topical Oils	Topical Oil	19082226	1
+KGK	Oral Topical Suspensions	Oral Solution	19082170	2
+KGK	Oral Topical Suspensions	Oral Suspension	19082191	1
+KGL	Oral Topical Emulsions	Oral Solution	19082170	2
+KGL	Oral Topical Emulsions	Oral Suspension	19082191	1
+KGN	Oral Topical Unit Dose Liquids	Syrup	19082223	3
+KGN	Oral Topical Unit Dose Liquids	Oral Solution	19082170	1
+KGN	Oral Topical Unit Dose Liquids	Oral Suspension	19082191	2
+KGP	Oral Topical Metered-Dose Liquids	Oral Solution	19082170	1
+KGP	Oral Topical Metered-Dose Liquids	Oral Suspension	19082191	2
+KGP	Oral Topical Metered-Dose Liquids	Syrup	19082223	3
+KHA	Oral Topical Pressurised Aerosols	Mucosal Spray	19095900	2
+KHA	Oral Topical Pressurised Aerosols	Oral Solution	19082170	3
+KHA	Oral Topical Pressurised Aerosols	Oral Spray	19095911	1
+KHP	Oral Topical Metered-Dose Pressurised Aerosols	Oral Solution	19082170	3
+KHP	Oral Topical Metered-Dose Pressurised Aerosols	Oral Spray	19095911	1
+KHP	Oral Topical Metered-Dose Pressurised Aerosols	Mucosal Spray	19095900	2
+KSA	Oral Topical Ointments	Oral Suspension	19082191	3
+KSA	Oral Topical Ointments	Oral Cream	19082169	2
+KSA	Oral Topical Ointments	Oral Ointment	19095975	1
+KSB	Oral Topical Pastes	Oral Ointment	19095975	2
+KSB	Oral Topical Pastes	Oral Paste	19095918	1
+KSB	Oral Topical Pastes	Oral Cream	19082169	3
+KTA	Oral Topical Creams	Oral Ointment	19095975	2
+KTA	Oral Topical Creams	Oral Cream	19082169	1
+KVA	Oral Topical Gels And Sols	Oral Suspension	19082191	3
+KVA	Oral Topical Gels And Sols	Oral Gel	19095916	1
+KVA	Oral Topical Gels And Sols	Oral Solution	19082170	2
+KVN	Oral Topical Unit Dose Gels/Sols	Oral Solution	19082170	1
+KVN	Oral Topical Unit Dose Gels/Sols	Oral Suspension	19082191	2
+KVN	Oral Topical Unit Dose Gels/Sols	Oral Gel	19095916	3
+KVN	Oral Topical Unit Dose Gels/Sols	Oral Paste	19095918	4
+KWE	Oral Topical Tampons with Substance	Oral Solution	19082170	1
+KWE	Oral Topical Tampons with Substance	Oral Suspension	19082191	2
+KWY	Oral Topical Other Medicated Dressings	Oral Solution	19082170	1
+KYK	Oral Topical Styli and Wound Cones Non-Rectal	Dental Pin	43563504	1
+KZJ	Oral Topical Tissue Absorbable Medical Aids	Oral Powder	19095976	1
+KZY	Oral Topical Other Medical Aids	Oral Solution	19082170	1
+MAK	Topical External Soluble Tablets	Disintegrating Oral Tablet	19082076	1
+MAK	Topical External Soluble Tablets	Oral Tablet	19082573	2
+MCV	Topical External Capsules	Inhalant Powder	19082259	4
+MCV	Topical External Capsules	Metered Dose Inhaler	19126918	2
+MCV	Topical External Capsules	Dry Powder Inhaler	19127579	1
+MDY	Topical External Other Special Solid Forms	Topical Cream	19082224	2
+MDY	Topical External Other Special Solid Forms	Topical Ointment	19082227	1
+MDY	Topical External Other Special Solid Forms	Topical Gel	19095973	3
+MEA	Topical External Powders	Topical Powder	19082286	2
+MEA	Topical External Powders	Powder	19135790	1
+MEB	Topical External Granules	Topical Powder	19082286	1
+MEB	Topical External Granules	Topical Solution	19082228	2
+MEB	Topical External Granules	Topical Suspension	46234410	3
+MEC	Topical External Dusting Powders	Topical Powder	19082286	1
+MEK	Topical External Soluble Powders	Topical Powder	19082286	1
+MEK	Topical External Soluble Powders	Topical Solution	19082228	2
+MEK	Topical External Soluble Powders	Topical Suspension	46234410	3
+MEP	Topical External Unit Dose Powders	Topical Powder	19082286	2
+MEP	Topical External Unit Dose Powders	Powder	19135790	1
+MEY	Topical External Other Powders/Granules	Topical Powder	19082286	2
+MEY	Topical External Other Powders/Granules	Powder	19135790	1
+MEZ	Topical External Combination Pack Powders/Granules	Topical Powder	19082286	1
+MEZ	Topical External Combination Pack Powders/Granules	Topical Solution	19082228	2
+MEZ	Topical External Combination Pack Powders/Granules	Topical Suspension	46234410	3
+MEZ	Topical External Combination Pack Powders/Granules	Oral Powder	19095976	4
+MEZ	Topical External Combination Pack Powders/Granules	Oral Granules	19082651	5
+MEZ	Topical External Combination Pack Powders/Granules	Oral Solution	19082170	6
+MGA	Topical External Liquids	Injectable Solution	19082103	1
+MGA	Topical External Liquids	Injectable Suspension	19082104	2
+MGB	Topical External Drops	Topical Suspension	46234410	2
+MGB	Topical External Drops	Topical Solution	19082228	1
+MGC	Topical External Sprays Without Gas	Topical Spray	19095912	1
+MGD	Topical External Collodion/Lacquers	Topical Cream	19082224	1
+MGD	Topical External Collodion/Lacquers	Topical Ointment	19082227	2
+MGE	Topical External Liquid Inhalations	Inhalant Powder	19082259	2
+MGE	Topical External Liquid Inhalations	Metered Dose Inhaler	19126918	3
+MGE	Topical External Liquid Inhalations	Inhalant Solution	19095898	1
+MGH	Topical External Oils	Topical Lotion	19082225	2
+MGH	Topical External Oils	Topical Suspension	46234410	3
+MGH	Topical External Oils	Topical Oil	19082226	1
+MGJ	Topical External Dry Suspensions/Syrups/Drops	Topical Powder	19082286	1
+MGJ	Topical External Dry Suspensions/Syrups/Drops	Topical Solution	19082228	2
+MGJ	Topical External Dry Suspensions/Syrups/Drops	Topical Suspension	46234410	3
+MGK	Topical External Suspensions	Injectable Solution	19082103	2
+MGK	Topical External Suspensions	Injectable Suspension	19082104	1
+MGL	Topical External Emulsions	Topical Lotion	19082225	1
+MGL	Topical External Emulsions	Topical Cream	19082224	2
+MGL	Topical External Emulsions	Topical Ointment	19082227	3
+MGN	Topical External Unit Dose Liquids	Injectable Suspension	19082104	2
+MGN	Topical External Unit Dose Liquids	Injectable Solution	19082103	1
+MGP	Topical External Metered-Dose Liquids	Topical Spray	19095912	1
+MGP	Topical External Metered-Dose Liquids	Topical Solution	19082228	2
+MGP	Topical External Metered-Dose Liquids	Topical Suspension	46234410	3
+MGR	Topical External Spirits	Topical Solution	19082228	1
+MGR	Topical External Spirits	Topical Suspension	46234410	2
+MGS	Topical External Lotions	Topical Cream	19082224	2
+MGS	Topical External Lotions	Topical Lotion	19082225	1
+MGS	Topical External Lotions	Topical Ointment	19082227	4
+MGS	Topical External Lotions	Topical Suspension	46234410	3
+MGT	Topical Dermatological Shaking Mixtures	Topical Solution	19082228	1
+MGT	Topical Dermatological Shaking Mixtures	Topical Suspension	46234410	2
+MGW	Topical External Liquid Soaps/Washes	Medicated Bar Soap	19082108	1
+MGW	Topical External Liquid Soaps/Washes	Medicated Liquid Soap	19082109	2
+MGW	Topical External Liquid Soaps/Washes	Medicated Shampoo	19008697	3
+MGX	Topical External Enema Liquids	Injectable Suspension	19082104	2
+MGX	Topical External Enema Liquids	Injectable Solution	19082103	1
+MGZ	Topical External Combination Pack Liquids	Topical Solution	19082228	1
+MGZ	Topical External Combination Pack Liquids	Topical Suspension	46234410	2
+MHA	Topical External Pressurised Aerosols	Topical Solution	19082228	3
+MHA	Topical External Pressurised Aerosols	Topical Spray	19095912	2
+MHA	Topical External Pressurised Aerosols	Spray	19095899	1
+MHC	Topical External Pressurised Powders	Topical Powder	19082286	2
+MHC	Topical External Pressurised Powders	Topical Spray	19095912	1
+MHP	Topical External Metered-Dose Pressurised Aerosols	Metered Dose Inhaler	19126918	2
+MHP	Topical External Metered-Dose Pressurised Aerosols	Inhalant Solution	19095898	1
+MHS	Topical External Pressurised Ointments And Creams	Topical Ointment	19082227	2
+MHS	Topical External Pressurised Ointments And Creams	Topical Spray	19095912	1
+MHT	Topical External Pressurised Foams	Topical Gel	19095973	2
+MHT	Topical External Pressurised Foams	Topical Spray	19095912	1
+MHZ	Topical External Combination Pack Pressurised Aerosols	Topical Spray	19095912	1
+MHZ	Topical External Combination Pack Pressurised Aerosols	Topical Solution	19082228	2
+MHZ	Topical External Combination Pack Pressurised Aerosols	Topical Suspension	46234410	3
+MJA	Topical External Bath Preparations	Medicated Liquid Soap	19082109	1
+MJA	Topical External Bath Preparations	Medicated Bar Soap	19082108	2
+MJA	Topical External Bath Preparations	Medicated Shampoo	19008697	3
+MJB	Topical External Solid Substances For Baths	Medicated Shampoo	19008697	2
+MJB	Topical External Solid Substances For Baths	Medicated Bar Soap	19082108	1
+MJB	Topical External Solid Substances For Baths	Medicated Liquid Soap	19082109	3
+MJH	Topical External Bath Oils	Topical Oil	19082226	1
+MJL	Topical External Bath Emulsions	Topical Suspension	46234410	1
+MJL	Topical External Bath Emulsions	Topical Solution	19082228	2
+MJP	Topical External Partial Baths	Topical Suspension	46234410	2
+MJP	Topical External Partial Baths	Topical Solution	19082228	1
+MJS	Topical External Foot Baths	Topical Suspension	46234410	2
+MJS	Topical External Foot Baths	Medicated Liquid Soap	19082109	1
+MJS	Topical External Foot Baths	Topical Solution	19082228	3
+MJT	Topical External Foam Baths	Topical Foam	19095972	1
+MJT	Topical External Foam Baths	Topical Solution	19082228	2
+MJY	Topical External Other Baths	Topical Suspension	46234410	2
+MJY	Topical External Other Baths	Topical Solution	19082228	1
+MJZ	Topical External Combination Pack Baths	Topical Suspension	46234410	2
+MJZ	Topical External Combination Pack Baths	Medicated Liquid Soap	19082109	1
+MJZ	Topical External Combination Pack Baths	Topical Solution	19082228	3
+MLA	Topical External Suppositories	Vaginal Suppository	19093368	2
+MLA	Topical External Suppositories	Rectal Suppository	19082200	1
+MLB	Topical External Adult Suppositories	Vaginal Suppository	19093368	2
+MLB	Topical External Adult Suppositories	Rectal Suppository	19082200	1
+MLC	Topical External Paediatric Suppositories	Rectal Suppository	19082200	1
+MLC	Topical External Paediatric Suppositories	Vaginal Suppository	19093368	2
+MLX	Topical External Micro-Enemas	Enema	19082627	1
+MLX	Topical External Micro-Enemas	Topical Gel	19095973	2
+MLZ	Topical External Combination Pack Suppositories	Vaginal Suppository	19093368	1
+MLZ	Topical External Combination Pack Suppositories	Rectal Suppository	19082200	2
+MLZ	Topical External Combination Pack Suppositories	Urethral Suppository	19082575	3
+MMA	Topical External Ampoules	Injectable Suspension	19082104	2
+MMA	Topical External Ampoules	Injectable Solution	19082103	1
+MMS	Topical External Instillation Ampoules	Topical Solution	19082228	1
+MMS	Topical External Instillation Ampoules	Topical Suspension	46234410	2
+MMS	Topical External Instillation Ampoules	Medicated Pad	19130307	3
+MNA	Topical External Pre-Filled Syringes	Injection	46234469	2
+MNA	Topical External Pre-Filled Syringes	Prefilled Syringe	19126920	1
+MNA	Topical External Pre-Filled Syringes	Injectable Solution	19082103	3
+MNA	Topical External Pre-Filled Syringes	Injectable Solution	19082103	3
+MNF	Topical External Intradermal Pre-filled Syringes	Injection	46234469	2
+MNF	Topical External Intradermal Pre-filled Syringes	Prefilled Syringe	19126920	1
+MNF	Topical External Intradermal Pre-filled Syringes	Injectable Solution	19082103	3
+MNS	Topical External Instillation Pre-Filled Syringes	Topical Solution	19082228	1
+MNS	Topical External Instillation Pre-Filled Syringes	Topical Suspension	46234410	2
+MNS	Topical External Instillation Pre-Filled Syringes	Medicated Pad	19130307	3
+MNY	Topical External Other Pre-Filled Syringes	Injection	46234469	2
+MNY	Topical External Other Pre-Filled Syringes	Prefilled Syringe	19126920	1
+MNY	Topical External Other Pre-Filled Syringes	Injectable Solution	19082103	3
+MPA	Topical External Vials	Topical Solution	19082228	1
+MPA	Topical External Vials	Topical Suspension	46234410	2
+MPB	Topical External Dry Vials	Injectable Solution	19082103	1
+MPB	Topical External Dry Vials	Injectable Suspension	19082104	2
+MPS	Topical External Instillation Vials	Topical Solution	19082228	1
+MPS	Topical External Instillation Vials	Topical Suspension	46234410	2
+MPS	Topical External Instillation Vials	Medicated Pad	19130307	3
+MPY	Topical External Other Vials	Injectable Solution	19082103	1
+MPY	Topical External Other Vials	Injectable Suspension	19082104	2
+MQS	Dialysis Irrigation Perfusion Solutions	Injectable Solution	19082103	1
+MQS	Dialysis Irrigation Perfusion Solutions	Injectable Suspension	19082104	2
+MQS	Dialysis Irrigation Perfusion Solutions	Injection	46234469	3
+MSA	Topical External Ointments	Topical Cream	19082224	2
+MSA	Topical External Ointments	Topical Ointment	19082227	1
+MSB	Topical External Pastes	Topical Ointment	19082227	2
+MSB	Topical External Pastes	Topical Cream	19082224	1
+MSL	Topical External Emulsion Ointments	Topical Cream	19082224	2
+MSL	Topical External Emulsion Ointments	Topical Ointment	19082227	4
+MSL	Topical External Emulsion Ointments	Topical Suspension	46234410	3
+MSL	Topical External Emulsion Ointments	Topical Lotion	19082225	1
+MSN	Topical External Unit Dose Ointments And Pastes	Topical Ointment	19082227	2
+MSN	Topical External Unit Dose Ointments And Pastes	Topical Cream	19082224	1
+MSW	Topical External Soap Pastes	Topical Cream	19082224	2
+MSW	Topical External Soap Pastes	Topical Ointment	19082227	1
+MSW	Topical External Soap Pastes	Topical Gel	19095973	3
+MSY	Topical External Other Ointments	Topical Cream	19082224	2
+MSY	Topical External Other Ointments	Topical Ointment	19082227	1
+MSY	Topical External Other Ointments	Topical Gel	19095973	3
+MSZ	Topical External Combination Pack Ointments	Topical Cream	19082224	2
+MSZ	Topical External Combination Pack Ointments	Topical Ointment	19082227	1
+MSZ	Topical External Combination Pack Ointments	Topical Gel	19095973	3
+MTA	Topical External Creams	Topical Cream	19082224	1
+MTA	Topical External Creams	Topical Ointment	19082227	2
+MTL	Topical External Emulsion Creams	Topical Ointment	19082227	2
+MTL	Topical External Emulsion Creams	Topical Cream	19082224	1
+MTN	Topical External Unit Dose Creams	Topical Cream	19082224	1
+MTN	Topical External Unit Dose Creams	Topical Ointment	19082227	2
+MTP	Topical External Metered-Dose Creams	1	19082224	1
+MTP	Topical External Metered-Dose Creams	1	19082227	2
+MTW	Topical External Cream Soaps/Washes	Topical Cream	19082224	4
+MTW	Topical External Cream Soaps/Washes	Medicated Liquid Soap	19082109	1
+MTW	Topical External Cream Soaps/Washes	Medicated Bar Soap	19082108	2
+MTW	Topical External Cream Soaps/Washes	Medicated Shampoo	19008697	3
+MTY	Topical External Other Creams	1	19082224	1
+MTY	Topical External Other Creams	1	19082227	2
+MTZ	Topical External Combination Pack Creams	Topical Ointment	19082227	2
+MTZ	Topical External Combination Pack Creams	Topical Cream	19082224	1
+MVA	Topical External Gels And Sols	Topical Gel	19095973	1
+MVA	Topical External Gels And Sols	Topical Suspension	46234410	3
+MVA	Topical External Gels And Sols	Topical Lotion	19082225	2
+MVL	Topical External Emulsion Gels	Topical Gel	19095973	1
+MVL	Topical External Emulsion Gels	Topical Lotion	19082225	2
+MVL	Topical External Emulsion Gels	Topical Suspension	46234410	3
+MVN	Topical External Unit Dose Gels/Sols	Topical Gel	19095973	2
+MVN	Topical External Unit Dose Gels/Sols	Topical Solution	19082228	1
+MVP	Topical External Metered- Dose Gels/Sols	1	19095973	1
+MVP	Topical External Metered- Dose Gels/Sols	1	19082228	2
+MVP	Topical External Metered- Dose Gels/Sols	1	46234410	3
+MVP	Topical External Metered- Dose Gels/Sols	1	19082225	4
+MVW	Topical External Wash/Shower Gels	Topical Suspension	46234410	3
+MVW	Topical External Wash/Shower Gels	Topical Gel	19095973	1
+MVW	Topical External Wash/Shower Gels	Topical Lotion	19082225	2
+MVY	Topical External Other Gels/Sols	Topical Gel	19095973	1
+MVY	Topical External Other Gels/Sols	Topical Solution	19082228	2
+MVY	Topical External Other Gels/Sols	Topical Suspension	46234410	3
+MVZ	Topical External Combination Pack Gels/Sols	Topical Gel	19095973	1
+MVZ	Topical External Combination Pack Gels/Sols	Topical Solution	19082228	2
+MVZ	Topical External Combination Pack Gels/Sols	Topical Suspension	46234410	3
+MWA	Topical External Plasters With Substance	Transdermal Patch	19082229	1
+MWA	Topical External Plasters With Substance	Medicated Pad	19130307	2
+MWB	Topical External Cotton with Substance	Medicated Pad	19130307	1
+MWB	Topical External Cotton with Substance	Prefilled Applicator	19129139	5
+MWB	Topical External Cotton with Substance	Topical Solution	19082228	2
+MWB	Topical External Cotton with Substance	Topical Suspension	46234410	3
+MWB	Topical External Cotton with Substance	Topical Cream	19082224	4
+MWC	Topical External Gauze Or Fleece With Substance	Transdermal Patch	19082229	2
+MWC	Topical External Gauze Or Fleece With Substance	Medicated Pad	19130307	1
+MWD	Topical External Pads With Substance	Topical Cream	19082224	3
+MWD	Topical External Pads With Substance	Transdermal Patch	19082229	2
+MWD	Topical External Pads With Substance	Medicated Pad	19130307	1
+MWE	Topical External Tampons With Substance	Topical Solution	19082228	1
+MWG	Topical External Bandages With Substance	Topical Solution	19082228	1
+MWG	Topical External Bandages With Substance	Topical Suspension	46234410	2
+MWG	Topical External Bandages With Substance	Transdermal Patch	19082229	3
+MWH	Topical External Sponges With Substance	Transdermal Patch	19082229	2
+MWH	Topical External Sponges With Substance	Medicated Pad	19130307	1
+MWS	Topical External Poultices	Medicated Pad	19130307	1
+MWS	Topical External Poultices	Transdermal Patch	19082229	2
+MWY	Topical External Other Medicated Dressings	Medicated Pad	19130307	2
+MWY	Topical External Other Medicated Dressings	Transdermal Patch	19082229	1
+MYK	Topical External Styli And Cones Non-Rectal	Urethral Suppository	19082575	1
+MYM	Topical External Sticks And Roll-Ons	Stick	21014170	1
+MYP	Topical External Bone Cement With Substance	Cement	19124967	1
+MYT	Topical External Foams	Topical Solution	19082228	3
+MYT	Topical External Foams	Topical Foam	19095972	2
+MYT	Topical External Foams	Topical Gel	19095973	1
+MYW	Topical External Solid Soaps/Bars	Medicated Bar Soap	19082108	1
+MYW	Topical External Solid Soaps/Bars	Medicated Liquid Soap	19082109	3
+MYW	Topical External Solid Soaps/Bars	Medicated Shampoo	19008697	2
+MZA	Topical External Plasters without Substance	Topical Gel	19095973	1
+MZA	Topical External Plasters without Substance	Topical Cream	19082224	2
+MZA	Topical External Plasters without Substance	Topical Ointment	19082227	3
+MZC	Topical External Gauze or Fleece without Substance	Topical Gel	19095973	1
+MZC	Topical External Gauze or Fleece without Substance	Topical Cream	19082224	2
+MZC	Topical External Gauze or Fleece without Substance	Topical Ointment	19082227	3
+MZD	Topical External Pads Without Substance	Topical Ointment	19082227	3
+MZD	Topical External Pads Without Substance	Topical Cream	19082224	2
+MZD	Topical External Pads Without Substance	Topical Solution	19082228	1
+MZE	Topical External Tampons without Substance	Topical Ointment	19082227	3
+MZE	Topical External Tampons without Substance	Topical Cream	19082224	2
+MZE	Topical External Tampons without Substance	Topical Solution	19082228	1
+MZJ	Topical External Tissue Absorbable Medical Aids	Topical Cream	19082224	1
+MZJ	Topical External Tissue Absorbable Medical Aids	Topical Ointment	19082227	2
+MZK	Topical External Gel And Colloid Dressings	Medicated Pad	19130307	2
+MZK	Topical External Gel And Colloid Dressings	Transdermal Patch	19082229	1
+MZP	Topical External Bone Cements without Substance	1	19124967	1
+MZV	Topical External Diagnostic Tests Excluding Sticks	Topical Solution	19082228	1
+MZY	Topical External Other Medical Aids	Transdermal Patch	19082229	1
+NAZ	Ophthalmic Combination Pack Tablets	Ophthalmic Solution	19129634	2
+NAZ	Ophthalmic Combination Pack Tablets	Ophthalmic Irrigation Solution	19059413	3
+NAZ	Ophthalmic Combination Pack Tablets	Ophthalmic Suspension	19082167	4
+NAZ	Ophthalmic Combination Pack Tablets	Prefilled Applicator	19129139	1
+NDN	Ocular Therapeutic Systems	Prefilled Applicator	19129139	1
+NGA	Ophthalmic Liquids	Ophthalmic Solution	19129634	1
+NGA	Ophthalmic Liquids	Topical Solution	19082228	3
+NGA	Ophthalmic Liquids	Ophthalmic Suspension	19082167	2
+NGB	Ophthalmic Drops	Prefilled Applicator	19129139	7
+NGH	Ophthalmic Oils	Ophthalmic Suspension	19082167	1
+NGH	Ophthalmic Oils	Topical Oil	19082226	2
+NGK	Ophthalmic Suspensions	Ophthalmic Suspension	19082167	2
+NGK	Ophthalmic Suspensions	Ophthalmic Solution	19129634	1
+NGK	Ophthalmic Suspensions	Topical Solution	19082228	3
+NGN	Ophthalmic Unit Dose Liquids	Ophthalmic Solution	19129634	1
+NGN	Ophthalmic Unit Dose Liquids	Ophthalmic Irrigation Solution	19059413	3
+NGN	Ophthalmic Unit Dose Liquids	Ophthalmic Suspension	19082167	2
+NGQ	Ophthalmic Preservative-Free Multi-Dose Liquids	1	19129634	1
+NGQ	Ophthalmic Preservative-Free Multi-Dose Liquids	1	19082167	2
+NGS	Ophthalmic Lotions	Ophthalmic Suspension	19082167	1
+NGS	Ophthalmic Lotions	Ophthalmic Solution	19129634	2
+NGZ	Ophthalmic Combination Pack Liquids	Ophthalmic Irrigation Solution	19059413	1
+NGZ	Ophthalmic Combination Pack Liquids	Ophthalmic Suspension	19082167	3
+NGZ	Ophthalmic Combination Pack Liquids	Ophthalmic Solution	19129634	2
+NHA	Ophthalmic Pressurised Aerosols	Ophthalmic Irrigation Solution	19059413	1
+NHA	Ophthalmic Pressurised Aerosols	Ophthalmic Solution	19129634	2
+NHA	Ophthalmic Pressurised Aerosols	Ophthalmic Suspension	19082167	3
+NMA	Ophthalmic Ampoules	Ophthalmic Solution	19129634	1
+NMA	Ophthalmic Ampoules	Ophthalmic Suspension	19082167	2
+NMA	Ophthalmic Ampoules	Ophthalmic Irrigation Solution	19059413	3
+NMB	Ophthalmic Dry Ampoules	Ophthalmic Solution	19129634	1
+NMB	Ophthalmic Dry Ampoules	Ophthalmic Suspension	19082167	2
+NMB	Ophthalmic Dry Ampoules	Ophthalmic Irrigation Solution	19059413	3
+NNA	Ophthalmic Pre-Filled Syringes	Injectable Solution	19082103	3
+NNA	Ophthalmic Pre-Filled Syringes	Prefilled Syringe	19126920	1
+NNA	Ophthalmic Pre-Filled Syringes	Injection	46234469	2
+NPA	Ophthalmic Vials	Ophthalmic Solution	19129634	1
+NPA	Ophthalmic Vials	Ophthalmic Suspension	19082167	2
+NPB	Ophthalmic Dry Vials	Ophthalmic Irrigation Solution	19059413	2
+NPB	Ophthalmic Dry Vials	Ophthalmic Solution	19129634	1
+NSA	Ophthalmic Ointments	Ophthalmic Ointment	19135925	1
+NSA	Ophthalmic Ointments	Ophthalmic Cream	19082576	2
+NTA	Ophthalmic Creams	Ophthalmic Cream	19082576	1
+NTA	Ophthalmic Creams	Ophthalmic Ointment	19135925	2
+NVA	Ophthalmic Gels/Sols	Ophthalmic Solution	19129634	1
+NVA	Ophthalmic Gels/Sols	Ophthalmic Gel	19082166	2
+NVB	Ophthalmic Gel Drops	Ophthalmic Solution	19129634	1
+NVB	Ophthalmic Gel Drops	Ophthalmic Gel	19082166	2
+NVN	Ophthalmic Unit Dose Gels/Sols	Ophthalmic Gel	19082166	2
+NVN	Ophthalmic Unit Dose Gels/Sols	Ophthalmic Solution	19129634	1
+NZD	Ophthalmic Pads without Substance	Ophthalmic Solution	19129634	1
+NZT	Ophthalmic Diagnostic Sticks	Ophthalmic Solution	19129634	1
+PGA	Otic Liquids	Otic Solution	19082195	1
+PGA	Otic Liquids	Otic Suspension	19082196	2
+PGA	Otic Liquids	Topical Solution	19082228	3
+PGB	Otic Drops	Otic Suspension	19082196	2
+PGB	Otic Drops	Otic Solution	19082195	1
+PGB	Otic Drops	Topical Solution	19082228	3
+PGK	Otic Suspensions	1	19082195	2
+PGK	Otic Suspensions	1	19082196	1
+PGN	Otic Unit Dose Liquids	Otic Solution	19082195	1
+PGN	Otic Unit Dose Liquids	Topical Solution	19082228	3
+PGN	Otic Unit Dose Liquids	Otic Suspension	19082196	2
+PSA	Otic Ointments	Otic Cream	19082193	2
+PSA	Otic Ointments	Otic Ointment	19082194	1
+QCT	Nasal Topical Inhaler Capsules	Inhalant Powder	19082259	1
+QCT	Nasal Topical Inhaler Capsules	Inhalant Solution	19095898	2
+QEA	Nasal Topical Powders	Dry Powder Inhaler	19127579	1
+QEP	Nasal Topical Unit Dose Powders	Nasal Suspension	19095977	2
+QEP	Nasal Topical Unit Dose Powders	Nasal Solution	19082165	1
+QGA	Nasal Topical Liquids	Nasal Suspension	19095977	2
+QGA	Nasal Topical Liquids	Nasal Solution	19082165	1
+QGB	Nasal Topical Drops	Inhalant Solution	19095898	1
+QGB	Nasal Topical Drops	Nasal Solution	19082165	2
+QGB	Nasal Topical Drops	Nasal Suspension	19095977	3
+QGB	Nasal Topical Drops	Metered Dose Inhaler	19126918	4
+QGC	Nasal Topical Sprays Without Gas	Nasal Solution	19082165	2
+QGC	Nasal Topical Sprays Without Gas	Nasal Suspension	19095977	1
+QGH	Nasal Topical Oils	Topical Oil	19082226	1
+QGH	Nasal Topical Oils	Nasal Suspension	19095977	2
+QGK	Nasal Topical Suspensions	Nasal Solution	19082165	2
+QGK	Nasal Topical Suspensions	Nasal Suspension	19095977	1
+QGL	Nasal Topical Emulsions	Nasal Solution	19082165	2
+QGL	Nasal Topical Emulsions	Nasal Suspension	19095977	1
+QGN	Nasal Topical Unit Dose Liquids	Inhalant Solution	19095898	2
+QGN	Nasal Topical Unit Dose Liquids	Nasal Suspension	19095977	3
+QGN	Nasal Topical Unit Dose Liquids	Metered Dose Inhaler	19126918	4
+QGN	Nasal Topical Unit Dose Liquids	Nasal Solution	19082165	1
+QGP	Nasal Topical Metered-Dose Liquids	Metered Dose Inhaler	19126918	3
+QGP	Nasal Topical Metered-Dose Liquids	Inhalant Solution	19095898	2
+QGP	Nasal Topical Metered-Dose Liquids	Nasal Spray	19011167	1
+QGP	Nasal Topical Metered-Dose Liquids	Nasal Suspension	19095977	5
+QGP	Nasal Topical Metered-Dose Liquids	Nasal Solution	19082165	4
+QGZ	Nasal Topical Combination Pack Liquids	Nasal Cream	19082161	4
+QGZ	Nasal Topical Combination Pack Liquids	Nasal Gel	19082163	3
+QGZ	Nasal Topical Combination Pack Liquids	Nasal Ointment	19082164	5
+QGZ	Nasal Topical Combination Pack Liquids	Nasal Solution	19082165	1
+QGZ	Nasal Topical Combination Pack Liquids	Nasal Suspension	19095977	2
+QHP	Nasal Topical Metered Dose Aerosols	Nasal Spray	19011167	1
+QHP	Nasal Topical Metered Dose Aerosols	Nasal Inhalant	19082162	2
+QMA	Nasal Topical Ampoules	Nasal Solution	19082165	1
+QMA	Nasal Topical Ampoules	Nasal Suspension	19095977	2
+QNA	Nasal Topical Pre-Filled Syringes	Nasal Solution	19082165	1
+QNA	Nasal Topical Pre-Filled Syringes	Nasal Cream	19082161	2
+QNA	Nasal Topical Pre-Filled Syringes	Topical Ointment	19082227	3
+QSA	Nasal Topical Ointments	Nasal Cream	19082161	2
+QSA	Nasal Topical Ointments	Nasal Ointment	19082164	1
+QSL	Nasal Topical Emulsion Ointments	Nasal Cream	19082161	2
+QSL	Nasal Topical Emulsion Ointments	Nasal Ointment	19082164	1
+QSL	Nasal Topical Emulsion Ointments	Nasal Suspension	19095977	3
+QTA	Nasal Topical Creams	Nasal Cream	19082161	1
+QTA	Nasal Topical Creams	Nasal Ointment	19082164	2
+QVA	Nasal Topical Gels And Sols	Nasal Gel	19082163	2
+QVA	Nasal Topical Gels And Sols	Nasal Solution	19082165	1
+QYM	Nasal Topical Sticks And Roll-Ons	Inhalant Powder	19082259	1
+QYM	Nasal Topical Sticks And Roll-Ons	Inhalant Solution	19095898	2
+RCT	Lung Administration Inhaler Capsules	Metered Dose Inhaler	19126918	2
+RCT	Lung Administration Inhaler Capsules	Dry Powder Inhaler	19127579	1
+RCT	Lung Administration Inhaler Capsules	Inhalant Powder	19082259	4
+REM	Lung Administration Unit Dose Powder Inhaler Non-Refillable	Inhalant Powder	19082259	2
+REM	Lung Administration Unit Dose Powder Inhaler Non-Refillable	Dry Powder Inhaler	19127579	1
+REM	Lung Administration Unit Dose Powder Inhaler Non-Refillable	Metered Dose Inhaler	19126918	4
+REN	Lung Administration Unit Dose Powder Inhaler Refillable	Inhalant Powder	19082259	2
+REN	Lung Administration Unit Dose Powder Inhaler Refillable	Dry Powder Inhaler	19127579	1
+REN	Lung Administration Unit Dose Powder Inhaler Refillable	Metered Dose Inhaler	19126918	4
+REP	Lung Administration Metered-Dose Powder Inhaler	Dry Powder Inhaler	19127579	1
+REP	Lung Administration Metered-Dose Powder Inhaler	Metered Dose Inhaler	19126918	4
+REP	Lung Administration Metered-Dose Powder Inhaler	Inhalant Powder	19082259	2
+RGE	Lung Administration Liquid For Inhalation	Inhalant Powder	19082259	2
+RGE	Lung Administration Liquid For Inhalation	Inhalant Solution	19095898	1
+RGE	Lung Administration Liquid For Inhalation	Metered Dose Inhaler	19126918	3
+RGN	Lung Administration Unit Dose Liquids	Metered Dose Inhaler	19126918	2
+RGN	Lung Administration Unit Dose Liquids	Inhalant Solution	19095898	1
+RGP	Lung Administration Metered-Dose Liquids	Inhalant Solution	19095898	1
+RGP	Lung Administration Metered-Dose Liquids	Metered Dose Inhaler	19126918	2
+RHM	Lung Administration Breath-Actuated Metered-Dose Inhaler	Metered Dose Inhaler	19126918	2
+RHM	Lung Administration Breath-Actuated Metered-Dose Inhaler	Dry Powder Inhaler	19127579	1
+RHN	Lung Administration Breath-Actuated Cfc-Free Metered-Dose Inhaler	Dry Powder Inhaler	19127579	1
+RHN	Lung Administration Breath-Actuated Cfc-Free Metered-Dose Inhaler	Metered Dose Inhaler	19126918	2
+RHP	Lung Administration Metered-Dose Inhaler	Metered Dose Inhaler	19126918	2
+RHP	Lung Administration Metered-Dose Inhaler	Inhalant Solution	19095898	1
+RHQ	Lung Administration Cfc-Free Metered-Dose Inhaler	Metered Dose Inhaler	19126918	2
+RHQ	Lung Administration Cfc-Free Metered-Dose Inhaler	Dry Powder Inhaler	19127579	1
+RYJ	Lung Administration Cigarettes	Inhalant	19018195	2
+RYJ	Lung Administration Cigarettes	Inhalant Powder	19082259	3
+RYJ	Lung Administration Cigarettes	Inhalant Solution	19095898	4
+RYJ	Lung Administration Cigarettes	Impregnated cigarette	21014172	1
+TAA	Vaginal Tablets	Vaginal Tablet	19010962	1
+TAZ	Vaginal Combination Pack Tablets	Vaginal Tablet	19010962	1
+TCA	Vaginal Capsules	Vaginal Suppository	19093368	1
+TEP	Vaginal Unit Dose Powders	Vaginal Powder	19082230	1
+TGA	Vaginal Liquids	Vaginal Spray	19112649	1
+TGA	Vaginal Liquids	Topical Solution	19082228	2
+TGL	Vaginal Liquid Emulsions	Vaginal Cream	19010878	2
+TGL	Vaginal Liquid Emulsions	Vaginal Gel	19010880	1
+TGN	Vaginal Unit Dose Liquids	Vaginal Spray	19112649	2
+TGN	Vaginal Unit Dose Liquids	Vaginal Foam	19010879	3
+TGN	Vaginal Unit Dose Liquids	Vaginal Gel	19010880	1
+TGS	Vaginal Lotions	Vaginal Ointment	19082287	2
+TGS	Vaginal Lotions	Vaginal Cream	19010878	1
+THT	Vaginal Pressurised Foams	Vaginal Spray	19112649	1
+THT	Vaginal Pressurised Foams	Topical Solution	19082228	2
+TLS	Vaginal Suppositories	Vaginal Suppository	19093368	2
+TLS	Vaginal Suppositories	Vaginal Tablet	19010962	1
+TLZ	Vaginal Combination Pack Suppositories	Vaginal Suppository	19093368	1
+TSA	Vaginal Ointments	Vaginal Cream	19010878	2
+TSA	Vaginal Ointments	Vaginal Ointment	19082287	1
+TSB	Vaginal Pastes	Vaginal Cream	19010878	1
+TSB	Vaginal Pastes	Vaginal Ointment	19082287	2
+TTA	Vaginal Creams	Vaginal Cream	19010878	1
+TTA	Vaginal Creams	Vaginal Ointment	19082287	2
+TTN	Vaginal Unit Dose Creams	Vaginal Ointment	19082287	2
+TTN	Vaginal Unit Dose Creams	Vaginal Cream	19010878	1
+TTZ	Vaginal Combination Pack Creams	Vaginal Ointment	19082287	2
+TTZ	Vaginal Combination Pack Creams	Vaginal Cream	19010878	1
+TVA	Vaginal Gels And Sols	Vaginal Foam	19010879	3
+TVA	Vaginal Gels And Sols	Vaginal Gel	19010880	1
+TVA	Vaginal Gels And Sols	Vaginal Spray	19112649	2
+TVN	Vaginal Unit Dose Gels/Sols	Vaginal Gel	19010880	1
+TVN	Vaginal Unit Dose Gels/Sols	Vaginal Spray	19112649	2
+TVN	Vaginal Unit Dose Gels/Sols	Vaginal Foam	19010879	3
+TWE	Vaginal Tampons with Substance	Prefilled Applicator	19129139	2
+TWE	Vaginal Tampons with Substance	Vaginal Suppository	19093368	1
+TYQ	Vaginal Mechanical Pessaries With Substance	Vaginal Ring	40167393	1
+TYR	Vaginal Intra Uterine Devices	Vaginal Ring	40167393	1
+TYR	Vaginal Intra Uterine Devices	Vaginal Suppository	19093368	2
+TYY	Vaginal Other Special Forms	Vaginal Ring	40167393	1
+TYY	Vaginal Other Special Forms	Vaginal Suppository	19093368	2
+TYY	Vaginal Other Special Forms	Vaginal Spray	19112649	3
+TYY	Vaginal Other Special Forms	Vaginal Foam	19010879	4
+TYY	Vaginal Other Special Forms	Vaginal Gel	19010880	5
+VEK	Non-Human Use Soluble Powders	Topical Powder	19082286	1
+VEK	Non-Human Use Soluble Powders	Oral Powder	19095976	2
+VEK	Non-Human Use Soluble Powders	Vaginal Powder	19082230	3
+VGA	Non-Human Use Liquids	Topical Solution	19082228	1
+VGA	Non-Human Use Liquids	Injectable Solution	19082103	2
+VGA	Non-Human Use Liquids	Nasal Solution	19082165	3
+VGA	Non-Human Use Liquids	Oral Solution	19082170	4
+VGA	Non-Human Use Liquids	Otic Solution	19082195	5
+VGA	Non-Human Use Liquids	Ophthalmic Irrigation Solution	19059413	6
+VGA	Non-Human Use Liquids	Ophthalmic Solution	19129634	7
+VGA	Non-Human Use Liquids	Rectal Solution	19082283	8
+VGC	Non-Human Use Sprays without Gas	Topical Spray	19095912	1
+VGC	Non-Human Use Sprays without Gas	Vaginal Spray	19112649	2
+VGC	Non-Human Use Sprays without Gas	Nasal Spray	19011167	3
+VGC	Non-Human Use Sprays without Gas	Oral Spray	19095911	4
+VGC	Non-Human Use Sprays without Gas	Topical Solution	19082228	5
+VHT	Non-Human Use Pressurised Foams	Topical Foam	19095972	1
+VHT	Non-Human Use Pressurised Foams	Topical Solution	19082228	2
+VMA	Non-Human Use Ampoules	Injectable Solution	19082103	1
+VMA	Non-Human Use Ampoules	Injectable Suspension	19082104	2
+VMA	Non-Human Use Ampoules	Injection	46234469	3
+VPA	Non-Human Use Vials	Injectable Solution	19082103	1
+VPA	Non-Human Use Vials	Injectable Suspension	19082104	2
+VPA	Non-Human Use Vials	Injection	46234469	3
+VZY	Non-Human Use Other Medical Aids	Injectable Solution	19082103	1
+VZY	Non-Human Use Other Medical Aids	Injectable Suspension	19082104	2
+VZY	Non-Human Use Other Medical Aids	Injection	46234469	3
+AAA	Oral Solid Ordinary Tablets	Oral Tablet	19082573	1
+AAB	Oral Solid Ordinary Orally Disintegrating Tablets	Oral Tablet	19082573	2
+AAB	Oral Solid Ordinary Orally Disintegrating Tablets	Disintegrating Oral Tablet	19082076	1
+AAE	Oral Solid Ordinary Buccal Tablets	Oral Tablet	19082573	2
+AAE	Oral Solid Ordinary Buccal Tablets	Buccal Tablet	40175589	1
+AAF	Oral Solid Ordinary Sublingual Tablets	Oral Tablet	19082573	2
+AAF	Oral Solid Ordinary Sublingual Tablets	Sublingual Tablet	19082285	1
+AAG	Oral Solid Ordinary Chewable Tablets	Oral Tablet	19082573	2
+AAG	Oral Solid Ordinary Chewable Tablets	Chewable Tablet	19135866	1
+AAH	Oral Solid Ordinary Effervescent Tablets	Oral Tablet	19082573	2
+AAH	Oral Solid Ordinary Effervescent Tablets	Effervescent Oral Tablet	44817840	1
+AAJ	Oral Solid Ordinary Layered Tablets	Extended Release Oral Tablet	19082079	2
+AAJ	Oral Solid Ordinary Layered Tablets	Oral Lozenge	19082253	3
+AAJ	Oral Solid Ordinary Layered Tablets	Oral Tablet	19082573	1
+AAK	Oral Solid Ordinary Soluble Tablets	Disintegrating Oral Tablet	19082076	1
+AAK	Oral Solid Ordinary Soluble Tablets	Oral Tablet	19082573	2
+AAZ	Oral Solid Ordinary Combination Pack Tablets	Oral Tablet	19082573	1
+ABA	Oral Solid Ordinary Coated Tablets	Oral Tablet	19082573	1
+ABC	Oral Solid Ordinary Film-Coated Tablets	Oral Tablet	19082573	1
+ABC	Oral Solid Ordinary Film-Coated Tablets	Delayed Release Oral Tablet	19001949	2
+ABD	Oral Solid Ordinary Enteric-Coated Tablets	Delayed Release Oral Tablet	19001949	2
+ABD	Oral Solid Ordinary Enteric-Coated Tablets	Oral Tablet	19082573	1
+ABF	Oral Solid Ordinary Sublingual Coated Tablets	Oral Tablet	19082573	2
+ABF	Oral Solid Ordinary Sublingual Coated Tablets	Sublingual Tablet	19082285	1
+ABG	Oral Solid Ordinary Chewable Coated Tablets	Chewable Tablet	19135866	1
+ABG	Oral Solid Ordinary Chewable Coated Tablets	Oral Tablet	19082573	2
+ABY	Oral Solid Ordinary Other Coated Tablets	Oral Lozenge	19082253	3
+ABY	Oral Solid Ordinary Other Coated Tablets	Oral Tablet	19082573	1
+ABY	Oral Solid Ordinary Other Coated Tablets	Oral Pellet	19082652	2
+ABZ	Oral Solid Ordinary Combination Pack Coated Tablets	Oral Tablet	19082573	1
+ACA	Oral Solid Ordinary Capsules	Oral Capsule	19082168	1
+ACD	Oral Solid Ordinary Enteric-Coated Capsules	Oral Capsule	19082168	1
+ACF	Oral Solid Ordinary Biting Capsules	Extended Release Oral Capsule	19082077	3
+ACF	Oral Solid Ordinary Biting Capsules	Oral Capsule	19082168	1
+ACF	Oral Solid Ordinary Biting Capsules	Delayed Release Oral Capsule	19082255	2
+ACG	Oral Solid Ordinary Chewable Capsules	Oral Capsule	19082168	1
+ACS	Oral Solid Ordinary Cachets	Oral Lozenge	19082253	3
+ACS	Oral Solid Ordinary Cachets	Oral Pellet	19082652	2
+ACS	Oral Solid Ordinary Cachets	Oral Tablet	19082573	1
+ACY	Oral Solid Ordinary Other Capsules	Oral Capsule	19082168	1
+ACY	Oral Solid Ordinary Other Capsules	Delayed Release Oral Capsule	19082255	2
+ACZ	Oral Solid Ordinary Combination Pack Capsules	Oral Capsule	19082168	1
+ADD	Oral Solid Ordinary Pellets	Delayed Release Oral Tablet	19001949	3
+ADD	Oral Solid Ordinary Pellets	Extended Release Oral Tablet	19082079	4
+ADD	Oral Solid Ordinary Pellets	Oral Tablet	19082573	2
+ADD	Oral Solid Ordinary Pellets	Oral Pellet	19082652	1
+ADE	Oral Solid Ordinary Lozenges	Extended Release Oral Tablet	19082079	2
+ADE	Oral Solid Ordinary Lozenges	Oral Tablet	19082573	1
+ADE	Oral Solid Ordinary Lozenges	Oral Lozenge	19082253	3
+ADF	Oral Solid Ordinary Chewing Gum	Chewing Gum	19102296	1
+ADG	Oral Solid Sweets/Candy/Bonbons	Delayed Release Oral Tablet	19001949	3
+ADG	Oral Solid Sweets/Candy/Bonbons	Extended Release Oral Tablet	19082079	4
+ADG	Oral Solid Sweets/Candy/Bonbons	Oral Lozenge	19082253	1
+ADG	Oral Solid Sweets/Candy/Bonbons	Oral Tablet	19082573	2
+ADP	Oral Solid Ordinary Cubes	Oral Tablet	19082573	1
+ADP	Oral Solid Ordinary Cubes	Extended Release Oral Tablet	19082079	2
+ADP	Oral Solid Ordinary Cubes	Oral Lozenge	19082253	3
+ADQ	Oral Solid Ordinary Cakes/Chocolate/Bars/Biscuits	Oral Lozenge	19082253	1
+ADQ	Oral Solid Ordinary Cakes/Chocolate/Bars/Biscuits	Oral Tablet	19082573	2
+ADR	Oral Solid Ordinary Globules And Homeopathic Globuli	Oral Capsule	19082168	3
+ADR	Oral Solid Ordinary Globules And Homeopathic Globuli	Oral Tablet	19082573	2
+ADR	Oral Solid Ordinary Globules And Homeopathic Globuli	Oral Lozenge	19082253	1
+ADY	Oral Solid Ordinary Other Special Forms	Oral Tablet	19082573	1
+ADZ	Oral Solid Ordinary Combination Pack Special Forms	Delayed Release Oral Tablet	19001949	3
+ADZ	Oral Solid Ordinary Combination Pack Special Forms	Extended Release Oral Capsule	19082077	5
+ADZ	Oral Solid Ordinary Combination Pack Special Forms	Extended Release Oral Tablet	19082079	6
+ADZ	Oral Solid Ordinary Combination Pack Special Forms	Oral Capsule	19082168	2
+ADZ	Oral Solid Ordinary Combination Pack Special Forms	Delayed Release Oral Capsule	19082255	4
+ADZ	Oral Solid Ordinary Combination Pack Special Forms	Oral Tablet	19082573	1
+ADZ	Oral Solid Ordinary Combination Pack Special Forms	Oral Granules	19082651	8
+ADZ	Oral Solid Ordinary Combination Pack Special Forms	Oral Powder	19095976	7
+AEA	Oral Solid Ordinary Powders	Oral Solution	19082170	2
+AEA	Oral Solid Ordinary Powders	Oral Powder	19095976	1
+AEB	Oral Solid Ordinary Granules	Oral Granules	19082651	1
+AEB	Oral Solid Ordinary Granules	Oral Powder	19095976	2
+AEF	Oral Solid Ordinary Sublingual Powders/Granules	Sublingual Tablet	19082285	3
+AEF	Oral Solid Ordinary Sublingual Powders/Granules	Oral Solution	19082170	2
+AEF	Oral Solid Ordinary Sublingual Powders/Granules	Oral Powder	19095976	1
+AEP	Oral Solid Ordinary Unit Dose Powders	Oral Powder	19095976	1
+AEP	Oral Solid Ordinary Unit Dose Powders	Oral Solution	19082170	2
+AEY	Oral Solid Ordinary Other Powders/Granules	Oral Suspension	19082191	3
+AEY	Oral Solid Ordinary Other Powders/Granules	Oral Solution	19082170	2
+AEY	Oral Solid Ordinary Other Powders/Granules	Oral Powder	19095976	1
+ASB	Oral Solid Ordinary Pastes	Oral Cream	19082169	2
+ASB	Oral Solid Ordinary Pastes	Oral Paste	19095918	1
+AYG	Oral Solid Ordinary Food Ready To Eat	Oral Powder	19095976	3
+AYG	Oral Solid Ordinary Food Ready To Eat	Oral Suspension	19082191	2
+AYG	Oral Solid Ordinary Food Ready To Eat	Oral Solution	19082170	1
+AYH	Oral Solid Ordinary Food not Ready to Eat	Oral Powder	19095976	3
+AYH	Oral Solid Ordinary Food not Ready to Eat	Oral Suspension	19082191	2
+AYH	Oral Solid Ordinary Food not Ready to Eat	Oral Solution	19082170	1
+BAA	Oral Solid Retard Tablets	Extended Release Oral Tablet	19082079	1
+BAA	Oral Solid Retard Tablets	Oral Tablet	19082573	3
+BAA	Oral Solid Retard Tablets	Delayed Release Oral Tablet	19001949	2
+BAE	Oral Solid Retard Buccal Tablets	Delayed Release Oral Tablet	19001949	2
+BAE	Oral Solid Retard Buccal Tablets	Extended Release Oral Tablet	19082079	3
+BAE	Oral Solid Retard Buccal Tablets	Oral Tablet	19082573	4
+BAE	Oral Solid Retard Buccal Tablets	Buccal Tablet	40175589	1
+BAJ	Oral Solid Retard Layered Tablets	Delayed Release Oral Tablet	19001949	4
+BAJ	Oral Solid Retard Layered Tablets	Oral Tablet	19082573	3
+BAJ	Oral Solid Retard Layered Tablets	Extended Release Oral Tablet	19082079	1
+BAY	Oral Solid Retard Other Tablets	Extended Release Oral Tablet	19082079	1
+BAY	Oral Solid Retard Other Tablets	Delayed Release Oral Tablet	19001949	2
+BAY	Oral Solid Retard Other Tablets	Oral Tablet	19082573	3
+BAZ	Oral Solid Retard Combination Pack Tablets	Delayed Release Oral Tablet	19001949	1
+BAZ	Oral Solid Retard Combination Pack Tablets	Extended Release Oral Tablet	19082079	2
+BAZ	Oral Solid Retard Combination Pack Tablets	Oral Tablet	19082573	3
+BBA	Oral Solid Retard Coated Tablets	Oral Tablet	19082573	3
+BBA	Oral Solid Retard Coated Tablets	Extended Release Oral Tablet	19082079	1
+BBC	Oral Solid Retard Film-Coated Tablets	Delayed Release Oral Tablet	19001949	4
+BBC	Oral Solid Retard Film-Coated Tablets	Extended Release Oral Tablet	19082079	1
+BBC	Oral Solid Retard Film-Coated Tablets	Oral Tablet	19082573	3
+BBD	Oral Solid Retard Enteric-Coated Tablets	Delayed Release Oral Tablet	19001949	1
+BBD	Oral Solid Retard Enteric-Coated Tablets	Extended Release Oral Tablet	19082079	2
+BBD	Oral Solid Retard Enteric-Coated Tablets	Oral Tablet	19082573	3
+BBN	Oral Solid Retard Membrane-Coated Tablets	Oral Tablet	19082573	3
+BBN	Oral Solid Retard Membrane-Coated Tablets	Extended Release Oral Tablet	19082079	1
+BBN	Oral Solid Retard Membrane-Coated Tablets	Delayed Release Oral Tablet	19001949	4
+BCA	Oral Solid Retard Capsules	Extended Release Oral Capsule	19082077	1
+BCA	Oral Solid Retard Capsules	Delayed Release Oral Capsule	19082255	2
+BCA	Oral Solid Retard Capsules	Oral Capsule	19082168	3
+BCN	Oral Solid Retard Membrane Capsules	Extended Release Oral Capsule	19082077	1
+BCN	Oral Solid Retard Membrane Capsules	Delayed Release Oral Capsule	19082255	2
+BCN	Oral Solid Retard Membrane Capsules	Oral Capsule	19082168	3
+BCY	Oral Solid Retard Other Capsules	Oral Capsule	19082168	3
+BCY	Oral Solid Retard Other Capsules	Delayed Release Oral Capsule	19082255	2
+BCY	Oral Solid Retard Other Capsules	Extended Release Oral Capsule	19082077	1
+BEP	Oral Solid Retard Unit Dose Powders	Oral Powder	19095976	2
+BEP	Oral Solid Retard Unit Dose Powders	Oral Solution	19082170	3
+BEP	Oral Solid Retard Unit Dose Powders	Extended Release Suspension	19082080	1
+DDY	Oral Liquid Ordinary Other Solid Special Forms	Oral Solution	19082170	1
+DDY	Oral Liquid Ordinary Other Solid Special Forms	Oral Suspension	19082191	2
+DEH	Oral Liquid Ordinary Effervescent Powders/Granules	Oral Powder	19095976	1
+DEH	Oral Liquid Ordinary Effervescent Powders/Granules	Effervescent Oral Tablet	44817840	2
+DEK	Oral Liquid Ordinary Soluble Powders	Oral Powder	19095976	1
+DEK	Oral Liquid Ordinary Soluble Powders	Disintegrating Oral Tablet	19082076	2
+DEP	Oral Liquid Ordinary Unit Dose Powders	Oral Suspension	19082191	2
+DEP	Oral Liquid Ordinary Unit Dose Powders	Oral Solution	19082170	1
+DEZ	Oral Liquid Ordinary Combination Pack Powders/Granules	Oral Solution	19082170	3
+DEZ	Oral Liquid Ordinary Combination Pack Powders/Granules	Oral Suspension	19082191	4
+DEZ	Oral Liquid Ordinary Combination Pack Powders/Granules	Oral Granules	19082651	2
+DEZ	Oral Liquid Ordinary Combination Pack Powders/Granules	Oral Powder	19095976	1
+DGA	Oral Liquid Ordinary Liquids	Syrup	19082223	3
+DGA	Oral Liquid Ordinary Liquids	Oral Suspension	19082191	2
+DGA	Oral Liquid Ordinary Liquids	Oral Solution	19082170	1
+DGB	Oral Liquid Ordinary Drops	Oral Solution	19082170	1
+DGB	Oral Liquid Ordinary Drops	Syrup	19082223	3
+DGB	Oral Liquid Ordinary Drops	Oral Suspension	19082191	2
+DGC	Oral Liquid Sprays Without Gas	Oral Spray	19095911	1
+DGC	Oral Liquid Sprays Without Gas	Oral Solution	19082170	2
+DGC	Oral Liquid Sprays Without Gas	Oral Suspension	19082191	3
+DGF	Oral Liquid Ordinary Sublingual Liquids	Oral Solution	19082170	1
+DGF	Oral Liquid Ordinary Sublingual Liquids	Syrup	19082223	3
+DGF	Oral Liquid Ordinary Sublingual Liquids	Oral Suspension	19082191	2
+DGH	Oral Liquid Ordinary Oils	Oil	40228565	1
+DGH	Oral Liquid Ordinary Oils	Oral Suspension	19082191	2
+DGJ	Oral Liquid Ordinary Dry Suspensions/Syrups/Drops	Oral Solution	19082170	1
+DGJ	Oral Liquid Ordinary Dry Suspensions/Syrups/Drops	Syrup	19082223	3
+DGJ	Oral Liquid Ordinary Dry Suspensions/Syrups/Drops	Oral Suspension	19082191	2
+DGK	Oral Liquid Ordinary Suspensions	Oral Solution	19082170	1
+DGK	Oral Liquid Ordinary Suspensions	Oral Suspension	19082191	2
+DGK	Oral Liquid Ordinary Suspensions	Syrup	19082223	3
+DGL	Oral Liquid Ordinary Emulsions	Oral Suspension	19082191	1
+DGL	Oral Liquid Ordinary Emulsions	Oral Solution	19082170	2
+DGM	Oral Liquid Ordinary Syrups	Syrup	19082223	3
+DGM	Oral Liquid Ordinary Syrups	Oral Solution	19082170	1
+DGM	Oral Liquid Ordinary Syrups	Oral Suspension	19082191	2
+DGN	Oral Liquid Ordinary Unit Dose Liquids	Oral Solution	19082170	1
+DGN	Oral Liquid Ordinary Unit Dose Liquids	Oral Suspension	19082191	2
+DGN	Oral Liquid Ordinary Unit Dose Liquids	Syrup	19082223	3
+DGP	Oral Metered-Dose Liquids	Oral Solution	19082170	1
+DGP	Oral Metered-Dose Liquids	Syrup	19082223	3
+DGP	Oral Metered-Dose Liquids	Oral Suspension	19082191	2
+DGR	Oral Liquid Ordinary Spirits/Wines	Oral Solution	19082170	1
+DGY	Oral Liquid Ordinary Other Liquids	Oral Solution	19082170	1
+DGY	Oral Liquid Ordinary Other Liquids	Oral Suspension	19082191	2
+DGZ	Oral Liquid Ordinary Combination Pack Liquids	Oral Solution	19082170	1
+DGZ	Oral Liquid Ordinary Combination Pack Liquids	Oral Suspension	19082191	2
+DHP	Oral Liquid Unit Dose Pressurised Aerosols	Mucosal Spray	19095900	2
+DHP	Oral Liquid Unit Dose Pressurised Aerosols	Oral Spray	19095911	1
+DKA	Oral Liquid Ordinary Drug Teas	Oral Solution	19082170	1
+DKA	Oral Liquid Ordinary Drug Teas	Oral Suspension	19082191	2
+DKA	Oral Liquid Ordinary Drug Teas	Syrup	19082223	3
+DKJ	Oral Liquid Ordinary Instant Teas	Oral Solution	19082170	1
+DKP	Oral Liquid Ordinary Tea Bags	Oral Suspension	19082191	2
+DKP	Oral Liquid Ordinary Tea Bags	Oral Solution	19082170	1
+DYG	Oral Liquid Food Ready To Eat	Oral Powder	19095976	3
+DYG	Oral Liquid Food Ready To Eat	Oral Solution	19082170	1
+DYG	Oral Liquid Food Ready To Eat	Oral Suspension	19082191	2
+DYH	Oral Liquid Food not Ready to Eat	Oral Solution	19082170	1
+DYH	Oral Liquid Food not Ready to Eat	Oral Powder	19095976	3
+DYH	Oral Liquid Food not Ready to Eat	Oral Suspension	19082191	2
+EEP	Oral Liquid Retard Unit Dose Powders	Oral Powder	19095976	1
+EEP	Oral Liquid Retard Unit Dose Powders	Oral Solution	19082170	2
+EEP	Oral Liquid Retard Unit Dose Powders	Oral Suspension	19082191	3
+EGA	Oral Liquid Retard Liquids	Oral Solution	19082170	1
+EGA	Oral Liquid Retard Liquids	Oral Suspension	19082191	2
+EGB	Oral Liquid Retard Drops	Oral Solution	19082170	1
+EGB	Oral Liquid Retard Drops	Oral Suspension	19082191	2
+FMA	Parenteral Ordinary Ampoules	Injectable Suspension	19082104	2
+FMA	Parenteral Ordinary Ampoules	Injectable Solution	19082103	1
+FMB	Parenteral Ordinary Dry Ampoules	Injectable Solution	19082103	2
+FMB	Parenteral Ordinary Dry Ampoules	Injectable Suspension	19082104	1
+FMC	Parenteral Ordinary Iv Ampoules	Injection	46234469	3
+FMC	Parenteral Ordinary Iv Ampoules	Injectable Suspension	19082104	2
+FMC	Parenteral Ordinary Iv Ampoules	Injectable Solution	19082103	1
+FMD	Parenteral Ordinary Im Ampoules	Injection	46234469	3
+FMD	Parenteral Ordinary Im Ampoules	Injectable Solution	19082103	1
+FMD	Parenteral Ordinary Im Ampoules	Injectable Suspension	19082104	2
+FME	Parenteral Ordinary Sc Ampoules	Injectable Solution	19082103	1
+FME	Parenteral Ordinary Sc Ampoules	Injection	46234469	3
+FME	Parenteral Ordinary Sc Ampoules	Injectable Suspension	19082104	2
+FMF	Parenteral Ordinary Intradermal Ampoules	Injectable Solution	19082103	1
+FMF	Parenteral Ordinary Intradermal Ampoules	Injection	46234469	3
+FMF	Parenteral Ordinary Intradermal Ampoules	Injectable Suspension	19082104	2
+FMY	Parenteral Ordinary Other Ampoules	Cartridge	46234468	6
+FMY	Parenteral Ordinary Other Ampoules	Injection	46234469	3
+FMY	Parenteral Ordinary Other Ampoules	Injectable Solution	19082103	1
+FMY	Parenteral Ordinary Other Ampoules	Injectable Suspension	19082104	2
+FMY	Parenteral Ordinary Other Ampoules	Prefilled Syringe	19126920	4
+FMY	Parenteral Ordinary Other Ampoules	Auto-Injector	46234466	5
+FMY	Parenteral Ordinary Other Ampoules	Pen Injector	46234467	7
+FMZ	Parenteral Ordinary Combination Pack Ampoules	Injection	46234469	3
+FMZ	Parenteral Ordinary Combination Pack Ampoules	Injectable Solution	19082103	1
+FMZ	Parenteral Ordinary Combination Pack Ampoules	Injectable Suspension	19082104	2
+FMZ	Parenteral Ordinary Combination Pack Ampoules	Prefilled Syringe	19126920	4
+FMZ	Parenteral Ordinary Combination Pack Ampoules	Auto-Injector	46234466	5
+FMZ	Parenteral Ordinary Combination Pack Ampoules	Pen Injector	46234467	7
+FMZ	Parenteral Ordinary Combination Pack Ampoules	Cartridge	46234468	6
+FNA	Parenteral Ordinary Pre-Filled Syringes	Cartridge	46234468	4
+FNA	Parenteral Ordinary Pre-Filled Syringes	Injection	46234469	5
+FNA	Parenteral Ordinary Pre-Filled Syringes	Injectable Solution	19082103	6
+FNA	Parenteral Ordinary Pre-Filled Syringes	Injectable Suspension	19082104	7
+FNA	Parenteral Ordinary Pre-Filled Syringes	Prefilled Syringe	19126920	1
+FNA	Parenteral Ordinary Pre-Filled Syringes	Auto-Injector	46234466	3
+FNA	Parenteral Ordinary Pre-Filled Syringes	Pen Injector	46234467	2
+FNB	Parenteral Ordinary Dry Pre-Filled Syringes	Injectable Solution	19082103	3
+FNB	Parenteral Ordinary Dry Pre-Filled Syringes	Drug Implant	19124968	4
+FNB	Parenteral Ordinary Dry Pre-Filled Syringes	Injection	46234469	2
+FNB	Parenteral Ordinary Dry Pre-Filled Syringes	Prefilled Syringe	19126920	1
+FNC	Parenteral Ordinary Iv Pre-Filled Syringes	Injection	46234469	2
+FNC	Parenteral Ordinary Iv Pre-Filled Syringes	Prefilled Syringe	19126920	1
+FNC	Parenteral Ordinary Iv Pre-Filled Syringes	Injectable Solution	19082103	3
+FND	Parenteral Ordinary Im Pre-Filled Syringes	Prefilled Syringe	19126920	1
+FND	Parenteral Ordinary Im Pre-Filled Syringes	Injection	46234469	2
+FND	Parenteral Ordinary Im Pre-Filled Syringes	Injectable Solution	19082103	3
+FNE	Parenteral Ordinary Sc Pre-Filled Syringes	Injectable Solution	19082103	3
+FNE	Parenteral Ordinary Sc Pre-Filled Syringes	Injection	46234469	2
+FNE	Parenteral Ordinary Sc Pre-Filled Syringes	Prefilled Syringe	19126920	1
+FNF	Parenteral Ordinary Intradermal Pre-Filled Syringes	Prefilled Syringe	19126920	1
+FNF	Parenteral Ordinary Intradermal Pre-Filled Syringes	Drug Implant	19124968	2
+FNF	Parenteral Ordinary Intradermal Pre-Filled Syringes	Pen Injector	46234467	3
+FNF	Parenteral Ordinary Intradermal Pre-Filled Syringes	Auto-Injector	46234466	4
+FNF	Parenteral Ordinary Intradermal Pre-Filled Syringes	Cartridge	46234468	5
+FNH	Parenteral Ordinary Pre-Filled Autoinjectors	Auto-Injector	46234466	1
+FNH	Parenteral Ordinary Pre-Filled Autoinjectors	Prefilled Syringe	19126920	2
+FNH	Parenteral Ordinary Pre-Filled Autoinjectors	Injectable Solution	19082103	3
+FNH	Parenteral Ordinary Pre-Filled Autoinjectors	Injection	46234469	4
+FNY	Parenteral Ordinary Other Pre-Filled Syringes	Prefilled Syringe	19126920	1
+FNY	Parenteral Ordinary Other Pre-Filled Syringes	Injectable Solution	19082103	3
+FNY	Parenteral Ordinary Other Pre-Filled Syringes	Injection	46234469	2
+FPA	Parenteral Ordinary Vials	Injectable Solution	19082103	1
+FPA	Parenteral Ordinary Vials	Injectable Suspension	19082104	2
+FPB	Parenteral Ordinary Dry Vials	Injectable Suspension	19082104	1
+FPB	Parenteral Ordinary Dry Vials	Injectable Solution	19082103	2
+FPC	Parenteral Ordinary Iv Vials	Injectable Solution	19082103	1
+FPC	Parenteral Ordinary Iv Vials	Injectable Suspension	19082104	2
+FPD	Parenteral Ordinary Im Vials	Injectable Solution	19082103	1
+FPD	Parenteral Ordinary Im Vials	Injectable Suspension	19082104	2
+FPE	Parenteral Ordinary Sc Vials	Injectable Solution	19082103	1
+FPE	Parenteral Ordinary Sc Vials	Injectable Suspension	19082104	2
+FPF	Parenteral Ordinary Intradermal Vials	Injectable Solution	19082103	1
+FPF	Parenteral Ordinary Intradermal Vials	Injectable Suspension	19082104	2
+FPF	Parenteral Ordinary Intradermal Vials	Injection	46234469	3
+FPY	Parenteral Ordinary Other Vials	Cartridge	46234468	6
+FPY	Parenteral Ordinary Other Vials	Injection	46234469	3
+FPY	Parenteral Ordinary Other Vials	Injectable Solution	19082103	1
+FPY	Parenteral Ordinary Other Vials	Injectable Suspension	19082104	2
+FPY	Parenteral Ordinary Other Vials	Prefilled Syringe	19126920	4
+FPY	Parenteral Ordinary Other Vials	Auto-Injector	46234466	5
+FPY	Parenteral Ordinary Other Vials	Pen Injector	46234467	7
+FPZ	Parenteral Ordinary Combination Pack Vials	Cartridge	46234468	6
+FPZ	Parenteral Ordinary Combination Pack Vials	Injection	46234469	3
+FPZ	Parenteral Ordinary Combination Pack Vials	Injectable Solution	19082103	1
+FPZ	Parenteral Ordinary Combination Pack Vials	Injectable Suspension	19082104	2
+FPZ	Parenteral Ordinary Combination Pack Vials	Prefilled Syringe	19126920	4
+FPZ	Parenteral Ordinary Combination Pack Vials	Auto-Injector	46234466	5
+FPZ	Parenteral Ordinary Combination Pack Vials	Pen Injector	46234467	7
+FQA	Parenteral Ordinary Infusion Ampoules	Injectable Solution	19082103	1
+FQA	Parenteral Ordinary Infusion Ampoules	Injectable Suspension	19082104	2
+FQB	Parenteral Ordinary Infusion Dry Ampoules	Cartridge	46234468	6
+FQB	Parenteral Ordinary Infusion Dry Ampoules	Injection	46234469	3
+FQB	Parenteral Ordinary Infusion Dry Ampoules	Injectable Solution	19082103	1
+FQB	Parenteral Ordinary Infusion Dry Ampoules	Injectable Suspension	19082104	2
+FQB	Parenteral Ordinary Infusion Dry Ampoules	Prefilled Syringe	19126920	4
+FQB	Parenteral Ordinary Infusion Dry Ampoules	Auto-Injector	46234466	5
+FQB	Parenteral Ordinary Infusion Dry Ampoules	Pen Injector	46234467	7
+FQC	Parenteral Ordinary Infusion Vials/Bottles	Injectable Solution	19082103	1
+FQC	Parenteral Ordinary Infusion Vials/Bottles	Injectable Suspension	19082104	2
+FQD	Parenteral Ordinary Infusion Dry Vials/Bottles	Injectable Solution	19082103	2
+FQD	Parenteral Ordinary Infusion Dry Vials/Bottles	Injectable Suspension	19082104	1
+FQE	Parenteral Ordinary Infusion Bags	Prefilled Syringe	19126920	4
+FQE	Parenteral Ordinary Infusion Bags	Auto-Injector	46234466	2
+FQE	Parenteral Ordinary Infusion Bags	Injectable Solution	19082103	3
+FQE	Parenteral Ordinary Infusion Bags	Pen Injector	46234467	1
+FQF	Parenteral Ordinary Infusion Cartridges	Prefilled Syringe	19126920	3
+FQF	Parenteral Ordinary Infusion Cartridges	Injectable Solution	19082103	4
+FQF	Parenteral Ordinary Infusion Cartridges	Injectable Suspension	19082104	2
+FQF	Parenteral Ordinary Infusion Cartridges	Cartridge	46234468	1
+FQY	Parenteral Ordinary Other Infusions	Injectable Solution	19082103	1
+FQY	Parenteral Ordinary Other Infusions	Injectable Suspension	19082104	2
+FRA	Parenteral Ordinary Cartridges	Prefilled Syringe	19126920	3
+FRA	Parenteral Ordinary Cartridges	Injectable Solution	19082103	4
+FRA	Parenteral Ordinary Cartridges	Injectable Suspension	19082104	2
+FRA	Parenteral Ordinary Cartridges	Cartridge	46234468	1
+FRB	Parenteral Ordinary Dry Cartridges	Prefilled Syringe	19126920	3
+FRB	Parenteral Ordinary Dry Cartridges	Injectable Solution	19082103	4
+FRB	Parenteral Ordinary Dry Cartridges	Cartridge	46234468	1
+FRB	Parenteral Ordinary Dry Cartridges	Injectable Suspension	19082104	2
+FRF	Parenteral Ordinary Pre-Filled Pens	Pen Injector	46234467	1
+FRF	Parenteral Ordinary Pre-Filled Pens	Injectable Solution	19082103	3
+FRF	Parenteral Ordinary Pre-Filled Pens	Auto-Injector	46234466	2
+FRF	Parenteral Ordinary Pre-Filled Pens	Prefilled Syringe	19126920	4
+FRG	Parenteral Ordinary Dry Pre-Filled Pens	Cartridge	46234468	4
+FRG	Parenteral Ordinary Dry Pre-Filled Pens	Injection	46234469	5
+FRG	Parenteral Ordinary Dry Pre-Filled Pens	Injectable Solution	19082103	6
+FRG	Parenteral Ordinary Dry Pre-Filled Pens	Injectable Suspension	19082104	7
+FRG	Parenteral Ordinary Dry Pre-Filled Pens	Prefilled Syringe	19126920	1
+FRG	Parenteral Ordinary Dry Pre-Filled Pens	Auto-Injector	46234466	3
+FRG	Parenteral Ordinary Dry Pre-Filled Pens	Pen Injector	46234467	2
+FRP	Parenteral Ordinary Unit Dose Cartridges	Cartridge	46234468	4
+FRP	Parenteral Ordinary Unit Dose Cartridges	Injection	46234469	5
+FRP	Parenteral Ordinary Unit Dose Cartridges	Injectable Solution	19082103	6
+FRP	Parenteral Ordinary Unit Dose Cartridges	Injectable Suspension	19082104	7
+FRP	Parenteral Ordinary Unit Dose Cartridges	Prefilled Syringe	19126920	1
+FRP	Parenteral Ordinary Unit Dose Cartridges	Auto-Injector	46234466	3
+FRP	Parenteral Ordinary Unit Dose Cartridges	Pen Injector	46234467	2
+GMA	Parenteral Retard Ampoules	Injectable Suspension	19082104	2
+GMA	Parenteral Retard Ampoules	Injectable Solution	19082103	1
+GMB	Parenteral Retard Dry Ampoules	Cartridge	46234468	6
+GMB	Parenteral Retard Dry Ampoules	Injection	46234469	3
+GMB	Parenteral Retard Dry Ampoules	Injectable Solution	19082103	1
+GMB	Parenteral Retard Dry Ampoules	Injectable Suspension	19082104	2
+GMB	Parenteral Retard Dry Ampoules	Prefilled Syringe	19126920	4
+GMB	Parenteral Retard Dry Ampoules	Auto-Injector	46234466	5
+GMB	Parenteral Retard Dry Ampoules	Pen Injector	46234467	7
+GMD	Parenteral Retard Im Ampoules	Injectable Solution	19082103	1
+GMD	Parenteral Retard Im Ampoules	Injectable Suspension	19082104	2
+GME	Parenteral Retard Sc Ampoules	Injectable Solution	19082103	1
+GME	Parenteral Retard Sc Ampoules	Injectable Suspension	19082104	2
+GME	Parenteral Retard Sc Ampoules	Injection	46234469	3
+GMY	Parenteral Retard Other Ampoules	Injectable Solution	19082103	1
+GMY	Parenteral Retard Other Ampoules	Injectable Suspension	19082104	2
+GNA	Parenteral Retard Pre-Filled Syringes	Injection	46234469	2
+GNA	Parenteral Retard Pre-Filled Syringes	Prefilled Syringe	19126920	1
+GNA	Parenteral Retard Pre-Filled Syringes	Injectable Solution	19082103	3
+GNB	Parenteral Retard Dry Pre-Filled Syringes	Injectable Suspension	19082104	3
+GNB	Parenteral Retard Dry Pre-Filled Syringes	Prefilled Syringe	19126920	1
+GNB	Parenteral Retard Dry Pre-Filled Syringes	Drug Implant	19124968	4
+GNB	Parenteral Retard Dry Pre-Filled Syringes	Injection	46234469	2
+GND	Parenteral Retard Im Pre-Filled Syringes	Prefilled Syringe	19126920	1
+GND	Parenteral Retard Im Pre-Filled Syringes	Injection	46234469	2
+GND	Parenteral Retard Im Pre-Filled Syringes	Injectable Solution	19082103	3
+GNE	Parenteral Retard Sc Pre-Filled Syringes	Injection	46234469	2
+GNE	Parenteral Retard Sc Pre-Filled Syringes	Injectable Solution	19082103	3
+GNE	Parenteral Retard Sc Pre-Filled Syringes	Prefilled Syringe	19126920	1
+GNH	Parenteral Retard Pre-Filled Autoinjectors	Cartridge	46234468	4
+GNH	Parenteral Retard Pre-Filled Autoinjectors	Injection	46234469	5
+GNH	Parenteral Retard Pre-Filled Autoinjectors	Injectable Solution	19082103	6
+GNH	Parenteral Retard Pre-Filled Autoinjectors	Injectable Suspension	19082104	7
+GNH	Parenteral Retard Pre-Filled Autoinjectors	Prefilled Syringe	19126920	3
+GNH	Parenteral Retard Pre-Filled Autoinjectors	Auto-Injector	46234466	1
+GNH	Parenteral Retard Pre-Filled Autoinjectors	Pen Injector	46234467	2
+GPA	Parenteral Retard Vials	Injectable Suspension	19082104	2
+GPA	Parenteral Retard Vials	Injectable Solution	19082103	1
+GPB	Parenteral Retard Dry Vials	Injectable Suspension	19082104	2
+GPB	Parenteral Retard Dry Vials	Injectable Solution	19082103	1
+GPD	Parenteral Retard Im Vials	Injectable Solution	19082103	1
+GPD	Parenteral Retard Im Vials	Injectable Suspension	19082104	2
+GPE	Parenteral Retard Sc Vials	Injectable Solution	19082103	1
+GPE	Parenteral Retard Sc Vials	Injectable Suspension	19082104	2
+GPY	Parenteral Retard Other Vials	Cartridge	46234468	6
+GPY	Parenteral Retard Other Vials	Injection	46234469	3
+GPY	Parenteral Retard Other Vials	Injectable Solution	19082103	1
+GPY	Parenteral Retard Other Vials	Injectable Suspension	19082104	2
+GPY	Parenteral Retard Other Vials	Prefilled Syringe	19126920	4
+GPY	Parenteral Retard Other Vials	Auto-Injector	46234466	5
+GPY	Parenteral Retard Other Vials	Pen Injector	46234467	7
+GRA	Parenteral Retard Cartridges	Prefilled Syringe	19126920	3
+GRA	Parenteral Retard Cartridges	Cartridge	46234468	1
+GRA	Parenteral Retard Cartridges	Injectable Solution	19082103	4
+GRA	Parenteral Retard Cartridges	Injectable Suspension	19082104	2
+GRF	Parenteral Retard Pre-Filled Pens	Injectable Solution	19082103	3
+GRF	Parenteral Retard Pre-Filled Pens	Prefilled Syringe	19126920	4
+GRF	Parenteral Retard Pre-Filled Pens	Pen Injector	46234467	1

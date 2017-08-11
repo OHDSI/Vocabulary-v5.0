@@ -526,6 +526,7 @@ FROM (
             case when c.domain_id = 'Drug' then 0
             else case when c.standard_concept = 'S' then 1 else 0 end 
             end	                    
+		when 'CVX' then 1
 		else -- flat list
           case
             when c.standard_concept is null then 0
@@ -929,5 +930,16 @@ COMMIT;
 INSERT INTO VOCABULARY
    SELECT vocabulary_id_v4, vocabulary_id_v5 FROM devv5.vocabulary_conversion;
 COMMIT;
+
+--for csv dumps (24.07.2017)
+execute immediate 'grant select on concept to devv5';
+execute immediate 'grant select on vocabulary to devv5';
+execute immediate 'grant select on concept_relationship to devv5';
+execute immediate 'grant select on relationship to devv5';
+execute immediate 'grant select on concept_synonym to devv5';
+execute immediate 'grant select on concept_ancestor to devv5';
+execute immediate 'grant select on source_to_concept_map to devv5';
+execute immediate 'grant select on drug_strength to devv5';
+execute immediate 'grant select on pack_content to devv5';
 end;
 /

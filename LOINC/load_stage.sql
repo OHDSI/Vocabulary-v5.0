@@ -20,8 +20,8 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'LOINC',
-                                          pVocabularyDate        => TO_DATE ('20170221', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'LOINC 2.59',
+                                          pVocabularyDate        => TO_DATE ('20170623', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'LOINC 2.61',
                                           pVocabularyDevSchema   => 'DEV_LOINC');
 END;
 COMMIT;

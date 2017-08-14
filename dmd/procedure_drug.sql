@@ -1,11 +1,15 @@
 --"reboot" drug_concept_stage
+--set concept_class_id = 'Supplier' where concept_class_id = 'Manufacturer', find this and set supplier in the beginning 
 drop table drug_concept_stage; 
 ;
 create table drug_concept_stage as select * from
 drug_concept_stage_existing
+ -- ok, what the hell? seems that this step gave most of mistakes, cause I use some misterious drug_concept_stage_existing -- check why I do so
 ;
---consider this table as manual
-/*
+select * from drug_concept_stage_existing
+;
+--work with manual table 
+drop table ingred_to_ingred_FINAL_BY_Lena;
 create table ingred_to_ingred_FINAL_BY_Lena (CONCEPT_CODE_1	varchar (200),
 CONCEPT_NAME_1 varchar (200),	INSERT_ID_1 int,  CONCEPT_CODE_2 varchar (200),	CONCEPT_NAME_2 varchar (200),	INSERT_ID_2 int , REL_TYPE varchar (20),	INVALID_REASON varchar (20))
 ;
@@ -34,12 +38,14 @@ drop sequence new_seq;
 update ingred_to_ingred_FINAL_BY_Lena
 set CONCEPT_CODE_2 ='OMOP'||new_seq.nextval where CONCEPT_CODE_2 is null and CONCEPT_name_2 is not null
 ;
-select CONCEPT_CODE_2, CONCEPT_name_2 from ingred_to_ingred_FINAL_BY_Lena where CONCEPT_CODE_2 like 'OMOP%'
+select *
+--CONCEPT_CODE_2, CONCEPT_name_2
+ from ingred_to_ingred_FINAL_BY_Lena where CONCEPT_CODE_2 like 'OMOP%'
 ;
 insert into ingred_to_ingred_FINAL_BY_Lena (CONCEPT_CODE_1, CONCEPT_name_1)
 select distinct CONCEPT_CODE_2, CONCEPT_name_2 from ingred_to_ingred_FINAL_BY_Lena where CONCEPT_CODE_2 like 'OMOP%'
 ;
-*/
+
 --Non drug definition - several steps including different criteria for non-drug definition	
 --BASED ON NAMES, AND absence of form info
 
@@ -84,6 +90,7 @@ from dual ) x on x.concept_code_1 = a.concept_code
 ;
 --but we still have to create packs for clinical Drugs, 
 --another condition for pack definition
+--actually the name is wrong, it's not a boxes but packs
 drop table DR_TO_CLIN_DR_BOX;
 create table DR_TO_CLIN_DR_BOX as
   select distinct a.concept_code, a.concept_name,a.concept_class_id, a.invalid_reason, /*cs.concept_code, cs.concept_name, cs.concept_class_id, 
@@ -101,7 +108,7 @@ regexp_count (a.concept_name, 'tablet|capsul') >1 and
 not regexp_like (a.concept_name, 'bandage|dressing')   
 ;
 --clinical and branded
-drop table DR_TO_CLIN_DR_BOX_0;
+drop table DR_TO_CLIN_DR_BOX_0; 
 create table DR_TO_CLIN_DR_BOX_0 as  
 select CONCEPT_CODE,CONCEPT_NAME,CONCEPT_CODE_2,CONCEPT_NAME_2 from DR_TO_CLIN_DR_BOX
 union
@@ -132,7 +139,7 @@ set PACK_NAME=regexp_replace(PACK_NAME,'"')
 ;
 --Box to drug - 1 step
 drop table Box_to_Drug ;
-create table Box_to_Drug as (
+create table Box_to_Drug as 
 --select count (1) from (
   select distinct a.concept_code as concept_code_1, a.concept_name as concept_name_1, a.concept_class_id as concept_class_id_1,  cs.concept_code as concept_code_2, cs.concept_name as  concept_name_2, 
 cs.concept_class_id as concept_class_id_2  
@@ -141,9 +148,10 @@ join concept c on a.concept_code = c.concept_code and c.vocabulary_id = 'SNOMED'
  join concept_relationship r on r.concept_id_1 = c.concept_id 
  join concept d on r.concept_id_2 = d.concept_id and d.vocabulary_id = 'SNOMED'
 join drug_concept_stage cs on cs.concept_code  = d.concept_code and cs.concept_class_id like '%Drug%' and cs.concept_class_id not like '%Box%'
-)
+where d.INVALID_REASON IS NOT NULL 
 ;
 --delete invalid concepts, they give incorrect relationships
+/*-- added condition to a previous query, so shouldn't needed now
 DELETE from Box_to_Drug a 
 where exists (select 1 from 
 (
@@ -153,6 +161,7 @@ JOIN DRUG_CONCEPT_STAGE B ON A.CONCEPT_CODE_2 = B.CONCEPT_CODE and b.concept_cla
 WHERE B.INVALID_REASON IS NOT NULL AND C.INVALID_REASON IS NULL
 ) b where a.CONCEPT_CODE_1 = b.CONCEPT_CODE_1 and a.CONCEPT_CODE_2 = b.CONCEPT_CODE_2)
 ;
+*/
 --mofify table with additional fields with box size, amount
 alter table Box_to_Drug
 add  Box_amount varchar (250)
@@ -193,7 +202,7 @@ and amount_value is null and amount_unit is null and box_size is null
 and CONCEPT_CODE_1 not in (select concept_code_1 from 
 DR_pack_TO_CLIN_DR_BOX_full)
 ;
---need to comment
+--some boxe sizes weren't parsed, so make manual work
 UPDATE BOX_TO_DRUG    SET AMOUNT_UNIT = 'ml',       AMOUNT_VALUE = 4,       BOX_SIZE = 56
 WHERE CONCEPT_CODE_1 = '14791211000001106'
 AND   CONCEPT_CODE_2 = '14791111000001100';
@@ -238,7 +247,7 @@ UPDATE BOX_TO_DRUG
 WHERE CONCEPT_CODE_1 = '5186011000001106'
 AND   CONCEPT_CODE_2 = '5185911000001103';
 
---special pattern for Drug Pack, need to add examples showing why I do this
+--special pattern for Drug Pack, ( digit x digit)
 update box_to_drug
 set BOX_SIZE = regexp_substr( regexp_substr (BOX_AMOUNT, '\d+ x \('), '\d')
 where concept_code_1
@@ -252,6 +261,7 @@ DR_pack_TO_CLIN_DR_BOX_full)
 drop table Drug_to_Dose_Form;
 create table Drug_to_Dose_Form as 
 select * from (
+--relationship to dose form for Branded Drugs (Branded_to_clinical used)
   select distinct bc.concept_code_1, bc.concept_name_1, cs.concept_code, cs.concept_name from drug_concept_stage  a
 join concept c on a.concept_code = c.concept_code and c.vocabulary_id = 'SNOMED'
  join concept_relationship r on r.concept_id_1 = c.concept_id 
@@ -260,6 +270,7 @@ join drug_concept_stage cs on cs.concept_code  = d.concept_code and cs.concept_c
 join Branded_to_clinical bc on concept_code_2 = a.concept_code
 where a.concept_class_ID !='Dose Form'
 union
+--relationship to doseform itselef
 select distinct a.concept_code, a.concept_name, cs.concept_code, cs.concept_name from drug_concept_stage  a
 join concept c on a.concept_code = c.concept_code and c.vocabulary_id = 'SNOMED'
  join concept_relationship r on r.concept_id_1 = c.concept_id 
@@ -268,7 +279,7 @@ join drug_concept_stage cs on cs.concept_code  = d.concept_code and cs.concept_c
 where a.concept_class_ID !='Dose Form'
 )
 ;
---define forms only for CLinical Drugs
+--define forms only for CLinical Drugs??? so why the previous query has two parts then?
 --duplicated active forms are choosen by length
 drop table clin_dr_to_dose_form;
 create table clin_dr_to_dose_form as 
@@ -1247,7 +1258,7 @@ set STANDARD_CONCEPT = 'S' where
 (concept_class_id like '%Drug%' or 
 concept_class_id like 'Device')
 and invalid_reason is null
-or concept_code in (select concept_code_1 from ingred_to_ingred_FINAL_BY_Lena where concept_code_2 is null)
+or concept_code in (select concept_code_1 from ingred_to_ingred_FINAL_BY_Lena where concept_code_2 is null) --"standard ingredient"
 ;
 --Supplier
 update drug_concept_stage 
@@ -1258,7 +1269,7 @@ set concept_class_id = 'Supplier' where concept_class_id = 'Manufacturer'
  select distinct                  INGR_NAME        ,'Drug', 'dm+d', 'Ingredient', 'S', INGR_CODE, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'Ingredient' from lost_ingr_to_rx_with_OMOP  where INGR_CODE !='OMOP18'
 
  ;
- 
+ --it's OK, classes used in algorihms
 update drug_concept_stage set concept_class_id = 'Drug Product' where concept_class_id like '%Pack%' or concept_class_id like '%Drug%'
 ;
 commit;

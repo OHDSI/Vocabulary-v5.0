@@ -1,12 +1,11 @@
---"reboot" drug_concept_stage
---set concept_class_id = 'Supplier' where concept_class_id = 'Manufacturer', find this and set supplier in the beginning 
-drop table drug_concept_stage; 
+
+CREATE INDEX drug_cnc_st_l_ix ON drug_concept_stage (lower (concept_name))
 ;
-create table drug_concept_stage as select * from
-drug_concept_stage_existing
- -- ok, what the hell? seems that this step gave most of mistakes, cause I use some misterious drug_concept_stage_existing -- check why I do so
+CREATE INDEX drug_cnc_st_ix ON drug_concept_stage ( concept_name)
 ;
-select * from drug_concept_stage_existing
+CREATE INDEX drug_cnc_st_c_ix ON drug_concept_stage ( concept_code)
+;
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'drug_concept_stage', cascade  => true)
 ;
 --work with manual table 
 drop table ingred_to_ingred_FINAL_BY_Lena;
@@ -30,17 +29,12 @@ WbImport -file=C:/mappings/DM+D/Ingred_Lena_review.txt
          -continueOnError=false`
          -batchSize=1000;
 
-;
 drop sequence new_seq;
  create sequence new_seq increment by 1 start with 1 nocycle cache 20 noorder;
 ;
 --add OMOP codes to new ingredients
 update ingred_to_ingred_FINAL_BY_Lena
 set CONCEPT_CODE_2 ='OMOP'||new_seq.nextval where CONCEPT_CODE_2 is null and CONCEPT_name_2 is not null
-;
-select *
---CONCEPT_CODE_2, CONCEPT_name_2
- from ingred_to_ingred_FINAL_BY_Lena where CONCEPT_CODE_2 like 'OMOP%'
 ;
 insert into ingred_to_ingred_FINAL_BY_Lena (CONCEPT_CODE_1, CONCEPT_name_1)
 select distinct CONCEPT_CODE_2, CONCEPT_name_2 from ingred_to_ingred_FINAL_BY_Lena where CONCEPT_CODE_2 like 'OMOP%'
@@ -56,9 +50,10 @@ create table Branded_to_clinical as (
 join concept c on a.concept_code = c.concept_code and c.vocabulary_id = 'SNOMED' and a.concept_class_id like 'Branded Drug%'
  join concept_relationship r on r.concept_id_1 = c.concept_id 
  join concept d on r.concept_id_2 = d.concept_id and d.vocabulary_id = 'SNOMED'
-join drug_concept_stage cs on cs.concept_code  = d.concept_code and cs.concept_class_id like 'Clinical Drug%')
+join drug_concept_stage cs on cs.concept_code  = d.concept_code and cs.concept_class_id like 'Clinical Drug%' 
+)
 ;
---duplicates due to ONLY DEPRECATED to NON-DEPRECATED DRUGS relationship
+--duplicates due to ONLY DEPRECATED to NON-DEPRECATED DRUGS relationship??
 DELETE from Branded_to_clinical a 
 where exists (select 1 from 
 (
@@ -387,11 +382,13 @@ drop table Drug_to_manufact_2 ;
  b.concept_code as concept_code_2, b.concept_name as concept_name_2, b.invalid_reason 
  from drug_concept_stage a 
  join drug_concept_stage b on a.concept_name like  '%('||b.concept_name||')%'
- where b.concept_class_id ='Manufacturer'
+ where b.concept_class_id ='Supplier'
  and a.concept_class_id like 'Branded Drug%' and a.concept_code not in (select concept_code from non_drug_full)
  ;
  */
  --CLinical Drug to ingredients using existing relationship, later this relationship will be updated with ds_stage table
+; 
+
  drop table Clinical_to_Ingred;
  create table Clinical_to_Ingred as
 select distinct a.concept_code as concept_code_1, a.concept_name as concept_name_1, cs.concept_code as concept_code_2, cs.concept_name as concept_name_2, cs.INSERT_ID 
@@ -1259,10 +1256,7 @@ set STANDARD_CONCEPT = 'S' where
 concept_class_id like 'Device')
 and invalid_reason is null
 or concept_code in (select concept_code_1 from ingred_to_ingred_FINAL_BY_Lena where concept_code_2 is null) --"standard ingredient"
-;
---Supplier
-update drug_concept_stage 
-set concept_class_id = 'Supplier' where concept_class_id = 'Manufacturer'
+
   ;
   --add newly created ingredients
   insert into  drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, source_concept_class_id)

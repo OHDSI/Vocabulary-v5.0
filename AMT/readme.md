@@ -51,3 +51,5 @@ der2_cciRefset_SubpackQuantityFull_AU.csv - rf2_ss_subpack_quantity_refset
 6.Run concat.bat
 7.Run load_stage.sql
 8.Run generic_update.sql (from working directory);
+
+9.create backup of input tables as table_name_bckp_ddmmyyyy

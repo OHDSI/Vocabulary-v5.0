@@ -1,3 +1,4 @@
+
 create table non_drug as
 select * from concept_stage_sn where
 regexp_like (lower(concept_name), 'dialysis|mma/pa|smoflipid|camino|maxamum|sno-pro|lubri|peptamen|pepti-junior|dressing|diagnostic|glove|supplement|containing| rope|procal|glytactin|gauze|keyomega|cystine|docomega|anamix|xlys|xmtvi |pku |tyr |msud |hcu |eaa |cranberry|pedialyte|msud|hydralyte|hcu cooler|pouch|burger|biscuits|wipes|kilocalories|cake|roll|adhesive|milk|dessert')       
@@ -32,7 +33,9 @@ or concept_name like '%Crampeze%' or concept_name like '%Elevit%'  or concept_na
 insert into non_drug                    --contrast
 select distinct a.* from concept_stage_sn a
 join RF2_FULL_RELATIONSHIPS b on a.concept_code=sourceid
-where destinationid in ('31108011000036106','75889011000036104','31109011000036103','31527011000036107','75888011000036107'	,'48143011000036102','48144011000036100','48145011000036101','31956011000036101','733181000168100','732871000168102')
+where 
+(destinationid in ('31108011000036106','75889011000036104','31109011000036103','31527011000036107','75888011000036107'	,'48143011000036102','48144011000036100','48145011000036101','31956011000036101','733181000168100','732871000168102')
+or concept_name like '% kBq %')
 and a.concept_code not in (select concept_code from non_drug);
 
 insert into non_drug
@@ -52,8 +55,8 @@ non_drug a join RF2_FULL_RELATIONSHIPS b
 on sourceid=a.concept_code
 join concept_stage_sn c on destinationid=c.concept_code
 where c.concept_code not in (select concept_code from non_drug)
-and c.concept_class_id  in ('Trade Product Pack','Trade Product','Med Product Unit','Med Product Pack')
-;
+and c.concept_class_id  in ('Trade Product Pack','Trade Product','Med Product Unit','Med Product Pack');
+
 insert into non_drug --add supplement
 select distinct c.* from 
 non_drug a join RF2_FULL_RELATIONSHIPS b

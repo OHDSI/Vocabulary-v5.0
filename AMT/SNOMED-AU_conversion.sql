@@ -262,3 +262,8 @@ WHEN F7 = 'containered trade product pack' THEN 'Contain Trade Pack'
             WHERE cc.concept_code = cs.concept_code)
 	WHERE cs.vocabulary_id='SNOMED'
 	AND cs.concept_code IN (SELECT concept_code FROM tmp_concept_class);
+
+--change source concept_class_id
+update concept_stage_sn
+set concept_class_id='Containered Pack'
+where concept_class_id='Contain Trade Pack';

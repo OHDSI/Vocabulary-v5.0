@@ -1,0 +1,138 @@
+﻿delete ds_stage where drug_concept_code in (select concept_code from drug_concept_stage where source_concept_class_id like '% Form');
+
+
+
+--need to think about it
+DELETE drug_concept_stage WHERE concept_code IN 
+(SELECT c2.concept_code
+      FROM devv5.concept c
+      JOIN devv5.drug_strength 
+            ON drug_concept_id = c.concept_id  AND (c.concept_name LIKE '%Tablet%'  OR c.concept_name LIKE '%Capsule%'  OR c.concept_name LIKE '%Lozenge%' OR c.concept_name LIKE '%Pellet%') AND c.concept_name NOT LIKE '%Solution%'-- solid forms defined by their forms 
+      JOIN devv5.concept_ancestor ca on ca.descendant_concept_id=c.concept_id
+      JOIN devv5.concept c2 on c2.concept_id=ca.ancestor_concept_id and c2.vocabulary_id='RxNorm Extension' and c2.concept_class_id!='Ingredient' 
+      and  (c2.concept_class_id not like 'Quant%' and (c2.concept_class_id not like 'Marketed%' and not regexp_like(c2.concept_name,'^\d+')) and c2.concept_class_id not like '%Form%' )
+      AND numerator_value IS NOT NULL
+      AND denominator_unit_concept_id!=8505
+      AND (c.concept_class_id like 'Quant%' or (c.concept_class_id like 'Marketed%' and regexp_like(c.concept_name,'^\d+')) )
+      );
+ 
+DELETE internal_relationship_stage WHERE concept_code_1 IN 
+(SELECT c2.concept_code
+      FROM devv5.concept c
+      JOIN devv5.drug_strength 
+            ON drug_concept_id = c.concept_id  AND (c.concept_name LIKE '%Tablet%'  OR c.concept_name LIKE '%Capsule%'  OR c.concept_name LIKE '%Lozenge%' OR c.concept_name LIKE '%Pellet%') AND c.concept_name NOT LIKE '%Solution%'-- solid forms defined by their forms 
+      JOIN devv5.concept_ancestor ca on ca.descendant_concept_id=c.concept_id
+      JOIN devv5.concept c2 on c2.concept_id=ca.ancestor_concept_id and c2.vocabulary_id='RxNorm Extension' and c2.concept_class_id!='Ingredient' 
+      and  (c2.concept_class_id not like 'Quant%' and (c2.concept_class_id not like 'Marketed%' and not regexp_like(c2.concept_name,'^\d+')) and c2.concept_class_id not like '%Form%' )
+      AND numerator_value IS NOT NULL
+      AND denominator_unit_concept_id!=8505
+      AND (c.concept_class_id like 'Quant%' or (c.concept_class_id like 'Marketed%' and regexp_like(c.concept_name,'^\d+')) )
+      );
+
+DELETE ds_stage WHERE concept_code IN 
+(SELECT c2.concept_code
+      FROM devv5.concept c
+      JOIN devv5.drug_strength 
+            ON drug_concept_id = c.concept_id  AND (c.concept_name LIKE '%Tablet%'  OR c.concept_name LIKE '%Capsule%'  OR c.concept_name LIKE '%Lozenge%' OR c.concept_name LIKE '%Pellet%') AND c.concept_name NOT LIKE '%Solution%'-- solid forms defined by their forms 
+      JOIN devv5.concept_ancestor ca on ca.descendant_concept_id=c.concept_id
+      JOIN devv5.concept c2 on c2.concept_id=ca.ancestor_concept_id and c2.vocabulary_id='RxNorm Extension' and c2.concept_class_id!='Ingredient' 
+      and  (c2.concept_class_id not like 'Quant%' and (c2.concept_class_id not like 'Marketed%' and not regexp_like(c2.concept_name,'^\d+')) and c2.concept_class_id not like '%Form%' )
+      AND numerator_value IS NOT NULL
+      AND denominator_unit_concept_id!=8505
+      AND (c.concept_class_id like 'Quant%' or (c.concept_class_id like 'Marketed%' and regexp_like(c.concept_name,'^\d+')) )
+      );
+     
+UPDATE ds_stage
+   SET amount_value = numerator_value*NVL(denominator_value,1), amount_unit = numerator_unit, numerator_value = NULL,numerator_unit = NULL, denominator_value = NULL,denominator_unit = NULL
+WHERE drug_concept_code IN
+(SELECT concept_code
+      FROM devv5.concept
+      JOIN devv5.drug_strength
+      ON drug_concept_id = concept_id  AND (concept_name LIKE '%Tablet%'  OR concept_name LIKE '%Capsule%'  OR concept_name LIKE '%Lozenge%' OR concept_name LIKE '%Pellet%')-- solid forms defined by their forms 
+      AND numerator_value IS NOT NULL
+      AND denominator_unit_concept_id!=8505);
+
+
+
+--gases
+UPDATE ds_stage 
+SET numerator_value='100',numerator_unit='%', denominator_unit=numerator_unit,denominator_value=numerator_value
+WHERE drug_concept_code IN (
+      SELECT concept_code
+      FROM devv5.concept
+      JOIN devv5.drug_strength ON drug_concept_id = concept_id
+      WHERE amount_unit_concept_id = 8587
+      and concept_name like '% Gas for Inhalation%' and concept_class_id like '%Form%');
+      
+
+UPDATE ds_stage 
+SET numerator_value='100',numerator_unit='%', denominator_unit=numerator_unit,denominator_value=numerator_value
+WHERE drug_concept_code IN (
+      SELECT c2.concept_code
+      FROM devv5.concept c
+      JOIN devv5.drug_strength ON drug_concept_id = c.concept_id
+      JOIN devv5.concept_ancestor a ON c.concept_id=descendant_concept_id
+      JOIN devv5.concept c2 ON c2.concept_id=ancestor_concept_id and c2.vocabulary_id='RxNorm Extension' and c2.concept_class_id like '%Comp%'
+      WHERE amount_unit_concept_id = 8587
+      and c.concept_name like '% Gas for Inhalation%' and c.concept_class_id not like '%Form%');
+      
+
+UPDATE ds_stage 
+SET numerator_value=numerator_value*100,numerator_unit='%'
+WHERE drug_concept_code IN (
+      SELECT concept_code
+      FROM devv5.concept
+      JOIN devv5.drug_strength ON drug_concept_id = concept_id
+      WHERE numerator_unit_concept_id = 8587
+      and concept_name like '% Gas for Inhalation%' and concept_class_id like '%Form%');
+
+
+--additional suppl work
+create table irs_suppl as
+select irs.concept_code_1,
+case when s.concept_code_2 is not null then s.concept_code_2 else irs.concept_code_2 end as concept_code_2
+from internal_relationship_stage irs
+left join suppliers_to_repl s
+on s.concept_code_1=irs.concept_code_2;
+
+truncate table internal_relationship_stage;
+insert into internal_relationship_stage ( concept_code_1,concept_code_2)
+select distinct concept_code_1,concept_code_2 from irs_suppl;
+
+
+delete drug_concept_stage where concept_code in (select concept_code_1 from suppliers_to_repl );
+
+delete relationship_to_concept where concept_code_1 in (select concept_code_1 from suppliers_to_repl);
+
+
+--BRAND NAMES
+select * from dev_eduard.BN_TO_DELETE_I;
+
+!!!!~!!
++ need to inset all that stuff
+INSERT INTO DEV_RXE.SUPPLIERS_TO_REPL
+(
+  CONCEPT_CODE_1,
+  CONCEPT_NAME_1,
+  CONCEPT_CODE_2,
+  CONCEPT_NAME_2
+)
+VALUES
+(
+  '43254577',
+  'Ascent Pharma',
+  '43254530',
+  'Ascent'
+);
+
+сослать OMOP999029 на  45776076 --Influenza A virus vaccine, A-Texas-50-2012 (H3N2)-like virus
+
+CONCEPT_ID	CONCEPT_NAME	CONCEPT_CODE
+36878617	Influenza Virus Fragmented, Inactivated, Strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain A / South Australia / 55/2014 Ivr-175	OMOP999126
+36879023	Influenza Virus Fragmented, Inactivated, Strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain A / Switzerland / 9715293/2013, Nib-88	OMOP998063
+36879091	Influenza Virus Surface Antigen, Inactivated, Strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain A / South Australia / 55/2014 Type Wild	OMOP993272
+36879025	Influenza Virus Surface Antigens, strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain Nib-88	OMOP991645
+
+CONCEPT_ID	CONCEPT_NAME	DOMAIN_ID	VOCABULARY_ID	CONCEPT_CLASS_ID	STANDARD_CONCEPT	CONCEPT_CODE	VALID_START_DATE	VALID_END_DATE	INVALID_REASON
+920458	Betamethasone	Drug	RxNorm	Ingredient	S	1514	1970-01-01 00:00:00	2099-12-31 00:00:00	
+44012537	Betamethasone (Betamethasone 21-Disodium Phosphate)	Drug	RxNorm Extension	Ingredient	S	OMOP1131481	1970-01-01 00:00:00	2099-12-31 00:00:00	

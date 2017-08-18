@@ -1,6 +1,9 @@
-﻿delete ds_stage where drug_concept_code in (select concept_code from drug_concept_stage where source_concept_class_id like '% Form');
+﻿--1. Working with ds_stage
 
-
+--deleting drug forms
+delete ds_stage 
+where drug_concept_code in 
+(select concept_code from drug_concept_stage where source_concept_class_id like '% Form');
 
 --need to think about it
 DELETE drug_concept_stage WHERE concept_code IN 
@@ -52,8 +55,6 @@ WHERE drug_concept_code IN
       AND numerator_value IS NOT NULL
       AND denominator_unit_concept_id!=8505);
 
-
-
 --gases
 UPDATE ds_stage 
 SET numerator_value='100',numerator_unit='%', denominator_unit=numerator_unit,denominator_value=numerator_value
@@ -87,6 +88,8 @@ WHERE drug_concept_code IN (
       and concept_name like '% Gas for Inhalation%' and concept_class_id like '%Form%');
 
 
+--2. Working with internal_relationship_stage
+
 --additional suppl work
 create table irs_suppl as
 select irs.concept_code_1,
@@ -99,40 +102,32 @@ truncate table internal_relationship_stage;
 insert into internal_relationship_stage ( concept_code_1,concept_code_2)
 select distinct concept_code_1,concept_code_2 from irs_suppl;
 
+--also need to delete all the unecessary suppliers
+delete drug_concept_stage
+ where concept_code in 
+(select concept_code_1 from suppliers_to_repl );
 
-delete drug_concept_stage where concept_code in (select concept_code_1 from suppliers_to_repl );
-
-delete relationship_to_concept where concept_code_1 in (select concept_code_1 from suppliers_to_repl);
+delete relationship_to_concept 
+where concept_code_1 in 
+(select concept_code_1 from suppliers_to_repl);
 
 
 --BRAND NAMES
+
 select * from dev_eduard.BN_TO_DELETE_I; + bn_to_replace
 
-!!!!~!!
-+ need to inset all that stuff
-INSERT INTO DEV_RXE.SUPPLIERS_TO_REPL
-(
-  CONCEPT_CODE_1,
-  CONCEPT_NAME_1,
-  CONCEPT_CODE_2,
-  CONCEPT_NAME_2
-)
-VALUES
-(
-  '43254577',
-  'Ascent Pharma',
-  '43254530',
-  'Ascent'
-);
+--need to check packs (inert ingredients + fix AMT's packs)
 
-сослать OMOP999029 на  45776076 --Influenza A virus vaccine, A-Texas-50-2012 (H3N2)-like virus
+update relationship_to_concept
+set concept_id_2='45776076'
+where concept_code_1='OMOP999029' and precedence='1';--Influenza A virus vaccine, A-Texas-50-2012 (H3N2)-like virus
+
+update relationship_to_concept
+set concept_id_2='920458'
+where concept_code_1='OMOP1131481' and precedence='1';--Betamethasone (Betamethasone 21-Disodium Phosphate)
 
 CONCEPT_ID	CONCEPT_NAME	CONCEPT_CODE
 36878617	Influenza Virus Fragmented, Inactivated, Strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain A / South Australia / 55/2014 Ivr-175	OMOP999126
 36879023	Influenza Virus Fragmented, Inactivated, Strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain A / Switzerland / 9715293/2013, Nib-88	OMOP998063
 36879091	Influenza Virus Surface Antigen, Inactivated, Strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain A / South Australia / 55/2014 Type Wild	OMOP993272
 36879025	Influenza Virus Surface Antigens, strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain Nib-88	OMOP991645
-
-CONCEPT_ID	CONCEPT_NAME	DOMAIN_ID	VOCABULARY_ID	CONCEPT_CLASS_ID	STANDARD_CONCEPT	CONCEPT_CODE	VALID_START_DATE	VALID_END_DATE	INVALID_REASON
-920458	Betamethasone	Drug	RxNorm	Ingredient	S	1514	1970-01-01 00:00:00	2099-12-31 00:00:00	
-44012537	Betamethasone (Betamethasone 21-Disodium Phosphate)	Drug	RxNorm Extension	Ingredient	S	OMOP1131481	1970-01-01 00:00:00	2099-12-31 00:00:00	

@@ -231,6 +231,12 @@ UPDATE DS_STAGE   SET NUMERATOR_VALUE = 13125,       NUMERATOR_UNIT = 'Mg',     
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 13125,       NUMERATOR_UNIT = 'Mg', DENOMINATOR_VALUE = 25,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652511000168103' AND   INGREDIENT_CONCEPT_CODE = '2799011000036106';
 UPDATE DS_STAGE   SET AMOUNT_UNIT = '',       NUMERATOR_VALUE = 262.5,       NUMERATOR_UNIT = 'G',       DENOMINATOR_VALUE = 500,       DENOMINATOR_UNIT = 'Ml' WHERE DRUG_CONCEPT_CODE = '652521000168105' AND   INGREDIENT_CONCEPT_CODE = '2799011000036106';
 
+--inserting Inert Tablets with '0' in amount
+insert into ds_stage (drug_concept_code,ingredient_concept_code,amount_value,amount_unit)
+select concept_code,'920012011000036105','0','Mg'
+from drug_concept_stage 
+where concept_name like '%Inert%' and concept_name not like '%Drug Pack%' and concept_class_id='Drug Product';
+
 --bicarbonate
 DELETE
 FROM DS_STAGE

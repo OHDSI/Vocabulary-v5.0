@@ -524,7 +524,9 @@ SELECT a.concept_code,a.vocabulary_id,b.concept_id,1,1
  WHERE a.concept_class_id = 'Unit';
 COMMIT;
 
---10 Before Build_RxE
+--10 run create_input_vN
+
+--11 Before Build_RxE
 INSERT INTO vocabulary (vocabulary_id,vocabulary_name,vocabulary_concept_id)
 VALUES ('RxO','RxO', 0);
 

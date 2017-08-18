@@ -104,9 +104,23 @@ UNION
       OR    (denominator_value IS NOT NULL AND denominator_unit IS NULL)
       OR    (amount_value IS NOT NULL AND amount_unit IS NULL)
 UNION
-      SELECT drug_concept_code,'homeopathy in amount'
-      FROM ds_stage
-      WHERE amount_unit IN ('DH','C','CH','D','TM','X','XMK')
+      SELECT drug_concept_code,'homeopathy in amount, need to check'
+      FROM concept c
+ 	 JOIN relationship_to_concept rc2 ON concept_id_2 = concept_id
+         JOIN internal_relationship_stage irs ON rc2.concept_code_1 = irs.concept_code_2
+         JOIN ds_stage ds ON ds.drug_concept_code = irs.concept_code_1
+         JOIN relationship_to_concept rtc    ON amount_unit = rtc.concept_code_1   AND rtc.concept_id_2 IN (9324, 9325)
+     WHERE NOT REGEXP_LIKE (concept_name,'Tablet|Capsule|Lozenge')
+     AND   concept_class_id = 'Dose Form' AND   vocabulary_id LIKE 'Rx%'
+UNION
+      SELECT drug_concept_code,'numerator should be placed into amount'
+      FROM concept c
+ 	 JOIN relationship_to_concept rc2 ON concept_id_2 = concept_id
+         JOIN internal_relationship_stage irs ON rc2.concept_code_1 = irs.concept_code_2
+         JOIN ds_stage ds ON ds.drug_concept_code = irs.concept_code_1
+         JOIN relationship_to_concept rtc    ON numerator_unit = rtc.concept_code_1   AND rtc.concept_id_2 IN (9324, 9325)
+     WHERE REGEXP_LIKE (concept_name,'Tablet|Capsule|Lozenge')
+     AND   concept_class_id = 'Dose Form' AND   vocabulary_id LIKE 'Rx%'
 UNION
       SELECT drug_concept_code,'unmapped unit'
       FROM ds_stage

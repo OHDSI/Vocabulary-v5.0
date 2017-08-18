@@ -106,7 +106,7 @@ delete relationship_to_concept where concept_code_1 in (select concept_code_1 fr
 
 
 --BRAND NAMES
-select * from dev_eduard.BN_TO_DELETE_I;
+select * from dev_eduard.BN_TO_DELETE_I; + bn_to_replace
 
 !!!!~!!
 + need to inset all that stuff

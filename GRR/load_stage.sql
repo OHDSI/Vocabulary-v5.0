@@ -2008,14 +2008,14 @@ SELECT DISTINCT c.DRUG_CONCEPT_CODE,
          ELSE NULL
        END 
 || CASE
-         WHEN ds.box_size IS NOT NULL THEN 'Box of ' ||ds.box_size
+         WHEN ds.box_size IS NOT NULL THEN ' Box of ' ||ds.box_size
          ELSE NULL
        END AS concept_name
 FROM ds_stage_cnc3 c
   LEFT JOIN rel_to_name f
          ON c.drug_concept_code = f.concept_code_1 AND f.concept_class_id = 'Dose Form'
   LEFT JOIN rel_to_name b
-         ON c.drug_concept_code = b.concept_code_1AND b.concept_class_id = 'Brand Name'
+         ON c.drug_concept_code = b.concept_code_1 AND b.concept_class_id = 'Brand Name'
   LEFT JOIN rel_to_name s
          ON c.drug_concept_code = s.concept_code_1 AND s.concept_class_id = 'Supplier'
   LEFT JOIN ds_stage ds ON c.drug_concept_code = ds.drug_concept_code;

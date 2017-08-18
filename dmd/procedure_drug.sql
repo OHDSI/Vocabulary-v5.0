@@ -7,14 +7,15 @@ CREATE INDEX drug_cnc_st_c_ix ON drug_concept_stage ( concept_code)
 ;
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'drug_concept_stage', cascade  => true)
 ;
+/*
 --work with manual table 
-drop table ingred_to_ingred_FINAL_BY_Lena;
-create table ingred_to_ingred_FINAL_BY_Lena (CONCEPT_CODE_1	varchar (200),
+drop table ingr_to_ingr;
+create table ingr_to_ingr (CONCEPT_CODE_1	varchar (200),
 CONCEPT_NAME_1 varchar (200),	INSERT_ID_1 int,  CONCEPT_CODE_2 varchar (200),	CONCEPT_NAME_2 varchar (200),	INSERT_ID_2 int , REL_TYPE varchar (20),	INVALID_REASON varchar (20))
 ;
-WbImport -file=C:/mappings/DM+D/Ingred_Lena_review.txt
+WbImport -file=C:/mappings/DM+D/ingred_to_ingred_FIN_Lena.txt
          -type=text
-         -table=LENA_REVIEW
+         -table=ingr_to_ingr
          -encoding="ISO-8859-15"
          -header=true
          -decode=false
@@ -22,22 +23,22 @@ WbImport -file=C:/mappings/DM+D/Ingred_Lena_review.txt
          -timestampFormat="yyyy-MM-dd HH:mm:ss"
          -delimiter='\t'
          -decimal=.
-         -fileColumns=CONCEPT_CODE_1,CONCEPT_NAME_1,INSERT_ID_1,CONCEPT_CODE_2,CONCEPT_NAME_2,INSERT_ID_2
+         -fileColumns=CONCEPT_CODE_1, CONCEPT_NAME_1  ,	INSERT_ID_1  ,  CONCEPT_CODE_2  ,	CONCEPT_NAME_2 ,	INSERT_ID_2   , REL_TYPE  ,	INVALID_REASON
          -quoteCharEscaping=none
          -ignoreIdentityColumns=false
          -deleteTarget=false
-         -continueOnError=false`
+         -continueOnError=false
          -batchSize=1000;
-
+*/
 drop sequence new_seq;
  create sequence new_seq increment by 1 start with 1 nocycle cache 20 noorder;
 ;
 --add OMOP codes to new ingredients
-update ingred_to_ingred_FINAL_BY_Lena
+update ingr_to_ingr
 set CONCEPT_CODE_2 ='OMOP'||new_seq.nextval where CONCEPT_CODE_2 is null and CONCEPT_name_2 is not null
 ;
-insert into ingred_to_ingred_FINAL_BY_Lena (CONCEPT_CODE_1, CONCEPT_name_1)
-select distinct CONCEPT_CODE_2, CONCEPT_name_2 from ingred_to_ingred_FINAL_BY_Lena where CONCEPT_CODE_2 like 'OMOP%'
+insert into ingr_to_ingr (CONCEPT_CODE_1, CONCEPT_name_1)
+select distinct CONCEPT_CODE_2, CONCEPT_name_2 from ingr_to_ingr where CONCEPT_CODE_2 like 'OMOP%'
 ;
 
 --Non drug definition - several steps including different criteria for non-drug definition	
@@ -54,6 +55,7 @@ join drug_concept_stage cs on cs.concept_code  = d.concept_code and cs.concept_c
 )
 ;
 --duplicates due to ONLY DEPRECATED to NON-DEPRECATED DRUGS relationship??
+--let it be for now 
 DELETE from Branded_to_clinical a 
 where exists (select 1 from 
 (
@@ -143,7 +145,7 @@ join concept c on a.concept_code = c.concept_code and c.vocabulary_id = 'SNOMED'
  join concept_relationship r on r.concept_id_1 = c.concept_id 
  join concept d on r.concept_id_2 = d.concept_id and d.vocabulary_id = 'SNOMED'
 join drug_concept_stage cs on cs.concept_code  = d.concept_code and cs.concept_class_id like '%Drug%' and cs.concept_class_id not like '%Box%'
-where d.INVALID_REASON IS NOT NULL 
+where ( cs.INVALID_REASON IS NULL and a.INVALID_REASON IS NULL or cs.INVALID_REASON IS NOT NULL and a.INVALID_REASON IS not NULL ) -- exactly what those delete did. not sure if it works well with the deprecated to deprecated
 ;
 --delete invalid concepts, they give incorrect relationships
 /*-- added condition to a previous query, so shouldn't needed now
@@ -321,7 +323,7 @@ INSERT INTO CLIN_DR_TO_DOSE_FORM(  CONCEPT_CODE_1,  CONCEPT_NAME_1,  CONCEPT_COD
 drop table clnical_non_drug; 
 create table clnical_non_drug as
 select * from drug_concept_stage where (concept_code not in (select concept_code_1 from clin_dr_to_dose_form where concept_code_1 is not null)  and invalid_reason is  null
-or regexp_like (concept_name, 'peritoneal dialysis|dressing|burger|needl|soap|biscuits|wipes|cake|milk|dessert|juice|bath oil|gluten|Low protein|cannula|swabs|bandage|Artificial saliva|cylinder|Bq', 'i')
+or regexp_like (concept_name, 'peritoneal dialysis|dressing|burger|needl|soap|biscuits|wipes|cake|milk|dessert|juice|bath oil|gluten|Low protein|cannula|swabs|bandage|Artificial saliva|cylinder|Bq|stockings', 'i')
 or DOMAIN_ID ='Device'
 ) and concept_class_id = 'Clinical Drug'
 ;
@@ -373,9 +375,10 @@ select * from CLIN_DR_TO_DOSE_form_3
 --remove 'Not applicable' forms
 delete from DR_TO_DOSE_form_full where concept_code_2 = '3097611000001100'
 ;
---Manufacturer
+/* -- take a long time to create this table so for testing purposes skip it
+--Supplier
 --just take it from names , it's long executing part, don't rerun 
-/*
+ -- run this once before going 
 drop table Drug_to_manufact_2 ;
   create table Drug_to_manufact_2 as
  select distinct a.concept_code as concept_code_1, a.concept_name as concept_name_1, a.concept_class_id as concept_class_id_1, 
@@ -388,10 +391,9 @@ drop table Drug_to_manufact_2 ;
  */
  --CLinical Drug to ingredients using existing relationship, later this relationship will be updated with ds_stage table
 ; 
-
- drop table Clinical_to_Ingred;
+ drop table Clinical_to_Ingred;  
  create table Clinical_to_Ingred as
-select distinct a.concept_code as concept_code_1, a.concept_name as concept_name_1, cs.concept_code as concept_code_2, cs.concept_name as concept_name_2, cs.INSERT_ID 
+select distinct a.concept_code as concept_code_1, a.concept_name as concept_name_1, cs.concept_code as concept_code_2, cs.concept_name as concept_name_2
 from drug_concept_stage  a
 join concept c on a.concept_code = c.concept_code and c.vocabulary_id = 'SNOMED'  and a.concept_class_id like '%Clinical Drug%'
  join concept_relationship r on r.concept_id_1 = c.concept_id 
@@ -400,17 +402,17 @@ join drug_concept_stage cs on cs.concept_code  = d.concept_code and cs.concept_c
 where r.relationship_id not in ('Has excipient', 'Has basis str subst')
 ;
 --modify relationships between drugs and ingredients using existing relationships and reviewed path from non-standard to standard ingr
-drop table Clinical_to_Ingred_tmp ;
+drop table Clinical_to_Ingred_tmp ; 
 create table Clinical_to_Ingred_tmp as 
-select distinct a.CONCEPT_CODE_1, a.CONCEPT_NAME_1, coalesce (b.CONCEPT_CODE_2, a.CONCEPT_CODE_2) as CONCEPT_CODE_2  , coalesce (b.CONCEPT_NAME_2, a.CONCEPT_NAME_2) as CONCEPT_NAME_2, coalesce (b.INSERT_ID_2, a.INSERT_ID) as INSERT_ID_2
+select distinct a.CONCEPT_CODE_1, a.CONCEPT_NAME_1, coalesce (b.CONCEPT_CODE_2, a.CONCEPT_CODE_2) as CONCEPT_CODE_2  , coalesce (b.CONCEPT_NAME_2, a.CONCEPT_NAME_2) as CONCEPT_NAME_2
 from Clinical_to_Ingred a 
-join ingred_to_ingred_FINAL_BY_Lena --!!!
+join ingr_to_ingr --!!!
  b on a.concept_code_2 = b.CONCEPT_CODE_1
 ;
 --another variant with narrower definition - use only  r.relationship_id  in ('Is a')
 drop table Clinical_to_Ingred_Is_a;
 create table Clinical_to_Ingred_Is_a as 
-select distinct a.concept_code as concept_code_1, a.concept_name as concept_name_1,r.relationship_id,  cs.concept_code as concept_code_2, cs.concept_name as concept_name_2, cs.INSERT_ID 
+select distinct a.concept_code as concept_code_1, a.concept_name as concept_name_1,r.relationship_id,  cs.concept_code as concept_code_2, cs.concept_name as concept_name_2
 from drug_concept_stage  a
 join concept c on a.concept_code = c.concept_code and c.vocabulary_id = 'SNOMED'  and a.concept_class_id like '%Clinical Drug%'
  join concept_relationship r on r.concept_id_1 = c.concept_id 
@@ -420,17 +422,17 @@ where r.relationship_id  in ('Is a')
 ;
 drop table Clinical_to_Ingred_Is_a_tmp;
 create table Clinical_to_Ingred_Is_a_tmp as 
-select distinct a.CONCEPT_CODE_1, a.CONCEPT_NAME_1, coalesce (b.CONCEPT_CODE_2, a.CONCEPT_CODE_2) as CONCEPT_CODE_2  , coalesce (b.CONCEPT_NAME_2, a.CONCEPT_NAME_2) as CONCEPT_NAME_2, coalesce (b.INSERT_ID_2, a.INSERT_ID) as INSERT_ID_2
+select distinct a.CONCEPT_CODE_1, a.CONCEPT_NAME_1, coalesce (b.CONCEPT_CODE_2, a.CONCEPT_CODE_2) as CONCEPT_CODE_2  , coalesce (b.CONCEPT_NAME_2, a.CONCEPT_NAME_2) as CONCEPT_NAME_2
 from Clinical_to_Ingred_Is_a a 
-join ingred_to_ingred_FINAL_BY_Lena b on a.concept_code_2 = b.CONCEPT_CODE_1
+join ingr_to_ingr b on a.concept_code_2 = b.CONCEPT_CODE_1
 ;
 --prepare table for parsing if drug has several ingredients
 drop table drug_concept_stage_tmp;
 create table drug_concept_stage_tmp as (Select CONCEPT_ID, case when regexp_like (concept_name, ' / \d') then regexp_replace (concept_name, ' / ', '/') else replace (CONCEPT_NAME, ' / ', '!') end as concept_name_chgd,
-CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,INSERT_ID from drug_concept_stage)
+CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON from drug_concept_stage)
 ;
 --parsing dosage and components taking from concept_name
-drop table drug_concept_stage_tmp_0; 
+drop table drug_concept_stage_tmp_0;
 create table drug_concept_stage_tmp_0 as 
 select regexp_substr 
 (a.drug_comp, 
@@ -458,9 +460,9 @@ update Clinical_to_Ingred_tmp b set ingr_cnt = ( select cnt from (
 select concept_code_1, count (1) as cnt  from Clinical_to_Ingred_tmp group by concept_code_1) a where a.concept_code_1 = b.concept_code_1)
 ;
 --easiest part -when drug has only one ingredient
-drop table clin_dr_to_ingr_one;
+drop table clin_dr_to_ingr_one; 
 create table clin_dr_to_ingr_one as 
-select distinct a.*, concept_code_2 as ingredient_concept_code, concept_name_2 as ingredient_concept_name, insert_id_2 from drug_concept_stage_tmp_0 a join Clinical_to_Ingred_tmp  b on 
+select distinct a.*, concept_code_2 as ingredient_concept_code, concept_name_2 as ingredient_concept_name from drug_concept_stage_tmp_0 a join Clinical_to_Ingred_tmp  b on  
  a.concept_code = b.concept_code_1
 where b.concept_code_1 in 
 (
@@ -471,7 +473,7 @@ and a.ingr_cnt  = 1
 --recheck in future about complicated dosages
 drop table  clin_dr_to_ingr_two;
 create table  clin_dr_to_ingr_two as 
-select distinct a.*, concept_code_2 as ingredient_concept_code, concept_name_2 as ingredient_concept_name, insert_id_2 
+select distinct a.*, concept_code_2 as ingredient_concept_code, concept_name_2 as ingredient_concept_name 
 from drug_concept_stage_tmp_0 a 
 join Clinical_to_Ingred_tmp  b on 
  a.concept_code = b.concept_code_1 
@@ -479,7 +481,7 @@ join Clinical_to_Ingred_tmp  b on
  join 
  ( 
  select concept_code, count (1) as cnt from (
- select distinct a.*, concept_code_2 as ingredient_concept_code, concept_name_2 as ingredient_concept_name, insert_id_2 , b.ingr_cnt
+ select distinct a.*, concept_code_2 as ingredient_concept_code, concept_name_2 as ingredient_concept_name, b.ingr_cnt
 from drug_concept_stage_tmp_0 a 
 join Clinical_to_Ingred_tmp  b on 
  a.concept_code = b.concept_code_1 
@@ -522,7 +524,7 @@ UPDATE CLIN_DR_TO_INGR_3
    SET DOSAGE = '500unit/g'
 WHERE DOSAGE = '500unit';
 
-drop table ds_all_tmp;
+drop table ds_all_tmp; 
 create table ds_all_tmp as 
 select DOSAGE,DRUG_COMP,CONCEPT_NAME,CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,INGREDIENT_CONCEPT_NAME , cast ('' as varchar (200)) as volume  from clin_dr_to_ingr_one where concept_code not in (select concept_code from ds_by_lena_1)
 union 
@@ -531,7 +533,7 @@ union
 select DOSAGE, '',CONCEPT_NAME,CONCEPT_CODE, CONCEPT_CODE_2,CONCEPT_NAME_2 , ''  from clin_dr_to_ingr_one_part_2 where concept_code not in (select concept_code from ds_by_lena_1)
 union 
 --ds_by_lena_1 table is defined analysing the things left from the above
-select DOSAGE, '',CONCEPT_NAME,CONCEPT_CODE, CONCEPT_CODE_2,CONCEPT_NAME_2 , volume  from ds_by_lena_1 --!!!
+select DOSAGE, '',CONCEPT_NAME,CONCEPT_CODE, CONCEPT_CODE_2,CONCEPT_NAME_2 , volume  from ds_by_lena_1 --!!! manual table
 union 
 --ds_by_lena_1 table is defined analysing the things left from the above
 select  DOSAGE, '',CONCEPT_NAME,CONCEPT_CODE, CONCEPT_CODE_2,CONCEPT_NAME_2 , '' from clin_dr_to_ingr_3    --consider as manualy created table - we lost update query -- !!!
@@ -544,7 +546,7 @@ union
 select '','',drug_name, DRUG_CODE, INGR_CODE,INGR_NAME, ''  from  lost_ingr_to_rx_with_OMOP --!!! 
 
 ;
---need to redefine 
+--need to redefine , why we do so
 DELETE
 FROM DS_ALL_TMP
 WHERE DOSAGE = '22micrograms/2.2ml'
@@ -586,7 +588,7 @@ as amount_value,
 
 case when regexp_substr (dosage, '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units|unit dose|drop)') = dosage 
 and not regexp_like (dosage, '%') 
-then  regexp_replace  (dosage, '[[:digit:]\,\.]+') 
+then trim ( regexp_replace  (dosage, '[[:digit:]\,\.]+') )-- Kallikrein inactivator units - because of this
 else  null end
 as amount_unit,
 
@@ -601,7 +603,7 @@ as numerator_value,
 case when regexp_substr (dosage, 
 '[[:digit:]\,\.]+(mg|%|ml|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|MBq|molar|micromol|microlitres|million units)/[[:digit:]\,\.]*(g|dose|ml|mg|ampoule|litre|hour(s)*|h|square cm|microlitres|unit dose|drop)') = dosage
 or regexp_like (dosage, '%') 
-then regexp_substr (dosage, 'mg|%|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|microlitres', 1,1) 
+then trim (regexp_substr  (dosage, 'mg|%|mcg|hr|hours|unit(s)*|iu|g|microgram(s*)|u|mmol|c|gm|litre|million unit|nanogram(s)*|x|ppm| Kallikrein inactivator units|kBq|microlitres', 1,1) )
 else  null end
 as numerator_unit,
 
@@ -621,7 +623,7 @@ case when
 or regexp_like (dosage, '%')
 ) and volume is null
 then regexp_substr (dosage, '(g|dose|ml|mg|ampoule|litre|hour(s)*|h*|square cm|microlitres|unit dose|drop)$') 
-when volume is not  null then  regexp_replace (volume, '[[:digit:]\,\.]+')
+when volume is not  null then trim(  regexp_replace (volume, '[[:digit:]\,\.]+'))
 else null end
 as denominator_unit,
 
@@ -746,7 +748,7 @@ create table ds_omop as(
 select distinct DRUG_CODE,DRUG_NEW_NAME,coalesce (CONCEPT_CODE_2, concept_code_1) as CONCEPT_CODE_2 , coalesce (CONCEPT_name_2, concept_name_1) as CONCEPT_name_2
  from PACK_DRUG_TO_CODE_2_2 --!!! packs determined manually 
  
- a join INGRED_TO_INGRED_FINAL_BY_LENA b on a.ingredient_name=b.concept_name_1 where a.drug_code like '%OMOP%' 
+ a join ingr_to_ingr b on a.ingredient_name=b.concept_name_1 where a.drug_code like '%OMOP%' 
 ) ;
 update ds_omop
 set DRUG_NEW_NAME = regexp_replace (DRUG_NEW_NAME, ' / ', '!')
@@ -820,6 +822,7 @@ select DRUG_CODE, CONCEPT_CODE_2, DOSAGE, '' as volume from ds_omop_0 where DRUG
 )
 ;
 -- update denominator with existing value for concepts having empty and non-emty denominator value/unit
+--seems there is already such a query
 update ds_stage a set (a.DENOMINATOR_VALUE, a.DENOMINATOR_unit )= 
 (select b.DENOMINATOR_VALUE, b.DENOMINATOR_unit  from 
  ds_stage b where a.drug_concept_code = b.drug_concept_code 
@@ -1026,11 +1029,11 @@ select distinct a.CONCEPT_CODE_1, a.CONCEPT_CODE_2 from  drug_to_brand_name_full
 ;
 --Drug to manufacturer
 insert into INTERNAL_RELATIONSHIP_STAGE (concept_code_1, concept_code_2)
-select distinct concept_code_1, concept_code_2 from Drug_to_manufact_2
+select distinct concept_code_1, concept_code_2 from Drug_to_manufact_2; 
 ;
 --Ingred to Ingred, for now Ingred to Ingred relationship is considered only as Maps to 
 insert into INTERNAL_RELATIONSHIP_STAGE (concept_code_1, concept_code_2)
-select distinct concept_code_1, concept_code_2 from ingred_to_ingred_FINAL_BY_Lena  -- deprecated to active relationship already included here
+select distinct concept_code_1, concept_code_2 from ingr_to_ingr  -- deprecated to active relationship already included here
 where CONCEPT_CODE_2 is not null
 ;
 insert into INTERNAL_RELATIONSHIP_STAGE (concept_code_1, concept_code_2)
@@ -1043,7 +1046,7 @@ truncate table RELATIONSHIP_TO_CONCEPT;
 --Ingredients mapping
 drop table stand_ingr_map ;
 create table stand_ingr_map as 
-select distinct  b.concept_code_1, a.CONCEPT_ID_2, a.PRECEDENCE from ingred_to_ingred_FINAL_BY_Lena b --manual table
+select distinct  b.concept_code_1, a.CONCEPT_ID_2, a.PRECEDENCE from ingr_to_ingr b --manual table
 join  Ingr_to_Rx a -- !!! semi-automatically created table 
 on a.CONCEPT_CODE_1 = b.CONCEPT_CODE_1 
 where b.concept_code_2 is null
@@ -1057,7 +1060,7 @@ select distinct CONCEPT_CODE_1,'dm+d', CONCEPT_ID_2,PRECEDENCE from stand_ingr_m
 insert into RELATIONSHIP_TO_CONCEPT (CONCEPT_CODE_1, VOCABULARY_ID_1 ,   CONCEPT_ID_2  ,PRECEDENCE)
 select distinct CONCEPT_CODE,'dm+d',CONCEPT_ID_2,PRECEDENCE from AUT_FORM_ALL_MAPPED -- !!! fully manual 
 where concept_ID_2 is not null
-;
+; 
 -- units mapping, --don't need to recreate now
 /*
 --!!!
@@ -1108,7 +1111,7 @@ select amount_unit as concept_name_1,amount_unit as concept_Code_1,concept_id_2,
 --units mapping
 insert into RELATIONSHIP_TO_CONCEPT (CONCEPT_CODE_1, VOCABULARY_ID_1 ,   CONCEPT_ID_2  ,PRECEDENCE, CONVERSION_FACTOR) 
 select distinct CONCEPT_CODE_1,'dm+d'  ,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR from unit_for_ucum_done -- manual table, creation is above
-;select * from unit_for_ucum_done;
+;
 --Brand names mapping
 --name full equality
 drop table  brand_name_map;
@@ -1212,10 +1215,6 @@ insert into RELATIONSHIP_TO_CONCEPT (CONCEPT_CODE_1, VOCABULARY_ID_1 ,   CONCEPT
 select distinct CONCEPT_CODE_1,'dm+d',CONCEPT_ID_2 from clinical_to_atc_full
 ;
 --drug_concept_stage, take version from back-up
-drop table drug_concept_stage
-;
-create table drug_concept_stage as select * from
-drug_concept_stage_existing
 ;
 update drug_concept_stage set domain_id = 'Device', concept_class_id = 'Device' where concept_code in (select concept_code from non_drug_full)
 ;
@@ -1228,22 +1227,19 @@ update drug_concept_stage set domain_id = 'Drug' where domain_id != 'Device'
 --newly generated concepts 
 --Brand Names
 insert into  drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, source_concept_class_id )
-select                           CONCEPT_NAME,'Drug', 'dm+d', 'Brand Name', '', concept_code, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'Brand Name' from br_name_list
+select  distinct  CONCEPT_NAME,'Drug', 'dm+d', 'Brand Name', '', concept_code, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'Brand Name' from br_name_list
 ;
 --NEW Ingredients
 insert into  drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, source_concept_class_id)
-select                           CONCEPT_NAME_1,'Drug', 'dm+d', 'Ingredient', 'S', concept_code_1, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'Ingredient'  from ingred_to_ingred_FINAL_BY_Lena where concept_code_1 like 'OMOP%'
+select distinct  CONCEPT_NAME_1,'Drug', 'dm+d', 'Ingredient', 'S', concept_code_1, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'Ingredient'  from ingr_to_ingr where concept_code_1 like 'OMOP%'
 ;
 --NEW Forms
 insert into  drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, source_concept_class_id)
- select distinct                          CONCEPT_NAME_2,'Drug', 'dm+d', 'Dose Form', '', concept_code_2, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'Form' from DR_TO_DOSE_form_full where concept_code_2 like 'OMOP%'
+ select distinct CONCEPT_NAME_2,'Drug', 'dm+d', 'Dose Form', '', concept_code_2, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'Form' from DR_TO_DOSE_form_full where concept_code_2 like 'OMOP%'
 ;
 --NEW Pack components 
 insert into  drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, source_concept_class_id)
- select distinct                          DRUG_NEW_NAME,'Drug', 'dm+d', 'Drug Product', 'S', DRUG_CODE, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'VMP' from PACK_DRUG_TO_CODE_2_2  where DRUG_CODE like 'OMOP%'
-;
---modify classes for Packs
-update drug_concept_stage set concept_class_id = 'Drug Pack' where concept_code  in (select PACK_CONCEPT_CODE from pc_stage )
+ select distinct  DRUG_NEW_NAME,'Drug', 'dm+d', 'Drug Product', 'S', DRUG_CODE, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'VMP' from PACK_DRUG_TO_CODE_2_2  where DRUG_CODE like 'OMOP%'
 ;
 --add units 
 insert into  drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, source_concept_class_id)
@@ -1255,14 +1251,23 @@ set STANDARD_CONCEPT = 'S' where
 (concept_class_id like '%Drug%' or 
 concept_class_id like 'Device')
 and invalid_reason is null
-or concept_code in (select concept_code_1 from ingred_to_ingred_FINAL_BY_Lena where concept_code_2 is null) --"standard ingredient"
+or concept_code in (select concept_code_1 from ingr_to_ingr where concept_code_2 is null) --"standard ingredient"
 
   ;
   --add newly created ingredients
   insert into  drug_concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, source_concept_class_id)
  select distinct                  INGR_NAME        ,'Drug', 'dm+d', 'Ingredient', 'S', INGR_CODE, TO_DATE ('19700101', 'yyyymmdd'), TO_DATE ('20991231', 'yyyymmdd'), '', 'Ingredient' from lost_ingr_to_rx_with_OMOP  where INGR_CODE !='OMOP18'
-
  ;
+--make ingredients that don't have replacement "Standard"
+update drug_concept_stage set STANDARD_CONCEPT ='S' where concept_code in (
+ SELECT concept_code
+      FROM drug_concept_stage
+        LEFT JOIN internal_relationship_stage ON concept_code_1 = concept_code
+      WHERE concept_class_id = 'Ingredient' AND   standard_concept IS  NULL AND  concept_code_2 IS NULL
+      )
+      ;
+commit
+;
  --it's OK, classes used in algorihms
 update drug_concept_stage set concept_class_id = 'Drug Product' where concept_class_id like '%Pack%' or concept_class_id like '%Drug%'
 ;
@@ -1297,6 +1302,7 @@ UPDATE DS_STAGE
 WHERE DRUG_CONCEPT_CODE = '14779411000001100'
 AND   INGREDIENT_CONCEPT_CODE = '80582002';
 
+/* -- what the hell is this query?
 select count (distinct drug_concept_code) from (
 select drug_concept_code from ds_stage a
 where amount_value is null and numerator_value is null and DENOMINATOR_VALUE is not null
@@ -1311,6 +1317,7 @@ where amount_value is null and numerator_value is null
 and c.concept_class_id = 'Supplier'
 )
 ;
+*/
 commit
 ;
 --change amount to denominator_value when there is a solid form
@@ -1356,23 +1363,60 @@ set amount_value = (select regexp_substr ( regexp_substr (concept_name_1, '[[:di
 where exists (select 1 from ds_brand_update where concept_code_1 = drug_concept_code)
 and drug_concept_code not in ('16636811000001107', '16636911000001102', '15650711000001103', '15651111000001105' )--Packs and vaccines
 ;
-select * from ds_stage where drug_concept_code  in ('16636811000001107', '16636911000001102', '15650711000001103', '15651111000001105' )
-;
+--select * from ds_stage where drug_concept_code  in ('16636811000001107', '16636911000001102', '15650711000001103', '15651111000001105' )
+--;
 commit
 ;
--- change to procedure
-drop sequence new_vocab;
- create sequence new_vocab increment by 1 start with 245693 nocycle cache 20 noorder
- ; 
+drop sequence omop_seq
+;
+declare
+ ex number;
+begin
+select max(iex)+1 into ex from (  
+    select cast(substr(concept_code, 5) as integer) as iex from drug_concept_stage where concept_code like 'OMOP%' and concept_code not like '% %' -- Last valid value of the OMOP123-type codes
+  union
+    select cast(substr(concept_code, 5) as integer) as iex from concept where concept_code like 'OMOP%' and concept_code not like '% %'
+);
+  begin
+    execute immediate 'create sequence omop_seq increment by 1 start with ' || ex || ' nocycle cache 20 noorder';
+    exception
+      when others then null;
+  end;
+end;
+/
+ ;  
 drop table code_replace;
  create table code_replace as 
- select 'OMOP'||new_vocab.nextval as new_code, concept_code as old_code from (
-select distinct  concept_code from drug_concept_stage where concept_code like 'OMOP%' order by (cast ( regexp_substr( concept_code, '\d+') as int))
-)
+select  dcs.concept_code as old_code, nvl (c.concept_code, 'OMOP'||new_vocab.nextval ) as new_code   from drug_concept_stage dcs
+left join concept c on c.concept_name  = dcs.concept_name and dcs.concept_class_id = c.concept_class_id and nvl (c.invalid_reason, '1') = nvl (dcs.invalid_reason, '1') and dcs.vocabulary_id = c.vocabulary_id  
+where  dcs.concept_code like 'OMOP%'
+ ;
+ /*
+drop table code_replace_exp;
+ create table code_replace_exp as 
+select dcs.concept_code as old_code, nvl (c.concept_code, 'OMOP'||new_vocab.nextval ) as new_code   from drug_concept_stage dcs
+left join concept c on lower (c.concept_name)  = lower (dcs.concept_name) and dcs.concept_class_id = c.concept_class_id and nvl (c.invalid_reason, '1') = nvl (dcs.invalid_reason, '1') and dcs.vocabulary_id = c.vocabulary_id 
+where dcs.concept_code like 'OMOP%' 
+ ;
+select count(*) from code_replace_exp -- 7033 -why?
+minus 
+select count(*) from code_replace --7029
 ;
+select *  from drug_concept_stage dcs
+left join concept c on c.concept_name  = dcs.concept_name and dcs.concept_class_id = c.concept_class_id and nvl (c.invalid_reason, '1') = nvl (dcs.invalid_reason, '1') and dcs.vocabulary_id = c.vocabulary_id  
+join (
+select old_code from code_replace group by old_code having count (1) >1
+) z on old_code = dcs.concept_code
+where  dcs.concept_code like 'OMOP%'
+;
+select concept_code from drug_concept_stage group by concept_code having count (1) >1
+;
+ */
+
+
 update drug_concept_stage a set concept_code = (select new_code from code_replace b where a.concept_code = b.old_code) 
 where a.concept_code like 'OMOP%'
-;--select * from code_replace where old_code ='OMOP28663';
+; 
 commit
 ;
 update relationship_to_concept a  set concept_code_1 = (select new_code from code_replace b where a.concept_code_1 = b.old_code)
@@ -1400,6 +1444,7 @@ update pc_stage a  set DRUG_CONCEPT_CODE = (select new_code from code_replace b 
 where a.DRUG_CONCEPT_CODE like 'OMOP%'
 ;
 commit;
+--how the hell I got duplicates here??
 create table relationship_to_concept_v0 as select distinct * from  relationship_to_concept
 ;
 drop table relationship_to_concept
@@ -1407,10 +1452,6 @@ drop table relationship_to_concept
 create table relationship_to_concept as  select distinct * from  relationship_to_concept_v0
 ;
 drop table relationship_to_concept_v0;
-;
---concept_synonym_stage,dm+d part, need to discuss with Christian about RxNorm Extension part
-insert into concept_synonym_stage (SYNONYM_CONCEPT_ID,SYNONYM_NAME,SYNONYM_CONCEPT_CODE,SYNONYM_VOCABULARY_ID,LANGUAGE_CONCEPT_ID)
-select '', concept_name, concept_code, 'dm+d', 4093769 from drug_concept_stage where concept_code not like 'OMOP%'
 ;
 UPDATE DS_STAGE
    SET AMOUNT_VALUE = 12.5,
@@ -1534,9 +1575,23 @@ and c1.invalid_reason= 'D' and c1.concept_code = c.concept_code);
 
   delete from relationship_to_concept where concept_id_2 = 19135832
 ;
-delete from pc_stage where drug_concept_code in (select concept_code from drug_concept_stage where domain_id !='Drug')
-    ;
-    commit; 
+/*
+select pc.*, pp.concept_name, pp.domain_id, dd.concept_name,dd.domain_id  from pc_stage pc  
+join drug_concept_stage dd  on DRUG_CONCEPT_CODE = dd.concept_code
+join drug_concept_stage pp  on pack_CONCEPT_CODE = pp.concept_code
+where drug_concept_code in (select concept_code from drug_concept_stage where domain_id !='Drug')
+;
+select pc.*, pp.concept_name, pp.domain_id, dd.concept_name,dd.domain_id  from pc_stage pc  
+join drug_concept_stage dd  on DRUG_CONCEPT_CODE = dd.concept_code
+join drug_concept_stage pp  on pack_CONCEPT_CODE = pp.concept_code
+;
+*/
+--look on the drugs with Device in PC_stage
+--stop here and then look on the drugs with Device in PC_stage
+
+--delete from pc_stage where drug_concept_code in (select concept_code from drug_concept_stage where domain_id !='Drug')
+  --  ;
+commit; 
 
 update pc_stage pc set drug_concept_code = (select concept_code_2 from deprec_to_active da where da.concept_code_1 =pc.drug_concept_code)
 where exists (select 1 from deprec_to_active da where da.concept_code_1 =pc.drug_concept_code)
@@ -1568,4 +1623,76 @@ WHERE CONCEPT_CODE_1 = '85581007'
 AND   CONCEPT_ID_2 = 19095976;
 
 commit
+;
+
+update ds_stage a set (a.DENOMINATOR_VALUE, a.DENOMINATOR_unit )= 
+(select distinct b.DENOMINATOR_VALUE, b.DENOMINATOR_unit  from 
+ ds_stage b where a.drug_CONCEPT_CODE = b.drug_CONCEPT_CODE 
+ and a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null )
+-- a.numerator_value= a.amount_value,a.numerator_unit= a.amount_unit,a.amount_value = null, a.amount_unit = null
+ where exists 
+ (select 1 from 
+ ds_stage b where a.drug_CONCEPT_CODE = b.drug_CONCEPT_CODE 
+ and a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null )
+;
+--somehow we get amount +denominator
+update ds_stage a  set  a.numerator_value= a.amount_value,a.numerator_unit= a.amount_unit,a.amount_value = null, a.amount_unit = null
+where a.denominator_unit is not null and numerator_unit is null
+;
+commit
+;
+--to do 
+-- replace new OMOPs with existing = done
+
+
+
+
+-- add mappings to new RxE = check what happens if we use old codes
+-- formalize manaul table = check what's not mapped = try to use two cycles aproach!
+-- change ppm to 0.001 of %
+-- links to deprecated ATCs and ingredients 
+
+
+
+
+
+drop table r_to_c;
+
+create table r_to_c as 
+  select r.* from relationship_to_concept r join concept on concept_id=r.concept_id_2 and vocabulary_id in ('RxNorm', 'RxNorm Extension', 'UCUM') where r.concept_code_1 is not null
+union
+  select c1.concept_code as concept_code_1, c1.vocabulary_id as vocabulary_id_1, r.concept_id_2, 1, null
+  from concept c1
+  join concept_relationship r on r.concept_id_1=c1.concept_id and r.relationship_id in ('Maps to', 'Source - RxNorm eq') and r.invalid_reason is null
+  join concept c2 on c2.concept_id=r.concept_id_2 and c2.invalid_reason is null
+  where c1.vocabulary_id=(select vocabulary_id from drug_concept_stage where rownum=1)
+  and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension') 
+  and c2.concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name', 'Supplier')
+  and c1.concept_code not in (select concept_code_1 from relationship_to_concept where concept_code_1 is not null)
+;
+truncate table relationship_to_concept
+;
+insert into relationship_to_concept select distinct * from r_to_c
+;
+ 
+commit
+;
+drop table to_manual;
+create table to_manual as
+select * from drug_concept_stage 
+left join relationship_to_concept on concept_code = concept_code_1
+where concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name', 'Supplier')
+and concept_code_1 is null
+;
+ SELECT DISTINCT *
+      FROM ds_stage
+      WHERE (amount_unit NOT IN (SELECT concept_code
+                                 FROM drug_concept_stage
+                                 WHERE concept_class_id = 'Unit')
+                         OR numerator_unit NOT IN (SELECT concept_code FROM drug_concept_stage WHERE concept_class_id = 'Unit')
+                         OR denominator_unit NOT IN (SELECT concept_code FROM drug_concept_stage  WHERE concept_class_id = 'Unit'))
+;
+select * from to_manual  m join concept c on lower (m.concept_name) = lower (c.concept_name) and c.vocabulary_id like 'Rx%' and c.concept_class_id = m.concept_class_id
+;
+select * from drug_concept_stage_14082017 where concept_name ='Olive oil'
 ;

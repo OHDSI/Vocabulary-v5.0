@@ -113,8 +113,44 @@ where concept_code_1 in
 
 
 --BRAND NAMES
+--brand names that need to be deleted
+delete drug_concept_stage where concept_code in 
+(select concept_code from eduard_bn_to_delete
+join concept using(concept_id));
+delete relationship_to_concept where concept_code_1 in 
+(select concept_code from eduard_bn_to_delete
+join concept using(concept_id));
+delete internal_relationship_stage where concept_code_2 in 
+(select concept_code from eduard_bn_to_delete
+join concept using(concept_id));
 
-select * from dev_eduard.BN_TO_DELETE_I; + bn_to_replace
+
+create table bn_to_repl as
+select c.concept_code as concept_code_1,c.concept_name as concept_name_1,
+c2.concept_code as concept_code_2,c2.concept_name as concept_name_2 
+from EDUARD_BRAND_REPLACE e
+join concept c on c.concept_id=e.concept_id
+join concept c2 on c2.concept_id=replacement_id;
+
+create table irs_BN as
+select irs.concept_code_1,
+case when b.concept_code_2 is not null then b.concept_code_2 else irs.concept_code_2 end as concept_code_2
+from internal_relationship_stage irs
+left join bn_to_repl b
+on b.concept_code_1=irs.concept_code_2;
+
+truncate table internal_relationship_stage;
+insert into internal_relationship_stage ( concept_code_1,concept_code_2)
+select distinct concept_code_1,concept_code_2 from irs_BN;
+
+--also need to delete all the unecessary BN
+delete drug_concept_stage
+ where concept_code in 
+(select concept_code_1 from bn_to_repl );
+
+delete relationship_to_concept 
+where concept_code_1 in 
+(select concept_code_1 from bn_to_repl);
 
 --need to check packs (inert ingredients + fix AMT's packs)
 

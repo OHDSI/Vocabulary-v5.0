@@ -32,7 +32,7 @@ DELETE internal_relationship_stage WHERE concept_code_1 IN
       AND (c.concept_class_id like 'Quant%' or (c.concept_class_id like 'Marketed%' and regexp_like(c.concept_name,'^\d+')) )
       );
 
-DELETE ds_stage WHERE concept_code IN 
+DELETE ds_stage WHERE drug_concept_code IN 
 (SELECT c2.concept_code
       FROM devv5.concept c
       JOIN devv5.drug_strength 
@@ -57,17 +57,17 @@ WHERE drug_concept_code IN
 
 --gases
 UPDATE ds_stage 
-SET numerator_value='100',numerator_unit='%', denominator_unit=numerator_unit,denominator_value=numerator_value
+SET numerator_value='100',numerator_unit='%', denominator_unit=amount_unit,denominator_value=amount_value
 WHERE drug_concept_code IN (
       SELECT concept_code
       FROM devv5.concept
       JOIN devv5.drug_strength ON drug_concept_id = concept_id
       WHERE amount_unit_concept_id = 8587
-      and concept_name like '% Gas for Inhalation%' and concept_class_id like '%Form%');
+      and concept_name like '% Gas for Inhalation%' and concept_class_id not like '%Form%');
       
 
 UPDATE ds_stage 
-SET numerator_value='100',numerator_unit='%', denominator_unit=numerator_unit,denominator_value=numerator_value
+SET numerator_value='100',numerator_unit='%', denominator_unit=amount_unit,denominator_value=amount_value
 WHERE drug_concept_code IN (
       SELECT c2.concept_code
       FROM devv5.concept c

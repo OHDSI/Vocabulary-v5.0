@@ -439,6 +439,21 @@ INSERT /*+ APPEND */
            JOIN concept c2 ON ingredient_concept_id=c2.concept_id AND c2.concept_class_id='Ingredient'
 ;
 
+--drug form to ingr
+INSERT /*+ APPEND */
+      INTO  internal_relationship_stage
+    SELECT distinct c.concept_code, c2.concept_code 
+      FROM concept c
+           JOIN drug_concept_stage dc ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL
+           JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id AND cr.RELATIONSHIP_ID = 'RxNorm has ing' AND cr.invalid_reason IS NULL
+           JOIN concept c2 ON c2.concept_id = cr.concept_id_2 AND c2.concept_class_id = 'Ingredient' AND c2.invalid_reason IS NULL
+     WHERE     c.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form')
+           AND NOT EXISTS
+                 (SELECT 1
+                  FROM internal_relationship_stage irs_int
+                 WHERE irs_int.concept_code_1 = c.concept_code AND irs_int.concept_code_2 = c2.concept_code); 
+		 
+
 INSERT /*+ APPEND */
       INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
     SELECT distinct dc.concept_code,c2.concept_code

@@ -357,6 +357,8 @@ INSERT /*+ APPEND */
 									  FROM drug_strength UNPIVOT (units FOR units_ids IN (amount_unit_concept_id, numerator_unit_concept_id, denominator_unit_concept_id))) ds
 								   JOIN concept c_int ON c_int.concept_id = ds.drug_concept_id AND c_int.vocabulary_id = 'RxNorm Extension')
 ;
+COMMIT;
+
 DELETE drug_concept_stage 
 WHERE invalid_reason is not null;
 

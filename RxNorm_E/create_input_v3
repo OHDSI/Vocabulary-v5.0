@@ -152,7 +152,12 @@ delete relationship_to_concept
 where concept_code_1 in 
 (select concept_code_1 from bn_to_repl);
 
---need to check packs (inert ingredients + fix AMT's packs)
+--change BN names
+merge into drug_concept_stage d
+using (select concept_name_2,concept_code from eduard_bn_names join concept
+using (concept_id)) c on (d.concept_code=c.concept_code)
+when matched then update
+set concept_name=concept_name_2;
 
 update relationship_to_concept
 set concept_id_2='45776076'
@@ -162,8 +167,15 @@ update relationship_to_concept
 set concept_id_2='920458'
 where concept_code_1='OMOP1131481' and precedence='1';--Betamethasone (Betamethasone 21-Disodium Phosphate)
 
-CONCEPT_ID	CONCEPT_NAME	CONCEPT_CODE
-36878617	Influenza Virus Fragmented, Inactivated, Strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain A / South Australia / 55/2014 Ivr-175	OMOP999126
-36879023	Influenza Virus Fragmented, Inactivated, Strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain A / Switzerland / 9715293/2013, Nib-88	OMOP998063
-36879091	Influenza Virus Surface Antigen, Inactivated, Strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain A / South Australia / 55/2014 Type Wild	OMOP993272
-36879025	Influenza Virus Surface Antigens, strain A / Switzerland / 9715293/2013 H3N2 - Analogue Strain Nib-88	OMOP991645
+--close dosage drugs
+delete drug_concept_stage where concept_code in (
+select c2.concept_code from dev_amt.amt_2 a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
+
+delete internal_relationship_stage where concept_code_1 in (
+select c2.concept_code from dev_amt.amt_2 a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);

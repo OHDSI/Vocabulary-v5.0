@@ -19,6 +19,7 @@ DELETE drug_concept_stage WHERE concept_code IN
       AND (c.concept_class_id like 'Quant%' or (c.concept_class_id like 'Marketed%' and regexp_like(c.concept_name,'^\d+')) )
       );
  
+commit; 
 DELETE internal_relationship_stage WHERE concept_code_1 IN 
 (SELECT c2.concept_code
       FROM devv5.concept c
@@ -31,7 +32,7 @@ DELETE internal_relationship_stage WHERE concept_code_1 IN
       AND denominator_unit_concept_id!=8505
       AND (c.concept_class_id like 'Quant%' or (c.concept_class_id like 'Marketed%' and regexp_like(c.concept_name,'^\d+')) )
       );
-
+commit; 
 DELETE ds_stage WHERE drug_concept_code IN 
 (SELECT c2.concept_code
       FROM devv5.concept c
@@ -54,7 +55,7 @@ WHERE drug_concept_code IN
       ON drug_concept_id = concept_id  AND (concept_name LIKE '%Tablet%'  OR concept_name LIKE '%Capsule%'  OR concept_name LIKE '%Lozenge%' OR concept_name LIKE '%Pellet%')-- solid forms defined by their forms 
       AND numerator_value IS NOT NULL
       AND denominator_unit_concept_id!=8505);
-
+commit; 
 --gases
 UPDATE ds_stage 
 SET numerator_value='100',numerator_unit='%', denominator_unit=amount_unit,denominator_value=amount_value
@@ -65,7 +66,7 @@ WHERE drug_concept_code IN (
       WHERE amount_unit_concept_id = 8587
       and concept_name like '% Gas for Inhalation%' and concept_class_id not like '%Form%');
       
-
+commit; 
 UPDATE ds_stage 
 SET numerator_value='100',numerator_unit='%', denominator_unit=amount_unit,denominator_value=amount_value
 WHERE drug_concept_code IN (
@@ -77,7 +78,7 @@ WHERE drug_concept_code IN (
       WHERE amount_unit_concept_id = 8587
       and c.concept_name like '% Gas for Inhalation%' and c.concept_class_id not like '%Form%');
       
-
+commit; 
 UPDATE ds_stage 
 SET numerator_value=numerator_value*100,numerator_unit='%'
 WHERE drug_concept_code IN (
@@ -124,7 +125,7 @@ delete internal_relationship_stage where concept_code_2 in
 (select concept_code from eduard_bn_to_delete
 join concept using(concept_id));
 
-
+drop table bn_to_repl;
 create table bn_to_repl as
 select c.concept_code as concept_code_1,c.concept_name as concept_name_1,
 c2.concept_code as concept_code_2,c2.concept_name as concept_name_2 
@@ -132,6 +133,7 @@ from EDUARD_BRAND_REPLACE e
 join concept c on c.concept_id=e.concept_id
 join concept c2 on c2.concept_id=replacement_id;
 
+drop table irs_BN;
 create table irs_BN as
 select irs.concept_code_1,
 case when b.concept_code_2 is not null then b.concept_code_2 else irs.concept_code_2 end as concept_code_2
@@ -179,3 +181,43 @@ select c2.concept_code from dev_amt.amt_2 a
 join concept c on c.concept_code=a.concept_code_1
 join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
 join concept c2 on c2.concept_id=cr.concept_id_2);
+
+delete drug_concept_stage where concept_code in (
+select c2.concept_code from dev_dmd.dmd_2 a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
+
+delete internal_relationship_stage where concept_code_1 in (
+select c2.concept_code from dev_dmd.dmd_2 a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
+
+delete drug_concept_stage where concept_code in (
+select c2.concept_code from dev_dpd.dpd_2 a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
+
+delete internal_relationship_stage where concept_code_1 in (
+select c2.concept_code from dev_dpd.dpd_2 a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
+
+
+delete internal_relationship_stage where concept_code_2
+in (select concept_code from concept join eduard_bn_to_delete using (concept_id))
+;
+
+insert into relationship_to_concept (concept_code_1,concept_id_2,precedence)
+select distinct concept_code_2,
+case when c.concept_id=19053966 then 43525530--Humulin
+when c.concept_id=19062405 then 40232311--Tanac
+when c.concept_id=19015276 then 19043688--Salazop
+else c.concept_id end, 1
+from internal_relationship_stage i
+left join relationship_to_concept r on i.concept_code_2=r.concept_code_1 
+join concept c on i.concept_code_2=c.concept_code and vocabulary_id like 'Rx%'
+where concept_id_2 is null ;

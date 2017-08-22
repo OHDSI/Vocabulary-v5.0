@@ -182,6 +182,12 @@ join concept c on c.concept_code=a.concept_code_1
 join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
 join concept c2 on c2.concept_id=cr.concept_id_2);
 
+delete ds_stage where drug_concept_code in (
+select c2.concept_code from dev_amt.amt_2 a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
+
 delete drug_concept_stage where concept_code in (
 select c2.concept_code from dev_dmd.dmd_2 a
 join concept c on c.concept_code=a.concept_code_1
@@ -189,6 +195,12 @@ join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id
 join concept c2 on c2.concept_id=cr.concept_id_2);
 
 delete internal_relationship_stage where concept_code_1 in (
+select c2.concept_code from dev_dmd.dmd_2 a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
+
+delete ds_stage where drug_concept_code in (
 select c2.concept_code from dev_dmd.dmd_2 a
 join concept c on c.concept_code=a.concept_code_1
 join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
@@ -206,6 +218,11 @@ join concept c on c.concept_code=a.concept_code_1
 join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
 join concept c2 on c2.concept_id=cr.concept_id_2);
 
+delete ds_stage where drug_concept_code in (
+select c2.concept_code from dev_dpd.dpd_2 a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
 
 delete internal_relationship_stage where concept_code_2
 in (select concept_code from concept join eduard_bn_to_delete using (concept_id))

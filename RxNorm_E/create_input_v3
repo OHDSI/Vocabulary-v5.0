@@ -224,14 +224,51 @@ join concept c on c.concept_code=a.concept_code_1
 join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
 join concept c2 on c2.concept_id=cr.concept_id_2);
 
-delete ds_stage where drug_concept_code in (select cocnept_code from dev_grr.comp_grr);
-delete drug_concept_stage where concept_code in (select cocnept_code from dev_grr.comp_grr);
-delete internal_relationship_stage where concept_code_1 in (select cocnept_code from dev_grr.comp_grr);
+delete drug_concept_stage where concept_code in (
+select c2.concept_code from 
+(select concept_code_1 from dev_grr.grr_2 where amount_value is not null
+ union 
+ select concept_code from dev_grr.comp_grr) a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
+
+delete internal_relationship_stage where concept_code_1 in (
+select c2.concept_code from 
+(select concept_code_1 from dev_grr.grr_2 where amount_value is not null
+ union 
+ select concept_code from dev_grr.comp_grr) a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
+
+delete ds_stage where drug_concept_code in (
+select c2.concept_code from 
+(select concept_code_1 from dev_grr.grr_2 where amount_value is not null
+ union 
+ select concept_code from dev_grr.comp_grr) a
+join concept c on c.concept_code=a.concept_code_1
+join concept_relationship cr on cr.concept_id_1=c.concept_id and relationship_id in ('Maps to','Source - RxNorm eq')
+join concept c2 on c2.concept_id=cr.concept_id_2);
 
 delete internal_relationship_stage where concept_code_2
 in (select concept_code from concept join eduard_bn_to_delete using (concept_id))
 ;
 
+--add Precise Ingredients
+INSERT /*+ APPEND */
+      INTO  internal_relationship_stage (concept_Code_1,concept_code_2)
+    SELECT distinct dc.concept_code,c2.concept_code
+      FROM drug_concept_stage dc
+           JOIN concept c ON dc.concept_code=c.concept_code AND c.vocabulary_id LIKE 'RxNorm%' AND c.invalid_reason IS NULL AND  dc.concept_class_id = 'Drug Product' AND dc.source_concept_class_id not like '%Pack%' AND dc.concept_name NOT LIKE '%} Pack%'
+           JOIN drug_strength on drug_concept_id=c.concept_id
+           JOIN concept c2 ON ingredient_concept_id=c2.concept_id AND c2.concept_class_id like '%Ingredient'
+                      where NOT EXISTS
+                 (SELECT 1
+                  FROM internal_relationship_stage irs_int
+                 WHERE irs_int.concept_code_1 = dc.concept_code AND irs_int.concept_code_2 = c2.concept_code); 
+ 
+ --added mappings to RxNorm 
 insert into relationship_to_concept (concept_code_1,concept_id_2,precedence)
 select distinct concept_code_2,
 case when c.concept_id=19053966 then 43525530--Humulin

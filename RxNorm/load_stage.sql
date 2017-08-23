@@ -722,16 +722,17 @@ COMMIT;
 --16 Run generic_update.sql from working directory
 
 --17 After previous step disable indexes and truncate tables again
-UPDATE vocabulary SET (latest_update, vocabulary_version)=
-(select latest_update, vocabulary_version from vocabulary WHERE vocabulary_id = 'RxNorm')
-	WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class', 'ATC'); 
-UPDATE vocabulary SET latest_update=null WHERE vocabulary_id = 'RxNorm';
+UPDATE vocabulary SET (latest_update, vocabulary_version, dev_schema_name)=
+(select latest_update, vocabulary_version, dev_schema_name from vocabulary WHERE vocabulary_id = 'RxNorm')
+	WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class', 'ATC');
+UPDATE vocabulary SET latest_update=null, dev_schema_name=null WHERE vocabulary_id = 'RxNorm';
 COMMIT;
-
 
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --18 Add NDFRT, VA Product, VA Class and ATC
 --create temporary table drug_vocs

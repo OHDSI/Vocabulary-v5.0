@@ -2069,6 +2069,12 @@ BEGIN
  	INSERT INTO peak (peak_code, peak_domain_id) VALUES (921071000000100, 'Observation'); -- Appropriate use of walk-in centre
  	INSERT INTO peak (peak_code, peak_domain_id) VALUES (962871000000107, 'Observation'); -- Aware of overall cardiovascular disease risk
  	INSERT INTO peak (peak_code, peak_domain_id) VALUES (968521000000109, 'Observation'); -- Inappropriate use of general practitioner service
+--added 8/25/2017, these concepts should be in Observation, so people can put causative agent into 
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (282100009, 'Observation'); -- Adverse reaction caused by substance
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (419199007, 'Observation'); -- Allergy to substance
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (7895008, 'Observation'); -- Poisoning caused by drug AND/OR medicinal substance
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (55680006, 'Observation'); -- Drug overdose
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (292545003, 'Observation'); -- Oxitropium adverse reaction --somehow it sneaks through domain definition above, so define this one separately
 
 END;
 /
@@ -2426,7 +2432,7 @@ WHEN MATCHED
 THEN
    UPDATE SET c.concept_class_id = dmd.concept_class_id;     
 COMMIT;
-
+stop damn script
 -- 19 Clean up
 DROP TABLE peak PURGE;
 DROP TABLE domain_snomed PURGE;

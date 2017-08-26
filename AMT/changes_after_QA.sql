@@ -57,6 +57,25 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             
                             
 --update existing relationship to concept
+
+update relationship_to_concept r
+ set r.concept_id_2=(select cr.concept_id_2 from concept c join concept_relationship cr
+ on cr.concept_id_1=concept_id and c.invalid_reason='U' and relationship_id='Concept replaced by' 
+ where concept_id=r.concept_id_2
+ )
+where exists (select 1 from concept c join concept_relationship cr
+ on cr.concept_id_1=concept_id and c.invalid_reason='U' and relationship_id='Concept replaced by' 
+ where concept_id=r.concept_id_2);
+ 
+  update relationship_to_concept r
+ set r.concept_id_2=(select cr.concept_id_2 from concept c join concept_relationship cr
+ on cr.concept_id_1=concept_id and c.invalid_reason='U' and relationship_id='Concept replaced by' 
+ where concept_id=r.concept_id_2
+ )
+where exists (select 1 from concept c join concept_relationship cr
+ on cr.concept_id_1=concept_id and c.invalid_reason='U' and relationship_id='Concept replaced by' 
+ where concept_id=r.concept_id_2);
+ 
 update 
 relationship_to_concept
 set concept_id_2=44015694

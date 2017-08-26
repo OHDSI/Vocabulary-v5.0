@@ -54,3 +54,86 @@ DELETE ds_stage
 WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
                             WHERE COALESCE(amount_value,numerator_value,0) = 0);
+                            
+                            
+--update existing relationship to concept
+update 
+relationship_to_concept
+set concept_id_2=44015694
+where concept_id_2=43252800
+;
+update 
+relationship_to_concept
+set concept_id_2=44814450
+where concept_id_2=21017574
+;
+update 
+relationship_to_concept
+set concept_id_2=43252166
+where concept_id_2=43252168
+;
+update 
+relationship_to_concept
+set concept_id_2=45892419
+where concept_id_2=919345
+;
+update 
+relationship_to_concept
+set concept_id_2=43253544
+where concept_id_2=43253545
+;
+update 
+relationship_to_concept
+set concept_id_2=43253506
+where concept_id_2=43252243
+;
+update 
+relationship_to_concept
+set concept_id_2=42873956
+where concept_id_2=46274499
+;
+update 
+relationship_to_concept
+set concept_id_2=19089408
+where concept_id_2=43252075
+;
+update 
+relationship_to_concept
+set concept_id_2=1310937
+where concept_id_2=21014056
+;
+update 
+relationship_to_concept
+set concept_id_2=44818494
+where concept_id_2 in (19024669,19013754)
+;
+update 
+relationship_to_concept
+set concept_id_2=44023661
+where concept_id_2 in (21019464)
+;
+update 
+relationship_to_concept
+set concept_id_2=35742006
+where concept_id_2 in ( 21016548)
+;
+delete drug_concept_stage where concept_code in
+ (select concept_code_1 from relationship_to_concept 
+join concept c on concept_id_2=c.concept_id 
+and c.invalid_reason='D' and concept_class_id!='Ingredient'
+and concept_id_2 not in (43252204,43252218));
+
+delete internal_relationship_stage where concept_code_2 in
+ (select concept_code_1 from relationship_to_concept 
+join concept c on concept_id_2=c.concept_id 
+and c.invalid_reason='D' and concept_class_id!='Ingredient'
+and concept_id_2 not in (43252204,43252218));
+
+delete relationship_to_concept 
+where concept_code_1 in (select concept_code_1 from
+relationship_to_concept
+join concept c on concept_id_2=c.concept_id 
+and c.invalid_reason='D' and concept_class_id!='Ingredient'
+and concept_id_2 not in (43252204,43252218));
+
+;

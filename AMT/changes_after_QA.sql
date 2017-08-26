@@ -156,3 +156,24 @@ and c.invalid_reason='D' and concept_class_id!='Ingredient'
 and concept_id_2 not in (43252204,43252218));
 
 ;
+
+--add water
+insert into ds_stage (drug_concept_code,ingredient_concept_code,numerator_value,numerator_unit,denominator_unit)
+select concept_code,'11295',1000 ,'Mg','Ml'
+ from drug_concept_stage  dcs
+join (
+SELECT concept_code_1
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+left join ds_stage on drug_concept_code = concept_code_1 
+where drug_concept_code is null
+union 
+SELECT concept_code_1
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+where concept_code_1 not in (SELECT concept_code_1
+                                  FROM internal_relationship_stage
+                                    JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form')
+) s on s.concept_code_1 = dcs.concept_code
+where dcs.concept_class_id = 'Drug Product' and invalid_reason is null 
+and concept_name like 'Water%';

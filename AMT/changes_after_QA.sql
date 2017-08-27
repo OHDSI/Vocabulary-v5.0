@@ -177,3 +177,8 @@ where concept_code_1 not in (SELECT concept_code_1
 ) s on s.concept_code_1 = dcs.concept_code
 where dcs.concept_class_id = 'Drug Product' and invalid_reason is null 
 and concept_name like 'Water%';
+
+insert into internal_relationship_stage 
+(concept_code_1,concept_code_2)
+select distinct drug_concept_code,ingredient_concept_code  from ds_stage where (drug_concept_code,ingredient_concept_code ) not in 
+(select concept_code_1,concept_code_2 from internal_relationship_stage);

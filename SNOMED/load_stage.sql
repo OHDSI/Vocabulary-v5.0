@@ -2437,7 +2437,7 @@ WHEN MATCHED
 THEN
    UPDATE SET c.concept_class_id = dmd.concept_class_id;     
 COMMIT;
-stop damn script
+
 -- 19 Clean up
 DROP TABLE peak PURGE;
 DROP TABLE domain_snomed PURGE;

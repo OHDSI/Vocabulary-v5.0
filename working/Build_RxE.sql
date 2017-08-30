@@ -2771,7 +2771,7 @@ from (
   from pack_content pc
   left join r_bn on drug_concept_id=r_bn.concept_id
   left join r_mf on drug_concept_id=r_mf.concept_id
-  join concept on pack_concept_id=concept.concept_id and vocabulary_id='RxNorm'
+  join concept on pack_concept_id=concept.concept_id and vocabulary_id in ('RxNorm', 'RxNorm Extension')
 )
 group by pack_concept_id, bn_id, bs, mf_id
 ;

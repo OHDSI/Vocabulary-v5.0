@@ -86,6 +86,16 @@ insert into relationship_to_concept (concept_code_1,vocabulary_id_1,concept_id_2
 select distinct d.concept_code,'AMT',concept_id_2,precedence,conversion_factor
 from mapping_150817 m join drug_concept_stage d on d.concept_name=m.concept_name
 ;
+--gadotexate
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 19031583
+WHERE CONCEPT_CODE_1 = '31274011000036106'
+AND   CONCEPT_ID_2 = 19124319;
+
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 43567157
+WHERE CONCEPT_CODE_1 = '30251000168107'
+;
 
 delete relationship_to_concept 
 where rowid not in (

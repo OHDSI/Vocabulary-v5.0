@@ -2075,6 +2075,11 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (7895008, 'Observation'); -- Poisoning caused by drug AND/OR medicinal substance
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (55680006, 'Observation'); -- Drug overdose
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (292545003, 'Observation'); -- Oxitropium adverse reaction --somehow it sneaks through domain definition above, so define this one separately
+--added 8/30/2017
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (310611001, 'Measurement'); -- Cardiovascular measure
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (424122007, 'Observation'); -- ECOG performance status finding
+
+
 
 END;
 /

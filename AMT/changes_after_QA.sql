@@ -182,3 +182,9 @@ insert into internal_relationship_stage
 (concept_code_1,concept_code_2)
 select distinct drug_concept_code,ingredient_concept_code  from ds_stage where (drug_concept_code,ingredient_concept_code ) not in 
 (select concept_code_1,concept_code_2 from internal_relationship_stage);
+
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 19099465
+WHERE CONCEPT_CODE_1 = '63031000168107'
+AND   CONCEPT_ID_2 = 43128317;
+

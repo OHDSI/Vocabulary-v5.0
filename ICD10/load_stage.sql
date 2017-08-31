@@ -193,45 +193,13 @@ where exists (select 1 from name_impr b where a.concept_code = b.concept_code)
 commit
 ;
 
---create 'Maps to' and 'Maps to value' relationship from file created by the medical coders
-truncate table concept_relationship_stage;
-INSERT INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT  concept_code_1,
-            concept_code_2,
-         vocabulary_id_1,
-           vocabulary_id_2,
-         relationship_id,
-          (SELECT latest_update
-             FROM vocabulary
-            WHERE vocabulary_id = vocabulary_id_1)  AS valid_start_date,
-          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-NULL AS invalid_reason
-from icd10_all_mapped_by_super_team where concept_code_2 is not null--manual file
--- AND NOT EXISTS ... --I'm not sure do we need to exclude the existing mapping from here, need to check it with generic upd
-;
-commit
-;
---select count (1) from concept_relationship_stage-- where invalid_reason ='D'
---;
---select * from devv5.concept_relationship_manual
---;
---select * from icd10_all_mapped_by_super_team join concept on icd10_all_mapped_by_super_team.CONCEPT_CODE_2 = concept_code and vocabulary_id = 'SNOMED' and invalid_reason is not null;
-/*
 --5. Create file with mappings for medical coder from the existing one
-SELECT *
+/*SELECT *
   FROM concept c, concept_relationship r
  WHERE     c.concept_id = r.concept_id_1
        AND c.vocabulary_id = 'ICD10'
        AND r.invalid_reason IS NULL;
-       */
-/*
+*/
 --6. Append file from medical coder to concept_relationship_stage
 BEGIN
    DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
@@ -251,14 +219,14 @@ BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 /
-COMMIT;	
+COMMIT;
 
 --9. Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 /
-COMMIT;		 
+COMMIT;
 
 --10. Delete ambiguous 'Maps to' mappings
 BEGIN
@@ -266,7 +234,7 @@ BEGIN
 END;
 /
 COMMIT;
-*/
+
 --11. Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,

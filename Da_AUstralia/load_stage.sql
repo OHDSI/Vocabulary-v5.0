@@ -1,4 +1,4 @@
-create table drugs as
+﻿create table drugs as
 select distinct fo_prd_id,a.PRD_NAME,a.MAST_PRD_NAME,a.DOSAGE,a.UNIT,a.DOSAGE2,a.UNIT2,a.MOL_EID,a.MOL_NAME,b.MOL_NAME as MOL_NAME_2, ATCCODE,ATC_NAME,NFC_CODE,MANUFACTURER
 from fo_product_1_vs_2 a full outer join drug_mapping_1_vs_2 b on a.prd_eid=b.prd_eid;
 
@@ -374,7 +374,7 @@ set concept_code='OMOP'||nv1.nextval;
 
 truncate table DRUG_concept_STAGE;
 insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,pack_size,domain_id,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select distinct CONCEPT_NAME, 'Lpd_Australia', CONCEPT_CLASS_ID, '', CONCEPT_CODE, '', '','Drug', TO_DATE('2016/10/01', 'yyyy/mm/dd') as valid_start_date,
+select distinct CONCEPT_NAME, 'LPD_Australia', CONCEPT_CLASS_ID, '', CONCEPT_CODE, '', '','Drug', TO_DATE('2016/10/01', 'yyyy/mm/dd') as valid_start_date,
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
  from 
 (
@@ -384,7 +384,7 @@ select distinct PRD_NAME,'Drug Product' as CONCEPT_CLASS_ID,fo_prd_id from drugs
  )
  ;
  insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,pack_size,domain_id,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select distinct CONCEPT_NAME, 'Lpd_Australia', CONCEPT_CLASS_ID, 's', CONCEPT_CODE, '', '','Device', TO_DATE('2016/10/01', 'yyyy/mm/dd') as valid_start_date,
+select distinct CONCEPT_NAME, 'LPD_Australia', CONCEPT_CLASS_ID, 's', CONCEPT_CODE, '', '','Device', TO_DATE('2016/10/01', 'yyyy/mm/dd') as valid_start_date,
 TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, ''
  from 
 (
@@ -643,7 +643,7 @@ and rowid in (select max(rowid) FROM ds_stage GROUP BY drug_concept_code, ingred
             
 --units appeared--
 insert into DRUG_concept_STAGE (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,DOMAIN_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select distinct amount_unit,'Lpd_Australia','Unit','',amount_unit,'Drug', TO_DATE('2016/10/01', 'yyyy/mm/dd'),TO_DATE('2099/12/31', 'yyyy/mm/dd'), ''
+select distinct amount_unit,'LPD_Australia','Unit','',amount_unit,'Drug', TO_DATE('2016/10/01', 'yyyy/mm/dd'),TO_DATE('2099/12/31', 'yyyy/mm/dd'), ''
  from (select amount_unit from ds_stage union select NUMERATOR_UNIT from ds_stage union select DENOMINATOR_UNIT from ds_stage )
  WHERE AMOUNT_UNIT IS NOT NULL;
 
@@ -684,45 +684,45 @@ truncate table RELATIONSHIP_TO_CONCEPT
 ;
 insert into RELATIONSHIP_TO_CONCEPT
 (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
-select distinct b.concept_code, 'Lpd_Australia',a .concept_id,a.precedence from aus_dose_forms_done a join drug_concept_stage b on a.dose_form=b.concept_name
+select distinct b.concept_code, 'LPD_Australia',a .concept_id,a.precedence from aus_dose_forms_done a join drug_concept_stage b on a.dose_form=b.concept_name
 ;
 insert into RELATIONSHIP_TO_CONCEPT
 (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
-select distinct CONCEPT_CODE,'Lpd_Australia',CONCEPT_ID,rank () over (partition by concept_code order by concept_id)
+select distinct CONCEPT_CODE,'LPD_Australia',CONCEPT_ID,rank () over (partition by concept_code order by concept_id)
 from RELATION_INGR_1 a join drug_concept_stage b on a.concept_name= b. concept_name where b.concept_class_id = 'Ingredient' 
 ;
 
 insert into RELATIONSHIP_TO_CONCEPT
 (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
-select distinct concept_code as concept_code_1,'Lpd_Australia',CONCEPT_ID as concept_id_2,nvl(precedence,1)
+select distinct concept_code as concept_code_1,'LPD_Australia',CONCEPT_ID as concept_id_2,nvl(precedence,1)
  from RELATIONSHIP_MANUAL_INGREDIENT_DONE a join drug_concept_stage b on a.concept_name=b.concept_name and CONCEPT_ID is not null
  and b.concept_class_id='Ingredient';
 
 insert into RELATIONSHIP_TO_CONCEPT
 (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
-select distinct CONCEPT_CODE,'Lpd_Australia',CONCEPT_ID,rank () over (partition by CONCEPT_CODE order by concept_id)
+select distinct CONCEPT_CODE,'LPD_Australia',CONCEPT_ID,rank () over (partition by CONCEPT_CODE order by concept_id)
 from relation_brandname_1 a join drug_concept_stage b on a.concept_name= b. concept_name where b.concept_class_id = 'Brand Name' 
 and concept_code not in (select concept_code_1 from RELATIONSHIP_TO_CONCEPT)
 ;
 
 insert into RELATIONSHIP_TO_CONCEPT
 (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
-select distinct concept_code as concept_code_1,'Lpd_Australia',CONCEPT_ID as concept_id_2,nvl(precedence,1)
+select distinct concept_code as concept_code_1,'LPD_Australia',CONCEPT_ID as concept_id_2,nvl(precedence,1)
  from RELATIONSHIP_MANUAL_BRAND_DONE a join drug_concept_stage b on a.concept_name=b.concept_name and CONCEPT_ID is not null
   and b.concept_class_id='Brand Name';
 
 insert into RELATIONSHIP_TO_CONCEPT (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
-select distinct a.concept_code a,'Lpd_Australia',b.concept_id,'1' from drug_concept_stage a join devv5.concept b on lower(a.concept_name)=lower(b.concept_name) where 
+select distinct a.concept_code a,'LPD_Australia',b.concept_id,'1' from drug_concept_stage a join devv5.concept b on lower(a.concept_name)=lower(b.concept_name) where 
 b.concept_class_id = 'Supplier' and a.concept_class_id = 'Supplier' and b.invalid_reason is null
 and b.vocabulary_id like 'Rx%' 
 ;
 insert into RELATIONSHIP_TO_CONCEPT (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
-select distinct concept_code as concept_code_1,'Lpd_Australia',CONCEPT_ID as concept_id_2,nvl(precedence,1)
+select distinct concept_code as concept_code_1,'LPD_Australia',CONCEPT_ID as concept_id_2,nvl(precedence,1)
  from RELATIONSHIP_MANUAL_SUPPLIER_DONE a join drug_concept_stage b on a.concept_name=b.concept_name and CONCEPT_ID is not null
   and b.concept_class_id='Supplier';
 
 insert into RELATIONSHIP_TO_CONCEPT (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE)
-select distinct b.CONCEPT_CODE, 'Lpd_Australia',c.CONCEPT_ID,rank () over (partition by b.CONCEPT_CODE order by c.concept_id)
+select distinct b.CONCEPT_CODE, 'LPD_Australia',c.CONCEPT_ID,rank () over (partition by b.CONCEPT_CODE order by c.concept_id)
 from manual_supp a join drug_concept_stage b on a.concept_name= b. concept_name
 join devv5.concept c on a.concept_id=c.concept_id 
 where b.concept_class_id = 'Supplier'
@@ -731,7 +731,7 @@ and (b.concept_code,c.concept_id) not in (select concept_code_1,concept_id_2 fro
 ;
 insert into RELATIONSHIP_TO_CONCEPT
 (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
-select distinct CONCEPT_CODE_1,'Lpd_Australia',CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR from aus_unit_done
+select distinct CONCEPT_CODE_1,'LPD_Australia',CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR from aus_unit_done
 ;
 
 

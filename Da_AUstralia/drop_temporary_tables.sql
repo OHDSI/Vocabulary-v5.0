@@ -1,7 +1,6 @@
 drop table drugs;
 drop table drugs_3;
 drop table non_drug;
-drop table pack_drug_product;
 drop table ingredients;
 drop table dose_form_test;
 drop table bn;
@@ -13,9 +12,5 @@ drop table ds_trainee_upd;
 drop table ds_trainee_upd_2;
 drop table relation_brandname_1;
 drop table RELATION_INGR_1;
-drop table relation_supp_manual;
 drop table ds_strength_trainee purge;
-drop table ds_stage_manual_all;
-drop table aus_dose_forms_done;
-drop table relation_to_concept_unit;
-drop table INGREDIENT_3;
+

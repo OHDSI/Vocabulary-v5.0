@@ -368,10 +368,16 @@ UNION
       OR    (NVL(numerator_value,0) != 0 AND COALESCE(numerator_unit,denominator_unit) IS NULL)
       -- if there is a concentration record there must be a unit in both numerator and denominator
 UNION
+       SELECT drug_concept_code,'Drug Comp Box, need to remove box_size'
+       FROM ds_stage ds
+       JOIN internal_relationship_stage i ON concept_code_1 = drug_concept_code
+       LEFT JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Dose Form'
+       WHERE box_size IS NOT NULL AND   concept_name IS NULL
+UNION
       -- as we don't have the mapping all the decives should be standard
       SELECT concept_code,  'non-standard devices'
       FROM drug_concept_stage
-      WHERE domain_id = 'Device' AND   standard_concept IS NULL
+      WHERE domain_id = 'Device' AND standard_concept IS NULL
 UNION
       --several attributes but should be the only one
       SELECT concept_code_1, 'several attributes but should be the only one'

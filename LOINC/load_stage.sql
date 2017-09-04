@@ -24,6 +24,7 @@ BEGIN
                                           pVocabularyVersion     => 'LOINC 2.61',
                                           pVocabularyDevSchema   => 'DEV_LOINC');
 END;
+/
 COMMIT;
 
 --2. Truncate all working tables
@@ -48,11 +49,12 @@ INSERT INTO concept_stage (concept_id,
           SUBSTR (COALESCE (CONSUMER_NAME,
 			CASE WHEN LENGTH(LONG_COMMON_NAME)>255 AND SHORTNAME IS NOT NULL THEN SHORTNAME ELSE LONG_COMMON_NAME END)
 			,1,255) AS concept_name,
-          CASE CLASSTYPE
-             WHEN '1' THEN 'Measurement'
-             WHEN '2' THEN 'Measurement'
-             WHEN '3' THEN 'Observation'
-             WHEN '4' THEN 'Observation'
+          CASE 
+             WHEN CLASSTYPE = '1' THEN 'Measurement'
+             WHEN CLASSTYPE = '2' and SCALE_TYP ='Qn' THEN 'Measurement'
+             WHEN CLASSTYPE = '2' and SCALE_TYP !='Qn' THEN 'Observation'
+             WHEN CLASSTYPE = '3' THEN 'Observation'
+             WHEN CLASSTYPE = '4' THEN 'Observation'
           END
              AS domain_id,
           v.vocabulary_id,
@@ -411,24 +413,28 @@ COMMIT;
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
+/
 COMMIT;
 
 --17 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
+/
 COMMIT;	
 
 --18 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
+/
 COMMIT;		 
 
 --19 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
+/
 COMMIT;
 
 --20 Set the proper concept_class_id for children of "Document ontology" (AVOF-352)

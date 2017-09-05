@@ -1,4 +1,4 @@
-﻿create table drugs as
+create table drugs as
 select distinct fo_prd_id,a.PRD_NAME,a.MAST_PRD_NAME,a.DOSAGE,a.UNIT,a.DOSAGE2,a.UNIT2,a.MOL_EID,a.MOL_NAME,b.MOL_NAME as MOL_NAME_2, ATCCODE,ATC_NAME,NFC_CODE,MANUFACTURER
 from fo_product_1_vs_2 a full outer join drug_mapping_1_vs_2 b on a.prd_eid=b.prd_eid;
 
@@ -81,7 +81,7 @@ insert into non_drug
 select * from drugs where regexp_like(mol_name, 'IUD|LEUCOCYTES|AMIDOTRIZOATE|BANDAGE');
 
 insert into non_drug
-select * from drugs where regexp_like(nfc_code,'VZT|VGB|VGA|VZY|VEA|VED|VEK|VZV') and fo_prd_id not in (select fo_prd_id from non_drug);
+select * from drugs where regexp_like(nfc_code,'VZT|VGB|VGA|VZY|VEA|VEK|VZV') and fo_prd_id not in (select fo_prd_id from non_drug);
 
  insert into non_drug
  select * from drugs where fo_prd_id in (58557,605075,19298,19308,25214,19317,586445,18816,33606,2043629,26893,2042567,2042566,2043068,2043069,2040332,2047035,2040625,588960,2040344,586387,2044122,588399,588398,2041031,606459,2050029,2041619,2048638,2048639,
@@ -220,7 +220,7 @@ from pack_drug_product_2 where
 nvl(regexp_substr(regexp_substr(upper(prd_name),'_.*'),'CAP|TAB|CREAM|PATCH|POWDER|SACHET|SUSP|INJ'),regexp_substr (upper(prd_name),'CAP|TABLET|CREAM|SYRUP|INJ|VAGINAL SUPPOSITORY')) is not null;
 update dose_form_test set dose_form = TRIM(upper(dose_form));
 delete from dose_form_test where dose_form is null;
-UPDATE dose_form_test SET dose_form= 'TABLET' WHERE dose_form LIKE 'TAB-%' OR dose_form LIKE 'TABSULE' OR  dose_form LIKE 'TABLET%' OR DOSE_FORM LIKE '%REPETAB%' OR DOSE_FORM LIKE '%TABL' OR regexp_like(DOSE_FORM ,'TAB(S)?') ;
+UPDATE dose_form_test SET dose_form= 'TABLET' WHERE dose_form LIKE 'TAB-%' OR dose_form LIKE 'TABSULE' OR  dose_form LIKE 'TABLET%' OR DOSE_FORM LIKE '%REPETAB%' OR DOSE_FORM LIKE '%TABL' OR regexp_like(DOSE_FORM ,'PAINT|TAB(S)?') ;
 UPDATE dose_form_test SET dose_form= 'EFFERVESCENT TABLET' WHERE dose_form LIKE '%EFFERVESCENT%TABLET%';
 UPDATE dose_form_test SET dose_form= 'CHEWABLE TABLET' WHERE dose_form LIKE '%CHEW%TAB%' OR DOSE_FORM LIKE '%ABLE%TAB%';
 UPDATE dose_form_test SET dose_form= 'CHEWING GUM' WHERE dose_form LIKE '%CHEW%GUM%';
@@ -300,6 +300,7 @@ DELETE FROM dose_form_test WHERE FO_PRD_ID IN (SELECT FO_PRD_ID FROM dose_form_t
 INSERT INTO dose_form_test SELECT * FROM dose_form_test_2;
 ;
 
+update dose_form_test set dose_form='TABLET' where fo_prd_id=2044386;
 --bn
 
 create table bn as
@@ -330,7 +331,7 @@ where new_name not like '%[%'
 ;
 
 delete bn where upper(trim(new_name)) in (select upper(trim(concept_name)) from devv5.concept where concept_class_id='Ingredient');
-delete bn where upper(trim(new_name)) in (select trim(INGREDIENT) from INGREDIENTs)
+delete bn where upper(trim(new_name)) in (select upper(trim(INGREDIENT)) from INGREDIENTs)
 ;
 
 delete  bn where new_name in ('MULTIVITAMIN','VITAMIN','ISOSORBIDE MONONITRATE-BC','D3');
@@ -342,7 +343,9 @@ update bn set new_name=regexp_replace (new_name, '(MOUTHWASH|PESSARY|\sENEMA|\[.
 where regexp_like (new_name, '(MOUTHWASH|PESSARY|\sENEMA|\[.*\])');
 update bn set new_name = 'MS CONTIN' where new_name='MS';
 update bn set new_name = 'IN A WINK' where new_name='IN';
-
+delete bn where upper(trim(new_name)) in (select upper(trim(concept_name)) from devv5.concept where concept_class_id='Ingredient');
+delete bn where upper(trim(new_name)) in (select upper(trim(INGREDIENT)) from INGREDIENTs)
+;
 
 --manufacturer
 
@@ -677,7 +680,10 @@ inner join devv5.CONCEPT_SYNONYM r on trim(lower(d.concept_name)) = trim(lower(C
 where  d.concept_class_id like '%Ingredient%' and concept_id in  (select concept_id from devv5.concept where VOCABULARY_ID like '%Rx%' and INVALID_REASON is null
 and concept_class_id like 'Ingredient%') and concept_code not in (select concept_code from RELATION_INGR_1)
 ;
- 
+ delete from RELATION_INGR_1 where concept_name='PARACETAMOL' and concept_id=1112807;
+ DELETE FROM RELATION_INGR_1 WHERE CONCEPT_NAME='RETINOL' AND CONCEPT_ID=19009540;
+ insert into RELATION_INGR_1 values ('FOLATE','19111620','Folic Acid');
+
 --adding all to realtionship_to_concept--
 
 truncate table RELATIONSHIP_TO_CONCEPT
@@ -875,10 +881,32 @@ SELECT concept_code_1,concept_code_2
               FROM ds_stage) ds
           ON drug_concept_code = concept_code_1   AND irs_cnt != ds_cnt)
 and  (concept_code_1,concept_code_2) not in (select drug_concept_code,ingredient_concept_code from ds_stage);    
+
+
+
+delete from internal_relationship_stage  where concept_code_1 in (
+select  distinct concept_code from drug_concept_stage  dcs
+join (
+SELECT concept_code_1
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+left join ds_stage on drug_concept_code = concept_code_1 
+where drug_concept_code is null
+union 
+SELECT concept_code_1
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+where concept_code_1 not in (SELECT concept_code_1
+                                  FROM internal_relationship_stage
+                                    JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form')
+) s on s.concept_code_1 = dcs.concept_code
+where dcs.concept_class_id = 'Drug Product' and invalid_reason is null )
+and concept_code_2 in (select concept_code from drug_concept_stage where concept_class_id='Supplier')
 ;
 
 
 
+commit;
 
 
 

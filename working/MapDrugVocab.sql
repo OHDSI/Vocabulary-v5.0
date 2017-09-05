@@ -210,12 +210,15 @@ truncate table pack_content_stage;
 truncate table drug_strength_stage;
 
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
-select distinct from_code,c.concept_code, dc.vocabulary_id, c.vocabulary_id,
+select distinct from_code, 
+first_value (c.concept_code) over (partition by from_code order by to_id),
+dc.vocabulary_id, 
+first_value (c.vocabulary_id) over (partition by from_code order by to_id),
 case when dc.concept_class_id in ('Ingredient','Brand Name','Suppier','Dose Form') then 'Source - RxNorm eq'
      else 'Maps to' end,
 sysdate,to_date ('20991231', 'yyyymmdd')  
 from map_drug m
-join drug_concept_stage dc on dc.conСЃept_code = m.from_code
+join drug_concept_stage dc on dc.conept_code = m.from_code
 join concept c on to_id = c.concept_id
 ;
 delete concept_stage 

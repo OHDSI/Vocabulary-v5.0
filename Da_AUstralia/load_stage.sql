@@ -1,4 +1,4 @@
-﻿create table drugs as
+create table drugs as
 select distinct fo_prd_id,a.PRD_NAME,a.MAST_PRD_NAME,a.DOSAGE,a.UNIT,a.DOSAGE2,a.UNIT2,a.MOL_EID,a.MOL_NAME,b.MOL_NAME as MOL_NAME_2, ATCCODE,ATC_NAME,NFC_CODE,MANUFACTURER
 from fo_product_1_vs_2 a full outer join drug_mapping_1_vs_2 b on a.prd_eid=b.prd_eid;
 
@@ -15,7 +15,6 @@ a.prd_eid= b.prd_eid
 UPDATE  DRUGS
 SET MANUFACTURER = (SELECT MANUFACTURER FROM DRUGS_3 WHERE DRUGS_3.FO_PRD_ID = DRUGS.FO_PRD_ID)
 ;
-
 UPDATE  DRUGS
 SET ATCCODE = (SELECT ATCCODE FROM DRUGS_3 WHERE DRUGS_3.FO_PRD_ID = DRUGS.FO_PRD_ID AND DRUGS_3.ATCCODE NOT IN ('%IMIQUIMOD%','-1','??'))
 ;
@@ -904,7 +903,12 @@ where concept_code_1 not in (SELECT concept_code_1
 where dcs.concept_class_id = 'Drug Product' and invalid_reason is null )
 and concept_code_2 in (select concept_code from drug_concept_stage where concept_class_id='Supplier')
 ;
-
+update ds_stage set box_size=NULL where drug_concept_code in (
+SELECT drug_concept_code
+       FROM ds_stage ds
+       JOIN internal_relationship_stage i ON concept_code_1 = drug_concept_code
+       LEFT JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Dose Form'
+       WHERE box_size IS NOT NULL AND   concept_name IS NULL)
 
 
 commit;

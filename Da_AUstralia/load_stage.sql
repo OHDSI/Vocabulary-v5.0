@@ -1,4 +1,4 @@
-create table drugs as
+﻿create table drugs as
 select distinct fo_prd_id,a.PRD_NAME,a.MAST_PRD_NAME,a.DOSAGE,a.UNIT,a.DOSAGE2,a.UNIT2,a.MOL_EID,a.MOL_NAME,b.MOL_NAME as MOL_NAME_2, ATCCODE,ATC_NAME,NFC_CODE,MANUFACTURER
 from fo_product_1_vs_2 a full outer join drug_mapping_1_vs_2 b on a.prd_eid=b.prd_eid;
 
@@ -15,6 +15,7 @@ a.prd_eid= b.prd_eid
 UPDATE  DRUGS
 SET MANUFACTURER = (SELECT MANUFACTURER FROM DRUGS_3 WHERE DRUGS_3.FO_PRD_ID = DRUGS.FO_PRD_ID)
 ;
+
 UPDATE  DRUGS
 SET ATCCODE = (SELECT ATCCODE FROM DRUGS_3 WHERE DRUGS_3.FO_PRD_ID = DRUGS.FO_PRD_ID AND DRUGS_3.ATCCODE NOT IN ('%IMIQUIMOD%','-1','??'))
 ;

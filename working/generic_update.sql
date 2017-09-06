@@ -136,6 +136,7 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'AMT' THEN 1
   WHEN c.vocabulary_id = 'GRR' THEN 0
   WHEN c.vocabulary_id = 'CVX' THEN 1
+  WHEN c.vocabulary_id = 'LPD_Australia' THEN 1
   ELSE 0 -- in default we will not deprecate
 END = 1
 ;

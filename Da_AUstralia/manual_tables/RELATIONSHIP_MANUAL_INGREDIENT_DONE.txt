@@ -1,0 +1,367 @@
+CONCEPT_NAME	DUMMY	CONCEPT_ID	RXNE_NAME	PRECEDENCE
+3,	1			
+16,	1			
+}?????	1			
+}	1			
+& 9~}	1			
+# 105903	1			
+# 110892	1			
+# 124268	1			
+# 124986	1			
+# 128205	1			
+# 130226	1			
+# 138272	1			
+# 138344	1			
+# 147844	1			
+# 154128	1			
+# 159363	1			
+# 164455	1			
+# 168105	1			
+# 17097	1			
+# 1802	1			
+# 18660	1			
+# 18670	1			
+# 306895	1			
+# 306901	1			
+# 306907	1			
+# 306913	1			
+# 306919	1			
+# 306925	1			
+# 306931	1			
+# 306937	1			
+# 306943	1			
+# 319520	1			
+# 32365	1			
+# 369614	1			
+# 38867	1			
+# 39043	1			
+# 43919	1			
+# 45966	1			
+# 61677	1			
+# 61683	1			
+# 61689	1			
+# 74839	1			
+# 81606	1			
+# 81612	1			
+# 8290	1			
+# 85770	1			
+# 85775	1			
+# 93058	1			
+# 99630	1			
+4,X	1			
+9V...~PT£	1			
+9V...~PT£	1			
+9V...~M@D	1			
+	1			
+ABSORBABLE GELATIN SPONGE	1			
+ANTIOXIDANTS	1			
+BITTERS~}	1			
+CARBOHYDRATE,Y	1			
+DIGESTIVE ENZYMES	1			
+FAT,~??????	1			
+FAT,¿	1			
+FAT,·	1			
+FAT,¿	1			
+FAT,©	1			
+FAT,¢°	1			
+FAT,±	1			
+FAT,FS	1			
+FAT,M	1			
+G3,M	1			
+HERBS~}	1			
+INSECT ALLERGEN EXTRACT	1			
+IRON, VITAMIN B12 AND FOLIC ACID	1			
+ISOFLAVONES	1			
+KETONES,	1			
+LEUCOCYTES,	1			
+MAGENTA	1			
+MINERALS,	1			
+MINERALS~}?????	1			
+MINERALS~}	1			
+MULTIENZYMES (LIPASE, PROTEASE ETC.)	1			
+ORDINARY SALT COMBINATIONS AND ANTIFLATULENTS	1			
+OTHERS	1			
+OVULATION TEST FOR MONOCLONAL AB TO LH IN URINE,}	1			
+PEPPER	1			
+PINUS	1			
+PROTEINS,~??!???	1			
+QUADRIVALENT (SPLIT VIRION)~}	1			
+TRACE ELEMENTS	1			
+TRACE ELEMENTS,	1			
+TRACE ELEMENTS,VF	1			
+TRIVALENT (SPLIT VIRION)~}	1			
+TRIVALENT (SURFACE AG)~}	1			
+VARIOUS	1			
+VITAMINS,¢¯	1			
+VITAMINS,AB	1			
+VITAMINS,QH	1			
+VITAMINS~}	1			
+WAX~}	1			
+Y & W-135 COMBINED~}	1			
+Y &...~M	1			
+ADRENALINE (EPINEPHRINE)		1343916	Epinephrine	
+ALISMA		43525880	Alisma plantago-aquatica subsp. orientale root extract	1
+ALISMA		43532995	Alisma plantago-aquatica top extract	2
+ALISMA		45776741	Alisma plantago-aquatica whole extract	3
+ALOES		960900	Aloe Extract	
+ALUMINIUM CHLOROHYDRATE		19030673	aluminum chlorhydrate	
+AMETHOCAINE		1036884	Tetracaine	
+AMIDOTRIZOATE		43563175	sodium amidotrizoate	
+AMINO ACIDS		19124969	Amino Acids	
+AMINO ACIDS,M		19124969	Amino Acids	
+AMOXYCILLIN		1713332	Amoxicillin	
+ANTHRAQUINONE GLYCOSIDES		19004212	Anthraquinone glycoside	
+ARCTIUM		42898350	Arctium lappa fruit extract	2
+ARCTIUM		42903466	Arctium lappa whole extract	1
+ARTIFICIAL TEARS AND OTHER INDIFFERENT PREPARATIONS		19127890	Inert Ingredients	
+ASCORBIC ACID (VIT C)		19011773	Ascorbic Acid	
+ASHWAGANDHA		935382	rennet	
+ASPARAGUS		40170402	asparagus allergenic extract	2
+ASPARAGUS		42900400	asparagus cochinchinesis tuber extract	3
+ASPARAGUS		43125996	Asparagus officinalis for homeopathic preparations	4
+ASPARAGUS		44784670	Asparagus adscendens root extract	1
+BACILLUS CALMETTE-GUERIN		19015423	BCG Vaccine	
+BACOPA		40221311	Bacopa monniera whole extract	2
+BACOPA		42898614	Bacopa monniera leaf extract	1
+BAMBOO		43525835	Bamboo extract	
+BEETROOT		43013522	Beta vulgaris extract	
+BENDROFLUAZIDE		1316354	Bendroflumethiazide	
+BENZHEXOL		43252083	Benzhexol	
+BILBERRY		1314955	Bilberry extract	
+BILE ACIDS AND SALTS		19024068	Bile Salts	
+BIOFLAVONOIDS		19024669	Bioflavonoids	
+BORAGE		1398740	Borage extract	
+BORATE		929698	boric acid	
+BOSWELLIA		40161071	boswellia preparation	
+BOTULINUM TOXIN - TYPE A		729855	Botulinum Toxin Type A	
+BUPLEURUM		42898493	Bupleurum chinense root extract	1
+BUPLEURUM		42898494	Bupleurum falcatum root extract	2
+BUTYLENE GLYCOL		42898184	"1,3-butylene glycol"	
+CAMPHOR~}		938205	Camphor	
+CASSIA		1307310	Cinnamon Preparation	3
+CASSIA		1359143	Cinnamon Bark	1
+CASSIA		42898749	Cassia fistula fruit extract	2
+CEPHAZOLIN		1771162	Cefazolin	
+CETOMACROGOL		43013775	Polyethylene Glycol 1000	
+CHLORBUTOL		19092412	Chlorobutanol	
+CHOLERA (STRAIN CVD 103-HGR) VACCINE,}		43560345	Vibrio cholerae	
+CHOLERA VACCINE (KILLED)		595252	Cholera Vaccine	
+CITRIC ACID,		950435	Citric Acid	
+CITRUS BIOFLAVONOIDS		19013754	citrus bioflavonoids	
+CLODRONATE		19024249	Clodronic Acid	
+COD-LIVER OIL		19101604	Cod Liver Oil	
+CORDYCEPS		19070923	Cordyceps sinensis preparation	1
+CORDYCEPS		45892323	Cordyceps gunnii fruiting body extract	2
+COXIELLA BURNETII VACCINE		43560051	Coxiella burnetii	2
+CRATAEGUS		19050237	crataegus extract	
+CYCLOSPORIN		19010482	Cyclosporine	
+DARBEPOETIN		1304643	darbepoetin alfa	
+DEATH ADDER ANTIVENOM		21014014	Death adder snake venom antiserum	
+DEXAMPHETAMINE		719311	Dextroamphetamine	
+DIBROMOPROPAMIDINE		19089408	dibrompropamidine	
+DIENOESTROL		925102	Dienestrol	
+DILL SEED OIL,		42899065	Dill Seed Oil	
+DIPHTHERIA VACCINE		529303	"diphtheria toxoid vaccine, inactivated"	
+DOCOSYLTRIMETHYLAMMONIUM CHLORIDE		43013947	behentrimonium	
+DONG QUAI		19017671	Ginseng Preparation	
+EFORMOTEROL		1196677	formoterol	
+ELECAMPANE		42899451	Inula helenium root extract	
+EMU		42899025	EMU OIL	
+ENOXAPARINE		1743222	Enoxacin	
+EPOETIN		1301125	Epoetin Alfa	1
+EPOETIN		19001311	epoetin beta	2
+EPOETIN		21014058	Epoetin delta	3
+EPOETIN		21014072	Epoetin theta	4
+EPOETIN		21014076	Epoetin zeta	5
+EPOETIN		43252047	Epoetin Lambda	6
+EPTACOG ALFA		1352141	Factor VIIa	
+ERYTHROSINE CI45430		19103082	Erythrosine	
+ETHERIFIED STARCHES		1036157	Starch	
+ETHINYLOESTRADIOL		1549786	Ethinyl Estradiol	
+EUPHRASIA		1304412	Euphrasia officinalis preparation	1
+EUPHRASIA		42904127	Euphrasia stricta extract	2
+FIBRE		911891	Fiber	
+FOLINATE		21014023	Disodium folinate	
+FRUSEMIDE		956874	Furosemide	
+FUNNEL-WEB SPIDER ANTIVENOM		21014007	Funnel web spider venom antiserum	
+GARCINIA QUAESITA		43532033	Mango extract	
+GENTAMICIN SULFATE (USP)		919345	Gentamicin Sulfate (USP)	
+GLUCOSE,		1560524	Glucose	
+GLUCOSE,X		1560524	Glucose	
+GLYCOLIC ACID		911638	glycolate	
+GONADOTROPHIN - CHORIONIC HUMAN		1563600	Chorionic Gonadotropin	
+GONADOTROPHIN - MENOPAUSAL HUMAN		43563232	human menopausal gonadotrophin	
+GUAIPHENESIN		1163944	Guaifenesin	
+HAEMATOPORPHYRIN		43563220	haematoporphyrine	
+HAEMOPHILUS B VACCINE		19113026	Haemophilus influenzae type b	
+HEXACHLOROPHANE		1768734	Hexachlorophene	
+HEXAMINE		904356	Methenamine	
+HORSERADISH		46276026	horseradish tree whole extract	
+HYDRASTIS		19013826	Hydrastis preparation	
+HYDROLYSED MILK PROTEIN - ALPHA CASOZEPINE ENRICHED		44506785	Caseins	
+HYDROXYBENZOATE		46234460	4-hydroxybenzoic acid	
+IMMUNOGLOBULIN - ANTI-D RHO		43126034	Human Immunoglobulin Anti-D	
+IMMUNOGLOBULIN - ANTITHYMOCYTE		19003476	Horse antihuman thymocyte gamma globulin	
+IMMUNOGLOBULIN - CYTOMEGALOVIRUS		586491	cytomegalovirus immune globulin	
+IMMUNOGLOBULIN - HEPATITIS B		501343	hepatitis B immune globulin	
+IMMUNOGLOBULIN - NORMAL		43563244	human immunoglobulin	
+IMMUNOGLOBULIN - RABIES		19135830	"rabies immune globulin, human"	
+IMMUNOGLOBULIN - TETANUS		35604680	Tetanus immune globulin	
+IMMUNOGLOBULIN - ZOSTER		543291	varicella-zoster immune globulin	
+INFLUENZA VACCINE		42903441	Influenza A virus	1
+INFLUENZA VACCINE		42903442	Influenza B virus	2
+IODOPROPYNYL BUTYLCARBAMATE		43531870	3-iodo-2-propynylbutylcarbamate	
+IRON CHELATE		19090159	"IRON,PEPTONIZED"	
+IRON POLYMALTOSE		1377898	Iron polysaccharide	
+ISOCETETH-20		43014113	isoceteth 20	
+ISOPHANE INSULIN		46221581	"insulin, isophane"	
+JAPANESE ENCEPHALITIS VACCINE INACTIVATED		19047598	"Japanese encephalitis virus vaccine, inactivated"	
+LACTOBACILLUS SPP		987128	Lactobacillus	
+LEPTOSPERMUM		42899518	Leptospermum petersonii leaf oil extract	
+LIGNOCAINE		989878	Lidocaine	
+LINSEED		1315342	Flaxseed extract	
+LYCOPERSICON		43013842	Solanum lycopersicum extract	
+LYSINE~}		19092377	Lysine	
+MACROGOL, COMBINATIONS		948515	Polyethylene Glycols	
+MACROGOLS		948515	Polyethylene Glycols	
+MAGNOLIA OFFICINALIS		42899334	Magnolia officinalis flower extract	
+MALDISON		993979	Malathion	
+MANDARIN		35603641	Citrus reticulata whole extract	
+MEDIUM CHAIN...~		42899398	Medium chain triglycerides	
+MEDIUM CHAIN...~¡§		42899398	Medium chain triglycerides	
+MEDIUM CHAIN...~ ¿		42899398	Medium chain triglycerides	
+MEDIUM CHAIN...~³		42899398	Medium chain triglycerides	
+MEDIUM CHAIN...~		42899398	Medium chain triglycerides	
+MELALEUCA		40221068	Melaleuca cajuputi leaf oil	4
+MELALEUCA		42899376	Melaleuca quinquenervia leaf oil	6
+MELALEUCA		42899420	Melaleuca alternifolia leaf extract	2
+MELALEUCA		43526876	Melaleuca ericifolia leaf oil	5
+MELALEUCA		43560198	Melaleuca alternifolia flowering top extract	1
+MELALEUCA		44785700	MELALEUCA ALTERNIFOLIA WHOLE EXTRACT	3
+MENINGOCOCCAL VACCINE		19016540	MENINGOCOCCAL VACCINE B	
+METHOHEXITONE		19005015	Methohexital	
+METHYLPHENOBARBITONE		702685	Mephobarbital	
+MITOZANTRONE		1309188	Mitoxantrone	
+MIXED GRASS POLLENS. GRASS POLLEN ALLERGEN EXTRACT FROM COCKSFOOT,M??????@D??????		21014026	Grass pollen	
+MIXED GRASS POLLENS. GRASS POLLEN ALLERGEN EXTRACT FROM COCKSFOOT,M@D		21014026	Grass pollen	
+MULTIVITAMINS AND IRON		21014096	Multivitamin preparation	
+MULTIVITAMINS AND OTHER MINERALS, INCL. COMBINATIONS		21014096	Multivitamin preparation	
+MURRAYA PANICULATA		35603843	Myricaria paniculata stem extract	
+OCTYL METHOXYCINNAMATE		915391	Octinoxate	
+OESTRADIOL		1548195	Estradiol	
+OESTRIOL		19049038	Estriol	
+OESTROGENS - CONJUGATED		1549080	"Estrogens, Conjugated (USP)"	
+OLEA EUROPAEA		43526293	Olea europaea whole extract	
+OMEGA-3 TRIGLYCERIDES		19106973	Omega-3 Fatty Acids	
+ORTHO-DICHLOROBENZENE		19058341	Dichlorobenzene	
+OXPENTIFYLLINE		1331247	Pentoxifylline	
+PAEONIA		35604868	Paeonia suffruticosa flower oil	6
+PAEONIA		42899587	Paeonia lactiflora root extract	2
+PAEONIA		42899588	Paeonia officinalis root extract	4
+PAEONIA		42899589	Paeonia suffruticosa root bark extract	7
+PAEONIA		42899590	Paeonia suffruticosa root extract	8
+PAEONIA		43526289	Paeonia veitchii root extract	9
+PAEONIA		44814384	Paeonia lactiflora whole extract	3
+PAEONIA		44814385	Paeonia officinalis whole extract	5
+PAEONIA		45776221	Paeonia lactiflora flower extract	1
+PARA-DICHLOROBENZENE		21014109	Paradichlorobenzene	
+PARACETAMOL, COMBINATIONS EXCL. PSYCHOLEPTICS		1125315	Acetaminophen	
+PAU D'ARCO		19027075	Pau d'arco preparation	
+PENTOBARBITONE		730729	Pentobarbital	
+PERNA CANALICULUS		42899684	New Zealand green mussel extract	
+PHENOBARBITONE		734275	Phenobarbital	
+PHENYLEPHRINE, COMBINATIONS		1135766	Phenylephrine	
+PHENYLPROPANOLAMINE, COMBINATIONS		1139993	Phenylpropanolamine	
+PICOSULFATE		45775584	picosulfurate	
+PLASTIC IUD WITH COPPER		19071128	Copper	
+PLUM		19072155	Plum Preparation	
+POLIOMYELITIS VACCINE - INACTIVATED		43532418	Human poliovirus	
+POLIOMYELITIS VACCINE - LIVE ATTENUATED		43532418	Human poliovirus	
+POLYGONUM CUSPIDATUM		42899950	Polygonum cuspidatum root extract	2
+POLYGONUM CUSPIDATUM		43526319	Polygonum cuspidatum whole extract	3
+POLYGONUM CUSPIDATUM		44814593	polygonum cuspidatum leaf extract	1
+POLYOXYL HYDROGENATED CASTOR OILS		42899576	POLYOXYL 40 HYDROGENATED CASTOR OIL	1
+POLYOXYL HYDROGENATED CASTOR OILS		42899578	POLYOXYL 60 HYDROGENATED CASTOR OIL	3
+POLYOXYL HYDROGENATED CASTOR OILS		43532079	POLYOXYL 50 HYDROGENATED CASTOR OIL	2
+POMEGRANATE		1315003	Pomegranate Extract	1
+POMEGRANATE		42709326	POMEGRANATE FRUIT EXTRACT	2
+POMEGRANATE		42899579	POMEGRANATE SEED OIL	5
+POMEGRANATE		42899864	Pomegranate fruit rind extract	3
+POMEGRANATE		42904274	POMEGRANATE JUICE	4
+PROCAINE PENICILLIN		19126544	Penicillin	
+PRUNUS AVIUM		40172584	sweet cherry allergenic extract	1
+PRUNUS AVIUM		42898599	CHERRY JUICE	2
+PRUNUS SEROTINA		42899962	Prunus serotina bark extract	1
+PRUNUS SEROTINA		42899963	Prunus serotina fruit extract	2
+RABIES VACCINE		46234308	Rabies virus	
+REHMANNIA		42899772	Rehmannia glutinosa root extract	1
+REHMANNIA		44814419	Rehmannia glutinosa whole extract	2
+RICE		40172600	rice allergenic extract	
+ROSEMARY		42903897	rosemary extract	
+SALCATONIN		1537655	salmon calcitonin	
+SALIX		36249385	Salix alba whole extract	6
+SALIX		42899712	Salix alba bark extract	1
+SALIX		42899713	Salix alba flowering top extract	4
+SALIX		42899714	Salix alba leaf extract	5
+SALIX		42899734	SALIX ALBA BARK VOLATILE OIL	2
+SALIX		42903421	Salix nigra bark extract	8
+SALIX		43563174	"salix viminalis bark,leaf ferm extract"	10
+SALIX		44814431	Salix purpurea bark extract	9
+SALIX		44816296	Salix alba flower extract	3
+SALIX		45892775	Salix babylonica whole extract	7
+SAMBUCUS		35603511	Sambucus nigra subsp. cerulea fruit extract	5
+SAMBUCUS		42899720	SAMBUCUS NIGRA FLOWERING TOP	3
+SAMBUCUS		42899721	Sambucus nigra subsp. canadensis flowering top extract	4
+SAMBUCUS		42904069	Sambucus nigra flower extract	2
+SAMBUCUS		43012403	Sambucus nigra whole extract	6
+SAMBUCUS		43526356	Sambucus canadensis flower extract	1
+SEA BUCKTHORN		42899105	Hippophae rhamnoides fruit extract	1
+SEA BUCKTHORN		42899121	HIPPOPHAE RHAMNOIDES FRUIT JUICE	2
+SEA BUCKTHORN		42899122	HIPPOPHAE RHAMNOIDES FRUIT OIL	3
+SEA BUCKTHORN		42899123	HIPPOPHAE RHAMNOIDES SEED OIL	4
+SEA BUCKTHORN		42904181	Hippophae rhamnoides whole extract	5
+SEAWEED		43014229	seaweed extract	
+SESAME		42904240	Sesame extract	
+SHARK-LIVER OIL		961304	Shark liver oil	
+SLIPPERY ELM		19098722	SLIPPERY ELM BARK	
+SODIUM PICOSULFATE, COMBINATIONS		19025115	picosulfate sodium	
+SODIUM-2-PYRROLIDONE CARBOXYLATE		19135845	Pyrrolidonecarboxylic Acid	
+SOLIDAGO		42899753	Solidago virgaurea pollen extract	4
+SOLIDAGO		42900077	Solidago canadensis flowering top extract	1
+SOLIDAGO		42900078	Solidago virgaurea flowering top extract	3
+SOLIDAGO		42903632	Solidago canadensis whole extract	2
+SOLIDAGO		46275329	Solidago virgaurea whole extract	5
+SOYA BEAN		19007600	Soybean preparation	
+TAGETES		42900218	Tagetes erecta flower extract	1
+TAGETES		43012993	Tagetes minuta flower oil	3
+TAGETES		45774892	Tagetes erecta whole extract	2
+TAMARIND		46234396	Tamarind extract	
+TETANUS VACCINE		529411	"tetanus toxoid vaccine, inactivated"	
+TETRACOSACTRIN		19011988	"ADRENOCORTICOTROPIN (ACTH 1-18),I-125 (TYR)"	
+THUJA		19082629	Thuja occidentalis preparation	4
+THUJA		42900080	Thuja occidentalis bark extract	1
+THUJA		42900081	Thuja occidentalis leaf extract	2
+THUJA		42900082	Thuja occidentalis leafy twig extract	3
+THUJA		42900083	Thuja occidentalis root extract	5
+THUJA		42900084	Thuja plicata leaf extract	7
+THUJA		42904249	Thuja occidentalis whole extract	6
+THYROXINE		1501700	levothyroxine	2
+THYROXINE		19022003	Dextrothyroxine	1
+TOCOTRIENOL		43532489	"tocotrienol, alpha"	
+TRIAMCINOLONE AND ANTIBIOTICS		903963	Triamcinolone	
+TRIETHANOLAMINE SALICYLATE		942691	triethanolamine	
+TYPHOID (STRAIN TY2) VI POLYSACCHARIDE VACCINE		532881	"Typhoid Vi Polysaccharide Vaccine, S typhi Ty2 strain"	
+TYPHOID (STRAIN TY21A) VACCINE,}		523202	Typhoid Vaccine Live Ty21a	
+TYPHOID VACCINE (INACTIVATED)		43252064	Salmonella Typhi Inactivated Antigen	
+UNDECYLENAMIDE		42903729	UNDECYLENIC ACID MONOETHANOLAMIDE	
+URTICA		1315629	Urtica preparation	
+VERATRUM		19007200	Veratrum Viride Preparation	5
+VERATRUM		19071831	VERATRUM ALBUM Preparation	1
+VERATRUM		42899987	Veratrum album root extract	2
+VERATRUM		42899988	Veratrum viride root extract	6
+VERATRUM		44785817	Veratrum nigrum flowering top extract	4
+VERATRUM		46276353	Veratrum album whole extract	3
+YEAST		42478663	Dried yeast	
+ZINC BANDAGE WITHOUT SUPPLEMENTS		19010696	Zinc	
+ZIZYPHUS		43532231	Ziziphus extract	
+ZOLEDRONATE		1524674	zoledronic acid	

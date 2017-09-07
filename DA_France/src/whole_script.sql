@@ -118,9 +118,10 @@ update brand set concept_name ='DOMPERIDONE ZENTIVA' where concept_name like 'DO
 
 CREATE TABLE Forms AS (
 SELECT distinct  trim(DOSE_FORM_NAME) AS concept_name, 'Dose Form' as concept_class_id
-FROM france_names_translation  -- munual translations
-where DOSE_FORM not in (select LB_NFC_3 from  non_drugs
-));
+FROM france_names_translation  a join france_1 b on a.dose_form=b.LB_NFC_3
+where b.MOLECULE !='NULL' and pfc not in (select pfc from non_drugs)
+and trim(DOSE_FORM_NAME) not in('Dose Form for Promotional Purposes','Miscellaneous External Form','Unknown Form')
+);
 
 
 
@@ -226,6 +227,7 @@ insert into internal_relationship_stage
 select distinct pfc, concept_code
 from france_1 a join france_names_translation b on a.LB_NFC_3=b.DOSE_FORM
 join drug_concept_stage c on b.dose_form_name = c.concept_name and concept_class_id='Dose Form'
+where pfc in (select concept_code from drug_concept_stage where concept_class_id='Drug Product')
 ;
 commit;
 --fill ds_stage
@@ -434,7 +436,10 @@ update ds_complex set volume='24H', unit='MCG' where pfc in (2521201,3750501)
 
 update ds_complex set volume='30DOS',unit='Y' where pfc=5351301
 ;
-
+UPDATE DS_COMPLEX   SET STRENGTH = '10', UNIT = 'MG' WHERE PFC = '1390401' AND   INGRED = 'LIDOCAINE';
+UPDATE DS_COMPLEX   SET STRENGTH = '20', UNIT = 'MG' WHERE PFC = '1390404' AND   INGRED = 'LIDOCAINE';
+UPDATE DS_COMPLEX   SET STRENGTH = '10', UNIT = 'MG' WHERE PFC = '9667649' AND   INGRED = 'LIDOCAINE';
+UPDATE DS_COMPLEX   SET UNIT = 'MG' WHERE PFC = '9667671' AND   INGRED = 'LIDOCAINE';
 
 
 insert into DS_STAGE (drug_concept_code,ingredient_concept_code,numerator_value,numerator_unit,denominator_value,denominator_unit,box_size)
@@ -549,48 +554,53 @@ where ingredient_concept_code in (select concept_code from drug_concept_stage wh
 and drug_concept_code='4671001'
 ;
 delete from ds_stage where drug_concept_code ='2935001';
-COMMIT;--fill RLC
+COMMIT;
+--fill RLC
 --Ingredients
-
-select distinct a.concept_code as concept_code_1,'DA_France',f.concept_id as concept_id_2 , rank() over (partition by a.concept_code order by f.concept_id) as precedence 
+drop table relationship_ingrdient;
+create table relationship_ingrdient as 
+select distinct a.concept_code as concept_code_1,f.concept_id as concept_id_2 
 from drug_concept_stage a join devv5.concept c 
 on upper (c.concept_name) = upper(a.concept_name) and c.concept_class_id in ( 'Ingredient' , 'VTM', 'AU Substance')
 join devv5.concept_relationship b on c.concept_id =concept_id_1
 join devv5.concept f on f.concept_id=concept_id_2
 where f.vocabulary_id like 'Rx%' and f.standard_concept='S'
 and f.concept_class_id = 'Ingredient'
-and a.concept_name like 'CYANOCOBALAMIN'
+and a.concept_class_id='Ingredient'
 ;
-
-
-insert into relationship_to_concept 
-select distinct a.concept_code,a.VOCABULARY_ID,c.concept_id,
-rank() over (partition by a.concept_code order by concept_id_2) as precedence,
-'' as conversion_factor
+insert into relationship_ingrdient
+select distinct a.concept_code,c.concept_id
 from drug_concept_stage a 
 join ingredient_all_completed b on a.concept_name=b.concept_name
 join devv5.concept c on c.concept_id=concept_id_2
 where a.concept_class_id='Ingredient'
 and (b.concept_name,concept_id_2) not in (select concept_name,concept_id_2 from drug_concept_stage 
-join relationship_to_concept on concept_code=concept_code_1 and concept_class_id='Ingredient')
+join relationship_ingrdient on concept_code=concept_code_1 and concept_class_id='Ingredient')
+;
+insert into relationship_to_concept 
+select concept_code_1,'DA_France', CONCEPT_ID_2,rank() over (partition by concept_code_1 order by concept_id_2) as precedence,
+'' as conversion_factor
+from relationship_ingrdient a join concept on concept_id_2=concept_id where standard_concept='S'
 ;
 
 --Brand Names
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1,concept_id_2, precedence)
-with a as (
+drop table relationship_bn;
+create table relationship_bn as 
 select a.concept_code as concept_code_1,c.concept_id as concept_id_2 
 from drug_concept_stage a join devv5.concept c 
 on upper (c.concept_name) = upper(a.concept_name) and c.concept_class_id = 'Brand Name' and c.vocabulary_id like 'Rx%' and c.invalid_reason is null
 where a.concept_class_id = 'Brand Name'
-),
-b as (
-select concept_code,cast(concept_id_2 as number)
-from  brand_names_manual a join drug_concept_stage b on upper(a.concept_name) =upper(b.concept_name)
-and (concept_code,concept_id_2) not in (select concept_code_1,concept_id_2 from relationship_to_concept)
-)
-select concept_code_1, 'DA_France',concept_id_2, rank() over (partition by concept_code_1 order by concept_id_2)
-from (select concept_code_1,concept_id_2 from a union select * from b)
 ;
+insert into relationship_bn
+select b.concept_code,cast(concept_id_2 as number)
+from  brand_names_manual a join drug_concept_stage b on upper(a.concept_name) =upper(b.concept_name)
+join concept c on cast(concept_id_2 as number)=concept_id and c.invalid_reason is null
+and (b.concept_code,concept_id_2) not in (select concept_code_1,concept_id_2 from relationship_bn)
+
+;
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1,concept_id_2, precedence)
+select concept_code_1,'DA_France',concept_id_2, rank() over (partition by concept_code_1 order by concept_id_2)
+from relationship_bn;
 
 
 
@@ -663,6 +673,15 @@ SELECT concept_code_1,concept_code_2
           ON drug_concept_code = concept_code_1   AND irs_cnt != ds_cnt)
 and  (concept_code_1,concept_code_2) not in (select drug_concept_code,ingredient_concept_code from ds_stage)        
 ;
+update ds_stage set box_size=NULL where drug_concept_code in (
+SELECT drug_concept_code
+       FROM ds_stage ds
+       JOIN internal_relationship_stage i ON concept_code_1 = drug_concept_code
+       LEFT JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Dose Form'
+       WHERE box_size IS NOT NULL AND   concept_name IS NULL)
+;
+
+
 
 
 
@@ -734,4 +753,6 @@ join internal_relationship_stage on concept_code_1 = concept_code
 where concept_class_id ='Ingredient' and standard_concept is not null);
 
 commit;
+
+
 commit; 

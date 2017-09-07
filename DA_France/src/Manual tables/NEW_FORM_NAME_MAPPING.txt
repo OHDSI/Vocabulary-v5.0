@@ -596,3 +596,7 @@ Oral Metered Dose Topical Aerosol	19082170	3	Oral Solution
 Oral Metered Dose Topical Powder	19095976	1	Oral Powder
 Oral Metered Dose Topical Powder	19082170	2	Oral Solution
 Oral Metered Dose Topical Powder	19082191	3	Oral Suspension
+Topical Bandage	46234410	2	Topical Suspension
+Topical Bandage	19082229	3	Transdermal System
+Topical Bandage	19082228	1	Topical Solution
+Roll on Stick	21014170	1	Stick

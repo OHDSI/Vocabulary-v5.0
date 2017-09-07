@@ -113,6 +113,14 @@ SELECT concept_code_1,concept_code_2
 and  (concept_code_1,concept_code_2) not in (select drug_concept_code,ingredient_concept_code from ds_stage)        
 ;
 
+update ds_stage set box_size=NULL where drug_concept_code in (
+SELECT drug_concept_code
+       FROM ds_stage ds
+       JOIN internal_relationship_stage i ON concept_code_1 = drug_concept_code
+       LEFT JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Dose Form'
+       WHERE box_size IS NOT NULL AND   concept_name IS NULL)
+;
+
 
 
 

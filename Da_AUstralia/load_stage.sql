@@ -1,4 +1,4 @@
-create table drugs as
+﻿create table drugs as
 select distinct fo_prd_id,a.PRD_NAME,a.MAST_PRD_NAME,a.DOSAGE,a.UNIT,a.DOSAGE2,a.UNIT2,a.MOL_EID,a.MOL_NAME,b.MOL_NAME as MOL_NAME_2, ATCCODE,ATC_NAME,NFC_CODE,MANUFACTURER
 from fo_product_1_vs_2 a full outer join drug_mapping_1_vs_2 b on a.prd_eid=b.prd_eid;
 
@@ -909,6 +909,7 @@ SELECT drug_concept_code
        JOIN internal_relationship_stage i ON concept_code_1 = drug_concept_code
        LEFT JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Dose Form'
        WHERE box_size IS NOT NULL AND   concept_name IS NULL)
+;
 
 
 commit;

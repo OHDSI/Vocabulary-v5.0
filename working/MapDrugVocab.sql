@@ -1,3 +1,7 @@
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'r_existing', cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'ex', cascade  => true);
+exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'concept_relationship_stage', cascade  => true);
+
 drop table map_drug;
 create table map_drug as
 select from_code, to_id, '00' as map_order
@@ -218,7 +222,7 @@ case when dc.concept_class_id in ('Ingredient','Brand Name','Suppier','Dose Form
      else 'Maps to' end,
 sysdate,to_date ('20991231', 'yyyymmdd')  
 from map_drug m
-join drug_concept_stage dc on dc.conept_code = m.from_code
+join drug_concept_stage dc on dc.concept_code = m.from_code
 join concept c on to_id = c.concept_id
 ;
 delete concept_stage 

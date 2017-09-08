@@ -527,6 +527,10 @@ FROM (
             else case when c.standard_concept = 'S' then 1 else 0 end 
             end	                    
 		when 'CVX' then 1
+        when 'PPI' then 
+            case when c.invalid_reason is not null then 0
+            else case when concept_class_id in ('Topic','Module','PPI Modifier') then 2 else 1 end
+            end
 		else -- flat list
           case
             when c.standard_concept is null then 0

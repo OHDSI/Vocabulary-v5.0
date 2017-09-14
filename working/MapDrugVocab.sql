@@ -233,14 +233,17 @@ truncate table pack_content_stage;
 truncate table drug_strength_stage;
 
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
-select distinct from_code, c.concept_code, dc.vocabulary_id, c.vocabulary_id,
+select from_code, c.concept_code, dc.vocabulary_id, c.vocabulary_id,
 case when dc.concept_class_id in ('Ingredient','Brand Name','Suppier','Dose Form') then 'Source - RxNorm eq'
      else 'Maps to' end,
 sysdate,to_date ('20991231', 'yyyymmdd')  
 from map_drug m
 join drug_concept_stage dc on dc.concept_code = m.from_code
 join concept c on to_id = c.concept_id
+union
+select concept_code, concept_code, vocabulary_id, vocabulary_id, 'Maps to', sysdate,to_date ('20991231', 'yyyymmdd')  
+from drug_concept_stage where domain_id = 'Device'
 ;
 delete concept_stage 
-where concept_code not in (select from_code from map_drug)
+where concept_code not in (select from_code from map_drug) and domain_id = 'Drug' --save devices
 ;

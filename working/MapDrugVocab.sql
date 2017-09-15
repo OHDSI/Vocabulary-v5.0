@@ -245,5 +245,5 @@ select concept_code, concept_code, vocabulary_id, vocabulary_id, 'Maps to', sysd
 from drug_concept_stage where domain_id = 'Device'
 ;
 delete concept_stage 
-where concept_code not in (select from_code from map_drug) and domain_id = 'Drug' --save devices
+where concept_code like 'OMOP%' --save devices and unmapped drug
 ;

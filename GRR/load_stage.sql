@@ -51,7 +51,7 @@ AS
          ELSE fcc||'_'||to_char(to_date(product_launch_date,'dd.mm.yyyy'),'mmddyyyy')
          END AS fcc,
        LTRIM(pzn,'0') AS pzn,therapy_name_code,therapy_name, product_no,product_launch_date,product_form,product_form_name,strength,strength_unit,volume,volume_unit,packsize,form_launch_date,out_of_trade_date, manufacturer,manufacturer_name, manufacturer_short_name,who_atc5_code, who_atc5_text, who_atc4_code, who_atc4_text,who_atc3_code,who_atc3_text,who_atc2_code, who_atc2_text, who_atc1_code,who_atc1_text, substance, no_of_substances,nfc_no,nfc,nfc_description
-FROM source_data);
+FROM source_data_v2);
 
 --non_drug
 CREATE TABLE grr_non_drug 
@@ -131,15 +131,16 @@ SELECT fcc, therapy_name
 FROM source_data_1
 WHERE INITCAP(substance) IN ('Anti-Dandruff Shampoo','Kidney Stones','Acrylic Resin','Anti-Acne Soap','Antifungal','Antioxidants','Arachnoidae','Articulation','Bath Oil','Breath Freshners','Catheters','Clay','Combination Products','Corn Remover','Creams (Basis)','Cresol Sulfonic Acid Phenolsulfonic Acid Urea-Formaldehyde Complex','Decongestant Rubs','Electrolytes/Replacers','Eye Make-Up Removers','Fish','Formaldehyde And Phenol Condensation Product','Formosulfathiazole,Herbal','Hydrocolloid','Infant Food Modified','Iocarmic Acid','Ioglicic Acid','Iopronic Acid','Iopydol','Iosarcol','Ioxitalamic Acid','Iud-Cu Wire & Au Core','Lipides','Lipids','Low Calorie Food','Massage Oil','Medicinal Mud','Minerals','Misc.Allergens (Patient Requirement)','Mumio','Musculi','Nasal Decongestants','Non-Allergenic Soaps','Nutritional Supplements','Oligo Elements','Other Oral Hygiene Preparations','Paraformaldehyde-Sucrose Complex','Polymethyl Methacrylate','Polypeptides','Purgative/Laxative','Quaternary Ammonium Compounds','Rock','Saponine','Shower Gel','Skin Lotion','Sleep Aid','Slug','Suxibuzone','Systemic Analgesics','Tonics','Varroa Destructor','Vasa','Vegetables Extracts');
 
+--drugs without ingredients
+insert into grr_non_drug (fcc,brand_name)
+select FCC,BRAND_NAME||INTL_PACK_FORM_DESC from grr_new_3 where molecule is null;
+
 --deleting non-drugs from working tables
 DELETE grr_new_3
 WHERE fcc IN (SELECT fcc FROM grr_non_drug);
 DELETE source_data_1
 WHERE fcc IN (SELECT fcc FROM grr_non_drug);
 
---delete drugs without ingredients
-DELETE grr_new_3
-WHERE molecule IS NULL;
 
 --creating table with packs
 CREATE TABLE grr_pack_0 
@@ -150,7 +151,8 @@ FROM grr_ds a
 WHERE a.fcc IN (SELECT fcc
                 FROM grr_ds
                 GROUP BY fcc,molecule
-                HAVING COUNT(1) > 1 --and regexp_like (FORM_DESC,'/|KOMBI PCKG|TAB.R.CHRONO'));
+                HAVING COUNT(1) > 1 --and regexp_like (FORM_DESC,'/|KOMBI PCKG|TAB.R.CHRONO')
+);
 
 DELETE grr_pack_0
 WHERE NOT REGEXP_LIKE (FORM_DESC,'/|TAB.R.CHRONO|CHRONOS');
@@ -165,10 +167,9 @@ FROM grr_pack_0 b
     ON b.fcc = lng.fcc AND lng.lng = (LENGTH (b.brand_name))
 ORDER BY b.fcc;
 
-DROP TABLE grr_pack_2;
 
 CREATE TABLE grr_pack_2 AS
-SELECT fcc, box_size,  molecule, DENOMINATOR_VALUE, DENOMINATOR_UNIT, AMOUNT_VALUE,AMOUNT_UNIT,brand_name, molecule|| ' ' ||AMOUNT_VALUE||AMOUNT_UNIT|| ' ' ||box_size|| '[' ||brand_name|| ']' AS drug_name
+SELECT fcc, box_size,  molecule, DENOMINATOR_VALUE, DENOMINATOR_UNIT, AMOUNT_VALUE,AMOUNT_UNIT,brand_name, case when box_size is not null then molecule|| ' ' ||AMOUNT_VALUE||' '||AMOUNT_UNIT|| ' ' ||' box of '||box_size|| '[' ||brand_name|| ']' else molecule|| ' ' ||AMOUNT_VALUE||' '||AMOUNT_UNIT|| ' [' ||brand_name|| ']'  end AS drug_name
 FROM grr_pack_1;
 
 --fix existing bias from original data
@@ -365,7 +366,7 @@ UPDATE grr_bn
    SET bn = TRIM(REGEXP_REPLACE(bn,'\(.*'));
 UPDATE grr_bn
    SET bn = TRIM(REGEXP_REPLACE(bn,'(\d+\.)?\d+\%.*'))
-WHERE REGEXP_LIKE (bn,'\d+\%')
+WHERE REGEXP_LIKE (bn,'\d+\%');
 
 --delete 5%;
 UPDATE grr_bn
@@ -396,12 +397,16 @@ WHERE INITCAP(bn) IN ('Oestradiol','Nalorphin','Oestriol','Cholesterin','Cephazo
 
 DELETE grr_bn_2
 WHERE REGEXP_LIKE (bn,'BLAEHUNGSTABLETTEN|KOMPLEX|GALGANTTABL|PREDNISOL\.|LOESG|ALBUMIN|BABY|ANDERE|--|/|ACID.*\.|SCHLAFTABL\.|VIT.B12\+|RINGER|M8V|F4T|\. DHU|TABACUM|A8X|CA2|GALLE|BT5|KOCHSALZ|V3P|D4F|AC9|B9G|BC4|GALLE-DR\.|\+|SCHUESSL BIOCHEMIE|^BIO\.|BLAS\.|SILIC\.|KPK|CHAMOMILLA|ELEKTROLYT|AQUA|KNOBLAUCH|FOLSAEURE|VITAMINE|/|AQUA A|LOESUNG')
-AND   NOT REGEXP_LIKE (bn,'PHARM|ABTEI|HEEL|INJEE|HEUMANN|MERCK|BLUESFISH|WESTERN|PHARMA|ZENTIVA|PFIZER|PHARMA|MEDE|MEDAC|FAIR|HAMELN|ACCORD|RATIO|AXCOUNT|STADA|SANDOZ|SOLVAY|GLENMARK|APOTHEKE|HEXAL|TEVA|AUROBINDO|ORION|SYXYL|NEURAX|KOHNE|ACTAVIS|CLARIS|NOVUM|ABZ|AXCOUNT|MYLAN|ARISTO|KABI|BENE|HORMOSAN|ZENTIVA|PUREN|BIOMO|ACIS|RATIOPH|SYNOMED|ALPHA|ROTEXMEDICA|BERCO|DURA|DAGO|GASTREU|FORTE|VITAL|VERLA|ONKOVIS|ONCOTRADE|NEOCORP') DELETE grr_bn_2 WHERE REGEXP_LIKE (bn,'TROPFEN|TETANUS|FAKTOR| KAPSELN|RNV|COMPOSITUM| SC | CARBON|COMPLEX|SLR| PUR|OLEUM|FERRUM|ROSMARIN|SYND|NATRIUM|BIOCHEMIE|URTICA|VALERIANA|DULCAMARA|SALZ| LH| DHU|HERBA|SULFUR|TINKTUR|PRUNUS|ZEMENT|KALIUM|ALUMIN|SOLUM| AKH| A1X| SAL| DHU|B\d|FLOR| ANTIDOT|ˆARNICA|ˆKAMILLEN')
-AND   NOT REGEXP_LIKE (bn,'PHARM|ABTEI|HEEL|INJEE|HEUMANN|MERCK|BLUESFISH|WESTERN|PHARMA|ZENTIVA|PFIZER|PHARMA|MEDE|MEDAC|FAIR|HAMELN|ACCORD|RATIO|AXCOUNT|STADA|SANDOZ|SOLVAY|GLENMARK|APOTHEKE|HEXAL|TEVA|AUROBINDO|ORION|SYXYL|NEURAX|KOHNE|ACTAVIS|CLARIS|NOVUM|ABZ|AXCOUNT|MYLAN|ARISTO|KABI|BENE|HORMOSAN|ZENTIVA|PUREN|BIOMO|ACIS|RATIOPH|SYNOMED|ALPHA|ROTEXMEDICA|BERCO|DURA|DAGO|GASTREU|FORTE|VITAL|VERLA|ONKOVIS|ONCOTRADE|NEOCORP|( AWD$)');
+AND   NOT REGEXP_LIKE (bn,'PHARM|ABTEI|HEEL|INJEE|HEUMANN|MERCK|BLUESFISH|WESTERN|PHARMA|ZENTIVA|PFIZER|PHARMA|MEDE|MEDAC|FAIR|HAMELN|ACCORD|RATIO|AXCOUNT|STADA|SANDOZ|SOLVAY|GLENMARK|APOTHEKE|HEXAL|TEVA|AUROBINDO|ORION|SYXYL|NEURAX|KOHNE|ACTAVIS|CLARIS|NOVUM|ABZ|AXCOUNT|MYLAN|ARISTO|KABI|BENE|HORMOSAN|ZENTIVA|PUREN|BIOMO|ACIS|RATIOPH|SYNOMED|ALPHA|ROTEXMEDICA|BERCO|DURA|DAGO|GASTREU|FORTE|VITAL|VERLA|ONKOVIS|ONCOTRADE|NEOCORP');
+
+ DELETE grr_bn_2 WHERE REGEXP_LIKE (bn,'TROPFEN|TETANUS|FAKTOR| KAPSELN|RNV|COMPOSITUM| SC | CARBON|COMPLEX|SLR| PUR|OLEUM|FERRUM|ROSMARIN|SYND|NATRIUM|BIOCHEMIE|URTICA|VALERIANA|DULCAMARA|SALZ| LH| DHU|HERBA|SULFUR|TINKTUR|PRUNUS|ZEMENT|KALIUM|ALUMIN|SOLUM| AKH| A1X| SAL| DHU|B\d|FLOR| ANTIDOT|ˆARNICA|ˆKAMILLEN')
+AND   NOT REGEXP_LIKE (bn,'PHARM|ABTEI|HEEL|INJEE|HEUMANN|MERCK|BLUESFISH|WESTERN|PHARMA|ZENTIVA|PFIZER|PHARMA|MEDE|MEDAC|FAIR|HAMELN|ACCORD|RATIO|AXCOUNT|STADA|SANDOZ|SOLVAY|GLENMARK|APOTHEKE|HEXAL|TEVA|AUROBINDO|ORION|SYXYL|NEURAX|KOHNE|ACTAVIS|CLARIS|NOVUM|ABZ|AXCOUNT|MYLAN|ARISTO|KABI|BENE|HORMOSAN|ZENTIVA|PUREN|BIOMO|ACIS|RATIOPH|SYNOMED|ALPHA|ROTEXMEDICA|BERCO|DURA|DAGO|GASTREU|FORTE|VITAL|VERLA|ONKOVIS|ONCOTRADE|NEOCORP|( AWD$)')
+;
 
 DELETE grr_bn_2
 WHERE REGEXP_LIKE (BN,'SILICEA|STANNUM|SAURE|CAUSTICUM|CASCARA|FOLINATE|FOLATE|COLOCYNTHIS|CUPRUM|CALCIUM|SODIUM|BLUETEN|ACETYL|CHLORID|ACIDIDUM|ACIDUM|LIDOCAIN|ESTRADIOL|NACHTKERZENOE|NEOSTIGMIN|METALLICUM|SPAGYRISCHE|ARCANA|SULFURICUM|BERBERIS|BALDRIAN|TILIDIN| VIT ')
-AND   NOT REGEXP_LIKE (bn,'PHARM|ABTEI|HEEL|INJEE|HEUMANN|MERCK|BLUESFISH|WESTERN|PHARMA|ZENTIVA|PFIZER|PHARMA|MEDE|MEDAC|FAIR|HAMELN|ACCORD|RATIO|AXCOUNT|STADA|SANDOZ|SOLVAY|GLENMARK|APOTHEKE|HEXAL|TEVA|AUROBINDO|ORION|SYXYL|NEURAX|KOHNE|ACTAVIS|CLARIS|NOVUM|ABZ|AXCOUNT|MYLAN|ARISTO|KABI|BENE|HORMOSAN|ZENTIVA|PUREN|BIOMO|ACIS|RATIOPH|SYNOMED|ALPHA|ROTEXMEDICA|BERCO|DURA|DAGO|GASTREU|FORTE|VITAL|VERLA|ONKOVIS|ONCOTRADE|NEOCORP');
+AND   NOT REGEXP_LIKE (bn,'PHARM|ABTEI|HEEL|INJEE|HEUMANN|MERCK|BLUESFISH|WESTERN|PHARMA|ZENTIVA|PFIZER|PHARMA|MEDE|MEDAC|FAIR|HAMELN|ACCORD|RATIO|AXCOUNT|STADA|SANDOZ|SOLVAY|GLENMARK|APOTHEKE|HEXAL|TEVA|AUROBINDO|ORION|SYXYL|NEURAX|KOHNE|ACTAVIS|CLARIS|NOVUM|ABZ|AXCOUNT|MYLAN|ARISTO|KABI|BENE|HORMOSAN|ZENTIVA|PUREN|BIOMO|ACIS|RATIOPH|SYNOMED|ALPHA|ROTEXMEDICA|BERCO|DURA|DAGO|GASTREU|FORTE|VITAL|VERLA|ONKOVIS|ONCOTRADE|NEOCORP')
+;
 
 DELETE grr_bn_2
 WHERE REGEXP_LIKE (old_name,' DIM | LH| DHU | SOH|LHRH')
@@ -957,19 +962,24 @@ WHERE WGT_UOM_CD IS NOT NULL
 AND   WGT_UOM_CD NOT IN ('--','Y/H'));
 
 
-TRUNCATE TABLE DRUG_concept_STAGE;
-INSERT INTO DRUG_concept_STAGE
+TRUNCATE TABLE DRUG_CONCEPT_STAGE; 
+insert into DRUG_CONCEPT_STAGE 
 (CONCEPT_NAME,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,POSSIBLE_EXCIPIENT,domain_id,VALID_START_DATE,VALID_END_DATE,INVALID_REASON, SOURCE_CONCEPT_CLASS_ID)
-SELECT DISTINCT CONCEPT_NAME, 'GRR', CONCEPT_CLASS_ID, '', CONCEPT_CODE, '','Drug', TO_DATE('2017/07/18', 'yyyy/mm/dd') AS valid_start_date,
-TO_DATE('2099/12/31', 'yyyy/mm/dd') AS valid_end_date, '',''
-FROM (
-      SELECT concept_name,concept_class_id,concept_code FROM dcs_unit
-UNION
-      SELECT INITCAP(concept_name), concept_class_id,concept_code FROM list
-UNION
-      SELECT concept_name, 'Drug Product',fcc FROM dcs_drugs --drugs with pack drugs
-UNION
-      SELECT concept_name,'Dose Form',concept_code FROM grr_form_2);
+select distinct concept_name, 'GRR', concept_class_id, '', concept_code, '',domain_id, TO_DATE('2017/07/18', 'yyyy/mm/dd') as valid_start_date,
+TO_DATE('2099/12/31', 'yyyy/mm/dd') as valid_end_date, '',''
+ from 
+(
+select concept_name, concept_class_id, concept_code, 'Drug' as domain_id from dcs_unit
+union
+select initcap(concept_name), concept_class_id, concept_code, 'Drug' from list
+union
+select concept_name, 'Drug Product', fcc, 'Drug' from dcs_drugs--drugs with pack drugs
+union
+select brand_name, 'Device', fcc, 'Device' from grr_non_drug 
+where rowid in ( select min(rowid) from grr_non_drug group by fcc)
+union
+select concept_name,'Dose Form',concept_code, 'Drug' from grr_form_2
+);
 
 UPDATE drug_concept_stage
    SET standard_concept = 'S'
@@ -1494,7 +1504,7 @@ SELECT DISTINCT a.FCC,
          WHEN molecule IS NULL AND NOT REGEXP_LIKE (SUBSTANCE,'HEALING|KEINE|\+|DIET|MEDICATED|MULTI') THEN substance
          ELSE molecule
        END AS molecule
-FROM source_data b
+FROM source_data_1 b
   RIGHT JOIN GRR_DS a ON a.fcc = b.fcc;
 
 CREATE TABLE ds_stage_sum AS
@@ -1531,7 +1541,7 @@ SELECT DISTINCT fcc AS drug_concept_code, b.concept_Code AS ingredient_concept_c
 FROM DS_STAGE_SUM a
      JOIN drug_concept_stage b ON UPPER (molecule) = UPPER (concept_name) AND concept_class_id = 'Ingredient';
 
-INSERT INTO ds_stage(  DRUG_CONCEPT_CODE,  INGREDIENT_CONCEPT_CODE,  AMOUNT_VALUE,  AMOUNT_UNIT,  NUMERATOR_VALUE,  NUMERATOR_UNIT,  DENOMINATOR_VALUE,  DENOMINATOR_UNIT,  BOX_SIZE)
+INSERT INTO ds_stage (DRUG_CONCEPT_CODE,  INGREDIENT_CONCEPT_CODE,  AMOUNT_VALUE,  AMOUNT_UNIT,  NUMERATOR_VALUE,  NUMERATOR_UNIT,  DENOMINATOR_VALUE,  DENOMINATOR_UNIT,  BOX_SIZE)
 SELECT DISTINCT DRUG_CONCEPT_CODE, INGREDIENT_CONCEPT_CODE, AMOUNT_VALUE,AMOUNT_UNIT, NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT, CAST(BOX_SIZE AS NUMBER)
 FROM ds_stage_0
 WHERE drug_concept_code NOT IN (SELECT fcc FROM grr_pack_2);
@@ -1592,6 +1602,9 @@ WHERE substance LIKE '%+%';
 DELETE ds_0_sd
 WHERE fcc IN (SELECT fcc FROM ds_0_sd WHERE strength = '0');
 
+UPDATE ds_0_sd --there are '0' as denominator_value 
+SET volume = null WHERE volume = '0';
+
 INSERT INTO ds_stage (DRUG_CONCEPT_CODE,  INGREDIENT_CONCEPT_CODE,  BOX_SIZE,  AMOUNT_VALUE,  AMOUNT_UNIT,  NUMERATOR_VALUE,  NUMERATOR_UNIT,  DENOMINATOR_VALUE,  DENOMINATOR_UNIT)
 SELECT FCC, CONCEPT_CODE,a.BOX_SIZE, STRENGTH,STRENGTH_UNIT, NULL, NULL, NULL,NULL
 FROM ds_0_sd a
@@ -1599,13 +1612,7 @@ FROM ds_0_sd a
 WHERE (volume_unit IS NULL AND strength_unit NOT IN ('DH','C','CH','D','TM','X','XMK'))
 AND   fcc NOT IN (SELECT drug_concept_code FROM ds_stage)
 UNION
-SELECT FCC,CONCEPT_CODE,a.BOX_SIZE,
-       NULL,
-       NULL,
-       STRENGTH,
-       STRENGTH_UNIT,
-       VOLUME,
-       VOLUME_UNIT
+SELECT FCC,CONCEPT_CODE,a.BOX_SIZE,NULL, NULL, STRENGTH, STRENGTH_UNIT, VOLUME, VOLUME_UNIT
 FROM ds_0_sd a
   JOIN drug_concept_stage b
     ON UPPER (b.concept_name) = UPPER (substance)
@@ -1724,8 +1731,8 @@ UPDATE ds_vol_upd
 DELETE ds_stage
 WHERE drug_concept_code IN (SELECT drug_concept_code FROM ds_vol_upd);
 
-INSERT INTO ds_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,  BOX_SIZE,  AMOUNT_VALUE,  AMOUNT_UNIT,  NUMERATOR_VALUE,  NUMERATOR_UNIT,  DENOMINATOR_VALUE,  DENOMINATOR_UNIT,  SOURCE_CONCEPT_CLASS_ID)
-SELECT DISTINCT DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE, AMOUNT_VALUE, AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE, DENOMINATOR_UNIT, SOURCE_CONCEPT_CLASS_ID
+INSERT INTO ds_stage (DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,  BOX_SIZE,  AMOUNT_VALUE,  AMOUNT_UNIT,  NUMERATOR_VALUE,  NUMERATOR_UNIT,  DENOMINATOR_VALUE,  DENOMINATOR_UNIT)
+SELECT DISTINCT DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,BOX_SIZE, AMOUNT_VALUE, AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE, DENOMINATOR_UNIT
 FROM ds_vol_upd;
 
 UPDATE ds_stage
@@ -1795,12 +1802,6 @@ WHERE ROWID NOT IN (SELECT MIN(ROWID)
                     FROM DS_STAGE
                     GROUP BY DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE, BOX_SIZE,AMOUNT_VALUE, AMOUNT_UNIT, NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT);
 
---delete ingredients from IRS that were sumed up
-DELETE internal_relationship_stage
-WHERE (concept_code_1,concept_code_2) IN (SELECT drug_concept_code,ingredient_concept_code
-                                          FROM DS_SUM_2
-                                          WHERE NVL(AMOUNT_VALUE,NUMERATOR_VALUE) IS NULL);
-
 COMMIT;
 
 TRUNCATE TABLE internal_relationship_stage;
@@ -1814,7 +1815,7 @@ JOIN grr_pack_2 b ON a.fcc = b.fcc
 JOIN drug_concept_stage c ON UPPER (drug_name) = UPPER (c.concept_name)
 UNION
 --drug to bn
-SELECT fcc, concept_codeFROM grr_bn_2
+SELECT fcc, concept_code FROM grr_bn_2
 JOIN drug_concept_stage ON UPPER (bn) = UPPER (concept_name) 
 WHERE concept_class_id = 'Brand Name'
 UNION
@@ -1866,6 +1867,7 @@ WHERE concept_code_1 = '52184_03011974'
 AND   concept_code_2 IN (SELECT concept_code
                          FROM drug_concept_stage  WHERE concept_name = 'Coal Tar');
 
+DELETE internal_relationship_stage
 WHERE concept_code_1 = '912928_07152016'
 AND   concepT_code_2 IN (SELECT concept_code_2
                          FROM drug_concepT_stage
@@ -1970,7 +1972,7 @@ AND   concept_class_id = 'Drug Product';
 CREATE TABLE ds_stage_cnc AS
 SELECT denominator_value|| ' ' || denominator_unit AS quant,
        drug_concept_code,
-       i.concept_name || ' ' || NVL(amount_value,numerator_value / NVL(denominator_value,1)) || ' ' ||nvl(amount_unit,numerator_unit) AS dosage_name
+       i.concept_name || ' ' || NVL(amount_value, round (numerator_value / NVL(denominator_value,1),2)) || ' ' ||nvl(amount_unit,numerator_unit) AS dosage_name
 FROM ds_stage
   JOIN drug_concept_stage i ON i.concept_code = ingredient_concept_code;
 

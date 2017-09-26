@@ -247,3 +247,12 @@ from drug_concept_stage where domain_id = 'Device'
 delete concept_stage 
 where concept_code like 'OMOP%' --save devices and unmapped drug
 ;
+update concept_stage 
+set standard_concept = null 
+where concept_code in (select a.concept_code  
+                       from concept_stage a
+                            left join concept_relationship_stage on concept_code_1 = a.concept_code 
+                            and vocabulary_id_1 = a.vocabulary_id
+                            left join concept c on c.concept_code = concept_code_2 
+                            and c.vocabulary_id = vocabulary_id_2 
+                       where a.standard_concept ='S' and c.concept_id is null);

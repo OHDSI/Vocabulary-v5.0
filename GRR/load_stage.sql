@@ -2082,7 +2082,9 @@ AND   concept_class_id = 'Drug Product';
 CREATE TABLE ds_stage_cnc AS
 SELECT denominator_value|| ' ' || denominator_unit AS quant,
        drug_concept_code,
-       i.concept_name || ' ' || NVL(amount_value,  round((numerator_value / NVL(denominator_value,1), 3-floor(log(10, (numerator_value / NVL(denominator_value,1)))-1) || ' ' ||nvl(amount_unit,numerator_unit) AS dosage_name
+       i.concept_name || ' ' || NVL(amount_value, 
+        round(numerator_value / NVL(denominator_value,1), 3-floor(log(10, (numerator_value / NVL(denominator_value,1)))-1))) 
+        || ' ' ||nvl(amount_unit,numerator_unit) AS dosage_name
 FROM ds_stage
   JOIN drug_concept_stage i ON i.concept_code = ingredient_concept_code;
 

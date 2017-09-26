@@ -8,7 +8,8 @@ DROP TABLE CONCEPT_SYNONYM_STAGE;
 
 
 DROP TABLE NON_DRUG;
-
+
+DROP SEQUENCE new_vocab;
 drop table grr_new_3_for_form;
 DROP TABLE grr_new_3;
 DROP TABLE source_data_1;

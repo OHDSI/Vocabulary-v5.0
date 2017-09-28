@@ -1,4 +1,4 @@
-/**************************************************************************
+﻿/**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
@@ -858,15 +858,26 @@ UPDATE grr_form   SET NFC_123_CD = 'TTN' WHERE INTL_PACK_FORM_DESC = 'VAG UD CRM
 UPDATE grr_form   SET NFC_123_CD = 'TVN' WHERE INTL_PACK_FORM_DESC = 'VAG UD GEL';
 UPDATE grr_form   SET NFC_123_CD = 'MTA' WHERE INTL_PACK_FORM_DESC = 'VASELINE';
 
+
+
 CREATE TABLE grr_form_2 
 AS
 SELECT DISTINCT fcc, concept_code,concept_name,INTL_PACK_FORM_DESC
 FROM grr_form a
-  JOIN concept b ON NFC_123_CD = concept_code
+LEFT JOIN concept b ON NFC_123_CD = concept_code
 WHERE vocabulary_id = 'NFC';
 
 
+--introducing manual matching
+merge into grr_form_2 g
+using (select * from manual_form_add) m
+on (m.dose_form = INTL_PACK_FORM_DESC and g.concept_code is null)
+when matched then update
+set g.concept_code = c.concept_code, g.concept_name  = c.concept_name;
+
+
 --delete grr_form_2 where concept_code like 'V%' or concept_code in ('ZZZ','MQS','JGH') and fcc in (select fcc from grr_new_3);
+
 DELETE grr_form_2
 WHERE ROWID NOT IN (SELECT MIN(ROWID) FROM grr_form_2 GROUP BY fcc);
 
@@ -1209,7 +1220,9 @@ SELECT DISTINCT FCC,INTL_PACK_FORM_DESC,INTL_PACK_STRNT_DESC,INTL_PACK_SIZE_DESC
 FROM grr_ds_abstr_qnt;
 
 CREATE TABLE grr_ds_abstr_rel  AS
-SELECT FCC,INTL_PACK_FORM_DESC,INTL_PACK_STRNT_DESC,INTL_PACK_SIZE_DESC AS BOX_SIZE, PACK_DESC,PACK_SUBSTN_CNT AS ingredients_cnt, MOLECULE,PACK_ADDL_STRNT_DESC,ABS_STRNT_QTY AS AMOUNT_VALUE,
+SELECT FCC,INTL_PACK_FORM_DESC,INTL_PACK_STRNT_DESC,
+case when INTL_PACK_SIZE_DESC = '24' then null else INTL_PACK_SIZE_DESC end AS BOX_SIZE, -- 24 seems to be 24 hours
+PACK_DESC,PACK_SUBSTN_CNT AS ingredients_cnt, MOLECULE,PACK_ADDL_STRNT_DESC,ABS_STRNT_QTY AS AMOUNT_VALUE,
        CASE
          WHEN ABS_STRNT_UOM_CD = 'Y' THEN 'MCG'
          ELSE ABS_STRNT_UOM_CD END AS AMOUNT_UNIT,
@@ -1912,6 +1925,10 @@ UPDATE DS_STAGE   SET NUMERATOR_VALUE = 150000 WHERE DRUG_CONCEPT_CODE = '691519
 UPDATE DS_STAGE   SET NUMERATOR_VALUE = 150000 WHERE DRUG_CONCEPT_CODE = '691524_03012010';
 
 
+delete ds_stage
+where ingredient_concept_code = (select concept_code from drug_concept_stage where concept_name = 'Aminoacids');
+
+
 COMMIT;
 
 TRUNCATE TABLE internal_relationship_stage;
@@ -1980,8 +1997,19 @@ AND   concept_code_2 IN (SELECT concept_code
 DELETE internal_relationship_stage
 WHERE concept_code_1 = '912928_07152016'
 AND   concepT_code_2 IN (SELECT concept_code
-                         FROM drug_concepT_stage
+                         FROM drug_concept_stage
                          WHERE concept_name = 'Methyl-5-Aminolevulinic Acid');
+
+delete internal_relationship_stage 
+where concept_code_2 = (select concept_code from drug_concept_stage where concept_name = 'Aminoacids');
+
+--delete drugs that don't have ingredients
+delete drug_concept_stage
+WHERE concept_code NOT IN (SELECT concept_code_1
+                                 FROM internal_relationship_stage
+                                   JOIN drug_concept_stage ON concept_code_2 = concept_code  AND concept_class_id = 'Ingredient')
+AND   concept_code NOT IN (SELECT pack_concept_code FROM pc_stage)
+AND   concept_class_id = 'Drug Product';
 
 TRUNCATE TABLE pc_stage;
 INSERT INTO pc_stage (PACK_CONCEPT_CODE,  DRUG_CONCEPT_CODE,  AMOUNT,  BOX_SIZE)
@@ -2010,7 +2038,7 @@ AND   dcs.concept_class_id IN ('Ingredient','Brand Name','Dose Form','Supplier')
 
 --delete invalid mappings
 DELETE RELATIONSHIP_TO_CONCEPT
-WHERE concept_id_2 IN (SELECT concept_id FROM concept WHERE invalid_reason = 'D');
+WHERE concept_id_2 IN (SELECT concept_id FROM devv5.concept WHERE invalid_reason = 'D');
 
 --insert relationships to ATC
 INSERT INTO RELATIONSHIP_TO_CONCEPT (concept_code_1,vocabulary_id_1, concept_id_2,precedence)
@@ -2174,3 +2202,13 @@ WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
 AND   denominator_value IS NOT NULL;
 
 COMMIT;
+
+
+--fixes due to new RxE version
+update relationship_to_concept
+set concept_id_2 = 19020153
+where concept_id_2 = 43563645
+;
+update relationship_to_concept
+set concept_id_2 = 19012555
+where concept_id_2 = 40799676;

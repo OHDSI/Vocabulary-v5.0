@@ -20,8 +20,8 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'MedDRA',
-                                          pVocabularyDate        => TO_DATE ('20160901', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'MedDRA version 19.1',
+                                          pVocabularyDate        => TO_DATE ('20170901', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'MedDRA version 20.1',
                                           pVocabularyDevSchema   => 'DEV_MEDDRA');
 END;
 COMMIT;

@@ -22,8 +22,8 @@
 -- If the international version is already loaded, updating will not affect it
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'SNOMED',
-                                          pVocabularyDate        => TO_DATE ('20170401', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'SnomedCT Release 20170401',
+                                          pVocabularyDate        => TO_DATE ('20170731', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'SnomedCT Release 20170731',
                                           pVocabularyDevSchema   => 'DEV_SNOMED');
 END;
 /
@@ -527,7 +527,8 @@ INSERT  /*+ APPEND */  INTO concept_stage (concept_name,
                            ELSE 1
                         END,
                         CASE WHEN term LIKE '%(%)%' THEN 1 ELSE 0 END,
-						LENGTH(TERM) DESC)
+                        LENGTH(TERM) DESC),
+                        d.id DESC --same as of AVOF-650
                      AS rn
              FROM sct2_concept_full_merged c, sct2_desc_full_merged d
             WHERE c.id = d.conceptid AND term IS NOT NULL
@@ -1114,6 +1115,7 @@ INSERT /*+ APPEND */
                      XMLSEQUENCE (
                         t_xml.xmlfield.EXTRACT (
                            'VIRTUAL_MED_PRODUCTS/VMPS/VMP'))) t
+            WHERE EXTRACTVALUE (VALUE (t), 'VMP/VTMID') IS NOT NULL
            UNION ALL
            -- link VMPs to Ingredients
            SELECT EXTRACTVALUE (VALUE (t), 'VPI/VPID') AS concept_code_1,
@@ -1475,7 +1477,9 @@ AS
                    d.term,
                    ROW_NUMBER ()
                    OVER (PARTITION BY r.id
-                         ORDER BY TO_DATE (r.effectivetime, 'YYYYMMDD') DESC)
+                         ORDER BY TO_DATE (r.effectivetime, 'YYYYMMDD') DESC,
+						 d.id DESC --temporary fix for AVOF-650
+						 )
                       AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
                    r.active
               FROM sct2_rela_full_merged r
@@ -1659,7 +1663,9 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                      AS relationship_id,
                   ROW_NUMBER ()
                   OVER (PARTITION BY referencedcomponentid
-                        ORDER BY TO_DATE (effectivetime, 'YYYYMMDD') DESC)
+                        ORDER BY TO_DATE (effectivetime, 'YYYYMMDD') DESC,
+						sc.id DESC --same as of AVOF-650
+						)
                      rn,
                   active
              FROM der2_crefset_assreffull_merged sc

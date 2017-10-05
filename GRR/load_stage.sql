@@ -132,8 +132,8 @@ FROM source_data_1
 WHERE INITCAP(substance) IN ('Anti-Dandruff Shampoo','Kidney Stones','Acrylic Resin','Anti-Acne Soap','Antifungal','Antioxidants','Arachnoidae','Articulation','Bath Oil','Breath Freshners','Catheters','Clay','Combination Products','Corn Remover','Creams (Basis)','Cresol Sulfonic Acid Phenolsulfonic Acid Urea-Formaldehyde Complex','Decongestant Rubs','Electrolytes/Replacers','Eye Make-Up Removers','Fish','Formaldehyde And Phenol Condensation Product','Formosulfathiazole,Herbal','Hydrocolloid','Infant Food Modified','Iocarmic Acid','Ioglicic Acid','Iopronic Acid','Iopydol','Iosarcol','Ioxitalamic Acid','Iud-Cu Wire & Au Core','Lipides','Lipids','Low Calorie Food','Massage Oil','Medicinal Mud','Minerals','Misc.Allergens (Patient Requirement)','Mumio','Musculi','Nasal Decongestants','Non-Allergenic Soaps','Nutritional Supplements','Oligo Elements','Other Oral Hygiene Preparations','Paraformaldehyde-Sucrose Complex','Polymethyl Methacrylate','Polypeptides','Purgative/Laxative','Quaternary Ammonium Compounds','Rock','Saponine','Shower Gel','Skin Lotion','Sleep Aid','Slug','Suxibuzone','Systemic Analgesics','Tonics','Varroa Destructor','Vasa','Vegetables Extracts');
 
 --drugs without ingredients
-insert into grr_non_drug (fcc,brand_name)
-select FCC,BRAND_NAME||INTL_PACK_FORM_DESC from grr_new_3 where molecule is null;
+--insert into grr_non_drug (fcc,brand_name)
+--select FCC,BRAND_NAME||INTL_PACK_FORM_DESC from grr_new_3 where molecule is null;
 
 --deleting non-drugs from working tables
 DELETE grr_new_3
@@ -450,6 +450,11 @@ WHERE bn IN (SELECT BN FROM bn_to_del);
 DELETE grr_bn_2
 WHERE ROWID NOT IN (SELECT MIN(ROWID) FROM grr_bn_2 GROUP BY fcc);
 
+--deleting BN that has already been cleaned up
+
+delete grr_bn_2 where lower(bn) in
+(select lower(concept_name) from concept where vocabulary_id = 'RxNorm Extension' and concept_class_id = 'Brand Name' and invalid_reason = 'D'); 
+
 --manufacturers
 CREATE TABLE grr_manuf_0 
 AS
@@ -460,7 +465,7 @@ FROM GRR_PACK a
 WHERE CUR_REC_IND = '1';
 
 --inserting suppliers from source data
-INSERT INTO grr_manuf_0(fcc,PRI_ORG_LNG_NM)
+INSERT INTO grr_manuf_0 (fcc,PRI_ORG_LNG_NM)
 SELECT DISTINCT fcc,manufacturer_name
 FROM source_data_1;
 
@@ -620,6 +625,35 @@ WHERE fcc IN (SELECT fcc
 UPDATE grr_manuf
    SET PRI_ORG_LNG_NM = REGEXP_REPLACE(PRI_ORG_LNG_NM,'>');
 
+
+update grr_manuf
+set PRI_ORG_LNG_NM = regexp_replace (PRI_ORG_LNG_NM, ' Pharma| Health')
+where regexp_like (PRI_ORG_LNG_NM, '( Pharma| Health)$');
+
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Aslan' where PRI_ORG_LNG_NM = 'ASLAN ARZNEIMITTEL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Aurelia' where PRI_ORG_LNG_NM = 'AURELIA MEDICAL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Bano' where PRI_ORG_LNG_NM = 'BANO HEALTHCARE';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Bioline' where PRI_ORG_LNG_NM = 'BIOLINE KATWIJK';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Bioline' where PRI_ORG_LNG_NM = 'BIOLINE PRODUCTS';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Bsn' where PRI_ORG_LNG_NM = 'BSN MEDICAL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Eer Handels' where PRI_ORG_LNG_NM = 'EER HANDELS GMBH';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Emu' where PRI_ORG_LNG_NM = 'EMU EUROPE';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Europe' where PRI_ORG_LNG_NM = 'DEB-STOKO EUROPE';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Gms' where PRI_ORG_LNG_NM = 'GMS GERMAN MEDICAL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Grana' where PRI_ORG_LNG_NM = 'GRANA MEDICAL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Cicoare' where PRI_ORG_LNG_NM = 'CICOARE HANDEL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'IMP' where PRI_ORG_LNG_NM = 'IMP NEUSS';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Jacobs' where PRI_ORG_LNG_NM = 'JACOBS MEDICAL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'K&M' where PRI_ORG_LNG_NM = 'K&M BIO';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'K&M' where PRI_ORG_LNG_NM = 'K&M HANDEL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Mdm' where PRI_ORG_LNG_NM = 'MDM HEALTHCARE';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Mic' where PRI_ORG_LNG_NM = 'MIC MEDICAL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Nawa' where PRI_ORG_LNG_NM = 'NAWA HEILMITTEL';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Sm' where PRI_ORG_LNG_NM = 'SM GMBH';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Synofit' where PRI_ORG_LNG_NM = 'SYNOFIT EUROPE';
+UPDATE grr_manuf    SET PRI_ORG_LNG_NM = 'Wtm' where PRI_ORG_LNG_NM = 'WTM TRADING';
+
+
 --ingredient
 DELETE grr_manuf
 WHERE PRI_ORG_LNG_NM IN ('OLIBANUM','EIGENHERSTELLUNG');
@@ -634,10 +668,14 @@ DELETE grr_manuf
 WHERE PRI_ORG_LNG_NM LIKE '%/%'
 OR    PRI_ORG_LNG_NM LIKE '%.%'
 OR    PRI_ORG_LNG_NM LIKE '%APOTHEKE%'
-OR    PRI_ORG_LNG_NM LIKE '%IMPORTE AUS%';
+OR    PRI_ORG_LNG_NM LIKE '%IMPORTE AUS%'
+OR    initcap (PRI_ORG_LNG_NM) IN ('Freie Handelsvertr','Biopraep','Ce Medizinprodukte','Kraeuter-Meyer','Manufaktur Apothek','Medical','Pharma Biologica','Pharma Brutscher','Pharma Dynamics','Pharma K Medical','Pharma Labor','Pharma Planet','Pharma Reha Care','Pharma Solutions','Pharma Winter','Pharma Wittmann','Pharmacy Consult','Pc Pharm Commerce');
+
+
 
 DELETE grr_manuf
 WHERE LENGTH(PRI_ORG_LNG_NM) < 4;
+
 
 --deleting BNs that looks like suppliers
 DELETE grr_bn_2
@@ -858,22 +896,17 @@ UPDATE grr_form   SET NFC_123_CD = 'TTN' WHERE INTL_PACK_FORM_DESC = 'VAG UD CRM
 UPDATE grr_form   SET NFC_123_CD = 'TVN' WHERE INTL_PACK_FORM_DESC = 'VAG UD GEL';
 UPDATE grr_form   SET NFC_123_CD = 'MTA' WHERE INTL_PACK_FORM_DESC = 'VASELINE';
 
-
+--introducing manual matching
+update grr_form g
+set g.NFC_123_CD = (select m.concept_code  from manual_form_add m where m.dose_form = INTL_PACK_FORM_DESC)
+where  g.NFC_123_CD is null ;
 
 CREATE TABLE grr_form_2 
 AS
 SELECT DISTINCT fcc, concept_code,concept_name,INTL_PACK_FORM_DESC
 FROM grr_form a
-LEFT JOIN concept b ON NFC_123_CD = concept_code
+JOIN concept b ON NFC_123_CD = concept_code
 WHERE vocabulary_id = 'NFC';
-
-
---introducing manual matching
-merge into grr_form_2 g
-using (select * from manual_form_add) m
-on (m.dose_form = INTL_PACK_FORM_DESC and g.concept_code is null)
-when matched then update
-set g.concept_code = c.concept_code, g.concept_name  = c.concept_name;
 
 
 --delete grr_form_2 where concept_code like 'V%' or concept_code in ('ZZZ','MQS','JGH') and fcc in (select fcc from grr_new_3);
@@ -895,7 +928,7 @@ FROM (SELECT DISTINCT TRIM(REGEXP_SUBSTR(t.substance,'[^\+]+',1,levels.column_va
                                  sys.OdciNumberList)) levels)
 WHERE ingredient NOT IN ('MULTI SUBSTANZ','ENZYME (UNSPECIFIED)','NASAL DECONGESTANTS','ANTACIDS','ELECTROLYTE SOLUTIONS','ANTI-PSORIASIS','TOPICAL ANALGESICS'));
 
-INSERT INTO grr_ing (fcc,  ingredient)
+INSERT INTO grr_ing (fcc, ingredient)
 SELECT fcc,molecule
 FROM grr_new_3;
 
@@ -909,6 +942,10 @@ AS
 FROM grr_ing a
   LEFT JOIN ingr_parsing ON ingredient = ingr);
 
+--delete vague ingredients
+delete grr_ing_2_0 
+where initcap(ingredient) in ('Articulation','Arachnoidae','Minerals','Mumio','Oligo Elements','Aminoacids','Lipids','Medicinal Mud','Polypeptides','Clay','Alkylarylsulfonates','Chalcedony','Endolysin','Fish','Glucids','Hydrocolloid','Metroxylon','Paraformaldehyde-Sucrose Complex','Polypeptides','Saponine','Tenside');
+
 CREATE TABLE grr_ing_2 AS
 SELECT DISTINCT *
 FROM grr_ing_2_0;
@@ -920,20 +957,13 @@ START WITH 3000000 INCREMENT BY 1 CACHE 100;
 --creating table with all concepts that need to have OMOP
 CREATE TABLE list 
 AS
-SELECT DISTINCT bn AS concept_name,'Brand Name' AS concept_class_id
-FROM grr_bn_2
+SELECT DISTINCT bn AS concept_name,'Brand Name' AS concept_class_id FROM grr_bn_2
 UNION
-SELECT DISTINCT PRI_ORG_LNG_NM,'Supplier'
-FROM grr_manuf
+SELECT DISTINCT PRI_ORG_LNG_NM,'Supplier' FROM grr_manuf
 UNION
-SELECT DISTINCT ingredient,
-       'Ingredient'
-FROM grr_ing_2
-WHERE ingredient IS NOT NULL
+SELECT DISTINCT ingredient,'Ingredient' FROM grr_ing_2 WHERE ingredient IS NOT NULL
 UNION
-SELECT DISTINCT drug_name,
-       'Drug Product'
-FROM grr_pack_2;
+SELECT DISTINCT drug_name,'Drug Product' FROM grr_pack_2;
 
 ALTER TABLE list ADD concept_Code VARCHAR (255);
 
@@ -950,7 +980,8 @@ SELECT INITCAP(therapy_name),
 FROM source_data_1;
 
 DELETE dcs_drugs
-WHERE ROWID NOT IN (SELECT MIN(ROWID) FROM dcs_drugs GROUP BY fcc);
+WHERE ROWID NOT IN 
+(SELECT MIN(ROWID) FROM dcs_drugs GROUP BY fcc);
 
 CREATE TABLE dcs_unit 
 AS
@@ -993,6 +1024,19 @@ select concept_name,'Dose Form',concept_code, 'Drug' from grr_form_2
 UPDATE drug_concept_stage
    SET standard_concept = 'S'
 WHERE concept_class_id in ('Ingredient','Device');
+
+--assigning concepts codes from previous releases
+merge into drug_concept_stage dcs
+using (select * from concept where vocabulary_id = 'GRR' and invalid_reason is null) n
+on (dcs.concept_name = n.concept_name and dcs.concept_class_id = n.concept_class_id and dcs.concept_class_id in ('Brand Name','Ingredient','Supplier'))
+when matched then update 
+set dcs.concept_code = n.concept_code
+;
+
+--rename attributes, need to perform after code assignment
+update drug_concept_stage
+set concept_name = 'Pharma Labor'
+where concept_name = 'Pharma Labor Arnsb';
 
 CREATE TABLE grr_new_3_for_ds  AS
 SELECT DISTINCT FCC, INTL_PACK_FORM_DESC, INTL_PACK_STRNT_DESC, INTL_PACK_SIZE_DESC, PACK_DESC, PACK_SUBSTN_CNT,
@@ -1825,20 +1869,7 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
                             WHERE amount_unit IN ('--','LM','NR') OR    numerator_unit IN ('--','LM','NR') OR    denominator_unit IN ('--','LM','NR'));
 
---place homeopathy into amount where it belongs to solid form
-update ds_stage
-set amount_value = numerator_value, amount_unit = numerator_unit, numerator_value = null, numerator_unit= null
-where drug_concept_code in (
-      SELECT drug_concept_code
-      FROM concept c
- 	 JOIN relationship_to_concept rc2 ON concept_id_2 = concept_id
-         JOIN internal_relationship_stage irs ON rc2.concept_code_1 = irs.concept_code_2
-         JOIN ds_stage ds ON ds.drug_concept_code = irs.concept_code_1
-         JOIN relationship_to_concept rtc    ON numerator_unit = rtc.concept_code_1   AND rtc.concept_id_2 IN (9324, 9325)
-     WHERE REGEXP_LIKE (concept_name,'Tablet|Capsule|Lozenge')
-     AND   concept_class_id = 'Dose Form' AND   vocabulary_id LIKE 'Rx%');
-
-COMMIT;
+commit;
 
 --can't calculate dosages in parsed drugs
 DELETE ds_stage
@@ -1934,7 +1965,8 @@ COMMIT;
 TRUNCATE TABLE internal_relationship_stage;
 INSERT INTO internal_relationship_stage(  CONCEPT_CODE_1,  CONCEPT_CODE_2)
 --drug to form
-SELECT fcc, concept_code FROM grr_form_2 WHERE fcc NOT IN (SELECT fcc FROM grr_pack_2)
+SELECT fcc, concept_code FROM grr_form_2 
+WHERE fcc NOT IN (SELECT fcc FROM grr_pack_2)
 UNION
 --pack drug to form
 SELECT c.concept_code,  a.concept_code FROM grr_form_2 a
@@ -2000,8 +2032,8 @@ AND   concepT_code_2 IN (SELECT concept_code
                          FROM drug_concept_stage
                          WHERE concept_name = 'Methyl-5-Aminolevulinic Acid');
 
-delete internal_relationship_stage 
-where concept_code_2 = (select concept_code from drug_concept_stage where concept_name = 'Aminoacids');
+--delete internal_relationship_stage 
+--where concept_code_2 = (select concept_code from drug_concept_stage where concept_name = 'Aminoacids');
 
 --delete drugs that don't have ingredients
 delete drug_concept_stage
@@ -2011,11 +2043,33 @@ WHERE concept_code NOT IN (SELECT concept_code_1
 AND   concept_code NOT IN (SELECT pack_concept_code FROM pc_stage)
 AND   concept_class_id = 'Drug Product';
 
+--delete drug comp boxes
+delete
+ds_stage where box_size is not null
+AND   drug_concept_code NOT IN (SELECT concept_code_1
+                             FROM internal_relationship_stage
+                               JOIN drug_concept_stage ON concept_code_2 = concept_code AND concept_class_id = 'Dose Form');
+
+--place homeopathy into amount where it belongs to solid form
+update ds_stage
+set amount_value = numerator_value, amount_unit = numerator_unit, numerator_value = null, numerator_unit= null
+where drug_concept_code in (
+      SELECT drug_concept_code
+      FROM concept c
+ 	 JOIN relationship_to_concept rc2 ON concept_id_2 = concept_id
+         JOIN internal_relationship_stage irs ON rc2.concept_code_1 = irs.concept_code_2
+         JOIN ds_stage ds ON ds.drug_concept_code = irs.concept_code_1
+         JOIN relationship_to_concept rtc    ON numerator_unit = rtc.concept_code_1   AND rtc.concept_id_2 IN (9324, 9325)
+     WHERE REGEXP_LIKE (concept_name,'Tablet|Capsule|Lozenge')
+     AND   concept_class_id = 'Dose Form' AND   vocabulary_id LIKE 'Rx%');
+
+COMMIT;
+
 TRUNCATE TABLE pc_stage;
 INSERT INTO pc_stage (PACK_CONCEPT_CODE,  DRUG_CONCEPT_CODE,  AMOUNT,  BOX_SIZE)
 SELECT DISTINCT fcc, concept_code,NULL, box_size
 FROM grr_pack_2 a
-  JOIN drug_concept_stage b ON a.DRUG_NAME = UPPER (b.concept_name);
+  JOIN drug_concept_stage b ON upper(a.DRUG_NAME) = UPPER (b.concept_name);
 
 TRUNCATE TABLE RELATIONSHIP_TO_CONCEPT;
 INSERT INTO RELATIONSHIP_TO_CONCEPT (concept_code_1,  vocabulary_id_1,  concept_id_2,  precedence,  CONVERSION_FACTOR)
@@ -2027,18 +2081,30 @@ SELECT concept_code,'GRR', CONCEPT_id_2, precedence, conversion_factor FROM aut_
 UNION
 SELECT concept_code, 'GRR', concept_id, precedence,NULL FROM aut_form_1;
 
+--delete invalid mappings
+DELETE RELATIONSHIP_TO_CONCEPT
+WHERE concept_id_2 IN (SELECT concept_id FROM devv5.concept WHERE invalid_reason = 'D');
+
 INSERT INTO relationship_to_concept (concept_code_1,  vocabulary_id_1,  concept_id_2,precedence)
 SELECT DISTINCT dcs.concept_code, 'GRR',cc.concept_id, 1
 FROM drug_concept_stage dcs
   JOIN concept cc ON LOWER (cc.concept_name) = LOWER (dcs.concept_name) AND cc.concept_class_id = dcs.concept_class_id AND cc.vocabulary_id LIKE 'RxNorm%'
   LEFT JOIN relationship_to_concept cr ON dcs.concept_code = cr.concept_code_1
 WHERE concept_code_1 IS NULL
-AND   cc.invalid_reason IS NULL
+AND  ( cc.invalid_reason IS NULL or  cc.invalid_reason = 'U')
 AND   dcs.concept_class_id IN ('Ingredient','Brand Name','Dose Form','Supplier');
 
---delete invalid mappings
-DELETE RELATIONSHIP_TO_CONCEPT
-WHERE concept_id_2 IN (SELECT concept_id FROM devv5.concept WHERE invalid_reason = 'D');
+--precise ingredients
+update relationship_to_concept
+set concept_id_2 = 43012256 --aluminum silicate
+where concept_id_2 = 43531906;
+update relationship_to_concept
+set concept_id_2 = 1592180 --cerivastatin
+where concept_id_2 = 1586226;
+update relationship_to_concept
+set concept_id_2 =1592178  --metaclazepam
+where concept_id_2 = 19072052;
+
 
 --insert relationships to ATC
 INSERT INTO RELATIONSHIP_TO_CONCEPT (concept_code_1,vocabulary_id_1, concept_id_2,precedence)
@@ -2068,6 +2134,11 @@ WHERE concept_code_1 IN (SELECT concept_code_1 FROM rtc_upd);
 INSERT INTO relationship_to_concept (CONCEPT_CODE_1,VOCABULARY_ID_1, CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
 SELECT CONCEPT_CODE_1, VOCABULARY_ID_1, CONCEPT_ID_2, PRECEDENCE, CONVERSION_FACTOR
 FROM rtc_upd;
+
+--manual mapping
+INSERT INTO relationship_to_concept (CONCEPT_CODE_1,VOCABULARY_ID_1, CONCEPT_ID_2,PRECEDENCE)
+SELECT concept_code, 'GRR', concept_id_2,precedence
+FROM drug_concept_stage join rtc_manual usnig (concept_name);
 
 --updating ingredients that create duplicates after mapping to RxNorm
 CREATE TABLE ds_sum_2  AS
@@ -2191,11 +2262,11 @@ TRUNCATE TABLE pc_stage;
 
 DELETE drug_concept_stage
 WHERE concept_code IN (SELECT drug_concept_code
-                       FROM ds_stage WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK') AND   denominator_value IS NOT NULL);
+                       FROM ds_stage WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK') AND denominator_value IS NOT NULL);
 
 DELETE internal_relationship_stage
 WHERE concept_code_1 IN (SELECT drug_concept_code
-                         FROM ds_stage WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK') AND   denominator_value IS NOT NULL);
+                         FROM ds_stage WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK') AND denominator_value IS NOT NULL);
 
 DELETE ds_stage
 WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
@@ -2212,3 +2283,5 @@ where concept_id_2 = 43563645
 update relationship_to_concept
 set concept_id_2 = 19012555
 where concept_id_2 = 40799676;
+
+delete drug_concept_stage where concept_code not in (select concept_code_1 from relationship_to_concept) and concept_class_id = 'Brand Name';

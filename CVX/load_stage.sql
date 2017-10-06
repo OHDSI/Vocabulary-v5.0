@@ -56,12 +56,11 @@ INSERT INTO concept_stage (concept_name,
           'CVX' AS concept_class_id,
           'S' AS standard_concept,
           cvx_code AS concept_code,
-          nvl((SELECT MIN(concept_date) FROM CVX_DATES d WHERE D.CVX_CODE=C.CVX_CODE),to_date (LAST_UPDATED_DATE, 'mm/dd/yyyy'))  AS valid_start_date, --get concept date from true source
+          nvl((SELECT MIN(concept_date) FROM CVX_DATES d WHERE d.cvx_code=c.cvx_code),to_date (LAST_UPDATED_DATE, 'mm/dd/yyyy'))  AS valid_start_date, --get concept date from true source
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
      FROM CVX c;
-
-COMMIT;			
+COMMIT;
 
 --4. load into concept_synonym_stage
 INSERT INTO concept_synonym_stage (synonym_concept_id,
@@ -78,26 +77,43 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
           UNPIVOT
              (DESCRIPTION  --take both full_vaccine_name and short_description
              FOR DESCRIPTIONS
-             IN (full_vaccine_name, short_description));			  
+             IN (full_vaccine_name, short_description));
 COMMIT;
 
-insert into concept_relationship_stage (CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,valid_end_date)
-select distinct
-CVX_CODE,b.concept_code,'CVX',b.VOCABULARY_ID,'CVX RxNorm' , TO_DATE ('20170728', 'yyyymmdd') AS VALID_START_DATE,
-TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date from 
-(select distinct cvx_code,concept_id,VOCABULARY_ID from CVX_TO_RX_USING_LENA
-union 
-select distinct cvx.code, c.concept_id,c.VOCABULARY_ID from dev_rxnorm.rxnconso cvx
-join concept c on concept_code = rxcui and vocabulary_id = 'RxNorm'
-join   concept_stage cs  on cs.concept_code =  cvx.CODE
-where sab= 'CVX'
-and c.standard_concept='S') a join concept b on a.concept_id=b.concept_id and a.vocabulary_id=b.vocabulary_id
-;
-
+--5. Add CVX to RxNorm/RxNorm Extension manual mappings
+BEGIN
+   DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
+END;
 COMMIT;
 
+--6. Add additional mappings from rxnconso
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+    SELECT DISTINCT rxn.code AS concept_code_1,
+                    rxn.rxcui AS concept_code_2,
+                    'CVX' AS vocabulary_id_1,
+                    'RxNorm' AS vocabulary_id_2,
+                    'CVX - RxNorm' AS relationship_id,
+                    (SELECT latest_update - 1
+                       FROM vocabulary
+                      WHERE vocabulary_id = 'CVX')
+                        AS valid_start_date,
+                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                    NULL AS invalid_reason
+      FROM rxnconso rxn
+           JOIN concept c ON c.concept_code = rxn.rxcui AND c.vocabulary_id = 'RxNorm' AND c.standard_concept = 'S'
+           JOIN concept_stage cs ON cs.concept_code = rxn.code
+     WHERE     rxn.sab = 'CVX'
+           AND NOT EXISTS
+                   (SELECT 1
+                      FROM concept_relationship_stage crs
+                     WHERE crs.concept_code_1 = rxn.code AND crs.concept_code_2 = rxn.rxcui AND crs.relationship_id = 'CVX - RxNorm');
+COMMIT;
 
----------------
---???
-
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

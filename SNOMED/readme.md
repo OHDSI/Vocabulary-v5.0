@@ -15,7 +15,7 @@ Prerequisites:
 Remove date from file name.
 4. Load them into SCT2_CONCEPT_FULL_INT, SCT2_DESC_FULL_EN_INT and SCT2_RELA_FULL_INT. Use the control files of the same name.
 
-5. Download the British SNOMED file uk_sct2clfull_xx.x.x__YYYYMMDD000001.zip from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/26/subpack/102/releases.
+5. Download the British SNOMED file uk_sct2cl_xx.x.x__YYYYMMDD000001.zip from https://isd.digital.nhs.uk/trud3/user/authenticated/group/0/pack/26/subpack/101/releases.
 6. Extract the release date from the file name.
 7. Extract the following files from the folder SnomedCT_UKClinicalRF2_Production_YYYYMMDDTzzzzzz\Full\Terminology into a working folder:
 - sct2_Concept_Full_GB1000000_YYYYMMDD.txt

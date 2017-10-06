@@ -1959,6 +1959,118 @@ UPDATE DS_STAGE   SET NUMERATOR_VALUE = 150000 WHERE DRUG_CONCEPT_CODE = '691524
 delete ds_stage
 where ingredient_concept_code = (select concept_code from drug_concept_stage where concept_name = 'Aminoacids');
 
+--inhalers
+
+update ds_stage
+set numerator_value= case when numerator_value is not null then numerator_value*box_size else amount_value*box_size end,numerator_unit=case when numerator_unit is null then amount_unit else numerator_unit end,
+denominator_value= case when denominator_value is null then box_size else denominator_value end,denominator_unit=case when denominator_unit is null then 'ACTUAT' else denominator_unit end,
+amount_unit=null,amount_value=null,box_size = null
+where drug_concept_code in (
+select fcc from source_data_1
+join ds_stage on fcc = drug_Concept_code where regexp_like (product_form_name,'DOS|TURBOH|\d+H') 
+and replace(regexp_substr(product_form_name,'\d+H'),'H')=box_size);
+
+--dosages were multiplied but stored in amount
+merge into ds_stage ds
+using (
+select replace(regexp_substr(product_form_name,'\d+H'),'H') as denom,therapy_name,strength,strength_unit,volume,volume_unit,ds.* 
+from source_data_1
+join ds_stage ds on fcc = drug_Concept_code where regexp_like (product_form_name,'DOS|TURBOH|\d+H') 
+and amount_value is not null
+and replace(regexp_substr(product_form_name,'\d+H'),'H') is not null
+and strength!=amount_value
+and amount_value>1) n 
+on (ds.drug_concept_code=n.drug_concept_code and ds.ingredient_concept_code=n.ingredient_concept_code)
+when matched then update
+set numerator_value=amount_value,numerator_unit=amount_unit,denominator_value = denom, denominator_unit='ACTUAT',
+amount_value=null,amount_unit=null,box_size=null
+;
+
+merge into ds_stage ds
+using (
+select replace(regexp_substr(product_form_name,'\d+H'),'H') as denom,therapy_name,strength,strength_unit,volume,volume_unit,ds.* 
+from source_data_1
+join ds_stage ds on fcc = drug_Concept_code where regexp_like (product_form_name,'DOS|TURBOH|\d+H') 
+and amount_value is not null
+and replace(regexp_substr(product_form_name,'\d+H'),'H') is not null
+and strength!=amount_value
+and amount_value<1) n 
+on (ds.drug_concept_code=n.drug_concept_code and ds.ingredient_concept_code=n.ingredient_concept_code)
+when matched then update
+set numerator_value=amount_value*denom,numerator_unit=amount_unit,denominator_value = denom, denominator_unit='ACTUAT',
+amount_value=null,amount_unit=null,box_size=null
+;
+merge into ds_stage ds
+using (
+select replace(regexp_substr(product_form_name,'\d+H'),'H') as denom,therapy_name,strength,strength_unit,volume,volume_unit,ds.* 
+from source_data_1
+join ds_stage ds on fcc = drug_Concept_code where regexp_like (product_form_name,'DOS|TURBOH|\d+H') 
+and amount_value is not null
+and replace(regexp_substr(product_form_name,'\d+H'),'H') is not null) n 
+on (ds.drug_concept_code=n.drug_concept_code and ds.ingredient_concept_code=n.ingredient_concept_code)
+when matched then update
+set numerator_value=amount_value*denom,numerator_unit=amount_unit,denominator_value = denom, denominator_unit='ACTUAT',
+amount_value=null,amount_unit=null,box_size=null
+;
+merge into ds_stage ds
+using (
+select replace(regexp_substr(product_form_name,'\d+H'),'H') as denom,therapy_name,strength,strength_unit,volume,volume_unit,ds.* 
+from source_data_1
+join ds_stage ds on fcc = drug_Concept_code where regexp_like (product_form_name,'DOS|TURBOH|\d+H') 
+and replace(regexp_substr(product_form_name,'\d+H'),'H') is not null
+and denominator_unit!='ACTUAT'
+and numerator_value!=strength and numerator_value<0.3) n 
+on (ds.drug_concept_code=n.drug_concept_code and ds.ingredient_concept_code=n.ingredient_concept_code)
+when matched then update
+set numerator_value=numerator_value*denom,denominator_value = denom, denominator_unit='ACTUAT',
+box_size=null
+;
+merge into ds_stage ds
+using (
+select replace(regexp_substr(product_form_name,'\d+H'),'H') as denom,therapy_name,strength,strength_unit,volume,volume_unit,ds.* 
+from source_data_1
+join ds_stage ds on fcc = drug_Concept_code where regexp_like (product_form_name,'DOS|TURBOH|\d+H') 
+and denominator_unit!='ACTUAT'
+and replace(regexp_substr(product_form_name,'\d+H'),'H') is not null
+and numerator_value=strength and numerator_unit!='G'  and denominator_unit!='G'
+and replace(regexp_substr(product_form_name,'\d+H'),'H') in (112,100,120,200,60)) n
+on (ds.drug_concept_code=n.drug_concept_code and ds.ingredient_concept_code=n.ingredient_concept_code)
+when matched then update
+set numerator_value=numerator_value*denom,denominator_value = denom, denominator_unit='ACTUAT',
+box_size=null;
+
+--dosagee already adjusted
+merge into ds_stage ds
+using (
+select replace(regexp_substr(product_form_name,'\d+H'),'H') as denom,therapy_name,strength,strength_unit,volume,volume_unit,ds.* 
+from source_data_1
+join ds_stage ds on fcc = drug_Concept_code where regexp_like (product_form_name,'DOS|TURBOH|\d+H') 
+and denominator_unit!='ACTUAT'
+and replace(regexp_substr(product_form_name,'\d+H'),'H') is not null
+and replace(regexp_substr(product_form_name,'\d+H'),'H') in (112,100,120,200,300,140,60)
+and numerator_value!=strength) n 
+on (ds.drug_concept_code=n.drug_concept_code and ds.ingredient_concept_code=n.ingredient_concept_code)
+when matched then update
+set denominator_value = denom, denominator_unit='ACTUAT',
+box_size=null;
+
+merge into ds_stage ds
+using (
+select replace(regexp_substr(product_form_name,'\d+H'),'H') as denom,therapy_name,strength,strength_unit,volume,volume_unit,ds.* 
+from source_data_1
+join ds_stage ds on fcc = drug_Concept_code where regexp_like (product_form_name,'DOS|TURBOH|\d+H') 
+and denominator_unit!='ACTUAT'
+and replace(regexp_substr(product_form_name,'\d+H'),'H') is not null
+and replace(regexp_substr(product_form_name,'\d+H'),'H') in (112,100,120,200,300,140,60)
+and numerator_value=strength) n 
+on (ds.drug_concept_code=n.drug_concept_code and ds.ingredient_concept_code=n.ingredient_concept_code)
+when matched then update
+set numerator_value=numerator_value*denom,denominator_value = denom, denominator_unit='ACTUAT',
+box_size=null;
+
+UPDATE DS_STAGE
+   SET NUMERATOR_VALUE = 14
+WHERE DRUG_CONCEPT_CODE = '45808_01011963';
 
 COMMIT;
 

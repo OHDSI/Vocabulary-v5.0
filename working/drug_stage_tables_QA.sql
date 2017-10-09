@@ -29,7 +29,7 @@ SELECT error_type,
 FROM (SELECT a.concept_code, 'different classes in concept_code_1 and concept_id_2' AS error_type
       FROM relationship_to_concept r
         JOIN drug_concept_stage a ON a.concept_code = r.concept_code_1
-        JOIN devv5.concept c ON c.concept_id = r.concept_id_2 AND c.vocabulary_id = 'RxNorm'
+        JOIN devv5.concept c ON c.concept_id = r.concept_id_2 AND c.vocabulary_id like 'RxNorm%'
       WHERE a.concept_class_id != c.concept_class_id
 UNION
       --concept_id's that don't exist

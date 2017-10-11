@@ -16,135 +16,22 @@
 * Authors: Anna Ostropolets
 * Date: 2017
 **************************************************************************/
--- input tables creation
-CREATE TABLE DRUG_CONCEPT_STAGE
-(
-   CONCEPT_NAME       	 	 VARCHAR2(255 Byte),
-   VOCABULARY_ID      		 VARCHAR2(20 Byte),
-   CONCEPT_CLASS_ID   		 VARCHAR2(25 Byte),
-   SOURCE_CONCEPT_CLASS_ID       VARCHAR2(25 Byte),
-   STANDARD_CONCEPT   		 VARCHAR2(1 Byte),
-   CONCEPT_CODE       		 VARCHAR2(50 Byte),
-   POSSIBLE_EXCIPIENT 		 VARCHAR2(1 Byte),
-   DOMAIN_ID           		 VARCHAR2(25 Byte),
-   VALID_START_DATE   		 DATE,
-   VALID_END_DATE     		 DATE,
-   INVALID_REASON     		 VARCHAR2(1 Byte)
-);
 
-CREATE TABLE DS_STAGE
-(
-   DRUG_CONCEPT_CODE        VARCHAR2(255 Byte),
-   INGREDIENT_CONCEPT_CODE  VARCHAR2(255 Byte),
-   BOX_SIZE                 INTEGER,
-   AMOUNT_VALUE             FLOAT(126),
-   AMOUNT_UNIT              VARCHAR2(255 Byte),
-   NUMERATOR_VALUE          FLOAT(126),
-   NUMERATOR_UNIT           VARCHAR2(255 Byte),
-   DENOMINATOR_VALUE        FLOAT(126),
-   DENOMINATOR_UNIT         VARCHAR2(255 Byte)
-);
+--set latest update
+BEGIN
+   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'DPD',
+                                          pVocabularyDate        => TRUNC(sysdate),
+                                          pVocabularyVersion     => 'DPD '||sysdate,
+                                          pVocabularyDevSchema   => 'DEV_DPD');
+   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'RxNorm Extension',
+                                          pVocabularyDate        => TRUNC(sysdate),
+                                          pVocabularyVersion     => 'RxNorm Extension '||sysdate,
+                                          pVocabularyDevSchema   => 'DEV_DPD',
+                                          pAppendVocabulary      => TRUE);            
+END;
+/
+COMMIT;
 
-CREATE TABLE INTERNAL_RELATIONSHIP_STAGE
-(
-   CONCEPT_CODE_1     VARCHAR2(50 Byte),
-   CONCEPT_CODE_2     VARCHAR2(50 Byte)
-);
-
-CREATE TABLE RELATIONSHIP_TO_CONCEPT
-(
-   CONCEPT_CODE_1     VARCHAR2(255 Byte),
-   VOCABULARY_ID_1    VARCHAR2(20 Byte),
-   CONCEPT_ID_2       INTEGER,
-   PRECEDENCE         INTEGER,
-   CONVERSION_FACTOR  FLOAT(126)
-);
-
-CREATE TABLE PC_STAGE
-(
-   PACK_CONCEPT_CODE  VARCHAR2(255 Byte),
-   DRUG_CONCEPT_CODE  VARCHAR2(255 Byte),
-   AMOUNT             NUMBER,
-   BOX_SIZE           NUMBER
-);
-
-CREATE TABLE CONCEPT_SYNONYM_STAGE
-(
-   SYNONYM_CONCEPT_ID     NUMBER,
-   SYNONYM_NAME           VARCHAR2(255 Byte)   NOT NULL,
-   SYNONYM_CONCEPT_CODE   VARCHAR2(255 Byte)     NOT NULL,
-   SYNONYM_VOCABULARY_ID  VARCHAR2(255 Byte)     NOT NULL,
-   LANGUAGE_CONCEPT_ID    NUMBER
-)
-TABLESPACE USERS;
-
---SEQUENCE FOR OMOP-GENERATED CODES STARTING WITH THE LAST CODE USED IN PREVIOUS VOCABULARY
-CREATE sequence conc_stage_seq 
-  MINVALUE 97124
-  MAXVALUE 1000000
-  START WITH 97124
-  INCREMENT BY 1
-  CACHE 20;
-  ;
-—create manual tables
-CREATE TABLE NEW_PACK
-(
-   CONCEPT_CODE       VARCHAR2(30 Byte),
-   AIC                VARCHAR2(240 Byte),
-   CONCEPT_NAME       VARCHAR2(240 Byte),
-   INGREDIENT         VARCHAR2(240 Byte),
-   AMOUNT_VALUE       VARCHAR2(20 Byte),
-   AMOUNT_UNIT        VARCHAR2(40 Byte),
-   DENOMINATOR_VALUE  VARCHAR2(40 Byte),
-   DENOMINATOR_UNIT   VARCHAR2(40 Byte),
-   NUMERATOR_VALUE    VARCHAR2(20 Byte),
-   NUMERATOR_UNIT     VARCHAR2(40 Byte),
-   NOTES              VARCHAR2(2000 Byte),
-   DRUG_CODE          VARCHAR2(10 Byte),
-   BRAND_NAME         VARCHAR2(200 Byte),
-   NUMBER_OF_AIS      VARCHAR2(10 Byte),
-   INVALID_REASON     VARCHAR2(255 Byte)
-)
-TABLESPACE USERS;
-
-CREATE TABLE PACK_FORM
-(
-   CONCEPT_NAME_1       VARCHAR(255),
-   CONCEPT_NAME_2       VARCHAR(255)
-);   
-
-CREATE TABLE PC_STAGE_MANUAL
-(
-   CONCEPT_NAME_1       VARCHAR(255),
-   CONCEPT_NAME_2       VARCHAR(1255),
-   AMOUNT               VARCHAR(255),
-   BOX_SIZE             VARCHAR(255)
-);  
-
-CREATE TABLE NEW_RTC 
-(
-  CONCEPT_NAME_1       VARCHAR(255),
-  CONCEPT_CLASS_ID_1   VARCHAR(255),
-  CONCEPT_ID_2         NUMBER,
-  CONCEPT_NAME_2       VARCHAR(255),
-  INVALID_REASON_2     VARCHAR(255),
-  PRECEDENCE           VARCHAR(255),
-  CONVERSION_FACTOR    VARCHAR(255)
-);
-
-
-CREATE TABLE PREV_RTC
-(
-   CONCEPT_CODE_1      VARCHAR2(255 Byte),
-   CONCEPT_NAME_1      VARCHAR2(255 Byte),
-   CONCEPT_CLASS_ID_1  VARCHAR2(255 Byte),
-   CONCEPT_ID_2        NUMBER,
-   CONCEPT_NAME_2      VARCHAR2(255 Byte),
-   CONCEPT_CODE_2      VARCHAR2(255 Byte),
-   INVALID_REASON_2    VARCHAR2(1 Byte),
-   PRECEDENCE          NUMBER,
-   CONVERSION_FACTOR   NUMBER
-);
 --use obvious classes to extract non_drugs
 CREATE TABLE non_drug 
 AS

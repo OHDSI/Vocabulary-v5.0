@@ -367,12 +367,16 @@ UNION
       -- if there is an amount record, there must be a unit
       OR    (NVL(numerator_value,0) != 0 AND COALESCE(numerator_unit,denominator_unit) IS NULL)
       -- if there is a concentration record there must be a unit in both numerator and denominator
-UNION
-       SELECT drug_concept_code,'Drug Comp Box, need to remove box_size'
-       FROM ds_stage ds
+UNION 
+-- Drug Comp Box, need to remove box_size
+       select drug_concept_code, 'Drug Comp Box, need to remove box_size' from ds_stage where drug_concept_code not in (
+select drug_concept_code  FROM ds_stage ds
        JOIN internal_relationship_stage i ON concept_code_1 = drug_concept_code
-       LEFT JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Dose Form'
-       WHERE box_size IS NOT NULL AND   concept_name IS NULL
+       JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Dose Form'
+       WHERE box_size IS NOT NULL 
+       )
+and box_size is not null       
+       ;
 UNION
       -- as we don't have the mapping all the decives should be standard
       SELECT concept_code,  'non-standard devices'

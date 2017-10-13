@@ -1,8 +1,12 @@
+
+--select LATEST_UPDATE from devv5.vocabulary_conversion where VOCABULARY_ID_V5 ='Gemscript'
+
+
 --1 Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'Gemscript',
-                                          pVocabularyDate        => TRUNC(SYSDATE),
-                                          pVocabularyVersion     => 'Gemscript '||SYSDATE,
+                                          pVocabularyDate        => to_date ('2017-08-03','yyyy-mm-dd'),
+                                          pVocabularyVersion     => 'Gemscript 2017-08-03',
                                           pVocabularyDevSchema   => 'DEV_gemscript');									  
 END;
 /
@@ -55,7 +59,7 @@ gemscript_drug_code as concept_code,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
-from gemscript_dmd_map --table we had before, only God knows how we got this table
+from dev_gemscript.gemscript_dmd_map --table we had before, only God knows how we got this table
 ;
 commit
 ;
@@ -73,7 +77,7 @@ GEMSCRIPTCODE as concept_code,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date, -- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
-from gemscript_reference where GEMSCRIPTCODE not in (select concept_code from concept_stage)
+from dev_gemscript.gemscript_reference where GEMSCRIPTCODE not in (select concept_code from concept_stage)
 ;
 COMMIT
 ;
@@ -90,7 +94,7 @@ GEMSCRIPT_DRUGCODE as concept_code,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date, -- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
-from THIN_GEMSC_DMD_0717 where GEMSCRIPT_DRUGCODE not in (select concept_code from concept_stage)
+from dev_gemscript.THIN_GEMSC_DMD_0717 where GEMSCRIPT_DRUGCODE not in (select concept_code from concept_stage)
 ;
 COMMIT
 ;
@@ -107,7 +111,7 @@ ENCRYPTED_DRUGCODE as concept_code,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date, -- TRUNC(SYSDATE)
 to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
-from THIN_GEMSC_DMD_0717 
+from dev_gemscript.THIN_GEMSC_DMD_0717 
 ;
 COMMIT
 ;
@@ -135,7 +139,7 @@ DMD_CODE as concept_code_2,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date,
 to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
-from THIN_GEMSC_DMD_0717
+from dev_gemscript.THIN_GEMSC_DMD_0717
  ;
 commit
 ;
@@ -152,7 +156,7 @@ DMD_CODE as concept_code_2,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date,
 to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
-from gemscript_dmd_map  where  GEMSCRIPT_DRUG_CODE not in (select concept_code_1 from  concept_relationship_stage  )
+from dev_gemscript.gemscript_dmd_map  where  GEMSCRIPT_DRUG_CODE not in (select concept_code_1 from  concept_relationship_stage  )
 ;
 commit
 ;
@@ -169,7 +173,7 @@ GEMSCRIPT_DRUGCODE as concept_code_2,
 (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date,
 to_date ('31122099', 'ddmmyyyy') as valid_end_date,
 null as invalid_reason
-from THIN_GEMSC_DMD_0717  
+from dev_gemscript.THIN_GEMSC_DMD_0717  
 ;
 commit
 ;
@@ -252,13 +256,17 @@ select distinct domain_id from concept_stage
 ;
 commit
 ;
+--create table gemscript_reference as select * from dev_gemscript.gemscript_reference
+;
+
+
 --why in this way????
 --for development purpose use temporary THIN_need_to_map table:  
 drop table THIN_need_to_map;  --18457 the old version, 13965 --new version (join concept), well, really a big difference. not sure if those existing mappings are correct, 13877 - concept_relationship_stage version, why?
 create table THIN_need_to_map as --;select count (1) from THIN_need_to_map; 
 select --c.*
 t.ENCRYPTED_DRUGCODE as THIN_code, t.GENERIC as THIN_name, nvl (gr.GEMSCRIPTCODE, t.GEMSCRIPT_DRUGCODE) as GEMSCRIPT_code,  nvl ( gr.PRODUCTNAME, t.BRAND)  as GEMSCRIPT_name, c.domain_id
- from THIN_GEMSC_DMD_0717 t 
+ from dev_gemscript.THIN_GEMSC_DMD_0717 t 
  full outer join gemscript_reference gr on gr.GEMSCRIPTCODE = t.GEMSCRIPT_DRUGCODE
   left join  concept_relationship_stage r on nvl (gr.GEMSCRIPTCODE, t.GEMSCRIPT_DRUGCODE)  = r.concept_code_1 and r.invalid_reason is null --and r.vocabulary_id_2 in ('dm+d', 'RxNorm', 'RxNorm Extension') and relationship_id = 'Maps to' 
    join concept_stage c -- join and left join gives us different results because of   !1360102 AND   !5264101 codes, so exclude those !!-CODES
@@ -673,7 +681,8 @@ select dosage, drug_comp, thin_name as concept_name, gemscript_code as concept_c
 ;
 --!!! manual table
  
-drop table full_manual;
+--drop table full_manual;
+/*
 create table full_manual 
 (
 DOSAGE varchar (50),	VOLUME  varchar (50),	THIN_NAME	 varchar (550), GEMSCRIPT_NAME  varchar (550),	ingredient_id	 int, THIN_CODE  varchar (50),	gemscript_code  varchar (50),	INGREDIENT_CONCEPT_CODE  varchar (250),	DOMAIN_ID  varchar (50)
@@ -726,6 +735,11 @@ COMMIT;
  -- ;
   commit
  ;
+ */
+ drop table full_manual
+ ;
+create table full_manual as select * from dev_gemscript.full_manual  
+;
 
 delete from ds_all_tmp where concept_code in (select gemscript_code from full_manual where INGREDIENT_CONCEPT_CODE is not null);
 commit
@@ -1140,12 +1154,24 @@ commit
 --Execution time: 3m 28s when "mm" is used
  
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'thin_need_to_map', cascade  => true);
-
-drop table f_map;
-create table f_map as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
+/*
+drop table f_map_var;
+create table f_map_var as ( -- enhanced algorithm added  lower (a.thin_name) like lower '% '||(b.concept_name)||' %'
 select * from 
 (
-select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id, mm.concept_name_2, mm.concept_id_2, mm.vocabulary_id_2,  RANK() OVER (PARTITION BY a.gemscript_code ORDER BY  length(b.concept_name) desc, b.vocabulary_id desc) as rank1
+select distinct a.*, b.concept_id, b.concept_name,  b.vocabulary_id, b.concept_code , RANK() OVER (PARTITION BY a.gemscript_code ORDER BY  length(b.concept_name) desc, 
+
+
+case when b.vocabulary_id = 'dm+d' then 1
+when b.vocabulary_id = 'GRR' then 2
+when b.vocabulary_id = 'AMT' then 3
+when  b.vocabulary_id = 'DPD' then 4
+when b.vocabulary_id = 'BDPM' then 5
+when b.vocabulary_id = 'LPD_Australia' then 6
+when b.vocabulary_id = 'AMIS' then 7
+else 10 end
+
+ asc) as rank1
  
 from  thin_need_to_map a 
  join  concept b
@@ -1158,58 +1184,104 @@ or regexp_like (
  lower (nvl (a.thin_name, a.GEMSCRIPT_NAME)), lower  (' '||regexp_replace  (b.concept_name, 'y$', 'ies') ||'( |$)')
  ) 
 )
-and vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'BDPM', 'AMIS', 'Multilex', 'DPD', 'LPD_Australia') and concept_class_id in ( 'Dose Form', 'Form', 'AU Qualifier')   and invalid_reason is null
-join 
-(
-select  c.concept_id as source_id, nvl (d.concept_name, c.concept_name) as concept_name_2, nvl (d.concept_id, c.concept_id) as concept_id_2 ,nvl (d.vocabulary_id, c.vocabulary_id) as vocabulary_id_2
- from concept c
-left join 
-(
-select concept_id_1,relationship_id, concept_id_2 from concept_relationship where invalid_reason is null union select concept_id_1,relationship_id, concept_id_2 from rel_to_conc_old
-) r  on c.concept_id = r.concept_id_1 and relationship_id ='Source - RxNorm eq'
-left join concept d on d.concept_id = r.concept_id_2  and d.vocabulary_id like 'RxNorm%' and d.invalid_reason is null and d.concept_class_id = 'Dose Form'
-where c.vocabulary_id in('RxNorm', 'dm+d','RxNorm Extension', 'AMT', 'BDPM', 'AMIS', 'Multilex', 'DPD', 'LPD_Australia') and c.concept_class_id in ( 'Dose Form', 'Form', 'AU Qualifier')  and c.invalid_reason is null
-) mm 
-on mm.source_id = b.concept_id 
-where a.domain_id ='Drug' and mm.vocabulary_id_2 in ( 'RxNorm', 'RxNorm Extension') --not clear, need to fix in the future
+and vocabulary_id in( 'dm+d', 'AMT', 'BDPM', 'AMIS', 'DPD', 'LPD_Australia', 'GRR', 'RxNorm', 'RxNorm Extension') and concept_class_id in ( 'Dose Form', 'Form', 'AU Qualifier')   and invalid_reason is null
+ 
+where a.domain_id ='Drug'
 )
 --take the longest ingredient
 where rank1 = 1 
 )
 ;
---fix inacurracies
---change from vaginal gel to Topical gel
-update f_map set concept_id_2 =  19095973, CONCEPT_NAME_2 = 'Topical Gel'
-where 
-concept_id_2 = 
-19010880
-and thin_code !='98114992'
- ;
-delete from f_map 
-where thin_code in (
-'92530998',
-'98481997',
-'99895992',
-'97322998'
-
-)
-and concept_id_2 in (21308470, 46234469, 19082227)
+--mappings 
+drop table forms_mapping;
+--use old relationship_to_concept tables to define form mappings with precedence
+create table forms_mapping as
+select distinct f.concept_name as concept_code_1, map.concept_id_2, precedence, x.concept_name as concept_name_2   from f_map_var f
+join concept c on c.concept_id = f.concept_id
+left join 
+(
+select concept_code_1, concept_id_2, precedence, 'AMIS' as vocabulary_id_1 from dev_amis.relationship_to_concept 
+union
+select concept_code_1, concept_id_2, precedence, 'DPD' from dev_dpd.relationship_to_concept 
+union
+select concept_code_1, concept_id_2, precedence, 'dm+d' from dev_dmd.relationship_to_concept 
+union
+select concept_code_1, concept_id_2, precedence, 'AMT' from dev_amt.relationship_to_concept 
+union
+select concept_code_1, concept_id_2, precedence, 'GRR' from dev_grr.relationship_to_concept
+union
+select concept_code_1, concept_id_2, precedence, 'LPD_Australia' from dev_aus.relationship_to_concept 
+union
+select concept_code_1, concept_id_2, precedence, 'BDPM' from dev_bdpm.relationship_to_concept 
+) map on c.concept_code = map.concept_code_1 and c.vocabulary_id = vocabulary_id_1
+left join concept x on x.concept_id = map.concept_id_2
+--where x.concept_id is null
 ;
---gel and oil have the same damn length
-delete from f_map where gemscript_code in  ('61770020', '76284020') and concept_id = 21308470  
+--update mappings with precedence using forms equivalents that have multiple mappings
+insert into forms_mapping
+select old_name, concept_id_2, precedence, concept_name_2 from forms_mapping join (
+select 'Prefilled Syringe' as old_name , 'Pen' as new_name  from dual
+union
+select 'Dry Powder Inhaler', 'Inhalation powder' from dual
+union 
+select  'Inhalant', 'Inhalation Solution' from dual
+union
+select  'Powder Spray', 'Inhalation powder' from dual
+) aa 
+on aa.new_name  = forms_mapping.concept_code_1
+;
+
+delete from forms_mapping where concept_code_1 in (select old_name from (
+select 'Prefilled Syringe' as old_name , 'Pen' as new_name  from dual
+union
+select 'Dry Powder Inhaler', 'Inhalation powder' from dual
+union 
+select  'Inhalant', 'Inhalation Solution' from dual
+union
+select  'Powder Spray', 'Inhalation powder' from dual
+) aa ) and concept_id_2 is null
 ;
 commit
 ;
- 
---manual table for Dose Forms
-select * from thin_need_to_map
-where gemscript_code not in (select gemscript_code from f_map where gemscript_code is not null)
-and domain_id ='Drug'
+select * from forms_mapping where concept_code_1 =
+'Gel'
 ;
+--fix inacurracies
+UPDATE FORMS_MAPPING
+   SET PRECEDENCE = 4  WHERE CONCEPT_CODE_1 = 'Gel'
+AND   CONCEPT_ID_2 = 19010880;
+INSERT INTO FORMS_MAPPING
+(
+  CONCEPT_CODE_1,  CONCEPT_ID_2,  PRECEDENCE,  CONCEPT_NAME_2
+)
+VALUES
+(
+  'Gel',  19095973,  1,  'Topical Gel');
+--algorithm for forms make ambiguities when there are two forms with the same length in within one vocabulary
+DELETE
+FROM F_MAP_VAR
+WHERE GEMSCRIPT_CODE = '104007'
+AND   CONCEPT_ID = 21215788;
+DELETE
+FROM F_MAP_VAR
+WHERE GEMSCRIPT_CODE = '54128020'
+AND   CONCEPT_ID = 43360666;
+DELETE
+FROM F_MAP_VAR
+WHERE GEMSCRIPT_CODE = '58583020'
+AND   CONCEPT_ID = 43360666;
+DELETE
+FROM F_MAP_VAR
+WHERE GEMSCRIPT_CODE = '61770020'
+AND   CONCEPT_ID = 21308470;
+DELETE
+FROM F_MAP_VAR
+WHERE GEMSCRIPT_CODE = '76284020'
+AND   CONCEPT_ID = 21308470;
 
---then insert into f_map (also look for domains)
-
+commit
 ;
+*/
 --make Suppliers, some clean up
 UPDATE THIN_NEED_TO_MAP
    SET GEMSCRIPT_NAME =GEMSCRIPT_NAME||')' where GEMSCRIPT_NAME like '%(Neon Diagnostics'
@@ -1328,8 +1400,8 @@ to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from s_map
  --Dose Form
 insert into drug_concept_stage 
 (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON,SOURCE_CONCEPT_CLASS_ID)
-select distinct '', CONCEPT_NAME_2, 'Drug', 'Gemscript', 'Dose Form', '', CONCEPT_NAME_2, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
-to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from f_map
+select distinct '', CONCEPT_CODE_1, 'Drug', 'Gemscript', 'Dose Form', '', CONCEPT_CODE_1, (select latest_update from vocabulary where vocabulary_id = 'Gemscript') as valid_start_date ,-- TRUNC(SYSDATE)
+to_date ('31122099', 'ddmmyyyy') as valid_end_date , '', 'Gemscript'  from   forms_mapping
  ;
  --Brand Name
 insert into drug_concept_stage 
@@ -1348,7 +1420,7 @@ commit
 insert into internal_relationship_stage
 select GEMSCRIPT_CODE,CONCEPT_NAME  from  b_map
 union
-select GEMSCRIPT_CODE,CONCEPT_NAME_2  from f_map
+select GEMSCRIPT_CODE,CONCEPT_NAME  from  f_map_var
 union 
 select GEMSCRIPT_CODE,CONCEPT_NAME_2  from s_map
 union
@@ -1362,7 +1434,7 @@ insert into relationship_to_concept  (concept_code_1, concept_id_2, precedence, 
 from (
 select distinct   CONCEPT_NAME  as concept_code_1, concept_id as CONCEPT_ID_2, 1 as precedence, 1 as conversion_factor  from  b_map
 union
-select distinct  CONCEPT_NAME_2, concept_id_2, 1, 1 from f_map
+select distinct  CONCEPT_CODE_1, concept_id_2, precedence, 1 from forms_mapping
 union 
 select distinct  CONCEPT_NAME_2 , concept_id_2, 1, 1   from s_map
 union
@@ -1409,7 +1481,7 @@ delete from internal_relationship_stage where concept_code_1 = '4915007' and con
 ;
 commit
 ;
-drop sequence code_seq
+--drop sequence code_seq
 ;
 declare
  ex number;
@@ -1721,4 +1793,4 @@ exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'internal_relat
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'drug_concept_stage', cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'ds_stage', cascade  => true);
 exec DBMS_STATS.GATHER_TABLE_STATS (ownname => USER, tabname  => 'relationship_to_concept', cascade  => true);
-
+;

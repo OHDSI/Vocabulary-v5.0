@@ -100,6 +100,7 @@ CREATE TABLE t_domains nologging AS
         when l3.str = 'Supplies for Radiology Procedures (Radiopharmaceuticals)' then 'Device' -- Level 3: A9500-A9700
         when l2.str = 'Transport Services Including Ambulance' then 'Observation' -- Level 2: A0000-A0999
         when l1.str = 'A Codes' then 'Device' -- default for Level 1: A0000-A9999
+        when concept_code = 'A4224' then 'Device' -- supplies for catheter
         -- B codes
         when l1.str = 'Enteral and Parenteral Therapy Supplies' then 'Device' -- all of them Level 1: B4000-B9999
         -- C codes

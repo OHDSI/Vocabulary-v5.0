@@ -1,7 +1,6 @@
-
 BEGIN
-   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'Gemscript',
-                                          pVocabularyDate        => TRUNC(SYSDATE),
+   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'Gemscript', 
+                                          pVocabularyDate        => to_date ('2017-08-02','yyyy-mm-dd'),
                                           pVocabularyVersion     => 'Gemscript '||SYSDATE,
                                           pVocabularyDevSchema   => 'DEV_gemscript');									  
 END;
@@ -42,12 +41,13 @@ delete from concept_relationship_stage where invalid_reason ='D'
 ;
 commit
 ;
+
 --insert mappings from best_map
 insert into concept_relationship_stage  (CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select '', '', cs.concept_code, c.concept_code, cs.vocabulary_id, c.vocabulary_id, 'Maps to', TRUNC(SYSDATE), TO_DATE ('20991231', 'yyyymmdd'), ''
-from best_map b
-join concept_stage cs on cs.concept_code = b.Q_DCODE 
-join concept c on c.concept_id = b.R_DID 
+from map_drug b
+join concept_stage cs on cs.concept_code = b.from_code
+join concept c on c.concept_id = b.TO_ID
 ;
 commit
 ;
@@ -66,7 +66,7 @@ commit
  ;
   insert into concept_relationship_stage 
 ( select '','', ENCRYPTED_DRUGCODE, concept_code_2 , 'Gemscript', vocabulary_id_2, relationship_id, VALID_START_DATE, VALID_END_DATE, INVALID_REASON
- from THIN_GEMSC_DMD_0717 join concept_relationship_stage on GEMSCRIPT_DRUGCODE = concept_code_1)
+ from dev_gemscript.THIN_GEMSC_DMD_0717 join concept_relationship_stage on GEMSCRIPT_DRUGCODE = concept_code_1)
  ;
  commit
  ;
@@ -97,3 +97,10 @@ BEGIN
 END;
 /
 COMMIT; 
+
+--select count(*) from concept_relationship_Stage join concept_stage on  concept_code = concept_code_1
+ 
+--;
+--select count(*) from dev_gemscript.concept_relationship_Stage join dev_gemscript.concept_stage on  concept_code = concept_code_1
+-- ;
+ 

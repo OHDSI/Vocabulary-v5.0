@@ -105,6 +105,11 @@ UNION
 --important query - without it we'll ruin Generic_update
 select distinct concept_class_id,'Wrong concept_class_id in concept_stage'
 from concept_stage where concept_class_id not in (select distinct concept_class_id from devv5.concept_class)
+ 
+UNION
+ 
+select concept_code_1, 'relationships RxNorm-RxNorm exist in concept_relationship_stage' 
+from concept_relationship_stage where vocabulary_id_1='RxNorm' and vocabulary_id_2='RxNorm' 
 
 UNION
 

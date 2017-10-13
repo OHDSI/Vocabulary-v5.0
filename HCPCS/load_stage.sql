@@ -227,6 +227,7 @@ CREATE TABLE t_domains nologging AS
         when l2.str = 'Test, Skin (CMS Temporary Codes)' then 'Measurement' -- Level 2: Q3031-Q3031
         when l2.str = 'Supplies, Cast (CMS Temporary Codes)' then 'Device' -- Level 2: Q4001-Q4051
         when l2.str = 'Additional Drug Codes (CMS Temporary Codes)' then 'Procedure Drug' -- Level 2: Q4074-Q4082
+        when concept_code between 'Q4119' and 'Q4175' then 'Device' --wound tissue
         when concept_code in ('Q9982', 'Q9983') then 'Device' --Radiopharmaceuticals
         -- S codes
         when concept_code between 'S0012' and 'S0197' then 'Procedure Drug'

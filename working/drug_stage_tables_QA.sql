@@ -376,7 +376,7 @@ select drug_concept_code  FROM ds_stage ds
        WHERE box_size IS NOT NULL 
        )
 and box_size is not null       
-       ;
+
 UNION
       -- as we don't have the mapping all the decives should be standard
       SELECT concept_code,  'non-standard devices'

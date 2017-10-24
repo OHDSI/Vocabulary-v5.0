@@ -2015,7 +2015,6 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (250869005, 'Observation'); -- Equipment finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (217315002, 'Observation'); -- Onset of illness
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (127362006, 'Observation'); -- Previous pregnancies
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (57797005, 'Procedure'); -- Termination of pregnancy
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (162511002, 'Observation'); -- Rare history finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (413296003, 'Condition'); -- Depression requiring intervention
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (72670004, 'Condition'); -- Sign

@@ -461,4 +461,42 @@ UPDATE concept_stage
                    JOIN concept_stage c2 ON c2.concept_code = ca.descendant_concept_code AND c2.vocabulary_id = ca.descendant_vocabulary_id AND c2.standard_concept IS NOT NULL);
 COMMIT;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+ --"parents" of "Measurements" should be "Measurements" too 
+--https://odysseusdataservices.atlassian.net/browse/AVOF-612?focusedCommentId=22138&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-22138
+
+ update concept_stage set domain_id = 'Measurement' where concept_code in (
+ select a.concept_code from concept_relationship_stage r
+ join concept_stage a on a.concept_code = concept_code_1
+ join concept_stage b on b.concept_code = concept_code_2
+ where r.relationship_id ='Panel contains'
+ and b.domain_id ='Measurement' and a.domain_id ='Observation'
+  and a.concept_class_Id= 'Clinical Observation' and b.concept_class_Id= 'Clinical Observation' 
+ and a.concept_code not in (
+  select a.concept_code from concept_relationship_stage r
+ join concept_stage a on a.concept_code = concept_code_1
+ join concept_stage b on b.concept_code = concept_code_2
+ where r.relationship_id ='Panel contains'
+  and a.concept_class_Id= 'Clinical Observation' and b.concept_class_Id= 'Clinical Observation' 
+ and b.domain_id ='Observation' and a.domain_id ='Observation')
+ );
+commit
+;
+--then some concepts were changed to a Measurement so we need to apply the same script again
+  update concept_stage set domain_id = 'Measurement' where concept_code in (
+ select a.concept_code from concept_relationship_stage r
+ join concept_stage a on a.concept_code = concept_code_1
+ join concept_stage b on b.concept_code = concept_code_2
+ where r.relationship_id ='Panel contains'
+ and b.domain_id ='Measurement' and a.domain_id ='Observation'
+  and a.concept_class_Id= 'Clinical Observation' and b.concept_class_Id= 'Clinical Observation' 
+ and a.concept_code not in (
+  select a.concept_code from concept_relationship_stage r
+ join concept_stage a on a.concept_code = concept_code_1
+ join concept_stage b on b.concept_code = concept_code_2
+ where r.relationship_id ='Panel contains'
+  and a.concept_class_Id= 'Clinical Observation' and b.concept_class_Id= 'Clinical Observation' 
+ and b.domain_id ='Observation' and a.domain_id ='Observation')
+ );
+commit
+;
+ -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

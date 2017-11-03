@@ -20,14 +20,14 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'NDC',
-                                          pVocabularyDate        => TO_DATE ('20160815', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'NDC 20160815',
+                                          pVocabularyDate        => TO_DATE ('20171023', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'NDC 20171023',
                                           pVocabularyDevSchema   => 'DEV_NDC');
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'SPL',
-                                          pVocabularyDate        => TO_DATE ('20160815', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'NDC 20160815',
+                                          pVocabularyDate        => TO_DATE ('20171023', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'NDC 20171023',
                                           pVocabularyDevSchema   => 'DEV_NDC',
-                                          pAppendVocabulary      => TRUE);										  
+                                          pAppendVocabulary      => TRUE);
 END;
 COMMIT;
 
@@ -96,7 +96,7 @@ INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_name,
                            valid_start_date,
                            valid_end_date,
                            invalid_reason)
-    select spl_name as concept_name,
+    select substr(spl_name,1,255) as concept_name,
     case when displayname in ('COSMETIC') then 'Observation' 
         when displayname in ('MEDICAL DEVICE','OTC MEDICAL DEVICE LABEL','PRESCRIPTION MEDICAL DEVICE LABEL', 'MEDICAL FOOD', 'DIETARY SUPPLEMENT') then 'Device'
         else 'Drug'

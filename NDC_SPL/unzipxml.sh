@@ -21,6 +21,8 @@ echo "unzipping dm_spl_release_human_otc_part3 (2/4)..."
 unzip -oq dm_spl_release_human_otc_part3.zip
 echo "unzipping dm_spl_release_human_otc_part4 (2/4)..."
 unzip -oq dm_spl_release_human_otc_part4.zip
+echo "unzipping dm_spl_release_human_otc_part5 (2/4)..."
+unzip -oq dm_spl_release_human_otc_part5.zip
 
 #dm_spl_release_human_rx
 echo "unzipping dm_spl_release_human_rx_part1 (3/4)..."

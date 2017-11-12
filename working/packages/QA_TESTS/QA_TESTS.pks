@@ -8,5 +8,7 @@ IS
 
     FUNCTION get_checks (check_id IN NUMBER DEFAULT NULL)
         RETURN rep_t_GetChecks;
+
+    PROCEDURE check_stage_tables;
 END QA_TESTS;
 /

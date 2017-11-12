@@ -312,7 +312,7 @@ IS
             --relationships without reverse
             SELECT 3 check_id, r.*
               FROM concept_relationship r, relationship rel
-             WHERE r.relationship_id = rel.relationship_id
+             WHERE     r.relationship_id = rel.relationship_id
                    AND r.concept_id_1 <> r.concept_id_2
                    AND NOT EXISTS
                            (SELECT 1
@@ -439,6 +439,105 @@ IS
         END LOOP;
 
         RETURN Res;
+    END;
+
+    PROCEDURE check_stage_tables
+    IS
+        z   NUMBER;
+    BEGIN
+        EXECUTE IMMEDIATE q'[
+        SELECT SUM (cnt)
+          FROM (SELECT COUNT (*) cnt
+                  FROM concept_relationship_stage crs
+                       LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crs.vocabulary_id_1 AND v1.latest_update IS NOT NULL
+                       LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crs.vocabulary_id_2 AND v2.latest_update IS NOT NULL
+                 WHERE COALESCE (v1.latest_update, v2.latest_update) IS NULL
+                UNION ALL
+                SELECT COUNT (*)
+                  FROM concept_stage cs LEFT JOIN vocabulary v ON v.vocabulary_id = cs.vocabulary_id AND v.latest_update IS NOT NULL
+                 WHERE v.latest_update IS NULL
+                UNION ALL
+                SELECT COUNT (*)
+                  FROM concept_relationship_stage
+                 WHERE    valid_start_date IS NULL
+                       OR valid_end_date IS NULL
+                       OR (invalid_reason IS NULL AND valid_end_date <> TO_DATE ('20991231', 'yyyymmdd'))
+                       OR (invalid_reason IS NOT NULL AND valid_end_date = TO_DATE ('20991231', 'yyyymmdd'))
+                UNION ALL
+                SELECT COUNT (*)
+                  FROM (SELECT relationship_id FROM concept_relationship_stage
+                        MINUS
+                        SELECT relationship_id FROM relationship)
+                UNION ALL
+                SELECT COUNT (*)
+                  FROM (SELECT concept_class_id FROM concept_stage
+                        MINUS
+                        SELECT concept_class_id FROM concept_class)
+                UNION ALL
+                SELECT COUNT (*)
+                  FROM (SELECT domain_id FROM concept_stage
+                        MINUS
+                        SELECT domain_id FROM domain)
+                UNION ALL
+                SELECT COUNT (*)
+                  FROM (SELECT vocabulary_id FROM concept_stage
+                        MINUS
+                        SELECT vocabulary_id FROM vocabulary)
+                UNION ALL
+                SELECT COUNT (*)
+                  FROM concept_stage
+                 WHERE concept_name IS NULL OR domain_id IS NULL OR concept_class_id IS NULL OR concept_code IS NULL OR valid_start_date IS NULL OR valid_end_date IS NULL
+                UNION ALL
+                  SELECT COUNT (*)
+                    FROM concept_relationship_stage
+                GROUP BY concept_code_1, concept_code_2, relationship_id
+                  HAVING COUNT (*) > 1
+                UNION ALL
+                  SELECT COUNT (*)
+                    FROM concept_stage
+                GROUP BY concept_code, vocabulary_id
+                  HAVING COUNT (*) > 1
+                UNION ALL
+                  SELECT COUNT (*)
+                    FROM pack_content_stage
+                GROUP BY pack_concept_code,
+                         pack_vocabulary_id,
+                         drug_concept_code,
+                         drug_vocabulary_id,
+                         amount
+                  HAVING COUNT (*) > 1
+                UNION ALL
+                  SELECT COUNT (*)
+                    FROM drug_strength_stage
+                GROUP BY drug_concept_code,
+                         vocabulary_id_1,
+                         ingredient_concept_code,
+                         vocabulary_id_2,
+                         amount_value
+                  HAVING COUNT (*) > 1
+                UNION ALL
+                SELECT COUNT (*)
+                  FROM concept_relationship_stage crm
+                       LEFT JOIN concept c1 ON c1.concept_code = crm.concept_code_1 AND c1.vocabulary_id = crm.vocabulary_id_1
+                       LEFT JOIN concept_stage cs1 ON cs1.concept_code = crm.concept_code_1 AND cs1.vocabulary_id = crm.vocabulary_id_1
+                       LEFT JOIN concept c2 ON c2.concept_code = crm.concept_code_2 AND c2.vocabulary_id = crm.vocabulary_id_2
+                       LEFT JOIN concept_stage cs2 ON cs2.concept_code = crm.concept_code_2 AND cs2.vocabulary_id = crm.vocabulary_id_2
+                       LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crm.vocabulary_id_1
+                       LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crm.vocabulary_id_2
+                       LEFT JOIN relationship rl ON rl.relationship_id = crm.relationship_id
+                 WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
+                       OR (c2.concept_code IS NULL AND cs2.concept_code IS NULL)
+                       OR v1.vocabulary_id IS NULL
+                       OR v2.vocabulary_id IS NULL
+                       OR rl.relationship_id IS NULL
+                       OR crm.valid_start_date > SYSDATE
+                       OR crm.valid_end_date < crm.valid_start_date
+                       OR (crm.invalid_reason IS NULL AND crm.valid_end_date <> TO_DATE ('20991231', 'yyyymmdd')))]' INTO z;
+
+        IF z <> 0
+        THEN
+            raise_application_error (-20001, z || ' error(s) found in stage tables. Check working\QA_stage_tables.sql');
+        END IF;
     END;
 END QA_TESTS;
 /

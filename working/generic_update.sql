@@ -14,11 +14,18 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2016-2017
 **************************************************************************/
 
-
 -- Prerequisites:
+/*-- Check stage tables for incorrect rows [CURRENTLY NOT WORKING FOR SNOMED!]
+BEGIN
+   DEVV5.QA_TESTS.Check_Stage_Tables;
+END;
+/
+COMMIT;
+*/
+
 -- Update concept_id in concept_stage from concept for existing concepts
 MERGE INTO concept_stage cs
      USING (SELECT c.concept_id, c.concept_code AS concept_code, c.vocabulary_id

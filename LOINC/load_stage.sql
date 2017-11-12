@@ -461,42 +461,48 @@ UPDATE concept_stage
                    JOIN concept_stage c2 ON c2.concept_code = ca.descendant_concept_code AND c2.vocabulary_id = ca.descendant_vocabulary_id AND c2.standard_concept IS NOT NULL);
 COMMIT;
 
- --"parents" of "Measurements" should be "Measurements" too 
---https://odysseusdataservices.atlassian.net/browse/AVOF-612?focusedCommentId=22138&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-22138
-
- update concept_stage set domain_id = 'Measurement' where concept_code in (
- select a.concept_code from concept_relationship_stage r
- join concept_stage a on a.concept_code = concept_code_1
- join concept_stage b on b.concept_code = concept_code_2
- where r.relationship_id ='Panel contains'
- and b.domain_id ='Measurement' and a.domain_id ='Observation'
-  and a.concept_class_Id= 'Clinical Observation' and b.concept_class_Id= 'Clinical Observation' 
- and a.concept_code not in (
-  select a.concept_code from concept_relationship_stage r
- join concept_stage a on a.concept_code = concept_code_1
- join concept_stage b on b.concept_code = concept_code_2
- where r.relationship_id ='Panel contains'
-  and a.concept_class_Id= 'Clinical Observation' and b.concept_class_Id= 'Clinical Observation' 
- and b.domain_id ='Observation' and a.domain_id ='Observation')
- );
-commit
-;
---then some concepts were changed to a Measurement so we need to apply the same script again
-  update concept_stage set domain_id = 'Measurement' where concept_code in (
- select a.concept_code from concept_relationship_stage r
- join concept_stage a on a.concept_code = concept_code_1
- join concept_stage b on b.concept_code = concept_code_2
- where r.relationship_id ='Panel contains'
- and b.domain_id ='Measurement' and a.domain_id ='Observation'
-  and a.concept_class_Id= 'Clinical Observation' and b.concept_class_Id= 'Clinical Observation' 
- and a.concept_code not in (
-  select a.concept_code from concept_relationship_stage r
- join concept_stage a on a.concept_code = concept_code_1
- join concept_stage b on b.concept_code = concept_code_2
- where r.relationship_id ='Panel contains'
-  and a.concept_class_Id= 'Clinical Observation' and b.concept_class_Id= 'Clinical Observation' 
- and b.domain_id ='Observation' and a.domain_id ='Observation')
- );
-commit
-;
+--21 Set the proper domain_id='Measurement' for perents where ALL childrens are 'Measurement' too (AVOF-612)
+UPDATE concept_stage cs
+   SET cs.domain_id = 'Measurement'
+ WHERE     cs.concept_code IN
+               (SELECT DISTINCT root_ancestor_concept_code
+                  FROM (SELECT root_ancestor_concept_code,
+                               COUNT (*) OVER (PARTITION BY root_ancestor_concept_code) cnt_descendant,
+                               SUM (CASE WHEN descendant_domain = 'Measurement' THEN 1 ELSE 0 END) OVER (PARTITION BY root_ancestor_concept_code) sum_childen_measurement
+                          FROM (SELECT root_ancestor_concept_code, descendant_concept_code, descendant_domain
+                                  FROM (  SELECT root_ancestor_concept_code,
+                                                 descendant_concept_code,
+                                                 descendant_vocabulary_id,
+                                                 descendant_domain
+                                            FROM (    SELECT CONNECT_BY_ROOT ancestor_concept_code AS root_ancestor_concept_code,
+                                                             descendant_concept_code,
+                                                             descendant_vocabulary_id,
+                                                             descendant_domain
+                                                        FROM (SELECT crs.concept_code_1 AS ancestor_concept_code,
+                                                                     crs.vocabulary_id_1 AS ancestor_vocabulary_id,
+                                                                     crs.concept_code_2 AS descendant_concept_code,
+                                                                     crs.vocabulary_id_2 AS descendant_vocabulary_id,
+                                                                     c2.domain_id AS descendant_domain
+                                                                FROM concept_relationship_stage crs
+                                                                     JOIN relationship s ON s.relationship_id = crs.relationship_id AND s.defines_ancestry = 1
+                                                                     JOIN concept_stage c1
+                                                                         ON     c1.concept_code = crs.concept_code_1
+                                                                            AND c1.vocabulary_id = crs.vocabulary_id_1
+                                                                            AND c1.invalid_reason IS NULL
+                                                                            AND c1.vocabulary_id = 'LOINC'
+                                                                     JOIN concept_stage c2
+                                                                         ON     c2.concept_code = crs.concept_code_2
+                                                                            AND c1.vocabulary_id = crs.vocabulary_id_2
+                                                                            AND c2.invalid_reason IS NULL
+                                                                            AND c2.vocabulary_id = 'LOINC'
+                                                               WHERE crs.invalid_reason IS NULL)
+                                                  CONNECT BY PRIOR descendant_concept_code = ancestor_concept_code AND descendant_vocabulary_id = ancestor_vocabulary_id)
+                                        GROUP BY root_ancestor_concept_code,
+                                                 descendant_concept_code,
+                                                 descendant_vocabulary_id,
+                                                 descendant_domain) ca
+                                       JOIN concept_stage c2 ON c2.concept_code = ca.descendant_concept_code AND c2.vocabulary_id = ca.descendant_vocabulary_id AND c2.standard_concept IS NOT NULL))
+                 WHERE cnt_descendant = sum_childen_measurement)
+       AND cs.domain_id <> 'Measurement';
+COMMIT;
  -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

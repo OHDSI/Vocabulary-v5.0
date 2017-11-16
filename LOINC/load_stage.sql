@@ -51,8 +51,7 @@ INSERT INTO concept_stage (concept_id,
 			,1,255) AS concept_name,
           CASE 
              WHEN CLASSTYPE = '1' THEN 'Measurement'
-             WHEN CLASSTYPE = '2' and SCALE_TYP ='Qn' THEN 'Measurement'
-             WHEN CLASSTYPE = '2' and SCALE_TYP !='Qn' THEN 'Observation'
+             WHEN CLASSTYPE = '2' THEN 'Measurement'
              WHEN CLASSTYPE = '3' THEN 'Observation'
              WHEN CLASSTYPE = '4' THEN 'Observation'
           END

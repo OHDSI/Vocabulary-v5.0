@@ -527,9 +527,9 @@ INSERT  /*+ APPEND */  INTO concept_stage (concept_name,
                            ELSE 1
                         END,
                         CASE WHEN term LIKE '%(%)%' THEN 1 ELSE 0 END,
-                        LENGTH(TERM) DESC),
-                        d.id DESC --same as of AVOF-650
-                     AS rn
+                        LENGTH(TERM) DESC,
+                        d.id DESC ) AS rn --same as of AVOF-650
+                     
              FROM sct2_concept_full_merged c, sct2_desc_full_merged d
             WHERE c.id = d.conceptid AND term IS NOT NULL
           ) sct2
@@ -1477,19 +1477,21 @@ AS
                    d.term,
                    ROW_NUMBER ()
                    OVER (PARTITION BY r.id
-                         ORDER BY TO_DATE (r.effectivetime, 'YYYYMMDD') DESC,
-						 d.id DESC --temporary fix for AVOF-650
+                         ORDER BY TO_DATE (r.effectivetime, 'YYYYMMDD') DESC
+			 
 						 )
                       AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
                    r.active
               FROM sct2_rela_full_merged r
-                   JOIN sct2_desc_full_merged d ON r.typeid = d.conceptid)
+                   JOIN sct2_desc_full_merged d ON r.typeid = d.conceptid
+           )
      WHERE     rn = 1
            AND active = 1
            AND sourceid IS NOT NULL
            AND destinationid IS NOT NULL
-           AND term <> 'PBCL flag true');
-
+           AND term <> 'PBCL flag true')
+           ;
+           
 INSERT  /*+ APPEND */  INTO concept_relationship_stage (
 										concept_code_1,
                                         concept_code_2,
@@ -1517,8 +1519,8 @@ FROM (
 			'SNOMED' as vocabulary_id_2,
 			CASE
 				WHEN term = 'Access' THEN 'Has access'
-				WHEN term = 'Associated aetiologic finding' THEN 'Has etiology'
-				WHEN term = 'After' THEN 'Occurs after'
+				WHEN term in ( 'Associated aetiologic finding', 'Associated etiologic finding') THEN 'Has etiology'
+				WHEN term = 'After' THEN 'Followed by'
 				WHEN term = 'Approach' THEN 'Has surgical appr' -- looks like old version
 				WHEN term = 'Associated finding' THEN 'Has asso finding'
 				WHEN term = 'Associated morphology' THEN 'Has asso morph'
@@ -1556,7 +1558,7 @@ FROM (
 				WHEN term = 'Measurement method' THEN 'Has measurement'
 				WHEN term = 'Measurement Method' THEN 'Has measurement' -- looks like misspelling
 				WHEN term = 'Method' THEN 'Has method'
-				WHEN term = 'Morphology' THEN 'Has morphology'
+				WHEN term = 'Morphology' THEN 'Has asso morph'-- changed to the same thing as 'Has Morphology'
 				WHEN term = 'Occurrence' THEN 'Has occurrence'
 				WHEN term = 'Onset' THEN 'Has clinical course' -- looks like old version
 				WHEN term = 'Part of' THEN 'Has part of'
@@ -1615,7 +1617,14 @@ FROM (
 				WHEN term = 'Property type' THEN 'Has property type'
 				WHEN term = 'Inheres in' THEN 'Inheres in'
 				WHEN term = 'Direct site' THEN 'Has direct site'
-				WHEN term = 'Characterizes' THEN 'Characterizes'				
+				WHEN term = 'Characterizes' THEN 'Characterizes'
+				WHEN term = 'During' THEN  'During' --new 
+WHEN term = 'Has BoSS' THEN 'Has basis str subst' -- use existing relationship
+WHEN term = 'Has manufactured dose form' then 'Has dose form' -- use existing relationship
+WHEN term = 'Has presentation strength denominator unit' then 'Has denominator unit'  -- new 
+WHEN term = 'Has presentation strength denominator value' then 'Has denomin value' -- new
+WHEN term = 'Has presentation strength numerator unit' then 'Has numerator unit' -- new
+WHEN term = 'Has presentation strength numerator value' then 'Has numerator value' -- new				
 				ELSE 'non-existing'      
 			END AS relationship_id,
 			(select latest_update From vocabulary where vocabulary_id='SNOMED') as valid_start_date,
@@ -1629,8 +1638,17 @@ FROM (
 );
 COMMIT;
 
+
+select * from  tmp_rel join concept_relationship_stage on sourceid = concept_code_1 and DESTINATIONID = concept_code_2 and relationship_id = 'non-existing'
+;
 --check for non-existing relationships
-ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
+ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id); 
+
+--checks
+select distinct relationship_id from concept_relationship_stage where relationship_id not in (select relationship_id from relationship) -- non-existing
+;
+
+
 ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 
 -- 11. add replacement relationships. They are handled in a different SNOMED table
@@ -1681,6 +1699,7 @@ INSERT  /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
 		AND crs.concept_code_2=sn.concept_code_2
 		AND crs.relationship_id=sn.relationship_id	
 	);
+	
 COMMIT;
 
 --sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
@@ -1925,6 +1944,7 @@ END;
 --17. Create domain_id
 -- 17.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
 
+
 CREATE TABLE peak (
 	peak_code VARCHAR(20), --the id of the top ancestor
 	peak_domain_id VARCHAR(20), -- the domain to assign to all its children
@@ -1948,7 +1968,7 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (78621006, 'Observation'); -- Physical force
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (123037004, 'Spec Anatomic Site'); -- Body structure
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (118956008, 'Observation'); -- Body structure, altered from its original anatomical structure, reverted from 123037004
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (254291000, 'Observation'); -- Staging / Scales
+  INSERT INTO peak (peak_code, peak_domain_id) VALUES (254291000, 'Observation'); -- Staging / Scales
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (370115009, 'Metadata'); -- Special Concept
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (308916002, 'Observation'); -- Environment or geographical location
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (223366009, 'Provider Specialty');
@@ -1960,7 +1980,7 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (421967003, 'Drug'); -- drug dose form
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (424387007, 'Drug'); -- dose form by site prepared for 
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (421563008, 'Drug'); -- complementary medicine dose form
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (284009009, 'Drug');  -- Route of administration value
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (284009009, 'Route');  -- Route of administration value !!!
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (373783004, 'Observation'); -- dietary product, exception of Pharmaceutical / biologic product
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (419572002, 'Observation'); -- alcohol agent, exception of drug
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (373782009, 'Observation'); -- diagnostic substance, exception of drug
@@ -2038,7 +2058,7 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (441742003, 'Condition'); -- Evaluation finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (365605003, 'Observation'); -- Body measurement finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (106019003, 'Condition'); -- Elimination pattern
-	-- INSERT INTO peak (peak_code, peak_domain_id) VALUES (65367001, 'Observation'); -- Victim status
+	-- INSERT INTO peak (peak_code, peak_domain_id) VALUES (65367001, 'Observation'); -- Victim status -- why excluded?
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (106146005, 'Condition'); -- Reflex finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (103020000, 'Condition'); -- Adrenarche
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (405729008, 'Condition'); -- Hematochezia
@@ -2075,16 +2095,15 @@ BEGIN
  	INSERT INTO peak (peak_code, peak_domain_id) VALUES (962871000000107, 'Observation'); -- Aware of overall cardiovascular disease risk
  	INSERT INTO peak (peak_code, peak_domain_id) VALUES (968521000000109, 'Observation'); -- Inappropriate use of general practitioner service
 --added 8/25/2017, these concepts should be in Observation, so people can put causative agent into 
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (282100009, 'Observation'); -- Adverse reaction caused by substance
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (419199007, 'Observation'); -- Allergy to substance
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (7895008, 'Observation'); -- Poisoning caused by drug AND/OR medicinal substance
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (55680006, 'Observation'); -- Drug overdose
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (292545003, 'Observation'); -- Oxitropium adverse reaction --somehow it sneaks through domain definition above, so define this one separately
+--	INSERT INTO peak (peak_code, peak_domain_id) VALUES (282100009, 'Observation'); -- Adverse reaction caused by substance - condition 
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES  (473010000, 'Condition'); --Hypersensitivity condition 
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (419199007, 'Observation'); -- Allergy to substance
+INSERT INTO peak (peak_code, peak_domain_id) VALUES (10628711000119101, 'Condition'); -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
 --added 8/30/2017
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (310611001, 'Measurement'); -- Cardiovascular measure
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (424122007, 'Observation'); -- ECOG performance status finding
-
-
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (698289004, 'Observation'); --   Hooka whatever Observation  -- http://forums.ohdsi.org/t/hookah-concept/3515
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (248627000, 'Measurement'); -- Pulse characteristics 
 
 END;
 /
@@ -2276,6 +2295,8 @@ UPDATE concept_stage c
 
 -- 17.7. Make manual changes according to rules
 -- Create Route of Administration
+ --obsolete, introducing Route domain in peaks
+/* 
 UPDATE concept_stage
    SET domain_id = 'Route'
  WHERE     concept_code IN ('255560000',
@@ -2290,7 +2311,7 @@ UPDATE concept_stage
                             '359540000',
                             '90028008')
        AND vocabulary_id = 'SNOMED';
-
+*/
 -- Create Specimen Anatomical Site
 UPDATE concept_stage
    SET domain_id = 'Spec Anatomic Site'
@@ -2402,6 +2423,9 @@ THEN
    UPDATE SET c.domain_id = dmd.domain_id;
 COMMIT;   
 
+
+
+
 -- 18.2 Return concept_class_id
 --for AMPPs (branded packs), AMPs (branded drugs) and VMPPs (clinical packs)
 MERGE INTO concept_stage c
@@ -2443,11 +2467,30 @@ THEN
    UPDATE SET c.concept_class_id = dmd.concept_class_id;     
 COMMIT;
 
+
+--18.3 rename this Topical one 
+update concept_stage set concept_name = 'Topical route' where concept_code = '6064005'
+;
+--18.3 make those Obsolete routes non-standard
+update concept_stage set STANDARD_CONCEPT = null where concept_name like 'Obsolete%' and domain_id ='Route'
+;
+commit
+;
+/*
 -- 19 Clean up
 DROP TABLE peak PURGE;
 DROP TABLE domain_snomed PURGE;
 DROP TABLE concept_stage_dmd PURGE;
 DROP TABLE tmp_rel PURGE;
 DROP TABLE snomed_ancestor PURGE;
+*/
+
+--before running generic update check domains
+ select cs.concept_code,cs.concept_name,  c.domain_id as old_domain  , cs.domain_id as new_domain from concept_stage cs
+join devv5.concept c on c.concept_code = cs.concept_code
+where c.vocabulary_id = 'SNOMED'
+and cs.domain_id !=c.domain_id 
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+
+

@@ -762,7 +762,9 @@ IS
                 cPos1 := INSTR (cVocabHTML, cSearchString);
                 cSearchString := '<strong>Note: <a href="';
                 cPos1 := INSTR (cVocabHTML, cSearchString, cPos1);
-                cPos2 := INSTR (cVocabHTML, '">', cPos1);
+                cSearchString := '">';
+                cPos1 := INSTR (cVocabHTML, cSearchString, cPos1);
+                cPos2 := INSTR (cVocabHTML, '</a>', cPos1);
                 CheckPositions (cPos1, cPos2);
                 cVocabDate :=
                     TO_DATE (TO_NUMBER (REGEXP_SUBSTR (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), ' [[:digit:]]{4} ')) - 1 || '0101', 'yyyymmdd');
@@ -804,7 +806,7 @@ IS
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'mondd,yyyy');
             WHEN pVocabularyName IN ('OPCS4', 'Read')
             THEN
-                cSearchString := '<div class="release available">';
+                cSearchString := 'class="release available">';
                 cPos1 := INSTR (cVocabHTML, cSearchString);
                 /*
                 gets 21.0.0_YYYYMMDD000001
@@ -923,12 +925,36 @@ IS
         DBMS_JAVA.set_output (1000000);
 
         --pConceptAncestor;
+        --CreateLocalPROD;
         --DEVV4.v5_to_v4;
 
-        csv.generate ('VOCAB_DUMP', 'concept.csv', p_query => 'SELECT * FROM concept where rownum<100');
-        csv.generate ('VOCAB_DUMP', 'concept_relationship.csv', p_query => 'SELECT * FROM concept_relationship where rownum<100');
-        --host_command ('/home/vocab_dump/upload_vocab.sh');
-        host_command ('export PGPASSWORD=xxx && /usr/bin/psql -t -p xxx -d postgres -U xxx -c "SELECT import_tables();"');
+        --v5
+        csv.generate('VOCAB_DUMP', 'v5_concept.csv', p_query => 'SELECT * FROM concept');
+        csv.generate('VOCAB_DUMP', 'v5_vocabulary.csv', p_query => 'SELECT * FROM vocabulary');
+        csv.generate('VOCAB_DUMP', 'v5_concept_relationship.csv', p_query => 'SELECT * FROM concept_relationship WHERE INVALID_REASON IS NULL');
+        csv.generate('VOCAB_DUMP', 'v5_relationship.csv', p_query => 'SELECT * FROM relationship');
+        csv.generate('VOCAB_DUMP', 'v5_concept_synonym.csv', p_query => 'SELECT * FROM concept_synonym');
+        csv.generate('VOCAB_DUMP', 'v5_concept_ancestor.csv', p_query => 'SELECT * FROM concept_ancestor');
+        csv.generate('VOCAB_DUMP', 'v5_domain.csv', p_query => 'SELECT * FROM domain');
+        csv.generate('VOCAB_DUMP', 'v5_drug_strength.csv', p_query => 'SELECT * FROM drug_strength');
+        --csv.generate('VOCAB_DUMP', 'v5_pack_content.csv', p_query => 'SELECT * FROM pack_content');
+        csv.generate('VOCAB_DUMP', 'v5_concept_class.csv', p_query => 'SELECT * FROM concept_class');
+        csv.generate('VOCAB_DUMP', 'v5_vocabulary_conversion.csv', p_query => 'SELECT * FROM vocabulary_conversion');
+        
+        --v4
+        csv.generate('VOCAB_DUMP', 'v4_concept.csv', p_query => 'SELECT * FROM devv4.concept');
+        csv.generate('VOCAB_DUMP', 'v4_vocabulary.csv', p_query => 'SELECT * FROM devv4.vocabulary');
+        csv.generate('VOCAB_DUMP', 'v4_concept_relationship.csv', p_query => 'SELECT * FROM devv4.concept_relationship');
+        csv.generate('VOCAB_DUMP', 'v4_relationship.csv', p_query => 'SELECT * FROM devv4.relationship');
+        csv.generate('VOCAB_DUMP', 'v4_concept_synonym.csv', p_query => 'SELECT * FROM devv4.concept_synonym');
+        csv.generate('VOCAB_DUMP', 'v4_concept_ancestor.csv', p_query => 'SELECT * FROM devv4.concept_ancestor');
+        csv.generate('VOCAB_DUMP', 'v4_source_to_concept_map.csv', p_query => 'SELECT * FROM devv4.source_to_concept_map');
+        csv.generate('VOCAB_DUMP', 'v4_drug_strength.csv', p_query => 'SELECT * FROM devv4.drug_strength');
+        --csv.generate('VOCAB_DUMP', 'v4_pack_content.csv', p_query => 'SELECT * FROM devv4.pack_content');
+        
+        --start zipping and uploading
+        host_command('/home/vocab_dump/upload_vocab.sh');
+        
         DBMS_OUTPUT.get_lines (l_output, l_lines);
 
         FOR i IN 1 .. l_lines
@@ -950,12 +976,12 @@ IS
 
         cRet := 'Release completed';
 
-        SendMailHTML (email, 'Release status [OK]', cRet);
+        SendMailHTML (email, 'Release status [OK] [new Athena]', cRet);
     EXCEPTION
         WHEN OTHERS
         THEN
             cRet := SUBSTR ('Release completed with errors:' || crlf || SQLERRM || crlf || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE, 1, 5000);
-            SendMailHTML (email, 'Release status [ERROR]', cRet);
+            SendMailHTML (email, 'Release status [ERROR] [new Athena]', cRet);
     END;
 
     PROCEDURE StartRelease
@@ -966,16 +992,19 @@ IS
                                     'reich@ohdsi.org',
                                     'reich@omop.org',
                                     'anna.ostropolets@odysseusinc.com',
-                                    'ddymshyts@odysseusinc.com');
+                                    'ddymshyts@odysseusinc.com',
+                                    'igor.lefter@odysseusinc.com');
         cRet      VARCHAR2 (5000);
         cVocabs   VARCHAR2 (4000);
     BEGIN
         pConceptAncestor;
         CreateLocalPROD;
         DEVV4.v5_to_v4;
+        UPDATE VOCABULARY SET VOCABULARY_VERSION = 'v5.0 '||SYSDATE WHERE VOCABULARY_ID = 'None';
         CREATE_PROD_BACKUP@link_prodv5;
         CREATE_PRODV4@link_prodv5;
         CREATE_PRODV5@link_prodv5;
+        StartReleaseNEW;
 
         SELECT LISTAGG (vocabulary_id, ', ') WITHIN GROUP (ORDER BY vocabulary_id)
           INTO cVocabs

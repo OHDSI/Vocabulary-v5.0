@@ -531,6 +531,11 @@ FROM (
             case when c.invalid_reason is not null then 0
             else case when concept_class_id in ('Topic','Module','PPI Modifier') then 2 else 1 end
             end
+        when 'ICDO3' then
+          case 
+            when c.standard_concept is null then 0
+            else 1
+          end
 		else -- flat list
           case
             when c.standard_concept is null then 0
@@ -931,8 +936,8 @@ INSERT /*+ APPEND */
           JOIN concept nu ON nu.concept_id = s.drug_concept_id;
 COMMIT;
 
-INSERT INTO VOCABULARY
-   SELECT vocabulary_id_v4, vocabulary_id_v5 FROM devv5.vocabulary_conversion;
+INSERT INTO VOCABULARY SELECT vocabulary_id_v4, vocabulary_id_v5 FROM devv5.vocabulary_conversion;
+UPDATE VOCABULARY SET VOCABULARY_NAME='OMOP Vocabulary v4.5 '||SYSDATE WHERE VOCABULARY_ID=0;
 COMMIT;
 
 --for csv dumps (24.07.2017)

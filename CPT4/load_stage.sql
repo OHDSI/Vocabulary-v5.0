@@ -52,6 +52,7 @@ INSERT INTO concept_stage (concept_id,
           OVER (
              PARTITION BY scui
              ORDER BY
+                CASE WHEN tty = 'PT' THEN 0 ELSE 1 END,
                 CASE WHEN LENGTH (str) <= 255 THEN LENGTH (str) ELSE 0 END DESC,
                 LENGTH (str)
              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
@@ -222,7 +223,7 @@ CREATE INDEX tmp_idx_cs
    ON t_domains (concept_code)
    NOLOGGING;
 
---update concept_stage from temporary table   
+--update concept_stage from temporary table
 UPDATE concept_stage c
    SET domain_id =
           (SELECT t.domain_id

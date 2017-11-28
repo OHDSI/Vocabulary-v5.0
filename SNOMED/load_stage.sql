@@ -2087,12 +2087,13 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (473010000, 'Condition'); --Hypersensitivity condition
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (419199007, 'Observation'); -- Allergy to substance
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (10628711000119101, 'Condition'); -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
---added 8/30/2017
+	--added 8/30/2017
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (310611001, 'Measurement'); -- Cardiovascular measure
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (424122007, 'Observation'); -- ECOG performance status finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (698289004, 'Observation'); -- Hooka whatever Observation  -- http://forums.ohdsi.org/t/hookah-concept/3515
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (248627000, 'Measurement'); -- Pulse characteristics
-
+	--added 20171128 (AVOF-731)
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (410652009, 'Device'); -- Blood product
 END;
 /
 COMMIT;

@@ -536,6 +536,16 @@ FROM (
             when c.standard_concept is null then 0
             else 1
           end
+        when 'CDT' then
+          case 
+            when c.standard_concept is null then 0
+            else
+              case concept_class_id
+                when 'CDT' then 1
+                when 'CDT Hierarchy' then 2
+                else 0
+              end
+          end
 		else -- flat list
           case
             when c.standard_concept is null then 0

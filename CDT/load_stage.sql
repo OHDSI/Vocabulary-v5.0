@@ -35,6 +35,17 @@ TRUNCATE TABLE drug_strength_stage;
 
 --3 Load concepts into concept_stage from MRCONSO
 -- Main and hierarchical CDT codes. Str picked in certain order to get best concept_name
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
 SELECT DISTINCT FIRST_VALUE(SUBSTR(m.str, 1, 255)) OVER (
 		PARTITION BY m.scui ORDER BY CASE 
 				WHEN LENGTH(m.str) <= 255

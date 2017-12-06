@@ -20,8 +20,8 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'ICD10CM',
-                                          pVocabularyDate        => TO_DATE ('20170428', 'yyyymmdd'), --The 2017 changes became effective on October 1, 2016.
-                                          pVocabularyVersion     => 'ICD10CM FY2017 code descriptions',
+                                          pVocabularyDate        => TO_DATE ('20171001', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'ICD10CM FY2018 code descriptions',
                                           pVocabularyDevSchema   => 'DEV_ICD10CM');
 END;
 /
@@ -168,7 +168,7 @@ create table filled_domain NOLOGGING as
 			when d.domain_id = 'Condition' and exists (select 1 from domain_map2value t where t.concept_code=d.concept_code and t.domain_id = 'Procedure')
 				then 'Condition' 
 			when d.domain_id = 'Observation' 
-				then 'Observation'                 
+				then 'Observation'
 			else d.domain_id
 	end domain_id
 	FROM --simplify domain_id
@@ -272,6 +272,5 @@ COMMIT;
 
 --14 Clean up
 DROP TABLE ICD10CM_domain PURGE;
-DROP TABLE filled_domain PURGE;	
---drop TABLE CONCEPT_RELATION_pre_MANUAL;
+DROP TABLE filled_domain PURGE;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

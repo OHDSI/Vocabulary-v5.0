@@ -80,21 +80,21 @@ CREATE TABLE t_domains nologging AS
         --review by name with exclusions
         when concept_code in ('A9152', 'A9153', 'A9180') then 'Observation' 
         when concept_code = 'A9155' then 'Drug' --Artificial saliva, 30 ml
-        when hcpc.concept_code  in ('G0404', 'G0405', 'G0403') then 'Measurement' -- ECG
-        when hcpc.concept_code = 'V5299' then 'Observation'
+        when concept_code  in ('G0404', 'G0405', 'G0403') then 'Measurement' -- ECG
+        when concept_code = 'V5299' then 'Observation'
         when concept_code in ('A4221', 'A4305', 'A4306', 'A4595', 'B4216', 'B4220', 'B4222', 'B4224') then 'Device'
-        when CONCEPT_NAME like '%per session%' then 'Procedure'
+        when concept_name like '%per session%' then 'Procedure'
         when concept_code in ('A4736', 'A4737') then 'Procedure'
         when concept_code =  'G0177' then 'Procedure'
         when concept_code between 'S9490' and 'S9562' then 'Procedure' -- Home infusion therapy, exact group of drugs
         when concept_code in  ('G0177', 'G0424') then 'Procedure'
-        when (CONCEPT_NAME like '%per diem%'  --time periods
-        or CONCEPT_NAME like '%per month%' 
-        or CONCEPT_NAME like '%per week%'
-        or CONCEPT_NAME like '%per%minutes%'
-        or cONCEPT_NAME like '%per hour%'
-        or cONCEPT_NAME like '%waiver%'
-        or cONCEPT_NAME like '%per%day%') then 'Observation'
+        when (concept_name like '%per diem%'  --time periods
+        or concept_name like '%per month%' 
+        or concept_name like '%per week%'
+        or concept_name like '%per%minutes%'
+        or concept_name like '%per hour%'
+        or concept_name like '%waiver%'
+        or concept_name like '%per%day%') then 'Observation'
          -- A codes
         when l3.str = 'Supplies for Radiologic Procedures' then 'Device' -- Level 3: A4641-A4642
         when l3.str = 'Supplies for Radiology Procedures (Radiopharmaceuticals)' then 'Device' -- Level 3: A9500-A9700
@@ -203,11 +203,13 @@ CREATE TABLE t_domains nologging AS
         -- M codes
         when concept_code = 'M0064' then 'Observation' -- Brief office visit for the sole purpose of monitoring or changing drug prescriptions used in the treatment of mental psychoneurotic and personality disorders
         when l1.str = 'Other Medical Services' then 'Procedure' -- Level 1: M0000-M0301
-        -- P codes -- 
+        -- P codes
+        when concept_code = 'P9012' then 'Drug' -- Cryoprecipitate, each unit should have domain_id = 'Drug'
+        when concept_code like 'P90%' then 'Device' -- All other P90% - blood components (AVOF-707)
         when l2.str = 'Chemistry and Toxicology Tests' then 'Measurement' -- Level 2: P2028-P2038
         when l2.str = 'Pathology Screening Tests' then 'Measurement' -- Level 2: P3000-P3001
         when l2.str = 'Microbiology Tests' then 'Measurement' -- Level 2: P7001-P7001
-        when concept_code between 'P9041' and 'P9048' then 'Procedure Drug'
+        --when concept_code between 'P9041' and 'P9048' then 'Procedure Drug' -- (commented according AVOF-707)
         when l2.str = 'Miscellaneous Pathology and Laboratory Services' then 'Procedure' -- Level 2: P9010-P9615
         -- Q codes
         when l2.str = 'Cardiokymography (CMS Temporary Codes)' then 'Procedure' -- Level 2: Q0035-Q0035

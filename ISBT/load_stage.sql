@@ -19,10 +19,15 @@
 
 --1. Update latest_update field to new date
 BEGIN
-   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'ISBT',
-                                          pVocabularyDate        => TO_DATE ('20171010', 'yyyymmdd'),
-                                          pVocabularyVersion     => '7.9.0',
-                                          pVocabularyDevSchema   => 'DEV_ISBT');
+	DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName		=> 'ISBT',
+										  pVocabularyDate		=> TO_DATE ('20171110', 'yyyymmdd'),
+										  pVocabularyVersion	=> '7.9.0',
+										  pVocabularyDevSchema	=> 'DEV_ISBT');
+	DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName		=> 'ISBT Attributes',
+										  pVocabularyDate		=> TO_DATE ('20171110', 'yyyymmdd'),
+										  pVocabularyVersion	=> '7.9.0',
+										  pVocabularyDevSchema	=> 'DEV_ISBT',
+										  pAppendVocabulary		=> TRUE);
 END;
 COMMIT;
 
@@ -60,9 +65,9 @@ UNION ALL
 -- Classes
 SELECT classname AS concept_name,
 	'Device' AS domain_id,
-	'ISBT' AS vocabulary_id,
+	'ISBT Attributes' AS vocabulary_id,
 	'ISBT Class' concept_class_id,
-	'S' AS standard_concept,
+	'C' AS standard_concept,
 	classidentifier AS concept_code,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
@@ -70,24 +75,23 @@ SELECT classname AS concept_name,
 FROM isbt_classes
 UNION ALL
 --Modifiers
-SELECT modifiername AS concept_name,
+SELECT COALESCE(modifiername,'-') AS concept_name,
 	'Observation' AS domain_id,
-	'ISBT' AS vocabulary_id,
+	'ISBT Attributes' AS vocabulary_id,
 	'ISBT Modifier' concept_class_id,
-	'S' AS standard_concept,
+	'C' AS standard_concept,
 	modifieridentifier AS concept_code,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM ISBT_MODIFIERS
-WHERE modifiername IS NOT NULL
+FROM isbt_modifiers
 UNION ALL
 --Attribute values
 SELECT attributetext AS concept_name,
 	'Observation' AS domain_id,
-	'ISBT' AS vocabulary_id,
+	'ISBT Attributes' AS vocabulary_id,
 	'ISBT Attrib value' concept_class_id,
-	'S' AS standard_concept,
+	'C' AS standard_concept,
 	uniqueattrform AS concept_code,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
@@ -97,9 +101,9 @@ UNION ALL
 --Attribute groups
 SELECT groupname AS concept_name,
 	'Observation' AS domain_id,
-	'ISBT' AS vocabulary_id,
+	'ISBT Attributes' AS vocabulary_id,
 	'ISBT Attrib group' concept_class_id,
-	'S' AS standard_concept,
+	'C' AS standard_concept,
 	groupidentifier AS concept_code,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
@@ -109,9 +113,9 @@ UNION ALL
 --Categories
 SELECT category AS concept_name,
 	'Observation' AS domain_id,
-	'ISBT' AS vocabulary_id,
-	'ISBT Attrib group' concept_class_id,
-	'S' AS standard_concept,
+	'ISBT Attributes' AS vocabulary_id,
+	'ISBT Category' concept_class_id,
+	'C' AS standard_concept,
 	TO_CHAR(catno) AS concept_code,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
@@ -135,30 +139,40 @@ INSERT INTO concept_relationship_stage (
 SELECT proddescripcode AS concept_code_1,
 	l.concept_code_2,
 	'ISBT' AS vocabulary_id_1,
-	'ISBT' AS vocabulary_id_2,
+	'ISBT Attributes' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM isbt_product_desc,
-	lateral(SELECT regexp_substr(productformula, '[^-]+', 1, LEVEL) AS concept_code_2 FROM dual connect BY regexp_substr(productformula, '[^-]+', 1, LEVEL) IS NOT NULL) l
+	LATERAL(SELECT regexp_substr(productformula, '[^-]+', 1, LEVEL) AS concept_code_2 FROM dual connect BY regexp_substr(productformula, '[^-]+', 1, LEVEL) IS NOT NULL) l
 UNION ALL
 --Level 2
 SELECT modifier AS concept_code_1,
 	TO_CHAR(category) AS concept_code_2,
-	'ISBT' AS vocabulary_id_1,
-	'ISBT' AS vocabulary_id_2,
+	'ISBT Attributes' AS vocabulary_id_1,
+	'ISBT Attributes' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM isbt_modifier_category_map
 UNION ALL
+SELECT uniqueattrform AS concept_code_1,
+	attrgrp AS concept_code_2,
+	'ISBT Attributes' AS vocabulary_id_1,
+	'ISBT Attributes' AS vocabulary_id_2,
+	'Is a' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM isbt_attribute_values
+UNION ALL
 --Level 3
 SELECT groupidentifier AS concept_code_1,
 	TO_CHAR(category) AS concept_code_2,
-	'ISBT' AS vocabulary_id_1,
-	'ISBT' AS vocabulary_id_2,
+	'ISBT Attributes' AS vocabulary_id_1,
+	'ISBT Attributes' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
@@ -167,4 +181,4 @@ FROM isbt_attribute_groups;
 
 COMMIT;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

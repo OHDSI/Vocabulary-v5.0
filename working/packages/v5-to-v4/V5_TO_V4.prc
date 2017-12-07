@@ -546,6 +546,28 @@ FROM (
                 else 0
               end
           end
+        when 'ISBT' then
+          case 
+            when c.standard_concept is null then 0
+            else
+              case concept_class_id
+                when 'ISBT Product' then 1
+                else 0
+              end
+          end
+        when 'ISBT Attributes' then
+          case 
+            when c.standard_concept is null then 0
+            else
+              case concept_class_id
+                when 'ISBT Class' then 2
+                when 'ISBT Modifier' then 2
+                when 'ISBT Attrib value' then 2
+                when 'ISBT Attrib group' then 3
+                when 'ISBT Category' then 3
+                else 0
+              end
+          end
 		else -- flat list
           case
             when c.standard_concept is null then 0

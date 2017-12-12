@@ -555,7 +555,7 @@ FROM (
                 else 0
               end
           end
-        when 'ISBT Attributes' then
+        when 'ISBT Attribute' then
           case 
             when c.standard_concept is null then 0
             else

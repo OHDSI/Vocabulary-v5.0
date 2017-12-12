@@ -148,7 +148,7 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'ICDO3' THEN 1
   WHEN c.vocabulary_id = 'CDT' THEN 1
   WHEN c.vocabulary_id = 'ISBT' THEN 0
-  WHEN c.vocabulary_id = 'ISBT Attributes' THEN 0
+  WHEN c.vocabulary_id = 'ISBT Attribute' THEN 0
   ELSE 0 -- in default we will not deprecate
 END = 1
 ;

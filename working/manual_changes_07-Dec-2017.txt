@@ -28,11 +28,11 @@ BEGIN
     EXECUTE IMMEDIATE 'DROP SEQUENCE v5_concept';
 END;
 
---Add new vocabulary 'ISBT Attributes'
+--Add new vocabulary 'ISBT Attribute'
 DECLARE
     z    number;
     ex   number;
-    pVocabulary_id constant varchar2(100):='ISBT Attributes';
+    pVocabulary_id constant varchar2(100):='ISBT Attribute';
     pVocabulary_name constant varchar2(100):= 'ISBT 128 Product Description Code Database';
     pVocabulary_reference constant varchar2(200):='http://www.iccbba.org/tech-library/iccbba-documents/databases-and-reference-tables/product-description-codes-database2';
     pVocabulary_version constant varchar2(100):='7.9.0';

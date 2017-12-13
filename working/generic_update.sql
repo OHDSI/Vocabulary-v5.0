@@ -124,7 +124,7 @@ AND CASE -- all vocabularies that give us a full list of active concepts at each
   WHEN c.vocabulary_id = 'HCPCS' THEN 1
   WHEN c.vocabulary_id = 'Read' THEN 1
   WHEN c.vocabulary_id = 'ICD10CM' THEN 1
-  WHEN c.vocabulary_id = 'GPI' THEN 1
+  WHEN c.vocabulary_id = 'GPI' THEN 0
   WHEN c.vocabulary_id = 'OPCS4' THEN 1
   WHEN c.vocabulary_id = 'MeSH' THEN 1
   WHEN c.vocabulary_id = 'GCN_SEQNO' THEN 1

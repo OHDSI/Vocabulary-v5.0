@@ -107,7 +107,8 @@ WITH all_concepts AS (
 					AND rxn.sab = rxc.sab
 				JOIN concept c ON rxc.rxcui = concept_code
 					AND c.vocabulary_id = 'RxNorm'
-					AND COALESCE(c.invalid_reason, 'X') <> 'D'
+					AND c.standard_concept ='S'
+					AND c.concept_class_id<>'Precise Ingredient'
 				JOIN vocabulary v ON v.vocabulary_id = 'GPI'
 				WHERE rxc.sab = 'MDDB'
 					AND rxn.atn = 'GPI'

@@ -788,7 +788,7 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('histrelin acetate', 1366773, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('home infusion therapy', 0, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('human fibrinogen concentrate', 19044986, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('human plasma fibrin sealant', 0, null);
+	--insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('human plasma fibrin sealant', 0, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hyaluronan or derivative', 787787, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hyaluronidase', 19073699, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hydralazine hcl', 1373928, null);
@@ -1261,35 +1261,43 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('trabectedin', 35603017, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('von willebrand factor (recombinant)', 44785885, null);	
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('yttrium y-90 ibritumomab tiuxetan', 19068830, null);	
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zanamivir', 1708748, null);			
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zanamivir', 1708748, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('fibrinogen', 19054702, null);	
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('thrombin', 1300673, null);	
 	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'chlorpromazine hydrochloride');
-  insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'diphenhydramine hydrochloride');
-  insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'dronabinol');
-  insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'hydroxyzine pamoate');
-  insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'ondansetron 1 mg');
-  insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'carbidopa');
-  insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'levodopa');
-  insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'promethazine hydrochloride');
-  insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'trimethobenzamide hydrochloride');
+ 	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'diphenhydramine hydrochloride');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'dronabinol');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'hydroxyzine pamoate');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'ondansetron 1 mg');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'carbidopa');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'levodopa');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'promethazine hydrochloride');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'trimethobenzamide hydrochloride');
 end;
 /
 commit;
 
 -- Add ingredients for combination products
-begin
-  --droperidol and fentanyl citrate
-  insert into internal_relationship_stage
+begin 
+        --human plasma fibrin sealant
+        insert into internal_relationship_stage
+	select concept_code_1, 'fibrinogen' as concept_code_2 from internal_relationship_stage where concept_code_2='human plasma fibrin sealant';
+	insert into internal_relationship_stage
+	select concept_code_1, 'thrombin' as concept_code_2 from internal_relationship_stage where concept_code_2='human plasma fibrin sealant';
+	delete from internal_relationship_stage where concept_code_2='human plasma fibrin sealant';
+        --droperidol and fentanyl citrate
+        insert into internal_relationship_stage
 	select concept_code_1, 'droperidol' as concept_code_2 from internal_relationship_stage where concept_code_2='droperidol and fentanyl citrate';
 	insert into internal_relationship_stage
 	select concept_code_1, 'fentanyl citrate' as concept_code_2 from internal_relationship_stage where concept_code_2='droperidol and fentanyl citrate';
 	delete from internal_relationship_stage where concept_code_2='droperidol and fentanyl citrate';
 	--dcarbidopa 5 mg/levodopa 20 mg enteral suspension
-  insert into internal_relationship_stage
+         insert into internal_relationship_stage
 	select concept_code_1, 'carbidopa' as concept_code_2 from internal_relationship_stage where concept_code_2 like 'carbidopa 5 mg/levodopa 20 mg enteral suspension%';
 	insert into internal_relationship_stage
 	select concept_code_1, 'levodopa' as concept_code_2 from internal_relationship_stage where concept_code_2 like 'carbidopa 5 mg/levodopa 20 mg enteral suspension%';
 	delete from internal_relationship_stage where concept_code_2 like 'carbidopa 5 mg/levodopa 20 mg enteral suspension%';
-  -- 5% dextrose and 0.45% normal saline	
+         -- 5% dextrose and 0.45% normal saline	
 	insert into internal_relationship_stage
 	select concept_code_1, 'dextrose' as concept_code_2 from internal_relationship_stage where concept_code_2='5% dextrose and 0.45% normal saline';
 	insert into internal_relationship_stage

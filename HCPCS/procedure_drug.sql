@@ -142,6 +142,8 @@ select * from (
     when lower(concept_name) like '%per dose' then 'Unknown'
     when regexp_like(concept_name, 'cd54\+ cell', 'i') then 'Unknown'    
     when regexp_like (concept_name, '([;,] |per |up to )[0-9\.,]+ ?(g|mg|ml|microgram|units?|cc)', 'i') then 'Unknown'
+	--added
+    when concept_name = 'Factor xiii (antihemophilic factor, recombinant), tretten, per 10 i.u.'  then 'Injection' --C9134
   end as dose_form -- will be turned into a relationship
   from concept_stage
   where vocabulary_id='HCPCS'
@@ -1263,7 +1265,8 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('yttrium y-90 ibritumomab tiuxetan', 19068830, null);	
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zanamivir', 1708748, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('fibrinogen', 19054702, null);	
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('thrombin', 1300673, null);	
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('thrombin', 1300673, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor xiii (antihemophilic factor, recombinant), tretten, per 10 i.u.', 1352213, null);
 	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'chlorpromazine hydrochloride');
  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'diphenhydramine hydrochloride');
   	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'dronabinol');
@@ -1273,6 +1276,7 @@ begin
   	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'levodopa');
   	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'promethazine hydrochloride');
   	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'trimethobenzamide hydrochloride');
+	
 end;
 /
 commit;

@@ -90,17 +90,17 @@ select * from (
     when lower(concept_name) like 'injection%procedure%' then 'Procedure'
     when lower(concept_name) like '%ocular implant%' then 'Device'
     when lower(concept_name) like '%cochlear implant%' then 'Device'
-    when lower(concept_name) like '%implant system%' and lower(concept_name) not like '%(contraceptive)%' then 'Device'
+    when lower(concept_name) like '%implant system%' and lower(concept_name) not like '%contraceptive%' then 'Device'
     when lower(concept_name) like '%porcine implant%' then 'Device'
     when lower(concept_name) like '%eye patch%' then 'Device'
     when lower(concept_name) like '%, per visit%' then 'Procedure'
     when lower(concept_name) like '%contrast agent%' then 'Device'
     when lower(concept_name) like '%contrast material%' then 'Device'
-    when lower(concept_name) like '%, per %millicurie%' then 'Device'
-    when lower(concept_name) like '%, per %microcurie%' then 'Device'
-    when lower(concept_name) like '%up to%millicurie%' then 'Device'
-    when lower(concept_name) like '%up to%microcurie%' then 'Device'
-    when lower(concept_name) like '%iodine i-131%' then 'Device'
+    when lower(concept_name) like '%diagnostic%, per %millicurie%' then 'Device'
+    when lower(concept_name) like '%diagnostic%, per %microcurie%' then 'Device'
+    when lower(concept_name) like '%diagnostic%up to%millicurie%' then 'Device'
+    when lower(concept_name) like '%diagnostic%up to%microcurie%' then 'Device'
+   -- when lower(concept_name) like '%iodine i-131%' then 'Device'
     when lower(concept_name) like '%technetium%' then 'Device'
     when lower(concept_name) like '%dermal%substitute%' then 'Device'
     when lower(concept_name) like '%document%' then 'Observation'
@@ -114,11 +114,13 @@ select * from (
     when lower(concept_name) like '%matrix%' then 'Device'
 -- remove inhalant solutions before designating "administered" as Observation
     when lower(concept_name) like '%suppository%' then 'Suppository'
-    when lower(concept_name) like 'injection%' then 'Injection'
+    when lower(concept_name) like '%injection%' then 'Injection'
+    when lower(concept_name) like '%capsul%therapeutic%' then 'Oral'
+    when lower(concept_name) like '%therapeutic%' and concept_name not like '%caps%' then 'Injection'
     when lower(concept_name) like '%inhalation solution%' then 'Inhalant'
 -- resume taking out non-drug
     when lower(concept_name) like '%infusion pump%' then 'Device'
-    when lower(concept_name) like '%administered%' and lower(concept_name) not like '%through dme%' then 'Observation'
+    when lower(concept_name) like '%administered%' and lower(concept_name) not like '%through%' and lower(concept_name) not like '%vaccine%' then 'Observation'
 -- Procedure drug definitions
     when lower(concept_name) like '%vaccine%' then 'Vaccine'
     when lower(concept_name) like '%immunization%' then 'Vaccine'
@@ -130,15 +132,18 @@ select * from (
     when lower(concept_name) like '%parenteral, %' then 'Parenteral' -- like Injection, but different parsing. After Ingredient parsing changed to Injection
     when lower(concept_name) like '%topical, %' then 'Topical'
     when lower(concept_name) like '%for topical%' then 'Topical'
-    when regexp_like (concept_name, ', implant', 'i') then 'Implant'
+    when regexp_like (concept_name, 'implant|intrauterine', 'i') then 'Implant'
     when lower(concept_name) like '%oral, %' then 'Oral'
     when lower(concept_name) like '%, oral%' then 'Oral'
+    when lower(concept_name) = 'netupitant 300 mg and palonosetron 0.5 mg' then 'Oral'
     when lower(concept_name) like '% per i.u.%' then 'Unit' -- like Injection, but different parsing. After Ingredient parsing to Injection
     when lower(concept_name) like '%, each unit%' then 'Unit' -- like Injection, but different parsing. After Ingredient parsing to Injection
     when lower(concept_name) like '% per instillation%' then 'Instillation'
     when lower(concept_name) like '%per dose' then 'Unknown'
     when regexp_like(concept_name, 'cd54\+ cell', 'i') then 'Unknown'    
     when regexp_like (concept_name, '([;,] |per |up to )[0-9\.,]+ ?(g|mg|ml|microgram|units?|cc)', 'i') then 'Unknown'
+	--added
+    when concept_name = 'Factor xiii (antihemophilic factor, recombinant), tretten, per 10 i.u.'  then 'Injection' --C9134
   end as dose_form -- will be turned into a relationship
   from concept_stage
   where vocabulary_id='HCPCS'
@@ -162,15 +167,27 @@ update drug_concept_stage set concept_name = regexp_replace(lower(concept_name),
 create table drug_concept_stage_tmp nologging as
 select * from drug_concept_stage where 1=0;
 
+
 -- Injections
 insert /*+ APPEND */ into drug_concept_stage_tmp
 select 
   '' as concept_name, 'Drug' as domain_id, 'HCPCS' as vocabulary_id, 'Ingredient' as concept_class_id, 
-  regexp_replace(regexp_replace(lower(concept_name), 'injection,? (iv, )?([^,]+).*', '\1|\2'), '.*?\|(.+)', '\1') as concept_code, 
+  case when regexp_like (concept_name,'Hyaluronan|Ustekinumab') then regexp_substr (lower(concept_name),'\w+') else regexp_replace(regexp_replace(lower(concept_name), 'injection,? (iv, )?([^,]+).*', '\1|\2'), '.*?\|(.+)', '\1') end as concept_code, 
   null as possible_excipient, null as valid_start_date, null as valid_end_date, null as invalid_reason, null as dose_form
-from drug_concept_stage where dose_form='Injection' -- and concept_name like '%betamethasone%'
+from drug_concept_stage where dose_form='Injection' and concept_name not like '%therapeutic%curie%'
 ;
 commit;
+
+-- Injections, radiopharmaceuticals
+insert /*+ APPEND */ into drug_concept_stage_tmp
+select 
+  '' as concept_name, 'Drug' as domain_id, 'HCPCS' as vocabulary_id, 'Ingredient' as concept_class_id, 
+  trim(regexp_replace(regexp_replace(lower(concept_name), ',.*'),'solution|suspension')) as concept_code, 
+  null as possible_excipient, null as valid_start_date, null as valid_end_date, null as invalid_reason, null as dose_form
+from drug_concept_stage where dose_form='Injection' and concept_name like '%therapeutic%curie%'
+;
+commit;
+
 -- Vaccines
 insert /*+ APPEND */ into drug_concept_stage_tmp
 select 
@@ -180,6 +197,7 @@ select
 from drug_concept_stage where dose_form='Vaccine' 
 ;
 commit;
+
 -- Orals
 insert /*+ APPEND */into drug_concept_stage_tmp
 select 
@@ -187,10 +205,11 @@ select
   null as possible_excipient, null as valid_start_date, null as valid_end_date, null as invalid_reason, null as dose_form
 from (
   select concept_name, regexp_replace(concept_name, ',?;? ?oral,? ?', ', ') as c1_cleanname
-  from drug_concept_stage where dose_form='Oral'
-) 
-;
+  from drug_concept_stage where dose_form='Oral' and concept_name not like '%netupitant%'
+);
+
 commit;
+
 -- Units
 insert /*+ APPEND */ into drug_concept_stage_tmp
 select 
@@ -291,8 +310,16 @@ commit;
 insert /*+ APPEND */ into internal_relationship_stage
 select 
   concept_code as concept_code_1, 
-  regexp_replace(regexp_replace(lower(concept_name), 'injection,? (iv, )?([^,]+).*', '\1|\2'), '.*?\|(.+)', '\1') as concept_code_2
-from drug_concept_stage where dose_form='Injection' -- and length(regexp_substr(concept_name, ' [^,]+'))>3
+  case when regexp_like (concept_name,'Hyaluronan|Ustekinumab') then regexp_substr (lower(concept_name),'\w+') else regexp_replace(regexp_replace(lower(concept_name), 'injection,? (iv, )?([^,]+).*', '\1|\2'), '.*?\|(.+)', '\1') end as concept_code_2
+from drug_concept_stage where dose_form='Injection'  and concept_name not like '%therapeutic%curie%'-- and length(regexp_substr(concept_name, ' [^,]+'))>3
+;
+commit;
+-- Injections,radiopharmaceuticals
+insert /*+ APPEND */ into internal_relationship_stage
+select 
+  concept_code as concept_code_1, 
+  trim(regexp_replace(regexp_replace(lower(concept_name), ',.*'),'solution|suspension')) as concept_code_2
+from drug_concept_stage where dose_form='Injection'  and concept_name like '%therapeutic%curie%'-- and length(regexp_substr(concept_name, ' [^,]+'))>3
 ;
 commit;
 -- Vaccines
@@ -309,10 +336,28 @@ select
   concept_code as concept_code_1,lower(regexp_substr(c1_cleanname, '[^,]+')) as concept_code_2
 from (
   select concept_code, vocabulary_id, regexp_replace(concept_name, ',?;? ?oral,? ?', ', ') as c1_cleanname
-  from drug_concept_stage where dose_form='Oral'
+  from drug_concept_stage where dose_form='Oral' and not regexp_like (concept_name,'palonosetron|iodine i-131', 'i')
 ) 
 ;
 commit;
+
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+values ('A9517', 'iodine i-131 sodium iodide');
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+values ('C9448', 'netupitant');
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+values ('C9448', 'palonosetron');
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+values ('J8655', 'netupitant');
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+values ('J8655', 'palonosetron');
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+values ('Q9978', 'netupitant');
+insert into internal_relationship_stage (concept_code_1,concept_code_2)
+values ('Q9978', 'palonosetron');
+
+commit;
+
 -- Units
 insert /*+ APPEND */ into internal_relationship_stage
 select 
@@ -393,6 +438,11 @@ from drug_concept_stage where dose_form='Unknown'
 ;
 commit;
 
+--Update concept_code_2 that contains '%fda%'
+update internal_relationship_stage 
+set concept_code_2 = regexp_replace (concept_code_2,',.*')
+where concept_code_2 like '%fda%';
+;
 -- Manually create mappings from Ingredients to RxNorm ingredients
 begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('(e.g. liquid)', null, null);
@@ -476,7 +526,7 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('belatacept', 40239665, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('belimumab', 40236987, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('belinostat', 45776670, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('bendamustine hcl', 19015523, null);
+	--insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('bendamustine hcl', 19015523, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('benztropine mesylate', 719174, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('betamethasone', 920458, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('betamethasone acetate 3 mg and betamethasone sodium phosphate 3 mg', 920458, null);
@@ -665,11 +715,11 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor ix (antihemophilic factor, recombinant), rixubis', 1351935, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor ix, complex', 1351935, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viia (antihemophilic factor', 1352141, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii', 1352213, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii (antihemophilic factor', 1352213, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii (antihemophilic factor (porcine))', 1352213, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii (antihemophilic factor, human)', 1352213, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii (antihemophilic factor, recombinant)', 1352213, null);
+--	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii', 1352213, null);
+--	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii (antihemophilic factor', 1352213, null);
+--	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii (antihemophilic factor (porcine))', 1352213, null);
+--	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii (antihemophilic factor, human)', 1352213, null);
+--	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii (antihemophilic factor, recombinant)', 1352213, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor xiii (antihemophilic factor', 1352213, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor xiii a-subunit', 45776421, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor viii fc fusion (recombinant)', 45776421, null);
@@ -712,8 +762,6 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('gallium nitrate', 42899259, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('galsulfase', 19078649, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('gamma globulin', 19117912, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ganciclovir', 1757803, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ganciclovir sodium', 1757803, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ganirelix acetate', 1536743, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('garamycin', 919345, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('gatifloxacin', 1789276, null);
@@ -742,7 +790,7 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('histrelin acetate', 1366773, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('home infusion therapy', 0, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('human fibrinogen concentrate', 19044986, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('human plasma fibrin sealant', 0, null);
+	--insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('human plasma fibrin sealant', 0, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hyaluronan or derivative', 787787, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hyaluronidase', 19073699, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hydralazine hcl', 1373928, null);
@@ -820,8 +868,6 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('laronidase', 1543229, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('lepirudin', 19092139, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('leucovorin calcium', 1388796, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('leuprolide acetate', 1351541, null);
-	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('leuprolide acetate (for depot suspension)', 1351541, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('levalbuterol', 1192218, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('levodopa', 789578, null);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('levamisole hydrochloride', 1389464, null);
@@ -1137,6 +1183,7 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('estrogen conjugated',1549080,1);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('ondansetron hydrochloride 8 mg',1000560,1);	
 end;
+/
 commit;
 
 -- Add ingredients and their mappings that are not automatically generated
@@ -1178,12 +1225,83 @@ begin
 	insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('ticarcillin', 'HCPCS', 'Ingredient');
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('clavulanate', 1702364, null);
 	insert into drug_concept_stage (concept_code, vocabulary_id, concept_class_id) values ('clavulanate', 'HCPCS', 'Ingredient');
+	--added
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 45775540, null from drug_concept_stage where concept_code like  'iodine i-131%';
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 19065829, null from drug_concept_stage where concept_code like  'iodine i-125%';
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 43526934, 1 from drug_concept_stage where concept_code like  '%radium ra-223%';
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 35603551, 2 from drug_concept_stage where concept_code like  '%radium ra-223%';
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 794852, null from drug_concept_stage where concept_code like  'chlorpromazine hydrochloride%';
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 1519936, null from drug_concept_stage where concept_code like  '%etonogestrel%';
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 1757803, null from drug_concept_stage where concept_code like  '%ganciclovir%';	
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 1366773, null from drug_concept_stage where concept_code like  '%histrelin implant%';	
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 1589505, null from drug_concept_stage where concept_code like  '%levonorgestrel%';	
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 1351541, null from drug_concept_stage where concept_code like  'leuprolide%';	
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 1352213, null from drug_concept_stage where concept_code like  'factor viii%';
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) select  concept_code, 19015523, null from drug_concept_stage where concept_code like  'bendamustine%';
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('mepolizumab', 35606631, null);
+  insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('buprenorphine implant, 74.2 mg', 1133201, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('atezolizumab', 42629079, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('aripiprazole lauroxil', 35602825, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('diclofenac sodium', 1124300, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('chromic phosphate p-32', 19011099, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('elotuzumab', 35604032, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('goserelin acetate implant, per 3.6 mg', 1366310, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('hyaluronan', 798336, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor x', 44785022, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('fluocinolone acetonide, intravitreal implant', 996541, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('irinotecan liposome', 35603068, 1);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('irinotecan liposome', 1367268, 2);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('mometasone furoate sinus implant, 370 micrograms', 905233, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('necitumumab', 35606215, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('reslizumab', 35603983, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('samarium sm-153 lexidronam', 19018483, 1);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('samarium sm-153 lexidronam', 1338558, 2);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('rolapitant', 46287434, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('sotalol hydrochloride', 1370109, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('sodium phosphate p-32', 19135940, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('talimogene laherparepvec', 42903942, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('trabectedin', 35603017, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('von willebrand factor (recombinant)', 44785885, null);	
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('yttrium y-90 ibritumomab tiuxetan', 19068830, null);	
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('zanamivir', 1708748, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('fibrinogen', 19054702, null);	
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('thrombin', 1300673, null);
+	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('factor xiii (antihemophilic factor, recombinant), tretten, per 10 i.u.', 1352213, null);
+	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'chlorpromazine hydrochloride');
+ 	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'diphenhydramine hydrochloride');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'dronabinol');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'hydroxyzine pamoate');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'ondansetron 1 mg');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'carbidopa');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'levodopa');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'promethazine hydrochloride');
+  	insert into drug_concept_stage (domain_id,  concept_name,  vocabulary_id,  concept_class_id,  concept_code) values ('',  'Drug',  'HCPCS',  'Ingredient',  'trimethobenzamide hydrochloride');
+	
 end;
+/
 commit;
 
 -- Add ingredients for combination products
--- 5% dextrose and 0.45% normal saline
-begin
+begin 
+        --human plasma fibrin sealant
+        insert into internal_relationship_stage
+	select concept_code_1, 'fibrinogen' as concept_code_2 from internal_relationship_stage where concept_code_2='human plasma fibrin sealant';
+	insert into internal_relationship_stage
+	select concept_code_1, 'thrombin' as concept_code_2 from internal_relationship_stage where concept_code_2='human plasma fibrin sealant';
+	delete from internal_relationship_stage where concept_code_2='human plasma fibrin sealant';
+        --droperidol and fentanyl citrate
+        insert into internal_relationship_stage
+	select concept_code_1, 'droperidol' as concept_code_2 from internal_relationship_stage where concept_code_2='droperidol and fentanyl citrate';
+	insert into internal_relationship_stage
+	select concept_code_1, 'fentanyl citrate' as concept_code_2 from internal_relationship_stage where concept_code_2='droperidol and fentanyl citrate';
+	delete from internal_relationship_stage where concept_code_2='droperidol and fentanyl citrate';
+	--dcarbidopa 5 mg/levodopa 20 mg enteral suspension
+         insert into internal_relationship_stage
+	select concept_code_1, 'carbidopa' as concept_code_2 from internal_relationship_stage where concept_code_2 like 'carbidopa 5 mg/levodopa 20 mg enteral suspension%';
+	insert into internal_relationship_stage
+	select concept_code_1, 'levodopa' as concept_code_2 from internal_relationship_stage where concept_code_2 like 'carbidopa 5 mg/levodopa 20 mg enteral suspension%';
+	delete from internal_relationship_stage where concept_code_2 like 'carbidopa 5 mg/levodopa 20 mg enteral suspension%';
+         -- 5% dextrose and 0.45% normal saline	
 	insert into internal_relationship_stage
 	select concept_code_1, 'dextrose' as concept_code_2 from internal_relationship_stage where concept_code_2='5% dextrose and 0.45% normal saline';
 	insert into internal_relationship_stage
@@ -1408,6 +1526,7 @@ begin
 	-- Add and remove ingredients
 	delete from drug_concept_stage where concept_class_id='Ingredient' and concept_code not in (select concept_code_2 from internal_relationship_stage);
 end;
+/
 commit;
 
 /*********************************************
@@ -1701,6 +1820,7 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('Implant', 19082103, 2);
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence) values ('Implant', 19082104, 3);
 end;
+/
 commit;
 
 /*********************************
@@ -1758,6 +1878,7 @@ begin
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence, conversion_factor) values ('cc', 8576, 2, 1000); -- to milligram
 	insert into relationship_to_concept (concept_code_1, concept_id_2, precedence, conversion_factor) values ('%', 8554, 2, 1);
 end;
+/
 commit;
 
 -- write drug_strength
@@ -1895,6 +2016,7 @@ update ds_stage set amount_value=null, amount_unit=null, numerator_value=0.0769,
 delete from ds_stage where drug_concept_code='S5014' and ingredient_concept_code='potassium chloride';
 delete from ds_stage where drug_concept_code='S5014' and ingredient_concept_code='magnesium sulfate';
 end;
+/
 commit;
 
 /******************************

@@ -963,7 +963,7 @@ UPDATE concept_stage cs
                       AND r.concept_id_2 = c2.concept_id
                       AND r.invalid_reason IS NULL
                       AND r.relationship_id = 'Maps to'
-                      AND c2.vocabulary_id = 'RxNorm'
+                      AND c2.vocabulary_id like 'RxNorm%'
                       AND c1.concept_code = cs.concept_code
                       AND c1.vocabulary_id = cs.vocabulary_id
                UNION ALL
@@ -974,7 +974,7 @@ UPDATE concept_stage cs
                       AND r.vocabulary_id_1 = cs.vocabulary_id
                       AND r.invalid_reason IS NULL
                       AND r.relationship_id = 'Maps to'
-                      AND r.vocabulary_id_2 = 'RxNorm')
+                      AND r.vocabulary_id_2 like 'RxNorm%')
        AND cs.domain_id<>'Drug';
 COMMIT;
 

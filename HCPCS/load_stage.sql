@@ -21,7 +21,7 @@
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'HCPCS',
                                           pVocabularyDate        => TO_DATE ('20161117', 'yyyymmdd'),
-                                          pVocabularyVersion     => '2018 Alpha Numeric HCPCS File',
+                                          pVocabularyVersion     => '2017 Alpha Numeric HCPCS File',
                                           pVocabularyDevSchema   => 'DEV_HCPCS');
 END;
 COMMIT;

@@ -218,7 +218,8 @@ CREATE TABLE t_domains nologging AS
         when concept_code in ('Q5101','Q5102','Q9955','Q9957','Q9972','Q9973','Q9974','Q9979','Q9981') then 'Drug'
         when concept_code between 'Q4119' and 'Q4175' then 'Device' --wound tissue
         when concept_code = 'Q9980' then 'Drug'
-        when concept_code in ('Q9982', 'Q9983') then 'Device' --Radiopharmaceuticals	
+	when concept_code in ('Q9968','Q9953') then 'Procedure'    
+        when concept_code in ('Q9982', 'Q9983','Q9956') then 'Device' --Radiopharmaceuticals	
         -- S codes
         when concept_code between 'S0012' and 'S0197' then 'Drug'
         when concept_code between 'S0257' and 'S0265' then 'Procedure'

@@ -169,6 +169,10 @@ CREATE TABLE t_domains nologging AS
         when concept_code between 'G9158' and 'G9186' then 'Observation' -- various neurological functional limitations documentations
         when concept_code = 'G9187' then 'Observation' -- Bundled payments for care improvement initiative home visit for patient assessment performed by a qualified health care professional for individuals not considered homebound including, but not limited to, assessment of safety, falls, clinical status, fluid
         when concept_code between 'G9188' and 'G9472' then 'Observation' -- various documentations
+	when concept_code between 'G9473' and 'G9479' then 'Observation' 
+	when concept_code between 'G9679' and 'G9684' then 'Observation'     
+	when concept_code between 'G9514' and 'G9517' then 'Observation' 
+	when concept_code in  ('G0009''G0238','G0293','G0294','G0403','G0404','G0405','G0445','G0453','G9018','G9034','G9771','G9773','G9812','G9601','G9602') then 'Observation'  
         when concept_code between 'G9000' and 'G9999' then 'Procedure' -- default for Medicare Demonstration Project
         when l1.str = 'Temporary Procedures/Professional Services' then 'Procedure' -- default for all Level 1: G0000-G9999 
          -- H codes

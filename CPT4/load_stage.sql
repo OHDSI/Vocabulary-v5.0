@@ -196,6 +196,7 @@ CREATE TABLE t_domains nologging AS
           WHEN nvl(h3.code, cpt.code) = '1012106' THEN 'Measurement' -- Compatibility test each unit
           WHEN nvl(h3.code, cpt.code) = '1012116' THEN 'Measurement' -- Hemolysins and agglutinins
           WHEN cpt.code = '92531' THEN 'Observation' -- Spontaneous nystagmus, including gaze - Condition
+	  WHEN cpt.code = '90745' THEN 'Drug' -- Immunization, hepatits B
           when cpt.code in ('86890', '86891') then 'Observation' -- Autologous blood or component, collection processing and storage
           when cpt.str like 'End-stage renal disease (ESRD)%' then 'Observation'
           when  h2.code in ('1012570', '1012602') then 'Drug' -- Vaccines, Toxoids or Immune Globulins, Serum or Recombinant Products

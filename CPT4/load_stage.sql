@@ -505,6 +505,10 @@ SELECT NULL AS concept_id_1,
        AND c.vocabulary_id = 'CPT4';
 
 --12 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--Set proper standard_concept for mapped CPT4 before run the ProcessManualRelationships
+update concept_stage set standard_concept=null where concept_code in (
+    select concept_code_1 from concept_relationship_manual where vocabulary_id_1='CPT4' and relationship_id='Maps to' and invalid_reason is null
+);
 BEGIN
    DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
 END;

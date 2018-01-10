@@ -568,6 +568,11 @@ FROM (
                 else 0
               end
           end
+        when 'BCFI' then
+          case 
+            when c.standard_concept is null then 0
+            else 1
+          end
 		else -- flat list
           case
             when c.standard_concept is null then 0

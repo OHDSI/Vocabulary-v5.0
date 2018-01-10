@@ -1,10 +1,10 @@
-GRR readme upload / update of DPD
+GRR readme upload / update of GRR
 
 Prerequisites:
 
 Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
 
-Working directory dev_dpd.
+Working directory dev_grr.
 
 1.You need to have the access to both GEDA and GRR.
 Then run the following query to get grr_new_2:

@@ -568,7 +568,7 @@ FROM (
                 else 0
               end
           end
-        when 'BCFI' then
+        when 'GGR' then
           case 
             when c.standard_concept is null then 0
             else 1

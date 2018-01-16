@@ -914,7 +914,8 @@ IS
     PROCEDURE StartReleaseNEW
     IS
         crlf        VARCHAR2 (2) := UTL_TCP.crlf;
-        email       var_array := var_array ('timur.vakhitov@firstlinesoftware.com');
+        email       var_array := var_array ('timur.vakhitov@firstlinesoftware.com',
+                                            'maria.pozhidaeva@odysseusinc.com');
         cRet        VARCHAR2 (5000);
         l_output    DBMS_OUTPUT.chararr;
         l_lines     INTEGER := 1000;
@@ -953,7 +954,7 @@ IS
         --csv.generate('VOCAB_DUMP', 'v4_pack_content.csv', p_query => 'SELECT * FROM devv4.pack_content');
         
         --start zipping and uploading
-        host_command('/home/vocab_dump/upload_vocab.sh');
+        host_command('/home/vocab_dump/upload_vocab2.sh');
         
         DBMS_OUTPUT.get_lines (l_output, l_lines);
 

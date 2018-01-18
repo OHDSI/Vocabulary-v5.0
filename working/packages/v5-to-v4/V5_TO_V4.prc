@@ -573,6 +573,10 @@ FROM (
             when c.standard_concept is null then 0
             else 1
           end
+		when 'LPD_Belgium' then -- specialized hierarchy
+            case when c.domain_id = 'Drug' then 0
+            else case when c.standard_concept = 'S' then 1 else 0 end 
+            end	 
 		else -- flat list
           case
             when c.standard_concept is null then 0

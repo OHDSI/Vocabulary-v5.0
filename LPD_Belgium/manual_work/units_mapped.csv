@@ -1,0 +1,55 @@
+Unit_name	concept_id	concept_name	conversion_factor	precedence
+E6 DICC50	9276	50% cell culture infectious dose		
+g	8576	milligram	1000	
+IU heparin	8718	international unit		1
+I.U.	8718	international unit		1
+IU	8718	international unit		1
+UI	8718	international unit		1
+IU heparin	8510	unit		2
+I.U.	8510	unit		2
+IU	8510	unit		2
+UI	8510	unit		2
+mcg	8576	milligram	0.001	
+µg	8576	milligram	0.001	
+mcg/24h	8576	milligram	0.001	
+mcg/h	8576	milligram	0.001	
+10E6 U	8510	unit	1000000	1
+HDB U	8510	unit		1
+Noon Units	8510	unit		1
+TRU	8510	unit		1
+U	8510	unit		1
+10E3 U aXa	8510	unit	1000	1
+10E3 UC	8510	unit	1000	1
+U antiXa	8510	unit		1
+U ELISA	8510	unit		1
+10E6 UI	8510	unit	1000000	1
+1.00E+10	8510	unit	10000000000	1
+10E3 IU	8510	unit	1000	1
+E106 IU	8510	unit	1000000	1
+U PVE-UFP	8510	unit		1
+10E6 U	8718	international unit	1000000	2
+HDB U	8718	international unit		2
+Noon Units	8718	international unit		2
+TRU	8718	international unit		2
+U	8718	international unit		2
+10E3 U aXa	8718	international unit	1000	2
+10E3 UC	8718	international unit	1000	2
+U antiXa	8718	international unit		2
+U ELISA	8718	international unit		2
+10E6 UI	8718	international unit	1000000	2
+1.00E+10	8718	international unit	10000000000	2
+10E3 IU	8718	international unit	1000	2
+E106 IU	8718	international unit	1000000	2
+U PVE-UFP	8718	international unit		2
+mg/24h	8576	milligram		
+mg/30cm2	8576	milligram		
+mg	8576	milligram		
+mg/20cm2	8576	milligram		
+mg/10cm2	8576	milligram		
+mg/16h	8576	milligram		
+ml	8587	milliliter		
+10E6 IU	8510	unit	1000000	1
+10E6 IU	8718	international unit	1000000	2
+% v/v	8554	percent		
+%	8554	percent		
+actuat	45744809	Actuation		

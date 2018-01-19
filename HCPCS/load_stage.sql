@@ -20,8 +20,8 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'HCPCS',
-                                          pVocabularyDate        => TO_DATE ('20151028', 'yyyymmdd'),
-                                          pVocabularyVersion     => '2016 Alpha Numeric HCPCS File',
+                                          pVocabularyDate        => TO_DATE ('20161117', 'yyyymmdd'),
+                                          pVocabularyVersion     => '2017 Alpha Numeric HCPCS File',
                                           pVocabularyDevSchema   => 'DEV_HCPCS');
 END;
 COMMIT;
@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Create concept_stage from HCPCS
 INSERT /*+ APPEND */ INTO concept_stage (concept_id,
@@ -78,26 +80,27 @@ CREATE TABLE t_domains nologging AS
         --review by name with exclusions
         when concept_code in ('A9152', 'A9153', 'A9180') then 'Observation' 
         when concept_code = 'A9155' then 'Drug' --Artificial saliva, 30 ml
-        when hcpc.concept_code  in ('G0404', 'G0405', 'G0403') then 'Measurement' -- ECG
-        when hcpc.concept_code = 'V5299' then 'Observation'
+        when concept_code  in ('G0404', 'G0405', 'G0403') then 'Measurement' -- ECG
+        when concept_code = 'V5299' then 'Observation'
         when concept_code in ('A4221', 'A4305', 'A4306', 'A4595', 'B4216', 'B4220', 'B4222', 'B4224') then 'Device'
-        when CONCEPT_NAME like '%per session%' then 'Procedure'
+        when concept_name like '%per session%' then 'Procedure'
         when concept_code in ('A4736', 'A4737') then 'Procedure'
         when concept_code =  'G0177' then 'Procedure'
         when concept_code between 'S9490' and 'S9562' then 'Procedure' -- Home infusion therapy, exact group of drugs
         when concept_code in  ('G0177', 'G0424') then 'Procedure'
-        when (CONCEPT_NAME like '%per diem%'  --time periods
-        or CONCEPT_NAME like '%per month%' 
-        or CONCEPT_NAME like '%per week%'
-        or CONCEPT_NAME like '%per%minutes%'
-        or cONCEPT_NAME like '%per hour%'
-        or cONCEPT_NAME like '%waiver%'
-        or cONCEPT_NAME like '%per%day%') then 'Observation'
+        when (concept_name like '%per diem%'  --time periods
+        or concept_name like '%per month%' 
+        or concept_name like '%per week%'
+        or concept_name like '%per%minutes%'
+        or concept_name like '%per hour%'
+        or concept_name like '%waiver%'
+        or concept_name like '%per%day%') then 'Observation'
          -- A codes
         when l3.str = 'Supplies for Radiologic Procedures' then 'Device' -- Level 3: A4641-A4642
         when l3.str = 'Supplies for Radiology Procedures (Radiopharmaceuticals)' then 'Device' -- Level 3: A9500-A9700
         when l2.str = 'Transport Services Including Ambulance' then 'Observation' -- Level 2: A0000-A0999
         when l1.str = 'A Codes' then 'Device' -- default for Level 1: A0000-A9999
+        when concept_code = 'A4224' then 'Device' -- supplies for catheter
         -- B codes
         when l1.str = 'Enteral and Parenteral Therapy Supplies' then 'Device' -- all of them Level 1: B4000-B9999
         -- C codes
@@ -200,11 +203,13 @@ CREATE TABLE t_domains nologging AS
         -- M codes
         when concept_code = 'M0064' then 'Observation' -- Brief office visit for the sole purpose of monitoring or changing drug prescriptions used in the treatment of mental psychoneurotic and personality disorders
         when l1.str = 'Other Medical Services' then 'Procedure' -- Level 1: M0000-M0301
-        -- P codes -- 
+        -- P codes
+        when concept_code = 'P9012' then 'Drug' -- Cryoprecipitate, each unit should have domain_id = 'Drug'
+        when concept_code like 'P90%' then 'Device' -- All other P90% - blood components (AVOF-707)
         when l2.str = 'Chemistry and Toxicology Tests' then 'Measurement' -- Level 2: P2028-P2038
         when l2.str = 'Pathology Screening Tests' then 'Measurement' -- Level 2: P3000-P3001
         when l2.str = 'Microbiology Tests' then 'Measurement' -- Level 2: P7001-P7001
-        when concept_code between 'P9041' and 'P9048' then 'Procedure Drug'
+        --when concept_code between 'P9041' and 'P9048' then 'Procedure Drug' -- (commented according AVOF-707)
         when l2.str = 'Miscellaneous Pathology and Laboratory Services' then 'Procedure' -- Level 2: P9010-P9615
         -- Q codes
         when l2.str = 'Cardiokymography (CMS Temporary Codes)' then 'Procedure' -- Level 2: Q0035-Q0035
@@ -225,6 +230,8 @@ CREATE TABLE t_domains nologging AS
         when l2.str = 'Test, Skin (CMS Temporary Codes)' then 'Measurement' -- Level 2: Q3031-Q3031
         when l2.str = 'Supplies, Cast (CMS Temporary Codes)' then 'Device' -- Level 2: Q4001-Q4051
         when l2.str = 'Additional Drug Codes (CMS Temporary Codes)' then 'Procedure Drug' -- Level 2: Q4074-Q4082
+        when concept_code between 'Q4119' and 'Q4175' then 'Device' --wound tissue
+        when concept_code in ('Q9982', 'Q9983') then 'Device' --Radiopharmaceuticals
         -- S codes
         when concept_code between 'S0012' and 'S0197' then 'Procedure Drug'
         when concept_code between 'S0257' and 'S0265' then 'Procedure'
@@ -661,6 +668,13 @@ update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and
 update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code='XS'; --Separate structure, a service that is distinct because it was performed on a separate organ/structure
 update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code='XU'; --Unusual non-overlapping service, the use of a service that is distinct because it does not overlap usual components of the main service
 update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code='ZA'; --Novartis/sandoz
+--2017 release added domains
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='FX'; --X-ray taken using film
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='PN'; --Non-excepted service provided at an off-campus, outpatient, provider-based department of a hospital
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='V1'; --Demonstration modifier 1
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='V2'; --Demonstration modifier 2
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='V3'; --Demonstration modifier 3
+update concept_stage set domain_id='Observation' where vocabulary_id='HCPCS' and concept_class_id='HCPCS Modifier' and concept_code ='ZB'; --Pfizer/hospira
 end;
 COMMIT;
 
@@ -691,7 +705,7 @@ INSERT /*+ APPEND */ INTO concept_synonym_stage (synonym_concept_id,
                                    language_concept_id)
    SELECT DISTINCT NULL AS synonym_concept_id,
                    HCPC AS synonym_concept_code,
-                   DESCRIPTION AS synonym_name,
+                   SUBSTR (DESCRIPTION, 1, 1000) AS synonym_name,
                    'HCPCS' AS synonym_vocabulary_id,
                    4180186 AS language_concept_id                   -- English
      FROM (SELECT LONG_DESCRIPTION, SHORT_DESCRIPTION, HCPC FROM ANWEB_V2) UNPIVOT (DESCRIPTION --take both LONG_DESCRIPTION and SHORT_DESCRIPTION
@@ -741,8 +755,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_id_1,
 COMMIT;
 
 --10 Add upgrade relationships
-INSERT /*+ APPEND */ INTO  concept_relationship_stage (
-                                        concept_code_1,
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
                                         vocabulary_id_1,
@@ -761,48 +774,37 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (
      FROM (SELECT A.HCPC AS concept_code_1,
                   A.XREF1 AS concept_code_2,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT) AS valid_start_date,
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
-                     AS valid_end_date
+                  TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF1 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL
+            WHERE A.XREF1 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL
            UNION ALL
            SELECT A.HCPC AS concept_code_1,
                   A.XREF2,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT),
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
+                  TO_DATE ('20991231', 'yyyymmdd')
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF2 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL
+            WHERE A.XREF2 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL
            UNION ALL
            SELECT A.HCPC AS concept_code_1,
                   A.XREF3,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT),
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
+                  TO_DATE ('20991231', 'yyyymmdd')
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF3 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL
+            WHERE A.XREF3 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL
            UNION ALL
            SELECT A.HCPC AS concept_code_1,
                   A.XREF4,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT),
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
+                  TO_DATE ('20991231', 'yyyymmdd')
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF4 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL
+            WHERE A.XREF4 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL
            UNION ALL
            SELECT A.HCPC AS concept_code_1,
                   A.XREF5,
                   COALESCE (A.ADD_DATE, A.ACT_EFF_DT),
-                  COALESCE (A.TERM_DT, TO_DATE ('20991231', 'yyyymmdd'))
+                  TO_DATE ('20991231', 'yyyymmdd')
              FROM ANWEB_V2 a, ANWEB_V2 b
-            WHERE     A.XREF5 = B.HCPC
-                  AND A.TERM_DT IS NOT NULL
-                  AND B.TERM_DT IS NULL) i
+            WHERE A.XREF5 = B.HCPC AND A.TERM_DT IS NOT NULL AND B.TERM_DT IS NULL) i
     WHERE NOT EXISTS
              (SELECT 1
                 FROM concept_relationship_stage crs_int

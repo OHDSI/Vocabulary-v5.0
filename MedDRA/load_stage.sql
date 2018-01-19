@@ -20,8 +20,8 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'MedDRA',
-                                          pVocabularyDate        => TO_DATE ('20160301', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'MedDRA version 19.0',
+                                          pVocabularyDate        => TO_DATE ('20170901', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'MedDRA version 20.1',
                                           pVocabularyDevSchema   => 'DEV_MEDDRA');
 END;
 COMMIT;
@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Insert into concept_stage
 INSERT INTO concept_stage (concept_name,
@@ -427,10 +429,12 @@ END;
 COMMIT;
 
 --11 Create a relationship file for the Medical Coder
+/*
 select c.concept_code, c.concept_name, c.domain_id, c.concept_class_id, c1.concept_code concept_code_snomed 
 from concept_stage c
 left join concept_relationship_stage r on c.concept_code=r.concept_code_1 and r.relationship_id = 'MedDRA - SNOMED eq'
 left join concept c1 on c1.concept_code=r.concept_code_2 and c1.vocabulary_id='SNOMED';
+*/
 
 --12 Append result to concept_relationship_stage table
 BEGIN

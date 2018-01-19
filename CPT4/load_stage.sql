@@ -20,8 +20,8 @@
 --1 Update latest_update field to new date
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'CPT4',
-                                          pVocabularyDate        => TO_DATE ('20150511', 'yyyymmdd'),
-                                          pVocabularyVersion     => '2015AA',
+                                          pVocabularyDate        => TO_DATE ('20170508', 'yyyymmdd'),
+                                          pVocabularyVersion     => '2017AA',
                                           pVocabularyDevSchema   => 'DEV_CPT4');
 END;
 COMMIT;
@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3 Load concepts into concept_stage from MRCONSO
 -- Main CPT codes. Str picked in certain order to get best concept_name
@@ -50,6 +52,7 @@ INSERT INTO concept_stage (concept_id,
           OVER (
              PARTITION BY scui
              ORDER BY
+                CASE WHEN tty = 'PT' THEN 0 ELSE 1 END,
                 CASE WHEN LENGTH (str) <= 255 THEN LENGTH (str) ELSE 0 END DESC,
                 LENGTH (str)
              ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
@@ -193,6 +196,7 @@ CREATE TABLE t_domains nologging AS
           WHEN nvl(h3.code, cpt.code) = '1012106' THEN 'Measurement' -- Compatibility test each unit
           WHEN nvl(h3.code, cpt.code) = '1012116' THEN 'Measurement' -- Hemolysins and agglutinins
           WHEN cpt.code = '92531' THEN 'Observation' -- Spontaneous nystagmus, including gaze - Condition
+          WHEN cpt.code = '90745' THEN 'Drug' -- Immunization, hepatits B
           when cpt.code in ('86890', '86891') then 'Observation' -- Autologous blood or component, collection processing and storage
           when cpt.str like 'End-stage renal disease (ESRD)%' then 'Observation'
           when  h2.code in ('1012570', '1012602') then 'Drug' -- Vaccines, Toxoids or Immune Globulins, Serum or Recombinant Products
@@ -220,7 +224,7 @@ CREATE INDEX tmp_idx_cs
    ON t_domains (concept_code)
    NOLOGGING;
 
---update concept_stage from temporary table   
+--update concept_stage from temporary table
 UPDATE concept_stage c
    SET domain_id =
           (SELECT t.domain_id
@@ -230,7 +234,7 @@ UPDATE concept_stage c
 COMMIT;
 DROP TABLE t_domains PURGE;
  
- --5 Pick up all different str values that are not obsolete or suppressed
+--5 Pick up all different str values that are not obsolete or suppressed
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -243,9 +247,63 @@ INSERT INTO concept_synonym_stage (synonym_concept_id,
                    4180186 AS language_concept_id
      FROM UMLS.mrconso
     WHERE sab IN ('CPT', 'HCPT') AND suppress NOT IN ('E', 'O', 'Y');
-COMMIT;	
+COMMIT;
 
---6 Load concept_relationship_stage from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
+--6 Create text for Medical Coder with new codes and mappings
+/*SELECT NULL AS concept_id_1,
+       NULL AS concept_id_2,
+       c.concept_code AS concept_code_1,
+       u2.scui AS concept_code_2,
+       'CPT4 - SNOMED eq' AS relationship_id, -- till here strawman for concept_relationship to be checked and filled out, the remaining are supportive information to be truncated in the return file
+       c.concept_name AS cpt_name,
+       u2.str AS snomed_str,
+       sno.concept_id AS snomed_concept_id,
+       sno.concept_name AS snomed_name
+  FROM concept_stage c
+       LEFT JOIN
+       (                                          -- UMLS record for CPT4 code
+        SELECT DISTINCT cui, scui
+          FROM UMLS.mrconso
+         WHERE sab IN ('CPT', 'HCPT') AND suppress NOT IN ('E', 'O', 'Y')) u1
+          ON u1.scui = concept_code AND c.vocabulary_id = 'CPT4' -- join UMLS for code one
+       LEFT JOIN
+       (                        -- UMLS record for SNOMED code of the same cui
+        SELECT DISTINCT
+               cui,
+               scui,
+               FIRST_VALUE (
+                  str)
+               OVER (PARTITION BY scui
+                     ORDER BY DECODE (tty,  'PT', 1,  'PTGB', 2,  10))
+                  AS str
+          FROM UMLS.mrconso
+         WHERE sab IN ('SNOMEDCT_US') AND suppress NOT IN ('E', 'O', 'Y')) u2
+          ON u2.cui = u1.cui
+       LEFT JOIN concept sno
+          ON sno.vocabulary_id = 'SNOMED' AND sno.concept_code = u2.scui -- SNOMED concept
+ WHERE     NOT EXISTS
+              (                        -- only new codes we don't already have
+               SELECT 1
+                 FROM concept co
+                WHERE     co.concept_code = c.concept_code
+                      AND co.vocabulary_id = 'CPT4')
+       AND c.vocabulary_id = 'CPT4';
+*/
+--7 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+BEGIN
+   DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
+END;
+COMMIT;
+
+--8 Set proper standard_concept for mapped CPT4
+UPDATE concept_stage
+   SET standard_concept = NULL
+ WHERE concept_code IN (SELECT concept_code_1
+                          FROM concept_relationship_manual
+                         WHERE vocabulary_id_1 = 'CPT4' AND relationship_id = 'Maps to' AND invalid_reason IS NULL);
+COMMIT;
+
+--9 Load concept_relationship_stage from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
 INSERT INTO concept_relationship_stage (concept_id_1,
                                         concept_id_2,
                                         concept_code_1,
@@ -269,10 +327,25 @@ INSERT INTO concept_relationship_stage (concept_id_1,
      FROM concept_relationship r, concept c, concept c1
     WHERE     c.concept_id = r.concept_id_1
           AND c.vocabulary_id = 'CPT4'
-          AND C1.CONCEPT_ID = r.concept_id_2; 
+          AND c1.concept_id = r.concept_id_2
+          AND NOT EXISTS (
+             SELECT 1 FROM concept_relationship_stage crs WHERE crs.concept_code_1=c.concept_code
+             AND crs.concept_code_2=c1.concept_code
+             AND crs.relationship_id=r.relationship_id
+             AND crs.vocabulary_id_1=c.vocabulary_id
+             AND crs.vocabulary_id_2=c1.vocabulary_id
+          )
+          AND NOT EXISTS (
+             SELECT 1 FROM concept_relationship_stage crs, relationship rel WHERE crs.concept_code_2=c.concept_code
+             AND crs.concept_code_1=c1.concept_code
+             AND rel.relationship_id=r.relationship_id
+             AND crs.relationship_id=rel.reverse_relationship_id
+             AND crs.vocabulary_id_2=c.vocabulary_id
+             AND crs.vocabulary_id_1=c1.vocabulary_id
+          );
 COMMIT;
 
---7 Create hierarchical relationships between HT and normal CPT codes
+--10 Create hierarchical relationships between HT and normal CPT codes
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -294,10 +367,17 @@ INSERT INTO concept_relationship_stage (concept_code_1,
              FROM umls.mrhier
             WHERE sab = 'CPT' AND rela = 'isa') h
           JOIN umls.mrconso c1 ON c1.aui = h.aui1 AND c1.sab = 'CPT'
-          JOIN umls.mrconso c2 ON c2.aui = h.aui2 AND c2.sab = 'CPT';
-COMMIT;		  
+          JOIN umls.mrconso c2 ON c2.aui = h.aui2 AND c2.sab = 'CPT'
+          WHERE NOT EXISTS (
+             SELECT 1 FROM concept_relationship_stage crs WHERE crs.concept_code_1=c1.code
+             AND crs.concept_code_2=c2.code
+             AND crs.relationship_id='Is a'
+             AND crs.vocabulary_id_1='CPT4'
+             AND crs.vocabulary_id_2='CPT4'
+          );
+COMMIT;
 
---8 Extract all CPT4 codes inside the concept_name of other cpt codes. Currently, there are only 5 of them, with up to 4 codes in each
+--11 Extract all CPT4 codes inside the concept_name of other cpt codes. Currently, there are only 5 of them, with up to 4 codes in each
 INSERT INTO concept_relationship_stage (concept_id_1,
                                         concept_id_2,
                                         concept_code_1,
@@ -402,10 +482,17 @@ INSERT INTO concept_relationship_stage (concept_id_1,
                                     1,
                                     0,
                                     'i') > 0) e
-    WHERE e.concept_code_2 IS NOT NULL AND e.concept_code_1 IS NOT NULL;
-COMMIT;	
+    WHERE e.concept_code_2 IS NOT NULL AND e.concept_code_1 IS NOT NULL
+    AND NOT EXISTS (
+    SELECT 1 FROM concept_relationship_stage crs WHERE crs.concept_code_1=e.concept_code_1
+        AND crs.concept_code_2=e.concept_code_2
+        AND crs.relationship_id='Subsumes'
+        AND crs.vocabulary_id_1='CPT4'
+        AND crs.vocabulary_id_2='CPT4'
+    );
+COMMIT;
 
---9 update dates from mrsat.atv (only for new concepts)
+--12 Update dates from mrsat.atv (only for new concepts)
 UPDATE concept_stage c1
    SET valid_start_date =
           (WITH t
@@ -452,58 +539,6 @@ UPDATE concept_stage c1
                               AND c.vocabulary_id = 'CPT4'
                               AND c.concept_class_id = 'CPT4') s
                 WHERE dt IS NOT NULL AND s.concept_code = c1.concept_code);
-COMMIT;				
-
---10 Create text for Medical Coder with new codes or codes missing the domain_id to add manually
---Then update domain_id in concept_stage from resulting file
-SELECT *
-  FROM concept_stage
- WHERE domain_id IS NULL AND vocabulary_id = 'CPT4';
-
---11 Create text for Medical Coder with new codes and mappings
-SELECT NULL AS concept_id_1,
-       NULL AS concept_id_2,
-       c.concept_code AS concept_code_1,
-       u2.scui AS concept_code_2,
-       'CPT4 - SNOMED eq' AS relationship_id, -- till here strawman for concept_relationship to be checked and filled out, the remaining are supportive information to be truncated in the return file
-       c.concept_name AS cpt_name,
-       u2.str AS snomed_str,
-       sno.concept_id AS snomed_concept_id,
-       sno.concept_name AS snomed_name
-  FROM concept_stage c
-       LEFT JOIN
-       (                                          -- UMLS record for CPT4 code
-        SELECT DISTINCT cui, scui
-          FROM UMLS.mrconso
-         WHERE sab IN ('CPT', 'HCPT') AND suppress NOT IN ('E', 'O', 'Y')) u1
-          ON u1.scui = concept_code AND c.vocabulary_id = 'CPT4' -- join UMLS for code one
-       LEFT JOIN
-       (                        -- UMLS record for SNOMED code of the same cui
-        SELECT DISTINCT
-               cui,
-               scui,
-               FIRST_VALUE (
-                  str)
-               OVER (PARTITION BY scui
-                     ORDER BY DECODE (tty,  'PT', 1,  'PTGB', 2,  10))
-                  AS str
-          FROM UMLS.mrconso
-         WHERE sab IN ('SNOMEDCT_US') AND suppress NOT IN ('E', 'O', 'Y')) u2
-          ON u2.cui = u1.cui
-       LEFT JOIN concept sno
-          ON sno.vocabulary_id = 'SNOMED' AND sno.concept_code = u2.scui -- SNOMED concept
- WHERE     NOT EXISTS
-              (                        -- only new codes we don't already have
-               SELECT 1
-                 FROM concept co
-                WHERE     co.concept_code = c.concept_code
-                      AND co.vocabulary_id = 'CPT4')
-       AND c.vocabulary_id = 'CPT4';
-
---12 Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
-BEGIN
-   DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
-END;
 COMMIT;
 
 --13 Working with replacement mappings
@@ -516,18 +551,18 @@ COMMIT;
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
-COMMIT;	
+COMMIT;
 
 --15 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
-COMMIT;		 
+COMMIT;
 
 --16 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
-COMMIT;	
+COMMIT;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

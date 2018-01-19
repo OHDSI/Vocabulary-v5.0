@@ -3,7 +3,6 @@ LOAD DATA
 INFILE *                                                        
 TRUNCATE
 INTO TABLE dmdbonus
-xmltype(xmlfield)
 (
 	xmlfield LOBFILE (CONSTANT dmdbonus.xml)  TERMINATED BY EOF
 )

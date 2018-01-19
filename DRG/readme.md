@@ -14,7 +14,7 @@ Prerequisites:
 
 3. Extract *.txt files from archives
 4. Rename them to FY2011.txt, FY2012.txt ... FY2015.txt and sequentially load using control files of the same names
-5. Run load_stage.sql
+5. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 6. generic_update NOT needed
 
  

@@ -1,0 +1,8 @@
+CREATE OR REPLACE PACKAGE DEV_TIMUR.APIGrabber
+IS
+   PROCEDURE StartGrabber;
+
+   FUNCTION fhttpuritype (url IN VARCHAR2)
+      RETURN XMLTYPE;
+END;
+/

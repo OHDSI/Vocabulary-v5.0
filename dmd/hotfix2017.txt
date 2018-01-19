@@ -1,0 +1,347 @@
+update ds_stage a set (a.DENOMINATOR_VALUE, a.DENOMINATOR_unit )= 
+(select distinct b.DENOMINATOR_VALUE, b.DENOMINATOR_unit  from 
+ ds_stage b where a.drug_CONCEPT_CODE = b.drug_CONCEPT_CODE 
+ and a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null )
+-- a.numerator_value= a.amount_value,a.numerator_unit= a.amount_unit,a.amount_value = null, a.amount_unit = null
+ where exists 
+ (select 1 from 
+ ds_stage b where a.drug_CONCEPT_CODE = b.drug_CONCEPT_CODE 
+ and a.DENOMINATOR_unit is null and b.DENOMINATOR_unit is not null )
+;
+--somehow we get amount +denominator
+update ds_stage a  set  a.numerator_value= a.amount_value,a.numerator_unit= a.amount_unit,a.amount_value = null, a.amount_unit = null
+where a.denominator_unit is not null and numerator_unit is null
+;
+commit
+;
+delete from ds_stage where drug_concept_code in 
+   ( select drug_concept_code  FROM ds_stage
+      WHERE COALESCE(amount_value,numerator_value,0) = 0
+      -- needs to have at least one value, zeros don't count
+      OR    COALESCE(amount_unit,numerator_unit) IS NULL
+      -- needs to have at least one unit
+      OR    (amount_value IS NOT NULL AND amount_unit IS NULL)
+      -- if there is an amount record, there must be a unit
+      OR    (NVL(numerator_value,0) != 0 AND COALESCE(numerator_unit,denominator_unit) IS NULL)
+      )
+      -- if there is a concentration record there must be a unit in both numerator and denominator
+      ;
+commit
+;
+update  drug_concept_stage set standard_concept ='S' 
+      WHERE domain_id = 'Device' AND   invalid_reason is null
+      ;
+      commit
+      ;
+ delete from ds_stage where drug_concept_code in (
+ SELECT drug_concept_code 
+      FROM (SELECT DISTINCT concept_code_1, COUNT(concept_code_2) OVER (PARTITION BY concept_code_1) AS irs_cnt
+            FROM internal_relationship_stage
+              JOIN drug_concept_stage ON concept_code = concept_code_2 AND concept_class_id = 'Ingredient') irs
+        JOIN (SELECT DISTINCT drug_concept_code, COUNT(ingredient_concept_code) OVER (PARTITION BY drug_concept_code) AS ds_cnt
+              FROM ds_stage) ds
+          ON drug_concept_code = concept_code_1   AND irs_cnt != ds_cnt
+          )
+          ;
+          commit
+          ;
+UPDATE DS_STAGE
+   SET DENOMINATOR_UNIT = 'ml'
+WHERE DRUG_CONCEPT_CODE = '353113002'
+AND   INGREDIENT_CONCEPT_CODE = '61360007';
+UPDATE DS_STAGE
+   SET DENOMINATOR_UNIT = 'ml'
+WHERE DRUG_CONCEPT_CODE = '3844411000001103'
+AND   INGREDIENT_CONCEPT_CODE = '61360007';
+commit
+;
+UPDATE RELATIONSHIP_TO_CONCEPT
+   SET CONCEPT_ID_2 = 1718061
+WHERE CONCEPT_CODE_1 = '421958003'
+AND   VOCABULARY_ID_1 = 'dm+d';
+commit
+;
+delete from relationship_to_concept where  CONCEPT_ID_2 in (
+    SELECT   CONCEPT_ID_2
+      FROM relationship_to_concept
+        JOIN drug_concept_stage s ON s.concept_code = concept_code_1
+        JOIN concept c ON c.concept_id = concept_id_2
+      WHERE c.standard_concept IS  NULL  AND   s.concept_class_id = 'Ingredient'
+      )
+      ;
+commit
+;
+ select * from ds_stage_1;
+drop table ds_stage_1;
+create table ds_stage_1 as select * from ds_stage;
+TRUNCATE TABLE ds_stage; 
+--updating drugs that have ingredients with 2 or more dosages that need to be sum up
+INSERT INTO ds_stage(DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT,box_size)
+SELECT DISTINCT drug_concept_code,ingredient_concept_code,SUM(AMOUNT_VALUE) OVER (PARTITION BY DRUG_CONCEPT_CODE,ingredient_concept_code,AMOUNT_UNIT),
+       amount_unit,
+       SUM(NUMERATOR_VALUE) OVER (PARTITION BY DRUG_CONCEPT_CODE,ingredient_concept_code,NUMERATOR_UNIT),
+       numerator_unit,denominator_value, denominator_unit,box_size
+FROM (SELECT drug_concept_code,ingredient_concept_code, box_size,
+             CASE WHEN amount_unit = 'G' THEN amount_value*1000 WHEN amount_unit = 'MCG' THEN amount_value/1000  ELSE amount_value END AS amount_value,-- make amount units similar
+             CASE WHEN amount_unit in ('G','MCG') THEN 'MG' ELSE amount_unit END AS amount_unit,
+             CASE WHEN numerator_unit = 'G' THEN numerator_value*1000 WHEN numerator_unit = 'MCG' THEN numerator_value/1000 ELSE numerator_value END AS numerator_value,
+             CASE WHEN numerator_unit in ('G','MCG') THEN 'MG' ELSE numerator_unit END AS numerator_unit,
+             denominator_value,denominator_unit
+      FROM ds_stage_1 a
+      WHERE (drug_concept_code,ingredient_concept_code) IN (SELECT drug_concept_code,ingredient_concept_code
+                                                            FROM ds_stage_1 GROUP BY drug_concept_code,ingredient_concept_code HAVING COUNT(1) > 1));
+INSERT INTO ds_stage(DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT,box_size)
+      SELECT distinct DRUG_CONCEPT_CODE,INGREDIENT_CONCEPT_CODE,AMOUNT_VALUE,AMOUNT_UNIT,NUMERATOR_VALUE,NUMERATOR_UNIT,DENOMINATOR_VALUE,DENOMINATOR_UNIT,box_size 
+      FROM ds_stage_1
+      WHERE (drug_concept_code,ingredient_concept_code) NOT IN (SELECT drug_concept_code, ingredient_concept_code
+                                                                FROM ds_stage_1 GROUP BY drug_concept_code,ingredient_concept_code HAVING COUNT(1) > 1);
+
+
+commit
+;
+delete from ds_stage where ingredient_concept_code is null
+;
+commit
+;
+delete drug_concept_stage where concept_code in (select pack_concept_code from pc_stage);
+delete drug_concept_stage where concept_code in (select drug_concept_code from pc_stage);
+delete internal_relationship_stage where concept_code_1 in (select pack_concept_code from pc_stage);
+delete internal_relationship_stage where concept_code_1 in (select drug_concept_code from pc_stage);
+delete ds_stage where drug_concept_code in (select drug_concept_code from pc_stage);commit; 
+truncate table pc_stage;
+
+delete drug_concept_stage where concept_code in (select drug_concept_code from  ds_stage where upper (numerator_unit) in ('DH','C','CH','D','TM','X','XMK') and denominator_value is not null);
+delete internal_relationship_stage where concept_code_1 in (select drug_concept_code from  ds_stage where upper (numerator_unit)  in ('DH','C','CH','D','TM','X','XMK') and denominator_value is not null);
+delete ds_stage where upper (numerator_unit) in ('DH','C','CH','D','TM','X','XMK') and denominator_value is not null;
+commit
+;
+delete drug_concept_stage where concept_code in (select drug_concept_code from  ds_stage where upper (amount_unit) in ('DH','C','CH','D','TM','X','XMK') );
+delete internal_relationship_stage where concept_code_1 in (select drug_concept_code from  ds_stage where upper (amount_unit)  in ('DH','C','CH','D','TM','X','XMK') );
+delete ds_stage where drug_concept_code in (select drug_concept_code from  ds_stage where upper (amount_unit)  in ('DH','C','CH','D','TM','X','XMK') )  ;
+commit
+;
+--PUT ALREADY UP-TO date concepts into internal_relationship_stage 
+update internal_relationship_stage rr set concept_code_2 = (
+
+select irs2_concept_code_2 from 
+(
+  SELECT irs1.concept_code_1 as irs1_concept_code_1, irs1.concept_code_2 as irs1_concept_code_2, irs2.concept_code_2 as irs2_concept_code_2  
+      FROM internal_relationship_stage irs1
+        JOIN drug_concept_stage dcs1 ON dcs1.concept_code = irs1.concept_code_2
+       JOIN  internal_relationship_stage irs2 on irs1.concept_code_2 = irs2.concept_code_1
+       join drug_concept_stage dcs2 on dcs2.concept_code = irs2.concept_code_2 and dcs2.concept_class_id = dcs1.concept_ClasS_id and dcs2.invalid_reason is null
+      WHERE dcs1.invalid_reason IS NOT NULL
+      ) a  where a.irs1_concept_code_1 = rr.concept_code_1  and a.irs1_concept_code_1 = rr.concept_code_1 )
+WHERE EXISTS (
+select 1 from 
+(
+  SELECT irs1.concept_code_1 as irs1_concept_code_1, irs1.concept_code_2 as irs1_concept_code_2, irs2.concept_code_2 as irs2_concept_code_2  
+      FROM internal_relationship_stage irs1
+        JOIN drug_concept_stage dcs1 ON dcs1.concept_code = irs1.concept_code_2
+       JOIN  internal_relationship_stage irs2 on irs1.concept_code_2 = irs2.concept_code_1
+       join drug_concept_stage dcs2 on dcs2.concept_code = irs2.concept_code_2 and dcs2.concept_class_id = dcs1.concept_ClasS_id and dcs2.invalid_reason is null
+      WHERE dcs1.invalid_reason IS NOT NULL
+      ) a  where a.irs1_concept_code_1 = rr.concept_code_1  and a.irs1_concept_code_1 = rr.concept_code_1 )
+;
+create table irs_tmp as      select distinct * from internal_relationship_stage
+;
+drop table internal_relationship_stage
+;
+create table  internal_relationship_stage  as  select distinct * from irs_tmp
+;
+drop table irs_tmp
+;
+--ML is not allowed as a dosage
+   delete from ds_Stage where  DRUG_CONCEPT_CODE in ( SELECT DRUG_CONCEPT_CODE
+      FROM ds_stage
+      join drug_concept_stage on DRUG_CONCEPT_CODE = concept_code
+      WHERE lower(numerator_unit) IN ('ml')
+      OR    lower(amount_unit) IN ('ml')
+      )
+      ;
+commit
+;
+--insert name equal mappings
+insert into relationship_to_concept ( concept_code_1,  concept_id_2, precedence) 
+select   concept_code,  concept_id ,  rank() over (partition by concept_code order by  concept_id) as precedence  from (
+select distinct dcs.concept_code, cc.concept_id 
+from drug_concept_stage dcs
+join concept cc on lower (cc.concept_name) = lower (dcs.concept_name) and cc.concept_class_id = dcs.concept_class_id and cc.vocabulary_id like 'RxNorm%'
+left join (select * from relationship_to_concept join concept on concept_id = concept_id_2 and invalid_reason is null) cr on dcs.concept_code = cr.concept_code_1
+where concept_code_1 is null and cc.invalid_reason is null
+and dcs.concept_class_id in ('Ingredient', 'Brand Name', 'Dose Form', 'Supplier')
+)
+;
+commit
+;
+--PPM problem, solve it later, ppm = 0.0001 % = 1 mg/L 
+delete from ds_stage where amount_unit = 'ppm'
+;
+delete from ds_stage where NUMERATOR_UNIT = 'ppm'
+;
+commit
+;
+update relationship_to_concept set precedence =1 where   precedence is null
+;
+commit
+;
+--add various mappgings to Suppliers
+drop table RxE_Man_st_0;
+create table RxE_Man_st_0 as
+select concept_code_1 as concept_code_1 ,
+  concept_id,  rank() over (partition by concept_code_1 order by concept_id) as precedence
+from (
+select concept_code_1, c.concept_id  from relationship_to_concept
+join concept c on concept_id_2 = concept_id where concept_class_id = 'Supplier'
+union
+select a.concept_code, c.concept_id from drug_concept_stage a 
+join devv5.concept c on 
+regexp_replace(lower(a.concept_name),' ltd| plc| uk| \(.*\)| pharmaceuticals| pharma| gmbh| laboratories| ab| international| france| imaging')=
+regexp_replace(lower(c.concept_name),' ltd| plc| uk| \(.*\)| pharmaceuticals| pharma| gmbh| laboratories| ab| international| france| imaging')
+where a.concept_class_id = 'Supplier' 
+and (a.concept_code, c.concept_Id) not in (select concept_code_1, concept_id_2 from relationship_to_concept)
+and c.vocabulary_id like 'RxNorm%' and c.concept_class_id=  'Supplier' and c.invalid_reason is null
+)
+;
+select count(*) from RxE_Man_st_0
+;
+delete from relationship_to_concept where concept_code_1 in (select concept_code_1 from RxE_Man_st_0)
+;
+insert into relationship_to_concept  (CONCEPT_CODE_1,VOCABULARY_ID_1,CONCEPT_ID_2,PRECEDENCE,CONVERSION_FACTOR)
+select concept_code_1, 'dm+d', CONCEPT_ID, precedence, '' 
+from RxE_Man_st_0  -- RxNormExtension name equivalence
+;
+commit
+;
+--more duplicates fixing
+delete from ds_Stage where drug_concept_code in (
+select CONCEPT_CODE_1
+  from concept_stage 
+join concept_relationshiP_stage on concept_code_2 = concept_code and relationship_id ='Maps to'
+where lower(concept_name) in (select concept_name from
+(
+select lower(concept_name)as concept_name from concept_stage where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+union all
+select lower(concept_name) from concept  where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+)
+group by concept_name having count(1)>1)
+and vocabulary_id like 'Rx%'
+)
+;
+ delete internal_relationship_stage where concept_code_1 in
+(
+select CONCEPT_CODE_1
+  from concept_stage 
+join concept_relationshiP_stage on concept_code_2 = concept_code and relationship_id ='Maps to'
+where lower(concept_name) in (select concept_name from
+(
+select lower(concept_name)as concept_name from concept_stage where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+union all
+select lower(concept_name) from concept  where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
+)
+group by concept_name having count(1)>1)
+and vocabulary_id like 'Rx%'
+)
+;
+commit
+;
+--should be changed to mg/L when ds_stage was created
+delete from relationship_to_concept where concept_code_1 ='ppm'
+;
+--Marketed Drugs without the dosage or Drug Form are not allowed
+delete from internal_relationship_stage where (concept_code_1, concept_code_2) in 
+(
+select concept_code_1,concept_code_2   from drug_concept_stage  dcs
+join (
+SELECT concept_code_1, concept_code_2
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+left join ds_stage on drug_concept_code = concept_code_1 
+where drug_concept_code is null
+union 
+SELECT concept_code_1, concept_code_2
+FROM internal_relationship_stage
+JOIN drug_concept_stage  ON concept_code_2 = concept_code  AND concept_class_id = 'Supplier'
+where concept_code_1 not in (SELECT concept_code_1
+                                  FROM internal_relationship_stage
+                                    JOIN drug_concept_stage   ON concept_code_2 = concept_code  AND concept_class_id = 'Dose Form')
+) s on s.concept_code_1 = dcs.concept_code
+where dcs.concept_class_id = 'Drug Product' and invalid_reason is null 
+)
+;
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24510411000001102'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437911000001107'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437811000001102'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437711000001105'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437611000001101'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437511000001100'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437411000001104'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437311000001106'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '24437211000001103'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143711000001105'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143611000001101'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143511000001100'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143411000001104'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143311000001106'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+DELETE
+FROM DS_STAGE
+WHERE DRUG_CONCEPT_CODE = '21143211000001103'
+AND   INGREDIENT_CONCEPT_CODE = '21143111000001109';
+
+
+delete from internal_relationship_stage where concept_code_2 in 
+('229862008', '4672911000001107', '4245911000001102')
+;
+commit
+;
+--set Gases as a Devices --check o
+  update drug_concept_stage set domain_id = 'Device' where concept_code in (
+      select concept_code from drug_concept_stage where regexp_like  (concept_name, 'Oxygen|Nitrous Oxide|Carbon Dioxide|Nitrous oxide|Air |Equanox | cylinders ')
+      )
+      ;
+      delete from ds_stage where drug_concept_code in (  select concept_code from drug_concept_stage where domain_id ='Device')
+      ;
+      commit
+      ;

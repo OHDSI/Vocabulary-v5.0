@@ -1,8 +1,23 @@
-1. Run manual_tables.sql to get source tables and tables we created manualy
-(mapping tables or tables with created packs);
-2. Run non_drug_concept_stage.sql to get list of non-drug concepts we need to exclude from standart tables;
-3. Run standard_tables_creation.sql to get standard tables such as:
-DRUG_CONCEPT_STAGE, RELATIONSHIP_TO_CONCEPT, INTERNAL_RELATIONSHIP_STAGE, DRUG_STRENGTH_STAGE. 
-Additional information about these tables you can get from http://www.ohdsi.org/web/wiki/doku.php?id=documentation:international_drugs;
-4. Run complete_concept_stage_name.sql
-Using tables with all generated classes create full names for concepts we have.
+DPD readme upload / update of DPD
+
+Prerequisites:
+
+Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
+
+Working directory dev_dpd.
+
+1.Download the latest file from http://www.hc-sc.gc.ca/dhp-mps/prodpharma/databasdon/dpd_bdpp_data_extract-eng.php (file names: allfiles.zip,allfiles_ia.zip,allfiles_ap.zip).
+
+2.Exctract the files, open them and resave them as text (tab delemited).
+
+3.Run create_source_tables.sql
+
+4.Load the files into the tables using the control files of the same name consequentially.
+
+5.Load manual tables using the control files of the same name consequentially.
+
+6.Run load_stage.sql 
+
+7.Run Build_RxE.sql and generic_update.sql (from working directory);
+
+8.Run drops.sql to remove all the temporary tables

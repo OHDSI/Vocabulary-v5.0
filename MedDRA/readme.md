@@ -11,14 +11,14 @@ Prerequisites:
 hlgt_hlt.asc
 hlt.asc
 hlt_pt.asc
-intl_ord.asc
+hlgt.asc
 llt.asc
 mdhier.asc
 pt.asc
 soc.asc
 soc_hlgt.asc
 
-4. Run load_stage.sql
+4. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
 5. Run generic_update.sql (from working directory)
 
  

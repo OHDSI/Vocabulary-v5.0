@@ -20,8 +20,8 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'RxNorm',
-                                          pVocabularyDate        => TO_DATE ('20160606', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'RxNorm Full 20160606',
+                                          pVocabularyDate        => TO_DATE ('20170807', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'RxNorm Full 20170807',
                                           pVocabularyDevSchema   => 'DEV_RXNORM');
 END;
 COMMIT;
@@ -30,6 +30,8 @@ COMMIT;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Insert into concept_stage
 -- Get drugs, components, forms and ingredients
@@ -56,10 +58,13 @@ INSERT INTO concept_stage (concept_name,
              WHEN 'SBDC' THEN 'Branded Drug Comp'
              WHEN 'SBDF' THEN 'Branded Drug Form'
              WHEN 'SBD' THEN 'Branded Drug'
-             WHEN 'PIN' THEN 'Ingredient'
+             WHEN 'PIN' THEN 'Precise Ingredient'
+			 WHEN 'DFG' THEN 'Dose Form Group'
+			 WHEN 'SCDG' THEN 'Clinical Dose Group'
+			 WHEN 'SBDG' THEN 'Branded Dose Group'
           END,
           -- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
-          CASE tty WHEN 'PIN' THEN NULL WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
+          CASE tty WHEN 'PIN' THEN NULL WHEN 'DFG' THEN 'C' WHEN 'SCDG' THEN 'C' WHEN 'SBDG' THEN 'C' WHEN 'DF' THEN NULL WHEN 'BN' THEN NULL ELSE 'S' END,
           -- the code used in RxNorm
           rxcui,
           (SELECT latest_update
@@ -80,7 +85,10 @@ INSERT INTO concept_stage (concept_name,
                                          'SBDC',
                                          'SBDF',
                                          'SBD',
-                                         'PIN')
+                                         'PIN',
+										 'DFG',
+										 'SCDG',
+										 'SBDG')
                              AND rxcui <> merged_to_rxcui)
              THEN
 			  (SELECT latest_update - 1
@@ -104,7 +112,10 @@ INSERT INTO concept_stage (concept_name,
                                          'SBDC',
                                          'SBDF',
                                          'SBD',
-                                         'PIN')
+                                         'PIN',
+										 'DFG',
+										 'SCDG',
+										 'SBDG')
                              AND rxcui <> merged_to_rxcui)
              THEN
                 'U'
@@ -122,7 +133,10 @@ INSERT INTO concept_stage (concept_name,
                       'SBDC',
                       'SBDF',
                       'SBD',
-                      'PIN');
+                      'PIN',
+					  'DFG',
+					  'SCDG',
+					  'SBDG');
 COMMIT;					  
 
 -- Packs share rxcuis with Clinical Drugs and Branded Drugs, therefore use code as concept_code
@@ -161,7 +175,10 @@ INSERT INTO concept_stage (concept_name,
                                          'SBDC',
                                          'SBDF',
                                          'SBD',
-                                         'PIN')
+                                         'PIN',
+										 'DFG',
+										 'SCDG',
+										 'SBDG')
                              AND rxcui <> merged_to_rxcui)
              THEN
 			  (SELECT latest_update - 1
@@ -185,7 +202,10 @@ INSERT INTO concept_stage (concept_name,
                                          'SBDC',
                                          'SBDF',
                                          'SBD',
-                                         'PIN')
+                                         'PIN',
+										 'DFG',
+										 'SCDG',
+										 'SBDG')
                              AND rxcui <> merged_to_rxcui)
              THEN
                 'U'
@@ -197,33 +217,43 @@ INSERT INTO concept_stage (concept_name,
 COMMIT;	
 	
 --4. Add synonyms - for all classes except the packs (they use code as concept_code)
-INSERT INTO concept_synonym_stage (synonym_concept_id,
-                                   synonym_concept_code,
+INSERT INTO concept_synonym_stage (synonym_concept_code,
                                    synonym_name,
                                    synonym_vocabulary_id,
                                    language_concept_id)
-   SELECT NULL ,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4180186                    -- English
-     FROM rxnconso r
-          JOIN concept_stage c
-             ON     c.concept_code = r.rxcui
-                AND NOT c.concept_class_id IN ('Clinical Pack',
-                                               'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY'
-	AND c.vocabulary_id='RxNorm';
+    SELECT DISTINCT rxcui,
+                    SUBSTR (r.str, 1, 1000),
+                    'RxNorm',
+                    4180186 -- English
+      FROM rxnconso r JOIN concept_stage c ON c.concept_code = r.rxcui AND c.concept_class_id NOT IN ('Clinical Pack', 'Branded Pack')
+     WHERE     sab = 'RXNORM'
+           AND tty IN ('IN',
+                       'DF',
+                       'SCDC',
+                       'SCDF',
+                       'SCD',
+                       'BN',
+                       'SBDC',
+                       'SBDF',
+                       'SBD',
+                       'PIN',
+                       'DFG',
+                       'SCDG',
+                       'SBDG',
+                       'SY')
+           AND c.vocabulary_id = 'RxNorm';
 
 -- Add synonyms for packs
-INSERT INTO concept_synonym_stage (synonym_concept_id,
-                                   synonym_concept_code,
+INSERT INTO concept_synonym_stage (synonym_concept_code,
                                    synonym_name,
                                    synonym_vocabulary_id,
                                    language_concept_id)
-   SELECT null,rxcui, SUBSTR (r.str, 1, 1000), 'RxNorm', 4180186                    -- English
-     FROM rxnconso r
-          JOIN concept_stage c
-             ON     c.concept_code = r.code
-                AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
-    WHERE sab = 'RXNORM' AND tty = 'SY'
-	AND c.vocabulary_id='RxNorm';
+    SELECT DISTINCT code,
+                    SUBSTR (r.str, 1, 1000),
+                    'RxNorm',
+                    4180186 -- English
+      FROM rxnconso r JOIN concept_stage c ON c.concept_code = r.code AND c.concept_class_id IN ('Clinical Pack', 'Branded Pack')
+     WHERE sab = 'RXNORM' AND tty IN ('BPCK', 'GPCK', 'SY') AND c.vocabulary_id = 'RxNorm';
 COMMIT;	
 
 --5 Add inner-RxNorm relationships
@@ -250,6 +280,7 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
              WHEN rela = 'reformulated_to' THEN 'Reformulated in'
              WHEN rela = 'inverse_isa' THEN 'RxNorm inverse is a'
              WHEN rela = 'has_quantified_form' THEN 'Has quantified form' -- links extended release tablets to 12 HR extended release tablets
+			 WHEN rela = 'quantified_form_of' THEN 'Quantified form of'
              WHEN rela = 'consists_of' THEN 'Consists of'
              WHEN rela = 'ingredient_of' THEN 'RxNorm ing of'
              WHEN rela = 'precise_ingredient_of' THEN 'Precise ing of'
@@ -259,7 +290,8 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
              WHEN rela = 'form_of' THEN 'Form of'
              WHEN rela = 'reformulation_of' THEN 'Reformulation of'
              WHEN rela = 'tradename_of' THEN 'Tradename of'
-             WHEN rela = 'quantified_form_of' THEN 'Quantified form of'
+             WHEN rela = 'doseformgroup_of' THEN 'Dose form group of'
+			 WHEN rela = 'has_doseformgroup' THEN 'Has dose form group'
              ELSE 'non-existing'
           END
              AS relationship_id,
@@ -296,18 +328,103 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                  AND concept_code = rxcui2));
 COMMIT;
 
--- Remove shortcut 'RxNorm ing of' relationship between Branded Drug and Brand Name. For some strange reason it doesn't exist between Clinical Drug and Ingredient, but we kill it anyway.
-DELETE FROM concept_relationship_stage r 
-WHERE EXISTS (
-        SELECT 1 FROM concept_stage d WHERE r.concept_code_1 = d.concept_code AND r.vocabulary_id_1 = d.vocabulary_id
-            AND d.concept_class_id in ('Branded Drug', 'Clinical Drug')
-    AND r.relationship_id = 'RxNorm has ing');
+--Rename "RxNorm has ing" to "Has brand name" if concept_code_2 has the concept_class_id='Brand Name' and reverse
+UPDATE concept_relationship_stage
+   SET RELATIONSHIP_ID = 'Has brand name'
+ WHERE ROWID IN (SELECT crs.ROWID
+                   FROM concept_relationship_stage crs
+                        LEFT JOIN concept_stage cs ON cs.concept_code = crs.concept_code_2 AND cs.vocabulary_id = crs.vocabulary_id_2 AND cs.concept_class_id = 'Brand Name'
+                        LEFT JOIN concept c ON c.concept_code = crs.concept_code_2 AND c.vocabulary_id = crs.vocabulary_id_2 AND c.concept_class_id = 'Brand Name'
+                  WHERE crs.invalid_reason IS NULL AND crs.relationship_id = 'RxNorm has ing' AND COALESCE (cs.concept_code, c.concept_code) IS NOT NULL);
+--reverse
+UPDATE concept_relationship_stage
+   SET RELATIONSHIP_ID = 'Brand name of'
+ WHERE ROWID IN (SELECT crs.ROWID
+                   FROM concept_relationship_stage crs
+                        LEFT JOIN concept_stage cs ON cs.concept_code = crs.concept_code_1 AND cs.vocabulary_id = crs.vocabulary_id_1 AND cs.concept_class_id = 'Brand Name'
+                        LEFT JOIN concept c ON c.concept_code = crs.concept_code_1 AND c.vocabulary_id = crs.vocabulary_id_1 AND c.concept_class_id = 'Brand Name'
+                  WHERE crs.invalid_reason IS NULL AND crs.relationship_id = 'RxNorm ing of' AND COALESCE (cs.concept_code, c.concept_code) IS NOT NULL);
+COMMIT;
+
+-- Add missing relationships between Branded Packs and their Brand Names
+INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+   WITH pb
+           AS (SELECT *
+                 FROM (SELECT pack_code,
+                              pack_brand,
+                              brand_code,
+                              brand_name
+                         FROM (                                              -- The brand names are either listed as tty PSN (prescribing name) or SY (synonym). If they are not listed they don't exist
+                               SELECT p.rxcui AS pack_code, NVL (b.str, s.str) AS pack_brand
+                                 FROM rxnconso p
+                                      LEFT JOIN rxnconso b ON p.rxcui = b.rxcui AND b.sab = 'RXNORM' AND b.tty = 'PSN'
+                                      LEFT JOIN rxnconso s ON p.rxcui = s.rxcui AND s.sab = 'RXNORM' AND s.tty = 'SY'
+                                WHERE p.sab = 'RXNORM' AND p.tty = 'BPCK')
+                              JOIN (SELECT concept_code AS brand_code, concept_name AS brand_name
+                                      FROM concept_stage
+                                     WHERE vocabulary_id = 'RxNorm' AND concept_class_id = 'Brand Name')
+                                 ON INSTR (LOWER (REPLACE (pack_brand, '-', ' ')), LOWER (REPLACE (brand_name, '-', ' '))) > 0)
+                -- apply the slow regexp only to the ones preselected by instr
+                WHERE REGEXP_LIKE (REPLACE (pack_brand, '-', ' '), '(^|\s|\W)' || REPLACE (brand_name, '-', ' ') || '($|\s|\W)', 'i'))
+     SELECT pack_code AS concept_code_1,
+            brand_code AS concept_code_2,
+            'RxNorm' AS vocabulary_id_1,
+            'RxNorm' AS vocabulary_id_2,
+            'Has brand name' AS relationship_id,
+            (SELECT latest_update
+               FROM vocabulary
+              WHERE vocabulary_id = 'RxNorm')
+               AS valid_start_date,
+            TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+            NULL AS invalid_reason
+       FROM pb p
+      -- kick out those duplicates where one is part of antoher brand name (like 'Demulen' in 'Demulen 1/50', or those that cannot be part of each other.
+      WHERE     NOT EXISTS
+                   (SELECT 1
+                      FROM pb q
+                     WHERE     q.brand_code != p.brand_code
+                           AND p.pack_code = q.pack_code
+                           AND (INSTR (q.brand_name, p.brand_name) > 0 OR INSTR (q.brand_name, p.brand_name) = 0 AND INSTR (p.brand_name, q.brand_name) = 0))
+            AND NOT EXISTS
+                   (SELECT 1
+                      FROM concept_relationship_stage crs
+                     WHERE crs.concept_code_1 = pack_code AND crs.concept_code_2 = brand_code AND crs.relationship_id = 'Has brand name')
+            AND NOT EXISTS
+                   (SELECT 1
+                      FROM concept_relationship_stage crs
+                     WHERE crs.concept_code_2 = pack_code AND crs.concept_code_1 = brand_code AND crs.relationship_id = 'Brand name of')
+   GROUP BY pack_code, brand_code;	   
+COMMIT;				   
+
+-- Remove shortcut 'RxNorm has ing' relationship between 'Clinical Drug', 'Quant Clinical Drug', 'Clinical Pack' and 'Ingredient'
+DELETE FROM concept_relationship_stage r
+      WHERE     EXISTS
+                   (SELECT 1
+                      FROM concept_stage d
+                     WHERE r.concept_code_1 = d.concept_code AND r.vocabulary_id_1 = d.vocabulary_id AND d.concept_class_id IN ('Clinical Drug', 'Quant Clinical Drug', 'Clinical Pack'))
+            AND EXISTS
+                   (SELECT 1
+                      FROM concept_stage d
+                     WHERE r.concept_code_2 = d.concept_code AND r.vocabulary_id_2 = d.vocabulary_id AND d.concept_class_id = 'Ingredient')
+            AND relationship_id = 'RxNorm has ing';
 -- and same for reverse
-DELETE FROM concept_relationship_stage r 
-WHERE EXISTS (
-        SELECT 1 FROM concept_stage d WHERE r.concept_code_2 = d.concept_code AND r.vocabulary_id_2 = d.vocabulary_id
-            AND d.concept_class_id in ('Branded Drug', 'Clinical Drug')
-    AND r.relationship_id = 'RxNorm ing of');
+DELETE FROM concept_relationship_stage r
+      WHERE     EXISTS
+                   (SELECT 1
+                      FROM concept_stage d
+                     WHERE r.concept_code_2 = d.concept_code AND r.vocabulary_id_1 = d.vocabulary_id AND d.concept_class_id IN ('Clinical Drug', 'Quant Clinical Drug', 'Clinical Pack'))
+            AND EXISTS
+                   (SELECT 1
+                      FROM concept_stage d
+                     WHERE r.concept_code_1 = d.concept_code AND r.vocabulary_id_2 = d.vocabulary_id AND d.concept_class_id = 'Ingredient')
+            AND relationship_id = 'RxNorm ing of';
 COMMIT;
 
 --Rename 'Has tradename' to 'Has brand name'  where concept_id_1='Ingredient' and concept_id_2='Brand Name'
@@ -370,7 +487,7 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
    SELECT DISTINCT d.concept_code AS concept_code_1,
                    e.concept_code AS concept_code_2,
                    'SNOMED' AS vocabulary_id_1,
-                   'RxNorm' AS vocabulary_id_2,				   
+                   'RxNorm' AS vocabulary_id_2,
                    'Maps to' AS relationship_id,
                    d.valid_start_date,
                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
@@ -381,8 +498,9 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
     WHERE d.vocabulary_id = 'SNOMED' AND d.invalid_reason IS NULL AND d.concept_class_id NOT IN ('Dose Form', 'Brand Name');
 COMMIT;
 	
---7 Add upgrade relationships
-INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
+--7 Add upgrade relationships (concept_code_2 shouldn't exists in rxnsat with atn = 'RXN_QUALITATIVE_DISTINCTION')
+INSERT /*+ APPEND */
+      INTO  concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         vocabulary_id_1,
                                         vocabulary_id_2,
@@ -390,47 +508,100 @@ INSERT /*+ APPEND */ INTO concept_relationship_stage (concept_code_1,
                                         valid_start_date,
                                         valid_end_date,
                                         invalid_reason)
-   SELECT DISTINCT rxcui AS concept_code_1,
-          merged_to_rxcui AS concept_code_2,
-          'RxNorm' AS vocabulary_id_1,
-          'RxNorm' AS vocabulary_id_2,
-          'Concept replaced by' AS relationship_id,
-          latest_update AS valid_start_date,
-          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM rxnatomarchive, vocabulary
-    WHERE     sab = 'RXNORM'
-          AND vocabulary_id = 'RxNorm' -- for getting the latest_update
-          AND tty IN ('IN',
-                      'DF',
-                      'SCDC',
-                      'SCDF',
-                      'SCD',
-                      'BN',
-                      'SBDC',
-                      'SBDF',
-                      'SBD',
-					  'PIN')
-          AND rxcui <> merged_to_rxcui;
-		  /*
-          AND NOT EXISTS
-                 (SELECT 1
-                    FROM concept
-                   WHERE vocabulary_id = 'RxNorm' AND concept_code = rxcui
-                  UNION ALL
-                  SELECT 1
-                    FROM concept_stage
-                   WHERE vocabulary_id = 'RxNorm' AND concept_code = rxcui)
-          AND EXISTS
-                 (SELECT 1
-                    FROM concept
-                   WHERE     vocabulary_id = 'RxNorm'
-                         AND concept_code = merged_to_rxcui
-                  UNION ALL
-                  SELECT 1
-                    FROM concept_stage
-                   WHERE     vocabulary_id = 'RxNorm'
-                         AND concept_code = merged_to_rxcui);*/		  
+    SELECT DISTINCT raa.rxcui AS concept_code_1,
+                    raa.merged_to_rxcui AS concept_code_2,
+                    'RxNorm' AS vocabulary_id_1,
+                    'RxNorm' AS vocabulary_id_2,
+                    'Concept replaced by' AS relationship_id,
+                    v.latest_update AS valid_start_date,
+                    TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                    NULL AS invalid_reason
+      FROM rxnatomarchive raa
+           JOIN vocabulary v ON v.vocabulary_id = 'RxNorm'  -- for getting the latest_update
+           LEFT JOIN rxnsat rxs ON rxs.rxcui = raa.merged_to_rxcui AND rxs.atn = 'RXN_QUALITATIVE_DISTINCTION' AND rxs.sab = raa.sab
+     WHERE     raa.sab = 'RXNORM'
+           AND raa.tty IN ('IN',
+                           'DF',
+                           'SCDC',
+                           'SCDF',
+                           'SCD',
+                           'BN',
+                           'SBDC',
+                           'SBDF',
+                           'SBD',
+                           'PIN',
+                           'DFG',
+                           'SCDG',
+                           'SBDG')
+           AND raa.rxcui <> raa.merged_to_rxcui
+           AND rxs.rxcui IS NULL;
+COMMIT;
+
+--7.1 Add 'Maps to' between RXN_QUALITATIVE_DISTINCTION and fresh concepts (AVOF-457)
+INSERT /*+ APPEND */
+      INTO  concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+    SELECT raa.merged_to_rxcui AS concept_code_1,
+           crs.concept_code_2 AS concept_code_2,
+           'RxNorm' AS vocabulary_id_1,
+           'RxNorm' AS vocabulary_id_2,
+           'Maps to' AS relationship_id,
+           v.latest_update AS valid_start_date,
+           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+           NULL AS invalid_reason
+      FROM concept_relationship_stage crs
+           JOIN rxnatomarchive raa
+               ON     raa.sab = 'RXNORM'
+                  AND raa.tty IN ('IN',
+                                  'DF',
+                                  'SCDC',
+                                  'SCDF',
+                                  'SCD',
+                                  'BN',
+                                  'SBDC',
+                                  'SBDF',
+                                  'SBD',
+                                  'PIN',
+                                  'DFG',
+                                  'SCDG',
+                                  'SBDG')
+                  AND raa.rxcui = crs.concept_code_1
+                  AND raa.merged_to_rxcui <> crs.concept_code_2
+           JOIN rxnsat rxs ON rxs.rxcui = raa.merged_to_rxcui AND rxs.atn = 'RXN_QUALITATIVE_DISTINCTION' AND rxs.sab = raa.sab
+           JOIN vocabulary v ON v.vocabulary_id = 'RxNorm'
+     WHERE crs.relationship_id = 'Concept replaced by' AND crs.invalid_reason IS NULL AND crs.vocabulary_id_1 = 'RxNorm' AND crs.vocabulary_id_2 = 'RxNorm';
+COMMIT;
+
+--7.2 Set standard_concept = NULL for all affected codes with RXN_QUALITATIVE_DISTINCTION (AVOF-457)
+UPDATE concept_stage
+   SET standard_concept = NULL
+ WHERE (concept_code, vocabulary_id) IN (SELECT raa.merged_to_rxcui, crs.vocabulary_id_2
+                                           FROM concept_relationship_stage crs
+                                                JOIN rxnatomarchive raa
+                                                    ON     raa.sab = 'RXNORM'
+                                                       AND raa.tty IN ('IN',
+                                                                       'DF',
+                                                                       'SCDC',
+                                                                       'SCDF',
+                                                                       'SCD',
+                                                                       'BN',
+                                                                       'SBDC',
+                                                                       'SBDF',
+                                                                       'SBD',
+                                                                       'PIN',
+                                                                       'DFG',
+                                                                       'SCDG',
+                                                                       'SBDG')
+                                                       AND raa.rxcui = crs.concept_code_1
+                                                       AND raa.merged_to_rxcui <> crs.concept_code_2
+                                                JOIN rxnsat rxs ON rxs.rxcui = raa.merged_to_rxcui AND rxs.atn = 'RXN_QUALITATIVE_DISTINCTION' AND rxs.sab = raa.sab
+                                          WHERE crs.relationship_id = 'Concept replaced by' AND crs.invalid_reason IS NULL AND crs.vocabulary_id_1 = 'RxNorm' AND crs.vocabulary_id_2 = 'RxNorm');
 COMMIT;
 
 --8 Working with replacement mappings
@@ -503,23 +674,67 @@ UPDATE concept_stage c
                       and r.vocabulary_id_1=c.vocabulary_id);
 COMMIT;
 
---14 Run drug_strength_stage.sql from current directory
-
---15 Run generic_update.sql from working directory
-
---16 After previous step disable indexes and truncate tables again
-UPDATE vocabulary SET (latest_update, vocabulary_version)=
-(select latest_update, vocabulary_version from vocabulary WHERE vocabulary_id = 'RxNorm')
-	WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class', 'ATC'); 
-UPDATE vocabulary SET latest_update=null WHERE vocabulary_id = 'RxNorm';
+--14 Create pack_content_stage table
+TRUNCATE TABLE pack_content_stage;
+INSERT /*+ APPEND */ INTO  pack_content_stage
+     SELECT pc.pack_code AS pack_concept_code,
+            'RxNorm' AS pack_vocabulary_id,
+            cont.concept_code AS drug_concept_code,
+            'RxNorm' AS drug_vocabulary_id,
+            pc.amount,                                                                                                                                                      -- of drug units in the pack
+            CAST (NULL AS NUMBER) AS box_size                                                                                                                -- number of the overall combinations units
+       FROM (SELECT pack_code,
+                    -- Parse the number at the beginning of each drug string as the amount
+                    REGEXP_SUBSTR (pack_name, '^[0-9]+') AS amount,
+                    -- Parse the number in parentheses on the second position of the drug string as the quantity factor of a quantified drug (usually not listed in the concept table), not used right now
+                    TRANSLATE (REGEXP_SUBSTR (pack_name, '\([0-9]+ [A-Za-z]+\)'), 'a()', 'a') AS quant,
+                    -- Don't parse the drug name, because it will be found through instr() with the known name of the component (see below)
+                    pack_name AS drug
+               FROM (SELECT DISTINCT pack_code,
+                                     -- This is the sequence to split the concept_name of the packs by the semicolon, which replaces the parentheses plus slash (see below)
+                                     TRIM (REGEXP_SUBSTR (pack_name,
+                                                          '[^;]+',
+                                                          1,
+                                                          levels.COLUMN_VALUE))
+                                        AS pack_name
+                       FROM (-- This takes a Pack name, replaces the sequence ') / ' with a semicolon for splitting, and removes the word Pack and everything thereafter (the brand name usually)
+                             SELECT rxcui AS pack_code, REGEXP_REPLACE (REPLACE (REPLACE (str, ') / ', ';'), '{'), '\) } Pack( \[.+\])?') AS pack_name
+                               FROM rxnconso
+                              WHERE sab = 'RXNORM' AND tty LIKE '%PCK'                                                                                            -- Clinical (=Generic) or Branded Pack
+                                                                      ),
+                            -- second half of fast Oracle split sequence
+                            TABLE (CAST (MULTISET (    SELECT LEVEL
+                                                         FROM DUAL
+                                                   CONNECT BY LEVEL <= LENGTH (REGEXP_REPLACE (pack_name, '[^;]+')) + 1) AS SYS.OdciNumberList)) levels)) pc
+            -- match by name with the component drug obtained through the 'Contains' relationship
+            LEFT JOIN (SELECT concept_code_1,
+                              concept_code_2,
+                              concept_code,
+                              concept_name
+                         FROM concept_relationship_stage r JOIN concept_stage ON concept_code = r.concept_code_2
+                        WHERE r.relationship_id = 'Contains') cont
+               ON cont.concept_code_1 = pc.pack_code AND INSTR (pc.drug, cont.concept_name) > 0               -- this is where the component name is fit into the parsed drug name from the Pack string;
+   GROUP BY pc.pack_code, cont.concept_code, pc.amount;
 COMMIT;
 
+--15 Run drug_strength_stage.sql from current directory
+
+--16 Run generic_update.sql from working directory
+
+--17 After previous step disable indexes and truncate tables again
+UPDATE vocabulary SET (latest_update, vocabulary_version, dev_schema_name)=
+(select latest_update, vocabulary_version, dev_schema_name from vocabulary WHERE vocabulary_id = 'RxNorm')
+	WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class', 'ATC');
+UPDATE vocabulary SET latest_update=null, dev_schema_name=null WHERE vocabulary_id = 'RxNorm';
+COMMIT;
 
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
---17 Add NDFRT, VA Product, VA Class and ATC
+--18 Add NDFRT, VA Product, VA Class and ATC
 --create temporary table drug_vocs
 CREATE TABLE drug_vocs
 NOLOGGING
@@ -614,9 +829,7 @@ AS
           code,
           concept_name,
           'ATC' AS vocabulary_id,
-          CASE concept_class_id WHEN 'ATC 5th' THEN NULL -- need later to promote those to 'S' that are missing FROM RxNorm
-                                                        ELSE 'C' END
-             AS standard_concept,
+          'C' AS standard_concept,
           concept_code,
           concept_class_id
      FROM (SELECT DISTINCT
@@ -635,7 +848,7 @@ AS
              FROM rxnconso
             WHERE sab = 'ATC' AND tty IN ('PT', 'IN') AND code != 'NOCODE');
 
---18 Add drug_vocs to concept_stage
+--19 Add drug_vocs to concept_stage
 INSERT INTO concept_stage (concept_id,
                            concept_name,
                            domain_id,
@@ -660,7 +873,7 @@ INSERT INTO concept_stage (concept_id,
     WHERE v.vocabulary_id = dv.vocabulary_id;
 COMMIT;	
 
---19 Rename the top NDFRT concept
+--20 Rename the top NDFRT concept
 UPDATE concept_stage
    SET concept_name =
              'NDF-RT release '
@@ -671,7 +884,7 @@ UPDATE concept_stage
  WHERE concept_code = 'N0000000001';
  COMMIT;
 
---20 Create all sorts of relationships to self, RxNorm and SNOMED
+--21 Create all sorts of relationships to self, RxNorm and SNOMED
 INSERT INTO concept_relationship_stage (concept_code_1,
                                         concept_code_2,
                                         relationship_id,
@@ -935,6 +1148,8 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                 AND e.vocabulary_id = 'RxNorm'
                 AND e.invalid_reason IS NULL
     WHERE d.vocabulary_id = 'ATC' AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
+   -- DO NOT add ATC to RxNorm mapping, because of bad min/max levels of separation [AVOF-82]
+   /*
    -- add ATC to RxNorm mapping. ATC is both a classification (ATC 1-4) AND a source (ATC 5th)
    UNION ALL
    SELECT DISTINCT d.concept_code AS concept_code_1,
@@ -953,6 +1168,7 @@ INSERT INTO concept_relationship_stage (concept_code_1,
                 AND e.vocabulary_id = 'RxNorm'
                 AND e.invalid_reason IS NULL
     WHERE d.vocabulary_id = 'ATC' AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
+	*/
    -- add ATC to RxNorm by name, but exclude the ones the previous query did already
    UNION ALL
    SELECT DISTINCT d.concept_code AS concept_code_1,
@@ -1099,7 +1315,115 @@ INSERT INTO concept_relationship_stage (concept_code_1,
 
 COMMIT;
 
---22 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
+--22 Add manual relationships
+BEGIN
+   DEVV5.VOCABULARY_PACK.ProcessManualRelationships;
+END;
+COMMIT;
+
+--23 Remove direct links to RxNorm Ingredients for all those ATC5 concepts that are ambiguous and likely are either defined as combinations or with certain Drug Forms only
+DELETE FROM concept_relationship_stage
+  WHERE ROWID IN
+		   (SELECT crs.ROWID
+			  FROM concept_stage c1, concept c2, concept_relationship_stage crs
+			 WHERE     c1.concept_code = crs.concept_code_1
+				   AND c1.vocabulary_id = crs.vocabulary_id_1
+				   AND c2.concept_code = crs.concept_code_2
+				   AND c2.vocabulary_id = crs.vocabulary_id_2
+				   AND c1.vocabulary_id = 'ATC'
+				   AND c1.concept_class_id = 'ATC 5th'
+				   AND c1.invalid_reason IS NULL
+				   AND c2.vocabulary_id = 'RxNorm'
+				   --AND c2.concept_class_id IN ('Ingredient','Precise Ingredient') /*AVOF-322*/
+				   AND crs.relationship_id in ('ATC - RxNorm','ATC - RxNorm name')
+				   AND crs.invalid_reason IS NULL
+				   AND c1.concept_name IN (  SELECT c_int.concept_name
+											   FROM concept_stage c_int
+											  WHERE c_int.vocabulary_id = 'ATC' AND c_int.concept_class_id = 'ATC 5th' AND c_int.invalid_reason IS NULL AND c_int.concept_name <> 'combinations'
+										   GROUP BY c_int.concept_name
+											 HAVING COUNT (*) > 1));
+COMMIT;
+
+--24 Remove ATC's duplicates (AVOF-322)
+--diphtheria immunoglobulin
+DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'J06BB10' AND concept_code_2 = '3510' AND relationship_id = 'ATC - RxNorm';
+--hydroquinine
+DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'M09AA01' AND concept_code_2 = '27220' AND relationship_id = 'ATC - RxNorm';
+COMMIT;
+
+--25 Deprecate relationships between multi ingredient drugs and a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
+--25.1 Create temporary table drug_strength_ext (same code as in concept_ancestor, but we exclude ds for ingredients (because we use count(*)>1 and ds for ingredients having count(*)=1) and only for RxNorm)
+CREATE TABLE drug_strength_ext as
+        SELECT *
+          FROM (WITH ingredient_unit
+                     AS (SELECT DISTINCT
+                                -- pick the most common unit for an ingredient. If there is a draw, pick always the same by sorting by unit_concept_id
+                                ingredient_concept_code, vocabulary_id, FIRST_VALUE (unit_concept_id) OVER (PARTITION BY ingredient_concept_code ORDER BY cnt DESC, unit_concept_id) AS unit_concept_id
+                           FROM (  -- sum the counts coming from amount and numerator
+                                   SELECT ingredient_concept_code,
+                                          vocabulary_id,
+                                          unit_concept_id,
+                                          SUM (cnt) AS cnt
+                                     FROM (
+                                           -- count ingredients, their units and the frequency
+                                           SELECT   c2.concept_code AS ingredient_concept_code,
+                                                    c2.vocabulary_id,
+                                                    ds.amount_unit_concept_id AS unit_concept_id,
+                                                    COUNT (*) AS cnt
+                                               FROM drug_strength ds
+                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id = 'RxNorm'
+                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id = 'RxNorm'
+                                              WHERE ds.amount_value <> 0
+                                           GROUP BY c2.concept_code, c2.vocabulary_id, ds.amount_unit_concept_id
+                                           UNION
+                                             SELECT c2.concept_code AS ingredient_concept_code,
+                                                    c2.vocabulary_id,
+                                                    ds.numerator_unit_concept_id AS unit_concept_id,
+                                                    COUNT (*) AS cnt
+                                               FROM drug_strength ds
+                                                    JOIN concept c1 ON c1.concept_id = ds.drug_concept_id AND c1.vocabulary_id = 'RxNorm'
+                                                    JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id AND c2.vocabulary_id = 'RxNorm'
+                                              WHERE ds.numerator_value <> 0
+                                           GROUP BY c2.concept_code, c2.vocabulary_id, ds.numerator_unit_concept_id)
+                                 GROUP BY ingredient_concept_code, vocabulary_id, unit_concept_id))
+                -- Create drug_strength for drug forms
+                SELECT de.concept_code AS drug_concept_code,
+                       an.concept_code AS ingredient_concept_code
+                  FROM concept an
+                       JOIN rxnorm_ancestor a ON a.ancestor_concept_code = an.concept_code and a.ancestor_vocabulary_id=an.vocabulary_id
+                       JOIN concept de ON de.concept_code = a.descendant_concept_code and de.vocabulary_id=a.descendant_vocabulary_id
+                       JOIN ingredient_unit iu ON iu.ingredient_concept_code = an.concept_code AND iu.vocabulary_id = an.vocabulary_id
+                 WHERE     an.vocabulary_id = 'RxNorm'
+                       AND an.concept_class_id = 'Ingredient'
+                       AND de.vocabulary_id = 'RxNorm'
+                       AND de.concept_class_id IN ('Clinical Drug Form', 'Branded Drug Form'));
+--25.2 Do deprecation
+delete from concept_relationship_stage
+  where rowid in (
+    select drug2atc.row_id from (
+        select drug_concept_code from (
+			select c1.concept_code as drug_concept_code, c2.concept_code from drug_strength ds
+			join concept c1 on c1.concept_id=ds.drug_concept_id and c1.vocabulary_id='RxNorm'
+			join concept c2 on c2.concept_id=ds.ingredient_concept_id
+			union
+			select drug_concept_code, ingredient_concept_code from drug_strength_ext
+		)
+        group by drug_concept_code having count(*)>1
+    ) all_drugs
+    join (
+        select * from (
+            select crs.rowid row_id, crs.concept_code_2, count(*) over(partition by crs.concept_code_2) cnt_atc 
+            from concept_relationship_stage crs
+            join concept_stage cs on cs.concept_code=crs.concept_code_1 and cs.vocabulary_id=crs.vocabulary_id_1 and cs.vocabulary_id='ATC' and cs.concept_class_id='ATC 5th'
+            and not regexp_like (cs.concept_name,'preparations|virus|antigen|-|/|organisms|insulin|etc\.|influenza|human menopausal gonadotrophin|combination|amino acids|electrolytes| and |excl\.| with |others|various')  
+            join concept c on  c.concept_code=crs.concept_code_2 and c.vocabulary_id=crs.vocabulary_id_2 and c.vocabulary_id='RxNorm'  
+            where crs.relationship_id='ATC - RxNorm' and crs.invalid_reason is null
+        ) where cnt_atc=1
+    ) drug2atc on drug2atc.concept_code_2=all_drugs.drug_concept_code
+);
+commit;
+
+--26 Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
 INSERT INTO concept_synonym_stage (synonym_concept_id,
                                    synonym_concept_code,
                                    synonym_name,
@@ -1132,31 +1456,33 @@ SELECT DISTINCT
              AND r.lat = 'ENG';
 COMMIT;
 
---23 Working with replacement mappings
+--27 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
 COMMIT;
 
---24 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--28 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
 COMMIT;	
 
---25 Add mapping from deprecated to fresh concepts
+--29 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
 COMMIT;		 
 
---26 Delete ambiguous 'Maps to' mappings
+--30 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
 COMMIT;
 
---27 Clean up
+--31 Clean up
 DROP TABLE drug_vocs PURGE;
+DROP TABLE rxnorm_ancestor PURGE;
+DROP TABLE drug_strength_ext PURGE;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

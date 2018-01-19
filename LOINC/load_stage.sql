@@ -20,16 +20,19 @@
 --1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'LOINC',
-                                          pVocabularyDate        => TO_DATE ('20151221', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'LOINC 2.54',
+                                          pVocabularyDate        => TO_DATE ('20170623', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'LOINC 2.61',
                                           pVocabularyDevSchema   => 'DEV_LOINC');
 END;
+/
 COMMIT;
 
 --2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Create concept_stage from LOINC
 INSERT INTO concept_stage (concept_id,
@@ -46,11 +49,11 @@ INSERT INTO concept_stage (concept_id,
           SUBSTR (COALESCE (CONSUMER_NAME,
 			CASE WHEN LENGTH(LONG_COMMON_NAME)>255 AND SHORTNAME IS NOT NULL THEN SHORTNAME ELSE LONG_COMMON_NAME END)
 			,1,255) AS concept_name,
-          CASE CLASSTYPE
-             WHEN '1' THEN 'Measurement'
-             WHEN '2' THEN 'Measurement'
-             WHEN '3' THEN 'Observation'
-             WHEN '4' THEN 'Observation'
+          CASE 
+             WHEN CLASSTYPE = '1' THEN 'Measurement'
+             WHEN CLASSTYPE = '2' THEN 'Measurement'
+             WHEN CLASSTYPE = '3' THEN 'Observation'
+             WHEN CLASSTYPE = '4' THEN 'Observation'
           END
              AS domain_id,
           v.vocabulary_id,
@@ -199,6 +202,12 @@ INSERT INTO concept_relationship_stage (concept_id_1,
           NULL AS invalid_reason
      FROM LOINC_CLASS lc, loinc l
     WHERE lc.concept_code = l.class;
+COMMIT;
+
+--And delete wrong relationship ('History & Physical order set' to 'FLACC pain assessment panel', AVOF-352). 
+--chr(38)=&
+DELETE FROM concept_relationship_stage
+      WHERE concept_code_1 = 'PANEL.H'||chr(38)||'P' AND concept_code_2 = '38213-5' AND relationship_id = 'Subsumes';
 COMMIT;
 	
 --9 Create CONCEPT_SYNONYM_STAGE
@@ -369,31 +378,130 @@ INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
      FROM MAP_TO l, vocabulary v
-    WHERE v.vocabulary_id = 'LOINC';
+    WHERE v.vocabulary_id = 'LOINC'
+	UNION ALL
+	/*
+	for some pairs of concepts LOINC gives us a reverse mapping 'Concept replaced by'
+	so we need to deprecate old mappings
+	*/
+	SELECT c1.concept_code,
+		   c2.concept_code,
+		   c1.vocabulary_id,		   
+		   c2.vocabulary_id,
+		   r.relationship_id,
+		   r.valid_start_date,
+		   (SELECT latest_update - 1
+			  FROM vocabulary
+			 WHERE vocabulary_id = 'LOINC' AND latest_update IS NOT NULL),
+		   'D'
+	  FROM concept c1,
+		   concept c2,
+		   concept_relationship r,
+		   map_to mt
+	 WHERE     c1.concept_id = r.concept_id_1
+		   AND c2.concept_id = r.concept_id_2
+		   AND c1.vocabulary_id = 'LOINC'
+		   AND c2.vocabulary_id = 'LOINC'
+		   AND r.relationship_id IN ('Concept replaced by', 'Maps to')
+		   AND r.invalid_reason IS NULL
+		   AND mt.map_to = c1.concept_code
+		   AND mt.loinc = c2.concept_code;
 COMMIT;
 
 --16 Working with replacement mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
 END;
+/
 COMMIT;
 
 --17 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
 END;
+/
 COMMIT;	
 
 --18 Add mapping from deprecated to fresh concepts
 BEGIN
    DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
 END;
+/
 COMMIT;		 
 
 --19 Delete ambiguous 'Maps to' mappings
 BEGIN
    DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
 END;
+/
 COMMIT;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+--20 Set the proper concept_class_id for children of "Document ontology" (AVOF-352)
+UPDATE concept_stage
+   SET concept_class_id = 'LOINC Document Type'
+ WHERE concept_code IN
+           (SELECT descendant_concept_code
+              FROM (  SELECT descendant_concept_code, descendant_vocabulary_id
+                        FROM (    SELECT descendant_concept_code, descendant_vocabulary_id
+                                    FROM (SELECT crs.concept_code_1 AS ancestor_concept_code,
+                                                 crs.vocabulary_id_1 AS ancestor_vocabulary_id,
+                                                 crs.concept_code_2 AS descendant_concept_code,
+                                                 crs.vocabulary_id_2 AS descendant_vocabulary_id
+                                            FROM concept_relationship_stage crs
+                                                 JOIN relationship s ON s.relationship_id = crs.relationship_id AND s.defines_ancestry = 1
+                                                 JOIN concept_stage c1
+                                                     ON c1.concept_code = crs.concept_code_1 AND c1.vocabulary_id = crs.vocabulary_id_1 AND c1.invalid_reason IS NULL AND c1.vocabulary_id = 'LOINC'
+                                                 JOIN concept_stage c2
+                                                     ON c2.concept_code = crs.concept_code_2 AND c1.vocabulary_id = crs.vocabulary_id_2 AND c2.invalid_reason IS NULL AND c2.vocabulary_id = 'LOINC'
+                                           WHERE crs.invalid_reason IS NULL)
+                              CONNECT BY PRIOR descendant_concept_code = ancestor_concept_code AND descendant_vocabulary_id = ancestor_vocabulary_id
+                              START WITH ancestor_concept_code = 'LP76352-1')
+                    GROUP BY descendant_concept_code, descendant_vocabulary_id) ca
+                   JOIN concept_stage c2 ON c2.concept_code = ca.descendant_concept_code AND c2.vocabulary_id = ca.descendant_vocabulary_id AND c2.standard_concept IS NOT NULL);
+COMMIT;
+
+--21 Set the proper domain_id='Measurement' for perents where ALL childrens are 'Measurement' too (AVOF-612)
+UPDATE concept_stage cs
+   SET cs.domain_id = 'Measurement'
+ WHERE     cs.concept_code IN
+               (SELECT DISTINCT root_ancestor_concept_code
+                  FROM (SELECT root_ancestor_concept_code,
+                               COUNT (*) OVER (PARTITION BY root_ancestor_concept_code) cnt_descendant,
+                               SUM (CASE WHEN descendant_domain = 'Measurement' THEN 1 ELSE 0 END) OVER (PARTITION BY root_ancestor_concept_code) sum_childen_measurement
+                          FROM (SELECT root_ancestor_concept_code, descendant_concept_code, descendant_domain
+                                  FROM (  SELECT root_ancestor_concept_code,
+                                                 descendant_concept_code,
+                                                 descendant_vocabulary_id,
+                                                 descendant_domain
+                                            FROM (    SELECT CONNECT_BY_ROOT ancestor_concept_code AS root_ancestor_concept_code,
+                                                             descendant_concept_code,
+                                                             descendant_vocabulary_id,
+                                                             descendant_domain
+                                                        FROM (SELECT crs.concept_code_1 AS ancestor_concept_code,
+                                                                     crs.vocabulary_id_1 AS ancestor_vocabulary_id,
+                                                                     crs.concept_code_2 AS descendant_concept_code,
+                                                                     crs.vocabulary_id_2 AS descendant_vocabulary_id,
+                                                                     c2.domain_id AS descendant_domain
+                                                                FROM concept_relationship_stage crs
+                                                                     JOIN relationship s ON s.relationship_id = crs.relationship_id AND s.defines_ancestry = 1
+                                                                     JOIN concept_stage c1
+                                                                         ON     c1.concept_code = crs.concept_code_1
+                                                                            AND c1.vocabulary_id = crs.vocabulary_id_1
+                                                                            AND c1.invalid_reason IS NULL
+                                                                            AND c1.vocabulary_id = 'LOINC'
+                                                                     JOIN concept_stage c2
+                                                                         ON     c2.concept_code = crs.concept_code_2
+                                                                            AND c1.vocabulary_id = crs.vocabulary_id_2
+                                                                            AND c2.invalid_reason IS NULL
+                                                                            AND c2.vocabulary_id = 'LOINC'
+                                                               WHERE crs.invalid_reason IS NULL)
+                                                  CONNECT BY PRIOR descendant_concept_code = ancestor_concept_code AND descendant_vocabulary_id = ancestor_vocabulary_id)
+                                        GROUP BY root_ancestor_concept_code,
+                                                 descendant_concept_code,
+                                                 descendant_vocabulary_id,
+                                                 descendant_domain) ca
+                                       JOIN concept_stage c2 ON c2.concept_code = ca.descendant_concept_code AND c2.vocabulary_id = ca.descendant_vocabulary_id AND c2.standard_concept IS NOT NULL))
+                 WHERE cnt_descendant = sum_childen_measurement)
+       AND cs.domain_id <> 'Measurement';
+COMMIT;
+ -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

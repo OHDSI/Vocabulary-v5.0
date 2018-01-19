@@ -128,7 +128,6 @@ update stp_3 SET amount=NULL, box_size=NULL WHERE regexp_count(amounts, '\+')+1<
 truncate table pc_stage;
 
 -- insert into pack content
-
 insert into pc_stage
 select enr as PACK_CONCEPT_CODE, drug_code as DRUG_CONCEPT_CODE,  AMOUNT, BOX_SIZE FROM stp_tp1;
 

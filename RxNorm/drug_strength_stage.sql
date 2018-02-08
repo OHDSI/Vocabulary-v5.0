@@ -118,6 +118,8 @@ insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_
 values ('unt', 0, 'unit', 8510, 11, '1-Jan-1970', '31-Dec-2099', null);
 insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
 values ('ir', 0, 'index of reactivity', 9693, 11, '14-Dec-2014', '31-Dec-2099', null);
+insert into unit_to_concept_map (source_code, source_vocabulary_id, source_code_description, target_concept_id, target_vocabulary_id, valid_start_date, valid_end_date, invalid_reason)
+values ('vector-genomes', 0, 'vector-genomes', 32018, 11, '1-Jan-1970', '31-Dec-2099', null);
 end;
 
 commit;

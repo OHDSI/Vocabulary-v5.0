@@ -22,8 +22,8 @@
 -- If the international version is already loaded, updating will not affect it
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'SNOMED',
-                                          pVocabularyDate        => TO_DATE ('20170731', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'SnomedCT Release 20170731',
+                                          pVocabularyDate        => TO_DATE ('20180131', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'SnomedCT Release 20180131',
                                           pVocabularyDevSchema   => 'DEV_SNOMED');
 END;
 /
@@ -1624,6 +1624,15 @@ FROM (
 				WHEN term = 'Has presentation strength denominator value' THEN 'Has denomin value'
 				WHEN term = 'Has presentation strength numerator unit' THEN 'Has numerator unit'
 				WHEN term = 'Has presentation strength numerator value' THEN 'Has numerator value'
+				--added 20180205
+				WHEN term = 'Has basic dose form' THEN 'Has basic dose form'
+				WHEN term = 'Has disposition' THEN 'Has disposition'
+				WHEN term = 'Has dose form administration method' THEN 'Has admin method'
+				WHEN term = 'Has dose form intended site' THEN 'Has intended site'
+				WHEN term = 'Has dose form release characteristic' THEN 'Has release charact'
+				WHEN term = 'Has dose form transformation' THEN 'Has transformation'
+				WHEN term = 'Has state of matter' THEN 'Has state of matter'
+				WHEN term = 'Temporally related to' THEN 'Temp related to'
 				ELSE 'non-existing'
 			END AS relationship_id,
 			(select latest_update From vocabulary where vocabulary_id='SNOMED') as valid_start_date,
@@ -1971,7 +1980,7 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (284009009, 'Route');  -- Route of administration value !!!
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (373783004, 'Observation'); -- dietary product, exception of Pharmaceutical / biologic product
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (419572002, 'Observation'); -- alcohol agent, exception of drug
-	INSERT INTO peak (peak_code, peak_domain_id) VALUES (373782009, 'Observation'); -- diagnostic substance, exception of drug
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (373782009, 'Device'); -- diagnostic substance, exception of drug
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (2949005, 'Observation'); -- diagnostic aid (exclusion from drugs)
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (404684003, 'Condition'); -- Clinical Finding
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (62014003, 'Condition'); -- Adverse reaction to drug
@@ -2094,6 +2103,19 @@ BEGIN
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (248627000, 'Measurement'); -- Pulse characteristics
 	--added 20171128 (AVOF-731)
 	INSERT INTO peak (peak_code, peak_domain_id) VALUES (410652009, 'Device'); -- Blood product
+	--added 20180208
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (105904009, 'Drug'); -- Type of drug preparation
+	--Azaribine, Pegaptanib sodium, Cutaneous aerosol, Pegaptanib, etc. - exclusion without nice hierarchy
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (373447009, 'Drug');
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (416058004, 'Drug');
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (387111009, 'Drug');
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (423490007, 'Drug');
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (1536005, 'Drug');
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (386925003, 'Drug');
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (126154004, 'Drug');
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (421347001, 'Drug');
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (61483006, 'Drug');
+	INSERT INTO peak (peak_code, peak_domain_id) VALUES (373749006, 'Drug');
 END;
 /
 COMMIT;

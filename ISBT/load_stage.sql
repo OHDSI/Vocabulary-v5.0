@@ -20,12 +20,12 @@
 --1. Update latest_update field to new date
 BEGIN
 	DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName		=> 'ISBT',
-										  pVocabularyDate		=> TO_DATE ('20171110', 'yyyymmdd'),
-										  pVocabularyVersion	=> '7.9.0',
+										  pVocabularyDate		=> TO_DATE ('20180125', 'yyyymmdd'),
+										  pVocabularyVersion	=> '7.11.0',
 										  pVocabularyDevSchema	=> 'DEV_ISBT');
 	DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName		=> 'ISBT Attribute',
-										  pVocabularyDate		=> TO_DATE ('20171110', 'yyyymmdd'),
-										  pVocabularyVersion	=> '7.9.0',
+										  pVocabularyDate		=> TO_DATE ('20180125', 'yyyymmdd'),
+										  pVocabularyVersion	=> '7.11.0',
 										  pVocabularyDevSchema	=> 'DEV_ISBT',
 										  pAppendVocabulary		=> TRUE);
 END;

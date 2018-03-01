@@ -954,7 +954,8 @@ IS
         --csv.generate('VOCAB_DUMP', 'v4_pack_content.csv', p_query => 'SELECT * FROM devv4.pack_content');
         
         --start zipping and uploading
-        host_command('/home/vocab_dump/upload_vocab2.sh');
+        --host_command('/home/vocab_dump/upload_vocab2.sh'); --temporary disabled, manual update
+        host_command('/home/vocab_dump/upload_vocab_new.sh');
         
         DBMS_OUTPUT.get_lines (l_output, l_lines);
 
@@ -977,12 +978,12 @@ IS
 
         cRet := 'Release completed';
 
-        SendMailHTML (email, 'Release status [OK] [new Athena]', cRet);
+        SendMailHTML (email, 'Release status [OK] [new Athena2]', cRet);
     EXCEPTION
         WHEN OTHERS
         THEN
             cRet := SUBSTR ('Release completed with errors:' || crlf || SQLERRM || crlf || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE, 1, 5000);
-            SendMailHTML (email, 'Release status [ERROR] [new Athena]', cRet);
+            SendMailHTML (email, 'Release status [ERROR] [new Athena2]', cRet);
     END;
 
     PROCEDURE StartRelease
@@ -999,25 +1000,26 @@ IS
         cVocabs   VARCHAR2 (4000);
     BEGIN
         pConceptAncestor;
-        CreateLocalPROD;
         DEVV4.v5_to_v4;
         UPDATE VOCABULARY SET VOCABULARY_VERSION = 'v5.0 '||SYSDATE WHERE VOCABULARY_ID = 'None';
-        CREATE_PROD_BACKUP@link_prodv5;
-        CREATE_PRODV4@link_prodv5;
-        CREATE_PRODV5@link_prodv5;
+        --CREATE_PROD_BACKUP@link_prodv5;
+        --CREATE_PRODV4@link_prodv5;
+        --CREATE_PRODV5@link_prodv5;
         StartReleaseNEW;
 
         SELECT LISTAGG (vocabulary_id, ', ') WITHIN GROUP (ORDER BY vocabulary_id)
           INTO cVocabs
           FROM (SELECT DISTINCT vocabulary_id
                   FROM (SELECT *
-                          FROM prodv5.concept@link_prodv5
+                          FROM devv5.concept
                          WHERE invalid_reason IS NULL
                         MINUS
                         SELECT *
-                          FROM prodv5_backup.concept@link_prodv5
+                          FROM prodv5.concept
                          WHERE invalid_reason IS NULL));
 
+        CreateLocalPROD;
+        
         cRet := 'Release completed';
 
         IF cVocabs IS NOT NULL

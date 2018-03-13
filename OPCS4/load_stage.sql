@@ -20,8 +20,8 @@
 -- 1. Update latest_update field to new date 
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'OPCS4',
-                                          pVocabularyDate        => TO_DATE ('20161001', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'OPCS4 nhs_dmwb_22.0.0_20161001000001',
+                                          pVocabularyDate        => TO_DATE ('20171002', 'yyyymmdd'),
+                                          pVocabularyVersion     => 'OPCS4 nhs_dmwb_24.0.0_20171002000001',
                                           pVocabularyDevSchema   => 'DEV_OPCS4');
 END;
 COMMIT;
@@ -64,7 +64,7 @@ INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
     WHERE     cui NOT LIKE '%-%'                         -- don't use chapters
           AND term NOT LIKE 'CHAPTER %'
           AND v.vocabulary_id = 'OPCS4';
-COMMIT;					  
+COMMIT;
 
 --4 Create concept_relationship_stage
 -- We have to invert the direction of the mapping. The source gives us high OPCS4 to lower SNOMED we need to find the nearest common ancestor of all those lower SNOMED codes
@@ -107,4 +107,4 @@ where concept_code in ( -- only codes that are valid
 );
 COMMIT;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

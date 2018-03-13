@@ -20,8 +20,8 @@
 --1 Update latest_update field to new date
 BEGIN
    DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'ICD10PCS',
-                                          pVocabularyDate        => TO_DATE ('20160518', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'ICD10PCS 20160518',
+                                          pVocabularyDate        => TO_DATE ('20170514', 'yyyymmdd'),
+                                          pVocabularyVersion     => '2018 ICD-10-PCS Order File',
                                           pVocabularyDevSchema   => 'DEV_ICD10PCS');
 END;
 COMMIT;

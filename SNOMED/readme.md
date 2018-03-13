@@ -25,20 +25,29 @@ Remove date from file name.
 Remove date from file name and rename to sct2_Concept_Full-UK.txt, sct2_Description_Full-UK.txt, sct2_Relationship_Full-UK.txt
 8. Load them into SCT2_CONCEPT_FULL_UK, SCT2_DESC_FULL_UK, SCT2_RELA_FULL_UK. Use the control files in Vocabulary-v5.0\SNOMED
 
-9. Extract der2_cRefset_AssociationReferenceFull_INT_YYYYMMDD.txt from SnomedCT_InternationalRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content 
+9. Download the US SNOMED file SnomedCT_USEditionRF2_PRODUCTION_YYYYMMDDTzzzzzzZ.zip from https://www.nlm.nih.gov/healthit/snomedct/us_edition.html
+10. Extract the following files from the folder \Full\Terminology\ into a working folder:
+- sct2_Concept_Full_US1000124_YYYYMMDD.txt
+- sct2_Description_Full-en_US1000124_YYYYMMDD.txt
+- sct2_Relationship_Full_US1000124_YYYYMMDD.txt
+Remove date from file name and rename to sct2_Concept_Full_US.txt, sct2_Description_Full-en_US.txt, sct2_Relationship_Full_US.txt
+11. Load them into SCT2_CONCEPT_FULL_US, SCT2_DESC_FULL_EN_US, SCT2_RELA_FULL_US. Use the control files in Vocabulary-v5.0\SNOMED
+
+
+12. Extract der2_cRefset_AssociationReferenceFull_INT_YYYYMMDD.txt from SnomedCT_InternationalRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content 
 and der2_cRefset_AssociationReferenceFull_GB1000000_YYYYMMDD.txt from SnomedCT_UKClinicalRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content
 
 Remove date from file name and rename to der2_cRefset_AssociationReferenceFull_UK.txt, der2_cRefset_AssociationReferenceFull_INT.txt
-10. Load them into der2_cRefset_AssRefFull_INT and der2_cRefset_AssRefFull_UK.
+13. Load them into der2_cRefset_AssRefFull_INT and der2_cRefset_AssRefFull_UK.
 
-11. Add DM+D: Download nhsbsa_dmd_X.X.X_xxxxxxxxxxxxxx.zip from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/6/subpack/24/releases
-12. Extract f_ampp2_xxxxxxx.xml, f_amp2_xxxxxxx.xml, f_vmpp2_xxxxxxx.xml, f_vmp2_xxxxxxx.xml, f_lookup2_xxxxxxx.xml, f_vtm2_xxxxxxx.xml and f_ingredient2_xxxxxxx.xml
-13. Remove date and from dile name and load them into f_ampp2, f_amp2, f_vmpp2, f_vmp2, f_lookup2, f_vtm2 and f_ingredient2. Use the control files of the same name.
-14. Download nhsbsa_dmdbonus_X.X.X_YYYYMMDDXXXXXX.zip from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/6/subpack/25/releases
-15. Extract weekXXYYYY-rX_X-BNF.zip/f_bnf1_XXXXXXX.xml and rename him to dmdbonus.xml
-16. Load dmdbonus.xml using dmdbonus.ctl
+14. Add DM+D: Download nhsbsa_dmd_X.X.X_xxxxxxxxxxxxxx.zip from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/6/subpack/24/releases
+15. Extract f_ampp2_xxxxxxx.xml, f_amp2_xxxxxxx.xml, f_vmpp2_xxxxxxx.xml, f_vmp2_xxxxxxx.xml, f_lookup2_xxxxxxx.xml, f_vtm2_xxxxxxx.xml and f_ingredient2_xxxxxxx.xml
+16. Remove date and from dile name and load them into f_ampp2, f_amp2, f_vmpp2, f_vmp2, f_lookup2, f_vtm2 and f_ingredient2. Use the control files of the same name.
+17. Download nhsbsa_dmdbonus_X.X.X_YYYYMMDDXXXXXX.zip from https://isd.hscic.gov.uk/trud3/user/authenticated/group/0/pack/6/subpack/25/releases
+18. Extract weekXXYYYY-rX_X-BNF.zip/f_bnf1_XXXXXXX.xml and rename him to dmdbonus.xml
+19. Load dmdbonus.xml using dmdbonus.ctl
 
-17. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
-18. Run generic_update.sql (from working directory)
+20. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
+21. Run generic_update.sql (from working directory)
 
  

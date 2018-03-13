@@ -40,7 +40,7 @@ TRUNCATE TABLE drug_strength_stage;
 --3.1. We need to create temporary table of DM+D with the same structure as concept_stage and pseudo-column 'insert_id'
 --later it will be important
 CREATE TABLE concept_stage_dmd NOLOGGING AS SELECT * FROM concept_stage WHERE 1=0;
-ALTER TABLE concept_stage_dmd ADD insert_id NUMBER;          
+ALTER TABLE concept_stage_dmd ADD insert_id NUMBER;
 
 INSERT /*+ APPEND */
       INTO  concept_stage_dmd (concept_id,
@@ -2177,10 +2177,10 @@ INSERT INTO peak -- before doing that check first out without the insert
           NULL AS ranked
      FROM snomed_ancestor a, concept_stage c
     WHERE c.concept_code = a.ancestor_concept_code
-          AND a.ancestor_concept_code NOT IN (SELECT DISTINCT -- find those where ancestors are not also a descendant, i.e. a top of a tree
+          AND a.ancestor_concept_code NOT IN (SELECT -- find those where ancestors are not also a descendant, i.e. a top of a tree
                                                      descendant_concept_code
                                                 FROM snomed_ancestor)
-          AND a.ancestor_concept_code NOT IN (SELECT DISTINCT peak_code from peak) -- but exclude those we already have
+          AND a.ancestor_concept_code NOT IN (SELECT peak_code from peak) -- but exclude those we already have
           AND c.vocabulary_id='SNOMED';
 COMMIT;
 

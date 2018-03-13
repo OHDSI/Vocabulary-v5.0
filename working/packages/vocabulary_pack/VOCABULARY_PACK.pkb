@@ -921,6 +921,7 @@ IS
         l_lines     INTEGER := 1000;
         l_outline   VARCHAR2 (4000);
         l_outall    VARCHAR2 (32000);
+        cCIDs       VARCHAR2 (4000);
     BEGIN
         DBMS_OUTPUT.enable (1000000);
         DBMS_JAVA.set_output (1000000);
@@ -977,7 +978,20 @@ IS
         END IF;
 
         cRet := 'Release completed';
-
+        SELECT LISTAGG (concept_id, ', ') WITHIN GROUP (ORDER BY concept_id)
+          INTO cCIDs
+          FROM (SELECT concept_id
+                  FROM (SELECT concept_id
+                          FROM devv5.concept
+                        MINUS
+                        SELECT concept_id
+                          FROM prodv5.concept)
+                         ) where rownum<=5;
+        IF cCIDs IS NOT NULL
+        THEN
+            cRet := cRet || crlf || 'Some new concept_id''s: ' || cCIDs;
+        END IF;
+        
         SendMailHTML (email, 'Release status [OK] [new Athena2]', cRet);
     EXCEPTION
         WHEN OTHERS

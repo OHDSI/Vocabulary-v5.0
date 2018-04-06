@@ -47,16 +47,7 @@ INSERT INTO concept_stage (concept_id,
                            invalid_reason)
    SELECT DISTINCT
           NULL AS concept_id,
-          FIRST_VALUE (
-             substr(str,1,255))
-          OVER (
-             PARTITION BY scui
-             ORDER BY
-                CASE WHEN tty = 'PT' THEN 0 ELSE 1 END,
-                CASE WHEN LENGTH (str) <= 255 THEN LENGTH (str) ELSE 0 END DESC,
-                LENGTH (str)
-             ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)
-             AS concept_name,
+          SUBSTRB(str,1,255) AS concept_name,
           NULL AS domain_id,                                -- adding manually
           'CPT4' AS vocabulary_id,
           'CPT4' AS concept_class_id,
@@ -69,9 +60,37 @@ INSERT INTO concept_stage (concept_id,
           TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
           NULL AS invalid_reason
      FROM UMLS.mrconso
-    WHERE     sab IN ('CPT', 'HCPT')
+    WHERE     sab = 'CPT'
           AND suppress NOT IN ('E', 'O', 'Y')
-          AND tty NOT IN ('HT', 'MP');
+          AND tty IN ('PT', 'GLP');
+COMMIT;
+
+-- Place of Sevice (POS) CPT terms
+INSERT INTO concept_stage (concept_name,
+                           domain_id,
+                           vocabulary_id,
+                           concept_class_id,
+                           standard_concept,
+                           concept_code,
+                           valid_start_date,
+                           valid_end_date,
+                           invalid_reason)
+   SELECT DISTINCT SUBSTR (str, 1, 255) AS concept_name,
+                   NULL AS domain_id,
+                   'CPT4' AS vocabulary_id,
+                   'Place of Service' AS concept_class_id,
+                   NULL AS standard_concept, -- not to appear in clinical tables, only for hierarchical search
+                   scui AS concept_code,
+                   (SELECT latest_update
+                      FROM vocabulary
+                     WHERE vocabulary_id = 'CPT4')
+                      AS valid_start_date,
+                   TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+                   NULL AS invalid_reason
+     FROM UMLS.mrconso
+    WHERE     sab = 'CPT'
+          AND suppress NOT IN ('E', 'O', 'Y')
+          AND tty = 'POS';
 COMMIT;
 
 -- CPT Modifiers
@@ -155,6 +174,8 @@ CREATE TABLE t_domains nologging AS
       SELECT 
         cpt.code, 
           CASE
+          WHEN cpt.tty = 'POS' then 'Place of Service'
+          WHEN cpt.tty = 'GLP' then 'Observation'
           WHEN nvl(h2.code, cpt.code) = '1011137' THEN 'Measurement' -- Organ or Disease Oriented Panels
           WHEN nvl(h2.code, cpt.code) = '1011219' THEN 'Measurement' -- Clinical Pathology Consultations
           WHEN nvl(h2.code, cpt.code) = '1019043' THEN 'Measurement' -- In Vivo (eg, Transcutaneous) Laboratory Procedures
@@ -197,14 +218,14 @@ CREATE TABLE t_domains nologging AS
           WHEN nvl(h3.code, cpt.code) = '1012116' THEN 'Measurement' -- Hemolysins and agglutinins
           WHEN cpt.code = '92531' THEN 'Observation' -- Spontaneous nystagmus, including gaze - Condition
           WHEN cpt.code = '90745' THEN 'Drug' -- Immunization, hepatits B
-          when cpt.code in ('86890', '86891') then 'Observation' -- Autologous blood or component, collection processing and storage
-          when cpt.str like 'End-stage renal disease (ESRD)%' then 'Observation'
-          when  h2.code in ('1012570', '1012602') then 'Drug' -- Vaccines, Toxoids or Immune Globulins, Serum or Recombinant Products
-          when h2.code = '1011189' then 'Measurement' -- Evocative/Suppression Testing Procedures
-          when cpt.code in ('1013264', '1013276', '1013281','1013282', '1013285','1013295','1013301','1021142','1021170','95004','95012','95017','95018','95024','95027',
+          WHEN cpt.code in ('86890', '86891') then 'Observation' -- Autologous blood or component, collection processing and storage
+          WHEN cpt.str like 'End-stage renal disease (ESRD)%' then 'Observation'
+          WHEN  h2.code in ('1012570', '1012602') then 'Drug' -- Vaccines, Toxoids or Immune Globulins, Serum or Recombinant Products
+          WHEN h2.code = '1011189' then 'Measurement' -- Evocative/Suppression Testing Procedures
+          WHEN cpt.code in ('1013264', '1013276', '1013281','1013282', '1013285','1013295','1013301','1021142','1021170','95004','95012','95017','95018','95024','95027',
             '95028','95044','95052','95056','95060','95065','95070','95071','95076','95079') then 'Measurement' -- allergy and immunologic testing
-            when cpt.str like 'Electrocardiogram, routine ECG%' then  'Measurement'
-          ELSE 'Procedure' 
+            WHEN cpt.str like 'Electrocardiogram, routine ECG%' then  'Measurement'
+          ELSE 'Procedure'
           end as domain_id
       FROM (
         SELECT 

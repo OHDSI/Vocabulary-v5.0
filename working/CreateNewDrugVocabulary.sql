@@ -66,8 +66,7 @@ and c1.concept_code not in (select concept_code_1 from relationship_to_concept w
 /*****************************************************************************************************************************************************
 * 1. Prepare drug components for new vocabularies: Create unique list and for each drug enumerate. This allows to create a single row for each drug. *
 *****************************************************************************************************************************************************/
-
--- Create distinct version of drug_strength 
+-- Create distinct version of drug_strength
 -- Replace nulls with 0 and ' '
 drop table unique_ds purge;
 create table unique_ds nologging as
@@ -1042,10 +1041,10 @@ union
   from unique_ds uds
   join complete_concept_stage ccs on ccs.d_combo_code=uds.ds_code and ccs.concept_class_id='Clinical Drug Comp' -- in Clinical Drug Comp no combinations of 
 )
-select num, drug_concept_code, ingredient_concept_code, ingredient_vocab, 
-  amount_value, amount_unit_concept_id, 
-  numerator_value, numerator_unit_concept_id, 
-  denominator_value, denominator_unit_concept_id 
+select num, drug_concept_code, ingredient_concept_code, ingredient_vocab,
+  round(amount_value, 3-floor(log(10, amount_value))-1) as amount_value, amount_unit_concept_id,
+  round(numerator_value, 3-floor(log(10, numerator_value))-1) as numerator_value, numerator_unit_concept_id,
+  round(denominator_value, 3-floor(log(10, denominator_value))-1) as denominator_value, denominator_unit_concept_id
 from (
 -- Create the numbers
   select distinct 

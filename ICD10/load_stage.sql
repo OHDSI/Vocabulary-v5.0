@@ -546,6 +546,9 @@ UPDATE ICD10_domain
 SET domain_id = 'Condition'
 WHERE domain_id = 'Condition/Spec Disease Status';
 
+-- Check that all domain_id are exists in domain table
+ALTER TABLE ICD10_domain ADD CONSTRAINT fk_icd10_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);
+
 --14. Update each domain_id with the domains field from ICD10_domain.
 UPDATE concept_stage c
 SET domain_id = rd.domain_id

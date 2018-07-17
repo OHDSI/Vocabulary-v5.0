@@ -314,8 +314,7 @@ UPDATE concept_stage c
 SET domain_id = rd.domain_id
 FROM icd10cm_domain rd
 WHERE rd.concept_code = c.concept_code
-	AND c.vocabulary_id = 'ICD10CM'
-	AND c.domain_id <> rd.domain_id;
+	AND c.vocabulary_id = 'ICD10CM';
 
 --13. Load into concept_synonym_stage name from ICD10CM
 INSERT INTO concept_synonym_stage (

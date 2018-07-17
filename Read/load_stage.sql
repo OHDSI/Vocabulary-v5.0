@@ -319,6 +319,9 @@ UPDATE read_domain
 SET domain_id = 'Specimen'
 WHERE domain_id = 'Measurement/Specimen';
 
+-- Check that all domain_id are exists in domain table
+ALTER TABLE read_domain ADD CONSTRAINT fk_read_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);
+
 --8. update each domain_id with the domains field from read_domain.
 UPDATE concept_stage c
 SET domain_id = rd.domain_id

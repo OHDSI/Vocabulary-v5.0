@@ -441,6 +441,9 @@ UPDATE ICD9CM_domain
 SET domain_id = 'Procedure'
 WHERE domain_id = 'Procedure/Spec Disease Status';
 
+-- Check that all domain_id are exists in domain table
+ALTER TABLE ICD9CM_domain ADD CONSTRAINT fk_icd9cm_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);
+
 --12. update each domain_id with the domains field from ICD9CM_domain.
 UPDATE concept_stage c
 SET domain_id = rd.domain_id

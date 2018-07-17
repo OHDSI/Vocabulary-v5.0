@@ -1,104 +1,91 @@
-CREATE TABLE FULL_DESCR_DRUG_ONLY
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+*Author: Medical team, edited by Timur
+**************************************************************************/
+
+DROP TABLE IF EXISTS SOURCES.AMT_FULL_DESCR_DRUG_ONLY;
+CREATE TABLE SOURCES.AMT_FULL_DESCR_DRUG_ONLY
 (
-   ID                  VARCHAR2(255 Byte),
-   EFFECTIVETIME       VARCHAR2(255 Byte),
-   ACTIVE              VARCHAR2(255 Byte),
-   MODULEID            VARCHAR2(255 Byte),
-   CONCEPTID           VARCHAR2(255 Byte),
-   LANGUAGECODE        VARCHAR2(255 Byte),
-   TYPEID              VARCHAR2(255 Byte),
-   TERM                VARCHAR2(1555 Byte),
-   CASESIGNIFICANCEID  VARCHAR2(255 Byte)
+   ID                  BIGINT,
+   EFFECTIVETIME       VARCHAR(255),
+   ACTIVE              INT,
+   MODULEID            BIGINT,
+   CONCEPTID           BIGINT,
+   LANGUAGECODE        VARCHAR(2),
+   TYPEID              BIGINT,
+   TERM                VARCHAR(4000),
+   CASESIGNIFICANCEID  BIGINT
 );
 
-CREATE SCT2_CONCEPT_FULL_AU
+DROP TABLE IF EXISTS SOURCES.AMT_SCT2_CONCEPT_FULL_AU;
+CREATE TABLE SOURCES.AMT_SCT2_CONCEPT_FULL_AU
 (
-   ID             VARCHAR2(18 Byte),
-   EFFECTIVETIME  VARCHAR2(8 Byte),
-   ACTIVE         VARCHAR2(1 Byte),
-   MODULEID       VARCHAR2(18 Byte),
-   STATUSID       VARCHAR2(256 Byte)
-)
-TABLESPACE USERS;
-
-
-CREATE TABLE RF2_FULL_RELATIONSHIPS
-(
-   ID                    VARCHAR2(255 Byte),
-   EFFECTIVETIME         VARCHAR2(255 Byte),
-   ACTIVE                VARCHAR2(255 Byte),
-   MODULEID              VARCHAR2(255 Byte),
-   SOURCEID              VARCHAR2(255 Byte),
-   DESTINATIONID         VARCHAR2(255 Byte),
-   RELATIONSHIPGROUP     VARCHAR2(255 Byte),
-   TYPEID                VARCHAR2(255 Byte),
-   CHARACTERISTICTYPEID  VARCHAR2(255 Byte),
-   MODIFIERID            VARCHAR2(255 Byte)
+   ID                  BIGINT,
+   EFFECTIVETIME       VARCHAR(8),
+   ACTIVE              INT4,
+   MODULEID            BIGINT,
+   STATUSID            BIGINT,
+   VOCABULARY_DATE     DATE,
+   VOCABULARY_VERSION  VARCHAR (200)
 );
 
-
-CREATE TABLE RF2_SS_REFSET
+DROP TABLE IF EXISTS SOURCES.AMT_RF2_FULL_RELATIONSHIPS;
+CREATE TABLE SOURCES.AMT_RF2_FULL_RELATIONSHIPS
 (
-   ID                     VARCHAR2(255 Byte),
-   EFFECTIVETIME          VARCHAR2(255 Byte),
-   ACTIVE                 VARCHAR2(255 Byte),
-   MODULEID               VARCHAR2(255 Byte),
-   REFSETID               VARCHAR2(255 Byte),
-   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte)
+   ID                    BIGINT,
+   EFFECTIVETIME         VARCHAR(8),
+   ACTIVE                INT,
+   MODULEID              BIGINT,
+   SOURCEID              BIGINT,
+   DESTINATIONID         BIGINT,
+   RELATIONSHIPGROUP     INT,
+   TYPEID                BIGINT,
+   CHARACTERISTICTYPEID  BIGINT,
+   MODIFIERID            BIGINT
 );
 
-
-CREATE RF2_SS_STRENGTH_REFSET
+CREATE TABLE SOURCES.AMT_SCT2_RELA_FULL_AU
 (
-   ID                     VARCHAR2(255 Byte),
-   EFFECTIVETIME          VARCHAR2(255 Byte),
-   ACTIVE                 VARCHAR2(255 Byte),
-   MODULEID               VARCHAR2(255 Byte),
-   REFSETID               VARCHAR2(255 Byte),
-   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte),
-   UNITID                 VARCHAR2(255 Byte),
-   OPERATORID             VARCHAR2(255 Byte),
-   VALUE                  VARCHAR2(255 Byte)
+   ID                    BIGINT,
+   EFFECTIVETIME         VARCHAR(8),
+   ACTIVE                INT,
+   MODULEID              BIGINT,
+   SOURCEID              BIGINT,
+   DESTINATIONID         BIGINT,
+   RELATIONSHIPGROUP     INT,
+   TYPEID                BIGINT,
+   CHARACTERISTICTYPEID  BIGINT,
+   MODIFIERID            BIGINT
 );
 
-
-CREATE RF2_SS_UNIT_OF_USE_SIZE_REFSET
+DROP TABLE IF EXISTS SOURCES.AMT_RF2_SS_STRENGTH_REFSET;
+CREATE TABLE SOURCES.AMT_RF2_SS_STRENGTH_REFSET
 (
-   ID                     VARCHAR2(255 Byte),
-   EFFECTIVETIME          VARCHAR2(255 Byte),
-   ACTIVE                 VARCHAR2(255 Byte),
-   MODULEID               VARCHAR2(255 Byte),
-   REFSETID               VARCHAR2(255 Byte),
-   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte),
-   UNITID                 VARCHAR2(255 Byte),
-   OPERATORID             VARCHAR2(255 Byte),
-   VALUE                  VARCHAR2(255 Byte)
+   ID                     VARCHAR(255),
+   EFFECTIVETIME          VARCHAR(8),
+   ACTIVE                 INT,
+   MODULEID               BIGINT,
+   REFSETID               BIGINT,
+   REFERENCEDCOMPONENTID  BIGINT,
+   UNITID                 BIGINT,
+   OPERATORID             BIGINT,
+   VALUE                  VARCHAR(255)
 );
 
-CREATE TABLE RF2_SS_UNIT_OF_USE_QR
-(
-   ID                     VARCHAR2(255 Byte),
-   EFFECTIVETIME          VARCHAR2(255 Byte),
-   ACTIVE                 VARCHAR2(255 Byte),
-   MODULEID               VARCHAR2(255 Byte),
-   REFSETID               VARCHAR2(255 Byte),
-   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte),
-   UNITID                 VARCHAR2(255 Byte),
-   OPERATORID             VARCHAR2(255 Byte),
-   VALUE                  VARCHAR2(255 Byte)
-);
-
-CREATE TABLE RF2_SS_SUBPACK_QUANTITY_REFSET
-(
-   ID                     VARCHAR2(255 Byte),
-   EFFECTIVETIME          VARCHAR2(255 Byte),
-   ACTIVE                 VARCHAR2(255 Byte),
-   MODULEID               VARCHAR2(255 Byte),
-   REFSETID               VARCHAR2(255 Byte),
-   REFERENCEDCOMPONENTID  VARCHAR2(255 Byte),
-   UNITID                 VARCHAR2(255 Byte),
-   OPERATORID             VARCHAR2(255 Byte),
-   VALUE                  VARCHAR2(255 Byte)
-);
-
-
+CREATE INDEX idx_amt_concept_id ON SOURCES.AMT_SCT2_CONCEPT_FULL_AU (ID);
+CREATE INDEX idx_amt_descr_id ON SOURCES.AMT_FULL_DESCR_DRUG_ONLY (CONCEPTID);
+CREATE INDEX idx_amt_rela_id ON SOURCES.AMT_RF2_FULL_RELATIONSHIPS (ID);
+CREATE INDEX idx_amt_rela2_id ON SOURCES.AMT_SCT2_RELA_FULL_AU (ID);

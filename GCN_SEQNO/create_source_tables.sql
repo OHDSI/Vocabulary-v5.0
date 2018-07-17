@@ -14,10 +14,12 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE NDDF_PRODUCT_INFO
+DROP TABLE IF EXISTS SOURCES.NDDF_PRODUCT_INFO;
+CREATE TABLE SOURCES.NDDF_PRODUCT_INFO
 (
-   NDDF_VERSION   VARCHAR2 (8)
+   vocabulary_date    DATE,
+   vocabulary_version VARCHAR (200)
 );

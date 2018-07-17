@@ -5,8 +5,7 @@ Prerequisites:
 - Working directory NFC.
 
 1. Run create_source_tables.sql
-2. Load file nfc.txt into NFC table. Use the control files of the same name.
-3. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
-4. Run generic_update.sql (from working directory)
-
- 
+2. Unpack "nfc.zip"
+3. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('NFC',TO_DATE('20160704','YYYYMMDD'),'NFC 20160704');
+4. Run load_stage.sql
+5. Run generic_update.sql (from working directory)

@@ -1,0 +1,233 @@
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+**************************************************************************/
+-- input tables creation
+/* drug_concept_stage will be created later @ create_input.sql
+DROP TABLE IF EXISTS DRUG_CONCEPT_STAGE;
+CREATE TABLE DRUG_CONCEPT_STAGE
+(
+   CONCEPT_NAME              VARCHAR(255),
+   VOCABULARY_ID             VARCHAR(20),
+   CONCEPT_CLASS_ID          VARCHAR(25),
+   SOURCE_CONCEPT_CLASS_ID   VARCHAR(25),
+   STANDARD_CONCEPT          VARCHAR(1),
+   CONCEPT_CODE              VARCHAR(50),
+   POSSIBLE_EXCIPIENT        VARCHAR(1),
+   DOMAIN_ID                 VARCHAR(25),
+   VALID_START_DATE          DATE,
+   VALID_END_DATE            DATE,
+   INVALID_REASON            VARCHAR(1)
+);
+*/
+
+DROP TABLE IF EXISTS DS_STAGE;
+CREATE TABLE DS_STAGE
+(
+   DRUG_CONCEPT_CODE        VARCHAR(255),
+   INGREDIENT_CONCEPT_CODE  VARCHAR(255),
+   AMOUNT_VALUE             FLOAT,
+   AMOUNT_UNIT              VARCHAR(255),
+   NUMERATOR_VALUE          FLOAT,
+   NUMERATOR_UNIT           VARCHAR(255),
+   DENOMINATOR_VALUE        FLOAT,
+   DENOMINATOR_UNIT         VARCHAR(255),
+   BOX_SIZE                 INT4
+);
+
+DROP TABLE IF EXISTS INTERNAL_RELATIONSHIP_STAGE;
+CREATE TABLE INTERNAL_RELATIONSHIP_STAGE
+(
+   CONCEPT_CODE_1     VARCHAR(50),
+   CONCEPT_CODE_2     VARCHAR(50)
+);
+
+DROP TABLE IF EXISTS RELATIONSHIP_TO_CONCEPT;
+CREATE TABLE RELATIONSHIP_TO_CONCEPT
+(
+   CONCEPT_CODE_1     VARCHAR(255),
+   VOCABULARY_ID_1    VARCHAR(20),
+   CONCEPT_ID_2       INTEGER,
+   PRECEDENCE         INTEGER,
+   CONVERSION_FACTOR  FLOAT
+);
+
+DROP TABLE IF EXISTS PC_STAGE;
+CREATE TABLE PC_STAGE
+(
+   PACK_CONCEPT_CODE  VARCHAR(255),
+   DRUG_CONCEPT_CODE  VARCHAR(255),
+   AMOUNT             FLOAT,
+   BOX_SIZE           INT4
+);
+
+CREATE TABLE INGR_TO_INGR
+(
+    CONCEPT_CODE_1    VARCHAR (50) NOT NULL,
+    CONCEPT_NAME_1    VARCHAR (255),
+    SOURCE_CLASS_1    VARCHAR (20),
+    CONCEPT_CODE_2    VARCHAR (50),
+    CONCEPT_NAME_2    VARCHAR (255),
+    SOURCE_CLASS_2    VARCHAR (20)
+);
+
+CREATE TABLE PACK_DRUG_TO_CODE_2_2
+(
+    PACK_CODE          VARCHAR (255),
+    PACK_NAME          VARCHAR (255),
+    DRUG_NAME          VARCHAR (255),
+    INGREDIENT_NAME    VARCHAR (255),
+    DOSAGE             VARCHAR (255),
+    DRUG_NEW_NAME      VARCHAR (255),
+    DRUG_CODE          VARCHAR (40),
+    AMOUNT             FLOAT
+);
+
+CREATE TABLE NON_DRUG
+(
+    DRUG_CODE    VARCHAR (255),
+    DRUG_NAME    VARCHAR (255)
+);
+
+CREATE TABLE NON_DRUG_2
+(
+    CONCEPT_ID          INT4,
+    CONCEPT_NAME        VARCHAR (255),
+    DOMAIN_ID           VARCHAR (200),
+    VOCABULARY_ID       VARCHAR (20) NOT NULL,
+    CONCEPT_CLASS_ID    VARCHAR (20),
+    STANDARD_CONCEPT    VARCHAR (1),
+    CONCEPT_CODE        VARCHAR (40) NOT NULL,
+    VALID_START_DATE    DATE NOT NULL,
+    VALID_END_DATE      DATE NOT NULL,
+    INVALID_REASON      VARCHAR (1),
+    INSERT_ID           INT
+);
+
+CREATE TABLE NONDRUG_WITH_INGR
+(
+    DRUG_CONCEPT_CODE          VARCHAR (255),
+    INGREDIENT_CONCEPT_CODE    VARCHAR (255),
+    AMOUNT_VALUE               FLOAT,
+    AMOUNT_UNIT                VARCHAR (255),
+    NUMERATOR_VALUE            FLOAT,
+    NUMERATOR_UNIT             VARCHAR (255),
+    DENOMINATOR_VALUE          FLOAT,
+    DENOMINATOR_UNIT           VARCHAR (255),
+    BOX_SIZE                   INT,
+    DRUG_CONCEPT_NAME          VARCHAR (255),
+    INGREDIENT_CONCEPT_NAME    VARCHAR (255)
+);
+
+CREATE TABLE AUT_FORM_MAPPED_NORX
+(
+    CONCEPT_CODE_1    VARCHAR (255),
+    CONCEPT_NAME_1    VARCHAR (255),
+    CONCEPT_CODE_2    VARCHAR (255),
+    CONCEPT_NAME_2    VARCHAR (255)
+);
+
+CREATE TABLE CLIN_DR_TO_INGR_3
+(
+    CONCEPT_CODE      VARCHAR (40) NOT NULL,
+    CONCEPT_NAME      VARCHAR (255),
+    CONCEPT_CODE_2    VARCHAR (200),
+    CONCEPT_NAME_2    VARCHAR (255),
+    DOSAGE            VARCHAR (4000),
+    SIMILARITY        INT
+);
+
+CREATE TABLE DS_BY_LENA_1
+(
+    CONCEPT_CODE      VARCHAR (250),
+    CONCEPT_NAME      VARCHAR (250),
+    CONCEPT_CODE_2    VARCHAR (250),
+    CONCEPT_NAME_2    VARCHAR (250),
+    DOSAGE            VARCHAR (250),
+    VOLUME            VARCHAR (250)
+);
+
+CREATE TABLE DRUG_TO_INGR
+(
+    CONCEPT_CODE      VARCHAR (250),
+    CONCEPT_NAME      VARCHAR (255),
+    CONCEPT_CODE_2    VARCHAR (255),
+    CONCEPT_NAME_2    VARCHAR (255),
+    DOSAGE            VARCHAR (255)
+);
+
+CREATE TABLE LOST_INGR_TO_RX_WITH_OMOP
+(
+    DRUG_CODE      VARCHAR (255),
+    DRUG_NAME      VARCHAR (255),
+    RXNORM_ID      VARCHAR (255),
+    RXNORM_NAME    VARCHAR (255),
+    INGR_NAME      VARCHAR (255),
+    INGR_CODE      VARCHAR (255)
+);
+
+CREATE TABLE PACK_DRUG_TO_CODE_1
+(
+    DRUG_CODE    VARCHAR (40) NOT NULL,
+    PACK_CODE    VARCHAR (255),
+    PACK_NAME    VARCHAR (255),
+    DRUG_NAME    VARCHAR (255)
+);
+
+CREATE TABLE DRUG_TO_MANUFACT_2
+(
+    CONCEPT_CODE_1        VARCHAR (50) NOT NULL,
+    CONCEPT_NAME_1        VARCHAR (255),
+    CONCEPT_CLASS_ID_1    VARCHAR (20),
+    CONCEPT_CODE_2        VARCHAR (50) NOT NULL,
+    CONCEPT_NAME_2        VARCHAR (255),
+    INVALID_REASON        VARCHAR (1)
+);
+
+CREATE TABLE INGR_TO_RX
+(
+   CONCEPT_CODE_1     VARCHAR(255),
+   CONCEPT_NAME_1     VARCHAR(255),
+   CONCEPT_ID_2       INTEGER,
+   CONCEPT_NAME_2     VARCHAR(255),
+   PRECEDENCE         INTEGER
+);
+
+CREATE TABLE AUT_FORM_ALL_MAPPED
+(
+   CONCEPT_CODE     VARCHAR(255),
+   CONCEPT_NAME     VARCHAR(255),
+   CONCEPT_ID_2     INTEGER,
+   CONCEPT_NAME_2   VARCHAR(255),
+   PRECEDENCE       INTEGER
+);
+
+CREATE TABLE UNIT_FOR_UCUM
+(
+    AMOUNT_UNIT          VARCHAR (4000),
+    CONCEPT_ID_2         INTEGER,
+    CONCEPT_NAME_2       VARCHAR (255),
+    CONVERSION_FACTOR    FLOAT,
+    PRECEDENCE           INTEGER,
+    CONCEPT_ID           INTEGER,
+    UCUM_CONCEPT_NAME    VARCHAR (255)
+);
+
+CREATE TABLE BRANDS_BY_LENA
+(
+    BRAND_NAME         VARCHAR (255),
+    CONCEPT_ID         INTEGER,
+    CONCEPT_NAME_2     VARCHAR (255)
+);

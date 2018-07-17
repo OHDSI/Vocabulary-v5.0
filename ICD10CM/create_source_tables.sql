@@ -14,14 +14,21 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
-
-CREATE TABLE ICD10CM_TABLE
+DROP TABLE IF EXISTS SOURCES.ICD10CM_TEMP;
+CREATE TABLE SOURCES.ICD10CM_TEMP
 (
-   CODE         VARCHAR2 (8),
-   CODE_TYPE    NUMBER,
-   SHORT_NAME   VARCHAR2 (100),
-   LONG_NAME    VARCHAR2 (500)
-)
-NOLOGGING;
+   icd10cm_codes_and_desc   VARCHAR (4000)
+);
+
+DROP TABLE IF EXISTS SOURCES.ICD10CM;
+CREATE TABLE SOURCES.ICD10CM
+(
+   code               VARCHAR (8),
+   code_type          INT4,
+   short_name         VARCHAR (100),
+   long_name          VARCHAR (500),
+   vocabulary_date    DATE,
+   vocabulary_version VARCHAR (200)
+);

@@ -14,97 +14,105 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
---1. remove non-digit rows
-delete From FY_TABLE_5 where not regexp_like(drg_code, '^[[:digit:]]+$');
+--directly update concept and concept_relationship
+DO $$
+DECLARE
+	ex INTEGER;
+	cDate SOURCES.fy_table_5%rowtype;
+BEGIN
+	--create sequence
+	SELECT max(c.concept_id) + 1 INTO ex FROM concept c WHERE concept_id < 500000000;-- Last valid below HOI concept_id
+	DROP SEQUENCE IF EXISTS v5_concept;
+	EXECUTE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
+	FOR cDate.vocabulary_date IN (SELECT DISTINCT vocabulary_date FROM SOURCES.fy_table_5 ORDER BY vocabulary_date) LOOP
+		--1. deprecate missing concepts
+		UPDATE concept c
+		SET invalid_reason = 'D',
+			valid_end_date = cDate.vocabulary_date - 1
+		WHERE c.vocabulary_id = 'DRG'
+			AND c.invalid_reason IS NULL
+			AND c.valid_start_date <= cDate.vocabulary_date
+			AND c.concept_code NOT IN (
+				SELECT drg_code
+				FROM SOURCES.fy_table_5 f
+				WHERE f.vocabulary_date = cDate.vocabulary_date
+				);
 
---2. remove double quotes
-update FY_TABLE_5 set drg_name=substr(drg_name,2,length(drg_name)-2) where substr(drg_name,1,1)='"' and substr(drg_name,-1,1)='"';
+		--2. if concept not exists or exists, but names are different, then deprecate old record and create the new one
+		UPDATE concept c
+		SET invalid_reason = 'U',
+			valid_end_date = cDate.vocabulary_date - 1
+		WHERE c.vocabulary_id = 'DRG'
+			AND c.invalid_reason IS NULL
+			AND c.valid_start_date <= cDate.vocabulary_date
+			AND EXISTS (
+				SELECT 1
+				FROM SOURCES.fy_table_5 f
+				WHERE f.vocabulary_date = cDate.vocabulary_date
+					AND c.concept_code = f.drg_code
+					AND lower(c.concept_name) <> lower(f.drg_name)
+				);
+				
+		EXECUTE '
+		INSERT INTO concept (concept_id,
+			concept_name,
+			domain_id,
+			vocabulary_id,
+			concept_class_id,
+			standard_concept,
+			concept_code,
+			valid_start_date,
+			valid_end_date,
+			invalid_reason)
+		SELECT NEXTVAL(''v5_concept''),
+			f.drg_name as concept_name,
+			''Observation'' as domain_id,
+			''DRG'' as vocabulary_id,
+			''MS-DRG'' as concept_class_id,
+			''S'' as standard_concept,
+			f.drg_code as concept_code,
+			f.vocabulary_date AS valid_start_date,
+			TO_DATE (''20991231'', ''yyyymmdd'') AS valid_end_date,
+			null as invalid_reason
+		FROM SOURCES.fy_table_5 f WHERE f.vocabulary_date=$1
+		AND NOT EXISTS (
+				SELECT 1 FROM concept c_int WHERE c_int.vocabulary_id=''DRG''
+				AND c_int.invalid_reason IS NULL
+				AND c_int.concept_code=f.drg_code
+		)
+		' USING cDate.vocabulary_date;
+	END LOOP;
 
---3. directly update concept
-declare
-ex number;
-begin
-        
-    --create sequence
-    select max(c.concept_id)+1 into ex from concept c where concept_id<500000000; -- Last valid below HOI concept_id
-    begin
-        execute immediate 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' CACHE 20';
-    exception when others then null;
-    end;
-        
-    for cDate in (select distinct drg_version from FY_TABLE_5 order by drg_version) loop      
-        --1. deprecate missing concepts
-        update concept c set c.invalid_reason='D', c.valid_end_date=cDate.drg_version-1
-        where 
-        c.vocabulary_id='DRG'
-        and c.invalid_reason is null
-        and c.valid_start_date<=cDate.drg_version
-        and c.concept_code not in (select drg_code from FY_TABLE_5 f where f.drg_version=cDate.drg_version);
-
-        --2. if concept not exists or exists, but names are different, then deprecate old record and create the new one        
-        update concept c set c.invalid_reason='U', c.valid_end_date=cDate.drg_version-1
-        where 
-        c.vocabulary_id='DRG'
-        and c.invalid_reason is null
-        and c.valid_start_date<=cDate.drg_version
-        and exists (
-            select 1 from FY_TABLE_5 f where f.drg_version=cDate.drg_version
-            and c.concept_code=f.drg_code 
-            and lower(c.concept_name)<>lower(f.drg_name)
-        );
-
-        execute immediate q'[
-        INSERT /*+ APPEND */ INTO concept (concept_id,
-            concept_name,
-            domain_id,
-            vocabulary_id,
-            concept_class_id,
-            standard_concept,
-            concept_code,
-            valid_start_date,
-            valid_end_date,
-            invalid_reason)
-        SELECT v5_concept.NEXTVAL,
-            f.drg_name as concept_name,
-            'Observation' as domain_id,
-            'DRG' as vocabulary_id,
-            'MS-DRG' as concept_class_id,
-            'S' as standard_concept,
-            f.drg_code as concept_code,
-            f.drg_version AS valid_start_date,
-            TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-            null as invalid_reason
-        FROM FY_TABLE_5 f where f.drg_version=:1
-        and not exists (
-                select 1 from concept c_int where c_int.vocabulary_id='DRG' 
-                and c_int.invalid_reason is null
-                and c_int.concept_code=f.drg_code
-        )    
-        ]' using cDate.drg_version;
-        
-    end loop;
-	
 	--3. add 'Concept replaced by' for 'U'
-	insert into concept_relationship
-		select distinct c1.concept_id as concept_id_1, 
-		last_value(c2.concept_id) over (partition by c1.concept_id order by c2.invalid_reason ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as concept_id_2,
-		'Concept replaced by' as relationship_id,
-		c1.valid_start_date as valid_start_date,
-		last_value(c2.valid_end_date) over (partition by c1.concept_id order by c2.invalid_reason ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as valid_end_date,
-		null as invalid_reason
-		from concept c1, concept c2
-		where c1.concept_code=c2.concept_code
-		and c1.vocabulary_Id='DRG'
-		and c2.vocabulary_Id='DRG'
-		and c1.invalid_reason = 'U'
-		and nvl(c2.invalid_reason,'X') in ('X','D')
-		and not exists (
-			select 1 from concept_relationship r_int where r_int.concept_id_1=c1.concept_id and r_int.relationship_id='Concept replaced by'
-		);		
+	INSERT INTO concept_relationship
+	SELECT DISTINCT c1.concept_id AS concept_id_1,
+		last_value(c2.concept_id) OVER (
+			PARTITION BY c1.concept_id ORDER BY c2.invalid_reason ROWS BETWEEN UNBOUNDED PRECEDING
+					AND UNBOUNDED FOLLOWING
+			) AS concept_id_2,
+		'Concept replaced by' AS relationship_id,
+		c1.valid_start_date AS valid_start_date,
+		last_value(c2.valid_end_date) OVER (
+			PARTITION BY c1.concept_id ORDER BY c2.invalid_reason ROWS BETWEEN UNBOUNDED PRECEDING
+					AND UNBOUNDED FOLLOWING
+			) AS valid_end_date,
+		NULL AS invalid_reason
+	FROM concept c1,
+		concept c2
+	WHERE c1.concept_code = c2.concept_code
+		AND c1.vocabulary_Id = 'DRG'
+		AND c2.vocabulary_Id = 'DRG'
+		AND c1.invalid_reason = 'U'
+		AND COALESCE(c2.invalid_reason, 'D') = 'D'
+		AND NOT EXISTS (
+			SELECT 1
+			FROM concept_relationship r_int
+			WHERE r_int.concept_id_1 = c1.concept_id
+				AND r_int.relationship_id = 'Concept replaced by'
+			);
 
-    COMMIT;
-    execute immediate 'DROP SEQUENCE v5_concept';
-end;
+	DROP SEQUENCE v5_concept;
+END$$;

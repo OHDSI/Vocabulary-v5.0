@@ -14,12 +14,22 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE FY_TABLE_5
+DROP TABLE IF EXISTS SOURCES.FY_TABLE_5;
+CREATE TABLE SOURCES.FY_TABLE_5
 (
-  DRG_CODE     VARCHAR2(3 BYTE),
-  DRG_NAME     VARCHAR2(4000 BYTE),
-  DRG_VERSION  DATE
+    DRG_CODE         VARCHAR (3),
+    filler_column1   VARCHAR (4000),
+    filler_column2   VARCHAR (4000),
+    filler_column3   VARCHAR (4000),
+    filler_column4   VARCHAR (4000),
+    DRG_NAME         VARCHAR (4000),
+    filler_column5   VARCHAR (4000),
+    filler_column6   VARCHAR (4000),
+    filler_column7   VARCHAR (4000),
+    filler_column8   VARCHAR (4000),
+    filler_column9   VARCHAR (4000),
+    VOCABULARY_DATE  DATE
 );

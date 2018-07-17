@@ -14,109 +14,129 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE hlgt_pref_term
+DROP TABLE IF EXISTS SOURCES.HLGT_PREF_TERM;
+CREATE TABLE SOURCES.HLGT_PREF_TERM
 (
-   hlgt_code          NUMBER,
-   hlgt_name          VARCHAR2 (100),
-   hlgt_whoart_code   VARCHAR2 (100),
-   hlgt_harts_code    NUMBER,
-   hlgt_costart_sym   VARCHAR2 (100),
-   hlgt_icd9_code     VARCHAR2 (100),
-   hlgt_icd9cm_code   VARCHAR2 (100),
-   hlgt_icd10_code    VARCHAR2 (100),
-   hlgt_jart_code     VARCHAR2 (100)
+   hlgt_code          INT4,
+   hlgt_name          VARCHAR (100),
+   hlgt_whoart_code   VARCHAR (100),
+   hlgt_harts_code    INT4,
+   hlgt_costart_sym   VARCHAR (100),
+   hlgt_icd9_code     VARCHAR (100),
+   hlgt_icd9cm_code   VARCHAR (100),
+   hlgt_icd10_code    VARCHAR (100),
+   hlgt_jart_code     VARCHAR (100),
+   filler_column      INT
 );
 
-CREATE TABLE hlgt_hlt_comp
+DROP TABLE IF EXISTS SOURCES.HLGT_HLT_COMP;
+CREATE TABLE SOURCES.HLGT_HLT_COMP
 (
-   hlgt_code   NUMBER,
-   hlt_code    NUMBER
+   hlgt_code     INT4,
+   hlt_code      INT4,
+   filler_column INT
 );
 
-CREATE TABLE hlt_pref_term
+DROP TABLE IF EXISTS SOURCES.HLT_PREF_TERM;
+CREATE TABLE SOURCES.HLT_PREF_TERM
 (
-   hlt_code          NUMBER,
-   hlt_name          VARCHAR2 (100),
-   hlt_whoart_code   VARCHAR2 (100),
-   hlt_harts_code    NUMBER,
-   hlt_costart_sym   VARCHAR2 (100),
-   hlt_icd9_code     VARCHAR2 (100),
-   hlt_icd9cm_code   VARCHAR2 (100),
-   hlt_icd10_code    VARCHAR2 (100),
-   hlt_jart_code     VARCHAR2 (100)
+   hlt_code          INT4,
+   hlt_name          VARCHAR (100),
+   hlt_whoart_code   VARCHAR (100),
+   hlt_harts_code    INT4,
+   hlt_costart_sym   VARCHAR (100),
+   hlt_icd9_code     VARCHAR (100),
+   hlt_icd9cm_code   VARCHAR (100),
+   hlt_icd10_code    VARCHAR (100),
+   hlt_jart_code     VARCHAR (100),
+   filler_column     INT
 );
 
-CREATE TABLE hlt_pref_comp
+DROP TABLE IF EXISTS SOURCES.HLT_PREF_COMP;
+CREATE TABLE SOURCES.HLT_PREF_COMP
 (
-   hlt_code   NUMBER,
-   pt_code    NUMBER
+   hlt_code           INT4,
+   pt_code            INT4,
+   filler_column      INT,
+   vocabulary_date    DATE,
+   vocabulary_version VARCHAR (200)
 );
 
-CREATE TABLE low_level_term
+DROP TABLE IF EXISTS SOURCES.LOW_LEVEL_TERM;
+CREATE TABLE SOURCES.LOW_LEVEL_TERM
 (
-   llt_code          NUMBER,
-   llt_name          VARCHAR2 (100),
-   pt_code           NUMBER,
-   llt_whoart_code   VARCHAR2 (100),
-   llt_harts_code    NUMBER,
-   llt_costart_sym   VARCHAR2 (100),
-   llt_icd9_code     VARCHAR2 (100),
-   llt_icd9cm_code   VARCHAR2 (100),
-   llt_icd10_code    VARCHAR2 (100),
-   llt_currency      VARCHAR2 (100),
-   llt_jart_code     VARCHAR2 (100)
+   llt_code          INT4,
+   llt_name          VARCHAR (100),
+   pt_code           INT4,
+   llt_whoart_code   VARCHAR (100),
+   llt_harts_code    INT4,
+   llt_costart_sym   VARCHAR (100),
+   llt_icd9_code     VARCHAR (100),
+   llt_icd9cm_code   VARCHAR (100),
+   llt_icd10_code    VARCHAR (100),
+   llt_currency      VARCHAR (100),
+   llt_jart_code     VARCHAR (100),
+   filler_column     INT
 );
 
-CREATE TABLE md_hierarchy
+DROP TABLE IF EXISTS SOURCES.MD_HIERARCHY;
+CREATE TABLE SOURCES.MD_HIERARCHY
 (
-   pt_code          NUMBER,
-   hlt_code         NUMBER,
-   hlgt_code        NUMBER,
-   soc_code         NUMBER,
-   pt_name          VARCHAR2 (100),
-   hlt_name         VARCHAR2 (100),
-   hlgt_name        VARCHAR2 (100),
-   soc_name         VARCHAR2 (100),
-   soc_abbrev       VARCHAR2 (100),
-   null_field       VARCHAR2 (100),
-   pt_soc_code      NUMBER,
-   primary_soc_fg   VARCHAR2 (100)
+   pt_code          INT4,
+   hlt_code         INT4,
+   hlgt_code        INT4,
+   soc_code         INT4,
+   pt_name          VARCHAR (100),
+   hlt_name         VARCHAR (100),
+   hlgt_name        VARCHAR (100),
+   soc_name         VARCHAR (100),
+   soc_abbrev       VARCHAR (100),
+   null_field       VARCHAR (100),
+   pt_soc_code      INT4,
+   primary_soc_fg   VARCHAR (100),
+   filler_column    INT
 );
 
-CREATE TABLE pref_term
+DROP TABLE IF EXISTS SOURCES.PREF_TERM;
+CREATE TABLE SOURCES.PREF_TERM
 (
-   pt_code          NUMBER,
-   pt_name          VARCHAR2 (100),
-   null_field       VARCHAR2 (100),
-   pt_soc_code      NUMBER,
-   pt_whoart_code   VARCHAR2 (100),
-   pt_harts_code    NUMBER,
-   pt_costart_sym   VARCHAR2 (100),
-   pt_icd9_code     VARCHAR2 (100),
-   pt_icd9cm_code   VARCHAR2 (100),
-   pt_icd10_code    VARCHAR2 (100),
-   pt_jart_code     VARCHAR2 (100)
+   pt_code          INT4,
+   pt_name          VARCHAR (100),
+   null_field       VARCHAR (100),
+   pt_soc_code      INT4,
+   pt_whoart_code   VARCHAR (100),
+   pt_harts_code    INT4,
+   pt_costart_sym   VARCHAR (100),
+   pt_icd9_code     VARCHAR (100),
+   pt_icd9cm_code   VARCHAR (100),
+   pt_icd10_code    VARCHAR (100),
+   pt_jart_code     VARCHAR (100),
+   filler_column    INT
 );
 
-CREATE TABLE soc_term
+DROP TABLE IF EXISTS SOURCES.SOC_TERM;
+CREATE TABLE SOURCES.SOC_TERM
 (
-   soc_code          NUMBER,
-   soc_name          VARCHAR2 (100),
-   soc_abbrev        VARCHAR2 (100),
-   soc_whoart_code   VARCHAR2 (100),
-   soc_harts_code    NUMBER,
-   soc_costart_sym   VARCHAR2 (100),
-   soc_icd9_code     VARCHAR2 (100),
-   soc_icd9cm_code   VARCHAR2 (100),
-   soc_icd10_code    VARCHAR2 (100),
-   soc_jart_code     VARCHAR2 (100)
+   soc_code          INT4,
+   soc_name          VARCHAR (100),
+   soc_abbrev        VARCHAR (100),
+   soc_whoart_code   VARCHAR (100),
+   soc_harts_code    INT4,
+   soc_costart_sym   VARCHAR (100),
+   soc_icd9_code     VARCHAR (100),
+   soc_icd9cm_code   VARCHAR (100),
+   soc_icd10_code    VARCHAR (100),
+   soc_jart_code     VARCHAR (100),
+   filler_column     INT
 );
 
-CREATE TABLE soc_hlgt_comp
+DROP TABLE IF EXISTS SOURCES.SOC_HLGT_COMP;
+CREATE TABLE SOURCES.SOC_HLGT_COMP
 (
-   soc_code    NUMBER,
-   hlgt_code   NUMBER
+   soc_code      INT4,
+   hlgt_code     INT4,
+   filler_column INT
 );

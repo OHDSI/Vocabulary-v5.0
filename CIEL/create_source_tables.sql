@@ -14,104 +14,119 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE CONCEPT_CIEL
+
+DROP TABLE IF EXISTS SOURCES.CONCEPT_CIEL;
+CREATE TABLE SOURCES.CONCEPT_CIEL
 (
-   concept_id      NUMBER NOT NULL PRIMARY KEY,
-   retired         NUMBER,
-   short_name      VARCHAR2 (255),
-   description     VARCHAR2 (4000),
-   form_text       VARCHAR2 (4000),
-   datatype_id     NUMBER,
-   class_id        NUMBER,
-   is_set          NUMBER,
-   creator         NUMBER,
+   concept_id      INT4 NOT NULL PRIMARY KEY,
+   retired         INT4,
+   short_name      VARCHAR (255),
+   description     VARCHAR (4000),
+   form_text       VARCHAR (4000),
+   datatype_id     INT4,
+   class_id        INT4,
+   is_set          INT4,
+   creator         INT4,
    date_created    DATE,
-   version         VARCHAR2 (50),
-   changed_by      NUMBER,
+   version         VARCHAR (50),
+   changed_by      INT4,
    date_changed    DATE,
-   retired_by      NUMBER,
+   retired_by      INT4,
    date_retired    DATE,
-   retire_reason   VARCHAR2 (255),
-   uuid            VARCHAR2 (38)
+   retire_reason   VARCHAR (255),
+   uuid            VARCHAR (38),
+   filler_column INT
 );
 
-CREATE TABLE CONCEPT_CLASS_CIEL
+DROP TABLE IF EXISTS SOURCES.CONCEPT_CLASS_CIEL;
+CREATE TABLE SOURCES.CONCEPT_CLASS_CIEL
 (
-   concept_class_id   NUMBER NOT NULL PRIMARY KEY,
-   "name"             VARCHAR2 (255),
-   description        VARCHAR2 (255),
-   creator            NUMBER,
+   concept_class_id   INT4 NOT NULL PRIMARY KEY,
+   "name"             VARCHAR (255),
+   description        VARCHAR (255),
+   creator            INT4,
    date_created       DATE,
-   retired            NUMBER,
-   retired_by         NUMBER,
+   retired            INT4,
+   retired_by         INT4,
    date_retired       DATE,
-   retire_reason      VARCHAR2 (255),
-   uuid               VARCHAR2 (38)
+   retire_reason      VARCHAR (255),
+   uuid               VARCHAR (38),
+   filler_column      INT,
+   vocabulary_date    DATE,
+   vocabulary_version VARCHAR (200)
 );
 
-CREATE TABLE CONCEPT_NAME
+DROP TABLE IF EXISTS SOURCES.CONCEPT_NAME;
+CREATE TABLE SOURCES.CONCEPT_NAME
 (
-   concept_id          NUMBER,
-   "name"              VARCHAR2 (255),
-   locale              VARCHAR2 (50),
-   creator             NUMBER,
+   concept_id          INT4,
+   "name"              VARCHAR (255),
+   locale              VARCHAR (50),
+   creator             INT4,
    date_created        DATE,
-   concept_name_id     NUMBER NOT NULL PRIMARY KEY,
-   voided              NUMBER,
-   voided_by           NUMBER,
+   concept_name_id     INT4 NOT NULL PRIMARY KEY,
+   voided              INT4,
+   voided_by           INT4,
    date_voided         DATE,
-   void_reason         VARCHAR2 (255),
-   uuid                VARCHAR2 (38),
-   concept_name_type   VARCHAR2 (50),
-   locale_preferred    NUMBER
+   void_reason         VARCHAR (255),
+   uuid                VARCHAR (38),
+   concept_name_type   VARCHAR (50),
+   locale_preferred    INT4,
+   filler_column INT
 );
 
-CREATE TABLE CONCEPT_REFERENCE_MAP
+DROP TABLE IF EXISTS SOURCES.CONCEPT_REFERENCE_MAP;
+CREATE TABLE SOURCES.CONCEPT_REFERENCE_MAP
 (
-   concept_map_id              NUMBER NOT NULL PRIMARY KEY,
-   creator                     NUMBER,
+   concept_map_id              INT4 NOT NULL PRIMARY KEY,
+   creator                     INT4,
    date_created                DATE,
-   concept_id                  NUMBER,
-   uuid                        VARCHAR2 (38),
-   concept_reference_term_id   NUMBER,
-   concept_map_type_id         NUMBER,
-   changed_by                  NUMBER,
-   date_changed                DATE
+   concept_id                  INT4,
+   uuid                        VARCHAR (38),
+   concept_reference_term_id   INT4,
+   concept_map_type_id         INT4,
+   changed_by                  INT4,
+   date_changed                DATE,
+   filler_column INT
 );
 
-CREATE TABLE CONCEPT_REFERENCE_TERM
+DROP TABLE IF EXISTS SOURCES.CONCEPT_REFERENCE_TERM;
+CREATE TABLE SOURCES.CONCEPT_REFERENCE_TERM
 (
-   concept_reference_term_id   NUMBER NOT NULL PRIMARY KEY,
-   concept_source_id           NUMBER,
-   "name"                      VARCHAR2 (255),
-   "code"                      VARCHAR2 (255),
-   version                     VARCHAR2 (255),
-   description                 VARCHAR2 (255),
-   creator                     NUMBER,
+   concept_reference_term_id   INT4 NOT NULL PRIMARY KEY,
+   concept_source_id           INT4,
+   "name"                      VARCHAR (255),
+   "code"                      VARCHAR (255),
+   version                     VARCHAR (255),
+   description                 VARCHAR (255),
+   creator                     INT4,
    date_created                DATE,
    date_changed                DATE,
-   changed_by                  NUMBER,
-   retired                     NUMBER,
-   retired_by                  NUMBER,
+   changed_by                  INT4,
+   retired                     INT4,
+   retired_by                  INT4,
    date_retired                DATE,
-   retire_reason               VARCHAR2 (255),
-   uuid                        VARCHAR2 (38)
+   retire_reason               VARCHAR (255),
+   uuid                        VARCHAR (38),
+   filler_column INT
 );
 
-CREATE TABLE CONCEPT_REFERENCE_SOURCE
+DROP TABLE IF EXISTS SOURCES.CONCEPT_REFERENCE_SOURCE;
+CREATE TABLE SOURCES.CONCEPT_REFERENCE_SOURCE
 (
-   concept_source_id   NUMBER NOT NULL PRIMARY KEY,
-   "name"              VARCHAR2 (50),
-   description         VARCHAR2 (4000),
-   hl7_code            VARCHAR2 (50),
-   creator             NUMBER,
+   concept_source_id   INT4 NOT NULL PRIMARY KEY,
+   "name"              VARCHAR (50),
+   description         VARCHAR (4000),
+   hl7_code            VARCHAR (50),
+   creator             INT4,
    date_created        DATE,
-   retired             NUMBER,
-   retired_by          NUMBER,
+   retired             INT4,
+   retired_by          INT4,
    date_retired        DATE,
-   retire_reason       VARCHAR2 (255),
-   uuid                VARCHAR2 (38)
+   retire_reason       VARCHAR (255),
+   uuid                VARCHAR (38),
+   filler_column INT
 );

@@ -16,6 +16,10 @@
 
 9.Run generic_update.sql,  should return null
 
-10.Run exec devv5.psmallconceptancestor
+10.Run
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.pConceptAncestor(IS_SMALL=>TRUE);
+END $_$;
 
 11.Run Basic_tables_QA.sql

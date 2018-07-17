@@ -7,6 +7,6 @@ Prerequisites:
 
 1. Run create_source_tables.sql
 2. Unpack "ETC sources.zip"
-3. Load all TXT files using control files of the same name
-4. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
+3. Run in devv5: SELECT sources.load_input_tables('ETC'); (The pVocabularyDate and pVocabularyVersion will be automatically retrieved from the GCN_SEQNO)
+4. Run load_stage.sql
 5. Run generic_update.sql (from working directory)

@@ -14,10 +14,13 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Dmitry Dymshyts, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE ICDCLAML
+DROP TABLE IF EXISTS SOURCES.ICDCLAML;
+CREATE TABLE SOURCES.ICDCLAML
 (
-   xmlfield   XMLTYPE
+   xmlfield           TEXT,
+   vocabulary_date    DATE,
+   vocabulary_version VARCHAR (200)
 );

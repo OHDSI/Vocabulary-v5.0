@@ -6,7 +6,6 @@ Prerequisites:
 - Working directory GCN_SEQNO.
 
 1. Run create_source_tables.sql
-2. Load NDDF_PRODUCT_INFO.TXT into NDDF_PRODUCT_INFO using control file of the same name
+2. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('GCNSEQNO',TO_DATE('20151119','YYYYMMDD'),'20151119 Release');
 3. Run load_stage.sql
 4. Run generic_update.sql (from working directory)
- 

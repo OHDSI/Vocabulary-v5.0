@@ -1,0 +1,203 @@
+-- Add fields parts, parsed from ''DRUG_COMPONENT'
+ALTER TABLE DENORM_LIST ADD 
+	COLUMN INGREDIENT_CODE VARCHAR(255),
+	ADD COLUMN INGREDIENT VARCHAR(255),
+	ADD COLUMN DOSAGE_VALUE FLOAT,
+	ADD COLUMN DOSAGE_UNIT VARCHAR(255),
+	ADD COLUMN DOSAGE_HINT VARCHAR(255);
+
+-- Preprocessing of 'DRUG_COMPONENT' - convert floats to format 1.2e07
+-- 1st pattern: Looks for occurences of '1.0 x10[E05]', '1. x10(E05)', '1. x10E[05]' and '1. x10E(05)'
+-- 2nd pattern: Looks for occurnces of '1. x10^5'
+
+ALTER TABLE DENORM_LIST
+	ADD COLUMN DRUG_COMPONENT_PREPRECESSED  VARCHAR(1023);
+
+-- Temporary field
+ALTER TABLE DENORM_LIST
+	ADD COLUMN NEW_INGREDIENT VARCHAR(300);
+
+UPDATE DENORM_LIST SET DRUG_COMPONENT_PREPRECESSED = DRUG_COMPONENT;
+UPDATE DENORM_LIST
+SET DRUG_COMPONENT_PREPRECESSED = REGEXP_REPLACE(DRUG_COMPONENT_PREPRECESSED, '([[:digit:]\.]+)\s*x10E?(\[|\()E?(\d+)(\]|\))', '\1e\3', 'g')
+WHERE DRUG_COMPONENT LIKE '%x10%';
+
+UPDATE DENORM_LIST
+SET DRUG_COMPONENT_PREPRECESSED = REGEXP_REPLACE(DRUG_COMPONENT_PREPRECESSED, '([[:digit:]\.]+)\s*x10\^(\d+)', '\1e\2', 'g')
+WHERE DRUG_COMPONENT LIKE '%x10%';
+
+-- Preview parsing expressions. Take note 'NEW_INGREDIENT' contains improved parsing rules
+/*
+SELECT TRIM((regexp_split_to_array(DRUG_COMPONENT_PREPRECESSED, ',')) [1]) AS INGREDIENT_CODE,
+	REGEXP_REPLACE(TRIM(REGEXP_REPLACE(DRUG_COMPONENT_PREPRECESSED, '(^[^,]+,|,[^,]+$)', '', 'g')), '\s+(\(.*$|\[\d.*$|-.*$|''.*$|[[:digit:]\.]+\sH<2>O.*$)', '', 'g') AS NEW_INGREDIENT,
+	REGEXP_REPLACE(TRIM((regexp_split_to_array(DRUG_COMPONENT_PREPRECESSED, ','))[2]), '\s+(\(.*$|-.*$|''.*$|\d+\sH<2>O.*$)', '', 'g') AS INGREDIENT,
+	REGEXP_REPLACE(substring(REGEXP_REPLACE(REGEXP_REPLACE(DRUG_COMPONENT_PREPRECESSED, '^.*,', '', 'g'), '[[:digit:]\.]+(e\d+)*\s*-', '', 'g'), '([[:digit:]\.]+(e\d+)*)'), '(^\.$|^$)', '0', 'g')::FLOAT AS DOSAGE_VALUE,
+	substring(REGEXP_REPLACE(DRUG_COMPONENT_PREPRECESSED, '^.*,', '', 'g'), '[^[:digit:]\.]+$') AS DOSAGE_UNIT,
+	TRIM(substring(DRUG_COMPONENT_PREPRECESSED, '\([[:digit:]\.\:\-]+\)')) AS DOSAGE_HINT,
+	DRUG_COMPONENT
+FROM DENORM_LIST limit 100;
+*/
+
+-- Parse 'DRUG_COMPONENT' and update the 'DENORM_LIST' table
+UPDATE DENORM_LIST
+SET INGREDIENT_CODE = TRIM(substring(DRUG_COMPONENT_PREPRECESSED, '[^,]+')),
+	NEW_INGREDIENT = REGEXP_REPLACE(TRIM(REGEXP_REPLACE(DRUG_COMPONENT_PREPRECESSED, '(^[^,]+,|,[^,]+$)', '', 'g')), '\s+(\(.*$|\[\d.*$|-.*$|''.*$|[[:digit:]\.]+\sH<2>O.*$)', '', 'g'),
+	INGREDIENT = REGEXP_REPLACE(TRIM((regexp_split_to_array(DRUG_COMPONENT_PREPRECESSED, ','))[2]), '\s+(\(.*$|-.*$|''.*$|\d+\sH<2>O.*$)', '', 'g'),
+	DOSAGE_VALUE = REGEXP_REPLACE(substring(REGEXP_REPLACE(substring(DRUG_COMPONENT_PREPRECESSED, '[^,]+$'), '[[:digit:]\.]+(e\d+)*\s*-', '', 'g'), '([[:digit:]\.]+(e\d+)*)'), '(^\.$|^$)', '0', 'g')::FLOAT,
+	DOSAGE_UNIT = substring(substring(DRUG_COMPONENT_PREPRECESSED, '[^,]+$'), '[^[:digit:]\.]+$'),
+	DOSAGE_HINT = TRIM(substring(DRUG_COMPONENT_PREPRECESSED, '\([[:digit:]\.\:\-]+\)'));
+
+-- Postprocessing: Update 'DOSAGE_UNIT'
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = TRIM(DOSAGE_UNIT);
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = REGEXP_REPLACE(DOSAGE_UNIT, '(\%)\s.*$', '\1', 'g')
+WHERE DOSAGE_UNIT ~ '\%';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = REGEXP_REPLACE(DOSAGE_UNIT, '(ml)\s.*$', '\1', 'g')
+WHERE DOSAGE_UNIT ~ 'ml';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = REGEXP_REPLACE(DOSAGE_UNIT, '(mg)\s.*$', '\1', 'g')
+WHERE DOSAGE_UNIT ~ 'mg';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = REGEXP_REPLACE(DOSAGE_UNIT, '(g)\s.*$', '\1', 'g')
+WHERE DOSAGE_UNIT ~ 'g\s'
+	AND DOSAGE_UNIT NOT LIKE '%mg%';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = REGEXP_REPLACE(DOSAGE_UNIT, 'Mio Zellen', 'million cells', 'g')
+WHERE DOSAGE_UNIT LIKE '%Mio Zellen%';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = REGEXP_REPLACE(DOSAGE_UNIT, 'Zellen', 'cells', 'g')
+WHERE DOSAGE_UNIT LIKE '%Zellen%';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = NULL
+WHERE DOSAGE_UNIT LIKE '%Mengenangabe%';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = NULL
+WHERE DOSAGE_UNIT LIKE '%hierfuer keine%';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = REGEXP_REPLACE(DOSAGE_UNIT, 'microgHA', 'microg', 'g')
+WHERE DOSAGE_UNIT LIKE '%microgHA%';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = REGEXP_REPLACE(DOSAGE_UNIT, '(FSH)\s.*$', '\1', 'g')
+WHERE DOSAGE_UNIT LIKE '%FSH%';
+
+--
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'I.E.'
+WHERE DOSAGE_VALUE IS NOT NULL
+	AND DOSAGE_UNIT IS NULL
+	AND DRUG_COMPONENT_PREPRECESSED ILIKE '%I.E.';
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'T.E.'
+WHERE DOSAGE_VALUE IS NOT NULL
+	AND DOSAGE_UNIT IS NULL
+	AND DRUG_COMPONENT_PREPRECESSED ILIKE '%T.E.';
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'A.E.'
+WHERE DOSAGE_VALUE IS NOT NULL
+	AND DOSAGE_UNIT IS NULL
+	AND DRUG_COMPONENT_PREPRECESSED ILIKE '%A.E.';
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'FIP-E.'
+WHERE DOSAGE_VALUE IS NOT NULL
+	AND DOSAGE_UNIT IS NULL
+	AND DRUG_COMPONENT_PREPRECESSED ILIKE '%FIP-E.';
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'E.'
+WHERE DOSAGE_VALUE IS NOT NULL
+	AND DOSAGE_UNIT IS NULL
+	AND DRUG_COMPONENT_PREPRECESSED ~* '\sE.$';
+
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'CFU'
+WHERE DOSAGE_VALUE IS NOT NULL
+	AND DOSAGE_UNIT IS NULL
+	AND DRUG_COMPONENT_PREPRECESSED LIKE '%(CFU)%';
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'cells'
+WHERE DOSAGE_VALUE IS NOT NULL
+	AND DOSAGE_UNIT IS NULL
+	AND DRUG_COMPONENT_PREPRECESSED ILIKE '%zell%';
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'D',
+	DOSAGE_VALUE = SUBSTRING(DRUG_COMPONENT_PREPRECESSED, 'D(\d+)\)?\"?,?$')::FLOAT
+WHERE DRUG_COMPONENT_PREPRECESSED ~ 'D\d+\)?\"?,?$';
+
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'GKID(50)'
+WHERE DRUG_COMPONENT_PREPRECESSED ILIKE '%GKID(50)';
+
+UPDATE denorm_list
+SET DOSAGE_UNIT = 'ZKID(50)'
+WHERE DRUG_COMPONENT_PREPRECESSED ILIKE '%ZKID(50)';
+
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = 'I.E.'
+WHERE DOSAGE_UNIT LIKE '%FSH%';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = 'ml'
+WHERE DOSAGE_UNIT ~ 'ml\sUT';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = 'mg'
+WHERE DOSAGE_UNIT LIKE '%mg/ml%';
+
+UPDATE DENORM_LIST
+SET DOSAGE_UNIT = 'g'
+WHERE DOSAGE_UNIT LIKE '%g/l%';
+
+
+UPDATE denorm_list dl
+SET dosage_value = d.dosage_value,
+	dosage_unit = d.dosage_unit
+FROM (
+	SELECT DISTINCT drug_code,
+		ingredient_code,
+		substring(dosage, '[[:digit:].]+')::FLOAT dosage_value,
+		regexp_replace(dosage, '[[:digit:].]+\s*', '', 'g') dosage_unit
+	FROM (
+		SELECT drug_code,
+			ingredient_code,
+			SUBSTRING(SUBSTRING(DRUG_COMPONENT_PREPRECESSED, '(([[:digit:].]+)\s?(dosis|i\.e\.|impfdosen|impfdosis|sq-e|cm|cm sup2|mm|g|kg|l|mg|microg|microl|ml)\s?[^[:digit:].]*[[:digit:].]+\s?X X X$)'), '(^[[:digit:].]+\s?(dosis|i\.e\.|impfdosen|impfdosis|sq-e|cm|cm sup2|mm|g|kg|l|mg|microg|microl|ml))') dosage
+		FROM denorm_list
+		WHERE dosage_unit = 'X X X'
+		) AS s0
+	) d
+WHERE d.drug_code = dl.drug_code
+	AND d.ingredient_code = dl.ingredient_code;
+
+UPDATE denorm_list
+SET dosage_value = round(dosage_value * 1000) * 1000
+WHERE drug_component ~ * 'Mio\.? I\.E\.';
+
+-- Verify 'DOSAGE_VALUE' and 'DOSAGE_UNIT'
+/*SELECT DISTINCT DOSAGE_UNIT FROM DENORM_LIST;
+SELECT COUNT(*) FROM DENORM_LIST WHERE DOSAGE_VALUE is NULL;
+SELECT DISTINCT INGREDIENT_CODE, INGREDIENT FROM DENORM_LIST;
+
+SELECT INGREDIENT_CODE, NEW_INGREDIENT, INGREDIENT, DOSAGE_VALUE, DOSAGE_UNIT, DOSAGE_HINT, DRUG_COMPONENT
+FROM DENORM_LIST
+LIMIT 500;*/
+

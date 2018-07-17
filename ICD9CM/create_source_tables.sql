@@ -14,19 +14,29 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE CMS_DESC_LONG_DX
+DROP TABLE IF EXISTS SOURCES.ICD9CM_TEMP;
+CREATE UNLOGGED TABLE SOURCES.ICD9CM_TEMP
 (
-   code   VARCHAR2 (8) NOT NULL,
-   name   VARCHAR2 (256) NOT NULL,
+   CMS32_CODES_AND_DESC text
+);
+
+DROP TABLE IF EXISTS SOURCES.CMS_DESC_LONG_DX;
+CREATE TABLE SOURCES.CMS_DESC_LONG_DX
+(
+   code   VARCHAR (8),
+   name   VARCHAR (256),
    PRIMARY KEY (code)
 );
 
-CREATE TABLE CMS_DESC_SHORT_DX
+DROP TABLE IF EXISTS SOURCES.CMS_DESC_SHORT_DX;
+CREATE TABLE SOURCES.CMS_DESC_SHORT_DX
 (
-   code   VARCHAR2 (8) NOT NULL,
-   name   VARCHAR2 (256) NOT NULL,
+   code   VARCHAR (8),
+   name   VARCHAR (256),
+   vocabulary_date      DATE,
+   vocabulary_version   VARCHAR (200),
    PRIMARY KEY (code)
 );

@@ -18,13 +18,15 @@
 **************************************************************************/
 
 --1 Update latest_update field to new date
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'CDT',
-                                          pVocabularyDate        => TO_DATE ('20170508', 'yyyymmdd'),
-                                          pVocabularyVersion     => '2017AA',
-                                          pVocabularyDevSchema   => 'DEV_CDT');
-END;
-COMMIT;
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'CDT',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.mrsmap LIMIT 1),
+	pVocabularyVersion		=> (SELECT EXTRACT (YEAR FROM vocabulary_date)||' Release' FROM sources.mrsmap LIMIT 1),
+	pVocabularyDevSchema	=> 'DEV_CDT'
+);
+END $_$;
 
 --2 Truncate all working tables
 TRUNCATE TABLE concept_stage;
@@ -64,7 +66,6 @@ SELECT DISTINCT FIRST_VALUE(SUBSTR(m.str, 1, 255)) OVER (
 		END AS concept_class_id,
 	'S' AS standard_concept,
 	m.scui AS concept_code,
-	code,
 	(
 		SELECT latest_update
 		FROM vocabulary
@@ -72,7 +73,7 @@ SELECT DISTINCT FIRST_VALUE(SUBSTR(m.str, 1, 255)) OVER (
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM UMLS.mrconso m
+FROM SOURCES.mrconso m
 LEFT JOIN concept c ON c.vocabulary_id = 'HCPCS'
 	AND c.concept_code = m.scui
 WHERE m.sab = 'CDT'

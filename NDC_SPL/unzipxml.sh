@@ -21,8 +21,6 @@ echo "unzipping dm_spl_release_human_otc_part3 (2/4)..."
 unzip -oq dm_spl_release_human_otc_part3.zip
 echo "unzipping dm_spl_release_human_otc_part4 (2/4)..."
 unzip -oq dm_spl_release_human_otc_part4.zip
-echo "unzipping dm_spl_release_human_otc_part5 (2/4)..."
-unzip -oq dm_spl_release_human_otc_part5.zip
 
 #dm_spl_release_human_rx
 echo "unzipping dm_spl_release_human_rx_part1 (3/4)..."
@@ -52,9 +50,7 @@ for z in other/*.zip; do unzip -oq -d $xml_folder_path $z \*.xml; done
 #ls $xml_folder_path/*.xml > allxmlfilelist.dat #gets error "/bin/ls: Argument list too long"
 find $xml_folder_path -maxdepth 1 -name "*.xml" > allxmlfilelist.dat
 
-echo "now run SQL Loader"
-#sqlldr dev_timur_ndc@OMOP control=loadxml.ctl
-
+echo "unzipping done"
 #echo "cleaning..."
 #rm -rf homeopathic
 #rm -rf otc

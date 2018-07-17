@@ -7,7 +7,7 @@ Prerequisites:
 
 1. Run create_source_tables.sql
 2. Download the current Meddra from https://www.meddra.org/user?destination=downloads (english)
-3. Extract and load into the tables from the folder "MedAscii". Use the control files of the same name
+3. Extract files from the folder "MedAscii":
 hlgt_hlt.asc
 hlt.asc
 hlt_pt.asc
@@ -18,7 +18,6 @@ pt.asc
 soc.asc
 soc_hlgt.asc
 
-4. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
-5. Run generic_update.sql (from working directory)
-
- 
+4. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('MedDRA',TO_DATE('20160901','YYYYMMDD'),'MedDRA version 19.1');
+5. Run load_stage.sql
+6. Run generic_update.sql (from working directory)

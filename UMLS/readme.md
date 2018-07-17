@@ -1,28 +1,20 @@
 Update of UMLS
 
 Prerequisites:
-- Created UMLS schema.
+- Created SOURCES schema.
 - Working directory UMLS.
 
 1. Run create_source_tables.sql
-2. Download umls-YYYYAB-full.zip (for example umls-2016AB-full.zip) from http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html.
+2. Download umls-YYYYAB-full.zip (for example umls-2016AB-full.zip) from http://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html
 3. Unpack 
-MRCONSO.RRF.aa.gz 
-MRCONSO.RRF.ab.gz 
-MRHIER.RRF.aa.gz
-MRHIER.RRF.ab.gz
-MRHIER.RRF.ac.gz
-MRMAP.RRF.gz
-MRSMAP.RRF.gz
-MRSAT.RRF.aa.gz
-MRSAT.RRF.ab.gz
-MRSAT.RRF.ac.gz
-MRSAT.RRF.ad.gz
+MRCONSO.RRF.*
+MRHIER.RRF.*
+MRMAP.RRF.*
+MRSMAP.RRF.*
+MRSAT.RRF.*
+MRREL.RRF.*
 
 then run in console:
---gunzip *.gz
---cat MRCONSO.RRF.aa MRCONSO.RRF.ab > MRCONSO.RRF
---cat MRHIER.RRF.aa MRHIER.RRF.ab  MRHIER.RRF.ac > MRHIER.RRF
---cat MRSAT.RRF.aa MRSAT.RRF.ab MRSAT.RRF.ac MRSAT.RRF.ad > MRSAT.RRF
+gunzip *.gz && cat MRCONSO.RRF.* > MRCONSO.RRF && cat MRHIER.RRF.* > MRHIER.RRF && cat MRSAT.RRF.* > MRSAT.RRF && cat MRREL.RRF.* > MRREL.RRF && rm MRCONSO.RRF.* MRHIER.RRF.* MRSAT.RRF.* MRREL.RRF.*
 
-4. Load them into tables using control files of the same name
+4. Run in devv5 (with fresh vocabulary date): SELECT sources.load_input_tables('UMLS',TO_DATE('20180507','YYYYMMDD'),'2018AA');

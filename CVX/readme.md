@@ -7,10 +7,16 @@ Prerequisites:
 1. Run create_source_tables.sql
 2. Download CVX code distrbution file
 - Open the site http://www2a.cdc.gov/vaccines/IIS/IISStandards/vaccines.asp?rpt=cvx
-- Download Flat file http://www2a.cdc.gov/vaccines/IIS/IISStandards/downloads/cvx.txt and re-save in UTF-8 w/o BOM codepage
-3. Load cvx.txt into CVX using control file of the same name
-4. Load Vaccines administered (CVX) Value Set Updates from https://phinvads.cdc.gov/vads/ValueSetRssFeed.xml?oid=2.16.840.1.114222.4.11.934. Download all versions, except 4. Use cvx_vXXX control files.
-5. Run load_stage.sql (with updated pVocabularyDate = latest update of vocabulary)
+- Download Excel file (https://www2a.cdc.gov/vaccines/IIS/IISStandards/downloads/web_cvx.xlsx)
+3. Load Vaccines administered (CVX) Value Set Updates from https://phinvads.cdc.gov/vads/ValueSetRssFeed.xml?oid=2.16.840.1.114222.4.11.934. Download all versions (in Excel format), except 4.
+4. Sequentially upload data to the database by executing in devv5: SELECT sources.load_input_tables('CVX', 'CVX Code Set '||TO_DATE('YYYYMMDD', 'yyyymmdd'));
+where YYYYMMDD = date of 'Vaccines administered value set' taken from RSS feed
+Example:
+- put web_cvx.xlsx and ValueSetConceptDetailResultSummary.xls (version 1) into your upload folder
+- run SELECT sources.load_input_tables('CVX','CVX Code Set '||TO_DATE('20081201', 'yyyymmdd'));
+- leave the web_cvx.xlsx and replace ValueSetConceptDetailResultSummary.xls with ValueSetConceptDetailResultSummary.xls from version 2
+- run SELECT sources.load_input_tables('CVX','CVX Code Set '||TO_DATE('20091015', 'yyyymmdd'));
+- repeat untill last version
+Note: be careful with dates, because we need a minimum date of each concept code of all the sets
+5. Run load_stage.sql
 6. Run generic_update.sql (from working directory)
-
- 

@@ -10,27 +10,31 @@ left join vocabulary v on v.vocabulary_id=cs.vocabulary_id and v.latest_update i
 where v.latest_update is null;
 
 
-select * From concept_relationship_stage where valid_start_date is null or valid_end_date is null or (invalid_reason is null and valid_end_date<>TO_DATE ('20991231', 'yyyymmdd'))
-or (invalid_reason is not null and valid_end_date=TO_DATE ('20991231', 'yyyymmdd'));
+select * From concept_relationship_stage where valid_start_date is null or valid_end_date is null or (invalid_reason is null and valid_end_date<>to_date ('20991231', 'yyyymmdd'))
+or (invalid_reason is not null and valid_end_date=to_date ('20991231', 'yyyymmdd'));
+
+select * from concept_stage where valid_start_date is null or valid_end_date is null
+or (invalid_reason is null and valid_end_date <> to_date ('20991231', 'yyyymmdd') and vocabulary_id not in ('CPT4', 'HCPCS', 'ICD9Proc'))
+or (invalid_reason is not null and valid_end_date = to_date ('20991231', 'yyyymmdd'));
 
 
 select relationship_id from concept_relationship_stage
-minus
+except
 select relationship_id from relationship;
 
 
 select concept_class_id from concept_stage
-minus
+except
 select concept_class_id from concept_class;
 
 
 select domain_id from concept_stage
-minus
+except
 select domain_id from domain;
 
 
 select vocabulary_id from concept_stage
-minus
+except
 select vocabulary_id from vocabulary;
 
 
@@ -53,7 +57,7 @@ select drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_i
 group by drug_concept_code, vocabulary_id_1, ingredient_concept_code, vocabulary_id_2, amount_value
 having count(*)>1;
 
-SELECT *
+SELECT crm.*
 FROM concept_relationship_stage crm
 	 LEFT JOIN concept c1 ON c1.concept_code = crm.concept_code_1 AND c1.vocabulary_id = crm.vocabulary_id_1
 	 LEFT JOIN concept_stage cs1 ON cs1.concept_code = crm.concept_code_1 AND cs1.vocabulary_id = crm.vocabulary_id_1
@@ -67,6 +71,5 @@ WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
 	 OR v1.vocabulary_id IS NULL
 	 OR v2.vocabulary_id IS NULL
 	 OR rl.relationship_id IS NULL
-	 OR crm.valid_start_date > SYSDATE
-	 OR crm.valid_end_date < crm.valid_start_date
-	 OR (crm.invalid_reason IS NULL AND crm.valid_end_date <> TO_DATE ('20991231', 'yyyymmdd'));
+	 OR crm.valid_start_date > CURRENT_DATE
+	 OR crm.valid_end_date < crm.valid_start_date;

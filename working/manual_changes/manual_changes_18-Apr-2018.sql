@@ -1,0 +1,3 @@
+--add new UCUM: standardize quality unit to use for different units like SQ-HDM
+insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+values (32407, 'standardized quality unit', 'Unit', 'UCUM', 'Unit', 'S', '[SQU]', TO_DATE ('19700101', 'YYYYMMDD'), TO_DATE ('20991231', 'YYYYMMDD'), null);

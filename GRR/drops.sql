@@ -9,23 +9,19 @@ DROP TABLE CONCEPT_SYNONYM_STAGE;
 
 DROP TABLE NON_DRUG;
 
-drop table grr_new_3_for_form;
 DROP TABLE grr_new_3;
 DROP TABLE source_data_1;
 DROP TABLE grr_non_drug;
 drop table grr_pack_0;
-drop table  grr_pack_1 ;
+drop table grr_pack_1;
 drop table grr_bn;
 drop table grr_bn_2 ;
 drop table grr_manuf_0;
 drop table grr_manuf;
 drop table grr_form;
 drop table grr_form_2;
-drop table grr_form;
-drop table grr_form_2;
 drop table grr_form_1 ;
 drop table grr_ing;
-drop table grr_ing_2_0;
 drop table grr_ing_2;
 drop table list;
 drop table dcs_drugs;

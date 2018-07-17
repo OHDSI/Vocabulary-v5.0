@@ -14,152 +14,298 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
---1 Update latest_update field to new date 
+--1. Update latest_update field to new date 
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'MeSH',
-                                          pVocabularyDate        => TO_DATE ('20160509', 'yyyymmdd'),
-                                          pVocabularyVersion     => '2016 Release',
-                                          pVocabularyDevSchema   => 'DEV_MESH');
-END;
-COMMIT;
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'MeSH',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.mrsmap LIMIT 1),
+	pVocabularyVersion		=> (SELECT EXTRACT (YEAR FROM vocabulary_date)||' Release' FROM sources.mrsmap LIMIT 1),
+	pVocabularyDevSchema	=> 'DEV_MESH'
+);
+END $_$;
 
---2 Truncate all working tables
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3 Load into concept_stage.
+--3. Load into concept_stage.
 -- Build Main Heading (Descriptors)
-INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
-                           concept_name,
-                           domain_id,
-                           vocabulary_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-	select distinct 
-		null as concept_id,
-		mh.str as concept_name,
-		-- Pick the domain from existing mapping in UMLS with the following order of predence:
-		first_value(c.domain_id) over (partition by mh.code order by decode(c.vocabulary_id, 'RxNorm', 1, 'SNOMED', 2, 'LOINC', 3, 'CPT4', 4, 9)) as domain_id,
-		'MeSH' as vocabulary_id,
-		'Main Heading' as concept_class_id,
-		null as standard_concept,
-		mh.code as concept_code,
-		(select latest_update from vocabulary where vocabulary_id='MeSH') as valid_start_date,
-		TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
-		null as invalid_reason 
-	from umls.mrconso mh
-	-- join to umls cpt4, hcpcs and rxnorm concepts
-	join umls.mrconso m on mh.cui=m.cui and m.sab in ('CPT', 'HCPCS', 'HCPT', 'RXNORM', 'SNOMEDCT_US') and m.suppress='N' and m.tty<>'SY'
-	join concept c on c.concept_code=m.code and c.standard_concept = 'S' and c.vocabulary_id=decode(m.sab, 'CPT', 'CPT4', 'HCPT', 'CPT4', 'RXNORM', 'RxNorm', 'SNOMEDCT_US', 'SNOMED', 'LNC', 'LOINC', m.sab) and domain_id in ('Condition', 'Procedure', 'Drug', 'Measurement')
-	where mh.suppress='N'
-	and mh.sab='MSH' 
-	and mh.lat='ENG' 
-	and mh.tty='MH';
-COMMIT;	
+INSERT INTO CONCEPT_STAGE (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT mh.str AS concept_name,
+	-- Pick the domain from existing mapping in UMLS with the following order of predence:
+	first_value(c.domain_id) OVER (
+		PARTITION BY mh.code ORDER BY CASE c.vocabulary_id
+				WHEN 'RxNorm'
+					THEN 1
+				WHEN 'SNOMED'
+					THEN 2
+				WHEN 'LOINC'
+					THEN 3
+				WHEN 'CPT4'
+					THEN 4
+				ELSE 9
+				END
+		) AS domain_id,
+	'MeSH' AS vocabulary_id,
+	'Main Heading' AS concept_class_id,
+	NULL AS standard_concept,
+	mh.code AS concept_code,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MeSH'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM SOURCES.mrconso mh
+-- join to umls cpt4, hcpcs and rxnorm concepts
+JOIN SOURCES.mrconso m ON mh.cui = m.cui
+	AND m.sab IN (
+		'CPT',
+		'HCPCS',
+		'HCPT',
+		'RXNORM',
+		'SNOMEDCT_US'
+		)
+	AND m.suppress = 'N'
+	AND m.tty <> 'SY'
+JOIN concept c ON c.concept_code = m.code
+	AND c.standard_concept = 'S'
+	AND c.vocabulary_id = CASE m.sab
+		WHEN 'CPT'
+			THEN 'CPT4'
+		WHEN 'HCPT'
+			THEN 'CPT4'
+		WHEN 'RXNORM'
+			THEN 'RxNorm'
+		WHEN 'SNOMEDCT_US'
+			THEN 'SNOMED'
+		WHEN 'LNC'
+			THEN 'LOINC'
+		ELSE m.sab
+		END
+	AND domain_id IN (
+		'Condition',
+		'Procedure',
+		'Drug',
+		'Measurement'
+		)
+WHERE mh.suppress = 'N'
+	AND mh.sab = 'MSH'
+	AND mh.lat = 'ENG'
+	AND mh.tty = 'MH';
 
 -- Build Supplementary Concepts
-INSERT /*+ APPEND */ INTO CONCEPT_STAGE (concept_id,
-                           concept_name,
-                           domain_id,
-                           vocabulary_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-	select distinct 
-		null as concept_id,
-		mh.str as concept_name,
-		-- Pick the domain from existing mapping in UMLS with the following order of predence:
-		first_value(c.domain_id) over (partition by mh.code order by decode(c.vocabulary_id, 'RxNorm', 1, 'SNOMED', 2, 'LOINC', 3, 'CPT4', 4, 9)) as domain_id,
-		'MeSH' as vocabulary_id,
-		'Suppl Concept' as concept_class_id,
-		null as standard_concept,
-		mh.code as concept_code,
-		(select latest_update from vocabulary where vocabulary_id='MeSH') as valid_start_date,
-		TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
-		null as invalid_reason 
-	from umls.mrconso mh
-	-- join to umls cpt4, hcpcs and rxnorm concepts
-	join umls.mrconso m on mh.cui=m.cui and m.sab in ('CPT', 'HCPCS', 'HCPT', 'RXNORM', 'SNOMEDCT_US') and m.suppress='N' and m.tty<>'SY'
-	join concept c on c.concept_code=m.code and c.standard_concept = 'S' and c.vocabulary_id=decode(m.sab, 'CPT', 'CPT4', 'HCPT', 'CPT4', 'RXNORM', 'RxNorm', 'SNOMEDCT_US', 'SNOMED', 'LNC', 'LOINC', m.sab) and domain_id in ('Condition', 'Procedure', 'Drug', 'Measurement')
-	where mh.suppress='N'
-	and mh.sab='MSH' 
-	and mh.lat='ENG' 
-	and mh.tty='NM';
-COMMIT;	
+INSERT INTO CONCEPT_STAGE (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT mh.str AS concept_name,
+	-- Pick the domain from existing mapping in UMLS with the following order of predence:
+	first_value(c.domain_id) OVER (
+		PARTITION BY mh.code ORDER BY CASE c.vocabulary_id
+				WHEN 'RxNorm'
+					THEN 1
+				WHEN 'SNOMED'
+					THEN 2
+				WHEN 'LOINC'
+					THEN 3
+				WHEN 'CPT4'
+					THEN 4
+				ELSE 9
+				END
+		) AS domain_id,
+	'MeSH' AS vocabulary_id,
+	'Suppl Concept' AS concept_class_id,
+	NULL AS standard_concept,
+	mh.code AS concept_code,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'MeSH'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM SOURCES.mrconso mh
+-- join to umls cpt4, hcpcs and rxnorm concepts
+JOIN SOURCES.mrconso m ON mh.cui = m.cui
+	AND m.sab IN (
+		'CPT',
+		'HCPCS',
+		'HCPT',
+		'RXNORM',
+		'SNOMEDCT_US'
+		)
+	AND m.suppress = 'N'
+	AND m.tty <> 'SY'
+JOIN concept c ON c.concept_code = m.code
+	AND c.standard_concept = 'S'
+	AND c.vocabulary_id = CASE m.sab
+		WHEN 'CPT'
+			THEN 'CPT4'
+		WHEN 'HCPT'
+			THEN 'CPT4'
+		WHEN 'RXNORM'
+			THEN 'RxNorm'
+		WHEN 'SNOMEDCT_US'
+			THEN 'SNOMED'
+		WHEN 'LNC'
+			THEN 'LOINC'
+		ELSE m.sab
+		END
+	AND domain_id IN (
+		'Condition',
+		'Procedure',
+		'Drug',
+		'Measurement'
+		)
+WHERE mh.suppress = 'N'
+	AND mh.sab = 'MSH'
+	AND mh.lat = 'ENG'
+	AND mh.tty = 'NM';
 
---4 Create concept_relationship_stage
-INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-	select distinct 
-		mh.code as concept_code_1,
-		-- Pick existing mapping from UMLS with the following order of predence:
-		first_value(c.concept_code) over (partition by mh.code order by decode(c.vocabulary_id, 'RxNorm', 1, 'SNOMED', 2, 'LOINC', 3, 'CPT4', 4, 9)) as concept_code_2,
-		'MeSH' as vocabulary_id_1,  
-		first_value(c.vocabulary_id) over (partition by mh.code order by decode(c.vocabulary_id, 'RxNorm', 1, 'SNOMED', 2, 'LOINC', 3, 'CPT4', 4, 9)) as vocabulary_id_2,
-		'Maps to' as relationship_id,
-		TO_DATE ('19700101', 'yyyymmdd') as valid_start_date,
-		TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
-		null as invalid_reason   
-	from umls.mrconso mh
-	-- join to umls cpt4, hcpcs and rxnorm concepts
-	join umls.mrconso m on mh.cui=m.cui and m.sab in ('CPT', 'HCPCS', 'HCPT', 'RXNORM', 'SNOMEDCT_US') and m.suppress='N' and m.tty<>'SY'
-	join concept c on c.concept_code=m.code and c.standard_concept = 'S' and c.vocabulary_id=decode(m.sab, 'CPT', 'CPT4', 'HCPT', 'CPT4', 'RXNORM', 'RxNorm', 'SNOMEDCT_US', 'SNOMED', 'LNC', 'LOINC', m.sab) and domain_id in ('Condition', 'Procedure', 'Drug', 'Measurement')
-	where mh.suppress='N'
-	and mh.sab='MSH' 
-	and mh.lat='ENG' 
-	and mh.tty in ('NM', 'MH');
-COMMIT;	 
+--4. Create concept_relationship_stage
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT mh.code AS concept_code_1,
+	-- Pick existing mapping from UMLS with the following order of predence:
+	first_value(c.concept_code) OVER (
+		PARTITION BY mh.code ORDER BY CASE c.vocabulary_id
+				WHEN 'RxNorm'
+					THEN 1
+				WHEN 'SNOMED'
+					THEN 2
+				WHEN 'LOINC'
+					THEN 3
+				WHEN 'CPT4'
+					THEN 4
+				ELSE 9
+				END
+		) AS concept_code_2,
+	'MeSH' AS vocabulary_id_1,
+	first_value(c.vocabulary_id) OVER (
+		PARTITION BY mh.code ORDER BY CASE c.vocabulary_id
+				WHEN 'RxNorm'
+					THEN 1
+				WHEN 'SNOMED'
+					THEN 2
+				WHEN 'LOINC'
+					THEN 3
+				WHEN 'CPT4'
+					THEN 4
+				ELSE 9
+				END
+		) AS vocabulary_id_2,
+	'Maps to' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM SOURCES.mrconso mh
+-- join to umls cpt4, hcpcs and rxnorm concepts
+JOIN SOURCES.mrconso m ON mh.cui = m.cui
+	AND m.sab IN (
+		'CPT',
+		'HCPCS',
+		'HCPT',
+		'RXNORM',
+		'SNOMEDCT_US'
+		)
+	AND m.suppress = 'N'
+	AND m.tty <> 'SY'
+JOIN concept c ON c.concept_code = m.code
+	AND c.standard_concept = 'S'
+	AND c.vocabulary_id = CASE m.sab
+		WHEN 'CPT'
+			THEN 'CPT4'
+		WHEN 'HCPT'
+			THEN 'CPT4'
+		WHEN 'RXNORM'
+			THEN 'RxNorm'
+		WHEN 'SNOMEDCT_US'
+			THEN 'SNOMED'
+		WHEN 'LNC'
+			THEN 'LOINC'
+		ELSE m.sab
+		END
+	AND domain_id IN (
+		'Condition',
+		'Procedure',
+		'Drug',
+		'Measurement'
+		)
+WHERE mh.suppress = 'N'
+	AND mh.sab = 'MSH'
+	AND mh.lat = 'ENG'
+	AND mh.tty IN (
+		'NM',
+		'MH'
+		);
 
---5 Add synonyms
-INSERT /*+ APPEND */ INTO  concept_synonym_stage (synonym_concept_code,
-                                   synonym_vocabulary_id,
-                                   synonym_name,
-                                   language_concept_id)
-                                  
-	select c.concept_code as synonym_concept_code,
-		'MeSH' as synonym_vocabulary_id,
-		 u.str as synonym_name, 
-		4180186 AS language_concept_id                    -- English 
-	from concept_stage c
-	join umls.mrconso u on u.code=c.concept_code and u.sab = 'MSH' and u.suppress = 'N' and u.lat='ENG'
-	group by c.concept_code, u.str;
-COMMIT;
+--5. Add synonyms
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_vocabulary_id,
+	synonym_name,
+	language_concept_id
+	)
+SELECT DISTINCT c.concept_code AS synonym_concept_code,
+	'MeSH' AS synonym_vocabulary_id,
+	u.str AS synonym_name,
+	4180186 AS language_concept_id -- English 
+FROM concept_stage c
+JOIN SOURCES.mrconso u ON u.code = c.concept_code
+	AND u.sab = 'MSH'
+	AND u.suppress = 'N'
+	AND u.lat = 'ENG';
 
---6 Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--6. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
-END;
-COMMIT;	
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
 
---7 Add mapping from deprecated to fresh concepts
+--7. Add mapping from deprecated to fresh concepts
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
-END;
-COMMIT;		 
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
 
---8 Delete ambiguous 'Maps to' mappings
+--8. Delete ambiguous 'Maps to' mappings
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
-END;
-COMMIT;
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

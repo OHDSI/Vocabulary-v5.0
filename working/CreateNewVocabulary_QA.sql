@@ -16,160 +16,279 @@
 * Authors: Christian Reich, Anna Ostropolets, Dmitry Dymshyts
 * Date: 2016
 **************************************************************************/
-select error_type, count (1) from (
-
---dublicates
-select concept_Code,'Duplicate codes in concept_stage'  as error_type
-from concept_stage group by concept_Code having count(1)>1
-
-UNION
-
-select concept_name,'Duplicate names in concept_stage (RxE)' 
-from concept_stage where lower(concept_name) in (select lower(concept_name) from concept_stage where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' group by concept_name having count(1)>1)
-
-UNION
---concept_relationship_stage
-select concept_code_2,'Missing concept_code_1'
-from concept_relationship_stage where concept_code_1 is null
-
-UNION
- 
-select concept_code_1,'Missing concept_code_2'
-from concept_relationship_stage where concept_code_2 is null
-
-UNION
-
-select distinct relationship_id,'Wrong relationship_id in concept_relationship_stage'
-from concept_relationship_stage where relationship_id not in (select distinct relationship_id from devv5.concept_relationship)
-
-UNION
-
-select concept_code,'Concepts from concept_relationship_stage missing in concept_stage' from 
-concept_relationship_stage crs 
-LEFT JOIN concept_stage cs ON cs.concept_code=crs.concept_code_1
-WHERE cs.concept_code is null
-AND crs.vocabulary_id_1=cs.vocabulary_id
-
-UNION
-
---relationship problems in concept_relationship_stage
-select concept_code, 'Deprecated concepts dont have necessary relationships'
-from concept_stage
-WHERE NOT EXISTS (select * from concept_stage c JOIN concept_relationship_stage cr ON cr.concept_code_1=c.concept_code
-WHERE c.invalid_reason='D' and relationship_id in ('Maps to','Replaced by')) 
-AND invalid_reason='D'
-
-UNION
-
---check if relationship 'Has standard brand' exsists only to brand names
-select concept_code_1,'Has standard brand refers not to brand name'
-from concept_relationship_stage crs JOIN devv5.concept c on concept_code_2=concept_code
-WHERE relationship_id='Has standard brand' AND c.concept_class_id!='Brand Name' AND c.vocabulary_id='RxNorm'
-
-UNION
---check if relationship 'Has standard form' exsists only to dose form;
-select concept_code_1,'Has standard form refers not to dose form'
-from concept_relationship_stage crs JOIN devv5.concept c on concept_code_2=concept_code
-WHERE relationship_id='Has standard form' AND c.concept_class_id!='Dose Form' AND c.vocabulary_id='RxNorm'
-
-UNION
-
---check if relationship 'Has standard ing' exsists only to ingredient
-select concept_code_1,'Has standard ing refers not to ingredient'
-from concept_relationship_stage crs JOIN devv5.concept c on concept_code_2=concept_code
-WHERE relationship_id='Has standard ing' AND c.concept_class_id!='Ingredient' AND c.vocabulary_id='RxNorm'
-
-UNION
-
-select distinct concept_code_1, 'Has tradename refers to wrong concept_class' 
-from concept_relationship_stage crs 
-LEFT JOIN concept_stage cs ON concept_code_2=cs.concept_code AND crs.vocabulary_id_2 = cs.vocabulary_id
-LEFT JOIN concept_stage cs2 ON concept_code_1=cs2.concept_code AND crs.vocabulary_id_1 = cs2.vocabulary_id
-WHERE relationship_id='Has tradename' AND (cs.concept_class_id not like '%Branded%'
-OR cs2.concept_class_id not like '%Clinical%')
-
-UNION
-
---Should be only Component to Drug relationship
-select distinct concept_code_1, 'Constitutes refers to wrong concept_class'
-from concept_relationship_stage crs 
-LEFT JOIN concept_stage cs ON concept_code_2=cs.concept_code AND crs.vocabulary_id_2 = cs.vocabulary_id
-LEFT JOIN concept_stage cs2 ON concept_code_1=cs2.concept_code AND crs.vocabulary_id_1 = cs2.vocabulary_id
-WHERE relationship_id='Constitutes' AND (cs.concept_class_id not like '%Drug%'
-OR cs2.concept_class_id not like '%Comp%')
-
-
-UNION
---concept_stage
-
---important query - without it we'll ruin Generic_update
-select distinct concept_class_id,'Wrong concept_class_id in concept_stage'
-from concept_stage where concept_class_id not in (select distinct concept_class_id from devv5.concept_class)
- 
-UNION
- 
-select concept_code_1, 'relationships RxNorm-RxNorm exist in concept_relationship_stage' 
-from concept_relationship_stage where vocabulary_id_1='RxNorm' and vocabulary_id_2='RxNorm' 
-
-UNION
-
---There should be no standard deprecated and updated concepts
-select distinct c.concept_code, 'Wrong standard_concept' 
-from concept_stage c JOIN concept_relationship_stage cr ON cr.concept_code_1=c.concept_code 
-WHERE c.standard_concept='S' and (c.invalid_reason='U' or c.invalid_reason='D')
-UNION
-select distinct c.concept_code, 'Wrong standard_concept'
-from concept_stage c JOIN concept_relationship_stage cr ON cr.concept_code_2=c.concept_code 
-WHERE c.standard_concept='S' and (c.invalid_reason='U' or c.invalid_reason='D')
-
-UNION
---drug_strength
-select distinct drug_concept_code, 'Impossible dosages' 
-from drug_strength_stage 
-where ( NUMERATOR_UNIT_CONCEPT_ID=8576 and DENOMINATOR_UNIT_CONCEPT_ID=8587 and NUMERATOR_VALUE / DENOMINATOR_VALUE > 1000 )
-or 
-(NUMERATOR_UNIT_CONCEPT_ID=8576 and DENOMINATOR_UNIT_CONCEPT_ID=8576 and NUMERATOR_VALUE / DENOMINATOR_VALUE > 1 )
-UNION
-
-SELECT drug_concept_code, 'missing unit'
-      FROM drug_strength_stage
-      WHERE (numerator_value IS NOT NULL AND numerator_unit_concept_id IS NULL)
-      OR    (denominator_value IS NOT NULL AND denominator_unit_concept_id IS NULL)
-      OR    (amount_value IS NOT NULL AND amount_unit_concept_id IS NULL)
-
-UNION
-
-select distinct drug_concept_code, 'Percents in wrong place' 
-from drug_strength_stage 
-where (NUMERATOR_UNIT_CONCEPT_ID=8554 and DENOMINATOR_UNIT_CONCEPT_ID is not null) or AMOUNT_UNIT_CONCEPT_ID=8554
-
-UNION
---same name in concept and concept_stage
-select concept_name, 'same name in concept and concept_stage'
-
-  from concept_stage where lower(concept_name) in (select concept_name from
-(
-select lower(concept_name)as concept_name from concept_stage where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
-union all
-select lower(concept_name) from concept  where vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
-)
-group by concept_name having count(1)>1)
-and vocabulary_id like 'Rx%' and invalid_reason is null and concept_name not like '%...%' 
-union
-
-
-select r.concept_code_1 as concept_code, 'Concept_replaced by many concepts' --count(*) 
-From concept_stage c1, concept_stage c2, concept_relationship_stage r
-where c1.concept_code=r.concept_code_1
-and c2.concept_code=r.concept_code_2
-and c1.vocabulary_id='RxNorm Extension'
-and c2.vocabulary_id='RxNorm Extension'
-and  relationship_id='Concept replaced by'
-and r.invalid_reason is null
-group by r.concept_code_1
-having count(*)>1
-order by 2 desc
-
-)
-group by error_type
-;
+SELECT error_type,
+	count(*)
+FROM (
+	--dublicates
+	SELECT concept_Code,
+		'Duplicate codes in concept_stage' AS error_type
+	FROM concept_stage
+	GROUP BY concept_Code
+	HAVING count(*) > 1
+	
+	UNION ALL
+	
+	SELECT lower(concept_name),
+		'Duplicate names in concept_stage (RxE)'
+	FROM concept_stage
+	WHERE vocabulary_id LIKE 'Rx%'
+		AND invalid_reason IS NULL
+		AND concept_name NOT LIKE '%...%'
+	GROUP BY lower(concept_name)
+	HAVING count(*) > 1
+	
+	UNION ALL
+	
+	--concept_relationship_stage
+	SELECT concept_code_2,
+		'Missing concept_code_1'
+	FROM concept_relationship_stage
+	WHERE concept_code_1 IS NULL
+	
+	UNION ALL
+	
+	SELECT concept_code_1,
+		'Missing concept_code_2'
+	FROM concept_relationship_stage
+	WHERE concept_code_2 IS NULL
+	
+	UNION ALL
+	
+	SELECT DISTINCT relationship_id,
+		'Wrong relationship_id in concept_relationship_stage'
+	FROM concept_relationship_stage
+	WHERE relationship_id NOT IN (
+			SELECT relationship_id
+			FROM relationship
+			)
+	
+	UNION ALL
+	
+	SELECT concept_code,
+		'Concepts from concept_relationship_stage missing in concept_stage'
+	FROM concept_relationship_stage crs
+	LEFT JOIN concept_stage cs ON cs.concept_code = crs.concept_code_1
+	WHERE cs.concept_code IS NULL
+		AND crs.vocabulary_id_1 = cs.vocabulary_id
+	
+	UNION ALL
+	
+	--relationship problems in concept_relationship_stage
+	SELECT concept_code,
+		'Deprecated concepts dont have necessary relationships'
+	FROM concept_stage
+	WHERE NOT EXISTS (
+			SELECT 1
+			FROM concept_stage c
+			JOIN concept_relationship_stage cr ON cr.concept_code_1 = c.concept_code
+			WHERE c.invalid_reason = 'D'
+				AND relationship_id IN (
+					'Maps to',
+					'Concept replaced by'
+					)
+			)
+		AND invalid_reason = 'D'
+	
+	UNION ALL
+	
+	--check if relationship 'Has standard brand' exsists only to brand names
+	SELECT concept_code_1,
+		'Has standard brand refers not to brand name'
+	FROM concept_relationship_stage crs
+	JOIN devv5.concept c ON concept_code_2 = concept_code
+	WHERE relationship_id = 'Has standard brand'
+		AND c.concept_class_id != 'Brand Name'
+		AND c.vocabulary_id = 'RxNorm'
+	
+	UNION ALL
+	
+	--check if relationship 'Has standard form' exsists only to dose form;
+	SELECT concept_code_1,
+		'Has standard form refers not to dose form'
+	FROM concept_relationship_stage crs
+	JOIN devv5.concept c ON concept_code_2 = concept_code
+	WHERE relationship_id = 'Has standard form'
+		AND c.concept_class_id != 'Dose Form'
+		AND c.vocabulary_id = 'RxNorm'
+	
+	UNION ALL
+	
+	--check if relationship 'Has standard ing' exsists only to ingredient
+	SELECT concept_code_1,
+		'Has standard ing refers not to ingredient'
+	FROM concept_relationship_stage crs
+	JOIN devv5.concept c ON concept_code_2 = concept_code
+	WHERE relationship_id = 'Has standard ing'
+		AND c.concept_class_id != 'Ingredient'
+		AND c.vocabulary_id = 'RxNorm'
+	
+	UNION ALL
+	
+	SELECT DISTINCT concept_code_1,
+		'Has tradename refers to wrong concept_class'
+	FROM concept_relationship_stage crs
+	LEFT JOIN concept_stage cs ON concept_code_2 = cs.concept_code
+		AND crs.vocabulary_id_2 = cs.vocabulary_id
+	LEFT JOIN concept_stage cs2 ON concept_code_1 = cs2.concept_code
+		AND crs.vocabulary_id_1 = cs2.vocabulary_id
+	WHERE relationship_id = 'Has tradename'
+		AND (
+			cs.concept_class_id NOT LIKE '%Branded%'
+			OR cs2.concept_class_id NOT LIKE '%Clinical%'
+			)
+	
+	UNION ALL
+	
+	--Should be only Component to Drug relationship
+	SELECT DISTINCT concept_code_1,
+		'Constitutes refers to wrong concept_class'
+	FROM concept_relationship_stage crs
+	LEFT JOIN concept_stage cs ON concept_code_2 = cs.concept_code
+		AND crs.vocabulary_id_2 = cs.vocabulary_id
+	LEFT JOIN concept_stage cs2 ON concept_code_1 = cs2.concept_code
+		AND crs.vocabulary_id_1 = cs2.vocabulary_id
+	WHERE relationship_id = 'Constitutes'
+		AND (
+			cs.concept_class_id NOT LIKE '%Drug%'
+			OR cs2.concept_class_id NOT LIKE '%Comp%'
+			)
+	
+	UNION ALL
+	
+	--concept_stage
+	--important query - without it we'll ruin Generic_update
+	SELECT DISTINCT concept_class_id,
+		'Wrong concept_class_id in concept_stage'
+	FROM concept_stage
+	WHERE concept_class_id NOT IN (
+			SELECT DISTINCT concept_class_id
+			FROM devv5.concept_class
+			)
+	
+	UNION ALL
+	
+	SELECT concept_code_1,
+		'relationships RxNorm-RxNorm exist in concept_relationship_stage'
+	FROM concept_relationship_stage
+	WHERE vocabulary_id_1 = 'RxNorm'
+		AND vocabulary_id_2 = 'RxNorm'
+	
+	UNION ALL
+	
+	--There should be no standard deprecated and updated concepts
+	SELECT DISTINCT c.concept_code,
+		'Wrong standard_concept'
+	FROM concept_stage c
+	JOIN concept_relationship_stage cr ON cr.concept_code_1 = c.concept_code
+	WHERE c.standard_concept = 'S'
+		AND (
+			c.invalid_reason = 'U'
+			OR c.invalid_reason = 'D'
+			)
+	
+	UNION
+	
+	SELECT DISTINCT c.concept_code,
+		'Wrong standard_concept'
+	FROM concept_stage c
+	JOIN concept_relationship_stage cr ON cr.concept_code_2 = c.concept_code
+	WHERE c.standard_concept = 'S'
+		AND (
+			c.invalid_reason = 'U'
+			OR c.invalid_reason = 'D'
+			)
+	
+	UNION ALL
+	
+	--drug_strength
+	SELECT DISTINCT drug_concept_code,
+		'Impossible dosages'
+	FROM drug_strength_stage
+	WHERE (
+			numerator_unit_concept_id = 8576
+			AND denominator_unit_concept_id = 8587
+			AND numerator_value / denominator_value > 1000
+			)
+		OR (
+			numerator_unit_concept_id = 8576
+			AND denominator_unit_concept_id = 8576
+			AND numerator_value / denominator_value > 1
+			)
+	
+	UNION ALL
+	
+	SELECT drug_concept_code,
+		'missing unit'
+	FROM drug_strength_stage
+	WHERE (
+			numerator_value IS NOT NULL
+			AND numerator_unit_concept_id IS NULL
+			)
+		OR (
+			denominator_value IS NOT NULL
+			AND denominator_unit_concept_id IS NULL
+			)
+		OR (
+			amount_value IS NOT NULL
+			AND amount_unit_concept_id IS NULL
+			)
+	
+	UNION ALL
+	
+	SELECT DISTINCT drug_concept_code,
+		'Percents in wrong place'
+	FROM drug_strength_stage
+	WHERE (
+			numerator_unit_concept_id = 8554
+			AND denominator_unit_concept_id IS NOT NULL
+			)
+		OR AMOUNT_UNIT_CONCEPT_ID = 8554
+	
+	UNION ALL
+	
+	--same name in concept and concept_stage
+	SELECT concept_name,
+		'same name in concept and concept_stage'
+	FROM concept_stage
+	WHERE lower(concept_name) IN (
+			SELECT concept_name
+			FROM (
+				SELECT lower(concept_name) AS concept_name
+				FROM concept_stage
+				WHERE vocabulary_id LIKE 'Rx%'
+					AND invalid_reason IS NULL
+					AND concept_name NOT LIKE '%...%'
+				
+				UNION ALL
+				
+				SELECT lower(concept_name)
+				FROM concept
+				WHERE vocabulary_id LIKE 'Rx%'
+					AND invalid_reason IS NULL
+					AND concept_name NOT LIKE '%...%'
+				) AS s0
+			GROUP BY concept_name
+			HAVING count(*) > 1
+			)
+		AND vocabulary_id LIKE 'Rx%'
+		AND invalid_reason IS NULL
+		AND concept_name NOT LIKE '%...%'
+	
+	UNION ALL
+	
+	SELECT r.concept_code_1 AS concept_code,
+		'Concept_replaced by many concepts' --count(*) 
+	FROM concept_stage c1,
+		concept_stage c2,
+		concept_relationship_stage r
+	WHERE c1.concept_code = r.concept_code_1
+		AND c2.concept_code = r.concept_code_2
+		AND c1.vocabulary_id = 'RxNorm Extension'
+		AND c2.vocabulary_id = 'RxNorm Extension'
+		AND relationship_id = 'Concept replaced by'
+		AND r.invalid_reason IS NULL
+	GROUP BY r.concept_code_1
+	HAVING count(*) > 1
+	ORDER BY 2 DESC
+	) AS s1
+GROUP BY error_type;

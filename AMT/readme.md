@@ -7,49 +7,28 @@ Schema DevV5 with copies of tables concept, concept_relationship and concept_syn
 
 Working directory dev_amt.
 
-1.Run create_source_tables.sql
-2.Download the latest file from https://www.digitalhealth.gov.au/implementation-resources/ehealth-foundations/clinical-terminology (file name Clinical Terminology vYYYYMMDD.zip ).
+1. Run create_source_tables.sql and additional_ddl.sql
+2. Download the latest file from https://www.digitalhealth.gov.au/implementation-resources/ehealth-foundations/clinical-terminology (file name EP_xxxx_YYYY_ClinicalTerminology_vYYYYMMDD.zip ).
 Login and password are required.
 
-3.Exctract 
-sct2_Description_Full-en-AU_AU1000036_YYYYMMDD.txt
-sct2_Relationship_Full_AU1000036_YYYYMMDD.txt
-sct2_Concept_Full_AU1000036_YYYYMMDD.txt
-der2_Refset_ContaineredTradeProductPackFull_AU1000036_YYYYMMDD.txt
-der2_Refset_MedicinalProductUnitOfUseFull_AU1000036_YYYYMMDD.txt
-der2_Refset_TradeProductUnitOfUseFull_AU1000036_YYYYMMDD.txt
-der2_Refset_TradeProductPackFull_AU1000036_YYYYMMDD.txt
-der2_Refset_TradeProductFull_AU1000036_YYYYMMDD.txt
-der2_Refset_MedicinalProductPackFull_AU1000036_YYYYMMDD.txt
-der2_Refset_MedicinalProductFull_AU1000036_YYYYMMDD.txt
-der2_ccsRefset_StrengthFull_AU1000036_YYYYMMDD.txt
-der2_ccsRefset_UnitOfUseSizeFull_AU1000036_YYYYMMDD.txt
-der2_ccsRefset_UnitOfUseQuantityFull_AU1000036_YYYYMMDD.txt
-der2_cciRefset_SubpackQuantityFull_AU1000036_YYYYMMDD.txt
+3. Unzip DH_xxxx_YYYY_AustralianMedicinesTerminology_DataExtract_vYYYYMMDD.zip
+4. Extract
+from AMT_Release_AU1000168_YYYYMMDD\RF2Release\Full\Terminology\
+sct2_Description_Full-en-AU_AU1000168_YYYYMMDD.txt
+sct2_Relationship_Full_AU1000168_YYYYMMDD.txt
+sct2_Concept_Full_AU1000168_YYYYMMDD.txt
 
-4.Open the files and resave them with .csv file extension, delete numbers from the name of the file
+from AMT_Release_AU1000168_YYYYMMDD\RF2Release\Full\Refset\Content\
+der2_ccsRefset_StrengthFull_AU1000168_YYYYMMDD.txt
 
-Load them into the following tables:
-sct2_Description_Full-en-AU_AU.csv - FULL_DESCR_DRUG_ONLY
-sct2_Relationship_Full_AU.csv - rf2_full_relationships
-sct2_Concept_Full_AU.csv - SCT2_CONCEPT_FULL_AU
-der2_Refset_ContaineredTradeProductPackFull_AU.csv - rf2_ss_refset
-der2_Refset_MedicinalProductUnitOfUseFull_AU.csv - rf2_ss_refset
-der2_Refset_TradeProductUnitOfUseFull_AU.csv - rf2_ss_refset
-der2_Refset_TradeProductPackFull_AU.csv - rf2_ss_refset
-der2_Refset_TradeProductFull_AU.csv - rf2_ss_refset
-der2_Refset_MedicinalProductPackFull_AU.csv - rf2_ss_refset
-der2_Refset_MedicinalProductFull_AU.csv - rf2_ss_refset
-der2_ccsRefset_StrengthFull_AU.csv - rf2_ss_strength_refset
-der2_ccsRefset_UnitOfUseSizeFull_AU.csv - rf2_ss_unit_of_use_size_refset
-der2_ccsRefset_UnitOfUseQuantityFull_AU.csv - rf2_ss_unit_of_use_qr
-der2_cciRefset_SubpackQuantityFull_AU.csv - rf2_ss_subpack_quantity_refset
+5. Unzip DH_xxx_YYYY_SNOMEDCT-AU_CombinedReleaseFile_vYYYYMMDD.zip
+6. Exctact
+from SnomedCT_Release_AU1000036_20161130\RF2Release\Full\Terminology\
+sct2_Relationship_Full_AU1000036_20161130.txt and rename to sct2_Relationship_Full_AU36.txt
 
-
-5.Use the control files of the same name consequentially.
-
-6.Run concat.bat
-7.Run load_stage.sql
-8.Run generic_update.sql (from working directory);
-
-9.create backup of input tables as table_name_bckp_ddmmyyyy
+7. Delete numbers from the name of the file (1000168_YYYYMMDD)
+8. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('AMT',TO_DATE('20161130','YYYYMMDD'),'Clinical Terminology v20161130');
+9. Run concat.bat or concat.sh depending on your OS
+10. Run load_stage.sql
+11. Run generic_update.sql (from working directory);
+12. Create backup of input tables as table_name_bckp_ddmmyyyy

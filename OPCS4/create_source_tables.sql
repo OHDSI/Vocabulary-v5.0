@@ -14,20 +14,25 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE OPCS
+DROP TABLE IF EXISTS SOURCES.OPCS;
+CREATE TABLE SOURCES.OPCS
 (
-   CUI    VARCHAR2 (50),
-   TERM   VARCHAR2 (150)
+    CUI                  VARCHAR (50),
+    TERM                 VARCHAR (150),
+    VOCABULARY_DATE      DATE,
+    VOCABULARY_VERSION   VARCHAR (200)
 );
 
-CREATE TABLE OPCSSCTMAP
+DROP TABLE IF EXISTS SOURCES.OPCSSCTMAP;
+CREATE TABLE SOURCES.OPCSSCTMAP
 (
-   SCUI     VARCHAR2 (5),
-   STUI     VARCHAR2 (1),
-   TCUI     VARCHAR2 (18),
-   TTUI     VARCHAR2 (1),
-   MAPTYP   VARCHAR2 (1)
+    SCUI     VARCHAR (5),
+    STUI     VARCHAR (1),
+    TCUI     VARCHAR (18),
+    TTUI     VARCHAR (1),
+    MAPTYP   VARCHAR (1),
+    ASSURED  VARCHAR (1)
 );

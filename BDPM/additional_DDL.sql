@@ -1,0 +1,165 @@
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+**************************************************************************/
+-- input tables creation
+DROP TABLE IF EXISTS DRUG_CONCEPT_STAGE;
+CREATE TABLE DRUG_CONCEPT_STAGE
+(
+   CONCEPT_NAME              VARCHAR(255),
+   VOCABULARY_ID             VARCHAR(20),
+   CONCEPT_CLASS_ID          VARCHAR(25),
+   STANDARD_CONCEPT          VARCHAR(1),
+   CONCEPT_CODE              VARCHAR(50),
+   POSSIBLE_EXCIPIENT        VARCHAR(1),
+   DOMAIN_ID                 VARCHAR(25),
+   VALID_START_DATE          DATE,
+   VALID_END_DATE            DATE,
+   INVALID_REASON            VARCHAR(1),
+   SOURCE_CONCEPT_CLASS_ID   VARCHAR(25)
+);
+
+DROP TABLE IF EXISTS DS_STAGE;
+CREATE TABLE DS_STAGE
+(
+   DRUG_CONCEPT_CODE        VARCHAR(255),
+   INGREDIENT_CONCEPT_CODE  VARCHAR(255),
+   BOX_SIZE                 INT4,
+   AMOUNT_VALUE             FLOAT,
+   AMOUNT_UNIT              VARCHAR(255),
+   NUMERATOR_VALUE          FLOAT,
+   NUMERATOR_UNIT           VARCHAR(255),
+   DENOMINATOR_VALUE        FLOAT,
+   DENOMINATOR_UNIT         VARCHAR(255)
+);
+
+DROP TABLE IF EXISTS INTERNAL_RELATIONSHIP_STAGE;
+CREATE TABLE INTERNAL_RELATIONSHIP_STAGE
+(
+   CONCEPT_CODE_1     VARCHAR(50),
+   CONCEPT_CODE_2     VARCHAR(50)
+);
+
+DROP TABLE IF EXISTS RELATIONSHIP_TO_CONCEPT;
+CREATE TABLE RELATIONSHIP_TO_CONCEPT
+(
+   CONCEPT_CODE_1     VARCHAR(255),
+   VOCABULARY_ID_1    VARCHAR(20),
+   CONCEPT_ID_2       INTEGER,
+   PRECEDENCE         INTEGER,
+   CONVERSION_FACTOR  FLOAT
+);
+
+DROP TABLE IF EXISTS PC_STAGE;
+CREATE TABLE PC_STAGE
+(
+   PACK_CONCEPT_CODE  VARCHAR(255),
+   DRUG_CONCEPT_CODE  VARCHAR(255),
+   AMOUNT             FLOAT,
+   BOX_SIZE           INT4
+);
+
+DROP TABLE IF EXISTS DS_STAGE_UPDATE;
+CREATE TABLE DS_STAGE_UPDATE
+(
+    DRUG_CONCEPT_CODE          VARCHAR (255),
+    DRUG_DESCR                 VARCHAR (255),
+    INGREDIENT_CONCEPT_CODE    VARCHAR (255),
+    PACKAGING                  VARCHAR (255),
+    BOX_SIZE                   INT,
+    INGREDIENT                 VARCHAR (255),
+    AMOUNT_VALUE               FLOAT,
+    AMOUNT_UNIT                VARCHAR (255),
+    NUMERATOR_VALUE            FLOAT,
+    NUMERATOR_UNIT             VARCHAR (255),
+    DENOMINATOR_VALUE          FLOAT,
+    DENOMINATOR_UNIT           VARCHAR (255),
+    DOSAGE                     VARCHAR (255),
+    VOLUME                     VARCHAR (255)
+);
+
+DROP TABLE IF EXISTS INGR_TRANSLATION_ALL;
+CREATE TABLE INGR_TRANSLATION_ALL
+(
+    CONCEPT_CODE    VARCHAR (255),
+    CONCEPT_NAME    VARCHAR (255),
+    TRANSLATION     VARCHAR (255)
+);
+
+DROP TABLE IF EXISTS BRAND_NAME_EXCEPTION;
+CREATE TABLE BRAND_NAME_EXCEPTION
+(
+    BRAND_NAME    VARCHAR (1200)
+);
+
+DROP TABLE IF EXISTS FORM_TRANSLATION;
+CREATE TABLE FORM_TRANSLATION
+(
+    FORM_ROUTE     VARCHAR (255),
+    TRANSLATION    VARCHAR (255)
+);
+
+DROP TABLE IF EXISTS AUT_UNIT_ALL_MAPPED;
+CREATE TABLE AUT_UNIT_ALL_MAPPED
+(
+    CONCEPT_CODE         VARCHAR (255),
+    CONCEPT_ID_2         INT4,
+    CONCEPT_NAME_2       VARCHAR (255),
+    CONVERSION_FACTOR    FLOAT,
+    PRECEDENCE           INT
+);
+
+DROP TABLE IF EXISTS CODE_INGRED_TO_INGRED;
+CREATE TABLE CODE_INGRED_TO_INGRED
+(
+   CONCEPT_CODE_1     VARCHAR(50),
+   CONCEPT_CODE_2     VARCHAR(50)
+);
+
+DROP TABLE IF EXISTS AUT_FORM_ALL_MAPPED;
+CREATE TABLE AUT_FORM_ALL_MAPPED
+(
+    TRANSLATION     VARCHAR (255),
+    CONCEPT_ID      INT4,
+    CONCEPT_NAME    VARCHAR (255),
+    PRECEDENCE      INT
+);
+
+DROP TABLE IF EXISTS AUT_BN_MAPPED_ALL;
+CREATE TABLE AUT_BN_MAPPED_ALL
+(
+    BRAND_NAME        VARCHAR (1200),
+    CONCEPT_ID        INT4,
+    CONCEPT_NAME_2    VARCHAR (255),
+    PRECEDENCE        INT
+);
+
+DROP TABLE IF EXISTS AUT_INGR_MAPPED_ALL;
+CREATE TABLE AUT_INGR_MAPPED_ALL
+(
+    CONCEPT_CODE      VARCHAR (255),
+    CONCEPT_NAME      VARCHAR (255),
+    CONCEPT_ID        INT4,
+    CONCEPT_NAME_2    VARCHAR (255),
+    PRECEDENCE        INT
+);
+
+DROP TABLE IF EXISTS AUT_SUPP_MAPPED;
+CREATE TABLE AUT_SUPP_MAPPED
+(
+    CONCEPT_NAME    VARCHAR (255),
+    CONCEPT_ID      INT4,
+    PRECEDENCE      INT
+);

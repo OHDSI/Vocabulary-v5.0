@@ -14,16 +14,16 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE ATC_Glossary
+DROP TABLE IF EXISTS SOURCES.ATC_GLOSSARY;
+CREATE TABLE SOURCES.ATC_GLOSSARY
 (
-   concept_code   VARCHAR2 (1000),
-   concept_name   VARCHAR2 (1000),
-   n1             VARCHAR2 (1000),
-   n2             VARCHAR2 (1000),
-   n3             VARCHAR2 (1000),
-   n4             VARCHAR2 (1000),
-   n5             VARCHAR2 (1000)
+   concept_code         VARCHAR (1000),
+   concept_name         VARCHAR (1000),
+   n1                   VARCHAR (1000),
+   n2                   VARCHAR (1000),
+   vocabulary_date      DATE,
+   vocabulary_version   VARCHAR (200)
 );

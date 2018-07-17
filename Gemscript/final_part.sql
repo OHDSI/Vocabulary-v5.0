@@ -1,106 +1,168 @@
-BEGIN
-   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'Gemscript', 
-                                          pVocabularyDate        => to_date ('2017-08-02','yyyy-mm-dd'),
-                                          pVocabularyVersion     => 'Gemscript '||SYSDATE,
-                                          pVocabularyDevSchema   => 'DEV_gemscript');									  
-END;
-/
-COMMIT;
-
 --concept_stage
-truncate table concept_stage;
-;
-insert into concept_stage
- select b.* from basic_concept_stage b
-;
-commit
-;
+TRUNCATE TABLE concept_stage;
+
+INSERT INTO concept_stage
+SELECT *
+FROM basic_concept_stage;
+
 --get the domains for gemscript concepts
-merge into concept_stage cs using (select domain_id, gemscript_code,thin_code  from thin_need_to_map) tt on (tt.gemscript_code = cs.concept_code)
-when matched then update  set cs.domain_id = tt.domain_id
-;
+UPDATE concept_stage cs
+SET domain_id = tt.domain_id
+FROM (
+	SELECT domain_id,
+		gemscript_code,
+		thin_code
+	FROM thin_need_to_map
+	) tt
+WHERE tt.gemscript_code = cs.concept_code
+
 --get the domains for thin concepts
-merge into concept_stage cs using (select domain_id, gemscript_code,thin_code  from thin_need_to_map) tt on (tt.thin_code = cs.concept_code)
-when matched then update  set cs.domain_id = tt.domain_id
-;
+UPDATE concept_stage cs
+SET domain_id = tt.domain_id
+FROM (
+	SELECT domain_id,
+		gemscript_code,
+		thin_code
+	FROM thin_need_to_map
+	) tt
+WHERE tt.thin_code = cs.concept_code
+
 --make devices standard (only for those that don't have mappings to dmd and gemscript) 
 --define drug domain (Drug set by default) based on target concept domain in basic tables, so we can look on thin_need_to_map table
-update concept_stage set standard_concept = 'S' where domain_id = 'Device' and concept_code in (select gemscript_code from thin_need_to_map)
-;
-commit
-;
+UPDATE concept_stage
+SET standard_concept = 'S'
+WHERE domain_id = 'Device'
+	AND concept_code IN (
+		SELECT gemscript_code
+		FROM thin_need_to_map
+		);
+
 --concept_relationship_stage
-truncate table concept_relationship_stage
-;
-insert into concept_relationship_stage
-select * from basic_con_rel_stage
-;
-commit
-;
-delete from concept_relationship_stage where invalid_reason ='D'
-;
-commit
-;
+TRUNCATE TABLE concept_relationship_stage;
+INSERT INTO concept_relationship_stage
+SELECT *
+FROM basic_con_rel_stage;
+
+DELETE
+FROM concept_relationship_stage
+WHERE invalid_reason = 'D';
 
 --insert mappings from best_map
-insert into concept_relationship_stage  (CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select '', '', cs.concept_code, c.concept_code, cs.vocabulary_id, c.vocabulary_id, 'Maps to', TRUNC(SYSDATE), TO_DATE ('20991231', 'yyyymmdd'), ''
-from map_drug b
-join concept_stage cs on cs.concept_code = b.from_code
-join concept c on c.concept_id = b.TO_ID
-;
-commit
-;
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT cs.concept_code,
+	c.concept_code,
+	cs.vocabulary_id,
+	c.vocabulary_id,
+	'Maps to',
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'Gemscript'
+		),
+	TO_DATE('20991231', 'yyyymmdd'),
+	NULL
+FROM map_drug b
+JOIN concept_stage cs ON cs.concept_code = b.from_code
+JOIN concept c ON c.concept_id = b.TO_ID;
+
 --Devices mapping
-insert into concept_relationship_stage  (CONCEPT_ID_1,CONCEPT_ID_2,CONCEPT_CODE_1,CONCEPT_CODE_2,VOCABULARY_ID_1,VOCABULARY_ID_2,RELATIONSHIP_ID,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
-select '', '', b.concept_code, b.concept_code, b.vocabulary_id, b.vocabulary_id, 'Maps to', TRUNC(SYSDATE), TO_DATE ('20991231', 'yyyymmdd'), ''
-from concept_stage b
-where b.domain_id = 'Device' 
---so no existing mappings present before
-and b.concept_code not in (select concept_code_1 from concept_relationship_stage)
-;
-commit
-;
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT b.concept_code,
+	b.concept_code,
+	b.vocabulary_id,
+	b.vocabulary_id,
+	'Maps to',
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'Gemscript'
+		),
+	TO_DATE('20991231', 'yyyymmdd'),
+	NULL
+FROM concept_stage b
+WHERE b.domain_id = 'Device'
+	--so no existing mappings present before
+	AND b.concept_code NOT IN (
+		SELECT concept_code_1
+		FROM concept_relationship_stage
+		);
+
 --hard to follow the script that build relationships for Gemscript THIN
- delete from concept_relationship_stage cr where concept_code_1 in  (select concept_code from concept_stage where concept_class_id = 'Gemscript THIN' )
- ;
-  insert into concept_relationship_stage 
-( select '','', ENCRYPTED_DRUGCODE, concept_code_2 , 'Gemscript', vocabulary_id_2, relationship_id, VALID_START_DATE, VALID_END_DATE, INVALID_REASON
- from dev_gemscript.THIN_GEMSC_DMD_0717 join concept_relationship_stage on GEMSCRIPT_DRUGCODE = concept_code_1)
- ;
- commit
- ;
+DELETE
+FROM concept_relationship_stage cr
+WHERE concept_code_1 IN (
+		SELECT concept_code
+		FROM concept_stage
+		WHERE concept_class_id = 'Gemscript THIN'
+		);
+
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT encrypted_drugcode,
+	concept_code_2,
+	'Gemscript',
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+FROM THIN_GEMSC_DMD_0717
+JOIN concept_relationship_stage ON GEMSCRIPT_DRUGCODE = concept_code_1;
+
 --procedures 
+-- Working with replacement mappings
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.CheckReplacementMappings;
-END;
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
 /
-COMMIT;
 
 -- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
-END;
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
 /
-COMMIT;
 
 -- Add mapping from deprecated to fresh concepts, and also from non-standard to standard concepts
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
-END;
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
 /
-COMMIT;
 
 -- Delete ambiguous 'Maps to' mappings
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
-END;
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
 /
-COMMIT; 
 
---select count(*) from concept_relationship_Stage join concept_stage on  concept_code = concept_code_1
- 
---;
---select count(*) from dev_gemscript.concept_relationship_Stage join dev_gemscript.concept_stage on  concept_code = concept_code_1
--- ;
- 
+--select count(*) from concept_relationship_Stage join concept_stage on  concept_code = concept_code_1;
+--select count(*) from concept_relationship_Stage join concept_stage on  concept_code = concept_code_1;

@@ -14,12 +14,14 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE NFC
+DROP TABLE IF EXISTS SOURCES.NFC;
+CREATE TABLE SOURCES.NFC
 (
-   CONCEPT_CODE   VARCHAR2 (50),
-   CONCEPT_NAME   VARCHAR2 (1000)
-)
-NOLOGGING;
+   concept_code       VARCHAR (50),
+   concept_name       VARCHAR (1000),
+   vocabulary_date    DATE,
+   vocabulary_version VARCHAR (200)
+);

@@ -14,92 +14,183 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
-CREATE TABLE PRODUCT
+DROP TABLE IF EXISTS SOURCES.PRODUCT;
+CREATE TABLE SOURCES.PRODUCT
 (
-  PRODUCTID                  VARCHAR2(50 BYTE),
-  PRODUCTNDC                 VARCHAR2(10 BYTE),
-  PRODUCTTYPENAME            VARCHAR2(27 BYTE),
-  PROPRIETARYNAME            VARCHAR2(226 BYTE),
-  PROPRIETARYNAMESUFFIX      VARCHAR2(126 BYTE),
-  NONPROPRIETARYNAME         VARCHAR2(4000 BYTE),
-  DOSAGEFORMNAME             VARCHAR2(48 BYTE),
-  ROUTENAME                  VARCHAR2(1000 BYTE),
-  STARTMARKETINGDATE         DATE,
-  ENDMARKETINGDATE           DATE,
-  MARKETINGCATEGORYNAME      VARCHAR2(240 BYTE),
-  APPLICATIONNUMBER          VARCHAR2(100 BYTE),
-  LABELERNAME                VARCHAR2(100 BYTE),
-  SUBSTANCENAME              VARCHAR2(4000 BYTE),
-  ACTIVE_NUMERATOR_STRENGTH  VARCHAR2(4000 BYTE),
-  ACTIVE_INGRED_UNIT         VARCHAR2(4000 BYTE),
-  PHARM_CLASSES              VARCHAR2(4000 BYTE),
-  DEASCHEDULE                VARCHAR2(5 BYTE)
+  productid                         VARCHAR(50),
+  productndc                        VARCHAR(10),
+  producttypename                   VARCHAR(500),
+  proprietaryname                   VARCHAR(226),
+  proprietarynamesuffix             VARCHAR(126),
+  nonproprietaryname                VARCHAR(4000),
+  dosageformname                    VARCHAR(48),
+  routename                         VARCHAR(1000),
+  startmarketingdate                DATE,
+  endmarketingdate                  DATE,
+  marketingcategoryname             VARCHAR(40),
+  applicationnumber                 VARCHAR(100),
+  labelername                       VARCHAR(500),
+  substancename                     VARCHAR(4000),
+  active_numerator_strength         VARCHAR(4000),
+  active_ingred_unit                VARCHAR(4000),
+  pharm_classes                     VARCHAR(4000),
+  deaschedule                       VARCHAR(5),
+  ndc_exclude_flag                  VARCHAR(1),
+  listing_record_certified_through  DATE,
+  vocabulary_date                   DATE,
+  vocabulary_version                VARCHAR (200)
 );
 
-CREATE TABLE SPL2RXNORM_MAPPINGS
+DROP TABLE IF EXISTS SOURCES.PACKAGE;
+CREATE TABLE SOURCES.PACKAGE
 (
-   SETID         VARCHAR2 (50 BYTE),
-   SPL_VERSION   VARCHAR2 (10 BYTE),
-   RXCUI         VARCHAR2 (8 BYTE),
-   RXTTY         VARCHAR2 (10 BYTE)
+  productid                         VARCHAR(50),
+  productndc                        VARCHAR(10),
+  ndcpackagecode                    VARCHAR(500),
+  packagedescription                VARCHAR(1000),
+  startmarketingdate                DATE,
+  endmarketingdate                  DATE,
+  ndc_exclude_flag                  VARCHAR(1),
+  sample_package                    VARCHAR(1),
+  pack_code                         VARCHAR(11)
 );
 
-CREATE TABLE SPL_EXT_RAW
+DROP TABLE IF EXISTS SOURCES.SPL2RXNORM_MAPPINGS;
+CREATE TABLE SOURCES.SPL2RXNORM_MAPPINGS
 (
-  XML_NAME  VARCHAR2(100 BYTE),
-  XMLFIELD  XMLTYPE
+  setid         VARCHAR (50),
+  spl_version   VARCHAR (10),
+  rxcui         VARCHAR (8),
+  rxstring      VARCHAR (4000),
+  rxtty         VARCHAR (10)
 );
 
-CREATE TABLE NDC_EXT_RAW
+DROP TABLE IF EXISTS SOURCES.ALLXMLFILELIST;
+CREATE TABLE SOURCES.ALLXMLFILELIST
 (
-  CONCEPT_CODE  VARCHAR2(100 BYTE),
-  XMLFIELD  XMLTYPE
+  xml_path  VARCHAR(100)
 );
 
-CREATE TABLE SPL_EXT
+DROP TABLE IF EXISTS SOURCES.SPL_EXT_RAW;
+CREATE TABLE SOURCES.SPL_EXT_RAW
 (
-  XML_NAME          VARCHAR2(100 BYTE),
-  CONCEPT_NAME      VARCHAR2(4000 BYTE),
-  CONCEPT_CODE      VARCHAR2(4000 BYTE),
-  VALID_START_DATE  DATE,
-  DISPLAYNAME       VARCHAR2(4000 BYTE),
-  REPLACED_SPL      VARCHAR2(4000 BYTE),
-  LOW_VALUE         VARCHAR2(4000 BYTE),
-  HIGH_VALUE        VARCHAR2(4000 BYTE)
+  xmlfield  TEXT
 );
 
-CREATE TABLE SPL2NDC_MAPPINGS
+DROP TABLE IF EXISTS SOURCES.SPL_EXT;
+CREATE TABLE SOURCES.SPL_EXT
 (
-  CONCEPT_CODE  VARCHAR2(4000 BYTE),
-  NDC_CODE      VARCHAR2(4000 BYTE)
+  concept_name      VARCHAR(4000),
+  concept_code      VARCHAR(4000),
+  valid_start_date  DATE,
+  displayname       VARCHAR(4000),
+  replaced_spl      VARCHAR(4000),
+  low_value         VARCHAR(4000),
+  high_value        VARCHAR(4000)
 );
 
-CREATE INDEX SPLEXT_idx
-   ON SPL_EXT (concept_code)
-   NOLOGGING;
+DROP TABLE IF EXISTS SOURCES.SPL2NDC_MAPPINGS;
+CREATE TABLE SOURCES.SPL2NDC_MAPPINGS
+(
+  concept_code  VARCHAR(4000),
+  ndc_code      VARCHAR(4000)
+);
 
-CREATE INDEX SPL2NDC_idx
-   ON SPL2NDC_MAPPINGS (concept_code)
-   NOLOGGING;
-   
-CREATE INDEX idx_f_product
-   ON product (SUBSTR (productid, INSTR (productid, '_') + 1))
-   NOLOGGING;
+CREATE INDEX splext_idx ON SOURCES.spl_ext (concept_code);
+CREATE INDEX spl2ndc_idx ON SOURCES.spl2ndc_mappings (ndc_code);
+CREATE INDEX idx_f_product ON SOURCES.product ((SUBSTR (productid, INSTR (productid, '_') + 1)));
+CREATE INDEX idx_f1_product ON SOURCES.product (
+	(
+		CASE 
+			WHEN INSTR(productndc, '-') = 5
+				THEN '0' || SUBSTR(productndc, 1, INSTR(productndc, '-') - 1)
+			ELSE SUBSTR(productndc, 1, INSTR(productndc, '-') - 1)
+			END || CASE 
+			WHEN LENGTH(SUBSTR(productndc, INSTR(productndc, '-'))) = 4
+				THEN '0' || SUBSTR(productndc, INSTR(productndc, '-') + 1)
+			ELSE SUBSTR(productndc, INSTR(productndc, '-') + 1)
+			END
+		)
+	);
 
-CREATE INDEX idx_f1_product
-ON product( 
-    CASE
-    WHEN INSTR (productndc, '-') = 5
-    THEN '0' || SUBSTR (productndc,1,INSTR (productndc, '-') - 1)
-    ELSE SUBSTR (productndc, 1, INSTR (productndc, '-') - 1)
-    END||
-    CASE
-    WHEN LENGTH ( SUBSTR (productndc, INSTR (productndc, '-'))) = 4
-    THEN '0' || SUBSTR (productndc,INSTR (productndc, '-') + 1)
-    ELSE
-      SUBSTR (productndc,INSTR (productndc, '-') + 1)
-    END)
-NOLOGGING;   
+--We should use python functions for XML parsing because PG at this moment (9.6) can't work with huge XML
+CREATE OR REPLACE FUNCTION sources.py_xmlparse_spl_mappings (
+	xml_string text
+)
+RETURNS
+TABLE (
+	concept_code varchar,
+	ndc_code varchar
+)
+AS
+$BODY$
+	from lxml.etree import XMLParser, fromstring
+	p = XMLParser(huge_tree=True) #to prevent XML_PARSE_HUGE error
+	res = []
+	xmlns_uris = {'x': 'urn:hl7-org:v3'}
+	xml = fromstring(xml_string, parser=p)
+	concept_code = xml.xpath('/x:document/x:setId/@root',namespaces=xmlns_uris)[0]
+	ndc_codes = xml.xpath('//x:containerPackagedProduct/x:code/@code|//x:containerPackagedMedicine/x:code/@code',namespaces=xmlns_uris)
+	for ndc_code in ndc_codes:
+		res.append((concept_code,ndc_code))
+	return res
+$BODY$
+LANGUAGE 'plpythonu'
+SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION sources.py_xmlparse_spl (
+	xml_string text
+)
+RETURNS
+TABLE (
+	concept_name_part varchar,
+	concept_name_suffix varchar,
+	concept_name_part2 varchar,
+	formcode varchar,
+	kit varchar,
+	concept_name_clob_part varchar,
+	concept_name_clob_suffix varchar,
+	concept_name_clob_part2 varchar,
+	formcode_clob varchar,
+	concept_code varchar,
+	valid_start_date varchar,
+	displayname varchar,
+	replaced_spl varchar,
+	low_value varchar,
+	high_value varchar
+)
+AS
+$BODY$
+	from lxml.etree import XMLParser, fromstring
+	p = XMLParser(huge_tree=True) #to prevent XML_PARSE_HUGE error
+	res = []
+	xmlns_uris = {'x': 'urn:hl7-org:v3'}
+	xml = fromstring(xml_string, parser=p)
+	concept_code = xml.xpath('/x:document/x:setId/@root',namespaces=xmlns_uris)[0]
+	concept_name_part = xml.xpath('/x:document/x:component/x:structuredBody/x:component[1]/x:section/x:subject[1]/x:manufacturedProduct/x:*/x:name/text()',namespaces=xmlns_uris)
+	concept_name_part=concept_name_part[0] if concept_name_part else ''
+	concept_name_suffix = xml.xpath('/x:document/x:component/x:structuredBody/x:component[1]/x:section/x:subject[1]/x:manufacturedProduct/x:*/x:name/x:suffix/text()',namespaces=xmlns_uris)
+	concept_name_suffix=concept_name_suffix[0] if concept_name_suffix else ''
+	concept_name_part2 = xml.xpath('/x:document/x:component/x:structuredBody/x:component[1]/x:section/x:subject[1]/x:manufacturedProduct/x:*/x:asEntityWithGeneric/x:genericMedicine/x:name/text()',namespaces=xmlns_uris)
+	concept_name_part2=concept_name_part2[0] if concept_name_part2 else ''
+	formcode = xml.xpath('/x:document/x:component/x:structuredBody/x:component[1]/x:section/x:subject[1]/x:manufacturedProduct/x:*/x:formCode/@displayName',namespaces=xmlns_uris)
+	formcode=formcode[0] if formcode else ''
+	kit = xml.xpath('/x:document/x:component/x:structuredBody/x:component[1]/x:section/x:subject[1]/x:manufacturedProduct/x:*/x:asSpecializedKind/x:generalizedMaterialKind/x:code/@displayName',namespaces=xmlns_uris)
+	kit=kit[0] if kit else ''
+	concept_name_clob_part = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:name/text()',namespaces=xmlns_uris))
+	concept_name_clob_suffix = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:name/x:suffix/text()',namespaces=xmlns_uris))
+	concept_name_clob_part2 = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:asEntityWithGeneric/x:genericMedicine/x:name/text()',namespaces=xmlns_uris))
+	formcode_clob = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:formCode/@displayName',namespaces=xmlns_uris))
+	valid_start_date = xml.xpath('/x:document/x:effectiveTime[1]/@value',namespaces=xmlns_uris)[0]
+	displayname = xml.xpath('/x:document/x:code/@displayName',namespaces=xmlns_uris)[0]
+	replaced_spls = ';'.join(xml.xpath('//x:document/x:relatedDocument/x:relatedDocument/x:setId/@root',namespaces=xmlns_uris))
+	low_value = ';'.join(set(xml.xpath('//x:subjectOf/x:marketingAct/x:effectiveTime/x:low/@value',namespaces=xmlns_uris)))
+	high_value = ';'.join(set(xml.xpath('//x:subjectOf/x:marketingAct/x:effectiveTime/x:high/@value',namespaces=xmlns_uris)))
+	res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,low_value,high_value))
+	return res
+$BODY$
+LANGUAGE 'plpythonu'
+SECURITY DEFINER;

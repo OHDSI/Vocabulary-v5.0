@@ -14,17 +14,19 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
--- 1. Update latest_update field to new date 
+-- 1. Update latest_update field to new date
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'NFC',
-                                          pVocabularyDate        => TO_DATE ('20160704', 'yyyymmdd'),
-                                          pVocabularyVersion     => 'NFC 20160704',
-                                          pVocabularyDevSchema   => 'DEV_NFC');
-END;
-COMMIT;
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'NFC',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.nfc LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.nfc LIMIT 1),
+	pVocabularyDevSchema	=> 'DEV_NFC'
+);
+END $_$;
 
 -- 2. Truncate all working tables and remove indices
 TRUNCATE TABLE concept_stage;
@@ -34,50 +36,53 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 --3. Insert into concept_stage
-INSERT INTO concept_stage (concept_name,
-                           vocabulary_id,
-                           domain_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-   SELECT concept_name,
-          'NFC' AS vocabulary_id,
-          'Drug' AS domain_id,
-          'NFC'   AS concept_class_id,
-          'C' AS standard_concept,
-          concept_code,
-          TO_DATE ('19700101', 'yyyymmdd') AS valid_start_date,
-          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM NFC;
-COMMIT;				  
+INSERT INTO concept_stage (
+	concept_name,
+	vocabulary_id,
+	domain_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT concept_name,
+	'NFC' AS vocabulary_id,
+	'Drug' AS domain_id,
+	'NFC' AS concept_class_id,
+	'C' AS standard_concept,
+	concept_code,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM SOURCES.nfc;
 
 --4. Add hierarchy inside NFC
-INSERT INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        relationship_id,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT uppr.concept_code AS concept_code_1,
-          lowr.concept_code AS concept_code_2,
-          'Is a' AS relationship_id,
-          'NFC' AS vocabulary_id_1,
-          'NFC' AS vocabulary_id_2,
-          v.latest_update AS valid_start_date,
-          TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM concept_stage uppr, concept_stage lowr, vocabulary v
-    WHERE     lowr.concept_code = SUBSTR (uppr.concept_code, 1, LENGTH (uppr.concept_code) - 1)
-          AND uppr.vocabulary_id = 'NFC'
-          AND lowr.vocabulary_id = 'NFC'
-          AND v.vocabulary_id = 'NFC';
-COMMIT;
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	relationship_id,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT uppr.concept_code AS concept_code_1,
+	lowr.concept_code AS concept_code_2,
+	'Is a' AS relationship_id,
+	'NFC' AS vocabulary_id_1,
+	'NFC' AS vocabulary_id_2,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM concept_stage uppr,
+	concept_stage lowr,
+	vocabulary v
+WHERE lowr.concept_code = SUBSTR(uppr.concept_code, 1, LENGTH(uppr.concept_code) - 1)
+	AND uppr.vocabulary_id = 'NFC'
+	AND lowr.vocabulary_id = 'NFC'
+	AND v.vocabulary_id = 'NFC';
 
-
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

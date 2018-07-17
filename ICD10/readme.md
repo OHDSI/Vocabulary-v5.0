@@ -5,8 +5,9 @@ Prerequisites:
 - Working directory ICD10.
 
 1. Go to http://apps.who.int/classifications/apps/icd/ClassificationDownload/DLArea/Download.aspx and download latest ICD-10 version (e.g. ICD-10 2016 version)
-2. Unzip the file and load icdClaMLYYYYens.xml using ICDCLAML.ctl
-3. Run load_stage.sql (with updated pVocabularyDate = latest update date)
-4. Run generic_update.sql (from working directory)
+2. Unzip the file icdClaMLYYYYens.xml and rename to icdClaML.xml
+3. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('ICD10',TO_DATE('20161201','YYYYMMDD'),'2016 Release');
+4. Run load_stage.sql
+5. Run generic_update.sql (from working directory)
 
  

@@ -14,24 +14,19 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Date: 2017
 **************************************************************************/
 
 -- 1. Update latest_update field to new date 
-DECLARE
-   cNDDFDate   DATE;
-   cNDDFVer    VARCHAR2 (100);
+DO $_$
 BEGIN
-   SELECT TO_DATE (NDDF_VERSION, 'YYYYMMDD'), NDDF_VERSION || ' Release'
-     INTO cNDDFDate, cNDDFVer
-     FROM NDDF_PRODUCT_INFO;
-
-   DEVV5.VOCABULARY_PACK.SetLatestUpdate (pVocabularyName        => 'GCN_SEQNO',
-                                          pVocabularyDate        => cNDDFDate,
-                                          pVocabularyVersion     => cNDDFVer,
-                                          pVocabularyDevSchema   => 'DEV_GCNSEQNO');
-END;
-COMMIT;
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'GCN_SEQNO',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.nddf_product_info LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.nddf_product_info LIMIT 1),
+	pVocabularyDevSchema	=> 'DEV_GCNSEQNO'
+);
+END $_$;
 
 -- 2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
@@ -41,67 +36,79 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 --3. Add GCN_SEQNO to concept_stage from rxnconso
-INSERT /*+ APPEND */ INTO  concept_stage (concept_name,
-                           domain_id,
-                           vocabulary_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-   SELECT SUBSTR (c.str, 1, 255) AS concept_name,
-          'Drug' AS domain_id,
-          'GCN_SEQNO' AS vocabulary_id,
-          'GCN_SEQNO' AS concept_class_id,
-          NULL AS standard_concept,
-          c.code AS concept_code,
-		 (select v.latest_update from vocabulary v where v.vocabulary_id = 'GCN_SEQNO' ) AS valid_start_date,
-		 TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-          NULL AS invalid_reason
-     FROM rxnconso c
-    WHERE c.sab = 'NDDF' AND c.tty = 'CDC';
-COMMIT;
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT SUBSTR(c.str, 1, 255) AS concept_name,
+	'Drug' AS domain_id,
+	'GCN_SEQNO' AS vocabulary_id,
+	'GCN_SEQNO' AS concept_class_id,
+	NULL AS standard_concept,
+	c.code AS concept_code,
+	(
+		SELECT v.latest_update
+		FROM vocabulary v
+		WHERE v.vocabulary_id = 'GCN_SEQNO'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM SOURCES.rxnconso c
+WHERE c.sab = 'NDDF'
+	AND c.tty = 'CDC';
 
 --4. Load into concept_relationship_stage
-INSERT /*+ APPEND */ INTO  concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-   SELECT DISTINCT gcn.code AS concept_code_1,
-                   rxn.code AS concept_code_2,
-                   'GCN_SEQNO' AS vocabulary_id_1,
-                   'RxNorm' AS vocabulary_id_2,
-                   'Maps to' AS relationship_id,
-				   (select v.latest_update from vocabulary v where v.vocabulary_id = 'GCN_SEQNO') AS valid_start_date,
-                   TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-                   NULL AS invalid_reason
-     FROM rxnconso gcn
-          JOIN rxnconso rxn ON rxn.rxcui = gcn.rxcui AND rxn.sab = 'RXNORM'
-    WHERE gcn.sab = 'NDDF' AND gcn.tty = 'CDC';
-COMMIT;	 
-
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT gcn.code AS concept_code_1,
+	rxn.code AS concept_code_2,
+	'GCN_SEQNO' AS vocabulary_id_1,
+	'RxNorm' AS vocabulary_id_2,
+	'Maps to' AS relationship_id,
+	(
+		SELECT v.latest_update
+		FROM vocabulary v
+		WHERE v.vocabulary_id = 'GCN_SEQNO'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM SOURCES.rxnconso gcn
+JOIN SOURCES.rxnconso rxn ON rxn.rxcui = gcn.rxcui
+	AND rxn.sab = 'RXNORM'
+WHERE gcn.sab = 'NDDF'
+	AND gcn.tty = 'CDC';
 
 --5. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.DeprecateWrongMAPSTO;
-END;
-COMMIT;	
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
 
 --6. Add mapping from deprecated to fresh concepts
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.AddFreshMAPSTO;
-END;
-COMMIT;		 
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
 
 --7. Delete ambiguous 'Maps to' mappings
+DO $_$
 BEGIN
-   DEVV5.VOCABULARY_PACK.DeleteAmbiguousMAPSTO;
-END;
-COMMIT;
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

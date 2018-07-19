@@ -945,6 +945,46 @@ WHERE NOT EXISTS (
 
 DROP TABLE wrong_replacements;
 
+--7.3.2 special fix for code=1000589 (RxNorm bug, concept is U but should be alive)
+--set concept alive
+INSERT INTO concept_stage (
+	concept_name,
+	vocabulary_id,
+	domain_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT 'autologous cultured chondrocytes',
+	'RxNorm',
+	'Drug',
+	'Ingredient',
+	'S',
+	'1000589',
+	TO_DATE('20100905', 'yyyymmdd'),
+	TO_DATE('20991231', 'yyyymmdd'),
+	NULL
+WHERE NOT EXISTS (
+		SELECT 1
+		FROM concept_stage
+		WHERE concept_code = '1000589'
+		);
+
+--kill replacement relationship
+UPDATE concept_relationship_stage crs
+SET valid_end_date = (
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'RxNorm'
+		),
+	invalid_reason = 'D'
+WHERE crs.concept_code_1 = '1000589'
+	AND crs.concept_code_2 = '350141'
+	AND crs.relationship_id = 'Concept replaced by';
+
 --7.4 Delete non-existing concepts from concept_relationship_stage
 DELETE
 FROM concept_relationship_stage crs

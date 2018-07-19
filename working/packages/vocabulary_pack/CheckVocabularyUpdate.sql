@@ -123,6 +123,7 @@ BEGIN
           17. BDPM
           18. GGR
         */
+        perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
         set local http.timeout_msec TO 30000;
         SELECT content into cVocabHTML FROM http_get(cURL);
         

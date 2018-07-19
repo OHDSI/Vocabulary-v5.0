@@ -15,7 +15,8 @@ declare
 begin
     perform devv5.SendMailHTML (email, cJOBName||' was started', 'Time: '||now()::timestamp(0));
     set local search_path to devv5; --for proper work of devv5.http_get
-    set local devv5.http.timeout_msec TO 30000; --set HTTP timeout
+    perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
+    set local http.timeout_msec TO 30000; --set HTTP timeout
     truncate table apigrabber.rxnorm2ndc_mappings_tmp;
     truncate table apigrabber.api_codes_failed;
 

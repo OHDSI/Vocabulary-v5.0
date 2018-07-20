@@ -3,15 +3,15 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'BDPM',
-	pVocabularyDate			=> TO_DATE ('20160721', 'yyyymmdd'),
-	pVocabularyVersion		=> 'BDPM 20160722',
+	pVocabularyDate			=> TO_DATE ('20180622', 'yyyymmdd'),
+	pVocabularyVersion		=> 'BDPM 20180622',
 	pVocabularyDevSchema	=> 'DEV_BDPM'
 );
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'RxNorm Extension',
-	pVocabularyDate			=> TO_DATE ('20160721', 'yyyymmdd'),
-	pVocabularyVersion		=> 'RxNorm Extension 20160722',
-	pVocabularyDevSchema	=> 'DEV_BDPM'
+	pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyVersion		=> 'RxNorm Extension '||CURRENT_DATE,
+	pVocabularyDevSchema	=> 'DEV_BDPM',
 	pAppendVocabulary		=> TRUE
 );
 END $_$;

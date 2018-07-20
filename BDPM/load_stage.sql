@@ -664,6 +664,11 @@ WHERE drug_code IN (
 		SELECT drug_code
 		FROM non_drug
 		);
+--manual ds_1 fixes
+UPDATE ds_1
+	SET amount_value = 20,
+	    amount_unit = 'mg'
+WHERE concept_code = '3646843';			   
 
 UPDATE ds_1
 SET numerator_unit = 'mg'
@@ -1149,12 +1154,22 @@ VALUES (
 
 UPDATE ds_stage
 SET numerator_value = numerator_value * 10 * denominator_value,
-	numerator_unit = 'mg'
+    numerator_unit = 'mg'
 WHERE numerator_unit = '%';
+			   
+--update drugs that have amount+denominator
+UPDATE ds_stage
+SET numerator_value = amount_value,
+    numerator_unit = amount_unit,
+    amount_value = NULL,
+    amount_unit = NULL
+WHERE denominator_unit IS NOT NULL
+	AND numerator_unit IS NULL
+	AND amount_unit IS NOT NULL;			   
 
 UPDATE ds_stage
 SET denominator_value = NULL,
-	denominator_unit = NULL
+    denominator_unit = NULL
 WHERE denominator_unit IS NOT NULL
 	AND numerator_unit IS NULL;
 
@@ -1355,17 +1370,51 @@ UPDATE brand_name
 SET brand_name = regexp_replace(brand_name, 'ADULTES|ENFANTS|NOURRISSONS', '', 'g')
 WHERE brand_name ilike 'SUPPOSITOIRE%';
 
+CREATE TABLE bn 
+AS
+SELECT *
+FROM brand_name
+  JOIN concept
+    ON UPPER (brand_name) = UPPER (concept_name)
+   AND vocabulary_id = 'RxNorm Extension'
+   AND invalid_reason = 'D';
+
+DELETE
+FROM bn
+WHERE brand_name IN (SELECT brand_name
+                     FROM bn
+                       JOIN concept c
+                         ON brand_name = UPPER (c.concept_name)
+                        AND c.concept_class_id = 'Brand Name'
+                        AND c.invalid_reason IS NULL
+                        AND c.vocabulary_id LIKE 'Rx%');
+
+DELETE
+FROM bn
+WHERE brand_name IN ('ADEPAL','AMARANCE','AVADENE','BIAFINE','BORIPHARM N','CARBOSYLANE ENFANT','CARBOSYMAG','CLINIMIX N','CRESOPHENE','DETURGYLONE','EVANECIA','FEMSEPTCOMBI','HEPARGITOL','JASMINE','LEUCODININE B','NOVOFEMME','NUMETAH G','PACILIA','PERMIXON','PHAEVA','REVITALOSE');
+
+DELETE
+FROM brand_name
+WHERE brand_name IN (SELECT brand_name FROM bn);
+
+DELETE
+FROM brand_name
+WHERE SUBSTRING(UPPER(brand_name),'\w+') IN (SELECT UPPER(concept_name)
+                                             FROM concept
+                                             WHERE concept_Class_id = 'Ingredient')
+AND   brand_name NOT IN (SELECT UPPER(concept_name)
+                         FROM concept
+                         WHERE concept_Class_id = 'Brand Name'
+                         AND   invalid_reason IS NULL
+                         AND   vocabulary_id LIKE 'Rx%');
+			   
 --list for drug_concept_stage
 DROP TABLE IF EXISTS dcs_bn;
 CREATE TABLE dcs_bn AS
 SELECT DISTINCT brand_name AS concept_name,
 	'Brand Name'::VARCHAR AS concept_class_id
 FROM brand_name
-WHERE brand_name NOT IN (
-		SELECT brand_name
-		FROM brand_name_exception
-		) -- previously created table with Brand names similar to ingredients
-	AND drug_code NOT IN (
+WHERE drug_code NOT IN (
 		SELECT drug_code
 		FROM non_drug
 		);

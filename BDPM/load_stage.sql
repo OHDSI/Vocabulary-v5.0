@@ -91,6 +91,7 @@ JOIN sources.bdpm_ingredient b ON a.drug_code = b.drug_code
 WHERE ingredient LIKE '%IOXITALAM%'
 	OR ingredient LIKE '%GADOTÉR%'
 	OR ingredient LIKE '%AMIDOTRIZOATE%'
+	OR form_code='86327'
 	AND a.drug_code NOT IN (
 		SELECT drug_code
 		FROM non_drug
@@ -145,7 +146,10 @@ WHERE drug_descr ~* 'hémofiltration|AMINOMIX|dialys|test|radiopharmaceutique|MI
 		SELECT drug_code
 		FROM non_drug
 		);
-
+--exclude Xofigo		
+DELETE FROM non_drug
+	WHERE ingredient LIKE '%RADIUM%223%';		
+		
 --create table with homeopathic drugs as they will be proceeded in different way
 DROP TABLE IF EXISTS homeop_drug;
 CREATE TABLE homeop_drug AS
@@ -167,6 +171,7 @@ SELECT din_7,
 		END AS amount,
 	CASE 
 		WHEN NOT packaging ~ '^\d+\s*(mg|g|ml|litre|l)(\s|$|\,)'
+	    	     AND substring(packaging, '^\d+')!='0'
 			THEN substring(packaging, '^\d+')
 		ELSE NULL
 		END::INT AS box_size
@@ -177,29 +182,33 @@ UPDATE packaging_pars_1
 SET amount = regexp_replace(amount, '([[:digit:]]+) ([[:digit:]]+)', '\1\2')
 WHERE amount ~ '[[:digit:]]+ [[:digit:]]+';
 
+---!!need to check inhalers
+--select * from packaging_pars_1 WHERE amount LIKE '%dose(s)%';
 --ignore "dose"
 UPDATE packaging_pars_1
 SET amount = NULL
 WHERE amount LIKE '%dose(s)%';
 
+--!!!! do not catch comprime etc
 -- define box size and amount (Quant factor mostly)
 DROP TABLE IF EXISTS packaging_pars_2;
 CREATE TABLE packaging_pars_2 AS
-SELECT CASE 
-		WHEN amount ~* '[[:digit:].,]+\s*(ml|g|mg|l|UI|MBq/ml|GBq/ml|litre(s*)|à|mlavec|kg)(\s|$|\,)'
-			THEN unnest(regexp_matches(amount, '([[:digit:].,]+\s*(?:ml|g|mg|l|UI|MBq/ml|GBq/ml|litres|kg))(?:\s|$|\,)', 'i')) --case insensitive variant of regexp_substr
-		ELSE NULL
-		END AS amount,
+SELECT
 	CASE 
-		WHEN NOT amount ~* '[[:digit:].,]+\s*(ml|g|mg|l|UI|MBq/ml|GBq/ml|litre(s*)|à|mlavec|kg)(\s|$|\,)'
-			AND (replace(substring(amount, '[[:digit:].,]+'), ',', '.')) IS NOT NULL
-			THEN substring(amount, '\d+')::INT * coalesce(box_size, 1)
+		WHEN NOT p.amount ~* '[[:digit:].,]+\s*(ml|g|mg|l|UI|MBq/ml|GBq/ml|litre(s*)|à|mlavec|kg)(\s|$|\,)'
+			AND (replace(substring(p.amount, '[[:digit:].,]+'), ',', '.')) IS NOT NULL
+			THEN substring(p.amount, '\d+')::INT * coalesce(box_size, 1)
 		ELSE box_size
 		END AS box_size,
+	l.amount,			     
 	din_7,
 	drug_code,
 	packaging
-FROM packaging_pars_1;
+FROM packaging_pars_1 p
+LEFT JOIN LATERAL(
+	SELECT unnest(regexp_matches(p.amount, '([[:digit:].,]+\s*(?:ml|g|mg|l|UI|MBq/ml|GBq/ml|litres|kg))(?:\s|$|\,)', 'i')) 
+				     AS amount) l ON true
+;
 
 --pars amount to value and unit
 DROP TABLE IF EXISTS packaging_pars_3;
@@ -321,7 +330,7 @@ WHERE form_code = '04031'
 
 UPDATE ingredient_step_1
 SET dosage = '30000000 U'
-WHERE dosage = '200 millions à 3000 millions germes reviviscibles';
+WHERE drug_code='60973899';
 
 --spaces in dosages
 UPDATE ingredient_step_1
@@ -336,7 +345,7 @@ WHERE volume ~ '[[:digit:],]+ [[:digit:],]+';
 --manual fix of dosages
 UPDATE ingredient_step_1
 SET dosage = '31250000000 U'
-WHERE dosage = '31,25 * 10^9 bactéries';
+WHERE dosage like '31,25 * 10^9%';
 
 UPDATE ingredient_step_1
 SET dosage = '1000 DICC50'
@@ -577,7 +586,6 @@ VALUES
 	('cm ²',	'cm²'),
 	('cm^2',	'cm²'),
 	('cm²',	'cm²'),
-	('g',	'g'),
 	('kg',	'kg'),
 	('l',	'l'),
 	('log  DICC50',	'log CCID_50'),
@@ -592,7 +600,6 @@ VALUES
 	('milliard',	'U'),
 	('millions UI',	'Million IU'),
 	('millions d''UI',	'Million IU'),
-	('ml',	'ml'),
 	('mmol',	'mmol'),
 	('nanogrammes',	'ng'),
 	('nanokatals',	'nanokatal'),
@@ -600,37 +607,54 @@ VALUES
 	('ppm mole',	'ppm mole'),
 	('unités',	'U'),
 	('µg',	'mcg'),
-	('µmol',	'mcmol');
+	('µmol',	'mcmol')
+	('UIK',	'U'),
+	('UIK.',	'U'),
+	('U.D',	'U'),
+	('Unités',	'U'),
+	('Unité',	'U'),
+	('UD (Unité antigène D)',	'U'),
+	('Unités antigène D',	'U'),
+	('Unités Antihéparine',	'U'),
+	('Ul',	'U'),
+	('U.I',	'U'),
+	('U.D.',	'U'),
+	('Unité antigène D',	'U'), ;
 
 UPDATE ds_1
 SET amount_unit = (
 		SELECT translation
 		FROM unit_translation --manual table
-		WHERE amount_unit = unit
-		);
+		WHERE trim(upper(amount_unit)) = upper(unit)
+		)
+WHERE EXISTS (
+		SELECT 1
+		FROM unit_translation
+		WHERE trim(upper(amount_unit)) = upper(unit)
+		);			   
 
 UPDATE ds_1
 SET numerator_unit = (
 		SELECT translation
 		FROM unit_translation
-		WHERE numerator_unit = unit
+		WHERE trim(upper(numerator_unit)) = upper(unit)
 		)
 WHERE EXISTS (
 		SELECT 1
 		FROM unit_translation
-		WHERE numerator_unit = unit
+		WHERE trim(upper(numerator_unit)) = upper(unit)
 		);
 
 UPDATE ds_1
 SET denominator_unit = (
 		SELECT translation
 		FROM unit_translation
-		WHERE denominator_unit = unit
+		WHERE trim(upper(denominator_unit)) = upper(unit)
 		)
 WHERE EXISTS (
 		SELECT 1
 		FROM unit_translation
-		WHERE denominator_unit = unit
+		WHERE trim(upper(denominator_unit)) = upper(unit)
 		);
 
 --make sure we don't include non-drug into ds_stage

@@ -6,15 +6,15 @@ $body$
 DECLARE
   iVocabularies VARCHAR(1000) [ ];
   crlf VARCHAR (4) := '<br>';
-  --iSmallCA_emails CONSTANT VARCHAR(1000) :=('timur.vakhitov@firstlinesoftware.com,timur.vakhitov@gmail.com');
   iSmallCA_emails CONSTANT VARCHAR(1000) :=('timur.vakhitov@firstlinesoftware.com,reich@ohdsi.org,reich@omop.org,ddymshyts@odysseusinc.com,anna.ostropolets@odysseusinc.com');
   cRet TEXT;
+  cRet2 TEXT;
   cCAGroups INT:=50;
   cRecord record;
 BEGIN
 
   IF is_small THEN 
-	iVocabularies:=ARRAY['RxNorm','RxNorm Extension','ATC','NFC','EphMRA ATC'];
+    iVocabularies:=ARRAY['RxNorm','RxNorm Extension','ATC','NFC','EphMRA ATC'];
   END IF;
   
   --materialize main query
@@ -70,7 +70,7 @@ BEGIN
     JOIN concept c1 on c1.concept_id=hc.root_ancestor_concept_id and c1.standard_concept is not null
     JOIN concept c2 on c2.concept_id=hc.descendant_concept_id and c2.standard_concept is not null
     GROUP BY hc.root_ancestor_concept_id, hc.descendant_concept_id' USING cRecord.ancestor_concept_id_min, cRecord.ancestor_concept_id_max;
-    PERFORM devv5.SendMailHTML ('timur.vakhitov@firstlinesoftware.com', '[DEBUG] concept ancestor iteration='||cRecord.n, '[DEBUG] concept ancestor iteration='||cRecord.n||' of '||cCAGroups);
+    --PERFORM devv5.SendMailHTML ('timur.vakhitov@firstlinesoftware.com', '[DEBUG] concept ancestor iteration='||cRecord.n, '[DEBUG] concept ancestor iteration='||cRecord.n||' of '||cCAGroups);
   END LOOP;
   
   TRUNCATE TABLE concept_ancestor;
@@ -106,7 +106,7 @@ BEGIN
         select
             r.concept_id_1 as ancestor_concept_id,
             r.concept_id_2 as descendant_concept_id,
-            case when s.is_hierarchical=1 and c1.standard_concept is not null then 1 else 0 end as levels_of_separation,       
+            case when s.is_hierarchical=1 and c1.standard_concept is not null then 1 else 0 end as levels_of_separation,
             s.relationship_id
         from concept_relationship r 
         join relationship s on s.relationship_id=r.relationship_id and s.defines_ancestry=1
@@ -137,6 +137,7 @@ BEGIN
                              FROM concept_relationship cr,
                                   concept c_int
                              WHERE c_int.concept_id = cr.concept_id_1
+                             AND cr.invalid_reason IS NULL
         )
         AND c.invalid_reason IS NULL
         AND c.standard_concept IS NOT NULL;
@@ -635,10 +636,10 @@ BEGIN
   WHEN OTHERS
   THEN
     if is_small then
-	  GET STACKED DIAGNOSTICS cRet = PG_EXCEPTION_CONTEXT;
-      cRet:='ERROR: '||SQLERRM||crlf||'CONTEXT: '||regexp_replace(cRet, '\r|\n|\r\n', crlf, 'g');
+      GET STACKED DIAGNOSTICS cRet = PG_EXCEPTION_CONTEXT, cRet2 = PG_EXCEPTION_DETAIL;
+      cRet:='ERROR: '||SQLERRM||crlf||'DETAIL: '||cRet2||crlf||'CONTEXT: '||regexp_replace(cRet, '\r|\n|\r\n', crlf, 'g');
       cRet := SUBSTR ('Small concept ancestor completed with errors:'||crlf||'<b>'||cRet||'</b>', 1, 5000);
-      PERFORM devv5.SendMailHTML (iSmallCA_emails, 'Small concept ancestor in '||upper(current_schema)||' [error]', cRet);  
+      PERFORM devv5.SendMailHTML (iSmallCA_emails, 'Small concept ancestor in '||upper(current_schema)||' [error]', cRet);
     else
       raise;
     end if;

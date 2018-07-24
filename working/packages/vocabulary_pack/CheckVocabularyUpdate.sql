@@ -122,6 +122,9 @@ BEGIN
           16. CVX
           17. BDPM
           18. GGR
+          19. MeSH
+          20. CDT
+          21. CPT4
         */
         perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
         set local http.timeout_msec TO 30000;
@@ -323,6 +326,9 @@ BEGIN
             THEN
                 cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a download="" href="/nl/downloads/file\?type=EMD&amp;name=/csv4Emd_Nl_([\d]{4}).+\.zip" target="_blank">CSV NL</a>.+'),'yymm');
                 cVocabVer := 'GGR '||to_char(cVocabDate,'YYYYMMDD');
+            WHEN cVocabularyName in ('MESH','CDT','CPT4')
+            THEN
+                select vocabulary_date, vocabulary_version into cVocabDate, cVocabVer FROM sources.mrsmap LIMIT 1;
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

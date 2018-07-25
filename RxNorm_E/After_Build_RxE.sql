@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Christian Reich, Anna Ostropolets, Dmitri Dimschits
+* Authors: Christian Reich, Anna Ostropolets
 ***************************************************************************/
 
 /******************************************************************************
@@ -370,7 +370,7 @@ WHERE pc.drug_concept_code = r.sparse_code
 	AND pc.drug_vocabulary_id = 'RxNorm Extension';
 
 /******************************************************************************************
-* 6. Rename all 'Maps to' and 'Source – RxNorm eq' relationships to 'Concept replaced by' *
+* 6. Rename all 'Maps to' and 'Source Â– RxNorm eq' relationships to 'Concept replaced by' *
 ******************************************************************************************/
 UPDATE concept_relationship_stage
 SET relationship_id = 'Concept replaced by'

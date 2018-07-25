@@ -227,7 +227,7 @@ SELECT DISTINCT cr.concept_code_1,
 FROM r_existing r
 JOIN ex e ON r.i_combo = e.ri_combo
 	AND r.bn_id = e.bn_id
-	AND trim(r.d_combo) IS NULL -- was ' ' in r_existing.d_combo
+	AND trim(r.d_combo) ='' -- was ' ' in r_existing.d_combo
 	AND r.quant_value = 0
 	AND r.quant_unit_id = 0
 	AND r.bs = 0
@@ -290,7 +290,7 @@ SELECT DISTINCT cr.concept_code_1,
 	'8' -- Clinical Drug Form
 FROM r_existing r
 JOIN ex e ON r.i_combo = e.ri_combo
-	AND trim(r.d_combo) IS NULL
+	AND trim(r.d_combo) =''
 	AND r.bn_id = 0
 	AND r.quant_value = 0
 	AND r.quant_unit_id = 0

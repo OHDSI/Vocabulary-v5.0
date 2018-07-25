@@ -3,8 +3,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'BDPM',
-	pVocabularyDate			=> TO_DATE ('20180622', 'yyyymmdd'),
-	pVocabularyVersion		=> 'BDPM 20180622',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.bdpm_drug LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.bdpm_drug LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_BDPM'
 );
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(

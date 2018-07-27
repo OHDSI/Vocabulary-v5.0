@@ -125,6 +125,7 @@ BEGIN
           19. MeSH
           20. CDT
           21. CPT4
+          22. AMT
         */
         perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
         set local http.timeout_msec TO 30000;
@@ -329,6 +330,20 @@ BEGIN
             WHEN cVocabularyName in ('MESH','CDT','CPT4')
             THEN
                 select vocabulary_date, vocabulary_version into cVocabDate, cVocabVer FROM sources.mrsmap LIMIT 1;
+            WHEN cVocabularyName = 'AMT'
+            THEN
+                select s0.amt_date into cVocabDate from (
+                  select unnest(xpath ('//xmlns:category/@term', cVocabHTML::xml,
+                      ARRAY[ARRAY['xmlns', 'http://www.w3.org/2005/Atom'],
+                      ARRAY['ncts', 'http://ns.electronichealth.net.au/ncts/syndication/asf/extensions/1.0.0']
+                  	]))::varchar category,
+                  	to_date(substring(unnest(xpath ('//ncts:contentItemVersion/text()', cVocabHTML::xml,
+                      ARRAY[ARRAY['xmlns', 'http://www.w3.org/2005/Atom'],
+                      ARRAY['ncts', 'http://ns.electronichealth.net.au/ncts/syndication/asf/extensions/1.0.0']
+                  	]))::varchar,'.+/([\d]{8})$'),'yyyymmdd') amt_date
+                  ) s0
+                  where s0.category='SCT_RF2_FULL' order by s0.amt_date desc limit 1;
+                cVocabVer := 'Clinical Terminology v'||to_char(cVocabDate,'YYYYMMDD');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

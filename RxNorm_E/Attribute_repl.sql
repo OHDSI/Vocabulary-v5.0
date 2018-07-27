@@ -31,6 +31,104 @@ WHERE concept_code IN (
 			AND cr1.relationship_id = 'Source - RxNorm eq'
 		);
 
+--brand
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT cr1.concept_code_2,
+	cr2.concept_code_2,
+	cr1.vocabulary_id_2,
+	cr2.vocabulary_id_2,
+	'Concept replaced by',
+	cr1.valid_start_date,
+	cr1.valid_end_date
+FROM bn_to_repl s
+JOIN concept_relationship_stage cr1 ON s.concept_code_1 = cr1.concept_code_1
+	AND cr1.relationship_id = 'Source - RxNorm eq'
+JOIN concept_relationship_stage cr2 ON s.concept_code_2 = cr2.concept_code_1
+	AND cr2.relationship_id = 'Source - RxNorm eq';
+
+UPDATE concept_stage
+SET invalid_reason = 'U',
+	valid_end_date = CURRENT_DATE
+WHERE concept_code IN (
+		SELECT cr1.concept_code_2
+		FROM bn_to_repl s
+		JOIN concept_relationship_stage cr1 ON s.concept_code_1 = cr1.concept_code_1
+			AND cr1.relationship_id = 'Source - RxNorm eq'
+		);
+		
+--ingredient
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT cr1.concept_code_2,
+	cr2.concept_code_2,
+	cr1.vocabulary_id_2,
+	cr2.vocabulary_id_2,
+	'Concept replaced by',
+	cr1.valid_start_date,
+	cr1.valid_end_date
+FROM ingredient_to_replace  s
+JOIN concept_relationship_stage cr1 ON s.concept_code_1 = cr1.concept_code_1
+	AND cr1.relationship_id = 'Source - RxNorm eq'
+JOIN concept_relationship_stage cr2 ON s.concept_code_2 = cr2.concept_code_1
+	AND cr2.relationship_id = 'Source - RxNorm eq';
+
+UPDATE concept_stage
+SET invalid_reason = 'U',
+	valid_end_date = CURRENT_DATE
+WHERE concept_code IN (
+		SELECT cr1.concept_code_2
+		FROM ingredient_to_replace  s
+		JOIN concept_relationship_stage cr1 ON s.concept_code_1 = cr1.concept_code_1
+			AND cr1.relationship_id = 'Source - RxNorm eq'
+		);
+-- dose form
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT cr1.concept_code_2,
+	cr2.concept_code_2,
+	cr1.vocabulary_id_2,
+	cr2.vocabulary_id_2,
+	'Concept replaced by',
+	cr1.valid_start_date,
+	cr1.valid_end_date
+FROM dose_form_to_replace  s
+JOIN concept_relationship_stage cr1 ON s.concept_code_1 = cr1.concept_code_1
+	AND cr1.relationship_id = 'Source - RxNorm eq'
+JOIN concept_relationship_stage cr2 ON s.concept_code_2 = cr2.concept_code_1
+	AND cr2.relationship_id = 'Source - RxNorm eq';
+
+UPDATE concept_stage
+SET invalid_reason = 'U',
+	valid_end_date = CURRENT_DATE
+WHERE concept_code IN (
+		SELECT cr1.concept_code_2
+		FROM dose_form_to_replace  s
+		JOIN concept_relationship_stage cr1 ON s.concept_code_1 = cr1.concept_code_1
+			AND cr1.relationship_id = 'Source - RxNorm eq'
+		);
+
 --create temporary table with old mappings and fresh concepts (after all 'Concept replaced by')
 DROP TABLE IF EXISTS rxe_tmp_replaces;
 CREATE TABLE rxe_tmp_replaces AS

@@ -663,7 +663,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT c1.concept_code AS concept_code_1,
+SELECT DISTINCT c1.concept_code AS concept_code_1, --use distinct for SMQ: one concept_code but different concept_ids
 	c2.concept_code AS concept_code_2,
 	c1.vocabulary_id AS vocabulary_id_1,
 	c2.vocabulary_id AS vocabulary_id_2,

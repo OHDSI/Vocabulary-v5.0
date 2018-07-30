@@ -2612,7 +2612,7 @@ c as ( -- combine with combos
 ),
 u as ( -- build component and add a 0 before a leading dot
   select rd_combo,
-    concat(concept_name,case when v is null then null else concat(' '||regexp_replace(v::varchar, '^\.', '0.','g'),' ',u) end) as comp_name
+    concat(concept_name,case when v is null then null else concat(' '||regexp_replace(v::float::varchar::decimal::varchar, '^\.', '0.','g'),' ',u) end) as comp_name
   from c
 )
 -- build the component

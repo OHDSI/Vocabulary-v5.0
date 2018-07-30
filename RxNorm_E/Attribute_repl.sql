@@ -74,28 +74,26 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT DISTINCT cr1.concept_code_2,
-	cr2.concept_code_2,
-	cr1.vocabulary_id_2,
-	cr2.vocabulary_id_2,
+SELECT DISTINCT cr1.concept_code,
+	cr2.concept_code,
+	'RxNorm Extension',
+	cr2.vocabulary_id,
 	'Concept replaced by',
 	cr1.valid_start_date,
-	cr1.valid_end_date
-FROM ingredient_to_replace  s
-JOIN concept_relationship_stage cr1 ON s.concept_code_1 = cr1.concept_code_1
-	AND cr1.relationship_id = 'Source - RxNorm eq'
-JOIN concept_relationship_stage cr2 ON s.concept_code_2 = cr2.concept_code_1
-	AND cr2.relationship_id = 'Source - RxNorm eq';
+	to_date('20991231','YYYYMMDD')
+FROM ingredient_to_replace s -- different way, as there are no Source - RxNorm eq
+JOIN devv5.concept cr1 ON s.concept_code_1 = cr1.concept_code and cr1.vocabulary_id like 'Rx%'
+JOIN devv5.concept cr2 ON s.concept_code_2 = cr2.concept_code and cr2.vocabulary_id like 'Rx%'
+	;
 
 UPDATE concept_stage
 SET invalid_reason = 'U',
 	valid_end_date = CURRENT_DATE
 WHERE concept_code IN (
-		SELECT cr1.concept_code_2
+		SELECT concept_code_1
 		FROM ingredient_to_replace  s
-		JOIN concept_relationship_stage cr1 ON s.concept_code_1 = cr1.concept_code_1
-			AND cr1.relationship_id = 'Source - RxNorm eq'
 		);
+		
 -- dose form
 INSERT INTO concept_relationship_stage (
 	concept_code_1,

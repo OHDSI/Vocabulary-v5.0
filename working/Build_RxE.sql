@@ -2911,7 +2911,7 @@ p as (
 ),
 l as (
   select concept_id,  
-    (245-all_a_len-p.len)/all_n_len as factor -- 255-10 for common pack text (curly brackets, spaces)
+    (245-all_a_len-p.len)/all_n_len::float as factor -- 255-10 for common pack text (curly brackets, spaces)
   from (
     select distinct
       concept_id,

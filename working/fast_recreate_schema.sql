@@ -36,7 +36,7 @@ $body$
     IF CURRENT_SCHEMA = 'devv5' then RAISE EXCEPTION 'You cannot use this script in the ''devv5''!'; end if;
     
     DROP TABLE IF EXISTS concept_ancestor, concept, concept_relationship, concept_synonym, vocabulary, relationship, drug_strength, pack_content CASCADE;
-    TRUNCATE TABLE concept_stage, concept_relationship_stage, concept_synonym_stage, concept_class, domain, vocabulary_conversion;
+    TRUNCATE TABLE concept_stage, concept_relationship_stage, concept_synonym_stage, concept_class, domain, vocabulary_conversion, drug_strength_stage, pack_content_stage;
     EXECUTE 'INSERT INTO concept_class SELECT * FROM '||main_schema_name||'.concept_class';
     EXECUTE 'INSERT INTO domain SELECT * FROM '||main_schema_name||'.domain';
     EXECUTE 'INSERT INTO vocabulary_conversion SELECT * FROM '||main_schema_name||'.vocabulary_conversion';

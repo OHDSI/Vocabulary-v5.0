@@ -3696,6 +3696,21 @@ select distinct -- because each pack has many drugs
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage limit 1)) as valid_start_date,
   to_date('20991231', 'yyyymmdd') as valid_end_date,
   null as invalid_reason
+from full_pack 
+join concept c on r_concept_id = c.concept_id
+where r_concept_id is not null and q_concept_code is not null
+;								 
+								 
+insert into concept_relationship_stage (concept_code_1, vocabulary_id_1, concept_code_2, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+select distinct -- because each pack has many drugs
+  q_concept_code as concept_code_1,
+  (select vocabulary_id from drug_concept_stage limit 1) as vocabulary_id_1,
+  c.concept_code as concept_code_2,
+  c.vocabulary_id as vocabulary_id_2,
+  'Maps to' as relationship_id,
+  (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage limit 1)) as valid_start_date,
+  to_date('20991231', 'yyyymmdd') as valid_end_date,
+  null as invalid_reason
 from pack_attribute join concept_stage c using(concept_id)
 join full_pack using(components, bn_id, bs, mf_id)
 where q_concept_code is not null

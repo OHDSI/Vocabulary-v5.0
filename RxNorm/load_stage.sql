@@ -1017,6 +1017,98 @@ WHERE (
 				)
 		);
 
+--7.5 Add manual relationships. We can't use concept_relationship_manual because it is used by ATC, NDFRT etc, so we created a new table - concept_relationship_manual_rx
+--just copy the code from \working\packages\vocabulary_pack\CheckManualTable.sql and \working\packages\vocabulary_pack\ProcessManualRelationships.sql
+DO $_$
+DECLARE
+z INT4;
+BEGIN
+	SELECT COUNT(*)
+	INTO z
+	FROM dev_rxnorm.concept_relationship_manual_rx crm
+	LEFT JOIN concept c1 ON c1.concept_code = crm.concept_code_1 AND c1.vocabulary_id = crm.vocabulary_id_1
+	LEFT JOIN concept_stage cs1 ON cs1.concept_code = crm.concept_code_1 AND cs1.vocabulary_id = crm.vocabulary_id_1
+	LEFT JOIN concept c2 ON c2.concept_code = crm.concept_code_2 AND c2.vocabulary_id = crm.vocabulary_id_2
+	LEFT JOIN concept_stage cs2 ON cs2.concept_code = crm.concept_code_2 AND cs2.vocabulary_id = crm.vocabulary_id_2
+	LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crm.vocabulary_id_1
+	LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crm.vocabulary_id_2
+	LEFT JOIN relationship rl ON rl.relationship_id = crm.relationship_id
+	LEFT JOIN 
+	(
+	 SELECT crm_int.concept_code_1,
+			crm_int.vocabulary_id_1,
+			crm_int.concept_code_2,
+			crm_int.vocabulary_id_2,
+			crm_int.relationship_id
+	 FROM dev_rxnorm.concept_relationship_manual_rx crm_int
+	 GROUP BY crm_int.concept_code_1,
+			crm_int.vocabulary_id_1,
+			crm_int.concept_code_2,
+			crm_int.vocabulary_id_2,
+			crm_int.relationship_id
+	HAVING COUNT(*) > 1
+	) c_i ON c_i.concept_code_1 = crm.concept_code_1 AND c_i.vocabulary_id_1 = crm.vocabulary_id_1 AND c_i.concept_code_2 = crm.concept_code_2 AND
+	c_i.vocabulary_id_2 = crm.vocabulary_id_2 AND c_i.relationship_id = crm.relationship_id
+	WHERE (c1.concept_code IS NULL
+	AND cs1.concept_code IS NULL)
+	OR (c2.concept_code IS NULL
+	AND cs2.concept_code IS NULL)
+	OR v1.vocabulary_id IS NULL
+	OR v2.vocabulary_id IS NULL
+	OR rl.relationship_id IS NULL
+	OR crm.valid_start_date > CURRENT_DATE
+	OR crm.valid_end_date < crm.valid_start_date
+	OR date_trunc('day', (crm.valid_start_date)) <> crm.valid_start_date
+	OR date_trunc('day', (crm.valid_end_date)) <> crm.valid_end_date
+	OR (crm.invalid_reason IS NULL
+	AND crm.valid_end_date <> TO_DATE('20991231', 'yyyymmdd'))
+	OR c_i.concept_code_1 IS NOT NULL;
+
+	IF z > 0 THEN
+		RAISE EXCEPTION  'CheckManualTable: % error(s) found', z;
+	END IF;
+
+	--add new records
+	INSERT INTO concept_relationship_stage (
+		concept_code_1,
+		concept_code_2,
+		vocabulary_id_1,
+		vocabulary_id_2,
+		relationship_id,
+		valid_start_date,
+		valid_end_date,
+		invalid_reason
+		)
+	SELECT *
+	FROM dev_rxnorm.concept_relationship_manual_rx m
+	WHERE NOT EXISTS (
+			SELECT 1
+			FROM concept_relationship_stage crs_int
+			WHERE crs_int.concept_code_1 = m.concept_code_1
+				AND crs_int.concept_code_2 = m.concept_code_2
+				AND crs_int.vocabulary_id_1 = m.vocabulary_id_1
+				AND crs_int.vocabulary_id_2 = m.vocabulary_id_2
+				AND crs_int.relationship_id = m.relationship_id
+			);
+
+	--update existing
+	UPDATE concept_relationship_stage crs
+	SET valid_start_date = m.valid_start_date,
+		valid_end_date = m.valid_end_date,
+		invalid_reason = m.invalid_reason
+	FROM dev_rxnorm.concept_relationship_manual_rx m
+	WHERE crs.concept_code_1 = m.concept_code_1
+		AND crs.concept_code_2 = m.concept_code_2
+		AND crs.vocabulary_id_1 = m.vocabulary_id_1
+		AND crs.vocabulary_id_2 = m.vocabulary_id_2
+		AND crs.relationship_id = m.relationship_id
+		AND (
+			crs.valid_start_date <> m.valid_start_date
+			OR crs.valid_end_date <> m.valid_end_date
+			OR coalesce(crs.invalid_reason, 'X') <> coalesce(m.invalid_reason, 'X')
+			);
+END $_$;
+
 --8. Working with replacement mappings
 DO $_$
 BEGIN

@@ -1,0 +1,5 @@
+--undeprecate wrongly deprecated old mappings
+update concept_relationship set invalid_reason=null, valid_end_date=TO_DATE('20991231', 'YYYYMMDD') where concept_id_1=40141336 and concept_id_2=1544872 and relationship_id='Maps to' and invalid_reason is not null;
+update concept_relationship set invalid_reason=null, valid_end_date=TO_DATE('20991231', 'YYYYMMDD') where concept_id_1=1544872 and concept_id_2=40141336 and relationship_id='Mapped from' and invalid_reason is not null;
+update concept_relationship set invalid_reason=null, valid_end_date=TO_DATE('20991231', 'YYYYMMDD') where concept_id_1=40141048 and concept_id_2=1516980 and relationship_id='Maps to' and invalid_reason is not null;
+update concept_relationship set invalid_reason=null, valid_end_date=TO_DATE('20991231', 'YYYYMMDD') where concept_id_1=1516980 and concept_id_2=40141048 and relationship_id='Mapped from' and invalid_reason is not null;

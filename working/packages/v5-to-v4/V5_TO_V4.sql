@@ -781,6 +781,14 @@ BEGIN
                    THEN 1
                       ELSE 0 END
                  END
+             WHEN 'KDC'
+               THEN -- specialized hierarchy
+                 CASE WHEN c.domain_id = 'Drug'
+                   THEN 0
+                 ELSE CASE WHEN c.standard_concept = 'S'
+                   THEN 1
+                      ELSE 0 END
+                 END
              ELSE -- flat list
                CASE
                WHEN c.standard_concept IS NULL

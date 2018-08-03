@@ -1899,6 +1899,7 @@ BEGIN
 END $_$;
 
 --23. Remove direct links to RxNorm Ingredients for all those ATC5 concepts that are ambiguous and likely are either defined as combinations or with certain Drug Forms only
+ANALYZE concept_relationship_stage;
 DELETE
 FROM concept_relationship_stage crs
 WHERE EXISTS (

@@ -2120,7 +2120,7 @@ VALUES (138875005, 'Metadata'), -- root
 	(373782009, 'Device'), -- diagnostic substance, exception of drug
 	(2949005, 'Observation'), -- diagnostic aid (exclusion from drugs)
 	(404684003, 'Condition'), -- Clinical Finding
-	(62014003, 'Condition'), -- Adverse reaction to drug
+	(62014003, 'Observation'), -- Adverse reaction to drug
 	(313413008, 'Condition'), -- Calculus observation
 	(405533003, 'Observation'), -- Adverse incident outcome categories
 	(365854008, 'Observation'), -- History finding
@@ -2228,7 +2228,7 @@ VALUES (138875005, 'Metadata'), -- root
 	(962871000000107, 'Observation'), -- Aware of overall cardiovascular disease risk
 	(968521000000109, 'Observation'), -- Inappropriate use of general practitioner service
 	--added 8/25/2017, these concepts should be in Observation, so people can put causative agent into 
-	--(282100009, 'Observation'), -- Adverse reaction caused by substance
+	(282100009, 'Observation'), -- Adverse reaction caused by substance
 	(473010000, 'Condition'), -- Hypersensitivity condition
 	(419199007, 'Observation'), -- Allergy to substance
 	(10628711000119101, 'Condition'), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned

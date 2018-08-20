@@ -161,7 +161,7 @@ BEGIN
             THEN
                 cSearchString := '<a class="btn btn-primary btn-md" href="';
                 cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cPos2 := devv5.INSTR (cVocabHTML, '.zip">Download RF2 Files Now!</a>', cPos1);
+                cPos2 := devv5.INSTR (cVocabHTML, '.zip"><strong>Download RF2 Files Now!</strong></a>', cPos1);
                 perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
                 cVocabDate := TO_DATE (SUBSTRING (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:digit:]]+'), 'yyyymmdd');
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');

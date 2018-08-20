@@ -90,7 +90,7 @@ BEGIN
     if pCookie not like '%TGC=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%TGC=%% not found'; end if;
 
     --first part, getting raw download link from page
-    select substring(http_content,'<a class="btn btn-primary btn-md".+?href="(.+?)">Download RF2 Files Now!</a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'<a class="btn btn-primary btn-md".+?href="(.+?)"><strong>Download RF2 Files Now!</strong></a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
     --second part, now we have fully working download link

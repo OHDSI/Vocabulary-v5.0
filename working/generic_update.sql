@@ -148,7 +148,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'AMT' THEN 1
 		WHEN c.vocabulary_id = 'GRR' THEN 0
 		WHEN c.vocabulary_id = 'CVX' THEN 1
-		WHEN c.vocabulary_id = 'LPD_Australia' THEN 1
+		WHEN c.vocabulary_id = 'LPD_Australia' THEN 0
 		WHEN c.vocabulary_id = 'PPI' THEN 1
 		WHEN c.vocabulary_id = 'ICDO3' THEN 1
 		WHEN c.vocabulary_id = 'CDT' THEN 1

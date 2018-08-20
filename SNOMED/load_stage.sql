@@ -1843,6 +1843,22 @@ FROM (
 				THEN 'Has basis str subst'
 			WHEN term = 'Has unit of administration'
 				THEN 'Has unit of admin'
+			WHEN term = 'Has precise active ingredient'
+				THEN 'Has prec ingredient'
+			WHEN term = 'Has unit of presentation'
+				THEN 'Has unit of presen'
+			WHEN term = 'Has concentration strength numerator value'
+				THEN 'Has conc num val'
+			WHEN term = 'Has concentration strength denominator value'
+				THEN 'Has conc denom val'
+			WHEN term = 'Has concentration strength denominator unit'
+				THEN 'Has conc denom unit'
+			WHEN term = 'Has concentration strength numerator unit'
+				THEN 'Has conc num unit'
+			WHEN term = 'Is modification of'
+				THEN 'Modification of'
+			WHEN term = 'Count of base of active ingredient'
+				THEN 'Has count of ing'
 			ELSE term--'non-existing'
 			END AS relationship_id,
 		(
@@ -2251,7 +2267,9 @@ VALUES (138875005, 'Metadata'), -- root
 	(126154004, 'Drug'),
 	(421347001, 'Drug'),
 	(61483006, 'Drug'),
-	(373749006, 'Drug');
+	(373749006, 'Drug'),
+	--added 20180820
+	(709080004, 'Observation');
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

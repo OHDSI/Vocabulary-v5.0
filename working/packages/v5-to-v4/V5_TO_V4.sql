@@ -789,6 +789,8 @@ BEGIN
                    THEN 1
                       ELSE 0 END
                  END
+             WHEN 'SUS'
+               THEN 0
              ELSE -- flat list
                CASE
                WHEN c.standard_concept IS NULL

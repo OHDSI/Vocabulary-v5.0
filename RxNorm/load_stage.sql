@@ -1017,7 +1017,48 @@ WHERE (
 				)
 		);
 
---7.5 Add manual relationships. We can't use concept_relationship_manual because it is used by ATC, NDFRT etc, so we created a new table - concept_relationship_manual_rx
+--7.5 Add 'Maps to' as part (duplicate) of the 'Form of' relationship between 'Precise Ingredient' and 'Ingredient' (AVOF-1167)
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT crs.concept_code_1,
+	crs.concept_code_2,
+	crs.vocabulary_id_1,
+	crs.vocabulary_id_2,
+	'Maps to',
+	crs.valid_start_date,
+	crs.valid_end_date,
+	NULL
+FROM concept_relationship_stage crs
+JOIN concept_stage c1 ON c1.concept_code = crs.concept_code_1
+	AND c1.vocabulary_id = crs.vocabulary_id_1
+	AND c1.concept_class_id = 'Precise Ingredient'
+	AND c1.vocabulary_id = 'RxNorm'
+JOIN concept_stage c2 ON c2.concept_code = crs.concept_code_2
+	AND c2.vocabulary_id = crs.vocabulary_id_2
+	AND c2.concept_class_id = 'Ingredient'
+	AND c2.vocabulary_id = 'RxNorm'
+	AND c2.standard_concept = 'S'
+WHERE crs.relationship_id = 'Form of'
+	AND crs.invalid_reason IS NULL
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = crs.concept_code_1
+			AND crs_int.concept_code_2 = crs.concept_code_2
+			AND crs_int.vocabulary_id_1 = crs.vocabulary_id_1
+			AND crs_int.vocabulary_id_2 = crs.vocabulary_id_2
+			AND crs_int.relationship_id = 'Maps to'
+		);
+
+--7.6 Add manual relationships. We can't use concept_relationship_manual because it is used by ATC, NDFRT etc, so we created a new table - concept_relationship_manual_rx
 --just copy the code from \working\packages\vocabulary_pack\CheckManualTable.sql and \working\packages\vocabulary_pack\ProcessManualRelationships.sql
 DO $_$
 DECLARE

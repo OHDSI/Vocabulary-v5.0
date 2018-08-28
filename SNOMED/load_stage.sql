@@ -1995,8 +1995,50 @@ WHERE cs.invalid_reason IS NULL
 	AND cs.vocabulary_id = 'SNOMED'
 	AND crs.concept_code_1 IS NULL;
 
+--same as above, but for 'Maps to' (we need to add the manual deprecation for proper work of the VOCABULARY_PACK.AddFreshMAPSTO)
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT crs.concept_code_1,
+	crs.concept_code_2,
+	'SNOMED' AS vocabulary_id_1,
+	'SNOMED' AS vocabulary_id_2,
+	'Maps to',
+	crs.valid_start_date,
+	(
+		SELECT latest_update - 1
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		) AS valid_end_date,
+	'D' AS invalid_reason
+FROM concept_relationship_stage crs
+JOIN concept c1 ON c1.concept_code = crs.concept_code_1
+	AND c1.vocabulary_id = crs.vocabulary_id_1
+JOIN concept c2 ON c2.concept_code = crs.concept_code_2
+	AND c2.vocabulary_id = crs.vocabulary_id_2
+JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
+	AND cr.concept_id_2 = c2.concept_id
+	AND cr.relationship_id = 'Maps to'
+	AND cr.invalid_reason IS NULL
+WHERE crs.relationship_id IN (
+		'Concept replaced by',
+		'Concept same_as to',
+		'Concept alt_to to',
+		'Concept poss_eq to',
+		'Concept was_a to'
+		)
+	AND crs.invalid_reason = 'D';
+
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
+
 --delete records that does not exists in the concept and concept_stage
 DELETE
 FROM concept_relationship_stage crs

@@ -63,67 +63,77 @@ WHERE cui NOT LIKE '%-%' -- don't use chapters
 	AND term NOT LIKE 'CHAPTER %'
 	AND v.vocabulary_id = 'OPCS4';
 
---4. Create concept_relationship_stage
--- We have to invert the direction of the mapping. The source gives us high OPCS4 to lower SNOMED we need to find the nearest common ancestor of all those lower SNOMED codes
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	relationship_id,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT DISTINCT REGEXP_REPLACE(concept_code, '([[:print:]]{3})([[:print:]]+)', '\1.\2','g') AS concept_code_1,
-	first_value(ancestor_code) OVER (
-		PARTITION BY concept_code ORDER BY cnt DESC,
-			averg rows BETWEEN unbounded preceding
-				AND unbounded following
-		) AS concept_code_2, -- pick the ancestor with the highest number and the lowest average min_levels_of_separation
-	'OPCS4 - SNOMED' AS relationship_id,
-	'OPCS4' AS vocabulary_id_1,
-	'SNOMED' AS vocabulary_id_2,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date, ---- latest_update starting at 1.1.1970 this time.
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
+--4. Create concept_relationship_stage only from manual source
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--5. Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--6. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--7. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--8. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--9. Make concepts that have relationship 'Maps to' non-standard
+UPDATE concept_stage cs
+SET standard_concept = NULL
+FROM concept_relationship_stage crs
+WHERE cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL;
+
+--10. Update domain_id and concept_class for mapped concepts
+UPDATE concept_stage cs
+SET domain_id = i.domain_id,
+	concept_class_id = i.concept_class_id
 FROM (
-	SELECT DISTINCT concept_code,
-		ancestor_code,
-		count(*) AS cnt,
-		avg(min_levels_of_separation) AS averg -- get for each code all the ancestors, their distance and number
-	FROM (
-		SELECT opcs_m.scui AS concept_code,
-			anc.concept_code AS ancestor_code,
-			a.min_levels_of_separation
-		FROM SOURCES.opcssctmap opcs_m
-		JOIN concept snomed ON snomed.vocabulary_id = 'SNOMED'
-			AND snomed.concept_code = opcs_m.tcui -- convert SNOMED code to SNOMED ID
-		JOIN (
-			-- get all the ancestors of the SNOMED IDs
-			SELECT min_levels_of_separation,
-				ancestor_concept_id,
-				descendant_concept_id
-			FROM concept_ancestor
-			WHERE ancestor_concept_id NOT IN (
-					SELECT descendant_concept_id
-					FROM concept_ancestor
-					WHERE ancestor_concept_id = 4008453
-						AND min_levels_of_separation < 3 -- remove very high up concepts in the hierarchy
-					)
-			) a ON a.descendant_concept_id = snomed.concept_id
-		JOIN concept anc ON anc.concept_id = a.ancestor_concept_id
-			AND anc.vocabulary_id = 'SNOMED' -- don't get into MedDRA
-		) AS s0
-	GROUP BY concept_code,
-		ancestor_code
-	) AS s1
-WHERE concept_code IN (
-		-- only codes that are valid
-		SELECT cui
-		FROM SOURCES.opcs
-		WHERE cui NOT LIKE '%-%' -- don't use chapters
-			AND term NOT LIKE 'CHAPTER %'
+	SELECT c.domain_id,
+		c.concept_class_id,
+		crs.concept_code_1,
+		crs.vocabulary_id_1
+	FROM concept c
+	JOIN concept_relationship_stage crs ON crs.concept_code_2 = c.concept_code
+		AND crs.vocabulary_id_2 = c.vocabulary_id
+		AND crs.relationship_id IN (
+			'Maps to',
+			'Is a'
+			)
+		AND crs.invalid_reason IS NULL
+	) i
+WHERE cs.concept_code = i.concept_code_1
+	AND cs.vocabulary_id = i.vocabulary_id_1;
+
+--11. Delete concepts, that was deleted or retired
+DELETE
+FROM concept_stage cs
+WHERE (
+		cs.concept_code,
+		cs.vocabulary_id
+		) NOT IN (
+		SELECT crs.concept_code_1,
+			crs.vocabulary_id_1
+		FROM concept_relationship_stage crs
+		WHERE crs.invalid_reason IS NULL
 		);
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

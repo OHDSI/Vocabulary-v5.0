@@ -421,31 +421,103 @@ WHERE c1.concept_id = r.concept_id_1
 	AND mt.map_to = c1.concept_code
 	AND mt.loinc = c2.concept_code;
 
---16. Working with replacement mappings
+--16. Adding Loinc Document Ontology
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT d.partname AS concept_name,
+	'Meas Value' AS domain_id,
+	'LOINC' AS vocabulary_id,
+	CASE d.parttypename
+		WHEN 'Document.TypeOfService'
+			THEN 'Doc Type of Service'
+		WHEN 'Document.SubjectMatterDomain'
+			THEN 'Doc Subject Matter'
+		WHEN 'Document.Role'
+			THEN 'Doc Role'
+		WHEN 'Document.Setting'
+			THEN 'Doc Setting'
+		WHEN 'Document.Kind'
+			THEN 'Doc Kind'
+		END AS concept_class_id,
+	'S' AS standard_concept,
+	d.partnumber AS concept_code,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.loinc_documentontology d,
+	vocabulary v
+WHERE v.vocabulary_id = 'LOINC'
+	AND d.partname NOT LIKE '{%}';
+
+--17. Add mappings between LOINC and Document Ontology
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT d.loincnumber AS concept_code_1,
+	d.partnumber AS concept_code_2,
+	'LOINC' AS vocabulary_id_1,
+	'LOINC' AS vocabulary_id_2,
+	CASE d.parttypename
+		WHEN 'Document.TypeOfService'
+			THEN 'Has type of service'
+		WHEN 'Document.SubjectMatterDomain'
+			THEN 'Has subject matter'
+		WHEN 'Document.Role'
+			THEN 'Has role'
+		WHEN 'Document.Setting'
+			THEN 'Has setting'
+		WHEN 'Document.Kind'
+			THEN 'Has kind'
+		END AS relationship_id,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.loinc_documentontology d,
+	vocabulary v
+WHERE v.vocabulary_id = 'LOINC'
+	AND d.partname NOT LIKE '{%}';
+
+--18. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---17. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--19. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---18. Add mapping from deprecated to fresh concepts
+--20. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---19. Delete ambiguous 'Maps to' mappings
+--21. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---20. Set the proper concept_class_id for children of "Document ontology" (AVOF-352)
+--22. Set the proper concept_class_id for children of "Document ontology" (AVOF-352)
 UPDATE concept_stage
 SET concept_class_id = 'LOINC Document Type'
 WHERE concept_code IN (

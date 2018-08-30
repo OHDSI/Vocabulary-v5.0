@@ -383,7 +383,7 @@ begin
       ALTER TABLE sources.icdclaml ALTER COLUMN xmlfield SET DATA TYPE xml USING xmlfield::xml;
       update sources.icdclaml set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   when 'LOINC' then
-      truncate table sources.loinc, sources.map_to, sources.source_organization, sources.loinc_hierarchy;
+      truncate table sources.loinc, sources.map_to, sources.source_organization, sources.loinc_hierarchy, sources.loinc_documentontology;
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_date;
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_version;
       execute 'COPY sources.loinc FROM '''||pVocabularyPath||'loinc.csv'' delimiter '','' csv HEADER';
@@ -403,6 +403,7 @@ begin
       execute 'COPY sources.loinc_class FROM '''||pVocabularyPath||'loinc_class.csv'' delimiter ''|'' csv HEADER';
       execute 'COPY sources.scccrefset_mapcorrorfull_int FROM '''||pVocabularyPath||'xder2_sscccRefset_LOINCExpressionAssociationFull_INT.txt'' delimiter E''\t'' csv HEADER';
       execute 'COPY sources.cpt_mrsmap FROM '''||pVocabularyPath||'CPT_MRSMAP.RRF'' delimiter ''|'' csv';
+      execute 'COPY sources.loinc_documentontology FROM '''||pVocabularyPath||'DocumentOntology.csv'' delimiter '','' csv HEADER';
   when 'HCPCS' then
       truncate table sources.anweb_v2;
       insert into sources.anweb_v2 

@@ -19,7 +19,8 @@ BEGIN
     unzip -oqj "$2_ls.zip" "*SnomedCT_LOINC*/Full/Refset/Content/*ExpressionAssociationFull*.txt" -d . && \
     unzip -oqj "$2_cpt.zip" "MRSMAP.RRF" -d . && \
     unzip -oqj "$2_la.zip" "AnswerList.csv" -d . && \
-    unzip -oqj "$2_la.zip" "LoincAnswerListLink.csv" -d .
+    unzip -oqj "$2_la.zip" "LoincAnswerListLink.csv" -d . && \
+    unzip -oqj "$2_do.zip" "DocumentOntology.csv" -d .
     
     #move result to original folder
     cd "$1"
@@ -33,7 +34,8 @@ BEGIN
     mv work/MRSMAP.RRF "CPT_MRSMAP.RRF" && \
     mv work/AnswerList.csv "AnswerList.csv" && \
     mv work/LoincAnswerListLink.csv "LoincAnswerListLink.csv" && \
-    mv work/loinc_class.csv "loinc_class.csv"
+    mv work/loinc_class.csv "loinc_class.csv" && \
+    mv work/DocumentOntology.csv "DocumentOntology.csv"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

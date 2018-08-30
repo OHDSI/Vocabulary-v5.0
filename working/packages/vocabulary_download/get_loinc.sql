@@ -180,6 +180,23 @@ BEGIN
       iVocabulary_status=>1
     );
     
+    --loinc document ontology
+    pVocabularyOperation:='GET_LOINC LOINC Document Ontology downloading';
+    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=8;
+    perform run_wget (
+      iPath=>pVocabulary_load_path,
+      iFilename=>lower(pVocabularyID)||'_do.zip',
+      iDownloadLink=>pVocabulary_url,
+      iDeleteAll=>0,
+      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+    );
+    perform write_log (
+      iVocabularyID=>pVocabularyID,
+      iSessionID=>pSession,
+      iVocabulary_operation=>'GET_LOINC LOINC Document Ontology downloading complete',
+      iVocabulary_status=>1
+    );
+    
     --loinc to cpt mapping
     pVocabularyOperation:='GET_LOINC LOINC To CPT Mapping';
     --get credentials

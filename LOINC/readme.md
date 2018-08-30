@@ -15,6 +15,7 @@ and multiaxial hierarchy (https://loinc.org/file-access/download-id/8991)
 8. Extract MRSMAP.RRF and rename to CPT_MRSMAP.RRF
 9. Download "LOINC Answer File" from https://loinc.org/file-access/download-id/17950/, extract AnswerList.csv and LoincAnswerListLink.csv
 10. Put loinc_class.csv from \vocabulary-v5.0\LOINC\ into your upload folder
-11. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2.64');
-12. Run load_stage.sql
-13. Run generic_update.sql (from working directory)
+11. Download "LOINC Document Ontology" https://loinc.org/file-access/download-id/8994/, extract DocumentOntology.csv
+12. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2.64');
+13. Run load_stage.sql
+14. Run generic_update.sql (from working directory)

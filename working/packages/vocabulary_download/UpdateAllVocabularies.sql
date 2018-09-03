@@ -18,6 +18,7 @@ declare
   cResult text;
   cFastRecreateScript text;
   cLoadStageURL text;
+  cMoveToDevv5 text;
   cLoadStageScript text;
   cScriptFailed boolean;
   cScriptErrorText text;
@@ -61,6 +62,8 @@ begin
             --parsing the params (json)
             cFastRecreateScript:=cVocab.vocabulary_params->>'fast_recreate_script';
             cLoadStageURL:=cVocab.vocabulary_params->>'load_stage_path';
+            cMoveToDevv5:=cVocab.vocabulary_params->>'move_to_devv5';
+            
             if cFastRecreateScript is not null then
               begin --use another begin/end block because we don't want to rollback previous changes (fast recreate)
                 cFastRecreateScript:='do $AutomationSctipt$ begin perform '||crlfSQL||cFastRecreateScript||crlfSQL||'; end $AutomationSctipt$';
@@ -120,7 +123,7 @@ begin
               if not cScriptFailed then
                 begin
                   reset search_path;
-                  PERFORM devv5.GenericUpdate();
+                  perform devv5.GenericUpdate();
                   perform vocabulary_download.write_log (
                     iVocabularyID=>cModuleName,
                     iSessionID=>pSession,
@@ -141,6 +144,34 @@ begin
                   );
                 end;
               end if;
+              
+              --move to devv5
+              if not cScriptFailed and cMoveToDevv5='1' then
+                begin
+                  reset session authorization;
+                  reset search_path;
+                  execute cLoadStageScript;
+                  perform devv5.GenericUpdate();
+                  perform vocabulary_download.write_log (
+                    iVocabularyID=>cModuleName,
+                    iSessionID=>pSession,
+                    iVocabulary_operation=>'moving to devv5 for '||cVocab.vocabulary_dev_schema||' finished',
+                    iVocabulary_status=>1
+                  );
+                EXCEPTION WHEN OTHERS THEN
+                  get stacked diagnostics cRet = pg_exception_context;
+                  cRet:='ERROR: '||SQLERRM||crlfSQL||'CONTEXT: '||cRet;
+                  cScriptFailed:=true; --the 'Failed' marker
+                  cScriptErrorText:='moving to devv5 failed: '||SQLERRM;
+                  perform vocabulary_download.write_log (
+                    iVocabularyID=>cModuleName,
+                    iSessionID=>pSession,
+                    iVocabulary_operation=>'moving to devv5 for '||cVocab.vocabulary_dev_schema||' failed',
+                    iVocabulary_error=>cRet,
+                    iVocabulary_status=>2
+                  );
+                end;
+              end if;
             end if;
           end if;
           reset session authorization;
@@ -149,7 +180,11 @@ begin
           --store result
           cRet:=coalesce(to_char(cSrcDate,'yyyymmdd'),cSrcVersion)||' -> '||coalesce(to_char(cNewDate,'yyyymmdd'),cNewVersion);
           if not cScriptFailed then
-            cRet:=cHTML_OK||'<b>'||cVocab.vocabulary_id||'</b> was updated! ['||cRet||']';
+            if cMoveToDevv5='1' then
+              cRet:=cHTML_OK||'<b>'||cVocab.vocabulary_id||'</b> was updated! ['||cRet||'] [devv5]';
+            else
+              cRet:=cHTML_OK||'<b>'||cVocab.vocabulary_id||'</b> was updated! ['||cRet||']';
+            end if;
           else
             cRet:=cHTML_ERROR||'<b>'||cVocab.vocabulary_id||'</b> was updated in sources ['||cRet||'], but '||cScriptErrorText;
           end if;
@@ -169,6 +204,8 @@ begin
                 --parsing the params (json)
                 cFastRecreateScript:=cVocabA.vocabulary_params->>'fast_recreate_script';
                 cLoadStageURL:=cVocabA.vocabulary_params->>'load_stage_path';
+                cMoveToDevv5:=cVocab.vocabulary_params->>'move_to_devv5';
+                
                 if cFastRecreateScript is not null then
                   begin --use another begin/end block because we don't want to rollback previous changes (fast recreate)
                     cFastRecreateScript:='do $AutomationSctipt$ begin perform '||crlfSQL||cFastRecreateScript||crlfSQL||'; end $AutomationSctipt$';
@@ -228,7 +265,7 @@ begin
                   if not cScriptFailed then
                     begin
                       reset search_path;
-                      PERFORM devv5.GenericUpdate();
+                      perform devv5.GenericUpdate();
                       perform vocabulary_download.write_log (
                         iVocabularyID=>cModuleName,
                         iSessionID=>pSession,
@@ -249,6 +286,34 @@ begin
                       );
                     end;
                   end if;
+                  
+                  --move to devv5
+                  if not cScriptFailed and cMoveToDevv5='1' then
+                    begin
+                      reset session authorization;
+                      reset search_path;
+                      execute cLoadStageScript;
+                      perform devv5.GenericUpdate();
+                      perform vocabulary_download.write_log (
+                        iVocabularyID=>cModuleName,
+                        iSessionID=>pSession,
+                        iVocabulary_operation=>'moving to devv5 for '||cVocabA.vocabulary_dev_schema||' finished',
+                        iVocabulary_status=>1
+                      );
+                    EXCEPTION WHEN OTHERS THEN
+                      get stacked diagnostics cRet = pg_exception_context;
+                      cRet:='ERROR: '||SQLERRM||crlfSQL||'CONTEXT: '||cRet;
+                      cScriptFailed:=true; --the 'Failed' marker
+                      cScriptErrorText:='moving to devv5 failed: '||SQLERRM;
+                      perform vocabulary_download.write_log (
+                        iVocabularyID=>cModuleName,
+                        iSessionID=>pSession,
+                        iVocabulary_operation=>'moving to devv5 for '||cVocabA.vocabulary_dev_schema||' failed',
+                        iVocabulary_error=>cRet,
+                        iVocabulary_status=>2
+                      );
+                    end;
+                  end if;
                 end if;
               end if;
               reset session authorization;
@@ -256,7 +321,11 @@ begin
               
               --store result
               if not cScriptFailed then
-                cRet:=cHTML_OK||'<b>'||cVocabA.vocabulary_id||'</b> was updated! [based on '||cVocab.vocabulary_id||']';
+                if cMoveToDevv5='1' then
+                  cRet:=cHTML_OK||'<b>'||cVocabA.vocabulary_id||'</b> was updated! [based on '||cVocab.vocabulary_id||'] [devv5]';
+                else
+                  cRet:=cHTML_OK||'<b>'||cVocabA.vocabulary_id||'</b> was updated! [based on '||cVocab.vocabulary_id||']';
+                end if;
               else
                 cRet:=cHTML_ERROR||'<b>'||cVocabA.vocabulary_id||'</b> was updated [based on '||cVocab.vocabulary_id||'], but '||cScriptErrorText;
               end if;

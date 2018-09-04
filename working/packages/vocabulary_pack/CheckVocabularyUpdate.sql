@@ -140,6 +140,7 @@ BEGIN
                 cPos2 := devv5.INSTR (cVocabHTML, '.zip', cPos1);
                 perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'mmddyyyy');
+                cVocabVer := 'RxNorm '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'UMLS'
             THEN
                 cSearchString := '<table class="umls_download">';

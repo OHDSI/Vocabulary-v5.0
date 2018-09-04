@@ -29,8 +29,7 @@ BEGIN
 					rn,
 					MIN(pseudo_class_id) OVER (
 						PARTITION BY concept_code_1,
-						vocabulary_id_1,
-						vocabulary_id_2
+						vocabulary_id_1
 						) have_true_mapping,
 					has_rel_with_comp
 				FROM (
@@ -49,9 +48,12 @@ BEGIN
 							END pseudo_class_id,
 						ROW_NUMBER() OVER (
 							PARTITION BY concept_code_1,
-							vocabulary_id_1,
-							vocabulary_id_2 ORDER BY cs.valid_start_date DESC, --fresh mappings first
-								c.valid_start_date DESC,
+							vocabulary_id_1 ORDER BY cs.valid_start_date DESC, --fresh mappings first
+								CASE vocabulary_id_2
+									WHEN 'RxNorm'
+										THEN 1
+									ELSE 2
+									END, --mappings to RxNorm first
 								c.concept_id DESC
 							) rn,
 						(
@@ -212,18 +214,18 @@ BEGIN
 				) AS s2
 			WHERE (
 					(
+						--if we have 'true' mappings to Ingredients or Clinical Drug Comps (pseudo_class_id=1), then delete all others mappings (pseudo_class_id=2)
 						have_true_mapping = 1
 						AND pseudo_class_id = 2
 						)
-					OR
-					--if we have 'true' mappings to Ingredients or Clinical Drug Comps (pseudo_class_id=1), then delete all others mappings (pseudo_class_id=2)
-					(
+					OR (
+						--if we don't have 'true' mappings, then leave only one fresh mapping
 						have_true_mapping <> 1
 						AND rn > 1
 						)
-					OR --if we don't have 'true' mappings, then leave only one fresh mapping
-					has_rel_with_comp = 1
+					OR
 					--if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
+					has_rel_with_comp = 1
 					)
 			);
 END;

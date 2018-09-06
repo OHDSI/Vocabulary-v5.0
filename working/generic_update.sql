@@ -816,9 +816,9 @@ BEGIN
 		concept_synonym_name,
 		language_concept_id
 		)
-	SELECT c.concept_id,
+	SELECT DISTINCT c.concept_id,
 		REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' '),
-		4180186 -- for English
+		css.language_concept_id
 	FROM concept_synonym_stage css,
 		concept c,
 		concept_stage cs
@@ -826,9 +826,7 @@ BEGIN
 		AND css.synonym_vocabulary_id = c.vocabulary_id
 		AND cs.concept_code = c.concept_code
 		AND cs.vocabulary_id = c.vocabulary_id
-		AND REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' ') IS NOT NULL --fix for empty GPI names
-	GROUP BY c.concept_id,
-		REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' ');
+		AND REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' ') IS NOT NULL; --fix for empty GPI names
 
 	-- 21. Fillig drug_strength
 	-- Special rules for RxNorm Extension: same as 'Maps to' rules, but records from deprecated concepts will be deleted

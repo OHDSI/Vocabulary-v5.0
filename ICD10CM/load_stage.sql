@@ -104,6 +104,7 @@ END $_$;
 
 --9. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
+ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -140,183 +141,78 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 DROP INDEX trgm_idx;
 
 --10. Update domain_id for ICD10CM from SNOMED
---create temporary table icd10cm_domain
---if domain_id is empty we use previous and next domain_id or its combination
-DROP TABLE IF EXISTS icd10cm_domain;
-CREATE UNLOGGED TABLE icd10cm_domain AS
-	WITH filled_domain AS (
-			WITH domain_map2value AS (
-					--ICD10CM have direct "Maps to value" mapping
-					SELECT c1.concept_code,
-						c2.domain_id
-					FROM concept_relationship_stage r,
-						concept_stage c1,
-						concept c2
-					WHERE c1.concept_code = r.concept_code_1
-						AND c2.concept_code = r.concept_code_2
-						AND c1.vocabulary_id = r.vocabulary_id_1
-						AND c2.vocabulary_id = r.vocabulary_id_2
-						AND r.vocabulary_id_1 = 'ICD10CM'
-						AND r.vocabulary_id_2 = 'SNOMED'
-						AND r.relationship_id = 'Maps to value'
-						AND r.invalid_reason IS NULL
-					)
-			SELECT d.concept_code,
-				--some rules for domain_id
-				CASE 
-					WHEN d.domain_id IN (
-							'Procedure',
-							'Measurement'
-							)
-						AND EXISTS (
-							SELECT 1
-							FROM domain_map2value t
-							WHERE t.concept_code = d.concept_code
-								AND t.domain_id IN (
-									'Meas Value',
-									'Spec Disease Status'
-									)
-							)
-						THEN 'Measurement'
-					WHEN d.domain_id = 'Procedure'
-						AND EXISTS (
-							SELECT 1
-							FROM domain_map2value t
-							WHERE t.concept_code = d.concept_code
-								AND t.domain_id = 'Condition'
-							)
-						THEN 'Condition'
-					WHEN d.domain_id = 'Condition'
-						AND EXISTS (
-							SELECT 1
-							FROM domain_map2value t
-							WHERE t.concept_code = d.concept_code
-								AND t.domain_id = 'Procedure'
-							)
-						THEN 'Condition'
-					WHEN d.domain_id = 'Observation'
-						THEN 'Observation'
-					ELSE d.domain_id
-					END domain_id
-			FROM --simplify domain_id
-				(
-				SELECT concept_code,
-					CASE 
-						WHEN domain_id = 'Condition/Measurement'
-							THEN 'Condition'
-						WHEN domain_id = 'Condition/Procedure'
-							THEN 'Condition'
-						WHEN domain_id = 'Condition/Observation'
-							THEN 'Observation'
-						WHEN domain_id = 'Observation/Procedure'
-							THEN 'Observation'
-						WHEN domain_id = 'Measurement/Observation'
-							THEN 'Observation'
-						WHEN domain_id = 'Measurement/Procedure'
-							THEN 'Measurement'
-						ELSE 'Condition' --if some concepts don't have any mappings, 'Condition' by default for ICD10CM
-						END domain_id
-				FROM (
-					--ICD10CM have direct "Maps to" mapping
-					SELECT concept_code,
-						string_agg(domain_id, '/' ORDER BY domain_id) domain_id
-					FROM (
-						SELECT DISTINCT c1.concept_code,
-							c2.domain_id
-						FROM concept_relationship_stage r,
-							concept_stage c1,
-							concept c2
-						WHERE c1.concept_code = r.concept_code_1
-							AND c2.concept_code = r.concept_code_2
-							AND c1.vocabulary_id = r.vocabulary_id_1
-							AND c2.vocabulary_id = r.vocabulary_id_2
-							AND r.vocabulary_id_1 = 'ICD10CM'
-							AND r.vocabulary_id_2 = 'SNOMED'
-							AND r.relationship_id = 'Maps to'
-							AND r.invalid_reason IS NULL
-						) AS s0
-					GROUP BY concept_code
-					) AS s1
-				) AS d
-			)
-
-SELECT concept_code,
-	CASE 
-		WHEN domain_id IS NOT NULL
-			THEN domain_id
-		ELSE CASE 
-				WHEN prev_domain = next_domain
-					THEN prev_domain --prev and next domain are the same (and of course not null both)
-				WHEN prev_domain IS NOT NULL
-					AND next_domain IS NOT NULL
-					THEN CASE 
-							WHEN prev_domain < next_domain
-								THEN prev_domain || '/' || next_domain
-							ELSE next_domain || '/' || prev_domain
-							END -- prev and next domain are not same and not null both, with order by name
-				ELSE coalesce(prev_domain, next_domain, 'Unknown')
-				END
-		END domain_id
+UPDATE concept_stage cs
+SET domain_id = i.domain_id
 FROM (
-	SELECT concept_code,
-		string_agg(domain_id, '/' ORDER BY domain_id) domain_id,
-		prev_domain,
-		next_domain
-	FROM (
-		SELECT DISTINCT c1.concept_code,
-			r1.domain_id,
-			(
-				SELECT DISTINCT LAST_VALUE(fd.domain_id) OVER (
-						ORDER BY fd.concept_code ROWS BETWEEN UNBOUNDED PRECEDING
-								AND UNBOUNDED FOLLOWING
-						)
-				FROM filled_domain fd
-				WHERE fd.concept_code < c1.concept_code
-					AND r1.domain_id IS NULL
-				) prev_domain,
-			(
-				SELECT DISTINCT FIRST_VALUE(fd.domain_id) OVER (
-						ORDER BY fd.concept_code ROWS BETWEEN UNBOUNDED PRECEDING
-								AND UNBOUNDED FOLLOWING
-						)
-				FROM filled_domain fd
-				WHERE fd.concept_code > c1.concept_code
-					AND r1.domain_id IS NULL
-				) next_domain
-		FROM concept_stage c1
-		LEFT JOIN filled_domain r1 ON r1.concept_code = c1.concept_code
-		WHERE c1.vocabulary_id = 'ICD10CM'
-		) AS s2
-	GROUP BY concept_code,
-		prev_domain,
-		next_domain
-	) AS s3;
+	SELECT DISTINCT cs1.concept_code,
+		first_value(c2.domain_id) OVER (
+			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
+					WHEN 'Condition'
+						THEN 1
+					WHEN 'Observation'
+						THEN 2
+					WHEN 'Procedure'
+						THEN 3
+					WHEN 'Measurement'
+						THEN 4
+					WHEN 'Device'
+						THEN 5
+					ELSE 6
+					END
+			) AS domain_id
+	FROM concept_relationship_stage crs
+	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+		AND cs1.vocabulary_id = crs.vocabulary_id_1
+		AND cs1.vocabulary_id = 'ICD10CM'
+	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
+		AND c2.vocabulary_id = crs.vocabulary_id_2
+		AND c2.vocabulary_id = 'SNOMED'
+	WHERE crs.relationship_id = 'Maps to'
+		AND crs.invalid_reason IS NULL
+	
+	UNION ALL
+	
+	SELECT DISTINCT cs1.concept_code,
+		first_value(c2.domain_id) OVER (
+			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
+					WHEN 'Condition'
+						THEN 1
+					WHEN 'Observation'
+						THEN 2
+					WHEN 'Procedure'
+						THEN 3
+					WHEN 'Measurement'
+						THEN 4
+					WHEN 'Device'
+						THEN 5
+					ELSE 6
+					END
+			)
+	FROM concept_relationship cr
+	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+		AND c1.vocabulary_id = 'ICD10CM'
+	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+		AND c2.vocabulary_id = 'SNOMED'
+	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
+		AND cs1.vocabulary_id = c1.vocabulary_id
+	WHERE cr.relationship_id = 'Maps to'
+		AND cr.invalid_reason IS NULL
+		AND NOT EXISTS (
+			SELECT 1
+			FROM concept_relationship_stage crs_int
+			WHERE crs_int.concept_code_1 = cs1.concept_code
+				AND crs_int.vocabulary_id_1 = cs1.vocabulary_id
+				AND crs_int.relationship_id = cr.relationship_id
+			)
+	) i
+WHERE i.concept_code = cs.concept_code
+	AND cs.vocabulary_id = 'ICD10CM';
 
--- INDEX was set as UNIQUE to prevent concept_code duplication
-CREATE UNIQUE INDEX idx_icd10cm_domain ON icd10cm_domain (concept_code);
+--11. Check for NULL in domain_id
+ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
+ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---11. Simplify the list by removing Observations
-UPDATE icd10cm_domain
-SET domain_id = trim('/' FROM replace('/' || domain_id || '/', '/Observation/', '/'))
-WHERE '/' || domain_id || '/' LIKE '%/Observation/%'
-	AND devv5.instr(domain_id, '/') <> 0;
-
---Reducing some domain_id if his length>20
-UPDATE icd10cm_domain
-SET domain_id = 'Condition/Meas'
-WHERE domain_id = 'Condition/Measurement';
-
--- Check that all domain_id are exists in domain table
-ALTER TABLE icd10cm_domain ADD CONSTRAINT fk_icd10cm_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);
-
---12. Update each domain_id with the domains field from icd10cm_domain.
-UPDATE concept_stage c
-SET domain_id = rd.domain_id
-FROM icd10cm_domain rd
-WHERE rd.concept_code = c.concept_code
-	AND c.vocabulary_id = 'ICD10CM';
-
---13. Load into concept_synonym_stage name from ICD10CM
+--12. Load into concept_synonym_stage name from ICD10CM
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -339,6 +235,4 @@ FROM (
 	FROM sources.icd10cm
 	) AS s0;
 
---14. Clean up
-DROP TABLE icd10cm_domain;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

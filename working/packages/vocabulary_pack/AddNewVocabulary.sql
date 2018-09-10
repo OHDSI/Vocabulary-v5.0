@@ -20,6 +20,7 @@ begin
   IF COALESCE(pClick_default,'Y') <> 'Y' THEN RAISE EXCEPTION 'pClick_default must be NULL or Y'; END IF;
   IF COALESCE(pAvailable,'License required') NOT IN ('Currently not available','License required','EULA required') then RAISE EXCEPTION 'Incorrect value for pAvailable: %', pAvailable; END IF;
   IF COALESCE(pClick_disabled,'Y') <> 'Y' THEN RAISE EXCEPTION 'pClick_disabled must be NULL or Y'; END IF;
+  IF pURL IS NULL AND pAvailable = 'License required' THEN pURL:='mailto:contact@ohdsi.org?subject=License%20required%20for%20'||devv5.urlencode(pVocabulary_id)||'&body=Describe%20your%20situation%20and%20your%20need%20for%20this%20vocabulary.'; END IF;
 
   DROP SEQUENCE IF EXISTS v5_concept;
 

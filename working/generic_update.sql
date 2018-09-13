@@ -366,8 +366,8 @@ BEGIN
 	AND c2.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
 	-- And the record is currently fresh and not already deprecated
 	AND d.invalid_reason IS NULL
-	-- And it was started before release date
-	AND d.valid_start_date < (
+	-- And it was started before or equal the release date
+	AND d.valid_start_date <= (
 		-- One of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
 		SELECT MAX(v.latest_update)-1 FROM vocabulary v WHERE v.vocabulary_id=c1.vocabulary_id OR v.vocabulary_id=c2.vocabulary_id --take both concept ids to get proper latest_update
 	)
@@ -381,7 +381,7 @@ BEGIN
 		AND crs.relationship_id = d.relationship_id
 	);
 
-	--9. Deprecate old 'Maps to' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
+	--9. Deprecate old 'Maps to', 'Maps to value' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
 	--part 1 (direct mappings)
 	WITH relationships AS (
 		SELECT relationship_id FROM relationship
@@ -391,15 +391,16 @@ BEGIN
 			'Concept alt_to to',
 			'Concept poss_eq to',
 			'Concept was_a to',
-			'Maps to'
+			'Maps to',
+			'Maps to value'
 		)
 	)
 	UPDATE concept_relationship r
 	SET valid_end_date  =
-			(SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+			GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
 				FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
 			WHERE c.concept_id IN (r.concept_id_1, r.concept_id_2) --take both concept ids to get proper latest_update
-			) - 1,
+			)),
 			invalid_reason = 'D'
 	FROM concept c, relationships rel
 	WHERE r.concept_id_2=c.concept_id
@@ -441,15 +442,16 @@ BEGIN
 			'Concept alt_to to',
 			'Concept poss_eq to',
 			'Concept was_a to',
-			'Maps to'
+			'Maps to',
+			'Maps to value'
 		)
 	)
 	UPDATE concept_relationship r
 	SET valid_end_date  =
-			(SELECT MAX(v.latest_update) -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
+			GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
 				FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
 			WHERE c.concept_id IN (r.concept_id_1, r.concept_id_2) --take both concept ids to get proper latest_update
-			) - 1,
+			)),
 		invalid_reason = 'D'
 	FROM concept c, relationships rel
 	WHERE r.concept_id_1=c.concept_id
@@ -582,13 +584,13 @@ BEGIN
 			WHERE cr_int.concept_id_1=cr_int.concept_id_2 AND cr_int.relationship_id IN ('Maps to','Mapped from')
 		);
 
-	-- 14. 'Maps to' or 'Mapped from' relationships should not exist where
+	-- 14. 'Maps to' or 'Maps to value' relationships should not exist where
 	-- a) the source concept has standard_concept = 'S', unless it is to self
 	-- b) the target concept has standard_concept = 'C' or NULL
 	-- c) the target concept has invalid_reason='D' or 'U'
 
 	UPDATE concept_relationship r
-	SET valid_end_date = (SELECT MAX(v.latest_update)-1 FROM vocabulary v WHERE v.vocabulary_id=c1.vocabulary_id OR v.vocabulary_id=c2.vocabulary_id), -- day before release day
+	SET valid_end_date = GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update)-1 FROM vocabulary v WHERE v.vocabulary_id=c1.vocabulary_id OR v.vocabulary_id=c2.vocabulary_id)), -- day before release day or valid_start_date
 		invalid_reason = 'D'
 	FROM concept c1, concept c2, vocabulary v
 	WHERE r.concept_id_1 = c1.concept_id
@@ -600,12 +602,12 @@ BEGIN
 	)
 	AND v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)
 	AND v.latest_update IS NOT NULL -- only the current vocabularies
-	AND r.relationship_id = 'Maps to'
+	AND r.relationship_id IN ('Maps to','Maps to value')
 	AND r.invalid_reason IS NULL;
 
 	-- And reverse
 	UPDATE concept_relationship r
-	SET valid_end_date = (SELECT MAX(v.latest_update)-1 FROM vocabulary v WHERE v.vocabulary_id=c1.vocabulary_id OR v.vocabulary_id=c2.vocabulary_id), -- day before release day
+	SET valid_end_date = GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update)-1 FROM vocabulary v WHERE v.vocabulary_id=c1.vocabulary_id OR v.vocabulary_id=c2.vocabulary_id)), -- day before release day or valid_start_date
 		invalid_reason = 'D'
 	FROM concept c1, concept c2, vocabulary v
 	WHERE r.concept_id_1 = c1.concept_id
@@ -617,7 +619,7 @@ BEGIN
 	)
 	AND v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id)
 	AND v.latest_update IS NOT NULL -- only the current vocabularies
-	AND r.relationship_id = 'Mapped from'
+	AND r.relationship_id IN ('Mapped from','Value mapped from')
 	AND r.invalid_reason IS NULL;
 
 	-- 15. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099

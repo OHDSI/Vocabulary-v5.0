@@ -63,8 +63,7 @@ SET pzn = pzn || '-' || to_char(TO_DATE(PACK_OUT_OF_TRADE_DT, 'mm/dd/yyyy'), 'mm
 WHERE pzn IN (
 		SELECT pzn
 		FROM (
-			SELECT DISTINCT fcc,
-				pzn
+			SELECT DISTINCT fcc,pzn
 			FROM grr_new_3
 			) AS s0
 		GROUP BY pzn
@@ -80,38 +79,10 @@ SELECT CASE
 			THEN fcc
 		ELSE fcc || '_' || to_char(to_date(product_launch_date, 'dd.mm.yyyy'), 'mmddyyyy')
 		END AS fcc,
-	LTRIM(pzn, '0') AS pzn,
-	therapy_name_code,
-	therapy_name,
-	product_no,
-	product_launch_date,
-	product_form,
-	product_form_name,
-	strength,
-	strength_unit,
-	volume,
-	volume_unit,
-	packsize,
-	form_launch_date,
-	out_of_trade_date,
-	manufacturer,
-	manufacturer_name,
-	manufacturer_short_name,
-	who_atc5_code,
-	who_atc5_text,
-	who_atc4_code,
-	who_atc4_text,
-	who_atc3_code,
-	who_atc3_text,
-	who_atc2_code,
-	who_atc2_text,
-	who_atc1_code,
-	who_atc1_text,
-	substance,
-	no_of_substances,
-	nfc_no,
-	nfc,
-	nfc_description
+	LTRIM(pzn, '0') AS pzn,therapy_name_code,therapy_name,product_no,product_launch_date,product_form,product_form_name,
+	strength,strength_unit,volume,volume_unit,packsize,form_launch_date,out_of_trade_date,manufacturer,manufacturer_name,
+	manufacturer_short_name,who_atc5_code,who_atc5_text,who_atc4_code,who_atc4_text,who_atc3_code,who_atc3_text,
+	who_atc2_code,who_atc2_text,who_atc1_code,who_atc1_text,substance,no_of_substances,nfc_no,nfc,nfc_description
 FROM source_data;
 
 --non_drug
@@ -2786,7 +2757,11 @@ SELECT FCC,
 			THEN 'MCG'
 		ELSE ABS_STRNT_UOM_CD
 		END AS AMOUNT_UNIT,
-	RLTV_STRNT_QTY::FLOAT AS DENOMINATOR_VALUE,
+	CASE
+		WHEN RLTV_STRNT_QTY::FLOAT = 1 
+			THEN NULL 
+		ELSE RLTV_STRNT_QTY::FLOAT 
+		END AS DENOMINATOR_VALUE,
 	'HOUR'::TEXT AS DENOMINATOR_UNIT,
 	PACK_SIZE_CNT
 FROM grr_new_3_for_ds
@@ -3381,58 +3356,26 @@ SELECT DISTINCT fcc AS drug_concept_code,
 	molecule,
 	CASE 
 		WHEN DENOMINATOR_UNIT IS NULL
-			AND AMOUNT_UNIT NOT IN (
-				'DH',
-				'C',
-				'CH',
-				'D',
-				'TM',
-				'X',
-				'XMK'
-				)
+			AND AMOUNT_UNIT NOT IN ('DH','C','CH','D','TM','X','XMK')
 			THEN AMOUNT_VALUE
 		ELSE NULL
 		END AS AMOUNT_VALUE,
 	-- put homeopathy into numerator
 	CASE 
 		WHEN DENOMINATOR_UNIT IS NULL
-			AND AMOUNT_UNIT NOT IN (
-				'DH',
-				'C',
-				'CH',
-				'D',
-				'TM',
-				'X',
-				'XMK'
-				)
+			AND AMOUNT_UNIT NOT IN ('DH','C','CH','D','TM','X','XMK')
 			THEN AMOUNT_UNIT
 		ELSE NULL
 		END AS AMOUNT_UNIT,
 	CASE 
 		WHEN DENOMINATOR_UNIT IS NOT NULL
-			OR AMOUNT_UNIT IN (
-				'DH',
-				'C',
-				'CH',
-				'D',
-				'TM',
-				'X',
-				'XMK'
-				)
+			OR AMOUNT_UNIT ('DH','C','CH','D','TM','X','XMK')
 			THEN AMOUNT_VALUE
 		ELSE NULL
 		END AS NUMERATOR_VALUE,
 	CASE 
 		WHEN DENOMINATOR_UNIT IS NOT NULL
-			OR AMOUNT_UNIT IN (
-				'DH',
-				'C',
-				'CH',
-				'D',
-				'TM',
-				'X',
-				'XMK'
-				)
+			OR AMOUNT_UNIT IN ('DH','C','CH','D','TM','X','XMK')
 			THEN AMOUNT_UNIT
 		ELSE NULL
 		END AS NUMERATOR_UNIT,
@@ -3557,7 +3500,7 @@ FROM ds_0_sd
 WHERE fcc IN (
 		SELECT fcc
 		FROM ds_0_sd
-		WHERE strength = '0'
+		WHERE strength = '0.0'
 		);
 
 INSERT INTO ds_stage (
@@ -3585,15 +3528,7 @@ JOIN drug_concept_stage b ON UPPER(b.concept_name) = UPPER(substance)
 	AND concept_class_id = 'Ingredient'
 WHERE (
 		volume_unit IS NULL
-		AND strength_unit NOT IN (
-			'DH',
-			'C',
-			'CH',
-			'D',
-			'TM',
-			'X',
-			'XMK'
-			)
+		AND strength_unit NOT IN ('DH','C','CH','D','TM','X','XMK')
 		)
 	AND fcc NOT IN (
 		SELECT drug_concept_code
@@ -3607,22 +3542,15 @@ SELECT FCC,
 	NULL,
 	STRENGTH::FLOAT,
 	STRENGTH_UNIT,
-	VOLUME::FLOAT,
+	CASE WHEN VOLUME = '0.0' THEN NULL
+	     ELSE VOLUME::FLOAT END,
 	VOLUME_UNIT
 FROM ds_0_sd a
 JOIN drug_concept_stage b ON UPPER(b.concept_name) = UPPER(substance)
 	AND concept_class_id = 'Ingredient'
 WHERE (
 		volume_unit IS NOT NULL
-		OR strength_unit IN (
-			'DH',
-			'C',
-			'CH',
-			'D',
-			'TM',
-			'X',
-			'XMK'
-			)
+		OR strength_unit IN ('DH','C','CH','D','TM','X','XMK')
 		)
 	AND fcc NOT IN (
 		SELECT drug_concept_code
@@ -3717,15 +3645,7 @@ WHERE drug_concept_code IN (
 				OR PACK_DESC LIKE '%PELLET%'
 				)
 			AND denominator_unit IS NOT NULL
-			AND numerator_unit NOT IN (
-				'DH',
-				'C',
-				'CH',
-				'D',
-				'TM',
-				'X',
-				'XMK'
-				)
+			AND numerator_unit NOT IN ('DH','C','CH','D','TM','X','XMK')
 		);
 
 --creating table to improve dosages in inhalers
@@ -3925,21 +3845,9 @@ FROM ds_stage
 WHERE drug_concept_code IN (
 		SELECT drug_concept_code
 		FROM ds_stage
-		WHERE amount_unit IN (
-				'--',
-				'LM',
-				'NR'
-				)
-			OR numerator_unit IN (
-				'--',
-				'LM',
-				'NR'
-				)
-			OR denominator_unit IN (
-				'--',
-				'LM',
-				'NR'
-				)
+		WHERE amount_unit IN ('--','LM','NR')
+			OR numerator_unit IN ('--','LM','NR')
+			OR denominator_unit IN ('--','LM','NR')
 		);
 
 --can't calculate dosages in parsed drugs
@@ -3949,8 +3857,7 @@ WHERE drug_concept_code IN (
 		SELECT fcc
 		FROM grr_new_3
 		WHERE molecule IN (
-				SELECT ingr
-				FROM ingr_parsing
+				SELECT ingr FROM ingr_parsing
 				)
 		);
 
@@ -4202,31 +4109,21 @@ INSERT INTO relationship_to_concept (
 	concept_id_2,
 	precedence
 	)
-SELECT fcc,
-	'GRR',
-	c.concept_id,
-	RANK() OVER (
-		PARTITION BY fcc ORDER BY who_atc1_code DESC
-		)
+SELECT fcc,'GRR',c.concept_id,RANK() OVER (PARTITION BY fcc ORDER BY who_atc1_code DESC)
 FROM (
-	SELECT fcc,
-		who_atc1_code
+	SELECT fcc,who_atc1_code
 	FROM source_data_1
 	UNION
-	SELECT fcc,
-		who_atc2_code
+	SELECT fcc,who_atc2_code
 	FROM source_data_1
 	UNION
-	SELECT fcc,
-		who_atc3_code
+	SELECT fcc,who_atc3_code
 	FROM source_data_1
 	UNION
-	SELECT fcc,
-		who_atc4_code
+	SELECT fcc,who_atc4_code
 	FROM source_data_1
 	UNION
-	SELECT fcc,
-		who_atc5_code
+	SELECT fcc,who_atc5_code
 	FROM source_data_1
 	) a
 JOIN concept c ON c.concept_code = a.who_atc1_code
@@ -4315,24 +4212,16 @@ SELECT drug_concept_code,
 	NULL AS denominator_value,
 	NULL::VARCHAR(255) AS denominator_unit
 FROM a
-WHERE (
-		drug_concept_code,
-		ingredient_concept_code
-		) NOT IN (
-		SELECT drug_concept_code,
-			MAX(ingredient_concept_code)
+WHERE (drug_concept_code,ingredient_concept_code) NOT IN (
+		SELECT drug_concept_code,MAX(ingredient_concept_code)
 		FROM a
 		GROUP BY drug_concept_code
 		);
 
 DELETE
 FROM ds_stage
-WHERE (
-		drug_concept_code,
-		ingredient_concept_code
-		) IN (
-		SELECT drug_concept_code,
-			ingredient_concept_code
+WHERE (drug_concept_code, ingredient_concept_code) IN (
+		SELECT drug_concept_code, ingredient_concept_code
 		FROM ds_sum_2
 		);
 
@@ -4362,12 +4251,8 @@ WHERE COALESCE(amount_value, numerator_value) IS NOT NULL;
 --delete relationship to ingredients that we removed
 DELETE
 FROM internal_relationship_stage
-WHERE (
-		concept_code_1,
-		concept_code_2
-		) IN (
-		SELECT drug_concept_code,
-			ingredient_concept_code
+WHERE (concept_code_1,concept_code_2) IN (
+		SELECT drug_concept_code, ingredient_concept_code
 		FROM ds_sum_2
 		WHERE COALESCE(amount_value, numerator_value) IS NULL
 		);
@@ -4382,19 +4267,9 @@ WHERE concept_code NOT IN (
 
 DROP TABLE IF EXISTS ds_stage_cnc;
 CREATE TABLE ds_stage_cnc AS
-SELECT CONCAT (
-		denominator_value,
-		' ',
-		denominator_unit
-		) AS quant,
+SELECT CONCAT (denominator_value,' ',denominator_unit) AS quant,
 	drug_concept_code,
-	CONCAT (
-		i.concept_name,
-		' ',
-		COALESCE(amount_value, numerator_value / COALESCE(denominator_value, 1)),
-		' ',
-		COALESCE(amount_unit, numerator_unit)
-		) AS dosage_name
+	CONCAT (i.concept_name,' ',COALESCE(amount_value, numerator_value / COALESCE(denominator_value, 1)),' ',COALESCE(amount_unit, numerator_unit)) AS dosage_name
 FROM ds_stage
 JOIN drug_concept_stage i ON i.concept_code = ingredient_concept_code;
 
@@ -4413,11 +4288,7 @@ SELECT quant,
 	drug_concept_code,
 	CASE 
 		WHEN quant ~ '^\d.*'
-			THEN CONCAT (
-					quant,
-					' ',
-					dos_name_cnc
-					)
+			THEN CONCAT (quant,' ',dos_name_cnc)
 		ELSE dos_name_cnc
 		END AS strength_name
 FROM ds_stage_cnc2;
@@ -4437,37 +4308,20 @@ SELECT DISTINCT c.drug_concept_code,
 		strength_name,
 		CASE 
 			WHEN f.concept_name IS NOT NULL
-				THEN CONCAT (
-						' ',
-						f.concept_name
-						)
-			ELSE NULL
-			END,
+				THEN CONCAT (' ',f.concept_name)
+			ELSE NULL END,
 		CASE 
 			WHEN b.concept_name IS NOT NULL
-				THEN CONCAT (
-						' [',
-						b.concept_name,
-						']'
-						)
-			ELSE NULL
-			END,
+				THEN CONCAT (' [',b.concept_name,']')
+			ELSE NULL END,
 		CASE 
 			WHEN s.concept_name IS NOT NULL
-				THEN CONCAT (
-						' by ',
-						s.concept_name
-						)
-			ELSE NULL
-			END,
+				THEN CONCAT (' by ',s.concept_name)
+			ELSE NULL END,
 		CASE 
 			WHEN ds.box_size IS NOT NULL
-				THEN CONCAT (
-						' Box of ',
-						ds.box_size
-						)
-			ELSE NULL
-			END
+				THEN CONCAT (' Box of ',ds.box_size)
+			ELSE NULL END
 		) AS concept_name
 FROM ds_stage_cnc3 c
 LEFT JOIN rel_to_name f ON c.drug_concept_code = f.concept_code_1
@@ -4526,15 +4380,7 @@ FROM drug_concept_stage
 WHERE concept_code IN (
 		SELECT drug_concept_code
 		FROM ds_stage
-		WHERE numerator_unit IN (
-				'DH',
-				'C',
-				'CH',
-				'D',
-				'TM',
-				'X',
-				'XMK'
-				)
+		WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
 			AND denominator_value IS NOT NULL
 		);
 
@@ -4543,27 +4389,11 @@ FROM internal_relationship_stage
 WHERE concept_code_1 IN (
 		SELECT drug_concept_code
 		FROM ds_stage
-		WHERE numerator_unit IN (
-				'DH',
-				'C',
-				'CH',
-				'D',
-				'TM',
-				'X',
-				'XMK'
-				)
+		WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
 			AND denominator_value IS NOT NULL
 		);
 
 DELETE
 FROM ds_stage
-WHERE numerator_unit IN (
-		'DH',
-		'C',
-		'CH',
-		'D',
-		'TM',
-		'X',
-		'XMK'
-		)
+WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
 	AND denominator_value IS NOT NULL;

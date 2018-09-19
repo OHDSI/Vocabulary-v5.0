@@ -764,7 +764,7 @@ union
 -- RxNorm has duplicates by attributes. Usually Ingredient and Precise Ingredient versions of the same drug. The Precise tends to be newer. This query picks the newest
 delete from r_existing where ctid in (
   select rowid from (
-    select e.ctid rowid, c.concept_name, first_value(c.concept_name) over (partition by quant_value, quant_unit_id, i_combo, d_combo, df_id, bn_id, bs, mf_id order by valid_start_date desc) as newest
+    select e.ctid rowid, c.concept_name, first_value(c.concept_name) over (partition by quant_value, quant_unit_id, i_combo, d_combo, df_id, bn_id, bs, mf_id order by valid_start_date,concept_name desc) as newest
     from r_existing e join concept c using(concept_id)
   ) as s0 where concept_name!=newest
 )

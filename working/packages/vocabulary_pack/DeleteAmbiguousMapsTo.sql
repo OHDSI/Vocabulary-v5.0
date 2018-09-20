@@ -4,9 +4,9 @@ RETURNS void AS
 $body$
 /*
  Deprecate ambiguous 'Maps to' mappings following by rules:
- 1. if we have 'true' mappings to Ingredient or Clinical Drug Comp, then delete all others mappings
+ 1. if we have 'true' mappings to Ingredient or Clinical Drug Comp, then deprecate all others mappings
  2. if we don't have 'true' mappings, then leave only one fresh mapping
- 3. if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
+ 3. if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then deprecate mappings to Ingredients, which have mappings to Clinical Drug Comp
 */
 BEGIN
 	UPDATE concept_relationship_stage crs
@@ -19,11 +19,18 @@ BEGIN
 						crs.vocabulary_id_2
 						)
 				))
-	WHERE ctid IN (
+	WHERE (
+			concept_code_1,
+			concept_code_2,
+			vocabulary_id_1,
+			vocabulary_id_2
+			) IN (
 			WITH t AS (
 					SELECT rid,
 						concept_code_1,
 						concept_code_2,
+						vocabulary_id_1,
+						vocabulary_id_2,
 						pseudo_class_id,
 						rn,
 						MIN(pseudo_class_id) OVER (
@@ -157,24 +164,35 @@ BEGIN
 							AND cs.vocabulary_id_2 LIKE 'Rx%'
 						) AS s1
 					)
-			SELECT rid
+			SELECT concept_code_1,
+				concept_code_2,
+				vocabulary_id_1,
+				vocabulary_id_2
 			FROM t
 			WHERE have_true_mapping = 1
 				AND pseudo_class_id = 2 --if we have 'true' mappings to Ingredients or Clinical Drug Comps (pseudo_class_id=1), then delete all others mappings (pseudo_class_id=2)
 			
 			UNION ALL
 			
-			SELECT rid
+			SELECT concept_code_1,
+				concept_code_2,
+				vocabulary_id_1,
+				vocabulary_id_2
 			FROM t
 			WHERE have_true_mapping <> 1
 				AND rn > 1 --if we don't have 'true' mappings, then leave only one fresh mapping
 			
 			UNION ALL
 			
-			SELECT rid
+			SELECT concept_code_1,
+				concept_code_2,
+				vocabulary_id_1,
+				vocabulary_id_2
 			FROM t
 			WHERE has_rel_with_comp = 1 --if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then delete mappings to Ingredients, which have mappings to Clinical Drug Comp
-			);
+			)
+		AND relationship_id = 'Maps to'
+		AND invalid_reason IS NULL;
 
 END;
 $body$

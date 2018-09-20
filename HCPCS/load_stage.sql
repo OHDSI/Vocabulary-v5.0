@@ -72,7 +72,7 @@ SELECT SUBSTR(CASE
 		WHEN term_dt IS NULL
 			THEN NULL
 		WHEN xref1 IS NULL
-			THEN 'D' -- deprecated
+			THEN NULL -- deprecated, but leave alive
 		ELSE 'U' -- upgraded
 		END AS invalid_reason
 FROM sources.anweb_v2 a
@@ -156,7 +156,10 @@ AS (
 			WHEN concept_code LIKE 'C%'
 				AND concept_name LIKE '%Trans% echocardiography%'
 				THEN 'Procedure' -- Echocardiography
-			WHEN concept_code = 'C9247'
+			WHEN concept_code IN (
+					'C9246',
+					'C9247'
+					)
 				THEN 'Device'
 			WHEN concept_code BETWEEN 'C9021'
 					AND 'C9348'
@@ -1506,7 +1509,28 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---19. All the codes that have mapping to RxNorm% should get domain_id='Drug'
+--19. Insert all missing codes from the base table which have 'Maps to' to RxNorm or RxNorm Extension
+INSERT INTO concept_stage
+SELECT *
+FROM concept c
+WHERE vocabulary_id = 'HCPCS'
+	AND EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		WHERE crs.concept_code_1 = c.concept_code
+			AND crs.vocabulary_id_1 = 'HCPCS'
+			AND crs.relationship_id = 'Maps to'
+			AND crs.invalid_reason IS NULL
+			AND crs.vocabulary_id_2 LIKE 'RxNorm%'
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_stage cs
+		WHERE cs.concept_code = c.concept_code
+			AND cs.vocabulary_id = 'HCPCS'
+		);
+
+--20. All the codes that have mapping to RxNorm% should get domain_id='Drug'
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
 WHERE EXISTS
@@ -1537,7 +1561,7 @@ WHERE EXISTS
 		)
 	AND cs.domain_id <> 'Drug';
 
---20. Procedure Drugs who have a mapping to a Drug concept should not also be recorded as Procedures (no Standard Concepts)
+--21. Procedure Drugs who have a mapping to a Drug concept should not also be recorded as Procedures (no Standard Concepts)
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (

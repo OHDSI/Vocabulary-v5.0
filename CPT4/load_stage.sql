@@ -453,17 +453,33 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---8. Set proper standard_concept for mapped CPT4
-UPDATE concept_stage cs
-SET standard_concept = NULL
-FROM (
-	SELECT concept_code_1
-	FROM concept_relationship_manual
-	WHERE vocabulary_id_1 = 'CPT4'
-		AND relationship_id = 'Maps to'
-		AND invalid_reason IS NULL
-	) crm
-WHERE cs.concept_code = crm.concept_code_1;
+--8. Insert all missing codes from the base table which have 'Maps to' to RxNorm, RxNorm Extension or CVX (AVOF-1207)
+INSERT INTO concept_stage
+SELECT *
+FROM concept c
+WHERE vocabulary_id = 'CPT4'
+	AND EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		JOIN concept c_int ON c_int.concept_code = crs.concept_code_2
+			AND c_int.vocabulary_id = crs.vocabulary_id_2
+			AND c_int.domain_id = 'Drug'
+		WHERE crs.concept_code_1 = c.concept_code
+			AND crs.vocabulary_id_1 = 'CPT4'
+			AND crs.relationship_id = 'Maps to'
+			AND crs.invalid_reason IS NULL
+			AND crs.vocabulary_id_2 IN (
+				'RxNorm',
+				'RxNorm Extension',
+				'CVX'
+				)
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_stage cs
+		WHERE cs.concept_code = c.concept_code
+			AND cs.vocabulary_id = 'CPT4'
+		);
 
 --9. Load concept_relationship_stage from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
 INSERT INTO concept_relationship_stage (
@@ -636,5 +652,28 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
+
+--17. Set proper standard_concept for mapped CPT4 (AVOF-1207)
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage r,
+			concept c2
+		WHERE r.concept_code_1 = cs.concept_code
+			AND r.vocabulary_id_1 = cs.vocabulary_id
+			AND r.concept_code_2 = c2.concept_code
+			AND r.vocabulary_id_2 = c2.vocabulary_id
+			AND r.invalid_reason IS NULL
+			AND r.relationship_id = 'Maps to'
+			AND c2.domain_id = 'Drug'
+			AND c2.invalid_reason IS NULL
+			AND c2.vocabulary_id IN (
+				'RxNorm',
+				'RxNorm Extension',
+				'CVX'
+				)
+		)
+	AND cs.standard_concept IS NOT NULL;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		

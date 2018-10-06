@@ -2311,7 +2311,9 @@ VALUES (138875005, 'Metadata'), -- root
 	(61483006, 'Drug'),
 	(373749006, 'Drug'),
 	--added 20180820
-	(709080004, 'Observation');
+	(709080004, 'Observation'),
+	--added 20181005
+	(414916001, 'Condition'); -- Obesity
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

@@ -9,6 +9,8 @@ $body$
  3. if we have 'true' mappings to Ingredients AND Clinical Drug Comps, then deprecate mappings to Ingredients, which have mappings to Clinical Drug Comp
 */
 BEGIN
+	ANALYZE concept_relationship_stage;
+
 	UPDATE concept_relationship_stage crs
 	SET invalid_reason = 'D',
 		valid_end_date = GREATEST(valid_start_date, (

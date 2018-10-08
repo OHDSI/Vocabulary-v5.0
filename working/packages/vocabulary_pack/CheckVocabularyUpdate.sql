@@ -304,7 +304,7 @@ BEGIN
               WHERE t.title LIKE '%Version % of the ISBT 128 Product Description Code Database%';
             WHEN cVocabularyName = 'DPD'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+<th rowspan="4" id="t253" headers="t5">ALL FILES</th>.+?<td headers="t7 t253">([-\d]{10})</td>'),'yyyy-mm-dd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+<th rowspan="4">ALL FILES</th>.+?<td>([-\d]{10})</td>.*'),'yyyy-mm-dd');
                 cVocabVer := 'DPD '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'CVX'
             THEN

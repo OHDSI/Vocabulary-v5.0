@@ -9,7 +9,7 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqj "$2" "*NHS Data Migration*.mdb" -d .
+    unzip -oqj "$2" "*NHS Data Migration Maps*.mdb" -d .
     
     #move result to original folder
     cd "$1"

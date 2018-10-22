@@ -37,8 +37,7 @@ BEGIN
 						rn,
 						MIN(pseudo_class_id) OVER (
 							PARTITION BY concept_code_1,
-							vocabulary_id_1,
-							vocabulary_id_2
+							vocabulary_id_1
 							) have_true_mapping,
 						has_rel_with_comp
 					FROM (
@@ -57,9 +56,12 @@ BEGIN
 								END pseudo_class_id,
 							ROW_NUMBER() OVER (
 								PARTITION BY concept_code_1,
-								vocabulary_id_1,
-								vocabulary_id_2 ORDER BY cs.valid_start_date DESC, --fresh mappings first
-									c.valid_start_date DESC,
+								vocabulary_id_1 ORDER BY cs.valid_start_date DESC, --fresh mappings first
+									CASE vocabulary_id_2
+										WHEN 'RxNorm'
+											THEN 1
+										ELSE 2
+										END, --mappings to RxNorm first
 									c.concept_id DESC
 								) rn,
 							(

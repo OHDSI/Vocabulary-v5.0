@@ -587,7 +587,7 @@ BEGIN
 		  UNION ALL
 			SELECT COUNT (*)
 			  FROM concept_relationship_stage
-		  GROUP BY concept_code_1, concept_code_2, relationship_id
+		  GROUP BY concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id
 			HAVING COUNT (*) > 1
 		  UNION ALL
 			SELECT COUNT (*)

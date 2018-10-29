@@ -563,4 +563,10 @@ WHERE concept_code IN (
 			AND c2.standard_concept IS NOT NULL
 		);
 
+--23. Manual fix for 12841-3
+UPDATE concept_stage
+SET concept_name = 'Free/Total PSA serum/plasma'
+WHERE concept_code = '12841-3'
+	AND concept_name = 'Free/Total PSA serum/plasme';
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

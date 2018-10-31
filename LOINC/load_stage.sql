@@ -208,7 +208,7 @@ FROM sources.loinc_class lc,
 	sources.loinc l
 WHERE lc.concept_code = l.class;
 
---And delete wrong relationship ('History & Physical order set' to 'FLACC pain assessment panel', AVOF-352). 
+--And delete wrong relationship ('History & Physical order set' to 'FLACC pain assessment panel', AVOF-352)
 --chr(38)=&
 DELETE
 FROM concept_relationship_stage
@@ -493,31 +493,132 @@ FROM sources.loinc_documentontology d,
 WHERE v.vocabulary_id = 'LOINC'
 	AND d.partname NOT LIKE '{%}';
 
---18. Working with replacement mappings
+--18. Add LOINC Group File
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT lgt.category AS concept_name,
+	'Measurement' AS domain_id,
+	v.vocabulary_id AS vocabulary_id,
+	'LOINC Group' AS concept_class_id,
+	'C' AS standard_concept,
+	lg.parentgroupid AS concept_code,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.loinc_group lg
+JOIN sources.loinc_grouploincterms lgt ON lg.groupid = lgt.groupid
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
+WHERE lgt.category IS NOT NULL
+
+UNION ALL
+
+SELECT lg.lgroup AS concept_name,
+	'Measurement' AS domain_id,
+	v.vocabulary_id AS vocabulary_id,
+	'LOINC Group' AS concept_class_id,
+	'C' AS standard_concept,
+	lg.groupid AS concept_code,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.loinc_group lg
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
+
+--19. Add mappings for LOINC Groups
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT lgt.groupid AS concept_code_1,
+	lgt.loincnumber AS concept_code_2,
+	'LOINC' AS vocabulary_id_1,
+	'LOINC' AS vocabulary_id_2,
+	'Is a' AS relationship_id,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.loinc_grouploincterms lgt
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
+JOIN concept_stage cs1 ON cs1.concept_code = lgt.groupid
+JOIN concept_stage cs2 ON cs2.concept_code = lgt.loincnumber
+
+UNION ALL
+
+SELECT lg.parentgroupid AS concept_code_1,
+	lg.groupid AS concept_code_2,
+	'LOINC' AS vocabulary_id_1,
+	'LOINC' AS vocabulary_id_2,
+	'Is a' AS relationship_id,
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.loinc_group lg
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
+JOIN concept_stage cs1 ON cs1.concept_code = lg.parentgroupid
+JOIN concept_stage cs2 ON cs2.concept_code = lg.groupid;
+
+--20. Add LOINC Groups to the synonym table
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_name,
+	synonym_vocabulary_id,
+	language_concept_id
+	)
+SELECT cs.concept_code AS synonym_concept_code,
+	cs.concept_name AS synonym_name,
+	'LOINC' AS synonym_vocabulary_id,
+	4180186 AS language_concept_id -- English
+FROM concept_stage cs
+WHERE cs.concept_class_id = 'LOINC Group'
+
+UNION
+
+SELECT lpga.parentgroupid AS synonym_concept_code,
+	SUBSTR(lpga.lvalue, 1, 1000) AS synonym_name,
+	'LOINC' AS synonym_vocabulary_id,
+	4180186 AS language_concept_id -- English
+FROM sources.loinc_parentgroupattributes lpga;
+
+--21. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---19. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--22. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---20. Add mapping from deprecated to fresh concepts
+--23. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---21. Delete ambiguous 'Maps to' mappings
+--24. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---22. Set the proper concept_class_id for children of "Document ontology" (AVOF-352)
+--25. Set the proper concept_class_id for children of "Document ontology" (AVOF-352)
 UPDATE concept_stage
 SET concept_class_id = 'LOINC Document Type'
 WHERE concept_code IN (
@@ -563,7 +664,7 @@ WHERE concept_code IN (
 			AND c2.standard_concept IS NOT NULL
 		);
 
---23. Manual fix for 12841-3
+--26. Manual fix for 12841-3
 UPDATE concept_stage
 SET concept_name = 'Free/Total PSA serum/plasma'
 WHERE concept_code = '12841-3'

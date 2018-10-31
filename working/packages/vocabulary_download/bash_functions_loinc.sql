@@ -20,7 +20,10 @@ BEGIN
     unzip -oqj "$2_cpt.zip" "MRSMAP.RRF" -d . && \
     unzip -oqj "$2_la.zip" "AnswerList.csv" -d . && \
     unzip -oqj "$2_la.zip" "LoincAnswerListLink.csv" -d . && \
-    unzip -oqj "$2_do.zip" "DocumentOntology.csv" -d .
+    unzip -oqj "$2_do.zip" "DocumentOntology.csv" -d . && \
+    unzip -oqj "$2_gf.zip" "Group.csv" -d . && \
+    unzip -oqj "$2_gf.zip" "GroupLoincTerms.csv" -d . && \
+    unzip -oqj "$2_gf.zip" "ParentGroupAttributes.csv" -d .
     
     #move result to original folder
     cd "$1"
@@ -36,6 +39,9 @@ BEGIN
     mv work/LoincAnswerListLink.csv "LoincAnswerListLink.csv" && \
     mv work/loinc_class.csv "loinc_class.csv" && \
     mv work/DocumentOntology.csv "DocumentOntology.csv"
+    mv work/Group.csv "Group.csv" && \
+    mv work/GroupLoincTerms.csv "GroupLoincTerms.csv" && \
+    mv work/ParentGroupAttributes.csv "ParentGroupAttributes.csv"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

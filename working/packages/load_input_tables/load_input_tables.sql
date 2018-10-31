@@ -398,6 +398,10 @@ begin
       update sources.loinc_answerslist set displaytext=substr(displaytext,1,255) where length(displaytext)>255;
       execute 'COPY sources.loinc_answerslistlink FROM '''||pVocabularyPath||'LoincAnswerListLink.csv'' delimiter '','' csv HEADER';
       insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx');
+      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms;
+      execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'Group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
+      execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'ParentGroupAttributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
+      execute 'COPY sources.loinc_grouploincterms FROM '''||pVocabularyPath||'GroupLoincTerms.csv'' delimiter '','' csv HEADER FORCE NULL category,groupid,archetype,loincnumber,longcommonname';
       truncate table sources.loinc_class, sources.scccrefset_mapcorrorfull_int, sources.cpt_mrsmap;
       set local datestyle='ISO, DMY'; --set proper date format
       execute 'COPY sources.loinc_class FROM '''||pVocabularyPath||'loinc_class.csv'' delimiter ''|'' csv HEADER';

@@ -544,8 +544,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT lgt.groupid AS concept_code_1,
-	lgt.loincnumber AS concept_code_2,
+SELECT lgt.loincnumber AS concept_code_1,
+	lgt.groupid AS concept_code_2,
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
@@ -559,8 +559,8 @@ JOIN concept_stage cs2 ON cs2.concept_code = lgt.loincnumber
 
 UNION ALL
 
-SELECT lg.parentgroupid AS concept_code_1,
-	lg.groupid AS concept_code_2,
+SELECT lg.groupid AS concept_code_1,
+	lg.parentgroupid AS concept_code_2,
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
 	'Is a' AS relationship_id,

@@ -2161,7 +2161,7 @@ VALUES (138875005, 'Metadata'), -- root
 	(78621006, 'Observation'), -- Physical force
 	(123037004, 'Spec Anatomic Site'), -- Body structure
 	(118956008, 'Observation'), -- Body structure, altered from its original anatomical structure, reverted from 123037004
-	(254291000, 'Observation'), -- Staging / Scales
+	(254291000, 'Measurement'), -- Staging / Scales [changed Observation->Measurement AVOF-1295]
 	(370115009, 'Metadata'), -- Special Concept
 	(308916002, 'Observation'), -- Environment or geographical location
 	(223366009, 'Provider Specialty'), (43741000, 'Place of Service'), -- Site of care
@@ -2313,7 +2313,13 @@ VALUES (138875005, 'Metadata'), -- root
 	--added 20180820
 	(709080004, 'Observation'),
 	--added 20181005
-	(414916001, 'Condition'); -- Obesity
+	(414916001, 'Condition'), -- Obesity
+	--added 20181106 [AVOF-1295]
+	(125123008, 'Measurement'), -- Organ Weight
+	(125125001, 'Observation'), --Abnormal organ weight
+	(125124002, 'Observation'),-- Normal organ weight
+	(268444004, 'Measurement'), -- Radionuclide red cell mass measurement
+	(251880004, 'Measurement'); -- Respiratory measure
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

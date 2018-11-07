@@ -369,7 +369,7 @@ BEGIN
 	-- And it was started before or equal the release date
 	AND d.valid_start_date <= (
 		-- One of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
-		SELECT MAX(v.latest_update)-1 FROM vocabulary v WHERE v.vocabulary_id=c1.vocabulary_id OR v.vocabulary_id=c2.vocabulary_id --take both concept ids to get proper latest_update
+		SELECT MAX(v.latest_update) FROM vocabulary v WHERE v.vocabulary_id=c1.vocabulary_id OR v.vocabulary_id=c2.vocabulary_id --take both concept ids to get proper latest_update
 	)
 	-- And it is missing from the new concept_relationship_stage
 	AND NOT EXISTS (

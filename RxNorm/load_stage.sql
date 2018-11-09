@@ -1788,38 +1788,7 @@ WHERE d.vocabulary_id = 'ATC'
                 AND e.invalid_reason IS NULL
     WHERE d.vocabulary_id = 'ATC' AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
 	*/
--- add ATC to RxNorm by name, but exclude the ones the previous query did already
 
-UNION
-
-SELECT d.concept_code AS concept_code_1,
-	e.concept_code AS concept_code_2,
-	'ATC - RxNorm name' AS relationship_id, -- this is one to substitute "NDFRF has ing", is hierarchical AND defines ancestry.
-	'ATC' AS vocabulary_id_1,
-	'RxNorm' AS vocabulary_id_2,
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM drug_vocs d
-JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-JOIN concept e ON LOWER(d.concept_name) = LOWER(e.concept_name)
-	AND e.vocabulary_id = 'RxNorm'
-	AND e.invalid_reason IS NULL
-WHERE d.vocabulary_id = 'ATC'
-	AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
-	AND NOT EXISTS (
-		SELECT 1
-		FROM drug_vocs d_int
-		JOIN sources.rxnconso r_int ON r_int.rxcui = d_int.rxcui
-			AND r_int.code != 'NOCODE'
-		JOIN concept e_int ON r_int.rxcui = e_int.concept_code
-			AND e_int.vocabulary_id = 'RxNorm'
-			AND e_int.invalid_reason IS NULL
-		WHERE d_int.vocabulary_id = 'ATC'
-			AND d_int.concept_class_id = 'ATC 5th'
-			AND d_int.concept_code = d.concept_code
-			AND e_int.concept_code = e.concept_code
-		)
 -- NDF-RT-defined relationships
 
 UNION

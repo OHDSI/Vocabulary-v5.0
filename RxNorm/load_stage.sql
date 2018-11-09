@@ -1901,6 +1901,26 @@ WHERE (
 	AND uppr.vocabulary_id = 'ATC'
 	AND lowr.vocabulary_id = 'ATC'
 	AND v.vocabulary_id = 'ATC';
+	
+-- 21.2 Add new relationships
+INSERT INTO concept_relationship_stage (concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT NULL,
+       NULL,
+       f.atc_code,
+       f.concept_code,
+       'ATC',
+       c.vocabulary_id,
+       'ATC - RxNorm',
+       CURRENT_DATE,
+       TO_DATE('20991231', 'YYYYMMDD'),
+       NULL
+FROM final_assembly f
+JOIN concept c USING (concept_id)
+WHERE NOT exists
+    (SELECT 1
+     FROM concept_relationship_stage cr
+     WHERE cr.concept_code_1 = f.atc_code
+       AND cr.concept_code_2 = f.concept_code) ;
 
 --22. Add manual relationships
 DO $_$

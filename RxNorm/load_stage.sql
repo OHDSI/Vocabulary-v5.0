@@ -1904,8 +1904,9 @@ WHERE (
 	
 -- 21.2 Add new relationships
 INSERT INTO concept_relationship_stage (concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-SELECT NULL,
-       NULL,
+SELECT DISTINCT 
+       CAST (NULL AS INT),
+       CAST (NULL AS INT),
        f.atc_code,
        f.concept_code,
        'ATC',

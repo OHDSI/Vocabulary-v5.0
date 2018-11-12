@@ -26,7 +26,7 @@ begin
       drop index sources.x_mrconso_sui;
       drop index sources.x_mrrel_aui;
       /*
-      UMLS can contain characters like single quotes and double quotes, but PG them it as service characters
+      UMLS can contain characters like single quotes and double quotes, but PG uses them as a service characters
       So we specifying a quote character that should never be in the text: E'\b' (backspace)
       */
       execute 'COPY sources.mrconso FROM '''||pVocabularyPath||'MRCONSO.RRF'' delimiter ''|'' csv quote E''\b''';
@@ -643,7 +643,30 @@ begin
       execute 'COPY sources.icdo3_mrconso (cui,lat,ts,lui,stt,sui,ispref,aui,saui,scui,sdui,sab,tty,code,str,srl,suppress,cvf,vocabulary_date) FROM '''||pVocabularyPath||'MRCONSO.RRF'' delimiter ''|'' csv quote E''\b''';
       update sources.icdo3_mrconso set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       CREATE INDEX idx_icdo3_mrconso ON sources.icdo3_mrconso (SAB,TTY);
-      ANALYZE sources.icdo3_mrconso;
+      analyze sources.icdo3_mrconso;
+  when 'CDM' THEN
+      if pVocabularyVersion is null then
+      	RAISE EXCEPTION 'For current vocabulary (%) you must set the pVocabularyVersion! Format (json): {''version'':''CDM vX.Y.Z'', ''published_at'':''A'',''node_id'':''B''}', pVocabularyID;
+      end if;
+      
+      if not (pVocabularyVersion::json->>'version') ~* '^CDM v\d+\.\d+\.\d+$' then
+      	RAISE EXCEPTION 'For current vocabulary (%) you must set the proper CDM format!', pVocabularyID;
+      end if;
+      
+      truncate table sources.cdm_raw_table;
+      --we need to replace all carriage returns with chr(0) due to loading the entire file
+      execute 'COPY sources.cdm_raw_table (ddl_text) FROM PROGRAM ''cat "'||pVocabularyPath||'OMOP CDM postgresql ddl.txt" "'||pVocabularyPath||'OMOP CDM Results postgresql ddl.txt" | tr ''''\r\n'''' '''''||chr(1)||'''''  '' csv delimiter E''\b'' quote E''\f'' ';
+      --return the carriage returns back and comment all 'ALTER TABLE' clauses
+      update sources.cdm_raw_table set ddl_text=regexp_replace(replace(ddl_text,chr(1),E'\r\n'),'ALTER TABLE','--ALTER TABLE','gi'),
+      	ddl_date=(pVocabularyVersion::json->>'published_at')::timestamp, ddl_release_id=(pVocabularyVersion::json->>'node_id'), 
+        vocabulary_date=(pVocabularyVersion::json->>'published_at')::date, vocabulary_version=(pVocabularyVersion::json->>'version');
+      update sources.cdm_raw_table set ddl_text=regexp_replace(ddl_text,'datetime2','timestamp','gi') where ddl_release_id='MDc6UmVsZWFzZTExNDY1Njg5';--fix DDL bug in CDM v5.3.1
+      insert into sources.cdm_tables
+        select p.*,r.ddl_date, r.ddl_release_id,r.vocabulary_date, r.vocabulary_version
+        from sources.cdm_raw_table r
+        cross join vocabulary_pack.ParseTables (r.ddl_text) p
+        where not exists (select 1 from sources.cdm_tables c where c.ddl_release_id=r.ddl_release_id);
+      analyze sources.cdm_tables;
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;        

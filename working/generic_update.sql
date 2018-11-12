@@ -159,6 +159,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'APC' THEN 1
 		WHEN c.vocabulary_id = 'KDC' THEN 1
 		WHEN c.vocabulary_id = 'SUS' THEN 1
+		WHEN c.vocabulary_id = 'CDM' THEN 0
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');
@@ -344,8 +345,8 @@ BEGIN
 				FROM concept_relationship_manual JOIN relationship USING (relationship_id)
 			)
 		) AS s1
-		WHERE vocabulary_id_1 NOT IN ('SPL','RxNorm Extension')
-		AND vocabulary_id_2 NOT IN ('SPL','RxNorm Extension')
+		WHERE vocabulary_id_1 NOT IN ('SPL','RxNorm Extension','CDM')
+		AND vocabulary_id_2 NOT IN ('SPL','RxNorm Extension','CDM')
 		AND relationship_id NOT IN (
 			SELECT relationship_id FROM relationships
 			UNION ALL

@@ -60,7 +60,8 @@ BEGIN
         
         --Get date and version from main sources tables. This is necessary to determine partial update of the vocabulary (only in sources)
         if cVocabSrcTable is not null then
-          execute 'select vocabulary_date, vocabulary_version from '||cVocabSrcTable||' limit 1' into cVocabSrcDate, cVocabSrcVer;
+          --added 'order by' clause due to CDM
+          execute 'select vocabulary_date, vocabulary_version from '||cVocabSrcTable||' order by vocabulary_date desc limit 1' into cVocabSrcDate, cVocabSrcVer;
         end if;
 
         /*
@@ -101,6 +102,11 @@ BEGIN
                        'https://www.nlm.nih.gov/research/umls/licensedcontent/umlsknowledgesources.html',
                        NULL,
                        NULL,
+                       1,
+                       'sources.mrsmap',
+                       NULL,
+                       NULL,
+                       NULL,
                        1);
           start checking
           supported:
@@ -126,12 +132,12 @@ BEGIN
           20. CDT
           21. CPT4
           22. AMT
+          23. CDM
         */
         perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
         set local http.timeout_msec TO 30000;
         SELECT content into cVocabHTML FROM http_get(cURL);
         
-
         CASE
             WHEN cVocabularyName = 'RXNORM'
             THEN
@@ -345,6 +351,34 @@ BEGIN
                   ) s0
                   where s0.category='SCT_RF2_FULL' order by s0.amt_date desc limit 1;
                 cVocabVer := 'Clinical Terminology v'||to_char(cVocabDate,'YYYYMMDD');
+            WHEN cVocabularyName = 'CDM'
+            THEN
+                select s1.vocabulary_version, s1.release_date::date,
+                l.vocabulary_version, l.vocabulary_date
+                into cVocabVer, cVocabDate, cVocabSrcVer, cVocabSrcDate
+                from (
+                  select s0.vocabulary_version, s0.release_date from (
+                    with t as (select json_array_elements(cVocabHTML::json) as json_content)
+                    select trim(replace(replace(regexp_replace(t.json_content->>'name','^CDM v5\.0$','CDM v5.0.0'),' (historical)',''),'CDM v5.2 Bug Fix 1','CDM v5.2.0')) as vocabulary_version, 
+                    (t.json_content->>'published_at')::timestamp as release_date
+                    from t
+                    where (t.json_content->>'prerelease')::boolean = false
+                    and (t.json_content->>'node_id')<>'MDc6UmVsZWFzZTcxOTY0MDE=' --exclude 5.2.0 (before CDM v5.2 Bug Fix 1) due to DDL bugs
+                    and not exists (select 1 from sources.cdm_tables ct where ct.ddl_release_id=(t.json_content->>'node_id'))
+                  ) s0 order by release_date limit 1 --first unparsed release
+                ) s1
+                left join lateral
+                (
+                  --determine the affected version, because after 5.0.1 comes 4.0.0 for historical reasons, or after 5.3.1 comes 5.2.2 for support reason
+                  select ct.vocabulary_version, ct.vocabulary_date from sources.cdm_tables ct 
+                  where ct.ddl_date<s1.release_date and upper(ct.vocabulary_version)<upper(s1.vocabulary_version)
+                  order by upper(ct.vocabulary_version) desc, ct.ddl_date desc limit 1
+                ) l on true;
+                cVocabSrcVer:=coalesce(cVocabSrcVer,cVocabVer);
+                cVocabSrcDate:=coalesce(cVocabSrcDate,cVocabDate);
+                cVocabOldDate:=coalesce(cVocabOldDate,cVocabSrcDate-1);
+                cVocabOldVer:=coalesce(cVocabOldVer,cVocabSrcVer);
+                cVocabDate:=COALESCE(cVocabDate,cVocabOldDate);
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

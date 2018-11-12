@@ -70,6 +70,7 @@ BEGIN
 
     --first part, getting raw download link from page
     select substring(http_content,'<table class="umls_download">.+?<a href="(.+?)">') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    pDownloadURL:=regexp_replace(pDownloadURL, '[[:cntrl:]]+', '','g');
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
     --second part, now we have fully working download link

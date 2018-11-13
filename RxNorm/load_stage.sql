@@ -1944,6 +1944,7 @@ WHERE NOT f.atc_name ~ 'combination|agents|drugs|supplements|corticosteroids|com
       AND NOT exists
     (SELECT 1
      FROM concept_relationship_stage cr
+          JOIN concept c ON c.concept_code = cr.concept_code_2 AND cr.vocabulary_id_2 = c.vocabulary_id AND c.concept_class_id = 'Ingredient'
      WHERE cr.concept_code_1 = f.atc_code
        AND cr.concept_code_2 = f.concept_code) ;       
 

@@ -1922,6 +1922,30 @@ WHERE NOT exists
      FROM concept_relationship_stage cr
      WHERE cr.concept_code_1 = f.atc_code
        AND cr.concept_code_2 = f.concept_code) ;
+       
+-- 21.3 Add relationships to ingredients excluding multiple-ingredient combos
+INSERT INTO concept_relationship_stage (concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT DISTINCT
+			 cast (NULL as int),
+       cast (NULL as int),
+       f.atc_code,
+       f.concept_code,
+       'ATC',
+       c.vocabulary_id,
+       'ATC - RxNorm',
+       CURRENT_DATE,
+       TO_DATE('20991231', 'YYYYMMDD'),
+       NULL
+FROM final_assembly f
+    JOIN devv5.concept_ancestor ca ON ca.descendant_concept_id = f.concept_id
+    JOIN concept c ON c.concept_id = ca.ancestor_concept_id AND c.concept_class_id = 'Ingredient'
+WHERE NOT f.atc_name ~ 'combination|agents|drugs|supplements|corticosteroids|compounds|sulfonylureas|preparations|thiazides|antacid|antiinfectives|calcium$|potassium$|sodium$|antiseptics|antibiotics|mydriatics|psycholeptic|other|diuretic|nitrates|analgesics'
+      AND c.concept_name NOT IN ('Inert Ingredients') -- a component of contraceptive packs
+      AND NOT exists
+    (SELECT 1
+     FROM concept_relationship_stage cr
+     WHERE cr.concept_code_1 = f.atc_code
+       AND cr.concept_code_2 = f.concept_code) ;       
 
 --22. Add manual relationships
 DO $_$

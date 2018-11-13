@@ -67,13 +67,13 @@ BEGIN
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
     
-    --getting fully working download link from page [all_files_active]
-    select substring(http_content,'.+<th rowspan="4">ALL FILES</th>.+<a href="(.+?)" title="all files active') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    --getting fully working download link from page [all_files_marketed]
+    select substring(http_content,'.+<th rowspan="4">ALL FILES</th>.+<a href="(.+?)" title="all files marketed') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||pDownloadURL;
-    if not coalesce(pDownloadURL,'-') ~* '^(https://www.canada.ca/content/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (all_files_active) is not valid'; end if;
+    if not coalesce(pDownloadURL,'-') ~* '^(https://www.canada.ca/content/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (all_files_marketed) is not valid'; end if;
     
     --start downloading
-    pVocabularyOperation:='GET_DPD All Files Active downloading';
+    pVocabularyOperation:='GET_DPD All Files Marketed downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.zip',
@@ -82,17 +82,17 @@ BEGIN
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_DPD All Files Active downloading complete',
+      iVocabulary_operation=>'GET_DPD All Files Marketed downloading complete',
       iVocabulary_status=>1
     );
     
-    --getting fully working download link from page [all_files_discontinued]
-    select substring(http_content,'.+<th rowspan="4">ALL FILES</th>.+<a href="(.+?_ia.+?\.zip)" title="all files approved.+') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    --getting fully working download link from page [all_files_cancelled]
+    select substring(http_content,'.+<th rowspan="4">ALL FILES</th>.+<a href="(.+?_ia\.zip)" title="all files cancelled.+') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||pDownloadURL;
-    if not coalesce(pDownloadURL,'-') ~* '^(https://www.canada.ca/content/)(.+)_ia.+?\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (all_files_discontinued) is not valid'; end if;
+    if not coalesce(pDownloadURL,'-') ~* '^(https://www.canada.ca/content/)(.+)_ia\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (all_files_cancelled) is not valid'; end if;
     
     --start downloading
-    pVocabularyOperation:='GET_DPD All Files Discontinued downloading';
+    pVocabularyOperation:='GET_DPD All Files Cancelled downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'_ia.zip',
@@ -102,7 +102,7 @@ BEGIN
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_DPD All Files Discontinued downloading complete',
+      iVocabulary_operation=>'GET_DPD All Files Cancelled downloading complete',
       iVocabulary_status=>1
     );
     

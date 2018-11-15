@@ -1954,46 +1954,6 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---23. Remove direct links to RxNorm Ingredients for all those ATC5 concepts that are ambiguous and likely are either defined as combinations or with certain Drug Forms only
-ANALYZE concept_relationship_stage;
-DELETE
-FROM concept_relationship_stage crs
-WHERE EXISTS (
-		SELECT 1
-		FROM concept_stage c1,
-			concept c2,
-			concept_relationship_stage crs_int
-		WHERE c1.concept_code = crs_int.concept_code_1
-			AND c1.vocabulary_id = crs_int.vocabulary_id_1
-			AND c2.concept_code = crs_int.concept_code_2
-			AND c2.vocabulary_id = crs_int.vocabulary_id_2
-			AND c1.vocabulary_id = 'ATC'
-			AND c1.concept_class_id = 'ATC 5th'
-			AND c1.invalid_reason IS NULL
-			AND c2.vocabulary_id = 'RxNorm'
-			--AND c2.concept_class_id IN ('Ingredient','Precise Ingredient') /*AVOF-322*/
-			AND crs_int.relationship_id IN (
-				'ATC - RxNorm',
-				'ATC - RxNorm name'
-				)
-			AND crs_int.invalid_reason IS NULL
-			AND c1.concept_name IN (
-				SELECT c_int.concept_name
-				FROM concept_stage c_int
-				WHERE c_int.vocabulary_id = 'ATC'
-					AND c_int.concept_class_id = 'ATC 5th'
-					AND c_int.invalid_reason IS NULL
-					AND c_int.concept_name <> 'combinations'
-				GROUP BY c_int.concept_name
-				HAVING COUNT(*) > 1
-				)
-			AND crs_int.concept_code_1 = crs.concept_code_1
-			AND crs_int.vocabulary_id_1 = crs.vocabulary_id_1
-			AND crs_int.concept_code_2 = crs.concept_code_2
-			AND crs_int.vocabulary_id_2 = crs.vocabulary_id_2
-			AND crs_int.relationship_id = crs.relationship_id
-		);
-
 --24. Remove ATC's duplicates (AVOF-322)
 --diphtheria immunoglobulin
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'J06BB10' AND concept_code_2 = '3510' AND relationship_id = 'ATC - RxNorm';

@@ -974,6 +974,7 @@ BEGIN
 	-- clean up
 	DROP TABLE component_replace;
 	DROP TABLE unit_to_concept_map;
+	DROP TABLE rxnorm_ancestor;
 
 	-- delete unparsable records
 	DELETE

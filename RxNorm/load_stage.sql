@@ -1058,7 +1058,7 @@ WHERE crs.relationship_id = 'Form of'
 			AND crs_int.relationship_id = 'Maps to'
 		);
 
---7.6 Add manual relationships. We can't use concept_relationship_manual because it is used by ATC, NDFRT etc, so we created a new table - concept_relationship_manual_rx
+--7.6 Add manual relationships. We can't use concept_relationship_manual because it is used by VA*, NDFRT etc, so we created a new table - concept_relationship_manual_rx
 --just copy the code from \working\packages\vocabulary_pack\CheckManualTable.sql and \working\packages\vocabulary_pack\ProcessManualRelationships.sql
 DO $_$
 DECLARE
@@ -1291,7 +1291,7 @@ END $_$;
 --17. After previous step disable indexes and truncate tables again
 UPDATE vocabulary SET (latest_update, vocabulary_version, dev_schema_name)=
 (select latest_update, vocabulary_version, dev_schema_name from vocabulary WHERE vocabulary_id = 'RxNorm')
-	WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class', 'ATC');
+	WHERE vocabulary_id in ('NDFRT','VA Product', 'VA Class');
 UPDATE vocabulary SET latest_update=null, dev_schema_name=null WHERE vocabulary_id = 'RxNorm';
 
 TRUNCATE TABLE concept_stage;
@@ -1300,7 +1300,7 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---18. Add NDFRT, VA Product, VA Class and ATC
+--18. Add NDFRT, VA Product, VA Class
 --create temporary table drug_vocs
 DROP TABLE IF EXISTS drug_vocs;
 CREATE UNLOGGED TABLE drug_vocs AS
@@ -1373,41 +1373,7 @@ FROM (
 			)
 		AND code != 'NOCODE'
 	) AS s0
-WHERE concept_class_id IS NOT NULL -- kick out "preparations", which really are the useless 1st initial of pharma preparations
--- Add ATC
-UNION ALL
-SELECT rxcui,
-	code,
-	concept_name,
-	'ATC' AS vocabulary_id,
-	'C' AS standard_concept,
-	concept_code,
-	concept_class_id
-FROM (
-	SELECT DISTINCT rxcui,
-		code,
-		SUBSTR(str, 1, 255) AS concept_name,
-		code AS concept_code,
-		CASE 
-			WHEN LENGTH(code) = 1
-				THEN 'ATC 1st'
-			WHEN LENGTH(code) = 3
-				THEN 'ATC 2nd'
-			WHEN LENGTH(code) = 4
-				THEN 'ATC 3rd'
-			WHEN LENGTH(code) = 5
-				THEN 'ATC 4th'
-			WHEN LENGTH(code) = 7
-				THEN 'ATC 5th'
-			END AS concept_class_id
-	FROM sources.rxnconso
-	WHERE sab = 'ATC'
-		AND tty IN (
-			'PT',
-			'IN'
-			)
-		AND code != 'NOCODE'
-	) AS s1;
+WHERE concept_class_id IS NOT NULL; -- kick out "preparations", which really are the useless 1st initial of pharma preparations
 
 CREATE INDEX idx_drugvocs_code ON drug_vocs (code);
 CREATE INDEX idx_drugvocs_ccode ON drug_vocs (concept_code);
@@ -1459,11 +1425,12 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT d.concept_code AS concept_code_1,
+-- Cross-link between drug class VA Class AND Chemical Structure, Therapeutic Class
+SELECT DISTINCT d.concept_code AS concept_code_1,
 	e.concept_code AS concept_code_2,
-	'VA Class to ATC eq' AS relationship_id,
+	'VA Class to NDFRT eq' AS relationship_id,
 	'VA Class' AS vocabulary_id_1,
-	'ATC' AS vocabulary_id_2,
+	'NDFRT' AS vocabulary_id_2,
 	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
@@ -1473,98 +1440,16 @@ JOIN sources.rxnconso r ON r.rxcui = d.rxcui
 JOIN drug_vocs e ON r.rxcui = e.rxcui
 	AND r.code = e.concept_code
 JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-WHERE d.concept_class_id LIKE 'VA Class'
-	AND e.concept_class_id LIKE 'ATC%'
--- Cross-link between drug class Chemical Structure AND ATC
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
-	e.concept_code AS concept_code_2,
-	'NDFRT to ATC eq' AS relationship_id,
-	'NDFRT' AS vocabulary_id_1,
-	'ATC' AS vocabulary_id_2,
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM drug_vocs d
-JOIN sources.rxnconso r ON r.rxcui = d.rxcui
-	AND r.code != 'NOCODE'
-JOIN drug_vocs e ON r.rxcui = e.rxcui
-	AND r.code = e.concept_code
-JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-WHERE d.concept_class_id = 'Chemical Structure'
+WHERE d.concept_class_id = 'VA Class'
 	AND e.concept_class_id IN (
-		'ATC 1st',
-		'ATC 2nd',
-		'ATC 3rd',
-		'ATC 4th'
+		'Chemical Structure',
+		'Therapeutic Class'
 		)
--- Cross-link between drug class ATC AND Therapeutic Class
 
-UNION
+UNION ALL
 
-SELECT d.concept_code AS concept_code_1,
-	e.concept_code AS concept_code_2,
-	'NDFRT to ATC eq' AS relationship_id,
-	'NDFRT' AS vocabulary_id_1,
-	'ATC' AS vocabulary_id_2,
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM drug_vocs d
-JOIN sources.rxnconso r ON r.rxcui = d.rxcui
-	AND r.code != 'NOCODE'
-JOIN drug_vocs e ON r.rxcui = e.rxcui
-	AND r.code = e.concept_code
-JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-WHERE d.concept_class_id LIKE 'Therapeutic Class'
-	AND e.concept_class_id LIKE 'ATC%'
--- Cross-link between drug class VA Class AND Chemical Structure
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
-	e.concept_code AS concept_code_2,
-	'VA Class to NDFRT eq' AS relationship_id,
-	'VA Class' AS vocabulary_id_1,
-	'NDFRT' AS vocabulary_id_2,
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM drug_vocs d
-JOIN sources.rxnconso r ON r.rxcui = d.rxcui
-	AND r.code != 'NOCODE'
-JOIN drug_vocs e ON r.rxcui = e.rxcui
-	AND r.code = e.concept_code
-JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-WHERE d.concept_class_id LIKE 'VA Class'
-	AND e.concept_class_id = 'Chemical Structure'
--- Cross-link between drug class VA Class AND Therapeutic Class
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
-	e.concept_code AS concept_code_2,
-	'VA Class to NDFRT eq' AS relationship_id,
-	'VA Class' AS vocabulary_id_1,
-	'NDFRT' AS vocabulary_id_2,
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM drug_vocs d
-JOIN sources.rxnconso r ON r.rxcui = d.rxcui
-	AND r.code != 'NOCODE'
-JOIN drug_vocs e ON r.rxcui = e.rxcui
-	AND r.code = e.concept_code
-JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-WHERE d.concept_class_id LIKE 'VA Class'
-	AND e.concept_class_id = 'Therapeutic Class'
 -- Cross-link between drug class Chemical Structure AND Pharmaceutical Preparation
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
+SELECT DISTINCT d.concept_code AS concept_code_1,
 	e.concept_code AS concept_code_2,
 	'Chem to Prep eq' AS relationship_id, -- this is one to substitute "NDFRT has ing", is hierarchical AND defines ancestry.
 	'NDFRT' AS vocabulary_id_1,
@@ -1578,13 +1463,13 @@ JOIN sources.rxnconso r ON r.rxcui = d.rxcui
 JOIN drug_vocs e ON r.rxcui = e.rxcui
 	AND r.code = e.concept_code
 JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-WHERE d.concept_class_id LIKE 'Chemical Structure'
+WHERE d.concept_class_id = 'Chemical Structure'
 	AND e.concept_class_id = 'Pharma Preparation'
+
+UNION ALL
+
 -- Cross-link between drug class SNOMED AND NDF-RT
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
+SELECT DISTINCT d.concept_code AS concept_code_1,
 	e.concept_code AS concept_code_2,
 	'SNOMED - NDFRT eq' AS relationship_id,
 	'SNOMED' AS vocabulary_id_1,
@@ -1610,11 +1495,11 @@ WHERE d.vocabulary_id = 'SNOMED'
 		WHERE pp.rxcui = r.rxcui
 			AND pp.concept_class_id = 'Pharma Preparation'
 		)
+
+UNION ALL
+
 -- Cross-link between drug class SNOMED AND VA Class
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
+SELECT DISTINCT d.concept_code AS concept_code_1,
 	e.concept_code AS concept_code_2,
 	'SNOMED - VA Class eq' AS relationship_id,
 	'SNOMED' AS vocabulary_id_1,
@@ -1633,34 +1518,11 @@ JOIN drug_vocs e ON r2.code = e.code
 	AND e.vocabulary_id = 'VA Class' -- code AND concept_code are different for VA Class
 WHERE d.vocabulary_id = 'SNOMED'
 	AND d.invalid_reason IS NULL
--- Cross-link between drug class SNOMED AND ATC classes (not ATC 5th)
 
-UNION
+UNION ALL
 
-SELECT d.concept_code AS concept_code_1,
-	e.concept_code AS concept_code_2,
-	'SNOMED - ATC eq' AS relationship_id,
-	'SNOMED' AS vocabulary_id_1,
-	'ATC' AS vocabulary_id_2,
-	d.valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM concept d
-JOIN sources.rxnconso r ON r.code = d.concept_code
-	AND r.sab = 'SNOMEDCT_US'
-	AND r.code != 'NOCODE'
-JOIN sources.rxnconso r2 ON r.rxcui = r2.rxcui
-	AND r2.sab = 'ATC'
-	AND r2.code != 'NOCODE'
-JOIN drug_vocs e ON r2.code = e.concept_code
-	AND e.concept_class_id != 'ATC 5th' -- Ingredients only to RxNorm
-WHERE d.vocabulary_id = 'SNOMED'
-	AND d.invalid_reason IS NULL
 -- Cross-link between any NDF-RT (mostly Pharmaceutical Preps AND Chemical Structure) to RxNorm
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
+SELECT DISTINCT d.concept_code AS concept_code_1,
 	e.concept_code AS concept_code_2,
 	'NDFRT - RxNorm eq' AS relationship_id,
 	'NDFRT' AS vocabulary_id_1,
@@ -1676,11 +1538,11 @@ JOIN concept e ON r.rxcui = e.concept_code
 	AND e.vocabulary_id = 'RxNorm'
 	AND e.invalid_reason IS NULL
 WHERE d.vocabulary_id = 'NDFRT'
+
+UNION ALL
+
 -- Cross-link between any NDF-RT to RxNorm by name, but exclude the ones the previous query did already
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
+SELECT DISTINCT d.concept_code AS concept_code_1,
 	e.concept_code AS concept_code_2,
 	'NDFRT - RxNorm name' AS relationship_id,
 	'NDFRT' AS vocabulary_id_1,
@@ -1706,11 +1568,11 @@ WHERE d.vocabulary_id = 'NDFRT'
 			AND d_int.concept_code = d.concept_code
 			AND e_int.concept_code = e.concept_code
 		)
+
+UNION ALL
+
 -- Cross-link between VA Product AND RxNorm
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
+SELECT DISTINCT d.concept_code AS concept_code_1,
 	e.concept_code AS concept_code_2,
 	'VAProd - RxNorm eq' AS relationship_id,
 	'VA Product' AS vocabulary_id_1,
@@ -1726,11 +1588,11 @@ JOIN concept e ON r.rxcui = e.concept_code
 	AND e.vocabulary_id = 'RxNorm'
 	AND e.invalid_reason IS NULL
 WHERE d.vocabulary_id = 'VA Product'
+
+UNION ALL
+
 -- Mapping table between VA Product to RxNorm. VA Product is both an intermediary between RxNorm AND VA class, AND a source code
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
+SELECT DISTINCT d.concept_code AS concept_code_1,
 	e.concept_code AS concept_code_2,
 	'Maps to' AS relationship_id,
 	'VA Product' AS vocabulary_id_1,
@@ -1746,84 +1608,10 @@ JOIN concept e ON r.rxcui = e.concept_code
 	AND e.vocabulary_id = 'RxNorm'
 	AND e.invalid_reason IS NULL
 WHERE d.vocabulary_id = 'VA Product'
--- add ATC to RxNorm
 
-UNION
+UNION ALL
 
-SELECT d.concept_code AS concept_code_1,
-	e.concept_code AS concept_code_2,
-	'ATC - RxNorm' AS relationship_id, -- this is one to substitute "NDFRF has ing", is hierarchical AND defines ancestry.
-	'ATC' AS vocabulary_id_1,
-	'RxNorm' AS vocabulary_id_2,
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM drug_vocs d
-JOIN sources.rxnconso r ON r.rxcui = d.rxcui
-	AND r.code != 'NOCODE'
-JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-JOIN concept e ON r.rxcui = e.concept_code
-	AND e.vocabulary_id = 'RxNorm'
-	AND e.invalid_reason IS NULL
-WHERE d.vocabulary_id = 'ATC'
-	AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
-	-- DO NOT add ATC to RxNorm mapping, because of bad min/max levels of separation [AVOF-82]
-	/*
-   -- add ATC to RxNorm mapping. ATC is both a classification (ATC 1-4) AND a source (ATC 5th)
-   UNION 
-   SELECT d.concept_code AS concept_code_1,
-                   e.concept_code AS concept_code_2,
-                   'Maps to' AS relationship_id, -- this is one to substitute "NDFRF has ing", is hierarchical AND defines ancestry.
-                   'ATC' AS vocabulary_id_1,
-                   'RxNorm' AS vocabulary_id_2,
-                   v.latest_update AS valid_start_date,
-                   TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
-                   NULL AS invalid_reason
-     FROM drug_vocs d
-          JOIN sources.rxnconso r ON r.rxcui = d.rxcui AND r.code != 'NOCODE'
-          JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-          JOIN concept e
-             ON     r.rxcui = e.concept_code
-                AND e.vocabulary_id = 'RxNorm'
-                AND e.invalid_reason IS NULL
-    WHERE d.vocabulary_id = 'ATC' AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
-	*/
--- add ATC to RxNorm by name, but exclude the ones the previous query did already
-
-UNION
-
-SELECT d.concept_code AS concept_code_1,
-	e.concept_code AS concept_code_2,
-	'ATC - RxNorm name' AS relationship_id, -- this is one to substitute "NDFRF has ing", is hierarchical AND defines ancestry.
-	'ATC' AS vocabulary_id_1,
-	'RxNorm' AS vocabulary_id_2,
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM drug_vocs d
-JOIN vocabulary v ON v.vocabulary_id = d.vocabulary_id
-JOIN concept e ON LOWER(d.concept_name) = LOWER(e.concept_name)
-	AND e.vocabulary_id = 'RxNorm'
-	AND e.invalid_reason IS NULL
-WHERE d.vocabulary_id = 'ATC'
-	AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
-	AND NOT EXISTS (
-		SELECT 1
-		FROM drug_vocs d_int
-		JOIN sources.rxnconso r_int ON r_int.rxcui = d_int.rxcui
-			AND r_int.code != 'NOCODE'
-		JOIN concept e_int ON r_int.rxcui = e_int.concept_code
-			AND e_int.vocabulary_id = 'RxNorm'
-			AND e_int.invalid_reason IS NULL
-		WHERE d_int.vocabulary_id = 'ATC'
-			AND d_int.concept_class_id = 'ATC 5th'
-			AND d_int.concept_code = d.concept_code
-			AND e_int.concept_code = e.concept_code
-		)
 -- NDF-RT-defined relationships
-
-UNION
-
 SELECT concept_code_1,
 	concept_code_2,
 	relationship_id,
@@ -1897,41 +1685,7 @@ FROM (
 	JOIN drug_vocs e ON r2.code = e.code
 		AND e.rxcui = r2.rxcui
 	) AS s0
-WHERE relationship_id IS NOT NULL
-
-UNION
-
--- Hierarchy inside ATC
-SELECT uppr.concept_code AS concept_code_1,
-	lowr.concept_code AS concept_code_2,
-	'Is a' AS relationship_id,
-	'ATC' AS vocabulary_id_1,
-	'ATC' AS vocabulary_id_2,
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM concept_stage uppr,
-	concept_stage lowr,
-	vocabulary v
-WHERE (
-		(
-			LENGTH(uppr.concept_code) IN (
-				4,
-				5
-				)
-			AND lowr.concept_code = SUBSTR(uppr.concept_code, 1, LENGTH(uppr.concept_code) - 1)
-			)
-		OR (
-			LENGTH(uppr.concept_code) IN (
-				3,
-				7
-				)
-			AND lowr.concept_code = SUBSTR(uppr.concept_code, 1, LENGTH(uppr.concept_code) - 2)
-			)
-		)
-	AND uppr.vocabulary_id = 'ATC'
-	AND lowr.vocabulary_id = 'ATC'
-	AND v.vocabulary_id = 'ATC';
+WHERE relationship_id IS NOT NULL;
 
 --22. Add manual relationships
 DO $_$
@@ -1939,176 +1693,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---23. Remove direct links to RxNorm Ingredients for all those ATC5 concepts that are ambiguous and likely are either defined as combinations or with certain Drug Forms only
-ANALYZE concept_relationship_stage;
-DELETE
-FROM concept_relationship_stage crs
-WHERE EXISTS (
-		SELECT 1
-		FROM concept_stage c1,
-			concept c2,
-			concept_relationship_stage crs_int
-		WHERE c1.concept_code = crs_int.concept_code_1
-			AND c1.vocabulary_id = crs_int.vocabulary_id_1
-			AND c2.concept_code = crs_int.concept_code_2
-			AND c2.vocabulary_id = crs_int.vocabulary_id_2
-			AND c1.vocabulary_id = 'ATC'
-			AND c1.concept_class_id = 'ATC 5th'
-			AND c1.invalid_reason IS NULL
-			AND c2.vocabulary_id = 'RxNorm'
-			--AND c2.concept_class_id IN ('Ingredient','Precise Ingredient') /*AVOF-322*/
-			AND crs_int.relationship_id IN (
-				'ATC - RxNorm',
-				'ATC - RxNorm name'
-				)
-			AND crs_int.invalid_reason IS NULL
-			AND c1.concept_name IN (
-				SELECT c_int.concept_name
-				FROM concept_stage c_int
-				WHERE c_int.vocabulary_id = 'ATC'
-					AND c_int.concept_class_id = 'ATC 5th'
-					AND c_int.invalid_reason IS NULL
-					AND c_int.concept_name <> 'combinations'
-				GROUP BY c_int.concept_name
-				HAVING COUNT(*) > 1
-				)
-			AND crs_int.concept_code_1 = crs.concept_code_1
-			AND crs_int.vocabulary_id_1 = crs.vocabulary_id_1
-			AND crs_int.concept_code_2 = crs.concept_code_2
-			AND crs_int.vocabulary_id_2 = crs.vocabulary_id_2
-			AND crs_int.relationship_id = crs.relationship_id
-		);
-
---24. Remove ATC's duplicates (AVOF-322)
---diphtheria immunoglobulin
-DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'J06BB10' AND concept_code_2 = '3510' AND relationship_id = 'ATC - RxNorm';
---hydroquinine
-DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'M09AA01' AND concept_code_2 = '27220' AND relationship_id = 'ATC - RxNorm';
-
---25. Deprecate relationships between multi ingredient drugs and a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
---25.1. Create temporary table drug_strength_ext (same code as in concept_ancestor, but we exclude ds for ingredients (because we use count(*)>1 and ds for ingredients having count(*)=1) and only for RxNorm)
-DROP TABLE IF EXISTS drug_strength_ext;
-CREATE UNLOGGED TABLE drug_strength_ext AS
-SELECT *
-FROM (
-	WITH ingredient_unit AS (
-			SELECT DISTINCT
-				-- pick the most common unit for an ingredient. If there is a draw, pick always the same by sorting by unit_concept_id
-				ingredient_concept_code,
-				vocabulary_id,
-				FIRST_VALUE(unit_concept_id) OVER (
-					PARTITION BY ingredient_concept_code ORDER BY cnt DESC,
-						unit_concept_id
-					) AS unit_concept_id
-			FROM (
-				-- sum the counts coming from amount and numerator
-				SELECT ingredient_concept_code,
-					vocabulary_id,
-					unit_concept_id,
-					SUM(cnt) AS cnt
-				FROM (
-					-- count ingredients, their units and the frequency
-					SELECT c2.concept_code AS ingredient_concept_code,
-						c2.vocabulary_id,
-						ds.amount_unit_concept_id AS unit_concept_id,
-						COUNT(*) AS cnt
-					FROM drug_strength ds
-					JOIN concept c1 ON c1.concept_id = ds.drug_concept_id
-						AND c1.vocabulary_id = 'RxNorm'
-					JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id
-						AND c2.vocabulary_id = 'RxNorm'
-					WHERE ds.amount_value <> 0
-					GROUP BY c2.concept_code,
-						c2.vocabulary_id,
-						ds.amount_unit_concept_id
-					
-					UNION
-					
-					SELECT c2.concept_code AS ingredient_concept_code,
-						c2.vocabulary_id,
-						ds.numerator_unit_concept_id AS unit_concept_id,
-						COUNT(*) AS cnt
-					FROM drug_strength ds
-					JOIN concept c1 ON c1.concept_id = ds.drug_concept_id
-						AND c1.vocabulary_id = 'RxNorm'
-					JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id
-						AND c2.vocabulary_id = 'RxNorm'
-					WHERE ds.numerator_value <> 0
-					GROUP BY c2.concept_code,
-						c2.vocabulary_id,
-						ds.numerator_unit_concept_id
-					) AS s0
-				GROUP BY ingredient_concept_code,
-					vocabulary_id,
-					unit_concept_id
-				) AS s1
-			)
-	-- Create drug_strength for drug forms
-	SELECT de.concept_code AS drug_concept_code,
-		an.concept_code AS ingredient_concept_code
-	FROM concept an
-	JOIN rxnorm_ancestor a ON a.ancestor_concept_code = an.concept_code
-		AND a.ancestor_vocabulary_id = an.vocabulary_id
-	JOIN concept de ON de.concept_code = a.descendant_concept_code
-		AND de.vocabulary_id = a.descendant_vocabulary_id
-	JOIN ingredient_unit iu ON iu.ingredient_concept_code = an.concept_code
-		AND iu.vocabulary_id = an.vocabulary_id
-	WHERE an.vocabulary_id = 'RxNorm'
-		AND an.concept_class_id = 'Ingredient'
-		AND de.vocabulary_id = 'RxNorm'
-		AND de.concept_class_id IN (
-			'Clinical Drug Form',
-			'Branded Drug Form'
-			)
-	) AS s2;
-
---25.2. Do deprecation
-DELETE
-FROM concept_relationship_stage
-WHERE ctid IN (
-		SELECT drug2atc.row_id
-		FROM (
-			SELECT drug_concept_code
-			FROM (
-				SELECT c1.concept_code AS drug_concept_code,
-					c2.concept_code
-				FROM drug_strength ds
-				JOIN concept c1 ON c1.concept_id = ds.drug_concept_id
-					AND c1.vocabulary_id = 'RxNorm'
-				JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id
-				
-				UNION
-				
-				SELECT drug_concept_code,
-					ingredient_concept_code
-				FROM drug_strength_ext
-				) AS s0
-			GROUP BY drug_concept_code
-			HAVING count(*) > 1
-			) all_drugs
-		JOIN (
-			SELECT *
-			FROM (
-				SELECT crs.ctid row_id,
-					crs.concept_code_2,
-					count(*) OVER (PARTITION BY crs.concept_code_2) cnt_atc
-				FROM concept_relationship_stage crs
-				JOIN concept_stage cs ON cs.concept_code = crs.concept_code_1
-					AND cs.vocabulary_id = crs.vocabulary_id_1
-					AND cs.vocabulary_id = 'ATC'
-					AND cs.concept_class_id = 'ATC 5th'
-					AND NOT cs.concept_name ~ 'preparations|virus|antigen|-|/|organisms|insulin|etc\.|influenza|human menopausal gonadotrophin|combination|amino acids|electrolytes| and |excl\.| with |others|various'
-				JOIN concept c ON c.concept_code = crs.concept_code_2
-					AND c.vocabulary_id = crs.vocabulary_id_2
-					AND c.vocabulary_id = 'RxNorm'
-				WHERE crs.relationship_id = 'ATC - RxNorm'
-					AND crs.invalid_reason IS NULL
-				) AS s1
-			WHERE cnt_atc = 1
-			) drug2atc ON drug2atc.concept_code_2 = all_drugs.drug_concept_code
-		);
-
---26. Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
+--23. Add synonyms to concept_synonym stage for each of the rxcui/code combinations in drug_vocs
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -2135,31 +1720,31 @@ JOIN sources.rxnconso r ON dv.code = r.code
 	AND r.code != 'NOCODE'
 	AND r.lat = 'ENG';
 
---27. Working with replacement mappings
+--24. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---28. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--25. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---29. Add mapping from deprecated to fresh concepts
+--26. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---30. Delete ambiguous 'Maps to' mappings
+--27. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---31. Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> RxNorm, but currently we are updating VA*, ATC etc)
+--28. Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> RxNorm, but currently we are updating VA*, NDFRT etc)
 --This is because we have SNOMED <-> NDFRT in concept_relationship_stage, but AddFreshMAPSTO adds SNOMED <-> RxNorm from concept_relationship
 DELETE
 FROM concept_relationship_stage crs_o
@@ -2181,9 +1766,7 @@ WHERE (
 		WHERE coalesce(v1.latest_update, v2.latest_update) IS NULL
 		);
 
---32. Clean up
+--29. Clean up
 DROP TABLE drug_vocs;
-DROP TABLE rxnorm_ancestor;
-DROP TABLE drug_strength_ext;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

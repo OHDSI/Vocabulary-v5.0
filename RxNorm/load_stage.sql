@@ -1926,16 +1926,16 @@ WHERE NOT exists
 -- 21.3 Add relationships to ingredients excluding multiple-ingredient combos
 INSERT INTO concept_relationship_stage (concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
-			 cast (NULL as int),
-       cast (NULL as int),
-       f.atc_code,
-       f.concept_code,
-       'ATC',
-       c.vocabulary_id,
-       'ATC - RxNorm',
-       CURRENT_DATE,
-       TO_DATE('20991231', 'YYYYMMDD'),
-       NULL
+	cast (NULL as int),
+        cast (NULL as int),
+        f.atc_code,
+        f.concept_code,
+        'ATC',
+        c.vocabulary_id,
+        'ATC - RxNorm',
+        CURRENT_DATE,
+        TO_DATE('20991231', 'YYYYMMDD'),
+        NULL
 FROM final_assembly f
     JOIN devv5.concept_ancestor ca ON ca.descendant_concept_id = f.concept_id
     JOIN concept c ON c.concept_id = ca.ancestor_concept_id AND c.concept_class_id = 'Ingredient'
@@ -1947,6 +1947,59 @@ WHERE NOT f.atc_name ~ 'combination|agents|drugs|supplements|corticosteroids|com
           JOIN concept c ON c.concept_code = cr.concept_code_2 AND cr.vocabulary_id_2 = c.vocabulary_id AND c.concept_class_id = 'Ingredient'
      WHERE cr.concept_code_1 = f.atc_code
        AND cr.concept_code_2 = f.concept_code) ;       
+
+
+-- 21.4 Add relationships to ingredients for combo drugs where possible
+
+INSERT INTO concept_relationship_stage (concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT DISTINCT
+		cast(NULL AS int),
+		cast(NULL AS int),
+		atc.atc_code,
+		atc.concept_code,
+		'ATC',
+		atc.vocabulary_id,
+		'ATC - RxNorm',
+		CURRENT_DATE,
+		TO_DATE('20991231', 'YYYYMMDD'),
+		NULL
+	FROM (
+			SELECT
+				d.atc_code,
+				c.concept_code,
+				c.vocabulary_id
+			FROM dev_combo_stage d
+				JOIN relationship_to_concept rtc ON rtc.concept_code_1 = ing AND flag = 'ing'
+				JOIN concept c ON rtc.concept_id_2 = c.concept_id
+			WHERE NOT EXISTS( SELECT 1
+						FROM dev_combo_stage d2
+						WHERE d.atc_code = d2.atc_code AND d.ing = d2.ing AND precedence > 1)
+
+			UNION
+
+			SELECT
+				atc_code,
+				c.concept_code,
+				c.vocabulary_id
+			FROM atc_1_comb
+				LEFT JOIN reference USING (atc_code)
+				JOIN internal_relationship_stage i on coalesce(concept_code, atc_code) = concept_code_1
+				JOIN drug_concept_stage d ON d.concept_code = concept_code_2 AND concept_class_id = 'Ingredient'
+				JOIN relationship_to_concept rtc ON rtc.concept_code_1 = d.concept_code
+				JOIN concept c ON rtc.concept_id_2 = c.concept_id
+			WHERE atc_name ~ 'comb' AND NOT atc_name ~ 'excl| and |combinations of|derivate|other|with'
+						AND NOT EXISTS( SELECT 1
+									FROM relationship_to_concept rtc2
+									WHERE rtc.concept_code_1 = rtc2.concept_code_1
+																		AND precedence > 1)) atc
+	WHERE NOT exists
+	(SELECT 1
+	 FROM concept_relationship_stage cr
+	 WHERE cr.concept_code_1 = atc.atc_code
+				 AND cr.concept_code_2 = atc.concept_code)
+;
+
+
 
 --22. Add manual relationships
 DO $_$

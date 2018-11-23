@@ -411,7 +411,7 @@ begin
   --bottom block
   cMailText:=cMailText||crlf||crlf||'<font color=''#8c8c8c''><pre>---------------'||crlf||
   '- ISBT means ISBT and ISBT Attribute'||crlf||
-  '- RxNorm means RxNorm, NDFRT, VA Product, VA Class and ATC'||crlf||
+  '- RxNorm means RxNorm, NDFRT, VA Product and VA Class'||crlf||
   '- For AMT, BDPM, DPD and GGR only source tables are updated'||crlf||
   '</pre></font>';
   

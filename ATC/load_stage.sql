@@ -217,7 +217,7 @@ JOIN concept e ON r.rxcui = e.concept_code
 	AND e.invalid_reason IS NULL
 WHERE d.vocabulary_id = 'ATC'
 	AND d.concept_class_id = 'ATC 5th' -- there are some weird 4th level links, LIKE D11AC 'Medicated shampoos' to an RxNorm Dose Form
-
+        AND e.concept_class_id not in ('Ingredient','Precise Ingredient')
 UNION ALL
 
 -- Hierarchy inside ATC

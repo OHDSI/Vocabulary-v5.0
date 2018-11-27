@@ -366,8 +366,7 @@ FROM (
 		AND d.concept_class_id = 'Ingredient'
 	JOIN dev_atc.relationship_to_concept rtc ON rtc.concept_code_1 = d.concept_code
 	JOIN concept c ON rtc.concept_id_2 = c.concept_id
-	WHERE a.atc_name ~ 'comb'
-		AND NOT a.atc_name ~ 'excl| and |combinations of|derivate|other|with'
+	WHERE a.atc_name ~ 'comb| and '
 		AND NOT EXISTS (
 			SELECT 1
 			FROM dev_atc.relationship_to_concept rtc2

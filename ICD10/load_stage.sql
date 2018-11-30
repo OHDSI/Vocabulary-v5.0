@@ -437,4 +437,73 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
+--16. Build reverse relationship. This is necessary for next point
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT crs.concept_code_2,
+	crs.concept_code_1,
+	crs.vocabulary_id_2,
+	crs.vocabulary_id_1,
+	r.reverse_relationship_id,
+	crs.valid_start_date,
+	crs.valid_end_date,
+	crs.invalid_reason
+FROM concept_relationship_stage crs
+JOIN relationship r ON r.relationship_id = crs.relationship_id
+WHERE NOT EXISTS (
+		-- the inverse record
+		SELECT 1
+		FROM concept_relationship_stage i
+		WHERE crs.concept_code_1 = i.concept_code_2
+			AND crs.concept_code_2 = i.concept_code_1
+			AND crs.vocabulary_id_1 = i.vocabulary_id_2
+			AND crs.vocabulary_id_2 = i.vocabulary_id_1
+			AND r.reverse_relationship_id = i.relationship_id
+		);
+
+--17. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT a.concept_code,
+	b.concept_code,
+	a.vocabulary_id,
+	b.vocabulary_id,
+	relationship_id,
+	r.valid_start_date,
+	CURRENT_DATE,
+	'D'
+FROM concept a
+JOIN concept_relationship r ON a.concept_id = concept_id_1
+	AND r.invalid_reason IS NULL
+JOIN concept b ON b.concept_id = concept_id_2
+WHERE 'ICD10' IN (
+		a.vocabulary_id,
+		b.vocabulary_id
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = a.concept_code
+			AND crs_int.concept_code_2 = b.concept_code
+			AND crs_int.vocabulary_id_1 = a.vocabulary_id
+			AND crs_int.vocabulary_id_2 = b.vocabulary_id
+			AND crs_int.relationship_id = r.relationship_id
+		);
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

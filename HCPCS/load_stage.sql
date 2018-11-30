@@ -169,11 +169,14 @@ AS (
 			WHEN concept_code BETWEEN 'C9352'
 					AND 'C9369'
 				THEN 'Device' -- various graft matrix material
-			WHEN concept_code = 'C9406'
+			WHEN concept_code IN (
+					'C9406',
+					'C9407'
+					)
 				THEN 'Device' -- Iodine i-123 ioflupane, diagnostic, per study dose, up to 5 millicuries
 			WHEN concept_code = 'C9399'
 				THEN 'Drug' -- Unclassified drugs or biologicals
-			WHEN concept_code BETWEEN 'C9406'
+			WHEN concept_code BETWEEN 'C9408'
 					AND 'C9497'
 				THEN 'Drug'
 			WHEN concept_code BETWEEN 'C9600'
@@ -587,7 +590,7 @@ AS (
 					'Q9983',
 					'Q9956'
 					)
-				THEN 'Device' --Radiopharmaceuticals	
+				THEN 'Device' --Radiopharmaceuticals
 					-- S codes
 			WHEN concept_code BETWEEN 'S0012'
 					AND 'S0197'
@@ -842,10 +845,12 @@ BEGIN
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='CL'; --At least 60 percent but less than 80 percent impaired, limited or restricted
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='CM'; --At least 80 percent but less than 100 percent impaired, limited or restricted
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='CN'; --100 percent impaired, limited or restricted
+	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='CO';
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='CP'; --Adjunctive service related to a procedure assigned to a comprehensive ambulatory payment classification (c-apc) procedure, but reported on a different claim
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='CR'; --Catastrophe/disaster related
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='CS'; --Gulf oil 2010 spill related
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='CT'; --Computed tomography services furnished using equipment that does not meet each of the attributes of the national electrical manufacturers association (nema) xr-29-2013 standard
+	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='CQ';
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='DA'; --Oral health assessment by a licensed health professional other than a dentist
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='E1'; --Upper left, eyelid
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='E2'; --Lower left, eyelid
@@ -859,6 +864,7 @@ BEGIN
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='EJ'; --Subsequent claims for a defined course of therapy, e.g., epo, sodium hyaluronate, infliximab
 	UPDATE concept_stage SET domain_id='Device' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='EM'; --Emergency reserve supply (for esrd benefit only)
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='EP'; --Service provided as part of medicaid early periodic screening diagnosis AND treatment (epsdt) program
+	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='ER';
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='ET'; --Emergency services
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='EX'; --Expatriate beneficiary
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='EY'; --No physician or other licensed health care provider order for this item or service
@@ -875,6 +881,7 @@ BEGIN
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='FB'; --Item provided without cost to provider, supplier or practitioner, or full credit received for replaced device (examples, but not limited to, covered under warranty, replaced due to defect, free samples)
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='FC'; --Partial credit received for replaced device
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='FP'; --Service provided as part of family planning program
+	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='G0';
 	UPDATE concept_stage SET domain_id='Measurement' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='G1'; --Most recent urr reading of less than 60
 	UPDATE concept_stage SET domain_id='Measurement' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='G2'; --Most recent urr reading of 60 to 64.9
 	UPDATE concept_stage SET domain_id='Measurement' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='G3'; --Most recent urr reading of 65 to 69.9
@@ -1017,6 +1024,7 @@ BEGIN
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='Q7'; --One class a finding
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='Q8'; --Two class b findings
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='Q9'; --One class b AND two class c findings
+	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='QB';
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='QC'; --Single channel monitoring
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='QD'; --Recording AND storage in solid state memory by a digital recorder
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code='QE'; --Prescribed amount of oxygen is less than 1 liter per minute (lpm)

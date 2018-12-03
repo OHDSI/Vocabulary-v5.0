@@ -436,7 +436,8 @@ AS (
 					AND 'G9517'
 				THEN 'Observation'
 			WHEN concept_code IN (
-					'G0009''G0238',
+					'G0009',
+					'G0238',
 					'G0293',
 					'G0294',
 					'G0403',
@@ -453,6 +454,8 @@ AS (
 					'G9602'
 					)
 				THEN 'Observation'
+			WHEN concept_code = 'G9642'
+				THEN 'Procedure'
 			WHEN concept_code BETWEEN 'G9000'
 					AND 'G9999'
 				THEN 'Procedure' -- default for Medicare Demonstration Project

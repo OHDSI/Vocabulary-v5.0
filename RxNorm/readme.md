@@ -1,7 +1,7 @@
-Update of RxNorm, NDFRT, VA Product, VA Class and ATC
+Update of RxNorm
 
 Prerequisites:
-- Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
+- Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
 - SNOMED must be loaded first
 - Working directory RxNorm.
 

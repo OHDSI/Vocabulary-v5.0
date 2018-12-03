@@ -995,19 +995,8 @@ BEGIN
 		AND v.vocabulary_id = vc.vocabulary_id_v5;
 
 	-- 25. drop column latest_update
-	DO $_$
-	DECLARE
-		z vocabulary.vocabulary_id%TYPE;
-	BEGIN
-		SELECT vocabulary_id INTO z	FROM vocabulary WHERE latest_update IS NOT NULL LIMIT 1;
-
-		IF z <> 'RxNorm'
-		THEN
-			ALTER TABLE vocabulary DROP COLUMN latest_update;
-			ALTER TABLE vocabulary DROP COLUMN dev_schema_name;
-		END IF;
-	END 
-	$_$ LANGUAGE plpgsql;
+	ALTER TABLE vocabulary DROP COLUMN latest_update;
+	ALTER TABLE vocabulary DROP COLUMN dev_schema_name;
 
 	-- 26. Final ANALYSING for base tables
 	ANALYZE concept;

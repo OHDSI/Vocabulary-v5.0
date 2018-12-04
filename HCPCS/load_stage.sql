@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
+* Authors: Timur Vakhitov, Christian Reich, Anna Ostropolets, Dmitry Dymshyts
 * Date: 2017
 **************************************************************************/
 
@@ -61,9 +61,10 @@ SELECT SUBSTR(CASE
 		ELSE 'HCPCS'
 		END AS concept_class_id,
 	CASE 
-		WHEN term_dt IS NOT NULL
+		WHEN term_dt IS NOT NULL 
+		and xref1 IS not NULL -- !!means the concept is updated
 			THEN NULL
-		ELSE 'S'
+		ELSE 'S' -- in other cases it's standard because of the new deprecation logic
 		END AS standard_concept,
 	HCPC AS concept_code,
 	COALESCE(add_date, act_eff_dt) AS valid_start_date,
@@ -80,6 +81,51 @@ JOIN vocabulary v ON v.vocabulary_id = 'HCPCS'
 LEFT JOIN concept c ON c.concept_code = a.betos
 	AND c.concept_class_id = 'HCPCS Class'
 	AND c.vocabulary_id = 'HCPCS';
+	
+--3.1 Insert existing concepts that are not covered by concept_stage
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c.concept_name,
+	c.domain_id,
+	c.vocabulary_id,
+	c.concept_class_id,
+	CASE 
+		WHEN coalesce(c.invalid_reason, 'D') = 'D'
+			AND c.concept_class_id = 'HCPCS'
+			THEN 'S'
+		ELSE c.standard_concept
+		END AS standard_concept,
+	c.concept_code,
+	c.valid_start_date,
+	c.valid_end_date,
+	CASE 
+		WHEN c.invalid_reason = 'D'
+			AND c.concept_class_id = 'HCPCS'
+			THEN NULL
+		ELSE c.invalid_reason
+		END AS invalid_reason
+FROM concept c
+WHERE c.vocabulary_id = 'HCPCS'
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_stage cs_int
+		WHERE cs_int.concept_code = c.concept_code
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept c_int
+		WHERE c_int.concept_code = c.concept_code
+			AND c_int.vocabulary_id = 'CDT'
+		);
 
 --4 UPDATE domain_id in concept_stage
 --4.1. Part 1. UPDATE domain_id defined by rules
@@ -113,7 +159,7 @@ AS (
 				AND l2.str != 'Transport Services Including Ambulance'
 				THEN 'Device' -- default for Level 1: A0000-A9999
 			WHEN l2.str = 'Transport Services Including Ambulance'
-				THEN 'Observation' -- Level 2: A0000-A0999    
+				THEN 'Observation' -- Level 2: A0000-A0999
 			WHEN concept_code IN (
 					'A4736',
 					'A4737',
@@ -593,7 +639,7 @@ AS (
 					'Q9983',
 					'Q9956'
 					)
-				THEN 'Device' --Radiopharmaceuticals
+				THEN 'Device' --Radiopharmaceuticals	
 					-- S codes
 			WHEN concept_code BETWEEN 'S0012'
 					AND 'S0197'
@@ -1175,6 +1221,12 @@ UPDATE concept_stage
 SET domain_id = 'Procedure'
 WHERE domain_id = 'Procedure Drug';
 
+--4.3. Part 3. Since nobody really cares about Modifiers domain, in case 
+UPDATE concept_stage
+SET domain_id = 'Observation'
+WHERE domain_id IS NULL
+	AND concept_class_Id = 'HCPCS Modifier';
+
 --5. Create concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
@@ -1198,68 +1250,19 @@ FROM (
 	FROM sources.anweb_v2
 	) AS s0;
 
---6. Insert existing concepts with concept_class_id = 'HCPCS Class'
-INSERT INTO concept_stage
-SELECT *
-FROM concept
-WHERE vocabulary_id = 'HCPCS'
-	AND concept_class_id = 'HCPCS Class';
-
---7. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
+--6. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
 DO $_$
 BEGIN
 	PERFORM dev_hcpcs.ProcedureDrug();
 END $_$;
 
---8. Run the HCPCS/MapDrugVocabulary.sql. This will produce a concept_relationship_stage with HCPCS to RxNorm/RxNorm Extension relationships
+--7. Run the HCPCS/MapDrugVocabulary.sql. This will produce a concept_relationship_stage with HCPCS to Rx RxNorm/RxNorm Extension relationships
 DO $_$
 BEGIN
 	PERFORM dev_hcpcs.MapDrugVocabulary();
 END $_$;
 
---9. Add all other relationships from the existing one. The reason is that there is no good source for these relationships, AND we have to build the ones for new codes from UMLS AND manually
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	relationship_id,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT c.concept_code AS concept_code_1,
-	c1.concept_code AS concept_code_2,
-	r.relationship_id AS relationship_id,
-	c.vocabulary_id AS vocabulary_id_1,
-	c1.vocabulary_id AS vocabulary_id_2,
-	r.valid_start_date,
-	r.valid_end_date,
-	r.invalid_reason
-FROM concept_relationship r,
-	concept c,
-	concept c1
-WHERE c.concept_id = r.concept_id_1
-	AND c.vocabulary_id = 'HCPCS'
-	AND c1.concept_id = r.concept_id_2
-	AND r.relationship_id NOT IN (
-		'Concept replaced by',
-		'Is a'
-		) --we add it below
-	AND NOT (
-		c1.vocabulary_id = 'RxNorm'
-		AND r.relationship_id = 'Maps to'
-		)
-	AND NOT EXISTS (
-		SELECT 1 FROM concept_relationship_stage crs
-		WHERE crs.concept_code_1=c.concept_code
-		AND crs.vocabulary_id_1=c.vocabulary_id
-		AND crs.concept_code_2=c1.concept_code
-		AND crs.vocabulary_id_2=c1.vocabulary_id
-		AND crs.relationship_id = r.relationship_id
-	);
-
---10. Add upgrade relationships
+--8. Add upgrade relationships
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1347,19 +1350,7 @@ WHERE NOT EXISTS (
 			AND crs_int.relationship_id = 'Concept replaced by'
 		);
 
---11. Working with replacement mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
-
---12. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---13. Create hierarchical relationships between HCPCS AND HCPCS class
+--9. Create hierarchical relationships between HCPCS AND HCPCS class
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1390,7 +1381,8 @@ JOIN concept c ON c.concept_code = a.betos
 	AND c.vocabulary_id = 'HCPCS'
 	AND c.invalid_reason IS NULL;
 
---14. Add all other 'Concept replaced by' relationships
+--10. Add all other 'Concept replaced by' relationships
+--!! still need to be investigated
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1437,131 +1429,73 @@ WHERE c.concept_id = r.concept_id_1
 			AND crs.vocabulary_id_1 = c.vocabulary_id
 			AND crs.relationship_id = r.relationship_id
 		);
-/*
---15. Create text for Medical Coder with new codes AND mappings
-SELECT c.concept_code AS concept_code_1,
-	u2.scui AS concept_code_2,
-	CASE 
-		WHEN c.domain_id = 'Procedure'
-			THEN 'HCPCS - SNOMED proc'
-		WHEN c.domain_id = 'Measurement'
-			THEN 'HCPCS - SNOMED meas'
-		ELSE 'HCPCS - SNOMED obs'
-		END AS relationship_id, -- till here strawman for concept_relationship to be checked AND filled out, the remaining are supportive information to be truncated in the return file
-	c.concept_name AS cpt_name,
-	u2.str AS snomed_str,
-	sno.concept_id AS snomed_concept_id,
-	sno.concept_name AS snomed_name
-FROM concept_stage c
-LEFT JOIN (
-	-- UMLS record for HCPCS code
-	SELECT DISTINCT cui,
-		scui
-	FROM sources.mrconso
-	WHERE sab IN ('HCPCS')
-		AND suppress NOT IN (
-			'E',
-			'O',
-			'Y'
-			)
-	) u1 ON u1.scui = concept_code -- join UMLS for code one
-LEFT JOIN (
-	-- UMLS record for SNOMED code of the same cui
-	SELECT DISTINCT cui,
-		scui,
-		FIRST_VALUE(str) OVER (
-			PARTITION BY scui ORDER BY CASE tty
-					WHEN 'PT'
-						THEN 1
-					WHEN 'PTGB'
-						THEN 2
-					ELSE 10
-					END
-			) AS str
-	FROM sources.mrconso
-	WHERE sab IN ('SNOMEDCT_US')
-		AND suppress NOT IN (
-			'E',
-			'O',
-			'Y'
-			)
-	) u2 ON u2.cui = u1.cui
-LEFT JOIN concept sno ON sno.vocabulary_id = 'SNOMED'
-	AND sno.concept_code = u2.scui -- SNOMED concept
-WHERE NOT EXISTS (
-		-- only new codes we don't already have
-		SELECT 1
-		FROM concept co
-		WHERE co.concept_code = c.concept_code
-			AND co.vocabulary_id = 'HCPCS'
-		)
-	AND c.vocabulary_id = 'HCPCS'
-	AND c.concept_class_id IN (
-		'HCPCS',
-		'HCPCS Modifier'
-		);
-*/
 
---16. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--11. These 3 concepts (Buprenorphine/naloxone) are mapped incorrectly by map_drug but correctly in concept_relationship_manual
+--will be removed after procedure_drug be fixed
+DELETE
+FROM concept_relationship_stage
+WHERE concept_code_1 IN (
+		'J0572',
+		'J0573',
+		'J0574'
+		);
+
+--12. Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---17. Add mapping from deprecated to fresh concepts
+--13. Temporary solution: make concepts that are replaced by the non-existing concepts standard
+--CPT4 doesn't have these concepts in sources yet somehow
+UPDATE concept_stage cs
+SET invalid_reason = NULL,
+	standard_concept = 'S'
+WHERE NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = cs.concept_code
+			AND crs_int.vocabulary_id_1 = cs.vocabulary_id
+			AND crs_int.relationship_id IN (
+				'Maps to',
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept poss_eq to',
+				'Concept was_a to'
+				)
+			AND crs_int.invalid_reason IS NULL
+		)
+	AND cs.invalid_reason = 'U';
+
+--14. Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--15. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--16. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---18. Delete ambiguous 'Maps to' mappings
+--17. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---19. Insert all missing codes from the base table which have 'Maps to' to RxNorm or RxNorm Extension
-INSERT INTO concept_stage
-SELECT *
-FROM concept c
-WHERE vocabulary_id = 'HCPCS'
-	AND EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs
-		WHERE crs.concept_code_1 = c.concept_code
-			AND crs.vocabulary_id_1 = 'HCPCS'
-			AND crs.relationship_id = 'Maps to'
-			AND crs.invalid_reason IS NULL
-			AND crs.vocabulary_id_2 LIKE 'RxNorm%'
-		)
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_stage cs
-		WHERE cs.concept_code = c.concept_code
-			AND cs.vocabulary_id = 'HCPCS'
-		);
-
---20. All the codes that have mapping to RxNorm% should get domain_id='Drug'
+--18. All the codes that have mapping to RxNorm% should get domain_id='Drug'
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
-WHERE EXISTS
-	-- existing in concept_relationship
-	(
-		SELECT 1
-		FROM concept_relationship r,
-			concept c1,
-			concept c2
-		WHERE r.concept_id_1 = c1.concept_id
-			AND r.concept_id_2 = c2.concept_id
-			AND r.invalid_reason IS NULL
-			AND r.relationship_id = 'Maps to'
-			AND c2.vocabulary_id LIKE 'RxNorm%'
-			AND c1.concept_code = cs.concept_code
-			AND c1.vocabulary_id = cs.vocabulary_id
-		
-		UNION ALL
-		
-		-- new in concept_relationship_stage
+WHERE EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage r
 		WHERE r.concept_code_1 = cs.concept_code
@@ -1572,25 +1506,10 @@ WHERE EXISTS
 		)
 	AND cs.domain_id <> 'Drug';
 
---21. Procedure Drugs who have a mapping to a Drug concept should not also be recorded as Procedures (no Standard Concepts)
+--19. All (not only the drugs) concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
-		SELECT 1
-		FROM concept_relationship r,
-			concept c1,
-			concept c2
-		WHERE r.concept_id_1 = c1.concept_id
-			AND r.concept_id_2 = c2.concept_id
-			AND r.invalid_reason IS NULL
-			AND r.relationship_id = 'Maps to'
-			AND c2.domain_id = 'Drug'
-			AND c1.concept_code = cs.concept_code
-			AND c1.vocabulary_id = cs.vocabulary_id
-			AND r.concept_id_1 <> r.concept_id_2 --exclude mappings to self
-		
-		UNION ALL
-		
 		SELECT 1
 		FROM concept_relationship_stage r,
 			concept c2
@@ -1600,12 +1519,41 @@ WHERE EXISTS (
 			AND r.vocabulary_id_2 = c2.vocabulary_id
 			AND r.invalid_reason IS NULL
 			AND r.relationship_id = 'Maps to'
-			AND c2.domain_id = 'Drug'
 			AND NOT (
 				r.concept_code_1 = r.concept_code_2
 				AND r.vocabulary_id_1 = r.vocabulary_id_2
 				) --exclude mappings to self
 		)
 	AND cs.standard_concept IS NOT NULL;
+
+--20. Clean up , remove the 'HCPCS - SNOMED meas', 'HCPCS - SNOMED proc' relationships
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT a.concept_code,
+	b.concept_code,
+	a.vocabulary_id,
+	b.vocabulary_id,
+	relationship_id,
+	r.valid_start_date,
+	CURRENT_DATE,
+	'D'
+FROM concept a
+JOIN concept_relationship r ON a.concept_id = concept_id_1
+	AND r.invalid_reason IS NULL
+JOIN concept b ON b.concept_id = concept_id_2
+	AND b.vocabulary_id = 'SNOMED'
+WHERE a.vocabulary_id = 'HCPCS'
+	AND relationship_id IN (
+		'HCPCS - SNOMED meas',
+		'HCPCS - SNOMED proc'
+		);
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

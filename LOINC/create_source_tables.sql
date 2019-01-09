@@ -50,7 +50,6 @@ CREATE TABLE SOURCES.LOINC
   EXAMPLE_UNITS              VARCHAR(255),
   LONG_COMMON_NAME           VARCHAR(255),
   UNITSANDRANGE              TEXT,
-  DOCUMENT_SECTION           VARCHAR(255),
   EXAMPLE_UCUM_UNITS         VARCHAR(255),
   EXAMPLE_SI_UCUM_UNITS      VARCHAR(255),
   STATUS_REASON              VARCHAR(9),
@@ -92,8 +91,34 @@ CREATE TABLE SOURCES.SOURCE_ORGANIZATION
 DROP TABLE IF EXISTS SOURCES.LOINC_FORMS;
 CREATE TABLE SOURCES.LOINC_FORMS
 (
-   PARENTLOINC   VARCHAR (10),
-   LOINC         VARCHAR (10)
+    PARENTID                      INT4,
+    PARENTLOINC                   VARCHAR (10),
+    PARENTNAME                    VARCHAR (1000),
+    ID                            INT4,
+    LSEQUENCE                     INT4,
+    LOINC                         VARCHAR (10),
+    LOINCNAME                     VARCHAR (1000),
+    DISPLAYNAMEFORFORM            VARCHAR (1000),
+    OBSERVATIONREQUIREDINPANEL    VARCHAR (10),
+    OBSERVATIONIDINFORM           VARCHAR (100),
+    SKIPLOGICHELPTEXT             VARCHAR (1000),
+    DEFAULTVALUE                  VARCHAR (1000),
+    ENTRYTYPE                     VARCHAR (10),
+    DATATYPEINFORM                VARCHAR (1000),
+    DATATYPESOURCE                VARCHAR (1000),
+    ANSWERSEQUENCEOVERRIDE        VARCHAR (1000),
+    CONDITIONFORINCLUSION         VARCHAR (1000),
+    ALLOWABLEALTERNATIVE          VARCHAR (1000),
+    OBSERVATIONCATEGORY           VARCHAR (1000),
+    CONTEXT                       VARCHAR (1000),
+    CONSISTENCYCHECKS             VARCHAR (4000),
+    RELEVANCEEQUATION             VARCHAR (1000),
+    CODINGINSTRUCTIONS            VARCHAR (4000),
+    QUESTIONCARDINALITY           VARCHAR (1000),
+    ANSWERCARDINALITY             VARCHAR (1000),
+    ANSWERLISTIDOVERRIDE          VARCHAR (1000),
+    ANSWERLISTTYPEOVERRIDE        VARCHAR (1000),
+    EXTERNAL_COPYRIGHT_NOTICE     VARCHAR (4000)
 );
 
 DROP TABLE IF EXISTS SOURCES.LOINC_CLASS;
@@ -172,7 +197,7 @@ CREATE TABLE SOURCES.LOINC_ANSWERSLIST
   EXTCODEDISPLAYNAME               VARCHAR(1000),
   EXTCODESYSTEM                    VARCHAR(1000),
   EXTCODESYSTEMVERSION             VARCHAR(1000),
-  EXTCODESYSTEMCOPYRIGHTNOTICE     VARCHAR(1000),
+  EXTCODESYSTEMCOPYRIGHTNOTICE     VARCHAR(4000),
   SUBSEQUENTTEXTPROMPT             VARCHAR(1000),
   DESCRIPTION                      VARCHAR(1000),
   SCORE                            VARCHAR(1000)
@@ -227,25 +252,3 @@ CREATE TABLE SOURCES.LOINC_GROUPLOINCTERMS
   LOINCNUMBER           VARCHAR(10),
   LONGCOMMONNAME        VARCHAR(1000)
 );
-
-CREATE OR REPLACE FUNCTION sources.py_xlsparse_forms(xls_path varchar)
-RETURNS
-TABLE (
-    ParentLoinc varchar,
-    Loinc varchar
-)
-AS
-$BODY$
-import xlrd
-res = []
-wb = xlrd.open_workbook(xls_path)
-sheet = wb.sheet_by_name('FORMS')
-for rowid in range(1,sheet.nrows):
-  row = sheet.row_values(rowid, end_colx=6)
-  ParentLoinc=row[1] if row[1] else None
-  Loinc=row[5] if row[5] else None
-  res.append((ParentLoinc,Loinc))
-return res
-$BODY$
-LANGUAGE 'plpythonu'
-SECURITY DEFINER;

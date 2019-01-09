@@ -386,7 +386,11 @@ begin
       truncate table sources.loinc, sources.map_to, sources.source_organization, sources.loinc_hierarchy, sources.loinc_documentontology;
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_date;
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_version;
-      execute 'COPY sources.loinc FROM '''||pVocabularyPath||'loinc.csv'' delimiter '','' csv HEADER';
+      execute 'COPY sources.loinc FROM '''||pVocabularyPath||'loinc.csv'' delimiter '','' csv HEADER FORCE NULL loinc_num, component, property, time_aspct, system, scale_typ, method_typ, class, versionlastchanged, 
+         chng_type, definitiondescription, status, consumer_name, classtype, formula, species, exmpl_answers, survey_quest_text, survey_quest_src, unitsrequired, submitted_units, relatednames2, shortname, 
+         order_obs, cdisc_common_tests, hl7_field_subfield_id, external_copyright_notice, example_units, long_common_name, unitsandrange, example_ucum_units, example_si_ucum_units, status_reason, 
+         status_text, change_reason_public, common_test_rank, common_order_rank, common_si_test_rank, hl7_attachment_structure, external_copyright_link, paneltype, askatorderentry, associatedobservations, 
+         versionfirstreleased, validhl7attachmentrequest';
       alter table sources.loinc ADD COLUMN vocabulary_date date;
       alter table sources.loinc ADD COLUMN vocabulary_version VARCHAR (200);
       update sources.loinc set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
@@ -394,10 +398,13 @@ begin
       execute 'COPY sources.source_organization FROM '''||pVocabularyPath||'source_organization.csv'' delimiter '','' csv HEADER';
       execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'LOINC_MULTI-AXIAL_HIERARCHY.CSV'' delimiter '','' csv HEADER';
       truncate table sources.loinc_answerslist, sources.loinc_answerslistlink, sources.loinc_forms;
-      execute 'COPY sources.loinc_answerslist FROM '''||pVocabularyPath||'AnswerList.csv'' delimiter '','' csv HEADER';
+      execute 'COPY sources.loinc_answerslist FROM '''||pVocabularyPath||'AnswerList.csv'' delimiter '','' csv HEADER FORCE NULL answerlistid, answerlistname, answerlistoid, extdefinedyn, 
+         extdefinedanswerlistcodesystem, extdefinedanswerlistlink, answerstringid, localanswercode, localanswercodesystem, sequencenumber, displaytext, extcodeid, extcodedisplayname, extcodesystem, 
+         extcodesystemversion, extcodesystemcopyrightnotice, subsequenttextprompt, description, score';
       update sources.loinc_answerslist set displaytext=substr(displaytext,1,255) where length(displaytext)>255;
       execute 'COPY sources.loinc_answerslistlink FROM '''||pVocabularyPath||'LoincAnswerListLink.csv'' delimiter '','' csv HEADER';
-      insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx');
+      --insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx'); --PanelsAndForms.xlsx replaced with CSV-file in v2.65
+      execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'LOINC_PanelsAndForms.csv'' delimiter '','' csv HEADER';
       truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms;
       execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'Group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
       execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'ParentGroupAttributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
@@ -639,11 +646,15 @@ begin
       WHERE dosage = '0, 05000';
   when 'ICDO3' THEN
       drop index sources.idx_icdo3_mrconso;
-      truncate table sources.icdo3_mrconso;
+      drop index sources.idx_icdo3_mrrel;
+      truncate table sources.icdo3_mrconso, sources.icdo3_mrrel;
       execute 'COPY sources.icdo3_mrconso (cui,lat,ts,lui,stt,sui,ispref,aui,saui,scui,sdui,sab,tty,code,str,srl,suppress,cvf,vocabulary_date) FROM '''||pVocabularyPath||'MRCONSO.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.icdo3_mrrel FROM '''||pVocabularyPath||'MRREL.RRF'' delimiter ''|'' csv quote E''\b''';
       update sources.icdo3_mrconso set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       CREATE INDEX idx_icdo3_mrconso ON sources.icdo3_mrconso (SAB,TTY);
+      CREATE INDEX idx_icdo3_mrrel ON sources.icdo3_mrrel (AUI1, AUI2);
       analyze sources.icdo3_mrconso;
+      analyze sources.icdo3_mrrel;
   when 'CDM' THEN
       if pVocabularyVersion is null then
       	RAISE EXCEPTION 'For current vocabulary (%) you must set the pVocabularyVersion! Format (json): {''version'':''CDM vX.Y.Z'', ''published_at'':''A'',''node_id'':''B''}', pVocabularyID;

@@ -11,7 +11,11 @@ DECLARE
   cRet2 TEXT;
   cCAGroups INT:=50;
   cRecord record;
+  cStartTime timestamp;
+  cWorkTime float;
 BEGIN
+
+  cStartTime:=clock_timestamp();
 
   IF is_small THEN 
     iVocabularies:=ARRAY['RxNorm','RxNorm Extension','ATC','NFC','EphMRA ATC'];
@@ -621,15 +625,34 @@ BEGIN
               )
       ) as s3;
 
+  --add ingredients that exist in the vocabularies and have no drug_strength record. Default to "mg" (AVOF-1425 20190121)
+  INSERT INTO drug_strength
+  SELECT c.concept_id AS drug_concept_id,
+      c.concept_id AS ingredient_concept_id,
+      NULL::FLOAT AS amount_value,
+      8576 AS amount_unit_concept_id,
+      NULL::FLOAT AS numerator_value,
+      NULL::INT4 AS numerator_unit_concept_id,
+      NULL::FLOAT AS denominator_value,
+      NULL::INT4 AS denominator_unit_concept_id,
+      NULL::INT4 AS box_size,
+      c.valid_start_date,
+      c.valid_end_date,
+      c.invalid_reason
+  FROM concept c WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension') AND c.concept_class_id='Ingredient'
+      AND NOT EXISTS (SELECT 1 FROM drug_strength ds WHERE ds.drug_concept_id=c.concept_id);
+
   --clean up
   drop table jump_table;
   drop table excluded_concepts;
   drop table pair_tbl;
   drop table rxnorm_allowed_rel;
   drop table rxnorm_wrong_rel;
+  analyze drug_strength;
 
   if is_small then
-  	PERFORM devv5.SendMailHTML (iSmallCA_emails, 'Small concept ancestor in '||upper(current_schema)||' [ok]', 'Small concept ancestor in '||upper(current_schema)||' completed');
+  	cWorkTime:=round((EXTRACT(epoch from clock_timestamp()-cStartTime)/60)::numeric,1);
+  	PERFORM devv5.SendMailHTML (iSmallCA_emails, 'Small concept ancestor in '||upper(current_schema)||' [ok]', 'Small concept ancestor in '||upper(current_schema)||' completed'||crlf||'Execution time: '||cWorkTime||' min');
   end if;
   
   EXCEPTION

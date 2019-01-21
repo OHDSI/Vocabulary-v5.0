@@ -47,6 +47,7 @@ BEGIN
   	to_char(valid_start_date,''DD-MON-YYYY'') valid_start_date, to_char(valid_end_date,''DD-MON-YYYY'') valid_end_date, 
     invalid_reason from devv4.drug_strength) TO '''||pVocabularyExportPath||'v4_drug_strength.csv'' DELIMITER '','' CSV HEADER';
   
+  perform devv5.SendMailHTML (email, 'Release status: started uploading to Athena', 'dummy e-mail');
   --start zipping and uploading
   perform vocabulary_pack.run_upload(pVocabularyExportPath);
   
@@ -78,7 +79,7 @@ BEGIN
   THEN
     GET STACKED DIAGNOSTICS cRet = PG_EXCEPTION_CONTEXT;
     cRet:='ERROR: '||SQLERRM||crlf||'CONTEXT: '||regexp_replace(cRet, '\r|\n|\r\n', crlf, 'g');
-    cRet := SUBSTR ('Release completed with errors:'||crlf||'<b>'||cRet||'</b>', 1, 5000);  
+    cRet := SUBSTR ('Release completed with errors:'||crlf||'<b>'||cRet||'</b>', 1, 5000);
     perform devv5.SendMailHTML (email, 'Release status [ERROR] [Athena]', cRet);
 END;
 $body$

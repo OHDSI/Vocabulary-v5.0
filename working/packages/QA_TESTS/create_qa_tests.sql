@@ -456,7 +456,7 @@ AS $BODY$
 		NULL AS invalid_reason
 	FROM (
 		SELECT FIRST_VALUE(c.concept_id) OVER (
-				PARTITION BY LOWER(c.concept_name) ORDER BY c.vocabulary_id DESC,
+				PARTITION BY d.concept_name ORDER BY c.vocabulary_id DESC,
 					c.concept_name,
 					c.concept_id
 				) AS concept_id_1,
@@ -485,7 +485,7 @@ AS $BODY$
 			GROUP BY LOWER(c_int.concept_name),
 				c_int.concept_class_id
 			HAVING COUNT(*) > 1
-			) d ON LOWER(c.concept_name) = LOWER(d.concept_name)
+			) d ON LOWER(c.concept_name) = d.concept_name
 			AND c.vocabulary_id LIKE 'RxNorm%'
 			AND c.invalid_reason IS NULL
 		) c_int
@@ -495,6 +495,21 @@ AS $BODY$
 		AND NOT (
 			c1.vocabulary_id = 'RxNorm'
 			AND c2.vocabulary_id = 'RxNorm'
+			)
+		--AVOF-1434 (20190125)
+		AND NOT EXISTS (
+			SELECT 1
+			FROM drug_strength ds1,
+				drug_strength ds2
+			WHERE ds1.drug_concept_id = c1.concept_id
+				AND ds2.drug_concept_id = c2.concept_id
+				AND ds1.ingredient_concept_id = ds2.ingredient_concept_id
+				AND ds1.amount_value = ds2.numerator_value
+				AND ds1.amount_unit_concept_id = ds2.numerator_unit_concept_id
+				AND ds1.amount_unit_concept_id IN (
+					9325,
+					9324
+					)
 			)
 		AND COALESCE(checkid, 9) = 9
 

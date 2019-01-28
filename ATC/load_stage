@@ -1,0 +1,701 @@
+Prerequisites:
+1. Get the latest file from source, name it class_drugs_scraper. The file should contain class code, class name, additional information.
+For example, for ATC the file will be created in the following manner:
+select id, atc_code as class_code, atc_name as class_name, ddd, u, adm_r, note, description, ddd_description
+from atc_drug_scraper;
+2. Prepare input tables (drug_concept_stage, internal_relationship_stage, relationship_to_concept)
+according to the general rules for drug vocabularies
+3. Prepare the following tables:
+- reference (represents the original code and concantinated code and its drug forms in RxNorm format)
+- class_to_drug_manual (stores manual mappings, i.g. Insulins)
+
+
+-- Preliminary work
+-- create table with combo drugs to be used later
+drop table if exists class_1_comb;
+create table class_1_comb
+as
+select * from class_drug_scraper
+where class_name ~ 'comb| and |diphtheria-|meningococcus|excl|derivate|other|with'
+and length (class_code) = 7
+and not class_name ~ 'decarboxylase inhibitor';
+
+ -- 0. creating a table with aggregated RxNorm/RxE ingredients
+drop table if exists rx_combo;
+create table rx_combo as
+select drug_concept_id, 
+  string_agg(ingredient_concept_id::varchar, '-' order by ingredient_concept_id) as i_combo
+from drug_strength
+join concept on concept_id = drug_concept_id and concept_class_id in ('Clinical Drug Form') -- 'Clinical Drug Comp' doesn exist
+group by drug_concept_id
+;
+
+-- 1. Precise combos (and)
+drop table if exists simple_comb;
+create table simple_comb as
+with ing as
+(select i.concept_code_1,i.concept_code_2, class_name,precedence,rtc.concept_id_2 as ing 
+from class_1_comb
+left join reference using (class_code)
+join internal_relationship_stage i on coalesce (concept_code,class_code) = concept_code_1
+join drug_concept_stage d on d.concept_code = concept_code_2 and concept_class_id = 'Ingredient'
+join relationship_to_concept rtc on rtc.concept_code_1 = d.concept_code
+ where  class_name ~ ' and ' and not class_name ~ 'excl|combinations of|derivate|other|with'
+),
+form as
+(select i.concept_code_1,rtc.concept_id_2 as form  
+from class_1_comb
+left join reference using (class_code)
+join internal_relationship_stage i on coalesce (concept_code,class_code) = concept_code_1
+join drug_concept_stage d on d.concept_code = concept_code_2 and concept_class_id = 'Dose Form'
+join relationship_to_concept rtc on rtc.concept_code_1 = d.concept_code
+ where  class_name ~ ' and ' and not class_name ~ 'excl|combinations of|derivate|other|with'
+)
+select distinct i.concept_code_1,i.concept_code_2, class_name, ing,form,precedence
+from ing i
+left join form f on i.concept_code_1=f.concept_code_1;
+
+--mapping 1 to 1, use drugs where 2 ingredient_id occur
+drop table if exists class_combo;
+create table class_combo as
+select concept_code_1, 
+  string_agg(ing::varchar, '-' order by ing) as i_combo
+from simple_comb
+where concept_code_1 in 
+(select concept_code_1 from simple_comb
+where concept_code_2 in
+(select concept_code_2 from (select distinct concept_code_2, ing from simple_comb) s
+group by concept_code_2 having count(1)=1)
+group by concept_code_1 having count(1)=2) 
+group by concept_code_1
+;
+
+drop table if exists class_to_drug_1;
+create table class_to_drug_1 as
+select concept_code_1, class_name, c2.concept_id, c2.concept_name, c2.concept_class_id 
+from class_combo
+join simple_comb using (concept_code_1)
+join rx_combo using (i_combo)
+join concept c on c.concept_id=drug_concept_id
+join concept_relationship cr on concept_id_1 = c.concept_id and cr.invalid_reason is null and relationship_id = 'RxNorm has dose form' 
+and concept_id_2 = form
+join concept c2 on concept_id_1 = c2.concept_id
+;
+insert into class_to_drug_1
+select concept_code_1, class_name, c.concept_id, c.concept_name, c.concept_class_id
+from class_combo
+join simple_comb using (concept_code_1)
+join rx_combo using (i_combo)
+join concept c on c.concept_id=drug_concept_id
+where concept_code_1 not in (select concept_code_1 from class_to_drug_1) and concept_code_1 not like '% %' --w/o forms
+;
+
+delete from class_to_drug_1
+where class_name like '%,%,%and%'
+and not class_name ~* 'comb|other|whole root|selective'
+and concept_name not like '%/%/%/%';
+
+delete from class_to_drug_1
+where class_name like '%,%and%'
+and class_name not like '%,%,%and%'
+and not class_name ~* 'comb|other|whole root|selective'
+and concept_name not like '% / % / %';
+
+-- introducing precedence
+insert into class_to_drug_1
+with class_comb as
+(with hold as (select *
+from  simple_comb s
+where
+not exists (select 1 from simple_comb s2 where s2.concept_code_2=s.concept_code_2 and s2.precedence>1) -- we hold
+)
+select h.concept_code_1, s.class_name, case when h.ing>s.ing then s.ing||'-'||h.ing else h.ing||'-'||s.ing end as i_combo, h.form
+from hold h
+join simple_comb s on h.concept_code_1=s.concept_code_1 and h.ing!=s.ing
+where h.concept_code_1 not in (select concept_code_1 from class_to_drug_1))
+select concept_code_1, class_name, c.concept_id, c.concept_name, c.concept_class_id
+from class_comb
+join rx_combo using (i_combo)
+join concept c on c.concept_id=drug_concept_id
+join concept_relationship cr on concept_id_1 = c.concept_id and cr.invalid_reason is null and relationship_id = 'RxNorm has dose form'
+and concept_id_2 = form
+join concept c2 on concept_id_2 = c2.concept_id
+;
+insert into class_to_drug_1
+with class_comb as
+(with hold as (select *
+from  simple_comb s
+where
+not exists (select 1 from simple_comb s2 where s2.concept_code_2=s.concept_code_2 and s2.precedence>1) -- we hold
+)
+select h.concept_code_1, s.class_name, case when h.ing>s.ing then s.ing||'-'||h.ing else h.ing||'-'||s.ing end as i_combo, h.form
+from hold h
+join simple_comb s on h.concept_code_1=s.concept_code_1 and h.ing!=s.ing
+where h.concept_code_1 not in (select concept_code_1 from class_to_drug_1))
+select concept_code_1, class_name, c.concept_id, c.concept_name, c.concept_class_id
+from class_comb
+join rx_combo using (i_combo)
+join concept c on c.concept_id=drug_concept_id
+where concept_code_1 not like '% %' --w/o forms
+;
+--2nd usual combos
+drop table verysimple_comb;
+create table verysimple_comb as
+with ing as
+(select i.concept_code_1,i.concept_code_2, class_name,rtc.concept_id_2 as ing, 'ing' as flag
+from class_1_comb
+left join reference using (class_code)
+join internal_relationship_stage i  on coalesce (concept_code,class_code) = concept_code_1
+join drug_concept_stage d on d.concept_code = concept_code_2 and concept_class_id = 'Ingredient'
+join relationship_to_concept rtc on rtc.concept_code_1 = d.concept_code
+ where  class_name ~ 'comb' and not class_name ~ 'excl| and |combinations of|derivate|other|with'
+),
+form as
+(select i.concept_code_1,rtc.concept_id_2 as form  
+from class_1_comb
+left join reference using (class_code)
+join internal_relationship_stage i on coalesce (concept_code,class_code) = concept_code_1
+join drug_concept_stage d on d.concept_code = concept_code_2 and concept_class_id = 'Dose Form'
+join relationship_to_concept rtc on rtc.concept_code_1 = d.concept_code
+ where  class_name ~ 'comb' and not class_name ~ 'excl| and |combinations of|derivate|other|with'
+),
+addit as
+(select i.concept_code_1, i.concept_code_2, class_name, rtc.concept_id_2 as ing, 'with' as flag
+from class_1_comb a
+left join reference r using (class_code)
+join concept c on regexp_replace(c.concept_code,'..$','') = regexp_replace (a.class_code,'..$','') and c.concept_class_id = 'ATC 5th'
+join internal_relationship_stage i  on coalesce (r.concept_code,class_code) = concept_code_1
+join drug_concept_stage d on d.concept_code = concept_code_2 and d.concept_class_id = 'Ingredient'
+join relationship_to_concept rtc on rtc.concept_code_1 = d.concept_code
+	)
+
+select distinct i.concept_code_1,i.concept_code_2, class_name, ing,form, flag
+from
+	( select * from ing
+	 union all
+	 select * from addit )i
+left join form f on i.concept_code_1=f.concept_code_1
+order by i.concept_code_1;
+
+drop table if exists class_to_drug_2;
+create table class_to_drug_2 as 
+with secondary_table as (
+select a.concept_id, a.concept_name ,a.concept_class_id,a.vocabulary_id, c.concept_id_2,r.i_combo
+ from rx_combo r
+join concept a on r.drug_concept_id = a.concept_id
+ join concept_relationship c  on c.concept_id_1 = a.concept_id
+ where a.concept_class_id = 'Clinical Drug Form'
+ and a.vocabulary_id like 'RxNorm'--temporary remove RXE
+ and a.invalid_reason is null
+ and relationship_id = 'RxNorm has dose form'
+ and c.invalid_reason is null
+),
+	primary_table as (
+			select v.concept_code_1, v.form, v.class_name, case when v.ing>v2.ing then cast(v2.ing as varchar)||'-'||cast(v.ing as varchar)
+																		  else cast(v.ing as varchar)||'-'||cast(v2.ing as varchar) end as class_combo
+from verysimple_comb v
+join verysimple_comb v2 on v.concept_code_1 = v2.concept_code_1 and v.flag = 'ing' and v2.flag = 'with'
+where v.ing!=v2.ing)
+select distinct p.concept_code_1, class_name, s.concept_id, s.concept_name, s.concept_class_id
+from primary_table p
+	join secondary_table s
+on s.concept_id_2 = p.form
+and s.i_combo = p.class_combo
+;
+
+insert into class_to_drug_2
+with primary_table as (
+			select v.concept_code_1, v.form, v.class_name, case when v.ing>v2.ing then cast(v2.ing as varchar)||'-'||cast(v.ing as varchar)
+																		  else cast(v.ing as varchar)||'-'||cast(v2.ing as varchar) end as class_combo
+from verysimple_comb v
+join verysimple_comb v2 on v.concept_code_1 = v2.concept_code_1 and v.flag = 'ing' and v2.flag = 'with'
+where v.ing!=v2.ing)
+select distinct p.concept_code_1, class_name, c.concept_id, c.concept_name, c.concept_class_id
+from primary_table p
+join rx_combo r on p.class_combo = r.i_combo
+join concept c on c.concept_id = r.drug_concept_id  and c.concept_class_id = 'Clinical Drug Form' and c.vocabulary_id = 'RxNorm'
+where p.concept_code_1 not like '% %'--exclude classes with known forms
+;
+
+-- 3. class concepts that represent combos with exclusions
+drop table if exists compl_combo;
+create table compl_combo as
+with hold as (
+select *  from ambiguous_class_ingredient d
+join relationship_to_concept on concept_code_1 = ing and flag = 'ing' --we hold
+where not exists (select 1 from ambiguous_class_ingredient d2 where d.class_code = d2.class_code and d.ing = d2.ing and precedence>1) -- we hold, exclude multiple for now
+),
+excl as (
+select * from ambiguous_class_ingredient d
+join relationship_to_concept on concept_code_1 = ing and flag = 'excl' --we exclude
+),
+additional as (
+select * from ambiguous_class_ingredient d
+join relationship_to_concept on concept_code_1 = ing and flag = 'with' --we add
+)
+
+select distinct r.concept_code as concept_code_1, h. class_name, drug_concept_id as concept_id, concept_name,concept_class_id
+from hold h
+join reference r on r.class_code = h.class_code
+left join additional a on h.class_code=a.class_code
+left join excl e on h.class_code=e.class_code
+join rx_combo on i_combo ~ cast(h.concept_id_2 as varchar) and i_combo like '%-%'
+join concept c on c.concept_id = drug_concept_id
+where (a.class_code is not null and i_combo ~ cast(a.concept_id_2 as varchar))
+or (e.class_code is not null and not i_combo ~ cast(e.concept_id_2 as varchar))
+;
+
+--with no excluded
+insert into compl_combo
+with hold as (
+select *  from ambiguous_class_ingredient d
+join relationship_to_concept on concept_code_1 = ing and flag = 'ing' --we hold
+where not exists (select 1 from ambiguous_class_ingredient d2 where d.class_code = d2.class_code and d.ing = d2.ing and precedence>1) -- we hold, exclude multiple for now
+),
+excl as (
+select * from ambiguous_class_ingredient d
+join relationship_to_concept on concept_code_1 = ing and flag = 'excl' --we exclude
+),
+additional as (
+select * from ambiguous_class_ingredient d
+join relationship_to_concept on concept_code_1 = ing and flag = 'with' --we add
+)
+
+select distinct r.concept_code as concept_code_1, h. class_name, drug_concept_id as concept_id, concept_name,concept_class_id
+from hold h
+join reference r on r.class_code = h.class_code
+join additional a on h.class_code=a.class_code
+left join excl e on e.class_code = h.class_code 
+join rx_combo on i_combo ~ cast(h.concept_id_2 as varchar) and i_combo ~ cast(a.concept_id_2 as varchar) and i_combo like '%-%'
+join concept c on c.concept_id = drug_concept_id
+where e.class_name is null
+;
+--with
+drop table if exists class_to_drug_3;
+create table class_to_drug_3 as
+select c.* 
+from compl_combo c
+join internal_relationship_stage i on i.concept_code_1=c.concept_code_1
+join relationship_to_concept rtc on rtc.concept_code_1 = i.concept_code_2
+join concept_relationship cr  on cr.concept_id_1 = c.concept_id
+and relationship_id = 'RxNorm has dose form'  and cr.invalid_reason is null
+where cr.concept_id_2 = rtc.concept_id_2
+and class_name like '%with%'
+;
+--inserting everything that goes without a form
+insert into class_to_drug_3
+select * from compl_combo
+where concept_code_1 not like '% %' and class_name like '%with%';
+
+--start removing falsly assign combo based on WHO rank
+
+-- zero rank
+delete from class_to_drug_3
+where concept_code_1 ~ 'M03BA73|M03BA72|N02AC74|M03BB72|N02BB52|M03BB73|M09AA72|N02AB72|N02BB72|N02BA77' 
+and concept_name ~* 'Salicylamide|Phenazone|Aspirin|Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin|Methadone|etamizole|Ergotamine'
+;
+--starts the official rank
+delete from class_to_drug_3
+where concept_code_1 ~ 'N02BB74' and concept_name ~* 'Salicylamide|Phenazone|Aspirin|Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin'
+;
+delete from class_to_drug_3
+where concept_code_1 ~ 'N02BB51' and concept_name ~* 'Salicylamide|Aspirin|Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin'
+;
+delete from class_to_drug_3
+where concept_code_1 ~ 'N02BA75' and concept_name ~* 'Phenazone|Aspirin|Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin'
+;
+delete from class_to_drug_3
+where concept_code_1 ~ 'N02BB71' and concept_name ~* 'Aspirin|Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin'
+;
+delete from class_to_drug_3
+where concept_code_1 ~ 'N02BA71' and concept_name ~* 'Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin'
+;
+delete from class_to_drug_3
+where concept_code_1 ~ 'N02BE71' and concept_name ~* 'Dipyrocetyl|Bucetin|Phenacetin'
+;
+delete from  class_to_drug_3
+where concept_code_1 ~ 'N02' and concept_name ~ 'Codeine' and not class_name ~ 'codeine';
+
+delete from class_to_drug_3 where  concept_id in --removing duplicates 
+(select concept_id from class_to_drug_1);
+
+--excl
+drop table if exists class_to_drug_4;
+create table class_to_drug_4 as
+select c.* from compl_combo c
+join internal_relationship_stage i on i.concept_code_1=c.concept_code_1
+join relationship_to_concept rtc on rtc.concept_code_1 = i.concept_code_2
+join concept_relationship cr  on cr.concept_id_1 = c.concept_id
+and relationship_id = 'RxNorm has dose form'  and cr.invalid_reason is null
+where cr.concept_id_2 = rtc.concept_id_2
+and class_name not like '%with%'
+
+;
+--inserting everything that goes without a form
+insert into class_to_drug_4
+select * from compl_combo
+where concept_code_1 not like '% %' and class_name not like '%with%';
+
+-- zero rank
+delete from class_to_drug_4
+where concept_code_1 ~ 'M03BA53|M03BA52|N02AC54|M03BB52|M03BB53|N02AB52|N02BB52|N02CA52|N02BA57' 
+and concept_name ~* 'Salicylamide|Phenazone|Aspirin|Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin|Methadone'
+;
+--starts the official rank
+delete from class_to_drug_4
+where concept_code_1 ~ 'N02BB54|N02BB52|M03BB52' and concept_name ~* 'Salicylamide|Phenazone|Aspirin|Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin|Ergotamine|Dipyrone'
+;
+delete from class_to_drug_4
+where concept_code_1 ~ 'N02BA55' and concept_name ~* 'Phenazone|Aspirin|Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin|Ergotamine|Metamizole'
+;
+delete from class_to_drug_4
+where concept_code_1 ~ 'N02BB51' and concept_name ~* 'Aspirin|Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin|Ergotamine|Metamizole'
+;
+delete from class_to_drug_4
+where concept_code_1 ~ 'N02BA51' and concept_name ~* 'Acetaminophen|Dipyrocetyl|Bucetin|Phenacetin|Ergotamine|Metamizole'
+;
+delete from class_to_drug_4
+where concept_code_1 ~ 'N02BE51|N02BB53' and concept_name ~* 'Dipyrocetyl|Bucetin|Phenacetin|Ergotamine|Metamizole'
+;
+delete from class_to_drug_4
+where concept_code_1 ~ 'N02AC54' and concept_name ~* 'Dipyrone';
+
+delete from  class_to_drug_4
+where concept_code_1 ~ 'N02' and concept_name ~ 'Codeine' and not class_name ~ 'codeine';
+
+delete from class_to_drug_4 where  concept_id in --removing duplicates 
+(select concept_id from class_to_drug_1);
+
+--atenolol and other diuretics, combinations, one of a kind
+delete from class_to_drug_4
+where concept_code_1 ~ 'C07CB53|C07DB01' and concept_name not like '%/%/%';
+delete from class_to_drug_4
+where concept_code_1 ~ 'C07CB03|C07CB53' and concept_name  like '%/%/%';
+
+-- PPI and aspirin
+delete from class_to_drug_4
+where concept_code_1 ~ 'N02BA51' and concept_name ~* 'Omeprazole|Pantoprazole|Rabeprazol';
+
+--5th Forms
+drop table if exists primary_table;
+create table primary_table as
+with ing as
+(select i.concept_code_1,class_name,rtc.concept_id_2 as ing 
+from class_1
+left join reference using (class_code)
+join internal_relationship_stage i  on coalesce (concept_code,class_code) = concept_code_1
+join drug_concept_stage d on d.concept_code = concept_code_2 and concept_class_id = 'Ingredient'
+join relationship_to_concept rtc on rtc.concept_code_1 = d.concept_code
+),
+form as
+(select i.concept_code_1,rtc.concept_id_2 as form  
+from class_1
+left join reference using (class_code)
+join internal_relationship_stage i on coalesce (concept_code,class_code) = concept_code_1
+join drug_concept_stage d on d.concept_code = concept_code_2 and concept_class_id = 'Dose Form'
+join relationship_to_concept rtc on rtc.concept_code_1 = d.concept_code
+)
+select distinct i.concept_code_1, class_name, ing,form
+from ing i
+left join form f on i.concept_code_1=f.concept_code_1;
+
+drop table if exists class_to_drug_5;
+create table class_to_drug_5 as
+with secondary_table as (
+select a.concept_id, a.concept_name ,a.concept_class_id,a.vocabulary_id,c.concept_id_2 as sform, b.ingredient_concept_id as sing 
+ from concept a
+ join drug_strength b on b.drug_concept_id = a.concept_id
+ join concept_relationship c on c.concept_id_1 = a.concept_id
+ where a.concept_class_id = 'Clinical Drug Form'
+ and a.vocabulary_id = 'RxNorm'--temporary remove RXE
+ and a.invalid_reason is null and relationship_id = 'RxNorm has dose form'
+ and c.invalid_reason is null
+ and not exists (select 1 from drug_strength d 
+ where d.drug_concept_id = b.drug_concept_id and d.ingredient_concept_id!=b.ingredient_concept_id) -- excluding combos
+)
+select distinct p.concept_code_1, class_name, s.concept_id, s.concept_name, s.concept_class_id 
+from primary_table p, secondary_table s
+where s.sform = p.form
+and s.sing = p.ing
+;
+--manually excluded drugs based on Precise Ingredients
+insert into class_to_drug_5
+select 'B02BD11','catridecacog', concept_id, concept_name, concept_class_id
+	from concept where vocabulary_id = 'RxNorm' and concept_name like 'coagulation factor XIII a-subunit (recombinant)%' and standard_concept='S'
+or concept_id = 35603348 -- the whole hierarchy
+;
+
+insert into class_to_drug_5
+select 'B02BD14','susoctocog alfa', concept_id, concept_name, concept_class_id
+from concept where vocabulary_id like 'RxNorm%' and concept_name like 'antihemophilic factor, porcine B-domain truncated recombinant%' and standard_concept='S'
+or concept_id in (35603348,44109089) -- the whole hierarchy
+;
+delete from class_to_drug_5
+where concept_code_1 = 'B02BD14' and concept_name like '%Tretten%' --catridecacog
+;
+delete from class_to_drug_5
+where class_name = 'amino acids';
+
+--6th ingredients
+drop table if exists class_to_drug_6;
+create table class_to_drug_6 as
+with secondary_table as (
+ select a.concept_id, a.concept_name ,a.concept_class_id,a.vocabulary_id, b.ingredient_concept_id as sing 
+ from concept a
+ join drug_strength b
+ on b.drug_concept_id = a.concept_id
+ where a.concept_class_id = 'Ingredient' and a.invalid_reason is null
+ and a.vocabulary_id = 'RxNorm'--temporary remove RXE
+and not exists (select 1 from drug_strength d where d.drug_concept_id = b.drug_concept_id and d.ingredient_concept_id!=b.ingredient_concept_id) -- excluding combos
+)
+select distinct p.concept_code_1, class_name, s.concept_id, s.concept_name, s.concept_class_id 
+from primary_table p, secondary_table s
+where s.sing = p.ing
+and p.form is null
+and p.concept_code_1 not in (select concept_code from reference where concept_code!=class_code)-- exclude drugs that should have forms (will remain unmapped)
+;
+
+
+-- Final assembly
+TODO: 
+G03FB|G03AB
+change names in manual tables
+
+
+
+drop table if exists сlass_to_rx_descendant;
+create table сlass_to_rx_descendant
+as
+select  distinct substring (concept_code_1,'\w+') as class_code, class_name, c.concept_id, c.concept_name,  c.concept_code, c.concept_class_id, '1' as order
+from class_to_drug_1 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id and vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+ ;
+delete from сlass_to_rx_descendant
+where class_code ~ 'G03FB|G03AB' and concept_class_id not like '%Pack%';
+
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'),class_name, c.concept_id, c.concept_name,  c.concept_code, c.concept_class_id, '2' as order
+from class_to_drug_2 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+;
+
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'), class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '3' as order
+from class_to_drug_3 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+;
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'), c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '4' as order
+from class_to_drug_4 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+;
+
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'), class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '5' as order
+from class_to_drug_5 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+join drug_strength d on d.drug_concept_id = c.concept_id
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+and not exists
+	(select 1 from concept c2 join devv5.concept_ancestor ca2
+	 on ca2.ancestor_concept_id = c2.concept_id and c2.concept_class_id = 'Ingredient'
+	 where ca2.descendant_concept_id = d.drug_concept_id and c2.concept_id!=d.ingredient_concept_id) -- excluding combos
+;
+--working with packs
+with a as (
+		select distinct
+			a.*,
+			c.concept_id as pack_id,
+			d.drug_concept_id,
+			d.ingredient_concept_id
+		from class_to_drug_5 a
+			join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+			join concept c on c.concept_id = descendant_concept_id and c.vocabulary_id like 'RxNorm%'
+												and c.standard_concept = 'S' and c.concept_class_id in ('Clinical Pack ', 'Branded Pack')
+			join concept_relationship cr
+				on cr.concept_id_1 = c.concept_id and cr.invalid_reason is null and cr.relationship_id = 'Contains'
+			join drug_strength d on d.drug_concept_id = cr.concept_id_2
+		where descendant_concept_id not in (select concept_id
+																				from сlass_to_rx_descendant)
+),
+b as (
+		select distinct concept_code_1,class_name,concept_id,concept_name,concept_class_id, pack_id,
+			string_agg(ingredient_concept_id::varchar, '-' order by ingredient_concept_id) as i_combo
+		from a
+		group by concept_code_1,class_name,concept_id,concept_name,concept_class_id, pack_id
+	),
+c as (
+		select distinct b.concept_code_1, b.class_name, b.concept_id, b.concept_name, b.concept_class_id, b.i_combo,pack_id,
+			string_agg(ca.ancestor_concept_id:: varchar, '-' order by ca.ancestor_concept_id) as i_combo_2
+		from b
+			join devv5.concept_ancestor ca on b.concept_id = ca.descendant_concept_id
+			join concept c on c.concept_id = ca.ancestor_concept_id and c.concept_class_id = 'Ingredient'
+		group by b.concept_code_1, b.class_name, b.concept_id, b.concept_name, b.concept_class_id, b.i_combo, ca.descendant_concept_id,pack_id
+)
+insert into сlass_to_rx_descendant 
+(class_code,class_name,concept_id,concept_name,concept_code,concept_class_id,"order")
+select  distinct  substring (concept_code_1,'\w+'),pack_id,cc.concept_name,cc.concept_code,cc.concept_class_id, '5'
+from c
+join concept cc on cc.concept_id = pack_id
+where i_combo = i_combo_2 or i_combo = i_combo_2||'-'||i_combo_2
+;
+
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'), c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '6' as order
+from class_to_drug_6 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+join drug_strength d on d.drug_concept_id = c.concept_id
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+and not exists
+	(select 1 from concept c2 join devv5.concept_ancestor ca2
+	 on ca2.ancestor_concept_id = c2.concept_id and c2.concept_class_id = 'Ingredient'
+	 where ca2.descendant_concept_id = d.drug_concept_id and c2.concept_id!=d.ingredient_concept_id) -- excluding combos
+;
+
+--working with packs
+with a as (
+		select distinct
+			a.*,
+			c.concept_id as pack_id,
+			d.drug_concept_id,
+			d.ingredient_concept_id
+		from class_to_drug_6 a
+			join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+			join concept c on c.concept_id = descendant_concept_id and c.vocabulary_id like 'RxNorm%'
+												and c.standard_concept = 'S' and c.concept_class_id in ('Clinical Pack ', 'Branded Pack')
+			join concept_relationship cr
+				on cr.concept_id_1 = c.concept_id and cr.invalid_reason is null and cr.relationship_id = 'Contains'
+			join drug_strength d on d.drug_concept_id = cr.concept_id_2
+		where descendant_concept_id not in (select concept_id
+																				from сlass_to_rx_descendant)
+),
+b as (
+		select distinct concept_code_1,class_name,concept_id,concept_name,concept_class_id, pack_id,
+			string_agg(ingredient_concept_id::varchar, '-' order by ingredient_concept_id) as i_combo
+		from a
+		group by concept_code_1,class_name,concept_id,concept_name,concept_class_id, pack_id
+	),
+c as (
+		select distinct b.concept_code_1, b.class_name, b.concept_id, b.concept_name, b.concept_class_id, b.i_combo,pack_id,
+			string_agg(ca.ancestor_concept_id:: varchar, '-' order by ca.ancestor_concept_id) as i_combo_2
+		from b
+			join devv5.concept_ancestor ca on b.concept_id = ca.descendant_concept_id
+			join concept c on c.concept_id = ca.ancestor_concept_id and c.concept_class_id = 'Ingredient'
+		group by b.concept_code_1, b.class_name, b.concept_id, b.concept_name, b.concept_class_id, b.i_combo, ca.descendant_concept_id,pack_id
+)
+insert into сlass_to_rx_descendant 
+(class_code,class_name,concept_id,concept_name,concept_code,concept_class_id,"order")
+select distinct substring (concept_code_1,'\w+'),class_name,pack_id,cc.concept_name,cc.concept_code,cc.concept_class_id, '6'
+from c
+join concept cc on cc.concept_id = pack_id
+where i_combo = i_combo_2 or i_combo = i_combo_2||'-'||i_combo_2
+;
+
+delete from сlass_to_rx_descendant where class_name like '%insulin%';
+insert into сlass_to_rx_descendant
+select distinct class_code, class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '7' as order
+from class_to_drug_manual m
+join devv5.concept_ancestor ca on ca.ancestor_concept_id = m.concept_id
+join concept c on c.concept_id = ca.descendant_concept_id
+join drug_strength d on d.drug_concept_id = c.concept_id
+;
+
+--- need  to  be fixed!
+insert into сlass_to_rx_descendant
+select distinct  class_code, class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, f.order
+from class_to_drug f
+join devv5.concept_ancestor ca on ca.ancestor_concept_id = cast(f.concept_id as int)
+join devv5.concept c on c.concept_id = descendant_concept_id and c.concept_class_id like '%Pack%'
+where s.class_code ~ 'G03FB|G03AB'; -- packs
+
+delete from сlass_to_rx_descendant
+where class_code ~ 'G03FB|G03AB' and concept_class_id in ('Clinical Drug Form','Ingredient');
+
+delete from  сlass_to_rx_descendant
+where class_name like '%and estrogen%' -- if there are regular estiol/estradiol/EE
+and concept_id in (select concept_id from сlass_to_rx_descendant group by concept_id having count(1)>1);
+
+--temporary
+delete from сlass_to_rx_descendant
+where class_name like '%,%,%and%'
+and not class_name ~* 'comb|other|whole root|selective'
+and concept_name not like '%/%/%/%';
+
+delete from сlass_to_rx_descendant
+where class_name like '%,%and%'
+and class_name not like '%,%,%and%'
+and not class_name ~* 'comb|other|whole root|selective'
+and concept_name not like '% / % / %';
+
+--table w/o ancestor
+drop table if exists class_to_drug;
+create table class_to_drug
+as
+select  distinct substring (concept_code_1,'\w+'), a.class_name, a.concept_id, a.concept_name,  a.concept_code_1, a.concept_class_id, '1' as order
+from class_to_drug_1 a
+;
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'), a.class_name, a.concept_id, a.concept_name,  a.concept_code_1, a.concept_class_id, '2' as order
+from class_to_drug_2 a
+where class_code not in
+(select class_code from class_to_drug)
+and a.concept_id not in
+(select concept_id from class_to_drug)
+;
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'), a.class_name, a.concept_id, a.concept_name,  a.concept_code_1, a.concept_class_id, '3' as order
+from class_to_drug_3 a
+where class_code not in
+(select class_code from class_to_drug)
+;
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'),  a.class_name, a.concept_id, a.concept_name,  a.concept_code_1, a.concept_class_id, '4' as order
+from class_to_drug_4 a
+where class_code not in
+(select class_code from class_to_drug);
+
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'),  a.class_name, a.concept_id, a.concept_name, a.concept_code_1, a.concept_class_id, '5' as order
+from class_to_drug_5 a
+where class_code not in
+(select class_code from class_to_drug);
+
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'),  a.class_name, a.concept_id, a.concept_name, a.concept_code_1, a.concept_class_id, '6' as order
+from class_to_drug_6 a
+where class_code not in
+(select class_code from class_to_drug);
+
+delete from class_to_drug where class_name like '%insulin%';
+insert into class_to_drug
+select distinct class_code,m.class_name, m.concept_id, m.concept_name, c.concept_code, m.concept_class_id, '7' as order
+from class_to_drug_manual m
+join concept c using(concept_id)
+;
+
+insert into class_to_drug
+select f.class_code, f.class_name, c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, f.order
+from class_to_drug f
+join devv5.concept_ancestor ca
+on ca.ancestor_concept_id = f.concept_id
+join devv5.concept c on c.concept_id = descendant_concept_id and c.concept_class_id like '%Pack%'
+where class_code ~ 'G03FB|G03AB'; -- packs
+delete from class_to_drug
+where class_code ~ 'G03FB|G03AB' and concept_class_id in ('Clinical Drug Form','Ingredient');
+
+delete from  class_to_drug
+where class_name like '%and estrogen%' -- if there are regular estiol/estradiol/EE
+and concept_id in (select concept_id from class_to_drug group by concept_id having count(1)>1);
+
+
+TODO: 
+triggers

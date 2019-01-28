@@ -295,6 +295,10 @@ SELECT a.concept_code,
 FROM concept a
 JOIN concept_relationship r ON a.concept_id = concept_id_1
 	AND r.invalid_reason IS NULL
+	AND r.relationship_id NOT IN (
+		'Concept replaced by',
+		'Concept replaces'
+		)
 JOIN concept b ON b.concept_id = concept_id_2
 WHERE 'ICD10CM' IN (
 		a.vocabulary_id,

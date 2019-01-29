@@ -16,6 +16,7 @@
 * Authors: Anna Ostropolets, Timur Vakhitov
 * Date: 2018
 **************************************************************************/
+
 Prerequisites:
 1. Get the latest file from source, name it class_drugs_scraper. The file should contain class code, class name, additional information.
 For example, for ATC the file will be created in the following manner:
@@ -48,8 +49,7 @@ TRUNCATE TABLE drug_strength_stage;
 -- 3. Preliminary work
 -- 3.1 create table with combo drugs to be used later
 drop table if exists class_1_comb;
-create table class_1_comb
-as
+create table class_1_comb as
 select * from class_drug_scraper
 where class_name ~ 'comb| and |diphtheria-|meningococcus|excl|derivate|other|with'
 and length (class_code) = 7
@@ -90,7 +90,7 @@ select distinct i.concept_code_1,i.concept_code_2, class_name, ing,form,preceden
 from ing i
 left join form f on i.concept_code_1=f.concept_code_1;
 
---mapping 1 to 1, use drugs where 2 ingredient_id occur
+-- 3.4 mapping 1 to 1, use drugs where 2 ingredient_id occur
 drop table if exists class_combo;
 create table class_combo as
 select concept_code_1, 
@@ -173,7 +173,7 @@ join rx_combo using (i_combo)
 join concept c on c.concept_id=drug_concept_id
 where concept_code_1 not like '% %' --w/o forms
 ;
---2nd usual combos
+-- 3.5 2nd usual combos
 drop table verysimple_comb;
 create table verysimple_comb as
 with ing as
@@ -252,7 +252,7 @@ join concept c on c.concept_id = r.drug_concept_id  and c.concept_class_id = 'Cl
 where p.concept_code_1 not like '% %'--exclude classes with known forms
 ;
 
--- 3. class concepts that represent combos with exclusions
+-- 3.6 class concepts that represent combos with exclusions
 drop table if exists compl_combo;
 create table compl_combo as
 with hold as (
@@ -354,7 +354,7 @@ where concept_code_1 ~ 'N02' and concept_name ~ 'Codeine' and not class_name ~ '
 delete from class_to_drug_3 where  concept_id in --removing duplicates 
 (select concept_id from class_to_drug_1);
 
---excl
+-- 3.7 class codes of type a+b excl. c
 drop table if exists class_to_drug_4;
 create table class_to_drug_4 as
 select c.* from compl_combo c
@@ -411,7 +411,7 @@ where concept_code_1 ~ 'C07CB03|C07CB53' and concept_name  like '%/%/%';
 delete from class_to_drug_4
 where concept_code_1 ~ 'N02BA51' and concept_name ~* 'Omeprazole|Pantoprazole|Rabeprazol';
 
---5th Forms
+-- 3.8  Simlpe class codes that have dose forms
 drop table if exists primary_table;
 create table primary_table as
 with ing as
@@ -471,7 +471,7 @@ where concept_code_1 = 'B02BD14' and concept_name like '%Tretten%' --catridecaco
 delete from class_to_drug_5
 where class_name = 'amino acids';
 
---6th ingredients
+-- 3.9 Class codes that do not have forms (ingredients only)
 drop table if exists class_to_drug_6;
 create table class_to_drug_6 as
 with secondary_table as (
@@ -491,12 +491,8 @@ and p.concept_code_1 not in (select concept_code from reference where concept_co
 ;
 
 
--- Final assembly
-TODO: 
-G03FB|G03AB
-change names in manual tables
-
-
+-- 4. Start final assembly
+--TODO: G03FB|G03AB 
 
 drop table if exists сlass_to_rx_descendant;
 create table сlass_to_rx_descendant
@@ -732,14 +728,14 @@ where class_name like '%and estrogen%' -- if there are regular estiol/estradiol/
 and concept_id in (select concept_id from class_to_drug group by concept_id having count(1)>1);
 
 
-TODO: 
-triggers
+--TODO: 
+--5. triggers
 
 
 
 
---3. Add ATC
---create temporary table atc_tmp_table
+-- 6. Add ATC
+-- create temporary table atc_tmp_table
 DROP TABLE IF EXISTS atc_tmp_table;
 CREATE UNLOGGED TABLE atc_tmp_table AS
 SELECT rxcui,
@@ -779,7 +775,7 @@ CREATE INDEX idx_atc_code ON atc_tmp_table (code);
 CREATE INDEX idx_atc_ccode ON atc_tmp_table (concept_code);
 ANALYZE atc_tmp_table;
 
---4. Add atc_tmp_table to concept_stage
+-- 7. Add atc_tmp_table to concept_stage
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -804,7 +800,7 @@ FROM atc_tmp_table dv,
 	vocabulary v
 WHERE v.vocabulary_id = dv.vocabulary_id;
 
---5. Create all sorts of relationships to self, RxNorm and SNOMED
+-- 8. Create all sorts of relationships to self, RxNorm and SNOMED
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -955,7 +951,7 @@ WHERE (
 	AND lowr.vocabulary_id = 'ATC'
 	AND v.vocabulary_id = 'ATC';
 
---6. Add new relationships
+-- 9. Add new relationships
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -986,7 +982,7 @@ WHERE NOT EXISTS (
 			AND crs.relationship_id = 'ATC - RxNorm'
 		);
 
---7. Add relationships to ingredients excluding multiple-ingredient combos
+-- 10. Add relationships to ingredients excluding multiple-ingredient combos
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1022,7 +1018,7 @@ WHERE NOT f.atc_name ~ 'combination|agents|drugs|supplements|corticosteroids|com
 			AND crs.relationship_id = 'ATC - RxNorm'
 		);
 
---8. Add relationships to ingredients for combo drugs where possible
+-- 11. Add relationships to ingredients for combo drugs where possible
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1087,20 +1083,20 @@ WHERE NOT EXISTS (
 			AND crs.relationship_id = 'ATC - RxNorm'
 		);
 
---9. Add manual relationships
+-- 12. Add manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---10. Remove ATC's duplicates (AVOF-322)
---diphtheria immunoglobulin
+-- 13. Remove ATC's duplicates (AVOF-322)
+-- diphtheria immunoglobulin
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'J06BB10' AND concept_code_2 = '3510' AND relationship_id = 'ATC - RxNorm';
---hydroquinine
+-- hydroquinine
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'M09AA01' AND concept_code_2 = '27220' AND relationship_id = 'ATC - RxNorm';
 
---11. Deprecate relationships between multi ingredient drugs and a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
---11.1. Create temporary table drug_strength_ext (same code as in concept_ancestor, but we exclude ds for ingredients (because we use count(*)>1 and ds for ingredients having count(*)=1) and only for RxNorm)
+-- 14. Deprecate relationships between multi ingredient drugs and a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
+-- 14.1. Create temporary table drug_strength_ext (same code as in concept_ancestor, but we exclude ds for ingredients (because we use count(*)>1 and ds for ingredients having count(*)=1) and only for RxNorm)
 DROP TABLE IF EXISTS drug_strength_ext;
 CREATE UNLOGGED TABLE drug_strength_ext AS
 SELECT *
@@ -1174,7 +1170,7 @@ FROM (
 			)
 	) AS s2;
 
---11.2. Do deprecation
+-- 14.2. Do deprecation
 DELETE
 FROM concept_relationship_stage
 WHERE ctid IN (
@@ -1220,7 +1216,7 @@ WHERE ctid IN (
 			) drug2atc ON drug2atc.concept_code_2 = all_drugs.drug_concept_code
 		);
 
---12. Add synonyms to concept_synonym stage for each of the rxcui/code combinations in atc_tmp_table
+-- 15. Add synonyms to concept_synonym stage for each of the rxcui/code combinations in atc_tmp_table
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -1237,31 +1233,31 @@ JOIN sources.rxnconso r ON dv.code = r.code
 	AND r.code != 'NOCODE'
 	AND r.lat = 'ENG';
 
---13. Working with replacement mappings
+-- 16. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+-- 17. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---15. Add mapping from deprecated to fresh concepts
+-- 18. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---16. Delete ambiguous 'Maps to' mappings
+-- 19. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---17. Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> RxNorm, but currently we are updating ATC)
+-- 20. Delete mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> RxNorm, but currently we are updating ATC)
 --This is because we have SNOMED <-> ATC in concept_relationship_stage, but AddFreshMAPSTO adds SNOMED <-> RxNorm from concept_relationship
 DELETE
 FROM concept_relationship_stage crs_o
@@ -1283,7 +1279,7 @@ WHERE (
 		WHERE coalesce(v1.latest_update, v2.latest_update) IS NULL
 		);
 
---18. Clean up
+-- 21. Clean up
 DROP TABLE atc_tmp_table;
 DROP TABLE drug_strength_ext;
 

@@ -541,7 +541,7 @@ CREATE TABLE primary_table AS
               JOIN internal_relationship_stage i ON coalesce(concept_code, class_code) = concept_code_1
               JOIN drug_concept_stage d ON d.concept_code = concept_code_2 AND concept_class_id = 'Dose Form'
               JOIN relationship_to_concept rtc ON rtc.concept_code_1 = d.concept_code
-                WHERE class_name !~'combination|and|^other| with|mening|diphtheria'
+                WHERE class_name !~'combination| and |^other| with|mening|diphtheria'
       )
     SELECT DISTINCT i.concept_code_1, class_name, ing,form
     FROM ing i

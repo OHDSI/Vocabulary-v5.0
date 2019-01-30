@@ -1324,7 +1324,7 @@ WHERE NOT cs.class_name ~ 'combination|agents|drugs|supplements|corticosteroids|
 			AND crs.relationship_id = 'ATC - RxNorm'
 		);
 
--- 11. Add relationships to ingredients for combo drugs WHERE possible
+-- 11. Add relationships to ingredients for combo drugs where possible
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1402,7 +1402,7 @@ DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'J06BB10' AND conc
 -- hydroquinine
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'M09AA01' AND concept_code_2 = '27220' AND relationship_id = 'ATC - RxNorm';
 
--- 14. Deprecate relationships between multi ingredient drugs AND a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
+-- 14. Deprecate relationships between multi ingredient drugs and a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
 -- 14.1. Create temporary table drug_strength_ext (same code AS IN concept_ancestor, but we exclude ds for ingredients (because we use count(*)>1 AND ds for ingredients HAVING COUNT(*)=1) AND only for RxNorm)
 DROP TABLE IF EXISTS  drug_strength_ext;
 CREATE UNLOGGED TABLE drug_strength_ext AS
@@ -1546,7 +1546,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
--- 17. Deprecate 'Maps to' mappings to deprecated AND upgraded concepts
+-- 17. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
@@ -1590,4 +1590,4 @@ WHERE (
 DROP TABLE atc_tmp_table;
 DROP TABLE drug_strength_ext;
 
--- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

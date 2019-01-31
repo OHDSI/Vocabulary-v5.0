@@ -17,11 +17,12 @@
 * Date: 01-23-2017
 **************************************************************************/
 
+DROP SEQUENCE IF EXISTS new_vocab ;
+CREATE SEQUENCE new_vocab INCREMENT BY 1 START WITH 10000000 CACHE 20;
+
 /*************************************************
 * 0. Clean the data and extract non drugs *
 *************************************************/
-DROP SEQUENCE IF EXISTS new_vocab ;
-CREATE SEQUENCE new_vocab INCREMENT BY 1 START WITH 10000000 CACHE 20;
 
 -- Radiopharmaceuticals, scintigraphic material and blood products
 insert into non_drug
@@ -29,9 +30,15 @@ select distinct
   substr(general_name||' '||standardized_unit||' ['||brand_name||']', 1, 255) as concept_name, 'JMDC', 'Device', 'S', drug_code, null, 'Device', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null
   from jmdc
   where
-  general_name ~* '(99mTc)|(131I)|(89Sr)|capsule|(123I)|(9 Cl)|(111In)|(13C)|(123I)|(51Cr)|(201Tl)|(133Xe)|(90Y)|(81mKr)|(90Y)|(67Ga)|gadoter|gadopent|manganese chloride tetrahydrate|amino acid|barium sulfate|cellulose,oxidized|purified tuberculin|blood|plasma|diagnostic|nutrition|patch test|free milk|vitamin/|white ointment|simple syrup|electrolyte|allergen extract(therapeutic)|simple ointment' -- cellulose = Surgicel Absorbable Hemostat
+  general_name ~* '(99mTc)|(131I)|(89Sr)|capsule|iodixanol|iohexol|ioxilan|ioxaglate|iopamidol|iothalamate|(123I)|(9 Cl)|(111In)|(13C)|(123I)|(51Cr)|(201Tl)|(133Xe)|(90Y)|(81mKr)|(90Y)|(67Ga)|gadoter|gadopent|manganese chloride tetrahydrate|amino acid|barium sulfate|cellulose,oxidized|purified tuberculin|blood|plasma|diagnostic|nutrition|patch test|free milk|vitamin/|white ointment|simple syrup|electrolyte|allergen extract(therapeutic)|simple ointment' -- cellulose = Surgicel Absorbable Hemostat
   and not general_name ~* 'coagulation|an extract from hemolysed blood' -- coagulation factors
 
+insert into non_drug
+select distinct
+  substr(general_name||' '||standardized_unit||' ['||brand_name||']', 1, 255) as concept_name, 'JMDC', 'Device', 'S', drug_code, null, 'Device', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null
+  from jmdc
+  where
+  who_atc_code like 'V08%';
 -- Create copy of input data
 drop table if exists j;
 create table j as
@@ -117,17 +124,21 @@ update j
 set brand_name = null
 where length(brand_name)<3;
 
+
 update j
 set brand_name = null
 where brand_name like '% %' and brand_name ~ 'NIPPON-ZOKI|KANADA|BIKEN|Antivenom|KITASATO|NICHIIKO|JPS | Equine|Otsujito|Bitter Tincture|Syrup| SW|Concentrate| MED| DSP$| DK$| KN$| KY$| YP$| UJI$| TTS$| MDP$| JG$| KN$|SEIKA|KYOWA|SHOWA|NikP| JCR| NK$| HK$|Japanese Strain| CH$| TCK| FM| Na | Na$| AFP|Gargle|Injection| Ca | Ca$|KOBAYASI| TYK| NIKKO| YD| KOG| FFP| NP| NS| TSU| KOG| SN| TS| NP| YD';
+
 
 update j
 set brand_name = null
 where  brand_name ~ 'Tosufloxacin Tosilate|Succinate|OTSUKA|Kenketsu|Ethanol|Powder|JANSSEN|Disinfection|Oral|Gluconate| TN$|FUSO|Sugar| TOA$|Prednisolone Acetate T|I''ROM| BMD$|^KTS |Taunus Aqua|Cefamezin alfa|Bromide|Vaccine';
 
+
 update j
 set brand_name = null
 where  brand_name ~ 'ASAHI| CMX|Lawter Leaf|Kakkontokasenkyushin| HMT|Saikokeishito|Dibasic Calcium Phosphate| Hp$| F$| HT$| TC$| AA$| MP$|Freeze-dried| AY$| KTB| CEO|Ethyl Aminobenzoate| QQ$|Viscous|Tartrate|NIPPON| EE$|Tincture';
+
 
 -- multi-ingredients fixes
 update j
@@ -145,6 +156,19 @@ where general_name = 'immunoglobulin with histamine';
 update j
 set general_name = 'human normal immunoglobulin/histamine'
 where general_name = 'immunoglobulin with histamine';
+
+select * from j where who_atc_code like 'V%';
+
+
+who_atc_code in ('V08CA','V08CA04','','')
+select * from drug_concept_stage where concept_name = 'ether';
+
+select * from relationship_to_concept where concept_code_1='OMOP10002422';
+
+43012272	1363043	ethyl ether
+
+
+select * from aut_ingredient_mapped where concept_name like '%ether%';
 
 -- remove junk from standard_unit
 update j set standardized_unit = regexp_replace(standardized_unit, '\(forGeneralDiagnosis\)', '') where standardized_unit like '%(forGeneralDiagnosis)%';
@@ -191,6 +215,7 @@ update j set standardized_unit = regexp_replace(standardized_unit, '\(w/Dil\)', 
 /*************************************************
 * 1. Create parsed Ingredients and relationships *
 *************************************************/
+							       
 DROP TABLE if exists PI;
 CREATE TABLE pi
 AS
@@ -231,6 +256,7 @@ select distinct
   to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'),
   null as invalid_reason
 from j;
+
 
 -- Devices
 insert into drug_concept_stage
@@ -543,6 +569,7 @@ set amount_unit = lower(amount_unit),
     numerator_unit = lower(numerator_unit),
     denominator_unit = lower(denominator_unit);
 
+
 update ds_stage
   set amount_unit = 'mcg'
     where amount_unit = 'ug';
@@ -748,6 +775,7 @@ and dc.concept_code not in (select concept_code_1 from relationship_to_concept);
 
 
 /*****POST-PROCESSING*****/
+
 -- Delete Suppliers where DF or strength doesn't exist
 
 DELETE

@@ -2193,7 +2193,7 @@ VALUES (138875005, 'Metadata'), -- root
 	(254291000, 'Measurement'), -- Staging / Scales [changed Observation->Measurement AVOF-1295]
 	(370115009, 'Metadata'), -- Special Concept
 	(308916002, 'Observation'), -- Environment or geographical location
-	(223366009, 'Provider Specialty'), (43741000, 'Place of Service'), -- Site of care
+	(223366009, 'Provider'), (43741000, 'Place of Service'), -- Site of care
 	(420056007, 'Drug'), -- Aromatherapy agent
 	(373873005, 'Drug'), -- Pharmaceutical / biologic product
 	(410942007, 'Drug'), -- Drug or medicament
@@ -2688,7 +2688,7 @@ SET standard_concept = CASE domain_id
 			THEN NULL -- Not used in CDM
 		WHEN 'Race'
 			THEN NULL -- Race are CDC
-		WHEN 'Provider Specialty'
+		WHEN 'Provider'
 			THEN NULL -- got CMS and ABMS specialty
 		WHEN 'Place of Service'
 			THEN NULL -- got own place of service

@@ -632,7 +632,7 @@ BEGIN
                  END
              WHEN 'MeSH'
                THEN 0
-             WHEN 'Specialty'
+             WHEN 'Provider Specialty'
                THEN
                  CASE
                  WHEN c.standard_concept IS NULL

@@ -451,8 +451,8 @@ CREATE unlogged TABLE ciel_to_concept_map AS
 			WHERE r.invalid_reason IS NULL
 				AND c1.vocabulary_id = 'SNOMED'
 				AND c2.vocabulary_id IN (
-					'Specialty',
-					'Place of Service'
+					'Provider Specialty',
+					'CMS Place of Service'
 					)
 				AND r.relationship_id = 'Maps to'
 			

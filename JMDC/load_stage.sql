@@ -14,11 +14,15 @@
 * limitations under the License.
 * 
 * Authors: Christian Reich, Anna Ostropolets
-* Date: 01-23-2017
+* Date: 02-01-2019
 **************************************************************************/
 
+/*************************************************
+* Create sequence for entities that do not have source codes *
+*************************************************/
+
 DROP SEQUENCE IF EXISTS new_vocab ;
-CREATE SEQUENCE new_vocab INCREMENT BY 1 START WITH 10000000 CACHE 20;
+CREATE SEQUENCE new_vocab INCREMENT BY 1 START WITH 1 CACHE 20;
 
 /*************************************************
 * 0. Clean the data and extract non drugs *
@@ -27,7 +31,7 @@ CREATE SEQUENCE new_vocab INCREMENT BY 1 START WITH 10000000 CACHE 20;
 -- Radiopharmaceuticals, scintigraphic material and blood products
 insert into non_drug
 select distinct
-  substr(general_name||' '||standardized_unit||' ['||brand_name||']', 1, 255) as concept_name, 'JMDC', 'Device', 'S', drug_code, null, 'Device', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null
+  substr(general_name||' '||standardized_unit||' ['||brand_name||']', 1, 255) as concept_name, 'JMDC', 'Device', 'S', claim_code, null, 'Device', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null
   from jmdc
   where
   general_name ~* '(99mTc)|(131I)|(89Sr)|capsule|iodixanol|iohexol|ioxilan|ioxaglate|iopamidol|iothalamate|(123I)|(9 Cl)|(111In)|(13C)|(123I)|(51Cr)|(201Tl)|(133Xe)|(90Y)|(81mKr)|(90Y)|(67Ga)|gadoter|gadopent|manganese chloride tetrahydrate|amino acid|barium sulfate|cellulose,oxidized|purified tuberculin|blood|plasma|diagnostic|nutrition|patch test|free milk|vitamin/|white ointment|simple syrup|electrolyte|allergen extract(therapeutic)|simple ointment' -- cellulose = Surgicel Absorbable Hemostat
@@ -35,7 +39,7 @@ select distinct
 
 insert into non_drug
 select distinct
-  substr(general_name||' '||standardized_unit||' ['||brand_name||']', 1, 255) as concept_name, 'JMDC', 'Device', 'S', drug_code, null, 'Device', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null
+  substr(general_name||' '||standardized_unit||' ['||brand_name||']', 1, 255) as concept_name, 'JMDC', 'Device', 'S', claim_code, null, 'Device', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null
   from jmdc
   where
   who_atc_code like 'V08%';
@@ -43,7 +47,7 @@ select distinct
 drop table if exists j;
 create table j as
 select * from jmdc
-where drug_code not in (
+where claim_code not in (
   select concept_code from non_drug
 );
 
@@ -53,17 +57,17 @@ where general_name in ('allergen extract(therapeutic)');
 drop table if exists supplier;
 create table supplier
 as
-select trim(substring(brand_name,' \w+$')) as concept_name,drug_code from j -- upper case suppliers in the end of the line
+select trim(substring(brand_name,' \w+$')) as concept_name,claim_code from j -- upper case suppliers in the end of the line
 where substring(brand_name,' \w+$')=upper(substring(brand_name,' \w+$'))
 and length(substring(brand_name,' \w+$'))>4 and trim(substring(brand_name,' \w+$')) not in ('A240','VIII')
 UNION
-select trim(substring(brand_name,'^\w+ ')) as concept_name,drug_code from j -- upper case suppliers in the beginning of the line
+select trim(substring(brand_name,'^\w+ ')) as concept_name,claim_code from j -- upper case suppliers in the beginning of the line
 where substring(brand_name,'^\w+ ')=upper(substring(brand_name,'^\w+ '))
 and length(substring(brand_name,'^\w+ '))>4 and trim(substring(brand_name,'^\w+ ')) not in ('A240','VIII')
 ;
 --ingredient
 delete from supplier
-where drug_code='100000049525'
+where claim_code='100000049525'
 and concept_name = 'GHRP';
 
 update j
@@ -124,21 +128,17 @@ update j
 set brand_name = null
 where length(brand_name)<3;
 
-
 update j
 set brand_name = null
 where brand_name like '% %' and brand_name ~ 'NIPPON-ZOKI|KANADA|BIKEN|Antivenom|KITASATO|NICHIIKO|JPS | Equine|Otsujito|Bitter Tincture|Syrup| SW|Concentrate| MED| DSP$| DK$| KN$| KY$| YP$| UJI$| TTS$| MDP$| JG$| KN$|SEIKA|KYOWA|SHOWA|NikP| JCR| NK$| HK$|Japanese Strain| CH$| TCK| FM| Na | Na$| AFP|Gargle|Injection| Ca | Ca$|KOBAYASI| TYK| NIKKO| YD| KOG| FFP| NP| NS| TSU| KOG| SN| TS| NP| YD';
-
 
 update j
 set brand_name = null
 where  brand_name ~ 'Tosufloxacin Tosilate|Succinate|OTSUKA|Kenketsu|Ethanol|Powder|JANSSEN|Disinfection|Oral|Gluconate| TN$|FUSO|Sugar| TOA$|Prednisolone Acetate T|I''ROM| BMD$|^KTS |Taunus Aqua|Cefamezin alfa|Bromide|Vaccine';
 
-
 update j
 set brand_name = null
 where  brand_name ~ 'ASAHI| CMX|Lawter Leaf|Kakkontokasenkyushin| HMT|Saikokeishito|Dibasic Calcium Phosphate| Hp$| F$| HT$| TC$| AA$| MP$|Freeze-dried| AY$| KTB| CEO|Ethyl Aminobenzoate| QQ$|Viscous|Tartrate|NIPPON| EE$|Tincture';
-
 
 -- multi-ingredients fixes
 update j
@@ -156,19 +156,6 @@ where general_name = 'immunoglobulin with histamine';
 update j
 set general_name = 'human normal immunoglobulin/histamine'
 where general_name = 'immunoglobulin with histamine';
-
-select * from j where who_atc_code like 'V%';
-
-
-who_atc_code in ('V08CA','V08CA04','','')
-select * from drug_concept_stage where concept_name = 'ether';
-
-select * from relationship_to_concept where concept_code_1='OMOP10002422';
-
-43012272	1363043	ethyl ether
-
-
-select * from aut_ingredient_mapped where concept_name like '%ether%';
 
 -- remove junk from standard_unit
 update j set standardized_unit = regexp_replace(standardized_unit, '\(forGeneralDiagnosis\)', '') where standardized_unit like '%(forGeneralDiagnosis)%';
@@ -215,16 +202,15 @@ update j set standardized_unit = regexp_replace(standardized_unit, '\(w/Dil\)', 
 /*************************************************
 * 1. Create parsed Ingredients and relationships *
 *************************************************/
-							       
 DROP TABLE if exists PI;
 CREATE TABLE pi
 AS
-SELECT drug_code, general_name AS ing_name
+SELECT claim_code, general_name AS ing_name
 FROM j
 WHERE general_name NOT LIKE '%/%' AND general_name NOT LIKE '% and %'
 UNION
-SELECT drug_code, ing_name
-FROM (SELECT drug_code, REPLACE(general_name,' and ','/') AS concept_name
+SELECT claim_code, ing_name
+FROM (SELECT claim_code, REPLACE(general_name,' and ','/') AS concept_name
       FROM j) j,
      UNNEST(STRING_TO_ARRAY(j.concept_name,'/')) AS ing_name;
 
@@ -236,7 +222,7 @@ set ing_name = trim(regexp_replace (ing_name,'\(genetical recombination\)',''))
 where ing_name ~ 'genetical recombination';
 
 insert into pi
-select drug_code, concept_name
+select claim_code, concept_name
 from pi join aut_parsed_ingr
 using (ing_name);
 
@@ -250,17 +236,16 @@ select distinct
   'JMDC' as vocabulary_id,
   'Drug Product' as concept_class_id,
   null as standard_concept,
-  drug_code as concept_code,
+  claim_code as concept_code,
   null as possible_excipient,
    'Drug',
   to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'),
   null as invalid_reason
 from j;
 
-
 -- Devices
 insert into drug_concept_stage
-select * from non_drug;
+select distinct * from non_drug;
 
 -- Ingredients
 insert into drug_concept_stage
@@ -269,7 +254,7 @@ select
   'JMDC' as vocabulary_id,
   'Ingredient' as concept_class_id,
   null as standard_concept,
-  'OMOP'||nextval('new_vocab') as concept_code,
+  'JMDC'||nextval('new_vocab') as concept_code,
   null as possible_excipient,
   'Drug',
   to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'),
@@ -284,7 +269,7 @@ select
   'JMDC' as vocabulary_id,
   'Brand Name' as concept_class_id,
   null as standard_concept,
-  'OMOP'||nextval('new_vocab') as concept_code,
+  'JMDC'||nextval('new_vocab') as concept_code,
   null as possible_excipient,
   'Drug',
   to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'),
@@ -307,9 +292,6 @@ insert into drug_concept_stage (concept_name, vocabulary_id, concept_class_id, s
   values ('Topical', 'JMDC', 'Dose Form', null, 'Topical', 'Drug', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'),null);
 insert into drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code, domain_id, valid_start_date, valid_end_date, invalid_reason)
   values ('Patch', 'JMDC', 'Dose Form', null, 'Patch', 'Drug',to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null);
---insert into drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code, domain_id, valid_start_date, valid_end_date, invalid_reason)
---  values ('Unknown', 'JMDC', 'Dose Form', null, 'OMOP'||nextval('new_vocab'), null, to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null);
-
 -- Units
 insert into drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code, domain_id, valid_start_date, valid_end_date, invalid_reason)
  values ('u', 'JMDC', 'Unit', null, 'u', 'Drug', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null);
@@ -339,7 +321,7 @@ select
   'JMDC' as vocabulary_id,
   'Supplier' as concept_class_id,
   null as standard_concept,
-   'OMOP'||nextval('new_vocab') as concept_code,
+   'JMDC'||nextval('new_vocab') as concept_code,
    'Drug',
   to_date('19700101','YYYYMMDD'),
   to_date('20991231','YYYYMMDD'),
@@ -354,7 +336,7 @@ from (
 -- 3.1 create relationship between products and ingredients
 insert into internal_relationship_stage
 select distinct
-  pi.drug_code as concept_code_1,
+  pi.claim_code as concept_code_1,
   dcs.concept_code as concept_code_2
 from pi join drug_concept_stage dcs on dcs.concept_name=pi.ing_name and dcs.concept_class_id='Ingredient';
 
@@ -362,14 +344,14 @@ from pi join drug_concept_stage dcs on dcs.concept_name=pi.ing_name and dcs.conc
 -- 3.2 create relationship between products and BN
 insert into internal_relationship_stage
 select distinct
-  j.drug_code as concept_code_1,
+  j.claim_code as concept_code_1,
   dcs.concept_code as concept_code_2
 from j join drug_concept_stage dcs on dcs.concept_name=j.brand_name and dcs.concept_class_id='Brand Name'
 ;
 -- 3.3 create relationship between products and DF
 insert into internal_relationship_stage
 with u as (
-  select drug_code,
+  select claim_code,
     case
       when u2='bls' then 'Inhalant'
       when u2='c' then 'Capsule'
@@ -385,27 +367,27 @@ with u as (
     end as df
   from (
     select
-      drug_code,
+      claim_code,
       replace(cast(substr(dose, s1+1, s2-s1) as varchar(20)),'|','') as u1,
       replace(cast(substr(dose, s3+1, s4-s3) as varchar(20)),'|','') as u2,
       cast(substr(dose, s5+1) as varchar(20)) as u3
     from (
       select
-        drug_code, dose,
+        claim_code, dose,
         instr(dose, '|', 1, 1) as s1, instr(dose, '|', 1, 2) as s2, instr(dose, '|', 1, 3) as s3, instr(dose, '|', 1, 4) as s4, instr(dose, '|', 1, 5) as s5
       from (
         select
-          drug_code,
+          claim_code,
           regexp_replace(lower(translate(standardized_unit, 'a(),', 'a')), '([0-9\.,]+)([a-z%]+)([0-9\.,]+)?([a-z%]+)?([0-9\.,]+)?([a-z%]+)?', '\1|\2|\3|\4|\5|\6') as dose
-        from j -- join drug_concept_stage dcs on dcs.concept_code=j.drug_code
+        from j -- join drug_concept_stage dcs on dcs.concept_code=j.claim_code
         where standardized_unit not like '%Sheet%' and standardized_unit not like '%cm*%' and standardized_unit not like '%mm*%'
-        and drug_code not in ('100000063966', '100000013362') -- immunoglobulin with histamine, bacitracin/fradiomycin sulfate - ??????????
+        and claim_code not in ('100000063966', '100000013362') -- immunoglobulin with histamine, bacitracin/fradiomycin sulfate - ??????????
       ) a
     ) b
   ) c
 )
 select distinct
-  u.drug_code as concept_code_1,
+  u.claim_code as concept_code_1,
   df.concept_code as concept_code_2
 from u join drug_concept_stage df on df.concept_name=u.df and df.concept_class_id='Dose Form'
 ;
@@ -413,7 +395,7 @@ from u join drug_concept_stage df on df.concept_name=u.df and df.concept_class_i
 -- 3.3.1. Patches
 insert into internal_relationship_stage
 select distinct
-  drug_code as concept_code_1,
+  claim_code as concept_code_1,
   (select concept_code from drug_concept_stage where concept_name='Patch') as concept_code_2
 from j where standardized_unit like '%Sheet%' or standardized_unit like '%cm*%' or standardized_unit like '%mm*%'
 ;
@@ -426,7 +408,7 @@ insert into internal_relationship_stage (concept_code_1, concept_code_2)
 
 -- 3.3.3 Suppliers
 insert into internal_relationship_stage (concept_code_1, concept_code_2)
-    select drug_code,concept_code
+    select claim_code,concept_code
     from supplier join drug_concept_stage using (concept_name)
 where concept_class_id = 'Supplier';
 
@@ -435,12 +417,12 @@ where concept_class_id = 'Supplier';
 *********************************/
 --g|mg|ug|mEq|MBq|IU|KU|U
 INSERT into ds_stage
-SELECT DISTINCT j.drug_code,
+SELECT DISTINCT j.claim_code,
                 dcs.concept_code,
                 CAST(substring(regexp_replace(standardized_unit, '[,()]', '', 'g') from '^(\d+\.*\d*)(?=(g|mg|ug|mEq|MBq|IU|KU|U)(|1T|1Syg|1A|1V|1Bag|each/V|1C|1Pack|1Pc|1Kit|1Sheet|1Bot|1Bls|1P|(\d+\.*\d*)(cm|mm)(2|\*(\d+\.*\d*)(cm|mm)))(|1Sheet)($))') as double precision),
                 substring(regexp_replace(standardized_unit, '[,()]', '', 'g') from '(?<=^(\d+\.*\d*))(g|mg|ug|mEq|MBq|IU|KU|U)(?=(|1T|1Syg|1A|1V|1Bag|each/V|1C|1Pack|1Pc|1Kit|1Sheet|1Bot|1Bls|1P|(\d+\.*\d*)(cm|mm)(2|\*(\d+\.*\d*)(cm|mm)))(|1Sheet)($))')
 FROM j
-         JOIN pi ON j.drug_code = pi.drug_code
+         JOIN pi ON j.claim_code = pi.claim_code
          JOIN drug_concept_stage dcs ON pi.ing_name = dcs.concept_name
 WHERE general_name !~ '\/'
   AND regexp_replace(standardized_unit, '[,()]', '', 'g') ~ '^(\d+\.*\d*)(g|mg|ug|mEq|MBq|IU|KU|U)(|1T|1Syg|1A|1V|1Bag|each/V|1C|1Pack|1Pc|1Kit|1Sheet|1Bot|1Bls|1P|(\d+\.*\d*)(cm|mm)(2|\*(\d+\.*\d*)(cm|mm)))(|1Sheet)($)'
@@ -448,7 +430,7 @@ WHERE general_name !~ '\/'
 
 --liquid % / ml|l
 INSERT into ds_stage
-SELECT DISTINCT j.drug_code,
+SELECT DISTINCT j.claim_code,
                 dcs.concept_code,
                 CAST(null as double precision),
                 null,
@@ -462,7 +444,7 @@ SELECT DISTINCT j.drug_code,
                             WHEN standardized_unit ~ '^(\d+\.*\d*)(\%)(\d+\.*\d*)(L)(|1Syg|1V|1A|1Bag|1Bot|1Kit|1Pack|V|1Pc)($)'  THEN 1000 END,
                 'ml'
 FROM j
-         JOIN pi ON j.drug_code = pi.drug_code
+         JOIN pi ON j.claim_code = pi.claim_code
          JOIN drug_concept_stage dcs ON pi.ing_name = dcs.concept_name
 
 WHERE general_name !~ '\/'
@@ -471,7 +453,7 @@ WHERE general_name !~ '\/'
 
 --solid % / g|mg
 INSERT into ds_stage
-SELECT DISTINCT j.drug_code,
+SELECT DISTINCT j.claim_code,
                 dcs.concept_code,
                 CAST(null as double precision),
                 null,
@@ -485,7 +467,7 @@ SELECT DISTINCT j.drug_code,
                             WHEN standardized_unit ~ '^(\d+\.*\d*)(\%)(\d+\.*\d*)(mg)(|1Pack|1Bot|1can|1V|1Pc)($)'  THEN 1 END,
                 'mg'
 FROM j
-         JOIN pi ON j.drug_code = pi.drug_code
+         JOIN pi ON j.claim_code = pi.claim_code
          JOIN drug_concept_stage dcs ON pi.ing_name = dcs.concept_name
 
 WHERE general_name !~ '\/'
@@ -494,7 +476,7 @@ WHERE general_name !~ '\/'
 
 --mg|mol|ug|g|IU|U|mEq / mL|uL|g
 INSERT into ds_stage
-SELECT DISTINCT j.drug_code,
+SELECT DISTINCT j.claim_code,
                 dcs.concept_code,
                 CAST(null as double precision),
                 null,
@@ -503,7 +485,7 @@ SELECT DISTINCT j.drug_code,
                 CAST(substring(regexp_replace(standardized_unit, ',', '', 'g') from '(?<=^(\d+\.*\d*)(mg|mol|ug|g|IU|U|mEq))(\d+\.*\d*)(?=(mL|uL|g)(|1A|1Pc|1Syg|1Kit|1Bot|V|1V|1Bag|1Pack)($))') as double precision),
                 substring(regexp_replace(standardized_unit, ',', '', 'g') from '(?<=^(\d+\.*\d*)(mg|mol|ug|g|IU|U|mEq)(\d+\.*\d*))(mL|uL|g)(?=(|1A|1Pc|1Syg|1Kit|1Bot|V|1V|1Bag|1Pack)($))')
 FROM j
-         JOIN pi ON j.drug_code = pi.drug_code
+         JOIN pi ON j.claim_code = pi.claim_code
          JOIN drug_concept_stage dcs ON pi.ing_name = dcs.concept_name
 
 WHERE general_name !~ '\/'
@@ -512,7 +494,7 @@ WHERE general_name !~ '\/'
 
 -- ug/actuat1
 INSERT into ds_stage
-SELECT DISTINCT j.drug_code,
+SELECT DISTINCT j.claim_code,
                 dcs.concept_code,
                 CAST(null as double precision),
                 null,
@@ -522,7 +504,7 @@ SELECT DISTINCT j.drug_code,
                 CAST(substring(standardized_unit from '(?<=^(\d+\.*\d*)(ug))(\d+\.*\d*)(?=(Bls)(1Pc|1Kit)($))') as double precision),
                 'actuat'
 FROM j
-         JOIN pi ON j.drug_code = pi.drug_code
+         JOIN pi ON j.claim_code = pi.claim_code
          JOIN drug_concept_stage dcs ON pi.ing_name = dcs.concept_name
 
 WHERE general_name !~ '\/'
@@ -531,7 +513,7 @@ WHERE general_name !~ '\/'
 
 -- ug/actuat2
 INSERT into ds_stage
-SELECT DISTINCT j.drug_code,
+SELECT DISTINCT j.claim_code,
                 dcs.concept_code,
                 CAST(null as double precision),
                 null,
@@ -543,7 +525,7 @@ SELECT DISTINCT j.drug_code,
                     / CAST(substring(regexp_replace(standardized_unit, '[()]', '', 'g') from '(?<=^(\d+\.*\d*)(mg|ug)(1Bot|1Kit))(\d+\.*\d*)(?=(ug)($))') as double precision),
                 'actuat'
 FROM j
-         JOIN pi ON j.drug_code = pi.drug_code
+         JOIN pi ON j.claim_code = pi.claim_code
          JOIN drug_concept_stage dcs ON pi.ing_name = dcs.concept_name
 
 WHERE general_name !~ '\/'
@@ -552,12 +534,12 @@ WHERE general_name !~ '\/'
 
 --g|mg from kits
 INSERT into ds_stage
-SELECT DISTINCT j.drug_code,
+SELECT DISTINCT j.claim_code,
                 dcs.concept_code,
                 CAST(substring(regexp_replace(standardized_unit, '[()]', '', 'g') from '^(\d+\.*\d*)(?=(g|mg)(1Kit)(\d+\.*\d*)(mL))') as double precision),
                 substring(regexp_replace(standardized_unit, '[()]', '', 'g') from '(?<=^(\d+\.*\d*))(g|mg)(?=(1Kit)(\d+\.*\d*)(mL))')
 FROM j
-         JOIN pi ON j.drug_code = pi.drug_code
+         JOIN pi ON j.claim_code = pi.claim_code
          JOIN drug_concept_stage dcs ON pi.ing_name = dcs.concept_name
 
 WHERE general_name !~ '\/'

@@ -513,7 +513,7 @@ BEGIN
     SELECT tpu.* FROM to_be_upserted tpu WHERE (tpu.concept_id_1, tpu.concept_id_2, tpu.relationship_id) 
     NOT IN (SELECT up.concept_id_1, up.concept_id_2, up.relationship_id from to_be_updated up);  
   
-  --section for units of ingredients and drug forms. this is after the RxNorm and RxNorm Extensions are in there (AVOF-365)    
+  --section for units of ingredients and drug forms. this is after the RxNorm and RxNorm Extensions are in there (AVOF-365)
   DELETE
   FROM drug_strength
   WHERE amount_unit_concept_id IS NOT NULL AND amount_value IS NULL;
@@ -524,22 +524,19 @@ BEGIN
       WITH ingredient_unit AS (
               SELECT DISTINCT
                   -- pick the most common unit for an ingredient. If there is a draw, pick always the same by sorting by unit_concept_id
-                  ingredient_concept_code,
-                  vocabulary_id,
+                  ingredient_concept_id,
                   FIRST_VALUE(unit_concept_id) OVER (
-                      PARTITION BY ingredient_concept_code ORDER BY cnt DESC,
+                      PARTITION BY ingredient_concept_id ORDER BY cnt DESC,
                           unit_concept_id
                       ) AS unit_concept_id
               FROM (
                   -- sum the counts coming from amount and numerator
-                  SELECT ingredient_concept_code,
-                      vocabulary_id,
+                  SELECT ingredient_concept_id,
                       unit_concept_id,
                       SUM(cnt) AS cnt
                   FROM (
                       -- count ingredients, their units and the frequency
-                      SELECT c2.concept_code AS ingredient_concept_code,
-                          c2.vocabulary_id,
+                      SELECT c2.concept_id AS ingredient_concept_id,
                           ds.amount_unit_concept_id AS unit_concept_id,
                           COUNT(*) AS cnt
                       FROM drug_strength ds
@@ -548,14 +545,12 @@ BEGIN
                       JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id
                           AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
                       WHERE ds.amount_value <> 0 AND ds.amount_unit_concept_id IS NOT NULL
-                      GROUP BY c2.concept_code,
-                          c2.vocabulary_id,
+                      GROUP BY c2.concept_id,
                           ds.amount_unit_concept_id
   					
-                      UNION
+                      UNION ALL
   					
-                      SELECT c2.concept_code AS ingredient_concept_code,
-                          c2.vocabulary_id,
+                      SELECT c2.concept_id AS ingredient_concept_id,
                           ds.numerator_unit_concept_id AS unit_concept_id,
                           COUNT(*) AS cnt
                       FROM drug_strength ds
@@ -564,12 +559,21 @@ BEGIN
                       JOIN concept c2 ON c2.concept_id = ds.ingredient_concept_id
                           AND c2.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
                       WHERE ds.numerator_value <> 0 AND ds.numerator_unit_concept_id IS NOT NULL
-                      GROUP BY c2.concept_code,
-                          c2.vocabulary_id,
+                      GROUP BY c2.concept_id,
                           ds.numerator_unit_concept_id
+					
+                      UNION ALL
+					
+                      --add ingredients that exist in the vocabularies and have no drug_strength record. Default to "mg" (AVOF-1425 20190121)
+                      SELECT c.concept_id AS ingredient_concept_id,
+                          8576 AS unit_concept_id,
+                          1 AS cnt
+                      FROM concept c
+                      WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
+                           AND c.concept_class_id = 'Ingredient'
+                           AND NOT EXISTS (SELECT 1 FROM drug_strength ds WHERE ds.drug_concept_id=c.concept_id)
                       ) as s1
-                  GROUP BY ingredient_concept_code,
-                      vocabulary_id,
+                  GROUP BY ingredient_concept_id,
                       unit_concept_id
                   ) as s2
               )
@@ -587,14 +591,13 @@ BEGIN
           c.valid_end_date,
           c.invalid_reason
       FROM ingredient_unit iu
-      JOIN concept c ON c.concept_code = iu.ingredient_concept_code
-          AND c.vocabulary_id = iu.vocabulary_id
+      JOIN concept c ON c.concept_id = iu.ingredient_concept_id
   	
-      UNION
+      UNION ALL
   	
       -- Create drug_strength for drug forms
-      SELECT de.concept_id AS drug_concept_code,
-          an.concept_id AS ingredient_concept_code,
+      SELECT de.concept_id AS drug_concept_id,
+          an.concept_id AS ingredient_concept_id,
           NULL AS amount_value,
           iu.unit_concept_id AS amount_unit_concept_id,
           NULL AS numerator_value,
@@ -608,8 +611,7 @@ BEGIN
       FROM concept an
       JOIN concept_ancestor a ON a.ancestor_concept_id = an.concept_id
       JOIN concept de ON de.concept_id = a.descendant_concept_id
-      JOIN ingredient_unit iu ON iu.ingredient_concept_code = an.concept_code
-          AND iu.vocabulary_id = an.vocabulary_id
+      JOIN ingredient_unit iu ON iu.ingredient_concept_id = an.concept_id
       WHERE an.vocabulary_id IN (
               'RxNorm',
               'RxNorm Extension'
@@ -624,23 +626,6 @@ BEGIN
               'Branded Drug Form'
               )
       ) as s3;
-
-  --add ingredients that exist in the vocabularies and have no drug_strength record. Default to "mg" (AVOF-1425 20190121)
-  INSERT INTO drug_strength
-  SELECT c.concept_id AS drug_concept_id,
-      c.concept_id AS ingredient_concept_id,
-      NULL::FLOAT AS amount_value,
-      8576 AS amount_unit_concept_id,
-      NULL::FLOAT AS numerator_value,
-      NULL::INT4 AS numerator_unit_concept_id,
-      NULL::FLOAT AS denominator_value,
-      NULL::INT4 AS denominator_unit_concept_id,
-      NULL::INT4 AS box_size,
-      c.valid_start_date,
-      c.valid_end_date,
-      c.invalid_reason
-  FROM concept c WHERE c.vocabulary_id IN ('RxNorm', 'RxNorm Extension') AND c.concept_class_id='Ingredient'
-      AND NOT EXISTS (SELECT 1 FROM drug_strength ds WHERE ds.drug_concept_id=c.concept_id);
 
   --clean up
   drop table jump_table;

@@ -65,6 +65,23 @@ select trim(substring(brand_name,'^\w+ ')) as concept_name,claim_code from j -- 
 where substring(brand_name,'^\w+ ')=upper(substring(brand_name,'^\w+ '))
 and length(substring(brand_name,'^\w+ '))>4 and trim(substring(brand_name,'^\w+ ')) not in ('A240','VIII')
 ;
+
+insert into supplier
+select 'TSUBAME', claim_code
+from j
+where brand_name like '% TBP%';
+
+insert into supplier
+select 'J-DOLPH', claim_code
+from j
+where brand_name like '% J-DOLPH%';
+
+insert into supplier
+select 'Behring', claim_code
+from j
+where brand_name like '%Behring%';
+
+
 --ingredient
 delete from supplier
 where claim_code='100000049525'
@@ -80,6 +97,10 @@ set brand_name = replace(brand_name,substring(brand_name,'^\w+ '),'')
 where substring(brand_name,'^\w+ ')=upper(substring(brand_name,'^\w+ '))
 and length(substring(brand_name,'^\w+ '))>4 and trim(substring(brand_name,'^\w+ ')) not in ('A240','VIII')
 ;
+update j
+set brand_name = trim(replace(brand_name,'J_DOLPH|TBP|Behring',''))
+  where brand_name ~ 'J-DOLPH| TBP|Behring';
+
 -- Remove pseudo brands
 update j
 set brand_name = null
@@ -88,6 +109,8 @@ where brand_name in (
   'Caffeine and Sodium Benzoate',
   'Compound Oxycodone and Atropine',
   'Crude Drugs',
+  'Nor-Adrenalin',
+  'Calcium L-Aspartate',
   'Deleted NHI price',
   'Glycerin and Potash',
   'Morphine and Atropine',
@@ -102,7 +125,7 @@ where brand_name in (
   '5-FU'
 )
 or lower(brand_name)=lower(general_name)
-or brand_name ~* 'Sulfate|Nitrate|Oxide|Chloride|/|Acid|Sodium|Aluminum|Potassium|Water for Injection|Globulin|Absorptive Ointment|Allergen|Water'
+or brand_name ~* 'Sulfate|Nitrate|Acetat|Oxide|Saponated|Salicylat|Chloride|/|Acid|Sodium|Aluminum|Potassium|Ammonia|Ringer|Invert Soap|Dried Yeast|Fluidextract|Kakko| RTU|Infusion Solution| KO$|Globulin|Absorptive Ointment|Allergen|Water'
 ;
 update j
 set brand_name = null
@@ -552,7 +575,7 @@ update ds_stage
 set amount_unit = lower(amount_unit),
     numerator_unit = lower(numerator_unit),
     denominator_unit = lower(denominator_unit);
-													      
+
 /************************************************
 * 5. Populate relationship to concept *
 ************************************************/
@@ -670,7 +693,7 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('%', 'JMDC', 8554, 2, 1);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('actuat', 'JMDC', 45744809, 1, 1);
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('mol', 'JMDC', 9573, 1, 0.01);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('meq', 'JMDC', 9551, 1, 1);													      
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('meq', 'JMDC', 9551, 1, 1);
 
 
 -- Ingredients

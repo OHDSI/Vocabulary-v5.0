@@ -10,8 +10,7 @@ $body$
 */
 DECLARE
   crlf VARCHAR(4) := '<br>';
-  --email CONSTANT VARCHAR(1000) :=('timur.vakhitov@firstlinesoftware.com');
-  email CONSTANT VARCHAR(1000) :=('timur.vakhitov@firstlinesoftware.com,reich@ohdsi.org,reich@omop.org,ddymshyts@odysseusinc.com,anna.ostropolets@odysseusinc.com,igor.lefter@odysseusinc.com');
+  email CONSTANT VARCHAR(1000) := (SELECT var_value FROM devv5.config$ WHERE var_name='vocabulary_release_email');
   cRet TEXT;
   cVocabs VARCHAR(4000);
 BEGIN

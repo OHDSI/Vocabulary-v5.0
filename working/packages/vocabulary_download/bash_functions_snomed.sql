@@ -1,3 +1,7 @@
+/*
+	20190204 added flag -C to unzip (only SNOMED part) = case insensitive
+*/
+
 --INT part
 DO $_$
 DECLARE
@@ -10,10 +14,10 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqj "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Terminology/sct2_Concept_Full_INT_*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Terminology/sct2_Description_Full-en_INT_*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Terminology/sct2_Relationship_Full_INT_*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationFull_INT_*.txt" -d .
+    unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Terminology/sct2_Concept_Full_INT_*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Terminology/sct2_Description_Full-en_INT_*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Terminology/sct2_Relationship_Full_INT_*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationFull_INT_*.txt" -d .
         
     #move result to original folder
     cd "$1"
@@ -42,10 +46,10 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqj "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Terminology/sct2_Concept_Full_*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Terminology/sct2_Description_Full-en-GB_*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Terminology/sct2_Relationship_Full_*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Refset/Content/der2_cRefset_AssociationFull_GB*.txt" -d .
+    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Terminology/sct2_Concept_Full_*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Terminology/sct2_Description_Full-en-GB_*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Terminology/sct2_Relationship_Full_*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Refset/Content/der2_cRefset_AssociationFull_GB*.txt" -d .
         
     #move result to original folder
     cd "$1"
@@ -74,10 +78,10 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqj "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Concept_Full_*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Description_Full-en_US*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Relationship_Full_*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationFull_US*.txt" -d .
+    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Concept_Full_*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Description_Full-en_US*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Relationship_Full_*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationFull_US*.txt" -d .
         
     #move result to original folder
     cd "$1"
@@ -106,16 +110,16 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqj "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Terminology/sct2_Concept_Full_GB*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Terminology/sct2_Description_Full-en-GB_*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Terminology/sct2_Relationship_Full_GB*.txt" -d . && \
-    unzip -oqj "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Refset/Content/der2_cRefset_AssociationFull_GB*.txt" -d .
+    unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Terminology/sct2_Concept_Full_GB*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Terminology/sct2_Description_Full-en_GB*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Terminology/sct2_Relationship_Full_GB*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKDrugRF2_Production_*/Full/Refset/Content/der2_cRefset_AssociationFull_GB*.txt" -d .
         
     #move result to original folder
     cd "$1"
     rm -f "sct2_Concept_Full_GB_DE.txt" "sct2_Description_Full-en-GB_DE.txt" "sct2_Relationship_Full_GB_DE.txt" "der2_cRefset_AssociationFull_GB_DE.txt"
     mv work/sct2_Concept_Full_GB*.txt "sct2_Concept_Full_GB_DE.txt" && \
-    mv work/sct2_Description_Full-en-GB_*.txt "sct2_Description_Full-en-GB_DE.txt" && \
+    mv work/sct2_Description_Full-en_GB*.txt "sct2_Description_Full-en-GB_DE.txt" && \
     mv work/sct2_Relationship_Full_GB*.txt "sct2_Relationship_Full_GB_DE.txt" && \
     mv work/der2_cRefset_AssociationFull_GB*.txt "der2_cRefset_AssociationFull_GB_DE.txt"
     $BODY$

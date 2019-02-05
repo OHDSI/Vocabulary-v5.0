@@ -5,7 +5,7 @@ from concept_stage_sn
 where concept_class_id in ('Trade Product Unit','Trade Product Pack','Containered Pack')
 and substring (concept_name,'\((.*)\)') is not null
 and not substring (concept_name,'\((.*)\)') ~ '[0-9]'
-and not substring (concept_name,'\((.*)\)') ~ 'blood|virus|inert|D|accidental|CSL|paraffin|once|extemporaneous|long chain|perindopril|triglycerides|Night Tablet'
+and not substring (concept_name,'\((.*)\)') ~ 'blood|virus|inert|capsule|D|accidental|CSL|paraffin|once|extemporaneous|long chain|perindopril|triglycerides|Night Tablet'
 and length(substring (concept_name,'\(.*\)'))>5
 and substring (lower(concept_name),'\((.*)\)')!='night'
 and substring (lower(concept_name),'\((.*)\)')!='capsule';
@@ -15,6 +15,10 @@ set supplier=regexp_replace(supplier,'Night\s','','g') where supplier like '%Nig
 update supplier
 set supplier=regexp_replace(supplier,'Night\s','','g') where supplier like '%Night%';
 UPDATE SUPPLIER   SET SUPPLIER = 'Pfizer' WHERE SUPPLIER = 'Pfizer Perth';
+UPDATE SUPPLIER   SET SUPPLIER = 'Sanofi' WHERE SUPPLIER like '%Sanofi%';
+UPDATE SUPPLIER   SET SUPPLIER = 'B Braun' WHERE SUPPLIER like '%B Braun%';
+UPDATE SUPPLIER   SET SUPPLIER = 'Fresenius Kabi' WHERE SUPPLIER like '%Fresenius Kabi%';
+UPDATE SUPPLIER   SET SUPPLIER = 'Baxter' WHERE SUPPLIER like '%Baxter%';
 
 --add suppliers with abbreviations
 drop table if exists supplier_2;

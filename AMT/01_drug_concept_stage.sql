@@ -19,7 +19,9 @@ UPDATE SUPPLIER   SET SUPPLIER = 'Sanofi' WHERE SUPPLIER like '%Sanofi%';
 UPDATE SUPPLIER   SET SUPPLIER = 'B Braun' WHERE SUPPLIER like '%B Braun%';
 UPDATE SUPPLIER   SET SUPPLIER = 'Fresenius Kabi' WHERE SUPPLIER like '%Fresenius Kabi%';
 UPDATE SUPPLIER   SET SUPPLIER = 'Baxter' WHERE SUPPLIER like '%Baxter%';
-
+UPDATE SUPPLIER   SET SUPPLIER = 'Priceline' WHERE SUPPLIER like '%Priceline%';
+UPDATE SUPPLIER   SET SUPPLIER = 'Pharmacist' WHERE SUPPLIER like '%Pharmacist%';
+		      
 --add suppliers with abbreviations
 drop table if exists supplier_2;
 create table supplier_2 as
@@ -59,41 +61,41 @@ from (select concept_code,concept_name from devv5.concept where concept_class_id
 where i.concept_name=s2.supplier
 
 update supplier_2
-set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Independent Pharmacy Cooperative'),
+set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='IPC'),
 supplier='IPC'
 where supplier='Ipc';
 update supplier_2
-set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Sun Pharmaceutical')
+set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Sun')
 where supplier='Sun';
 update supplier_2
-set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Boucher & Muir Pty Ltd'),
+set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Boucher & Muir'),
 supplier='Boucher & Muir'
 where supplier='Bnm';
 update supplier_2
-set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Pharma GXP'),
+set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='GXP'),
 supplier='GXP'
 where supplier='Gxp';
 update supplier_2
-set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='FBM-PHARMA'),
+set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='FBM'),
 supplier='FBM'
 where supplier='Fbm';
 update supplier_2
-set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Douglas Pharmaceuticals')
+set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Douglas')
 where supplier='Douglas';
 update supplier_2
-set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='DRX Pharmaceutical Consultants'),
+set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='DRX'),
 supplier='DRX'
 where supplier='Drx';
 update supplier_2
-set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Saudi pharmaceutical'),
+set concept_code=(select distinct concept_code from devv5.concept where concept_class_id='Supplier' and vocabulary_id='AMT' and concept_name='Saudi'),
 supplier='Saudi'
 where supplier='Sau';
-
 /*
 drop sequence if exists new_voc;
 create sequence new_voc start with 528823;
 */
 
+ -- generate codes for those suppliers that haven't existed in the previous release
 update supplier_2
 set concept_code='OMOP'||nextval('new_voc')
 where concept_code is null;

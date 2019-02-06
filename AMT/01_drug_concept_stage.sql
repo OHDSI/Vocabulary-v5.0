@@ -5,7 +5,7 @@ from concept_stage_sn
 where concept_class_id in ('Trade Product Unit','Trade Product Pack','Containered Pack')
 and substring (concept_name,'\((.*)\)') is not null
 and not substring (concept_name,'\((.*)\)') ~ '[0-9]'
-and not substring (concept_name,'\((.*)\)') ~ 'blood|virus|inert|capsule|D|accidental|CSL|paraffin|once|extemporaneous|long chain|perindopril|triglycerides|Night Tablet'
+and not substring (concept_name,'\((.*)\)') ~ 'blood|virus|inert|capsule|vaccine|D|accidental|CSL|paraffin|once|extemporaneous|long chain|perindopril|triglycerides|Night Tablet'
 and length(substring (concept_name,'\(.*\)'))>5
 and substring (lower(concept_name),'\((.*)\)')!='night'
 and substring (lower(concept_name),'\((.*)\)')!='capsule';

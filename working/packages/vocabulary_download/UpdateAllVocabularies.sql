@@ -42,7 +42,7 @@ begin
   select c.var_value into cEmail from devv5.config$ c where c.var_name='vocabulary_download_email';
   
   for cVocab in (
-    select * from devv5.vocabulary_access vc where vc.vocabulary_order=1 and vc.vocabulary_udpate_after is null and vc.vocabulary_enabled=1
+    select * from devv5.vocabulary_access vc where vc.vocabulary_order=1 and vc.vocabulary_update_after is null and vc.vocabulary_enabled=1
     order by case vc.vocabulary_id when 'UMLS' then 1 when 'SNOMED' then 2 when 'RXNORM' then 3 else 4 end, vc.vocabulary_id
   ) loop
     begin
@@ -192,7 +192,7 @@ begin
           
           --update additional (dependent) vocabularies
           for cVocabA in (
-            select * from devv5.vocabulary_access vc where vc.vocabulary_order=1 and vc.vocabulary_udpate_after=cVocab.vocabulary_id and vc.vocabulary_enabled=1
+            select * from devv5.vocabulary_access vc where vc.vocabulary_order=1 and vc.vocabulary_update_after=cVocab.vocabulary_id and vc.vocabulary_enabled=1
             order by vc.vocabulary_id
           ) loop
             cScriptFailed:=false;
@@ -360,7 +360,7 @@ begin
           cMailText:=concat(cMailText||crlf,cRet);
         ELSE --special case for additional (dependent) vocabularies
           for cVocabA in (
-            select * from devv5.vocabulary_access vc where vc.vocabulary_order=1 and vc.vocabulary_udpate_after=cVocab.vocabulary_id and vc.vocabulary_enabled=1
+            select * from devv5.vocabulary_access vc where vc.vocabulary_order=1 and vc.vocabulary_update_after=cVocab.vocabulary_id and vc.vocabulary_enabled=1
             order by vc.vocabulary_id
           ) loop
             begin

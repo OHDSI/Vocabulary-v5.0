@@ -20,7 +20,7 @@ DECLARE
       vocabulary_order INT NOT NULL,
       vocabulary_source_table VARCHAR (1000),
       vocabulary_dev_schema VARCHAR (100),
-      vocabulary_udpate_after VARCHAR (20),
+      vocabulary_update_after VARCHAR (20),
       vocabulary_params JSONB,
       vocabulary_enabled INT NOT NULL DEFAULT 1);
   ALTER TABLE devv5.vocabulary_access ADD CONSTRAINT unique_vocab_access UNIQUE (vocabulary_id,vocabulary_order);

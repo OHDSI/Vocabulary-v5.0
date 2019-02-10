@@ -1888,6 +1888,11 @@ FROM (
 				THEN 'Modification of'
 			WHEN term = 'Count of base of active ingredient'
 				THEN 'Has count of ing'
+			--20190204
+			WHEN term = 'Has realization'
+				THEN 'Has pathology'
+			WHEN term = 'Plays role'
+				THEN 'Plays role'
 			ELSE term--'non-existing'
 			END AS relationship_id,
 		(
@@ -2035,35 +2040,39 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT crs.concept_code_1,
-	crs.concept_code_2,
+SELECT c1.concept_code,
+	c2.concept_code,
 	'SNOMED' AS vocabulary_id_1,
 	'SNOMED' AS vocabulary_id_2,
 	'Maps to',
-	crs.valid_start_date,
+	cr.valid_start_date,
 	(
 		SELECT latest_update - 1
 		FROM vocabulary
 		WHERE vocabulary_id = 'SNOMED'
 		) AS valid_end_date,
 	'D' AS invalid_reason
-FROM concept_relationship_stage crs
-JOIN concept c1 ON c1.concept_code = crs.concept_code_1
-	AND c1.vocabulary_id = crs.vocabulary_id_1
-JOIN concept c2 ON c2.concept_code = crs.concept_code_2
-	AND c2.vocabulary_id = crs.vocabulary_id_2
-JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
-	AND cr.concept_id_2 = c2.concept_id
-	AND cr.relationship_id = 'Maps to'
+FROM concept_relationship cr
+JOIN concept c1 ON c1.concept_id = cr.concept_id_1
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+WHERE cr.relationship_id = 'Maps to'
 	AND cr.invalid_reason IS NULL
-WHERE crs.relationship_id IN (
-		'Concept replaced by',
-		'Concept same_as to',
-		'Concept alt_to to',
-		'Concept poss_eq to',
-		'Concept was_a to'
-		)
-	AND crs.invalid_reason = 'D';
+	AND EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = c1.concept_code
+			AND crs_int.vocabulary_id_1 = c1.vocabulary_id
+			AND crs_int.concept_code_2 = c2.concept_code
+			AND crs_int.vocabulary_id_2 = c2.vocabulary_id
+			AND crs_int.relationship_id IN (
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept poss_eq to',
+				'Concept was_a to'
+				)
+			AND crs_int.invalid_reason = 'D'
+		);
 
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
@@ -2232,7 +2241,7 @@ VALUES (138875005, 'Metadata'), -- root
 	(372148003, 'Race'), --Ethnic group
 	(415229000, 'Race'), -- Racial group
 	(106237007, 'Observation'), -- Linkage concept
-	(258666001, 'Unit'), -- Top unit
+	(767524001, 'Unit'), --  Unit of measure (Top unit)
 	(260245000, 'Meas Value'), -- Meas Value
 	(125677006, 'Relationship'), -- Relationship
 	(264301008, 'Observation'), -- Psychoactive substance of abuse - non-pharmaceutical
@@ -2257,6 +2266,10 @@ VALUES (138875005, 'Metadata'), -- root
 	(217315002, 'Observation'), -- Onset of illness
 	(127362006, 'Observation'), -- Previous pregnancies
 	(162511002, 'Observation'), -- Rare history finding
+	(118226009, 'Observation'),	-- Temporal finding
+	(366154003, 'Observation'), -- Respiratory flow rate - finding
+	(243826008, 'Observation'), -- Antenatal care status 
+	(418038007, 'Observation'), --Propensity to adverse reactions to substance
 	(413296003, 'Condition'), -- Depression requiring intervention
 	(72670004, 'Condition'), -- Sign
 	(124083000, 'Condition'), -- Urobilinogenemia

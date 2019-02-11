@@ -1,0 +1,214 @@
+DO $_$
+ BEGIN
+ PERFORM VOCABULARY_PACK.SetLatestUpdate(
+ pVocabularyName   => 'RxNorm Extension',
+ pVocabularyDate   => CURRENT_DATE,
+ pVocabularyVersion  => 'RxNorm Extension '||CURRENT_DATE,
+ pVocabularyDevSchema => 'DEV_RXE'
+);
+END $_$;
+
+--2 Truncate all working tables
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
+
+--3 Load full list of RxNorm Extension concepts
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+FROM concept
+WHERE vocabulary_id = 'RxNorm Extension';
+
+--4 Load full list of RxNorm Extension relationships
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c1.concept_code,
+	c2.concept_code,
+	c1.vocabulary_id,
+	c2.vocabulary_id,
+	r.relationship_id,
+	r.valid_start_date,
+	r.valid_end_date,
+	r.invalid_reason
+FROM concept c1,
+	concept c2,
+	concept_relationship r
+WHERE c1.concept_id = r.concept_id_1
+	AND c2.concept_id = r.concept_id_2
+	AND 'RxNorm Extension' IN (
+		c1.vocabulary_id,
+		c2.vocabulary_id
+		);
+
+--5 Load full list of RxNorm Extension drug strength
+INSERT INTO drug_strength_stage (
+	drug_concept_code,
+	vocabulary_id_1,
+	ingredient_concept_code,
+	vocabulary_id_2,
+	amount_value,
+	amount_unit_concept_id,
+	numerator_value,
+	numerator_unit_concept_id,
+	denominator_value,
+	denominator_unit_concept_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c.concept_code,
+	c.vocabulary_id,
+	c2.concept_code,
+	c2.vocabulary_id,
+	amount_value,
+	amount_unit_concept_id,
+	numerator_value,
+	numerator_unit_concept_id,
+	denominator_value,
+	denominator_unit_concept_id,
+	ds.valid_start_date,
+	ds.valid_end_date,
+	ds.invalid_reason
+FROM concept c
+JOIN drug_strength ds ON ds.drug_concept_id = c.concept_id
+JOIN concept c2 ON ds.ingredient_concept_id = c2.concept_id
+WHERE c.vocabulary_id IN (
+		'RxNorm',
+		'RxNorm Extension'
+		);
+
+--6 Load full list of RxNorm Extension pack content
+INSERT INTO pack_content_stage (
+	pack_concept_code,
+	pack_vocabulary_id,
+	drug_concept_code,
+	drug_vocabulary_id,
+	amount,
+	box_size
+	)
+SELECT c.concept_code,
+	c.vocabulary_id,
+	c2.concept_code,
+	c2.vocabulary_id,
+	amount,
+	box_size
+FROM pack_content pc
+JOIN concept c ON pc.pack_concept_id = c.concept_id
+JOIN concept c2 ON pc.drug_concept_id = c2.concept_id;
+AND 'RxNorm Extension' IN (
+		c1.vocabulary_id,
+		c2.vocabulary_id
+		);
+
+-- 7 Deprecate old relationships
+update concept_relationship_stage
+set invalid_reason ='D',
+    valid_end_date = current_date
+where concept_code_2 in (
+select cs.concept_code from concept_stage cs
+join concept c on upper(cs.concept_name) = upper(c.concept_name)
+                    and cs.concept_class_id = c.concept_class_id
+                    and c.vocabulary_id = 'RxNorm'
+                    and c.standard_concept = 'S' and cs.invalid_reason is null
+
+)
+and not
+(relationship_id in ('Source - RxNorm eq','Maps to') and vocabulary_id_1 not in ('RxNorm','RxNorm Extension','ATC'));
+
+-- 8 Reverse
+update concept_relationship_stage
+set invalid_reason ='D',
+    valid_end_date = current_date
+where concept_code_1 in (
+select cs.concept_code from concept_stage cs
+join concept c on upper(cs.concept_name) = upper(c.concept_name)
+                    and cs.concept_class_id = c.concept_class_id
+                    and c.vocabulary_id = 'RxNorm'
+                    and c.standard_concept = 'S' and cs.invalid_reason is null
+
+)
+and not
+(relationship_id in ('RxNorm - Source eq','Mapped from') and vocabulary_id_2 not in ('RxNorm','RxNorm Extension','ATC'));
+
+-- 9 Add new replacements
+insert into concept_relationship_stage
+select null, null, cs.concept_code, c.concept_code, cs.vocabulary_id,c.vocabulary_id,'Maps to', current_date, to_date ('20991231','yyyymmdd')
+from concept_stage cs
+join concept c on upper(cs.concept_name) = upper(c.concept_name)
+                    and cs.concept_class_id = c.concept_class_id
+                    and c.vocabulary_id = 'RxNorm'
+                    and c.standard_concept = 'S' and cs.invalid_reason is null
+
+where not exists (select 1 from concept_relationship_stage crs where crs.concept_code_1 = cs.concept_code and crs.concept_code_2 = c.concept_code)
+
+;
+
+-- 10 update concept_stage
+update concept_stage
+set invalid_reason = 'U',
+  valid_end_date = current_date
+  where concept_code in
+(
+select cs.concept_code from concept_stage cs
+join concept c on upper(cs.concept_name) = upper(c.concept_name)
+                    and cs.concept_class_id = c.concept_class_id
+                    and c.vocabulary_id = 'RxNorm'
+                    and c.standard_concept = 'S' and cs.invalid_reason is null
+
+	)
+;
+
+-- 11 Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+-- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+-- Add mapping from deprecated to fresh concepts, and also from non-standard to standard concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+
+-- 12 AddFreshMAPSTO creates RxNorm(ATC)-RxNorm links that need to be removed
+delete from concept_relationship_stage
+where (vocabulary_id_1 = 'RxNorm' and vocabulary_id_2 = 'RxNorm')
+   or (vocabulary_id_1 = 'ATC' and vocabulary_id_2 = 'RxNorm')
+   or (vocabulary_id_1 =  'RxNorm' and vocabulary_id_2 = 'ATC');
+
+

@@ -1389,21 +1389,61 @@ WHERE NOT EXISTS  (
 			AND crs.relationship_id = 'ATC - RxNorm'
 		);
 
-
--- 12. Add manual relationships
+							   
+-- 12. Add ingredients from those ATC drugs that didn't match to RxNorm concepts
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+WITH corpus AS (
+  SELECT DISTINCT class_code,
+                  class_name,
+                  i.concept_code_2,
+                  rtc.concept_code_1,
+                  c.concept_code,
+                  c.vocabulary_id,
+                  c.concept_name
+  FROM internal_relationship_stage i
+         JOIN class_drugs_scraper cds ON substring(concept_code_1, '\w+') = class_code
+         LEFT JOIN relationship_to_concept rtc ON rtc.concept_code_1 = i.concept_code_2
+         LEFT JOIN drug_concept_stage dcs ON dcs.concept_code = i.concept_code_2 AND dcs.concept_class_id = 'Ingredient'
+         JOIN concept c ON c.concept_id = rtc.concept_id_2 AND c.concept_class_id = 'Ingredient'
+  WHERE class_code NOT IN (SELECT class_code FROM class_to_rx_descendant)
+    AND NOT exists(
+      SELECT 1 from relationship_to_concept rtc2 WHERE rtc2.concept_code_1 = rtc.concept_code_1 AND precedence > 1
+    ))
+SELECT class_code AS concept_code_1,
+	concept_code AS concept_code_2,
+	'ATC' AS vocabulary_id_1,
+	vocabulary_id AS vocabulary_id_2,
+	'ATC - RxNorm' AS relationship_id,
+	CURRENT_DATE AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM corpus c
+WHERE NOT EXISTS (SELECT 1 FROM corpus c2 WHERE c.class_code = c2.class_code AND c2.concept_code_1 IS null)
+;							   
+							   
+-- 13. Add manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
--- 13. Remove ATC's duplicates (AVOF-322)
+-- 14. Remove ATC's duplicates (AVOF-322)
 -- diphtheria immunoglobulin
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'J06BB10' AND concept_code_2 = '3510' AND relationship_id = 'ATC - RxNorm';
 -- hydroquinine
 DELETE FROM concept_relationship_stage WHERE concept_code_1 = 'M09AA01' AND concept_code_2 = '27220' AND relationship_id = 'ATC - RxNorm';
 
--- 14. Deprecate relationships between multi ingredient drugs and a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
--- 14.1. Create temporary table drug_strength_ext (same code AS IN concept_ancestor, but we exclude ds for ingredients (because we use count(*)>1 AND ds for ingredients HAVING COUNT(*)=1) AND only for RxNorm)
+-- 15. Deprecate relationships between multi ingredient drugs and a single ATC 5th, because it should have either an ATC for each ingredient or an ATC that is a combination of them
+-- 15.1. Create temporary table drug_strength_ext (same code AS IN concept_ancestor, but we exclude ds for ingredients (because we use count(*)>1 AND ds for ingredients HAVING COUNT(*)=1) AND only for RxNorm)
 DROP TABLE IF EXISTS  drug_strength_ext;
 CREATE UNLOGGED TABLE drug_strength_ext AS
 SELECT *
@@ -1477,7 +1517,7 @@ FROM (
 			)
 	) AS s2;
 
--- 14.2. Do deprecation
+-- 15.2. Do deprecation
 DELETE
 FROM concept_relationship_stage
 WHERE ctid IN (
@@ -1523,7 +1563,7 @@ WHERE ctid IN (
 			) drug2atc ON drug2atc.concept_code_2 = all_drugs.drug_concept_code
 		);
 
--- 15. Add synonyms to concept_synonym stage for each of the rxcui/code combinations IN atc_tmp_table
+-- 16. Add synonyms to concept_synonym stage for each of the rxcui/code combinations IN atc_tmp_table
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -1539,32 +1579,37 @@ JOIN sources.rxnconso r ON dv.code = r.code
 	AND dv.rxcui = r.rxcui
 	AND r.code != 'NOCODE'
 	AND r.lat = 'ENG';
+	    
+-- 17. Deprecate RxNorm 'Maps to'
+DELETE 
+FROM concept_relationship_stage
+WHERE relationship_id IN ('Maps to','Mapped from');
 
--- 16. Working with replacement mappings
+-- 18. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
--- 17. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+-- 19. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
--- 18. Add mapping from deprecated to fresh concepts
+-- 20. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
--- 19. DELETE ambiguous 'Maps to' mappings
+-- 21. DELETE ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DELETEAmbiguousMAPSTO();
 END $_$;
 
--- 20. DELETE mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> RxNorm, but currently we are updating ATC)
+-- 22. DELETE mappings between concepts that are not represented at the "latest_update" at this moment (e.g. SNOMED <-> RxNorm, but currently we are updating ATC)
 --This is because we have SNOMED <-> ATC IN concept_relationship_stage, but AddFreshMAPSTO adds SNOMED <-> RxNorm FROM concept_relationship
 DELETE
 FROM concept_relationship_stage crs_o
@@ -1586,7 +1631,7 @@ WHERE (
 		WHERE coalesce(v1.latest_update, v2.latest_update) IS NULL
 		);
 
--- 21. Clean up
+-- 23. Clean up
 DROP TABLE atc_tmp_table;
 DROP TABLE drug_strength_ext;
 

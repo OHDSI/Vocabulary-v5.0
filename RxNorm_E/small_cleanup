@@ -160,7 +160,7 @@ and not
 
 -- 9 Add new replacements
 insert into concept_relationship_stage
-select null, null, cs.concept_code, c.concept_code, cs.vocabulary_id,c.vocabulary_id,'Maps to', current_date, to_date ('20991231','yyyymmdd')
+select null, null, cs.concept_code, c.concept_code, cs.vocabulary_id,c.vocabulary_id,'Concept replaced by', current_date, to_date ('20991231','yyyymmdd')
 from concept_stage cs
 join concept c on upper(cs.concept_name) = upper(c.concept_name)
                     and cs.concept_class_id = c.concept_class_id

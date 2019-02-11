@@ -715,7 +715,7 @@ WHERE descendant_concept_id NOT IN (SELECT concept_id FROM сlass_to_rx_descenda
   (SELECT 1
    FROM concept c2
           JOIN devv5.concept_ancestor ca2
-               ON ca2.ancestor_concept_id = c2.concept_id AND c2.concept_class_id = 'Ingredient'
+               ON ca2.ancestor_concept_id = c2.concept_id AND c2.concept_class_id = 'Ingredient' and c2.vocabulary_id like 'RxNorm%'
    WHERE ca2.descendant_concept_id = d.drug_concept_id
      AND c2.concept_id != d.ingredient_concept_id) -- excluding combos
 ;
@@ -796,7 +796,7 @@ WHERE descendant_concept_id NOT IN (SELECT concept_id FROM сlass_to_rx_descenda
   (SELECT 1
    FROM concept c2
           JOIN devv5.concept_ancestor ca2
-               ON ca2.ancestor_concept_id = c2.concept_id AND c2.concept_class_id = 'Ingredient'
+               ON ca2.ancestor_concept_id = c2.concept_id AND c2.concept_class_id = 'Ingredient' and c2.vocabulary_id like 'RxNorm%'
    WHERE ca2.descendant_concept_id = d.drug_concept_id
      AND c2.concept_id != d.ingredient_concept_id) -- excluding combos
 ;

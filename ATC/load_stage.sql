@@ -1308,7 +1308,7 @@ SELECT DISTINCT cs.class_code AS concept_code_1,
 	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
 FROM dev_atc.сlass_to_rx_descendant cs
-JOIN concept_ancestor ca ON ca.descendant_concept_id = cs.concept_id
+JOIN devv5.concept_ancestor ca ON ca.descendant_concept_id = cs.concept_id
 JOIN concept c ON c.concept_id = ca.ancestor_concept_id
 	AND c.concept_class_id = 'Ingredient'
 	AND c.vocabulary_id LIKE 'RxNorm%'

@@ -1414,21 +1414,41 @@ WITH corpus AS (
          LEFT JOIN relationship_to_concept rtc ON rtc.concept_code_1 = i.concept_code_2
          LEFT JOIN drug_concept_stage dcs ON dcs.concept_code = i.concept_code_2 AND dcs.concept_class_id = 'Ingredient'
          JOIN concept c ON c.concept_id = rtc.concept_id_2 AND c.concept_class_id = 'Ingredient'
-  WHERE class_code NOT IN (SELECT class_code FROM class_to_rx_descendant)
-    AND NOT exists(
-      SELECT 1 from relationship_to_concept rtc2 WHERE rtc2.concept_code_1 = rtc.concept_code_1 AND precedence > 1
+  WHERE class_code NOT IN (
+    SELECT class_code 
+    FROM class_to_rx_descendant
+    )
+  AND NOT EXISTS(
+      SELECT 1 
+      FROM relationship_to_concept rtc2 
+      WHERE rtc2.concept_code_1 = rtc.concept_code_1 
+        AND precedence > 1
     ))
 SELECT class_code AS concept_code_1,
-	concept_code AS concept_code_2,
-	'ATC' AS vocabulary_id_1,
-	vocabulary_id AS vocabulary_id_2,
-	'ATC - RxNorm' AS relationship_id,
-	CURRENT_DATE AS valid_start_date,
-	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
-	NULL AS invalid_reason
+	     concept_code AS concept_code_2,
+	     'ATC' AS vocabulary_id_1,
+	     vocabulary_id AS vocabulary_id_2,
+	     'ATC - RxNorm' AS relationship_id,
+	     CURRENT_DATE AS valid_start_date,
+    	 TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	     NULL AS invalid_reason
 FROM corpus c
-WHERE NOT EXISTS (SELECT 1 FROM corpus c2 WHERE c.class_code = c2.class_code AND c2.concept_code_1 IS null)
-;							   
+WHERE NOT EXISTS (
+      SELECT 1 
+      FROM corpus c2 
+      WHERE c.class_code = c2.class_code 
+        AND c2.concept_code_1 IS NULL
+  )
+AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		WHERE crs.concept_code_1 = c.class_code
+			AND crs.vocabulary_id_1 = 'ATC'
+			AND crs.concept_code_2 = c.concept_code
+			AND crs.vocabulary_id_2 = c.vocabulary_id
+			AND crs.relationship_id = 'ATC - RxNorm'
+		)
+;					   
 							   
 -- 13. Add manual relationships
 DO $_$

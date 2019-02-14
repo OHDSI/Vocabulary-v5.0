@@ -521,7 +521,7 @@ DELETE
 FROM class_to_drug_4
 WHERE concept_code_1 ~ 'N02BA51'
   AND concept_name ~* 'Omeprazole|Pantoprazole|Rabeprazol';
-
+							 							  							   
 -- 3.8  Simlpe class codes that have dose forms
 DROP TABLE IF EXISTS primary_table;
 CREATE TABLE primary_table AS
@@ -626,7 +626,8 @@ CREATE TABLE class_to_drug_6 AS
 
 
 -- 4. Start final assembly, insert one-by-one going from the most precise class (a+b) to the simplest one (a, ingredient)
---TODO: G03FB|G03AB
+-- TODO: G03FB|G03AB
+-- hardcoded combinations							   
 
 -- 4.1
 DROP TABLE IF EXISTS сlass_to_rx_descendant;
@@ -643,11 +644,18 @@ FROM class_to_drug_1 a
        JOIN devv5.concept_ancestor ON ancestor_concept_id = a.concept_id
        JOIN concept c
             ON c.concept_id = descendant_concept_id AND vocabulary_id like 'RxNorm%' AND c.standard_concept = 'S';
--- 4.2
+-- 4.2.1 
 DELETE
 FROM сlass_to_rx_descendant
 WHERE class_code ~ 'G03FB|G03AB'
   AND concept_class_id NOT like '%Pack%';
+							   
+-- 4.2.2 combinations from ATC 4th, need to be fixed afterwards							   
+DELETE 
+FROM class_to_rx_descendant
+WHERE class_name NOT LIKE '% / %'
+AND class_code ~ 'S01CB|G03EK|G03CC|D10AA|D07XC|D07XB|D07XA'
+;							   
 
 -- 4.3
 INSERT INTO сlass_to_rx_descendant
@@ -680,7 +688,6 @@ FROM class_to_drug_3 a
 WHERE descendant_concept_id NOT IN (SELECT concept_id FROM сlass_to_rx_descendant);
 
 -- 4.5
--- stop here
 INSERT INTO сlass_to_rx_descendant
 SELECT DISTINCT substring(concept_code_1, '\w+'),
                 class_name,
@@ -694,7 +701,6 @@ FROM class_to_drug_4 a
        JOIN concept c
             ON c.concept_id = descendant_concept_id AND c.vocabulary_id like 'RxNorm%' AND c.standard_concept = 'S'
 WHERE descendant_concept_id NOT IN (SELECT concept_id FROM сlass_to_rx_descendant);
-
 
 --4.6
 INSERT INTO сlass_to_rx_descendant
@@ -1007,11 +1013,16 @@ FROM class_to_drug f
        JOIN devv5.concept c ON c.concept_id = descendant_concept_id AND c.concept_class_id like '%Pack%'
 WHERE class_code ~ 'G03FB|G03AB'; -- packs
 
-
 DELETE
 FROM class_to_drug
 WHERE class_code ~ 'G03FB|G03AB'
   AND concept_class_id IN ('Clinical Drug Form', 'Ingredient');
+
+DELETE 
+FROM class_to_drug
+WHERE class_name NOT LIKE '% / %'
+AND class_code ~ 'S01CB|G03EK|G03CC|D10AA|D07XC|D07XB|D07XA'
+;							   
 
 DELETE
 FROM class_to_drug

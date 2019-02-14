@@ -9,5 +9,5 @@ If you do want to recreate the vocabulary please find the step-by-step descripti
 
 Additional info form drug vocabularies: http://www.ohdsi.org/web/wiki/doku.php?id=documentation:international_drugs
 
-Christian and the Odyssey Vocabulary Team.
+Christian and the Odysseus Vocabulary Team.
 reich@ohdsi.org

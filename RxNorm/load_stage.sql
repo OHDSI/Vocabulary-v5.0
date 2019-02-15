@@ -28,7 +28,7 @@ BEGIN
 );
 END $_$;
 
--- 2. Truncate all working tables and remove indices
+-- 2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;

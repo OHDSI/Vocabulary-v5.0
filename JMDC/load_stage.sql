@@ -47,7 +47,7 @@ select distinct
   substr(general_name||' '||standardized_unit||' ['||brand_name||']', 1, 255) as concept_name, 'JMDC', 'Device', 'S', jmdc_drug_code, null, 'Device', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null
   from jmdc
   where
-  who_atc_code like 'V08%' or formulation_medium_classification_name in ('Skin Compress');
+  who_atc_code like 'V08%' or formulation_medium_classification_name in ('Diagnostic Use');
 -- Create copy of input data
 drop table if exists j;
 create table j as
@@ -172,7 +172,6 @@ where lower(general_name) = 'human menopausal gonadotrophin';
 update j
 set general_name = 'human normal immunoglobulin/histamine'
 where lower(general_name) = 'immunoglobulin with histamine';
-
 
 -- remove junk from standard_unit
 update j set standardized_unit = regexp_replace(standardized_unit, '\(forGeneralDiagnosis\)', '') where standardized_unit like '%(forGeneralDiagnosis)%';
@@ -305,7 +304,22 @@ from
 ;
 
 -- Dose Forms
--- will be populated based on manual tables
+-- is populated based on manual tables
+insert into drug_concept_stage
+select
+  coalesce(new_name, concept_name)  as concept_name,
+  'JMDC' as vocabulary_id,
+  'Dose Form' as concept_class_id,
+  null as standard_concept,
+  'JMDC'||nextval('new_vocab') as concept_code,
+  null as possible_excipient,
+  'Drug',
+  to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'),
+  null as invalid_reason
+from
+(select distinct coalesce(new_name, concept_name)   from aut_form_mapped) a
+;
+							       
 -- Units
 insert into drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code, domain_id, valid_start_date, valid_end_date, invalid_reason)
  values ('u', 'JMDC', 'Unit', null, 'u', 'Drug', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null);
@@ -364,8 +378,15 @@ select distinct
 from j join drug_concept_stage dcs on dcs.concept_name=j.brand_name and dcs.concept_class_id='Brand Name'
 ;
 -- 3.3 create relationship between products and DF
---use new forms
-
+-- 3.3 create relationship between products and DF
+insert into internal_relationship_stage
+select disitnct jmdc_drug_code,dc.concept_code
+from aut_form_mapped a
+join j on trim(formulation_small_classification_name) = a.concept_name
+join drug_concept_stage dc on dc.concept_name = coalesce (a.new_name, a.concept_name)
+where dc.concept_class_id = 'Dose Form'
+;
+/*
 -- 3.3.1. Patches
 insert into internal_relationship_stage
 select distinct
@@ -379,7 +400,7 @@ insert into internal_relationship_stage (concept_code_1, concept_code_2)
   values ('100000063966', (select concept_code from drug_concept_stage where concept_name='Injectant')); -- immunoglobulin with histamine
 insert into internal_relationship_stage (concept_code_1, concept_code_2)
   values ('100000013362', (select concept_code from drug_concept_stage where concept_name='Topical')); -- bacitracin/fradiomycin sulfate
-
+*/
 -- 3.3.3 Suppliers
 insert into internal_relationship_stage (concept_code_1, concept_code_2)
     select jmdc_drug_code,concept_code
@@ -389,7 +410,7 @@ where concept_class_id = 'Supplier';
 /*********************************
 * 4. Create and link Drug Strength
 *********************************/
---g|mg|ug|mEq|MBq|IU|KU|U
+-- 4.1 g|mg|ug|mEq|MBq|IU|KU|U
 INSERT into ds_stage
 SELECT DISTINCT j.jmdc_drug_code,
                 dcs.concept_code,
@@ -402,7 +423,7 @@ WHERE general_name !~ '\/'
   AND regexp_replace(standardized_unit, '[,()]', '', 'g') ~ '^(\d+\.*\d*)(g|mg|ug|mEq|MBq|IU|KU|U)(|1T|1Syg|1A|1V|1Bag|each/V|1C|1Pack|1Pc|1Kit|1Sheet|1Bot|1Bls|1P|(\d+\.*\d*)(cm|mm)(2|\*(\d+\.*\d*)(cm|mm)))(|1Sheet)($)'
   AND dcs.concept_class_id = 'Ingredient';
 
---liquid % / ml|l
+--4.2 liquid % / ml|l
 INSERT into ds_stage
 SELECT DISTINCT j.jmdc_drug_code,
                 dcs.concept_code,
@@ -425,7 +446,7 @@ WHERE general_name !~ '\/'
   AND standardized_unit ~ '^(\d+\.*\d*)(\%)(\d+\.*\d*)(mL|L)(|1Syg|1V|1A|1Bag|1Bot|1Kit|1Pack|V|1Pc)($)'
   AND dcs.concept_class_id = 'Ingredient';
 
---solid % / g|mg
+--4.3 solid % / g|mg
 INSERT into ds_stage
 SELECT DISTINCT j.jmdc_drug_code,
                 dcs.concept_code,
@@ -448,7 +469,7 @@ WHERE general_name !~ '\/'
   AND standardized_unit ~ '^(\d+\.*\d*)(\%)(\d+\.*\d*)(mg|g)(|1Pack|1Bot|1can|1V|1Pc)($)'
   AND dcs.concept_class_id = 'Ingredient';
 
---mg|mol|ug|g|IU|U|mEq / mL|uL|g
+--4.4 mg|mol|ug|g|IU|U|mEq / mL|uL|g
 INSERT into ds_stage
 SELECT DISTINCT j.jmdc_drug_code,
                 dcs.concept_code,
@@ -466,7 +487,7 @@ WHERE general_name !~ '\/'
   AND regexp_replace(standardized_unit, ',', '', 'g') ~ '^(\d+\.*\d*)(mg|mol|ug|g|IU|U|mEq)(\d+\.*\d*)(mL|uL|g)(|1A|1Pc|1Syg|1Kit|1Bot|V|1V|1Bag|1Pack)($)'
   AND dcs.concept_class_id = 'Ingredient';
 
--- ug/actuat1
+-- 4.5 ug/actuat1
 INSERT into ds_stage
 SELECT DISTINCT j.jmdc_drug_code,
                 dcs.concept_code,
@@ -485,7 +506,7 @@ WHERE general_name !~ '\/'
   AND standardized_unit ~ '^(\d+\.*\d*)(ug)(\d+\.*\d*)(Bls)(1Pc|1Kit)($)'
   AND dcs.concept_class_id = 'Ingredient';
 
--- ug/actuat2
+-- 4.6 ug/actuat2
 INSERT into ds_stage
 SELECT DISTINCT j.jmdc_drug_code,
                 dcs.concept_code,
@@ -506,7 +527,7 @@ WHERE general_name !~ '\/'
   AND regexp_replace(standardized_unit, '[()]', '', 'g') ~ '^(\d+\.*\d*)(mg|ug)(1Bot|1Kit)(\d+\.*\d*)(ug)($)'
   AND dcs.concept_class_id = 'Ingredient';
 
---g|mg from kits
+-- 4.7 g|mg from kits
 INSERT into ds_stage
 SELECT DISTINCT j.jmdc_drug_code,
                 dcs.concept_code,
@@ -520,6 +541,7 @@ WHERE general_name !~ '\/'
   AND regexp_replace(standardized_unit, '[()]', '', 'g') ~ '^(\d+\.*\d*)(g|mg)(1Kit)(\d+\.*\d*)(mL)'
   AND dcs.concept_class_id = 'Ingredient';
 
+-- 4.8
 update ds_stage
 set amount_unit = lower(amount_unit),
     numerator_unit = lower(numerator_unit),
@@ -529,9 +551,14 @@ set amount_unit = lower(amount_unit),
 * 5. Populate relationship to concept *
 ************************************************/
 
--- Write mappings to RxNorm Dose Forms
+-- 5.1 Write mappings to RxNorm Dose Forms
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
+select distinct dc.concept_code,'JMDC',concept_id_2,precedence
+from aut_form_mapped a
+join drug_concept_stage dc on dc.concept_name = coalesce (a.new_name,a.concept_name)
+where dc.concept_class_id = 'Dose Form'
 
--- write mappings to real units
+-- 5.2 Write mappings to real units
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('u', 'JMDC', 8510, 1, 1); -- to unit
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('iu', 'JMDC', 8510, 1, 1); -- to unit
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('g', 'JMDC', 8576, 1, 1000); -- to milligram
@@ -548,7 +575,7 @@ insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('meq', 'JMDC', 9551, 1, 1);
 
 
--- Ingredients
+-- 5.3 Ingredients
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 select distinct dc.concept_code,'JMDC',concept_id,rank() over (partition by dc.concept_code order by concept_id)
 from aut_ingredient_mapped_2
@@ -598,7 +625,7 @@ and c2.concept_class_id = 'Precise Ingredient' and c3.concept_class_id = 'Ingred
 and cr.invalid_reason is null and c3.standard_concept = 'S'
 ;
 
--- Brand Names
+-- 5.4 Brand Names
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 select distinct dc.concept_code,'JMDC',c.concept_id, rank() over (partition by dc.concept_code order by c.concept_id)
 from drug_concept_stage dc
@@ -616,7 +643,7 @@ where dc.concept_class_id = 'Brand Name'
 and dc.concept_code not in (select concept_code_1 from relationship_to_concept);
 ;
 
-  -- supplier
+ -- 5.5 Supplier
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 select distinct dc.concept_code,'JMDC',c.concept_id, rank() over (partition by dc.concept_code order by c.concept_id)
 from drug_concept_stage dc
@@ -625,11 +652,11 @@ and c.invalid_reason is null and c.vocabulary_id = 'RxNorm Extension'
 where dc.concept_class_id = 'Supplier'
 and dc.concept_code not in (select concept_code_1 from relationship_to_concept);
 
-
-/*****POST-PROCESSING*****/
-
--- Delete Suppliers where DF or strength doesn't exist
-
+/****************************
+*     6. POST-PROCESSING.   *
+*****************************/
+													      
+-- 6.1 Delete Suppliers where DF or strength doesn't exist
 DELETE
 	FROM internal_relationship_stage
 			where concept_code_1 in
@@ -658,6 +685,10 @@ and concept_code_2 in
 			(select concept_code from drug_concept_stage where concept_class_id = 'Supplier')
 ;
 
+/****************************
+*        7. Updates         *
+*****************************/
+													      
 -- get the attributes that haven't been mapped
 -- using existing mappings
 select distinct *

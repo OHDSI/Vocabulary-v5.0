@@ -46,8 +46,17 @@ insert into non_drug
 select distinct
   substr(general_name||' '||standardized_unit||' ['||brand_name||']', 1, 255) as concept_name, 'JMDC', 'Device', 'S', jmdc_drug_code, null, 'Device', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null
   from jmdc
-  where
-  who_atc_code like 'V08%' or formulation_medium_classification_name in ('Diagnostic Use');
+  where who_atc_code like 'V08%' or formulation_medium_classification_name in ('Diagnostic Use');
+  
+insert into non_drug
+select distinct
+  replace(substr(general_name||' '||concate(null, standardized_unit)||' ['||concate(brand_name,null)||']', 1, 255),'  ',' ')  as concept_name, 'JMDC', 'Device', 'S', jmdc_drug_code, null, 'Device', to_date('19700101','YYYYMMDD'), to_date('20991231','YYYYMMDD'), null
+  from jmdc
+  where lower(general_name) in
+  ('maintenance solution','maintenance solution with acetic acid','maintenance solution with acetic acid(with glucose)','maintenance solution(with glucose)','artificial kidney dialysis preparation',
+  'benzoylmercaptoacetylglycylglycylglycine','diethylenetriamine pentaacetate','ethyelenebiscysteinediethylester dichloride','hydroxymethylene diphosphonate','postoperative recovery solution',
+  'tetrakis(methoxyisobutylisonitrile)cu(i)tetrafluoroborate','witepsol','peritoneal dialysis solution','intravenous hyperalimentative basic solution','macroaggregated human serum albumin');
+
 -- Create copy of input data
 drop table if exists j;
 create table j as
@@ -57,8 +66,7 @@ where jmdc_drug_code not in (
 );
 
 delete from j
-where lower(general_name) in ('allergen extract(therapeutic)','therapeutic allergen extract');
-
+where lower(general_name) in ('allergen extract(therapeutic)','therapeutic allergen extract','allergen disk','initiating solution','white soft sugar');
 
 drop table if exists supplier;
 create table supplier
@@ -629,10 +637,12 @@ and cr.invalid_reason is null and c3.standard_concept = 'S'
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 select distinct dc.concept_code,'JMDC',c.concept_id, rank() over (partition by dc.concept_code order by c.concept_id)
 from drug_concept_stage dc
-join devv5.concept c on lower(c.concept_name) = lower(dc.concept_name)
+join devv5.concept c on regexp_replace(lower (trim(s.name)), '(\s|\W)', '', 'g') = regexp_replace(lower (trim(c.concept_name)), '(\s|\W)', '', 'g')
 where dc.concept_class_id = 'Brand Name'
 and c.concept_class_id = 'Brand Name' and c.vocabulary_id like 'Rx%' and c.invalid_reason is null
+and c.concept_id not in (42912198, 44022957, 21018872, 40819872)
 ;
+
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 select distinct dc.concept_code,'JMDC',c2.concept_id, rank() over (partition by dc.concept_code order by c2.concept_id)
 from drug_concept_stage dc

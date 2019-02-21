@@ -60,10 +60,9 @@ FROM concept c1,
 	concept_relationship r
 WHERE c1.concept_id = r.concept_id_1
 	AND c2.concept_id = r.concept_id_2
-	AND 'RxNorm Extension' IN (
-		c1.vocabulary_id,
-		c2.vocabulary_id
-		);
+	AND ((c1.vocabulary_id = 'RxNorm Extension' AND c2.vocabulary_id = 'RxNorm') 
+	OR (c1.vocabulary_id = 'RxNorm' AND c2.vocabulary_id = 'RxNorm Extension'))
+	;
 
 -- 5 Deprecate old relationships
 update concept_relationship_stage
@@ -74,11 +73,8 @@ select cs.concept_code from concept_stage cs
 join concept c on upper(cs.concept_name) = upper(c.concept_name)
                     and cs.concept_class_id = c.concept_class_id
                     and c.vocabulary_id = 'RxNorm'
-                    and c.standard_concept = 'S' and cs.invalid_reason is null
-
-)
-and not
-(relationship_id in ('Source - RxNorm eq','Maps to') and vocabulary_id_1 not in ('RxNorm','RxNorm Extension','ATC'));
+                    and c.standard_concept = 'S' and cs.invalid_reason is null)
+;
 
 -- 6 Reverse
 update concept_relationship_stage
@@ -89,11 +85,8 @@ select cs.concept_code from concept_stage cs
 join concept c on upper(cs.concept_name) = upper(c.concept_name)
                     and cs.concept_class_id = c.concept_class_id
                     and c.vocabulary_id = 'RxNorm'
-                    and c.standard_concept = 'S' and cs.invalid_reason is null
-
-)
-and not
-(relationship_id in ('RxNorm - Source eq','Mapped from') and vocabulary_id_2 not in ('RxNorm','RxNorm Extension','ATC'));
+                    and c.standard_concept = 'S' and cs.invalid_reason is null)
+;
 
 -- 7 Add new replacements
 insert into concept_relationship_stage
@@ -105,7 +98,6 @@ join concept c on upper(cs.concept_name) = upper(c.concept_name)
                     and c.standard_concept = 'S' and cs.invalid_reason is null
 
 where not exists (select 1 from concept_relationship_stage crs where crs.concept_code_1 = cs.concept_code and crs.concept_code_2 = c.concept_code)
-
 ;
 
 -- 8 update concept_stage
@@ -119,9 +111,7 @@ select cs.concept_code from concept_stage cs
 join concept c on upper(cs.concept_name) = upper(c.concept_name)
                     and cs.concept_class_id = c.concept_class_id
                     and c.vocabulary_id = 'RxNorm'
-                    and c.standard_concept = 'S' and cs.invalid_reason is null
-
-	)
+                    and c.standard_concept = 'S' and cs.invalid_reason is null	)
 ;
 
 -- 9 Working with replacement mappings

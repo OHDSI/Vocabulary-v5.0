@@ -20,7 +20,7 @@
 DROP TABLE IF EXISTS SOURCES.CVX;
 CREATE TABLE SOURCES.CVX
 (
-   cvx_code            INT4,
+   cvx_code            VARCHAR (100),
    short_description   VARCHAR (4000),
    full_vaccine_name   VARCHAR (4000),
    last_updated_date   DATE,
@@ -31,14 +31,14 @@ CREATE TABLE SOURCES.CVX
 DROP TABLE IF EXISTS SOURCES.CVX_DATES;
 CREATE TABLE SOURCES.CVX_DATES
 (
-   cvx_code            INT4 UNIQUE NOT NULL,
+   cvx_code            VARCHAR (100) UNIQUE NOT NULL,
    concept_date        DATE NOT NULL
 );
 
 CREATE OR REPLACE FUNCTION sources.py_xlsparse_cvx_codes(xls_path varchar)
 RETURNS
 TABLE (
-    CVX_CODE INT4,
+    CVX_CODE varchar,
     SHORT_DESCRIPTION varchar,
     FULL_VACCINE_NAME varchar,
     LAST_UPDATED_DATE date
@@ -64,7 +64,7 @@ SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION sources.py_xlsparse_cvx_dates(xls_path varchar)
 RETURNS
 TABLE (
-    CVX_CODE INT4
+    CVX_CODE varchar
 )
 AS
 $BODY$

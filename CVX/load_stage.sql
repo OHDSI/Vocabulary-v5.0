@@ -13,11 +13,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
+* Authors: Medical team
 * Date: 2016
 **************************************************************************/
-
-
 
 --1. Update latest_update field to new date 
 DO $_$
@@ -123,6 +121,32 @@ WHERE rxn.sab = 'CVX'
 		WHERE crs.concept_code_1 = rxn.code
 			AND crs.concept_code_2 = rxn.rxcui
 			AND crs.relationship_id = 'CVX - RxNorm'
+		);
+
+--7. Get rid from mappings to deprecated concepts 
+DELETE
+FROM concept_relationship_stage crs
+WHERE crs.relationship_id = 'CVX - RxNorm'
+	AND crs.invalid_reason IS NULL
+	AND EXISTS (
+		SELECT 1
+		FROM concept c
+		WHERE c.concept_code = crs.concept_code_2
+			AND c.vocabulary_id = crs.vocabulary_id_2
+			AND c.invalid_reason = 'D'
+		);
+
+--reverse
+DELETE
+FROM concept_relationship_stage crs
+WHERE crs.relationship_id = 'RxNorm - CVX'
+	AND crs.invalid_reason IS NULL
+	AND EXISTS (
+		SELECT 1
+		FROM concept c
+		WHERE c.concept_code = crs.concept_code_1
+			AND c.vocabulary_id = crs.vocabulary_id_1
+			AND c.invalid_reason = 'D'
 		);
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

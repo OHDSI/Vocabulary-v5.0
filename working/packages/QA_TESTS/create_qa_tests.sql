@@ -314,7 +314,8 @@ AS $BODY$
 
 	UNION ALL
 
-	--replacement relationships between different vocabularies (exclude RxNorm to RxNorm Ext OR RxNorm Ext to RxNorm replacement relationships)
+	/*--replacement relationships between different vocabularies (exclude RxNorm to RxNorm Ext OR RxNorm Ext to RxNorm OR SNOMED<->SNOMED Veterinary replacement relationships)
+	--deprecated 20190227
 	SELECT 4 check_id,
 		r.*
 	FROM concept_relationship r,
@@ -335,6 +336,16 @@ AS $BODY$
 				'RxNorm Extension'
 				)
 			)
+		AND NOT (
+			c1.vocabulary_id IN (
+				'SNOMED',
+				'SNOMED Veterinary'
+				)
+			AND c2.vocabulary_id IN (
+				'SNOMED',
+				'SNOMED Veterinary'
+				)
+			)			
 		AND r.relationship_id IN (
 			'Concept replaced by',
 			'Concept same_as to',
@@ -344,7 +355,7 @@ AS $BODY$
 			)
 		AND COALESCE(checkid, 4) = 4
 
-	UNION ALL
+	UNION ALL*/
 
 	--wrong relationships: 'Maps to' to 'D' or 'U'; replacement relationships to 'D'
 	SELECT 5 check_id,

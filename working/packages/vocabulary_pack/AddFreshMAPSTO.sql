@@ -84,35 +84,6 @@ BEGIN
 								'Maps to'
 								)
 							AND crs.invalid_reason IS NULL
-							AND (
-								(
-									(
-										(
-											crs.vocabulary_id_1 = crs.vocabulary_id_2
-											AND crs.vocabulary_id_1 NOT IN (
-												'RxNorm',
-												'RxNorm Extension'
-												)
-											AND crs.vocabulary_id_2 NOT IN (
-												'RxNorm',
-												'RxNorm Extension'
-												)
-											)
-										OR (
-											crs.vocabulary_id_1 IN (
-												'RxNorm',
-												'RxNorm Extension'
-												)
-											AND crs.vocabulary_id_2 IN (
-												'RxNorm',
-												'RxNorm Extension'
-												)
-											)
-										)
-									AND crs.relationship_id <> 'Maps to'
-									)
-								OR crs.relationship_id = 'Maps to'
-								)
 							AND crs.concept_code_1 <> crs.concept_code_2
 						
 						UNION ALL

@@ -160,6 +160,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'KDC' THEN 1
 		WHEN c.vocabulary_id = 'SUS' THEN 1
 		WHEN c.vocabulary_id = 'CDM' THEN 0
+		WHEN c.vocabulary_id = 'SNOMED Veterinary' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');
@@ -420,6 +421,9 @@ BEGIN
 			OR (/*AVOF-459*/
 				crs.vocabulary_id_2 IN ('RxNorm','RxNorm Extension') AND c.vocabulary_id IN ('RxNorm','RxNorm Extension')
 			)
+			OR (/*AVOF-1439*/
+				crs.vocabulary_id_2 IN ('SNOMED','SNOMED Veterinary') AND c.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
+			)			
 		)
 	)
 	AND NOT EXISTS (
@@ -471,6 +475,9 @@ BEGIN
 			OR (/*AVOF-459*/
 				crs.vocabulary_id_1 IN ('RxNorm','RxNorm Extension') AND c.vocabulary_id IN ('RxNorm','RxNorm Extension')
 			)
+			OR (/*AVOF-1439*/
+				crs.vocabulary_id_1 IN ('SNOMED','SNOMED Veterinary') AND c.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
+			)				
 		)
 	)
 	AND NOT EXISTS (

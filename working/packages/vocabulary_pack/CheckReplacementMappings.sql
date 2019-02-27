@@ -29,7 +29,6 @@ BEGIN
 					'Concept was_a to'
 					)
 				AND invalid_reason IS NULL
-				AND vocabulary_id_1 = vocabulary_id_2
 			GROUP BY concept_code_1,
 				relationship_id
 			HAVING COUNT(DISTINCT concept_code_2) > 1
@@ -46,10 +45,8 @@ BEGIN
 				AND cs2.invalid_reason IS NULL
 				AND cs1.concept_code_1 = cs2.concept_code_2
 				AND cs1.concept_code_2 = cs2.concept_code_1
-				AND cs1.vocabulary_id_1 = cs2.vocabulary_id_1
-				AND cs2.vocabulary_id_2 = cs2.vocabulary_id_2
-				AND cs1.vocabulary_id_1 = cs1.vocabulary_id_2
-				AND cs1.relationship_id = cs2.relationship_id
+				AND cs1.vocabulary_id_1 = cs2.vocabulary_id_2
+				AND cs1.vocabulary_id_2 = cs2.vocabulary_id_1
 				AND cs1.relationship_id IN (
 					'Concept replaced by',
 					'Concept same_as to',
@@ -57,6 +54,13 @@ BEGIN
 					'Concept poss_eq to',
 					'Concept was_a to'
 					)
+				AND cs2.relationship_id IN (
+					'Concept replaced by',
+					'Concept same_as to',
+					'Concept alt_to to',
+					'Concept poss_eq to',
+					'Concept was_a to'
+					)					
 				AND crs.concept_code_1 = cs1.concept_code_1
 				AND crs.concept_code_2 = cs1.concept_code_2
 				AND crs.relationship_id = cs1.relationship_id
@@ -154,7 +158,6 @@ BEGIN
 							'Concept poss_eq to',
 							'Concept was_a to'
 							)
-						AND crs.vocabulary_id_1 = crs.vocabulary_id_2
 						AND crs.concept_code_1 <> crs.concept_code_2
 						AND crs.invalid_reason IS NULL
 					)

@@ -133,6 +133,7 @@ BEGIN
           21. CPT4
           22. AMT
           23. CDM
+		  24. SNOMED Veterinary
         */
         perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
         set local http.timeout_msec TO 30000;
@@ -379,6 +380,10 @@ BEGIN
                 cVocabOldDate:=coalesce(cVocabOldDate,cVocabSrcDate-1);
                 cVocabOldVer:=coalesce(cVocabOldVer,cVocabSrcVer);
                 cVocabDate:=COALESCE(cVocabDate,cVocabOldDate);
+            WHEN cVocabularyName = 'SNOMED VETERINARY'
+            THEN
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a href="SnomedCT_Release_VTS.+?_([\d]{8})\.zip" target="main">Download the Veterinary Extension of SNOMED CT</a>.+'),'yyyymmdd');
+                cVocabVer := 'SNOMED Veterinary '||to_char(cVocabDate,'YYYYMMDD');				
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

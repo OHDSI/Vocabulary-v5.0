@@ -423,7 +423,7 @@ begin
         COALESCE(pVocabularyDate,current_date),COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) 
         from sources.py_xlsparse_hcpcs(pVocabularyPath||'/HCPC_CONTR_ANWEB.xlsx') where add_date ~ '\d{6}';
   when 'SNOMED' then
-      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged;
+      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged, sources.der2_crefset_assreffull_merged;
       drop index sources.idx_concept_merged_id;
       drop index sources.idx_desc_merged_id;
       drop index sources.idx_rela_merged_id;
@@ -678,6 +678,16 @@ begin
         cross join vocabulary_pack.ParseTables (r.ddl_text) p
         where not exists (select 1 from sources.cdm_tables c where c.ddl_release_id=r.ddl_release_id);
       analyze sources.cdm_tables;
+  when 'SNOMED VETERINARY' then
+      truncate table sources.vet_sct2_concept_full, sources.vet_sct2_desc_full, sources.vet_sct2_rela_full, sources.vet_der2_crefset_assreffull;
+      execute 'COPY sources.vet_sct2_concept_full (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full_VTS.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      update sources.vet_sct2_concept_full set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      execute 'COPY sources.vet_sct2_desc_full FROM '''||pVocabularyPath||'sct2_Description_Full_VTS.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.vet_sct2_rela_full FROM '''||pVocabularyPath||'sct2_Relationship_Full_VTS.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.vet_der2_crefset_assreffull FROM '''||pVocabularyPath||'der2_cRefset_AssociationFull_VTS.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      analyze sources.vet_sct2_concept_full;
+      analyze sources.vet_sct2_desc_full;
+      analyze sources.vet_sct2_rela_full;
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;        

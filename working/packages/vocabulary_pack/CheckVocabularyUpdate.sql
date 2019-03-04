@@ -167,7 +167,7 @@ BEGIN
                 cVocabVer := substring (SUBSTR (cVocabHTML, cPos1 + 4, cPos2 - cPos1 - 4), '[\d]{4}[A-z]{2}');
             WHEN cVocabularyName = 'SNOMED'
             THEN
-                cSearchString := '<a class="btn btn-primary btn-md" href="';
+                cSearchString := '<a class="btn btn-info" href="';
                 cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
                 cPos2 := devv5.INSTR (cVocabHTML, '.zip"><strong>Download RF2 Files Now!</strong></a>', cPos1);
                 perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
@@ -196,7 +196,7 @@ BEGIN
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');  
             WHEN cVocabularyName = 'ICD10CM'
             THEN
-                cSearchString := '<div id="contentArea" >';
+                cSearchString := '<div class="syndicate">';
                 cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
                 cSearchString := '<strong>Note: <a href="';
                 cPos1 := devv5.INSTR (cVocabHTML, cSearchString, cPos1);

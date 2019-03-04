@@ -23,7 +23,7 @@ CREATE TABLE SOURCES.PRODUCT
   productid                         VARCHAR(50),
   productndc                        VARCHAR(10),
   producttypename                   VARCHAR(500),
-  proprietaryname                   VARCHAR(226),
+  proprietaryname                   VARCHAR(4000),
   proprietarynamesuffix             VARCHAR(126),
   nonproprietaryname                VARCHAR(4000),
   dosageformname                    VARCHAR(48),

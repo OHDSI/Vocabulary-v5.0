@@ -90,7 +90,7 @@ BEGIN
     if pCookie not like '%TGC=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%TGC=%% not found'; end if;
 
     --first part, getting raw download link from page
-    select substring(http_content,'<a class="btn btn-primary btn-md".+?href="(.+?)"><strong>Download RF2 Files Now!</strong></a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'<a class="btn btn-info" href="(.+?)"><strong>Download RF2 Files Now!</strong></a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
     --second part, now we have fully working download link
@@ -149,7 +149,7 @@ BEGIN
     --authorization
     select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent
     from py_http_post(url=>pVocabulary_auth, params=>'j_username='||devv5.urlencode(pVocabulary_login)||'&j_password='||devv5.urlencode(pVocabulary_pass)||'&commit=LOG%20IN');
-    if pCookie not like '%JSESSIONID=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%JSESSIONID=%% not found'; end if;       
+    if pCookie not like '%JSESSIONID=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%JSESSIONID=%% not found'; end if;
     
     --get working download link
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
@@ -208,7 +208,7 @@ BEGIN
     if pCookie not like '%TGC=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%TGC=%% not found'; end if;
 
     --first part, getting raw download link from page
-    select substring(http_content,'<h4>Current US Edition Release</h4>.+?<p><a href="(.+?)" class="btn btn-primary btn-md"><strong>Download Now!</strong></a></p>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'Current US Edition Release</h3>.+?<p><a href="(.+?)" class="btn btn-info">Download Now!</a></p>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
     --second part, now we have fully working download link

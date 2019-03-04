@@ -149,6 +149,44 @@ BEGIN
       iVocabulary_operation=>'GET_CVX web_cvx downloading complete',
       iVocabulary_status=>1
     );
+
+    --get credentials for 3d file
+    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
+    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=3;
+    
+    --start downloading
+    pVocabularyOperation:='GET_CVX web_cpt downloading';
+    perform run_wget (
+      iPath=>pVocabulary_load_path,
+      iFilename=>'web_cpt.xlsx',
+      iDownloadLink=>pVocabulary_url,
+      iDeleteAll=>0
+    );
+    perform write_log (
+      iVocabularyID=>pVocabularyID,
+      iSessionID=>pSession,
+      iVocabulary_operation=>'GET_CVX web_cpt downloading complete',
+      iVocabulary_status=>1
+    );
+
+    --get credentials for 4d file
+    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
+    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=4;
+    
+    --start downloading
+    pVocabularyOperation:='GET_CVX web_vax2vg downloading';
+    perform run_wget (
+      iPath=>pVocabulary_load_path,
+      iFilename=>'web_vax2vg.xlsx',
+      iDownloadLink=>pVocabulary_url,
+      iDeleteAll=>0
+    );
+    perform write_log (
+      iVocabularyID=>pVocabularyID,
+      iSessionID=>pSession,
+      iVocabulary_operation=>'GET_CVX web_vax2vg downloading complete',
+      iVocabulary_status=>1
+    );
   end if;
   
   if pJumpToOperation in ('ALL','JUMP_TO_CVX_PREPARE') then

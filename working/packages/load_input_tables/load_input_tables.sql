@@ -501,9 +501,13 @@ begin
       if pVocabularyDate is null then 
       	RAISE EXCEPTION 'For current vocabulary (%) you must set the pVocabularyDate!', pVocabularyID;
       end if;
-      truncate table sources.cvx;
-      insert into sources.cvx select CVX_CODE,TRIM(SHORT_DESCRIPTION),TRIM(FULL_VACCINE_NAME),LAST_UPDATED_DATE, pVocabularyDate, COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from 
-      	sources.py_xlsparse_cvx_codes(pVocabularyPath||'/web_cvx.xlsx');
+      truncate table sources.cvx, sources.cvx_cpt, sources.cvx_vaccine;
+      insert into sources.cvx select TRIM(CVX_CODE),TRIM(SHORT_DESCRIPTION),TRIM(FULL_VACCINE_NAME),LAST_UPDATED_DATE, pVocabularyDate, COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) from 
+        sources.py_xlsparse_cvx_codes(pVocabularyPath||'/web_cvx.xlsx');
+      insert into sources.cvx_cpt select TRIM(CVX_CODE),TRIM(CPT_DESCRIPTION),TRIM(CVX_SHORT_DESCRIPTION),TRIM(CVX_CODE),TRIM(MAP_COMMENT),LAST_UPDATED_DATE, TRIM(CPT_CODE_ID) from 
+        sources.py_xlsparse_cvx_cpt(pVocabularyPath||'/web_cpt.xlsx');
+      insert into sources.cvx_vaccine select TRIM(CVX_SHORT_DESCRIPTION),TRIM(CVX_CODE),TRIM(VACCINE_STATUS),TRIM(VG_NAME), TRIM(CVX_VACCINE_GROUP) from 
+        sources.py_xlsparse_cvx_vaccine(pVocabularyPath||'/web_vax2vg.xlsx');
       --upsert (inserts new codes and updates existing codes to minimum date)
       INSERT INTO sources.cvx_dates AS c
       SELECT cvx_code, pVocabularyDate

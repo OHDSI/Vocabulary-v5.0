@@ -2,7 +2,8 @@ CREATE OR REPLACE FUNCTION devv5.FastRecreateSchema (
   main_schema_name varchar(100) default 'devv5',
   include_concept_ancestor boolean default false,
   include_deprecated_rels boolean default false,
-  include_synonyms boolean default false
+  include_synonyms boolean default false,
+  drop_concept_ancestor boolean default true
 )
 RETURNS void AS
 $body$
@@ -31,11 +32,13 @@ $body$
     SELECT devv5.FastRecreateSchema(); --recreate with default settings (copy from devv5, w/o ancestor, deprecated relationships and synonyms (faster)
     SELECT devv5.FastRecreateSchema(include_concept_ancestor=>true); --same as above, but table concept_ancestor is included
     SELECT devv5.FastRecreateSchema(include_concept_ancestor=>true,include_deprecated_rels=>true,include_synonyms=>true); --full recreate, all tables are included (much slower)
+    SELECT devv5.FastRecreateSchema(drop_concept_ancestor=>fasle); --preserve old concept_ancestor, but it will be ignored if the include_concept_ancestor is set to true
   */
   BEGIN
-    IF CURRENT_SCHEMA = 'devv5' then RAISE EXCEPTION 'You cannot use this script in the ''devv5''!'; end if;
+    IF CURRENT_SCHEMA = 'devv5' THEN RAISE EXCEPTION 'You cannot use this script in the ''devv5''!'; END IF;
     
-    DROP TABLE IF EXISTS concept_ancestor, concept, concept_relationship, concept_synonym, vocabulary, relationship, drug_strength, pack_content CASCADE;
+    DROP TABLE IF EXISTS concept, concept_relationship, concept_synonym, vocabulary, relationship, drug_strength, pack_content CASCADE;
+    IF drop_concept_ancestor OR include_concept_ancestor THEN DROP TABLE IF EXISTS concept_ancestor; END IF;
     TRUNCATE TABLE concept_stage, concept_relationship_stage, concept_synonym_stage, concept_class, domain, vocabulary_conversion, drug_strength_stage, pack_content_stage;
     EXECUTE 'INSERT INTO concept_class SELECT * FROM '||main_schema_name||'.concept_class';
     EXECUTE 'INSERT INTO domain SELECT * FROM '||main_schema_name||'.domain';
@@ -54,7 +57,7 @@ $body$
     EXECUTE 'INSERT INTO drug_strength SELECT * FROM '||main_schema_name||'.drug_strength';
     EXECUTE 'CREATE TABLE pack_content (LIKE '||main_schema_name||'.pack_content)';
     EXECUTE 'INSERT INTO pack_content SELECT * FROM '||main_schema_name||'.pack_content';
-    EXECUTE 'CREATE TABLE concept_ancestor (LIKE '||main_schema_name||'.concept_ancestor)';
+    EXECUTE 'CREATE TABLE IF NOT EXISTS concept_ancestor (LIKE '||main_schema_name||'.concept_ancestor)';
     EXECUTE 'INSERT INTO concept_ancestor SELECT * FROM '||main_schema_name||'.concept_ancestor WHERE $1=TRUE' USING include_concept_ancestor;
 
     --Create indexes and constraints for main tables
@@ -73,7 +76,7 @@ $body$
     ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
     ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_concept FOREIGN KEY (concept_id) REFERENCES concept (concept_id);
     ALTER TABLE concept_synonym ADD CONSTRAINT unique_synonyms UNIQUE (concept_id,concept_synonym_name,language_concept_id);
-    ALTER TABLE concept_ancestor ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (ancestor_concept_id,descendant_concept_id);
+    IF drop_concept_ancestor OR include_concept_ancestor THEN ALTER TABLE concept_ancestor ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (ancestor_concept_id,descendant_concept_id); END IF;
 
     CREATE UNIQUE INDEX idx_unique_concept_code ON concept (vocabulary_id, concept_code) WHERE vocabulary_id NOT IN ('DRG', 'SMQ') AND concept_code <> 'OMOP generated';
     /*
@@ -88,7 +91,7 @@ $body$
     CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id);
     CREATE UNIQUE INDEX u_pack_content ON pack_content (pack_concept_id, drug_concept_id, amount);
     ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id);
-    CREATE INDEX idx_ca_descendant ON concept_ancestor (descendant_concept_id);
+    CREATE INDEX IF NOT EXISTS idx_ca_descendant ON concept_ancestor (descendant_concept_id);
 
     --Enable other constraints
     ALTER TABLE domain ADD CONSTRAINT fpk_domain_concept FOREIGN KEY (DOMAIN_concept_id) REFERENCES concept (concept_id);

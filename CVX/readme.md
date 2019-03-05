@@ -18,5 +18,7 @@ Example:
 - run SELECT sources.load_input_tables('CVX','CVX Code Set '||TO_DATE('20091015', 'yyyymmdd'));
 - repeat untill last version
 Note: be careful with dates, because we need a minimum date of each concept code of all the sets
-5. Run load_stage.sql
-6. Run generic_update.sql (from working directory)
+5. Download "CPT Codes Mapped to CVX Codes" from https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=cpt
+6. Download "Mapping CVX to Vaccine Groups" from https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=vg
+7. Run load_stage.sql
+8. Run generic_update.sql (from working directory)

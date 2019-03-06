@@ -17,8 +17,8 @@
 * Date: 2019
 **************************************************************************/
 
-DROP TABLE IF EXISTS sources.osm;
-CREATE TABLE sources.osm
+DROP TABLE IF EXISTS SOURCES.OSM;
+CREATE TABLE SOURCES.OSM
 (
 	gid integer,
 	id integer,
@@ -37,3 +37,5 @@ CREATE TABLE sources.osm
 	iso3166_2 varchar(254),
 	geom devv5.geometry(MultiPolygon,4326)
 );
+
+CREATE INDEX idx_osm_id ON SOURCES.OSM (ID);

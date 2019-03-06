@@ -3,8 +3,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'OSM',
-	pVocabularyDate			=> CURRENT_DATE,
-	pVocabularyVersion		=> 'Ver 1.0',
+	pVocabularyDate			=> (SELECT MAX(timestamp)::DATE FROM sources.osm),
+	pVocabularyVersion		=> 'OSM Release '||(SELECT MAX(timestamp)::DATE FROM sources.osm),
 	pVocabularyDevSchema    => 'DEV_OSM'
 );
 END $_$;
@@ -18,10 +18,9 @@ TRUNCATE TABLE drug_strength_stage;
 
 -- 3 Preliminary work
 -- 3.1 Creation of boundaries_hierarchy temporary table
-DROP TABLE IF EXISTS boundaries_hierarchy
-;
+DROP TABLE IF EXISTS boundaries_hierarchy;
 
-CREATE TABLE IF NOT EXISTS boundaries_hierarchy
+CREATE TABLE boundaries_hierarchy
 (	gid integer,
 	id integer,
 	country varchar(254),
@@ -39,18 +38,12 @@ CREATE TABLE IF NOT EXISTS boundaries_hierarchy
 	iso3166_2 varchar(254),
     firts_ancestor_id integer,
     second_ancestor_id integer
-)
-;
+);
 
 -- 3.2 Creation of excluded_objects table
-DROP TABLE IF EXISTS excluded_objects
-;
+DROP TABLE IF EXISTS excluded_objects;
 
-CREATE TABLE IF NOT EXISTS excluded_objects AS
-    (
-    SELECT * FROM boundaries_hierarchy WHERE FALSE
-    )
-;
+CREATE TABLE excluded_objects (LIKE boundaries_hierarchy);
 
 -- 3.3 Population of boundaries_hierarchy table
 -- 3.3.1 id has the 1st position in rpath
@@ -85,22 +78,21 @@ SELECT s.gid,
             ELSE 1
 		   	END as second_ancestor_id
 
-FROM sources.osm_2019_02_25 s
+FROM sources.osm s
 
-LEFT JOIN sources.osm_2019_02_25 s2
+LEFT JOIN sources.osm s2
 	ON	(regexp_split_to_array(s.rpath, ','))[2] :: INT = s2.id
 
-LEFT JOIN sources.osm_2019_02_25 s3
+LEFT JOIN sources.osm s3
 	ON	(regexp_split_to_array(s.rpath, ','))[3] :: INT = s3.id
 
-LEFT JOIN sources.osm_2019_02_25 s4
+LEFT JOIN sources.osm s4
 	ON	(regexp_split_to_array(s.rpath, ','))[4] :: INT = s4.id
 
-LEFT JOIN sources.osm_2019_02_25 s5
+LEFT JOIN sources.osm s5
 	ON	(regexp_split_to_array(s.rpath, ','))[5] :: INT = s5.id
 
-WHERE s.id = (regexp_split_to_array(s.rpath, ','))[1] :: INT
-;
+WHERE s.id = (regexp_split_to_array(s.rpath, ','))[1] :: INT;
 
 -- 3.3.2 id has the 2nd position in rpath
 INSERT INTO boundaries_hierarchy
@@ -128,20 +120,19 @@ SELECT s.gid,
 			ELSE 1
 		   	END as second_ancestor_id
 
-FROM sources.osm_2019_02_25 s
+FROM sources.osm s
 
-LEFT JOIN sources.osm_2019_02_25 s1
+LEFT JOIN sources.osm s1
 	ON	(regexp_split_to_array(s.rpath, ','))[1] :: INT = s1.id
 
-LEFT JOIN sources.osm_2019_02_25 s3
+LEFT JOIN sources.osm s3
 	ON	(regexp_split_to_array(s.rpath, ','))[3] :: INT = s3.id
 
-LEFT JOIN sources.osm_2019_02_25 s4
+LEFT JOIN sources.osm s4
 	ON	(regexp_split_to_array(s.rpath, ','))[4] :: INT = s4.id
 
 WHERE s.id = (regexp_split_to_array(s.rpath, ','))[2] :: INT
-    AND s.id != (regexp_split_to_array(s.rpath, ','))[1] :: INT
-;
+    AND s.id != (regexp_split_to_array(s.rpath, ','))[1] :: INT;
 
 -- 3.3.3 id has the 3rd position in rpath
 INSERT INTO boundaries_hierarchy
@@ -171,26 +162,25 @@ SELECT s.gid,
 			ELSE 1
 		   	END as second_ancestor_id
 
-FROM sources.osm_2019_02_25 s
+FROM sources.osm s
 
-LEFT JOIN sources.osm_2019_02_25 s1
+LEFT JOIN sources.osm s1
 	ON	(regexp_split_to_array(s.rpath, ','))[1] :: INT = s1.id
 
-LEFT JOIN sources.osm_2019_02_25 s2
+LEFT JOIN sources.osm s2
 	ON	(regexp_split_to_array(s.rpath, ','))[2] :: INT = s2.id
 
-LEFT JOIN sources.osm_2019_02_25 s4
+LEFT JOIN sources.osm s4
 	ON	(regexp_split_to_array(s.rpath, ','))[4] :: INT = s4.id
 
-LEFT JOIN sources.osm_2019_02_25 s5
+LEFT JOIN sources.osm s5
 	ON	(regexp_split_to_array(s.rpath, ','))[5] :: INT = s5.id
 
-LEFT JOIN sources.osm_2019_02_25 s10
+LEFT JOIN sources.osm s10
 	ON	(regexp_split_to_array(s.rpath, ','))[10] :: INT = s10.id
 
 WHERE s.id = (regexp_split_to_array(s.rpath, ','))[3] :: INT
-    AND s.id != (regexp_split_to_array(s.rpath, ','))[1] :: INT
-;
+    AND s.id != (regexp_split_to_array(s.rpath, ','))[1] :: INT;
 
 -- 3.4 Geo objects clean-up
 -- 3.4.1 Excluding the useless & no name objects & >2 count objects
@@ -212,14 +202,11 @@ WHERE (name in ('(Neighborhood)', '平野', '村元')
 	8250158, 4603713, 4103691, 9107923, 6164994, 4002153, 8201989, 8199182, 6932977, 9215366, 4142039, 4142040, 9252171, 9302983, 6893574, 4079756, 9266970, 6164118, 3959632, 9182093, 8238110)
 --wrong objects from different adminlevels, but equal geography
    OR id in (5808786, 3884168, 6210876, 6992297, 6355818, 5231035, 8402981, 6242282, 6992286, 4587947, 6891534, 8388202, 3856703, 7182975, 7159794, 5758866, 5758865, 7783254, 7815256, 7763854, 3565868, 7972501, 8101735, 5190251))
-AND id NOT in (5012169)
-AND id not in (SELECT id FROM excluded_objects)
-;
+AND id <> 5012169;
 
 --Delete from boundaries_hierarchy
 DELETE FROM boundaries_hierarchy
-WHERE id in (SELECT id FROM excluded_objects)
-;
+WHERE id in (SELECT id FROM excluded_objects);
 
 -- 3.4.2 Delete counterpart objects with same geography but without wikidata
 INSERT INTO excluded_objects
@@ -230,22 +217,20 @@ WHERE id in (
 	FROM boundaries_hierarchy a1
 	JOIN boundaries_hierarchy a2
 		ON a1.country = a2.country  AND a1.id != a2.id AND a1.name = a2.name AND a1.firts_ancestor_id = a2.firts_ancestor_id AND a1.adminlevel = a2.adminlevel
-	JOIN sources.osm_2019_02_25 osm1
+	JOIN sources.osm osm1
         ON a1.id = osm1.id
-	JOIN sources.osm_2019_02_25 osm2
+	JOIN sources.osm osm2
         ON a2.id = osm2.id
 	WHERE osm1.geom :: devv5.geography = osm2.geom :: devv5.geography
 		AND (a1.wikidata IS NOT NULL OR a1.wikimedia IS NOT NULL)
 	GROUP BY a1.name
 	HAVING COUNT (*) = 1
 	)
-AND id not in (SELECT id FROM excluded_objects)
-;
+AND id not in (SELECT id FROM excluded_objects);
 
 --Delete from boundaries_hierarchy
 DELETE FROM boundaries_hierarchy
-WHERE id in (SELECT id FROM excluded_objects)
-;
+WHERE id in (SELECT id FROM excluded_objects);
 
 -- 3.4.3 Delete counterpart objects with same geography, but higher id
 INSERT INTO excluded_objects
@@ -256,21 +241,19 @@ WHERE id in (
 	FROM boundaries_hierarchy a1
 	JOIN boundaries_hierarchy a2
 		ON a1.country = a2.country AND a1.id != a2.id AND a1.name = a2.name AND a1.firts_ancestor_id = a2.firts_ancestor_id AND a1.adminlevel = a2.adminlevel
-	JOIN sources.osm_2019_02_25 osm1
+	JOIN sources.osm osm1
         ON a1.id = osm1.id
-	JOIN sources.osm_2019_02_25 osm2
+	JOIN sources.osm osm2
         ON a2.id = osm2.id
 	WHERE osm1.geom :: devv5.geography = osm2.geom :: devv5.geography
 	GROUP BY a1.name
 	HAVING COUNT (*) = 2
 	)
-AND id not in (SELECT id FROM excluded_objects)
-;
+AND id not in (SELECT id FROM excluded_objects);
 
 --Delete from boundaries_hierarchy
 DELETE FROM boundaries_hierarchy
-WHERE id in (SELECT id FROM excluded_objects)
-;
+WHERE id in (SELECT id FROM excluded_objects);
 
 -- 3.4.4 Excluding the useless & no name & counterpart objects in UK
 INSERT INTO excluded_objects
@@ -295,8 +278,7 @@ AND id not in (SELECT id FROM excluded_objects);
 
 --Delete from boundaries_hierarchy
 DELETE FROM boundaries_hierarchy
-WHERE id in (SELECT id FROM excluded_objects)
-;
+WHERE id in (SELECT id FROM excluded_objects);
 
 -- 3.4.5 Excluding the counterpart objects in UK
 with counterparts as (
@@ -325,13 +307,11 @@ AND wikimedia IS NULL
 AND country = 'GBR'
 AND adminlevel = 10
 AND id NOT in (4868152, 5218754, 5225378, 2895940, 5160147)
-AND id not in (SELECT id FROM excluded_objects)
-;
+AND id not in (SELECT id FROM excluded_objects);
 
 --Delete from boundaries_hierarchy
 DELETE FROM boundaries_hierarchy
-WHERE id in (SELECT id FROM excluded_objects)
-;
+WHERE id in (SELECT id FROM excluded_objects);
 
 -- 3.5 Hierarchy fix
 -- 3.5.1 Update firts_ancestor_id if parent was deleted
@@ -343,19 +323,16 @@ WHERE id in (
 	JOIN excluded_objects b
 	ON a.firts_ancestor_id = b.id
 	)
-	AND country != 'CAN'
-;
+	AND country != 'CAN';
 
 -- 3.5.2 Manual target updates
 UPDATE boundaries_hierarchy
 SET firts_ancestor_id = 9150813
-WHERE id in (9150812)
-;
+WHERE id = 9150812;
 
 UPDATE boundaries_hierarchy
 SET firts_ancestor_id = 5884638
-WHERE id in (206873)
-;
+WHERE id = 206873;
 
 -- 3.6 Delete remaining children of excluded objects
 INSERT INTO excluded_objects
@@ -367,13 +344,11 @@ WHERE id in (
 	JOIN excluded_objects b
 		ON a.firts_ancestor_id = b.id
 	)
-AND id not in (SELECT id FROM excluded_objects)
-;
+AND id not in (SELECT id FROM excluded_objects);
 
 --Delete from boundaries_hierarchy
 DELETE FROM boundaries_hierarchy
-WHERE id in (SELECT id FROM excluded_objects)
-;
+WHERE id in (SELECT id FROM excluded_objects);
 
 -- 4 Population of stages
 -- 4.1 Population of concept_stage
@@ -396,11 +371,10 @@ SELECT NULL AS concept_id,
 		   WHEN 12 THEN '12th level' END as concept_class_id,
 	   'S' as standard_concept,
 	   id as concept_code,
-	   '1970-01-01' :: DATE as valid_start_date,
-	   '2099-12-31' :: DATE as valid_end_date,
+	   TO_DATE('19700101','yyyymmdd') as valid_start_date,
+	   TO_DATE('20991231','yyyymmdd') as valid_end_date,
 	   NULL as invalid_reason
-FROM boundaries_hierarchy
-;
+FROM boundaries_hierarchy;
 
 -- 4.2 Population of concept_synonym_stage
 -- 4.2.1 Using locname
@@ -431,8 +405,7 @@ SELECT NULL as synonym_concept_id,
 		   WHEN 'ZAF' THEN 4180186
 		   ELSE 0 END as language_concept_id
 FROM boundaries_hierarchy
-WHERE locname != name
-;
+WHERE locname != name;
 
 -- 4.2.2 Using offname
 INSERT INTO concept_synonym_stage
@@ -464,8 +437,7 @@ SELECT NULL as synonym_concept_id,
 		   ELSE 0 END as language_concept_id
 FROM boundaries_hierarchy
 WHERE   offname != name
-	AND offname != locname
-;
+	AND offname != locname;
 
 -- 4.3 Population of concept_relationship_stage
 -- 4.3.1 Is a relationship
@@ -477,32 +449,12 @@ SELECT NULL as concept_id_1,
        'OSM' as vocabulary_id_1,
        'OSM' as vocabulary_id_2,
        'Is a' as relationship_id,
-       '1970-01-01' :: DATE as valid_start_date,
-       '2099-12-31' :: DATE as valid_end_date,
+       TO_DATE ('19700101', 'yyyymmdd') as valid_start_date,
+       TO_DATE ('20991231', 'yyyymmdd') as valid_end_date,
        NULL as invalid_reason
 FROM boundaries_hierarchy
-WHERE firts_ancestor_id != '0'
-;
-
--- 4.3.2 Subsumes relationship
-INSERT INTO concept_relationship_stage
-SELECT NULL as concept_id_1,
-       NULL as concept_id_2,
-       firts_ancestor_id as concept_code_1,
-       id as concept_code_2,
-       'OSM' as vocabulary_id_1,
-       'OSM' as vocabulary_id_2,
-       'Subsumes' as relationship_id,
-       '1970-01-01' :: DATE as valid_start_date,
-       '2099-12-31' :: DATE as valid_end_date,
-       NULL as invalid_reason
-FROM boundaries_hierarchy
-WHERE firts_ancestor_id != '0'
-;
+WHERE firts_ancestor_id != 0;
 
 -- 5 Clean up
-DROP TABLE boundaries_hierarchy
-;
-
-DROP TABLE excluded_objects
-;
+DROP TABLE boundaries_hierarchy;
+DROP TABLE excluded_objects;

@@ -14,11 +14,11 @@
 * limitations under the License.
 *
 * Authors: Alex Davydov, Oleg Zhuk, Christian Reich
-* Date: 2018
+* Date: 2019
 **************************************************************************/
 
-DROP TABLE IF EXISTS sources.osm_2019_02_25;
-CREATE TABLE sources.osm_2019_02_25
+DROP TABLE IF EXISTS sources.osm;
+CREATE TABLE sources.osm
 (
 	gid integer,
 	id integer,
@@ -36,5 +36,4 @@ CREATE TABLE sources.osm_2019_02_25
 	rpath varchar(254),
 	iso3166_2 varchar(254),
 	geom devv5.geometry(MultiPolygon,4326)
-)
-;
+);

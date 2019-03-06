@@ -251,6 +251,7 @@ $BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;
 
 CREATE type qa_tests.type_get_checks AS (
 	check_id int4,
+	check_name VARCHAR(1000),
 	concept_id_1 int4,
 	concept_id_2 int4,
 	relationship_id VARCHAR(20),
@@ -266,6 +267,7 @@ SET work_mem='5GB'
 AS $BODY$
 	--relationships cycle
 	SELECT 1 check_id,
+		'relationships cycle' AS check_name,
 		r.*
 	FROM concept_relationship r,
 		concept_relationship r_int
@@ -281,6 +283,7 @@ AS $BODY$
 
 	--opposing relationships between same pair of concepts
 	SELECT 2 check_id,
+		'opposing relationships between same pair of concepts' AS check_name,
 		r.*
 	FROM concept_relationship r,
 		concept_relationship r_int,
@@ -298,6 +301,7 @@ AS $BODY$
 
 	--relationships without reverse
 	SELECT 3 check_id,
+		'relationships without reverse' AS check_name,
 		r.*
 	FROM concept_relationship r,
 		relationship rel
@@ -359,6 +363,7 @@ AS $BODY$
 
 	--wrong relationships: 'Maps to' to 'D' or 'U'; replacement relationships to 'D'
 	SELECT 5 check_id,
+		$$wrong relationships: 'Maps to' to 'D' or 'U'; replacement relationships to 'D'$$ AS check_name,
 		r.*
 	FROM concept c2,
 		concept_relationship r
@@ -389,6 +394,7 @@ AS $BODY$
 
 	--direct and reverse mappings are not same
 	SELECT 6 check_id,
+		'direct and reverse mappings are not same' AS check_name,
 		r.*
 	FROM concept_relationship r,
 		relationship rel,
@@ -405,8 +411,9 @@ AS $BODY$
 
 	UNION ALL
 
-	-- wrong valid_start_date, valid_end_date or invalid_reason for the concept
+	--wrong valid_start_date, valid_end_date or invalid_reason for the concept
 	SELECT 7 check_id,
+		'wrong valid_start_date, valid_end_date or invalid_reason for the concept' AS check_name,
 		c.concept_id,
 		NULL,
 		c.vocabulary_id,
@@ -437,8 +444,9 @@ AS $BODY$
 
 	UNION ALL
 
-	-- wrong valid_start_date, valid_end_date or invalid_reason for the concept_relationship
+	--wrong valid_start_date, valid_end_date or invalid_reason for the concept_relationship
 	SELECT 8 check_id,
+		'wrong valid_start_date, valid_end_date or invalid_reason for the concept_relationship' AS check_name,
 		r.*
 	FROM concept_relationship r
 	WHERE (
@@ -456,7 +464,27 @@ AS $BODY$
 
 	UNION ALL
 
-	-- Rxnorm/Rxnorm Extension name duplications
+	--RxE to Rx name duplications
+	SELECT 9 check_id,
+		'RxE to Rx name duplications' AS check_name,
+		c2.concept_id,
+		c1.concept_id,
+		'Concept replaced by' AS relationship_id,
+		NULL AS valid_start_date,
+		NULL AS valid_end_date,
+		NULL AS invalid_reason
+	FROM concept c1
+	JOIN concept c2 ON upper(c2.concept_name) = upper(c1.concept_name)
+		AND c2.concept_class_id = c1.concept_class_id
+		AND c2.vocabulary_id = 'RxNorm Extension'
+		AND c2.invalid_reason IS NULL
+	WHERE c1.vocabulary_id = 'RxNorm'
+		AND c1.standard_concept = 'S'
+		AND COALESCE(checkid, 9) = 9
+
+	UNION ALL
+
+	--Rxnorm/Rxnorm Extension name duplications
 	--tempopary disabled (never used)
 	/*SELECT 9 check_id,
 		c_int.concept_id_1,
@@ -528,6 +556,7 @@ AS $BODY$
 
 	--one concept has multiple replaces
 	SELECT 10 check_id,
+		'one concept has multiple replaces' AS check_name,
 		r.*
 	FROM concept_relationship r
 	WHERE (

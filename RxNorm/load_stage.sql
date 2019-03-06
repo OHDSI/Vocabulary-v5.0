@@ -1196,6 +1196,18 @@ BEGIN
 	PERFORM dev_rxnorm.FillDrugStrengthStage();
 END $_$;
 
+--16. We need to run generic_update before small RxE clean up
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;
+
+--17. Run RxE clean up
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.RxECleanUP();
+END $_$;
+
 /*
 NDFRT, VA Product, VA Class are now retired
 see more at https://www.nlm.nih.gov/pubs/techbull/ja18/brief/ja18_ndfrt_removed_rxnorm.html

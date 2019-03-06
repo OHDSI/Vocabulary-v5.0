@@ -32,7 +32,7 @@ $body$
     SELECT devv5.FastRecreateSchema(); --recreate with default settings (copy from devv5, w/o ancestor, deprecated relationships and synonyms (faster)
     SELECT devv5.FastRecreateSchema(include_concept_ancestor=>true); --same as above, but table concept_ancestor is included
     SELECT devv5.FastRecreateSchema(include_concept_ancestor=>true,include_deprecated_rels=>true,include_synonyms=>true); --full recreate, all tables are included (much slower)
-    SELECT devv5.FastRecreateSchema(drop_concept_ancestor=>fasle); --preserve old concept_ancestor, but it will be ignored if the include_concept_ancestor is set to true
+    SELECT devv5.FastRecreateSchema(drop_concept_ancestor=>false); --preserve old concept_ancestor, but it will be ignored if the include_concept_ancestor is set to true
   */
   BEGIN
     IF CURRENT_SCHEMA = 'devv5' THEN RAISE EXCEPTION 'You cannot use this script in the ''devv5''!'; END IF;

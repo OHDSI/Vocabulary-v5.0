@@ -84,7 +84,8 @@ BEGIN
 				c1.vocabulary_id = 'RxNorm'
 				AND c2.vocabulary_id = 'RxNorm Extension'
 				)
-			);
+			)
+		AND r.invalid_reason IS NULL;
 
 	--5. Deprecate old relationships
 	UPDATE concept_relationship_stage crs
@@ -113,7 +114,7 @@ BEGIN
 		c.vocabulary_id,
 		'Concept replaced by',
 		CURRENT_DATE,
-		to_date('20991231', 'yyyymmdd')
+		TO_DATE('20991231', 'yyyymmdd')
 	FROM concept_stage cs
 	JOIN concept c ON c.concept_id = cs.concept_id
 	WHERE cs.invalid_reason = 'X';

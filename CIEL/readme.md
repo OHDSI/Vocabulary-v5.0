@@ -14,4 +14,4 @@ Prerequisites:
 2. Unzip CIEL_CSV.zip
 3. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('CIEL',TO_DATE('20150227','YYYYMMDD'),'Openmrs 1.11.0 20150227');
 4. Run load_stage.sql
-5. Run generic_update.sql (from working directory)
+5. Run generic_update: devv5.GenericUpdate();

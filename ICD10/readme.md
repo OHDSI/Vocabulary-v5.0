@@ -8,6 +8,4 @@ Prerequisites:
 2. Unzip the file icdClaMLYYYYens.xml and rename to icdClaML.xml
 3. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('ICD10',TO_DATE('20161201','YYYYMMDD'),'2016 Release');
 4. Run load_stage.sql
-5. Run generic_update.sql (from working directory)
-
- 
+5. Run generic_update: devv5.GenericUpdate();

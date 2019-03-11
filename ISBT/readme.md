@@ -8,4 +8,4 @@ Prerequisites:
 2. Download ISBT-128-Product-Description-Code-Database.accdb and rename to isbt.accdb
 3. Run in devv5: SELECT sources.load_input_tables('ISBT');
 4. Run load_stage.sql
-4. Run generic_update.sql (from working directory)
+4. Run generic_update: devv5.GenericUpdate();

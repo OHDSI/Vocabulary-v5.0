@@ -14,7 +14,7 @@
 
 8.Run After_Build_RxE.sql
 
-9.Run generic_update.sql,  should return null
+9.Run generic_update: devv5.GenericUpdate();
 
 10.Run
 DO $_$

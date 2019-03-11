@@ -6,4 +6,4 @@ Prerequisites:
 1. Run create_source_tables.sql and additional_DDL.sql
 2. Load the file
 4. Run load_stage.sql
-5. Run build_RxE.sql and generic_update.sql (from working directory)
+5. Run build_RxE.sql and generic_update: devv5.GenericUpdate();

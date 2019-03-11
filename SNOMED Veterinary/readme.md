@@ -18,4 +18,4 @@ Rename to der2_cRefset_AssociationFull_VTS.txt
 
 5. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('SNOMED Veterinary',TO_DATE('20181001','YYYYMMDD'),'SNOMED Veterinary 20181001');
 6. Run load_stage.sql
-7. Run generic_update.sql (from working directory)
+7. Run generic_update: devv5.GenericUpdate();

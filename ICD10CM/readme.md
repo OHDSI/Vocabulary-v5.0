@@ -12,4 +12,4 @@ Prerequisites:
 SELECT sources.load_input_tables('ICD10CM',TO_DATE('20170428','YYYYMMDD'),'ICD10CM FY2017 code descriptions');
 5. Run load_stage.sql
 Note: Load_stage generates list of the relationships that need to be checked and modified by the medical coder and after uploading this data to server load_stage continues making proper relationships using this manually created table
-6. Run generic_update.sql (from working directory)
+6. Run generic_update: devv5.GenericUpdate();

@@ -18,5 +18,5 @@ Prerequisites:
 4. Run in devv5: SELECT sources.load_input_tables('DPD',TO_DATE('20170901', 'yyyymmdd'),'DPD 20170901');
 5. Run load_stage.sql
 6. Run Build_RxE.sql
-7. Run generic_update.sql again
+7. Run generic_update: devv5.GenericUpdate();
 8. Run drops.sql to remove all the temporary tables

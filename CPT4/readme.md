@@ -6,6 +6,6 @@ Prerequisites:
 - Working directory CPT4
 
 1. Run load_stage.sql (The pVocabularyDate will be automatically retrieved from the UMLS [SOURCES.MRSMAP.vocabulary_date])
-2. Run generic_update.sql (from working directory)
+2. Run generic_update: devv5.GenericUpdate();
 
  

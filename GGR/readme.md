@@ -18,4 +18,4 @@ Note: manual tables in correct format for current version are present in subdire
 Give table dsfix to Medical Coder.
 Note: Place 'D' in Device field for products, that should be marked as Devices
 Upload dsfix.csv and run fixes.sql
-7. Run generic_update.sql (from working directory)
+7. Run generic_update: devv5.GenericUpdate();

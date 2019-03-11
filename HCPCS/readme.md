@@ -13,6 +13,4 @@ Prerequisites:
 4. Exctract HCPCYYYY_CONTR_ANWEB.xlsx and rename to HCPC_CONTR_ANWEB.xlsx
 5. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('HCPCS',TO_DATE('20171106','YYYYMMDD'),'2018 Alpha Numeric HCPCS File');
 6. Run load_stage.sql
-7. Run generic_update.sql (from working directory)
-
- 
+7. Run generic_update: devv5.GenericUpdate();

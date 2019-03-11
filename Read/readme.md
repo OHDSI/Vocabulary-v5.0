@@ -17,4 +17,4 @@ nhs_datamigration_VV.0.0_YYYYMMDD000001.zip from https://isd.digital.nhs.uk/trud
 
 4. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('READ',TO_DATE('20180403','YYYYMMDD'),'NHS READV2 21.0.0 20160401000001 + DATAMIGRATION_25.0.0_20180403000001'); 
 5. Run load_stage.sql
-6. Run generic_update.sql (from working directory)
+6. Run generic_update: devv5.GenericUpdate();

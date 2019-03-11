@@ -50,4 +50,4 @@ Rename to der2_cRefset_AssociationFull_INT.txt, der2_cRefset_AssociationFull_UK.
 
 16. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('SNOMED',TO_DATE('20180131','YYYYMMDD'),'Snomed Release 20180131');
 17. Run load_stage.sql
-18. Run generic_update.sql (from working directory)
+18. Run generic_update: devv5.GenericUpdate();

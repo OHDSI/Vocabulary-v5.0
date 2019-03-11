@@ -3,8 +3,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'OSM',
-	pVocabularyDate			=> (SELECT MAX(timestamp)::DATE FROM sources.osm),
-	pVocabularyVersion		=> 'OSM Release '||(SELECT MAX(timestamp)::DATE FROM sources.osm),
+	pVocabularyDate			=> (SELECT MIN(timestamp)::DATE FROM sources.osm),
+	pVocabularyVersion		=> 'OSM Release '||(SELECT MIN(timestamp)::DATE FROM sources.osm),
 	pVocabularyDevSchema    => 'DEV_OSM'
 );
 END $_$;

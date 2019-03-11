@@ -9,6 +9,4 @@ Prerequisites:
 2. Unpack "Indication sources.zip"
 3. Run in devv5: SELECT sources.load_input_tables('Indication'); (The pVocabularyDate and pVocabularyVersion will be automatically retrieved from the GCN_SEQNO)
 4. Run load_stage.sql
-5. Run generic_update.sql (from working directory)
-
- 
+5. Run generic_update: devv5.GenericUpdate();

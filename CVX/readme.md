@@ -21,4 +21,4 @@ Note: be careful with dates, because we need a minimum date of each concept code
 5. Download "CPT Codes Mapped to CVX Codes" from https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=cpt
 6. Download "Mapping CVX to Vaccine Groups" from https://www2a.cdc.gov/vaccines/iis/iisstandards/vaccines.asp?rpt=vg
 7. Run load_stage.sql
-8. Run generic_update.sql (from working directory)
+8. Run generic_update: devv5.GenericUpdate();

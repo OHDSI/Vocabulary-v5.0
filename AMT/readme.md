@@ -30,5 +30,5 @@ sct2_Relationship_Full_AU1000036_20161130.txt and rename to sct2_Relationship_Fu
 8. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('AMT',TO_DATE('20161130','YYYYMMDD'),'Clinical Terminology v20161130');
 9. Run concat.bat or concat.sh depending on your OS
 10. Run load_stage.sql
-11. Run generic_update.sql (from working directory);
+11. Run generic_update: devv5.GenericUpdate();
 12. Create backup of input tables as table_name_bckp_ddmmyyyy

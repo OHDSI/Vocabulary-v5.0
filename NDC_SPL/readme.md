@@ -18,4 +18,4 @@ Open the site http://www.fda.gov/Drugs/InformationOnDrugs/ucm142438.htm
 5. Extract rxnorm_mappings.txt from rxnorm_mappings.zip
 6. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('NDC_SPL',TO_DATE('20180420','YYYYMMDD'),'NDC 20180420');
 7. Run load_stage.sql
-8. Run generic_update.sql (from working directory)
+8. Run generic_update: devv5.GenericUpdate();

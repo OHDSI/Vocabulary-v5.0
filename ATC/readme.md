@@ -6,6 +6,6 @@ Prerequisites:
 - Working directory ATC.
 
 1. Run load_stage.sql
-2. Run generic_update.sql (from working directory)
+2. Run generic_update: devv5.GenericUpdate();
 
  

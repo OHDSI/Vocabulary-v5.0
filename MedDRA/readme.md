@@ -20,4 +20,4 @@ soc_hlgt.asc
 
 4. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('MedDRA',TO_DATE('20160901','YYYYMMDD'),'MedDRA version 19.1');
 5. Run load_stage.sql
-6. Run generic_update.sql (from working directory)
+6. Run generic_update: devv5.GenericUpdate();

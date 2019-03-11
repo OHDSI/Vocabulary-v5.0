@@ -11,4 +11,4 @@ Prerequisites:
 3. Extract the nhs_dmwb_xxxx.zip\UKTC NHS Data Migration Maps.mdb file and rename to opcs4_data_migration.mdb
 4. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('OPCS4',TO_DATE('20180614','YYYYMMDD'),'DATAMIGRATION_25.1.0_20180614000001');
 5. Run load_stage.sql
-6. Run generic_update.sql (from working directory)
+6. Run generic_update: devv5.GenericUpdate();

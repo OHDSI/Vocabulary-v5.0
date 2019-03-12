@@ -2096,15 +2096,17 @@ with c as (
   where d_combo!=' ' -- to exclude "Marketed Branded Drug Forms" without strength
 )
 select
-  concept_code, concept_id,  
-  q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, mf_code, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, mf_id,
+  concept_code, concept_id,
+  q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, mf_code,
+  first_value(r_value) over (partition by concept_code order by concept_code,q_div) as r_value,
+  quant_unit_id, ri_combo, rd_combo, df_id, bn_id, mf_id,q_div,
   'Marketed Product'::varchar as concept_class_id
 from (
-  select 
-    p.q_value, p.quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, mf_code, 
-    coalesce(q.r_value, p.q_value*conversion_factor, 0) as r_value, 
+  select
+    p.q_value, p.quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, mf_code,
+    coalesce(q.r_value, p.q_value*conversion_factor, 0) as r_value,
     coalesce(q.quant_unit_id, x_unit.unit_id, 0) as quant_unit_id,
-    ri_combo, rd_combo, df_id, bn_id, mf_id 
+    ri_combo, rd_combo, df_id, bn_id, mf_id,q_div
   from (
     select distinct
       c.*,
@@ -2134,19 +2136,19 @@ left join (select concept_id, quant_value as r_value, quant_unit_id, i_combo as 
 insert into full_corpus
 with ex as (
 -- Quant Branded Box
-  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id
+  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id,q_div
   from full_corpus where df_id!=0 and bn_id!=0
 union
 -- Branded Box
-  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id, bn_id
+  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id, bn_id,q_div
   from full_corpus where df_id!=0 and bn_id!=0
 union
 -- Quant Branded Drug
-  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, 0 as bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id
+  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, 0 as bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id,q_div
   from full_corpus where df_id!=0 and bn_id!=0
 union
 -- Branded Drug
-  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, bn_code, 0 as bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id, bn_id
+  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, bn_code, 0 as bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id, bn_id,q_div
   from full_corpus where df_id!=0 and bn_id!=0
 ),
 c as (
@@ -2190,10 +2192,11 @@ except
   select q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs from ex
 )
 select
-  concept_code, concept_id,  
+  concept_code, concept_id,
   q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, ' ' as mf_code,
-  r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, 0 as mf_id,
-  case 
+  first_value(r_value) over (partition by concept_code order by concept_code,q_div) as r_value,
+  quant_unit_id, ri_combo, rd_combo, df_id, bn_id, 0 as mf_id,q_div,
+  case
     when q_value=0 and bs=0 then 'Branded Drug'
     when q_value=0 then 'Branded Drug Box'
     when bs=0 then 'Quant Branded Drug'
@@ -2203,11 +2206,11 @@ from (
 -- Collect existing
   select * from ex
 union
-  select 
+  select
     p.q_value, p.quant_unit, qi_combo, qd_combo, df_code, bn_code, bs,
-    coalesce(q.r_value, p.q_value*conversion_factor, 0) as r_value, 
+    coalesce(q.r_value, p.q_value*conversion_factor, 0) as r_value,
     coalesce(q.quant_unit_id, x_unit.unit_id, 0) as quant_unit_id,
-    ri_combo, rd_combo, df_id, bn_id
+    ri_combo, rd_combo, df_id, bn_id,q_div
   from (
     select distinct
       c.*,
@@ -2233,19 +2236,19 @@ left join (select concept_id, quant_value as r_value, quant_unit_id, i_combo as 
 insert into full_corpus
 with ex as (
 -- Quant Clinical Box
-  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id
+  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id,q_div
   from full_corpus where df_id!=0
 union
 -- Clinical Box
-  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id
+  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id,q_div
   from full_corpus where df_id!=0
 union
 -- Quant Clinical Drug
-  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, 0 as bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id
+  select distinct q_value, quant_unit, qi_combo, qd_combo, df_code, 0 as bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id,q_div
   from full_corpus where df_id!=0
 union
 -- Clinical Drug
-  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, 0 as bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id
+  select distinct 0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, df_code, 0 as bs, 0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, df_id,q_div
   from full_corpus where df_id!=0
 ),
 c as (
@@ -2285,10 +2288,11 @@ except
   select q_value, quant_unit, qi_combo, qd_combo, df_code, bs from ex
 )
 select
-  concept_code, concept_id,  
+  concept_code, concept_id,
   q_value, quant_unit, qi_combo, qd_combo, df_code, ' ' as bn_code, bs, ' ' as mf_code,
-  r_value, quant_unit_id, ri_combo, rd_combo, df_id, 0 as bn_id, 0 as mf_id,
-  case 
+  first_value(r_value) over (partition by concept_code order by concept_code,q_div desc) as r_value,
+  quant_unit_id, ri_combo, rd_combo, df_id, 0 as bn_id, 0 as mf_id,q_div,
+  case
     when q_value=0 and bs=0 then 'Clinical Drug'
     when q_value=0 then 'Clinical Drug Box'
     when bs=0 then 'Quant Clinical Drug'
@@ -2298,11 +2302,11 @@ from (
 -- Collect existing
   select * from ex
 union
-  select 
+  select
     p.q_value, p.quant_unit, qi_combo, qd_combo, df_code, bs,
-    coalesce(q.r_value, p.q_value*conversion_factor, 0) as r_value, 
+    coalesce(q.r_value, p.q_value*conversion_factor, 0) as r_value,
     coalesce(q.quant_unit_id, x_unit.unit_id, 0) as quant_unit_id,
-    ri_combo, rd_combo, df_id
+    ri_combo, rd_combo, df_id,q_div
   from (
     select distinct
       c.*,
@@ -2320,6 +2324,7 @@ union
 left join (select concept_code, quant_value as q_value, quant_unit, i_combo as qi_combo, d_combo as qd_combo, df_code, bs from q_existing where mf_code=' ' and bn_code=' ') as s0 using(q_value, quant_unit, qi_combo, qd_combo, df_code, bs)
 left join (select concept_id, quant_value as r_value, quant_unit_id, i_combo as ri_combo, d_combo as rd_combo, df_id, bs from r_existing where mf_id=0 and bn_id=0) as s1 using(r_value, quant_unit_id, ri_combo, rd_combo, df_id, bs)
 ;
+
 
 -- Branded Drug Form
 -- Definition: i_combo, df and bn, no quant, d_combo, bs and mf
@@ -2339,9 +2344,9 @@ except
   select qi_combo, df_code, bn_code from ex
 )
 select
-  concept_code, concept_id,  
+  concept_code, concept_id,
   0 as q_value, ' ' as quant_unit, qi_combo, ' ' as qd_combo, df_code, bn_code, 0 as bs, ' ' as mf_code,
-  0 as r_value, 0 as quant_unit_id, ri_combo, ' ' as rd_combo, df_id, bn_id, 0 as mf_id,
+  0 as r_value, 0 as quant_unit_id, ri_combo, ' ' as rd_combo, df_id, bn_id, 0 as mf_id,null as q_div,
   'Branded Drug Form' as concept_class_id
 from (
 -- Collect existing
@@ -2366,7 +2371,7 @@ left join (select concept_id, i_combo as ri_combo, df_id, bn_id from r_existing 
 insert into full_corpus
 with ex as (
   select distinct qi_combo, df_code, ri_combo, df_id
-  from full_corpus where df_id!=0 
+  from full_corpus where df_id!=0
 ),
 c as (
   select
@@ -2378,9 +2383,9 @@ except
   select qi_combo, df_code from ex
 )
 select
-  concept_code, concept_id,  
+  concept_code, concept_id,
   0 as q_value, ' ' as quant_unit, qi_combo, ' ' as qd_combo, df_code, ' ' as bn_code, 0 as bs, ' ' as mf_code,
-  0 as r_value, 0 as quant_unit_id, ri_combo, ' ' as rd_combo, df_id, 0 as bn_id, 0 as mf_id,
+  0 as r_value, 0 as quant_unit_id, ri_combo, ' ' as rd_combo, df_id, 0 as bn_id, 0 as mf_id, null as q_div,
   'Clinical Drug Form' as concept_class_id
 from (
 -- Collect existing
@@ -2418,7 +2423,7 @@ except
 select
   concept_code, concept_id,
   0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, ' ' as df_code, bn_code, 0 as bs, ' ' as mf_code,
-  0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, 0 as df_id, bn_id, 0 as mf_id,
+  0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, 0 as df_id, bn_id, 0 as mf_id,null as q_div,
   'Branded Drug Comp' as concept_class_id
 from (
 -- Collect existing
@@ -2442,7 +2447,7 @@ left join (select concept_id, i_combo as ri_combo, d_combo as rd_combo, bn_id fr
 drop table if exists q_breakup;
 create table q_breakup as
 -- break up all rd_combos in q_combo
-select d_combo as qd_combo, i_code as q_i, ds_code as q_ds from q_combo join q_ds using(concept_code) 
+select d_combo as qd_combo, i_code as q_i, ds_code as q_ds from q_combo join q_ds using(concept_code)
 union
 select ds_code::varchar, ingredient_concept_code, ds_code from q_uds
 ;
@@ -2485,7 +2490,7 @@ c as (
     q_i as qi_combo, q_ds::varchar as qd_combo
   from q_combo
   join q_breakup on d_combo=qd_combo
-  where d_combo!=' ' 
+  where d_combo!=' '
 except
 -- exclude the combinations already translated previously
   select qi_combo, qd_combo from ex
@@ -2493,7 +2498,7 @@ except
 select
   concept_code, concept_id,
   0 as q_value, ' ' as quant_unit, qi_combo, qd_combo, ' ' as df_code, ' ' as bn_code, 0 as bs, ' ' as mf_code,
-  0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, 0 as df_id, 0 as bn_id, 0 as mf_id,
+  0 as r_value, 0 as quant_unit_id, ri_combo, rd_combo, 0 as df_id, 0 as bn_id, 0 as mf_id,null as q_div,
   'Clinical Drug Comp' as concept_class_id
 from (
 -- Collect existing
@@ -2528,10 +2533,10 @@ select distinct concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, b
 -- Connect q_existing concept codes (from drug_concept_stage) to existing corpus or new extensions
 drop table if exists maps_to;
 create table maps_to as
-select distinct 
+select distinct
   fc.concept_code as from_code,
   first_value(ea.concept_id) over (partition by fc.concept_code order by u_prec) as to_id -- pick only one of many with the better denominator fit
-from full_corpus fc join extension_attribute ea using(r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id) 
+from full_corpus fc join extension_attribute ea using(r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id)
 left join qr_d_combo using(qd_combo, rd_combo)
 where concept_code is not null
 ;

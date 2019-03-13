@@ -17,8 +17,8 @@
 * Date: 2019
 **************************************************************************/
 
-DROP TABLE IF EXISTS SOURCES.OSM;
-CREATE TABLE SOURCES.OSM
+DROP TABLE IF EXISTS sources.osm;
+CREATE TABLE sources.osm
 (
 	gid integer,
 	id integer,
@@ -39,3 +39,31 @@ CREATE TABLE SOURCES.OSM
 );
 
 CREATE INDEX idx_osm_id ON SOURCES.OSM (ID);
+
+DROP TABLE IF EXISTS sources.cb_us_division_500k;
+CREATE TABLE sources.cb_us_division_500k
+(
+	gid int,
+	divisionce varchar(1),
+	affgeoid varchar(10),
+	geoid varchar(1),
+	name varchar(100),
+	lsad varchar(2),
+	aland double precision,
+	awater double precision,
+	geom devv5.geometry(MultiPolygon,4326)
+);
+
+DROP TABLE IF EXISTS sources.cb_us_region_500k;
+CREATE TABLE sources.cb_us_region_500k
+(
+	gid int,
+	regionce varchar(1),
+	affgeoid varchar(10),
+	geoid varchar(1),
+	name varchar(100),
+	lsad varchar(2),
+	aland double precision,
+	awater double precision,
+	geom devv5.geometry(MultiPolygon,4326)
+);

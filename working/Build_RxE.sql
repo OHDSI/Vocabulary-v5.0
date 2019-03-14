@@ -2194,7 +2194,7 @@ except
 select
   concept_code, concept_id,
   q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, ' ' as mf_code,
-  first_value(r_value) over (partition by concept_code order by concept_code,q_div) as r_value,
+  first_value(r_value) over (partition by concept_code order by concept_code,q_div,case when r_value = q_value then 1 else 0 end desc) as r_value,
   quant_unit_id, ri_combo, rd_combo, df_id, bn_id, 0 as mf_id,q_div,
   case
     when q_value=0 and bs=0 then 'Branded Drug'
@@ -2290,7 +2290,7 @@ except
 select
   concept_code, concept_id,
   q_value, quant_unit, qi_combo, qd_combo, df_code, ' ' as bn_code, bs, ' ' as mf_code,
-  first_value(r_value) over (partition by concept_code order by concept_code,q_div desc) as r_value,
+  first_value(r_value) over (partition by concept_code order by concept_code,q_div,case when r_value = q_value then 1 else 0 end desc) as r_value,
   quant_unit_id, ri_combo, rd_combo, df_id, 0 as bn_id, 0 as mf_id,q_div,
   case
     when q_value=0 and bs=0 then 'Clinical Drug'
@@ -2534,8 +2534,8 @@ select distinct concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, b
 drop table if exists maps_to;
 create table maps_to as
 select distinct
-  fc.concept_code as from_code,
-  first_value(ea.concept_id) over (partition by fc.concept_code order by u_prec) as to_id -- pick only one of many with the better denominator fit
+  fc.concept_code as from_code, 
+  first_value(ea.concept_id) over (partition by fc.concept_code order by case when ea.concept_id<0 then 1 else 0 end,u_prec) as to_id -- pick only one of many with the better denominator fit
 from full_corpus fc join extension_attribute ea using(r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id)
 left join qr_d_combo using(qd_combo, rd_combo)
 where concept_code is not null

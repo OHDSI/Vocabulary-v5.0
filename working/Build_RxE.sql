@@ -2098,7 +2098,7 @@ with c as (
 select
   concept_code, concept_id,
   q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, mf_code,
-  first_value(r_value) over (partition by concept_code order by concept_code,q_div) as r_value,
+  first_value(r_value) over (partition by concept_code order by concept_code,q_div,case when r_value = q_value then 1 else 0 end desc) as r_value,
   quant_unit_id, ri_combo, rd_combo, df_id, bn_id, mf_id,q_div,
   'Marketed Product'::varchar as concept_class_id
 from (

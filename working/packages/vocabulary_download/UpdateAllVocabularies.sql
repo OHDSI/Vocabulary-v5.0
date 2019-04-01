@@ -54,7 +54,7 @@ begin
       
       if coalesce(cSrcDate::varchar,cSrcVersion)<>coalesce(cNewDate::varchar,cNewVersion) then
         --update vocabulary in source-schema
-        execute 'select session_id, last_status, result_output from vocabulary_download.get_'||cVocab.vocabulary_id||'()' into cSessionID, cLastStatusID, cResult;
+        execute 'select session_id, last_status, result_output from vocabulary_download.get_'||replace(cVocab.vocabulary_id,' ','_')||'()' into cSessionID, cLastStatusID, cResult;
         if cLastStatusID=3 then --the downloading/parsing was successfull
           if cVocab.vocabulary_dev_schema is not null then
             --set dev-schema

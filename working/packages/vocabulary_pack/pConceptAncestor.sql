@@ -18,7 +18,7 @@ BEGIN
   cStartTime:=clock_timestamp();
 
   IF is_small THEN 
-    iVocabularies:=ARRAY['RxNorm','RxNorm Extension','ATC','NFC','EphMRA ATC'];
+    iVocabularies:=ARRAY['RxNorm','RxNorm Extension','ATC','NFC','EphMRA ATC','CVX'];
   END IF;
   
   --materialize main query

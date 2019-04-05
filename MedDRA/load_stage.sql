@@ -134,9 +134,9 @@ WHERE llt_currency = 'Y'
 	AND llt_code <> pt_code;
 
 --4. Update domain_id
-drop table t_domains
+drop view t_domains
 ;
-create table t_domains as
+create view t_domains as
 --LLT level 
  select   llt_code as concept_code,
 case 

@@ -134,133 +134,168 @@ WHERE llt_currency = 'Y'
 	AND llt_code <> pt_code;
 
 --4. Update domain_id
-with t_domains as 
-(
---LLT level 
- select   llt_code as concept_code,
-case 
---pt level
-when pt_name ~* 'monitoring|centesis|imaging|screen' then 'Procedure'
- 
---hlt level
-when hlt_name ~* 'exposures|Physical examination procedures and organ system status' then 'Observation'
-when hlt_name ~* 'histopathology|imaging|procedure' then 'Procedure'
-when hlt_name = 'Acquired gene mutations and other alterations' then 'Measurement'
---hlgt level
-when hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'  then 'Observation'
---soc level
-when soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions' then  'Condition'
-when soc_name ~ 'Surgical and medical procedures' then 'Procedure'
-when soc_name in ('Product issues', 'Social circumstances') then 'Observation'
-when soc_name = 'Investigations' then 'Measurement'
-
-else 'Undefined' end
- as domain_id
-
- from SOURCES.md_hierarchy h 
-join SOURCES.low_level_term l on l.pt_code = h.pt_code and llt_currency ='Y' 
-where primary_soc_fg='Y'
-
-union
-
--- pt level
-  select   pt_code as concept_code,
-case 
---pt level
-when pt_name ~* 'monitoring|centesis|imaging|screen' then 'Procedure'
- 
---hlt level
-when hlt_name ~* 'exposures|Physical examination procedures and organ system status' then 'Observation'
-when hlt_name ~* 'histopathology|imaging|procedure' then 'Procedure'
-when hlt_name = 'Acquired gene mutations and other alterations' then 'Measurement'
-
---hlgt level
-when hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)' then 'Observation'
---soc level
-when soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions' then  'Condition'
-when soc_name ~ 'Surgical and medical procedures' then 'Procedure'
-when soc_name in ('Product issues', 'Social circumstances') then 'Observation'
-when soc_name = 'Investigations' then 'Measurement'
-
-else 'Undefined' end
- as domain_id
-
- from SOURCES.md_hierarchy h
-where primary_soc_fg='Y'
-
-union 
---hlt level
-  select  hlt_code as concept_code, 
-case 
-
---hlt level
-when hlt_name ~* 'exposures|Physical examination procedures and organ system status' then 'Observation'
-when hlt_name ~* 'histopathology|imaging|procedure' then 'Procedure'
-when hlt_name = 'Acquired gene mutations and other alterations' then 'Measurement'
-
---hlgt level
-when hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)' then 'Observation'
---soc level
-when soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions' then  'Condition'
-when soc_name ~ 'Surgical and medical procedures' then 'Procedure'
-when soc_name in ('Product issues', 'Social circumstances') then 'Observation'
-when soc_name = 'Investigations' then 'Measurement'
-
-else 'Undefined' end
- as domain_id
-
- from SOURCES.md_hierarchy h
-where primary_soc_fg='Y'
-
-union 
---hlgt level
-  select  hlgt_code as concept_code, 
-case 
---hlgt level
-when hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)' then 'Observation'
---soc level
-when soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions' then  'Condition'
-when soc_name ~ 'Surgical and medical procedures' then 'Procedure'
-when soc_name in ('Product issues', 'Social circumstances') then 'Observation'
-when soc_name = 'Investigations' then 'Measurement'
-
-else 'Undefined' end
- as domain_id
-
- from SOURCES.md_hierarchy h
-
-where primary_soc_fg='Y'
- 
-union 
---soc level
-  select  soc_code as concept_code, 
-case 
---soc level
-when soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions' then  'Condition'
-when soc_name ~ 'Surgical and medical procedures' then 'Procedure'
-when soc_name in ('Product issues', 'Social circumstances') then 'Observation'
-when soc_name = 'Investigations' then 'Measurement'
-
-else 'Undefined' end
- as domain_id
-
- from SOURCES.md_hierarchy h
-
-where primary_soc_fg='Y'
-)
+WITH t_domains
+AS (
+	--LLT level 
+	SELECT llt_code AS concept_code,
+		CASE 
+			--pt level
+			WHEN pt_name ~* 'monitoring|centesis|imaging|screen'
+				THEN 'Procedure'
+					--hlt level
+			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
+				THEN 'Observation'
+			WHEN hlt_name ~* 'histopathology|imaging|procedure'
+				THEN 'Procedure'
+			WHEN hlt_name = 'Acquired gene mutations and other alterations'
+				THEN 'Measurement'
+					--hlgt level
+			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
+				THEN 'Observation'
+					--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
+					)
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
+			END AS domain_id
+	FROM SOURCES.md_hierarchy h
+	JOIN SOURCES.low_level_term l ON l.pt_code = h.pt_code
+		AND llt_currency = 'Y'
+	WHERE primary_soc_fg = 'Y'
+	
+	UNION
+	
+	-- pt level
+	SELECT pt_code AS concept_code,
+		CASE 
+			--pt level
+			WHEN pt_name ~* 'monitoring|centesis|imaging|screen'
+				THEN 'Procedure'
+					--hlt level
+			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
+				THEN 'Observation'
+			WHEN hlt_name ~* 'histopathology|imaging|procedure'
+				THEN 'Procedure'
+			WHEN hlt_name = 'Acquired gene mutations and other alterations'
+				THEN 'Measurement'
+					--hlgt level
+			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
+				THEN 'Observation'
+					--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
+					)
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
+			END AS domain_id
+	FROM SOURCES.md_hierarchy h
+	WHERE primary_soc_fg = 'Y'
+	
+	UNION
+	
+	--hlt level
+	SELECT hlt_code AS concept_code,
+		CASE 
+			--hlt level
+			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
+				THEN 'Observation'
+			WHEN hlt_name ~* 'histopathology|imaging|procedure'
+				THEN 'Procedure'
+			WHEN hlt_name = 'Acquired gene mutations and other alterations'
+				THEN 'Measurement'
+					--hlgt level
+			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
+				THEN 'Observation'
+					--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
+					)
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
+			END AS domain_id
+	FROM SOURCES.md_hierarchy h
+	WHERE primary_soc_fg = 'Y'
+	
+	UNION
+	
+	--hlgt level
+	SELECT hlgt_code AS concept_code,
+		CASE 
+			--hlgt level
+			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
+				THEN 'Observation'
+					--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
+					)
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
+			END AS domain_id
+	FROM SOURCES.md_hierarchy h
+	WHERE primary_soc_fg = 'Y'
+	
+	UNION
+	
+	--soc level
+	SELECT soc_code AS concept_code,
+		CASE 
+			--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
+					)
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
+			END AS domain_id
+	FROM SOURCES.md_hierarchy h
+	WHERE primary_soc_fg = 'Y'
+	)
 UPDATE concept_stage cs
 SET domain_id = t.domain_id
 FROM t_domains t
-WHERE cs.concept_code = t.concept_code::VARCHAR
-;
+WHERE cs.concept_code = t.concept_code::VARCHAR;
 
 --discovered that there are concepts missing from t_domains because their primary_soc_fg = 'N'
 --empirically discovered that their domain = 'Condition'
 
 UPDATE concept_stage cs
 SET domain_id = 'Condition'
-where domain_id is null
-;
+WHERE domain_id IS NULL;
 
 --5. Create internal hierarchical relationships
 INSERT INTO  concept_relationship_stage (concept_code_1,
@@ -395,4 +430,3 @@ BEGIN
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
-

@@ -1,3 +1,4 @@
+
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
@@ -13,8 +14,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2017
+* Authors:  Dmitry Dymshyts, Denys Kaduk,Timur Vakhitov, Christian Reich
+* Date: 2019
 **************************************************************************/
 
 -- 1. Update latest_update field to new date 
@@ -135,464 +136,166 @@ WHERE llt_currency = 'Y'
 --4. Update domain_id
 WITH t_domains
 AS (
-	SELECT l.llt_code AS concept_code,
+	--LLT level 
+	SELECT llt_code AS concept_code,
 		CASE 
-			WHEN h.hlgt_code = 10064289
-				THEN 'Observation' -- Medication errors
-			WHEN h.hlt_code = 10071951
-				THEN 'Measurement' -- Acquired gene mutations and other alterations
-			WHEN h.hlt_code = 10022528
-				THEN 'Observation' -- Interactions
-			WHEN h.hlgt_code = 10069171
-				THEN 'Observation' -- Product quality issues
-			WHEN h.hlgt_code = 10069782
-				THEN 'Observation' -- Device issues 
-			WHEN h.hlt_code = 10007566
-				THEN 'Measurement' -- Cardiac function diagnostic procedures with result
-			WHEN h.hlt_code = 10007570
-				THEN 'Procedure' -- Cardiac histopathology procedures
-			WHEN h.hlt_code = 10007574
-				THEN 'Procedure' -- Cardiac imaging procedures
-			WHEN h.hlt_code = 10047044
-				THEN 'Procedure' -- Vascular and lymphatic histopathology procedures
-			WHEN h.hlt_code = 10047078
-				THEN 'Procedure' -- Vascular imaging procedures NEC
-			WHEN h.hlt_code = 10053105
-				THEN 'Observation' -- Vascular auscultatory investigations
-			WHEN h.hlt_code = 10001355
-				THEN 'Procedure' -- Adrenal gland histopathology procedures
-			WHEN h.hlt_code = 10017962
-				THEN 'Procedure' -- Gastrointestinal histopathology procedures
-			WHEN h.hlt_code = 10068276
-				THEN 'Procedure' -- Bone marrow and immune tissue histopathology procedures
-			WHEN h.hlt_code = 10019807
-				THEN 'Procedure' -- Hepatobiliary histopathology procedures
-			WHEN h.hlt_code = 10019808
-				THEN 'Procedure' -- Hepatobiliary imaging procedures  
-			WHEN h.hlt_code = 10028385
-				THEN 'Procedure' -- Musculoskeletal and soft tissue histopathology procedures
-			WHEN h.hlt_code = 10028386
-				THEN 'Procedure' -- Musculoskeletal and soft tissue imaging procedures
-			WHEN h.hlt_code = 10003784
-				THEN 'Procedure' -- Auditory function diagnostic procedures
-			WHEN h.hlt_code = 10007949
-				THEN 'Procedure' -- Central nervous system histopathology procedures
-			WHEN h.hlt_code = 10007950
-				THEN 'Procedure' -- Central nervous system imaging procedures
-			WHEN h.hlt_code = 10013994
-				THEN 'Procedure' -- Ear and labyrinth histopathology procedures
-			WHEN h.hlt_code = 10029285
-				THEN 'Procedure' -- Neurologic diagnostic procedures
-			WHEN h.hlt_code = 10030864
-				THEN 'Procedure' -- Ophthalmic function diagnostic procedures
-			WHEN h.hlt_code = 10030866
-				THEN 'Procedure' -- Ophthalmic histopathology and imaging procedures
-			WHEN h.hlt_code = 10064463
-				THEN 'Procedure' -- Special sense investigations NEC
-			WHEN h.hlt_code = 10067226
-				THEN 'Procedure' -- Psychiatric investigations
-			WHEN h.hlt_code = 10046569
-				THEN 'Procedure' -- Urinary tract histopathology procedures
-			WHEN h.hlt_code = 10046570
-				THEN 'Procedure' -- Urinary tract imaging procedures
-			WHEN h.hlt_code = 10038601
-				THEN 'Procedure' -- Reproductive organ and breast histopathology procedures
-			WHEN h.hlt_code = 10038602
-				THEN 'Procedure' -- Reproductive organ and breast imaging procedures
-			WHEN h.hlt_code = 10006472
-				THEN 'Procedure' -- Respiratory tract and thoracic histopathology procedures
-			WHEN h.hlt_code = 10006476
-				THEN 'Procedure' -- Respiratory tract and thoracic imaging procedures
-			WHEN h.hlt_code = 10040862
-				THEN 'Procedure' -- Skin histopathology procedures
-			WHEN h.hlt_code = 10053100
-				THEN 'Procedure' -- Foetal and neonatal diagnostic procedures
-			WHEN h.hlt_code = 10053102
-				THEN 'Procedure' -- Foetal and neonatal histopathology procedures
-			WHEN h.pt_code IN (
-					10062552,
-					10056850,
-					10002944,
-					10056849
+			--pt level
+			WHEN pt_name ~* 'monitoring|centesis|imaging|screen'
+				THEN 'Procedure'
+					--hlt level
+			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
+				THEN 'Observation'
+			WHEN hlt_name ~* 'histopathology|imaging|procedure'
+				THEN 'Procedure'
+			WHEN hlt_name = 'Acquired gene mutations and other alterations'
+				THEN 'Measurement'
+					--hlgt level
+			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
+				THEN 'Observation'
+					--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
 					)
-				THEN 'Measurement' -- Apgar
-			WHEN h.pt_code IN (
-					10005891,
-					10056822,
-					10056810,
-					10056811,
-					10056812,
-					10056813,
-					10056821,
-					10073541
-					)
-				THEN 'Measurement' -- Body height
-			WHEN h.pt_code IN (
-					10005894,
-					10074506,
-					10005895,
-					10005897,
-					10072073
-					)
-				THEN 'Measurement' -- Body mass
-			WHEN h.pt_code IN (
-					10050311,
-					10071307,
-					10071306
-					)
-				THEN 'Measurement' -- Body surface
-			WHEN h.pt_code IN (
-					10005906,
-					10075265,
-					10005910,
-					10063488,
-					10005911,
-					10069600,
-					10053359,
-					10056852,
-					10056851
-					)
-				THEN 'Measurement' -- Body Temperature
-			WHEN h.pt_code IN (
-					10060025,
-					10060043,
-					10060042
-					)
-				THEN 'Measurement' -- Head circumference
-			WHEN h.pt_code IN (
-					10060080,
-					10060082,
-					10060081
-					)
-				THEN 'Measurement' -- Intelligence test
-			WHEN h.pt_code IN (
-					10054755,
-					10054756,
-					10054754
-					)
-				THEN 'Measurement' -- Karnofsky
-			WHEN h.pt_code IN (
-					10047890,
-					10056814,
-					10047895,
-					10047899,
-					10056817
-					)
-				THEN 'Measurement' -- Weight
-			WHEN h.pt_code IN (
-					10038709,
-					10038710,
-					10038712
-					)
-				THEN 'Measurement' -- Respiratory rate 
-			WHEN h.hlt_code = 10071941
-				THEN 'Observation' -- Physical examination procedures and organ system status
-			WHEN h.hlgt_code = 10007512
-				THEN 'Measurement' -- Cardiac and vascular investigations (excl enzyme tests)
-			WHEN h.soc_code = 10041244
-				THEN 'Observation' -- Social circumstances
-			WHEN h.soc_code = 10042613
-				THEN 'Procedure' -- Surgical and medical procedures
-			ELSE 'Condition'
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
 			END AS domain_id
 	FROM SOURCES.md_hierarchy h
 	JOIN SOURCES.low_level_term l ON l.pt_code = h.pt_code
-	WHERE h.primary_soc_fg = 'Y'
-		AND l.llt_code != l.pt_code
-	
-	UNION
-	
-	-- Preferred term domains
-	SELECT pt_code AS concept_code,
-		CASE 
-			WHEN hlgt_code = 10064289
-				THEN 'Observation' -- Medication errors
-			WHEN hlt_code = 10071951
-				THEN 'Measurement' -- Acquired gene mutations and other alterations
-			WHEN hlt_code = 10022528
-				THEN 'Observation' -- Interactions
-			WHEN hlgt_code = 10069171
-				THEN 'Observation' -- Product quality issues
-			WHEN hlgt_code = 10069782
-				THEN 'Observation' -- Device issues 
-			WHEN hlt_code = 10007566
-				THEN 'Measurement' -- Cardiac function diagnostic procedures with result
-			WHEN hlt_code = 10007570
-				THEN 'Procedure' -- Cardiac histopathology procedures
-			WHEN hlt_code = 10007574
-				THEN 'Procedure' -- Cardiac imaging procedures
-			WHEN hlt_code = 10047044
-				THEN 'Procedure' -- Vascular and lymphatic histopathology procedures
-			WHEN hlt_code = 10047078
-				THEN 'Procedure' -- Vascular imaging procedures NEC
-			WHEN hlt_code = 10053105
-				THEN 'Observation' -- Vascular auscultatory investigations
-			WHEN hlt_code = 10001355
-				THEN 'Procedure' -- Adrenal gland histopathology procedures
-			WHEN hlt_code = 10017962
-				THEN 'Procedure' -- Gastrointestinal histopathology procedures
-			WHEN hlt_code = 10068276
-				THEN 'Procedure' -- Bone marrow and immune tissue histopathology procedures
-			WHEN hlt_code = 10019807
-				THEN 'Procedure' -- Hepatobiliary histopathology procedures
-			WHEN hlt_code = 10019808
-				THEN 'Procedure' -- Hepatobiliary imaging procedures  
-			WHEN hlt_code = 10028385
-				THEN 'Procedure' -- Musculoskeletal and soft tissue histopathology procedures
-			WHEN hlt_code = 10028386
-				THEN 'Procedure' -- Musculoskeletal and soft tissue imaging procedures
-			WHEN hlt_code = 10003784
-				THEN 'Procedure' -- Auditory function diagnostic procedures
-			WHEN hlt_code = 10007949
-				THEN 'Procedure' -- Central nervous system histopathology procedures
-			WHEN hlt_code = 10007950
-				THEN 'Procedure' -- Central nervous system imaging procedures
-			WHEN hlt_code = 10013994
-				THEN 'Procedure' -- Ear and labyrinth histopathology procedures
-			WHEN hlt_code = 10029285
-				THEN 'Procedure' -- Neurologic diagnostic procedures
-			WHEN hlt_code = 10030864
-				THEN 'Procedure' -- Ophthalmic function diagnostic procedures
-			WHEN hlt_code = 10030866
-				THEN 'Procedure' -- Ophthalmic histopathology and imaging procedures
-			WHEN hlt_code = 10064463
-				THEN 'Procedure' -- Special sense investigations NEC
-			WHEN hlt_code = 10067226
-				THEN 'Procedure' -- Psychiatric investigations
-			WHEN hlt_code = 10046569
-				THEN 'Procedure' -- Urinary tract histopathology procedures
-			WHEN hlt_code = 10046570
-				THEN 'Procedure' -- Urinary tract imaging procedures
-			WHEN hlt_code = 10038601
-				THEN 'Procedure' -- Reproductive organ and breast histopathology procedures
-			WHEN hlt_code = 10038602
-				THEN 'Procedure' -- Reproductive organ and breast imaging procedures
-			WHEN hlt_code = 10006472
-				THEN 'Procedure' -- Respiratory tract and thoracic histopathology procedures
-			WHEN hlt_code = 10006476
-				THEN 'Procedure' -- Respiratory tract and thoracic imaging procedures
-			WHEN hlt_code = 10040862
-				THEN 'Procedure' -- Skin histopathology procedures
-			WHEN hlt_code = 10053100
-				THEN 'Procedure' -- Foetal and neonatal diagnostic procedures
-			WHEN hlt_code = 10053102
-				THEN 'Procedure' -- Foetal and neonatal histopathology procedures
-			WHEN pt_code IN (
-					10062552,
-					10056850,
-					10002944,
-					10056849
-					)
-				THEN 'Measurement' -- Apgar
-			WHEN pt_code IN (
-					10005891,
-					10056822,
-					10056810,
-					10056811,
-					10056812,
-					10056813,
-					10056821,
-					10073541
-					)
-				THEN 'Measurement' -- Body height
-			WHEN pt_code IN (
-					10005894,
-					10074506,
-					10005895,
-					10005897,
-					10072073
-					)
-				THEN 'Measurement' -- Body mass
-			WHEN pt_code IN (
-					10050311,
-					10071307,
-					10071306
-					)
-				THEN 'Measurement' -- Body surface
-			WHEN pt_code IN (
-					10005906,
-					10075265,
-					10005910,
-					10063488,
-					10005911,
-					10069600,
-					10053359,
-					10056852,
-					10056851
-					)
-				THEN 'Measurement' -- Body Temperature
-			WHEN pt_code IN (
-					10060025,
-					10060043,
-					10060042
-					)
-				THEN 'Measurement' -- Head circumference
-			WHEN pt_code IN (
-					10060080,
-					10060082,
-					10060081
-					)
-				THEN 'Measurement' -- Intelligence test
-			WHEN pt_code IN (
-					10054755,
-					10054756,
-					10054754
-					)
-				THEN 'Measurement' -- Karnofsky
-			WHEN pt_code IN (
-					10047890,
-					10056814,
-					10047895,
-					10047899,
-					10056817
-					)
-				THEN 'Measurement' -- Weight
-			WHEN pt_code IN (
-					10038709,
-					10038710,
-					10038712
-					)
-				THEN 'Measurement' -- Respiratory rate 
-			WHEN hlt_code = 10071941
-				THEN 'Observation' -- Physical examination procedures and organ system status
-			WHEN hlgt_code = 10007512
-				THEN 'Measurement' -- Cardiac and vascular investigations (excl enzyme tests)
-			WHEN soc_code = 10041244
-				THEN 'Observation' -- Social circumstances
-			WHEN soc_code = 10042613
-				THEN 'Procedure' -- Surgical and medical procedures
-			ELSE 'Condition'
-			END AS domain_id
-	FROM SOURCES.md_hierarchy
+		AND llt_currency = 'Y'
 	WHERE primary_soc_fg = 'Y'
 	
 	UNION
 	
-	-- High level term domains
+	-- pt level
+	SELECT pt_code AS concept_code,
+		CASE 
+			--pt level
+			WHEN pt_name ~* 'monitoring|centesis|imaging|screen'
+				THEN 'Procedure'
+					--hlt level
+			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
+				THEN 'Observation'
+			WHEN hlt_name ~* 'histopathology|imaging|procedure'
+				THEN 'Procedure'
+			WHEN hlt_name = 'Acquired gene mutations and other alterations'
+				THEN 'Measurement'
+					--hlgt level
+			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
+				THEN 'Observation'
+					--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
+					)
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
+			END AS domain_id
+	FROM SOURCES.md_hierarchy h
+	WHERE primary_soc_fg = 'Y'
+	
+	UNION
+	
+	--hlt level
 	SELECT hlt_code AS concept_code,
 		CASE 
-			WHEN hlgt_code = 10064289
-				THEN 'Observation' -- Medication errors
-			WHEN hlt_code = 10071951
-				THEN 'Measurement' -- Acquired gene mutations and other alterations
-			WHEN hlt_code = 10022528
-				THEN 'Observation' -- Interactions
-			WHEN hlgt_code = 10069171
-				THEN 'Observation' -- Product quality issues
-			WHEN hlgt_code = 10069782
-				THEN 'Observation' -- Device issues 
-			WHEN hlt_code = 10007566
-				THEN 'Measurement' -- Cardiac function diagnostic procedures with result
-			WHEN hlt_code = 10007570
-				THEN 'Procedure' -- Cardiac histopathology procedures
-			WHEN hlt_code = 10007574
-				THEN 'Procedure' -- Cardiac imaging procedures
-			WHEN hlt_code = 10047044
-				THEN 'Procedure' -- Vascular and lymphatic histopathology procedures
-			WHEN hlt_code = 10047078
-				THEN 'Procedure' -- Vascular imaging procedures NEC
-			WHEN hlt_code = 10053105
-				THEN 'Observation' -- Vascular auscultatory investigations
-			WHEN hlt_code = 10001355
-				THEN 'Procedure' -- Adrenal gland histopathology procedures
-			WHEN hlt_code = 10017962
-				THEN 'Procedure' -- Gastrointestinal histopathology procedures
-			WHEN hlt_code = 10068276
-				THEN 'Procedure' -- Bone marrow and immune tissue histopathology procedures
-			WHEN hlt_code = 10019807
-				THEN 'Procedure' -- Hepatobiliary histopathology procedures
-			WHEN hlt_code = 10019808
-				THEN 'Procedure' -- Hepatobiliary imaging procedures  
-			WHEN hlt_code = 10028385
-				THEN 'Procedure' -- Musculoskeletal and soft tissue histopathology procedures
-			WHEN hlt_code = 10028386
-				THEN 'Procedure' -- Musculoskeletal and soft tissue imaging procedures
-			WHEN hlt_code = 10003784
-				THEN 'Procedure' -- Auditory function diagnostic procedures
-			WHEN hlt_code = 10007949
-				THEN 'Procedure' -- Central nervous system histopathology procedures
-			WHEN hlt_code = 10007950
-				THEN 'Procedure' -- Central nervous system imaging procedures
-			WHEN hlt_code = 10013994
-				THEN 'Procedure' -- Ear and labyrinth histopathology procedures
-			WHEN hlt_code = 10029285
-				THEN 'Procedure' -- Neurologic diagnostic procedures
-			WHEN hlt_code = 10030864
-				THEN 'Procedure' -- Ophthalmic function diagnostic procedures
-			WHEN hlt_code = 10030866
-				THEN 'Procedure' -- Ophthalmic histopathology and imaging procedures
-			WHEN hlt_code = 10064463
-				THEN 'Procedure' -- Special sense investigations NEC
-			WHEN hlt_code = 10067226
-				THEN 'Procedure' -- Psychiatric investigations
-			WHEN hlt_code = 10046569
-				THEN 'Procedure' -- Urinary tract histopathology procedures
-			WHEN hlt_code = 10046570
-				THEN 'Procedure' -- Urinary tract imaging procedures
-			WHEN hlt_code = 10038601
-				THEN 'Procedure' -- Reproductive organ and breast histopathology procedures
-			WHEN hlt_code = 10038602
-				THEN 'Procedure' -- Reproductive organ and breast imaging procedures
-			WHEN hlt_code = 10006472
-				THEN 'Procedure' -- Respiratory tract and thoracic histopathology procedures
-			WHEN hlt_code = 10006476
-				THEN 'Procedure' -- Respiratory tract and thoracic imaging procedures
-			WHEN hlt_code = 10040862
-				THEN 'Procedure' -- Skin histopathology procedures
-			WHEN hlt_code = 10053100
-				THEN 'Procedure' -- Foetal and neonatal diagnostic procedures
-			WHEN hlt_code = 10053102
-				THEN 'Procedure' -- Foetal and neonatal histopathology procedures
-			WHEN hlt_code = 10071941
-				THEN 'Observation' -- Physical examination procedures and organ system status
-			WHEN hlgt_code = 10007512
-				THEN 'Measurement' -- Cardiac and vascular investigations (excl enzyme tests)
-			WHEN soc_code = 10041244
-				THEN 'Observation' -- Social circumstances
-			WHEN soc_code = 10042613
-				THEN 'Procedure' -- Surgical and medical procedures
-			ELSE 'Condition'
+			--hlt level
+			WHEN hlt_name ~* 'exposures|Physical examination procedures and organ system status'
+				THEN 'Observation'
+			WHEN hlt_name ~* 'histopathology|imaging|procedure'
+				THEN 'Procedure'
+			WHEN hlt_name = 'Acquired gene mutations and other alterations'
+				THEN 'Measurement'
+					--hlgt level
+			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
+				THEN 'Observation'
+					--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
+					)
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
 			END AS domain_id
-	FROM SOURCES.md_hierarchy
+	FROM SOURCES.md_hierarchy h
+	WHERE primary_soc_fg = 'Y'
 	
 	UNION
 	
-	-- High level group term domains
+	--hlgt level
 	SELECT hlgt_code AS concept_code,
 		CASE 
-			WHEN hlgt_code = 10064289
-				THEN 'Observation' -- Medication errors
-			WHEN hlgt_code = 10069171
-				THEN 'Observation' -- Product quality issues
-			WHEN hlgt_code = 10069782
-				THEN 'Observation' -- Device issues 
-			WHEN hlgt_code = 10007512
-				THEN 'Measurement' -- Cardiac and vascular investigations (excl enzyme tests)
-			WHEN soc_code = 10041244
-				THEN 'Observation' -- Social circumstances
-			WHEN soc_code = 10042613
-				THEN 'Procedure' -- Surgical and medical procedures
-			ELSE 'Condition'
+			--hlgt level
+			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
+				THEN 'Observation'
+					--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
+					)
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
 			END AS domain_id
-	FROM SOURCES.md_hierarchy
+	FROM SOURCES.md_hierarchy h
+	WHERE primary_soc_fg = 'Y'
 	
 	UNION
 	
-	-- System organ class domains
+	--soc level
 	SELECT soc_code AS concept_code,
 		CASE 
-			WHEN soc_code = 10041244
-				THEN 'Observation' -- Social circumstances
-			WHEN soc_code = 10042613
-				THEN 'Procedure' -- Surgical and medical procedures
-			ELSE 'Condition'
+			--soc level
+			WHEN soc_name ~ 'disorders|Infections|Neoplasms|Injury, poisoning and procedural complications|Pregnancy, puerperium and perinatal conditions'
+				THEN 'Condition'
+			WHEN soc_name ~ 'Surgical and medical procedures'
+				THEN 'Procedure'
+			WHEN soc_name IN (
+					'Product issues',
+					'Social circumstances'
+					)
+				THEN 'Observation'
+			WHEN soc_name = 'Investigations'
+				THEN 'Measurement'
+			ELSE 'Undefined'
 			END AS domain_id
-	FROM SOURCES.md_hierarchy
+	FROM SOURCES.md_hierarchy h
+	WHERE primary_soc_fg = 'Y'
 	)
 UPDATE concept_stage cs
 SET domain_id = t.domain_id
 FROM t_domains t
 WHERE cs.concept_code = t.concept_code::VARCHAR;
+
+--discovered that there are concepts missing from t_domains because their primary_soc_fg = 'N'
+--empirically discovered that their domain = 'Condition'
+
+UPDATE concept_stage cs
+SET domain_id = 'Condition'
+WHERE domain_id IS NULL;
 
 --5. Create internal hierarchical relationships
 INSERT INTO  concept_relationship_stage (concept_code_1,

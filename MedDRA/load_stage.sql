@@ -14,8 +14,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2017
+* Authors:  Dmitry Dymshyts, Denys Kaduk,Timur Vakhitov, Christian Reich
+* Date: 2019
 **************************************************************************/
 
 -- 1. Update latest_update field to new date 

@@ -134,9 +134,8 @@ WHERE llt_currency = 'Y'
 	AND llt_code <> pt_code;
 
 --4. Update domain_id
-drop view t_domains
-;
-create view t_domains as
+with t_domains as 
+(
 --LLT level 
  select   llt_code as concept_code,
 case 
@@ -248,8 +247,7 @@ else 'Undefined' end
  from SOURCES.md_hierarchy h
 
 where primary_soc_fg='Y'
-
-			;
+)
 UPDATE concept_stage cs
 SET domain_id = t.domain_id
 FROM t_domains t

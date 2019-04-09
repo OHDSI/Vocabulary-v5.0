@@ -319,51 +319,55 @@ AS $BODY$
 	UNION ALL
 
 	/*--replacement relationships between different vocabularies (exclude RxNorm to RxNorm Ext OR RxNorm Ext to RxNorm OR SNOMED<->SNOMED Veterinary replacement relationships)
-	--deprecated 20190227
-	SELECT 4 check_id,
-		r.*
-	FROM concept_relationship r,
-		concept c1,
-		concept c2
-	WHERE r.invalid_reason IS NULL
-		AND r.concept_id_1 <> r.concept_id_2
-		AND c1.concept_id = r.concept_id_1
-		AND c2.concept_id = r.concept_id_2
-		AND c1.vocabulary_id <> c2.vocabulary_id
-		AND NOT (
-			c1.vocabulary_id IN (
-				'RxNorm',
-				'RxNorm Extension'
+		--deprecated 20190227
+		SELECT 4 check_id,
+			r.*
+		FROM concept_relationship r,
+			concept c1,
+			concept c2
+		WHERE r.invalid_reason IS NULL
+			AND r.concept_id_1 <> r.concept_id_2
+			AND c1.concept_id = r.concept_id_1
+			AND c2.concept_id = r.concept_id_2
+			AND c1.vocabulary_id <> c2.vocabulary_id
+			AND NOT (
+				c1.vocabulary_id IN (
+					'RxNorm',
+					'RxNorm Extension'
+					)
+				AND c2.vocabulary_id IN (
+					'RxNorm',
+					'RxNorm Extension'
+					)
 				)
-			AND c2.vocabulary_id IN (
-				'RxNorm',
-				'RxNorm Extension'
+			AND NOT (
+				c1.vocabulary_id IN (
+					'SNOMED',
+					'SNOMED Veterinary'
+					)
+				AND c2.vocabulary_id IN (
+					'SNOMED',
+					'SNOMED Veterinary'
+					)
+				)			
+			AND r.relationship_id IN (
+				'Concept replaced by',
+				'Concept same_as to',
+				'Concept alt_to to',
+				'Concept poss_eq to',
+				'Concept was_a to'
 				)
-			)
-		AND NOT (
-			c1.vocabulary_id IN (
-				'SNOMED',
-				'SNOMED Veterinary'
-				)
-			AND c2.vocabulary_id IN (
-				'SNOMED',
-				'SNOMED Veterinary'
-				)
-			)			
-		AND r.relationship_id IN (
-			'Concept replaced by',
-			'Concept same_as to',
-			'Concept alt_to to',
-			'Concept poss_eq to',
-			'Concept was_a to'
-			)
-		AND COALESCE(checkid, 4) = 4
+			AND COALESCE(checkid, 4) = 4
 
-	UNION ALL*/
-
+		UNION ALL*/
 	--wrong relationships: 'Maps to' to 'D' or 'U'; replacement relationships to 'D'
 	SELECT 5 check_id,
-		$$wrong relationships: 'Maps to' to 'D' or 'U'; replacement relationships to 'D'$$ AS check_name,
+		$$ wrong
+
+	relationships: 'Maps to' TO 'D'
+		OR 'U';
+
+	replacement relationships TO 'D' $$ AS check_name,
 		r.*
 	FROM concept c2,
 		concept_relationship r
@@ -438,7 +442,7 @@ AS $BODY$
 					)
 				)
 			OR c.valid_start_date > COALESCE(vc.latest_update, CURRENT_DATE) + INTERVAL '15 year' --some concepts might be from near future (e.g. GGR, HCPCS) [AVOF-1015]/increased 20180928 for some NDC concepts
-			OR c.valid_start_date < TO_DATE ('19000101', 'yyyymmdd') -- some concepts have a real date < 1970
+			OR c.valid_start_date < TO_DATE('19000101', 'yyyymmdd') -- some concepts have a real date < 1970
 			)
 		AND COALESCE(checkid, 7) = 7
 
@@ -487,73 +491,72 @@ AS $BODY$
 	--Rxnorm/Rxnorm Extension name duplications
 	--tempopary disabled (never used)
 	/*SELECT 9 check_id,
-		c_int.concept_id_1,
-		c_int.concept_id_2,
-		'Concept replaced by' AS relationship_id,
-		NULL AS valid_start_date,
-		NULL AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT FIRST_VALUE(c.concept_id) OVER (
-				PARTITION BY d.concept_name ORDER BY c.vocabulary_id DESC,
-					c.concept_name,
-					c.concept_id
-				) AS concept_id_1,
-			c.concept_id AS concept_id_2,
-			c.vocabulary_id
-		FROM concept c
-		JOIN (
-			SELECT LOWER(concept_name) AS concept_name,
-				concept_class_id
-			FROM concept c_int
-			WHERE c_int.vocabulary_id LIKE 'RxNorm%'
-				AND c_int.concept_name NOT LIKE '%...%'
-				AND c_int.invalid_reason IS NULL
-			GROUP BY LOWER(c_int.concept_name),
-				c_int.concept_class_id
-			HAVING COUNT(*) > 1
-			
-			EXCEPT
-			
-			SELECT LOWER(c_int.concept_name),
-				c_int.concept_class_id
-			FROM concept c_int
-			WHERE c_int.vocabulary_id = 'RxNorm'
-				AND c_int.concept_name NOT LIKE '%...%'
-				AND c_int.invalid_reason IS NULL
-			GROUP BY LOWER(c_int.concept_name),
-				c_int.concept_class_id
-			HAVING COUNT(*) > 1
-			) d ON LOWER(c.concept_name) = d.concept_name
-			AND c.vocabulary_id LIKE 'RxNorm%'
-			AND c.invalid_reason IS NULL
-		) c_int
-	JOIN concept c1 ON c1.concept_id = c_int.concept_id_1
-	JOIN concept c2 ON c2.concept_id = c_int.concept_id_2
-	WHERE c_int.concept_id_1 <> c_int.concept_id_2
-		AND NOT (
-			c1.vocabulary_id = 'RxNorm'
-			AND c2.vocabulary_id = 'RxNorm'
-			)
-		--AVOF-1434 (20190125)
-		AND NOT EXISTS (
-			SELECT 1
-			FROM drug_strength ds1,
-				drug_strength ds2
-			WHERE ds1.drug_concept_id = c1.concept_id
-				AND ds2.drug_concept_id = c2.concept_id
-				AND ds1.ingredient_concept_id = ds2.ingredient_concept_id
-				AND ds1.amount_value = ds2.numerator_value
-				AND ds1.amount_unit_concept_id = ds2.numerator_unit_concept_id
-				AND ds1.amount_unit_concept_id IN (
-					9325,
-					9324
-					)
-			)
-		AND COALESCE(checkid, 9) = 9
+			c_int.concept_id_1,
+			c_int.concept_id_2,
+			'Concept replaced by' AS relationship_id,
+			NULL AS valid_start_date,
+			NULL AS valid_end_date,
+			NULL AS invalid_reason
+		FROM (
+			SELECT FIRST_VALUE(c.concept_id) OVER (
+					PARTITION BY d.concept_name ORDER BY c.vocabulary_id DESC,
+						c.concept_name,
+						c.concept_id
+					) AS concept_id_1,
+				c.concept_id AS concept_id_2,
+				c.vocabulary_id
+			FROM concept c
+			JOIN (
+				SELECT LOWER(concept_name) AS concept_name,
+					concept_class_id
+				FROM concept c_int
+				WHERE c_int.vocabulary_id LIKE 'RxNorm%'
+					AND c_int.concept_name NOT LIKE '%...%'
+					AND c_int.invalid_reason IS NULL
+				GROUP BY LOWER(c_int.concept_name),
+					c_int.concept_class_id
+				HAVING COUNT(*) > 1
+				
+				EXCEPT
+				
+				SELECT LOWER(c_int.concept_name),
+					c_int.concept_class_id
+				FROM concept c_int
+				WHERE c_int.vocabulary_id = 'RxNorm'
+					AND c_int.concept_name NOT LIKE '%...%'
+					AND c_int.invalid_reason IS NULL
+				GROUP BY LOWER(c_int.concept_name),
+					c_int.concept_class_id
+				HAVING COUNT(*) > 1
+				) d ON LOWER(c.concept_name) = d.concept_name
+				AND c.vocabulary_id LIKE 'RxNorm%'
+				AND c.invalid_reason IS NULL
+			) c_int
+		JOIN concept c1 ON c1.concept_id = c_int.concept_id_1
+		JOIN concept c2 ON c2.concept_id = c_int.concept_id_2
+		WHERE c_int.concept_id_1 <> c_int.concept_id_2
+			AND NOT (
+				c1.vocabulary_id = 'RxNorm'
+				AND c2.vocabulary_id = 'RxNorm'
+				)
+			--AVOF-1434 (20190125)
+			AND NOT EXISTS (
+				SELECT 1
+				FROM drug_strength ds1,
+					drug_strength ds2
+				WHERE ds1.drug_concept_id = c1.concept_id
+					AND ds2.drug_concept_id = c2.concept_id
+					AND ds1.ingredient_concept_id = ds2.ingredient_concept_id
+					AND ds1.amount_value = ds2.numerator_value
+					AND ds1.amount_unit_concept_id = ds2.numerator_unit_concept_id
+					AND ds1.amount_unit_concept_id IN (
+						9325,
+						9324
+						)
+				)
+			AND COALESCE(checkid, 9) = 9
 
-	UNION ALL*/
-
+		UNION ALL*/
 	--one concept has multiple replaces
 	SELECT 10 check_id,
 		'one concept has multiple replaces' AS check_name,
@@ -578,7 +581,23 @@ AS $BODY$
 				r_int.relationship_id
 			HAVING COUNT(*) > 1
 			)
-		AND COALESCE(checkid, 10) = 10;
+		AND COALESCE(checkid, 10) = 10
+
+	UNION ALL
+
+	--wrong concept_name [AVOF-1438]
+	SELECT 11 check_id,
+		'wrong concept_name ("OMOP generated", but should be OMOPxxx)' AS check_name,
+		c.concept_id,
+		NULL,
+		c.vocabulary_id,
+		c.valid_start_date,
+		c.valid_end_date,
+		c.invalid_reason
+	FROM concept c
+	WHERE c.domain_id <> 'Metadata'
+		AND c.concept_code = 'OMOP generated'
+		AND COALESCE(checkid, 11) = 11;
 
 
 $BODY$

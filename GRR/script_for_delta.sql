@@ -641,7 +641,7 @@ WHERE fcc IN (SELECT fcc FROM grr_manuf WHERE PRI_ORG_LNG_NM LIKE '%TAKEDA%');
 UPDATE grr_manuf
    SET PRI_ORG_LNG_NM = 'BAYER'
 WHERE fcc IN (SELECT fcc FROM grr_manuf WHERE PRI_ORG_LNG_NM LIKE '%BAYER%');
-QA_stage_tables.sql
+
 UPDATE grr_manuf
    SET PRI_ORG_LNG_NM = 'ABBOTT'
 WHERE fcc IN (SELECT fcc FROM grr_manuf WHERE PRI_ORG_LNG_NM LIKE '%ABBOTT%');

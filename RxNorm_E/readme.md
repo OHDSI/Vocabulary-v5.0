@@ -23,3 +23,16 @@ BEGIN
 END $_$;
 
 11.Run Basic_tables_QA.sql
+
+
+What this script does:
+1. Clean up supplier names
+2. Change non-valid forms and units (IU, precise forms that aren't used in RxNorm)
+3. Remove close-dose duplicates (0.005 and 0.0053)
+4. Add missing attributes
+5. Fix issues like Aspirin / Aspirin Oral Tablet
+Minor:
+1. Remove all where there is less than total of 0.05 mL (occurred due to the previous wrong entries),
+2. Delete wrong ingredients and brand names
+3. Fix solid forms with denominator, % in amount etc.
+4. Fix complicated dosages for specific forms (e.g. ACTUAT, cm)

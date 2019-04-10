@@ -11,7 +11,7 @@ vocabulary_id,
 current_date , 
 TO_DATE('20991231', 'yyyymmdd'), 
 null::varchar
-from vaccine_q1_19
+from vacc_ins_manual
 join devv5.concept on concept_id = c_id::integer;
 
 -- Append result to concept_relationship_stage table

@@ -1,4 +1,11 @@
 --insert into r_t_c_all previous iteration relationships for future use
+INSERT INTO r_t_c_all 
+(
+concept_name,
+concept_id,
+precedence,
+conversion_factor
+)
 SELECT concept_name,
        concept_id_2,
        precedence,
@@ -73,9 +80,9 @@ WHERE fcc IN (SELECT DISTINCT fcc
                  AND c2.invalid_reason IS NULL);
 
 -- manual mapping!!!!vaccine\insulin,  after manual work put them to concept_relationship_manual 
-DROP TABLE if exists vaccine_q1_19;
+DROP TABLE if exists vacc_ins_manual;
 
-CREATE TABLE vaccine_q1_19 
+CREATE TABLE vacc_ins_manual 
 AS
 SELECT *
 FROM source_data_1
@@ -176,7 +183,6 @@ UPDATE grr_bn
    SET bn = REGEXP_REPLACE(RTRIM(REGEXP_REPLACE(bn,'(\s)+(\S-\S)+','','g'),'-'),'(TABL|ALT|AAA|ACC |CAPS|LOTION| SUPP)','','g')
 WHERE bn NOT LIKE 'ALT%';
 
---make suppliers to a standard
 UPDATE grr_bn
    SET bn = REGEXP_REPLACE(bn,'RATIOPH\.|RAT\.|RATIO\.|RATIO |\sRAT$','RATIOPHARM','g');
 
@@ -1656,7 +1662,7 @@ WHERE INTL_PACK_FORM_DESC = 'VASELINE';
 
 END $_$;
 
---give dose form correct name
+--give to dose form correct name
 DROP TABLE IF EXISTS grr_form_2;
 
 CREATE TABLE grr_form_2 
@@ -1846,6 +1852,91 @@ VALUES
   CURRENT_DATE,
   TO_DATE('20991231','yyyymmdd')
 );
+
+
+--filling internal relationship between source drugs and their attributes
+TRUNCATE TABLE internal_relationship_stage;
+
+INSERT INTO internal_relationship_stage
+SELECT fcc,
+       concept_code
+FROM grr_form_2
+UNION
+--drug to bn
+SELECT fcc,
+       concept_code
+FROM grr_bn_2
+  JOIN drug_concept_stage ON UPPER (bn) = UPPER (concept_name)
+WHERE concept_class_id = 'Brand Name'
+UNION
+--drug to supp
+SELECT fcc,
+       concept_code
+FROM grr_manuf
+  JOIN drug_concept_stage ON UPPER (PRI_ORG_LNG_NM) = UPPER (concept_name)
+WHERE concept_class_id = 'Supplier'
+UNION
+--drug to ingr
+SELECT fcc,
+       concept_code
+FROM grr_ing_2
+  JOIN drug_concept_stage b
+    ON UPPER (ingredient) = UPPER (concept_name)
+   AND concept_class_id = 'Ingredient';
+
+--filling relation between source attributes and standard attributes
+TRUNCATE TABLE relationship_to_concept;
+
+INSERT INTO relationship_to_concept
+(
+  concept_code_1,
+  vocabulary_id_1,
+  concept_id_2,
+  precedence,
+  conversion_factor
+)
+SELECT DISTINCT d.concept_code,
+       'GRR',
+       CONCEPT_id,
+       precedence,
+       conversion_factor
+FROM r_t_c_all r
+  JOIN drug_concept_stage d ON UPPER (d.concept_name) = UPPER (r.concept_name)
+  JOIN concept c USING (concept_id)
+WHERE c.invalid_reason IS NULL or c.invalid_reason = 'U';
+
+--automated mapping for attribute
+INSERT INTO relationship_to_concept
+(
+  concept_code_1,
+  vocabulary_id_1,
+  concept_id_2,
+  precedence
+)
+SELECT DISTINCT dcs.concept_code,
+       'GRR',
+       cc.concept_id,
+       1
+FROM drug_concept_stage dcs
+  LEFT JOIN relationship_to_concept cr ON dcs.concept_code = cr.concept_code_1
+  JOIN concept cc
+    ON LOWER (cc.concept_name) = LOWER (dcs.concept_name)
+   AND cc.concept_class_id = dcs.concept_class_id
+   AND cc.vocabulary_id LIKE 'RxNorm%'
+WHERE concept_code_1 IS NULL
+AND   dcs.concept_class_id IN ('Ingredient','Brand Name','Dose Form','Supplier')
+AND   cc.invalid_reason IS NULL or c.invalid_reason = 'U';
+
+--update relationship_to_concept if targeted concept has U
+UPDATE relationship_to_concept r1
+   SET concept_id_2 = cr.concept_id_2
+FROM relationship_to_concept rtc
+  JOIN concept c1 ON concept_id = concept_id_2
+  JOIN concept_relationship cr
+    ON concept_id_1 = concept_id
+   AND relationship_id = 'Concept replaced by'
+WHERE r1.concept_code_1 = rtc.concept_code_1
+AND   c1.invalid_reason IS NOT NULL;
 
 --extract dosage from source_data
 DROP TABLE IF EXISTS ds_0_sd_2;
@@ -2039,198 +2130,88 @@ UPDATE ds_stage
 WHERE amount_value = numerator_value
 AND   amount_unit = numerator_unit;
 
---filling internal relationship between source drugs and their attributes
-TRUNCATE TABLE internal_relationship_stage;
 
-INSERT INTO internal_relationship_stage
-SELECT fcc,
-       concept_code
-FROM grr_form_2
-WHERE fcc NOT IN (SELECT fcc FROM grr_pack_2)
-UNION
---drug to bn
-SELECT fcc,
-       concept_code
-FROM grr_bn_2
-  JOIN drug_concept_stage ON UPPER (bn) = UPPER (concept_name)
-WHERE concept_class_id = 'Brand Name'
-UNION
---drug to supp
-SELECT fcc,
-       concept_code
-FROM grr_manuf
-  JOIN drug_concept_stage ON UPPER (PRI_ORG_LNG_NM) = UPPER (concept_name)
-WHERE concept_class_id = 'Supplier'
-UNION
---drug to ingr
-SELECT fcc,
-       concept_code
-FROM grr_ing_2
-  JOIN drug_concept_stage b
-    ON UPPER (ingredient) = UPPER (concept_name)
-   AND concept_class_id = 'Ingredient';
 
-DELETE
-FROM internal_relationship_stage
-WHERE concept_code_1 = '52184_03011974'
-AND   concept_code_2 IN (SELECT concept_code
-                         FROM drug_concept_stage
-                         WHERE concept_name = 'Coal Tar');
 
-DELETE
-FROM internal_relationship_stage
-WHERE concept_code_1 = '912928_07152016'
-AND   concepT_code_2 IN (SELECT concept_code_2
-                         FROM drug_concepT_stage
-                         WHERE concept_name = 'Methyl-5-Aminolevulinic Acid');
-
-INSERT INTO internal_relationship_stage
-(
-  concept_code_1,
-  concept_code_2
-)
-SELECT fcc,
-       nfc
-FROM source_data_1
-WHERE fcc NOT IN (SELECT irs.concept_code_1
-                  FROM internal_relationship_stage irs
-                    JOIN drug_concept_stage dcs
-                      ON irs.concept_code_2 = dcs.concept_code
-                     AND dcs.concept_class_id = 'Dose Form');
-
---filling relation between source attributes and standard attributes
-TRUNCATE TABLE relationship_to_concept;
-
-INSERT INTO relationship_to_concept
-(
-  concept_code_1,
-  vocabulary_id_1,
-  concept_id_2,
-  precedence,
-  conversion_factor
-)
-SELECT DISTINCT d.concept_code,
-       'GRR',
-       CONCEPT_id,
-       precedence,
-       conversion_factor
-FROM r_t_c_all r
-  JOIN drug_concept_stage d ON UPPER (d.concept_name) = UPPER (r.concept_name)
-  JOIN concept c USING (concept_id)
-WHERE c.invalid_reason IS NULL;
-
---automated mapping for attribute
-INSERT INTO relationship_to_concept
-(
-  concept_code_1,
-  vocabulary_id_1,
-  concept_id_2,
-  precedence
-)
-SELECT DISTINCT dcs.concept_code,
-       'GRR',
-       cc.concept_id,
-       1
-FROM drug_concept_stage dcs
-  LEFT JOIN relationship_to_concept cr ON dcs.concept_code = cr.concept_code_1
-  JOIN concept cc
-    ON LOWER (cc.concept_name) = LOWER (dcs.concept_name)
-   AND cc.concept_class_id = dcs.concept_class_id
-   AND cc.vocabulary_id LIKE 'RxNorm%'
-WHERE concept_code_1 IS NULL
-AND   dcs.concept_class_id IN ('Ingredient','Brand Name','Dose Form','Supplier')
-AND   cc.invalid_reason IS NULL;
-
---update relationship_to_concept if targeted concept has U
-UPDATE relationship_to_concept r1
-   SET concept_id_2 = cr.concept_id_2
-FROM relationship_to_concept rtc
-  JOIN concept c1 ON concept_id = concept_id_2
-  JOIN concept_relationship cr
-    ON concept_id_1 = concept_id
-   AND relationship_id = 'Concept replaced by'
-WHERE r1.concept_code_1 = rtc.concept_code_1
-AND   c1.invalid_reason IS NOT NULL;
-
-DELETE
-FROM drug_concept_stage
-WHERE concept_code IN (SELECT drug_concept_code
-                       FROM ds_stage
-                       WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
-                       AND   denominator_value IS NOT NULL);
-
-DELETE
-FROM internal_relationship_stage
-WHERE concept_code_1 IN (SELECT drug_concept_code
-                         FROM ds_stage
-                         WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
-                         AND   denominator_value IS NOT NULL);
-
-DELETE
-FROM ds_stage
-WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
-AND   denominator_value IS NOT NULL;
 
 --find dosage for multiple drugs
 DROP TABLE if exists grr_mult;
 
 CREATE TABLE grr_mult 
 AS
-WITH r_ds
-AS
-(SELECT DISTINCT drug_concept_id,
-       STRING_AGG(ingredient_concept_id::VARCHAR,'-' ORDER BY ingredient_concept_id) AS r_i_combo,
-       STRING_AGG(amount_value::VARCHAR,'-' ORDER BY ingredient_concept_id) AS r_d_combo
-FROM drug_strength
-  JOIN concept
-    ON concept_id = drug_concept_id
-   AND concept_class_id = 'Clinical Drug'
-GROUP BY drug_concept_id,
-         vocabulary_id
-HAVING COUNT(1) = 2),q_ds AS (SELECT fcc AS q_code,
-                                     STRING_AGG(rtc.concept_Id_2::VARCHAR,'-' ORDER BY concept_Id_2) AS q_ing_combo,
-                                     SUBSTRING(therapy_name,'(\d+\.?\d?)(/|-- )') || '-' ||regexp_replace(SUBSTRING(therapy_name,'((/|-- )\d+\.?\d?)'),'(/|-- )','') AS q_d_combo
-                              FROM source_data_1
-                                JOIN internal_relationship_stage irs ON fcc = irs.concept_code_1
-                                JOIN relationship_to_concept rtc
-                                  ON irs.concept_code_2 = rtc.concept_code_1
-                                 AND precedence = 1
-                                JOIN concept
-                                  ON concept_id = concept_id_2
-                                 AND concept_class_id = 'Ingredient'
-                              WHERE substance LIKE '%+%'
-                              GROUP BY fcc,
-                                       therapy_name
-                              UNION
-                              SELECT fcc AS q_code,
-                                     STRING_AGG(rtc.concept_Id_2::VARCHAR,'-' ORDER BY concept_Id_2) AS q_ing_combo,
-                                     REGEXP_REPLACE(SUBSTRING(therapy_name,'((/|-- )\d+\.?\d?)'),'(/|-- )','') || '-' ||SUBSTRING(therapy_name,'(\d+\.?\d?)(/|-- )') AS q_d_combo
-                              FROM source_data_1
-                                JOIN internal_relationship_stage irs ON fcc = irs.concept_code_1
-                                JOIN relationship_to_concept rtc
-                                  ON irs.concept_code_2 = rtc.concept_code_1
-                                 AND precedence = 1
-                                JOIN concept
-                                  ON concept_id = concept_id_2
-                                 AND concept_class_id = 'Ingredient'
-                              WHERE substance LIKE '%+%'
-                              GROUP BY fcc,
-                                       therapy_name),c_m AS (SELECT DISTINCT q_code,
-                                                                    SUBSTRING(q_ing_combo,'(\d+)\-') AS ing,
-                                                                    SUBSTRING(q_d_combo,'(\d+(\.?)(\d+)?)') AS d1
-                                                             FROM q_ds
-                                                               JOIN r_ds
-                                                                 ON q_ing_combo = r_i_combo
-                                                                AND q_d_combo = r_d_combo
-                                                             UNION
-                                                             SELECT DISTINCT q_code,
-                                                                    SUBSTRING(q_ing_combo,'\d+\-(\d+)') AS ing,
-                                                                    REGEXP_REPLACE(SUBSTRING(q_d_combo,'(\-\d+(\.)?(\d+)?)'),'-','') AS d1
-                                                             FROM q_ds
-                                                               JOIN r_ds
-                                                                 ON q_ing_combo = r_i_combo
-                                                                AND q_d_combo = r_d_combo) SELECT q_code,rtc.concept_code_1,d1 FROM c_m JOIN relationship_to_concept rtc ON CAST(c_m.ing AS INTEGER) = rtc.concept_id_2;
+WITH r_ds AS
+(
+  SELECT DISTINCT drug_concept_id,
+         STRING_AGG(ingredient_concept_id::VARCHAR,'-' ORDER BY ingredient_concept_id) AS r_i_combo,
+         STRING_AGG(amount_value::VARCHAR,'-' ORDER BY ingredient_concept_id) AS r_d_combo
+  FROM drug_strength
+    JOIN concept
+      ON concept_id = drug_concept_id
+     AND concept_class_id = 'Clinical Drug'
+  GROUP BY drug_concept_id,
+           vocabulary_id
+  HAVING COUNT(1) = 2
+),
 
+q_ds
+AS
+(
+SELECT fcc AS q_code,
+       STRING_AGG(rtc.concept_Id_2::VARCHAR,'-' ORDER BY concept_Id_2) AS q_ing_combo,
+       SUBSTRING(therapy_name,'(\d+\.?\d?)(/|-- )') || '-' ||regexp_replace(SUBSTRING(therapy_name,'((/|-- )\d+\.?\d?)'),'(/|-- )','') AS q_d_combo
+FROM source_data_1
+  JOIN internal_relationship_stage irs ON fcc = irs.concept_code_1
+  JOIN relationship_to_concept rtc
+    ON irs.concept_code_2 = rtc.concept_code_1
+   AND precedence = 1
+  JOIN concept
+    ON concept_id = concept_id_2
+   AND concept_class_id = 'Ingredient'
+WHERE substance LIKE '%+%'
+GROUP BY fcc,
+         therapy_name
+UNION
+SELECT fcc AS q_code,
+       STRING_AGG(rtc.concept_Id_2::VARCHAR,'-' ORDER BY concept_Id_2) AS q_ing_combo,
+       REGEXP_REPLACE(SUBSTRING(therapy_name,'((/|-- )\d+\.?\d?)'),'(/|-- )','') || '-' ||SUBSTRING(therapy_name,'(\d+\.?\d?)(/|-- )') AS q_d_combo
+FROM source_data_1
+  JOIN internal_relationship_stage irs ON fcc = irs.concept_code_1
+  JOIN relationship_to_concept rtc
+    ON irs.concept_code_2 = rtc.concept_code_1
+   AND precedence = 1
+  JOIN concept
+    ON concept_id = concept_id_2
+   AND concept_class_id = 'Ingredient'
+WHERE substance LIKE '%+%'
+GROUP BY fcc,
+         therapy_name
+),
+
+c_m
+AS
+(
+SELECT DISTINCT q_code,
+       SUBSTRING(q_ing_combo,'(\d+)\-') AS ing,
+       SUBSTRING(q_d_combo,'(\d+(\.?)(\d+)?)') AS d1
+FROM q_ds
+  JOIN r_ds
+    ON q_ing_combo = r_i_combo
+   AND q_d_combo = r_d_combo
+UNION
+SELECT DISTINCT q_code,
+       SUBSTRING(q_ing_combo,'\d+\-(\d+)') AS ing,
+       REGEXP_REPLACE(SUBSTRING(q_d_combo,'(\-\d+(\.)?(\d+)?)'),'-','') AS d1
+FROM q_ds
+  JOIN r_ds
+    ON q_ing_combo = r_i_combo
+   AND q_d_combo = r_d_combo
+)
+   
+SELECT q_code,
+       rtc.concept_code_1,
+       d1
+FROM c_m
+  JOIN relationship_to_concept rtc ON CAST (c_m.ing AS INTEGER) = rtc.concept_id_2;
 DELETE
 FROM ds_stage
 WHERE drug_concept_code IN (SELECT q_code FROM grr_mult);
@@ -2251,7 +2232,36 @@ SELECT q_code,
 FROM grr_mult
   JOIN source_data_1 ON fcc = q_code;
 
---delete not using units
+--delete homeapathy from tables
+DELETE
+FROM drug_concept_stage
+WHERE concept_code IN (SELECT drug_concept_code
+                       FROM ds_stage
+                       WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
+                       AND   denominator_value IS NOT NULL);
+
+DELETE
+FROM internal_relationship_stage
+WHERE concept_code_1 IN (SELECT drug_concept_code
+                         FROM ds_stage
+                         WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
+                         AND   denominator_value IS NOT NULL);
+
+DELETE
+FROM ds_stage
+WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
+AND   denominator_value IS NOT NULL;
+
+--delete Brand Name of Homeopathy drugs
+DELETE
+FROM drug_concept_stage
+WHERE concept_code IN (SELECT DISTINCT a.concept_code
+                       FROM drug_concept_stage a
+                         LEFT JOIN internal_relationship_stage b ON a.concept_code = b.concept_code_2
+                       WHERE a.concept_class_id = 'Brand Name'
+                       AND   b.concept_code_1 IS NULL);
+
+--delete non using units
 DELETE
 FROM drug_concept_stage
 WHERE concept_code IN (SELECT CONCEPT_CODE
@@ -2272,16 +2282,7 @@ WHERE (concept_code_1,concept_code_2) IN (SELECT concept_code_1,
                                             LEFT JOIN ds_stage ON drug_concept_code = concept_code_1
                                           WHERE drug_concept_code IS NULL);
 
---delete Brand Name   without  drugs connection
-DELETE
-FROM drug_concept_stage
-WHERE concept_code IN (SELECT DISTINCT a.concept_code
-                       FROM drug_concept_stage a
-                         LEFT JOIN internal_relationship_stage b ON a.concept_code = b.concept_code_2
-                       WHERE a.concept_class_id = 'Brand Name'
-                       AND   b.concept_code_1 IS NULL);
-
--- update cross sequence mistake 
+-- update concept code for concept that already exist in devv5
 DROP TABLE if exists code_replace;
 
 CREATE TABLE code_replace 
@@ -2331,7 +2332,44 @@ UPDATE pc_stage a
 FROM code_replace b
 WHERE a.drug_concept_code = b.old_code;
 
---delete Brand Names they not mapped to RxE, leave new that are brand names
+--extract source attributes that didn't mapped and do it manually
+select concept_name as source_attr_name, concept_class_id as source_attr_concept_class
+from drug_concept_stage 
+left join relationship_to_concept on concept_code_1 = concept_code 
+where concept_code_1 is null 
+and concept_class_id not in ('Drug Product','Device');
+
+--creating form for manaul table
+create table relationship_to_concept_manual
+(
+source_attr_name varchar(255),
+source_attr_concept_class varchar(50),
+target_concept_id integer,
+target_concept_code varchar(50),
+target_concept_name varchar(255),
+precedence integer,
+conversion_factor float
+);
+
+--fill manual table
+insert into relationship_to_concept_manual
+;
+
+--insert all manual work into r_t_c
+insert into relationship_to_concept
+(
+concept_code_1,
+vocabulary_id_1,
+concept_id_2,
+precedence,
+conversion_factor
+)
+select dcs.concept_code, dcs.vocabulary_id, mt.target_concept_id, mt.precedence, mt.conversion_factor
+from drug_concept_stage dcs
+join relationship_to_concept_manual mt on upper(mt.source_attr_name) = upper(dcs.concept_name)
+;
+
+--delete Brand Names they not mapped to RxE
 DELETE
 FROM internal_relationship_stage
 WHERE (concept_code_1,concept_code_2) IN (SELECT irs.*

@@ -2369,7 +2369,7 @@ from drug_concept_stage dcs
 join relationship_to_concept_manual mt on upper(mt.source_attr_name) = upper(dcs.concept_name)
 ;
 
---delete Brand Names they not mapped to RxE
+--delete Brand Names they not mapped to RxNorm%
 DELETE
 FROM internal_relationship_stage
 WHERE (concept_code_1,concept_code_2) IN (SELECT irs.*

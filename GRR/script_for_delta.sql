@@ -1,25 +1,9 @@
---insert into r_t_c_all previous iteration relationships for future use
-INSERT INTO r_t_c_all 
-(
-concept_name,
-concept_id,
-precedence,
-conversion_factor
-)
-SELECT concept_name,
-       concept_id_2,
-       precedence,
-       conversion_factor
-FROM drug_concept_stage
-  JOIN relationship_to_concept ON concept_code = concept_code_1
-WHERE UPPER(concept_name) NOT IN (SELECT UPPER(concept_name) FROM r_t_c_all);
-
---update source table when while upload was mistakes with empty cells, not null
+--update source table while upload was mistake with empty cells
 UPDATE source_grr_q1_19
    SET product_launch_date = NULL::VARCHAR
 WHERE product_launch_date = '';
 
---create source working table 
+--create from source working table 
 DROP TABLE IF EXISTS source_data_1;
 
 CREATE TABLE source_data_1 
@@ -63,7 +47,7 @@ SELECT CASE
 FROM source_grr_q1_19
 ;
 
---use data that we don't have in devv5.concept 
+--use data that we haven't in devv5 and those concepts which haven't 'live' mapping
 DELETE
 FROM source_data_1
 WHERE fcc IN (SELECT DISTINCT fcc
@@ -263,7 +247,6 @@ UPDATE grr_bn
 WHERE bn LIKE '%WINTHR'
 OR    bn LIKE '%WINTHR %';
 
---same with BN
 UPDATE grr_bn
    SET bn = 'ABILIFY MAINTENA'
 WHERE bn LIKE '%ABILIFY MAIN%';
@@ -448,7 +431,6 @@ AND   bn NOT IN ('OME Q','O PUR','IUP T','GO ON','AZA Q');
 
 --deleting all sorts of ingredients
 DELETE
-SELECT *
 FROM grr_bn_2_1
 WHERE UPPER(bn) IN (SELECT UPPER(SUBSTANCE) FROM source_data_1);
 
@@ -600,7 +582,7 @@ SELECT DISTINCT *
 FROM grr_bn_2_1
 WHERE fcc NOT IN (SELECT fcc FROM grr_bn_2);
 
---avoid Brand Name equal non Brand Name
+--avoid names of Brand Name that equal to non Brand Name
 DELETE
 FROM grr_bn_2
 WHERE fcc IN (SELECT fcc
@@ -809,11 +791,11 @@ WHERE fcc IN (SELECT fcc FROM grr_manuf WHERE PRI_ORG_LNG_NM LIKE '^TAD$');
 UPDATE grr_manuf
    SET PRI_ORG_LNG_NM = REPLACE(PRI_ORG_LNG_NM,'>','');
 
---delete from manufacturer ingredients
 DELETE
 FROM grr_manuf
 WHERE PRI_ORG_LNG_NM IN ('OLIBANUM','EIGENHERSTELLUNG');
 
+--delete from manufacturer ingredients
 DELETE
 FROM grr_manuf
 WHERE LOWER(PRI_ORG_LNG_NM) IN (SELECT LOWER(concept_name)
@@ -1687,7 +1669,7 @@ FROM (SELECT DISTINCT TRIM(UNNEST(REGEXP_MATCHES(t.substance,'[^\+]+','g'))) AS 
       FROM source_data_1 t) AS s
 WHERE ingredient NOT IN ('MULTI SUBSTANZ','ENZYME (UNSPECIFIED)','NASAL DECONGESTANTS','ANTACIDS','ELECTROLYTE SOLUTIONS','ANTI-PSORIASIS','TOPICAL ANALGESICS');
 
---find non used OMOP codes
+--find OMOP codes that aren't used
 DO $$ DECLARE ex INTEGER;
 
 BEGIN
@@ -1765,7 +1747,7 @@ INSERT INTO drug_concept_stage
   STANDARD_CONCEPT,
   CONCEPT_CODE,
   POSSIBLE_EXCIPIENT,
-  domain_id,
+  DOMAIN_ID,
   VALID_START_DATE,
   VALID_END_DATE,
   INVALID_REASON,
@@ -1796,7 +1778,6 @@ FROM (SELECT concept_name,
              'Drug Product',
              fcc
       FROM dcs_drugs
-      --drugs with pack drugs
       UNION ALL
       SELECT concept_name,
              'Dose Form',
@@ -1853,40 +1834,10 @@ VALUES
   TO_DATE('20991231','yyyymmdd')
 );
 
-
---filling internal relationship between source drugs and their attributes
-TRUNCATE TABLE internal_relationship_stage;
-
-INSERT INTO internal_relationship_stage
-SELECT fcc,
-       concept_code
-FROM grr_form_2
-UNION
---drug to bn
-SELECT fcc,
-       concept_code
-FROM grr_bn_2
-  JOIN drug_concept_stage ON UPPER (bn) = UPPER (concept_name)
-WHERE concept_class_id = 'Brand Name'
-UNION
---drug to supp
-SELECT fcc,
-       concept_code
-FROM grr_manuf
-  JOIN drug_concept_stage ON UPPER (PRI_ORG_LNG_NM) = UPPER (concept_name)
-WHERE concept_class_id = 'Supplier'
-UNION
---drug to ingr
-SELECT fcc,
-       concept_code
-FROM grr_ing_2
-  JOIN drug_concept_stage b
-    ON UPPER (ingredient) = UPPER (concept_name)
-   AND concept_class_id = 'Ingredient';
-
 --filling relation between source attributes and standard attributes
 TRUNCATE TABLE relationship_to_concept;
 
+--insert mapping for attributes from previous iteration
 INSERT INTO relationship_to_concept
 (
   concept_code_1,
@@ -1925,7 +1876,7 @@ FROM drug_concept_stage dcs
    AND cc.vocabulary_id LIKE 'RxNorm%'
 WHERE concept_code_1 IS NULL
 AND   dcs.concept_class_id IN ('Ingredient','Brand Name','Dose Form','Supplier')
-AND   cc.invalid_reason IS NULL or c.invalid_reason = 'U';
+AND   cc.invalid_reason IS NULL or cc.invalid_reason = 'U';
 
 --update relationship_to_concept if targeted concept has U
 UPDATE relationship_to_concept r1
@@ -1937,6 +1888,92 @@ FROM relationship_to_concept rtc
    AND relationship_id = 'Concept replaced by'
 WHERE r1.concept_code_1 = rtc.concept_code_1
 AND   c1.invalid_reason IS NOT NULL;
+
+--extract source attributes that aren't mapped and do it manually
+select concept_name as source_attr_name, concept_class_id as source_attr_concept_class
+from drug_concept_stage 
+left join relationship_to_concept on concept_code_1 = concept_code 
+where concept_code_1 is null 
+and concept_class_id not in ('Drug Product','Device');
+
+--creating form for manaul table
+create table relationship_to_concept_manual
+(
+source_attr_name varchar(255),
+source_attr_concept_class varchar(50),
+target_concept_id integer,
+target_concept_code varchar(50),
+target_concept_name varchar(255),
+precedence integer,
+conversion_factor float,
+indicator_rxe varchar(10)
+);
+
+--fill manual table
+insert into relationship_to_concept_manual
+;
+
+--insert all manual work into r_t_c
+insert into relationship_to_concept
+(
+concept_code_1,
+vocabulary_id_1,
+concept_id_2,
+precedence,
+conversion_factor
+)
+select dcs.concept_code, dcs.vocabulary_id, mt.target_concept_id, mt.precedence, mt.conversion_factor
+from drug_concept_stage dcs
+join relationship_to_concept_manual mt on upper(mt.source_attr_name) = upper(dcs.concept_name)
+;
+
+--delete attributes they aren't mapped to RxNorm% and which we don't want to create
+DELETE
+FROM internal_relationship_stage
+WHERE (concept_code_1,concept_code_2) IN (SELECT irs.*
+                                          FROM source_data_1
+                                            JOIN internal_relationship_stage irs ON fcc = irs.concept_code_1
+                                            JOIN drug_concept_stage dcs ON dcs.concept_code = irs.concept_code_2
+                                            JOIN relationship_to_concept_manual rtc ON upper(rtc.source_attr_name) = upper(dcs.concept_name)
+                                          WHERE rtc.indicator_rxe IS NULL and rtc.target_concept_id IS NULL);
+
+DELETE
+FROM drug_concept_stage
+WHERE concept_code IN (SELECT concept_code
+                       FROM drug_concept_stage dcs
+                        JOIN relationship_to_concept_manual rtc ON upper(rtc.source_attr_name) = upper(dcs.concept_name)
+                       WHERE rtc.indicator_rxe IS NULL and rtc.target_concept_id IS NULL);
+
+
+--filling internal relationship between source drugs and their attributes
+TRUNCATE TABLE internal_relationship_stage;
+
+INSERT INTO internal_relationship_stage
+SELECT fcc,
+       concept_code
+FROM grr_form_2
+UNION
+--drug to bn
+SELECT fcc,
+       concept_code
+FROM grr_bn_2
+  JOIN drug_concept_stage ON UPPER (bn) = UPPER (concept_name)
+WHERE concept_class_id = 'Brand Name'
+UNION
+--drug to supp
+SELECT fcc,
+       concept_code
+FROM grr_manuf
+  JOIN drug_concept_stage ON UPPER (PRI_ORG_LNG_NM) = UPPER (concept_name)
+WHERE concept_class_id = 'Supplier'
+UNION
+--drug to ingr
+SELECT fcc,
+       concept_code
+FROM grr_ing_2
+  JOIN drug_concept_stage b
+    ON UPPER (ingredient) = UPPER (concept_name)
+   AND concept_class_id = 'Ingredient';
 
 --extract dosage from source_data
 DROP TABLE IF EXISTS ds_0_sd_2;
@@ -1982,7 +2019,7 @@ UPDATE ds_0_sd_2
    SET STRENGTH_UNIT = NULL
 WHERE STRENGTH_UNIT = '';
 
---convert % to normal units
+--convert percent to normal units
 DROP TABLE if exists ds_0_sd_1;
 
 CREATE TABLE ds_0_sd_1 
@@ -2130,10 +2167,6 @@ UPDATE ds_stage
 WHERE amount_value = numerator_value
 AND   amount_unit = numerator_unit;
 
-
-
-
-
 --find dosage for multiple drugs
 DROP TABLE if exists grr_mult;
 
@@ -2232,7 +2265,7 @@ SELECT q_code,
 FROM grr_mult
   JOIN source_data_1 ON fcc = q_code;
 
---delete homeapathy from tables
+--delete homeopathy liquids
 DELETE
 FROM drug_concept_stage
 WHERE concept_code IN (SELECT drug_concept_code
@@ -2252,16 +2285,7 @@ FROM ds_stage
 WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
 AND   denominator_value IS NOT NULL;
 
---delete Brand Name of Homeopathy drugs
-DELETE
-FROM drug_concept_stage
-WHERE concept_code IN (SELECT DISTINCT a.concept_code
-                       FROM drug_concept_stage a
-                         LEFT JOIN internal_relationship_stage b ON a.concept_code = b.concept_code_2
-                       WHERE a.concept_class_id = 'Brand Name'
-                       AND   b.concept_code_1 IS NULL);
-
---delete non using units
+--delete units that aren't used
 DELETE
 FROM drug_concept_stage
 WHERE concept_code IN (SELECT CONCEPT_CODE
@@ -2332,61 +2356,6 @@ UPDATE pc_stage a
 FROM code_replace b
 WHERE a.drug_concept_code = b.old_code;
 
---extract source attributes that didn't mapped and do it manually
-select concept_name as source_attr_name, concept_class_id as source_attr_concept_class
-from drug_concept_stage 
-left join relationship_to_concept on concept_code_1 = concept_code 
-where concept_code_1 is null 
-and concept_class_id not in ('Drug Product','Device');
-
---creating form for manaul table
-create table relationship_to_concept_manual
-(
-source_attr_name varchar(255),
-source_attr_concept_class varchar(50),
-target_concept_id integer,
-target_concept_code varchar(50),
-target_concept_name varchar(255),
-precedence integer,
-conversion_factor float
-);
-
---fill manual table
-insert into relationship_to_concept_manual
-;
-
---insert all manual work into r_t_c
-insert into relationship_to_concept
-(
-concept_code_1,
-vocabulary_id_1,
-concept_id_2,
-precedence,
-conversion_factor
-)
-select dcs.concept_code, dcs.vocabulary_id, mt.target_concept_id, mt.precedence, mt.conversion_factor
-from drug_concept_stage dcs
-join relationship_to_concept_manual mt on upper(mt.source_attr_name) = upper(dcs.concept_name)
-;
-
---delete Brand Names they not mapped to RxNorm%
-DELETE
-FROM internal_relationship_stage
-WHERE (concept_code_1,concept_code_2) IN (SELECT irs.*
-                                          FROM source_data_1
-                                            JOIN internal_relationship_stage irs ON fcc = irs.concept_code_1
-                                            JOIN drug_concept_stage dcs ON dcs.concept_code = irs.concept_code_2
-                                            LEFT JOIN relationship_to_concept rtc ON rtc.concept_code_1 = irs.concept_code_2
-                                          WHERE dcs.concept_class_id = 'Brand Name'
-                                          AND   rtc.concept_code_1 IS NULL);
-
-DELETE
-FROM drug_concept_stage
-WHERE concept_code IN (SELECT concept_code
-                       FROM drug_concept_stage a
-                         LEFT JOIN internal_relationship_stage b ON a.concept_code = b.concept_code_2
-                       WHERE a.concept_class_id = 'Brand Name'
-                       AND   b.concept_code_1 IS NULL);
 
 --create name for source concept
 DROP TABLE IF EXISTS ds_stage_cnc;
@@ -2481,3 +2450,19 @@ UPDATE drug_concept_stage a
    SET concept_name = SUBSTR(n.concept_name,1,255)
 FROM new_name n
 WHERE n.drug_concept_code = a.concept_code;
+
+--insert into r_t_c_all from current rtc for future use
+INSERT INTO r_t_c_all 
+(
+concept_name,
+concept_id,
+precedence,
+conversion_factor
+)
+SELECT concept_name,
+       concept_id_2,
+       precedence,
+       conversion_factor
+FROM drug_concept_stage
+  JOIN relationship_to_concept ON concept_code = concept_code_1
+WHERE UPPER(concept_name) NOT IN (SELECT UPPER(concept_name) FROM r_t_c_all);

@@ -63,7 +63,7 @@ WHERE fcc IN (SELECT DISTINCT fcc
                   ON c2.concept_id = cr.concept_id_2
                  AND c2.invalid_reason IS NULL);
 
--- manual mapping!!!!vaccine\insulin,  after manual work put them to concept_relationship_manual 
+-- manual mapping!!!!vaccines\insulins,  after manual work put it to concept_relationship_manual 
 DROP TABLE if exists vacc_ins_manual;
 
 CREATE TABLE vacc_ins_manual 
@@ -1889,25 +1889,34 @@ FROM relationship_to_concept rtc
 WHERE r1.concept_code_1 = rtc.concept_code_1
 AND   c1.invalid_reason IS NOT NULL;
 
+--create table that need to map manually by medical coder
+drop table if exists relationship_to_concept_to_map;
+create table relationship_to_concept_to_map
+(
+ source_attr_name varchar(255),
+ source_attr_concept_class varchar(50),
+ target_concept_id integer,
+ target_concept_code varchar(50),
+ target_concept_name varchar(255),
+ precedence integer,
+ conversion_factor float,
+ indicator_rxe varchar(10)
+);
+
 --extract source attributes that aren't mapped and do it manually
+insert into relationship_to_concept_to_map
+(
+  source_attr_name,
+  source_attr_concept_class
+)
 select concept_name as source_attr_name, concept_class_id as source_attr_concept_class
 from drug_concept_stage 
 left join relationship_to_concept on concept_code_1 = concept_code 
 where concept_code_1 is null 
 and concept_class_id not in ('Drug Product','Device');
 
---creating form for manaul table
-create table relationship_to_concept_manual
-(
-source_attr_name varchar(255),
-source_attr_concept_class varchar(50),
-target_concept_id integer,
-target_concept_code varchar(50),
-target_concept_name varchar(255),
-precedence integer,
-conversion_factor float,
-indicator_rxe varchar(10)
-);
+--erase relationship_to_concept_manual table 
+truncate relationship_to_concept_manual;
 
 --fill manual table
 insert into relationship_to_concept_manual
@@ -1931,8 +1940,7 @@ join relationship_to_concept_manual mt on upper(mt.source_attr_name) = upper(dcs
 DELETE
 FROM internal_relationship_stage
 WHERE (concept_code_1,concept_code_2) IN (SELECT irs.*
-                                          FROM source_data_1
-                                            JOIN internal_relationship_stage irs ON fcc = irs.concept_code_1
+                                          FROM internal_relationship_stage irs 
                                             JOIN drug_concept_stage dcs ON dcs.concept_code = irs.concept_code_2
                                             JOIN relationship_to_concept_manual rtc ON upper(rtc.source_attr_name) = upper(dcs.concept_name)
                                           WHERE rtc.indicator_rxe IS NULL and rtc.target_concept_id IS NULL);

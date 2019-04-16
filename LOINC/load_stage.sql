@@ -35,7 +35,10 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Create concept_stage from LOINC
+------------------------
+-----CONCEPT_STAGE------
+------------------------
+--3. Load LOINC concepts indicating Measurements or Observations from the source table of 'sources.loinc' into the CONCEPT_STAGE 
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -47,13 +50,28 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT SUBSTR(COALESCE(CONSUMER_NAME, CASE 
-				WHEN LENGTH(LONG_COMMON_NAME) > 255
-					AND SHORTNAME IS NOT NULL
-					THEN SHORTNAME
-				ELSE LONG_COMMON_NAME
-				END), 1, 255) AS concept_name,
-	CASE 
+SELECT 
+   CASE WHEN loinc_num = '66678-4' AND property = 'Hx' AND c.vocabulary_id = 'LOINC' 
+	    THEN 'History of Diabetes (regardless of treatment) [PhenX]'
+		WHEN loinc_num = '82312-0' 
+	    THEN 'History of ' ||REPLACE(long_common_name,'andor','and/or')
+		WHEN property = 'Hx' AND   c.vocabulary_id = 'LOINC' AND   long_common_name !~* 'hx|histor|reported|status|narrative|^do you|^have you|^does|^has |education|why you|timing|virtuoso|maestro|grade|received|cause|allergies|in the past'
+      THEN 'History of '||long_common_name
+   	ELSE long_common_name -- AVOF-819
+	  END AS concept_name,
+	 CASE WHEN CLASSTYPE IN ('1','2') 
+	      AND  (survey_quest_text ~ '\?'
+	      	   OR scale_typ = 'Set' 
+	      	   OR property IN ('Hx','Addr','Anat','ClockTime','Date','DateRange','Desc','EmailAddr','Instrct','Loc','Pn','Tele','TmStp','TmStpRange','Txt','URI','Xad','Bib') 
+	      	   OR (property = 'ID' and system in ('^BPU', '^Patient', 'Vaccine'))
+	      	   OR system IN ('^Family member','^Neighborhood','^Brother','^Daughter','^Sister','^Son','^CCD','^Census tract','^Clinical trial protocol', '^Community','*','?','^Contact','^Donor','^Emergency contact','^Event','^Facility', 'Provider', 'Report',  'Repository', 'School', 'Surgical procedure') 
+	      	   OR (system IN ('^Patient','*^Patient') AND (scale_typ  IN ('Doc', 'Nar','Nom', 'Ord', 'OrdQn') AND (method_typ NOT IN  ('Apgar') OR method_typ IS NULL) 
+	      	   OR property IN ('Arb','Imp','NRat','Num','PrThr','RelRto','Time','Type','Find') AND class NOT IN ('COAG','PULM'))
+	      ))
+	      AND (long_common_name !~* 'scale|score'  OR long_common_name ~* 'interpretation|rose dyspnea scale')   
+	      AND (method_typ != 'Measured' OR method_typ IS NULL)
+	      AND loinc_num NOT IN ('65712-2', '65713-0')
+	    THEN 'Observation'
 		WHEN CLASSTYPE = '1'
 			THEN 'Measurement'
 		WHEN CLASSTYPE = '2'
@@ -64,14 +82,26 @@ SELECT SUBSTR(COALESCE(CONSUMER_NAME, CASE
 			THEN 'Observation'
 		END AS domain_id,
 	v.vocabulary_id,
-	CASE CLASSTYPE
-		WHEN '1'
+	CASE WHEN CLASSTYPE IN ('1','2') 
+	      AND  (survey_quest_text ~ '\?'
+	      	   OR scale_typ = 'Set' 
+	      	   OR property IN ('Hx','Addr','Anat','ClockTime','Date','DateRange','Desc','EmailAddr','Instrct','Loc','Pn','Tele','TmStp','TmStpRange','Txt','URI','Xad','Bib') 
+	      	   OR (property = 'ID' and system in ('^BPU', '^Patient', 'Vaccine'))
+	      	   OR system IN ('^Family member','^Neighborhood','^Brother','^Daughter','^Sister','^Son','^CCD','^Census tract','^Clinical trial protocol', '^Community','*','?','^Contact','^Donor','^Emergency contact','^Event','^Facility', 'Provider', 'Report',  'Repository', 'School', 'Surgical procedure') 
+	      	   OR (system IN ('^Patient','*^Patient') AND (scale_typ  IN ('Doc', 'Nar','Nom', 'Ord', 'OrdQn') AND (method_typ NOT IN  ('Apgar') OR method_typ IS NULL) 
+	      	   OR property IN ('Arb','Imp','NRat','Num','PrThr','RelRto','Time','Type','Find') AND class NOT IN ('COAG','PULM'))
+	      ))
+	      AND (long_common_name !~* 'scale|score'  OR long_common_name ~* 'interpretation|rose dyspnea scale')   
+	      AND (method_typ != 'Measured' OR method_typ IS NULL)
+	      AND loinc_num NOT IN ('65712-2', '65713-0')
+	    THEN 'Clinical Observation'
+		WHEN CLASSTYPE = '1'
 			THEN 'Lab Test'
-		WHEN '2'
+		WHEN CLASSTYPE ='2'
 			THEN 'Clinical Observation'
-		WHEN '3'
+		WHEN CLASSTYPE ='3'
 			THEN 'Claims Attachment'
-		WHEN '4'
+		WHEN CLASSTYPE ='4'
 			THEN 'Survey'
 		END AS concept_class_id,
 	'S' AS standard_concept,
@@ -106,12 +136,48 @@ SELECT SUBSTR(COALESCE(CONSUMER_NAME, CASE
 FROM sources.loinc l
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
-	AND c.vocabulary_id = 'LOINC';
+	AND c.vocabulary_id = 'LOINC' ; 
 
---4. Load classes from loinc_class directly into concept_stage
-INSERT INTO concept_stage SELECT * FROM sources.loinc_class;
+--4. Add LOINC Classes from the manual table of 'sources.loinc_class' into the CONCEPT_STAGE
+INSERT INTO concept_stage
+ (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+ SELECT concept_name,
+ CASE  WHEN concept_name ~* 'history|report|document|miscellaneous|public health'
+    THEN 'Observation' else domain_id end,
+    vocabulary_id,
+    concept_class_id,
+    'C',
+    concept_code,
+    valid_start_date,
+	valid_end_date,
+	invalid_reason
+  FROM sources.loinc_class -- 300
+/*--for some reason we have a deficit of source classes (98 classes are absent:
+select distinct  class from sources.loinc where class not  in (select distinct concept_code  from  sources.loinc_class)) -- in the future we should add full list of missed classes*/ 
+-- add DOCUMENT ONTOLOGY CLASS 
+UNION 
+select 'Document Ontology' as concept_name, 
+'Observation' as domain_id ,
+'LOINC' as vocabulary_id , 
+'LOINC Class' as concept_class_id, 
+'C' as standard_concept,
+'DOC.ONTOLOGY' as concept_code, 
+'1970-01-01' as valid_start_date,
+'2099-12-31' as valid_end_date,
+null as invalid_reason
+;
 
---5. Add LOINC hierarchy
+--5. Add LOINC Hierarchy concepts (code ~ '^LP'') from the source table of 'sources.loinc_hierarchy' into the CONCEPT_STAGE
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -125,8 +191,14 @@ INSERT INTO concept_stage (
 	)
 SELECT DISTINCT SUBSTR(code_text, 1, 255) AS concept_name,
 	CASE 
-		WHEN code > 'LP76352-1'
-			THEN 'Observation'
+		WHEN (code_text ~* 'directive|^age\s+|lifetime risk|alert|attachment|\s+date|comment|\s+note|consent|identifier|\s+time|\s+number' 
+          or code_text ~* 'date and time|coding system|interpretation|status|\s+name|\s+report|\s+id$|s+id\s+|version|instruction|known exposure|priority|ordered|available|requested|issued|flowsheet|\s+term'
+          or code_text ~* 'reported|not yet categorized|performed|risk factor|device|administration|\s+route$|suggestion|recommended|narrative|ICD code|reference'
+          or code_text ~* 'reviewed|information|intention|^Reason for|^Received|Recommend|provider|subject|summary|time\s+') 
+         and code_text !~* 'thrombin time|clotting time|bleeding time|clot formation|kaolin activated time|closure time|protein feed time|Recalcification time|reptilase time|russell viper venom time'
+         and code_text !~* 'implanted device|dosage\.vial|isolate|within lymph node|cncer specimen|tumor|chromosome|inversion|bioavailable' -- manually defined word patterns 
+         and code ~ '^LP'
+			THEN 'Observation' 
 		ELSE 'Measurement'
 		END AS domain_id,
 	'LOINC' AS vocabulary_id,
@@ -137,9 +209,24 @@ SELECT DISTINCT SUBSTR(code_text, 1, 255) AS concept_name,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.loinc_hierarchy
-WHERE code LIKE 'LP%';
+WHERE code LIKE 'LP%'; -- all LOINC Hierarchy concepts have 'LP' in the beginning of a name
 
---6. Add concept_relationship_stage link to multiaxial hierarchy
+/*UNION 
+-- add Documentt Ontology concpet to preserve a hierarchy of Document Kind class 
+SELECT 'Document ontology' as concept_name,  -- new_part! 'Document ontology' 'LP76352-1' classification concepts is considered to be superior in the hierarchy, but it is absent in the source
+'Observation' as domain_id,
+'LOINC' AS vocabulary_id,
+	'LOINC Hierarchy' AS concept_class_id,
+'C' AS standart_concept,
+'LP76352-1' as concept_code,
+TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason; */
+
+----------------------------------
+----COCNEPT_RELATIONSHIP_STAGE----
+----------------------------------
+--6. Build 'Subsumes' relationships from LOINC Ancestors to Descendants using the sorce table of 'sources.loinc_hierarchy'
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -150,8 +237,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT immediate_parent AS concept_code_1,
-	code AS concept_code_2,
+SELECT DISTINCT immediate_parent AS concept_code_1, -- LOINC Ancestor
+	code AS concept_code_2, -- LOINC Descendant
 	'Subsumes' AS relationship_id,
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
@@ -159,9 +246,25 @@ SELECT DISTINCT immediate_parent AS concept_code_1,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.loinc_hierarchy
-WHERE immediate_parent IS NOT NULL;
+WHERE immediate_parent IS NOT NULL -- when immediate_parent is null then there is no Ancestor
+;  
+/*
+--add 'Subsumes' relationships from 'Documet Ontology' concept to its children taken from LOINC User's Guide 
+UNION
+SELECT  'LP76352-1' as concept_code_1, 
+partnumber as concept_code_2,
+'Subsumes' as relationship_id, 
+'LOINC' AS vocabulary_id_1,
+	'LOINC' AS vocabulary_id_2,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+	from (select distinct partnumber   -- list of Documents from LOINC User's Guide (6.3.1 Kind of Document, p.73)
+	from sources.loinc_documentontology 
+	where partnumber in ('LP173387-4', 'LP173409-6' , 'LP200111-5', 'LP173414-6', 'LP173415-3', 'LP181112-6', 'LP181116-7', 'LP173417-9' , 'LP204161-6', 'LP173418-7', 'LP181207-4', 'LP173421-1'))t1
+;  */
 
---7. Add concept_relationship_stage to LOINC Classes inside the Class table. Create a 'Subsumes' relationship
+--7. Build 'Subsumes' relationships between LOINC Classes using the sorce table of 'sources.loinc_class' and a similarity of a class name beginning (ancestor class_name LIKE descendant class_name || '%'). 
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -172,8 +275,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT l2.concept_code AS concept_code_1,
-	l1.concept_code AS concept_code_2,
+SELECT DISTINCT l2.concept_code AS concept_code_1, -- LOINC Class Ancestor
+	l1.concept_code AS concept_code_2, -- LOINC Class Descendant
 	'Subsumes' AS relationship_id,
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
@@ -183,9 +286,20 @@ SELECT DISTINCT l2.concept_code AS concept_code_1,
 FROM sources.loinc_class l1,
 	sources.loinc_class l2
 WHERE l1.concept_code LIKE l2.concept_code || '%'
-	AND l1.concept_code <> l2.concept_code;
+	AND l1.concept_code <> l2.concept_code
+UNION
+--add 'Subsumes' from Document 'DOC' to  Document Ontology Class 'DOC.ONTOLOGY' manually to preserve Document Ontology Hierarhy
+SELECT 'DOC' as concept_code_1,
+'DOC.ONTOLOGY' as concept_code_2, 
+	'Subsumes' AS relationship_id,
+	'LOINC' AS vocabulary_id_1,
+	'LOINC' AS vocabulary_id_2,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason;
+	
 
---8. Add concept_relationship between LOINC and LOINC classes from LOINC
+--8. Build 'Subsumes' relationships from LOINC Classes to LOINC concepts indicating Measurements or Observations with the use of source tables of 'sources.loinc_class' and  'sources.loinc' to create Multiaxial Hierarchy 
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -196,8 +310,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT l.class AS concept_code_1,
-	l.loinc_num AS concept_code_2,
+SELECT l.class AS concept_code_1, -- LOINC Class concept
+	l.loinc_num AS concept_code_2, -- LOINC Observation/Measurement concept
 	'Subsumes' AS relationship_id,
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
@@ -206,47 +320,59 @@ SELECT l.class AS concept_code_1,
 	NULL AS invalid_reason
 FROM sources.loinc_class lc,
 	sources.loinc l
-WHERE lc.concept_code = l.class;
+WHERE lc.concept_code = l.class; 
 
---And delete wrong relationship ('History & Physical order set' to 'FLACC pain assessment panel', AVOF-352)
---chr(38)=&
+--8.1 Delete wrong relationship between  'PANEL.H' class (History & Physical order set) and 38213-5 FLACC pain assessment panel (AVOF-352) (chr(38)=&) 
 DELETE
 FROM concept_relationship_stage
 WHERE concept_code_1 = 'PANEL.H' || chr(38) || 'P'
 	AND concept_code_2 = '38213-5'
-	AND relationship_id = 'Subsumes';
-
---9. Create CONCEPT_SYNONYM_STAGE
+	AND relationship_id = 'Subsumes'
+	;  
+--9. Add to the CONCEPT_SYNONYM_STAGE all synonymical names from the source table of  'sources.loinc' 
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
 	synonym_vocabulary_id,
 	language_concept_id
 	) (
+	--values of a 'RelatedNames2' field
 	SELECT loinc_num AS synonym_concept_code,
 	SUBSTR(relatednames2, 1, 1000) AS synonym_name,
 	'LOINC' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
 	FROM sources.loinc WHERE relatednames2 IS NOT NULL
-
-UNION
 	
+UNION
+-- values of a 'consumer_name' field that were previously used as preffered name in 195 cases
 	SELECT LOINC_NUM AS synonym_concept_code,
-	SUBSTR(LONG_COMMON_NAME, 1, 1000) AS synonym_name,
+	consumer_name AS synonym_name,
 	'LOINC' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
-	FROM sources.loinc WHERE long_common_name IS NOT NULL
-
-UNION
+	FROM sources.loinc 
+	where consumer_name IS NOT NULL
 	
+UNION
+--  values of the 'ShortName' field
 	SELECT loinc_num AS synonym_concept_code,
 	shortname AS synonym_name,
 	'LOINC' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
 	FROM sources.loinc WHERE shortname IS NOT NULL
-	);
+	
+UNION 
+--  'long_common_name' field  values which were changed ('History of')
+SELECT loinc_num AS synonym_concept_code,
+	long_common_name AS synonym_name,
+	'LOINC' AS synonym_vocabulary_id,
+	4180186 AS language_concept_id -- English
+	FROM sources.loinc  
+	where long_common_name not in (select concept_name from concept_stage) 
+	)
+; -- We do not add synonyms for Answers ('description' field) due to their vague formulation
 
---10. Adding Loinc Answer codes
+
+--10. Add LOINC Answers from the 'sources.loinc_answerslist' and  'sources.loinc_answerslistlink' source tables to the CONCEPT_STAGE
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -267,12 +393,13 @@ SELECT DISTINCT ans_l.displaytext AS concept_name,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.loinc_answerslist ans_l
-JOIN sources.loinc_answerslistlink ans_l_l ON ans_l_l.answerlistid = ans_l.answerlistid
-JOIN sources.loinc l ON l.loinc_num = ans_l_l.loincnumber
-WHERE ans_l.answerstringid IS NOT NULL;--AnswerStringID may be null
+FROM sources.loinc_answerslist ans_l -- Answer containing table
+JOIN sources.loinc_answerslistlink ans_l_l ON ans_l_l.answerlistid = ans_l.answerlistid -- 'AnswerListID' field unites Answers with Questions 
+JOIN sources.loinc l ON l.loinc_num = ans_l_l.loincnumber -- to confirm the connection of 'AnswerListID' with LOINC concepts indicating Measurements and Observations (currently, all of them are connected)
+WHERE ans_l.answerstringid IS NOT NULL --'AnswerStringID' value may be null
+; 
 
---11. Link LOINCs to Answers in concept_relationship_stage
+--11.  Build 'Has Answer' relationships from LOINC Questions to Answers with the use of such source tables as 'sources.loinc_answerslist' and 'sources.loinc_answerslistlink'
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -283,19 +410,20 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT ans_l_l.loincnumber AS concept_code_1,
-	ans_l.answerstringid AS concept_code_2,
+SELECT DISTINCT ans_l_l.loincnumber AS concept_code_1, -- LOINC Question code
+	ans_l.answerstringid AS concept_code_2, -- LOINC Answer code
 	'Has Answer' AS relationship_id,
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.loinc_answerslist ans_l
-JOIN sources.loinc_answerslistlink ans_l_l ON ans_l_l.answerlistid = ans_l.answerlistid
-WHERE ans_l.answerstringid IS NOT NULL;
+FROM sources.loinc_answerslist ans_l  -- Answer containing table
+JOIN sources.loinc_answerslistlink ans_l_l ON ans_l_l.answerlistid = ans_l.answerlistid -- 'AnswerListID' field unites Answers with Questions 
+WHERE ans_l.answerstringid IS NOT NULL -- 'AnswerStringID' may be empty
+;
 
---12. Link LOINCs to Forms in concept_relationship_stage
+--12. Build 'Panel contains' relationships from LOINC Panels to their descendants with the use of 'sources.loinc_forms' table
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -306,18 +434,19 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT parentloinc AS concept_code_1,
-	loinc AS concept_code_2,
+SELECT DISTINCT parentloinc AS concept_code_1, -- LOINC Panel code
+	loinc AS concept_code_2, -- LOINC Descendant code
 	'Panel contains' AS relationship_id,
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.loinc_forms
-WHERE loinc <> parentloinc;
+FROM sources.loinc_forms -- Panel containing table
+WHERE loinc <> parentloinc -- to exclude cases when parent and child are represented by the same concept 
+; 
 
---13. Add LOINC to SNOMED map
+--13. Build 'LOINC - SNOMED eq' relationships from LOINC Measurements to  '45767644 LOINC Code System' SNOMED concept  with the use of a 'sources.scccrefset_mapcorrorfull_int' table  (mappings) 
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -328,8 +457,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT l.maptarget AS concept_code_1,
-	l.referencedcomponentid AS concept_code_2,
+SELECT DISTINCT l.maptarget AS concept_code_1, -- LOINC code
+	l.referencedcomponentid AS concept_code_2, -- SNOMED code
 	'LOINC' AS vocabulary_id_1,
 	'SNOMED' AS vocabulary_id_2,
 	'LOINC - SNOMED eq' AS relationship_id,
@@ -338,9 +467,11 @@ SELECT DISTINCT l.maptarget AS concept_code_1,
 	NULL AS invalid_reason
 FROM sources.scccrefset_mapcorrorfull_int l,
 	vocabulary v
-WHERE v.vocabulary_id = 'LOINC';
+WHERE v.vocabulary_id = 'LOINC'
+; 
 
---14. Add LOINC to CPT map
+
+--14. Build 'LOINC - CPT4 eq' relationships  (mappings) from LOINC Measurements to CPT4 Measurements or Procedures with the use of a 'sources.cpt_mrsmap' table  (mappings) 
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -351,8 +482,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT l.fromexpr AS concept_code_1,
-	UNNEST(STRING_TO_ARRAY(l.toexpr, ',')) AS concept_code_2,
+SELECT l.fromexpr AS concept_code_1, -- LOINC code
+	UNNEST(STRING_TO_ARRAY(l.toexpr, ',')) AS concept_code_2, -- CPT4 code
 	'LOINC' AS vocabulary_id_1,
 	'CPT4' AS vocabulary_id_2,
 	'LOINC - CPT4 eq' AS relationship_id,
@@ -361,9 +492,10 @@ SELECT l.fromexpr AS concept_code_1,
 	NULL AS invalid_reason
 FROM sources.cpt_mrsmap l,
 	vocabulary v
-WHERE v.vocabulary_id = 'LOINC';
+WHERE v.vocabulary_id = 'LOINC'
+; 
 
---15. Add replacement relationships
+--15. Build 'Concept replaced by' relationships for updated LOINC concepts and deprecate already existing replacing mappings with the use of a 'sources.map_to' table 
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -374,8 +506,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT l.loinc AS concept_code_1,
-	l.map_to AS concept_code_2,
+SELECT l.loinc AS concept_code_1, -- updated LOINC concept 
+	l.map_to AS concept_code_2, -- replacing LOINC concept 
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
 	'Concept replaced by' AS relationship_id,
@@ -387,16 +519,12 @@ FROM sources.map_to l,
 WHERE v.vocabulary_id = 'LOINC'
 
 UNION ALL
-
-/*
-for some pairs of concepts LOINC gives us a reverse mapping 'Concept replaced by'
-so we need to deprecate old mappings
-*/
+--for some pairs of concepts LOINC gives us a reverse mapping 'Concept replaced by' so we need to deprecate such old mappings 
 SELECT c1.concept_code,
-	c2.concept_code,
+	c2.concept_code, 
 	c1.vocabulary_id,
 	c2.vocabulary_id,
-	r.relationship_id,
+	r.relationship_id, 
 	r.valid_start_date,
 	(
 		SELECT latest_update - 1
@@ -407,7 +535,7 @@ SELECT c1.concept_code,
 	'D'
 FROM concept c1,
 	concept c2,
-	concept_relationship r,
+	concept_relationship r, 
 	sources.map_to mt
 WHERE c1.concept_id = r.concept_id_1
 	AND c2.concept_id = r.concept_id_2
@@ -418,10 +546,11 @@ WHERE c1.concept_id = r.concept_id_1
 		'Maps to'
 		)
 	AND r.invalid_reason IS NULL
-	AND mt.map_to = c1.concept_code
+	AND mt.map_to = c1.concept_code 
 	AND mt.loinc = c2.concept_code;
-
---16. Adding Loinc Document Ontology
+; 
+	
+--16. Add LOINC Document Ontology concepts with the use of a 'sources.loinc_documentontology' table to the CONCEPT_STAGE
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -433,7 +562,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT d.partname AS concept_name,
+SELECT DISTINCT d.partname AS concept_name, -- LOINC Document name
 	'Meas Value' AS domain_id,
 	'LOINC' AS vocabulary_id,
 	CASE d.parttypename
@@ -448,7 +577,7 @@ SELECT DISTINCT d.partname AS concept_name,
 		WHEN 'Document.Kind'
 			THEN 'Doc Kind'
 		END AS concept_class_id,
-	'S' AS standard_concept,
+	'S' AS standard_concept, -- LOINC Document code
 	d.partnumber AS concept_code,
 	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
@@ -456,9 +585,13 @@ SELECT DISTINCT d.partname AS concept_name,
 FROM sources.loinc_documentontology d,
 	vocabulary v
 WHERE v.vocabulary_id = 'LOINC'
-	AND d.partname NOT LIKE '{%}';
+	AND d.partname NOT LIKE '{%}' -- decision to exclude  LP173061-5 '{Settings}' and LP187187-2 '{Role}' partnames was probably made due to vague reverse relationship formulations: Concept X 'Has setting' '{Setting}' or Concept Y 'Has role' {Role}. 
+	-- But we lost such relations for 2163 concepts (partnumber).
+	; 
+--select * from sources.loinc_documentontology where  partname  LIKE '{%}'  ;
 
---17. Add mappings between LOINC and Document Ontology
+
+--17. Build  'Has type of service',  'Has subject matter', 'Has role',  'Has setting', 'Has kind'  reverse relationships  from LOINC concepts indicating Measurements or Observations to LOINC Document Ontology concepts
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -469,8 +602,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT d.loincnumber AS concept_code_1,
-	d.partnumber AS concept_code_2,
+SELECT d.loincnumber AS concept_code_1, -- LOINC Meas/Obs code
+	d.partnumber AS concept_code_2, -- LOINC Document code
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
 	CASE d.parttypename
@@ -491,9 +624,9 @@ SELECT d.loincnumber AS concept_code_1,
 FROM sources.loinc_documentontology d,
 	vocabulary v
 WHERE v.vocabulary_id = 'LOINC'
-	AND d.partname NOT LIKE '{%}';
+	AND d.partname NOT LIKE '{%}'; 
 
---18. Add LOINC Group File
+--18. Add LOINC Group Category and Group hierarchycal concepts to the CONCEPT_STAGE
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -505,35 +638,37 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT lgt.category AS concept_name,
+--add LOINC Gruop Categories
+SELECT DISTINCT lgt.category AS concept_name, -- LOINC Category name from sources.loinc_grouploincterms
 	'Measurement' AS domain_id,
 	v.vocabulary_id AS vocabulary_id,
 	'LOINC Group' AS concept_class_id,
 	'C' AS standard_concept,
-	lg.parentgroupid AS concept_code,
+	lg.parentgroupid AS concept_code, -- LOINC Category code from sources.loinc_group
 	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.loinc_group lg
-JOIN sources.loinc_grouploincterms lgt ON lg.groupid = lgt.groupid
+FROM sources.loinc_group lg -- table with codes for LOINC Category concepts
+JOIN sources.loinc_grouploincterms lgt ON lg.groupid = lgt.groupid -- table with names for OINC Category concepts
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 WHERE lgt.category IS NOT NULL
 
 UNION ALL
-
-SELECT lg.lgroup AS concept_name,
+--add LOINC Groups
+SELECT lg.lgroup AS concept_name, -- LOINC Group name
 	'Measurement' AS domain_id,
 	v.vocabulary_id AS vocabulary_id,
 	'LOINC Group' AS concept_class_id,
 	'C' AS standard_concept,
-	lg.groupid AS concept_code,
+	lg.groupid AS concept_code, -- LOINC Group code
 	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.loinc_group lg
-JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC' -- what should we do with concepts where a 'status' field = 'Inaсtive'? 'D'?
+; 
 
---19. Add mappings for LOINC Groups
+--19. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups 
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -544,8 +679,9 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT lgt.loincnumber AS concept_code_1,
-	lgt.groupid AS concept_code_2,
+	--19.1 from LOINC concepts indicating Measurements and Observations to LOINC Groups using sources.loinc_grouploincterms
+SELECT lgt.loincnumber AS concept_code_1, -- LOINC Observation or Measurement concepts 
+	lgt.groupid AS concept_code_2, --LOINC Group code
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
@@ -554,13 +690,13 @@ SELECT lgt.loincnumber AS concept_code_1,
 	NULL AS invalid_reason
 FROM sources.loinc_grouploincterms lgt
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
-JOIN concept_stage cs1 ON cs1.concept_code = lgt.groupid
-JOIN concept_stage cs2 ON cs2.concept_code = lgt.loincnumber
+JOIN concept_stage cs1 ON cs1.concept_code = lgt.groupid --LOINC Group code
+JOIN concept_stage cs2 ON cs2.concept_code = lgt.loincnumber  -- LOINC Observation or Measurement concepts 
 
 UNION ALL
-
-SELECT lg.groupid AS concept_code_1,
-	lg.parentgroupid AS concept_code_2,
+	--19.2 from LOINC Groups to LOINC Group Categories using sources.loinc_group
+SELECT lg.groupid AS concept_code_1, -- LOINC Group code as a descendant
+	lg.parentgroupid AS concept_code_2, -- LOINC Group Category code as an ancestor
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
@@ -569,17 +705,20 @@ SELECT lg.groupid AS concept_code_1,
 	NULL AS invalid_reason
 FROM sources.loinc_group lg
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
-JOIN concept_stage cs1 ON cs1.concept_code = lg.parentgroupid
-JOIN concept_stage cs2 ON cs2.concept_code = lg.groupid;
+JOIN concept_stage cs1 ON cs1.concept_code = lg.parentgroupid  -- LOINC Group Category code 
+JOIN concept_stage cs2 ON cs2.concept_code = lg.groupid -- LOINC Group code
+; 
 
---20. Add LOINC Groups to the synonym table
+--20. Add LOINC Group Categories and Groups to the CONCEPT_SYNONYM_STAGE
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT cs.concept_code AS synonym_concept_code,
+	---- the decision to add LOINC Group Categories and Groups categories as concept_synonym names was probably made to simplify perception of their long descriptions (?)
+	-- add proper name of LOINC Group Categories and Groups 
+SELECT cs.concept_code AS synonym_concept_code, -- proper name of LOINC Group Categories and Groups 
 	cs.concept_name AS synonym_name,
 	'LOINC' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
@@ -587,12 +726,13 @@ FROM concept_stage cs
 WHERE cs.concept_class_id = 'LOINC Group'
 
 UNION
-
-SELECT lpga.parentgroupid AS synonym_concept_code,
-	SUBSTR(lpga.lvalue, 1, 1000) AS synonym_name,
+-- add long descriptions of LOINC Group Categories and Groups 
+SELECT lpga.parentgroupid AS synonym_concept_code, -- LOINC Group Category code
+	SUBSTR(lpga.lvalue, 1, 1000) AS synonym_name, -- long description of LOINC Group Categories 
 	'LOINC' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
-FROM sources.loinc_parentgroupattributes lpga;
+FROM sources.loinc_parentgroupattributes lpga -- table with descriptions of LOINC Group Categories 
+; 
 
 --21. Working with replacement mappings
 DO $_$
@@ -617,57 +757,3 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
-
---25. Set the proper concept_class_id for children of "Document ontology" (AVOF-352)
-UPDATE concept_stage
-SET concept_class_id = 'LOINC Document Type'
-WHERE concept_code IN (
-		WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, full_path) AS (
-				SELECT ancestor_concept_code,
-					descendant_concept_code,
-					ancestor_concept_code AS root_ancestor_concept_code,
-					ARRAY [descendant_concept_code::text] AS full_path
-				FROM concepts
-				WHERE ancestor_concept_code = 'LP76352-1'
-				
-				UNION ALL
-				
-				SELECT c.ancestor_concept_code,
-					c.descendant_concept_code,
-					root_ancestor_concept_code,
-					hc.full_path || c.descendant_concept_code::TEXT AS full_path
-				FROM concepts c
-				JOIN hierarchy_concepts hc ON hc.descendant_concept_code = c.ancestor_concept_code
-				WHERE c.descendant_concept_code::TEXT <> ALL (full_path)
-				),
-			concepts AS (
-				SELECT crs.concept_code_1 AS ancestor_concept_code,
-					crs.concept_code_2 AS descendant_concept_code
-				FROM concept_relationship_stage crs
-				JOIN relationship s ON s.relationship_id = crs.relationship_id
-					AND s.defines_ancestry = 1
-				JOIN concept_stage c1 ON c1.concept_code = crs.concept_code_1
-					AND c1.vocabulary_id = crs.vocabulary_id_1
-					AND c1.invalid_reason IS NULL
-					AND c1.vocabulary_id = 'LOINC'
-				JOIN concept_stage c2 ON c2.concept_code = crs.concept_code_2
-					AND c1.vocabulary_id = crs.vocabulary_id_2
-					AND c2.invalid_reason IS NULL
-					AND c2.vocabulary_id = 'LOINC'
-				WHERE crs.invalid_reason IS NULL
-					AND crs.concept_code_1 = 'LP76352-1'
-				)
-		SELECT DISTINCT hc.descendant_concept_code
-		FROM hierarchy_concepts hc
-		JOIN concept_stage c2 ON c2.concept_code = hc.descendant_concept_code
-			AND c2.vocabulary_id = 'LOINC'
-			AND c2.standard_concept IS NOT NULL
-		);
-
---26. Manual fix for 12841-3
-UPDATE concept_stage
-SET concept_name = 'Free/Total PSA serum/plasma'
-WHERE concept_code = '12841-3'
-	AND concept_name = 'Free/Total PSA serum/plasme';
-
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

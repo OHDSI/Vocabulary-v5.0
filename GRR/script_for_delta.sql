@@ -1890,6 +1890,7 @@ WHERE r1.concept_code_1 = rtc.concept_code_1
 AND   c1.invalid_reason IS NOT NULL;
 
 --create table that need to map manually by medical coder
+--in this table, can find attributes for mapping and flag field for trash attributes those need to delete
 drop table if exists relationship_to_concept_to_map;
 create table relationship_to_concept_to_map
 (
@@ -1918,8 +1919,8 @@ and concept_class_id not in ('Drug Product','Device');
 --erase relationship_to_concept_manual table 
 truncate relationship_to_concept_manual;
 
---fill manual table
-insert into relationship_to_concept_manual
+--data for this table must be inserted from manual table from medical coder
+--insert into relationship_to_concept_manual
 ;
 
 --insert all manual work into r_t_c

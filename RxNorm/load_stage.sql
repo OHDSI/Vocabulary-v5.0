@@ -886,9 +886,11 @@ WHERE (
 --7.3. Revive concepts which have status='active' in https://rxnav.nlm.nih.gov/REST/rxcuihistory/status.xml?type=active, but we have them in the concept with invalid_reason='U' (the source changed his mind)
 DROP TABLE IF EXISTS wrong_replacements;
 CREATE UNLOGGED TABLE wrong_replacements AS
+
 SELECT c.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
-	cr.valid_start_date
+	cr.valid_start_date,
+	cr.relationship_id
 FROM apigrabber.GetRxNormByStatus('active') api --live grabbing
 JOIN concept c ON c.concept_code = api.rxcode
 	AND c.invalid_reason = 'U'
@@ -896,7 +898,94 @@ JOIN concept c ON c.concept_code = api.rxcode
 JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
 	AND cr.invalid_reason IS NULL
 	AND cr.relationship_id = 'Concept replaced by'
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2;
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+
+UNION ALL
+
+--Same situation, the concepts are deprecated, but in the base tables we have them with 'U' [AVOF-1183]
+(
+	WITH rx AS (
+			SELECT c.concept_code AS concept_code_1,
+				c2.concept_code AS concept_code_2,
+				cr.valid_start_date,
+				cr.relationship_id,
+				cr.concept_id_1,
+				cr.concept_id_2
+			FROM concept c
+			JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
+				AND cr.relationship_id = 'Concept replaced by'
+				AND cr.invalid_reason IS NULL
+			JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+			LEFT JOIN concept_stage cs ON cs.concept_code = c.concept_code
+			WHERE EXISTS (
+					--there must be at least one record with rxcui = merged_to_rxcui...
+					SELECT 1
+					FROM sources.rxnatomarchive arch
+					WHERE arch.rxcui = arch.merged_to_rxcui
+						AND arch.rxcui = c.concept_code
+						AND arch.sab = 'RXNORM'
+						AND arch.tty IN (
+							'IN',
+							'DF',
+							'SCDC',
+							'SCDF',
+							'SCD',
+							'BN',
+							'SBDC',
+							'SBDF',
+							'SBD',
+							'PIN',
+							'DFG',
+							'SCDG',
+							'SBDG'
+							)
+					)
+				AND NOT EXISTS (
+					--...and there should be no records rxcui <> merged_to_rxcui
+					SELECT 1
+					FROM sources.rxnatomarchive arch
+					WHERE arch.rxcui <> arch.merged_to_rxcui
+						AND arch.rxcui = c.concept_code
+						AND arch.sab = 'RXNORM'
+						AND arch.tty IN (
+							'IN',
+							'DF',
+							'SCDC',
+							'SCDF',
+							'SCD',
+							'BN',
+							'SBDC',
+							'SBDF',
+							'SBD',
+							'PIN',
+							'DFG',
+							'SCDG',
+							'SBDG'
+							)
+					)
+				AND c.invalid_reason = 'U'
+				AND c.vocabulary_id = 'RxNorm'
+				AND c2.vocabulary_id = 'RxNorm'
+				AND cs.concept_code IS NULL --missing from concept_stage (rxnconso)
+			)
+	SELECT rx.concept_code_1,
+		rx.concept_code_2,
+		rx.valid_start_date,
+		rx.relationship_id
+	FROM rx
+	
+	UNION ALL
+	--Kill 'Maps to' as well
+	SELECT rx.concept_code_1,
+		rx.concept_code_2,
+		r.valid_start_date,
+		r.relationship_id
+	FROM rx
+	JOIN concept_relationship r ON r.concept_id_1 = rx.concept_id_1
+		AND r.concept_id_2 = rx.concept_id_2
+		AND r.relationship_id = 'Maps to'
+		AND r.invalid_reason IS NULL
+	);
 
 --7.3.1 deprecate current replacements
 UPDATE concept_relationship_stage crs
@@ -909,7 +998,7 @@ SET valid_end_date = (
 FROM wrong_replacements wr
 WHERE crs.concept_code_1 = wr.concept_code_1
 	AND crs.concept_code_2 = wr.concept_code_2
-	AND crs.relationship_id = 'Concept replaced by';
+	AND crs.relationship_id = wr.relationship_id;
 
 --7.3.1 insert new D-replacements
 INSERT INTO concept_relationship_stage (
@@ -926,7 +1015,7 @@ SELECT wr.concept_code_1,
 	wr.concept_code_2,
 	'RxNorm',
 	'RxNorm',
-	'Concept replaced by',
+	wr.relationship_id,
 	wr.valid_start_date,
 	(
 		SELECT latest_update - 1
@@ -940,7 +1029,7 @@ WHERE NOT EXISTS (
 		FROM concept_relationship_stage crs
 		WHERE crs.concept_code_1 = wr.concept_code_1
 			AND crs.concept_code_2 = wr.concept_code_2
-			AND crs.relationship_id = 'Concept replaced by'
+			AND crs.relationship_id = wr.relationship_id
 		);
 
 DROP TABLE wrong_replacements;

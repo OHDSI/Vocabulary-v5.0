@@ -1028,19 +1028,40 @@ group by qi_combo, ri_combo
 -- Create translations between quants. Value and unit have to work in tandem
 drop table if exists qr_quant;
 create table qr_quant as
-select * from (
-  select q.value as q_value, q.unit as quant_unit, r.value as r_value, r.unit_id as quant_unit_id, precedence as prec, q.value*coalesce(conversion_factor, 1)/r.value as q_div 
-  from (
-    select distinct value, unit from q_quant
-  ) q
-  join r_to_c on concept_code_1=q.unit
-  join (
-    select distinct value, unit_id from r_quant
-  ) r on concept_id_2=r.unit_id 
-) as s0
-where round(q_div*50)=50 -- making it a 2% corridor
+with s0 as
+	(
+		select 
+			q.value as q_value,
+			q.unit as quant_unit,
+			r.value as r_value,
+			r.unit_id as quant_unit_id,
+			precedence as prec,
+			q.value*coalesce(conversion_factor, 1)/r.value as q_div 
+		from 
+			(
+				select distinct value, unit from q_quant
+		  	) q
+		join r_to_c on
+			concept_code_1=q.unit
+		join 
+ 			(
+				select distinct value, unit_id from r_quant
+			)	r on concept_id_2=r.unit_id 
+	),
+s1 as
+	(
+		select q_value, quant_unit, min (abs(q_div-1)) as div_precis
+		from s0
+		where round(q_div*50)=50 -- making it a 2% corridor
+		group by q_value, quant_unit
+	)
+select s0.* from s0
+join s1 on
+	s0.q_value = s1.q_value and
+	s0.quant_unit = s1.quant_unit and
+	abs(s0.q_div-1) = s1.div_precis --most precise available
 ;
-
+						 
 -- Translation between individual Ingredients
 drop table if exists qr_ing;
 create table qr_ing as

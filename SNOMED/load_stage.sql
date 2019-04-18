@@ -2211,7 +2211,7 @@ VALUES (138875005, 'Metadata'), -- root
 	(424387007, 'Drug'), -- dose form by site prepared for 
 	(421563008, 'Drug'), -- complementary medicine dose form
 	(284009009, 'Route'), -- Route of administration value
-	(373783004, 'Observation'), -- dietary product, exception of Pharmaceutical / biologic product
+	(373783004, 'Device'), -- dietary product, exception of Pharmaceutical / biologic product
 	(419572002, 'Observation'), -- alcohol agent, exception of drug
 	(373782009, 'Device'), -- diagnostic substance, exception of drug
 	(2949005, 'Observation'), -- diagnostic aid (exclusion from drugs)
@@ -2361,7 +2361,15 @@ VALUES (138875005, 'Metadata'), -- root
 	(125125001, 'Observation'), --Abnormal organ weight
 	(125124002, 'Observation'),-- Normal organ weight
 	(268444004, 'Measurement'), -- Radionuclide red cell mass measurement
-	(251880004, 'Measurement'); -- Respiratory measure
+	(251880004, 'Measurement'), -- Respiratory measure
+	--added 20190418 [AVOF-1198]
+	(327838005, 'Device'), -- Intravenous nutrition
+	(116178008, 'Device'), -- Dialysis fluid
+	(407935004, 'Device'), -- Contrast media
+	(385420005, 'Device'), -- Contrast media
+	(332525008, 'Device'),  --Camouflaging preparations
+	(768697005, 'Device') --Barium and barium compound product -- contrast media subcathegory
+	;
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

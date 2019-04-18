@@ -28,6 +28,7 @@ BEGIN
 	   table_name         VARCHAR (100),
 	   vocabulary_id_1    VARCHAR (100),
 	   vocabulary_id_2    VARCHAR (100),
+	   domain_id          VARCHAR (100),
 	   concept_class_id   VARCHAR (100),
 	   relationship_id    VARCHAR (100),
 	   invalid_reason     VARCHAR (10),
@@ -35,7 +36,7 @@ BEGIN
 	   cnt_delta          int4
 	);
 	*/
-	CREATE TABLE IF NOT EXISTS DEV_SUMMARY AS SELECT * FROM DEVV5.DEV_SUMMARY WHERE 1 = 0;
+	CREATE TABLE IF NOT EXISTS DEV_SUMMARY (LIKE DEVV5.DEV_SUMMARY);
 END ; 
 $BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;
 
@@ -54,6 +55,7 @@ CREATE OR REPLACE FUNCTION qa_tests.get_summary (
 RETURNS TABLE (
   vocabulary_id_1 varchar,
   vocabulary_id_2 varchar,
+  domain_id varchar,
   concept_class_id varchar,
   relationship_id varchar,
   invalid_reason varchar,
@@ -76,31 +78,33 @@ BEGIN
 	IF z = 0 THEN
 		--summary for 'concept'
 		EXECUTE '
-        INSERT INTO DEV_SUMMARY
+		INSERT INTO DEV_SUMMARY
 		SELECT 
 			''concept'' AS table_name,
 			c.vocabulary_id,
 			NULL,
+			c.domain_id,
 			c.concept_class_id,
 			NULL AS relationship_id,
 			c.invalid_reason,
 			COUNT (*) AS cnt,
 			NULL AS cnt_delta
 		FROM '||pCompareWith||'.concept c
-		GROUP BY c.vocabulary_id, c.concept_class_id, c.invalid_reason';	
+		GROUP BY c.vocabulary_id, c.domain_id, c.concept_class_id, c.invalid_reason';
 				
 		WITH to_be_upserted as (
 			SELECT 
 				'concept'::varchar AS table_name,
 				c.vocabulary_id AS vocabulary_id_1,
 				NULL,
+				c.domain_id,
 				c.concept_class_id,
 				NULL AS relationship_id,
 				c.invalid_reason,
 				COUNT (*) AS cnt,
 				NULL::int4 AS cnt_delta
 			FROM concept c
-			GROUP BY c.vocabulary_id, c.concept_class_id, c.invalid_reason
+			GROUP BY c.vocabulary_id, c.domain_id, c.concept_class_id, c.invalid_reason
 		),
 		to_be_updated as (
 			UPDATE DEV_SUMMARY dv 
@@ -110,20 +114,23 @@ BEGIN
 			AND dv.table_name = up.table_name
 			AND dv.vocabulary_id_1 = up.vocabulary_id_1
 			AND dv.concept_class_id = up.concept_class_id
+			AND dv.domain_id = up.domain_id
 			AND COALESCE (dv.invalid_reason, 'X') = COALESCE (up.invalid_reason, 'X')
 			RETURNING dv.*
 		)
 		INSERT INTO DEV_SUMMARY
-			SELECT tpu.table_name, tpu.vocabulary_id_1, NULL, tpu.concept_class_id, NULL, tpu.invalid_reason, NULL::int4, tpu.cnt FROM to_be_upserted tpu WHERE (tpu.table_name, tpu.vocabulary_id_1, tpu.concept_class_id, COALESCE (tpu.invalid_reason, 'X')) 
-			NOT IN (SELECT up.table_name, up.vocabulary_id_1, up.concept_class_id, COALESCE (up.invalid_reason, 'X') from to_be_updated up);
-					
+			SELECT tpu.table_name, tpu.vocabulary_id_1, NULL, tpu.domain_id, tpu.concept_class_id, NULL, tpu.invalid_reason, NULL::int4, tpu.cnt
+			FROM to_be_upserted tpu WHERE (tpu.table_name, tpu.vocabulary_id_1, tpu.domain_id, tpu.concept_class_id, COALESCE (tpu.invalid_reason, 'X'))
+			NOT IN (SELECT up.table_name, up.vocabulary_id_1, up.domain_id, up.concept_class_id, COALESCE (up.invalid_reason, 'X') from to_be_updated up);
+		
 		--summary for concept_relationship
 		EXECUTE '
-        INSERT INTO DEV_SUMMARY
+		INSERT INTO DEV_SUMMARY
 		SELECT 
 			''concept_relationship'' AS table_name,
 			c1.vocabulary_id,
 			c2.vocabulary_id,
+			NULL as domain_id,
 			NULL AS concept_class_id,
 			r.relationship_id,
 			r.invalid_reason,
@@ -138,6 +145,7 @@ BEGIN
 				'concept_relationship'::varchar AS table_name,
 				c1.vocabulary_id AS vocabulary_id_1,
 				c2.vocabulary_id AS vocabulary_id_2,
+				NULL::varchar as domain_id,
 				NULL::varchar AS concept_class_id,
 				r.relationship_id,
 				r.invalid_reason,
@@ -160,17 +168,19 @@ BEGIN
 			RETURNING dv.*
 		)
 		INSERT INTO DEV_SUMMARY
-			SELECT tpu.table_name, tpu.vocabulary_id_1, tpu.vocabulary_id_2, NULL, tpu.relationship_id, tpu.invalid_reason, NULL::int4, tpu.cnt FROM to_be_upserted tpu WHERE (tpu.table_name, tpu.vocabulary_id_1, tpu.vocabulary_id_2, tpu.relationship_id, COALESCE (tpu.invalid_reason, 'X')) 
+			SELECT tpu.table_name, tpu.vocabulary_id_1, tpu.vocabulary_id_2, NULL, NULL, tpu.relationship_id, tpu.invalid_reason, NULL::int4, tpu.cnt
+			FROM to_be_upserted tpu WHERE (tpu.table_name, tpu.vocabulary_id_1, tpu.vocabulary_id_2, tpu.relationship_id, COALESCE (tpu.invalid_reason, 'X')) 
 			NOT IN (SELECT up.table_name, up.vocabulary_id_1, up.vocabulary_id_2, up.relationship_id, COALESCE (up.invalid_reason, 'X') from to_be_updated up);
 
 		--summary for concept_ancestor
-        EXECUTE '
+		EXECUTE '
 		INSERT INTO DEV_SUMMARY
 		SELECT 
 			''concept_ancestor'' AS table_name,
 			c.vocabulary_id,
 			NULL,
 			NULL AS concept_class_id,
+			NULL as domain_id,
 			NULL AS relationship_id,
 			NULL AS invalid_reason,
 			COUNT (*) AS cnt,
@@ -184,13 +194,14 @@ BEGIN
 				'concept_ancestor'::varchar AS table_name,
 				c.vocabulary_id AS vocabulary_id_1,
 				NULL::varchar,
+				NULL::varchar,
 				NULL::varchar AS concept_class_id,
 				NULL::varchar AS relationship_id,
 				NULL::varchar AS invalid_reason,
 				COUNT (*) AS cnt,
 				NULL::int4 AS cnt_delta
 			FROM concept c, concept_ancestor ca
-			WHERE c.concept_id = CA.ANCESTOR_CONCEPT_ID
+			WHERE c.concept_id = ca.ancestor_concept_id
 			GROUP BY c.vocabulary_id
 		),
 		to_be_updated as (
@@ -203,7 +214,8 @@ BEGIN
 			RETURNING dv.*
 		)
 		INSERT INTO DEV_SUMMARY
-			SELECT tpu.table_name, tpu.vocabulary_id_1, NULL, NULL, NULL, NULL, NULL::int4, tpu.cnt FROM to_be_upserted tpu WHERE (tpu.table_name, tpu.vocabulary_id_1) 
+			SELECT tpu.table_name, tpu.vocabulary_id_1, NULL, NULL, NULL, NULL, NULL, NULL::int4, tpu.cnt
+			FROM to_be_upserted tpu WHERE (tpu.table_name, tpu.vocabulary_id_1) 
 			NOT IN (SELECT up.table_name, up.vocabulary_id_1 from to_be_updated up);
 	END IF;
 
@@ -213,6 +225,7 @@ BEGIN
 		SELECT 
 			ds.vocabulary_id_1,
 			NULL::varchar,
+			ds.domain_id,
 			ds.concept_class_id,
 			NULL::varchar,
 			ds.invalid_reason,
@@ -226,8 +239,9 @@ BEGIN
 		SELECT 
 			ds.vocabulary_id_1,
 			ds.vocabulary_id_2,
-			ds.relationship_id,
 			NULL::varchar,
+			NULL::varchar,
+			ds.relationship_id,
 			ds.invalid_reason,
 			COALESCE (ds.cnt_delta, -cnt) AS cnt_delta
 		FROM DEV_SUMMARY ds
@@ -238,6 +252,7 @@ BEGIN
 	RETURN QUERY
 		SELECT 
 		ds.vocabulary_id_1,
+		NULL::varchar,
 		NULL::varchar,
 		NULL::varchar,
 		NULL::varchar,
@@ -463,6 +478,7 @@ AS $BODY$
 				AND r.invalid_reason IS NULL
 				)
 			OR r.valid_start_date > CURRENT_DATE
+			OR r.valid_start_date < TO_DATE('19700101', 'yyyymmdd')
 			)
 		AND COALESCE(checkid, 8) = 8
 

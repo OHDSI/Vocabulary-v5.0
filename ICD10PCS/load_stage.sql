@@ -161,7 +161,7 @@ SELECT c1.concept_code AS concept_code_1,
 	NULL AS invalid_reason
 FROM concept_stage c1,
 	concept_stage c2
-WHERE c2.concept_code LIKE c1.concept_code || '%'
+WHERE c2.concept_code LIKE c1.concept_code || '_'
 	AND c1.concept_code <> c2.concept_code
 	AND NOT EXISTS (
 		SELECT 1

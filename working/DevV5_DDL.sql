@@ -72,7 +72,7 @@ DROP TABLE IF EXISTS vocabulary CASCADE;
 CREATE TABLE vocabulary (
 	vocabulary_id VARCHAR (20) NOT NULL,
 	vocabulary_name VARCHAR (255) NOT NULL,
-	vocabulary_reference VARCHAR (255),
+	vocabulary_reference VARCHAR (255) NOT NULL,
 	vocabulary_version VARCHAR (255),
 	vocabulary_concept_id int4 NOT NULL
 );

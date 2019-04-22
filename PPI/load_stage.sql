@@ -33,8 +33,8 @@ TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 
---------------------------
-----CONCEPT STAGE---
+---------------------------
+----CONCEPT STAGE----
 --------------------------
 --3. Load PPI concepts using a manual table of 'all_source_0334_LS' 
 INSERT INTO CONCEPT_STAGE
@@ -58,8 +58,7 @@ SELECT CASE
        END AS domain_id,
        'PPI' AS vocabulary_id,
        TYPE AS concept_class_id, -- can be Answer/Question/Topic/Module
-       CASE
-         WHEN TYPE IN ('Topic','Module') THEN 'C' -- PPI Topics and Modules should be Classification concepts 
+       CASE        -- PPI Topics and Modules are considered to be Standard too (previously they were Classification concepts) 
          WHEN b.vocabulary_id IN ('LOINC','SNOMED') THEN NULL  -- if PPI source concept has a standard SNOMED/LOINC equivalent, it is considered to be Non-standard
          ELSE 'S' -- if PPI source concept does not have a standard SNOMED/LOINC equivalent, it is considered to be Standard
        END AS standard_concept,
@@ -95,34 +94,26 @@ SELECT concept_name,
        valid_end_date
 FROM concept 
 WHERE vocabulary_id = 'PPI'
-AND   concept_class_id = 'Qualifier Value' -- indicates all PPI Measurement Values 
-AND   invalid_reason IS NULL; 
+AND   invalid_reason IS NULL
+AND   (concept_class_id = 'Qualifier Value' -- indicates all PPI Measurement Values 
+      OR (domain_id = 'Measurement' AND concept_class_id = 'Clinical Observation') -- genuine PPI Measurements 
+      OR concept_code ~ 'protocol\-modifications|^notes$');  -- special PPI Observations (PPI Modifiers and 'Additional notes')
 
---5. Add PPI Physical Measurements and Observations using 'concept' table 
-INSERT INTO CONCEPT_STAGE
-(
-  concept_name,
-  domain_id,
-  vocabulary_id,
-  concept_class_id,
-  standard_concept,
-  concept_code,
-  valid_start_date,
-  valid_end_date
-)
-SELECT concept_name,
-       domain_id,
-       vocabulary_id,
-       concept_class_id,
-       standard_concept,
-       concept_code,
-       valid_start_date,
-       valid_end_date
-FROM concept
-WHERE vocabulary_id = 'PPI'
-AND invalid_reason is null
-AND   (domain_id = 'Measurement' AND concept_class_id = 'Clinical Observation' -- genuine PPI Measurements 
-OR    concept_code ~ 'protocol\-modifications|^notes$'); -- special PPI Observations (PPI Modifiers and 'Additional notes')
+--5. update 'standard_concept' values for PPI Answers which have 'Maps to' PPI and 'Maps to value' SNOMED/LOINC. They should be non-standard
+UPDATE concept_stage k
+   SET standard_concept = NULL
+FROM (SELECT a.concept_code
+      FROM concept_stage a
+        JOIN all_source_0334_LS b ON a.concept_code = COALESCE (b.short_code,SUBSTRING (b.pmi_code,1,50))
+      WHERE b.type = 'Answer'
+      AND   pmi_code IN (SELECT pmi_code
+                         FROM all_source_0334_LS
+                         WHERE concept_id IS NULL
+                         AND   relationship_id = 'Maps to')
+      AND   pmi_code IN (SELECT pmi_code
+                         FROM all_source_0334_LS
+                         WHERE relationship_id = 'Maps to value')) k1
+WHERE k1.concept_code = k.concept_code;
 
 ---------------------------------------
 ----CONCEPT SYNONYM STAGE----
@@ -190,10 +181,28 @@ SELECT COALESCE(a.short_code,SUBSTRING(a.pmi_code,1,50)) AS concept_code_1,  -- 
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
 FROM all_source_0334_ls a
-  JOIN devv5.CONCEPT c
+JOIN  CONCEPT c
     ON a.concept_code = c.concept_code
-   AND c.vocabulary_id IN ('LOINC', 'SNOMED') 
-   AND c.standard_concept = 'S';
+   WHERE c.vocabulary_id IN ('LOINC', 'SNOMED') 
+   AND c.standard_concept = 'S'
+   and a.concept_id is not null
+   
+UNION ALL
+SELECT  COALESCE(a.short_code,SUBSTRING(a.pmi_code,1,50)) AS concept_code_1,  -- PPI concept code can be represenеed by either PMI_code or short_code in a case when length of PMI_code is inappropriate 
+       c.concept_code AS concept_code_2, -- SNOMED/LOINC concept code
+       'PPI' AS vocabulary_id_1,
+       c.vocabulary_id AS vocabulary_id_2,
+       a.relationship_id AS relationship_id, -- 'Maps to' and 'Maps to value'
+       CURRENT_DATE -1 AS valid_start_date,
+       TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+       NULL AS invalid_reason
+FROM all_source_0334_ls a
+join all_source_0334_ls b on a.concept_code = b.pmi_code
+JOIN  CONCEPT_STAGE c
+    ON COALESCE(b.short_code,SUBSTRING(b.pmi_code,1,50))= c.concept_code
+   WHERE c.vocabulary_id = 'PPI'
+   AND c.standard_concept =  'S'
+   and a.concept_id is null; -- for those PPI Concepts that mapped to itself or other PPI concepts  3070 (3302)
 
 --8. Build 'Is a' relationships from Descendant PPI Questions/Topics to Ancestor PPI Questions/Topics directly
 INSERT INTO CONCEPT_RELATIONSHIP_STAGE
@@ -330,7 +339,7 @@ FROM all_source_0334_ls a -- table representing Descendant PPI concepts
   JOIN all_source_0334_ls b -- table representing Ancestor PPI concepts
 ON k.parent_code = b.pmi_code; 
 
---13. Build 'Maps to' relationships for PPI Physical Measurements (existing mappings) 
+--13. Build 'Maps to' relationships for PPI Physical Measurements and PPI Measurement Values  (existing mappings) 
 INSERT INTO CONCEPT_RELATIONSHIP_STAGE
 (
   concept_code_1,
@@ -356,36 +365,12 @@ AND   cr.invalid_reason IS NULL
 AND   relationship_id = 'Maps to'
 AND   c1.invalid_reason IS NULL
 AND   c2.invalid_reason IS NULL
-AND   (c1.domain_id = 'Measurement' AND c1.concept_class_id = 'Clinical Observation'
-OR c1.concept_code ~ 'protocol\-modifications|^notes$');
-
---14. Build 'Maps to' relationships for PPI Measurement Values (existing mappings)  
-INSERT INTO CONCEPT_RELATIONSHIP_STAGE
-(
-  concept_code_1,
-  concept_code_2,
-  vocabulary_id_1,
-  vocabulary_id_2,
-  relationship_id,
-  valid_start_date,
-  valid_end_date
-)
-SELECT c1.concept_code,
-       c2.concept_code,
-       c1.vocabulary_id,
-       c2.vocabulary_id,
-       relationship_id,
-       cr.valid_start_date,
-       cr.valid_end_date
-FROM concept_relationship cr
-  JOIN concept c1 ON concept_id_1 = c1.concept_id
-  JOIN concept c2 ON concept_id_2 = c2.concept_id
-WHERE c1.vocabulary_id = 'PPI'
-AND   cr.invalid_reason IS NULL
-AND   relationship_id = 'Maps to'
-AND   c1.invalid_reason IS NULL
-AND   c2.invalid_reason IS NULL
-AND  c1.concept_class_id = 'Qualifier Value' 
+AND   (
+c1.domain_id = 'Measurement' AND c1.concept_class_id = 'Clinical Observation'
+OR 
+c1.concept_code ~ 'protocol\-modifications|^notes$'
+OR
+c1.concept_class_id = 'Qualifier Value') 
 
 UNION ALL
 -- fix mapping for 'Irregularity detected' PPI Meas Value manually (target SNOMED concept was updated) 

@@ -6,6 +6,7 @@ Schema DevV5 with copies of tables concept, concept_relationship and concept_syn
 
 Working directory dev_grr.
 
+  For upload use following instructions:
 1. Run create_source_tables.sql in your DEV-schema (e.g dev_grr)
 
 2. You need to have the access to both GEDA and GRR.
@@ -44,3 +45,20 @@ You also need to create 'source_data' table and upload GEDA into it.
 3. Run load_stage.sql
 4. Run Build_RxE.sql and generic_update.sql (from working directory);
 5. Run drops.sql to remove all the temporary tables
+
+
+  For update use following instructions:
+Before update use fast_recreate_schema.sql (from working directory);
+
+1. Import source file into 'source_data' table;
+2. Run script_for_delta.sql;
+3. Map table relationship_to_concept_to_map and import those mappings into relationship_to_concept_manual;
+4. Run script_for_delta.sql  without line 1919;
+5. Run Build_RxE.sql (from working directory);
+6. Fill mapping for vaccines and insulins manually from vacc_ins_manual table 
+7. Run concept_relationship_manual_post_proc.sql;
+8. Run generic_update.sql (from working directory);
+9. Run drops.sql to remove all the temporary tables
+
+
+  If was created duplicates by concept_name and concept_class, but with different concept_code in vocabulary 'GRR', you can use post_proc_clean_up.sql for fixing this bug.

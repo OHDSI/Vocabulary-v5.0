@@ -1,5 +1,5 @@
---update source table while upload was mistake with empty cells
-UPDATE source_grr_q1_19
+-- fix mistake with empty cells that was during upload
+UPDATE source_data
    SET product_launch_date = NULL::VARCHAR
 WHERE product_launch_date = '';
 
@@ -44,7 +44,7 @@ SELECT CASE
        nfc_no,
        nfc,
        nfc_description
-FROM source_grr_q1_19
+FROM source_data
 ;
 
 --use data that we haven't in devv5 and those concepts which haven't 'live' mapping
@@ -52,14 +52,14 @@ DELETE
 FROM source_data_1
 WHERE fcc IN (SELECT DISTINCT fcc
               FROM source_data_1
-                JOIN devv5.concept c1
+                JOIN concept c1
                   ON c1.concept_code = fcc
                  AND c1.vocabulary_id = 'GRR'
-                JOIN devv5.concept_relationship cr
+                JOIN concept_relationship cr
                   ON cr.concept_id_1 = c1.concept_id
                  AND cr.relationship_id = 'Maps to'
                  AND cr.invalid_reason IS NULL
-                JOIN devv5.concept c2
+                JOIN concept c2
                   ON c2.concept_id = cr.concept_id_2
                  AND c2.invalid_reason IS NULL);
 
@@ -131,7 +131,9 @@ SELECT fcc,
          ELSE REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(REGEXP_REPLACE(therapy_name,'\d+\.?\d+(%|C|CM|D|G|GR|IM|VIP|TABL|IU|K|K.|KG|L|LM|M|MG|ML|MO|NR|O|TU|Y|Y/H)+','','g'),'\d+\.?\d?(%|C|CM|D|G|GR|IU|K|K.|KG|L|LM|M|MG|ML|MO|NR|O|TU|Y|Y/H)+','','g'),'\(.*\)','','g'),REGEXP_REPLACE(PRODUCT_FORM_NAME || '.*','\s\s','\s','g'),'','g')
        END AS bn,
        therapy_name AS old_name
-FROM source_data_1;
+FROM source_data_1
+where fcc not in (select fcc from vacc_ins_manual)
+;
 
 --start from source data patterns and normalize 
 UPDATE grr_bn
@@ -612,7 +614,8 @@ INSERT INTO grr_manuf_0
 )
 SELECT DISTINCT fcc,
        manufacturer_name
-FROM source_data_1;
+FROM source_data_1
+where fcc not in (select fcc from vacc_ins_manual);
 
 DROP TABLE IF EXISTS grr_manuf;
 
@@ -830,7 +833,8 @@ SELECT fcc,
          WHEN NFC = 'ZZZ' THEN NULL
          ELSE nfc
        END AS NFC_123_CD
-FROM source_data_1;
+FROM source_data_1
+where fcc not in (select fcc from vacc_ins_manual);
 
 --update forms if concepts didn't have NFC
 DO $_$ BEGIN UPDATE grr_form
@@ -1666,7 +1670,8 @@ SELECT ingredient,
        fcc
 FROM (SELECT DISTINCT TRIM(UNNEST(REGEXP_MATCHES(t.substance,'[^\+]+','g'))) AS ingredient,
              fcc
-      FROM source_data_1 t) AS s
+      FROM source_data_1 t
+      where fcc not in (select fcc from vacc_ins_manual)) AS s
 WHERE ingredient NOT IN ('MULTI SUBSTANZ','ENZYME (UNSPECIFIED)','NASAL DECONGESTANTS','ANTACIDS','ELECTROLYTE SOLUTIONS','ANTI-PSORIASIS','TOPICAL ANALGESICS');
 
 --find OMOP codes that aren't used
@@ -1674,7 +1679,7 @@ DO $$ DECLARE ex INTEGER;
 
 BEGIN
 SELECT MAX(REPLACE(concept_code,'OMOP','')::INT4) +1 INTO ex
-FROM devv5.concept
+FROM concept
 WHERE concept_code LIKE 'OMOP%'
 AND   concept_code NOT LIKE '% %';
 
@@ -2324,7 +2329,7 @@ SELECT DISTINCT d.concept_code AS old_code,
        d.concept_name AS name,
        MIN(c.concept_code) OVER (PARTITION BY c.concept_name,c.vocabulary_id = 'GRR') AS new_code
 FROM drug_concept_stage d
-  JOIN devv5.concept c
+  JOIN concept c
     ON UPPER (c.concept_name) = TRIM (UPPER (d.concept_name))
    AND c.vocabulary_id = 'GRR'
    AND c.concept_class_id NOT IN ('Device', 'Drug Product')
@@ -2459,6 +2464,7 @@ UPDATE drug_concept_stage a
    SET concept_name = SUBSTR(n.concept_name,1,255)
 FROM new_name n
 WHERE n.drug_concept_code = a.concept_code;
+
 
 --insert into r_t_c_all from current rtc for future use
 INSERT INTO r_t_c_all 

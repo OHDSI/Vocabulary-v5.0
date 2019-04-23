@@ -333,7 +333,7 @@ BEGIN
                 cVocabVer := 'BDPM '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'GGR'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a download="" href="/nl/downloads/file\?type=EMD&amp;name=/csv4Emd_Nl_([\d]{4}).+\.zip" target="_blank">CSV NL</a>.+'),'yymm');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a target="_blank" download="" href="/nl/downloads/file\?type=EMD&amp;name=/csv4Emd_Nl_([\d]{4}).+\.zip">CSV NL</a>.+'),'yymm');
                 cVocabVer := 'GGR '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName in ('MESH','CDT','CPT4')
             THEN

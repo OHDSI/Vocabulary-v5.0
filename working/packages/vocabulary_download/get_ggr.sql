@@ -69,7 +69,7 @@ BEGIN
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
     
     --getting fully working download link from page
-    select SUBSTRING (http_content,'.+?<a download="" href="(/nl/downloads/file\?type=EMD&amp;name=/csv4Emd_Nl_[\d]{4}.+\.zip)" target="_blank">CSV NL</a>.+') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select SUBSTRING (http_content,'.+?<a target="_blank" download="" href="(/nl/downloads/file\?type=EMD&amp;name=/csv4Emd_Nl_[\d]{4}.+\.zip)">CSV NL</a>.+') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||pDownloadURL;
 
     --start downloading

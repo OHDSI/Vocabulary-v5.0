@@ -52,10 +52,10 @@ Before update use fast_recreate_schema.sql (from working directory);
 
 1. Import source file into 'source_data' table;
 2. Run script_for_delta.sql;
-3. Map table relationship_to_concept_to_map and import those mappings into relationship_to_concept_manual;
-4. Run script_for_delta.sql  without line 1919;
+3. Map table RELATIONSHIP_TO_CONCEPT_TO_MAP and import those mappings into RELATIONSHIP_TO_CONCEPT_MANUAL;
+4. Run script_for_delta.sql;
 5. Run Build_RxE.sql (from working directory);
-6. Fill mapping for vaccines and insulins manually from vacc_ins_manual table 
+6. Fill mapping for vaccines and insulins manually from VACC_INS_MANUAL table 
 7. Run concept_relationship_manual_post_proc.sql;
 8. Run generic_update.sql (from working directory);
 9. Run drops.sql to remove all the temporary tables

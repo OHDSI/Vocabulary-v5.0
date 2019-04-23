@@ -1857,7 +1857,7 @@ SELECT DISTINCT d.concept_code,
        precedence,
        conversion_factor
 FROM r_t_c_all r
-  JOIN drug_concept_stage d ON UPPER (d.concept_name) = UPPER (r.concept_name)
+  JOIN drug_concept_stage d using(concept_name,concept_class_id)
   JOIN concept c USING (concept_id)
 WHERE c.invalid_reason IS NULL or c.invalid_reason = 'U';
 
@@ -2470,11 +2470,13 @@ WHERE n.drug_concept_code = a.concept_code;
 INSERT INTO r_t_c_all 
 (
 concept_name,
+concept_class_id,
 concept_id,
 precedence,
 conversion_factor
 )
 SELECT concept_name,
+       concept_class_id,
        concept_id_2,
        precedence,
        conversion_factor

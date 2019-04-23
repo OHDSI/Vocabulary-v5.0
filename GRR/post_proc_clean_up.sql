@@ -10,15 +10,15 @@ SELECT concept_id,
        valid_start_date,
        current_date  as valid_end_date,
        'D' as invalid_reason
-FROM devv5.concept
+FROM concept
 WHERE (concept_code,trim(concept_name),concept_class_id) NOT IN (SELECT MIN(concept_code) OVER (PARTITION BY c.concept_name,c.concept_class_id),
                                                                   trim(c.concept_name),
                                                                   c.concept_class_id
-                                                           FROM devv5.concept c
+                                                           FROM concept c
                                                            WHERE c.vocabulary_id = 'GRR'
                                                            AND   (c.concept_name,c.concept_class_id) IN (SELECT trim(concept_name),
                                                                                                                 concept_class_id
-                                                                                                         FROM devv5.concept
+                                                                                                         FROM concept
                                                                                                          WHERE concept_class_id NOT IN ('Drug Product','Device')
                                                                                                          AND   vocabulary_id = 'GRR'
                                                                                                          GROUP BY concept_name,
@@ -28,7 +28,7 @@ AND   concept_class_id NOT IN ('Drug Product','Device')
 AND   vocabulary_id = 'GRR'
 AND   (concept_name,concept_class_id) IN (SELECT concept_name,
                                                                                                                 concept_class_id
-                                                                                                         FROM devv5.concept
+                                                                                                         FROM concept
                                                                                                          WHERE concept_class_id NOT IN ('Drug Product','Device')
                                                                                                          AND   vocabulary_id = 'GRR'
                                                                                                          GROUP BY concept_name,
@@ -50,7 +50,7 @@ SELECT concept_id,
        valid_start_date,
        valid_end_date,
        invalid_reason
-FROM devv5.concept
+FROM concept
 WHERE vocabulary_id = 'GRR'
 AND   concept_class_id = 'Ingredient'
 AND   standard_concept IS NOT NULL
@@ -71,8 +71,8 @@ SELECT NULL,
        END ,
        'D'
 FROM concept_stage c
-  JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id
-  JOIN devv5.concept cc ON cr.concept_id_2 = cc.concept_id
+  JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
+  JOIN concept cc ON cr.concept_id_2 = cc.concept_id
   where c.invalid_reason is not null;
 
 
@@ -87,12 +87,12 @@ SELECT NULL,
        cr.valid_start_date,
        TO_DATE('20991231','yyyymmdd'),
        null::varchar
-FROM devv5.concept c
-  JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id
-  JOIN devv5.concept cc ON cr.concept_id_2 = cc.concept_id
+FROM concept c
+  JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
+  JOIN concept cc ON cr.concept_id_2 = cc.concept_id
 WHERE (trim(c.concept_name),c.concept_class_id) IN (SELECT trim(concept_name),
                                                  concept_class_id
-                                          FROM devv5.concept
+                                          FROM concept
                                           WHERE concept_class_id NOT IN ('Drug Product','Device')
                                           AND   vocabulary_id = 'GRR'
                                           GROUP BY concept_name,
@@ -116,11 +116,11 @@ SELECT c.concept_id,
        c.valid_start_date,
        c.valid_end_date,
        c.invalid_reason
-FROM devv5.concept c
-  JOIN devv5.concept_relationship cr ON cr.concept_id_1 = c.concept_id
+FROM concept c
+  JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
 WHERE (c.concept_name,c.concept_class_id) IN (SELECT concept_name,
                                                  concept_class_id
-                                          FROM devv5.concept
+                                          FROM concept
                                           WHERE concept_class_id NOT IN ('Drug Product','Device')
                                           AND   vocabulary_id = 'GRR'
                                           GROUP BY concept_name,
@@ -137,7 +137,7 @@ and cr.invalid_reason is not null
 
 insert into concept_stage 
 select concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,current_date , 'D'
-from devv5.concept where vocabulary_id = 'GRR' and 
+from concept where vocabulary_id = 'GRR' and 
 concept_code like '%_01010001'
 
 ;
@@ -146,16 +146,16 @@ insert into concept_relationship_stage
 select null,null, c.concept_code , c1.concept_code , c.vocabulary_id , c1.vocabulary_id, cr.relationship_id, cr.valid_start_date,current_date , 'D' 
 from ( 
 select concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,current_date -1 , 'D'  
-from devv5.concept where vocabulary_id = 'GRR' and 
+from concept where vocabulary_id = 'GRR' and 
 concept_code like '%_01010001' ) c 
-join devv5.concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.invalid_reason is null
-join devv5.concept c1 on c1.concept_id = cr.concept_id_2;
+join concept_relationship cr on cr.concept_id_1 = c.concept_id and cr.invalid_reason is null
+join concept c1 on c1.concept_id = cr.concept_id_2;
 
 
  
 insert into concept_stage
 select * 
-from devv5.concept 
+from concept 
 where standard_concept is not null
 and vocabulary_id = 'GRR'
 and concept_class_id = 'Ingredient'

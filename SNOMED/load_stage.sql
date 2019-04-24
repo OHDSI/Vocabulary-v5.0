@@ -815,7 +815,7 @@ FROM (
 				THEN 'Navi Concept'
 			WHEN F7 = 'inactive concept'
 				THEN 'Inactive Concept'
-			--added 20190109 (AVOF-1369)
+					--added 20190109 (AVOF-1369)
 			WHEN F7 = 'administration method'
 				THEN 'Qualifier Value'
 			WHEN F7 = 'basic dose form'
@@ -844,9 +844,9 @@ FROM (
 				THEN 'Qualifier Value'
 			WHEN F7 = 'unit of presentation'
 				THEN 'Qualifier Value'
-            --Metadata concepts
-            WHEN F7 = 'OWL metadata concept'
-                THEN 'Model Comp'
+					--Metadata concepts
+			WHEN F7 = 'OWL metadata concept'
+				THEN 'Model Comp'
 			ELSE 'Undefined'
 			END AS concept_class_id
 	FROM tmp_concept_class
@@ -858,17 +858,16 @@ UPDATE concept_stage
 SET concept_class_id = 'Model Comp'
 WHERE concept_code = '138875005'
 	AND vocabulary_id = 'SNOMED';
+
 --Concepts without full specified names, function as Qualifier Value
-update concept_stage
-set concept_class_id = 'Qualifier Value'
-where
-	vocabulary_id = 'SNOMED' and
-	concept_code in
-		(
-			'774164004', --Supplier
-			'774167006'--Product name
-		)
-;
+UPDATE concept_stage
+SET concept_class_id = 'Qualifier Value'
+WHERE vocabulary_id = 'SNOMED'
+	AND concept_code IN (
+		'774164004', --Supplier
+		'774167006' --Product name
+		);
+
 --6. Add DM+D into concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,

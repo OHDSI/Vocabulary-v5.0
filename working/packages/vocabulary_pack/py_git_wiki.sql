@@ -46,4 +46,4 @@ $BODY$
     return 'OK'
 $BODY$
 LANGUAGE 'plpythonu'
-SECURITY DEFINER;
+SECURITY INVOKER;

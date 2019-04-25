@@ -8,9 +8,9 @@ $body$
 declare
 	crlf VARCHAR(4) := '<br>';
 	email CONSTANT VARCHAR(1000) := (SELECT var_value FROM devv5.config$ WHERE var_name='service_email');
-	cGitLogin CONSTANT VARCHAR(100) := (SELECT var_value FROM devv5.config$ WHERE var_name='git_credentials')::json->>'git_login';
-	cGitPassword CONSTANT VARCHAR(100) := (SELECT var_value FROM devv5.config$ WHERE var_name='git_credentials')::json->>'git_password';
+	cGitToken CONSTANT VARCHAR(100) := (SELECT var_value FROM devv5.config$ WHERE var_name='git_credentials')::json->>'git_token';
 	cGitRepository CONSTANT VARCHAR(100) := (SELECT var_value FROM devv5.config$ WHERE var_name='git_credentials')::json->>'git_repository';
+	cGitReleaseTag CONSTANT VARCHAR(100) := (SELECT 'v'||TO_CHAR(CURRENT_DATE,'yyyymmdd')||'_'||EXTRACT(epoch FROM NOW()::TIMESTAMP(0))::VARCHAR);
 	EMPTY_RESULT BOOLEAN := TRUE;
 	cRet TEXT;
 	cFullRet TEXT;
@@ -250,9 +250,9 @@ begin
 	
 	cFullRet:=cFullRet||cFooter;
 	
-	SELECT vocabulary_pack.py_git_wiki (cGitRepository,'Release notes '||TO_CHAR(CURRENT_DATE,'yyyymmdd'), cFullRet, cGitLogin, cGitPassword) into cRet_git;
-	IF cRet_git<>'OK' THEN
-		cRet := SUBSTR ('Report completed with errors:'||crlf||'<b>'||cRet_git||'</b>', 1, 500000);
+	SELECT vocabulary_pack.py_git_release (cGitRepository,'Release notes v'||TO_CHAR(CURRENT_DATE,'yyyymmdd'), cFullRet, cGitReleaseTag, cGitToken) into cRet_git;
+	IF NOT cRet_git ~ '^[\d]+$' THEN
+		cRet := SUBSTR ('Report completed with errors:'||crlf||'<b>'||cRet_git||'</b>', 1, 5000);
 		perform devv5.SendMailHTML (email, 'Release status [Wiki POST ERROR]', cRet);
 	END IF;
 	

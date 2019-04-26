@@ -918,7 +918,7 @@ where div>0.9 and 1/div>0.9 -- find identicals only within a corridor of 90% dev
 -- Remove duplicate q-r_uds combos that can result from % (two units mapped into one) or due to duplicate unit mapping with different preferences
 -- The former will happen likely, the latter only if the input files are corrupt
 delete from qr_uds where ctid not in (
-  select first_value(ctid) over (partition by q_ds, r_ds order by u_prec, i_prec, abs(div - 1) asc) from qr_uds
+  select first_value(ctid) over (partition by q_ds, r_ds order by u_prec, i_prec, div desc) from qr_uds
 );
 
 -- Create all possible translations for combos and their closeness attributes

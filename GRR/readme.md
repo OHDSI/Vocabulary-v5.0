@@ -51,11 +51,11 @@ You also need to create 'source_data' table and upload GEDA into it.
 Before update use fast_recreate_schema.sql (from working directory);
 
 1. Import source file into 'source_data' table;
-2. Run script_for_delta.sql;
+2. Run script_for_delta_part_1.sql;
 3. Map table RELATIONSHIP_TO_CONCEPT_TO_MAP and import those mappings into RELATIONSHIP_TO_CONCEPT_MANUAL;
-4. Run script_for_delta.sql;
+4. Run script_for_delta_part_2.sql;
 5. Run Build_RxE.sql (from working directory);
-6. Fill mapping for vaccines and insulins manually from VACC_INS_MANUAL table 
+6. Fill in the mapping for vaccines and insulins manually from the VACC_INS_MANUAL table, using c_id, c_code, c_name as target_concept_id, target_concept_code, target_concept_name respectively;
 7. Run concept_relationship_manual_post_proc.sql;
 8. Run generic_update.sql (from working directory);
 9. Run drops.sql to remove all the temporary tables

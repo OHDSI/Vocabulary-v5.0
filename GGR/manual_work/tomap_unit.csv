@@ -1,0 +1,26 @@
+"Concept_code"	"mapped_id"	"Mapped_name"	"conversion_factor"
+"µl"	8587	"milliliter"	0.001
+"µg"	8576	"milligram"	0.001
+"u"	8505	"hour"	
+"TE"	8510	"unit"	
+"SQ-T"	8510	"unit"	
+"mmol"	9573	"millimole"	
+"ml"	8587	"milliliter"	
+"MIE"	8510	"unit"	1E-06
+"mg"	8576	"milligram"	
+"ME"	8510	"unit"	1E-06
+"KIE"	8510	"unit"	
+"IR"	8510	"unit"	
+"IE anti-Xa"	8510	"unit"	
+"IE"	8510	"unit"	
+"HEP"	45744810	"bioequivalent allergenic unit"	
+"g"	8576	"milligram"	1000
+"Elisa E"	8510	"unit"	
+"E6 CFU"	45744815	"bacteria"	1000000
+"E6 bacillen"	45744815	"bacteria"	1000000
+"E"	8510	"unit"	
+"dos."	45744809	"Actuation"	
+"cm²"	9483	"square centimeter"	
+"l"	8587	"milliliter"	1000
+"E6 IE"	8510	"unit"	1000000
+"cellen"	45744812	"cellen"	

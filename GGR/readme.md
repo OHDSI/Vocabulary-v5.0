@@ -20,8 +20,9 @@ Prerequisites:
 -select * from tofix_vax;
 Note: BN, Ingredients: lowercase 'n' in mapped_name suggests using concept_name instead. Lowercase 'g' in mapped_name indicates that concept should not be mapped. Brand Names with incorrect Suppliers must be deleted manually at this stage.
 6. Reupload all tomap_* tables.
-Note: manual tables in correct format for current version are present in subdirectory manual_work
-6. Run after_mm.sql
-7. Run build_rxe.sql from working/ directory
-8. Run postprocessing.sql
-9. Run generic_update: devv5.GenericUpdate();
+-manual_work/ directory contains examples of manual mappings made April 2019.
+7. Run after_mm.sql
+8. Run build_rxe.sql from working/ directory
+9. Run postprocessing.sql
+10. Run generic_update: devv5.GenericUpdate();
+11. Keep new version of r_to_c_all table for the future use

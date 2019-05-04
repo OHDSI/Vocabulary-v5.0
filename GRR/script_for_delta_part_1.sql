@@ -1,4 +1,4 @@
--- fix mistake with empty cells that was during upload
+-- fixing mistake with create '' in empty cells but not NULL   in it, that was created during upload
 UPDATE source_data
    SET product_launch_date = NULL::VARCHAR
 WHERE product_launch_date = '';
@@ -63,7 +63,7 @@ WHERE fcc IN (SELECT DISTINCT fcc
                   ON c2.concept_id = cr.concept_id_2
                  AND c2.invalid_reason IS NULL);
 
--- manual mapping!!!!vaccines\insulins,  after manual work put it to concept_relationship_manual 
+-- ATTENTION!! manual mapping for vaccines\insulins,  after manual work put mapped concepts to concept_relationship_manual 
 DROP TABLE if exists vacc_ins_manual;
 
 CREATE TABLE vacc_ins_manual 
@@ -72,7 +72,7 @@ SELECT *, null::integer as c_id, null::varchar as c_code, null::varchar as c_nam
 FROM source_data_1
 WHERE UPPER(substance) ~ 'VACCINE|INSULIN';
  
---filling non-drug table
+--Fill non-drug table with Devices, Nutritional Supplements , etc.
 DROP TABLE IF EXISTS grr_non_drug;
 
 CREATE TABLE grr_non_drug 
@@ -107,7 +107,7 @@ OR    NFC LIKE 'V%'
 OR    nfc_description ~ 'TAMPONS '
 OR    therapy_name ~ 'OP\sSEPT|CASEIN|NOBAGEL|KNOBIVITAL|JUICE|KOMBIP\+TEST|WIPES';
 
---filling non-drug table
+--fill non-drug table
 INSERT INTO grr_non_drug
 SELECT fcc,
        therapy_name
@@ -115,7 +115,7 @@ FROM source_data_1
 WHERE INITCAP(substance) IN ('Anti-Dandruff Shampoo','Kidney Stones','Acrylic Resin','Anti-Acne Soap','Antifungal','Antioxidants','Arachnoidae','Articulation','Bath Oil','Breath Freshners','Catheters','Clay','Combination Products','Corn Remover','Creams (Basis)','Cresol Sulfonic Acid Phenolsulfonic Acid Urea-Formaldehyde Complex','Decongestant Rubs','Electrolytes/Replacers','Eye Make-Up Removers','Fish','Formaldehyde And Phenol Condensation Product','Formosulfathiazole,Herbal','Hydrocolloid','Infant Food Modified','Iocarmic Acid','Ioglicic Acid','Iopronic Acid','Iopydol','Iosarcol','Ioxitalamic Acid','Iud-Cu Wire & Au Core','Lipides','Lipids','Low Calorie Food','Massage Oil','Medicinal Mud','Minerals','Misc.Allergens (Patient Requirement)','Mumio','Musculi','Nasal Decongestants','Non-Allergenic Soaps','Nutritional Supplements','Oligo Elements','Other Oral Hygiene Preparations','Paraformaldehyde-Sucrose Complex','Polymethyl Methacrylate','Polypeptides','Purgative/Laxative','Quaternary Ammonium Compounds','Rock','Saponine','Shower Gel','Skin Lotion','Sleep Aid','Slug','Suxibuzone','Systemic Analgesics','Tonics','Varroa Destructor','Vasa','Vegetables Extracts')
 AND   fcc NOT IN (SELECT fcc FROM grr_non_drug);
 
---deleting non-drugs from working tables
+--delete non-drugs from working tables
 DELETE
 FROM source_data_1
 WHERE fcc IN (SELECT fcc FROM grr_non_drug);
@@ -135,7 +135,7 @@ FROM source_data_1
 where fcc not in (select fcc from vacc_ins_manual)
 ;
 
---start from source data patterns and normalize 
+--start to normalize for source data patterns
 UPDATE grr_bn
    SET bn = REGEXP_REPLACE(REGEXP_REPLACE(TRIM(REGEXP_REPLACE(bn,'(\S)+(\.)+(\S)*(\s\S)*(\s\S)*','','g')),'(TABL|>>|ALPHA|--)*','','g'),'(\d)*(\s)*(\.)+(\S)*(\s\S)*(\s)*(\d)*','','g')
 WHERE bn LIKE '%.%';
@@ -431,7 +431,7 @@ WHERE LENGTH(bn) < 6
 AND   bn LIKE '% %'
 AND   bn NOT IN ('OME Q','O PUR','IUP T','GO ON','AZA Q');
 
---deleting all sorts of ingredients
+--delete ingredients from Brand Name
 DELETE
 FROM grr_bn_2_1
 WHERE UPPER(bn) IN (SELECT UPPER(SUBSTANCE) FROM source_data_1);
@@ -545,7 +545,7 @@ SELECT DISTINCT fcc,
 FROM grr_bn_2_1
 WHERE old_name ~ 'PROMETHAZIN-NEURAX';
 
---filter Brand Names with existing 
+--filter Brand Names with existing in devv5
 INSERT INTO grr_bn_2
 SELECT DISTINCT fcc,
        UPPER(SUBSTRING(bn,'\w+')),
@@ -606,7 +606,7 @@ CREATE TABLE grr_manuf_0
   CUR_REC_IND      VARCHAR(255)
 );
 
---inserting suppliers from source data
+--insert suppliers from source data
 INSERT INTO grr_manuf_0
 (
   fcc,
@@ -798,7 +798,7 @@ DELETE
 FROM grr_manuf
 WHERE PRI_ORG_LNG_NM IN ('OLIBANUM','EIGENHERSTELLUNG');
 
---delete from manufacturer ingredients
+--delete ingredients from manufacturer 
 DELETE
 FROM grr_manuf
 WHERE LOWER(PRI_ORG_LNG_NM) IN (SELECT LOWER(concept_name)
@@ -817,7 +817,7 @@ DELETE
 FROM grr_manuf
 WHERE LENGTH(PRI_ORG_LNG_NM) < 4;
 
---deleting BNs that looks like suppliers
+--delete BNs that similar to suppliers
 DELETE
 FROM grr_bn_2
 WHERE UPPER(bn) IN (SELECT UPPER(PRI_ORG_LNG_NM) FROM grr_manuf);
@@ -1648,7 +1648,7 @@ WHERE INTL_PACK_FORM_DESC = 'VASELINE';
 
 END $_$;
 
---give to dose form correct name
+--give to dose_form correct name
 DROP TABLE IF EXISTS grr_form_2;
 
 CREATE TABLE grr_form_2 
@@ -1661,7 +1661,7 @@ FROM grr_form a
   JOIN concept b ON nfc_123_cd = concept_code
 WHERE vocabulary_id = 'NFC';
 
---create  table with ingredients
+--create table with ingredients
 DROP TABLE IF EXISTS grr_ing_2;
 
 CREATE TABLE grr_ing_2 
@@ -1674,7 +1674,7 @@ FROM (SELECT DISTINCT TRIM(UNNEST(REGEXP_MATCHES(t.substance,'[^\+]+','g'))) AS 
       where fcc not in (select fcc from vacc_ins_manual)) AS s
 WHERE ingredient NOT IN ('MULTI SUBSTANZ','ENZYME (UNSPECIFIED)','NASAL DECONGESTANTS','ANTACIDS','ELECTROLYTE SOLUTIONS','ANTI-PSORIASIS','TOPICAL ANALGESICS');
 
---find OMOP codes that aren't used
+--find OMOP codes that aren't used in concept table
 DO $$ DECLARE ex INTEGER;
 
 BEGIN
@@ -1689,7 +1689,7 @@ EXECUTE 'CREATE SEQUENCE new_vocab INCREMENT BY 1 START WITH ' || ex || ' NO CYC
 
 END $$;
 
---creating table with all concepts that need to have OMOP code
+--create table with all attribute concepts that need to have OMOP code
 DROP TABLE IF EXISTS list;
 
 CREATE TABLE list 
@@ -1713,7 +1713,7 @@ WHERE ingredient IS NOT NULL;
 UPDATE list
    SET concept_code = 'OMOP' || nextval('new_vocab');
 
---create source name for drugs
+--create raw name for for source drugs
 DROP TABLE IF EXISTS dcs_drugs;
 
 CREATE TABLE dcs_drugs 
@@ -1740,7 +1740,7 @@ FROM (SELECT STRENGTH_UNIT AS WGT_UOM_CD
 WHERE WGT_UOM_CD IS NOT NULL
 AND   WGT_UOM_CD NOT IN ('','--','Y/H');
 
---erease drug_concept_stage and fill it with actual concepts
+--truncate drug_concept_stage and fill it with actual concepts
 TRUNCATE TABLE drug_concept_stage;
 
 --fill drug_concept_stage with Drug Products from dcs_drugs, source attributes from list, grr_from_2, dcs_units
@@ -1839,7 +1839,7 @@ VALUES
   TO_DATE('20991231','yyyymmdd')
 );
 
---filling relation between source attributes and standard attributes
+--fill relation between source attributes and standard attributes
 TRUNCATE TABLE relationship_to_concept;
 
 --insert mapping for attributes from previous iteration
@@ -1861,7 +1861,7 @@ FROM r_t_c_all r
   JOIN concept c USING (concept_id)
 WHERE c.invalid_reason IS NULL or c.invalid_reason = 'U';
 
---automated mapping for attribute
+--automated mapping for attributes
 INSERT INTO relationship_to_concept
 (
   concept_code_1,
@@ -1883,7 +1883,7 @@ WHERE concept_code_1 IS NULL
 AND   dcs.concept_class_id IN ('Ingredient','Brand Name','Dose Form','Supplier')
 AND   cc.invalid_reason IS NULL or cc.invalid_reason = 'U';
 
---update relationship_to_concept if targeted concept has U
+--update relationship_to_concept if targeted concept has 'U'
 UPDATE relationship_to_concept r1
    SET concept_id_2 = cr.concept_id_2
 FROM relationship_to_concept rtc

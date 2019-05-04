@@ -1,3 +1,4 @@
+--insert relationship_to_concept_manual  into r_t_c which contains mappings of relationship_to_concept_to_map table created in a first part
 --insert all manual work into r_t_c
 insert into relationship_to_concept
 (
@@ -12,7 +13,7 @@ from drug_concept_stage dcs
 join relationship_to_concept_manual mt on upper(mt.source_attr_name) = upper(dcs.concept_name)
 ;
 
---delete attributes they aren't mapped to RxNorm% and which we don't want to create
+--delete attributes they aren't mapped to RxNorm% and which we don't want to create RxNorm Extension from
 DELETE
 FROM internal_relationship_stage
 WHERE (concept_code_1,concept_code_2) IN (SELECT irs.*
@@ -29,7 +30,7 @@ WHERE concept_code IN (SELECT concept_code
                        WHERE rtc.indicator_rxe IS NULL and rtc.target_concept_id IS NULL);
 
 
---filling internal relationship between source drugs and their attributes
+--fill internal relationship table which include relation between source drugs and their attributes
 TRUNCATE TABLE internal_relationship_stage;
 
 INSERT INTO internal_relationship_stage
@@ -194,7 +195,7 @@ AND   numerator_unit IS NULL
 AND   denominator IS NOT NULL
 AND   denominator_unit IS NOT NULL;
 
---fill ds_stage
+--fill ds_stage with extracted dosage from table that was used before
 TRUNCATE TABLE ds_stage;
 
 INSERT INTO ds_stage
@@ -251,7 +252,7 @@ UPDATE ds_stage
 WHERE amount_value = numerator_value
 AND   amount_unit = numerator_unit;
 
---find dosage for multiple drugs
+--find dosage for drugs which contains two ingredients
 DROP TABLE if exists grr_mult;
 
 CREATE TABLE grr_mult 
@@ -349,7 +350,7 @@ SELECT q_code,
 FROM grr_mult
   JOIN source_data_1 ON fcc = q_code;
 
---delete homeopathy liquids
+--delete liquid homeopathy 
 DELETE
 FROM drug_concept_stage
 WHERE concept_code IN (SELECT drug_concept_code
@@ -369,7 +370,7 @@ FROM ds_stage
 WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
 AND   denominator_value IS NOT NULL;
 
---delete units that aren't used
+--delete units that we aren't used
 DELETE
 FROM drug_concept_stage
 WHERE concept_code IN (SELECT CONCEPT_CODE
@@ -378,7 +379,7 @@ WHERE concept_code IN (SELECT CONCEPT_CODE
                        WHERE concept_class_id IN ('Unit')
                        AND   b.concept_code_1 IS NULL);
 
---delete suppliers  from drugs without dosage
+--delete supplier from drugs without dosage
 DELETE
 FROM internal_relationship_stage
 WHERE (concept_code_1,concept_code_2) IN (SELECT concept_code_1,
@@ -440,8 +441,7 @@ UPDATE pc_stage a
 FROM code_replace b
 WHERE a.drug_concept_code = b.old_code;
 
-
---create name for source concept
+--create name like in RxNorm for source concepts
 DROP TABLE IF EXISTS ds_stage_cnc;
 
 CREATE TABLE ds_stage_cnc 
@@ -535,8 +535,7 @@ UPDATE drug_concept_stage a
 FROM new_name n
 WHERE n.drug_concept_code = a.concept_code;
 
-
---insert into r_t_c_all from current rtc for future use
+--insert attributes in r_t_c_all from current rtc for future usage
 INSERT INTO r_t_c_all 
 (
 concept_name,

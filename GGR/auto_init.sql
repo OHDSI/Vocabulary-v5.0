@@ -49,7 +49,7 @@ SELECT DISTINCT CONCAT (
 	sam.ppq AS amount,
 	mpp.cq AS box_size
 FROM sources.ggr_mpp mpp -- Pack contents have two defining keys, we combine them
-LEFT JOIN sam ON mpp.mppcv = sam.mppcv
+LEFT JOIN SOURCES.GGR_SAM sam ON mpp.mppcv = sam.mppcv
 WHERE mpp.ouc = 'C';--OUC means *O*ne, m*U*ltiple or pa*C*k 
 
 
@@ -63,7 +63,7 @@ INSERT INTO DEVICES_TO_FILTER --this is the one most simple way to filter Device
 SELECT DISTINCT mpp.mppcv,
 	mpp.MPPNM
 FROM sources.ggr_mpp mpp
-LEFT JOIN sam ON mpp.mppcv = sam.mppcv
+LEFT JOIN SOURCES.GGR_SAM sam ON mpp.mppcv = sam.mppcv
 WHERE sam.stofcv IN (
 		'01990',
 		'00649',
@@ -111,7 +111,7 @@ WHERE mppcv NOT IN (
 UNION
 
 SELECT INBASU AS unit
-FROM sam
+FROM SOURCES.GGR_SAM sam
 WHERE mppcv NOT IN (
 		SELECT mppcv
 		FROM devices_to_filter
@@ -121,7 +121,7 @@ WHERE mppcv NOT IN (
 UNION
 
 SELECT inu2 AS unit
-FROM sam
+FROM SOURCES.GGR_SAM sam
 WHERE mppcv NOT IN (
 		SELECT mppcv
 		FROM devices_to_filter
@@ -131,7 +131,7 @@ WHERE mppcv NOT IN (
 UNION
 
 SELECT INU AS unit
-FROM sam
+FROM SOURCES.GGR_SAM sam
 WHERE mppcv NOT IN (
 		SELECT mppcv
 		FROM devices_to_filter
@@ -198,7 +198,7 @@ SELECT DISTINCT ninnm AS concept_name,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.ggr_innm
-join sam s using (stofcv) -- we only need ingredients that are being used in drugs
+join SOURCES.GGR_SAM s using (stofcv) -- we only need ingredients that are being used in drugs
 where s.mppcv not in (select mppcv from devices_to_filter)
 ;
 INSERT INTO drug_concept_stage -- Suppliers
@@ -277,7 +277,7 @@ JOIN PC_STAGE pc ON pc.PACK_CONCEPT_CODE = CONCAT (
 		'mpp',
 		mpp.mppcv
 		)
-LEFT JOIN sam ON sam.mppcv = mpp.mppcv
+LEFT JOIN SOURCES.GGR_SAM sam ON sam.mppcv = mpp.mppcv
 WHERE OUC = 'C'
 ;
 INSERT INTO drug_concept_stage -- Measurement units

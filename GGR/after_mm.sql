@@ -235,7 +235,7 @@ SELECT DISTINCT
 	END,
 	coalesce (i.ingredient_code, CONCAT ('stof',sam.stofcv))
 FROM sources.ggr_mpp mpp
-JOIN sam ON 
+JOIN SOURCES.GGR_SAM sam ON 
 	mpp.mppcv = sam.mppcv AND
 	mpp.mppcv NOT IN 
 		(
@@ -250,7 +250,7 @@ SELECT DISTINCT
 	CONCAT ('mpp',mpp.mppcv),
 	CONCAT ('gal',mpp.galcv)
 FROM sources.ggr_mpp mpp
-LEFT JOIN sam ON sam.mppcv = mpp.mppcv
+LEFT JOIN SOURCES.GGR_SAM sam ON sam.mppcv = mpp.mppcv
 WHERE mpp.mppcv NOT IN
 	(
 		SELECT mppcv
@@ -270,7 +270,7 @@ SELECT DISTINCT
 			)
 		)
 FROM sources.ggr_mpp mpp
-JOIN sam ON sam.mppcv = mpp.mppcv
+JOIN SOURCES.GGR_SAM sam ON sam.mppcv = mpp.mppcv
 left join tomap_form t on-- only form name, get code ourselves
 	t.concept_name_nl = sam.ppgal
 WHERE mpp.mppcv NOT IN
@@ -445,13 +445,13 @@ SELECT DISTINCT CASE
 		ELSE NULL
 		END AS BOX_SIZE
 FROM sources.ggr_mpp mpp
-LEFT JOIN sam ON mpp.mppcv = sam.mppcv
+LEFT JOIN SOURCES.GGR_SAM sam ON mpp.mppcv = sam.mppcv
 ;
 --update /cm² to have proper denominator
 with square_denom as
 	(
 		select distinct drug_concept_code, replace (replace (dim, ',' ,'.'), ' cm','') as dim from ds_stage --find where changes are needed, parse dimensions
-		join sam on 'mpp' || mppcv = drug_concept_code and 'stof' || stofcv = ingredient_concept_code 
+		join SOURCES.GGR_SAM sam on 'mpp' || mppcv = drug_concept_code and 'stof' || stofcv = ingredient_concept_code 
 		where denominator_unit = 'cm²' and inbasq = 1 and dim is not null
 	),
 calc as
@@ -751,7 +751,7 @@ WHERE drug_concept_code IN
 					end as drug_concept_code,
 					count (distinct sam.stofcv) as ic
 				from sources.ggr_mpp mpp
-				join sam using (mppcv)
+				join SOURCES.GGR_SAM sam using (mppcv)
 				group by drug_concept_code
 			) source_count
 		on 
@@ -775,7 +775,7 @@ SELECT
 	NULL,
 	NULL
 from sources.ggr_mpp mpp
-join sam on sam.mppcv = mpp.mppcv
+join SOURCES.GGR_SAM sam on sam.mppcv = mpp.mppcv
 left join ing_split i on i.mix_code = 'stof' || sam.stofcv
 JOIN drug_concept_stage b ON b.concept_code = coalesce (i.ingredient_code, 'stof' || sam.stofcv)
 join drug_concept_stage d on
@@ -805,7 +805,7 @@ SELECT
 FROM drug_concept_stage dcs
 join sources.ggr_mpp mpp on
 	'mpp' || mpp.mppcv = dcs.concept_code
-left join sam using (mppcv)
+left join SOURCES.GGR_SAM sam using (mppcv)
 WHERE 
 	dcs.domain_id != 'Device' AND
 	sam.mppcv IS NULL

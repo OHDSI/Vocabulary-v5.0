@@ -630,8 +630,8 @@ CREATE TABLE class_to_drug_6 AS
 -- hardcoded combinations							   
 
 -- 4.1
-DROP TABLE IF EXISTS сlass_to_rx_descendant;
-CREATE TABLE сlass_to_rx_descendant
+DROP TABLE IF EXISTS class_to_rx_descendant;
+CREATE TABLE class_to_rx_descendant
 AS
 SELECT DISTINCT substring(concept_code_1, '\w+') AS class_code,
                 class_name,
@@ -646,7 +646,7 @@ FROM class_to_drug_1 a
             ON c.concept_id = descendant_concept_id AND vocabulary_id like 'RxNorm%' AND c.standard_concept = 'S';
 -- 4.2.1 
 DELETE
-FROM сlass_to_rx_descendant
+FROM class_to_rx_descendant
 WHERE class_code ~ 'G03FB|G03AB'
   AND concept_class_id NOT like '%Pack%';
 							   
@@ -658,7 +658,7 @@ AND class_code ~ 'S01CB|G03EK|G03CC|D10AA|D07XC|D07XB|D07XA'
 ;							   
 
 -- 4.3
-INSERT INTO сlass_to_rx_descendant
+INSERT INTO class_to_rx_descendant
 SELECT DISTINCT substring(concept_code_1, '\w+'),
                 class_name,
                 c.concept_id,
@@ -670,10 +670,10 @@ FROM class_to_drug_2 a
        JOIN devv5.concept_ancestor ON ancestor_concept_id = a.concept_id
        JOIN concept c
             ON c.concept_id = descendant_concept_id AND c.vocabulary_id like 'RxNorm%' AND c.standard_concept = 'S'
-WHERE descendant_concept_id NOT IN (SELECT concept_id FROM сlass_to_rx_descendant);
+WHERE descendant_concept_id NOT IN (SELECT concept_id FROM class_to_rx_descendant);
 
 -- 4.4
-INSERT INTO сlass_to_rx_descendant
+INSERT INTO class_to_rx_descendant
 SELECT DISTINCT substring(concept_code_1, '\w+'),
                 class_name,
                 c.concept_id,
@@ -685,10 +685,10 @@ FROM class_to_drug_3 a
        JOIN devv5.concept_ancestor ON ancestor_concept_id = a.concept_id
        JOIN concept c
             ON c.concept_id = descendant_concept_id AND c.vocabulary_id like 'RxNorm%' AND c.standard_concept = 'S'
-WHERE descendant_concept_id NOT IN (SELECT concept_id FROM сlass_to_rx_descendant);
+WHERE descendant_concept_id NOT IN (SELECT concept_id FROM class_to_rx_descendant);
 
 -- 4.5
-INSERT INTO сlass_to_rx_descendant
+INSERT INTO class_to_rx_descendant
 SELECT DISTINCT substring(concept_code_1, '\w+'),
                 class_name,
                 c.concept_id,
@@ -700,10 +700,10 @@ FROM class_to_drug_4 a
        JOIN devv5.concept_ancestor ON ancestor_concept_id = a.concept_id
        JOIN concept c
             ON c.concept_id = descendant_concept_id AND c.vocabulary_id like 'RxNorm%' AND c.standard_concept = 'S'
-WHERE descendant_concept_id NOT IN (SELECT concept_id FROM сlass_to_rx_descendant);
+WHERE descendant_concept_id NOT IN (SELECT concept_id FROM class_to_rx_descendant);
 
 --4.6
-INSERT INTO сlass_to_rx_descendant
+INSERT INTO class_to_rx_descendant
 SELECT DISTINCT substring(concept_code_1, '\w+'),
                 class_name,
                 c.concept_id,
@@ -716,7 +716,7 @@ FROM class_to_drug_5 a
        JOIN concept c
             ON c.concept_id = descendant_concept_id AND c.vocabulary_id like 'RxNorm%' AND c.standard_concept = 'S'
        JOIN drug_strength d ON d.drug_concept_id = c.concept_id
-WHERE descendant_concept_id NOT IN (SELECT concept_id FROM сlass_to_rx_descendant)
+WHERE descendant_concept_id NOT IN (SELECT concept_id FROM class_to_rx_descendant)
   AND NOT exists
   (SELECT 1
    FROM concept c2
@@ -768,7 +768,7 @@ with a AS (
                 ca.descendant_concept_id,pack_id
      )
 INSERT
-INTO сlass_to_rx_descendant
+INTO class_to_rx_descendant
 (class_code, class_name, concept_id, concept_name, concept_code, concept_class_id, "order")
 SELECT DISTINCT substring(concept_code_1, '\w+'),
                 class_name,
@@ -784,7 +784,7 @@ WHERE i_combo = i_combo_2
 ;
 
 -- 4.8
-INSERT INTO сlass_to_rx_descendant
+INSERT INTO class_to_rx_descendant
 SELECT DISTINCT substring(concept_code_1, '\w+'),
                 class_name,
                 c.concept_id,
@@ -797,7 +797,7 @@ FROM class_to_drug_6 a
        JOIN concept c
             ON c.concept_id = descendant_concept_id AND c.vocabulary_id like 'RxNorm%' AND c.standard_concept = 'S'
        JOIN drug_strength d ON d.drug_concept_id = c.concept_id
-WHERE descendant_concept_id NOT IN (SELECT concept_id FROM сlass_to_rx_descendant)
+WHERE descendant_concept_id NOT IN (SELECT concept_id FROM class_to_rx_descendant)
   AND NOT exists
   (SELECT 1
    FROM concept c2
@@ -849,7 +849,7 @@ WITH a AS (
        GROUP BY b.concept_code_1, b.class_name, b.concept_id, b.concept_name, b.concept_class_id, b.i_combo,
                 ca.descendant_concept_id,pack_id
      )
-INSERT INTO сlass_to_rx_descendant
+INSERT INTO class_to_rx_descendant
 (class_code, class_name, concept_id, concept_name, concept_code, concept_class_id, "order")
 SELECT DISTINCT substring(concept_code_1, '\w+'),
                 class_name,
@@ -866,9 +866,9 @@ WHERE i_combo = i_combo_2
 
 -- 4.10
 DELETE
-FROM сlass_to_rx_descendant
+FROM class_to_rx_descendant
 WHERE class_name like '%insulin%';
-INSERT INTO сlass_to_rx_descendant
+INSERT INTO class_to_rx_descendant
 SELECT DISTINCT class_code,
                 class_name,
                 c.concept_id,
@@ -883,7 +883,7 @@ FROM class_to_drug_manual m
 ;
 
 -- 4.11 fix packs
-INSERT INTO сlass_to_rx_descendant
+INSERT INTO class_to_rx_descendant
 SELECT DISTINCT substring(concept_code_1, '\w+'), class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, 1
 FROM class_to_drug_1 f
        JOIN devv5.concept_ancestor ca ON ca.ancestor_concept_id = cast(f.concept_id AS int)
@@ -892,28 +892,34 @@ WHERE f.concept_code_1 ~ 'G03FB|G03AB'; -- packs
 
 -- 4.12
 DELETE
-FROM сlass_to_rx_descendant
+FROM class_to_rx_descendant
 WHERE class_code ~ 'G03FB|G03AB'
   AND concept_class_id IN ('Clinical Drug Form', 'Ingredient');
 
 DELETE
-FROM сlass_to_rx_descendant
+FROM class_to_rx_descendant
 WHERE class_name like '%and estrogen%' -- if there are regular estiol/estradiol/EE
   AND concept_id IN (SELECT concept_id FROM сlass_to_rx_descendant GROUP BY concept_id HAVING COUNT(1) > 1);
 
 -- 4.13 temporary solution (same as before)
 DELETE
-FROM сlass_to_rx_descendant
+FROM class_to_rx_descendant
 WHERE class_name like '%,%,%and%'
   AND NOT class_name ~* 'comb|other|whole root|selective'
   AND concept_name NOT like '%/%/%/%';
 
 DELETE
-FROM сlass_to_rx_descendant
+FROM class_to_rx_descendant
 WHERE class_name like '%,%and%'
   AND class_name NOT like '%,%,%and%'
   AND NOT class_name ~* 'comb|other|whole root|selective'
   AND concept_name NOT like '% / % / %';
+							   
+DELETE
+FROM class_to_rx_descendant
+WHERE class_name NOT LIKE '% / %'
+AND class_code ~ 'S01CB|G03EK|G03CC|D10AA|D07XC|D07XB|D07XA'
+;							   							   
 
 -- 4.14 repeate all the steps to get the table without ancestor (just the basic entities)
 DROP TABLE IF EXISTS class_to_drug;

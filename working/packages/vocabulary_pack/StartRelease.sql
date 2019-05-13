@@ -32,7 +32,7 @@ BEGIN
         --WHERE invalid_reason IS NULL
       ) AS s0;
 
-  perform vocabulary_pack.CreateWikiReport();
+  perform vocabulary_pack.CreateReleaseReport();
   perform vocabulary_pack.CreateLocalPROD();
   
   cRet := 'Release completed';

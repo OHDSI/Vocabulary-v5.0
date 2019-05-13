@@ -1,9 +1,9 @@
-CREATE OR REPLACE FUNCTION vocabulary_pack.CreateWikiReport (
+CREATE OR REPLACE FUNCTION vocabulary_pack.CreateReleaseReport (
 )
 RETURNS void AS
 $body$
 /*
-	This procedure creates the Wiki-reports
+	This procedure creates the release reports
 */
 declare
 	crlf VARCHAR(4) := '<br>';

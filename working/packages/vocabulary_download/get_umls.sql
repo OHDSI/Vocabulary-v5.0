@@ -58,28 +58,20 @@ BEGIN
     --get credentials
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
-    
-    --get hidden param (web-parsing)
-    select substring(http_content,'name="execution" value="(.+?)"') into auth_hidden_param from py_http_get(url=>pVocabulary_auth);
-    if auth_hidden_param is null then pErrorDetails:=http_content; raise exception 'auth_hidden_param is null'; end if;
-
-    --authorization
-    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent
-    from py_http_post(url=>pVocabulary_auth, params=>'username='||devv5.urlencode(pVocabulary_login)||'&password='||devv5.urlencode(pVocabulary_pass)||'&_eventId=submit&execution='||auth_hidden_param);
-    if pCookie not like '%TGC=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%TGC=%% not found'; end if;
 
     --first part, getting raw download link from page
-    select substring(http_content,'<table class="umls_download">.+?<a href="(.+?)">') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(http_content,'Full UMLS Release Files.+?<a href="(.+?)">') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     pDownloadURL:=regexp_replace(pDownloadURL, '[[:cntrl:]]+', '','g');
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
-    --second part, now we have fully working download link
-    pCookie=substring(pCookie,'TGC=(.*?);');
-    select (select value from json_each_text(http_headers) where lower(key)='location'), http_content into pDownloadURL, pContent from py_http_get(url=>pVocabulary_auth||'?service='||pDownloadURL,cookies=>'{"TGC":"'||pCookie||'"}');
-    pDownloadURL:=trim('"' from pDownloadURL); --remove double quotes
-    --https://download.nlm.nih.gov/umls/kss/2018AA/umls-2018AA-full.zip?ticket=ST-669384-CB9UUaR7WAz0d1TryYRy-cas
-    if not pDownloadURL ~* '^(https://download.nlm.nih.gov/umls/kss/)(.+)\.zip\?ticket=ST(.+)$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
-
+    --get full working link with proper cookie
+    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'),
+    (select value from json_each_text(http_headers) where lower(key)='location'),http_content
+    into pCookie, pDownloadURL, pContent from py_http_umls (pVocabulary_auth,pDownloadURL,devv5.urlencode(pVocabulary_login),devv5.urlencode(pVocabulary_pass));
+    if pCookie not like '%MOD_AUTH_CAS=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%MOD_AUTH_CAS=%% not found'; end if;
+    
+    pCookie=substring(pCookie,'MOD_AUTH_CAS=(.*?);');
+    
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
@@ -92,7 +84,8 @@ BEGIN
     perform run_wget (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.zip',
-      iDownloadLink=>pDownloadURL
+      iDownloadLink=>pDownloadURL,
+      iParams=>'--no-cookies --header "Cookie: MOD_AUTH_CAS='||pCookie||'"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,

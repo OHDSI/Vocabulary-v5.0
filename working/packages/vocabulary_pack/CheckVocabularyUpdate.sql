@@ -133,7 +133,7 @@ BEGIN
           21. CPT4
           22. AMT
           23. CDM
-		  24. SNOMED Veterinary
+          24. SNOMED Veterinary
         */
         perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
         set local http.timeout_msec TO 30000;
@@ -150,21 +150,8 @@ BEGIN
                 cVocabVer := 'RxNorm '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'UMLS'
             THEN
-                cSearchString := '<table class="umls_download">';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cPos1 := devv5.INSTR (cVocabHTML, '<td>', cPos1 + 1);
-                cPos1 := devv5.INSTR (cVocabHTML, '<td>', cPos1 + 1);
-                cPos1 := devv5.INSTR (cVocabHTML, '<td>', cPos1 + 1);
-                cPos2 := devv5.INSTR (cVocabHTML, '</td>', cPos1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + 4, cPos2 - cPos1 - 4), 'monthdd,yyyy');
-                --the version exctraction
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cSearchString='Full Release';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString, cPos1 + 1);
-                cPos2 := devv5.INSTR (cVocabHTML, '</a>', cPos1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabVer := substring (SUBSTR (cVocabHTML, cPos1 + 4, cPos2 - cPos1 - 4), '[\d]{4}[A-z]{2}');
+                cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'Full UMLS Release Files.+?(?:<td>.+?</td>\s+){4}<td>(.+?)</td>'),'monthdd,yyyy');
+                cVocabVer := SUBSTRING(cVocabHTML,'([\d]{4}[A-z]{2}) Full UMLS Release Files');
             WHEN cVocabularyName = 'SNOMED'
             THEN
                 cSearchString := '<a class="btn btn-info" href="';
@@ -311,7 +298,7 @@ BEGIN
               WHERE t.title LIKE '%Version % of the ISBT 128 Product Description Code Database%';
             WHEN cVocabularyName = 'DPD'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+<th rowspan="4">ALL FILES</th>.+?<td>([-\d]{10})</td>.*'),'yyyy-mm-dd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+<th rowspan="4">ALL FILES</th>.+?<td.+?>([-\d]{10})</td>.*'),'yyyy-mm-dd');
                 cVocabVer := 'DPD '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'CVX'
             THEN
@@ -383,7 +370,7 @@ BEGIN
             WHEN cVocabularyName = 'SNOMED VETERINARY'
             THEN
                 cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a href="SnomedCT_Release_VTS.+?_([\d]{8})\.zip" target="main">Download the Veterinary Extension of SNOMED CT</a>.+'),'yyyymmdd');
-                cVocabVer := 'SNOMED Veterinary '||to_char(cVocabDate,'YYYYMMDD');				
+                cVocabVer := 'SNOMED Veterinary '||to_char(cVocabDate,'YYYYMMDD');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

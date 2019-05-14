@@ -204,7 +204,7 @@ begin
                 --parsing the params (json)
                 cFastRecreateScript:=cVocabA.vocabulary_params->>'fast_recreate_script';
                 cLoadStageURL:=cVocabA.vocabulary_params->>'load_stage_path';
-                cMoveToDevv5:=cVocab.vocabulary_params->>'move_to_devv5';
+                cMoveToDevv5:=cVocabA.vocabulary_params->>'move_to_devv5';
                 
                 if cFastRecreateScript is not null then
                   begin --use another begin/end block because we don't want to rollback previous changes (fast recreate)

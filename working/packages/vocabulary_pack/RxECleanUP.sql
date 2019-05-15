@@ -48,7 +48,6 @@ BEGIN
 	WHERE upper(cs.concept_name) = upper(c.concept_name)
 		AND cs.concept_class_id = c.concept_class_id
 		AND c.vocabulary_id = 'RxNorm'
-		AND c.standard_concept = 'S'
 		AND cs.invalid_reason IS NULL;
 
 	--4. Load full list of RxNorm Extension relationships

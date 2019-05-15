@@ -3624,7 +3624,7 @@ select
   (select vocabulary_id from drug_concept_stage limit 1) as vocabulary_id_1,
   concept_code as concept_code_2,
   vocabulary_id as vocabulary_id_2,
-  'Source - RxNorm eq' as relationship_id,
+  'Maps to' as relationship_id,
   (select latest_update from vocabulary v where v.vocabulary_id=(select vocabulary_id from drug_concept_stage limit 1)) as valid_start_date,
   to_date('20991231', 'yyyymmdd') as valid_end_date,
   null as invalid_reason

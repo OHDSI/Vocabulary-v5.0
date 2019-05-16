@@ -137,12 +137,6 @@ WHERE
 		from ing_split
 	)
 ;
-update drug_concept_stage x
-set concept_name = (select distinct mapped_name from tomap_ingred where concept_code = x.concept_code and (precedence = 1 or precedence is null))
-where
-	concept_class_id = 'Ingredient' and
-	concept_code not in (select mix_code from ing_split)
-;
 insert into drug_concept_stage
 select distinct 
 	ingredient_name AS concept_name,
@@ -814,17 +808,6 @@ order by drug_concept_code
 ;
 ALTER TABLE dsfix ADD device VARCHAR(255); --to manually proclaim devices
 ALTER TABLE dsfix ADD mapped_id int4; -- to add mappings for new ingredients
-
---keep legacy mappings for the future
-create table if not exists r_to_c_all
-(
-   concept_name       varchar(255),
-   concept_class_id   varchar,
-   concept_id         integer,
-   precedence         integer,
-   conversion_factor  float8
-)
-;
 -- truncate table r_to_c_all
 ;
 drop table if exists r_to_c_insert
@@ -890,6 +873,13 @@ where
 ;
 insert into r_to_c_all
 select * from r_to_c_insert
+;
+--ingredient names should be made english
+-- update drug_concept_stage x
+-- set concept_name = (select distinct mapped_name from tomap_ingred where concept_code = x.concept_code and (precedence = 1 or precedence is null))
+-- where
+-- 	concept_class_id = 'Ingredient' and
+-- 	concept_code not in (select mix_code from ing_split)
 ;
 --replace ingredients in stage tables with ones from dsfix
 DELETE
@@ -1037,3 +1027,8 @@ set pack_concept_code = replace (pack_concept_code,'mpp','')
 update tofix_vax
 set source_code = replace (source_code,'mpp','')
 ;
+-- remove problematic ingredients
+-- deprecated and unused
+delete from internal_relationship_stage where concept_code_2 in (select concept_code_1 from relationship_to_concept join concept on concept_id_2 = concept_id where concept_class_id = 'Ingredient' and invalid_reason = 'D' and precedence = 1);
+delete from drug_concept_stage where concept_code in (select concept_code_1 from relationship_to_concept join concept on concept_id_2 = concept_id where concept_class_id = 'Ingredient' and invalid_reason = 'D' and precedence = 1);
+delete from relationship_to_concept where concept_code_1 in (select concept_code_1 from relationship_to_concept join concept on concept_id_2 = concept_id where concept_class_id = 'Ingredient' and invalid_reason = 'D' and precedence = 1);

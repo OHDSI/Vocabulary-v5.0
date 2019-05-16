@@ -32,7 +32,16 @@ BEGIN
 );
 END $_$;
 
-
+--keep legacy mappings for the future
+create table if not exists r_to_c_all
+(
+   concept_name       varchar(255),
+   concept_class_id   varchar,
+   concept_id         integer,
+   precedence         integer,
+   conversion_factor  float8
+)
+;
 --we form this one first to clear way for future ds_stage
 TRUNCATE TABLE pc_stage;
 INSERT INTO pc_stage --take pack data straight from mpp
@@ -313,8 +322,10 @@ where
 			from concept
 			where 
 				concept_id = r_to_c_all.concept_id and
-				invalid_reason = 'U' or
-				concept_class_id = 'Precise Ingredient' --RxN could move Ingredient to PI cathegory
+				(
+					invalid_reason = 'U' or
+					concept_class_id = 'Precise Ingredient' --RxN could move Ingredient to PI cathegory
+				)
 		)
 ;
 delete from r_to_c_all r1

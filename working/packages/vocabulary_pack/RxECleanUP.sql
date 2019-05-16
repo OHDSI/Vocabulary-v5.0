@@ -47,6 +47,7 @@ BEGIN
 	FROM concept c
 	WHERE upper(cs.concept_name) = upper(c.concept_name)
 		AND cs.concept_class_id = c.concept_class_id
+		AND c.invalid_reason IS NULL;
 		AND c.vocabulary_id = 'RxNorm'
 		AND cs.invalid_reason IS NULL;
 

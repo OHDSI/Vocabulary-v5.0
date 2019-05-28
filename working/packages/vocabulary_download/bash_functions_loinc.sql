@@ -18,6 +18,7 @@ BEGIN
     unzip -oqj "$2_pf.zip" "$f" -d . && \
     unzip -oqj "$2_ls.zip" "*SnomedCT_LOINC*.zip" -d . && \
     unzip -oqj "*SnomedCT_LOINC*.zip" "*SnomedCT_LOINC*/Full/Refset/Content/*ExpressionAssociationFull*.txt" -d . && \
+    unzip -oqj "*SnomedCT_LOINC*.zip" "*SnomedCT_LOINC*/Full/Refset/Content/*MapCorrelationOriginFull*.txt" -d . && \
     unzip -oqj "$2_cpt.zip" "MRSMAP.RRF" -d . && \
     unzip -oqj "$2_la.zip" "AnswerList.csv" -d . && \
     unzip -oqj "$2_la.zip" "LoincAnswerListLink.csv" -d . && \
@@ -34,7 +35,8 @@ BEGIN
     mv work/SourceOrganization.csv "source_organization.csv" && \
     mv work/*ierarchy.csv "LOINC_MULTI-AXIAL_HIERARCHY.CSV" && \
     mv work/*orms.csv "LOINC_PanelsAndForms.csv" && \
-    mv work/*ExpressionAssociationFull*.txt "xder2_sscccRefset_LOINCExpressionAssociationFull_INT.txt" && \
+    mv work/*ExpressionAssociationFull*.txt "der2_sscccRefset_LOINCExpressionAssociationFull_INT.txt" && \
+    mv work/*MapCorrelationOriginFull*.txt "der2_scccRefset_LOINCMapCorrelationOriginFull_INT.txt" && \
     mv work/MRSMAP.RRF "CPT_MRSMAP.RRF" && \
     mv work/AnswerList.csv "AnswerList.csv" && \
     mv work/LoincAnswerListLink.csv "LoincAnswerListLink.csv" && \

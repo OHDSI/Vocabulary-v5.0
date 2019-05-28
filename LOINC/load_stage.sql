@@ -606,7 +606,7 @@ SELECT DISTINCT parentloinc AS concept_code_1, -- LOINC Panel code
 FROM sources.loinc_forms -- Panel containing table
 WHERE loinc <> parentloinc;-- to exclude cases when parents and children are represented by the same concepts
 
---13. Build 'LOINC - SNOMED eq' relationships from LOINC Measurements to '45767644 LOINC Code System' SNOMED concept with the use of a 'sources.scccrefset_mapcorrorfull_int' table (mappings)
+--13. Build 'LOINC - SNOMED eq' relationships from LOINC Measurements to '45767644 LOINC Code System' SNOMED concept with the use of a 'sources.scccrefset_expressionassociation_int' table (mappings)
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -625,7 +625,7 @@ SELECT DISTINCT l.maptarget AS concept_code_1, -- LOINC code
 	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.scccrefset_mapcorrorfull_int l,
+FROM sources.scccrefset_expressionassociation_int l,
 	vocabulary v
 WHERE v.vocabulary_id = 'LOINC';
 

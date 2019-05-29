@@ -17,6 +17,7 @@ Note:
 * BN, Ingredients: Fill new name in target_concept_name (leaving target_concept_id empty) to change the name of the created RxNorm Extension concept
 * Non-null entry in invalid_indicator field indicates that RxE concept should not be created
 * manual_work/relationship_to_concept_manual.sql contains example of manual mappings made April 2019.
+* source_concept_desc contains French translations where available
 7. Run after_mm.sql
 8. Run build_rxe.sql from working/ directory
 9. Run postprocessing.sql

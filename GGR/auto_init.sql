@@ -641,7 +641,7 @@ insert into relationship_to_concept_to_map
 	(
 		source_concept_code,
 		source_concept_name,
-		source_concept_desc,
+-- 		source_concept_desc,
 		source_concept_class_id,
 		target_concept_id,
 		target_concept_name,
@@ -650,7 +650,7 @@ insert into relationship_to_concept_to_map
 select
 	concept_code,
 	concept_name,
-	supplier_name,
+-- 	supplier_name,
 	'Brand Name',
 	mapped_id,
 	mapped_name,

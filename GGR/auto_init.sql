@@ -430,7 +430,8 @@ CREATE TABLE tomap_bn (
 	concept_name VARCHAR(255),
 	mapped_id INT4,
 	mapped_name VARCHAR(255),
-	supplier_name VARCHAR(255)
+	supplier_name VARCHAR(255),
+	invalid_indicator varchar (15) 
 	)
 ;
 insert into tomap_bn
@@ -439,7 +440,8 @@ SELECT distinct
 	dc.concept_name,
 	coalesce (l.concept_id, l2.concept_id) AS mapped_id,
 	coalesce (l.concept_name, l2.concept_name) AS mapped_name,
-	ir.NIRNM AS supplier_name
+	ir.NIRNM AS supplier_name,
+	null :: varchar as invalid_indicator
 FROM drug_concept_stage dc
 JOIN sources.ggr_mp mp ON CONCAT ('mp',mp.mpcv) = dc.concept_code
 JOIN sources.ggr_ir ir ON mp.ircv = ir.ircv
@@ -544,3 +546,155 @@ left join concept_relationship cr on
 	cr.concept_id_1 = s.concept_id
 left join concept x2 on
 	x2.concept_id = cr.concept_id_2
+;
+-- create unified table for all manual mappings
+drop table if exists relationship_to_concept_to_map
+;
+create table relationship_to_concept_to_map
+	(
+		source_concept_code varchar,
+		source_concept_name varchar,
+		source_concept_desc varchar,
+		source_concept_class_id varchar,
+		target_concept_id int4,
+		target_concept_name varchar,
+		precedence int4,
+		conversion_factor float8,
+		invalid_indicator varchar
+	)
+;
+insert into relationship_to_concept_to_map
+	(
+		source_concept_code,
+		source_concept_name,
+		source_concept_class_id,
+		target_concept_id,
+		target_concept_name,
+		conversion_factor
+	)
+select
+	concept_code,
+	concept_code,
+	'Unit',
+	concept_id,
+	concept_name,
+	conversion_factor
+from tomap_unit
+;
+insert into relationship_to_concept_to_map
+	(
+		source_concept_code,
+		source_concept_name,
+		source_concept_desc,
+		source_concept_class_id,
+		target_concept_id,
+		target_concept_name,
+		precedence
+	)
+select
+	concept_code,
+	concept_name_nl,
+	concept_name_fr,
+	'Dose Form',
+	mapped_id,
+	mapped_name,
+	precedence
+from tomap_form
+;
+insert into relationship_to_concept_to_map
+	(
+		source_concept_code,
+		source_concept_name,
+		source_concept_class_id,
+		target_concept_id,
+		target_concept_name
+	)
+select
+	concept_code,
+	concept_name,
+	'Supplier',
+	mapped_id,
+	mapped_name
+from tomap_supplier
+;
+insert into relationship_to_concept_to_map
+	(
+		source_concept_code,
+		source_concept_name,
+		source_concept_desc,
+		source_concept_class_id,
+		target_concept_id,
+		target_concept_name,
+		precedence
+	)
+select
+	concept_code,
+	concept_name_nl,
+	concept_name_fr,
+	'Dose Form',
+	mapped_id,
+	mapped_name,
+	precedence
+from tomap_form
+;
+insert into relationship_to_concept_to_map
+	(
+		source_concept_code,
+		source_concept_name,
+		source_concept_desc,
+		source_concept_class_id,
+		target_concept_id,
+		target_concept_name,
+		invalid_indicator
+	)
+select
+	concept_code,
+	concept_name,
+	supplier_name,
+	'Brand Name',
+	mapped_id,
+	mapped_name,
+	invalid_indicator
+from tomap_bn
+;
+insert into relationship_to_concept_to_map
+	(
+		source_concept_code,
+		source_concept_name,
+		source_concept_class_id,
+		target_concept_id,
+		target_concept_name,
+		precedence
+	)
+select
+	concept_code,
+	concept_name,
+	'Ingredient',
+	mapped_id,
+	mapped_name,
+	precedence
+from tomap_ingred
+;
+insert into relationship_to_concept_to_map
+	(
+		source_concept_code,
+		source_concept_name,
+		source_concept_class_id,
+		target_concept_id,
+		target_concept_name
+	)
+select
+	source_code,
+	source_name,
+	'Drug Product',
+	concept_id,
+	concept_name
+from tofix_vax;
+
+drop table if exists relationship_to_concept_manual
+;
+create table relationship_to_concept_manual as
+select *
+from relationship_to_concept_to_map
+where false
+;

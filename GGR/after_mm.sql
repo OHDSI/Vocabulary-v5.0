@@ -13,33 +13,75 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 **************************************************************************/
---Ensure vaccines are processed separately and don't create extra entities in RxE
-delete from ds_stage 
-where
-	drug_concept_code in
-	(
-		select source_code
-		from tofix_vax
-		where concept_id is not null
-	)
+--split relationship_to_concept_manual back into tomap_tables
+truncate tomap_unit;
+truncate tomap_form;
+truncate tomap_supplier;
+truncate tomap_ingred;
+truncate tomap_bn;
+truncate tofix_vax;
 ;
-delete from internal_relationship_stage
-where
-	concept_code_1 in
-	(
-		select source_code
-		from tofix_vax
-		where concept_id is not null
-	)
+insert into tomap_unit
+select 
+	source_concept_code,
+	target_concept_id,
+	target_concept_name,
+	conversion_factor
+from relationship_to_concept_manual
+where source_concept_class_id = 'Unit'
 ;
--- delete from pc_stage
--- where
--- 	pack_concept_code in
--- 	(
--- 		select source_code
--- 		from tofix_vax
--- 		where concept_id is not null
--- 	)
+insert into tomap_form
+select
+	source_concept_code,
+	source_concept_desc,
+	source_concept_name,
+	target_concept_id,
+	target_concept_name,
+	precedence	
+from relationship_to_concept_manual
+where source_concept_class_id = 'Dose Form'
+;
+insert into tomap_supplier
+select
+	source_concept_code,
+	source_concept_name,
+	target_concept_id,
+	target_concept_name
+from relationship_to_concept_manual
+where source_concept_class_id = 'Supplier'
+;
+insert into tomap_ingred
+select
+	source_concept_code,
+	source_concept_name,
+	target_concept_id,
+	target_concept_name,
+	precedence
+from relationship_to_concept_manual
+where source_concept_class_id = 'Ingredient'
+;
+insert into tomap_bn
+select
+	source_concept_code,
+	source_concept_name,
+	target_concept_id,
+	target_concept_name,
+	source_concept_desc,
+	invalid_indicator
+from relationship_to_concept_manual
+where source_concept_class_id = 'Brand Name'
+;
+insert into tofix_vax
+select
+	r.source_concept_code,
+	r.source_concept_name,
+	c.concept_id,
+	c.concept_name,
+	c.concept_class_id,
+	c.vocabulary_id
+from relationship_to_concept_manual r
+join concept c on r.target_concept_id = c.concept_id
+where source_concept_class_id = 'Drug Product'
 ;
 TRUNCATE TABLE relationship_to_concept;
 INSERT INTO relationship_to_concept --Measurement Units
@@ -1026,6 +1068,35 @@ set pack_concept_code = replace (pack_concept_code,'mpp','')
 ;
 update tofix_vax
 set source_code = replace (source_code,'mpp','')
+;
+--Ensure vaccines are processed separately and don't create extra entities in RxE
+delete from ds_stage 
+where
+	drug_concept_code in
+	(
+		select source_code
+		from tofix_vax
+		where concept_id is not null
+	)
+;
+delete from internal_relationship_stage
+where
+	concept_code_1 in
+	(
+		select source_code
+		from tofix_vax
+		where concept_id is not null
+	)
+;
+-- delete from pc_stage
+-- where
+-- 	pack_concept_code in
+-- 	(
+-- 		select source_code
+-- 		from tofix_vax
+-- 		where concept_id is not null
+-- 	)
+;
 ;
 -- remove problematic ingredients
 -- deprecated and unused

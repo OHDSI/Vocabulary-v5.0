@@ -71,3 +71,28 @@ where
 	concept_code like 'OMOP%' and
 	vocabulary_id = 'GGR' and invalid_reason is null
 ;
+--deprecate 'Source - RxNorm eq' for ingredients -- should never exist
+insert into concept_relationship_stage
+select
+	null :: int4,
+	null :: int4,
+	c1.concept_code,
+	c2.concept_code,
+	'GGR',
+	c2.vocabulary_id,
+	'Source - RxNorm eq',
+	r.valid_start_date,
+		(
+			SELECT vocabulary_date FROM sources.ggr_ir LIMIT 1
+		) - 1,
+	'D'
+from concept_relationship r
+join concept c1 on
+	r.concept_id_1 = c1.concept_id and
+	c1.vocabulary_id = 'GGR' and
+	c1.concept_class_id = 'Ingredient' and
+	r.invalid_reason is null and
+	c1.invalid_reason is null and
+	r.relationship_id = 'Source - RxNorm eq'
+join concept c2 on
+	r.concept_id_2 = c2.concept_id

@@ -1,0 +1,763 @@
+"source_attr_name"	"source_attr_concept_class"	"target_concept_id"	"target_concept_name"	"target_concept_class_id"	"precedence"	"conversion_factor"	"invalid_indicator"
+"A VOGEL POLLINOSAN FORTE"	"Brand Name"						
+"ADRENALINE"	"Brand Name"	1343916	"Epinephrine"	"Ingredient"			
+"ALCON EYE GEL"	"Brand Name"						
+"ALENCA"	"Brand Name"						
+"ALENDRONATE VIT"	"Brand Name"	1557272	"Alendronate"	"Ingredient"			
+"ALGESAL"	"Brand Name"	21018690	"Algesal"	"Brand Name"			
+"ALKA SELTZER"	"Brand Name"	44013134	"Alka Seltzer"	"Brand Name"			
+"ALUCID"	"Brand Name"	985247	"Aluminum Hydroxide"	"Ingredient"			
+"ALUCID"	"Brand Name"	992956	"Magnesium Hydroxide"	"Ingredient"			
+"ALUCID"	"Brand Name"	966991	"Simethicone"	"Ingredient"			
+"ALUSTAL"	"Brand Name"						
+"ANDANTOL"	"Brand Name"	19003593	"isothipendyl"	"Ingredient"			
+"ANDRACTIM"	"Brand Name"	21015543	"Andractim"	"Brand Name"			
+"AQUA AD INIECT"	"Brand Name"						
+"AQUA AD INIECT STELLA"	"Brand Name"						
+"AQUA AD INIECTABILIA B BRAUN"	"Brand Name"						
+"AQUA STEROP"	"Brand Name"						
+"ARTELAC"	"Brand Name"	21017419	"Artelac"	"Brand Name"			
+"ARTELAC EDO"	"Brand Name"	21017419	"Artelac"	"Brand Name"			
+"ASODAL"	"Brand Name"	1125315	"Acetaminophen"	"Ingredient"			
+"ASODAL"	"Brand Name"	1134439	"Caffeine"	"Ingredient"			
+"ASODAL"	"Brand Name"	1201620	"Codeine"	"Ingredient"			
+"ASODAL"	"Brand Name"	19055843	"TIEMONIUM"	"Ingredient"			
+"ASPIRINE"	"Brand Name"	1718517	"acetylsalicylsalicylic acid"	"Ingredient"			
+"ATORVASTATINE MYLAN"	"Brand Name"	43127669	"ATORVASTATINE MYLAN"	"Brand Name"			
+"ATROPINE MEDA PHARMA"	"Brand Name"	914335	"Atropine"	"Ingredient"			
+"AZARON"	"Brand Name"	43565908	"Azaron"	"Brand Name"			
+"BEFACT"	"Brand Name"	36256241	"Befact"	"Brand Name"			
+"BEFACT FORTE"	"Brand Name"	36878782	"Multivitamin preparation"	"Ingredient"			
+"BEFORPLEX"	"Brand Name"	19010970	"Vitamin B Complex"	"Ingredient"			
+"BONENDRO"	"Brand Name"	1557272	"Alendronate"	"Ingredient"			
+"BONENDRO"	"Brand Name"	19018544	"Calcium"	"Ingredient"			
+"BONENDRO"	"Brand Name"	19095164	"Cholecalciferol"	"Ingredient"			
+"BRAUNODERM COLORE"	"Brand Name"	43564387	"Braunoderm"	"Brand Name"			
+"BRICANYL TURBOHALER"	"Brand Name"	43126335	"BRICANYL TURBUHALER"	"Brand Name"			
+"BRINZOLAMID SANDOZ"	"Brand Name"	44022818	"Sandoz Brinzolamide"	"Brand Name"			
+"BRONCAL"	"Brand Name"						
+"BRONCHI MEREPRINE"	"Brand Name"	42899163	"Hedera helix leaf extract"	"Ingredient"			
+"BRONCHI MEREPRINE"	"Brand Name"	19015670	"Thyme preparation"	"Ingredient"			
+"BRONCHI MEREPRINE"	"Brand Name"	44785730	"PRIMULA VERIS FLOWER EXTRACT"	"Ingredient"			
+"BRONCHI MEREPRINE"	"Brand Name"	40798856	"Grindelia Robusta"	"Ingredient"			
+"BRONCHI MEREPRINE"	"Brand Name"	43532148	"Pimpinella anisum extract"	"Ingredient"			
+"BRONCHI MEREPRINE"	"Brand Name"	950435	"Citric Acid"	"Ingredient"			
+"BRONCHI MEREPRINE"	"Brand Name"	19135789	"Potassium Sorbate"	"Ingredient"			
+"BRONCHI MEREPRINE"	"Brand Name"	42900551	"xanthan gum"	"Ingredient"			
+"BRONCHO PECTORALIS"	"Brand Name"	19024213	"pholcodine"	"Ingredient"			
+"BRONCHO PECTORALIS"	"Brand Name"	40181642	"benzenesulfonic acid"	"Ingredient"			
+"BRONCHO VAXOM ENFANTS PI PHARMA"	"Brand Name"	40801908	"Broncho Vaxom"	"Brand Name"			
+"CALMDAY"	"Brand Name"	36256412	"Calmday"	"Brand Name"			
+"CANRENOL"	"Brand Name"	19132906	"Canrenoic Acid"	"Ingredient"			
+"CARBOBEL SIMPLEX"	"Brand Name"	36256176	"Carbobel"	"Brand Name"			
+"CARTEOPIL"	"Brand Name"	945286	"Pilocarpine"	"Ingredient"			
+"CATAFLAM PI PHARMA"	"Brand Name"	19058062	"Cataflam"	"Brand Name"			
+"CEFTRIAXONE HOSPIRA"	"Brand Name"	1777806	"Ceftriaxone"	"Ingredient"			
+"CHLORURE D ETHYLE EUMEDICA"	"Brand Name"	950316	"Ethyl Chloride"	"Ingredient"			
+"CITALOMYL DOCPHARMA"	"Brand Name"	797617	"Citalopram"	"Ingredient"			
+"CLEXANE"	"Brand Name"	21014424	"Clexane"	"Brand Name"			
+"CLOPIDOGREL ZENTIVA PI PHARMA"	"Brand Name"	43126980	"CLOPIDOGREL ZENTIVA"	"Brand Name"			
+"CODEINOFORM MEDGENIX"	"Brand Name"	1201620	"Codeine"	"Ingredient"			
+"COLIMYCINE"	"Brand Name"	43126395	"COLIMYCINE"	"Brand Name"			
+"COMBIPRAMOL ACTAVIS"	"Brand Name"	1154343	"Albuterol"	"Ingredient"			
+"COMBIPRAMOL ACTAVIS"	"Brand Name"	1112921	"Ipratropium"	"Ingredient"			
+"COMBIVENT"	"Brand Name"	19021326	"Combivent"	"Brand Name"			
+"COMPEEDMED"	"Brand Name"	40803999	"Compeed"	"Brand Name"			
+"CONTINORA"	"Brand Name"						
+"DAFLON"	"Brand Name"	21018573	"Daflon"	"Brand Name"			
+"DAIVONEX"	"Brand Name"	43567157	"Daivonex"	"Brand Name"			
+"DAKTAR"	"Brand Name"	40807373	"Gyno Daktar"	"Brand Name"			
+"DECODERM COMP"	"Brand Name"	43567178	"Decoderm"	"Brand Name"			
+"DE ICOL"	"Brand Name"	36256190	"De Icol"	"Brand Name"			
+"DELPEG"	"Brand Name"						
+"DEPOTHAL"	"Brand Name"						
+"DEXA SINE"	"Brand Name"	40804695	"Dexa Sine"	"Brand Name"			
+"DICLOFENAC TEVA"	"Brand Name"	43132121	"DICLOFENAC TEVA"	"Brand Name"			
+"DIGESTOMEN"	"Brand Name"	19031378	"Pepsin A"				
+"DIGESTOMEN"	"Brand Name"	926770	"Papain"				
+"DIGESTOMEN"	"Brand Name"	926487	"Pancreatin"				
+"DIGESTOMEN"	"Brand Name"	990340	"Pancrelipase"				
+"DIGESTOMEN"	"Brand Name"	986515	"CELLULASE"				
+"DIGESTOMEN"	"Brand Name"	19115053	"alpha-amylase"				
+"DIPIDOLOR"	"Brand Name"	43567743	"Dipidolor"	"Brand Name"			
+"DIVIVA"	"Brand Name"						
+"DOLVIRAN"	"Brand Name"	40805336	"Dolviran"	"Brand Name"			
+"DOVOBET"	"Brand Name"	21016482	"Dovobet"	"Brand Name"			
+"EAU DE MELISSE DES CARMES BOYER"	"Brand Name"						
+"EAU POUR INJECTIONS B BRAUN"	"Brand Name"						
+"ELUDRIL"	"Brand Name"	21017062	"Eludril"	"Brand Name"			
+"ELUGYN"	"Brand Name"						
+"ELUGYN FORT"	"Brand Name"						
+"ENDRINE DOUX"	"Brand Name"	1154332	"Pseudoephedrine"	"Ingredient"			
+"ENTEROFAL"	"Brand Name"	19015670	"Thyme preparation"	"Ingredient"			
+"EOSINE AQUEUSE GILBERT"	"Brand Name"	42899052	"Eosine Yellowish"	"Ingredient"			
+"EPAXAL"	"Brand Name"	21014204	"Epaxal"	"Brand Name"			
+"ESCITALOPRAM TEVA"	"Brand Name"	43129197	"ESCITALOPRAM TEVA"	"Brand Name"			
+"ESTINETTE"	"Brand Name"	1549786	"Ethinyl Estradiol"	"Ingredient"			
+"ESTINETTE"	"Brand Name"	19097684	"Gestodene"	"Ingredient"			
+"ETHER STEROP"	"Brand Name"						
+"EUCALYPTINE LE BRUN"	"Brand Name"	40805687	"Eucalyptine"	"Brand Name"			
+"EUCALYPTINE PHOLCODINE"	"Brand Name"	40805687	"Eucalyptine"	"Brand Name"			
+"EUCALYTUX"	"Brand Name"						
+"EXFORGE PI PHARMA"	"Brand Name"	1308842	"valsartan"	"Ingredient"			
+"EXFORGE PI PHARMA"	"Brand Name"	1332418	"Amlodipine"	"Ingredient"			
+"FENISTIL"	"Brand Name"	43566339	"Fenistil"	"Brand Name"			
+"FLEET PHOSPHO SODA"	"Brand Name"	939871	"sodium phosphate"	"Ingredient"			
+"FORLAX JUNIOR PI PHARMA"	"Brand Name"	43130320	"FORLAX"	"Brand Name"			
+"FORLAX PHARMAPARTNER"	"Brand Name"	43130320	"FORLAX"	"Brand Name"			
+"FORTICINE"	"Brand Name"	36878782	"Multivitamin preparation"	"Ingredient"			
+"GALANTAMINE EG"	"Brand Name"	43130579	"GALANTAMINE EG"	"Brand Name"			
+"GAMMADYN"	"Brand Name"						
+"GESTODENOL"	"Brand Name"	19097684	"Gestodene"	"Ingredient"			
+"GESTODENOL"	"Brand Name"	1549786	"Ethinyl Estradiol"	"Ingredient"			
+"GINSANA"	"Brand Name"	19125981	"Ginsana"	"Brand Name"			
+"GIVALEX"	"Brand Name"	43130787	"GIVALEX"	"Brand Name"			
+"GLUCION"	"Brand Name"						
+"GLUCOSE"	"Brand Name"	1560524	"Glucose"	"Ingredient"			
+"GYNOSOYA"	"Brand Name"	36777129	"Gynosoya"	"Brand Name"			
+"HEMERAN"	"Brand Name"	40808369	"Hemeran"	"Brand Name"			
+"HEMORHINOL"	"Brand Name"						
+"HERIA IMPEXECO"	"Brand Name"	36256794	"Heria"				
+"HEXABRIX"	"Brand Name"	42910260	"HEXABRIX320"				
+"HIBITANE SOL CONC"	"Brand Name"	19113061	"Hibitane"	"Brand Name"			
+"HUMEX"	"Brand Name"	43131343	"HUMEX"	"Brand Name"			
+"IMATINIB EG"	"Brand Name"	35406507	"IMATINIB EG"	"Brand Name"			
+"INFECTOFLAM"	"Brand Name"	40809119	"Infectoflam"	"Brand Name"			
+"INHALENE"	"Brand Name"	19050346	"Eucalyptol"	"Ingredient"			
+"INHALENE"	"Brand Name"	901656	"Menthol"	"Ingredient"			
+"IODURE DE POTASSIUM"	"Brand Name"	19049909	"Potassium Iodide"	"Ingredient"			
+"IPRATROPIUMBROMIDE SALBUTAMOL CIPLA"	"Brand Name"	1112921	"Ipratropium"	"Ingredient"			
+"IPRATROPIUMBROMIDE SALBUTAMOL CIPLA"	"Brand Name"	1154343	"Albuterol"	"Ingredient"			
+"ISOPTO ATROPINE"	"Brand Name"	19062514	"Isopto Atropine"	"Brand Name"			
+"ISOTRETINO NE MYLAN"	"Brand Name"	984232	"Isotretinoin"	"Ingredient"			
+"IVABRADINE SANDOZ"	"Brand Name"	46234437	"ivabradine"	"Ingredient"			
+"KABIVEN"	"Brand Name"	40809806	"Kabiven"	"Brand Name"			
+"KALIUM DURETTES"	"Brand Name"	19049105	"Potassium Chloride"	"Ingredient"			
+"KEPPRA PI PHARMA"	"Brand Name"	19099447	"Keppra"	"Brand Name"			
+"KIRA FORTE"	"Brand Name"	43571241	"Kira"	"Brand Name"			
+"KLOSTERFRAU JOHANNISKRAUT"	"Brand Name"						
+"LABURIDE"	"Brand Name"						
+"LACTULOSE TEVA"	"Brand Name"	43128020	"LACTULOSE TEVA"	"Brand Name"			
+"LANSOMYLAN"	"Brand Name"	929887	"lansoprazole"	"Ingredient"			
+"LANSOPHAR TEVA"	"Brand Name"	929887	"lansoprazole"				
+"LAXIDO ORANGE IMPEXECO"	"Brand Name"						
+"LIVIAL PI PHARMA"	"Brand Name"	19052919	"Livial"	"Brand Name"			
+"LOCABIOTAL"	"Brand Name"	19026880	"Locabiotal"	"Brand Name"			
+"LOMUSOL"	"Brand Name"	43128993	"LOMUSOL"	"Brand Name"			
+"LORMETAZEPAM DOC"	"Brand Name"	19007977	"lormetazepam"	"Ingredient"			
+"L THYROXINE"	"Brand Name"	1501700	"levothyroxine"				
+"MARVELON"	"Brand Name"	21018272	"Marvelon"	"Brand Name"			
+"MEGRIFAL"	"Brand Name"						
+"MENCEVAX ACWY"	"Brand Name"	40213172	"meningococcal ACWY vaccine, unspecified formulation"	"CVX"			
+"MENINGITEC"	"Brand Name"	21014262	"Meningitec"	"Brand Name"			
+"METOPROLOL EG"	"Brand Name"	36256525	"Metoprolol EG"	"Brand Name"			
+"MICROLAX"	"Brand Name"	43253352	"Microlax"	"Brand Name"			
+"MILLEPERTUIS SINT JANSKRUID ELUSAN"	"Brand Name"						
+"MINI PLASCO AQUA AD INIECT B BRAUN"	"Brand Name"						
+"MISTABRON"	"Brand Name"	40812071	"Mistabron"	"Brand Name"			
+"MONTELUKAST EG IMPEXECO"	"Brand Name"	43130421	"MONTELUKAST EG"	"Brand Name"			
+"MONURIL IMPEXECO"	"Brand Name"	21016534	"Monuril"				
+"MORPHINE HCL STEROP"	"Brand Name"	36256786	"Morphine HCL Sterop"	"Brand Name"			
+"MOVICOL"	"Brand Name"	43253544	"Movicol"	"Brand Name"			
+"MOVICOL AKTUA PI PHARMA"	"Brand Name"	43253544	"Movicol"	"Brand Name"			
+"MOVICOL JUNIOR"	"Brand Name"	43253544	"Movicol"	"Brand Name"			
+"NATRII CHLORIDUM"	"Brand Name"	967823	"Sodium Chloride"	"Ingredient"			
+"NEBU TROP"	"Brand Name"	1112921	"Ipratropium"	"Ingredient"			
+"NEOPHYR"	"Brand Name"	43572974	"Neophyr"	"Brand Name"			
+"NEO SABENYL"	"Brand Name"						
+"NIZORAL IMPEXECO"	"Brand Name"	19043477	"Nizoral"	"Brand Name"			
+"NOGRIMINE"	"Brand Name"						
+"NORA"	"Brand Name"	36256862	"Nora"	"Brand Name"			
+"NORANELLE IMPEXECO"	"Brand Name"	36256371	"Noranelle"	"Ingredient"			
+"NORMOGLAUCON"	"Brand Name"	40813105	"Normoglaucon"	"Brand Name"			
+"OCUBRAX"	"Brand Name"	1124300	"Diclofenac"	"Ingredient"			
+"OCUBRAX"	"Brand Name"	902722	"Tobramycin"	"Ingredient"			
+"OL AMINE"	"Brand Name"						
+"OLBAS"	"Brand Name"	21016382	"Olbas"	"Brand Name"			
+"OLEOSORBATE"	"Brand Name"						
+"OLIGOSOL CU"	"Brand Name"	43126283	"OLIGOSOl"	"Brand Name"			
+"OLIGOSOL LI"	"Brand Name"	43126283	"OLIGOSOl"	"Brand Name"			
+"OLIGOSOL MN CU"	"Brand Name"	43126283	"OLIGOSOl"	"Brand Name"			
+"OLIGOSOL ZN"	"Brand Name"	43126283	"OLIGOSOl"	"Brand Name"			
+"OLIGOSOL ZN CU"	"Brand Name"	43126283	"OLIGOSOl"	"Brand Name"			
+"OMIC OCAS PI PHARMA"	"Brand Name"	924566	"tamsulosin"	"Ingredient"			
+"OROFAR"	"Brand Name"	40813380	"Orofar L"	"Brand Name"			
+"ORTHO GYNEST DEPOT"	"Brand Name"	40813406	"Ortho Gynest"	"Brand Name"			
+"OUATE HUMOSTATIQUE QUALIPHAR"	"Brand Name"						
+"OXYGENE MEDICAL LIQUIDE LINDE"	"Brand Name"						
+"OXYGÞNE MUDICAL LIQUIDE AIR LIQUIDE MEDICAL"	"Brand Name"						
+"PANTOPRAZOL SANDOZ IMPEXECO"	"Brand Name"	43572457	"Pantoprazol Sandoz"				
+"PENICILLINE"	"Brand Name"	19126544	"Penicillin"	"Ingredient"			
+"PERDOLAN ENFANTS"	"Brand Name"	36256349	"Perdolan"	"Brand Name"			
+"PERIKA"	"Brand Name"						
+"PERINDOCYL"	"Brand Name"	1373225	"Perindopril"	"Ingredient"			
+"PERINDOPRIL SANDOZ IMPEXECO"	"Brand Name"	43128448	"PERINDOPRIL SANDOZ"				
+"PHENYLEPHRINE"	"Brand Name"	1135766	"Phenylephrine"	"Brand Name"			
+"PHOSTAL"	"Brand Name"						
+"PHYSIOLOGICA"	"Brand Name"	967823	"Sodium Chloride"	"Ingredient"			
+"PHYSIORHINE"	"Brand Name"	967823	"Sodium Chloride"	"Ingredient"			
+"PHYSIO STEROP"	"Brand Name"	967823	"Sodium Chloride"	"Ingredient"			
+"PHYSIO STEROP FLEXO"	"Brand Name"	967823	"Sodium Chloride"	"Ingredient"			
+"PLATOSIN"	"Brand Name"	1397599	"Cisplatin"	"Ingredient"			
+"PNEUMO"	"Brand Name"	43129040	"PNEUMO"	"Brand Name"			
+"POLLINEX"	"Brand Name"						
+"POSTAFENE"	"Brand Name"	40813767	"Postafen"	"Brand Name"			
+"PRACTO CLYSS"	"Brand Name"	40813803	"Practo Clyss"	"Brand Name"			
+"PRETERAX IMPEXECO"	"Brand Name"	43129393	"PRETERAX"	"Brand Name"			
+"PROCORALAN IMPEXECO"	"Brand Name"	43129406	"PROCORALAN"				
+"PROCTO SYNALAR"	"Brand Name"	19087622	"Synalar"	"Brand Name"			
+"PROGESTERONE STEROP"	"Brand Name"	1552310	"Progesterone"				
+"PROSEPTINE ETHER"	"Brand Name"						
+"PROSTALANE"	"Brand Name"						
+"PROSTATONIN"	"Brand Name"						
+"PROTAMINE"	"Brand Name"	19054245	"Protamines"	"Ingredient"			
+"PROTAMINE SULFAAT SULFATE"	"Brand Name"	19054242	"Protamine Sulfate (USP)"	"Ingredient"			
+"PROTOVIT"	"Brand Name"						
+"PRURISEDINE"	"Brand Name"	19092412	"Chlorobutanol"				
+"PRURISEDINE"	"Brand Name"	977949	"ichthammol"				
+"PULMICORT"	"Brand Name"	19038786	"Pulmicort"	"Brand Name"			
+"PURETHAL"	"Brand Name"						
+"PURETHAL BOULEAU"	"Brand Name"						
+"QVAR"	"Brand Name"	19088004	"Qvar"	"Brand Name"			
+"RAPHANUS S POTIER"	"Brand Name"						
+"RECTOVASOL"	"Brand Name"	911064	"Zinc Oxide"	"Ingredient"			
+"REFACTO AF"	"Brand Name"	21016121	"ReFacto AF"	"Brand Name"			
+"REFLEXGEL"	"Brand Name"	909440	"methyl salicylate"	"Ingredient"			
+"REFLEXGEL"	"Brand Name"	938205	"Camphor"				
+"REGLA PH FORTE"	"Brand Name"						
+"REPARIL"	"Brand Name"	43130168	"REPARIL"	"Brand Name"			
+"REVITALOSE"	"Brand Name"						
+"RHINATHIOL PELARGONIUM"	"Brand Name"						
+"RHINOSPRAY"	"Brand Name"	40815095	"Rhinospray"	"Brand Name"			
+"RISEDRONAAT SANDOZ"	"Brand Name"	43130469	"RISEDRONATE SANDOZ"	"Brand Name"			
+"RISEDRONATE CA VIT"	"Brand Name"	43130469	"RISEDRONATE SANDOZ"	"Brand Name"			
+"RIXAPEN"	"Brand Name"						
+"ROSUVASTATIN AB"	"Brand Name"	1510813	"rosuvastatin"	"Ingredient"			
+"RUPATADINE EG"	"Brand Name"	36256369	"Rupatadine EG"	"Brand Name"			
+"SAINTBOIS"	"Brand Name"	19050414	"Ethylmorphine"	"Ingredient"			
+"SALBUTAMOL TEVA PHARMA"	"Brand Name"	43130724	"SALBUTAMOL TEVA"	"Brand Name"			
+"SANDOZ CALCIUM"	"Brand Name"	36256871	"Sandoz Calcium"	"Brand Name"			
+"SEDEMOL"	"Brand Name"	923540	"phenol"				
+"SEKIN"	"Brand Name"	36256836	"Sekin"	"Brand Name"			
+"SEROQUEL XR PI PHARMA"	"Brand Name"	19046811	"Seroquel"	"Brand Name"			
+"SEROXAT"	"Brand Name"	40756339	"Seroxat"	"Brand Name"			
+"SERTRALINE EG PI PHARMA"	"Brand Name"	43130934	"SERTRALINE EG"	"Brand Name"			
+"SILDENAFIL EG PI PHARMA"	"Brand Name"	43130958	"SILDENAFIL EG"	"Brand Name"			
+"SILDENAFIL SANDOZ PI PHARMA"	"Brand Name"	43130962	"SILDENAFIL SANDOZ"	"Brand Name"			
+"SMOFKABIVEN"	"Brand Name"	44023477	"Smofkabiven"	"Brand Name"			
+"SOEUR SAINT GERMAIN"	"Brand Name"						
+"SOLUTION DE BUROW CONFORMA"	"Brand Name"	19112524	"aluminum acetotartrate"	"Ingredient"			
+"SPRAYDIL"	"Brand Name"	1135766	"Phenylephrine"	"Ingredient"			
+"SPRAYDIL"	"Brand Name"	19007748	"Cetrimide"	"Ingredient"			
+"STELLORPHINE HCL"	"Brand Name"						
+"STREPSILS"	"Brand Name"	21015769	"Strepsils"	"Brand Name"			
+"STREPSILS MENTHOL"	"Brand Name"	21015769	"Strepsils"	"Brand Name"			
+"STREPSILS SANS SUCRE CITRON"	"Brand Name"	21015769	"Strepsils"	"Brand Name"			
+"STREPSILS VIT C ORANGE"	"Brand Name"	21015769	"Strepsils"	"Brand Name"			
+"STRUCTOKABIVEN"	"Brand Name"	40817101	"Structokabiven"	"Brand Name"			
+"SUBCUVIA"	"Brand Name"	21017325	"Subcuvia"	"Brand Name"			
+"SULFA SEDEMOL"	"Brand Name"	923540	"phenol"	"Ingredient"			
+"SULFA SEDEMOL"	"Brand Name"	1036475	"Sulfanilamide"	"Ingredient"			
+"SUPPOSITOIRES GLYCERINE AD"	"Brand Name"	961145	"Glycerin"				
+"SYMBICORT FORTE TURBOHALER PI PHARMA"	"Brand Name"	42911661	"SYMBICORT TURBUHALER"	"Brand Name"			
+"TAFINLAR"	"Brand Name"	43532210	"Tafinlar"	"Brand Name"			
+"TAMSULOSINE RETARD SANDOZ IMPEXECO"	"Brand Name"	924566	"tamsulosin"	"Ingredient"			
+"TANALONE"	"Brand Name"	35198220	"albumin tannate"				
+"TANALONE"	"Brand Name"	922191	"pectin"				
+"TARDYFERON PI PHARMA"	"Brand Name"	43132043	"TARDYFERON"	"Brand Name"			
+"TAVONIN"	"Brand Name"	36256693	"Tavonin"	"Brand Name"			
+"TEDIVAX"	"Brand Name"	529303	"diphtheria toxoid vaccine, inactivated"	"Ingredient"			
+"TEDIVAX"	"Brand Name"	529411	"tetanus toxoid vaccine, inactivated"	"Ingredient"			
+"TELEBRIX"	"Brand Name"	19009054	"meglumine ioxithalamate"	"Ingredient"			
+"TINALOX"	"Brand Name"	1114220	"Naloxone"				
+"TINALOX"	"Brand Name"	19002431	"Tilidine"				
+"TISANE DE SAPIN"	"Brand Name"						
+"TOLPERMYO"	"Brand Name"	19003296	"Tolperisone"	"Ingredient"			
+"TOURISTIL"	"Brand Name"	19037833	"Domperidone"	"Ingredient"			
+"TOURISTIL"	"Brand Name"	19097481	"Cinnarizine"	"Ingredient"			
+"TRANSULOSE"	"Brand Name"	43128507	"TRANSULOSE"	"Brand Name"			
+"TRANSVANE"	"Brand Name"						
+"URFADYN PL"	"Brand Name"	40819236	"Urfadyne"	"Brand Name"			
+"VENORUTON"	"Brand Name"	19043154	"troxerutin"				
+"VETHOINE"	"Brand Name"	900017	"Cascara sagrada"	"Ingredient"			
+"VETHOINE"	"Brand Name"	734275	"Phenobarbital"	"Ingredient"			
+"VETHOINE"	"Brand Name"	740910	"Phenytoin"	"Ingredient"			
+"VIBROCIL"	"Brand Name"	40819720	"Vibrocil"	"Brand Name"			
+"VICKS SINEX"	"Brand Name"	36256600	"Vicks Sinex"	"Brand Name"			
+"VIDISIC EDO"	"Brand Name"	43576437	"Vidisic"	"Brand Name"			
+"VITA CALCEA"	"Brand Name"						
+"VITACIC"	"Brand Name"						
+"VITAMINE C STEROP"	"Brand Name"						
+"VITAMINE C TEVA"	"Brand Name"						
+"VITAPHAKOL"	"Brand Name"	40819628	"Vitaphakol"	"Brand Name"			
+"XANTHIUM"	"Brand Name"	43130291	"XANTHIUM L"	"Brand Name"			
+"XYLESTESIN"	"Brand Name"	40819525	"Xylestesin"	"Brand Name"			
+"XYLESTESIN F FORTE"	"Brand Name"	40819525	"Xylestesin"	"Brand Name"			
+"XYLONOR GEL"	"Brand Name"	19007748	"Cetrimide"	"Ingredient"			
+"XYLONOR GEL"	"Brand Name"	989878	"Lidocaine"	"Ingredient"			
+"ZOLEDRONATE EG"	"Brand Name"	1524674	"zoledronic acid"	"Ingredient"			
+"aérosol(s) doseur(s)"	"Dose Form"	19095898	"Inhalation Solution"	"Dose Form"	1		
+"aérosol(s) doseur(s)"	"Dose Form"	19127579	"Dry Powder Inhaler"	"Dose Form"	2		
+"aérosol(s) doseur(s)"	"Dose Form"	19082259	"Inhalation Powder"	"Dose Form"	3		
+"aérosol(s) doseur(s)"	"Dose Form"	19126918	"Metered Dose Inhaler"	"Dose Form"	4		
+"aérosol(s) doseur(s)"	"Dose Form"	19018195	"Inhalant"	"Dose Form"	5		
+"amp."	"Dose Form"	19095913	"Intramuscular Solution"	"Dose Form"	1		
+"amp."	"Dose Form"	19095914	"Intramuscular Suspension"	"Dose Form"	2		
+"amp."	"Dose Form"	19082106	"Intravenous Solution"	"Dose Form"	3		
+"amp."	"Dose Form"	19095915	"Intravenous Suspension"	"Dose Form"	4		
+"amp."	"Dose Form"	19082103	"Injectable Solution"	"Dose Form"	5		
+"amp."	"Dose Form"	19082104	"Injectable Suspension"	"Dose Form"	6		
+"amp."	"Dose Form"	46234469	"Injection"	"Dose Form"	7		
+"amp. buvable(s)"	"Dose Form"	19082170	"Oral Solution"	"Dose Form"	1		
+"amp. jumelles"	"Dose Form"	19082191	"Oral Suspension"	"Dose Form"	1		
+"amp. jumelles"	"Dose Form"	19082170	"Oral Solution"	"Dose Form"	2		
+"amp. pour inhalation"	"Dose Form"	19095898	"Inhalation Solution"	"Dose Form"	1		
+"amp. pour inhalation"	"Dose Form"	19018195	"Inhalant"	"Dose Form"	2		
+"amp. pour inhalation"	"Dose Form"	19082259	"Inhalation Powder"	"Dose Form"	3		
+"amp. pour inhalation"	"Dose Form"	19126918	"Metered Dose Inhaler"	"Dose Form"	4		
+"amp. pour inhalation"	"Dose Form"	19127579	"Dry Powder Inhaler"	"Dose Form"	5		
+"collyre en goutes"	"Dose Form"	19129634	"Ophthalmic Solution"	"Dose Form"	1		
+"compr."	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	1		
+"compr."	"Dose Form"	40175589	"Buccal Tablet"	"Dose Form"	2		
+"compr."	"Dose Form"	19135866	"Chewable Tablet"	"Dose Form"	3		
+"compr."	"Dose Form"	19082285	"Sublingual Tablet"	"Dose Form"	4		
+"compr."	"Dose Form"	19010962	"Vaginal Tablet"	"Dose Form"	5		
+"compr. (emballage calendrier)"	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	1		
+"compr. (emballage calendrier)"	"Dose Form"	19082079	"Extended Release Oral Tablet"	"Dose Form"	2		
+"compr. (emballage calendrier)"	"Dose Form"	19001949	"Delayed Release Oral Tablet"	"Dose Form"	3		
+"compr. enrobé(s)"	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	1		
+"compr. enrobé(s)"	"Dose Form"	19082079	"Extended Release Oral Tablet"	"Dose Form"	2		
+"compr. enrobé(s)"	"Dose Form"	19001949	"Delayed Release Oral Tablet"	"Dose Form"	3		
+"compr. gastrorésistant(s)"	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	1		
+"compr. gastrorésistant(s)"	"Dose Form"	19001949	"Delayed Release Oral Tablet"	"Dose Form"	2		
+"compr. gastrorésistant(s)"	"Dose Form"	19082079	"Extended Release Oral Tablet"	"Dose Form"	3		
+"comprimé(s) à action prolongée"	"Dose Form"	19082079	"Extended Release Oral Tablet"	"Dose Form"	1		
+"comprimé(s) à action prolongée"	"Dose Form"	19001949	"Delayed Release Oral Tablet"	"Dose Form"	2		
+"comprimé(s) à action prolongée"	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	3		
+"comprimés effervescents p.o."	"Dose Form"	44817840	"Effervescent Oral Tablet"	"Dose Form"	1		
+"comprimés effervescents p.o."	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	2		
+"compr. pelliculé(s)"	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	1		
+"compr. pelliculé(s)"	"Dose Form"	19001949	"Delayed Release Oral Tablet"	"Dose Form"	2		
+"compr. pelliculé(s)"	"Dose Form"	19082079	"Extended Release Oral Tablet"	"Dose Form"	3		
+"concentré"	"Dose Form"	19082103	"Injectable Solution"	"Dose Form"	1		
+"concentré"	"Dose Form"	19082170	"Oral Solution"	"Dose Form"	2		
+"concentré"	"Dose Form"	19082228	"Topical Solution"	"Dose Form"	3		
+"conditionnement combiné"	"Dose Form"	45775489	"Granules for Oral Solution"	"Dose Form"	1		
+"crème"	"Dose Form"	19082224	"Topical Cream"	"Dose Form"	1		
+"crème"	"Dose Form"	19082169	"Oral Cream"	"Dose Form"	2		
+"drag."	"Dose Form"	19082079	"Extended Release Oral Tablet"	"Dose Form"	1		
+"drag."	"Dose Form"	19135866	"Chewable Tablet"	"Dose Form"	2		
+"drag."	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	3		
+"drag. (emballage calendrier)"	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	1		
+"drag. (emballage calendrier)"	"Dose Form"	19135866	"Chewable Tablet"	"Dose Form"	2		
+"drag. (emballage calendrier)"	"Dose Form"	19082079	"Extended Release Oral Tablet"	"Dose Form"	3		
+"flacon(s) pour perfusion"	"Dose Form"	19082103	"Injectable Solution"	"Dose Form"	1		
+"flacon(s) pour perfusion"	"Dose Form"	19082104	"Injectable Suspension"	"Dose Form"	2		
+"flacon(s) pour perfusion"	"Dose Form"	46234469	"Injection"	"Dose Form"	3		
+"flac. pour injection"	"Dose Form"	19095913	"Intramuscular Solution"	"Dose Form"	1		
+"flac. pour injection"	"Dose Form"	19095914	"Intramuscular Suspension"	"Dose Form"	2		
+"flac. pour injection"	"Dose Form"	19082106	"Intravenous Solution"	"Dose Form"	3		
+"flac. pour injection"	"Dose Form"	19095915	"Intravenous Suspension"	"Dose Form"	4		
+"flac. pour injection"	"Dose Form"	19082103	"Injectable Solution"	"Dose Form"	5		
+"flac. pour injection"	"Dose Form"	19082104	"Injectable Suspension"	"Dose Form"	6		
+"flac. pour injection"	"Dose Form"	46234469	"Injection"	"Dose Form"	7		
+"gel"	"Dose Form"	19095973	"Topical Gel"	"Dose Form"	1		
+"gel"	"Dose Form"	19095916	"Oral Gel"	"Dose Form"	2		
+"gel nasal"	"Dose Form"	19082163	"Nasal Gel"	"Dose Form"	1		
+"gel nasal"	"Dose Form"	19095973	"Topical Gel"	"Dose Form"	2		
+"gel ophtalmique"	"Dose Form"	19135925	"Ophthalmic Ointment"	"Dose Form"	1		
+"gel ophtalmique"	"Dose Form"	19082576	"Ophthalmic Cream"	"Dose Form"	2		
+"gel ophtalmique"	"Dose Form"	19082166	"Ophthalmic Gel"	"Dose Form"	3		
+"gélule(s)"	"Dose Form"	19082168	"Oral Capsule"	"Dose Form"	1		
+"gélule(s)"	"Dose Form"	19082255	"Delayed Release Oral Capsule"	"Dose Form"	2		
+"gélule(s)"	"Dose Form"	19082077	"Extended Release Oral Capsule"	"Dose Form"	3		
+"gélule(s) à libération prolongée"	"Dose Form"	19082077	"Extended Release Oral Capsule"	"Dose Form"	1		
+"gélule(s) à libération prolongée"	"Dose Form"	19082255	"Delayed Release Oral Capsule"	"Dose Form"	2		
+"gélule(s) à libération prolongée"	"Dose Form"	19082168	"Oral Capsule"	"Dose Form"	3		
+"gélules gastrorésistantes"	"Dose Form"	19082077	"Extended Release Oral Capsule"	"Dose Form"	1		
+"gélules gastrorésistantes"	"Dose Form"	19082255	"Delayed Release Oral Capsule"	"Dose Form"	2		
+"gélules gastrorésistantes"	"Dose Form"	19082168	"Oral Capsule"	"Dose Form"	3		
+"goutte(s)"	"Dose Form"	19082228	"Topical Solution"	"Dose Form"	1		
+"goutte(s)"	"Dose Form"	19082170	"Oral Solution"	"Dose Form"	2		
+"goutte(s)"	"Dose Form"	19082195	"Otic Solution"	"Dose Form"	3		
+"goutte(s)"	"Dose Form"	19129634	"Ophthalmic Solution"	"Dose Form"	4		
+"goutte(s)"	"Dose Form"	19059413	"Ophthalmic Irrigation Solution"	"Dose Form"	5		
+"goutte(s)"	"Dose Form"	19082165	"Nasal Solution"	"Dose Form"	6		
+"goutte(s)"	"Dose Form"	19082283	"Rectal Solution"	"Dose Form"	7		
+"goutte(s)"	"Dose Form"	19095898	"Inhalation Solution"	"Dose Form"	8		
+"goutte(s)"	"Dose Form"	19082103	"Injectable Solution"	"Dose Form"	9		
+"goutte(s)"	"Dose Form"	19016586	"Irrigation Solution"	"Dose Form"	10		
+"gouttes nasales"	"Dose Form"	19082165	"Nasal Solution"	"Dose Form"	1		
+"gouttes nasales"	"Dose Form"	19082228	"Topical Solution"	"Dose Form"	2		
+"gouttes nasales/auriculaires"	"Dose Form"	19082228	"Topical Solution"	"Dose Form"	1		
+"gouttes nasales/auriculaires"	"Dose Form"	19082165	"Nasal Solution"	"Dose Form"	2		
+"gouttes nasales/auriculaires"	"Dose Form"	19082195	"Otic Solution"	"Dose Form"	3		
+"gouttes oculaires (unidose)"	"Dose Form"	19082228	"Topical Solution"	"Dose Form"	1		
+"gouttes oculaires (unidose)"	"Dose Form"	19129634	"Ophthalmic Solution"	"Dose Form"	2		
+"granulé"	"Dose Form"	19082651	"Oral Granules"	"Dose Form"	1		
+"granulé"	"Dose Form"	45775489	"Granules for Oral Solution"	"Dose Form"	2		
+"granulé"	"Dose Form"	45775490	"Granules for Oral Suspension"	"Dose Form"	3		
+"inhalation"	"Dose Form"	19018195	"Inhalant"	"Dose Form"	1		
+"inhalation"	"Dose Form"	19095898	"Inhalation Solution"	"Dose Form"	2		
+"inhalation"	"Dose Form"	19082259	"Inhalation Powder"	"Dose Form"	3		
+"inhalation"	"Dose Form"	19127579	"Dry Powder Inhaler"	"Dose Form"	4		
+"inhalation"	"Dose Form"	19126918	"Metered Dose Inhaler"	"Dose Form"	5		
+"lavement(s) (rectiole(s))"	"Dose Form"	19082627	"Enema"	"Dose Form"	1		
+"lavement(s) (rectiole(s))"	"Dose Form"	19082200	"Rectal Suppository"	"Dose Form"	2		
+"lotion"	"Dose Form"	19082225	"Topical Lotion"	"Dose Form"	1		
+"ovule(s)"	"Dose Form"	19010962	"Vaginal Tablet"	"Dose Form"	1		
+"ovule(s)"	"Dose Form"	19093368	"Vaginal Suppository"	"Dose Form"	2		
+"pastille(s) à sucer"	"Dose Form"	19082253	"Oral Lozenge"	"Dose Form"	1		
+"pastille(s) à sucer"	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	2		
+"pâte"	"Dose Form"	46234410	"Topical Suspension"	"Dose Form"	1		
+"pâte"	"Dose Form"	19009068	"Toothpaste"	"Dose Form"	2		
+"pommade"	"Dose Form"	19082227	"Topical Ointment"	"Dose Form"	1		
+"pommade"	"Dose Form"	19082287	"Vaginal Ointment"	"Dose Form"	2		
+"pommade"	"Dose Form"	19082164	"Nasal Ointment"	"Dose Form"	3		
+"pommade"	"Dose Form"	19135925	"Ophthalmic Ointment"	"Dose Form"	4		
+"pommade"	"Dose Form"	19095975	"Oral Ointment"	"Dose Form"	5		
+"pommade"	"Dose Form"	19082194	"Otic Ointment"	"Dose Form"	6		
+"pommade"	"Dose Form"	19082282	"Rectal Ointment"	"Dose Form"	7		
+"pommade nasale"	"Dose Form"	19082227	"Topical Ointment"	"Dose Form"	1		
+"pommade nasale"	"Dose Form"	19082164	"Nasal Ointment"	"Dose Form"	2		
+"pommade nasale"	"Dose Form"	19082161	"Nasal Cream"	"Dose Form"	3		
+"pommade nasale"	"Dose Form"	19082163	"Nasal Gel"	"Dose Form"	4		
+"pommade ophtalmique"	"Dose Form"	19082227	"Topical Ointment"	"Dose Form"	1		
+"pommade ophtalmique"	"Dose Form"	19135925	"Ophthalmic Ointment"	"Dose Form"	2		
+"pommade ophtalmique"	"Dose Form"	19082576	"Ophthalmic Cream"	"Dose Form"	3		
+"pommade ophtalmique"	"Dose Form"	19082166	"Ophthalmic Gel"	"Dose Form"	4		
+"poudre injectable avec solvant"	"Dose Form"	19082104	"Injectable Suspension"	"Dose Form"	1		
+"poudre injectable avec solvant"	"Dose Form"	19082103	"Injectable Solution"	"Dose Form"	2		
+"poudre injectable avec solvant"	"Dose Form"	46234469	"Injection"	"Dose Form"	3		
+"poudre injectable sans solvant"	"Dose Form"	19082104	"Injectable Suspension"	"Dose Form"	1		
+"poudre injectable sans solvant"	"Dose Form"	19082103	"Injectable Solution"	"Dose Form"	2		
+"poudre injectable sans solvant"	"Dose Form"	46234469	"Injection"	"Dose Form"	3		
+"poudre pour inhalation"	"Dose Form"	19082259	"Inhalation Powder"	"Dose Form"	1		
+"poudre pour inhalation"	"Dose Form"	19127579	"Dry Powder Inhaler"	"Dose Form"	2		
+"poudre pour inhalation"	"Dose Form"	19018195	"Inhalant"	"Dose Form"	3		
+"poudre pour inhalation"	"Dose Form"	19126918	"Metered Dose Inhaler"	"Dose Form"	4		
+"sachet(s)"	"Dose Form"	19082170	"Oral Solution"	"Dose Form"	1		
+"sachet(s)"	"Dose Form"	19082191	"Oral Suspension"	"Dose Form"	2		
+"sachet(s)"	"Dose Form"	19095976	"Oral Powder"	"Dose Form"	3		
+"sachet(s)"	"Dose Form"	19082651	"Oral Granules"	"Dose Form"	4		
+"sachet(s)"	"Dose Form"	45775492	"Powder for Oral Suspension"	"Dose Form"	5		
+"sachet(s)"	"Dose Form"	45775491	"Powder for Oral Solution"	"Dose Form"	6		
+"sachet(s)"	"Dose Form"	45775488	"Powder for Nasal Solution"	"Dose Form"	7		
+"sachet(s)"	"Dose Form"	40220762	"Sublingual Powder"	"Dose Form"	8		
+"sachet(s)"	"Dose Form"	19082259	"Inhalation Powder"	"Dose Form"	9		
+"sachet(s)"	"Dose Form"	45775490	"Granules for Oral Suspension"	"Dose Form"	10		
+"sachet(s)"	"Dose Form"	45775489	"Granules for Oral Solution"	"Dose Form"	11		
+"seringue préremplie"	"Dose Form"	19082103	"Injectable Solution"	"Dose Form"	1		
+"seringue préremplie"	"Dose Form"	19082104	"Injectable Suspension"	"Dose Form"	2		
+"seringue préremplie"	"Dose Form"	46234469	"Injection"	"Dose Form"	3		
+"seringue préremplie"	"Dose Form"	46234466	"Auto-Injector"	"Dose Form"	4		
+"seringue préremplie"	"Dose Form"	46234467	"Pen Injector"	"Dose Form"	5		
+"seringue préremplie"	"Dose Form"	19126920	"Prefilled Syringe"	"Dose Form"	6		
+"shampoing"	"Dose Form"	19008697	"Medicated Shampoo"	"Dose Form"	1		
+"sirop"	"Dose Form"	19082170	"Oral Solution"	"Dose Form"	1		
+"sirop"	"Dose Form"	19082191	"Oral Suspension"	"Dose Form"	2		
+"solution pour inhalation"	"Dose Form"	19095898	"Inhalation Solution"	"Dose Form"	1		
+"solution pour inhalation"	"Dose Form"	19018195	"Inhalant"	"Dose Form"	2		
+"solution pour inhalation"	"Dose Form"	19127579	"Dry Powder Inhaler"	"Dose Form"	3		
+"solution pour inhalation"	"Dose Form"	19126918	"Metered Dose Inhaler"	"Dose Form"	4		
+"spray nasal"	"Dose Form"	19011167	"Nasal Spray"	"Dose Form"	1		
+"spray nasal"	"Dose Form"	36250064	"Metered Dose Nasal Spray"	"Dose Form"	2		
+"spray nasal"	"Dose Form"	19082165	"Nasal Solution"	"Dose Form"	3		
+"suppos."	"Dose Form"	19082200	"Rectal Suppository"	"Dose Form"	1		
+"suppos."	"Dose Form"	19093368	"Vaginal Suppository"	"Dose Form"	2		
+"suppos."	"Dose Form"	19082575	"Urethral Suppository"	"Dose Form"	3		
+"suppos. (adulte)"	"Dose Form"	19082200	"Rectal Suppository"	"Dose Form"	1		
+"suppos. (adulte)"	"Dose Form"	19093368	"Vaginal Suppository"	"Dose Form"	2		
+"suppos. (adulte)"	"Dose Form"	19082575	"Urethral Suppository"	"Dose Form"	3		
+"suppos. (enfant)"	"Dose Form"	19082200	"Rectal Suppository"	"Dose Form"	1		
+"suspension injectable"	"Dose Form"	19082104	"Injectable Suspension"	"Dose Form"	1		
+"suspension injectable"	"Dose Form"	19082103	"Injectable Solution"	"Dose Form"	2		
+"suspension injectable"	"Dose Form"	46234469	"Injection"	"Dose Form"	3		
+"tablette(s) à mâcher"	"Dose Form"	19135866	"Chewable Tablet"	"Dose Form"	1		
+"tablette(s) à mâcher"	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	2		
+"tablette(s) à sucer"	"Dose Form"	19082253	"Oral Lozenge"	"Dose Form"	1		
+"tablette(s) à sucer"	"Dose Form"	19082573	"Oral Tablet"	"Dose Form"	2		
+"ACIDE ACETYLSALICYLIQUE"	"Ingredient"	1112807	"Aspirin"	"Ingredient"	1		
+"ACIDE ASCORBIQUE"	"Ingredient"	19011773	"Ascorbic Acid"	"Ingredient"	1		
+"ACONIT"	"Ingredient"	19058354	"Aconite"	"Ingredient"	1		
+"ACONIT"	"Ingredient"	44507446	"Aconitine"	"Ingredient"	2		
+"ACONIT"	"Ingredient"	1593269	"Aconitum carmichaelii lateral root extract"	"Ingredient"	3		
+"ACONIT"	"Ingredient"	42898400	"Aconitum carmichaelii root extract"	"Ingredient"	4		
+"ACONIT"	"Ingredient"	42904093	"Aconitum ferox root extract"	"Ingredient"	5		
+"ACONIT"	"Ingredient"	43012479	"Aconitum kusnezoffi root extract"	"Ingredient"	6		
+"ACONIT"	"Ingredient"	44506788	"Aconitum lycoctonum extract"	"Ingredient"	7		
+"ACONIT"	"Ingredient"	42898402	"Aconitum napellus extract"	"Ingredient"	8		
+"ACONIT"	"Ingredient"	42904012	"Aconitum napellus root extract"	"Ingredient"	9		
+"ADENOSINE PHOSPHATE"	"Ingredient"	1309204	"Adenosine"	"Ingredient"	1		
+"ALBUMINE TANNATE"	"Ingredient"	35198220	"albumin tannate"	"Ingredient"	1		
+"ALENDRONATE"	"Ingredient"	1557272	"Alendronate"	"Ingredient"	1		
+"ALUMINIUM AMINOACETATE"	"Ingredient"	19089733	"dihydroxyaluminum aminoacetate"	"Ingredient"	1		
+"AMYLOCAINE"	"Ingredient"	19048016	"amylocaine"	"Ingredient"	1		
+"ANDROSTANOLONE"	"Ingredient"	1636780	"Testosterone"	"Ingredient"	1		
+"ANGELIQUE"	"Ingredient"	42898278	"ANGELICA ROOT OIL"	"Ingredient"	1		
+"ANGELIQUE"	"Ingredient"	42898279	"ANGELICA SEED OIL"	"Ingredient"	2		
+"ANGELIQUE"	"Ingredient"	43013356	"Angelica sinensis whole extract"	"Ingredient"	3		
+"ANGELIQUE"	"Ingredient"	43012497	"Angelica biserrata root extract"	"Ingredient"	4		
+"ANGELIQUE"	"Ingredient"	42898325	"Angelica acutiloba Root extract"	"Ingredient"	5		
+"ANGELIQUE"	"Ingredient"	42898326	"Angelica archangelica leaf extract"	"Ingredient"	6		
+"ANGELIQUE"	"Ingredient"	42898327	"Angelica archangelica root extract"	"Ingredient"	7		
+"ANGELIQUE"	"Ingredient"	42898328	"Angelica dahurica root extract"	"Ingredient"	8		
+"ANGELIQUE"	"Ingredient"	42898329	"Angelica gigas root extract"	"Ingredient"	9		
+"ANGELIQUE"	"Ingredient"	43525819	"ANGELICA ACUTILOBA ROOT OIL"	"Ingredient"	10		
+"ANGELIQUE"	"Ingredient"	46221691	"Angelica dahurica leaf extract"	"Ingredient"	11		
+"ANGELIQUE"	"Ingredient"	42898330	"Angelica keiskei top extract"	"Ingredient"	12		
+"ANGELIQUE"	"Ingredient"	42898331	"Angelica pubescens root extract"	"Ingredient"	13		
+"ANGELIQUE"	"Ingredient"	42898332	"Angelica sinensis root extract"	"Ingredient"	14		
+"ANGELIQUE"	"Ingredient"	44814270	"ANGELICA DAHURICA WHOLE EXTRACT"	"Ingredient"	15		
+"ANGELIQUE"	"Ingredient"	44814302	"Angelica pubescens whole extract"	"Ingredient"	16		
+"ANGELIQUE"	"Ingredient"	1319232	"Angelica sinensis preparation"	"Ingredient"	17		
+"ANGELIQUE"	"Ingredient"	45775258	"Angelica dahurica var. formosana whole extract"	"Ingredient"	18		
+"ANGELIQUE"	"Ingredient"	46234378	"Angelica polymorpha root extract"	"Ingredient"	19		
+"ANGELIQUE"	"Ingredient"	43560461	"Angelica atropurpurea root extract"	"Ingredient"	20		
+"ANGELIQUE"	"Ingredient"	45776245	"ANGELICA GIGAS ROOT OIL"	"Ingredient"	21		
+"ANGELIQUE"	"Ingredient"	46221714	"Angelica seed extract"	"Ingredient"	22		
+"ANGELIQUE"	"Ingredient"	1594720	"ANGELICA DAHURICA VAR. FORMOSANA ROOT EXTRACT"	"Ingredient"	23		
+"ANGELIQUE"	"Ingredient"	793139	"Angelica anomala whole extract"	"Ingredient"	24		
+"ANGELIQUE"	"Ingredient"	793082	"Angelica sinensis root oil"	"Ingredient"	25		
+"ANGELIQUE"	"Ingredient"	36444853	"Angelica Dahurica"	"Ingredient"	26		
+"ANGELIQUE"	"Ingredient"	44012511	"Angelicae Sinensis Radix"	"Ingredient"	27		
+"ATROPINE"	"Ingredient"	914335	"Atropine"	"Ingredient"	1		
+"BELLADONE"	"Ingredient"	958527	"belladonna extract, USP"	"Ingredient"	1		
+"BELLADONE"	"Ingredient"	1116109	"Belladonna Alkaloids"	"Ingredient"	2		
+"BELLADONE"	"Ingredient"	1718973	"Atropa belladonna flowering top extract"	"Ingredient"	3		
+"BELLADONE"	"Ingredient"	19080407	"belladonna leaf extract"	"Ingredient"	4		
+"BELLADONE"	"Ingredient"	42903446	"Atropa belladonna fruiting top extract"	"Ingredient"	5		
+"BELLADONE"	"Ingredient"	42904121	"Atropa belladonna root extract"	"Ingredient"	6		
+"BELLADONE"	"Ingredient"	43012163	"Atropa belladona whole extract"	"Ingredient"	7		
+"BELLADONE"	"Ingredient"	43012296	"Atropa belladonna whole extract"	"Ingredient"	8		
+"BENZOCAINE"	"Ingredient"	917006	"Benzocaine"	"Ingredient"	1		
+"BENZOXONIUM"	"Ingredient"	19056737	"BENZOXONIUM"	"Ingredient"	1		
+"BICARBONATE DE SODIUM"	"Ingredient"	939506	"Sodium Bicarbonate"	"Ingredient"	1		
+"BIOTINE"	"Ingredient"	19024770	"Biotin"	"Ingredient"	1		
+"BISMUTH OXYIODIDEGALLATE"	"Ingredient"	44157650	"Bismuth Oxyiodid"	"Ingredient"			
+"BISMUTH SOUS-GALLATE"	"Ingredient"	937725	"bismuth subgallate"	"Ingredient"	1		
+"CAFEINE"	"Ingredient"	1134439	"Caffeine"	"Ingredient"	1		
+"CALCIPOTRIOL"	"Ingredient"	908921	"calcipotriene"	"Ingredient"	1		
+"CALCIUM CARBONATE"	"Ingredient"	19035704	"Calcium Carbonate"	"Ingredient"	1		
+"CALCIUM GLUBIONATE"	"Ingredient"	19097867	"calcium glubionate"	"Ingredient"	1		
+"CAMPHRE"	"Ingredient"	938205	"Camphor"	"Ingredient"	1		
+"CANNELLE"	"Ingredient"	1307310	"Cinnamon Preparation"	"Ingredient"	1		
+"CANRENOATE"	"Ingredient"	19123864	"Canrenoate"	"Ingredient"	1		
+"CAPILLAIRE"	"Ingredient"	46234393	"Adiantum capillus-veneris leaf extract"	"Ingredient"	1		
+"CARBOMERE"	"Ingredient"	19055217	"Carbomer"	"Ingredient"	1		
+"CARTEOLOL"	"Ingredient"	950370	"Carteolol"	"Ingredient"	1		
+"CASCARA"	"Ingredient"	900017	"Cascara sagrada"	"Ingredient"	1		
+"CETRIMONIUM"	"Ingredient"	19049284	"cetrimonium"	"Ingredient"	1		
+"CHARBON ADSORBANT"	"Ingredient"	1701928	"Activated Charcoal"	"Ingredient"	1		
+"CHARBON ADSORBANT"	"Ingredient"	43009028	"Activated Charcoal"	"Ingredient"	2		
+"CHLORAL HYDRATE"	"Ingredient"	974140	"Hydrochloric Acid"	"Ingredient"	1		
+"CHLORAMPHENICOL"	"Ingredient"	990069	"Chloramphenicol"	"Ingredient"	1		
+"CHLORHEXIDINE"	"Ingredient"	1790812	"Chlorhexidine"	"Ingredient"	1		
+"CHLOROBUTANOL"	"Ingredient"	19092412	"Chlorobutanol"	"Ingredient"	1		
+"CHLORURE DE SODIUM"	"Ingredient"	967823	"Sodium Chloride"	"Ingredient"	1		
+"CINNARIZINE"	"Ingredient"	19097481	"Cinnarizine"	"Ingredient"	1		
+"CITRON"	"Ingredient"	43012745	"Lemon extract"	"Ingredient"	1		
+"CITRON"	"Ingredient"	42900497	"lemon oil"	"Ingredient"	2		
+"CITRON"	"Ingredient"	40172449	"lemon allergenic extract"	"Ingredient"	3		
+"CITRON"	"Ingredient"	42900496	"lemon balm oil"	"Ingredient"	4		
+"CITRON"	"Ingredient"	42904261	"Lemon Juice"	"Ingredient"	5		
+"CLOMETOCILLINE"	"Ingredient"	19126544	"Penicillin"	"Ingredient"	1		
+"CODEINE"	"Ingredient"	1201620	"Codeine"	"Ingredient"	1		
+"COLECALCIFEROL"	"Ingredient"	19095164	"Cholecalciferol"	"Ingredient"	1		
+"CROMOGLICATE"	"Ingredient"	19008867	"Cromoglycate"	"Ingredient"	1		
+"DABRAFENIB"	"Ingredient"	43532299	"dabrafenib"	"Ingredient"	1		
+"DEXAMETHASONE PHOSPHATE SODIQUE"	"Ingredient"	1518254	"Dexamethasone"	"Ingredient"	1		
+"DEXPANTHENOL"	"Ingredient"	988294	"dexpanthenol"	"Ingredient"	1		
+"DICLOFENAC"	"Ingredient"	1124300	"Diclofenac"	"Ingredient"	1		
+"DIMETINDENE"	"Ingredient"	19028947	"Dimethindene"	"Ingredient"	1		
+"DIPHENHYDRAMINE"	"Ingredient"	1129625	"Diphenhydramine"	"Ingredient"	1		
+"DOMPERIDONE"	"Ingredient"	19037833	"Domperidone"	"Ingredient"	1		
+"EPHEDRINE"	"Ingredient"	1143374	"Ephedrine"	"Ingredient"	1		
+"ESTRIOL"	"Ingredient"	19049038	"Estriol"	"Ingredient"	1		
+"ETHINYLESTRADIOL"	"Ingredient"	1549786	"Ethinyl Estradiol"	"Ingredient"	1		
+"EUCALYPTOL"	"Ingredient"	19050346	"Eucalyptol"	"Ingredient"	1		
+"EUGENOL"	"Ingredient"	19050560	"Eugenol"	"Ingredient"	1		
+"FUSAFUNGINE"	"Ingredient"	19097405	"fusafungin"	"Ingredient"	1		
+"GAULTHERIA"	"Ingredient"	42899275	"Gaultheria procumbens top extract"	"Ingredient"	1		
+"GAULTHERIA"	"Ingredient"	42904210	"Gaultheria procumbens leaf extract"	"Ingredient"	2		
+"GINKGO BILOBA"	"Ingredient"	35602852	"Ginkgo biloba seed extract"	"Ingredient"	1		
+"GINKGO BILOBA"	"Ingredient"	1391889	"Ginkgo biloba extract"	"Ingredient"	2		
+"GINKGO BILOBA"	"Ingredient"	1593873	"Ginkgo biloba root extract"	"Ingredient"	3		
+"GINKGO BILOBA"	"Ingredient"	19098505	"Ginkgo Biloba Leaf Extract"	"Ingredient"	4		
+"GUIMAUVE"	"Ingredient"						
+"HEPARINOIDE"	"Ingredient"	19113045	"Heparinoids"	"Ingredient"	1		
+"HEPATITE A"	"Ingredient"	529660	"Hepatitis A Vaccine (Inactivated) Strain HM175"	"Ingredient"	2		
+"HEPATITE A"	"Ingredient"	596876	"Hepatitis A Vaccine, Inactivated"	"Ingredient"	1		
+"HEXETIDINE"	"Ingredient"	19068839	"Hexetidine"	"Ingredient"	1		
+"HYPERICUM PERFORATUM"	"Ingredient"	42899138	"Hypericum Perforatum Flower extract"	"Ingredient"	1		
+"HYPERICUM PERFORATUM"	"Ingredient"	42899140	"Hypericum perforatum leaf extract"	"Ingredient"	2		
+"HYPROMELLOSE"	"Ingredient"	902251	"hypromellose"	"Ingredient"	1		
+"IMMUNOGLOBULINES"	"Ingredient"	19117912	"Immunoglobulin G"	"Ingredient"	1		
+"IOXAGLATE"	"Ingredient"	19081316	"Ioxaglate"	"Ingredient"	1		
+"IOXITALAMATE"	"Ingredient"	19009054	"meglumine ioxithalamate"	"Ingredient"	1		
+"IPRATROPIUM"	"Ingredient"	1112921	"Ipratropium"	"Ingredient"	1		
+"LACTULOSE"	"Ingredient"	987245	"Lactulose"	"Ingredient"	1		
+"LANSOPRAZOLE"	"Ingredient"	929887	"lansoprazole"	"Ingredient"	1		
+"LEVONORGESTREL"	"Ingredient"	1589505	"Levonorgestrel"	"Ingredient"	1		
+"L-LEUCINE"	"Ingredient"	19088571	"Leucine"	"Ingredient"	1		
+"L-PHENYLALANINE"	"Ingredient"	19035577	"Phenylalanine"	"Ingredient"	1		
+"MACROGOL"	"Ingredient"	948515	"Polyethylene Glycols"	"Ingredient"	1		
+"MAGNESIUM CITRATE"	"Ingredient"	967861	"magnesium citrate"	"Ingredient"	1		
+"MAGNESIUM TRISILICATE"	"Ingredient"	908730	"magnesium trisilicate"	"Ingredient"	1		
+"METHENAMINE"	"Ingredient"	904356	"Methenamine"	"Ingredient"	1		
+"METIPRANOLOL"	"Ingredient"	905531	"Metipranolol"	"Ingredient"	1		
+"NICOTINATE D' ETHYLE"	"Ingredient"	19055757	"ethylnicotinate"	"Ingredient"	1		
+"NICOTINATE D' HEXYLE"	"Ingredient"	19055496	"HEXYLNICOTINATE"	"Ingredient"	1		
+"NIFURTOINOL"	"Ingredient"	40798981	"Nifurtoinol"	"Ingredient"	1		
+"OXERUTINES"	"Ingredient"	19001308	"Oxerutins"	"Ingredient"	1		
+"OXYMETAZOLINE"	"Ingredient"	925636	"Oxymetazoline"	"Ingredient"	1		
+"PANAX GINSENG"	"Ingredient"	43013750	"Panax ginseng whole extract"	"Ingredient"	1		
+"PANAX GINSENG"	"Ingredient"	1593982	"Panax ginseng leaf extract"	"Ingredient"	2		
+"PANAX GINSENG"	"Ingredient"	42899596	"Panax ginseng flower extract"	"Ingredient"	3		
+"PANAX GINSENG"	"Ingredient"	42899597	"Panax ginseng fruit extract"	"Ingredient"	4		
+"PANAX GINSENG"	"Ingredient"	42899598	"Panax ginseng root water extract"	"Ingredient"	5		
+"PARAFFINE"	"Ingredient"	19129738	"Paraffin"	"Ingredient"	1		
+"PECTINE"	"Ingredient"	922191	"pectin"	"Ingredient"	1		
+"PELARGONIUM SPECIES"	"Ingredient"	44507723	"Pelargonium graveolens whole extract"	"Ingredient"	1		
+"PELARGONIUM SPECIES"	"Ingredient"	1718174	"Pelargonium roseum oil"	"Ingredient"	2		
+"PELARGONIUM SPECIES"	"Ingredient"	42899636	"Pelargonium graveolens flower oil"	"Ingredient"	3		
+"PELARGONIUM SPECIES"	"Ingredient"	42899637	"Pelargonium graveolens flowering top extract"	"Ingredient"	4		
+"PELARGONIUM SPECIES"	"Ingredient"	42899638	"Pelargonium sidoides root extract"	"Ingredient"	5		
+"PERBORATE"	"Ingredient"	19039877	"sodium perborate"	"Ingredient"	1		
+"PHENETURIDE"	"Ingredient"						
+"PHENOBARBITAL"	"Ingredient"	734275	"Phenobarbital"	"Ingredient"	1		
+"PHENOL"	"Ingredient"	923540	"phenol"	"Ingredient"			
+"PHENYLEPHRINE"	"Ingredient"	1135766	"Phenylephrine"	"Ingredient"	1		
+"PHENYTOINE"	"Ingredient"	740910	"Phenytoin"	"Ingredient"	1		
+"PHOLCODINE"	"Ingredient"	19024213	"pholcodine"	"Ingredient"	1		
+"PHOSPHATE DISODIQUE"	"Ingredient"	991710	"Sodium Phosphate, Dibasic"	"Ingredient"	1		
+"PHOSPHATE MONOSODIQUE"	"Ingredient"	990499	"Sodium Phosphate, Monobasic"	"Ingredient"	1		
+"PILOCARPINE"	"Ingredient"	945286	"Pilocarpine"	"Ingredient"	1		
+"PLACEBO"	"Ingredient"	19127890	"Inert Ingredients"	"Ingredient"	1		
+"PNEUMOCOQUES, 23 TYPES"	"Ingredient"	40213201	"pneumococcal polysaccharide vaccine, 23 valent"	"CVX"	1		
+"PROTAMINE"	"Ingredient"	19054245	"Protamines"	"Ingredient"	1		
+"PYGEUM AFRICANUM"	"Ingredient"	19079011	"African Pygeum Extract"	"Ingredient"	1		
+"RISEDRONATE"	"Ingredient"	1516800	"Risedronate"	"Ingredient"	1		
+"SALBUTAMOL"	"Ingredient"	1154343	"Albuterol"	"Ingredient"	1		
+"SALICYLATE"	"Ingredient"	964407	"Salicylic Acid"	"Ingredient"	1		
+"SALICYLATE DE METHYLE"	"Ingredient"	909440	"methyl salicylate"	"Ingredient"	1		
+"SERENOA REPENS"	"Ingredient"	36249258	"Serenoa repens whole extract"	"Ingredient"	1		
+"SOJA"	"Ingredient"	19100396	"Soy Proteins"	"Ingredient"	1		
+"SOJA"	"Ingredient"	19007600	"Soybean preparation"	"Ingredient"	2		
+"SOJA"	"Ingredient"	19070224	"Soybean Oil"	"Ingredient"	3		
+"SULFOGAIACOL"	"Ingredient"	1189220	"guaiacolsulfonate"	"Ingredient"	1		
+"TERBUTALINE"	"Ingredient"	1236744	"Terbutaline"	"Ingredient"	1		
+"TOBRAMYCINE"	"Ingredient"	902722	"Tobramycin"	"Ingredient"	1		
+"TRAMAZOLINE"	"Ingredient"	19042445	"tramazoline"	"Ingredient"	1		
+"URTICA DIOICA"	"Ingredient"	19097592	"URTICA DIOICA preparation"	"Ingredient"	1		
+"URTICA DIOICA"	"Ingredient"	42900054	"Urtica dioica leaf extract"	"Ingredient"	2		
+"URTICA DIOICA"	"Ingredient"	42900055	"Urtica dioica root extract"	"Ingredient"	3		
+"URTICA DIOICA"	"Ingredient"	40684611	"Urtica dioica pollen allergen extract"	"Ingredient"	4		
+"URTICA DIOICA"	"Ingredient"	40161849	"nettle pollen extract"	"Ingredient"	5		
+"VASELINE"	"Ingredient"	43531976	"Liquid Petroleum"	"Ingredient"	1		
+"ABC CHEMICALS"	"Supplier"	36256934	"ABC Chemicals"	"Supplier"			
+"AGUETTANT"	"Supplier"	43132616	"Aguettant"	"Supplier"			
+"ALCON"	"Supplier"	43132841	"Alcon"	"Supplier"			
+"ALMIRALL"	"Supplier"	43132681	"Almirall"	"Supplier"			
+"ARKOPHARMA BELUX"	"Supplier"	43132725	"Arkopharma"	"Supplier"			
+"ASHFIELD HEALTHCARE"	"Supplier"						
+"ASTELLAS PHARMA BV"	"Supplier"	43132652	"Astellas"				
+"ASTRA ZENECA"	"Supplier"	43132746	"Astrazeneca"	"Supplier"			
+"AUROBINDO PHARMA BV"	"Supplier"	21019592	"Aurobindo"	"Supplier"			
+"AXONE PHARMA T1"	"Supplier"						
+"AXONE PHARMA T3"	"Supplier"						
+"AXONE T2/VEMEDIA CH"	"Supplier"						
+"B. BRAUN MEDICAL"	"Supplier"	43132427	"Braun"	"Supplier"			
+"BAUSCH & LOMB PHARMA"	"Supplier"	21019189	"Bausch & Lomb"	"Supplier"			
+"BAXTER"	"Supplier"	43132265	"Baxter"	"Supplier"			
+"BAYER CONSUMER HEALTH"	"Supplier"	21019569	"Bayer"	"Supplier"			
+"BAYER PHARMACEUTICALS"	"Supplier"	21019569	"Bayer"	"Supplier"			
+"BESINS HEALTHCARE"	"Supplier"	21019389	"Besins"				
+"BIOHORMA BELGIUM"	"Supplier"	36777197	"Biohorm"	"Supplier"			
+"CIPLA EUROPE"	"Supplier"	43254575	"Cipla"	"Supplier"			
+"COLIN LABO"	"Supplier"						
+"CONFORMA"	"Supplier"	36777198	"Conforma"	"Supplier"			
+"CRUCELL"	"Supplier"	43579005	"Crucell"	"Supplier"			
+"DENOLIN"	"Supplier"						
+"EG NV"	"Supplier"						
+"EUMEDICA"	"Supplier"	43132732	"Eumedica"	"Supplier"			
+"FAGRON"	"Supplier"	21019830	"Fagron"	"Supplier"			
+"FRESENIUS KABI"	"Supplier"	21020720	"Fresenius"	"Supplier"			
+"GEDEON RICHTER BENELUX"	"Supplier"	43132645	"Gedeon Richter"	"Supplier"			
+"GLAXO SMITHKLINE BIOLOGICALS"	"Supplier"	43132423	"Glaxosmithkline"	"Supplier"			
+"GLAXOSMITHKLINE CONS. HEALTHCARE"	"Supplier"	43132423	"Glaxosmithkline"	"Supplier"			
+"GRUNENTHAL BELGIUM"	"Supplier"	21019519	"Grunenthal"	"Supplier"			
+"GUERBET"	"Supplier"	21019947	"Guerbet"	"Supplier"			
+"HAL ALLERGY BENELUX"	"Supplier"	43580012	"Hal Allergie"	"Supplier"			
+"IMPEXECO"	"Supplier"	36256891	"Impexeco"	"Supplier"			
+"JANSSEN CILAG"	"Supplier"	43132750	"Janssen"	"Supplier"			
+"JOHNSON & JOHNSON CONSUMER"	"Supplier"	21020231	"Johnson & Johnson"	"Supplier"			
+"JOHNSON & JOHNSON CONSUMER OTC"	"Supplier"	21020231	"Johnson & Johnson"	"Supplier"			
+"KELA PHARMA"	"Supplier"	36256930	"Kela"	"Supplier"			
+"LABCATAL - PHARMACOBEL"	"Supplier"	43132340	"Labcatal"	"Supplier"			
+"LEO PHARMA"	"Supplier"	21019732	"Leo"	"Supplier"			
+"LINDE GAS BELGIUM"	"Supplier"	21020045	"Linde Gas"	"Supplier"			
+"LOHMANN & RAUSCHER"	"Supplier"						
+"MADAUS PHARMA"	"Supplier"	40820668	"Madaus"	"Supplier"			
+"MEDA PHARMA"	"Supplier"	44024158	"Meda"	"Supplier"			
+"MEDGENIX BENELUX"	"Supplier"	36256906	"Medgenix"	"Supplier"			
+"MELISANA"	"Supplier"	36256886	"Melisana"	"Supplier"			
+"MENARINI BENELUX"	"Supplier"	43132539	"Menarini"	"Supplier"			
+"MSD BELGIUM"	"Supplier"	36256931	"MSD"	"Supplier"			
+"MYLAN"	"Supplier"	21019390	"Mylan"	"Supplier"			
+"NORGINE"	"Supplier"	43132384	"Norgine"	"Supplier"			
+"NOVARTIS CONSUMER HEALTH"	"Supplier"	43132796	"Novartis"	"Supplier"			
+"NOVARTIS PHARMA"	"Supplier"	43132796	"Novartis"	"Supplier"			
+"NOVUM PHARMA"	"Supplier"	36256937	"Novum Pharma"	"Supplier"			
+"NOVYPHAR"	"Supplier"						
+"OMEGA DERMO"	"Supplier"	21019433	"Omega"	"Supplier"			
+"OMEGA PHARMA BELGIUM"	"Supplier"	43254595	"Omega"	"Supplier"			
+"OMEGA PHONE"	"Supplier"	21019433	"Omega"	"Supplier"			
+"ORGANON BELGE"	"Supplier"	21019525	"Organon"	"Supplier"			
+"ORION PHARMA"	"Supplier"	43132802	"Orion"	"Supplier"			
+"PERRIGO OTC"	"Supplier"	44024836	"Perrigo"				
+"PFIZER"	"Supplier"	43132662	"Pfizer"	"Supplier"			
+"PFIZER - DIVISION WYETH"	"Supplier"	44024907	"Wyeth"	"Supplier"			
+"PHARMACARE"	"Supplier"	21019545	"Pharmacare Products"	"Supplier"			
+"PHARMACIA"	"Supplier"	21019348	"Pharmacia"	"Supplier"			
+"PHARMACOBEL"	"Supplier"	36256938	"Pharmacobel"	"Supplier"			
+"PHARMAPARTNER"	"Supplier"						
+"PI PHARMA"	"Supplier"	36777199	"PI-Pharma"				
+"PIERRE FABRE SANTE BENELUX"	"Supplier"	21020689	"Pierre Fabre"	"Supplier"			
+"PROCTER & GAMBLE DCE"	"Supplier"	44024687	"Procter & Gamble"	"Supplier"			
+"QUALIPHAR"	"Supplier"	36256908	"Qualiphar"	"Supplier"			
+"RATIOPHARM BELGIUM"	"Supplier"	21020698	"Ratiopharm"	"Supplier"			
+"RECKITT BENCKISER HEALTHCARE"	"Supplier"	21020612	"Reckitt Benckiser"	"Supplier"			
+"SANDIPRO"	"Supplier"						
+"SANDOZ"	"Supplier"	43132415	"Sandoz"	"Supplier"			
+"SANOFI BELGIUM"	"Supplier"	21019599	"Sanofi"	"Supplier"			
+"SANOFI CHC"	"Supplier"	21019599	"Sanofi"	"Supplier"			
+"SCHWABE PHARMA BELGIUM"	"Supplier"						
+"SCS BOEHRINGER INGELHEIM COMM.V"	"Supplier"	21020335	"Boehringer Ingelheim"	"Supplier"			
+"SERVIER BENELUX"	"Supplier"	43132285	"Servier"	"Supplier"			
+"SMB LABORATOIRE"	"Supplier"	43132300	"SMB"	"Supplier"			
+"SOL SPA"	"Supplier"						
+"SPF INTÉRIEUR"	"Supplier"						
+"STALLERGENES BELGIUM"	"Supplier"	43132350	"Stallergenes"	"Supplier"			
+"STEROP"	"Supplier"	36256919	"Sterop"	"Supplier"			
+"TAKEDA  BELGIUM"	"Supplier"	21019358	"Takeda"				
+"TEVA PHARMA BELGIUM"	"Supplier"	43132269	"TEVA"	"Supplier"			
+"THEA PHARMA"	"Supplier"	43132510	"Thea"	"Supplier"			
+"THERABEL - LA MEUSE"	"Supplier"	21019623	"Therabel"	"Supplier"			
+"TILMAN"	"Supplier"	43132726	"Tilman"	"Supplier"			
+"TRAMEDICO"	"Supplier"	36256887	"Tramedico"	"Supplier"			
+"UCB PHARMA"	"Supplier"	43132744	"UCB"	"Supplier"			
+"UCB PHARMA DIVISION HEALTHCARE"	"Supplier"	43132744	"UCB"	"Supplier"			
+"UNDA"	"Supplier"						
+"URGO HEALTHCARE"	"Supplier"	43132767	"URGO"	"Supplier"			
+"WILL PHARMA"	"Supplier"	43578843	"Will"	"Supplier"			
+"ZAMBON"	"Supplier"	21020290	"Zambon"	"Supplier"			
+"%"	"Unit"	8554	"percent"	"Unit"		1	
+"10E6 IU"	"Unit"	8510	"unit"	"Unit"		1000000	
+"g"	"Unit"	8576	"milligram"	"Unit"		1000	
+"IU"	"Unit"	8510	"unit"	"Unit"		1	
+"IU heparin"	"Unit"	8510	"unit"	"Unit"		1	
+"mcg"	"Unit"	8576	"milligram"	"Unit"		0.001	
+"mg"	"Unit"	8576	"milligram"	"Unit"		1	
+"ml"	"Unit"	8587	"milliliter"	"Unit"		1	
+"% v/v"	"Unit"	8554	"percent"	"Unit"		1	

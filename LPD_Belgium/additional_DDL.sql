@@ -70,3 +70,36 @@ CREATE TABLE PC_STAGE
    AMOUNT             FLOAT,
    BOX_SIZE           INT4
 );
+
+DROP TABLE IF EXISTS belg_source;
+create table belg_source
+	(
+		prescr_prd_id varchar,
+		count_rec int4,
+		prod_prd_id	varchar,
+		prod_prd_eid varchar,
+		prd_name varchar,
+		mast_prd_name varchar,
+		manufacturer_name varchar,
+		prd_dosage float,
+		prd_dosage2 float,
+		prd_dosage3 float,
+		gal_id varchar,
+		drug_form varchar,
+		gal_id2 varchar,
+		unit_id	varchar,
+		unit_name1 varchar,
+		unit_id2 varchar,
+		unit_name2 varchar,
+		unit_id3 varchar,
+		unit_name3 varchar,
+		mol_id varchar,
+		mol_name varchar,
+		concept_id int4
+	);
+
+DROP TABLE IF EXISTS DEVICES_MAPPED;
+CREATE TABLE DEVICES_MAPPED
+(
+    PRD_NAME    VARCHAR (255)
+);

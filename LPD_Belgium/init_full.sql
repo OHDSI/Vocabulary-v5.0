@@ -239,7 +239,7 @@ select distinct
 	NULL AS invalid_reason
 from belg_source_full f
 join official_mappings o on
-	f.prod_prd_id = o.prod_prd_id -- eww
+	f.prod_prd_id = o.prod_prd_id
 join concept c on
 	c.concept_id = o.concept_id
 ;
@@ -681,3 +681,11 @@ from to_map
 --Entry invalid_indicator means attribute should not be treated as such (ingredient as BN, excipient as ingredient)
 --Multiple mappings for Ingredients with empty precedence fields indicate split
 --Brand Names can (and should) be mapped to their Ingredients when BN mappings are not found
+;
+drop table if exists relationship_to_concept_manual
+;
+create table relationship_to_concept_manual as
+select *
+from relationship_to_concept_to_map
+where false
+;

@@ -23,5 +23,32 @@ from official_mappings o
 join concept c using (concept_id)
 ;
 update concept_stage
+set standard_concept = null
+where
+	domain_id = 'Device' and
+	standard_concept = 'S' and
+	concept_code in
+		(
+			select concept_code_1
+			from concept_relationship_stage
+			where
+				vocabulary_id_2 != 'LPD_Belgium' and
+				invalid_reason is null and
+				relationship_id = 'Maps to'
+		)
+;
+update concept_stage
 set standard_concept = 'S'
-where domain_id = 'Device'
+where
+	domain_id = 'Device' and
+	standard_concept is null and
+	concept_code not in
+		(
+			select concept_code_1
+			from concept_relationship_stage
+			where
+				vocabulary_id_2 != 'LPD_Belgium' and
+				invalid_reason is null and
+				relationship_id = 'Maps to'
+		)
+;

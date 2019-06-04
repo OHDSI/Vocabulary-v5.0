@@ -304,6 +304,76 @@ join drug_concept_stage d on
 	d.concept_name = p.prod_prd_id || ':' || p.comp_number and
 	d.concept_class_id = 'Ingredient'
 ;
+drop table if exists guess_bn
+;
+--add guessed brand names
+create table guess_bn as
+select distinct
+	b.prod_prd_id,
+	r.b_id
+from belg_source b
+join brand_rx r on
+	b.prd_name ilike r.concept_name || ' %'
+join prod_to_ing i on
+	b.prod_prd_id = i.prod_prd_id
+where b.prod_prd_id not in
+	(
+		select concept_code_1
+		from internal_relationship_stage
+		join drug_concept_stage on
+			concept_code_2 = concept_code and
+			concept_class_id = 'Brand Name'
+	)
+;
+delete from guess_bn
+where prod_prd_id in
+	(
+		select prod_prd_id
+		from guess_bn
+		group by prod_prd_id
+		having count (b_id) > 1
+	)
+;
+insert into drug_concept_stage
+with bn_set as --newly found bns
+	(
+		select distinct b_id
+		from guess_bn
+	)
+select distinct
+	b_id :: varchar,
+	'LPD_Belgium',
+	'Brand Name',
+	'Brand Name',
+	null,
+	'OMOP' || nextval('conc_stage_seq') AS concept_code,
+	null,
+	'Drug',
+	CURRENT_DATE AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+from bn_set
+;
+insert into internal_relationship_stage
+select distinct
+	g.prod_prd_id,
+	c.concept_code
+from guess_bn g
+join drug_concept_stage c on
+	c.concept_class_id = 'Brand Name' and
+	g.b_id :: varchar = c.concept_name
+;
+insert into relationship_to_concept
+select distinct
+	c.concept_code,
+	c.vocabulary_id,
+	c.concept_name :: int4,
+	1
+from drug_concept_stage c
+join guess_bn g on
+	c.concept_class_id = 'Brand Name' and
+	g.b_id :: varchar = c.concept_name
+;
 truncate ds_stage
 ;
 INSERT INTO ds_stage

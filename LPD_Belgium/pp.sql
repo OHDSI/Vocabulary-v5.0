@@ -55,8 +55,8 @@ where
 -- we don't trust old mappings to ingredients
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date, invalid_reason)
 select
-	c1.concept_code_1,
-	c2.concept_code_2,
+	c1.concept_code,
+	c2.concept_code,
 	'LPD_Belgium',
 	c2.vocabulary_id,
 	'Maps to',
@@ -74,7 +74,7 @@ join concept c2 on
 join concept_stage cx on
 	(c1.concept_code, c1.vocabulary_id) = (cx.concept_code, cx.vocabulary_id)
 where
-	(c1.concept_code_1,	c2.concept_code_2, 'LPD_Belgium', c2.vocabulary_id, 'Maps to') not in
+	(c1.concept_code,	c2.concept_code, 'LPD_Belgium', c2.vocabulary_id, 'Maps to') not in
 	(
 		select
 			concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id

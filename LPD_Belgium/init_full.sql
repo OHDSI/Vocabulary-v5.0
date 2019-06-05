@@ -190,7 +190,7 @@ where
 	prd_name like 'ALCOOL%DESINF%' or
 	prd_name like 'ACCU%CHEK%' or
 	prd_name like 'BD EMERALD%' or
-	prd_name like 'BD MICROFINE%' or
+	prd_name like 'BD MICROFINE%'
 ;
 truncate drug_concept_stage
 ;

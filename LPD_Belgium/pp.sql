@@ -52,3 +52,32 @@ where
 				relationship_id = 'Maps to'
 		)
 ;
+-- we don't trust old mappings to ingredients
+insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date, invalid_reason)
+select
+	c1.concept_code_1,
+	c2.concept_code_2,
+	'LPD_Belgium',
+	c2.vocabulary_id,
+	'Maps to',
+	r.valid_start_date,
+	(select latest_update from vocabulary where vocabulary_id = 'LPD_Belgium'),
+	'D'
+from concept_relationship r
+join concept c1 on
+	c1.concept_id = r.concept_id_1 and
+	c1.vocabulary_id = 'LPD_Belgium' and
+	r.relationship_id = 'Maps to'
+join concept c2 on
+	c2.concept_id = r.concept_id_2 and
+	c2.concept_class_id = 'Ingredient'
+join concept_stage cx on
+	(c1.concept_code, c1.vocabulary_id) = (cx.concept_code, cx.vocabulary_id)
+where
+	(c1.concept_code_1,	c2.concept_code_2, 'LPD_Belgium', c2.vocabulary_id, 'Maps to') not in
+	(
+		select
+			concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id
+		from concept_relationship_stage
+	)
+;

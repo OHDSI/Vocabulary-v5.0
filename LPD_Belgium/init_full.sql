@@ -160,11 +160,16 @@ where
 	prd_name like '%LATEX%' or
 	prd_name like '%TALC%' or
 	prd_name like '%STRIP%' or
+	prd_name like '%LANCETTE%' or
+	prd_name like '%PLUG%' or
+	prd_name like 'BEQUILLE%' or
+	prd_name like 'THERMOMETRE%' or
 	--suppliers
 	prd_name like '%UNDA' or
 	prd_name like '%BOIRON%' or
 	prd_name like '%HEEL' or
 	prd_name like 'WELEDA%' or
+	prd_name like '%WELEDA' or
 	prd_name like '%HOMEOROPA%' or
 	manufacturer_name like 'HEEL %' or
 	manufacturer_name like 'BOIRON %' or
@@ -179,7 +184,13 @@ where
 	prd_name like 'ONE TOUCH%' or
 	prd_name like 'ONETOUCH%' or
 	prd_name like 'MEPILEX%' or
-	prd_name like 'TENA %'
+	prd_name like 'TENA %' or
+	prd_name like 'TRAUMEEL%' or
+	--Devices
+	prd_name like 'ALCOOL%DESINF%' or
+	prd_name like 'ACCU%CHEK%' or
+	prd_name like 'BD EMERALD%' or
+	prd_name like 'BD MICROFINE%' or
 ;
 truncate drug_concept_stage
 ;

@@ -2169,6 +2169,7 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 );
 
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
+create index idx_desc_anc on snomed_ancestor (descendant_concept_code,ancestor_concept_code);
 
 ANALYZE snomed_ancestor;
 

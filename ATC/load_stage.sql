@@ -61,7 +61,8 @@ WHERE class_name ~ 'comb| and |diphtheria-|meningococcus|excl|derivate|other|wit
   AND length(class_code) = 7
   AND NOT class_name ~ 'decarboxylase inhibitor';
 
--- 3.2 create a table with aggregated RxNorm/RxE ingredients
+-- 3.2 create a table with aggregated 
+/RxE ingredients
 DROP TABLE IF EXISTS rx_combo;
 CREATE TABLE rx_combo AS
 SELECT drug_concept_id,
@@ -117,6 +118,24 @@ WHERE concept_code_1 in
        HAVING COUNT(1) = 2)
 GROUP BY concept_code_1
 ;
+
+INSERT INTO class_combo AS
+SELECT concept_code_1,
+       string_agg(ing::varchar, '-' order by ing) AS i_combo
+FROM simple_comb
+WHERE concept_code_1 in
+      (SELECT concept_code_1
+       FROM simple_comb
+       WHERE concept_code_2 in
+             (SELECT concept_code_2
+              FROM (SELECT DISTINCT concept_code_2, ing FROM simple_comb) s
+              GROUP BY concept_code_2
+              HAVING COUNT(1) = 1)
+       GROUP BY concept_code_1
+       HAVING COUNT(1) = 3)
+AND class_name LIKE '%, % and %'
+GROUP BY concept_code_1
+;
 -- 3.4.1 create the actual table, start with ATCs with forms
 DROP TABLE IF EXISTS class_to_drug_1;
 CREATE TABLE class_to_drug_1 AS
@@ -140,20 +159,6 @@ FROM class_combo
 WHERE concept_code_1 NOT IN (SELECT concept_code_1 FROM class_to_drug_1)
   AND concept_code_1 NOT like '% %'
 ;
-
- -- temporary solution for wierd ATCs that got mapped incorrectly
-DELETE
-FROM class_to_drug_1
-WHERE class_name like '%,%,%and%'
-  AND NOT class_name ~* 'comb|other|whole root|selective'
-  AND concept_name NOT like '%/%/%/%';
-
-DELETE
-FROM class_to_drug_1
-WHERE class_name like '%,%and%'
-  AND class_name NOT like '%,%,%and%'
-  AND NOT class_name ~* 'comb|other|whole root|selective'
-  AND concept_name NOT like '% / % / %';
 
 -- 3.4.3 introducing precedence
 INSERT INTO class_to_drug_1
@@ -201,6 +206,15 @@ FROM class_comb
        JOIN concept c ON c.concept_id = drug_concept_id
 WHERE concept_code_1 NOT like '% %' --w/o forms
 ;
+					
+ -- temporary solution for wierd ATCs that got mapped incorrectly
+DELETE
+FROM class_to_drug_1
+WHERE class_name like '%,%and%'
+  AND class_name NOT like '%,%,%and%'
+  AND NOT class_name ~* 'comb|other|whole root|selective'
+  AND concept_name NOT like '% / % / %';
+					
 -- 3.5 usual combos (a, combinations)
 DROP TABLE IF EXISTS verysimple_comb;
 CREATE TABLE verysimple_comb AS
@@ -251,7 +265,7 @@ CREATE TABLE class_to_drug_2 AS
            JOIN concept a ON r.drug_concept_id = a.concept_id
            JOIN concept_relationship c ON c.concept_id_1 = a.concept_id
     WHERE a.concept_class_id = 'Clinical Drug Form'
-      AND a.vocabulary_id like 'RxNorm'--temporary remove RXE
+      AND a.vocabulary_id like 'RxNorm%'--temporary remove RXE
       AND a.invalid_reason is null
       AND relationship_id = 'RxNorm has dose form'
       AND c.invalid_reason is null
@@ -288,7 +302,7 @@ SELECT DISTINCT p.concept_code_1, class_name, c.concept_id, c.concept_name, c.co
 FROM primary_table p
        JOIN rx_combo r ON p.class_combo = r.i_combo
        JOIN concept c ON c.concept_id = r.drug_concept_id AND c.concept_class_id = 'Clinical Drug Form' and
-                         c.vocabulary_id = 'RxNorm'
+                         c.vocabulary_id like 'RxNorm%'
 WHERE p.concept_code_1 NOT like '% %'--exclude classes with known forms
 ;
 
@@ -449,7 +463,6 @@ WHERE cr.concept_id_2 = rtc.concept_id_2
   AND class_name NOT like '%with%'
 ;
 
-
 -- 3.7.1 inserting everything that goes without a form
 INSERT INTO class_to_drug_4
 SELECT *
@@ -560,7 +573,7 @@ CREATE TABLE class_to_drug_5 AS
            JOIN drug_strength b ON b.drug_concept_id = a.concept_id
            JOIN concept_relationship c ON c.concept_id_1 = a.concept_id
     WHERE a.concept_class_id = 'Clinical Drug Form'
-      AND a.vocabulary_id = 'RxNorm'--temporary remove RXE
+      AND a.vocabulary_id like 'RxNorm%'--temporary remove RXE
       AND a.invalid_reason is null
       AND relationship_id = 'RxNorm has dose form'
       AND c.invalid_reason is null
@@ -579,7 +592,7 @@ CREATE TABLE class_to_drug_5 AS
 INSERT INTO class_to_drug_5
 SELECT 'B02BD11','catridecacog', concept_id, concept_name, concept_class_id
 FROM concept
-WHERE vocabulary_id = 'RxNorm' AND concept_name like 'coagulation factor XIII a-subunit (recombinant)%' and
+WHERE vocabulary_id like 'RxNorm%' AND concept_name like 'coagulation factor XIII a-subunit (recombinant)%' and
       standard_concept = 'S'
    or concept_id = 35603348 -- the whole hierarchy
 ;
@@ -610,7 +623,7 @@ CREATE TABLE class_to_drug_6 AS
                 ON b.drug_concept_id = a.concept_id
     WHERE a.concept_class_id = 'Ingredient'
       AND a.invalid_reason is null
-      AND a.vocabulary_id = 'RxNorm'--temporary remove RXE
+      AND a.vocabulary_id = 'RxNorm%'--temporary remove RXE
       AND NOT exists(SELECT 1
                      FROM drug_strength d
                      WHERE d.drug_concept_id = b.drug_concept_id
@@ -623,7 +636,6 @@ CREATE TABLE class_to_drug_6 AS
       AND p.form is null
       AND p.concept_code_1 NOT IN (SELECT concept_code FROM reference WHERE concept_code != class_code)-- exclude drugs that should have forms (will remain unmapped)
       ;
-
 
 -- 4. Start final assembly, insert one-by-one going from the most precise class (a+b) to the simplest one (a, ingredient)
 -- TODO: G03FB|G03AB
@@ -721,7 +733,8 @@ WHERE descendant_concept_id NOT IN (SELECT concept_id FROM class_to_rx_descendan
   (SELECT 1
    FROM concept c2
           JOIN devv5.concept_ancestor ca2
-               ON ca2.ancestor_concept_id = c2.concept_id AND c2.concept_class_id = 'Ingredient' and c2.vocabulary_id like 'RxNorm%'
+               ON ca2.ancestor_concept_id = c2.concept_id AND c2.concept_class_id = 'Ingredient' 
+               AND c2.vocabulary_id like 'RxNorm%'
    WHERE ca2.descendant_concept_id = d.drug_concept_id
      AND c2.concept_id != d.ingredient_concept_id) -- excluding combos
 ;
@@ -795,14 +808,15 @@ SELECT DISTINCT substring(concept_code_1, '\w+'),
 FROM class_to_drug_6 a
        JOIN devv5.concept_ancestor ON ancestor_concept_id = a.concept_id
        JOIN concept c
-            ON c.concept_id = descendant_concept_id AND c.vocabulary_id like 'RxNorm%' AND c.standard_concept = 'S'
+            ON c.concept_id = descendant_concept_id AND c.vocabulary_id LIKE 'RxNorm%' AND c.standard_concept = 'S'
        JOIN drug_strength d ON d.drug_concept_id = c.concept_id
 WHERE descendant_concept_id NOT IN (SELECT concept_id FROM class_to_rx_descendant)
   AND NOT exists
   (SELECT 1
    FROM concept c2
           JOIN devv5.concept_ancestor ca2
-               ON ca2.ancestor_concept_id = c2.concept_id AND c2.concept_class_id = 'Ingredient' and c2.vocabulary_id like 'RxNorm%'
+               ON ca2.ancestor_concept_id = c2.concept_id AND c2.concept_class_id = 'Ingredient' 
+               AND c2.vocabulary_id LIKE 'RxNorm%'
    WHERE ca2.descendant_concept_id = d.drug_concept_id
      AND c2.concept_id != d.ingredient_concept_id) -- excluding combos
 ;
@@ -815,7 +829,7 @@ WITH a AS (
                   d.ingredient_concept_id
   FROM class_to_drug_6 a
          JOIN devv5.concept_ancestor ON ancestor_concept_id = a.concept_id
-         JOIN concept c ON c.concept_id = descendant_concept_id AND c.vocabulary_id like 'RxNorm%'
+         JOIN concept c ON c.concept_id = descendant_concept_id AND c.vocabulary_id LIKE 'RxNorm%'
     AND c.standard_concept = 'S' AND c.concept_class_id IN ('Clinical Pack ', 'Branded Pack')
          JOIN concept_relationship cr
               ON cr.concept_id_1 = c.concept_id AND cr.invalid_reason is null AND cr.relationship_id = 'Contains'
@@ -830,7 +844,7 @@ WITH a AS (
                        concept_name,
                        concept_class_id,
                        pack_id,
-                       string_agg(ingredient_concept_id::varchar, '-' order by ingredient_concept_id) AS i_combo
+                       string_agg(ingredient_concept_id::varchar, '-' ORDER BY ingredient_concept_id) AS i_combo
        FROM a
        GROUP BY concept_code_1,class_name,concept_id,concept_name,concept_class_id, pack_id
      ),
@@ -842,7 +856,7 @@ WITH a AS (
                        b.concept_class_id,
                        b.i_combo,
                        pack_id,
-                       string_agg(ca.ancestor_concept_id:: varchar, '-' order by ca.ancestor_concept_id) AS i_combo_2
+                       string_agg(ca.ancestor_concept_id:: varchar, '-' ORDER BY ca.ancestor_concept_id) AS i_combo_2
        FROM b
               JOIN devv5.concept_ancestor ca ON b.concept_id = ca.descendant_concept_id
               JOIN concept c ON c.concept_id = ca.ancestor_concept_id AND c.concept_class_id = 'Ingredient'
@@ -867,7 +881,7 @@ WHERE i_combo = i_combo_2
 -- 4.10
 DELETE
 FROM class_to_rx_descendant
-WHERE class_name like '%insulin%';
+WHERE class_name LIKE '%insulin%';
 INSERT INTO class_to_rx_descendant
 SELECT DISTINCT class_code,
                 class_name,
@@ -887,7 +901,7 @@ INSERT INTO class_to_rx_descendant
 SELECT DISTINCT substring(concept_code_1, '\w+'), class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, 1
 FROM class_to_drug_1 f
        JOIN devv5.concept_ancestor ca ON ca.ancestor_concept_id = cast(f.concept_id AS int)
-       JOIN devv5.concept c ON c.concept_id = descendant_concept_id AND c.concept_class_id like '%Pack%'
+       JOIN devv5.concept c ON c.concept_id = descendant_concept_id AND c.concept_class_id LIKE '%Pack%'
 WHERE f.concept_code_1 ~ 'G03FB|G03AB'; -- packs
 
 -- 4.12
@@ -925,7 +939,7 @@ AND class_code ~ 'S01CB|G03EK|G03CC|D10AA|D07XC|D07XB|D07XA'
 DROP TABLE IF EXISTS class_to_drug;
 CREATE TABLE class_to_drug
 AS
-SELECT DISTINCT substring(concept_code_1, '\w+') as class_code,
+SELECT DISTINCT substring(concept_code_1, '\w+') AS class_code,
                 a.class_name,
                 a.concept_id,
                 a.concept_name,
@@ -1016,7 +1030,7 @@ SELECT substring(concept_code_1, '\w+'), f.class_name, c.concept_id, c.concept_n
 FROM class_to_drug f
        JOIN devv5.concept_ancestor ca
             ON ca.ancestor_concept_id = f.concept_id
-       JOIN devv5.concept c ON c.concept_id = descendant_concept_id AND c.concept_class_id like '%Pack%'
+       JOIN devv5.concept c ON c.concept_id = descendant_concept_id AND c.concept_class_id LIKE '%Pack%'
 WHERE class_code ~ 'G03FB|G03AB'; -- packs
 
 DELETE

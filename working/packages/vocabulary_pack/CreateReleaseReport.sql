@@ -253,7 +253,7 @@ begin
 	SELECT vocabulary_pack.py_git_release (cGitRepository,'Release notes v'||TO_CHAR(CURRENT_DATE,'yyyymmdd'), cFullRet, cGitReleaseTag, cGitToken) into cRet_git;
 	IF NOT cRet_git ~ '^[\d]+$' THEN
 		cRet := SUBSTR ('Report completed with errors:'||crlf||'<b>'||cRet_git||'</b>', 1, 5000);
-		perform devv5.SendMailHTML (email, 'Release status [Wiki POST ERROR]', cRet);
+		perform devv5.SendMailHTML (email, 'Release status [Reports POST ERROR]', cRet);
 	END IF;
 	
 	EXCEPTION
@@ -262,7 +262,7 @@ begin
 	GET STACKED DIAGNOSTICS cRet = PG_EXCEPTION_CONTEXT;
 		cRet:='ERROR: '||SQLERRM||crlf||'CONTEXT: '||regexp_replace(cRet, '\r|\n|\r\n', crlf, 'g');
 		cRet := SUBSTR ('Report completed with errors:'||crlf||'<b>'||cRet||'</b>', 1, 5000);
-		perform devv5.SendMailHTML (email, 'Release status [Create Reports ERROR]', cRet);
+		perform devv5.SendMailHTML (email, 'Release status [Reports ERROR]', cRet);
 end;
 $body$
 LANGUAGE 'plpgsql'

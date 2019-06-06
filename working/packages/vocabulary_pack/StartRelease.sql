@@ -33,6 +33,7 @@ BEGIN
       ) AS s0;
 
   perform vocabulary_pack.CreateReleaseReport();
+  perform vocabulary_pack.CreateOHDSIReport();
   perform vocabulary_pack.CreateLocalPROD();
   
   cRet := 'Release completed';

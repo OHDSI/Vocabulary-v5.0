@@ -6,7 +6,7 @@ $body$
 DECLARE
   iVocabularies VARCHAR(1000) [ ];
   crlf VARCHAR (4) := '<br>';
-  iSmallCA_emails CONSTANT VARCHAR(1000) :=('timur.vakhitov@firstlinesoftware.com,reich@ohdsi.org,reich@omop.org,ddymshyts@odysseusinc.com,anna.ostropolets@odysseusinc.com');
+  iSmallCA_emails CONSTANT VARCHAR(1000) :=(SELECT var_value FROM devv5.config$ WHERE var_name='concept_ancestor_email');
   cRet TEXT;
   cRet2 TEXT;
   cCAGroups INT:=50;

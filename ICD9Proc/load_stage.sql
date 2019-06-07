@@ -59,7 +59,7 @@ SELECT NAME AS concept_name,
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM SOURCES.CMS_DESC_LONG_SG; -- 3882
+FROM SOURCES.CMS_DESC_LONG_SG;
 
 --4. Add non-billable and hierarchical ICD9Proc codes from SOURCES.mrconso into the CONCEPT_STAGE 
 INSERT INTO concept_stage (
@@ -279,7 +279,7 @@ SELECT a.concept_code,
 	b.concept_code,
 	a.vocabulary_id,
 	b.vocabulary_id,
-	relationship_id,
+	r.relationship_id,
 	r.valid_start_date,
 	CURRENT_DATE,
 	'D'
@@ -291,7 +291,12 @@ JOIN concept_relationship r ON a.concept_id = concept_id_1
 		'Concept replaces'
 		)
 JOIN concept b ON b.concept_id = concept_id_2
-WHERE (a.vocabulary_id = 'ICD9Proc' AND b.vocabulary_id = 'SNOMED' OR a.vocabulary_id = 'SNOMED' AND b.vocabulary_id = 'ICD9Proc')
+WHERE (
+		a.vocabulary_id = 'ICD9Proc'
+		AND b.vocabulary_id = 'SNOMED'
+		OR a.vocabulary_id = 'SNOMED'
+		AND b.vocabulary_id = 'ICD9Proc'
+		)
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs_int
@@ -310,3 +315,5 @@ WHERE cs.concept_code = crs.concept_code_1
 	AND cs.vocabulary_id = crs.vocabulary_id_1
 	AND crs.relationship_id = 'Maps to'
 	AND crs.invalid_reason IS NULL;
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

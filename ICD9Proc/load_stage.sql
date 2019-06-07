@@ -13,10 +13,9 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2017
+* Authors: Timur Vakhitov, Christian Reich, Polina Talapova, Dmitry Dymshyts
+* Date: 2019
 **************************************************************************/
-
 --1. Update latest_update field to new date
 DO $_$
 BEGIN
@@ -35,7 +34,7 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Load into concept_stage from CMS_DESC_LONG_SG
+--3. Add billing ICD9Proc codes from SOURCES.CMS_DESC_LONG_SG into the CONCEPT_STAGE 
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -60,9 +59,9 @@ SELECT NAME AS concept_name,
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM SOURCES.CMS_DESC_LONG_SG;
+FROM SOURCES.CMS_DESC_LONG_SG; -- 3882
 
---4. Add the non-billable or HT codes for ICD9Proc
+--4. Add non-billable and hierarchical ICD9Proc codes from SOURCES.mrconso into the CONCEPT_STAGE 
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -89,7 +88,7 @@ SELECT SUBSTR(str, 1, 256) AS concept_name,
 	NULL AS invalid_reason
 FROM SOURCES.mrconso
 WHERE sab = 'ICD9CM'
-	AND tty = 'HT'
+	AND tty = 'HT' -- hierarchical terms
 	AND (
 		devv5.INSTR(code, '.') = 3
 		OR -- Dot in 3rd position in Procedure codes, in UMLS also called ICD9CM
@@ -101,8 +100,8 @@ WHERE sab = 'ICD9CM'
 		WHERE vocabulary_id LIKE 'ICD9%'
 		)
 	AND suppress = 'N';
-
---5. load into concept_synonym_stage name from both CMS_DESC_LONG_DX.txt and CMS_DESC_SHORT_DX
+	
+--5. Add ICD9Proc additional names (CMS_DESC_LONG_DX and CMS_DESC_SHORT_DX) from both SOURCES.CMS_DESC_LONG_SG and SOURCES.CMS_DESC_SHORT_SG to the CONCEPT_SYNONYM_STAGE
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -116,15 +115,13 @@ SELECT REGEXP_REPLACE(code, '^([0-9]{2})([0-9]+)', '\1.\2','g') AS synonym_conce
 FROM (
 	SELECT *
 	FROM SOURCES.CMS_DESC_LONG_SG
-
-	UNION
-
+    	UNION
 	SELECT code,
 		name
 	FROM SOURCES.CMS_DESC_SHORT_SG
 	) AS s0;
 
---6. Add the non-billable or HT codes for ICD9Proc as a synonym
+--6. Add ICD9Proc names of non-billable and hierarchical codes to the CONCEPT_SYNONYM_STAGE
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -150,123 +147,31 @@ WHERE sab = 'ICD9CM'
 		)
 	AND suppress = 'N';
 
-/*deprecated
-all relationships come from concept_relationship_manual
---7. Load concept_relationship_stage from the existing one. The reason is that there is no good source for these relationships, and we have to build the ones for new codes from UMLS and manually
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT c1.concept_code AS concept_code_1,
-	c2.concept_code AS concept_code_2,
-	c1.vocabulary_id AS vocabulary_id_1,
-	c2.vocabulary_id AS vocabulary_id_2,
-	r.relationship_id AS relationship_id,
-	r.valid_start_date,
-	r.valid_end_date,
-	r.invalid_reason
-FROM concept_relationship r,
-	concept c1,
-	concept c2
-WHERE c1.concept_id = r.concept_id_1
-	AND (
-		c1.vocabulary_id = 'ICD9Proc'
-		OR c2.vocabulary_id = 'ICD9Proc'
-		)
-	AND c2.concept_id = r.concept_id_2
-	AND r.invalid_reason IS NULL -- only fresh ones
-	AND r.relationship_id NOT IN (
-		'Domain subsumes',
-		'Is domain'
-		);
-*/
-/*
---8. Create text for Medical Coder with new codes and mappings
-SELECT c.concept_code AS concept_code_1,
-	NULL AS concept_code_2
-FROM concept_stage c
-WHERE NOT EXISTS (
-		SELECT 1
-		FROM concept co
-		WHERE co.concept_code = c.concept_code
-			AND co.vocabulary_id = 'ICD9Proc'
-		) -- only new codes we don't already have
-	AND c.vocabulary_id = 'ICD9Proc';
-*/
-
---9. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--7. Add ICD9Proc to SNOMED manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---10. Working with replacement mappings
+--8. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--9. Deprecate 'Maps to' mappings to deprecated and updated concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---12. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---13. Delete ambiguous 'Maps to' mappings
+--10. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
-
---14. Add "subsumes" relationship between concepts where the concept_code is like of another or to SNOMED if concept is already mapped to SNOMED
-/*old version
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT c1.concept_code AS concept_code_1,
-	c2.concept_code AS concept_code_2,
-	c1.vocabulary_id AS vocabulary_id_1,
-	c1.vocabulary_id AS vocabulary_id_2,
-	'Subsumes' AS relationship_id,
-	(
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = c1.vocabulary_id
-		) AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM concept_stage c1,
-	concept_stage c2
-WHERE c2.concept_code LIKE c1.concept_code || '%'
-	AND c1.concept_code <> c2.concept_code
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r_int
-		WHERE r_int.concept_code_1 = c1.concept_code
-			AND r_int.concept_code_2 = c2.concept_code
-			AND r_int.relationship_id = 'Subsumes'
-		);*/
-
+--11. Add "Is a" relationship from ICD9Proc descendants (or their standard SNOMED equivalents) to ICD9Proc  ancestors  (or their standard SNOMED equivalents), using ICD9Proc code similarity, to the CONCEPT_RELATIONSHIP_STAGE
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -326,17 +231,40 @@ FROM (
 				AND crs_int.relationship_id = a.relationship_id
 			)
 	) b;
-
---15. set standard_concept = null for all concepts which have 'Maps to' to SNOMED
-UPDATE concept_stage cs
-SET standard_concept = NULL
+	
+--12. Build reverse relationship in the CONCEPT_RELATIONSHIP_STAGE. This is necessary for  next point
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT crs.concept_code_2,
+	crs.concept_code_1,
+	crs.vocabulary_id_2,
+	crs.vocabulary_id_1,
+	r.reverse_relationship_id,
+	crs.valid_start_date,
+	crs.valid_end_date,
+	crs.invalid_reason
 FROM concept_relationship_stage crs
-WHERE cs.concept_code = crs.concept_code_1
-	AND cs.vocabulary_id = crs.vocabulary_id_1
-	AND crs.relationship_id = 'Maps to'
-	AND crs.invalid_reason IS NULL;
+JOIN relationship r ON r.relationship_id = crs.relationship_id
+WHERE NOT EXISTS (
+		-- the inverse record
+		SELECT 1
+		FROM concept_relationship_stage i
+		WHERE crs.concept_code_1 = i.concept_code_2
+			AND crs.concept_code_2 = i.concept_code_1
+			AND crs.vocabulary_id_1 = i.vocabulary_id_2
+			AND crs.vocabulary_id_2 = i.vocabulary_id_1
+			AND r.reverse_relationship_id = i.relationship_id
+		);
 
-/*--add deprecated relationships = all from concept_relationship that is not exist on concept_relationship_stage should be deprecated
+--13. Add all old relationships that do not exist in the CONCEPT_RELATIONSHIP_STAGE, using  the CONCEPT_RELATIONSHIP
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -351,38 +279,34 @@ SELECT a.concept_code,
 	b.concept_code,
 	a.vocabulary_id,
 	b.vocabulary_id,
-	r.relationship_id,
+	relationship_id,
 	r.valid_start_date,
-	CURRENT_DATE - 1,
+	CURRENT_DATE,
 	'D'
 FROM concept a
-JOIN concept_relationship r ON a.concept_id = r.concept_Id_1
+JOIN concept_relationship r ON a.concept_id = concept_id_1
 	AND r.invalid_reason IS NULL
-JOIN concept b ON b.concept_id = r.concept_id_2
-WHERE (
-		a.vocabulary_id = 'ICD9Proc'
-		OR b.vocabulary_id = 'ICD9Proc'
+	AND r.relationship_id NOT IN (
+		'Concept replaced by',
+		'Concept replaces'
 		)
+JOIN concept b ON b.concept_id = concept_id_2
+WHERE (a.vocabulary_id = 'ICD9Proc' AND b.vocabulary_id = 'SNOMED' OR a.vocabulary_id = 'SNOMED' AND b.vocabulary_id = 'ICD9Proc')
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs_int
 		WHERE crs_int.concept_code_1 = a.concept_code
-			AND crs_int.vocabulary_id_1 = a.vocabulary_id
 			AND crs_int.concept_code_2 = b.concept_code
+			AND crs_int.vocabulary_id_1 = a.vocabulary_id
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
-		)
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs_int,
-			relationship rel
-		WHERE crs_int.concept_code_1 = b.concept_code
-			AND crs_int.vocabulary_id_1 = b.vocabulary_id
-			AND crs_int.concept_code_2 = a.concept_code
-			AND crs_int.vocabulary_id_2 = a.vocabulary_id
-			AND rel.relationship_id = r.relationship_id
-			AND crs_int.relationship_id = rel.reverse_relationship_id
 		);
-*/
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+--14. Set NULL as a Standard concept value for all ICD9Proc concepts having 'Maps to' relationship to the SNOMED in the CONCEPT_STAGE
+UPDATE concept_stage cs
+SET standard_concept = NULL
+FROM concept_relationship_stage crs
+WHERE cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL;

@@ -44,8 +44,8 @@ DO $$
 DECLARE
     z    int;
     ex   int;
-    pRelationship_name constant varchar(100):='CPT4 to CVX equivalent';
-    pRelationship_id constant varchar(100):='CPT4 - CVX eq (CVX)';
+    pRelationship_name constant varchar(100):='CPT4 to CVX equivalent (CVX)';
+    pRelationship_id constant varchar(100):='CPT4 - CVX eq';
     pIs_hierarchical constant int:=0;
     pDefines_ancestry constant int:=0;
     pReverse_relationship_id constant varchar(100):='CVX - CPT4 eq';

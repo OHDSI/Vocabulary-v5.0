@@ -18,7 +18,7 @@ $BODY$
  pVocabularies - comma separated vocabulary_id
 */
 DECLARE
-  iVocabularies VARCHAR(1000) [ ] = string_to_array (pVocabularies,',');
+  iVocabularies VARCHAR(1000) [ ] = (SELECT array_agg(trim(voc)) FROM unnest(string_to_array (pVocabularies,',')) voc);
   crlf VARCHAR (4) := '<br>';
   iSmallCA_emails CONSTANT VARCHAR(1000) := (SELECT var_value FROM devv5.config$ WHERE var_name='concept_ancestor_email');
   cRet TEXT;

@@ -369,7 +369,7 @@ FROM internal_relationship_stage i
 JOIN drug_concept_stage ON i.concept_code_2 = concept_code
 	AND concept_class_id = 'Ingredient'
 JOIN concept_relationship_stage cr ON cr.concept_code_1 = concept_code
-	AND relationship_id = 'Source - RxNorm eq'
+	AND relationship_id = 'Maps to'
 JOIN concept c ON c.concept_code = cr.concept_code_2
 	AND c.vocabulary_id LIKE 'Rx%'
 WHERE i.concept_code_1 NOT IN (
@@ -394,7 +394,7 @@ JOIN drug_concept_stage ON i.concept_code_2 = concept_code
 		'Dose Form'
 		)
 JOIN concept_relationship_stage cr ON cr.concept_code_1 = concept_code
-	AND relationship_id = 'Source - RxNorm eq'
+	AND relationship_id in ('Maps to','Source - RxNorm eq')
 JOIN concept c ON c.concept_code = cr.concept_code_2
 	AND c.vocabulary_id LIKE 'Rx%'
 WHERE i.concept_code_2 NOT IN (
@@ -503,7 +503,6 @@ SELECT from_code,
 	c.vocabulary_id,
 	CASE 
 		WHEN dc.concept_class_id IN (
-				'Ingredient',
 				'Brand Name',
 				'Suppier',
 				'Dose Form'

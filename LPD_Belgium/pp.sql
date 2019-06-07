@@ -4,6 +4,7 @@
 delete from concept_relationship_stage
 where
 	vocabulary_id_1 = 'LPD_Belgium' and
+	invalid_reason is null and
 	concept_code_1 in
 	(
 		select prod_prd_id

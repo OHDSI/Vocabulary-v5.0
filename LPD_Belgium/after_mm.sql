@@ -2,7 +2,6 @@ update relationship_to_concept_manual
 set precedence = 1 
 where precedence is null
 ;
--- 	'OMOP' || nextval('conc_stage_seq') AS concept_code,
 DROP SEQUENCE IF EXISTS conc_stage_seq;
 CREATE sequence conc_stage_seq MINVALUE 100 MAXVALUE 1000000 START
 	WITH 100 INCREMENT BY 1 CACHE 20;
@@ -141,7 +140,10 @@ with dirty as
 			c2.concept_id = r.concept_id_2 and
 			c2.concept_class_id = 'Ingredient'
 		left join prod_to_ing o using (prod_prd_id)
-		where o.prod_prd_id is null
+		left join devices_mapped x using (prd_name)
+		where
+			o.prod_prd_id is null and
+			a.prd_name is null
 	)
 --keep only those that have less than 4 ingredients
 select *

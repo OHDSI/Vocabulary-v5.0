@@ -10,9 +10,14 @@ You need to have the access to source files (IQVIA proprietary).
 
 All required current manual tables can be found in manual_work subdirectory.
 
-1. Run create_source_tables.sql and additional_DDL.sql
-2. Load all source tables and mappings
-3. Run init_full.sql. It will prepare input tables.
-4. Run Build_RxE and MapDrugVocab from /working
-5. Run to_concept_map.sql. It creates table s_to_c_map with applied mappings from source_data to concept.
-6. Run drops.sql to clean up the working directory
+1. Run additional_DDL.sql
+2. Load source table in belg_source. Optionally also upload r_to_c_all table to reuse legacy mappings
+3. Run init_full.sql. It will prepare manual mapping table (relationship_to_concept_to_map)
+* Avoid mapping to Brand Names that are not found in brand_rx table. Those will be marked with '!' in invalid_indicator field
+* Brand names can also be mapped to Ingredients or targets from CVX vocabulary
+4. Reupload filled out mappings as relationship_to_concept_manual
+5. Run after_mm.sql to prepare input tables
+6. Run Build_RxE.sql (without last section with drops) and MapDrugVocab.sql from /working/directory
+7. Run pp.sql.
+8. Run genericupdate.sql from /working/directory
+9. Run drops.sql to clean up the working directory

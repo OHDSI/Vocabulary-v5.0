@@ -183,15 +183,7 @@ BEGIN
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');  
             WHEN cVocabularyName = 'ICD10CM'
             THEN
-                cSearchString := '<div class="syndicate">';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cSearchString := '<strong>Note: <a href="';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString, cPos1);
-                cSearchString := '">';
-                cPos1 := INSTR (cVocabHTML, cSearchString, cPos1);
-                cPos2 := devv5.INSTR (cVocabHTML, '</a>', cPos1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (SUBSTRING (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), ' [[:digit:]]{4} ')::int - 1 || '0101', 'yyyymmdd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'Note: The FY ([[:digit:]]{4}) release of ICD-10-CM is now available')::int - 1 || '0101', 'yyyymmdd');
                 cVocabVer := 'ICD10CM FY'||to_char(cVocabDate + interval '1 year','YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN

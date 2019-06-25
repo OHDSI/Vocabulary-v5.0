@@ -39,6 +39,9 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage limit 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
+JOIN internal_relationship_stage i on
+	rc.concept_code_1 = i.concept_code_2 and
+	cr.concept_code_1 = i.concept_code_1
 WHERE cr.concept_code_1 NOT IN (
 		SELECT from_code
 		FROM map_drug
@@ -73,6 +76,9 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage limit 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
+JOIN internal_relationship_stage i on
+	rc.concept_code_1 = i.concept_code_2 and
+	cr.concept_code_1 = i.concept_code_1
 WHERE cr.concept_code_1 NOT IN (
 		SELECT from_code
 		FROM map_drug
@@ -107,6 +113,9 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage limit 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
+JOIN internal_relationship_stage i on
+	rc.concept_code_1 = i.concept_code_2 and
+	cr.concept_code_1 = i.concept_code_1
 WHERE cr.concept_code_1 NOT IN (
 		SELECT from_code
 		FROM map_drug
@@ -141,6 +150,9 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage limit 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
+JOIN internal_relationship_stage i on
+	rc.concept_code_1 = i.concept_code_2 and
+	cr.concept_code_1 = i.concept_code_1
 WHERE cr.concept_code_1 NOT IN (
 		SELECT from_code
 		FROM map_drug
@@ -175,6 +187,9 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage limit 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
+JOIN internal_relationship_stage i on
+	rc.concept_code_1 = i.concept_code_2 and
+	cr.concept_code_1 = i.concept_code_1
 WHERE cr.concept_code_1 NOT IN (
 		SELECT from_code
 		FROM map_drug
@@ -209,6 +224,9 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage LIMIT 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
+JOIN internal_relationship_stage i on
+	rc.concept_code_1 = i.concept_code_2 and
+	cr.concept_code_1 = i.concept_code_1
 WHERE cr.concept_code_1 NOT IN (
 		SELECT from_code
 		FROM map_drug
@@ -243,6 +261,9 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage LIMIT 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
+JOIN internal_relationship_stage i on
+	rc.concept_code_1 = i.concept_code_2 and
+	cr.concept_code_1 = i.concept_code_1
 WHERE cr.concept_code_1 NOT IN (
 		SELECT from_code
 		FROM map_drug
@@ -255,7 +276,7 @@ INSERT INTO map_drug (
 	)
 SELECT DISTINCT cr.concept_code_1,
 	r.concept_id,
-	'7' -- Branded Drug Com
+	'7' -- Branded Drug Comp
 FROM r_existing r
 JOIN ex e ON r.i_combo = e.ri_combo
 	AND r.d_combo = e.rd_combo
@@ -307,6 +328,9 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage LIMIT 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
+JOIN internal_relationship_stage i on
+	rc.concept_code_1 = i.concept_code_2 and
+	cr.concept_code_1 = i.concept_code_1
 WHERE cr.concept_code_1 NOT IN (
 		SELECT from_code
 		FROM map_drug

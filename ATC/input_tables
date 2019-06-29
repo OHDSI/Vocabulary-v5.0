@@ -447,9 +447,10 @@ create table ophth as
 select class_code from reference where concept_code  ~ 'S03|S01|S01X|S01XA20'
 and class_code=concept_code;
 
+-- S03 is classified as both ophtalmic and otic preparations
 drop table otic;
 create table otic as
-select class_code from reference where concept_code  like 'S02%'
+select class_code from reference where concept_code  like 'S02|S03'
 and class_code=concept_code;
  
 drop table topical;

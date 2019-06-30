@@ -685,66 +685,60 @@ where who_atc_code ~'R01|R03' and formulation_small_classification_name ~'Inhal'
 and formulation_small_classification_name !~'Sol|Aeros'
 and standardized_unit = '1.50mg0.9087g1Bot');
 
-
 /************************************************
 * 5. Populate relationship to concept *
 ************************************************/
 
+-- create rtc for future releases
+create table relationship_to_concept_bckp_@date
+as
+  select * from relationship_to_concept;
+truncate table relationship_to_concept;
+
 -- 5.1 Write mappings to RxNorm Dose Forms
+-- delete invalid forms
+delete from aut_form_mapped
+where concept_id_2 in
+      (select concept_id from concept where invalid_reason is not null)
+;
+-- get the list of forms to map
+create temp table aut_form_to_map
+as
+  select * from drug_concept_stage
+where concept_name not in
+      (select coalesce (new_name,concept_name)
+        from aut_form_mapped)
+and concept_class_id = 'Dose Form';
+
+-- insert mapped forms back to aut_form_mapped
+
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 select distinct dc.concept_code,'JMDC',concept_id_2,precedence
 from aut_form_mapped a
 join drug_concept_stage dc on dc.concept_name = coalesce (a.new_name,a.concept_name)
 where dc.concept_class_id = 'Dose Form'
+and not exists (select 1 from relationship_to_concept rtc2 where rtc2.concept_code_1 =  dc.concept_code)
 ;
 
 -- 5.2 Write mappings to real units
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('u', 'JMDC', 8510, 1, 1); -- to unit
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('iu', 'JMDC', 8510, 1, 1); -- to unit
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('g', 'JMDC', 8576, 1, 1000); -- to milligram
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('g', 'JMDC', 8587, 2, 1); -- to milliliter
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('mg', 'JMDC', 8576, 1, 1); -- to milligram
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('mg', 'JMDC', 8587, 2, 0.001); -- to milliliter
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('mlv', 'JMDC', 8587, 1, 1); -- to milliliter
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('mlv', 'JMDC', 8576, 2, 1000); -- to milligram
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('ml', 'JMDC', 8587, 1, 1); -- to milliliter
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('ug', 'JMDC', 8576, 1, 0.001); -- to milligram
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('%', 'JMDC', 8554, 2, 1);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('actuat', 'JMDC', 45744809, 1, 1);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('mol', 'JMDC', 9573, 1, 0.01);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('meq', 'JMDC', 9551, 1, 1);
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('ul', 'JMDC', 8587, 1, 0.001); -- to milliliter
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor) values ('ku', 'JMDC', 8510, 1, 1000); -- to unit
-
-
--- 5.3 Ingredients
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
-select distinct dc.concept_code,'JMDC',concept_id,rank() over (partition by dc.concept_code order by concept_id)
-from aut_ingredient_mapped_2
-join drug_concept_stage dc on dc.concept_name = source_concept_name and concept_class_id = 'Ingredient'
-where flag!=0;
-
+-- get list of units
+create temp table aut_unit_to_map
+as
+  select * from drug_concept_stage
+where concept_name not in
+      (select concept_code_1
+        from aut_unit_mapped)
+and concept_class_id = 'Unit';
+-- insert mapped forms back to aut_unit_mapped
 
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
-select distinct dc.concept_code,'JMDC',cast(concept_id_2 as int), case when precedence is null then 1 else precedence end
-from aut_ingredient_mapped a
-join drug_concept_stage dc on dc.concept_name = a.concept_name and concept_class_id = 'Ingredient'
-where not exists (select 1 from relationship_to_concept rtc2 where rtc2.concept_code_1 =  dc.concept_code)
+select distinct concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor
+from aut_unit_mapped a
+where not exists (select 1 from relationship_to_concept rtc2 where rtc2.concept_code_1 =  a.concept_code_1)
 ;
 
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
-select distinct dc.concept_code,'JMDC',concept_id, rank() over (partition by dc.concept_code order by concept_id)
-from aut_parsed_ingr a
-join drug_concept_stage dc
-on lower(dc.concept_name) = lower(a.ing_name) and dc.concept_class_id = 'Ingredient'
-where not exists (select 1 from relationship_to_concept rtc2 where rtc2.concept_code_1 =  dc.concept_code);
-
-insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
-select distinct dc.concept_code,'JMDC',concept_id, rank() over (partition by dc.concept_code order by concept_id)
-from aut_parsed_ingr a
-join drug_concept_stage dc
-on lower(dc.concept_name) = lower(a.concept_name) and dc.concept_class_id = 'Ingredient'
-where not exists (select 1 from relationship_to_concept rtc2 where rtc2.concept_code_1 =  dc.concept_code);
+-- 5.3 Ingredients
+-- for ingredients the ATC codes provided by the source jmdc table can be used
 
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 select distinct dc.concept_code,'JMDC',c2.concept_id, rank() over (partition by dc.concept_code order by c2.concept_id)
@@ -767,7 +761,50 @@ and c2.concept_class_id = 'Precise Ingredient' and c3.concept_class_id = 'Ingred
 and cr.invalid_reason is null and c3.standard_concept = 'S' and c3.vocabulary_id like 'RxNorm%'
 ;
 
+-- get the list of ingredients to map
+create temp table aut_ingredient_to_map
+as
+  select *
+  from drug_concept_stage
+where lower(concept_name) not in
+      (select lower(concept_name)
+        from aut_ingredient_mapped
+        union
+       select lower(ing_name)
+        from aut_parsed_ingr
+        union
+       select lower(concept_name)
+        from aut_parsed_ingr
+        )
+and concept_code not in
+    (select concept_code_1 from relationship_to_concept)
+and concept_class_id = 'Ingredient';
+
+--insert mappings back to aut_ingredient_mapped or aut_parsed_ingr (for ingredients that need parsing)
+
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
+select distinct dc.concept_code,'JMDC',cast(concept_id_2 as int), precedence
+from aut_ingredient_mapped a
+join drug_concept_stage dc on dc.concept_name = a.concept_name and concept_class_id = 'Ingredient'
+where not exists (select 1 from relationship_to_concept rtc2 where rtc2.concept_code_1 =  dc.concept_code)
+;
+
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
+select distinct dc.concept_code,'JMDC',concept_id, rank() over (partition by dc.concept_code order by concept_id)
+from aut_parsed_ingr a
+join drug_concept_stage dc
+on lower(dc.concept_name) = lower(a.ing_name) and dc.concept_class_id = 'Ingredient'
+where not exists (select 1 from relationship_to_concept rtc2 where rtc2.concept_code_1 =  dc.concept_code);
+
+insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
+select distinct dc.concept_code,'JMDC',concept_id, rank() over (partition by dc.concept_code order by concept_id)
+from aut_parsed_ingr a
+join drug_concept_stage dc
+on lower(dc.concept_name) = lower(a.concept_name) and dc.concept_class_id = 'Ingredient'
+where not exists (select 1 from relationship_to_concept rtc2 where rtc2.concept_code_1 =  dc.concept_code);
+
 -- 5.4 Brand Names
+
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 select distinct dc.concept_code,'JMDC',c.concept_id, rank() over (partition by dc.concept_code order by c.concept_id)
 from drug_concept_stage dc
@@ -795,6 +832,21 @@ join devv5.concept c on lower(c.concept_name) = lower(dc.concept_name)and c.conc
 and c.invalid_reason is null and c.vocabulary_id = 'RxNorm Extension'
 where dc.concept_class_id = 'Supplier'
 and dc.concept_code not in (select concept_code_1 from relationship_to_concept);
+
+-- get the list of suppliers to map
+create temp table aut_ingredient_to_map
+as
+  select *
+  from drug_concept_stage
+where lower(concept_name) not in
+      (select lower(name)
+        from aut_suppliers_mapped
+        )
+and concept_code not in
+    (select concept_code_1 from relationship_to_concept)
+and concept_class_id = 'Supplier';
+
+-- insert mappings back to aut_suppliers_mapped
 
 insert into relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
 select distinct dc.concept_code,'JMDC',a.concept_id, rank() over (partition by dc.concept_code order by a.concept_id)

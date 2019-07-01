@@ -26,14 +26,16 @@
 	TEMP tables:
 	api_codes_failed - table for failed concepts
 	ndc_history_tmp - temporary table for ndc_history
+	ndc_all_codes - temporary table for job GetAllNDC
 	rxnorm2ndc_mappings_tmp - temporary table for rxnorm2ndc_mappings
 	rxnorm2spl_mappings_tmp - temporary table for rxnorm2spl_mappings
 	
 	DDL:
-	CREATE TABLE apigrabber.api_codes_failed (concept_code VARCHAR(255));
+	CREATE TABLE apigrabber.api_codes_failed (concept_code VARCHAR(50));
+	CREATE TABLE apigrabber.ndc_all_codes (concept_code VARCHAR(50));
 	CREATE TABLE apigrabber.ndc_history
 	(
-		CONCEPT_CODE  VARCHAR(255),
+		CONCEPT_CODE  VARCHAR(50),
 		STATUS        VARCHAR(4000),
 		ACTIVERXCUI   VARCHAR(4000),
 		STARTDATE     DATE,
@@ -41,14 +43,14 @@
 	);
 	CREATE TABLE apigrabber.rxnorm2ndc_mappings
 	(
-		CONCEPT_CODE  VARCHAR(255),
+		CONCEPT_CODE  VARCHAR(50),
 		NDC_CODE      VARCHAR(4000),
 		STARTDATE     DATE,
 		ENDDATE       DATE
 	);
 	CREATE TABLE apigrabber.rxnorm2spl_mappings
 	(
-		CONCEPT_CODE  VARCHAR(255),
+		CONCEPT_CODE  VARCHAR(50),
 		SPL_CODE      VARCHAR(4000)
 	);
 	CREATE TABLE apigrabber.rxnorm2spl_mappings_tmp (LIKE apigrabber.rxnorm2spl_mappings);

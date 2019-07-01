@@ -7,7 +7,7 @@ declare
   cExecCounter int:=0;
   cExecCounterLimit int:=10;
   z int;
-  email CONSTANT varchar (1000):=('timur.vakhitov@firstlinesoftware.com');
+  email CONSTANT varchar (1000):=(SELECT var_value FROM devv5.config$ WHERE var_name='service_email');
   cJOBName constant varchar (1000):= 'JOB "RxNorm2NDC_Mappings"';
   cPrevMappingsCount int:=0;
   cFreshMappingsCount int:=0;

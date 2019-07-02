@@ -805,7 +805,7 @@ update aut_bn_mapped aim
 set concept_id_2 = c.concept_id_2
 from (select concept_id_2,concept_id_1 
       from concept_relationship cr
-      join concept c on c.concept_id = concept_id_1 and c.invalid_reason = 'U' and relationship_id = 'Maps to' and cr.invalid_reason is null) c
+      join concept c on c.concept_id = concept_id_1 and c.invalid_reason = 'U' and relationship_id = 'Concept replaced by' and cr.invalid_reason is null) c
 where (cast(aim.concept_id_2 as int) = c.concept_id_1);
 
 -- get the list of BN to map 
@@ -835,7 +835,7 @@ update aut_suppliers_mapped aim
 set concept_id_2 = c.concept_id_2
 from (select concept_id_2,concept_id_1 
       from concept_relationship cr
-      join concept c on c.concept_id = concept_id_1 and c.invalid_reason = 'U' and relationship_id = 'Maps to' and cr.invalid_reason is null) c
+      join concept c on c.concept_id = concept_id_1 and c.invalid_reason = 'U' and relationship_id = 'Concept replaced by' and cr.invalid_reason is null) c
 where (cast(aim.concept_id_2 as int) = c.concept_id_1);
 
 -- get the list of suppliers to map

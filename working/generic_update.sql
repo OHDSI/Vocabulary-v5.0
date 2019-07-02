@@ -22,8 +22,9 @@ BEGIN
 	ANALYSE concept_relationship_stage;
 	ANALYSE concept_synonym_stage;
 
-	-- 1. clearing the concept_name
+	-- 1. Clearing
 
+	-- 1.1 Clearing the concept_name
 	--remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_stage
 	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]]+', ' ')
@@ -36,12 +37,40 @@ BEGIN
 	--remove leading and trailing spaces
 	UPDATE concept_stage
 	SET concept_name = TRIM(concept_name)
-	WHERE concept_name <> TRIM(concept_name);
+	WHERE concept_name <> TRIM(concept_name)
+		AND NOT (
+			concept_name = ' '
+			AND vocabulary_id = 'GPI'
+			);--exclude GPI empty names
 
 	--remove long dashes
 	UPDATE concept_stage
 	SET concept_name = REPLACE(concept_name, '–', '-')
 	WHERE concept_name LIKE '%–%';
+
+	-- 1.2 Clearing the synonym_name
+	--remove double spaces, carriage return, newline, vertical tab and form feed
+	UPDATE concept_synonym_stage
+	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ')
+	WHERE synonym_name ~ '[[:cntrl:]]';
+
+	UPDATE concept_synonym_stage
+	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ')
+	WHERE synonym_name ~ ' {2,}';
+
+	--remove leading and trailing spaces
+	UPDATE concept_synonym_stage
+	SET synonym_name = TRIM(synonym_name)
+	WHERE synonym_name <> TRIM(synonym_name)
+		AND NOT (
+			synonym_name = ' '
+			AND synonym_vocabulary_id = 'GPI'
+			);--exclude GPI empty names
+
+	--remove long dashes
+	UPDATE concept_synonym_stage
+	SET synonym_name = REPLACE(synonym_name, '–', '-')
+	WHERE synonym_name LIKE '%–%';
 
 	/***************************
 	* Update the concept table *

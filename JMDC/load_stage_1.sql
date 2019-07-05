@@ -15,14 +15,13 @@
 * limitations under the License.
 *
 * Authors: Christian Reich, Anna Ostropolets
-* Date: 02-01-2019
+* Date: 06-05-2019
 **************************************************************************/
 
 /*************************************************
 * Create sequence for entities that do not have source codes *
 *************************************************/
 truncate table non_drug;
-truncate table relationship_to_concept;
 truncate table drug_concept_stage;
 truncate table ds_stage;
 truncate table internal_relationship_stage;
@@ -34,6 +33,7 @@ CREATE SEQUENCE new_vocab INCREMENT BY 1 START WITH 1 CACHE 20;
 /*************************************************
 * 0. Clean the data and extract non drugs *
 *************************************************/
+-- Preliminary work: manually identify new packs and add them to aut_pc_stage table (ingredients,dose forms and dosages; brand names and suplliers if applicable)
 
 -- Radiopharmaceuticals, scintigraphic material and blood products
 insert into non_drug
@@ -91,7 +91,6 @@ select distinct replace(replace(substring(brand_name,'\[\w+\]'),'[',''),']','') 
 from j
 where length(replace(replace(substring(brand_name,'\[\w+\]'),'[',''),']',''))>1 -- something like [F] that we do not need
 ;
-
 
 --ingredient
 delete from supplier

@@ -192,6 +192,9 @@ BEGIN
 		WHEN c.vocabulary_id = 'SNOMED Veterinary' THEN 1
 		WHEN c.vocabulary_id = 'OSM' THEN 1
 		WHEN c.vocabulary_id = 'US Census' THEN 1
+		WHEN c.vocabulary_id = 'HemOnc' THEN 1
+		WHEN c.vocabulary_id = 'NAACCR' THEN 1
+		WHEN c.vocabulary_id = 'JMDC' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');

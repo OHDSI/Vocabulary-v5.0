@@ -47,14 +47,30 @@ create or replace view r_to_c as
 --create table r_to_c as
   select r.* from relationship_to_concept r join concept on concept_id=r.concept_id_2 and vocabulary_id in ('RxNorm', 'RxNorm Extension', 'UCUM') where r.concept_code_1 is not null
 union
-  select c1.concept_code as concept_code_1, c1.vocabulary_id as vocabulary_id_1, r.concept_id_2, 1, null
-  from concept c1
+  select 
+    c1.concept_code as concept_code_1,
+    c1.vocabulary_id as vocabulary_id_1,
+    r.concept_id_2,
+    (
+      coalesce ((select max (precedence) from relationship_to_concept where concept_code_1 = c1.concept_code),1) +
+      rank () over (partition by c1.concept_code order by length (c1.concept_name) desc) - --pick simpler concepts first
+      1
+    ) :: int4 as precedence,
+    null  from concept c1
   join concept_relationship r on r.concept_id_1=c1.concept_id and r.relationship_id in ('Maps to', 'Source - RxNorm eq') and r.invalid_reason is null
   join concept c2 on c2.concept_id=r.concept_id_2 and c2.invalid_reason is null
   where c1.vocabulary_id=(select vocabulary_id from drug_concept_stage limit 1)
   and c2.vocabulary_id in ('RxNorm', 'RxNorm Extension') 
   and c2.concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name', 'Supplier')
-  and c1.concept_code not in (select concept_code_1 from relationship_to_concept where concept_code_1 is not null);
+  and not exists
+    (
+      select
+      from relationship_to_concept
+      where
+        concept_code_1 = c1.concept_code and
+        concept_id_2 = r.concept_id_2
+    )
+;
 
 /*****************************************************************************************************************************************************
 * 1. Prepare drug components for new vocabularies: Create unique list and for each drug enumerate. This allows to create a single row for each drug. *

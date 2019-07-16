@@ -673,7 +673,8 @@ BEGIN
 		  UNION ALL
 		  SELECT COUNT (*)
 			FROM concept_stage
-		   WHERE concept_name IS NULL OR domain_id IS NULL OR concept_class_id IS NULL OR concept_code IS NULL OR valid_start_date IS NULL OR valid_end_date IS NULL
+		   WHERE concept_name IS NULL OR domain_id IS NULL OR concept_class_id IS NULL OR concept_code IS NULL OR valid_start_date IS NULL
+		   OR valid_end_date IS NULL OR concept_name<>TRIM(concept_name) OR concept_code<>TRIM(concept_code)
 		  UNION ALL
 			SELECT COUNT (*)
 			  FROM concept_relationship_stage

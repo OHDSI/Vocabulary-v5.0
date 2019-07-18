@@ -51,12 +51,9 @@ union
     c1.concept_code as concept_code_1,
     c1.vocabulary_id as vocabulary_id_1,
     r.concept_id_2,
-    (
-      coalesce ((select max (precedence) from relationship_to_concept where concept_code_1 = c1.concept_code),1) +
-      rank () over (partition by c1.concept_code order by length (c1.concept_name) desc) - --pick simpler concepts first
-      1
-    ) :: int4 as precedence,
-    null  from concept c1
+    rank () over (partition by c1.concept_code order by length (c2.concept_name) desc, c2.concept_id) :: int4 as precedence, --pick simpler concepts first
+    null  
+  from concept c1
   join concept_relationship r on r.concept_id_1=c1.concept_id and r.relationship_id in ('Maps to', 'Source - RxNorm eq') and r.invalid_reason is null
   join concept c2 on c2.concept_id=r.concept_id_2 and c2.invalid_reason is null
   where c1.vocabulary_id=(select vocabulary_id from drug_concept_stage limit 1)
@@ -67,9 +64,9 @@ union
       select
       from relationship_to_concept
       where
-        concept_code_1 = c1.concept_code and
-        concept_id_2 = r.concept_id_2
-    )
+        concept_code_1 = c1.concept_code
+    ) and
+  (c2.concept_class_id, r.relationship_id) != ('Ingredient','Source - RxNorm eq') --combination that is not automatically updated
 ;
 
 /*****************************************************************************************************************************************************

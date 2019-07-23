@@ -106,7 +106,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT substr(spl_name, 1, 255) AS concept_name,
+SELECT SUBSTR(spl_name, 1, 255) AS concept_name,
 	CASE 
 		WHEN displayname IN ('COSMETIC')
 			THEN 'Observation'
@@ -203,7 +203,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT substr(concept_name, 1, 255) concept_name,
+SELECT TRIM(SUBSTR(concept_name, 1, 255)) concept_name,
 	CASE 
 		WHEN displayname IN (
 				'COSMETIC',
@@ -299,13 +299,13 @@ INSERT INTO concept_stage (
 WITH good_spl AS (
 		SELECT CASE -- add [brandname] if proprietaryname exists and not identical to nonproprietaryname
 				WHEN brand_name IS NULL
-					THEN SUBSTR(TRIM(concept_name), 1, 255)
-				ELSE SUBSTR(CONCAT (
+					THEN TRIM(SUBSTR(TRIM(concept_name), 1, 255))
+				ELSE TRIM(SUBSTR(CONCAT (
 							TRIM(concept_name),
 							' [',
 							brand_name,
 							']'
-							), 1, 255)
+							), 1, 255))
 				END AS concept_name,
 			'Drug' AS domain_id,
 			'SPL' AS vocabulary_id,
@@ -323,29 +323,29 @@ WITH good_spl AS (
 				CASE 
 					WHEN MULTI_NONPROPRIETARYNAME IS NULL
 						THEN CONCAT (
-								substr(nonproprietaryname, 1, 100),
+								SUBSTR(nonproprietaryname, 1, 100),
 								CASE 
 									WHEN length(nonproprietaryname) > 100
 										THEN '...'
 									END,
-								NULLIF(' ' || substr(aggr_dose, 1, 100), ' '),
+								NULLIF(' ' || SUBSTR(aggr_dose, 1, 100), ' '),
 								' ',
-								substr(routename, 1, 100),
+								SUBSTR(routename, 1, 100),
 								' ',
-								substr(dosageformname, 1, 100)
+								SUBSTR(dosageformname, 1, 100)
 								)
 					ELSE CONCAT (
 							'Multiple formulations: ',
-							substr(nonproprietaryname, 1, 100),
+							SUBSTR(nonproprietaryname, 1, 100),
 							CASE 
 								WHEN length(nonproprietaryname) > 100
 									THEN '...'
 								END,
-							NULLIF(' ' || substr(aggr_dose, 1, 100), ' '),
+							NULLIF(' ' || SUBSTR(aggr_dose, 1, 100), ' '),
 							' ',
-							substr(routename, 1, 100),
+							SUBSTR(routename, 1, 100),
 							' ',
-							substr(dosageformname, 1, 100)
+							SUBSTR(dosageformname, 1, 100)
 							)
 					END AS concept_name,
 				SUBSTR(brand_name, 1, 255) AS brand_name,
@@ -569,13 +569,13 @@ INSERT INTO main_ndc
 SELECT NULL AS concept_id,
 	CASE -- add [brandname] if proprietaryname exists and not identical to nonproprietaryname
 		WHEN brand_name IS NULL
-			THEN SUBSTR(TRIM(concept_name), 1, 255)
-		ELSE SUBSTR(CONCAT (
+			THEN TRIM(SUBSTR(TRIM(concept_name), 1, 255))
+		ELSE TRIM(SUBSTR(CONCAT (
 					TRIM(concept_name),
 					' [',
 					brand_name,
 					']'
-					), 1, 255)
+					), 1, 255))
 		END AS concept_name,
 	'Drug' AS domain_id,
 	'NDC' AS vocabulary_id,
@@ -591,29 +591,29 @@ FROM --get unique and aggregated data from source
 		CASE 
 			WHEN MULTI_NONPROPRIETARYNAME IS NULL
 				THEN CONCAT (
-						substr(nonproprietaryname, 1, 100),
+						SUBSTR(nonproprietaryname, 1, 100),
 						CASE 
 							WHEN length(nonproprietaryname) > 100
 								THEN '...'
 							END,
-						NULLIF(' ' || substr(aggr_dose, 1, 100), ' '),
+						NULLIF(' ' || SUBSTR(aggr_dose, 1, 100), ' '),
 						' ',
-						substr(routename, 1, 100),
+						SUBSTR(routename, 1, 100),
 						' ',
-						substr(dosageformname, 1, 100)
+						SUBSTR(dosageformname, 1, 100)
 						)
 			ELSE CONCAT (
 					'Multiple formulations: ',
-					substr(nonproprietaryname, 1, 100),
+					SUBSTR(nonproprietaryname, 1, 100),
 					CASE 
 						WHEN length(nonproprietaryname) > 100
 							THEN '...'
 						END,
-					NULLIF(' ' || substr(aggr_dose, 1, 100), ' '),
+					NULLIF(' ' || SUBSTR(aggr_dose, 1, 100), ' '),
 					' ',
-					substr(routename, 1, 100),
+					SUBSTR(routename, 1, 100),
 					' ',
-					substr(dosageformname, 1, 100)
+					SUBSTR(dosageformname, 1, 100)
 					)
 			END AS concept_name,
 		SUBSTR(brand_name, 1, 255) AS brand_name,
@@ -729,7 +729,7 @@ INSERT INTO main_ndc (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT SUBSTR(c.str, 1, 255) AS concept_name,
+SELECT DISTINCT TRIM(SUBSTR(c.str, 1, 255)) AS concept_name,
 	'Drug' AS domain_id,
 	'NDC' AS vocabulary_id,
 	'11-digit NDC' AS concept_class_id,
@@ -761,7 +761,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT SUBSTR(concept_name, 1, 255) AS concept_name,
+SELECT TRIM(SUBSTR(concept_name, 1, 255)) AS concept_name,
 	'Drug' AS domain_id,
 	'NDC' AS vocabulary_id,
 	'11-digit NDC' AS concept_class_id,
@@ -851,7 +851,7 @@ AS (
 	SELECT concept_code,
 		coalesce(startdate, min(l.ndc_valid_start_date)) valid_start_date,
 		coalesce(enddate, max(h.ndc_valid_end_date)) valid_end_date,
-		substr(coalesce(c_name1, c_name2, max(spl_name)), 1, 255) concept_name
+		TRIM(SUBSTR(coalesce(c_name1, c_name2, max(spl_name)), 1, 255)) concept_name
 	FROM (
 		SELECT n.concept_code,
 			n.startdate,

@@ -134,7 +134,7 @@ BEGIN
 				select 1 from sources.cdm_tables cd1
 				join sources.cdm_tables cd2 on cd2.table_name=cd1.table_name and cd2.column_name=cd1.column_name and cd2.ordinal_position=cd1.ordinal_position
 				and (cd2.column_default=cd1.column_default or (cd2.column_default is null and cd1.column_default is null))
-				and cd2.is_nullable=cd1.is_nullable and cd2.column_type=cd1.column_type 
+				and cd2.is_nullable=cd1.is_nullable and cd2.column_type=cd1.column_type
 				and (cd2.character_maximum_length=cd1.character_maximum_length or (cd2.character_maximum_length is null and cd1.character_maximum_length is null))
 				and cd2.ddl_release_id=cdm.prev_ddl_release_id
 				where cd1.ddl_release_id=cdm.ddl_release_id
@@ -166,7 +166,7 @@ BEGIN
 				select 1 from sources.cdm_tables cd_int
 				where cd_int.table_name=cd.table_name and cd_int.column_name=cd.column_name and cd_int.ordinal_position=cd.ordinal_position
 				and (cd_int.column_default=cd.column_default or (cd_int.column_default is null and cd.column_default is null))
-				and cd_int.is_nullable=cd.is_nullable and cd_int.column_type=cd.column_type 
+				and cd_int.is_nullable=cd.is_nullable and cd_int.column_type=cd.column_type
 				and (cd_int.character_maximum_length=cd.character_maximum_length or (cd_int.character_maximum_length is null and cd.character_maximum_length is null))
 				and cd_int.ddl_release_id=cdm.prev_ddl_release_id
 			);
@@ -214,7 +214,20 @@ BEGIN
 		from concept_stage cs1
 		join concept_stage cs2 on cs2.concept_name like cs1.concept_name || '.%'
 		and cs2.concept_class_id='Field' and cs2.domain_id is null
-		where cs1.concept_class_id='Table' and cs1.domain_id is null;
+		where cs1.concept_class_id='Table' /*and cs1.domain_id is null*/;
+		
+		--add 'Subsumes' for 'new' (changed) fields from the old tables
+		with t as (
+			select cs.concept_code field_concept_code, min(c_t.concept_code) as table_concept_code
+			from concept_stage cs
+			left join concept_relationship_stage crs on crs.concept_code_1=cs.concept_code and crs.vocabulary_id_1='CDM' and crs.relationship_id='Is a'
+			join concept c_t on cs.concept_name like c_t.concept_name || '.%' and c_t.vocabulary_id='CDM' and c_t.concept_class_id='Table'
+			where cs.vocabulary_id='CDM' and cs.concept_class_id='Field'
+			and crs.concept_code_1 is null
+			group by cs.concept_code
+		)
+		insert into concept_relationship_stage (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+		select table_concept_code, field_concept_code, 'CDM', 'CDM', 'Subsumes', cdm.ddl_date::date, to_date('20991231','yyyymmdd'), null from t;
 		
 		--create mappings from the 'release concept' to affected version
 		insert into concept_relationship_stage (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
@@ -228,7 +241,7 @@ BEGIN
 			null as invalid_reason
 		from concept_stage cs where cs.domain_id is null;
 		
-		--fill domain_id. it means that we are done with parsing
+		--fill domain_id. it means that we are done with processing
 		update concept_stage set domain_id='Metadata' where domain_id is null;
 	end loop;
 	

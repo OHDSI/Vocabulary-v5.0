@@ -46,18 +46,18 @@ BEGIN
     #set permissions=775 by default
     umask 002 && \
     cd "$1/work" && \
-    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Terminology/sct2_Concept_Full_*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Terminology/sct2_Description_Full-en-GB_*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Terminology/sct2_Relationship_Full_*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_Production_*/Full/Refset/Content/der2_cRefset_AssociationFull_GB*.txt" -d .
+    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Terminology/sct2_Concept_Full*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Terminology/sct2_Description_Full*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Terminology/sct2_Relationship_Full*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_UKClinicalRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationFull_GB*.txt" -d .
         
     #move result to original folder
     cd "$1"
     rm -f "sct2_Concept_Full-UK.txt" "sct2_Description_Full-UK.txt" "sct2_Relationship_Full-UK.txt" "der2_cRefset_AssociationFull_UK.txt"
-    mv work/sct2_Concept_Full_GB*.txt "sct2_Concept_Full-UK.txt" && \
-    mv work/sct2_Description_Full-en-GB_*.txt "sct2_Description_Full-UK.txt" && \
-    mv work/sct2_Relationship_Full_GB*.txt "sct2_Relationship_Full-UK.txt" && \
-    mv work/der2_cRefset_AssociationFull_GB*.txt "der2_cRefset_AssociationFull_UK.txt"
+    mv work/sct2_Concept_Full*.txt "sct2_Concept_Full-UK.txt" && \
+    mv work/sct2_Description_Full*.txt "sct2_Description_Full-UK.txt" && \
+    mv work/sct2_Relationship_Full*.txt "sct2_Relationship_Full-UK.txt" && \
+    mv work/der2_cRefset_AssociationFull*.txt "der2_cRefset_AssociationFull_UK.txt"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

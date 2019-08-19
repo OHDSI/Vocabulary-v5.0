@@ -48,7 +48,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT SUBSTR(str, 1, 255),
+SELECT TRIM(SUBSTR(str, 1, 255)),
 	'RxNorm',
 	'Drug',
 	-- use RxNorm tty as for Concept Classes
@@ -189,7 +189,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT SUBSTR(str, 1, 255),
+SELECT TRIM(SUBSTR(str, 1, 255)),
 	'RxNorm',
 	'Drug',
 	-- use RxNorm tty as for Concept Classes

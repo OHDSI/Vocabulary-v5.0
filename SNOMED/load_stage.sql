@@ -1905,6 +1905,17 @@ FROM (
 				THEN 'Has pathology'
 			WHEN term = 'Plays role'
 				THEN 'Plays role'
+			--20190823
+			WHEN term = 'VMP route of administration'
+				THEN 'Has route'
+			WHEN term = 'Has NHS dm+d controlled drug category'
+				THEN 'Has CD category'
+			WHEN term = 'VMP ontology form and route'
+				THEN 'Has ontological form'
+			WHEN term = 'VMP combination product indicator'
+				THEN 'Has combi prod ind'
+			WHEN term = 'Has NHS dm+d dose form indicator'
+				THEN = 'Has form continuity'
 			ELSE term--'non-existing'
 			END AS relationship_id,
 		(

@@ -321,7 +321,6 @@ AS $BODY$
 	FROM concept_relationship r,
 		relationship rel
 	WHERE r.relationship_id = rel.relationship_id
-		AND r.concept_id_1 <> r.concept_id_2
 		AND NOT EXISTS (
 			SELECT 1
 			FROM concept_relationship r_int

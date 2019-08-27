@@ -1906,16 +1906,16 @@ FROM (
 			WHEN term = 'Plays role'
 				THEN 'Plays role'
 			--20190823
-			WHEN term = 'VMP route of administration'
+			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) VMP (Virtual Medicinal Product) route of administration'
 				THEN 'Has route'
-			WHEN term = 'Has NHS dm+d controlled drug category'
+			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) controlled drug category'
 				THEN 'Has CD category'
-			WHEN term = 'VMP ontology form and route'
+			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) VMP (Virtual Medicinal Product) ontology form and route'
 				THEN 'Has ontological form'
 			WHEN term = 'VMP combination product indicator'
 				THEN 'Has combi prod ind'
-			WHEN term = 'Has NHS dm+d dose form indicator'
-				THEN = 'Has form continuity'
+			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) dose form indicator'
+				THEN 'Has form continuity'
 			ELSE term--'non-existing'
 			END AS relationship_id,
 		(
@@ -2394,7 +2394,9 @@ VALUES (138875005, 'Metadata'), -- root
 	(332525008, 'Device'),  --Camouflaging preparations
 	(768697005, 'Device'), --Barium and barium compound product -- contrast media subcathegory
 	--added 20190827
-	(8653201000001106, 'Drug');
+	(8653201000001106, 'Drug'), -- dm+d value
+	(48176007, 'Observation'), -- Social context
+	(397731000, 'Race'); -- Ethnic group finding
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

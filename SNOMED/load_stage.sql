@@ -2391,7 +2391,9 @@ VALUES (138875005, 'Metadata'), -- root
 	(407935004, 'Device'), -- Contrast media
 	(385420005, 'Device'), -- Contrast media
 	(332525008, 'Device'),  --Camouflaging preparations
-	(768697005, 'Device'); --Barium and barium compound product -- contrast media subcathegory
+	(768697005, 'Device'), --Barium and barium compound product -- contrast media subcathegory
+	--added 20190827
+	(8653201000001106, 'Drug');
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

@@ -2192,6 +2192,7 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 );
 
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
+create index idx_desc_anc on snomed_ancestor (descendant_concept_code,ancestor_concept_code);
 
 ANALYZE snomed_ancestor;
 
@@ -2503,15 +2504,28 @@ BEGIN
 							END -- everything else is Observation
 					) AS peak_domain_id,
 				sa.descendant_concept_code AS concept_code
-			FROM peak p,
-				snomed_ancestor sa
-			WHERE sa.ancestor_concept_code = p.peak_code
-				AND p.ranked = A
+			FROM peak p
+			join snomed_ancestor sa on
+                            sa.ancestor_concept_code = p.peak_code AND
+                            p.ranked = A
+                        where
+                            not exists --if a peak (P1) has descendants (P2) among other peaks for this sa.descendant_concept_code, discard it as a candidate
+                                (
+                                    select
+                                    from snomed_ancestor p2
+                                    join peak pf on
+                                        p2.ancestor_concept_code = pf.peak_code and
+                                        p2.descendant_concept_code = sa.descendant_concept_code
+                                    join snomed_ancestor sal on
+                                    	sal.ancestor_concept_code = sa.ancestor_concept_code and
+                                    	sal.descendant_concept_code = p2.ancestor_concept_code
+                                )
 			) child
 		WHERE child.concept_code = d.concept_code;
 	END LOOP;
 END $_$;
 
+;
 -- Assign domains of peaks themselves (snomed_ancestor doesn't include self-descendants)
 UPDATE domain_snomed d
 SET domain_id = i.peak_domain_id

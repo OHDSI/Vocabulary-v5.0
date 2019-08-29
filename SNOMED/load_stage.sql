@@ -2862,6 +2862,13 @@ SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
+-- 19.5. Some concepts wrongly change domain from Measurement to Procedure because of hierarchy gaps
+update concept_stage
+set domain_id = 'Measurement'
+where
+	domain_id = 'Procedure' and
+	(concept_code,vocabulary_id) in (select concept_code,vocabulary_id from devv5.concept where domain_id = 'Measurement');
+
 -- 20. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;

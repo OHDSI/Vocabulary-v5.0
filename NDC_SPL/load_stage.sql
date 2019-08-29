@@ -1539,6 +1539,17 @@ WHERE cs.concept_code = c.concept_code
 	AND c.vocabulary_id = 'NDC'
 	AND c.concept_class_id = 'Device';
 
+--Some devices, that cannot be detected using the patterns
+UPDATE concept_stage
+SET concept_class_id = 'Device',
+	domain_id = 'Device',
+	standard_concept = 'S'
+WHERE concept_code IN ('00019960110', '00019960220', '17156020105', '17156052205', '488151001', '651740461', '50914773104',
+                       '48815100101', '48815100105', '488151002', '48815100201', '48815100205', '509147720', '50914772008',
+                       '65174046105', '699450601', '69945060110', '699450602', '69945060220', '91237000148', '91237000144',
+                       '509147731')
+    AND vocabulary_id = 'NDC';
+
 /*Put your updates here..
 	UPDATE concept_stage SET concept_class_id = 'Device', domain_id = 'Device', standard_concept='S' WHERE concept_code in ('x','y');
 */
@@ -1551,7 +1562,7 @@ FROM ndc_devices i
 WHERE cs.concept_code = i.concept_code
 	AND cs.concept_class_id <> 'Device';
 */
---33. Clean up
+--34. Clean up
 DROP FUNCTION GetAggrDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR);
 DROP FUNCTION GetDistinctDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR, p IN INT);
 DROP FUNCTION CheckNDCDate (pDate IN VARCHAR, pDateDefault IN DATE);

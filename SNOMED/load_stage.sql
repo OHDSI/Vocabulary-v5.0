@@ -2396,7 +2396,8 @@ VALUES (138875005, 'Metadata'), -- root
 	--added 20190827
 	(8653201000001106, 'Drug'), -- dm+d value
 	(48176007, 'Observation'), -- Social context
-	(397731000, 'Race'); -- Ethnic group finding
+	(397731000, 'Race'), -- Ethnic group finding
+	(108246006, 'Measurement'); --Tonometry AND/OR tonography procedure
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
@@ -2862,20 +2863,41 @@ SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
--- 19.5. Some concepts wrongly change domain from Measurement to Procedure because of hierarchy gaps
-update concept_stage
-set domain_id = 'Measurement'
-where
-	domain_id = 'Procedure' and
-	(concept_code,vocabulary_id) in (select concept_code,vocabulary_id from devv5.concept where domain_id = 'Measurement');
 
--- 20. Clean up
+-- 20. Some concepts wrongly change domains because of hierarchy gaps;
+-- If a concept does not have full relationship chain to top level concept, it may have missing peaks
+-- Because of that, we prefer Domain from previous release
+update concept_stage c
+set domain_id =
+	(
+		select x.domain_id
+		from concept x
+		where
+			x.concept_code = c.concept_code and
+			x.vocabulary_id = 'SNOMED'
+	)
+where
+	c.concept_code :: bigint not in
+		(
+			select descendant_concept_code
+			from snomed_ancestor
+			where
+				ancestor_concept_code = '138875005' --SNOMED CT Concept (top level)
+		) and
+	c.concept_code in
+		(
+			select concept_code
+			from concept
+			where vocabulary_id = 'SNOMED'
+		);
+
+-- 21. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE concept_stage_dmd;
 DROP TABLE snomed_ancestor;
 
--- 21. Need to check domains before runnig the generic_update
+-- 22. Need to check domains before runnig the generic_update
 /*temporary disabled for later use
 DO $_$
 DECLARE

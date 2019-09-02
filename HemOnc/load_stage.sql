@@ -1,24 +1,3 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-* 
-* Authors: Dmitry Dymshyts, Timur Vakhitov
-* Date: 2019
-**************************************************************************/
-
---1. Update latest_update field to new date
-
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -37,7 +16,7 @@ truncate concept_synonym_stage
 insert into concept_stage 
 select concept_id,concept_name,
 case 
-when ( concept_class_id in ('Procedure', 'Context') or concept_name ='Radiotherapy') then 'Procedure'
+when concept_class_id in ('Procedure', 'Context')  then 'Procedure'
 when concept_class_id in ('Component', 'Brand Name', 'Component Class', 'Route', 'Regimen type') then 'Drug'
 when concept_class_id in ('Condition', 'Condition Class', 'BioCondition') then 'Condition'
 when concept_class_id in ('Regimen', 'Modality') then 'Regimen' --https://github.com/OHDSI/OncologyWG/issues/69  --"69" haha
@@ -199,5 +178,3 @@ update concept_relationship_stage set relationship_id = 'Concept replaced by' wh
 ;
 update concept_stage set standard_concept = null, invalid_reason ='U' where concept_code in (select concept_code_1 from concept_relationship_stage where relationship_id = 'Concept replaced by')
 ;
-
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

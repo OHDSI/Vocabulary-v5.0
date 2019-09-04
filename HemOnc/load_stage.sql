@@ -26,6 +26,7 @@ vocabulary_id,
  concept_class_id , 
 case
  when concept_class_id ='Condition Class' then 'C' -- let's make them classification concepts (in previos version Component Class was assigned manually, Jeremy fixed it in the 30-Aug-2019 release)
+ when concept_class_id ='Modality' then 'S' -- can be used as a generic Regimen when we don't know what exact Chemo or Hormonotherapy patient got
 else standard_concept end as standard_concept
 ,concept_code,valid_start_date,valid_end_date, 
   invalid_reason 
@@ -177,4 +178,3 @@ and synonym_name is not null -- 15704 has empty name, typo, I suppose
 update concept_relationship_stage set relationship_id = 'Concept replaced by' where relationship_id = 'Was replaced by'
 ;
 update concept_stage set standard_concept = null, invalid_reason ='U' where concept_code in (select concept_code_1 from concept_relationship_stage where relationship_id = 'Concept replaced by')
-;

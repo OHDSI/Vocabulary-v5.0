@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'HemOnc',
-	pVocabularyDate			=> TO_DATE ('20190530', 'yyyymmdd'),
-	pVocabularyVersion		=> 'HemOnc 2019-05-30',
+	pVocabularyDate			=> TO_DATE ('20190829', 'yyyymmdd'),
+	pVocabularyVersion		=> 'HemOnc 2019-08-29',
 	pVocabularyDevSchema	=> 'DEV_HEMONC'
 );
 END $_$;
@@ -41,18 +41,14 @@ INSERT INTO concept_stage
 SELECT NULL AS concept_id,
 	concept_name,
 	CASE 
-		WHEN (
-				h.concept_class_id IN (
-					'Procedure',
-					'Context'
-					)
-				OR h.concept_name = 'Radiotherapy'
+		WHEN h.concept_class_id IN (
+				'Procedure',
+				'Context'
 				)
 			THEN 'Procedure'
 		WHEN h.concept_class_id IN (
-				'Regimen',
 				'Component',
-				'Brand_Name',
+				'Brand Name',
 				'Component Class',
 				'Route',
 				'Regimen type'
@@ -64,23 +60,26 @@ SELECT NULL AS concept_id,
 				'BioCondition'
 				)
 			THEN 'Condition'
+		WHEN h.concept_class_id IN (
+				'Regimen',
+				'Modality'
+				)
+			THEN 'Regimen' --https://github.com/OHDSI/OncologyWG/issues/69
 		ELSE 'Undefined'
 		END AS domain_id,
 	h.vocabulary_id,
+	h.concept_class_id,
 	CASE 
-		WHEN h.concept_class_id = 'Brand_Name'
-			THEN 'Brand Name'
-		ELSE h.concept_class_id
-		END AS concept_class_id,
-	CASE 
-		WHEN h.concept_class_id = 'Component Class'
-			THEN 'C'
+		WHEN h.concept_class_id = 'Condition Class'
+			THEN 'C' -- let's make them classification concepts (in previos version Component Class was assigned manually, Jeremy fixed it in the 30-Aug-2019 release)
+		WHEN concept_class_id = 'Modality'
+			THEN 'S' -- can be used as a generic Regimen when we don't know what exact Chemo or Hormonotherapy patient got
 		ELSE h.standard_concept
 		END AS standard_concept,
 	h.concept_code,
 	h.valid_start_date,
 	h.valid_end_date,
-	NULL AS invalid_reason --fix when new release comes up
+	h.invalid_reason
 FROM sources.hemonc_cs h
 WHERE h.concept_class_id IN (
 		'Regimen type', -- type
@@ -88,63 +87,57 @@ WHERE h.concept_class_id IN (
 		'Component', -- ingredient, Standard if there's no equivalent in Rx, RxE
 		'Context', -- therapy intent or line or other Context, STANDARD
 		'Regimen', -- Standard
-		'Brand_Name', -- need to map to RxNorm, RxNorm Extension if possible, if not - leave it as is
+		'Brand Name', -- need to map to RxNorm, RxNorm Extension if possible, if not - leave it as is
 		'Route',
-		'Procedure'
+		'Procedure',
+		--added 30-Aug-2019
+		'Modality'
+		--need to be added, requires further analysis of relationships
+		/*
+		'BioCondition',
+		'Condition',
+		'Condition Class'
+		*/
 		)
 	AND h.concept_name IS NOT NULL;
 
 --4. Create concept_relationship_stage
 INSERT INTO concept_relationship_stage
-SELECT DISTINCT concept_id_1,
-	concept_id_2,
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	CASE 
-		WHEN relationship_id = 'Has Route'
-			THEN 'May have route'
-		ELSE
-			--relationship_ids have this structure "First word only is initcap"
-			REPLACE(UPPER(SUBSTRING(LOWER(relationship_id) FROM 1 FOR 1)) || SUBSTRING(LOWER(relationship_id) FROM 2), ' rx', ' Rx')
-		END AS relationship_id,
+SELECT DISTINCT NULL::int4 AS concept_id_1,
+	NULL::int4 AS concept_id_2,
+	r.concept_code_1,
+	r.concept_code_2,
+	r.vocabulary_id_1,
+	r.vocabulary_id_2,
+	r.relationship_id,
 	r.valid_start_date,
-	CASE 
-		WHEN r.invalid_reason = 'NA'
-			THEN TO_DATE('20991231', 'yyyymmdd')
-		ELSE r.valid_end_date
-		END AS valid_end_date,
-	CASE 
-		WHEN r.invalid_reason = 'NA'
-			THEN NULL
-		ELSE r.invalid_reason
-		END AS invalid_reason
+	r.valid_end_date,
+	r.invalid_reason
 FROM sources.hemonc_crs r
-LEFT JOIN concept c1 ON c1.concept_code = r.concept_code_1
-	AND c1.vocabulary_id = r.vocabulary_id_1
-LEFT JOIN concept_stage cs1 ON cs1.concept_code = r.concept_code_1
-	AND cs1.vocabulary_id = r.vocabulary_id_1
-LEFT JOIN concept c2 ON c2.concept_code = r.concept_code_2
-	AND c2.vocabulary_id = r.vocabulary_id_2
+JOIN concept_stage cs ON cs.concept_code = r.concept_code_1
+	AND cs.vocabulary_id = r.vocabulary_id_1
+LEFT JOIN concept c ON c.concept_code = r.concept_code_2
+	AND c.vocabulary_id = r.vocabulary_id_2
+	AND c.vocabulary_id IN (
+		'RxNorm',
+		'RxNorm Extension'
+		)
 LEFT JOIN concept_stage cs2 ON cs2.concept_code = r.concept_code_2
 	AND cs2.vocabulary_id = r.vocabulary_id_2
 WHERE r.relationship_id NOT IN (
-		'Has Been Compared To',
-		'Can Be Preceded By',
-		'Can Be Followed By'
+		-- these aren't investigated well yet
+		'Has been compared to',
+		'Can be preceded by',
+		'Can be followed by'
 		)
+	--Antithymocyte globulin rabbit ATG was mapped to Thymoglobulin (Brand Name) , correct mapping will be added below
 	AND NOT (
 		r.concept_code_1 = '37'
 		AND r.concept_code_2 = '225741'
 		AND r.relationship_id = 'Maps to'
 		)
 	AND NOT (
-		c1.concept_code IS NULL
-		AND cs1.concept_code IS NULL
-		)
-	AND NOT (
-		c2.concept_code IS NULL
+		c.concept_code IS NULL
 		AND cs2.concept_code IS NULL
 		);
 
@@ -170,39 +163,40 @@ FROM (
 WHERE crs.concept_code_2 = i.concept_code_1
 	AND crs.vocabulary_id_2 = i.vocabulary_id_1;
 
---6. Update wrong Maps to Brand Names and one totally incorrect drug form
+--6. Update wrong 'Maps to' and relationships from Regimen to Drugs to Brand Names
+--and one totally incorrect drug form
 --to do, make this step automatic
 UPDATE concept_relationship_stage crs
-SET concept_code_2 = i.concept_code_2,
-	vocabulary_id_2 = i.vocabulary_id_2
+SET concept_code_2 = i.new_code,
+	vocabulary_id_2 = i.new_vocab
 FROM (
-	SELECT c1.concept_code concept_code_1,
-		c1.vocabulary_id vocabulary_id_1,
-		c2.concept_code concept_code_2,
-		c2.vocabulary_id vocabulary_id_2
-	FROM concept_relationship r
-	JOIN concept c1 ON c1.concept_id = r.concept_id_1
+	SELECT DISTINCT crs.concept_code_2 AS old_code,
+		crs.vocabulary_id_2 AS old_vocab,
+		c2.concept_code AS new_code,
+		c2.vocabulary_id AS new_vocab
+	FROM concept_relationship_stage crs
+	JOIN concept c1 ON c1.concept_code = crs.concept_code_2
+		AND c1.vocabulary_id = crs.vocabulary_id_2
 		AND c1.vocabulary_id = 'RxNorm'
 		AND c1.concept_class_id = 'Brand Name'
-	JOIN concept c2 ON c2.concept_id = r.concept_id_2
+	JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
+		AND cr.relationship_id = 'Brand name of'
+		AND cr.invalid_reason IS NULL
+	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 		AND c2.concept_class_id = 'Ingredient'
 		AND c2.standard_concept = 'S'
-	WHERE r.relationship_id = 'Brand name of'
-		AND r.invalid_reason IS NULL
-		AND EXISTS (
-			SELECT 1
-			FROM concept_relationship_stage crs_int
-			WHERE crs_int.concept_code_2 = c1.concept_code
-				AND crs_int.vocabulary_id_2 = c1.vocabulary_id
-				AND crs_int.relationship_id = 'Maps to'
-				-- fix this later
-				AND NOT EXISTS (
-					SELECT 1
-					FROM concept_stage cs
-					WHERE cs.concept_code = crs_int.concept_code_1
-						AND cs.vocabulary_id = crs_int.vocabulary_id_1
-						AND cs.concept_name LIKE '% and %'
-					)
+	JOIN concept_stage cs ON cs.concept_code = crs.concept_code_1
+		AND cs.concept_name NOT LIKE '% and %' -- avoiding the combinatory drugs, they are mapped manually, see union below
+		AND c1.concept_code NOT IN (
+			'2119715',
+			'1927886'
+			) -- Herceptin Hylecta , Rituxan Hycela -  need to make better automatic work-aroud when have time
+	WHERE crs.relationship_id IN (
+			'Maps to',
+			'Has antineopl Rx',
+			'Has immunosuppr Rx',
+			'Has local therap Rx',
+			'Has support med Rx'
 			)
 	--Clinical Drug Forms Picked up manually
 	
@@ -211,13 +205,6 @@ FROM (
 	SELECT '1552344',
 		'RxNorm',
 		'2044421',
-		'RxNorm'
-	
-	UNION ALL
-	
-	SELECT '1927886',
-		'RxNorm',
-		'1927883',
 		'RxNorm'
 	
 	UNION ALL
@@ -233,19 +220,33 @@ FROM (
 		'RxNorm',
 		'1942741',
 		'RxNorm'
+	
+	UNION ALL
+	
+	SELECT '2119715',
+		'RxNorm',
+		'2119717', -- Herceptin Hylecta , Hyaluronidase / trastuzumab Injection [Herceptin Hylecta]
+		'RxNorm'
+	
+	UNION ALL
+	
+	SELECT '1927886',
+		'RxNorm',
+		'1927888', -- Rituxan Hycela , Hyaluronidase / rituximab Injection [Rituxan Hycela] 
+		'RxNorm'
 	) i
-WHERE crs.concept_code_2 = i.concept_code_1
-	AND crs.vocabulary_id_2 = i.vocabulary_id_1;
+WHERE crs.concept_code_2 = i.old_code
+	AND crs.vocabulary_id_2 = i.old_vocab;
 
 --7. Build mappings to missing RxNorm, RxNorm Extension, need to do this because of RxNorm updates and adds new ingredients
 INSERT INTO concept_relationship_stage
-SELECT NULL,
-	NULL,
+SELECT NULL AS concept_id_1,
+	NULL AS concept_id_2,
 	cs.concept_code,
 	c.concept_code,
 	cs.vocabulary_id,
 	c.vocabulary_id,
-	'Maps to',
+	'Maps to' AS relationship_id,
 	cs.valid_start_date,
 	cs.valid_end_date,
 	CASE 
@@ -265,12 +266,12 @@ WHERE cs.concept_class_id = 'Component'
 	AND crs.concept_code_1 IS NULL;
 
 --8. Build relationship from Regimen to Standard concepts
---need to build this because we added some new mappings
+--only for newly added mappings between HemOnc and RxNorm (E)
 INSERT INTO concept_relationship_stage
 SELECT *
 FROM (
-	SELECT NULL::int4,
-		NULL::int4,
+	SELECT NULL::int4 AS concept_id_1,
+		NULL::int4 AS concept_id_2,
 		cs1.concept_code AS concept_code_1,
 		r2.concept_code_2,
 		cs1.vocabulary_id AS vocabulary_id_1,
@@ -280,7 +281,7 @@ FROM (
 				THEN 'Has antineopl Rx'
 			WHEN r.relationship_id = 'Has immunosuppressor'
 				THEN 'Has immunosuppr Rx'
-			WHEN r.relationship_id = 'Has local therapy'
+			WHEN r.relationship_id = 'Has local Therapy'
 				THEN 'Has local therap Rx'
 			WHEN r.relationship_id = 'Has supportive med'
 				THEN 'Has support med Rx'
@@ -306,12 +307,16 @@ FROM (
 	) i -- in order not to write the relationship_id case in the last condition, I use subquery
 WHERE (
 		i.concept_code_1,
+		i.vocabulary_id_1,
 		i.relationship_id,
-		i.concept_code_2
+		i.concept_code_2,
+		i.vocabulary_id_2
 		) NOT IN (
 		SELECT concept_code_1,
+			vocabulary_id_1,
 			relationship_id,
-			concept_code_2
+			concept_code_2,
+			vocabulary_id_2
 		FROM concept_relationship_stage
 		);
 
@@ -332,13 +337,13 @@ WHERE EXISTS (
 --10. To build hierarchy relationships from RxNorm (E) concepts
 INSERT INTO concept_relationship_stage
 SELECT DISTINCT --results in  Duplications, which should be fine as we can have different ways to go through
-	NULL::int4,
-	NULL::int4,
+	NULL::int4 AS concept_id_1,
+	NULL::int4 AS concept_id_2,
 	rb.concept_code_2,
 	ra.concept_code_2,
 	rb.vocabulary_id_2,
 	ra.vocabulary_id_2,
-	'Subsumes',
+	'Subsumes' AS relationship_id,
 	ra.valid_start_date,
 	ra.valid_end_date,
 	ra.invalid_reason
@@ -358,5 +363,24 @@ JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	AND cs.vocabulary_id = css.synonym_vocabulary_id
 	-- 15704 has empty name, typo, I suppose
 	AND css.synonym_name IS NOT NULL;
+
+--12. Replace 'Was replaced by' to 'Concept replaced by' (need to tell Jeremy)
+UPDATE concept_relationship_stage
+SET relationship_id = 'Concept replaced by'
+WHERE relationship_id = 'Was replaced by';
+
+UPDATE concept_stage cs
+SET standard_concept = NULL,
+	valid_end_date = (
+		SELECT v.latest_update - 1
+		FROM vocabulary v
+		WHERE v.vocabulary_id = cs.vocabulary_id
+		),
+	invalid_reason = 'U'
+FROM concept_relationship_stage crs
+WHERE crs.concept_code_1 = cs.concept_code
+	AND crs.vocabulary_id_1 = cs.vocabulary_id
+	AND crs.relationship_id = 'Concept replaced by'
+	AND crs.invalid_reason IS NULL;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

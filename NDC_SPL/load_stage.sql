@@ -1582,7 +1582,31 @@ FROM ndc_devices i
 WHERE cs.concept_code = i.concept_code
 	AND cs.concept_class_id <> 'Device';
 */
---34. Clean up
+
+--34. Return proper valid_end_date from base tables
+UPDATE concept_relationship_stage crs
+SET valid_end_date = i.valid_end_date
+FROM (
+	SELECT c1.concept_code AS concept_code_1,
+		c1.vocabulary_id AS vocabulary_id_1,
+		c2.concept_code AS concept_code_2,
+		c2.vocabulary_id AS vocabulary_id_2,
+		r.relationship_id,
+		r.valid_end_date
+	FROM concept_relationship r
+	JOIN concept c1 ON c1.concept_id = r.concept_id_1
+	JOIN concept c2 ON c2.concept_id = r.concept_id_2
+	WHERE r.invalid_reason IS NOT NULL
+	) i
+WHERE crs.concept_code_1 = i.concept_code_1
+	AND crs.vocabulary_id_1 = i.vocabulary_id_1
+	AND crs.concept_code_2 = i.concept_code_2
+	AND crs.vocabulary_id_2 = i.vocabulary_id_2
+	AND crs.relationship_id = i.relationship_id
+	AND crs.valid_end_date <> i.valid_end_date
+	AND crs.invalid_reason IS NOT NULL;
+
+--35. Clean up
 DROP FUNCTION GetAggrDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR);
 DROP FUNCTION GetDistinctDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR, p IN INT);
 DROP FUNCTION CheckNDCDate (pDate IN VARCHAR, pDateDefault IN DATE);

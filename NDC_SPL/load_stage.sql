@@ -1323,37 +1323,67 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---25. delete duplicate mappings to packs
+--25. Delete duplicate mappings to packs
+
+--25.1. Deprecate 'Maps to' mappings to deprecated and upgraded concepts (necessary for the next step)
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--25.2. Add mapping from deprecated to fresh concepts (necessary for the next step)
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--25.3 Do it
 DELETE
 FROM concept_relationship_stage r
 WHERE r.relationship_id = 'Maps to'
 	AND r.invalid_reason IS NULL
 	AND r.vocabulary_id_1 = 'NDC'
-	AND r.vocabulary_id_2 = 'RxNorm'
+	AND r.vocabulary_id_2 LIKE 'RxNorm%'
 	AND concept_code_1 IN (
-		--get all duplicate NDC mappings to packs
+		--get all duplicate NDC mappings
 		SELECT concept_code_1
 		FROM concept_relationship_stage r_int
 		WHERE r_int.relationship_id = 'Maps to'
 			AND r_int.invalid_reason IS NULL
 			AND r_int.vocabulary_id_1 = 'NDC'
-			AND r_int.vocabulary_id_2 = 'RxNorm'
+			AND r_int.vocabulary_id_2 LIKE 'RxNorm%'
+			--at least one mapping to pack should exist
+			AND EXISTS (
+				SELECT 1
+				FROM concept c_int
+				WHERE c_int.concept_code = r_int.concept_code_2
+					AND c_int.vocabulary_id LIKE 'RxNorm%'
+					AND c_int.concept_class_id IN (
+						'Branded Pack',
+						'Clinical Pack',
+						'Quant Branded Drug',
+						'Quant Clinical Drug',
+						'Branded Drug',
+						'Clinical Drug'
+						)
+				)
 		GROUP BY concept_code_1
 		HAVING count(*) > 1
 		)
 	AND concept_code_2 NOT IN (
-		--exclude 'true' mappings [Branded->Clinical]
+		--exclude 'true' mappings to packs [Branded->Clinical->etc]
 		SELECT c_int.concept_code
 		FROM concept_relationship_stage r_int,
 			concept c_int
 		WHERE r_int.relationship_id = 'Maps to'
 			AND r_int.invalid_reason IS NULL
 			AND r_int.vocabulary_id_1 = r.vocabulary_id_1
-			AND r_int.vocabulary_id_2 = r.vocabulary_id_2
+			AND r_int.vocabulary_id_2 LIKE 'RxNorm%'
 			AND c_int.concept_code = r_int.concept_code_2
 			AND c_int.vocabulary_id = r_int.vocabulary_id_2
 			AND r_int.concept_code_1 = r.concept_code_1
 		ORDER BY c_int.invalid_reason NULLS FIRST,
+			c_int.standard_concept DESC NULLS LAST, --'S' first, next 'C' and NULL
 			CASE c_int.concept_class_id
 				WHEN 'Branded Pack'
 					THEN 1
@@ -1369,9 +1399,13 @@ WHERE r.relationship_id = 'Maps to'
 					THEN 6
 				ELSE 7
 				END,
+			CASE r_int.vocabulary_id_2
+				WHEN 'RxNorm'
+					THEN 1
+				ELSE 2
+				END, --mappings to RxNorm first
 			c_int.valid_start_date DESC,
-			c_int.concept_id 
-			LIMIT 1
+			c_int.concept_id LIMIT 1
 		);
 
 --26. Add PACKAGES
@@ -1466,7 +1500,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---29. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+/*--29. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
@@ -1476,15 +1510,15 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
+END $_$;*/
 
---31. Delete ambiguous 'Maps to' mappings
+--29. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---32. Delete records that does not exists in the concept and concept_stage
+--30. Delete records that does not exists in the concept and concept_stage
 DELETE
 FROM concept_relationship_stage crs
 WHERE EXISTS (
@@ -1514,7 +1548,7 @@ WHERE EXISTS (
 			AND crs_int.vocabulary_id_2 = crs.vocabulary_id_2
 		);
 
---33. Set proper concept_class_id (Device)
+--31. Set proper concept_class_id (Device)
 UPDATE concept_stage
 SET concept_class_id = 'Device',
 	domain_id = 'Device',
@@ -1583,7 +1617,7 @@ WHERE cs.concept_code = i.concept_code
 	AND cs.concept_class_id <> 'Device';
 */
 
---34. Return proper valid_end_date from base tables
+--32. Return proper valid_end_date from base tables
 UPDATE concept_relationship_stage crs
 SET valid_start_date = i.valid_start_date,
 	valid_end_date = i.valid_end_date
@@ -1608,7 +1642,7 @@ WHERE crs.concept_code_1 = i.concept_code_1
 	AND crs.valid_end_date <> i.valid_end_date
 	AND crs.invalid_reason IS NOT NULL;
 
---35. Clean up
+--33. Clean up
 DROP FUNCTION GetAggrDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR);
 DROP FUNCTION GetDistinctDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR, p IN INT);
 DROP FUNCTION CheckNDCDate (pDate IN VARCHAR, pDateDefault IN DATE);

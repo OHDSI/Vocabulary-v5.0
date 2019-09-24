@@ -29,18 +29,18 @@ INSERT INTO concept_stage
   valid_end_date,
   invalid_reason
 )
-SELECT DISTINCT TRIM(FIRST_VALUE(english_name) OVER (PARTITION BY icd_code)),
+SELECT DISTINCT TRIM(FIRST_VALUE(english_name) OVER (PARTITION BY icd_code ORDER BY length(english_name) ASC)),
        NULL,
        'KCD7',
        'KCD7 code',
        NULL,
-       icd_code,-- code with inserted dot
+       icd_code,-- code with inserted dot 
        (SELECT latest_update
         FROM vocabulary
         WHERE vocabulary_id = 'KCD7'),
        TO_DATE('20991231','yyyymmdd'),
        NULL
-FROM kcd7_incompl_w_icd_code;--source table
+FROM kcd7_incompl_w_icd_code;--source table (sources.)
 
 
 
@@ -56,7 +56,16 @@ SELECT icd_code AS synonym_concept_code,
        Korean_Name AS synonym_name,
        'KCD7' AS synonym_vocabulary_id,
        4175771 AS language_concept_id -- Korean
-       FROM kcd7_incompl_w_icd_code;
+       FROM kcd7_incompl_w_icd_code --(sources.)
+UNION
+SELECT icd_code AS synonym_concept_code,
+       trim(english_name) AS synonym_name,
+       'KCD7' AS synonym_vocabulary_id,
+       4180186 AS language_concept_id -- English synonyms
+       FROM kcd7_incompl_w_icd_code --(sources.)
+WHERE trim(english_name) NOT IN (SELECT concept_name FROM concept_stage);
+
+
 
 
 -- Add mapping through ICD10 
@@ -152,7 +161,7 @@ WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'KCD7'
 ;
 
---if domain_id is empty we use previous and next domain_id or its combination.
+--if domain_id is empty we use previous and next domain_id
 DROP TABLE IF EXISTS KCD7_domain;
 CREATE UNLOGGED TABLE KCD7_domain AS
 SELECT concept_code,
@@ -242,4 +251,3 @@ END $_$;
 
 
 DROP TABLE KCD7_domain;
-

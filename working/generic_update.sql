@@ -435,42 +435,40 @@ BEGIN
 	UPDATE concept_relationship r
 	SET valid_end_date  =
 			GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
-				FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
-			WHERE c.concept_id IN (r.concept_id_1, r.concept_id_2) --take both concept ids to get proper latest_update
+				FROM vocabulary v
+			WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id) --take both concept ids to get proper latest_update
 			)),
 			invalid_reason = 'D'
-	FROM concept c, relationships rel
-	WHERE r.concept_id_2=c.concept_id
+	FROM concept c1, concept c2, relationships rel
+	WHERE r.concept_id_1=c1.concept_id
+	AND r.concept_id_2=c2.concept_id
 	AND r.invalid_reason IS NULL
 	AND r.relationship_id=rel.relationship_id
 	AND r.concept_id_1<>r.concept_id_2
 	AND EXISTS (
-		SELECT 1 FROM concept_relationship_stage crs, concept c1
+		SELECT 1 FROM concept_relationship_stage crs
 		WHERE crs.concept_code_1=c1.concept_code
 		AND crs.vocabulary_id_1=c1.vocabulary_id
 		AND crs.relationship_id=r.relationship_id
 		AND crs.invalid_reason IS NULL
-		AND c1.concept_id=r.concept_id_1
 		AND (
-			crs.vocabulary_id_2=c.vocabulary_id 
+			crs.vocabulary_id_2=c2.vocabulary_id
 			OR (/*AVOF-459*/
-				crs.vocabulary_id_2 IN ('RxNorm','RxNorm Extension') AND c.vocabulary_id IN ('RxNorm','RxNorm Extension')
+				crs.vocabulary_id_2 IN ('RxNorm','RxNorm Extension') AND c2.vocabulary_id IN ('RxNorm','RxNorm Extension')
 			)
 			OR (/*AVOF-1439*/
-				crs.vocabulary_id_2 IN ('SNOMED','SNOMED Veterinary') AND c.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
+				crs.vocabulary_id_2 IN ('SNOMED','SNOMED Veterinary') AND c2.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
 			)			
 		)
 	)
 	AND NOT EXISTS (
-		SELECT 1 FROM concept_relationship_stage crs, concept c1, concept c2
+		SELECT 1 FROM concept_relationship_stage crs
 		WHERE crs.concept_code_1=c1.concept_code
 		AND crs.vocabulary_id_1=c1.vocabulary_id
 		AND crs.concept_code_2=c2.concept_code
 		AND crs.vocabulary_id_2=c2.vocabulary_id
 		AND crs.relationship_id=r.relationship_id
 		AND crs.invalid_reason IS NULL
-		AND c1.concept_id=r.concept_id_1
-		AND c2.concept_id=r.concept_id_2
 	);
 
 	--part 2 (reverse mappings)
@@ -489,42 +487,40 @@ BEGIN
 	UPDATE concept_relationship r
 	SET valid_end_date  =
 			GREATEST(r.valid_start_date, (SELECT MAX(v.latest_update) -1 -- one of latest_update (if we have more than one vocabulary in concept_relationship_stage) may be NULL, therefore use aggregate function MAX() to get one non-null date
-				FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id
-			WHERE c.concept_id IN (r.concept_id_1, r.concept_id_2) --take both concept ids to get proper latest_update
+				FROM vocabulary v
+			WHERE v.vocabulary_id IN (c1.vocabulary_id, c2.vocabulary_id) --take both concept ids to get proper latest_update
 			)),
 		invalid_reason = 'D'
-	FROM concept c, relationships rel
-	WHERE r.concept_id_1=c.concept_id
+	FROM concept c1, concept c2, relationships rel
+	WHERE r.concept_id_1=c1.concept_id
+	AND r.concept_id_2=c2.concept_id
 	AND r.invalid_reason IS NULL
 	AND r.relationship_id=rel.reverse_relationship_id
 	AND r.concept_id_1<>r.concept_id_2
 	AND EXISTS (
-		SELECT 1 FROM concept_relationship_stage crs, concept c1
-		WHERE crs.concept_code_2=c1.concept_code
-		AND crs.vocabulary_id_2=c1.vocabulary_id
+		SELECT 1 FROM concept_relationship_stage crs
+		WHERE crs.concept_code_2=c2.concept_code
+		AND crs.vocabulary_id_2=c2.vocabulary_id
 		AND crs.relationship_id=r.relationship_id
 		AND crs.invalid_reason IS NULL
-		AND c1.concept_id=r.concept_id_2
 		AND (
-			crs.vocabulary_id_1=c.vocabulary_id 
+			crs.vocabulary_id_1=c1.vocabulary_id 
 			OR (/*AVOF-459*/
-				crs.vocabulary_id_1 IN ('RxNorm','RxNorm Extension') AND c.vocabulary_id IN ('RxNorm','RxNorm Extension')
+				crs.vocabulary_id_1 IN ('RxNorm','RxNorm Extension') AND c1.vocabulary_id IN ('RxNorm','RxNorm Extension')
 			)
 			OR (/*AVOF-1439*/
-				crs.vocabulary_id_1 IN ('SNOMED','SNOMED Veterinary') AND c.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
-			)				
+				crs.vocabulary_id_1 IN ('SNOMED','SNOMED Veterinary') AND c1.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
+			)
 		)
 	)
 	AND NOT EXISTS (
-		SELECT 1 FROM concept_relationship_stage crs, concept c1, concept c2
+		SELECT 1 FROM concept_relationship_stage crs
 		WHERE crs.concept_code_1=c1.concept_code
 		AND crs.vocabulary_id_1=c1.vocabulary_id
 		AND crs.concept_code_2=c2.concept_code
 		AND crs.vocabulary_id_2=c2.vocabulary_id
 		AND crs.relationship_id=r.relationship_id
 		AND crs.invalid_reason IS NULL
-		AND c1.concept_id=r.concept_id_1
-		AND c2.concept_id=r.concept_id_2
 	);
 
 	-- 10. Insert new relationships if they don't already exist

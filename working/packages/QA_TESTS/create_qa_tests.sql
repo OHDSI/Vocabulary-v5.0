@@ -375,13 +375,7 @@ AS $BODY$
 
 		UNION ALL*/
 	--wrong relationships: 'Maps to' to 'D' or 'U'; replacement relationships to 'D'
-	SELECT 5 check_id,
-		$$ wrong
-
-	relationships: 'Maps to' TO 'D'
-		OR 'U';
-
-	replacement relationships TO 'D' $$ AS check_name,
+	SELECT 5 check_id, $$wrong relationships: 'Maps to' TO 'D' OR 'U'; replacement relationships TO 'D'$$ AS check_name,
 		r.*
 	FROM concept c2,
 		concept_relationship r
@@ -465,20 +459,31 @@ AS $BODY$
 	--wrong valid_start_date, valid_end_date or invalid_reason for the concept_relationship
 	SELECT 8 check_id,
 		'wrong valid_start_date, valid_end_date or invalid_reason for the concept_relationship' AS check_name,
-		r.*
-	FROM concept_relationship r
-	WHERE (
-			(
-				r.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
-				AND r.invalid_reason IS NOT NULL
-				)
-			OR (
-				r.valid_end_date <> TO_DATE('20991231', 'YYYYMMDD')
-				AND r.invalid_reason IS NULL
-				)
-			OR r.valid_start_date > CURRENT_DATE
-			OR r.valid_start_date < TO_DATE('19700101', 'yyyymmdd')
-			)
+		s0.concept_id_1,
+		s0.concept_id_2,
+		s0.relationship_id,
+		s0.valid_start_date,
+		s0.valid_end_date,
+		s0.invalid_reason
+	FROM (
+		SELECT r.*,
+			CASE 
+				WHEN (
+						r.valid_end_date = TO_DATE('20991231', 'YYYYMMDD')
+						AND r.invalid_reason IS NOT NULL
+						)
+					OR (
+						r.valid_end_date <> TO_DATE('20991231', 'YYYYMMDD')
+						AND r.invalid_reason IS NULL
+						)
+					OR r.valid_start_date > CURRENT_DATE
+					OR r.valid_start_date < TO_DATE('19700101', 'yyyymmdd')
+					THEN 1
+				ELSE 0
+				END check_flag
+		FROM concept_relationship r
+		) AS s0
+	WHERE check_flag = 1
 		AND COALESCE(checkid, 8) = 8
 
 	UNION ALL

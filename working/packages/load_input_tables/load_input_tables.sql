@@ -236,10 +236,10 @@ begin
       truncate table sources.product, sources.package;
       execute 'COPY sources.product (productid,productndc,producttypename,proprietaryname,proprietarynamesuffix,nonproprietaryname,dosageformname,
       	routename,startmarketingdate,endmarketingdate,marketingcategoryname,applicationnumber,labelername,substancename,active_numerator_strength,
-        active_ingred_unit,pharm_classes,deaschedule,ndc_exclude_flag,listing_record_certified_through) FROM '''||pVocabularyPath||'product.txt'' delimiter E''\t'' csv ENCODING ''ISO-8859-15'' HEADER';
+        active_ingred_unit,pharm_classes,deaschedule,ndc_exclude_flag,listing_record_certified_through) FROM '''||pVocabularyPath||'Product.txt'' delimiter E''\t'' csv ENCODING ''ISO-8859-15'' HEADER';
       update sources.product set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       analyze sources.product;
-      execute 'COPY sources.package (productid,productndc,ndcpackagecode,packagedescription,startmarketingdate,endmarketingdate,ndc_exclude_flag,sample_package) FROM '''||pVocabularyPath||'package.txt'' delimiter E''\t'' csv ENCODING ''ISO-8859-15'' HEADER';
+      execute 'COPY sources.package (productid,productndc,ndcpackagecode,packagedescription,startmarketingdate,endmarketingdate,ndc_exclude_flag,sample_package) FROM '''||pVocabularyPath||'Package.txt'' delimiter E''\t'' csv ENCODING ''ISO-8859-15'' HEADER';
       update sources.package p SET pack_code=i.pack_code
       FROM (
         SELECT ndcpackagecode,
@@ -263,7 +263,7 @@ begin
                 pack.ndcpackagecode,
                 pack.productndc
             FROM sources.package pack
-            ) AS s0 	
+            ) AS s0
       ) i where p.ndcpackagecode=i.ndcpackagecode;
       analyze sources.package;
       truncate table sources.allxmlfilelist, sources.spl_ext_raw;

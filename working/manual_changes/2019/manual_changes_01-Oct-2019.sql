@@ -1,6 +1,9 @@
 --concept_name/concept_synonym corrections
+
+--'Public Medicine' is not a comprehensive name still doctor is still 'Podiatrist' http://athena.ohdsi.org/search-terms/terms/38004030
 update concept set concept_name = 'Public Medicine Podiatrist' where vocabulary_id = 'NUCC' and concept_code = '213EP0504X';
 
+--'millilieter' typo
 update concept set concept_name = regexp_replace(concept_name, 'millilieter', 'milliliter') where vocabulary_id = 'UCUM' and concept_name ~ 'millilieter';
 update concept_synonym cs
 set concept_synonym_name = regexp_replace(cs.concept_synonym_name, 'millilieter', 'milliliter')
@@ -9,6 +12,7 @@ where c.vocabulary_id = 'UCUM'
   and cs.concept_synonym_name ~ 'millilieter'
   and cs.concept_id = c.concept_id;
 
+--'microiliter' typo
 update concept set concept_name = regexp_replace(concept_name, 'microiliter', 'microliter') where vocabulary_id = 'UCUM' and concept_name ~ 'microiliter';
 update concept_synonym cs
 set concept_synonym_name = regexp_replace(cs.concept_synonym_name, 'microiliter', 'microliter')
@@ -50,7 +54,7 @@ insert into concept_synonym (concept_id, concept_synonym_name, language_concept_
 values (32703, 'hybrid resistance unit, HRU)', 4180186);
 
 
---basic concept_synonym
+--basic concept_name to concept_synonym insertion for new and existing UCUM concepts
 insert into concept_synonym
 select c.concept_id, c.concept_name, 4180186
 from concept c
@@ -62,7 +66,7 @@ where c.vocabulary_id = 'UCUM'
   and cs.concept_id is null;
 
 
---concepr_relationship
+--concept_relationship insertion
 insert into concept_relationship values(32695,32695,'Maps to',to_date ('19700101', 'YYYYMMDD'),to_date('20991231', 'YYYYMMDD'),null);
 insert into concept_relationship values(32695,32695,'Mapped from',to_date ('19700101', 'YYYYMMDD'),to_date('20991231', 'YYYYMMDD'),null);
 insert into concept_relationship values(32696,32696,'Maps to',to_date ('19700101', 'YYYYMMDD'),to_date('20991231', 'YYYYMMDD'),null);

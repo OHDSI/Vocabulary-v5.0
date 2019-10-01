@@ -1,6 +1,6 @@
 --concept_name/concept_synonym corrections
 
---'Public Medicine' is not a comprehensive name still doctor is still 'Podiatrist' http://athena.ohdsi.org/search-terms/terms/38004030
+--'Public Medicine' is not a comprehensive name since doctor is still 'Podiatrist' http://athena.ohdsi.org/search-terms/terms/38004030
 update concept set concept_name = 'Public Medicine Podiatrist' where vocabulary_id = 'NUCC' and concept_code = '213EP0504X';
 
 --'millilieter' typo

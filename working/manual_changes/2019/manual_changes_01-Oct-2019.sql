@@ -3,23 +3,12 @@
 update concept set concept_name = 'Public Medicine Podiatrist' where concept_id = 38004032;
 
 --'millilieter' typo
-update concept set concept_name = replace(concept_name, 'millilieter', 'milliliter') where vocabulary_id = 'UCUM' and concept_name like '%millilieter%';
-update concept_synonym cs
-set concept_synonym_name = replace(cs.concept_synonym_name, 'millilieter', 'milliliter')
-from concept c
-where c.vocabulary_id = 'UCUM'
-  and cs.concept_synonym_name like '%millilieter%'
-  and cs.concept_id = c.concept_id;
+update concept set concept_name = replace(concept_name, 'millilieter', 'milliliter') where concept_id=44777605;
+update concept_synonym set concept_synonym_name = replace(concept_synonym_name, 'millilieter', 'milliliter') where concept_id=44777605;
 
 --'microiliter' typo
-update concept set concept_name = replace(concept_name, 'microiliter', 'microliter') where vocabulary_id = 'UCUM' and concept_name like '%microiliter%';
-update concept_synonym cs
-set concept_synonym_name = replace(cs.concept_synonym_name, 'microiliter', 'microliter')
-from concept c
-where c.vocabulary_id = 'UCUM'
-  and cs.concept_synonym_name like '%microiliter%'
-  and cs.concept_id = c.concept_id;
-
+update concept set concept_name = replace(concept_name, 'microiliter', 'microliter') where concept_id=44777638;
+update concept_synonym set concept_synonym_name = replace(concept_synonym_name, 'microiliter', 'microliter') where concept_id=44777638;
 
 --add new UCUM concepts
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -48,7 +37,6 @@ insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept
 values (32706, 'ten thousand per microliter', 'Unit', 'UCUM', 'Unit', 'S', '10*4/uL', TO_DATE ('19700101', 'YYYYMMDD'), TO_DATE ('20991231', 'YYYYMMDD'), null);
 insert into concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 values (32707, 'nanogram of fibrinogen equivalent unit per milliliter', 'Unit', 'UCUM', 'Unit', 'S', 'ng{FEU}/mL', TO_DATE ('19700101', 'YYYYMMDD'), TO_DATE ('20991231', 'YYYYMMDD'), null);
-
 
 --concept_name to concept_synonym insertion for new and existing UCUM concepts
 insert into concept_synonym

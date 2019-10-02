@@ -617,8 +617,35 @@ AS $BODY$
 	FROM concept c
 	WHERE c.domain_id <> 'Metadata'
 		AND c.concept_code = 'OMOP generated'
-		AND COALESCE(checkid, 11) = 11;
+		AND COALESCE(checkid, 11) = 11
 
+	UNION ALL
+
+	--duplicate 'OMOP generated' concepts [AVOF-2000]
+	SELECT 12 check_id,
+		'duplicate ''OMOP generated'' concepts' AS check_name,
+		s0.concept_id,
+		NULL,
+		s0.vocabulary_id,
+		s0.valid_start_date,
+		s0.valid_end_date,
+		NULL
+	FROM (
+		SELECT c.concept_id,
+			c.vocabulary_id,
+			c.valid_start_date,
+			c.valid_end_date,
+			COUNT(*) OVER (
+				PARTITION BY c.concept_name,
+				c.concept_code,
+				c.vocabulary_id
+				) AS cnt
+		FROM concept c
+		WHERE c.invalid_reason IS NULL
+			AND c.concept_code = 'OMOP generated'
+		) AS s0
+	WHERE s0.cnt > 1
+		AND COALESCE(checkid, 12) = 12;
 
 $BODY$
 language 'sql'

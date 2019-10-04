@@ -25,7 +25,9 @@ BEGIN
     unzip -oqj "$2_do.zip" "DocumentOntology.csv" -d . && \
     unzip -oqj "$2_gf.zip" "Group.csv" -d . && \
     unzip -oqj "$2_gf.zip" "GroupLoincTerms.csv" -d . && \
-    unzip -oqj "$2_gf.zip" "ParentGroupAttributes.csv" -d .
+    unzip -oqj "$2_gf.zip" "ParentGroupAttributes.csv" -d . && \
+    unzip -oqj "$2_partf.zip" "Part.csv" -d . && \
+    unzip -oqj "$2_partf.zip" "LoincPartLink.csv" -d .
     
     #move result to original folder
     cd "$1"
@@ -44,7 +46,9 @@ BEGIN
     mv work/DocumentOntology.csv "DocumentOntology.csv" && \
     mv work/Group.csv "Group.csv" && \
     mv work/GroupLoincTerms.csv "GroupLoincTerms.csv" && \
-    mv work/ParentGroupAttributes.csv "ParentGroupAttributes.csv"
+    mv work/ParentGroupAttributes.csv "ParentGroupAttributes.csv" && \
+    mv work/Part.csv "Part.csv" && \
+    mv work/LoincPartLink.csv "LoincPartLink.csv"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

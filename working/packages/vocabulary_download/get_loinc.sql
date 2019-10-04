@@ -197,7 +197,7 @@ BEGIN
       iVocabulary_status=>1
     );
     
-    --loinc loinc group file
+    --loinc group file
     pVocabularyOperation:='GET_LOINC LOINC Group File downloading';
     select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=9;
     perform run_wget (
@@ -211,6 +211,23 @@ BEGIN
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
       iVocabulary_operation=>'GET_LOINC LOINC Group File downloading complete',
+      iVocabulary_status=>1
+    );
+    
+    --loinc part file
+    pVocabularyOperation:='GET_LOINC LOINC Part File downloading';
+    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=10;
+    perform run_wget (
+      iPath=>pVocabulary_load_path,
+      iFilename=>lower(pVocabularyID)||'_partf.zip',
+      iDownloadLink=>pVocabulary_url,
+      iDeleteAll=>0,
+      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+    );
+    perform write_log (
+      iVocabularyID=>pVocabularyID,
+      iSessionID=>pSession,
+      iVocabulary_operation=>'GET_LOINC LOINC Part File downloading complete',
       iVocabulary_status=>1
     );
     

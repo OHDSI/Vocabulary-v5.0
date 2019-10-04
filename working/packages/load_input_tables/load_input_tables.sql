@@ -405,10 +405,12 @@ begin
       execute 'COPY sources.loinc_answerslistlink FROM '''||pVocabularyPath||'LoincAnswerListLink.csv'' delimiter '','' csv HEADER';
       --insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx'); --PanelsAndForms.xlsx replaced with CSV-file in v2.65
       execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'LOINC_PanelsAndForms.csv'' delimiter '','' csv HEADER';
-      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms;
+      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink, sources.loinc_part;
       execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'Group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
       execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'ParentGroupAttributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
       execute 'COPY sources.loinc_grouploincterms FROM '''||pVocabularyPath||'GroupLoincTerms.csv'' delimiter '','' csv HEADER FORCE NULL category,groupid,archetype,loincnumber,longcommonname';
+      execute 'COPY sources.loinc_partlink FROM '''||pVocabularyPath||'LoincPartLink.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
+      execute 'COPY sources.loinc_part FROM '''||pVocabularyPath||'Part.csv'' delimiter '','' csv HEADER FORCE NULL partnumber,parttypename,partname,partdisplayname,status';
       truncate table sources.loinc_class, sources.scccrefset_expressionassociation_int, sources.scccrefset_mapcorrorfull_int, sources.cpt_mrsmap;
       set local datestyle='ISO, DMY'; --set proper date format
       execute 'COPY sources.loinc_class FROM '''||pVocabularyPath||'loinc_class.csv'' delimiter ''|'' csv HEADER';

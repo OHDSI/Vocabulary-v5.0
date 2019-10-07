@@ -44,7 +44,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT regexp_replace(sct2.concept_name, ' (\([^)]*\))$', ''), -- pick the umls one first (if there) and trim something like "(procedure)"
+SELECT TRIM(regexp_replace(sct2.concept_name, ' (\([^)]*\))$', '')), -- pick the umls one first (if there) and trim something like "(procedure)"
 	'SNOMED Veterinary' AS vocabulary_id,
 	sct2.concept_code,
 	sct2.valid_start_date,

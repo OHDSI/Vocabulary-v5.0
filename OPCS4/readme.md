@@ -1,9 +1,7 @@
 Update of OPCS4
 
 Prerequisites:
-- Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
-- SNOMED must be loaded first.
-- Fresh concept_ancestor.
+- Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
 - Working directory OPCS4.
 
 1. Run create_source_tables.sql

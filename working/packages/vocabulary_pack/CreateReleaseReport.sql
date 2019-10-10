@@ -26,19 +26,11 @@ begin
 	cRet:=cRet||E'<tr><th><b>vocabulary_id</b></th><th><b>old_domain_id</b></th><th><b>new_domain_id</b></th><th><b>count</b></th></tr>\r\n';
 	FOR cResult IN 
 	(
-		SELECT new.vocabulary_id,
-			old.domain_id AS old_domain_id,
-			new.domain_id AS new_domain_id,
-			count(*) AS cnt
-		FROM concept new
-		JOIN prodv5.concept old ON old.concept_id = new.concept_id
-			AND new.domain_id <> old.domain_id
-		GROUP BY new.vocabulary_id,
-			old.domain_id,
-			new.domain_id
-		ORDER BY new.vocabulary_id,
-			old.domain_id,
-			new.domain_id
+		SELECT *
+		FROM qa_tests.get_domain_changes() t
+		ORDER BY t.vocabulary_id,
+			t.old_domain_id,
+			t.new_domain_id
 	) LOOP
 		--row
 		cRet:=cRet||'<tr>';
@@ -65,17 +57,10 @@ begin
 	cRet:=cRet||E'<tr><th><b>vocabulary_id</b></th><th><b>domain_id</b></th><th><b>count</b></th></tr>\r\n';
 	FOR cResult IN 
 	(
-		SELECT new.vocabulary_id,
-			new.domain_id,
-			count(*) AS cnt
-		FROM concept new
-		LEFT JOIN prodv5.concept old ON old.concept_id = new.concept_id
-		WHERE old.concept_id IS NULL
-			AND new.domain_id <> 'Metadata'
-		GROUP BY new.vocabulary_id,
-			new.domain_id
-		ORDER BY new.vocabulary_id,
-			new.domain_id
+		SELECT *
+		FROM qa_tests.get_newly_concepts() t
+		ORDER BY t.vocabulary_id,
+			t.domain_id
 	) LOOP
 		--row
 		cRet:=cRet||'<tr>';
@@ -101,54 +86,10 @@ begin
 	cRet:=cRet||E'<tr><th><b>vocabulary_id</b></th><th><b>old_standard_concept</b></th><th><b>new_standard_concept</b></th><th><b>count</b></th></tr>\r\n';
 	FOR cResult IN 
 	(
-		SELECT vocabulary_id,
-			CASE 
-				WHEN i.old_standard_concept = 'S'
-					THEN 'Standard'
-				WHEN i.old_standard_concept = 'C'
-					THEN 'Classification'
-				WHEN i.old_standard_concept IS NULL
-					AND i.old_relationship_id = 'Maps to'
-					THEN 'Non-standard with mapping'
-				ELSE 'Non-standard without mapping'
-				END AS old_standard_concept,
-			CASE 
-				WHEN i.new_standard_concept = 'S'
-					THEN 'Standard'
-				WHEN i.new_standard_concept = 'C'
-					THEN 'Classification'
-				WHEN i.new_standard_concept IS NULL
-					AND i.new_relationship_id = 'Maps to'
-					THEN 'Non-standard with mapping'
-				ELSE 'Non-standard without mapping'
-				END AS new_standard_concept,
-			i.cnt
-		FROM (
-			SELECT new.vocabulary_id,
-				old.standard_concept AS old_standard_concept,
-				r_old.relationship_id AS old_relationship_id,
-				new.standard_concept AS new_standard_concept,
-				r.relationship_id AS new_relationship_id,
-				count(*) AS cnt
-			FROM concept new
-			JOIN prodv5.concept old ON old.concept_id = new.concept_id
-				AND COALESCE(old.standard_concept, 'X') <> COALESCE(new.standard_concept, 'X')
-			LEFT JOIN prodv5.concept_relationship r_old ON r_old.concept_id_1 = new.concept_id
-				AND r_old.relationship_id = 'Maps to'
-				AND r_old.invalid_reason IS NULL
-				AND r_old.concept_id_1 <> r_old.concept_id_2
-			LEFT JOIN concept_relationship r ON r.concept_id_1 = new.concept_id
-				AND r.relationship_id = 'Maps to'
-				AND r.invalid_reason IS NULL
-				AND r.concept_id_1 <> r.concept_id_2
-			GROUP BY new.vocabulary_id,
-				new.standard_concept,
-				old.standard_concept,
-				r_old.relationship_id,
-				r.relationship_id
-			) AS i
-		ORDER BY i.vocabulary_id,
-			i.cnt DESC
+		SELECT *
+		FROM qa_tests.get_standard_concept_changes() t
+		ORDER BY t.vocabulary_id,
+			t.cnt DESC
 	) LOOP
 		--row
 		cRet:=cRet||'<tr>';
@@ -175,35 +116,46 @@ begin
 	cRet:=cRet||E'<tr><th><b>vocabulary_id</b></th><th><b>new_standard_concept</b></th><th><b>count</b></th></tr>\r\n';
 	FOR cResult IN 
 	(
-		SELECT new.vocabulary_id,
-			CASE 
-				WHEN new.standard_concept = 'S'
-					THEN 'Standard'
-				WHEN new.standard_concept = 'C'
-					THEN 'Classification'
-				WHEN new.standard_concept IS NULL
-					AND r.relationship_id = 'Maps to'
-					THEN 'Non-standard with mapping'
-				ELSE 'Non-standard without mapping'
-				END AS new_standard_concept,
-			count(*) AS cnt
-		FROM concept new
-		LEFT JOIN prodv5.concept old ON old.concept_id = new.concept_id
-		LEFT JOIN concept_relationship r ON r.concept_id_1 = new.concept_id
-			AND relationship_id = 'Maps to'
-			AND r.invalid_reason IS NULL
-			AND r.concept_id_1 <> r.concept_id_2
-		WHERE old.concept_id IS NULL
-		GROUP BY new.vocabulary_id,
-			new.standard_concept,
-			r.relationship_id
-		ORDER BY vocabulary_id,
-			cnt
+		SELECT *
+		FROM qa_tests.get_newly_concepts_standard_concept_status() t
+		ORDER BY t.vocabulary_id,
+			t.cnt
 	) LOOP
 		--row
 		cRet:=cRet||'<tr>';
 		cRet:=cRet||'<td>'||cResult.vocabulary_id||'</td>';
 		cRet:=cRet||'<td>'||CONCAT(cResult.new_standard_concept,'</td>');
+		cRet:=cRet||'<td>'||cResult.cnt||'</td>';
+		--end row
+		cRet:=cRet||E'</tr>\r\n';
+		EMPTY_RESULT:=FALSE;
+	END LOOP;
+	cRet:=cRet||E'</table>\r\n';
+	
+	IF EMPTY_RESULT THEN
+		cFullRet:=cFullRet||cTitle||cEmptyResultText;
+	ELSE
+		cFullRet:=cFullRet||cTitle||cRet;
+	END IF;
+	
+	EMPTY_RESULT=TRUE;
+	cTitle:=E'\r\n# Changes of concept mapping status grouped by target domain\r\n';
+	cRet:=E'<table>\r\n';
+	--column names
+	cRet:=cRet||E'<tr><th><b>vocabulary_id</b></th><th><b>Old target Domain/Status</b></th><th><b>New target Domain/Status</b></th><th><b>count</b></th></tr>\r\n';
+	FOR cResult IN 
+	(
+		SELECT *
+		FROM qa_tests.get_changes_concept_mapping() t
+		ORDER BY t.vocabulary_id,
+			t.old_mapped_domains,
+			t.new_mapped_domains
+	) LOOP
+		--row
+		cRet:=cRet||'<tr>';
+		cRet:=cRet||'<td>'||cResult.vocabulary_id||'</td>';
+		cRet:=cRet||'<td>'||CONCAT(cResult.old_mapped_domains,'</td>');
+		cRet:=cRet||'<td>'||CONCAT(cResult.new_mapped_domains,'</td>');
 		cRet:=cRet||'<td>'||cResult.cnt||'</td>';
 		--end row
 		cRet:=cRet||E'</tr>\r\n';

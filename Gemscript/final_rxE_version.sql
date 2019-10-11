@@ -82,17 +82,17 @@ BEGIN
 END $_$;
 /
 
--- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-/
-
 -- Add mapping from deprecated to fresh concepts, and also from non-standard to standard concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+/
+
+-- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 /
 

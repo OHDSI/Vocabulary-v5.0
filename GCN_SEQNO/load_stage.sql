@@ -93,16 +93,16 @@ JOIN SOURCES.rxnconso rxn ON rxn.rxcui = gcn.rxcui
 WHERE gcn.sab = 'NDDF'
 	AND gcn.tty = 'CDC';
 
---5. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---6. Add mapping from deprecated to fresh concepts
+--5. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--6. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
 --7. Delete ambiguous 'Maps to' mappings

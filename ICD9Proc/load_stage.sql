@@ -159,16 +159,16 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9. Deprecate 'Maps to' mappings to deprecated and updated concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---10. Delete ambiguous 'Maps to' mappings
+--9. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--10. Deprecate 'Maps to' mappings to deprecated and updated concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
 --11. Add "Is a" relationship from ICD9Proc descendants (or their standard SNOMED equivalents) to ICD9Proc  ancestors  (or their standard SNOMED equivalents), using ICD9Proc code similarity, to the CONCEPT_RELATIONSHIP_STAGE

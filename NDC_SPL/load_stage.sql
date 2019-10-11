@@ -521,16 +521,16 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---10. Add mapping from deprecated to fresh concepts
+--9. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
 --11. Delete ambiguous 'Maps to' mappings
@@ -1325,16 +1325,16 @@ END $_$;
 
 --25. Delete duplicate mappings to packs
 
---25.1. Deprecate 'Maps to' mappings to deprecated and upgraded concepts (necessary for the next step)
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---25.2. Add mapping from deprecated to fresh concepts (necessary for the next step)
+--25.1. Add mapping from deprecated to fresh concepts (necessary for the next step)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--25.2. Deprecate 'Maps to' mappings to deprecated and upgraded concepts (necessary for the next step)
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
 --25.3 Do it
@@ -1499,18 +1499,6 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
-
-/*--29. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---30. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;*/
 
 --29. Delete ambiguous 'Maps to' mappings
 DO $_$

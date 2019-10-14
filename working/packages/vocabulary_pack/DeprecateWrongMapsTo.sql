@@ -7,15 +7,14 @@ $body$
 */
 BEGIN
 	UPDATE concept_relationship_stage crs
-	SET valid_end_date = (
-			SELECT MAX(latest_update) - 1
-			FROM vocabulary
-			WHERE vocabulary_id IN (
-					crs.vocabulary_id_1,
-					crs.vocabulary_id_2
-					)
-				AND latest_update IS NOT NULL
-			),
+	SET valid_end_date = GREATEST(valid_start_date, (
+				SELECT MAX(latest_update) - 1
+				FROM vocabulary
+				WHERE vocabulary_id IN (
+						crs.vocabulary_id_1,
+						crs.vocabulary_id_2
+						)
+				)),
 		invalid_reason = 'D'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL

@@ -489,6 +489,8 @@ AS $BODY$
 	UNION ALL
 
 	--RxE to Rx name duplications
+	--tempopary disabled
+	/*
 	SELECT 9 check_id,
 		'RxE to Rx name duplications' AS check_name,
 		c2.concept_id,
@@ -506,7 +508,7 @@ AS $BODY$
 		AND c1.standard_concept = 'S'
 		AND COALESCE(checkid, 9) = 9
 
-	UNION ALL
+	UNION ALL*/
 
 	--Rxnorm/Rxnorm Extension name duplications
 	--tempopary disabled (never used)

@@ -233,8 +233,65 @@ with info_sheet as
 		c.vocabulary_id = s.vocabulary_id and
 		c.concept_code = s.concept_code and
 		c.concept_class_id != s.concept_class_id
+
+		union all
+
+	select
+		'E',
+		'Multiple of the same ingredient per drug',
+		count (drug_concept_code)
+	from drug_strength_stage
+	group by drug_concept_code, ingredient_concept_code
+	having count (ingredient_concept_code)> 1
+
+		union all
+
+	select
+		'W',
+		'Errors in basic tables not adressed in current release: valid relations to invalid concepts',
+		count (c.concept_id)
+	from concept c
+	join concept_relationship r on
+		r.invalid_reason is null and
+		c.concept_id = r.concept_id_1 and
+		c.standard_concept = 'S' and
+		c.vocabulary_id = 'RxNorm'
+	join concept c2 on
+		c2.concept_id = r.concept_id_2 and
+		c2.invalid_reason is not null and
+		c2.vocabulary_id = 'RxNorm'
+	left join concept_relationship_stage s on
+		(s.concept_code_1, s.vocabulary_id_1) = (c.concept_code, c.vocabulary_id) and
+		(s.concept_code_2, s.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
+		r.relationship_id = s.relationship_id
+	where
+		r.relationship_id not in ('Concept replaces','Mapped from') and
+		s.relationship_id is null
+
+		union all
+
+	select
+		'W',
+		'Errors in basic tables not adressed in current release: Concept that served as a mapping target deprecates without replacement',
+		count (c.concept_id)
+	from concept c
+	join concept_relationship r on
+		r.concept_id_2 = c.concept_id and
+		r.concept_id_1 != r.concept_id_2 and
+		r.relationship_id = 'Maps to' and
+		r.invalid_reason is null and
+		c.standard_concept = 'S'
+	join concept_stage s on
+		(s.concept_code, s.vocabulary_id) = (c.concept_code, c.vocabulary_id) and
+		s.standard_concept is null
+	left join concept_relationship_stage x on
+		x.relationship_id in ('Concept replaced by','Maps to') and
+		(s.concept_code, s.vocabulary_id) = (x.concept_code_1, x.vocabulary_id_1) and
+		x.invalid_reason is null
+	where x.relationship_id is null 
 )
 select info_level, description, sum (err_cnt) as err_cnt
 from info_sheet
 where err_cnt != 0
 group by info_level, description
+order by info_level, description

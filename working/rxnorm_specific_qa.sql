@@ -1,3 +1,5 @@
+drop table if exists rxn_info_sheet;
+create table rxn_info_sheet as
 with info_sheet as
 (
 --1. standard concepts that have active relations to deprecated
@@ -17,7 +19,9 @@ with info_sheet as
 	LEFT join concept_stage c2 on
 		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
 		c2.invalid_reason is not null
-	where c2.concept_code is null --true if relation is built to concept not in concept_stage or concept that is deprecated in concept_stage
+	where
+		c.vocabulary_id = 'RxNorm' and
+		c2.concept_code is null --true if relation is built to concept not in concept_stage or concept that is deprecated in concept_stage
 
 		union all
 
@@ -37,27 +41,33 @@ with info_sheet as
 	LEFT join concept_stage c2 on
 		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
 		c2.invalid_reason is not null
-	where c2.concept_code is null --true if relation is built to concept not in concept_stage or concept that is deprecated in concept_stage
+	where
+		c.vocabulary_id = 'RxNorm' and
+		c2.concept_code is null --true if relation is built to concept not in concept_stage or concept that is deprecated in concept_stage
+
 
 		union all
 
 --- Dose Form
-		select
-			'W',
-			'Formulated concepts that have active relations to deprecated Dose Forms' as description,
-			count (c.concept_code) as err_cnt
-		from concept c
-		join concept_relationship_stage r on
-			c.domain_id = 'Drug' and
-			c.standard_concept = 'S' and
-			r.concept_code_1 = c.concept_code and
-			r.vocabulary_id_1 = c.vocabulary_id and
-			r.relationship_id = 'RxNorm has dose form' and
-			r.invalid_reason is null
-		LEFT join concept_stage c2 on
-			(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
-			c2.invalid_reason is not null
-		where c2.concept_code is null --true if relation is built to concept not in concept_stage or concept that is deprecated in concept_stage
+	select
+		'W',
+		'Formulated concepts that have active relations to deprecated Dose Forms' as description,
+		count (c.concept_code) as err_cnt
+	from concept c
+	join concept_relationship_stage r on
+		c.domain_id = 'Drug' and
+		c.standard_concept = 'S' and
+		r.concept_code_1 = c.concept_code and
+		r.vocabulary_id_1 = c.vocabulary_id and
+		r.relationship_id = 'RxNorm has dose form' and
+		r.invalid_reason is null
+	LEFT join concept_stage c2 on
+		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
+		c2.invalid_reason is not null
+	where
+		c.vocabulary_id = 'RxNorm' and
+		c2.concept_code is null --true if relation is built to concept not in concept_stage or concept that is deprecated in concept_stage
+
 
 			union all
 
@@ -67,6 +77,10 @@ with info_sheet as
 		'Drug concepts with misformulated strength',
 		count (drug_concept_code)
 	from drug_strength_stage
+	join concept_stage on
+		vocabulary_id = 'RxNorm' and
+		vocabulary_id_1 = 'RxNorm' and
+		drug_concept_code = concept_code
 	where
 		(
 			coalesce (amount_unit_concept_id, numerator_unit_concept_id) is not null and
@@ -80,7 +94,7 @@ with info_sheet as
 
 		union all
 
---3. RxE components that duplicate existing RxNorm components
+--3. Components that duplicate existing RxNorm components
 	select
 		'W',
 		'Identical strength entries for clinical components',
@@ -90,7 +104,7 @@ with info_sheet as
 		d.drug_concept_code = c.concept_code and
 		c.concept_class_id = 'Clinical Drug Comp' and
 		c.standard_concept = 'S' and
-		c.vocabulary_id = 'RxNorm Extension'
+		c.vocabulary_id = 'RxNorm'
 	join drug_strength_stage d2 on
 		d2.ingredient_concept_code = d.ingredient_concept_code and
 		coalesce (d2.amount_value,d2.numerator_value) = coalesce (d.amount_value,d.numerator_value) and
@@ -104,7 +118,8 @@ with info_sheet as
 		d2.drug_concept_code = c2.concept_code and
 		c2.concept_class_id = 'Clinical Drug Comp' and
 		c2.standard_concept = 'S' and
-		c2.vocabulary_id = 'RxNorm'
+		c2.vocabulary_id = 'RxNorm' and
+		c2.concept_code > c.concept_code
 
 		union all
 
@@ -117,7 +132,8 @@ with info_sheet as
 	join concept_stage c on
 		c.concept_code = d.ingredient_concept_code and
 		c.vocabulary_id = d.vocabulary_id_2  and
-		c.concept_class_id = 'Precise Ingredient'
+		c.concept_class_id = 'Precise Ingredient' and
+		d.vocabulary_id_1 = 'RxNorm'
 
 		union all
 
@@ -130,7 +146,8 @@ with info_sheet as
 	left join concept d using (vocabulary_id, concept_code)
 	where 
 		d.concept_id is null and
-		c.invalid_reason is null
+		c.invalid_reason is null and
+		c.vocabulary_id = 'RxNorm'
 	group by c.concept_class_id
 
 		union all
@@ -145,12 +162,13 @@ with info_sheet as
 	where
 		d.concept_id is null and
 		c.invalid_reason = 'D' and
-		d.invalid_reason is null
+		d.invalid_reason is null and
+		c.vocabulary_id = 'RxNorm'
 	group by c.concept_class_id
 
 		union all
 
---6. Deprecated concepts by class
+--7. Updated concepts by class
 	select
 		'I',
 		'Updated concepts by class: ' || c.concept_class_id,
@@ -160,7 +178,8 @@ with info_sheet as
 	where
 		d.concept_id is null and
 		c.invalid_reason = 'U' and
-		d.invalid_reason is null
+		d.invalid_reason is null and
+		c.vocabulary_id = 'RxNorm'
 	group by c.concept_class_id
 
 		union all
@@ -175,7 +194,8 @@ with info_sheet as
 		coalesce (d.amount_unit_concept_id, d.numerator_unit_concept_id) = c.concept_id
 	where
 		coalesce (d.amount_unit_concept_id, d.numerator_unit_concept_id) is not null and
-		c.concept_id is null
+		c.concept_id is null and
+		d.vocabulary_id_1 = 'RxNorm'
 
 		union all
 
@@ -188,7 +208,8 @@ with info_sheet as
 		denominator_unit_concept_id = c.concept_id
 	where
 		d.denominator_unit_concept_id is not null and
-		c.concept_id is null
+		c.concept_id is null and
+		d.vocabulary_id_1 = 'RxNorm'
 
 		union all
 
@@ -201,10 +222,12 @@ with info_sheet as
 		(c.concept_code, c.vocabulary_id) = (r.concept_code_1, r.vocabulary_id_1) and
 		c.standard_concept = 'S' and
 		r.invalid_reason is null and
-		c.concept_class_id = 'Ingredient'
+		c.concept_class_id = 'Ingredient' and
+		c.vocabulary_id = 'RxNorm'
 	join concept_stage b on
 		(b.concept_code, b.vocabulary_id) = (r.concept_code_2, r.vocabulary_id_2) and
-		b.concept_class_id = 'Brand Name'
+		b.concept_class_id = 'Brand Name' and
+		b.vocabulary_id = 'RxNorm'
 	where
 		not exists
 			(
@@ -226,13 +249,15 @@ with info_sheet as
 
 	select
 		'I',
-		'Concepts changed class',
+		'Concepts changed class: ' || s.concept_class_id || ' to '|| c.concept_class_id,
 		count (s.concept_code)
 	from concept_stage c
 	join concept s on
-		c.vocabulary_id = s.vocabulary_id and
+		c.vocabulary_id = 'RxNorm' and
+		s.vocabulary_id = 'RxNorm' and
 		c.concept_code = s.concept_code and
 		c.concept_class_id != s.concept_class_id
+	group by c.concept_class_id, s.concept_class_id
 
 		union all
 
@@ -241,6 +266,7 @@ with info_sheet as
 		'Multiple of the same ingredient per drug',
 		count (drug_concept_code)
 	from drug_strength_stage
+	where vocabulary_id_1 = 'RxNorm'
 	group by drug_concept_code, ingredient_concept_code
 	having count (ingredient_concept_code)> 1
 

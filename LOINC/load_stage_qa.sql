@@ -9,7 +9,6 @@ left join vocabulary v1 on v1.vocabulary_id=crs.vocabulary_id_1 and v1.latest_up
 left join vocabulary v2 on v2.vocabulary_id=crs.vocabulary_id_2 and v2.latest_update is not null
 where coalesce(v1.latest_update, v2.latest_update) is null;
 
-SELECT * FROM vocabulary;
 
 select distinct cs.vocabulary_id from concept_stage cs
 left join vocabulary v on v.vocabulary_id=cs.vocabulary_id and v.latest_update is not null
@@ -18,6 +17,7 @@ where v.latest_update is null;
 
 select * From concept_relationship_stage where valid_start_date is null or valid_end_date is null or (invalid_reason is null and valid_end_date<>to_date ('20991231', 'yyyymmdd'))
 or (invalid_reason is not null and valid_end_date=to_date ('20991231', 'yyyymmdd'));
+
 
 select * from concept_stage where valid_start_date is null or valid_end_date is null
 or (invalid_reason is null and valid_end_date <> to_date ('20991231', 'yyyymmdd') and vocabulary_id not in ('CPT4', 'HCPCS', 'ICD9Proc'))
@@ -53,7 +53,6 @@ group by concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relat
 
 select concept_code, vocabulary_id  from concept_stage
 group by concept_code, vocabulary_id  having count(*)>1;
-
 
 
 select pack_concept_code, pack_vocabulary_id, drug_concept_code, drug_vocabulary_id, amount from pack_content_stage

@@ -113,14 +113,20 @@ ORDER BY loincnumber;
 
 
 
+
+
+
+
+
+--This code is no good
 TRUNCATE TABLE concept_relationship_stage;
 
 --Запрос Полины
---INSERT INTO concept_relationship_stage(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+INSERT INTO concept_relationship_stage(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT x1.partnumber, -- LOINC Ancestor
-                x1.partname,
+                --x1.partname,
                 x2.partnumber,
-                x2.partname,
+                --x2.partname,
                 'LOINC',
                 'LOINC',
                 'Subsumes',
@@ -133,11 +139,16 @@ AND x1.partname <> x2.partname
 WHERE (x2.linktypename = 'Primary' and x1.linktypename = 'DetailedModel')
 or (x2.linktypename = 'Primary' and  x1.linktypename = 'Search' and 'METHOD' in (x1.parttypename,x2.parttypename))
 GROUP BY x1.partnumber, x1.partname, x2.partnumber, x2.partname
-HAVING count(*) = 2
+--HAVING count(*) = 2
 ORDER BY x1.partnumber
 ;
 
+SELECT * FROM concept_relationship_stage;
+
+DROP TABLE loinc_temp_relationship;
+
 --1-й уровень
+CREATE TABLE loinc_temp_relationship AS (
 WITH a AS (
     SELECT concept_code_1, p.partdisplayname, concept_code_2, pp.partdisplayname
     FROM concept_relationship_stage rs
@@ -147,10 +158,11 @@ WITH a AS (
                   ON rs.concept_code_2 = pp.partnumber
     WHERE concept_code_1 NOT IN
           (SELECT DISTINCT concept_code_2 FROM concept_relationship_stage) --Concept without parents
-      AND concept_code_2 NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage)
+      AND concept_code_2 NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage) --Concept without children
 )
 
-SELECT DISTINCT crr.concept_code_1, a.concept_code_1, CASE WHEN crr.concept_code_1 = a.concept_code_1 THEN 'True' ELSE 'False' END AS relationship
+SELECT DISTINCT crr.concept_code_1 AS parent_of_another_parent, a.concept_code_1 AS parent,
+                a.concept_code_2 AS child, CASE WHEN crr.concept_code_1 = a.concept_code_1 THEN 'True' ELSE 'False' END AS relationship
 --родители отличающихся концептов. Сравнить их с concept_code_1 из а.
 --Если совпадают, значит, есть промежуток между concept_code_1 и concept_code_2 и такой relationship нужно удалять
 FROM concept_relationship_stage cr
@@ -159,11 +171,13 @@ ON crr.concept_code_2 = cr.concept_code_1
 JOIN a
 ON cr.concept_code_2 = a.concept_code_2
 WHERE (cr.concept_code_1, cr.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM a)   --Взяли отличных родителей
+ORDER BY relationship DESC)
 ;
 --Затем итеративно взять всех, где родители не совпали и проверить еще раз
 
 
 --2-й уровень
+INSERT INTO loinc_temp_relationship
 WITH a AS (
     SELECT concept_code_1, p.partdisplayname, concept_code_2, pp.partdisplayname
     FROM concept_relationship_stage rs
@@ -173,10 +187,11 @@ WITH a AS (
                   ON rs.concept_code_2 = pp.partnumber
     WHERE concept_code_1 NOT IN
           (SELECT DISTINCT concept_code_2 FROM concept_relationship_stage) --Concept without parents
-      AND concept_code_2 NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage)
+      AND concept_code_2 NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage) --Concept without children
 )
 
-SELECT DISTINCT crrr.concept_code_1, a.concept_code_1, CASE WHEN crrr.concept_code_1 = a.concept_code_1 THEN 'True' ELSE 'False' END AS relationship
+SELECT DISTINCT crrr.concept_code_1 AS parent_of_another_parent, a.concept_code_1 AS parent,
+                a.concept_code_2 AS child, CASE WHEN crrr.concept_code_1 = a.concept_code_1 THEN 'True' ELSE 'False' END AS relationship
 --родители отличающихся концептов. Сравнить их с concept_code_1 из а.
 --Если совпадают, значит, есть промежуток между concept_code_1 и concept_code_2 и такой relationship нужно удалять
 FROM concept_relationship_stage cr
@@ -187,9 +202,11 @@ ON crrr.concept_code_2 = crr.concept_code_1
 JOIN a
 ON cr.concept_code_2 = a.concept_code_2
 WHERE (cr.concept_code_1, cr.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM a)   --Взяли отличных родителей
+ORDER BY relationship DESC
 ;
 
 --3-й уровень
+INSERT INTO loinc_temp_relationship
 WITH a AS (
     SELECT concept_code_1, p.partdisplayname, concept_code_2, pp.partdisplayname
     FROM concept_relationship_stage rs
@@ -199,10 +216,11 @@ WITH a AS (
                   ON rs.concept_code_2 = pp.partnumber
     WHERE concept_code_1 NOT IN
           (SELECT DISTINCT concept_code_2 FROM concept_relationship_stage) --Concept without parents
-      AND concept_code_2 NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage)
+      AND concept_code_2 NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage) --Concept without children
 )
 
-SELECT DISTINCT crrrr.concept_code_1, a.concept_code_1, CASE WHEN crrrr.concept_code_1 = a.concept_code_1 THEN 'True' ELSE 'False' END AS relationship
+SELECT DISTINCT crrrr.concept_code_1 AS parent_of_another_parent, a.concept_code_1 AS parent,
+                a.concept_code_2 AS child, CASE WHEN crrrr.concept_code_1 = a.concept_code_1 THEN 'True' ELSE 'False' END AS relationship
 --родители отличающихся концептов. Сравнить их с concept_code_1 из а.
 --Если совпадают, значит, есть промежуток между concept_code_1 и concept_code_2 и такой relationship нужно удалять
 FROM concept_relationship_stage cr
@@ -215,9 +233,11 @@ ON crrrr.concept_code_2 = crrr.concept_code_1
 JOIN a
 ON cr.concept_code_2 = a.concept_code_2
 WHERE (cr.concept_code_1, cr.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM a)   --Взяли отличных родителей
+ORDER BY relationship DESC
 ;
 
 --4-й уровень
+INSERT INTO loinc_temp_relationship
 WITH a AS (
     SELECT concept_code_1, p.partdisplayname, concept_code_2, pp.partdisplayname
     FROM concept_relationship_stage rs
@@ -227,10 +247,11 @@ WITH a AS (
                   ON rs.concept_code_2 = pp.partnumber
     WHERE concept_code_1 NOT IN
           (SELECT DISTINCT concept_code_2 FROM concept_relationship_stage) --Concept without parents
-      AND concept_code_2 NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage)
+      AND concept_code_2 NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage) --Concept without children
 )
 
-SELECT DISTINCT crrrrr.concept_code_1, a.concept_code_1, CASE WHEN crrrrr.concept_code_1 = a.concept_code_1 THEN 'True' ELSE 'False' END AS relationship
+SELECT DISTINCT crrrrr.concept_code_1 AS parent_of_another_parent, a.concept_code_1 AS parent,
+                a.concept_code_2 AS child, CASE WHEN crrrrr.concept_code_1 = a.concept_code_1 THEN 'True' ELSE 'False' END AS relationship
 --родители отличающихся концептов. Сравнить их с concept_code_1 из а.
 --Если совпадают, значит, есть промежуток между concept_code_1 и concept_code_2 и такой relationship нужно удалять
 FROM concept_relationship_stage cr
@@ -245,11 +266,23 @@ ON crrrrr.concept_code_2 = crrrr.concept_code_1
 JOIN a
 ON cr.concept_code_2 = a.concept_code_2
 WHERE (cr.concept_code_1, cr.concept_code_2) NOT IN (SELECT concept_code_1, concept_code_2 FROM a)   --Взяли отличных родителей
+ORDER BY relationship DESC
 ;
 
+SELECT * FROM loinc_temp_relationship;
 
+DELETE FROM concept_relationship_stage
+WHERE (concept_code_1, concept_code_2) IN (SELECT DISTINCT parent, child FROM loinc_temp_relationship WHERE relationship = 'True');
 
-
+--Relationships after 4 rounds of delete
+SELECT concept_code_1, p.partdisplayname, relationship_id, concept_code_2, pp.partdisplayname
+FROM concept_relationship_stage rs
+JOIN sources.loinc_part p
+ON rs.concept_code_1 = p.partnumber
+JOIN sources.loinc_part pp
+ON rs.concept_code_2 = pp.partnumber
+ORDER BY concept_code_1
+;
 
 
 /*
@@ -306,3 +339,32 @@ GROUP BY x1.partnumber, x1.partname, x2.partnumber, x2.partname
 HAVING count(x2.partnumber) > 5
 ORDER BY concept_code_1
 ;
+
+
+
+select  * from sources.loinc_hierarchy where  code LIKE 'LP%' and code_text !~ ' \| '
+and trim (code) not in (select trim (partnumber) from sources.loinc_partlink);
+
+SELECT DISTINCT p.partnumber, p.partdisplayname, p.parttypename, p.status
+FROM sources.loinc_hierarchy lh
+JOIN sources.loinc_part p
+ON lh.code = p.partnumber
+WHERE code LIKE 'LP%';
+
+
+SELECT DISTINCT p.partnumber, p.partdisplayname, p.parttypename, p.status
+FROM sources.loinc_hierarchy lh
+JOIN sources.loinc_part p
+ON lh.code = p.partnumber
+WHERE code LIKE 'LP%'
+AND p.partnumber IN (
+SELECT concept_code FROM concept_stage WHERE concept_class_id = 'LOINC Attribute');
+
+
+
+SELECT DISTINCT p.partnumber, p.partdisplayname, p.parttypename, p.status
+FROM sources.loinc_hierarchy lh
+JOIN sources.loinc_part p
+ON lh.code = p.partnumber
+WHERE code LIKE 'LP%'
+AND p.parttypename = 'CLASS'

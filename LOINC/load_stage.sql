@@ -41,6 +41,7 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 --Prepare tables
+--TODO: Add relationships instead of SNOMED concepts
 --Some concepts should be inserted before other load_stage
 INSERT INTO concept(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 VALUES
@@ -51,8 +52,7 @@ VALUES
        (2100000004, 'LOINC Method', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
        (2100000005, 'LOINC Property', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
        (2100000006, 'LOINC Attribute', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
-       (2100000007, 'Has system (LOINC)', 'Metadata', 'Relationship', 'Relationship', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
-       (2100000008, 'System of (LOINC)', 'Metadata', 'Relationship', 'Relationship', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL);
+       (2100000007, 'Has system (LOINC)', 'Metadata', 'Relationship', 'Relationship', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL);
 
 
 INSERT INTO concept_class (concept_class_id, concept_class_name, concept_class_concept_id) VALUES
@@ -414,9 +414,8 @@ SELECT DISTINCT pl.PartNumber, p.PartDisplayName, pl.parttypename, p.status
 FROM sources.loinc_partlink pl
 JOIN sources.loinc_part p
 ON pl.PartNumber = p.PartNumber
-WHERE pl.LinkTypeName IN ('Primary')    --or any other too
+WHERE pl.LinkTypeName IN ('Primary')    --or any other too if required
   AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE')
-AND pl.PartNumber NOT IN (SELECT DISTINCT concept_code FROM concept_stage WHERE concept_code IS NOT NULL)     --to exclude duplicates inserted during previous load_stage code
 
     UNION ALL
 
@@ -426,6 +425,17 @@ FROM sources.loinc_hierarchy lh
 JOIN sources.loinc_part p
 ON lh.code = p.partnumber
 WHERE code LIKE 'LP%'
+AND p.parttypename != 'CLASS'
+
+    UNION ALL
+
+--427 codes not found in loinc_part, but present in loinc_hierarchy
+--TODO: We need special concept_class_id for these concepts cause we an't retrieve any from loinc_partlink
+SELECT lh.code, lh.code, 'LOINC Hierarchy','ACTIVE'
+FROM sources.loinc_hierarchy lh
+WHERE code LIKE 'LP%'
+  AND code_text !~ ' \| '
+AND trim(code) NOT IN (SELECT trim(partnumber) FROM sources.loinc_part)
 )
 
 INSERT INTO concept_stage (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -450,7 +460,7 @@ SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
                      WHEN s.parttypename = 'TIME' THEN 'LOINC Time'
                      WHEN s.parttypename = 'COMPONENT' THEN 'LOINC Component'
                      WHEN s.parttypename = 'SCALE' THEN 'LOINC Scale'
-                     ELSE 'LOINC Attribute'
+                     ELSE 'LOINC Hierarchy'             --To use for 427 concepts that can't be found in loinc_part
                      END AS concept_class_id,
                 'C' AS standard_concept,                --Classification
                 s.PartNumber AS concept_code,
@@ -459,7 +469,8 @@ SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
                 CASE WHEN s.status != 'ACTIVE' THEN 'D' ELSE NULL END AS invalid_reason    --For deprecated concepts
 FROM s
 ;
-
+select * from sources.loinc_hierarchy where code LIKE 'LP%' and code_text !~ ' \| '
+and trim (code) not in (select trim (partnumber) from sources.loinc_part );
 --6. Build 'Subsumes' relationships from LOINC Ancestors to Descendants using a source table of 'sources.loinc_hierarchy'
 INSERT INTO concept_relationship_stage (
 	concept_code_1,

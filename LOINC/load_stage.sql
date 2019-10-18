@@ -17,7 +17,12 @@
 * Date: 2019
 **************************************************************************/
 
---1. Update a 'latest_update' field to a new date 
+
+/*
+ Latest update: new concept_class_id added (Has system (LOINC) instead of SNOMED 'Has finding site'
+ */
+
+--1. Update a 'latest_update' field to a new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -35,6 +40,35 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
+--Prepare tables
+--Some concepts should be inserted before other load_stage
+INSERT INTO concept(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+VALUES
+       (2100000000, 'LOINC System', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
+       (2100000001, 'LOINC Component', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
+       (2100000002, 'LOINC Scale', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
+       (2100000003, 'LOINC Time', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
+       (2100000004, 'LOINC Method', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
+       (2100000005, 'LOINC Property', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
+       (2100000006, 'LOINC Attribute', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
+       (2100000007, 'Has system (LOINC)', 'Metadata', 'Relationship', 'Relationship', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
+       (2100000008, 'System of (LOINC)', 'Metadata', 'Relationship', 'Relationship', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL);
+
+
+INSERT INTO concept_class (concept_class_id, concept_class_name, concept_class_concept_id) VALUES
+('LOINC System', 'LOINC System', 2100000000),
+('LOINC Component', 'LOINC Component', 2100000001),
+('LOINC Scale', 'LOINC Scale', 2100000002),
+('LOINC Time', 'LOINC Time', 2100000003),
+('LOINC Method', 'LOINC Method', 2100000004),
+('LOINC Property', 'LOINC Property', 2100000005),
+('LOINC Attribute', 'LOINC Attribute', 2100000006)
+;
+
+INSERT INTO relationship(relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id) VALUES
+('Has system', 'Has system (LOINC)', 0, 0, 'System of', 2100000007),
+('System of', 'System of (LOINC)', 0, 0, 'Has system', 2100000008);
+
 --3. Load LOINC concepts indicating Measurements or Observations from a source table of 'sources.loinc' into the CONCEPT_STAGE
 INSERT INTO concept_stage (
 	concept_name,
@@ -47,7 +81,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE 
+SELECT CASE
 		WHEN loinc_num = '66678-4'
 			AND property = 'Hx'
 			THEN 'History of Diabetes (regardless of treatment) [PhenX]'
@@ -58,7 +92,7 @@ SELECT CASE
 			THEN 'History of ' || long_common_name
 		ELSE long_common_name -- AVOF-819
 		END AS concept_name,
-	CASE 
+	CASE
 		WHEN CLASSTYPE IN (
 				'1',
 				'2'
@@ -176,7 +210,7 @@ SELECT CASE
 			THEN 'Observation'
 		END AS domain_id,
 	v.vocabulary_id,
-	CASE 
+	CASE
 		WHEN CLASSTYPE IN (
 				'1',
 				'2'
@@ -296,12 +330,12 @@ SELECT CASE
 	'S' AS standard_concept,
 	LOINC_NUM AS concept_code,
 	COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,
-	CASE 
+	CASE
 		WHEN STATUS IN (
 				'DISCOURAGED',
 				'DEPRECATED'
 				)
-			THEN CASE 
+			THEN CASE
 					WHEN C.VALID_END_DATE > V.LATEST_UPDATE
 						OR C.VALID_END_DATE IS NULL
 						THEN V.LATEST_UPDATE
@@ -309,7 +343,7 @@ SELECT CASE
 					END
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date,
-	CASE 
+	CASE
 		WHEN EXISTS (
 				SELECT 1
 				FROM sources.map_to m
@@ -327,6 +361,7 @@ JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
 	AND c.vocabulary_id = 'LOINC';
 
+
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the CONCEPT_STAGE
 INSERT INTO concept_stage (
 	concept_name,
@@ -340,7 +375,7 @@ INSERT INTO concept_stage (
 	invalid_reason
 	)
 SELECT concept_name,
-	CASE 
+	CASE
 		WHEN concept_name ~* 'history|report|document|miscellaneous|public health' -- manually defined word patterns indicating the 'Observation' domain
 			THEN 'Observation'
 		ELSE domain_id
@@ -367,40 +402,63 @@ SELECT 'Document Ontology' AS concept_name,
 	'2099-12-31' AS valid_end_date,
 	NULL AS invalid_reason;
 
---5. Add LOINC Hierarchy concepts (code ~ '^LP') from a source table of 'sources.loinc_hierarchy' into the CONCEPT_STAGE
-INSERT INTO concept_stage (
-	concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT DISTINCT SUBSTR(code_text, 1, 255) AS concept_name,
-	CASE 
+--5. Add LOINC Parts concepts
+--First part of LOINC parts going from loinc_partlink
+--TODO: Define concept classes we want to use. Possible actions:
+/*
+   1) Define concept classes according to parttypename (there are more than 6 actually)
+   2) Let it be LOINC Hierarchy for concepts coming from sources.loinc_hierarchy table and according to parttypename for the rest
+*/
+with s AS (
+SELECT DISTINCT pl.PartNumber, p.PartDisplayName, pl.parttypename, p.status
+FROM sources.loinc_partlink pl
+JOIN sources.loinc_part p
+ON pl.PartNumber = p.PartNumber
+WHERE pl.LinkTypeName IN ('Primary')    --or any other too
+  AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE')
+AND pl.PartNumber NOT IN (SELECT DISTINCT concept_code FROM concept_stage WHERE concept_code IS NOT NULL)     --to exclude duplicates inserted during previous load_stage code
+
+    UNION ALL
+
+--The rest is from loinc_hierarchy
+SELECT DISTINCT p.partnumber, p.partdisplayname, p.parttypename, p.status
+FROM sources.loinc_hierarchy lh
+JOIN sources.loinc_part p
+ON lh.code = p.partnumber
+WHERE code LIKE 'LP%'
+)
+
+INSERT INTO concept_stage (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
+                CASE
 		WHEN (
-				code_text ~* 'directive|^age\s+|lifetime risk|alert|attachment|\s+date|comment|\s+note|consent|identifier|\s+time|\s+number' -- manually defined word patterns indicating the 'Observation' domain
-				OR code_text ~* 'date and time|coding system|interpretation|status|\s+name|\s+report|\s+id$|s+id\s+|version|instruction|known exposure|priority|ordered|available|requested|issued|flowsheet|\s+term'
-				OR code_text ~* 'reported|not yet categorized|performed|risk factor|device|administration|\s+route$|suggestion|recommended|narrative|ICD code|reference'
-				OR code_text ~* 'reviewed|information|intention|^Reason for|^Received|Recommend|provider|subject|summary|time\s+'
+				PartDisplayName ~* 'directive|^age\s+|lifetime risk|alert|attachment|\s+date|comment|\s+note|consent|identifier|\s+time|\s+number' -- manually defined word patterns indicating the 'Observation' domain
+				OR PartDisplayName ~* 'date and time|coding system|interpretation|status|\s+name|\s+report|\s+id$|s+id\s+|version|instruction|known exposure|priority|ordered|available|requested|issued|flowsheet|\s+term'
+				OR PartDisplayName ~* 'reported|not yet categorized|performed|risk factor|device|administration|\s+route$|suggestion|recommended|narrative|ICD code|reference'
+				OR PartDisplayName ~* 'reviewed|information|intention|^Reason for|^Received|Recommend|provider|subject|summary|time\s+'
 				)
-			AND code_text !~* 'thrombin time|clotting time|bleeding time|clot formation|kaolin activated time|closure time|protein feed time|Recalcification time|reptilase time|russell viper venom time'
-			AND code_text !~* 'implanted device|dosage\.vial|isolate|within lymph node|cancer specimen|tumor|chromosome|inversion|bioavailable'
-			THEN 'Observation' -- AVOF-1579
-		ELSE 'Measurement'
+			AND PartDisplayName !~* 'thrombin time|clotting time|bleeding time|clot formation|kaolin activated time|closure time|protein feed time|Recalcification time|reptilase time|russell viper venom time'
+			AND PartDisplayName !~* 'implanted device|dosage\.vial|isolate|within lymph node|cancer specimen|tumor|chromosome|inversion|bioavailable'
+			THEN 'Observation'
+		ELSE 'Measurement'                              --Implementing the same logic
 		END AS domain_id,
-	'LOINC' AS vocabulary_id,
-	'LOINC Hierarchy' AS concept_class_id,
-	'C' AS standart_concept, -- LOINC Hierarchy concepts should be Classification concepts
-	code AS concept_code,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM sources.loinc_hierarchy
-WHERE code LIKE 'LP%';-- all LOINC Hierarchy concepts have 'LP' at the beginning of the names
+                'LOINC' AS vocabulary_id,
+--TODO: Add following concept classes for LOINC Parts
+                CASE WHEN s.parttypename = 'SYSTEM' THEN 'LOINC System'
+                     WHEN s.parttypename = 'METHOD' THEN 'LOINC Method'
+                     WHEN s.parttypename = 'PROPERTY' THEN 'LOINC Property'
+                     WHEN s.parttypename = 'TIME' THEN 'LOINC Time'
+                     WHEN s.parttypename = 'COMPONENT' THEN 'LOINC Component'
+                     WHEN s.parttypename = 'SCALE' THEN 'LOINC Scale'
+                     ELSE 'LOINC Attribute'
+                     END AS concept_class_id,
+                'C' AS standard_concept,                --Classification
+                s.PartNumber AS concept_code,
+                '1970-01-01'::date as valid_start_date, --Valid start date should be the date of last update
+                CASE WHEN s.status != 'ACTIVE' THEN '2019-12-31'::date ELSE '2099-12-31' END as valid_end_date, --TODO: Define valid_end_date
+                CASE WHEN s.status != 'ACTIVE' THEN 'D' ELSE NULL END AS invalid_reason    --For deprecated concepts
+FROM s
+;
 
 --6. Build 'Subsumes' relationships from LOINC Ancestors to Descendants using a source table of 'sources.loinc_hierarchy'
 INSERT INTO concept_relationship_stage (
@@ -490,6 +548,40 @@ WHERE concept_code_1 = 'PANEL.H' || chr(38) || 'P' -- '&' = chr(38)
 	AND concept_code_2 = '38213-5'
 	AND relationship_id = 'Subsumes';
 
+
+
+--ADD concept_relationships FOR NEW LOINC ATTRIBUTES
+--TODO: Make sure we are able to use SNOMED relationship or new relationship_id required
+--TODO: Maybe add relationships for concepts from loinc_hierarchy table also?
+WITH s AS (SELECT DISTINCT loincnumber, p.PartNumber, p.PartTypeName
+           FROM sources.loinc_partlink pl
+           JOIN sources.loinc_part p
+           ON pl.PartNumber = p.PartNumber
+           WHERE pl.LinkTypeName IN ('Primary')
+           AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE')
+           AND pl.PartNumber IN (SELECT DISTINCT concept_code FROM concept_stage)
+           AND loincnumber IN (SELECT DISTINCT concept_code FROM concept_stage)
+           )
+
+INSERT INTO concept_relationship_stage (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT DISTINCT s.loincnumber AS concept_code_1,
+                partnumber AS concept_code_2,
+                'LOINC' AS vocabulary_id_1,
+                'LOINC' AS vocabulary_id_2,
+                CASE WHEN s.parttypename = 'SYSTEM' THEN 'Has system'
+                     WHEN s.parttypename = 'METHOD' THEN 'Has method'
+                     WHEN s.parttypename = 'PROPERTY' THEN 'Has property'
+                     WHEN s.parttypename = 'TIME' THEN 'Has time aspect'
+                     WHEN s.parttypename = 'COMPONENT' THEN 'Has component'
+                     WHEN s.parttypename = 'SCALE' THEN 'Has scale type'
+                     END AS relationship_id,
+                '1970-01-01'::date as valid_start_date, --Valid start date should be the date of last update
+                '2099-12-31'::date as valid_end_date,
+                NULL AS invalid_reason
+FROM s
+ORDER BY concept_code_1;
+
+
 --9. Add to the CONCEPT_SYNONYM_STAGE all synonymic names from a source table of 'sources.loinc'
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
@@ -505,7 +597,7 @@ INSERT INTO concept_synonym_stage (
 	FROM sources.loinc WHERE relatednames2 IS NOT NULL
 
 UNION
-	
+
 	-- values of a 'consumer_name' field that were previously used as preferred name (in 195 cases)
 	SELECT LOINC_NUM AS synonym_concept_code,
 	consumer_name AS synonym_name,
@@ -514,7 +606,7 @@ UNION
 	FROM sources.loinc WHERE consumer_name IS NOT NULL
 
 UNION
-	
+
 	-- values of the 'ShortName' field
 	SELECT loinc_num AS synonym_concept_code,
 	shortname AS synonym_name,
@@ -523,7 +615,7 @@ UNION
 	FROM sources.loinc WHERE shortname IS NOT NULL
 
 UNION
-	
+
 	--  'long_common_name' field  values which were changed ('History of')
 	SELECT loinc_num AS synonym_concept_code,
 	long_common_name AS synonym_name,
@@ -534,6 +626,26 @@ UNION
 		FROM concept_stage
 		)
 	);-- NB! We do not add synonyms for LOINC Answers (a 'description' field) due to their vague formulation
+
+
+--Inserting synonyms for concepts where PartName != PartDisplayName
+with s AS (SELECT DISTINCT pl.PartNumber, p.PartName
+FROM sources.loinc_partlink pl
+JOIN sources.loinc_part p
+ON pl.PartNumber = p.PartNumber
+WHERE pl.LinkTypeName IN ('Primary')
+  AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE')
+AND pl.PartNumber IN (SELECT DISTINCT concept_code FROM concept_stage WHERE concept_code IS NOT NULL)
+AND pl.PartName != p.PartDisplayName
+and p.partnumber NOT IN (SELECT DISTINCT synonym_concept_code FROM concept_synonym_stage WHERE synonym_concept_code IS NOT NULL))
+
+INSERT INTO concept_synonym_stage (synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id)
+SELECT DISTINCT s.PartName AS synonym_name,
+    s.PartNumber AS synonym_concept_code,
+    'LOINC' AS synonym_vocabulary_id,
+    4180186 AS language_concept_id      --English language
+FROM s
+;
 
 --10. Add LOINC Answers from 'sources.loinc_answerslist' and 'sources.loinc_answerslistlink' source tables to the CONCEPT_STAGE
 INSERT INTO concept_stage (
@@ -547,7 +659,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT ans_l.displaytext AS concept_name,
+SELECT DISTINCT trim(ans_l.displaytext) AS concept_name,
 	'Meas Value' AS domain_id,
 	'LOINC' AS vocabulary_id,
 	'Answer' AS concept_class_id,
@@ -557,7 +669,7 @@ SELECT DISTINCT ans_l.displaytext AS concept_name,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.loinc_answerslist ans_l -- Answer containing table
-JOIN sources.loinc_answerslistlink ans_l_l ON ans_l_l.answerlistid = ans_l.answerlistid -- 'AnswerListID' field unites Answers with Questions 
+JOIN sources.loinc_answerslistlink ans_l_l ON ans_l_l.answerlistid = ans_l.answerlistid -- 'AnswerListID' field unites Answers with Questions
 JOIN sources.loinc l ON l.loinc_num = ans_l_l.loincnumber -- to confirm the connection of 'AnswerListID' with LOINC concepts indicating Measurements and Observations (currently all of them are connected)
 WHERE ans_l.answerstringid IS NOT NULL;--'AnswerStringID' value may be null
 
@@ -809,7 +921,7 @@ WHERE lgt.category IS NOT NULL
 UNION ALL
 
 --add LOINC Groups
-SELECT lg.lgroup AS concept_name, -- LOINC Group name
+SELECT trim(lg.lgroup) AS concept_name, -- LOINC Group name
 	'Measurement' AS domain_id,
 	v.vocabulary_id AS vocabulary_id,
 	'LOINC Group' AS concept_class_id,
@@ -833,7 +945,7 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 -- from LOINC concepts indicating Measurements and Observations to LOINC Groups using sources.loinc_grouploincterms
-SELECT lgt.loincnumber AS concept_code_1, -- LOINC Observation or Measurement concepts 
+SELECT lgt.loincnumber AS concept_code_1, -- LOINC Observation or Measurement concepts
 	lgt.groupid AS concept_code_2, --LOINC Group code
 	'LOINC' AS vocabulary_id_1,
 	'LOINC' AS vocabulary_id_2,
@@ -844,7 +956,7 @@ SELECT lgt.loincnumber AS concept_code_1, -- LOINC Observation or Measurement co
 FROM sources.loinc_grouploincterms lgt
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 JOIN concept_stage cs1 ON cs1.concept_code = lgt.groupid --LOINC Group code
-JOIN concept_stage cs2 ON cs2.concept_code = lgt.loincnumber -- LOINC Observation or Measurement concepts 
+JOIN concept_stage cs2 ON cs2.concept_code = lgt.loincnumber -- LOINC Observation or Measurement concepts
 
 UNION ALL
 
@@ -870,7 +982,7 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 -- add proper name of LOINC Group Categories and Groups (probably to simplify perception of their long descriptions)
-SELECT cs.concept_code AS synonym_concept_code, -- proper name of LOINC Group Categories and Groups 
+SELECT cs.concept_code AS synonym_concept_code, -- proper name of LOINC Group Categories and Groups
 	cs.concept_name AS synonym_name,
 	'LOINC' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
@@ -892,16 +1004,16 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---22. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---23. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--22. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--23. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
 --24. Delete ambiguous 'Maps to' mappings
@@ -911,3 +1023,15 @@ BEGIN
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+
+--*******************************************
+--**********RUN CHECKS FROM QA FILE**********
+--*******************************************
+
+--GenericUpdate; devv5 - static variable
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;
+
+select * from QA_TESTS.GET_CHECKS();

@@ -2,7 +2,7 @@ drop table if exists rxn_info_sheet;
 create table rxn_info_sheet as
 with info_sheet as
 (
---1. standard concepts that have active relations to deprecated
+--1. Concepts that have active distinctive relations to attributes that are no longer active;
 --- Brand Names
 	select
 		'W' as info_level,
@@ -71,7 +71,7 @@ with info_sheet as
 
 			union all
 
---2. Broken drug_strength entries
+--2. Broken drug_strength entries; concepts that omit specifying important units in denominator/numerator pairings etc.
 	select
 		'E',
 		'Drug concepts with misformulated strength',
@@ -94,7 +94,7 @@ with info_sheet as
 
 		union all
 
---3. Components that duplicate existing RxNorm components
+--3. Components that duplicate existing RxNorm components; RxNorm components may specify differing precise ingredients but be completely identical otherwise. Known to have broken RxE in the past.
 	select
 		'W',
 		'Identical strength entries for clinical components',
@@ -123,7 +123,7 @@ with info_sheet as
 
 		union all
 
---4. Drug concepts have entries in drug_strength with precise ingredients as content targets.
+--4. Drug concepts have entries in drug_strength with precise ingredients as content targets. Usually arise when concepts change class from Ingredient to Precise Ingredient.
 	select
 		'E',
 		'Drug concepts have entries in drug_strength with precise ingredients as content targets',
@@ -184,35 +184,7 @@ with info_sheet as
 
 		union all
 
---7. Missing unit from concept
-	select
-		'E',
-		'DRUG_STRENGTH entry refers to nonexistent unit',
-		count (d.drug_concept_code)
-	from drug_strength_stage d
-	left join concept c on
-		coalesce (d.amount_unit_concept_id, d.numerator_unit_concept_id) = c.concept_id
-	where
-		coalesce (d.amount_unit_concept_id, d.numerator_unit_concept_id) is not null and
-		c.concept_id is null and
-		d.vocabulary_id_1 = 'RxNorm'
-
-		union all
-
-	select
-		'E',
-		'DRUG_STRENGTH entry refers to nonexistent unit',
-		count (d.drug_concept_code)
-	from drug_strength_stage d
-	left join concept c on
-		denominator_unit_concept_id = c.concept_id
-	where
-		d.denominator_unit_concept_id is not null and
-		c.concept_id is null and
-		d.vocabulary_id_1 = 'RxNorm'
-
-		union all
-
+--8. Present persistent relation between Ingredient and a Brand Name concept that are not encountered as a combination; may be erroneous or be caused by persistent valid relation to a deprecated concept.
 	select
 		'W',
 		'Relation between Ingredient and a Brand Name is not supported by a standard branded component',
@@ -247,6 +219,7 @@ with info_sheet as
 			
 		union all
 
+--9. Usually shows Ingredients becoming precise Ingredients, possible vice versa. Known to have broken RxE in the past.
 	select
 		'I',
 		'Concepts changed class: ' || s.concept_class_id || ' to '|| c.concept_class_id,
@@ -272,6 +245,7 @@ with info_sheet as
 
 		union all
 
+--10. Known problems in basic tables that don't have corresponding entries in stage tables.
 	select
 		'W',
 		'Errors in basic tables not adressed in current release: valid relations to invalid concepts',

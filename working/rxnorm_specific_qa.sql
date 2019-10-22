@@ -236,7 +236,7 @@ with info_sheet as
 
 	select
 		'E',
-		'Multiple of the same ingredient per drug',
+		'Multiple instances of the same ingredient per drug',
 		count (drug_concept_code)
 	from drug_strength_stage
 	where vocabulary_id_1 = 'RxNorm'

@@ -80,3 +80,13 @@ WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
 	 OR rl.relationship_id IS NULL
 	 OR crm.valid_start_date > CURRENT_DATE
 	 OR crm.valid_end_date < crm.valid_start_date;
+
+
+
+--GenericUpdate; devv5 - static variable
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;
+
+select * from QA_TESTS.GET_CHECKS();

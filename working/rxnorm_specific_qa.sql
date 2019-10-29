@@ -16,35 +16,11 @@ with info_sheet as
 		r.vocabulary_id_1 = c.vocabulary_id and
 		r.relationship_id = 'Has brand name' and
 		r.invalid_reason is null
-	LEFT join concept_stage c2 on
+	join concept_stage c2 on
 		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
 		c2.invalid_reason is not null
 	where
-		c.vocabulary_id = 'RxNorm' and
-		c2.concept_code is null --true if relation is built to concept not in concept_stage or concept that is deprecated in concept_stage
-
-		union all
-
---- Suppliers
-	select
-		'W',
-		'Marketed concepts that have active relations to deprecated Suppliers' as description,
-		count (c.concept_code) as err_cnt
-	from concept_stage c
-	join concept_relationship_stage r on
-		c.domain_id = 'Drug' and
-		c.standard_concept = 'S' and
-		r.concept_code_1 = c.concept_code and
-		r.vocabulary_id_1 = c.vocabulary_id and
-		r.relationship_id = 'Has supplier' and
-		r.invalid_reason is null
-	LEFT join concept_stage c2 on
-		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
-		c2.invalid_reason is not null
-	where
-		c.vocabulary_id = 'RxNorm' and
-		c2.concept_code is null --true if relation is built to concept not in concept_stage or concept that is deprecated in concept_stage
-
+		c.vocabulary_id = 'RxNorm'
 
 		union all
 
@@ -61,12 +37,11 @@ with info_sheet as
 		r.vocabulary_id_1 = c.vocabulary_id and
 		r.relationship_id = 'RxNorm has dose form' and
 		r.invalid_reason is null
-	LEFT join concept_stage c2 on
+	join concept_stage c2 on
 		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
 		c2.invalid_reason is not null
 	where
-		c.vocabulary_id = 'RxNorm' and
-		c2.concept_code is null --true if relation is built to concept not in concept_stage or concept that is deprecated in concept_stage
+		c.vocabulary_id = 'RxNorm'
 
 
 			union all

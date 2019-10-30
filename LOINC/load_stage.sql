@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Polina Talapova, Dmitry Dymshyts, Timur Vakhitov, Christian Reich
 * Date: 2019
 **************************************************************************/
@@ -375,30 +375,23 @@ SELECT 'Document Ontology' AS concept_name,
 --5. Add LOINC Parts concepts
 --First part of LOINC parts going from loinc_partlink
 with s AS (
-SELECT DISTINCT pl.PartNumber, p.PartDisplayName, pl.parttypename, p.status
+SELECT DISTINCT pl.PartNumber, coalesce(pl.partname, p.PartDisplayName) AS PartDisplayName, pl.parttypename, coalesce(p.status, 'ACTIVE') AS status
 FROM sources.loinc_partlink pl
-JOIN sources.loinc_part p
+LEFT JOIN sources.loinc_part p
 ON pl.PartNumber = p.PartNumber
 WHERE pl.LinkTypeName IN ('Primary')    --or any other too if required
   AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE')
 
     UNION ALL
 
-SELECT DISTINCT code, coalesce(p.partdisplayname, code_text), 'LOINC Hierarchy',
+SELECT DISTINCT code, coalesce(p.partdisplayname, code_text) AS PartDisplayName, 'LOINC Hierarchy' AS parttypename,
 	CASE WHEN p.status IS NOT NULL THEN p.status ELSE 'ACTIVE' END AS status
 FROM sources.loinc_hierarchy lh
 LEFT JOIN sources.loinc_part p
 ON lh.code = p.partnumber
-WHERE code LIKE 'LP%'  -- all LOINC Hierarchy concepts have 'LP' at the beginning of the names
-AND code NOT IN (
-    SELECT DISTINCT pl.partnumber FROM sources.loinc_partlink pl
-    JOIN sources.loinc_part p
-    ON pl.PartNumber = p.PartNumber
-WHERE pl.LinkTypeName IN ('Primary')
-  AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE')                    -- To exclude duplicates
-    )
-AND (trim(code) NOT IN (SELECT trim(partnumber) FROM sources.loinc_partlink WHERE LinkTypeName = 'Primary') -- LOINC non-primary Parts and 427 undefinied LOINC Hierarchy concepts
-OR code_text ~ ' \| ')  -- pick all LOINC Panels separated by ' | '
+WHERE code LIKE 'LP%'  -- all LOINC Hierarchy concepts have 'LP' at the beginning of the names (including 427 undefined concepts and LOINC panels)
+
+AND trim(code) NOT IN (SELECT trim(partnumber) FROM sources.loinc_partlink pl WHERE pl.LinkTypeName = 'Primary' AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE'))
 )
 
 INSERT INTO concept_stage (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -424,14 +417,16 @@ SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
                      WHEN s.parttypename = 'SCALE' THEN 'LOINC Scale'
                      ELSE 'LOINC Hierarchy'
                      END AS concept_class_id,
-                'C' AS standard_concept,                --Classification
+                NULL AS standard_concept,                --Non-standard
                 s.PartNumber AS concept_code,
                 coalesce(c.valid_start_date, v.latest_update) AS valid_start_date,
                 CASE WHEN s.status != 'ACTIVE' THEN CASE WHEN c.valid_end_date < latest_update THEN c.valid_end_date    --Deprecated concepts, already present in CDM, should have valid_end_date from concept table
                      ELSE greatest(coalesce(c.valid_start_date, v.latest_update), latest_update-1) END                  --Concepts, added and deprecated by this release should have valid end date as the date of the latest update/
                      -- concepts previously present in CDM, but deprecated in this release should have latest_update-1 as valid end date
 					ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date,
-                CASE WHEN s.status != 'ACTIVE' THEN 'D' ELSE NULL END AS invalid_reason    --For deprecated concepts
+                CASE WHEN s.status = 'ACTIVE' THEN NULL
+                     WHEN s.status = 'DEPRECATED' THEN 'D'
+                    ELSE 'X' END AS invalid_reason    --IF there are any changes in LOINC source we don't know about. GenericUpdate() will fail in case of 'X' in invalid_reason field
 FROM s
 
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
@@ -624,19 +619,16 @@ UNION
 
 
 --Inserting synonyms for concepts where PartName != PartDisplayName
-with s AS (SELECT DISTINCT pl.PartNumber, p.PartName
-FROM sources.loinc_partlink pl
-JOIN sources.loinc_part p
-ON pl.PartNumber = p.PartNumber
-WHERE pl.LinkTypeName IN ('Primary')
-  AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE')
-AND pl.PartNumber IN (SELECT DISTINCT concept_code FROM concept_stage WHERE concept_code IS NOT NULL)
-AND pl.PartName != p.PartDisplayName
+with s AS (SELECT DISTINCT cs.concept_code, p.PartName
+           FROM concept_stage cs
+           JOIN sources.loinc_part p
+           ON cs.concept_code = p.PartNumber
+           WHERE p.PartName != p.PartDisplayName
 and p.partnumber NOT IN (SELECT DISTINCT synonym_concept_code FROM concept_synonym_stage WHERE synonym_concept_code IS NOT NULL))
 
 INSERT INTO concept_synonym_stage (synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id)
 SELECT DISTINCT s.PartName AS synonym_name,
-    s.PartNumber AS synonym_concept_code,
+    s.concept_code AS synonym_concept_code,
     'LOINC' AS synonym_vocabulary_id,
     4180186 AS language_concept_id      --English language
 FROM s

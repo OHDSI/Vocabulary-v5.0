@@ -224,7 +224,11 @@ FROM KCD7_domain rd
 WHERE rd.concept_code = c.concept_code
 	AND c.vocabulary_id = 'KCD7';
 	
-
+--Add KCD7 to SNOMED manual mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
 
 --Working with replacement mappings
 DO $_$

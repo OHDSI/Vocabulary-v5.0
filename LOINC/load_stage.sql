@@ -417,10 +417,10 @@ SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
                      WHEN s.parttypename = 'SCALE' THEN 'LOINC Scale'
                      ELSE 'LOINC Hierarchy'
                      END AS concept_class_id,
-                NULL AS standard_concept,                --Non-standard
+                CASE WHEN s.parttypename = 'LOINC Hierarchy' THEN 'C' ELSE NULL END AS standard_concept,                --Non-standard
                 s.PartNumber AS concept_code,
                 coalesce(c.valid_start_date, v.latest_update) AS valid_start_date,
-                CASE WHEN s.status != 'ACTIVE' THEN CASE WHEN c.valid_end_date < latest_update THEN c.valid_end_date    --Deprecated concepts, already present in CDM, should have valid_end_date from concept table
+                CASE WHEN s.status = 'DEPRECATED' THEN CASE WHEN c.valid_end_date < latest_update THEN c.valid_end_date    --Deprecated concepts, already present in CDM, should have valid_end_date from concept table
                      ELSE greatest(coalesce(c.valid_start_date, v.latest_update), latest_update-1) END                  --Concepts, added and deprecated by this release should have valid end date as the date of the latest update/
                      -- concepts previously present in CDM, but deprecated in this release should have latest_update-1 as valid end date
 					ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date,

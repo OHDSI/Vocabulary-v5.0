@@ -144,8 +144,7 @@ BEGIN
 	AND c.invalid_reason IS NULL -- not already deprecated
 	AND CASE -- all vocabularies that give us a full list of active concepts at each release we can safely assume to deprecate missing ones (THEN 1)
 		WHEN c.vocabulary_id = 'SNOMED' THEN 1
-		WHEN c.vocabulary_id = 'LOINC' AND c.concept_class_id = 'LOINC Answers' THEN 1 -- Only LOINC answers are full lists
-		WHEN c.vocabulary_id = 'LOINC' THEN 0 -- LOINC gives full account of all concepts
+		WHEN c.vocabulary_id = 'LOINC' THEN 1 -- LOINC gives full account of all concepts
 		WHEN c.vocabulary_id = 'ICD9CM' THEN 1
 		WHEN c.vocabulary_id = 'ICD10' THEN 1
 		WHEN c.vocabulary_id = 'RxNorm' THEN 1

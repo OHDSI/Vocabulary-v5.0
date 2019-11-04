@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Oleg Zhuck, Polina Talapova, Dmitry Dymshyts, Alexander Davydov, Timur Vakhitov, Christian Reich
+* Authors: Oleg Zhuk, Polina Talapova, Dmitry Dymshyts, Alexander Davydov, Timur Vakhitov, Christian Reich
 * Date: 2019
 **************************************************************************/
 
@@ -439,7 +439,9 @@ SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
                 ELSE GREATEST(COALESCE (c.valid_start_date, v.latest_update),   -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release 
                 latest_update-1) END -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release                 
 		ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date, -- default value of 31-Dec-2099 for the rest
-                CASE WHEN s.status != 'ACTIVE' THEN 'D' ELSE NULL END AS invalid_reason -- define concept validity according to the 'status' field
+                CASE WHEN s.status = 'ACTIVE' THEN NULL -- define concept validity according to the 'status' field
+                     WHEN s.status = 'DEPRECATED' THEN 'D'
+                    ELSE 'X' END AS invalid_reason    --IF there are any changes in LOINC source we don't know about. GenericUpdate() will fail in case of 'X' in invalid_reason field
 FROM s
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = s.PartNumber -- already existing LOINC concepts 

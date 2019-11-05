@@ -396,19 +396,21 @@ WHERE pl.LinkTypeName IN ('Primary')
 
     UNION ALL
 -- pick LOINC Hierarchy concepts (Attributive Panels, non-primary Parts and 427 Undefined attributes) 
-SELECT DISTINCT lh.code,
-       COALESCE(p.partdisplayname,lh.code_text),
-       'LOINC Hierarchy',
-       CASE WHEN p.status IS NOT NULL THEN p.status
+SELECT DISTINCT code,
+       COALESCE(p.partdisplayname,code_text) AS PartDisplayName,
+       'LOINC Hierarchy' AS parttypename,
+       CASE
+         WHEN p.status IS NOT NULL THEN p.status
          ELSE 'ACTIVE'
-       END AS status 
-       FROM sources.loinc_hierarchy lh
-  LEFT JOIN sources.loinc_part p -- to get a validity of concept ( a 'status' field)
+       END AS status
+FROM sources.loinc_hierarchy lh
+  LEFT JOIN sources.loinc_part p --  to get a validity of concept ( a 'status' field)
 ON lh.code = p.partnumber -- LOINC Attribute
-WHERE code LIKE 'LP%' -- all LOINC Hierarchy concepts have 'LP' at the beginning of the names
-AND (code_text ~ ' \| '  -- pick all LOINC Panels separated by ' | '
-OR trim(code) NOT IN (SELECT trim(partnumber) FROM sources.loinc_partlink WHERE LinkTypeName = 'Primary') --  pick non-primary Parts and 427 Undefined attributes (excluding Primary LOINC Parts)
-)
+WHERE code LIKE 'LP%' -- all LOINC Hierсrchy concepts have 'LP' at the beginning of the names (including 427 undefined concepts and LOINC panels)
+AND   TRIM(code) NOT IN (SELECT TRIM(partnumber)
+                         FROM sources.loinc_partlink pl
+                         WHERE pl.LinkTypeName = 'Primary'
+                         AND   pl.PartTypeName IN ('SYSTEM','METHOD','PROPERTY','TIME','COMPONENT','SCALE')) --  pick non-primary Parts and 427 Undefined attributes (excluding Primary LOINC Parts)
 )
 SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
                 CASE
@@ -432,21 +434,21 @@ SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
                      WHEN s.parttypename = 'SCALE' THEN 'LOINC Scale'
                      ELSE 'LOINC Hierarchy'
                      END AS concept_class_id,
-                'C' AS standard_concept, -- LOINC Attributes and Hierarchy concepts should be 'Classification' 
+  		CASE WHEN s.parttypename = 'LOINC Hierarchy' THEN 'C' ELSE NULL END AS standard_concept, --  LOINC Hierarchy concepts should be 'Classification', LOINC Attributes - 'Non-standard' 
                 s.PartNumber AS concept_code, -- LOINC Attribute or Hierarchy concept
-                COALESCE(c.valid_start_date,v.latest_update) AS valid_start_date, -- preserve the 'devv5.valid_start_date' for already existing concepts
-                CASE WHEN s.status != 'ACTIVE' THEN CASE WHEN c.valid_end_date < latest_update THEN c.valid_end_date    -- preserve 'devv5.valid_end_date' for already existing DEPRECATED concepts 
-                ELSE GREATEST(COALESCE (c.valid_start_date, v.latest_update),   -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release 
-                latest_update-1) END -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release                 
-		ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date, -- default value of 31-Dec-2099 for the rest
-                CASE WHEN s.status = 'ACTIVE' THEN NULL -- define concept validity according to the 'status' field
+                COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,-- preserve the 'devv5.valid_start_date' for already existing concepts
+                CASE WHEN s.status = 'DEPRECATED' THEN CASE WHEN c.valid_end_date < latest_update THEN c.valid_end_date -- preserve 'devv5.valid_end_date' for already existing DEPRECATED concepts 
+                     ELSE GREATEST(COALESCE(c.valid_start_date, v.latest_update),   -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release 
+                     latest_update-1) END   -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release  
+                     ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date,-- default value of 31-Dec-2099 for the rest 
+                CASE WHEN s.status = 'ACTIVE' THEN NULL  -- define concept validity according to the 'status' field
                      WHEN s.status = 'DEPRECATED' THEN 'D'
                     ELSE 'X' END AS invalid_reason    --IF there are any changes in LOINC source we don't know about. GenericUpdate() will fail in case of 'X' in invalid_reason field
 FROM s
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = s.PartNumber -- already existing LOINC concepts 
-	AND c.vocabulary_id = 'LOINC'; 
-	
+	AND c.vocabulary_id = 'LOINC';
+			 
 --6. Build 'Subsumes' relationships from LOINC Ancestors to Descendants using a source table of 'sources.loinc_hierarchy'
 INSERT INTO concept_relationship_stage (
 	concept_code_1,

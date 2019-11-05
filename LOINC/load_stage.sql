@@ -516,7 +516,7 @@ FROM concept_relationship cr
   JOIN concept c ON cr.concept_id_1 = c.concept_id
   JOIN concept cc ON cr.concept_id_2 = cc.concept_id
 WHERE c.vocabulary_id = 'LOINC'
-AND   cc.vocabulary_id = 'LOINC') -- Polina: should we limit the query by the specific relationship_ids in the future? 
+AND   cc.vocabulary_id = 'LOINC')
 SELECT DISTINCT s.loincnumber AS concept_code_1,
                 partnumber AS concept_code_2,
                 'LOINC' AS vocabulary_id_1,

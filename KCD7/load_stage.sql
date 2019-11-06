@@ -1,75 +1,81 @@
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Denys Kaduk, Dmitry Dymshyts
+* Date: 2019
+**************************************************************************/
+
+--1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'KCD7',
-	pVocabularyDate			=> TO_DATE('20170701','yyyymmdd') ,
+	pVocabularyDate			=> TO_DATE('20170701','yyyymmdd'),
 	pVocabularyVersion		=> '7th revision',
 	pVocabularyDevSchema	=> 'dev_kcd7'
 );
 END $_$;
 
-
---  Truncate all working tables
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
--- Load into concept_stage
-INSERT INTO concept_stage
-(
-  concept_name,
-  domain_id,
-  vocabulary_id,
-  concept_class_id,
-  standard_concept,
-  concept_code,
-  valid_start_date,
-  valid_end_date,
-  invalid_reason
-)
-SELECT DISTINCT TRIM(english_description),
-       NULL,
-       'KCD7',
-       'KCD7 code',
-       NULL,
-       CASE
-         WHEN kcd_Cd ~ '^\w\d\d$' THEN kcd_Cd
-         WHEN kcd_Cd !~ '^\w\d\d$' THEN concat (SUBSTRING(kcd_Cd,'^\w\d\d'),'.',SUBSTRING(kcd_Cd,'^\w\d\d(\d+)$'))
-       END,-- insert dot into code 
-       (SELECT latest_update
-        FROM vocabulary
-        WHERE vocabulary_id = 'KCD7'),
-	   TO_DATE('20991231','yyyymmdd'),
-       NULL
-FROM sources.kcd7
-;
+--3. Load into concept_stage
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT english_description AS concept_name,
+	NULL AS domain_id,
+	'KCD7' AS vocabulary_id,
+	'KCD7 code' AS concept_class_id,
+	NULL AS standard_concept,
+	regexp_replace(kcd_cd, '^(\w\d{2})(\d+)$', '\1.\2') AS concept_code, -- insert dot into code
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'KCD7'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.kcd7;
 
+--4. Load into concept_synonym_stage
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_name,
+	synonym_vocabulary_id,
+	language_concept_id
+	)
+SELECT regexp_replace(kcd_cd, '^(\w\d{2})(\d+)$', '\1.\2') AS synonym_concept_code,
+	korean_description AS synonym_name,
+	'KCD7' AS synonym_vocabulary_id,
+	4175771 AS language_concept_id -- Korean
+FROM sources.kcd7;
 
-
---load into concept_synonym_stage
-INSERT INTO concept_synonym_stage
-(
-  synonym_concept_code,
-  synonym_name,
-  synonym_vocabulary_id,
-  language_concept_id
-)
-SELECT CASE
-         WHEN kcd_Cd ~ '^\w\d\d$' THEN kcd_Cd
-         WHEN kcd_Cd !~ '^\w\d\d$' THEN concat (SUBSTRING(kcd_Cd,'^\w\d\d'),'.',SUBSTRING(kcd_Cd,'^\w\d\d(\d+)$'))
-       END AS synonym_concept_code,
-       korean_description AS synonym_name,
-       'KCD7' AS synonym_vocabulary_id,
-       4175771 AS language_concept_id -- Korean
-       FROM sources.kcd7
-;
-
-
-
-
--- Add mapping through ICD10 
+--5. Add mapping through ICD10 
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -80,29 +86,26 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-  SELECT DISTINCT cs.concept_code AS concept_code_1,
+SELECT cs.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	cs.vocabulary_id AS vocabulary_id_1,
 	c2.vocabulary_id AS vocabulary_id_2,
 	cr.relationship_id AS relationship_id,
-	current_date as valid_start_date,
+	CURRENT_DATE AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-  FROM  concept_stage cs
-    JOIN concept c
-      ON c.concept_code = cs.concept_code
-     AND c.vocabulary_id = 'ICD10'
-    JOIN concept_relationship cr
-      ON c.concept_id = cr.concept_id_1
-     AND cr.invalid_reason IS NULL
-    JOIN concept c2
-      ON c2.concept_id = cr.concept_id_2
-     AND c2.vocabulary_id = 'SNOMED'
-;
+FROM concept_stage cs
+JOIN concept c ON c.concept_code = cs.concept_code
+	AND c.vocabulary_id = 'ICD10'
+JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
+	AND cr.invalid_reason IS NULL
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+	AND c2.vocabulary_id = 'SNOMED';
 
+--6. Add "Subsumes" relationship between concepts where the concept_code is like of another
+CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
+ANALYZE concept_stage;
 
-
---Add "subsumes" relationship between concepts where the concept_code is like of another
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -118,22 +121,40 @@ SELECT c1.concept_code AS concept_code_1,
 	c1.vocabulary_id AS vocabulary_id_1,
 	c1.vocabulary_id AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
-	current_date as valid_start_date,
+	CURRENT_DATE AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM concept_stage c1,
 	concept_stage c2
 WHERE c2.concept_code LIKE c1.concept_code || '%'
-	AND c1.concept_code <> c2.concept_code
-;
+	AND c1.concept_code <> c2.concept_code;
 
+DROP INDEX trgm_idx;
 
---update domain_id for KCD7 from SNOMED
+--7. Add KCD7 to SNOMED manual mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--8. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--10. Update domain_id for KCD7 from SNOMED
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
 	SELECT DISTINCT cs1.concept_code,
-		first_value(c2.domain_id) OVER (
+		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
 					WHEN 'Condition'
 						THEN 1
@@ -157,102 +178,45 @@ FROM (
 		AND c2.vocabulary_id = 'SNOMED'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
-			) i
+	) i
 WHERE i.concept_code = cs.concept_code
-	AND cs.vocabulary_id = 'KCD7'
-;
+	AND cs.vocabulary_id = 'KCD7';
 
---if domain_id is empty we use previous and next domain_id
-DROP TABLE IF EXISTS KCD7_domain;
-CREATE UNLOGGED TABLE KCD7_domain AS
-SELECT concept_code,
-	CASE 
-		WHEN domain_id IS NOT NULL
-			THEN domain_id
-		ELSE CASE 
-				WHEN prev_domain = next_domain
-					THEN prev_domain --prev and next domain are the same (and of course not null both)
-				WHEN prev_domain IS NOT NULL
-					AND next_domain IS NOT NULL
-					THEN CASE 
-							WHEN prev_domain < next_domain
-								THEN prev_domain || '/' || next_domain
-							ELSE next_domain || '/' || prev_domain
-							END -- prev and next domain are not same and not null both, with order by name
-				ELSE coalesce(prev_domain, next_domain, 'Condition')
-				END
-		END domain_id
-FROM (
-	SELECT concept_code,
-		string_agg(domain_id, '/' ORDER BY domain_id) domain_id,
-		prev_domain,
-		next_domain
-	FROM (
-		SELECT DISTINCT c1.concept_code,
-			r1.domain_id,
-			(
-				SELECT DISTINCT LAST_VALUE(fd.domain_id) OVER (
-						ORDER BY fd.concept_code ROWS BETWEEN UNBOUNDED PRECEDING
-								AND UNBOUNDED FOLLOWING
-						)
-				FROM concept_stage fd
-				WHERE fd.concept_code < c1.concept_code
-					AND r1.domain_id IS NULL
-				) prev_domain,
-			(
-				SELECT DISTINCT FIRST_VALUE(fd.domain_id) OVER (
-						ORDER BY fd.concept_code ROWS BETWEEN UNBOUNDED PRECEDING
-								AND UNBOUNDED FOLLOWING
-						)
-				FROM concept_stage fd
-				WHERE fd.concept_code > c1.concept_code
-					AND r1.domain_id IS NULL
-				) next_domain
-		FROM concept_stage c1
-		LEFT JOIN concept_stage r1 ON r1.concept_code = c1.concept_code
-		WHERE c1.vocabulary_id = 'KCD7'
-		) AS s0
-	GROUP BY concept_code,
-		prev_domain,
-		next_domain
-	) AS s1;
-	
-
+--11. If domain_id is empty we use previous and next domain_id
 UPDATE concept_stage c
 SET domain_id = rd.domain_id
-FROM KCD7_domain rd
+FROM (
+	SELECT concept_code,
+		CASE 
+			WHEN domain_id IS NOT NULL
+				THEN domain_id
+			ELSE CASE 
+					WHEN prev_domain = next_domain
+						THEN prev_domain --prev and next domain are the same (and of course not null both)
+					WHEN prev_domain IS NOT NULL
+						AND next_domain IS NOT NULL
+						THEN CASE 
+								WHEN prev_domain < next_domain
+									THEN prev_domain || '/' || next_domain
+								ELSE next_domain || '/' || prev_domain
+								END -- prev and next domain are not same and not null both, with order by name
+					ELSE coalesce(prev_domain, next_domain, 'Condition')
+					END
+			END domain_id
+	FROM (
+		SELECT cs.concept_code,
+			cs.domain_id,
+			LAG(cs.domain_id) OVER (
+				ORDER BY concept_code
+				) prev_domain,
+			LEAD(cs.domain_id) OVER (
+				ORDER BY concept_code
+				) next_domain
+		FROM concept_stage cs
+		) AS s1
+	) rd
 WHERE rd.concept_code = c.concept_code
-	AND c.vocabulary_id = 'KCD7';
-	
---Add KCD7 to SNOMED manual mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
+	AND c.vocabulary_id = 'KCD7'
+	AND c.domain_id IS NULL;
 
---Working with replacement mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
-
---Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
-
-DROP TABLE KCD7_domain;
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

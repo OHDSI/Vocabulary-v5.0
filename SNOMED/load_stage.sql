@@ -2394,11 +2394,13 @@ VALUES (138875005, 'Metadata'), -- root
 	(332525008, 'Device'),  --Camouflaging preparations
 	(768697005, 'Device'), --Barium and barium compound product -- contrast media subcathegory
 	--added 20190827
-	(8653201000001106, 'Drug'), -- dm+d value
+	(8653201000001106, 'Observation'), -- dm+d value
 	(48176007, 'Observation'), -- Social context
 	(397731000, 'Race'), -- Ethnic group finding
 	(108246006, 'Measurement'), --Tonometry AND/OR tonography procedure
-	(61746007, 'Measurement'); --Taking patient vital signs
+	(61746007, 'Measurement'), --Taking patient vital signs
+	(771387000,'Drug') --Substance with effector mechanism of action
+
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

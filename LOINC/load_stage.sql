@@ -525,17 +525,18 @@ WHERE concept_code_1 = 'PANEL.H' || chr(38) || 'P' -- '&' = chr(38)
 
 --8.2 Update wrong relationships where one of the concept has been deprecated or updated
 --TODO: REWRITE THIS
-with a AS (SELECT concept_code_1, concept_code_2, relationship_id, cs.valid_end_date AS valid_end_date_1, css.valid_end_date AS valid_end_date_2
+with a AS (SELECT DISTINCT concept_code_1, concept_code_2, relationship_id, least(cs.valid_end_date, css.valid_end_date) AS valid_end_date
 FROM concept_relationship_stage cr
 JOIN concept_stage cs
 ON cr.concept_code_1 = cs.concept_code
 JOIN concept_stage css
 ON cr.concept_code_2 = css.concept_code
-WHERE (cs.invalid_reason IS NOT NULL OR css.invalid_reason IS NOT NULL))
+WHERE (cs.invalid_reason IS NOT NULL OR css.invalid_reason IS NOT NULL)
+    )
 
 UPDATE
 concept_relationship_stage cr
-SET invalid_reason = 'D', valid_end_date = least(a.valid_end_date_1, a.valid_end_date_2)
+SET invalid_reason = 'D', valid_end_date = a.valid_end_date
 WHERE (concept_code_1, concept_code_2, relationship_id) IN (SELECT concept_code_1, concept_code_2, relationship_id FROM a);
 
 

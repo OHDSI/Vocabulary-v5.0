@@ -47,7 +47,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT SUBSTR(long_description, 1, 255) AS concept_name,
+SELECT TRIM(SUBSTR(long_description, 1, 255)) AS concept_name,
 	c.domain_id AS domain_id,
 	v.vocabulary_id,
 	CASE 

@@ -1595,3 +1595,8 @@
 "9100/2"	"Choriocarcinoma in situ, NOS "	"Is a"	4133294	127569003	"In situ neoplasm"	2												
 "9101/2"	"Choriocarcinoma combined with other germ cell elements, in situ "	"Is a"	4133294	127569003	"In situ neoplasm"	2												
 "8936/1"	"Gastrointestinal stromal tumor, NOS"	"Maps to"	4029026	128755003	"Gastrointestinal stromal tumor, uncertain malignant potential"													
+"8441/1"	"Serous cystadenoma, borderline malignant"	"Is a"	4197571	51608009	"Serous cystadenoma"													
+"9821/3"	"Acute lymphoblastic leukemia, NOS (ICD-O-2)"	"Maps to"	4030260	128822004	"Precursor cell lymphoblastic leukemia"													
+"9890/3"	"Monocytic leukemia, NOS (ICD-O-2)"	"Maps to"	4295361	37810007	"Myeloid leukemia"													
+"8511/3"	"Medullary carcinoma with amyloid stroma (ICD-O-2)"	"Maps to"	4030286	128916007	"Medullary carcinoma with amyloid stroma"													
+"9656/3"	"Hodgkin disease, nodular sclerosis, NOS (ICD-O-1)"	"Maps to"	4179351	52248008	"Hodgkin lymphoma, nodular sclerosis"													

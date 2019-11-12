@@ -61,6 +61,17 @@ select
 	 hist||'-'||site
 from real_data_no_cr
 where hist != '9999/9'
+
+	union
+
+select
+	histology,site,
+	histology || '-' || site
+from source_2019
+where
+	histology not null and
+	site is not null and
+	site !~ '\*'
 ;
 create index idx_comb on comb_matched_seer (concept_code)
 ;
@@ -115,8 +126,8 @@ select distinct
 	TO_DATE ('31.12.2099', 'dd.mm.yyyy'),
 	null
 from morph_to_snomed m
-join comb_matched_seer c on
-	c.hist = m.code
+-- join comb_matched_seer c on
+-- 	c.hist = m.code
 where m.code not in
 	(
 		select concept_code

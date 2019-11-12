@@ -2606,25 +2606,26 @@ WHERE c.vocabulary_id = 'SNOMED'
 	AND i.concept_code = c.concept_code::BIGINT;
 
 -- 16.7. Make manual changes according to rules
--- Create Route of Administration
-/* --obsolete, introducing Route domain in peaks
+-- Manual correction
 UPDATE concept_stage
-SET domain_id = 'Route'
+SET domain_id = 'Measurement'
 WHERE concept_code IN (
-		'255560000',
-		'255582007',
-		'258160008',
-		'260540009',
-		'260548002',
-		'264049007',
-		'263887005',
-		'372468001',
-		'72607000',
-		'359540000',
-		'90028008'
-		)
-	AND vocabulary_id = 'SNOMED';
-*/
+		'839501000000106', --Nelfinavir measurement
+		'839511000000108', --Ritonavir measurement
+		'839571000000103', --Saquinavir measurement
+		'839601000000105', --Tipranavir measurement
+		'30058000', --Therapeutic drug monitoring assay
+		'839381000000107', --Darunavir measurement
+		'839421000000103', --Indinavir measurement
+		'839451000000108', --Lopinavir measurement
+		'222481000000103', --Valaciclovir measurement
+		'840721000000103', --Nevirapine measurement
+		'791931000000104', --Efavirenz measurement
+		'77667008', --Therapeutic drug monitoring, qualitative
+		'68555003', --Therapeutic drug monitoring, quantitative
+		'200311000000109', --Oxcarbazepine level
+		'194251000000108' --Bisacodyl level
+		);
 
 -- Create Specimen Anatomical Site
 UPDATE concept_stage

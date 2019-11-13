@@ -2395,7 +2395,9 @@ VALUES (138875005, 'Metadata'), -- root
 	--added 20190827
 	(8653201000001106, 'Drug'),
 	(48176007, 'Observation'), -- Social context
-	(397731000, 'Race'); -- Ethnic group finding
+	(397731000, 'Race'), -- Ethnic group finding
+	--added 20191112
+	(108246006, 'Measurement'); --Tonometry AND/OR tonography procedure
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
@@ -2624,7 +2626,91 @@ WHERE concept_code IN (
 		'77667008', --Therapeutic drug monitoring, qualitative
 		'68555003', --Therapeutic drug monitoring, quantitative
 		'200311000000109', --Oxcarbazepine level
-		'194251000000108' --Bisacodyl level
+		'194251000000108', --Bisacodyl level
+		'194521000000101',	--2-ethylidene-1,5-dimethyl-3,3-diphenylpyrrolidine measurement
+		'839251000000109',	--Abacavir measurement
+		'840761000000106',	--Adefovir dipivoxil measurement
+		'88884005',	--Alpha-1-antitrypsin phenotyping
+		'840811000000104',	--Asunaprevir measurement
+		'791951000000106',	--Atazanavir measurement
+		'194261000000106',	--Bisacodyl metabolite measurement
+		'840871000000109',	--Boceprevir measurement
+		'838901000000107',	--Cidofovir measurement
+		'788101000000102',	--Citalopram measurement
+		'840801000000101',	--Daclatasvir measurement
+		'194481000000101',	--Desmethyldothiepin measurement
+		'839261000000107',	--Didanosine measurement
+		'781401000000100',	--Dihydrocodeine screen
+		'839271000000100',	--Emtricitabine measurement
+		'840731000000101',	--Enfuvirtide measurement
+		'840771000000104',	--Entecavir measurement
+		'816911000000102',	--Etravirine measurement
+		'838751000000106',	--Famciclovir measurement
+		'839411000000109',	--Fosamprenavir measurement
+		'838831000000105',	--Foscarnet sodium measurement
+		'838781000000100',	--Inosine pranobex measurement
+		'839281000000103',	--Lamivudine measurement
+		'194701000000102',	--Levetiracetam measurement
+		'840741000000105',	--Maraviroc measurement
+		'194951000000104',	--Moclobemide measurement
+		'377561000000103',	--Oral fluid 6-monoacetylmorphine measurement
+		'377681000000108',	--Oral fluid 7-aminonitrazepam measurement
+		'377711000000107',	--Oral fluid benzoylecgonine measurement
+		'816211000000108',	--Oral fluid cannabis measurement
+		'377741000000108',	--Oral fluid codeine measurement
+		'377801000000104',	--Oral fluid diazepam measurement
+		'377771000000102',	--Oral fluid dihydrocodeine measurement
+		'377831000000105',	--Oral fluid nitrazepam measurement
+		'377861000000100',	--Oral fluid nordiazepam measurement
+		'377891000000106',	--Oral fluid temazepam measurement
+		'838871000000107',	--Oseltamivir measurement
+		'195031000000106',	--Perhexiline measurement
+		'912521000000105',	--Plasma rivaroxaban measurement
+		'840751000000108',	--Raltegravir measurement
+		'840861000000102',	--Ribavirin measurement
+		'792051000000104',	--Screening test for diuretic drug
+		'900061000000109',	--Serum darunavir concentration measurement
+		'900181000000101',	--Serum efavirenz concentration measurement
+		'901781000000106',	--Serum indinavir concentration measurement
+		'901911000000102',	--Serum lopinavir concentration measurement
+		'901991000000106',	--Serum nelfinavir concentration measurement
+		'902031000000103',	--Serum nevirapine concentration measurement
+		'902091000000102',	--Serum oxcarbazepine concentration measurement
+		'958101000000104',	--Serum pentobarbital concentration measurement
+		'902381000000102',	--Serum posaconazole concentration measurement
+		'902621000000108',	--Serum ritonavir concentration measurement
+		'911041000000103',	--Serum saquinavir measurement
+		'902721000000102',	--Serum tipranavir concentration measurement
+		'910941000000105',	--Serum valaciclovir measurement
+		'902861000000101',	--Serum voriconazole concentration measurement
+		'902901000000108',	--Serum zopiclone concentration measurement
+		'839301000000102',	--Stavudine measurement
+		'840821000000105',	--Telaprevir measurement
+		'840781000000102',	--Telbivudine measurement
+		'839321000000106',	--Tenofovir disoproxil measurement
+		'783131000000103',	--Thioguanine measurement
+		'792061000000101',	--Tricyclic drug screening test
+		'903351000000103',	--Urine amphetamine concentration measurement
+		'957851000000106',	--Urine sulphonylurea screening test
+		'910891000000106',	--Whole blood everolimus concentration measurement
+		'838881000000109'	--Zanamivir measurement
+		);
+
+UPDATE concept_stage
+SET domain_id = 'Condition'
+WHERE concept_code IN (
+		'312963001', --Methanol retinopathy
+		'424909003', --Toxic retinopathy
+		'44115007', --Toxic maculopathy
+		'702809001', --Drug reaction with eosinophilia and systemic symptoms
+		'702810006', --Allopurinol hypersensitivity syndrome
+		'702811005' --Drug reaction with eosinophilia and systemic symptoms caused by strontium ranelate
+		);
+
+UPDATE concept_stage
+SET domain_id = 'Procedure'
+WHERE concept_code IN (
+		'128967005' --Exercise challenge
 		);
 
 -- Create Specimen Anatomical Site

@@ -37,41 +37,13 @@ where
 ;
 drop table if exists comb_matched_seer cascade
 ;
+--get aggregated combination list from sources
 create table comb_matched_seer as
-with border as
-(
-	select distinct 
-		substring ( trim (regexp_split_to_table (site_recode, ',')), '^C\d\d\d') as from_site_code,
-		substring ( trim (regexp_split_to_table (site_recode, ',')), 'C\d\d\d$') as to_site_code,
-		histology_behavior
-	from comb_source_seer
-)
 select distinct
-	b.histology_behavior as hist,
-	t.code as site,
-	b.histology_behavior||'-'||t.code as concept_code
-from border b
-join topo_source_iacr t on
-	replace (t.code,'.','') between from_site_code and to_site_code
-
-	union
-
-select	
-	*, --real data combinations
-	 hist||'-'||site
-from real_data_no_cr
-where hist != '9999/9'
-
-	union
-
-select
-	histology,site,
-	histology || '-' || site
-from source_2019
-where
-	histology not null and
-	site is not null and
-	site !~ '\*'
+	histology_behavior as hist,
+	site
+	histology_behavior||'-'||site as concept_code
+from sources.icdo3_valid_combination
 ;
 create index idx_comb on comb_matched_seer (concept_code)
 ;

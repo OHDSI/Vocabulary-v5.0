@@ -41,7 +41,7 @@ drop table if exists comb_matched_seer cascade
 create table comb_matched_seer as
 select distinct
 	histology_behavior as hist,
-	site
+	site,
 	histology_behavior||'-'||site as concept_code
 from sources.icdo3_valid_combination
 ;

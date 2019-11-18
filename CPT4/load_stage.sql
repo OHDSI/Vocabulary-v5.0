@@ -48,7 +48,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT SUBSTR(str, 1, 255) AS concept_name,
+SELECT DISTINCT TRIM(SUBSTR(str, 1, 255)) AS concept_name,
 	NULL AS domain_id, -- adding manually
 	'CPT4' AS vocabulary_id,
 	'CPT4' AS concept_class_id,
@@ -85,7 +85,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT SUBSTR(str, 1, 255) AS concept_name,
+SELECT DISTINCT TRIM(SUBSTR(str, 1, 255)) AS concept_name,
 	NULL AS domain_id,
 	'CPT4' AS vocabulary_id,
 	'Place of Service' AS concept_class_id,
@@ -119,7 +119,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT FIRST_VALUE(substr(str, 1, 255)) OVER (
+SELECT DISTINCT FIRST_VALUE(TRIM(SUBSTR(str, 1, 255))) OVER (
 		PARTITION BY scui ORDER BY CASE 
 				WHEN LENGTH(str) <= 255
 					THEN LENGTH(str)
@@ -162,7 +162,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT SUBSTR(str, 1, 255) AS concept_name,
+SELECT DISTINCT TRIM(SUBSTR(str, 1, 255)) AS concept_name,
 	NULL AS domain_id,
 	'CPT4' AS vocabulary_id,
 	'CPT4 Hierarchy' AS concept_class_id,

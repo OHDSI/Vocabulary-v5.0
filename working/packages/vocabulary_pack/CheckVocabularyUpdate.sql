@@ -180,19 +180,22 @@ BEGIN
                 cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
                 cPos2 := LENGTH (cVocabHTML) + 1;
                 perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');  
+                cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');
             WHEN cVocabularyName = 'ICD10CM'
             THEN
                 cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'Note: The FY ([[:digit:]]{4}) release of ICD-10-CM is now available')::int - 1 || '0101', 'yyyymmdd');
                 cVocabVer := 'ICD10CM FY'||to_char(cVocabDate + interval '1 year','YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN
+                cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'<a href="/Medicare/Coding/ICD10/([[:digit:]]{4})-ICD-10-PCS"')::int - 1 || '0101', 'yyyymmdd');
+                /*old version2
                 select s1.icd10pcs_year into cVocabDate from (
                   select TO_DATE (SUBSTRING(url,'/([[:digit:]]{4})')::int - 1 || '0101', 'yyyymmdd') icd10pcs_year from (
                     select unnest(xpath ('//global:loc/text()', cVocabHTML::xml, ARRAY[ARRAY['global', 'http://www.sitemaps.org/schemas/sitemap/0.9']]))::varchar url
                   ) s0
                   where s0.url ilike '%www.cms.gov/Medicare/Coding/ICD10/Downloads/%PCS%Order%.zip'
                 ) as s1 order by s1.icd10pcs_year desc limit 1;
+                */
                 /*old version
                 cSearchString := 'ICD-10 PCS and GEMs';
                 cPos1 := devv5.INSTR (cVocabHTML, cSearchString);

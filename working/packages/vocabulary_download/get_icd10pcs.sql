@@ -59,6 +59,7 @@ BEGIN
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
 
+    /*old version
     --take download link from xml site-map
     select s1.url into pDownloadURL from (
       select TO_DATE (SUBSTRING(url,'/([[:digit:]]{4})')::int - 1 || '0101', 'yyyymmdd') icd10pcs_year, s0.url from (
@@ -66,7 +67,11 @@ BEGIN
         from py_http_get(url=>pVocabulary_url,allow_redirects=>true)
       ) s0
       where s0.url ilike '%www.cms.gov/Medicare/Coding/ICD10/Downloads/%PCS%Order%.zip'
-    ) as s1 order by s1.icd10pcs_year desc limit 1; 
+    ) as s1 order by s1.icd10pcs_year desc limit 1;
+    */
+    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'<a href="(/Medicare/Coding/ICD10/[[:digit:]]{4}-ICD-10-PCS)"') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
+    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'<a href="(/Medicare/Coding/ICD10/Downloads/[[:digit:]]{4}-ICD-10-PCS-Order.zip)">') from py_http_get(url=>pDownloadURL,allow_redirects=>true);
+    
     --start downloading
     pVocabularyOperation:='GET_ICD10PCS downloading';
     perform run_wget (

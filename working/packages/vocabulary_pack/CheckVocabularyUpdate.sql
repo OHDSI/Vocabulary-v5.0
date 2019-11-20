@@ -162,13 +162,16 @@ BEGIN
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'HCPCS'
             THEN
+              cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'<a href="/Medicare/Coding/HCPCSReleaseCodeSets/Alpha-Numeric-HCPCS-Items/([[:digit:]]{4})-Alpha-Numeric-HCPCS-File">')::int - 1 || '0101', 'yyyymmdd');
+              /*old version
               select TO_DATE ( (MAX (t.title) - 1) || '0101', 'yyyymmdd') into cVocabDate  From (
                 select 
                     unnest(xpath ('/rss/channel/item/title/text()', cVocabHTML::xml))::varchar::int title,
                     unnest(xpath ('/rss/channel/item/link/text()', cVocabHTML::xml)) ::varchar description 
               ) as t
               WHERE t.description LIKE '%Alpha-Numeric-HCPCS-File%' AND t.description NOT LIKE '%orrections%';
-              cVocabVer := to_char(cVocabDate,'YYYYMMDD')||' Alpha Numeric HCPCS File';
+              */
+              cVocabVer := to_char(cVocabDate + interval '1 year','YYYY')||' Alpha Numeric HCPCS File';
             WHEN cVocabularyName IN ('ICD9CM', 'ICD9PROC')
             THEN
                 cSearchString := '<a type="application/zip" href="/Medicare/Coding/ICD9ProviderDiagnosticCodes/Downloads';

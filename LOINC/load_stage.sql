@@ -1459,11 +1459,6 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---26 Process Manual relationships
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
 -----------------------------------------
@@ -1480,7 +1475,6 @@ VALUES
        (2100000005, 'LOINC Property', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
      (2100000006, 'Has system', 'Metadata', 'Relationship', 'Relationship', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
      (2100000007, 'System of', 'Metadata', 'Relationship', 'Relationship', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL);
-
 INSERT INTO concept_class (concept_class_id, concept_class_name, concept_class_concept_id) VALUES
 ('LOINC System', 'LOINC System', 2100000000),
 ('LOINC Component', 'LOINC Component', 2100000001),
@@ -1489,38 +1483,23 @@ INSERT INTO concept_class (concept_class_id, concept_class_name, concept_class_c
 ('LOINC Method', 'LOINC Method', 2100000004),
 ('LOINC Property', 'LOINC Property', 2100000005)
 ;
-
 INSERT INTO relationship(relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
 VALUES ( 'Has system', 'Has system', 0, 0, 'System of', 2100000006),
 ('System of', 'System of', 0, 0, 'Has system', 2100000007);*/
 
---Using of concept_relationship_manual table to deprecate valid relationships with non-valid concepts
-WITH t1 AS
-(
-  SELECT concept_code
-  FROM concept
-  WHERE vocabulary_id = 'LOINC'
-  AND   concept_code ~ '^LP|^LA' EXCEPT SELECT concept_code FROM dev_oleg.concept_stage WHERE vocabulary_id = 'LOINC'
-  AND   concept_code ~ '^LP|^LA'
-)
-INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-SELECT c.concept_code AS concept_code_1,
-       d.concept_code AS concept_code_2,
-       c.vocabulary_id AS vocabulary_id_1,
-       d.vocabulary_id AS vocabulary_id_2,
-       r.relationship_id,
-       r.valid_start_date,
-       v.latest_update AS valid_end_date,
-       'D' AS invalid_reason
-FROM t1 x
-  JOIN concept c
-    ON x.concept_code = c.concept_code
-   AND c.vocabulary_id = 'LOINC'
-  JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
-  LEFT JOIN concept_relationship r ON c.concept_id = r.concept_id_1
-  LEFT JOIN concept d
-         ON d.concept_id = r.concept_id_2
-        AND d.vocabulary_id = 'LOINC'
---and d.invalid_reason is not null
-WHERE r.relationship_id IN ('Is a','Subsumes')
-AND   r.invalid_reason IS NULL;
+
+--TODO: Check if we want to remove all of the following relationships
+SELECT c.concept_code AS concept_code_1, cr.relationship_id, cc.concept_code AS concept_code_2
+FROM concept_relationship cr
+JOIN concept c
+    ON cr.concept_id_1 = c.concept_id
+JOIN concept cc
+    ON cr.concept_id_2 = cc.concept_id
+WHERE (c.vocabulary_id = 'LOINC' AND cc.vocabulary_id = 'LOINC')
+  AND relationship_id IN ('Has kind', 'Has role', 'Has type of service', 'Has subject matter', 'Has Answer', 'Maps to', 'Panel contains', 'Subsumes', 'Has setting')
+AND cr.invalid_reason IS NULL
+AND cr.concept_id_1 != cr.concept_id_2
+EXCEPT (SELECT crs.concept_code_1, relationship_id, crs.concept_code_2
+    FROM concept_relationship_stage crs
+    WHERE crs.vocabulary_id_1 = 'LOINC' AND crs.vocabulary_id_2 = 'LOINC')
+ORDER BY concept_code_1;

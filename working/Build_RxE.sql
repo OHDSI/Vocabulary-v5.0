@@ -3839,36 +3839,6 @@ delete from concept_relationship_stage a where exists (
   where a.concept_code_1= x.concept_code_1 and a.concept_code_2=x.concept_code_2 and a.relationship_id=x.relationship_id and x.rid=a.ctid
 );
 
--- Deprecate existing Source - RxNorm eq relations if they are changed in concept_relationship_stage
-insert into concept_relationship_stage (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-select distinct
-	c.concept_code,
-	t.concept_code,
-	c.vocabulary_id,
-	t.vocabulary_id,
-	r.relationship_id,
-	r.valid_start_date,
-	(
-		select distinct v.latest_udpate - 1
-		from VOCABULARY v
-		join drug_concept_stage d on
-			d.vocabulary_id = v.vocabulary_id
-	),
-	'D'
-from r_to_c
-join concept c on
-	c.concept_code = r_to_c.concept_code_1 and
-	c.vocabulary_id = r_to_c.vocabulary_id_1
-join concept_relationship r on
-	r.relationship_id in ('Source - RxNorm eq') and
-	c.concept_id = r.concept_id_1 and
-join concept t on
-	r.concept_id_2 = t.concept_id
-where
---preserve existing match to the best candidate
-	r.concept_id_2 != r_to_c.concept_id_1 and
-	coalesce (r_to_c.precedence,1) = 1
-;
 -- Working with replacement mappings
 DO $_$
 BEGIN

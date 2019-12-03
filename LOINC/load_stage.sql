@@ -1454,7 +1454,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---25. Build reverse relationship. This is necessary for next point
+--25. Build reverse relationships. This is necessary for the next point.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1486,7 +1486,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---26. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--26. Add to the concept_relationship_stage and deprecate all relationships which do not exist there
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1515,8 +1515,8 @@ JOIN concept_relationship r ON a.concept_id = concept_id_1
 JOIN concept b ON b.concept_id = concept_id_2
 WHERE 
 		a.vocabulary_id = 'LOINC'
-		and b.vocabulary_id = 'LOINC' -- to exclude deprecation of PPI and other vocabs mappings to LOINC
-		
+		AND b.vocabulary_id = 'LOINC'
+		AND a.concept_id <> b.concept_id 
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs_int
@@ -1562,7 +1562,7 @@ VALUES ( 'Has system', 'Has system', 0, 0, 'System of', 2100000006),
 ('System of', 'System of', 0, 0, 'Has system', 2100000007);*/
 
 
---TODO: Check if we want to remove all of the following relationships
+/*-- CHECK
 SELECT c.concept_code AS concept_code_1, cr.relationship_id, cc.concept_code AS concept_code_2
 FROM concept_relationship cr
 JOIN concept c
@@ -1576,4 +1576,4 @@ AND cr.concept_id_1 != cr.concept_id_2
 EXCEPT (SELECT crs.concept_code_1, relationship_id, crs.concept_code_2
     FROM concept_relationship_stage crs
     WHERE crs.vocabulary_id_1 = 'LOINC' AND crs.vocabulary_id_2 = 'LOINC')
-ORDER BY concept_code_1;
+ORDER BY concept_code_1; */

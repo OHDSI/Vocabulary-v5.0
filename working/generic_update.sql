@@ -429,7 +429,8 @@ BEGIN
 			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to',
-			'Maps to value'
+			'Maps to value',
+			'Source - RxNorm eq' -- AVOF-2118
 		)
 	)
 	UPDATE concept_relationship r
@@ -458,7 +459,7 @@ BEGIN
 			)
 			OR (/*AVOF-1439*/
 				crs.vocabulary_id_2 IN ('SNOMED','SNOMED Veterinary') AND c2.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
-			)			
+			)
 		)
 	)
 	AND NOT EXISTS (
@@ -481,7 +482,8 @@ BEGIN
 			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to',
-			'Maps to value'
+			'Maps to value',
+			'Source - RxNorm eq' -- AVOF-2118
 		)
 	)
 	UPDATE concept_relationship r

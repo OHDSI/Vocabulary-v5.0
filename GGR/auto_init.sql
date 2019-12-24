@@ -1,18 +1,5 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-**************************************************************************/
+
+/**************************************************************************/
 
 --1. Update latest_update field to new date 
 DO $_$
@@ -59,7 +46,8 @@ SELECT DISTINCT CONCAT (
 	mpp.cq AS box_size
 FROM sources.ggr_mpp mpp -- Pack contents have two defining keys, we combine them
 LEFT JOIN SOURCES.GGR_SAM sam ON mpp.mppcv = sam.mppcv
-WHERE mpp.ouc = 'C';--OUC means *O*ne, m*U*ltiple or pa*C*k 
+WHERE mpp.ouc = 'C'
+and mpp.hyr_ not like 'LA%';--OUC means *O*ne, m*U*ltiple or pa*C*k 
 
 
 DROP TABLE IF EXISTS DEVICES_TO_FILTER;
@@ -288,6 +276,7 @@ JOIN PC_STAGE pc ON pc.PACK_CONCEPT_CODE = CONCAT (
 		)
 LEFT JOIN SOURCES.GGR_SAM sam ON sam.mppcv = mpp.mppcv
 WHERE OUC = 'C'
+and sam.hyr_ not like 'LA%'
 ;
 INSERT INTO drug_concept_stage -- Measurement units
 SELECT DISTINCT unit AS concept_name,
@@ -303,6 +292,35 @@ SELECT DISTINCT unit AS concept_name,
 	NULL AS invalid_reason
 FROM units
 ;
+with att_vac as (select * from ggr_sam where hyr_ like 'LA%'),
+ingred_vac_only as 
+	(
+		select distinct s.stofcv
+		from ggr_sam s
+		left join ggr_sam a on
+			a.hyr_ not like 'LA%' and
+			s.stofcv = a.stofcv
+		where 
+			s.hyr_ like 'LA%' and
+			a.stofcv is null
+	)
+delete from drug_concept_stage where concept_code in
+(select 'stof'||stofcv from ingred_vac_only);
+;
+with att_vac as (select * from ggr_mpp where hyr_ like 'LA%'),
+dose_form_vac_only as (select distinct s.galcv
+from ggr_mpp s
+left join ggr_mpp a on
+	a.hyr_ not like 'LA%' and
+	s.galcv = a.galcv
+where 
+	s.hyr_ like 'LA%' and
+	a.galcv is null)
+ 
+delete from drug_concept_stage where concept_code in
+(select 'gal'||galcv from dose_form_vac_only);
+
+
 --update legacy mappings if target was changed
 update r_to_c_all
 set concept_id = 
@@ -394,6 +412,8 @@ left join r_to_c_all r on
 	r.concept_class_id = 'Dose Form'
 left join concept l on
 	l.concept_id = r.concept_id
+join drug_concept_stage d on
+  d.concept_code = concat	('gal', galcv)
 ;
 DROP TABLE IF EXISTS tomap_supplier
 ;
@@ -529,7 +549,6 @@ select
 from drug_concept_stage c
 join sources.ggr_mpp g on
 	g.hyr_ like 'LA%' and --vaccines group
-	g.ouc != 'C' and -- packs still must be processed as packs
 	c.concept_name = g.mppnm and
  	c.source_concept_class_id = 'Med Product Pack'
 left join r_to_c_all r on
@@ -547,6 +566,9 @@ left join concept_relationship cr on
 left join concept x2 on
 	x2.concept_id = cr.concept_id_2
 ;
+
+
+
 -- create unified table for all manual mappings
 drop table if exists relationship_to_concept_to_map
 ;
@@ -691,6 +713,7 @@ select
 	concept_name
 from tofix_vax;
 
+
 drop table if exists relationship_to_concept_manual
 ;
 create table relationship_to_concept_manual as
@@ -698,3 +721,4 @@ select *
 from relationship_to_concept_to_map
 where false
 ;
+

@@ -46,11 +46,14 @@ delete from concept_relationship_stage where (concept_code_1, vocabulary_id_1) i
 ;
 delete from concept_stage where concept_class_id = 'Dose Form' and vocabulary_id = 'GGR'
 ;
+
 --Discard pack component concepts
 delete from concept_relationship_stage where (concept_code_1, vocabulary_id_1) in (select concept_code, 'GGR' from concept_stage where concept_class_id = 'Med Product Pack' and vocabulary_id = 'GGR' and concept_code like 'OMOP%')
 ;
 delete from concept_stage where concept_class_id = 'Med Product Pack' and vocabulary_id = 'GGR' and concept_code like 'OMOP%'
 ;
+delete from concept_relationship_stage where (concept_code_1, vocabulary_id_1) in (select concept_code, 'GGR' from concept_stage where concept_class_id = 'Ingredient' and vocabulary_id = 'GGR' and concept_code like 'OMOP%');
+delete from concept_stage where concept_class_id = 'Ingredient' and vocabulary_id = 'GGR' and concept_code ~ 'OMOP';
 insert into concept_stage (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason)
 select
 	null :: int4 as concept_id,
@@ -95,4 +98,47 @@ join concept c1 on
 	c1.invalid_reason is null and
 	r.relationship_id = 'Source - RxNorm eq'
 join concept c2 on
-	r.concept_id_2 = c2.concept_id
+	r.concept_id_2 = c2.concept_id;
+	
+
+
+with doubles as (select concept_id_1 from concept_relationship cr
+join concept on cr.concept_id_1 = concept_id where concept_code not in ( select concept_code from concept_stage)
+and vocabulary_id = 'GGR'
+and cr.relationship_id = 'Source - RxNorm eq'
+and cr.invalid_reason is null
+group by concept_id_1  having count(*)>1) 
+insert into concept_relationship_stage
+select distinct
+null, 
+null, 
+c.concept_code as concept_code_1, 
+c1.concept_code as concept_code_2,
+c.vocabulary_id as vocabulary_id_1, 
+c1.vocabulary_id as vocabulary_id_2, 
+cr.relationship_id, 
+cr.valid_start_date, 
+(select latest_update from vocabulary where vocabulary_id = 'GGR') - 1,
+'D'
+from doubles d
+join concept_relationship cr using (concept_id_1)
+join concept c on c.concept_id = cr.concept_id_1 
+join concept c1 on c1.concept_id = cr.concept_id_2
+where  cr.relationship_id = 'Source - RxNorm eq'
+; 
+
+insert into concept_relationship_stage
+select distinct null, null, c.concept_code as concept_code_1, c1.concept_code as concept_code_2, c.vocabulary_id as vocabulary_id_1, c1.vocabulary_id as vocabulary_id_2, cr.relationship_id, 
+cr.valid_start_date, 
+(select latest_update from vocabulary where vocabulary_id = 'GGR') -1,
+'D'
+from concept c
+join concept_relationship cr on c.concept_id = cr.concept_id_1  
+join concept c1 on concept_id_2 = c1.concept_id 
+where c.vocabulary_id = 'GGR' 
+and cr.invalid_reason is null 
+and c.concept_class_id = 'Ingredient' 
+and cr.relationship_id = 'Source - RxNorm eq'
+and c1.vocabulary_id in ('RxNorm', 'RxNorm Extension', 'CVX');
+
+

@@ -1,18 +1,4 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-**************************************************************************/
+/**************************************************************************/
 --split relationship_to_concept_manual back into tomap_tables
 truncate tomap_unit;
 truncate tomap_form;
@@ -127,6 +113,9 @@ SELECT rm.concept_code AS concept_code_1,
 FROM drug_concept_stage rm
 JOIN tomap_bn mb ON rm.concept_name = mb.concept_name
 	AND rm.concept_code != mb.concept_code;
+	select * from dupe_fix
+	join ggr_mp a on 'mp'||a.mpcv = concept_code_1
+	join ggr_mp b on 'mp'||b.mpcv = concept_code_2;
 */
 ;
 -- Rename Dose Forms
@@ -203,6 +192,7 @@ select distinct
 	null :: float
 from ing_split 
 ;
+
 /*
 --Reaction to 'n' and 'g' marks and renaming:
 UPDATE drug_concept_stage
@@ -344,6 +334,7 @@ where mpp.mppcv not in
 		from devices_to_filter
 	)
 ;
+
 -- DELETE
 -- FROM internal_relationship_stage
 -- WHERE concept_code_1 IN (
@@ -355,7 +346,7 @@ where mpp.mppcv not in
 /*delete from internal_relationship_stage 
   where concept_code_2 like 'stof%'
   and concept_code_2 not in (select concept_code from drug_concept_stage where concept_class_id = 'Ingredient')*/;
-
+truncate ds_stage;
 INSERT INTO ds_stage (
 	drug_concept_code,
 	ingredient_concept_code,
@@ -483,12 +474,13 @@ SELECT DISTINCT CASE
 FROM sources.ggr_mpp mpp
 LEFT JOIN SOURCES.GGR_SAM sam ON mpp.mppcv = sam.mppcv
 ;
---update /cmÂ² to have proper denominator
+
+--update /cm² to have proper denominator
 with square_denom as
 	(
 		select distinct drug_concept_code, replace (replace (dim, ',' ,'.'), ' cm','') as dim from ds_stage --find where changes are needed, parse dimensions
 		join SOURCES.GGR_SAM sam on 'mpp' || mppcv = drug_concept_code and 'stof' || stofcv = ingredient_concept_code 
-		where denominator_unit = 'cmÂ²' and inbasq = 1 and dim is not null
+		where denominator_unit = 'cm²' and inbasq = 1 and dim is not null
 	),
 calc as
 	(
@@ -505,6 +497,7 @@ set
 	numerator_value = numerator_value * (select tot from calc where drug_concept_code = ds_stage.drug_concept_code)
 where drug_concept_code in (select drug_concept_code from calc)
 ;
+
 --update hours for transdermal systems with 1 u (hour) in denominator
 --we can only do this for these that specify 'weekly' dose form
 with weekly_to_fix as
@@ -608,6 +601,7 @@ where
 		HAVING COUNT(*) > 1
 	)
 ;
+
 delete from ds_stage
 where
 	(drug_concept_code, concept_id) in
@@ -740,6 +734,7 @@ WHERE concept_name_nl IS NOT NULL;
 /* create table for manual fixes */
  -- fix duplicates with ingreds
 DROP TABLE IF EXISTS dsfix;
+
 CREATE TABLE dsfix AS 
 --Those with different ingredient count in irs and source (ingredient mixes)
 --Those that map to same ingredient multiple times
@@ -788,6 +783,7 @@ WHERE drug_concept_code IN
 					count (distinct sam.stofcv) as ic
 				from sources.ggr_mpp mpp
 				join SOURCES.GGR_SAM sam using (mppcv)
+				where sam.stofcv !='01422'
 				group by drug_concept_code
 			) source_count
 		on 
@@ -821,7 +817,9 @@ join drug_concept_stage d on
 	end = d.concept_code and
 	d.domain_id != 'Device'  and
 	sam.inq = 0 and
-	b.concept_name != 'Inert Ingredients' --contraceptives are ok
+	b.concept_name != 'Inert Ingredients'
+	and  sam.stofcv !='01422'--contraceptives are ok, 'placebo' ingredient shouldn't be inserted
+
 
 	UNION
 
@@ -845,13 +843,16 @@ left join SOURCES.GGR_SAM sam using (mppcv)
 WHERE 
 	dcs.domain_id != 'Device' AND
 	sam.mppcv IS NULL
+	and sam.stofcv !='01422'
 	
 order by drug_concept_code
 ;
+--select * from dsfix;48
 ALTER TABLE dsfix ADD device VARCHAR(255); --to manually proclaim devices
 ALTER TABLE dsfix ADD mapped_id int4; -- to add mappings for new ingredients
 -- truncate table r_to_c_all
 ;
+
 drop table if exists r_to_c_insert
 ;
 --get entire list and fill it using relationship_to_concept table
@@ -873,6 +874,8 @@ left join ing_split i on
 	i.mix_code = d.concept_code
 where i.mix_code is null
 ;
+
+
 insert into r_to_c_insert --save ingredient mixes, too
 select
 	concept_name,
@@ -925,13 +928,13 @@ select * from r_to_c_insert
 ;
 --replace ingredients in stage tables with ones from dsfix
 DELETE
-FROM ds_stage
+ FROM ds_stage
 WHERE drug_concept_code IN (
 		SELECT drug_concept_code
 		FROM dsfix
 		);
 
-DELETE
+delete
 FROM internal_relationship_stage
 WHERE concept_code_1 IN (
 		SELECT drug_concept_code
@@ -943,6 +946,10 @@ INSERT INTO internal_relationship_stage
 SELECT DISTINCT d.drug_concept_code, d.ingredient_concept_code
 FROM dsfix d
 WHERE d.device IS NULL;
+
+
+
+
 
 DROP TABLE IF EXISTS code_replace;
 CREATE TABLE code_replace AS
@@ -959,40 +966,60 @@ FROM (
 	ORDER BY LPAD(concept_code, 50, '0')
 	) AS s0;
 
+
+
 UPDATE drug_concept_stage a
-SET concept_code = b.new_code
-FROM code_replace b
-WHERE a.concept_code = b.old_code;
+set
+concept_code = 
+  (
+    select b.new_code  
+    FROM code_replace b
+    WHERE a.concept_code = b.old_code
+  )    
+where concept_code in (select old_code from code_replace);
 
 UPDATE relationship_to_concept a
-SET concept_code_1 = b.new_code
+SET concept_code_1 = 
+(
+select b.new_code
 FROM code_replace b
-WHERE a.concept_code_1 = b.old_code;
+WHERE a.concept_code_1 = b.old_code)
+where concept_code_1 in (select old_code from code_replace);
 
 UPDATE ds_stage a
-SET ingredient_concept_code = b.new_code
+SET ingredient_concept_code = 
+(select b.new_code
 FROM code_replace b
-WHERE a.ingredient_concept_code = b.old_code;
+WHERE a.ingredient_concept_code = b.old_code)
+where ingredient_concept_code in (select old_code from code_replace);
 
 UPDATE ds_stage a
-SET drug_concept_code = b.new_code
+SET drug_concept_code = 
+(select b.new_code
 FROM code_replace b
-WHERE a.drug_concept_code = b.old_code;
+WHERE a.drug_concept_code = b.old_code)
+where drug_concept_code in (select old_code from code_replace);
 
 UPDATE internal_relationship_stage a
-SET concept_code_1 = b.new_code
+SET concept_code_1 = 
+(select b.new_code
 FROM code_replace b
-WHERE a.concept_code_1 = b.old_code;
+WHERE a.concept_code_1 = b.old_code)
+where concept_code_1 in (select old_code from code_replace);
 
 UPDATE internal_relationship_stage a
-SET concept_code_2 = b.new_code
+SET concept_code_2 = 
+(select b.new_code
 FROM code_replace b
-WHERE a.concept_code_2 = b.old_code;
+WHERE a.concept_code_2 = b.old_code)
+where concept_code_2 in (select old_code from code_replace);
 
 UPDATE pc_stage a
-SET drug_concept_code = b.new_code
+SET drug_concept_code = 
+(select b.new_code
 FROM code_replace b
-WHERE a.drug_concept_code = b.old_code;
+WHERE a.drug_concept_code = b.old_code)
+where drug_concept_code in (select old_code from code_replace);
 
 UPDATE drug_concept_stage
 SET standard_concept = NULL
@@ -1003,7 +1030,9 @@ WHERE concept_code IN (
 		WHERE concept_class_id = 'Ingredient'
 			AND standard_concept IS NOT NULL
 );
-delete from relationship_to_concept r1
+
+
+delete  from relationship_to_concept r1
 where exists
 	(
 		select
@@ -1046,10 +1075,16 @@ where
 			and dcs.concept_code not in (select pack_concept_code from pc_stage)
 	)
 ;
+
 delete from relationship_to_concept where concept_code_1 not in (select concept_code from drug_concept_stage)
 ;
 delete from internal_relationship_stage where concept_code_2 not in (select concept_code from drug_concept_stage)
 ;
+delete from ds_stage where drug_concept_code not in (select concept_code from drug_concept_stage);
+
+
+
+
 --MPP codes are expected to be met in source data; revert them to source presentation
 update drug_concept_stage
 set concept_code = replace (concept_code,'mpp','')
@@ -1065,10 +1100,10 @@ where drug_concept_code like 'mpp%'
 ;
 update pc_stage
 set pack_concept_code = replace (pack_concept_code,'mpp','')
-;
+;--194
 update tofix_vax
 set source_code = replace (source_code,'mpp','')
-;
+;--58
 --Ensure vaccines are processed separately and don't create extra entities in RxE
 delete from ds_stage 
 where
@@ -1103,3 +1138,11 @@ where
 delete from internal_relationship_stage where concept_code_2 in (select concept_code_1 from relationship_to_concept join concept on concept_id_2 = concept_id where concept_class_id = 'Ingredient' and invalid_reason = 'D' and precedence = 1);
 delete from drug_concept_stage where concept_code in (select concept_code_1 from relationship_to_concept join concept on concept_id_2 = concept_id where concept_class_id = 'Ingredient' and invalid_reason = 'D' and precedence = 1);
 delete from relationship_to_concept where concept_code_1 in (select concept_code_1 from relationship_to_concept join concept on concept_id_2 = concept_id where concept_class_id = 'Ingredient' and invalid_reason = 'D' and precedence = 1);
+update 
+ds_stage
+set box_size = null
+where box_size = '1';
+
+
+
+

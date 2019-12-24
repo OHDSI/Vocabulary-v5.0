@@ -130,7 +130,7 @@ where  cr.relationship_id = 'Source - RxNorm eq'
 insert into concept_relationship_stage
 select distinct null, null, c.concept_code as concept_code_1, c1.concept_code as concept_code_2, c.vocabulary_id as vocabulary_id_1, c1.vocabulary_id as vocabulary_id_2, cr.relationship_id, 
 cr.valid_start_date, 
-(select latest_update from vocabulary where vocabulary_id = 'GGR') -1,
+(select latest_update from vocabulary where vocabulary_id = 'GGR') - 1,
 'D'
 from concept c
 join concept_relationship cr on c.concept_id = cr.concept_id_1  
@@ -138,7 +138,6 @@ join concept c1 on concept_id_2 = c1.concept_id
 where c.vocabulary_id = 'GGR' 
 and cr.invalid_reason is null 
 and c.concept_class_id = 'Ingredient' 
-and cr.relationship_id = 'Source - RxNorm eq'
-and c1.vocabulary_id in ('RxNorm', 'RxNorm Extension', 'CVX');
+and cr.relationship_id = 'Source - RxNorm eq';
 
 

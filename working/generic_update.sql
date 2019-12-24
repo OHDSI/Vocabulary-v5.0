@@ -154,7 +154,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'CDT' THEN 1
 		WHEN c.vocabulary_id = 'ISBT' THEN 0
 		WHEN c.vocabulary_id = 'ISBT Attributes' THEN 0
-		WHEN c.vocabulary_id = 'GGR' THEN 1
+		WHEN c.vocabulary_id = 'GGR' THEN 0
 		WHEN c.vocabulary_id = 'LPD_Belgium' THEN 1
 		WHEN c.vocabulary_id = 'APC' THEN 1
 		WHEN c.vocabulary_id = 'KDC' THEN 1

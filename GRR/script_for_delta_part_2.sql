@@ -346,6 +346,7 @@ DELETE
 FROM ds_stage
 WHERE drug_concept_code IN (SELECT q_code FROM grr_mult);
 
+-- insert only solid multicomponent drugs
 INSERT INTO ds_stage
 (
   DRUG_CONCEPT_CODE,
@@ -361,8 +362,9 @@ SELECT q_code,
        'MG'
 FROM grr_mult
   JOIN source_data_1 ON fcc = q_code
-  and nfc not like 'D%';
+  and nfc != 'DGJ';
 
+-- find dosage for liquid multicomponent drugs which have source doses in mg per tablespoon
 INSERT INTO ds_stage
 (
   DRUG_CONCEPT_CODE,
@@ -381,7 +383,7 @@ SELECT q_code,
 FROM grr_mult
   JOIN source_data_1
     ON q_code = fcc
-   AND nfc LIKE 'D%';
+WHERE nfc = 'DGJ';
 
 --delete liquid homeopathy 
 DELETE

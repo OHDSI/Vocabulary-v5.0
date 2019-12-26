@@ -439,7 +439,7 @@ SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
                 s.PartNumber AS concept_code, -- LOINC Attribute or Hierarchy concept
                 COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,-- preserve the 'devv5.valid_start_date' for already existing concepts
                 CASE WHEN s.status = 'DEPRECATED'
-                     THEN CASE WHEN c.valid_end_date < latest_update
+                     THEN CASE WHEN c.valid_end_date <= latest_update
                                THEN c.valid_end_date -- preserve 'devv5.valid_end_date' for already existing DEPRECATED concepts
                                ELSE GREATEST(COALESCE(c.valid_start_date, v.latest_update), -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release
                                                       latest_update - 1) END -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release
@@ -527,7 +527,7 @@ SELECT DISTINCT s.loincnumber AS concept_code_1,
                 s.relationship_id AS relationship_id,
                 COALESCE (cr.valid_start_date, --  preserve 'devv5.valid_start_date' for already existing relationships
                           LEAST (c.valid_end_date, cc.valid_end_date, v.latest_update)) AS valid_start_date,  -- compare and assign earliest date of  'valid_end_date' of a LOINC concept AS 'valid_start_date' for NEW relationships of concepts deprecated in the current release OR  'latest update' for the rest of the codes
-                CASE WHEN cr.valid_end_date < v.latest_update THEN cr.valid_end_date -- preserve 'devv5.valid_end_date' for already existing relationships
+                CASE WHEN cr.valid_end_date <= v.latest_update THEN cr.valid_end_date -- preserve 'devv5.valid_end_date' for already existing relationships
                      WHEN (c.invalid_reason IS NOT NULL) OR (cc.invalid_reason IS NOT NULL) THEN LEAST(c.valid_end_date, cc.valid_end_date)  -- compare and assign earliest date of 'valid_end_date' of a LOINC concept as 'valid_end_date' for NEW relationships of concepts deprecated in the current release
                      ELSE TO_DATE('20991231', 'yyyymmdd') END as valid_end_date, -- for the rest of the codes
                 CASE WHEN (c.invalid_reason IS NOT NULL) OR (cc.invalid_reason IS NOT NULL) THEN 'D'

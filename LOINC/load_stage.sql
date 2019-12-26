@@ -438,13 +438,15 @@ SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
   		CASE WHEN s.parttypename = 'LOINC Hierarchy' THEN 'C' ELSE NULL END AS standard_concept, --  LOINC Hierarchy concepts should be 'Classification', LOINC Attributes - 'Non-standard'
                 s.PartNumber AS concept_code, -- LOINC Attribute or Hierarchy concept
                 COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,-- preserve the 'devv5.valid_start_date' for already existing concepts
-                CASE WHEN s.status = 'DEPRECATED' THEN CASE WHEN c.valid_end_date < latest_update THEN c.valid_end_date -- preserve 'devv5.valid_end_date' for already existing DEPRECATED concepts
-                     ELSE GREATEST(COALESCE(c.valid_start_date, v.latest_update),   -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release
-                     latest_update-1) END   -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release
-                     ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date,-- default value of 31-Dec-2099 for the rest
-                CASE WHEN s.status = 'ACTIVE' THEN NULL  -- define concept validity according to the 'status' field
+                CASE WHEN s.status = 'DEPRECATED'
+                     THEN CASE WHEN c.valid_end_date < latest_update
+                               THEN c.valid_end_date -- preserve 'devv5.valid_end_date' for already existing DEPRECATED concepts
+                               ELSE GREATEST(COALESCE(c.valid_start_date, v.latest_update), -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release
+                                                      latest_update - 1) END -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release
+                     ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date, -- default value of 31-Dec-2099 for the rest
+                CASE WHEN s.status IN ('ACTIVE', 'INACTIVE') THEN NULL  -- define concept validity according to the 'status' field
                      WHEN s.status = 'DEPRECATED' THEN 'D'
-                    ELSE 'X' END AS invalid_reason    --IF there are any changes in LOINC source we don't know about. GenericUpdate() will fail in case of 'X' in invalid_reason field
+                     ELSE 'X' END AS invalid_reason    --IF there are any changes in LOINC source we don't know about. GenericUpdate() will fail in case of 'X' in invalid_reason field
 FROM s
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = s.PartNumber -- already existing LOINC concepts
@@ -524,10 +526,10 @@ SELECT DISTINCT s.loincnumber AS concept_code_1,
                 'LOINC' AS vocabulary_id_2,
                 s.relationship_id AS relationship_id,
                 COALESCE (cr.valid_start_date, --  preserve 'devv5.valid_start_date' for already existing relationships
-                LEAST (c.valid_end_date, cc.valid_end_date,   v.latest_update)) AS valid_start_date,  -- compare and assign earliest date of  'valid_end_date' of a LOINC concept AS 'valid_start_date' for NEW relationships of concepts deprecated in the current release OR  'latest update' for the rest of the codes
+                          LEAST (c.valid_end_date, cc.valid_end_date, v.latest_update)) AS valid_start_date,  -- compare and assign earliest date of  'valid_end_date' of a LOINC concept AS 'valid_start_date' for NEW relationships of concepts deprecated in the current release OR  'latest update' for the rest of the codes
                 CASE WHEN cr.valid_end_date < v.latest_update THEN cr.valid_end_date -- preserve 'devv5.valid_end_date' for already existing relationships
-                WHEN (c.invalid_reason IS NOT NULL) OR (cc.invalid_reason IS NOT NULL) THEN LEAST(c.valid_end_date, cc.valid_end_date)  -- compare and assign earliest date of 'valid_end_date' of a LOINC concept as 'valid_end_date' for NEW relationships of concepts deprecated in the current release
-                ELSE '2099-12-31'::date END as valid_end_date, -- for the rest of the codes
+                     WHEN (c.invalid_reason IS NOT NULL) OR (cc.invalid_reason IS NOT NULL) THEN LEAST(c.valid_end_date, cc.valid_end_date)  -- compare and assign earliest date of 'valid_end_date' of a LOINC concept as 'valid_end_date' for NEW relationships of concepts deprecated in the current release
+                     ELSE TO_DATE('20991231', 'yyyymmdd') END as valid_end_date, -- for the rest of the codes
                 CASE WHEN (c.invalid_reason IS NOT NULL) OR (cc.invalid_reason IS NOT NULL) THEN 'D'
                 ELSE NULL END AS invalid_reason
 FROM s
@@ -1535,31 +1537,6 @@ END $_$;
 	
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
------------------------------------------
------------------------------------------
-/*
---  Add NEW concept_classes and relationships into the CONCEPT table  (Is it correct to do it in this way?)
-INSERT INTO concept(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-VALUES
-       (2100000000, 'LOINC System', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
-       (2100000001, 'LOINC Component', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
-       (2100000002, 'LOINC Scale', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
-       (2100000003, 'LOINC Time', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
-       (2100000004, 'LOINC Method', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
-       (2100000005, 'LOINC Property', 'Metadata', 'Concept Class', 'Concept Class', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
-     (2100000006, 'Has system', 'Metadata', 'Relationship', 'Relationship', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL),
-     (2100000007, 'System of', 'Metadata', 'Relationship', 'Relationship', NULL, 'OMOP generated', '1970-01-01', '2099-12-31', NULL);
-INSERT INTO concept_class (concept_class_id, concept_class_name, concept_class_concept_id) VALUES
-('LOINC System', 'LOINC System', 2100000000),
-('LOINC Component', 'LOINC Component', 2100000001),
-('LOINC Scale', 'LOINC Scale', 2100000002),
-('LOINC Time', 'LOINC Time', 2100000003),
-('LOINC Method', 'LOINC Method', 2100000004),
-('LOINC Property', 'LOINC Property', 2100000005)
-;
-INSERT INTO relationship(relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
-VALUES ( 'Has system', 'Has system', 0, 0, 'System of', 2100000006),
-('System of', 'System of', 0, 0, 'Has system', 2100000007);*/
 
 
 /*-- CHECK

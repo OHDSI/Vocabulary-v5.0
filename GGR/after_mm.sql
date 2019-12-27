@@ -333,7 +333,8 @@ where mpp.mppcv not in
 		select mppcv
 		from devices_to_filter
 	)
-;
+ and 'mp'||mpp.mpcv not in (select concept_code from tomap_bn where invalid_indicator = 'D') ;
+
 
 -- DELETE
 -- FROM internal_relationship_stage
@@ -475,12 +476,12 @@ FROM sources.ggr_mpp mpp
 LEFT JOIN SOURCES.GGR_SAM sam ON mpp.mppcv = sam.mppcv
 ;
 
---update /cm² to have proper denominator
+--update /cmï¿½ to have proper denominator
 with square_denom as
 	(
 		select distinct drug_concept_code, replace (replace (dim, ',' ,'.'), ' cm','') as dim from ds_stage --find where changes are needed, parse dimensions
 		join SOURCES.GGR_SAM sam on 'mpp' || mppcv = drug_concept_code and 'stof' || stofcv = ingredient_concept_code 
-		where denominator_unit = 'cm²' and inbasq = 1 and dim is not null
+		where denominator_unit = 'cmï¿½' and inbasq = 1 and dim is not null
 	),
 calc as
 	(

@@ -27,11 +27,11 @@ BEGIN
 	-- 1.1 Clearing the concept_name
 	--remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_stage
-	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]]+', ' ')
+	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]]+', ' ', 'g')
 	WHERE concept_name ~ '[[:cntrl:]]';
 
 	UPDATE concept_stage
-	SET concept_name = REGEXP_REPLACE(concept_name, ' {2,}', ' ')
+	SET concept_name = REGEXP_REPLACE(concept_name, ' {2,}', ' ', 'g')
 	WHERE concept_name ~ ' {2,}';
 
 	--remove leading and trailing spaces

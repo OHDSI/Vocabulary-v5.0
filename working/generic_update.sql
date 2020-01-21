@@ -51,11 +51,11 @@ BEGIN
 	-- 1.2 Clearing the synonym_name
 	--remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ')
+	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ', 'g')
 	WHERE synonym_name ~ '[[:cntrl:]]';
 
 	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ')
+	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ', 'g')
 	WHERE synonym_name ~ ' {2,}';
 
 	--remove leading and trailing spaces
@@ -860,7 +860,7 @@ BEGIN
 		language_concept_id
 		)
 	SELECT DISTINCT c.concept_id,
-		REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' '),
+		REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' ', 'g'),
 		css.language_concept_id
 	FROM concept_synonym_stage css,
 		concept c,
@@ -869,7 +869,7 @@ BEGIN
 		AND css.synonym_vocabulary_id = c.vocabulary_id
 		AND cs.concept_code = c.concept_code
 		AND cs.vocabulary_id = c.vocabulary_id
-		AND REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' ') IS NOT NULL; --fix for empty GPI names
+		AND REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' ', 'g') IS NOT NULL; --fix for empty GPI names
 
 	-- 21. Fillig drug_strength
 	-- Special rules for RxNorm Extension: same as 'Maps to' rules, but records from deprecated concepts will be deleted

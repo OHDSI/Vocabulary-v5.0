@@ -34,7 +34,6 @@ TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
-TRUNCATE TABLE concept_relationship_manual;
 
 --Prepare tables
 --RUN PRELOAD_STAGE
@@ -373,7 +372,6 @@ SELECT 'Document Ontology' AS concept_name,
 	NULL AS invalid_reason;
 
 --5. Add LOINC Attributes ('Parts') and LOINC Hierarchy concepts into the CONCEPT_STAGE
--- pick Primary LOINC Parts
 INSERT INTO concept_stage
 (
   concept_name,
@@ -388,6 +386,7 @@ INSERT INTO concept_stage
 )
 WITH s AS
 (
+-- pick Primary LOINC Parts
 SELECT DISTINCT pl.PartNumber, p.PartDisplayName, pl.parttypename, p.status
 FROM sources.loinc_partlink pl -- contains links between LOINC Measurements/Observations AND LOINC Parts
 JOIN sources.loinc_part p -- contains LOINC Parts and defines their validity ('status' field)
@@ -396,6 +395,7 @@ WHERE pl.LinkTypeName IN ('Primary')
   AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE') -- list of Primary LOINC Parts
 
     UNION ALL
+
 -- pick LOINC Hierarchy concepts (Attributive Panels, non-primary Parts and 427 Undefined attributes)
 SELECT DISTINCT code,
        COALESCE(p.partdisplayname,code_text) AS PartDisplayName,
@@ -405,48 +405,51 @@ SELECT DISTINCT code,
          ELSE 'ACTIVE'
        END AS status
 FROM sources.loinc_hierarchy lh
-  LEFT JOIN sources.loinc_part p --  to get a validity of concept ( a 'status' field)
+  LEFT JOIN sources.loinc_part p --  to get a validity of concept (a 'status' field)
 ON lh.code = p.partnumber -- LOINC Attribute
 WHERE code LIKE 'LP%' -- all LOINC Hierсrchy concepts have 'LP' at the beginning of the names (including 427 undefined concepts and LOINC panels)
-AND   TRIM(code) NOT IN (SELECT TRIM(partnumber)
+    AND TRIM(code) NOT IN (SELECT TRIM(partnumber)
                          FROM sources.loinc_partlink pl
                          WHERE pl.LinkTypeName = 'Primary'
                          AND   pl.PartTypeName IN ('SYSTEM','METHOD','PROPERTY','TIME','COMPONENT','SCALE')) --  pick non-primary Parts and 427 Undefined attributes (excluding Primary LOINC Parts)
 )
-SELECT DISTINCT trim(s.PartDisplayName) AS concept_name,
-                CASE
-		WHEN (
-				PartDisplayName ~* 'directive|^age\s+|lifetime risk|alert|attachment|\s+date|comment|\s+note|consent|identifier|\s+time|\s+number' -- manually defined word patterns indicating the 'Observation' domain
-				OR PartDisplayName ~* 'date and time|coding system|interpretation|status|\s+name|\s+report|\s+id$|s+id\s+|version|instruction|known exposure|priority|ordered|available|requested|issued|flowsheet|\s+term'
-				OR PartDisplayName ~* 'reported|not yet categorized|performed|risk factor|device|administration|\s+route$|suggestion|recommended|narrative|ICD code|reference'
-				OR PartDisplayName ~* 'reviewed|information|intention|^Reason for|^Received|Recommend|provider|subject|summary|time\s+'
-				)
-			AND PartDisplayName !~* 'thrombin time|clotting time|bleeding time|clot formation|kaolin activated time|closure time|protein feed time|Recalcification time|reptilase time|russell viper venom time'
-			AND PartDisplayName !~* 'implanted device|dosage\.vial|isolate|within lymph node|cancer specimen|tumor|chromosome|inversion|bioavailable'
-			THEN 'Observation'
+
+SELECT DISTINCT
+    trim(s.PartDisplayName) AS concept_name,
+    CASE WHEN PartDisplayName ~* ('directive|^age\s+|lifetime risk|alert|attachment|\s+date|comment|\s+note|consent|identifier|\s+time|\s+number|' ||
+                                    'date and time|coding system|interpretation|status|\s+name|\s+report|\s+id$|s+id\s+|version|instruction|known exposure|priority|ordered|available|requested|issued|flowsheet|\s+term|' ||
+                                    'reported|not yet categorized|performed|risk factor|device|administration|\s+route$|suggestion|recommended|narrative|ICD code|reference|' ||
+                                    'reviewed|information|intention|^Reason for|^Received|Recommend|provider|subject|summary|time\s+') -- manually defined word patterns indicating the 'Observation' domain
+        AND PartDisplayName !~* ('thrombin time|clotting time|bleeding time|clot formation|kaolin activated time|closure time|protein feed time|Recalcification time|reptilase time|russell viper venom time|' ||
+                                 'implanted device|dosage\.vial|isolate|within lymph node|cancer specimen|tumor|chromosome|inversion|bioavailable')
+        THEN 'Observation'
 		ELSE 'Measurement'  -- AVOF-1579
 		END AS domain_id,
-                'LOINC' AS vocabulary_id,
-                CASE WHEN s.parttypename = 'SYSTEM' THEN 'LOINC System'
-                     WHEN s.parttypename = 'METHOD' THEN 'LOINC Method'
-                     WHEN s.parttypename = 'PROPERTY' THEN 'LOINC Property'
-                     WHEN s.parttypename = 'TIME' THEN 'LOINC Time'
-                     WHEN s.parttypename = 'COMPONENT' THEN 'LOINC Component'
-                     WHEN s.parttypename = 'SCALE' THEN 'LOINC Scale'
-                     ELSE 'LOINC Hierarchy'
-                     END AS concept_class_id,
-  		CASE WHEN s.parttypename = 'LOINC Hierarchy' THEN 'C' ELSE NULL END AS standard_concept, --  LOINC Hierarchy concepts should be 'Classification', LOINC Attributes - 'Non-standard'
-                s.PartNumber AS concept_code, -- LOINC Attribute or Hierarchy concept
-                COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,-- preserve the 'devv5.valid_start_date' for already existing concepts
-                CASE WHEN s.status = 'DEPRECATED'
-                     THEN CASE WHEN c.valid_end_date <= latest_update
-                               THEN c.valid_end_date -- preserve 'devv5.valid_end_date' for already existing DEPRECATED concepts
-                               ELSE GREATEST(COALESCE(c.valid_start_date, v.latest_update), -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release
-                                                      latest_update - 1) END -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release
-                     ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date, -- default value of 31-Dec-2099 for the rest
-                CASE WHEN s.status IN ('ACTIVE', 'INACTIVE') THEN NULL  -- define concept validity according to the 'status' field
-                     WHEN s.status = 'DEPRECATED' THEN 'D'
-                     ELSE 'X' END AS invalid_reason    --IF there are any changes in LOINC source we don't know about. GenericUpdate() will fail in case of 'X' in invalid_reason field
+    'LOINC' AS vocabulary_id,
+    CASE WHEN s.parttypename = 'SYSTEM' THEN 'LOINC System'
+         WHEN s.parttypename = 'METHOD' THEN 'LOINC Method'
+         WHEN s.parttypename = 'PROPERTY' THEN 'LOINC Property'
+         WHEN s.parttypename = 'TIME' THEN 'LOINC Time'
+         WHEN s.parttypename = 'COMPONENT' THEN 'LOINC Component'
+         WHEN s.parttypename = 'SCALE' THEN 'LOINC Scale'
+         ELSE 'LOINC Hierarchy'
+         END AS concept_class_id,
+
+        --not needed for now since: 1) primary LOINC parts still have relationships going from sources.loinc_hierarchy; 2) primary LOINC parts are not mapped to Standard.
+  		--CASE WHEN s.parttypename = 'LOINC Hierarchy' THEN 'C' ELSE NULL END AS standard_concept, --  LOINC Hierarchy concepts should be 'Classification', LOINC Attributes - 'Non-standard'
+
+    'C' AS standard_concept,
+    s.PartNumber AS concept_code, -- LOINC Attribute or Hierarchy concept
+    COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,-- preserve the 'devv5.valid_start_date' for already existing concepts
+    CASE WHEN s.status = 'DEPRECATED'
+         THEN CASE WHEN c.valid_end_date <= latest_update
+                   THEN c.valid_end_date -- preserve 'devv5.valid_end_date' for already existing DEPRECATED concepts
+                   ELSE GREATEST(COALESCE(c.valid_start_date, v.latest_update), -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release
+                                          latest_update - 1) END -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release
+         ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date, -- default value of 31-Dec-2099 for the rest
+    CASE WHEN s.status IN ('ACTIVE', 'INACTIVE') THEN NULL  -- define concept validity according to the 'status' field
+         WHEN s.status = 'DEPRECATED' THEN 'D'
+         ELSE 'X' END AS invalid_reason    --IF there are any changes in LOINC source we don't know about. GenericUpdate() will fail in case of 'X' in invalid_reason field
 FROM s
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = s.PartNumber -- already existing LOINC concepts
@@ -787,11 +790,11 @@ SELECT DISTINCT maptarget AS concept_code_1,-- LOINC Measurement code
 c3.concept_code AS concept_code_2, -- SNOMED Attribute code
 'LOINC' AS vocabulary_id_1,
 'SNOMED' AS vocabulary_id_2,
-CASE WHEN c2.concept_name in ( 'Time aspect', 'Process duration')  THEN 'Has time aspect'
+CASE WHEN c2.concept_name in ('Time aspect', 'Process duration')  THEN 'Has time aspect'
 WHEN c2.concept_name in ('Component','Process output') THEN 'Has component'
 WHEN c2.concept_name = 'Direct site' THEN 'Has dir proc site'
 WHEN c2.concept_name = 'Inheres in' THEN 'Inheres in'
-WHEN c2.concept_name = 'Property type' THEN 'Has property type'
+WHEN c2.concept_name = 'Property type' THEN 'Has property'
 WHEN c2.concept_name = 'Scale type' THEN 'Has scale type'
 WHEN c2.concept_name = 'Technique' THEN 'Has technique'
 WHEN c2.concept_name = 'Precondition' THEN 'Has precondition'
@@ -885,7 +888,7 @@ FROM concept_stage c
   JOIN concept_relationship_stage r1 ON (concept_code_1,vocabulary_id_1) = (c.concept_code,c.vocabulary_id) -- LOINC Measurement
  AND c.vocabulary_id = 'LOINC' and c.domain_id = 'Measurement' and c.invalid_reason is null and c.standard_concept = 'S'
  AND concept_code_2 IN ('LP7057-5','LP21304-8','LP7068-2','LP185760-8','LP7536-8','LP7576-4','LP7578-0','LP7579-8','LP7567-3','LP7681-2','LP7156-5','LP7479-1','LP7604-4', 'LP7753-9', 'LP7067-4', 'LP7073-2', 'LP7751-3') -- list of needful LOINC Parts (System and Scale)
- AND r1.relationship_id in ( 'Has system', 'Has scale type')
+ AND r1.relationship_id in ('Has system', 'Has scale type')
 ),
 -- AXIS 2: get links given by the source between LOINC Measurements and SNOMED Attributes
 lc_sn AS
@@ -1537,20 +1540,3 @@ END $_$;
 	
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
-
-
-/*-- CHECK
-SELECT c.concept_code AS concept_code_1, cr.relationship_id, cc.concept_code AS concept_code_2
-FROM concept_relationship cr
-JOIN concept c
-    ON cr.concept_id_1 = c.concept_id
-JOIN concept cc
-    ON cr.concept_id_2 = cc.concept_id
-WHERE (c.vocabulary_id = 'LOINC' AND cc.vocabulary_id = 'LOINC')
-  AND relationship_id IN ('Has kind', 'Has role', 'Has type of service', 'Has subject matter', 'Has Answer', 'Maps to', 'Panel contains', 'Subsumes', 'Has setting')
-AND cr.invalid_reason IS NULL
-AND cr.concept_id_1 != cr.concept_id_2
-EXCEPT (SELECT crs.concept_code_1, relationship_id, crs.concept_code_2
-    FROM concept_relationship_stage crs
-    WHERE crs.vocabulary_id_1 = 'LOINC' AND crs.vocabulary_id_2 = 'LOINC')
-ORDER BY concept_code_1; */

@@ -148,8 +148,8 @@ BEGIN
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    --https://isd.digital.nhs.uk/artefact/trud3/mrl02vaxefk54qayz0ujlz5l2/SNOMEDCT2/25.0.0/UK_SCT2CL/uk_sct2cl_25.0.0_20180427000001.zip
-    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/artefact/trud3/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
+    --https://isd.digital.nhs.uk/trud3/api/v1/keys/xxx/files/SNOMEDCT2/28.0.0/UK_SCT2CL/uk_sct2cl_28.0.0_20191001000001.zip
+    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
     
     --start downloading
     pVocabularyOperation:='GET_SNOMED UK-part downloading';

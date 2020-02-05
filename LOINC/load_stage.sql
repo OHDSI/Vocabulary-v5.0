@@ -739,7 +739,7 @@ SELECT DISTINCT parentloinc AS concept_code_1, -- LOINC Panel code
 FROM sources.loinc_forms -- Panel containing table
 WHERE loinc <> parentloinc;-- to exclude cases when parents and children are represented by the same concepts
 
---14.1 Build 'LOINC - SNOMED eq' relationships between LOINC Attributes and SNOMED Attributes
+--14.1 Build 'LOINC - SNOMED eq' relationships between LOINC Attributes and SNOMED Attributes (as long as LOINC Parts are classification, we cannot not use 'Maps to') 
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -750,6 +750,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
+-- note, there are 39 LOINC Parts which have more than one link to SNOMED due to different representation of Systems and Components in vocabularies
 SELECT DISTINCT maptarget AS concept_code_1, -- LOINC Attribute code
 	referencedcomponentid AS concept_code_2, -- SNOMED Attribute code
 	'LOINC' AS vocabulary_id_1,
@@ -764,8 +765,15 @@ SELECT DISTINCT maptarget AS concept_code_1, -- LOINC Attribute code
   JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id -- valid_start_date
   WHERE c.vocabulary_id = 'LOINC' AND c.standard_concept = 'C' and c.invalid_reason is null
   AND d.vocabulary_id = 'SNOMED' AND d.invalid_reason IS NULL
+  AND attributeid in ('246093002', '704319004', '704327008', '718497002') --  'Component', 'Inheres in' (Component-like),  'Direct site' (System-like), 'Inherent location'  (Component-like)
+/* Excluded attributeIDs:
+Process output - reduplicate a Component
+Process agent - link from a LOINCComponent to a possible SNOMED System, useless in mapping ('Kidney structure')
+Property type - links from a LOINC Component to a possible SNOMED Property (useless, non-SNOMED logic)
+Technique - link from a LOINC Component to SNOMED Technique (useless, non-SNOMED logic)
+Characterizes - senseless 'Excretory process' */
 ;
-
+				 
 -- 14.2 Build relationships between LOINC Measurements and respective SNOMED attributes given by the table of 'sources.scccrefset_expressionassociation_int'
 -- Note, that some suggested by LOINC relationship_ids ('Characterizes', 'Units', 'Relative to', 'Process agent' 'Inherent location') are useless in the context of a mapping to SNOMED.
 INSERT INTO concept_relationship_stage

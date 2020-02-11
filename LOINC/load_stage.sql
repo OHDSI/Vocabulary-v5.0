@@ -339,7 +339,7 @@ WHERE
 			select code
 			from sources.loinc_hierarchy
 			where
-				path_to_root ~ ('^(LP29684\-5|LP7787\-7\.LP7797\-6\.LP29680\-3)\.') --LP29684-5 Radiology LP29680-3 Eye ultrasound
+				path_to_root ~ ('^(LP7787\-7\.LP29684\-5|LP7787\-7\.LP7797\-6\.LP29680\-3)\.') --LP29684-5 Radiology LP29680-3 Eye ultrasound
 		)
 
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the CONCEPT_STAGE

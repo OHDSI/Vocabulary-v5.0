@@ -330,6 +330,17 @@ JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
 	AND c.vocabulary_id = 'LOINC';
 
+--3.1. Update Domains for concepts representing Imaging procedures based on hierarchy
+update concept_stage
+set domain_id = 'Procedure'
+WHERE
+	concept_code in
+		(
+			select code
+			from sources.loinc_hierarchy
+			where
+				path_to_root ~ ('^(LP29684\-5|LP7787\-7\.LP7797\-6\.LP29680\-3)\.') --LP29684-5 Radiology LP29680-3 Eye ultrasound
+		)
 
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the CONCEPT_STAGE
 INSERT INTO concept_stage (

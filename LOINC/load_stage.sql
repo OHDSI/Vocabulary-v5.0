@@ -342,6 +342,7 @@ WHERE
 				path_to_root ~ ('^(LP7787\-7\.LP29684\-5|LP7787\-7\.LP7797\-6\.LP29680\-3)\.') and --LP29684-5 Radiology LP29680-3 Eye ultrasound
 				code not in (select loincnumber from sources.loinc_partlink where partnumber in ('LP7753-9','LP200093-5','LP200395-4')) -- LOINC Parts that identify direct measures or scores
 		)
+;
 
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the CONCEPT_STAGE
 INSERT INTO concept_stage (
@@ -450,7 +451,10 @@ SELECT DISTINCT
         --not needed for now since: 1) primary LOINC parts still have relationships going from sources.loinc_hierarchy; 2) primary LOINC parts are not mapped to Standard.
   		--CASE WHEN s.parttypename = 'LOINC Hierarchy' THEN 'C' ELSE NULL END AS standard_concept, --  LOINC Hierarchy concepts should be 'Classification', LOINC Attributes - 'Non-standard'
 
-    'C' AS standard_concept,
+    case s.status 
+		when 'DEPRECATED' then null
+		else 'C'
+	end AS standard_concept,
     s.PartNumber AS concept_code, -- LOINC Attribute or Hierarchy concept
     COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,-- preserve the 'devv5.valid_start_date' for already existing concepts
     CASE WHEN s.status = 'DEPRECATED'
@@ -467,6 +471,24 @@ JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = s.PartNumber -- already existing LOINC concepts
 	AND c.vocabulary_id = 'LOINC';
 
+--5.1. Update Domain = 'Observation' and standard_concept = 'S' for attributes that are not part of Hierarchy (AVOF-2222)
+with hierarchy as
+(
+	select code
+	from sources.loinc_hierarchy
+	where
+		code not in (select partnumber from sources.loinc_partlink where parttypename != 'CLASS') and
+		code !~ '^\d'
+)
+update concept_stage c
+set
+	domain_id = 'Observation',
+	standard_concept = 'S'
+where
+	concept_code not in (select code from hierarchy) and
+	concept_class_id ~ 'LOINC (System|Method|Property|Time|Component|Scale)' and
+	invalid_reason is null
+;
 --6. Build 'Subsumes' relationships from LOINC Ancestors to Descendants using a source table of 'sources.loinc_hierarchy'
 INSERT INTO concept_relationship_stage (
 	concept_code_1,

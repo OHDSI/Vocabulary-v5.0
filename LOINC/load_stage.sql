@@ -886,25 +886,38 @@ SELECT lpga.parentgroupid AS synonym_concept_code, -- LOINC Group Category code
 	4180186 AS language_concept_id -- English
 FROM sources.loinc_parentgroupattributes lpga;-- table with descriptions of LOINC Group Categories
 
---21. Working with replacement mappings
+--21. Add Chinese language synonyms (AVOF-2231) from UMLS
+insert into concept_synonym_stage
+	(synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id)
+select
+	m.str,
+	c.concept_code,
+	'LOINC',
+	4182948 --Chinese language
+from concept_stage c
+join sources.mrconso m on
+	m.code = concept_code and
+	sab = 'LNC-ZH-CN'
+
+--22. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---22. Add mapping from deprecated to fresh concepts
+--23. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---23. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--24. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---24. Delete ambiguous 'Maps to' mappings
+--25. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();

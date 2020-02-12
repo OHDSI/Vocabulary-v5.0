@@ -260,8 +260,7 @@ BEGIN
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    --https://isd.digital.nhs.uk/artefact/trud3/js18sb4py75o6fmftjt75wfag/SNOMEDCT2/25.3.0/UK_SCT2DR/uk_sct2dr_25.3.0_20180620000001.zip
-    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/artefact/trud3/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
+    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
     
     --start downloading
     pVocabularyOperation:='GET_SNOMED UK DE-part downloading';
@@ -312,8 +311,7 @@ BEGIN
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    --https://isd.digital.nhs.uk/artefact/trud3/w2kh1gmyf1malwtvyd5sepx7p/NHSBSA/6.3.0/NHSBSA_DMD/nhsbsa_dmd_6.3.0_20180625000001.zip
-    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/artefact/trud3/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
+    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
     
     --start downloading
     pVocabularyOperation:='GET_SNOMED dm+d part 1 downloading';
@@ -345,8 +343,7 @@ BEGIN
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    --https://isd.digital.nhs.uk/artefact/trud3/j3yh8egxgqf0jm8df2ge77th3/NHSBSA/6.3.0/NHSBSA_DMDBONUS/nhsbsa_dmdbonus_6.3.0_20180625000001.zip
-    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/artefact/trud3/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
+    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
     
     --start downloading
     pVocabularyOperation:='GET_SNOMED dm+d part 2 (bonus) downloading';

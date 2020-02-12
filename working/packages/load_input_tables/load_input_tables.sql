@@ -695,9 +695,13 @@ begin
       analyze sources.vet_sct2_concept_full;
       analyze sources.vet_sct2_desc_full;
       analyze sources.vet_sct2_rela_full;
+  when 'EDI' then
+      truncate table sources.edi_data;
+      execute 'COPY sources.edi_data (concept_code,concept_name,concept_synonym,domain_id,vocabulary_id,concept_class_id,valid_start_date,valid_end_date,invalid_reason,ancestor_concept_code,previous_concept_code,material,dosage,dosage_unit,sanjung_name) FROM '''||pVocabularyPath||'ediData_UTF8v2.csv'' delimiter '','' csv quote ''"'' HEADER';
+      update sources.edi_data set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
-  end case;        
+  end case;
 end;
 $body$
 LANGUAGE 'plpgsql'

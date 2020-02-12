@@ -40,6 +40,8 @@ end $_$;
 truncate table concept_stage;
 truncate table concept_relationship_stage;
 truncate table concept_synonym_stage;
+truncate table drug_strength_stage;
+truncate table pack_content_stage;
 
 
 -- 3. Step 1. create pull of mapped drugs for Z-index. Source file = cascodes_nlm
@@ -53,7 +55,7 @@ select ltrim(cascode, '0')                                               as casc
        targetid                                                          as concept_id,
        targetname                                                        as concept_name
 from z_index_ctd z
-       join "Z-Index_ingredient_mappings" z2 using (cascode)
+       join z_index_ingredient_mapping z2 using (cascode)
        left join cascodes_nlm on id = ltrim(cascode, '0') -- left join because 138 concepts cannot be found in cascodes_nlm
 where targetid != '0'
   and targetid is not null
@@ -64,7 +66,7 @@ select ltrim(cascode, '0'),
        sourcename                                                        as source_name,
        regexp_replace(coalesce(name, googletranslatedterm), ' \[.*', '') as standard_name,
        coalesce(formula, checmicalformula)                               as formula
-from "Z-Index_ingredient_mappings"
+from z_index_ingredient_mapping
        left join cascodes_nlm on id = ltrim(cascode, '0')
 where targetid is null
   and cascode is not null

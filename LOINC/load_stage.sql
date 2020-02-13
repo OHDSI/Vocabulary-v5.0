@@ -405,7 +405,7 @@ FROM sources.loinc_partlink pl -- contains links between LOINC Measurements/Obse
 JOIN sources.loinc_part p -- contains LOINC Parts and defines their validity ('status' field)
 ON pl.PartNumber = p.PartNumber
 WHERE --pl.LinkTypeName IN ('Primary') AND -- Non-Primary LOINC parts are also expected to share concept_class_id with Primary
-  pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE') -- list of Primary LOINC Parts
+  pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE','NUMERATOR') -- list of Primary LOINC Parts
 
     UNION ALL
 
@@ -424,7 +424,7 @@ WHERE code LIKE 'LP%' -- all LOINC Hierсrchy concepts have 'LP' at the beginnin
     AND TRIM(code) NOT IN (SELECT TRIM(partnumber)
                          FROM sources.loinc_partlink pl
                          WHERE --pl.LinkTypeName = 'Primary' AND
-                         pl.PartTypeName IN ('SYSTEM','METHOD','PROPERTY','TIME','COMPONENT','SCALE')) --  pick non-primary Parts and 427 Undefined attributes (excluding Primary LOINC Parts)
+                         pl.PartTypeName IN ('SYSTEM','METHOD','PROPERTY','TIME','COMPONENT','SCALE','NUMERATOR')) --  pick non-primary Parts and 427 Undefined attributes (excluding Primary LOINC Parts)
 )
 
 SELECT DISTINCT

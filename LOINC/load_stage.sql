@@ -404,8 +404,8 @@ SELECT DISTINCT pl.PartNumber, p.PartDisplayName, pl.parttypename, p.status
 FROM sources.loinc_partlink pl -- contains links between LOINC Measurements/Observations AND LOINC Parts
 JOIN sources.loinc_part p -- contains LOINC Parts and defines their validity ('status' field)
 ON pl.PartNumber = p.PartNumber
-WHERE pl.LinkTypeName IN ('Primary')
-  AND pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE') -- list of Primary LOINC Parts
+WHERE --pl.LinkTypeName IN ('Primary') AND -- Non-Primary LOINC parts are also expected to share concept_class_id with Primary
+  pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE') -- list of Primary LOINC Parts
 
     UNION ALL
 
@@ -423,8 +423,8 @@ ON lh.code = p.partnumber -- LOINC Attribute
 WHERE code LIKE 'LP%' -- all LOINC Hierсrchy concepts have 'LP' at the beginning of the names (including 427 undefined concepts and LOINC panels)
     AND TRIM(code) NOT IN (SELECT TRIM(partnumber)
                          FROM sources.loinc_partlink pl
-                         WHERE pl.LinkTypeName = 'Primary'
-                         AND   pl.PartTypeName IN ('SYSTEM','METHOD','PROPERTY','TIME','COMPONENT','SCALE')) --  pick non-primary Parts and 427 Undefined attributes (excluding Primary LOINC Parts)
+                         WHERE --pl.LinkTypeName = 'Primary' AND
+                         pl.PartTypeName IN ('SYSTEM','METHOD','PROPERTY','TIME','COMPONENT','SCALE')) --  pick non-primary Parts and 427 Undefined attributes (excluding Primary LOINC Parts)
 )
 
 SELECT DISTINCT
@@ -483,11 +483,10 @@ with hierarchy as
 update concept_stage c
 set
 	domain_id = 'Observation',
-	standard_concept = 'S'
+	standard_concept = null
 where
 	concept_code not in (select code from hierarchy) and
-	concept_class_id ~ 'LOINC (System|Method|Property|Time|Component|Scale)' and
-	invalid_reason is null
+	concept_class_id ~ 'LOINC (System|Method|Property|Time|Component|Scale)'
 ;
 --6. Build 'Subsumes' relationships from LOINC Ancestors to Descendants using a source table of 'sources.loinc_hierarchy'
 INSERT INTO concept_relationship_stage (

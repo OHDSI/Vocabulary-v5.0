@@ -123,7 +123,7 @@ select distinct
 	case
 		when o.concept_code_clean ~ '[A-Z]\d{2}\.' then 'ICD10 code'
 		when o.concept_code_clean ~ '^[A-Z]\d{2}$' then 'ICD10 Hierarchy'
-		when o.concept_code_clean ~ '^M\d{5}\/\d$' then 'ICDO Histology'
+		when o.concept_code_clean ~ '^M\d{5}\/\d$' then 'ICD10 Histology'
 		when o.concept_code_clean ~ '-' then 'ICD10 Hierarchy'
 		else null --Not supposed to be encountered
 	end,
@@ -185,10 +185,10 @@ from concept_stage c
 join devv5.concept x on --Find right Histology code to translate to Condition
 	x.vocabulary_id = 'ICDO3' and
 	x.concept_class_id = 'ICDO Histology' and
-	c.concept_class_id = 'ICDO Histology' and
+	c.concept_class_id = 'ICD10 Histology' and
 --same Behaviour code
 	right (x.concept_code, 1) = 
-	replace --metastatic with malignant
+	replace --Metastatic with malignant
 		(
 			right (c.concept_code,1),
 			'6',

@@ -19,7 +19,7 @@ truncate concept_stage, concept_relationship_stage,concept_synonym_stage
 ;
 drop table if exists code_clean
 ;
---1.Create list of distinct cleaned codes without brackets from icd10cn_concept
+-- --1.Create list of distinct cleaned codes without brackets from icd10cn_concept
 create table code_clean as
 select 
 	concept_code,
@@ -187,13 +187,7 @@ join devv5.concept x on --Find right Histology code to translate to Condition
 	x.concept_class_id = 'ICDO Histology' and
 	c.concept_class_id = 'ICD10 Histology' and
 --same Behaviour code
-	right (x.concept_code, 1) = 
-	replace --Metastatic with malignant
-		(
-			right (c.concept_code,1),
-			'6',
-			'3'
-		) and
+	right (x.concept_code, 1) = right (c.concept_code,1) and
 --same Morphology code beginning
 	left (x.concept_code, 4) = left (trim (leading 'M' from c.concept_code), 4)
 join devv5.concept x2 on --Translate to ICDO Condition code to get correct mappings

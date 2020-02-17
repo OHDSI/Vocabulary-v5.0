@@ -12,7 +12,6 @@ TODO:
 -Mapping of granular codes
 -Mapping of missing Histologies
 -Correcting translations
--Review classes: ICDO Histology needs to be replaced with a new specific one
 */
 ;
 truncate concept_stage, concept_relationship_stage,concept_synonym_stage
@@ -46,6 +45,22 @@ select distinct
 from sources.icd10cn_concept c
 join code_clean o on
 	o.concept_code = c.concept_code
+join devv5.concept x on
+	x.vocabulary_id = 'ICD10' and
+	x.concept_code = o.concept_code_clean
+
+	union all
+
+select distinct
+--clean ICD10 names for concepts with 00 in end (generic equivalency)
+	o.concept_code_clean,
+	'ICD10' as source,
+	x.concept_name,
+	'S' as preferred,
+	4180186 as language_concept_id -- English
+from sources.icd10cn_concept c
+join code_clean o on
+	o.concept_code = c.concept_code || '00'
 join devv5.concept x on
 	x.vocabulary_id = 'ICD10' and
 	x.concept_code = o.concept_code_clean
@@ -195,6 +210,8 @@ join devv5.concept x2 on --Translate to ICDO Condition code to get correct mappi
 	x2.concept_class_id = 'ICDO Condition' and
 	x2.concept_code = x.concept_code || '-NULL'
 
+where substring (c.concept_code from 6 for 1) = '0' --For this itertion, only exact match with ICDO code is saved MXXXX0/X
+
 	union all
 
 select distinct
@@ -209,9 +226,9 @@ join devv5.concept x on
 	 c.concept_code !~ '-' and
 	 c.concept_class_id in ('ICD10 code', 'ICD10 Hierarchy') and
 	 x.vocabulary_id = 'ICD10' and
-	 c.concept_code like x.concept_code || '%'
---80 ICDO-like Histologies are unmapped
---Hierarchies are unmapped
+	 ( --only exact match for this iteration
+	 	x.concept_code = regexp_replace (c.concept_code, '00$','') --00 indicates generic equivalency
+	 )
 ;
 insert into concept_relationship_stage
 	(concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)

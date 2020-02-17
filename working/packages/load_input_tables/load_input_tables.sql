@@ -697,8 +697,23 @@ begin
       analyze sources.vet_sct2_rela_full;
   when 'EDI' then
       truncate table sources.edi_data;
-      execute 'COPY sources.edi_data (concept_code,concept_name,concept_synonym,domain_id,vocabulary_id,concept_class_id,valid_start_date,valid_end_date,invalid_reason,ancestor_concept_code,previous_concept_code,material,dosage,dosage_unit,sanjung_name) FROM '''||pVocabularyPath||'ediData_UTF8v2.csv'' delimiter '','' csv quote ''"'' HEADER';
+      execute 'COPY sources.edi_data (concept_code,concept_name,concept_synonym,domain_id,vocabulary_id,concept_class_id,valid_start_date,valid_end_date,invalid_reason,ancestor_concept_code,previous_concept_code,material,dosage,dosage_unit,sanjung_name) FROM '''||pVocabularyPath||'ediData_UTF8v3.csv'' delimiter '','' csv quote ''"'' HEADER';
       update sources.edi_data set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'ICD10CN' then
+      truncate table sources.icd10cn_concept, sources.icd10cn_concept_relationship;
+      execute 'COPY sources.icd10cn_concept FROM '''||pVocabularyPath||'icd10cn_concept.tsv'' delimiter E''\t'' csv quote ''"'' HEADER';
+      execute 'COPY sources.icd10cn_concept_relationship FROM '''||pVocabularyPath||'ICD10CN_CONCEPT_RELATIONSHIP.csv'' delimiter E''\t'' csv quote ''"'' HEADER';
+      update sources.icd10cn_concept set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'NEBRASKA LEXICON' then
+      truncate table sources.lex_sct2_concept, sources.lex_sct2_desc, sources.lex_sct2_rela, sources.lex_der2_crefset_assref;
+      execute 'COPY sources.lex_sct2_concept (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      update sources.lex_sct2_concept set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      execute 'COPY sources.lex_sct2_desc FROM '''||pVocabularyPath||'sct2_Description.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.lex_sct2_rela FROM '''||pVocabularyPath||'sct2_Relationship.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.lex_der2_crefset_assref FROM '''||pVocabularyPath||'der2_cRefset_Association.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      analyze sources.lex_sct2_concept;
+      analyze sources.lex_sct2_desc;
+      analyze sources.lex_sct2_rela;
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

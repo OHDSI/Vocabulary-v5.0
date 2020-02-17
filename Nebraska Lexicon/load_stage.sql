@@ -101,105 +101,16 @@ WHERE sct2.rn = 1
 UPDATE concept_stage cs
 SET concept_class_id = i.concept_class_id
 FROM (
-	WITH tmp_concept_class AS (
-			SELECT *
-			FROM (
-				SELECT concept_code,
-					f7, -- extracted class
-					ROW_NUMBER() OVER (
-						PARTITION BY concept_code
-						-- order of precedence: active, by class relevance, by highest number of parentheses
-						ORDER BY active DESC,
-							CASE f7
-								WHEN 'disorder'
-									THEN 1
-								WHEN 'finding'
-									THEN 2
-								WHEN 'procedure'
-									THEN 3
-								WHEN 'regime/therapy'
-									THEN 4
-								WHEN 'qualifier value'
-									THEN 5
-								WHEN 'body structure'
-									THEN 6
-								WHEN 'cell'
-									THEN 7
-								WHEN 'cell structure'
-									THEN 8
-								WHEN 'organism'
-									THEN 9
-								WHEN 'physical object'
-									THEN 10
-								WHEN 'social concept'
-									THEN 11
-								WHEN 'event'
-									THEN 12
-								WHEN 'product'
-									THEN 13
-								WHEN 'substance'
-									THEN 14
-								WHEN 'specimen'
-									THEN 15
-								WHEN 'observable entity'
-									THEN 16
-								WHEN 'morphologic abnormality'
-									THEN 17
-								WHEN 'foundation metadata concept'
-									THEN 18
-								WHEN 'core metadata concept'
-									THEN 19
-								WHEN 'metadata'
-									THEN 20
-								WHEN 'environment'
-									THEN 21
-								WHEN 'attribute'
-									THEN 22
-								WHEN 'navigational concept'
-									THEN 23
-								ELSE 99
-								END,
-							rnb
-						) AS rnc
-				FROM (
-					SELECT concept_code,
-						active,
-						pc1,
-						pc2,
-						CASE 
-							WHEN pc1 = 0
-								OR pc2 = 0
-								THEN term -- when no term records with parentheses
-									-- extract class (called f7)
-							ELSE substring(term, '\(([^(]+)\)$')
-							END AS f7,
-						rna AS rnb -- row number in lex_sct2_desc
-					FROM (
-						SELECT c.concept_code,
-							d.term,
-							d.active,
-							(
-								SELECT count(*)
-								FROM regexp_matches(d.term, '\(', 'g')
-								) pc1, -- parenthesis open count
-							(
-								SELECT count(*)
-								FROM regexp_matches(d.term, '\)', 'g')
-								) pc2, -- parenthesis close count
-							ROW_NUMBER() OVER (
-								PARTITION BY c.concept_code ORDER BY d.active DESC, -- first active ones
-									(
-										SELECT count(*)
-										FROM regexp_matches(d.term, '\(', 'g')
-										) DESC -- first the ones with the most parentheses - one of them the class info
-								) rna -- row number in lex_sct2_desc
-						FROM concept_stage c
-						JOIN sources.lex_sct2_desc d ON d.conceptid = c.concept_code
-						) AS s0
-					) AS s1
-				) AS s2
-			WHERE rnc = 1
-			)
+	WITH tmp_concept_class AS
+						(
+							SELECT distinct c.concept_code,
+								first_value(substring(d.term, '\(([^(]+)\)$')) OVER (
+									PARTITION BY c.concept_code ORDER BY d.active DESC, d.effectivetime desc -- first active ones
+									) f7
+							FROM concept_stage c
+							JOIN sources.lex_sct2_desc d ON d.conceptid = c.concept_code
+							where d.typeid = '900000000000003001' --Fully specified name
+						)
 	SELECT concept_code,
 		CASE 
 			WHEN F7 = 'disorder'
@@ -254,6 +165,26 @@ FROM (
 				THEN 'Navi Concept'
 			WHEN F7 = 'animal life circumstance'
 				THEN 'Life circumstance'
+			WHEN F7 = 'situation'
+				THEN 'Context-dependent'
+			WHEN F7 = 'Situation'
+				THEN 'Context-dependent'
+			when F7 = 'context-dependent category'
+				THEN 'Context-dependent'
+			when F7 = 'person'
+				THEN 'Social Context'
+			when F7 = 'occupation'
+				THEN 'Social Context'
+			when F7 = 'staging scale'
+				THEN 'Staging / Scales'
+			when F7 = 'assessment scale'
+				THEN 'Staging / Scales'
+			when F7 = 'qualifier'
+				THEN 'Qualifier Value'
+			when F7 is null --3 Nebraska concepts
+				THEN 'Model Comp'
+			when F7 = 'observable'
+				THEN 'Observable Entity'
 			ELSE 'Undefined'
 			END AS concept_class_id
 	FROM tmp_concept_class
@@ -593,6 +524,19 @@ FROM (
 				THEN 'Has sub-specimen'
 			WHEN term = 'Has life circumstance'
 				THEN 'Has life circumstan'
+				--Nebraska Lexicon
+			when term = 'Towards'
+				THEN 'Has proc morph'
+			when term = 'Relative to'
+				then 'Has property' -- Ambiguous
+			when term = 'Protein molecule transcribed from gene locus' 
+				then 'Inheres in'
+			when term = 'Specimen preparation technique' 
+				then 'Has technique'
+			when term = 'Units'
+				then 'Has unit of presen'
+			when term = 'Distribution'
+				then 'Has property' -- Breaks SNOMED conventions
 			ELSE term --'non-existing'
 			END AS relationship_id,
 		(

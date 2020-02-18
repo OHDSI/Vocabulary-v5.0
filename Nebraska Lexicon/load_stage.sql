@@ -87,119 +87,22 @@ FROM (
 	WHERE c.id = d.conceptid
 		AND term IS NOT NULL
 	) sct2
-WHERE sct2.rn = 1
-	--AND sct2.active = 1
-	--exclude core SNOMED concepts
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept c
-		WHERE c.concept_code = sct2.concept_code
-			AND c.vocabulary_id = 'SNOMED'
-		);
+WHERE sct2.rn = 1;
 
 --4. Update concept_class_id from extracted class information and terms ordered by some good precedence
 UPDATE concept_stage cs
 SET concept_class_id = i.concept_class_id
 FROM (
-	WITH tmp_concept_class AS (
-			SELECT *
-			FROM (
-				SELECT concept_code,
-					f7, -- extracted class
-					ROW_NUMBER() OVER (
-						PARTITION BY concept_code
-						-- order of precedence: active, by class relevance, by highest number of parentheses
-						ORDER BY active DESC,
-							CASE f7
-								WHEN 'disorder'
-									THEN 1
-								WHEN 'finding'
-									THEN 2
-								WHEN 'procedure'
-									THEN 3
-								WHEN 'regime/therapy'
-									THEN 4
-								WHEN 'qualifier value'
-									THEN 5
-								WHEN 'body structure'
-									THEN 6
-								WHEN 'cell'
-									THEN 7
-								WHEN 'cell structure'
-									THEN 8
-								WHEN 'organism'
-									THEN 9
-								WHEN 'physical object'
-									THEN 10
-								WHEN 'social concept'
-									THEN 11
-								WHEN 'event'
-									THEN 12
-								WHEN 'product'
-									THEN 13
-								WHEN 'substance'
-									THEN 14
-								WHEN 'specimen'
-									THEN 15
-								WHEN 'observable entity'
-									THEN 16
-								WHEN 'morphologic abnormality'
-									THEN 17
-								WHEN 'foundation metadata concept'
-									THEN 18
-								WHEN 'core metadata concept'
-									THEN 19
-								WHEN 'metadata'
-									THEN 20
-								WHEN 'environment'
-									THEN 21
-								WHEN 'attribute'
-									THEN 22
-								WHEN 'navigational concept'
-									THEN 23
-								ELSE 99
-								END,
-							rnb
-						) AS rnc
-				FROM (
-					SELECT concept_code,
-						active,
-						pc1,
-						pc2,
-						CASE 
-							WHEN pc1 = 0
-								OR pc2 = 0
-								THEN term -- when no term records with parentheses
-									-- extract class (called f7)
-							ELSE substring(term, '\(([^(]+)\)$')
-							END AS f7,
-						rna AS rnb -- row number in lex_sct2_desc
-					FROM (
-						SELECT c.concept_code,
-							d.term,
-							d.active,
-							(
-								SELECT count(*)
-								FROM regexp_matches(d.term, '\(', 'g')
-								) pc1, -- parenthesis open count
-							(
-								SELECT count(*)
-								FROM regexp_matches(d.term, '\)', 'g')
-								) pc2, -- parenthesis close count
-							ROW_NUMBER() OVER (
-								PARTITION BY c.concept_code ORDER BY d.active DESC, -- first active ones
-									(
-										SELECT count(*)
-										FROM regexp_matches(d.term, '\(', 'g')
-										) DESC -- first the ones with the most parentheses - one of them the class info
-								) rna -- row number in lex_sct2_desc
-						FROM concept_stage c
-						JOIN sources.lex_sct2_desc d ON d.conceptid = c.concept_code
-						) AS s0
-					) AS s1
-				) AS s2
-			WHERE rnc = 1
-			)
+	WITH tmp_concept_class AS
+						(
+							SELECT distinct c.concept_code,
+								first_value(substring(d.term, '\(([^(]+)\)$')) OVER (
+									PARTITION BY c.concept_code ORDER BY d.active DESC, d.effectivetime desc -- first active ones
+									) f7
+							FROM concept_stage c
+							JOIN sources.lex_sct2_desc d ON d.conceptid = c.concept_code
+							where d.typeid = '900000000000003001' --Fully specified name
+						)
 	SELECT concept_code,
 		CASE 
 			WHEN F7 = 'disorder'
@@ -254,6 +157,26 @@ FROM (
 				THEN 'Navi Concept'
 			WHEN F7 = 'animal life circumstance'
 				THEN 'Life circumstance'
+			WHEN F7 = 'situation'
+				THEN 'Context-dependent'
+			WHEN F7 = 'Situation'
+				THEN 'Context-dependent'
+			when F7 = 'context-dependent category'
+				THEN 'Context-dependent'
+			when F7 = 'person'
+				THEN 'Social Context'
+			when F7 = 'occupation'
+				THEN 'Social Context'
+			when F7 = 'staging scale'
+				THEN 'Staging / Scales'
+			when F7 = 'assessment scale'
+				THEN 'Staging / Scales'
+			when F7 = 'qualifier'
+				THEN 'Qualifier Value'
+			when F7 is null --3 Nebraska concepts
+				THEN 'Model Comp'
+			when F7 = 'observable'
+				THEN 'Observable Entity'
 			ELSE 'Undefined'
 			END AS concept_class_id
 	FROM tmp_concept_class
@@ -284,24 +207,8 @@ WITH tmp_rel AS (
 						d.id DESC
 					) AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
 				r.active
-			FROM (
-				/*SELECT *
-				FROM sources.sct2_rela_full_merged --use the SNOMED sources as well for 'Is a' relationships
-				
-				UNION*/ --use descriptions from SNOMED, but only for Nebraska Lexicon relationships
-				
-				SELECT *
-				FROM sources.lex_sct2_rela
-				) r
-			JOIN (
-				SELECT conceptid::VARCHAR,term,id::VARCHAR
-				FROM sources.sct2_desc_full_merged --use the SNOMED sources as well for 'Is a' relationships
-				
-				UNION
-				
-				SELECT conceptid,term,id
-				FROM sources.lex_sct2_desc
-				) d ON r.typeid = d.conceptid
+			FROM sources.lex_sct2_rela r
+			JOIN sources.lex_sct2_desc d ON d.conceptid=r.typeid
 			) AS s0
 		WHERE rn = 1
 			AND active = 1
@@ -320,8 +227,8 @@ FROM (
 	--convert Nebraska Lexicon to OMOP-type relationship_id
 	SELECT DISTINCT sourceid AS concept_code_1,
 		destinationid AS concept_code_2,
-		COALESCE(c1.vocabulary_id, 'Nebraska Lexicon') AS vocabulary_id_1,
-		COALESCE(c2.vocabulary_id, 'Nebraska Lexicon') AS vocabulary_id_2,
+		'Nebraska Lexicon' AS vocabulary_id_1,
+		'Nebraska Lexicon' AS vocabulary_id_2,
 		CASE 
 			WHEN term = 'Access'
 				THEN 'Has access'
@@ -593,6 +500,19 @@ FROM (
 				THEN 'Has sub-specimen'
 			WHEN term = 'Has life circumstance'
 				THEN 'Has life circumstan'
+				--Nebraska Lexicon
+			when term = 'Towards'
+				THEN 'Has proc morph'
+			when term = 'Relative to'
+				then 'Has property' -- Ambiguous
+			when term = 'Protein molecule transcribed from gene locus' 
+				then 'Inheres in'
+			when term = 'Specimen preparation technique' 
+				then 'Has technique'
+			when term = 'Units'
+				then 'Has unit of presen'
+			when term = 'Distribution'
+				then 'Has property' -- Breaks SNOMED conventions
 			ELSE term --'non-existing'
 			END AS relationship_id,
 		(
@@ -602,21 +522,11 @@ FROM (
 			) AS valid_start_date,
 		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 	FROM tmp_rel
-	--we don't know about concepts in relationships to set the proper vocabulary_id, so we need to check SNOMED vocabulary
-	LEFT JOIN concept c1 ON c1.concept_code = sourceid
-		AND c1.vocabulary_id = 'SNOMED'
-	LEFT JOIN concept c2 ON c2.concept_code = destinationid
-		AND c2.vocabulary_id = 'SNOMED'
-	) sn
-WHERE NOT (
-		sn.vocabulary_id_1 = 'SNOMED'
-		AND sn.vocabulary_id_2 = 'SNOMED'
-		AND sn.relationship_id <> 'Is a'
-		);--we need SNOMED 'Is a' SNOMED for snomed_ancestor, other relationships between SNOMED and SNOMED we don't want
+	) sn;
 
 --check for non-existing relationships
-ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
-ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
+--ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
+--ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 --SELECT relationship_id FROM concept_relationship_stage EXCEPT SELECT relationship_id FROM relationship;
 
 --6. Add replacement relationships. They are handled in a different Nebraska Lexicon table
@@ -629,12 +539,10 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT *
-FROM (
 	SELECT DISTINCT sn.concept_code_1,
 		sn.concept_code_2,
-		COALESCE(c1.vocabulary_id, 'Nebraska Lexicon') AS vocabulary_id_1,
-		COALESCE(c2.vocabulary_id, 'Nebraska Lexicon') AS vocabulary_id_2,
+		'Nebraska Lexicon' AS vocabulary_id_1,
+		'Nebraska Lexicon' AS vocabulary_id_2,
 		sn.relationship_id,
 		(
 			SELECT latest_update
@@ -671,15 +579,8 @@ FROM (
 				'900000000000530003'
 				)
 		) sn
-	--we don't know about concepts in relationships to set the proper vocabulary_id, so we need to check SNOMED vocabulary
-	LEFT JOIN concept c1 ON c1.concept_code = sn.concept_code_1
-		AND c1.vocabulary_id = 'SNOMED'
-	LEFT JOIN concept c2 ON c2.concept_code = sn.concept_code_2
-		AND c2.vocabulary_id = 'SNOMED'
 	WHERE sn.rn = 1
-		AND sn.active = 1
-	) s0
-WHERE vocabulary_id_1 <> 'SNOMED';--remove mappings if vocabulary_id_1 is SNOMED
+		AND sn.active = 1;
 
 --7. Sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
 INSERT INTO concept_relationship_stage (

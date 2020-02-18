@@ -198,6 +198,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'KCD7' THEN 1
 		WHEN c.vocabulary_id = 'CTD' THEN 1
 		WHEN c.vocabulary_id = 'EDI' THEN 1
+		WHEN c.vocabulary_id = 'Nebraska Lexicon' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');

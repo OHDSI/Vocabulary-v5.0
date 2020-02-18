@@ -1224,6 +1224,22 @@ AND l1.concept_code NOT IN (SELECT concept_code_1 FROM concept_relationship_stag
 DROP TABLE if exists sn_attr;
 DROP TABLE if exists lc_attr;
 
+-- currently, the source does not support the LOINC-SNOMED refsets, so we do not have to add such links
+DELETE
+FROM concept_relationship_stage
+WHERE (concept_code_1,concept_code_2) IN (
+SELECT concept_code_1,
+concept_code_2
+FROM concept_relationship_stage r
+JOIN concept c
+ON c.concept_code = r.concept_code_1
+AND c.vocabulary_id = 'LOINC'
+JOIN concept d
+ON d.concept_code = r.concept_code_2
+AND d.vocabulary_id = 'SNOMED'
+AND relationship_id <> 'Is a'
+);
+
 --15. Build 'LOINC - CPT4 eq' relationships (mappings) from LOINC Measurements to CPT4 Measurements or Procedures with the use of a 'sources.cpt_mrsmap' table (mappings)
 INSERT INTO concept_relationship_stage (
 	concept_code_1,

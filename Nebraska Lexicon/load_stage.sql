@@ -513,6 +513,10 @@ FROM (
 				then 'Has unit of presen'
 			when term = 'Distribution'
 				then 'Has property' -- Breaks SNOMED conventions
+			when term = 'Has ingredient'
+				then 'Has active ing'
+			when term = 'Timing'
+				then 'Occurs before'
 			ELSE term --'non-existing'
 			END AS relationship_id,
 		(
@@ -1311,7 +1315,105 @@ WHERE (
 		WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
 		);
 
---19. Clean up
+--19. Hotfix for concept_class_id assignments
+update concept_stage c 
+set concept_class_id = 
+	(
+		select concept_class_id
+		from concept
+		where
+			vocabulary_id = 'SNOMED' and
+			concept_code = c.concept_code
+	)
+where concept_class_id = 'Undefined'
+;
+-- 20. If a concept is active and present in SNOMED, remap the concept to SNOMED counterpart
+insert into concept_relationship_stage
+	(concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
+select
+	c.concept_code,
+	t.concept_code,
+	'Nebraska Lexicon',
+	t.vocabulary_id,
+	'Maps to',
+	to_date ('19700101','yyyymmdd'),
+	to_date ('20991231','yyyymmdd')
+from concept_stage c
+join concept x on
+	c.concept_code = x.concept_code and
+	x.vocabulary_id = 'SNOMED' and
+	x.invalid_reason is null
+join concept_relationship r on
+	r.relationship_id = 'Maps to' and
+	r.invalid_reason is null and
+	r.concept_id_1 = x.concept_id
+join concept t on
+	r.concept_id_2 = t.concept_id
+;
+update concept_stage
+set standard_concept = null
+where
+	standard_concept is not null and
+	exists
+		(
+			select
+			from concept_relationship_stage
+			where
+				concept_code = concept_code_1 and
+				relationship_id = 'Maps to' and
+				invalid_reason is null and
+				vocabulary_id_2 != 'Nebraska Lexicon'
+		)
+;
+delete from concept_relationship_stage b
+where
+	invalid_reason is null and
+	relationship_id = 'Maps to' and
+	vocabulary_id_2 = 'Nebraska Lexicon' and
+	exists
+		(
+				select
+				from concept_relationship_stage a
+				where
+					invalid_reason is null and
+					relationship_id = 'Maps to' and
+					vocabulary_id_2 != 'Nebraska Lexicon' and
+					a.concept_code_1 = b.concept_code_1
+		)
+;
+--21. Reconnect branches that remain standard to SNOMED hierarchy
+with branch_start as
+(
+	select r.ctid as rown, t.concept_code, t.vocabulary_id
+	from concept_relationship_stage r
+	join concept_stage c1 on
+		c1.concept_code = r.concept_code_1
+	join concept_stage c2 on
+		c2.concept_code = r.concept_code_2 and
+		r.relationship_id = 'Is a' and
+		c1.standard_concept = 'S' and
+		c2.standard_concept is null
+	join concept c on
+		c.vocabulary_id = 'SNOMED' and
+		c.concept_code = c2.concept_code
+	join concept_relationship m on
+		m.relationship_id = 'Maps to' and
+		m.invalid_reason is null and
+		m.concept_id_1 = c.concept_id
+	join concept t on
+		t.concept_id = m.concept_id_2 and
+		t.vocabulary_id != 'RxNorm' --We only- extend from SNOMED
+)
+update concept_relationship_stage r
+set (concept_code_2, vocabulary_id_2) =
+	(
+		select b.concept_code, b.vocabulary_id
+		from branch_start b
+		where b.rown = r.ctid
+	)
+where r.ctid in (select rown from branch_start)	
+;
+--22. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;

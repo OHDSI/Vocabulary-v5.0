@@ -87,15 +87,7 @@ FROM (
 	WHERE c.id = d.conceptid
 		AND term IS NOT NULL
 	) sct2
-WHERE sct2.rn = 1
-	--AND sct2.active = 1
-	--exclude core SNOMED concepts
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept c
-		WHERE c.concept_code = sct2.concept_code
-			AND c.vocabulary_id = 'SNOMED'
-		);
+WHERE sct2.rn = 1;
 
 --4. Update concept_class_id from extracted class information and terms ordered by some good precedence
 UPDATE concept_stage cs
@@ -215,24 +207,8 @@ WITH tmp_rel AS (
 						d.id DESC
 					) AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
 				r.active
-			FROM (
-				/*SELECT *
-				FROM sources.sct2_rela_full_merged --use the SNOMED sources as well for 'Is a' relationships
-				
-				UNION*/ --use descriptions from SNOMED, but only for Nebraska Lexicon relationships
-				
-				SELECT *
-				FROM sources.lex_sct2_rela
-				) r
-			JOIN (
-				SELECT conceptid::VARCHAR,term,id::VARCHAR
-				FROM sources.sct2_desc_full_merged --use the SNOMED sources as well for 'Is a' relationships
-				
-				UNION
-				
-				SELECT conceptid,term,id
-				FROM sources.lex_sct2_desc
-				) d ON r.typeid = d.conceptid
+			FROM sources.lex_sct2_rela r
+			JOIN sources.lex_sct2_desc d ON d.conceptid=r.typeid
 			) AS s0
 		WHERE rn = 1
 			AND active = 1
@@ -251,8 +227,8 @@ FROM (
 	--convert Nebraska Lexicon to OMOP-type relationship_id
 	SELECT DISTINCT sourceid AS concept_code_1,
 		destinationid AS concept_code_2,
-		COALESCE(c1.vocabulary_id, 'Nebraska Lexicon') AS vocabulary_id_1,
-		COALESCE(c2.vocabulary_id, 'Nebraska Lexicon') AS vocabulary_id_2,
+		'Nebraska Lexicon' AS vocabulary_id_1,
+		'Nebraska Lexicon' AS vocabulary_id_2,
 		CASE 
 			WHEN term = 'Access'
 				THEN 'Has access'
@@ -546,21 +522,11 @@ FROM (
 			) AS valid_start_date,
 		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 	FROM tmp_rel
-	--we don't know about concepts in relationships to set the proper vocabulary_id, so we need to check SNOMED vocabulary
-	LEFT JOIN concept c1 ON c1.concept_code = sourceid
-		AND c1.vocabulary_id = 'SNOMED'
-	LEFT JOIN concept c2 ON c2.concept_code = destinationid
-		AND c2.vocabulary_id = 'SNOMED'
-	) sn
-WHERE NOT (
-		sn.vocabulary_id_1 = 'SNOMED'
-		AND sn.vocabulary_id_2 = 'SNOMED'
-		AND sn.relationship_id <> 'Is a'
-		);--we need SNOMED 'Is a' SNOMED for snomed_ancestor, other relationships between SNOMED and SNOMED we don't want
+	) sn;
 
 --check for non-existing relationships
-ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
-ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
+--ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
+--ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 --SELECT relationship_id FROM concept_relationship_stage EXCEPT SELECT relationship_id FROM relationship;
 
 --6. Add replacement relationships. They are handled in a different Nebraska Lexicon table
@@ -573,12 +539,10 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT *
-FROM (
 	SELECT DISTINCT sn.concept_code_1,
 		sn.concept_code_2,
-		COALESCE(c1.vocabulary_id, 'Nebraska Lexicon') AS vocabulary_id_1,
-		COALESCE(c2.vocabulary_id, 'Nebraska Lexicon') AS vocabulary_id_2,
+		'Nebraska Lexicon' AS vocabulary_id_1,
+		'Nebraska Lexicon' AS vocabulary_id_2,
 		sn.relationship_id,
 		(
 			SELECT latest_update
@@ -615,15 +579,8 @@ FROM (
 				'900000000000530003'
 				)
 		) sn
-	--we don't know about concepts in relationships to set the proper vocabulary_id, so we need to check SNOMED vocabulary
-	LEFT JOIN concept c1 ON c1.concept_code = sn.concept_code_1
-		AND c1.vocabulary_id = 'SNOMED'
-	LEFT JOIN concept c2 ON c2.concept_code = sn.concept_code_2
-		AND c2.vocabulary_id = 'SNOMED'
 	WHERE sn.rn = 1
-		AND sn.active = 1
-	) s0
-WHERE vocabulary_id_1 <> 'SNOMED';--remove mappings if vocabulary_id_1 is SNOMED
+		AND sn.active = 1;
 
 --7. Sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
 INSERT INTO concept_relationship_stage (

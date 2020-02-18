@@ -258,7 +258,6 @@ BEGIN
 	ANALYZE concept;
 
 	-- 5. Make sure that invalid concepts are standard_concept = NULL
-	-- 5.1. For non-CPT4, non-ICD9Proc and non-HCPCS vocabularies
 	UPDATE concept c
 	SET standard_concept = NULL
 	WHERE c.invalid_reason IS NOT NULL
@@ -267,31 +266,7 @@ BEGIN
 			SELECT vocabulary_id
 			FROM vocabulary
 			WHERE latest_update IS NOT NULL
-			) -- only for current vocabularies
-		AND c.vocabulary_id NOT IN (
-			'CPT4',
-			'HCPCS',
-			'ICD9Proc'
-			);
-
-	-- 5.2. For CPT4, ICD9Proc and HCPCS
-	UPDATE concept c
-	SET standard_concept = NULL
-	WHERE c.invalid_reason IN (
-			'D',
-			'U'
-			)
-		AND c.standard_concept IS NOT NULL
-		AND c.vocabulary_id IN (
-			SELECT vocabulary_id
-			FROM vocabulary
-			WHERE latest_update IS NOT NULL
-			) -- only for current vocabularies
-		AND c.vocabulary_id IN (
-			'CPT4',
-			'HCPCS',
-			'ICD9Proc'
-			);
+			); -- only for current vocabularies
 
 	/****************************************
 	* Update the concept_relationship table *

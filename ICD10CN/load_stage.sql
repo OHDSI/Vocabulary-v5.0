@@ -185,7 +185,7 @@ join code_clean o1 on
 join sources.icd10cn_concept c2 on
 	r.concept_id_2 = c2.concept_id
 join code_clean o2 on
-	o1.concept_code = c2.concept_code
+	o2.concept_code = c2.concept_code
 
 where r.relationship_id = 'Is a'
 ;

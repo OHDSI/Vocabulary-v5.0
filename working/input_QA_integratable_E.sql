@@ -251,21 +251,23 @@
 		where
 			drug_concept_code is null or
 			ingredient_concept_code is null
-	
-		UNION ALL
-		--0 in ds_stage values
-		SELECT drug_concept_code,
-			'0 in values for an active ingredient',
-			'ds_stage'
-		FROM ds_stage
-		LEFT JOIN relationship_to_concept on
-			ingredient_concept_code = concept_code_1 and
-			coalesce (precedence,1) = 1 and
-			concept_id_2 != 19127890 --Inert Ingredients
-		where
-			amount_value <= 0 and
-			concept_code_1 is null
-		
+
+        UNION ALL
+        --0 in ds_stage values
+        SELECT drug_concept_code,
+               '0 in values for an active ingredient',
+               'ds_stage'
+        FROM (
+             SELECT drug_concept_code, ingredient_concept_code
+             FROM ds_stage
+             WHERE amount_value <= 0
+             ) t
+        LEFT JOIN relationship_to_concept
+            ON ingredient_concept_code = concept_code_1 AND
+               COALESCE(precedence, 1) = 1
+        WHERE concept_id_2 != 19127890 --Inert Ingredients
+           OR concept_code_1 IS NULL
+
 		UNION ALL
 		
 		SELECT ds.drug_concept_code,
@@ -380,8 +382,7 @@
 			r2.concept_code_1 = denominator_unit and
 			r1.concept_id_2 = r2.concept_id_2
 		where
-			d.numerator_value * coalesce (1,r1.conversion_factor) / coalesce(d.denominator_value, 1) * coalesce (1,r2.conversion_factor) > 1
-		
+		    d.numerator_value * COALESCE(r1.conversion_factor, 1) / (COALESCE(d.denominator_value, 1) * COALESCE(r2.conversion_factor , 1)) > 1
 		UNION ALL
 		
 		SELECT drug_concept_code,
@@ -481,7 +482,7 @@
 				JOIN internal_relationship_stage i ON concept_code_1 = drug_concept_code
 				JOIN drug_concept_stage ON concept_code = concept_code_2
 					AND concept_class_id = 'Dose Form'
-				WHERE box_size IS NOT NULL
+				WHERE ds.box_size IS NOT NULL
 				)
 			AND box_size IS NOT NULL
 		
@@ -623,14 +624,21 @@
 			AND invalid_reason IS NOT NULL
 		
 		union all
-	
-		select distinct d1.vocabulary_id,
-			'multiple VOCABULARY_ID in drug_concept_stage',
-			'drug_concept_stage'
-		from drug_concept_stage d1
-		join drug_concept_stage d2 on
-			d1.vocabulary_id != d2.vocabulary_id
-	
+
+        SELECT DISTINCT d1.vocabulary_id,
+                        'multiple VOCABULARY_ID in drug_concept_stage',
+                        'drug_concept_stage'
+        FROM (
+             SELECT DISTINCT vocabulary_id
+             FROM drug_concept_stage
+             ) d1
+        JOIN (
+             SELECT DISTINCT vocabulary_id
+             FROM drug_concept_stage
+             ) d2
+            ON
+                d1.vocabulary_id != d2.vocabulary_id
+
 		UNION ALL
 
 		select pack_concept_code,

@@ -210,7 +210,8 @@ join devv5.concept x2 on --Translate to ICDO Condition code to get correct mappi
 	x2.concept_class_id = 'ICDO Condition' and
 	x2.concept_code = x.concept_code || '-NULL'
 
-where substring (c.concept_code from 6 for 1) = '0' --For this itertion, only exact match with ICDO code is saved MXXXX0/X
+--commented since we allow fuzzy match uphill for this iteration
+-- where substring (c.concept_code from 6 for 1) = '0' --For this itertion, only exact match with ICDO code is saved MXXXX0/X
 
 	union all
 
@@ -226,8 +227,8 @@ join devv5.concept x on
 	 c.concept_code !~ '-' and
 	 c.concept_class_id in ('ICD10 code', 'ICD10 Hierarchy') and
 	 x.vocabulary_id = 'ICD10' and
-	 ( --only exact match for this iteration
-	 	x.concept_code = regexp_replace (c.concept_code, '00$','') --00 indicates generic equivalency
+	 ( --allow fuzzy match uphill for this iteration
+	 	x.concept_code like c.concept_code || '%' 
 	 )
 ;
 insert into concept_relationship_stage

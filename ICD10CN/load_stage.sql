@@ -60,10 +60,10 @@ select distinct
 	4180186 as language_concept_id -- English
 from sources.icd10cn_concept c
 join code_clean o on
-	o.concept_code = c.concept_code || '00'
+	o.concept_code = c.concept_code
 join devv5.concept x on
 	x.vocabulary_id = 'ICD10' and
-	x.concept_code = o.concept_code_clean
+	x.concept_code || '00' = o.concept_code_clean
 
 	union all
 

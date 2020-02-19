@@ -228,7 +228,7 @@ join devv5.concept x on
 	 c.concept_class_id in ('ICD10 code', 'ICD10 Hierarchy') and
 	 x.vocabulary_id = 'ICD10' and
 	 ( --allow fuzzy match uphill for this iteration
-	 	x.concept_code like c.concept_code || '%' 
+	 	c.concept_code like x.concept_code || '%' 
 	 )
 ;
 insert into concept_relationship_stage

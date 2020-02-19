@@ -187,7 +187,9 @@ join sources.icd10cn_concept c2 on
 join code_clean o2 on
 	o2.concept_code = c2.concept_code
 
-where r.relationship_id = 'Is a'
+where
+	r.relationship_id = 'Is a' and
+	o1.concept_code_clean != o2.concept_code_clean
 ;
 drop table if exists icd_parents
 ;

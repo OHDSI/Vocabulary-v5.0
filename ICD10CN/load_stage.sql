@@ -47,7 +47,7 @@ join code_clean o on
 	o.concept_code = c.concept_code
 join devv5.concept x on
 	x.vocabulary_id = 'ICD10' and
-	x.concept_code = o.concept_code_clean
+	replace (o.concept_code_clean,'.x00','') = x.concept_code
 
 	union all
 
@@ -63,7 +63,7 @@ join code_clean o on
 	o.concept_code = c.concept_code
 join devv5.concept x on
 	x.vocabulary_id = 'ICD10' and
-	x.concept_code || '00' = o.concept_code_clean
+	o.concept_code_clean = x.concept_code || '00'
 
 	union all
 

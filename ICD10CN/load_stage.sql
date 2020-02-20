@@ -133,7 +133,7 @@ insert into concept_stage
 	(concept_name,domain_id,vocabulary_id,concept_class_id,concept_code,valid_start_date,valid_end_date)
 select distinct
 	n.concept_name,
-	'Condition',
+	'Undefined',
 	'ICD10CN',
 	case
 		when o.concept_code_clean ~ '[A-Z]\d{2}\.' then 'ICD10 code'
@@ -251,6 +251,201 @@ join devv5.concept_relationship r on
 join devv5.concept c on
 	c.concept_id = r.concept_id_2
 ;
--- 6. Cleanup temporary tables
+--6. Update Domains 
+--ICD10 Histologies are always Condition
+update concept_stage
+set domain_id = 'Condition'
+where concept_class_id = 'ICD10 Histology' 
+;
+--From mapping target
+UPDATE concept_stage cs
+SET domain_id = i.domain_id
+FROM
+(
+	SELECT DISTINCT cs1.concept_code,
+		first_value(c2.domain_id) OVER (
+			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
+					WHEN 'Condition'
+						THEN 1
+					WHEN 'Observation'
+						THEN 2
+					WHEN 'Procedure'
+						THEN 3
+					WHEN 'Measurement'
+						THEN 4
+					WHEN 'Device'
+						THEN 5
+					ELSE 6
+					END
+			) AS domain_id
+	FROM concept_relationship_stage crs
+	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+		AND cs1.vocabulary_id = crs.vocabulary_id_1
+	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
+		AND c2.vocabulary_id = crs.vocabulary_id_2
+	WHERE crs.relationship_id = 'Maps to'
+		AND crs.invalid_reason IS NULL
+) i
+WHERE 
+	i.concept_code = cs.concept_code and
+	cs.domain_id = 'Undefined'
+;
+--From descendant
+UPDATE concept_stage cs
+SET domain_id = i.domain_id
+FROM
+(
+	select
+		c1.concept_code,
+		first_value (c2.domain_id) OVER 
+			(
+				PARTITION BY c1.concept_code 
+				ORDER BY 
+					CASE c2.domain_id
+						WHEN 'Condition'
+							THEN 1
+						WHEN 'Observation'
+							THEN 2
+						WHEN 'Procedure'
+							THEN 3
+						WHEN 'Measurement'
+							THEN 4
+						WHEN 'Device'
+							THEN 5
+						ELSE 6
+					END
+			) AS domain_id
+	from concept_stage c1 
+	join concept_relationship_stage r on
+		r.relationship_id = 'Is a' and
+		r.concept_code_2 = c1.concept_code
+	join concept_stage c2 on
+		c2.concept_code = r.concept_code_1
+	where c1.domain_id = 'Undefined'
+	group by c1.concept_code, c2.domain_id
+) i
+WHERE 
+	i.concept_code = cs.concept_code and
+	cs.domain_id = 'Undefined'
+;
+--Only highest level of hierarchy has Domain still not defined
+update concept_stage
+set domain_id = 'Observation'
+where domain_id = 'Undefined'
+;
+--7. Add "subsumes" relationship between concepts where the concept_code is like of another
+-- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now 
+CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
+ANALYZE concept_stage;
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c1.concept_code AS concept_code_1,
+	c2.concept_code AS concept_code_2,
+	c1.vocabulary_id AS vocabulary_id_1,
+	c1.vocabulary_id AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM concept_stage c1,
+	concept_stage c2
+WHERE c2.concept_code LIKE c1.concept_code || '%'
+	AND c1.concept_code <> c2.concept_code
+	and 'ICD10 Histology' not in (c1.concept_class_id, c2.concept_class_id) 
+	and c1.concept_code !~ '-'
+	and c2.concept_code !~ '-'
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage r_int
+		WHERE r_int.concept_code_1 = c1.concept_code
+			AND r_int.concept_code_2 = c2.concept_code
+			AND r_int.relationship_id = 'Subsumes'
+		);
+--build same for Hierarchy intervals
+drop table if exists intervals
+;
+create table intervals as
+	(
+		select distinct
+			c.concept_code,
+			left (c.concept_code, 3) as start_code,
+			right (c.concept_code, 3) as end_code
+		from concept_stage c
+		where c.concept_code ~ '-'
+	)
+;
+--intervals that are parts of other intervals
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT c1.concept_code AS concept_code_1,
+	c2.concept_code AS concept_code_2,
+	'ICD10CN' AS vocabulary_id_1,
+	'ICD10CN' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM intervals c1,
+	intervals c2
+WHERE 
+	c1.start_code <= c2.start_code and
+	c1.end_code >= c2.end_code and
+	c1.concept_code <> c2.concept_code
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage r_int
+		WHERE r_int.concept_code_1 = c1.concept_code
+			AND r_int.concept_code_2 = c2.concept_code
+			AND r_int.relationship_id = 'Subsumes'
+		)
+;
+--All ICD10 codes as part of intervals
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT
+	c1.concept_code AS concept_code_1,
+	c2.concept_code AS concept_code_2,
+	'ICD10CN' AS vocabulary_id_1,
+	'ICD10CN' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+from intervals c1
+join concept_stage c2 on
+	left (c2.concept_code, 3) between c1.start_code and c1.end_code
+	and c2.concept_class_id != 'ICD10 Histology'
+	and c2.concept_code !~ '-'
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage r_int
+		WHERE r_int.concept_code_1 = c1.concept_code
+			AND r_int.concept_code_2 = c2.concept_code
+			AND r_int.relationship_id = 'Subsumes'
+		)
+;
+DROP INDEX trgm_idx;
+
+--8. Cleanup temporary tables
 drop table if exists
-	code_clean, name_source, icd_parents
+	code_clean, name_source, icd_parents, intervals

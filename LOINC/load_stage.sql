@@ -330,7 +330,9 @@ JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
 	AND c.vocabulary_id = 'LOINC';
 
---3.1. Update Domains for concepts representing Imaging procedures based on hierarchy
+--todo: confirm that these concepts are not expected to be Measurements storing the result
+--todo: define concept_class_id
+/*--3.1. Update Domains for concepts representing Imaging procedures based on hierarchy
 update concept_stage
 set domain_id = 'Procedure'
 WHERE
@@ -342,7 +344,7 @@ WHERE
 				path_to_root ~ ('^(LP7787\-7\.LP29684\-5|LP7787\-7\.LP7797\-6\.LP29680\-3)\.') and --LP29684-5 Radiology LP29680-3 Eye ultrasound
 				code not in (select loincnumber from sources.loinc_partlink where partnumber in ('LP7753-9','LP200093-5','LP200395-4')) -- LOINC Parts that identify direct measures or scores
 		)
-;
+;*/
 
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the CONCEPT_STAGE
 INSERT INTO concept_stage (
@@ -399,17 +401,14 @@ INSERT INTO concept_stage
 )
 WITH s AS
 (
--- pick Primary LOINC Parts
-SELECT DISTINCT pl.PartNumber, p.PartDisplayName, pl.parttypename, p.status
-FROM sources.loinc_partlink pl -- contains links between LOINC Measurements/Observations AND LOINC Parts
-JOIN sources.loinc_part p -- contains LOINC Parts and defines their validity ('status' field)
-ON pl.PartNumber = p.PartNumber
-WHERE --pl.LinkTypeName IN ('Primary') AND -- Non-Primary LOINC parts are also expected to share concept_class_id with Primary
-  pl.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE','NUMERATOR') -- list of Primary LOINC Parts
+-- pick LOINC Parts of 6 classes (classes that have links in 'Primary' LinkTypeName)
+SELECT DISTINCT p.PartNumber, p.PartDisplayName, p.parttypename, p.status
+FROM sources.loinc_part p -- contains LOINC Parts and defines their validity ('status' field)
+WHERE p.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE') -- list of Primary LOINC Parts
 
     UNION ALL
 
--- pick LOINC Hierarchy concepts (Attributive Panels, non-primary Parts and 427 Undefined attributes)
+-- pick LOINC Hierarchy concepts (Attributive Panels, non-primary Parts and ~400 Undefined attributes)
 SELECT DISTINCT code,
        COALESCE(p.partdisplayname,code_text) AS PartDisplayName,
        'LOINC Hierarchy' AS parttypename,
@@ -420,11 +419,10 @@ SELECT DISTINCT code,
 FROM sources.loinc_hierarchy lh
   LEFT JOIN sources.loinc_part p --  to get a validity of concept (a 'status' field)
 ON lh.code = p.partnumber -- LOINC Attribute
-WHERE code LIKE 'LP%' -- all LOINC Hierсrchy concepts have 'LP' at the beginning of the names (including 427 undefined concepts and LOINC panels)
-    AND TRIM(code) NOT IN (SELECT TRIM(partnumber)
-                         FROM sources.loinc_partlink pl
-                         WHERE --pl.LinkTypeName = 'Primary' AND
-                         pl.PartTypeName IN ('SYSTEM','METHOD','PROPERTY','TIME','COMPONENT','SCALE','NUMERATOR')) --  pick non-primary Parts and 427 Undefined attributes (excluding Primary LOINC Parts)
+WHERE code LIKE 'LP%' -- all LOINC Hierсrchy concepts have 'LP' at the beginning of the names (including ~400 undefined concepts and LOINC panels)
+    AND TRIM(code) NOT IN (SELECT TRIM(p.partnumber)
+                         FROM sources.loinc_part p
+                         WHERE p.PartTypeName IN ('SYSTEM', 'METHOD', 'PROPERTY', 'TIME', 'COMPONENT', 'SCALE')) --excluding Primary LOINC Parts added above
 )
 
 SELECT DISTINCT
@@ -432,11 +430,12 @@ SELECT DISTINCT
     CASE WHEN PartDisplayName ~* ('directive|^age\s+|lifetime risk|alert|attachment|\s+date|comment|\s+note|consent|identifier|\s+time|\s+number|' ||
                                     'date and time|coding system|interpretation|status|\s+name|\s+report|\s+id$|s+id\s+|version|instruction|known exposure|priority|ordered|available|requested|issued|flowsheet|\s+term|' ||
                                     'reported|not yet categorized|performed|risk factor|device|administration|\s+route$|suggestion|recommended|narrative|ICD code|reference|' ||
-                                    'reviewed|information|intention|^Reason for|^Received|Recommend|provider|subject|summary|time\s+') -- manually defined word patterns indicating the 'Observation' domain
+                                    'reviewed|information|intention|^Reason for|^Received|Recommend|provider|subject|summary|time\s+|document') -- manually defined word patterns indicating the 'Observation' domain
+
         AND PartDisplayName !~* ('thrombin time|clotting time|bleeding time|clot formation|kaolin activated time|closure time|protein feed time|Recalcification time|reptilase time|russell viper venom time|' ||
                                  'implanted device|dosage\.vial|isolate|within lymph node|cancer specimen|tumor|chromosome|inversion|bioavailable')
         THEN 'Observation'
-		ELSE 'Measurement'  -- AVOF-1579
+		ELSE 'Measurement'  --AVOF-1579 --will be corrected below (5.1) for 6 Primary LOINC Parts
 		END AS domain_id,
     'LOINC' AS vocabulary_id,
     CASE WHEN s.parttypename = 'SYSTEM' THEN 'LOINC System'
@@ -447,13 +446,9 @@ SELECT DISTINCT
          WHEN s.parttypename = 'SCALE' THEN 'LOINC Scale'
          ELSE 'LOINC Hierarchy'
          END AS concept_class_id,
-
-        --not needed for now since: 1) primary LOINC parts still have relationships going from sources.loinc_hierarchy; 2) primary LOINC parts are not mapped to Standard.
-  		--CASE WHEN s.parttypename = 'LOINC Hierarchy' THEN 'C' ELSE NULL END AS standard_concept, --  LOINC Hierarchy concepts should be 'Classification', LOINC Attributes - 'Non-standard'
-
-    case s.status 
+    case s.status
 		when 'DEPRECATED' then null
-		else 'C'
+		else 'C' --will be corrected below (5.1) for 6 Primary LOINC Parts
 	end AS standard_concept,
     s.PartNumber AS concept_code, -- LOINC Attribute or Hierarchy concept
     COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,-- preserve the 'devv5.valid_start_date' for already existing concepts
@@ -471,7 +466,7 @@ JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = s.PartNumber -- already existing LOINC concepts
 	AND c.vocabulary_id = 'LOINC';
 
---5.1. Update Domain = 'Observation' and standard_concept = 'S' for attributes that are not part of Hierarchy (AVOF-2222)
+--5.1. Update Domain = 'Observation' and standard_concept = NULL for attributes that are not part of Hierarchy (AVOF-2222)
 with hierarchy as
 (
 	select code
@@ -485,9 +480,10 @@ set
 	domain_id = 'Observation',
 	standard_concept = null
 where
-	concept_code not in (select code from hierarchy) and
+	concept_code not in (select code from hierarchy) and --currently hierarchy does not overlap with 6 LP classes, but this might be helpful in further development
 	concept_class_id ~ 'LOINC (System|Method|Property|Time|Component|Scale)'
 ;
+
 --6. Build 'Subsumes' relationships from LOINC Ancestors to Descendants using a source table of 'sources.loinc_hierarchy'
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -772,7 +768,7 @@ SELECT DISTINCT parentloinc AS concept_code_1, -- LOINC Panel code
 FROM sources.loinc_forms -- Panel containing table
 WHERE loinc <> parentloinc;-- to exclude cases when parents and children are represented by the same concepts
 
---14.1 Build 'LOINC - SNOMED eq' relationships between LOINC Attributes and SNOMED Attributes (as long as LOINC Parts are classification, we cannot not use 'Maps to') 
+--14.1 Build temporary 'LOINC - SNOMED eq' relationships between LOINC Attributes and SNOMED Attributes (will be dropped in 14.6). Afterward 'Maps to' may be built instead.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -798,16 +794,15 @@ SELECT DISTINCT maptarget AS concept_code_1, -- LOINC Attribute code
   JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id -- valid_start_date
   WHERE c.vocabulary_id = 'LOINC' AND c.standard_concept = 'C' and c.invalid_reason is null
   AND d.vocabulary_id = 'SNOMED' AND d.invalid_reason IS NULL
-  AND attributeid in ('246093002', '704319004', '704327008', '718497002') --  'Component', 'Inheres in' (Component-like),  'Direct site' (System-like), 'Inherent location'  (Component-like)
-/* Excluded attributeIDs:
+  AND attributeid in ('246093002', '704319004', '704327008', '718497002'); --  'Component', 'Inheres in' (Component-like),  'Direct site' (System-like), 'Inherent location'  (Component-like)
+/* Excluded attribute IDs:
 Process output - reduplicate a Component
-Process agent - link from a LOINCComponent to a possible SNOMED System, useless in mapping ('Kidney structure')
+Process agent - link from a LOINC Component to a possible SNOMED System, useless in mapping ('Kidney structure')
 Property type - links from a LOINC Component to a possible SNOMED Property (useless, non-SNOMED logic)
 Technique - link from a LOINC Component to SNOMED Technique (useless, non-SNOMED logic)
 Characterizes - senseless 'Excretory process' */
-;
-				 
--- 14.2 Build relationships between LOINC Measurements and respective SNOMED attributes given by the table of 'sources.scccrefset_expressionassociation_int'
+
+-- 14.2 Build temporary relationships between LOINC Measurements and respective SNOMED attributes given by the table of 'sources.scccrefset_expressionassociation_int' (will be dropped in 14.6).
 -- Note, that some suggested by LOINC relationship_ids ('Characterizes', 'Units', 'Relative to', 'Process agent' 'Inherent location') are useless in the context of a mapping to SNOMED.
 INSERT INTO concept_relationship_stage
 (
@@ -1224,21 +1219,13 @@ AND l1.concept_code NOT IN (SELECT concept_code_1 FROM concept_relationship_stag
 DROP TABLE if exists sn_attr;
 DROP TABLE if exists lc_attr;
 
--- currently, the source does not support the LOINC-SNOMED refsets, so we do not have to add such links
+--14.6 drop temporary links (currently, the source does not support the LOINC-SNOMED refsets, so we do not have to add such links to CDM)
 DELETE
-FROM concept_relationship_stage
-WHERE (concept_code_1,concept_code_2) IN (
-SELECT concept_code_1,
-concept_code_2
-FROM concept_relationship_stage r
-JOIN concept c
-ON c.concept_code = r.concept_code_1
-AND c.vocabulary_id = 'LOINC'
-JOIN concept d
-ON d.concept_code = r.concept_code_2
-AND d.vocabulary_id = 'SNOMED'
-AND relationship_id <> 'Is a'
-);
+FROM    concept_relationship_stage
+WHERE   vocabulary_id_1 = 'LOINC'
+    AND vocabulary_id_2 = 'SNOMED'
+    AND relationship_id <> 'Is a'
+;
 
 --15. Build 'LOINC - CPT4 eq' relationships (mappings) from LOINC Measurements to CPT4 Measurements or Procedures with the use of a 'sources.cpt_mrsmap' table (mappings)
 INSERT INTO concept_relationship_stage (

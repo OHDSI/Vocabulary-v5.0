@@ -3,7 +3,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'ICD10CN',
 	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.icd10cn_concept LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.icd10cn_concept LIMIT 1),
+	pVocabularyVersion		=> ('2016'),
 	pVocabularyDevSchema	=> 'DEV_ICD10CN'
 );
 END $_$;

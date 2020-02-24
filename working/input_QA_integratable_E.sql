@@ -185,10 +185,11 @@
 					JOIN drug_concept_stage ON concept_code_2 = concept_code
 						AND concept_class_id = 'Dose Form'
 					)
-			) s ON s.concept_code_1 = dcs.concept_code
+			) s
+		        ON s.concept_code_1 = dcs.concept_code
 		WHERE dcs.concept_class_id = 'Drug Product'
-			AND invalid_reason IS NULL
-			and concept_code_1 not in (select pack_concept_code from pc_stage)
+			AND dcs.invalid_reason IS NULL
+			and s.concept_code_1 not in (select pack_concept_code from pc_stage)
 	
 		UNION ALL
 		
@@ -695,7 +696,8 @@
 		FROM pc_stage p
 		left JOIN ds_stage d ON
 			d.DRUG_CONCEPT_CODE = p.drug_concept_code
-			
+        WHERE D.drug_concept_code IS NULL
+
 		UNION ALL
 	
 		SELECT p.pack_CONCEPT_CODE,

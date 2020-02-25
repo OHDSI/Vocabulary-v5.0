@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'ICD9ProcCN',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.icd9proccn_concept LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.icd9proccn_concept LIMIT 1),
+	pVocabularyDate			=> TO_DATE('20170101', 'yyyymmdd'),
+	pVocabularyVersion		=> '2017 Release',
 	pVocabularyDevSchema	=> 'DEV_ICD9PROCCN'
 );
 END $_$;
@@ -45,7 +45,7 @@ select distinct
 			x.concept_name,
 			c.english_concept_name || ' (automated translation)'
 		) as concept_name,
-		'Undefined',
+		'Procedure',
 		'ICD9ProcCN',
 		case c.concept_class_id
 			when '六位数扩展码主要编码' then '6-dig billing code'
@@ -57,7 +57,7 @@ select distinct
 		else 'Undefined'
 		end as concept_class_id,
 		c.concept_code,
-		TO_DATE('19700101', 'YYYYMMDD'),
+		TO_DATE('20170101', 'YYYYMMDD'),
 		TO_DATE('20991231', 'YYYYMMDD')
 from sources.icd9proccn_concept c
 left join concept x on
@@ -103,7 +103,7 @@ SELECT distinct
 	'ICD9ProcCN' AS vocabulary_id_1,
 	'ICD9ProcCN' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20170101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 from sources.icd9proccn_concept_relationship r
 join sources.icd9proccn_concept c1 on c1.concept_id = r.concept_id_1
@@ -148,7 +148,7 @@ select
 	'ICD9ProcCN',
 	c.vocabulary_id,
 	'Maps to',
-	TO_DATE('19700101', 'YYYYMMDD'),
+	TO_DATE('20170101', 'YYYYMMDD'),
 	TO_DATE('20991231', 'YYYYMMDD')
 from icd_parents i
 join concept_relationship r on
@@ -160,7 +160,8 @@ join concept c on
 drop index trgm_idx
 ;
 --7. Assign domains by mapping targets
-update concept_stage s
+-- Commented: SNOMED domains need fixing first
+/*update concept_stage s
 set
 	domain_id = coalesce
 		(
@@ -174,4 +175,4 @@ set
 				where r.concept_code_1 = s.concept_code
 			),
 			'Procedure'
-		)
+		)*/

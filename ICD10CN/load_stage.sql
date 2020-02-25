@@ -161,7 +161,6 @@ select
 	'ICD10CN',
 	n.language_concept_id
 from name_source n
-where preferred is null
 ;
 --5. Fill concept_relationship_stage
 -- Preserve ICD10CN internal hierarchy (even if concepts are non-standard)

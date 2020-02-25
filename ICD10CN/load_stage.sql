@@ -1,3 +1,23 @@
+
+/**************************************************************************
+* Copyright 2020 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Timur Vakhitov, Eduard Korchmar, Dmitry Dymshyts
+* Date: 2020
+**************************************************************************/
+
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -36,7 +56,7 @@ drop table if exists name_source
 --2. Gather list of names to avoid usage of automatically translated chinese names where possible
 create table name_source as
 select distinct
---clean ICD10 names
+--Clean ICD10 names
 	o.concept_code_clean,
 	'ICD10' as source,
 	x.concept_name,
@@ -52,7 +72,7 @@ join devv5.concept x on
 	union all
 
 select distinct
---clean ICD10 names for concepts with 00 in end (generic equivalency)
+--Clean ICD10 names for concepts with 00 in end (generic equivalency)
 	o.concept_code_clean,
 	'ICD10' as source,
 	x.concept_name,
@@ -85,14 +105,14 @@ join devv5.concept x on
 	x.vocabulary_id = 'ICDO3' and
 	x.concept_class_id = 'ICDO Histology' and
 	o.concept_code_clean ~ '^M\d{4}0\/\d$' and --ICD10CN Morphology codes that may match ICDO codes
---same Behaviour code
+--Same Behaviour code
 	right (x.concept_code, 1) = right (o.concept_code_clean,1) and
---same Morphology code
+--Same Morphology code
 	left (x.concept_code, 4) = left (trim (leading 'M' from o.concept_code_clean), 4)
 
 	union all
 
---preserve original names for synonyms
+--Preserve original names as synonyms
 select distinct
 	o.concept_code_clean,
 	'ICD10CN',
@@ -202,17 +222,17 @@ join devv5.concept x on --Find right Histology code to translate to Condition
 	x.vocabulary_id = 'ICDO3' and
 	x.concept_class_id = 'ICDO Histology' and
 	c.concept_class_id = 'ICD10 Histology' and
---same Behaviour code
+--Same Behaviour code
 	right (x.concept_code, 1) = right (c.concept_code,1) and
---same Morphology code beginning
+--Same Morphology code beginning
 	left (x.concept_code, 4) = left (trim (leading 'M' from c.concept_code), 4)
 join devv5.concept x2 on --Translate to ICDO Condition code to get correct mappings
 	x2.vocabulary_id = 'ICDO3' and
 	x2.concept_class_id = 'ICDO Condition' and
 	x2.concept_code = x.concept_code || '-NULL'
 
---commented since we allow fuzzy match uphill for this iteration
--- where substring (c.concept_code from 6 for 1) = '0' --For this itertion, only exact match with ICDO code is saved MXXXX0/X
+--Commented since we allow fuzzy match uphill for this iteration
+-- where substring (c.concept_code from 6 for 1) = '0' --Exact match to ICDO is MXXXX0/X
 
 	union all
 
@@ -221,17 +241,18 @@ select distinct
 	first_value (x.concept_id) over
 	(
 		partition by c.concept_code
-		order by length (x.concept_code) desc --longest matching code for best results
+		order by length (x.concept_code) desc --Longest matching code for best results
 	) as concept_id
 from concept_stage c
 join devv5.concept x on
 	 c.concept_code !~ '-' and
 	 c.concept_class_id in ('ICD10 code', 'ICD10 Hierarchy') and
 	 x.vocabulary_id = 'ICD10' and
-	 ( --allow fuzzy match uphill for this iteration
-	 	c.concept_code like x.concept_code || '%' 
+	 ( --Allow fuzzy match uphill for this iteration
+	 	c.concept_code like x.concept_code || '%'
 	 )
 ;
+--Inherit mappings from targets now
 insert into concept_relationship_stage
 	(concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
@@ -289,7 +310,7 @@ WHERE
 	i.concept_code = cs.concept_code and
 	cs.domain_id = 'Undefined'
 ;
---From descendant
+--From descendants - for cathegories and groupers
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM
@@ -327,14 +348,14 @@ WHERE
 	i.concept_code = cs.concept_code and
 	cs.domain_id = 'Undefined'
 ;
---Only highest level of hierarchy has Domain still not defined
+--Only highest level of hierarchy has Domain still not defined at this point
 update concept_stage
 set domain_id = 'Observation'
 where domain_id = 'Undefined'
 ;
 --7. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now 
-CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
+CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --For LIKE patterns
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -368,7 +389,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 			AND r_int.concept_code_2 = c2.concept_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
---build same for Hierarchy intervals
+--Build same for Hierarchy intervals
 drop table if exists intervals
 ;
 create table intervals as
@@ -381,7 +402,7 @@ create table intervals as
 		where c.concept_code ~ '-'
 	)
 ;
---intervals that are parts of other intervals
+--Intervals that are parts of other intervals
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

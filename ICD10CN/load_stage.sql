@@ -44,7 +44,7 @@ select
 	concept_code,
 	regexp_replace
 		(
-			trim (both '()*' from concept_code),
+			trim (both '()' from replace (concept_code, '*', '')),
 			'\(.*$',
 			''
 		) as concept_code_clean

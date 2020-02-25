@@ -40,8 +40,8 @@ DO $$
 DECLARE
     z    int;
     ex   int;
-    pConcept_class_id constant varchar(100):='ICD9Proc Hierarchy';
-    pConcept_class_name constant varchar(100):= 'ICD9Proc Hierarchy';
+    pConcept_class_id constant varchar(100):='ICD9Proc Chapter';
+    pConcept_class_name constant varchar(100):= 'ICD9Proc Chapter';
 BEGIN
     DROP SEQUENCE IF EXISTS v5_concept;
 

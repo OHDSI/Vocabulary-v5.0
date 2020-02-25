@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Medical team
+* Authors: Timur Vakhitov, Eduard Korchmar, Dmitry Dymshyts
 * Date: 2020
 **************************************************************************/
 
@@ -53,7 +53,7 @@ select distinct
 			when '四位数细目编码' then '4-dig billing code'
 			when '三位数亚目编码' then '3-dig nonbill code'
 			when '二位数类目编码' then '2-dig nonbill code'
-			when '章编码' then 'ICD9Proc Hierarchy'
+			when '章编码' then 'ICD9Proc Chapter'
 		else 'Undefined'
 		end as concept_class_id,
 		c.concept_code,
@@ -136,7 +136,7 @@ with icd_parents as
 	from concept_stage c
 	join devv5.concept x on
 		 c.concept_code !~ '-' and
-		 c.concept_class_id != 'ICD9Proc Hierarchy' and
+		 c.concept_class_id != 'ICD9Proc Chapter' and
 		 x.vocabulary_id = 'ICD9Proc' and
 		 ( --allow fuzzy match uphill for this iteration
 		 	c.concept_code like x.concept_code || '%' 

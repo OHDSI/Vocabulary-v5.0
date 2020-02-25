@@ -14,7 +14,7 @@
 * limitations under the License.
 *
 * Authors: Oleg Zhuk, Polina Talapova, Dmitry Dymshyts, Alexander Davydov, Timur Vakhitov, Christian Reich
-* Date: 2019
+* Date: 2020
 **************************************************************************/
 
 --1. Update a 'latest_update' field to a new date
@@ -417,7 +417,7 @@ SELECT DISTINCT code,
          ELSE 'ACTIVE'
        END AS status
 FROM sources.loinc_hierarchy lh
-  LEFT JOIN sources.loinc_part p --  to get a validity of concept (a 'status' field)
+  LEFT JOIN sources.loinc_part p --to get a validity of concept (a 'status' field)
 ON lh.code = p.partnumber -- LOINC Attribute
 WHERE code LIKE 'LP%' -- all LOINC Hierсrchy concepts have 'LP' at the beginning of the names (including ~400 undefined concepts and LOINC panels)
     AND TRIM(code) NOT IN (SELECT TRIM(p.partnumber)
@@ -435,7 +435,7 @@ SELECT DISTINCT
         AND PartDisplayName !~* ('thrombin time|clotting time|bleeding time|clot formation|kaolin activated time|closure time|protein feed time|Recalcification time|reptilase time|russell viper venom time|' ||
                                  'implanted device|dosage\.vial|isolate|within lymph node|cancer specimen|tumor|chromosome|inversion|bioavailable')
         THEN 'Observation'
-		ELSE 'Measurement'  --AVOF-1579 --will be corrected below (5.1) for 6 Primary LOINC Parts
+		ELSE 'Measurement' --AVOF-1579 --will be corrected below (5.1) for 6 Primary LOINC Parts
 		END AS domain_id,
     'LOINC' AS vocabulary_id,
     CASE WHEN s.parttypename = 'SYSTEM' THEN 'LOINC System'
@@ -451,16 +451,16 @@ SELECT DISTINCT
 		else 'C' --will be corrected below (5.1) for 6 Primary LOINC Parts
 	end AS standard_concept,
     s.PartNumber AS concept_code, -- LOINC Attribute or Hierarchy concept
-    COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,-- preserve the 'devv5.valid_start_date' for already existing concepts
+    COALESCE(c.valid_start_date, v.latest_update) AS valid_start_date,-- preserve the valid_start_date for already existing concepts
     CASE WHEN s.status = 'DEPRECATED'
          THEN CASE WHEN c.valid_end_date <= latest_update
-                   THEN c.valid_end_date -- preserve 'devv5.valid_end_date' for already existing DEPRECATED concepts
+                   THEN c.valid_end_date -- preserve valid_end_date for already existing DEPRECATED concepts
                    ELSE GREATEST(COALESCE(c.valid_start_date, v.latest_update), -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release
                                           latest_update - 1) END -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release
          ELSE to_date('20991231', 'yyyymmdd') END as valid_end_date, -- default value of 31-Dec-2099 for the rest
-    CASE WHEN s.status IN ('ACTIVE', 'INACTIVE') THEN NULL  -- define concept validity according to the 'status' field
+    CASE WHEN s.status IN ('ACTIVE', 'INACTIVE') THEN NULL -- define concept validity according to the 'status' field
          WHEN s.status = 'DEPRECATED' THEN 'D'
-         ELSE 'X' END AS invalid_reason    --IF there are any changes in LOINC source we don't know about. GenericUpdate() will fail in case of 'X' in invalid_reason field
+         ELSE 'X' END AS invalid_reason --IF there are any changes in LOINC source we don't know about. GenericUpdate() will fail in case of 'X' in invalid_reason field
 FROM s
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = s.PartNumber -- already existing LOINC concepts
@@ -532,14 +532,13 @@ WITH s AS
            WHEN p.parttypename = 'COMPONENT' THEN 'Has component'
            WHEN p.parttypename = 'SCALE' THEN 'Has scale type'
          END AS relationship_id
-  FROM sources.loinc_partlink pl
-    JOIN sources.loinc_part p ON pl.PartNumber = p.PartNumber -- Primary LOINC Part
-  WHERE pl.LinkTypeName IN ('Primary')
+FROM sources.loinc_partlink pl
+JOIN sources.loinc_part p
+    ON pl.PartNumber = p.PartNumber -- Primary LOINC Part
+WHERE pl.LinkTypeName IN ('Primary')
 ),
--- pick already existing relationships between LOINC Measurements/Observations and Primary LOINC Parts
-    cr
-AS
-(SELECT DISTINCT c.concept_code AS concept_code_1, -- LOINC Measurement/Observation
+-- pick already existing relationships between LOINC Measurements/Observations and Primary LOINC Parts (it's needed to pull the validity dates from basic tables)
+cr AS (SELECT DISTINCT c.concept_code AS concept_code_1, -- LOINC Measurement/Observation
        c.vocabulary_id,
        relationship_id,
        cc.concept_code AS concept_code_2, -- -- Primary LOINC Part ?
@@ -552,25 +551,26 @@ FROM concept_relationship cr
   JOIN concept cc ON cr.concept_id_2 = cc.concept_id
 WHERE c.vocabulary_id = 'LOINC'
 AND   cc.vocabulary_id = 'LOINC')
+
 SELECT DISTINCT s.loincnumber AS concept_code_1,
                 partnumber AS concept_code_2,
                 'LOINC' AS vocabulary_id_1,
                 'LOINC' AS vocabulary_id_2,
                 s.relationship_id AS relationship_id,
-                COALESCE (cr.valid_start_date, --  preserve 'devv5.valid_start_date' for already existing relationships
-                          LEAST (c.valid_end_date, cc.valid_end_date, v.latest_update)) AS valid_start_date,  -- compare and assign earliest date of  'valid_end_date' of a LOINC concept AS 'valid_start_date' for NEW relationships of concepts deprecated in the current release OR  'latest update' for the rest of the codes
-                CASE WHEN cr.valid_end_date <= v.latest_update THEN cr.valid_end_date -- preserve 'devv5.valid_end_date' for already existing relationships
-                     WHEN (c.invalid_reason IS NOT NULL) OR (cc.invalid_reason IS NOT NULL) THEN LEAST(c.valid_end_date, cc.valid_end_date)  -- compare and assign earliest date of 'valid_end_date' of a LOINC concept as 'valid_end_date' for NEW relationships of concepts deprecated in the current release
+                COALESCE (cr.valid_start_date, -- preserve valid_start_date for already existing relationships
+                          LEAST (c.valid_end_date, cc.valid_end_date, v.latest_update)) AS valid_start_date, -- compare and assign earliest date of 'valid_end_date' of a LOINC concept AS 'valid_start_date' for NEW relationships of concepts deprecated in the current release OR  'latest update' for the rest of the codes
+                CASE WHEN cr.valid_end_date <= v.latest_update THEN cr.valid_end_date -- preserve valid_end_date for already existing relationships
+                     WHEN (c.invalid_reason IS NOT NULL) OR (cc.invalid_reason IS NOT NULL) THEN LEAST(c.valid_end_date, cc.valid_end_date) -- compare and assign earliest date of 'valid_end_date' of a LOINC concept as 'valid_end_date' for NEW relationships of concepts deprecated in the current release
                      ELSE TO_DATE('20991231', 'yyyymmdd') END as valid_end_date, -- for the rest of the codes
                 CASE WHEN (c.invalid_reason IS NOT NULL) OR (cc.invalid_reason IS NOT NULL) THEN 'D'
                 ELSE NULL END AS invalid_reason
 FROM s
   LEFT JOIN concept_stage c -- to define deprecated LOINC Observations/Measurements in the current release
-         ON c.concept_code = s.loincnumber --  LOINC Observation/Measurement in the current release
+         ON c.concept_code = s.loincnumber --LOINC Observation/Measurement in the current release
         AND c.vocabulary_id = 'LOINC'
   LEFT JOIN concept_stage cc -- to define deprecated LOINC Parts
   ON cc.concept_code = s.partnumber -- LOINC Part
-  LEFT JOIN cr ON (cr.concept_code_1,cr.relationship_id,cr.concept_code_2) = (s.loincnumber,s.relationship_id,s.partnumber) -- already existing relationships between LOINC concepts
+  LEFT JOIN cr ON (cr.concept_code_1, cr.relationship_id, cr.concept_code_2) = (s.loincnumber, s.relationship_id, s.partnumber) -- already existing relationships between LOINC concepts
   JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
 
 --8. Build 'Subsumes' relationships between LOINC Classes using a source table of 'sources.loinc_class' and a similarity of a class name beginning (ancestor class_name LIKE descendant class_name || '%').
@@ -609,7 +609,7 @@ SELECT 'DOC' AS concept_code_1,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason;
 
---9. Build 'Subsumes' relationships from LOINC Classes to LOINC concepts indicating Measurements or Observations with the use of source tables of 'sources.loinc_class' and  'sources.loinc' to create Multiaxial Hierarchy
+--9. Build 'Subsumes' relationships from LOINC Classes to LOINC concepts indicating Measurements or Observations with the use of source tables of 'sources.loinc_class' and 'sources.loinc' to create Multiaxial Hierarchy
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -673,7 +673,7 @@ UNION
 
 UNION
 
-	--  'long_common_name' field  values which were changed ('History of')
+	--'long_common_name' field values which were changed ('History of')
 	SELECT loinc_num AS synonym_concept_code,
 	long_common_name AS synonym_name,
 	'LOINC' AS synonym_vocabulary_id,
@@ -684,17 +684,17 @@ UNION
 		)
 	)-- NB! We do not add synonyms for LOINC Answers (a 'description' field) due to their vague formulation
 UNION
---  'PartName' field values which are synonyms for 'PartDisplayName' field values in sources.loinc_part
+--'PartName' field values which are synonyms for 'PartDisplayName' field values in sources.loinc_part
 	SELECT DISTINCT
    	 pl.PartNumber AS synonym_concept_code,
 	p.PartName AS synonym_name,
 	'LOINC' AS synonym_vocabulary_id,
-    	4180186 AS language_concept_id      --English language
+    	4180186 AS language_concept_id --English language
 	FROM sources.loinc_partlink pl
 	JOIN sources.loinc_part p
 	ON pl.PartNumber = p.PartNumber
 	WHERE pl.PartNumber IN (SELECT concept_code FROM concept_stage)
-	AND pl.PartName != p.PartDisplayName;  -- pick only different names
+	AND pl.PartName != p.PartDisplayName; -- pick only different names
 ;
 
 --11. Add LOINC Answers from 'sources.loinc_answerslist' and 'sources.loinc_answerslistlink' source tables to the CONCEPT_STAGE
@@ -723,7 +723,7 @@ JOIN sources.loinc_answerslistlink ans_l_l ON ans_l_l.answerlistid = ans_l.answe
 JOIN sources.loinc l ON l.loinc_num = ans_l_l.loincnumber -- to confirm the connection of 'AnswerListID' with LOINC concepts indicating Measurements and Observations (currently all of them are connected)
 WHERE ans_l.answerstringid IS NOT NULL;--'AnswerStringID' value may be null
 
---12.  Build 'Has Answer' relationships from LOINC Questions to Answers with the use of such source tables as 'sources.loinc_answerslist' and 'sources.loinc_answerslistlink'
+--12. Build 'Has Answer' relationships from LOINC Questions to Answers with the use of such source tables as 'sources.loinc_answerslist' and 'sources.loinc_answerslistlink'
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -788,13 +788,19 @@ SELECT DISTINCT maptarget AS concept_code_1, -- LOINC Attribute code
 	v.latest_update AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-	FROM sources.scccrefset_mapcorrorfull_int
-	JOIN devv5.concept c  ON maptarget = c.concept_code   -- LOINC Attribute
-  JOIN devv5.concept d  ON referencedcomponentid = d.concept_code -- SNOMED  Attribute
-  JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id -- valid_start_date
-  WHERE c.vocabulary_id = 'LOINC' AND c.standard_concept = 'C' and c.invalid_reason is null
-  AND d.vocabulary_id = 'SNOMED' AND d.invalid_reason IS NULL
-  AND attributeid in ('246093002', '704319004', '704327008', '718497002'); --  'Component', 'Inheres in' (Component-like),  'Direct site' (System-like), 'Inherent location'  (Component-like)
+FROM sources.scccrefset_mapcorrorfull_int s
+JOIN concept_stage c
+    ON maptarget = c.concept_code --LOINC Attribute
+        AND c.vocabulary_id = 'LOINC'
+        AND c.invalid_reason IS NULL
+JOIN concept d
+    ON referencedcomponentid = d.concept_code --SNOMED Attribute
+        AND d.vocabulary_id = 'SNOMED'
+        AND d.invalid_reason IS NULL
+JOIN vocabulary v
+    ON c.vocabulary_id = v.vocabulary_id --valid_start_date
+WHERE s.attributeid in ('246093002', '704319004', '704327008', '718497002') --'Component', 'Inheres in' (Component-like), 'Direct site' (System-like), 'Inherent location' (Component-like)
+;
 /* Excluded attribute IDs:
 Process output - reduplicate a Component
 Process agent - link from a LOINC Component to a possible SNOMED System, useless in mapping ('Kidney structure')
@@ -826,27 +832,33 @@ SELECT DISTINCT maptarget AS concept_code_1,-- LOINC Measurement code
 c3.concept_code AS concept_code_2, -- SNOMED Attribute code
 'LOINC' AS vocabulary_id_1,
 'SNOMED' AS vocabulary_id_2,
-CASE WHEN c2.concept_name in ('Time aspect', 'Process duration')  THEN 'Has time aspect'
-WHEN c2.concept_name in ('Component','Process output') THEN 'Has component'
-WHEN c2.concept_name = 'Direct site' THEN 'Has dir proc site'
-WHEN c2.concept_name = 'Inheres in' THEN 'Inheres in'
-WHEN c2.concept_name = 'Property type' THEN 'Has property'
-WHEN c2.concept_name = 'Scale type' THEN 'Has scale type'
-WHEN c2.concept_name = 'Technique' THEN 'Has technique'
-WHEN c2.concept_name = 'Precondition' THEN 'Has precondition'
-END  AS relationship_Id,
+CASE WHEN c2.concept_name in ('Time aspect', 'Process duration') THEN 'Has time aspect'
+     WHEN c2.concept_name in ('Component','Process output') THEN 'Has component'
+     WHEN c2.concept_name = 'Direct site' THEN 'Has dir proc site'
+     WHEN c2.concept_name = 'Inheres in' THEN 'Inheres in'
+     WHEN c2.concept_name = 'Property type' THEN 'Has property'
+     WHEN c2.concept_name = 'Scale type' THEN 'Has scale type'
+     WHEN c2.concept_name = 'Technique' THEN 'Has technique'
+     WHEN c2.concept_name = 'Precondition' THEN 'Has precondition'
+     END  AS relationship_id,
 v.latest_update AS valid_start_date,
 TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 NULL AS invalid_reason
 FROM t1 a
-  JOIN devv5.concept c1 ON maptarget = c1.concept_code -- LOINC Lab test
-  JOIN devv5.concept c2 ON sn_comp2 = c2.concept_code -- LOINC to SNOMED relationship_id identifier
-  JOIN devv5.concept c3 ON c3.concept_code = sn_comp3  -- SNOMED Attribute
-  JOIN vocabulary v ON c1.vocabulary_id = v.vocabulary_id
-WHERE  c1.invalid_reason IS NULL AND c1.vocabulary_id = 'LOINC'
-  AND c2.vocabulary_id = 'SNOMED'
-  AND c3.vocabulary_id = 'SNOMED'
-AND c3.invalid_reason IS NULL AND c2.concept_name IN ('Time aspect','Process duration','Component','Process output','Direct site','Inheres in','Property type','Scale type','Technique', 'Precondition')
+JOIN concept_stage c1
+    ON maptarget = c1.concept_code -- LOINC Lab test
+        AND c1.invalid_reason IS NULL
+        AND c1.vocabulary_id = 'LOINC'
+JOIN concept c2
+    ON sn_comp2 = c2.concept_code -- LOINC to SNOMED relationship_id identifier
+        AND c2.vocabulary_id = 'SNOMED'
+        AND c2.concept_name IN ('Time aspect', 'Process duration', 'Component', 'Process output', 'Direct site', 'Inheres in', 'Property type', 'Scale type', 'Technique', 'Precondition')
+JOIN concept c3
+    ON c3.concept_code = sn_comp3 -- SNOMED Attribute
+        AND c3.vocabulary_id = 'SNOMED'
+        AND c3.invalid_reason IS NULL
+JOIN vocabulary v
+    ON c1.vocabulary_id = v.vocabulary_id
 ;
 
 -- 14.3 Build 'Is a' from LOINC Measurements to SNOMED Measurements in CONCEPT_RELATIONSHIP_STAGE to create a hierarchical cross-walks;
@@ -910,11 +922,11 @@ WITH lc_attr_add AS
     c.concept_code as lc_code,
     c.concept_name as lc_name,
      CASE  WHEN r1.concept_code_2 not in ( 'LP7753-9', 'LP7751-3') THEN 'Has dir proc site' ELSE 'Has scale type' END AS relationship_id,
-     CASE WHEN r1.concept_code_2 IN ('LP7057-5', 'LP21304-8', 'LP7068-2', 'LP185760-8', 'LP7536-8', 'LP7576-4', 'LP7578-0',  'LP7579-8', 'LP7067-4', 'LP7073-2') --  'Bld', 'Bld.dot', 'BldC', 'Plas/Bld', 'Ser/Plas/Bld',  'Ser/Plas', 'Ser/Plas.ultracentrifugate', 'RBC'
+     CASE WHEN r1.concept_code_2 IN ('LP7057-5', 'LP21304-8', 'LP7068-2', 'LP185760-8', 'LP7536-8', 'LP7576-4', 'LP7578-0', 'LP7579-8', 'LP7067-4', 'LP7073-2') --'Bld', 'Bld.dot', 'BldC', 'Plas/Bld', 'Ser/Plas/Bld', 'Ser/Plas', 'Ser/Plas.ultracentrifugate', 'RBC'
       THEN '119297000' -- 	Blood specimen
 WHEN r1.concept_code_2 = 'LP7567-3' THEN '119364003' -- Serum specimen
 WHEN r1.concept_code_2 = 'LP7681-2' THEN '122575003' -- Urine specimen
-WHEN r1.concept_code_2 = 'LP7156-5' THEN '258450006' --  Cerebrospinal fluid sample
+WHEN r1.concept_code_2 = 'LP7156-5' THEN '258450006' -- Cerebrospinal fluid sample
 WHEN r1.concept_code_2 = 'LP7479-1' THEN '119361006' -- Plasma specimen
 WHEN r1.concept_code_2 = 'LP7604-4' THEN '119339001' -- Stool specimen
 WHEN r1.concept_code_2 = 'LP7753-9' THEN '30766002' -- Quantitative
@@ -927,13 +939,13 @@ FROM concept_stage c
  AND r1.relationship_id in ('Has system', 'Has scale type')
 ),
 -- AXIS 2: get links given by the source between LOINC Measurements and SNOMED Attributes
-lc_sn AS
-(SELECT concept_code_1 AS lc_code,
+lc_sn AS (
+    SELECT concept_code_1 AS lc_code,
        lc.concept_name AS lc_name,
        r1.relationship_id,
        concept_code_2 AS attr_code
 FROM concept_relationship_stage r1
-  JOIN concept lc  ON (lc.concept_code,lc.vocabulary_id) = (r1.concept_code_1,r1.vocabulary_id_1) -- LOINC Measurement
+  JOIN concept_stage lc ON (lc.concept_code,lc.vocabulary_id) = (r1.concept_code_1,r1.vocabulary_id_1) -- LOINC Measurement
    AND r1.vocabulary_id_1 = 'LOINC' and lc.standard_concept = 'S' and lc.invalid_reason is null and lc.domain_id = 'Measurement'
   JOIN concept la ON (la.concept_code,la.vocabulary_id) = (r1.concept_code_2,r1.vocabulary_id_2) -- SNOMED Attribute
    AND r1.vocabulary_id_2 = 'SNOMED' and la.invalid_reason is null
@@ -954,16 +966,16 @@ FROM concept_relationship_stage r1
    JOIN concept la
     ON (la.concept_code,la.vocabulary_id) = (r1.concept_code_2,r1.vocabulary_id_2) -- SNOMED Attribute
    AND r1.vocabulary_id_2 = 'SNOMED'
-      AND r1.relationship_id = 'LOINC - SNOMED eq' and la.concept_class_id  = 'Substance'
+      AND r1.relationship_id = 'LOINC - SNOMED eq' and la.concept_class_id = 'Substance'
  JOIN concept_relationship_stage x1
    ON (x1.concept_code_1,x1.vocabulary_id_1) = (lc.concept_code,lc.vocabulary_id)-- LOINC Component
-   AND x1.relationship_id = 'Subsumes' --  LOINC Component 'Subsumes' LOINC Panel
+   AND x1.relationship_id = 'Subsumes' -- LOINC Component 'Subsumes' LOINC Panel
  JOIN concept_relationship_stage x2
     ON (x2.concept_code_1,x2.vocabulary_id_1) = (x1.concept_code_2,x1.vocabulary_id_2) -- LOINC Panel
     AND x2.relationship_id = 'Subsumes' -- LOINC Panel 'Subsumes' LOINC Measurement
- JOIN concept_stage l2  on (l2.concept_code, l2.vocabulary_id) = (x2.concept_code_2, x2.vocabulary_id_2) -- LOINC Measurement
+ JOIN concept_stage l2 on (l2.concept_code, l2.vocabulary_id) = (x2.concept_code_2, x2.vocabulary_id_2) -- LOINC Measurement
    AND l2.vocabulary_id = 'LOINC'
-   AND l2.standard_concept = 'S' and  l2.standard_concept = 'S' and l2.invalid_reason is null
+   AND l2.standard_concept = 'S' and l2.standard_concept = 'S' and l2.invalid_reason is null
    AND l2.domain_id = 'Measurement'
    WHERE (l2.concept_code, 'Has component') not in (select lc_code, relationship_id from lc_sn)
    ),
@@ -985,7 +997,7 @@ FROM concept_relationship_stage r1
    LOWER (SPLIT_PART (la.concept_name,'.',1)) = LOWER (x1.attr_name)
    OR LOWER (SPLIT_PART (la.concept_name,'^',1)) = LOWER (x1.attr_name)) -- SNOMED Attribute
    WHERE  (r1.concept_code_1, r1.relationship_id) not in (select lc_code, relationship_id from lc_sn)
-AND  (r1.concept_code_1, r1.relationship_id) not in  (select lc_code, relationship_id from lc_attr_1) -- exclude duplicates
+AND  (r1.concept_code_1, r1.relationship_id) not in (select lc_code, relationship_id from lc_attr_1) -- exclude duplicates
 )
 -- get input
 SELECT DISTINCT lc_code, lc_name, relationship_id, attr_code
@@ -1037,7 +1049,7 @@ FROM sn_attr x1 -- X1 - SNOMED attribute pool
   JOIN lc_attr z1 -- Z1 - LOINC attribute pool
     ON x1.attr_code = z1.attr_code -- common Component
    AND x1.relationship_id = 'Has component'
-   AND z1.relationship_id =  'Has component'
+   AND z1.relationship_id = 'Has component'
   JOIN sn_attr x2
   ON x2.sn_code = x1.sn_code -- common 2-attribute SNOMED Measurement
   JOIN lc_attr z2
@@ -1078,7 +1090,7 @@ FROM sn_attr x1 -- X1 - SNOMED attribute pool
    AND x2.relationship_id IN ('Has specimen')
   JOIN lc_attr z3
     ON z3.lc_code = z2.lc_code
-   AND z3.lc_code = z1.lc_code  -- common 2-attribute LOINC Measurement
+   AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
 WHERE x1.sn_code IN (SELECT sn_code
                      FROM sn_attr
                      GROUP BY sn_code
@@ -1103,7 +1115,7 @@ FROM sn_attr x1 --X1 - SNOMED attribute pool
    AND x2.relationship_id = 'Has scale type'
   JOIN lc_attr z3
     ON z3.lc_code = z2.lc_code
-   AND z3.lc_code = z1.lc_code  -- common 2-attribute LOINC Measurement
+   AND z3.lc_code = z1.lc_code -- common 2-attribute LOINC Measurement
 WHERE x1.sn_code IN (SELECT sn_code
                      FROM sn_attr
                      GROUP BY sn_code
@@ -1147,7 +1159,7 @@ SELECT lc_code AS concept_code_1,
 --   sn_name,
        'LOINC' AS vocabulary_id_1,
        'SNOMED' AS vocabulary_id_2,
-       'Is a'  AS relationship_id,
+       'Is a' AS relationship_id,
        v.latest_update AS valid_start_date,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
@@ -1161,17 +1173,17 @@ WHERE (lc_code,sn_code) NOT IN (
         OR (lc_name !~* 'titer' AND sn_name ~* ' titer')
         OR (lc_name ~* '\/' AND sn_name ~* ' titer')
         OR (lc_name !~* 'count|100|#' AND sn_name ~* 'count')
-        OR  (lc_name ~* 'morpholog|presence' AND sn_name ~* 'count')
+        OR (lc_name ~* 'morpholog|presence' AND sn_name ~* 'count')
         OR (lc_name !~* 'fasting glucose' AND sn_name ~* 'fasting glucose')
-        OR  (lc_name !~* 'microscop' AND sn_name ~* 'microscop')
+        OR (lc_name !~* 'microscop' AND sn_name ~* 'microscop')
         OR (lc_name !~* 'culture|isolate' AND sn_name ~* 'culture')
  )
 -- note, some LOINC Measurements may be mapped to 2 SNOMED Measurements
-AND (lc_code,sn_code) NOT  IN (SELECT lc_code,sn_code
+AND (lc_code,sn_code) NOT IN (SELECT lc_code,sn_code
                             FROM all_ax
                             WHERE lc_code IN (SELECT lc_code FROM all_ax GROUP BY lc_code HAVING COUNT(1) > 1)
-                            AND   (lc_name ~* 'fasting glucose' AND sn_name !~* 'fasting glucose' OR lc_name ~* 'test strip' AND sn_name !~* 'dipstick')
-                            AND   (lc_code,sn_code) NOT IN (SELECT lc_code,sn_code FROM all_ax WHERE sn_name ~* 'quantitative')
+                            AND (lc_name ~* 'fasting glucose' AND sn_name !~* 'fasting glucose' OR lc_name ~* 'test strip' AND sn_name !~* 'dipstick')
+                            AND (lc_code,sn_code) NOT IN (SELECT lc_code,sn_code FROM all_ax WHERE sn_name ~* 'quantitative')
 				)
 ;
 
@@ -1196,7 +1208,7 @@ SELECT DISTINCT l1.concept_code AS concept_code_1,
                 NULL AS invalid_reason
 -- get LOINC Components for all LOINC Measurements
 FROM concept_relationship_stage r
-JOIN concept_stage l1 ON (r.concept_code_1, r.vocabulary_id_1) = (l1.concept_code, l1.vocabulary_id)  -- LOINC Measurement
+JOIN concept_stage l1 ON (r.concept_code_1, r.vocabulary_id_1) = (l1.concept_code, l1.vocabulary_id) -- LOINC Measurement
 AND l1.vocabulary_id = 'LOINC' AND l1.standard_concept = 'S' AND l1.invalid_reason is null
 JOIN concept_stage l2 ON (r.concept_code_2, r.vocabulary_id_2) = (l2.concept_code, l2.vocabulary_id) -- LOINC Component
 AND r.relationship_id = 'Has component' AND r.vocabulary_id_1 = 'LOINC'
@@ -1205,7 +1217,7 @@ AND r.vocabulary_id_2 = 'LOINC'
 JOIN concept s1 ON
 COALESCE (
 LOWER (SPLIT_PART (l2.concept_name,'^',1))||' measurement', LOWER (SPLIT_PART (l2.concept_name,'.',1))||' measurement', lower (l2.concept_name)||' measurement'
-          )  = lower (s1.concept_name) -- SNOMED Measurement
+          ) = lower (s1.concept_name) -- SNOMED Measurement
 AND s1.vocabulary_id = 'SNOMED' AND s1.domain_id = 'Measurement' AND s1.standard_concept = 'S'
 JOIN vocabulary v ON 'LOINC' = v.vocabulary_id -- get valid_start_date
 -- weed out LOINC Measurements with inapplicable properties in the SNOMED architecture context
@@ -1340,7 +1352,7 @@ SELECT DISTINCT d.partname AS concept_name, -- LOINC Document name
 FROM sources.loinc_documentontology d,
 	vocabulary v
 WHERE v.vocabulary_id = 'LOINC'
-	AND d.partname NOT LIKE '{%}';-- decision to exclude  LP173061-5 '{Settings}' and LP187187-2 '{Role}' PartNames was probably made due to vague reverse relationship formulations: Concept X 'Has setting' '{Setting}' or Concept Y 'Has role' {Role}.
+	AND d.partname NOT LIKE '{%}';-- decision to exclude LP173061-5 '{Settings}' and LP187187-2 '{Role}' PartNames was probably made due to vague reverse relationship formulations: Concept X 'Has setting' '{Setting}' or Concept Y 'Has role' {Role}.
 
 --18. Build 'Has type of service', 'Has subject matter', 'Has role', 'Has setting', 'Has kind' reverse relationships from LOINC concepts indicating Measurements or Observations to LOINC Document Ontology concepts
 INSERT INTO concept_relationship_stage (
@@ -1568,16 +1580,18 @@ SELECT a.concept_code,
 	CURRENT_DATE,
 	'D'
 FROM concept a
-JOIN concept_relationship r ON a.concept_id = concept_id_1
-	AND r.invalid_reason IS NULL
-	AND r.relationship_id NOT IN (
+JOIN concept_relationship r
+    ON a.concept_id = concept_id_1
+	    AND r.invalid_reason IS NULL
+	    AND r.relationship_id NOT IN (
 		'Concept replaced by',
 		'Concept replaces'
 		)
-JOIN concept b ON b.concept_id = concept_id_2
+JOIN concept b
+    ON b.concept_id = concept_id_2
 WHERE 
 		a.vocabulary_id = 'LOINC'
-		AND b.vocabulary_id = 'LOINC'
+		AND b.vocabulary_id IN ('LOINC', 'SNOMED')
 		AND a.concept_id <> b.concept_id 
 	AND NOT EXISTS (
 		SELECT 1

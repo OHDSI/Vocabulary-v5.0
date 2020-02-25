@@ -45,7 +45,7 @@ select distinct
 			x.concept_name,
 			c.english_concept_name || ' (automated translation)'
 		) as concept_name,
-		'Procedure',
+		'Undefined',
 		'ICD9ProcCN',
 		case c.concept_class_id
 			when '六位数扩展码主要编码' then '6-dig billing code'
@@ -158,3 +158,20 @@ join concept c on
 	c.concept_id = r.concept_id_2
 ;
 drop index trgm_idx
+;
+--7. Assign domains by mapping targets
+update concept_stage s
+set
+	domain_id = coalesce
+		(
+			(
+				select c.domain_id
+				from concept c
+				join relationship_concept_stage r on
+					r.concept_code_2 = c.concept_code and
+					r.vocabulary_id_2 = c.vocabulary_id and
+					r.relationship_id = 'Maps to'
+				where r.concept_code_1 = s.concept_code
+			),
+			'Procedure'
+		)

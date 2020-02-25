@@ -2,8 +2,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'ICD10CN',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.icd10cn_concept LIMIT 1),
-	pVocabularyVersion		=> ('2016'),
+	pVocabularyDate			=> TO_DATE('20160101', 'yyyymmdd'),
+	pVocabularyVersion		=> '2016 Release',
 	pVocabularyDevSchema	=> 'DEV_ICD10CN'
 );
 END $_$;
@@ -143,7 +143,7 @@ select distinct
 		else null --Not supposed to be encountered
 	end,
 	o.concept_code_clean,
-	TO_DATE('19700101', 'yyyymmdd'),
+	TO_DATE('20160101', 'yyyymmdd'),
 	TO_DATE('20991231', 'yyyymmdd')
 from sources.icd10cn_concept c
 join code_clean o on
@@ -172,7 +172,7 @@ select distinct
 	'ICD10CN',
 	'ICD10CN',
 	'Is a',
-	TO_DATE('19700101', 'yyyymmdd'),
+	TO_DATE('20160101', 'yyyymmdd'),
 	TO_DATE('20991231', 'yyyymmdd')
 from sources.icd10cn_concept_relationship r
 
@@ -240,7 +240,7 @@ select distinct
 	'ICD10CN',
 	c.vocabulary_id,
 	'Maps to',
-	TO_DATE('19700101', 'yyyymmdd'),
+	TO_DATE('20160101', 'yyyymmdd'),
 	TO_DATE('20991231', 'yyyymmdd')
 from icd_parents i
 join devv5.concept_relationship r on
@@ -351,7 +351,7 @@ SELECT c1.concept_code AS concept_code_1,
 	c1.vocabulary_id AS vocabulary_id_1,
 	c1.vocabulary_id AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20160101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM concept_stage c1,
@@ -396,7 +396,7 @@ SELECT c1.concept_code AS concept_code_1,
 	'ICD10CN' AS vocabulary_id_1,
 	'ICD10CN' AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20160101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM intervals c1,
 	intervals c2
@@ -428,7 +428,7 @@ SELECT
 	'ICD10CN' AS vocabulary_id_1,
 	'ICD10CN' AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20160101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 from intervals c1
 join concept_stage c2 on

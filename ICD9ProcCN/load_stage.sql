@@ -87,9 +87,7 @@ SELECT i.concept_code,
 	4182948 AS language_concept_id -- Chinese
 FROM sources.icd9proccn_concept i
 ;
---5. Create internal hierarchy -- seems no longer to exist for ICD9Proc
-CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
-/*ANALYZE concept_stage;
+--5. Ingest internal hierarchy from source
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -97,31 +95,26 @@ INSERT INTO concept_relationship_stage (
 	vocabulary_id_2,
 	relationship_id,
 	valid_start_date,
-	valid_end_date,
-	invalid_reason
+	valid_end_date
 	)
-SELECT c1.concept_code AS concept_code_1,
+SELECT distinct
+	c1.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
-	c1.vocabulary_id AS vocabulary_id_1,
-	c1.vocabulary_id AS vocabulary_id_2,
-	'Subsumes' AS relationship_id,
+	'ICD9ProcCN' AS vocabulary_id_1,
+	'ICD9ProcCN' AS vocabulary_id_2,
+	'Is a' AS relationship_id,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM concept_stage c1,
-	concept_stage c2
-WHERE c2.concept_code LIKE c1.concept_code || '%'
-	AND c1.concept_code <> c2.concept_code
-	and 'ICD9Proc Hierarchy' not in (c1.concept_class_id, c2.concept_class_id)
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r_int
-		WHERE r_int.concept_code_1 = c1.concept_code
-			AND r_int.concept_code_2 = c2.concept_code
-			AND r_int.relationship_id = 'Subsumes'
-		)*/
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+from sources.icd9proccn_concept_relationship r
+join sources.icd9proccn_concept c1 on c1.concept_id = r.concept_id_1
+join sources.icd9proccn_concept c2 on c2.concept_id = r.concept_id_2
+where 
+	r.relationship_id = 'Is a'
 ;
 --6. Map to standard procedures over ICD9Proc
+CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
+ANALYZE concept_stage
+;
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

@@ -56,7 +56,7 @@ select distinct
 			when '章编码' then 'ICD9Proc Chapter'
 		else 'Undefined'
 		end as concept_class_id,
-		c.concept_code,
+		regexp_replace (c.concept_code, '第\d\d?章: ','') as concept_code,
 		TO_DATE('20170101', 'YYYYMMDD'),
 		TO_DATE('20991231', 'YYYYMMDD')
 from sources.icd9proccn_concept c
@@ -64,7 +64,10 @@ left join concept x on
 	(x.concept_code, x.vocabulary_id) = (c.concept_code, 'ICD9Proc')
 left join concept x2 on -- Generic equivalency, 6-dig code = 4-dig code + 00
 	(rpad (x2.concept_code,5,'x') || '00', x2.vocabulary_id) = (c.concept_code, 'ICD9Proc')
-where c.concept_code != 'Metadata'
+where 
+	c.concept_code != 'Metadata' and
+	--don't include Chapters that have only one subchapter
+	c.concept_code !~ ': \d\d$'
 ;
 --4. Create concept_synonym_stage
 INSERT INTO concept_synonym_stage (
@@ -81,11 +84,15 @@ FROM concept_stage i
 
 UNION ALL
 
-SELECT i.concept_code,
+SELECT regexp_replace (i.concept_code, '第\d\d?章: ',''),
 	i.concept_name AS synonym_name,
 	'ICD9ProcCN' AS synonym_vocabulary_id,
 	4182948 AS language_concept_id -- Chinese
 FROM sources.icd9proccn_concept i
+where 
+	i.concept_code != 'Metadata' and
+	--don't include Chapters that have only one subchapter
+	i.concept_code !~ ': \d\d$'
 ;
 --5. Ingest internal hierarchy from source
 INSERT INTO concept_relationship_stage (
@@ -99,7 +106,7 @@ INSERT INTO concept_relationship_stage (
 	)
 SELECT distinct
 	c1.concept_code AS concept_code_1,
-	c2.concept_code AS concept_code_2,
+	regexp_replace (c2.concept_code, '第\d\d?章: ','')  AS concept_code_2,
 	'ICD9ProcCN' AS vocabulary_id_1,
 	'ICD9ProcCN' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
@@ -109,7 +116,9 @@ from sources.icd9proccn_concept_relationship r
 join sources.icd9proccn_concept c1 on c1.concept_id = r.concept_id_1
 join sources.icd9proccn_concept c2 on c2.concept_id = r.concept_id_2
 where 
-	r.relationship_id = 'Is a'
+	r.relationship_id = 'Is a' and
+	--don't include Chapters that have only one subchapter
+	c2.concept_code !~ ': \d\d$'
 ;
 --6. Map to standard procedures over ICD9Proc
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns

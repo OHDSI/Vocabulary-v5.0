@@ -41,7 +41,34 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Gather list of names to avoid usage of automatically translated chinese names where possible
+--3. Add manual table to more accurately define concept_class_id
+DROP TABLE IF EXISTS icd10cn_chapters;
+CREATE UNLOGGED TABLE icd10cn_chapters (chapter_code VARCHAR(10));
+INSERT INTO icd10cn_chapters
+VALUES ('A00-B99'),
+	('C00-D48'),
+	('D50-D89'),
+	('E00-E90'),
+	('F00-F99'),
+	('G00-G99'),
+	('H00-H59'),
+	('H60-H95'),
+	('I00-I99'),
+	('J00-J99'),
+	('K00-K93'),
+	('L00-L99'),
+	('M00-M99'),
+	('N00-N99'),
+	('O00-O99'),
+	('P00-P96'),
+	('Q00-Q99'),
+	('R00-R99'),
+	('S00-T98'),
+	('V01-Y98'),
+	('Z00-Z99'),
+	('U00-U99');
+
+--4. Gather list of names to avoid usage of automatically translated chinese names where possible
 DROP TABLE IF EXISTS name_source;
 CREATE UNLOGGED TABLE name_source AS
 SELECT
@@ -105,7 +132,7 @@ SELECT ic.concept_code_clean,
 FROM sources.icd10cn_concept ic
 WHERE ic.concept_code <> 'Metadata';
 
---4. If there are no other sources, save Google translation as source
+--5. If there are no other sources, save Google translation as source
 INSERT INTO name_source
 SELECT DISTINCT
 	--Pick preferred english synonym
@@ -125,7 +152,7 @@ WHERE NOT EXISTS (
 		)
 	AND ic.concept_code <> 'Metadata';
 
---5. Fill concept_stage with cleaned codes and English names
+--6. Fill concept_stage with cleaned codes and English names
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -145,8 +172,10 @@ SELECT DISTINCT ns.concept_name,
 			THEN 'ICD10 Hierarchy'
 		WHEN ic.concept_code_clean ~ '^M\d{5}\/\d$'
 			THEN 'ICD10 Histology'
-		WHEN ic.concept_code_clean LIKE '%-%'
+		WHEN ch.chapter_code IS NOT NULL
 			THEN 'ICD10 Chapter'
+		WHEN ic.concept_code_clean LIKE '%-%'
+			THEN 'ICD10 SubChapter'
 		ELSE NULL --Not supposed to be encountered
 		END AS concept_class_id,
 	ic.concept_code_clean AS concept_code,
@@ -158,9 +187,10 @@ SELECT DISTINCT ns.concept_name,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM sources.icd10cn_concept ic
 JOIN name_source ns ON ns.concept_code_clean = ic.concept_code_clean
-	AND ns.preferred = 'S';
+	AND ns.preferred = 'S'
+LEFT JOIN icd10cn_chapters ch ON ch.chapter_code = ic.concept_code_clean;
 
---6. Fill table concept_synonym_stage with chinese and English names
+--7. Fill table concept_synonym_stage with chinese and English names
 INSERT INTO concept_synonym_stage (
 	synonym_name,
 	synonym_concept_code,
@@ -173,7 +203,7 @@ SELECT ns.concept_name AS synonym_name,
 	ns.language_concept_id
 FROM name_source ns;
 
---7. Fill concept_relationship_stage
+--8. Fill concept_relationship_stage
 -- Preserve ICD10CN internal hierarchy (even if concepts are non-standard)
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -201,7 +231,7 @@ JOIN sources.icd10cn_concept ic2 ON ic2.concept_id = r.concept_id_2
 WHERE r.relationship_id = 'Is a'
 	AND ic1.concept_code_clean <> ic2.concept_code_clean;
 
---8. Find parents among ICD10 and ICDO3 to inherit mapping relationships from
+--9. Find parents among ICD10 and ICDO3 to inherit mapping relationships from
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --For LIKE patterns
 ANALYZE concept_stage;
 
@@ -269,7 +299,7 @@ JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 	AND r.relationship_id = 'Maps to'
 JOIN concept c ON c.concept_id = r.concept_id_2;
 
---9. Update Domains 
+--10. Update Domains 
 --ICD10 Histologies are always Condition
 UPDATE concept_stage
 SET domain_id = 'Condition'
@@ -343,7 +373,7 @@ UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
 
---10. Add "subsumes" relationship between concepts where the concept_code is like of another
+--11. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -460,8 +490,8 @@ JOIN concept_stage c2 ON LEFT(c2.concept_code, 3) BETWEEN c1.start_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
 
---11. Cleanup
+--12. Cleanup
 DROP INDEX trgm_idx;
-DROP TABLE name_source, intervals;
+DROP TABLE icd10cn_chapters, name_source, intervals;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage AND concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -31,3 +31,12 @@ BEGIN
 	pConcept_class_name	=>'ICD10 Chapter'
 );
 END $_$;
+
+--new class 'ICD10 SubChapter'
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewConceptClass(
+	pConcept_class_id	=>'ICD10 SubChapter',
+	pConcept_class_name	=>'ICD10 SubChapter'
+);
+END $_$;

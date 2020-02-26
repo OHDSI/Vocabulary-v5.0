@@ -1,4 +1,4 @@
-	--new vocabulary='ICD10CN'
+--new vocabulary='ICD10CN'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewVocabulary(
@@ -20,5 +20,14 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'ICD10 Histology',
 	pConcept_class_name	=>'ICD10 Histology'
+);
+END $_$;
+
+--new class 'ICD10 Chapter'
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewConceptClass(
+	pConcept_class_id	=>'ICD10 Chapter',
+	pConcept_class_name	=>'ICD10 Chapter'
 );
 END $_$;

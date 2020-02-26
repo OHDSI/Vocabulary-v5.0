@@ -343,7 +343,7 @@ UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
 
---7. Add "subsumes" relationship between concepts where the concept_code is like of another
+--10. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -460,7 +460,7 @@ JOIN concept_stage c2 ON LEFT(c2.concept_code, 3) BETWEEN c1.start_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
 
---8. Cleanup
+--11. Cleanup
 DROP INDEX trgm_idx;
 DROP TABLE name_source, intervals;
 

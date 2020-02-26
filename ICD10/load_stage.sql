@@ -203,7 +203,7 @@ SELECT concept_name,
 	'ICD10' AS vocabulary_id,
 	CASE 
 		WHEN length(concept_code) = 3
-			THEN 'ICD10 Hierarchy'
+			THEN 'ICD10 Chapter'
 		ELSE 'ICD10 code'
 		END AS concept_class_id,
 	NULL AS standard_concept,

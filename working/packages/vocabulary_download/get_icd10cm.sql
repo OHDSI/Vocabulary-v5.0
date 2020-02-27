@@ -61,7 +61,7 @@ BEGIN
 
     --ICD10CM doesn't provide direct links, only general FTP-link ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/YYYY/
     --so it can be hardcoded
-    pDownloadURL:='ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/'||to_char(pVocabularyNewDate + interval '1 year','YYYY')||'/icd10cm_order_'||to_char(pVocabularyNewDate + interval '1 year','YYYY')||'.txt';
+    pDownloadURL:='ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/'||to_char(pVocabularyNewDate,'YYYY')||'/icd10cm_order_'||to_char(pVocabularyNewDate,'YYYY')||'.txt';
 
     --start downloading
     pVocabularyOperation:='GET_ICD10CM downloading';

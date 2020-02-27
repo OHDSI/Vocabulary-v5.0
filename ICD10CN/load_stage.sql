@@ -284,15 +284,14 @@ FROM (
 			PARTITION BY cs.concept_code ORDER BY LENGTH(c.concept_code) DESC --Longest matching code for best results
 			) AS concept_id
 	FROM concept_stage cs
-	JOIN concept c ON cs.concept_code NOT LIKE '%-%'
-		AND cs.concept_class_id IN (
-			'ICD10 code',
-			'ICD10 Chapter'
-			)
-		AND c.vocabulary_id = 'ICD10'
+	JOIN concept c ON c.vocabulary_id = 'ICD10'
 		AND
 		--Allow fuzzy match uphill for this iteration
 		cs.concept_code LIKE c.concept_code || '%'
+	WHERE cs.concept_class_id IN (
+			'ICD10 code',
+			'ICD10 Hierarchy'
+			)
 	) i
 JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 	AND r.invalid_reason IS NULL

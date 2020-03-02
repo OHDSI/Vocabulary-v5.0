@@ -50,7 +50,7 @@ select distinct
 		case c.concept_class_id
 			when '六位数扩展码主要编码' then '6-dig billing code'
 			when '六位数扩展码附加编码' then '6-dig billing code'
-			when '四位数细目编码' then '4-dig billing code'
+			when '四位数细目编码' then '4-dig nonbill code'
 			when '三位数亚目编码' then '3-dig nonbill code'
 			when '二位数类目编码' then '2-dig nonbill code'
 			when '章编码' then 'ICD9Proc Chapter'

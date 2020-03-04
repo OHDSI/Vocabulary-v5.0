@@ -104,8 +104,8 @@ SELECT source_code, source_class, source_description, source_filename
 FROM dev_vkorsik.cap_prepared_breast_2020_source
 ;
 
--- 00 dev_vkorsik.cap_prepared_breast_2020_source this table is preliminary generated concept_stage the diff
--- between it and dev_vkorsik.cap_prepared_breast_2020_source is in the ansence of filename  field in 1st
+-- 00 dev_vkorsik.cap_breast_2020_concept_stage_preliminary this table is preliminary generated concept_stage the diff
+-- between it and dev_vkorsik.cap_prepared_breast_2020_source is in the absence of filename  field in 1st
 
 --todo  concept_name~*'Comment(s)' looks not like real variable
 
@@ -124,7 +124,7 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
          END                               AS domain_id,
                'CAP'                       AS vocabulary_id,
      CASE
-         WHEN source_class = 'S'    AND source_description !~*'^Distance'                                     THEN 'CAP Header'
+         WHEN source_class = 'S'    AND source_description !~*'^Distance'                                     THEN 'CAP Header' -- or 'CAP section'
          WHEN source_class = 'LI' AND source_description !~* '^\.*other|^\.*specif.*' THEN 'CAP Value' -- ^.*expla.* todo do we need them to be variables
          WHEN source_class = 'CAP Protocol'                              THEN 'CAP Protocol'
          WHEN source_class = 'DI' THEN 'CAP Comment'
@@ -141,23 +141,191 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
     )
 ;
 
-SELECT --concept_id,
-       concept_code,
-       concept_name,
-       alternative_concept_name,
-       domain_id,
-      -- vocabulary_id,
-       concept_class_id,
-      -- standard_concept,
-      -- invalid_reason,
-     --  valid_start_date,
-      -- valid_end_date,
-       source_filename
-      -- source_class
-FROM dev_vkorsik.cap_breast_2020_concept_stage_preliminary
-/*WHERE concept_name ~*'^\.*specif\.*'
-AND  concept_name !~*'clock'*/
-ORDER BY alternative_concept_name,source_filename
---AND concept_name  !~* '^note'
+
+
+
+--00 dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+/*SELECT NULL AS concept_id_1,
+       NULL AS concept_id_2,
+    AS concept_code_1,
+    AS concept_code_2,
+    'CAP' AS vocabulary_id_1,
+    'CAP' AS vocabulary_id_2,
+    CASE WHEN
+END AS relationship_id
+ '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
+NULL AS invalid_reason
+*/
+
+-- SQL to retrieve all the hierarchical direct parent-child pairs generated in dev_vkorsik.cap_breast_2020_concept_stage_preliminary
+SELECT distinct
+       cs.concept_class_id,
+
+       cs2.concept_class_id,
+                count(*) as COUNTS
+FROM dev_cap.ecc_202002 e
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+ON e.value_code=cs.concept_code
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON e.variable_code=cs2.concept_code
+WHERE e.filename ~* 'breast'
+AND e.level_of_separation =1
+GROUP BY cs.concept_class_id,
+       cs2.concept_class_id
+Order BY COUNTS desc
 ;
 
+-- 'CAP Value of' for Value to Variable
+SELECT value_code AS concept_code_1,
+       val_concept_class  AS concept_class_1,
+       coalesce(value_description,value_alt) AS concept_name_1,
+       cs.concept_class_id,
+      'CAP Value of'           AS relationship_id,
+       variable_code           AS concept_code_2,
+       var_concept_class AS concept_class_2,
+       coalesce(variable_description,variable_alt) AS concept_name_2,
+       cs2.concept_class_id,
+       filename
+FROM dev_cap.ecc_202002 e
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+ON e.value_code=cs.concept_code
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON e.variable_code=cs2.concept_code
+WHERE e.filename ~* 'breast'
+AND e.level_of_separation =1
+AND cs.concept_class_id = 'CAP Value' AND cs2.concept_class_id ='CAP Variable'
+;
+--'Is a' for variable to variable
+SELECT value_code AS concept_code_1,
+       val_concept_class  AS concept_class_1,
+       coalesce(value_description,value_alt) AS concept_name_1,
+       cs.concept_class_id,
+      'Is a'           AS relationship_id,
+       variable_code           AS concept_code_2,
+       var_concept_class AS concept_class_2,
+       coalesce(variable_description,variable_alt) AS concept_name_2,
+       cs2.concept_class_id,
+       filename
+FROM dev_cap.ecc_202002 e
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+ON e.value_code=cs.concept_code
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON e.variable_code=cs2.concept_code
+WHERE e.filename ~* 'breast'
+AND e.level_of_separation =1
+AND cs.concept_class_id = 'CAP Variable' AND cs2.concept_class_id ='CAP Variable'
+;
+--'Is a' for variable to header or 'belongs to section'
+SELECT value_code AS concept_code_1,
+       val_concept_class  AS concept_class_1,
+       coalesce(value_description,value_alt) AS concept_name_1,
+       cs.concept_class_id,
+      'Belongs to section'           AS relationship_id,
+       variable_code           AS concept_code_2,
+       var_concept_class AS concept_class_2,
+       coalesce(variable_description,variable_alt) AS concept_name_2,
+       cs2.concept_class_id,
+       filename
+FROM dev_cap.ecc_202002 e
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+ON e.value_code=cs.concept_code
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON e.variable_code=cs2.concept_code
+WHERE e.filename ~* 'breast'
+AND e.level_of_separation =1
+AND cs.concept_class_id in('CAP Variable','CAP Comment',
+'CAP Header')
+AND cs2.concept_class_id ='CAP Header'
+;
+
+--todo CHECK all links Snth to Value
+-- Variable to Value
+SELECT distinct
+       e.value_code AS concept_code_1,
+       e.val_concept_class  AS concept_class_1,
+       coalesce(value_description,value_alt) AS concept_name_1,
+       cs.concept_class_id,
+       'Variable to Value' as relationship_id,
+       e.variable_code           AS concept_code_2,
+       e.var_concept_class AS concept_class_2,
+       coalesce(variable_description,variable_alt) AS concept_name_2,
+       cs2.concept_class_id,
+       e.filename
+FROM dev_cap.ecc_202002 e
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+ON e.value_code=cs.concept_code
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON e.variable_code=cs2.concept_code
+WHERE e.filename ~* 'breast'
+AND e.level_of_separation =1
+AND cs.concept_class_id='CAP Variable'
+AND cs2.concept_class_id='CAP Value'
+;
+-- Header to Value
+SELECT distinct
+       value_code AS concept_code_1,
+       val_concept_class  AS concept_class_1,
+       coalesce(value_description,value_alt) AS concept_name_1,
+       cs.concept_class_id,
+       'Header to Value' as relationship_id,
+       variable_code           AS concept_code_2,
+       var_concept_class AS concept_class_2,
+       coalesce(variable_description,variable_alt) AS concept_name_2,
+       cs2.concept_class_id,
+       filename
+FROM dev_cap.ecc_202002 e
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+ON e.value_code=cs.concept_code
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON e.variable_code=cs2.concept_code
+WHERE e.filename ~* 'breast'
+AND e.level_of_separation =1
+AND cs.concept_class_id='CAP Header'
+AND cs2.concept_class_id='CAP Value'
+;
+-- Comment to Value
+SELECT distinct
+       value_code AS concept_code_1,
+       val_concept_class  AS concept_class_1,
+       coalesce(value_description,value_alt) AS concept_name_1,
+       cs.concept_class_id,
+       'Comment to Value' as relationship_id,
+       variable_code           AS concept_code_2,
+       var_concept_class AS concept_class_2,
+       coalesce(variable_description,variable_alt) AS concept_name_2,
+       cs2.concept_class_id,
+       filename
+FROM dev_cap.ecc_202002 e
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+ON e.value_code=cs.concept_code
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON e.variable_code=cs2.concept_code
+WHERE e.filename ~* 'breast'
+AND e.level_of_separation =1
+AND cs.concept_class_id='CAP Comment'
+AND cs2.concept_class_id='CAP Value'
+;
+
+-- Comment to Variable
+SELECT distinct
+       value_code AS concept_code_1,
+       val_concept_class  AS concept_class_1,
+       coalesce(value_description,value_alt) AS concept_name_1,
+       cs.concept_class_id,
+       '' as relationship_id,
+       variable_code           AS concept_code_2,
+       var_concept_class AS concept_class_2,
+       coalesce(variable_description,variable_alt) AS concept_name_2,
+       cs2.concept_class_id,
+       filename
+FROM dev_cap.ecc_202002 e
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+ON e.value_code=cs.concept_code
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON e.variable_code=cs2.concept_code
+WHERE e.filename ~* 'breast'
+AND e.level_of_separation =1
+AND cs.concept_class_id='CAP Comment'
+AND cs2.concept_class_id='CAP Variable'
+;

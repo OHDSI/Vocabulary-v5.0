@@ -141,7 +141,37 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
     )
 ;
 
+-- check that no source_codes lost
+--5 rows 're retrieved because of manual creation of them
+SELECT distinct code
+FROM (SELECT distinct variable_code as code
+      FROM dev_cap.ecc_202002 e
+      WHERE e.filename ~* 'breast'
+      UNION ALL
+      SELECT distinct value_code as code
+      FROM dev_cap.ecc_202002 e
+      WHERE e.filename ~* 'breast'
+     ) as a
 
+SELECT distinct code
+FROM tab
+
+except
+
+SELECT distinct concept_code as code
+FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary
+
+except
+SELECT distinct code
+FROM (SELECT distinct variable_code as code
+      FROM dev_cap.ecc_202002 e
+      WHERE e.filename ~* 'breast'
+      UNION ALL
+      SELECT distinct value_code as code
+      FROM dev_cap.ecc_202002 e
+      WHERE e.filename ~* 'breast'
+     ) as a
+;
 
 
 --00 dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
@@ -177,16 +207,21 @@ Order BY COUNTS desc
 ;
 
 -- 'CAP Value of' for Value to Variable
-SELECT value_code AS concept_code_1,
-       val_concept_class  AS concept_class_1,
-       coalesce(value_description,value_alt) AS concept_name_1,
-       cs.concept_class_id,
-      'CAP Value of'           AS relationship_id,
-       variable_code           AS concept_code_2,
-       var_concept_class AS concept_class_2,
+
+SELECT NULL                                        AS concept_id_1,
+       value_code                                  AS concept_code_1,
+       val_concept_class                           AS source_class_1,
+       'CAP'                                       AS vocabulary_id_1,
+       coalesce(value_description,value_alt)       AS concept_name_1,
+       cs.concept_class_id                         AS concept_class_1,
+      'CAP Value of'                               AS relationship_id,
+        NULL                                       AS concept_id_2,
+       variable_code                               AS concept_code_2,
+       var_concept_class                           AS source_class_2,
+       'CAP'                                       AS vocabulary_id_2,
        coalesce(variable_description,variable_alt) AS concept_name_2,
-       cs2.concept_class_id,
-       filename
+       cs2.concept_class_id                        AS concept_class_2,
+       filename                                    AS filename
 FROM dev_cap.ecc_202002 e
 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
 ON e.value_code=cs.concept_code
@@ -196,17 +231,23 @@ WHERE e.filename ~* 'breast'
 AND e.level_of_separation =1
 AND cs.concept_class_id = 'CAP Value' AND cs2.concept_class_id ='CAP Variable'
 ;
+
 --'Is a' for variable to variable
-SELECT value_code AS concept_code_1,
-       val_concept_class  AS concept_class_1,
-       coalesce(value_description,value_alt) AS concept_name_1,
-       cs.concept_class_id,
-      'Is a'           AS relationship_id,
-       variable_code           AS concept_code_2,
-       var_concept_class AS concept_class_2,
+SELECT NULL                                        AS concept_id_1,
+       value_code                                  AS concept_code_1,
+       val_concept_class                           AS source_class_1,
+       'CAP'                                       AS vocabulary_id_1,
+       coalesce(value_description,value_alt)       AS concept_name_1,
+       cs.concept_class_id                         AS concept_class_1,
+      'Is a'                               AS relationship_id,
+        NULL                                       AS concept_id_2,
+       variable_code                               AS concept_code_2,
+       var_concept_class                           AS source_class_2,
+       'CAP'                                       AS vocabulary_id_2,
        coalesce(variable_description,variable_alt) AS concept_name_2,
-       cs2.concept_class_id,
-       filename
+       cs2.concept_class_id                        AS concept_class_2,
+       filename                                    AS filename
+
 FROM dev_cap.ecc_202002 e
 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
 ON e.value_code=cs.concept_code
@@ -217,16 +258,20 @@ AND e.level_of_separation =1
 AND cs.concept_class_id = 'CAP Variable' AND cs2.concept_class_id ='CAP Variable'
 ;
 --'Is a' for variable to header or 'belongs to section'
-SELECT value_code AS concept_code_1,
-       val_concept_class  AS concept_class_1,
-       coalesce(value_description,value_alt) AS concept_name_1,
-       cs.concept_class_id,
-      'Belongs to section'           AS relationship_id,
-       variable_code           AS concept_code_2,
-       var_concept_class AS concept_class_2,
+SELECT NULL                                        AS concept_id_1,
+       value_code                                  AS concept_code_1,
+       val_concept_class                           AS source_class_1,
+       'CAP'                                       AS vocabulary_id_1,
+       coalesce(value_description,value_alt)       AS concept_name_1,
+       cs.concept_class_id                         AS concept_class_1,
+      'Belongs to section'                               AS relationship_id,
+        NULL                                       AS concept_id_2,
+       variable_code                               AS concept_code_2,
+       var_concept_class                           AS source_class_2,
+       'CAP'                                       AS vocabulary_id_2,
        coalesce(variable_description,variable_alt) AS concept_name_2,
-       cs2.concept_class_id,
-       filename
+       cs2.concept_class_id                        AS concept_class_2,
+       filename                                    AS filename
 FROM dev_cap.ecc_202002 e
 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
 ON e.value_code=cs.concept_code

@@ -197,6 +197,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'KCD7' THEN 1
 		WHEN c.vocabulary_id = 'CTD' THEN 1
 		WHEN c.vocabulary_id = 'EDI' THEN 1
+		WHEN c.vocabulary_id = 'ICD10CN' THEN 1
 		WHEN c.vocabulary_id = 'ICD9ProcCN' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1

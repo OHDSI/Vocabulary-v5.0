@@ -142,7 +142,8 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
 ;
 
 SELECT *
-FROM cap_breast_2020_concept_stage_preliminary
+FROM dev_vkorsik.cap_breast_2020_concept_stage_preliminary
+;
 
 -- check that no source_codes lost
 --5 rows 're retrieved because of manual creation of them
@@ -280,6 +281,7 @@ WHERE e.filename ~* 'breast'
 AND e.level_of_separation =1
 AND cs.concept_class_id = 'CAP Variable' AND cs2.concept_class_id ='CAP Variable'
 ;
+
 --'Is a' for variable to header or 'belongs to section'
 SELECT NULL                                        AS concept_id_1,
        value_code                                  AS concept_code_1,
@@ -307,7 +309,7 @@ AND cs.concept_class_id in('CAP Variable','CAP Comment',
 AND cs2.concept_class_id ='CAP Header'
 ;
 
---todo CHECK all links Snth to Value
+--todo CHECK all links Smth to Value
 -- Variable to Value
 SELECT distinct
        e.value_code AS concept_code_1,
@@ -326,9 +328,9 @@ ON e.value_code=cs.concept_code
 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
 ON e.variable_code=cs2.concept_code
 WHERE e.filename ~* 'breast'
-AND e.level_of_separation =1
+AND e.level_of_separation =2
 AND cs.concept_class_id='CAP Variable'
-AND cs2.concept_class_id='CAP Value'
+AND cs2.concept_class_id!='CAP Value'
 ;
 -- Header to Value
 SELECT distinct
@@ -397,3 +399,4 @@ AND e.level_of_separation =1
 AND cs.concept_class_id='CAP Comment'
 AND cs2.concept_class_id='CAP Variable'
 ;
+--dev_lexicon - for Nebraska_Lexicon mappings

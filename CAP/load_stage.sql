@@ -35,6 +35,7 @@ CREATE TABLE dev_vkorsik.cap_prepared_breast_2020_source WITH OIDS AS
                    , coalesce(value_description, value_alt)
                    , left(filename, -4)
                    , val_concept_class
+
         )
            -- tab_var is created 'cause of some codes (with S,DI,Q classes) are not stated as values, they are 1)headers or 2)not conjugated with other source_codes as parent-child
            , tab_var as
@@ -54,7 +55,7 @@ CREATE TABLE dev_vkorsik.cap_prepared_breast_2020_source WITH OIDS AS
            ,
              tab_filename AS
                  (
-                     SELECT distinct regexp_replace(regexp_matches(filename,'\d{3}_\d\.\d{3}\.\d{3}')::varchar,'\{|\}','','g')  as source_code
+                     SELECT distinct left(filename, -4)    as source_code
                           , 'CAP Protocol'                                    as source_class
                           , CASE WHEN filename='Breast.DCIS.Res.211_3.002.001.REL_sdcFDF.xml' then 'DCIS OF THE BREAST: Resection'
                                  WHEN filename='Breast.DCIS.Bx.360_1.001.001.REL_sdcFDF.xml' then 'DCIS OF THE BREAST: Biopsy'
@@ -106,44 +107,57 @@ FROM dev_vkorsik.cap_prepared_breast_2020_source
 -- 00 dev_vkorsik.cap_prepared_breast_2020_source this table is preliminary generated concept_stage the diff
 -- between it and dev_vkorsik.cap_prepared_breast_2020_source is in the ansence of filename  field in 1st
 
+--todo  concept_name~*'Comment(s)' looks not like real variable
+
 -- DROP TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary
 CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
     (
         SELECT NULL                        AS concept_id,
                source_code                 AS concept_code,
                source_description          AS concept_name,
+               CASE WHEN source_description ~* '\|' THEN split_part(source_description,'|',1) || '|' || split_part(source_description,'|',2)
+                    ELSE source_description END AS alternative_concept_name,
      CASE
-         WHEN source_class in ('DI', 'S', 'CAP Protocol')                THEN 'Observation' -- todo How to treat 'CAP Protocol' in domain_id?
-         WHEN source_class = 'LI' AND source_description !~* '^\.*other' THEN  'Meas Value'
+         WHEN source_class in ('DI', 'CAP Protocol')       or    (source_class='S'       AND source_description !~*'^Distance')  THEN 'Observation' -- todo How to treat 'CAP Protocol' in domain_id?
+         WHEN source_class = 'LI' AND source_description !~* '^\.*other|^\.*specif.*' THEN  'Meas Value'
          ELSE 'Measurment'
          END                               AS domain_id,
                'CAP'                       AS vocabulary_id,
      CASE
-         WHEN source_class = 'S'                                         THEN 'CAP Header'
-         WHEN source_class = 'LI' AND source_description !~* '^\.*other' THEN 'CAP Value'
+         WHEN source_class = 'S'    AND source_description !~*'^Distance'                                     THEN 'CAP Header'
+         WHEN source_class = 'LI' AND source_description !~* '^\.*other|^\.*specif.*' THEN 'CAP Value' -- ^.*expla.* todo do we need them to be variables
          WHEN source_class = 'CAP Protocol'                              THEN 'CAP Protocol'
+         WHEN source_class = 'DI' THEN 'CAP Comment'
          ELSE 'CAP Variable'
          END                               AS concept_class_id,
                NULL                        AS standard_concept,
                NULL                        AS invalid_reason,
                '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
-               '2099-01-01'                AS valid_end_date
+               '2099-01-01'                AS valid_end_date,
+               source_filename,
+               source_class
         FROM cap_prepared_breast_2020_source
         ORDER BY concept_name, concept_code, concept_class_id
     )
 ;
 
-SELECT concept_id,
+SELECT --concept_id,
        concept_code,
        concept_name,
+       alternative_concept_name,
        domain_id,
-       vocabulary_id,
+      -- vocabulary_id,
        concept_class_id,
-       standard_concept,
-       invalid_reason,
-       valid_start_date,
-       valid_end_date
+      -- standard_concept,
+      -- invalid_reason,
+     --  valid_start_date,
+      -- valid_end_date,
+       source_filename
+      -- source_class
 FROM dev_vkorsik.cap_breast_2020_concept_stage_preliminary
---WHERE concept_name ~*'^\.*other'
+/*WHERE concept_name ~*'^\.*specif\.*'
+AND  concept_name !~*'clock'*/
+ORDER BY alternative_concept_name,source_filename
+--AND concept_name  !~* '^note'
 ;
 

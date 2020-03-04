@@ -115,7 +115,7 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
         SELECT NULL                        AS concept_id,
                source_code                 AS concept_code,
                source_description          AS concept_name,
-               CASE WHEN source_description ~* '\|' THEN split_part(source_description,'|',1) || '|' || split_part(source_description,'|',2)
+               CASE WHEN source_description ~* '\|' THEN split_part(source_description,'|',1)
                     ELSE source_description END AS alternative_concept_name,
      CASE
          WHEN source_class in ('DI', 'CAP Protocol')       or    (source_class='S'       AND source_description !~*'^Distance')  THEN 'Observation' -- todo How to treat 'CAP Protocol' in domain_id?
@@ -140,6 +140,9 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
         ORDER BY concept_name, concept_code, concept_class_id
     )
 ;
+
+SELECT *
+FROM cap_breast_2020_concept_stage_preliminary
 
 -- check that no source_codes lost
 --5 rows 're retrieved because of manual creation of them
@@ -205,6 +208,26 @@ GROUP BY cs.concept_class_id,
        cs2.concept_class_id
 Order BY COUNTS desc
 ;
+
+SELECT distinct
+       cs.concept_class_id,
+
+       cs2.concept_class_id,
+                count(*) as COUNTS
+FROM dev_cap.ecc_202002 e
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+ON e.variable_code=cs.concept_code
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON e.variable_code=cs2.concept_code
+WHERE e.filename ~* 'breast'
+AND (e.level_of_separation =0
+OR e.level_of_separation is null)
+GROUP BY cs.concept_class_id,
+       cs2.concept_class_id
+Order BY COUNTS desc
+;
+
+
 
 -- 'CAP Value of' for Value to Variable
 

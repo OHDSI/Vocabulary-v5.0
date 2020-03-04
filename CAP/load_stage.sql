@@ -400,3 +400,4 @@ AND cs.concept_class_id='CAP Comment'
 AND cs2.concept_class_id='CAP Variable'
 ;
 --dev_lexicon - for Nebraska_Lexicon mappings
+-- TODO check source_codes  're used to understand how CAP's use them

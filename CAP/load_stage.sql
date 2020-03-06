@@ -271,7 +271,23 @@ AND concat(split_part(e.source_filename,'.',1),'|',
            split_part(ee.source_filename,'.',3)) -- to restrict to the same filename
 ORDER BY e.source_description
 ;
+SELECT * FROM  dev_cap.ecc_202002 d
 
+WHERE EXISTS(
+              SELECT value_code, variable_code
+              FROM dev_cap.ecc_202002 dd
+              WHERE level_of_separation = 1
+               AND filename ~*'breast'
+               and dd.value_code=d.value_code
+               and dd.variable_code=d.variable_code
+                  EXCEPT
+              SELECT value_code, variable_code
+              FROM ddymshyts.ecc_201909_v3
+              WHERE level_of_separation = 1
+    AND filename ~*'breast'
+          )
+ AND filename ~*'breast'
+;
 
 -- 01 concept_stage
 -- dev_vkorsik.cap_breast_2020_concept_stage_preliminary this table is preliminary generated concept_stage the diff
@@ -728,11 +744,13 @@ SELECT distinct *
 FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 WHERE concept_code_1 IN (SELECT concept_code_1
     FROM cap_breast_2020_concept_relationship_stage_preliminary
-WHERE  relationship_id != 'Derives from'
+--WHERE  relationship_id = 'Derives from'
 GROUP BY concept_code_1
     HAVING count(distinct concept_code_2)>1
     )
 ;
+
+
 -- check af multiple relationships
 SELECT distinct concept_code,concept_name,concept_class_id
 FROM cap_breast_2020_concept_stage_preliminary c
@@ -749,8 +767,14 @@ WHERE concept_code_1 IN
     FROM cap_breast_2020_concept_relationship_stage_preliminary
     GROUP BY concept_code_1
     having count(relationship_id)=1)
+;
+-- Check for uniqueness of pair concept_code_1, concept_code_2
+select concept_code_1, concept_code_2
+from dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+group by concept_code_1, concept_code_2 having count(1) > 1
 
 
-
+-- TODO reverse relationships need to be created
 --dev_lexicon - for Nebraska_Lexicon mappings
--- TODO check source_codes  're used to understand how CAP's use them select * from dev_lexicon.vocabulary
+-- select * from dev_lexicon
+select * FROM dev_lexicon.concept

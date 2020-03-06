@@ -439,54 +439,157 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary 
         ORDER BY concept_code_1
         )
     ;
-
-             -- STEP 1 INSERT
-                        INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
-                        SELECT distinct NULL                                                             AS concept_id_1,
-                                 cs.concept_code                                                      AS concept_code_1,
-                                  cs.source_class                                                AS source_class_1,
-                                  'CAP'                                                            AS vocabulary_id_1,
-                                  cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
-                                  cs.concept_class_id                                              AS concept_class_1,
-                                 'Is a'                                       AS relationship_id,
-                                NULL                                                             AS concept_id_2,
-                             cs2.concept_code                                                AS concept_code_2,
-                                cs2.source_class                                                AS source_class_2,
-                                'CAP'                                                            AS vocabulary_id_2,
-                                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
-                                cs2.concept_class_id                                             AS concept_class_2,
-                                cs.source_filename                                               AS filename
-
-                          FROM dev_cap.ecc_202002 e
-                                   JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
-                                        ON e.variable_code = cs.concept_code
-                              JOIN dev_cap.ecc_202002 ee
-                              ON e.variable_code=ee.value_code
-                                   JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
-                                        ON ee.variable_code = cs2.concept_code
-                          WHERE e.filename ~* 'breast'
-                            AND e.level_of_separation = 1
-                                    AND ee.level_of_separation = 1
-                          AND ((cs.concept_class_id = 'CAP Variable'
-                              AND cs2.concept_class_id = 'CAP Variable')
-                          OR (cs.concept_class_id = 'CAP Variable'
-                              AND cs2.concept_class_id = 'CAP Value')
-                          OR (cs.concept_class_id = 'CAP Variable'
-                              AND cs2.concept_class_id = 'CAP Header')
-                          OR (cs.concept_class_id = 'CAP Header'
-                              AND cs2.concept_class_id = 'CAP Header')
-                          OR (cs.concept_class_id = 'CAP Header'
-                              AND cs2.concept_class_id = 'CAP Value'))
-AND e.value_code NOT in (select concept_code_1 FROM cap_breast_2020_concept_relationship_stage_preliminary)
-AND ee.variable_code NOT in (select concept_code_2 FROM cap_breast_2020_concept_relationship_stage_preliminary);
+ -- STEP 1 INSERT
+INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+SELECT NULL                                                             AS concept_id_1,
+               cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Is a'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                      ON e.value_code = cs.concept_code
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                      ON e.variable_code = cs2.concept_code
+        WHERE e.filename ~* 'breast'
+          AND e.level_of_separation = 1
+          AND cs.concept_class_id = 'CAP Variable'
+          AND cs2.concept_class_id = 'CAP Variable'
+AND cs.concept_code  NOT in (select concept_code_1 FROM cap_breast_2020_concept_relationship_stage_preliminary)
+AND cs2.concept_code  NOT in (select concept_code_2 FROM cap_breast_2020_concept_relationship_stage_preliminary);
 ;
 -- STEP 2 INSERT
-SELECT *
-FROM cap_breast_2020_concept_stage_preliminary cs
-JOIN dev_cap.ecc_202002  e ON concept_code=e.variable_code
--- AND level_of_separation=1
+INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+SELECT NULL                                                             AS concept_id_1,
+               cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Is a'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                      ON e.value_code = cs.concept_code
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                      ON e.variable_code = cs2.concept_code
+        WHERE e.filename ~* 'breast'
+          AND e.level_of_separation = 1
+          AND cs.concept_class_id = 'CAP Variable'
+          AND cs2.concept_class_id = 'CAP Header'
+AND NOT EXISTS (select 1
+                FROM cap_breast_2020_concept_relationship_stage_preliminary cr1
+    WHERE cr1.concept_code_1=cs.concept_code
+    AND cr1.concept_code_2=cs2.concept_code)
 ;
 
+--STEP 3 INSERT
+INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+SELECT NULL                                                             AS concept_id_1,
+               cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Is a'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                      ON e.value_code = cs.concept_code
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                      ON e.variable_code = cs2.concept_code
+        WHERE e.filename ~* 'breast'
+          AND e.level_of_separation = 1
+          AND cs.concept_class_id = 'CAP Variable'
+          AND cs2.concept_class_id = 'CAP Value'
+AND NOT EXISTS (select 1
+                FROM cap_breast_2020_concept_relationship_stage_preliminary cr1
+    WHERE cr1.concept_code_1=cs.concept_code
+    AND cr1.concept_code_2=cs2.concept_code)
+;
+
+--STEP 4 INSERT
+INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+SELECT NULL                                                             AS concept_id_1,
+               cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Is a'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                      ON e.value_code = cs.concept_code
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                      ON e.variable_code = cs2.concept_code
+        WHERE e.filename ~* 'breast'
+          AND e.level_of_separation = 1
+          AND cs.concept_class_id = 'CAP Header'
+          AND cs2.concept_class_id = 'CAP Value'
+AND NOT EXISTS (select 1
+                FROM cap_breast_2020_concept_relationship_stage_preliminary cr1
+    WHERE cr1.concept_code_1=cs.concept_code
+    AND cr1.concept_code_2=cs2.concept_code)
+
+;
+
+--STEP 5 INSERT
+INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+SELECT NULL                                                             AS concept_id_1,
+               cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Is a'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                      ON e.value_code = cs.concept_code
+                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                      ON e.variable_code = cs2.concept_code
+        WHERE e.filename ~* 'breast'
+          AND e.level_of_separation = 1
+         AND cs.concept_class_id in ( 'CAP Variable', 'CAP Header')
+        AND NOT EXISTS (select 1
+                FROM cap_breast_2020_concept_relationship_stage_preliminary cr1
+    WHERE cr1.concept_code_1=cs.concept_code
+    AND cr1.concept_code_2=cs2.concept_code);
+;
 
 
 
@@ -503,12 +606,16 @@ GROUP BY concept_code_1
     HAVING count(distinct concept_code_2)>1
     )
 ;
+-- top headers are left and 5 'Comment(s)' rows from -- not included to any hierarchy codes from source plus newly created class CAP protocols a here
+SELECT distinct concept_code,concept_name,concept_class_id
+FROM cap_breast_2020_concept_stage_preliminary c
+WHERE NOT EXISTS (select 1
+                FROM cap_breast_2020_concept_relationship_stage_preliminary cr1
+    WHERE cr1.concept_code_1=c.concept_code)
+ORDER BY concept_name
 
-SELECT *
-FROM cap_breast_2020_concept_stage_preliminary
-WHERE concept_code NOT IN (SELECT distinct concept_code_1
-FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary)
 
 
 --dev_lexicon - for Nebraska_Lexicon mappings
 -- TODO check source_codes  're used to understand how CAP's use them
+

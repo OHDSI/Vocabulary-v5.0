@@ -439,7 +439,7 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary 
         ORDER BY concept_code_1
         )
     ;
- -- STEP 1 INSERT
+ -- STEP 1 'Is a' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -467,7 +467,7 @@ SELECT NULL                                                             AS conce
 AND cs.concept_code  NOT in (select concept_code_1 FROM cap_breast_2020_concept_relationship_stage_preliminary)
 AND cs2.concept_code  NOT in (select concept_code_2 FROM cap_breast_2020_concept_relationship_stage_preliminary);
 ;
--- STEP 2 INSERT
+-- STEP 2 'Is a' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -498,7 +498,7 @@ AND NOT EXISTS (select 1
     AND cr1.concept_code_2=cs2.concept_code)
 ;
 
---STEP 3 INSERT
+--STEP 3 'Is a' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -529,7 +529,7 @@ AND NOT EXISTS (select 1
     AND cr1.concept_code_2=cs2.concept_code)
 ;
 
---STEP 4 INSERT
+--STEP 4  'Is a' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -561,7 +561,7 @@ AND NOT EXISTS (select 1
 
 ;
 
---STEP 5 INSERT
+--STEP 5 'Is a' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -591,31 +591,166 @@ SELECT NULL                                                             AS conce
     AND cr1.concept_code_2=cs2.concept_code);
 ;
 
+-- 'Derives from'
+--INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+SELECT          NULL                                                             AS concept_id_1,
+               cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Derives from'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+        FROM dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+
+;
+INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+select         NULL                                                             AS concept_id_1,
+               cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Derives from'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON cs2.concept_code='Breast.DCIS.Res.211_3.002.001.REL_sdcFDF'
+WHERE cs.source_filename ='Breast.DCIS.Res.211_3.002.001.REL_sdcFDF'
+
+UNION ALL
+
+select NULL                                                             AS concept_id_1,
+       cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Derives from'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON cs2.concept_code='Breast.DCIS.Bx.360_1.001.001.REL_sdcFDF'
+WHERE cs.source_filename ='Breast.DCIS.Bx.360_1.001.001.REL_sdcFDF'
+
+UNION ALL
+
+select NULL                                                             AS concept_id_1,
+       cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Derives from'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON cs2.concept_code='Breast.Invasive.Bx.362_1.001.001.REL_sdcFDF'
+WHERE cs.source_filename ='Breast.Invasive.Bx.362_1.001.001.REL_sdcFDF'
+
+UNION ALL
+
+select NULL                                                             AS concept_id_1,
+       cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Derives from'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON cs2.concept_code='Breast.Invasive.Res.189_4.002.001.REL_sdcFDF'
+WHERE cs.source_filename ='Breast.Invasive.Res.189_4.002.001.REL_sdcFDF'
+
+UNION ALL
+
+select NULL                                                             AS concept_id_1,
+       cs.concept_code                                                       AS concept_code_1,
+               cs.source_class                                                AS source_class_1,
+               'CAP'                                                            AS vocabulary_id_1,
+               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
+               cs.concept_class_id                                              AS concept_class_1,
+               'Derives from'                                                   AS relationship_id,
+               NULL                                                             AS concept_id_2,
+                cs2.concept_code                                                 AS concept_code_2,
+                cs2.source_class                                                 AS source_class_2,
+               'CAP'                                                            AS vocabulary_id_2,
+               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
+               cs2.concept_class_id                                             AS concept_class_2,
+               cs.source_filename                                               AS filename
+FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+ON cs2.concept_code='Breast.Bmk.169_1.006.001.REL_sdcFDF'
+WHERE cs.source_filename ='Breast.Bmk.169_1.006.001.REL_sdcFDF'
+
+
+
+
 
 
 SELECT distinct *
 FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
---WHERE concept_class_1 = 'CAP Variable'
+;
 
--- to check existance of more then one direct relationchip
+-- to check existence of more then one direct relationchip
 SELECT distinct *
 FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 WHERE concept_code_1 IN (SELECT concept_code_1
     FROM cap_breast_2020_concept_relationship_stage_preliminary
+WHERE  relationship_id != 'Derives from'
 GROUP BY concept_code_1
     HAVING count(distinct concept_code_2)>1
     )
 ;
--- top headers are left and 5 'Comment(s)' rows from -- not included to any hierarchy codes from source plus newly created class CAP protocols a here
+-- check af multiple relationships
 SELECT distinct concept_code,concept_name,concept_class_id
 FROM cap_breast_2020_concept_stage_preliminary c
 WHERE NOT EXISTS (select 1
                 FROM cap_breast_2020_concept_relationship_stage_preliminary cr1
     WHERE cr1.concept_code_1=c.concept_code)
 ORDER BY concept_name
+;
+
+SELECT *
+FROM cap_breast_2020_concept_relationship_stage_preliminary
+WHERE concept_code_1 IN
+(SELECT concept_code_1
+    FROM cap_breast_2020_concept_relationship_stage_preliminary
+    GROUP BY concept_code_1
+    having count(relationship_id)=1)
 
 
 
 --dev_lexicon - for Nebraska_Lexicon mappings
--- TODO check source_codes  're used to understand how CAP's use them
-
+-- TODO check source_codes  're used to understand how CAP's use them select * from dev_lexicon.vocabulary

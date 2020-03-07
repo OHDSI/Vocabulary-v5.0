@@ -303,7 +303,7 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
      CASE
          WHEN source_class in ('DI', 'CAP Protocol')       or    (source_class='S'       AND source_description !~*'^Distance')  THEN 'Observation' -- todo How to treat 'CAP Protocol' in domain_id?
          WHEN source_class = 'LI' AND source_description !~* '^\.*other|^\.*specif.*' THEN  'Meas Value'
-         ELSE 'Measurment'
+         ELSE 'Measurement'
          END                               AS domain_id,
                'CAP'                       AS vocabulary_id,
      CASE
@@ -439,6 +439,9 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary 
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+                NULL                        AS invalid_reason,
+                '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
                  JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
@@ -470,6 +473,9 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
                  JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
@@ -498,6 +504,9 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
                  JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
@@ -529,6 +538,9 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
                  JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
@@ -560,6 +572,9 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
                  JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
@@ -592,6 +607,9 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
                  JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
@@ -608,24 +626,6 @@ SELECT NULL                                                             AS conce
 ;
 
 -- 'Derives from'
---INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
-SELECT          NULL                                                             AS concept_id_1,
-               cs.concept_code                                                       AS concept_code_1,
-               cs.source_class                                                AS source_class_1,
-               'CAP'                                                            AS vocabulary_id_1,
-               cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
-               cs.concept_class_id                                              AS concept_class_1,
-               'Derives from'                                                   AS relationship_id,
-               NULL                                                             AS concept_id_2,
-                cs2.concept_code                                                 AS concept_code_2,
-                cs2.source_class                                                 AS source_class_2,
-               'CAP'                                                            AS vocabulary_id_2,
-               cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
-               cs2.concept_class_id                                             AS concept_class_2,
-               cs.source_filename                                               AS filename
-        FROM dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
-
-;
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 select         NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -640,6 +640,9 @@ select         NULL                                                             
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
 FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
@@ -661,6 +664,9 @@ select NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
 FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
@@ -682,6 +688,9 @@ select NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
 FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
@@ -703,6 +712,9 @@ select NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
 FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
@@ -724,6 +736,9 @@ select NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_2,
                cs2.concept_name /*coalesce(variable_description,variable_alt)*/ AS concept_name_2,
                cs2.concept_class_id                                             AS concept_class_2,
+        NULL                        AS invalid_reason,
+       '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
+               '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
 FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
@@ -744,7 +759,7 @@ SELECT distinct *
 FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 WHERE concept_code_1 IN (SELECT concept_code_1
     FROM cap_breast_2020_concept_relationship_stage_preliminary
---WHERE  relationship_id = 'Derives from'
+WHERE  relationship_id = 'Derives from'
 GROUP BY concept_code_1
     HAVING count(distinct concept_code_2)>1
     )
@@ -759,7 +774,7 @@ WHERE NOT EXISTS (select 1
     WHERE cr1.concept_code_1=c.concept_code)
 ORDER BY concept_name
 ;
-
+-- for only one relationship created
 SELECT *
 FROM cap_breast_2020_concept_relationship_stage_preliminary
 WHERE concept_code_1 IN
@@ -772,9 +787,107 @@ WHERE concept_code_1 IN
 select concept_code_1, concept_code_2
 from dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 group by concept_code_1, concept_code_2 having count(1) > 1
+;
+--QA for stage tables
+--all the selects below should return null
+
+
+select relationship_id from cap_breast_2020_concept_relationship_stage_preliminary
+except
+select relationship_id from relationship;
+
+
+select concept_class_id from cap_breast_2020_concept_stage_preliminary
+except
+select concept_class_id from concept_class;
+
+
+select domain_id from cap_breast_2020_concept_stage_preliminary
+except
+select domain_id from domain;
+
+
+select vocabulary_id from cap_breast_2020_concept_stage_preliminary
+except
+select vocabulary_id from vocabulary;
+
+
+select * from cap_breast_2020_concept_stage_preliminary where concept_name is null or domain_id is null or concept_class_id is null or concept_code is null or valid_start_date is null or valid_end_date is null
+or valid_end_date is null or concept_name<>trim(concept_name) or concept_code<>trim(concept_code);
+
+select concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id  from cap_breast_2020_concept_relationship_stage_preliminary
+group by concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id  having count(*)>1;
+
+select concept_code, vocabulary_id  from cap_breast_2020_concept_stage_preliminary
+group by concept_code, vocabulary_id  having count(*)>1;
+
+
+select * From cap_breast_2020_concept_relationship_stage_preliminary where valid_start_date is null or valid_end_date is null or (invalid_reason is null and valid_end_date::date<>to_date ('20991231', 'yyyymmdd'))
+or (invalid_reason is not null and valid_end_date::date=to_date ('20991231', 'yyyymmdd'));
+
+select * from cap_breast_2020_concept_stage_preliminary where valid_start_date is null or valid_end_date is null
+or (invalid_reason is null and valid_end_date::date <> to_date ('20991231', 'yyyymmdd') and vocabulary_id not in ('CPT4', 'HCPCS', 'ICD9Proc'))
+or (invalid_reason is not null and valid_end_date::date = to_date ('20991231', 'yyyymmdd'))
+or valid_start_date::date < to_date ('19000101', 'yyyymmdd'); -- some concepts have a real date < 1970
+;
+
+select relationship_id from cap_breast_2020_concept_relationship_stage_preliminary
+except
+select relationship_id from relationship;
+
+
+select concept_class_id from cap_breast_2020_concept_stage_preliminary
+except
+select concept_class_id from concept_class;
+
+
+select domain_id from cap_breast_2020_concept_stage_preliminary
+except
+select domain_id from domain;
+
+
+select vocabulary_id from cap_breast_2020_concept_stage_preliminary
+except
+select vocabulary_id from vocabulary;
+
+
+select * from cap_breast_2020_concept_stage_preliminary where concept_name is null or domain_id is null or concept_class_id is null or concept_code is null or valid_start_date is null or valid_end_date is null
+or valid_end_date is null or concept_name<>trim(concept_name) or concept_code<>trim(concept_code);
+
+select concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id  from cap_breast_2020_concept_relationship_stage_preliminary
+group by concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id  having count(*)>1;
+
+select concept_code, vocabulary_id  from cap_breast_2020_concept_stage_preliminary
+group by concept_code, vocabulary_id  having count(*)>1;
+
+
+
+SELECT crm.*
+FROM cap_breast_2020_concept_relationship_stage_preliminary crm
+	 LEFT JOIN concept c1 ON c1.concept_code = crm.concept_code_1 AND c1.vocabulary_id = crm.vocabulary_id_1
+	 LEFT JOIN cap_breast_2020_concept_stage_preliminary cs1 ON cs1.concept_code = crm.concept_code_1 AND cs1.vocabulary_id = crm.vocabulary_id_1
+	 LEFT JOIN concept c2 ON c2.concept_code = crm.concept_code_2 AND c2.vocabulary_id = crm.vocabulary_id_2
+	 LEFT JOIN cap_breast_2020_concept_stage_preliminary cs2 ON cs2.concept_code = crm.concept_code_2 AND cs2.vocabulary_id = crm.vocabulary_id_2
+	 LEFT JOIN vocabulary v1 ON v1.vocabulary_id = crm.vocabulary_id_1
+	 LEFT JOIN vocabulary v2 ON v2.vocabulary_id = crm.vocabulary_id_2
+	 LEFT JOIN relationship rl ON rl.relationship_id = crm.relationship_id
+WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
+	 OR (c2.concept_code IS NULL AND cs2.concept_code IS NULL)
+	 OR v1.vocabulary_id IS NULL
+	 OR v2.vocabulary_id IS NULL
+	 OR rl.relationship_id IS NULL
+	 OR crm.valid_start_date::date > CURRENT_DATE
+	 OR crm.valid_end_date::date < crm.valid_start_date::date;
+
+
+
+
+
 
 
 -- TODO reverse relationships need to be created
 --dev_lexicon - for Nebraska_Lexicon mappings
 -- select * from dev_lexicon
-select * FROM dev_lexicon.concept
+select distinct
+*  FROM dev_lexicon.concept
+WHERE vocabulary_id='Nebraska Lexicon';

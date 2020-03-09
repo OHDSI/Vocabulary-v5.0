@@ -893,7 +893,7 @@ select distinct cs.concept_code,cs.concept_name, cs.concept_class_id, cs.alterna
 FROM dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
 left JOIN  dev_lexicon.concept n
 ON trim(lower(regexp_replace(cs.alternative_concept_name,'[[:punct:]]|\s','','g')))
-                                           = trim(lower(regexp_replace(n.concept_name,'\sposition|[[:punct:]]|\s','','g')))
+    = trim(lower(regexp_replace(n.concept_name,'\sposition|[[:punct:]]|\s','','g')))
 AND n.vocabulary_id='Nebraska Lexicon'
 AND n.invalid_reason IS NULL
 ORDER BY cs.concept_name
@@ -915,7 +915,7 @@ ON n.concept_id=nr.concept_id_2
 JOIN dev_lexicon.concept nn ON nn.concept_id=nr.concept_id_1
 WHERE n.vocabulary_id='Nebraska Lexicon'
 AND nn.vocabulary_id='Nebraska Lexicon'
-AND n.concept_name ~*'Anterior'
+AND n.concept_name ~*'Closest'
 AND n.invalid_reason is NULL
 ;
 
@@ -955,27 +955,23 @@ AND c.vocabulary_id in ('Nebraska Lexicon') --vocabularies selection
       AND cc.invalid_reason IS NULL
 )
 
-    SELECT DISTINCT alternative_concept_name, -- OR source_code, if source_code_description doesn't exist
-                                ac.concept_id     as target_concept_id,
-                    ac.name,
-                   ac.vocabulary_id,
-                    ac.standard_concept,
-                       ac.invalid_reason,
-                array_agg (DISTINCT ac.algorithm) as algorithm
+    SELECT DISTINCT  S.CONCEPT_CODE,
+                    S.CONCEPT_NAME,
+                    S.ALTERNATIVE_CONCEPT_NAME,
+                    S.DOMAIN_ID,
+                    S.VOCABULARY_ID,
+                    S.CONCEPT_CLASS_ID,
+                    S.STANDARD_CONCEPT,
+                    S.INVALID_REASON,
+                    d.*
 
 
     FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary s --source table
-         JOIN all_concepts ac
+        LEFT  JOIN all_concepts ac
               ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
                                            = trim(lower(regexp_replace(ac.name,'\sposition|[[:punct:]]|\s','','g')))
+LEFT join DEV_LEXICON.CONCEPT D
+ON d.concept_id=ac.concept_id
 
-
-
-              GROUP BY alternative_concept_name,
-                      ac.concept_id,
-                       ac.name,
-                       ac.standard_concept,
-                       ac.invalid_reason,
-                       ac.vocabulary_id
 /*)*/
 ;

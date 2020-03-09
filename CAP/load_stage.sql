@@ -788,6 +788,7 @@ select concept_code_1, concept_code_2
 from dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 group by concept_code_1, concept_code_2 having count(1) > 1
 ;
+
 --QA for stage tables
 --all the selects below should return null
 
@@ -887,7 +888,94 @@ WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
 
 -- TODO reverse relationships need to be created
 --dev_lexicon - for Nebraska_Lexicon mappings
--- select * from dev_lexicon
-select distinct
-*  FROM dev_lexicon.concept
-WHERE vocabulary_id='Nebraska Lexicon';
+select distinct cs.concept_code,cs.concept_name, cs.concept_class_id, cs.alternative_concept_name, n.*,
+                CASE WHEN length(n.concept_name)>20 then 'CHECK' else '' END AS comment
+FROM dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+left JOIN  dev_lexicon.concept n
+ON trim(lower(regexp_replace(cs.alternative_concept_name,'[[:punct:]]|\s','','g')))
+                                           = trim(lower(regexp_replace(n.concept_name,'\sposition|[[:punct:]]|\s','','g')))
+AND n.vocabulary_id='Nebraska Lexicon'
+AND n.invalid_reason IS NULL
+ORDER BY cs.concept_name
+;
+
+SELECT distinct n.concept_id,
+               n.concept_code	,
+               n.concept_name	,
+               n. domain_id	,
+               n. concept_class_id	,
+               n. vocabulary_id	,
+               n. valid_start_date	,
+               n. valid_end_date	,
+               n. invalid_reason	,
+               n. standard_concept
+FROM dev_lexicon.concept n
+JOIN dev_lexicon.concept_relationship nr
+ON n.concept_id=nr.concept_id_2
+JOIN dev_lexicon.concept nn ON nn.concept_id=nr.concept_id_1
+WHERE n.vocabulary_id='Nebraska Lexicon'
+AND nn.vocabulary_id='Nebraska Lexicon'
+AND n.concept_name ~*'Anterior'
+AND n.invalid_reason is NULL
+;
+
+
+
+
+/*CREATE TABLE table_name_automapped AS (*/
+WITH all_concepts AS (
+    SELECT DISTINCT a.name, cc.concept_id, cc.vocabulary_id,cc.standard_concept, cc.invalid_reason, a.algorithm
+    FROM (
+             SELECT concept_name as name,
+                    concept_id as concept_id,
+                    'CN' as algorithm
+             FROM dev_lexicon.concept c
+             WHERE c.vocabulary_id='Nebraska Lexicon'
+UNION ALL
+             --Mapping non-standard to standard through concept relationship
+             SELECT c.concept_name as name,
+                    cr.concept_id_2 as concept_id,
+                    'CR' as algorithm
+             FROM  dev_lexicon.concept c
+             JOIN dev_lexicon.concept_relationship cr
+             ON (cr.concept_id_1 = c.concept_id
+                 AND cr.invalid_reason IS NULL AND cr.relationship_id in ('Maps to','Concept same_as to','Concept poss_eq to'))
+             JOIN dev_lexicon.concept cc
+             ON (cr.concept_id_2 = cc.concept_id
+                 AND (cc.standard_concept IN ('S','') or cc.standard_concept IS NULL) AND cc.invalid_reason IS NULL)
+             WHERE c.standard_concept != 'S' OR c.standard_concept IS NULL
+AND cc.vocabulary_id in ('Nebraska Lexicon')
+AND c.vocabulary_id in ('Nebraska Lexicon') --vocabularies selection
+         ) AS a
+
+             JOIN dev_lexicon.concept cc
+                  ON a.concept_id = cc.concept_id
+
+      WHERE (cc.standard_concept IN ('S','') or cc.standard_concept IS NULL)
+      AND cc.invalid_reason IS NULL
+)
+
+    SELECT DISTINCT alternative_concept_name, -- OR source_code, if source_code_description doesn't exist
+                                ac.concept_id     as target_concept_id,
+                    ac.name,
+                   ac.vocabulary_id,
+                    ac.standard_concept,
+                       ac.invalid_reason,
+                array_agg (DISTINCT ac.algorithm) as algorithm
+
+
+    FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary s --source table
+         JOIN all_concepts ac
+              ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
+                                           = trim(lower(regexp_replace(ac.name,'\sposition|[[:punct:]]|\s','','g')))
+
+
+
+              GROUP BY alternative_concept_name,
+                      ac.concept_id,
+                       ac.name,
+                       ac.standard_concept,
+                       ac.invalid_reason,
+                       ac.vocabulary_id
+/*)*/
+;

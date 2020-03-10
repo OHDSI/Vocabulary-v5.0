@@ -1019,7 +1019,7 @@ SELECT distinct n.concept_id,
                n. standard_concept
 FROM dev_lexicon.concept n
 WHERE n.vocabulary_id='Nebraska Lexicon'
-AND n.concept_name ~*'Weak'
+AND n.concept_name ~* 'Right'
 /* AND n.concept_name ~*'Grade'*/
 AND n.invalid_reason is NULL
 ;
@@ -1045,11 +1045,45 @@ ON n.concept_id=nr.concept_id_2
 JOIN dev_lexicon.concept nn ON nn.concept_id=nr.concept_id_1
 WHERE n.vocabulary_id='Nebraska Lexicon'
 AND nn.vocabulary_id='Nebraska Lexicon'
-AND n.concept_id = 3067438-- from above select
+AND n.concept_id = 3369403-- from above select
 /* AND n.concept_name ~*'skin'*/
 AND n.invalid_reason is NULL
 ;
 
+SELECT n.concept_id,
+               n.concept_code	,
+               n.concept_name	,
+               n. domain_id	,
+               n. concept_class_id	,
+               n. vocabulary_id	,
+               n. valid_start_date	,
+               n. valid_end_date	,
+               n. invalid_reason	,
+               n. standard_concept
+FROM devv5.concept n
+WHERE concept_id=40482071
+;
+
+select * from ddymshyts.concept where vocabulary_id ='Nebraska Lexicon'
+and concept_code not in (select concept_code from dev_lexicon.concept where vocabulary_id ='Nebraska Lexicon')
+AND CONCEPT_id IN ('36902312',
+'36902319',
+'36902401',
+'36902461',
+'36902542',
+'36902644',
+'36902651',
+'36902670',
+'36902679',
+'36902696',
+'36902711',
+'36902732',
+'36902735',
+'36902742',
+'36902754',
+'36902795',
+'36902806',
+'36903138')
 
 
 -- used to upload to g-dock for manual
@@ -1093,13 +1127,20 @@ AND c.vocabulary_id in ('Nebraska Lexicon') --vocabularies selection
                     S.CONCEPT_CLASS_ID,
                     S.STANDARD_CONCEPT,
                     S.INVALID_REASON,
-                    d.*
+                    dc.*
 
 
     FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary s --source table
-        /*LEFT*/  JOIN all_concepts ac
-              ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
+        LEFT  JOIN all_concepts ac
+          ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
                                            = trim(lower(regexp_replace(ac.name,'\sposition|[[:punct:]]|\s','','g')))
-/*LEFT*/ join DEV_LEXICON.CONCEPT D
+LEFT join DEV_LEXICON.CONCEPT D
 ON d.concept_id=ac.concept_id
+
+        /* JOIN  ddymshyts.concept dc
+    ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
+                                           = trim(lower(regexp_replace(dc.concept_name,'\sposition|[[:punct:]]|\s','','g')))
+     AND  dc.vocabulary_id ='Nebraska Lexicon'
+and dc.concept_code not in (select concept_code from dev_lexicon.concept where vocabulary_id ='Nebraska Lexicon')*/ -- to map to 36902696	 Cannot be assessed
+
 ;

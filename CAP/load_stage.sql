@@ -302,13 +302,13 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
                alt_source_description AS alternative_concept_name,
      CASE
          WHEN source_class in ('DI', 'CAP Protocol')       or    (source_class='S'       AND source_description !~*'^Distance')  THEN 'Observation' -- todo How to treat 'CAP Protocol' in domain_id?
-         WHEN source_class = 'LI' AND source_description !~* '^\.*other|^\.*specif.*' THEN  'Meas Value'
+         WHEN source_class = 'LI' /*AND source_description !~* '^\.*other|^\.*specif.*'*/ THEN  'Meas Value' --decided to leave them as values
          ELSE 'Measurement'
          END                               AS domain_id,
                'CAP'                       AS vocabulary_id,
      CASE
          WHEN source_class = 'S'    AND source_description !~*'^Distance'                                     THEN 'CAP Header' -- or 'CAP section'
-         WHEN source_class = 'LI' AND source_description !~* '^\.*other|^\.*specif.*' THEN 'CAP Value' -- ^.*expla.* todo do we need them to be variables
+         WHEN source_class = 'LI' /*AND source_description !~* '^\.*other|^\.*specif.*'*/  THEN 'CAP Value' -- ^.*expla.* todo do we need them to be variables, decided to leave them as values
          WHEN source_class = 'CAP Protocol'                              THEN 'CAP Protocol'
          WHEN source_class = 'DI' THEN 'CAP Comment'
          ELSE 'CAP Variable'
@@ -327,7 +327,7 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
 
 SELECT *
 FROM cap_breast_2020_concept_stage_preliminary
-
+;
 
 -- check that no source_codes lost after modification
 --73 rows with CAP-comments marked as 'DI' class
@@ -368,6 +368,51 @@ FROM (SELECT distinct variable_code as code
       WHERE e.filename ~* 'breast'
       AND value_code IS NOT NULL
      ) as a
+;
+
+
+-- INSERT INTO CONCEPT_STAGE
+INSERT INTO dev_vkorsik.CONCEPT_STAGE (
+                                       concept_id,
+                           concept_name,
+                           domain_id,
+                           vocabulary_id,
+                           concept_class_id,
+                           standard_concept,
+                           concept_code,
+                           valid_start_date,
+                           valid_end_date,
+                           invalid_reason
+                           )
+                           SELECT concept_id::int,
+                                  alternative_concept_name,
+                                  domain_id,
+                                  vocabulary_id,
+                                  concept_class_id,
+                                   standard_concept,
+                                  concept_code,
+                                  valid_start_date::date,
+                                  valid_end_date::date,
+                                  invalid_reason
+FROM cap_breast_2020_concept_stage_preliminary
+;
+-- TRUNCATE TABLE dev_vkorsik.CONCEPT_STAGE
+SELECT * FROM dev_vkorsik.CONCEPT_STAGE;
+
+-- CONCEPT_SYNONYM_STAGE
+INSERT INTO dev_vkorsik.CONCEPT_synonym_stage (synonym_concept_id, synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id)
+SELECT                                concept_id::int,
+                                  concept_name,
+                               concept_code,
+                                  vocabulary_id,
+                                  4180186 as language_concept_id  -- for english language
+FROM cap_breast_2020_concept_stage_preliminary
+;
+
+SELECT *
+FROM dev_vkorsik.concept_stage cs
+JOIN dev_vkorsik.concept_synonym_stage css
+    ON cs.concept_code=css.synonym_concept_code
 ;
 
 -- 02 concept_relationship_stage
@@ -750,10 +795,68 @@ WHERE cs.source_filename ='Breast.Bmk.169_1.006.001.REL_sdcFDF'
 
 
 
-SELECT distinct *
+SELECT distinct concept_id_1,
+                concept_code_1,
+                source_class_1,
+                vocabulary_id_1,
+                concept_name_1,
+                concept_class_1,
+                relationship_id,
+                concept_id_2,
+                concept_code_2,
+                source_class_2,
+                vocabulary_id_2,
+                concept_name_2,
+                concept_class_2,
+                invalid_reason,
+                valid_start_date,
+                valid_end_date,
+                filename
 FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 ;
+INSERT INTO dev_vkorsik.concept_relationship_stage (
+                                                    concept_id_1,
+                                                    concept_id_2,
+                                                    concept_code_1,
+                                                    concept_code_2,
+                                                    vocabulary_id_1,
+                                                    vocabulary_id_2,
+                                                    relationship_id,
+                                                    valid_start_date,
+                                                    valid_end_date,
+                                                    invalid_reason
+                                                    )
+                                                    SELECT concept_id_1::int,
+                                                           concept_id_2::int,
+                                                           concept_code_1,
+                                                            concept_code_2,
+                                                           vocabulary_id_1,
+                                                          vocabulary_id_2,
+                                                           relationship_id,
+                                                           valid_start_date::date,
+                                                           valid_end_date::date,
+                                                           invalid_reason
+FROM cap_breast_2020_concept_relationship_stage_preliminary;
 
+SELECT concept_id_1,
+       concept_id_2,
+       concept_code_1,
+       cs.concept_name,
+        relationship_id,
+       concept_code_2,
+        cs2.concept_name,
+       vocabulary_id_1,
+       vocabulary_id_2,
+       crs.valid_start_date,
+       crs.valid_end_date,
+       crs.invalid_reason
+FROM dev_vkorsik.concept_relationship_stage crs
+JOIN concept_stage cs
+ON crs.concept_code_1=cs.concept_code
+JOIN concept_stage cs2
+ON crs.concept_code_2=cs2.concept_code
+ORDER BY cs.concept_name
+;
 -- to check existence of more then one direct relationchip
 SELECT distinct *
 FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
@@ -899,6 +1002,11 @@ AND n.invalid_reason IS NULL
 ORDER BY cs.concept_name
 ;
 
+SELECT distinct *
+FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+WHERE concept_name_2='Extent of Medial Margin Involvement|Medial|Specify Margin(s)|Positive for DCIS|Margins|MARGINS (Note H)'
+;
+
 SELECT distinct n.concept_id,
                n.concept_code	,
                n.concept_name	,
@@ -910,19 +1018,41 @@ SELECT distinct n.concept_id,
                n. invalid_reason	,
                n. standard_concept
 FROM dev_lexicon.concept n
+WHERE n.vocabulary_id='Nebraska Lexicon'
+AND n.concept_name ~*'Weak'
+/* AND n.concept_name ~*'Grade'*/
+AND n.invalid_reason is NULL
+;
+
+
+SELECT distinct nn.concept_id,
+               nn.concept_code	,
+               nn.concept_name	,
+               nn. domain_id	,
+               nn. concept_class_id	,
+               nn. vocabulary_id	,
+               nn. valid_start_date	,
+               nn. valid_end_date	,
+               nn. invalid_reason	,
+               nn. standard_concept,
+                nn.concept_name	,
+                nr.relationship_id,
+                n.concept_name
+
+FROM dev_lexicon.concept n
 JOIN dev_lexicon.concept_relationship nr
 ON n.concept_id=nr.concept_id_2
 JOIN dev_lexicon.concept nn ON nn.concept_id=nr.concept_id_1
 WHERE n.vocabulary_id='Nebraska Lexicon'
 AND nn.vocabulary_id='Nebraska Lexicon'
-AND n.concept_name ~*'Closest'
+AND n.concept_id = 3067438-- from above select
+/* AND n.concept_name ~*'skin'*/
 AND n.invalid_reason is NULL
 ;
 
 
 
-
-/*CREATE TABLE table_name_automapped AS (*/
+-- used to upload to g-dock for manual
 WITH all_concepts AS (
     SELECT DISTINCT a.name, cc.concept_id, cc.vocabulary_id,cc.standard_concept, cc.invalid_reason, a.algorithm
     FROM (
@@ -967,11 +1097,9 @@ AND c.vocabulary_id in ('Nebraska Lexicon') --vocabularies selection
 
 
     FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary s --source table
-        LEFT  JOIN all_concepts ac
+        /*LEFT*/  JOIN all_concepts ac
               ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
                                            = trim(lower(regexp_replace(ac.name,'\sposition|[[:punct:]]|\s','','g')))
-LEFT join DEV_LEXICON.CONCEPT D
+/*LEFT*/ join DEV_LEXICON.CONCEPT D
 ON d.concept_id=ac.concept_id
-
-/*)*/
 ;

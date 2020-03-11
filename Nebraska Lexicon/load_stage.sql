@@ -1365,6 +1365,83 @@ where
 				vocabulary_id_2 != 'Nebraska Lexicon'
 		)
 ;
+--21. If concept is deprecated in main SNOMED, make the Nebraska counterpart non-standard
+-- If SNOMED counterpart is updated with another concept, map to the new target
+insert into concept_relationship_stage
+	(concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
+select
+	c.concept_code,
+	t.concept_code,
+	'Nebraska Lexicon',
+	t.vocabulary_id,
+	'Maps to',
+	to_date ('19700101','yyyymmdd'),
+	to_date ('20991231','yyyymmdd')
+from concept_stage c
+join concept x on
+	c.concept_code = x.concept_code and
+	x.vocabulary_id = 'SNOMED' and
+	x.invalid_reason = 'U'
+join concept_relationship r on
+	r.relationship_id = 'Maps to' and
+	r.invalid_reason is null and
+	r.concept_id_1 = x.concept_id
+join concept t on
+	r.concept_id_2 = t.concept_id
+where c.invalid_reason is not null
+;
+--Sometimes Nebraska is behind in versions. We need to make sure that concepts that are not active in SNOMED are not considered standard
+update concept_stage s
+set
+	standard_concept = null
+where
+	s.standard_concept is not null and
+	s.concept_code in
+		(
+			select concept_code
+			from concept
+			where
+				vocabulary_id = 'SNOMED' and
+				invalid_reason is not null
+		)
+;
+--22. Reconnect branches that remain standard to SNOMED hierarchy
+--dublicate 'Is a' entries to SNOMED concepts
+with branch_start as
+(
+	select r.concept_code_1, t.concept_code, t.vocabulary_id
+	from concept_relationship_stage r
+	join concept_stage c1 on
+		c1.concept_code = r.concept_code_1
+	join concept_stage c2 on
+		c2.concept_code = r.concept_code_2 and
+		r.relationship_id = 'Is a' and
+		c1.standard_concept = 'S' and
+		c2.standard_concept is null
+	join concept c on
+		c.vocabulary_id = 'SNOMED' and
+		c.concept_code = c2.concept_code
+	join concept_relationship m on --in case SNOMED parent is Updated
+		m.relationship_id = 'Maps to' and
+		m.invalid_reason is null and
+		m.concept_id_1 = c.concept_id
+	join concept t on
+		t.concept_id = m.concept_id_2 and
+		t.vocabulary_id != 'RxNorm' --We only extend from SNOMED
+)
+insert into concept_relationship_stage
+	(concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
+select distinct
+	concept_code_1,
+	concept_code,
+	'Nebraska Lexicon',
+	vocabulary_id,
+	'Is a',
+	to_date ('19700101','yyyymmdd'),
+	to_date ('20991231','yyyymmdd')
+from branch_start
+;
+-- 23. If a concept gets mapped elsewhere, remove map to self
 delete from concept_relationship_stage b
 where
 	invalid_reason is null and
@@ -1381,39 +1458,25 @@ where
 					a.concept_code_1 = b.concept_code_1
 		)
 ;
---21. Reconnect branches that remain standard to SNOMED hierarchy
-with branch_start as
-(
-	select r.ctid as rown, t.concept_code, t.vocabulary_id
-	from concept_relationship_stage r
-	join concept_stage c1 on
-		c1.concept_code = r.concept_code_1
-	join concept_stage c2 on
-		c2.concept_code = r.concept_code_2 and
-		r.relationship_id = 'Is a' and
-		c1.standard_concept = 'S' and
-		c2.standard_concept is null
-	join concept c on
-		c.vocabulary_id = 'SNOMED' and
-		c.concept_code = c2.concept_code
-	join concept_relationship m on
-		m.relationship_id = 'Maps to' and
-		m.invalid_reason is null and
-		m.concept_id_1 = c.concept_id
-	join concept t on
-		t.concept_id = m.concept_id_2 and
-		t.vocabulary_id != 'RxNorm' --We only- extend from SNOMED
-)
-update concept_relationship_stage r
-set (concept_code_2, vocabulary_id_2) =
-	(
-		select b.concept_code, b.vocabulary_id
-		from branch_start b
-		where b.rown = r.ctid
-	)
-where r.ctid in (select rown from branch_start)	
+-- 24. Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+-- 25. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+-- 26. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
 ;
---22. Clean up
+-- 27. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;

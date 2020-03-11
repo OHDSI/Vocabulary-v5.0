@@ -1361,7 +1361,7 @@ where
 			where
 				concept_code = concept_code_1 and
 				relationship_id = 'Maps to' and
-				invalid_reason is null and
+				standard_concept is null and
 				vocabulary_id_2 != 'Nebraska Lexicon'
 		)
 ;
@@ -1469,14 +1469,9 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
-
--- 26. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
 ;
--- 27. Clean up
+
+-- 26. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;

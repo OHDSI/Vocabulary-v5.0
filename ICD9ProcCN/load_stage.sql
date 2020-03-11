@@ -45,7 +45,7 @@ INSERT INTO concept_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT DISTINCT COALESCE(c2.concept_name, c1.concept_name, c.english_concept_name || ' (automated translation)') AS concept_name,
+SELECT DISTINCT COALESCE(c2.concept_name, c1.concept_name, c.english_concept_name || ' (machine translation)') AS concept_name,
 	'Procedure' AS domain_id,
 	'ICD9ProcCN' AS vocabulary_id,
 	CASE c.concept_class_id

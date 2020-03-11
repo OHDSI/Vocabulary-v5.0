@@ -1019,11 +1019,15 @@ SELECT distinct n.concept_id,
                n. standard_concept
 FROM dev_lexicon.concept n
 WHERE n.vocabulary_id='Nebraska Lexicon'
-AND n.concept_name ~* 'Right'
-/* AND n.concept_name ~*'Grade'*/
+AND n.concept_name ~* 'Dimension'
+/* AND n.concept_name ~*'Margin'*/
+--AND n.concept_name ~*'breas'
+/*AND n.concept_name !~*'clos'*/
 AND n.invalid_reason is NULL
 ;
-
+SELECT * FROM  dev_lexicon.concept n
+WHERE n.vocabulary_id='Nebraska Lexicon'
+;
 
 SELECT distinct nn.concept_id,
                nn.concept_code	,
@@ -1045,7 +1049,7 @@ ON n.concept_id=nr.concept_id_2
 JOIN dev_lexicon.concept nn ON nn.concept_id=nr.concept_id_1
 WHERE n.vocabulary_id='Nebraska Lexicon'
 AND nn.vocabulary_id='Nebraska Lexicon'
-AND n.concept_id = 3369403-- from above select
+AND n.concept_id = 3193132-- from above select
 /* AND n.concept_name ~*'skin'*/
 AND n.invalid_reason is NULL
 ;
@@ -1061,7 +1065,7 @@ SELECT n.concept_id,
                n. invalid_reason	,
                n. standard_concept
 FROM devv5.concept n
-WHERE concept_id=40482071
+WHERE concept_id=4326825
 ;
 
 select * from ddymshyts.concept where vocabulary_id ='Nebraska Lexicon'

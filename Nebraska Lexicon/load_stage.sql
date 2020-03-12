@@ -1285,7 +1285,21 @@ UPDATE concept_stage cs
 SET standard_concept = NULL
 FROM snomed_ancestor sa
 WHERE cs.concept_code = sa.descendant_concept_code
-	AND sa.ancestor_concept_code = '363743006'; -- Navigational Concept
+	AND sa.ancestor_concept_code = '363743006' -- Navigational Concept
+	--some concepts have hierarchical relations to concepts in other hierarchies; They should not be considered Navigational concepts
+	and cs.concept_code not in
+		(
+			select r.concept_code_1
+			from concept_relationship_stage r
+			left join snomed_ancestor a on
+				a.ancestor_concept_code = '363743006' and -- Navigational Concept
+				r.concept_code_2 = a.descendant_concept_code
+			where
+				a.descendant_concept_code is null and
+				r.relationship_id = 'Is a' and
+				r.invalid_reason is null
+		)
+; 
 
 --17. Make those Obsolete routes non-standard
 UPDATE concept_stage
@@ -1350,22 +1364,22 @@ join concept_relationship r on
 join concept t on
 	r.concept_id_2 = t.concept_id
 ;
-update concept_stage
+update concept_stage c
 set standard_concept = null
 where
-	standard_concept is not null and
+	c.standard_concept is not null and
 	exists
 		(
 			select
-			from concept_relationship_stage
+			from concept_relationship_stage r
 			where
-				concept_code = concept_code_1 and
-				relationship_id = 'Maps to' and
-				standard_concept is null and
-				vocabulary_id_2 != 'Nebraska Lexicon'
+				c.concept_code = r.concept_code_1 and
+				r.relationship_id = 'Maps to' and
+				r.invalid_reason is null and
+				r.vocabulary_id_2 != 'Nebraska Lexicon'
 		)
 ;
---21. If concept is deprecated in main SNOMED, make the Nebraska counterpart non-standard
+--21. If concept is non-standard in main SNOMED, make the Nebraska counterpart non-standard
 -- If SNOMED counterpart is updated with another concept, map to the new target
 insert into concept_relationship_stage
 	(concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
@@ -1390,7 +1404,7 @@ join concept t on
 	r.concept_id_2 = t.concept_id
 where c.invalid_reason is not null
 ;
---Sometimes Nebraska is behind in versions. We need to make sure that concepts that are not active in SNOMED are not considered standard
+--Sometimes Nebraska is behind in versions. We need to make sure that concepts that are not standard in SNOMED are not considered standard
 update concept_stage s
 set
 	standard_concept = null
@@ -1402,7 +1416,7 @@ where
 			from concept
 			where
 				vocabulary_id = 'SNOMED' and
-				invalid_reason is not null
+				standard_concept is null
 		)
 ;
 --22. Reconnect branches that remain standard to SNOMED hierarchy
@@ -1458,20 +1472,35 @@ where
 					a.concept_code_1 = b.concept_code_1
 		)
 ;
--- 24. Working with replacement mappings
+-- 24. Concepts with maps to another vocabularies should not be standard
+update concept_stage
+set standard_concept = null
+where
+	standard_concept is not null and
+	concept_code in
+		(
+			select concept_code_1
+			from concept_relationship_stage
+			where 
+				invalid_reason is null and
+				vocabulary_id_2 != 'Nebraska Lexicon' and
+				relationship_id = 'Maps to'
+		)
+;
+-- 25. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
--- 25. Add mapping from deprecated to fresh concepts
+-- 26. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 ;
 
--- 26. Clean up
+-- 27. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;

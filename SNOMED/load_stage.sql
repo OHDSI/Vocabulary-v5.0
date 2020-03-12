@@ -1916,6 +1916,19 @@ FROM (
 				THEN 'Has combi prod ind'
 			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) dose form indicator'
 				THEN 'Has form continuity'
+			--20200312
+			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) additional monitoring indicator'
+				THEN 'Has add monitor ind'
+			when term = 'Has NHS dm+d (dictionary of medicines and devices) AMP (actual medicinal product) availability restriction indicator'
+				then 'Has AMP restr ind'
+			WHEN term = 'Has NHS dm+d parallel import indicator'
+				then 'Paral imprt ind'
+			WHEN term = 'Has NHS dm+d freeness indicator'
+				then 'Has free indicator'
+			WHEN term = 'Units'
+				then 'Has unit'
+			WHEN term = 'Process duration'
+				then 'Has proc duration'
 			ELSE term--'non-existing'
 			END AS relationship_id,
 		(
@@ -2397,8 +2410,11 @@ VALUES (138875005, 'Metadata'), -- root
 	(48176007, 'Observation'), -- Social context
 	(397731000, 'Race'), -- Ethnic group finding
 	--added 20191112
-	(108246006, 'Measurement'); --Tonometry AND/OR tonography procedure
-
+	(108246006, 'Measurement'), --Tonometry AND/OR tonography procedure
+	--added 20200312
+	(61746007, 'Measurement'), --Taking patient vital signs
+	(771387000,'Drug') --Substance with effector mechanism of action
+;
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 -- The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
@@ -2832,7 +2848,8 @@ SET standard_concept = CASE domain_id
 			THEN NULL -- Units are UCUM
 		ELSE 'S'
 		END
-WHERE vocabulary_id = 'SNOMED';
+WHERE invalid_reason is null
+;
 
 -- And de-standardize navigational concepts
 UPDATE concept_stage

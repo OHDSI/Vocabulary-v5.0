@@ -2413,8 +2413,8 @@ VALUES (138875005, 'Metadata'), -- root
 	(108246006, 'Measurement'), --Tonometry AND/OR tonography procedure
 	--added 20200312
 	(61746007, 'Measurement'), --Taking patient vital signs
-	(771387000,'Drug') --Substance with effector mechanism of action
-;
+	(771387000,'Drug'); --Substance with effector mechanism of action
+
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 -- The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
@@ -2848,8 +2848,7 @@ SET standard_concept = CASE domain_id
 			THEN NULL -- Units are UCUM
 		ELSE 'S'
 		END
-WHERE invalid_reason is null
-;
+WHERE invalid_reason is null;
 
 -- And de-standardize navigational concepts
 UPDATE concept_stage

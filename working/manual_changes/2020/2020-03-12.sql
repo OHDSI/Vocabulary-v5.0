@@ -48,7 +48,7 @@ BEGIN
     pIs_hierarchical         =>0,
     pDefines_ancestry        =>0,
     pReverse_relationship_id =>'Free indicator of',
-    pRelationship_name_rev   =>'NHS dm+d parallel import indicator of',
+    pRelationship_name_rev   =>'NHS dm+d freenes indicator of',
     pIs_hierarchical_rev     =>0,
     pDefines_ancestry_rev    =>0
 );
@@ -62,7 +62,7 @@ BEGIN
     pIs_hierarchical         =>0,
     pDefines_ancestry        =>0,
     pReverse_relationship_id =>'Proc duration of',
-    pRelationship_name_rev   =>'Process duration',
+    pRelationship_name_rev   =>'Process duration of',
     pIs_hierarchical_rev     =>0,
     pDefines_ancestry_rev    =>0
 );

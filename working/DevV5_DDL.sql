@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov
-* Date: 2017
+* Date: 2020
 **************************************************************************/
 
 --Main DDL

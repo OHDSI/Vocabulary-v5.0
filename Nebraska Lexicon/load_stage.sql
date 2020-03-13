@@ -533,33 +533,40 @@ ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREI
 ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 --SELECT relationship_id FROM concept_relationship_stage EXCEPT SELECT relationship_id FROM relationship;
 
---Nebraska may add asinine relationships that are synchronous in both directions.
+--5.1 Nebraska may add asinine relationships that are synchronous in both directions.
 --We remove the relation that originates from concept that is stated as primitive.
-with concept_status as --get latest assigned status
+WITH concept_status
+AS --get latest assigned status
 	(
-		select
-			id,
-			first_value (statusid) over 
-				(
-					partition by id
-					order by effectivetime desc
-				) as statusid
-		from sources.lex_sct2_concept
+	SELECT id
+	FROM (
+		SELECT id,
+			first_value(statusid) OVER (
+				PARTITION BY id ORDER BY effectivetime DESC
+				) AS statusid
+		FROM sources.lex_sct2_concept
+		) AS s0
+	WHERE s0.statusid = '900000000000074008' --Primitive
 	)
-delete from concept_relationship_stage crs
-where crs.ctid in
-	(
-		select r1.ctid
-		FROM concept_relationship_stage r1
-		join concept_relationship_stage r2 on
-			r1.concept_code_1 = r2.concept_code_2 and
-			r2.concept_code_1 = r1.concept_code_2 and
-			r1.relationship_id = r2.relationship_id and
-			r1.concept_code_1 <> r2.concept_code_1
-		join concept_status c on
-			c.id = r1.concept_code_1 and
-			c.statusid = '900000000000074008' --Primitive
-	);
+DELETE
+FROM concept_relationship_stage crs
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_2 = crs.concept_code_1
+			AND crs_int.vocabulary_id_2 = crs.vocabulary_id_1
+			AND crs_int.concept_code_1 = crs.concept_code_2
+			AND crs_int.vocabulary_id_1 = crs.vocabulary_id_2
+			AND crs_int.relationship_id = crs.relationship_id
+			AND crs_int.invalid_reason IS NULL
+		)
+	AND EXISTS (
+		SELECT 1
+		FROM concept_status c_st
+		WHERE c_st.id = crs.concept_code_1
+		)
+	AND crs.invalid_reason IS NULL
+	AND crs.vocabulary_id_1 = 'Nebraska Lexicon';
 
 --6. Add replacement relationships. They are handled in a different Nebraska Lexicon table
 INSERT INTO concept_relationship_stage (

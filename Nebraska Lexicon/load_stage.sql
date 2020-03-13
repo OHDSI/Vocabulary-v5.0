@@ -533,6 +533,34 @@ FROM (
 --ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 --SELECT relationship_id FROM concept_relationship_stage EXCEPT SELECT relationship_id FROM relationship;
 
+--Nebraska may add asinine relationships that are synchronous in both directions.
+--We remove the relation that originates from concept that is stated as primitive.
+with concept_status as --get latest assigned status
+	(
+		select
+			id,
+			first_value (statusid) over 
+				(
+					partition by id
+					order by effectivetime desc
+				) as statusid
+		from sources.lex_sct2_concept
+	)
+delete from concept_relationship_stage crs
+where crs.ctid in
+	(
+		select r1.ctid
+		FROM concept_relationship_stage r1
+		join concept_relationship_stage r2 on
+			r1.concept_code_1 = r2.concept_code_2 and
+			r2.concept_code_1 = r1.concept_code_2 and
+			r1.relationship_id = r2.relationship_id and
+			r1.concept_code_1 <> r2.concept_code_1
+		join concept_status c on
+			c.id = r1.concept_code_1 and
+			c.statusid = '900000000000074008' --Primitive
+	);
+
 --6. Add replacement relationships. They are handled in a different Nebraska Lexicon table
 INSERT INTO concept_relationship_stage (
 	concept_code_1,

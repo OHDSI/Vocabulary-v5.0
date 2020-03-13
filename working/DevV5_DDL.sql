@@ -61,7 +61,7 @@ CREATE TABLE concept_ancestor (
 DROP TABLE IF EXISTS relationship CASCADE;
 CREATE TABLE relationship (
 	relationship_id VARCHAR (20) NOT NULL,
-	relationship_name VARCHAR (255) NOT NULL,
+	relationship_name VARCHAR (255) NOT NULL UNIQUE,
 	is_hierarchical int NOT NULL,
 	defines_ancestry int2 NOT NULL,
 	reverse_relationship_id VARCHAR (20) NOT NULL,

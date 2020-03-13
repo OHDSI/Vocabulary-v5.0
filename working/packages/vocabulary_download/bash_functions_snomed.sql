@@ -1,5 +1,6 @@
 /*
 	20190204 added flag -C to unzip (only SNOMED part) = case insensitive
+	20200225 added extraction of der2_Refset_SimpleFull_INT.txt
 */
 
 --INT part
@@ -17,15 +18,17 @@ BEGIN
     unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Terminology/sct2_Concept_Full_INT_*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Terminology/sct2_Description_Full-en_INT_*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Terminology/sct2_Relationship_Full_INT_*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationFull_INT_*.txt" -d .
+    unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationFull_INT_*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_InternationalRF2_PRODUCTION_*/Full/Refset/Map/der2_sRefset_SimpleMapFull_INT_*.txt" -d .
         
     #move result to original folder
     cd "$1"
-    rm -f "sct2_Concept_Full_INT.txt" "sct2_Description_Full-en_INT.txt" "sct2_Relationship_Full_INT.txt" "der2_cRefset_AssociationFull_INT.txt"
+    rm -f "sct2_Concept_Full_INT.txt" "sct2_Description_Full-en_INT.txt" "sct2_Relationship_Full_INT.txt" "der2_cRefset_AssociationFull_INT.txt" "der2_sRefset_SimpleMapFull_INT.txt"
     mv work/sct2_Concept_Full_INT_*.txt "sct2_Concept_Full_INT.txt" && \
     mv work/sct2_Description_Full-en_INT_*.txt "sct2_Description_Full-en_INT.txt" && \
     mv work/sct2_Relationship_Full_INT_*.txt "sct2_Relationship_Full_INT.txt" && \
     mv work/der2_cRefset_AssociationFull_INT_*.txt "der2_cRefset_AssociationFull_INT.txt"
+    mv work/der2_sRefset_SimpleMapFull_INT_*.txt "der2_sRefset_SimpleMapFull_INT.txt"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

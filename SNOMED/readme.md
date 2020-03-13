@@ -11,7 +11,9 @@ Prerequisites:
 - sct2_Concept_Full_INT_YYYYMMDD.txt
 - sct2_Description_Full-en_INT_YYYYMMDD.txt
 - sct2_Relationship_Full_INT_YYYYMMDD.txt
-Rename files to sct2_Concept_Full_INT.txt, sct2_Description_Full-en_INT.txt, sct2_Relationship_Full_INT.txt
+from the folder \Full\Refset\Map:
+- der2_sRefset_SimpleMapFull_INT_YYYYMMDD.txt
+Rename files to sct2_Concept_Full_INT.txt, sct2_Description_Full-en_INT.txt, sct2_Relationship_Full_INT.txt, der2_sRefset_SimpleMapFull_INT.txt
 
 4. Download the British SNOMED file uk_sct2cl_xx.x.x__YYYYMMDD000001.zip from https://isd.digital.nhs.uk/trud3/user/authenticated/group/0/pack/26/subpack/101/releases.
 5. Extract the following files from the folder SnomedCT_UKClinicalRF2_Production_YYYYMMDDTzzzzzz\Full\Terminology into a working folder:

@@ -144,8 +144,7 @@ BEGIN
 	AND c.invalid_reason IS NULL -- not already deprecated
 	AND CASE -- all vocabularies that give us a full list of active concepts at each release we can safely assume to deprecate missing ones (THEN 1)
 		WHEN c.vocabulary_id = 'SNOMED' THEN 1
-		WHEN c.vocabulary_id = 'LOINC' AND c.concept_class_id = 'LOINC Answers' THEN 1 -- Only LOINC answers are full lists
-		WHEN c.vocabulary_id = 'LOINC' THEN 0 -- LOINC gives full account of all concepts
+		WHEN c.vocabulary_id = 'LOINC' THEN 1
 		WHEN c.vocabulary_id = 'ICD9CM' THEN 1
 		WHEN c.vocabulary_id = 'ICD10' THEN 1
 		WHEN c.vocabulary_id = 'RxNorm' THEN 1
@@ -199,6 +198,8 @@ BEGIN
 		WHEN c.vocabulary_id = 'CTD' THEN 1
 		WHEN c.vocabulary_id = 'EDI' THEN 1
 		WHEN c.vocabulary_id = 'Nebraska Lexicon' THEN 1
+		WHEN c.vocabulary_id = 'ICD10CN' THEN 1
+		WHEN c.vocabulary_id = 'ICD9ProcCN' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');
@@ -259,7 +260,6 @@ BEGIN
 	ANALYZE concept;
 
 	-- 5. Make sure that invalid concepts are standard_concept = NULL
-	-- 5.1. For non-CPT4, non-ICD9Proc and non-HCPCS vocabularies
 	UPDATE concept c
 	SET standard_concept = NULL
 	WHERE c.invalid_reason IS NOT NULL
@@ -268,31 +268,7 @@ BEGIN
 			SELECT vocabulary_id
 			FROM vocabulary
 			WHERE latest_update IS NOT NULL
-			) -- only for current vocabularies
-		AND c.vocabulary_id NOT IN (
-			'CPT4',
-			'HCPCS',
-			'ICD9Proc'
-			);
-
-	-- 5.2. For CPT4, ICD9Proc and HCPCS
-	UPDATE concept c
-	SET standard_concept = NULL
-	WHERE c.invalid_reason IN (
-			'D',
-			'U'
-			)
-		AND c.standard_concept IS NOT NULL
-		AND c.vocabulary_id IN (
-			SELECT vocabulary_id
-			FROM vocabulary
-			WHERE latest_update IS NOT NULL
-			) -- only for current vocabularies
-		AND c.vocabulary_id IN (
-			'CPT4',
-			'HCPCS',
-			'ICD9Proc'
-			);
+			); -- only for current vocabularies
 
 	/****************************************
 	* Update the concept_relationship table *

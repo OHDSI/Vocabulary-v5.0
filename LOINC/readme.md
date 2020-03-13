@@ -2,7 +2,9 @@ Update of LOINC
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
+- SNOMED must be loaded first
 - Working directory LOINC.
+NOTE: The FastRecreateSchema must be used with a include_deprecated_rels=>true
 
 1. Run create_source_tables.sql
 2. Download full set (https://loinc.org/file-access/download-id/8960)

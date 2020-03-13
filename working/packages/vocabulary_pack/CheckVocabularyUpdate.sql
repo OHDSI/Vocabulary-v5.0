@@ -186,11 +186,11 @@ BEGIN
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');
             WHEN cVocabularyName = 'ICD10CM'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'Note: The FY ([[:digit:]]{4}) release of ICD-10-CM is now available')::int - 1 || '0101', 'yyyymmdd');
-                cVocabVer := 'ICD10CM FY'||to_char(cVocabDate + interval '1 year','YYYY')||' code descriptions';
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'Note: The FY ([[:digit:]]{4}) release of ICD-10-CM is now available') || '0101', 'yyyymmdd');
+                cVocabVer := 'ICD10CM FY'||to_char(cVocabDate,'YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN
-                cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'<a href="/Medicare/Coding/ICD10/([[:digit:]]{4})-ICD-10-PCS"')::int - 1 || '0101', 'yyyymmdd');
+                cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'<a href="/Medicare/Coding/ICD10/([[:digit:]]{4})-ICD-10-PCS"') || '0101', 'yyyymmdd');
                 /*old version2
                 select s1.icd10pcs_year into cVocabDate from (
                   select TO_DATE (SUBSTRING(url,'/([[:digit:]]{4})')::int - 1 || '0101', 'yyyymmdd') icd10pcs_year from (
@@ -208,7 +208,7 @@ BEGIN
                 perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
                 cVocabDate := TO_DATE (SUBSTRING (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '^[[:digit:]]+')::int - 1 || '0101', 'yyyymmdd');
                 */
-                cVocabVer := 'ICD10PCS '||to_char(cVocabDate + interval '1 year','YYYY');
+                cVocabVer := 'ICD10PCS '||to_char(cVocabDate,'YYYY');
             WHEN cVocabularyName = 'LOINC'
             THEN
                 cSearchString := 'LOINC Table File (CSV)';

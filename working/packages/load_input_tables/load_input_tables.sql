@@ -493,6 +493,9 @@ begin
       execute 'COPY sources.f_amp2 FROM '''||pVocabularyPath||'f_amp2.xml'' delimiter E''\b''';
       execute 'COPY sources.f_ampp2 FROM '''||pVocabularyPath||'f_ampp2.xml'' delimiter E''\b''';
       execute 'COPY sources.dmdbonus FROM '''||pVocabularyPath||'dmdbonus.xml'' delimiter E''\b''';
+      --loading der2_sRefset_SimpleMapFull_INT
+      truncate table sources.der2_srefset_simplemapfull_int;
+      execute 'COPY sources.der2_srefset_simplemapfull_int FROM '''||pVocabularyPath||'der2_sRefset_SimpleMapFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;
       execute 'COPY sources.icd10cm_temp FROM '''||pVocabularyPath||'icd10cm.txt'' delimiter E''\b''';
@@ -701,9 +704,11 @@ begin
       update sources.edi_data set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   when 'ICD10CN' then
       truncate table sources.icd10cn_concept, sources.icd10cn_concept_relationship;
-      execute 'COPY sources.icd10cn_concept FROM '''||pVocabularyPath||'icd10cn_concept.tsv'' delimiter E''\t'' csv quote ''"'' HEADER';
-      execute 'COPY sources.icd10cn_concept_relationship FROM '''||pVocabularyPath||'ICD10CN_CONCEPT_RELATIONSHIP.csv'' delimiter E''\t'' csv quote ''"'' HEADER';
+      execute 'COPY sources.icd10cn_concept (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason,english_concept_name,vocabulary_date,vocabulary_version) FROM '''||pVocabularyPath||'icd10cn_concept.tsv'' delimiter E''\t'' csv quote ''"'' HEADER';
+      execute 'COPY sources.icd10cn_concept_relationship FROM '''||pVocabularyPath||'icd10cn_concept_relationship.csv'' delimiter E''\t'' csv quote ''"'' HEADER';
       update sources.icd10cn_concept set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      --create 'clear' concept code
+      update sources.icd10cn_concept set concept_code_clean=substring(trim('()' from concept_code),'([^*(]*)');
   when 'NEBRASKA LEXICON' then
       truncate table sources.lex_sct2_concept, sources.lex_sct2_desc, sources.lex_sct2_rela, sources.lex_der2_crefset_assref;
       execute 'COPY sources.lex_sct2_concept (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
@@ -714,6 +719,11 @@ begin
       analyze sources.lex_sct2_concept;
       analyze sources.lex_sct2_desc;
       analyze sources.lex_sct2_rela;
+  when 'ICD9PROCCN' then
+      truncate table sources.icd9proccn_concept, sources.icd9proccn_concept_relationship;
+      execute 'COPY sources.icd9proccn_concept (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason,english_concept_name) FROM '''||pVocabularyPath||'icd9proccn_concept.csv'' delimiter E''\t'' csv quote ''"'' HEADER';
+      execute 'COPY sources.icd9proccn_concept_relationship FROM '''||pVocabularyPath||'icd9proccn_concept_relationship.csv'' delimiter E''\t'' csv quote ''"'' HEADER';
+      update sources.icd9proccn_concept set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

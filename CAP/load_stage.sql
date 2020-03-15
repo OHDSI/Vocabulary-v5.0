@@ -1017,13 +1017,14 @@ SELECT distinct n.concept_id,
                n. valid_end_date	,
                n. invalid_reason	,
                n. standard_concept
-FROM dev_lexicon.concept n
+FROM devv5.concept n
 WHERE n.vocabulary_id='Nebraska Lexicon'
-AND n.concept_name ~* 'Dimension'
+AND (n.concept_name ~* 'mitotic'
+OR  n.concept_code='82334004')
 /* AND n.concept_name ~*'Margin'*/
---AND n.concept_name ~*'breas'
-/*AND n.concept_name !~*'clos'*/
-AND n.invalid_reason is NULL
+--AND n.concept_name ~*'surgica'
+--AND n.concept_name !~*'clos'
+--AND n.invalid_reason is NULL
 ;
 SELECT * FROM  dev_lexicon.concept n
 WHERE n.vocabulary_id='Nebraska Lexicon'
@@ -1049,7 +1050,7 @@ ON n.concept_id=nr.concept_id_2
 JOIN dev_lexicon.concept nn ON nn.concept_id=nr.concept_id_1
 WHERE n.vocabulary_id='Nebraska Lexicon'
 AND nn.vocabulary_id='Nebraska Lexicon'
-AND n.concept_id = 3193132-- from above select
+AND n.concept_code = '84921008'-- from above select
 /* AND n.concept_name ~*'skin'*/
 AND n.invalid_reason is NULL
 ;
@@ -1065,7 +1066,7 @@ SELECT n.concept_id,
                n. invalid_reason	,
                n. standard_concept
 FROM devv5.concept n
-WHERE concept_id=4326825
+WHERE concept_id=4226108
 ;
 
 select * from ddymshyts.concept where vocabulary_id ='Nebraska Lexicon'
@@ -1087,7 +1088,11 @@ AND CONCEPT_id IN ('36902312',
 '36902754',
 '36902795',
 '36902806',
-'36903138')
+'36903138');
+
+SELECT distinct vocabulary_id
+FROM devv5.concept
+WHERE vocabulary_id ilike'n%'
 
 
 -- used to upload to g-dock for manual

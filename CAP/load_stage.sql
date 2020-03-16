@@ -301,7 +301,7 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
                source_description          AS concept_name,
                alt_source_description AS alternative_concept_name,
      CASE
-         WHEN source_class in ('DI', 'CAP Protocol')       or    (source_class='S'       AND source_description !~*'^Distance')  THEN 'Observation' -- todo How to treat 'CAP Protocol' in domain_id?
+         WHEN source_class ='CAP Protocol'       or    (source_class='S'       AND source_description !~*'^Distance')  THEN 'Observation' -- todo How to treat 'CAP Protocol' in domain_id?
          WHEN source_class = 'LI' /*AND source_description !~* '^\.*other|^\.*specif.*'*/ THEN  'Meas Value' --decided to leave them as values
          ELSE 'Measurement'
          END                               AS domain_id,
@@ -310,7 +310,6 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
          WHEN source_class = 'S'    AND source_description !~*'^Distance'                                     THEN 'CAP Header' -- or 'CAP section'
          WHEN source_class = 'LI' /*AND source_description !~* '^\.*other|^\.*specif.*'*/  THEN 'CAP Value' -- ^.*expla.* todo do we need them to be variables, decided to leave them as values
          WHEN source_class = 'CAP Protocol'                              THEN 'CAP Protocol'
-         WHEN source_class = 'DI' THEN 'CAP Comment'
          ELSE 'CAP Variable'
          END                               AS concept_class_id,
                NULL                        AS standard_concept,
@@ -325,8 +324,9 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
     )
 ;
 
-SELECT *
+SELECT distinct *
 FROM cap_breast_2020_concept_stage_preliminary
+ WHERE source_class='S'
 ;
 
 -- check that no source_codes lost after modification
@@ -370,7 +370,7 @@ FROM (SELECT distinct variable_code as code
      ) as a
 ;
 
-
+--truncate table CONCEPT_STAGE;
 -- INSERT INTO CONCEPT_STAGE
 INSERT INTO dev_vkorsik.CONCEPT_STAGE (
                                        concept_id,
@@ -398,7 +398,7 @@ FROM cap_breast_2020_concept_stage_preliminary
 ;
 -- TRUNCATE TABLE dev_vkorsik.CONCEPT_STAGE
 SELECT * FROM dev_vkorsik.CONCEPT_STAGE;
-
+--TRUNCATE TABLE dev_vkorsik.CONCEPT_SYNONYM_STAGE
 -- CONCEPT_SYNONYM_STAGE
 INSERT INTO dev_vkorsik.CONCEPT_synonym_stage (synonym_concept_id, synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id)
 SELECT                                concept_id::int,
@@ -503,7 +503,7 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary 
         ORDER BY concept_code_1
         )
     ;
- -- STEP 1 'Is a' INSERT
+ -- STEP 1'Has parent item' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -511,7 +511,7 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Is a'                                                   AS relationship_id,
+              'Has parent item'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -534,7 +534,7 @@ SELECT NULL                                                             AS conce
 AND cs.concept_code  NOT in (select concept_code_1 FROM cap_breast_2020_concept_relationship_stage_preliminary)
 AND cs2.concept_code  NOT in (select concept_code_2 FROM cap_breast_2020_concept_relationship_stage_preliminary);
 ;
--- STEP 2 'Is a' INSERT
+-- STEP 2'Has parent item' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -542,7 +542,7 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Is a'                                                   AS relationship_id,
+              'Has parent item'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -568,7 +568,7 @@ AND NOT EXISTS (select 1
     AND cr1.concept_code_2=cs2.concept_code)
 ;
 
---STEP 3 'Is a' INSERT
+--STEP 3'Has parent item' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -576,7 +576,7 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Is a'                                                   AS relationship_id,
+              'Has parent item'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -602,7 +602,7 @@ AND NOT EXISTS (select 1
     AND cr1.concept_code_2=cs2.concept_code)
 ;
 
---STEP 4  'Is a' INSERT
+--STEP 4 'Has parent item' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -610,7 +610,7 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Is a'                                                   AS relationship_id,
+              'Has parent item'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -637,7 +637,7 @@ AND NOT EXISTS (select 1
 
 ;
 
---STEP 5 'Is a' INSERT
+--STEP 5'Has parent item' INSERT
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -645,7 +645,7 @@ SELECT NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Is a'                                                   AS relationship_id,
+              'Has parent item'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -670,7 +670,7 @@ SELECT NULL                                                             AS conce
     AND cr1.concept_code_2=cs2.concept_code);
 ;
 
--- 'Derives from'
+-- 'Part of protocol'
 INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 select         NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
@@ -678,7 +678,7 @@ select         NULL                                                             
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Derives from'                                                   AS relationship_id,
+               'Part of protocol'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -702,7 +702,7 @@ select NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Derives from'                                                   AS relationship_id,
+               'Part of protocol'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -726,7 +726,7 @@ select NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Derives from'                                                   AS relationship_id,
+               'Part of protocol'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -750,7 +750,7 @@ select NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Derives from'                                                   AS relationship_id,
+               'Part of protocol'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -774,7 +774,7 @@ select NULL                                                             AS conce
                'CAP'                                                            AS vocabulary_id_1,
                cs.concept_name /* coalesce(value_description,value_alt)*/       AS concept_name_1,
                cs.concept_class_id                                              AS concept_class_1,
-               'Derives from'                                                   AS relationship_id,
+               'Part of protocol'                                                   AS relationship_id,
                NULL                                                             AS concept_id_2,
                 cs2.concept_code                                                 AS concept_code_2,
                 cs2.source_class                                                 AS source_class_2,
@@ -814,6 +814,7 @@ SELECT distinct concept_id_1,
                 filename
 FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 ;
+--TRUNCATE concept_relationship_stage;
 INSERT INTO dev_vkorsik.concept_relationship_stage (
                                                     concept_id_1,
                                                     concept_id_2,
@@ -862,7 +863,7 @@ SELECT distinct *
 FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
 WHERE concept_code_1 IN (SELECT concept_code_1
     FROM cap_breast_2020_concept_relationship_stage_preliminary
-WHERE  relationship_id = 'Derives from'
+WHERE  relationship_id = 'Part of protocol'
 GROUP BY concept_code_1
     HAVING count(distinct concept_code_2)>1
     )
@@ -1019,9 +1020,8 @@ SELECT distinct n.concept_id,
                n. standard_concept
 FROM devv5.concept n
 WHERE n.vocabulary_id='Nebraska Lexicon'
-AND (n.concept_name ~* 'mitotic'
-OR  n.concept_code='82334004')
-/* AND n.concept_name ~*'Margin'*/
+--AND  n.concept_code='445028008'
+AND n.concept_name ~*'pN0'
 --AND n.concept_name ~*'surgica'
 --AND n.concept_name !~*'clos'
 --AND n.invalid_reason is NULL
@@ -1066,7 +1066,7 @@ SELECT n.concept_id,
                n. invalid_reason	,
                n. standard_concept
 FROM devv5.concept n
-WHERE concept_id=4226108
+WHERE concept_id=4171755
 ;
 
 select * from ddymshyts.concept where vocabulary_id ='Nebraska Lexicon'

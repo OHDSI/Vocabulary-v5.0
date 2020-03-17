@@ -1,0 +1,238 @@
+TODO: 
+G03FB|G03AB
+change names in manual tables
+
+
+
+drop table if exists сlass_to_rx_descendant;
+create table сlass_to_rx_descendant
+as
+select  distinct substring (concept_code_1,'\w+') as class_code, class_name, c.concept_id, c.concept_name,  c.concept_code, c.concept_class_id, '1' as order
+from class_to_drug_1 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id and vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+ ;
+delete from сlass_to_rx_descendant
+where class_code ~ 'G03FB|G03AB' and concept_class_id not like '%Pack%';
+
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'),class_name, c.concept_id, c.concept_name,  c.concept_code, c.concept_class_id, '2' as order
+from class_to_drug_2 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+;
+
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'), class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '3' as order
+from class_to_drug_3 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+;
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'), c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '4' as order
+from class_to_drug_4 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+;
+
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'), class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '5' as order
+from class_to_drug_5 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+join drug_strength d on d.drug_concept_id = c.concept_id
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+and not exists
+	(select 1 from concept c2 join devv5.concept_ancestor ca2
+	 on ca2.ancestor_concept_id = c2.concept_id and c2.concept_class_id = 'Ingredient'
+	 where ca2.descendant_concept_id = d.drug_concept_id and c2.concept_id!=d.ingredient_concept_id) -- excluding combos
+;
+--working with packs
+with a as (
+		select distinct
+			a.*,
+			c.concept_id as pack_id,
+			d.drug_concept_id,
+			d.ingredient_concept_id
+		from class_to_drug_5 a
+			join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+			join concept c on c.concept_id = descendant_concept_id and c.vocabulary_id like 'RxNorm%'
+												and c.standard_concept = 'S' and c.concept_class_id in ('Clinical Pack ', 'Branded Pack')
+			join concept_relationship cr
+				on cr.concept_id_1 = c.concept_id and cr.invalid_reason is null and cr.relationship_id = 'Contains'
+			join drug_strength d on d.drug_concept_id = cr.concept_id_2
+		where descendant_concept_id not in (select concept_id
+																				from сlass_to_rx_descendant)
+),
+b as (
+		select distinct concept_code_1,class_name,concept_id,concept_name,concept_class_id, pack_id,
+			string_agg(ingredient_concept_id::varchar, '-' order by ingredient_concept_id) as i_combo
+		from a
+		group by concept_code_1,class_name,concept_id,concept_name,concept_class_id, pack_id
+	),
+c as (
+		select distinct b.concept_code_1, b.class_name, b.concept_id, b.concept_name, b.concept_class_id, b.i_combo,pack_id,
+			string_agg(ca.ancestor_concept_id:: varchar, '-' order by ca.ancestor_concept_id) as i_combo_2
+		from b
+			join devv5.concept_ancestor ca on b.concept_id = ca.descendant_concept_id
+			join concept c on c.concept_id = ca.ancestor_concept_id and c.concept_class_id = 'Ingredient'
+		group by b.concept_code_1, b.class_name, b.concept_id, b.concept_name, b.concept_class_id, b.i_combo, ca.descendant_concept_id,pack_id
+)
+insert into сlass_to_rx_descendant 
+(class_code,class_name,concept_id,concept_name,concept_code,concept_class_id,"order")
+select  distinct  substring (concept_code_1,'\w+'),pack_id,cc.concept_name,cc.concept_code,cc.concept_class_id, '5'
+from c
+join concept cc on cc.concept_id = pack_id
+where i_combo = i_combo_2 or i_combo = i_combo_2||'-'||i_combo_2
+;
+
+insert into сlass_to_rx_descendant
+select  distinct substring (concept_code_1,'\w+'), c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '6' as order
+from class_to_drug_6 a
+join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+join concept c on c.concept_id = descendant_concept_id  and c.vocabulary_id like 'RxNorm%' and c.standard_concept = 'S'
+join drug_strength d on d.drug_concept_id = c.concept_id
+where descendant_concept_id not in (select concept_id from сlass_to_rx_descendant)
+and not exists
+	(select 1 from concept c2 join devv5.concept_ancestor ca2
+	 on ca2.ancestor_concept_id = c2.concept_id and c2.concept_class_id = 'Ingredient'
+	 where ca2.descendant_concept_id = d.drug_concept_id and c2.concept_id!=d.ingredient_concept_id) -- excluding combos
+;
+
+--working with packs
+with a as (
+		select distinct
+			a.*,
+			c.concept_id as pack_id,
+			d.drug_concept_id,
+			d.ingredient_concept_id
+		from class_to_drug_6 a
+			join devv5.concept_ancestor on ancestor_concept_id = a.concept_id
+			join concept c on c.concept_id = descendant_concept_id and c.vocabulary_id like 'RxNorm%'
+												and c.standard_concept = 'S' and c.concept_class_id in ('Clinical Pack ', 'Branded Pack')
+			join concept_relationship cr
+				on cr.concept_id_1 = c.concept_id and cr.invalid_reason is null and cr.relationship_id = 'Contains'
+			join drug_strength d on d.drug_concept_id = cr.concept_id_2
+		where descendant_concept_id not in (select concept_id
+																				from сlass_to_rx_descendant)
+),
+b as (
+		select distinct concept_code_1,class_name,concept_id,concept_name,concept_class_id, pack_id,
+			string_agg(ingredient_concept_id::varchar, '-' order by ingredient_concept_id) as i_combo
+		from a
+		group by concept_code_1,class_name,concept_id,concept_name,concept_class_id, pack_id
+	),
+c as (
+		select distinct b.concept_code_1, b.class_name, b.concept_id, b.concept_name, b.concept_class_id, b.i_combo,pack_id,
+			string_agg(ca.ancestor_concept_id:: varchar, '-' order by ca.ancestor_concept_id) as i_combo_2
+		from b
+			join devv5.concept_ancestor ca on b.concept_id = ca.descendant_concept_id
+			join concept c on c.concept_id = ca.ancestor_concept_id and c.concept_class_id = 'Ingredient'
+		group by b.concept_code_1, b.class_name, b.concept_id, b.concept_name, b.concept_class_id, b.i_combo, ca.descendant_concept_id,pack_id
+)
+insert into сlass_to_rx_descendant 
+(class_code,class_name,concept_id,concept_name,concept_code,concept_class_id,"order")
+select distinct substring (concept_code_1,'\w+'),class_name,pack_id,cc.concept_name,cc.concept_code,cc.concept_class_id, '6'
+from c
+join concept cc on cc.concept_id = pack_id
+where i_combo = i_combo_2 or i_combo = i_combo_2||'-'||i_combo_2
+;
+
+delete from сlass_to_rx_descendant where class_name like '%insulin%';
+insert into сlass_to_rx_descendant
+select distinct class_code, class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, '7' as order
+from class_to_drug_manual m
+join devv5.concept_ancestor ca on ca.ancestor_concept_id = m.concept_id
+join concept c on c.concept_id = ca.descendant_concept_id
+join drug_strength d on d.drug_concept_id = c.concept_id
+;
+
+--- need  to  be fixed!
+insert into сlass_to_rx_descendant
+select distinct  class_code, class_name,c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, f.order
+from class_to_drug f
+join devv5.concept_ancestor ca on ca.ancestor_concept_id = cast(f.concept_id as int)
+join devv5.concept c on c.concept_id = descendant_concept_id and c.concept_class_id like '%Pack%'
+where s.class_code ~ 'G03FB|G03AB'; -- packs
+
+delete from сlass_to_rx_descendant
+where class_code ~ 'G03FB|G03AB' and concept_class_id in ('Clinical Drug Form','Ingredient');
+
+delete from  сlass_to_rx_descendant
+where class_name like '%and estrogen%' -- if there are regular estiol/estradiol/EE
+and concept_id in (select concept_id from сlass_to_rx_descendant group by concept_id having count(1)>1);
+
+--temporary
+delete from сlass_to_rx_descendant
+where class_name like '%,%,%and%'
+and not class_name ~* 'comb|other|whole root|selective'
+and concept_name not like '%/%/%/%';
+
+delete from сlass_to_rx_descendant
+where class_name like '%,%and%'
+and class_name not like '%,%,%and%'
+and not class_name ~* 'comb|other|whole root|selective'
+and concept_name not like '% / % / %';
+
+--table w/o ancestor
+drop table if exists class_to_drug;
+create table class_to_drug
+as
+select  distinct substring (concept_code_1,'\w+'), a.class_name, a.concept_id, a.concept_name,  a.concept_code_1, a.concept_class_id, '1' as order
+from class_to_drug_1 a
+;
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'), a.class_name, a.concept_id, a.concept_name,  a.concept_code_1, a.concept_class_id, '2' as order
+from class_to_drug_2 a
+where class_code not in
+(select class_code from class_to_drug)
+and a.concept_id not in
+(select concept_id from class_to_drug)
+;
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'), a.class_name, a.concept_id, a.concept_name,  a.concept_code_1, a.concept_class_id, '3' as order
+from class_to_drug_3 a
+where class_code not in
+(select class_code from class_to_drug)
+;
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'),  a.class_name, a.concept_id, a.concept_name,  a.concept_code_1, a.concept_class_id, '4' as order
+from class_to_drug_4 a
+where class_code not in
+(select class_code from class_to_drug);
+
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'),  a.class_name, a.concept_id, a.concept_name, a.concept_code_1, a.concept_class_id, '5' as order
+from class_to_drug_5 a
+where class_code not in
+(select class_code from class_to_drug);
+
+insert into class_to_drug
+select  distinct substring (concept_code_1,'\w+'),  a.class_name, a.concept_id, a.concept_name, a.concept_code_1, a.concept_class_id, '6' as order
+from class_to_drug_6 a
+where class_code not in
+(select class_code from class_to_drug);
+
+delete from class_to_drug where class_name like '%insulin%';
+insert into class_to_drug
+select distinct class_code,m.class_name, m.concept_id, m.concept_name, c.concept_code, m.concept_class_id, '7' as order
+from class_to_drug_manual m
+join concept c using(concept_id)
+;
+
+insert into class_to_drug
+select f.class_code, f.class_name, c.concept_id, c.concept_name, c.concept_code, c.concept_class_id, f.order
+from class_to_drug f
+join devv5.concept_ancestor ca
+on ca.ancestor_concept_id = f.concept_id
+join devv5.concept c on c.concept_id = descendant_concept_id and c.concept_class_id like '%Pack%'
+where class_code ~ 'G03FB|G03AB'; -- packs
+delete from class_to_drug
+where class_code ~ 'G03FB|G03AB' and concept_class_id in ('Clinical Drug Form','Ingredient');
+
+delete from  class_to_drug
+where class_name like '%and estrogen%' -- if there are regular estiol/estradiol/EE
+and concept_id in (select concept_id from class_to_drug group by concept_id having count(1)>1);

@@ -2975,13 +2975,98 @@ SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
--- 20. Clean up
-/*DROP TABLE peak;
+-- Temporary block to handle manual changes.
+-- 20. Process manual modifications: Kill maps to self for concepts with replacement mappings
+update concept_relationship_stage r
+set 
+	invalid_reason = 'D',
+	valid_end_date = 
+		least
+			(
+				r.valid_end_date,
+				(select latest_update from vocabulary where vocabulary_id is not null limit 1) - 1
+			)
+where
+	r.concept_code_1 = r.concept_code_2 and
+	r.relationship_id = 'Maps to' and
+	r.concept_code_1 in
+		(
+			select concept_code_1 :: varchar
+			from snomed_manual_source
+			where relationship_id = 'Maps to'
+		)
+;
+-- 21. Remove standard status from such concepts
+update concept_stage
+set standard_concept = null
+where
+	concept_code in
+		(
+			select concept_code_1 :: varchar
+			from snomed_manual_source
+			where relationship_id = 'Maps to'
+		)
+;
+-- 22. Build manually sourced relations
+INSERT INTO concept_relationship_stage 
+(
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+)
+select distinct
+	s.concept_code_1 :: varchar,
+	s.concept_code_2 :: varchar,
+	'SNOMED',
+	'SNOMED',
+	s.relationship_id,
+	to_date ('19700101','yyyymmdd'),
+	to_date ('20991231','yyyymmdd')
+from snomed_manual_source s
+--If relation is already present (or deprecated) in concept_relationship_stage, leave it be
+left join concept_relationship_stage r on
+	(r.concept_code_1, r.concept_code_2, r.relationship_id) = (s.concept_code_1 :: varchar, s.concept_code_2 :: varchar, s.relationship_id)
+where
+	r.concept_code_1 is null and
+	s.concept_code_2 is not null
+;
+--25. Insert new synonyms from manual source
+INSERT INTO concept_synonym_stage
+	(
+		synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id
+	)
+select distinct
+	s.concept_name_1,
+	s.concept_code_1 :: varchar,
+	'SNOMED',
+	4180186 --English language
+from snomed_manual_source s
+where (s.concept_name_1, s.concept_code_1 :: varchar) not in (select synonym_name, synonym_concept_code from concept_synonym_stage)
+
+	union
+
+select distinct
+	s.concept_synonym_name_1,
+	s.concept_code_1 :: varchar,
+	'SNOMED',
+	4180186 --English language
+from snomed_manual_source s
+where
+	(s.concept_synonym_name_1, s.concept_code_1 :: varchar) not in (select synonym_name, synonym_concept_code from concept_synonym_stage) and
+	s.concept_synonym_name_1 is not null
+
+-- 23. Clean up
+DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE concept_stage_dmd;
-DROP TABLE snomed_ancestor*/;
+DROP TABLE snomed_ancestor;
+DROP TABLE snomed_manual_source;
 
--- 21. Need to check domains before runnig the generic_update
+-- 24. Need to check domains before runnig the generic_update
 /*temporary disabled for later use
 DO $_$
 DECLARE

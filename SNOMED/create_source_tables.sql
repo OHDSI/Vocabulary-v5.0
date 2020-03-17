@@ -96,3 +96,21 @@ CREATE TABLE SOURCES.F_VMPP2 (xmlfield XML);
 CREATE TABLE SOURCES.F_AMP2 (xmlfield XML);
 CREATE TABLE SOURCES.F_AMPP2 (xmlfield XML);
 CREATE TABLE SOURCES.DMDBONUS (xmlfield XML);
+
+--Create table to hold manual changes in interim
+drop table if exists snomed_manual_source
+;
+create table snomed_manual_source
+	(
+		concept_name_1 varchar,
+		concept_synonym_name_1 varchar,
+		concept_code_1 bigint,
+		domain_id_1 varchar,
+		concept_class_id_1 varchar,
+		vocabulary_id_1 varchar,
+		relationship_id varchar,
+		concept_code_2 bigint,
+		concept_name_2 varchar,
+		vocabulary_id_2 varchar
+	)
+;

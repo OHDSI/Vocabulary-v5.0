@@ -20,8 +20,8 @@
 --current version of breast source
 -- cap_prepared_breast_2020_source CREATION is used to preserve data of source_code by concatenation of names from the lowest term(value) to it's ancestor
 -- 2020 version
--- DROP TABLE dev_vkorsik.cap_prepared_breast_2020_source
-CREATE TABLE dev_vkorsik.cap_prepared_breast_2020_source WITH OIDS AS
+-- DROP TABLE dev_cap.cap_prepared_breast_2020_source
+CREATE TABLE dev_cap.cap_prepared_breast_2020_source WITH OIDS AS
     (
         with tab_val as
             (
@@ -116,12 +116,12 @@ CREATE TABLE dev_vkorsik.cap_prepared_breast_2020_source WITH OIDS AS
 ;
 
 SELECT source_code, source_class, source_description, source_filename
-FROM dev_vkorsik.cap_prepared_breast_2020_source
+FROM dev_cap.cap_prepared_breast_2020_source
 ;
 -- previous version of breast source
 --2019
--- DROP TABLE dev_vkorsik.cap_prepared_breast_2019_source
-CREATE TABLE dev_vkorsik.cap_prepared_breast_2019_source WITH OIDS AS
+-- DROP TABLE dev_cap.cap_prepared_breast_2019_source
+CREATE TABLE dev_cap.cap_prepared_breast_2019_source WITH OIDS AS
     (
         with tab_val as
             (
@@ -220,10 +220,10 @@ SELECT *
 FROM cap_prepared_breast_2019_source
 WHERE source_code IN (
 SELECT distinct source_code
-FROM dev_vkorsik.cap_prepared_breast_2019_source e
+FROM dev_cap.cap_prepared_breast_2019_source e
 EXCEPT
 SELECT distinct source_code
-FROM dev_vkorsik.cap_prepared_breast_2020_source e
+FROM dev_cap.cap_prepared_breast_2020_source e
     )
 ;
 -- To check which codes are newly ingested in 2020ver
@@ -231,17 +231,17 @@ SELECT *
 FROM cap_prepared_breast_2020_source
 WHERE source_code IN (
     SELECT distinct source_code
-    FROM dev_vkorsik.cap_prepared_breast_2020_source e
+    FROM dev_cap.cap_prepared_breast_2020_source e
         EXCEPT
     SELECT distinct source_code
-    FROM dev_vkorsik.cap_prepared_breast_2019_source
+    FROM dev_cap.cap_prepared_breast_2019_source
     )
 ;
 -- to explain how the codes are used across versions
 -- Do the same codes with crucially different names exist? - NO
 SELECT *
-FROM dev_vkorsik.cap_prepared_breast_2019_source e
-join  dev_vkorsik.cap_prepared_breast_2020_source ee
+FROM dev_cap.cap_prepared_breast_2019_source e
+join  dev_cap.cap_prepared_breast_2020_source ee
 on e.source_code=ee.source_code
 WHERE regexp_replace(e.alt_source_description,'\s|\(\w*\s\w*\)|#','','g') != regexp_replace(ee.alt_source_description,'\s|\(\w*\s\w*\)|#','','g') -- same hierarchically-conjugated names without spaces and not sensetive for words in ()
 AND concat(split_part(e.source_filename,'.',1),'|',split_part(e.source_filename,'.',2),'|',split_part(e.source_filename,'.',3)) = concat(split_part(ee.source_filename,'.',1),'|',split_part(ee.source_filename,'.',2),'|',split_part(ee.source_filename,'.',3))
@@ -257,8 +257,8 @@ AND concat(split_part(e.source_filename,'.',1),'|',split_part(e.source_filename,
 -- ver2019 41313   vs ver2020  42544
 -- THIS one retrieves duplicated codes in one source_file 31339, 31340, 31343, 31344, 31359,31360
 SELECT *
-FROM dev_vkorsik.cap_prepared_breast_2019_source e
-join  dev_vkorsik.cap_prepared_breast_2020_source ee
+FROM dev_cap.cap_prepared_breast_2019_source e
+join  dev_cap.cap_prepared_breast_2020_source ee
 on regexp_replace(e.source_description,'\s|\(\w*\s\w*\)|#','','g')
         =
    regexp_replace(ee.source_description,'\s|\(\w*\s\w*\)|#','','g') -- same hierarchically-conjugated names without spaces and not sensetive for words in ()
@@ -291,11 +291,11 @@ WHERE EXISTS(
 ;
 
 -- 01 concept_stage
--- dev_vkorsik.cap_breast_2020_concept_stage_preliminary this table is preliminary generated concept_stage the diff
--- between it and dev_vkorsik.cap_prepared_breast_2020_source is in the absence of filename  field in 1st
+-- dev_cap.cap_breast_2020_concept_stage_preliminary this table is preliminary generated concept_stage the diff
+-- between it and dev_cap.cap_prepared_breast_2020_source is in the absence of filename  field in 1st
 
--- DROP TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary
-CREATE TABLE dev_vkorsik.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
+-- DROP TABLE dev_cap.cap_breast_2020_concept_stage_preliminary
+CREATE TABLE dev_cap.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
     (
         SELECT NULL                        AS concept_id,
                source_code                 AS concept_code,
@@ -349,13 +349,13 @@ AND e.variable_code IN (
               except
 
           SELECT distinct concept_code as code
-          FROM dev_vkorsik.cap_breast_2020_concept_stage_preliminary
+          FROM dev_cap.cap_breast_2020_concept_stage_preliminary
       )
 ;
 
 --5 rows 're retrieved because of manual creation of them
 SELECT distinct concept_code as code
-FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary
 
 except
 
@@ -373,7 +373,7 @@ FROM (SELECT distinct variable_code as code
 
 --truncate table CONCEPT_STAGE;
 -- INSERT INTO CONCEPT_STAGE
-INSERT INTO dev_vkorsik.CONCEPT_STAGE (
+INSERT INTO dev_cap.CONCEPT_STAGE (
                                        concept_id,
                            concept_name,
                            domain_id,
@@ -397,11 +397,11 @@ INSERT INTO dev_vkorsik.CONCEPT_STAGE (
                                   invalid_reason
 FROM cap_breast_2020_concept_stage_preliminary
 ;
--- TRUNCATE TABLE dev_vkorsik.CONCEPT_STAGE
-SELECT * FROM dev_vkorsik.CONCEPT_STAGE;
---TRUNCATE TABLE dev_vkorsik.CONCEPT_SYNONYM_STAGE
+-- TRUNCATE TABLE dev_cap.CONCEPT_STAGE
+SELECT * FROM dev_cap.CONCEPT_STAGE;
+--TRUNCATE TABLE dev_cap.CONCEPT_SYNONYM_STAGE
 -- CONCEPT_SYNONYM_STAGE
-INSERT INTO dev_vkorsik.CONCEPT_synonym_stage (synonym_concept_id, synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id)
+INSERT INTO dev_cap.CONCEPT_synonym_stage (synonym_concept_id, synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id)
 SELECT                                concept_id::int,
                                   concept_name,
                                concept_code,
@@ -411,22 +411,22 @@ FROM cap_breast_2020_concept_stage_preliminary
 ;
 
 SELECT *
-FROM dev_vkorsik.concept_stage cs
-JOIN dev_vkorsik.concept_synonym_stage css
+FROM dev_cap.concept_stage cs
+JOIN dev_cap.concept_synonym_stage css
     ON cs.concept_code=css.synonym_concept_code
 ;
 
 -- 02 concept_relationship_stage
--- SQL to retrieve all the hierarchical direct parent-child pairs generated in dev_vkorsik.cap_breast_2020_concept_stage_preliminary
+-- SQL to retrieve all the hierarchical direct parent-child pairs generated in dev_cap.cap_breast_2020_concept_stage_preliminary
 SELECT distinct
        cs.concept_class_id,
 
        cs2.concept_class_id,
                 count(*) as COUNTS
 FROM dev_cap.ecc_202002 e
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
 ON e.value_code=cs.concept_code
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON e.variable_code=cs2.concept_code
 WHERE e.filename ~* 'breast'
 AND e.level_of_separation =1
@@ -438,16 +438,16 @@ Order BY COUNTS desc
 SELECT distinct *
 
 FROM dev_cap.ecc_202002 e
-JOIN  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+JOIN  dev_cap.cap_breast_2020_concept_stage_preliminary cs
 ON e.variable_code=cs.concept_code
 
 WHERE e.filename ~* 'breast'
 AND e.variable_code NOT IN (SELECT distinct
        e.value_code
 FROM dev_cap.ecc_202002 e
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
 ON e.value_code=cs.concept_code
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON e.variable_code=cs2.concept_code
 WHERE e.filename ~* 'breast'
 AND e.level_of_separation =1
@@ -456,9 +456,9 @@ AND e.level_of_separation =1
     SELECT distinct
        e.variable_code
 FROM dev_cap.ecc_202002 e
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
 ON e.value_code=cs.concept_code
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON e.variable_code=cs2.concept_code
 WHERE e.filename ~* 'breast'
 AND e.level_of_separation =1
@@ -467,8 +467,8 @@ AND e.level_of_separation =1
 ;
 ;
 
--- DROP TABLE dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary;
-CREATE TABLE dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary WITH OIDS AS
+-- DROP TABLE dev_cap.cap_breast_2020_concept_relationship_stage_preliminary;
+CREATE TABLE dev_cap.cap_breast_2020_concept_relationship_stage_preliminary WITH OIDS AS
     (
         -- 'CAP Value of' for Value to Variable
     WITH tab_CAP_Value AS (
@@ -490,9 +490,9 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary 
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -505,7 +505,7 @@ CREATE TABLE dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary 
         )
     ;
  -- STEP 1'Has parent item' INSERT
-INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+INSERT INTO dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
                cs.source_class                                                AS source_class_1,
@@ -524,9 +524,9 @@ SELECT NULL                                                             AS conce
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -536,7 +536,7 @@ AND cs.concept_code  NOT in (select concept_code_1 FROM cap_breast_2020_concept_
 AND cs2.concept_code  NOT in (select concept_code_2 FROM cap_breast_2020_concept_relationship_stage_preliminary);
 ;
 -- STEP 2'Has parent item' INSERT
-INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+INSERT INTO dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
                cs.source_class                                                AS source_class_1,
@@ -555,9 +555,9 @@ SELECT NULL                                                             AS conce
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -570,7 +570,7 @@ AND NOT EXISTS (select 1
 ;
 
 --STEP 3'Has parent item' INSERT
-INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+INSERT INTO dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
                cs.source_class                                                AS source_class_1,
@@ -589,9 +589,9 @@ SELECT NULL                                                             AS conce
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -604,7 +604,7 @@ AND NOT EXISTS (select 1
 ;
 
 --STEP 4 'Has parent item' INSERT
-INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+INSERT INTO dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
                cs.source_class                                                AS source_class_1,
@@ -623,9 +623,9 @@ SELECT NULL                                                             AS conce
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -639,7 +639,7 @@ AND NOT EXISTS (select 1
 ;
 
 --STEP 5'Has parent item' INSERT
-INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+INSERT INTO dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 SELECT NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
                cs.source_class                                                AS source_class_1,
@@ -658,9 +658,9 @@ SELECT NULL                                                             AS conce
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
         FROM dev_cap.ecc_202002 e
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -672,7 +672,7 @@ SELECT NULL                                                             AS conce
 ;
 
 -- 'Part of protocol'
-INSERT INTO dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+INSERT INTO dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 select         NULL                                                             AS concept_id_1,
                cs.concept_code                                                       AS concept_code_1,
                cs.source_class                                                AS source_class_1,
@@ -690,8 +690,8 @@ select         NULL                                                             
        '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
-FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code='Breast.DCIS.Res.211_3.002.001.REL_sdcFDF'
 WHERE cs.source_filename ='Breast.DCIS.Res.211_3.002.001.REL_sdcFDF'
 
@@ -714,8 +714,8 @@ select NULL                                                             AS conce
        '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
-FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code='Breast.DCIS.Bx.360_1.001.001.REL_sdcFDF'
 WHERE cs.source_filename ='Breast.DCIS.Bx.360_1.001.001.REL_sdcFDF'
 
@@ -738,8 +738,8 @@ select NULL                                                             AS conce
        '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
-FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code='Breast.Invasive.Bx.362_1.001.001.REL_sdcFDF'
 WHERE cs.source_filename ='Breast.Invasive.Bx.362_1.001.001.REL_sdcFDF'
 
@@ -762,8 +762,8 @@ select NULL                                                             AS conce
        '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
-FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code='Breast.Invasive.Res.189_4.002.001.REL_sdcFDF'
 WHERE cs.source_filename ='Breast.Invasive.Res.189_4.002.001.REL_sdcFDF'
 
@@ -786,8 +786,8 @@ select NULL                                                             AS conce
        '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-01-01'                AS valid_end_date,
                cs.source_filename                                               AS filename
-FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
-JOIN dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code='Breast.Bmk.169_1.006.001.REL_sdcFDF'
 WHERE cs.source_filename ='Breast.Bmk.169_1.006.001.REL_sdcFDF'
 
@@ -813,10 +813,10 @@ SELECT distinct concept_id_1,
                 valid_start_date,
                 valid_end_date,
                 filename
-FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+FROM dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 ;
 --TRUNCATE concept_relationship_stage;
-INSERT INTO dev_vkorsik.concept_relationship_stage (
+INSERT INTO dev_cap.concept_relationship_stage (
                                                     concept_id_1,
                                                     concept_id_2,
                                                     concept_code_1,
@@ -852,7 +852,7 @@ SELECT concept_id_1,
        crs.valid_start_date,
        crs.valid_end_date,
        crs.invalid_reason
-FROM dev_vkorsik.concept_relationship_stage crs
+FROM dev_cap.concept_relationship_stage crs
 JOIN concept_stage cs
 ON crs.concept_code_1=cs.concept_code
 JOIN concept_stage cs2
@@ -861,7 +861,7 @@ ORDER BY cs.concept_name
 ;
 -- to check existence of more then one direct relationchip
 SELECT distinct *
-FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+FROM dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 WHERE concept_code_1 IN (SELECT concept_code_1
     FROM cap_breast_2020_concept_relationship_stage_preliminary
 WHERE  relationship_id = 'Part of protocol'
@@ -890,7 +890,7 @@ WHERE concept_code_1 IN
 ;
 -- Check for uniqueness of pair concept_code_1, concept_code_2
 select concept_code_1, concept_code_2
-from dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+from dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 group by concept_code_1, concept_code_2 having count(1) > 1
 ;
 
@@ -995,7 +995,7 @@ WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
 --dev_lexicon - for Nebraska_Lexicon mappings
 select distinct cs.concept_code,cs.concept_name, cs.concept_class_id, cs.alternative_concept_name, n.*,
                 CASE WHEN length(n.concept_name)>20 then 'CHECK' else '' END AS comment
-FROM dev_vkorsik.cap_breast_2020_concept_stage_preliminary cs
+FROM dev_cap.cap_breast_2020_concept_stage_preliminary cs
 left JOIN  dev_lexicon.concept n
 ON trim(lower(regexp_replace(cs.alternative_concept_name,'[[:punct:]]|\s','','g')))
     = trim(lower(regexp_replace(n.concept_name,'\sposition|[[:punct:]]|\s','','g')))
@@ -1005,7 +1005,7 @@ ORDER BY cs.concept_name
 ;
 
 SELECT distinct *
-FROM dev_vkorsik.cap_breast_2020_concept_relationship_stage_preliminary
+FROM dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
 WHERE concept_name_2='Extent of Medial Margin Involvement|Medial|Specify Margin(s)|Positive for DCIS|Margins|MARGINS (Note H)'
 ;
 
@@ -1022,7 +1022,7 @@ SELECT distinct n.concept_id,
 FROM devv5.concept n
 WHERE n.vocabulary_id='Nebraska Lexicon'
 --AND  n.concept_code='445028008'
-AND n.concept_name ~*'pN0'
+AND n.concept_name ~*'pM1'
 --AND n.concept_name ~*'surgica'
 --AND n.concept_name !~*'clos'
 --AND n.invalid_reason is NULL
@@ -1056,19 +1056,6 @@ AND n.concept_code = '84921008'-- from above select
 AND n.invalid_reason is NULL
 ;
 
-SELECT n.concept_id,
-               n.concept_code	,
-               n.concept_name	,
-               n. domain_id	,
-               n. concept_class_id	,
-               n. vocabulary_id	,
-               n. valid_start_date	,
-               n. valid_end_date	,
-               n. invalid_reason	,
-               n. standard_concept
-FROM devv5.concept n
-WHERE concept_id=4171755
-;
 
 select * from ddymshyts.concept where vocabulary_id ='Nebraska Lexicon'
 and concept_code not in (select concept_code from dev_lexicon.concept where vocabulary_id ='Nebraska Lexicon')
@@ -1140,7 +1127,7 @@ AND c.vocabulary_id in ('Nebraska Lexicon') --vocabularies selection
                     dc.*
 
 
-    FROM  dev_vkorsik.cap_breast_2020_concept_stage_preliminary s --source table
+    FROM  dev_cap.cap_breast_2020_concept_stage_preliminary s --source table
         LEFT  JOIN all_concepts ac
           ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
                                            = trim(lower(regexp_replace(ac.name,'\sposition|[[:punct:]]|\s','','g')))

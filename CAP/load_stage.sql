@@ -214,6 +214,7 @@ CREATE TABLE dev_vkorsik.cap_prepared_breast_2019_source WITH OIDS AS
                                         ORDER BY source_description, source_code, source_filename, source_class
     )
 ;
+-- TODO '16079 CLINICAL and all it's children are not incorporated in 2020, the same is for some Histological entities (eg Squamous cell carcinoma)
 -- TO check which codes are not included in 2020 version
 SELECT *
 FROM cap_prepared_breast_2019_source
@@ -224,7 +225,7 @@ EXCEPT
 SELECT distinct source_code
 FROM dev_vkorsik.cap_prepared_breast_2020_source e
     )
-
+;
 -- To check which codes are newly ingested in 2020ver
 SELECT *
 FROM cap_prepared_breast_2020_source

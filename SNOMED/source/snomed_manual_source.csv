@@ -1,0 +1,20 @@
+concept_name_1	concept_synonym_name_1	concept_code_1	domain_id_1	concept_class_id_1	vocabulary_id_1	relationship_id	concept_code_2	concept_name_2	vocabulary_id_2
+Pneumonia caused by 2019 novel coronavirus	Pneumonia due to COVID-19	1240551000000105	Condition	Clinical Finding	SNOMED				
+Disease caused by 2019 novel coronavirus		1240751000000100	Condition	Clinical Finding	SNOMED	Maps to	840539006	Disease caused by severe acute respiratory syndrome coronavirus 2	SNOMED
+Encephalopathy caused by 2019 novel coronavirus	Encephalopathy due to COVID-19	1240561000000108	Condition	Clinical Finding	SNOMED	OMOP Temporary Is a	840539006	Disease caused by severe acute respiratory syndrome coronavirus 2	SNOMED
+Gastroenteritis caused by 2019 novel coronavirus	Gastroenteritis due to COVID-19	1240571000000101	Condition	Clinical Finding	SNOMED	OMOP Temporary Is a	840539006	Disease caused by severe acute respiratory syndrome coronavirus 2	SNOMED
+Myocarditis caused by 2019 novel coronavirus	Myocarditis due to COVID-19	1240531000000103	Condition	Clinical Finding	SNOMED	OMOP Temporary Is a	840539006	Disease caused by severe acute respiratory syndrome coronavirus 2	SNOMED
+Otitis media caused by 2019 novel coronavirus	Otitis media due to COVID-19	1240521000000100	Condition	Clinical Finding	SNOMED	OMOP Temporary Is a	840539006	Disease caused by severe acute respiratory syndrome coronavirus 2	SNOMED
+Infection of upper respiratory tract caused by 2019 novel coronavirus	Infection of upper respiratory tract due to COVID-19	1240541000000107	Condition	Clinical Finding	SNOMED				
+2019 novel coronavirus vaccination		1240491000000103	Procedure	Procedure	SNOMED	Maps to	840534001	Severe acute respiratory syndrome coronavirus 2 vaccination	SNOMED
+2019 novel coronavirus		1240381000000105	Observation	Organism	SNOMED	Maps to	840533007	Severe acute respiratory syndrome coronavirus 2	SNOMED
+Antigen of 2019 novel coronavirus		1240391000000107	Observation	Substance	SNOMED	Maps to	840536004	Antigen of severe acute respiratory syndrome coronavirus 2	SNOMED
+Antibody to 2019 novel coronavirus		1240401000000105	Observation	Substance	SNOMED	Maps to	840535000	Antibody to severe acute respiratory syndrome coronavirus 2	SNOMED
+Suspected disease caused by 2019 novel coronavirus		1240761000000102	Observation	Context-dependent	SNOMED	Maps to	840544004	Suspected disease caused by severe acute respiratory coronavirus 2	SNOMED
+Measurement of 2019 novel coronavirus antibody	Measurement of SARS-CoV-2 antibody	1240461000000109	Measurement	Procedure	SNOMED				
+Measurement of 2019 novel coronavirus antigen	Measurement of SARS-CoV-2 antigen	1240471000000102	Measurement	Procedure	SNOMED				
+Detection of 2019 novel coronavirus using polymerase chain reaction technique	Detection of SARS-CoV-2 using polymerase chain reaction technique	1240511000000106	Measurement	Procedure	SNOMED				
+2019 novel coronavirus detected	SARS-CoV-2 detected	1240581000000104	Condition	Clinical Finding	SNOMED				
+2019 novel coronavirus not detected	SARS-CoV-2 not detected	1240591000000102	Condition	Clinical Finding	SNOMED				
+Exposure to 2019 novel coronavirus infection		1240431000000104	Observation	Event	SNOMED	Maps to	840546002	Exposure to severe acute respiratory syndrome coronavirus 2	SNOMED
+Close exposure to 2019 novel coronavirus infection	Close exposure to SARS-CoV-2	1240441000000108	Observation	Event	SNOMED	OMOP Temporary Is a	840546002	Exposure to severe acute respiratory syndrome coronavirus 2	SNOMED

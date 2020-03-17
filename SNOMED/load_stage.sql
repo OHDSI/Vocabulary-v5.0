@@ -2413,7 +2413,31 @@ VALUES (138875005, 'Metadata'), -- root
 	(108246006, 'Measurement'), --Tonometry AND/OR tonography procedure
 	--added 20200312
 	(61746007, 'Measurement'), --Taking patient vital signs
-	(771387000,'Drug'); --Substance with effector mechanism of action
+	(771387000,'Drug'), --Substance with effector mechanism of action
+	--added 20200317
+	(365866002,'Measurement'), --Finding of HIV status
+	(438508001,'Measurement'), --Virus present
+	(710954001,'Measurement'), --Bacteria present
+	(871000124102,'Measurement'), --Virus not detected
+	(426000000,'Measurement'), --Fever greater than 100.4 Fahrenheit
+	(164304001,'Measurement'), --O/E - hyperpyrexia - greater than 40.5 degrees Celsius
+	(163633002,'Measurement'), --O/E -skin temperature abnormal
+	(164294007,'Measurement'), --O/E - rectal temperature
+	(164295008,'Measurement'), --O/E - core temperature
+	(164300005,'Measurement'), --O/E - temperature normal
+	(164303007,'Measurement'), --O/E - temperature elevated
+	(164293001,'Measurement'), --O/E - groin temperature
+	(164301009,'Measurement'), --O/E - temperature low
+	(164292006,'Measurement'), --O/E - axillary temperature
+	(275874003,'Measurement'), --O/E - oral temperature
+	(315632006,'Measurement'), --O/E - tympanic temperature
+	(274308003,'Measurement'), --O/E - hyperpyrexia
+	(164285001,'Measurement'), --O/E - fever - general
+	(164290003,'Measurement'), --O/E - method fever registered
+	(1240591000000102,'Measurement'), --2019 novel coronavirus not detected
+	(162913005,'Measurement'), --O/E - rate of respiration
+	(41769001,'Condition'); --Disease suspected
+
 
 -- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 -- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
@@ -2952,10 +2976,10 @@ WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
 -- 20. Clean up
-DROP TABLE peak;
+/*DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE concept_stage_dmd;
-DROP TABLE snomed_ancestor;
+DROP TABLE snomed_ancestor*/;
 
 -- 21. Need to check domains before runnig the generic_update
 /*temporary disabled for later use

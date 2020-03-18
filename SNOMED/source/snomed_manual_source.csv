@@ -10,7 +10,8 @@ Infection of upper respiratory tract caused by 2019 novel coronavirus	Infection 
 2019 novel coronavirus		1240381000000105	Observation	Organism	SNOMED	Maps to	840533007	Severe acute respiratory syndrome coronavirus 2	SNOMED
 Antigen of 2019 novel coronavirus		1240391000000107	Observation	Substance	SNOMED	Maps to	840536004	Antigen of severe acute respiratory syndrome coronavirus 2	SNOMED
 Antibody to 2019 novel coronavirus		1240401000000105	Observation	Substance	SNOMED	Maps to	840535000	Antibody to severe acute respiratory syndrome coronavirus 2	SNOMED
-Suspected disease caused by 2019 novel coronavirus		1240761000000102	Observation	Context-dependent	SNOMED	Maps to	840544004	Suspected disease caused by severe acute respiratory coronavirus 2	SNOMED
+Suspected disease caused by 2019 novel coronavirus		1240761000000102	Observation	Context-dependent	SNOMED	Maps to	840539006	Disease caused by severe acute respiratory syndrome coronavirus 2	SNOMED
+Suspected disease caused by severe acute respiratory coronavirus 2		840544004	Observation	Context-dependent	SNOMED	Maps to	840539006	Disease caused by severe acute respiratory syndrome coronavirus 2	SNOMED
 Measurement of 2019 novel coronavirus antibody	Measurement of SARS-CoV-2 antibody	1240461000000109	Measurement	Procedure	SNOMED				
 Measurement of 2019 novel coronavirus antigen	Measurement of SARS-CoV-2 antigen	1240471000000102	Measurement	Procedure	SNOMED				
 Detection of 2019 novel coronavirus using polymerase chain reaction technique	Detection of SARS-CoV-2 using polymerase chain reaction technique	1240511000000106	Measurement	Procedure	SNOMED				

@@ -188,7 +188,16 @@ SELECT DISTINCT ns.concept_name,
 FROM sources.icd10cn_concept ic
 JOIN name_source ns ON ns.concept_code_clean = ic.concept_code_clean
 	AND ns.preferred = 'S'
-LEFT JOIN icd10cn_chapters ch ON ch.chapter_code = ic.concept_code_clean;
+LEFT JOIN icd10cn_chapters ch ON ch.chapter_code = ic.concept_code_clean
+
+UNION ALL
+
+VALUES ('Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2','Observation','ICD10CN','ICD10 code','U07.1',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('Confirmed COVID-19, excluding pneumonia (machine translation)','Observation','ICD10CN','ICD10 code','U07.100x002',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 (machine translation)','Observation','ICD10CN','ICD10 code','U07.100',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('Suspected case of COVID-19 (machine translation)','Procedure','ICD10CN','ICD10 code','Z03.800x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 pneumonia (machine translation)','Observation','ICD10CN','ICD10 code','U07.100x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 pneumonia (machine translation)','Observation','ICD10CN','ICD10 code','U07.100x003',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'));
 
 --7. Fill table concept_synonym_stage with chinese and English names
 INSERT INTO concept_synonym_stage (
@@ -201,7 +210,16 @@ SELECT ns.concept_name AS synonym_name,
 	ns.concept_code_clean AS synonym_concept_code,
 	'ICD10CN' AS synonym_vocabulary_id,
 	ns.language_concept_id
-FROM name_source ns;
+FROM name_source ns
+
+UNION ALL
+
+VALUES ('新型冠状病毒肺炎疑似病例','Z03.800x001','ICD10CN',4182948),
+	('Emergency use of U07.1 | COVID-19','U07.1','ICD10CN',4180186),
+	('新型冠状病毒肺炎临床诊断病例','U07.100x003','ICD10CN',4182948),
+	('新型冠状病毒肺炎','U07.100x001','ICD10CN',4182948),
+	('2019冠状病毒病','U07.100','ICD10CN',4182948),
+	('新型冠状病毒感染','U07.100x002','ICD10CN',4182948);
 
 --8. Fill concept_relationship_stage
 -- Preserve ICD10CN internal hierarchy (even if concepts are non-standard)

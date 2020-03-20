@@ -12,9 +12,10 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
+* licence required = Yes
 *
 * Authors: Medical Team
-* Date: 2020
+* Date: March 2020
 **************************************************************************/
 --00 source_table preparation
 --current version of breast source

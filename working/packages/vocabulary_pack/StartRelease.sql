@@ -15,6 +15,8 @@ DECLARE
   cVocabs VARCHAR(4000);
   cVocabsDelim CONSTANT VARCHAR(1000) :=', ';
 BEGIN
+  ALTER TABLE vocabulary DROP COLUMN IF EXISTS latest_update;
+  ALTER TABLE vocabulary DROP COLUMN IF EXISTS dev_schema_name;
   perform vocabulary_pack.pConceptAncestor();
   perform DEVV4.v5_to_v4();
   UPDATE VOCABULARY SET VOCABULARY_VERSION = 'v5.0 '||TO_CHAR(current_date,'DD-MON-YY') WHERE VOCABULARY_ID = 'None';

@@ -20,329 +20,186 @@
 SELECT devv5.FastRecreateSchema ();
 -- Some inserts to make code below viable
 
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewVocabulary(
+	pVocabulary_id			=> 'CAP',
+	pVocabulary_name		=> 'College of American Pathologists',
+	pVocabulary_reference	=> 'https://fileshare.cap.org/human.aspx?Arg12=filelist&Arg06=136884410',
+	pVocabulary_version		=> NULL,
+	pOMOP_req				=> 'Y',
+	pClick_default			=> NULL, --NULL or 'Y'
+	pAvailable				=> 'License required', --NULL, 'Currently not available','License required' or 'EULA required'
+	pURL					=> 'mailto:contact@ohdsi.org?subject=License%20required%20for%20CAP&body=Describe%20your%20situation%20and%20your%20need%20for%20this%20vocabulary.',
+	pClick_disabled			=> NULL --NULL or 'Y'
+);
+END $_$;
+
+
+--new class for cap
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewConceptClass(
+	pConcept_class_id	=>'CAP Value',
+	pConcept_class_name	=>'CAP Value'
+);
+END $_$;
+
+--new class for cap
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewConceptClass(
+	pConcept_class_id	=>'CAP Variable',
+	pConcept_class_name	=>'CAP Variable'
+);
+END $_$;
+
+--new class for cap
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewConceptClass(
+	pConcept_class_id	=>'CAP Header',
+	pConcept_class_name	=>'CAP Header'
+);
+END $_$;
+
+--new class for cap
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewConceptClass(
+	pConcept_class_id	=>'CAP Protocol',
+	pConcept_class_name	=>'CAP Protocol'
+);
+END $_$;
+
+--new relationship for cap
+DO $$
+DECLARE
+    z    int;
+    ex   int;
+    pRelationship_name constant varchar(100):='CAP value of';
+    pRelationship_id constant varchar(100):='CAP value of';
+    pIs_hierarchical constant int:=0;
+    pDefines_ancestry constant int:=0;
+    pReverse_relationship_id constant varchar(100):='Has CAP value';
+
+    pRelationship_name_rev constant varchar(100):='Has CAP value';
+    pIs_hierarchical_rev constant int:=0;
+    pDefines_ancestry_rev constant int:=0;
+BEGIN
+    DROP SEQUENCE IF EXISTS v5_concept;
+
+    SELECT MAX (concept_id) + 1 INTO ex FROM concept WHERE concept_id >= 31967 AND concept_id < 72245;
+
+    EXECUTE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' CACHE 20';
+    ALTER TABLE relationship DROP CONSTRAINT FPK_RELATIONSHIP_REVERSE;
+
+    --direct
+    SELECT nextval('v5_concept') INTO z;
+    INSERT INTO concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+      VALUES (z, pRelationship_name, 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', TO_DATE ('19700101', 'YYYYMMDD'), TO_DATE ('20991231', 'YYYYMMDD'), null);
+    INSERT INTO relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+      VALUES (pRelationship_id, pRelationship_name, pIs_hierarchical, pDefines_ancestry, pReverse_relationship_id, z);
+
+    --reverse
+    SELECT nextval('v5_concept') INTO z;
+    INSERT INTO concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+      VALUES (z, pRelationship_name_rev, 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', TO_DATE ('19700101', 'YYYYMMDD'), TO_DATE ('20991231', 'YYYYMMDD'), null);
+    INSERT INTO relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+      VALUES (pReverse_relationship_id, pRelationship_name_rev, pIs_hierarchical_rev, pDefines_ancestry_rev, pRelationship_id, z);
+
+    ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
+    DROP SEQUENCE v5_concept;
+END $$;
+
+SELECT * FROM relationship;
+DO $$
+DECLARE
+    z    int;
+    ex   int;
+    pRelationship_name constant varchar(100):='Has CAP parent item';
+    pRelationship_id constant varchar(100):='Has CAP parent item';
+    pIs_hierarchical constant int:=0;
+    pDefines_ancestry constant int:=0;
+    pReverse_relationship_id constant varchar(100):='CAP parent item of';
+
+    pRelationship_name_rev constant varchar(100):='CAP parent item of';
+    pIs_hierarchical_rev constant int:=0;
+    pDefines_ancestry_rev constant int:=0;
+BEGIN
+    DROP SEQUENCE IF EXISTS v5_concept;
+
+    SELECT MAX (concept_id) + 1 INTO ex FROM concept WHERE concept_id >= 31967 AND concept_id < 72245;
+
+    EXECUTE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' CACHE 20';
+    ALTER TABLE relationship DROP CONSTRAINT FPK_RELATIONSHIP_REVERSE;
+
+    --direct
+    SELECT nextval('v5_concept') INTO z;
+    INSERT INTO concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+      VALUES (z, pRelationship_name, 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', TO_DATE ('19700101', 'YYYYMMDD'), TO_DATE ('20991231', 'YYYYMMDD'), null);
+    INSERT INTO relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+      VALUES (pRelationship_id, pRelationship_name, pIs_hierarchical, pDefines_ancestry, pReverse_relationship_id, z);
+
+    --reverse
+    SELECT nextval('v5_concept') INTO z;
+    INSERT INTO concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+      VALUES (z, pRelationship_name_rev, 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', TO_DATE ('19700101', 'YYYYMMDD'), TO_DATE ('20991231', 'YYYYMMDD'), null);
+    INSERT INTO relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+      VALUES (pReverse_relationship_id, pRelationship_name_rev, pIs_hierarchical_rev, pDefines_ancestry_rev, pRelationship_id, z);
+
+    ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
+    DROP SEQUENCE v5_concept;
+END $$;
+
+DO $$
+DECLARE
+    z    int;
+    ex   int;
+    pRelationship_name constant varchar(100):='Has protocol';
+    pRelationship_id constant varchar(100):='Has protocol';
+    pIs_hierarchical constant int:=0;
+    pDefines_ancestry constant int:=0;
+    pReverse_relationship_id constant varchar(100):='Protocol of';
+
+    pRelationship_name_rev constant varchar(100):='Protocol of';
+    pIs_hierarchical_rev constant int:=0;
+    pDefines_ancestry_rev constant int:=0;
+BEGIN
+    DROP SEQUENCE IF EXISTS v5_concept;
+
+    SELECT MAX (concept_id) + 1 INTO ex FROM concept WHERE concept_id >= 31967 AND concept_id < 72245;
+
+    EXECUTE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' CACHE 20';
+    ALTER TABLE relationship DROP CONSTRAINT FPK_RELATIONSHIP_REVERSE;
+
+    --direct
+    SELECT nextval('v5_concept') INTO z;
+    INSERT INTO concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+      VALUES (z, pRelationship_name, 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', TO_DATE ('19700101', 'YYYYMMDD'), TO_DATE ('20991231', 'YYYYMMDD'), null);
+    INSERT INTO relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+      VALUES (pRelationship_id, pRelationship_name, pIs_hierarchical, pDefines_ancestry, pReverse_relationship_id, z);
+
+    --reverse
+    SELECT nextval('v5_concept') INTO z;
+    INSERT INTO concept (concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+      VALUES (z, pRelationship_name_rev, 'Metadata', 'Relationship', 'Relationship', null, 'OMOP generated', TO_DATE ('19700101', 'YYYYMMDD'), TO_DATE ('20991231', 'YYYYMMDD'), null);
+    INSERT INTO relationship (relationship_id, relationship_name, is_hierarchical, defines_ancestry, reverse_relationship_id, relationship_concept_id)
+      VALUES (pReverse_relationship_id, pRelationship_name_rev, pIs_hierarchical_rev, pDefines_ancestry_rev, pRelationship_id, z);
+
+    ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
+    DROP SEQUENCE v5_concept;
+END $$;
+
 
 --load stage
--- Insert of vocabulary into concept table, and vocabulary table
-INSERT INTO   dev_cap.concept (concept_id,
-                               concept_name,
-                               domain_id,
-                               vocabulary_id,
-                               concept_class_id,
-                               standard_concept,
-                               concept_code,
-                               valid_start_date,
-                               valid_end_date,
-                               invalid_reason)
-VALUES  (
-         (SELECT concept_id+1
-FROM concept
-ORDER BY concept_id desc
-limit 1),
-         'College of American Pathologists',
-         'Metadata',
-         'Vocabulary',
-         'Vocabulary',
-         NULL,
-         'OMOP generated',
-         to_date('19700101', 'yyyymmdd'),
-         to_date('20991231', 'yyyymmdd'),
-         NULL
-         )
-;
-INSERT INTO   dev_cap.vocabulary (vocabulary_id,
-                                vocabulary_name,
-                                vocabulary_reference,
-                                vocabulary_version,
-                                  vocabulary_concept_id
-                                )
-VALUES (
-        'CAP',
-        'College of American Pathologists',
-        'link_to_source',
-        'CAP eCC release, Aug 2019',
-        (SELECT concept_id
-FROM concept
-WHERE concept_name='College of American Pathologists')
-)
-;
-
-
--- Insert of concept classes into concept table, and concept_class table
-INSERT INTO dev_cap.concept (concept_id,
-                             concept_name,
-                             domain_id,
-                             vocabulary_id,
-                             concept_class_id,
-                             standard_concept,
-                             concept_code,
-                             valid_start_date,
-                             valid_end_date,
-                             invalid_reason)
-
-                                VALUES (
-                                        (SELECT concept_id + 1
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'CAP Value',
-                                        'Metadata',
-                                        'Concept Class',
-                                        'Concept Class',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL),
-                                       (
-                                        (SELECT concept_id + 2
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'CAP Variable',
-                                        'Metadata',
-                                        'Concept Class',
-                                        'Concept Class',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL),
-                                       (
-                                        (SELECT concept_id + 3
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'CAP Protocol',
-                                        'Metadata',
-                                        'Concept Class',
-                                        'Concept Class',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL),
-                                       (
-                                        (SELECT concept_id + 4
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'CAP Header',
-                                        'Metadata',
-                                        'Concept Class',
-                                        'Concept Class',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL)
-                             ;
-
-INSERT INTO   dev_cap.concept_class (concept_class_id,
-                                     concept_class_name,
-                                     concept_class_concept_id)
-
-VALUES ('CAP Value',
-        'CAP Value',
-        (SELECT concept_id
-        FROM concept
-           WHERE concept_name= 'CAP Value'
-        limit 1 )
-       ),
-       ('CAP Variable',
-        'CAP Variable',
-        (SELECT concept_id
-        FROM concept
-           WHERE concept_name= 'CAP Variable'
-        limit 1 )
-        )
-        ,
-       ('CAP Protocol',
-        'CAP Protocol',
-          (SELECT concept_id
-        FROM concept
-           WHERE concept_name= 'CAP Protocol'
-        limit 1 )
-         )
-         ,
-       ('CAP Header',
-        'CAP Header',
-           (SELECT concept_id
-        FROM concept
-           WHERE concept_name= 'CAP Header'
-        limit 1 )
-        )
-       ;
-SELECT * FROM relationship;
-
--- Insert of relationships into concept table, and concept_class table
-INSERT INTO dev_cap.concept (concept_id,
-                             concept_name,
-                             domain_id,
-                             vocabulary_id,
-                             concept_class_id,
-                             standard_concept,
-                             concept_code,
-                             valid_start_date,
-                             valid_end_date,
-                             invalid_reason)
-
-                                VALUES (
-                                        (SELECT concept_id + 1
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'CAP Value of',
-                                        'Metadata',
-                                        'Relationship',
-                                        'Relationship',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL),
-                                       (
-                                        (SELECT concept_id + 2
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'CAP Variable for',
-                                        'Metadata',
-                                        'Relationship',
-                                        'Relationship',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL),
-                                       (
-                                        (SELECT concept_id + 3
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'Has CAP parent item',
-                                        'Metadata',
-                                        'Relationship',
-                                       'Relationship',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL),
-                                       (
-                                        (SELECT concept_id + 4
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'Parent item for',
-                                        'Metadata',
-                                       'Relationship',
-                                        'Relationship',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL)
-                                        ,
-                                        (
-                                        (SELECT concept_id + 5
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'Part of protocol',
-                                        'Metadata',
-                                       'Relationship',
-                                        'Relationship',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL)
-                                        ,
-
-                                        (
-                                        (SELECT concept_id + 6
-                                         FROM concept
-                                         ORDER BY concept_id desc
-                                         limit 1),
-                                        'Protocol of',
-                                        'Metadata',
-                                       'Relationship',
-                                        'Relationship',
-                                        NULL,
-                                        'OMOP generated',
-                                        to_date('19700101', 'yyyymmdd'),
-                                        to_date('20991231', 'yyyymmdd'),
-                                        NULL)
-                             ;
-
-INSERT INTO dev_cap.relationship (relationship_id,
-                                  relationship_name,
-                                  is_hierarchical,
-                                  defines_ancestry,
-                                  reverse_relationship_id,
-                                  relationship_concept_id)
-VALUES ('CAP Value of',
-        'CAP Value of',
-        0,
-        0,
-         'CAP Variable for',
-        (SELECT concept_id
-        FROM dev_cap.concept
-            WHERE concept_name='CAP Value of')
-       ),
-       ('CAP Variable for',
-        'CAP Variable for',
-        0,
-        0,
-         'CAP Value of',
-        (SELECT concept_id
-        FROM dev_cap.concept
-            WHERE concept_name='CAP Variable for')
-       ),
-         ('Has CAP parent item',
-        'Has CAP parent item (CAP)',
-        0,
-        0,
-         'Parent item for',
-        (SELECT concept_id
-        FROM dev_cap.concept
-            WHERE concept_name='Has CAP parent item')
-       ),
-        ('Parent item for',
-        'Parent item for (CAP)',
-        0,
-        0,
-         'Has CAP parent item',
-        (SELECT concept_id
-        FROM dev_cap.concept
-            WHERE concept_name='Parent item for')
-       ),
-       ('Part of protocol',
-        'Part of protocol (CAP)',
-        0,
-        0,
-         'Protocol of',
-        (SELECT concept_id
-        FROM dev_cap.concept
-            WHERE concept_name='Part of protocol')
-       ),
-        ('Protocol of',
-        'Protocol of(CAP)',
-        0,
-        0,
-         'Part of protocol',
-        (SELECT concept_id
-        FROM dev_cap.concept
-            WHERE concept_name='Protocol of')
-       )
-;
 --1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CAP',
-	pVocabularyDate			=> to_date('20190828', 'yyyymmdd'), -- here i put the date version of first version;
-	pVocabularyVersion		=> 'CAP eCC release, Aug 2019',
+	pVocabularyDate			=> to_date('20200226', 'yyyymmdd'), -- here i put the date version of first version Aug 2019 20190828; Feb 2020 20200226
+	pVocabularyVersion		=> 'CAP eCC release, Feb 2020', --
 	pVocabularyDevSchema	=> 'DEV_CAP'
 );
 END $_$;
@@ -354,10 +211,6 @@ TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
-
-
-
-
 
 -- Load into concept_stage from cap_breast_2019_concept_stage_preliminary
 DROP TABLE IF EXISTS dev_cap.cap_breast_2019_concept_stage_preliminary
@@ -444,7 +297,7 @@ INSERT INTO dev_cap.CONCEPT_STAGE (
                                   valid_start_date::date,
                                   valid_end_date::date,
                                   invalid_reason
-FROM cap_breast_2019_concept_stage_preliminary -- august version
+FROM cap_breast_2020_concept_stage_preliminary -- august 2019 version
 ;
 
 --  Load into CONCEPT_SYNONYM_STAGE
@@ -453,11 +306,11 @@ INSERT INTO dev_cap.CONCEPT_synonym_stage ( synonym_name,
                                            synonym_vocabulary_id,
                                            language_concept_id)
 SELECT
-                                  concept_name,
+                               concept_name,
                                concept_code,
-                                  vocabulary_id,
-                                  4180186 as language_concept_id  -- for english language
-FROM cap_breast_2019_concept_stage_preliminary
+                               vocabulary_id,
+                               4180186 as language_concept_id  -- for english language
+FROM cap_breast_2020_concept_stage_preliminary
 ;
 
 
@@ -477,14 +330,14 @@ INSERT INTO dev_cap.concept_relationship_stage
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'CAP Value of'                                                   AS relationship_id,
+               'CAP value of'                                                   AS relationship_id,
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
-               '2099-01-01'                AS valid_end_date,
+               '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM ddymshyts.ecc_201909_v3 e
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -508,12 +361,12 @@ SELECT cs.concept_code                                                       AS 
                'CAP'                                                            AS vocabulary_id_2,
                'Has CAP parent item'                                                   AS relationship_id,
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
-               '2099-01-01'                AS valid_end_date,
+               '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM ddymshyts.ecc_201909_v3 e
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -538,12 +391,12 @@ SELECT cs.concept_code                                                       AS 
                'CAP'                                                            AS vocabulary_id_2,
                'Has CAP parent item'                                                   AS relationship_id,
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
-               '2099-01-01'                AS valid_end_date,
+               '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM ddymshyts.ecc_201909_v3 e
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -571,12 +424,12 @@ SELECT cs.concept_code                                                       AS 
                'CAP'                                                            AS vocabulary_id_2,
                'Has CAP parent item'                                                   AS relationship_id,
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
-               '2099-01-01'                AS valid_end_date,
+               '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM ddymshyts.ecc_201909_v3 e
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                  ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                  ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
         AND e.level_of_separation = 1
@@ -604,12 +457,12 @@ SELECT cs.concept_code                                                       AS 
                'CAP'                                                            AS vocabulary_id_2,
                'Has CAP parent item'                                                   AS relationship_id,
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
-               '2099-01-01'                AS valid_end_date,
+               '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM ddymshyts.ecc_201909_v3 e
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                  ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                  ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -638,12 +491,12 @@ SELECT cs.concept_code                                                       AS 
                'CAP'                                                            AS vocabulary_id_2,
                'Has CAP parent item'                                                   AS relationship_id,
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
-               '2099-01-01'                AS valid_end_date,
+               '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM ddymshyts.ecc_201909_v3 e
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -654,7 +507,7 @@ SELECT cs.concept_code                                                       AS 
     AND cr1.concept_code_2=cs2.concept_code);
 ;
 
--- 'Part of protocol'
+-- 'Has protocol'
 INSERT INTO dev_cap.concept_relationship_stage
 (concept_code_1,
 	concept_code_2,
@@ -668,12 +521,12 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Part of protocol'                                                   AS relationship_id,
+               'Has protocol'                                                   AS relationship_id,
                to_date('19700101'  ,  'yyyymmdd'   )       AS valid_start_date, -- AT LEAST FOR NOW
-               to_date('2099-01-01'    ,  'yyyymmdd'   )                 AS valid_end_date,
+               to_date('20991231'  ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code~*'DCIS.*Res'
 WHERE cs.source_filename~*'DCIS.*Res'
 
@@ -683,12 +536,12 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Part of protocol'                                                   AS relationship_id,
+               'Has protocol'                                                   AS relationship_id,
                to_date('19700101'  ,  'yyyymmdd'   )             AS valid_start_date, -- AT LEAST FOR NOW
-               to_date('2099-01-01'    ,  'yyyymmdd'   )                 AS valid_end_date,
+               to_date('20991231'    ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code~* 'DCIS.*Bx'
 WHERE cs.source_filename  ~*'DCIS.*Bx'
 
@@ -698,12 +551,12 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Part of protocol'                                                   AS relationship_id,
+               'Has protocol'                                                   AS relationship_id,
                to_date('19700101'  ,  'yyyymmdd'   )               AS valid_start_date, -- AT LEAST FOR NOW
-               to_date('2099-01-01'    ,  'yyyymmdd'   )                 AS valid_end_date,
+               to_date('20991231'    ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code~*'Breast.*Invasive.*Bx'
 WHERE cs.source_filename ~*'Breast.*Invasive.*Bx'
 
@@ -713,12 +566,12 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Part of protocol'                                                   AS relationship_id,
+               'Has protocol'                                                   AS relationship_id,
              to_date('19700101'  ,  'yyyymmdd'   )             AS valid_start_date, -- AT LEAST FOR NOW
-             to_date('2099-01-01'    ,  'yyyymmdd'   )                 AS valid_end_date,
+             to_date('20991231'    ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code~*'Breast.*Invasive.*Res'
 WHERE cs.source_filename ~*'Breast.*Invasive.*Res'
 
@@ -728,88 +581,14 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Part of protocol'                                                   AS relationship_id,
+               'Has protocol'                                                   AS relationship_id,
              to_date('19700101'  ,  'yyyymmdd'   )        AS valid_start_date, -- AT LEAST FOR NOW
-             to_date('2099-01-01'    ,  'yyyymmdd'   )                   AS valid_end_date,
+             to_date('20991231'    ,  'yyyymmdd'   )                   AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
 ON cs2.concept_code~*'Breast.*Bmk'
 WHERE cs.source_filename~*'Breast.*Bmk'
-;
-
-
-SELECT *
-FROM concept_relationship_stage cr
-JOIN concept_stage c
-ON cr.concept_code_1=c.concept_code
-JOIN concept_stage c2
-ON cr.concept_code_2=c2.concept_code
------------------------------------------------------------------------------------------
---- CHECKS CRS source
--- SQL to retrieve all the hierarchical direct parent-child pairs generated in dev_cap.cap_breast_2019_concept_stage_preliminary
-SELECT distinct
-       cs.concept_class_id,
-       cs2.concept_class_id,
-       count(*) as COUNTS
-FROM ddymshyts.ecc_201909_v3 e
-JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
-ON e.value_code=cs.concept_code
-JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
-ON e.variable_code=cs2.concept_code
-WHERE e.filename ~* 'breast'
-AND e.level_of_separation =1
-GROUP BY cs.concept_class_id,
-         cs2.concept_class_id
-Order BY COUNTS desc
-;
-
--- not included to any hierarchy codes from source plus newly created class CAP protocols
-SELECT distinct *
-
-FROM ddymshyts.ecc_201909_v3 e
-LEFT JOIN  dev_cap.cap_breast_2019_concept_stage_preliminary cs
-ON e.variable_code=cs.concept_code
-
-WHERE e.filename ~* 'breast'
-AND e.variable_code NOT IN (SELECT distinct
-       e.value_code
-FROM ddymshyts.ecc_201909_v3 e
-JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
-ON e.value_code=cs.concept_code
-JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
-ON e.variable_code=cs2.concept_code
-WHERE e.filename ~* 'breast'
-AND e.level_of_separation =1
-
-    UNION
-    SELECT distinct
-       e.variable_code
-FROM ddymshyts.ecc_201909_v3 e
-JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
-ON e.value_code=cs.concept_code
-JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
-ON e.variable_code=cs2.concept_code
-WHERE e.filename ~* 'breast'
-AND e.level_of_separation =1
-)
-;
-
---- CHECKS CRS resulting
--- check af multiple relationships
--- for only one relationship created
-SELECT *
-FROM concept_relationship_stage
-WHERE concept_code_1 IN
-(SELECT concept_code_1
-    FROM concept_relationship_stage
-    GROUP BY concept_code_1
-    having count(relationship_id)=1)
-;
--- Check for uniqueness of pair concept_code_1, concept_code_2
-select concept_code_1, concept_code_2
-from dev_cap.concept_relationship_stage
-group by concept_code_1, concept_code_2 having count(1) > 1
 ;
 
 --QA for stage tables
@@ -886,157 +665,26 @@ WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
 	 OR crm.valid_end_date::date < crm.valid_start_date::date;
 
 -- generic update()
-select devv5.genericupdate()
-
-
-
-
---dev_lexicon - for Nebraska_Lexicon mappings
-select distinct cs.concept_code,cs.concept_name, cs.concept_class_id, cs.alternative_concept_name, n.*,
-                CASE WHEN length(n.concept_name)>20 then 'CHECK' else '' END AS comment
-FROM dev_cap.cap_breast_2020_concept_stage_preliminary cs
-left JOIN  dev_lexicon.concept n
-ON trim(lower(regexp_replace(cs.alternative_concept_name,'[[:punct:]]|\s','','g')))
-    = trim(lower(regexp_replace(n.concept_name,'\sposition|[[:punct:]]|\s','','g')))
-AND n.vocabulary_id='Nebraska Lexicon'
-AND n.invalid_reason IS NULL
-ORDER BY cs.concept_name
-;
-
-SELECT distinct *
-FROM dev_cap.cap_breast_2020_concept_relationship_stage_preliminary
-WHERE concept_name_2='Extent of Medial Margin Involvement|Medial|Specify Margin(s)|Positive for DCIS|Margins|MARGINS (Note H)'
-;
-
-SELECT distinct n.concept_id,
-               n.concept_code	,
-               n.concept_name	,
-               n. domain_id	,
-               n. concept_class_id	,
-               n. vocabulary_id	,
-               n. valid_start_date	,
-               n. valid_end_date	,
-               n. invalid_reason	,
-               n. standard_concept
-FROM devv5.concept n
-WHERE n.vocabulary_id='Nebraska Lexicon'
---AND  n.concept_code='445028008'
-AND n.concept_name ~*'pM1'
---AND n.concept_name ~*'surgica'
---AND n.concept_name !~*'clos'
---AND n.invalid_reason is NULL
-;
-SELECT * FROM  dev_lexicon.concept n
-WHERE n.vocabulary_id='Nebraska Lexicon'
-;
-
-SELECT distinct nn.concept_id,
-               nn.concept_code	,
-               nn.concept_name	,
-               nn. domain_id	,
-               nn. concept_class_id	,
-               nn. vocabulary_id	,
-               nn. valid_start_date	,
-               nn. valid_end_date	,
-               nn. invalid_reason	,
-               nn. standard_concept,
-                nn.concept_name	,
-                nr.relationship_id,
-                n.concept_name
-
-FROM dev_lexicon.concept n
-JOIN dev_lexicon.concept_relationship nr
-ON n.concept_id=nr.concept_id_2
-JOIN dev_lexicon.concept nn ON nn.concept_id=nr.concept_id_1
-WHERE n.vocabulary_id='Nebraska Lexicon'
-AND nn.vocabulary_id='Nebraska Lexicon'
-AND n.concept_code = '84921008'-- from above select
-/* AND n.concept_name ~*'skin'*/
-AND n.invalid_reason is NULL
+select dev_cap.genericupdate() -- custom version with 3.1  modification ( When CAP then 1)
 ;
 
 
-select * from ddymshyts.concept where vocabulary_id ='Nebraska Lexicon'
-and concept_code not in (select concept_code from dev_lexicon.concept where vocabulary_id ='Nebraska Lexicon')
-AND CONCEPT_id IN ('36902312',
-'36902319',
-'36902401',
-'36902461',
-'36902542',
-'36902644',
-'36902651',
-'36902670',
-'36902679',
-'36902696',
-'36902711',
-'36902732',
-'36902735',
-'36902742',
-'36902754',
-'36902795',
-'36902806',
-'36903138');
+SELECT * FROM dev_cap.concept
+WHERE vocabulary_id='CAP'
+AND concept_code  NOT in (SELECT source_code FROM cap_prepared_breast_2019_source);
 
-SELECT distinct vocabulary_id
-FROM devv5.concept
-WHERE vocabulary_id ilike'n%'
+SELECT * FROM cap_prepared_breast_2019_source
+WHERE source_code NOT IN (SELECT concept_code FROM dev_cap.concept)
 
+SELECT * FROM  qa_tests.get_summary ('concept')
+WHERE vocabulary_id_1='CAP';
 
--- used to upload to g-dock for manual
-WITH all_concepts AS (
-    SELECT DISTINCT a.name, cc.concept_id, cc.vocabulary_id,cc.standard_concept, cc.invalid_reason, a.algorithm
-    FROM (
-             SELECT concept_name as name,
-                    concept_id as concept_id,
-                    'CN' as algorithm
-             FROM dev_lexicon.concept c
-             WHERE c.vocabulary_id='Nebraska Lexicon'
-UNION ALL
-             --Mapping non-standard to standard through concept relationship
-             SELECT c.concept_name as name,
-                    cr.concept_id_2 as concept_id,
-                    'CR' as algorithm
-             FROM  dev_lexicon.concept c
-             JOIN dev_lexicon.concept_relationship cr
-             ON (cr.concept_id_1 = c.concept_id
-                 AND cr.invalid_reason IS NULL AND cr.relationship_id in ('Maps to','Concept same_as to','Concept poss_eq to'))
-             JOIN dev_lexicon.concept cc
-             ON (cr.concept_id_2 = cc.concept_id
-                 AND (cc.standard_concept IN ('S','') or cc.standard_concept IS NULL) AND cc.invalid_reason IS NULL)
-             WHERE c.standard_concept != 'S' OR c.standard_concept IS NULL
-AND cc.vocabulary_id in ('Nebraska Lexicon')
-AND c.vocabulary_id in ('Nebraska Lexicon') --vocabularies selection
-         ) AS a
+SELECT * FROM qa_tests.get_summary ('concept_relationship')
+WHERE vocabulary_id_1='CAP'
+OR  vocabulary_id_2='CAP';
 
-             JOIN dev_lexicon.concept cc
-                  ON a.concept_id = cc.concept_id
+select qa_tests.get_checks ();
 
-      WHERE (cc.standard_concept IN ('S','') or cc.standard_concept IS NULL)
-      AND cc.invalid_reason IS NULL
-)
+select qa_tests.get_summary ('concept_relationship');
 
-    SELECT DISTINCT  S.CONCEPT_CODE,
-                    S.CONCEPT_NAME,
-                    S.ALTERNATIVE_CONCEPT_NAME,
-                    S.DOMAIN_ID,
-                    S.VOCABULARY_ID,
-                    S.CONCEPT_CLASS_ID,
-                    S.STANDARD_CONCEPT,
-                    S.INVALID_REASON,
-                    dc.*
-
-
-    FROM  dev_cap.cap_breast_2020_concept_stage_preliminary s --source table
-        LEFT  JOIN all_concepts ac
-          ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
-                                           = trim(lower(regexp_replace(ac.name,'\sposition|[[:punct:]]|\s','','g')))
-LEFT join DEV_LEXICON.CONCEPT D
-ON d.concept_id=ac.concept_id
-
-        /* JOIN  ddymshyts.concept dc
-    ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
-                                           = trim(lower(regexp_replace(dc.concept_name,'\sposition|[[:punct:]]|\s','','g')))
-     AND  dc.vocabulary_id ='Nebraska Lexicon'
-and dc.concept_code not in (select concept_code from dev_lexicon.concept where vocabulary_id ='Nebraska Lexicon')*/ -- to map to 36902696	 Cannot be assessed
-
-;
+select qa_tests.get_summary ('concept');

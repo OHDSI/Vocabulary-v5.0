@@ -3,7 +3,7 @@
 -- cap_prepared_breast_2020_source CREATION is used to preserve data of source_code by concatenation of names from the lowest term(value) to it's ancestor
 -- 2020 version
 -- The scripts below do not contain levels_of_sepatation;
-DROP TABLE IF EXISTS dev_cap.cap_prepared_breast_2020_source
+DROP TABLE IF EXISTS dev_cap.cap_prepared_breast_2020_source;
 CREATE UNLOGGED TABLE dev_cap.cap_prepared_breast_2020_source WITH OIDS AS
     (
         with tab_val as
@@ -99,7 +99,7 @@ CREATE UNLOGGED TABLE dev_cap.cap_prepared_breast_2020_source WITH OIDS AS
 ;
 
 --2019 -- now we integrate this version as fundamental to emulate the vocab update process;
-DROP TABLE IF EXISTS dev_cap.cap_prepared_breast_2019_source
+DROP TABLE IF EXISTS dev_cap.cap_prepared_breast_2019_source;
 CREATE UNLOGGED TABLE dev_cap.cap_prepared_breast_2019_source WITH OIDS AS
     (
         with tab_val as

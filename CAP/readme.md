@@ -34,9 +34,9 @@ The Measurement domain is represented by ‘CAP variable’ concepts expressing 
 
 The recognition of Domains and Classes performed on the bases of alphabetical HTML-tags assigned to source codes according to the only rule 'Distance' containing names should be assigned as Variables.
 note
-#  ‘DI’ source tag was considered by us (vocabulary team) as a comment guiding a pathologist performing the report
+‘DI’ source tag was considered by us (vocabulary team) as a comment guiding a pathologist performing the report
 and is not significant for Observational research, so were not included into release.
-* CAP Protocol classes were created manually from XML-source files
+ CAP Protocol classes were created manually from XML-source files
 
 
 

@@ -297,7 +297,7 @@ INSERT INTO dev_cap.CONCEPT_STAGE (
                                   valid_start_date::date,
                                   valid_end_date::date,
                                   invalid_reason
-FROM cap_breast_2020_concept_stage_preliminary -- august 2019 version
+FROM cap_breast_2019_concept_stage_preliminary -- august 2019 version
 ;
 
 --  Load into CONCEPT_SYNONYM_STAGE
@@ -310,7 +310,7 @@ SELECT
                                concept_code,
                                vocabulary_id,
                                4180186 as language_concept_id  -- for english language
-FROM cap_breast_2020_concept_stage_preliminary
+FROM cap_breast_2019_concept_stage_preliminary
 ;
 
 
@@ -334,10 +334,10 @@ INSERT INTO dev_cap.concept_relationship_stage
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM ddymshyts.ecc_201909_v3 e
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -363,10 +363,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM ddymshyts.ecc_201909_v3 e
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -393,10 +393,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM ddymshyts.ecc_201909_v3 e
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -426,10 +426,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM ddymshyts.ecc_201909_v3 e
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
                  ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
                  ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
         AND e.level_of_separation = 1
@@ -459,10 +459,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM ddymshyts.ecc_201909_v3 e
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
                  ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
                  ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -493,10 +493,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM ddymshyts.ecc_201909_v3 e
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -525,8 +525,8 @@ SELECT cs.concept_code                                                       AS 
                to_date('19700101'  ,  'yyyymmdd'   )       AS valid_start_date, -- AT LEAST FOR NOW
                to_date('20991231'  ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
 ON cs2.concept_code~*'DCIS.*Res'
 WHERE cs.source_filename~*'DCIS.*Res'
 
@@ -540,8 +540,8 @@ SELECT cs.concept_code                                                       AS 
                to_date('19700101'  ,  'yyyymmdd'   )             AS valid_start_date, -- AT LEAST FOR NOW
                to_date('20991231'    ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
 ON cs2.concept_code~* 'DCIS.*Bx'
 WHERE cs.source_filename  ~*'DCIS.*Bx'
 
@@ -555,8 +555,8 @@ SELECT cs.concept_code                                                       AS 
                to_date('19700101'  ,  'yyyymmdd'   )               AS valid_start_date, -- AT LEAST FOR NOW
                to_date('20991231'    ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
 ON cs2.concept_code~*'Breast.*Invasive.*Bx'
 WHERE cs.source_filename ~*'Breast.*Invasive.*Bx'
 
@@ -570,8 +570,8 @@ SELECT cs.concept_code                                                       AS 
              to_date('19700101'  ,  'yyyymmdd'   )             AS valid_start_date, -- AT LEAST FOR NOW
              to_date('20991231'    ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
 ON cs2.concept_code~*'Breast.*Invasive.*Res'
 WHERE cs.source_filename ~*'Breast.*Invasive.*Res'
 
@@ -585,8 +585,8 @@ SELECT cs.concept_code                                                       AS 
              to_date('19700101'  ,  'yyyymmdd'   )        AS valid_start_date, -- AT LEAST FOR NOW
              to_date('20991231'    ,  'yyyymmdd'   )                   AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2019_concept_stage_preliminary cs
+LEFT JOIN dev_cap.cap_breast_2019_concept_stage_preliminary cs2
 ON cs2.concept_code~*'Breast.*Bmk'
 WHERE cs.source_filename~*'Breast.*Bmk'
 ;

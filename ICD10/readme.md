@@ -2,6 +2,7 @@ Update of ICD10
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
+- SNOMED must be loaded first
 - Working directory ICD10.
 
 1. Go to http://apps.who.int/classifications/apps/icd/ClassificationDownload/DLArea/Download.aspx and download latest ICD-10 version (e.g. ICD-10 2016 version)

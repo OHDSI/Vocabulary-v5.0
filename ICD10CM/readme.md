@@ -3,6 +3,7 @@ Update of ICD10CM
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
 - Schema UMLS
+- SNOMED must be loaded first
 - Working directory ICD10CM.
 
 1. Run create_source_tables.sql

@@ -197,6 +197,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'KCD7' THEN 1
 		WHEN c.vocabulary_id = 'CTD' THEN 1
 		WHEN c.vocabulary_id = 'EDI' THEN 1
+		WHEN c.vocabulary_id = 'Nebraska Lexicon' THEN 1
 		WHEN c.vocabulary_id = 'ICD10CN' THEN 1
 		WHEN c.vocabulary_id = 'ICD9ProcCN' THEN 1
 		WHEN c.vocabulary_id = 'CAP' THEN 1

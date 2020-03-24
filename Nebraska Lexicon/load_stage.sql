@@ -173,7 +173,7 @@ FROM (
 				THEN 'Staging / Scales'
 			when F7 = 'qualifier'
 				THEN 'Qualifier Value'
-			when F7 is null --3 Nebraska concepts
+			when F7 IS NULL --3 Nebraska concepts
 				THEN 'Model Comp'
 			when F7 = 'observable'
 				THEN 'Observable Entity'
@@ -505,14 +505,18 @@ FROM (
 				THEN 'Has proc morph'
 			when term = 'Relative to'
 				then 'Has property' -- Ambiguous
-			when term = 'Protein molecule transcribed from gene locus' 
+			when term = 'Protein molecule transcribed from gene locus'
 				then 'Inheres in'
-			when term = 'Specimen preparation technique' 
+			when term = 'Specimen preparation technique'
 				then 'Has technique'
 			when term = 'Units'
 				then 'Has unit of presen'
 			when term = 'Distribution'
 				then 'Has property' -- Breaks SNOMED conventions
+			when term = 'Has ingredient'
+				then 'Has active ing'
+			when term = 'Timing'
+				then 'Occurs before'
 			ELSE term --'non-existing'
 			END AS relationship_id,
 		(
@@ -525,9 +529,44 @@ FROM (
 	) sn;
 
 --check for non-existing relationships
---ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
---ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
+ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
+ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
 --SELECT relationship_id FROM concept_relationship_stage EXCEPT SELECT relationship_id FROM relationship;
+
+--5.1 Nebraska may add asinine relationships that are synchronous in both directions.
+--We remove the relation that originates from concept that is stated as primitive.
+WITH concept_status
+AS --get latest assigned status
+	(
+	SELECT id
+	FROM (
+		SELECT id,
+			first_value(statusid) OVER (
+				PARTITION BY id ORDER BY effectivetime DESC
+				) AS statusid
+		FROM sources.lex_sct2_concept
+		) AS s0
+	WHERE s0.statusid = '900000000000074008' --Primitive
+	)
+DELETE
+FROM concept_relationship_stage crs
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_2 = crs.concept_code_1
+			AND crs_int.vocabulary_id_2 = crs.vocabulary_id_1
+			AND crs_int.concept_code_1 = crs.concept_code_2
+			AND crs_int.vocabulary_id_1 = crs.vocabulary_id_2
+			AND crs_int.relationship_id = crs.relationship_id
+			AND crs_int.invalid_reason IS NULL
+		)
+	AND EXISTS (
+		SELECT 1
+		FROM concept_status c_st
+		WHERE c_st.id = crs.concept_code_1
+		)
+	AND crs.invalid_reason IS NULL
+	AND crs.vocabulary_id_1 = 'Nebraska Lexicon';
 
 --6. Add replacement relationships. They are handled in a different Nebraska Lexicon table
 INSERT INTO concept_relationship_stage (
@@ -763,8 +802,8 @@ BEGIN
 END $_$;
 
 --15. Start building the hierarchy for progagating domain_ids from toop to bottom
-DROP TABLE IF EXISTS snomed_ancestor;
-CREATE UNLOGGED TABLE snomed_ancestor AS (
+DROP TABLE IF EXISTS nebraska_ancestor;
+CREATE UNLOGGED TABLE nebraska_ancestor AS (
 	WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, full_path) AS (
 		SELECT ancestor_concept_code,
 			descendant_concept_code,
@@ -793,9 +832,9 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 	FROM hierarchy_concepts hc
 );
 
-ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
+ALTER TABLE nebraska_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
 
-ANALYZE snomed_ancestor;
+ANALYZE nebraska_ancestor;
 
 --16. Create domain_id
 --16.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
@@ -1003,7 +1042,7 @@ SET ranked = (
 				SELECT DISTINCT pa.peak_code AS pa,
 					pd.peak_code AS pd
 				FROM peak pa,
-					snomed_ancestor a,
+					nebraska_ancestor a,
 					peak pd
 				WHERE a.ancestor_concept_code = pa.peak_code
 					AND a.descendant_concept_code = pd.peak_code
@@ -1037,13 +1076,13 @@ SELECT DISTINCT c.concept_code AS peak_code,
 		ELSE 'Observation'
 		END AS peak_domain_id,
 	NULL::INT AS ranked
-FROM snomed_ancestor a,
+FROM nebraska_ancestor a,
 	concept_stage c
 WHERE c.concept_code = a.ancestor_concept_code
 	AND a.ancestor_concept_code NOT IN (
 		SELECT -- find those where ancestors are not also a descendant, i.e. a top of a tree
 			descendant_concept_code
-		FROM snomed_ancestor
+		FROM nebraska_ancestor
 		)
 	AND a.ancestor_concept_code NOT IN (
 		SELECT peak_code
@@ -1096,7 +1135,7 @@ BEGIN
 					) AS peak_domain_id,
 				sa.descendant_concept_code AS concept_code
 			FROM peak p,
-				snomed_ancestor sa
+				nebraska_ancestor sa
 			WHERE sa.ancestor_concept_code = p.peak_code
 				AND p.ranked = A
 			) child
@@ -1104,7 +1143,7 @@ BEGIN
 	END LOOP;
 END $_$;
 
---Assign domains of peaks themselves (snomed_ancestor doesn't include self-descendants)
+--Assign domains of peaks themselves (nebraska_ancestor doesn't include self-descendants)
 UPDATE domain_snomed d
 SET domain_id = i.peak_domain_id
 FROM peak i
@@ -1249,7 +1288,7 @@ SET domain_id = CASE concept_class_id
 			THEN 'Observation'
 		ELSE 'Observation'
 		END
-FROM snomed_ancestor sa
+FROM nebraska_ancestor sa
 WHERE cs.concept_code = sa.descendant_concept_code
 	AND sa.ancestor_concept_code = '363743006';-- Navigational Concept, contains all sorts of orphan codes
 
@@ -1279,9 +1318,19 @@ WHERE invalid_reason IS NULL;
 --And de-standardize navigational concepts
 UPDATE concept_stage cs
 SET standard_concept = NULL
-FROM snomed_ancestor sa
+FROM nebraska_ancestor sa
 WHERE cs.concept_code = sa.descendant_concept_code
-	AND sa.ancestor_concept_code = '363743006'; -- Navigational Concept
+	AND sa.ancestor_concept_code = '363743006' -- Navigational Concept
+	--some concepts have hierarchical relations to concepts in other hierarchies; They should not be considered Navigational concepts
+	AND cs.concept_code NOT IN (
+		SELECT crs_int.concept_code_1
+		FROM concept_relationship_stage crs_int
+		LEFT JOIN nebraska_ancestor ca_int ON ca_int.descendant_concept_code = crs_int.concept_code_2
+			AND ca_int.ancestor_concept_code = '363743006' -- Navigational Concept
+		WHERE ca_int.descendant_concept_code IS NULL
+			AND crs_int.relationship_id = 'Is a'
+			AND crs_int.invalid_reason IS NULL
+		);
 
 --17. Make those Obsolete routes non-standard
 UPDATE concept_stage
@@ -1311,9 +1360,128 @@ WHERE (
 		WHERE COALESCE(v1.latest_update, v2.latest_update) IS NULL
 		);
 
---19. Clean up
+--19. Hotfix for concept_class_id assignments
+UPDATE concept_stage cs
+SET concept_class_id = c.concept_class_id
+FROM concept c
+WHERE c.vocabulary_id = 'SNOMED'
+	AND c.concept_code = cs.concept_code
+	AND cs.concept_class_id = 'Undefined';
+
+--20. If a concept is active and present in SNOMED, remap the concept to SNOMED counterpart
+--OR If SNOMED counterpart is updated with another concept, map to the new target
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT cs.concept_code AS concept_code_1,
+	c2.concept_code AS concept_code_2,
+	cs.vocabulary_id AS vocabulary_id_1,
+	c2.vocabulary_id AS vocabulary_id_2,
+	cr.relationship_id AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM concept_stage cs
+JOIN concept c1 ON c1.concept_code = cs.concept_code
+	AND c1.vocabulary_id = 'SNOMED'
+	AND (
+		c1.invalid_reason IS NULL
+		OR c1.invalid_reason = 'U'
+		)
+JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
+	AND cr.relationship_id = 'Maps to'
+	AND cr.invalid_reason IS NULL
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2;
+
+--21. Concepts with maps to another vocabularies should not be standard
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE cs.standard_concept IS NOT NULL
+	AND EXISTS (
+		SELECT
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = cs.concept_code
+			AND crs_int.relationship_id = 'Maps to'
+			AND crs_int.invalid_reason IS NULL
+			AND crs_int.vocabulary_id_1 = 'Nebraska Lexicon'
+			AND crs_int.vocabulary_id_2 <> 'Nebraska Lexicon'
+		);
+
+--22. Sometimes Nebraska is behind in versions. We need to make sure that concepts that are not standard in SNOMED are not considered standard
+UPDATE concept_stage cs
+SET standard_concept = c.standard_concept
+FROM concept c
+WHERE c.vocabulary_id = 'SNOMED'
+	AND c.concept_code = cs.concept_code
+	AND c.standard_concept IS NULL
+	AND cs.standard_concept IS NOT NULL;
+
+--23. Reconnect branches that remain standard to SNOMED hierarchy
+--dublicate 'Is a' entries to SNOMED concepts
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT crs.concept_code_1 AS concept_code_1,
+	c2.concept_code AS concept_code_2,
+	cs1.vocabulary_id AS vocabulary_id_1,
+	c2.vocabulary_id AS vocabulary_id_2,
+	'Is a' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM concept_relationship_stage crs
+JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
+	AND cs1.vocabulary_id = crs.vocabulary_id_1
+	AND cs1.standard_concept = 'S'
+JOIN concept_stage cs2 ON cs2.concept_code = crs.concept_code_2
+	AND cs2.vocabulary_id = crs.vocabulary_id_2
+	AND cs2.standard_concept IS NULL
+JOIN concept c1 ON c1.concept_code = cs2.concept_code
+	AND c1.vocabulary_id = 'SNOMED'
+JOIN concept_relationship cr ON --in case SNOMED parent is Updated
+	cr.concept_id_1 = c1.concept_id
+	AND cr.relationship_id = 'Maps to'
+	AND cr.invalid_reason IS NULL
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+	AND c2.vocabulary_id = 'SNOMED' --We only extend from SNOMED
+WHERE crs.relationship_id = 'Is a'
+	AND crs.invalid_reason IS NULL;
+
+--24. If a concept gets mapped elsewhere, remove map to self (deprecate [not delete!] because of 'Maps to')
+UPDATE concept_relationship_stage crs
+SET invalid_reason = 'D',
+	valid_end_date = GREATEST(crs.valid_start_date, (
+			SELECT latest_update - 1
+			FROM vocabulary
+			WHERE vocabulary_id = 'Nebraska Lexicon'
+			))
+WHERE crs.invalid_reason IS NULL
+	AND crs.relationship_id = 'Maps to'
+	AND crs.vocabulary_id_1 = 'Nebraska Lexicon'
+	AND crs.vocabulary_id_2 = 'Nebraska Lexicon'
+	AND EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = crs.concept_code_1
+			AND crs_int.vocabulary_id_1 = crs.vocabulary_id_1
+			AND crs_int.invalid_reason IS NULL
+			AND crs_int.relationship_id = 'Maps to'
+			AND crs_int.vocabulary_id_2 <> 'Nebraska Lexicon'
+		);
+
+--25. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
-DROP TABLE snomed_ancestor;
+DROP TABLE nebraska_ancestor;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

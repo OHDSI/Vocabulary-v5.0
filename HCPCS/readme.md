@@ -3,6 +3,7 @@ Update of HCPCS
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
 - Schema UMLS
+- SNOMED must be loaded first
 - Updated RxNorm and RxNorm Extension (for ProcedureDrug.sql and MapDrugVocabulary.sql)
 - Fresh concept_ancestor (for MapDrugVocabulary.sql)
 - Working directory HCPCS.

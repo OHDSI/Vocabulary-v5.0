@@ -2,7 +2,7 @@ Update of Read
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
-- SNOMED must be loaded first
+- SNOMED, RxNorm, CVX must be loaded first
 - Working directory Read.
 
 1. Run create_source_tables.sql

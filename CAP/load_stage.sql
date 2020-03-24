@@ -448,3 +448,9 @@ FROM qa_tests.get_summary ('concept_relationship')
 WHERE vocabulary_id_1='CAP'
 OR  vocabulary_id_2='CAP'
 ;
+
+SELECT qa_tests.get_domain_changes();
+SELECT	qa_tests.get_newly_concepts();
+SELECT qa_tests.get_standard_concept_changes();
+SELECT qa_tests.get_newly_concepts_standard_concept_status();
+

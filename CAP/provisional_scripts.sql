@@ -1,4 +1,56 @@
-CREATE OR REPLACE FUNCTION devv5.genericupdate (
+-- used to upload to g-dock for manual mapping
+WITH all_concepts AS (
+    SELECT DISTINCT a.name, cc.concept_id, cc.vocabulary_id,cc.standard_concept, cc.invalid_reason, a.algorithm
+    FROM (
+             SELECT concept_name as name,
+                    concept_id as concept_id,
+                    'CN' as algorithm
+             FROM dev_lexicon.concept c
+             WHERE c.vocabulary_id='Nebraska Lexicon'
+UNION ALL
+             --Mapping non-standard to standard through concept relationship
+             SELECT c.concept_name as name,
+                    cr.concept_id_2 as concept_id,
+                    'CR' as algorithm
+             FROM  dev_lexicon.concept c
+             JOIN dev_lexicon.concept_relationship cr
+             ON (cr.concept_id_1 = c.concept_id
+                 AND cr.invalid_reason IS NULL AND cr.relationship_id in ('Maps to','Concept same_as to','Concept poss_eq to'))
+             JOIN dev_lexicon.concept cc
+             ON (cr.concept_id_2 = cc.concept_id
+                 AND (cc.standard_concept IN ('S','') or cc.standard_concept IS NULL) AND cc.invalid_reason IS NULL)
+             WHERE c.standard_concept != 'S' OR c.standard_concept IS NULL
+AND cc.vocabulary_id in ('Nebraska Lexicon')
+AND c.vocabulary_id in ('Nebraska Lexicon') --vocabularies selection
+         ) AS a
+
+             JOIN dev_lexicon.concept cc
+                  ON a.concept_id = cc.concept_id
+
+      WHERE (cc.standard_concept IN ('S','') or cc.standard_concept IS NULL)
+      AND cc.invalid_reason IS NULL
+)
+
+    SELECT DISTINCT  S.CONCEPT_CODE,
+                    S.CONCEPT_NAME,
+                    S.ALTERNATIVE_CONCEPT_NAME,
+                    S.DOMAIN_ID,
+                    S.VOCABULARY_ID,
+                    S.CONCEPT_CLASS_ID,
+                    S.STANDARD_CONCEPT,
+                    S.INVALID_REASON
+
+
+
+    FROM  dev_cap.cap_breast_2020_concept_stage_preliminary s --source table
+        LEFT  JOIN all_concepts ac
+          ON trim(lower(regexp_replace(s.alternative_concept_name,'[[:punct:]]|\s','','g')))
+                                           = trim(lower(regexp_replace(ac.name,'\sposition|[[:punct:]]|\s','','g')))
+LEFT join DEV_LEXICON.CONCEPT D
+ON d.concept_id=ac.concept_id
+;
+
+CREATE OR REPLACE FUNCTION dev_cap.genericupdate (
 )
 RETURNS void AS
 $body$
@@ -199,6 +251,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'EDI' THEN 1
 		WHEN c.vocabulary_id = 'ICD10CN' THEN 1
 		WHEN c.vocabulary_id = 'ICD9ProcCN' THEN 1
+	    WHEN c.vocabulary_id = 'CAP' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');
@@ -343,7 +396,7 @@ BEGIN
 		'Concept poss_eq to',
 		'Concept was_a to',
 		'Maps to']) AS relationship_id
-	), 
+	),
 	vocab_combinations as (
 		-- Create a list of vocab1, vocab2 and relationship_id existing in concept_relationship_stage, except 'Maps' to and replacement relationships
 		-- Also excludes manual mappings from concept_relationship_manual
@@ -484,7 +537,7 @@ BEGIN
 		AND crs.relationship_id=r.relationship_id
 		AND crs.invalid_reason IS NULL
 		AND (
-			crs.vocabulary_id_1=c1.vocabulary_id 
+			crs.vocabulary_id_1=c1.vocabulary_id
 			OR (/*AVOF-459*/
 				crs.vocabulary_id_1 IN ('RxNorm','RxNorm Extension') AND c1.vocabulary_id IN ('RxNorm','RxNorm Extension')
 			)
@@ -580,7 +633,7 @@ BEGIN
 
 	-- 13. 'Maps to' and 'Mapped from' relationships from concepts to self should exist for all concepts where standard_concept = 'S'
 	WITH to_be_upserted AS (
-		SELECT c.concept_id, v.latest_update, lat.relationship_id 
+		SELECT c.concept_id, v.latest_update, lat.relationship_id
 		FROM concept c,	vocabulary v, LATERAL (SELECT case when generate_series=1 then 'Maps to' ELSE 'Mapped from' END AS relationship_id FROM generate_series(1,2)) lat
 		WHERE v.vocabulary_id = c.vocabulary_id AND v.latest_update IS NOT NULL AND c.standard_concept = 'S' AND invalid_reason IS NULL
 	),
@@ -593,13 +646,13 @@ BEGIN
 		RETURNING cr.*
 	)
 		INSERT INTO concept_relationship
-		SELECT tpu.concept_id, tpu.concept_id, tpu.relationship_id, tpu.latest_update, TO_DATE ('20991231', 'yyyymmdd'), NULL 
-		FROM to_be_upserted tpu 
-		WHERE (tpu.concept_id, tpu.concept_id, tpu.relationship_id) 
+		SELECT tpu.concept_id, tpu.concept_id, tpu.relationship_id, tpu.latest_update, TO_DATE ('20991231', 'yyyymmdd'), NULL
+		FROM to_be_upserted tpu
+		WHERE (tpu.concept_id, tpu.concept_id, tpu.relationship_id)
 		NOT IN (
 			SELECT up.concept_id_1, up.concept_id_2, up.relationship_id FROM to_be_updated up
 			UNION ALL
-			SELECT cr_int.concept_id_1, cr_int.concept_id_2, cr_int.relationship_id FROM concept_relationship cr_int 
+			SELECT cr_int.concept_id_1, cr_int.concept_id_2, cr_int.relationship_id FROM concept_relationship cr_int
 			WHERE cr_int.concept_id_1=cr_int.concept_id_2 AND cr_int.relationship_id IN ('Maps to','Mapped from')
 		);
 
@@ -642,7 +695,7 @@ BEGIN
 	AND r.invalid_reason IS NULL;
 
 	-- 15. Make sure invalid_reason = null if the valid_end_date is 31-Dec-2099
-	UPDATE concept 
+	UPDATE concept
 		SET invalid_reason = NULL
 	WHERE valid_end_date = TO_DATE ('20991231', 'YYYYMMDD') -- deprecated date
 	AND vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
@@ -651,13 +704,13 @@ BEGIN
 	--16 Post-processing (some concepts might be deprecated when they missed in source, so load_stage doesn't know about them and DO NOT deprecate relationships proper)
 	--Deprecate replacement records if target concept was deprecated
 	UPDATE concept_relationship cr
-		SET invalid_reason = 'D', 
+		SET invalid_reason = 'D',
 		valid_end_date = (SELECT MAX (v.latest_update) FROM concept c JOIN vocabulary v ON c.vocabulary_id = v.vocabulary_id WHERE c.concept_id IN (cr.concept_id_1, cr.concept_id_2))-1
 	FROM (
 			WITH RECURSIVE hierarchy_concepts (concept_id_1, concept_id_2, relationship_id, full_path) AS
 			(
 				SELECT concept_id_1, concept_id_2, relationship_id, ARRAY [concept_id_1] AS full_path
-				FROM upgraded_concepts 
+				FROM upgraded_concepts
 				WHERE concept_id_2 IN (SELECT concept_id_2 FROM upgraded_concepts WHERE invalid_reason = 'D')
 				UNION ALL
 				SELECT c.concept_id_1, c.concept_id_2, c.relationship_id, hc.full_path || c.concept_id_1 AS full_path
@@ -998,9 +1051,9 @@ BEGIN
 			generate_series(1, array_upper(a, 1)) AS rownum
 		FROM (
 			SELECT ARRAY(SELECT vocabulary_id FROM vocabulary
-				
+
 				EXCEPT
-					
+
 					SELECT vocabulary_id_v5 FROM vocabulary_conversion) AS a
 			) AS s1
 		) AS s2;

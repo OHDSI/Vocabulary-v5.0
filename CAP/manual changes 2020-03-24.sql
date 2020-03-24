@@ -1,11 +1,11 @@
-SELECT devv5.FastRecreateSchema ();
--- Some inserts to make code below viable
+-- manual changes 24/03/2020
+SELECT devv5.FastRecreateSchema();
 
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewVocabulary(
 	pVocabulary_id			=> 'CAP',
-	pVocabulary_name		=> 'College of American Pathologists',
+	pVocabulary_name		=> 'College of American Pathologists electronic cancer checklists',
 	pVocabulary_reference	=> 'https://fileshare.cap.org/human.aspx?Arg12=filelist&Arg06=136884410',
 	pVocabulary_version		=> NULL,
 	pOMOP_req				=> 'Y',
@@ -93,7 +93,6 @@ BEGIN
     DROP SEQUENCE v5_concept;
 END $$;
 
-SELECT * FROM relationship;
 DO $$
 DECLARE
     z    int;
@@ -137,13 +136,13 @@ DO $$
 DECLARE
     z    int;
     ex   int;
-    pRelationship_name constant varchar(100):='Has protocol';
-    pRelationship_id constant varchar(100):='Has protocol';
+    pRelationship_name constant varchar(100):='Has CAP protocol';
+    pRelationship_id constant varchar(100):='Has CAP protocol';
     pIs_hierarchical constant int:=0;
     pDefines_ancestry constant int:=0;
-    pReverse_relationship_id constant varchar(100):='Protocol of';
+    pReverse_relationship_id constant varchar(100):='CAP protocol of';
 
-    pRelationship_name_rev constant varchar(100):='Protocol of';
+    pRelationship_name_rev constant varchar(100):='CAP protocol of';
     pIs_hierarchical_rev constant int:=0;
     pDefines_ancestry_rev constant int:=0;
 BEGIN

@@ -12,8 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* license required = Yes
-*
+* license required
 * Authors: Medical Team
 * Date: March 2020
 **************************************************************************/
@@ -24,8 +23,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CAP',
-	pVocabularyDate			=> to_date('20200226', 'yyyymmdd'), -- here i put the date version of first version Aug 2019 20190828; Feb 2020 20200226
-	pVocabularyVersion		=> 'CAP eCC release, Feb 2020', --
+	pVocabularyDate			=> to_date('20200226', 'yyyymmdd'), -- here i put the date  of appropriate  version Aug'19  - 20190828; Feb'20  - 20200226
+	pVocabularyVersion		=> 'CAP eCC release, Feb 2020', --Aug 2019 -- Feb 2020
 	pVocabularyDevSchema	=> 'DEV_CAP'
 );
 END $_$;
@@ -38,70 +37,7 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
--- Load into concept_stage from cap_breast_2019_concept_stage_preliminary
-DROP TABLE IF EXISTS dev_cap.cap_breast_2019_concept_stage_preliminary
-CREATE UNLOGGED TABLE dev_cap.cap_breast_2019_concept_stage_preliminary WITH OIDS AS
-    (
-        SELECT NULL                        AS concept_id,
-               source_code                 AS concept_code,
-               source_description          AS concept_name,
-               alt_source_description AS alternative_concept_name,
-     CASE
-         WHEN source_class ='CAP Protocol'       or    (source_class='S'       AND source_description !~*'^Distance')  THEN 'Observation' -- todo How to treat 'CAP Protocol' in domain_id?
-         WHEN source_class = 'LI' /*AND source_description !~* '^\.*other|^\.*specif.*'*/ THEN  'Meas Value' --decided to leave them as values
-         ELSE 'Measurement'
-         END                               AS domain_id,
-               'CAP'                       AS vocabulary_id,
-     CASE
-         WHEN source_class = 'S'    AND source_description !~*'^Distance'                                     THEN 'CAP Header' -- or 'CAP section'
-         WHEN source_class = 'LI' /*AND source_description !~* '^\.*other|^\.*specif.*'*/  THEN 'CAP Value' -- ^.*expla.* todo do we need them to be variables, decided to leave them as values
-         WHEN source_class = 'CAP Protocol'                              THEN 'CAP Protocol'
-         ELSE 'CAP Variable'
-         END                               AS concept_class_id,
-               NULL                        AS standard_concept,
-               NULL                        AS invalid_reason,
-               '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
-               '2099-12-31'                AS valid_end_date,
-               source_filename,
-               source_class
-        FROM cap_prepared_breast_2019_source
-        WHERE source_class <> 'DI' -- to exclude them from CS because of lack of sense
-        ORDER BY concept_name, concept_code, concept_class_id
-    )
-;
-DROP TABLE IF EXISTS dev_cap.cap_breast_2020_concept_stage_preliminary
-CREATE UNLOGGED TABLE dev_cap.cap_breast_2020_concept_stage_preliminary WITH OIDS AS
-    (
-        SELECT NULL                        AS concept_id,
-               source_code                 AS concept_code,
-               source_description          AS concept_name,
-               alt_source_description AS alternative_concept_name,
-     CASE
-         WHEN source_class ='CAP Protocol'       or    (source_class='S'       AND source_description !~*'^Distance')  THEN 'Observation' -- todo How to treat 'CAP Protocol' in domain_id?
-         WHEN source_class = 'LI' /*AND source_description !~* '^\.*other|^\.*specif.*'*/ THEN  'Meas Value' --decided to leave them as values
-         ELSE 'Measurement'
-         END                               AS domain_id,
-               'CAP'                       AS vocabulary_id,
-     CASE
-         WHEN source_class = 'S'    AND source_description !~*'^Distance'                                     THEN 'CAP Header' -- or 'CAP section'
-         WHEN source_class = 'LI' /*AND source_description !~* '^\.*other|^\.*specif.*'*/  THEN 'CAP Value' -- ^.*expla.* todo do we need them to be variables, decided to leave them as values
-         WHEN source_class = 'CAP Protocol'                              THEN 'CAP Protocol'
-         ELSE 'CAP Variable'
-         END                               AS concept_class_id,
-               NULL                        AS standard_concept,
-               NULL                        AS invalid_reason,
-               '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
-               '2099-12-31'                AS valid_end_date,
-               source_filename,
-               source_class
-        FROM cap_prepared_breast_2020_source
-        WHERE source_class <> 'DI' -- to exclude them from CS because of lack of sense
-        ORDER BY concept_name, concept_code, concept_class_id
-    )
-;
-
-
-
+--Load into concept stage
 INSERT INTO dev_cap.CONCEPT_STAGE (
                            concept_name,
                            domain_id,
@@ -123,7 +59,7 @@ INSERT INTO dev_cap.CONCEPT_STAGE (
                                   valid_start_date::date,
                                   valid_end_date::date,
                                   invalid_reason
-FROM dev_cap.cap_breast_2020_concept_stage_preliminary -- august 2019 version
+FROM dev_cap.cap_breast_2020_concept_stage_preliminary -- here put  name of the prepared for insertion source_table
 ;
 
 --  Load into CONCEPT_SYNONYM_STAGE
@@ -136,7 +72,7 @@ SELECT
                                concept_code,
                                vocabulary_id,
                                4180186 as language_concept_id  -- for english language
-FROM dev_cap.cap_breast_2020_concept_stage_preliminary
+FROM dev_cap.cap_breast_2020_concept_stage_preliminary -- here put  name of the prepared for insertion source_table
 ;
 
 
@@ -160,10 +96,10 @@ INSERT INTO dev_cap.concept_relationship_stage
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e -- put name the initial source_table with levels_of_separation (originated from xml file)
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -189,10 +125,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e -- put name the initial source_table with levels_of_separation (originated from xml file)
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -219,10 +155,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e -- put name the initial source_table with levels_of_separation (originated from xml file)
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -252,10 +188,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e -- put name the initial source_table with levels_of_separation (originated from xml file)
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
                  ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
                  ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
         AND e.level_of_separation = 1
@@ -285,10 +221,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e -- put name the initial source_table with levels_of_separation (originated from xml file)  or dev_cap. ecc_202002 or ddymshyts. ecc_201909_v3
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
                  ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
                  ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -319,10 +255,10 @@ SELECT cs.concept_code                                                       AS 
                 '1970-01-01'                AS valid_start_date, -- AT LEAST FOR NOW
                '2099-12-31'                AS valid_end_date,
                null as                                                invalid_reason
-        FROM dev_cap.ecc_202002 e
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs
+        FROM dev_cap.ecc_202002 e -- put name the initial source_table with levels_of_separation (originated from xml file)
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
                       ON e.value_code = cs.concept_code
-                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+                 JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
                       ON e.variable_code = cs2.concept_code
         WHERE e.filename ~* 'breast'
           AND e.level_of_separation = 1
@@ -333,7 +269,7 @@ SELECT cs.concept_code                                                       AS 
     AND cr1.concept_code_2=cs2.concept_code);
 ;
 
--- 'Has protocol'
+-- 'Has CAP protocol'
 INSERT INTO dev_cap.concept_relationship_stage
 (concept_code_1,
 	concept_code_2,
@@ -347,12 +283,12 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Has protocol'                                                   AS relationship_id,
+               'Has CAP protocol'                                                   AS relationship_id,
                to_date('19700101'  ,  'yyyymmdd'   )       AS valid_start_date, -- AT LEAST FOR NOW
                to_date('20991231'  ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
 ON cs2.concept_code~*'DCIS.*Res'
 WHERE cs.source_filename~*'DCIS.*Res'
 
@@ -362,12 +298,12 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Has protocol'                                                   AS relationship_id,
+               'Has CAP protocol'                                                   AS relationship_id,
                to_date('19700101'  ,  'yyyymmdd'   )             AS valid_start_date, -- AT LEAST FOR NOW
                to_date('20991231'    ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
 ON cs2.concept_code~* 'DCIS.*Bx'
 WHERE cs.source_filename  ~*'DCIS.*Bx'
 
@@ -377,12 +313,12 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Has protocol'                                                   AS relationship_id,
+               'Has CAP protocol'                                                   AS relationship_id,
                to_date('19700101'  ,  'yyyymmdd'   )               AS valid_start_date, -- AT LEAST FOR NOW
                to_date('20991231'    ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
 ON cs2.concept_code~*'Breast.*Invasive.*Bx'
 WHERE cs.source_filename ~*'Breast.*Invasive.*Bx'
 
@@ -392,12 +328,12 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Has protocol'                                                   AS relationship_id,
+               'Has CAP protocol'                                                   AS relationship_id,
              to_date('19700101'  ,  'yyyymmdd'   )             AS valid_start_date, -- AT LEAST FOR NOW
              to_date('20991231'    ,  'yyyymmdd'   )                 AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
 ON cs2.concept_code~*'Breast.*Invasive.*Res'
 WHERE cs.source_filename ~*'Breast.*Invasive.*Res'
 
@@ -407,19 +343,17 @@ SELECT cs.concept_code                                                       AS 
                cs2.concept_code                                                    AS concept_code_2,
                'CAP'                                                            AS vocabulary_id_1,
                'CAP'                                                            AS vocabulary_id_2,
-               'Has protocol'                                                   AS relationship_id,
+               'Has CAP protocol'                                                   AS relationship_id,
              to_date('19700101'  ,  'yyyymmdd'   )        AS valid_start_date, -- AT LEAST FOR NOW
              to_date('20991231'    ,  'yyyymmdd'   )                   AS valid_end_date,
                null as                                                invalid_reason
-FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs
-LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2
+FROM  dev_cap.cap_breast_2020_concept_stage_preliminary cs -- here put  name of the prepared for insertion source_table
+LEFT JOIN dev_cap.cap_breast_2020_concept_stage_preliminary cs2 -- here put  name of the prepared for insertion source_table
 ON cs2.concept_code~*'Breast.*Bmk'
 WHERE cs.source_filename~*'Breast.*Bmk'
 ;
-
 --QA for stage tables
 --all the selects below should return null
-
 
 select relationship_id from concept_relationship_stage
 except
@@ -494,32 +428,23 @@ WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
 select dev_cap.genericupdate() -- custom version with 3.1  modification ( When CAP then 1)
 ;
 
+SELECT qa_tests.purge_cache();
 
-SELECT * FROM dev_cap.concept
-WHERE vocabulary_id='CAP'
-AND concept_code  NOT in (SELECT source_code FROM cap_prepared_breast_2019_source);
+--checks after generic
+SELECT  qa_tests.get_checks ();
 
-SELECT * FROM cap_prepared_breast_2019_source
-WHERE source_code NOT IN (SELECT concept_code FROM dev_cap.concept)
+SELECT *
+FROM  qa_tests.get_summary ('concept');
 
-SELECT * FROM  qa_tests.get_summary ('concept')
+SELECT *
+FROM  qa_tests.get_summary ('concept')
 WHERE vocabulary_id_1='CAP';
 
-SELECT * FROM qa_tests.get_summary ('concept_relationship')
+SELECT *
+FROM qa_tests.get_summary ('concept_relationship');
+
+SELECT *
+FROM qa_tests.get_summary ('concept_relationship')
 WHERE vocabulary_id_1='CAP'
-OR  vocabulary_id_2='CAP';
-
-select qa_tests.get_checks ();
-
-select qa_tests.get_summary ('concept_relationship');
-
-select qa_tests.get_summary ('concept');
-
-SELECT * FROM concept c
-JOIN concept_synonym cs ON c.concept_id=cs.concept_id
-WHERE c.vocabulary_id='CAP'
-
-
-SELECT * FROM cap_prepared_breast_2020_source
-WHERE source_class <>'DI'
-WHERE source_code NOT IN (SELECT source_code FROM  cap_prepared_breast_2019_source)
+OR  vocabulary_id_2='CAP'
+;

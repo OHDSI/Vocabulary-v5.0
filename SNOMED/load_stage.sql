@@ -17,9 +17,9 @@
 * Date: 2016
 **************************************************************************/
 
--- 1. Update latest_update field to new date 
--- Use the later of the release dates of the international and UK versions. Usually, the UK is later.
--- If the international version is already loaded, updating will not affect it
+--1. Update latest_update field to new date 
+--Use the later of the release dates of the international and UK versions. Usually, the UK is later.
+--If the international version is already loaded, updating will not affect it
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -30,7 +30,7 @@ BEGIN
 );
 END $_$;
 
--- 2. Truncate all working tables
+--2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
@@ -452,7 +452,7 @@ SELECT concept_name,
 	invalid_reason
 FROM concept_stage_dmd;
 
--- 4. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
+--4. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -545,7 +545,7 @@ WHERE sct2.rn = 1
 		WHERE cs_int.concept_code = sct2.concept_code
 		);
 
--- 5. Update concept_class_id from extracted class information and terms ordered by some good precedence
+--5. Update concept_class_id from extracted class information and terms ordered by some good precedence
 UPDATE concept_stage cs
 SET concept_class_id = i.concept_class_id
 FROM (
@@ -853,7 +853,7 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
--- Assign top SNOMED concept
+--Assign top SNOMED concept
 UPDATE concept_stage
 SET concept_class_id = 'Model Comp'
 WHERE concept_code = '138875005'
@@ -1916,6 +1916,19 @@ FROM (
 				THEN 'Has combi prod ind'
 			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) dose form indicator'
 				THEN 'Has form continuity'
+			--20200312
+			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) additional monitoring indicator'
+				THEN 'Has add monitor ind'
+			when term = 'Has NHS dm+d (dictionary of medicines and devices) AMP (actual medicinal product) availability restriction indicator'
+				then 'Has AMP restr ind'
+			WHEN term = 'Has NHS dm+d parallel import indicator'
+				then 'Paral imprt ind'
+			WHEN term = 'Has NHS dm+d freeness indicator'
+				then 'Has free indicator'
+			WHEN term = 'Units'
+				then 'Has unit'
+			WHEN term = 'Process duration'
+				then 'Has proc duration'
 			ELSE term--'non-existing'
 			END AS relationship_id,
 		(
@@ -2130,34 +2143,40 @@ WHERE EXISTS (
 			AND crs_int.vocabulary_id_2 = crs.vocabulary_id_2
 		);
 
---11. Working with replacement mappings
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
 
+--11. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--12. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---12. Add mapping from deprecated to fresh concepts
+--13. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---13. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---14. Delete ambiguous 'Maps to' mappings
+--15. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
--- 15. Start building the hierarchy for progagating domain_ids from toop to bottom
+--16. Start building the hierarchy for progagating domain_ids from toop to bottom
 DROP TABLE IF EXISTS snomed_ancestor;
 CREATE UNLOGGED TABLE snomed_ancestor AS (
 	WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, full_path) AS (
@@ -2195,8 +2214,8 @@ ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ances
 
 ANALYZE snomed_ancestor;
 
---16. Create domain_id
--- 16.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
+--17. Create domain_id
+--17.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
 
 DROP TABLE IF EXISTS peak;
 CREATE UNLOGGED TABLE peak (
@@ -2205,7 +2224,7 @@ CREATE UNLOGGED TABLE peak (
 	ranked INTEGER -- number for the order in which to assign
 	);
 
--- 16.2 Fill in the various peak concepts
+--17.2 Fill in the various peak concepts
 INSERT INTO peak
 VALUES (138875005, 'Metadata'), -- root
 	(900000000000441003, 'Metadata'), -- SNOMED CT Model Component
@@ -2397,12 +2416,38 @@ VALUES (138875005, 'Metadata'), -- root
 	(48176007, 'Observation'), -- Social context
 	(397731000, 'Race'), -- Ethnic group finding
 	--added 20191112
-	(108246006, 'Measurement'); --Tonometry AND/OR tonography procedure
+	(108246006, 'Measurement'), --Tonometry AND/OR tonography procedure
+	--added 20200312
+	(61746007, 'Measurement'), --Taking patient vital signs
+	(771387000,'Drug'), --Substance with effector mechanism of action
+	--added 20200317
+	(365866002,'Measurement'), --Finding of HIV status
+	(438508001,'Measurement'), --Virus present
+	(710954001,'Measurement'), --Bacteria present
+	(871000124102,'Measurement'), --Virus not detected
+	(426000000,'Measurement'), --Fever greater than 100.4 Fahrenheit
+	(164304001,'Measurement'), --O/E - hyperpyrexia - greater than 40.5 degrees Celsius
+	(163633002,'Measurement'), --O/E -skin temperature abnormal
+	(164294007,'Measurement'), --O/E - rectal temperature
+	(164295008,'Measurement'), --O/E - core temperature
+	(164300005,'Measurement'), --O/E - temperature normal
+	(164303007,'Measurement'), --O/E - temperature elevated
+	(164293001,'Measurement'), --O/E - groin temperature
+	(164301009,'Measurement'), --O/E - temperature low
+	(164292006,'Measurement'), --O/E - axillary temperature
+	(275874003,'Measurement'), --O/E - oral temperature
+	(315632006,'Measurement'), --O/E - tympanic temperature
+	(274308003,'Measurement'), --O/E - hyperpyrexia
+	(164285001,'Measurement'), --O/E - fever - general
+	(164290003,'Measurement'), --O/E - method fever registered
+	(1240591000000102,'Measurement'), --2019 novel coronavirus not detected
+	(162913005,'Measurement'), --O/E - rate of respiration
+	(41769001,'Condition'); --Disease suspected
 
--- 16.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
--- Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
--- The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
--- This could cause trouble if a parallel fork happens at the same height
+--17.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
+--Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
+--The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
+--This could cause trouble if a parallel fork happens at the same height
 UPDATE peak p
 SET ranked = (
 		SELECT rnk
@@ -2423,12 +2468,12 @@ SET ranked = (
 		WHERE r.peak_code = p.peak_code
 		);
 
--- For those that have no ancestors, the rank is 1
+--For those that have no ancestors, the rank is 1
 UPDATE peak SET ranked = 1 WHERE ranked IS NULL;
 
--- 16.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
--- This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
--- The result should say "0 rows inserted"
+--17.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
+--This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
+--The result should say "0 rows inserted"
 INSERT INTO peak -- before doing that check first out without the insert
 SELECT DISTINCT c.concept_code::BIGINT AS peak_code,
 	CASE 
@@ -2461,7 +2506,7 @@ WHERE c.concept_code::BIGINT = a.ancestor_concept_code
 		) -- but exclude those we already have
 	AND c.vocabulary_id = 'SNOMED';
 
--- 16.5. Build domains, preassign all them with "Not assigned"
+--17.5. Build domains, preassign all them with "Not assigned"
 DROP TABLE IF EXISTS domain_snomed;
 CREATE UNLOGGED TABLE domain_snomed AS
 SELECT concept_code::BIGINT,
@@ -2469,9 +2514,9 @@ SELECT concept_code::BIGINT,
 FROM concept_stage
 WHERE vocabulary_id = 'SNOMED';
 
--- Pass out domain_ids
--- Method 1: Assign domains to children of peak concepts in the order rank, and within rank by order of precedence
--- Do that for all peaks by order of ranks. The highest first, the lower ones second, etc.
+--Pass out domain_ids
+--Method 1: Assign domains to children of peak concepts in the order rank, and within rank by order of precedence
+--Do that for all peaks by order of ranks. The highest first, the lower ones second, etc.
 DO $_$
 DECLARE
 A INT;
@@ -2516,7 +2561,7 @@ BEGIN
 	END LOOP;
 END $_$;
 
--- Assign domains of peaks themselves (snomed_ancestor doesn't include self-descendants)
+--Assign domains of peaks themselves (snomed_ancestor doesn't include self-descendants)
 UPDATE domain_snomed d
 SET domain_id = i.peak_domain_id
 FROM (
@@ -2526,11 +2571,11 @@ FROM (
 	) i
 WHERE i.peak_code = d.concept_code;
 
--- Update top guy
+--Update top guy
 UPDATE domain_snomed SET domain_id = 'Metadata' WHERE concept_code = 138875005;
 
--- Method 2: For those that slipped through the cracks assign domains by using the class_concept_id
--- This is a crude method, and Method 1 should be revised to cover all concepts.
+--Method 2: For those that slipped through the cracks assign domains by using the class_concept_id
+--This is a crude method, and Method 1 should be revised to cover all concepts.
 UPDATE domain_snomed d
 SET domain_id = i.domain_id
 FROM (
@@ -2596,7 +2641,7 @@ FROM (
 WHERE d.domain_id = 'Not assigned'
 	AND i.concept_code = d.concept_code;
 
--- 16.6. Update concept_stage from newly created domains.
+--17.6. Update concept_stage from newly created domains.
 UPDATE concept_stage c
 SET domain_id = i.domain_id
 FROM (
@@ -2607,8 +2652,8 @@ FROM (
 WHERE c.vocabulary_id = 'SNOMED'
 	AND i.concept_code = c.concept_code::BIGINT;
 
--- 16.7. Make manual changes according to rules
--- Manual correction
+--17.7. Make manual changes according to rules
+--Manual correction
 UPDATE concept_stage
 SET domain_id = 'Measurement'
 WHERE concept_code IN (
@@ -2713,19 +2758,19 @@ WHERE concept_code IN (
 		'128967005' --Exercise challenge
 		);
 
--- Create Specimen Anatomical Site
+--Create Specimen Anatomical Site
 UPDATE concept_stage
 SET domain_id = 'Spec Anatomic Site'
 WHERE concept_class_id = 'Body Structure'
 	AND vocabulary_id = 'SNOMED';
 
--- Create Specimen
+--Create Specimen
 UPDATE concept_stage
 SET domain_id = 'Specimen'
 WHERE concept_class_id = 'Specimen'
 	AND vocabulary_id = 'SNOMED';
 
--- Create Measurement Value Operator
+--Create Measurement Value Operator
 UPDATE concept_stage
 SET domain_id = 'Meas Value Operator'
 WHERE concept_code IN (
@@ -2737,7 +2782,7 @@ WHERE concept_code IN (
 		)
 	AND vocabulary_id = 'SNOMED';
 
--- Create Speciment Disease Status
+--Create Speciment Disease Status
 UPDATE concept_stage
 SET domain_id = 'Spec Disease Status'
 WHERE concept_code IN (
@@ -2747,7 +2792,7 @@ WHERE concept_code IN (
 		)
 	AND vocabulary_id = 'SNOMED';
 
--- Fix navigational concepts
+--Fix navigational concepts
 UPDATE concept_stage
 SET domain_id = CASE concept_class_id
 		WHEN 'Admin Concept'
@@ -2811,7 +2856,7 @@ WHERE vocabulary_id = 'SNOMED'
 		WHERE ancestor_concept_code = 363743006 -- Navigational Concept, contains all sorts of orphan codes
 		);
 
--- 16.8. Set standard_concept based on domain_id
+--17.8. Set standard_concept based on domain_id
 UPDATE concept_stage
 SET standard_concept = CASE domain_id
 		WHEN 'Drug'
@@ -2832,9 +2877,9 @@ SET standard_concept = CASE domain_id
 			THEN NULL -- Units are UCUM
 		ELSE 'S'
 		END
-WHERE vocabulary_id = 'SNOMED';
+WHERE invalid_reason is null;
 
--- And de-standardize navigational concepts
+--And de-standardize navigational concepts
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE vocabulary_id = 'SNOMED'
@@ -2844,8 +2889,8 @@ WHERE vocabulary_id = 'SNOMED'
 		WHERE ancestor_concept_code = 363743006 -- Navigational Concept
 		);
 
--- 17. Return domain_id and concept_class_id for some concepts according to our rules
--- 17.1 Return domain_id
+--18. Return domain_id and concept_class_id for some concepts according to our rules
+--18.1 Return domain_id
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -2866,7 +2911,7 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
--- 17.2. Return concept_class_id
+--18.2. Return concept_class_id
 --for AMPPs (branded packs), AMPs (branded drugs) and VMPPs (clinical packs)
 UPDATE concept_stage cs
 SET concept_class_id = i.concept_class_id
@@ -2924,24 +2969,103 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
--- 18. Rename this Topical one
+--19. Rename this Topical one
 UPDATE concept_stage
 SET concept_name = 'Topical route'
 WHERE concept_code = '6064005';
 
--- 19. Make those Obsolete routes non-standard
+--20. Make those Obsolete routes non-standard
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
--- 20. Clean up
+--Temporary block to handle manual changes.
+--21. Process manual modifications: Kill maps to self for concepts with replacement mappings
+UPDATE concept_relationship_stage crs
+SET invalid_reason = 'D',
+	valid_end_date = GREATEST(crs.valid_start_date, (
+			SELECT latest_update - 1
+			FROM vocabulary
+			WHERE vocabulary_id = 'SNOMED'
+			))
+WHERE crs.concept_code_1 = crs.concept_code_2
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND crs.vocabulary_id_1 = crs.vocabulary_id_2
+	AND crs.concept_code_1 IN (
+		'1240751000000100',
+		'1240491000000103',
+		'1240381000000105',
+		'1240391000000107',
+		'1240401000000105',
+		'1240761000000102',
+		'840544004',
+		'1240431000000104'
+		);
+
+--22. Remove standard status from such concepts
+UPDATE concept_stage
+SET standard_concept = NULL
+WHERE standard_concept IS NOT NULL
+	AND concept_code IN (
+		'1240751000000100',
+		'1240491000000103',
+		'1240381000000105',
+		'1240391000000107',
+		'1240401000000105',
+		'1240761000000102',
+		'840544004',
+		'1240431000000104'
+		);
+
+--23. Insert new synonyms from manual source
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_vocabulary_id,
+	synonym_name,
+	language_concept_id
+	)
+VALUES ('1240461000000109','SNOMED','Measurement of SARS-CoV-2 antibody',4180186),
+	('1240531000000103','SNOMED','Myocarditis due to COVID-19',4180186),
+	('1240521000000100','SNOMED','Otitis media caused by 2019 novel coronavirus',4180186),
+	('1240571000000101','SNOMED','Gastroenteritis caused by 2019 novel coronavirus',4180186),
+	('1240551000000105','SNOMED','Pneumonia due to COVID-19',4180186),
+	('1240541000000107','SNOMED','Infection of upper respiratory tract caused by 2019 novel coronavirus',4180186),
+	('1240541000000107','SNOMED','Infection of upper respiratory tract due to COVID-19',4180186),
+	('1240441000000108','SNOMED','Close exposure to 2019 novel coronavirus infection',4180186),
+	('1240491000000103','SNOMED','2019 novel coronavirus vaccination',4180186),
+	('1240751000000100','SNOMED','Disease caused by 2019 novel coronavirus',4180186),
+	('1240401000000105','SNOMED','Antibody to 2019 novel coronavirus',4180186),
+	('1240561000000108','SNOMED','Encephalopathy caused by 2019 novel coronavirus',4180186),
+	('1240461000000109','SNOMED','Measurement of 2019 novel coronavirus antibody',4180186),
+	('1240531000000103','SNOMED','Myocarditis caused by 2019 novel coronavirus',4180186),
+	('1240511000000106','SNOMED','Detection of SARS-CoV-2 using polymerase chain reaction technique',4180186),
+	('1240471000000102','SNOMED','Measurement of 2019 novel coronavirus antigen',4180186),
+	('1240511000000106','SNOMED','Detection of 2019 novel coronavirus using polymerase chain reaction technique',4180186),
+	('1240551000000105','SNOMED','Pneumonia caused by 2019 novel coronavirus',4180186),
+	('1240571000000101','SNOMED','Gastroenteritis due to COVID-19',4180186),
+	('1240431000000104','SNOMED','Exposure to 2019 novel coronavirus infection',4180186),
+	('1240381000000105','SNOMED','2019 novel coronavirus',4180186),
+	('840544004','SNOMED','Suspected disease caused by severe acute respiratory coronavirus 2',4180186),
+	('1240581000000104','SNOMED','2019 novel coronavirus detected',4180186),
+	('1240581000000104','SNOMED','SARS-CoV-2 detected',4180186),
+	('1240561000000108','SNOMED','Encephalopathy due to COVID-19',4180186),
+	('1240761000000102','SNOMED','Suspected disease caused by 2019 novel coronavirus',4180186),
+	('1240391000000107','SNOMED','Antigen of 2019 novel coronavirus',4180186),
+	('1240591000000102','SNOMED','2019 novel coronavirus not detected',4180186),
+	('1240591000000102','SNOMED','SARS-CoV-2 not detected',4180186),
+	('1240441000000108','SNOMED','Close exposure to SARS-CoV-2',4180186),
+	('1240521000000100','SNOMED','Otitis media due to COVID-19',4180186),
+	('1240471000000102','SNOMED','Measurement of SARS-CoV-2 antigen',4180186);
+
+--24. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE concept_stage_dmd;
 DROP TABLE snomed_ancestor;
 
--- 21. Need to check domains before runnig the generic_update
+--25. Need to check domains before runnig the generic_update
 /*temporary disabled for later use
 DO $_$
 DECLARE

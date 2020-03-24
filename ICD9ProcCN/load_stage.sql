@@ -45,7 +45,7 @@ INSERT INTO concept_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT DISTINCT COALESCE(c2.concept_name, c1.concept_name, c.english_concept_name || ' (automated translation)') AS concept_name,
+SELECT DISTINCT COALESCE(c2.concept_name, c1.concept_name, c.english_concept_name || ' (machine translation)') AS concept_name,
 	'Procedure' AS domain_id,
 	'ICD9ProcCN' AS vocabulary_id,
 	CASE c.concept_class_id
@@ -149,7 +149,7 @@ INSERT INTO concept_relationship_stage (
 	)
 WITH icd_parents AS (
 		SELECT DISTINCT cs.concept_code,
-			first_value(c.concept_id) OVER (
+			FIRST_VALUE(c.concept_id) OVER (
 				PARTITION BY cs.concept_code ORDER BY length(c.concept_code) DESC --longest matching code for best results
 				) AS concept_id
 		FROM concept_stage cs
@@ -175,10 +175,34 @@ JOIN concept_relationship cr ON cr.concept_id_1 = i.concept_id
 	AND cr.invalid_reason IS NULL
 JOIN concept c ON c.concept_id = cr.concept_id_2;
 
---7. Clean up
+--7. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--8. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--10. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--11. Clean up
 DROP INDEX trgm_idx;
 
---8. Assign domains by mapping targets
+--12. Assign domains by mapping targets
 -- Commented: SNOMED domains need fixing first
 /*update concept_stage s
 set

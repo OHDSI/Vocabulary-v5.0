@@ -27,7 +27,6 @@ BEGIN
       );
 END $_$;
 
-
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewSynonym(
@@ -48,9 +47,6 @@ PERFORM vocabulary_pack.AddNewSynonym(
 );
 END $_$;
 
-
-
-
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewSynonym(
@@ -70,11 +66,6 @@ PERFORM vocabulary_pack.AddNewSynonym(
   pLanguage_concept_id =>4180186
 );
 END $_$;
-
-
-
-
-
 
 DO $_$
 BEGIN

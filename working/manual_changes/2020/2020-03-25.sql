@@ -3,7 +3,7 @@ DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewSynonym(
       pConcept_id =>vocabulary_pack.AddNewConcept(
-                     pConcept_name     =>'Middle East Respiratory Syndrome combined heterologous adenoviral-based vector vaccine',
+                     pConcept_name     =>'Middle East Respiratory Syndrome heterologous combined adenoviral-based vector vaccine',
                      pDomain_id        =>'Drug',
                      pVocabulary_id    =>'RxNorm Extension',
                      pConcept_class_id =>'Ingredient',

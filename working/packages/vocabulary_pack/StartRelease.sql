@@ -70,4 +70,5 @@ LANGUAGE 'plpgsql'
 VOLATILE
 CALLED ON NULL INPUT
 SECURITY INVOKER
-COST 100;
+COST 100
+SET client_min_messages = error;

@@ -724,6 +724,19 @@ begin
       execute 'COPY sources.icd9proccn_concept (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason,english_concept_name) FROM '''||pVocabularyPath||'icd9proccn_concept.csv'' delimiter E''\t'' csv quote ''"'' HEADER';
       execute 'COPY sources.icd9proccn_concept_relationship FROM '''||pVocabularyPath||'icd9proccn_concept_relationship.csv'' delimiter E''\t'' csv quote ''"'' HEADER';
       update sources.icd9proccn_concept set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'CAP' then
+      truncate table sources.cap_allxmlfilelist, sources.cap_xml_raw;
+      alter table sources.cap_xml_raw alter column xmlfield type text; --first we need TEXT column due to UTF BOM (byte order mark)
+      execute 'COPY sources.cap_allxmlfilelist FROM '''||pVocabularyPath||'cap_allxmlfilelist.dat''';
+      for z in (select * from sources.cap_allxmlfilelist) loop
+        /*Use PROGRAM for running 'cat' with 'tr'. 'tr' for replacing all carriage returns with space. quote E'\f' for prevent 'invalid byte sequence for encoding "UTF8"' errors,
+        because xml files can contain "\..." in strings*/
+        execute 'COPY sources.cap_xml_raw (xmlfield) FROM PROGRAM ''cat "'||pVocabularyPath||z||'"| tr ''''\r\n'''' '''' ''''  '' csv delimiter E''\b'' quote E''\f'' ';
+      end loop;
+      --remove UTF BOM
+      update sources.cap_xml_raw set xmlfield=REPLACE(xmlfield,E'\xEF\xBB\xBF','');
+      alter table sources.cap_xml_raw alter column xmlfield type xml using xmlfield::xml; --return proper TYPE
+      update sources.cap_xml_raw set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

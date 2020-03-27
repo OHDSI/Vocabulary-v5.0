@@ -131,7 +131,11 @@ SELECT source_code AS concept_code,
 		END AS concept_class_id,
 	NULL AS standard_concept,
 	NULL AS invalid_reason,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CAP'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	source_filename,
 	source_class
@@ -225,7 +229,7 @@ FROM (
 		source_filename
 	FROM tab_filename
 	) AS s0
-WHERE source_class <> 'DI'; --to exclude them from concept_stage because of lack of sense
+WHERE source_class <> 'DI';--to exclude them from concept_stage because of lack of sense
 
 --5. Load into concept stage
 INSERT INTO concept_stage (
@@ -281,7 +285,11 @@ SELECT cs.concept_code AS concept_code_1,
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,
 	'CAP value of' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CAP'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM cap_hierarchy e --put name the initial source_table with levels_of_separation (originated from xml file)
@@ -310,7 +318,11 @@ SELECT cs.concept_code AS concept_code_1,
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,
 	'Has CAP parent item' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CAP'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM cap_hierarchy e --put name the initial source_table with levels_of_separation (originated from xml file)
@@ -349,7 +361,11 @@ SELECT cs.concept_code AS concept_code_1,
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,
 	'Has CAP parent item' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CAP'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM cap_hierarchy e --put name the initial source_table with levels_of_separation (originated from xml file)
@@ -384,7 +400,11 @@ SELECT cs.concept_code AS concept_code_1,
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,
 	'Has CAP parent item' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CAP'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM cap_hierarchy e --put name the initial source_table with levels_of_separation (originated from xml file)
@@ -419,7 +439,11 @@ SELECT cs.concept_code AS concept_code_1,
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,
 	'Has CAP parent item' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CAP'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM cap_hierarchy e --put name the initial source_table with levels_of_separation (originated from xml file)
@@ -454,7 +478,11 @@ SELECT cs.concept_code AS concept_code_1,
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,
 	'Has CAP parent item' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CAP'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM cap_hierarchy e --put name the initial source_table with levels_of_separation (originated from xml file)
@@ -491,7 +519,11 @@ SELECT concept_code AS concept_code_1,
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,
 	'Has CAP protocol' AS relationship_id,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CAP'
+		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM cap_breast_cs_preliminary

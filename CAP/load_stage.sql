@@ -38,9 +38,9 @@ TRUNCATE TABLE drug_strength_stage;
 --3. Create parsed table
 DROP TABLE IF EXISTS cap_hierarchy;
 CREATE UNLOGGED TABLE cap_hierarchy AS
-	select s_done.filename,s_done.variable_code,s_done.var_concept_class,s_done.variable_description,s_done.variable_alt,s_done.value_code,s_done.val_concept_class,
+	select s_done.filename,s_done.officialname,s_done.cap_protocolversion,s_done.variable_code,s_done.var_concept_class,s_done.variable_description,s_done.variable_alt,s_done.value_code,s_done.val_concept_class,
 	s_done.value_description,s_done.value_alt, case when s_done.item_depth=0 then 0 else row_number() over (partition by s_done.value_code order by s_done.item_depth) end as level_of_separation from (
-		select s_all.filename, substring(s_all.section_name,'_(.*)') as variable_code, s_all.item_depth, substring(s_all.section_name,'(.*)_') as var_concept_class,
+		select s_all.filename, s_all.officialname, s_all.cap_protocolversion, substring(s_all.section_name,'_(.*)') as variable_code, s_all.item_depth, substring(s_all.section_name,'(.*)_') as var_concept_class,
 		trim(regexp_replace(devv5.py_unescape(s_all.section_title), '[[:cntrl:]]+', ' ', 'g')) as variable_description,
 		trim(regexp_replace(devv5.py_unescape(s_all.section_alt), '[[:cntrl:]]+', ' ', 'g')) as variable_alt,
 		substring(s_all.item,'_(.*)') as value_code, substring(s_all.item,'(.*)_') as val_concept_class,
@@ -48,8 +48,10 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 		trim(regexp_replace(devv5.py_unescape(s_all.item_alt), '[[:cntrl:]]+', ' ', 'g')) as value_alt
 		from (
 			with xml_source as (
-			select src0.filename, src0.section_name, src0.section_position, src0.section_title, src0.section_alt, src0.sections,xmlfield from (
-				select filename::text as filename, 
+			select src0.filename, src0.officialname, src0.cap_protocolversion, src0.section_name, src0.section_position, src0.section_title, src0.section_alt, src0.sections,xmlfield from (
+				select filename::text as filename,
+				officialname::text as officialname,
+				cap_protocolversion::text as cap_protocolversion,
 				unnest(xpath('./@name',sections))::text as section_name,
 				unnest(xpath('./@order',sections))::text::int section_position, --double cast due to xml->text->int
 				unnest(xpath('./@title',sections))::text as section_title,
@@ -57,11 +59,15 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 				sections,i.xmlfield
 				from sources.cap_xml_raw i,
 				unnest(xpath('/xmlns:FormDesign/@filename', i.xmlfield,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) filename,
+				unnest(xpath('/xmlns:FormDesign/xmlns:Property[@name="OfficialName"]/@val', i.xmlfield,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) officialname,
+				unnest(xpath('/xmlns:FormDesign/xmlns:Property[@name="CAP_ProtocolVersion"]/@val', i.xmlfield,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) cap_protocolversion,
 				unnest(xpath('/xmlns:FormDesign/xmlns:Body//*', i.xmlfield,ARRAY[ARRAY['xmlns', 'urn:ihe:qrph:sdc:2016']])) sections
 				) as src0
 			where src0.section_name not like '%\_%\_%' and src0.section_name <>'ch_Body'
 			)
 			select filename,
+			officialname,
+			cap_protocolversion,
 			section_name,
 			section_title,
 			section_alt,
@@ -74,6 +80,8 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 
 			union all
 			select filename,
+			officialname,
+			cap_protocolversion,
 			section_name,
 			section_title,
 			section_alt,
@@ -87,6 +95,8 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 			--root elements without children
 			union all
 			select filename,
+			officialname,
+			cap_protocolversion,
 			section_name,
 			section_title,
 			section_alt,

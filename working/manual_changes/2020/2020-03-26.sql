@@ -6,7 +6,7 @@ BEGIN
 	pVocabulary_name		=> 'College of American Pathologists electronic cancer checklists',
 	pVocabulary_reference	=> 'https://fileshare.cap.org/human.aspx?Arg12=filelist&Arg06=136884410',
 	pVocabulary_version		=> NULL,
-	pOMOP_req				=> 'Y',
+	pOMOP_req				=> NULL,
 	pClick_default			=> NULL, --NULL or 'Y'
 	pAvailable				=> 'License required', --NULL, 'Currently not available','License required' or 'EULA required'
 	pURL					=> NULL,

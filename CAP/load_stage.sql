@@ -186,30 +186,8 @@ FROM (
 		tab_filename AS (
 			SELECT DISTINCT LEFT(filename, - 4) AS source_code,
 				'CAP Protocol' AS source_class,
-				CASE 
-					WHEN filename ILIKE '%Breast.DCIS.Res%'
-						THEN 'DCIS OF THE BREAST: Resection'
-					WHEN filename ILIKE '%Breast.DCIS.Bx%'
-						THEN 'DCIS OF THE BREAST: Biopsy'
-					WHEN filename ILIKE '%Breast.Bmk%'
-						THEN 'Breast Biomarker Reporting Template'
-					WHEN filename ILIKE '%Breast.Invasive.Bx%'
-						THEN 'INVASIVE CARCINOMA OF THE BREAST: Biopsy'
-					WHEN filename ILIKE '%Breast.Invasive.Res.%'
-						THEN 'INVASIVE CARCINOMA OF THE BREAST: Resection'
-					END AS source_description,
-				CASE 
-					WHEN filename ILIKE '%Breast.DCIS.Res%'
-						THEN 'DCIS OF THE BREAST: Resection'
-					WHEN filename ILIKE '%Breast.DCIS.Bx%'
-						THEN 'DCIS OF THE BREAST: Biopsy'
-					WHEN filename ILIKE '%Breast.Bmk%'
-						THEN 'Breast Biomarker Reporting Template'
-					WHEN filename ILIKE '%Breast.Invasive.Bx%'
-						THEN 'INVASIVE CARCINOMA OF THE BREAST: Biopsy'
-					WHEN filename ILIKE '%Breast.Invasive.Res.%'
-						THEN 'INVASIVE CARCINOMA OF THE BREAST: Resection'
-					END AS alt_source_description,
+				officialname || '. Version ' || cap_protocolversion AS source_description,
+				officialname || '. Version ' || cap_protocolversion AS alt_source_description,
 				LEFT(filename, - 4) AS source_filename
 			FROM cap_hierarchy
 			WHERE filename ILIKE '%breast%'
@@ -537,7 +515,8 @@ SELECT concept_code AS concept_code_1,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM cap_breast_cs_preliminary
-WHERE source_filename ~* 'DCIS\.Res|DCIS\.Bx|Breast\.Invasive\.Bx|Breast\.Invasive\.Res|Breast\.Bmk';
+WHERE source_filename ~* 'DCIS\.Res|DCIS\.Bx|Breast\.Invasive\.Bx|Breast\.Invasive\.Res|Breast\.Bmk'
+	AND concept_code <> source_filename;
 
 --8. Add manual source
 DO $_$

@@ -199,6 +199,19 @@ VALUES ('Emergency use of U07.1 | Disease caused by severe acute respiratory syn
 	('COVID-19 pneumonia (machine translation)','Observation','ICD10CN','ICD10 code','U07.100x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
 	('COVID-19 pneumonia (machine translation)','Observation','ICD10CN','ICD10 code','U07.100x003',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'));
 
+--6.1 Replace names with manually corrected English components wherever possible
+
+update concept_stage s
+set concept_name =
+	coalesce (
+		(
+			select new_source_concept_name
+			from dev_icd10cn.icd10cn_new_names_to_replace r
+			where r.source_concept_id = (select concept_id from concept where vocabulary_id = 'ICD10CN' and concept_code = s.concept_code)
+		),
+		s.concept_name
+	);	
+
 --7. Fill table concept_synonym_stage with chinese and English names
 INSERT INTO concept_synonym_stage (
 	synonym_name,
@@ -266,7 +279,7 @@ SELECT i.concept_code as concept_code_1,
 	c.concept_code as concept_code_2,
 	'ICD10CN' as vocabulary_id_1,
 	c.vocabulary_id as vocabulary_id_2,
-	'Maps to' as relationship_id,
+	r.relationship_id as relationship_id,
 	(
 		SELECT latest_update
 		FROM vocabulary
@@ -313,7 +326,7 @@ FROM (
 	) i
 JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 	AND r.invalid_reason IS NULL
-	AND r.relationship_id = 'Maps to'
+	AND r.relationship_id in ('Maps to', 'Maps to value')
 JOIN concept c ON c.concept_id = r.concept_id_2;
 
 --10. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage

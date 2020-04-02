@@ -192,12 +192,12 @@ LEFT JOIN icd10cn_chapters ch ON ch.chapter_code = ic.concept_code_clean
 
 UNION ALL
 
-VALUES ('Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2','Observation','ICD10CN','ICD10 code','U07.1',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('Confirmed COVID-19, excluding pneumonia (machine translation)','Observation','ICD10CN','ICD10 code','U07.100x002',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('COVID-19 (machine translation)','Observation','ICD10CN','ICD10 code','U07.100',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+VALUES ('Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2','Condition','ICD10CN','ICD10 code','U07.1',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('Confirmed COVID-19, excluding pneumonia (machine translation)','Condition','ICD10CN','ICD10 code','U07.100x002',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 (machine translation)','Condition','ICD10CN','ICD10 code','U07.100',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
 	('Suspected case of COVID-19 (machine translation)','Condition','ICD10CN','ICD10 code','Z03.800x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('COVID-19 pneumonia (machine translation)','Observation','ICD10CN','ICD10 code','U07.100x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('COVID-19 pneumonia (machine translation)','Observation','ICD10CN','ICD10 code','U07.100x003',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'));
+	('COVID-19 pneumonia (machine translation)','Condition','ICD10CN','ICD10 code','U07.100x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 pneumonia (machine translation)','Condition','ICD10CN','ICD10 code','U07.100x003',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'));
 
 --6.1. Replace names with manually corrected English components wherever possible
 WITH new_names

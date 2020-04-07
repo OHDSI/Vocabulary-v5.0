@@ -83,20 +83,6 @@ WHERE dcs.concept_class_id = 'Unit'
   AND um.concept_id_2 IS NOT NULL
 ;
 
---== remove to be created concepts from mapped tables ==--
-DO
-$_$
-    BEGIN
-        --formatter:off
-        DELETE FROM ingredient_mapped WHERE concept_id_2 IS NULL;
-        DELETE FROM brand_name_mapped WHERE concept_id_2 IS NULL;
-        DELETE FROM dose_form_mapped WHERE concept_id_2 IS NULL;
-        DELETE FROM supplier_mapped WHERE concept_id_2 IS NULL;
-        DELETE FROM unit_mapped WHERE concept_id_2 IS NULL;
-        --formatter:on
-    END;
-$_$;
-
 --delete deprecated concepts (mainly wrong BN)
 DELETE
 FROM drug_concept_stage
@@ -281,21 +267,40 @@ WHERE (drug_concept_code, ingredient_concept_code) NOT IN
       FROM internal_relationship_stage
       );
 
---== create mapping review table backup ==--
--- generate mapping review
-DROP TABLE IF EXISTS mapping_review
+--== generate mapping review ==--
+DROP TABLE IF EXISTS mapping_review;
 CREATE TABLE mapping_review AS
-SELECT DISTINCT dcs.concept_class_id AS source_concept_calss_id, dcs.concept_name AS name,
-                NULL AS new_name, rtc.concept_id_2, rtc.precedence, rtc.mapping_type,
+SELECT DISTINCT dcs.concept_class_id AS source_concept_calss_id, coalesce(sn.concept_name, dcs.concept_name) AS name,
+                mapped.new_name AS new_name, rtc.concept_id_2, rtc.precedence, rtc.mapping_type,
                 rtc.conversion_factor, c.*
-FROM relationship_to_concept rtc
-JOIN drug_concept_stage dcs
+FROM drug_concept_stage dcs
+LEFT JOIN relationship_to_concept rtc
     ON dcs.concept_code = rtc.concept_code_1
-JOIN concept c
+LEFT JOIN concept c
     ON rtc.concept_id_2 = c.concept_id
+LEFT JOIN (
+          SELECT name, new_name, concept_id_2, precedence, NULL::float as conversion_factor, mapping_type
+          FROM ingredient_mapped
+          UNION
+          SELECT name, new_name, concept_id_2, precedence, NULL::float as conversion_factor, mapping_type
+          FROM brand_name_mapped
+          UNION
+          SELECT name, new_name, concept_id_2, precedence, NULL::float as conversion_factor, mapping_type
+          FROM supplier_mapped
+          UNION
+          SELECT name, new_name, concept_id_2, precedence, NULL::float as conversion_factor, mapping_type
+          FROM dose_form_mapped
+          UNION
+          SELECT name, new_name, concept_id_2, precedence, conversion_factor, mapping_type
+          FROM unit_mapped
+          ) AS mapped
+    ON lower(coalesce(mapped.new_name, mapped.name)) = lower(dcs.concept_name)
+LEFT JOIN concept_stage_sn sn
+    ON dcs.concept_code = sn.concept_code
+WHERE dcs.concept_class_id IN ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form', 'Unit')
 ;
 
---create non_drug table backup
+--create mapping_review table backup
 DO
 $body$
     DECLARE
@@ -306,10 +311,25 @@ $body$
         FROM devv5.vocabulary
         WHERE vocabulary_id = 'AMT'
         LIMIT 1;
-        EXECUTE format('create table if not exists %I as select distinct * from non_drug',
+        EXECUTE format('create table if not exists %I as select distinct * from mapping_review',
                        'mapping_review_backup_' || version);
     END
 $body$;
+
+
+--== remove to be created concepts from mapped tables ==--
+DO
+$_$
+    BEGIN
+        --formatter:off
+        DELETE FROM ingredient_mapped WHERE concept_id_2 IS NULL;
+        DELETE FROM brand_name_mapped WHERE concept_id_2 IS NULL;
+        DELETE FROM dose_form_mapped WHERE concept_id_2 IS NULL;
+        DELETE FROM supplier_mapped WHERE concept_id_2 IS NULL;
+        DELETE FROM unit_mapped WHERE concept_id_2 IS NULL;
+        --formatter:on
+    END;
+$_$;
 
 -- need for BuildRxE to run
 /*ALTER TABLE relationship_to_concept

@@ -214,6 +214,23 @@ WHERE (concept_code_1, concept_code_2) IN (
                                           WHERE coalesce(amount_value, numerator_value) IS NULL
                                           );
 
+--== resolve w/w v/v conflicts for different ingredients in the same drug ==--
+UPDATE ds_stage
+SET denominator_unit = 'Ml',
+    numerator_value  = 0.77
+WHERE drug_concept_code IN ('1258241000168101', '1258231000168105')
+  AND ingredient_concept_code = '31199011000036100' -- ethanol
+  AND numerator_value = 700;
+
+UPDATE ds_stage
+SET denominator_unit = 'Ml'
+WHERE drug_concept_code IN ('1384271000168102', '1384281000168104', '1384291000168101', '1384301000168100',
+                            '1384311000168102', '1384321000168109', '1384331000168107', '1384341000168103',
+                            '1384351000168101', '1384361000168104', '1384371000168105', '1384381000168108')
+  AND ingredient_concept_code = '1934011000036108' -- chlorhexidine gluconate
+  AND denominator_unit = 'G';
+
+
 --deleting drug forms
 DELETE
 FROM ds_stage

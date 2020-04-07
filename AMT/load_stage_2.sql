@@ -264,6 +264,36 @@ WHERE (drug_concept_code, ingredient_concept_code) NOT IN
       FROM internal_relationship_stage
       );
 
+--== create mapping review table backup ==--
+-- generate mapping review
+DROP TABLE IF EXISTS mapping_review
+CREATE TABLE mapping_review AS
+SELECT DISTINCT dcs.concept_class_id AS source_concept_calss_id, dcs.concept_name AS name,
+                NULL AS new_name, rtc.concept_id_2, rtc.precedence, rtc.mapping_type,
+                rtc.conversion_factor, c.*
+FROM relationship_to_concept rtc
+JOIN drug_concept_stage dcs
+    ON dcs.concept_code = rtc.concept_code_1
+JOIN concept c
+    ON rtc.concept_id_2 = c.concept_id
+;
+
+--create non_drug table backup
+DO
+$body$
+    DECLARE
+        version text;
+    BEGIN
+        SELECT vocabulary_version
+        INTO version
+        FROM devv5.vocabulary
+        WHERE vocabulary_id = 'AMT'
+        LIMIT 1;
+        EXECUTE format('create table if not exists %I as select distinct * from non_drug',
+                       'mapping_review_backup_' || version);
+    END
+$body$;
+
 -- need for BuildRxE to run
 /*ALTER TABLE relationship_to_concept
 DROP COLUMN mapping_type;*/

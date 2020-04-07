@@ -425,6 +425,7 @@ WHERE dcs1.concept_name IN (
                            SELECT name
                            FROM ingredient_mapped
                            WHERE concept_id_2 = 17
+                             AND name IS NOT NULL
                            );
 
 --non-drugs related to non-drug ingredients, which will appear in ds_stage. (Coxiella, Tuberculin)
@@ -451,6 +452,7 @@ WHERE dcs1.concept_name IN (
                            SELECT name
                            FROM brand_name_mapped
                            WHERE concept_id_2 = 17
+                             AND name IS NOT NULL
                            );
 
 INSERT INTO non_drug --add non_drugs that are related to already found
@@ -523,11 +525,11 @@ WHERE concept_code = '159011000036105'   --soap bar
    OR concept_name LIKE '%vaccine%'
    OR concept_name ~* '(?<=ural\s)cranberry';
 
+-- MPP, CTPP, TPP, TPUU
 DELETE
 FROM non_drug nd
 WHERE nd.concept_code IN ('30513011000036104', '30537011000036101',
                           '30404011000036106', '30425011000036101');
--- MPP, CTPP, TPP, TPUU
 
 
 --== get new non_drugs for review (difference between last backup and current version)==--
@@ -945,7 +947,7 @@ FROM (
      SELECT concept_name, 'Ingredient' AS new_concept_class_id, concept_code, concept_class_id
      FROM concept_stage_sn
      WHERE concept_class_id = 'AU Substance'
-       AND concept_code NOT IN ('52990011000036102'/* '48158011000036109'*/)-- Aqueous Cream ,Cotton Wool
+       AND concept_code NOT IN ('52990011000036102')-- Aqueous Cream
      UNION
      SELECT concept_name, 'Brand Name' AS new_concept_class_id, concept_code, concept_class_id
      FROM dcs_bn
@@ -1011,7 +1013,7 @@ FROM (
      FROM ingredient_mapped
      WHERE new_name <> ''
      ) AS names
-WHERE dcs.concept_name = names.name
+WHERE lower(dcs.concept_name) = lower(names.name)
 ;
 
 -- set new_names for brand names from brand_name_mapped
@@ -1022,7 +1024,7 @@ FROM (
      FROM brand_name_mapped
      WHERE new_name <> ''
      ) AS names
-WHERE dcs.concept_name = names.name
+WHERE lower(dcs.concept_name) = lower(names.name)
 ;
 
 -- set new_names for suppliers from supplier_mapped
@@ -1033,7 +1035,7 @@ FROM (
      FROM supplier_mapped
      WHERE new_name <> ''
      ) AS names
-WHERE dcs.concept_name = names.name
+WHERE lower(dcs.concept_name) = lower(names.name)
 ;
 
 -- set new_names for dose forms from dose_form_mapped
@@ -1051,12 +1053,13 @@ WHERE lower(dcs.concept_name) = lower(names.name)
 -- delete from dcs concepts, mapped to 0 in ingredient_mapped
 DELETE
 FROM drug_concept_stage dcs
-WHERE concept_name IN (
-                      SELECT name
-                      FROM ingredient_mapped
-                      WHERE concept_id_2 = 0
-                      )
-AND concept_class_id = 'Ingredient';
+WHERE lower(concept_name) IN (
+                             SELECT lower(name)
+                             FROM ingredient_mapped
+                             WHERE concept_id_2 = 0
+                               AND name IS NOT NULL
+                             )
+  AND concept_class_id = 'Ingredient';
 
 -- delete from dcs concepts, mapped to 0 in brand_name_mapped
 DELETE
@@ -1065,27 +1068,30 @@ WHERE lower(concept_name) IN (
                              SELECT lower(name)
                              FROM brand_name_mapped
                              WHERE concept_id_2 = 0
+                                AND name IS NOT NULL
                              )
   AND concept_class_id = 'Brand Name';
 
 -- delete from dcs concepts, mapped to 0 in supplier_mapped
 DELETE
 FROM drug_concept_stage dcs
-WHERE concept_name IN (
-                      SELECT name
-                      FROM supplier_mapped
-                      WHERE concept_id_2 = 0
+WHERE lower(concept_name) IN (
+                             SELECT lower(name)
+                             FROM supplier_mapped
+                             WHERE concept_id_2 = 0
+                               AND name IS NOT NULL
                       )
 AND concept_class_id = 'Supplier';
 
 -- delete from dcs concepts, mapped to 0 in dose_form_mapped
 DELETE
 FROM drug_concept_stage dcs
-WHERE concept_name IN (
-                      SELECT name
-                      FROM dose_form_mapped
-                      WHERE concept_id_2 = 0
-                      )
+WHERE lower(concept_name) IN (
+                             SELECT lower(name)
+                             FROM dose_form_mapped
+                             WHERE concept_id_2 = 0
+                               AND name IS NOT NULL
+                             )
 AND concept_class_id = 'Dose Form';
 
 DELETE
@@ -3045,7 +3051,6 @@ WHERE dcs.concept_class_id = 'Ingredient'
                  WHERE dcs.concept_code = rtc.concept_code_1
     )
 --   AND dcs.concept_code not in (select concept_code from vaccines_ing)
-  AND dcs.concept_name NOT IN ('Rhamnus Frangula', 'Polylactic Acid')
 ;
 
 -- update 'U/D' in ingredient_mapped
@@ -3116,6 +3121,7 @@ WHERE concept_class_id = 'Ingredient'
   AND dcs.concept_name NOT IN (
                               SELECT DISTINCT name
                               FROM ingredient_mapped
+                              WHERE name IS NOT NULL
                               )
 ORDER BY dcs.concept_name
 ;
@@ -3264,6 +3270,7 @@ WHERE concept_class_id = 'Brand Name'
   AND dcs.concept_name NOT IN (
                               SELECT DISTINCT name
                               FROM brand_name_mapped
+                              WHERE name IS NOT NULL
                               )
 ORDER BY dcs.concept_name
 ;
@@ -3408,6 +3415,7 @@ WHERE concept_class_id = 'Supplier'
   AND dcs.concept_name NOT IN (
                               SELECT DISTINCT name
                               FROM supplier_mapped
+                              WHERE name IS NOT NULL
                               )
 ORDER BY dcs.concept_name
 ;
@@ -3499,6 +3507,7 @@ WHERE concept_class_id = 'Dose Form'
   AND dcs.concept_name NOT IN (
                               SELECT DISTINCT name
                               FROM dose_form_mapped
+                              WHERE name IS NOT NULL
                               )
 ORDER BY dcs.concept_name
 ;
@@ -3556,6 +3565,7 @@ WHERE concept_class_id = 'Unit'
   AND dcs.concept_name NOT IN (
                               SELECT DISTINCT name
                               FROM unit_mapped
+                              WHERE name IS NOT NULL
                               )
 ORDER BY dcs.concept_name
 ;
@@ -3582,4 +3592,4 @@ WHERE lower(tm.name) NOT IN (
                             )
 ORDER BY tm.name;
 
--- fill up manual mapping tables with new concepts before proceeding with load_stage_2.
+-- populate manually mapped tables with new concepts before proceeding with load_stage_2.

@@ -1,4 +1,4 @@
---1. ingredient ---
+--1. ingredient
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, mapping_type)
 SELECT DISTINCT dcs.concept_code, 'AMT', concept_id_2, precedence, mapping_type
 FROM ingredient_mapped im
@@ -15,7 +15,7 @@ WHERE dcs.concept_class_id = 'Ingredient'
 ;
 
 
---2. brand name rtc ---
+--2. brand name rtc
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, mapping_type)
 SELECT DISTINCT dcs.concept_code, 'AMT', concept_id_2, precedence, mapping_type
 FROM brand_name_mapped bnm
@@ -32,7 +32,7 @@ WHERE dcs.concept_class_id = 'Brand Name'
 ;
 
 
---3.  supplier rtc ---
+--3.  supplier rtc
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, mapping_type)
 SELECT DISTINCT dcs.concept_code, 'AMT', concept_id_2, precedence, mapping_type
 FROM supplier_mapped sm
@@ -49,7 +49,7 @@ WHERE dcs.concept_class_id = 'Supplier'
 ;
 
 
---4. dose form rtc ---
+--4. dose form rtc
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, mapping_type)
 SELECT DISTINCT dcs.concept_code, /*dcs.concept_name,*/ 'AMT', concept_id_2, precedence, mapping_type
 FROM dose_form_mapped dfm
@@ -66,7 +66,7 @@ WHERE dcs.concept_class_id = 'Dose Form'
 ;
 
 
---5. unit rtc ---
+--5. unit rtc
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor,
                                      mapping_type)
 SELECT DISTINCT dcs.concept_code, 'AMT', concept_id_2, precedence, conversion_factor, mapping_type
@@ -120,6 +120,7 @@ WHERE concept_code_1 IN (
                                 AND concept_id_2 NOT IN (43252204, 43252218)
                         );
 
+--remove concepts without relations
 DELETE
 FROM drug_concept_stage
 WHERE concept_code IN (
@@ -200,7 +201,7 @@ WHERE (concept_code_1, concept_code_2) IN (
                                           WHERE coalesce(amount_value, numerator_value) IS NULL
                                           );
 
---== resolve w/w v/v conflicts for different ingredients in the same drug ==--
+-- resolve w/w v/v conflicts for different ingredients in the same drug
 UPDATE ds_stage
 SET denominator_unit = 'Ml',
     numerator_value  = 0.77
@@ -257,6 +258,7 @@ WHERE dcs.concept_class_id = 'Drug Product'
   AND invalid_reason IS NULL
   AND concept_name LIKE 'water%';
 
+--adding missing relations from ds_stage
 INSERT INTO internal_relationship_stage
     (concept_code_1, concept_code_2)
 SELECT DISTINCT drug_concept_code, ingredient_concept_code
@@ -267,7 +269,7 @@ WHERE (drug_concept_code, ingredient_concept_code) NOT IN
       FROM internal_relationship_stage
       );
 
---== generate mapping review ==--
+--generate mapping review
 DROP TABLE IF EXISTS mapping_review;
 CREATE TABLE mapping_review AS
 SELECT DISTINCT dcs.concept_class_id AS source_concept_calss_id, coalesce(sn.concept_name, dcs.concept_name) AS name,
@@ -279,16 +281,16 @@ LEFT JOIN relationship_to_concept rtc
 LEFT JOIN concept c
     ON rtc.concept_id_2 = c.concept_id
 LEFT JOIN (
-          SELECT name, new_name, concept_id_2, precedence, NULL::float as conversion_factor, mapping_type
+          SELECT name, new_name, concept_id_2, precedence, NULL::float AS conversion_factor, mapping_type
           FROM ingredient_mapped
           UNION
-          SELECT name, new_name, concept_id_2, precedence, NULL::float as conversion_factor, mapping_type
+          SELECT name, new_name, concept_id_2, precedence, NULL::float AS conversion_factor, mapping_type
           FROM brand_name_mapped
           UNION
-          SELECT name, new_name, concept_id_2, precedence, NULL::float as conversion_factor, mapping_type
+          SELECT name, new_name, concept_id_2, precedence, NULL::float AS conversion_factor, mapping_type
           FROM supplier_mapped
           UNION
-          SELECT name, new_name, concept_id_2, precedence, NULL::float as conversion_factor, mapping_type
+          SELECT name, new_name, concept_id_2, precedence, NULL::float AS conversion_factor, mapping_type
           FROM dose_form_mapped
           UNION
           SELECT name, new_name, concept_id_2, precedence, conversion_factor, mapping_type
@@ -331,8 +333,7 @@ $_$
     END;
 $_$;
 
---== create backups ==--
---create non_drug table backup
+--create non_drug, pc_stage, relationship_to_concept tables backup
 DO
 $body$
     DECLARE
@@ -345,24 +346,49 @@ $body$
         LIMIT 1;
         EXECUTE format('create table if not exists %I as select distinct * from non_drug',
                        'non_drug_backup_' || version);
-    END
-$body$;
-
---create relationship_to_concept table backup
-DO
-$body$
-    DECLARE
-        version text;
-    BEGIN
-        SELECT vocabulary_version
-        INTO version
-        FROM devv5.vocabulary
-        WHERE vocabulary_id = 'AMT'
-        LIMIT 1;
+        EXECUTE format('create table if not exists %I as select distinct * from pc_stage',
+                       'pc_stage_backup_' || version);
         EXECUTE format('create table if not exists %I as select * from relationship_to_concept',
                        'relationship_to_concept_backup_' || version);
     END
 $body$;
+
+
+-- Clean up tables
+DO
+$_$
+    BEGIN
+        drop table if exists non_drug;
+        drop table if exists supplier;
+        drop table if exists supplier_2;
+        drop table if exists unit;
+        drop table if exists form;
+        drop table if exists dcs_bn;
+        drop table if exists ds_0;
+        drop table if exists ds_0_1_1;
+        drop table if exists ds_0_1_3;
+        drop table if exists ds_0_1_4;
+        drop table if exists ds_0_2_0;
+        drop table if exists ds_0_2;
+        drop table if exists ds_0_3;
+        drop table if exists non_S_ing_to_S;
+        drop table if exists non_S_form_to_S;
+        drop table if exists non_S_bn_to_S;
+        drop table if exists drug_to_supplier;
+        drop table if exists supp_upd;
+        drop table if exists irs_upd;
+        drop table if exists irs_upd_2;
+        drop table if exists ds_sum;
+        drop table if exists pc_0_initial;
+        drop table if exists pc_1_ampersand_sep;
+        drop table if exists pc_1_comma_sep;
+        drop table if exists pc_2_ampersand_sep_amount;
+        drop table if exists pc_2_comma_sep_amount;
+        drop table if exists pc_3_box_size;
+        drop table if exists undetected_packs;
+    END;
+$_$;
+
 
 -- need for BuildRxE to run
 ALTER TABLE relationship_to_concept

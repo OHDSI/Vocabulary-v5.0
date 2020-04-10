@@ -1,6 +1,4 @@
-/*************************************************
-* Set Latest Update *
-*************************************************/
+-- SET LATEST UPDATE
 DO
 $_$
     BEGIN
@@ -20,9 +18,8 @@ $_$
     END
 $_$;
 
-/*************************************************
-* SNOMED-AU conversion *
-*************************************************/
+
+-- SNOMED-AU CONVERSION
 DROP TABLE IF EXISTS concept_stage_sn;
 CREATE TABLE concept_stage_sn
 (
@@ -295,9 +292,7 @@ FROM tmp_concept_class cc
 WHERE cc.concept_code = cs.concept_code;
 
 
-/*************************************************
-* 0. non-drug *
-*************************************************/
+-- 0. NON-DRUG
 DROP TABLE IF EXISTS non_drug;
 CREATE TABLE non_drug AS
 SELECT *
@@ -424,7 +419,7 @@ WHERE concept_code IN ('955111000168100', '955121000168107', '955101000168103',
                           FROM non_drug
                           );
 
-
+-- Insert non-drugs from brand_name_mapped (target_concept_id = 17)
 INSERT INTO non_drug
 SELECT DISTINCT dcs2.*
 FROM drug_concept_stage dcs1
@@ -525,12 +520,11 @@ WHERE concept_code NOT IN (
                           );
 */
 
-/*************************************************
-* 1. drug_concept_stage *
-*************************************************/
+-- 1. DRUG_CONCEPT_STAGE
+--create basic supplier table
 DROP TABLE IF EXISTS supplier;
 CREATE TABLE supplier AS
-SELECT DISTINCT initcap(substring(concept_name, '\((.*)\)')) AS supplier, NULL AS sup_new_name--, concept_code
+SELECT DISTINCT initcap(substring(concept_name, '\((.*)\)')) AS supplier, NULL AS sup_new_name
 FROM concept_stage_sn
 WHERE concept_class_id IN ('Trade Product Unit', 'Trade Product Pack', 'Containered Pack')
   AND substring(concept_name, '\((.*)\)') IS NOT NULL
@@ -540,6 +534,7 @@ WHERE concept_class_id IN ('Trade Product Unit', 'Trade Product Pack', 'Containe
   AND length(substring(concept_name, '\(.*\)')) > 5
   AND substring(lower(concept_name), '\((.*)\)') != 'night';
 
+--set new names for some suppliers
 UPDATE supplier s
 SET sup_new_name = v.supplier_new
 FROM (
@@ -557,13 +552,13 @@ WHERE s.supplier LIKE v.supplier_old;
 
 --add suppliers with abbreviations
 DROP TABLE IF EXISTS supplier_2;
---== adding suppliers with new_names ==--
+-- adding suppliers with new_names
 CREATE TABLE supplier_2 AS
 SELECT DISTINCT supplier, sup_new_name
 FROM supplier
 WHERE sup_new_name IS NOT NULL;
 
---== add non-repeating suppliers without new_names ==--
+-- add non-repeating suppliers without new_names
 INSERT INTO supplier_2
 SELECT DISTINCT supplier, NULL
 FROM supplier
@@ -580,11 +575,11 @@ VALUES ('Apo'), ('Sun'), ('David Craig'), ('Parke Davis'), ('Ipc'), ('Rbx'), ('D
        ('Fbm'), ('Drla'), ('Csl'), ('Briemar'), ('Sau'), ('Drx');
 --formatter:on
 
---== check for duplication of suppliers after manual insertion; should be empty ==--
-/*SELECT supplier
+-- check for duplication of suppliers after manual insertion; should be empty
+SELECT supplier
 FROM supplier_2
 GROUP BY supplier
-HAVING count(*) > 1;*/
+HAVING count(*) > 1;
 
 ALTER TABLE supplier_2
     ADD concept_code varchar(255);
@@ -600,7 +595,7 @@ FROM (
      ) i
 WHERE i.concept_name = coalesce(s2.sup_new_name, s2.supplier);
 
-
+--set concept codes for suppliers available in concept table
 UPDATE supplier_2
 SET concept_code=(
                  SELECT DISTINCT concept_code
@@ -704,7 +699,7 @@ $$
 $$;
 
 
---== set unique code for the same supplier with multiple variants of one's name ==--
+-- set unique code for the same supplier with multiple variants of one's name
 WITH tab AS (
             WITH t AS (
                       SELECT DISTINCT sup_new_name
@@ -743,15 +738,15 @@ WHERE sourceid::text NOT IN (
                             )
 ;
 
---== remove duplicate ingredients with different dosages, presented in drug_strength, but actually absent in drugs ==--
---== got that drugs at QA check ds_stage duplicate ingredients per drug ==--
+-- remove duplicate ingredients with different dosages, presented in drug_strength, but actually absent in drugs
+-- got that drugs at QA check ds_stage duplicate ingredients per drug
 DELETE
 FROM ds_0
 WHERE (sourceid = '1154351000168104' AND value <> '0.833')
    OR (sourceid = '1154361000168102' AND value <> '0.833');
 
 
--- parse units
+-- parse units:
 -- nested regexp_replace replaces "per" with "/"
 -- enclosing regexp_replace removes "unit|each|application|dose" with occasionally trailing "unit" after "/"
 -- UNNEST(regexp_matches) matches units to the left and to the right from "/" and UNNESTs them
@@ -764,8 +759,6 @@ SELECT concept_name,
        unitid
 FROM (
      SELECT DISTINCT
---          UNNEST(regexp_matches(regexp_replace(cs.concept_name, '(/)(unit|each|application|dose)', '', 'g'),
---                             '[^/]+', 'g')) concept_name,
 UNNEST(regexp_matches(
         regexp_replace(
                 regexp_replace(cs.concept_name, '( per )', '/', 'g'),
@@ -780,7 +773,7 @@ ds.unitid
          ON ds.unitid::TEXT = cs.concept_code
      ) AS s0;
 
---== add per cent concept manually as it is not presented in source but will be created later ==--
+-- add per cent concept manually as it is not presented in source but will be created later
 INSERT INTO unit
 SELECT '%' AS concept_name, NULL AS concept_class_id, 'Unit' AS new_concept_class_id, '%' AS concept_code,
        NULL AS unitid
@@ -788,7 +781,7 @@ WHERE NOT exists(SELECT concept_name
                  FROM unit
                  WHERE concept_name = '%');
 
-
+-- form table creation
 DROP TABLE IF EXISTS form;
 CREATE TABLE form AS
 SELECT DISTINCT a.concept_name, 'Dose Form' AS new_concept_class_id, a.concept_code, a.concept_class_id
@@ -817,13 +810,14 @@ WHERE a.concept_class_id = 'AU Qualifier'
                                    SELECT lower(concept_name)
                                    FROM unit
                                    );
-
+--create basic table for brand_names
 DROP TABLE IF EXISTS dcs_bn;
 CREATE TABLE dcs_bn AS
 SELECT DISTINCT *
 FROM concept_stage_sn
 WHERE concept_class_id = 'Trade Product';
 
+-- update dcs_bn using regular expressions
 UPDATE dcs_bn
 SET concept_name=regexp_replace(concept_name, '\d+(\.\d+)?(\s\w+)?/\d+\s\w+$', '', 'g')
 WHERE concept_name ~ '\d+(\s\w+)?/\d+\s\w+$';
@@ -885,7 +879,7 @@ UPDATE dcs_bn
 SET concept_name = 'Friar''s Balsam'
 WHERE CONCEPT_CODE IN ('696391000168106', '688371000168108');
 
-
+-- remove non_drugs, ingredients from dcs_bn
 DELETE
 FROM dcs_bn
 WHERE CONCEPT_CODE IN (
@@ -919,7 +913,7 @@ WHERE CONCEPT_CODE IN
        '45161000168106', '45161000168106', '7061000168108', '38571000168102')
 ;
 
-
+-- create initial drug_concept_stage table
 TRUNCATE TABLE drug_concept_stage;
 INSERT INTO drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code,
                                 possible_excipient, domain_id, valid_start_date, valid_end_date, invalid_reason,
@@ -991,7 +985,7 @@ WHERE concept_code IN (
 '81584011000036104', '80485011000036101', '81001011000036103', '81260011000036100', '80160011000036107'
 );
 
---== get packs where drugs separator '(&)' is more than 250 symbols deep and the pack is treated as a drug ==--
+-- get packs where drugs separator '(&)' is more than 250 symbols deep and the pack is treated as a drug
 DROP TABLE IF EXISTS undetected_packs;
 CREATE TABLE undetected_packs AS
 SELECT DISTINCT ON (conceptid) position('(&)' IN dd.term) AS sep_position, dd.term, dd.conceptid
@@ -1003,7 +997,7 @@ WHERE dd.term LIKE '%(&)%'
   AND position('(&)' IN dd.term) > 250
 ORDER BY conceptid;
 
---== update dcs with undetected packs ==--
+-- update dcs with undetected packs
 UPDATE drug_concept_stage
 SET concept_name = concat(substr(concept_name, 1, 242), ' [Drug Pack]')
 WHERE concept_code IN (
@@ -1108,6 +1102,7 @@ WHERE concept_code IN (
                       FROM non_drug
                       );
 
+--adding non_drugs into drug_concept_stage
 INSERT INTO drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code,
                                 possible_excipient, domain_id, valid_start_date, valid_end_date, invalid_reason,
                                 source_concept_class_id)
@@ -1133,7 +1128,7 @@ WHERE concept_code IN (
                       WHERE typeid = '30465011000036106'
                       );
 
-
+--setting attributes with min concept code to standard to prevent repetitions of concepts in mapping
 UPDATE drug_concept_stage dcs
 SET standard_concept = 'S'
 FROM (
@@ -1171,6 +1166,7 @@ UPDATE drug_concept_stage
 SET possible_excipient='1'
 WHERE concept_name = 'Aqueous Cream';
 
+--remove waste terms from drug_concept_stage
 DELETE
 FROM drug_concept_stage
 WHERE lower(concept_name) IN
@@ -1237,13 +1233,13 @@ WHERE a.STANDARD_CONCEPT = 'S'
   AND b.STANDARD_CONCEPT IS NULL
   AND b.concept_class_id = 'Brand Name';
 
---== trim concepts_names ending in a space after truncation ==--
+-- trim concepts_names ending in a space after truncation
+-- concept names ending with space symbol cause problems in QA_stage tables.
 UPDATE drug_concept_stage
 SET concept_name = trim(concept_name);
 
-/*************************************************
-* 2. ds_stage *
-*************************************************/
+--2. DS_STAGE
+-- parse amount, numerator, denominator info from ds_0
 DROP TABLE IF EXISTS ds_0_1_1;
 CREATE TABLE ds_0_1_1 AS -- still only MP
 SELECT DISTINCT sourceid::text AS drug_concept_code,
@@ -1338,7 +1334,7 @@ SET amount_value=NULL,
     amount_unit=NULL
 WHERE lower(amount_unit) = 'ml';
 
---3-leg dogs (QA error) correction
+--3-leg dogs (QA_input_table) correction
 UPDATE ds_0_1_1
 SET numerator_value  = amount_value,
     numerator_unit   = amount_unit,
@@ -1349,6 +1345,7 @@ WHERE concept_name IN ('Invite E High Potency Vitamin E Cream',
                        'Dl-Alpha-Tocopherol Acetate 10% + Glycerol 5% Cream')
   AND denominator_unit IS NULL;
 
+-- create additional ds table by getting ancestors of ds_0_0_1 concepts
 DROP TABLE IF EXISTS ds_0_1_3;
 CREATE TABLE ds_0_1_3 AS
 SELECT c.concept_code AS drug_concept_code,
@@ -1369,13 +1366,14 @@ WHERE c.source_concept_class_id IN
                             )
 ;
 
---== remove duplicate ingredients with different dosages, presented in drug_strength but actually are absent in drugs ==--
---== got that drugs at QA check ds_stage duplicate ingredients per drug ==--
+-- remove duplicate ingredients with different dosages, presented in drug_strength but actually are absent in drugs
+-- got that drugs at QA_input_tables check ds_stage duplicate ingredients per drug
 DELETE
 FROM ds_0_1_3
 WHERE (drug_concept_code = '1167051000168104' AND numerator_value <> '0.05')
    OR (drug_concept_code = '1167041000168101' AND numerator_value <> '0.05');
 
+--getting second order ancestors of ds_0_0_1 concepts
 DROP TABLE IF EXISTS ds_0_1_4;
 CREATE TABLE ds_0_1_4 AS
 SELECT c.concept_code AS drug_concept_code,
@@ -1404,6 +1402,7 @@ WHERE drug_concept_Code IN (
                            FROM ds_0_1_3
                            );
 
+-- unite all preliminary ds- tables into one ds_0_2_0 table
 DROP TABLE IF EXISTS ds_0_2_0;
 CREATE TABLE ds_0_2_0 AS
 SELECT drug_concept_code, ingredient_concept_code, concept_name, amount_value, amount_unit, numerator_value,
@@ -1419,7 +1418,7 @@ SELECT drug_concept_code, ingredient_concept_code, concept_name, amount_value, a
 FROM ds_0_1_4
 ;
 
-
+--add denominator value to ds_0_2
 DROP TABLE IF EXISTS ds_0_2;
 CREATE TABLE ds_0_2 AS
 SELECT drug_concept_code, ingredient_concept_code, amount_value, amount_unit, numerator_value, numerator_unit,
@@ -1455,7 +1454,7 @@ WHERE drug_concept_code IN (
                              AND concept_name ~ '\s5\sMl$'
                            );
 
-
+--set correct numerator values depending on case
 UPDATE ds_0_2
 SET numerator_value=CASE
                         WHEN new_denom_value IS NOT NULL AND (lower(new_denom_unit) = lower(denominator_unit) OR
@@ -1508,12 +1507,13 @@ WHERE new_denom_unit IS NOT NULL
   AND amount_unit IS NULL
   AND concept_name NOT LIKE '%Medicinal Gas%';
 
-
+--round values
 UPDATE ds_0_2
 SET amount_value=round(amount_value::numeric, 5),
     numerator_value=round(numerator_value::numeric, 5),
     new_denom_value=round(new_denom_value::numeric, 5);
 
+--capitalize units
 UPDATE ds_0_2
 SET amount_unit=initcap(amount_unit),
     numerator_unit=initcap(numerator_unit),
@@ -1525,6 +1525,7 @@ SET new_denom_value=NULL
 WHERE denominator_unit = '24 Hours'
    OR denominator_unit = '16 Hours';
 
+-- adding box_size info
 DROP TABLE IF EXISTS ds_0_3;
 CREATE TABLE ds_0_3
 AS
@@ -1560,6 +1561,7 @@ SET numerator_value=CASE
     new_denom_value = NULL
 WHERE concept_name LIKE '%Medicinal Gas%';
 
+
 TRUNCATE TABLE ds_stage;
 INSERT INTO ds_stage --add box size
 (drug_concept_code, ingredient_concept_code, box_size, amount_value, amount_unit, numerator_value, numerator_unit,
@@ -1568,8 +1570,8 @@ SELECT DISTINCT drug_concept_code, ingredient_concept_code, box_size, amount_val
                 numerator_value::float, numerator_unit, new_denom_value::float, denominator_unit
 FROM ds_0_3;
 
-
-INSERT INTO ds_stage (drug_concept_code, ingredient_concept_code) -- add drugs that don't have dosages
+-- add drugs that don't have dosages
+INSERT INTO ds_stage (drug_concept_code, ingredient_concept_code)
 SELECT DISTINCT a.sourceid, a.destinationid
 FROM sources.amt_rf2_full_relationships a
 JOIN drug_concept_stage b
@@ -1750,7 +1752,7 @@ GROUP BY drug_concept_code, ingredient_concept_code, box_size, amount_unit, nume
          denominator_value, denominator_unit
 ;
 
-TRUNCATE TABLE ds_stage;
+-- create final ds_stage table
 INSERT INTO ds_stage
 SELECT *
 FROM ds_sum;
@@ -1848,7 +1850,7 @@ SET denominator_value = 25
 WHERE drug_concept_code = '652511000168103'
   AND ingredient_concept_code = '2500011000036101';
 
-
+--remove non-drugs
 DELETE
 FROM ds_stage
 WHERE drug_concept_code IN (
@@ -1870,9 +1872,8 @@ $_$
     END;
 $_$;
 
-/*************************************************
-* 3. internal_relationship_stage *
-*************************************************/
+--3. INTERNAL_RELATIONSHIP_STAGE
+--drug to supplier relation
 DROP TABLE IF EXISTS drug_to_supplier;
 CREATE INDEX idx_drug_ccid ON drug_concept_stage (concept_class_id);
 ANALYZE drug_concept_stage;
@@ -2166,7 +2167,7 @@ FROM irs_upd;
 
 DELETE
 FROM drug_concept_stage
-WHERE concept_code IN ( --dose forms that dont relate to any drug
+WHERE concept_code IN ( --dose forms that don't relate to any drug
                       SELECT concept_code
                       FROM drug_concept_stage a
                       LEFT JOIN internal_relationship_stage b
@@ -2218,12 +2219,10 @@ FROM internal_relationship_stage
 WHERE concept_code_1 = '933231511000036106'
   AND concept_code_2 = '4174011000036102';
 
-/*************************************************
-* 4. pc_stage *
-*************************************************/
+-- 4. PC_STAGE
 TRUNCATE TABLE concept_synonym_stage;
 
---== insert long pack names into concept_synonym_stage to avoid name trimming ==--
+-- insert long pack names into concept_synonym_stage to avoid name trimming
 INSERT INTO concept_synonym_stage
 SELECT DISTINCT NULL::int,
                 concat(regexp_replace(descr.term, ' \(trade product pack\)| \(containered trade product pack\)', '',
@@ -2253,7 +2252,7 @@ WHERE concept_class_id IN
 
 
 DROP TABLE IF EXISTS pc_0_initial;
---== get packs and constituent drugs ==--
+-- get packs and constituent drugs
 /* Assure to get full pack_name (via synonyms) to provide correct parsing */
 CREATE TABLE pc_0_initial
 AS
@@ -2274,9 +2273,8 @@ WHERE (dcs1.concept_name LIKE '%[Drug Pack]'
     AND dcs2.concept_class_id = 'Drug Product'
     AND typeid != '116680003'
     AND dcs2.source_concept_class_id IN ('Trade Product Unit', 'Med Product Unit'));
---M Prod Pack and Cont Tr Prod Pack need to be excluded
 
---== update pack_names in pc_0_initial with terms from undetected packs because they don't fit into synonyms ==--
+-- update pack_names in pc_0_initial with terms from undetected packs because they don't fit into synonyms
 UPDATE pc_0_initial
 SET pack_name = undetected.term || ' [Drug Pack]'
 FROM (
@@ -2286,7 +2284,7 @@ FROM (
 WHERE pack_code = undetected.conceptid::text;
 
 
---== remove wrong pack_names that were obtained at concept_stage_sn and add them manually later ==--
+-- remove wrong pack_names that were obtained from concept_stage_sn and add them manually later
 DROP TABLE IF EXISTS pc_wrong;
 CREATE TEMP TABLE pc_wrong AS
 SELECT *
@@ -2301,7 +2299,7 @@ WHERE pack_code IN (
                    );
 
 DROP TABLE IF EXISTS pc_1_ampersand_sep;
---== extract pack_comp info from packs with drug names separated by '(&)' ==--
+--extract pack_comp info from packs with drug names separated by '(&)'
 CREATE TABLE pc_1_ampersand_sep AS
 SELECT pack_code,
        pack_name,
@@ -2320,7 +2318,7 @@ FROM pc_0_initial
 WHERE pack_name LIKE '%(&)%';
 
 --== DO NOT PROCEED UNTIL THE FOLLOWING CHECK RETURNS EMPTY RESULT ==--
---== check for packs from pc_0_initial that aren't in pc_1_ampersand_sep ==--
+-- should be empty! check for packs from pc_0_initial that aren't in pc_1_ampersand_sep
 SELECT *
 FROM pc_0_initial pc0
 WHERE pc0.pack_name LIKE '%(&)%'
@@ -2329,7 +2327,7 @@ WHERE pc0.pack_name LIKE '%(&)%'
                        FROM pc_1_ampersand_sep
                        );
 
---== identical pack constituents ==--
+-- identical pack constituents
 /*Since any pack has at least 2 drugs, each pack has to have at least four records.
   A pack which occurs only twice either has different amount of the same drug drug or a bug*/
 DROP TABLE IF EXISTS pc_identical_drugs;
@@ -2344,7 +2342,7 @@ WHERE pc1.pack_code IN (
                        )
 ;
 
---== pc_1_ampersand_sep tuning for further correct matching (intersection counts) ==--
+-- pc_1_ampersand_sep tuning for further correct matching (intersection counts)
 DO
 $_$
     BEGIN
@@ -2377,7 +2375,7 @@ $_$
 $_$;
 
 
---== pc_1_ampersand_sep and intersection of words counts between pack_comp and concept_name of a drug - pack constituent ==--
+-- pc_1_ampersand_sep and intersection of words counts between pack_comp and concept_name of a drug - pack constituent
 DROP TABLE IF EXISTS ampersand_sep_intersection_check;
 CREATE TEMP TABLE ampersand_sep_intersection_check AS
 SELECT DISTINCT pc1.pack_code,
@@ -2399,7 +2397,7 @@ ORDER BY pack_code
 ;
 
 DROP TABLE IF EXISTS ampersand_sep_intersection_ambig;
---== get those drugs whose max intersections occur more than once for single pack (ambiguous constituent drug) ==--
+-- get those drugs whose max intersections occur more than once for single pack (ambiguous constituent drug)
 CREATE TEMP TABLE ampersand_sep_intersection_ambig AS
 WITH tab AS
          (
@@ -2420,7 +2418,7 @@ HAVING count(*) > 1;
 
 
 DROP TABLE IF EXISTS pc_2_ampersand_sep_amount;
---== get amounts for drugs from pc_1_ampersand_sep (separated by '(&)') ==--
+-- get amounts for drugs from pc_1_ampersand_sep (separated by '(&)')
 /*match by intersection of words between concept_name and pack_comp
   exclude pack_code concept_code pair from ampersand_sep_intersection_ambig*/
 CREATE TABLE pc_2_ampersand_sep_amount AS
@@ -2469,7 +2467,7 @@ WHERE intersection = (
                        FROM pc_identical_drugs
                        );
 
---== add ambiguous drugs where ambiguity was resolved by consistent match of another drug from a pack, while pack is already in pc_2 ==--
+-- add ambiguous drugs where ambiguity was resolved by consistent match of another drug from a pack, while pack is already in pc_2
 INSERT
 INTO pc_2_ampersand_sep_amount
 SELECT aa.pack_code, aa.pack_name, aa.concept_name, aa.concept_code, ach.pack_comp,
@@ -2497,12 +2495,12 @@ WHERE (aa.pack_code, ach.pack_comp) NOT IN (
                       HAVING count(*) = 1
                       );
 
---== insert packs with identical drug constituents ==--
+-- insert packs with identical drug constituents
 INSERT INTO pc_2_ampersand_sep_amount
 SELECT *, SUBSTRING(pack_comp, '(?<=\[)\d+') AS amount, 'identical'
 FROM pc_identical_drugs;
 
---== insert wrong packs, deleted from pc_0_initial and set correct amounts for them ==--
+-- insert wrong packs, deleted from pc_0_initial and set correct amounts for them
 INSERT INTO pc_2_ampersand_sep_amount
 SELECT pack_code, pack_name, concept_name, concept_code, 'manually_wrong', NULL, 'manual_wrong_source'
 FROM pc_wrong;
@@ -2522,7 +2520,7 @@ $_$
     END
 $_$;
 
---== insert drugs left in ampersand_sep_intersection_ambig and then set correct amounts for them ==--
+-- insert drugs left in ampersand_sep_intersection_ambig and then set correct amounts for them
 INSERT INTO pc_2_ampersand_sep_amount
 SELECT aa.pack_code, aa.pack_name, aa.concept_name, aa.concept_code, 'manually_ambig', NULL, 'manual_ambig'
 FROM ampersand_sep_intersection_ambig aa
@@ -2577,8 +2575,8 @@ $_$
     END
 $_$;
 
---== DO NOT PROCEED UNTIL THE FOLLOWING CHECK RETURNS EMPTY RESULT ==--
---== ampersand_sep that didn't find their way to pc_2; should be empty==--
+-- DO NOT PROCEED UNTIL THE FOLLOWING CHECK RETURNS EMPTY RESULT
+-- should be empty! ampersand_sep that didn't find their way to pc_2
 SELECT DISTINCT pc1.pack_code,
                 pc1.pack_name,
                 pc1.concept_name,
@@ -2591,7 +2589,7 @@ WHERE pc1.pack_code NOT IN (
                            );
 
 
---== remap packs constituents to more specific drugs to prevent mapping to the same drug more than once ==--
+-- remap packs constituents to more specific drugs to prevent mapping to the same drug more than once
 DO
 $_$
     BEGIN
@@ -2635,7 +2633,7 @@ $_$
 $_$;
 
 
---== different count of constituents in pc_1_ampersand and pc_2_ampersand for same packs ==--
+-- different count of constituents in pc_1_ampersand and pc_2_ampersand for same packs
 SELECT *
 FROM pc_2_ampersand_sep_amount
 WHERE pack_code IN (
@@ -2661,15 +2659,14 @@ WHERE pack_code IN (
                        FROM pc_wrong
                        );
 
---== get pc2_ampersand_sep for review ==--
--- SELECT pack_code, concept_code, pack_name, concept_name, pack_comp, amount, source
--- FROM pc_2_ampersand_sep_amount
--- ORDER BY pack_code;
+-- get pc2_ampersand_sep for review
+/*SELECT pack_code, concept_code, pack_name, concept_name, pack_comp, amount, source
+FROM pc_2_ampersand_sep_amount
+ORDER BY pack_code;*/
 
---==============================================================================================================
---==============================================================================================================
+
 DROP TABLE IF EXISTS pc_1_comma_sep;
---== extract pack_comp info from drugs separated by ',' ==--
+-- extract pack_comp info from drugs separated by ','
 /*substring gets drugs enclosed in parentheses (like some_drug(28 x 30 Mg Tablets, 28 x 60 Mg Tablets)),
 then regexp_matches splits it into individual drugs
 regexp_replace removes occasionally appearing BN in parentheses in front of the substring*/
@@ -2688,8 +2685,8 @@ WHERE pack_code NOT IN (
                        FROM pc_1_ampersand_sep
                        );
 
---== DO NOT PROCEED UNTIL THE FOLLOWING CHECK RETURNS EMPTY RESULT ==--
---== check for packs from pc_0_initial that aren't in pc_1_comma_sep ==--
+-- DO NOT PROCEED UNTIL THE FOLLOWING CHECK RETURNS EMPTY RESULT
+-- should be empty! check for packs from pc_0_initial that aren't in pc_1_comma_sep
 SELECT *
 FROM pc_0_initial
 WHERE pack_code NOT IN (
@@ -2703,7 +2700,7 @@ WHERE pack_code NOT IN (
 
 
 DROP TABLE IF EXISTS pc_2_comma_sep_amount;
---== get amounts for drugs from pc_1_comma_sep (separated by ',') ==--
+-- get amounts for drugs from pc_1_comma_sep (separated by ',')
 /*get one unique string for each drug in a pack, since regexp_matches created multiple options for pack_comp.
   Match by "amount X dosage"*/
 CREATE TABLE pc_2_comma_sep_amount AS
@@ -2720,7 +2717,7 @@ JOIN pc_1_comma_sep pc2
        '%'
         AND pc1.pack_code = pc2.pack_code;
 
---== manual insertions based on the results of the return of the following check (should be empty) ==--
+-- manual insertions based on the results of the return of the following check (should be empty)
 DROP TABLE IF EXISTS pc_2_comma_sep_amount_insertion;
 CREATE TEMP TABLE pc_2_comma_sep_amount_insertion
 (
@@ -2757,7 +2754,7 @@ JOIN pc_1_comma_sep pc
 
 
 DROP TABLE IF EXISTS comma_sep_intersection_check;
---== Check for constituents of pack with equal intersection counts which leads to ambiguity ==--
+-- Check for constituents of pack with equal intersection counts which leads to ambiguity
 CREATE TEMP TABLE comma_sep_intersection_check AS
 SELECT DISTINCT pc1.pack_code,
                 pc1.pack_name,
@@ -2779,9 +2776,9 @@ WHERE (pc1.pack_code, pc1.concept_code) NOT IN (
                                                )
 ORDER BY pack_code;
 
---== Do not proceed until the following query is empty. ==--
---== If not - add corresponding amounts for constituents into pc_2_comma_sep_amount_insertion manually located above ==--
---== get constituents from pc_1_comma_sep which have the same max intersection count for several pack_components. ==--
+-- Do not proceed until the following query returns empty result.
+-- If not - add corresponding amounts for constituents into pc_2_comma_sep_amount_insertion manually (query is located above)
+-- get constituents from pc_1_comma_sep which have the same max intersection count for several pack_components.
 WITH tab AS (
             SELECT pack_code, concept_code, max(intersection) AS intersection
             FROM comma_sep_intersection_check
@@ -2797,7 +2794,7 @@ GROUP BY ic.pack_code, ic.pack_name, ic.concept_name, ic.concept_code, ic.inters
 HAVING count(*) > 1;
 
 
---== insert unmatched by "amount X dosage" into pc_2_comma_sep_amount ==--
+-- insert unmatched by "amount X dosage" into pc_2_comma_sep_amount
 /*match by intersection of words between concept_name and pack_comp*/
 WITH tab AS (
             SELECT DISTINCT pc1.pack_code,
@@ -2837,7 +2834,7 @@ WHERE intersection = (
                      );
 
 -- CHECK --
---== comma_sep that didn't find their way to pc_2; should be empty==--
+-- comma_sep that didn't find their way to pc_2; should be empty
 SELECT DISTINCT pc1.pack_code,
                 pc1.pack_name,
                 pc1.concept_name,
@@ -2850,7 +2847,7 @@ WHERE pc1.pack_code NOT IN (
                            );
 
 
---== remap packs constituents to more specific drugs to prevent mapping to the same drug more than once ==--
+-- remap packs constituents to more specific drugs to prevent mapping to the same drug more than once ==--
 DO
 $_$
     BEGIN
@@ -2874,7 +2871,7 @@ $_$
 $_$;
 
 
---== get packs where some of the constituent drugs have not been matched ==--
+-- get packs where some of the constituent drugs have not been matched
 /*count of constituents in pc_2_comma_sep_amount differs from count of constituents in pc_1_comma_sep*/
 SELECT *
 FROM pc_2_comma_sep_amount
@@ -2893,14 +2890,11 @@ WHERE pack_code IN (
                                                  )
                    );
 
---== get pc2_comma_sep for review ==--
--- SELECT pack_code, concept_code, pack_name, concept_name, pack_comp, amount
--- FROM pc_2_comma_sep_amount
--- ORDER BY pack_code;
+-- get pc2_comma_sep for review
+/*SELECT pack_code, concept_code, pack_name, concept_name, pack_comp, amount
+FROM pc_2_comma_sep_amount
+ORDER BY pack_code;*/
 
-
---==============================================================================================================
---==============================================================================================================
 DROP TABLE IF EXISTS pc_3_box_size;
 --== create table with box_size info ==--
 CREATE TABLE pc_3_box_size AS
@@ -2917,7 +2911,7 @@ FROM (
      FROM pc_2_comma_sep_amount
      ) pc_2;
 
---== set box_sizes for special cases ==--
+-- set box_sizes for special cases
 UPDATE pc_3_box_size
 SET box_size = NULL
 WHERE pack_name LIKE '%Viekira Pak%';
@@ -2929,10 +2923,7 @@ SELECT DISTINCT pack_code, concept_code, amount::float, box_size::int4
 FROM pc_3_box_size;
 
 
-/*************************************************
-* 5. relationship_to_concept *
-*************************************************/
-
+-- 5. RELATIONSHIP_TO_CONCEPT
 DO
 $$
     BEGIN
@@ -2957,7 +2948,7 @@ WHERE dcs.concept_class_id = 'Unit';
 
 TRUNCATE TABLE relationship_to_concept;
 
-/***********************************/
+
 --1. Ingredient
 -- insert auto-mapping into rtc by concept_name match
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor,
@@ -3117,7 +3108,7 @@ WHERE concept_class_id = 'Ingredient'
 ORDER BY dcs.concept_name
 ;
 
---== ingredient to map ==--
+-- ingredient to map
 SELECT DISTINCT name,
                 '' AS new_name,
                 '' AS comment,
@@ -3139,9 +3130,8 @@ WHERE lower(itm.name) NOT IN (
 ORDER BY itm.name;
 
 
-/****************************************/
 --2. Brand Names
--- insert auto-mapping into rtc by concept_name match
+--insert auto-mapping into rtc by concept_name match
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor,
                                      mapping_type)
 SELECT DISTINCT dcs.concept_code, --dcs.concept_name,
@@ -3266,7 +3256,7 @@ WHERE concept_class_id = 'Brand Name'
 ORDER BY dcs.concept_name
 ;
 
---== brand_name_to_map ==--
+--brand_name_to_map
 SELECT DISTINCT tm.name,
                 '' AS new_name,
                 '' AS comment,
@@ -3287,7 +3277,6 @@ WHERE lower(tm.name) NOT IN (
                             )
 ORDER BY tm.name;
 
-/****************************************/
 --3. Supplier
 -- insert auto-mapping into rtc by concept_name match
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor,
@@ -3411,7 +3400,7 @@ WHERE concept_class_id = 'Supplier'
 ORDER BY dcs.concept_name
 ;
 
---== supplier_to_map ==--
+-- supplier_to_map
 SELECT DISTINCT tm.name,
                 '' AS new_name,
                 '' AS comment,
@@ -3433,9 +3422,7 @@ WHERE lower(tm.name) NOT IN (
 ORDER BY tm.name;
 
 
-/****************************************/
 --4. Dose Form
-
 -- update 'U/D' in dose_form_mapped
 WITH to_be_updated AS (
                       SELECT DISTINCT dfm.name,
@@ -3502,7 +3489,7 @@ WHERE concept_class_id = 'Dose Form'
                               )
 ORDER BY dcs.concept_name
 ;
---== dose_form_to_map ==--
+-- dose_form_to_map
 SELECT DISTINCT tm.name,
                 '' AS new_name,
                 '' AS comment,
@@ -3523,10 +3510,7 @@ WHERE lower(tm.name) NOT IN (
                             )
 ORDER BY tm.name;
 
-
-/****************************************/
 --5. Unit
-
 --delete from unit_mapped if target concept is U/D
 WITH to_be_deleted AS (
                       SELECT *
@@ -3545,7 +3529,6 @@ WHERE name IN (
               )
 ;
 
-
 DROP TABLE IF EXISTS unit_to_map;
 
 --unit to_map
@@ -3561,7 +3544,7 @@ WHERE concept_class_id = 'Unit'
 ORDER BY dcs.concept_name
 ;
 
---== unit_to_map ==--
+--unit_to_map
 SELECT DISTINCT tm.name,
                 '' AS new_name,
                 '' AS comment,

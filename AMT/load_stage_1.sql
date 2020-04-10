@@ -298,22 +298,6 @@ WHERE cc.concept_code = cs.concept_code;
 /*************************************************
 * 0. non-drug *
 *************************************************/
---create non_drug table backup
-DO
-$body$
-    DECLARE
-        version text;
-    BEGIN
-        SELECT vocabulary_version
-        INTO version
-        FROM devv5.vocabulary
-        WHERE vocabulary_id = 'AMT'
-        LIMIT 1;
-        EXECUTE format('create table if not exists %I as select distinct * from non_drug',
-                       'non_drug_backup_' || version);
-    END
-$body$;
-
 DROP TABLE IF EXISTS non_drug;
 CREATE TABLE non_drug AS
 SELECT *
@@ -337,7 +321,7 @@ WHERE concept_name ~*
         'pytest|helicap|bq|octreoscan|Ct Plus|optiray|ioversol|iomeprol|iomeron|' ||
         'iopamidol|isovue|ultravist|omnipaq|iohex|' ||
 
-        'Crampeze|smoflipid|smofkabiven|sorbolene|' ||
+        'Crampeze|smoflipid|smofkabiven|sorbolene|lanolin|' ||
         'cranberry|pedialyte|hydralyte|kilocalories|emulsifying ointment|paraffin|cotton|aqueous cream')
 
   AND concept_class_id IN ('AU Substance', 'AU Qualifier', 'Med Product Unit', 'Med Product Pack',
@@ -983,6 +967,29 @@ FROM (
                                          ) > 1)
      ) AS s0;
 
+-- remove drugs which boiler has hard times dealing with
+--TODO: temporary solution. Remove after the bug is fixed
+DELETE
+FROM drug_concept_stage
+WHERE concept_code IN (
+--2591011000036106 - sodium chloride
+--1013361000168101 - starch
+'1013451000168109', '1013461000168106', '1013491000168104', '1013411000168108', '1013501000168106',
+'1013471000168100', '1013511000168109', '1013541000168108', '1013521000168102', '1013481000168102',
+'1013401000168105', '1013391000168108', '1013531000168104', '1013431000168103', '1013421000168101',
+'1013441000168107', '1213411000168104', '1213431000168109', '1213421000168106', '1213901000168109',
+'1213441000168100', '1213911000168107', '1213891000168105', '1213401000168102',
+
+--30922011000036107 - castor oil
+--2719011000036105 - zinc oxide
+'81602011000036103', '81029011000036107', '80987011000036108', '80509011000036107', '80508011000036104',
+'80965011000036101', '81579011000036109', '80480011000036105', '81603011000036105', '80988011000036109',
+'80479011000036105', '81269011000036106', '80152011000036101', '80171011000036105',
+
+--1948011000036102 - Cinchocaine Hydrochloride
+--2719011000036105 - zinc oxide
+'81584011000036104', '80485011000036101', '81001011000036103', '81260011000036100', '80160011000036107'
+);
 
 --== get packs where drugs separator '(&)' is more than 250 symbols deep and the pack is treated as a drug ==--
 DROP TABLE IF EXISTS undetected_packs;
@@ -2925,22 +2932,6 @@ FROM pc_3_box_size;
 /*************************************************
 * 5. relationship_to_concept *
 *************************************************/
---create relationship_to_concept table backup
-DO
-$body$
-    DECLARE
-        version text;
-    BEGIN
-        SELECT vocabulary_version
-        INTO version
-        FROM devv5.vocabulary
-        WHERE vocabulary_id = 'AMT'
-        LIMIT 1;
-        EXECUTE format('create table if not exists %I as select * from relationship_to_concept',
-                       'relationship_to_concept_backup_' || version);
-    END
-$body$;
-
 
 DO
 $$
@@ -3592,4 +3583,4 @@ WHERE lower(tm.name) NOT IN (
                             )
 ORDER BY tm.name;
 
--- populate manually mapped tables with new concepts before proceeding with load_stage_2.
+-- populate manually mapped tables with new concepts before proceeding with load_stage_2. _to_map tables should be empty

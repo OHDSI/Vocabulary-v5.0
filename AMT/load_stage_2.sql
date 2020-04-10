@@ -331,6 +331,39 @@ $_$
     END;
 $_$;
 
+--== create backups ==--
+--create non_drug table backup
+DO
+$body$
+    DECLARE
+        version text;
+    BEGIN
+        SELECT vocabulary_version
+        INTO version
+        FROM devv5.vocabulary
+        WHERE vocabulary_id = 'AMT'
+        LIMIT 1;
+        EXECUTE format('create table if not exists %I as select distinct * from non_drug',
+                       'non_drug_backup_' || version);
+    END
+$body$;
+
+--create relationship_to_concept table backup
+DO
+$body$
+    DECLARE
+        version text;
+    BEGIN
+        SELECT vocabulary_version
+        INTO version
+        FROM devv5.vocabulary
+        WHERE vocabulary_id = 'AMT'
+        LIMIT 1;
+        EXECUTE format('create table if not exists %I as select * from relationship_to_concept',
+                       'relationship_to_concept_backup_' || version);
+    END
+$body$;
+
 -- need for BuildRxE to run
-/*ALTER TABLE relationship_to_concept
-DROP COLUMN mapping_type;*/
+ALTER TABLE relationship_to_concept
+DROP COLUMN mapping_type;

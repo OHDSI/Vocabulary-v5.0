@@ -1753,6 +1753,7 @@ GROUP BY drug_concept_code, ingredient_concept_code, box_size, amount_unit, nume
 ;
 
 -- create final ds_stage table
+TRUNCATE TABLE ds_stage;
 INSERT INTO ds_stage
 SELECT *
 FROM ds_sum;

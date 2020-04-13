@@ -238,8 +238,9 @@ BEGIN
                     unnest(xpath ('/rss/channel/item/pubDate/text()', cVocabHTML::xml)) ::varchar pubDate
                 ) as t
                 WHERE t.link_str LIKE '%www.meddra.org/how-to-use/support-documentation/english'
+                AND t.title LIKE '%MedDRA Version%'
                 ORDER BY TO_DATE (pubDate, 'dy dd mon yyyy hh24:mi:ss') DESC
-                LIMIT 1;             
+                LIMIT 1;
             WHEN cVocabularyName = 'NDC_SPL'
             THEN
                 /*cSearchString := 'Current through: ';

@@ -272,8 +272,8 @@ WHERE (drug_concept_code, ingredient_concept_code) NOT IN
 --generate mapping review
 DROP TABLE IF EXISTS mapping_review;
 CREATE TABLE mapping_review AS
-SELECT DISTINCT dcs.concept_class_id AS source_concept_calss_id, coalesce(sn.concept_name, dcs.concept_name) AS name,
-                mapped.new_name AS new_name, rtc.concept_id_2, rtc.precedence, rtc.mapping_type,
+SELECT DISTINCT dcs.concept_class_id AS source_concept_calss_id, coalesce(dcsb.concept_name, dcs.concept_name) AS name,
+                mapped.new_name AS new_name, dcs.concept_code as concept_code_1, rtc.concept_id_2, rtc.precedence, rtc.mapping_type,
                 rtc.conversion_factor, c.*
 FROM drug_concept_stage dcs
 LEFT JOIN relationship_to_concept rtc
@@ -297,27 +297,10 @@ LEFT JOIN (
           FROM unit_mapped
           ) AS mapped
     ON lower(coalesce(mapped.new_name, mapped.name)) = lower(dcs.concept_name)
-LEFT JOIN concept_stage_sn sn
-    ON dcs.concept_code = sn.concept_code
+LEFT JOIN  drug_concept_stage_backup dcsb
+    ON dcs.concept_code = dcsb.concept_code
 WHERE dcs.concept_class_id IN ('Ingredient', 'Brand Name', 'Supplier', 'Dose Form', 'Unit')
 ;
-
---create mapping_review table backup
-DO
-$body$
-    DECLARE
-        version text;
-    BEGIN
-        SELECT vocabulary_version
-        INTO version
-        FROM devv5.vocabulary
-        WHERE vocabulary_id = 'AMT'
-        LIMIT 1;
-        EXECUTE format('create table if not exists %I as select distinct * from mapping_review',
-                       'mapping_review_backup_' || version);
-    END
-$body$;
-
 
 --== remove to be created concepts from mapped tables ==--
 DO
@@ -333,26 +316,27 @@ $_$
     END;
 $_$;
 
---create non_drug, pc_stage, relationship_to_concept tables backup
+--create mapping_review, non_drug, pc_stage, relationship_to_concept backup
 DO
 $body$
     DECLARE
-        version text;
+        update text;
     BEGIN
-        SELECT vocabulary_version
-        INTO version
-        FROM devv5.vocabulary
+        SELECT latest_update
+        INTO update
+        FROM vocabulary
         WHERE vocabulary_id = 'AMT'
         LIMIT 1;
-        EXECUTE format('create table if not exists %I as select distinct * from non_drug',
-                       'non_drug_backup_' || version);
-        EXECUTE format('create table if not exists %I as select distinct * from pc_stage',
-                       'pc_stage_backup_' || version);
-        EXECUTE format('create table if not exists %I as select * from relationship_to_concept',
-                       'relationship_to_concept_backup_' || version);
+        EXECUTE format('drop table if exists %I; create table if not exists %I as select distinct * from mapping_review',
+                       'mapping_review_backup_' || update, 'mapping_review_backup_' || update );
+        EXECUTE format('drop table if exists %I; create table if not exists %I as select distinct * from non_drug',
+                       'non_drug_backup_' || update, 'non_drug_backup_' || update );
+        EXECUTE format('drop table if exists %I; create table if not exists %I as select distinct * from pc_stage',
+                       'pc_stage_backup_' || update, 'pc_stage_backup_' || update);
+        EXECUTE format('drop table if exists %I; create table if not exists %I as select * from relationship_to_concept',
+                       'relationship_to_concept_backup_' || update, 'relationship_to_concept_backup_' || update);
     END
 $body$;
-
 
 -- Clean up tables
 DO
@@ -364,6 +348,7 @@ $_$
         drop table if exists unit;
         drop table if exists form;
         drop table if exists dcs_bn;
+        drop table if exists drug_concept_stage_backup;
         drop table if exists ds_0;
         drop table if exists ds_0_1_1;
         drop table if exists ds_0_1_3;

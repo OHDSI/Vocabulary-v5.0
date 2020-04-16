@@ -4,8 +4,8 @@ $_$
     BEGIN
         PERFORM VOCABULARY_PACK.SetLatestUpdate(
                         pVocabularyName => 'AMT',
-                        pVocabularyDate => (SELECT vocabulary_date FROM sources.product LIMIT 1),
-                        pVocabularyVersion => (SELECT vocabulary_version FROM sources.product LIMIT 1),
+                        pVocabularyDate => (SELECT vocabulary_date FROM sources.amt_sct2_concept_full_au LIMIT 1),
+                        pVocabularyVersion => (SELECT vocabulary_version FROM sources.amt_sct2_concept_full_au LIMIT 1),
                         pVocabularyDevSchema => 'DEV_AMT'
                     );
         PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -1005,6 +1005,11 @@ WHERE concept_code IN (
                       FROM undetected_packs
                       );
 
+--create dsc_backup prior to name updates to get old names in mapping review
+DROP TABLE IF EXISTS drug_concept_stage_backup;
+CREATE TABLE drug_concept_stage_backup AS
+SELECT *
+FROM drug_concept_stage;
 
 -- set new_names for ingredients from ingredient_mapped
 UPDATE drug_concept_stage dcs
@@ -1173,7 +1178,7 @@ WHERE lower(concept_name) IN
       ('containered trade product pack', 'Ctpp - Containered Trade Product Pack', 'trade product pack',
        'medicinal product unit of use', 'trade product unit of use', 'Tpuu - Trade Product Unit Of Use',
        'form', 'medicinal product pack', 'Mpp - Medicinal Product Pack', 'unit of use',
-       'unit of measure');
+       'Mpuu - Medicinal Product Unit Of Use', 'unit of measure');
 
 DELETE
 FROM drug_concept_stage
@@ -3152,6 +3157,9 @@ WHERE dcs.concept_class_id = 'Brand Name'
                  FROM relationship_to_concept rtc
                  WHERE dcs.concept_code = rtc.concept_code_1
     )
+  and lower(dcs.concept_name) not in ('apidra solostar', 'basaglar kwikpen', 'humalog mix',
+                                      'hypurin porcine isophane', 'hypurin porcine neutral',
+                                      'novomix flexpen', 'tresiba flextouch')
 ;
 
 -- insert mapping into rtc by concept_name match through U/D ingredients and 'Concept replaced by' link

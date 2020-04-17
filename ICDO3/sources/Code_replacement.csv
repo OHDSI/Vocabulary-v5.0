@@ -1,52 +1,31 @@
 "Code"	"Terms"	"Fate of terms"
 "8444/1"	"Clear cell cystic tumor of borderline malignancy (C56.9) Atypical proliferating clear cell tumor (C56.9)"	"Moved to 8313/1"
-"8462/1"	"Serous papillary cystic tumor of borderline malignancy (C56.9)
-Atypical proliferative papillary serous tumor (C56.9)
-Papillary serous cystadenoma, borderline malignancy (C56.9) Papillary serous tumor of low malignant potential (C56.9)"	"Moved to 8442/1"
+"8462/1"	"Serous papillary cystic tumor of borderline malignancy (C56.9)"	"Moved to 8442/1"
 "8463/1"	"Serous surface papillary tumor of borderline malignancy (C56.9)"	"Moved to 8442/1"
 "8471/0"	"Papillary mucinous cystadenoma, NOS (C56.9) Papillary pseudomucinous cystadenoma, NOS (C56.9)"	"Moved to 8470/0"
 "8471/3"	"Papillary mucinous cystadenocarcinoma (C56.9) Papillary pseudomucinous cystadenocarcinoma (C56.9)"	"Moved to 8470/3"
-"8473/1"	"Papillary mucinous cystadenoma, borderline malignancy (C56.9)
-Papillary mucinous tumor of low malignant potential (C56.9)
-Papillary pseudomucinous cystadenoma, borderline malignancy (C56.9)"	"Moved to 8472/1"
+"8473/1"	"Papillary mucinous cystadenoma, borderline malignancy (C56.9)"	"Moved to 8472/1"
 "8965/0"	"Nephrogenic adenofibroma (C64.9)"	"Moved to 9013/0"
 "9150/0"	"Hemangiopericytoma, benign"	"Moved to 8815/0"
 "9150/1"	"Hemangiopericytoma, NOS Hemangiopericytic meningioma (C70._) [obs]"	"Moved to 8815/1"
 "9150/3"	"Hemangiopericytoma, malignant"	"Moved to 8815/3"
-"9670/3"	"Malignant lymphoma, small B lymphocytic, NOS (see  also  M  - 9823/3)
-Malignant lymphoma, lymphocytic, diffuse, NOS Malignant lymphoma, lymphocytic, NOS
-Malignant lymphoma, lymphocytic, well differentiated, diffuse Malignant lymphoma, small cell diffuse
-Malignant lymphoma, small cell, NOS
-Malignant lymphoma, small lymphocytic, diffuse Malignant lymphoma, small lymphocytic, NOS"	"Moved to 9823/3"
+"9670/3"	"Malignant lymphoma, small B lymphocytic, NOS (see  also  M  - 9823/3)"	"Moved to 9823/3"
 "9728/3"	"Precursor B-cell lymphoblastic lymphoma (see  also  M  - 9836/3)"	"Moved to 9811/3"
 "9729/3"	"Precursor T-cell lymphoblastic lymphoma (see  also  M  - 9837/3)"	"Moved to 9837/3"
-"9826/3"	"Burkitt cell leukemia (see  also  M  -9687/3)
-Acute leukemia, Burkitt type [obs]
-Acute lymphoblastic leukemia, mature B-cell type B-ALL [obs]
-FAB L3 [obs]"	"Moved to 9687/3"
-"9836/3"	"Precursor B-cell lymphoblastic leukemia (see  also  M  -9728/3)
-c-ALL
-Common ALL
-Common precursor B ALL Pre-B ALL
-Pre-pre-B ALL
-Pro-B ALL"	"Moved to 9811/3"
+"9826/3"	"Burkitt cell leukemia (see  also  M  -9687/3)"	"Moved to 9687/3"
+"9836/3"	"Precursor B-cell lymphoblastic leukemia (see  also  M  -9728/3)"	"Moved to 9811/3"
 "9991/3"	"Refractory neutropenia"	"Moved to 9980/3"
 "9992/3"	"Refractory thrombocytopenia"	"Moved to 9980/3"
 "8151/0"	"Beta cell adenoma (C25._)"	"Moved to /3"
 "8336/0"	"Hyalinizing trabecular adenoma (C73.9)"	"Moved to /1"
 "8460/0"	"Papillary serous cystadenoma, NOS (C56.9)"	"Moved to 8441/0"
 "8680/0"	"Paraganglioma, benign"	"Deleted"
-"8700/0"	"Pheochromocytoma, NOS (C74.1)
-Adrenal medullary paraganglioma, NOS (C74.1) Chromaffin paraganglioma
-Chromaffin tumor
-Chromaffinoma"	"Moved to /3"
+"8700/0"	"Pheochromocytoma, NOS (C74.1)"	"Moved to /3"
 "8936/0"	"Gastrointestinal stromal tumor, benign GIST, benign"	"Deleted"
 "9230/0"	"Chondroblastoma, NOS (C40._, C41._) Chondromatous giant cell tumor (C40._, C41._) Codman tumor (C40._, C41._)"	"Moved to /1"
 "8120/1"	"Urothelial papilloma, NOS Papilloma of bladder (C67._) Transitional cell papilloma, NOS"	"Moved to /0"
 "8150/1"	"Pancreatic endocrine tumor, NOS (C25._) Islet cell tumor, NOS (C25._)"	"Moved to /3"
-"8152/1"	"Glucagon-like peptide-producing tumor L-cell tumor
-Pancreatic peptide and pancreatic peptide-like peptide within terminal tyrosine amide producing tumor (C25._)
-PP/PYY producing tumor (C25._)"	"Moved to /3"
+"8152/1"	"Glucagon-like peptide-producing tumor L-cell tumor"	"Moved to /3"
 "8153/1"	"Gastrinoma, NOS G cell tumor, NOS Gastrin cell tumor"	"Moved to /3"
 "8155/1"	"Vipoma, NOS"	"Moved to /3"
 "8156/1"	"Somatostatinoma, NOS Somatostatin cell tumor, NOS"	"Moved to /3"
@@ -55,87 +34,57 @@ PP/PYY producing tumor (C25._)"	"Moved to /3"
 "8240/1"	"Carcinoid tumor, argentaffin, NOS Argentaffinoma, NOS [obs]"	"Moved to 8241/3"
 "8242/1"	"Enterochromaffin-like cell carcinoid, NOS ECL cell carcinoid, NOS"	"Deleted"
 "8408/1"	"Aggressive digital papillary adenoma (C44._)"	"Moved to /3"
-"8581/1"	"Thymoma, type A, NOS (C37.9) Thymoma, medullary, NOS (C37.9)
-Thymoma, spindle cell, NOS (C37.9)"	"Moved to /3"
+"8581/1"	"Thymoma, type A, NOS (C37.9) Thymoma, medullary, NOS (C37.9))"	"Moved to /3"
 "8582/1"	"Thymoma, type AB, NOS (C37.9) Thymoma, mixed type, NOS (C37.9)"	"Moved to /3"
-"8583/1"	"Thymoma, type B1, NOS (C37.9) Thymoma, lymphocyte-rich, NOS (C37.9) Thymoma, lymphocytic, NOS (C37.9) Thymoma, organoid, NOS (C37.9)
-Thymoma, predominantly cortical, NOS (C37.9)"	"Moved to /3"
+"8583/1"	"Thymoma, type B1, NOS (C37.9) Thymoma, lymphocyte-rich, NOS (C37.9) Thymoma, lymphocytic, NOS (C37.9) Thymoma, organoid, NOS (C37.9)"	"Moved to /3"
 "8584/1"	"Thymoma, type B2, NOS (C37.9) Thymoma, cortical, NOS (C37.9)"	"Moved to /3"
 "8585/1"	"Thymoma, type B3, NOS (C37.9) Thymoma, atypical, NOS (C37.9) Thymoma, epithelial, NOS (C37.9)"	"Moved to /3"
 "8680/1"	"Paraganglioma, NOS"	"Moved to /3"
 "8681/1"	"Sympathetic paraganglioma"	"Moved to /3"
 "8682/1"	"Parasympathetic paraganglioma"	"Moved to /3"
-"8690/1"	"Glomus jugulare tumor, NOS (C75.5) Jugular paraganglioma (C75.5)
-Jugulotympanic paraganglioma (C75.5)"	"Moved to /3"
-"8691/1"	"Aortic body tumor (C75.5)
-Aortic body paraganglioma (C75.5) Aorticopulmonary paraganglioma (C75.5)"	"Moved to /3"
-"8692/1"	"Carotid body tumor (C75.4)
-Carotid body paraganglioma (C75.4)"	"Moved to /3"
-"8693/1"	"Extra-adrenal paraganglioma, NOS Chemodectoma
-Nonchromaffin paraganglioma, NOS"	"Moved to /3"
+"8690/1"	"Glomus jugulare tumor, NOS (C75.5) Jugular paraganglioma (C75.5)"	"Moved to /3"
+"8691/1"	"Aortic body tumor (C75.5)"	"Moved to /3"
+"8692/1"	"Carotid body tumor (C75.4)"	"Moved to /3"
+"8693/1"	"Extra-adrenal paraganglioma, NOS Chemodectoma"	"Moved to /3"
 "8841/1"	"Angiomyxoma, NOS Aggressive angiomyxoma"	"Moved to /0"
-"8936/1"	"Gastrointestinal stromal tumor, NOS Gastrointestinal autonomic nerve tumor GANT
-Gastrointestinal pacemaker cell tumor"	"Moved to /3"
+"8936/1"	"Gastrointestinal stromal tumor, NOS Gastrointestinal autonomic nerve tumor GANT"	"Moved to /3"
 "8936/1"	"Gastrointestinal stromal tumor, uncertain malignant potential GIST, NOS"	"Deleted"
 "9055/1"	"Cystic mesothelioma, NOS (C48._)"	"Moved to /0"
 "9133/1"	"Epithelioid hemangioendothelioma, NOS"	"Moved to /3"
 "9341/1"	"Clear cell odontogenic tumor"	"Moved to /3"
 "9530/1"	"Meningiomatosis, NOS Diffuse meningiomatosis Multiple meningiomas"	"Deleted"
-"9540/1"	"Neurofibromatosis, NOS Multiple neurofibromatosis
-Recklinghausen disease (e xcept   of bone: not neoplastic)
-Von Recklinghausen disease (e xcept of bone: not neoplastic)"	"Deleted"
+"9540/1"	"Neurofibromatosis, NOS Multiple neurofibromatosis"	"Deleted"
 "8833/3"	"Pigmented dermatofibrosarcoma protuberans (C44._) Bednar tumor (C44._)"	"Moved to /1"
 "9260/3"	"Ewing sarcoma Ewing tumor"	"Moved to 9364/3"
 "9725/3"	"Hydroa vacciniforme-like lymphoma (C44._)"	"Moved to /1"
 "9971/3"	"Polymorphic post-transplant lymphoproliferative disorder"	"Moved to /1"
 "8444/1"	"Clear cell cystic tumor of borderline malignancy (C56.9) Atypical proliferating clear cell tumor (C56.9)"	"Moved to 8313/1"
-"8462/1"	"Serous papillary cystic tumor of borderline malignancy (C56.9)
-Atypical proliferative papillary serous tumor (C56.9)
-Papillary serous cystadenoma, borderline malignancy (C56.9) Papillary serous tumor of low malignant potential (C56.9)"	"Moved to 8442/1"
+"8462/1"	"Serous papillary cystic tumor of borderline malignancy (C56.9)"	"Moved to 8442/1"
 "8463/1"	"Serous surface papillary tumor of borderline malignancy (C56.9)"	"Moved to 8442/1"
 "8471/0"	"Papillary mucinous cystadenoma, NOS (C56.9) Papillary pseudomucinous cystadenoma, NOS (C56.9)"	"Moved to 8470/0"
 "8471/3"	"Papillary mucinous cystadenocarcinoma (C56.9) Papillary pseudomucinous cystadenocarcinoma (C56.9)"	"Moved to 8470/3"
-"8473/1"	"Papillary mucinous cystadenoma, borderline malignancy (C56.9)
-Papillary mucinous tumor of low malignant potential (C56.9)
-Papillary pseudomucinous cystadenoma, borderline malignancy (C56.9)"	"Moved to 8472/1"
+"8473/1"	"Papillary mucinous cystadenoma, borderline malignancy (C56.9)"	"Moved to 8472/1"
 "8965/0"	"Nephrogenic adenofibroma (C64.9)"	"Moved to 9013/0"
 "9150/0"	"Hemangiopericytoma, benign"	"Moved to 8815/0"
 "9150/1"	"Hemangiopericytoma, NOS Hemangiopericytic meningioma (C70._) [obs]"	"Moved to 8815/1"
 "9150/3"	"Hemangiopericytoma, malignant"	"Moved to 8815/3"
-"9670/3"	"Malignant lymphoma, small B lymphocytic, NOS (see  also  M  - 9823/3)
-Malignant lymphoma, lymphocytic, diffuse, NOS Malignant lymphoma, lymphocytic, NOS
-Malignant lymphoma, lymphocytic, well differentiated, diffuse Malignant lymphoma, small cell diffuse
-Malignant lymphoma, small cell, NOS
-Malignant lymphoma, small lymphocytic, diffuse Malignant lymphoma, small lymphocytic, NOS"	"Moved to 9823/3"
+"9670/3"	"Malignant lymphoma, small B lymphocytic, NOS (see  also  M  - 9823/3)"	"Moved to 9823/3"
 "9728/3"	"Precursor B-cell lymphoblastic lymphoma (see  also  M  - 9836/3)"	"Moved to 9811/3"
 "9729/3"	"Precursor T-cell lymphoblastic lymphoma (see  also  M  - 9837/3)"	"Moved to 9837/3"
-"9826/3"	"Burkitt cell leukemia (see  also  M  -9687/3)
-Acute leukemia, Burkitt type [obs]
-Acute lymphoblastic leukemia, mature B-cell type B-ALL [obs]
-FAB L3 [obs]"	"Moved to 9687/3"
-"9836/3"	"Precursor B-cell lymphoblastic leukemia (see  also  M  -9728/3)
-c-ALL
-Common ALL
-Common precursor B ALL Pre-B ALL
-Pre-pre-B ALL
-Pro-B ALL"	"Moved to 9811/3"
+"9826/3"	"Burkitt cell leukemia (see  also  M  -9687/3)"	"Moved to 9687/3"
+"9836/3"	"Precursor B-cell lymphoblastic leukemia (see  also  M  -9728/3)"	"Moved to 9811/3"
 "9991/3"	"Refractory neutropenia"	"Moved to 9980/3"
 "9992/3"	"Refractory thrombocytopenia"	"Moved to 9980/3"
 "8151/0"	"Beta cell adenoma (C25._)"	"Moved to /3"
 "8336/0"	"Hyalinizing trabecular adenoma (C73.9)"	"Moved to /1"
 "8460/0"	"Papillary serous cystadenoma, NOS (C56.9)"	"Moved to 8441/0"
 "8680/0"	"Paraganglioma, benign"	"Deleted"
-"8700/0"	"Pheochromocytoma, NOS (C74.1)
-Adrenal medullary paraganglioma, NOS (C74.1) Chromaffin paraganglioma
-Chromaffin tumor
-Chromaffinoma"	"Moved to /3"
+"8700/0"	"Pheochromocytoma, NOS (C74.1)"	"Moved to /3"
 "8936/0"	"Gastrointestinal stromal tumor, benign GIST, benign"	"Deleted"
 "9230/0"	"Chondroblastoma, NOS (C40._, C41._) Chondromatous giant cell tumor (C40._, C41._) Codman tumor (C40._, C41._)"	"Moved to /1"
 "8120/1"	"Urothelial papilloma, NOS Papilloma of bladder (C67._) Transitional cell papilloma, NOS"	"Moved to /0"
 "8150/1"	"Pancreatic endocrine tumor, NOS (C25._) Islet cell tumor, NOS (C25._)"	"Moved to /3"
-"8152/1"	"Glucagon-like peptide-producing tumor L-cell tumor
-Pancreatic peptide and pancreatic peptide-like peptide within terminal tyrosine amide producing tumor (C25._)
-PP/PYY producing tumor (C25._)"	"Moved to /3"
+"8152/1"	"Glucagon-like peptide-producing tumor L-cell tumor"	"Moved to /3"
 "8153/1"	"Gastrinoma, NOS G cell tumor, NOS Gastrin cell tumor"	"Moved to /3"
 "8155/1"	"Vipoma, NOS"	"Moved to /3"
 "8156/1"	"Somatostatinoma, NOS Somatostatin cell tumor, NOS"	"Moved to /3"
@@ -144,35 +93,26 @@ PP/PYY producing tumor (C25._)"	"Moved to /3"
 "8240/1"	"Carcinoid tumor, argentaffin, NOS Argentaffinoma, NOS [obs]"	"Moved to 8241/3"
 "8242/1"	"Enterochromaffin-like cell carcinoid, NOS ECL cell carcinoid, NOS"	"Deleted"
 "8408/1"	"Aggressive digital papillary adenoma (C44._)"	"Moved to /3"
-"8581/1"	"Thymoma, type A, NOS (C37.9) Thymoma, medullary, NOS (C37.9)
-Thymoma, spindle cell, NOS (C37.9)"	"Moved to /3"
+"8581/1"	"Thymoma, type A, NOS (C37.9) Thymoma, medullary, NOS (C37.9)"	"Moved to /3"
 "8582/1"	"Thymoma, type AB, NOS (C37.9) Thymoma, mixed type, NOS (C37.9)"	"Moved to /3"
-"8583/1"	"Thymoma, type B1, NOS (C37.9) Thymoma, lymphocyte-rich, NOS (C37.9) Thymoma, lymphocytic, NOS (C37.9) Thymoma, organoid, NOS (C37.9)
-Thymoma, predominantly cortical, NOS (C37.9)"	"Moved to /3"
+"8583/1"	"Thymoma, type B1, NOS (C37.9)"	"Moved to /3"
 "8584/1"	"Thymoma, type B2, NOS (C37.9) Thymoma, cortical, NOS (C37.9)"	"Moved to /3"
 "8585/1"	"Thymoma, type B3, NOS (C37.9) Thymoma, atypical, NOS (C37.9) Thymoma, epithelial, NOS (C37.9)"	"Moved to /3"
 "8680/1"	"Paraganglioma, NOS"	"Moved to /3"
 "8681/1"	"Sympathetic paraganglioma"	"Moved to /3"
 "8682/1"	"Parasympathetic paraganglioma"	"Moved to /3"
-"8690/1"	"Glomus jugulare tumor, NOS (C75.5) Jugular paraganglioma (C75.5)
-Jugulotympanic paraganglioma (C75.5)"	"Moved to /3"
-"8691/1"	"Aortic body tumor (C75.5)
-Aortic body paraganglioma (C75.5) Aorticopulmonary paraganglioma (C75.5)"	"Moved to /3"
-"8692/1"	"Carotid body tumor (C75.4)
-Carotid body paraganglioma (C75.4)"	"Moved to /3"
-"8693/1"	"Extra-adrenal paraganglioma, NOS Chemodectoma
-Nonchromaffin paraganglioma, NOS"	"Moved to /3"
+"8690/1"	"Glomus jugulare tumor, NOS (C75.5) Jugular paraganglioma (C75.5)"	"Moved to /3"
+"8691/1"	"Aortic body tumor (C75.5)"	"Moved to /3"
+"8692/1"	"Carotid body tumor (C75.4)"	"Moved to /3"
+"8693/1"	"Extra-adrenal paraganglioma, NOS Chemodectoma"	"Moved to /3"
 "8841/1"	"Angiomyxoma, NOS Aggressive angiomyxoma"	"Moved to /0"
-"8936/1"	"Gastrointestinal stromal tumor, NOS Gastrointestinal autonomic nerve tumor GANT
-Gastrointestinal pacemaker cell tumor"	"Moved to /3"
+"8936/1"	"Gastrointestinal stromal tumor, NOS Gastrointestinal autonomic nerve tumor GANT"	"Moved to /3"
 "8936/1"	"Gastrointestinal stromal tumor, uncertain malignant potential GIST, NOS"	"Deleted"
 "9055/1"	"Cystic mesothelioma, NOS (C48._)"	"Moved to /0"
 "9133/1"	"Epithelioid hemangioendothelioma, NOS"	"Moved to /3"
 "9341/1"	"Clear cell odontogenic tumor"	"Moved to /3"
 "9530/1"	"Meningiomatosis, NOS Diffuse meningiomatosis Multiple meningiomas"	"Deleted"
-"9540/1"	"Neurofibromatosis, NOS Multiple neurofibromatosis
-Recklinghausen disease (e xcept   of bone: not neoplastic)
-Von Recklinghausen disease (e xcept of bone: not neoplastic)"	"Deleted"
+"9540/1"	"Neurofibromatosis, NOS Multiple neurofibromatosis"	"Deleted"
 "8833/3"	"Pigmented dermatofibrosarcoma protuberans (C44._) Bednar tumor (C44._)"	"Moved to /1"
 "9260/3"	"Ewing sarcoma Ewing tumor"	"Moved to 9364/3"
 "9725/3"	"Hydroa vacciniforme-like lymphoma (C44._)"	"Moved to /1"

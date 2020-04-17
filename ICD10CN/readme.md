@@ -2,6 +2,7 @@ Update of ICD10CN
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
+- ICD10 must be loaded first
 - Working directory ICD10CN.
 
 1. Go to https://github.com/ohdsi-china/Phase1Testing and download latest ICD10CN version

@@ -160,7 +160,6 @@ WHERE cs.concept_code = m.concept_code
 		OR COALESCE(cs.invalid_reason, 'X') <> COALESCE(m.invalid_reason, 'X')
 		);
 
-
 --4 UPDATE domain_id in concept_stage
 --4.1. Part 1. UPDATE domain_id defined by rules
 WITH t_domains
@@ -1416,7 +1415,12 @@ FROM (
 	SELECT SUBSTR(long_description, 1, 1000) AS synonym_name,
 		HCPC
 	FROM sources.anweb_v2
-	) AS s0;
+	) AS s0
+
+UNION ALL
+
+VALUES ('U0001','COVID-19 testing in CDC laboratory','HCPCS',4180186),
+	('U0002','COVID-19 testing in non-CDC laboratory','HCPCS',4180186);
 
 --6. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
 DO $_$

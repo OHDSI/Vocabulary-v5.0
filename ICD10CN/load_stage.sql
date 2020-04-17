@@ -188,7 +188,78 @@ SELECT DISTINCT ns.concept_name,
 FROM sources.icd10cn_concept ic
 JOIN name_source ns ON ns.concept_code_clean = ic.concept_code_clean
 	AND ns.preferred = 'S'
-LEFT JOIN icd10cn_chapters ch ON ch.chapter_code = ic.concept_code_clean;
+LEFT JOIN icd10cn_chapters ch ON ch.chapter_code = ic.concept_code_clean
+
+UNION ALL
+
+VALUES ('Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2','Condition','ICD10CN','ICD10 code','U07.1',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('Confirmed COVID-19, excluding pneumonia (machine translation)','Condition','ICD10CN','ICD10 code','U07.100x002',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 (machine translation)','Condition','ICD10CN','ICD10 code','U07.100',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('Suspected case of COVID-19 (machine translation)','Condition','ICD10CN','ICD10 code','Z03.800x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 pneumonia (machine translation)','Condition','ICD10CN','ICD10 code','U07.100x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 pneumonia (machine translation)','Condition','ICD10CN','ICD10 code','U07.100x003',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'));
+
+--6.1. Replace names with manually corrected English components wherever possible
+WITH new_names
+AS (
+	SELECT *
+	FROM (
+		VALUES	('Hepatitis B virus after transfusion', 'B16.903'),
+				('Post-transfusion hepatitis', 'B19.901'),
+				('Immune deficiency caused by human immunodeficiency virus disease', 'B23.201'),
+				('Chronic granulomatous disease of childhood', 'D71.x01'),
+				('IgM deficiency', 'D80.401'),
+				('Lymphopenia syndrome', 'D81.601'),
+				('Functional myasthenia', 'F45.804'),
+				('Epileptic dementia', 'G40.903'),
+				('Hypertensive Crisis', 'I10.x01'),
+				('Coronary atherosclerotic heart disease', 'I25.103'),
+				('Arrhythmia type of coronary heart disease', 'I25.104'),
+				('Congenital cardiomyopathy', 'I42.401'),
+				('Total acinar emphysema', 'J43.101'),
+				('Chronic emphysematous bronchitis', 'J44.803'),
+				('Cough variant asthma', 'J45.005'),
+				('Dysbacteriosis of intestinal flora', 'K59.101'),
+				('HELLP syndrome', 'O14.101'),
+				('Early mild hyperemesis gravidarum', 'O21.001'),
+				('Transient tachypnea of the newborn', 'P22.101'),
+				('Neonatal dyspnea', 'P22.801'),
+				('Neonatal achalasia', 'P92.001'),
+				('Corrected transposition of great arteries', 'Q20.301'),
+				('Transitional atrioventricular septal defect', 'Q21.204'),
+				('Congenital chordae tendineae of mitral valve', 'Q23.803'),
+				('Congenital superior septum of aortic valve', 'Q23.804'),
+				('Congenital mitral valve cleft', 'Q23.805'),
+				('Congenital mitral malformation', 'Q23.901'),
+				('Congenital coronary hypoplasia', 'Q24.506'),
+				('Congenital coronary artery fistula to pulmonary artery', 'Q24.507'),
+				('Congenital coronary malformation', 'Q24.508'),
+				('Congenital coronary arteriovenous fistula', 'Q24.509'),
+				('Apical coronary sinus syndrome', 'Q24.510'),
+				('Congenital first degree atrioventricular block', 'Q24.601'),
+				('Congenital second degree atrioventricular block', 'Q24.602'),
+				('Congenital third degree atrioventricular block', 'Q24.603'),
+				('False chordae tendineae', 'Q24.803'),
+				('Crisscross heart', 'Q24.804'),
+				('Left ventricular outflow tract hypertrophy', 'Q24.805'),
+				('Congenital pericardial defect', 'Q24.808'),
+				('Congenital diverticulum right atrium', 'Q24.811'),
+				('Mesocardia', 'Q24.813'),
+				('Congenital abnormality of ascending aorta', 'Q25.401'),
+				('Congenital interrupted aortic arch', 'Q25.404'),
+				('Dextrotransposition of aorta', 'Q25.407'),
+				('Congenital absence of pulmonary artery', 'Q25.703'),
+				('Congenital bronchial malformation', 'Q32.401'),
+				('Congenital pulmonary cystic disease', 'Q33.001'),
+				('Congenital absence of lobe of lung', 'Q33.301'),
+				('Congenital pulmonary dysplasia', 'Q33.601'),
+				('High altitude hypertension', 'T70.202')
+		) AS t(concept_name, concept_code)
+	)
+UPDATE concept_stage cs
+SET concept_name = i.concept_name
+FROM new_names i
+WHERE i.concept_code = cs.concept_code;
 
 --7. Fill table concept_synonym_stage with chinese and English names
 INSERT INTO concept_synonym_stage (
@@ -201,7 +272,16 @@ SELECT ns.concept_name AS synonym_name,
 	ns.concept_code_clean AS synonym_concept_code,
 	'ICD10CN' AS synonym_vocabulary_id,
 	ns.language_concept_id
-FROM name_source ns;
+FROM name_source ns
+
+UNION ALL
+
+VALUES ('新型冠状病毒肺炎疑似病例','Z03.800x001','ICD10CN',4182948),
+	('Emergency use of U07.1 | COVID-19','U07.1','ICD10CN',4180186),
+	('新型冠状病毒肺炎临床诊断病例','U07.100x003','ICD10CN',4182948),
+	('新型冠状病毒肺炎','U07.100x001','ICD10CN',4182948),
+	('2019冠状病毒病','U07.100','ICD10CN',4182948),
+	('新型冠状病毒感染','U07.100x002','ICD10CN',4182948);
 
 --8. Fill concept_relationship_stage
 -- Preserve ICD10CN internal hierarchy (even if concepts are non-standard)
@@ -244,11 +324,11 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT i.concept_code as concept_code_1,
-	c.concept_code as concept_code_2,
-	'ICD10CN' as vocabulary_id_1,
-	c.vocabulary_id as vocabulary_id_2,
-	'Maps to' as relationship_id,
+SELECT i.concept_code AS concept_code_1,
+	c.concept_code AS concept_code_2,
+	'ICD10CN' AS vocabulary_id_1,
+	c.vocabulary_id AS vocabulary_id_2,
+	r.relationship_id AS relationship_id,
 	(
 		SELECT latest_update
 		FROM vocabulary
@@ -295,10 +375,37 @@ FROM (
 	) i
 JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 	AND r.invalid_reason IS NULL
-	AND r.relationship_id = 'Maps to'
+	AND r.relationship_id IN (
+		'Maps to',
+		'Maps to value'
+		)
 JOIN concept c ON c.concept_id = r.concept_id_2;
 
---10. Update Domains 
+--10. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--11. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--12. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--13. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--14. Update Domains 
 --ICD10 Histologies are always Condition
 UPDATE concept_stage
 SET domain_id = 'Condition'
@@ -372,7 +479,7 @@ UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
 
---11. Add "subsumes" relationship between concepts where the concept_code is like of another
+--15. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -489,7 +596,7 @@ JOIN concept_stage c2 ON LEFT(c2.concept_code, 3) BETWEEN c1.start_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
 
---12. Cleanup
+--16. Cleanup
 DROP INDEX trgm_idx;
 DROP TABLE icd10cn_chapters, name_source, intervals;
 

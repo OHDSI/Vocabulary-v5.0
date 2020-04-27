@@ -217,87 +217,112 @@ ORDER BY s_concept_name
 
 
 -- CRM preparation
-with nebraska_eq AS (
-    SELECT c.concept_code AS concept_code_1,
-                     cc.concept_code AS concept_code_2,
-                     c.vocabulary_id AS vocabulary_id_1,
-                     cc.vocabulary_id  AS vocabulary_id_2,
-                    CASE WHEN  (m.issue_type in ( 'loss of hierarchical context',
-                                                   'loss of context',
-                                                   'poor data modeling')
-                                AND cc.vocabulary_id='Nebraska Lexicon') THEN 'CAP - Nebraska cat' -- issues with potential loss of source info
-                                                                               ELSE 'CAP - Nebraska eq'  END AS relationship_id, -- Equivalent is more appropriate targets the Category
-                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
-                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-                     NULL                            as invalid_reason
-              FROM cap_breast_mapping m
-                       JOIN devv5.concept c
-                            ON m.s_concept_code = c.concept_code
-                                AND c.vocabulary_id = 'CAP'
-                        JOIN devv5.concept cc
-                            ON m.target_concept_id = cc.concept_id
-                               AND cc.vocabulary_id =m.target_vocabulary_id
+DROP TABLE CRM_breast;
+CREATE UNLOGGED TABLE CRM_breast AS
+    (
+        with nebraska_eq AS (
+            SELECT c.concept_code                   AS concept_code_1,
+                   cc.concept_code                  AS concept_code_2,
+                   c.vocabulary_id                  AS vocabulary_id_1,
+                   cc.vocabulary_id                 AS vocabulary_id_2,
+                   CASE
+                       WHEN (m.issue_type in ('loss of hierarchical context',
+                                              'loss of context',
+                                              'poor data modeling')
+                           AND cc.vocabulary_id = 'Nebraska Lexicon')
+                           THEN 'CAP-Nebraska cat' -- issues with potential loss of source info
+                       ELSE 'CAP-Nebraska eq' END AS relationship_id, -- Equivalent is more appropriate targets the Category
+                   TO_DATE('20200427', 'yyyymmdd')  AS valid_start_date,
+                   TO_DATE('20991231', 'yyyymmdd')  AS valid_end_date,
+                   NULL                             as invalid_reason
+            FROM cap_breast_mapping m
+                     JOIN devv5.concept c
+                          ON m.s_concept_code = c.concept_code
+                              AND c.vocabulary_id = 'CAP'
+                     JOIN devv5.concept cc
+                          ON m.target_concept_id = cc.concept_id
+                              AND cc.vocabulary_id = m.target_vocabulary_id
 
-              WHERE m.target_concept_id <> 0 -- to exclude to 0 mappings
-           AND cc.vocabulary_id='Nebraska Lexicon'
+            WHERE m.target_concept_id <> 0 -- to exclude to 0 mappings
+              AND cc.vocabulary_id = 'Nebraska Lexicon'
+        )
+           , standard AS (
+            SELECT c.concept_code                  AS concept_code_1,
+                   cc.concept_code                 AS concept_code_2,
+                   c.vocabulary_id                 AS vocabulary_id_1,
+                   cc.vocabulary_id                AS vocabulary_id_2,
+                   'Maps to'                       AS relationship_id,
+                   TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
+                   TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                   NULL                            as invalid_reason
+            FROM cap_breast_mapping m
+                     JOIN devv5.concept c
+                          ON m.s_concept_code = c.concept_code
+                              AND c.vocabulary_id = 'CAP'
+                     JOIN devv5.concept cc
+                          ON m.target_concept_id = cc.concept_id
+                              AND cc.vocabulary_id = m.target_vocabulary_id
 
-)
-,
-standard AS (
-    SELECT c.concept_code AS concept_code_1,
-                     cc.concept_code AS concept_code_2,
-                     c.vocabulary_id AS vocabulary_id_1,
-                     cc.vocabulary_id  AS vocabulary_id_2,
-                     'Maps to' AS relationship_id,
-                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
-                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-                     NULL                            as invalid_reason
-              FROM cap_breast_mapping m
-                       JOIN devv5.concept c
-                            ON m.s_concept_code = c.concept_code
-                                AND c.vocabulary_id = 'CAP'
-                        JOIN devv5.concept cc
-                            ON m.target_concept_id = cc.concept_id
-                               AND cc.vocabulary_id =m.target_vocabulary_id
-
-              WHERE m.target_concept_id <> 0 -- to exclude to 0 mappings
+            WHERE m.target_concept_id <> 0 -- to exclude to 0 mappings
               AND cc.standard_concept = 'S'
-)
-,
-     CR_map AS (SELECT c.concept_code AS concept_code_1,
-                     cc.concept_code AS concept_code_2,
-                     c.vocabulary_id AS vocabulary_id_1,
-                     cc.vocabulary_id AS vocabulary_id_2,
-                     cr.relationship_id,
-                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
-                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-                     NULL                            as invalid_reason
-              FROM cap_breast_mapping m
-                       JOIN devv5.concept c
-                            ON m.s_concept_code = c.concept_code
-                                AND c.vocabulary_id = 'CAP'
-                       JOIN devv5.concept_relationship cr
-ON m.target_concept_id=cr.concept_id_1
-AND cr.relationship_id='Maps to'
-AND cr.concept_id_2<>m.target_concept_id
-JOIN devv5.concept cc
-ON cr.concept_id_2=cc.concept_id
-WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
-AND m.standard_concept IS NULL
-         AND m.target_vocabulary_id ='Nebraska Lexicon'
-)
-     ,     resulting_tab AS
-         (
-SELECT * FROM standard
-    UNION ALL
-SELECT * FROM nebraska_eq
-UNION ALL
-SELECT * FROM CR_map)
+        )
+           , CR_map AS (SELECT c.concept_code                  AS concept_code_1,
+                               cc.concept_code                 AS concept_code_2,
+                               c.vocabulary_id                 AS vocabulary_id_1,
+                               cc.vocabulary_id                AS vocabulary_id_2,
+                               cr.relationship_id,
+                               TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
+                               TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                               NULL                            as invalid_reason
+                        FROM cap_breast_mapping m
+                                 JOIN devv5.concept c
+                                      ON m.s_concept_code = c.concept_code
+                                          AND c.vocabulary_id = 'CAP'
+                                 JOIN devv5.concept_relationship cr
+                                      ON m.target_concept_id = cr.concept_id_1
+                                          AND cr.relationship_id = 'Maps to'
+                                          AND cr.concept_id_2 <> m.target_concept_id
+                                 JOIN devv5.concept cc
+                                      ON cr.concept_id_2 = cc.concept_id
+                        WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
+                          AND m.standard_concept IS NULL
+                          AND m.target_vocabulary_id = 'Nebraska Lexicon'
+        )
+           , resulting_tab AS
+            (
+                SELECT *
+                FROM standard
+                UNION ALL
+                SELECT *
+                FROM nebraska_eq
+                UNION ALL
+                SELECT *
+                FROM CR_map)
 
-SELECT distinct * from resulting_tab
-ORDER BY concept_code_1
+        SELECT distinct *
+        from resulting_tab
+        ORDER BY concept_code_1
+    )
 ;
-
+-- insert into concept_relationship_manual
+--TRUNCATE concept_relationship_manual;
+INSERT INTO concept_relationship_manual (concept_code_1,
+                                         concept_code_2,
+                                         vocabulary_id_1,
+                                         vocabulary_id_2,
+                                         relationship_id,
+                                         valid_start_date,
+                                         valid_end_date,
+                                         invalid_reason)
+SELECT concept_code_1,
+       concept_code_2,
+       vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason
+FROM CRM_breast;
 
 -- todo
 --  compare quantity and quality of NL and snomed attributes for same codes
@@ -333,8 +358,5 @@ WITH tabN AS (
     ORDER BY c.concept_name
 )
 ;
-
-
-
 
 

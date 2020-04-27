@@ -225,8 +225,8 @@ with nebraska_eq AS (
                     CASE WHEN  (m.issue_type in ( 'loss of hierarchical context',
                                                    'loss of context',
                                                    'poor data modeling')
-                                AND cc.vocabulary_id='Nebraska Lexicon') THEN 'CAP - Nebraska cat'
-                                                                               ELSE 'CAP - Nebraska eq'  END AS relationship_id,
+                                AND cc.vocabulary_id='Nebraska Lexicon') THEN 'CAP - Nebraska cat' -- issues with potential loss of source info
+                                                                               ELSE 'CAP - Nebraska eq'  END AS relationship_id, -- Equivalent is more appropriate targets the Category
                      TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
                      TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
                      NULL                            as invalid_reason
@@ -300,7 +300,8 @@ ORDER BY concept_code_1
 
 
 -- todo
---  compare quantity and quality of NL and snomed attributes for same codes.
+--  compare quantity and quality of NL and snomed attributes for same codes
+-- resolved with D. Dymshyts
 WITH tabN AS (
     SELECT distinct c.concept_code, c.concept_name, c.concept_class_id, relationship_id, cc.concept_class_id, count(*)
     FROM devv5.concept c

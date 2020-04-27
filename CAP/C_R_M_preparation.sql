@@ -1,4 +1,4 @@
-
+-- table with mappigs to Histology code provided by CAP
 DROP TABLE cap_to_icd03_snomed_mappings;
 CREATE UNLOGGED TABLE cap_to_icd03_snomed_mappings
 (
@@ -22,7 +22,8 @@ JOIN cap_to_icd03_snomed_mappings b
 on a.s_concept_code=split_part(b.Item_Ckey,'.',1)
 AND a.concept_code != b.ConceptID
 ;
-
+--Table with mappings
+-- for DCIS  in general we use  'tumour'/ when for invasive carcinoma we prefer malignant neoplasm as target
 -- DROP TABLE cap_breast_mapping;
 CREATE UNLOGGED TABLE cap_breast_mapping
 (
@@ -70,6 +71,20 @@ WHERE NOT EXISTS(SELECT 1
     );
 
 --check if target concepts exist in the concept table
+--round 1
+
+
+SELECT distinct *
+FROM cap_breast_mapping j1
+JOIN devv5.concept c
+ON j1.target_concept_id=c.concept_id
+WHERE j1.concept_name=c.concept_name
+AND target_vocabulary_id=vocabulary_id
+AND j1.concept_code=c.concept_code
+AND target_concept_id!=0
+;
+
+-- round 2 shows all 0 mappings + non standards
 SELECT *
 FROM cap_breast_mapping j1
 WHERE NOT EXISTS (  SELECT *
@@ -83,6 +98,12 @@ WHERE NOT EXISTS (  SELECT *
                             AND c.invalid_reason is NULL
     WHERE j2.s_concept_code=j1.s_concept_code
                   );
+
+--Mapping to 0
+SELECT *
+FROM cap_breast_mapping
+WHERE concept_code is null
+;
 
 --'Maps to' mapping to abnormal domains
 with tab as (
@@ -121,12 +142,6 @@ WHERE s_concept_code in (
 ORDER BY s_concept_code
 ;
 
---Mapping to 0
-SELECT *
-FROM cap_breast_mapping
-WHERE concept_code is null
-;
-
 -- Not perfect mapping of CAP Variables
 SELECT *
 FROM cap_breast_mapping
@@ -153,7 +168,7 @@ ON c2.concept_code=m2.s_concept_code
 AND  m2.target_vocabulary_id<>m.target_vocabulary_id
 AND (m2.target_vocabulary_id not in ('SNOMED','Nebraska Lexicon')
  OR m.target_vocabulary_id not in ('SNOMED','Nebraska Lexicon') )
-order by m2.concept_code
+order by m.s_concept_name,m2.concept_code
 ;
 
 
@@ -177,8 +192,6 @@ AND  m2.target_concept_id<>0
 order by m.s_concept_name,m2.concept_code
 ;
 
--- for DCIS we in general use  'tumour'/ when for invasive carcinoma we prefere malignant neoplasm as target
-
 -- Semantic check
 SELECT *
 FROM cap_breast_mapping m
@@ -189,52 +202,187 @@ AND s_concept_name ~* 'dist'
 ORDER BY s_concept_name
 ;
 
--- todo
---  compare quantity and quality of NL and snomed attributes for same codes.
-SELECT distinct c.concept_name,c.concept_class_id, relationship_id,cc.concept_class_id, count(*)
-FROM devv5.concept c
-JOIN   devv5.concept_relationship cr
-ON c.concept_id=cr.concept_id_1
-AND c.vocabulary_id='Nebraska Lexicon'
-JOIN   devv5.concept  cc
-ON cc.concept_id=cr.concept_id_2
-AND cc.vocabulary_id ='Nebraska Lexicon'
-WHERE c.concept_code IN (SELECT concept_code FROM cap_breast_mapping WHERE target_vocabulary_id ='Nebraska Lexicon')
-GROUP BY  c.concept_name,c.concept_class_id, relationship_id,cc.concept_class_id
-ORDER BY c.concept_name
-;
-
-SELECT distinct c.concept_name,c.concept_class_id, relationship_id,cc.concept_class_id, count(*)
-FROM devv5.concept c
-JOIN   devv5.concept_relationship cr
-ON c.concept_id=cr.concept_id_1
-AND c.vocabulary_id='SNOMED'
-JOIN   devv5.concept  cc
-ON cc.concept_id=cr.concept_id_2
-AND cc.vocabulary_id ='SNOMED'
-WHERE c.concept_code IN (SELECT concept_code FROM cap_breast_mapping WHERE target_vocabulary_id ='Nebraska Lexicon')
-AND cr.relationship_id !~* 'map'
-GROUP BY  c.concept_name,c.concept_class_id, relationship_id,cc.concept_class_id
-ORDER BY c.concept_name
-;
-
-SELECT distinct standard_concept from cap_breast_mapping
-
 
 -- CRM preparation
-SELECT m.s_concept_code,
-       m.concept_code,
-       m.s_vocabulary_id,
-       m.target_vocabulary_id,
-       CASE WHEN  (m.target_vocabulary_id = 'SNOMED'  or (m.target_vocabulary_id = 'Nebraska Lexicon' AND m.standard_concept  in ('S','Standard') ) )then 'Maps to'
-            ELSE concat('CAP', ' to ', coalesce(m.target_vocabulary_id,'NULL'),  ' equivalent')
-             END AS relationship_id,
-       TO_DATE('20200418', 'yyyymmdd') AS valid_start_date ,
-       TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-      NULL as invalid_reason
-FROM cap_breast_mapping m
-JOIN devv5.concept c
-ON m.s_concept_code=c.concept_code
-ANd c.vocabulary_id='CAP'
-WHERE m.target_concept_id <>0 -- to exlude to 0 mappings
+with taba AS (SELECT c.concept_code AS concept_code_1,
+                     cc.concept_code AS concept_code_2,
+                     c.vocabulary_id AS vocabulary_id_1,
+                     cc.vocabulary_id  AS vocabulary_id_2,
+                     CASE
+                         WHEN cc.standard_concept = 'S'   then 'Maps to'
+                         ELSE concat('CAP', ' to ', coalesce(cc.vocabulary_id, 'NULL'), ' equivalent')
+                         END                         AS relationship_id,
+                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
+                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                     NULL                            as invalid_reason
+              FROM cap_breast_mapping m
+                       JOIN devv5.concept c
+                            ON m.s_concept_code = c.concept_code
+                                AND c.vocabulary_id = 'CAP'
+                        JOIN devv5.concept cc
+                            ON m.target_concept_id = cc.concept_id
+                               AND cc.vocabulary_id =m.target_vocabulary_id
+              WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
+)
+,
+      tabb AS (SELECT c.concept_code AS concept_code_1,
+                     cc.concept_code AS concept_code_2,
+                     c.vocabulary_id AS vocabulary_id_1,
+                     cc.vocabulary_id AS vocabulary_id_2,
+                     cr.relationship_id,
+                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
+                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                     NULL                            as invalid_reason
+              FROM cap_breast_mapping m
+                       JOIN devv5.concept c
+                            ON m.s_concept_code = c.concept_code
+                                AND c.vocabulary_id = 'CAP'
+                       JOIN devv5.concept_relationship cr
+ON m.target_concept_id=cr.concept_id_1
+AND cr.relationship_id='Maps to'
+AND cr.concept_id_2!=m.target_concept_id
+JOIN devv5.concept cc
+ON cr.concept_id_2=cc.concept_id
+AND m.target_vocabulary_id='Nebraska Lexicon'
+WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
+)
+,
+tabc AS
+         (SELECT distinct * FROM taba
+UNION ALL
+SELECT distinct * FROM tabb)
+,
+     result_tab as (
+SELECT distinct * FROM tabc)
+,
+     unique_combo_check AS (select concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id
+                            from result_tab
+                            group by concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id
+                            having count(*) > 1
+     )
+
+SELECT distinct * FROM result_tab
 ;
+
+-- relieves code without maps to only equivalents
+SELECT s_concept_code FROM cap_breast_mapping m
+     LEFT JOIN devv5.concept  c
+    ON m.target_concept_id=c.concept_id
+ LEFT JOIN devv5.concept_relationship cr
+ON c.concept_id=cr.concept_id_1
+AND cr.relationship_id='Maps to'
+AND cr.concept_id_2!=c.concept_id
+LEFT JOIN devv5.concept cc
+ON cr.concept_id_2=cc.concept_id
+AND m.target_vocabulary_id='Nebraska Lexicon'
+WHERE m.target_concept_id <> 0
+AND m.target_vocabulary_id='Nebraska Lexicon' AND m.standard_concept is null
+AND cc.concept_id is null
+;
+-- to prove that  these codes are the only
+with taba AS (SELECT c.concept_code AS concept_code_1,
+                     cc.concept_code AS concept_code_2,
+                     c.vocabulary_id AS vocabulary_id_1,
+                     cc.vocabulary_id  AS vocabulary_id_2,
+                     CASE
+                         WHEN cc.standard_concept = 'S'   then 'Maps to'
+                         ELSE concat('CAP', ' to ', coalesce(cc.vocabulary_id, 'NULL'), ' equivalent')
+                         END                         AS relationship_id,
+                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
+                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                     NULL                            as invalid_reason
+              FROM cap_breast_mapping m
+                       JOIN devv5.concept c
+                            ON m.s_concept_code = c.concept_code
+                                AND c.vocabulary_id = 'CAP'
+                        JOIN devv5.concept cc
+                            ON m.target_concept_id = cc.concept_id
+                               AND cc.vocabulary_id =m.target_vocabulary_id
+              WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
+)
+,
+      tabb AS (SELECT c.concept_code AS concept_code_1,
+                     cc.concept_code AS concept_code_2,
+                     c.vocabulary_id AS vocabulary_id_1,
+                     cc.vocabulary_id AS vocabulary_id_2,
+                     cr.relationship_id,
+                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
+                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                     NULL                            as invalid_reason
+              FROM cap_breast_mapping m
+                       JOIN devv5.concept c
+                            ON m.s_concept_code = c.concept_code
+                                AND c.vocabulary_id = 'CAP'
+                       JOIN devv5.concept_relationship cr
+ON m.target_concept_id=cr.concept_id_1
+AND cr.relationship_id='Maps to'
+AND cr.concept_id_2!=m.target_concept_id
+JOIN devv5.concept cc
+ON cr.concept_id_2=cc.concept_id
+AND m.target_vocabulary_id='Nebraska Lexicon'
+WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
+)
+,
+tabc AS
+         (SELECT distinct * FROM taba
+UNION ALL
+SELECT distinct * FROM tabb)
+
+SELECT distinct  concept_code_1 FROM tabc
+WHERE concept_code_1 IN (SELECT distinct  concept_code_1 FROM tabc
+GROUP BY concept_code_1 having count(distinct relationship_id)=1)
+AND relationship_id <>'Maps to'
+
+EXCEPT
+SELECT s_concept_code FROM cap_breast_mapping m
+     LEFT JOIN devv5.concept  c
+    ON m.target_concept_id=c.concept_id
+ LEFT JOIN devv5.concept_relationship cr
+ON c.concept_id=cr.concept_id_1
+AND cr.relationship_id='Maps to'
+AND cr.concept_id_2!=c.concept_id
+LEFT JOIN devv5.concept cc
+ON cr.concept_id_2=cc.concept_id
+AND m.target_vocabulary_id='Nebraska Lexicon'
+WHERE m.target_concept_id <> 0
+AND m.target_vocabulary_id='Nebraska Lexicon' AND m.standard_concept is null
+AND cc.concept_id is null
+;
+
+
+
+-- todo
+--  compare quantity and quality of NL and snomed attributes for same codes.
+WITH tabN AS (
+    SELECT distinct c.concept_code, c.concept_name, c.concept_class_id, relationship_id, cc.concept_class_id, count(*)
+    FROM devv5.concept c
+             JOIN devv5.concept_relationship cr
+                  ON c.concept_id = cr.concept_id_1
+                      AND c.vocabulary_id = 'Nebraska Lexicon'
+             JOIN devv5.concept cc
+                  ON cc.concept_id = cr.concept_id_2
+                      AND cc.vocabulary_id = 'Nebraska Lexicon'
+    WHERE c.concept_code IN
+          (SELECT concept_code FROM cap_breast_mapping WHERE target_vocabulary_id = 'Nebraska Lexicon')
+      AND cr.relationship_id !~* 'map'
+    GROUP BY c.concept_code, c.concept_name, c.concept_class_id, relationship_id, cc.concept_class_id
+    ORDER BY c.concept_name
+)
+, tabS AS (
+    SELECT distinct c.concept_code, c.concept_name, c.concept_class_id, relationship_id, cc.concept_class_id, count(*)
+    FROM devv5.concept c
+             JOIN devv5.concept_relationship cr
+                  ON c.concept_id = cr.concept_id_1
+                      AND c.vocabulary_id = 'SNOMED'
+             JOIN devv5.concept cc
+                  ON cc.concept_id = cr.concept_id_2
+                      AND cc.vocabulary_id = 'SNOMED'
+    WHERE c.concept_code IN
+          (SELECT concept_code FROM cap_breast_mapping WHERE target_vocabulary_id = 'Nebraska Lexicon')
+      AND cr.relationship_id !~* 'map'
+    GROUP BY c.concept_code, c.concept_name, c.concept_class_id, relationship_id, cc.concept_class_id
+    ORDER BY c.concept_name
+)
+;
+
+

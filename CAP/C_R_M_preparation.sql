@@ -223,9 +223,7 @@ with nebraska_eq AS (
                      c.vocabulary_id AS vocabulary_id_1,
                      cc.vocabulary_id  AS vocabulary_id_2,
                     CASE WHEN  (m.issue_type in ( 'loss of hierarchical context',
-                                                   'poor data modeling|abnormal target domain',
                                                    'loss of context',
-                                                   'target value contains meaning of variable',
                                                    'poor data modeling')
                                 AND cc.vocabulary_id='Nebraska Lexicon') THEN 'CAP - Nebraska cat'
                                                                                ELSE 'CAP - Nebraska eq'  END AS relationship_id,

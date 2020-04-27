@@ -72,8 +72,6 @@ WHERE NOT EXISTS(SELECT 1
 
 --check if target concepts exist in the concept table
 --round 1
-
-
 SELECT distinct *
 FROM cap_breast_mapping j1
 JOIN devv5.concept c
@@ -97,13 +95,19 @@ WHERE NOT EXISTS (  SELECT *
                             AND c.standard_concept = 'S'
                             AND c.invalid_reason is NULL
     WHERE j2.s_concept_code=j1.s_concept_code
-                  );
+                  )
+;
 
 --Mapping to 0
 SELECT *
 FROM cap_breast_mapping
 WHERE concept_code is null
 ;
+--NL non-standards
+SELECT *
+FROM cap_breast_mapping
+WHERE standard_concept is NULL
+AND concept_code is NOT null
 
 --'Maps to' mapping to abnormal domains
 with tab as (
@@ -123,6 +127,23 @@ WHERE s_concept_code in (
                         AND a.s_concept_class_id <> 'CAP Value'
                 )
     )
+ORDER BY  s_concept_name
+;
+-- Not perfect mapping of CAP Variables
+--round 1
+SELECT *
+FROM cap_breast_mapping
+WHERE s_concept_class_id='CAP Variable'
+AND (domain_id NOT IN ('Observation', 'Measurement')
+OR domain_id is NULL)
+;
+-- Not perfect mapping of CAP Variables
+--round 2
+SELECT *
+FROM cap_breast_mapping
+WHERE s_concept_class_id='CAP Variable'
+AND domain_id NOT IN ('Observation', 'Measurement')
+ORDER BY  s_concept_name
 ;
 
 --1-to-many mapping
@@ -142,17 +163,9 @@ WHERE s_concept_code in (
 ORDER BY s_concept_code
 ;
 
--- Not perfect mapping of CAP Variables
-SELECT *
-FROM cap_breast_mapping
-WHERE s_concept_class_id='CAP Variable'
-AND (domain_id NOT IN ('Observation', 'Measurement')
-OR domain_id is NULL)
-;
-
 -- Var_val vocabularies inconsistency
-SELECT m.s_concept_name,m.s_concept_code,m.concept_code, m.concept_name,m.target_vocabulary_id,
-       m2.s_concept_code,m2.s_alternative_concept_name,m2.concept_code,m2.concept_name,m2.target_vocabulary_id
+SELECT m.s_concept_name as var_name,m.s_concept_code as var_code,m.concept_code as var_target_code, m.concept_name as  var_target_name,m.target_vocabulary_id as var_target_vocabulary,
+      m2.s_concept_name as val_name,m2.s_concept_code as val_code,m2.concept_code as val_target_code, m2.concept_name as  val_target_name,m2.target_vocabulary_id as val_target_vocabulary
 FROM cap_breast_mapping m
 JOIN devv5.concept c
 ON m.s_concept_code=c.concept_code
@@ -173,8 +186,8 @@ order by m.s_concept_name,m2.concept_code
 
 
 -- Variables mapped to 0 with mapped values
-SELECT m.s_concept_name,m.s_concept_code,m.concept_code, m.concept_name,m.target_vocabulary_id,
-       m2.s_concept_code,m2.s_alternative_concept_name,m2.concept_code,m2.concept_name,m2.target_vocabulary_id
+SELECT m.s_concept_name as var_name,m.s_concept_code as var_code,m.concept_code as var_target_code, m.concept_name as  var_target_name,m.target_vocabulary_id as var_target_vocabulary,
+      m2.s_concept_name as val_name,m2.s_concept_code as val_code,m2.concept_code as val_target_code, m2.concept_name as  val_target_name,m2.target_vocabulary_id as val_target_vocabulary
 FROM cap_breast_mapping m
 JOIN devv5.concept c
 ON m.s_concept_code=c.concept_code
@@ -204,14 +217,18 @@ ORDER BY s_concept_name
 
 
 -- CRM preparation
-with taba AS (SELECT c.concept_code AS concept_code_1,
+with nebraska_eq AS (
+    SELECT c.concept_code AS concept_code_1,
                      cc.concept_code AS concept_code_2,
                      c.vocabulary_id AS vocabulary_id_1,
                      cc.vocabulary_id  AS vocabulary_id_2,
-                     CASE
-                         WHEN cc.standard_concept = 'S'   then 'Maps to'
-                         ELSE concat('CAP', ' to ', coalesce(cc.vocabulary_id, 'NULL'), ' equivalent')
-                         END                         AS relationship_id,
+                    CASE WHEN  (m.issue_type in ( 'loss of hierarchical context',
+                                                   'poor data modeling|abnormal target domain',
+                                                   'loss of context',
+                                                   'target value contains meaning of variable',
+                                                   'poor data modeling')
+                                AND cc.vocabulary_id='Nebraska Lexicon') THEN 'CAP - Nebraska cat'
+                                                                               ELSE 'CAP - Nebraska eq'  END AS relationship_id,
                      TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
                      TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
                      NULL                            as invalid_reason
@@ -222,10 +239,34 @@ with taba AS (SELECT c.concept_code AS concept_code_1,
                         JOIN devv5.concept cc
                             ON m.target_concept_id = cc.concept_id
                                AND cc.vocabulary_id =m.target_vocabulary_id
-              WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
+
+              WHERE m.target_concept_id <> 0 -- to exclude to 0 mappings
+           AND cc.vocabulary_id='Nebraska Lexicon'
+
 )
 ,
-      tabb AS (SELECT c.concept_code AS concept_code_1,
+standard AS (
+    SELECT c.concept_code AS concept_code_1,
+                     cc.concept_code AS concept_code_2,
+                     c.vocabulary_id AS vocabulary_id_1,
+                     cc.vocabulary_id  AS vocabulary_id_2,
+                     'Maps to' AS relationship_id,
+                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
+                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                     NULL                            as invalid_reason
+              FROM cap_breast_mapping m
+                       JOIN devv5.concept c
+                            ON m.s_concept_code = c.concept_code
+                                AND c.vocabulary_id = 'CAP'
+                        JOIN devv5.concept cc
+                            ON m.target_concept_id = cc.concept_id
+                               AND cc.vocabulary_id =m.target_vocabulary_id
+
+              WHERE m.target_concept_id <> 0 -- to exclude to 0 mappings
+              AND cc.standard_concept = 'S'
+)
+,
+     CR_map AS (SELECT c.concept_code AS concept_code_1,
                      cc.concept_code AS concept_code_2,
                      c.vocabulary_id AS vocabulary_id_1,
                      cc.vocabulary_id AS vocabulary_id_2,
@@ -240,115 +281,24 @@ with taba AS (SELECT c.concept_code AS concept_code_1,
                        JOIN devv5.concept_relationship cr
 ON m.target_concept_id=cr.concept_id_1
 AND cr.relationship_id='Maps to'
-AND cr.concept_id_2!=m.target_concept_id
+AND cr.concept_id_2<>m.target_concept_id
 JOIN devv5.concept cc
 ON cr.concept_id_2=cc.concept_id
-AND m.target_vocabulary_id='Nebraska Lexicon'
 WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
+AND m.standard_concept IS NULL
+         AND m.target_vocabulary_id ='Nebraska Lexicon'
 )
-,
-tabc AS
-         (SELECT distinct * FROM taba
+     ,     resulting_tab AS
+         (
+SELECT * FROM standard
+    UNION ALL
+SELECT * FROM nebraska_eq
 UNION ALL
-SELECT distinct * FROM tabb)
-,
-     result_tab as (
-SELECT distinct * FROM tabc)
-,
-     unique_combo_check AS (select concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id
-                            from result_tab
-                            group by concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id
-                            having count(*) > 1
-     )
+SELECT * FROM CR_map)
 
-SELECT distinct * FROM result_tab
+SELECT distinct * from resulting_tab
+ORDER BY concept_code_1
 ;
-
--- relieves code without maps to only equivalents
-SELECT s_concept_code FROM cap_breast_mapping m
-     LEFT JOIN devv5.concept  c
-    ON m.target_concept_id=c.concept_id
- LEFT JOIN devv5.concept_relationship cr
-ON c.concept_id=cr.concept_id_1
-AND cr.relationship_id='Maps to'
-AND cr.concept_id_2!=c.concept_id
-LEFT JOIN devv5.concept cc
-ON cr.concept_id_2=cc.concept_id
-AND m.target_vocabulary_id='Nebraska Lexicon'
-WHERE m.target_concept_id <> 0
-AND m.target_vocabulary_id='Nebraska Lexicon' AND m.standard_concept is null
-AND cc.concept_id is null
-;
--- to prove that  these codes are the only
-with taba AS (SELECT c.concept_code AS concept_code_1,
-                     cc.concept_code AS concept_code_2,
-                     c.vocabulary_id AS vocabulary_id_1,
-                     cc.vocabulary_id  AS vocabulary_id_2,
-                     CASE
-                         WHEN cc.standard_concept = 'S'   then 'Maps to'
-                         ELSE concat('CAP', ' to ', coalesce(cc.vocabulary_id, 'NULL'), ' equivalent')
-                         END                         AS relationship_id,
-                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
-                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-                     NULL                            as invalid_reason
-              FROM cap_breast_mapping m
-                       JOIN devv5.concept c
-                            ON m.s_concept_code = c.concept_code
-                                AND c.vocabulary_id = 'CAP'
-                        JOIN devv5.concept cc
-                            ON m.target_concept_id = cc.concept_id
-                               AND cc.vocabulary_id =m.target_vocabulary_id
-              WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
-)
-,
-      tabb AS (SELECT c.concept_code AS concept_code_1,
-                     cc.concept_code AS concept_code_2,
-                     c.vocabulary_id AS vocabulary_id_1,
-                     cc.vocabulary_id AS vocabulary_id_2,
-                     cr.relationship_id,
-                     TO_DATE('20200427', 'yyyymmdd') AS valid_start_date,
-                     TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-                     NULL                            as invalid_reason
-              FROM cap_breast_mapping m
-                       JOIN devv5.concept c
-                            ON m.s_concept_code = c.concept_code
-                                AND c.vocabulary_id = 'CAP'
-                       JOIN devv5.concept_relationship cr
-ON m.target_concept_id=cr.concept_id_1
-AND cr.relationship_id='Maps to'
-AND cr.concept_id_2!=m.target_concept_id
-JOIN devv5.concept cc
-ON cr.concept_id_2=cc.concept_id
-AND m.target_vocabulary_id='Nebraska Lexicon'
-WHERE m.target_concept_id <> 0-- to exclude to 0 mappings
-)
-,
-tabc AS
-         (SELECT distinct * FROM taba
-UNION ALL
-SELECT distinct * FROM tabb)
-
-SELECT distinct  concept_code_1 FROM tabc
-WHERE concept_code_1 IN (SELECT distinct  concept_code_1 FROM tabc
-GROUP BY concept_code_1 having count(distinct relationship_id)=1)
-AND relationship_id <>'Maps to'
-
-EXCEPT
-SELECT s_concept_code FROM cap_breast_mapping m
-     LEFT JOIN devv5.concept  c
-    ON m.target_concept_id=c.concept_id
- LEFT JOIN devv5.concept_relationship cr
-ON c.concept_id=cr.concept_id_1
-AND cr.relationship_id='Maps to'
-AND cr.concept_id_2!=c.concept_id
-LEFT JOIN devv5.concept cc
-ON cr.concept_id_2=cc.concept_id
-AND m.target_vocabulary_id='Nebraska Lexicon'
-WHERE m.target_concept_id <> 0
-AND m.target_vocabulary_id='Nebraska Lexicon' AND m.standard_concept is null
-AND cc.concept_id is null
-;
-
 
 
 -- todo
@@ -384,5 +334,8 @@ WITH tabN AS (
     ORDER BY c.concept_name
 )
 ;
+
+
+
 
 

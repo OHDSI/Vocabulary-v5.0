@@ -2442,7 +2442,8 @@ VALUES (138875005, 'Metadata'), -- root
 	(164290003,'Measurement'), --O/E - method fever registered
 	(1240591000000102,'Measurement'), --2019 novel coronavirus not detected
 	(162913005,'Measurement'), --O/E - rate of respiration
-	(41769001,'Condition'); --Disease suspected
+	--added 20200427
+	(117617002,'Measurement'); --Immunohistochemistry procedure
 
 --17.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
@@ -3000,7 +3001,6 @@ WHERE crs.concept_code_1 = crs.concept_code_2
 		'1240391000000107',
 		'1240401000000105',
 		'1240761000000102',
-		'840544004',
 		'1240431000000104'
 		);
 
@@ -3015,7 +3015,6 @@ WHERE standard_concept IS NOT NULL
 		'1240391000000107',
 		'1240401000000105',
 		'1240761000000102',
-		'840544004',
 		'1240431000000104'
 		);
 

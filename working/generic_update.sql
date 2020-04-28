@@ -200,6 +200,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'Nebraska Lexicon' THEN 1
 		WHEN c.vocabulary_id = 'ICD10CN' THEN 1
 		WHEN c.vocabulary_id = 'ICD9ProcCN' THEN 1
+		WHEN c.vocabulary_id = 'CAP' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');
@@ -222,10 +223,18 @@ BEGIN
 		DROP SEQUENCE IF EXISTS v5_concept;
 		SELECT concept_id + 1 INTO ex FROM (
 			SELECT concept_id, next_id, next_id - concept_id - 1 free_concept_ids
-			FROM (SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM concept where concept_id >= 581480 and concept_id < 500000000) AS t
+			FROM (
+				SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM 
+				(
+					SELECT concept_id FROM concept
+					UNION ALL
+					SELECT concept_id FROM devv5.concept_blacklisted --blacklisted concept_id's (AVOF-2395)
+				) AS i
+				WHERE concept_id >= 581480 AND concept_id < 500000000
+			) AS t
 			WHERE concept_id <> next_id - 1 AND next_id - concept_id > (SELECT COUNT (*) FROM concept_stage WHERE concept_id IS NULL)
 			ORDER BY next_id - concept_id
-			FETCH FIRST 1 ROW ONLY
+			LIMIT 1
 		) AS sq;
 		EXECUTE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
 	END$$;

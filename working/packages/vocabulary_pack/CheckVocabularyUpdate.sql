@@ -238,8 +238,9 @@ BEGIN
                     unnest(xpath ('/rss/channel/item/pubDate/text()', cVocabHTML::xml)) ::varchar pubDate
                 ) as t
                 WHERE t.link_str LIKE '%www.meddra.org/how-to-use/support-documentation/english'
+                AND t.title LIKE '%MedDRA Version%'
                 ORDER BY TO_DATE (pubDate, 'dy dd mon yyyy hh24:mi:ss') DESC
-                LIMIT 1;             
+                LIMIT 1;
             WHEN cVocabularyName = 'NDC_SPL'
             THEN
                 /*cSearchString := 'Current through: ';
@@ -318,7 +319,7 @@ BEGIN
                 cVocabVer := 'BDPM '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'GGR'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a target="_blank" download="" href="/nl/downloads/file\?type=EMD&amp;name=/csv4Emd_Nl_([\d]{4}).+\.zip">CSV NL</a>.+'),'yymm');
+                cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?<a target="_blank" download="" href="/nl/downloads/file\?type=emd&amp;name=/csv4emd_nl_([\d]{4}).+\.zip">csv nl</a>.+'),'yymm');
                 cVocabVer := 'GGR '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName in ('MESH','CDT','CPT4')
             THEN

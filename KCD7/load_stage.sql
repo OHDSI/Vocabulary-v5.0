@@ -62,6 +62,20 @@ SELECT english_description AS concept_name,
 	NULL AS invalid_reason
 FROM sources.kcd7;
 
+--3.1. Manual concepts
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date
+	)
+VALUES ('Provisional assignment of new diseases or emergency use','Observation','KCD7','KCD7 code',NULL,'U18', TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('Novel coronavirus infection','Observation','KCD7','KCD7 code',NULL,'U18.1', TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'));
+
 --4. Load into concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
@@ -73,7 +87,12 @@ SELECT regexp_replace(kcd_cd, '^(\w\d{2})(\d+)$', '\1.\2') AS synonym_concept_co
 	korean_description AS synonym_name,
 	'KCD7' AS synonym_vocabulary_id,
 	4175771 AS language_concept_id -- Korean
-FROM sources.kcd7;
+FROM sources.kcd7
+
+UNION ALL
+
+VALUES ('U18','신종질환의 국내 임시적 지정이나 응급사용','KCD7',4175771),
+	('U18.1','신종 코로나바이러스 감염','KCD7',4175771);
 
 --5. Add mapping through ICD10 
 INSERT INTO concept_relationship_stage (
@@ -218,5 +237,15 @@ FROM (
 WHERE rd.concept_code = c.concept_code
 	AND c.vocabulary_id = 'KCD7'
 	AND c.domain_id IS NULL;
+
+--12. Manual name fix
+UPDATE concept_stage
+SET concept_name = 'Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2'
+WHERE concept_code = 'U07.1';
+
+UPDATE concept_synonym_stage
+SET synonym_name = '코로나바이러스질환2019[코로나-19]'
+WHERE synonym_concept_code = 'U07.1' and language_concept_id=4175771;
+
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

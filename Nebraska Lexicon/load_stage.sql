@@ -1492,10 +1492,20 @@ where
 			'2130001000004106' --Presence of ductal carcinoma in situ at surgical margin in specimen excised from breast
 		)
 ;
---25.2. Manual fix for concepts with asinine valid dates
-update concept_stage 
-set valid_start_date = to_date ('19700101','yyyymmdd')
-where valid_start_date <= valid_end_date
+--25.2. Manual fix for concepts with useless valid dates
+update concept_stage x
+set valid_start_date = coalesce
+	(
+		(
+			select valid_start_date
+			from concept
+			where
+				concept_code = x.concept_code and
+				vocabulary_id = 'SNOMED'
+		),
+		to_date ('19700101','yyyymmdd')
+	)
+where x.valid_start_date = x.valid_end_date
 ;
 
 --26. Clean up

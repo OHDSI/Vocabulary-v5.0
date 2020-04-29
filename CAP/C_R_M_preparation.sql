@@ -79,7 +79,15 @@ ON j1.target_concept_id=c.concept_id
 WHERE j1.concept_name=c.concept_name
 AND target_vocabulary_id=vocabulary_id
 AND j1.concept_code=c.concept_code
+  AND coalesce(j1.standard_concept,'NULL')=coalesce(c.standard_concept,'NULL')
+   AND coalesce(j1.invalid_reason,'NULL')=coalesce(c.invalid_reason,'NULL')
 AND target_concept_id!=0
+;
+
+--Mapping to 0
+SELECT *
+FROM cap_breast_mapping
+WHERE concept_code is null
 ;
 
 -- round 2 shows all 0 mappings + non standards
@@ -98,16 +106,12 @@ WHERE NOT EXISTS (  SELECT *
                   )
 ;
 
---Mapping to 0
-SELECT *
-FROM cap_breast_mapping
-WHERE concept_code is null
-;
 --NL non-standards
 SELECT *
 FROM cap_breast_mapping
 WHERE standard_concept is NULL
 AND concept_code is NOT null
+;
 
 --'Maps to' mapping to abnormal domains
 with tab as (

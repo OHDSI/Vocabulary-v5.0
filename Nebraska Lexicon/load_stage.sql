@@ -1396,11 +1396,7 @@ JOIN concept c1 ON c1.concept_code = cs.concept_code
 JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
 	AND cr.relationship_id = 'Maps to'
 	AND cr.invalid_reason IS NULL
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-LEFT JOIN concept_relationship_stage x on --replacement not made yet
-	(x.concept_code_1, x.concept_code_2, x.relationship_id, x.vocabulary_id_1, x.vocabulary_id_2) = (cs.concept_code, c2.concept_code, cr.relationship_id, cs.vocabulary_id, c2.vocabulary_id)
-where x.concept_code_1 is null
-;
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2;
 
 --21. Concepts with maps to another vocabularies should not be standard
 UPDATE concept_stage cs
@@ -1483,32 +1479,7 @@ WHERE crs.invalid_reason IS NULL
 			AND crs_int.vocabulary_id_2 <> 'Nebraska Lexicon'
 		);
 
---25.1. Manual fixes for concepts with erroneous hierarchy:
-update concept_stage
-set domain_id = 'Observation'
-where
-	concept_code in
-		(
-			'2130001000004106' --Presence of ductal carcinoma in situ at surgical margin in specimen excised from breast
-		)
-;
---25.2. Manual fix for concepts with useless valid dates
-update concept_stage x
-set valid_start_date = coalesce
-	(
-		(
-			select valid_start_date
-			from concept
-			where
-				concept_code = x.concept_code and
-				vocabulary_id = 'SNOMED'
-		),
-		to_date ('19700101','yyyymmdd')
-	)
-where x.valid_start_date = x.valid_end_date
-;
-
---26. Clean up
+--25. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE nebraska_ancestor;

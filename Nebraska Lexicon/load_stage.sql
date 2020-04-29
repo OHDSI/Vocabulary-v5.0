@@ -1292,6 +1292,11 @@ FROM nebraska_ancestor sa
 WHERE cs.concept_code = sa.descendant_concept_code
 	AND sa.ancestor_concept_code = '363743006';-- Navigational Concept, contains all sorts of orphan codes
 
+--Manual fix for concepts with erroneous hierarchy
+UPDATE concept_stage
+SET domain_id = 'Observation'
+WHERE concept_code = '2130001000004106';--Presence of ductal carcinoma in situ at surgical margin in specimen excised from breast
+
 --16.7. Set standard_concept based on domain_id
 UPDATE concept_stage
 SET standard_concept = CASE domain_id
@@ -1397,10 +1402,16 @@ JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
 	AND cr.relationship_id = 'Maps to'
 	AND cr.invalid_reason IS NULL
 JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-LEFT JOIN concept_relationship_stage x on --replacement not made yet
-	(x.concept_code_1, x.concept_code_2, x.relationship_id, x.vocabulary_id_1, x.vocabulary_id_2) = (cs.concept_code, c2.concept_code, cr.relationship_id, cs.vocabulary_id, c2.vocabulary_id)
-where x.concept_code_1 is null
-;
+WHERE NOT EXISTS (
+		--replacement not made yet
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = cs.concept_code
+			AND crs_int.concept_code_2 = c2.concept_code
+			AND crs_int.vocabulary_id_1 = cs.vocabulary_id
+			AND crs_int.vocabulary_id_2 = c2.vocabulary_id
+			AND crs_int.relationship_id = cr.relationship_id
+		);
 
 --21. Concepts with maps to another vocabularies should not be standard
 UPDATE concept_stage cs
@@ -1483,30 +1494,15 @@ WHERE crs.invalid_reason IS NULL
 			AND crs_int.vocabulary_id_2 <> 'Nebraska Lexicon'
 		);
 
---25.1. Manual fixes for concepts with erroneous hierarchy:
-update concept_stage
-set domain_id = 'Observation'
-where
-	concept_code in
-		(
-			'2130001000004106' --Presence of ductal carcinoma in situ at surgical margin in specimen excised from breast
-		)
-;
---25.2. Manual fix for concepts with useless valid dates
-update concept_stage x
-set valid_start_date = coalesce
-	(
-		(
-			select valid_start_date
-			from concept
-			where
-				concept_code = x.concept_code and
-				vocabulary_id = 'SNOMED'
-		),
-		to_date ('19700101','yyyymmdd')
-	)
-where x.valid_start_date = x.valid_end_date
-;
+--25. Manual fix for concepts with useless valid dates
+UPDATE concept_stage cs
+SET valid_start_date = COALESCE((
+			SELECT c.valid_start_date
+			FROM concept c
+			WHERE c.concept_code = cs.concept_code
+				AND c.vocabulary_id = 'SNOMED'
+			), TO_DATE('19700101', 'yyyymmdd'))
+WHERE cs.valid_start_date = cs.valid_end_date;
 
 --26. Clean up
 DROP TABLE peak;

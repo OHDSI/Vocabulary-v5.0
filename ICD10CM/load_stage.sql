@@ -70,7 +70,13 @@ SELECT SUBSTR(CASE
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.icd10cm;
+FROM sources.icd10cm
+
+--manual concepts
+--https://www.cdc.gov/nchs/data/icd/Vaping-Announcement-final-12-09-19.pdf
+UNION ALL
+VALUES ('Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2','Condition','ICD10CM','4-char billing code', NULL,'U07.1',TO_DATE('20200401','yyyymmdd'),TO_DATE('20991231','yyyymmdd'),NULL),
+	('Emergency use of U07.0 | Vaping-related disorder','Condition','ICD10CM','4-char billing code',NULL,'U07.0',TO_DATE('20200401','yyyymmdd'),TO_DATE('20991231','yyyymmdd'),NULL);
 
 --4. Add ICD10CM to SNOMED manual mappings
 DO $_$
@@ -233,7 +239,13 @@ FROM (
 	SELECT short_name AS synonym_name,
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
-	) AS s0;
+	) AS s0
+
+UNION ALL
+
+VALUES ('U07.1','COVID-19','ICD10CM',4180186),
+	('U07.1','Coronavirus-19','ICD10CM',4180186),
+	('U07.0','Vaping-related disorder','ICD10CM',4180186);
 
 --13. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$

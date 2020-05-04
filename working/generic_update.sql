@@ -27,11 +27,11 @@ BEGIN
 	-- 1.1 Clearing the concept_name
 	--remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_stage
-	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]]+', ' ')
+	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]]+', ' ', 'g')
 	WHERE concept_name ~ '[[:cntrl:]]';
 
 	UPDATE concept_stage
-	SET concept_name = REGEXP_REPLACE(concept_name, ' {2,}', ' ')
+	SET concept_name = REGEXP_REPLACE(concept_name, ' {2,}', ' ', 'g')
 	WHERE concept_name ~ ' {2,}';
 
 	--remove leading and trailing spaces
@@ -51,11 +51,11 @@ BEGIN
 	-- 1.2 Clearing the synonym_name
 	--remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ')
+	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ', 'g')
 	WHERE synonym_name ~ '[[:cntrl:]]';
 
 	UPDATE concept_synonym_stage
-	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ')
+	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ', 'g')
 	WHERE synonym_name ~ ' {2,}';
 
 	--remove leading and trailing spaces
@@ -144,8 +144,7 @@ BEGIN
 	AND c.invalid_reason IS NULL -- not already deprecated
 	AND CASE -- all vocabularies that give us a full list of active concepts at each release we can safely assume to deprecate missing ones (THEN 1)
 		WHEN c.vocabulary_id = 'SNOMED' THEN 1
-		WHEN c.vocabulary_id = 'LOINC' AND c.concept_class_id = 'LOINC Answers' THEN 1 -- Only LOINC answers are full lists
-		WHEN c.vocabulary_id = 'LOINC' THEN 0 -- LOINC gives full account of all concepts
+		WHEN c.vocabulary_id = 'LOINC' THEN 1
 		WHEN c.vocabulary_id = 'ICD9CM' THEN 1
 		WHEN c.vocabulary_id = 'ICD10' THEN 1
 		WHEN c.vocabulary_id = 'RxNorm' THEN 1
@@ -196,6 +195,12 @@ BEGIN
 		WHEN c.vocabulary_id = 'NAACCR' THEN 1
 		WHEN c.vocabulary_id = 'JMDC' THEN 1
 		WHEN c.vocabulary_id = 'KCD7' THEN 1
+		WHEN c.vocabulary_id = 'CTD' THEN 1
+		WHEN c.vocabulary_id = 'EDI' THEN 1
+		WHEN c.vocabulary_id = 'Nebraska Lexicon' THEN 1
+		WHEN c.vocabulary_id = 'ICD10CN' THEN 1
+		WHEN c.vocabulary_id = 'ICD9ProcCN' THEN 1
+		WHEN c.vocabulary_id = 'CAP' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');
@@ -218,10 +223,18 @@ BEGIN
 		DROP SEQUENCE IF EXISTS v5_concept;
 		SELECT concept_id + 1 INTO ex FROM (
 			SELECT concept_id, next_id, next_id - concept_id - 1 free_concept_ids
-			FROM (SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM concept where concept_id >= 581480 and concept_id < 500000000) AS t
+			FROM (
+				SELECT concept_id, LEAD (concept_id) OVER (ORDER BY concept_id) next_id FROM 
+				(
+					SELECT concept_id FROM concept
+					UNION ALL
+					SELECT concept_id FROM devv5.concept_blacklisted --blacklisted concept_id's (AVOF-2395)
+				) AS i
+				WHERE concept_id >= 581480 AND concept_id < 500000000
+			) AS t
 			WHERE concept_id <> next_id - 1 AND next_id - concept_id > (SELECT COUNT (*) FROM concept_stage WHERE concept_id IS NULL)
 			ORDER BY next_id - concept_id
-			FETCH FIRST 1 ROW ONLY
+			LIMIT 1
 		) AS sq;
 		EXECUTE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
 	END$$;
@@ -256,7 +269,6 @@ BEGIN
 	ANALYZE concept;
 
 	-- 5. Make sure that invalid concepts are standard_concept = NULL
-	-- 5.1. For non-CPT4, non-ICD9Proc and non-HCPCS vocabularies
 	UPDATE concept c
 	SET standard_concept = NULL
 	WHERE c.invalid_reason IS NOT NULL
@@ -265,31 +277,7 @@ BEGIN
 			SELECT vocabulary_id
 			FROM vocabulary
 			WHERE latest_update IS NOT NULL
-			) -- only for current vocabularies
-		AND c.vocabulary_id NOT IN (
-			'CPT4',
-			'HCPCS',
-			'ICD9Proc'
-			);
-
-	-- 5.2. For CPT4, ICD9Proc and HCPCS
-	UPDATE concept c
-	SET standard_concept = NULL
-	WHERE c.invalid_reason IN (
-			'D',
-			'U'
-			)
-		AND c.standard_concept IS NOT NULL
-		AND c.vocabulary_id IN (
-			SELECT vocabulary_id
-			FROM vocabulary
-			WHERE latest_update IS NOT NULL
-			) -- only for current vocabularies
-		AND c.vocabulary_id IN (
-			'CPT4',
-			'HCPCS',
-			'ICD9Proc'
-			);
+			); -- only for current vocabularies
 
 	/****************************************
 	* Update the concept_relationship table *
@@ -429,7 +417,8 @@ BEGIN
 			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to',
-			'Maps to value'
+			'Maps to value',
+			'Source - RxNorm eq' -- AVOF-2118
 		)
 	)
 	UPDATE concept_relationship r
@@ -458,7 +447,7 @@ BEGIN
 			)
 			OR (/*AVOF-1439*/
 				crs.vocabulary_id_2 IN ('SNOMED','SNOMED Veterinary') AND c2.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
-			)			
+			)
 		)
 	)
 	AND NOT EXISTS (
@@ -481,7 +470,8 @@ BEGIN
 			'Concept poss_eq to',
 			'Concept was_a to',
 			'Maps to',
-			'Maps to value'
+			'Maps to value',
+			'Source - RxNorm eq' -- AVOF-2118
 		)
 	)
 	UPDATE concept_relationship r
@@ -858,7 +848,7 @@ BEGIN
 		language_concept_id
 		)
 	SELECT DISTINCT c.concept_id,
-		REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' '),
+		REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' ', 'g'),
 		css.language_concept_id
 	FROM concept_synonym_stage css,
 		concept c,
@@ -867,7 +857,7 @@ BEGIN
 		AND css.synonym_vocabulary_id = c.vocabulary_id
 		AND cs.concept_code = c.concept_code
 		AND cs.vocabulary_id = c.vocabulary_id
-		AND REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' ') IS NOT NULL; --fix for empty GPI names
+		AND REGEXP_REPLACE(TRIM(synonym_name), '[[:space:]]+', ' ', 'g') IS NOT NULL; --fix for empty GPI names
 
 	-- 21. Fillig drug_strength
 	-- Special rules for RxNorm Extension: same as 'Maps to' rules, but records from deprecated concepts will be deleted

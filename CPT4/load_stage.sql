@@ -48,7 +48,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT SUBSTR(str, 1, 255) AS concept_name,
+SELECT DISTINCT TRIM(SUBSTR(str, 1, 255)) AS concept_name,
 	NULL AS domain_id, -- adding manually
 	'CPT4' AS vocabulary_id,
 	'CPT4' AS concept_class_id,
@@ -71,7 +71,11 @@ WHERE sab = 'CPT'
 	AND tty IN (
 		'PT',
 		'GLP'
-		);
+		)
+
+UNION ALL
+
+VALUES ('Infectious agent detection by nucleic acid (DNA or RNA); severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) (Coronavirus disease [COVID-19]), amplified probe technique','Measurement','CPT4','CPT4','S','87635',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'), NULL);
 
 -- Place of Sevice (POS) CPT terms
 INSERT INTO concept_stage (
@@ -85,7 +89,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT SUBSTR(str, 1, 255) AS concept_name,
+SELECT DISTINCT TRIM(SUBSTR(str, 1, 255)) AS concept_name,
 	NULL AS domain_id,
 	'CPT4' AS vocabulary_id,
 	'Place of Service' AS concept_class_id,
@@ -119,7 +123,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT FIRST_VALUE(substr(str, 1, 255)) OVER (
+SELECT DISTINCT FIRST_VALUE(TRIM(SUBSTR(str, 1, 255))) OVER (
 		PARTITION BY scui ORDER BY CASE 
 				WHEN LENGTH(str) <= 255
 					THEN LENGTH(str)
@@ -162,7 +166,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT SUBSTR(str, 1, 255) AS concept_name,
+SELECT DISTINCT TRIM(SUBSTR(str, 1, 255)) AS concept_name,
 	NULL AS domain_id,
 	'CPT4' AS vocabulary_id,
 	'CPT4 Hierarchy' AS concept_class_id,
@@ -386,7 +390,11 @@ WHERE sab IN (
 		'E',
 		'O',
 		'Y'
-		);
+		)
+
+UNION ALL
+
+VALUES ('87635','IADNA SARS-COV-2 COVID-19 AMPLIFIED PROBE TQ','CPT4',4180186);
 
 /*
 --6. Create text for Medical Coder with new codes and mappings

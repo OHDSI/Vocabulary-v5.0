@@ -162,13 +162,16 @@ BEGIN
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'HCPCS'
             THEN
+              cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'<a href="/Medicare/Coding/HCPCSReleaseCodeSets/Alpha-Numeric-HCPCS-Items/([[:digit:]]{4})-Alpha-Numeric-HCPCS-File">')::int - 1 || '0101', 'yyyymmdd');
+              /*old version
               select TO_DATE ( (MAX (t.title) - 1) || '0101', 'yyyymmdd') into cVocabDate  From (
                 select 
                     unnest(xpath ('/rss/channel/item/title/text()', cVocabHTML::xml))::varchar::int title,
                     unnest(xpath ('/rss/channel/item/link/text()', cVocabHTML::xml)) ::varchar description 
               ) as t
               WHERE t.description LIKE '%Alpha-Numeric-HCPCS-File%' AND t.description NOT LIKE '%orrections%';
-              cVocabVer := to_char(cVocabDate,'YYYYMMDD')||' Alpha Numeric HCPCS File';
+              */
+              cVocabVer := to_char(cVocabDate + interval '1 year','YYYY')||' Alpha Numeric HCPCS File';
             WHEN cVocabularyName IN ('ICD9CM', 'ICD9PROC')
             THEN
                 cSearchString := '<a type="application/zip" href="/Medicare/Coding/ICD9ProviderDiagnosticCodes/Downloads';
@@ -180,19 +183,22 @@ BEGIN
                 cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
                 cPos2 := LENGTH (cVocabHTML) + 1;
                 perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');  
+                cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');
             WHEN cVocabularyName = 'ICD10CM'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'Note: The FY ([[:digit:]]{4}) release of ICD-10-CM is now available')::int - 1 || '0101', 'yyyymmdd');
-                cVocabVer := 'ICD10CM FY'||to_char(cVocabDate + interval '1 year','YYYY')||' code descriptions';
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'Note: The FY ([[:digit:]]{4}) release of ICD-10-CM is now available') || '0101', 'yyyymmdd');
+                cVocabVer := 'ICD10CM FY'||to_char(cVocabDate,'YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN
+                cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'<a href="/Medicare/Coding/ICD10/([[:digit:]]{4})-ICD-10-PCS"') || '0101', 'yyyymmdd');
+                /*old version2
                 select s1.icd10pcs_year into cVocabDate from (
                   select TO_DATE (SUBSTRING(url,'/([[:digit:]]{4})')::int - 1 || '0101', 'yyyymmdd') icd10pcs_year from (
                     select unnest(xpath ('//global:loc/text()', cVocabHTML::xml, ARRAY[ARRAY['global', 'http://www.sitemaps.org/schemas/sitemap/0.9']]))::varchar url
                   ) s0
                   where s0.url ilike '%www.cms.gov/Medicare/Coding/ICD10/Downloads/%PCS%Order%.zip'
                 ) as s1 order by s1.icd10pcs_year desc limit 1;
+                */
                 /*old version
                 cSearchString := 'ICD-10 PCS and GEMs';
                 cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
@@ -202,7 +208,7 @@ BEGIN
                 perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
                 cVocabDate := TO_DATE (SUBSTRING (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '^[[:digit:]]+')::int - 1 || '0101', 'yyyymmdd');
                 */
-                cVocabVer := 'ICD10PCS '||to_char(cVocabDate + interval '1 year','YYYY');
+                cVocabVer := 'ICD10PCS '||to_char(cVocabDate,'YYYY');
             WHEN cVocabularyName = 'LOINC'
             THEN
                 cSearchString := 'LOINC Table File (CSV)';
@@ -232,8 +238,9 @@ BEGIN
                     unnest(xpath ('/rss/channel/item/pubDate/text()', cVocabHTML::xml)) ::varchar pubDate
                 ) as t
                 WHERE t.link_str LIKE '%www.meddra.org/how-to-use/support-documentation/english'
+                AND t.title LIKE '%MedDRA Version%'
                 ORDER BY TO_DATE (pubDate, 'dy dd mon yyyy hh24:mi:ss') DESC
-                LIMIT 1;             
+                LIMIT 1;
             WHEN cVocabularyName = 'NDC_SPL'
             THEN
                 /*cSearchString := 'Current through: ';
@@ -312,7 +319,7 @@ BEGIN
                 cVocabVer := 'BDPM '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'GGR'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a target="_blank" download="" href="/nl/downloads/file\?type=EMD&amp;name=/csv4Emd_Nl_([\d]{4}).+\.zip">CSV NL</a>.+'),'yymm');
+                cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?<a target="_blank" download="" href="/nl/downloads/file\?type=emd&amp;name=/csv4emd_nl_([\d]{4}).+\.zip">csv nl</a>.+'),'yymm');
                 cVocabVer := 'GGR '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName in ('MESH','CDT','CPT4')
             THEN

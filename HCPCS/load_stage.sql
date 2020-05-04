@@ -47,7 +47,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT SUBSTR(long_description, 1, 255) AS concept_name,
+SELECT TRIM(SUBSTR(long_description, 1, 255)) AS concept_name,
 	c.domain_id AS domain_id,
 	v.vocabulary_id,
 	CASE 
@@ -159,7 +159,6 @@ WHERE cs.concept_code = m.concept_code
 		OR cs.valid_end_date <> m.valid_end_date
 		OR COALESCE(cs.invalid_reason, 'X') <> COALESCE(m.invalid_reason, 'X')
 		);
-
 
 --4 UPDATE domain_id in concept_stage
 --4.1. Part 1. UPDATE domain_id defined by rules
@@ -1416,7 +1415,12 @@ FROM (
 	SELECT SUBSTR(long_description, 1, 1000) AS synonym_name,
 		HCPC
 	FROM sources.anweb_v2
-	) AS s0;
+	) AS s0
+
+UNION ALL
+
+VALUES ('U0001','COVID-19 testing in CDC laboratory','HCPCS',4180186),
+	('U0002','COVID-19 testing in non-CDC laboratory','HCPCS',4180186);
 
 --6. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
 DO $_$

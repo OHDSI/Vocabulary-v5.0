@@ -75,3 +75,9 @@ WHERE    (c1.concept_code IS NULL AND cs1.concept_code IS NULL)
 	 OR rl.relationship_id IS NULL
 	 OR crm.valid_start_date > CURRENT_DATE
 	 OR crm.valid_end_date < crm.valid_start_date;
+
+select *
+from drug_strength_stage where
+	amount_value != round(amount_value::NUMERIC, (6 - floor(log(amount_value)) - 1)::INT) or
+	numerator_value != round(numerator_value::NUMERIC, (6 - floor(log(numerator_value)) - 1)::INT) or
+	denominator_value != round(denominator_value::NUMERIC, (6 - floor(log(denominator_value)) - 1)::INT);

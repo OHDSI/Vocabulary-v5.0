@@ -19,8 +19,21 @@ with info_sheet as
 	join concept_stage c2 on
 		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
 		c2.invalid_reason is not null
+	--Check if concept has anoter active attribute of same type
+	--May be caused by our mishandling of RxNorm: we need to Investigate why active relations to inactive attributes exist in the first place!
+	left join concept_relationship_stage rc on
+		rc.concept_code_1 = r.concept_code_1 and
+		rc.relationship_id = 'Has brand name' and
+		rc.invalid_reason is null and
+		rc.concept_code_2 in
+			(
+				select concept_code
+				from concept_stage
+				where invalid_reason is null
+			)
 	where
-		c.vocabulary_id = 'RxNorm'
+		c.vocabulary_id = 'RxNorm' and
+		rc.concept_code_1 is null
 
 		union all
 
@@ -40,9 +53,21 @@ with info_sheet as
 	join concept_stage c2 on
 		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
 		c2.invalid_reason is not null
+	--Check if concept has anoter active attribute of same type
+	--May be caused by our mishandling of RxNorm: we need to Investigate why active relations to inactive attributes exist in the first place!
+	left join concept_relationship_stage rc on
+		rc.concept_code_1 = r.concept_code_1 and
+		rc.relationship_id = 'RxNorm has dose form' and
+		rc.invalid_reason is null and
+		rc.concept_code_2 in
+			(
+				select concept_code
+				from concept_stage
+				where invalid_reason is null
+			)
 	where
-		c.vocabulary_id = 'RxNorm'
-
+		c.vocabulary_id = 'RxNorm' and
+		rc.concept_code_1 is null
 
 			union all
 

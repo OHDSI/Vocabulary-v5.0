@@ -54,9 +54,7 @@ SELECT NULL AS concept_id,
 				'Regimen Class'
 				)
 			THEN 'Drug'
-		WHEN h.concept_class_id IN (
-				'Condition'
-				)
+		WHEN h.concept_class_id = 'Condition'
 			THEN 'Condition'
 		WHEN h.concept_class_id IN (
 				'Regimen',
@@ -68,21 +66,18 @@ SELECT NULL AS concept_id,
 	h.vocabulary_id,
 	h.concept_class_id,
 	CASE 
-		WHEN h.concept_class_id in ('Regimen Class')
-			THEN 'C' 
+		WHEN h.concept_class_id = 'Regimen Class'
+			THEN 'C'
 		WHEN concept_class_id = 'Modality'
 			THEN 'S' -- can be used as a generic Regimen when we don't know what exact Chemo or Hormonotherapy patient got
-		WHEN h.standard_concept = '' 
-		  THEN null	
+		WHEN h.standard_concept = ''
+			THEN NULL
 		ELSE h.standard_concept
 		END AS standard_concept,
 	h.concept_code,
 	h.valid_start_date,
 	h.valid_end_date,
-	case
-	     when h.invalid_reason = ''
-	       then null
-	      else h.invalid_reason end
+	NULLIF(h.invalid_reason, '') AS invalid_reason
 FROM sources.hemonc_cs h
 WHERE h.concept_class_id IN (
 		'Component Class', -- looks like ATC, perhaps require additional mapping to ATC, in a first run make them "C", then replace with ATC, still a lot of work
@@ -93,12 +88,12 @@ WHERE h.concept_class_id IN (
 		'Route',
 		'Procedure',
 		--added 30-Aug-2019
-		'Modality', 
+		'Modality',
 		'Condition',
 		--added 4/28/2020
 		'Regimen Class'
 		)
-	AND h.concept_name IS NOT NULL ;
+	AND h.concept_name IS NOT NULL;
 
 --4. Create concept_relationship_stage
 INSERT INTO concept_relationship_stage
@@ -109,10 +104,12 @@ SELECT DISTINCT NULL::int4 AS concept_id_1,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
 	r.relationship_id,
-    case when
-r.valid_start_date is null then (select latest_update from vocabulary WHERE vocabulary_id = 'HemOnc') else r.valid_start_date end,
-   case when
-r.valid_end_date is null then TO_DATE('20991231', 'yyyymmdd') else r.valid_end_date end,
+	COALESCE(r.valid_start_date, (
+			SELECT latest_update
+			FROM vocabulary
+			WHERE vocabulary_id = 'HemOnc'
+			)) AS valid_start_date,
+	COALESCE(r.valid_end_date, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
 	r.invalid_reason
 FROM sources.hemonc_crs r
 JOIN concept_stage cs ON cs.concept_code = r.concept_code_1
@@ -412,9 +409,9 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;	
+END $_$;
 
- --18. Build reverse relationship. This is necessary for next point
+--18. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -482,5 +479,5 @@ WHERE 'HemOnc' IN (
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
 		);
-		-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
 
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

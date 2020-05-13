@@ -274,9 +274,23 @@ FROM (
 	UNION ALL
 	--AVOF-2297
 	SELECT c.concept_code,
-		'Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2'
+		'Emergency use of U07.1 | COVID-19, virus identified'
 	FROM concept_stage c
 	WHERE c.concept_code = 'U07.1'
+
+    UNION ALL
+	--AVOF-2345
+	SELECT c.concept_code,
+		'Emergency use of U07.2 | COVID-19, virus not identified'
+	FROM concept_stage c
+	WHERE c.concept_code = 'U07.2'
+
+    UNION ALL
+	--AVOF-2345
+	SELECT c.concept_code,
+		'Emergency use of U07.0 | Vaping-related disorder'
+	FROM concept_stage c
+	WHERE c.concept_code = 'U07.0'
 	) i
 WHERE cs.concept_code = i.concept_code;
 

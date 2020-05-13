@@ -437,6 +437,9 @@ FROM (
 			)
 	) AS s0;
 
+--Mid-2020 release added seeminggly useless nonsensical relationships between dead and alive concepts that need additional investigation
+delete from concept_relationship_stage where relationship_id = 'non-existing';
+
 --check for non-existing relationships
 ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
 ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;

@@ -272,6 +272,38 @@ with info_sheet as
 
 	select
 		'W',
+		'Errors in basic tables not adressed in current release: valid relations to invalid concepts (excluding having correct relationships of the same type)',
+		count (c.concept_id)
+	from concept c
+	join concept_relationship r on
+		r.invalid_reason is null and
+		c.concept_id = r.concept_id_1 and
+		c.standard_concept = 'S' and
+		c.vocabulary_id = 'RxNorm'
+	join concept c2 on
+		c2.concept_id = r.concept_id_2 and
+		c2.invalid_reason is not null and
+		c2.vocabulary_id = 'RxNorm'
+	--check for duplication
+	left join concept_relationship r2 on
+		r.concept_id_1 = r2.concept_id_1 and
+		r2.invalid_reason is null and
+		r2.relationship_id = r.relationship_id and
+		r2.concept_id_2 != r.concept_id_2 and
+		r2.concept_id_2 in (select concept_id from concept where invalid_reason is null)
+	left join concept_relationship_stage s on
+		(s.concept_code_1, s.vocabulary_id_1) = (c.concept_code, c.vocabulary_id) and
+		(s.concept_code_2, s.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
+		r.relationship_id = s.relationship_id
+	where
+		r.relationship_id not in ('Concept replaces','Mapped from') and
+		s.relationship_id is null and
+		r2.relationship_id is null
+
+	union all
+
+	select
+		'W',
 		'Errors in basic tables not adressed in current release: Concept that served as a mapping target deprecates without replacement',
 		count (c.concept_id)
 	from concept c
@@ -295,3 +327,4 @@ from info_sheet
 where err_cnt != 0
 group by info_level, description
 order by info_level, description
+;

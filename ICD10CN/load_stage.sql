@@ -375,6 +375,8 @@ FROM (
 			'ICD10 code',
 			'ICD10 Hierarchy'
 			)
+		--Exclude ICD10CN COVID-19 specific stuff that is mapped in CRM
+		AND cs.concept_code NOT LIKE 'U07.100%'
 	) i
 JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 	AND r.invalid_reason IS NULL

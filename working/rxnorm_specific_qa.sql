@@ -155,16 +155,16 @@ with info_sheet as
 --6. Deprecated concepts by class
 	select
 		'I',
-		'Deprecated concepts by class: ' || c.concept_class_id,
-		count (c.concept_code)
-	from concept_stage c
-	join concept d using (vocabulary_id, concept_code)
+		'Deprecated concepts by class: ' || d.concept_class_id,
+		count (d.concept_id)
+	from concept d
+	left join concept_stage c on 
+		c.vocabulary_id = d.vocabulary_id and
+		c.concept_code = d.concept_code and
+		d.invalid_reason is null 
 	where
-		d.concept_id is null and
-		c.invalid_reason = 'D' and
-		d.invalid_reason is null and
-		c.vocabulary_id = 'RxNorm'
-	group by c.concept_class_id
+		c.concept_id is null
+	group by d.concept_class_id
 
 		union all
 

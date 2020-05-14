@@ -160,10 +160,11 @@ with info_sheet as
 	from concept d
 	left join concept_stage c on 
 		c.vocabulary_id = d.vocabulary_id and
-		c.concept_code = d.concept_code and
-		d.invalid_reason is null 
+		c.concept_code = d.concept_code
 	where
-		c.concept_id is null
+		c.concept_id is null and
+		d.vocabulary_id = 'RxNorm' and
+		d.invalid_reason is null
 	group by d.concept_class_id
 
 		union all

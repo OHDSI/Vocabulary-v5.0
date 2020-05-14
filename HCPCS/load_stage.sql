@@ -147,6 +147,7 @@ WHERE NOT EXISTS (
 --update from manual if something was changed
 UPDATE concept_stage cs
 SET concept_name = m.concept_name,
+	domain_id = m.domain_id,
 	valid_start_date = m.valid_start_date,
 	valid_end_date = m.valid_end_date,
 	invalid_reason = m.invalid_reason
@@ -155,6 +156,7 @@ WHERE cs.concept_code = m.concept_code
 	AND cs.vocabulary_id = m.vocabulary_id
 	AND (
 		cs.concept_name <> m.concept_name
+		OR COALESCE(cs.domain_id,'X') <> COALESCE(m.domain_id,'X')
 		OR cs.valid_start_date <> m.valid_start_date
 		OR cs.valid_end_date <> m.valid_end_date
 		OR COALESCE(cs.invalid_reason, 'X') <> COALESCE(m.invalid_reason, 'X')
@@ -967,7 +969,7 @@ AS (
 				THEN 'Procedure' -- various screening
 			WHEN l1.str = 'V Codes'
 				THEN 'Device' -- default for Level 1: V0000-V5999 Vision AND hearing services
-			ELSE 'Observation' -- use 'observation' in other cases
+			ELSE COALESCE(hcpc.domain_id,'Observation') -- use 'observation' in other cases
 			END AS domain_id
 	FROM concept_stage hcpc
 	LEFT JOIN (

@@ -499,6 +499,27 @@ JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = s.partnumber -- already existing LOINC concepts
 	AND c.vocabulary_id = 'LOINC';
 
+--prerelease fix
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT long_common_name AS concept_name,
+	'Measurement' AS domain_id,
+	'LOINC' AS vocabulary_id,
+	'Lab Test' AS concept_class_id,
+	'S' AS standard_concept,
+	loinc AS concept_code,
+	created_on AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM vocabulary_pack.GetLoincPrerelease();
+
 --5.1. Update Domain = 'Observation' and standard_concept = NULL for attributes that are not part of Hierarchy (AVOF-2222)
 WITH hierarchy
 AS (
@@ -1817,37 +1838,36 @@ FROM concept_stage c
 JOIN sources.mrconso m ON m.code = concept_code
 	AND sab = 'LNC-ZH-CN';
 
---29. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---30. Working with replacement mappings
+--29. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---31. Add mapping from deprecated to fresh concepts
+--30. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---32. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--31. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---33. Delete ambiguous 'Maps to' mappings
+--32. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---34. Build reverse relationships. This is necessary for the next point.
+--33. Build reverse relationships. This is necessary for the next point.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1879,7 +1899,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---35. Add to the concept_relationship_stage and deprecate all relationships which do not exist there
+--34. Add to the concept_relationship_stage and deprecate all relationships which do not exist there
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1922,6 +1942,6 @@ WHERE a.vocabulary_id = 'LOINC'
 			AND crs_int.relationship_id = r.relationship_id
 		);
 
---36. Clean up
+--35. Clean up
 DROP TABLE sn_attr, lc_attr;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

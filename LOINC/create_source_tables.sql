@@ -291,3 +291,34 @@ CREATE TABLE SOURCES.LOINC_PART
   PARTDISPLAYNAME       VARCHAR(1000),
   STATUS                VARCHAR(100)
 );
+
+CREATE OR REPLACE FUNCTION vocabulary_pack.GetLoincPrerelease ()
+RETURNS TABLE (
+  created_on date,
+  loinc text,
+  long_common_name text
+) AS
+$body$
+BEGIN
+  perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
+  set local http.timeout_msec to 30000;
+  return query 
+  select s0.created_on, s0.loinc, s0.long_common_name from (
+    with loinc_table as (
+        select replace(substring(content,'<table id="prereleasetable".*?(<tbody>.*</tbody>)'),'&','&amp;')::xml xmlfield from devv5.http_get('https://loinc.org/prerelease')
+    )
+    select
+      to_date((xpath('./td/text()',sections))[1]::text,'yyyy-mm-dd') as created_on,
+      unnest(xpath('./td/a/text()',sections))::text as loinc,
+      devv5.py_unescape((xpath('./td/text()',sections))[2]::text) as long_common_name,
+      unnest(xpath('./td/i/@title',sections))::text as special_use
+    from loinc_table i,
+    unnest(xpath('/tbody/tr', i.xmlfield)) sections
+  ) as s0 where s0.special_use is not null;
+END;
+$body$
+LANGUAGE 'plpgsql'
+VOLATILE
+CALLED ON NULL INPUT
+SECURITY DEFINER
+COST 100 ROWS 100;

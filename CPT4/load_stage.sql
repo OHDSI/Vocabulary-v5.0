@@ -75,7 +75,7 @@ WHERE sab = 'CPT'
 
 UNION ALL
 
-VALUES ('Infectious agent detection by nucleic acid (DNA or RNA); severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) (Coronavirus disease [COVID-19]), amplified probe technique','Measurement','CPT4','CPT4','S','87635',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'), NULL);
+VALUES ('Infectious agent detection by nucleic acid (DNA or RNA); severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2) (Coronavirus disease [COVID-19]), amplified probe technique','Measurement','CPT4','CPT4','S','87635',TO_DATE('20200313','yyyymmdd'),TO_DATE('20991231','yyyymmdd'), NULL);
 
 -- Place of Sevice (POS) CPT terms
 INSERT INTO concept_stage (
@@ -196,7 +196,7 @@ UPDATE concept_stage c
 SET domain_id = t.domain_id
 FROM (
 	SELECT c.concept_code,
-		COALESCE(domain.domain_id, 'Procedure') AS domain_id
+		COALESCE(c.domain_id, domain.domain_id, 'Procedure') AS domain_id
 	FROM concept_stage c
 	LEFT JOIN (
 		SELECT cpt.code,
@@ -350,7 +350,7 @@ FROM (
 					THEN 'Measurement' -- allergy and immunologic testing
 				WHEN cpt.str LIKE 'Electrocardiogram, routine ECG%'
 					THEN 'Measurement'
-				ELSE 'Procedure'
+				ELSE NULL
 				END AS domain_id
 		FROM (
 			SELECT aui AS cpt,
@@ -370,7 +370,7 @@ FROM (
 	) t
 WHERE c.concept_code = t.concept_code;
 
- --5. Pick up all different str values that are not obsolete or suppressed
+--5. Pick up all different str values that are not obsolete or suppressed
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -684,4 +684,4 @@ WHERE EXISTS (
 		)
 	AND cs.standard_concept IS NOT NULL;
 
--- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script		
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

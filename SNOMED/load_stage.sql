@@ -2443,7 +2443,13 @@ VALUES (138875005, 'Metadata'), -- root
 	(1240591000000102,'Measurement'), --2019 novel coronavirus not detected
 	(162913005,'Measurement'), --O/E - rate of respiration
 	--added 20200427
-	(117617002,'Measurement'); --Immunohistochemistry procedure
+	(117617002,'Measurement'), --Immunohistochemistry procedure
+	--added 20200518
+	(395098000, 'Condition'), --'Disorder confirmed'
+	(1321161000000104, 'Visit'),
+	(1321151000000102, 'Visit'),
+	(1321141000000100, 'Visit'),
+	(1321131000000109, 'Visit'); -- Self quarantine and similar
 
 --17.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
@@ -2981,44 +2987,20 @@ SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---Temporary block to handle manual changes.
---21. Process manual modifications: Kill maps to self for concepts with replacement mappings
-UPDATE concept_relationship_stage crs
-SET invalid_reason = 'D',
-	valid_end_date = GREATEST(crs.valid_start_date, (
-			SELECT latest_update - 1
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			))
-WHERE crs.concept_code_1 = crs.concept_code_2
-	AND crs.relationship_id = 'Maps to'
-	AND crs.invalid_reason IS NULL
-	AND crs.vocabulary_id_1 = crs.vocabulary_id_2
-	AND crs.concept_code_1 IN (
-		'1240751000000100',
-		'1240491000000103',
-		'1240381000000105',
-		'1240391000000107',
-		'1240401000000105',
-		'1240761000000102',
-		'1240431000000104'
-		);
-
---22. Remove standard status from such concepts
-UPDATE concept_stage
+--21. Make concepts non standard if they have 'Maps to' relationship
+UPDATE concept_stage cs
 SET standard_concept = NULL
-WHERE standard_concept IS NOT NULL
-	AND concept_code IN (
-		'1240751000000100',
-		'1240491000000103',
-		'1240381000000105',
-		'1240391000000107',
-		'1240401000000105',
-		'1240761000000102',
-		'1240431000000104'
-		);
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		WHERE crs.relationship_id = 'Maps to'
+			AND crs.invalid_reason IS NULL
+			AND cs.concept_code = crs.concept_code_1
+			AND cs.vocabulary_id = crs.vocabulary_id_1
+		)
+	AND cs.standard_concept = 'S';
 
---23. Insert new synonyms from manual source
+--22. Insert new synonyms from manual source
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_vocabulary_id,
@@ -3058,13 +3040,13 @@ VALUES ('1240461000000109','SNOMED','Measurement of SARS-CoV-2 antibody',4180186
 	('1240521000000100','SNOMED','Otitis media due to COVID-19',4180186),
 	('1240471000000102','SNOMED','Measurement of SARS-CoV-2 antigen',4180186);
 
---24. Clean up
+--23. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE concept_stage_dmd;
 DROP TABLE snomed_ancestor;
 
---25. Need to check domains before runnig the generic_update
+--24. Need to check domains before runnig the generic_update
 /*temporary disabled for later use
 DO $_$
 DECLARE

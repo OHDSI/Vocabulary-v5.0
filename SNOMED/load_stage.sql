@@ -2445,12 +2445,12 @@ VALUES (138875005, 'Metadata'), -- root
 	--added 20200427
 	(117617002,'Measurement'), --Immunohistochemistry procedure
 	--added 20200518
-    (395098000, 'Condition'), --'Disorder confirmed'
-    (1321161000000104, 'Visit'),
-    (1321151000000102, 'Visit'),
-    (1321141000000100, 'Visit'),
-    (1321131000000109, 'Visit') -- Self quarantine and similar
-;
+	(395098000, 'Condition'), --'Disorder confirmed'
+	(1321161000000104, 'Visit'),
+	(1321151000000102, 'Visit'),
+	(1321141000000100, 'Visit'),
+	(1321131000000109, 'Visit'); -- Self quarantine and similar
+
 --17.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 --The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
@@ -2987,11 +2987,18 @@ SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
--- 21. Make concepts non standard if they have 'Maps to' relationship
-update concept_stage a set standard_concept = null 
-where exists (select 1 from concept_relationship_stage r where relationship_id = 'Maps to' and r.invalid_reason is null and a.concept_code = concept_code_1 and a.vocabulary_id = r.vocabulary_id_1)
-and standard_concept ='S'
-  ;
+--21. Make concepts non standard if they have 'Maps to' relationship
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs
+		WHERE crs.relationship_id = 'Maps to'
+			AND crs.invalid_reason IS NULL
+			AND cs.concept_code = crs.concept_code_1
+			AND cs.vocabulary_id = crs.vocabulary_id_1
+		)
+	AND cs.standard_concept = 'S';
 
 --22. Insert new synonyms from manual source
 INSERT INTO concept_synonym_stage (

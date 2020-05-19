@@ -300,6 +300,7 @@ RETURNS TABLE (
 ) AS
 $body$
 BEGIN
+  set local search_path to devv5;
   perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
   set local http.timeout_msec to 30000;
   return query 

@@ -430,7 +430,7 @@ begin
       drop index sources.idx_concept_merged_id;
       drop index sources.idx_desc_merged_id;
       drop index sources.idx_rela_merged_id;
-      drop index sources.idx_lang_merged_id;
+      drop index sources.idx_lang_merged_refid;
       --loading sct2_concept_full_merged
       execute 'COPY sources.sct2_concept_full_merged (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.sct2_concept_full_merged (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full-UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
@@ -506,7 +506,7 @@ begin
       update sources.der2_crefset_language_merged set source_file_id='US' where source_file_id is null;
       execute 'COPY sources.der2_crefset_language_merged (id,effectivetime,active,moduleid,refsetId,referencedComponentId,acceptabilityId) FROM '''||pVocabularyPath||'der2_sRefset_LanguageFull_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       update sources.der2_crefset_language_merged set source_file_id='GB_DE' where source_file_id is null;
-      CREATE INDEX idx_lang_merged_id ON sources.der2_crefset_language_merged (id);
+      CREATE INDEX idx_lang_merged_refid ON sources.der2_crefset_language_merged (referencedcomponentid);
       analyze sources.der2_crefset_language_merged;
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;

@@ -426,10 +426,11 @@ begin
         COALESCE(pVocabularyDate,current_date),COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date) 
         from sources.py_xlsparse_hcpcs(pVocabularyPath||'/HCPC_CONTR_ANWEB.xlsx') where add_date ~ '\d{6}';
   when 'SNOMED' then
-      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged, sources.der2_crefset_assreffull_merged;
+      truncate table sources.sct2_concept_full_merged, sources.sct2_desc_full_merged, sources.sct2_rela_full_merged, sources.der2_crefset_assreffull_merged, sources.der2_crefset_language_merged;
       drop index sources.idx_concept_merged_id;
       drop index sources.idx_desc_merged_id;
       drop index sources.idx_rela_merged_id;
+      drop index sources.idx_lang_merged_id;
       --loading sct2_concept_full_merged
       execute 'COPY sources.sct2_concept_full_merged (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.sct2_concept_full_merged (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full-UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
@@ -477,7 +478,7 @@ begin
         AND s_int.active = s.active AND s_int.moduleid=s.moduleid
         AND s_int.refsetid=s.refsetid AND s_int.referencedcomponentid=s.referencedcomponentid
         AND s_int.targetcomponent = s.targetcomponent AND s_int.ctid > s.ctid);
-	  CREATE INDEX idx_concept_merged_id ON sources.sct2_concept_full_merged (id);
+      CREATE INDEX idx_concept_merged_id ON sources.sct2_concept_full_merged (id);
       CREATE INDEX idx_desc_merged_id ON sources.sct2_desc_full_merged (conceptid);
       CREATE INDEX idx_rela_merged_id ON sources.sct2_rela_full_merged (id);
       analyze sources.sct2_concept_full_merged;
@@ -496,6 +497,17 @@ begin
       --loading der2_sRefset_SimpleMapFull_INT
       truncate table sources.der2_srefset_simplemapfull_int;
       execute 'COPY sources.der2_srefset_simplemapfull_int FROM '''||pVocabularyPath||'der2_sRefset_SimpleMapFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      --loading der2_crefset_language_merged
+      execute 'COPY sources.der2_crefset_language_merged (id,effectivetime,active,moduleid,refsetId,referencedComponentId,acceptabilityId) FROM '''||pVocabularyPath||'der2_sRefset_LanguageFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      update sources.der2_crefset_language_merged set source_file_id='INT' where source_file_id is null;
+      execute 'COPY sources.der2_crefset_language_merged (id,effectivetime,active,moduleid,refsetId,referencedComponentId,acceptabilityId) FROM '''||pVocabularyPath||'der2_sRefset_LanguageFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      update sources.der2_crefset_language_merged set source_file_id='UK' where source_file_id is null;
+      execute 'COPY sources.der2_crefset_language_merged (id,effectivetime,active,moduleid,refsetId,referencedComponentId,acceptabilityId) FROM '''||pVocabularyPath||'der2_sRefset_LanguageFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      update sources.der2_crefset_language_merged set source_file_id='US' where source_file_id is null;
+      execute 'COPY sources.der2_crefset_language_merged (id,effectivetime,active,moduleid,refsetId,referencedComponentId,acceptabilityId) FROM '''||pVocabularyPath||'der2_sRefset_LanguageFull_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      update sources.der2_crefset_language_merged set source_file_id='GB_DE' where source_file_id is null;
+      CREATE INDEX idx_lang_merged_id ON sources.der2_crefset_language_merged (id);
+      analyze sources.der2_crefset_language_merged;
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;
       execute 'COPY sources.icd10cm_temp FROM '''||pVocabularyPath||'icd10cm.txt'' delimiter E''\b''';

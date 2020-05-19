@@ -75,7 +75,7 @@ FROM sources.icd10cm
 --manual concepts
 --https://www.cdc.gov/nchs/data/icd/Vaping-Announcement-final-12-09-19.pdf
 UNION ALL
-VALUES ('Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2','Condition','ICD10CM','4-char billing code', NULL,'U07.1',TO_DATE('20200401','yyyymmdd'),TO_DATE('20991231','yyyymmdd'),NULL),
+VALUES ('Emergency use of U07.1 | COVID-19','Condition','ICD10CM','4-char billing code', NULL,'U07.1',TO_DATE('20200401','yyyymmdd'),TO_DATE('20991231','yyyymmdd'),NULL),
 	('Emergency use of U07.0 | Vaping-related disorder','Condition','ICD10CM','4-char billing code',NULL,'U07.0',TO_DATE('20200401','yyyymmdd'),TO_DATE('20991231','yyyymmdd'),NULL);
 
 --4. Add ICD10CM to SNOMED manual mappings
@@ -243,8 +243,7 @@ FROM (
 
 UNION ALL
 
-VALUES ('U07.1','COVID-19','ICD10CM',4180186),
-	('U07.1','Coronavirus-19','ICD10CM',4180186),
+VALUES ('U07.1','Disease caused by Severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2)','ICD10CM',4180186),
 	('U07.0','Vaping-related disorder','ICD10CM',4180186);
 
 --13. Add mapping from deprecated to fresh concepts for 'Maps to value'

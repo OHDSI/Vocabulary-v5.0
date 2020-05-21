@@ -197,7 +197,7 @@ VALUES
 	('Emergency use of U07.2 | COVID-19, virus not identified','Condition','ICD10CN','ICD10 code','U07.2',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
 	('COVID-19, excluding pneumonia','Condition','ICD10CN','ICD10 code','U07.100x002',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
 	('COVID-19','Condition','ICD10CN','ICD10 code','U07.100',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('Suspected case of COVID-19 pneumonia','Condition','ICD10CN','ICD10 code','Z03.800x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('Suspected case of COVID-19 pneumonia','Observation','ICD10CN','ICD10 code','Z03.800x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
 	('COVID-19 pneumonia','Condition','ICD10CN','ICD10 code','U07.100x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
 	('COVID-19 pneumonia','Condition','ICD10CN','ICD10 code','U07.100x003',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'));
 

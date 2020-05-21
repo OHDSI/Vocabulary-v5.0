@@ -1,8 +1,10 @@
 --to do: 
 --1. find out vocabulary_date,vocabulary_version,now latest update is disabled, current_Date is put in scripts, functions in the end don't work
---2. add mappings to all concepts through ICD10-snomed
---3. add mappings for COVID concepts manualy
-
+--2. change the vocabulary_id
+--3. add mappings to all concepts through ICD10-snomed
+--4. add mappings for COVID concepts manualy
+--5. make manual changes
+--6. check whether we still need those patches (see the special rules for some codes)
 
 
 /**************************************************************************

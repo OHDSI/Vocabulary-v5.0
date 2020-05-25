@@ -435,6 +435,14 @@ FROM (
 			WHERE vocabulary_id = 'RxNorm'
 				AND concept_code = rxcui2
 			)
+		--Mid-2020 release added seeminggly useless nonsensical relationships between dead and alive concepts that need additional investigation
+		--[AVOF-2522]
+		AND rela NOT IN (
+			'has_part',
+			'has_ingredients',
+			'part_of',
+			'ingredients_of'
+			)
 	) AS s0;
 
 --check for non-existing relationships

@@ -498,7 +498,7 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 SELECT concept_code AS concept_code_1,
-	 CASE WHEN  length(source_filename)>50 THEN substr(source_filename,1,50) -- to get 50chars length codes
+	 CASE WHEN  length(source_filename)>50 THEN substr(source_filename,1,50) -- to get 50-chars length codes
 	      ELSE source_filename END AS concept_code_2,
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,

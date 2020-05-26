@@ -978,7 +978,7 @@ AS (
 			(array(SELECT unnest(regexp_matches(code, '[A-Z]\d{4}', 'g')))) [2] AS hi,
 			str
 		FROM sources.mrconso
-		WHERE sab = 'MTHHH'
+		WHERE sab = 'HCPCS'
 			AND code LIKE 'Level 1%'
 		) l1 ON hcpc.concept_code BETWEEN l1.lo
 			AND l1.hi
@@ -988,7 +988,7 @@ AS (
 			(array(SELECT unnest(regexp_matches(code, '[A-Z]\d{4}', 'g')))) [2] AS hi,
 			str
 		FROM sources.mrconso
-		WHERE sab = 'MTHHH'
+		WHERE sab = 'HCPCS'
 			AND code LIKE 'Level 2%'
 		) l2 ON hcpc.concept_code BETWEEN l2.lo
 			AND l2.hi
@@ -998,7 +998,7 @@ AS (
 			(array(SELECT unnest(regexp_matches(code, '[A-Z]\d{4}', 'g')))) [2] AS hi,
 			str
 		FROM sources.mrconso
-		WHERE sab = 'MTHHH'
+		WHERE sab = 'HCPCS'
 			AND code LIKE 'Level 3%'
 		) l3 ON hcpc.concept_code BETWEEN l3.lo
 			AND l3.hi

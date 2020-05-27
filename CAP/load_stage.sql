@@ -114,7 +114,7 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 --4. Source table preparation
 DROP TABLE IF EXISTS cap_cs_preliminary;
 CREATE UNLOGGED TABLE cap_cs_preliminary AS
-SELECT source_code AS concept_code,
+SELECT SUBSTR(source_code, 1, 50) AS concept_code, -- to get 50chars length codes AS concept_code
 	source_description AS concept_name,
 	alt_source_description AS alternative_concept_name,
 	CASE 
@@ -215,7 +215,7 @@ FROM (
 	FROM tab_filename
 	) AS s0
 WHERE source_class <> 'DI' --to exclude them from concept_stage because of lack of sense(note section signature)
-AND alt_source_description IS NOT NULL; -- --to exclude them from concept_stage because of lack of sense(still participate in hierarchy building);
+AND alt_source_description IS NOT NULL; --to exclude them from concept_stage because of lack of sense(still participate in hierarchy building)
 
 --5. Load into concept stage
 INSERT INTO concept_stage (
@@ -229,18 +229,21 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT  CASE WHEN length(alternative_concept_name)>255 then concat(substring(alternative_concept_name from '.{1,251}\s'),'...') -- to get 255 length names
-             ELSE alternative_concept_name END as alternative_concept_name,
-	    domain_id,
-	    vocabulary_id,
-	    concept_class_id,
-	    standard_concept,
-	    CASE WHEN  length(concept_code)>50 THEN substr(concept_code,1,50) -- to get 50chars length codes
-	      ELSE concept_code END AS cocnept_code,
-	    valid_start_date,
-	    valid_end_date,
-	    invalid_reason
+SELECT CASE 
+		WHEN LENGTH(alternative_concept_name) > 255
+			THEN SUBSTRING(alternative_concept_name, '.{1,251}\s') || '...' -- to get 255 length names
+		ELSE alternative_concept_name
+		END AS alternative_concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
 FROM cap_cs_preliminary;
+
 ANALYZE concept_stage;
 
 --6. Load into concept_synonym_stage
@@ -251,10 +254,9 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 SELECT concept_name,
-	   CASE WHEN  length(concept_code)>50 THEN substr(concept_code,1,50)
-	        ELSE concept_code END AS concept_code,
-	   vocabulary_id,
-	   4180186 AS language_concept_id --for english language
+	concept_code,
+	vocabulary_id,
+	4180186 AS language_concept_id --for english language
 FROM cap_cs_preliminary;
 
 --7. Load into concept_relationship_stage
@@ -498,8 +500,7 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 SELECT concept_code AS concept_code_1,
-	 CASE WHEN  length(source_filename)>50 THEN substr(source_filename,1,50) -- to get 50-chars length codes
-	      ELSE source_filename END AS concept_code_2,
+	SUBSTR(source_filename, 1, 50) AS concept_code_2, -- to get 50-chars length codes
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,
 	'Has CAP protocol' AS relationship_id,

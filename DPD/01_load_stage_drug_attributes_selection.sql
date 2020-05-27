@@ -17,7 +17,7 @@
 * Date: 2020
 **************************************************************************/
 
-DO $_$
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'DPD',
@@ -32,7 +32,7 @@ BEGIN
 	pVocabularyDevSchema	=> 'DEV_DPD',
 	pAppendVocabulary		=> TRUE
 );
-END $_$;
+END $_$;*/
 
 --2. Truncate all working tables
 TRUNCATE TABLE concept_stage;

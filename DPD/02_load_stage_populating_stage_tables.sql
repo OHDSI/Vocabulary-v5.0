@@ -143,7 +143,7 @@ UPDATE drug_concept_stage
 --13043 matches with DPD
 --77 matches with OMOP
 
---TODO: For the first run on devv5, change OMOP% to DPD% in a
+--TODO: For the first run on devv5, change OMOP% to DPD%????
 /*
 with a AS (
     SELECT *
@@ -163,6 +163,113 @@ AND cs.concept_code like 'OMOP%';
 DELETE FROM drug_concept_stage
 WHERE concept_name IN ('Sterile Water (Diluent)', 'Sea Water', 'Water (Diluent)', 'Sterile Water');
 
+--Create drug_concept_code backup + versioning
+-- Implemented from AMT
+
+--create dsc_backup prior to name updates to get old names in mapping review
+DROP TABLE IF EXISTS drug_concept_stage_backup;
+CREATE TABLE drug_concept_stage_backup AS
+SELECT *
+FROM drug_concept_stage;
+
+
+--+ Unclear where to put this piece of code
+--TODO: maybe put it right before rtc_2?
+
+-- set new_names for ingredients from ingredient_mapped
+UPDATE drug_concept_stage dcs
+SET concept_name = names.new_name
+FROM (
+     SELECT name, new_name
+     FROM ingredient_mapped
+     WHERE new_name <> ''
+     ) AS names
+WHERE lower(dcs.concept_name) = lower(names.name)
+    AND dcs.concept_class_id = 'Ingredient'
+;
+
+-- set new_names for brand names from brand_name_mapped
+UPDATE drug_concept_stage dcs
+SET concept_name = names.new_name
+FROM (
+     SELECT name, new_name
+     FROM brand_name_mapped
+     WHERE new_name <> ''
+     ) AS names
+WHERE lower(dcs.concept_name) = lower(names.name)
+    AND dcs.concept_class_id = 'Brand Name'
+;
+
+-- set new_names for suppliers from supplier_mapped
+UPDATE drug_concept_stage dcs
+SET concept_name = names.new_name
+FROM (
+     SELECT name, new_name
+     FROM supplier_mapped
+     WHERE new_name <> ''
+     ) AS names
+WHERE lower(dcs.concept_name) = lower(names.name)
+    AND concept_class_id = 'Supplier'
+;
+
+-- set new_names for dose forms from dose_form_mapped
+UPDATE drug_concept_stage dcs
+SET concept_name = names.new_name
+FROM (
+     SELECT name, new_name
+     FROM dose_form_mapped
+     WHERE new_name <> ''
+     ) AS names
+WHERE lower(dcs.concept_name) = lower(names.name)
+    AND concept_class_id = 'Dose Form'
+;
+
+
+-- delete from dcs concepts, mapped to 0 in ingredient_mapped
+DELETE
+FROM drug_concept_stage dcs
+WHERE lower(concept_name) IN (
+                             SELECT lower(name)
+                             FROM ingredient_mapped
+                             WHERE concept_id_2 = 0
+                               AND name IS NOT NULL
+                             )
+  AND concept_class_id = 'Ingredient';
+
+-- delete from dcs concepts, mapped to 0 in brand_name_mapped
+DELETE
+FROM drug_concept_stage dcs
+WHERE lower(concept_name) IN (
+                             SELECT lower(name)
+                             FROM brand_name_mapped
+                             WHERE concept_id_2 = 0
+                                AND name IS NOT NULL
+                             )
+  AND concept_class_id = 'Brand Name';
+
+-- delete from dcs concepts, mapped to 0 in supplier_mapped
+DELETE
+FROM drug_concept_stage dcs
+WHERE lower(concept_name) IN (
+                             SELECT lower(name)
+                             FROM supplier_mapped
+                             WHERE concept_id_2 = 0
+                               AND name IS NOT NULL
+                      )
+AND concept_class_id = 'Supplier';
+
+-- delete from dcs concepts, mapped to 0 in dose_form_mapped
+DELETE
+FROM drug_concept_stage dcs
+WHERE lower(concept_name) IN (
+                             SELECT lower(name)
+                             FROM dose_form_mapped
+                             WHERE concept_id_2 = 0
+                               AND name IS NOT NULL
+                             )
+AND concept_class_id = 'Dose Form';
+
+--internal_relationship_stage population
 
 TRUNCATE internal_relationship_stage;
 INSERT INTO internal_relationship_stage (concept_code_1, concept_code_2)
@@ -219,7 +326,6 @@ WHERE a.concept_class_id = 'Dose Form'
 
 --Step 4: ds_stage population
 --ds_stage population
---TODO: Check for drugs with both MG/ML and MG/G concentrations
 --TODO: NIL
 TRUNCATE ds_stage;
 
@@ -540,8 +646,74 @@ AND packaging.drug_code NOT IN (
 WHERE bs.drug_id = ds_stage.drug_concept_code;
 
 --Updating drugs that have ingredients with 2 or more dosages that need to be sum up
+--HOT BUG FIX
+DELETE FROM ds_stage
+WHERE (drug_concept_code = '2237356' AND ingredient_concept_code = 'OMOP4920356');  --problem galactose code
 
+UPDATE ds_stage
+SET amount_unit = 'MG', amount_value = amount_value * 1000
+WHERE drug_concept_code = '2210614' AND ingredient_concept_code = 'OMOP4917795' AND amount_unit = 'G';
 
+--Updating drugs that have ingredients with 2 or more dosages that need to be sum up
+with a AS (                             --Only for these concepts amounts and numerators should be summed up
+SELECT DISTINCT drug_id
+FROM active_ingredients ai
+JOIN drug_product dp
+    ON dp.drug_code = ai.drug_code
+WHERE (ai.drug_code, active_ingredient_code) IN
+(SELECT drug_code, active_ingredient_code
+    FROM active_ingredients
+    GROUP BY drug_code, active_ingredient_code
+    HAVING count(*) > 1)
+
+AND ((notes ~* (' EQ|AS |LEAVES|PODS|JUNIPER BERRIES|ASCORBIC ACID|SOD ASCORBATE|MAGNESIUM PROTEINATE|THROMBIN|FOLIC ACID|YEAST|RIBOFLAV|VIT B12|RADIX')
+AND notes !~* ('TAB|CAP')
+AND ingredient !~* 'POVIDON'
+AND strength_unit NOT IN ('C', 'CC', 'D', 'DH', 'X'))
+OR (notes IS NULL))),
+
+     sum AS (                              --Table to update from
+         select drug_concept_code, ingredient_concept_code,
+                sum(coalesce(amount_value, 0)) AS amount_value,
+                sum(coalesce(numerator_value, 0)) AS numerator_value
+         FROM ds_stage
+         WHERE (drug_concept_code, ingredient_concept_code) IN
+         (SELECT drug_concept_code, ingredient_concept_code
+    FROM ds_stage
+    GROUP BY drug_concept_code, ingredient_concept_code
+    HAVING count(*) > 1)
+         GROUP BY drug_concept_code, ingredient_concept_code
+     )
+
+UPDATE ds_stage
+    SET amount_value = CASE WHEN sum.amount_value = 0 THEN NULL ELSE sum.amount_value END,
+        numerator_value = CASE WHEN sum.numerator_value = 0 THEN NULL ELSE sum.numerator_value END
+
+FROM sum
+
+WHERE ds_stage.drug_concept_code IN (SELECT drug_id FROM a)
+AND sum.drug_concept_code = ds_stage.drug_concept_code
+AND sum.ingredient_concept_code = ds_stage.ingredient_concept_code
+;
+
+--Removing duplicates from ds_stage
+with delete AS
+(DELETE FROM ds_stage returning *),
+inserted AS
+(select drug_concept_code, ingredient_concept_code, box_size, amount_value, amount_unit, numerator_value, numerator_unit, denominator_value,denominator_unit,
+               row_number() over (partition by drug_concept_code, ingredient_concept_code, box_size, amount_value, amount_unit, numerator_value, numerator_unit, denominator_value, denominator_unit order by drug_concept_code) rank
+    FROM delete)
+INSERT INTO ds_stage SELECT drug_concept_code,
+               ingredient_concept_code,
+               box_size,
+               amount_value,
+               amount_unit,
+               numerator_value,
+               numerator_unit,
+               denominator_value,
+               denominator_unit
+FROM inserted
+WHERE rank = 1;
 
 --Bug fixing for ds_stage
 --Removing numerators and denominators where amounts are not null
@@ -584,6 +756,12 @@ DELETE FROM ds_stage d
 WHERE
     (d.numerator_value / coalesce(d.denominator_value, 1)) > 1
 AND numerator_unit = denominator_unit;
+
+--Removing pseudounits (NIL)
+DELETE FROM ds_stage
+WHERE amount_unit = 'NIL'
+    OR numerator_unit = 'NIL'
+    OR denominator_unit = 'NIL';
 
 
 --Step 5: pack_content population

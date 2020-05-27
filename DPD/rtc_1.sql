@@ -812,7 +812,7 @@ ORDER BY tm.name;
 
 -------------------------------------
 --TODO: Create backup of rtc (prev_rtc)
-
+/*
 CREATE TABLE prev_rtc
 (
 concept_code_1 varchar(255),
@@ -832,3 +832,5 @@ from ingredient_to_map
 join prev_rtc
 on upper(ingredient_to_map.name) = upper(prev_rtc.concept_name_1)
 AND concept_class_id_1 = 'Ingredient';
+
+ */

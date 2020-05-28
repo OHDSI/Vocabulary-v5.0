@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich, Anna Ostropolets, Dmitry Dymshyts
+* Authors: Timur Vakhitov, Christian Reich, Anna Ostropolets, Dmitry Dymshyts, Alexander Davydov
 * Date: 2017
 **************************************************************************/
 
@@ -144,30 +144,12 @@ WHERE NOT EXISTS (
 			AND cs_int.vocabulary_id = m.vocabulary_id
 		);
 
---update from manual if something was changed
-UPDATE concept_stage cs
-SET concept_name = m.concept_name,
-	domain_id = CASE WHEN m.domain_id IS NOT NULL THEN m.domain_id ELSE cs.domain_id END,
-	valid_start_date = m.valid_start_date,
-	valid_end_date = m.valid_end_date,
-	invalid_reason = m.invalid_reason
-FROM dev_hcpcs.concept_stage_manual m
-WHERE cs.concept_code = m.concept_code
-	AND cs.vocabulary_id = m.vocabulary_id
-	AND (
-		cs.concept_name <> m.concept_name
-		OR COALESCE(cs.domain_id,'X') <> COALESCE(m.domain_id,'X')
-		OR cs.valid_start_date <> m.valid_start_date
-		OR cs.valid_end_date <> m.valid_end_date
-		OR COALESCE(cs.invalid_reason, 'X') <> COALESCE(m.invalid_reason, 'X')
-		);
-
 --4 UPDATE domain_id in concept_stage
 --4.1. Part 1. UPDATE domain_id defined by rules
 WITH t_domains
 AS (
 	SELECT hcpc.concept_code,
-		CASE 
+		CASE
 			WHEN concept_name LIKE '%per session%'
 				THEN 'Procedure'
 					-- A codes
@@ -330,47 +312,58 @@ AS (
 				THEN 'Procedure'
 			WHEN concept_code = 'G0103'
 				THEN 'Measurement' -- Prostate cancer screening; prostate specific antigen test (psa)
-			WHEN l2.str = 'Training Services - Diabetes Management'
+			WHEN l2.str = 'Diabetes Management Training Services'
 				THEN 'Observation' -- Level 2: G0108-G0109
-			WHEN l2.str = 'Screening Services - Cytopathology'
-				THEN 'Measurement' -- Level 2: G0123-G0124
-			WHEN l2.str = 'Service, Nurse AND OT'
-				THEN 'Observation' -- Level 2: G0128-G0129
-			WHEN l2.str = 'Screening Services - Cytopathology, Other'
-				THEN 'Measurement' -- Level 2: G0141-G0148
-			WHEN l2.str = 'Services, Allied Health'
-				THEN 'Observation' -- Level 2: G0151-G0166
-			WHEN l2.str = 'Team Conference'
-				THEN 'Observation' -- Level 2: G0175-G0175
-			WHEN concept_code = 'G0177'
-				THEN 'Procedure'
-			WHEN l2.str = 'Physician Services'
-				THEN 'Observation' -- Level 2: G0179-G0182
-			WHEN l2.str = 'Therapeutic Procedures'
-				THEN 'Procedure' -- Level 2: G0237-G0239
-			WHEN l2.str = 'Physician Services, Diabetic'
-				THEN 'Observation' -- Level 2: G0245-G0246
-			WHEN l2.str = 'Demonstration, INR'
-				THEN 'Observation' -- Level 2: G0248-G0250
-			WHEN l2.str = 'Tositumomab'
-				THEN 'Drug' -- Level 2: G3001-G3001
-			WHEN l2.str = 'Services, Pulmonary Surgery'
-				THEN 'Observation' -- Level 2: G0302-G0305
+			WHEN concept_code BETWEEN 'G0123'
+					AND 'G0124'
+				THEN 'Measurement' -- G0123-G0124 Screening cytopathology
+			WHEN concept_code BETWEEN 'G0128'
+					AND 'G0129'
+				THEN 'Observation' -- Level 2: G0128-G0129 previously 'Service, Nurse AND OT'
+			WHEN concept_code BETWEEN 'G0141'
+					AND 'G0148'
+				THEN 'Measurement' -- G0141-G0148 Screening cytopathology
+			WHEN concept_code BETWEEN 'G0151'
+					AND 'G0166'
+				THEN 'Observation' -- Level 2: G0151-G0166 previously 'Services, Allied Health'
+			WHEN concept_code = 'G0175'
+				THEN 'Observation' -- Level 2: G0175-G0175 previously 'Team Conference'
+			WHEN concept_code BETWEEN 'G0179'
+					AND 'G0182'
+				THEN 'Observation' -- Level 2: G0179-G0182 previously 'Physician Services'
+			WHEN concept_code BETWEEN 'G0237'
+					AND 'G0239'
+				THEN 'Procedure' -- Level 2: G0237-G0239 previously 'Therapeutic Procedures'
+			WHEN concept_code BETWEEN 'G0245'
+					AND 'G0246'
+				THEN 'Observation' -- Level 2: G0245-G0246  'Physician Services, Diabetic'
+			WHEN concept_code BETWEEN 'G0248'
+					AND 'G0250'
+				THEN 'Observation' -- Level 2: G0248-G0250 previously 'Demonstration, INR'
+			WHEN concept_code = 'G3001'
+				THEN 'Drug' -- Level 2: G3001-G3001 previously 'Tositumomab'
+			WHEN concept_code BETWEEN 'G0302'
+					AND 'G0305'
+				THEN 'Observation' -- Level 2: G0302-G0305 previously 'Services, Pulmonary Surgery'
+			WHEN concept_code IN (
+					'G0306',
+					'G0307',
+					'G0328'
+					)
+				THEN 'Measurement'
 			WHEN concept_code BETWEEN 'G0308'
 					AND 'G0327'
 				THEN 'Observation' -- ESRD services
-			WHEN l2.str = 'Laboratory'
-				THEN 'Measurement' -- Level 2: G0306-G0328
-			WHEN l2.str = 'Fee, Pharmacy'
-				THEN 'Procedure' -- Level 2: G0333-G0333
-			WHEN l2.str = 'Hospice'
-				THEN 'Observation' -- Level 2: G0337-G0337
-			WHEN l2.str = 'Services, Observation AND ED'
+			WHEN concept_code = 'G0333'
+				THEN 'Procedure' -- Level 2: G0333-G0333 previously 'Fee, Pharmacy'
+			WHEN concept_code = 'G0337'
+				THEN 'Observation' -- Level 2: G0337-G0337 previously 'Hospice'
+			WHEN l2.str = 'Hospital Services: Observation and Emergency Department'
 				THEN 'Observation' -- Level 2: G0378-G0384
-			WHEN l2.str = 'Team, Trauma Response'
+			WHEN l2.str = 'Trauma Response Team'
 				THEN 'Observation' -- Level 2: G0390-G0390
 			WHEN l2.str = 'Home Sleep Study Test'
-				THEN 'Procedure' --G0398-G0400  
+				THEN 'Procedure' --G0398-G0400
 			WHEN l2.str = 'Initial Examination for Medicare Enrollment'
 				THEN 'Observation' -- Level 2: G0402-G0402
 			WHEN l2.str = 'Electrocardiogram'
@@ -379,8 +372,9 @@ AS (
 				THEN 'Observation' -- Level 2: G0406-G0408
 			WHEN l2.str = 'Psychological Services'
 				THEN 'Observation' -- Level 2: G0409-G0411
-			WHEN l2.str = 'Pathology, Surgical'
-				THEN 'Procedure' -- Level 2: G0416-G0419
+			WHEN concept_code BETWEEN 'G0416'
+					AND 'G0419'
+				THEN 'Procedure' -- Level 2: G0416-G0419 previously 'Pathology, Surgical'
 			WHEN concept_code = 'G0424'
 				THEN 'Procedure'
 			WHEN concept_code IN (
@@ -512,7 +506,7 @@ AS (
 			WHEN concept_code BETWEEN 'G6030'
 					AND 'G6058'
 				THEN 'Measurement' -- drug screening
-					-- Level 2: G8126-G9140, mostly Physician Quality Reporting System (PQRS)				
+					-- Level 2: G8126-G9140, mostly Physician Quality Reporting System (PQRS)
 			WHEN concept_code BETWEEN 'G8006'
 					AND 'G8117'
 				THEN 'Observation' -- aren't present in UMLS
@@ -550,7 +544,7 @@ AS (
 					'G9035',
 					'G9036'
 					)
-				THEN 'Drug' -- Influenza a (h1n1) immunization administration + other drugs 
+				THEN 'Drug' -- Influenza a (h1n1) immunization administration + other drugs
 			WHEN concept_code = 'G9143'
 				THEN 'Measurement' -- Warfarin responsiveness testing by genetic technique using any method, any number of specimen(s)
 			WHEN concept_code = 'G9147'
@@ -560,7 +554,7 @@ AS (
 					'G9149',
 					'G9150'
 					)
-				THEN 'Observation' -- National committee for quality assurance - medical home levels 
+				THEN 'Observation' -- National committee for quality assurance - medical home levels
 			WHEN concept_code IN (
 					'G9151',
 					'G9152',
@@ -607,7 +601,7 @@ AS (
 					--	WHEN concept_code = 'G9642' -- seems to be Observation, hard to say why they put this here
 					--	THEN 'Observation'
 			WHEN l2.str IN (
-					'Quality Measures - Miscellaneous',
+					'Quality Measures: Miscellaneous',
 					'Quality Measures',
 					'Demonstration Project'
 					)
@@ -645,14 +639,20 @@ AS (
 					-- K codes
 			WHEN l1.str = 'Temporary Codes Assigned to Durable Medical Equipment Regional Carriers'
 				THEN 'Device' -- Level 1: K0000-K9999
-					-- L codes 
+					-- L codes
 			WHEN l1.str = 'L Codes'
 				THEN 'Device' -- Level 1: L0000-L9999
 					-- M codes
-			WHEN concept_code = 'M0064'
-				THEN 'Observation' -- Brief office visit for the sole purpose of monitoring or changing drug prescriptions used in the treatment of mental psychoneurotic AND personality disorders
+			WHEN concept_code IN (
+					'M0075', --Cellular therapy
+					'M0076', --Prolotherapy
+					'M0100', --Intragastric hypothermia using gastric freezing
+					'M0300', --Iv chelation therapy (chemical endarterectomy)
+					'M0301' --Fabric wrapping of abdominal aneurysm
+					)
+				THEN 'Procedure'
 			WHEN l1.str = 'Other Medical Services'
-				THEN 'Procedure' -- Level 1: M0000-M0301
+				THEN 'Observation' -- Level 1: M0000-M0301
 					-- P codes
 			WHEN concept_code = 'P9012'
 				THEN 'Drug' -- Cryoprecipitate, each unit should have domain_id = 'Drug'
@@ -660,7 +660,7 @@ AS (
 				AND concept_code NOT BETWEEN 'P9041'
 					AND 'P9048'
 				THEN 'Device' -- All other P90% - blood components (AVOF-707)
-			WHEN l2.str = 'Chemistry AND Toxicology Tests'
+			WHEN l2.str = 'Chemistry and Toxicology Tests'
 				THEN 'Measurement' -- Level 2: P2028-P2038
 			WHEN l2.str = 'Pathology Screening Tests'
 				THEN 'Measurement' -- Level 2: P3000-P3001
@@ -669,8 +669,10 @@ AS (
 			WHEN concept_code BETWEEN 'P9041'
 					AND 'P9048'
 				THEN 'Drug'
-			WHEN l2.str = 'Miscellaneous Pathology AND Laboratory Services'
-				THEN 'Procedure' -- Level 2: P9010-P9615
+			WHEN l2.str = 'Miscellaneous Pathology and Laboratory Services'
+				THEN 'Procedure' -- Level 2: P9010-P9100
+			WHEN l2.str = 'Catheterization for Specimen Collection'
+				THEN 'Procedure' -- Level 2: P9612-P9615
 					-- Q codes
 			WHEN concept_code IN (
 					'Q0136',
@@ -712,11 +714,11 @@ AS (
 					'Q0183'
 					)
 				THEN 'Device'
-			WHEN l2.str = 'Miscellaneous Devices (CMS Temporary Codes)'
-				THEN 'Device' -- Level 2: Q0478-Q0509
+			WHEN l2.str = 'Ventricular Assist Devices (CMS Temporary Codes)'
+				THEN 'Device' -- Level 2: Q0477-Q0509
 			WHEN l2.str = 'Fee, Pharmacy (CMS Temporary Codes)'
 				AND concept_code != 'Q0515'
-				THEN 'Observation' -- Level 2: Q0510-Q0515
+				THEN 'Observation' -- Level 2: Q0510-Q0514
 			WHEN concept_code = 'Q0515'
 				THEN 'Drug'
 			WHEN l2.str = 'Lens, Intraocular (CMS Temporary Codes)'
@@ -749,13 +751,13 @@ AS (
 					AND 'Q4099'
 				THEN 'Drug'
 			WHEN l2.str = 'Skin Substitutes (CMS Temporary Codes)'
-				THEN 'Device' -- Level 2: Q4100-Q4182  
+				THEN 'Device' -- Level 2: Q4100-Q4226
 			WHEN l2.str = 'Hospice Care (CMS Temporary Codes)'
 				THEN 'Observation' --Level 2: Q5001-Q5010
 			WHEN l2.str = 'Contrast Agents'
 				OR concept_code BETWEEN 'Q9945'
 					AND 'Q9949'
-				THEN 'Device' -- Level 2: Q9950-Q9969  
+				THEN 'Device' -- Level 2: Q9950-Q9969
 			WHEN concept_code IN (
 					'Q5101',
 					'Q5102',
@@ -782,7 +784,7 @@ AS (
 					'Q9984',
 					'Q9956'
 					)
-				THEN 'Device' --Radiopharmaceuticals	
+				THEN 'Device' --Radiopharmaceuticals
 			WHEN concept_code IN (
 					'Q9970',
 					'Q9975',
@@ -804,7 +806,7 @@ AS (
 			WHEN concept_code BETWEEN 'S0390'
 					AND 'S0400'
 				THEN 'Procedure'
-			WHEN l2.str = 'Provider Services'
+			WHEN l2.str = 'Provider Services' --(Level 2: S0199-S0400)
 				THEN 'Observation' -- includes the previous
 			WHEN concept_code = 'S0592'
 				THEN 'Procedure' -- Comprehensive contact lens evaluation
@@ -1374,6 +1376,24 @@ BEGIN
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code ='JG';
 	UPDATE concept_stage SET domain_id='Observation' WHERE vocabulary_id='HCPCS' AND concept_class_id='HCPCS Modifier' AND concept_code ='FY';
 END $_$;
+
+--update from manual if something was changed
+UPDATE concept_stage cs
+SET --concept_name = m.concept_name,
+	domain_id = CASE WHEN m.domain_id IS NOT NULL THEN m.domain_id ELSE cs.domain_id END, --manually curated Domains
+	valid_start_date = m.valid_start_date,
+	valid_end_date = m.valid_end_date,
+	invalid_reason = m.invalid_reason
+FROM dev_hcpcs.concept_stage_manual m
+WHERE cs.concept_code = m.concept_code
+	AND cs.vocabulary_id = m.vocabulary_id
+	AND (
+		--cs.concept_name <> m.concept_name --no significant changes now, but code reuse should be verified on every release
+		COALESCE(cs.domain_id,'X') <> COALESCE(m.domain_id,'X')
+		OR cs.valid_start_date <> m.valid_start_date
+		OR cs.valid_end_date <> m.valid_end_date
+		OR COALESCE(cs.invalid_reason, 'X') <> COALESCE(m.invalid_reason, 'X')
+		);
 
 --if some codes does not have domain_id pick it up from existing concept table
 UPDATE concept_stage cs

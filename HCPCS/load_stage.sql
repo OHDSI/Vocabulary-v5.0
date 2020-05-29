@@ -277,6 +277,7 @@ AS (
 				THEN 'Procedure'
 			WHEN l1.str = 'C Codes - CMS Hospital Outpatient System'
 				THEN 'Device' -- default for Level 1: C1000-C9999
+					-- D codes
 			WHEN concept_code IN (
 					'D5860',
 					'D5861',
@@ -1009,7 +1010,8 @@ AS (
 UPDATE concept_stage cs
 SET domain_id = t.domain_id
 FROM t_domains t
-WHERE cs.concept_code = t.concept_code;
+WHERE cs.concept_code = t.concept_code
+	AND cs.concept_class_id <> 'HCPCS Class';
 
 --4.2. Part 2 (for HCPCS Modifiers)
 DO $_$
@@ -1380,7 +1382,7 @@ END $_$;
 --update from manual if something was changed
 UPDATE concept_stage cs
 SET --concept_name = m.concept_name,
-	domain_id = CASE WHEN m.domain_id IS NOT NULL THEN m.domain_id ELSE cs.domain_id END, --manually curated Domains
+	domain_id = CASE WHEN m.domain_id IS NOT NULL THEN m.domain_id ELSE cs.domain_id END, --reassign Domain for manually curated concepts from concept_stage_manual table
 	valid_start_date = m.valid_start_date,
 	valid_end_date = m.valid_end_date,
 	invalid_reason = m.invalid_reason

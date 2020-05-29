@@ -155,17 +155,16 @@ with info_sheet as
 --6. Deprecated concepts by class
 	select
 		'I',
-		'Deprecated concepts by class: ' || d.concept_class_id,
-		count (d.concept_id)
-	from concept d
-	left join concept_stage c on 
-		c.vocabulary_id = d.vocabulary_id and
-		c.concept_code = d.concept_code
+		'Deprecated concepts by class: ' || c.concept_class_id,
+		count (c.concept_code)
+	from concept_stage c
+	join concept d using (vocabulary_id, concept_code)
 	where
-		c.concept_id is null and
-		d.vocabulary_id = 'RxNorm' and
-		d.invalid_reason is null
-	group by d.concept_class_id
+		d.concept_id is null and
+		c.invalid_reason = 'D' and
+		d.invalid_reason is null and
+		c.vocabulary_id = 'RxNorm'
+	group by c.concept_class_id
 
 		union all
 
@@ -280,11 +279,23 @@ with info_sheet as
 		r.invalid_reason is null and
 		c.concept_id = r.concept_id_1 and
 		c.standard_concept = 'S' and
-		c.vocabulary_id = 'RxNorm'
+		c.vocabulary_id = 'RxNorm' and
+		c.concept_class_id in
+		(
+			'Clinical Drug Form',
+			'Branded Drug',
+			'Clinical Drug',
+			'Quant Clinical Drug',
+			'Quant Branded Drug',
+			'Branded Drug Comp',
+			'Branded Drug Form',
+			'Clinical Drug Comp'
+		) -- drug concept
 	join concept c2 on
 		c2.concept_id = r.concept_id_2 and
 		c2.invalid_reason is not null and
-		c2.vocabulary_id = 'RxNorm'
+		c2.vocabulary_id = 'RxNorm' and
+		c2.concept_class_id in ('Ingredient','Brand Name','Dose Form') -- attribute concept
 	--check for duplication
 	left join concept_relationship r2 on
 		r.concept_id_1 = r2.concept_id_1 and

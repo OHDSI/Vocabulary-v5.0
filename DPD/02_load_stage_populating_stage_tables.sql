@@ -763,6 +763,53 @@ WHERE amount_unit = 'NIL'
     OR numerator_unit = 'NIL'
     OR denominator_unit = 'NIL';
 
+--conflicting or incomplete dosage information fix
+--1) If there are solid forms for drug -> remove numerator/denominator
+--2) If there are solutions, etc -> remove amount
+--3) If both -> remove amount
+with a AS (
+    SELECT DISTINCT ds.drug_concept_code,
+                    f.form_name,
+                    CASE
+                        WHEN upper(form_name) ~* ('CAPSULE|TABLET|GRANULE|GLOBULE|JELLY|PELLET|POWDER')
+                            THEN 'numerator/denominator'
+                        --Take solid forms, not solutions
+                        ELSE 'amount' END AS to_delete
+                        --Take solutions, etc.
+    FROM ds_stage ds
+             JOIN drug_product dp ON ds.drug_concept_code = dp.drug_id
+             JOIN forms f on dp.drug_code = f.drug_code
+    WHERE drug_concept_code IN
+          (
+              SELECT a.drug_concept_code
+              FROM ds_stage a
+                       JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code
+                  AND a.ingredient_concept_code != b.ingredient_concept_code
+                  AND a.amount_unit IS NULL
+                  AND b.amount_unit IS NOT NULL
+                   --the dosage should be always present if UNIT is not null (checked before)
+              UNION
+
+              SELECT a.drug_concept_code
+              FROM ds_stage a
+                       JOIN ds_stage b ON a.drug_concept_code = b.drug_concept_code
+                  AND a.ingredient_concept_code != b.ingredient_concept_code
+                  AND a.numerator_unit IS NULL
+                  AND b.numerator_unit IS NOT NULL
+              --the dosage should be always present if UNIT is not null (checked before)
+          )
+)
+
+DELETE
+FROM ds_stage
+USING a
+WHERE
+      a.drug_concept_code = ds_stage.drug_concept_code
+      AND
+      CASE WHEN ds_stage.drug_concept_code IN (select drug_concept_code from a where a.to_delete = 'amount') THEN (amount_unit IS NOT NULL AND amount_value IS NOT NULL)
+                ELSE (numerator_value IS NOT NULL AND denominator_value IS NOT NULL AND denominator_unit IS NOT NULL AND numerator_unit IS NOT NULL)
+            END
+;
 
 --Step 5: pack_content population
 --TODO: Unclear how to do this correctly

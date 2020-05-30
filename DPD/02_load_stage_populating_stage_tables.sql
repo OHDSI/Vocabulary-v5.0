@@ -326,7 +326,6 @@ WHERE a.concept_class_id = 'Dose Form'
 
 --Step 4: ds_stage population
 --ds_stage population
---TODO: NIL
 TRUNCATE ds_stage;
 
 --Initial creation of ds_stage table to perform update on it
@@ -519,11 +518,6 @@ AND ds_stage.box_size IS NULL
 AND (amount_value, amount_unit) IS NOT NULL
 AND (numerator_value, numerator_unit, denominator_value, denominator_unit) IS NULL;
 
---TODO: Deal with these concepts
-/*
-select * from ds_stage
-where denominator_unit is NOT NULL AND denominator_value is null;
- */
 
 --amount for ML/L
 UPDATE ds_stage
@@ -695,6 +689,15 @@ WHERE ds_stage.drug_concept_code IN (SELECT drug_id FROM a)
 AND sum.drug_concept_code = ds_stage.drug_concept_code
 AND sum.ingredient_concept_code = ds_stage.ingredient_concept_code
 ;
+
+--for drugs, where dosages should be summed up, but they have both amount and numerator - take amount
+UPDATE ds_stage
+    SET amount_value = NULL,
+        amount_unit = NULL
+WHERE numerator_value IS NOT NULL AND numerator_unit IS NOT NULL;
+
+DELETE FROM ds_stage
+WHERE numerator_value IS NOT NULL AND numerator_unit IS NULL;
 
 --Removing duplicates from ds_stage
 with delete AS

@@ -4,11 +4,25 @@ RETURNS void AS
 $BODY$
 BEGIN
 	--1. Prerequisites:
-	--Check stage tables for incorrect rows
+	--1.1 Check stage tables for incorrect rows
 	DO $$
 	BEGIN
 		PERFORM QA_TESTS.Check_Stage_Tables();
 	END $$;
+	
+	--1.2 Clear concept_id's just in case
+	UPDATE concept_stage
+	SET concept_id = NULL
+	WHERE concept_id IS NOT NULL;
+	
+	UPDATE concept_relationship_stage
+	SET concept_id_1 = NULL,
+		concept_id_2 = NULL
+	WHERE COALESCE(concept_id_1, concept_id_2) IS NOT NULL;
+	
+	UPDATE concept_synonym_stage
+	SET synonym_concept_id = NULL
+	WHERE synonym_concept_id IS NOT NULL;
 
 	--2. Make sure that invalid concepts are standard_concept = NULL
 	UPDATE concept_stage cs
@@ -348,7 +362,7 @@ BEGIN
 	LEFT JOIN concept_relationship_stage i ON crs.concept_id_1 = i.concept_id_2
 		AND crs.concept_id_2 = i.concept_id_1
 		AND r.reverse_relationship_id = i.relationship_id
-		AND i.concept_id_1 IS NULL;
+	WHERE i.concept_id_1 IS NULL;
 
 	CREATE INDEX idx_crs_ids_generic_temp ON concept_relationship_stage (
 		concept_id_1,

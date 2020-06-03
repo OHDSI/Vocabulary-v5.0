@@ -1,8 +1,6 @@
 --Adaptation of AMT code
 -- populate manually mapped tables with new concepts before proceeding with rtc_2. _to_map tables should be empty
 
---TODO: If we have coalesce(im.new_name, im.name) => names should be updated right before this step?
-
 --1. ingredient
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence, mapping_type)
 SELECT DISTINCT dcs.concept_code, 'DPD', concept_id_2, precedence, mapping_type

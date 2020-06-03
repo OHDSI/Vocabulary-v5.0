@@ -17,6 +17,7 @@
 * Date: 2020
 **************************************************************************/
 
+--1. Set vocabulary update
 /*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -245,6 +246,9 @@ AND s.drug_code NOT IN (SELECT drug_code FROM temp_duplicates_removal WHERE rank
 ORDER BY drug_code;
 
 --Update non-drug (device) invalid_reason and assign valid_start_date and valid_end_date
+--valid_start_date = when drug became marketed or approved for the first time (if never approved - first date mentioned)
+--valid_end_date = when drug was mentioned dormant or cancelled for the last time
+--if rules mentioned above fail to determine dates (end_date > start_date) then use OHDSI dates
 with latest_drug_status AS
     (
 SELECT DISTINCT drug_code, status, history_date, row_number() over (partition by drug_code ORDER BY history_date DESC) AS rank
@@ -531,6 +535,8 @@ WHERE precise_ingredient_name IN (
         'DIPLOCOCCUS'
 		);
 
+--Processing drug forms: some drugs have more than one form
+-- new concepts will be created for them later
 DROP TABLE IF EXISTS forms;
 CREATE TABLE forms AS
     (

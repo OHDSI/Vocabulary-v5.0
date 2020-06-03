@@ -15,6 +15,18 @@ EXECUTE 'CREATE SEQUENCE new_voc INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE
 END
 $$;
 
+--For drugs with multiple forms we create OMOP-Generated codes
+DROP TABLE IF EXISTS drugs_mult_forms;
+CREATE TABLE drugs_mult_forms AS
+    (
+SELECT DISTINCT forms.drug_code, dp.drug_id, form_name, initcap(dp.brand_name) || ' ' || forms.form_name as concept_name, dp.valid_start_date, dp.valid_end_date,
+                'OMOP' || nextval('new_voc') AS concept_code
+FROM forms
+JOIN drug_product dp
+    ON forms.drug_code = dp.drug_code
+WHERE forms.drug_code IN (SELECT drug_code FROM forms GROUP BY drug_code HAVING count(*) > 1)
+    );
+
 --Table with omop-generated codes
 DROP TABLE IF EXISTS list_temp;
 CREATE TABLE list_temp AS
@@ -24,14 +36,18 @@ FROM (
 
     SELECT DISTINCT initcap(modified_name) AS concept_name,
                     'Ingredient' AS concept_class_id,
-                    NULL AS standard_concept
+                    NULL AS standard_concept,
+                    (current_date - 1) AS valid_start_date,
+	                to_date('20991231', 'yyyymmdd') AS valid_end_date
 	FROM ingr
 
 	UNION
 
 	SELECT DISTINCT new_name AS concept_name,
 	       'Brand Name' AS concept_class_id,
-	       NULL AS standard_concept
+	       NULL AS standard_concept,
+	       (current_date - 1) AS valid_start_date,
+	       to_date('20991231', 'yyyymmdd') AS valid_end_date
 	FROM brand_name
 	WHERE new_name IS NOT NULL
 
@@ -39,7 +55,9 @@ FROM (
 
 	SELECT DISTINCT initcap(form_name) AS concept_name,
 	       'Dose Form' AS concept_class_id,
-	       NULL AS standard_concept
+	       NULL AS standard_concept,
+	       (current_date - 1) AS valid_start_date,
+	       to_date('20991231', 'yyyymmdd') AS valid_end_date
 	FROM forms
 	WHERE form_name IS NOT NULL
 
@@ -47,7 +65,9 @@ FROM (
 
 	SELECT DISTINCT initcap(edited_name) AS concept_name,
 	       'Supplier' AS concept_class_id,
-	       NULL AS standard_concept
+	       NULL AS standard_concept,
+	       (current_date - 1) AS valid_start_date,
+	       to_date('20991231', 'yyyymmdd') AS valid_end_date
 	FROM companies
 	WHERE edited_name IS NOT NULL
 
@@ -55,7 +75,9 @@ FROM (
 
     SELECT DISTINCT non_drug.brand_name AS concept_name,
                     'Device' AS concept_class_id,
-                    NULL AS standard_concept
+                    NULL AS standard_concept,
+                    (current_date - 1) AS valid_start_date,
+	                to_date('20991231', 'yyyymmdd') AS valid_end_date
     FROM non_drug
     WHERE drug_id = 'Not Applicable/non applicable'
 	) AS a;
@@ -92,8 +114,8 @@ FROM (
 	       concept_class_id,
 	       standard_concept,
 	       'OMOP' || concept_code AS concept_code,
-	       (current_date - 1) AS valid_start_date,
-	       to_date('20991231', 'yyyymmdd') AS valid_end_date,
+	       valid_start_date,
+	       valid_end_date,
 	       'D' AS invalid_reason
 
 	FROM list_temp --ADD 'OMOP' to all OMOP-generated concepts
@@ -109,7 +131,8 @@ UNION
 	FROM unit
 
 UNION
-	SELECT initcap(brand_name || ' [Drug]') AS concept_name,         --TODO: Do we really need [Drug] added?
+	SELECT initcap(brand_name) AS concept_name,         --TODO: Do we really need [Drug] added?
+	       --initcap(brand_name || ' [Drug]') AS concept_name
 	       'Drug Product' AS concept_class_id,
 	       NULL AS standard_concept,
 	       drug_id::varchar(50) AS concept_code,
@@ -118,6 +141,9 @@ UNION
 	       drug_product.invalid_reason
 
 	FROM drug_product
+
+	WHERE drug_id NOT IN (SELECT drug_id FROM drugs_mult_forms)
+
 UNION
     SELECT initcap(brand_name) AS concept_name,
            'Device' AS concept_class_id,
@@ -128,6 +154,17 @@ UNION
            non_drug.invalid_reason
     FROM non_drug
     WHERE drug_id != 'Not Applicable/non applicable'
+
+UNION
+    SELECT drugs_mult_forms.concept_name AS concept_name,
+           'Drug' AS concept_class_id,
+           NULL AS standard_concept,
+           drugs_mult_forms.concept_code,
+           drugs_mult_forms.valid_start_date,
+           drugs_mult_forms.valid_end_date,
+           'D' AS invalid_reason                            --TODO: Deprecated?
+    FROM drugs_mult_forms
+--TODO: ADD NEWLY CREATED drug_concept_codes
 	) AS a;
 
 --Case when valid_start_date or valid_end_date > current date
@@ -144,6 +181,7 @@ UPDATE drug_concept_stage
 --77 matches with OMOP
 
 --TODO: For the first run on devv5, change OMOP% to DPD%????
+-- There are also matches with OMOP, but only if concept_name is all capital
 /*
 with a AS (
     SELECT *
@@ -270,7 +308,6 @@ WHERE lower(concept_name) IN (
 AND concept_class_id = 'Dose Form';
 
 --internal_relationship_stage population
-
 TRUNCATE internal_relationship_stage;
 INSERT INTO internal_relationship_stage (concept_code_1, concept_code_2)
 (
@@ -278,9 +315,10 @@ INSERT INTO internal_relationship_stage (concept_code_1, concept_code_2)
 SELECT DISTINCT dp.drug_id AS concept_code_1, dcs.concept_code AS concept_code_2
 FROM companies co
 JOIN drug_concept_stage dcs
-ON co.edited_name = dcs.concept_name AND dcs.concept_class_id = 'Supplier'
+ON initcap(co.edited_name) = dcs.concept_name AND dcs.concept_class_id = 'Supplier'
 JOIN drug_product dp
 ON dp.drug_code = co.drug_code
+WHERE dp.drug_id NOT IN (SELECT drug_id FROM drugs_mult_forms)
 
 UNION
 
@@ -291,6 +329,7 @@ JOIN drug_concept_stage dcs
 ON initcap(i.modified_name) = dcs.concept_name AND dcs.concept_class_id = 'Ingredient'
 JOIN drug_product dp
 ON dp.drug_code = i.drug_code
+WHERE dp.drug_id NOT IN (SELECT drug_id FROM drugs_mult_forms)
 
 UNION
 
@@ -301,6 +340,7 @@ JOIN drug_concept_stage dcs
 ON initcap(f.form_name) = dcs.concept_name AND dcs.concept_class_id = 'Dose Form'
 JOIN drug_product dp
 ON dp.drug_code = f.drug_code
+WHERE dp.drug_id NOT IN (SELECT drug_id FROM drugs_mult_forms)
 
 UNION
 
@@ -311,9 +351,55 @@ JOIN drug_concept_stage dcs
 ON initcap(bn.new_name) = dcs.concept_name AND dcs.concept_class_id = 'Brand Name'
 JOIN drug_product dp
 ON dp.drug_code = bn.drug_code
+WHERE dp.drug_id NOT IN (SELECT drug_id FROM drugs_mult_forms)
 
 )
 ;
+
+--Insert into internal_relationship_stage relationship for drugs with multiple forms
+INSERT INTO internal_relationship_stage (concept_code_1, concept_code_2)
+(
+--drug to manufacturer
+SELECT DISTINCT dp.concept_code  AS concept_code_1,
+                dcs.concept_code AS concept_code_2
+FROM companies co
+JOIN drug_concept_stage dcs
+ON initcap(co.edited_name) = dcs.concept_name AND dcs.concept_class_id = 'Supplier'
+JOIN drugs_mult_forms dp
+ON dp.drug_code = co.drug_code
+
+UNION
+
+--drug to ingredient
+SELECT DISTINCT dp.concept_code  AS concept_code_1,
+                dcs.concept_code AS concept_code_2
+FROM ingr i
+JOIN drug_concept_stage dcs
+ON initcap(i.modified_name) = dcs.concept_name AND dcs.concept_class_id = 'Ingredient'
+JOIN drugs_mult_forms dp
+ON dp.drug_code = i.drug_code
+
+UNION
+
+--drug to form
+SELECT dp.concept_code AS concept_code_1,
+       dcs.concept_code AS concept_code_2
+FROM drugs_mult_forms dp
+JOIN drug_concept_stage dcs
+ON initcap(dp.form_name) = dcs.concept_name AND dcs.concept_class_id = 'Dose Form'
+
+UNION
+
+--drug to brand name
+SELECT DISTINCT dp.concept_code AS concept_code_1,
+                dcs.concept_code AS concept_code_2
+FROM brand_name bn
+JOIN drug_concept_stage dcs
+ON initcap(bn.new_name) = dcs.concept_name AND dcs.concept_class_id = 'Brand Name'
+JOIN drugs_mult_forms dp
+ON dp.drug_code = bn.drug_code
+
+);
 
 --Removing drug_forms which exist with devices only
 DELETE FROM drug_concept_stage
@@ -376,30 +462,11 @@ WHERE amount_value IS NOT NULL
 
 
 --Homeopathy
---Deliting all the homeopathy
+--Delete all the homeopathy
 DELETE FROM ds_stage
     WHERE amount_unit IN ('C', 'CC', 'D', 'DH', 'X')
             OR numerator_unit IN ('C', 'CC', 'D', 'DH', 'X')
             OR denominator_unit IN ('C', 'CC', 'D', 'DH', 'X');
-
-
-/*
-UPDATE ds_stage
-SET amount_value = NULL,
-    amount_unit = NULL,
-    numerator_unit = 'ML',
-    numerator_value = 1,
-    denominator_value = CASE WHEN numerator_unit = 'C' THEN 10^(2*numerator_value::int)
-         WHEN numerator_unit = 'D' THEN 10^numerator_value::int
-         WHEN numerator_unit = 'DH' THEN 10^numerator_value::int
-         WHEN numerator_unit = 'CC' THEN 10^(2*numerator_value::int)
-         WHEN numerator_unit = 'X' THEN 10^numerator_value::int
-    END,
-    denominator_unit = 'ML'
-WHERE denominator_unit IN ('C', 'CC', 'D', 'DH', 'X')
-        OR numerator_unit IN ('C', 'CC', 'D', 'DH', 'X');
- */
-
 
 --%
 UPDATE ds_stage

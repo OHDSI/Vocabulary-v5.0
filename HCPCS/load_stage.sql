@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich, Anna Ostropolets, Dmitry Dymshyts, Alexander Davydov
-* Date: 2017
+* Date: 2020
 **************************************************************************/
 
 --1. UPDATE latest_UPDATE field to new date 
@@ -1382,7 +1382,7 @@ END $_$;
 --update from manual if something was changed
 UPDATE concept_stage cs
 SET --concept_name = m.concept_name,
-	domain_id = CASE WHEN m.domain_id IS NOT NULL THEN m.domain_id ELSE cs.domain_id END, --reassign Domain for manually curated concepts from concept_stage_manual table
+	domain_id = COALESCE(m.domain_id, cs.domain_id), --reassign Domain for manually curated concepts from concept_stage_manual table
 	valid_start_date = m.valid_start_date,
 	valid_end_date = m.valid_end_date,
 	invalid_reason = m.invalid_reason
@@ -1391,7 +1391,7 @@ WHERE cs.concept_code = m.concept_code
 	AND cs.vocabulary_id = m.vocabulary_id
 	AND (
 		--cs.concept_name <> m.concept_name --no significant changes now, but code reuse should be verified on every release
-		COALESCE(cs.domain_id,'X') <> COALESCE(m.domain_id,'X')
+		COALESCE(cs.domain_id, 'X') <> COALESCE(m.domain_id, 'X')
 		OR cs.valid_start_date <> m.valid_start_date
 		OR cs.valid_end_date <> m.valid_end_date
 		OR COALESCE(cs.invalid_reason, 'X') <> COALESCE(m.invalid_reason, 'X')

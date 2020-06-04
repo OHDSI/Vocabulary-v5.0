@@ -157,14 +157,13 @@ UNION
 
 UNION
     SELECT drugs_mult_forms.concept_name AS concept_name,
-           'Drug' AS concept_class_id,
+           'Drug Product' AS concept_class_id,
            NULL AS standard_concept,
            drugs_mult_forms.concept_code,
            drugs_mult_forms.valid_start_date,
            drugs_mult_forms.valid_end_date,
-           'D' AS invalid_reason                            --TODO: Deprecated?
+           CASE WHEN drugs_mult_forms.valid_end_date < current_date THEN 'D' ELSE NULL END AS invalid_reason
     FROM drugs_mult_forms
---TODO: ADD NEWLY CREATED drug_concept_codes
 	) AS a;
 
 --Case when valid_start_date or valid_end_date > current date
@@ -198,6 +197,8 @@ AND cs.concept_code like 'OMOP%';
  */
 
 --Delete Water as unnecessary ingredient
+--TODO: Delete from ds_stage and internal relationship stage water, etc.
+--TODO: Find out how did they get there
 DELETE FROM drug_concept_stage
 WHERE concept_name IN ('Sterile Water (Diluent)', 'Sea Water', 'Water (Diluent)', 'Sterile Water');
 
@@ -431,7 +432,26 @@ JOIN ingr i
     ON ai.active_ingredient_code = i.active_ingredient_code and i.drug_code = dp.drug_code
 JOIN drug_concept_stage dcs
     ON initcap(i.modified_name) = initcap(dcs.concept_name) AND dcs.concept_class_id = 'Ingredient'
+WHERE drug_id NOT IN (SELECT drug_id FROM drugs_mult_forms)
 ;
+
+--Insert for newly created drugs with multiple forms
+INSERT INTO ds_stage(drug_concept_code, ingredient_concept_code, amount_value, amount_unit, numerator_value, numerator_unit, denominator_value, denominator_unit)
+SELECT DISTINCT drugs_mult_forms.concept_code AS drug_concept_code,
+                dcs.concept_code AS ingredient_concept_code,
+regexp_replace(strength, '^\.[0-9]', '0'||strength)::double precision AS amount_value,
+                strength_unit AS amount_unit,
+regexp_replace(strength, '^\.[0-9]', '0'||strength)::double precision AS numerator_value,
+                strength_unit AS numerator_unit,
+regexp_replace(dosage_value, '^\.[0-9]', '0'||dosage_value)::double precision AS denominator_value,
+dosage_unit AS denominator_unit
+FROM drugs_mult_forms
+JOIN active_ingredients ai
+    ON drugs_mult_forms.drug_code = ai.drug_code
+JOIN ingr i
+    ON ai.active_ingredient_code = i.active_ingredient_code AND i.drug_code = drugs_mult_forms.drug_code
+JOIN drug_concept_stage dcs
+    ON initcap(i.modified_name) = initcap(dcs.concept_name) AND dcs.concept_class_id = 'Ingredient';
 
 --Drugs without denominators should have only amount populated
 UPDATE ds_stage

@@ -63,3 +63,11 @@ BEGIN
     pDefines_ancestry_rev    =>0
 );
 END $_$;
+
+--fix vocabulary_reference [AVOF-2572]
+UPDATE vocabulary
+SET vocabulary_reference = 'http://www.whocc.no/atc_ddd_index/'
+WHERE vocabulary_id = 'ATC';
+UPDATE vocabulary
+SET vocabulary_reference = 'FDB UK distribution package'
+WHERE vocabulary_id = 'Gemscript';

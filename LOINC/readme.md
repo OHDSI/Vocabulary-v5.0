@@ -21,6 +21,7 @@ and multiaxial hierarchy (https://loinc.org/file-access/download-id/8991)
 12. Download "LOINC Document Ontology" https://loinc.org/file-access/download-id/8994/, extract DocumentOntology.csv
 13. Download "LOINC Group File" https://loinc.org/file-access/download-id/17949/, extract Group.csv, GroupLoincTerms.csv and ParentGroupAttributes.csv
 14. Download "LOINC Part File" https://loinc.org/file-access/download-id/17948/, extract LoincPartLink.csv, Part.csv
-15. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2.64');
-16. Run load_stage.sql
-17. Run generic_update: devv5.GenericUpdate();
+15. Download "LOINC/RSNA Radiology Playbook File" https://loinc.org/file-access/download-id/9526/, extract LoincRsnaRadiologyPlaybook.csv
+16. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2.64');
+17. Run load_stage.sql
+18. Run generic_update: devv5.GenericUpdate();

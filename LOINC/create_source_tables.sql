@@ -321,7 +321,7 @@ BEGIN
   return query 
   select s0.created_on, s0.loinc, s0.long_common_name from (
     with loinc_table as (
-        select replace(substring(content,'<table id="prereleasetable".*?(<tbody>.*</tbody>)'),'&','&amp;')::xml xmlfield from devv5.http_get('https://loinc.org/prerelease')
+        select replace(replace(substring(content,'<table id="prereleasetable".*?(<tbody>.*</tbody>)'),'&','&amp;'),' <= ',' &lt;= ')::xml xmlfield from devv5.http_get('https://loinc.org/prerelease')
     )
     select
       to_date((xpath('./td/text()',sections))[1]::text,'yyyy-mm-dd') as created_on,

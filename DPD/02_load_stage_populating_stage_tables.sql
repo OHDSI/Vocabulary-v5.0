@@ -901,6 +901,29 @@ WHERE
             END
 ;
 
+--Removing drugs deleted from ds_stage, but left at drug_concept_stage
+DELETE FROM ds_stage
+WHERE drug_concept_code IN
+(
+SELECT DISTINCT s.drug_concept_code
+		FROM ds_stage s
+		LEFT JOIN drug_concept_stage a ON a.concept_code = s.drug_concept_code
+			AND a.concept_class_id = 'Drug Product'
+		WHERE a.concept_code IS NULL
+    );
+
+--Some drugs were deleted from ds_Stage due to incorrect dosage information in source
+-- but they had been marked as active in source data - bug fixing that make them deprecated
+UPDATE drug_concept_stage
+SET invalid_reason = 'D',
+    valid_start_date = CASE WHEN current_date - 1 < valid_start_date THEN current_date - 1
+                        ELSE valid_start_date END,
+    valid_end_date = current_date - 1
+WHERE concept_code NOT IN (SELECT drug_concept_code FROM ds_stage)
+    AND concept_class_id = 'Drug Product'
+AND invalid_reason IS NULL;
+
+
 --Step 5: pack_content population
 --TODO: Unclear how to do this correctly
 --Candidates for pack-content table

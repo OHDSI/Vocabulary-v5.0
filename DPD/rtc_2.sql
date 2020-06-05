@@ -191,6 +191,25 @@ $body$
 $body$;
 
 
+--Removing mapping duplicates
+--Removing duplicates from ds_stage
+with delete AS
+(DELETE FROM relationship_to_concept returning *),
+inserted AS
+(select concept_code_1, vocabulary_id_1, concept_id_2, precedence, conversion_factor,
+               row_number() over (partition by concept_code_1, vocabulary_id_1, concept_id_2, conversion_factor order by precedence) rank
+    FROM delete)
+INSERT INTO relationship_to_concept SELECT
+                                           concept_code_1,
+                                           vocabulary_id_1,
+                                           concept_id_2,
+                                           precedence,
+                                           conversion_factor
+
+FROM inserted
+WHERE rank = 1;
+
+
 -- need for BuildRxE to run
 ALTER TABLE relationship_to_concept
 DROP COLUMN mapping_type;

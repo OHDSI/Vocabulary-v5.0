@@ -24,6 +24,8 @@ SELECT vocabulary_pack.AddNewConcept(
     pStandard_concept =>'S',
     pConcept_code     =>'123_test3'
 );
+
+You can omit pConcept_code, then it will be generated automatically (OMOPXXXX)
 */
 
 CREATE OR REPLACE FUNCTION vocabulary_pack.AddNewConcept (
@@ -32,7 +34,7 @@ CREATE OR REPLACE FUNCTION vocabulary_pack.AddNewConcept (
   pVocabulary_id concept.vocabulary_id%TYPE,
   pConcept_class_id concept.concept_class_id%TYPE,
   pStandard_concept concept.standard_concept%TYPE,
-  pConcept_code concept.concept_code%TYPE,
+  pConcept_code concept.concept_code%TYPE = NULL,
   pValid_start_date concept.valid_start_date%TYPE = TO_DATE ('19700101', 'YYYYMMDD'),
   pValid_end_date concept.valid_end_date%TYPE = TO_DATE ('20991231', 'YYYYMMDD'),
   pInvalid_reason concept.invalid_reason%TYPE = NULL
@@ -54,7 +56,8 @@ BEGIN
   pConcept_code:=REGEXP_REPLACE(pConcept_code, '[[:cntrl:]]+', ' ', 'g');
   pConcept_code:=REGEXP_REPLACE(pConcept_code, ' {2,}', ' ', 'g');
   pConcept_code:=TRIM(pConcept_code);
-  pConcept_code:=REPLACE(pConcept_code, '–', '-');  
+  pConcept_code:=REPLACE(pConcept_code, '–', '-');
+  pConcept_code:=COALESCE(pConcept_code,(SELECT 'OMOP'||MAX(REPLACE(concept_code, 'OMOP','')::INT4)+1 FROM concept WHERE concept_code LIKE 'OMOP%' AND concept_code NOT LIKE '% %'));
 
   DROP SEQUENCE IF EXISTS v5_concept;
 

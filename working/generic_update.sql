@@ -1059,7 +1059,32 @@ BEGIN
 				AND c1.invalid_reason IS NOT NULL
 			);
 
-	--31. Check if current vocabulary exists in vocabulary_conversion table
+	--31. Fix empty concept names, new rules [AVOF-2206]
+	UPDATE concept c
+	SET concept_name = i.concept_name
+	FROM (
+		SELECT c1.concept_id,
+			vocabulary_pack.CutConceptName(CONCAT (
+					'No name provided',
+					' - mapped to ' || STRING_AGG(c2.concept_name, ' | ' ORDER BY c2.concept_name)
+					)) AS concept_name
+		FROM concept c1
+		JOIN vocabulary v ON v.vocabulary_id = c1.vocabulary_id
+		LEFT JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
+			AND cr.relationship_id = 'Maps to'
+			AND cr.invalid_reason IS NULL
+		LEFT JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+		WHERE c1.vocabulary_id IN (
+				'Read',
+				'GPI'
+				)
+			AND c1.concept_name = ' '
+			AND v.latest_update IS NOT NULL --only for current vocabularies
+		GROUP BY c1.concept_id
+		) i
+	WHERE i.concept_id = c.concept_id;
+
+	--32. Check if current vocabulary exists in vocabulary_conversion table
 	INSERT INTO vocabulary_conversion (
 		vocabulary_id_v4,
 		vocabulary_id_v5
@@ -1081,19 +1106,19 @@ BEGIN
 			) AS s1
 		) AS s2;
 
-	--32. Update latest_update on vocabulary_conversion
+	--33. Update latest_update on vocabulary_conversion
 	UPDATE vocabulary_conversion vc
 	SET latest_update = v.latest_update
 	FROM vocabulary v
 	WHERE v.latest_update IS NOT NULL
 		AND v.vocabulary_id = vc.vocabulary_id_v5;
 
-	--33. Drop column latest_update
+	--34. Drop column latest_update
 	ALTER TABLE vocabulary DROP COLUMN latest_update;
 	ALTER TABLE vocabulary DROP COLUMN dev_schema_name;
 	DROP INDEX idx_crs_ids_generic_temp;
 
-	--34. Final analysing for base tables
+	--35. Final analysing for base tables
 	ANALYZE concept;
 	ANALYZE concept_relationship;
 	ANALYZE concept_synonym;

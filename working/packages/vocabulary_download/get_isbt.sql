@@ -100,7 +100,7 @@ BEGIN
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.accdb',
       iDownloadLink=>pDownloadURL,
-      iParams=>'--no-cookies --header "Cookie: wgSession='||pCookie||'"'
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: wgSession='||pCookie||'"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,

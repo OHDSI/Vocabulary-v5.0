@@ -125,18 +125,33 @@ WHERE (
 		);
 
 --Add manual sources
-INSERT INTO concept_stage
-SELECT NULL as concept_id,
-       concept_name,
-       domain_id,
-       vocabulary_id,
-       concept_class_id,
-       standard_concept,
-       concept_code,
-       valid_start_date,
-       valid_end_date,
-       invalid_reason
-FROM dev_read.concept_manual;
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+VALUES
+	('Suspected disease cause by 2019-nCoV (novel coronavirus)','Observation','Read','Read',NULL,'1JX1.00',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('2019-nCoV (novel coronavirus) serology','Observation','Read','Read',NULL,'4J3R.00',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('2019-nCoV (novel coronavirus) detected','Observation','Read','Read',NULL,'4J3R100',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('2019-nCoV (novel coronavirus) not detected','Observation','Read','Read',NULL,'4J3R200',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('2019-nCoV (novel coronavirus) vaccination','Observation','Read','Read',NULL,'65F0.00',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('Exposure to 2019-nCoV (novel coronavirus) infection','Observation','Read','Read',NULL,'65PW100',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('Advice given about 2019-nCoV (novel coronavirus) infection','Observation','Read','Read',NULL,'8CAO.00',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('Advice given about 2019-nCoV (novel coronavirus) infection by telephone','Observation','Read','Read',NULL,'8CAO100',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('2019-nCoV (novel coronavirus) vaccination contraindicated','Observation','Read','Read',NULL,'8I23R00',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('2019-nCoV (novel coronavirus) vaccination not indicated','Observation','Read','Read',NULL,'8I6t.00',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('2019-nCoV (novel coronavirus) vaccination declined','Observation','Read','Read',NULL,'8IAI.00',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('Telephone consultation for suspected 2019-nCoV (novel coronavirus) infection','Observation','Read','Read',NULL,'9N31200',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('Did not attend 2019-nCoV (novel coronavirus) vaccination','Observation','Read','Read',NULL,'9Niq.00',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('2019-nCoV (novel coronavirus) vaccination vacc invitation SMS sent','Observation','Read','Read',NULL,'9mb..00',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL),
+	('Disease caused by 2019-nCoV (novel coronavirus)','Observation','Read','Read',NULL,'A795100',TO_DATE('20200219', 'yyyymmdd'),TO_DATE('20991231', 'yyyymmdd'),NULL);
 
 --Add manual 'Maps to' from Read to RxNorm, CVX and SNOMED
 DO $_$
@@ -257,7 +272,10 @@ FROM (
 					AND c1.vocabulary_id = r.vocabulary_id_1
 					AND c2.vocabulary_id = r.vocabulary_id_2
 					AND r.vocabulary_id_1 = 'Read'
-					AND r.vocabulary_id_2 IN ('SNOMED', 'OMOP Extension')
+					AND r.vocabulary_id_2 IN (
+						'SNOMED',
+						'OMOP Extension'
+						)
 					AND r.invalid_reason IS NULL
 				)
 		SELECT DISTINCT c1.concept_code,
@@ -290,7 +308,10 @@ FROM (
 				concept c2
 			WHERE c2.concept_code = r.concept_code_2
 				AND r.vocabulary_id_2 = c2.vocabulary_id
-				AND c2.vocabulary_id IN ('SNOMED', 'OMOP Extension')
+				AND c2.vocabulary_id IN (
+					'SNOMED',
+					'OMOP Extension'
+					)
 			) r1 ON r1.concept_code_1 = c1.concept_code
 			AND r1.vocabulary_id_1 = c1.vocabulary_id
 		WHERE c1.vocabulary_id = 'Read'

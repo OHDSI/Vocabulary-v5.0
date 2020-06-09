@@ -124,6 +124,20 @@ WHERE (
 				)
 		);
 
+--Add manual sources
+INSERT INTO concept_stage
+SELECT NULL as concept_id,
+       concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason
+FROM dev_read.concept_manual;
+
 --Add manual 'Maps to' from Read to RxNorm, CVX and SNOMED
 DO $_$
 BEGIN
@@ -243,7 +257,7 @@ FROM (
 					AND c1.vocabulary_id = r.vocabulary_id_1
 					AND c2.vocabulary_id = r.vocabulary_id_2
 					AND r.vocabulary_id_1 = 'Read'
-					AND r.vocabulary_id_2 = 'SNOMED'
+					AND r.vocabulary_id_2 IN ('SNOMED', 'OMOP Extension')
 					AND r.invalid_reason IS NULL
 				)
 		SELECT DISTINCT c1.concept_code,
@@ -276,7 +290,7 @@ FROM (
 				concept c2
 			WHERE c2.concept_code = r.concept_code_2
 				AND r.vocabulary_id_2 = c2.vocabulary_id
-				AND c2.vocabulary_id = 'SNOMED'
+				AND c2.vocabulary_id IN ('SNOMED', 'OMOP Extension')
 			) r1 ON r1.concept_code_1 = c1.concept_code
 			AND r1.vocabulary_id_1 = c1.vocabulary_id
 		WHERE c1.vocabulary_id = 'Read'
@@ -318,6 +332,10 @@ WHERE domain_id = 'Condition/Measurement';
 UPDATE read_domain
 SET domain_id = 'Specimen'
 WHERE domain_id = 'Measurement/Specimen';
+
+UPDATE read_domain
+SET domain_id = 'Measurement'
+WHERE domain_id = 'Measurement/Meas Value';
 
 -- Check that all domain_id are exists in domain table
 ALTER TABLE read_domain ADD CONSTRAINT fk_read_domain FOREIGN KEY (domain_id) REFERENCES domain (domain_id);

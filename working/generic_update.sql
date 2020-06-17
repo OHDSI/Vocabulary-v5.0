@@ -166,6 +166,7 @@ BEGIN
 	--10.1. Update the concept for non-CPT4, non-ICD9Proc and non-HCPCS vocabularies
 	UPDATE concept c SET
 		invalid_reason = 'D',
+		standard_concept = NULL,
 		valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
 	WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from concept_stage
 	AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies

@@ -19,7 +19,7 @@ with info_sheet as
 	join concept_stage c2 on
 		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
 		c2.invalid_reason is not null
-	--Check if concept has anoter active attribute of same type
+	--Check if concept has anoter active attribute of same type in stage
 	--May be caused by our mishandling of RxNorm: we need to Investigate why active relations to inactive attributes exist in the first place!
 	left join concept_relationship_stage rc on
 		rc.concept_code_1 = r.concept_code_1 and
@@ -31,9 +31,32 @@ with info_sheet as
 				from concept_stage
 				where invalid_reason is null
 			)
+	--Check if concept has anoter active attribute of same type in basic
+	left join concept_relationship rx on
+		rx.relationship_id = 'Has brand name' and
+		rx.invalid_reason is null and		
+		rx.concept_id_1 = 
+			(
+				select x.concept_id
+				from concept x
+				where
+					x.concept_code = c.concept_code and
+					x.vocabulary_id = 'RxNorm'
+			) and
+		rx.concept_id_2 in
+			(
+				select concept_id
+				from concept o
+				-- is not the same concept: not deprecating this release
+				where
+					o.concept_code != c2.concept_code and
+					o.vocabulary_id = 'RxNorm' and
+					o.invalid_reason is null
+			)
 	where
 		c.vocabulary_id = 'RxNorm' and
-		rc.concept_code_1 is null
+		rc.concept_code_1 is null and
+		rx.concept_id_1 is null
 
 		union all
 
@@ -65,9 +88,32 @@ with info_sheet as
 				from concept_stage
 				where invalid_reason is null
 			)
+	--Check if concept has anoter active attribute of same type in basic
+	left join concept_relationship rx on
+		rx.relationship_id = 'RxNorm has dose form' and
+		rx.invalid_reason is null and		
+		rx.concept_id_1 = 
+			(
+				select x.concept_id
+				from concept x
+				where
+					x.concept_code = c.concept_code and
+					x.vocabulary_id = 'RxNorm'
+			) and
+		rx.concept_id_2 in
+			(
+				select concept_id
+				from concept o
+				-- is not the same concept: not deprecating this release
+				where
+					o.concept_code != c2.concept_code and
+					o.vocabulary_id  = 'RxNorm' and
+					o.invalid_reason is null
+			)
 	where
 		c.vocabulary_id = 'RxNorm' and
-		rc.concept_code_1 is null
+		rc.concept_code_1 is null and
+		rx.concept_id_1 is null
 
 			union all
 
@@ -312,7 +358,7 @@ with info_sheet as
 		s.relationship_id is null and
 		r2.relationship_id is null
 
-	union all
+		union all
 
 	select
 		'W',
@@ -332,7 +378,80 @@ with info_sheet as
 		x.relationship_id in ('Concept replaced by','Maps to') and
 		(s.concept_code, s.vocabulary_id) = (x.concept_code_1, x.vocabulary_id_1) and
 		x.invalid_reason is null
-	where x.relationship_id is null 
+	where x.relationship_id is null
+
+		union all
+
+--11. Standard Drug concept without drug_strength_stage or pack_content_stage entries. Checks if concept is created without ingredient.
+	select
+		'E',
+		'Standard Drug concept without drug_strength_stage or pack_content_stage entries',
+		count (c.concept_code)
+	from concept_stage c
+	left join drug_strength_stage d on
+		d.drug_concept_code = c.concept_code
+	left join pack_content_stage p on
+		p.pack_concept_code = c.concept_code
+	where
+		c.standard_concept = 'S' and
+		d.drug_concept_code is null and
+		p.pack_concept_code is null
+
+		union all
+-- 12. Valid relation to non-standard ingredient with no alternatives -- hard Error
+	select
+		'E' as info_level,
+		'Concepts that have active relations to deprecated Ingredients with no alternative' as description,
+		count (c.concept_code) as err_cnt
+	from concept_stage c
+	join concept_relationship_stage r on
+		c.domain_id = 'Drug' and
+		c.standard_concept = 'S' and
+		r.concept_code_1 = c.concept_code and
+		r.vocabulary_id_1 = c.vocabulary_id and
+		r.relationship_id = 'Has ingredient' and
+		r.invalid_reason is null
+	join concept_stage c2 on
+		(r.concept_code_2, r.vocabulary_id_2) = (c2.concept_code, c2.vocabulary_id) and
+		c2.standard_concept is null
+	--Check if concept has anoter active attribute of same type in stage
+	--May be caused by our mishandling of RxNorm: we need to Investigate why active relations to inactive attributes exist in the first place!
+	left join concept_relationship_stage rc on
+		rc.concept_code_1 = r.concept_code_1 and
+		rc.relationship_id = 'Has ingredient' and
+		rc.invalid_reason is null and
+		rc.concept_code_2 in
+			(
+				select concept_code
+				from concept_stage
+				where standard_concept is not null
+			)
+	--Check if concept has anoter active attribute of same type in basic
+	left join concept_relationship rx on
+		rx.relationship_id = 'Has ingredient' and
+		rx.invalid_reason is null and		
+		rx.concept_id_1 = 
+			(
+				select x.concept_id
+				from concept x
+				where
+					x.concept_code = c.concept_code and
+					x.vocabulary_id = 'RxNorm'
+			) and
+		rx.concept_id_2 in
+			(
+				select concept_id
+				from concept o
+				-- is not the same concept: not deprecating this release
+				where
+					o.concept_code != c2.concept_code and
+					o.vocabulary_id = 'RxNorm' and
+					o.standard_concept is not null
+			)
+	where
+		c.vocabulary_id = 'RxNorm' and
+		rc.concept_code_1 is null and
+		rx.concept_id_1 is null
 )
 select info_level, description, sum (err_cnt) as err_cnt
 from info_sheet

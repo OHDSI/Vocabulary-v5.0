@@ -20,7 +20,26 @@
 --for ds_stage
 with s0 as
 (
+
+	SELECT drug_concept_code,
+		'dosage with ml: only allowed for gasseous substances' as error_type,
+		'ds_stage' as affected_table
+	FROM ds_stage
+	join relationship_to_concept on
+		concept_code_1 in (numerator_unit,amount_unit) and
+		concept_id_2 = 8587
+
+		UNION ALL
 	
+	select drug_concept_code,
+		'Redundant box_size equal to 1 in ds_stage',
+		'ds_stage'
+	from ds_stage
+	where box_size = 1
+	
+		
+	union all
+
 	SELECT drug_concept_code,
 		'homeopathic units in amounts, need to check' as error_type,
 		'ds_stage' as affected_table
@@ -178,6 +197,7 @@ with s0 as
 				standard_concept IS NULL and
 				invalid_reason is null
 			)
+
 	UNION ALL
 	
 	
@@ -189,6 +209,34 @@ with s0 as
 	JOIN concept b ON concept_id_2 = concept_id
 		AND concept_class_id = 'Unit'
 	WHERE conversion_factor IS NULL
+	
+		UNION ALL
+	
+	--Wrong vocabulary mapping
+	SELECT concept_code_1,
+		'Wrong vocabulary mapping: content will be ignored by Build_RxE',
+		'relationship_to_concept'
+	FROM relationship_to_concept a
+	JOIN concept b ON a.concept_id_2 = b.concept_id
+	WHERE b.VOCABULARY_ID NOT IN 
+		(
+			'UCUM',
+			'RxNorm',
+			'RxNorm Extension'
+		)
+
+		UNION all
+
+--for concept_synonym_stage
+
+	SELECT synonym_concept_code,
+		'concept_code & vocabulary_id combination is absent from drug_concept_stage',
+		'concept_synonym_stage'
+	from concept_synonym_stage s
+	left join drug_concept_stage c on
+		(c.concept_code, c.vocabulary_id) = (s.synonym_concept_code, s.synonym_vocabulary_id)
+	where c.concept_code is null
+
 )
 SELECT error_type,affected_table,COUNT(*) AS cnt
 FROM s0

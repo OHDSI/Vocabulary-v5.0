@@ -28,9 +28,34 @@
 		LEFT JOIN concept c ON c.concept_id = r.concept_id_2 and c.invalid_reason is  null
 		WHERE 
 			c.concept_name IS NULL 
-	
+
 		UNION ALL
 	
+	--Wrong vocabulary mapping
+		SELECT concept_code_1,
+			'Wrong vocabulary mapping for an attribute or Unit',
+			'relationship_to_concept'
+		FROM relationship_to_concept a
+		join drug_concept_stage c on
+			a.concept_code_1 = c.concept_code
+		JOIN concept b ON a.concept_id_2 = b.concept_id
+		WHERE (c.concept_class_id, b.VOCABULARY_ID) NOT IN 
+			(
+				('Unit','UCUM'),
+				('Brand Name','RxNorm'),
+				('Ingredient','RxNorm'),
+				('Dose Form','RxNorm'),
+				('Brand Name','RxNorm Extension'),
+				('Ingredient','RxNorm Extension'),
+				('Dose Form','RxNorm Extension'),
+				('Supplier','RxNorm Extension')
+			) and
+			c.concept_class_id in
+			(
+				'Unit', 'Brand Name', 'Ingredient', 'Dose Form'
+			)
+		UNION ALL
+
 		SELECT concept_code_1,
 			'concept_code_1 is null',
 			'relationship_to_concept'
@@ -117,22 +142,7 @@
 				concept_id_2
 			HAVING COUNT(*) > 1
 			) AS s1
-	
-		UNION ALL
-	
-	--Wrong vocabulary mapping
-		SELECT concept_code_1,
-			'Wrong vocabulary mapping',
-			'relationship_to_concept'
-		FROM relationship_to_concept a
-		JOIN concept b ON a.concept_id_2 = b.concept_id
-		WHERE b.VOCABULARY_ID NOT IN 
-			(
-				'UCUM',
-				'RxNorm',
-				'RxNorm Extension'
-			)
-		
+
 		UNION ALL
 		
 --for internal_relationship_stage
@@ -461,17 +471,6 @@
 			box_size is not null
 		
 		union all
-			
-		SELECT drug_concept_code,
-			'dosage with ml',
-			'ds_stage'
-		FROM ds_stage
-		join relationship_to_concept on
-			concept_code_1 in (numerator_unit,amount_unit) and
-			concept_id_2 = 8587
-			-- Drug Comp Box, need to remove box_size
-			
-		union all
 		
 		SELECT drug_concept_code,
 			'Box_size information without Dose Form',
@@ -486,15 +485,7 @@
 				WHERE ds.box_size IS NOT NULL
 				)
 			AND box_size IS NOT NULL
-		
-		UNION ALL
-		
-		select drug_concept_code,
-			'Redundant box_size equal to 1 in ds_stage',
-			'ds_stage'
-		from ds_stage
-		where box_size = 1
-	
+
 --for drug_concept_stage
 		UNION ALL
 		
@@ -627,7 +618,7 @@
 		union all
 
         SELECT DISTINCT d1.vocabulary_id,
-                        'multiple VOCABULARY_ID in drug_concept_stage',
+                        'multiple VOCABULARY_ID in drug_concept_stage is not supported',
                         'drug_concept_stage'
         FROM (
              SELECT DISTINCT vocabulary_id
@@ -682,7 +673,7 @@
 		
 		--non drug as a pack component
 		SELECT DRUG_CONCEPT_CODE,
-			'non drug as a pack component',
+			'non-drug product as a pack component',
 			'pc_stage'
 		FROM pc_stage
 		JOIN drug_concept_stage ON DRUG_CONCEPT_CODE = concept_code
@@ -718,7 +709,7 @@
 		
 		--pack(drug)_concept_code doesn't exist in drug_concept_stage
 		SELECT drug_concept_code,
-			'pack content is missing from drug_concept_stage',
+			'pack content code is missing from drug_concept_stage',
 			'pc_stage'
 		FROM pc_stage
 		WHERE drug_concept_code NOT IN (
@@ -739,7 +730,7 @@
 		UNION ALL
 		
 		SELECT pack_concept_code,
-			'pack is missing from drug_concept_stage',
+			'pack code is missing from drug_concept_stage',
 			'pc_stage'
 		FROM pc_stage
 		WHERE pack_concept_code NOT IN (
@@ -760,16 +751,6 @@
 			language_concept_id is null or
 			synonym_vocabulary_id is null
 	
-		UNION ALL
-	
-		SELECT synonym_concept_code,
-			'concept_code & vocabulary_id is absent from drug_concept_stage',
-			'concept_synonym_stage'
-		from concept_synonym_stage s
-		left join drug_concept_stage c on
-			(c.concept_code, c.vocabulary_id) = (s.synonym_concept_code, s.synonym_vocabulary_id)
-		where c.concept_code is null
-		
 		UNION ALL
 		
 		SELECT synonym_concept_code,

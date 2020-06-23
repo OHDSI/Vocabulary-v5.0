@@ -22,8 +22,8 @@ with s0 as
 (
 
 	SELECT drug_concept_code,
-		'dosage with ml: only allowed for gasseous substances' as error_type,
-		'ds_stage' as affected_table
+		'dosage with ml: only allowed for gasseous substances',
+		'ds_stage'
 	FROM ds_stage
 	join relationship_to_concept on
 		concept_code_1 in (numerator_unit,amount_unit) and
@@ -236,7 +236,6 @@ with s0 as
 	left join drug_concept_stage c on
 		(c.concept_code, c.vocabulary_id) = (s.synonym_concept_code, s.synonym_vocabulary_id)
 	where c.concept_code is null
-
 )
 SELECT error_type,affected_table,COUNT(*) AS cnt
 FROM s0

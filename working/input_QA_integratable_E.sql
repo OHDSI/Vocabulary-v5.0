@@ -617,19 +617,16 @@
 		
 		union all
 
-        SELECT DISTINCT d1.vocabulary_id,
+        SELECT vocabulary_id,
                         'multiple VOCABULARY_ID in drug_concept_stage is not supported',
                         'drug_concept_stage'
-        FROM (
-             SELECT DISTINCT vocabulary_id
-             FROM drug_concept_stage
-             ) d1
-        JOIN (
-             SELECT DISTINCT vocabulary_id
-             FROM drug_concept_stage
-             ) d2
-            ON
-                d1.vocabulary_id != d2.vocabulary_id
+		from
+			(
+				select distinct vocabulary_id
+				from drug_concept_stage
+			) a
+		group by vocabulary_id
+		having count (vocabulary_id) > 1
 
 		UNION ALL
 

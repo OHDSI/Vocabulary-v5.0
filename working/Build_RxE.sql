@@ -2915,7 +2915,7 @@ pd as (
   select distinct
     cp.concept_id,
     case when cp.bn_id=0 then null else concat(' [',coalesce(bn.concept_name, ebn.concept_name),']') end as bn_name,
-    case when cp.bs=0 then null else concat(' box of ',bs,' ') end as bs_name,
+    case when cp.bs=0 then null else concat(' box of ', bs) end as bs_name,
     case when cp.mf_id=0 then null else concat(' by ',coalesce(mf.concept_name, emf.concept_name)) end as mf_name
 -- case when cp.mf_id=0 then null else ' by '||regexp_replace(coalesce(mf.concept_name, emf.concept_name), ' Inc\.?| Ltd| Plc| PLC| UK| \(UK\)| \(U\.K\.\)| Canada| Pharmaceuticals| Pharma| GmbH| Laboratories') end as mf_name
   from pack_attribute cp

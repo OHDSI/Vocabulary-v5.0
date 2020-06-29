@@ -48,8 +48,8 @@ BEGIN
 	(
 		concept_code_1      VARCHAR (255),
 		concept_id_2        INTEGER,
-		precedence          INTEGER,
-		conversion_factor   FLOAT,
+		precedence          INT2,
+		conversion_factor   NUMERIC,
 		CONSTRAINT r2c_uq_cc1_cid2 UNIQUE (concept_code_1, concept_id_2),
 		CONSTRAINT r2c_uq2_cc1_cid2 UNIQUE (concept_code_1, precedence)
 	);
@@ -66,13 +66,13 @@ BEGIN
 	(
 		drug_concept_code         VARCHAR (255), -- The source code of the Drug or Drug Component, either Branded or Clinical.
 		ingredient_concept_code   VARCHAR (255), -- The source code for one of the Ingredients.
-		amount_value              FLOAT,         -- The numeric value for absolute content (usually solid formulations).
+		amount_value              NUMERIC,         -- The numeric value for absolute content (usually solid formulations).
 		amount_unit               VARCHAR (255), -- The verbatim unit of the absolute content (solids).
-		numerator_value           FLOAT,         -- The numerator value for a concentration (usally liquid formulations).
+		numerator_value           NUMERIC,         -- The numerator value for a concentration (usally liquid formulations).
 		numerator_unit            VARCHAR (255), -- The verbatim numerator unit of a concentration (liquids).
-		denominator_value         FLOAT,         -- The denominator value for a concentration (usally liquid formulations).
+		denominator_value         NUMERIC,         -- The denominator value for a concentration (usally liquid formulations).
 		denominator_unit          VARCHAR (255), -- The verbatim denominator unit of a concentration (liquids).
-		box_size                  INTEGER
+		box_size                  INT2
 	);
 
 	/************************************
@@ -2089,15 +2089,15 @@ BEGIN
 				THEN d.u
 			ELSE NULL
 			END AS numerator_unit,
-		NULL::FLOAT AS denominator_value,
+		NULL::NUMERIC AS denominator_value,
 		NULL AS denominator_unit,
-		NULL::INT AS box_size
+		NULL::INT2 AS box_size
 	FROM (
 		SELECT concept_code,
 			CASE v
 				WHEN 'per'
 					THEN 1
-				ELSE cast(translate(v, 'a,', 'a') AS FLOAT)
+				ELSE cast(translate(v, 'a,', 'a') AS NUMERIC)
 				END AS v,
 			u
 		FROM (
@@ -2270,7 +2270,7 @@ BEGIN
 	SELECT DISTINCT brandname AS concept_code_1,
 		concept_id AS concept_id_2,
 		1 AS precedence,
-		NULL::FLOAT AS conversion_factor
+		NULL::NUMERIC AS conversion_factor
 	FROM brandname;
 
 	INSERT INTO internal_relationship_stage

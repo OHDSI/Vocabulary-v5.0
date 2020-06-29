@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION devv4.v5_to_v4 (
+﻿﻿CREATE OR REPLACE FUNCTION devv4.v5_to_v4 (
 )
 RETURNS void AS
 $BODY$
@@ -30,22 +30,22 @@ BEGIN
 	CREATE TABLE drug_strength (
 		drug_concept_id INTEGER NOT NULL,
 		ingredient_concept_id INTEGER NOT NULL,
-		amount_value DECIMAL,
+		amount_value NUMERIC,
 		amount_unit VARCHAR(60),
-		concentration_value DECIMAL,
+		concentration_value NUMERIC,
 		concentration_enum_unit VARCHAR(60),
 		concentration_denom_unit VARCHAR(60),
-		box_size DECIMAL,
+		box_size INT4,
 		valid_start_date DATE NOT NULL,
 		valid_end_date DATE NOT NULL,
 		invalid_reason VARCHAR(1)
 		);
 
 	CREATE TABLE pack_content (
-		pack_concept_id DECIMAL NOT NULL,
-		drug_concept_id DECIMAL NOT NULL,
-		amount VARCHAR(4000),
-		box_size DECIMAL
+		pack_concept_id NUMERIC NOT NULL,
+		drug_concept_id NUMERIC NOT NULL,
+		amount INT2,
+		box_size INT4
 		);
 
 	--add table vocabulary

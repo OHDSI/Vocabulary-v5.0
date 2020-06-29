@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate( 
 	pVocabularyName			=> 'PPI',
-	pVocabularyDate			=> TO_DATE ('2018-12-28' ,'yyyy-mm-dd'), -- Date of Version Update from PPI Codebook
-	pVocabularyVersion		=> 'Codebook Version 0.3.34',  -- Current Codebook Version from PPI Codebook
+	pVocabularyDate			=> TO_DATE ('2020-05-07' ,'yyyy-mm-dd'), -- Date of Version Update from PPI Codebook
+	pVocabularyVersion		=> 'Codebook Version 0.3.34 + COVID + MHWB',  -- Current Codebook Version from PPI Codebook
 	pVocabularyDevSchema	=> 'dev_ppi'
 );
 END $_$;
@@ -72,7 +72,11 @@ FROM all_source_0334_LS A
          ON a.concept_code = b.concept_code
         AND b.vocabulary_id IN ('LOINC', 'SNOMED') 
         AND b.standard_concept = 'S'
-WHERE a.relationship_id = 'Maps to';
+WHERE a.relationship_id = 'Maps to'; -- 4254 
+
+--select count (concept_code) from devv5.concept where vocabulary_id = 'PPI' and invalid_reason is null; -- 4316 
+--select count (concept_code) from concept_stage where vocabulary_id = 'PPI' and invalid_reason is null; -- 4316 
+
 
 --4. Add PPI Measurement values using 'concept' table 
 INSERT INTO CONCEPT_STAGE
@@ -191,7 +195,7 @@ JOIN  CONCEPT c
    
 UNION ALL
 SELECT  COALESCE(a.short_code,SUBSTRING(a.pmi_code,1,50)) AS concept_code_1,  -- PPI concept code can be represenеed by either PMI_code or short_code in a case when length of PMI_code is inappropriate 
-       c.concept_code AS concept_code_2, -- SNOMED/LOINC concept code
+       c.concept_code AS concept_code_2, -- PPI concept code
        'PPI' AS vocabulary_id_1,
        c.vocabulary_id AS vocabulary_id_2,
        a.relationship_id AS relationship_id, -- 'Maps to' and 'Maps to value'
@@ -204,8 +208,8 @@ JOIN  CONCEPT_STAGE c
     ON COALESCE(b.short_code,SUBSTRING(b.pmi_code,1,50))= c.concept_code
    WHERE c.vocabulary_id = 'PPI'
    AND c.standard_concept =  'S'
-   and a.concept_id is null; -- for those PPI Concepts that mapped to itself or other PPI concepts  3070 (3302)
-
+   and a.concept_id is null; -- for those PPI Concepts that mapped to itself or other PPI concepts   -- 7067 
+   
 --8. Build 'Is a' relationships from Descendant PPI Questions/Topics to Ancestor PPI Questions/Topics directly
 INSERT INTO CONCEPT_RELATIONSHIP_STAGE
 (
@@ -372,9 +376,9 @@ c1.domain_id = 'Measurement' AND c1.concept_class_id = 'Clinical Observation'
 OR 
 c1.concept_code ~ 'protocol\-modifications|^notes$'
 OR
-c1.concept_class_id = 'Qualifier Value') 
+c1.concept_class_id = 'Qualifier Value') ;
 
-UNION ALL
+/*UNION ALL
 -- fix mapping for 'Irregularity detected' PPI Meas Value manually (target SNOMED concept was updated) 
 SELECT  'irregularity-detected', -- Irregularity detected
        '361137007' ,  -- 	Irregular heart beat
@@ -384,7 +388,7 @@ SELECT  'irregularity-detected', -- Irregularity detected
        (SELECT latest_update
         FROM vocabulary
         WHERE vocabulary_id = 'PPI') AS valid_start_date,
-       TO_DATE('2099-12-31','yyyy-mm-dd') AS valid_end_date;
+       TO_DATE('2099-12-31','yyyy-mm-dd') AS valid_end_date*/;
 
  --13. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
@@ -418,7 +422,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---14. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--14. Add deprecated relationships which do not exist in concept_relationship_stage from concept_relationship to concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -454,3 +458,16 @@ WHERE 'PPI' IN (
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
 		);
+-- update the bug from codebook
+update concept_stage
+set concept_name = 'Dentist or Orthodontist Visits: 10 to 12'
+where concept_name = 'Dentist or Orthodontist  Visits: 10 to 12' ;
+
+--insert ready conpcets from syrveys COVID and MHWB
+insert into concept_stage
+select * from COVID_MHWB_concept_stage ;
+
+insert into concept_relationship_stage
+select * from COVID_MHWB_concept_relationship_stage ;
+
+-- if you need to add new concepts use the script https://bitbucket.org/sciforce_odysseus/ppi/src/master/load_stage%202020-06-11.sql

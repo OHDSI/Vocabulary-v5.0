@@ -785,7 +785,7 @@ BEGIN
 			NULL::INT4 AS numerator_unit_concept_id,
 			NULL::NUMERIC AS denominator_value,
 			NULL::INT4 AS denominator_unit_concept_id,
-			NULL::INT4 AS box_size,
+			NULL::INT2 AS box_size,
 			c.valid_start_date,
 			c.valid_end_date,
 			c.invalid_reason

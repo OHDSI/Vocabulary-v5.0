@@ -126,7 +126,7 @@ CREATE TABLE drug_strength (
 	numerator_unit_concept_id int4,
 	denominator_value NUMERIC,
 	denominator_unit_concept_id int4,
-	box_size int4,
+	box_size int2,
 	valid_start_date DATE NOT NULL,
 	valid_end_date DATE NOT NULL,
 	invalid_reason VARCHAR (1)
@@ -137,7 +137,7 @@ CREATE TABLE pack_content (
 	pack_concept_id int4 NOT NULL,
 	drug_concept_id int4 NOT NULL,
 	amount int2,
-	box_size int4
+	box_size int2
 );
 
 DROP TABLE IF EXISTS concept_stage;
@@ -201,7 +201,7 @@ CREATE TABLE pack_content_stage (
 	drug_concept_code VARCHAR (20) NOT NULL,
 	drug_vocabulary_id VARCHAR (20) NOT NULL,
 	amount int2,
-	box_size int4
+	box_size int2
 );
 
 DROP TABLE IF EXISTS concept_relationship_manual;

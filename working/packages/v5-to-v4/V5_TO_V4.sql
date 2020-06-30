@@ -35,7 +35,7 @@ BEGIN
 		concentration_value NUMERIC,
 		concentration_enum_unit VARCHAR(60),
 		concentration_denom_unit VARCHAR(60),
-		box_size INT4,
+		box_size INT2,
 		valid_start_date DATE NOT NULL,
 		valid_end_date DATE NOT NULL,
 		invalid_reason VARCHAR(1)
@@ -45,7 +45,7 @@ BEGIN
 		pack_concept_id NUMERIC NOT NULL,
 		drug_concept_id NUMERIC NOT NULL,
 		amount INT2,
-		box_size INT4
+		box_size INT2
 		);
 
 	--add table vocabulary

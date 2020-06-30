@@ -1275,6 +1275,34 @@ left join concept_relationship_stage s on
 	s.relationship_id = r.relationship_id
 where s.concept_code_1 is null
 ;
--- 16. Drop all temporary tables
-drop table if exists  snomed_mapping, snomed_ancestor, snomed_target_prepared, attribute_hierarcy, comb_table, match_blob, legacy_comb, code_replace cascade
+--16 Populate concept_synonym_stage 
+--with morphologies
+insert into concept_synonym_stage
+--we ignore obsoletion status of synonyms for now: concepts may still be referenced by their old names in historical classifications
+--ICDO3 does not distinguish between 'old' and 'wrong'
+select
+	null,
+	trim (term),
+	icdo32,
+	'ICDO3',
+	4180186 -- English
+from morph_source_who
+where 
+	level != 'Related' -- not actual synonyms
+	and icdo32 is not null
+;
+--with everything else
+insert into concept_synonym_stage
+select
+	null,
+	concept_name,
+	concept_code,
+	'ICDO3',
+	4180186 -- English
+from concept_stage
+where
+	concept_class_id != 'ICDO Histology'
+;
+-- 17. Drop all temporary tables
+-- drop table if exists  snomed_mapping, snomed_ancestor, snomed_target_prepared, attribute_hierarcy, comb_table, match_blob, legacy_comb, code_replace cascade
 ;

@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Medical Team
+* Authors: Christian Reich
 * Date: 2016-2020
 **************************************************************************/
 
@@ -451,16 +451,7 @@ ANALYZE q_bs;
 DROP TABLE IF EXISTS q_existing;
 CREATE UNLOGGED TABLE q_existing AS
 -- Marketed Product
-SELECT c.concept_code,
-	COALESCE(q3.value, 0) AS quant_value,
-	COALESCE(q3.unit, ' ') AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q1.df_code,
-	COALESCE(q4.bn_code, ' ') AS bn_code,
-	COALESCE(q5.bs, 0) AS bs,
-	q2.mf_code AS mf_code,
-	'Marketed Product' AS concept_class_id
+SELECT c.concept_code, COALESCE(q3.value, 0) AS quant_value, COALESCE(q3.unit, ' ') AS quant_unit, c.i_combo, c.d_combo, q1.df_code, COALESCE(q4.bn_code, ' ') AS bn_code, COALESCE(q5.bs, 0) AS bs, q2.mf_code AS mf_code, 'Marketed Product' AS concept_class_id
 FROM q_combo c
 JOIN q_df q1 ON q1.concept_code = c.concept_code
 JOIN q_mf q2 ON q2.concept_code = c.concept_code
@@ -472,16 +463,7 @@ WHERE c.d_combo <> ' '
 UNION ALL
 
 -- Quant Branded Box
-SELECT c.concept_code,
-	q1.value AS quant_value,
-	q1.unit AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	q3.bn_code,
-	q4.bs,
-	' ' AS mf_code,
-	'Quant Branded Box' AS concept_class_id
+SELECT c.concept_code, q1.value AS quant_value, q1.unit AS quant_unit, c.i_combo, c.d_combo, q2.df_code, q3.bn_code, q4.bs, ' ' AS mf_code, 'Quant Branded Box' AS concept_class_id
 FROM q_combo c
 JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -494,16 +476,7 @@ WHERE c.d_combo <> ' '
 UNION ALL
 
 -- Quant Clinical Box
-SELECT c.concept_code,
-	q1.value AS quant_value,
-	q1.unit AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	' ' AS bn_code,
-	q4.bs,
-	' ' AS mf_code,
-	'Quant Clinical Box' AS concept_class_id
+SELECT c.concept_code, q1.value AS quant_value, q1.unit AS quant_unit, c.i_combo, c.d_combo, q2.df_code, ' ' AS bn_code, q4.bs, ' ' AS mf_code, 'Quant Clinical Box' AS concept_class_id
 FROM q_combo c
 JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -517,16 +490,7 @@ WHERE c.d_combo <> ' '
 UNION ALL
 
 -- Branded Drug Box
-SELECT c.concept_code,
-	0 AS quant_value,
-	' ' AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	q3.bn_code,
-	q4.bs,
-	' ' AS mf_code,
-	'Branded Drug Box' AS concept_class_id
+SELECT c.concept_code, 0 AS quant_value, ' ' AS quant_unit, c.i_combo, c.d_combo, q2.df_code, q3.bn_code, q4.bs, ' ' AS mf_code, 'Branded Drug Box' AS concept_class_id
 FROM q_combo c
 LEFT JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -540,16 +504,7 @@ WHERE q1.concept_code IS NULL
 UNION ALL
 
 -- Clinical Drug Box
-SELECT c.concept_code,
-	0 AS quant_value,
-	' ' AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	' ' AS bn_code,
-	q4.bs,
-	' ' AS mf_code,
-	'Clinical Drug Box' AS concept_class_id
+SELECT c.concept_code, 0 AS quant_value, ' ' AS quant_unit, c.i_combo, c.d_combo, q2.df_code, ' ' AS bn_code, q4.bs, ' ' AS mf_code, 'Clinical Drug Box' AS concept_class_id
 FROM q_combo c
 LEFT JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -564,16 +519,7 @@ WHERE q1.concept_code IS NULL
 UNION ALL
 
 -- Quant Branded Drug
-SELECT c.concept_code,
-	q1.value AS quant_value,
-	q1.unit AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	q3.bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	'Quant Branded Drug' AS concept_class_id
+SELECT c.concept_code, q1.value AS quant_value, q1.unit AS quant_unit, c.i_combo, c.d_combo, q2.df_code, q3.bn_code, 0 AS bs, ' ' AS mf_code, 'Quant Branded Drug' AS concept_class_id
 FROM q_combo c
 JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -587,16 +533,7 @@ WHERE c.d_combo <> ' '
 UNION ALL
 
 -- Quant Clinical Drug
-SELECT c.concept_code,
-	q1.value AS quant_value,
-	q1.unit AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	' ' AS bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	'Quant Clinical Drug' AS concept_class_id
+SELECT c.concept_code, q1.value AS quant_value, q1.unit AS quant_unit, c.i_combo, c.d_combo, q2.df_code, ' ' AS bn_code, 0 AS bs, ' ' AS mf_code, 'Quant Clinical Drug' AS concept_class_id
 FROM q_combo c
 JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -611,16 +548,7 @@ WHERE c.d_combo <> ' '
 UNION ALL
 
 -- Branded Drug
-SELECT c.concept_code,
-	0 AS quant_value,
-	' ' AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	q3.bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	'Branded Drug' AS concept_class_id
+SELECT c.concept_code, 0 AS quant_value, ' ' AS quant_unit, c.i_combo, c.d_combo, q2.df_code, q3.bn_code, 0 AS bs, ' ' AS mf_code, 'Branded Drug' AS concept_class_id
 FROM q_combo c
 LEFT JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -635,16 +563,7 @@ WHERE q1.concept_code IS NULL
 UNION ALL
 
 -- Clinical Drug
-SELECT c.concept_code,
-	0 AS quant_value,
-	' ' AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	' ' AS bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	'Clinical Drug' AS concept_class_id
+SELECT c.concept_code, 0 AS quant_value, ' ' AS quant_unit, c.i_combo, c.d_combo, q2.df_code, ' ' AS bn_code, 0 AS bs, ' ' AS mf_code, 'Clinical Drug' AS concept_class_id
 FROM q_combo c
 LEFT JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -660,16 +579,7 @@ WHERE q1.concept_code IS NULL
 UNION ALL
 
 -- Branded Drug Form
-SELECT c.concept_code,
-	0 AS quant_value,
-	' ' AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	q3.bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	'Branded Drug Form' AS concept_class_id
+SELECT c.concept_code, 0 AS quant_value, ' ' AS quant_unit, c.i_combo, c.d_combo, q2.df_code, q3.bn_code, 0 AS bs, ' ' AS mf_code, 'Branded Drug Form' AS concept_class_id
 FROM q_combo c
 LEFT JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -684,16 +594,7 @@ WHERE q1.concept_code IS NULL
 UNION ALL
 
 -- Clinical Drug Form
-SELECT c.concept_code,
-	0 AS quant_value,
-	' ' AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	q2.df_code,
-	' ' AS bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	'Clinical Drug Form' AS concept_class_id
+SELECT c.concept_code, 0 AS quant_value, ' ' AS quant_unit, c.i_combo, c.d_combo, q2.df_code, ' ' AS bn_code, 0 AS bs, ' ' AS mf_code, 'Clinical Drug Form' AS concept_class_id
 FROM q_combo c
 LEFT JOIN q_quant q1 ON q1.concept_code = c.concept_code
 JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -709,16 +610,7 @@ WHERE q1.concept_code IS NULL
 UNION ALL
 
 -- Branded Drug Component
-SELECT c.concept_code,
-	0 AS quant_value,
-	' ' AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	' ' AS df_code,
-	q3.bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	'Branded Drug Comp' AS concept_class_id
+SELECT c.concept_code, 0 AS quant_value, ' ' AS quant_unit, c.i_combo, c.d_combo, ' ' AS df_code, q3.bn_code, 0 AS bs, ' ' AS mf_code, 'Branded Drug Comp' AS concept_class_id
 FROM q_combo c
 LEFT JOIN q_quant q1 ON q1.concept_code = c.concept_code
 LEFT JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -734,16 +626,7 @@ WHERE q1.concept_code IS NULL
 UNION ALL
 
 -- Clinical Drug Component 
-SELECT c.concept_code,
-	0 AS quant_value,
-	' ' AS quant_unit,
-	c.i_combo,
-	c.d_combo,
-	' ' AS df_code,
-	' ' AS bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	'Clinical Drug Comp' AS concept_class_id
+SELECT c.concept_code, 0 AS quant_value, ' ' AS quant_unit, c.i_combo, c.d_combo, ' ' AS df_code, ' ' AS bn_code, 0 AS bs, ' ' AS mf_code, 'Clinical Drug Comp' AS concept_class_id
 FROM q_combo c
 LEFT JOIN q_quant q1 ON q1.concept_code = c.concept_code
 LEFT JOIN q_df q2 ON q2.concept_code = c.concept_code
@@ -889,18 +772,9 @@ CREATE UNLOGGED TABLE r_ds AS
 			WHERE ds.denominator_value IS NULL -- don't use Quant Drugs, because their numerator value is rounded in drug_strength. Use the non-quantified version instead
 			)
 
-SELECT DISTINCT ds.drug_concept_id AS concept_id,
-	uds.i_code,
-	uds.ds_code,
-	uds.denominator_unit_concept_id AS quant_unit_id
+SELECT DISTINCT ds.drug_concept_id AS concept_id, uds.i_code, uds.ds_code, uds.denominator_unit_concept_id AS quant_unit_id
 FROM (
-	SELECT u.drug_concept_id,
-		u.ingredient_concept_id,
-		u.amount_value,
-		u.amount_unit_concept_id,
-		u.numerator_value,
-		u.numerator_unit_concept_id,
-		u.denominator_unit_concept_id
+	SELECT u.drug_concept_id, u.ingredient_concept_id, u.amount_value, u.amount_unit_concept_id, u.numerator_value, u.numerator_unit_concept_id, u.denominator_unit_concept_id
 	FROM w_uds u
 	JOIN concept c ON c.concept_id = u.drug_concept_id
 		AND c.vocabulary_id IN (
@@ -915,13 +789,7 @@ FROM (
 	
 	UNION ALL -- get the drug strength information for the quantified versions of a drug from the non-quantified
 	
-	SELECT cr.concept_id_2,
-		u.ingredient_concept_id,
-		u.amount_value,
-		u.amount_unit_concept_id,
-		u.numerator_value,
-		u.numerator_unit_concept_id,
-		u.denominator_unit_concept_id
+	SELECT cr.concept_id_2, u.ingredient_concept_id, u.amount_value, u.amount_unit_concept_id, u.numerator_value, u.numerator_unit_concept_id, u.denominator_unit_concept_id
 	FROM w_uds u
 	JOIN concept c1 ON c1.concept_id = u.drug_concept_id
 		AND c1.vocabulary_id IN (
@@ -937,13 +805,7 @@ FROM (
 	
 	UNION ALL -- get the drug strength information for Marketed Products from the non-quantified version of the non-marketed quant drug
 	
-	SELECT cr2.concept_id_2,
-		u.ingredient_concept_id,
-		u.amount_value,
-		u.amount_unit_concept_id,
-		u.numerator_value,
-		u.numerator_unit_concept_id,
-		u.denominator_unit_concept_id
+	SELECT cr2.concept_id_2, u.ingredient_concept_id, u.amount_value, u.amount_unit_concept_id, u.numerator_value, u.numerator_unit_concept_id, u.denominator_unit_concept_id
 	FROM w_uds u
 	JOIN concept c1 ON c1.concept_id = u.drug_concept_id
 		AND c1.vocabulary_id IN (
@@ -962,8 +824,8 @@ FROM (
 	JOIN concept f ON f.concept_id = cr2.concept_id_2
 		AND f.invalid_reason IS NULL -- check that resulting marketed is valid
 	) ds
-JOIN r_uds uds USING(ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id)
-WHERE COALESCE(ds.denominator_unit_concept_id, - 1) = COALESCE(uds.denominator_unit_concept_id, - 1);-- match nulls for % and homeopathics
+JOIN r_uds uds USING (ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id)
+WHERE COALESCE(ds.denominator_unit_concept_id, -1) = COALESCE(uds.denominator_unit_concept_id, -1);-- match nulls for % and homeopathics
 
 --create index idx_r_ds_dscode on r_ds (ds_code);
 --create index idx_r_ds_concode on r_ds (concept_id);
@@ -1102,16 +964,7 @@ ANALYZE r_bs;
 DROP TABLE IF EXISTS r_existing;
 CREATE UNLOGGED TABLE r_existing AS
 -- Marketed Product
-SELECT c.concept_id,
-	COALESCE(r3.value, 0) AS quant_value,
-	COALESCE(r3.unit_id, 0) AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	r1.df_id,
-	COALESCE(r4.bn_id, 0) AS bn_id,
-	COALESCE(r5.bs, 0) AS bs,
-	r2.mf_id AS mf_id,
-	'Marketed Product' AS concept_class_id
+SELECT c.concept_id, COALESCE(r3.value, 0) AS quant_value, COALESCE(r3.unit_id, 0) AS quant_unit_id, c.i_combo, c.d_combo, r1.df_id, COALESCE(r4.bn_id, 0) AS bn_id, COALESCE(r5.bs, 0) AS bs, r2.mf_id AS mf_id, 'Marketed Product' AS concept_class_id
 FROM r_combo c
 JOIN r_df r1 ON r1.concept_id = c.concept_id
 JOIN r_mf r2 ON r2.concept_id = c.concept_id
@@ -1123,16 +976,7 @@ WHERE c.d_combo <> ' '
 UNION ALL
 
 -- Quant Branded Box
-SELECT c.concept_id,
-	r1.value AS quant_value,
-	r1.unit_id AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	r2.df_id,
-	r3.bn_id,
-	r4.bs,
-	0 AS mf_id,
-	'Quant Branded Box' AS concept_class_id
+SELECT c.concept_id, r1.value AS quant_value, r1.unit_id AS quant_unit_id, c.i_combo, c.d_combo, r2.df_id, r3.bn_id, r4.bs, 0 AS mf_id, 'Quant Branded Box' AS concept_class_id
 FROM r_combo c
 JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1145,16 +989,7 @@ WHERE c.d_combo <> ' '
 UNION ALL
 
 -- Quant Clinical Box
-SELECT c.concept_id,
-	r1.value AS quant_value,
-	r1.unit_id AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	r2.df_id,
-	0 AS bn_id,
-	r4.bs,
-	0 AS mf_id,
-	'Quant Clinical Box' AS concept_class_id
+SELECT c.concept_id, r1.value AS quant_value, r1.unit_id AS quant_unit_id, c.i_combo, c.d_combo, r2.df_id, 0 AS bn_id, r4.bs, 0 AS mf_id, 'Quant Clinical Box' AS concept_class_id
 FROM r_combo c
 JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1168,16 +1003,7 @@ WHERE c.d_combo <> ' '
 UNION ALL
 
 -- Branded Drug Box
-SELECT c.concept_id,
-	0 AS quant_value,
-	0 AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	r2.df_id,
-	r3.bn_id,
-	r4.bs,
-	0 AS mf_id,
-	'Branded Drug Box' AS concept_class_id
+SELECT c.concept_id, 0 AS quant_value, 0 AS quant_unit_id, c.i_combo, c.d_combo, r2.df_id, r3.bn_id, r4.bs, 0 AS mf_id, 'Branded Drug Box' AS concept_class_id
 FROM r_combo c
 LEFT JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1191,16 +1017,7 @@ WHERE r1.concept_id IS NULL
 UNION ALL
 
 -- Clinical Drug Box
-SELECT c.concept_id,
-	0 AS quant_value,
-	0 AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	r2.df_id,
-	0 AS bn_id,
-	r4.bs,
-	0 AS mf_id,
-	'Clinical Drug Box' AS concept_class_id
+SELECT c.concept_id, 0 AS quant_value, 0 AS quant_unit_id, c.i_combo, c.d_combo, r2.df_id, 0 AS bn_id, r4.bs, 0 AS mf_id, 'Clinical Drug Box' AS concept_class_id
 FROM r_combo c
 LEFT JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1215,16 +1032,7 @@ WHERE r1.concept_id IS NULL
 UNION ALL
 
 -- Quant Branded Drug
-SELECT c.concept_id,
-	r1.value AS quant_value,
-	r1.unit_id AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	r2.df_id,
-	r3.bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Quant Branded Drug' AS concept_class_id
+SELECT c.concept_id, r1.value AS quant_value, r1.unit_id AS quant_unit_id, c.i_combo, c.d_combo, r2.df_id, r3.bn_id, 0 AS bs, 0 AS mf_id, 'Quant Branded Drug' AS concept_class_id
 FROM r_combo c
 JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1238,16 +1046,7 @@ WHERE r4.concept_id IS NULL
 UNION ALL
 
 -- Quant Clinical Drug
-SELECT c.concept_id,
-	r1.value AS quant_value,
-	r1.unit_id AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	r2.df_id,
-	0 AS bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Quant Clinical Drug' AS concept_class_id
+SELECT c.concept_id, r1.value AS quant_value, r1.unit_id AS quant_unit_id, c.i_combo, c.d_combo, r2.df_id, 0 AS bn_id, 0 AS bs, 0 AS mf_id, 'Quant Clinical Drug' AS concept_class_id
 FROM r_combo c
 JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1262,16 +1061,7 @@ WHERE r3.concept_id IS NULL
 UNION ALL
 
 -- Branded Drug
-SELECT c.concept_id,
-	0 AS quant_value,
-	0 AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	r2.df_id,
-	r3.bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Branded Drug' AS concept_class_id
+SELECT c.concept_id, 0 AS quant_value, 0 AS quant_unit_id, c.i_combo, c.d_combo, r2.df_id, r3.bn_id, 0 AS bs, 0 AS mf_id, 'Branded Drug' AS concept_class_id
 FROM r_combo c
 LEFT JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1286,16 +1076,7 @@ WHERE r1.concept_id IS NULL
 UNION ALL
 
 -- Clinical Drug
-SELECT c.concept_id,
-	0 AS quant_value,
-	0 AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	r2.df_id,
-	0 AS bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Clinical Drug' AS concept_class_id
+SELECT c.concept_id, 0 AS quant_value, 0 AS quant_unit_id, c.i_combo, c.d_combo, r2.df_id, 0 AS bn_id, 0 AS bs, 0 AS mf_id, 'Clinical Drug' AS concept_class_id
 FROM r_combo c
 LEFT JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1311,16 +1092,7 @@ WHERE r1.concept_id IS NULL
 UNION ALL
 
 -- Branded Drug Form
-SELECT c.concept_id,
-	0 AS quant_value,
-	0 AS quant_unit_id,
-	c.i_combo,
-	' ' AS d_combo,
-	r2.df_id,
-	r3.bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Branded Drug Form' AS concept_class_id
+SELECT c.concept_id, 0 AS quant_value, 0 AS quant_unit_id, c.i_combo, ' ' AS d_combo, r2.df_id, r3.bn_id, 0 AS bs, 0 AS mf_id, 'Branded Drug Form' AS concept_class_id
 FROM r_combo c
 LEFT JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1335,16 +1107,7 @@ WHERE r1.concept_id IS NULL
 UNION ALL
 
 -- Clinical Drug Form
-SELECT c.concept_id,
-	0 AS quant_value,
-	0 AS quant_unit_id,
-	c.i_combo,
-	' ' AS d_combo,
-	r2.df_id,
-	0 AS bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Clinical Drug Form' AS concept_class_id
+SELECT c.concept_id, 0 AS quant_value, 0 AS quant_unit_id, c.i_combo, ' ' AS d_combo, r2.df_id, 0 AS bn_id, 0 AS bs, 0 AS mf_id, 'Clinical Drug Form' AS concept_class_id
 FROM r_combo c
 LEFT JOIN r_quant r1 ON r1.concept_id = c.concept_id
 JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1360,16 +1123,7 @@ WHERE r1.concept_id IS NULL
 UNION ALL
 
 -- Branded Drug Component
-SELECT c.concept_id,
-	0 AS quant_value,
-	0 AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	0 AS df_id,
-	r3.bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Branded Drug Comp' AS concept_class_id
+SELECT c.concept_id, 0 AS quant_value, 0 AS quant_unit_id, c.i_combo, c.d_combo, 0 AS df_id, r3.bn_id, 0 AS bs, 0 AS mf_id, 'Branded Drug Comp' AS concept_class_id
 FROM r_combo c
 LEFT JOIN r_quant r1 ON r1.concept_id = c.concept_id
 LEFT JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1385,16 +1139,7 @@ WHERE r1.concept_id IS NULL
 UNION ALL
 
 -- Clinical Drug Component 
-SELECT c.concept_id,
-	0 AS quant_value,
-	0 AS quant_unit_id,
-	c.i_combo,
-	c.d_combo,
-	0 AS df_id,
-	0 AS bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Clinical Drug Comp' AS concept_class_id
+SELECT c.concept_id, 0 AS quant_value, 0 AS quant_unit_id, c.i_combo, c.d_combo, 0 AS df_id, 0 AS bn_id, 0 AS bs, 0 AS mf_id, 'Clinical Drug Comp' AS concept_class_id
 FROM r_combo c
 LEFT JOIN r_quant r1 ON r1.concept_id = c.concept_id
 LEFT JOIN r_df r2 ON r2.concept_id = c.concept_id
@@ -1694,46 +1439,18 @@ CREATE UNLOGGED TABLE qr_ds AS
 			),
 		-- Create all combinations of combos that share at least one ds, and calculate their size of the combos
 		q_to_r AS (
-			SELECT qc.i_combo AS qi_combo,
-				qc.d_combo AS qd_combo,
-				qc.i_code AS q_i,
-				q.q_ds,
-				rc.i_combo AS ri_combo,
-				rc.d_combo AS rd_combo,
-				rc.i_code AS r_i,
-				q.r_ds,
-				q.u_prec,
-				q.i_prec,
-				q.div,
-				qc.cnt,
-				q.quant_unit,
-				q.quant_unit_id
+			SELECT qc.i_combo AS qi_combo, qc.d_combo AS qd_combo, qc.i_code AS q_i, q.q_ds, rc.i_combo AS ri_combo, rc.d_combo AS rd_combo, rc.i_code AS r_i, q.r_ds, q.u_prec, q.i_prec, q.div, qc.cnt, q.quant_unit, q.quant_unit_id
 			FROM qr_uds q
 			JOIN qc ON qc.ds_code = q.q_ds
 			JOIN rc ON rc.ds_code = q.r_ds
 				AND qc.cnt = rc.cnt
 			)
 -- Now filter those where the size of the q and r combos (already the same) is the same as the number of qr_uds matches between the combos
-SELECT qr.qi_combo,
-	qr.ri_combo,
-	s0.qd_combo,
-	s0.rd_combo,
-	qr.q_i,
-	qr.q_ds,
-	qr.r_i,
-	qr.r_ds,
-	qr.u_prec,
-	qr.i_prec,
-	qr.div,
-	qr.quant_unit,
-	qr.quant_unit_id
+SELECT qr.qi_combo, qr.ri_combo, s0.qd_combo, s0.rd_combo, qr.q_i, qr.q_ds, qr.r_i, qr.r_ds, qr.u_prec, qr.i_prec, qr.div, qr.quant_unit, qr.quant_unit_id
 FROM (
-	SELECT qr_int.qd_combo,
-		qr_int.rd_combo,
-		COUNT(*) AS cnt
+	SELECT qr_int.qd_combo, qr_int.rd_combo, COUNT(*) AS cnt
 	FROM q_to_r qr_int
-	GROUP BY qr_int.qd_combo,
-		qr_int.rd_combo
+	GROUP BY qr_int.qd_combo, qr_int.rd_combo
 	) AS s0
 JOIN q_to_r qr ON qr.qd_combo = s0.qd_combo
 	AND qr.rd_combo = s0.rd_combo
@@ -2055,13 +1772,10 @@ WHERE EXISTS (
 -- Prep dose form groups (with some additions for RxNorm Extension) as a way to stratify drug_strength translation within such group
 DROP TABLE IF EXISTS dfg;
 CREATE UNLOGGED TABLE dfg AS
-SELECT DISTINCT c.concept_id AS df_id,
-	COALESCE(m.concept_id_2, c.concept_id) AS dfg_id -- not all of them have a DFG, they stand for themselves
+SELECT DISTINCT c.concept_id AS df_id, COALESCE(m.concept_id_2, c.concept_id) AS dfg_id -- not all of them have a DFG, they stand for themselves
 FROM concept c
 LEFT JOIN (
-	SELECT cr.concept_id_1,
-		cr.concept_id_2,
-		NULL
+	SELECT cr.concept_id_1, cr.concept_id_2, NULL
 	FROM concept_relationship cr
 	JOIN concept c_int ON c_int.concept_id = cr.concept_id_2
 		AND c_int.vocabulary_id IN (
@@ -2072,161 +1786,37 @@ LEFT JOIN (
 	
 	UNION ALL
 	
-	VALUES (
-		43126086,
-		36217219,
-		'Drug Implant Product'
-		), -- Intrauterine System
-		(
-		21014175,
-		36217219,
-		'Drug Implant Product'
-		), -- Intrauterine device
-		(
-		43563502,
-		36217218,
-		'Ophthalmic Product'
-		), -- Intravitreal Applicator
-		(
-		43126087,
-		36217206,
-		'Topical Product'
-		), -- Medicated Nail Polish
-		(
-		21014177,
-		36217206,
-		'Topical Product'
-		), -- Medicated nail lacquer
-		(
-		43563498,
-		36217213,
-		'Nasal Product'
-		), -- Nasal Pin
-		(
-		19129401,
-		36217206,
-		'Topical Product'
-		), -- Ointment
-		(
-		21014169,
-		36217206,
-		'Topical Product'
-		), -- Paint
-		(
-		21014176,
-		36217206,
-		'Topical Product'
-		), -- Poultice
-		(
-		43563504,
-		36217215,
-		'Dental Product'
-		), --Dental Pin
-		(
-		21014171,
-		36217215,
-		'Dental Product'
-		), -- Dental insert
-		(
-		19082079,
-		-1,
-		'Made-up extended release oral produt'
-		), -- Extended Release Oral Tablet
-		(
-		19082077,
-		-1,
-		'Made-up extended release oral produt'
-		), -- Extended Release Oral Capsule
-		(
-		19001949,
-		-1,
-		'Made-up extended release oral produt'
-		), -- Delayed Release Oral Tablet
-		(
-		19082255,
-		-1,
-		'Made-up extended release oral produt'
-		), -- Delayed Release Oral Capsule
-		(
-		19082072,
-		36244042,
-		'Transdermal System'
-		), -- 72 Hour Transdermal Patch
-		(
-		19082073,
-		36244042,
-		'Transdermal System'
-		), -- Biweekly Transdermal Patch
-		(
-		19082252,
-		36244042,
-		'Transdermal System'
-		), -- Weekly Transdermal Patch
-		(
-		19082229,
-		36244042,
-		'Transdermal System'
-		), -- Transdermal System
-		(
-		19082049,
-		36244042,
-		'Transdermal System'
-		), -- 16 Hour Transdermal Patch
-		(
-		19082071,
-		36244042,
-		'Transdermal System'
-		), -- 24 Hour Transdermal Patch
-		(
-		42629089,
-		36244042,
-		'Transdermal System'
-		), -- Medicated Patch
-		(
-		19130307,
-		36244042,
-		'Transdermal System'
-		), -- Medicated Pad
-		(
-		19130329,
-		36244042,
-		'Transdermal System'
-		), -- Medicated Tape
-		(
-		19082701,
-		36244042,
-		'Transdermal System'
-		), -- Patch
-		(
-		46275062,
-		-2,
-		'Made-up device injector'
-		), -- Jet Injector
-		(
-		46234468,
-		-2,
-		'Made-up device injector'
-		), -- Cartridge
-		(
-		46234467,
-		-2,
-		'Made-up device injector'
-		), -- Pen Injector
-		(
-		46234466,
-		-2,
-		'Made-up device injector'
-		), -- Auto-Injector 
-		(
-		19000942,
-		-3,
-		'Suppository Product'
-		), -- Suppository
-		(
-		19082200,
-		-3,
-		'Suppository Product'
-		) -- Rectal Suppository
+	VALUES (43126086, 36217219, 'Drug Implant Product'), -- Intrauterine System
+		(21014175, 36217219, 'Drug Implant Product'), -- Intrauterine device
+		(43563502, 36217218, 'Ophthalmic Product'), -- Intravitreal Applicator
+		(43126087, 36217206, 'Topical Product'), -- Medicated Nail Polish
+		(21014177, 36217206, 'Topical Product'), -- Medicated nail lacquer
+		(43563498, 36217213, 'Nasal Product'), -- Nasal Pin
+		(19129401, 36217206, 'Topical Product'), -- Ointment
+		(21014169, 36217206, 'Topical Product'), -- Paint
+		(21014176, 36217206, 'Topical Product'), -- Poultice
+		(43563504, 36217215, 'Dental Product'), --Dental Pin
+		(21014171, 36217215, 'Dental Product'), -- Dental insert
+		(19082079, -1, 'Made-up extended release oral produt'), -- Extended Release Oral Tablet
+		(19082077, -1, 'Made-up extended release oral produt'), -- Extended Release Oral Capsule
+		(19001949, -1, 'Made-up extended release oral produt'), -- Delayed Release Oral Tablet
+		(19082255, -1, 'Made-up extended release oral produt'), -- Delayed Release Oral Capsule
+		(19082072, 36244042, 'Transdermal System'), -- 72 Hour Transdermal Patch
+		(19082073, 36244042, 'Transdermal System'), -- Biweekly Transdermal Patch
+		(19082252, 36244042, 'Transdermal System'), -- Weekly Transdermal Patch
+		(19082229, 36244042, 'Transdermal System'), -- Transdermal System
+		(19082049, 36244042, 'Transdermal System'), -- 16 Hour Transdermal Patch
+		(19082071, 36244042, 'Transdermal System'), -- 24 Hour Transdermal Patch
+		(42629089, 36244042, 'Transdermal System'), -- Medicated Patch
+		(19130307, 36244042, 'Transdermal System'), -- Medicated Pad
+		(19130329, 36244042, 'Transdermal System'), -- Medicated Tape
+		(19082701, 36244042, 'Transdermal System'), -- Patch
+		(46275062, -2, 'Made-up device injector'), -- Jet Injector
+		(46234468, -2, 'Made-up device injector'), -- Cartridge
+		(46234467, -2, 'Made-up device injector'), -- Pen Injector
+		(46234466, -2, 'Made-up device injector'), -- Auto-Injector 
+		(19000942, -3, 'Suppository Product'), -- Suppository
+		(19082200, -3, 'Suppository Product') -- Rectal Suppository
 	) m ON m.concept_id_1 = c.concept_id
 WHERE c.vocabulary_id IN (
 		'RxNorm',
@@ -2432,25 +2022,7 @@ FROM (
 			) AS quant_unit_id
 	FROM (
 		-- create q_existing with all attributes extended to their r-corridors
-		SELECT eq.i_combo AS qi_combo,
-			c.ri_combo,
-			eq.d_combo AS qd_combo,
-			c.rd_combo,
-			c.u_prec,
-			c.i_prec,
-			c.div,
-			eq.df_code,
-			df.df_id,
-			df.df_prec,
-			d.dfg_id,
-			eq.bn_code,
-			bn.bn_id,
-			bn.bn_prec,
-			eq.mf_code,
-			mf.mf_id,
-			mf.mf_prec,
-			c.quant_unit,
-			c.quant_unit_id -- unit combination, needed to translate quant correctly
+		SELECT eq.i_combo AS qi_combo, c.ri_combo, eq.d_combo AS qd_combo, c.rd_combo, c.u_prec, c.i_prec, c.div, eq.df_code, df.df_id, df.df_prec, d.dfg_id, eq.bn_code, bn.bn_id, bn.bn_prec, eq.mf_code, mf.mf_id, mf.mf_prec, c.quant_unit, c.quant_unit_id -- unit combination, needed to translate quant correctly
 		FROM q_existing eq
 		JOIN qr_d_combo c ON c.qd_combo = eq.d_combo -- get all potential rd_combos
 		JOIN qr_df df ON df.df_code = eq.df_code -- get potential df_ids
@@ -2474,40 +2046,14 @@ LEFT JOIN x_unit xu ON xu.unit_code = q.quant_unit
 -- Break up multi-combos and write back leaving all other patterns unchanged
 -- This is necessary for Clinical Drug Comps where comobos only exist in multi-versions in both q and r
 INSERT INTO x_pattern
-SELECT DISTINCT q.q_i AS qi_combo,
-	q.r_i AS ri_combo,
-	q.q_ds AS qd_combo,
-	q.r_ds AS rd_combo,
-	x.df_code,
-	x.df_id,
-	x.dfg_id,
-	x.bn_code,
-	x.bn_id,
-	x.mf_code,
-	x.mf_id,
-	x.quant_unit,
-	x.quant_unit_id,
-	x.prec
+SELECT DISTINCT q.q_i AS qi_combo, q.r_i AS ri_combo, q.q_ds AS qd_combo, q.r_ds AS rd_combo, x.df_code, x.df_id, x.dfg_id, x.bn_code, x.bn_id, x.mf_code, x.mf_id, x.quant_unit, x.quant_unit_id, x.prec
 FROM x_pattern x
 JOIN qr_ds q ON q.qd_combo = x.qd_combo
 	AND q.rd_combo = x.rd_combo
 
 EXCEPT
 
-SELECT qi_combo,
-	ri_combo,
-	qd_combo,
-	rd_combo,
-	df_code,
-	df_id,
-	dfg_id,
-	bn_code,
-	bn_id,
-	mf_code,
-	mf_id,
-	quant_unit,
-	quant_unit_id,
-	prec
+SELECT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
 FROM x_pattern;
 
 -- 3-6. Match d_combo, df, bn, but not mf - Branded Drug, quantified and boxed
@@ -2604,22 +2150,7 @@ FROM (
 		1 AS new_rec -- prefer those that are handed down
 	FROM (
 		-- create q_existing with all attributes extended to their r-corridors
-		SELECT eq.i_combo AS qi_combo,
-			c.ri_combo,
-			eq.d_combo AS qd_combo,
-			c.rd_combo,
-			c.u_prec,
-			c.i_prec,
-			c.div,
-			eq.df_code,
-			df.df_id,
-			df.df_prec,
-			d.dfg_id,
-			eq.bn_code,
-			bn.bn_id,
-			bn.bn_prec,
-			c.quant_unit,
-			c.quant_unit_id -- unit combination, needed to translate quant correctly
+		SELECT eq.i_combo AS qi_combo, c.ri_combo, eq.d_combo AS qd_combo, c.rd_combo, c.u_prec, c.i_prec, c.div, eq.df_code, df.df_id, df.df_prec, d.dfg_id, eq.bn_code, bn.bn_id, bn.bn_prec, c.quant_unit, c.quant_unit_id -- unit combination, needed to translate quant correctly
 		FROM q_existing eq
 		JOIN qr_d_combo c ON c.qd_combo = eq.d_combo -- get all potential rd_combos
 		JOIN qr_df df ON df.df_code = eq.df_code -- get potential df_ids
@@ -2638,18 +2169,7 @@ FROM (
 	
 	UNION ALL -- get existing patterns
 	
-	SELECT DISTINCT qi_combo,
-		ri_combo,
-		qd_combo,
-		rd_combo,
-		df_code,
-		df_id,
-		dfg_id,
-		bn_code,
-		bn_id,
-		quant_unit,
-		quant_unit_id,
-		0 AS new_rec
+	SELECT DISTINCT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, quant_unit, quant_unit_id, 0 AS new_rec
 	FROM x_pattern
 	WHERE df_code IS NOT NULL
 		AND bn_code IS NOT NULL
@@ -2659,40 +2179,14 @@ LEFT JOIN x_unit xu ON xu.unit_code = s0.quant_unit
 
 -- Break up multi-combos
 INSERT INTO x_pattern
-SELECT DISTINCT q.q_i AS qi_combo,
-	q.r_i AS ri_combo,
-	q_ds AS qd_combo,
-	r_ds AS rd_combo,
-	x.df_code,
-	x.df_id,
-	x.dfg_id,
-	x.bn_code,
-	x.bn_id,
-	x.mf_code,
-	x.mf_id,
-	x.quant_unit,
-	x.quant_unit_id,
-	x.prec -- as already exists, but to distinguish from original
+SELECT DISTINCT q.q_i AS qi_combo, q.r_i AS ri_combo, q_ds AS qd_combo, r_ds AS rd_combo, x.df_code, x.df_id, x.dfg_id, x.bn_code, x.bn_id, x.mf_code, x.mf_id, x.quant_unit, x.quant_unit_id, x.prec -- as already exists, but to distinguish from original
 FROM x_pattern x
 JOIN qr_ds q ON q.qd_combo = x.qd_combo
 	AND q.rd_combo = x.rd_combo
 
 EXCEPT
 
-SELECT qi_combo,
-	ri_combo,
-	qd_combo,
-	rd_combo,
-	df_code,
-	df_id,
-	dfg_id,
-	bn_code,
-	bn_id,
-	mf_code,
-	mf_id,
-	quant_unit,
-	quant_unit_id,
-	prec
+SELECT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
 FROM x_pattern;
 
 -- 7-10. Match d_combo, df, mf, but not bn - Marketed Products without Brand, quantified or boxed
@@ -2843,40 +2337,14 @@ LEFT JOIN x_unit xu ON xu.unit_code = s0.quant_unit
 
 -- Break up multi-combos
 INSERT INTO x_pattern
-SELECT DISTINCT q.q_i AS qi_combo,
-	q.r_i AS ri_combo,
-	q_ds AS qd_combo,
-	r_ds AS rd_combo,
-	x.df_code,
-	x.df_id,
-	x.dfg_id,
-	x.bn_code,
-	x.bn_id,
-	x.mf_code,
-	x.mf_id,
-	x.quant_unit,
-	x.quant_unit_id,
-	x.prec -- as already exists
+SELECT DISTINCT q.q_i AS qi_combo, q.r_i AS ri_combo, q_ds AS qd_combo, r_ds AS rd_combo, x.df_code, x.df_id, x.dfg_id, x.bn_code, x.bn_id, x.mf_code, x.mf_id, x.quant_unit, x.quant_unit_id, x.prec -- as already exists
 FROM x_pattern x
 JOIN qr_ds q ON q.qd_combo = x.qd_combo
 	AND q.rd_combo = x.rd_combo
 
 EXCEPT
 
-SELECT qi_combo,
-	ri_combo,
-	qd_combo,
-	rd_combo,
-	df_code,
-	df_id,
-	dfg_id,
-	bn_code,
-	bn_id,
-	mf_code,
-	mf_id,
-	quant_unit,
-	quant_unit_id,
-	prec
+SELECT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
 FROM x_pattern;
 
 -- 11-14. Match d_combo, df, but not bn, mf - Clinical Drug, quantified or boxed
@@ -2980,16 +2448,7 @@ FROM (
 	
 	UNION ALL
 	
-	SELECT DISTINCT qi_combo,
-		ri_combo,
-		qd_combo,
-		rd_combo,
-		df_code,
-		df_id,
-		dfg_id,
-		quant_unit,
-		quant_unit_id,
-		0 AS new_rec
+	SELECT DISTINCT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, quant_unit, quant_unit_id, 0 AS new_rec
 	FROM x_pattern
 	WHERE df_code IS NOT NULL
 	) AS s0
@@ -2998,40 +2457,14 @@ LEFT JOIN x_unit xu ON xu.unit_code = s0.quant_unit
 
 -- Break up multi-combos
 INSERT INTO x_pattern
-SELECT DISTINCT q.q_i AS qi_combo,
-	q.r_i AS ri_combo,
-	q_ds AS qd_combo,
-	r_ds AS rd_combo,
-	x.df_code,
-	x.df_id,
-	x.dfg_id,
-	x.bn_code,
-	x.bn_id,
-	x.mf_code,
-	x.mf_id,
-	x.quant_unit,
-	x.quant_unit_id,
-	x.prec -- as already exists
+SELECT DISTINCT q.q_i AS qi_combo, q.r_i AS ri_combo, q_ds AS qd_combo, r_ds AS rd_combo, x.df_code, x.df_id, x.dfg_id, x.bn_code, x.bn_id, x.mf_code, x.mf_id, x.quant_unit, x.quant_unit_id, x.prec -- as already exists
 FROM x_pattern x
 JOIN qr_ds q ON q.qd_combo = x.qd_combo
 	AND q.rd_combo = x.rd_combo
 
 EXCEPT
 
-SELECT qi_combo,
-	ri_combo,
-	qd_combo,
-	rd_combo,
-	df_code,
-	df_id,
-	dfg_id,
-	bn_code,
-	bn_id,
-	mf_code,
-	mf_id,
-	quant_unit,
-	quant_unit_id,
-	prec
+SELECT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
 FROM x_pattern;
 
 -- 15-18. Match d_combo, bn, but not df, mf - Branded Component
@@ -3126,15 +2559,7 @@ FROM (
 	
 	UNION ALL
 	
-	SELECT DISTINCT qi_combo,
-		ri_combo,
-		qd_combo,
-		rd_combo,
-		bn_code,
-		bn_id,
-		quant_unit,
-		quant_unit_id,
-		0 AS new_rec
+	SELECT DISTINCT qi_combo, ri_combo, qd_combo, rd_combo, bn_code, bn_id, quant_unit, quant_unit_id, 0 AS new_rec
 	FROM x_pattern
 	WHERE bn_code IS NOT NULL
 	) AS s0
@@ -3143,40 +2568,14 @@ LEFT JOIN x_unit xu ON xu.unit_code = s0.quant_unit
 
 -- Break up multi-combos
 INSERT INTO x_pattern
-SELECT DISTINCT q.q_i AS qi_combo,
-	q.r_i AS ri_combo,
-	q_ds AS qd_combo,
-	r_ds AS rd_combo,
-	x.df_code,
-	x.df_id,
-	x.dfg_id,
-	x.bn_code,
-	x.bn_id,
-	x.mf_code,
-	x.mf_id,
-	x.quant_unit,
-	x.quant_unit_id,
-	x.prec -- as already exists
+SELECT DISTINCT q.q_i AS qi_combo, q.r_i AS ri_combo, q_ds AS qd_combo, r_ds AS rd_combo, x.df_code, x.df_id, x.dfg_id, x.bn_code, x.bn_id, x.mf_code, x.mf_id, x.quant_unit, x.quant_unit_id, x.prec -- as already exists
 FROM x_pattern x
 JOIN qr_ds q ON q.qd_combo = x.qd_combo
 	AND q.rd_combo = x.rd_combo
 
 EXCEPT
 
-SELECT qi_combo,
-	ri_combo,
-	qd_combo,
-	rd_combo,
-	df_code,
-	df_id,
-	dfg_id,
-	bn_code,
-	bn_id,
-	mf_code,
-	mf_id,
-	quant_unit,
-	quant_unit_id,
-	prec
+SELECT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
 FROM x_pattern;
 
 -- 19-22. Match d_combo, but not df, bn, mf - Clinical Component
@@ -3227,15 +2626,7 @@ FROM (
 		1 AS new_rec
 	FROM (
 		-- create q_existing with all attributes extended to their r-corridors
-		SELECT eq.i_combo AS qi_combo,
-			c.ri_combo,
-			eq.d_combo AS qd_combo,
-			c.rd_combo,
-			c.u_prec,
-			c.i_prec,
-			c.div,
-			c.quant_unit,
-			c.quant_unit_id -- unit combination, needed to translate quant correctly
+		SELECT eq.i_combo AS qi_combo, c.ri_combo, eq.d_combo AS qd_combo, c.rd_combo, c.u_prec, c.i_prec, c.div, c.quant_unit, c.quant_unit_id -- unit combination, needed to translate quant correctly
 		FROM q_existing eq
 		JOIN qr_d_combo c ON c.qd_combo = eq.d_combo -- get all potential rd_combos
 		WHERE df_code = ' '
@@ -3251,13 +2642,7 @@ FROM (
 	
 	UNION ALL
 	
-	SELECT DISTINCT qi_combo,
-		ri_combo,
-		qd_combo,
-		rd_combo,
-		quant_unit,
-		quant_unit_id,
-		0 AS new_rec
+	SELECT DISTINCT qi_combo, ri_combo, qd_combo, rd_combo, quant_unit, quant_unit_id, 0 AS new_rec
 	FROM x_pattern
 	) AS s0
 LEFT JOIN x_unit xu ON xu.unit_code = s0.quant_unit
@@ -3265,40 +2650,14 @@ LEFT JOIN x_unit xu ON xu.unit_code = s0.quant_unit
 
 -- Break up multi-combos and write back leaving all other patterns unchanged
 INSERT INTO x_pattern
-SELECT DISTINCT q.q_i AS qi_combo,
-	q.r_i AS ri_combo,
-	q_ds AS qd_combo,
-	r_ds AS rd_combo,
-	x.df_code,
-	x.df_id,
-	x.dfg_id,
-	x.bn_code,
-	x.bn_id,
-	x.mf_code,
-	x.mf_id,
-	x.quant_unit,
-	x.quant_unit_id,
-	x.prec -- as already exists
+SELECT DISTINCT q.q_i AS qi_combo, q.r_i AS ri_combo, q_ds AS qd_combo, r_ds AS rd_combo, x.df_code, x.df_id, x.dfg_id, x.bn_code, x.bn_id, x.mf_code, x.mf_id, x.quant_unit, x.quant_unit_id, x.prec -- as already exists
 FROM x_pattern x
 JOIN qr_ds q ON q.qd_combo = x.qd_combo
 	AND q.rd_combo = x.rd_combo
 
 EXCEPT
 
-SELECT qi_combo,
-	ri_combo,
-	qd_combo,
-	rd_combo,
-	df_code,
-	df_id,
-	dfg_id,
-	bn_code,
-	bn_id,
-	mf_code,
-	mf_id,
-	quant_unit,
-	quant_unit_id,
-	prec
+SELECT qi_combo, ri_combo, qd_combo, rd_combo, df_code, df_id, dfg_id, bn_code, bn_id, mf_code, mf_id, quant_unit, quant_unit_id, prec
 FROM x_pattern;
 
 -- 23-24. Match i_combo, df, bn but no mf - Branded Forms
@@ -3352,16 +2711,7 @@ FROM (
 		1 AS new_rec
 	FROM (
 		-- create q_existing with all attributes extended to their r-corridors
-		SELECT eq.i_combo AS qi_combo,
-			c.ri_combo,
-			c.i_prec,
-			eq.df_code,
-			df.df_id,
-			df.df_prec,
-			d.dfg_id,
-			eq.bn_code,
-			bn.bn_id,
-			bn.bn_prec
+		SELECT eq.i_combo AS qi_combo, c.ri_combo, c.i_prec, eq.df_code, df.df_id, df.df_prec, d.dfg_id, eq.bn_code, bn.bn_id, bn.bn_prec
 		FROM q_existing eq
 		JOIN qr_i_combo c ON c.qi_combo = eq.i_combo -- get all potential rd_combos
 		JOIN qr_df df ON df.df_code = eq.df_code -- get potential brand names, may not exist in Marketed Products
@@ -3381,14 +2731,7 @@ FROM (
 	
 	UNION ALL
 	
-	SELECT DISTINCT qi_combo,
-		ri_combo,
-		df_code,
-		df_id,
-		dfg_id,
-		bn_code,
-		bn_id,
-		0 AS new_rec
+	SELECT DISTINCT qi_combo, ri_combo, df_code, df_id, dfg_id, bn_code, bn_id, 0 AS new_rec
 	FROM x_pattern
 	WHERE df_code IS NOT NULL
 		AND bn_code IS NOT NULL
@@ -3396,29 +2739,9 @@ FROM (
 
 -- Break up mulit-i_combos and write back leaving all other patterns unchanged
 INSERT INTO x_pattern
-SELECT s0.qi_combo,
-	s0.ri_combo,
-	NULL AS qd_combo,
-	NULL AS rd_combo,
-	s0.df_code,
-	s0.df_id,
-	s0.dfg_id,
-	s0.bn_code,
-	s0.bn_id,
-	NULL AS mf_code,
-	NULL AS mf_id,
-	NULL AS quant_unit,
-	NULL AS quant_unit_id,
-	s0.prec
+SELECT s0.qi_combo, s0.ri_combo, NULL AS qd_combo, NULL AS rd_combo, s0.df_code, s0.df_id, s0.dfg_id, s0.bn_code, s0.bn_id, NULL AS mf_code, NULL AS mf_id, NULL AS quant_unit, NULL AS quant_unit_id, s0.prec
 FROM (
-	SELECT q.q_i AS qi_combo,
-		q.r_i AS ri_combo,
-		x.df_code,
-		x.df_id,
-		x.dfg_id,
-		x.bn_code,
-		x.bn_id,
-		x.prec
+	SELECT q.q_i AS qi_combo, q.r_i AS ri_combo, x.df_code, x.df_id, x.dfg_id, x.bn_code, x.bn_id, x.prec
 	FROM x_pattern x
 	JOIN qr_i q ON q.qi_combo = x.qi_combo
 		AND q.ri_combo = x.ri_combo -- get right component in a combination aligned
@@ -3427,14 +2750,7 @@ FROM (
 	
 	EXCEPT
 	
-	SELECT qi_combo,
-		ri_combo,
-		df_code,
-		df_id,
-		dfg_id,
-		bn_code,
-		bn_id,
-		prec
+	SELECT qi_combo, ri_combo, df_code, df_id, dfg_id, bn_code, bn_id, prec
 	FROM x_pattern
 	) AS s0;
 
@@ -3500,41 +2816,16 @@ FROM (
 	
 	UNION ALL
 	
-	SELECT DISTINCT qi_combo,
-		ri_combo,
-		df_code,
-		df_id,
-		dfg_id,
-		0 AS new_rec
+	SELECT DISTINCT qi_combo, ri_combo, df_code, df_id, dfg_id, 0 AS new_rec
 	FROM x_pattern
 	WHERE df_code IS NOT NULL
 	) AS s0;
 
 -- Break up mulit-i_combos and write back leaving all other patterns unchanged
 INSERT INTO x_pattern
-SELECT s0.qi_combo,
-	s0.ri_combo,
-	NULL AS qd_combo,
-	NULL AS rd_combo,
-	s0.df_code,
-	s0.df_id,
-	s0.dfg_id,
-	s0.bn_code,
-	s0.bn_id,
-	NULL AS mf_code,
-	NULL AS mf_id,
-	NULL AS quant_unit,
-	NULL AS quant_unit_id,
-	s0.prec
+SELECT s0.qi_combo, s0.ri_combo, NULL AS qd_combo, NULL AS rd_combo, s0.df_code, s0.df_id, s0.dfg_id, s0.bn_code, s0.bn_id, NULL AS mf_code, NULL AS mf_id, NULL AS quant_unit, NULL AS quant_unit_id, s0.prec
 FROM (
-	SELECT q.q_i AS qi_combo,
-		q.r_i AS ri_combo,
-		x.df_code,
-		x.df_id,
-		x.dfg_id,
-		x.bn_code,
-		x.bn_id,
-		x.prec
+	SELECT q.q_i AS qi_combo, q.r_i AS ri_combo, x.df_code, x.df_id, x.dfg_id, x.bn_code, x.bn_id, x.prec
 	FROM x_pattern x
 	JOIN qr_i q ON q.qi_combo = x.qi_combo
 		AND q.ri_combo = x.ri_combo -- get right component in a combination aligned
@@ -3543,14 +2834,7 @@ FROM (
 	
 	EXCEPT
 	
-	SELECT qi_combo,
-		ri_combo,
-		df_code,
-		df_id,
-		dfg_id,
-		bn_code,
-		bn_id,
-		prec
+	SELECT qi_combo, ri_combo, df_code, df_id, dfg_id, bn_code, bn_id, prec
 	FROM x_pattern
 	) AS s0;
 
@@ -3605,35 +2889,18 @@ WHERE x.rd_combo IS NULL;
 
 -- 29-30. Add i_combos that are not in x_pattern, but can be inferred from qr_i_combo (singleton drug forms)
 INSERT INTO x_pattern
-SELECT s0.qi_combo,
-	s0.ri_combo,
-	NULL AS qd_combo,
-	NULL AS rd_combo,
-	NULL AS df_code,
-	NULL AS df_id,
-	NULL AS dfg_id,
-	NULL AS bn_code,
-	NULL AS bn_id,
-	NULL AS mf_code,
-	NULL AS mf_id,
-	NULL AS quant_unit,
-	NULL AS quant_unit_id,
-	29 + s0.new_rec AS prec
+SELECT s0.qi_combo, s0.ri_combo, NULL AS qd_combo, NULL AS rd_combo, NULL AS df_code, NULL AS df_id, NULL AS dfg_id, NULL AS bn_code, NULL AS bn_id, NULL AS mf_code, NULL AS mf_id, NULL AS quant_unit, NULL AS quant_unit_id, 29 + s0.new_rec AS prec
 FROM (
-	SELECT DISTINCT q.qi_combo,
-		FIRST_VALUE(q.ri_combo) OVER (
+	SELECT DISTINCT q.qi_combo, FIRST_VALUE(q.ri_combo) OVER (
 			PARTITION BY q.qi_combo ORDER BY q.i_prec
-			) AS ri_combo,
-		1 AS new_rec
+			) AS ri_combo, 1 AS new_rec
 	FROM qr_i_combo q
 	-- Make sure it is not already covered
 	-- compare to existing to make sure pattern isn't already covered
 	
 	UNION ALL
 	
-	SELECT DISTINCT qi_combo,
-		ri_combo,
-		0 AS new_rec
+	SELECT DISTINCT qi_combo, ri_combo, 0 AS new_rec
 	FROM x_pattern
 	) AS s0;
 
@@ -4253,40 +3520,10 @@ CREATE UNLOGGED TABLE full_corpus AS
 			LEFT JOIN q_bs q6 ON q6.concept_code = q1.concept_code
 			WHERE q1.d_combo <> ' ' -- to exclude "Marketed Branded Drug Forms" without strength
 			)
-SELECT s0.concept_code,
-	s1.concept_id,
-	m.q_value,
-	m.quant_unit,
-	m.qi_combo,
-	m.qd_combo,
-	m.df_code,
-	m.bn_code,
-	m.bs,
-	m.mf_code,
-	m.r_value,
-	m.quant_unit_id,
-	m.ri_combo,
-	m.rd_combo,
-	m.df_id,
-	m.bn_id,
-	m.mf_id,
-	'Marketed Product' AS concept_class_id
+SELECT s0.concept_code, s1.concept_id, m.q_value, m.quant_unit, m.qi_combo, m.qd_combo, m.df_code, m.bn_code, m.bs, m.mf_code, m.r_value,m.quant_unit_id, m.ri_combo, m.rd_combo, m.df_id, m.bn_id, m.mf_id, 'Marketed Product' AS concept_class_id
 FROM (
-	SELECT p.q_value,
-		p.quant_unit,
-		p.qi_combo,
-		p.qd_combo,
-		p.df_code,
-		p.bn_code,
-		p.bs,
-		p.mf_code,
-		COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value,
-		COALESCE(q.quant_unit_id, xu.unit_id, 0) AS quant_unit_id,
-		p.ri_combo,
-		p.rd_combo,
-		p.df_id,
-		p.bn_id,
-		p.mf_id
+	SELECT p.q_value, p.quant_unit, p.qi_combo, p.qd_combo, p.df_code, p.bn_code, p.bs, p.mf_code, COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value, 
+	COALESCE(q.quant_unit_id, xu.unit_id, 0) AS quant_unit_id, p.ri_combo, p.rd_combo, p.df_id, p.bn_id, p.mf_id
 	FROM (
 		SELECT DISTINCT c.*,
 			FIRST_VALUE(x.ri_combo) OVER (
@@ -4336,15 +3573,7 @@ FROM (
 			END
 	) m
 LEFT JOIN (
-	SELECT concept_code,
-		quant_value AS q_value,
-		quant_unit,
-		i_combo AS qi_combo,
-		d_combo AS qd_combo,
-		df_code,
-		bn_code,
-		bs,
-		mf_code
+	SELECT concept_code, quant_value AS q_value, quant_unit, i_combo AS qi_combo, d_combo AS qd_combo, df_code, bn_code, bs, mf_code
 	FROM q_existing
 	) AS s0 ON s0.q_value = m.q_value
 	AND s0.quant_unit = m.quant_unit
@@ -4355,15 +3584,7 @@ LEFT JOIN (
 	AND s0.bs = m.bs
 	AND s0.mf_code = m.mf_code
 LEFT JOIN (
-	SELECT concept_id,
-		quant_value AS r_value,
-		quant_unit_id,
-		i_combo AS ri_combo,
-		d_combo AS rd_combo,
-		df_id,
-		bn_id,
-		bs,
-		mf_id
+	SELECT concept_id, quant_value AS r_value, quant_unit_id, i_combo AS ri_combo, d_combo AS rd_combo, df_id, bn_id, bs, mf_id
 	FROM r_existing
 	) AS s1 ON s1.r_value = m.r_value
 	AND s1.quant_unit_id = m.quant_unit_id
@@ -4379,79 +3600,31 @@ LEFT JOIN (
 INSERT INTO full_corpus
 WITH ex AS (
 		-- Quant Branded Box
-		SELECT q_value,
-			quant_unit,
-			qi_combo,
-			qd_combo,
-			df_code,
-			bn_code,
-			bs,
-			r_value,
-			quant_unit_id,
-			ri_combo,
-			rd_combo,
-			df_id,
-			bn_id
+		SELECT q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id
 		FROM full_corpus
 		WHERE df_id <> 0
 			AND bn_id <> 0
-		
+
 		UNION
-		
+
 		-- Branded Box
-		SELECT 0 AS q_value,
-			' ' AS quant_unit,
-			qi_combo,
-			qd_combo,
-			df_code,
-			bn_code,
-			bs,
-			0 AS r_value,
-			0 AS quant_unit_id,
-			ri_combo,
-			rd_combo,
-			df_id,
-			bn_id
+		SELECT 0 AS q_value, ' ' AS quant_unit, qi_combo, qd_combo, df_code, bn_code, bs, 0 AS r_value, 0 AS quant_unit_id, ri_combo, rd_combo, df_id, bn_id
 		FROM full_corpus
 		WHERE df_id <> 0
 			AND bn_id <> 0
-		
+
 		UNION
-		
+
 		-- Quant Branded Drug
-		SELECT q_value,
-			quant_unit,
-			qi_combo,
-			qd_combo,
-			df_code,
-			bn_code,
-			0 AS bs,
-			r_value,
-			quant_unit_id,
-			ri_combo,
-			rd_combo,
-			df_id,
-			bn_id
+		SELECT q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, 0 AS bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id
 		FROM full_corpus
 		WHERE df_id <> 0
 			AND bn_id <> 0
-		
+
 		UNION
-		
+
 		-- Branded Drug
-		SELECT 0 AS q_value,
-			' ' AS quant_unit,
-			qi_combo,
-			qd_combo,
-			df_code,
-			bn_code,
-			0 AS bs,
-			0 AS r_value,
-			0 AS quant_unit_id,
-			ri_combo,
-			rd_combo,
-			df_id,
-			bn_id
+		SELECT 0 AS q_value, ' ' AS quant_unit, qi_combo, qd_combo, df_code, bn_code, 0 AS bs, 0 AS r_value, 0 AS quant_unit_id, ri_combo, rd_combo, df_id, bn_id
 		FROM full_corpus
 		WHERE df_id <> 0
 			AND bn_id <> 0
@@ -4460,62 +3633,38 @@ WITH ex AS (
 		SELECT *
 		FROM (
 			-- Quant Branded Box
-			SELECT q2.value AS q_value,
-				q2.unit AS quant_unit,
-				q1.i_combo AS qi_combo,
-				q1.d_combo AS qd_combo,
-				q3.df_code,
-				q4.bn_code,
-				q5.bs
+			SELECT q2.value AS q_value, q2.unit AS quant_unit, q1.i_combo AS qi_combo, q1.d_combo AS qd_combo, q3.df_code, q4.bn_code, q5.bs
 			FROM q_combo q1
 			JOIN q_quant q2 ON q2.concept_code = q1.concept_code
 			JOIN q_df q3 ON q3.concept_code = q1.concept_code
 			JOIN q_bn q4 ON q4.concept_code = q1.concept_code
 			JOIN q_bs q5 ON q5.concept_code = q1.concept_code
 			WHERE q1.d_combo <> ' '
-			
+
 			UNION
-			
+
 			-- Branded Drug Box
-			SELECT 0 AS q_value,
-				' ' AS quant_unit,
-				q1.i_combo AS qi_combo,
-				q1.d_combo AS qd_combo,
-				q2.df_code,
-				q3.bn_code,
-				q4.bs
+			SELECT 0 AS q_value, ' ' AS quant_unit, q1.i_combo AS qi_combo, q1.d_combo AS qd_combo, q2.df_code, q3.bn_code, q4.bs
 			FROM q_combo q1
 			JOIN q_df q2 ON q2.concept_code = q1.concept_code
 			JOIN q_bn q3 ON q3.concept_code = q1.concept_code
 			JOIN q_bs q4 ON q4.concept_code = q1.concept_code
 			WHERE q1.d_combo <> ' '
-			
+
 			UNION
-			
+
 			-- Quant Branded Drug
-			SELECT q2.value AS q_value,
-				q2.unit AS quant_unit,
-				q1.i_combo AS qi_combo,
-				q1.d_combo AS qd_combo,
-				q3.df_code,
-				q4.bn_code,
-				0 AS bs
+			SELECT q2.value AS q_value, q2.unit AS quant_unit, q1.i_combo AS qi_combo, q1.d_combo AS qd_combo, q3.df_code, q4.bn_code, 0 AS bs
 			FROM q_combo q1
 			JOIN q_quant q2 ON q2.concept_code = q1.concept_code
 			JOIN q_df q3 ON q3.concept_code = q1.concept_code
 			JOIN q_bn q4 ON q4.concept_code = q1.concept_code
 			WHERE q1.d_combo <> ' '
-			
+
 			UNION
-			
+
 			-- Branded Drug
-			SELECT 0 AS q_value,
-				' ' AS quant_unit,
-				q1.i_combo AS qi_combo,
-				q1.d_combo AS qd_combo,
-				q2.df_code,
-				q3.bn_code,
-				0 AS bs
+			SELECT 0 AS q_value, ' ' AS quant_unit, q1.i_combo AS qi_combo, q1.d_combo AS qd_combo, q2.df_code, q3.bn_code, 0 AS bs
 			FROM q_combo q1
 			JOIN q_df q2 ON q2.concept_code = q1.concept_code
 			JOIN q_bn q3 ON q3.concept_code = q1.concept_code
@@ -4525,32 +3674,11 @@ WITH ex AS (
 		EXCEPT
 		
 		-- exclude the combinations already translated previously
-		SELECT q_value,
-			quant_unit,
-			qi_combo,
-			qd_combo,
-			df_code,
-			bn_code,
-			bs
+		SELECT q_value, quant_unit, qi_combo, qd_combo, df_code, bn_code, bs
 		FROM ex
 		)
-SELECT s0.concept_code,
-	s1.concept_id,
-	m.q_value,
-	m.quant_unit,
-	m.qi_combo,
-	m.qd_combo,
-	m.df_code,
-	m.bn_code,
-	m.bs,
-	' ' AS mf_code,
-	m.r_value,
-	m.quant_unit_id,
-	m.ri_combo,
-	m.rd_combo,
-	m.df_id,
-	m.bn_id,
-	0 AS mf_id,
+SELECT s0.concept_code, s1.concept_id, m.q_value, m.quant_unit, m.qi_combo, m.qd_combo, m.df_code, m.bn_code, m.bs,
+	' ' AS mf_code, m.r_value, m.quant_unit_id, m.ri_combo, m.rd_combo, m.df_id, m.bn_id, 0 AS mf_id,
 	CASE 
 		WHEN m.q_value = 0
 			AND m.bs = 0
@@ -4568,19 +3696,7 @@ FROM (
 	
 	UNION
 	
-	SELECT p.q_value,
-		p.quant_unit,
-		p.qi_combo,
-		p.qd_combo,
-		p.df_code,
-		p.bn_code,
-		p.bs,
-		COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value,
-		COALESCE(q.quant_unit_id, xu.unit_id, 0) AS quant_unit_id,
-		p.ri_combo,
-		p.rd_combo,
-		p.df_id,
-		p.bn_id
+	SELECT p.q_value, p.quant_unit, p.qi_combo, p.qd_combo, p.df_code, p.bn_code, p.bs, COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value, COALESCE(q.quant_unit_id, xu.unit_id, 0) AS quant_unit_id, p.ri_combo, p.rd_combo, p.df_id, p.bn_id
 	FROM (
 		SELECT DISTINCT c.*,
 			FIRST_VALUE(x.ri_combo) OVER (
@@ -4621,14 +3737,7 @@ FROM (
 			END
 	) m
 LEFT JOIN (
-	SELECT concept_code,
-		quant_value AS q_value,
-		quant_unit,
-		i_combo AS qi_combo,
-		d_combo AS qd_combo,
-		df_code,
-		bn_code,
-		bs
+	SELECT concept_code, quant_value AS q_value, quant_unit, i_combo AS qi_combo, d_combo AS qd_combo, df_code, bn_code, bs
 	FROM q_existing
 	WHERE mf_code = ' '
 	) AS s0 ON s0.q_value = m.q_value
@@ -4639,14 +3748,7 @@ LEFT JOIN (
 	AND s0.bn_code = m.bn_code
 	AND s0.bs = m.bs
 LEFT JOIN (
-	SELECT concept_id,
-		quant_value AS r_value,
-		quant_unit_id,
-		i_combo AS ri_combo,
-		d_combo AS rd_combo,
-		df_id,
-		bn_id,
-		bs
+	SELECT concept_id, quant_value AS r_value, quant_unit_id, i_combo AS ri_combo, d_combo AS rd_combo, df_id, bn_id, bs
 	FROM r_existing
 	WHERE mf_id = 0
 	) AS s1 ON s1.r_value = m.r_value
@@ -4662,68 +3764,28 @@ LEFT JOIN (
 INSERT INTO full_corpus
 WITH ex AS (
 		-- Quant Clinical Box
-		SELECT q_value,
-			quant_unit,
-			qi_combo,
-			qd_combo,
-			df_code,
-			bs,
-			r_value,
-			quant_unit_id,
-			ri_combo,
-			rd_combo,
-			df_id
+		SELECT q_value, quant_unit, qi_combo, qd_combo, df_code, bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id
 		FROM full_corpus
 		WHERE df_id <> 0
-		
+
 		UNION
-		
+
 		-- Clinical Box
-		SELECT 0 AS q_value,
-			' ' AS quant_unit,
-			qi_combo,
-			qd_combo,
-			df_code,
-			bs,
-			0 AS r_value,
-			0 AS quant_unit_id,
-			ri_combo,
-			rd_combo,
-			df_id
+		SELECT 0 AS q_value, ' ' AS quant_unit, qi_combo, qd_combo, df_code, bs, 0 AS r_value, 0 AS quant_unit_id, ri_combo, rd_combo, df_id
 		FROM full_corpus
 		WHERE df_id <> 0
-		
+
 		UNION
-		
+
 		-- Quant Clinical Drug
-		SELECT q_value,
-			quant_unit,
-			qi_combo,
-			qd_combo,
-			df_code,
-			0 AS bs,
-			r_value,
-			quant_unit_id,
-			ri_combo,
-			rd_combo,
-			df_id
+		SELECT q_value, quant_unit, qi_combo, qd_combo, df_code, 0 AS bs, r_value, quant_unit_id, ri_combo, rd_combo, df_id
 		FROM full_corpus
 		WHERE df_id <> 0
-		
+
 		UNION
-		
+
 		-- Clinical Drug
-		SELECT 0 AS q_value,
-			' ' AS quant_unit,
-			qi_combo,
-			qd_combo,
-			df_code,
-			0 AS bs,
-			0 AS r_value,
-			0 AS quant_unit_id,
-			ri_combo,
-			rd_combo,
-			df_id
+		SELECT 0 AS q_value, ' ' AS quant_unit, qi_combo, qd_combo, df_code, 0 AS bs, 0 AS r_value, 0 AS quant_unit_id, ri_combo, rd_combo, df_id
 		FROM full_corpus
 		WHERE df_id <> 0
 		),
@@ -4731,55 +3793,35 @@ WITH ex AS (
 		SELECT *
 		FROM (
 			-- Quant Clinical Box
-			SELECT q2.value AS q_value,
-				q2.unit AS quant_unit,
-				q1.i_combo AS qi_combo,
-				q1.d_combo AS qd_combo,
-				q3.df_code,
-				q4.bs
+			SELECT q2.value AS q_value, q2.unit AS quant_unit, q1.i_combo AS qi_combo, q1.d_combo AS qd_combo, q3.df_code, q4.bs
 			FROM q_combo q1
 			JOIN q_quant q2 ON q2.concept_code = q1.concept_code
 			JOIN q_df q3 ON q3.concept_code = q1.concept_code
 			JOIN q_bs q4 ON q4.concept_code = q1.concept_code
 			WHERE q1.d_combo <> ' '
-			
+
 			UNION
-			
+
 			-- Clinical Drug Box
-			SELECT 0 AS q_value,
-				' ' AS quant_unit,
-				q1.i_combo AS qi_combo,
-				q1.d_combo AS qd_combo,
-				q2.df_code,
-				q3.bs
+			SELECT 0 AS q_value, ' ' AS quant_unit, q1.i_combo AS qi_combo, q1.d_combo AS qd_combo, q2.df_code, q3.bs
 			FROM q_combo q1
 			JOIN q_df q2 ON q2.concept_code = q1.concept_code
 			JOIN q_bs q3 ON q3.concept_code = q1.concept_code
 			WHERE q1.d_combo <> ' '
-			
+
 			UNION
-			
+
 			-- Quant Clinical Drug
-			SELECT q2.value AS q_value,
-				q2.unit AS quant_unit,
-				q1.i_combo AS qi_combo,
-				q1.d_combo AS qd_combo,
-				q3.df_code,
-				0 AS bs
+			SELECT q2.value AS q_value, q2.unit AS quant_unit, q1.i_combo AS qi_combo, q1.d_combo AS qd_combo, q3.df_code, 0 AS bs
 			FROM q_combo q1
 			JOIN q_quant q2 ON q2.concept_code = q1.concept_code
 			JOIN q_df q3 ON q3.concept_code = q1.concept_code
 			WHERE q1.d_combo <> ' '
-			
+
 			UNION
-			
+
 			-- Clinical Drug
-			SELECT 0 AS q_value,
-				' ' AS quant_unit,
-				q1.i_combo AS qi_combo,
-				q1.d_combo AS qd_combo,
-				q2.df_code,
-				0 AS bs
+			SELECT 0 AS q_value, ' ' AS quant_unit, q1.i_combo AS qi_combo, q1.d_combo AS qd_combo, q2.df_code, 0 AS bs
 			FROM q_combo q1
 			JOIN q_df q2 ON q2.concept_code = q1.concept_code
 			WHERE q1.d_combo <> ' '
@@ -4796,23 +3838,8 @@ WITH ex AS (
 			bs
 		FROM ex
 		)
-SELECT s0.concept_code,
-	s1.concept_id,
-	m.q_value,
-	m.quant_unit,
-	m.qi_combo,
-	m.qd_combo,
-	m.df_code,
-	' ' AS bn_code,
-	m.bs,
-	' ' AS mf_code,
-	m.r_value,
-	m.quant_unit_id,
-	m.ri_combo,
-	m.rd_combo,
-	m.df_id,
-	0 AS bn_id,
-	0 AS mf_id,
+SELECT s0.concept_code, s1.concept_id, m.q_value, m.quant_unit, m.qi_combo, m.qd_combo, m.df_code, ' ' AS bn_code, m.bs,
+	' ' AS mf_code, m.r_value, m.quant_unit_id, m.ri_combo, m.rd_combo, m.df_id, 0 AS bn_id, 0 AS mf_id,
 	CASE 
 		WHEN m.q_value = 0
 			AND m.bs = 0
@@ -4830,17 +3857,7 @@ FROM (
 	
 	UNION
 	
-	SELECT p.q_value,
-		p.quant_unit,
-		p.qi_combo,
-		p.qd_combo,
-		p.df_code,
-		p.bs,
-		COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value,
-		COALESCE(q.quant_unit_id, xu.unit_id, 0) AS quant_unit_id,
-		p.ri_combo,
-		p.rd_combo,
-		p.df_id
+	SELECT p.q_value, p.quant_unit, p.qi_combo, p.qd_combo, p.df_code, p.bs, COALESCE(q.r_value, p.q_value * xu.conversion_factor, 0) AS r_value, COALESCE(q.quant_unit_id, xu.unit_id, 0) AS quant_unit_id, p.ri_combo, p.rd_combo, p.df_id
 	FROM (
 		SELECT DISTINCT c.*,
 			FIRST_VALUE(x.ri_combo) OVER (
@@ -4874,13 +3891,7 @@ FROM (
 			END
 	) m
 LEFT JOIN (
-	SELECT concept_code,
-		quant_value AS q_value,
-		quant_unit,
-		i_combo AS qi_combo,
-		d_combo AS qd_combo,
-		df_code,
-		bs
+	SELECT concept_code, quant_value AS q_value, quant_unit, i_combo AS qi_combo, d_combo AS qd_combo, df_code, bs
 	FROM q_existing
 	WHERE mf_code = ' '
 		AND bn_code = ' '
@@ -4891,13 +3902,7 @@ LEFT JOIN (
 	AND s0.df_code = m.df_code
 	AND s0.bs = m.bs
 LEFT JOIN (
-	SELECT concept_id,
-		quant_value AS r_value,
-		quant_unit_id,
-		i_combo AS ri_combo,
-		d_combo AS rd_combo,
-		df_id,
-		bs
+	SELECT concept_id, quant_value AS r_value, quant_unit_id, i_combo AS ri_combo, d_combo AS rd_combo, df_id, bs
 	FROM r_existing
 	WHERE mf_id = 0
 		AND bn_id = 0
@@ -4912,20 +3917,13 @@ LEFT JOIN (
 -- Definition: i_combo, df and bn, no quant, d_combo, bs and mf
 INSERT INTO full_corpus
 WITH ex AS (
-		SELECT DISTINCT qi_combo,
-			df_code,
-			bn_code,
-			ri_combo,
-			df_id,
-			bn_id
+		SELECT DISTINCT qi_combo, df_code, bn_code, ri_combo, df_id, bn_id
 		FROM full_corpus
 		WHERE df_id <> 0
 			AND bn_id <> 0
 		),
 	c AS (
-		SELECT q1.i_combo AS qi_combo,
-			q2.df_code,
-			q3.bn_code
+		SELECT q1.i_combo AS qi_combo, q2.df_code, q3.bn_code
 		FROM q_combo q1
 		JOIN q_df q2 ON q2.concept_code = q1.concept_code
 		JOIN q_bn q3 ON q3.concept_code = q1.concept_code
@@ -4933,29 +3931,11 @@ WITH ex AS (
 		EXCEPT
 		
 		-- exclude the combinations already translated previously
-		SELECT qi_combo,
-			df_code,
-			bn_code
+		SELECT qi_combo, df_code, bn_code
 		FROM ex
 		)
-SELECT s0.concept_code,
-	s1.concept_id,
-	0 AS q_value,
-	' ' AS quant_unit,
-	m.qi_combo,
-	' ' AS qd_combo,
-	m.df_code,
-	m.bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	0 AS r_value,
-	0 AS quant_unit_id,
-	m.ri_combo,
-	' ' AS rd_combo,
-	m.df_id,
-	m.bn_id,
-	0 AS mf_id,
-	'Branded Drug Form' AS concept_class_id
+SELECT s0.concept_code, s1.concept_id, 0 AS q_value, ' ' AS quant_unit, m.qi_combo, ' ' AS qd_combo, m.df_code, m.bn_code, 0 AS bs,
+	' ' AS mf_code, 0 AS r_value, 0 AS quant_unit_id, m.ri_combo, ' ' AS rd_combo, m.df_id, m.bn_id, 0 AS mf_id, 'Branded Drug Form' AS concept_class_id
 FROM (
 	-- Collect existing
 	SELECT *
@@ -5011,44 +3991,23 @@ LEFT JOIN (
 -- Definition: i_combo and df, no quant, d_combo, bn, bs and mf
 INSERT INTO full_corpus
 WITH ex AS (
-		SELECT DISTINCT qi_combo,
-			df_code,
-			ri_combo,
-			df_id
+		SELECT DISTINCT qi_combo, df_code, ri_combo, df_id
 		FROM full_corpus
 		WHERE df_id <> 0
 		),
 	c AS (
-		SELECT q1.i_combo AS qi_combo,
-			q2.df_code
+		SELECT q1.i_combo AS qi_combo, q2.df_code
 		FROM q_combo q1
 		JOIN q_df q2 ON q2.concept_code = q1.concept_code
 		
 		EXCEPT
 		
 		-- exclude the combinations already translated previously
-		SELECT qi_combo,
-			df_code
+		SELECT qi_combo, df_code
 		FROM ex
 		)
-SELECT s0.concept_code,
-	s1.concept_id,
-	0 AS q_value,
-	' ' AS quant_unit,
-	m.qi_combo,
-	' ' AS qd_combo,
-	m.df_code,
-	' ' AS bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	0 AS r_value,
-	0 AS quant_unit_id,
-	m.ri_combo,
-	' ' AS rd_combo,
-	m.df_id,
-	0 AS bn_id,
-	0 AS mf_id,
-	'Clinical Drug Form' AS concept_class_id
+SELECT s0.concept_code, s1.concept_id, 0 AS q_value, ' ' AS quant_unit, m.qi_combo, ' ' AS qd_combo, m.df_code, ' ' AS bn_code, 0 AS bs,
+	' ' AS mf_code, 0 AS r_value, 0 AS quant_unit_id, m.ri_combo, ' ' AS rd_combo, m.df_id, 0 AS bn_id, 0 AS mf_id, 'Clinical Drug Form' AS concept_class_id
 FROM (
 	-- Collect existing
 	SELECT *
@@ -5097,20 +4056,13 @@ LEFT JOIN (
 -- Definition: d_combo and bn, no quant, df, bs and mf
 INSERT INTO full_corpus
 WITH ex AS (
-		SELECT DISTINCT qi_combo,
-			qd_combo,
-			bn_code,
-			ri_combo,
-			rd_combo,
-			bn_id
+		SELECT DISTINCT qi_combo, qd_combo, bn_code, ri_combo, rd_combo, bn_id
 		FROM full_corpus
 		WHERE qd_combo <> ' '
 			AND bn_id <> 0
 		),
 	c AS (
-		SELECT q1.i_combo AS qi_combo,
-			q1.d_combo AS qd_combo,
-			q2.bn_code
+		SELECT q1.i_combo AS qi_combo, q1.d_combo AS qd_combo, q2.bn_code
 		FROM q_combo q1
 		JOIN q_bn q2 ON q2.concept_code = q1.concept_code
 		WHERE q1.d_combo <> ' '
@@ -5123,24 +4075,8 @@ WITH ex AS (
 			bn_code
 		FROM ex
 		)
-SELECT s0.concept_code,
-	s1.concept_id,
-	0 AS q_value,
-	' ' AS quant_unit,
-	m.qi_combo,
-	m.qd_combo,
-	' ' AS df_code,
-	m.bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	0 AS r_value,
-	0 AS quant_unit_id,
-	m.ri_combo,
-	m.rd_combo,
-	0 AS df_id,
-	m.bn_id,
-	0 AS mf_id,
-	'Branded Drug Comp' AS concept_class_id
+SELECT s0.concept_code, s1.concept_id, 0 AS q_value, ' ' AS quant_unit, m.qi_combo, m.qd_combo, ' ' AS df_code, m.bn_code, 0 AS bs,
+	' ' AS mf_code, 0 AS r_value, 0 AS quant_unit_id, m.ri_combo, m.rd_combo, 0 AS df_id, m.bn_id, 0 AS mf_id, 'Branded Drug Comp' AS concept_class_id
 FROM (
 	-- Collect existing
 	SELECT *
@@ -5285,24 +4221,8 @@ WITH ex AS (
 			qd_combo
 		FROM ex
 		)
-SELECT s3.concept_code,
-	s4.concept_id,
-	0 AS q_value,
-	' ' AS quant_unit,
-	m.qi_combo,
-	m.qd_combo,
-	' ' AS df_code,
-	' ' AS bn_code,
-	0 AS bs,
-	' ' AS mf_code,
-	0 AS r_value,
-	0 AS quant_unit_id,
-	m.ri_combo,
-	m.rd_combo,
-	0 AS df_id,
-	0 AS bn_id,
-	0 AS mf_id,
-	'Clinical Drug Comp' AS concept_class_id
+SELECT s3.concept_code, s4.concept_id, 0 AS q_value, ' ' AS quant_unit, m.qi_combo, m.qd_combo, ' ' AS df_code, ' ' AS bn_code, 0 AS bs,
+	' ' AS mf_code, 0 AS r_value, 0 AS quant_unit_id, m.ri_combo, m.rd_combo, 0 AS df_id, 0 AS bn_id, 0 AS mf_id, 'Clinical Drug Comp' AS concept_class_id
 FROM (
 	-- Collect existing
 	SELECT *
@@ -5349,44 +4269,18 @@ LEFT JOIN (
 -- It includes the existing concepts with positive existing concept_id
 DROP TABLE IF EXISTS extension_attribute;
 CREATE UNLOGGED TABLE extension_attribute AS
-SELECT NEXTVAL('extension_id') AS concept_id,
-	e.*
+SELECT NEXTVAL('extension_id') AS concept_id, e.*
 FROM (
 	-- make new ones
-	SELECT DISTINCT r_value,
-		quant_unit_id,
-		ri_combo,
-		rd_combo,
-		df_id,
-		bn_id,
-		bs,
-		mf_id,
-		concept_class_id
+	SELECT DISTINCT r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id
 	FROM full_corpus
 	WHERE concept_id IS NULL
-	ORDER BY r_value,
-		quant_unit_id,
-		ri_combo,
-		rd_combo,
-		df_id,
-		bn_id,
-		bs,
-		mf_id,
-		concept_class_id --just for sequence repeatability
+	ORDER BY r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id --just for sequence repeatability
 	) e;
 
 -- Add existing
 INSERT INTO extension_attribute
-SELECT DISTINCT concept_id,
-	r_value,
-	quant_unit_id,
-	ri_combo,
-	rd_combo,
-	df_id,
-	bn_id,
-	bs,
-	mf_id,
-	concept_class_id
+SELECT DISTINCT concept_id, r_value, quant_unit_id, ri_combo, rd_combo, df_id, bn_id, bs, mf_id, concept_class_id
 FROM full_corpus
 WHERE concept_id IS NOT NULL;
 
@@ -5667,8 +4561,8 @@ SELECT c.concept_id,
 	NULL AS quant,
 	comp.comp_name,
 	SUM(comp.comp_len) OVER (
-		PARTITION BY c.concept_id ORDER BY comp.comp_name rows BETWEEN UNBOUNDED PRECEDING
-				AND CURRENT row
+		PARTITION BY c.concept_id ORDER BY comp.comp_name ROWS BETWEEN UNBOUNDED PRECEDING
+				AND CURRENT ROW
 		) AS agg_len,
 	CASE 
 		WHEN c.df_id = 0
@@ -5904,41 +4798,24 @@ LEFT JOIN r_existing_pack r ON r.components = q.components
 
 -- Branded Pack Box. Definition: bn and bs, but no mf.
 INSERT INTO full_pack
-SELECT s1.pack_concept_code AS q_concept_code,
-	s2.pack_concept_id AS r_concept_id,
-	s0.components,
-	s0.cnt,
-	s0.bn_id,
-	s0.bs,
-	0 AS mf_id,
-	'Branded Pack Box' AS concept_class_id
+SELECT s1.pack_concept_code AS q_concept_code, s2.pack_concept_id AS r_concept_id, s0.components, s0.cnt, s0.bn_id, s0.bs, 0 AS mf_id, 'Branded Pack Box' AS concept_class_id
 FROM (
 	-- get those we already have
-	SELECT components,
-		cnt,
-		bn_id,
-		bs
+	SELECT components, cnt, bn_id, bs
 	FROM full_pack
 	WHERE bn_id <> 0
 		AND bs <> 0
 	
 	UNION -- add more from q
 	
-	SELECT components,
-		cnt,
-		bn_id,
-		bs
+	SELECT components, cnt, bn_id, bs
 	FROM q_existing_pack
 	WHERE bn_id <> 0
 		AND bs <> 0
 		AND mf_id = 0
 	) AS s0
 LEFT JOIN (
-	SELECT pack_concept_code,
-		components,
-		cnt,
-		bn_id,
-		bs
+	SELECT pack_concept_code, components, cnt, bn_id, bs
 	FROM q_existing_pack
 	WHERE mf_id = 0
 	) AS s1 ON s1.components = s0.components
@@ -5946,11 +4823,7 @@ LEFT JOIN (
 	AND s1.bn_id = s0.bn_id
 	AND s1.bs = s0.bs
 LEFT JOIN (
-	SELECT pack_concept_id,
-		components,
-		cnt,
-		bn_id,
-		bs
+	SELECT pack_concept_id, components, cnt, bn_id, bs
 	FROM r_existing_pack
 	WHERE mf_id = 0
 	) AS s2 ON s2.components = s0.components
@@ -5960,36 +4833,22 @@ LEFT JOIN (
 
 -- Branded Pack. Definition: bn, but no bs or mf.
 INSERT INTO full_pack
-SELECT s1.pack_concept_code AS q_concept_code,
-	s2.pack_concept_id AS r_concept_id,
-	s0.components,
-	s0.cnt,
-	s0.bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Branded Pack' AS concept_class_id
+SELECT s1.pack_concept_code AS q_concept_code, s2.pack_concept_id AS r_concept_id, s0.components, s0.cnt, s0.bn_id, 0 AS bs, 0 AS mf_id, 'Branded Pack' AS concept_class_id
 FROM (
-	SELECT components,
-		cnt,
-		bn_id
+	SELECT components, cnt, bn_id
 	FROM full_pack
 	WHERE bn_id <> 0
 	
 	UNION
 	
-	SELECT components,
-		cnt,
-		bn_id
+	SELECT components, cnt, bn_id
 	FROM q_existing_pack
 	WHERE bn_id <> 0
 		AND bs = 0
 		AND mf_id = 0
 	) AS s0
 LEFT JOIN (
-	SELECT pack_concept_code,
-		components,
-		cnt,
-		bn_id
+	SELECT pack_concept_code, components, cnt, bn_id
 	FROM q_existing_pack
 	WHERE bs = 0
 		AND mf_id = 0
@@ -5997,48 +4856,32 @@ LEFT JOIN (
 	AND s1.cnt = s0.cnt
 	AND s1.bn_id = s0.bn_id
 LEFT JOIN (
-	SELECT pack_concept_id,
-		components,
-		cnt,
-		bn_id
+	SELECT pack_concept_id, components, cnt, bn_id
 	FROM r_existing_pack
 	WHERE bs = 0
 		AND mf_id = 0
 	) AS s2 ON s2.components = s0.components
 	AND s2.cnt = s0.cnt
 	AND s2.bn_id = s0.bn_id;
+
 -- Clinical Pack Box. Definition: bs, but no bn or mf.
 INSERT INTO full_pack
-SELECT s1.pack_concept_code AS q_concept_code,
-	s2.pack_concept_id AS r_concept_id,
-	s0.components,
-	s0.cnt,
-	0 AS bn_id,
-	s0.bs,
-	0 AS mf_id,
-	'Clinical Pack Box' AS concept_class_id
+SELECT s1.pack_concept_code AS q_concept_code, s2.pack_concept_id AS r_concept_id, s0.components, s0.cnt, 0 AS bn_id, s0.bs, 0 AS mf_id, 'Clinical Pack Box' AS concept_class_id
 FROM (
-	SELECT components,
-		cnt,
-		bs
+	SELECT components, cnt, bs
 	FROM full_pack
 	WHERE bs <> 0
 	
 	UNION
 	
-	SELECT components,
-		cnt,
-		bs
+	SELECT components, cnt, bs
 	FROM q_existing_pack
 	WHERE bs <> 0
 		AND bn_id = 0
 		AND mf_id = 0
 	) AS s0
 LEFT JOIN (
-	SELECT pack_concept_code,
-		components,
-		cnt,
-		bs
+	SELECT pack_concept_code, components, cnt, bs
 	FROM q_existing_pack
 	WHERE bn_id = 0
 		AND mf_id = 0
@@ -6046,10 +4889,7 @@ LEFT JOIN (
 	AND s1.cnt = s0.cnt
 	AND s1.bs = s0.bs
 LEFT JOIN (
-	SELECT pack_concept_id,
-		components,
-		cnt,
-		bs
+	SELECT pack_concept_id, components, cnt, bs
 	FROM r_existing_pack
 	WHERE bn_id = 0
 		AND mf_id = 0
@@ -6059,32 +4899,21 @@ LEFT JOIN (
 
 -- Clinical Pack. Definition: neither bn, bs nor mf.
 INSERT INTO full_pack
-SELECT s1.pack_concept_code AS q_concept_code,
-	s2.pack_concept_id AS r_concept_id,
-	s0.components,
-	s0.cnt,
-	0 AS bn_id,
-	0 AS bs,
-	0 AS mf_id,
-	'Clinical Pack' AS concept_class_id
+SELECT s1.pack_concept_code AS q_concept_code, s2.pack_concept_id AS r_concept_id, s0.components, s0.cnt, 0 AS bn_id, 0 AS bs, 0 AS mf_id, 'Clinical Pack' AS concept_class_id
 FROM (
-	SELECT components,
-		cnt
+	SELECT components, cnt
 	FROM full_pack
 	
 	UNION
 	
-	SELECT components,
-		cnt
+	SELECT components, cnt
 	FROM q_existing_pack
 	WHERE bn_id = 0
 		AND bs = 0
 		AND mf_id = 0
 	) AS s0
 LEFT JOIN (
-	SELECT pack_concept_code,
-		components,
-		cnt
+	SELECT pack_concept_code, components, cnt
 	FROM q_existing_pack
 	WHERE bn_id = 0
 		AND bs = 0
@@ -6092,9 +4921,7 @@ LEFT JOIN (
 	) AS s1 ON s1.components = s0.components
 	AND s1.cnt = s0.cnt
 LEFT JOIN (
-	SELECT pack_concept_id,
-		components,
-		cnt
+	SELECT pack_concept_id, components, cnt
 	FROM r_existing_pack
 	WHERE bn_id = 0
 		AND bs = 0
@@ -6105,24 +4932,13 @@ LEFT JOIN (
 -- Create a distinct set, since q may contain duplicates. R shouldn't, but doesn't hurt kicking them out, too
 DROP TABLE IF EXISTS pack_attribute;
 CREATE UNLOGGED TABLE pack_attribute AS
-SELECT NEXTVAL('extension_id') AS concept_id,
-	fp.*
+SELECT NEXTVAL('extension_id') AS concept_id, fp.*
 FROM (
-	SELECT DISTINCT components,
-		cnt,
-		bn_id,
-		bs,
-		mf_id,
-		concept_class_id
+	SELECT DISTINCT components, cnt, bn_id, bs, mf_id, concept_class_id
 	FROM full_pack
 	WHERE r_concept_id IS NULL
 	) fp
-ORDER BY fp.components,
-	fp.cnt,
-	fp.bn_id,
-	fp.bs,
-	fp.mf_id,
-	fp.concept_class_id;--just for sequence repeatability
+ORDER BY fp.components, fp.cnt, fp.bn_id, fp.bs, fp.mf_id, fp.concept_class_id;--just for sequence repeatability
 
 -- Create names for each pack in pack_attribute
 DROP TABLE IF EXISTS pack_name;
@@ -6439,374 +5255,74 @@ CREATE UNLOGGED TABLE rl (
 	relationship_id VARCHAR(20),
 	concept_class_2 VARCHAR(20)
 	);
-INSERT INTO rl
-SELECT 'Brand Name',
-	'Brand name of',
-	'Branded Drug Box'
 
-UNION ALL
-
-SELECT 'Brand Name',
-	'Brand name of',
-	'Branded Drug Comp'
-
-UNION ALL
-
-SELECT 'Brand Name',
-	'Brand name of',
-	'Branded Drug Form'
-
-UNION ALL
-
-SELECT 'Brand Name',
-	'Brand name of',
-	'Branded Drug'
-
-UNION ALL
-
-SELECT 'Brand Name',
-	'Brand name of',
-	'Branded Pack'
-
-UNION ALL
-
-SELECT 'Brand Name',
-	'Brand name of',
-	'Branded Pack Box'
-
-UNION ALL
-
-SELECT 'Brand Name',
-	'Brand name of',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Brand Name',
-	'Brand name of',
-	'Quant Branded Box'
-
-UNION ALL
-
-SELECT 'Brand Name',
-	'Brand name of',
-	'Quant Branded Drug'
-
-UNION ALL
-
-SELECT 'Branded Drug Box',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Branded Drug Box',
-	'Has quantified form',
-	'Quant Branded Box'
-
-UNION ALL
-
-SELECT 'Branded Drug Comp',
-	'Constitutes',
-	'Branded Drug'
-
-UNION ALL
-
-SELECT 'Branded Drug Form',
-	'RxNorm inverse is a',
-	'Branded Drug'
-
-UNION ALL
-
-SELECT 'Branded Drug',
-	'Available as box',
-	'Branded Drug Box'
-
-UNION ALL
-
-SELECT 'Branded Drug',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Branded Drug',
-	'Has quantified form',
-	'Quant Branded Drug'
-
-UNION ALL
-
-SELECT 'Branded Pack',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Branded Pack',
-	'Available as box',
-	'Branded Pack Box'
-
-UNION ALL
-
-SELECT 'Clinical Drug Box',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Clinical Drug Box',
-	'Has quantified form',
-	'Quant Clinical Box'
-
-UNION ALL
-
-SELECT 'Clinical Drug Box',
-	'Has tradename',
-	'Branded Drug Box'
-
-UNION ALL
-
-SELECT 'Clinical Drug Comp',
-	'Constitutes',
-	'Clinical Drug'
-
-UNION ALL
-
-SELECT 'Clinical Drug Comp',
-	'Has tradename',
-	'Branded Drug Comp'
-
-UNION ALL
-
-SELECT 'Clinical Drug Form',
-	'Has tradename',
-	'Branded Drug Form'
-
-UNION ALL
-
-SELECT 'Clinical Drug Form',
-	'RxNorm inverse is a',
-	'Clinical Drug'
-
-UNION ALL
-
-SELECT 'Clinical Drug',
-	'Available as box',
-	'Clinical Drug Box'
-
-UNION ALL
-
-SELECT 'Clinical Drug',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Clinical Drug',
-	'Has quantified form',
-	'Quant Clinical Drug'
-
-UNION ALL
-
-SELECT 'Clinical Drug',
-	'Has tradename',
-	'Branded Drug'
-
-UNION ALL
-
-SELECT 'Clinical Pack',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Clinical Pack',
-	'Has tradename',
-	'Branded Pack'
-
-UNION ALL
-
-SELECT 'Clinical Pack',
-	'Available as box',
-	'Clinical Pack Box'
-
-UNION ALL
-
-SELECT 'Clinical Pack Box',
-	'Has tradename',
-	'Branded Pack Box'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Branded Drug Box'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Branded Drug Form'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Branded Drug'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Branded Pack'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Clinical Drug Box'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Clinical Drug Form'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Clinical Drug'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Clinical Pack'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Quant Branded Box'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Quant Branded Drug'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Quant Clinical Box'
-
-UNION ALL
-
-SELECT 'Dose Form',
-	'RxNorm dose form of',
-	'Quant Clinical Drug'
-
-UNION ALL
-
-SELECT 'Ingredient',
-	'Has brand name',
-	'Brand Name'
-
-UNION ALL
-
-SELECT 'Ingredient',
-	'RxNorm ing of',
-	'Clinical Drug Comp'
-
-UNION ALL
-
-SELECT 'Ingredient',
-	'RxNorm ing of',
-	'Clinical Drug Form'
-
-UNION ALL
-
-SELECT 'Marketed Product',
-	'Has Supplier',
-	'Supplier'
-
-UNION ALL
-
-SELECT 'Supplier',
-	'Supplier of',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Quant Branded Box',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Quant Branded Drug',
-	'Available as box',
-	'Quant Branded Box'
-
-UNION ALL
-
-SELECT 'Quant Branded Drug',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Quant Clinical Box',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Quant Clinical Box',
-	'Has tradename',
-	'Quant Branded Box'
-
-UNION ALL
-
-SELECT 'Quant Clinical Drug',
-	'Available as box',
-	'Quant Clinical Box'
-
-UNION ALL
-
-SELECT 'Quant Clinical Drug',
-	'Has marketed form',
-	'Marketed Product'
-
-UNION ALL
-
-SELECT 'Quant Clinical Drug',
-	'Has tradename',
-	'Quant Branded Drug';
+INSERT INTO rl VALUES
+('Brand Name', 'Brand name of', 'Branded Drug Box'),
+('Brand Name', 'Brand name of', 'Branded Drug Comp'),
+('Brand Name', 'Brand name of', 'Branded Drug Form'),
+('Brand Name', 'Brand name of', 'Branded Drug'),
+('Brand Name', 'Brand name of', 'Branded Pack'),
+('Brand Name', 'Brand name of', 'Branded Pack Box'),
+('Brand Name', 'Brand name of', 'Marketed Product'),
+('Brand Name', 'Brand name of', 'Quant Branded Box'),
+('Brand Name', 'Brand name of', 'Quant Branded Drug'),
+('Branded Drug Box', 'Has marketed form', 'Marketed Product'),
+('Branded Drug Box', 'Has quantified form', 'Quant Branded Box'),
+('Branded Drug Comp', 'Constitutes', 'Branded Drug'),
+('Branded Drug Form', 'RxNorm inverse is a', 'Branded Drug'),
+('Branded Drug', 'Available as box', 'Branded Drug Box'),
+('Branded Drug', 'Has marketed form', 'Marketed Product'),
+('Branded Drug', 'Has quantified form', 'Quant Branded Drug'),
+('Branded Pack', 'Has marketed form', 'Marketed Product'),
+('Branded Pack', 'Available as box', 'Branded Pack Box'),
+('Clinical Drug Box', 'Has marketed form', 'Marketed Product'),
+('Clinical Drug Box', 'Has quantified form', 'Quant Clinical Box'),
+('Clinical Drug Box', 'Has tradename', 'Branded Drug Box'),
+('Clinical Drug Comp', 'Constitutes', 'Clinical Drug'),
+('Clinical Drug Comp', 'Has tradename', 'Branded Drug Comp'),
+('Clinical Drug Form', 'Has tradename', 'Branded Drug Form'),
+('Clinical Drug Form', 'RxNorm inverse is a', 'Clinical Drug'),
+('Clinical Drug', 'Available as box', 'Clinical Drug Box'),
+('Clinical Drug', 'Has marketed form', 'Marketed Product'),
+('Clinical Drug', 'Has quantified form', 'Quant Clinical Drug'),
+('Clinical Drug', 'Has tradename', 'Branded Drug'),
+('Clinical Pack', 'Has marketed form', 'Marketed Product'),
+('Clinical Pack', 'Has tradename', 'Branded Pack'),
+('Clinical Pack', 'Available as box', 'Clinical Pack Box'),
+('Clinical Pack Box', 'Has tradename', 'Branded Pack Box'),
+('Dose Form', 'RxNorm dose form of', 'Branded Drug Box'),
+('Dose Form', 'RxNorm dose form of', 'Branded Drug Form'),
+('Dose Form', 'RxNorm dose form of', 'Branded Drug'),
+('Dose Form', 'RxNorm dose form of', 'Branded Pack'),
+('Dose Form', 'RxNorm dose form of', 'Clinical Drug Box'),
+('Dose Form', 'RxNorm dose form of', 'Clinical Drug Form'),
+('Dose Form', 'RxNorm dose form of', 'Clinical Drug'),
+('Dose Form', 'RxNorm dose form of', 'Clinical Pack'),
+('Dose Form', 'RxNorm dose form of', 'Marketed Product'),
+('Dose Form', 'RxNorm dose form of', 'Quant Branded Box'),
+('Dose Form', 'RxNorm dose form of', 'Quant Branded Drug'),
+('Dose Form', 'RxNorm dose form of', 'Quant Clinical Box'),
+('Dose Form', 'RxNorm dose form of', 'Quant Clinical Drug'),
+('Ingredient', 'Has brand name', 'Brand Name'),
+('Ingredient', 'RxNorm ing of', 'Clinical Drug Comp'),
+('Ingredient', 'RxNorm ing of', 'Clinical Drug Form'),
+('Marketed Product', 'Has Supplier', 'Supplier'),
+('Supplier', 'Supplier of', 'Marketed Product'),
+('Quant Branded Box', 'Has marketed form', 'Marketed Product'),
+('Quant Branded Drug', 'Available as box', 'Quant Branded Box'),
+('Quant Branded Drug', 'Has marketed form', 'Marketed Product'),
+('Quant Clinical Box', 'Has marketed form', 'Marketed Product'),
+('Quant Clinical Box', 'Has tradename', 'Quant Branded Box'),
+('Quant Clinical Drug', 'Available as box', 'Quant Clinical Box'),
+('Quant Clinical Drug', 'Has marketed form', 'Marketed Product'),
+('Quant Clinical Drug', 'Has tradename', 'Quant Branded Drug');
 
 -- Create ea in both concept_id and concept_code/vocabulary_id notation
 DROP TABLE IF EXISTS ex;
 CREATE UNLOGGED TABLE ex AS -- create extension_attribute in concept_code/vocabulary_id notation
 SELECT COALESCE(c.concept_code, cs.concept_code) AS concept_code,
 	COALESCE(c.vocabulary_id, cs.vocabulary_id) AS vocabulary_id,
-	ea.concept_id,
-	ea.r_value,
-	ea.quant_unit_id,
-	ea.ri_combo,
-	ea.rd_combo,
-	ea.df_id,
-	ea.bn_id,
-	ea.bs,
-	ea.mf_id,
-	ea.concept_class_id
+	ea.concept_id, ea.r_value, ea.quant_unit_id, ea.ri_combo, ea.rd_combo, ea.df_id, ea.bn_id, ea.bs, ea.mf_id, ea.concept_class_id
 FROM extension_attribute ea
 LEFT JOIN concept c ON c.concept_id = ea.concept_id
 LEFT JOIN concept_stage cs ON cs.concept_id = ea.concept_id;
@@ -7019,17 +5535,7 @@ SELECT DISTINCT an.concept_code AS concept_code_1,
 FROM (
 	-- Create de that has ds_code instead of d_combo by splitting them up
 	SELECT COALESCE(s0.r_ds, e.rd_combo) AS r_ds, -- component ds from rd_combo
-		e.concept_code,
-		e.vocabulary_id,
-		e.concept_id,
-		e.r_value,
-		e.quant_unit_id,
-		e.rd_combo,
-		e.df_id,
-		e.bn_id,
-		e.bs,
-		e.mf_id,
-		e.concept_class_id
+		e.concept_code, e.vocabulary_id, e.concept_id, e.r_value, e.quant_unit_id, e.rd_combo, e.df_id, e.bn_id, e.bs, e.mf_id, e.concept_class_id
 	FROM ex e
 	JOIN (
 		SELECT rd_combo,
@@ -7147,17 +5653,13 @@ JOIN (
 		) AS s0,
 		(
 			-- resolve ri_combo ingredients
-			SELECT i.i_code,
-				c.concept_code,
-				c.vocabulary_id
+			SELECT i.i_code, c.concept_code, c.vocabulary_id
 			FROM ing_stage i
 			JOIN concept c ON c.concept_id = i.i_id
-			
+
 			UNION
-			
-			SELECT ri_code,
-				ri_code,
-				'RxNorm Extension'
+
+			SELECT ri_code, ri_code, 'RxNorm Extension'
 			FROM extension_i
 			) AS s1
 	JOIN LATERAL(SELECT TRIM(UNNEST(REGEXP_MATCHES(s0.ri_combo, '[^-]+', 'g'))) AS parsed_ri_combo) AS l ON l.parsed_ri_combo = s1.i_code
@@ -7197,21 +5699,17 @@ JOIN rl r ON r.concept_class_1 = 'Dose Form'
 	AND r.concept_class_2 = de.concept_class_id
 JOIN (
 	-- resolve df_id - either into existing concept or extension_df
-	SELECT concept_code,
-		vocabulary_id,
-		concept_id AS df_id
+	SELECT concept_code, vocabulary_id, concept_id AS df_id
 	FROM concept
 	WHERE vocabulary_id IN (
 			'RxNorm',
 			'RxNorm Extension'
 			)
 		AND concept_class_id = 'Dose Form'
-	
+
 	UNION ALL
-	
-	SELECT concept_code,
-		vocabulary_id,
-		concept_id
+
+	SELECT concept_code, vocabulary_id, concept_id
 	FROM concept_stage
 	WHERE concept_class_id = 'Dose Form' -- the new negative ones
 	) df ON df.df_id = de.df_id
@@ -7249,21 +5747,17 @@ JOIN rl r ON r.concept_class_1 = 'Brand Name'
 	AND r.concept_class_2 = de.concept_class_id
 JOIN (
 	-- resolve bn_id - either into existing concept or extension_bn
-	SELECT concept_code,
-		vocabulary_id,
-		concept_id AS bn_id
+	SELECT concept_code, vocabulary_id, concept_id AS bn_id
 	FROM concept
 	WHERE vocabulary_id IN (
 			'RxNorm',
 			'RxNorm Extension'
 			)
 		AND concept_class_id = 'Brand Name'
-	
+
 	UNION ALL
-	
-	SELECT concept_code,
-		vocabulary_id,
-		concept_id
+
+	SELECT concept_code, vocabulary_id, concept_id
 	FROM concept_stage
 	WHERE concept_class_id = 'Brand Name' -- the new negative ones
 	) bn ON bn.bn_id = de.bn_id
@@ -7301,21 +5795,17 @@ JOIN rl r ON r.concept_class_1 = 'Supplier'
 	AND r.concept_class_2 = de.concept_class_id
 JOIN (
 	-- resolve mf_id - either into existing concept or extension_mf
-	SELECT concept_code,
-		vocabulary_id,
-		concept_id AS mf_id
+	SELECT concept_code, vocabulary_id, concept_id AS mf_id
 	FROM concept
 	WHERE vocabulary_id IN (
 			'RxNorm',
 			'RxNorm Extension'
 			)
 		AND concept_class_id = 'Supplier'
-	
+
 	UNION ALL
-	
-	SELECT concept_code,
-		vocabulary_id,
-		concept_id
+
+	SELECT concept_code, vocabulary_id, concept_id
 	FROM concept_stage
 	WHERE concept_class_id = 'Supplier' -- the new negative ones
 	) mf ON mf.mf_id = de.mf_id
@@ -7369,17 +5859,13 @@ JOIN (
 	FROM ri_bn r,
 		(
 			-- resolve ri_combo ingredients
-			SELECT i.i_code,
-				c.concept_code,
-				c.vocabulary_id
+			SELECT i.i_code, c.concept_code, c.vocabulary_id
 			FROM ing_stage i
 			JOIN concept c ON c.concept_id = i.i_id
-			
+
 			UNION
-			
-			SELECT ri_code,
-				ri_code,
-				'RxNorm Extension'
+
+			SELECT ri_code, ri_code, 'RxNorm Extension'
 			FROM extension_i
 			) AS s0
 	JOIN LATERAL(SELECT TRIM(UNNEST(REGEXP_MATCHES(r.ri_combo, '[^-]+', 'g'))) AS parsed_ri_combo) AS l ON l.parsed_ri_combo = s0.i_code

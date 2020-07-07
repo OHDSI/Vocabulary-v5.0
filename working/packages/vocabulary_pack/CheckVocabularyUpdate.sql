@@ -186,7 +186,7 @@ BEGIN
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');
             WHEN cVocabularyName = 'ICD10CM'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'Note: The FY ([[:digit:]]{4}) release of ICD-10-CM is now available') || '0101', 'yyyymmdd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'FY ([[:digit:]]{4}) release of ICD-10-CM') || '0101', 'yyyymmdd');
                 cVocabVer := 'ICD10CM FY'||to_char(cVocabDate,'YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN

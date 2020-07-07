@@ -120,13 +120,13 @@ DROP TABLE IF EXISTS drug_strength CASCADE;
 CREATE TABLE drug_strength (
 	drug_concept_id int4 NOT NULL,
 	ingredient_concept_id int4 NOT NULL,
-	amount_value FLOAT,
+	amount_value NUMERIC,
 	amount_unit_concept_id int4,
-	numerator_value FLOAT,
+	numerator_value NUMERIC,
 	numerator_unit_concept_id int4,
-	denominator_value FLOAT,
+	denominator_value NUMERIC,
 	denominator_unit_concept_id int4,
-	box_size int4,
+	box_size int2,
 	valid_start_date DATE NOT NULL,
 	valid_end_date DATE NOT NULL,
 	invalid_reason VARCHAR (1)
@@ -136,8 +136,8 @@ DROP TABLE IF EXISTS pack_content CASCADE;
 CREATE TABLE pack_content (
 	pack_concept_id int4 NOT NULL,
 	drug_concept_id int4 NOT NULL,
-	amount FLOAT,
-	box_size int4
+	amount int2,
+	box_size int2
 );
 
 DROP TABLE IF EXISTS concept_stage;
@@ -183,11 +183,11 @@ CREATE TABLE drug_strength_stage (
 	vocabulary_id_1 VARCHAR (20) NOT NULL,
 	ingredient_concept_code VARCHAR (20) NOT NULL,
 	vocabulary_id_2 VARCHAR (20) NOT NULL,
-	amount_value FLOAT,
+	amount_value NUMERIC,
 	amount_unit_concept_id int4,
-	numerator_value FLOAT,
+	numerator_value NUMERIC,
 	numerator_unit_concept_id int4,
-	denominator_value FLOAT,
+	denominator_value NUMERIC,
 	denominator_unit_concept_id int4,
 	valid_start_date DATE NOT NULL,
 	valid_end_date DATE NOT NULL,
@@ -200,8 +200,8 @@ CREATE TABLE pack_content_stage (
 	pack_vocabulary_id VARCHAR (20) NOT NULL,
 	drug_concept_code VARCHAR (20) NOT NULL,
 	drug_vocabulary_id VARCHAR (20) NOT NULL,
-	amount FLOAT,
-	box_size int4
+	amount int2,
+	box_size int2
 );
 
 DROP TABLE IF EXISTS concept_relationship_manual;

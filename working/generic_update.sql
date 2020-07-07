@@ -975,7 +975,7 @@ BEGIN
 		ds.numerator_unit_concept_id,
 		ds.denominator_value,
 		ds.denominator_unit_concept_id,
-		REGEXP_REPLACE(bs.concept_name, '.+Box of ([0-9]+).*', '\1')::INT AS box_size,
+		REGEXP_REPLACE(bs.concept_name, '.+Box of ([0-9]+).*', '\1')::INT2 AS box_size,
 		ds.valid_start_date,
 		ds.valid_end_date,
 		ds.invalid_reason

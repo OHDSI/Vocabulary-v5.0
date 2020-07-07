@@ -26,7 +26,7 @@ DECLARE
   cCAGroups INT:=50;
   cRecord record;
   cStartTime timestamp;
-  cWorkTime float;
+  cWorkTime NUMERIC;
   z int;
   v_id varchar(100);
 BEGIN

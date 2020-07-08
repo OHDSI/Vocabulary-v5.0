@@ -101,6 +101,7 @@ ALTER TABLE ds_stage
 	ADD CONSTRAINT tmp_dss_int2 CHECK (pg_typeof(box_size)='smallint'::regtype);
 ALTER TABLE ds_stage
 	DROP CONSTRAINT tmp_dss_drug,
+	DROP CONSTRAINT tmp_dss_ing,
 	DROP CONSTRAINT tmp_dss_float1,
 	DROP CONSTRAINT tmp_dss_float2,
 	DROP CONSTRAINT tmp_dss_float3,

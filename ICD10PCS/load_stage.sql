@@ -54,7 +54,10 @@ SELECT concept_name,
 		when 7 then 'ICD10PCS' 
 		else 'ICD10PCS Hierarchy'
 	end AS concept_class_id,
-	'S' AS standard_concept,
+	case length (concept_code)
+		when 7 then 'S'
+		else 'C'
+	end AS standard_concept,
 	concept_code,
 	(
 		SELECT latest_update
@@ -102,7 +105,7 @@ SELECT DISTINCT
 	'ICD10PCS' AS vocabulary_id,
 	'Procedure' AS domain_id,
 	'ICD10PCS Hierarchy' AS concept_class_id,
-	'S' AS standard_concept,
+	'C' AS standard_concept,
 	code AS concept_code,
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
@@ -131,7 +134,8 @@ WHERE sab = 'ICD10PCS'
 GROUP BY code,
 	str;
 
---6. Use basic tables as source to include concepts that were previously deprecated: they must remain Standard for historic purposes
+--6. Use basic tables as source to include concepts that were previously deprecated: they must remain Standard for purposes of being encountered in already created data
+-- 'Deprecated' is added to concept_name to show deprecation by source. We expect codes to be deprecated each release cycle, but usecases demand that they are kept Standard.
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -146,7 +150,8 @@ INSERT INTO concept_stage (
 select
 	case
 		when c.concept_name like '% (Deprecated)' then c.concept_name
-		else c.concept_name || ' (Deprecated)'
+		when length (c.concept_name) <= 242 then c.concept_name || ' (Deprecated)'
+		else left (c.concept_name, 239)  || '... (Deprecated)'
 	end as concept_name,
 	'ICD10PCS',
 	'Procedure',
@@ -154,7 +159,10 @@ select
 		when 7 then 'ICD10PCS'
 		else 'ICD10PCS Hierarchy'
 	end as concept_class_id,
-	'S',
+	case length (c.concept_code)
+		when 7 then 'S'
+		else 'C'
+	end AS standard_concept,
 	c.concept_code,
 	c.valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
@@ -185,9 +193,11 @@ join concept c on
 	c.vocabulary_id = 'ICD10PCS'
 left join sources.icd10pcs i on
 	i.concept_code = c.concept_code
-where i.concept_code is null
+where
+	i.concept_code is null and
+	c.concept_code not like 'MTHU00000_' -- Junk concepts
 ;
---8. Insert all missing concept_names as synonyms
+--8. Preserve original concept names for such concepts
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -195,19 +205,20 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 select
-	concept_code,
-	concept_name,
+	c.concept_code,
+	c.concept_name,
 	'ICD10PCS' AS vocabulary_id,
 	4180186 AS language_concept_id
-from concept_stage
+from concept c
+left join sources.icd10pcs i on
+	i.concept_code = c.concept_code
+left join concept_synonym_stage a on
+	(c.concept_code,c.concept_name) = (a.synonym_concept_code,a.synonym_name)
 where
-	(concept_code,concept_name) not in
-	(
-		select
-			synonym_concept_code,
-			synonym_name
-		from concept_synonym_stage
-	)
+	c.vocabulary_id = 'ICD10PCS' and
+	i.concept_code is null and
+	a.synonym_concept_code is null and
+	c.concept_code not like 'MTHU00000_' -- Junk concepts
 ;
 --9. Add "subsumes" relationship between concepts where the concept_code is direct descendant of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -281,7 +292,7 @@ left join concept_relationship_stage s on
 	c.concept_code = s.concept_code_1 and
 	c2.concept_code = s.concept_code_2 and
 	s.relationship_id = 'Subsumes'
-where s.relationship_id is null
+where s.concept_code_1 is null
 ;
 DROP INDEX trgm_idx;
 

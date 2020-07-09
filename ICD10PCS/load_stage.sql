@@ -50,7 +50,10 @@ INSERT INTO concept_stage (
 SELECT concept_name,
 	'ICD10PCS' AS vocabulary_id,
 	'Procedure' AS domain_id,
-	'ICD10PCS' AS concept_class_id,
+	case length (concept_code) 
+		when 7 then 'ICD10PCS' 
+		else 'ICD10PCS Hierarchy'
+	end AS concept_class_id,
 	'S' AS standard_concept,
 	concept_code,
 	(
@@ -80,20 +83,13 @@ SELECT DISTINCT
 		PARTITION BY code ORDER BY CASE tty
 				WHEN 'HT'
 					THEN 1
-				WHEN 'MTH_HX'
+				WHEN 'HS'
 					THEN 2
 				WHEN 'HX'
 					THEN 3
-				WHEN 'HS'
+				WHEN 'MTH_HX'
 					THEN 4
-				WHEN 'PT'
-					THEN 5
-				WHEN 'PX'
-					THEN 6
-				WHEN 'AB'
-					THEN 7
-				WHEN 'XM'
-					THEN 8
+				ELSE 5
 				END,
 			CASE 
 				WHEN LENGTH(str) <= 255
@@ -135,7 +131,85 @@ WHERE sab = 'ICD10PCS'
 GROUP BY code,
 	str;
 
---6. Add "subsumes" relationship between concepts where the concept_code is like of another
+--6. Use basic tables as source to include concepts that were previously deprecated: they must remain Standard for historic purposes
+INSERT INTO concept_stage (
+	concept_name,
+	vocabulary_id,
+	domain_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+select
+	case
+		when c.concept_name like '% (Deprecated)' then c.concept_name
+		else c.concept_name || ' (Deprecated)'
+	end as concept_name,
+	'ICD10PCS',
+	'Procedure',
+	case length (c.concept_code)
+		when 7 then 'ICD10PCS'
+		else 'ICD10PCS Hierarchy'
+	end as concept_class_id,
+	'S',
+	c.concept_code,
+	c.valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	null as invalid_reason	
+from concept c
+left join concept_stage s on
+	c.concept_code = s.concept_code
+where
+	c.vocabulary_id = 'ICD10PCS' and
+	s.concept_code is null and
+	c.concept_code not like 'MTHU00000_' -- Junk concepts
+;
+--7. Preserve synonyms for such concepts
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_name,
+	synonym_vocabulary_id,
+	language_concept_id
+	)
+select
+	c.concept_code,
+	s.concept_synonym_name,
+	'ICD10PCS' AS vocabulary_id,
+	4180186 AS language_concept_id
+from concept_synonym s
+join concept c on
+	c.concept_id = s.concept_id and
+	c.vocabulary_id = 'ICD10PCS'
+left join sources.icd10pcs i on
+	i.concept_code = c.concept_code
+where i.concept_code is null
+;
+--8. Insert all missing concept_names as synonyms
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_name,
+	synonym_vocabulary_id,
+	language_concept_id
+	)
+select
+	concept_code,
+	concept_name,
+	'ICD10PCS' AS vocabulary_id,
+	4180186 AS language_concept_id
+from concept_stage
+where
+	(concept_code,concept_name) not in
+	(
+		select
+			synonym_concept_code,
+			synonym_name
+		from concept_synonym_stage
+	)
+;
+--9. Add "subsumes" relationship between concepts where the concept_code is direct descendant of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -170,33 +244,72 @@ WHERE c2.concept_code LIKE c1.concept_code || '_'
 			AND r_int.concept_code_2 = c2.concept_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
+
+--10. Deprecate old "Subsumes" relationships that may have jumped levels
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+select
+	c.concept_code AS concept_code_1,
+	c2.concept_code AS concept_code_2,
+	c.vocabulary_id AS vocabulary_id_1,
+	c2.vocabulary_id AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	r.valid_start_date AS valid_start_date,
+	(
+		SELECT latest_update - 1
+		FROM vocabulary
+		WHERE vocabulary_id = c.vocabulary_id
+	) AS valid_end_date,
+	'D' AS invalid_reason
+from concept c
+join concept_relationship r on
+	c.vocabulary_id = 'ICD10PCS' and
+	r.concept_id_1 = c.concept_id and
+	r.relationship_id = 'Subsumes'
+join concept c2 on
+	c2.vocabulary_id = 'ICD10PCS' and
+	r.concept_id_2 = c2.concept_id
+left join concept_relationship_stage s on
+	c.concept_code = s.concept_code_1 and
+	c2.concept_code = s.concept_code_2 and
+	s.relationship_id = 'Subsumes'
+where s.relationship_id is null
+;
 DROP INDEX trgm_idx;
 
---7. Add ICD10CM to RxNorm manual mappings
+--11. Add ICD10PCS to SNOMED relations
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---8. Working with replacement mappings
+--12. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9. Add mapping from deprecated to fresh concepts
+--13. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Delete ambiguous 'Maps to' mappings
+--15. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();

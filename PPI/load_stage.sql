@@ -74,10 +74,6 @@ FROM all_source_0334_LS A
         AND b.standard_concept = 'S'
 WHERE a.relationship_id = 'Maps to'; -- 4254 
 
---select count (concept_code) from devv5.concept where vocabulary_id = 'PPI' and invalid_reason is null; -- 4316 
---select count (concept_code) from concept_stage where vocabulary_id = 'PPI' and invalid_reason is null; -- 4316 
-
-
 --4. Add PPI Measurement values using 'concept' table 
 INSERT INTO CONCEPT_STAGE
 (
@@ -421,6 +417,13 @@ WHERE NOT EXISTS (
 			AND crs.vocabulary_id_2 = i.vocabulary_id_1
 			AND r.reverse_relationship_id = i.relationship_id
 		);
+		
+--insert ready conpcets from syrveys COVID and MHWB
+insert into concept_stage
+select * from COVID_MHWB_concept_stage ;
+
+insert into concept_relationship_stage
+select * from COVID_MHWB_concept_relationship_stage ;
 
 --14. Add deprecated relationships which do not exist in concept_relationship_stage from concept_relationship to concept_relationship_stage
 INSERT INTO concept_relationship_stage (
@@ -458,16 +461,10 @@ WHERE 'PPI' IN (
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
 		);
+		
 -- update the bug from codebook
 update concept_stage
 set concept_name = 'Dentist or Orthodontist Visits: 10 to 12'
 where concept_name = 'Dentist or Orthodontist  Visits: 10 to 12' ;
-
---insert ready conpcets from syrveys COVID and MHWB
-insert into concept_stage
-select * from COVID_MHWB_concept_stage ;
-
-insert into concept_relationship_stage
-select * from COVID_MHWB_concept_relationship_stage ;
 
 -- if you need to add new concepts use the script https://bitbucket.org/sciforce_odysseus/ppi/src/master/load_stage%202020-06-11.sql

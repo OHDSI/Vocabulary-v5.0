@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION vocabulary_pack.processmanualrelationships (
+﻿CREATE OR REPLACE FUNCTION vocabulary_pack.ProcessManualRelationships (
 )
 RETURNS void AS
 $body$
@@ -24,7 +24,7 @@ begin
        z;
   IF z > 1
     THEN
-    RAISE EXCEPTION 'SynchronizeManualTable: more than one dev_schema found';
+    RAISE EXCEPTION 'ProcessManualRelationships: more than one dev_schema found';
   END IF;
 
   IF CURRENT_SCHEMA = 'devv5'
@@ -37,7 +37,7 @@ begin
 
     IF z = 0
       THEN
-      RAISE EXCEPTION 'SynchronizeManualTable: % not found', cSchemaName ||
+      RAISE EXCEPTION 'ProcessManualRelationships: % not found', cSchemaName ||
       '.concept_relationship_manual';
     END IF;
 

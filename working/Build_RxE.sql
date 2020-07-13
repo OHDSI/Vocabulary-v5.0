@@ -790,40 +790,50 @@ FROM (
 	
 	UNION ALL -- get the drug strength information for the quantified versions of a drug from the non-quantified
 	
-	SELECT cr.concept_id_2, u.ingredient_concept_id, u.amount_value, u.amount_unit_concept_id, u.numerator_value, u.numerator_unit_concept_id, u.denominator_unit_concept_id
-	FROM w_uds u
-	JOIN concept c1 ON c1.concept_id = u.drug_concept_id
-		AND c1.vocabulary_id IN (
-			'RxNorm',
-			'RxNorm Extension'
-			)
-		AND c1.invalid_reason IS NULL
-	JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
-		AND cr.invalid_reason IS NULL
-		AND cr.relationship_id = 'Has quantified form'
-	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.invalid_reason IS NULL -- check that resulting quantified is valid
+	SELECT s0.concept_id_2, s0.ingredient_concept_id, s0.amount_value, s0.amount_unit_concept_id, s0.numerator_value, s0.numerator_unit_concept_id, s0.denominator_unit_concept_id
+	FROM (
+		SELECT cr.concept_id_2, u.ingredient_concept_id, u.amount_value, u.amount_unit_concept_id, u.numerator_value, u.numerator_unit_concept_id, u.denominator_unit_concept_id,
+		ROW_NUMBER() OVER (PARTITION BY u.ingredient_concept_id ORDER BY cr.concept_id_2) AS rn
+		FROM w_uds u
+		JOIN concept c1 ON c1.concept_id = u.drug_concept_id
+			AND c1.vocabulary_id IN (
+				'RxNorm',
+				'RxNorm Extension'
+				)
+			AND c1.invalid_reason IS NULL
+		JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
+			AND cr.invalid_reason IS NULL
+			AND cr.relationship_id = 'Has quantified form'
+		JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+			AND c2.invalid_reason IS NULL -- check that resulting quantified is valid
+		) AS s0
+	WHERE rn = 1 --use min(concept_id_2) if we have several links from one ingredient_concept_id
 	
 	UNION ALL -- get the drug strength information for Marketed Products from the non-quantified version of the non-marketed quant drug
 	
-	SELECT cr2.concept_id_2, u.ingredient_concept_id, u.amount_value, u.amount_unit_concept_id, u.numerator_value, u.numerator_unit_concept_id, u.denominator_unit_concept_id
-	FROM w_uds u
-	JOIN concept c1 ON c1.concept_id = u.drug_concept_id
-		AND c1.vocabulary_id IN (
-			'RxNorm',
-			'RxNorm Extension'
-			)
-		AND c1.invalid_reason IS NULL
-	JOIN concept_relationship cr1 ON cr1.concept_id_1 = c1.concept_id
-		AND cr1.invalid_reason IS NULL
-		AND cr1.relationship_id = 'Has quantified form'
-	JOIN concept c2 ON c2.concept_id = cr1.concept_id_2
-		AND c2.invalid_reason IS NULL -- check that resulting quantified is valid
-	JOIN concept_relationship cr2 ON cr2.concept_id_1 = cr1.concept_id_2
-		AND cr2.invalid_reason IS NULL
-		AND cr2.relationship_id = 'Has marketed form'
-	JOIN concept f ON f.concept_id = cr2.concept_id_2
-		AND f.invalid_reason IS NULL -- check that resulting marketed is valid
+	SELECT s0.concept_id_2, s0.ingredient_concept_id, s0.amount_value, s0.amount_unit_concept_id, s0.numerator_value, s0.numerator_unit_concept_id, s0.denominator_unit_concept_id
+	FROM (
+		SELECT cr2.concept_id_2, u.ingredient_concept_id, u.amount_value, u.amount_unit_concept_id, u.numerator_value, u.numerator_unit_concept_id, u.denominator_unit_concept_id,
+		ROW_NUMBER() OVER (PARTITION BY u.ingredient_concept_id ORDER BY cr2.concept_id_2) AS rn
+		FROM w_uds u
+		JOIN concept c1 ON c1.concept_id = u.drug_concept_id
+			AND c1.vocabulary_id IN (
+				'RxNorm',
+				'RxNorm Extension'
+				)
+			AND c1.invalid_reason IS NULL
+		JOIN concept_relationship cr1 ON cr1.concept_id_1 = c1.concept_id
+			AND cr1.invalid_reason IS NULL
+			AND cr1.relationship_id = 'Has quantified form'
+		JOIN concept c2 ON c2.concept_id = cr1.concept_id_2
+			AND c2.invalid_reason IS NULL -- check that resulting quantified is valid
+		JOIN concept_relationship cr2 ON cr2.concept_id_1 = cr1.concept_id_2
+			AND cr2.invalid_reason IS NULL
+			AND cr2.relationship_id = 'Has marketed form'
+		JOIN concept f ON f.concept_id = cr2.concept_id_2
+			AND f.invalid_reason IS NULL -- check that resulting marketed is valid
+	) AS s0
+	WHERE rn = 1 --use min(concept_id_2) if we have several links from one ingredient_concept_id
 	) ds
 JOIN r_uds uds USING (ingredient_concept_id, amount_value, amount_unit_concept_id, numerator_value, numerator_unit_concept_id)
 WHERE COALESCE(ds.denominator_unit_concept_id, -1) = COALESCE(uds.denominator_unit_concept_id, -1);-- match nulls for % and homeopathics

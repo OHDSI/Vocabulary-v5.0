@@ -4587,7 +4587,6 @@ LEFT JOIN concept bn ON bn.concept_id = c.bn_id
 WHERE c.concept_id < 0
 	AND c.rd_combo = ' ';-- Only Drug Forms
 
-
 DROP TABLE IF EXISTS extension_name;
 CREATE UNLOGGED TABLE extension_name (
 	concept_id int4,
@@ -4614,7 +4613,7 @@ FROM (
 	
 	UNION ALL
 	
-	SELECT s.concept_id,
+	SELECT DISTINCT s.concept_id,
 		s.quant,
 		'~~~' AS comp_name, -- last ASCII character to make sure they get sorted towards the end.
 		1 AS agg_len,

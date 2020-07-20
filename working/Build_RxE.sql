@@ -4474,28 +4474,14 @@ SELECT c.concept_id,
 	CASE 
 		WHEN c.df_id = 0
 			THEN NULL
-		ELSE CONCAT (
-				' ',
-				COALESCE(edf.concept_name, df.concept_name)
-				)
+		ELSE ' '|| COALESCE(edf.concept_name, df.concept_name)
 		END AS df_name,
 	CASE 
 		WHEN c.bn_id = 0
 			THEN NULL
-		ELSE CONCAT (
-				' [',
-				COALESCE(ebn.concept_name, bn.concept_name),
-				']'
-				)
+		ELSE ' [' || COALESCE(ebn.concept_name, bn.concept_name) || ']'
 		END AS bn_name,
-	CASE 
-		WHEN c.bs = 0
-			THEN NULL
-		ELSE CONCAT (
-				' Box of ',
-				c.bs
-				)
-		END AS box,
+	' Box of ' || NULLIF (c.bs,0) AS box,
 	CASE 
 		WHEN c.mf_id = 0
 			THEN NULL
@@ -4992,28 +4978,13 @@ CREATE UNLOGGED TABLE pack_name AS
 				CASE 
 					WHEN cp.bn_id = 0
 						THEN NULL
-					ELSE CONCAT (
-							' [',
-							COALESCE(bn.concept_name, ebn.concept_name),
-							']'
-							)
+					ELSE ' [' || COALESCE(bn.concept_name, ebn.concept_name) || ']'
 					END AS bn_name,
-				CASE 
-					WHEN cp.bs = 0
-						THEN NULL
-					ELSE CONCAT (
-							' box of ',
-							cp.bs,
-							' '
-							)
-					END AS bs_name,
+				' box of ' || NULLIF (cp.bs,0) AS bs_name,
 				CASE 
 					WHEN cp.mf_id = 0
 						THEN NULL
-					ELSE CONCAT (
-							' by ',
-							COALESCE(mf.concept_name, emf.concept_name)
-							)
+					ELSE ' by ' || COALESCE(mf.concept_name, emf.concept_name)
 					END AS mf_name
 			-- case when cp.mf_id=0 then null else ' by '||regexp_replace(COALESCE(mf.concept_name, emf.concept_name), ' Inc\.?| Ltd| Plc| PLC| UK| \(UK\)| \(U\.K\.\)| Canada| Pharmaceuticals| Pharma| GmbH| Laboratories') end as mf_name
 			FROM pack_attribute cp
@@ -5030,7 +5001,7 @@ CREATE UNLOGGED TABLE pack_name AS
 					pd.bs_name,
 					pd.mf_name
 					) AS concept_name,
-				COALESCE(length(pd.bs_name), 0) + COALESCE(length(pd.bn_name), 0) + COALESCE(length(pd.mf_name), 0) AS len -- length of the brand name the Pack plus extra characters making up the name minus the ' / ' at the last component
+				COALESCE(LENGTH(pd.bs_name), 0) + COALESCE(LENGTH(pd.bn_name), 0) + COALESCE(LENGTH(pd.mf_name), 0) AS len -- length of the brand name the Pack plus extra characters making up the name minus the ' / ' at the last component
 			FROM common_part pd
 			),
 		common_part3 AS (

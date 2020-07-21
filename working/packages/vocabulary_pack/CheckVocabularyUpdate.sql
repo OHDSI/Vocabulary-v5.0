@@ -135,9 +135,7 @@ BEGIN
           23. CDM
           24. SNOMED Veterinary
         */
-        perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
-        set local http.timeout_msec TO 30000;
-        SELECT content into cVocabHTML FROM http_get(cURL);
+        SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
         CASE
             WHEN cVocabularyName = 'RXNORM'

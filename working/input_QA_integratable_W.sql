@@ -22,8 +22,8 @@ with s0 as
 (
 
 	SELECT drug_concept_code,
-		'dosage with ml: only allowed for gasseous substances',
-		'ds_stage'
+		'dosage with ml: only allowed for gasseous substances' as error_type,
+		'ds_stage' as affected_table
 	FROM ds_stage
 	join relationship_to_concept on
 		concept_code_1 in (numerator_unit,amount_unit) and

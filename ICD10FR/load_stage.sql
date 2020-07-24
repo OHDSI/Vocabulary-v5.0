@@ -32,8 +32,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIM10Fr',
-	pVocabularyDate			=> to_date ('20191021','yyyymmd'),
-	pVocabularyVersion		=> 'CIM10Fr 2019-10-21',
+	pVocabularyDate			=> to_date ('20200414','yyyymmd'),
+	pVocabularyVersion		=> 'CIM10Fr 2020-04-14',
 	pVocabularyDevSchema	=> 'DEV_ICD10FR'
 );
 END $_$;
@@ -66,7 +66,7 @@ FROM (
 			unnest(xpath('./Rubric', i.xmlfield)) rubric_label
 		FROM (
 			SELECT unnest(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
-			FROM dev_icd10.icd10_v2_2019_xml_raw i
+			FROM dev_icd10.icd10_v2_xml_raw i
 			) AS i
 		) AS s0
 	) AS s1
@@ -92,7 +92,7 @@ AS (
 				unnest(xpath('./Rubric', i.xmlfield)) rubric_label
 			FROM (
 				SELECT unnest(xpath('/ClaML/Class', i.xmlfield)) xmlfield
-				FROM dev_icd10.icd10_v2_2019_xml_raw i
+				FROM dev_icd10.icd10_v2_xml_raw i
 				) AS i
 			LEFT JOIN lateral(SELECT unnest(xpath('./SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
 			) AS s0

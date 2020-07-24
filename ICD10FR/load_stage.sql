@@ -27,17 +27,16 @@
 **************************************************************************/
 
 --1. Update latest_update field to new date 
-/* -- doesn't work
+-- doesn't work
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
-	pVocabularyName			=> 'ICD10',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM dev_icd10.icd10_v2_xml_raw LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM dev_icd10.icd10_v2_xml_raw LIMIT 1),
-	pVocabularyDevSchema	=> 'DEV_ICD10'
+	pVocabularyName			=> 'CIM10Fr',
+	pVocabularyDate			=> to_date ('20191021','yyyymmd'),
+	pVocabularyVersion		=> 'CIM10Fr 2019-10-21',
+	pVocabularyDevSchema	=> 'DEV_ICD10FR'
 );
 END $_$;
-*/
 
 --2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
@@ -67,7 +66,7 @@ FROM (
 			unnest(xpath('./Rubric', i.xmlfield)) rubric_label
 		FROM (
 			SELECT unnest(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
-			FROM dev_icd10.icd10_v2_xml_raw i
+			FROM dev_icd10.icd10_v2_2019_xml_raw i
 			) AS i
 		) AS s0
 	) AS s1
@@ -93,7 +92,7 @@ AS (
 				unnest(xpath('./Rubric', i.xmlfield)) rubric_label
 			FROM (
 				SELECT unnest(xpath('/ClaML/Class', i.xmlfield)) xmlfield
-				FROM dev_icd10.icd10_v2_xml_raw i
+				FROM dev_icd10.icd10_v2_2019_xml_raw i
 				) AS i
 			LEFT JOIN lateral(SELECT unnest(xpath('./SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
 			) AS s0
@@ -113,8 +112,17 @@ LEFT JOIN classes b ON a.class_code = b.class_code
 	AND b.rubric_kind = 'preferredLong'
 WHERE a.rubric_kind != 'preferredLong';
 
---4. Fill the concept_stage
-INSERT INTO concept_stage (
+--4. Prepare temporary concept_stage_tmp until we get English names and fill concept_synonym_stage
+;
+--Concepts end up having multiple names per code; all names should be English, but all french names must stay in concept_synonym
+drop table if exists concept_stage_tmp
+;
+create table concept_stage_tmp as
+select *
+from concept_stage
+where false
+;
+INSERT INTO concept_stage_tmp (
 	concept_name,
 	domain_id,
 	vocabulary_id,
@@ -211,7 +219,7 @@ WITH codes_need_modified AS (
 		)
 SELECT concept_name,
 	NULL AS domain_id,
-	'ICD10' AS vocabulary_id,
+	'CIM10Fr' AS vocabulary_id,
 	CASE 
 		WHEN length(concept_code) = 3
 			THEN 'ICD10 Hierarchy'
@@ -220,7 +228,9 @@ SELECT concept_name,
 	NULL AS standard_concept,
 	concept_code,
 	(
-CURRENT_DATE
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CIM10Fr'
 		) AS valid_start_date,
 	to_date('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
@@ -244,14 +254,14 @@ FROM (
 WHERE concept_code ~ '[A-Z]\d\d.*'
 	AND concept_code !~ 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.0|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+';
 
-UPDATE concept_stage cs
+UPDATE concept_stage_tmp cs
 SET concept_name = i.new_name
 FROM (
 	SELECT c.concept_code,
 		cs.concept_name || ' ' || lower(c.concept_name) AS new_name
-	FROM concept_stage c
+	FROM concept_stage_tmp c
 	LEFT JOIN classes cl ON c.concept_code = cl.class_code
-	LEFT JOIN concept_stage cs ON cl.superclass_code = cs.concept_code
+	LEFT JOIN concept_stage_tmp cs ON cl.superclass_code = cs.concept_code
 	WHERE c.concept_code ~ '((Y06)|(Y07)).+'
 		AND rubric_kind = 'preferred'
 	
@@ -259,14 +269,14 @@ FROM (
 	
 	SELECT c.concept_code,
 		c.concept_name || ' as the cause of abnormal reaction of the patient, or of later complication, without mention of misadventure at the time of the procedure'
-	FROM concept_stage c
+	FROM concept_stage_tmp c
 	WHERE c.concept_code ~ '((Y83)|(Y84)).+'
 	
 	UNION ALL
 	
 	SELECT c.concept_code,
 		'Adverse effects in the therapeutic use of ' || lower(concept_name)
-	FROM concept_stage c
+	FROM concept_stage_tmp c
 	WHERE concept_code >= 'Y40'
 		AND concept_code < 'Y60'
 	
@@ -274,24 +284,102 @@ FROM (
 	
 	SELECT c.concept_code,
 		replace(cs.concept_name, 'during%', '') || ' ' || lower(c.concept_name)
-	FROM concept_stage c
+	FROM concept_stage_tmp c
 	LEFT JOIN classes cl ON c.concept_code = cl.CLASS_CODE
-	LEFT JOIN concept_stage cs ON cl.SUPERCLASS_CODE = cs.concept_code
+	LEFT JOIN concept_stage_tmp cs ON cl.SUPERCLASS_CODE = cs.concept_code
 	WHERE c.concept_code ~ '((Y60)|(Y61)|(Y62)).+'
 		AND rubric_kind = 'preferred'
 	) i
 WHERE cs.concept_code = i.concept_code;
+;
+-- Preserve original names in concept_synonym_stage
+insert into concept_synonym_stage (synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id)
+select
+	concept_name,
+	concept_code,
+	'CIM10Fr',
+	4180190 -- French language
+from concept_stage_tmp
+; 
+--5. Fill concept stage with new English names
+insert into concept_stage (concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason)
+select distinct
+	trim (coalesce (i.concept_name_translated,c.concept_name)), -- prefer manual translation
+	t.domain_id,
+	t.vocabulary_id,
+	t.concept_class_id,
+	t.standard_concept,
+	t.concept_code,
+	t.valid_start_date,
+	t.valid_end_date,
+	t.invalid_reason
+from concept_stage_tmp t
+left join concept c on
+	c.vocabulary_id = 'ICD10' and
+	c.concept_code = t.concept_code
+left join manual_input i on
+	i.concept_code = t.concept_code
+;
+--6. Inherit external relations from international ICD10 whenever possible
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT i.concept_code AS concept_code_1,
+	c.concept_code AS concept_code_2,
+	'CIM10Fr' AS vocabulary_id_1,
+	c.vocabulary_id AS vocabulary_id_2,
+	r.relationship_id AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CIM10Fr'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM (
 
-
---5. Create 'Maps to' and 'Maps to value' relationship from file created by the medical coders
-/*
-SELECT *
-FROM concept c,
-	concept_relationship r
-WHERE c.concept_id = r.concept_id_1
-	AND c.vocabulary_id = 'ICD10'
-	AND r.invalid_reason IS NULL;
-*/
+	SELECT DISTINCT cs.concept_code, c.concept_id
+	FROM concept_stage cs
+	JOIN concept c ON 
+		c.vocabulary_id = 'ICD10' and
+		cs.concept_code = c.concept_code
+	) i
+JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
+	AND r.invalid_reason IS NULL
+	AND r.relationship_id IN (
+		'Maps to',
+		'Maps to value'
+		)
+JOIN concept c ON c.concept_id = r.concept_id_2;
+;
+--7. Create 'Maps to' and 'Maps to value' relationship from file created by the medical coders
+truncate concept_relationship_manual
+;
+insert into concept_relationship_manual (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
+select
+	i.concept_code,
+	c.concept_code,
+	'CIM10Fr',
+	c.vocabulary_id,
+	i.relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CIM10Fr'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date	
+from manual_input i
+join concept c on
+	c.concept_id = i.target_concept_id and
+	i.target_concept_id != 0
+join concept_stage cs on
+	cs.concept_code = i.concept_code
+;
 --6. Append result to concept_relationship_stage table
 DO $_$
 BEGIN
@@ -340,7 +428,11 @@ SELECT c1.concept_code AS concept_code_1,
 	c1.vocabulary_id AS vocabulary_id_1,
 	c1.vocabulary_id AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
-	CURRENT_DATE AS valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CIM10Fr'
+	) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM concept_stage c1,
@@ -379,10 +471,10 @@ FROM (
 	FROM concept_relationship_stage crs
 	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
 		AND cs1.vocabulary_id = crs.vocabulary_id_1
-		AND cs1.vocabulary_id = 'ICD10'
+		AND cs1.vocabulary_id = 'CIM10Fr'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id in ('SNOMED', 'OMOP Extension')
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 	
@@ -406,9 +498,9 @@ FROM (
 			)
 	FROM concept_relationship cr
 	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
-		AND c1.vocabulary_id = 'ICD10'
+		AND c1.vocabulary_id = 'CIM10Fr'
 	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id in ('SNOMED', 'OMOP Extension')
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'
@@ -422,12 +514,13 @@ FROM (
 			)
 	) i
 WHERE i.concept_code = cs.concept_code
-	AND cs.vocabulary_id = 'ICD10';
+	AND cs.vocabulary_id = 'CIM10Fr';
 
---Manual fix
-UPDATE concept_stage
-SET domain_id = 'Observation'
-WHERE concept_code LIKE 'U06%';
+--Manual fix for concepts without mapping
+update concept_stage
+set domain_id = 'Observation'
+where domain_id is null
+;
 
 --13. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
@@ -498,7 +591,7 @@ FROM concept a
 JOIN concept_relationship r ON a.concept_id = concept_id_1
 	AND r.invalid_reason IS NULL
 JOIN concept b ON b.concept_id = concept_id_2
-WHERE 'ICD10' IN (
+WHERE 'CIM10Fr' IN (
 		a.vocabulary_id,
 		b.vocabulary_id
 		)

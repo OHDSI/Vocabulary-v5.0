@@ -32,7 +32,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIM10Fr',
-	pVocabularyDate			=> to_date ('20200414','yyyymmd'),
+	pVocabularyDate			=> to_date ('2020414','yyyymmd'),
 	pVocabularyVersion		=> 'CIM10Fr 2020-04-14',
 	pVocabularyDevSchema	=> 'DEV_ICD10FR'
 );

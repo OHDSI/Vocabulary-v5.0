@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION vocabulary_pack.checkmanualtable (
+﻿CREATE OR REPLACE FUNCTION vocabulary_pack.CheckManualRelationships (
 )
 RETURNS void AS
 $body$
@@ -48,7 +48,7 @@ BEGIN
 
   IF z > 0
     THEN
-    RAISE EXCEPTION  'CheckManualTable: % error(s) found', z;
+    RAISE EXCEPTION  'CheckManualRelationships: % error(s) found', z;
   END IF;
 END;
 $body$

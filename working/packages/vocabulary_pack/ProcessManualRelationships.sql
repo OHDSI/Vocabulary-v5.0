@@ -14,7 +14,7 @@ begin
   */
   IF CURRENT_SCHEMA <> 'devv5' 
     THEN
-    PERFORM vocabulary_pack.CheckManualTable(); 
+    PERFORM vocabulary_pack.CheckManualRelationships();
   END IF;
   SELECT LOWER(MAX(dev_schema_name)),
          COUNT(DISTINCT dev_schema_name)
@@ -45,7 +45,7 @@ begin
     EXECUTE 'INSERT INTO concept_relationship_manual SELECT * FROM ' ||
       cSchemaName || '.concept_relationship_manual';
 
-    PERFORM vocabulary_pack.CheckManualTable();
+    PERFORM vocabulary_pack.CheckManualRelationships();
   END IF;
     --add new records
     insert into concept_relationship_stage(concept_code_1, concept_code_2,

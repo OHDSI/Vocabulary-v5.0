@@ -19,7 +19,7 @@ BEGIN
 	WHERE latest_update IS NOT NULL;
 
 	IF z > 1 THEN
-		RAISE EXCEPTION 'ProcessManualSynonyms: more than one dev_schema found';
+		RAISE EXCEPTION 'more than one dev_schema found';
 	END IF;
 
 	IF CURRENT_SCHEMA = 'devv5' THEN
@@ -29,7 +29,7 @@ BEGIN
 			AND pg_t.tablename = 'concept_synonym_manual';
 
 		IF z = 0 THEN
-			RAISE EXCEPTION 'ProcessManualSynonyms: % not found', cSchemaName || '.concept_synonym_manual';
+			RAISE EXCEPTION '% not found', cSchemaName || '.concept_synonym_manual';
 		END IF;
 
 		TRUNCATE TABLE concept_synonym_manual;

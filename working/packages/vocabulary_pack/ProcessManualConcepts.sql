@@ -79,7 +79,7 @@ BEGIN
 			WHERE cs_int.concept_code = cm.concept_code
 				AND cs_int.vocabulary_id = cm.vocabulary_id
 			);
-	END;
+END;
 $BODY$
 LANGUAGE 'plpgsql'
 VOLATILE

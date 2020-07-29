@@ -50,6 +50,7 @@ BEGIN
 		synonym_vocabulary_id,
 		language_concept_id
 	FROM concept_synonym_manual;
+END;
 $BODY$
 LANGUAGE 'plpgsql'
 VOLATILE

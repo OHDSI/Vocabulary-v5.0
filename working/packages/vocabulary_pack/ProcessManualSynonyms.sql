@@ -49,7 +49,15 @@ BEGIN
 		synonym_concept_code,
 		synonym_vocabulary_id,
 		language_concept_id
-	FROM concept_synonym_manual;
+	FROM concept_synonym_manual csm
+	WHERE NOT EXISTS (
+			SELECT 1
+			FROM concept_synonym_stage css_int
+			WHERE css_int.synonym_name = csm.synonym_name
+				AND css_int.synonym_concept_code = csm.synonym_concept_code
+				AND css_int.synonym_vocabulary_id = csm.synonym_vocabulary_id
+				AND css_int.language_concept_id = csm.language_concept_id
+			);
 END;
 $BODY$
 LANGUAGE 'plpgsql'

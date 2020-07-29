@@ -202,7 +202,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'ICD9ProcCN' THEN 1
 		WHEN c.vocabulary_id = 'CAP' THEN 1
 		WHEN c.vocabulary_id = 'OMOP Extension' THEN 0
-		WHEN c.vocabulary_id = 'CIM10Fr' THEN 1
+		WHEN c.vocabulary_id = 'CIM10' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');

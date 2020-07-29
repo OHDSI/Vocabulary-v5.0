@@ -405,11 +405,12 @@ begin
       execute 'COPY sources.loinc_answerslistlink FROM '''||pVocabularyPath||'LoincAnswerListLink.csv'' delimiter '','' csv HEADER';
       --insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx'); --PanelsAndForms.xlsx replaced with CSV-file in v2.65
       execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'LOINC_PanelsAndForms.csv'' delimiter '','' csv HEADER';
-      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink, sources.loinc_part, sources.loinc_radiology;
+      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink_primary, sources.loinc_partlink_supplementary, sources.loinc_part, sources.loinc_radiology;
       execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'Group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
       execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'ParentGroupAttributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
       execute 'COPY sources.loinc_grouploincterms FROM '''||pVocabularyPath||'GroupLoincTerms.csv'' delimiter '','' csv HEADER FORCE NULL category,groupid,archetype,loincnumber,longcommonname';
-      execute 'COPY sources.loinc_partlink FROM '''||pVocabularyPath||'LoincPartLink.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
+      execute 'COPY sources.loinc_partlink_primary FROM '''||pVocabularyPath||'LoincPartLink_Primary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
+      execute 'COPY sources.loinc_partlink_supplementary FROM '''||pVocabularyPath||'LoincPartLink_Supplementary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
       execute 'COPY sources.loinc_part FROM '''||pVocabularyPath||'Part.csv'' delimiter '','' csv HEADER FORCE NULL partnumber,parttypename,partname,partdisplayname,status';
       execute 'COPY sources.loinc_radiology FROM '''||pVocabularyPath||'LoincRsnaRadiologyPlaybook.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,parttypename,partname,partsequenceorder,rid,preferredname,rpid,longname';
       truncate table sources.loinc_class, sources.scccrefset_expressionassociation_int, sources.scccrefset_mapcorrorfull_int, sources.cpt_mrsmap;

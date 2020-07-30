@@ -137,8 +137,6 @@ GROUP BY code,
 
 --6. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
-ANALYZE concept_stage;
-
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

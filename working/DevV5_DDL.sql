@@ -216,6 +216,27 @@ CREATE TABLE concept_relationship_manual (
 	invalid_reason VARCHAR (1)
 );
 
+DROP TABLE IF EXISTS concept_manual;
+CREATE TABLE concept_manual (
+	concept_name VARCHAR (255),
+	domain_id VARCHAR (20),
+	vocabulary_id VARCHAR (20) NOT NULL,
+	concept_class_id VARCHAR (20),
+	standard_concept VARCHAR (1),
+	concept_code VARCHAR (50) NOT NULL,
+	valid_start_date DATE,
+	valid_end_date DATE,
+	invalid_reason VARCHAR (1)
+);
+
+DROP TABLE IF EXISTS concept_synonym_manual;
+CREATE TABLE concept_synonym_manual (
+	synonym_name VARCHAR (1000) NOT NULL,
+	synonym_concept_code VARCHAR (50) NOT NULL,
+	synonym_vocabulary_id VARCHAR (20) NOT NULL,
+	language_concept_id int4 NOT NULL
+);
+
 --Create PKs
 ALTER TABLE concept ADD CONSTRAINT xpk_concept PRIMARY KEY (concept_id);
 ALTER TABLE vocabulary ADD CONSTRAINT xpk_vocabulary PRIMARY KEY (vocabulary_id);
@@ -248,6 +269,9 @@ ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_2 FOREIGN KEY (n
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_3 FOREIGN KEY (denominator_unit_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_1 FOREIGN KEY (pack_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_2 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id);
+ALTER TABLE concept_relationship_manual ADD CONSTRAINT unique_manual_relationships UNIQUE (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
+ALTER TABLE concept_manual ADD CONSTRAINT unique_manual_concepts UNIQUE (vocabulary_id,concept_code);
+ALTER TABLE concept_synonym_manual ADD CONSTRAINT unique_manual_synonyms UNIQUE (synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id);
 
 --Create indexes
 CREATE UNIQUE INDEX idx_unique_concept_code ON concept (vocabulary_id, concept_code) WHERE vocabulary_id NOT IN ('DRG', 'SMQ') AND concept_code <> 'OMOP generated';
@@ -279,3 +303,5 @@ ALTER TABLE concept ADD CONSTRAINT chk_c_concept_code CHECK (concept_code <> '')
 ALTER TABLE concept ADD CONSTRAINT chk_c_invalid_reason CHECK (COALESCE(invalid_reason,'D') in ('D','U'));
 ALTER TABLE concept_relationship ADD CONSTRAINT chk_cr_invalid_reason CHECK (COALESCE(invalid_reason,'D')='D');
 ALTER TABLE concept_synonym ADD CONSTRAINT chk_csyn_concept_synonym_name CHECK (concept_synonym_name <> '');
+ALTER TABLE concept_manual ADD CONSTRAINT chk_cmnl_concept_name CHECK (concept_name <> '');
+ALTER TABLE concept_synonym_manual ADD CONSTRAINT chk_csynmnl_concept_synonym_name CHECK (synonym_name <> '');

@@ -29,7 +29,7 @@ BEGIN
 			AND pg_t.tablename = 'concept_relationship_manual';
 
 		IF z = 0 THEN
-			RAISE EXCEPTION 'ProcessManualRelationships: % not found', cSchemaName || '.concept_relationship_manual';
+			RAISE EXCEPTION '% not found', cSchemaName || '.concept_relationship_manual';
 		END IF;
 
 		TRUNCATE TABLE concept_relationship_manual;

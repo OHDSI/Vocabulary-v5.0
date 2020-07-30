@@ -106,6 +106,7 @@ LEFT JOIN classes b ON a.class_code = b.class_code
 	AND b.rubric_kind = 'preferredLong'
 WHERE a.rubric_kind != 'preferredLong';
 
+
 --4. Fill the concept_stage
 INSERT INTO concept_stage (
 	concept_name,
@@ -288,7 +289,8 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT c.concept_code AS concept_code_1,
+SELECT distinct -- there are duplicates in "classes" table
+c.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	'CIM10Fr' AS vocabulary_id_1,
 	c2.vocabulary_id AS vocabulary_id_2,
@@ -355,7 +357,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT c1.concept_code AS concept_code_1,
+SELECT distinct c1.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
 	c1.vocabulary_id AS vocabulary_id_1,
 	c1.vocabulary_id AS vocabulary_id_2,
@@ -456,7 +458,6 @@ ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
 --14. Clean up
- -- temporary commented
 DROP TABLE modifier_classes;
 DROP TABLE classes;
 
@@ -479,11 +480,11 @@ from concept_stage
 ;
 --update concept_Stage, set english names from ICD10
 update concept_stage a set concept_name = (select concept_name 
-from concept b where a.concept_code = b.concept_code and   b.vocabulary_id ='CIM10')
+from concept b where a.concept_code = b.concept_code and   b.vocabulary_id ='ICD10')
 where exists 
  (select 1
-from concept b where a.concept_code = b.concept_code and   b.vocabulary_id ='CIM10')
--- 11378 rows affected
+from concept b where a.concept_code = b.concept_code and   b.vocabulary_id ='ICD10')
+-- 11427 rows affected in 2019 version
 ;
 --update existing records
 	UPDATE concept_stage cs
@@ -497,3 +498,14 @@ from concept b where a.concept_code = b.concept_code and   b.vocabulary_id ='CIM
 	FROM concept_manual cm
 	WHERE cm.concept_code = cs.concept_code
 		AND cm.vocabulary_id = cs.vocabulary_id;
+--remove duplicates
+drop table if exists concept_stage_tmp;
+create table concept_stage_tmp as select distinct * from concept_stage
+;
+truncate table concept_stage
+;
+insert into concept_stage
+select * from concept_stage_tmp
+;
+drop table concept_stage_tmp
+;

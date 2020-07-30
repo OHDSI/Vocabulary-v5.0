@@ -292,7 +292,7 @@ INSERT INTO concept_relationship_stage (
 SELECT distinct -- there are duplicates in "classes" table
 c.concept_code AS concept_code_1,
 	c2.concept_code AS concept_code_2,
-	'CIM10Fr' AS vocabulary_id_1,
+	'CIM10' AS vocabulary_id_1,
 	c2.vocabulary_id AS vocabulary_id_2,
 	r.relationship_id AS relationship_id,
 	(

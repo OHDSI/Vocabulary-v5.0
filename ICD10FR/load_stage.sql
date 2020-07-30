@@ -303,7 +303,7 @@ c.concept_code AS concept_code_1,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM concept_stage cs
 	JOIN concept c ON 
-		c.vocabulary_id = 'CIM10' and
+		c.vocabulary_id = 'ICD10' and
 		cs.concept_code = c.concept_code
 	JOIN concept_relationship r ON r.concept_id_1 = c.concept_id
 	AND r.invalid_reason IS NULL

@@ -14,7 +14,7 @@ select * From concept_relationship_stage where valid_start_date is null or valid
 or (invalid_reason is not null and valid_end_date=to_date ('20991231', 'yyyymmdd'));
 
 select * from concept_stage where valid_start_date is null or valid_end_date is null
-or (invalid_reason is null and valid_end_date <> to_date ('20991231', 'yyyymmdd') and vocabulary_id not in ('CPT4', 'HCPCS', 'ICD9Proc'))
+or (invalid_reason is null and valid_end_date <> to_date ('20991231', 'yyyymmdd') and vocabulary_id not in ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS'))
 or (invalid_reason is not null and valid_end_date = to_date ('20991231', 'yyyymmdd'))
 or valid_start_date < to_date ('19000101', 'yyyymmdd'); -- some concepts have a real date < 1970
 

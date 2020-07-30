@@ -446,7 +446,8 @@ AS $BODY$
 				AND c.vocabulary_id NOT IN (
 					'CPT4',
 					'HCPCS',
-					'ICD9Proc'
+					'ICD9Proc',
+					'ICD10PCS'
 					)
 				)
 			OR c.valid_start_date > COALESCE(vc.latest_update, CURRENT_DATE) + INTERVAL '15 year' --some concepts might be from near future (e.g. GGR, HCPCS) [AVOF-1015]/increased 20180928 for some NDC concepts
@@ -680,7 +681,7 @@ BEGIN
 			FROM concept_stage
 		   WHERE    valid_start_date IS NULL
 				 OR valid_end_date IS NULL
-				 OR (invalid_reason IS NULL AND valid_end_date <> TO_DATE ('20991231', 'yyyymmdd') AND vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc'))
+				 OR (invalid_reason IS NULL AND valid_end_date <> TO_DATE ('20991231', 'yyyymmdd') AND vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS'))
 				 OR (invalid_reason IS NOT NULL AND valid_end_date = TO_DATE ('20991231', 'yyyymmdd'))
 				 OR valid_start_date < TO_DATE ('19000101', 'yyyymmdd') -- some concepts have a real date < 1970
 		  UNION ALL

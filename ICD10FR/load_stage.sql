@@ -23,14 +23,11 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIM10',
-	pVocabularyDate			=>  
-	(SELECT vocabulary_date FROM dev_cim10.CIM10_2020 LIMIT 1),
-	pVocabularyVersion		=>  
-	(SELECT vocabulary_version FROM dev_cim10.CIM10_2020 LIMIT 1),
+	pVocabularyDate			=> (SELECT vocabulary_date FROM dev_cim10.CIM10_2020 LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM dev_cim10.CIM10_2020 LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_CIM10'
 );
 END $_$;
-
 
 --2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
@@ -55,18 +52,18 @@ FROM (
 		SELECT (xpath('./@code', i.xmlfield))[1]::VARCHAR modifierclass_code,
 			(xpath('./@modifier', i.xmlfield))[1]::VARCHAR modifierclass_modifier,
 			(xpath('./SuperClass/@code', i.xmlfield))[1]::VARCHAR superclass_code,
-			unnest(xpath('./Rubric/@id', i.xmlfield))::VARCHAR rubric_id,
-			unnest(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-			unnest(xpath('./Rubric', i.xmlfield)) rubric_label
+			UNNEST(xpath('./Rubric/@id', i.xmlfield))::VARCHAR rubric_id,
+			UNNEST(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
+			UNNEST(xpath('./Rubric', i.xmlfield)) rubric_label
 		FROM (
-			SELECT unnest(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
+			SELECT UNNEST(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
 			FROM dev_cim10.CIM10_2020 i
 			) AS i
 		) AS s0
 	) AS s1
-LEFT JOIN lateral(SELECT string_agg(ltrim(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
-		SELECT unnest(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
-		) AS s0) l ON true;
+LEFT JOIN LATERAL(SELECT STRING_AGG(LTRIM(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
+		SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
+		) AS s0) l ON TRUE;
 
 --classes
 DROP TABLE IF EXISTS classes;
@@ -82,30 +79,29 @@ AS (
 		FROM (
 			SELECT (xpath('./@code', i.xmlfield))[1]::VARCHAR class_code,
 				l.superclass_code,
-				unnest(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-				unnest(xpath('./Rubric', i.xmlfield)) rubric_label
+				UNNEST(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
+				UNNEST(xpath('./Rubric', i.xmlfield)) rubric_label
 			FROM (
-				SELECT unnest(xpath('/ClaML/Class', i.xmlfield)) xmlfield
+				SELECT UNNEST(xpath('/ClaML/Class', i.xmlfield)) xmlfield
 				FROM dev_cim10.CIM10_2020 i
 				) AS i
-			LEFT JOIN lateral(SELECT unnest(xpath('./SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
+			LEFT JOIN LATERAL(SELECT UNNEST(xpath('./SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
 			) AS s0
 		) AS s1
-	LEFT JOIN lateral(SELECT string_agg(ltrim(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
-			SELECT unnest(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
-			) AS s0) l ON true
+	LEFT JOIN LATERAL(SELECT string_agg(LTRIM(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
+			SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
+			) AS s0) l ON TRUE
 	)
 --modify classes_table replacing  preferred name to preferredLong where it's possible
-SELECT a.CLASS_CODE,
-	a.RUBRIC_KIND,
-	a.SUPERCLASS_CODE,
-	coalesce(b.rubric_label, a.rubric_label) AS rubric_label
+SELECT a.class_code,
+	a.rubric_kind,
+	a.superclass_code,
+	COALESCE(b.rubric_label, a.rubric_label) AS rubric_label
 FROM classes a
 LEFT JOIN classes b ON a.class_code = b.class_code
 	AND a.rubric_kind = 'preferred'
 	AND b.rubric_kind = 'preferredLong'
 WHERE a.rubric_kind != 'preferredLong';
-
 
 --4. Fill the concept_stage
 INSERT INTO concept_stage (
@@ -138,7 +134,7 @@ WITH codes_need_modified AS (
 			b.modifierclass_code,
 			b.rubric_label AS modifer_name
 		FROM codes_need_modified a
-		LEFT JOIN modifier_classes b ON class_code = regexp_replace(regexp_replace(modifierclass_modifier, '^(I\d\d)|(S\d\d)', '','g'), '_\d', '','g')
+		LEFT JOIN modifier_classes b ON SUBSTRING(b.modifierclass_modifier,'^...(.*?)_') = a.class_code
 and modifierclass_modifier not like '%_6'
 			AND b.rubric_kind = 'preferred'
 
@@ -332,19 +328,25 @@ BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--9. Add mapping from deprecated to fresh concepts for 'Maps to value'
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
+END $_$;
+
+--10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---10. Delete ambiguous 'Maps to' mappings
+--11. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---11. Add "subsumes" relationship between concepts where the concept_code is like of another
+--12. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
@@ -378,7 +380,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---12. Update domain_id for ICD10 from target concepts domains
+--13. Update domain_id for ICD10 from target concepts domains
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -453,19 +455,11 @@ set domain_id = 'Observation'
 where domain_id is null
 ;
 
---13. Check for NULL in domain_id
-ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
-ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
+
 
 --14. Clean up
 DROP TABLE modifier_classes;
 DROP TABLE classes;
-
---15. Add mapping from deprecated to fresh concepts for 'Maps to value'
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
-END $_$;
 
 
 --additional French work
@@ -479,33 +473,17 @@ select
 from concept_stage
 ;
 --update concept_Stage, set english names from ICD10
-update concept_stage a set concept_name = (select concept_name 
-from concept b where a.concept_code = b.concept_code and   b.vocabulary_id ='ICD10')
-where exists 
- (select 1
-from concept b where a.concept_code = b.concept_code and   b.vocabulary_id ='ICD10')
+update concept_stage cs set concept_name=c.concept_name
+from concept c
+where c.concept_code=cs.concept_code and c.vocabulary_id='ICD10';
 -- 11427 rows affected in 2019 version
-;
---update existing records
-	UPDATE concept_stage cs
-	SET concept_name = COALESCE(cm.concept_name, cs.concept_name),
-		domain_id = COALESCE(cm.domain_id, cs.domain_id),
-		concept_class_id = COALESCE(cm.concept_class_id, cs.concept_class_id),
-		standard_concept = cm.standard_concept,
-		valid_start_date = COALESCE(cm.valid_start_date, cs.valid_start_date),
-		valid_end_date = COALESCE(cm.valid_end_date, cs.valid_end_date),
-		invalid_reason = cm.invalid_reason
-	FROM concept_manual cm
-	WHERE cm.concept_code = cs.concept_code
-		AND cm.vocabulary_id = cs.vocabulary_id;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
 --remove duplicates
-drop table if exists concept_stage_tmp;
-create table concept_stage_tmp as select distinct * from concept_stage
-;
-truncate table concept_stage
-;
-insert into concept_stage
-select * from concept_stage_tmp
-;
-drop table concept_stage_tmp
-;
+DELETE FROM concept_stage cs WHERE EXISTS (SELECT 1 FROM concept_stage cs_int WHERE cs_int.concept_code = cs.concept_code AND cs_int.ctid > cs.ctid);
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

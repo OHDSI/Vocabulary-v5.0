@@ -340,6 +340,11 @@ WHERE NOT EXISTS (
 --12. Add everything from the Manual tables
 DO $_$
 BEGIN
+     PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$; -- OK
+
+DO $_$
+BEGIN
      PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
 /*ERROR: synonym_concept_code+synonym_vocabulary_id not found in the concept/concept_stage: 87426+CPT4

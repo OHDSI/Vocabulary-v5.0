@@ -6,8 +6,7 @@ DECLARE
 BEGIN
 	SELECT reason INTO z FROM (
 		SELECT
-			CASE WHEN c.concept_code IS NULL AND cs.concept_code IS NULL THEN 'concept_code+vocabulary_id not found in the concept/concept_stage: '||cm.concept_code||'+'||cm.vocabulary_id
-				WHEN v.vocabulary_id IS NULL THEN 'vocabulary_id not found in the vocabulary: '||cm.vocabulary_id
+			CASE WHEN v.vocabulary_id IS NULL THEN 'vocabulary_id not found in the vocabulary: '||cm.vocabulary_id
 				WHEN cm.valid_end_date < cm.valid_start_date THEN 'valid_end_date < valid_start_date: '||TO_CHAR(cm.valid_end_date,'YYYYMMDD')||'+'||TO_CHAR(cm.valid_start_date,'YYYYMMDD')
 				WHEN date_trunc('day', (cm.valid_start_date)) <> cm.valid_start_date THEN 'wrong format for valid_start_date (not truncated): '||TO_CHAR(cm.valid_start_date,'YYYYMMDD HH24:MI:SS')
 				WHEN date_trunc('day', (cm.valid_end_date)) <> cm.valid_end_date THEN 'wrong format for valid_end_date (not truncated to YYYYMMDD): '||TO_CHAR(cm.valid_end_date,'YYYYMMDD HH24:MI:SS')
@@ -20,8 +19,6 @@ BEGIN
 				ELSE NULL
 			END AS reason
 		FROM concept_manual cm
-			LEFT JOIN concept c ON c.concept_code = cm.concept_code AND c.vocabulary_id = cm.vocabulary_id
-			LEFT JOIN concept_stage cs ON cs.concept_code = cm.concept_code AND cs.vocabulary_id = cm.vocabulary_id
 			LEFT JOIN vocabulary v ON v.vocabulary_id = cm.vocabulary_id
 			LEFT JOIN domain d ON d.domain_id = cm.domain_id
 			LEFT JOIN concept_class cc ON cc.concept_class_id = cm.concept_class_id

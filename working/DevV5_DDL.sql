@@ -304,4 +304,5 @@ ALTER TABLE concept ADD CONSTRAINT chk_c_invalid_reason CHECK (COALESCE(invalid_
 ALTER TABLE concept_relationship ADD CONSTRAINT chk_cr_invalid_reason CHECK (COALESCE(invalid_reason,'D')='D');
 ALTER TABLE concept_synonym ADD CONSTRAINT chk_csyn_concept_synonym_name CHECK (concept_synonym_name <> '');
 ALTER TABLE concept_manual ADD CONSTRAINT chk_cmnl_concept_name CHECK (concept_name <> '');
+ALTER TABLE concept_manual ADD CONSTRAINT chk_cmnl_concept_code CHECK (concept_code <> '');
 ALTER TABLE concept_synonym_manual ADD CONSTRAINT chk_csynmnl_concept_synonym_name CHECK (synonym_name <> '');

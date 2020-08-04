@@ -751,6 +751,10 @@ begin
       update sources.cap_xml_raw set xmlfield=REPLACE(xmlfield,E'\xEF\xBB\xBF','');
       alter table sources.cap_xml_raw alter column xmlfield type xml using xmlfield::xml; --return proper TYPE
       update sources.cap_xml_raw set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'ICD10GM' then
+      truncate table sources.icd10gm;
+      execute 'COPY sources.icd10gm (concept_code,concept_name) FROM PROGRAM ''cat "'||pVocabularyPath||'icd10gm.csv"| awk -F "\"*;\"*" ''''{print $7";"$9}''''  '' delimiter '';'' csv quote ''"'' ';
+      update sources.icd10gm set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

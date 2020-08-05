@@ -47,7 +47,7 @@ INSERT INTO concept_stage (
 	invalid_reason
 	)
 SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) ||substring(str FROM 2 FOR LENGTH(str))) AS concept_name,   -- field with a term name from mrconso
-  '' AS domain_id, -- is about to be assigned at the end
+	'' AS domain_id, -- is about to be assigned at the end
 	'CPT4' AS vocabulary_id, 
 	'CPT4' AS concept_class_id,
 	'S' AS standard_concept,
@@ -101,7 +101,9 @@ SELECT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) ||subst
   AND   scui NOT IN (SELECT scui FROM sources.mrconso WHERE sab = 'CPT')
   AND ((tty = 'PT'
   AND suppress = 'N') or (tty = 'OP' and suppress = 'O'))
- and scui not in (select concept_code from concept where vocabulary_id = 'CPT4'); -- 29
+AND scui NOT IN (SELECT concept_code
+FROM concept
+WHERE vocabulary_id = 'CPT4'); -- 29
 
 --5. Add Place of Sevice (POS) CPT terms which do not appear in patient data and used for hierarchical search
 INSERT INTO concept_stage (
@@ -178,7 +180,8 @@ WHERE sab IN (
 		'O',
 		'Y'
 		)
-	AND tty = 'MP';-- 393 Preferred names of modifiers
+	AND tty = 'MP' -- Preferred names of modifiers
+	;-- 393
  
 --7. Add Hierarchical CPT terms, which are considered to be Classificaton (do not appear in patient data, only for hierarchical search)
 INSERT INTO concept_stage (
@@ -215,7 +218,8 @@ WHERE sab IN (
 		'O',
 		'Y'
 		)
-	AND tty = 'HT'; -- 3347 Hierarchical terms
+	AND tty = 'HT' -- Hierarchical terms
+	; -- 3347  
 	
 --8. Pick up all different str values that are not obsolete or suppressed
 INSERT INTO concept_synonym_stage (
@@ -246,19 +250,37 @@ INSERT INTO concept_synonym_stage (
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT DISTINCT scui AS synonym_concept_code,
-	vocabulary_pack.CutConceptName(concept_name)||' | '||'['||sty||']' AS synonym_name,
-	'CPT4' AS synonym_vocabulary_id,
-	4180186 AS language_concept_id
+WITH t1 AS(
+SELECT DISTINCT scui AS concept_code,
+       concept_name,
+       sty
 FROM concept_stage c
-JOIN sources.mrconso b on b.code = c.concept_code
-JOIN umls_mrsty using (cui)
-WHERE sab IN (
-		'CPT',
-		'HCPT')
-	 ; -- 15382
-
---10. Insert existing concepts that are absent in mrconso
+  JOIN sources.mrconso b ON b.code = c.concept_code
+  JOIN umls_mrsty USING (cui)
+WHERE sab IN ('CPT','HCPT')
+		 )
+SELECT DISTINCT concept_code AS synonym_concept_code,
+       concept_name|| ' | ' ||string_agg('[' ||sty|| ']',' - ') AS synonym_name,
+       'CPT4' AS synonym_vocabulary_id,
+       4180186 AS language_concept_id
+FROM t1
+WHERE concept_code IN (SELECT concept_code
+                       FROM t1
+                       GROUP BY concept_code
+                       HAVING COUNT(1) > 1)
+GROUP BY concept_name,concept_code
+UNION ALL
+SELECT DISTINCT concept_code,
+       concept_name|| ' | ' || '[' ||sty|| ']' AS concept_name,
+        'CPT4',
+        4180186
+FROM t1
+WHERE concept_code IN (SELECT concept_code
+                       FROM t1
+                       GROUP BY concept_code
+                       HAVING COUNT(1) = 1); -- 14305
+	
+--10. Insert other existing CPT4 concepts that are absent in the source (should be outdated but alive)
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -270,33 +292,34 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT c.concept_name,
-	c.domain_id,
-	c.vocabulary_id,
-	c.concept_class_id,
-	CASE 
-		WHEN coalesce(c.invalid_reason, 'D') = 'D'
-			AND c.vocabulary_id = 'CPT4' and standard_concept <> 'C'
-			THEN 'S'
-		ELSE c.standard_concept
-		END AS standard_concept,
-	c.concept_code,
-	c.valid_start_date,
-	c.valid_end_date,
-	CASE 
-		WHEN c.invalid_reason = 'D'
-			AND c.vocabulary_id = 'CPT4'
-			THEN NULL
-		ELSE c.invalid_reason
-		END AS invalid_reason
+SELECT DISTINCT CASE
+         WHEN c.concept_name LIKE '% (Deprecated)' THEN c.concept_name -- to support subsequent source deprecations 
+         WHEN (COALESCE(c.invalid_reason,'D') = 'D' OR (c.standard_concept = 'S' AND valid_end_date > '2099-12-31')) AND LENGTH(c.concept_name) <= 242 THEN c.concept_name || ' (Deprecated)'
+         WHEN LENGTH(c.concept_name) > 242 THEN LEFT (c.concept_name,239) || '... (Deprecated)' -- to get no more than 255 characters in total and highlight concept_names which were cut
+         ELSE c.concept_name -- for alive concepts
+       END AS concept_name,
+       c.domain_id,
+       c.vocabulary_id,
+       c.concept_class_id,
+       CASE
+         WHEN COALESCE(c.invalid_reason,'D') = 'D' AND c.vocabulary_id = 'CPT4' AND standard_concept <> 'C' THEN 'S'
+         WHEN c.concept_class_id = 'CPT4 Hierarchy' and c.invalid_reason is not null and standard_concept is null then 'C'
+         ELSE c.standard_concept
+       END AS standard_concept,
+       c.concept_code,
+       c.valid_start_date,
+       c.valid_end_date,
+       CASE
+         WHEN c.invalid_reason = 'D' AND c.vocabulary_id = 'CPT4' THEN NULL
+         ELSE c.invalid_reason
+       END AS invalid_reason
 FROM concept c
 WHERE c.vocabulary_id = 'CPT4'
-	AND NOT EXISTS (
-		SELECT 1
+AND NOT EXISTS (SELECT 1
 		FROM concept_stage cs_int
 		WHERE cs_int.concept_code = c.concept_code
 		); -- 1981
-
+		
 --11. Create hierarchical relationships between HT and normal CPT codes
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -347,24 +370,11 @@ DO $_$
 BEGIN
      PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
-/*ERROR: synonym_concept_code+synonym_vocabulary_id not found in the concept/concept_stage: 87426+CPT4
-  Where: PL/pgSQL function vocabulary_pack.checkmanualsynonyms() line 22 at RAISE
-SQL statement "SELECT vocabulary_pack.CheckManualSynonyms()"
-PL/pgSQL function vocabulary_pack.processmanualsynonyms() line 11 at PERFORM
-SQL statement "SELECT VOCABULARY_PACK.ProcessManualSynonyms()"
-PL/pgSQL function inline_code_block line 3 at PERFORM*/
 
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
-/*ERROR: concept_code_1+vocabulary_id_1 not found in the concept/concept_stage: 0202U+CPT4
-  Where: PL/pgSQL function vocabulary_pack.checkmanualrelationships() line 33 at RAISE
-SQL statement "SELECT vocabulary_pack.CheckManualRelationships()"
-PL/pgSQL function vocabulary_pack.processmanualrelationships() line 11 at PERFORM
-SQL statement "SELECT VOCABULARY_PACK.ProcessManualRelationships()"
-PL/pgSQL function inline_code_block line 3 at PERFORM
-1 statement failed.*/	
 
 --13. Extract "hiden" CPT4 codes inside concept_names of another CPT4 codes.
 INSERT INTO concept_relationship_stage (
@@ -398,7 +408,7 @@ WHERE NOT EXISTS (
 			AND crs.relationship_id = 'Subsumes'
 			AND crs.vocabulary_id_1 = 'CPT4'
 			AND crs.vocabulary_id_2 = 'CPT4'
-		);
+		); -- 0
 
 --14. Update dates from mrsat.atv (only for new concepts)
 UPDATE concept_stage cs
@@ -428,62 +438,46 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code; -- 29
 
---15. Working with replacement mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
-
---16. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---17. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---18. Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
---19. Update domain_id according to the source 
+--15. Update domain_id according to the source OR devv5
 UPDATE concept_stage cs
    SET domain_id = t1.domain_id
-FROM (SELECT DISTINCT concept_code,
-             CASE
+FROM
+ (SELECT DISTINCT a.concept_code,
+            --  a.concept_name,
+             CASE 
+             WHEN c.domain_id in ('Drug', 'Measurement', 'Place of Service') and c.concept_name !~ '^Electrocardiogram, routine ECG|^Pinworm'  then c.domain_id
                WHEN tui IN ('T059','T025') THEN 'Measurement'
-               WHEN tui = 'T074' THEN 'Device'
+               WHEN tui = 'T074' OR ( tui = 'T073' and tty <> 'POS') OR (tui = 'T093' and tty <> 'POS') THEN 'Device'          
                WHEN tui IN ('T121','T129','T116','T109','T200') THEN 'Drug'
-               WHEN tui IN ('T073','T093') THEN 'Place of Service'
-               WHEN tui IN ('T061','T060','T065','T057','T169','T063','T062','T066','T170','T058') THEN 'Procedure'
+               WHEN tui IN ('T073','T093') and tty = 'POS'  THEN 'Place of Service'
+               WHEN tui IN ('T061','T065','T057','T169','T063','T062','T066','T058', 'T060') or (tui = 'T170' and a.concept_name !~* 'criteria|modifier|requirements')  THEN 'Procedure'
+               WHEN tui IN ('T081', 'T097', 'T023', 'T077') OR (tui = 'T185' and tty <> 'HT') or  (tui = 'T080' and a.concept_name !~* 'modifier') THEN 'Meas Value'
                ELSE 'Observation'
              END AS domain_id
       FROM concept_stage a
-        JOIN sources.mrconso b ON a.concept_code = code
-        JOIN dev_cpt4.umls_mrsty USING (cui)
-      WHERE sab IN ('CPT','HCPT')) t1
-WHERE t1.concept_code = cs.concept_code; -- 14849 
+         LEFT JOIN concept c on c.concept_code = a.concept_code and c.vocabulary_id = 'CPT4' and c.invalid_reason is null        
+         LEFT JOIN sources.mrconso b ON b.code = a.concept_code AND sab IN ('CPT','HCPT')
+         LEFT  JOIN dev_cpt4.umls_mrsty USING (cui)
+       ) t1
+WHERE t1.concept_code = cs.concept_code
+AND cs.domain_id = ''; -- 14257
 
---20. Update domain_id for CPT4 according to mappings
+
+--16. Update domain_id  and standard concept value for CPT4 according to mappings
 UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (
-	SELECT DISTINCT cs1.concept_code,
+SET domain_id = i.domain_id,
+standard_concept = null
+FROM
+ (SELECT DISTINCT cs1.concept_code,
 		first_value(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
+					WHEN 'Drug'
 						THEN 1
-					WHEN 'Observation'
+					WHEN 'Measurement'
 						THEN 2
 					WHEN 'Procedure'
 						THEN 3
-					WHEN 'Measurement'
+					WHEN 'Observation'
 						THEN 4
 					WHEN 'Device'
 						THEN 5
@@ -496,7 +490,8 @@ FROM (
 		AND cs1.vocabulary_id = 'CPT4' 
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.standard_concept = 'S'  and c2.vocabulary_id <> 'CPT4'
+		AND c2.standard_concept = 'S'  
+		and c2.vocabulary_id <> 'CPT4'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 	
@@ -505,13 +500,13 @@ FROM (
 	SELECT DISTINCT cs1.concept_code,
 		first_value(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
-					WHEN 'Condition'
+					WHEN 'Drug'
 						THEN 1
-					WHEN 'Observation'
+					WHEN 'Measurement'
 						THEN 2
 					WHEN 'Procedure'
 						THEN 3
-					WHEN 'Measurement'
+					WHEN 'Observation'
 						THEN 4
 					WHEN 'Device'
 						THEN 5
@@ -536,7 +531,31 @@ FROM (
 			)
 	) i
 WHERE i.concept_code = cs.concept_code
-	AND cs.vocabulary_id = 'CPT4'
-	and cs.domain_id <> i.domain_id; -- 19 
+	AND cs.vocabulary_id = 'CPT4';
+
+--17. Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--18. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--19. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--20. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

@@ -25,7 +25,7 @@ As a result of this step:
 
 **packaging** - the only available in source packaging info for drugs
 
-**companies** - service table with links between drugs and manufacturers; the only available info for companies (*company_code has not been used to identificate the company because of possible duplication of concept_code among the DPD vocabulary later*) 
+**companies** - service table with links between drugs and manufacturers; the only available info for companies (*company_code has not been used to identify the company because of possible duplication of concept_code among the DPD vocabulary later*) 
 
 **therapeutic_class** - service table with links between ATC class and drugs
 
@@ -42,6 +42,8 @@ As a result of this step:
 
 **drug_concept_stage** and **internal_relationship_stage** are populated 
 
+During this step there are also updates of brand_names, ingredients, suppliers and forms, coming from manual mapping, and creation of drug_concept_stage_backup table (with not-updated concept_names)
+
 ###Step 4: ds_stage population
 **ds_stage** - main table on this step. It store all the information regarding drug strength, ingredients and box size.
 All updates performed on this table
@@ -49,9 +51,10 @@ All updates performed on this table
 1) Creation of ds_stage table from **drug_product**, **ingr**, **active_ingredients**, **drug_concept_stage**
 2) Populate amount, numerator, denominator fields from **active_ingredients**
 3) Add 1 as denominator value and set unnescessary fields to null for drugs with amounts and isolated denominators units
-4) Get rid of drugs with %, turning them into weight per weight, volume per volume or weight per volume with help of **forms**
-5) Use package_size to get box_size
-6) Get box size from parsing product_information from **packaging**
+4) Delete homeopathy drugs
+5) Get rid of drugs with %, turning them into weight per weight, volume per volume or weight per volume with help of **forms**
+6) Use package_size to get box_size
+7) Get box size from parsing product_information from **packaging**
 
 ###Step 5: pack_content population
 

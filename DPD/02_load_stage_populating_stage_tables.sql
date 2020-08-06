@@ -751,7 +751,9 @@ AND ((notes ~* (' EQ|AS |LEAVES|PODS|JUNIPER BERRIES|ASCORBIC ACID|SOD ASCORBATE
 AND notes !~* ('TAB|CAP')
 AND ingredient !~* 'POVIDON'
 AND strength_unit NOT IN ('C', 'CC', 'D', 'DH', 'X'))
-OR (notes IS NULL))),
+OR (notes IS NULL))
+
+OR brand_name = 'TEVA-VARENICLINE'),
 
      sum AS (                              --Table to update from
          select drug_concept_code, ingredient_concept_code,
@@ -901,6 +903,7 @@ WHERE
             END
 ;
 
+--TODO: Should we?
 --Removing drugs deleted from ds_stage, but left at drug_concept_stage
 DELETE FROM ds_stage
 WHERE drug_concept_code IN
@@ -922,6 +925,14 @@ SET invalid_reason = 'D',
 WHERE concept_code NOT IN (SELECT drug_concept_code FROM ds_stage)
     AND concept_class_id = 'Drug Product'
 AND invalid_reason IS NULL;
+
+--Some drugs are not real drugs - they are kind of classification entities
+DELETE FROM ds_stage
+WHERE drug_concept_code IN (
+    SELECT DISTINCT drug_id
+    FROM drug_product WHERE (brand_name ~* '(SPINAL|EPIDURAL) AN(A)?ESTHESIA TRAY$'
+    AND brand_name !~* 'CONTINUOUS|SINGLE-SHOT')
+    OR brand_name = 'ROYVAC BOWEL EVACUANT KIT');
 
 
 --Step 5: pack_content population

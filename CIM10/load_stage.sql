@@ -73,12 +73,14 @@ AS (
 	SELECT s1.class_code,
 		s1.rubric_kind,
 		s1.superclass_code,
+		s1.modifiedby_code,
 		l.rubric_label
 	FROM (
 		SELECT *
 		FROM (
 			SELECT (xpath('./@code', i.xmlfield))[1]::VARCHAR class_code,
 				l.superclass_code,
+				l1.modifiedby_code,
 				UNNEST(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
 				UNNEST(xpath('./Rubric', i.xmlfield)) rubric_label
 			FROM (
@@ -86,12 +88,24 @@ AS (
 				FROM dev_cim10.CIM10_2020 i
 				) AS i
 			LEFT JOIN LATERAL(SELECT UNNEST(xpath('./SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
+			LEFT JOIN LATERAL(SELECT UNNEST(xpath('./ModifiedBy/@code', i.xmlfield))::VARCHAR modifiedby_code) l1 ON true
 			) AS s0
 		) AS s1
 	LEFT JOIN LATERAL(SELECT string_agg(LTRIM(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
 			SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
 			) AS s0) l ON TRUE
 	)
+--modify classes_table replacing  preferred name to preferredLong where it's possible
+SELECT a.class_code,
+	a.rubric_kind,
+	a.superclass_code,
+	a.modifiedby_code,
+	COALESCE(b.rubric_label, a.rubric_label) AS rubric_label
+FROM classes a
+LEFT JOIN classes b ON a.class_code = b.class_code
+	AND a.rubric_kind = 'preferred'
+	AND b.rubric_kind = 'preferredLong'
+WHERE a.rubric_kind != 'preferredLong';
 --modify classes_table replacing  preferred name to preferredLong where it's possible
 SELECT a.class_code,
 	a.rubric_kind,

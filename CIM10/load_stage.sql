@@ -106,16 +106,6 @@ LEFT JOIN classes b ON a.class_code = b.class_code
 	AND a.rubric_kind = 'preferred'
 	AND b.rubric_kind = 'preferredLong'
 WHERE a.rubric_kind != 'preferredLong';
---modify classes_table replacing  preferred name to preferredLong where it's possible
-SELECT a.class_code,
-	a.rubric_kind,
-	a.superclass_code,
-	COALESCE(b.rubric_label, a.rubric_label) AS rubric_label
-FROM classes a
-LEFT JOIN classes b ON a.class_code = b.class_code
-	AND a.rubric_kind = 'preferred'
-	AND b.rubric_kind = 'preferredLong'
-WHERE a.rubric_kind != 'preferredLong';
 
 --4. Fill the concept_stage
 INSERT INTO concept_stage (

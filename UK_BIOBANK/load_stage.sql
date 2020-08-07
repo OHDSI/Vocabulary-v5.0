@@ -17,6 +17,11 @@
 * Date: 2020
 **************************************************************************/
 
+--TODO: Add concept_class_id to the concept and concept_class tables (functions)
+--TODO: Add vocabulary_id to the concept and vocabulary tables (functions)
+
+--TODO: Check for the answers if there are some that should be made non-standard and be excluded from 'Has answer' relationship
+
 --0 Temp code (to be removed)
 /*
 INSERT INTO concept_stage(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -63,8 +68,6 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 
---TODO: Add concept_class_id to the concept and concept_class tables
---TODO: Add vocabulary_id to the concept and vocabulary tables
 --3: Insert categories to concept_stage
 INSERT INTO concept_stage
 (
@@ -209,6 +212,54 @@ SELECT trim(meaning),
        to_date('20991231','yyyymmdd')
 FROM esimpreal;
 
+INSERT INTO concept_stage
+(
+  concept_name,
+  domain_id,
+  vocabulary_id,
+  concept_class_id,
+  standard_concept,
+  concept_code,
+  valid_start_date,
+  valid_end_date
+)
+
+SELECT trim(regexp_replace(meaning, '^\d*\.?\d* ', '')),
+       'Meas Value',
+       'uk_biobank',
+       'Answer',
+       CASE WHEN selectable = 1 THEN 'S' END,
+       concat(encoding_id::varchar, '|', code_id),
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd')
+FROM ehierstring
+WHERE encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM?*/, 240 /*OPCS4*/)
+;
+
+INSERT INTO concept_stage
+(
+  concept_name,
+  domain_id,
+  vocabulary_id,
+  concept_class_id,
+  standard_concept,
+  concept_code,
+  valid_start_date,
+  valid_end_date
+)
+
+SELECT trim(regexp_replace(meaning, '^\d*\.?\d* ', '')),
+       'Meas Value',
+       'uk_biobank',
+       'Answer',
+       CASE WHEN selectable = 1 THEN 'S' END,
+       concat(encoding_id::varchar, '|', code_id),
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd')
+FROM ehierint
+WHERE encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM?*/, 240 /*OPCS4*/)
+;
+
 --7: Turn some answers to Non-Standard ones
 --TODO: Deduplication of answers
 
@@ -263,8 +314,7 @@ ON f.main_category::varchar = regexp_replace(cs.concept_code, 'c', '')
 WHERE vocabulary_id = 'uk_biobank'
 AND concept_class_id = 'Biobank Category';
 
---9: Building 'Has answer' relationships
---TODO: Insert 'Has Answer' relationships for missing encoding_id
+--Hierarchy between answers
 INSERT INTO concept_relationship_stage
 (
   concept_code_1,
@@ -277,11 +327,64 @@ INSERT INTO concept_relationship_stage
   invalid_reason
 )
 
-SELECT f.field_id AS concept_code_1,
+SELECT concat(encoding_id, '|', parent_id) AS concept_code_1,
+       concat(encoding_id, '|', code_id) AS concept_code_2,
+       'uk_biobank',
+       'uk_biobank',
+       'Subsumes',
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM ehierint ei
+WHERE parent_id != 0;
+
+
+INSERT INTO concept_relationship_stage
+(
+  concept_code_1,
+  concept_code_2,
+  vocabulary_id_1,
+  vocabulary_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+
+SELECT concat(encoding_id, '|', parent_id) AS concept_code_1,
+       concat(encoding_id, '|', code_id) AS concept_code_2,
+       'uk_biobank',
+       'uk_biobank',
+       'Subsumes',
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM ehierstring es
+WHERE parent_id != 0
+AND concat(encoding_id, '|', code_id) IN (SELECT concept_code FROM concept_stage WHERE concept_class_id = 'Answer')
+;
+
+--9: Building 'Has answer' relationships
+--TODO: Test and debug (if required) 'Has Answer' relationships for ehierstring and ehierint
+INSERT INTO concept_relationship_stage
+(
+  concept_code_1,
+  concept_code_2,
+  vocabulary_id_1,
+  vocabulary_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+
+SELECT DISTINCT f.field_id AS concept_code_1,
        CASE WHEN concat(ed.encoding_id::varchar, '|', ed.value) != '|' THEN concat(ed.encoding_id::varchar, '|', ed.value)
            WHEN concat(ei.encoding_id::varchar, '|', ei.value) != '|' THEN concat(ei.encoding_id::varchar, '|', ei.value)
                WHEN concat(er.encoding_id::varchar, '|', er.value) != '|' THEN concat(er.encoding_id::varchar, '|', er.value)
                    WHEN concat(es.encoding_id::varchar, '|', es.value) != '|' THEN concat(es.encoding_id::varchar, '|', es.value)
+                        WHEN concat(ehi.encoding_id::varchar, '|', ehi.code_id) != '|' AND ehi.selectable != 0 THEN concat(ehi.encoding_id::varchar, '|', ehi.code_id)
+                            WHEN concat(ehs.encoding_id::varchar, '|', ehs.code_id) != '|' AND ehs.selectable != 0 THEN concat(ehs.encoding_id::varchar, '|', ehs.code_id)
        END AS concept_code_2,
        'uk_biobank',
        'uk_biobank',
@@ -298,44 +401,16 @@ LEFT JOIN esimpreal er
 ON f.encoding_id = er.encoding_id
 LEFT JOIN esimpstring es
 ON f.encoding_id = es.encoding_id
+LEFT JOIN ehierint ehi
+ON f.encoding_id = ehi.encoding_id
+LEFT JOIN ehierstring ehs
+ON f.encoding_id = ehs.encoding_id
 
-WHERE f.encoding_id != 0
+WHERE f.encoding_id NOT IN (0, 19 /*ICD10*/, 87 /*ICD9 or ICD9CM?*/, 240 /*OPCS4*/)
 AND (ed.value IS NOT NULL
     OR ei.value IS NOT NULL
     OR er.value IS NOT NULL
-    OR es.value IS NOT NULL)
+    OR es.value IS NOT NULL
+    OR ehi.code_id IS NOT NULL
+    OR ehs.code_id IS NOT NULL)
 ;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
---! Analysis
---Can't find corresponding encoding_id
---TODO: Check tables ehierint and ehierstring
-select distinct encoding_id from field where field_id
-IN
-(
-22617,132,
-20277,20001,20004,20002,40002,40001,41202,40006,
-41204,41270,41201,40011,40012,20047,20048,20058,
-20041,20042,20043,20044,20045,20046,20049,20050,
-20051,20052,20062,20061,20054,20053,20055,20056,
-20057,20059,20060,20072,20071,41205,41203,40013,
-41271,20115,41210,41200,41272,41273,41256,41258,
-41249,41251,41247,41248,41250,22601,21000,22000
-                                        );

@@ -1664,43 +1664,31 @@ WHERE NOT EXISTS (
 		)
 	AND cs.invalid_reason = 'U';
 
---14. ProcessManualConcepts
-DO $_$
-BEGIN
-     PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;	
-				    
---15. ProcessManualSynonyms
-DO $_$
-BEGIN
-     PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
-END $_$;
-				    
---16. Working with replacement mappings
+--14. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---17. Add mapping from deprecated to fresh concepts
+--15. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---18. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---19. Delete ambiguous 'Maps to' mappings
+--17. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---20. All the codes that have mapping to RxNorm% should get domain_id='Drug'
+--18. All the codes that have mapping to RxNorm% should get domain_id='Drug'
 UPDATE concept_stage cs
 SET domain_id = 'Drug'
 WHERE EXISTS (
@@ -1714,7 +1702,7 @@ WHERE EXISTS (
 		)
 	AND cs.domain_id <> 'Drug';
 
---21. All (not only the drugs) concepts having mappings should be NON-standard
+--19. All (not only the drugs) concepts having mappings should be NON-standard
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -1734,7 +1722,7 @@ WHERE EXISTS (
 		)
 	AND cs.standard_concept IS NOT NULL;
 
---22. Clean up , remove the 'HCPCS - SNOMED meas', 'HCPCS - SNOMED proc' relationships
+--20. Clean up , remove the 'HCPCS - SNOMED meas', 'HCPCS - SNOMED proc' relationships
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

@@ -16,6 +16,7 @@
 * Authors: Polina Talapova, Dmitry Dymshits, Timur Vakhitov, Christian Reich
 * Date: 2020
 **************************************************************************/
+
 --1. Update latest_update field to new date
 DO $_$
 BEGIN
@@ -37,7 +38,6 @@ TRUNCATE TABLE drug_strength_stage;
 --3. Add CPT4 concepts from the source into the concept_stage using the MRCONSO table provided by UMLS  https://www.ncbi.nlm.nih.gov/books/NBK9685/table/ch03.T.concept_names_and_sources_file_mr/
 INSERT INTO concept_stage (
 	concept_name,
-	domain_id,
 	vocabulary_id,
 	concept_class_id,
 	standard_concept,
@@ -46,53 +46,17 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) ||substring(str FROM 2 FOR LENGTH(str))) AS concept_name,   -- field with a term name from mrconso
-  '' AS domain_id, -- is about to be assigned at the end
-	'CPT4' AS vocabulary_id, 
+SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) || SUBSTRING(str FROM 2 FOR LENGTH(str))) AS concept_name, -- field with a term name from mrconso
+	'CPT4' AS vocabulary_id,
 	'CPT4' AS concept_class_id,
 	'S' AS standard_concept,
 	scui AS concept_code, -- = mrconso.code
-	(SELECT latest_update
-	FROM vocabulary
-	WHERE vocabulary_id = 'CPT4'
-	) AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-	FROM sources.mrconso
-	WHERE sab = 'CPT'
-	AND suppress NOT IN (
-		'E', -- Non-obsolete content marked suppressible by an editor
-		'O', -- All obsolete content, whether they are obsolesced by the source or by NLM
-		'Y' -- Non-obsolete content deemed suppressible during inversion
-		)
-	AND tty IN (
-		'PT', -- Designated preferred name
-		'GLP' -- Global period
-		); -- 10488
-
---4. Add Place of Sevice (POS) CPT terms which do not appear in patient data and used for hierarchical search
-INSERT INTO concept_stage (
-	concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) ||substring(str FROM 2 FOR LENGTH(str))) AS concept_name, 
-  '' as domain_id, -- is about to be assigned at the end
-	'CPT4' AS vocabulary_id,
-	'Place of Service' AS concept_class_id,
-	NULL AS standard_concept, 
-	scui AS concept_code,
-	(SELECT latest_update
+	(
+		SELECT latest_update
 		FROM vocabulary
 		WHERE vocabulary_id = 'CPT4'
 		) AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.mrconso
 WHERE sab = 'CPT'
@@ -101,12 +65,14 @@ WHERE sab = 'CPT'
 		'O', -- All obsolete content, whether they are obsolesced by the source or by NLM
 		'Y' -- Non-obsolete content deemed suppressible during inversion
 		)
-	AND tty = 'POS'; -- 48 Places of service
+	AND tty IN (
+		'PT', -- Designated preferred name
+		'GLP' -- Global period
+		);
 
---5. Add CPT Modifiers
+--4. Add Place of Sevice (POS) CPT terms which do not appear in patient data and used for hierarchical search
 INSERT INTO concept_stage (
 	concept_name,
-	domain_id,
 	vocabulary_id,
 	concept_class_id,
 	standard_concept,
@@ -115,23 +81,57 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT FIRST_VALUE(vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) ||substring(str FROM 2 FOR LENGTH(str)))) OVER (
+SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) || SUBSTRING(str FROM 2 FOR LENGTH(str))) AS concept_name,
+	'CPT4' AS vocabulary_id,
+	'Place of Service' AS concept_class_id,
+	NULL AS standard_concept,
+	scui AS concept_code,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CPT4'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.mrconso
+WHERE sab = 'CPT'
+	AND suppress NOT IN (
+		'E', -- Non-obsolete content marked suppressible by an editor
+		'O', -- All obsolete content, whether they are obsolesced by the source or by NLM
+		'Y' -- Non-obsolete content deemed suppressible during inversion
+		)
+	AND tty = 'POS';
+
+--5. Add CPT Modifiers
+INSERT INTO concept_stage (
+	concept_name,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT FIRST_VALUE(vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) || SUBSTRING(str FROM 2 FOR LENGTH(str)))) OVER (
 		PARTITION BY scui ORDER BY CASE 
 				WHEN LENGTH(str) <= 255
 					THEN LENGTH(str)
 				ELSE 0
 				END DESC,
-				LENGTH(str) ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) AS concept_name,
-         '' AS domain_id, -- is about to be assigned at the end
+			LENGTH(str) ROWS BETWEEN UNBOUNDED PRECEDING
+				AND UNBOUNDED FOLLOWING
+		) AS concept_name,
 	'CPT4' AS vocabulary_id,
 	'CPT4 Modifier' AS concept_class_id,
 	'S' AS standard_concept,
 	scui AS concept_code,
-	(SELECT latest_update
+	(
+		SELECT latest_update
 		FROM vocabulary
 		WHERE vocabulary_id = 'CPT4'
 		) AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.mrconso
 WHERE sab IN (
@@ -143,12 +143,11 @@ WHERE sab IN (
 		'O',
 		'Y'
 		)
-	AND tty = 'MP';-- 393 Preferred names of modifiers
- 
+	AND tty = 'MP';--Preferred names of modifiers
+
 --6. Add Hierarchical CPT terms, which are considered to be Classificaton (do not appear in patient data, only for hierarchical search)
 INSERT INTO concept_stage (
 	concept_name,
-	domain_id,
 	vocabulary_id,
 	concept_class_id,
 	standard_concept,
@@ -157,17 +156,17 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) ||substring(str FROM 2 FOR LENGTH(str))) AS concept_name,
-	'' AS domain_id, -- is about to be assigned at the end
+SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) || SUBSTRING(str FROM 2 FOR LENGTH(str))) AS concept_name,
 	'CPT4' AS vocabulary_id,
 	'CPT4 Hierarchy' AS concept_class_id,
-	'C' AS standard_concept, 
+	'C' AS standard_concept,
 	scui AS concept_code,
-	(SELECT latest_update
+	(
+		SELECT latest_update
 		FROM vocabulary
 		WHERE vocabulary_id = 'CPT4'
 		) AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
 FROM sources.mrconso
 WHERE sab IN (
@@ -179,12 +178,11 @@ WHERE sab IN (
 		'O',
 		'Y'
 		)
-	AND tty = 'HT'; -- 3347 Hierarchical terms
-	
+	AND tty = 'HT';--Hierarchical terms
+
 --7. Insert other existing CPT4 concepts that are absent in the source (should be outdated but alive)
 INSERT INTO concept_stage (
 	concept_name,
-	domain_id,
 	vocabulary_id,
 	concept_class_id,
 	standard_concept,
@@ -193,38 +191,49 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT CASE
-         WHEN c.concept_name LIKE '% (Deprecated)' THEN c.concept_name -- to support subsequent source deprecations 
-         WHEN (COALESCE(c.invalid_reason,'D') = 'D' OR (c.standard_concept = 'S' AND valid_end_date > '2099-12-31')) AND LENGTH(c.concept_name) <= 242 THEN c.concept_name || ' (Deprecated)'
-         WHEN LENGTH(c.concept_name) > 242 THEN LEFT (c.concept_name,239) || '... (Deprecated)' -- to get no more than 255 characters in total and highlight concept_names which were cut
-         ELSE c.concept_name -- for alive concepts
-       END AS concept_name,
-        '' AS domain_id, -- is about to be assigned at the end
-       c.vocabulary_id,
-       c.concept_class_id,
-       CASE
-         WHEN COALESCE(c.invalid_reason,'D') = 'D' AND c.vocabulary_id = 'CPT4' AND standard_concept <> 'C' THEN 'S'
-         WHEN c.concept_class_id = 'CPT4 Hierarchy' and c.invalid_reason is not null and standard_concept is null then 'C'
-         ELSE c.standard_concept
-       END AS standard_concept,
-       c.concept_code,
-       c.valid_start_date,
-       c.valid_end_date,
-       CASE
-         WHEN c.invalid_reason = 'D' AND c.vocabulary_id = 'CPT4' THEN NULL
-         ELSE c.invalid_reason
-       END AS invalid_reason
+SELECT CASE 
+		WHEN c.concept_name LIKE '% (Deprecated)'
+			THEN c.concept_name -- to support subsequent source deprecations 
+		WHEN (
+				COALESCE(c.invalid_reason, 'D') = 'D'
+				OR (
+					c.standard_concept = 'S'
+					AND c.valid_end_date < TO_DATE('20991231', 'YYYYMMDD')
+					)
+				)
+			AND LENGTH(c.concept_name) <= 242
+			THEN c.concept_name || ' (Deprecated)'
+		WHEN LENGTH(c.concept_name) > 242
+			THEN LEFT(c.concept_name, 239) || '... (Deprecated)' -- to get no more than 255 characters in total and highlight concept_names which were cut
+		ELSE c.concept_name -- for alive concepts
+		END AS concept_name,
+	c.vocabulary_id,
+	c.concept_class_id,
+	CASE 
+		WHEN COALESCE(c.invalid_reason, 'D') = 'D'
+			AND COALESCE(c.standard_concept, 'S') <> 'C'
+			THEN 'S'
+		WHEN c.concept_class_id = 'CPT4 Hierarchy'
+			AND c.invalid_reason IS NOT NULL
+			AND standard_concept IS NULL
+			THEN 'C'
+		ELSE c.standard_concept
+		END AS standard_concept,
+	c.concept_code,
+	c.valid_start_date,
+	c.valid_end_date,
+	NULLIF(c.invalid_reason, 'D') AS invalid_reason
 FROM concept c
 WHERE c.vocabulary_id = 'CPT4'
-AND NOT EXISTS (SELECT 1
+	AND NOT EXISTS (
+		SELECT 1
 		FROM concept_stage cs_int
 		WHERE cs_int.concept_code = c.concept_code
-		); -- 1981
-	
+		);
+
 --8. Add CPT4 codes which have no entry in sab = 'CPT' (only sab = 'HCPT'). Note, they are not HCPCS codes! 
 INSERT INTO concept_stage (
 	concept_name,
-	domain_id,
 	vocabulary_id,
 	concept_class_id,
 	standard_concept,
@@ -233,26 +242,47 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) ||substring(str FROM 2 FOR LENGTH(str))) AS concept_name,
-        '' AS domain_id, -- is about to be assigned at the end
-       'CPT4' AS vocabulary_id,
-       'CPT4' AS concept_class_id,
-       'S' AS standard_concept,
-       scui AS concept_code,
-       (SELECT latest_update
-        	FROM vocabulary
-        	WHERE vocabulary_id = 'CPT4') AS valid_start_date,
-       TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-       NULL as invalid_reason
-  FROM sources.mrconso
-  WHERE scui IN (SELECT scui FROM sources.mrconso WHERE sab = 'HCPT')
-  AND   scui NOT IN (SELECT scui FROM sources.mrconso WHERE sab = 'CPT')
-  AND ((tty = 'PT'
-  AND suppress = 'N') OR (tty = 'OP' and suppress = 'O'))
-AND scui NOT IN (SELECT concept_code
-FROM concept_stage
-WHERE vocabulary_id = 'CPT4'); -- 29
-	
+SELECT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(mr.str FROM 1 FOR 1)) || SUBSTRING(mr.str FROM 2 FOR LENGTH(str))) AS concept_name,
+	'CPT4' AS vocabulary_id,
+	'CPT4' AS concept_class_id,
+	'S' AS standard_concept,
+	mr.scui AS concept_code,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CPT4'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.mrconso mr
+WHERE EXISTS (
+		SELECT 1
+		FROM sources.mrconso mr_int
+		WHERE mr_int.sab = 'HCPT'
+			AND mr_int.scui = mr.scui
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM sources.mrconso mr_int
+		WHERE mr_int.sab = 'CPT'
+			AND mr_int.scui = mr.scui
+		)
+	AND (
+		(
+			mr.tty = 'PT'
+			AND mr.suppress = 'N'
+			)
+		OR (
+			mr.tty = 'OP'
+			AND mr.suppress = 'O'
+			)
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_stage cs_int
+		WHERE cs_int.concept_code = mr.scui
+		);
+
 --9. Pick up all different str values that are not obsolete or suppressed
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
@@ -261,7 +291,7 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 SELECT DISTINCT scui AS synonym_concept_code,
-	SUBSTR(str, 1, 1000) AS synonym_name,
+	vocabulary_pack.CutConceptSynonymName(str) AS synonym_name,
 	'CPT4' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id
 FROM sources.mrconso
@@ -273,8 +303,8 @@ WHERE sab IN (
 		'E',
 		'O',
 		'Y'
-		); -- 62649
-		
+		);
+
 --10. Add names concatenated with the names of source concept classes 
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
@@ -282,37 +312,26 @@ INSERT INTO concept_synonym_stage (
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-WITH t1 AS(
-SELECT DISTINCT scui AS concept_code,
-       concept_name,
-       sty
-FROM concept_stage c
-  JOIN sources.mrconso b ON b.code = c.concept_code
-  JOIN umls_mrsty USING (cui)
-WHERE sab IN ('CPT','HCPT')
-		 )
-SELECT DISTINCT concept_code AS synonym_concept_code,
-       concept_name|| ' | ' ||string_agg('[' ||sty|| ']',' - ') AS synonym_name,
-       'CPT4' AS synonym_vocabulary_id,
-       4180186 AS language_concept_id
-FROM t1
-WHERE concept_code IN (SELECT concept_code
-                       FROM t1
-                       GROUP BY concept_code
-                       HAVING COUNT(1) > 1)
-GROUP BY concept_name,concept_code
-UNION ALL
-SELECT DISTINCT concept_code,
-       concept_name|| ' | ' || '[' ||sty|| ']' AS concept_name,
-        'CPT4',
-        4180186
-FROM t1
-WHERE concept_code IN (SELECT concept_code
-                       FROM t1
-                       GROUP BY concept_code
-                       HAVING COUNT(1) = 1); -- 14305
-	
-		
+SELECT s0.synonym_concept_code,
+	vocabulary_pack.CutConceptSynonymName(s0.concept_name || ' | ' || STRING_AGG('[' || s0.sty || ']', ' - ' ORDER BY s0.sty)) AS synonym_name,
+	'CPT4' AS synonym_vocabulary_id,
+	4180186 AS language_concept_id
+FROM (
+	/*it seems like a distinct can be used inside string_agg. yes, but it does not work with "order by", so we need a subquery for distinct values before "order by"*/
+	SELECT DISTINCT cs.concept_code AS synonym_concept_code,
+		cs.concept_name,
+		m2.sty
+	FROM concept_stage cs
+	JOIN sources.mrconso m1 ON m1.code = cs.concept_code
+	JOIN sources.mrsty m2 ON m2.cui = m1.cui
+	WHERE m1.sab IN (
+			'CPT',
+			'HCPT'
+			)
+	) AS s0
+GROUP BY s0.synonym_concept_code,
+	s0.concept_name;
+
 --11. Create hierarchical relationships between HT and normal CPT codes
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -329,8 +348,8 @@ SELECT c1.code AS concept_code_1,
 	'Is a' AS relationship_id,
 	'CPT4' AS vocabulary_id_1,
 	'CPT4' AS vocabulary_id_2,
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	TO_DATE('19700101', 'YYYYMMDD') AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
 FROM (
 	SELECT aui AS aui1,
@@ -351,22 +370,49 @@ WHERE NOT EXISTS (
 			AND crs.relationship_id = 'Is a'
 			AND crs.vocabulary_id_1 = 'CPT4'
 			AND crs.vocabulary_id_2 = 'CPT4'
-		); -- 14292
-		
---12. Add everything from the Manual tables
-DO $_$
-BEGIN
-     PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$; -- OK
+		);
 
+--12. Add everything from the Manual tables
+--Working with manual concepts
 DO $_$
 BEGIN
-     PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
+--Working with manual synonyms
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+--Working with manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
 --13. Extract "hiden" CPT4 codes inside concept_names of another CPT4 codes.
@@ -382,13 +428,13 @@ INSERT INTO concept_relationship_stage (
 	)
 SELECT *
 FROM (
-	SELECT unnest(regexp_matches(concept_name, '\((\d\d\d\d[A-Z])\)', 'gi')) AS concept_code_1,
+	SELECT UNNEST(REGEXP_MATCHES(concept_name, '\((\d\d\d\d[A-Z])\)', 'gi')) AS concept_code_1,
 		concept_code AS concept_code_2,
 		'Subsumes' AS relationship_id,
 		'CPT4' AS vocabulary_id_1,
 		'CPT4' AS vocabulary_id_2,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+		TO_DATE('19700101', 'YYYYMMDD') AS valid_start_date,
+		TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 		NULL AS invalid_reason
 	FROM concept_stage
 	WHERE vocabulary_id = 'CPT4'
@@ -401,13 +447,13 @@ WHERE NOT EXISTS (
 			AND crs.relationship_id = 'Subsumes'
 			AND crs.vocabulary_id_1 = 'CPT4'
 			AND crs.vocabulary_id_2 = 'CPT4'
-		); -- 0 (they can occur)
+		);
 
 --14. Update dates from mrsat.atv (only for new concepts)
 UPDATE concept_stage cs
 SET valid_start_date = i.dt
 FROM (
-	SELECT MAX(TO_DATE(s.atv, 'yyyymmdd')) dt,
+	SELECT MAX(TO_DATE(s.atv, 'YYYYMMDD')) dt,
 		cs.concept_code
 	FROM concept_stage cs
 	LEFT JOIN sources.mrconso m ON m.scui = cs.concept_code
@@ -429,44 +475,117 @@ FROM (
 		AND s.atv IS NOT NULL
 	GROUP BY concept_code
 	) i
-WHERE i.concept_code = cs.concept_code; -- 29
+WHERE i.concept_code = cs.concept_code;
 
 --15. Update domain_id in concept_stage 
 UPDATE concept_stage cs
-	SET domain_id = t1.domain_id
-	FROM (SELECT DISTINCT a.concept_code,
-CASE  -- word patterns defined according to the frequency of the occurrence in the existing domains
-WHEN a.concept_name ~*'^electrocardiogram, routine ecg|^pinworm|excision|supervision|removal|abortion|introduction|sedation' AND tui NOT IN ('T033','T034') 
-THEN 'Procedure'
-WHEN tui = 'T023' THEN 'Spec Anatomic Site'
-WHEN (tui = 'T074' OR (tui = 'T073' AND tty <> 'POS')) AND a.concept_code NOT IN ('1022193', '1022194') THEN 'Device' 
-WHEN tui IN ('T121','T109','T200') AND a.concept_code <> '86789' THEN 'Drug' 
-WHEN tui IN ('T073','T093') AND tty = 'POS' THEN 'Place of Service'  
-WHEN tui IN ('T081','T097','T077') OR (tui = 'T185' AND tty <> 'HT') OR (tui = 'T080' AND a.concept_name !~* 'modifier') THEN 'Meas Value' 
-WHEN (a.concept_name !~* 'echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation'
-'assessment|recording|screening|\ycare\y|counseling|insertion|abotrion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field'
-AND (a.concept_name ~* 'documented|^patient|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
-OR length(a.concept_code)<=2))
-OR (tui = 'T093' AND tty <> 'POS') 
-OR (tui = 'T033' AND a.concept_code NOT IN ('80346', '80347', '1014978', '94729', 'TE', '27', '26567', 'G7', 'QF', 'QG','QE', 'QB', 'QR', 'QA', '78801'))
-THEN 'Observation'
-WHEN c.concept_id IS NOT NULL THEN c.domain_id -- regarding to the fact that CPT4 codes are met in Claims as procedures
-ELSE 'Procedure' END AS domain_id -- preserve existing domains for all other cases
-      FROM concept_stage a
-         LEFT JOIN concept c on c.concept_code = a.concept_code AND c.vocabulary_id = 'CPT4'        
-         LEFT JOIN sources.mrconso b ON b.code = a.concept_code AND sab IN ('CPT','HCPT')
-         LEFT JOIN dev_cpt4.umls_mrsty USING (cui)
-       ) t1
-WHERE t1.concept_code = cs.concept_code
-AND cs.domain_id = ''; -- 16258 
+SET domain_id = t1.domain_id
+FROM (
+	SELECT DISTINCT cs.concept_code,
+		CASE -- word patterns defined according to the frequency of the occurrence in the existing domains
+			WHEN cs.concept_name ~* '^electrocardiogram, routine ecg|^pinworm|excision|supervision|removal|abortion|introduction|sedation'
+				AND m2.tui NOT IN (
+					'T033',
+					'T034'
+					)
+				THEN 'Procedure'
+			WHEN m2.tui = 'T023'
+				THEN 'Spec Anatomic Site'
+			WHEN (
+					m2.tui = 'T074'
+					OR (
+						m2.tui = 'T073'
+						AND tty <> 'POS'
+						)
+					)
+				AND cs.concept_code NOT IN (
+					'1022193',
+					'1022194'
+					)
+				THEN 'Device'
+			WHEN m2.tui IN (
+					'T121',
+					'T109',
+					'T200'
+					)
+				AND cs.concept_code <> '86789'
+				THEN 'Drug'
+			WHEN m2.tui IN (
+					'T073',
+					'T093'
+					)
+				AND tty = 'POS'
+				THEN 'Place of Service'
+			WHEN m2.tui IN (
+					'T081',
+					'T097',
+					'T077'
+					)
+				OR (
+					m2.tui = 'T185'
+					AND tty <> 'HT'
+					)
+				OR (
+					m2.tui = 'T080'
+					AND cs.concept_name NOT ILIKE '%modifier%'
+					)
+				THEN 'Meas Value'
+			WHEN (
+					cs.concept_name !~* ('echocardiograph|electrocardiograph|ultrasound|fitting|emptying|\yscores?\y|algorithm|dosimetry|detection|services/procedures|therapy|evaluation|'||
+					'assessment|recording|screening|\ycare\y|counseling|insertion|abotrion|transplant|tomography|^infectious disease|^oncology|monitoring|typing|cytopathology|^ophthalmolog|^visual field')
+					AND (
+						cs.concept_name ~* 'documented|^patient|prescribed|assessed|reviewed|receiving|reported|services|\(DM\)|symptoms|visit|\(HIV\)|instruction|ordered'
+						OR LENGTH(cs.concept_code) <= 2
+						)
+					)
+				OR (
+					m2.tui = 'T093'
+					AND tty <> 'POS'
+					)
+				OR (
+					m2.tui = 'T033'
+					AND cs.concept_code NOT IN (
+						'80346',
+						'80347',
+						'1014978',
+						'94729',
+						'TE',
+						'27',
+						'26567',
+						'G7',
+						'QF',
+						'QG',
+						'QE',
+						'QB',
+						'QR',
+						'QA',
+						'78801'
+						)
+					)
+				THEN 'Observation'
+			WHEN c.concept_id IS NOT NULL
+				THEN c.domain_id -- regarding to the fact that CPT4 codes are met in Claims as procedures
+			ELSE 'Procedure'
+			END AS domain_id -- preserve existing domains for all other cases
+	FROM concept_stage cs
+	LEFT JOIN concept c ON c.concept_code = cs.concept_code
+		AND c.vocabulary_id = 'CPT4'
+	LEFT JOIN sources.mrconso m1 ON m1.code = cs.concept_code
+		AND m1.sab IN (
+			'CPT',
+			'HCPT'
+			)
+	LEFT JOIN sources.mrsty m2 ON m2.cui = m1.cui
+	) t1
+WHERE t1.concept_code = cs.concept_code;
 
 --16. Update domain_id  and standard concept value for CPT4 according to mappings
 UPDATE concept_stage cs
 SET domain_id = i.domain_id,
-standard_concept = null
-FROM
- (SELECT DISTINCT cs1.concept_code,
-		first_value(c2.domain_id) OVER (
+	standard_concept = NULL
+FROM (
+	SELECT DISTINCT cs1.concept_code,
+		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
 					WHEN 'Drug'
 						THEN 1
@@ -484,18 +603,18 @@ FROM
 	FROM concept_relationship_stage crs
 	JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_1
 		AND cs1.vocabulary_id = crs.vocabulary_id_1
-		AND cs1.vocabulary_id = 'CPT4' 
+		AND cs1.vocabulary_id = 'CPT4'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.standard_concept = 'S'  
-		and c2.vocabulary_id <> 'CPT4'
+		AND c2.standard_concept = 'S'
+		AND c2.vocabulary_id <> 'CPT4'
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 	
 	UNION ALL
 	
 	SELECT DISTINCT cs1.concept_code,
-		first_value(c2.domain_id) OVER (
+		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
 					WHEN 'Drug'
 						THEN 1
@@ -514,7 +633,8 @@ FROM
 	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 		AND c1.vocabulary_id = 'CPT4'
 	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.standard_concept = 'S' and c2.vocabulary_id <> 'CPT4'
+		AND c2.standard_concept = 'S'
+		AND c2.vocabulary_id <> 'CPT4'
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'
@@ -527,31 +647,6 @@ FROM
 				AND crs_int.relationship_id = cr.relationship_id
 			)
 	) i
-WHERE i.concept_code = cs.concept_code
-	AND cs.vocabulary_id = 'CPT4'; -- 125
-
---17. Working with replacement mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
-
---18. Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---19. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---20. Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
+WHERE i.concept_code = cs.concept_code;
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

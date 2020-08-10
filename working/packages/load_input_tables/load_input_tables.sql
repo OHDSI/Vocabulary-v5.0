@@ -13,7 +13,7 @@ begin
   pVocabularyPath=pVocabularyPath||pVocabularyID||'/';
   case pVocabularyID
   when 'UMLS' THEN
-      truncate table sources.mrconso, sources.mrhier, sources.mrmap, sources.mrsmap, sources.mrsat, sources.mrrel;
+      truncate table sources.mrconso, sources.mrhier, sources.mrmap, sources.mrsmap, sources.mrsat, sources.mrrel, sources.mrsty;
       alter table sources.mrconso drop constraint x_mrconso_pk;
       drop index sources.x_mrsat_cui;
       drop index sources.x_mrconso_code;
@@ -25,6 +25,7 @@ begin
       drop index sources.x_mrconso_str;
       drop index sources.x_mrconso_sui;
       drop index sources.x_mrrel_aui;
+      drop index sources.x_mrsty_cui;
       /*
       UMLS can contain characters like single quotes and double quotes, but PG uses them as a service characters
       So we specifying a quote character that should never be in the text: E'\b' (backspace)
@@ -35,6 +36,7 @@ begin
       execute 'COPY sources.mrsmap (mapsetcui,mapsetsab,mapid,mapsid,fromexpr,fromtype,rel,rela,toexpr,totype,cvf,vocabulary_date) FROM '''||pVocabularyPath||'MRSMAP.RRF'' delimiter ''|'' csv quote E''\b''';
       execute 'COPY sources.mrsat FROM '''||pVocabularyPath||'MRSAT.RRF'' delimiter ''|'' csv quote E''\b''';
       execute 'COPY sources.mrrel FROM '''||pVocabularyPath||'MRREL.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.mrsty FROM '''||pVocabularyPath||'MRSTY.RRF'' delimiter ''|'' csv quote E''\b''';
       update sources.mrsmap set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
             
       CREATE INDEX x_mrsat_cui ON sources.mrsat (cui);
@@ -48,6 +50,7 @@ begin
       CREATE INDEX x_mrconso_str ON sources.mrconso (str);
       CREATE INDEX x_mrconso_sui ON sources.mrconso (sui);
       CREATE INDEX x_mrrel_aui ON sources.mrrel (aui1, aui2);
+      CREATE INDEX x_mrsty_cui ON sources.mrsty (cui);
       ALTER TABLE sources.mrconso ADD CONSTRAINT x_mrconso_pk PRIMARY KEY USING INDEX x_mrconso_pk;
       analyze sources.mrconso;
       analyze sources.mrhier;
@@ -55,6 +58,7 @@ begin
       analyze sources.mrsmap;
       analyze sources.mrsat;
       analyze sources.mrrel;
+      analyze sources.mrsty;
   when 'CIEL' then
       set local datestyle='ISO, DMY'; --set proper date format
       truncate table sources.concept_ciel, sources.concept_class_ciel, sources.concept_name, sources.concept_reference_map, sources.concept_reference_term, sources.concept_reference_source;

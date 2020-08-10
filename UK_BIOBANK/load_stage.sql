@@ -19,6 +19,7 @@
 
 --TODO: Add concept_class_id to the concept and concept_class tables (functions)
 --TODO: Add vocabulary_id to the concept and vocabulary tables (functions)
+--TODO: CHeck how good the answers and hierarchy are
 
 --TODO: Check for the answers if there are some that should be made non-standard and be excluded from 'Has answer' relationship
 
@@ -414,3 +415,42 @@ AND (ed.value IS NOT NULL
     OR ehi.code_id IS NOT NULL
     OR ehs.code_id IS NOT NULL)
 ;
+
+--TODO: Check if working (experiencing problem with connections)
+INSERT INTO concept_relationship_stage
+(
+  concept_code_1,
+  concept_code_2,
+  vocabulary_id_1,
+  vocabulary_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+
+SELECT f.field_id AS concept_code_1,
+       coalesce(c10.concept_code, c9.concept_code, c4.concept_code) AS concept_code_2,
+       'uk_biobank',
+       coalesce(c10.vocabulary_id, c9.vocabulary_id, c4.vocabulary_id),
+       'Has answer',
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM field f
+JOIN ehierstring ehs
+    ON f.encoding_id = ehs.encoding_id
+LEFT JOIN devv5.concept c10
+    ON regexp_replace(c10.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c10.vocabulary_id = 'ICD10'
+LEFT JOIN devv5.concept c9
+    ON regexp_replace(c9.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c9.vocabulary_id = 'ICD9CM'
+LEFT JOIN devv5.concept c4
+    ON regexp_replace(c4.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c4.vocabulary_id = 'OPCS4'
+
+WHERE ehs.selectable = 0
+AND f.encoding_id IN (19, 87, 240)
+;
+
+
+DELETE FROM concept_relationship_stage
+WHERE concept_code_2 IS NULL;

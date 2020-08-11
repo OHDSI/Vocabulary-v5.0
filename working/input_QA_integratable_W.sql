@@ -219,9 +219,9 @@ FROM (
    from
   drug_concept_stage a
     left join relationship_to_concept r on a.concept_code = r.concept_code_1
-    join devv5.concept b on lower (b.concept_name) = lower (a.concept_name) and a.concept_class_id =b.concept_class_id
-    join devv5.concept_relationship r2 on r2.concept_id_1 = b.concept_id and r2.relationship_id in ('Maps to', 'Source - RxNorm eq') and r2.invalid_reason is null
-    join devv5.concept c on r2.concept_id_2 = c.concept_id
+    join concept b on lower (b.concept_name) = lower (a.concept_name) and a.concept_class_id =b.concept_class_id
+    join concept_relationship r2 on r2.concept_id_1 = b.concept_id and r2.relationship_id in ('Maps to', 'Source - RxNorm eq') and r2.invalid_reason is null
+    join concept c on r2.concept_id_2 = c.concept_id
     where r.concept_code_1 is null 
     and a.concept_class_id  in ('Dose Form', 'Ingredient', 'Brand Name', 'Supplier')
     and c.invalid_reason is null 

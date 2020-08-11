@@ -214,7 +214,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'GGR' THEN 1
 		WHEN c.vocabulary_id = 'LPD_Belgium' THEN 1
 		WHEN c.vocabulary_id = 'APC' THEN 1
-		WHEN c.vocabulary_id = 'KDC' THEN 1
+		WHEN c.vocabulary_id = 'KDC' THEN 0
 		WHEN c.vocabulary_id = 'SUS' THEN 1
 		WHEN c.vocabulary_id = 'CDM' THEN 0
 		WHEN c.vocabulary_id = 'SNOMED Veterinary' THEN 1

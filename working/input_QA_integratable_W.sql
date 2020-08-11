@@ -200,6 +200,34 @@ FROM (
 	
 	UNION ALL
 	
+  --Brand Names containing INgedient
+   select a.concept_code,
+   'Brand Names containing INgedient',
+   'drug_concept_stage'
+    from drug_concept_stage a
+    join drug_concept_stage b on (a.concept_name ilike '% '|| b.concept_name -- Bayer Aspirin - this pattern is chosen as the typical for Supplier+Ingredient
+    )
+       where a.concept_class_id ='Brand Name'
+       and b.concept_class_id ='Ingredient' 
+ 
+	UNION ALL
+	
+  --to get the additional mappings
+  select distinct a.concept_code,
+  'to get the additional mappings',
+  'drug_concept_stage'
+   from
+  drug_concept_stage a
+    left join relationship_to_concept r on a.concept_code = r.concept_code_1
+    join devv5.concept b on lower (b.concept_name) = lower (a.concept_name) and a.concept_class_id =b.concept_class_id
+    join devv5.concept_relationship r2 on r2.concept_id_1 = b.concept_id and r2.relationship_id in ('Maps to', 'Source - RxNorm eq') and r2.invalid_reason is null
+    join devv5.concept c on r2.concept_id_2 = c.concept_id
+    where r.concept_code_1 is null 
+    and a.concept_class_id  in ('Dose Form', 'Ingredient', 'Brand Name', 'Supplier')
+    and c.invalid_reason is null 
+    
+	UNION ALL
+	
 	--for concept_synonym_stage
 	SELECT synonym_concept_code, 'concept_code & vocabulary_id combination is absent from drug_concept_stage', 'concept_synonym_stage'
 	FROM concept_synonym_stage s

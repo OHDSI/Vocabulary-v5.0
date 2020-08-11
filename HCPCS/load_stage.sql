@@ -47,7 +47,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT TRIM(SUBSTR(long_description, 1, 255)) AS concept_name,
+SELECT vocabulary_pack.CutConceptName(long_description) AS concept_name,
 	c.domain_id AS domain_id,
 	v.vocabulary_id,
 	CASE 
@@ -1011,8 +1011,8 @@ WHERE domain_id = 'Procedure Drug';
 --ProcessManualConcepts
 DO $_$
 BEGIN
-     PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;	
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
 
 --4.4. Since nobody really cares about Modifiers domain, in case it's not covered by the concept_manual, set it to Observation
 UPDATE concept_stage
@@ -1032,22 +1032,21 @@ SELECT DISTINCT HCPC AS synonym_concept_code,
 	'HCPCS' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
 FROM (
-	SELECT SUBSTR(short_description, 1, 1000) AS synonym_name,
+	SELECT vocabulary_pack.CutConceptSynonymName(short_description) AS synonym_name,
 		HCPC
 	FROM sources.anweb_v2
 	
-	UNION
+	UNION ALL
 	
-	SELECT SUBSTR(long_description, 1, 1000) AS synonym_name,
+	SELECT vocabulary_pack.CutConceptSynonymName(long_description) AS synonym_name,
 		HCPC
 	FROM sources.anweb_v2
-	) AS s0
-;
+	) AS s0;
 
 --5.1 add synonyms from the manual table (concept_synonym_manual)
 DO $_$
 BEGIN
-     PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
 
 --6. Run HCPCS/ProcedureDrug.sql. This will create all the input files for MapDrugVocabulary.sql
@@ -1325,3 +1324,5 @@ WHERE EXISTS (
 				) --exclude mappings to self
 		)
 	AND cs.standard_concept IS NOT NULL;
+
+-- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

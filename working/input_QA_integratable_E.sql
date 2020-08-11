@@ -1,3 +1,4 @@
+
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
@@ -618,6 +619,42 @@ FROM (
 		HAVING COUNT(*) > 1
 		) s
 	
+	UNION ALL
+	
+	--Drugs that needs to be Devices
+  select distinct a.concept_code as device_code, 
+  'Drugs that needs to be Devices',
+  'drug_concept_stage'
+  from drug_concept_stage a
+  join internal_relationship_stage i on i.concept_code_1 = a.concept_code
+  join relationship_to_concept r on i.concept_code_2 = r.concept_code_1
+  where r.concept_id_2 in (
+
+    select distinct c2.concept_id
+    from dev_dmd.ancestor_snomed ca
+    join concept c on
+	   ca.descendant_concept_id = c.concept_id and
+	   c.vocabulary_id = 'SNOMED'
+    join concept_relationship r on
+    	r.relationship_id = 'RxNorm - SNOMED eq' and
+	    r.concept_id_2 = ca.descendant_concept_id
+    join concept c2 on
+	   c2.concept_id = r.concept_id_1
+    join concept d on
+	   d.concept_id = ca.ancestor_concept_id and
+	   d.concept_code in
+    	(
+		  '407935004','385420005', --Contrast Media
+		  '767234009', --Gadolinium (salt) -- also contrast
+	  	'255922001', --Dental material
+		  '764087006',	--Product containing genetically modified T-cell
+	   	'89457008',	--Radioactive isotope
+		  '37521911000001102', --Radium-223
+		  '420884001',	--Human mesenchymal stem cell
+--		'52518006', --Amino acid is excluded because it includes the actual drugs
+	   	'81430009' -- TiO2 (Sunscreen)
+	) )
+
 	UNION ALL
 	
 	--for concept_relationship_manual

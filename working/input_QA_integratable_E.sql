@@ -630,7 +630,7 @@ FROM (
   where r.concept_id_2 in (
 
     select distinct c2.concept_id
-    from dev_dmd.ancestor_snomed ca
+    from devv5.concept_ancestor ca
     join concept c on
 	   ca.descendant_concept_id = c.concept_id and
 	   c.vocabulary_id = 'SNOMED'

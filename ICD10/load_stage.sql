@@ -133,7 +133,7 @@ WITH codes_need_modified AS (
 			b.modifierclass_code,
 			b.rubric_label AS modifer_name
 		FROM codes_need_modified a
-		LEFT JOIN modifier_classes b ON class_code = regexp_replace(regexp_replace(modifierclass_modifier, '^(I\d\d)|(S\d\d)', '','g'), '_\d', '','g')
+		LEFT JOIN modifier_classes b ON SUBSTRING(b.modifierclass_modifier,'^...(.*?)_') = a.class_code
 			AND b.rubric_kind = 'preferred'
 			AND modifierclass_modifier != 'I70M10_4' --looks like a bug
 		),

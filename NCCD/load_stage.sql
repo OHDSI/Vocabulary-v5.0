@@ -16,7 +16,6 @@
 * Authors: Polina Talapova, Daryna Ivakhnenko, Dmitry Dymshyts
 * Date: 2020
 **************************************************************************/
-
 --1. Update latest_update field to new date
 DO $_$
 BEGIN
@@ -61,7 +60,9 @@ SELECT nccd_code as concept_code_1,
        concept_code as concept_code_2,
        'NCCD' as vocabulary_id_1,
        vocabulary_id as vocabulary_id_2,
-       'Maps to' as relationship_id,
+       CASE
+         WHEN nccd_type in ('DF', 'BN') THEN 'Source - RxNorm eq'
+        ELSE 'Maps to' END as relationship_id,
        TO_DATE('19700101','yyyymmdd') as valid_start_date,
        TO_DATE('20991231','yyyymmdd') as valid_end_date,
        NULL AS invalid_reason

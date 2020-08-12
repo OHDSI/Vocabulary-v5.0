@@ -38,37 +38,34 @@ TRUNCATE TABLE drug_strength_stage;
 --3. Add NCCD concepts (Drug Products and Drug Attributes)
 INSERT INTO concept_stage
 (concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason)
-SELECT DISTINCT t_nm,       -- English name
-       'Drug',
-       'NCCD',
+SELECT  t_nm as concept_name,       -- English name
+       'Drug' as domain_id,
+       'NCCD' as vocabulary_id,
        CASE
          WHEN nccd_type = 'IN' THEN 'Ingredient'
          WHEN nccd_type = 'DF' THEN 'Dose Form'
          WHEN nccd_type = 'BN' THEN 'Brand Name'
-         ELSE 'Drug Product'
-       END,
-       NULL,
-       nccd_code,
-       TO_DATE('1970-01-01','yyyy-mm-dd'),
+         ELSE 'Drug Product' 
+       END as concept_class_id,
+       NULL as standard_concept,
+       nccd_code as concept_code,
+       TO_DATE('19700101','yyyymmdd') as valid_start_date,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
-FROM nccd_full_done -- manually prepared source table
-ORDER BY t_nm;
+FROM nccd_full_done;
 
 --4. Add mappings for NCCD concepts
-INSERT INTO CONCEPT_RELATIONSHIP_STAGE
+INSERT INTO concept_relationship_stage
 (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date,invalid_reason)
-SELECT DISTINCT 
-       nccd_code,
-       concept_code,
-       'NCCD',
-       vocabulary_id,
-       'Maps to',
-       TO_DATE('1970-01-01','yyyy-mm-dd'),
-       TO_DATE('20991231','yyyymmdd'),
+SELECT nccd_code as concept_code_1,
+       concept_code as concept_code_2,
+       'NCCD' as vocabulary_id_1,
+       vocabulary_id as vocabulary_id_2,
+       'Maps to' as relationship_id,
+       TO_DATE('19700101','yyyymmdd') as valid_start_date,
+       TO_DATE('20991231','yyyymmdd') as valid_end_date,
        NULL AS invalid_reason
-FROM nccd_full_done
-ORDER BY nccd_code;
+FROM nccd_full_done;
 
 --5. Add original Chinese names for NCCD concepts
 INSERT INTO concept_synonym_stage
@@ -78,9 +75,9 @@ INSERT INTO concept_synonym_stage
   synonym_vocabulary_id,
   language_concept_id
 )
-SELECT DISTINCT nccd_name,
-       nccd_code,
-       'NCCD',
-       4180186
+SELECT nccd_name as synonym_name,
+       nccd_code as synonym_concept_code,
+       'NCCD' as synonym_vocabulary_id,
+       4180186 as language_concept_id
 FROM nccd_full_done
 WHERE nccd_name <> 'X';

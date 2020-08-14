@@ -740,7 +740,7 @@ INSERT INTO concept_synonym_stage (
 	) (
 	--values of a 'RelatedNames2' field
 	SELECT l.loinc_num AS synonym_concept_code,
-	SUBSTR(l.relatednames2, 1, 1000) AS synonym_name,
+	vocabulary_pack.CutConceptSynonymName(l.relatednames2) AS synonym_name,
 	'LOINC' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
 	FROM sources.loinc l WHERE l.relatednames2 IS NOT NULL
@@ -1843,7 +1843,7 @@ UNION
 
 -- add long descriptions of LOINC Group Categories and Groups
 SELECT lpga.parentgroupid AS synonym_concept_code, -- LOINC Group Category code
-	SUBSTR(lpga.lvalue, 1, 1000) AS synonym_name, -- long description of LOINC Group Categories
+	vocabulary_pack.CutConceptSynonymName(lpga.lvalue) AS synonym_name, -- long description of LOINC Group Categories
 	'LOINC' AS synonym_vocabulary_id,
 	4180186 AS language_concept_id -- English
 FROM sources.loinc_parentgroupattributes lpga;-- table with descriptions of LOINC Group Categories

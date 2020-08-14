@@ -50,7 +50,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE 
+SELECT CASE
 		WHEN loinc_num = '66678-4'
 			AND property = 'Hx'
 			THEN 'History of Diabetes (regardless of treatment) [PhenX]'
@@ -61,7 +61,7 @@ SELECT CASE
 			THEN 'History of ' || long_common_name
 		ELSE long_common_name -- AVOF-819
 		END AS concept_name,
-	CASE 
+	CASE
 		WHEN CLASSTYPE IN (
 				'1',
 				'2'
@@ -179,7 +179,7 @@ SELECT CASE
 			THEN 'Observation'
 		END AS domain_id,
 	v.vocabulary_id,
-	CASE 
+	CASE
 		WHEN CLASSTYPE IN (
 				'1',
 				'2'
@@ -299,12 +299,12 @@ SELECT CASE
 	'S' AS standard_concept,
 	LOINC_NUM AS concept_code,
 	v.latest_update AS valid_start_date,
-	CASE 
+	CASE
 		WHEN l.status IN (
 				'DISCOURAGED',
 				'DEPRECATED'
 				)
-			THEN CASE 
+			THEN CASE
 					WHEN c.valid_end_date > v.latest_update
 						OR c.valid_end_date IS NULL
 						THEN v.latest_update
@@ -312,7 +312,7 @@ SELECT CASE
 					END
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date,
-	CASE 
+	CASE
 		WHEN EXISTS (
 				SELECT 1
 				FROM sources.map_to m
@@ -360,7 +360,7 @@ INSERT INTO concept_stage (
 	invalid_reason
 	)
 SELECT concept_name,
-	CASE 
+	CASE
 		WHEN concept_name ~* 'history|report|document|miscellaneous|public health' -- manually defined word patterns indicating the 'Observation' domain
 			THEN 'Observation'
 		ELSE domain_id
@@ -414,14 +414,14 @@ WITH s AS (
 				'COMPONENT',
 				'SCALE'
 				) -- list of Primary LOINC Parts
-		
+
 		UNION ALL
-		
+
 		-- pick LOINC Hierarchy concepts (Attributive Panels, non-primary Parts and ~400 Undefined attributes)
 		SELECT DISTINCT code,
 			COALESCE(p.partdisplayname, code_text) AS partdisplayname,
 			'LOINC Hierarchy' AS parttypename,
-			CASE 
+			CASE
 				WHEN p.status IS NOT NULL
 					THEN p.status
 				ELSE 'ACTIVE'
@@ -445,14 +445,14 @@ WITH s AS (
 				) --excluding Primary LOINC Parts added above
 		)
 SELECT DISTINCT TRIM(s.partdisplayname) AS concept_name,
-	CASE 
+	CASE
 		WHEN partdisplayname ~* ('directive|^age\s+|lifetime risk|alert|attachment|\s+date|comment|\s+note|consent|identifier|\s+time|\s+number|' || 'date and time|coding system|interpretation|status|\s+name|\s+report|\s+id$|s+id\s+|version|instruction|known exposure|priority|ordered|available|requested|issued|flowsheet|\s+term|' || 'reported|not yet categorized|performed|risk factor|device|administration|\s+route$|suggestion|recommended|narrative|ICD code|reference|' || 'reviewed|information|intention|^Reason for|^Received|Recommend|provider|subject|summary|time\s+|document') -- manually defined word patterns indicating the 'Observation' domain
 			AND partdisplayname !~* ('thrombin time|clotting time|bleeding time|clot formation|kaolin activated time|closure time|protein feed time|Recalcification time|reptilase time|russell viper venom time|' || 'implanted device|dosage\.vial|isolate|within lymph node|cancer specimen|tumor|chromosome|inversion|bioavailable')
 			THEN 'Observation'
 		ELSE 'Measurement' --AVOF-1579 --will be corrected below (5.1) for 6 Primary LOINC Parts
 		END AS domain_id,
 	'LOINC' AS vocabulary_id,
-	CASE 
+	CASE
 		WHEN s.parttypename = 'SYSTEM'
 			THEN 'LOINC System'
 		WHEN s.parttypename = 'METHOD'
@@ -474,9 +474,9 @@ SELECT DISTINCT TRIM(s.partdisplayname) AS concept_name,
 		END AS standard_concept,
 	s.partnumber AS concept_code, -- LOINC Attribute or Hierarchy concept
 	v.latest_update AS valid_start_date,
-	CASE 
+	CASE
 		WHEN s.status = 'DEPRECATED'
-			THEN CASE 
+			THEN CASE
 					WHEN c.valid_end_date <= latest_update
 						THEN c.valid_end_date -- preserve valid_end_date for already existing DEPRECATED concepts
 					ELSE GREATEST(COALESCE(c.valid_start_date, v.latest_update), -- assign LOINC 'latest_update' as 'valid_end_date' for new concepts which have to be deprecated in the current release
@@ -484,7 +484,7 @@ SELECT DISTINCT TRIM(s.partdisplayname) AS concept_name,
 					END -- assign LOINC 'latest_update-1' as 'valid_end_date' for already existing concepts, which have to be deprecated in the current release
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date, -- default value of 31-Dec-2099 for the rest
-	CASE 
+	CASE
 		WHEN s.status IN (
 				'ACTIVE',
 				'INACTIVE'
@@ -525,12 +525,18 @@ WITH hierarchy
 AS (
 	SELECT lh.code
 	FROM sources.loinc_hierarchy lh
-	WHERE NOT EXISTS (
+	WHERE (NOT EXISTS (
 			SELECT 1
-			FROM sources.loinc_partlink lp_int
-			WHERE lh.code = lp_int.partnumber
-				AND lp_int.parttypename <> 'CLASS'
+			FROM sources.loinc_partlink_primary lpp
+			WHERE lh.code = lpp.partnumber
+				AND lpp.parttypename <> 'CLASS'
 			)
+		AND NOT EXISTS (
+				SELECT 1
+				FROM sources.loinc_partlink_supplementary lps
+				WHERE lh.code = lps.partnumber
+					AND lps.parttypename <> 'CLASS'
+				))
 		AND lh.code !~ '^\d'
 	)
 UPDATE concept_stage cs
@@ -567,7 +573,7 @@ FROM sources.loinc_hierarchy lh
 WHERE lh.immediate_parent IS NOT NULL;-- when immediate parent is null then there is no Ancestor
 
 --7. Build 'Has system', 'Has method', 'Has property', 'Has time aspect', 'Has component', and 'Has scale type' relationships from LOINC Measurements/Observations to Primary LOINC Parts (attributes)
---assign specific links using a TYPE of LOINC Part using 'sources.loinc_partlink'
+--assign specific links using a TYPE of LOINC Part using 'sources.loinc_partlink_primary'
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -583,7 +589,7 @@ WITH s AS (
 		SELECT pl.loincnumber, -- LOINC Measurement/Observation
 			p.partnumber, -- Primary LOINC Part
 			p.status,
-			CASE 
+			CASE
 				WHEN p.parttypename = 'SYSTEM'
 					THEN 'Has system'
 				WHEN p.parttypename = 'METHOD'
@@ -597,7 +603,7 @@ WITH s AS (
 				WHEN p.parttypename = 'SCALE'
 					THEN 'Has scale type'
 				END AS relationship_id
-		FROM sources.loinc_partlink pl
+		FROM sources.loinc_partlink_primary pl
 		JOIN sources.loinc_part p ON pl.partnumber = p.partnumber -- Primary LOINC Part
 		WHERE pl.linktypename = 'Primary'
 		),
@@ -624,17 +630,20 @@ SELECT s.loincnumber AS concept_code_1,
 	s.relationship_id AS relationship_id,
 	COALESCE(cr.valid_start_date, -- preserve valid_start_date for already existing relationships
 		LEAST(cs1.valid_end_date, cs2.valid_end_date, v.latest_update)) AS valid_start_date, -- compare and assign earliest date of 'valid_end_date' of a LOINC concept AS 'valid_start_date' for NEW relationships of concepts deprecated in the current release OR  'latest update' for the rest of the codes
-	CASE 
-		WHEN cr.valid_end_date <= v.latest_update
-			THEN cr.valid_end_date -- preserve valid_end_date for already existing relationships
+    CASE
+		WHEN cr.valid_end_date <= v.latest_update --preserve valid_end_date for already existing relationships
+		         AND ((cs1.invalid_reason IS NOT NULL) OR (cs2.invalid_reason IS NOT NULL) OR (cs1.concept_code IS NULL) OR (cs2.concept_code IS NULL)) --only if they're still deprecated
+			THEN cr.valid_end_date
 		WHEN (cs1.invalid_reason IS NOT NULL)
 			OR (cs2.invalid_reason IS NOT NULL)
 			THEN LEAST(cs1.valid_end_date, cs2.valid_end_date) -- compare and assign earliest date of 'valid_end_date' of a LOINC concept as 'valid_end_date' for NEW relationships of concepts deprecated in the current release
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date, -- for the rest of the codes
-	CASE 
+	CASE
 		WHEN (cs1.invalid_reason IS NOT NULL)
 			OR (cs2.invalid_reason IS NOT NULL)
+		    OR (cs1.concept_code IS NULL)
+		    OR (cs2.concept_code IS NULL)
 			THEN 'D'
 		ELSE NULL
 		END AS invalid_reason
@@ -737,7 +746,7 @@ INSERT INTO concept_synonym_stage (
 	FROM sources.loinc l WHERE l.relatednames2 IS NOT NULL
 
 UNION
-	
+
 	-- values of a 'consumer_name' field that were previously used as preferred name (in 195 cases)
 	SELECT l.loinc_num AS synonym_concept_code,
 	l.consumer_name AS synonym_name,
@@ -746,7 +755,7 @@ UNION
 	FROM sources.loinc l WHERE l.consumer_name IS NOT NULL
 
 UNION
-	
+
 	-- values of the 'ShortName' field
 	SELECT l.loinc_num AS synonym_concept_code,
 	l.shortname AS synonym_name,
@@ -755,7 +764,7 @@ UNION
 	FROM sources.loinc l WHERE l.shortname IS NOT NULL
 
 UNION
-	
+
 	--'long_common_name' field values which were changed ('History of')
 	SELECT l.loinc_num AS synonym_concept_code,
 	l.long_common_name AS synonym_name,
@@ -768,13 +777,13 @@ UNION
 		)
 
 UNION
-	
+
 	--'PartName' field values which are synonyms for 'partdisplayname' field values in sources.loinc_part
 	SELECT pl.partnumber AS synonym_concept_code,
 		p.partname AS synonym_name,
 		'LOINC' AS synonym_vocabulary_id,
 		4180186 AS language_concept_id --English language
-	FROM sources.loinc_partlink pl
+	FROM sources.loinc_partlink_primary pl
 	JOIN sources.loinc_part p ON p.partnumber = pl.partnumber
 	WHERE EXISTS (
 			SELECT 1
@@ -782,7 +791,23 @@ UNION
 			WHERE cs_int.concept_code = pl.partnumber
 			)
 		AND pl.partname <> p.partdisplayname
-	);-- pick only different names
+
+
+UNION
+
+	SELECT pl.partnumber AS synonym_concept_code,
+		p.partname AS synonym_name,
+		'LOINC' AS synonym_vocabulary_id,
+		4180186 AS language_concept_id --English language
+	FROM sources.loinc_partlink_supplementary pl
+	JOIN sources.loinc_part p ON p.partnumber = pl.partnumber
+	WHERE EXISTS (
+			SELECT 1
+			FROM concept_stage cs_int
+			WHERE cs_int.concept_code = pl.partnumber
+			)
+		AND pl.partname <> p.partdisplayname
+);-- pick only different names
 
 --12. Add LOINC Answers from 'sources.loinc_answerslist' and 'sources.loinc_answerslistlink' source tables to the CONCEPT_STAGE
 INSERT INTO concept_stage (
@@ -924,7 +949,7 @@ SELECT DISTINCT a.maptarget AS concept_code_1, -- LOINC Measurement code
 	c2.concept_code AS concept_code_2, -- SNOMED Attribute code
 	'LOINC' AS vocabulary_id_1,
 	'SNOMED' AS vocabulary_id_2,
-	CASE 
+	CASE
 		WHEN c1.concept_name IN (
 				'Time aspect',
 				'Process duration'
@@ -1074,7 +1099,7 @@ CREATE UNLOGGED TABLE lc_attr AS (
 	WITH lc_attr_add AS (
 		SELECT cs.concept_code AS lc_code,
 			cs.concept_name AS lc_name,
-			CASE 
+			CASE
 				WHEN crs.concept_code_2 NOT IN (
 						'LP7753-9',
 						'LP7751-3'
@@ -1082,7 +1107,7 @@ CREATE UNLOGGED TABLE lc_attr AS (
 					THEN 'Has dir proc site'
 				ELSE 'Has scale type'
 				END AS relationship_id,
-			CASE 
+			CASE
 				WHEN crs.concept_code_2 IN (
 						'LP7057-5',
 						'LP21304-8',
@@ -1260,19 +1285,19 @@ CREATE UNLOGGED TABLE lc_attr AS (
 	attr_code FROM (
 	SELECT *
 	FROM lc_attr_add
-	
+
 	UNION ALL
-	
+
 	SELECT *
 	FROM lc_sn
-	
+
 	UNION ALL
-	
+
 	SELECT *
 	FROM lc_attr_1
-	
+
 	UNION ALL
-	
+
 	SELECT *
 	FROM lc_attr_2
 	) lc
@@ -1421,19 +1446,19 @@ WITH ax_1 AS (
 	all_ax AS (
 		SELECT *
 		FROM ax_1
-		
+
 		UNION ALL
-		
+
 		SELECT *
 		FROM ax_2
-		
+
 		UNION ALL
-		
+
 		SELECT *
 		FROM ax_3
-		
+
 		UNION ALL
-		
+
 		SELECT *
 		FROM ax_4
 		)

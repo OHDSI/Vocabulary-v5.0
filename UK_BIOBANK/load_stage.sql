@@ -412,11 +412,11 @@ AND (ed.value IS NOT NULL
     OR ei.value IS NOT NULL
     OR er.value IS NOT NULL
     OR es.value IS NOT NULL
-    OR ehi.code_id IS NOT NULL
-    OR ehs.code_id IS NOT NULL)
+    OR (ehi.code_id IS NOT NULL AND ehi.selectable != 0)
+    OR (ehs.code_id IS NOT NULL AND ehs.selectable != 0))
 ;
 
---TODO: Check if working (experiencing problem with connections)
+--TODO: Check if working (experiencing problem with connections) and add vocabulary restrictions
 INSERT INTO concept_relationship_stage
 (
   concept_code_1,
@@ -429,7 +429,7 @@ INSERT INTO concept_relationship_stage
   invalid_reason
 )
 
-SELECT f.field_id AS concept_code_1,
+SELECT DISTINCT f.field_id AS concept_code_1,
        coalesce(c10.concept_code, c9.concept_code, c4.concept_code) AS concept_code_2,
        'uk_biobank',
        coalesce(c10.vocabulary_id, c9.vocabulary_id, c4.vocabulary_id),
@@ -441,16 +441,13 @@ FROM field f
 JOIN ehierstring ehs
     ON f.encoding_id = ehs.encoding_id
 LEFT JOIN devv5.concept c10
-    ON regexp_replace(c10.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c10.vocabulary_id = 'ICD10'
+    ON regexp_replace(c10.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c10.vocabulary_id = 'ICD10' AND f.encoding_id = 19
 LEFT JOIN devv5.concept c9
-    ON regexp_replace(c9.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c9.vocabulary_id = 'ICD9CM'
+    ON regexp_replace(c9.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c9.vocabulary_id = 'ICD9CM' AND f.encoding_id = 87
 LEFT JOIN devv5.concept c4
-    ON regexp_replace(c4.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c4.vocabulary_id = 'OPCS4'
+    ON regexp_replace(c4.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c4.vocabulary_id = 'OPCS4' AND f.encoding_id = 240
 
-WHERE ehs.selectable = 0
+WHERE ehs.selectable = 1
 AND f.encoding_id IN (19, 87, 240)
+AND coalesce(c10.concept_code, c9.concept_code, c4.concept_code) IS NOT NULL
 ;
-
-
-DELETE FROM concept_relationship_stage
-WHERE concept_code_2 IS NULL;

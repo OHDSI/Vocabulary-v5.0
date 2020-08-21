@@ -120,13 +120,13 @@ DROP TABLE IF EXISTS drug_strength CASCADE;
 CREATE TABLE drug_strength (
 	drug_concept_id int4 NOT NULL,
 	ingredient_concept_id int4 NOT NULL,
-	amount_value FLOAT,
+	amount_value NUMERIC,
 	amount_unit_concept_id int4,
-	numerator_value FLOAT,
+	numerator_value NUMERIC,
 	numerator_unit_concept_id int4,
-	denominator_value FLOAT,
+	denominator_value NUMERIC,
 	denominator_unit_concept_id int4,
-	box_size int4,
+	box_size int2,
 	valid_start_date DATE NOT NULL,
 	valid_end_date DATE NOT NULL,
 	invalid_reason VARCHAR (1)
@@ -136,8 +136,8 @@ DROP TABLE IF EXISTS pack_content CASCADE;
 CREATE TABLE pack_content (
 	pack_concept_id int4 NOT NULL,
 	drug_concept_id int4 NOT NULL,
-	amount FLOAT,
-	box_size int4
+	amount int2,
+	box_size int2
 );
 
 DROP TABLE IF EXISTS concept_stage;
@@ -174,7 +174,7 @@ CREATE TABLE concept_synonym_stage (
 	synonym_name VARCHAR (1000) NOT NULL,
 	synonym_concept_code VARCHAR (50) NOT NULL,
 	synonym_vocabulary_id VARCHAR (20) NOT NULL,
-	language_concept_id int4
+	language_concept_id int4 NOT NULL
 );
 
 DROP TABLE IF EXISTS drug_strength_stage;
@@ -183,11 +183,11 @@ CREATE TABLE drug_strength_stage (
 	vocabulary_id_1 VARCHAR (20) NOT NULL,
 	ingredient_concept_code VARCHAR (20) NOT NULL,
 	vocabulary_id_2 VARCHAR (20) NOT NULL,
-	amount_value FLOAT,
+	amount_value NUMERIC,
 	amount_unit_concept_id int4,
-	numerator_value FLOAT,
+	numerator_value NUMERIC,
 	numerator_unit_concept_id int4,
-	denominator_value FLOAT,
+	denominator_value NUMERIC,
 	denominator_unit_concept_id int4,
 	valid_start_date DATE NOT NULL,
 	valid_end_date DATE NOT NULL,
@@ -200,8 +200,8 @@ CREATE TABLE pack_content_stage (
 	pack_vocabulary_id VARCHAR (20) NOT NULL,
 	drug_concept_code VARCHAR (20) NOT NULL,
 	drug_vocabulary_id VARCHAR (20) NOT NULL,
-	amount FLOAT,
-	box_size int4
+	amount int2,
+	box_size int2
 );
 
 DROP TABLE IF EXISTS concept_relationship_manual;
@@ -214,6 +214,27 @@ CREATE TABLE concept_relationship_manual (
 	valid_start_date DATE NOT NULL,
 	valid_end_date DATE NOT NULL,
 	invalid_reason VARCHAR (1)
+);
+
+DROP TABLE IF EXISTS concept_manual;
+CREATE TABLE concept_manual (
+	concept_name VARCHAR (255),
+	domain_id VARCHAR (20),
+	vocabulary_id VARCHAR (20) NOT NULL,
+	concept_class_id VARCHAR (20),
+	standard_concept VARCHAR (1),
+	concept_code VARCHAR (50) NOT NULL,
+	valid_start_date DATE,
+	valid_end_date DATE,
+	invalid_reason VARCHAR (1)
+);
+
+DROP TABLE IF EXISTS concept_synonym_manual;
+CREATE TABLE concept_synonym_manual (
+	synonym_name VARCHAR (1000) NOT NULL,
+	synonym_concept_code VARCHAR (50) NOT NULL,
+	synonym_vocabulary_id VARCHAR (20) NOT NULL,
+	language_concept_id int4 NOT NULL
 );
 
 --Create PKs
@@ -239,6 +260,7 @@ ALTER TABLE concept_relationship ADD CONSTRAINT fpk_concept_relationship_id FORE
 ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
 ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_concept FOREIGN KEY (concept_id) REFERENCES concept (concept_id);
+ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_language FOREIGN KEY (language_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE concept_synonym ADD CONSTRAINT unique_synonyms UNIQUE (concept_id,concept_synonym_name,language_concept_id);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_1 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_2 FOREIGN KEY (ingredient_concept_id) REFERENCES concept (concept_id);
@@ -247,6 +269,9 @@ ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_2 FOREIGN KEY (n
 ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_unit_3 FOREIGN KEY (denominator_unit_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_1 FOREIGN KEY (pack_concept_id) REFERENCES concept (concept_id);
 ALTER TABLE pack_content ADD CONSTRAINT fpk_pack_content_concept_2 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id);
+ALTER TABLE concept_relationship_manual ADD CONSTRAINT unique_manual_relationships UNIQUE (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
+ALTER TABLE concept_manual ADD CONSTRAINT unique_manual_concepts UNIQUE (vocabulary_id,concept_code);
+ALTER TABLE concept_synonym_manual ADD CONSTRAINT unique_manual_synonyms UNIQUE (synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id);
 
 --Create indexes
 CREATE UNIQUE INDEX idx_unique_concept_code ON concept (vocabulary_id, concept_code) WHERE vocabulary_id NOT IN ('DRG', 'SMQ') AND concept_code <> 'OMOP generated';
@@ -278,3 +303,6 @@ ALTER TABLE concept ADD CONSTRAINT chk_c_concept_code CHECK (concept_code <> '')
 ALTER TABLE concept ADD CONSTRAINT chk_c_invalid_reason CHECK (COALESCE(invalid_reason,'D') in ('D','U'));
 ALTER TABLE concept_relationship ADD CONSTRAINT chk_cr_invalid_reason CHECK (COALESCE(invalid_reason,'D')='D');
 ALTER TABLE concept_synonym ADD CONSTRAINT chk_csyn_concept_synonym_name CHECK (concept_synonym_name <> '');
+ALTER TABLE concept_manual ADD CONSTRAINT chk_cmnl_concept_name CHECK (concept_name <> '');
+ALTER TABLE concept_manual ADD CONSTRAINT chk_cmnl_concept_code CHECK (concept_code <> '');
+ALTER TABLE concept_synonym_manual ADD CONSTRAINT chk_csynmnl_concept_synonym_name CHECK (synonym_name <> '');

@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION vocabulary_pack.setlatestupdate (
+﻿CREATE OR REPLACE FUNCTION vocabulary_pack.SetLatestUpdate (
   pvocabularyname varchar,
   pvocabularydate date,
   pvocabularyversion varchar,
@@ -9,7 +9,7 @@ RETURNS void AS
 $body$
     /*
      Adds (if not exists) column 'latest_update' to 'vocabulary' table and sets it to pVocabularyDate value
-     Also adds 'dev_schema_name' column what needs for 'CreateSynForManualTable' procedure
+     Also adds 'dev_schema_name' column what needs for 'ProcessManualRelationships' procedure
      If pAppendVocabulary is set to TRUE, then procedure DOES NOT drops any columns, just updates the 'latest_update' and 'dev_schema_name'
     */
 DECLARE
@@ -25,10 +25,10 @@ BEGIN
     RAISE EXCEPTION 'pVocabularyDate cannot be empty!';
   END IF;
 
-  IF pVocabularyDate > CURRENT_DATE
+  /*IF pVocabularyDate > CURRENT_DATE
     THEN
     RAISE EXCEPTION 'pVocabularyDate bigger than current date!';
-  END IF;
+  END IF;*/ --disabled 20200713, e.g. ICD10CM may be from the 'future'
 
   IF pVocabularyVersion IS NULL
     THEN

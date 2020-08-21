@@ -1247,7 +1247,7 @@ SELECT pc.pack_code AS pack_concept_code,
 	'RxNorm' AS pack_vocabulary_id,
 	cont.concept_code AS drug_concept_code,
 	'RxNorm' AS drug_vocabulary_id,
-	pc.amount::FLOAT, -- of drug units in the pack
+	pc.amount::INT2, -- of drug units in the pack
 	NULL AS box_size -- number of the overall combinations units
 FROM (
 	SELECT pack_code,

@@ -19,7 +19,8 @@ BEGIN
     mv "MRMAP.RRF" "$1" && \
     mv "MRSMAP.RRF" "$1" && \
     mv "MRSAT.RRF" "$1" && \
-    mv "MRREL.RRF" "$1"
+    mv "MRREL.RRF" "$1" && \
+    mv "MRSTY.RRF" "$1"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

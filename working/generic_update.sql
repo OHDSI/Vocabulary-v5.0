@@ -162,8 +162,9 @@ BEGIN
 	--10. Deprecate concepts missing from concept_stage and are not already deprecated.
 	--This only works for vocabularies where we expect a full set of active concepts in concept_stage.
 	--If the vocabulary only provides changed concepts, this should not be run, and the update information is already dealt with in step 1.
-	--23-May-2018: new rule for CPT4, ICD9Proc and HCPCS: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981
-	--10.1. Update the concept for non-CPT4, non-ICD9Proc and non-HCPCS vocabularies
+	--20180523: new rule for CPT4, ICD9Proc and HCPCS: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981
+	--20200730 added ICD10PCS
+	--10.1. Update the concept for non-CPT4, non-ICD9Proc, non-HCPCS and non-ICD10PCS vocabularies
 	UPDATE concept c SET
 		invalid_reason = 'D',
 		standard_concept = NULL,
@@ -195,7 +196,6 @@ BEGIN
 		WHEN c.vocabulary_id = 'DA_France' THEN 0
 		WHEN c.vocabulary_id = 'DPD' THEN 1
 		WHEN c.vocabulary_id = 'NFC' THEN 1
-		WHEN c.vocabulary_id = 'ICD10PCS' THEN 1
 		WHEN c.vocabulary_id = 'EphMRA ATC' THEN 1
 		WHEN c.vocabulary_id = 'dm+d' THEN 1
 		WHEN c.vocabulary_id = 'RxNorm Extension' THEN 0
@@ -214,7 +214,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'GGR' THEN 1
 		WHEN c.vocabulary_id = 'LPD_Belgium' THEN 1
 		WHEN c.vocabulary_id = 'APC' THEN 1
-		WHEN c.vocabulary_id = 'KDC' THEN 1
+		WHEN c.vocabulary_id = 'KDC' THEN 0
 		WHEN c.vocabulary_id = 'SUS' THEN 1
 		WHEN c.vocabulary_id = 'CDM' THEN 0
 		WHEN c.vocabulary_id = 'SNOMED Veterinary' THEN 1
@@ -231,17 +231,19 @@ BEGIN
 		WHEN c.vocabulary_id = 'ICD9ProcCN' THEN 1
 		WHEN c.vocabulary_id = 'CAP' THEN 1
 		WHEN c.vocabulary_id = 'OMOP Extension' THEN 0
+		WHEN c.vocabulary_id = 'CIM10' THEN 1
+		WHEN c.vocabulary_id = 'NCCD' THEN 0
 		ELSE 0 -- in default we will not deprecate
 	END = 1
-	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc');
+	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS');
 
-	--10.2. Update the concept for CPT4, ICD9Proc and HCPCS
+	--10.2. Update the concept for CPT4, ICD9Proc, HCPCS and ICD10PCS
 	UPDATE concept c SET
 		valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
 	WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from concept_stage
 	AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 	AND c.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') -- not already deprecated
-	AND c.vocabulary_id IN ('CPT4', 'HCPCS', 'ICD9Proc'); /*new rule for these vocabularies: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981*/
+	AND c.vocabulary_id IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS'); /*new rule for these vocabularies: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981*/
 
 	--11. Add new concepts from concept_stage
 	--Create sequence after last valid one
@@ -975,7 +977,7 @@ BEGIN
 		ds.numerator_unit_concept_id,
 		ds.denominator_value,
 		ds.denominator_unit_concept_id,
-		REGEXP_REPLACE(bs.concept_name, '.+Box of ([0-9]+).*', '\1')::INT AS box_size,
+		REGEXP_REPLACE(bs.concept_name, '.+Box of ([0-9]+).*', '\1')::INT2 AS box_size,
 		ds.valid_start_date,
 		ds.valid_end_date,
 		ds.invalid_reason

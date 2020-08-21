@@ -59,8 +59,7 @@ begin
               from (
                   select h.http_content,
                   l.xml_element
-                  from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc='||cCode
-                ) h
+                  from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc='||cCode,allow_redirects=>true) h
                 left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/ndcHistory', h.http_content::xml)) as xml_element) l on true
               ) as s
               left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/status/text()', s.http_content::xml))::varchar status) l1 on true
@@ -90,12 +89,12 @@ begin
             insert into apigrabber.ndc_history_tmp
               select cCode, l1.status, l2.activeRxcui, l3.startDate, l4.endDate
               from (
-                select h.content,
+                select h.http_content,
                 l.xml_element
-                from devv5.http_get('https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc='||cCode) h
-                left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/ndcHistory', h.content::xml)) as xml_element) l on true
+                from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/ndcstatus?history=1&ndc='||cCode,allow_redirects=>true) h
+                left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/ndcHistory', h.http_content::xml)) as xml_element) l on true
               ) as s
-              left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/status/text()', s.content::xml))::varchar status) l1 on true
+              left join lateral (select unnest(xpath('/rxnormdata/ndcStatus/status/text()', s.http_content::xml))::varchar status) l1 on true
               left join lateral (select unnest(xpath('activeRxcui/text()', xml_element))::varchar activeRxcui) l2 on true
               left join lateral (select to_date(unnest(xpath('startDate/text()', xml_element))::varchar,'YYYYMM') startDate) l3 on true
               left join lateral (select to_date(unnest(xpath('endDate/text()', xml_element))::varchar,'YYYYMM') endDate) l4 on true;

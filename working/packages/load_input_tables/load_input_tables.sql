@@ -13,7 +13,7 @@ begin
   pVocabularyPath=pVocabularyPath||pVocabularyID||'/';
   case pVocabularyID
   when 'UMLS' THEN
-      truncate table sources.mrconso, sources.mrhier, sources.mrmap, sources.mrsmap, sources.mrsat, sources.mrrel;
+      truncate table sources.mrconso, sources.mrhier, sources.mrmap, sources.mrsmap, sources.mrsat, sources.mrrel, sources.mrsty;
       alter table sources.mrconso drop constraint x_mrconso_pk;
       drop index sources.x_mrsat_cui;
       drop index sources.x_mrconso_code;
@@ -25,6 +25,7 @@ begin
       drop index sources.x_mrconso_str;
       drop index sources.x_mrconso_sui;
       drop index sources.x_mrrel_aui;
+      drop index sources.x_mrsty_cui;
       /*
       UMLS can contain characters like single quotes and double quotes, but PG uses them as a service characters
       So we specifying a quote character that should never be in the text: E'\b' (backspace)
@@ -35,6 +36,7 @@ begin
       execute 'COPY sources.mrsmap (mapsetcui,mapsetsab,mapid,mapsid,fromexpr,fromtype,rel,rela,toexpr,totype,cvf,vocabulary_date) FROM '''||pVocabularyPath||'MRSMAP.RRF'' delimiter ''|'' csv quote E''\b''';
       execute 'COPY sources.mrsat FROM '''||pVocabularyPath||'MRSAT.RRF'' delimiter ''|'' csv quote E''\b''';
       execute 'COPY sources.mrrel FROM '''||pVocabularyPath||'MRREL.RRF'' delimiter ''|'' csv quote E''\b''';
+      execute 'COPY sources.mrsty FROM '''||pVocabularyPath||'MRSTY.RRF'' delimiter ''|'' csv quote E''\b''';
       update sources.mrsmap set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
             
       CREATE INDEX x_mrsat_cui ON sources.mrsat (cui);
@@ -48,6 +50,7 @@ begin
       CREATE INDEX x_mrconso_str ON sources.mrconso (str);
       CREATE INDEX x_mrconso_sui ON sources.mrconso (sui);
       CREATE INDEX x_mrrel_aui ON sources.mrrel (aui1, aui2);
+      CREATE INDEX x_mrsty_cui ON sources.mrsty (cui);
       ALTER TABLE sources.mrconso ADD CONSTRAINT x_mrconso_pk PRIMARY KEY USING INDEX x_mrconso_pk;
       analyze sources.mrconso;
       analyze sources.mrhier;
@@ -55,6 +58,7 @@ begin
       analyze sources.mrsmap;
       analyze sources.mrsat;
       analyze sources.mrrel;
+      analyze sources.mrsty;
   when 'CIEL' then
       set local datestyle='ISO, DMY'; --set proper date format
       truncate table sources.concept_ciel, sources.concept_class_ciel, sources.concept_name, sources.concept_reference_map, sources.concept_reference_term, sources.concept_reference_source;
@@ -405,11 +409,12 @@ begin
       execute 'COPY sources.loinc_answerslistlink FROM '''||pVocabularyPath||'LoincAnswerListLink.csv'' delimiter '','' csv HEADER';
       --insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx'); --PanelsAndForms.xlsx replaced with CSV-file in v2.65
       execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'LOINC_PanelsAndForms.csv'' delimiter '','' csv HEADER';
-      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink, sources.loinc_part, sources.loinc_radiology;
+      truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink_primary, sources.loinc_partlink_supplementary, sources.loinc_part, sources.loinc_radiology;
       execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'Group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
       execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'ParentGroupAttributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
       execute 'COPY sources.loinc_grouploincterms FROM '''||pVocabularyPath||'GroupLoincTerms.csv'' delimiter '','' csv HEADER FORCE NULL category,groupid,archetype,loincnumber,longcommonname';
-      execute 'COPY sources.loinc_partlink FROM '''||pVocabularyPath||'LoincPartLink.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
+      execute 'COPY sources.loinc_partlink_primary FROM '''||pVocabularyPath||'LoincPartLink_Primary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
+      execute 'COPY sources.loinc_partlink_supplementary FROM '''||pVocabularyPath||'LoincPartLink_Supplementary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
       execute 'COPY sources.loinc_part FROM '''||pVocabularyPath||'Part.csv'' delimiter '','' csv HEADER FORCE NULL partnumber,parttypename,partname,partdisplayname,status';
       execute 'COPY sources.loinc_radiology FROM '''||pVocabularyPath||'LoincRsnaRadiologyPlaybook.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,parttypename,partname,partsequenceorder,rid,preferredname,rpid,longname';
       truncate table sources.loinc_class, sources.scccrefset_expressionassociation_int, sources.scccrefset_mapcorrorfull_int, sources.cpt_mrsmap;
@@ -750,6 +755,10 @@ begin
       update sources.cap_xml_raw set xmlfield=REPLACE(xmlfield,E'\xEF\xBB\xBF','');
       alter table sources.cap_xml_raw alter column xmlfield type xml using xmlfield::xml; --return proper TYPE
       update sources.cap_xml_raw set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'ICD10GM' then
+      truncate table sources.icd10gm;
+      execute 'COPY sources.icd10gm (concept_code,concept_name) FROM PROGRAM ''cat "'||pVocabularyPath||'icd10gm.csv"| awk -F "\"*;\"*" ''''{print $7";"$9}''''  '' delimiter '';'' csv quote ''"'' ';
+      update sources.icd10gm set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

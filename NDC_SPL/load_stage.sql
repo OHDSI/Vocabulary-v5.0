@@ -1828,6 +1828,17 @@ WHERE concept_code IN (
 		)
 	AND vocabulary_id = 'NDC';
 
+--Devices from the manual table
+UPDATE concept_stage cs
+SET concept_class_id = 'Device',
+	domain_id = 'Device',
+	standard_concept = 'S'
+FROM dev_ndc.ndc_manual_mapped m
+WHERE m.source_code = cs.concept_code
+	AND cs.vocabulary_id = 'NDC'
+	AND m.target_concept_id = 17
+;
+
 /*Put your updates here..
 	UPDATE concept_stage SET concept_class_id = 'Device', domain_id = 'Device', standard_concept='S' WHERE concept_code in ('x','y');
 */

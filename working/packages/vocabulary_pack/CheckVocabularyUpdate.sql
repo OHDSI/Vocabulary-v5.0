@@ -134,10 +134,9 @@ BEGIN
           22. AMT
           23. CDM
           24. SNOMED Veterinary
+          25. ICD10GM
         */
-        perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
-        set local http.timeout_msec TO 30000;
-        SELECT content into cVocabHTML FROM http_get(cURL);
+        SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
         CASE
             WHEN cVocabularyName = 'RXNORM'
@@ -186,7 +185,7 @@ BEGIN
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');
             WHEN cVocabularyName = 'ICD10CM'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'Note: The FY ([[:digit:]]{4}) release of ICD-10-CM is now available') || '0101', 'yyyymmdd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'FY ([[:digit:]]{4}) release of ICD-10-CM') || '0101', 'yyyymmdd');
                 cVocabVer := 'ICD10CM FY'||to_char(cVocabDate,'YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN
@@ -370,6 +369,13 @@ BEGIN
             THEN
                 cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a href="SnomedCT_Release_VTS.+?_([\d]{8})\.zip" target="main">Download the Veterinary Extension of SNOMED CT</a>.+'),'yyyymmdd');
                 cVocabVer := 'SNOMED Veterinary '||to_char(cVocabDate,'YYYYMMDD');
+            WHEN cVocabularyName = 'ICD10GM'
+            THEN
+                --ICD10GM uses ajax, so we need to make another HTTP-request to get date/version
+                SELECT http_content INTO cVocabHTML FROM vocabulary_download.py_http_get(url=>'https://www.dimdi.de/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/filelist-ajax.jsp?folder='||
+                    SUBSTRING(cVocabHTML,'.*data-folder="(.*?/klassifikationen/icd-10-gm/version\d{4}/)"')||'&sitepath=/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/&loc=de&rows=25&start=0',allow_redirects=>true);
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM \d{4} Metadaten TXT \(CSV\) </a>.*?<p>Stand: ([\d.]+).*'),'dd.mm.yyyy');
+                cVocabVer := cVocabularyName||SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM( \d{4}) Metadaten TXT \(CSV\) </a>.*?<p>Stand: [\d.]+.*');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

@@ -240,7 +240,7 @@ SELECT
 	devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
 	unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR VPPID,
 	unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
-	unnest(xpath('./QTYVAL/text()', i.xmlfield))::VARCHAR::FLOAT QTYVAL,
+	unnest(xpath('./QTYVAL/text()', i.xmlfield))::VARCHAR::numeric QTYVAL,
 	unnest(xpath('./QTY_UOMCD/text()', i.xmlfield))::VARCHAR QTY_UOMCD,
 	unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR INVALID,
 	devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::VARCHAR) ABBREVNM
@@ -282,7 +282,7 @@ SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::VARCHAR) nm,
 	unnest(xpath('./COMBPRODCD/text()', i.xmlfield))::VARCHAR COMBPRODCD,
 	unnest(xpath('./NON_AVAILDT/text()', i.xmlfield))::VARCHAR NON_AVAILDT,
 	unnest(xpath('./DF_INDCD/text()', i.xmlfield))::VARCHAR DF_INDCD,
-	unnest(xpath('./UDFS/text()', i.xmlfield))::VARCHAR::FLOAT UDFS,
+	unnest(xpath('./UDFS/text()', i.xmlfield))::VARCHAR::numeric UDFS,
 	unnest(xpath('./UDFS_UOMCD/text()', i.xmlfield))::VARCHAR UDFS_UOMCD,
 	unnest(xpath('./UNIT_DOSE_UOMCD/text()', i.xmlfield))::VARCHAR UNIT_DOSE_UOMCD,
 	unnest(xpath('./PRES_STATCD/text()', i.xmlfield))::VARCHAR PRES_STATCD
@@ -313,9 +313,9 @@ create table VIRTUAL_PRODUCT_INGREDIENT as
 SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID,
 	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
 	unnest(xpath('./BS_SUBID/text()', i.xmlfield))::VARCHAR BS_SUBID,
-	unnest(xpath('./STRNT_NMRTR_VAL/text()', i.xmlfield))::VARCHAR::FLOAT STRNT_NMRTR_VAL,
+	unnest(xpath('./STRNT_NMRTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_NMRTR_VAL,
 	unnest(xpath('./STRNT_NMRTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_NMRTR_UOMCD,
-	unnest(xpath('./STRNT_DNMTR_VAL/text()', i.xmlfield))::VARCHAR::FLOAT STRNT_DNMTR_VAL,
+	unnest(xpath('./STRNT_DNMTR_VAL/text()', i.xmlfield))::VARCHAR::numeric STRNT_DNMTR_VAL,
 	unnest(xpath('./STRNT_DNMTR_UOMCD/text()', i.xmlfield))::VARCHAR STRNT_DNMTR_UOMCD
 FROM (
 	SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
@@ -366,7 +366,7 @@ update amps set invalid = '0' where invalid is null
 create table ap_ingredient as
 SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
 	unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
-	unnest(xpath('./STRNTH/text()', i.xmlfield))::VARCHAR::FLOAT STRNTH,
+	unnest(xpath('./STRNTH/text()', i.xmlfield))::VARCHAR::numeric STRNTH,
 	unnest(xpath('./UOMCD/text()', i.xmlfield))::VARCHAR UOMCD
 FROM (
 	SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AP_INGREDIENT/AP_ING', i.xmlfield)) xmlfield
@@ -1281,8 +1281,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'dm+d',
-	pVocabularyDate			=> TO_DATE ('20200616', 'yyyymmdd'),
-	pVocabularyVersion		=> 'dm+d Version 6.1.0 20200615',
+	pVocabularyDate			=> TO_DATE ('20200817', 'yyyymmdd'),
+	pVocabularyVersion		=> 'dm+d Version 8.2.0 20200817',
 	pVocabularyDevSchema	=> 'DEV_DMD'
 );
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -1301,7 +1301,7 @@ create table if not exists r_to_c_all
    concept_class_id   varchar,
    concept_id         integer,
    precedence         integer,
-   conversion_factor  float8
+   conversion_factor  numeric
 )
 ;
 --update legacy mappings if target was changed
@@ -1782,22 +1782,26 @@ select
 		then p2.vppid
 		else p2.vpid
 	end as drug_concept_code,*/ p2.vppid as drug_concept_code,
-	case 
-		when p2.qty_uomcd not in 
-			( --scalable doses
-				'258684004', --mg
-				'258774008', --microlitre
-				'258773002', --ml
-				'258770004', --litre
-				'732981002', --actuation
-				'3317411000001100', --dose
-				'3319711000001103', --unit dose
-				'258682000' --gram
-			)
-		then p2.qtyval
-		else 1
-	end as amount,
-	null :: int4 as box_size
+	cast
+	(
+		case 
+			when p2.qty_uomcd not in 
+				( --scalable doses
+					'258684004', --mg
+					'258774008', --microlitre
+					'258773002', --ml
+					'258770004', --litre
+					'732981002', --actuation
+					'3317411000001100', --dose
+					'3319711000001103', --unit dose
+					'258682000' --gram
+				)
+			then p2.qtyval
+			else 1
+		end as smallint
+		
+	) as amount,
+	null :: smallint as box_size
 from comb_content_v c
 
 join vmpps p1 on 
@@ -1833,22 +1837,26 @@ select
 		then p2.appid 
 		else p2.apid
 	end as drug_concept_code,*/ p2.appid as drug_concept_code,
-	case 
-		when vx.qty_uomcd not in 
-			( --scalable doses
-				'258684004', --mg
-				'258774008', --microlitre
-				'258773002', --ml
-				'258770004', --litre
-				'732981002', --actuation
-				'3317411000001100', --dose
-				'3319711000001103', --unit dose
-				'258682000' --gram
-			)
-		then vx.qtyval
-		else 1
-	end as amount,
-	null :: int4 as box_size
+	cast 
+	(
+		case 	
+			when vx.qty_uomcd not in 
+				( --scalable doses
+					'258684004', --mg
+					'258774008', --microlitre
+					'258773002', --ml
+					'258770004', --litre
+					'732981002', --actuation
+					'3317411000001100', --dose
+					'3319711000001103', --unit dose
+					'258682000' --gram
+				)
+			then vx.qtyval
+			else 1
+		end
+		as smallint
+	) as amount,
+	null :: smallint as box_size
 from comb_content_a c
 
 join ampps p1 on
@@ -2506,14 +2514,14 @@ select --percentage
 	drug_concept_name,
 	ingredient_concept_code,
 	ingredient_concept_name,
-	trim (from regexp_match (modified_name, '^[\d.]+','im') :: varchar, '{}') :: float8 * 10 as amount_value,
+	trim (from regexp_match (modified_name, '^[\d.]+','im') :: varchar, '{}') :: numeric * 10 as amount_value,
 	'258684004' as amount_code,
 	'mg' as amount_name,
 	1 as denominator_value,
 	'258773002' as denominator_code,
 	'ml' as denominator_name,
 	null :: int4 as box_size,
-	null :: float8 as total,
+	null :: numeric as total,
 	null :: varchar as unit_1_code,
 	null :: varchar as unit_1_name
 from vmps_res
@@ -2528,10 +2536,10 @@ select --percentage, with given total volume
 	drug_concept_name,
 	ingredient_concept_code,
 	ingredient_concept_name,
-	trim (from regexp_match (modified_name, '^[\d.]+','im') :: varchar, '{}') :: float8 * 10 * trim (from regexp_match (drug_concept_name, ' [0-9.]+ml ','im') :: varchar, ' ml{}"') :: float8 as amount_value,
+	trim (from regexp_match (modified_name, '^[\d.]+','im') :: varchar, '{}') :: numeric * 10 * trim (from regexp_match (drug_concept_name, ' [0-9.]+ml ','im') :: varchar, ' ml{}"') :: numeric as amount_value,
 	'258684004' as amount_code,
 	'mg' as amount_name,
-	trim (from regexp_match (drug_concept_name, ' [0-9.]+ml ','im') :: varchar, ' ml{}"') :: float8 as denominator_value,
+	trim (from regexp_match (drug_concept_name, ' [0-9.]+ml ','im') :: varchar, ' ml{}"') :: numeric as denominator_value,
 	'258773002' as denominator_code,
 	'ml' as denominator_name,
 	null as box_size,
@@ -2550,12 +2558,12 @@ select --numerator/denominator
 	drug_concept_name,
 	ingredient_concept_code,
 	ingredient_concept_name,
-	trim (from regexp_match (modified_name, '^[\d.]+','im') :: varchar, '{}') :: float8 as amount_value,	
+	trim (from regexp_match (modified_name, '^[\d.]+','im') :: varchar, '{}') :: numeric as amount_value,	
 	null as amount_code,
 	trim (from regexp_match (modified_name, '[a-z]+\/','im') :: varchar, '{/}') :: varchar as amount_name,
 	coalesce 
 		(
-			trim (from regexp_match (modified_name, '\/[\d.]+','im') :: varchar, '{/}') :: float8,
+			trim (from regexp_match (modified_name, '\/[\d.]+','im') :: varchar, '{/}') :: numeric,
 			1
 		) as denominator_value,
 	null as denominator_code,
@@ -2574,7 +2582,7 @@ select --simple amount
 	drug_concept_name,
 	ingredient_concept_code,
 	ingredient_concept_name,
-	trim (from regexp_match (modified_name, '^[\d.]+','im') :: varchar, '{}') :: float8 as amount_value,	
+	trim (from regexp_match (modified_name, '^[\d.]+','im') :: varchar, '{}') :: numeric as amount_value,	
 	null as amount_code,
 	trim (from regexp_match (modified_name, '[a-z]+$','im') :: varchar, '{/}') :: varchar as denominator_name,
 	null as denominator_value,
@@ -2607,15 +2615,15 @@ drop table if exists tomap_vmps_ds
 ;
 --For manual mapping
 --If corresponding ingredient code is not present in DCS, manually enter concept_id of passing ingredient from Rx* -- OMOP concept will be created automatically
-create table tomap_vmps_ds as
+-- create table tomap_vmps_ds as
 select 
 	drug_concept_code,
 	drug_concept_name,
 	ingredient_concept_code,
 	ingredient_concept_name,
-	null :: float8 as amount_value,
+	null :: numeric as amount_value,
 	null :: varchar as amount_name,
-	null :: float8 as denominator_value,
+	null :: numeric as denominator_value,
 	null :: varchar as denominator_unit
 from vmps_res 
 where 
@@ -2740,13 +2748,13 @@ create table ds_stage
 	(
 		drug_concept_code varchar (255),
 		ingredient_concept_code varchar (255),
-		amount_value float8,
+		amount_value numeric,
 		amount_unit varchar (255),
-		numerator_value float8,
+		numerator_value numeric,
 		numerator_unit varchar (255),
-		denominator_value float8,
+		denominator_value numeric,
 		denominator_unit varchar (255),
-		box_size int4
+		box_size smallint
 	)
 ;
 --modify ds_prototype
@@ -2985,9 +2993,9 @@ select distinct
 	ingredient_concept_code,
 	amount_value,
 	amount_name as amount_unit,
-	null :: float8,
+	null :: numeric,
 	null,
-	null :: float8,
+	null :: numeric,
 	null,
 	null :: int4
 from ds_prototype
@@ -3023,7 +3031,7 @@ select distinct
 	amount_name as numerator_unit,
 	total as denominator_value,
 	unit_1_name as denominator_unit,
-	null :: float8
+	null :: numeric
 from ds_prototype
 where
 	denominator_code is null and
@@ -3043,7 +3051,7 @@ insert into ds_stage --literally 2 concepts with mg/g as numerator code
 select distinct
 	drug_concept_code,
 	ingredient_concept_code,
-	null :: float8,
+	null :: numeric,
 	null,
 	amount_value as numerator_value,
 	'mg' as numerator_unit,
@@ -3059,7 +3067,7 @@ insert into ds_stage --simple numerator+denominator
 select distinct
 	drug_concept_code,
 	ingredient_concept_code,
-	null :: float8,
+	null :: numeric,
 	null,
 	amount_value,
 	amount_name,
@@ -3102,7 +3110,7 @@ insert into ds_stage --simple numerator+denominator, total amount provided in sa
 select distinct
 	drug_concept_code,
 	ingredient_concept_code,
-	null :: float8,
+	null :: numeric,
 	null,
 	amount_value * total / denominator_value as numerator_value,
 	amount_name,
@@ -3125,7 +3133,7 @@ insert into ds_stage --simple numerator+denominator, total amount provided in sa
 select distinct
 	drug_concept_code,
 	ingredient_concept_code,
-	null :: float8,
+	null :: numeric,
 	null,
 	total as numerator_value,
 	amount_name,
@@ -3857,8 +3865,8 @@ CREATE TABLE relationship_to_concept
    concept_code_1     varchar(50),
    vocabulary_id_1    varchar(20),
    concept_id_2       integer,
-   precedence         integer,
-   conversion_factor  float8
+   precedence         smallint,
+   conversion_factor  numeric
 )
 ;/*
 drop table if exists tomap_ingreds_man
@@ -3941,7 +3949,7 @@ select
 	concept_name as source_name,
 	null :: int4 as concept_id_2,
 	null :: varchar (255) as concept_name,
-	null :: float8  as conversion_factor
+	null :: numeric  as conversion_factor
 from drug_concept_stage
 where concept_class_id = 'Unit' and
 	exists
@@ -4586,17 +4594,6 @@ where
 	mapped_id is null and
 	exists (select from tomap_bn x where x.mapped_id is not null and t.concept_code = x.concept_code)
 ;
-delete from tomap_bn
---keep more correct name
-where 
-	concept_code in
-		(
-			select concept_code from tomap_bn
-			group by concept_code
-			having count(mapped_id) > 1
-		) and
-	concept_name != mapped_name
-;
 delete from tomap_bn t
 --keep RxN concept instead if RxE
 where 
@@ -4610,6 +4607,17 @@ where
 				x.concept_code = t.concept_code and
 				c.vocabulary_id = 'RxNorm'
 		)
+;
+delete from tomap_bn b
+--keep more correct name
+where 
+	devv5.word_similarity(concept_name, mapped_name) <
+		(
+			select min (devv5.word_similarity(concept_name, mapped_name))
+			from tomap_bn b2
+			where
+				b.concept_code = b2.concept_code
+		) 
 ;
 delete from tomap_bn
 --manually extracted brands will have no mappings
@@ -4733,7 +4741,7 @@ select distinct
 	'dm+d',
 	mapped_id,
 	1,
-	null :: float
+	null :: numeric
 from tomap_bn t
 join drug_concept_stage c on
 	c.concept_name = t.concept_name and
@@ -4907,6 +4915,8 @@ WbImport -file=/home/ekorchmar/Documents/dmd/tomap_varicella.csv
          -continueOnError=false
          -batchSize=10;
 */
+;
+delete from pc_stage where pack_concept_code in (select concept_code from tomap_varicella where ingredient_code is null)
 ;
 delete from internal_relationship_stage
 where concept_code_1 in (select concept_code from tomap_varicella where ingredient_code is null)

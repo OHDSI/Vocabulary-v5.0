@@ -228,3 +228,5 @@ END $_$;
 		PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 	END $_$;
 ;
+update concept_stage set concept_name = trim(concept_name)
+;

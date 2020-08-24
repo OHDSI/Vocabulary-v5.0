@@ -19,9 +19,6 @@
 
 --TODO: Add concept_class_id to the concept and concept_class tables (functions)
 --TODO: Add vocabulary_id to the concept and vocabulary tables (functions)
---TODO: CHeck how good the answers and hierarchy are
-
---TODO: Check for the answers if there are some that should be made non-standard and be excluded from 'Has answer' relationship
 
 --0 Temp code (to be removed)
 /*
@@ -114,12 +111,53 @@ SELECT trim(title),
         'Clinical Observation',
         'S',
         field_id,
-       to_date(debut, 'dd.mm.yyyy'),     --Should we take debut (pros: like reuse NDC?), version (more actual info) or just 1970?
+       to_date(debut, 'dd.mm.yyyy'),     --TODO: Should we take debut (pros: like reuse NDC?), version (more actual info) or just 1970?
        to_date('20991231','yyyymmdd')
 FROM field f;
 
 --5: Insert questions to concept_synonym_stage
---TODO: Find out what to do with synonyms (questions)
+INSERT INTO concept_synonym_stage
+(synonym_concept_id,
+ synonym_name,
+ synonym_concept_code,
+ synonym_vocabulary_id,
+ language_concept_id)
+
+SELECT NULL,
+       vocabulary_pack.CutConceptSynonymName(trim(regexp_replace(regexp_replace(notes, '<.*>|(You can select more than one answer)', ' ', 'g'), '\s{2,}|\.$', '', 'g'))) AS synonym_name,
+       field_id AS synonym_concept_code,
+       'uk_biobank',
+       4180186
+FROM field
+WHERE notes IS NOT NULL
+AND notes != ''
+AND (notes != title OR notes != concat(title, '.'))
+AND notes not ilike 'ACE touchscreen question%'
+AND notes not ilike 'Question asked%'
+AND notes != '.'
+
+;
+
+
+INSERT INTO concept_synonym_stage
+(synonym_concept_id,
+ synonym_name,
+ synonym_concept_code,
+ synonym_vocabulary_id,
+ language_concept_id)
+
+SELECT NULL,
+       vocabulary_pack.CutConceptSynonymName(substring(notes, '"(.*)"')) AS synonym_name,
+       field_id AS synonym_concept_code,
+       'uk_biobank',
+       4180186
+FROM field
+WHERE notes IS NOT NULL
+AND notes != ''
+AND (notes != title OR notes != concat(title, '.'))
+AND (notes ilike 'ACE touchscreen question%' OR notes ilike 'Question asked%')
+AND notes != '.'
+;
 
 --6: Insert answers to concept_stage
 INSERT INTO concept_stage
@@ -261,8 +299,62 @@ FROM ehierint
 WHERE encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM?*/, 240 /*OPCS4*/)
 ;
 
---7: Turn some answers to Non-Standard ones
---TODO: Deduplication of answers
+--7: Turn some answers to Non-Standard ones (Deduplication)
+WITH ans_dedup AS (SELECT concept_name,
+                          concept_code,
+                          row_number() OVER (PARTITION BY concept_name ORDER BY concept_code) AS is_standard
+                   FROM concept_stage
+                   WHERE concept_class_id = 'Answer'
+                     AND concept_name IN (SELECT concept_name
+                                          FROM concept_stage
+                                          WHERE concept_class_id = 'Answer'
+                                          GROUP BY concept_name
+                                          HAVING count(concept_name) > 1)
+)
+UPDATE concept_stage cs
+SET standard_concept = NULL
+FROM ans_dedup
+WHERE cs.concept_code = ans_dedup.concept_code
+    AND ans_dedup.is_standard != 1;
+
+--concept_relationship population
+WITH ans_dedup AS (SELECT concept_name,
+                          concept_code,
+                          row_number() OVER (PARTITION BY concept_name ORDER BY concept_code) AS is_standard
+                   FROM concept_stage
+                   WHERE concept_class_id = 'Answer'
+                     AND concept_name IN (SELECT concept_name
+                                          FROM concept_stage
+                                          WHERE concept_class_id = 'Answer'
+                                          GROUP BY concept_name
+                                          HAVING count(concept_name) > 1))
+
+INSERT INTO concept_relationship_stage
+(
+  concept_code_1,
+  concept_code_2,
+  vocabulary_id_1,
+  vocabulary_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+
+SELECT a1.concept_code,
+       a2.concept_code,
+       'uk_biobank',
+       'uk_biobank',
+       'Maps to',
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM ans_dedup a1
+JOIN ans_dedup a2
+ON a1.concept_name = a2.concept_name
+WHERE a2.is_standard = 1
+    AND a1.is_standard != 1; --these relationships will be built later
+
 
 --8: Building hierarchy for questions
 --Hierarchy between Classification concepts
@@ -414,40 +506,4 @@ AND (ed.value IS NOT NULL
     OR es.value IS NOT NULL
     OR (ehi.code_id IS NOT NULL AND ehi.selectable != 0)
     OR (ehs.code_id IS NOT NULL AND ehs.selectable != 0))
-;
-
---TODO: Check if working (experiencing problem with connections) and add vocabulary restrictions
-INSERT INTO concept_relationship_stage
-(
-  concept_code_1,
-  concept_code_2,
-  vocabulary_id_1,
-  vocabulary_id_2,
-  relationship_id,
-  valid_start_date,
-  valid_end_date,
-  invalid_reason
-)
-
-SELECT DISTINCT f.field_id AS concept_code_1,
-       coalesce(c10.concept_code, c9.concept_code, c4.concept_code) AS concept_code_2,
-       'uk_biobank',
-       coalesce(c10.vocabulary_id, c9.vocabulary_id, c4.vocabulary_id),
-       'Has answer',
-       to_date('19700101','yyyymmdd'),
-       to_date('20991231','yyyymmdd'),
-       NULL
-FROM field f
-JOIN ehierstring ehs
-    ON f.encoding_id = ehs.encoding_id
-LEFT JOIN devv5.concept c10
-    ON regexp_replace(c10.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c10.vocabulary_id = 'ICD10' AND f.encoding_id = 19
-LEFT JOIN devv5.concept c9
-    ON regexp_replace(c9.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c9.vocabulary_id = 'ICD9CM' AND f.encoding_id = 87
-LEFT JOIN devv5.concept c4
-    ON regexp_replace(c4.concept_code, '.', '') = regexp_replace(ehs.value, '.', '') AND c4.vocabulary_id = 'OPCS4' AND f.encoding_id = 240
-
-WHERE ehs.selectable = 1
-AND f.encoding_id IN (19, 87, 240)
-AND coalesce(c10.concept_code, c9.concept_code, c4.concept_code) IS NOT NULL
 ;

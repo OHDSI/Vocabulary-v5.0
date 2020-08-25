@@ -256,11 +256,36 @@ with info_sheet as
 					x.concept_class_id = 'Branded Drug Comp' and
 					x.standard_concept = 'S' and
 					(r1.concept_code_2, r1.vocabulary_id_2) = (c.concept_code, c.vocabulary_id) and
-					r1.invalid_reason is not null
+					r1.invalid_reason is null
 				join concept_relationship_stage r2 on
 					(x.concept_code, x.vocabulary_id) = (r2.concept_code_1, r2.vocabulary_id_1) and
 					(r2.concept_code_2, r2.vocabulary_id_2) = (b.concept_code, b.vocabulary_id) and
-					r2.invalid_reason is not null
+					r2.invalid_reason is null
+			) and
+		not exists
+			(
+				select
+				from concept x
+				join concept_relationship r1 on
+					x.concept_id = r1.concept_id_1 and	
+					x.concept_class_id = 'Branded Drug Comp' and
+					x.standard_concept = 'S' and
+					r1.invalid_reason is null
+				--join on concept to get concept_id for existing Brand Name concept_id
+				join concept y1 on
+					y1.concept_id = r1.concept_id_2 and
+					y1.invalid_reason is null and
+					(y1.concept_code, y1.vocabulary_id) = (b.concept_code, b.vocabulary_id)
+				join concept_relationship r2 on
+					r2.invalid_reason is null and
+					r2.concept_id_1 = r1.concept_id_1
+				--join on concept to get concept_id for existing Ingredient concept_id
+				join concept y2 on
+					y2.concept_id = r2.concept_id_2 and
+					y2.standard_concept = 'S' and
+					y2.concept_class_id = 'Ingredient' and
+					(y2.concept_code, y2.vocabulary_id) = (c.concept_code, c.vocabulary_id)
+					
 			)
 			
 		union all
@@ -312,7 +337,15 @@ with info_sheet as
 		r.relationship_id = s.relationship_id
 	where
 		r.relationship_id not in ('Concept replaces','Mapped from') and
-		s.relationship_id is null
+		s.relationship_id is null and
+		--limit to relations between drugs and ingredients
+		c.concept_class_id ~ '(Drug|Pack)' and
+		c2.concept_class_id in
+			(
+				'Brand Name',
+				'Dose Form',
+				'Ingredient'
+			)
 
 		union all
 
@@ -326,17 +359,7 @@ with info_sheet as
 		c.concept_id = r.concept_id_1 and
 		c.standard_concept = 'S' and
 		c.vocabulary_id = 'RxNorm' and
-		c.concept_class_id in
-		(
-			'Clinical Drug Form',
-			'Branded Drug',
-			'Clinical Drug',
-			'Quant Clinical Drug',
-			'Quant Branded Drug',
-			'Branded Drug Comp',
-			'Branded Drug Form',
-			'Clinical Drug Comp'
-		) -- drug concept
+		c.concept_class_id ~ '(Drug|Pack)'-- drug concept
 	join concept c2 on
 		c2.concept_id = r.concept_id_2 and
 		c2.invalid_reason is not null and
@@ -395,7 +418,14 @@ with info_sheet as
 	where
 		c.standard_concept = 'S' and
 		d.drug_concept_code is null and
-		p.pack_concept_code is null
+		p.pack_concept_code is null and
+		--New concepts with those classes only get ds entries after concept_ancestor generation
+		c.concept_class_id not in
+			(
+				'Ingredient'
+				'Branded Drug Form'
+				'Clinical Drug Form'
+			)
 
 		union all
 -- 12. Valid relation to non-standard ingredient with no alternatives -- hard Error

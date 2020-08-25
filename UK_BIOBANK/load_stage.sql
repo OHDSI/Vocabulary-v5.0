@@ -14,46 +14,36 @@
 * limitations under the License.
 *
 * Authors: Alexander Davydov, Oleg Zhuk
-* Date: 2020
+* Date: August 2020
 **************************************************************************/
 
---TODO: Add concept_class_id to the concept and concept_class tables (functions)
---TODO: Add vocabulary_id to the concept and vocabulary tables (functions)
-
---0 Temp code (to be removed)
-/*
-INSERT INTO concept_stage(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-VALUES ( 2000000001,
-        'UK Biobank',
-        'Metadata',
-        'uk_biobank',
-        'Vocabulary',
-        NULL,
-        'OMOP generated',
-        to_date ('2007-03-21' ,'yyyy-mm-dd'),
-        to_date('20991231','yyyymmdd'),
-        NULL
-        );
-
-INSERT INTO vocabulary(vocabulary_id, vocabulary_name, vocabulary_reference, vocabulary_version, vocabulary_concept_id, latest_update, dev_schema_name)
-VALUES ('uk_biobank',
-        'UK Biobank',
-        'https://www.ukbiobank.ac.uk/',
-        'Version 0.0.1',
-        2000000001,
-        current_date,
-        'dev_ukbiobank'
-        );
- */
-
+--0 Adding required concept_class and vocabulary
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Biobank Category',
+    pConcept_class_name     =>'Biobank Category'
+);
+  PERFORM vocabulary_pack.AddNewVocabulary(
+      pvocabulary_id => 'UK Biobank',
+      pvocabulary_name =>  'UK Biobank',
+      pvocabulary_reference => 'https://www.ukbiobank.ac.uk/',
+      pvocabulary_version => 'Version 0.0.1',
+      pOMOP_req => NULL ,
+      pClick_default => NULL,
+      pAvailable => NULL,
+      pURL => NULL,
+      pClick_disabled => NULL
+      );
+END $_$;
 
 --1. Update a 'latest_update' field to a new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
-	pVocabularyName			=> 'uk_biobank',
+	pVocabularyName			=> 'UK Biobank',
 	pVocabularyDate			=> TO_DATE ('2007-03-21' ,'yyyy-mm-dd'),   --From UK Biobank: Protocol for a large-scale prospective epidemiological resource (main phase) https://www.ukbiobank.ac.uk/wp-content/uploads/2011/11/UK-Biobank-Protocol.pdf?phpMyAdmin=trmKQlYdjjnQIgJ%2CfAzikMhEnx6
-	pVocabularyVersion		=> 'Version 0.0.1',    --TODO: Name the very first version
+	pVocabularyVersion		=> 'Version 0.0.1',
 	pVocabularyDevSchema	=> 'dev_ukbiobank'
 );
 END $_$;
@@ -111,7 +101,7 @@ SELECT trim(title),
         'Clinical Observation',
         'S',
         field_id,
-       to_date(debut, 'dd.mm.yyyy'),     --TODO: Should we take debut (pros: like reuse NDC?), version (more actual info) or just 1970?
+       to_date(debut, 'dd.mm.yyyy'),     --TODO: Should we take debut (pros: possible reuse like NDC?), version (more actual info) or just 1970?
        to_date('20991231','yyyymmdd')
 FROM field f;
 
@@ -180,7 +170,10 @@ SELECT trim(meaning),
        concat(encoding_id::varchar, '|', value),
        to_date('19700101','yyyymmdd'),
        to_date('20991231','yyyymmdd')
-FROM esimpstring;
+FROM esimpstring
+
+WHERE encoding_id != 1836 --Partial mapping from ICD9 to ICD10
+;
 
 
 INSERT INTO concept_stage
@@ -317,7 +310,7 @@ FROM ans_dedup
 WHERE cs.concept_code = ans_dedup.concept_code
     AND ans_dedup.is_standard != 1;
 
---concept_relationship population
+--Non-standard answers are mapped to standard
 WITH ans_dedup AS (SELECT concept_name,
                           concept_code,
                           row_number() OVER (PARTITION BY concept_name ORDER BY concept_code) AS is_standard
@@ -458,7 +451,6 @@ AND concat(encoding_id, '|', code_id) IN (SELECT concept_code FROM concept_stage
 ;
 
 --9: Building 'Has answer' relationships
---TODO: Test and debug (if required) 'Has Answer' relationships for ehierstring and ehierint
 INSERT INTO concept_relationship_stage
 (
   concept_code_1,
@@ -499,7 +491,7 @@ ON f.encoding_id = ehi.encoding_id
 LEFT JOIN ehierstring ehs
 ON f.encoding_id = ehs.encoding_id
 
-WHERE f.encoding_id NOT IN (0, 19 /*ICD10*/, 87 /*ICD9 or ICD9CM?*/, 240 /*OPCS4*/)
+WHERE f.encoding_id NOT IN (0, 19 /*ICD10*/, 87 /*ICD9 or ICD9CM?*/, 240 /*OPCS4*/, 1836 /*Partial mapping ICD9 to ICD10*/)
 AND (ed.value IS NOT NULL
     OR ei.value IS NOT NULL
     OR er.value IS NOT NULL

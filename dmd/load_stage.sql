@@ -4971,13 +4971,13 @@ select
 	1,
 	null
 from internal_relationship_stage
-where concept_code_2 in ('11172111000001100','11171911000001108','11172011000001101')
+where concept_code_2 in ('11172111000001100','11171911000001108','11172011000001101','36754911000001103')
 ;
 delete from internal_relationship_stage
-where concept_code_1 in (select concept_code_1 from internal_relationship_stage where concept_code_2 in ('11172111000001100','11171911000001108','11172011000001101',/*'16091511000001102',*/'19699211000001101'))
+where concept_code_1 in (select concept_code_1 from internal_relationship_stage where concept_code_2 in ('11172111000001100','11171911000001108','11172011000001101',/*'16091511000001102',*/'19699211000001101','36754911000001103'))
 ;
 delete from ds_stage
-where drug_concept_code in (select drug_concept_code from ds_stage where ingredient_concept_code in ('11172111000001100','11171911000001108','11172011000001101',/*'16091511000001102',*/'19699211000001101'))
+where drug_concept_code in (select drug_concept_code from ds_stage where ingredient_concept_code in ('11172111000001100','11171911000001108','11172011000001101',/*'16091511000001102',*/'19699211000001101','36754911000001103'))
 ;
 --Map 23-valent pneumoc. vaccines to 40213201 pneumococcal polysaccharide vaccine, 23 valent CVX
 delete from internal_relationship_stage

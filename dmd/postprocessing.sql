@@ -115,7 +115,8 @@ left join vmps u on --make sure old code was not processed on it's own
 	v.vpidprev = u.vpid
 where
 	v.vpidprev is not null and
-	u.vpid is null
+	u.vpid is null and
+	v.vpidprev in (select concept_code from concept_stage)
 ;
 --Devices can and should be mapped to SNOMED as they are the same concepts
 insert into concept_relationship_stage

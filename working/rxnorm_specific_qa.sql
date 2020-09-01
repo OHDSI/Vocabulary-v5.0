@@ -422,8 +422,8 @@ with info_sheet as
 		--New concepts with those classes only get ds entries after concept_ancestor generation
 		c.concept_class_id not in
 			(
-				'Ingredient'
-				'Branded Drug Form'
+				'Ingredient',
+				'Branded Drug Form',
 				'Clinical Drug Form'
 			)
 

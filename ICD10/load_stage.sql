@@ -270,43 +270,16 @@ FROM (
 	LEFT JOIN concept_stage cs ON cl.SUPERCLASS_CODE = cs.concept_code
 	WHERE c.concept_code ~ '((Y60)|(Y61)|(Y62)).+'
 		AND rubric_kind = 'preferred'
-	
-	UNION ALL
-	
-	--AVOF-2297
-	SELECT c.concept_code,
-		'Emergency use of U07.1 | COVID-19, virus identified'
-	FROM concept_stage c
-	WHERE c.concept_code = 'U07.1'
-	
-	UNION ALL
-	
-	--AVOF-2345
-	SELECT c.concept_code,
-		'Emergency use of U07.2 | COVID-19, virus not identified'
-	FROM concept_stage c
-	WHERE c.concept_code = 'U07.2'
-	
-	UNION ALL
-	
-	--AVOF-2345
-	SELECT c.concept_code,
-		'Emergency use of U07.0 | Vaping-related disorder'
-	FROM concept_stage c
-	WHERE c.concept_code = 'U07.0'
 	) i
 WHERE cs.concept_code = i.concept_code;
 
---5. Create 'Maps to' and 'Maps to value' relationship from file created by the medical coders
-/*
-SELECT *
-FROM concept c,
-	concept_relationship r
-WHERE c.concept_id = r.concept_id_1
-	AND c.vocabulary_id = 'ICD10'
-	AND r.invalid_reason IS NULL;
-*/
---6. Append result to concept_relationship_stage table
+--5. Working with concept_manual table
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+--6. Working with concept_relationship_manual table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();

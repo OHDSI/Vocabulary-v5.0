@@ -255,7 +255,7 @@ FROM (
 	
   --attribute mappings possible, but aren't built 
   select distinct a.concept_code,
-  'attribute mappings possible, but aren''t built',
+  'attribute mappings possible, but aren't built',
   'relationship_to_concept'
    from
   drug_concept_stage a

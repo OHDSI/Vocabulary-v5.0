@@ -122,28 +122,28 @@ END $_$;
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Transcribes to',
+	pRelationship_name			=>'Genomic DNA transcribes to mRNA',
 	pRelationship_id			=>'Transcribes to',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pReverse_relationship_id	=>'Is transcribed from',
-	pRelationship_name_rev		=>'Is transcribed from',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pRelationship_name_rev		=>'mRNA is transcribed from genomic DNA',
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Translates to',
+	pRelationship_name			=>'mRNA Translates to protein',
 	pRelationship_id			=>'Translates to',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pReverse_relationship_id	=>'Is translated from',
-	pRelationship_name_rev		=>'Is translated from',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pRelationship_name_rev		=>'Protein is translated from mRNA',
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 
@@ -187,3 +187,6 @@ BEGIN
 	pConcept_class_name	=>'Protein Variant'
 );
 END $_$;
+
+--small bugfix
+update relationship set is_hierarchical=0 where relationship_id='Is a';

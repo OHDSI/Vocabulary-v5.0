@@ -28,6 +28,22 @@ BEGIN
 );
 END $_$;
 
+drop table CS;
+create table CS as
+(select concept_code, last_concept_name, min_date as valid_start_date,
+case
+when max_date=to_date('20200101','yyyymmdd') then to_date('20991231','yyyymmdd')
+else max_date-1+interval '1 year' end as valid_end_date
+from (
+select distinct concept_code,
+first_value(concept_name) over (partition by concept_code order by vocabulary_date desc) as last_concept_name,
+first_value(vocabulary_date) over (partition by concept_code order by vocabulary_date) as min_date,
+first_value(vocabulary_date) over (partition by concept_code order by vocabulary_date desc) as max_date
+from dev_icd10gm.icd10gm_all
+) as s0
+)
+;
+
 --2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
@@ -52,17 +68,19 @@ SELECT c.concept_name,
 	c.concept_class_id,
 	c.standard_concept,
 	g.concept_code,
-	(
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'ICD10GM'
-		) AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
-FROM sources.icd10gm g
+	g.valid_start_date,
+	g.valid_end_date
+FROM CS g
 LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10';
+	
+--4. Append concept corrections -- COVID concepts added, in the future ICD10 WHO "translation" considered to be better then "ours"
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
 
---4. Fill the concept_relationship_stage from ICD10
+--5. Fill the concept_relationship_stage from ICD10
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -80,7 +98,7 @@ SELECT c1.concept_code AS concept_code_1,
 	cr.valid_start_date,
 	cr.valid_end_date
 FROM concept c1
-JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id
+JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id and relationship_id in ('Maps to', 'Maps to value')
 	AND cr.invalid_reason IS NULL
 JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 WHERE c1.vocabulary_id = 'ICD10'
@@ -90,7 +108,7 @@ WHERE c1.vocabulary_id = 'ICD10'
 		WHERE cs_int.concept_code = c1.concept_code
 		);
 
---5. Add "subsumes" relationship between concepts where the concept_code is like of another
+--6. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
@@ -117,21 +135,10 @@ FROM concept_stage c1,
 	concept_stage c2
 WHERE c2.concept_code LIKE c1.concept_code || '%'
 	AND c1.concept_code <> c2.concept_code
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r_int
-		WHERE r_int.concept_code_1 = c1.concept_code
-			AND r_int.concept_code_2 = c2.concept_code
-			AND r_int.relationship_id = 'Subsumes'
-		);
+;
+
 DROP INDEX trgm_idx;
 ANALYZE concept_relationship_stage;
-
---6. Append concept corrections
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;
 
 --7. Append manual relationships
 DO $_$
@@ -199,10 +206,10 @@ FROM (
 	) i
 WHERE i.concept_code_1 = cs.concept_code;
 
-/*--Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED,  put Observation as closest meaning to Unknown domain
+--Most of the concepts without ICD10WHO equivalent are Conditions, let's put Condition domain until we get the mapping done
 UPDATE concept_stage
-SET domain_id = 'Observation'
-WHERE domain_id IS NULL;*/
+SET domain_id = 'Condition'
+WHERE domain_id IS NULL;
 
 --13. Fill concept_synonym_stage
 INSERT INTO concept_synonym_stage (
@@ -212,9 +219,19 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 SELECT concept_code AS synonym_concept_code,
-	concept_name AS synonym_name,
+	last_concept_name AS synonym_name,
 	'ICD10GM' AS synonym_vocabulary_id,
 	4182504 AS language_concept_id -- German
-FROM sources.icd10gm;
+FROM CS
+where concept_code not in 
+(--manual additions, have to exclude them as in the source they are just "emergency code use" !!! to be removed in the next refresh
+'U07.1','U07.2', 'U07.0', 'U99.0'
+)
+;
+--manually adding synonyms (COVID19, E-cig)
+DO $_$
+BEGIN
+     PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

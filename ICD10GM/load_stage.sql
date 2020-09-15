@@ -225,9 +225,9 @@ FROM (
 	) i
 WHERE i.concept_code_1 = cs.concept_code;
 
---Most of the concepts without ICD10WHO equivalent are Conditions, let's put Condition domain until we get the mapping done
+--Concepts are mapped through parent codes, a few left should become observation
 UPDATE concept_stage
-SET domain_id = 'Undefined'
+SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
 --13. Fill concept_synonym_stage
@@ -254,6 +254,3 @@ BEGIN
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
---the list of unmapped concepts because of the new chapters, these needs to be added to concept_relationship_manual
-select * from concept_Stage a
-where domain_id = 'Undefined'

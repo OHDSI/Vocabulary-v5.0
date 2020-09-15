@@ -62,7 +62,8 @@ INSERT INTO concept_stage (
 	standard_concept,
 	concept_code,
 	valid_start_date,
-	valid_end_date
+	valid_end_date,
+	invalid_reason
 	)
 SELECT c.concept_name,
 	c.domain_id,
@@ -71,7 +72,8 @@ SELECT c.concept_name,
 	c.standard_concept,
 	g.concept_code,
 	g.valid_start_date,
-	g.valid_end_date
+	g.valid_end_date,
+	case when g.valid_start_date < '2099-01-01' then 'D' else null end as invalid_reason
 FROM CS g
 LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10';

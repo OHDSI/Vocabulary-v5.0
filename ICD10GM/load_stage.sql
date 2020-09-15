@@ -73,7 +73,7 @@ SELECT c.concept_name,
 	g.concept_code,
 	g.valid_start_date,
 	g.valid_end_date,
-	case when g.valid_start_date < '2099-01-01' then 'D' else null end as invalid_reason
+	case when g.valid_end_date < '2099-12-31' then 'D' else null end as invalid_reason
 FROM CS g
 LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10';

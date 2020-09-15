@@ -1,3 +1,6 @@
+--select devv5.fastrecreateschema ()
+--;
+
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
@@ -43,7 +46,6 @@ from dev_icd10gm.icd10gm_all
 ) as s0
 )
 ;
-
 --2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
@@ -80,7 +82,11 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---5. Fill the concept_relationship_stage from ICD10
+--5. Fill the concept_relationship_stage from ICD10, existing concepts mapping and uphill mapping is allowed
+CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
+
+ANALYZE concept_stage;
+
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -90,27 +96,40 @@ INSERT INTO concept_relationship_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT c1.concept_code AS concept_code_1,
-	c2.concept_code AS concept_code_2,
+SELECT i.concept_code AS concept_code_1,
+	c.concept_code AS concept_code_2,
 	'ICD10GM' AS vocabulary_id_1,
-	c2.vocabulary_id AS vocabulary_id_2,
-	cr.relationship_id,
-	cr.valid_start_date,
-	cr.valid_end_date
-FROM concept c1
-JOIN concept_relationship cr ON cr.concept_id_1 = c1.concept_id and relationship_id in ('Maps to', 'Maps to value')
-	AND cr.invalid_reason IS NULL
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-WHERE c1.vocabulary_id = 'ICD10'
-	AND EXISTS (
-		SELECT 1
-		FROM concept_stage cs_int
-		WHERE cs_int.concept_code = c1.concept_code
-		);
-
+	c.vocabulary_id AS vocabulary_id_2,
+	r.relationship_id AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10GM'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM (
+		
+	SELECT DISTINCT cs.concept_code,
+		FIRST_VALUE(c.concept_id) OVER (
+			PARTITION BY cs.concept_code ORDER BY LENGTH(c.concept_code) DESC --Longest matching code for best results
+			) AS concept_id
+	FROM concept_stage cs
+	JOIN concept c ON c.vocabulary_id = 'ICD10'
+		AND
+		--Allow fuzzy match uphill for this iteration
+		cs.concept_code LIKE c.concept_code || '%'
+	) i
+JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
+	AND r.invalid_reason IS NULL
+	AND r.relationship_id IN (
+		'Maps to',
+		'Maps to value'
+		)
+JOIN concept c ON c.concept_id = r.concept_id_2
+;
+		
 --6. Add "subsumes" relationship between concepts where the concept_code is like of another
-CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
-ANALYZE concept_stage;
+
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -208,7 +227,7 @@ WHERE i.concept_code_1 = cs.concept_code;
 
 --Most of the concepts without ICD10WHO equivalent are Conditions, let's put Condition domain until we get the mapping done
 UPDATE concept_stage
-SET domain_id = 'Condition'
+SET domain_id = 'Undefined'
 WHERE domain_id IS NULL;
 
 --13. Fill concept_synonym_stage
@@ -224,7 +243,7 @@ SELECT concept_code AS synonym_concept_code,
 	4182504 AS language_concept_id -- German
 FROM CS
 where concept_code not in 
-(--manual additions, have to exclude them as in the source they are just "emergency code use" !!! to be removed in the next refresh
+(--manual additions, have to exclude them as in the source they are just "emergency code use" 
 'U07.1','U07.2', 'U07.0', 'U99.0'
 )
 ;
@@ -235,3 +254,6 @@ BEGIN
 END $_$;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+--the list of unmapped concepts because of the new chapters, these needs to be added to concept_relationship_manual
+select * from concept_Stage a
+where domain_id = 'Undefined'

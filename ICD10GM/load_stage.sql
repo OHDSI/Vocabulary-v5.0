@@ -1,6 +1,22 @@
---select devv5.fastrecreateschema ()
---;
-
+/*
+select devv5.fastrecreateschema ()
+;
+--add new vocabulary='ICD10GM' [AVOF-2783]
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddNewVocabulary(
+	pVocabulary_id			=> 'ICD10GM',
+	pVocabulary_name		=> 'International Classification of Diseases, Tenth Revision, German Edition',
+	pVocabulary_reference	=> 'https://www.dimdi.de/dynamic/.downloads/klassifikationen/icd-10-gm',
+	pVocabulary_version		=> 'ICD10GM 2021',
+	pOMOP_req				=> NULL, --NULL or 'Y'
+	pClick_default			=> NULL, --NULL or 'Y'
+	pAvailable				=> NULL, --NULL, 'Currently not available','License required' or 'EULA required'
+	pURL					=> NULL,
+	pClick_disabled			=> NULL --NULL or 'Y'
+);
+END $_$; 
+*/
 /**************************************************************************
 * Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
 *
@@ -62,9 +78,8 @@ INSERT INTO concept_stage (
 	standard_concept,
 	concept_code,
 	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
+	valid_end_date
+ 	)
 SELECT c.concept_name,
 	c.domain_id,
 	'ICD10GM' AS vocabulary_id,
@@ -72,18 +87,21 @@ SELECT c.concept_name,
 	c.standard_concept,
 	g.concept_code,
 	g.valid_start_date,
-	g.valid_end_date,
-	case when g.valid_end_date < '2099-12-31' then 'D' else null end as invalid_reason
+	g.valid_end_date
+ 
 FROM CS g
 LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10';
 	
---4. Append concept corrections -- COVID concepts added, in the future ICD10 WHO "translation" considered to be better then "ours"
+--4. Append concept corrections -- COVID concepts added and English translation
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
+--4.1. set invalid_reason ='D'
+update concept_stage set invalid_reason ='D' where valid_end_date < '2099-12-31'
+;
 --5. Fill the concept_relationship_stage from ICD10, existing concepts mapping and uphill mapping is allowed
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 

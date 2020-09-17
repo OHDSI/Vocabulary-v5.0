@@ -1293,21 +1293,28 @@ BEGIN
 	PERFORM dev_rxnorm.FillDrugStrengthStage();
 END $_$;
 
---16. We need to run generic_update before small RxE clean up
+--16. Run QA-script (you can always re-run this QA manually: SELECT * FROM get_qa_rxnorm() ORDER BY info_level, description;)
+DO $_$
+BEGIN
+	IF CURRENT_SCHEMA = 'dev_rxnorm' /*run only if we are inside dev_rxnorm*/ THEN
+		ANALYZE concept_stage;
+		ANALYZE concept_relationship_stage;
+		ANALYZE drug_strength_stage;
+		TRUNCATE TABLE rxn_info_sheet;
+		INSERT INTO rxn_info_sheet SELECT * FROM get_qa_rxnorm();
+	END IF;
+END $_$;
+
+--17. We need to run generic_update before small RxE clean up
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
 
---17. Run RxE clean up
+--18. Run RxE clean up
 DO $_$
 BEGIN
-	PERFORM VOCABULARY_PACK.RxECleanUP();
+	PERFORM vocabulary_pack.RxECleanUP();
 END $_$;
-
-/*
-NDFRT, VA Product, VA Class are now retired
-see more at https://www.nlm.nih.gov/pubs/techbull/ja18/brief/ja18_ndfrt_removed_rxnorm.html
-*/
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

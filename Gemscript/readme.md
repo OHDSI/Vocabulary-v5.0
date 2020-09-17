@@ -1,17 +1,11 @@
-issues:
---1. still wrong domain_id definition, for example:
-/*update concept_stage 
-set domain_id ='Drug'
-where concept_code  in (
-'82867998',
-'91097998',
-'97563998',
-'97482998',
-'97482997',
-'91389998',
-'94472997'
-)
-;
-*/
+1. Run fastrecreateschema() function including concept_ancestor creation.
+2. Update source files:
+	a. thin_gemsc_dmd -- THIN source
+	b. gemscript_reference -- NN source
+	c. gemscript_dmd_map -- unknown origin, never updated
+3. Run load_stage.sql. Supply manual changes to mapping tables if required
+4. Run Build_RxE.sql from /working/. Comment drops block to preserve temporary tables
+5. Run mapdrugvovab.sql from /working/
+6. Run final_part.sql to preserve mappings to SNOMED and dm+d
 
---2. Suppliers and Brand Names can be mapped better
+TODO: Update against most recent THIN source available

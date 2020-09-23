@@ -19,7 +19,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'Topography',
-	pConcept_class_name	=>'Topography'
+	pConcept_class_name	=>'Cancer topography and anatomical site'
 );
 END $_$;
 
@@ -27,7 +27,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'Margin',
-	pConcept_class_name	=>'Margin'
+	pConcept_class_name	=>'Tumor resection margins and involvement by cancer cells'
 );
 END $_$;
 
@@ -35,7 +35,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'Nodes',
-	pConcept_class_name	=>'Nodes'
+	pConcept_class_name	=>'Lymph node metastases'
 );
 END $_$;
 
@@ -43,7 +43,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'Staging/Grading',
-	pConcept_class_name	=>'Staging/Grading'
+	pConcept_class_name	=>'Official Grade or Stage System'
 );
 END $_$;
 
@@ -51,7 +51,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'Extension/Invasion',
-	pConcept_class_name	=>'Extension/Invasion'
+	pConcept_class_name	=>'Local cancer growth and invasion into adjacent tissue and organs'
 );
 END $_$;
 
@@ -59,7 +59,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'Dimension',
-	pConcept_class_name	=>'Dimension'
+	pConcept_class_name	=>'Tumor size and dimension'
 );
 END $_$;
 
@@ -67,7 +67,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'Histopattern',
-	pConcept_class_name	=>'Histopattern'
+	pConcept_class_name	=>'Histological patterns of cancer tissue'
 );
 END $_$;
 
@@ -75,6 +75,6 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewConceptClass(
 	pConcept_class_id	=>'Metastasis',
-	pConcept_class_name	=>'Metastasis'
+	pConcept_class_name	=>'Distant metastases'
 );
 END $_$;

@@ -9,7 +9,6 @@ BEGIN
 	EXECUTE 'CREATE SEQUENCE omop_seq INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
 END$$;
 
-
 INSERT INTO concept_manual
 (concept_name,
  domain_id,
@@ -20,7 +19,7 @@ INSERT INTO concept_manual
  valid_start_date,
  valid_end_date,
  invalid_reason)
-SELECT concept_name,
+SELECT vocabulary_pack.CutConceptName (concept_name),
        'Measurement',
        'Cancer Modifier',
        concept_class_id,

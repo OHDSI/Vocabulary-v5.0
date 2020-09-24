@@ -69,14 +69,3 @@ SET uniquifier = trim(uniquifier),
     language_code = trim(language_code),
     read_code_drug = trim(read_code_drug),
     status_flag = trim(status_flag)
-
-
-
-
---READ VERSION 3 VOCABULARY (CTV3)
-
---PROCESSING OF SOURCES
-
---UKB 2020
-
-

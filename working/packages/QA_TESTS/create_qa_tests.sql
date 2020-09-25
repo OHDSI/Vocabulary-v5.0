@@ -654,12 +654,15 @@ $BODY$
 language 'sql'
 STABLE PARALLEL RESTRICTED SECURITY INVOKER;
 
-CREATE OR REPLACE FUNCTION qa_tests.check_stage_tables () RETURNS void
-AS $BODY$
-DECLARE
-z TEXT;
+CREATE OR REPLACE FUNCTION qa_tests.check_stage_tables ()
+RETURNS TABLE (
+	error_text text,
+	rows_count BIGINT
+) AS
+$BODY$
 BEGIN
-	SELECT reason INTO z FROM (
+	RETURN QUERY
+	SELECT reason, COUNT(*) FROM (
 		--concept_relationship_stage
 		SELECT
 			CASE WHEN v1.vocabulary_id IS NOT NULL AND v2.vocabulary_id IS NOT NULL
@@ -743,10 +746,7 @@ BEGIN
 			FROM drug_strength_stage dcs
 			GROUP BY dcs.drug_concept_code, dcs.vocabulary_id_1, dcs.ingredient_concept_code, dcs.vocabulary_id_2, dcs.amount_value HAVING COUNT (*) > 1
 	) AS s0
-	WHERE reason IS NOT NULL LIMIT 1;
-
-	IF z IS NOT NULL THEN
-		RAISE EXCEPTION '%', z;
-	END IF;
+	WHERE reason IS NOT NULL
+	GROUP BY reason;
 END;
 $BODY$ LANGUAGE 'plpgsql' SECURITY INVOKER;

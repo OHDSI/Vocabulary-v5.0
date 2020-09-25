@@ -6,10 +6,17 @@ BEGIN
 	--1. Prerequisites:
 	--1.1 Check stage tables for incorrect rows
 	DO $$
+	DECLARE
+	z TEXT;
+	crlf TEXT:=E'\r\n';
 	BEGIN
-		PERFORM QA_TESTS.Check_Stage_Tables();
+		SELECT STRING_AGG(error_text||' [rows_count='||rows_count||']', crlf) INTO z FROM qa_tests.Check_Stage_Tables();
+		IF z IS NOT NULL THEN
+			z:=crlf||z||crlf||crlf||'NOTE: You can also run SELECT * FROM qa_tests.Check_Stage_Tables();';
+			RAISE EXCEPTION '%', z;
+		END IF;
 	END $$;
-	
+
 	--1.2 Clear concept_id's just in case
 	UPDATE concept_stage
 	SET concept_id = NULL

@@ -189,7 +189,7 @@ BEGIN
                 cVocabVer := 'ICD10CM FY'||to_char(cVocabDate,'YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN
-                cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'<a href="/Medicare/Coding/ICD10/([[:digit:]]{4})-ICD-10-PCS"') || '0101', 'yyyymmdd');
+                cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<a href="/medicare/[^/]+/([[:digit:]]{4})-icd-10-pcs".*?>[[:digit:]]{4} icd-10-pcs</a>') || '0101', 'yyyymmdd');
                 /*old version2
                 select s1.icd10pcs_year into cVocabDate from (
                   select TO_DATE (SUBSTRING(url,'/([[:digit:]]{4})')::int - 1 || '0101', 'yyyymmdd') icd10pcs_year from (

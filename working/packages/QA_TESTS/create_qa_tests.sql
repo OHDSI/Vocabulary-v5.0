@@ -728,6 +728,24 @@ BEGIN
 			LEFT JOIN domain d ON d.domain_id = cs.domain_id
 			LEFT JOIN concept_class cc ON cc.concept_class_id = cs.concept_class_id
 		UNION ALL
+		--concept_synonym_stage
+		SELECT
+			CASE WHEN v.vocabulary_id IS NOT NULL AND v.latest_update IS NULL THEN 'concept_synonym_stage contains a vocabulary, that is not affected by the SetLatestUpdate: '||css.synonym_vocabulary_id
+				WHEN v.vocabulary_id IS NULL THEN 'concept_synonym_stage.synonym_vocabulary_id not found in the vocabulary: '||CASE WHEN css.synonym_vocabulary_id='' THEN '''''' ELSE css.synonym_vocabulary_id END
+				WHEN css.synonym_name = '' THEN 'empty synonym_name ('''')'
+				WHEN css.synonym_concept_code = '' THEN 'empty synonym_concept_code ('''')'
+				WHEN c.concept_code IS NULL AND cs.concept_code IS NULL THEN 'synonym_concept_code+synonym_vocabulary_id not found in the concept/concept_stage: '||css.synonym_concept_code||'+'||css.synonym_vocabulary_id
+				WHEN css.synonym_name<>TRIM(css.synonym_name) THEN 'synonym_name not trimmed for concept_code: '||css.synonym_concept_code
+				WHEN css.synonym_concept_code<>TRIM(css.synonym_concept_code) THEN 'synonym_concept_code not trimmed for synonym_name: '||css.synonym_name
+				WHEN c_lng.concept_id IS NULL THEN 'language_concept_id not found in the concept: '||css.language_concept_id
+				ELSE NULL
+			END AS reason
+		FROM concept_synonym_stage css
+			LEFT JOIN vocabulary v ON v.vocabulary_id = css.synonym_vocabulary_id
+			LEFT JOIN concept c ON c.concept_code = css.synonym_concept_code AND c.vocabulary_id = css.synonym_vocabulary_id
+			LEFT JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code AND cs.vocabulary_id = css.synonym_vocabulary_id
+			LEFT JOIN concept c_lng ON c_lng.concept_id = css.language_concept_id
+		UNION ALL
 		SELECT
 			'duplicates in concept_stage were found: '||cs.concept_code||'+'||cs.vocabulary_id AS reason
 			FROM concept_stage cs

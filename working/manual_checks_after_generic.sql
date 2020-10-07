@@ -42,7 +42,7 @@ where a.vocabulary_id ='<your_vocab>'
 and c.concept_id is null  
 ;
 
---05. looking at new concepts and their ancestry -- mapping absent
+--05. looking at new concepts and their ancestry -- 'Is a' absent
 select a.concept_code, a.concept_name, a.concept_class_id, a.domain_id, b.concept_name, b.concept_class_id, b.vocabulary_id
 from concept a
 left join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Is a'
@@ -52,7 +52,7 @@ where a.vocabulary_id ='<your_vocab>'
 and c.concept_id is null and b.concept_id is null
 ;
 
---06. looking at new concepts and their ancestry -- mapping present
+--06. looking at new concepts and their ancestry -- 'Is a' present
 select a.concept_code, a.concept_name, a.concept_class_id, a.domain_id, b.concept_name, b.concept_class_id, b.vocabulary_id
 from concept a
 join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Is a'

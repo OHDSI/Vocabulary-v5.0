@@ -247,7 +247,8 @@ BEGIN
 		WHEN c.vocabulary_id = 'NCIt' THEN 0
 		WHEN c.vocabulary_id = 'HGNC' THEN 0
 		WHEN c.vocabulary_id = 'ICD10GM' THEN 1
-		WHEN c.vocabulary_id = 'Cancer Modifier' THEN 1
+		WHEN c.vocabulary_id = 'Cancer Modifier' THEN 0
+		WHEN c.vocabulary_id = 'Episode' THEN 0
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS');

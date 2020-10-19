@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2017
+* Authors: Christian Reich, Timur Vakhitov
+* Date: 2020
 **************************************************************************/
 
 -- 1. Update latest_update field to new date 
@@ -48,7 +48,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT TRIM(SUBSTR(str, 1, 255)),
+SELECT vocabulary_pack.CutConceptName(str),
 	'RxNorm',
 	'Drug',
 	-- use RxNorm tty as for Concept Classes
@@ -189,7 +189,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT TRIM(SUBSTR(str, 1, 255)),
+SELECT vocabulary_pack.CutConceptName(str),
 	'RxNorm',
 	'Drug',
 	-- use RxNorm tty as for Concept Classes
@@ -278,7 +278,7 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 SELECT DISTINCT rxcui,
-	SUBSTR(rx.str, 1, 1000),
+	vocabulary_pack.CutConceptSynonymName(rx.str),
 	'RxNorm',
 	4180186 -- English
 FROM sources.rxnconso rx
@@ -315,7 +315,7 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 SELECT DISTINCT code,
-	SUBSTR(rx.str, 1, 1000),
+	vocabulary_pack.CutConceptSynonymName(rx.str),
 	'RxNorm',
 	4180186 -- English
 FROM sources.rxnconso rx
@@ -1243,12 +1243,12 @@ WHERE concept_class_id IN (
 
 --14. Create pack_content_stage table
 INSERT INTO pack_content_stage
-SELECT pc.pack_code AS pack_concept_code,
+SELECT DISTINCT pc.pack_code AS pack_concept_code,
 	'RxNorm' AS pack_vocabulary_id,
 	cont.concept_code AS drug_concept_code,
 	'RxNorm' AS drug_vocabulary_id,
 	pc.amount::INT2, -- of drug units in the pack
-	NULL AS box_size -- number of the overall combinations units
+	NULL::INT2 AS box_size -- number of the overall combinations units
 FROM (
 	SELECT pack_code,
 		-- Parse the number at the beginning of each drug string as the amount
@@ -1272,7 +1272,7 @@ FROM (
 		) AS s1
 	) AS pc
 -- match by name with the component drug obtained through the 'Contains' relationship
-LEFT JOIN (
+JOIN (
 	SELECT concept_code_1,
 		concept_code_2,
 		concept_code,
@@ -1282,10 +1282,7 @@ LEFT JOIN (
 	WHERE r.relationship_id = 'Contains'
 		AND r.invalid_reason IS NULL
 	) cont ON cont.concept_code_1 = pc.pack_code
-	AND pc.drug LIKE '%' || cont.concept_name || '%' -- this is where the component name is fit into the parsed drug name from the Pack string
-GROUP BY pc.pack_code,
-	cont.concept_code,
-	pc.amount;
+	AND pc.drug LIKE '%' || cont.concept_name || '%'; -- this is where the component name is fit into the parsed drug name from the Pack string
 
 --15. Run FillDrugStrengthStage
 DO $_$

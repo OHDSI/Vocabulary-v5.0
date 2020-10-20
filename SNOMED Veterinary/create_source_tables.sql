@@ -39,7 +39,7 @@ CREATE TABLE SOURCES.VET_SCT2_DESC_FULL
    CONCEPTID            VARCHAR (100),
    LANGUAGECODE         VARCHAR (2),
    TYPEID               VARCHAR (100),
-   TERM                 VARCHAR (256),
+   TERM                 VARCHAR (1000),
    CASESIGNIFICANCEID   VARCHAR (100)
 );
 

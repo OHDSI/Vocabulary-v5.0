@@ -223,3 +223,34 @@ group by concept_code
 having count (1) > 1) and
 invalid_reason is null
 ;
+--7. Automated scripts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--8. Process manual tables
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.processmanualconcepts();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.processmanualrelationships();
+END $_$;

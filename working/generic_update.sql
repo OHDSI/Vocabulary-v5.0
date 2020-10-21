@@ -69,15 +69,6 @@ BEGIN
 	SET concept_name = REGEXP_REPLACE(concept_name, ' {2,}', ' ', 'g')
 	WHERE concept_name ~ ' {2,}';
 
-	--Remove leading and trailing spaces
-	UPDATE concept_stage
-	SET concept_name = TRIM(concept_name)
-	WHERE concept_name <> TRIM(concept_name)
-		AND NOT (
-			concept_name = ' '
-			AND vocabulary_id = 'GPI'
-			);--exclude GPI empty names
-
 	--Remove long dashes
 	UPDATE concept_stage
 	SET concept_name = REPLACE(concept_name, '–', '-')
@@ -92,15 +83,6 @@ BEGIN
 	UPDATE concept_synonym_stage
 	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ', 'g')
 	WHERE synonym_name ~ ' {2,}';
-
-	--Remove leading and trailing spaces
-	UPDATE concept_synonym_stage
-	SET synonym_name = TRIM(synonym_name)
-	WHERE synonym_name <> TRIM(synonym_name)
-		AND NOT (
-			synonym_name = ' '
-			AND synonym_vocabulary_id = 'GPI'
-			);--exclude GPI empty names
 
 	--remove long dashes
 	UPDATE concept_synonym_stage

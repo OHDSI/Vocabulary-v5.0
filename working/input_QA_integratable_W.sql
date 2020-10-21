@@ -170,7 +170,7 @@ FROM (
 	
 	UNION ALL
 	
-	-- as we don't have the mapping all valid devices should be standard
+	--as we don't have the mapping all valid devices should be standard
 	SELECT concept_code, 'non-standard valid devices', 'drug_concept_stage'
 	FROM drug_concept_stage
 	WHERE domain_id = 'Device'
@@ -188,7 +188,7 @@ FROM (
 	
 	UNION ALL
 	
-	--Wrong vocabulary mapping
+	--wrong vocabulary mapping
 	SELECT concept_code_1, 'Wrong vocabulary mapping: content will be ignored by Build_RxE', 'relationship_to_concept'
 	FROM relationship_to_concept a
 	JOIN concept b ON b.concept_id = a.concept_id_2
@@ -205,67 +205,73 @@ FROM (
 	FROM concept_synonym_stage s
 	LEFT JOIN drug_concept_stage c ON (c.concept_code, c.vocabulary_id) = (s.synonym_concept_code, s.synonym_vocabulary_id)
 	WHERE c.concept_code IS NULL
-								      
-	UNION ALL
-								      
-	  --Brand Names containing Ingedient (Aspirin Bayer)
-   select a.concept_code,
-   'Brand Names containing Ingedient (Aspirin Bayer)',
-   'drug_concept_stage'
-    from drug_concept_stage a
-    join drug_concept_stage b on (a.concept_name ilike '% '|| b.concept_name -- Bayer Aspirin 
-				  or a.concept_name ilike b.concept_name ||' %' -- Aspirin Bayer
-				  or a.concept_name = b.concept_name -- Aspirin
-    )
-       where a.concept_class_id ='Brand Name'
-       and b.concept_class_id ='Ingredient' 
-								      
-	UNION ALL
-								      
-	--Drugs need to be Devices
-  select distinct a.concept_code as device_code, a.concept_name, b.concept_name as target_device_name,
-  'Drugs need to be Devices',
-  'drug_concept_stage'
-  from drug_concept_stage a
-  join internal_relationship_stage i on i.concept_code_1 = a.concept_code
-  join relationship_to_concept r on i.concept_code_2 = r.concept_code_1
-  join concept b on b.concept_id = r.concept_id_2
-  where r.concept_id_2 in (
-    select  r.concept_id_1
-    from concept_ancestor ca
-        join concept_relationship r on
-    	r.relationship_id = 'RxNorm - SNOMED eq' and
-	    r.concept_id_2 = ca.descendant_concept_id
-     join concept d on
-	   d.concept_id = ca.ancestor_concept_id and
-	   d.concept_code in
-    	( -- list of device peaks in SNOMED
-		  '407935004','385420005', --Contrast Media
-		  '767234009', --Gadolinium (salt) -- also contrast
-	  	'255922001', --Dental material
-		  '764087006',	--Product containing genetically modified T-cell
-	   	'89457008',	--Radioactive isotope
-		  '37521911000001102', --Radium-223
-		  '420884001',	--Human mesenchymal stem cell
---		'52518006', --Amino acid is excluded because it includes the actual drugs
-	   	'81430009' -- TiO2 (Sunscreen)
-	) )		      
- 
+	
 	UNION ALL
 	
-  --attribute mappings possible, but aren't built 
-  select distinct a.concept_code,
-  'attribute mappings possible, but aren''t built',
-  'relationship_to_concept'
-   from
-  drug_concept_stage a
-    left join relationship_to_concept r on a.concept_code = r.concept_code_1
-    join concept b on lower (b.concept_name) = lower (a.concept_name) and a.concept_class_id =b.concept_class_id
-    join concept_relationship r2 on r2.concept_id_1 = b.concept_id and r2.relationship_id in ('Maps to', 'Source - RxNorm eq') and r2.invalid_reason is null
-    join concept c on r2.concept_id_2 = c.concept_id
-    where r.concept_code_1 is null 
-    and a.concept_class_id  in ('Dose Form', 'Ingredient', 'Brand Name', 'Supplier')
-    and c.invalid_reason is null 							      
-								      
+	--Brand Names containing Ingedient (Aspirin Bayer)
+	SELECT a.concept_code, 'Brand Names containing Ingedient (Aspirin Bayer)', 'drug_concept_stage'
+	FROM drug_concept_stage a
+	JOIN drug_concept_stage b ON (
+			a.concept_name ilike '% ' || b.concept_name -- Bayer Aspirin
+			OR a.concept_name ilike b.concept_name || ' %' -- Aspirin Bayer
+			OR a.concept_name = b.concept_name -- Aspirin
+			)
+	WHERE a.concept_class_id = 'Brand Name'
+		AND b.concept_class_id = 'Ingredient'
+	
+	UNION ALL
+	
+	--Drugs need to be Devices
+	SELECT DISTINCT a.concept_code AS device_code, 'Drugs need to be Devices', 'drug_concept_stage'
+	FROM drug_concept_stage a
+	JOIN internal_relationship_stage i ON i.concept_code_1 = a.concept_code
+	JOIN relationship_to_concept r ON r.concept_code_1 = i.concept_code_2
+	WHERE EXISTS (
+			SELECT 1
+			FROM concept_ancestor ca
+			JOIN concept_relationship r ON r.concept_id_2 = ca.descendant_concept_id
+				AND r.relationship_id = 'RxNorm - SNOMED eq'
+				AND r.invalid_reason IS NULL
+			JOIN concept d ON d.concept_id = ca.ancestor_concept_id
+				AND d.vocabulary_id = 'SNOMED'
+			WHERE d.concept_code IN (
+					-- list of device peaks in SNOMED
+					'407935004',
+					'385420005', --Contrast Media
+					'767234009', --Gadolinium (salt) -- also contrast
+					'255922001', --Dental material
+					'764087006', --Product containing genetically modified T-cell
+					'89457008', --Radioactive isotope
+					'37521911000001102', --Radium-223
+					'420884001', --Human mesenchymal stem cell
+					--'52518006', --Amino acid is excluded because it includes the actual drugs
+					'81430009' -- TiO2 (Sunscreen)
+					)
+				AND r.concept_id_1 = r.concept_id_2
+			)
+	
+	UNION ALL
+	
+	--attribute mappings possible, but aren't built 
+	SELECT DISTINCT a.concept_code, 'attribute mappings possible, but aren''t built', 'relationship_to_concept'
+	FROM drug_concept_stage a
+	LEFT JOIN relationship_to_concept r ON r.concept_code_1 = a.concept_code
+	JOIN concept b ON LOWER(b.concept_name) = LOWER(a.concept_name)
+		AND b.concept_class_id = a.concept_class_id
+	JOIN concept_relationship r2 ON r2.concept_id_1 = b.concept_id
+		AND r2.relationship_id IN (
+			'Maps to',
+			'Source - RxNorm eq'
+			)
+		AND r2.invalid_reason IS NULL
+	JOIN concept c ON r2.concept_id_2 = c.concept_id
+	WHERE r.concept_code_1 IS NULL
+		AND a.concept_class_id IN (
+			'Dose Form',
+			'Ingredient',
+			'Brand Name',
+			'Supplier'
+			)
+		AND c.invalid_reason IS NULL
 	) AS s0
 GROUP BY error_type, affected_table;

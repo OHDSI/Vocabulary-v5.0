@@ -231,10 +231,13 @@ SELECT c1.concept_code AS concept_code_1,
 	c1.vocabulary_id AS vocabulary_id_1,
 	c1.vocabulary_id AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
-	(
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = c1.vocabulary_id
+	least (
+			(
+				SELECT latest_update
+				FROM vocabulary
+				WHERE vocabulary_id = c1.vocabulary_id
+			),
+			current_date
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
@@ -254,10 +257,10 @@ WHERE c2.concept_code LIKE c1.concept_code || '_'
 DROP INDEX trgm_idx;
 
 --10. Add manual relationships
-DO $_$
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
+END $_$;*/
 
 --11. Deprecate 'Subsumes' relationships for resurrected concepts to avoid possible violations of the hierarchy
 INSERT INTO concept_relationship_stage (
@@ -323,4 +326,14 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
+--16. Process manual tables
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.processmanualconcepts();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.processmanualrelationships();
+END $_$;
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

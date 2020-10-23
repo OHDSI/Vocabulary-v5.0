@@ -2,6 +2,7 @@ Update of CIEL
 
 Annotation:
 We got vocabulary from mysql dumpfile and converted it to csv files
+https://drive.google.com/drive/folders/15omdYTgmftnUm0TA3D498yE8aSWw-SG3?usp=sharing
 
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.

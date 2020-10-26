@@ -30,28 +30,6 @@ END $_$
 ;
 --1. Input source tables ops_src_agg and ops_mod_src for all years
 --WbImport example
-/*
-WbImport -file=/home/ekorchmar/Downloads/ops_all/ops2010.csv
-         -type=text
-         -table=ops_src_agg
-         -encoding="UTF-8"
-         -header=true
-         -decode=false
-         -dateFormat="yyyy-MM-dd"
-         -timestampFormat="yyyy-MM-dd HH:mm:ss"
-         -delimiter='|'
-         -quotechar='"'
-         -decimal=.
-         -fileColumns=code,label_de,superclass
-         -quoteCharEscaping=none
-         -ignoreIdentityColumns=false
-         -deleteTarget=false
-         -continueOnError=false
-         -batchSize=10000
-;
-update ops_src_agg set year = 2010 where year is null
-;
-*/
 ;
 --2. Unite sources in a single table with full names
 drop table if exists hierarchy_full
@@ -177,26 +155,13 @@ select
 from code_full_term
 where superclass like '%...%' -- down to lowest parental level for full name
 ;
---4. Feed automated translations in concept_stage_translated and fill in concept_stage
-/*
-	create table if not exists concept_stage_translated
-	(
-		concept_code varchar,
-		concept_name_de varchar,
-		valid_start_date date,
-		valid_end_date date,
-		concept_name_static varchar
-	)
-*/
+--4. Rely on concept_manual and concept_relationship_manual to retrieve correct translated names
 ;
 truncate concept_stage
 ;
 insert into concept_stage (concept_name,domain_id,vocabulary_id,concept_class_id,concept_code,valid_start_date,valid_end_date,invalid_reason)
 select distinct
-	case
-		when length (trim(concept_name_static)) <= 233 then trim(concept_name_static) || ' (machine translation)'
-		else left (trim(concept_name_static), 230) || '... (machine translation)'
-	end as concept_name,
+	'Placeholder english term' concept_name,
 	'Procedure' as domain_id,
 	'OPS' as vocabulary_id,
 	'Procedure' as concept_class_id,
@@ -206,7 +171,7 @@ select distinct
 	case
 		when valid_end_date < current_date then 'D'
 	end as invalid_reason
-from concept_stage_translated
+from concept_stage_de
 ;
 --5. Fill concept_synonym_stage with original full German names
 truncate concept_synonym_stage
@@ -231,7 +196,7 @@ select distinct
 	'Is a',
 	'1970-01-01' :: date,
 	'2099-12-31' :: date
-from hiearchy_dull h
+from hiearchy_full h
 join concept_stage a on
 	h.superclass = a.concept_code
 ;

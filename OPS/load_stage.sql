@@ -161,7 +161,7 @@ truncate concept_stage
 ;
 insert into concept_stage (concept_name,domain_id,vocabulary_id,concept_class_id,concept_code,valid_start_date,valid_end_date,invalid_reason)
 select distinct
-	'Placeholder english term' concept_name,
+	'Placeholder English term' concept_name,
 	'Procedure' as domain_id,
 	'OPS' as vocabulary_id,
 	'Procedure' as concept_class_id,
@@ -196,7 +196,7 @@ select distinct
 	'Is a',
 	'1970-01-01' :: date,
 	'2099-12-31' :: date
-from hiearchy_full h
+from hierarchy_full h
 join concept_stage a on
 	h.superclass = a.concept_code
 ;
@@ -207,7 +207,19 @@ group by concept_code
 having count (1) > 1) and
 invalid_reason is null
 ;
---7. Automated scripts
+--7. Process manual tables
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+;
+--8. Automated scripts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
@@ -228,13 +240,3 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---8. Process manual tables
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.processmanualconcepts();
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.processmanualrelationships();
-END $_$;

@@ -46,7 +46,11 @@ BEGIN
 		standard_concept = cm.standard_concept,
 		valid_start_date = COALESCE(cm.valid_start_date, cs.valid_start_date),
 		valid_end_date = COALESCE(cm.valid_end_date, cs.valid_end_date),
-		invalid_reason = cm.invalid_reason
+		invalid_reason = CASE 
+			WHEN cm.valid_end_date IS NULL --don't change the original invalid_reason if valid_end_date in the cm is empty
+				THEN cs.invalid_reason
+			ELSE cm.invalid_reason
+			END
 	FROM concept_manual cm
 	WHERE cm.concept_code = cs.concept_code
 		AND cm.vocabulary_id = cs.vocabulary_id;

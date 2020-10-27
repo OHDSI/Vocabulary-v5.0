@@ -211,8 +211,18 @@ WHERE c.vocabulary_id = 'ICD10PCS'
 	AND i.concept_code IS NULL
 	AND a.synonym_concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
+--9. Process manual tables for concept and relationship
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
 
---9. Build 'Subsumes' relationships from ancestors to immediate descendants using concept code similarity (c2.concept_code LIKE c1.concept_code || '_')
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--10. Build 'Subsumes' relationships from ancestors to immediate descendants using concept code similarity (c2.concept_code LIKE c1.concept_code || '_')
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); -- for LIKE patterns
 ANALYZE concept_stage;
 
@@ -231,13 +241,10 @@ SELECT c1.concept_code AS concept_code_1,
 	c1.vocabulary_id AS vocabulary_id_1,
 	c1.vocabulary_id AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
-	least (
-			(
-				SELECT latest_update
-				FROM vocabulary
-				WHERE vocabulary_id = c1.vocabulary_id
-			),
-			current_date
+		(
+			SELECT latest_update
+			FROM vocabulary
+			WHERE vocabulary_id = c1.vocabulary_id
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
@@ -256,7 +263,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '_'
 		);
 DROP INDEX trgm_idx;
 
---10. Deprecate 'Subsumes' relationships for resurrected concepts to avoid possible violations of the hierarchy
+--11. Deprecate 'Subsumes' relationships for resurrected concepts to avoid possible violations of the hierarchy
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -295,17 +302,6 @@ WHERE c.vocabulary_id = 'ICD10PCS'
 			AND crs_int.vocabulary_id_1 = 'ICD10PCS'
 			AND crs_int.vocabulary_id_2 = 'ICD10PCS'
 		);
-
---11. Process manual tables for concept and relationship
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;
-
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
 
 --12. Working with replacement mappings
 DO $_$

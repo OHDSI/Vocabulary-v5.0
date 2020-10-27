@@ -264,15 +264,7 @@ SELECT a.concept_code_1 AS concept_code_1,
 FROM ancestors a
 WHERE
 	a.l_current = a.l_max -- pick the most granular available ancestor
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r_int
-		WHERE r_int.concept_code_1 = a.concept_code_1
-			AND r_int.concept_code_2 = a.concept_code_2
-			AND r_int.relationship_id = 'Subsumes'
-			AND r_int.vocabulary_id_1='ICD10PCS'
-			AND r_int.vocabulary_id_2='ICD10PCS'
-		);
+;
 DROP INDEX trgm_idx;
 
 --11. Deprecate 'Subsumes' relationships for resurrected concepts to avoid possible violations of the hierarchy

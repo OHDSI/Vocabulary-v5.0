@@ -16,7 +16,7 @@ BEGIN
 				WHEN date_trunc('day', (crm.valid_start_date)) <> crm.valid_start_date THEN 'wrong format for valid_start_date (not truncated): '||TO_CHAR(crm.valid_start_date,'YYYYMMDD HH24:MI:SS')
 				WHEN date_trunc('day', (crm.valid_end_date)) <> crm.valid_end_date THEN 'wrong format for valid_end_date (not truncated to YYYYMMDD): '||TO_CHAR(crm.valid_end_date,'YYYYMMDD HH24:MI:SS')
 				WHEN ((crm.invalid_reason IS NULL AND crm.valid_end_date <> TO_DATE('20991231', 'yyyymmdd'))
-					OR (crm.invalid_reason IS NOT NULL AND crm.valid_end_date = TO_DATE('20991231', 'yyyymmdd'))) THEN 'wrong invalid_reason: '||crm.invalid_reason||' for '||TO_CHAR(crm.valid_end_date,'YYYYMMDD')
+					OR (crm.invalid_reason IS NOT NULL AND crm.valid_end_date = TO_DATE('20991231', 'yyyymmdd'))) THEN 'wrong invalid_reason: '||COALESCE(crm.invalid_reason,'NULL')||' for '||TO_CHAR(crm.valid_end_date,'YYYYMMDD')
 				WHEN COALESCE(crm.invalid_reason, 'D') NOT IN ('D','U') THEN 'wrong value for invalid_reason: '||crm.invalid_reason
 				ELSE NULL
 			END AS reason

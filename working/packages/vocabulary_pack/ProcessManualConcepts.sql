@@ -42,12 +42,16 @@ BEGIN
 	UPDATE concept_stage cs
 	SET concept_name = COALESCE(cm.concept_name, cs.concept_name),
 		domain_id = COALESCE(cm.domain_id, cs.domain_id),
-		concept_class_id = COALESCE(cm.concept_class_id, cs.concept_class_id),
-		standard_concept = cm.standard_concept,
+		concept_class_id = CASE 
+			WHEN cm.concept_class_id = 'X' --don't change the original concept_class_id if concept_class_id in the cm is 'X'
+				THEN cs.concept_class_id
+			ELSE cm.concept_class_id
+			END,
+		standard_concept = cm.standard_concept, --don't change the original standard_concept if standard_concept in the cm is 'X'
 		valid_start_date = COALESCE(cm.valid_start_date, cs.valid_start_date),
 		valid_end_date = COALESCE(cm.valid_end_date, cs.valid_end_date),
 		invalid_reason = CASE 
-			WHEN cm.valid_end_date IS NULL --don't change the original invalid_reason if valid_end_date in the cm is empty
+			WHEN cm.invalid_reason = 'X' --don't change the original invalid_reason if invalid_reason in the cm is 'X'
 				THEN cs.invalid_reason
 			ELSE cm.invalid_reason
 			END

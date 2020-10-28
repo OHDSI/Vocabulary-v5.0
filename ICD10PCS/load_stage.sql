@@ -211,6 +211,7 @@ WHERE c.vocabulary_id = 'ICD10PCS'
 	AND i.concept_code IS NULL
 	AND a.synonym_concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
+
 --9. Process manual tables for concept and relationship
 DO $_$
 BEGIN
@@ -236,35 +237,31 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-WITH ancestors as
-	(
-		select
-			c1.concept_code as concept_code_1,
-			c2.concept_code as concept_code_2,
-			length (c1.concept_code) as l_current,
-			max (length (c1.concept_code)) over
-				(partition by c2.concept_code) as l_max
-		from concept_stage c1
-		join concept_stage c2 on
-			c2.concept_code LIKE c1.concept_code || '%'
-			AND c1.concept_code <> c2.concept_code
-	)
-SELECT a.concept_code_1 AS concept_code_1,
-	a.concept_code_2 AS concept_code_2,
+SELECT s0.concept_code_1 AS concept_code_1,
+	s0.concept_code_2 AS concept_code_2,
 	'ICD10PCS' AS vocabulary_id_1,
 	'ICD10PCS' AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'ICD10PCS'
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10PCS'
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM ancestors a
-WHERE
-	a.l_current = a.l_max -- pick the most granular available ancestor
-;
+FROM (
+	SELECT c1.concept_code AS concept_code_1,
+		c2.concept_code AS concept_code_2,
+		ROW_NUMBER() OVER (
+			PARTITION BY c2.concept_code ORDER BY LENGTH(c1.concept_code) DESC,
+				c1.concept_code
+			) AS rn -- pick the most granular available ancestor
+	FROM concept_stage c1
+	JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
+		AND c1.concept_code <> c2.concept_code
+	) AS s0
+WHERE rn = 1;
+
 DROP INDEX trgm_idx;
 
 --11. Deprecate 'Subsumes' relationships for resurrected concepts to avoid possible violations of the hierarchy
@@ -330,6 +327,5 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
-
 
 -- At the end, the concept_stage, concept_relationship_stage and concept_synonym_stage tables are ready to be fed into the generic_update script

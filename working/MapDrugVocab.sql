@@ -2,6 +2,10 @@ analyze r_existing;
 analyze ex;
 analyze concept_relationship_stage;
 
+drop index if exists irs_both;
+create index irs_both on internal_relationship_stage (concept_code_1,concept_code_2);
+analyze internal_relationship_stage;
+
 DROP TABLE IF EXISTS map_drug;
 CREATE TABLE map_drug AS
 SELECT from_code,
@@ -42,9 +46,10 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 JOIN internal_relationship_stage i on
 	rc.concept_code_1 = i.concept_code_2 and
 	cr.concept_code_1 = i.concept_code_1
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		);
 
 INSERT INTO map_drug (
@@ -79,9 +84,10 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 JOIN internal_relationship_stage i on
 	rc.concept_code_1 = i.concept_code_2 and
 	cr.concept_code_1 = i.concept_code_1
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		);
 
 INSERT INTO map_drug (
@@ -116,9 +122,10 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 JOIN internal_relationship_stage i on
 	rc.concept_code_1 = i.concept_code_2 and
 	cr.concept_code_1 = i.concept_code_1
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		);
 
 INSERT INTO map_drug (
@@ -153,9 +160,10 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 JOIN internal_relationship_stage i on
 	rc.concept_code_1 = i.concept_code_2 and
 	cr.concept_code_1 = i.concept_code_1
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		);
 
 INSERT INTO map_drug (
@@ -190,11 +198,11 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 JOIN internal_relationship_stage i on
 	rc.concept_code_1 = i.concept_code_2 and
 	cr.concept_code_1 = i.concept_code_1
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		);
-
 INSERT INTO map_drug (
 	from_code,
 	to_id,
@@ -227,12 +235,13 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 JOIN internal_relationship_stage i on
 	rc.concept_code_1 = i.concept_code_2 and
 	cr.concept_code_1 = i.concept_code_1
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		);
 
-INSERT INTO map_drug (
+	INSERT INTO map_drug (
 	from_code,
 	to_id,
 	map_order
@@ -264,9 +273,10 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 JOIN internal_relationship_stage i on
 	rc.concept_code_1 = i.concept_code_2 and
 	cr.concept_code_1 = i.concept_code_1
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		);
 
 INSERT INTO map_drug (
@@ -294,9 +304,10 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage LIMIT 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		);
 
 INSERT INTO map_drug (
@@ -331,9 +342,10 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 JOIN internal_relationship_stage i on
 	rc.concept_code_1 = i.concept_code_2 and
 	cr.concept_code_1 = i.concept_code_1
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		);
 
 INSERT INTO map_drug (
@@ -375,9 +387,10 @@ JOIN concept_relationship_stage cr ON cr.concept_code_2 = e.concept_code
 		FROM drug_concept_stage LIMIT 1
 		)
 	AND cr.vocabulary_id_2 = 'RxNorm Extension'
-WHERE cr.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where cr.concept_code_1 = from_code
 		)
 	AND cnt_2 = cnt + 1;-- take only those where components counts are equal
 
@@ -396,9 +409,10 @@ JOIN concept_relationship_stage cr ON cr.concept_code_1 = concept_code
 	AND relationship_id = 'Maps to'
 JOIN concept c ON c.concept_code = cr.concept_code_2
 	AND c.vocabulary_id LIKE 'Rx%'
-WHERE i.concept_code_1 NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where i.concept_code_1 = from_code
 		);
 
 INSERT INTO map_drug (
@@ -420,10 +434,11 @@ JOIN drug_concept_stage ON i.concept_code_2 = concept_code
 JOIN concept_relationship_stage cr ON cr.concept_code_1 = concept_code
 	AND relationship_id in ('Maps to','Source - RxNorm eq')
 JOIN concept c ON c.concept_code = cr.concept_code_2
-	AND c.vocabulary_id LIKE 'Rx%'
-WHERE i.concept_code_2 NOT IN (
-		SELECT from_code
+	AND c.vocabulary_id in ('RxNorm','RxNorm Extension')
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where i.concept_code_2 = from_code
 		);
 
 --Proceed packs
@@ -459,9 +474,10 @@ JOIN r_existing_pack using (
 		bn_id,
 		bs
 		)
-WHERE pack_concept_code NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where pack_concept_code = from_code
 		);
 
 INSERT INTO map_drug (
@@ -478,9 +494,10 @@ JOIN r_existing_pack using (
 		cnt,
 		bn_id
 		)
-WHERE pack_concept_code NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where pack_concept_code = from_code
 		);
 
 INSERT INTO map_drug (
@@ -496,9 +513,10 @@ JOIN r_existing_pack using (
 		components,
 		cnt
 		)
-WHERE pack_concept_code NOT IN (
-		SELECT from_code
+WHERE NOT exists (
+		SELECT 1
 		FROM map_drug
+		where pack_concept_code = from_code
 		);
 
 
@@ -568,3 +586,5 @@ WHERE concept_code IN (
 		WHERE a.standard_concept = 'S'
 			AND c.concept_id IS NULL
 		);
+
+drop index if exists irs_both;

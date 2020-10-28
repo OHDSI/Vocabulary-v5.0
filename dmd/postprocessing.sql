@@ -1,4 +1,36 @@
--- old mappings to RxN* are not deprecated automatically
+/*;
+update concept_relationship
+set
+	invalid_reason = 'D',
+	valid_end_date = current_date - 1
+where
+	concept_id_1 in 
+		(
+			select c.concept_id
+			from concept c
+			join concept_relationship_stage r on
+				r.concept_code_1 = c.concept_code and
+				r.vocabulary_id_1 = c.vocabulary_id	and
+				r.vocabulary_id_2 = 'CVX'
+		) and
+	relationship_id = 'Maps to'
+;
+update concept_relationship
+set
+	invalid_reason = 'D',
+	valid_end_date = current_date - 1
+where
+	concept_id_2 in 
+		(
+			select c.concept_id
+			from concept c
+			join concept_relationship_stage r on
+				r.concept_code_1 = c.concept_code and
+				r.vocabulary_id_1 = c.vocabulary_id	and
+				r.vocabulary_id_2 = 'CVX'
+		) and
+	relationship_id = 'Mapped from'*/
+; -- old mappings to RxN* are not deprecated automatically
 insert into concept_relationship_stage
 select distinct
 	null :: int4,
@@ -83,7 +115,8 @@ left join vmps u on --make sure old code was not processed on it's own
 	v.vpidprev = u.vpid
 where
 	v.vpidprev is not null and
-	u.vpid is null
+	u.vpid is null and
+	v.vpidprev in (select concept_code from concept_stage)
 ;
 --Devices can and should be mapped to SNOMED as they are the same concepts
 insert into concept_relationship_stage
@@ -178,16 +211,16 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
--- Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
 -- Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+-- Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
 	-- Delete ambiguous 'Maps to' mappings
@@ -196,5 +229,5 @@ END $_$;
 		PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 	END $_$;
 ;
---select devv5.genericupdate()
---;
+update concept_stage set concept_name = trim(concept_name)
+;

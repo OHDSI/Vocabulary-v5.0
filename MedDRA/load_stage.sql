@@ -18,7 +18,7 @@
 * Date: 2019
 **************************************************************************/
 
--- 1. Update latest_update field to new date 
+-- 1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -147,7 +147,7 @@ AS (
 				THEN 'Observation'
 			WHEN hlt_name ~* 'histopathology|imaging|procedure'
 				THEN 'Procedure'
-			WHEN hlt_name = 'Acquired gene mutations and other alterations'
+			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
 					--hlgt level
 			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
@@ -184,7 +184,7 @@ AS (
 				THEN 'Observation'
 			WHEN hlt_name ~* 'histopathology|imaging|procedure'
 				THEN 'Procedure'
-			WHEN hlt_name = 'Acquired gene mutations and other alterations'
+			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
 					--hlgt level
 			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
@@ -216,7 +216,7 @@ AS (
 				THEN 'Observation'
 			WHEN hlt_name ~* 'histopathology|imaging|procedure'
 				THEN 'Procedure'
-			WHEN hlt_name = 'Acquired gene mutations and other alterations'
+			WHEN hlt_name = 'Gene mutations and other alterations NEC'
 				THEN 'Measurement'
 					--hlgt level
 			WHEN hlgt_name = 'Therapeutic and nontherapeutic effects (excl toxicity)'
@@ -355,78 +355,34 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
      FROM SOURCES.low_level_term
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
 
---6. Copy existing relationships
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT DISTINCT c1.concept_code AS concept_code_1, --use distinct for SMQ: one concept_code but different concept_ids
-	c2.concept_code AS concept_code_2,
-	c1.vocabulary_id AS vocabulary_id_1,
-	c2.vocabulary_id AS vocabulary_id_2,
-	r.relationship_id AS relationship_id,
-	r.valid_start_date AS valid_start_date,
-	r.valid_end_date AS valid_end_date,
-	r.invalid_reason AS invalid_reason
-FROM concept_relationship r,
-	concept c1,
-	concept c2
-WHERE c1.concept_id = r.concept_id_1
-	AND c2.concept_id = r.concept_id_2
-	AND r.relationship_id IN (
-		'MedDRA - SNOMED eq',
-		'MedDRA - SMQ',
-		'MedDRA - ICD9CM'
-		);
-
---7. Create a relationship file for the Medical Coder
-/*
-SELECT c.concept_code,
-	c.concept_name,
-	c.domain_id,
-	c.concept_class_id,
-	c1.concept_code concept_code_snomed
-FROM concept_stage c
-LEFT JOIN concept_relationship_stage r ON c.concept_code = r.concept_code_1
-	AND r.relationship_id = 'MedDRA - SNOMED eq'
-LEFT JOIN concept c1 ON c1.concept_code = r.concept_code_2
-	AND c1.vocabulary_id = 'SNOMED';
-*/
-
---8. Append result to concept_relationship_stage table
-DO $_$
+--6. Append result to concept_relationship_stage table
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
+END $_$;*/
 
---9. Working with replacement mappings
-DO $_$
+--7. Working with replacement mappings
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
+END $_$;*/
 
---10. Add mapping from deprecated to fresh concepts
-DO $_$
+--8. Add mapping from deprecated to fresh concepts
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
+END $_$;*/
 
---11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
+--9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
+END $_$;*/
 
---12. Delete ambiguous 'Maps to' mappings
-DO $_$
+--10. Delete ambiguous 'Maps to' mappings
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
+END $_$;*/
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

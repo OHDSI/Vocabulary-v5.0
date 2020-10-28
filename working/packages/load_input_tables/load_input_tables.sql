@@ -754,6 +754,15 @@ begin
       truncate table sources.icd10gm;
       execute 'COPY sources.icd10gm (concept_code,concept_name) FROM PROGRAM ''cat "'||pVocabularyPath||'icd10gm.csv"| awk -F "\"*;\"*" ''''{print $7";"$9}''''  '' delimiter '';'' csv quote ''"'' ';
       update sources.icd10gm set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'CCAM' then
+      truncate table sources.ccam_r_acte, sources.ccam_r_menu, sources.ccam_r_acte_ivite, sources.ccam_r_regroupement, sources.ccam_version;
+      execute 'COPY sources.ccam_r_acte FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_ACTE.dbf" | awk "{if(NR>1)print}" ''';
+      execute 'COPY sources.ccam_r_menu FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_MENU.dbf" | awk "{if(NR>1)print}" ''';
+      execute 'COPY sources.ccam_r_acte_ivite FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_ACTE_IVITE.dbf" | awk "{if(NR>1)print}" ''';
+      execute 'COPY sources.ccam_r_regroupement FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_REGROUPEMENT.dbf" | awk "{if(NR>1)print}" ''';
+      execute 'COPY sources.ccam_version (vocabulary_date) FROM PROGRAM ''cat "'||pVocabularyPath||'R_ACTE.txt" | awk "{if(NR==1)print}" ''';
+      update sources.ccam_version set vocabulary_version=COALESCE('CCAM version '||pVocabularyVersion,pVocabularyID||' '||current_date);
+      analyze sources.ccam_r_acte;
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

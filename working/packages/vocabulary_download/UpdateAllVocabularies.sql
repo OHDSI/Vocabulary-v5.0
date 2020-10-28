@@ -411,7 +411,7 @@ begin
   --bottom block
   cMailText:=cMailText||crlf||crlf||'<font color=''#8c8c8c''><pre>---------------'||crlf||
   '- ISBT means ISBT and ISBT Attribute'||crlf||
-  '- For AMT, BDPM, DPD and GGR only source tables are updated'||crlf||
+  '- For AMT, BDPM, DPD, GGR and CCAM only source tables are updated'||crlf||
   '</pre></font>';
   
   --send e-mail

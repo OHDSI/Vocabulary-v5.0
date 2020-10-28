@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CCAM',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.ccam_r_menu LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.ccam_r_menu LIMIT 1),
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.ccam_version LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.ccam_version LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_CCAM'
 );
 END $_$;

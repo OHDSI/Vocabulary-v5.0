@@ -135,6 +135,7 @@ BEGIN
           23. CDM
           24. SNOMED Veterinary
           25. ICD10GM
+          26. CCAM
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -378,16 +379,19 @@ BEGIN
                 --cVocabVer := cVocabularyName||SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM( \d{4}) Metadaten TXT \(CSV\) </a>.*?<p>Stand: [\d.]+.*');
                 cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM (\d{4}) Metadaten TXT \(CSV\) </a>.*?<p>Stand: [\d.]+.*'),'yyyy');
                 cVocabVer := cVocabularyName||' '||to_char(cVocabDate,'YYYY');
+            WHEN cVocabularyName = 'CCAM'
+            THEN
+              cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d]+)</h4>.+');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;
 
-        IF (cVocabDate IS NULL AND cVocabularyName <> 'ISBT') OR (cVocabVer IS NULL AND cVocabularyName = 'ISBT')
+        IF (cVocabDate IS NULL AND cVocabularyName NOT IN ('ISBT','CCAM')) OR (cVocabVer IS NULL AND cVocabularyName IN ('ISBT','CCAM'))
         THEN
             RAISE EXCEPTION 'NULL detected for %', pVocabularyName;
         END IF;
 
-        IF cVocabularyName = 'ISBT'
+        IF cVocabularyName IN ('ISBT','CCAM')
         THEN
           IF cVocabVer <> cVocabOldVer
           THEN

@@ -212,7 +212,18 @@ WHERE c.vocabulary_id = 'ICD10PCS'
 	AND a.synonym_concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
 
---9. Build 'Subsumes' relationships from ancestors to immediate descendants using concept code similarity (c2.concept_code LIKE c1.concept_code || '_')
+--9. Process manual tables for concept and relationship
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--10. Build 'Subsumes' relationships from ancestors to immediate descendants using concept code similarity; build direct ancestorship relation with the longest code
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); -- for LIKE patterns
 ANALYZE concept_stage;
 
@@ -226,38 +237,32 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT c1.concept_code AS concept_code_1,
-	c2.concept_code AS concept_code_2,
-	c1.vocabulary_id AS vocabulary_id_1,
-	c1.vocabulary_id AS vocabulary_id_2,
+SELECT s0.concept_code_1 AS concept_code_1,
+	s0.concept_code_2 AS concept_code_2,
+	'ICD10PCS' AS vocabulary_id_1,
+	'ICD10PCS' AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
 	(
 		SELECT latest_update
 		FROM vocabulary
-		WHERE vocabulary_id = c1.vocabulary_id
+		WHERE vocabulary_id = 'ICD10PCS'
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM concept_stage c1,
-	concept_stage c2
-WHERE c2.concept_code LIKE c1.concept_code || '_'
-	AND c1.concept_code <> c2.concept_code
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r_int
-		WHERE r_int.concept_code_1 = c1.concept_code
-			AND r_int.concept_code_2 = c2.concept_code
-			AND r_int.relationship_id = 'Subsumes'
-			AND r_int.vocabulary_id_1='ICD10PCS'
-			AND r_int.vocabulary_id_2='ICD10PCS'
-		);
-DROP INDEX trgm_idx;
+FROM (
+	SELECT c1.concept_code AS concept_code_1,
+		c2.concept_code AS concept_code_2,
+		ROW_NUMBER() OVER (
+			PARTITION BY c2.concept_code ORDER BY LENGTH(c1.concept_code) DESC,
+				c1.concept_code
+			) AS rn -- pick the most granular available ancestor
+	FROM concept_stage c1
+	JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
+		AND c1.concept_code <> c2.concept_code
+	) AS s0
+WHERE rn = 1;
 
---10. Add manual relationships
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
+DROP INDEX trgm_idx;
 
 --11. Deprecate 'Subsumes' relationships for resurrected concepts to avoid possible violations of the hierarchy
 INSERT INTO concept_relationship_stage (

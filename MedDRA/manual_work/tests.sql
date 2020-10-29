@@ -318,6 +318,43 @@ AND s.referencedcomponentid::varchar IN (SELECT source_code
 'JJ_MedDRA_maps_to_value') )
 ;
 
+-- Non congruent mapping (RWD vs RefSet)
+SELECT cc.concept_code as meddra_code, cc.concept_name as meddra_name, cc.domain_id as meddra_domain,
+       c.concept_code as target_code,
+       c.concept_name as target_name,
+       c.concept_class_id as target_class,
+       c.domain_id as target_domain,
+       c3.concept_code as rwd_code,
+       c3.concept_name as rwd_name,
+       c3.vocabulary_id as rwd_vocabulary,
+        c3.domain_id as rwd_domain,
+        c3.concept_class_id as rwd_class
+FROM dev_meddra.der2_srefset_meddratosnomedmap s
+JOIN devv5.concept c
+ON s.maptarget=c.concept_code
+    AND c.vocabulary_id='SNOMED'
+JOIN devv5.concept cc
+ON s.referencedcomponentid::varchar=cc.concept_code
+AND cc.vocabulary_id='MedDRA'
+JOIN dev_jnj.jj_general_custom_mapping aa
+ON aa.source_code=s.referencedcomponentid::varchar
+JOIN devv5.concept c3
+ON aa.target_concept_id=c3.concept_id
+AND aa.source_vocabulary_id  IN ('JJ_MedDRA_maps_to',
+'JJ_MedDRA_maps_to_value')
+WHERE NOT EXISTS( SELECT 1
+    FROM dev_jnj.jj_general_custom_mapping a
+    JOIN dev_meddra.der2_srefset_meddratosnomedmap ss
+    ON a.source_code=ss.referencedcomponentid::varchar
+           WHERE s.referencedcomponentid=ss.referencedcomponentid
+    AND c.concept_id=a.target_concept_id)
+AND s.referencedcomponentid::varchar IN (SELECT source_code
+    FROM dev_jnj.jj_general_custom_mapping a
+    WHERE source_vocabulary_id  IN ('JJ_MedDRA_maps_to',
+'JJ_MedDRA_maps_to_value') )
+;
+
+--  congruent mapping statistics
 SELECT count (distinct s.referencedcomponentid) as and_meddra_codes,round(count (distinct s.referencedcomponentid)::numeric/3507*100,2)as portion_of_overlapped_codes_with_same_mappings
 FROM dev_meddra.der2_srefset_meddratosnomedmap s
 JOIN devv5.concept c
@@ -368,7 +405,7 @@ JOIN devv5.concept c3
 ON aa.target_concept_id=c3.concept_id
 AND aa.source_vocabulary_id  IN ('JJ_MedDRA_maps_to',
 'JJ_MedDRA_maps_to_value')
-WHERE NOT EXISTS( SELECT 1
+WHERE  EXISTS( SELECT 1
     FROM dev_jnj.jj_general_custom_mapping a
     JOIN dev_meddra.der2_srefset_meddratosnomedmap ss
     ON a.source_code=ss.referencedcomponentid::varchar
@@ -379,7 +416,6 @@ AND s.referencedcomponentid::varchar IN (SELECT source_code
     WHERE source_vocabulary_id  IN ('JJ_MedDRA_maps_to',
 'JJ_MedDRA_maps_to_value') )
 ;
-
 
 
 

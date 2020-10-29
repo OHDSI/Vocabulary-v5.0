@@ -1,3 +1,58 @@
+-- DROP TABLE dev_vkorsik.combined_meddra_to_snomed_set
+CREATE TABLE dev_vkorsik.combined_meddra_to_snomed_set as (
+    select c.concept_code      as snomed_code,
+           c.concept_name      as snomed_name,
+           c.concept_class_id  as snomed_class,
+           c.domain_id         as snomed_domain,
+           c.standard_concept  as snomed_standard,
+           c.invalid_reason    as snomed_validity,
+           cc.concept_code     as meddra_code,
+           cc.concept_name     as meddra_name,
+           cc.concept_class_id as meddra_class,
+           cc.domain_id        as meddra_domain,
+           cc.standard_concept as meddra_standard,
+           cc.invalid_reason   as meddra_validity,
+            'SM' as flag
+    from dev_meddra.der2_srefset_snomedtomeddramap s
+             JOIN devv5.concept c
+                  ON s.referencedcomponentid::varchar = c.concept_code
+                      AND c.vocabulary_id = 'SNOMED'
+             JOIN devv5.concept cc
+                  ON s.maptarget::varchar = cc.concept_code
+                      AND cc.vocabulary_id = 'MedDRA'
+    WHERE (maptarget::varchar,referencedcomponentid::varchar) NOT IN (SELECT referencedcomponentid::varchar,maptarget::varchar from dev_meddra.der2_srefset_meddratosnomedmap ss)
+
+    UNION ALL
+
+    select c.concept_code      as snomed_code,
+           c.concept_name      as snomed_name,
+           c.concept_class_id  as snomed_class,
+           c.domain_id         as snomed_domain,
+           c.standard_concept  as snomed_standard,
+           c.invalid_reason    as snomed_validity,
+           cc.concept_code     as meddra_code,
+           cc.concept_name     as meddra_name,
+           cc.concept_class_id as meddra_class,
+           cc.domain_id        as meddra_domain,
+           cc.standard_concept as meddra_standard,
+           cc.invalid_reason   as meddra_validity,
+            'MS' as flag
+    from dev_meddra.der2_srefset_meddratosnomedmap s
+             JOIN devv5.concept c
+                  ON s.maptarget::varchar = c.concept_code
+                      AND c.vocabulary_id = 'SNOMED'
+             JOIN devv5.concept cc
+                  ON s.referencedcomponentid::varchar = cc.concept_code
+                      AND cc.vocabulary_id = 'MedDRA'
+)
+;
+
+SELECT distinct  * FROM
+dev_vkorsik.combined_meddra_to_snomed_set
+WHERE meddra_code NOT IN (SELECT referencedcomponentid::varchar from dev_meddra.der2_srefset_meddratosnomedmap
+    UNION ALL
+    SELECT maptarget::varchar from dev_meddra.der2_srefset_snomedtomeddramap)
+
 --MeddraToSnomed statistics
 --Number of meddra codes in devv5 schema=105787
 SELECT count(distinct concept_code)
@@ -27,15 +82,15 @@ group by 1,2
 order by 1,2,3 desc
 ;
 
---Number of meddra codes in refset = 6374
-Select count(distinct referencedcomponentid)
-from dev_meddra.der2_srefset_meddratosnomedmap
+--Number of meddra codes in refset = 6861
+Select count(distinct meddra_code)
+from dev_vkorsik.combined_meddra_to_snomed_set
 ;
 --MedDRA codes distribution by classes in refset
-SELECT  c.domain_id,c.concept_class_id,count(distinct c.concept_code) as abs_count,round(count(distinct c.concept_code)::numeric/6374*100,3) as portion_of_codes
-FROM dev_meddra.der2_srefset_meddratosnomedmap s
+SELECT  c.domain_id,c.concept_class_id,count(distinct c.concept_code) as abs_count,round(count(distinct c.concept_code)::numeric/6861*100,3) as portion_of_codes
+FROM dev_vkorsik.combined_meddra_to_snomed_set s
 JOIN devv5.concept c
-ON s.referencedcomponentid::varchar=c.concept_code
+ON s.meddra_code::varchar=c.concept_code
 AND c.vocabulary_id='MedDRA'
 group by 1,2
 order by 1,2,3 desc
@@ -44,17 +99,17 @@ order by 1,2,3 desc
 -- Is our devv5 schema meddra have all the concepts from refset? - Yep
 --check if any  code are lost
 SELECT *
-FROM dev_meddra.der2_srefset_meddratosnomedmap s
+FROM dev_vkorsik.combined_meddra_to_snomed_set s
 WHERE NOT EXISTS(SELECT 1
                FROM devv5.concept m
 WHERE vocabulary_id='MedDRA'
-                 AND s.referencedcomponentid::varchar  = m.concept_code
+                 AND s.meddra_code::varchar  = m.concept_code
                     );
 
 -- How many codes do not appear in real world data  but exist in RefSet
-SELECT count(distinct referencedcomponentid) as non_in_real_world_data_abs_count, round(count(distinct s.referencedcomponentid)::numeric/6374*100,3) as portion_of_codes
-FROM dev_meddra.der2_srefset_meddratosnomedmap s
-WHERE  referencedcomponentid::varchar NOT  IN (   SELECT DISTINCT source_code
+SELECT count(distinct meddra_code) as non_in_real_world_data_abs_count, round(count(distinct s.meddra_code)::numeric/6861*100,3) as portion_of_codes
+FROM dev_vkorsik.combined_meddra_to_snomed_set s
+WHERE  meddra_code::varchar NOT  IN (   SELECT DISTINCT source_code
     FROM dev_jnj.jj_general_custom_mapping  s
     WHERE s.source_vocabulary_id IN ('JJ_MedDRA_maps_to',
 'JJ_MedDRA_maps_to_value')
@@ -64,13 +119,74 @@ WHERE  referencedcomponentid::varchar NOT  IN (   SELECT DISTINCT source_code
 
 --What is a number of codes with 1 to many mappings (aka postcoordianted) in RefSet?
 -- 0 meddra codes from refset have 1toMany mappings
-SELECT *
-FROM dev_meddra.der2_srefset_meddratosnomedmap
-WHERE referencedcomponentid IN (
-    SELECT referencedcomponentid
-FROM dev_meddra.der2_srefset_meddratosnomedmap
-    GROUP BY 1 having count(maptarget)>1)
+WITH tabMS AS (SELECT snomed_code,
+                     snomed_name,
+                     snomed_class,
+                     snomed_domain,
+                     snomed_standard,
+                     snomed_validity,
+                     meddra_code,
+                     meddra_name,
+                     meddra_class,
+                     meddra_domain,
+                     meddra_standard,
+                     meddra_validity
+              FROM dev_vkorsik.combined_meddra_to_snomed_set
+    WHERE flag='MS'),
+     tabSM as (SELECT snomed_code,
+                     snomed_name,
+                     snomed_class,
+                     snomed_domain,
+                     snomed_standard,
+                     snomed_validity,
+                     meddra_code,
+                     meddra_name,
+                     meddra_class,
+                     meddra_domain,
+                     meddra_standard,
+                     meddra_validity
+              FROM dev_vkorsik.combined_meddra_to_snomed_set
+    WHERE flag='SM')
+SELECT * FROM tabMS
+WHERE meddra_code IN (
+    SELECT meddra_code
+FROM tabMS
+    GROUP BY 1 having count(snomed_code)>1)
 ;
+-- 2 postcoordinated codes appeared in SNOMED to Merddra
+WITH tabMS AS (SELECT snomed_code,
+                     snomed_name,
+                     snomed_class,
+                     snomed_domain,
+                     snomed_standard,
+                     snomed_validity,
+                     meddra_code,
+                     meddra_name,
+                     meddra_class,
+                     meddra_domain,
+                     meddra_standard,
+                     meddra_validity
+              FROM dev_vkorsik.combined_meddra_to_snomed_set
+    WHERE flag='MS'),
+     tabSM as (SELECT snomed_code,
+                     snomed_name,
+                     snomed_class,
+                     snomed_domain,
+                     snomed_standard,
+                     snomed_validity,
+                     meddra_code,
+                     meddra_name,
+                     meddra_class,
+                     meddra_domain,
+                     meddra_standard,
+                     meddra_validity
+              FROM dev_vkorsik.combined_meddra_to_snomed_set
+    WHERE flag='SM')
+SELECT * FROM tabsm
+WHERE meddra_code IN (
+    SELECT meddra_code
+FROM tabsm
+    GROUP BY 1 having count(snomed_code)>1)
 
 --What is a number of codes with 1 to many mappings (aka postcoordianted) in Real World Data (RWD) by Odysseus?
 --1-to-many mapping
@@ -190,7 +306,7 @@ ORDER By c.concept_code
 ;
 
 -- RefSet TO SNOMED mapping statistics
-SELECT cc.domain_id as meddra_domain, c.domain_id as target_domain,c.concept_class_id as target_concept_class,count( s.referencedcomponentid) as abs_meddra_code_count,round(count( s.referencedcomponentid)::numeric/6374*100,3)as portion_of_total_meddra_codes
+SELECT cc.domain_id as meddra_domain, c.domain_id as target_domain,c.concept_class_id as target_concept_class,count( s.referencedcomponentid) as abs_meddra_code_count,round(count( s.referencedcomponentid)::numeric/6861*100,3)as portion_of_total_meddra_codes
 FROM dev_meddra.der2_srefset_meddratosnomedmap s
 JOIN devv5.concept c
 ON s.maptarget::varchar=c.concept_code

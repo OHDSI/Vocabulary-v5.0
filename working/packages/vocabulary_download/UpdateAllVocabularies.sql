@@ -409,9 +409,10 @@ begin
   end loop;
 
   --bottom block
+  select string_agg(vocabulary_id,', ' order by vocabulary_id) into cRet2 from devv5.vocabulary_access where vocabulary_order=1 and vocabulary_params is null and vocabulary_enabled=1 and vocabulary_id<>'UMLS';
   cMailText:=cMailText||crlf||crlf||'<font color=''#8c8c8c''><pre>---------------'||crlf||
   '- ISBT means ISBT and ISBT Attribute'||crlf||
-  '- For AMT, BDPM, DPD, GGR and CCAM only source tables are updated'||crlf||
+  coalesce('- For '||cRet2||' only source tables are updated'||crlf,'')||
   '</pre></font>';
   
   --send e-mail

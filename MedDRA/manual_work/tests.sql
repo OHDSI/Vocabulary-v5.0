@@ -46,6 +46,8 @@ CREATE TABLE dev_vkorsik.combined_meddra_to_snomed_set as (
                       AND cc.vocabulary_id = 'MedDRA'
 )
 ;
+
+SELECT distinct  meddra_code From dev_vkorsik.combined_meddra_to_snomed_set;
 --todo кейс когда маппинги меддры разные в двух табдлицах
   select c.concept_code      as snomed_code,
            c.concept_name      as snomed_name,
@@ -91,8 +93,79 @@ AND EXISTs (select 1
     WHERE s2.referencedcomponentid=s.referencedcomponentid
     )
 ;
+-- full match in sets
+  select c.concept_code      as snomed_code,
+           c.concept_name      as snomed_name,
+           c.concept_class_id  as snomed_class,
+           c.domain_id         as snomed_domain,
+           c.standard_concept  as snomed_standard,
+           c.invalid_reason    as snomed_validity,
+           cc.concept_code     as meddra_code,
+           cc.concept_name     as meddra_name,
+           cc.concept_class_id as meddra_class,
+           cc.domain_id        as meddra_domain,
+           cc.standard_concept as meddra_standard,
+           cc.invalid_reason   as meddra_validity,
+         c2.concept_code     as snomed_sm_code,
+           c2.concept_name     as snomed_sm_name,
+           c2.concept_class_id as snomed_sm_class,
+           c2.domain_id        as snomed_sm_domain,
+           c2.standard_concept as snomed_sm_standard,
+           c2.invalid_reason   as snomed_sm_validity
+    from dev_meddra.der2_srefset_meddratosnomedmap s
+             JOIN devv5.concept c
+                  ON s.maptarget::varchar = c.concept_code
+                      AND c.vocabulary_id = 'SNOMED'
+             JOIN devv5.concept cc
+                  ON s.referencedcomponentid::varchar = cc.concept_code
+                      AND cc.vocabulary_id = 'MedDRA'
+               JOIN dev_meddra.der2_srefset_snomedtomeddramap p
+                  ON s.referencedcomponentid::varchar =p.maptarget
+               JOIN devv5.concept c2
+                  ON p.referencedcomponentid::varchar = c2.concept_code
+                      AND c2.vocabulary_id = 'SNOMED'
+WHERE  EXISTs (select 1
+      from dev_meddra.der2_srefset_meddratosnomedmap s1
+     join dev_meddra.der2_srefset_snomedtomeddramap a
+    ON s1.referencedcomponentid::varchar=a.maptarget::varchar
+    AND s1.maptarget::varchar=a.referencedcomponentid::varchar
+    WHERE s1.referencedcomponentid=s.referencedcomponentid
+    )
+AND EXISTs (select 1
+      from dev_meddra.der2_srefset_meddratosnomedmap s2
+     join dev_meddra.der2_srefset_snomedtomeddramap a2
+    ON s2.referencedcomponentid::varchar=a2.maptarget::varchar
+    WHERE s2.referencedcomponentid=s.referencedcomponentid
+    )
+;
 -- кейс когда маппинг меддры есть только в таблице SM
+-- 489 строк из-за маппинга 1 ту мэни в этом сэте ( 2 сномеда к одной меддре - докозательсво избыточности сномед кодов)
+SELECT *
+FROM dev_meddra.der2_srefset_snomedtomeddramap a
+WHERE NOT  exists (select 1
+      from dev_meddra.der2_srefset_meddratosnomedmap s2
+    WHERE s2.referencedcomponentid::varchar=a.maptarget::varchar)
+/*AND maptarget IN (
+    SELECT a.maptarget
+FROM dev_meddra.der2_srefset_snomedtomeddramap a
+WHERE NOT  exists (select 1
+      from dev_meddra.der2_srefset_meddratosnomedmap s2
+    WHERE s2.referencedcomponentid::varchar=a.maptarget::varchar)
+    group by 1 having count(a.referencedcomponentid)>1*/
+/*
+    )*/
+;
 
+SELECT distinct maptarget
+FROM dev_meddra.der2_srefset_snomedtomeddramap a
+WHERE maptarget::varchar NOT IN    (select s2.referencedcomponentid::varchar
+      from dev_meddra.der2_srefset_meddratosnomedmap s2
+    )
+AND (maptarget::varchar,referencedcomponentid::varchar)  IN (SELECT meddra_code,snomed_code from dev_vkorsik.combined_meddra_to_snomed_set)
+;
+
+
+--checks
 -- Are all meddra codes from set are in combined table
 
 SELECT distinct  * FROM

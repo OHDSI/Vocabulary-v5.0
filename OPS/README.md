@@ -7,3 +7,6 @@
 
 Manual tables directory permalink:
 https://drive.google.com/drive/u/1/folders/1haC_rVjo_FSLtLIujJYEIQ7d26ypPB1S
+
+TODO:
+Update scripts to depend on basic tables to extract dates, so that we need only ClaML files for current year.

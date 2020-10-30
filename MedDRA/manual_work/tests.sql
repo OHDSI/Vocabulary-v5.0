@@ -46,14 +46,70 @@ CREATE TABLE dev_vkorsik.combined_meddra_to_snomed_set as (
                       AND cc.vocabulary_id = 'MedDRA'
 )
 ;
-
+-- Are all meddra codes from set are in combined table
 SELECT distinct  * FROM
 dev_vkorsik.combined_meddra_to_snomed_set
-WHERE meddra_code NOT IN (SELECT referencedcomponentid::varchar from dev_meddra.der2_srefset_meddratosnomedmap
+WHERE meddra_code NOT IN (SELECT::varchar from dev_meddra.der2_srefset_meddratosnomedmap
     UNION ALL
     SELECT maptarget::varchar from dev_meddra.der2_srefset_snomedtomeddramap)
+;
 
---MeddraToSnomed statistics
+-- Are all snomed codes from set are in combined table
+SELECT distinct  * FROM
+dev_vkorsik.combined_meddra_to_snomed_set
+WHERE snomed_code NOT IN (SELECT maptarget::varchar from dev_meddra.der2_srefset_meddratosnomedmap
+    UNION ALL
+    SELECT referencedcomponentid::varchar from dev_meddra.der2_srefset_snomedtomeddramap)
+;
+
+-- to prove  all the mappings from both sets were included
+SELECT distinct  * FROM
+dev_vkorsik.combined_meddra_to_snomed_set
+WHERE (snomed_code,meddra_code)  IN (SELECT maptarget::varchar,referencedcomponentid::varchar from dev_meddra.der2_srefset_meddratosnomedmap
+    UNION ALL
+    SELECT referencedcomponentid::varchar,maptarget::varchar from dev_meddra.der2_srefset_snomedtomeddramap)
+;
+-- NUmber of fully overlapping codes and mappings in 2 sets
+-- 3114
+SELECT count(distinct referencedcomponentid)
+FROM dev_meddra.der2_srefset_meddratosnomedmap ms
+WHERE exists(SELECT 1
+    FROM dev_meddra.der2_srefset_meddratosnomedmap m
+    JOIN dev_meddra.der2_srefset_snomedtomeddramap s
+    ON m.referencedcomponentid::varchar=s.maptarget::varchar
+    AND m.maptarget::varchar=s.referencedcomponentid::varchar
+    WHERE m.referencedcomponentid=ms.referencedcomponentid
+    AND s.referencedcomponentid::varchar=ms.maptarget::varchar)
+
+--selection of overlapped codes
+SELECT  c.concept_code      as snomed_code,
+           c.concept_name      as snomed_name,
+           c.concept_class_id  as snomed_class,
+           c.domain_id         as snomed_domain,
+           c.standard_concept  as snomed_standard,
+           c.invalid_reason    as snomed_validity,
+           cc.concept_code     as meddra_code,
+           cc.concept_name     as meddra_name,
+           cc.concept_class_id as meddra_class,
+           cc.domain_id        as meddra_domain,
+           cc.standard_concept as meddra_standard,
+           cc.invalid_reason   as meddra_validity
+FROM dev_meddra.der2_srefset_meddratosnomedmap ms
+    JOIN devv5.concept c
+                  ON ms.maptarget::varchar = c.concept_code
+                      AND c.vocabulary_id = 'SNOMED'
+             JOIN devv5.concept cc
+                  ON ms.referencedcomponentid::varchar = cc.concept_code
+                      AND cc.vocabulary_id = 'MedDRA'
+WHERE  exists (SELECT 1
+    FROM dev_meddra.der2_srefset_meddratosnomedmap m
+    JOIN dev_meddra.der2_srefset_snomedtomeddramap s
+    ON m.referencedcomponentid::varchar=s.maptarget::varchar
+    AND m.maptarget::varchar=s.referencedcomponentid::varchar
+    WHERE m.referencedcomponentid=ms.referencedcomponentid
+    AND s.referencedcomponentid::varchar IN (SELECT maptarget::varchar FROM dev_meddra.der2_srefset_meddratosnomedmap )
+       )
+;
 --Number of meddra codes in devv5 schema=105787
 SELECT count(distinct concept_code)
 FROM devv5.concept c
@@ -66,21 +122,45 @@ WHERE vocabulary_id='MedDRA'
 group by 1,2
 order by 1,2,3 desc
 ;
--- Number of codes used in RWD =8294
-SELECT count (distinct source_code)
-FROM dev_jnj.jj_general_custom_mapping s
-WHERE s.source_vocabulary_id='JJ_MedDRA_maps_to'
+-- DROP table dev_vkorsik.meddra_rwd_mappings
+CREATE TABLE dev_vkorsik.meddra_rwd_mappings AS (
+                         SELECT c.concept_id as meddra_id,
+                                        c.concept_code as meddra_code,
+                                            c.concept_name as meddra_name,
+                                            c.concept_class_id as meddra_concept_class,
+                                            c.domain_id as meddra_domain,
+                                            CASE WHEN  s.source_vocabulary_id='JJ_MedDRA_maps_to' THEN 'event_concept_id' ELSE 'value_as_concept_id' END as cdm_field,
+                                           coalesce(cc.concept_id,s.target_concept_id) as target_id,
+                                              coalesce( cc.concept_code,'custom')                                  as target_code,
+                                             coalesce( cc.concept_name,'custom')      as target_name,
+                                            coalesce( cc.concept_class_id,'custom') as target_concept_class,
+                                           coalesce( cc.domain_id,'custom') as target_domain,
+                                            coalesce( cc.vocabulary_id,'custom') as target__vocabulary
 
--- MedDRA codes distribution by classes in RWD
-SELECT c.domain_id,c.concept_class_id,count(distinct source_code) as abs_count,round(count( distinct s.source_code)::numeric/8294*100,3)as portion_of_total_meddra_codes
-FROM dev_jnj.jj_general_custom_mapping s
+                                     FROM dev_jnj.jj_general_custom_mapping s
 JOIN devv5.concept c
 ON s.source_code=c.concept_code
 AND c.vocabulary_id='MedDRA'
-WHERE s.source_vocabulary_id='JJ_MedDRA_maps_to'
-group by 1,2
-order by 1,2,3 desc
+LEFT JOIN devv5.concept cc
+ON s.target_concept_id=cc.concept_id
+WHERE s.source_vocabulary_id IN ('JJ_MedDRA_maps_to','JJ_MedDRA_maps_to_value')
+    )
 ;
+
+
+-- Number of codes used in RWD =8294
+SELECT count (distinct meddra_code)
+FROM dev_vkorsikmeddra_rwd_mappings
+;
+
+
+-- MedDRA codes distribution by classes in RWD
+SELECT c.meddra_domain,c.meddra_concept_class,count(distinct meddra_code) as abs_count,round(count( distinct meddra_code)::numeric/8294*100,3) as portion_of_total_meddra_codes
+FROM dev_vkorsik.meddra_rwd_mappings c
+GROUP BY c.meddra_domain,c.meddra_concept_class
+order by c.meddra_domain,c.meddra_concept_class,abs_count desc
+;
+
 
 --Number of meddra codes in refset = 6861
 Select count(distinct meddra_code)

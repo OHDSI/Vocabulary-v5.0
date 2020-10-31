@@ -93,6 +93,7 @@ AND EXISTs (select 1
     WHERE s2.referencedcomponentid=s.referencedcomponentid
     )
 ;
+
 -- full match in sets
   select c.concept_code      as snomed_code,
            c.concept_name      as snomed_name,
@@ -138,24 +139,74 @@ AND EXISTs (select 1
     WHERE s2.referencedcomponentid=s.referencedcomponentid
     )
 ;
+
+  select s.referencedcomponentid,s.maptarget,count(*)
+    from dev_meddra.der2_srefset_meddratosnomedmap s
+             JOIN devv5.concept c
+                  ON s.maptarget::varchar = c.concept_code
+                      AND c.vocabulary_id = 'SNOMED'
+             JOIN devv5.concept cc
+                  ON s.referencedcomponentid::varchar = cc.concept_code
+                      AND cc.vocabulary_id = 'MedDRA'
+               JOIN dev_meddra.der2_srefset_snomedtomeddramap p
+                  ON s.referencedcomponentid::varchar =p.maptarget
+               JOIN devv5.concept c2
+                  ON p.referencedcomponentid::varchar = c2.concept_code
+                      AND c2.vocabulary_id = 'SNOMED'
+WHERE  EXISTs (select 1
+      from dev_meddra.der2_srefset_meddratosnomedmap s1
+     join dev_meddra.der2_srefset_snomedtomeddramap a
+    ON s1.referencedcomponentid::varchar=a.maptarget::varchar
+    AND s1.maptarget::varchar=a.referencedcomponentid::varchar
+    WHERE s1.referencedcomponentid=s.referencedcomponentid
+    )
+AND EXISTs (select 1
+      from dev_meddra.der2_srefset_meddratosnomedmap s2
+     join dev_meddra.der2_srefset_snomedtomeddramap a2
+    ON s2.referencedcomponentid::varchar=a2.maptarget::varchar
+    WHERE s2.referencedcomponentid=s.referencedcomponentid
+    )
+GROUP BY 1,2
+;
 -- кейс когда маппинг меддры есть только в таблице SM
 -- 489 строк из-за маппинга 1 ту мэни в этом сэте ( 2 сномеда к одной меддре - докозательсво избыточности сномед кодов)
-SELECT *
+with tab_sm_map_only as (SELECT c.concept_id as snomed_id,
+       c.concept_name as  snomed_name,
+       c.domain_id as snomed_domain,
+       c.concept_class_id as  snomed_class,
+       c.concept_code as  snomed_code,
+       c.invalid_reason as   snomed_validity,
+       cc.concept_id as meddra_concept_id,
+              cc.concept_code as meddra_code,
+       cc.concept_name as meddra_name,
+       cc.domain_id as meddra_domain,
+       cc.concept_class_id as meddra_class,
+       cc.invalid_reason as meddra_validity
 FROM dev_meddra.der2_srefset_snomedtomeddramap a
+JOIN devv5.concept c
+                  ON a.referencedcomponentid::varchar = c.concept_code
+                      AND c.vocabulary_id = 'SNOMED'
+             JOIN devv5.concept cc
+                  ON a.maptarget::varchar = cc.concept_code
+                      AND cc.vocabulary_id = 'MedDRA'
 WHERE NOT  exists (select 1
       from dev_meddra.der2_srefset_meddratosnomedmap s2
     WHERE s2.referencedcomponentid::varchar=a.maptarget::varchar)
-/*AND maptarget IN (
+/*AND maptarget NOT IN (
     SELECT a.maptarget
 FROM dev_meddra.der2_srefset_snomedtomeddramap a
 WHERE NOT  exists (select 1
       from dev_meddra.der2_srefset_meddratosnomedmap s2
     WHERE s2.referencedcomponentid::varchar=a.maptarget::varchar)
-    group by 1 having count(a.referencedcomponentid)>1*/
-/*
-    )*/
-;
+    group by 1 having count(a.referencedcomponentid)>1
 
+    )*/
+) SELECT * FROM tab_sm_map_only a
+JOIN tab_sm_map_only b
+ON regexp_replace(lower(a.snomed_name),'\s|\.','','g')=regexp_replace(lower(b.meddra_name),'\s|\.','','g')
+;
+-- todo статситка маппинга overlap between sts, overlap between combined and RWD ,
+-- todo показате меддру по классам и валидности , показать как классы замапплены
 SELECT distinct maptarget
 FROM dev_meddra.der2_srefset_snomedtomeddramap a
 WHERE maptarget::varchar NOT IN    (select s2.referencedcomponentid::varchar
@@ -238,12 +289,25 @@ SELECT count(distinct concept_code)
 FROM devv5.concept c
 WHERE vocabulary_id='MedDRA'
 ;
--- MedDRA codes distribution by classes in dev schema
-SELECT domain_id,concept_class_id,count(distinct concept_code) as abs_count,round(count(distinct concept_code)::numeric/105787*100,3)as portion_of_codes
+-- VALID MedDRA codes distribution by classes in dev schema
+SELECT concept_class_id,count(distinct concept_code) as abs_count,round(count(distinct concept_code)::numeric/(SELECT count(distinct concept_code)
+FROM devv5.concept c
+WHERE vocabulary_id='MedDRA' and c.invalid_reason is NULL)*100,3)as portion_of_codes
 FROM devv5.concept c
 WHERE vocabulary_id='MedDRA'
-group by 1,2
-order by 1,2,3 desc
+AND invalid_reason is NULL
+group by 1
+order by 2 desc
+;
+-- Invalid meddra general
+SELECT concept_class_id,count(distinct concept_code) as abs_count,round(count(distinct concept_code)::numeric/(SELECT count(distinct concept_code)
+FROM devv5.concept c
+WHERE vocabulary_id='MedDRA' and c.invalid_reason is NULL)*100,3)as portion_of_codes
+FROM devv5.concept c
+WHERE vocabulary_id='MedDRA'
+AND invalid_reason is NOT NULL
+group by 1
+order by 2 desc
 ;
 -- DROP table dev_vkorsik.meddra_rwd_mappings
 CREATE TABLE dev_vkorsik.meddra_rwd_mappings AS (
@@ -272,15 +336,40 @@ WHERE s.source_vocabulary_id IN ('JJ_MedDRA_maps_to','JJ_MedDRA_maps_to_value')
 
 
 -- Number of codes used in RWD =8294
-SELECT count (distinct meddra_code)
-FROM dev_vkorsik.meddra_rwd_mappings
+SELECT c.invalid_reason,c.concept_class_id,count(distinct meddra_code)
+FROM dev_vkorsik.meddra_rwd_mappings m
+JOIN devv5.concept c
+ON m.meddra_id=c.concept_id
+GROUP BY 1,2
+ORDER BY 1,3 desc
+
 ;
 
--- MedDRA codes distribution by classes in RWD
-SELECT c.meddra_domain,c.meddra_concept_class,count(distinct meddra_code) as abs_count,round(count( distinct meddra_code)::numeric/8294*100,3) as portion_of_total_meddra_codes
+-- Valid MedDRA codes distribution by classes in RWD
+SELECT cc.invalid_reason,meddra_concept_class,count(distinct meddra_code) as abs_count,round(count( distinct meddra_code)::numeric/(SELECT count(distinct meddra_code)
+FROM dev_vkorsik.meddra_rwd_mappings m
+JOIN devv5.concept c
+ON m.meddra_id=c.concept_id
+)*100,3) as portion_of_total_meddra_codes
 FROM dev_vkorsik.meddra_rwd_mappings c
-GROUP BY c.meddra_domain,c.meddra_concept_class
-order by c.meddra_domain,c.meddra_concept_class,abs_count desc
+JOIN devv5.concept cc
+ON c.meddra_id=cc.concept_id
+GROUP BY cc.invalid_reason,c.meddra_concept_class
+order by cc.invalid_reason,c.meddra_concept_class,abs_count desc
+;
+-- inValid MedDRA codes distribution by classes in RWD
+SELECT c.meddra_concept_class,count(distinct meddra_code) as abs_count,round(count( distinct meddra_code)::numeric/(SELECT count(distinct meddra_code)
+FROM dev_vkorsik.meddra_rwd_mappings m
+JOIN devv5.concept c
+ON m.meddra_id=c.concept_id
+AND c.invalid_reason IS  NOT NULL
+)*100,3) as portion_of_total_meddra_codes
+FROM dev_vkorsik.meddra_rwd_mappings c
+JOIN devv5.concept cc
+ON c.meddra_id=cc.concept_id
+AND cc.invalid_reason IS  NOT NULL
+GROUP BY c.meddra_concept_class
+order by c.meddra_concept_class,abs_count desc
 ;
 
 
@@ -289,10 +378,10 @@ Select count(distinct meddra_code)
 from dev_vkorsik.combined_meddra_to_snomed_set
 ;
 --MedDRA codes distribution by classes in refset
-SELECT  s.meddra_domain,s.meddra_class,count(distinct s.meddra_code) as abs_count,round(count(distinct s.meddra_code)::numeric/(SELECT count(distinct meddra_code)::numeric FROM dev_vkorsik.combined_meddra_to_snomed_set)*100,3) as portion_of_codes
+SELECT  s.meddra_validity,s.meddra_class,count(distinct s.meddra_code) as abs_count,round(count(distinct s.meddra_code)::numeric/(SELECT count(distinct meddra_code)::numeric FROM dev_vkorsik.combined_meddra_to_snomed_set)*100,3) as portion_of_codes
 FROM dev_vkorsik.combined_meddra_to_snomed_set s
-group by s.meddra_domain,s.meddra_class
-order by s.meddra_domain,s.meddra_class,abs_count desc
+group by s.meddra_validity,s.meddra_class
+order by s.meddra_validity,s.meddra_class,abs_count desc
 ;
 
 -- Is our devv5 schema meddra have all the concepts from refset? - Yep
@@ -412,7 +501,7 @@ with tab as (
    FROM dev_vkorsik.meddra_rwd_mappings s
 )
 
-SELECT count(distinct meddra_code)
+SELECT count( distinct meddra_code)
 FROM tab
 WHERE meddra_code IN (
     SELECT meddra_code
@@ -435,6 +524,37 @@ WHERE meddra_code IN (
                          AND b.cdm_field ~* 'value')
     )
 ;
+with tab as (
+    SELECT DISTINCT s.*
+   FROM dev_vkorsik.meddra_rwd_mappings s
+)
+
+SELECT distinct *
+FROM tab a
+LEFT JOIN dev_vkorsik.combined_meddra_to_snomed_set b
+ON a.meddra_code=b.meddra_code
+WHERE a.meddra_code IN (
+    SELECT meddra_code
+    FROM tab
+    GROUP BY meddra_code
+    HAVING count(*) > 1)
+
+    AND a.meddra_code NOT IN (
+        SELECT meddra_code
+        FROM tab t
+        WHERE meddra_code in (
+                SELECT meddra_code
+                FROM tab
+                GROUP BY meddra_code
+                HAVING count(*)>1
+        )
+            AND EXISTS(SELECT 1
+                       FROM tab b
+                       WHERE t.meddra_code = b.meddra_code
+                         AND b.cdm_field ~* 'value')
+    )
+;
+
 
 --todo как маппили их ребята из меддры? (если они есть в рефсете)
 -- сколько смаппили из них они,
@@ -653,30 +773,41 @@ AND s.referencedcomponentid::varchar IN (SELECT source_code
 ;
 
 --  congruent mapping statistics
-SELECT count (distinct s.referencedcomponentid) as and_meddra_codes,round(count (distinct s.referencedcomponentid)::numeric/3507*100,2)as portion_of_overlapped_codes_with_same_mappings
-FROM dev_meddra.der2_srefset_meddratosnomedmap s
-JOIN devv5.concept c
-ON s.maptarget=c.concept_code
-    AND c.vocabulary_id='SNOMED'
-JOIN devv5.concept cc
-ON s.referencedcomponentid::varchar=cc.concept_code
-AND cc.vocabulary_id='MedDRA'
-JOIN dev_jnj.jj_general_custom_mapping aa
-ON aa.source_code=s.referencedcomponentid::varchar
-JOIN devv5.concept c3
-ON aa.target_concept_id=c3.concept_id
-AND aa.source_vocabulary_id  IN ('JJ_MedDRA_maps_to',
-'JJ_MedDRA_maps_to_value')
-WHERE  EXISTS( SELECT 1
-    FROM dev_jnj.jj_general_custom_mapping a
-    JOIN dev_meddra.der2_srefset_meddratosnomedmap ss
-    ON a.source_code=ss.referencedcomponentid::varchar
-           WHERE s.referencedcomponentid=ss.referencedcomponentid
-    AND c.concept_id=a.target_concept_id)
-AND s.referencedcomponentid::varchar IN (SELECT source_code
-    FROM dev_jnj.jj_general_custom_mapping a
-    WHERE source_vocabulary_id  IN ('JJ_MedDRA_maps_to',
-'JJ_MedDRA_maps_to_value') )
+SELECT count (distinct s.meddra_code) as and_meddra_codes,round(count (distinct s.meddra_code)::numeric/(select count(distinct meddra_code) from combined_meddra_to_snomed_set WHERE meddra_code::varchar IN (SELECT aa.meddra_code
+                               FROM dev_vkorsik.meddra_rwd_mappings aa))*100,2) as portion_of_overlapped_codes_with_same_mappings
+FROM dev_vkorsik.combined_meddra_to_snomed_set s
+JOIN dev_vkorsik.meddra_rwd_mappings aa
+ON aa.meddra_code=s.meddra_code
+WHERE  EXISTS(SELECT 1
+              FROM dev_vkorsik.meddra_rwd_mappings a
+                       JOIN dev_vkorsik.combined_meddra_to_snomed_set ss
+                            ON a.meddra_code = ss.meddra_code
+AND a.target_code=ss.snomed_code
+AND a.target__vocabulary='SNOMED'
+              WHERE s.meddra_code = ss.meddra_code
+    )
+AND s.meddra_code::varchar IN (SELECT aa.meddra_code
+                               FROM dev_vkorsik.meddra_rwd_mappings aa
+)
+;
+-- NON-CONGRUEN set
+SELECT s.*,
+             aa.*
+FROM dev_vkorsik.combined_meddra_to_snomed_set s
+JOIN dev_vkorsik.meddra_rwd_mappings aa
+ON aa.meddra_code=s.meddra_code
+WHERE  NOT EXISTS(SELECT 1
+              FROM dev_vkorsik.meddra_rwd_mappings a
+                       JOIN dev_vkorsik.combined_meddra_to_snomed_set ss
+                            ON a.meddra_code = ss.meddra_code
+AND a.target_code=ss.snomed_code
+AND a.target__vocabulary='SNOMED'
+              WHERE s.meddra_code = ss.meddra_code
+    )
+AND s.meddra_code::varchar IN (SELECT aa.meddra_code
+                               FROM dev_vkorsik.meddra_rwd_mappings aa
+)
+order by s.meddra_code
 ;
 
 -- Non congruent mapping (RWD vs RefSet)
@@ -716,4 +847,9 @@ AND s.referencedcomponentid::varchar IN (SELECT source_code
 ;
 
 
-
+--to calculate coverage
+-- 13509 - 7 invlad
+with tab as(SELECT distinct meddra_code,snomed_code FROM combined_meddra_to_snomed_set WHERE (meddra_code, snomed_code) NOT IN (SELECT meddra_code,target_code from meddra_rwd_mappings WHERE target__vocabulary='SNOMED')
+UNION ALL
+SELECT distinct meddra_code,target_code from meddra_rwd_mappings)
+SELECT distinct * from tab

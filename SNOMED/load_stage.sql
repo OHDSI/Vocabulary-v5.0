@@ -37,421 +37,6 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Create core version of DM+D
---3.1. We need to create temporary table of DM+D with the same structure as concept_stage and pseudo-column 'insert_id'
---later it will be important
-DROP TABLE IF EXISTS concept_stage_dmd;
-CREATE UNLOGGED TABLE concept_stage_dmd (LIKE concept_stage);
-ALTER TABLE concept_stage_dmd ADD insert_id INTEGER;
-
-INSERT INTO concept_stage_dmd (
-	concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason,
-	insert_id
-	)
-SELECT *
-FROM (
-	-- UoM
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Unit' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Qualifier Value' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason,
-		1 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	
-	UNION ALL
-	
-	--deprecated UoM
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Unit' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Qualifier Value' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		2 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION ALL
-	
-	--Forms
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Observation' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason,
-		3 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	
-	UNION ALL
-	
-	--deprecated Forms
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Observation' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		4 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION ALL
-	
-	--Routes
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Route' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Qualifier Value' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason,
-		5 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/ROUTE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	
-	UNION ALL
-	
-	--deprecated Routes
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Route' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Qualifier Value' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		6 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/ROUTE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION ALL
-	
-	--Ingredients
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Substance' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		7 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
-		FROM sources.f_ingredient2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./ISIDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--deprecated Ingredients
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Substance' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./ISIDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./ISIDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		8 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
-		FROM sources.f_ingredient2 i
-		) AS i
-	
-	UNION ALL
-	
-	--VTMs (Ingredients)
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		9 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./VTMIDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--deprecated VTMs
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VTMIDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./VTMIDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		10 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	
-	UNION ALL
-	
-	--VMPs (generic or clinical drugs)
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		11 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./VTMIDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--deprecated VMPs
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VPIDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./VPIDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		12 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION ALL
-	
-	--AMPs (branded drugs)
-	SELECT substr(devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT), 1, 255) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		13 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./NMDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--VMPPs (clinical packs)
-	SELECT substr(devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT), 1, 255) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'YYYYMMDD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		14 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
-		FROM sources.f_vmpp2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--AMPPs (branded packs)
-	SELECT substr(devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT), 1, 255) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'YYYYMMDD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		15 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	) AS s0
-WHERE /*postgresql 10 changed the xpath behavior, now xpath return NULL even for non-existing element. 9.6 returns nothing*/ concept_code IS NOT NULL;
-
---3.2. delete duplicates, first of all concepts with invalid_reason='D', then 'U', last of all 'NULL'
-DELETE
-FROM concept_stage_dmd csd
-WHERE NOT EXISTS (
-		SELECT 1
-		FROM (
-			SELECT LAST_VALUE(ctid) OVER (
-					PARTITION BY concept_code ORDER BY invalid_reason,
-						ctid ROWS BETWEEN UNBOUNDED PRECEDING
-							AND UNBOUNDED FOLLOWING
-					) AS i_ctid
-			FROM concept_stage_dmd
-			) i
-		WHERE i.i_ctid = csd.ctid
-		);
-
---3.3. copy DM+D to concept_stage
-INSERT INTO concept_stage (
-	concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-FROM concept_stage_dmd;
-
 --4. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
 INSERT INTO concept_stage (
 	concept_name,
@@ -461,91 +46,79 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT regexp_replace(coalesce(umls.concept_name, sct2.concept_name), ' (\([^)]*\))$', ''), -- pick the umls one first (if there) and trim something like "(procedure)"
+SELECT sct2.concept_name, -- pick the umls one first (if there) and trim something like "(procedure)"
 	'SNOMED' AS vocabulary_id,
 	sct2.concept_code,
-	(
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'SNOMED'
-		) AS valid_start_date,
+	to_date (effectivestart	,'yyyymmdd') AS valid_start_date,
 	TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM (
 	SELECT SUBSTR(d.term, 1, 255) AS concept_name,
 		d.conceptid::TEXT AS concept_code,
 		c.active,
+		min (c.effectivetime) over
+		 (
+		 	partition by c.id
+		 	order by c.active desc --if there ever were active versions of the concept, take the earliest one
+		) as effectivestart,
 		ROW_NUMBER() OVER (
 			PARTITION BY d.conceptid
-			-- Order of preference: newest in sct2_concept, in sct2_desc, synonym, does not contain class in parenthesis
-			ORDER BY TO_DATE(c.effectivetime, 'YYYYMMDD') DESC,
-				TO_DATE(d.effectivetime, 'YYYYMMDD') DESC,
-				CASE 
-					WHEN typeid = 900000000000013009
-						THEN 0
-					ELSE 1
-					END,
-				CASE 
-					WHEN term LIKE '%(%)%'
-						THEN 1
-					ELSE 0
-					END,
-				LENGTH(TERM) DESC,
-				d.id DESC --same as of AVOF-650
+			-- Order of preference: 
+			-- Active descriptions first, characterised as Preferred Synonym, prefer SNOMED Int, then US, then UK, then take the latest term
+			order by
+				l.active desc,
+				case l.acceptabilityid
+					when 900000000000548007 then 1 --Preferred
+					when 900000000000549004 then 2 --Acceptable
+					else 99
+				end asc,
+				case d.typeid
+					when 900000000000013009 then 1 --Synonym (PT)
+					when 900000000000003001 then 2 --Fully specified name
+					else 99
+				end asc,
+				case l.source_file_id
+					when 'INT' then 1 -- International release
+					when 'US' then 2 -- SNOMED US
+					when 'GB_DE' then 3 -- SNOMED UK Drug extension, updated more often
+					when 'UK' then 4 -- SNOMED UK
+					else 99
+				end asc,
+				l.effectivetime desc
 			) AS rn
 	FROM sources.sct2_concept_full_merged c,
-		sources.sct2_desc_full_merged d
-	WHERE c.id = d.conceptid
+		sources.sct2_desc_full_merged d,
+		sources.der2_crefset_language_merged l
+	WHERE 
+		c.id = d.conceptid and 
+		d.id = l.referencedcomponentid
 		AND term IS NOT NULL
 	) sct2
-LEFT JOIN (
-	-- get a better concept_name
-	SELECT DISTINCT code AS concept_code,
-		FIRST_VALUE(-- take the best str 
-			SUBSTR(str, 1, 255)) OVER (
-			PARTITION BY code ORDER BY CASE tty
-					WHEN 'PT'
-						THEN 1
-					WHEN 'PTGB'
-						THEN 2
-					WHEN 'SY'
-						THEN 3
-					WHEN 'SYGB'
-						THEN 4
-					WHEN 'MTH_PT'
-						THEN 5
-					WHEN 'FN'
-						THEN 6
-					WHEN 'MTH_SY'
-						THEN 7
-					WHEN 'SB'
-						THEN 8
-					ELSE 10 -- default for the obsolete ones
-					END
-			) AS concept_name
-	FROM sources.mrconso
-	WHERE sab = 'SNOMEDCT_US'
-		AND tty IN (
-			'PT',
-			'PTGB',
-			'SY',
-			'SYGB',
-			'MTH_PT',
-			'FN',
-			'MTH_SY',
-			'SB'
-			)
-	) umls ON sct2.concept_code = umls.concept_code
 WHERE sct2.rn = 1
 	AND sct2.active = 1
-	AND NOT EXISTS (
-		--DM+D first, SNOMED last
-		SELECT 1
-		FROM concept_stage cs_int
-		WHERE cs_int.concept_code = sct2.concept_code
-		);
-
---5. Update concept_class_id from extracted class information and terms ordered by some good precedence
+;
+--4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
+with inactive as
+	(
+		select c.id :: varchar, max (c.effectivetime) over (partition by c.id) as effectiveend
+		from sources.sct2_concept_full_merged c
+		left join sources.sct2_concept_full_merged c2 on --ignore all entries before latest one with active = 1
+			c2.active = 1 and
+			c.id = c2.id and
+			c.effectivetime < c2.effectivetime
+		where 
+			c2.id is null and
+			c.active = 0
+	)
+update concept_stage cs
+set 
+	invalid_reason = 'D',
+	valid_end_date = to_date (i.effectiveend,'yyyymmdd')
+from inactive i
+where
+	i.id = cs.concept_code
+;
+--5. Update concept_class_id from extracted hierarchy tag information and terms ordered by description table precedence
 UPDATE concept_stage cs
 SET concept_class_id = i.concept_class_id
 FROM (
@@ -553,10 +126,10 @@ FROM (
 			SELECT *
 			FROM (
 				SELECT concept_code,
-					f7, -- extracted class
+					f7, -- SNOMED hierarchy tag
 					ROW_NUMBER() OVER (
 						PARTITION BY concept_code
-						-- order of precedence: active, by class relevance, by highest number of parentheses
+						-- order of precedence: active, by class relevance
 						ORDER BY active DESC,
 							CASE f7
 								WHEN 'disorder'
@@ -670,38 +243,23 @@ FROM (
 				FROM (
 					SELECT concept_code,
 						active,
-						pc1,
-						pc2,
-						CASE 
-							WHEN pc1 = 0
-								OR pc2 = 0
-								THEN term -- when no term records with parentheses
-									-- extract class (called f7)
-							ELSE substring(term, '\(([^(]+)\)$')
-							END AS f7,
+						substring(term, '\(([^(]+)\)$') AS f7,
 						rna AS rnb -- row number in sct2_desc_full_merged
 					FROM (
 						SELECT c.concept_code,
 							d.term,
 							d.active,
-							(
-								SELECT count(*)
-								FROM regexp_matches(d.term, '\(', 'g')
-								) pc1, -- parenthesis open count
-							(
-								SELECT count(*)
-								FROM regexp_matches(d.term, '\)', 'g')
-								) pc2, -- parenthesis close count
 							ROW_NUMBER() OVER (
-								PARTITION BY c.concept_code ORDER BY d.active DESC, -- first active ones
-									(
-										SELECT count(*)
-										FROM regexp_matches(d.term, '\(', 'g')
-										) DESC -- first the ones with the most parentheses - one of them the class info
+								PARTITION BY c.concept_code ORDER
+								BY
+									d.active DESC, -- active ones
+									d.effectivetime desc -- latest active ones
 								) rna -- row number in sct2_desc_full_merged
 						FROM concept_stage c
 						JOIN sources.sct2_desc_full_merged d ON d.conceptid::TEXT = c.concept_code
-						WHERE c.vocabulary_id = 'SNOMED'
+						WHERE 
+							c.vocabulary_id = 'SNOMED' and
+							d.typeid = 900000000000003001 -- only Fully Specified Names
 						) AS s0
 					) AS s1
 				) AS s2
@@ -847,6 +405,11 @@ FROM (
 					--Metadata concepts
 			WHEN F7 = 'OWL metadata concept'
 				THEN 'Model Comp'
+					--Specific drug qualifiers
+			WHEN F7 = 'supplier'
+				THEN 'Qualifier Value'
+			WHEN F7 = 'product name'
+				THEN 'Qualifier Value'
 			ELSE 'Undefined'
 			END AS concept_class_id
 	FROM tmp_concept_class
@@ -859,156 +422,30 @@ SET concept_class_id = 'Model Comp'
 WHERE concept_code = '138875005'
 	AND vocabulary_id = 'SNOMED';
 
---Concepts without full specified names, function as Qualifier Value
+--Deprecated Concepts with broken fully specified name
 UPDATE concept_stage
-SET concept_class_id = 'Qualifier Value'
+SET concept_class_id = 'Procedure'
 WHERE vocabulary_id = 'SNOMED'
 	AND concept_code IN (
-		'774164004', --Supplier
-		'774167006' --Product name
+		'712611000000106', --Assessment using childhood health assessment questionnaire
+		'193371000000106' --Fluoroscopic angioplasty of carotid artery
 		);
 
---6. Add DM+D into concept_synonym_stage
-INSERT INTO concept_synonym_stage (
-	synonym_concept_code,
-	synonym_vocabulary_id,
-	synonym_name,
-	language_concept_id
-	)
-SELECT *
-FROM (
-	SELECT unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
-		FROM sources.f_ingredient2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NMPREV/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NMPREV/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
-		FROM sources.f_vmpp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	) AS s0
-WHERE synonym_concept_code IS NOT NULL
-	AND synonym_name IS NOT NULL;
+--Some old deprecated concepts from UK drug extension module never have had correct FSN, so we can't get explicit hierarchy tag and keep them as Context-dependent class
+update concept_stage c
+set concept_class_id = 'Context-dependent'
+where
+	c.concept_class_id = 'Undefined' and
+	c.invalid_reason is not null and --Make sure we only affect old concepts and not mask new classes additions
+	exists
+		(
+			select 1
+			from sources.sct2_concept_full_merged m
+			where
+				m.id :: varchar = c.concept_code and
+				m.moduleid = 999000011000001104 --SNOMED CT United Kingdom drug extension module
+		)
+;
 
 --7. Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
 INSERT INTO concept_synonym_stage (
@@ -1040,560 +477,38 @@ WHERE m.sab = 'SNOMEDCT_US'
 			AND css_int.synonym_name = SUBSTR(m.str, 1, 1000)
 		);
 
---8. Fill concept_relationship_stage from DM+D
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
+--8. Add active synonyms from merged descriptions list
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_vocabulary_id,
+	synonym_name,
+	language_concept_id
 	)
-SELECT *
-FROM (
-	--Upgrade links for UoM
-	SELECT unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for Forms
-	SELECT unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for Route
-	SELECT unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/ROUTE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for iss
-	SELECT unnest(xpath('./ISIDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
-		FROM sources.f_ingredient2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for VTMs
-	SELECT unnest(xpath('./VTMIDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for VMPs
-	SELECT unnest(xpath('./VPIDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Add Unit dose form units for VMP
-	--Linking VMPs to the unit of the form, for example "Sodium chloride 3% infusion 100ml bags" to "ml"
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./UDFS_UOMCD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has dose form unit' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Add Unit dose unit of measure for VMP
-	--Linking VMPs to the unit of the form, for example "Sodium chloride 3% infusion 100ml bags" to "bag"
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./UNIT_DOSE_UOMCD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has unit of prod use' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to VTMs
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to Ingredients
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has spec active ing' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to Basis Ingredients (Atorvastatin instead of Atorvastatin calcium trihydrate)
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./BS_SUBID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has basis str subst' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to their drug forms
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./FORMCD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has disp dose form' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to their routes
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ROUTECD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has route' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_ROUTE/DROUTE', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPs to VMPs
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	--Inherit 'Has specific active ingredient' relationship from VMP
-	SELECT a.APID AS concept_code_1,
-		b.ISID AS concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has spec active ing' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-			unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-		FROM (
-			SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-			FROM sources.f_amp2 i
-			) AS i
-		) a,
-		(
-			SELECT unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
-				unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-			FROM (
-				SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
-				FROM sources.f_vmp2 i
-				) AS i
-			) b
-	WHERE a.VPID = b.VPID
-	
-	UNION
-	
-	--Inherit Basis Ingredients relationships from VMP
-	SELECT a.APID AS concept_code_1,
-		b.BS_SUBID AS concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has basis str subst' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-			unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-		FROM (
-			SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-			FROM sources.f_amp2 i
-			) AS i
-		) a,
-		(
-			SELECT unnest(xpath('./BS_SUBID/text()', i.xmlfield))::VARCHAR BS_SUBID,
-				unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-			FROM (
-				SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
-				FROM sources.f_vmp2 i
-				) AS i
-			) b
-	WHERE a.VPID = b.VPID
-	
-	UNION
-	
-	--Inherit link drug forms from VMP
-	SELECT a.APID AS concept_code_1,
-		b.FORMCD AS concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has disp dose form' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-			unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-		FROM (
-			SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-			FROM sources.f_amp2 i
-			) AS i
-		) a,
-		(
-			SELECT unnest(xpath('./FORMCD/text()', i.xmlfield))::VARCHAR FORMCD,
-				unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-			FROM (
-				SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM', i.xmlfield)) xmlfield
-				FROM sources.f_vmp2 i
-				) AS i
-			) b
-	WHERE a.VPID = b.VPID
-	
-	UNION
-	
-	--Link AMPs to Incipients
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has excipient' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AP_INGREDIENT/AP_ING', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPs to their licensed routes
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ROUTECD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has licensed route' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/LICENSED_ROUTE/LIC_ROUTE', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPPs to their contained VMPs
-	SELECT unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has VMP' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
-		FROM sources.f_vmpp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPPs containing VMPPs
-	SELECT unnest(xpath('./PRNTVPPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CHLDVPPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
-		FROM sources.f_vmpp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPPs to their equivalent VMPPs
-	SELECT unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPPs to their contained AMPs
-	SELECT unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has AMP' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPPs to containing AMPPs
-	SELECT unnest(xpath('./PRNTVPPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CHLDVPPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	
-	UNION
-	
-	--Add SNOMED to ATC relationships
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ATC/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'ATC' AS vocabulary_id_2,
-		'SNOMED - ATC eq' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/BNF_DETAILS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.dmdbonus i
-		) AS i
-	) AS s0
-WHERE concept_code_1 IS NOT NULL
-	AND concept_code_2 IS NOT NULL;
+SELECT DISTINCT d.conceptid,
+	'SNOMED',
+	SUBSTR(d.term, 1, 1000),
+	4180186 -- English
+FROM 
+	(
+		select
+			m.id,
+			m.conceptid :: varchar,
+			m.term,
+			first_value (active) over 
+				(
+					partition by id
+					order by effectivetime desc
+				) as active_status
+		from sources.sct2_desc_full_merged m 
+	) d
+where 
+	d.active_status = 1
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_synonym_stage css_int
+		WHERE css_int.synonym_concept_code = d.conceptid
+			AND css_int.synonym_name = SUBSTR(d.term, 1, 1000)
+		);
 
 --9. Fill concept_relationship_stage from SNOMED
 INSERT INTO concept_relationship_stage (
@@ -1734,7 +649,7 @@ FROM (
 			WHEN term = 'Onset'
 				THEN 'Has clinical course' -- looks like old version
 			WHEN term = 'Part of'
-				THEN 'Has part of'
+				THEN 'Part of'
 			WHEN term = 'Pathological process'
 				THEN 'Has pathology'
 			WHEN term = 'Pathological process (qualifier value)'
@@ -1929,6 +844,25 @@ FROM (
 				then 'Has unit'
 			WHEN term = 'Process duration'
 				then 'Has proc duration'
+			--20201023
+			when term = 'Relative to'
+				then 'Relative to'
+			when term = 'Count of active ingredient'
+				then 'Has count of act ing'
+			when term = 'Has product characteristic'
+				then 'Has prod character'
+			when term = 'Has ingredient characteristic'
+				then 'Has prod character'
+			when term = 'Has surface characteristic'
+				then 'Surf character of'
+			when term = 'Has device intended site'
+				then 'Has dev intend site'
+			when term = 'Has device characteristic'
+				then 'Has prod character'
+			when term = 'Has compositional material'
+				then 'Has comp material'
+			when term = 'Has filling'
+				then 'Has filling'
 			ELSE term--'non-existing'
 			END AS relationship_id,
 		(
@@ -2113,7 +1047,7 @@ WHERE cr.relationship_id = 'Maps to'
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
 
---delete records that does not exists in the concept and concept_stage
+--delete records that do not exist in the concept and concept_stage
 DELETE
 FROM concept_relationship_stage crs
 WHERE EXISTS (
@@ -2214,6 +1148,28 @@ ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ances
 
 ANALYZE snomed_ancestor;
 
+--Append deprecated concepts that have mappings as extensions of their mapping target
+insert into snomed_ancestor (ancestor_concept_code,descendant_concept_code)
+select
+	a.ancestor_concept_code,
+	s1.concept_code :: bigint
+from concept_stage s1
+join concept_relationship_stage r on
+	s1.invalid_reason is not null and
+	s1.concept_code = r.concept_code_1 and
+	r.relationship_id = 'Maps to' and
+	r.invalid_reason is null
+join snomed_ancestor a on
+	r.concept_code_2 = a.descendant_concept_code :: varchar
+where
+	not exists
+		(
+			select from snomed_ancestor x
+			where x.descendant_concept_code = s1.concept_code :: bigint
+		)
+;
+ANALYZE snomed_ancestor;
+;
 --17. Create domain_id
 --17.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
 
@@ -2895,86 +1851,6 @@ WHERE vocabulary_id = 'SNOMED'
 		FROM snomed_ancestor
 		WHERE ancestor_concept_code = 363743006 -- Navigational Concept
 		);
-
---18. Return domain_id and concept_class_id for some concepts according to our rules
---18.1 Return domain_id
-UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (
-	SELECT dmd_int.domain_id,
-		dmd_int.concept_code
-	FROM concept_stage_dmd dmd_int,
-		concept_stage cs_int
-	WHERE dmd_int.concept_code = cs_int.concept_code
-		AND dmd_int.domain_id <> cs_int.domain_id
-		AND dmd_int.insert_id IN (
-			1,
-			2,
-			3,
-			4,
-			5,
-			6
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
-
---18.2. Return concept_class_id
---for AMPPs (branded packs), AMPs (branded drugs) and VMPPs (clinical packs)
-UPDATE concept_stage cs
-SET concept_class_id = i.concept_class_id
-FROM (
-	SELECT dmd_int.concept_class_id,
-		dmd_int.concept_code
-	FROM concept_stage_dmd dmd_int,
-		concept_stage cs_int
-	WHERE dmd_int.concept_code = cs_int.concept_code
-		AND dmd_int.concept_class_id = 'Pharma/Biol Product'
-		AND cs_int.concept_class_id IS NULL
-		AND dmd_int.insert_id IN (
-			13,
-			14,
-			15
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
-
---for Ingredients and deprecated Ingredients
-UPDATE concept_stage cs
-SET concept_class_id = i.concept_class_id
-FROM (
-	SELECT dmd_int.concept_class_id,
-		dmd_int.concept_code
-	FROM concept_stage_dmd dmd_int,
-		concept_stage cs_int
-	WHERE dmd_int.concept_code = cs_int.concept_code
-		AND dmd_int.concept_class_id = 'Substance'
-		AND COALESCE(cs_int.concept_class_id, 'unknown') NOT IN ('Substance')
-		AND dmd_int.insert_id IN (
-			7,
-			8
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
-
---for Route, deprecated Routes, UoMs and deprecated UoMs
-UPDATE concept_stage cs
-SET concept_class_id = i.concept_class_id
-FROM (
-	SELECT dmd_int.concept_class_id,
-		dmd_int.concept_code
-	FROM concept_stage_dmd dmd_int,
-		concept_stage cs_int
-	WHERE dmd_int.concept_code = cs_int.concept_code
-		AND dmd_int.concept_class_id = 'Qualifier Value'
-		AND COALESCE(cs_int.concept_class_id, 'unknown') NOT IN ('Qualifier Value')
-		AND dmd_int.insert_id IN (
-			1,
-			2,
-			5,
-			6
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
 
 --19. Rename this Topical one
 UPDATE concept_stage

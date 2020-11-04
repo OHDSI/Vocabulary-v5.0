@@ -1405,7 +1405,10 @@ VALUES (138875005, 'Metadata'), -- root
 	(1321161000000104, 'Visit'),
 	(1321151000000102, 'Visit'),
 	(1321141000000100, 'Visit'),
-	(1321131000000109, 'Visit'); -- Self quarantine and similar
+	(1321131000000109, 'Visit'), -- Self quarantine and similar
+	--added 20201028
+	(734539000,'Drug'), --Effector
+	(441742003,'Measurement'); --Evaluation finding
 
 --17.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

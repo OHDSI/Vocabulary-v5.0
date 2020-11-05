@@ -509,6 +509,12 @@ begin
       update sources.der2_crefset_language_merged set source_file_id='GB_DE' where source_file_id is null;
       CREATE INDEX idx_lang_merged_refid ON sources.der2_crefset_language_merged (referencedcomponentid);
       analyze sources.der2_crefset_language_merged;
+      --loading der2_ssrefset_moduledependency_merged
+      truncate table sources.der2_ssrefset_moduledependency_merged;
+      execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;
       execute 'COPY sources.icd10cm_temp FROM '''||pVocabularyPath||'icd10cm.txt'' delimiter E''\b''';

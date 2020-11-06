@@ -18,4 +18,5 @@
 * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_E.sql
 * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_W.sql
 * If there are NO crucial errors, run modified_nccd_rx_builder.sql
+* Add manual mapping
 * Run generic_update: select devv5.genericupdate();

@@ -7,7 +7,7 @@
 
 #### Sequence of actions ####
 
-* Download the source_file (manual_work --> README.MD --> p.1)
+* Download the source_file (manual_work --> README.md --> p.1)
 * Run manual_changes.sql if you do not have the NCCD vocabulary in your Vocabulary version
 * Run create_source_tables.sql
 * Run create_input_tables.sql
@@ -17,6 +17,6 @@
   * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_E.sql
   * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_W.sql
 * If there are NO crucial errors, run Build_RxE.sql
-* Perfom manual mapping if necessary (manual_work --> README.MD --> p.2) and run manual_table.sql
+* Perfom manual mapping if necessary (manual_work --> README.md --> p.2) and run manual_table.sql
 * Run finilize_load_stage.sql
 * Run generic_update: select devv5.genericupdate();

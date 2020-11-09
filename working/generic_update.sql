@@ -11,6 +11,9 @@ BEGIN
 	crlf TEXT:=E'\r\n';
 	BEGIN
 		SELECT STRING_AGG(error_text||' [rows_count='||rows_count||']', crlf) INTO z FROM qa_tests.Check_Stage_Tables();
+		IF LENGTH(z)>10000 THEN
+			z:=SUBSTR(z,1,10000)||'... (cutted)';
+		END IF;
 		IF z IS NOT NULL THEN
 			z:=crlf||z||crlf||crlf||'NOTE: You can also run SELECT * FROM qa_tests.Check_Stage_Tables();';
 			RAISE EXCEPTION '%', z;

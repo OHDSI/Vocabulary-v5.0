@@ -1,3 +1,22 @@
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Polina Talapova, Daryna Ivakhnenko, Dmitry Dymshyts
+* Date: 2020
+**************************************************************************/
+
 /*************************
 ****** INPUT TABLES ******
 **************************/ 
@@ -959,6 +978,23 @@ SELECT 'NCCD',
                                    WHERE vocabulary_name = 'NCCD');
 
 -- update latest_update field to new date
-DO $_$ BEGIN perform vocabulary_pack.setlatestupdate (pvocabularyname => 'NCCD',pvocabularydate => CURRENT_DATE,pvocabularyversion => 'NCCD' ||current_date,pvocabularydevschema => 'dev_nccd');
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.SetLatestUpdate( 
+	pVocabularyName			=> 'NCCD',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM nccd_vocabulary_vesion LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM nccd_vocabulary_vesion LIMIT 1),
+	pVocabularyDevSchema	=> 'dev_nccd'
+);
+END $_$;
 
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.SetLatestUpdate( 
+	pVocabularyName			=> 'RxNorm Extension',
+	pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyVersion		=> 'RxNorm Extension '||CURRENT_DATE,
+	pVocabularyDevSchema	=> 'dev_nccd',
+	pAppendVocabulary		=> TRUE
+);
 END $_$;

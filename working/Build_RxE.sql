@@ -120,9 +120,9 @@ JOIN concept c ON c.concept_id = r.concept_id_2
 		'RxNorm',
 		'RxNorm Extension',
 		'UCUM'
-		)
-
-UNION ALL
+		);									      
+-- prevent entry of old mappings
+/*UNION ALL
 
 SELECT DISTINCT c1.concept_code AS concept_code_1,
 	c1.vocabulary_id AS vocabulary_id_1,
@@ -156,7 +156,7 @@ WHERE c1.vocabulary_id = (
 		SELECT 1
 		FROM relationship_to_concept rtc
 		WHERE rtc.concept_code_1 = c1.concept_code
-		);
+		);*/
 
 CREATE INDEX idx_rtc ON r_to_c (concept_code_1, concept_id_2);
 ANALYZE r_to_c;

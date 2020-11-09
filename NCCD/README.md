@@ -17,7 +17,6 @@
   * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_E.sql
   * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_W.sql
 * If there are NO crucial errors, run Build_RxE.sql
-* Perfom manual mapping if necessary 
-* Run manual_table.sql
+* Perfom manual mapping if necessary and run manual_table.sql
 * Run finilize_load_stage.sql
 * Run generic_update: select devv5.genericupdate();

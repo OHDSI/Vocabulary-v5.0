@@ -767,7 +767,7 @@ begin
       execute 'COPY sources.ccam_r_acte_ivite FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_ACTE_IVITE.dbf" | awk "{if(NR>1)print}" ''';
       execute 'COPY sources.ccam_r_regroupement FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_REGROUPEMENT.dbf" | awk "{if(NR>1)print}" ''';
       execute 'COPY sources.ccam_version (vocabulary_date) FROM PROGRAM ''cat "'||pVocabularyPath||'R_ACTE.txt" | awk "{if(NR==1)print}" ''';
-      update sources.ccam_version set vocabulary_version=COALESCE('CCAM version '||pVocabularyVersion,pVocabularyID||' '||current_date);
+      update sources.ccam_version set vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       analyze sources.ccam_r_acte;
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;

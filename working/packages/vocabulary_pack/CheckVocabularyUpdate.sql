@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION vocabulary_pack.CheckVocabularyUpdate (
+CREATE OR REPLACE FUNCTION vocabulary_pack.CheckVocabularyUpdate (
   pVocabularyName varchar,
   out old_date date,
   out new_date date,

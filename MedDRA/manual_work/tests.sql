@@ -371,18 +371,47 @@ JOIN devv5.concept c
 WHERE NOT  exists (select 1
       from dev_meddra.der2_srefset_meddratosnomedmap s2
     WHERE s2.referencedcomponentid::varchar=a.maptarget::varchar)
-/*AND maptarget NOT IN (
-    SELECT a.maptarget
-FROM dev_meddra.der2_srefset_snomedtomeddramap a
-WHERE NOT  exists (select 1
-      from dev_meddra.der2_srefset_meddratosnomedmap s2
+AND maptarget NOT IN (
+   SELECT a.maptarget
+  FROM dev_meddra.der2_srefset_snomedtomeddramap a
+ WHERE NOT   exists (select 1
+   from dev_meddra.der2_srefset_meddratosnomedmap s2
     WHERE s2.referencedcomponentid::varchar=a.maptarget::varchar)
     group by 1 having count(a.referencedcomponentid)>1
 
-    )*/
-) SELECT * FROM tab_sm_map_only a
+    )
+),
+full_name_eq as (SELECT
+        a.snomed_name,
+        a.snomed_class,
+        a.snomed_code,
+        a.meddra_code,
+        a.meddra_name,
+        a.meddra_domain,
+        a.meddra_class,
+        'Full name SNOMED-MedDRA equivalents' as mapping_category
+FROM tab_sm_map_only a
 JOIN tab_sm_map_only b
-ON regexp_replace(lower(a.snomed_name),'\s|\.','','g')=regexp_replace(lower(b.meddra_name),'\s|\.','','g')
+ON regexp_replace(lower(a.snomed_name),'\s|\.','','g')=regexp_replace(lower(b.meddra_name),'\s|\.','','g'))
+, other as (
+    SELECT
+        a.snomed_name,
+        a.snomed_class,
+        a.snomed_code,
+        a.meddra_code,
+        a.meddra_name,
+        a.meddra_domain,
+        a.meddra_class,
+        'Other not added to MedDRA to SNOMED set mappings' as mapping_category
+FROM tab_sm_map_only a
+    WHERE (a.snomed_code,a.meddra_code) NOT IN
+    (SELECT a.snomed_code,a.meddra_code FROm full_name_eq a ))
+
+    SELECT * FROM full_name_eq
+    UNION ALL
+    SELECT * FROM other
+
+
 ;
 SELECT distinct maptarget
 FROM dev_meddra.der2_srefset_snomedtomeddramap a
@@ -587,14 +616,32 @@ WHERE  meddra_code::varchar NOT  IN (   SELECT DISTINCT meddra_rwd_mappings.medd
 
 
 --to show differnt mappings in 2 sets
-SELECT a.meddra_code,a.meddra_name,a.flag,a.snomed_code,a.snomed_name,a.snomed_class
+SELECT a.meddra_code,c.concept_class_id as meddra_class,a.meddra_name, --string_agg(cc.concept_name,'->' order by ca.min_levels_of_separation) as meddra_parents,
+CASE WHEN a.flag='SM' then 'SNOMED to MedDRA' else 'MedDRA to SNOMED' END as direction,
+       a.snomed_code,
+       a.snomed_name,
+   --    string_agg(cs.concept_synonym_name,'|') as somed_synonym,
+       a.snomed_class
 FROM combined_meddra_to_snomed_set a
 JOIN combined_meddra_to_snomed_set b
 ON a.meddra_code=b.meddra_code
 AND a.flag<>b.flag
+JOIN devv5.concept c
+ON a.meddra_code=c.concept_code
+AND c.vocabulary_id='MedDRA'
+JOIN devv5.concept_ancestor ca
+ON c.concept_id=ca.descendant_concept_id
+JOIN devv5.concept cc
+ON ca.ancestor_concept_id=cc.concept_id
+    JOIN devv5.concept c2
+    ON c2.concept_code=a.snomed_code
+    AND c2.vocabulary_id='SNOMED'
+JOIN devv5.concept_synonym cs
+ON cs.concept_id=c2.concept_id
 WHERE a.meddra_code IN
 (SELECT meddra_code FROM combined_meddra_to_snomed_set group by 1 having count(distinct snomed_code)>1)
-order by meddra_code,flag,snomed_code
+GROUP BY a.meddra_code,c.concept_class_id,a.meddra_name,a.flag,a.snomed_code,a.snomed_name,a.snomed_class
+order by meddra_code,direction,snomed_code
 ;
 -- 0 meddra codes from refset have 1toMany mappings
 WITH tabMS AS (SELECT snomed_code,
@@ -994,8 +1041,8 @@ AND s.meddra_code::varchar IN (SELECT aa.meddra_code
 )
 ;
 -- NON-CONGRUEN set
-SELECT s.meddra_name,s.meddra_code,s.snomed_code,s.snomed_name,
-             aa.target_code,aa.target_name
+SELECT s.meddra_name,s.meddra_code,s.flag,s.snomed_code,s.snomed_name,s.snomed_class,
+             aa.target_code,aa.target_name,aa.target_concept_class
 FROM dev_vkorsik.combined_meddra_to_snomed_set s
 JOIN dev_vkorsik.meddra_rwd_mappings aa
 ON aa.meddra_code=s.meddra_code
@@ -1005,13 +1052,18 @@ WHERE  NOT EXISTS(SELECT 1
                             ON a.meddra_code = ss.meddra_code
 AND a.target_code=ss.snomed_code
 AND a.target__vocabulary='SNOMED'
+
               WHERE s.meddra_code = ss.meddra_code
     )
+  AND s.meddra_code NOT IN   (SELECT meddra_code FROM meddra_rwd_mappings x group by 1 having count (distinct x.cdm_field)>1)
+  AND aa.target__vocabulary='SNOMED'
 AND s.meddra_code::varchar IN (SELECT aa.meddra_code
                                FROM dev_vkorsik.meddra_rwd_mappings aa
 )
 order by s.meddra_code
 ;
+
+SELECT * FROM meddra_rwd_mappings
 
 -- Non congruent mapping (RWD vs RefSet)
 SELECT cc.concept_code as meddra_code, cc.concept_name as meddra_name, cc.domain_id as meddra_domain,

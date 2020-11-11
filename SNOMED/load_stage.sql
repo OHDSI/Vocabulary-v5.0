@@ -1173,6 +1173,18 @@ BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
+--13.1. Inherit concept class for updated concepts from mapping target -- some of them never had hierarchy tags to extract them
+update concept_stage cs
+set concept_class_id = x.concept_class_id
+from concept_relationship_stage r, concept_stage x
+where
+	r.concept_code_1 = cs.concept_code and
+	r.relationship_id = 'Maps to' and
+	r.invalid_reason is null and
+	r.concept_code_2 = x.concept_code and
+	cs.concept_class_id = 'Undefined'
+;
+
 --14. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN

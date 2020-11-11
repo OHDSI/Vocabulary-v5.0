@@ -948,11 +948,14 @@ SELECT DISTINCT sn.concept_code_1,
 	'SNOMED',
 	'SNOMED',
 	sn.relationship_id,
-	(
+	coalesce (
+		cs.valid_end_date,
+		(
 		SELECT latest_update
 		FROM vocabulary
 		WHERE vocabulary_id = 'SNOMED'
-		),
+		)
+	),
 	TO_DATE('20991231', 'yyyymmdd'),
 	NULL
 FROM (
@@ -984,6 +987,9 @@ FROM (
 			900000000000530003
 			)
 	) sn
+LEFT JOIN concept_stage cs on -- for valid_end_date
+	cs.concept_code = sn.concept_code_1 and
+	cs.invalid_reason is not null
 WHERE sn.rn = 1
 	AND sn.active = 1
 	AND NOT EXISTS (
@@ -994,7 +1000,7 @@ WHERE sn.rn = 1
 			AND crs.relationship_id = sn.relationship_id
 		);
 
---sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
+--10.1 Sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1125,6 +1131,29 @@ WHERE EXISTS (
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
 
+--10.2. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
+update concept_stage cs
+set invalid_reason = 'U'
+from concept_relationship_stage crs
+where
+	crs.concept_code_1 = cs.concept_code and
+	crs.relationship_id in
+		(
+			'Concept replaced by',
+			'Concept same_as to',
+			'Concept alt_to to',
+			'Concept poss_eq to',
+			'Concept was_a to'
+		) and
+	crs.invalid_reason is null
+;
+--10.3. Update valid_end_date to latest_update if there is a discrepancy after last point
+update concept_stage cs
+set valid_end_date = (select latest_update from vocabulary where vocabulary_id = 'SNOMED') - 1
+where
+	invalid_reason = 'U' and
+	valid_end_date = to_date ('20991231','yyyymmdd')
+;
 --11. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
 DO $_$
 BEGIN

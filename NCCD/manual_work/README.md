@@ -6,6 +6,7 @@ Manual content processing:
 4. Download the source_file with additional manual mapping from https://drive.google.com/file/d/1QceKSf6X78zWvN-PWgEHCMpqdkgnmWWG/view?usp=sharing
 5. Run create_manual_tables.sql
 6. Extract the nccd_manual.csv file into the nccd_manual table
+7. Run manual_stage_tables.sql
 
 **csv format:**
 * delimiter: ','

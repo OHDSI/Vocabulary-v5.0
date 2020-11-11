@@ -87,6 +87,7 @@ CREATE TABLE pc_stage
 CREATE TABLE relationship_to_concept 
 (
   concept_code_1      VARCHAR(50),
+  vocabulary_id_1     VARCHAR(50),
   concept_id_2        INT,
   precedence          SMALLINT,
   conversion_factor   NUMERIC
@@ -582,10 +583,12 @@ WHERE bn_code <> 'X';--19946
 INSERT INTO relationship_to_concept
 (
   concept_code_1,
+  vocabulary_id_1,
   concept_id_2,
   precedence
 )
 SELECT DISTINCT nccd_code,
+'NCCD',
        c.concept_id,
        1
 FROM nccd_full_done a
@@ -598,254 +601,112 @@ WHERE nccd_type = 'IN';--1699
 INSERT INTO relationship_to_concept
 (
   concept_code_1,
+  vocabulary_id_1,
   concept_id_2,
   precedence,
   conversion_factor
 )
 SELECT DISTINCT *
 FROM (
-SELECT 'U',8510,1,1 :: NUMERIC
+SELECT 'U','NCCD',8510,1,1
 UNION
-SELECT 'IU',8718,1,1:: NUMERIC
+SELECT 'IU','NCCD',8718,1,1
 UNION
-SELECT 'MG',8576,1,1:: NUMERIC
+SELECT 'MG','NCCD',8576,1,1
 UNION
-SELECT 'ML',8587,1,1:: NUMERIC) a;--4  
+SELECT 'ML','NCCD',8587,1,1) a;--4  
 -- source DF - target DF (precendence = '1' via name matching)
-WITH t
-AS
-(SELECT DISTINCT a.concept_code,
-       c.concept_id
-FROM drug_concept_stage a
-  JOIN devv5.concept c
-    ON UPPER (a.concept_name) = UPPER (c.concept_name)
-   AND a.concept_class_id = 'Dose Form'
-   AND c.concept_class_id = 'Dose Form'
-   AND c.vocabulary_id ~ '^Rx'
-   AND c.invalid_reason IS NULL) 
- INSERT INTO relationship_to_concept (concept_code_1,concept_id_2,precedence) 
-   SELECT t.concept_code AS concept_code_1,
-   t.concept_id AS concept_id_2,
-   1 AS precedence 
-   FROM t;-- 24
--- source DF - target DF (precendence > '1' via word pattern matching)
-INSERT INTO relationship_to_concept
+WITH t AS  
 (
-  concept_code_1,
-  concept_id_2,
-  precedence
+  SELECT DISTINCT a.concept_code,
+         c.concept_id
+  FROM drug_concept_stage a
+    JOIN devv5.concept c
+      ON upper(a.concept_name) = upper (c.concept_name)
+     AND a.concept_class_id = 'Dose Form'
+     AND c.concept_class_id = 'Dose Form'
+     AND c.vocabulary_id ~ '^Rx'
+     AND c.invalid_reason IS NULL)
+     
+INSERT INTO relationship_to_concept
+(concept_code_1,vocabulary_id_1,concept_id_2,precedence)
+SELECT t.concept_code as concept_code_1,
+       'NCCD' as vocabulary_id_1,
+       t.concept_id as concept_id_2,
+       1 as precedence
+FROM t; 
+
+-- source DF - target DF (precendence > '1' via word pattern matching)
+INSERT INTO relationship_to_concept  
+(concept_code_1,vocabulary_id_1,concept_id_2,precedence)
+with t as(
+ SELECT concept_code as concept_code_1,'NCCD' as vocabulary_id_1,19082079 as concept_id_2, 2 as precedence  FROM drug_concept_stage  WHERE concept_name = 'Oral Tablet'
+UNION
+SELECT concept_code,'NCCD',19001949,3 FROM drug_concept_stage  WHERE concept_name = 'Oral Tablet' 
+UNION
+SELECT concept_code,'NCCD',44817840,4 FROM drug_concept_stage  WHERE concept_name = 'Oral Tablet'
+UNION
+SELECT concept_code,'NCCD',19082076,5 FROM drug_concept_stage  WHERE concept_name = 'Oral Tablet'
+UNION
+SELECT concept_code,'NCCD',37498347,6 FROM drug_concept_stage WHERE concept_name = 'Oral Tablet'
+UNION 
+SELECT concept_code,'NCCD',19082079,2 FROM drug_concept_stage WHERE concept_name = 'Oral Capsule'
+UNION
+SELECT concept_code ,'NCCD',19082255,3 FROM drug_concept_stage WHERE concept_name = 'Oral Capsule'
+UNION
+SELECT concept_code, 'NCCD', 19082103, 1 FROM drug_concept_stage WHERE concept_name = 'Injectable'
+UNION
+SELECT concept_code,'NCCD',19082104,2 FROM drug_concept_stage WHERE concept_name = 'Injectable'
+UNION
+SELECT concept_code,'NCCD',46234469,3 FROM drug_concept_stage WHERE concept_name = 'Injectable'
+UNION
+SELECT  concept_code,'NCCD',19126920,4 FROM drug_concept_stage WHERE concept_name = 'Injectable'
+UNION
+SELECT concept_code,'NCCD',46234467,5 FROM drug_concept_stage WHERE concept_name = 'Injectable'
+UNION
+SELECT concept_code,'NCCD',46234466,6 FROM drug_concept_stage WHERE concept_name = 'Injectable'
+UNION
+SELECT concept_code,'NCCD',19095973,2 FROM drug_concept_stage WHERE concept_name = 'Gel'
+UNION
+SELECT concept_code,'NCCD',19095916,3 FROM drug_concept_stage WHERE concept_name = 'Gel'
+UNION
+SELECT concept_code,'NCCD',19082286,2 FROM drug_concept_stage WHERE concept_name = 'Powder'
+UNION
+SELECT concept_code,'NCCD',19082259,3 FROM drug_concept_stage WHERE concept_name = 'Powder'
+UNION
+SELECT concept_code,'NCCD',19082227,2 FROM drug_concept_stage WHERE concept_name = 'Ointment'
+UNION
+SELECT concept_code,'NCCD',19082224,3 FROM drug_concept_stage WHERE concept_name = 'Ointment' 
+UNION
+SELECT concept_code,'NCCD',19093368,2 FROM drug_concept_stage WHERE concept_name = 'Vaginal Insert'
+UNION
+SELECT concept_code,'NCCD',19082200,2 FROM drug_concept_stage WHERE concept_name = 'Suppository'
+UNION
+SELECT concept_code,'NCCD',19093368,3 FROM drug_concept_stage WHERE concept_name = 'Suppository'
+UNION
+SELECT concept_code,'NCCD',19127579,2 FROM drug_concept_stage WHERE concept_name = 'Inhaler' -- 19127579	744995	Dry Powder Inhaler
+UNION
+SELECT concept_code,'NCCD',19126919,3 FROM drug_concept_stage WHERE concept_name = 'Inhaler' -- 19126919	721655	Nasal Inhaler
+UNION
+SELECT concept_code,'NCCD',19126918,4 FROM drug_concept_stage WHERE concept_name = 'Inhaler' -- 19126918	721654	Metered Dose Inhaler
+UNION
+SELECT concept_code,'NCCD',19082223,2 FROM drug_concept_stage WHERE concept_name = 'Oral Solution' 
+UNION 
+SELECT concept_code, 'NCCD', 19082701, 2 FROM drug_concept_stage WHERE concept_name = 'Medicated Patch' -- 19082701	318130	Patch	Dose Form	Non-standard	Valid	Drug	RxNorm
+UNION  
+SELECT concept_code, 'NCCD', 19082165, 2 FROM drug_concept_stage WHERE concept_name = 'Nasal Spray' -- -- 19082165	316962	Nasal Solution
+UNION
+SELECT concept_code, 'NCCD',37499224 , 2 FROM drug_concept_stage WHERE concept_name = 'Oral Granules'  -- 37499224	2284290	Delayed Release Oral Granules
+UNION 
+SELECT concept_code, 'NCCD',45775489 , 3 FROM drug_concept_stage WHERE concept_name = 'Oral Granules'  -- 45775489	1540453	Granules for Oral Solution 
+UNION 
+SELECT concept_code, 'NCCD',45775490 , 4 FROM drug_concept_stage WHERE concept_name = 'Oral Granules'  -- 45775490	1540454	Granules for Oral Suspension
+UNION  
+SELECT concept_code, 'NCCD', 19082196, 2 FROM drug_concept_stage WHERE concept_name = 'Otic Solution'  -- 19082196	316974	Otic Suspension
+UNION 
+SELECT concept_code, 'NCCD',19095918 ,2 FROM drug_concept_stage WHERE concept_name = 'Paste' -- 19095918	346171	Oral Paste 
 )
-WITH t
-AS
-(SELECT concept_code AS concept_code_1,
-       19082079 AS concept_id_2,
-       2 AS precedence
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Tablet'
-UNION
-SELECT concept_code,
-       'NCCD',
-       19001949,
-       3
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Tablet'
-UNION
-SELECT concept_code,
-       44817840,
-       4
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Tablet'
-UNION
-SELECT concept_code,
-       19082076,
-       5
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Tablet'
-UNION
-SELECT concept_code,
-       37498347,
-       6
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Tablet'
-UNION
-SELECT concept_code,
-       19082079,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Capsule'
-UNION
-SELECT concept_code,
-       19082255,
-       3
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Capsule'
-UNION
-SELECT concept_code,
-       19082103,
-       1
-FROM drug_concept_stage
-WHERE concept_name = 'Injectable'
-UNION
-SELECT concept_code,
- 19082104,
- 2 
- FROM drug_concept_stage 
- WHERE concept_name = 'Injectable'
-UNION
-SELECT concept_code,
-       46234469,
-       3
-FROM drug_concept_stage
-WHERE concept_name = 'Injectable'
-UNION
-SELECT concept_code,
-       19126920,
-       4
-FROM drug_concept_stage
-WHERE concept_name = 'Injectable'
-UNION
-SELECT concept_code,
-       46234467,
-       5
-FROM drug_concept_stage
-WHERE concept_name = 'Injectable'
-UNION
-SELECT concept_code,
-       46234466,
-       6
-FROM drug_concept_stage
-WHERE concept_name = 'Injectable'
-UNION
-SELECT concept_code,
-       19095973,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Gel'
-UNION
-SELECT concept_code,
-       19095916,
-       3
-FROM drug_concept_stage
-WHERE concept_name = 'Gel'
-UNION
-SELECT concept_code,
-       19082286,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Powder'
-UNION
-SELECT concept_code,
-       19082259,
-       3
-FROM drug_concept_stage
-WHERE concept_name = 'Powder'
-UNION
-SELECT concept_code,
-       19082227,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Ointment'
-UNION
-SELECT concept_code,
-       19082224,
-       3
-FROM drug_concept_stage
-WHERE concept_name = 'Ointment'
-UNION
-SELECT concept_code,
-       19093368,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Vaginal Insert'
-UNION
-SELECT concept_code,
-       19082200,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Suppository'
-UNION
-SELECT concept_code,
-       19093368,
-       3
-FROM drug_concept_stage
-WHERE concept_name = 'Suppository'
-UNION
-SELECT concept_code,
-       19127579,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Inhaler'
--- 19127579	744995	Dry Powder Inhaler
-UNION
-SELECT concept_code,
-       19126919,
-       3
-FROM drug_concept_stage
-WHERE concept_name = 'Inhaler'
--- 19126919	721655	Nasal Inhaler
-UNION
-SELECT concept_code,
-       19126918,
-       4
-FROM drug_concept_stage
-WHERE concept_name = 'Inhaler'
--- 19126918	721654	Metered Dose Inhaler
-UNION
-SELECT concept_code,
-       19082223,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Solution'
-UNION
-SELECT concept_code,
-       19082701,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Medicated Patch'
--- 19082701	318130	Patch	Dose Form	Non-standard	Valid	Drug	RxNorm
-UNION
-SELECT concept_code,
-       19082165,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Nasal Spray'
--- -- 19082165	316962	Nasal Solution
-UNION
-SELECT concept_code,
-       37499224,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Granules'
--- 37499224	2284290	Delayed Release Oral Granules
-UNION
-SELECT concept_code, 
- 45775489 ,
- 3
- FROM drug_concept_stage 
- WHERE concept_name = 'Oral Granules'
--- 45775489	1540453	Granules for Oral Solution 
-UNION
-SELECT concept_code,
-       45775490,
-       4
-FROM drug_concept_stage
-WHERE concept_name = 'Oral Granules'
--- 45775490	1540454	Granules for Oral Suspension
-UNION
-SELECT concept_code,
-       19082196,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Otic Solution'
--- 19082196	316974	Otic Suspension
-UNION
-SELECT concept_code,
-       19095918,
-       2
-FROM drug_concept_stage
-WHERE concept_name = 'Paste'
--- 19095918	346171	Oral Paste 
-) SELECT DISTINCT*FROM t;-- 31
+SELECT distinct * FROM t; -- 31
 
 -- cleaning up 
 -- delete "drugs" without ingredients (they shouldn't be at the drug input tables)

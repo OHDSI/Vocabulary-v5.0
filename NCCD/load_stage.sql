@@ -56,7 +56,7 @@ SELECT nccd_code as concept_code_1,
        TO_DATE('19700101','yyyymmdd') as valid_start_date,
        TO_DATE('20991231','yyyymmdd') as valid_end_date,
        NULL AS invalid_reason
-FROM nccd_full_done;
+FROM nccd_full_done where concept_code is not null;;
 -- Add original Chinese names for NCCD concepts
 INSERT INTO concept_synonym_stage
 (

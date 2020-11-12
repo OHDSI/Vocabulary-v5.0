@@ -27,7 +27,7 @@ TRUNCATE TABLE drug_strength_stage;
 -- Add NCCD concepts (Drug Products and Drug Attributes)
 INSERT INTO concept_stage
 (concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason)
-SELECT  t_nm as concept_name,       -- English name
+SELECT  INITCAP(t_nm) as concept_name,       -- English name
        'Drug' as domain_id,
        'NCCD' as vocabulary_id,
        CASE

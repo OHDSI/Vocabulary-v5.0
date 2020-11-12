@@ -173,7 +173,7 @@ SELECT DISTINCT TRIM(REGEXP_REPLACE(INITCAP(t_nm),'^-','g')) AS concept_name,
        CURRENT_DATE AS valid_start_date,
        TO_DATE('20991231','YYYYMMDD') AS valid_end_date,
        NULL AS invalid_reason,
-       nccd_type AS source_concept_class_id
+       NULL AS source_concept_class_id
 FROM nccd_full_done; -- 51240
 /**************************
 *** DRUG_STRENGTH_STAGE ***

@@ -9,11 +9,11 @@
 
 * Do manual_work
 * Run load_stage.sql
-* Run create_input_tables.sql
 * Run QA scripts:
   * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/drug_stage_tables_QA.sql
   * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/Drug_stage_QA_optional.sql
   * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_E.sql
   * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_W.sql
 * If there are NO crucial errors, run Build_RxE.sql
+* Run post_processing.sql
 * Run generic_update: select devv5.genericupdate();

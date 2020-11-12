@@ -17,6 +17,28 @@
 * Date: 2020
 **************************************************************************/
 
+-- update latest_update field to new date
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.SetLatestUpdate( 
+	pVocabularyName			=> 'NCCD',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM nccd_vocabulary_vesion LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM nccd_vocabulary_vesion LIMIT 1),
+	pVocabularyDevSchema	=> 'dev_nccd'
+);
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.SetLatestUpdate( 
+	pVocabularyName			=> 'RxNorm Extension',
+	pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyVersion		=> 'RxNorm Extension '||CURRENT_DATE,
+	pVocabularyDevSchema	=> 'dev_nccd',
+	pAppendVocabulary		=> TRUE
+);
+END $_$;
+
 /*************************
 ****** INPUT TABLES ******
 **************************/ 
@@ -597,6 +619,21 @@ FROM nccd_full_done a
    AND c.standard_concept = 'S'
 WHERE nccd_type = 'IN';--1699
 
+-- source BN - target BN
+INSERT INTO relationship_to_concept
+(
+  concept_code_1,
+  vocabulary_id_1,
+  concept_id_2,
+  precedence
+)
+SELECT DISTINCT nccd_code,
+'NCCD',
+       concept_id,
+       1
+FROM nccd_full_done 
+WHERE nccd_type = 'BN';
+
 -- source UNITS - target UNITS
 INSERT INTO relationship_to_concept
 (
@@ -777,39 +814,5 @@ SELECT 100,
        TO_DATE('20991231','yyyymmdd'),
        NULL WHERE 'NCCD' NOT IN (SELECT concept_name FROM concept WHERE concept_name = 'NCCD');
 
--- add new vocabulary to the vocabulary table
-INSERT INTO vocabulary
-(
-  vocabulary_id,
-  vocabulary_name,
-  vocabulary_concept_id,
-  vocabulary_reference
-)
-SELECT 'NCCD',
-       'NCCD',
-       100,
-       'Stub' WHERE 'NCCD' NOT IN (SELECT vocabulary_name
-                                   FROM vocabulary
-                                   WHERE vocabulary_name = 'NCCD');
 
--- update latest_update field to new date
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.SetLatestUpdate( 
-	pVocabularyName			=> 'NCCD',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM nccd_vocabulary_vesion LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM nccd_vocabulary_vesion LIMIT 1),
-	pVocabularyDevSchema	=> 'dev_nccd'
-);
-END $_$;
 
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.SetLatestUpdate( 
-	pVocabularyName			=> 'RxNorm Extension',
-	pVocabularyDate			=> CURRENT_DATE,
-	pVocabularyVersion		=> 'RxNorm Extension '||CURRENT_DATE,
-	pVocabularyDevSchema	=> 'dev_nccd',
-	pAppendVocabulary		=> TRUE
-);
-END $_$;

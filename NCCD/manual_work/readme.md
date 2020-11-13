@@ -1,6 +1,6 @@
 Manual content processing:
 
-1. Download the source_file from https://drive.google.com/file/d/1Wun5E8uau4Q72COPEBO0-SCykPY6oD0K/view?usp=sharing
+1. Download the source_file from https://drive.google.com/file/d/1xSjNHK9YTW6EHzFYvoG-HgF1fTCVNs_A/view?usp=sharing
 2. Run create_source_tables.sql
 3. Extract the nccd_full_done.csv file into the nccd_full_done table
 4. Download the source_file with additional manual mapping from https://drive.google.com/file/d/1QceKSf6X78zWvN-PWgEHCMpqdkgnmWWG/view?usp=sharing

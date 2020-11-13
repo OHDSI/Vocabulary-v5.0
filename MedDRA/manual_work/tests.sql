@@ -543,7 +543,30 @@ ON s.target_concept_id=cc.concept_id
 WHERE s.source_vocabulary_id IN ('JJ_MedDRA_maps_to','JJ_MedDRA_maps_to_value')
     )
 ;
+--version 2
+CREATE TABLE dev_vkorsik.meddra_rwd_mappings AS (
+                         SELECT c.concept_id as meddra_id,
+                                        c.concept_code as meddra_code,
+                                            c.concept_name as meddra_name,
+                                            c.concept_class_id as meddra_concept_class,
+                                            c.domain_id as meddra_domain,
+                                            CASE WHEN  s.to_value!~*'value' THEN 'event_concept_id' ELSE 'value_as_concept_id' END as cdm_field,
+                                           coalesce(cc.concept_id,s.target_concept_id) as target_id,
+                                              coalesce( cc.concept_code,'custom')                                  as target_code,
+                                             coalesce( cc.concept_name,'custom')      as target_name,
+                                            coalesce( cc.concept_class_id,'custom') as target_concept_class,
+                                           coalesce( cc.domain_id,'custom') as target_domain,
+                                            coalesce( cc.vocabulary_id,'custom') as target__vocabulary
 
+                                     FROM dev_vkorsik.jj_meddra_mapped s
+JOIN devv5.concept c
+ON s.source_code=c.concept_code
+AND c.vocabulary_id='MedDRA'
+LEFT JOIN devv5.concept cc
+ON s.target_concept_id=cc.concept_id
+    )
+;
+SELECT * FROM meddra_rwd_mappings
 
 -- Number of codes used in RWD =8294
 SELECT c.invalid_reason,c.concept_class_id,count(distinct meddra_code)
@@ -1041,7 +1064,7 @@ AND s.meddra_code::varchar IN (SELECT aa.meddra_code
 )
 ;
 -- NON-CONGRUEN set
-SELECT s.meddra_name,s.meddra_code,s.flag,s.snomed_code,s.snomed_name,s.snomed_class,
+SELECT s.meddra_name,s.meddra_code,s.flag,s.snomed_code,s.snomed_name,s.snomed_class,s.snomed_validity,
              aa.target_code,aa.target_name,aa.target_concept_class
 FROM dev_vkorsik.combined_meddra_to_snomed_set s
 JOIN dev_vkorsik.meddra_rwd_mappings aa
@@ -1055,7 +1078,7 @@ AND a.target__vocabulary='SNOMED'
 
               WHERE s.meddra_code = ss.meddra_code
     )
-  AND s.meddra_code NOT IN   (SELECT meddra_code FROM meddra_rwd_mappings x group by 1 having count (distinct x.cdm_field)>1)
+ AND s.meddra_code NOT  IN   (SELECT meddra_code FROM meddra_rwd_mappings x group by 1 having count (distinct x.target_code)>1)
   AND aa.target__vocabulary='SNOMED'
 AND s.meddra_code::varchar IN (SELECT aa.meddra_code
                                FROM dev_vkorsik.meddra_rwd_mappings aa

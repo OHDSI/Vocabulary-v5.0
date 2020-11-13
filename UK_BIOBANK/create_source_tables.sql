@@ -17,167 +17,167 @@
 * Date: 2020
 **************************************************************************/
 
-CREATE TABLE schema
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_ENCODING;
+CREATE TABLE SOURCES.UK_BIOBANK_ENCODING
 (
-    schema_id int,
-    name varchar(50),
-    descript varchar(255),
-    notes varchar(1000)
+   ENCODING_ID  INT,
+   TITLE        TEXT,
+   AVAILABILITY INT2,
+   CODED_AS     INT2,
+   STRUCTURE    INT2,
+   NUM_MEMBERS  INT,
+   DESCRIPT     TEXT
 );
 
-CREATE TABLE encoding
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_CATEGORY;
+CREATE TABLE SOURCES.UK_BIOBANK_CATEGORY
 (
-    encoding_id int,
-    title varchar(255),
-    availability int,
-    coded_as int,
-    structure int,
-    num_members varchar(1000),
-    descript varchar(1000)
+   CATEGORY_ID  INT,
+   TITLE        TEXT,
+   AVAILABILITY INT2,
+   GROUP_TYPE   INT2,
+   DESCRIPT     TEXT,
+   NOTES        TEXT
 );
 
-CREATE TABLE category
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_EHIERINT;
+CREATE TABLE SOURCES.UK_BIOBANK_EHIERINT
 (
-    category_id int,
-    title varchar(255),
-    availability varchar(255),
-    group_type varchar(255),
-    descript varchar(5000),
-    notes varchar(5000)
+   ENCODING_ID    INT,
+   CODE_ID        INT,
+   PARENT_ID      INT,
+   VALUE          TEXT,
+   MEANING        TEXT,
+   SELECTABLE     INT2,
+   SHOWCASE_ORDER NUMERIC
 );
 
-CREATE TABLE ehierint
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_EHIERSTRING;
+CREATE TABLE SOURCES.UK_BIOBANK_EHIERSTRING
 (
-  encoding_id int,
-  code_id	int,
-  parent_id int,
-  value int,
-  meaning varchar(255),
-  selectable int,
-  showcase_order int
+   ENCODING_ID    INT,
+   CODE_ID        INT,
+   PARENT_ID      INT,
+   VALUE          TEXT,
+   MEANING        TEXT,
+   SELECTABLE     INT2,
+   SHOWCASE_ORDER NUMERIC
 );
 
-CREATE TABLE ehierstring
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_ESIMPSTRING;
+CREATE TABLE SOURCES.UK_BIOBANK_ESIMPSTRING
 (
-  encoding_id int,
-  code_id	int,
-  parent_id int,
-  value varchar(255),
-  meaning varchar(255),
-  selectable int,
-  showcase_order int
+   ENCODING_ID    INT,
+   VALUE          TEXT,
+   MEANING        TEXT,
+   SHOWCASE_ORDER NUMERIC
 );
 
-CREATE TABLE esimpstring
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_ESIMPREAL;
+CREATE TABLE SOURCES.UK_BIOBANK_ESIMPREAL
 (
-  encoding_id int,
-  value	varchar(50),
-  meaning varchar(255),
-  showcase_order varchar(255)
+   ENCODING_ID    INT,
+   VALUE          TEXT,
+   MEANING        TEXT,
+   SHOWCASE_ORDER NUMERIC
 );
 
-CREATE TABLE esimpreal
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_ESIMPINT;
+CREATE TABLE SOURCES.UK_BIOBANK_ESIMPINT
 (
-encoding_id int,
-value varchar(20),
-meaning varchar(255),
-showcase_order int
+   ENCODING_ID    INT,
+   VALUE          TEXT,
+   MEANING        TEXT,
+   SHOWCASE_ORDER NUMERIC
 );
 
-CREATE TABLE esimpint
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_ESIMPDATE;
+CREATE TABLE SOURCES.UK_BIOBANK_ESIMPDATE
 (
-encoding_id int,
-value varchar(20),
-meaning varchar(255),
-showcase_order int
+   ENCODING_ID    INT,
+   VALUE          TEXT,
+   MEANING        TEXT,
+   SHOWCASE_ORDER NUMERIC
 );
 
-CREATE TABLE esimpdate
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_FIELD;
+CREATE TABLE SOURCES.UK_BIOBANK_FIELD
 (
-encoding_id int,
-value varchar(20),
-meaning varchar(255),
-showcase_order int
+   FIELD_ID         INT,
+   TITLE            TEXT,
+   AVAILABILITY     INT2,
+   STABILITY        INT2,
+   PRIVATE          INT2,
+   VALUE_TYPE       INT2,
+   BASE_TYPE        INT2,
+   ITEM_TYPE        INT2,
+   STRATA           INT2,
+   INSTANCED        INT2,
+   ARRAYED          INT2,
+   SEXED            INT2,
+   UNITS            TEXT,
+   MAIN_CATEGORY    INT,
+   ENCODING_ID      INT,
+   INSTANCE_ID      INT,
+   INSTANCE_MIN     INT2,
+   INSTANCE_MAX     INT2,
+   ARRAY_MIN        INT2,
+   ARRAY_MAX        INT2,
+   NOTES            TEXT,
+   DEBUT            DATE,
+   VERSION          DATE,
+   NUM_PARTICIPANTS INT,
+   ITEM_COUNT       INT,
+   SHOWCASE_ORDER   NUMERIC
 );
 
-CREATE TABLE field
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_FIELDSUM;
+CREATE TABLE SOURCES.UK_BIOBANK_FIELDSUM
 (
-    field_id int,
-    title varchar(255),
-    availability int,
-    stability int,
-    private int,
-    value_type int,
-    base_type int,
-    item_type int,
-    strata varchar(255),
-    instanced int,
-    arrayed int,
-    sexed int,
-    units varchar(255),
-    main_category int,
-    encoding_id int,
-    instance_id int,
-    instance_min varchar(255),
-    instance_max varchar(255),
-    array_min varchar(255),
-    array_max varchar(255),
-    notes varchar(5000),
-    debut varchar(255),
-    version varchar(255),
-    num_participants int,
-    item_count int,
-    showcase_order varchar(50)
+   FIELD_ID  INT,
+   TITLE     TEXT,
+   ITEM_TYPE INT2
 );
 
-CREATE TABLE fieldsum
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_INSTANCES;
+CREATE TABLE SOURCES.UK_BIOBANK_INSTANCES
 (
-    field_id int,
-    title varchar(2550),
-    item_type int
+   INSTANCE_ID INT,
+   DESCRIPT    TEXT,
+   NUM_MEMBERS INT
 );
 
-CREATE TABLE instances
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_INSVALUE;
+CREATE TABLE SOURCES.UK_BIOBANK_INSVALUE
 (
-instance_id int,
-descript varchar(3000),
-num_members int
+   INSTANCE_ID INT,
+   INDEX       INT2,
+   TITLE       TEXT,
+   DESCRIPT    TEXT
 );
 
-CREATE TABLE insvalue
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_RECOMMENDED;
+CREATE TABLE SOURCES.UK_BIOBANK_RECOMMENDED
 (
-    instance_id	int,
-    index int,
-    title varchar(255),
-    descript varchar(1000)
+   CATEGORY_ID INT,
+   FIELD_ID    INT
 );
 
-CREATE TABLE recommended
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_RETURNS;
+CREATE TABLE SOURCES.UK_BIOBANK_RETURNS
 (
-    category_id	int,
-    field_id int
+   ARCHIVE_ID     INT,
+   APPLICATION_ID INT,
+   TITLE          TEXT,
+   AVAILABILITY   INT2,
+   PERSONAL       INT2,
+   NOTES          TEXT
 );
 
-CREATE TABLE returns
+DROP TABLE IF EXISTS SOURCES.UK_BIOBANK_CATBROWSE;
+CREATE TABLE SOURCES.UK_BIOBANK_CATBROWSE
 (
-    archive_id int,
-    application_id int,
-    title text,
-    availability int,
-    personal int,
-    notes text
-);
-
-CREATE TABLE coding_showcase
-(
-    coding int,
-    value varchar(50),
-    meaning varchar(1000)
-);
-
-CREATE TABLE catbrowse
-(
-    parent_id int,
-    child_id int,
-    showcase_order int
+   PARENT_ID      INT,
+   CHILD_ID       INT,
+   SHOWCASE_ORDER NUMERIC
 );

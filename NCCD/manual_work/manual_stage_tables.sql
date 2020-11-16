@@ -36,13 +36,13 @@ SELECT  DISTINCT  trim(regexp_replace(initcap (t_nm), '\s+', ' ', 'g')),
 c.domain_id AS domain_id,
        'NCCD' AS vocabulary_id,
        case when c.domain_id = 'Drug' then 'Drug Product' else 'Device' end AS concept_class_id,
-       case when a.concept_id != 0 then null else 'S' end AS standard_concept,
+       NULL AS standard_concept,
        nccd_code AS concept_code,
        TO_DATE('20200313','yyyymmdd') AS valid_start_date,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
        FROM nccd_manual a
-       left join devv5.concept c on a.concept_Id = c.concept_id and c.standard_concept = 'S'; --417
+       join devv5.concept c on a.concept_Id = c.concept_id and c.standard_concept = 'S'; --353
 /***************************************
 ***** CONCEPT RELATIONSHIP MANUAL ******
 ****************************************/
@@ -69,8 +69,5 @@ SELECT DISTINCT nccd_name as synonym_name,
        nccd_code as synonym_concept_code,
        'NCCD' as synonym_vocabulary_id,
        4180186 as language_concept_id
-FROM nccd_manual; --417
-
-
-
-
+FROM nccd_manual
+where concept_id != 0; --353

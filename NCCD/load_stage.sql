@@ -285,7 +285,8 @@ drug_name,
 ingredient_concept_code,
 CASE WHEN denominator_unit IN ('G','L') 
 THEN numerator_value*0.001 ELSE numerator_value END,
-numerator_unit,denominator_value,
+numerator_unit,
+denominator_value,
 CASE WHEN denominator_unit = 'G' THEN 'MG' 
 WHEN denominator_unit IN ('L','LITER') THEN 'ML' ELSE denominator_unit END 
 FROM t1 
@@ -319,7 +320,7 @@ a.t_nm AS drug_name,
 a.ingredient_concept_code,
 a.dose::NUMERIC*10 AS numerator_value,
 'MG' AS numerator_unit,
-NULL::FLOAT8 AS denominator_value,
+NULL :: FLOAT8 AS denominator_value,
 CASE WHEN UPPER(a.t_nm) ~* 'CREAM|OINTMENT' 
 THEN 'G' ELSE 'ML' END AS denominator_unit 
 FROM a 
@@ -365,7 +366,7 @@ AS
        a.ing_code AS ingredient_concept_code,
        a.dose::NUMERIC AS numerator_value,
        SPLIT_PART(a.unit,'/','1') AS numerator_unit,
-       1::FLOAT AS denominator_value,
+       NULL :: FLOAT8 AS denominator_value,
        SPLIT_PART(a.unit,'/','2') AS denominator_unit
 FROM nccd_full_done a
   JOIN nccd_full_done b
@@ -381,9 +382,9 @@ AND   a.ing_code IN (SELECT concept_code
 SELECT DISTINCT drug_concept_code,
 drug_name,
 ingredient_concept_code,
-CASE WHEN numerator_unit = 'G' THEN numerator_value::NUMERIC*1000 
-WHEN numerator_unit = 'MCG' THEN numerator_value::NUMERIC/ 1000 
-WHEN denominator_unit = 'G' THEN numerator_value::NUMERIC/ 1000 
+CASE WHEN numerator_unit = 'G' THEN numerator_value :: NUMERIC*1000 
+WHEN numerator_unit = 'MCG' THEN numerator_value :: NUMERIC/ 1000 
+WHEN denominator_unit = 'G' THEN numerator_value :: NUMERIC/ 1000 
 ELSE numerator_value END,
 CASE WHEN numerator_unit = '' THEN 'MG' 
 WHEN numerator_unit = 'MCG' THEN 'MG' 
@@ -417,9 +418,9 @@ WHERE unit ~ '\|')
 SELECT DISTINCT a.nccd_code AS drug_concept_code,
 a.t_nm AS drug_name,
 a.ingredient_concept_code,
-a.dose::NUMERIC AS numerator_value,
+a.dose :: NUMERIC AS numerator_value,
 SPLIT_PART(a.unit,'/','1') AS numerator_unit,
-1::FLOAT AS denominator_value,
+NULL :: FLOAT8 AS denominator_value,
 SPLIT_PART(a.unit,'/','2') AS denominator_unit 
 FROM a 
 JOIN nccd_full_done b 
@@ -487,10 +488,7 @@ SELECT DISTINCT drug_concept_code,
        amount_unit,
        numerator_value :: NUMERIC,
        numerator_unit,
-       CASE
-         WHEN denominator_value IS NULL AND numerator_value IS NOT NULL THEN 1::NUMERIC
-         ELSE denominator_value :: NUMERIC
-       END 
+      denominator_value :: NUMERIC
 ,
        denominator_unit
 FROM ds_0;-- 30665
@@ -785,34 +783,3 @@ ALTER TABLE ds_stage ALTER COLUMN denominator_value TYPE NUMERIC;
 ALTER TABLE ds_stage ALTER COLUMN box_size TYPE SMALLINT;
 ALTER TABLE relationship_to_concept ALTER COLUMN conversion_factor TYPE NUMERIC;
 ALTER TABLE relationship_to_concept ALTER COLUMN precedence TYPE SMALLINT;
-
-/**********************************
-******* ADD NCCD VOCABULARY *******
-***********************************/ 
--- add new vocabulary to the concept table
-INSERT INTO concept
-(
-  concept_id,
-  concept_name,
-  domain_id,
-  vocabulary_id,
-  concept_class_id,
-  standard_concept,
-  concept_code,
-  valid_start_date,
-  valid_end_date,
-  invalid_reason
-)
-SELECT 100,
-       'NCCD',
-       'Drug',
-       'Vocabulary',
-       'Vocabulary',
-       NULL,
-       'OMOP generated',
-       TO_DATE('19700101','yyyymmdd'),
-       TO_DATE('20991231','yyyymmdd'),
-       NULL WHERE 'NCCD' NOT IN (SELECT concept_name FROM concept WHERE concept_name = 'NCCD');
-
-
-

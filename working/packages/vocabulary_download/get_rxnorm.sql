@@ -18,8 +18,8 @@ pVocabularyNewDate date;
 pVocabularyNewVersion text;
 pCookie text;
 pContent text;
+pTicket text;
 pDownloadURL text;
-auth_hidden_param varchar(10000);
 pErrorDetails text;
 pVocabularyOperation text;
 pJumpToOperation text; --ALL (default), JUMP_TO_RXNORM_PREPARE, JUMP_TO_RXNORM_IMPORT
@@ -63,13 +63,9 @@ BEGIN
     select substring(http_content,'<table class="current">.+?<a href="(.+?)">') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
-    --get full working link with proper cookie
-    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'),
-    (select value from json_each_text(http_headers) where lower(key)='location'),http_content
-    into pCookie, pDownloadURL, pContent from py_http_umls (pVocabulary_auth,pDownloadURL,devv5.urlencode(pVocabulary_login),devv5.urlencode(pVocabulary_pass));
-    if pCookie not like '%MOD_AUTH_CAS=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%MOD_AUTH_CAS=%% not found'; end if;
-    
-    pCookie=substring(pCookie,'MOD_AUTH_CAS=(.*?);');
+    --get the proper ticket and concatenate it with the pDownloadURL
+    pTicket:=get_umls_ticket (pVocabulary_auth,pVocabulary_login);
+    pDownloadURL:=pDownloadURL||'?ticket='||pTicket;
 
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -83,8 +79,7 @@ BEGIN
     perform run_wget (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.zip',
-      iDownloadLink=>pDownloadURL,
-      iParams=>'--no-cookies --header "Cookie: MOD_AUTH_CAS='||pCookie||'"'
+      iDownloadLink=>pDownloadURL
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,

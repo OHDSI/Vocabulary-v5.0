@@ -6406,7 +6406,7 @@ FROM maps_to m
 JOIN ex e ON e.concept_id = m.to_id
 JOIN r_to_c rtc ON rtc.concept_code_1 = m.from_code
 JOIN concept dc ON dc.concept_id = rtc.concept_id_2
-WHERE dc.vocabulary_id IN (
+WHERE EXISTS (
 		SELECT c_int.vocabulary_id
 		FROM concept c_int
 		WHERE c_int.domain_id = 'Drug'

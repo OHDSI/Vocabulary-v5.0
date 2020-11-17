@@ -1549,7 +1549,10 @@ VALUES (138875005, 'Metadata'), -- root
 	(29164008,'Condition'), --Disturbance in speech
 	(288579009,'Condition'), --Difficulty communicating
 	(288576002,'Condition'), --Unable to communicate
-	(229621000,'Condition') --Disorder of fluency
+	(229621000,'Condition'), --Disorder of fluency
+	--AVOF-2893
+	(260299005,'Meas Value'),--Number
+	(272063003,'Meas Value') --Alphanumeric
 ;
 --18.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

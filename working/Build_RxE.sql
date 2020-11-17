@@ -70,11 +70,13 @@ ALTER TABLE internal_relationship_stage
 --relationship_to_concept
 ALTER TABLE relationship_to_concept
 	ADD CONSTRAINT tmp_rtc_code1 CHECK (concept_code_1 IS NOT NULL AND concept_code_1<>''),
+	ADD CONSTRAINT tmp_rtc_vocabulary1 CHECK (vocabulary_id_1 IS NOT NULL AND vocabulary_id_1<>''),
 	ADD CONSTRAINT tmp_rtc_id2 CHECK (concept_id_2 IS NOT NULL),
 	ADD CONSTRAINT tmp_rtc_float CHECK (pg_typeof(conversion_factor)='numeric'::regtype),
 	ADD CONSTRAINT tmp_rtc_int2 CHECK (pg_typeof(precedence)='smallint'::regtype);
 ALTER TABLE relationship_to_concept 
 	DROP CONSTRAINT tmp_rtc_code1,
+	DROP CONSTRAINT tmp_rtc_vocabulary1,
 	DROP CONSTRAINT tmp_rtc_id2,
 	DROP CONSTRAINT tmp_rtc_float,
 	DROP CONSTRAINT tmp_rtc_int2;

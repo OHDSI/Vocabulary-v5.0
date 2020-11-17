@@ -783,3 +783,31 @@ ALTER TABLE ds_stage ALTER COLUMN denominator_value TYPE NUMERIC;
 ALTER TABLE ds_stage ALTER COLUMN box_size TYPE SMALLINT;
 ALTER TABLE relationship_to_concept ALTER COLUMN conversion_factor TYPE NUMERIC;
 ALTER TABLE relationship_to_concept ALTER COLUMN precedence TYPE SMALLINT;
+/**********************************
+******* ADD NCCD VOCABULARY *******
+***********************************/ 
+-- add new vocabulary to the concept table
+INSERT INTO concept
+(
+  concept_id,
+  concept_name,
+  domain_id,
+  vocabulary_id,
+  concept_class_id,
+  standard_concept,
+  concept_code,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+SELECT 100,
+       'NCCD',
+       'Drug',
+       'Vocabulary',
+       'Vocabulary',
+       NULL,
+       'OMOP generated',
+       TO_DATE('19700101','yyyymmdd'),
+       TO_DATE('20991231','yyyymmdd'),
+       NULL WHERE 'NCCD' NOT IN (SELECT concept_name FROM concept WHERE concept_name = 'NCCD');
+

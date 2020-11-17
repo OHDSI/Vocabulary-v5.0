@@ -515,6 +515,9 @@ begin
       execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      --loading der2_iisssccrefset_extendedmapfull_us
+      truncate table sources.der2_iisssccrefset_extendedmapfull_us;
+      execute 'COPY sources.der2_iisssccrefset_extendedmapfull_us FROM '''||pVocabularyPath||'der2_iisssccRefset_ExtendedMapFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;
       execute 'COPY sources.icd10cm_temp FROM '''||pVocabularyPath||'icd10cm.txt'' delimiter E''\b''';

@@ -3,6 +3,7 @@
 	20200225 added extraction of der2_Refset_SimpleFull_INT.txt
 	20200519 added extraction of der2_cRefset_LanguageFull.txt
 	20200511 added extraction of der2_ssRefset_ModuleDependencyFull*.txt
+	20201117 added extraction of der2_iisssccRefset_ExtendedMapFull*.txt
 */
 
 --INT part
@@ -96,17 +97,19 @@ BEGIN
     unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Terminology/sct2_Relationship_Full_*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Content/der2_cRefset_AssociationFull_US*.txt" -d . && \
     unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Language/der2_cRefset_LanguageFull*.txt" -d . && \
-    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Metadata/der2_ssRefset_ModuleDependencyFull*.txt" -d .
+    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Metadata/der2_ssRefset_ModuleDependencyFull*.txt" -d . && \
+    unzip -oqjC "$2" "SnomedCT_USEditionRF2_PRODUCTION_*/Full/Refset/Map/der2_iisssccRefset_ExtendedMapFull*.txt" -d .
         
     #move result to original folder
     cd "$1"
-    rm -f "sct2_Concept_Full_US.txt" "sct2_Description_Full-en_US.txt" "sct2_Relationship_Full_US.txt" "der2_cRefset_AssociationFull_US.txt" "der2_sRefset_LanguageFull_US.txt" "der2_ssRefset_ModuleDependencyFull_US.txt"
+    rm -f "sct2_Concept_Full_US.txt" "sct2_Description_Full-en_US.txt" "sct2_Relationship_Full_US.txt" "der2_cRefset_AssociationFull_US.txt" "der2_sRefset_LanguageFull_US.txt" "der2_ssRefset_ModuleDependencyFull_US.txt" "der2_iisssccRefset_ExtendedMapFull_US.txt"
     mv work/sct2_Concept_Full_US*.txt "sct2_Concept_Full_US.txt" && \
     mv work/sct2_Description_Full-en_US*.txt "sct2_Description_Full-en_US.txt" && \
     mv work/sct2_Relationship_Full_US*.txt "sct2_Relationship_Full_US.txt" && \
     mv work/der2_cRefset_AssociationFull_US*.txt "der2_cRefset_AssociationFull_US.txt" && \
     mv work/der2_cRefset_LanguageFull*.txt "der2_sRefset_LanguageFull_US.txt" && \
-    mv work/der2_ssRefset_ModuleDependencyFull*.txt "der2_ssRefset_ModuleDependencyFull_US.txt"
+    mv work/der2_ssRefset_ModuleDependencyFull*.txt "der2_ssRefset_ModuleDependencyFull_US.txt" && \
+    mv work/der2_iisssccRefset_ExtendedMapFull*.txt "der2_iisssccRefset_ExtendedMapFull_US.txt"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

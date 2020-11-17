@@ -39,7 +39,9 @@ from the folder \Full\Refset\Language
 - der2_cRefset_LanguageFull-en_US1000124_YYYYMMDD.txt
 from the folder \Full\Refset\Metadata
 - der2_ssRefset_ModuleDependencyFull_US1000124_YYYYMMDD.txt
-Remove date from file name and rename to sct2_Concept_Full_US.txt, sct2_Description_Full-en_US.txt, sct2_Relationship_Full_US.txt, der2_cRefset_LanguageFull_US.txt, der2_ssRefset_ModuleDependencyFull_US.txt
+from the folder \Full\Refset\Map\
+- der2_iisssccRefset_ExtendedMapFull_US1000124_YYYYMMDD.txt
+Remove date from file name and rename to sct2_Concept_Full_US.txt, sct2_Description_Full-en_US.txt, sct2_Relationship_Full_US.txt, der2_cRefset_LanguageFull_US.txt, der2_ssRefset_ModuleDependencyFull_US.txt, der2_iisssccRefset_ExtendedMapFull_US.txt
 
 8. Download the UK SNOMED CT Drug Extension, RF2 file uk_sct2dr_xx.x.x__YYYYMMDD000001.zip from https://isd.digital.nhs.uk/trud3/user/authenticated/group/0/pack/26/subpack/105/releases
 9. Extract the following files from the folder SnomedCT_UKDrugRF2_Production_20180516T000001Z\Full\Terminology\ into a working folder:

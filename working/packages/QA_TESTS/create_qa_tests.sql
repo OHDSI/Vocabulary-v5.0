@@ -656,7 +656,7 @@ STABLE PARALLEL RESTRICTED SECURITY INVOKER;
 
 CREATE OR REPLACE FUNCTION qa_tests.check_stage_tables ()
 RETURNS TABLE (
-	error_text text,
+	error_text TEXT,
 	rows_count BIGINT
 ) AS
 $BODY$
@@ -705,7 +705,16 @@ BEGIN
 		SELECT
 			CASE WHEN v.vocabulary_id IS NOT NULL AND v.latest_update IS NULL THEN 'concept_stage contains a vocabulary, that is not affected by the SetLatestUpdate: '||cs.vocabulary_id
 				WHEN v.vocabulary_id IS NULL THEN 'concept_stage.vocabulary_id not found in the vocabulary: '||CASE WHEN cs.vocabulary_id='' THEN '''''' ELSE cs.vocabulary_id END
-				WHEN cs.valid_end_date < cs.valid_start_date THEN 'concept_stage.valid_end_date < concept_stage.valid_start_date: '||TO_CHAR(cs.valid_end_date,'YYYYMMDD')||'+'||TO_CHAR(cs.valid_start_date,'YYYYMMDD')
+				WHEN cs.valid_end_date < cs.valid_start_date THEN
+					--it's absolutely ok if valid_end_date < valid_start_date when valid_start_date = latest_update, because generic_update keeps the old date. check it
+					CASE WHEN cs.valid_start_date<>v.latest_update THEN
+						'concept_stage.valid_end_date < concept_stage.valid_start_date: '||TO_CHAR(cs.valid_end_date,'YYYYMMDD')||'+'||TO_CHAR(cs.valid_start_date,'YYYYMMDD')
+					ELSE
+						--but even if valid_start_date = latest_update we should check what if valid_start_date in the 'concept' bigger than valid_end_date in the 'concept_stage'?
+						CASE WHEN cs.valid_end_date<c.valid_start_date THEN
+							'concept_stage.valid_end_date < concept.valid_start_date: '||TO_CHAR(cs.valid_end_date,'YYYYMMDD')||'+'||TO_CHAR(c.valid_start_date,'YYYYMMDD')
+						END
+					END
 				WHEN COALESCE(cs.invalid_reason, 'D') NOT IN ('D','U') THEN 'wrong value for concept_stage.invalid_reason: '||CASE WHEN cs.invalid_reason='' THEN '''''' ELSE cs.invalid_reason END
 				WHEN date_trunc('day', (cs.valid_start_date)) <> cs.valid_start_date THEN 'wrong format for concept_stage.valid_start_date (not truncated): '||TO_CHAR(cs.valid_start_date,'YYYYMMDD HH24:MI:SS')
 				WHEN date_trunc('day', (cs.valid_end_date)) <> cs.valid_end_date THEN 'wrong format for concept_stage.valid_end_date (not truncated to YYYYMMDD): '||TO_CHAR(cs.valid_end_date,'YYYYMMDD HH24:MI:SS')
@@ -727,6 +736,7 @@ BEGIN
 			LEFT JOIN vocabulary v ON v.vocabulary_id = cs.vocabulary_id
 			LEFT JOIN domain d ON d.domain_id = cs.domain_id
 			LEFT JOIN concept_class cc ON cc.concept_class_id = cs.concept_class_id
+			LEFT JOIN concept c ON c.concept_code = cs.concept_code AND c.vocabulary_id=cs.vocabulary_id
 		UNION ALL
 		--concept_synonym_stage
 		SELECT

@@ -46,23 +46,18 @@ BEGIN
 	WHERE cs.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD')
 	AND cs.invalid_reason IS NOT NULL;
 
-	--4. Fix valid_start_date for incorrect concepts (bad data in sources)
-	UPDATE concept_stage cs
-	SET valid_start_date = cs.valid_end_date - 1
-	WHERE cs.valid_end_date < cs.valid_start_date;
-
-	--5. Update concept_id in concept_stage from concept for existing concepts
+	--4. Update concept_id in concept_stage from concept for existing concepts
 	UPDATE concept_stage cs
 		SET concept_id = c.concept_id
 	FROM concept c
 	WHERE cs.concept_code = c.concept_code
 		AND cs.vocabulary_id = c.vocabulary_id;
 
-	--6. Analysing
+	--5. Analysing
 	ANALYSE concept_stage;
 	ANALYSE concept_relationship_stage;
 
-	--7. Clearing the concept_name
+	--6. Clearing the concept_name
 	--Remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_stage
 	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]]+', ' ', 'g')
@@ -77,7 +72,7 @@ BEGIN
 	SET concept_name = REPLACE(concept_name, '–', '-')
 	WHERE concept_name LIKE '%–%';
 
-	--8. Clearing the synonym_name
+	--7. Clearing the synonym_name
 	--Remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_synonym_stage
 	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ', 'g')
@@ -96,38 +91,38 @@ BEGIN
 	* Update the concept table *
 	****************************/
 
-	--9. Update existing concept details from concept_stage.
+	--8. Update existing concept details from concept_stage.
 	--All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date, invalid_reason) are updated
 
-	--9.1. For 'concept_name'
+	--8.1. For 'concept_name'
 	UPDATE concept c
 	SET concept_name = cs.concept_name
 	FROM concept_stage cs
 	WHERE c.concept_id = cs.concept_id
 		AND c.concept_name <> cs.concept_name;
 
-	--9.2. For 'domain_id'
+	--8.2. For 'domain_id'
 	UPDATE concept c
 	SET domain_id = cs.domain_id
 	FROM concept_stage cs
 	WHERE c.concept_id = cs.concept_id
 		AND c.domain_id <> cs.domain_id;
 
-	--9.3. For 'concept_class_id'
+	--8.3. For 'concept_class_id'
 	UPDATE concept c
 	SET concept_class_id = cs.concept_class_id
 	FROM concept_stage cs
 	WHERE c.concept_id = cs.concept_id
 		AND c.concept_class_id <> cs.concept_class_id;
 
-	--9.4. For 'standard_concept'
+	--8.4. For 'standard_concept'
 	UPDATE concept c
 	SET standard_concept = cs.standard_concept
 	FROM concept_stage cs
 	WHERE c.concept_id = cs.concept_id
 		AND COALESCE(c.standard_concept, 'X') <> COALESCE(cs.standard_concept, 'X');
 
-	--9.5. For 'valid_start_date'
+	--8.5. For 'valid_start_date'
 	UPDATE concept c
 	SET valid_start_date = cs.valid_start_date
 	FROM concept_stage cs,
@@ -137,26 +132,26 @@ BEGIN
 		AND c.valid_start_date <> cs.valid_start_date
 		AND cs.valid_start_date <> v.latest_update; -- if we have a real date in concept_stage, use it. If it is only the release date, use the existing
 
-	--9.6. For 'valid_end_date'
+	--8.6. For 'valid_end_date'
 	UPDATE concept c
 	SET valid_end_date = cs.valid_end_date
 	FROM concept_stage cs
 	WHERE c.concept_id = cs.concept_id
 		AND c.valid_end_date <> cs.valid_end_date;
 
-	--9.7. For 'invalid_reason'
+	--8.7. For 'invalid_reason'
 	UPDATE concept c
 	SET invalid_reason = cs.invalid_reason
 	FROM concept_stage cs
 	WHERE c.concept_id = cs.concept_id
 		AND COALESCE(c.invalid_reason, 'X') <> COALESCE(cs.invalid_reason, 'X');
 
-	--10. Deprecate concepts missing from concept_stage and are not already deprecated.
+	--9. Deprecate concepts missing from concept_stage and are not already deprecated.
 	--This only works for vocabularies where we expect a full set of active concepts in concept_stage.
 	--If the vocabulary only provides changed concepts, this should not be run, and the update information is already dealt with in step 1.
 	--20180523: new rule for CPT4, ICD9Proc and HCPCS: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981
 	--20200730 added ICD10PCS
-	--10.1. Update the concept for non-CPT4, non-ICD9Proc, non-HCPCS and non-ICD10PCS vocabularies
+	--9.1. Update the concept for non-CPT4, non-ICD9Proc, non-HCPCS and non-ICD10PCS vocabularies
 	UPDATE concept c SET
 		invalid_reason = 'D',
 		standard_concept = NULL,
@@ -238,7 +233,7 @@ BEGIN
 	END = 1
 	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS');
 
-	--10.2. Update the concept for CPT4, ICD9Proc, HCPCS and ICD10PCS
+	--9.2. Update the concept for CPT4, ICD9Proc, HCPCS and ICD10PCS
 	UPDATE concept c SET
 		valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
 	WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from concept_stage
@@ -246,7 +241,7 @@ BEGIN
 	AND c.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') -- not already deprecated
 	AND c.vocabulary_id IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS'); /*new rule for these vocabularies: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981*/
 
-	--11. Add new concepts from concept_stage
+	--10. Add new concepts from concept_stage
 	--Create sequence after last valid one
 	DO $$
 	DECLARE
@@ -272,6 +267,7 @@ BEGIN
 		EXECUTE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
 	END$$;
 
+	--11. Insert new concepts
 	INSERT INTO concept (
 		concept_id,
 		concept_name,

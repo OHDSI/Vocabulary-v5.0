@@ -7,6 +7,7 @@
 
 #### Sequence of actions ####
 
+* Run fast_recreate: select devv5.FastRecreateSchema();
 * Do manual_work
 * Run load_stage.sql
 * Run QA scripts:

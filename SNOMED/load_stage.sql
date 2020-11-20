@@ -78,7 +78,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT sct2.concept_name,
+SELECT trim (sct2.concept_name),
 	'SNOMED' AS vocabulary_id,
 	sct2.concept_code,
 	to_date (effectivestart	,'yyyymmdd') AS valid_start_date,
@@ -111,6 +111,11 @@ FROM (
 					when 900000000000003001 then 2 --Fully specified name
 					else 99
 				end asc,
+				case l.refsetid
+					when 900000000000509007 then 1 --US English language reference set
+					when 900000000000508004 then 2 --UK English language reference set
+					else 99 -- Various UK specific refsets
+				end,
 				case l.source_file_id
 					when 'INT' then 1 -- International release
 					when 'US' then 2 -- SNOMED US
@@ -120,16 +125,13 @@ FROM (
 				end asc,
 				l.effectivetime desc
 			) AS rn
-	FROM sources.sct2_concept_full_merged c,
-		sources.sct2_desc_full_merged d,
-		sources.der2_crefset_language_merged l
-	WHERE 
-		c.id = d.conceptid and 
-		d.id = l.referencedcomponentid
-		AND term IS NOT NULL
+	FROM sources.sct2_concept_full_merged c
+	join sources.sct2_desc_full_merged d on
+		c.id = d.conceptid
+	join sources.der2_crefset_language_merged l
+		on d.id = l.referencedcomponentid
 	) sct2
 WHERE sct2.rn = 1
-
 ;
 --4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
 with inactive as
@@ -1165,7 +1167,6 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
-
 
 --13. Working with replacement mappings
 DO $_$

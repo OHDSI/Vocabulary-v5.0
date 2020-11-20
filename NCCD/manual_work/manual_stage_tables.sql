@@ -42,7 +42,7 @@ c.domain_id AS domain_id,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
        FROM nccd_manual a
-       join devv5.concept c on a.concept_Id = c.concept_id and c.standard_concept = 'S'; --353
+       join devv5.concept c on a.concept_Id = c.concept_id and c.standard_concept = 'S';
 /***************************************
 ***** CONCEPT RELATIONSHIP MANUAL ******
 ****************************************/
@@ -57,7 +57,7 @@ SELECT DISTINCT  nccd_code AS concept_code_1,
        CURRENT_DATE AS valid_start_date,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date
        FROM nccd_manual a
-       join devv5.concept c on a.concept_Id = c.concept_id and c.standard_concept = 'S'; --415 
+       join devv5.concept c on a.concept_Id = c.concept_id and c.standard_concept = 'S';  
        
 /******************************************
 ********* CONCEPT SYNONYM MANUAL **********
@@ -70,4 +70,4 @@ SELECT DISTINCT nccd_name as synonym_name,
        'NCCD' as synonym_vocabulary_id,
        4180186 as language_concept_id
 FROM nccd_manual
-where concept_id != 0; --353
+where concept_id != 0; 

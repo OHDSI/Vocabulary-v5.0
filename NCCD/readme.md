@@ -7,8 +7,14 @@
 
 #### Sequence of actions ####
 
-* Download the source_file
-* Run manual_changes.sql if you do not have the NCCD vocabulary in your Vocabulary version
-* Run create_source_tables.sql
+* Run fast_recreate: select devv5.FastRecreateSchema();
+* Do manual_work
 * Run load_stage.sql
+* Run QA scripts:
+  * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/drug_stage_tables_QA.sql
+  * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/Drug_stage_QA_optional.sql
+  * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_E.sql
+  * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/input_QA_integratable_W.sql
+* If there are NO crucial errors, run Build_RxE.sql
+* Run post_processing.sql
 * Run generic_update: select devv5.genericupdate();

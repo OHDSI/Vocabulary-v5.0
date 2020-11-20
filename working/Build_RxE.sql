@@ -70,13 +70,11 @@ ALTER TABLE internal_relationship_stage
 --relationship_to_concept
 ALTER TABLE relationship_to_concept
 	ADD CONSTRAINT tmp_rtc_code1 CHECK (concept_code_1 IS NOT NULL AND concept_code_1<>''),
-	ADD CONSTRAINT tmp_rtc_vocabulary1 CHECK (vocabulary_id_1 IS NOT NULL AND vocabulary_id_1<>''),
 	ADD CONSTRAINT tmp_rtc_id2 CHECK (concept_id_2 IS NOT NULL),
 	ADD CONSTRAINT tmp_rtc_float CHECK (pg_typeof(conversion_factor)='numeric'::regtype),
 	ADD CONSTRAINT tmp_rtc_int2 CHECK (pg_typeof(precedence)='smallint'::regtype);
 ALTER TABLE relationship_to_concept 
 	DROP CONSTRAINT tmp_rtc_code1,
-	DROP CONSTRAINT tmp_rtc_vocabulary1,
 	DROP CONSTRAINT tmp_rtc_id2,
 	DROP CONSTRAINT tmp_rtc_float,
 	DROP CONSTRAINT tmp_rtc_int2;
@@ -122,9 +120,9 @@ JOIN concept c ON c.concept_id = r.concept_id_2
 		'RxNorm',
 		'RxNorm Extension',
 		'UCUM'
-		)
-
-UNION ALL
+		);									      
+-- prevent entry of old mappings
+/*UNION ALL
 
 SELECT DISTINCT c1.concept_code AS concept_code_1,
 	c1.vocabulary_id AS vocabulary_id_1,
@@ -158,7 +156,7 @@ WHERE c1.vocabulary_id = (
 		SELECT 1
 		FROM relationship_to_concept rtc
 		WHERE rtc.concept_code_1 = c1.concept_code
-		);
+		);*/
 
 CREATE INDEX idx_rtc ON r_to_c (concept_code_1, concept_id_2);
 ANALYZE r_to_c;
@@ -6408,7 +6406,7 @@ FROM maps_to m
 JOIN ex e ON e.concept_id = m.to_id
 JOIN r_to_c rtc ON rtc.concept_code_1 = m.from_code
 JOIN concept dc ON dc.concept_id = rtc.concept_id_2
-WHERE dc.vocabulary_id IN (
+WHERE EXISTS (
 		SELECT c_int.vocabulary_id
 		FROM concept c_int
 		WHERE c_int.domain_id = 'Drug'

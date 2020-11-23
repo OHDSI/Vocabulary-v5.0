@@ -1,22 +1,3 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-* 
-* Authors: Polina Talapova, Daryna Ivakhnenko, Dmitry Dymshyts
-* Date: 2020
-**************************************************************************/
-
 -- update latest_update field to new date
 DO $_$
 BEGIN
@@ -116,14 +97,6 @@ CREATE TABLE relationship_to_concept
 );
 
 --create indexes and constraints
-DROP INDEX if exists irs_concept_code_1;
-DROP INDEX if exists irs_concept_code_2;
-DROP INDEX if exists dcs_concept_code;
-DROP INDEX if exists ds_drug_concept_code;
-DROP INDEX if exists ds_ingredient_concept_code;
-DROP INDEX if exists dcs_unique_concept_code;
-DROP INDEX if exists irs_unique_concept_code;
-
 CREATE INDEX irs_concept_code_1 
   ON internal_relationship_stage (concept_code_1);
 CREATE INDEX irs_concept_code_2 
@@ -318,7 +291,7 @@ SELECT DISTINCT
 a.nccd_code AS drug_concept_code,
 a.t_nm AS drug_name,
 a.ingredient_concept_code,
-a.dose::NUMERIC*10 AS numerator_value,
+a.dose :: NUMERIC *10 AS numerator_value,
 'MG' AS numerator_unit,
 NULL :: FLOAT8 AS denominator_value,
 CASE WHEN UPPER(a.t_nm) ~* 'CREAM|OINTMENT' 
@@ -364,7 +337,7 @@ AS
 (SELECT DISTINCT a.nccd_code AS drug_concept_code,
        a.t_nm AS drug_name,
        a.ing_code AS ingredient_concept_code,
-       a.dose::NUMERIC AS numerator_value,
+       a.dose :: NUMERIC AS numerator_value,
        SPLIT_PART(a.unit,'/','1') AS numerator_unit,
        NULL :: FLOAT8 AS denominator_value,
        SPLIT_PART(a.unit,'/','2') AS denominator_unit
@@ -382,9 +355,9 @@ AND   a.ing_code IN (SELECT concept_code
 SELECT DISTINCT drug_concept_code,
 drug_name,
 ingredient_concept_code,
-CASE WHEN numerator_unit = 'G' THEN numerator_value :: NUMERIC*1000 
-WHEN numerator_unit = 'MCG' THEN numerator_value :: NUMERIC/ 1000 
-WHEN denominator_unit = 'G' THEN numerator_value :: NUMERIC/ 1000 
+CASE WHEN numerator_unit = 'G' THEN numerator_value*1000 
+WHEN numerator_unit = 'MCG' THEN numerator_value/ 1000 
+WHEN denominator_unit = 'G' THEN numerator_value/ 1000 
 ELSE numerator_value END,
 CASE WHEN numerator_unit = '' THEN 'MG' 
 WHEN numerator_unit = 'MCG' THEN 'MG' 
@@ -429,9 +402,9 @@ WHERE a.unit ~ '/' AND ingredient_concept_code IN (SELECT concept_code FROM drug
 SELECT DISTINCT drug_concept_code,
 drug_name,
 ingredient_concept_code,
-CASE WHEN numerator_unit = 'G' THEN numerator_value::NUMERIC*1000 
-WHEN numerator_unit = 'MCG' THEN numerator_value::NUMERIC/ 1000 
-WHEN denominator_unit = 'G' THEN numerator_value::NUMERIC/ 1000 
+CASE WHEN numerator_unit = 'G' THEN numerator_value*1000 
+WHEN numerator_unit = 'MCG' THEN numerator_value/ 1000 
+WHEN denominator_unit = 'G' THEN numerator_value/ 1000 
 ELSE numerator_value END,
 CASE WHEN numerator_unit = '' THEN 'MG' 
 WHEN numerator_unit = 'MCG' THEN 'MG' 
@@ -439,8 +412,9 @@ ELSE numerator_unit END,
 denominator_value,
 CASE WHEN denominator_unit = 'G' THEN 'MG' ELSE denominator_unit END 
 FROM t1;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
--- remove excessive '0'
+        
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+/*-- remove excessive '0'
 UPDATE ds_0
    SET numerator_value = TRIM(TRAILING '0' FROM CAST(numerator_value AS VARCHAR))::NUMERIC
 WHERE CAST(numerator_value AS VARCHAR) ~ '\d+\.\d+.*0$';
@@ -451,7 +425,7 @@ WHERE CAST(amount_value AS VARCHAR) ~ '\d+\.\d+.*0$';
 
 UPDATE ds_0
    SET numerator_value = TRIM(TRAILING '.0' FROM CAST(numerator_value AS VARCHAR))::NUMERIC
-WHERE CAST(numerator_value AS VARCHAR) ~ '\d+\.0$';
+WHERE CAST(numerator_value AS VARCHAR) ~ '\d+\.0$';*/
 
 -- delete 0 as amount_value OR numerator value if any
 DELETE
@@ -488,8 +462,7 @@ SELECT DISTINCT drug_concept_code,
        amount_unit,
        numerator_value :: NUMERIC,
        numerator_unit,
-      denominator_value :: NUMERIC
-,
+      denominator_value :: NUMERIC,
        denominator_unit
 FROM ds_0;
 
@@ -525,14 +498,16 @@ WHERE CTID NOT IN (SELECT MIN(CTID)
                             numerator_unit,
                             denominator_value,
                             denominator_unit);
--- add drugs which have numerator_value > 1000 (for MG/ML) to the nccd_excluded 
-WITH t1
+-- add drugs which have numerator_value > 1000 (for MG/ML) to the nccd_enormous_dosage 
+/*DROP TABLE nccd_enormous_dosage;
+CREATE TABLE nccd_enormous_dosage AS WITH t1
 AS
 (SELECT *
 FROM ds_stage a
   JOIN nccd_full_done b ON a.drug_concept_code = b.nccd_code
 WHERE (LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('ml','g') OR LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('l'))
-AND   numerator_value /COALESCE(denominator_value,1) > 1000) INSERT INTO nccd_excluded SELECT DISTINCT nccd_type,nccd_code::INT,nccd_name,'>1000MG/ML, to process manually and fix units inside the names per each row (for Darina)' FROM nccd_full_done WHERE nccd_code IN (SELECT drug_concept_code FROM t1);
+AND   numerator_value /COALESCE(denominator_value,1) > 1000)
+SELECT * FROM t1;*/
 -- 0
 -- get rif of >1000MG/ML if any. all of them should be reviewed manually 
 DELETE
@@ -556,7 +531,7 @@ INSERT INTO drug_concept_stage
   valid_end_date,
   invalid_reason
 )
-SELECT DISTINCT unit AS concept_name,
+SELECT unit AS concept_name,
        'NCCD' AS vocabulary_id,
        'Unit' AS concept_class_id,
        unit AS concept_code,
@@ -564,7 +539,7 @@ SELECT DISTINCT unit AS concept_name,
        CURRENT_DATE,
        TO_DATE('20991231','YYYYMMDD'),
        NULL
-FROM (SELECT DISTINCT amount_unit AS unit
+FROM (SELECT amount_unit AS unit
       FROM ds_0
       UNION
       SELECT numerator_unit
@@ -641,14 +616,14 @@ INSERT INTO relationship_to_concept
   precedence,
   conversion_factor
 )
-SELECT DISTINCT *
+SELECT *
 FROM (
 SELECT 'U','NCCD',8510,1,1
-UNION
+UNION ALL
 SELECT 'IU','NCCD',8718,1,1
-UNION
+UNION ALL
 SELECT 'MG','NCCD',8576,1,1
-UNION
+UNION ALL
 SELECT 'ML','NCCD',8587,1,1) a;
 -- source DF - target DF (precendence = '1' via name matching)
 WITH t AS  
@@ -656,7 +631,7 @@ WITH t AS
   SELECT DISTINCT a.concept_code,
          c.concept_id
   FROM drug_concept_stage a
-    JOIN devv5.concept c
+    JOIN concept c
       ON upper(a.concept_name) = upper (c.concept_name)
      AND a.concept_class_id = 'Dose Form'
      AND c.concept_class_id = 'Dose Form'
@@ -676,72 +651,72 @@ INSERT INTO relationship_to_concept
 (concept_code_1,vocabulary_id_1,concept_id_2,precedence)
 with t as(
  SELECT concept_code as concept_code_1,'NCCD' as vocabulary_id_1,19082079 as concept_id_2, 2 as precedence  FROM drug_concept_stage  WHERE concept_name = 'Oral Tablet'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19001949,3 FROM drug_concept_stage  WHERE concept_name = 'Oral Tablet' 
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',44817840,4 FROM drug_concept_stage  WHERE concept_name = 'Oral Tablet'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19082076,5 FROM drug_concept_stage  WHERE concept_name = 'Oral Tablet'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',37498347,6 FROM drug_concept_stage WHERE concept_name = 'Oral Tablet'
-UNION 
+UNION ALL
 SELECT concept_code,'NCCD',19082079,2 FROM drug_concept_stage WHERE concept_name = 'Oral Capsule'
-UNION
+UNION ALL
 SELECT concept_code ,'NCCD',19082255,3 FROM drug_concept_stage WHERE concept_name = 'Oral Capsule'
-UNION
+UNION ALL
 SELECT concept_code, 'NCCD', 19082103, 1 FROM drug_concept_stage WHERE concept_name = 'Injectable'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19082104,2 FROM drug_concept_stage WHERE concept_name = 'Injectable'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',46234469,3 FROM drug_concept_stage WHERE concept_name = 'Injectable'
-UNION
+UNION ALL
 SELECT  concept_code,'NCCD',19126920,4 FROM drug_concept_stage WHERE concept_name = 'Injectable'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',46234467,5 FROM drug_concept_stage WHERE concept_name = 'Injectable'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',46234466,6 FROM drug_concept_stage WHERE concept_name = 'Injectable'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19095973,2 FROM drug_concept_stage WHERE concept_name = 'Gel'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19095916,3 FROM drug_concept_stage WHERE concept_name = 'Gel'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19082286,2 FROM drug_concept_stage WHERE concept_name = 'Powder'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19082259,3 FROM drug_concept_stage WHERE concept_name = 'Powder'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19082227,2 FROM drug_concept_stage WHERE concept_name = 'Ointment'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19082224,3 FROM drug_concept_stage WHERE concept_name = 'Ointment' 
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19093368,2 FROM drug_concept_stage WHERE concept_name = 'Vaginal Insert'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19082200,2 FROM drug_concept_stage WHERE concept_name = 'Suppository'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19093368,3 FROM drug_concept_stage WHERE concept_name = 'Suppository'
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19127579,2 FROM drug_concept_stage WHERE concept_name = 'Inhaler' -- 19127579	744995	Dry Powder Inhaler
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19126919,3 FROM drug_concept_stage WHERE concept_name = 'Inhaler' -- 19126919	721655	Nasal Inhaler
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19126918,4 FROM drug_concept_stage WHERE concept_name = 'Inhaler' -- 19126918	721654	Metered Dose Inhaler
-UNION
+UNION ALL
 SELECT concept_code,'NCCD',19082223,2 FROM drug_concept_stage WHERE concept_name = 'Oral Solution' 
-UNION 
+UNION ALL
 SELECT concept_code, 'NCCD', 19082701, 2 FROM drug_concept_stage WHERE concept_name = 'Medicated Patch' -- 19082701	318130	Patch	Dose Form	Non-standard	Valid	Drug	RxNorm
-UNION  
+UNION ALL
 SELECT concept_code, 'NCCD', 19082165, 2 FROM drug_concept_stage WHERE concept_name = 'Nasal Spray' -- -- 19082165	316962	Nasal Solution
-UNION
+UNION ALL
 SELECT concept_code, 'NCCD',37499224 , 2 FROM drug_concept_stage WHERE concept_name = 'Oral Granules'  -- 37499224	2284290	Delayed Release Oral Granules
-UNION 
+UNION ALL
 SELECT concept_code, 'NCCD',45775489 , 3 FROM drug_concept_stage WHERE concept_name = 'Oral Granules'  -- 45775489	1540453	Granules for Oral Solution 
-UNION 
+UNION ALL
 SELECT concept_code, 'NCCD',45775490 , 4 FROM drug_concept_stage WHERE concept_name = 'Oral Granules'  -- 45775490	1540454	Granules for Oral Suspension
-UNION  
+UNION ALL
 SELECT concept_code, 'NCCD', 19082196, 2 FROM drug_concept_stage WHERE concept_name = 'Otic Solution'  -- 19082196	316974	Otic Suspension
-UNION 
+UNION ALL
 SELECT concept_code, 'NCCD',19095918 ,2 FROM drug_concept_stage WHERE concept_name = 'Paste' -- 19095918	346171	Oral Paste 
 )
-SELECT distinct * FROM t; 
+SELECT * FROM t; 
 
 -- cleaning up 
 -- delete "drugs" without ingredients (they shouldn't be at the drug input tables)
@@ -776,37 +751,3 @@ WHERE (concept_code_1,concept_id_2) IN (SELECT concept_code_1,
                                         FROM relationship_to_concept r
                                           JOIN devv5.concept c ON c.concept_id = r.concept_id_2
                                         WHERE c.invalid_reason IS NOT NULL);
--- normalize datatypes according to new constraints
-ALTER TABLE ds_stage ALTER COLUMN amount_value TYPE NUMERIC;
-ALTER TABLE ds_stage ALTER COLUMN numerator_value TYPE NUMERIC;
-ALTER TABLE ds_stage ALTER COLUMN denominator_value TYPE NUMERIC;
-ALTER TABLE ds_stage ALTER COLUMN box_size TYPE SMALLINT;
-ALTER TABLE relationship_to_concept ALTER COLUMN conversion_factor TYPE NUMERIC;
-ALTER TABLE relationship_to_concept ALTER COLUMN precedence TYPE SMALLINT;
-/**********************************
-******* ADD NCCD VOCABULARY *******
-***********************************/ 
--- add new vocabulary to the concept table
-INSERT INTO concept
-(
-  concept_id,
-  concept_name,
-  domain_id,
-  vocabulary_id,
-  concept_class_id,
-  standard_concept,
-  concept_code,
-  valid_start_date,
-  valid_end_date,
-  invalid_reason
-)
-SELECT 100,
-       'NCCD',
-       'Drug',
-       'Vocabulary',
-       'Vocabulary',
-       NULL,
-       'OMOP generated',
-       TO_DATE('19700101','yyyymmdd'),
-       TO_DATE('20991231','yyyymmdd'),
-       NULL WHERE 'NCCD' NOT IN (SELECT concept_name FROM concept WHERE concept_name = 'NCCD');

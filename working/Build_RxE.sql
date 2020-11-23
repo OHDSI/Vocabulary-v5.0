@@ -123,43 +123,6 @@ JOIN concept c ON c.concept_id = r.concept_id_2
 		'RxNorm Extension',
 		'UCUM'
 		);									      
--- prevent entry of old mappings
-/*UNION ALL
-
-SELECT DISTINCT c1.concept_code AS concept_code_1,
-	c1.vocabulary_id AS vocabulary_id_1,
-	r.concept_id_2 AS concept_id_2,
-	1 AS precedence,
-	NULL::NUMERIC AS conversion_factor
-FROM concept c1
-JOIN concept_relationship r ON r.concept_id_1 = c1.concept_id
-	AND r.relationship_id IN (
-		'Maps to',
-		'Source - RxNorm eq'
-		)
-	AND r.invalid_reason IS NULL
-JOIN concept c2 ON c2.concept_id = r.concept_id_2
-	AND c2.invalid_reason IS NULL
-WHERE c1.vocabulary_id = (
-		SELECT dcs.vocabulary_id
-		FROM drug_concept_stage dcs LIMIT 1
-		)
-	AND c2.vocabulary_id IN (
-		'RxNorm',
-		'RxNorm Extension'
-		)
-	AND c2.concept_class_id IN (
-		'Ingredient',
-		'Dose Form',
-		'Brand Name',
-		'Supplier'
-		)
-	AND NOT EXISTS (
-		SELECT 1
-		FROM relationship_to_concept rtc
-		WHERE rtc.concept_code_1 = c1.concept_code
-		);*/
-
 CREATE INDEX idx_rtc ON r_to_c (concept_code_1, concept_id_2);
 ANALYZE r_to_c;
 

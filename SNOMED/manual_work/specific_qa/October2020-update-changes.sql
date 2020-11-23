@@ -62,11 +62,11 @@ left join devv5.concept c2 on
 where c2.concept_id is null and
 	c1.invalid_reason is null
 ;
---New logic for Observable entities, making them Measurements: complete overview
+--New logic for Observable entities and Evaluation findings, making them Measurements: complete overview
 select c.concept_code, c.concept_name, c2.domain_id as old, c.domain_id as new
 from devv5.concept_ancestor a --new concept ancestor is not yet built
 join devv5.concept c2 on
-	a.ancestor_concept_id = 4181663 and --Observable entity
+	a.ancestor_concept_id in (4181663, 40480457) and --Observable entity, Evaluation Finding
 	a.descendant_concept_id = c2.concept_id and
 	c2.vocabulary_id = 'SNOMED'
 join dev_snomed.concept c on
@@ -85,3 +85,79 @@ join dev_snomed.concept c on
 	(c.vocabulary_id, c.concept_code) = (c2.vocabulary_id, c2.concept_code) and
 	c.domain_id != c2.domain_id
 where c.invalid_reason is null
+;
+--New covid concepts and their mappings (All UK -- US changes were already managed by SNOMED US)
+select c.concept_code, c.concept_name, r.relationship_id, c2.concept_code, c2.vocabulary_id, c2.concept_name
+from dev_snomed.concept c
+join dev_snomed.concept_relationship r on
+	r.concept_id_1 = c.concept_id and
+	r.relationship_id in ('Maps to', 'Maps to value')
+join dev_snomed.concept c2 on
+	c2.concept_id = r.concept_id_2
+where
+	c.vocabulary_id = 'SNOMED' and
+	c.concept_code in
+	(
+		'1321241000000105','1321701000000102','1321661000000108',
+		'1321701000000102','1321661000000108','1322901000000109',
+		'1322891000000108','1322871000000109','1322911000000106',
+		'1322801000000101','1322791000000100','1322781000000102',
+		'1322821000000105','1321771000000105','1322841000000103',
+		'1321791000000109','1321761000000103','1321781000000107',
+		'1321591000000103','1322831000000107','1321571000000102',
+		'1321541000000108','1321641000000107','1321631000000103',
+		'1322851000000100','1321561000000109','1321551000000106',
+		'1321581000000100','1322901000000109','1322891000000108',
+		'1322871000000109','1322911000000106','1322801000000101',
+		'1322791000000100','1322781000000102','1322821000000105',
+		'1321771000000105','1322841000000103','1321791000000109',
+		'1321761000000103','1321781000000107','1321591000000103',
+		'1322831000000107','1321571000000102','1321541000000108',
+		'1321641000000107','1321631000000103','1322851000000100',
+		'1321561000000109','1321551000000106','1321581000000100',
+		'1321621000000100','1321651000000105','1321681000000104',
+		'1321691000000102','1321621000000100','1321651000000105',
+		'1321681000000104','1321691000000102','1321821000000104',
+		'1321801000000108','1321811000000105','1321341000000103',
+		'1321321000000105','1321351000000100','1321311000000104',
+		'1321301000000101','1321741000000104','1321721000000106',
+		'1321731000000108','1321711000000100','1321291000000100'
+	)
+;
+--All new peaks and their changed descendants
+select p.concept_code as peak_code, p.concept_name as peak_name, c1.concept_code,c1.concept_name, c1.invalid_reason, c2.domain_id as old, c1.domain_id as new
+from dev_snomed.concept c1
+join devv5.concept c2 on
+	(c1.vocabulary_id, c1.concept_code) = (c2.vocabulary_id, c2.concept_code) and
+	c1.domain_id != c2.domain_id and
+	c1.invalid_reason is null
+join dev_snomed.concept p on
+	p.vocabulary_id = 'SNOMED' and
+	p.concept_code :: int8 in
+(
+	734539000, --Effector
+	441742003, --Evaluation finding
+	1032021000000100, --Protein level
+	364711002, --Specific test feature
+	364066008, --Cardiovascular observable
+	248326004, --Body measure
+	396238001, --Tumor measureable
+	371508000, --Tumour stage
+	246116008, --Lesion size
+--	(445536008,'Measurement'), --Assessment using assessment scale -- disabled for now to avoid duplication with standard Measurements
+	404933001, --Berg balance test
+	766739005, --Substance categorized by disposition
+	365341008, --Finding related to ability to perform community living activities
+	365242003, --Finding related to ability to perform domestic activities
+	284530008, --Communication, speech and language finding
+	29164008, --Disturbance in speech
+	288579009, --Difficulty communicating
+	288576002, --Unable to communicate
+	229621000, --Disorder of fluency
+	--AVOF-2893
+	260299005,--Number
+	272063003) --Alphanumeric
+join devv5.concept_ancestor a on
+	p.concept_id = a.ancestor_concept_id and
+	c2.concept_id = a.descendant_concept_id
+order by p.concept_name, c1.domain_id, c2.domain_id

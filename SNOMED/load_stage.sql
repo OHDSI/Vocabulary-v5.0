@@ -1541,7 +1541,7 @@ VALUES (138875005, 'Metadata'), -- root
 	(396238001,'Measurement'), --Tumor measureable
 	(371508000,'Measurement'), --Tumour stage
 	(246116008,'Measurement'), --Lesion size
-	(445536008,'Measurement'), --Assessment using assessment scale
+--	(445536008,'Measurement'), --Assessment using assessment scale -- disabled for now to avoid duplication with standard Measurements
 	(404933001,'Measurement'), --Berg balance test
 	(766739005,'Drug'), --Substance categorized by disposition
 	(365341008,'Observation'), --Finding related to ability to perform community living activities

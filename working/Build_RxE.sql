@@ -6374,7 +6374,8 @@ JOIN concept dc ON dc.concept_id = rtc.concept_id_2
 WHERE EXISTS (
 		SELECT c_int.vocabulary_id
 		FROM concept c_int
-		WHERE c_int.domain_id = 'Drug'
+		WHERE dc.vocabulary_id = c_int.vocabulary_id
+	        AND c_int.domain_id = 'Drug'
 			AND c_int.standard_concept = 'C'
 		);
 

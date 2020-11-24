@@ -445,11 +445,11 @@ INSERT INTO ds_stage
 )
 SELECT DISTINCT drug_concept_code,
        ingredient_concept_code,
-       amount_value :: NUMERIC,
+       amount_value,
        amount_unit,
-       numerator_value :: NUMERIC,
+       numerator_value,
        numerator_unit,
-      denominator_value :: NUMERIC,
+      denominator_value,
        denominator_unit
 FROM ds_0;
 
@@ -691,34 +691,20 @@ SELECT * FROM t;
 -- cleaning up 
 -- delete "drugs" without ingredients (they shouldn't be at the drug input tables)
 DELETE
-FROM dev_nccd.drug_concept_stage
+FROM drug_concept_stage
 WHERE concept_code NOT IN (SELECT concept_code_1
-                           FROM dev_nccd.internal_relationship_stage
-                             JOIN dev_nccd.drug_concept_stage
+                           FROM internal_relationship_stage
+                             JOIN drug_concept_stage
                                ON concept_code_2 = concept_code
                               AND concept_class_id = 'Ingredient')
 AND   concept_code NOT IN (SELECT pack_concept_code FROM pc_stage)
 AND   concept_class_id = 'Drug Product';
--- get rid of IRS duplicate (df)
-DELETE
-FROM internal_relationship_stage
-WHERE concept_code_1 = '106621'
-AND   concept_code_2 = 'OMOP4940688';
--- delete ingredients which were placed as Drug Products (need to be reviewed manually at the 2d phase)
-DELETE
-FROM internal_relationship_stage
-WHERE (concept_code_1,concept_code_2) IN (SELECT concept_code_1,
-                                                 concept_code_2
-                                          FROM internal_relationship_stage irs
-                                            JOIN drug_concept_stage dcs
-                                              ON dcs.concept_code = irs.concept_code_1
-                                             AND (concept_class_id,domain_id) <> ('Drug Product','Drug'));
 -- drop dead mappings of attributes if any
 DELETE
 FROM relationship_to_concept
 WHERE (concept_code_1,concept_id_2) IN (SELECT concept_code_1,
                                                concept_id_2
                                         FROM relationship_to_concept r
-                                          JOIN devv5.concept c ON c.concept_id = r.concept_id_2
+                                          JOIN concept c ON c.concept_id = r.concept_id_2
                                         WHERE c.invalid_reason IS NOT NULL);
                                         

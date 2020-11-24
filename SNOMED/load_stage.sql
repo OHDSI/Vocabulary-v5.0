@@ -1545,6 +1545,7 @@ VALUES (138875005, 'Metadata'), -- root
 	(404933001,'Measurement'), --Berg balance test
 	(766739005,'Drug'), --Substance categorized by disposition
 	(365341008,'Observation'), --Finding related to ability to perform community living activities
+	(365031000,'Observation'), --Finding related to ability to perform activities of everyday life
 	(365242003,'Observation'), --Finding related to ability to perform domestic activities
 	(284530008,'Observation'), --Communication, speech and language finding
 	(29164008,'Condition'), --Disturbance in speech
@@ -1553,7 +1554,8 @@ VALUES (138875005, 'Metadata'), -- root
 	(229621000,'Condition'), --Disorder of fluency
 	--AVOF-2893
 	(260299005,'Meas Value'),--Number
-	(272063003,'Meas Value') --Alphanumeric
+	(272063003,'Meas Value'), --Alphanumeric
+	(397745006,'Observation') --Medical contraindication
 ;
 --18.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

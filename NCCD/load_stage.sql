@@ -240,7 +240,7 @@ AS
        a.ing_code AS ingredient_concept_code,
        a.dose :: NUMERIC *10 AS numerator_value,
        'MG' AS numerator_unit,
-       NULL :: FLOAT8 AS denominator_value,
+       NULL :: NUMERIC AS denominator_value,
        CASE
          WHEN UPPER(a.t_nm) ~* 'CREAM|OINTMENT' THEN 'G'
          ELSE 'ML'
@@ -257,7 +257,7 @@ AND   a.dose <> 'X'-- exclude Drugs without dosage
 drug_name,
 ingredient_concept_code,
 CASE WHEN denominator_unit IN ('G','L') 
-THEN numerator_value*0.001 ELSE numerator_value END,
+THEN numerator_value * 0.001 ELSE numerator_value END,
 numerator_unit,
 denominator_value,
 CASE WHEN denominator_unit = 'G' THEN 'MG' 
@@ -293,7 +293,7 @@ a.t_nm AS drug_name,
 a.ingredient_concept_code,
 a.dose :: NUMERIC *10 AS numerator_value,
 'MG' AS numerator_unit,
-NULL :: FLOAT8 AS denominator_value,
+NULL :: NUMERIC  AS denominator_value,
 CASE WHEN UPPER(a.t_nm) ~* 'CREAM|OINTMENT' 
 THEN 'G' ELSE 'ML' END AS denominator_unit 
 FROM a 
@@ -305,7 +305,7 @@ AND a.dose <> 'X'-- exclude Drugs without dosage
 ) SELECT DISTINCT drug_concept_code,
 drug_name,
 ingredient_concept_code,
-CASE WHEN denominator_unit IN ('G','L') THEN numerator_value*0.001 ELSE numerator_value END,
+CASE WHEN denominator_unit IN ('G','L') THEN numerator_value * 0.001 ELSE numerator_value END,
 numerator_unit,
 denominator_value,
 CASE WHEN denominator_unit = 'G' THEN 'MG' WHEN denominator_unit IN ('L','LITER') THEN 'ML' ELSE denominator_unit END 
@@ -339,7 +339,7 @@ AS
        a.ing_code AS ingredient_concept_code,
        a.dose :: NUMERIC AS numerator_value,
        SPLIT_PART(a.unit,'/','1') AS numerator_unit,
-       NULL :: FLOAT8 AS denominator_value,
+       NULL  :: NUMERIC AS denominator_value,
        SPLIT_PART(a.unit,'/','2') AS denominator_unit
 FROM nccd_full_done a
   JOIN nccd_full_done b
@@ -356,8 +356,8 @@ SELECT DISTINCT drug_concept_code,
 drug_name,
 ingredient_concept_code,
 CASE WHEN numerator_unit = 'G' THEN numerator_value*1000 
-WHEN numerator_unit = 'MCG' THEN numerator_value/ 1000 
-WHEN denominator_unit = 'G' THEN numerator_value/ 1000 
+WHEN numerator_unit = 'MCG' THEN numerator_value/ 1000  
+WHEN denominator_unit = 'G' THEN numerator_value/ 1000  
 ELSE numerator_value END,
 CASE WHEN numerator_unit = '' THEN 'MG' 
 WHEN numerator_unit = 'MCG' THEN 'MG' 
@@ -393,7 +393,7 @@ a.t_nm AS drug_name,
 a.ingredient_concept_code,
 a.dose :: NUMERIC AS numerator_value,
 SPLIT_PART(a.unit,'/','1') AS numerator_unit,
-NULL :: FLOAT8 AS denominator_value,
+NULL :: NUMERIC AS denominator_value,
 SPLIT_PART(a.unit,'/','2') AS denominator_unit 
 FROM a 
 JOIN nccd_full_done b 
@@ -403,7 +403,7 @@ SELECT DISTINCT drug_concept_code,
 drug_name,
 ingredient_concept_code,
 CASE WHEN numerator_unit = 'G' THEN numerator_value*1000 
-WHEN numerator_unit = 'MCG' THEN numerator_value/ 1000 
+WHEN numerator_unit = 'MCG' THEN numerator_value/ 1000  
 WHEN denominator_unit = 'G' THEN numerator_value/ 1000 
 ELSE numerator_value END,
 CASE WHEN numerator_unit = '' THEN 'MG' 
@@ -412,21 +412,8 @@ ELSE numerator_unit END,
 denominator_value,
 CASE WHEN denominator_unit = 'G' THEN 'MG' ELSE denominator_unit END 
 FROM t1;
-        
+--select * from ds_0;
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
-/*-- remove excessive '0'
-UPDATE ds_0
-   SET numerator_value = TRIM(TRAILING '0' FROM CAST(numerator_value AS VARCHAR))::NUMERIC
-WHERE CAST(numerator_value AS VARCHAR) ~ '\d+\.\d+.*0$';
-
-UPDATE ds_0
-   SET amount_value = TRIM(TRAILING '0' FROM CAST(amount_value AS VARCHAR))::NUMERIC
-WHERE CAST(amount_value AS VARCHAR) ~ '\d+\.\d+.*0$';
-
-UPDATE ds_0
-   SET numerator_value = TRIM(TRAILING '.0' FROM CAST(numerator_value AS VARCHAR))::NUMERIC
-WHERE CAST(numerator_value AS VARCHAR) ~ '\d+\.0$';*/
-
 -- delete 0 as amount_value OR numerator value if any
 DELETE
 FROM ds_0
@@ -498,23 +485,6 @@ WHERE CTID NOT IN (SELECT MIN(CTID)
                             numerator_unit,
                             denominator_value,
                             denominator_unit);
--- add drugs which have numerator_value > 1000 (for MG/ML) to the nccd_enormous_dosage 
-/*DROP TABLE nccd_enormous_dosage;
-CREATE TABLE nccd_enormous_dosage AS WITH t1
-AS
-(SELECT *
-FROM ds_stage a
-  JOIN nccd_full_done b ON a.drug_concept_code = b.nccd_code
-WHERE (LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('ml','g') OR LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('l'))
-AND   numerator_value /COALESCE(denominator_value,1) > 1000)
-SELECT * FROM t1;*/
--- 0
--- get rif of >1000MG/ML if any. all of them should be reviewed manually 
-DELETE
-FROM ds_stage
-WHERE (LOWER(numerator_unit) IN ('mg') AND LOWER(denominator_unit) IN ('ml','g') OR LOWER(numerator_unit) IN ('g') AND LOWER(denominator_unit) IN ('l'))
-AND   numerator_value /COALESCE(denominator_value,1) > 1000;
--- 0
 --select * from ds_stage;
 /*************************
 *** DRUG_CONCEPT_STAGE ***
@@ -751,3 +721,4 @@ WHERE (concept_code_1,concept_id_2) IN (SELECT concept_code_1,
                                         FROM relationship_to_concept r
                                           JOIN devv5.concept c ON c.concept_id = r.concept_id_2
                                         WHERE c.invalid_reason IS NOT NULL);
+                                        

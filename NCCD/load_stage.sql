@@ -25,11 +25,11 @@ END $_$;
 **************************/ 
 -- create backups of input tables if necessary
 -- drop existing input tables
-DROP TABLE IF EXISTS drug_concept_stage CASCADE;
+DROP TABLE IF EXISTS drug_concept_stage;
 DROP TABLE IF EXISTS ds_stage;
 DROP TABLE IF EXISTS internal_relationship_stage;
 DROP TABLE IF EXISTS pc_stage;
-DROP TABLE IF EXISTS relationship_to_concept CASCADE;
+DROP TABLE IF EXISTS relationship_to_concept;
 DROP TABLE IF EXISTS ds_0;
 
 CREATE TABLE drug_concept_stage 
@@ -186,7 +186,6 @@ AND   a.ing_code IN (SELECT concept_code
                      WHERE concept_class_id = 'Ingredient')
 AND   a.ing_code !~ '\|')
 SELECT*FROM t1 WHERE dose <> 0;
-
 --insert multicomponent drugs excluding solutions (Decimal separator for ing_code, dose, unit - | (vertical bar))
 INSERT INTO ds_0
 (
@@ -221,7 +220,6 @@ WHERE a.dose <> 'X' AND a.unit !~ '\/|%'-- exclude solutions
 AND a.unit ~ 'MG|G|MCG|IU|U' AND a.ingredient_concept_code IN (SELECT concept_code
                                                                FROM drug_concept_stage
                                                                WHERE concept_class_id = 'Ingredient')) SELECT*FROM t1 WHERE dose <> 0; 
-
 -- fill NUMERATOR-DENOMINATOR for percentage concentration (%) of unicomponent solutions
 INSERT INTO ds_0
 (
@@ -412,8 +410,7 @@ ELSE numerator_unit END,
 denominator_value,
 CASE WHEN denominator_unit = 'G' THEN 'MG' ELSE denominator_unit END 
 FROM t1;
---select * from ds_0;
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            
+--select * from ds_0;                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
 -- delete 0 as amount_value OR numerator value if any
 DELETE
 FROM ds_0
@@ -430,7 +427,6 @@ UPDATE ds_0
    SET numerator_unit = TRIM(numerator_unit);
 UPDATE ds_0
    SET denominator_unit = TRIM(denominator_unit);
-
 -- fill ds_stage as is using ds_0
 INSERT INTO ds_stage
 (
@@ -471,20 +467,6 @@ AND   denominator_value is  null
 AND   denominator_unit is  null
 AND   numerator_value IS NULL
 AND   numerator_unit is  null;
---delete duplicates if present
-DELETE
-FROM ds_stage
-WHERE CTID NOT IN (SELECT MIN(CTID)
-                   FROM ds_stage
-                   GROUP BY drug_concept_code,
-                            ingredient_concept_code,
-                            box_size,
-                            amount_value,
-                            amount_unit,
-                            numerator_value,
-                            numerator_unit,
-                            denominator_value,
-                            denominator_unit);
 --select * from ds_stage;
 /*************************
 *** DRUG_CONCEPT_STAGE ***
@@ -561,7 +543,6 @@ FROM nccd_full_done a
     ON a.concept_id = c.concept_id
    AND c.standard_concept = 'S'
 WHERE nccd_type = 'IN';
-
 -- source BN - target BN
 INSERT INTO relationship_to_concept
 (
@@ -576,7 +557,6 @@ SELECT DISTINCT nccd_code,
        1
 FROM nccd_full_done 
 WHERE nccd_type = 'BN';
-
 -- source UNITS - target UNITS
 INSERT INTO relationship_to_concept
 (
@@ -615,7 +595,6 @@ SELECT t.concept_code as concept_code_1,
        t.concept_id as concept_id_2,
        1 as precedence
 FROM t; 
-
 -- source DF - target DF (precendence > '1' via word pattern matching)
 INSERT INTO relationship_to_concept  
 (concept_code_1,vocabulary_id_1,concept_id_2,precedence)
@@ -687,7 +666,6 @@ UNION ALL
 SELECT concept_code, 'NCCD',19095918 ,2 FROM drug_concept_stage WHERE concept_name = 'Paste' -- 19095918	346171	Oral Paste 
 )
 SELECT * FROM t; 
-
 -- cleaning up 
 -- delete "drugs" without ingredients (they shouldn't be at the drug input tables)
 DELETE

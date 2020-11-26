@@ -756,7 +756,17 @@ where exists
 --Handle overlapping lesion
 delete from match_blob
 where
-	s_id in (select descendant_concept_code from snomed_ancestor where ancestor_concept_code = '109821008') and --Overlapping malignant neoplasm of gastrointestinal tract
+	s_id in
+		(
+			select descendant_concept_code
+			from snomed_ancestor 
+			where ancestor_concept_code in
+				(
+					'109821008', --Overlapping malignant neoplasm of gastrointestinal tract
+					'188256008' --Malignant neoplasm of overlapping lesion of urinary organs
+				)
+			
+		) and 
 	i_code !~ '\.8$' --code for overlapping lesions
 ;
 analyze match_blob
@@ -792,11 +802,14 @@ where exists
 --11 Fill mappings and other relations to SNOMED in concept_relationship_stage
 truncate concept_relationship_stage
 ;
---write 'Maps to' relations where perfect one-to-one mappings are available
+--write 'Maps to' relations where perfect one-to-one mappings are available and unique
 with monorelation as
 	(
 		select i_code
 		from match_blob
+		where
+			t_exact and
+			m_exact
 		group by i_code
 		having count (distinct s_id) = 1
 	)

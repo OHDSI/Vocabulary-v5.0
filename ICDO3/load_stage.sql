@@ -1,4 +1,4 @@
--- 0. Vocabulary update routine
+-- 1. Vocabulary update routine
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -11,7 +11,7 @@ END $_$
 ;
 truncate table concept_stage, concept_relationship_stage, concept_synonym_stage
 ;
---1. Reformat sources
+--2. Reformat sources
 ---Topography
 ;
 update topo_source_iacr
@@ -23,7 +23,7 @@ update topo_source_iacr
 set concept_name = left (concept_name, 1) || replace (right (lower (concept_name), -1), ', nos', ', NOS')
 where concept_name = upper (concept_name)
 ;
--- 2. Start building the hierarchy for progagating domain_ids from top to bottom
+-- 3. Building SNOMED hierarchy to pick future mapping targets
 DROP TABLE IF EXISTS snomed_ancestor cascade;
 CREATE UNLOGGED TABLE snomed_ancestor AS (
 	WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, full_path) AS (
@@ -95,9 +95,7 @@ SELECT DISTINCT
 	descendant_concept_code AS ancestor_concept_code 
 FROM snomed_ancestor hc
 ;
-
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
-
 ;
 create index snomed_ancestor_a on snomed_ancestor (ancestor_concept_code)
 ;
@@ -105,7 +103,7 @@ create index snomed_ancestor_d on snomed_ancestor (descendant_concept_code)
 ;
 ANALYZE snomed_ancestor;
 ;
---3. Prepare updates for histology mapping from SNOMED refset
+--4. Prepare updates for histology mapping from SNOMED refset
 drop table if exists snomed_mapping
 ;
 create table snomed_mapping as
@@ -132,7 +130,7 @@ where
 	active = 1 and
 	maptarget like '%/%'
 ;
---Remove descendants where ancestor is specified as mapping target
+--5. Remove descendants where ancestor is specified as mapping target
 delete from snomed_mapping m1
 where exists
 	(
@@ -145,7 +143,7 @@ where exists
 			m2.icdo_code = m1.icdo_code
 	)
 ;
---Remove ambiguous mappings
+--6. Remove ambiguous mappings
 delete from snomed_mapping
 where icdo_code in
 	(
@@ -155,7 +153,7 @@ where icdo_code in
 		having count (1) > 1
 	)
 ;
---4. Update histology mappings from SNOMED International refset
+--7. Update histology mappings from SNOMED International refset
 update r_to_c_all r
 set
 	relationship_id = 'Maps to',
@@ -168,51 +166,7 @@ set
 where
 	r.concept_code in (select s.icdo_code from snomed_mapping s)
 ;
---5. Update histology mappings from CAP provided mappings
--- Licensing of provided mappings does not allow us to use them
-/*with active_concept as
-	(
-		select distinct
-			c.id as c_id,
-			first_value (c.active) over
-				(
-					partition by c.id
-					order by c.effectivetime desc
-				) as c_active
-		from sources.sct2_concept_full_merged c
-	),
-cap_map as
-(
-	select distinct
-		left (icdo3morph,4) || '/' || right (icdo3morph,1) as icdo,
-		conceptid
-	from cap_mapping
-	join active_concept on
-		c_id = conceptid and
-		c_active = 1
-	where 
-		icdo3_match ~ 'Match$' and
-		snomed_match ~ 'Match$'
-)
-update r_to_c_all r
-set
-	relationship_id = 'Maps to',
-	snomed_code = 
-		(
-			select c.conceptid
-			from cap_map c
-			where r.concept_code = c.icdo
-		)
-where
-	concept_code in 
-		(
-			select icdo
-			from cap_map
-			group by icdo
-			having count (conceptid) =1
-		)*/
-;
---Remove duplications
+--8. Remove duplications
 delete from r_to_c_all r1
 where exists
 	(
@@ -224,8 +178,7 @@ where exists
 			r2.ctid < r1.ctid
 	)
 ;
---6. Populate concept stage with attributes
- --preserve missing morphology mapped to generic neoplasm
+--9. Preserve missing morphology mapped to generic neoplasm
 delete from r_to_c_all where concept_code = '9999/9'
 ;
 insert into r_to_c_all
@@ -242,7 +195,8 @@ create index if not exists rtca_target_vc on r_to_c_all (snomed_code)
 ;
 analyze r_to_c_all
 ;
---Topography
+--10. Populate_concept stage with attributes
+--10.1. Topography
 insert into concept_stage (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE)
 select 
 	null,
@@ -265,7 +219,7 @@ select
 from topo_source_iacr
 where code is not null
 ;
---Morphology
+--10.2. Morphology
 insert into concept_stage (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select 
 	null,
@@ -291,7 +245,7 @@ where
 	level not in ('Related', 'Synonym') and
 	icdo32 is not null
 ;
---Get obsolete and unconfirmed morphology concepts
+--10.3. Get obsolete and unconfirmed morphology concepts
 insert into concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select distinct
 	trim (m.str),
@@ -312,10 +266,10 @@ where m.code not in
 	)
 ;
 
---7. Form table with replacements to handle historic changes for combinations and histologies
+--11. Form table with replacements to handle historic changes for combinations and histologies
 drop table if exists code_replace
 ;
---Explicitly stated histologies replacements
+--11.1. Explicitly stated histologies replacements
 create table code_replace as
 select
 	code as old_code,
@@ -333,7 +287,7 @@ select
 from changelog_extract
 where fate ~ 'Moved to \/\d'
 ;
---Same names; old code deprecated
+--11.2. Same names; old code deprecated
 insert into code_replace
 select 
 	d2.concept_code as old_code,
@@ -350,7 +304,7 @@ left join code_replace on
 	old_code = d2.concept_code
 where old_code is null
 ;
---Form table with existing and old combinations
+--11.3. Form table with existing and old combinations
 drop table if exists comb_table
 ;
 --Existing
@@ -382,7 +336,7 @@ join code_replace r on
 	r.old_code = c.histology_behavior
 ;
 insert into comb_table
---create mappings for missing topography/morphology
+--11.4. Create mappings for missing topography/morphology
 select
 	'9999/9', -- unspecified morphology, mapped to generic neoplasm
 	concept_code,
@@ -396,14 +350,14 @@ where
 
 select
 	concept_code,
-	'-1',--unspecified topography, combination will get mapped to concepts without a topography
+	'-1',--unspecified topography, combination will get mapped to a concept without a topography
 	concept_code || '-NULL'
 from concept_stage
 where
 	concept_class_id = 'ICDO Histology' and
 	(standard_concept is null or standard_concept != 'C') -- not hierarchical
 ;
--- 8. Fill concept_stage with combinations
+-- 12. Populate concept_stage with combinations
 insert into concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select distinct
 		replace (m.concept_name, ', NOS', ', NOS,') ||
@@ -434,7 +388,7 @@ left join code_replace r on
 	r.old_code = c.concept_code
 where c.concept_code !~ '(9999\/9|NULL)'
 ;
---one-legged concepts
+--12.1. one-legged concepts (no topography)
 insert into concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select distinct
 	'Neoplasm defined only by histology: '||c.concept_name,
@@ -460,6 +414,7 @@ where
 	c.concept_class_id = 'ICDO Histology' and
 	(c.standard_concept is null or c.standard_concept != 'C') -- not hierarchical
 ;
+--12.2. one-legged concepts (no topography)
 insert into concept_stage (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select
 	null,
@@ -475,7 +430,7 @@ select
 from concept_stage
 where concept_class_id = 'ICDO Topography'
 ;
---9. Form stable list of existing precoordinated concepts in SNOMED
+--13. Form stable list of existing precoordinated concepts in SNOMED
 drop table if exists snomed_target_prepared cascade
 ;
 --TODO: use source SNOMED files for better filtering
@@ -636,7 +591,7 @@ where
 ;
 analyze snomed_target_prepared
 ;
---10 Form mass of all possible matches to filter later
+--14. Form mass of all possible matches to filter later
 drop table if exists match_blob
 ;
 create table match_blob as
@@ -680,7 +635,7 @@ join snomed_target_prepared s on
 
 where o.concept_code not in (select old_code from code_replace)
 ;
---match to concepts without topographies
+--14.1 match to concepts without topographies
 insert into match_blob
 select distinct
 	cs.concept_code as i_code,
@@ -714,7 +669,7 @@ create index idx_blob_s on match_blob (s_id)
 ;
 analyze match_blob
 ;
---Delete concepts that mention topographies contradicting source condition
+--14.2. Delete concepts that mention topographies contradicting source condition
 delete from match_blob m
 where exists
 	(
@@ -734,7 +689,7 @@ where exists
 			and r.t_id != '-1'
 	)
 ;
---Delete concepts that mention morphologies contradicting source condition
+--14.3. Delete concepts that mention morphologies contradicting source condition
 delete from match_blob m
 where exists
 	(
@@ -753,7 +708,7 @@ where exists
 				)
 	)
 ;
---Handle overlapping lesion
+--14.4. Handle overlapping lesion
 delete from match_blob
 where
 	s_id in
@@ -763,7 +718,12 @@ where
 			where ancestor_concept_code in
 				(
 					'109821008', --Overlapping malignant neoplasm of gastrointestinal tract
-					'188256008' --Malignant neoplasm of overlapping lesion of urinary organs
+					'188256008', --Malignant neoplasm of overlapping lesion of urinary organs
+					'109384006', --Overlapping malignant neoplasm of heart, mediastinum and pleura
+					'109347009', --Overlapping malignant neoplasm of bone and articular cartilage
+					'109851002', --Overlapping malignant neoplasm of retroperitoneum and peritoneum
+					'254388002', --Overlapping neoplasm of oral cavity and lips and salivary glands
+					'109919002' --Overlapping malignant neoplasm of peripheral nerves and autonomic nervous system
 				)
 			
 		) and 
@@ -771,7 +731,7 @@ where
 ;
 analyze match_blob
 ;
---malignant WBC disorder special
+--14.5. malignant WBC disorder special
 delete from match_blob
 where
 	s_id = '277543005' and --Malignant white blood cell disorder
@@ -786,7 +746,7 @@ where
 				ca.descendant_concept_code = t.snomed_code :: varchar
 		)
 ;
---CORE LOGIC: remove ancestors where descendants are available as targets
+--15. CORE LOGIC: remove ancestors where descendants are available as targets
 delete from match_blob m
 where exists
 	(
@@ -799,10 +759,10 @@ where exists
 			b.i_code = m.i_code	
 	)
 ;
---11 Fill mappings and other relations to SNOMED in concept_relationship_stage
+--16. Fill mappings and other relations to SNOMED in concept_relationship_stage
 truncate concept_relationship_stage
 ;
---write 'Maps to' relations where perfect one-to-one mappings are available and unique
+--16.1. Write 'Maps to' relations where perfect one-to-one mappings are available and unique
 with monorelation as
 	(
 		select i_code
@@ -828,7 +788,32 @@ where
 	m.t_exact and
 	m.m_exact
 ;
---write 'Is a' for everything else
+--16.2. Check if there are manual 'Maps to' for already processed concepts in manual table; we should get error if there are intersections
+DO $_$
+declare
+	codes text;
+BEGIN
+	select
+		string_agg (m.concept_code_1, ',')
+	into codes
+	from concept_relationship_manual m
+	join concept_relationship_stage s on
+		s.concept_code_1 = m.concept_code_1 and
+		s.vocabulary_id_1 = m.vocabulary_id_1 and
+		m.invalid_reason is null and
+		m.relationship_id = 'Maps to';
+	IF codes IS NOT NULL THEN
+			RAISE EXCEPTION 'Following codes need to be removed from manual table: %', codes ;
+	END IF;
+END $_$;
+
+--16.3. Get mappings from manual table
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--16.4. Write 'Is a' for everything else
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	m.i_code,
@@ -843,8 +828,8 @@ left join concept_relationship_stage r on
 	m.i_code = r.concept_code_1
 where r.concept_code_1 is null
 ;
---write relations for attributes
-----Maps to
+--17 Write relations for attributes
+--17.1. Maps to
 with monorelation as
 	(
 		select concept_code as code1
@@ -868,7 +853,7 @@ left join code_replace on
 	old_code = concept_code
 where old_code is null and snomed_code != '-1'
 ;
-----Is a
+--17.2. Is a
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	concept_code,
@@ -887,10 +872,10 @@ where concept_code not in
 	concept_code != '9999/9' and
 	snomed_code != '-1'
 ;
---12. Create internal hierarchy for attributes and combos
+--18. Create internal hierarchy for attributes and combos
 drop table if exists attribute_hierarcy
 ;
---Internal hierarchy for morphology attribute
+--18.1. Internal hierarchy for morphology attribute
 create table attribute_hierarcy as
 with hierarchy as
 (
@@ -949,7 +934,7 @@ select *
 from relation_atom
 ;
 insert into attribute_hierarcy
---Internal hierarchy for topography attribute
+--18.2. Internal hierarchy for topography attribute
 select
 	t1.code,
 	t2.code,
@@ -960,7 +945,7 @@ join topo_source_iacr t2 on
 	t2.code !~ '\.' and
 	t1.code like t2.code || '.%'
 ;
---Write 'Is a' for hierarchical concepts
+--19. Write 'Is a' for hierarchical concepts
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select
 	ancestor_code,
@@ -974,7 +959,7 @@ from attribute_hierarcy
 where reltype = 'H'
 ;
 --Write 'Is a' for combinations to Classification attributes
---Write 'Is a' for hierarchical Histologies
+--19.1. Write 'Is a' for hierarchical Histologies
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	a.ancestor_code,
@@ -996,7 +981,7 @@ where
 	a.reltype = 'A' and
 	r.old_code is null
 ;
---Write 'Is a' for hierarchical Topographies
+--19.2. Write 'Is a' for hierarchical Topographies
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	a.ancestor_code,
@@ -1021,7 +1006,7 @@ where
 drop table if exists legacy_comb
 ;
 create table legacy_comb as
--- 13. Create classification combinations for hierarchy-level topographies (supports previously created concepts)  
+-- 19.3. Create classification combinations for hierarchy-level topographies (supports previously created concepts)  
 select distinct
 	c.histology_behavior,
 	c.site,
@@ -1058,7 +1043,8 @@ join concept_stage t on
 	c.ancestor_site = t.concept_code
 where c.concept_code !~ '(9999\/9|NULL)'
 ;
---preserve classification of SNOMED concepts
+--19.4. preserve classification of SNOMED concepts
+--Only for classification concepts, does not affect SNOMED hierarchy
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	a.ancestor_code,
@@ -1073,9 +1059,9 @@ left join concept_relationship_stage m on --check if mapping to SNOMED is presen
 	m.relationship_id = 'Maps to' and
 	m.concept_code_1 = a.concept_code
 ;
---14. Form internal relations (to attributes)
+--20. Form internal relations (to attributes)
 --write internal relations
----Histology
+--20.1. Histology
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select
 	c1.concept_code,
@@ -1090,7 +1076,7 @@ left join code_replace c2 on
 	c2.old_code = c1.concept_code
 where c2.old_code is null
 ;
----Topography
+--20.2. Topography
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select
 	c1.concept_code,
@@ -1107,7 +1093,7 @@ where
 	c2.old_code is null and
 	c1.site != '-1'
 ;
---standard conditions should have 'Has asso morph' & 'Has finding site' from SNOMED parents
+--20.3. Standard conditions should have 'Has asso morph' & 'Has finding site' from SNOMED parents
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	s.concept_code,
@@ -1136,7 +1122,7 @@ join concept_relationship a on
 join concept o on
 	o.concept_id = a.concept_id_2
 ;
---remove parents as target attributes
+--20.4. remove cooccurrent parents of target attributes (consider our concepts fully defined)
 delete from concept_relationship_stage s
 where
 	relationship_id in ('Has asso morph','Has finding site') and
@@ -1157,7 +1143,7 @@ where
 			ca.concept_code = s.concept_code_2
 	)
 ;
---15. Handle replacements and self-mappings
+--21. Handle replacements and self-mappings
 --Add replacements from code_replace
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select
@@ -1170,7 +1156,7 @@ select
 	TO_DATE ('31.12.2099', 'dd.mm.yyyy')
 from code_replace cr
 ;
---Add mappings for replaced concepts
+--22. Add mappings for replaced concepts
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select
 	cr.old_code,	
@@ -1189,7 +1175,7 @@ where
 --Only for conditions or directly mapped Histologies
 	(cr.concept_class_id = 'ICDO Condition' or r.concept_code_1 is not null)
 ;
---Make concepts without Maps to relations Standard
+--23. Make concepts without 'Maps to' relations Standard
 update concept_stage
 set standard_concept = 'S'
 where
@@ -1203,7 +1189,7 @@ where
 			where relationship_id = 'Maps to'
 		)
 ;
---Add self-"maps to" to Standard concepts
+--24. Add self-"maps to" to Standard concepts
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select
 	concept_code,
@@ -1216,8 +1202,8 @@ select
 from concept_stage
 where standard_concept = 'S'
 ;
---15 Since our relationship list is cannonically complete, we deprecate all existing relationships if they are not reinforced in current release
---from ICDO3 to SNOMED
+--25. Since our relationship list is cannonically complete, we deprecate all existing relationships if they are not reinforced in current release
+--25.1. From ICDO3 to SNOMED
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date, invalid_reason)
 select
 	c.concept_code,
@@ -1247,7 +1233,7 @@ left join concept_relationship_stage s on
 	s.relationship_id = r.relationship_id
 where s.concept_code_1 is null
 ;
---From ICDO to ICDO
+--25.2. From ICDO to ICDO
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date, invalid_reason)
 with rela as
 --Ensure such relations were created this release (avoids mirroring problem)
@@ -1288,8 +1274,8 @@ left join concept_relationship_stage s on
 	s.relationship_id = r.relationship_id
 where s.concept_code_1 is null
 ;
---16 Populate concept_synonym_stage 
---with morphologies
+--26. Populate concept_synonym_stage 
+--26.1. with morphologies
 insert into concept_synonym_stage
 --we ignore obsoletion status of synonyms for now: concepts may still be referenced by their old names in historical classifications
 --ICDO3 does not distinguish between 'old' and 'wrong'
@@ -1304,7 +1290,7 @@ where
 	level != 'Related' -- not actual synonyms
 	and icdo32 is not null
 ;
---with everything else
+--26.2. with everything else
 insert into concept_synonym_stage
 select
 	null,
@@ -1316,6 +1302,6 @@ from concept_stage
 where
 	concept_class_id != 'ICDO Histology'
 ;
--- 17. Drop all temporary tables
--- drop table if exists  snomed_mapping, snomed_ancestor, snomed_target_prepared, attribute_hierarcy, comb_table, match_blob, legacy_comb, code_replace cascade
+-- 27. Cleanup: drop all temporary tables
+drop table if exists  snomed_mapping, snomed_ancestor, snomed_target_prepared, attribute_hierarcy, comb_table, match_blob, legacy_comb, code_replace cascade
 ;

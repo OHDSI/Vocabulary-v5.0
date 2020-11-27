@@ -23,23 +23,35 @@ WHERE c2.vocabulary_id IS NULL
 ;
 
 --03. looking at new concepts and their mapping -- mapping absent
-select a.concept_code, a.concept_name, a.domain_id , b.concept_name, b.vocabulary_id
+select a.concept_code, a.concept_name, a.domain_id, b.concept_name, b.vocabulary_id
  from concept a
 left join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Maps to'
 left join concept  b on b.concept_id = r.concept_id_2
 left join devv5.concept  c on c.concept_id = a.concept_id
-where a.vocabulary_id ='<your_vocab>'
+where a.vocabulary_id ='your_vocab'
 and c.concept_id is null and b.concept_id is null
 ;
 
 --04. looking at new concepts and their mapping -- mapping present
-select a.concept_code, a.concept_name, a.domain_id , b.concept_name, b.vocabulary_id
- from concept a
-  join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Maps to'
- join concept  b on b.concept_id = r.concept_id_2
-left join devv5.concept  c on c.concept_id = a.concept_id
-where a.vocabulary_id ='<your_vocab>'
-and c.concept_id is null  
+select a.concept_code as concept_code_source,
+       a.concept_name as concept_name_source,
+       a.domain_id as domain_id_source,
+       CASE WHEN a.concept_id = b.concept_id THEN '<Mapping to itself>'
+           ELSE b.concept_name END as concept_name_target,
+       CASE WHEN a.concept_id = b.concept_id THEN '<Mapping to itself>'
+           ELSE b.vocabulary_id END as vocabulary_id_target
+from concept a
+join concept_relationship r
+    on a.concept_id=r.concept_id_1
+           and r.invalid_reason is null
+           and r.relationship_Id ='Maps to'
+join concept b
+    on b.concept_id = r.concept_id_2
+left join devv5.concept  c
+    on c.concept_id = a.concept_id
+where a.vocabulary_id ='your_vocab'
+    and c.concept_id is null
+    --and a.concept_id != c.concept_id --use it to exclude mapping to itself
 ;
 
 --05. looking at new concepts and their ancestry -- 'Is a' absent
@@ -48,7 +60,7 @@ from concept a
 left join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Is a'
 left join concept b on b.concept_id = r.concept_id_2
 left join devv5.concept  c on c.concept_id = a.concept_id
-where a.vocabulary_id ='<your_vocab>'
+where a.vocabulary_id ='your_vocab'
 and c.concept_id is null and b.concept_id is null
 ;
 
@@ -58,7 +70,7 @@ from concept a
 join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Is a'
 join concept  b on b.concept_id = r.concept_id_2
 left join devv5.concept  c on c.concept_id = a.concept_id
-where a.vocabulary_id ='<your_vocab>'
+where a.vocabulary_id ='your_vocab'
 and c.concept_id is null
 ;
 
@@ -72,7 +84,7 @@ select a.concept_code,
 from concept a
 join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 join concept b on b.concept_id = concept_id_2
-where a.vocabulary_id = '<your_vocab>' and a.invalid_reason is null
+where a.vocabulary_id = 'your_vocab' and a.invalid_reason is null
 group by a.concept_code, a.concept_name
 )
 , 
@@ -85,7 +97,7 @@ select a.concept_code,
 from devv5. concept a
 join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 join devv5.concept b on b.concept_id = concept_id_2
-where a.vocabulary_id = '<your_vocab>' and a.invalid_reason is null
+where a.vocabulary_id = 'your_vocab' and a.invalid_reason is null
 group by a.concept_code, a.concept_name
 )
 select a.concept_code as source_code,
@@ -112,7 +124,7 @@ select a.concept_code,
 from concept a
 join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
 join concept b on b.concept_id = concept_id_2
-where a.vocabulary_id = '<your_vocab>' and a.invalid_reason is null
+where a.vocabulary_id = 'your_vocab' and a.invalid_reason is null
 group by a.concept_code, a.concept_name
 )
 ,
@@ -125,7 +137,7 @@ select a.concept_code,
 from devv5. concept a
 join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
 join devv5.concept b on b.concept_id = concept_id_2
-where a.vocabulary_id = '<your_vocab>' and a.invalid_reason is null
+where a.vocabulary_id = 'your_vocab' and a.invalid_reason is null
 group by a.concept_code, a.concept_name
 )
 select a.concept_code as source_code,

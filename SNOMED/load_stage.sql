@@ -1555,7 +1555,8 @@ VALUES (138875005, 'Metadata'), -- root
 	--AVOF-2893
 	(260299005,'Meas Value'),--Number
 	(272063003,'Meas Value'), --Alphanumeric
-	(397745006,'Observation') --Medical contraindication
+	(397745006,'Observation'), --Medical contraindication
+	(373063009,'Measurement') --Substance observable
 ;
 --18.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run

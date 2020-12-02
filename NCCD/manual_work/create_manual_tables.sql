@@ -17,30 +17,14 @@
 * Date: 2020
 **************************************************************************/
 
-DROP TABLE IF EXISTS nccd_vocabulary_vesion;
-CREATE TABLE nccd_vocabulary_vesion
+DROP TABLE nccd_manual;
+CREATE TABLE nccd_manual 
 (
-   vocabulary_date    DATE,
-   vocabulary_version VARCHAR (200)
+  nccd_type      VARCHAR,
+  nccd_code      VARCHAR,
+  nccd_name      VARCHAR,
+  t_nm           VARCHAR,
+  concept_id     INT,
+  concept_code   VARCHAR,
+  concept_name   VARCHAR
 );
-
-CREATE TABLE nccd_full_done 
-(
-  nccd_type          VARCHAR(50),
-  nccd_code          VARCHAR(50),
-  nccd_name          VARCHAR(1000),
-  t_nm               VARCHAR(255),
-  concept_id         INTEGER,
-  concept_code       VARCHAR(50),
-  concept_name       VARCHAR(255),
-  vocabulary_id      VARCHAR(20),
-  concept_class_id   VARCHAR(20),
-  ing_code           VARCHAR(50),
-  df_code            VARCHAR(50),
-  dose               VARCHAR(20),
-  unit               VARCHAR(20),
-  add_rel_id         VARCHAR(20),
-  related_code       VARCHAR(50),
-  df_name            VARCHAR(255)
-);
-

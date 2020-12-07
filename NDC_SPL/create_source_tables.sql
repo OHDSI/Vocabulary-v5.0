@@ -27,7 +27,7 @@ CREATE TABLE SOURCES.PRODUCT
   proprietarynamesuffix             VARCHAR(126),
   nonproprietaryname                VARCHAR(4000),
   dosageformname                    VARCHAR(48),
-  routename                         VARCHAR(1000),
+  routename                         TEXT,
   startmarketingdate                DATE,
   endmarketingdate                  DATE,
   marketingcategoryname             VARCHAR(40),

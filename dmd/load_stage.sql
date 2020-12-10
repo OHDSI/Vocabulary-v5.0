@@ -842,7 +842,8 @@ where
 					(
 						35622427,	--Genetically modified T-cell product
 						4222664, --Product containing industrial methylated spirit
-						36694441 --Sodium chloride 0.9% catheter maintenance solution pre-filled syringes
+						36694441, --Sodium chloride 0.9% catheter maintenance solution pre-filled syringes
+						35626947 --NHS dm+d appliance	
 					)
 		)
 ;
@@ -1281,8 +1282,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'dm+d',
-	pVocabularyDate			=> TO_DATE ('20200817', 'yyyymmdd'),
-	pVocabularyVersion		=> 'dm+d Version 8.2.0 20200817',
+	pVocabularyDate			=> TO_DATE ('20201207', 'yyyymmdd'),
+	pVocabularyVersion		=> 'dm+d Version 12.0.0 20201207',
 	pVocabularyDevSchema	=> 'DEV_DMD'
 );
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -4222,7 +4223,7 @@ where
 drop table if exists tofind_brands --finding brand names by name match and manual work
 ;
 --AVOF-339
-delete from amps_to_brands where brand_name = 'Co-careldopa'
+delete from amps_to_brands where brand_name like 'Co-%'
 ;
 create table tofind_brands as
 with ingred_relat as
@@ -4279,7 +4280,7 @@ drop table if exists b_temp
 ;
 drop table if exists x_temp
 ;
-create index idx_tf_b on tofind_brands (lower(concept_name))
+create index idx_tf_b on tofind_brands USING GIN ((lower(concept_name)) devv5.gin_trgm_ops); 
 ;
 analyze tofind_brands
 ;
@@ -4296,7 +4297,7 @@ where
 	c.concept_class_id = 'Brand Name' and
 	c.invalid_reason is null
 ;
-create index if not exists idx_tf_c on rx_concept (lower(concept_name))
+create index if not exists idx_tf_c on rx_concept USING GIN ((lower(concept_name)) devv5.gin_trgm_ops); 
 ;
 analyze rx_concept
 ;
@@ -4316,6 +4317,8 @@ where exists
 				)
 			)
 	)
+;
+analyze rx_concept
 ;
 	create unlogged table x_temp as
 		(
@@ -4346,9 +4349,6 @@ with max_score as
 select distinct x.concept_code, x.concept_name, x.brand_id, x.brand_name
 from x_temp x
 join max_score m using (concept_code, score)
-;
-delete from b_temp
-where brand_id in (40816247,21017606,21016413) --RxE duplicating RxN
 ;
 delete from tofind_brands --found
 where concept_code in (select concept_code from b_temp)

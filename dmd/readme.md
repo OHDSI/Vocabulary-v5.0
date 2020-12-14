@@ -13,3 +13,6 @@ Update algorithm:
 3. Run build_RxE.sql from ../working
 4. Run postprocessing.sql
 5. Run devv5.generic_update() function
+
+R_TO_C_ALL contents which is sufficient for December 2020 1st week release is available under:
+https://drive.google.com/drive/u/2/folders/1-_gcibtoQwhqnqAtf1bd02djLEicBr9w

@@ -64,7 +64,7 @@ BEGIN
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
     --get the proper ticket and concatenate it with the pDownloadURL
-    pTicket:=get_umls_ticket (pVocabulary_auth,pVocabulary_login);
+    pTicket:=get_umls_ticket (pVocabulary_auth,pVocabulary_login,pDownloadURL);
     pDownloadURL:=pDownloadURL||'?ticket='||pTicket;
 
     perform write_log (

@@ -24,7 +24,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'UK Biobank',
-	pVocabularyDate			=> TO_DATE ('2007-03-21' ,'yyyy-mm-dd'),   --From UK Biobank: Protocol for a large-scale prospective epidemiological resource (main phase) https://www.ukbiobank.ac.uk/wp-content/uploads/2011/11/UK-Biobank-Protocol.pdf?phpMyAdmin=trmKQlYdjjnQIgJ%2CfAzikMhEnx6
+	pVocabularyDate			=> TO_DATE ('2007-03-21' ,'yyyy-mm-dd'),   --From UK Biobank: https://biobank.ctsu.ox.ac.uk/showcase/exinfo.cgi?src=timelines
 	pVocabularyVersion		=> 'Version 0.0.1',
 	pVocabularyDevSchema	=> 'dev_ukbiobank'
 );
@@ -138,6 +138,21 @@ UPDATE concept_stage
         standard_concept = NULL
 WHERE concept_name ilike '%reason%'
 AND concept_class_id = 'Lab Test';
+
+UPDATE concept_stage
+    SET domain_id = 'Observation',
+        concept_class_id = 'Clinical Observation',
+        standard_concept = NULL
+WHERE concept_name ilike '%device id%'
+AND domain_id = 'Measurement';
+
+UPDATE concept_stage
+    SET domain_id = 'Observation',
+        concept_class_id = 'Clinical Observation',
+        standard_concept = 'S'
+WHERE standard_concept = 'S'
+AND domain_id = 'Measurement';
+
 
 --Make all Surveys standard
 UPDATE concept_stage
@@ -631,7 +646,7 @@ SELECT NULL,
        concat(dd.description, ': ', aa.meaning),
        'Observation',
        'UK Biobank',
-       'Clinical Finding',
+       'Question-Answer pair',
        NULL,
        concat(dd.field, '-', aa.encoding_id, '-', aa.value),
        to_date('19700101','yyyymmdd'),
@@ -675,7 +690,7 @@ SELECT NULL,
        concat(dd.description, ': ', aa.meaning),
        'Observation',
        'UK Biobank',
-       'Clinical Finding',
+       'Question-Answer pair',
        NULL,
        concat(dd.field, '-', aa.encoding_id, '-', aa.value),
        to_date('19700101','yyyymmdd'),
@@ -720,7 +735,7 @@ SELECT NULL,
        concat(dd.description, ': ', aa.meaning),
        'Observation',
        'UK Biobank',
-       'Clinical Finding',
+       'Question-Answer pair',
        NULL,
        concat(dd.field, '-', aa.encoding_id, '-', aa.value),
        to_date('19700101','yyyymmdd'),
@@ -844,7 +859,7 @@ WHERE concept_id != 0
 UNION
 
 SELECT '20003' AS concept_code_1,
-       '438553004' AS concept_code_2,
+       '428961000124106' AS concept_code_2,
        'UK Biobank',
        'SNOMED',
        'Maps to',
@@ -885,16 +900,103 @@ AND target_concept_id != 32912 --General unit for indivisible things
 
 --+ UKB_health_and_medical_history
 --Mapped to standard QA pairs
+INSERT INTO concept_relationship_manual(concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+
+SELECT CASE WHEN flag != 'Q' THEN concat(field_id, '-', source_code) ELSE field_id END AS concept_code_1,  --Separated mapping for questions
+       target_concept_code AS concept_code_2,
+       'UK Biobank',
+       target_vocabulary_id,
+       CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+           ELSE 'Maps to' END,
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM dev_oleg.ukb_health_and_medical_history_mapped
+WHERE target_concept_id != 0
+;
+
+--Creating concepts for QA pairs
+INSERT INTO concept_stage(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+SELECT NULL,
+       concat(f.title, ': ', aa.meaning),
+       'Observation',
+       'UK Biobank',
+       'Question-Answer pair',
+       NULL,
+       concat(f.field_id, '-', aa.encoding_id, '-', aa.value),
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM sources.uk_biobank_field f
+JOIN all_answers aa
+ON f.encoding_id = aa.encoding_id
+WHERE main_category
+IN (100041, 100046, 100042, 100037, 100038, 100048, 100039, 100040, 100047, 100044, 100045, 100043)
+AND concat(f.field_id, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_manual)
+;
 
 
 --+ UKB_operations
 UPDATE concept_stage
     SET standard_concept = NULL
-WHERE concept_code = '20003' AND vocabulary_id = 'UK Biobank';
+WHERE concept_code = '20004' AND vocabulary_id = 'UK Biobank';
+
+INSERT INTO concept_relationship_manual(concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+
+SELECT concat('5-', source_code) AS concept_code_1,
+       target_concept_code AS concept_code_2,
+       'UK Biobank',
+       target_vocabulary_id,
+       CASE WHEN to_value ~* 'value' THEN 'Maps to value' ELSE 'Maps to' END,
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM dev_oleg.ukb_operations_mapped
+WHERE target_concept_id != 0
+
+UNION
+
+SELECT '20004' AS concept_code_1,
+       '416940007' AS concept_code_2,
+       'UK Biobank',
+       'SNOMED',
+       'Maps to',
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+;
 
 
-
-
+--Creating concept relationships from Questions to Question - Answer pairs
+INSERT INTO concept_relationship_stage(concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT NULL,
+       NULL,
+        f.field_id,
+        cs.concept_code,
+       'UK Biobank',
+       'UK Biobank',
+        'Has QA pair',
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM sources.uk_biobank_field f
+JOIN concept_stage cs
+ON f.field_id::varchar = regexp_replace(cs.concept_code, '-.*$', '')
+WHERE cs.concept_class_id = 'Question-Answer pair';
 
 --Making concepts with mapping Non-standard
 UPDATE concept_stage
@@ -904,8 +1006,8 @@ WHERE concept_code IN (SELECT concept_code_1 FROM concept_relationship_manual WH
 --Making non-valid answers non-standard
 UPDATE concept_stage
     SET standard_concept = NULL
-WHERE concept_name IN ('Not known', 'Do not know', 'Do not know (group 2)', 'Do not know (group 1)', 'Reason not known', 'unknown', 'Unknown, cannot remember', 'Date uncertain or unknownNot specified',
-                      'Not specified', 'Prefer not to answer')
+WHERE concept_name IN ('Not known', 'Do not know', 'Do not know (group 2)', 'Do not know (group 1)', 'Reason not known', 'unknown', 'Unknown, cannot remember', 'Date uncertain or unknown',
+                      'Not specified', 'Prefer not to answer', 'None of the above')
 AND domain_id = 'Meas Value';
 
 --Processing manual relationships from concept_relationship_manual to concept_relationship

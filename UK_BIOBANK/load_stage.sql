@@ -249,7 +249,7 @@ CREATE TABLE all_answers AS
         UNION ALL
         SELECT encoding_id, meaning, value FROM sources.uk_biobank_ehierstring);
 
---TODO: Exclude also 1200?
+
 INSERT INTO concept_stage
 (
   concept_name,
@@ -539,7 +539,7 @@ FROM dev_oleg.UKB_source_of_admission_mapped
 WHERE target_concept_id != 0
 ;
 
---Non-standard even without mapping
+--Non-standard without mapping
 UPDATE concept_stage
     SET standard_concept = NULL
 WHERE concept_code ~* '265-';
@@ -581,13 +581,12 @@ WHERE concept_code ~* '267-';
 
 
 
---TODO: Corresponding question from main dataset should be non-standard?
 --+ UKB_treatment_specialty
 --Question: Non-standard
 --Answers: Standard or mapped to provider
 UPDATE concept_stage
     SET standard_concept = NULL
-WHERE concept_code = 'tretspef_uni';
+WHERE concept_code = 'tretspef_uni' OR concept_code = '41246';
 
 INSERT INTO concept_relationship_manual(concept_code_1,
                                         concept_code_2,
@@ -775,6 +774,7 @@ SELECT concat('3-', source_code) AS concept_code_1,
        NULL
 FROM dev_oleg.ukb_cancer_mapped
 WHERE target_concept_id != 0
+AND concat('3-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 
 UNION
 
@@ -815,6 +815,7 @@ SELECT concat('6-', source_code) AS concept_code_1,
        NULL
 FROM dev_oleg.ukb_noncancer_mapped
 WHERE target_concept_id != 0
+AND concat('6-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 
 UNION
 
@@ -828,7 +829,7 @@ SELECT '20002' AS concept_code_1,
        NULL
 ;
 
---TODO: Maybe non-standard answers?
+
 --+ UKB_treatment_medication
 --Question: Non-standard with mapping to 'history of drug therapy'
 --Answers: Standard or mapped to drugs
@@ -855,6 +856,7 @@ SELECT concat('4-', source_code) AS concept_code_1,
        NULL
 FROM dev_oleg.ukb_treatment_medication_validated_mapping
 WHERE concept_id != 0
+AND concat('4-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 
 UNION
 
@@ -868,9 +870,13 @@ SELECT '20003' AS concept_code_1,
        NULL
 ;
 
+--All answers are non-standard regardless of mapping
+UPDATE concept_stage
+    SET standard_concept = NULL
+WHERE concept_code ~* '4-';
 
 
---TODO: Done till this point
+
 --+ UKB_units
 --Maps to unit relationships from tests to units
 INSERT INTO concept_relationship_manual(concept_code_1,
@@ -894,7 +900,6 @@ FROM dev_oleg.UKB_units_mapped m
 JOIN sources.uk_biobank_field f
     ON f.units = m.source_code
 WHERE target_concept_id != 0
-AND target_concept_id != 32912 --General unit for indivisible things
 ;
 
 
@@ -967,6 +972,7 @@ SELECT concat('5-', source_code) AS concept_code_1,
        NULL
 FROM dev_oleg.ukb_operations_mapped
 WHERE target_concept_id != 0
+AND concat('5-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 
 UNION
 
@@ -978,6 +984,102 @@ SELECT '20004' AS concept_code_1,
        to_date('19700101','yyyymmdd'),
        to_date('20991231','yyyymmdd'),
        NULL
+;
+
+
+
+--+ UKB_BS_Sample_inventory
+INSERT INTO concept_relationship_manual(concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+
+SELECT source_code AS concept_code_1,
+       target_concept_code AS concept_code_2,
+       'UK Biobank',
+       target_vocabulary_id,
+       'Maps to',
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM dev_oleg.UKB_BS_Sample_inventory_mapped
+WHERE target_concept_id != 0
+;
+
+
+
+
+--+ 12 category_id = 100079 - Biological samples 🡪 Assay results
+--Categorical values
+--Mapped to standard QA pairs
+INSERT INTO concept_relationship_manual(concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+
+SELECT CASE WHEN flag != 'Q' THEN concat(field_id, '-', source_code) ELSE field_id END AS concept_code_1,  --Separated mapping for questions
+       target_concept_code AS concept_code_2,
+       'UK Biobank',
+       target_vocabulary_id,
+       CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+           ELSE 'Maps to' END,
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM dev_oleg.ukb_assay_results_categorical_mapped
+WHERE target_concept_id != 0
+;
+
+--Creating concepts for QA pairs
+INSERT INTO concept_stage(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
+SELECT NULL,
+       concat(f.title, ': ', aa.meaning),
+       'Observation',
+       'UK Biobank',
+       'Question-Answer pair',
+       NULL,
+       concat(f.field_id, '-', aa.encoding_id, '-', aa.value),
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM sources.uk_biobank_field f
+JOIN all_answers aa
+ON f.encoding_id = aa.encoding_id
+WHERE main_category IN ('148', '1307', '9081', '17518', '18518', '51428', '100079', '100080', '100081', '100082', '100083')
+AND f.title !~* 'aliquot|reportability|missing reason|correction reason|correction level|acquisition route|device ID'
+AND concat(f.field_id, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_manual)
+;
+
+
+--Numerical values
+INSERT INTO concept_relationship_manual(concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+
+SELECT source_code AS concept_code_1,  --Separated mapping for questions
+       target_concept_code AS concept_code_2,
+       'UK Biobank',
+       target_vocabulary_id,
+       CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+           ELSE 'Maps to' END,
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM dev_oleg.ukb_assay_results_numeric_mapped
+WHERE target_concept_id != 0
 ;
 
 

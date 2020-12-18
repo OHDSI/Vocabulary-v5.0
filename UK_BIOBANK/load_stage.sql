@@ -181,9 +181,10 @@ SELECT trim(title) as concept_name,
             THEN 'S'ELSE NULL END as standard_concept,
        field_id as concept_code,
        debut as valid_start_date,
-       to_date('20991231','yyyymmdd') as valid_end_date
+       to_date('20991231','yyyymmdd') as valid_end_date,
        --main_category,
        --cs.concept_name
+       units
 FROM sources.uk_biobank_field f
 
 LEFT JOIN concept_stage cs

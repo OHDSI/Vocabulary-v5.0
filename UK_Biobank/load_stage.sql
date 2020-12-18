@@ -14,7 +14,7 @@
 * limitations under the License.
 *
 * Authors: Alexander Davydov, Oleg Zhuk
-* Date: 2020
+* Date: August 2020
 **************************************************************************/
 
 
@@ -37,6 +37,7 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
+
 --2: Insert categories to concept_stage
 INSERT INTO concept_stage
 (
@@ -49,91 +50,19 @@ INSERT INTO concept_stage
   valid_start_date,
   valid_end_date
 )
+
 SELECT trim(title),
-        CASE WHEN cat.category_id IN (
-            101, --Carotid ultrasound
-            104, --ECG at rest, 12-lead
-            106, --Task functional brain MRI
-            107, --Diffusion brain MRI
-            109, --Susceptibility weighted brain MRI
-            110, --T1 structural brain MRI
-            111, --Resting functional brain MRI
-            112, --T2-weighted brain MRI
-            124, --Body composition by DXA
-            125, --Bone size, mineral and density by DXA
-            126, --Liver MRI
-            128, --Pulse wave analysis
-            133, --Left ventricular size and function
-            134, --dMRI skeleton
-            135, --dMRI weighted means
-            149, --Abdominal composition
-            190, --Freesurfer ASEG
-            191, --Freesurfer subsegmentation
-            192, --Freesurfer desikan white
-            193, --Freesurfer desikan pial
-            194, --Freesurfer desikan gw
-            195, --Freesurfer BA exvivo
-            196, --Freesurfer DKT
-            197, --Freesurfer a2009s
-            265, --Telomeres
-            1101, --Regional grey matter volumes (FAST)
-            1102, --Subcortical volumes (FIRST)
-            1307, --Infectious Disease Antigens
-            17518, --Blood biochemistry
-            51428, --Infectious Diseases
-            100007, --Arterial stiffness
-            100009, --Impedance measures
-            100010, --Body size measures
-            100011, --Blood pressure
-            100012, --ECG during exercise
-            100014, --Autorefraction
-            100015, --Intraocular pressure
-            100018, --Bone-densitometry of heel
-            100019, --Hand grip strength
-            100020, --Spirometry
-            100081, --Blood count
-            100083 --Urine assays
-            )
+        CASE WHEN title ~* 'assay|sampl|meas|ultrasound|MRI|pressure|ECG|tomography|densit|Freesurfer|DXA|Autorefraction|antigens|sample|imaging'
             THEN 'Measurement' ELSE 'Observation' END AS domain_id,
        'UK Biobank',
        'Biobank Category',
        'C',
        concat('c', cat.category_id),
-       to_date('19700101','yyyymmdd'),
+       current_date,  --to_date(last_update,'yyyymmdd'),
        to_date('20991231','yyyymmdd')
+
 FROM sources.uk_biobank_category cat
-WHERE category_id != 0
-;
-
---2b: Build category_ancestor
-DROP TABLE IF EXISTS category_ancestor;
-CREATE UNLOGGED TABLE category_ancestor AS (
-	WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, full_path) AS (
-		SELECT parent_id,
-			child_id,
-			parent_id AS root_ancestor_concept_code,
-			ARRAY [child_id::text] AS full_path
-		FROM sources.uk_biobank_catbrowse
-
-		UNION ALL
-
-		SELECT c.ancestor_concept_code,
-			c.descendant_concept_code,
-			root_ancestor_concept_code,
-			hc.full_path || c.descendant_concept_code::TEXT AS full_path
-		FROM concepts c
-		JOIN hierarchy_concepts hc ON hc.descendant_concept_code = c.ancestor_concept_code
-		WHERE c.descendant_concept_code::TEXT <> ALL (full_path)
-		),
-
-	concepts AS (
-		SELECT parent_id AS ancestor_concept_code,
-			   child_id AS descendant_concept_code
-		FROM sources.uk_biobank_catbrowse
-		)
-	SELECT DISTINCT hc.root_ancestor_concept_code::BIGINT AS ancestor_concept_code, hc.descendant_concept_code::BIGINT
-	FROM hierarchy_concepts hc
-);
+WHERE category_id != 0;
 
 --3: Insert questions to concept_stage
 INSERT INTO concept_stage
@@ -147,17 +76,14 @@ INSERT INTO concept_stage
   valid_start_date,
   valid_end_date
 )
-SELECT trim(title) as concept_name,
-       CASE WHEN cs.domain_id = 'Measurement' AND f.units IS NOT NULL THEN 'Measurement'
-            WHEN f.main_category IN (1307, --Infectious Disease Antigens
-                                     51428 --Infectious Diseases
-                                    ) AND f.field_id NOT IN (23048, --Antigen assay date
-                                                             23049 --Antigen assay QC indicator
-                                                            ) THEN 'Measurement'
-            ELSE 'Observation' END as domain_id,
-       'UK Biobank',
---TODO: improve concept_class_id logic (use Domains and category_ancestor). Remember category_ancestor doesn't provide the links to itself.
-       CASE WHEN
+
+SELECT trim(title),
+       CASE WHEN f.main_category::varchar IN (SELECT regexp_replace(concept_code, 'c', '') FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND concept_class_id = 'Biobank Category'
+           AND domain_id = 'Measurement') OR f.main_category IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087, --Lab tests
+                                                                 --Imaging
+                                                                100, 102, 103, 105, 106, 107, 108, 109, 110, 111, 112, 124, 125, 126, 128, 131, 133, 134, 135, 149, 190, 191, 192, 193, 194, 195, 196, 197, 1101, 1102, 100003) THEN 'Measurement' ELSE 'Observation' END AS domain_id,
+        'UK Biobank',
+        CASE WHEN
             f.main_category IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087) THEN 'Lab Test'
             WHEN f.encoding_id != 0 AND f.main_category NOT IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087, --Lab tests
                                                                 --Physical Measures
@@ -175,56 +101,36 @@ SELECT trim(title) as concept_name,
                 OR f.main_category IN (116, 117, 118, 120, 121, 122, 123, 130, 132, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 153, 154, 155, 1039, 100089, 100090, 100097, 100098, 100100, 100114)
                 OR f.main_category BETWEEN 100101 AND 100112
                 THEN 'Question'
-            ELSE 'Clinical Observation' END as concept_class_id,
---TODO: improve standard_concept logic (use Domains and category_ancestor)
-       CASE WHEN f.encoding_id != 0 AND f.main_category NOT IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087)
-            THEN 'S'ELSE NULL END as standard_concept,
-       field_id as concept_code,
-       debut as valid_start_date,
-       to_date('20991231','yyyymmdd') as valid_end_date
-       --main_category,
-       --cs.concept_name
+
+            ELSE 'Clinical Observation' END,
+        CASE WHEN f.encoding_id != 0 AND f.main_category NOT IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087)
+            THEN 'S' ELSE NULL END,
+        field_id,
+       debut,
+       to_date('20991231','yyyymmdd')
 FROM sources.uk_biobank_field f
-
-LEFT JOIN concept_stage cs
-    ON concat ('c', f.main_category) = cs.concept_code
-        AND cs.vocabulary_id = 'UK Biobank'
-        AND cs.concept_class_id = 'Biobank Category'
-
-WHERE f.main_category NOT IN (SELECT descendant_concept_code
-                              FROM category_ancestor
-                              WHERE ancestor_concept_code IN (100091, --Health-related outcomes
-                                                              1712, --First occurrences
-                                                              100314 --Genomics
-                                                             ))
-    AND f.main_category NOT IN (347 --Cardiac monitoring
-        )
-    AND f.item_type != 20 --Bulk (raw files, etc.)
+WHERE f.main_category NOT IN (SELECT child_id FROM sources.uk_biobank_catbrowse WHERE parent_id IN (100091, 2000, 1712))
+AND f.main_category NOT IN (SELECT child_id FROM sources.uk_biobank_catbrowse WHERE parent_id IN (100314))
+AND f.main_category NOT IN (100091, 43, 44, 45, 46, 47, 48, 49, 50, 2000, 1712, 3000, 3001, 100092, 100093,
+                           1017, 100314, 181, 182, 100035, 100313, 100314, 100315, 100316, 100317, 100319, 199001,
+                           347
+                           )
+AND f.item_type != 20
 ;
 
---TODO: 1. don't change anything for categories.
--- 2.try to avoid UPDATES improving the logic above
-
 --Some codes got mistaken concept_class or domain due to biobank classification
-SELECT *
-FROM concept_stage
-WHERE concept_name ilike '%assay date%';
-
 UPDATE concept_stage
-    SET concept_class_id = 'Clinical Observation'
+    SET domain_id = 'Observation',
+        concept_class_id = 'Clinical Observation',
+        standard_concept = 'S'
 WHERE concept_name ilike '%assay date%'
 ;
 
-
-SELECT * FROM concept_stage
-WHERE concept_name ilike '%reason%' AND concept_class_id != 'Lab Test|Biobank Category';
-
 UPDATE concept_stage
-    SET concept_class_id = 'Question',
+    SET domain_id = 'Observation',
+        concept_class_id = 'Question',
         standard_concept = 'S'
-WHERE concept_name ilike '%reason%' AND concept_class_id != 'Lab Test|Biobank Category';
-
-
+WHERE concept_name ilike '%reason%' AND concept_class_id != 'Lab Test';
 
 UPDATE concept_stage
     SET domain_id = 'Observation',

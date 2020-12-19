@@ -8,22 +8,46 @@ BEGIN
 );
 
   PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Variable',
+    pConcept_class_name     =>'Variable'
+);
+
+  PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Value',
+    pConcept_class_name     =>'Value'
+);
+
+  PERFORM vocabulary_pack.AddNewConceptClass(
     pConcept_class_id       =>'Question-Answer pair',
     pConcept_class_name     =>'Question-Answer pair'
-)
-  ;
+);
+
+  PERFORM vocabulary_pack.AddNewConceptClass(
+    pConcept_class_id       =>'Variable-Value pair',
+    pConcept_class_name     =>'Variable-Value pair'
+);
 
   PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has Question-Answer pair',
-	pRelationship_id			=>'Has QA pair',
+	pRelationship_id			=>'Has Q-A pair',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
-	pReverse_relationship_id	=>'QA pair of',
+	pReverse_relationship_id	=>'Q-A pair of',
 	pRelationship_name_rev		=>'Question-Answer pair of',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
-)
-  ;
+);
+
+  PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Has Variable-Value pair',
+	pRelationship_id			=>'Has V-V pair',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pReverse_relationship_id	=>'V-V pair of',
+	pRelationship_name_rev		=>'Variable-Value pair of',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
 
 -- Adding required vocabulary
   PERFORM vocabulary_pack.AddNewVocabulary(

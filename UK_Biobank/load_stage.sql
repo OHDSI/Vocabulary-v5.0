@@ -135,6 +135,8 @@ CREATE UNLOGGED TABLE category_ancestor AS (
 	FROM hierarchy_concepts hc
 );
 
+--TODO: make category a Measurement, when all the descendant categories are Measurements
+
 
 --3: Insert questions to concept_stage
 INSERT INTO concept_stage
@@ -151,36 +153,16 @@ INSERT INTO concept_stage
 SELECT trim(title) as concept_name,
        CASE WHEN cs.domain_id = 'Measurement' AND f.units IS NOT NULL THEN 'Measurement'
             WHEN f.main_category IN (1307, --Infectious Disease Antigens
-                                     51428 --Infectious Diseases
+                                     51428, --Infectious Diseases
+                                     100083 --Urine assays
                                     ) AND f.field_id NOT IN (23048, --Antigen assay date
                                                              23049 --Antigen assay QC indicator
                                                             ) THEN 'Measurement'
             ELSE 'Observation' END as domain_id,
        'UK Biobank',
---TODO: improve concept_class_id logic (use Domains and category_ancestor). Remember category_ancestor doesn't provide the links to itself.
-       CASE WHEN
-            f.main_category IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087) THEN 'Lab Test'
-            WHEN f.encoding_id != 0 AND f.main_category NOT IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087, --Lab tests
-                                                                --Physical Measures
-                                                               101, 104, 100006, 100007, 100008, 100009, 100010, 100011, 100012, 100013, 100014, 100015, 100016, 100017, 100018, 100019, 100020,
-                                                                100049, 100099) THEN 'Question'
-            --Portion 2 of surveys:
-            --All touchscreen and Verbal interview (UKB Assessment Center) + Online Follow up
-            --touchscreen
-            WHEN f.main_category IN (54, 100025, 100033, 100034, 100050)
-                OR f.main_category BETWEEN 100036 AND 100048
-                OR f.main_category BETWEEN 100050 AND 100070
-            --Verbal interview
-                OR f.main_category BETWEEN 100071 AND 100076
-            --Online Follow up
-                OR f.main_category IN (116, 117, 118, 120, 121, 122, 123, 130, 132, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 153, 154, 155, 1039, 100089, 100090, 100097, 100098, 100100, 100114)
-                OR f.main_category BETWEEN 100101 AND 100112
-                THEN 'Question'
-            ELSE 'Clinical Observation' END as concept_class_id,
---TODO: improve standard_concept logic (use Domains and category_ancestor)
-       CASE WHEN f.encoding_id != 0 AND f.main_category NOT IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087)
-            THEN 'S'ELSE NULL END as standard_concept,
-       field_id as concept_code,
+       'Undefined' as concept_class_id,
+       NULL as standard_concept,
+       field_id::varchar as concept_code,
        debut as valid_start_date,
        to_date('20991231','yyyymmdd') as valid_end_date
        --main_category,
@@ -204,9 +186,52 @@ WHERE f.main_category NOT IN (SELECT descendant_concept_code
 ;
 
 
-UPDATE
---Class for Measurements: all procedures, except real lab tests
---Class for Observation: 'Question' if enc_id != 0; Questions without answers - 'Survey';  the rest - 'Clinical observations';
+UPDATE concept_stage cs
+SET concept_class_id =
+    CASE WHEN cs.domain_id = 'Measurement'
+                    THEN 'Variable'
+                WHEN cs.domain_id = 'Observation'
+                    THEN CASE WHEN notes ~* 'Question asked|ACE touchscreen question|(Participant|Particpant|Participants) asked|Participants were asked|User asked|User was asked' THEN 'Question'
+                              WHEN main_category IN (130,132,1039,100099) AND field_id NOT IN (22617,20599,20750,20751) THEN 'Question'
+                              ELSE 'Variable' END
+                END
+FROM sources.uk_biobank_field f
+WHERE cs.concept_code = f.field_id::varchar
+    AND cs.concept_class_id = 'Undefined'
+    AND cs.vocabulary_id = 'UK Biobank'
+;
+
+
+
+       CASE WHEN f.encoding_id != 0 AND f.main_category NOT IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087)
+            THEN 'S'ELSE
+
+
+
+SELECT main_category,
+       field_id,
+
+       CASE WHEN cs.domain_id = 'Measurement'
+                THEN 'Variable'
+            WHEN cs.domain_id = 'Observation'
+                THEN CASE WHEN notes ~* 'Question asked|ACE touchscreen question|(Participant|Particpant|Participants) asked|Participants were asked|User asked|User was asked' THEN 'Question'
+                          WHEN main_category IN (130,132,1039,100099) AND field_id NOT IN (22617,20599,20750,20751) THEN 'Question'
+                          ELSE 'Variable' END
+            END as standard_concept_new,
+       standard_concept,
+       concept_class_id,
+       concept_name,
+       domain_id,
+       units,
+       encoding_id,
+       notes
+FROM concept_stage cs
+
+LEFT JOIN sources.uk_biobank_field f
+    ON cs.concept_code = f.field_id::varchar
+WHERE cs.concept_class_id != 'Biobank Category'
+    AND cs.vocabulary_id = 'UK Biobank'
+;
 
 
 
@@ -355,7 +380,7 @@ CREATE TABLE all_answers AS
         UNION ALL
         SELECT encoding_id, meaning, value FROM sources.uk_biobank_ehierstring);
 
---TODO 
+--TODO
 INSERT INTO concept_stage
 (
   concept_name,

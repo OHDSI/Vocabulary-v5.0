@@ -45,7 +45,7 @@ INSERT INTO concept_stage
   concept_code,
   valid_start_date,
   valid_end_date)
-SELECT concat ('UK Biobank Category | ', trim(title)),
+SELECT trim(title),
         CASE WHEN cat.category_id IN (
             101, --Carotid ultrasound
             104, --ECG at rest, 12-lead
@@ -92,7 +92,7 @@ SELECT concat ('UK Biobank Category | ', trim(title)),
             )
             THEN 'Measurement' ELSE 'Observation' END AS domain_id,
        'UK Biobank',
-       'UK Biobank Category',
+       'Category',
        'C',
        concat('c', cat.category_id),
        to_date('19700101','yyyymmdd'),
@@ -134,12 +134,12 @@ CREATE UNLOGGED TABLE category_ancestor AS (
 ----Make category a Measurement when all the descendant categories are Measurements
 UPDATE concept_stage cs
 SET domain_id = 'Measurement'
-WHERE concept_class_id = 'UK Biobank Category'
+WHERE concept_class_id = 'Category'
     AND EXISTS (SELECT 1
                 FROM category_ancestor ca1
                 JOIN concept_stage cs1
                     ON concat('c', ca1.descendant_concept_code) = cs1.concept_code
-                        AND cs1.concept_class_id = 'UK Biobank Category'
+                        AND cs1.concept_class_id = 'Category'
                 WHERE concat('c', ca1.ancestor_concept_code) = cs.concept_code
                     AND cs1.domain_id = 'Measurement'
                 )
@@ -147,7 +147,7 @@ WHERE concept_class_id = 'UK Biobank Category'
                 FROM category_ancestor ca2
                 JOIN concept_stage cs2
                     ON concat('c', ca2.descendant_concept_code) = cs2.concept_code
-                        AND cs2.concept_class_id = 'UK Biobank Category'
+                        AND cs2.concept_class_id = 'Category'
                 WHERE concat('c', ca2.ancestor_concept_code) = cs.concept_code
                     AND cs2.domain_id = 'Observation'
                 )
@@ -220,7 +220,7 @@ FROM sources.uk_biobank_field f
 LEFT JOIN concept_stage cs
     ON concat ('c', f.main_category) = cs.concept_code
         AND cs.vocabulary_id = 'UK Biobank'
-        AND cs.concept_class_id = 'UK Biobank Category'
+        AND cs.concept_class_id = 'Category'
 
 WHERE f.main_category NOT IN (SELECT descendant_concept_code
                               FROM category_ancestor
@@ -259,7 +259,7 @@ SET standard_concept = CASE WHEN f.encoding_id != 0
                             ELSE NULL END
 FROM sources.uk_biobank_field f
 WHERE cs.concept_code = f.field_id::varchar
-    AND cs.concept_class_id != 'UK Biobank Category'
+    AND cs.concept_class_id != 'Category'
     AND cs.vocabulary_id = 'UK Biobank'
 ;
 
@@ -546,7 +546,7 @@ FROM concept_stage cs
 JOIN sources.uk_biobank_field f
 ON f.main_category::varchar = regexp_replace(cs.concept_code, 'c', '')
 WHERE vocabulary_id = 'UK Biobank'
-AND concept_class_id = 'UK Biobank Category'
+AND concept_class_id = 'Category'
 AND f.field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE cs.vocabulary_id = 'UK Biobank')
 ;
 

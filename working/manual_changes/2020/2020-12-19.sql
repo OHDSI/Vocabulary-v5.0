@@ -26,12 +26,11 @@ BEGIN
   ;
 
 -- Adding required vocabulary
---TODO: specify the correct version and date
   PERFORM vocabulary_pack.AddNewVocabulary(
       pvocabulary_id => 'UK Biobank',
       pvocabulary_name =>  'UK Biobank',
       pvocabulary_reference => 'https://www.ukbiobank.ac.uk/',
-      pvocabulary_version => 'Version 0.0.1',
+      pvocabulary_version => TO_DATE('2020-10-15', 'yyyy-mm-dd'),
       pOMOP_req => NULL ,
       pClick_default => NULL,
       pAvailable => NULL,

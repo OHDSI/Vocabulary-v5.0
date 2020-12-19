@@ -18,7 +18,6 @@
 **************************************************************************/
 
 --0. Update a 'latest_update' field to a new date
---TODO: specify the correct version and date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -38,17 +37,15 @@ TRUNCATE TABLE drug_strength_stage;
 
 --2: Insert categories to concept_stage
 INSERT INTO concept_stage
-(
-  concept_name,
+( concept_name,
   domain_id,
   vocabulary_id,
   concept_class_id,
   standard_concept,
   concept_code,
   valid_start_date,
-  valid_end_date
-)
-SELECT trim(title),
+  valid_end_date)
+SELECT concat ('UK Biobank Category | ', trim(title)),
         CASE WHEN cat.category_id IN (
             101, --Carotid ultrasound
             104, --ECG at rest, 12-lead
@@ -95,7 +92,7 @@ SELECT trim(title),
             )
             THEN 'Measurement' ELSE 'Observation' END AS domain_id,
        'UK Biobank',
-       'Biobank Category',
+       'UK Biobank Category',
        'C',
        concat('c', cat.category_id),
        to_date('19700101','yyyymmdd'),
@@ -134,21 +131,72 @@ CREATE UNLOGGED TABLE category_ancestor AS (
 	FROM hierarchy_concepts hc
 );
 
---TODO: make category a Measurement, when all the descendant categories are Measurements
+----Make category a Measurement when all the descendant categories are Measurements
+UPDATE concept_stage cs
+SET domain_id = 'Measurement'
+WHERE concept_class_id = 'UK Biobank Category'
+    AND EXISTS (SELECT 1
+                FROM category_ancestor ca1
+                JOIN concept_stage cs1
+                    ON concat('c', ca1.descendant_concept_code) = cs1.concept_code
+                        AND cs1.concept_class_id = 'UK Biobank Category'
+                WHERE concat('c', ca1.ancestor_concept_code) = cs.concept_code
+                    AND cs1.domain_id = 'Measurement'
+                )
+    AND NOT EXISTS (SELECT 1
+                FROM category_ancestor ca2
+                JOIN concept_stage cs2
+                    ON concat('c', ca2.descendant_concept_code) = cs2.concept_code
+                        AND cs2.concept_class_id = 'UK Biobank Category'
+                WHERE concat('c', ca2.ancestor_concept_code) = cs.concept_code
+                    AND cs2.domain_id = 'Observation'
+                )
+;
 
+--Collect encoding_ids and their possible values together
+DROP TABLE IF EXISTS all_answers;
+CREATE UNLOGGED TABLE all_answers (
+   encoding_id INT,
+   meaning TEXT,
+   value TEXT,
+   not_useful int2
+);
+
+INSERT INTO all_answers
+SELECT encoding_id,
+       meaning,
+       value,
+       NULL
+FROM
+(SELECT encoding_id, meaning, value FROM sources.uk_biobank_esimpdate
+UNION ALL
+SELECT encoding_id, meaning, value FROM sources.uk_biobank_esimpint
+UNION ALL
+SELECT encoding_id, meaning, value FROM sources.uk_biobank_esimpreal
+UNION ALL
+SELECT encoding_id, meaning, value FROM sources.uk_biobank_esimpstring
+UNION ALL
+SELECT encoding_id, meaning, value FROM sources.uk_biobank_ehierint
+UNION ALL
+SELECT encoding_id, meaning, value FROM sources.uk_biobank_ehierstring) as a
+;
+
+--Mark not useful encoding_id
+UPDATE all_answers
+SET not_useful = 1
+WHERE encoding_id IN (17,28,170,218,222,272,402,485,584,803,805,807,809,811,909,1207,1208,1209,1210,1313,1317,1990,4982,100584,37,42,236,513,100291,100586,13,1205,1206,1211,586)
+;
 
 --3: Insert questions to concept_stage
 INSERT INTO concept_stage
-(
-  concept_name,
+( concept_name,
   domain_id,
   vocabulary_id,
   concept_class_id,
   standard_concept,
   concept_code,
   valid_start_date,
-  valid_end_date
-)
+  valid_end_date)
 SELECT trim(title) as concept_name,
        CASE WHEN cs.domain_id = 'Measurement' AND f.units IS NOT NULL THEN 'Measurement'
             WHEN f.main_category IN (1307, --Infectious Disease Antigens
@@ -172,7 +220,7 @@ FROM sources.uk_biobank_field f
 LEFT JOIN concept_stage cs
     ON concat ('c', f.main_category) = cs.concept_code
         AND cs.vocabulary_id = 'UK Biobank'
-        AND cs.concept_class_id = 'Biobank Category'
+        AND cs.concept_class_id = 'UK Biobank Category'
 
 WHERE f.main_category NOT IN (SELECT descendant_concept_code
                               FROM category_ancestor
@@ -184,7 +232,7 @@ WHERE f.main_category NOT IN (SELECT descendant_concept_code
     AND f.item_type != 20 --Bulk (raw files, etc.)
 ;
 
-
+--Assign concept_class_id to concepts
 UPDATE concept_stage cs
 SET concept_class_id =
     CASE WHEN cs.domain_id = 'Measurement'
@@ -200,116 +248,49 @@ WHERE cs.concept_code = f.field_id::varchar
     AND cs.vocabulary_id = 'UK Biobank'
 ;
 
-
-
-
-       CASE WHEN  AND f.main_category NOT IN (148, 1307, 9081, 17518, 18518, 51428, 100078, 100079, 100080, 100081, 100082, 100083, 100084, 100085, 100086, 100087)
-            THEN 'S'ELSE
-
-SELECT main_category,
-       field_id,
-       CASE WHEN f.encoding_id != 0 THEN 'S'
-            ELSE NULL
-
-            END as standard_concept_new,
-       concept_class_id,
-       concept_name,
-       domain_id,
-       units,
-       encoding_id,
-       notes
-FROM concept_stage cs
-
-LEFT JOIN sources.uk_biobank_field f
-    ON cs.concept_code = f.field_id::varchar
-WHERE cs.concept_class_id != 'Biobank Category'
+--Assign standard_concept to concepts
+UPDATE concept_stage cs
+SET standard_concept = CASE WHEN f.encoding_id != 0
+                                AND f.encoding_id NOT IN (SELECT DISTINCT encoding_id FROM all_answers WHERE not_useful = 1)
+                                AND f.main_category NOT IN ( --Exclude completely mapped categories
+                                                            51428, --Infectious Diseases
+                                                            100083 --Urine assays
+                                                            ) THEN 'S'
+                            ELSE NULL END
+FROM sources.uk_biobank_field f
+WHERE cs.concept_code = f.field_id::varchar
+    AND cs.concept_class_id != 'UK Biobank Category'
     AND cs.vocabulary_id = 'UK Biobank'
 ;
 
 
 
-
-
-
-
---TODO: 1. don't change anything for categories.
--- 2.try to avoid UPDATES improving the logic above
-
---Some codes got mistaken concept_class or domain due to biobank classification
-SELECT *
-FROM concept_stage
-WHERE concept_name ilike '%assay date%';
-
-UPDATE concept_stage
-    SET concept_class_id = 'Clinical Observation'
-WHERE concept_name ilike '%assay date%'
-;
-
-
-SELECT * FROM concept_stage
-WHERE concept_name ilike '%reason%' AND concept_class_id != 'Lab Test|Biobank Category';
-
-UPDATE concept_stage
-    SET concept_class_id = 'Question',
-        standard_concept = 'S'
-WHERE concept_name ilike '%reason%' AND concept_class_id != 'Lab Test|Biobank Category';
-
-
-
-UPDATE concept_stage
-    SET domain_id = 'Observation',
-        concept_class_id = 'Clinical Observation',
-        standard_concept = NULL
-WHERE concept_name ilike '%reason%'
-AND concept_class_id = 'Lab Test';
-
-UPDATE concept_stage
-    SET domain_id = 'Observation',
-        concept_class_id = 'Clinical Observation',
-        standard_concept = NULL
-WHERE concept_name ilike '%device id%'
-AND domain_id = 'Measurement';
-
-UPDATE concept_stage
-    SET domain_id = 'Observation',
-        concept_class_id = 'Clinical Observation',
-        standard_concept = 'S'
-WHERE standard_concept = 'S'
-AND domain_id = 'Measurement';
-
-
---Make all Surveys standard
-UPDATE concept_stage
-    SET standard_concept = 'S'
-WHERE concept_class_id = 'Question';
-
 --HESIN tables
 INSERT INTO concept_stage
-(
-  concept_name,
+( concept_name,
   domain_id,
   vocabulary_id,
   concept_class_id,
   standard_concept,
   concept_code,
   valid_start_date,
-  valid_end_date
-)
-
-SELECT description,
-        'Observation',
+  valid_end_date)
+SELECT trim(description),
+       'Observation',
        'UK Biobank',
-       'Clinical Observation',
-       'S',
+       'Variable',
+       CASE WHEN data_coding IS NOT NULL AND replace (data_coding, 'Coding ', '')::int NOT IN (SELECT DISTINCT encoding_id FROM all_answers WHERE not_useful = 1)
+            THEN 'S' ELSE NULL END,
        field,
        to_date('19700101','yyyymmdd'),
        to_date('20991231','yyyymmdd')
-       FROM sources.uk_biobank_hesdictionary
-    WHERE lower(field) IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni', 'mentcat', 'admistat', 'detncat', 'leglstat',
-                    'anagest', 'antedur', 'delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby', 'numpreg', 'postdur',
-                          'biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'gestat', 'sexbaby');
+FROM sources.uk_biobank_hesdictionary
+WHERE lower(field) IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni', 'mentcat', 'admistat', 'detncat', 'leglstat', 'postdur',
+                       'anagest', 'antedur', 'delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby', 'numpreg',
+                       'biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'gestat', 'sexbaby');
 
 
+--TODO: add the following patterns (if needed): 'Question asked|ACE touchscreen question|(Participant|Particpant|Participants) asked|Participants were asked|User asked|User was asked'
 --4: Insert questions to concept_synonym_stage
 INSERT INTO concept_synonym_stage
 (synonym_concept_id,
@@ -317,7 +298,6 @@ INSERT INTO concept_synonym_stage
  synonym_concept_code,
  synonym_vocabulary_id,
  language_concept_id)
-
 SELECT NULL,
        vocabulary_pack.CutConceptSynonymName(trim(regexp_replace(regexp_replace(notes, '<.*>|(You can select more than one answer)', ' ', 'g'), '\s{2,}|\.$', '', 'g'))) AS synonym_name,
        field_id AS synonym_concept_code,
@@ -325,23 +305,21 @@ SELECT NULL,
        4180186
 FROM sources.uk_biobank_field
 WHERE notes IS NOT NULL
-AND notes != ''
-AND (notes != title OR notes != concat(title, '.'))
-AND notes not ilike 'ACE touchscreen question%'
-AND notes not ilike 'Question asked%'
-AND notes != '.'
-
-AND field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
+    AND notes != ''
+    AND (trim(notes) != trim(title) OR trim(notes) != concat(trim(title), '.'))
+    AND notes NOT ILIKE 'ACE touchscreen question%'
+    AND notes NOT ILIKE 'Question asked%'
+    AND notes != '.'
+    AND field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 ;
 
-
+--TODO: fix 'Question asked ' pattern
 INSERT INTO concept_synonym_stage
 (synonym_concept_id,
  synonym_name,
  synonym_concept_code,
  synonym_vocabulary_id,
  language_concept_id)
-
 SELECT NULL,
        vocabulary_pack.CutConceptSynonymName(substring(notes, '"(.*)"')) AS synonym_name,
        field_id AS synonym_concept_code,
@@ -349,88 +327,110 @@ SELECT NULL,
        4180186
 FROM field
 WHERE notes IS NOT NULL
-AND notes != ''
-AND (notes != title OR notes != concat(title, '.'))
-AND (notes ilike 'ACE touchscreen question%' OR notes ilike 'Question asked%')
-AND notes != '.'
-
-AND field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
+    AND notes != ''
+    AND (trim(notes) != trim(title) OR trim(notes) != concat(trim(title), '.'))
+    AND (notes ILIKE 'ACE touchscreen question%' OR notes ILIKE 'Question asked%')
+    AND notes != '.'
+    AND field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 ;
 
 --5: Insert answers to concept_stage
-
---All answers together
-CREATE TABLE all_answers AS
-        (SELECT encoding_id, meaning, value FROM sources.uk_biobank_esimpdate
-        UNION ALL
-        SELECT encoding_id, meaning, value FROM sources.uk_biobank_esimpint
-        UNION ALL
-        SELECT encoding_id, meaning, value FROM sources.uk_biobank_esimpreal
-        UNION ALL
-        SELECT encoding_id, meaning, value FROM sources.uk_biobank_esimpstring
-        UNION ALL
-        SELECT encoding_id, meaning, value FROM sources.uk_biobank_ehierint
-        UNION ALL
-        SELECT encoding_id, meaning, value FROM sources.uk_biobank_ehierstring);
-
---TODO
 INSERT INTO concept_stage
-(
-  concept_name,
+( concept_name,
   domain_id,
   vocabulary_id,
   concept_class_id,
   standard_concept,
   concept_code,
   valid_start_date,
-  valid_end_date
-)
-
+  valid_end_date)
 SELECT trim(meaning),
-       'Meas Value',
+       'Observation',
        'UK Biobank',
        'Answer',
-       CASE WHEN encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND standard_concept = 'S')) THEN 'S'
-           ELSE NULL END,
+       CASE WHEN encoding_id IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND standard_concept = 'S'))
+                AND encoding_id NOT IN (4, 744)
+            THEN 'S'
+            ELSE NULL END,
        concat(encoding_id::varchar, '-', value),
        to_date('19700101','yyyymmdd'),
        to_date('20991231','yyyymmdd')
 FROM all_answers
-
---Only those encodings that we need
-WHERE encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank'))
-AND encoding_id NOT IN (1836, 196, 197, 198, 199)
-  --Logic differs for these concepts
-AND encoding_id NOT IN (SELECT encoding_id FROM sources.uk_biobank_ehierint)
+WHERE encoding_id IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank'))
+    AND encoding_id NOT IN (1836, --ICD9 to ICD10 mapping
+                            196, 197, 198, 199, 123) --values to be parsed in ETL
+      --Logic differs for these concepts (find the query below)
+    AND encoding_id NOT IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_ehierint)
 ;
 
 
+
+
+SELECT trim(meaning),
+       'Observation',
+       'UK Biobank',
+       CASE WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Question' THEN 'Answer'
+            WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Variable' THEN 'Value'
+            WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Question Variable' THEN '11'
+            ELSE '?'
+       END,
+       CASE WHEN a.encoding_id IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND standard_concept = 'S'))
+                AND a.encoding_id NOT IN (4, 744)
+            THEN 'S'
+            ELSE NULL END,
+       concat(a.encoding_id::varchar, '-', value),
+       to_date('19700101','yyyymmdd'),
+       to_date('20991231','yyyymmdd')
+FROM all_answers a
+
+LEFT JOIN sources.uk_biobank_field f
+    ON a.encoding_id = f.encoding_id
+
+LEFT JOIN concept_stage cs
+    ON f.field_id::varchar = cs.concept_code
+        AND cs.vocabulary_id = 'UK Biobank'
+        AND cs.concept_class_id IN ('Question', 'Variable')
+
+WHERE a.encoding_id IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank'))
+    AND a.encoding_id NOT IN (1836, --ICD9 to ICD10 mapping
+                            196, 197, 198, 199, 123) --values to be parsed in ETL
+      --Logic differs for these concepts (find the query below)
+    AND a.encoding_id NOT IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_ehierint)
+
+GROUP BY 1,2,3,5,6,7,8
+;
+
+
+
+
+
 INSERT INTO concept_stage
-(
-  concept_name,
+( concept_name,
   domain_id,
   vocabulary_id,
   concept_class_id,
   standard_concept,
   concept_code,
   valid_start_date,
-  valid_end_date
-)
-
+  valid_end_date)
 SELECT trim(regexp_replace(meaning, '^\d*\.?\d* ', '')),
-       'Meas Value',
+       'Observation',
        'UK Biobank',
        'Answer',
 CASE WHEN encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND standard_concept = 'S'))
-    AND selectable = 1 THEN 'S'
-           ELSE NULL END,
+        AND encoding_id NOT IN (3, --20001	Cancer code, self-reported
+                                5, --20004 Operation code
+                                6 --20002 Non-cancer illness code, self-reported
+        )
+     THEN 'S'
+     ELSE NULL END,
        concat(encoding_id::varchar, '-', value),
        to_date('19700101','yyyymmdd'),
        to_date('20991231','yyyymmdd')
 FROM sources.uk_biobank_ehierint
-WHERE encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM?*/, 240 /*OPCS4*/)
-AND encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank'))
-AND selectable = 1
+WHERE encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM*/, 240 /*OPCS4*/, 2/*SOC2000*/)
+    AND encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank'))
+    AND selectable = 1
 ;
 
 INSERT INTO concept_stage
@@ -546,7 +546,7 @@ FROM concept_stage cs
 JOIN sources.uk_biobank_field f
 ON f.main_category::varchar = regexp_replace(cs.concept_code, 'c', '')
 WHERE vocabulary_id = 'UK Biobank'
-AND concept_class_id = 'Biobank Category'
+AND concept_class_id = 'UK Biobank Category'
 AND f.field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE cs.vocabulary_id = 'UK Biobank')
 ;
 
@@ -873,3 +873,6 @@ SELECT * FROM concept_relationship_manual;
 
 --Drop temp table
 DROP TABLE all_answers;
+DROP TABLE category_ancestor;
+
+--TODO: fix numbers on the script

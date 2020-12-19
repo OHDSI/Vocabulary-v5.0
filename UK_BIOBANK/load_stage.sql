@@ -135,6 +135,7 @@ CREATE UNLOGGED TABLE category_ancestor AS (
 	FROM hierarchy_concepts hc
 );
 
+
 --3: Insert questions to concept_stage
 INSERT INTO concept_stage
 (
@@ -181,10 +182,10 @@ SELECT trim(title) as concept_name,
             THEN 'S'ELSE NULL END as standard_concept,
        field_id as concept_code,
        debut as valid_start_date,
-       to_date('20991231','yyyymmdd') as valid_end_date,
+       to_date('20991231','yyyymmdd') as valid_end_date
        --main_category,
        --cs.concept_name
-       units
+       --units
 FROM sources.uk_biobank_field f
 
 LEFT JOIN concept_stage cs
@@ -195,13 +196,23 @@ LEFT JOIN concept_stage cs
 WHERE f.main_category NOT IN (SELECT descendant_concept_code
                               FROM category_ancestor
                               WHERE ancestor_concept_code IN (100091, --Health-related outcomes
-                                                              1712, --First occurrences
                                                               100314 --Genomics
                                                              ))
     AND f.main_category NOT IN (347 --Cardiac monitoring
         )
     AND f.item_type != 20 --Bulk (raw files, etc.)
 ;
+
+
+UPDATE
+--Class for Measurements: all procedures, except real lab tests
+--Class for Observation: 'Question' if enc_id != 0; Questions without answers - 'Survey';  the rest - 'Clinical observations';
+
+
+
+
+
+
 
 --TODO: 1. don't change anything for categories.
 -- 2.try to avoid UPDATES improving the logic above
@@ -344,7 +355,7 @@ CREATE TABLE all_answers AS
         UNION ALL
         SELECT encoding_id, meaning, value FROM sources.uk_biobank_ehierstring);
 
-
+--TODO 
 INSERT INTO concept_stage
 (
   concept_name,

@@ -420,24 +420,39 @@ INSERT INTO concept_stage
 SELECT trim(regexp_replace(meaning, '^\d*\.?\d* ', '')),
        'Observation',
        'UK Biobank',
-       'Answer',
-CASE WHEN encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND standard_concept = 'S'))
-        AND encoding_id NOT IN (3, --20001	Cancer code, self-reported
+       CASE WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Question' THEN 'Answer'
+            WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Variable' THEN 'Value'
+            WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Question Variable' THEN 'Value'
+            ELSE '?'
+       END,
+CASE WHEN ei.encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND standard_concept = 'S'))
+        AND ei.encoding_id NOT IN (3, --20001	Cancer code, self-reported
                                 5, --20004 Operation code
                                 6 --20002 Non-cancer illness code, self-reported
         )
      THEN 'S'
      ELSE NULL END,
-       CONCAT(encoding_id::varchar, '-', value),
+       CONCAT(ei.encoding_id::varchar, '-', value),
        TO_DATE('19700101','yyyymmdd'),
        TO_DATE('20991231','yyyymmdd')
-FROM sources.uk_biobank_ehierint
-WHERE encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM*/, 240 /*OPCS4*/, 2/*SOC2000*/)
-    AND encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank'))
+FROM sources.uk_biobank_ehierint ei
+
+LEFT JOIN sources.uk_biobank_field f
+    ON ei.encoding_id = f.encoding_id
+
+LEFT JOIN concept_stage cs
+    ON f.field_id::varchar = cs.concept_code
+        AND cs.vocabulary_id = 'UK Biobank'
+        AND cs.concept_class_id IN ('Question', 'Variable')
+
+WHERE ei.encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM*/, 240 /*OPCS4*/, 2/*SOC2000*/)
+    AND ei.encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank'))
     AND selectable = 1
+
+GROUP BY 1,2,3,5,6,7,8
 ;
 
---TODO: implement the same logic for concept_class_id as above (with CASE and Group by)
+--TODO:DONE check please implement the same logic for concept_class_id as above (with CASE and Group by)
 INSERT INTO concept_stage
 (
   concept_name,
@@ -453,23 +468,43 @@ INSERT INTO concept_stage
 SELECT meaning,
        'Observation',
        'UK Biobank',
-       'Answer',
+       CASE WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Question' THEN 'Answer'
+            WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Variable' THEN 'Value'
+            WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Question Variable' THEN 'Value'
+            ELSE '?'
+        END,
         'S',
-       CONCAT(encoding_id::varchar, '-', value),
+       CONCAT(aa.encoding_id::varchar, '-', value),
        TO_DATE('19700101','yyyymmdd'),
        TO_DATE('20991231','yyyymmdd')
-FROM all_answers
-WHERE encoding_id IN
+FROM all_answers aa
+
+LEFT JOIN sources.uk_biobank_hesdictionary f
+    ON aa.encoding_id = replace(data_coding, 'Coding ', '')::int
+
+LEFT JOIN concept_stage cs
+    ON lower(f.field) = cs.concept_code
+        AND cs.vocabulary_id = 'UK Biobank'
+        AND cs.concept_class_id IN ('Question', 'Variable')
+
+
+WHERE aa.encoding_id IN
 (SELECT DISTINCT replace(data_coding, 'Coding ', '')::int AS encoding_id FROM sources.uk_biobank_hesdictionary
 WHERE lower(field) IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni', 'mentcat', 'admistat', 'detncat', 'leglstat',
                     'anagest', 'antedur', 'delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby', 'numpreg', 'postdur',
                           'biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'gestat', 'sexbaby')
 AND replace(data_coding, 'Coding ', '') IS NOT NULL)
 
-AND concat(encoding_id::varchar, '-', value) NOT IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
+AND concat(aa.encoding_id::varchar, '-', value) NOT IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
+
+AND lower(field) IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni', 'mentcat', 'admistat', 'detncat', 'leglstat',
+                    'anagest', 'antedur', 'delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby', 'numpreg', 'postdur',
+                          'biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'gestat', 'sexbaby')
+
+GROUP BY 1,2,3,5,6,7,8
 ;
 
---TODO: implement the same logic for concept_class_id as above (with CASE and Group by)
+--TODO: DONE check please implement the same logic for concept_class_id as above (with CASE and Group by)
 --HESIN Answers coming from main metadata
 INSERT INTO concept_stage
 (
@@ -503,12 +538,9 @@ AND concat(encoding_id::varchar, '-', value) NOT IN (SELECT concept_code FROM co
 ;
 
 
---6. Processing manual relationships from concept_relationship_manual to concept_relationship
-SELECT vocabulary_pack.ProcessManualRelationships();
-
 
 --TODO: DONE here and below update relationship_id and concept_class_id as mentioned in "Adding required concept_classes" and "Adding required relationships"
---7. Building hierarchy for questions
+--6. Building hierarchy for questions
 --Hierarchy between Classification concepts
 --TODO: DONE we're using 'Is a' among the vocabularies as a default if there's no special need
 INSERT INTO concept_relationship_stage
@@ -564,7 +596,7 @@ AND f.field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE cs.voca
 ;
 
 --TODO: DONE IF I GOT IT RIGHT add 'Has value' as well (depending on the concept_class of the target (Answer or Value)
---8. Building 'Has answer' relationships
+--7. Building 'Has answer' relationships
 --For main dataset
 with all_omoped_answers AS
     (
@@ -648,10 +680,12 @@ WHERE replace(hes.data_coding, 'Coding ', '') IS NOT NULL
 
 
 
---9. Processing new precoordinated Question-answer pairs and mapping for Questions and Answers through concept_relationship + concept_stage tables
+--8. Processing new precoordinated Question-answer pairs and mapping for Questions and Answers through concept_relationship + concept_stage tables
 
 --TODO: Check the CRM inserts and go one by one category for the QA
 -- All the corresponding code in QA_load_stage now. Need to put it here if some updates are be required
+
+--TODO: Now for precoordinated pairs we don't check if they are in concept_stage - we just create all combinations and then delete wrong (without mapping)
 
 --+ UKB_psychiatry
 --Creating concepts for QA pairs
@@ -671,7 +705,7 @@ JOIN all_answers aa
 ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
 WHERE field IN ('mentcat', 'admistat', 'detncat', 'leglstat')
 --TODO: DONE ProcessManualRelationships before and use CR_stage instead of CRM in this query
-AND concat(dd.field, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
+--AND concat(dd.field, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
 ;
 
 
@@ -693,7 +727,7 @@ JOIN all_answers aa
 ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
 WHERE field IN ('delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby')
 --TODO: DONE ProcessManualRelationships before and use CR_stage instead of CRM in this query
-AND concat(dd.field, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
+--AND concat(dd.field, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
 ;
 
 
@@ -715,7 +749,7 @@ JOIN all_answers aa
 ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
 WHERE field IN ('biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'sexbaby') --gestat not included -> only QA pairs
 --TODO: DONE ProcessManualRelationships before and use CR_stage instead of CRM in this query
-AND concat(dd.field, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
+--AND concat(dd.field, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
 ;
 
 --+ UKB_health_and_medical_history
@@ -737,7 +771,7 @@ ON f.encoding_id = aa.encoding_id
 WHERE main_category
 IN (100041, 100046, 100042, 100037, 100038, 100048, 100039, 100040, 100047, 100044, 100045, 100043)
 --TODO: DONE ProcessManualRelationships before and use CR_stage instead of CRM in this query
-AND concat(f.field_id, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
+--AND concat(f.field_id, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
 ;
 
 --+ 12 category_id = 100079 - Biological samples 🡪 Assay results
@@ -759,8 +793,18 @@ ON f.encoding_id = aa.encoding_id
 WHERE main_category IN ('148', '1307', '9081', '17518', '18518', '51428', '100079', '100080', '100081', '100082', '100083')
 AND f.title !~* 'aliquot|reportability|missing reason|correction reason|correction level|acquisition route|device ID'
 --TODO: DONE ProcessManualRelationships before and use CR_stage instead of CRM in this query
-AND concat(f.field_id, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
+--AND concat(f.field_id, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_stage)
 ;
+
+
+--9. Processing manual relationships from concept_relationship_manual to concept_relationship
+SELECT vocabulary_pack.ProcessManualRelationships();
+
+
+--Removing unnecessary precoordinated pairs
+DELETE FROM concept_stage
+WHERE concept_class_id = 'Precoordinated pair'
+AND concept_code NOT IN (SELECT concept_code_1 FROM concept_relationship_stage WHERE relationship_id = 'Maps to' AND invalid_reason IS NULL);
 
 
 

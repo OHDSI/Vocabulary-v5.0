@@ -1,4 +1,4 @@
---Run inserts_into_crm.sql only after steps 1-5 from the load_stage.sql
+--Run inserts_into_crm.sql only after steps 1-8 from the load_stage.sql
 
 --TODO: Go and check through all the inserts
 

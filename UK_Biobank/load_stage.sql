@@ -347,31 +347,9 @@ INSERT INTO concept_stage
 SELECT trim(meaning),
        'Observation',
        'UK Biobank',
-       'Answer',
-       CASE WHEN encoding_id IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND standard_concept = 'S'))
-                AND encoding_id NOT IN (4, 744)
-            THEN 'S'
-            ELSE NULL END,
-       concat(encoding_id::varchar, '-', value),
-       to_date('19700101','yyyymmdd'),
-       to_date('20991231','yyyymmdd')
-FROM all_answers
-WHERE encoding_id IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank'))
-    AND encoding_id NOT IN (1836, --ICD9 to ICD10 mapping
-                            196, 197, 198, 199, 123) --values to be parsed in ETL
-      --Logic differs for these concepts (find the query below)
-    AND encoding_id NOT IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_ehierint)
-;
-
-
-
-
-SELECT trim(meaning),
-       'Observation',
-       'UK Biobank',
        CASE WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Question' THEN 'Answer'
             WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Variable' THEN 'Value'
-            WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Question Variable' THEN '11'
+            WHEN array_to_string(array_agg (DISTINCT cs.concept_class_id ORDER BY cs.concept_class_id), ' ') = 'Question Variable' THEN 'Value'
             ELSE '?'
        END,
        CASE WHEN a.encoding_id IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND standard_concept = 'S'))
@@ -401,9 +379,7 @@ GROUP BY 1,2,3,5,6,7,8
 ;
 
 
-
-
-
+--TODO: implement the same logic for concept_class_id (with CASE and Group by as above)
 INSERT INTO concept_stage
 ( concept_name,
   domain_id,
@@ -433,6 +409,7 @@ WHERE encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM*/, 240 /*OPCS4*/, 2/
     AND selectable = 1
 ;
 
+--TODO: implement the same logic for concept_class_id (with CASE and Group by as above)
 INSERT INTO concept_stage
 (
   concept_name,
@@ -446,7 +423,7 @@ INSERT INTO concept_stage
 )
 
 SELECT meaning,
-       'Meas Value',
+       'Observation',
        'UK Biobank',
        'Answer',
         'S',
@@ -464,6 +441,7 @@ AND regexp_replace(data_coding, 'Coding ', '') IS NOT NULL)
 AND concat(encoding_id::varchar, '-', value) NOT IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 ;
 
+--TODO: implement the same logic for concept_class_id (with CASE and Group by as above)
 --HESIN Answers coming from main metadata
 INSERT INTO concept_stage
 (
@@ -479,7 +457,7 @@ INSERT INTO concept_stage
 
 SELECT meaning,
        'Meas Value',
-       'UK Biobank',
+       'Observation',
        'Answer',
         'S',
        concat(encoding_id::varchar, '-', value),
@@ -496,7 +474,7 @@ AND regexp_replace(data_coding, 'Coding ', '') IS NOT NULL)
 AND concat(encoding_id::varchar, '-', value) NOT IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 ;
 
-
+--TODO: here and below update relationship_id and concept_class_id as mentioned in "Adding required concept_classes" and "Adding required relationships"
 --6: Building hierarchy for questions
 --Hierarchy between Classification concepts
 INSERT INTO concept_relationship_stage

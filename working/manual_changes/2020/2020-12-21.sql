@@ -22,6 +22,7 @@ BEGIN
     pConcept_class_name     =>'Precoordinated (Question-Answer/Variable-Value) pair '
 );
 
+-- Adding required relationships
   PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has precoordinated (Question-Answer/Variable-Value) pair',
 	pRelationship_id			=>'Has precoord pair',

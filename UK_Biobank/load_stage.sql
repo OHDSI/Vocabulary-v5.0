@@ -289,7 +289,7 @@ WHERE lower(field) IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni', 'mentcat',
                        'anagest', 'antedur', 'delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby', 'numpreg',
                        'biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'gestat', 'sexbaby');
 
-
+--TODO: here and below replace regexp_replace to replace where possible
 --TODO: add the following patterns (if needed): 'Question asked|ACE touchscreen question|(Participant|Particpant|Participants) asked|Participants were asked|User asked|User was asked'
 --4: Insert questions to concept_synonym_stage
 INSERT INTO concept_synonym_stage
@@ -379,7 +379,7 @@ GROUP BY 1,2,3,5,6,7,8
 ;
 
 
---TODO: implement the same logic for concept_class_id (with CASE and Group by as above)
+--TODO: implement the same logic for concept_class_id as above (with CASE and Group by)
 INSERT INTO concept_stage
 ( concept_name,
   domain_id,
@@ -409,7 +409,7 @@ WHERE encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM*/, 240 /*OPCS4*/, 2/
     AND selectable = 1
 ;
 
---TODO: implement the same logic for concept_class_id (with CASE and Group by as above)
+--TODO: implement the same logic for concept_class_id as above (with CASE and Group by)
 INSERT INTO concept_stage
 (
   concept_name,
@@ -441,7 +441,7 @@ AND regexp_replace(data_coding, 'Coding ', '') IS NOT NULL)
 AND concat(encoding_id::varchar, '-', value) NOT IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 ;
 
---TODO: implement the same logic for concept_class_id (with CASE and Group by as above)
+--TODO: implement the same logic for concept_class_id as above (with CASE and Group by)
 --HESIN Answers coming from main metadata
 INSERT INTO concept_stage
 (
@@ -456,8 +456,8 @@ INSERT INTO concept_stage
 )
 
 SELECT meaning,
-       'Meas Value',
        'Observation',
+       'UK Biobank',
        'Answer',
         'S',
        concat(encoding_id::varchar, '-', value),
@@ -477,6 +477,7 @@ AND concat(encoding_id::varchar, '-', value) NOT IN (SELECT concept_code FROM co
 --TODO: here and below update relationship_id and concept_class_id as mentioned in "Adding required concept_classes" and "Adding required relationships"
 --6: Building hierarchy for questions
 --Hierarchy between Classification concepts
+--TODO: we're using 'Is a' among the vocabularies as a default if there's no special need
 INSERT INTO concept_relationship_stage
 (
   concept_code_1,
@@ -500,6 +501,7 @@ SELECT concat('c', parent_id),
 FROM sources.uk_biobank_catbrowse cb;
 
 --Hierarchy between classification concepts and questions
+--TODO: It's gonna be 'Has category' relationship
 INSERT INTO concept_relationship_stage
 (
   concept_code_1,
@@ -528,7 +530,7 @@ AND concept_class_id = 'Category'
 AND f.field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE cs.vocabulary_id = 'UK Biobank')
 ;
 
-
+--TODO: add 'Has value' as well (depending on the concept_class of the target (Answer or Value)
 --7: Building 'Has answer' relationships
 --For main dataset
 with all_omoped_answers AS
@@ -569,7 +571,7 @@ ON aa.encoding_id = f.encoding_id
 WHERE f.encoding_id != 0
 ;
 
-
+--TODO: add 'Has value' as well (depending on the concept_class of the target (Answer or Value)
 --For HESIN dataset
 with all_omoped_answers AS
     (
@@ -675,6 +677,7 @@ FROM sources.uk_biobank_hesdictionary dd
 JOIN all_answers aa
 ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
 WHERE field IN ('mentcat', 'admistat', 'detncat', 'leglstat')
+--TODO: ProcessManualRelationships before and use CR_stage instead of CRM in this query
 AND concat(dd.field, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_manual)
 ;
 
@@ -698,6 +701,7 @@ FROM sources.uk_biobank_hesdictionary dd
 JOIN all_answers aa
 ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
 WHERE field IN ('delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby')
+--TODO: ProcessManualRelationships before and use CR_stage instead of CRM in this query
 AND concat(dd.field, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_manual)
 ;
 
@@ -720,6 +724,7 @@ FROM sources.uk_biobank_hesdictionary dd
 JOIN all_answers aa
 ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
 WHERE field IN ('biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'sexbaby') --gestat not included -> only QA pairs
+--TODO: ProcessManualRelationships before and use CR_stage instead of CRM in this query
 AND concat(dd.field, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_manual)
 ;
 
@@ -777,6 +782,7 @@ JOIN all_answers aa
 ON f.encoding_id = aa.encoding_id
 WHERE main_category
 IN (100041, 100046, 100042, 100037, 100038, 100048, 100039, 100040, 100047, 100044, 100045, 100043)
+--TODO: ProcessManualRelationships before and use CR_stage instead of CRM in this query
 AND concat(f.field_id, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_manual)
 ;
 
@@ -810,6 +816,7 @@ JOIN all_answers aa
 ON f.encoding_id = aa.encoding_id
 WHERE main_category IN ('148', '1307', '9081', '17518', '18518', '51428', '100079', '100080', '100081', '100082', '100083')
 AND f.title !~* 'aliquot|reportability|missing reason|correction reason|correction level|acquisition route|device ID'
+--TODO: ProcessManualRelationships before and use CR_stage instead of CRM in this query
 AND concat(f.field_id, '-', aa.encoding_id, '-', aa.value) IN (SELECT concept_code_1 FROM concept_relationship_manual)
 ;
 
@@ -835,10 +842,14 @@ WHERE cs.concept_class_id = 'Question-Answer pair';
 --Making concepts with mapping Non-standard
 UPDATE concept_stage
     SET standard_concept = NULL
+--TODO: check only valid mappings
+--TODO: ProcessManualRelationships before and use CR_stage instead of CRM in this query
 WHERE concept_code IN (SELECT concept_code_1 FROM concept_relationship_manual WHERE relationship_id = 'Maps to');
 
+--TODO: please move it to the creation step of all_answers table below (not_useful field) so that we can use this list in other inserts above
 --Making non-valid answers non-standard
 UPDATE concept_stage
+
     SET standard_concept = NULL
 WHERE concept_name IN ('Not known', 'Do not know', 'Do not know (group 2)', 'Do not know (group 1)', 'Reason not known', 'unknown', 'Unknown, cannot remember', 'Date uncertain or unknown',
                       'Not specified', 'Prefer not to answer', 'None of the above')
@@ -853,4 +864,5 @@ SELECT * FROM concept_relationship_manual;
 DROP TABLE all_answers;
 DROP TABLE category_ancestor;
 
---TODO: fix numbers on the script
+--TODO: annotate the script
+--TODO: fix chapter's numbers in the script

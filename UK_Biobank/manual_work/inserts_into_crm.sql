@@ -1,3 +1,7 @@
+--Run inserts_into_crm.sql only after steps 1-5 from the load_stage.sql
+
+--TODO: Go and check through all the inserts
+
 --+ UKB_source_of_admission
 --Answers mapped to visits
 INSERT INTO concept_relationship_manual(concept_code_1,
@@ -14,7 +18,7 @@ SELECT source_code AS concept_code_1,
        'UK Biobank',
        target_vocabulary_id,
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.UKB_source_of_admission_mapped
@@ -38,7 +42,7 @@ SELECT source_code AS concept_code_1,
        'UK Biobank',
        target_vocabulary_id,
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.UKB_destination_on_discharge_mapped
@@ -62,7 +66,7 @@ SELECT source_code AS concept_code_1,
        'UK Biobank',
        target_vocabulary_id,
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.UKB_treatment_specialty_mapped
@@ -86,7 +90,7 @@ SELECT concat(field_id, '-', source_code) AS concept_code_1,
        'UK Biobank',
        target_vocabulary_id,
        CASE WHEN to_value ~* 'value' THEN 'Maps to value' ELSE 'Maps to' END,
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.UKB_psychiatry_mapped
@@ -110,7 +114,7 @@ SELECT CASE WHEN source_code IS NOT NULL AND source_code != '' AND field_id != '
        'UK Biobank',
        target_vocabulary_id,
        CASE WHEN to_value ~* 'value' THEN 'Maps to value' ELSE 'Maps to' END,
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.UKB_maternity_mapped
@@ -136,7 +140,7 @@ SELECT CASE WHEN field_id != 'gestat' THEN concat(field_id, '-', source_code) EL
        CASE WHEN to_value ~* 'value' THEN 'Maps to value'
             WHEN to_value ~* 'unit' THEN 'Maps to unit'
            ELSE 'Maps to' END,
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.UKB_delivery_mapped
@@ -160,7 +164,7 @@ SELECT concat('3-', source_code) AS concept_code_1,
        'UK Biobank',
        target_vocabulary_id,
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.ukb_cancer_mapped
@@ -175,7 +179,7 @@ SELECT '20001' AS concept_code_1,
        'UK Biobank',
        'SNOMED',
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 ;
@@ -197,7 +201,7 @@ SELECT concat('6-', source_code) AS concept_code_1,
        'UK Biobank',
        target_vocabulary_id,
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.ukb_noncancer_mapped
@@ -212,7 +216,7 @@ SELECT '20002' AS concept_code_1,
        'UK Biobank',
        'SNOMED',
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 ;
@@ -234,7 +238,7 @@ SELECT concat('4-', source_code) AS concept_code_1,
        'UK Biobank',
        vocabulary_id,
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.ukb_treatment_medication_validated_mapping
@@ -249,7 +253,7 @@ SELECT '20003' AS concept_code_1,
        'UK Biobank',
        'SNOMED',
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 ;
@@ -271,7 +275,7 @@ SELECT f.field_id AS concept_code_1,
        'UK Biobank',
        target_vocabulary_id,
        'Maps to unit',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.UKB_units_mapped m
@@ -300,7 +304,7 @@ SELECT CASE WHEN flag != 'Q' THEN concat(field_id, '-', source_code) ELSE field_
        target_vocabulary_id,
        CASE WHEN to_value ~* 'value' THEN 'Maps to value'
            ELSE 'Maps to' END,
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.ukb_health_and_medical_history_mapped
@@ -324,7 +328,7 @@ SELECT concat('5-', source_code) AS concept_code_1,
        'UK Biobank',
        target_vocabulary_id,
        CASE WHEN to_value ~* 'value' THEN 'Maps to value' ELSE 'Maps to' END,
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.ukb_operations_mapped
@@ -339,7 +343,7 @@ SELECT '20004' AS concept_code_1,
        'UK Biobank',
        'SNOMED',
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 ;
@@ -361,7 +365,7 @@ SELECT source_code AS concept_code_1,
        'UK Biobank',
        target_vocabulary_id,
        'Maps to',
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.UKB_BS_Sample_inventory_mapped
@@ -389,7 +393,7 @@ SELECT CASE WHEN flag != 'Q' THEN concat(field_id, '-', source_code) ELSE field_
        target_vocabulary_id,
        CASE WHEN to_value ~* 'value' THEN 'Maps to value'
            ELSE 'Maps to' END,
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.ukb_assay_results_categorical_mapped
@@ -414,7 +418,7 @@ SELECT source_code AS concept_code_1,  --Separated mapping for questions
        target_vocabulary_id,
        CASE WHEN to_value ~* 'value' THEN 'Maps to value'
            ELSE 'Maps to' END,
-       to_date('19700101','yyyymmdd'),
+       current_date,
        to_date('20991231','yyyymmdd'),
        NULL
 FROM dev_oleg.ukb_assay_results_numeric_mapped

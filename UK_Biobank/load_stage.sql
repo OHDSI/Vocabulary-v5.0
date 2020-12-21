@@ -364,6 +364,7 @@ WHERE notes IS NOT NULL
     AND field_id::varchar IN (SELECT DISTINCT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND concept_code IS NOT NULL)
 ;
 
+
 --5. Insert answers/values to concept_stage
 INSERT INTO concept_stage
 ( concept_name,
@@ -771,7 +772,7 @@ WHERE concept_class_id = 'Precoordinated pair'
     AND concept_code NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage WHERE relationship_id = 'Maps to' AND invalid_reason IS NULL AND concept_code_1 IS NOT NULL);
 
 --10. Updates after creating concepts for precoordinated pairs
---Creating concept relationships from Questions to Question - Answer pairs
+--Creating concept relationships from Questions to Precoordinated pairs
 INSERT INTO concept_relationship_stage(concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
        NULL::int,
@@ -787,6 +788,24 @@ SELECT DISTINCT
 FROM sources.uk_biobank_field f
 JOIN concept_stage cs
     ON f.field_id::varchar = regexp_replace(cs.concept_code, '-.*$', '')
+WHERE cs.concept_class_id = 'Precoordinated pair';
+
+--Creating concept relationships from Questions to Precoordinated pairs (HES)
+INSERT INTO concept_relationship_stage(concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT DISTINCT
+       NULL::int,
+       NULL::int,
+        s.field,
+        cs.concept_code,
+       'UK Biobank',
+       'UK Biobank',
+       'Has precoord pair',
+       cs.valid_start_date,
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM sources.uk_biobank_hesdictionary s
+JOIN concept_stage cs
+    ON s.field = regexp_replace(cs.concept_code, '-.*$', '')
 WHERE cs.concept_class_id = 'Precoordinated pair';
 
 --11. Making concepts with mapping Non-standard

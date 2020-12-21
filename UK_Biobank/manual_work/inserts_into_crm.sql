@@ -1,6 +1,4 @@
---Run inserts_into_crm.sql only after steps 1-8 from the load_stage.sql
-
---TODO: Go and check through all the inserts
+--Run inserts_into_crm.sql right before the ProcessManualRelationships step
 
 --+ UKB_source_of_admission
 --Answers mapped to visits
@@ -97,7 +95,6 @@ FROM dev_oleg.UKB_psychiatry_mapped
 WHERE target_concept_id != 0
 ;
 
-
 --+ UKB_maternity
 --QA pairs mapped to standard concepts
 INSERT INTO concept_relationship_manual(concept_code_1,
@@ -120,7 +117,6 @@ SELECT CASE WHEN source_code IS NOT NULL AND source_code != '' AND field_id != '
 FROM dev_oleg.UKB_maternity_mapped
 WHERE target_concept_id != 0
 ;
-
 
 --+ UKB_delivery
 --QA pairs mapped to standard concepts
@@ -147,7 +143,6 @@ FROM dev_oleg.UKB_delivery_mapped
 WHERE target_concept_id != 0
 ;
 
-
 --+ UKB_cancer
 --Answers mapped to conditions/observations
 INSERT INTO concept_relationship_manual(concept_code_1,
@@ -169,7 +164,7 @@ SELECT concat('3-', source_code) AS concept_code_1,
        NULL
 FROM dev_oleg.ukb_cancer_mapped
 WHERE target_concept_id != 0
-AND concat('3-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
+    AND concat('3-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 
 UNION
 
@@ -243,7 +238,7 @@ SELECT concat('4-', source_code) AS concept_code_1,
        NULL
 FROM dev_oleg.ukb_treatment_medication_validated_mapping
 WHERE concept_id != 0
-AND concat('4-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
+    AND concat('4-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 
 UNION
 
@@ -333,7 +328,7 @@ SELECT concat('5-', source_code) AS concept_code_1,
        NULL
 FROM dev_oleg.ukb_operations_mapped
 WHERE target_concept_id != 0
-AND concat('5-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
+    AND concat('5-', source_code) IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank')
 
 UNION
 

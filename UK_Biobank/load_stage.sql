@@ -36,7 +36,6 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 
---TODO: DONE Check parts of the concept_codes in join for ambiguity
 
 --2. Insert categories to concept_stage and create table for all_answers combined
 INSERT INTO concept_stage
@@ -134,7 +133,7 @@ CREATE UNLOGGED TABLE category_ancestor AS (
 	FROM hierarchy_concepts hc
 );
 
-----Make category a Measurement when all the descendant categories are Measurements
+--2с: Make category a Measurement when all the descendant categories are Measurements
 UPDATE concept_stage cs
 SET domain_id = 'Measurement'
 WHERE concept_class_id = 'Category'
@@ -294,11 +293,11 @@ SELECT TRIM(description),
        'Variable',
        CASE WHEN data_coding IS NOT NULL
                 AND replace (data_coding, 'Coding ', '')::int IN (SELECT DISTINCT encoding_id FROM all_answers WHERE not_useful = 0)
-                AND lower(field) NOT IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni')
+                AND lower(field) NOT IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni')     --Values of these variables are mapped to specific domains (Visit, Provider, etc.)
            THEN 'S'
            ELSE NULL END,
        field,
-       TO_DATE('19700101','yyyymmdd'),
+       TO_DATE('20200901','yyyymmdd'),
        TO_DATE('20991231','yyyymmdd')
 FROM sources.uk_biobank_hesdictionary
 WHERE lower(field) IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni', 'mentcat', 'admistat', 'detncat', 'leglstat', 'postdur',
@@ -454,7 +453,9 @@ LEFT JOIN concept_stage cs
 
 WHERE ei.encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM*/, 240 /*OPCS4*/, 2/*SOC2000*/)
     AND ei.encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WHERE field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank'))
-    AND selectable = 1
+
+    AND selectable = 1      --Only values that can be spotted in the real data
+
 GROUP BY 1,3,5,6,7,8
 ;
 
@@ -488,7 +489,7 @@ SELECT meaning,
             THEN 'S'
             ELSE NULL END,
        CONCAT(aa.encoding_id::varchar, '-', value),
-       TO_DATE('19700101','yyyymmdd'),
+       TO_DATE('20200901','yyyymmdd'),
        TO_DATE('20991231','yyyymmdd')
 FROM all_answers aa
 
@@ -674,7 +675,7 @@ SELECT NULL,
 FROM sources.uk_biobank_hesdictionary dd
 JOIN all_answers aa
     ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
-WHERE field IN ('delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby')
+WHERE field IN ('delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby')      --anagest, antedur, numpreg, postdur not included --> only QA pairs
 ;
 
 
@@ -772,6 +773,3 @@ WHERE standard_concept IS NOT NULL
 --Drop temp table
 DROP TABLE all_answers;
 DROP TABLE category_ancestor;
-
---TODO: annotate the script (every other encoding_id, field_id hardcoded)
---TODO: fix chapter's numbers in the script (some of them has missing chaprer/number)

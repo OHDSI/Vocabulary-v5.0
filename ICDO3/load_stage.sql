@@ -457,7 +457,7 @@ snomed_concept as
 		a.ancestor_concept_code in
 			(
 				'399981008',	--Neoplasm and/or hamartoma
-				'425333006'	--Myeloproliferative disorder
+				'414026006'	--Disorder of hematopoietic cell proliferation
 			) and
 		a.descendant_concept_code = c.concept_code and
 		c.vocabulary_id = 'SNOMED'
@@ -641,6 +641,40 @@ select distinct
 	cs.concept_code as i_code,
 	s.concept_code as s_id,
 	s.m_id,
+	'-1' as t_id,
+
+-- concepts with known or 'deliberately' unknown topography should not have t_exact = TRUE
+	(t.relationship_id = 'Maps to' and t.snomed_code = '-1') as t_exact, 
+
+	(ma.descendant_concept_code = ma.ancestor_concept_code) and
+	(m.relationship_id = 'Maps to') as m_exact
+
+from comb_table o
+join concept_stage cs on o.concept_code = cs.concept_code
+
+--morphology & up
+join r_to_c_all m on
+	m.concept_code = o.histology_behavior
+join snomed_ancestor ma on
+	ma.descendant_concept_code = m.snomed_code
+
+--check if topography is Exactly unknown or just missing
+join r_to_c_all t on
+	t.concept_code = o.site
+
+join snomed_target_prepared s on
+	s.t_id = '-1' and
+	s.m_id = ma.ancestor_concept_code
+
+where cs.concept_code not in (select old_code from code_replace)
+;
+--14.2 match blood cancers to concepts without topographes
+--Lymphoma/Leukemia group concepts relating to generic hematopoietic structures as topography
+insert into match_blob
+select distinct
+	cs.concept_code as i_code,
+	s.concept_code as s_id,
+	s.m_id,
 	'-1',
 	
 	TRUE as t_exact,
@@ -658,10 +692,30 @@ join snomed_ancestor ma on
 	ma.descendant_concept_code = m.snomed_code
 
 join snomed_target_prepared s on
-	s.t_id = '-1' and
 	s.m_id = ma.ancestor_concept_code
+where
+--	959-972 Lymphomas
+	left (o.histology_behavior,3) between '959' and '993' and -- all hematological neoplasms
+-- Blood, Reticuloendothelial system, Hematopoietic NOS
+	o.site ~ '^C42\.[034]$' and
+	s.t_id in
+	(
+		'14016003',	--Bone marrow structure
+		'254198003',	--Lymph nodes of multiple sites
+		'57171008',	--Hematopoietic system structure
+		'87784001',	--Soft tissues
+		'127908000'	--Mononuclear phagocyte system structure
+	)
+	and not exists
+	(
+		select 1
+		from match_blob m
+		where
+			m.i_code = cs.concept_code and
+			m.m_exact and
+			m.t_exact
+	)
 
-where cs.concept_code not in (select old_code from code_replace)
 ;
 create index idx_blob on match_blob (i_code, s_id)
 ;
@@ -671,7 +725,9 @@ analyze match_blob
 ;
 --14.2. Delete concepts that mention topographies contradicting source condition
 delete from match_blob m
-where exists
+where
+	not m.t_exact and -- for lymphomas/leukemias
+	exists
 	(
 		select 1
 		from snomed_target_prepared r
@@ -723,7 +779,8 @@ where
 					'109347009', --Overlapping malignant neoplasm of bone and articular cartilage
 					'109851002', --Overlapping malignant neoplasm of retroperitoneum and peritoneum
 					'254388002', --Overlapping neoplasm of oral cavity and lips and salivary glands
-					'109919002' --Overlapping malignant neoplasm of peripheral nerves and autonomic nervous system
+					'109919002', --Overlapping malignant neoplasm of peripheral nerves and autonomic nervous system
+					'109948008' --Overlapping malignant neoplasm of eye and adnexa, primary
 				)
 			
 		) and 
@@ -1122,7 +1179,64 @@ join concept_relationship a on
 join concept o on
 	o.concept_id = a.concept_id_2
 ;
---20.4. remove cooccurrent parents of target attributes (consider our concepts fully defined)
+--20.4. Add own attributes to standard conditions
+---Topography
+insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
+select
+	s.concept_code,
+	r1.snomed_code,
+	'ICDO3',
+	'SNOMED',
+	'Has finding site',
+	TO_DATE ('01.01.1970', 'dd.mm.yyyy'),
+	TO_DATE ('31.12.2099', 'dd.mm.yyyy')
+from comb_table s
+left join concept_relationship_stage x on -- no mapping for condition
+	s.concept_code = x.concept_code_1 and
+	x.relationship_id = 'Maps to'
+join r_to_c_all r1 on
+	s.site = r1.concept_code
+where
+	 x.concept_code_1 is null and
+	 r1.snomed_code != '-1' and
+	 not exists
+	 	(
+	 		select 1
+	 		from concept_relationship_stage a
+	 		where
+	 			a.concept_code_1 = s.concept_code and
+	 			a.concept_code_2 = r1.snomed_code
+	 	)
+
+	UNION ALL
+---Histology
+select
+	s.concept_code,
+	r1.snomed_code,
+	'ICDO3',
+	'SNOMED',
+	'Has asso morph',
+	TO_DATE ('01.01.1970', 'dd.mm.yyyy'),
+	TO_DATE ('31.12.2099', 'dd.mm.yyyy')
+from comb_table s
+left join concept_relationship_stage x on -- no mapping for condition
+	s.concept_code = x.concept_code_1 and
+	x.relationship_id = 'Maps to'
+join r_to_c_all r1 on
+	s.histology_behavior = r1.concept_code
+where
+	 x.concept_code_1 is null and
+	 r1.snomed_code != '-1' and
+	 not exists
+	 	(
+	 		select 1
+	 		from concept_relationship_stage a
+	 		where
+	 			a.concept_code_1 = s.concept_code and
+	 			a.concept_code_2 = r1.snomed_code
+	 	)
+;
+--20.5. remove cooccurrent parents of target attributes (consider our concepts fully defined)
 delete from concept_relationship_stage s
 where
 	relationship_id in ('Has asso morph','Has finding site') and
@@ -1134,13 +1248,14 @@ where
 			s2.concept_code_2 = cd.concept_code and
 			cd.vocabulary_id = 'SNOMED' and
 			s2.concept_code_1 = s.concept_code_1 and
-			s.relationship_id = s2.relationship_id 
-		join concept_ancestor a on
-			cd.concept_id = a.descendant_concept_id and
-			a.min_levels_of_separation <> 0
+			s.relationship_id = s2.relationship_id
+		join snomed_ancestor a on
+			cd.concept_code = a.descendant_concept_code and
+			a.descendant_concept_code != a.ancestor_concept_code
 		join concept ca on
-			ca.concept_id = a.ancestor_concept_id and
-			ca.concept_code = s.concept_code_2
+			ca.concept_code = a.ancestor_concept_code and
+			ca.concept_code = s.concept_code_2 and
+			ca.vocabulary_id = 'SNOMED'
 	)
 ;
 --21. Handle replacements and self-mappings

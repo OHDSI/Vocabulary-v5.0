@@ -389,7 +389,7 @@ SELECT trim(meaning),
             THEN 'S'
             ELSE NULL END,
        CONCAT(a.encoding_id::varchar, '-', value),
-       TO_DATE('19700101','yyyymmdd'),
+       MIN (f.debut),
        TO_DATE('20991231','yyyymmdd')
 FROM all_answers a
 
@@ -405,7 +405,7 @@ WHERE a.encoding_id IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_fiel
     AND a.encoding_id NOT IN (1836, --ICD9 to ICD10 mapping
                             196, 197, 198, 199, 123) --values to be parsed in ETL
     AND a.encoding_id NOT IN (SELECT DISTINCT encoding_id FROM sources.uk_biobank_ehierint) --Logic differs for these concepts (find the query below)
-GROUP BY 1,3,5,6,7,8
+GROUP BY 1,3,5,6,8
 ;
 
 --5b. Insert answers/values to concept_stage (uk_biobank_ehierint)
@@ -439,7 +439,7 @@ CASE WHEN ei.encoding_id IN (SELECT encoding_id FROM sources.uk_biobank_field WH
      THEN 'S'
      ELSE NULL END,
        CONCAT(ei.encoding_id::varchar, '-', value),
-       TO_DATE('19700101','yyyymmdd'),
+       MIN(f.debut),
        TO_DATE('20991231','yyyymmdd')
 FROM sources.uk_biobank_ehierint ei
 
@@ -456,7 +456,7 @@ WHERE ei.encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM*/, 240 /*OPCS4*/,
 
     AND selectable = 1      --Only values that can be spotted in the real data
 
-GROUP BY 1,3,5,6,7,8
+GROUP BY 1,3,5,6,8
 ;
 
 --5с. Insert answers/values to concept_stage (HESIN uk_biobank_hesdictionary answers/values coming from main metadata)
@@ -489,7 +489,7 @@ SELECT meaning,
             THEN 'S'
             ELSE NULL END,
        CONCAT(aa.encoding_id::varchar, '-', value),
-       TO_DATE('20200901','yyyymmdd'),
+       MIN (f.debut),
        TO_DATE('20991231','yyyymmdd')
 FROM all_answers aa
 
@@ -500,6 +500,9 @@ LEFT JOIN concept_stage cs
     ON lower(f.field) = cs.concept_code
         AND cs.vocabulary_id = 'UK Biobank'
         AND cs.concept_class_id IN ('Question', 'Variable')
+
+LEFT JOIN sources.uk_biobank_field f
+    ON aa.encoding_id = f.encoding_id
 
 WHERE aa.encoding_id IN (SELECT DISTINCT replace(data_coding, 'Coding ', '')::int AS encoding_id FROM sources.uk_biobank_hesdictionary
                             WHERE lower(field) IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni', 'mentcat', 'admistat', 'detncat', 'leglstat',
@@ -512,7 +515,7 @@ WHERE aa.encoding_id IN (SELECT DISTINCT replace(data_coding, 'Coding ', '')::in
     AND lower(field) IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni', 'mentcat', 'admistat', 'detncat', 'leglstat',
                         'anagest', 'antedur', 'delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby', 'numpreg', 'postdur',
                               'biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'gestat', 'sexbaby')
-GROUP BY 1,3,5,6,7,8
+GROUP BY 1,3,5,6,8
 ;
 
 --6. Building hierarchy for questions

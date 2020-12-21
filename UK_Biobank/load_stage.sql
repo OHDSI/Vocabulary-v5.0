@@ -656,10 +656,10 @@ JOIN sources.uk_biobank_hesdictionary hes
 JOIN all_omoped_answers aa
     ON aa.encoding_id = replace(hes.data_coding, 'Coding ', '')::int
 WHERE replace(hes.data_coding, 'Coding ', '') IS NOT NULL
+    AND hes.data_coding LIKE 'Coding%'
 ;
 
 --8. Processing new precoordinated Question-answer pairs and mapping for Questions and Answers through concept_relationship + concept_stage tables
-
 --+ UKB_psychiatry
 --Creating concepts for QA pairs
 INSERT INTO concept_stage(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)

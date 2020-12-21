@@ -1,3 +1,15 @@
+--TODO: Check the CRM inserts and go one by one category for the QA
+-- All the corresponding code in QA_load_stage now. Need to put it here if some updates are be required
+
+
+--RUN before --11. Making concepts with mapping Non-standard
+SELECT *
+FROM concept_stage
+    WHERE standard_concept IS NOT NULL
+AND concept_code IN (SELECT concept_code_1 FROM concept_relationship_stage crs WHERE relationship_id = 'Maps to' AND crs.invalid_reason IS NULL);
+
+
+
 --+ UKB_source_of_admission
 --Question: Non-standard
 --TODO: Answers: Non-Standard or mapped to visits ???

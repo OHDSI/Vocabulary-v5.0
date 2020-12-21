@@ -23,7 +23,6 @@ FROM dev_oleg.UKB_source_of_admission_mapped
 WHERE target_concept_id != 0
 ;
 
-
 --+ UKB_destination_on_discharge
 --Answers mapped to visits
 INSERT INTO concept_relationship_manual(concept_code_1,
@@ -47,7 +46,6 @@ FROM dev_oleg.UKB_destination_on_discharge_mapped
 WHERE target_concept_id != 0
 ;
 
-
 --+ UKB_treatment_specialty
 --Answers mapped to providers
 INSERT INTO concept_relationship_manual(concept_code_1,
@@ -70,7 +68,6 @@ SELECT source_code AS concept_code_1,
 FROM dev_oleg.UKB_treatment_specialty_mapped
 WHERE target_concept_id != 0
 ;
-
 
 --+ UKB_psychiatry
 --QA pairs mapped to standard concepts
@@ -179,7 +176,6 @@ SELECT '20001' AS concept_code_1,
        NULL
 ;
 
-
 --+ UKB_noncancer
 --Answers mapped to conditions/observations
 INSERT INTO concept_relationship_manual(concept_code_1,
@@ -215,7 +211,6 @@ SELECT '20002' AS concept_code_1,
        to_date('20991231','yyyymmdd'),
        NULL
 ;
-
 
 --+ UKB_treatment_medication
 --Answers mapped to drugs/procedures (administration of insulin)
@@ -253,7 +248,6 @@ SELECT '20003' AS concept_code_1,
        NULL
 ;
 
-
 --+ UKB_units
 --'Maps to unit' relationships from tests to units
 INSERT INTO concept_relationship_manual(concept_code_1,
@@ -280,7 +274,6 @@ WHERE target_concept_id != 0
 AND f.field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE domain_id IN ('Observation', 'Measurement'))
 ;
 
-
 --+ UKB_health_and_medical_history
 --QA pairs mapped to standard concepts
 --Questions mapped to standard concepts with 'History of context'
@@ -305,7 +298,6 @@ SELECT CASE WHEN flag != 'Q' THEN concat(field_id, '-', source_code) ELSE field_
 FROM dev_oleg.ukb_health_and_medical_history_mapped
 WHERE target_concept_id != 0
 ;
-
 
 --+ UKB_operations
 --Answers mapped to procedures
@@ -343,7 +335,6 @@ SELECT '20004' AS concept_code_1,
        NULL
 ;
 
-
 --+ UKB_BS_Sample_inventory
 --Questions mapped to Specimen
 INSERT INTO concept_relationship_manual(concept_code_1,
@@ -366,7 +357,6 @@ SELECT source_code AS concept_code_1,
 FROM dev_oleg.UKB_BS_Sample_inventory_mapped
 WHERE target_concept_id != 0
 ;
-
 
 --+ 12 category_id = 100079 - Biological samples 🡪 Assay results
 --Categorical values

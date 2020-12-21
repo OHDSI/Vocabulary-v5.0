@@ -75,7 +75,6 @@ SELECT * FROM concept_stage WHERE concept_code = '20001';
 
 SELECT * FROM concept_stage WHERE concept_code ilike '3-';
 
-
 --+ UKB_noncancer
 --Question: Non-standard with mapping to 'history of clinical finding in subject'
 --Answers: Standard or mapped to conditions

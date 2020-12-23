@@ -46,7 +46,7 @@ INSERT INTO concept_stage
   valid_start_date,
   valid_end_date)
 SELECT DISTINCT
-       trim(title),
+        CASE WHEN category_id = 0 THEN 'UK Biobank Category' ELSE trim(title) END,
         CASE WHEN cat.category_id IN (
             101, --Carotid ultrasound
             104, --ECG at rest, 12-lead
@@ -99,7 +99,6 @@ SELECT DISTINCT
        TO_DATE('19700101','yyyymmdd'),
        TO_DATE('20991231','yyyymmdd')
 FROM sources.uk_biobank_category cat
-WHERE category_id != 0
 ;
 
 --2b. Build category_ancestor
@@ -132,7 +131,7 @@ CREATE UNLOGGED TABLE category_ancestor AS (
 	FROM hierarchy_concepts hc
 );
 
---2с. Make category a Measurement when all the descendant categories are Measurements
+--2c. Make category a Measurement when all the descendant categories are Measurements
 UPDATE concept_stage cs
 SET domain_id = 'Measurement'
 WHERE concept_class_id = 'Category'
@@ -195,7 +194,7 @@ WHERE meaning IN ('Not known', 'Do not know', 'Do not know (group 2)', 'Do not k
                       'Not specified', 'Prefer not to answer', 'None of the above', 'Not available')
 ;
 
---3. Insert questions to concept_stage
+--3. Insert Questions/Variables to concept_stage
 INSERT INTO concept_stage
 ( concept_name,
   domain_id,
@@ -306,8 +305,29 @@ WHERE lower(field) IN ('admisorc_uni', 'disdest_uni', 'tretspef_uni', 'mentcat',
                        'anagest', 'antedur', 'delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby', 'numpreg',
                        'biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'gestat', 'sexbaby');
 
+--4. Insert synonyms to concept_synonym_stage
+--4a. Category
+INSERT INTO concept_synonym_stage
+(synonym_concept_id,
+ synonym_name,
+ synonym_concept_code,
+ synonym_vocabulary_id,
+ language_concept_id)
+SELECT DISTINCT
+       NULL::int,
+       trim(regexp_replace(descript, '((?<!www|xnat|sahsu|bioshare|ware v1|USB 6|soft v6|\(i\.e|\(i| )\..*)| ?<(p|ul|li|/li)>', '', 'g')) AS synonym_name,
+       CONCAT('c', category_id) as synonym_concept_code,
+       'UK Biobank',
+       4180186 --English language
+FROM sources.uk_biobank_category
+WHERE descript IS NOT NULL
+    AND descript != ''
+    AND trim(descript) != trim(title)
+    AND trim(descript) != concat(trim(title), '.')
+;
+
+--4b. Fields part I
 --TODO: few concepts still left with problems due to source issue -> need to create use cases for them specifically)
---4. Insert questions to concept_synonym_stage
 INSERT INTO concept_synonym_stage
 (synonym_concept_id,
  synonym_name,
@@ -333,14 +353,15 @@ SELECT DISTINCT
 FROM sources.uk_biobank_field
 WHERE notes IS NOT NULL
     AND notes != ''
-    AND (trim(notes) != trim(title) OR trim(notes) != concat(trim(title), '.'))
+    AND trim(notes) != trim(title)
+    AND trim(notes) != concat(trim(title), '.')
     AND notes NOT ILIKE 'ACE touchscreen question%' --Processed below
     AND notes NOT ILIKE 'Question asked%'           --Processed below
     AND notes != '.'
     AND field_id::varchar IN (SELECT DISTINCT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND concept_code IS NOT NULL)
 ;
 
---Insert questions to concept_synonym_stage (ACE touchscreen question|Question asked)
+--4c. Fields part II (ACE touchscreen question|Question asked)
 INSERT INTO concept_synonym_stage
 (synonym_concept_id,
  synonym_name,
@@ -358,12 +379,12 @@ SELECT DISTINCT
 FROM sources.uk_biobank_field
 WHERE notes IS NOT NULL
     AND notes != ''
-    AND (trim(notes) != trim(title) OR trim(notes) != concat(trim(title), '.'))
+    AND trim(notes) != trim(title)
+    AND trim(notes) != concat(trim(title), '.')
     AND (notes ILIKE 'ACE touchscreen question%' OR notes ILIKE 'Question asked%')
     AND notes != '.'
     AND field_id::varchar IN (SELECT DISTINCT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND concept_code IS NOT NULL)
 ;
-
 
 --5. Insert answers/values to concept_stage
 INSERT INTO concept_stage
@@ -471,7 +492,7 @@ WHERE ei.encoding_id NOT IN (19 /*ICD10*/, 87 /*ICD9 or ICD9CM*/, 240 /*OPCS4*/,
 GROUP BY 1,3,5,6,8
 ;
 
---5с. Insert answers/values to concept_stage (HESIN uk_biobank_hesdictionary answers/values coming from main metadata)
+--5c. Insert answers/values to concept_stage (HESIN uk_biobank_hesdictionary answers/values coming from main metadata)
 INSERT INTO concept_stage
 (
   concept_name,
@@ -533,8 +554,8 @@ WHERE aa.encoding_id IN (SELECT DISTINCT replace(data_coding, 'Coding ', '')::in
 GROUP BY 1,3,5,6,8
 ;
 
---6. Building hierarchy for questions
---Hierarchy between Categories
+--6. Building hierarchy for Questions/Variables/Categories
+--6a. Hierarchy between Categories
 INSERT INTO concept_relationship_stage
 ( concept_code_1,
   concept_code_2,
@@ -544,6 +565,8 @@ INSERT INTO concept_relationship_stage
   valid_start_date,
   valid_end_date,
   invalid_reason)
+
+--provided by the source
 SELECT DISTINCT
        concat('c', child_id) AS concept_code_1,
        concat('c', parent_id) AS concept_code_2,
@@ -553,9 +576,33 @@ SELECT DISTINCT
        TO_DATE('19700101','yyyymmdd'),
        TO_DATE('20991231','yyyymmdd'),
        NULL
-FROM sources.uk_biobank_catbrowse cb;
+FROM sources.uk_biobank_catbrowse cb
 
---Hierarchy between classification concepts and questions
+UNION ALL
+
+--from top Level Category to Parent UKB Category concept
+SELECT DISTINCT
+       concat('c', category_id) AS concept_code_1,
+       'c0' as concept_code_2,
+       'UK Biobank',
+       'UK Biobank',
+       'Is a',
+       TO_DATE('19700101','yyyymmdd'),
+       TO_DATE('20991231','yyyymmdd'),
+       NULL
+FROM sources.uk_biobank_category c
+WHERE c.category_id IN ( --from Online browser https://biobank.ctsu.ox.ac.uk/showcase/browse.cgi?id=-2&cd=search
+                        1,	--Population characteristics
+                        100000,	--UK Biobank Assessment Centre
+                        100078,	--Biological samples
+                        100088,	--Additional exposures
+                        100089,	--Online follow-up
+                        100091,	--Health-related outcomes
+                        100314	--Genomics
+    )
+;
+
+--6b. Hierarchy between Categories and Questions/Variables
 INSERT INTO concept_relationship_stage
 ( concept_code_1,
   concept_code_2,
@@ -579,7 +626,7 @@ JOIN sources.uk_biobank_field f
     ON f.main_category::varchar = replace(cs.concept_code, 'c', '')
 WHERE vocabulary_id = 'UK Biobank'
     AND concept_class_id = 'Category'
-    AND f.field_id::varchar IN (SELECT DISTINCT concept_code FROM concept_stage WHERE cs.vocabulary_id = 'UK Biobank' AND concept_stage IS NOT NULL)
+    AND f.field_id::varchar IN (SELECT DISTINCT concept_code FROM concept_stage WHERE vocabulary_id = 'UK Biobank' AND concept_code IS NOT NULL)
 ;
 
 --7a. Building Has answer/Has Value relationships
@@ -659,7 +706,7 @@ WHERE replace(hes.data_coding, 'Coding ', '') IS NOT NULL
     AND hes.data_coding LIKE 'Coding%'
 ;
 
---8. Processing new precoordinated Question-answer pairs and mapping for Questions and Answers through concept_relationship + concept_stage tables
+--8. Processing new precoordinated pairs and mapping for Questions/Variables and Answers/Values through concept_relationship + concept_stage tables
 --+ UKB_psychiatry
 --Creating concepts for QA pairs
 INSERT INTO concept_stage(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
@@ -671,12 +718,15 @@ SELECT DISTINCT
        'Precoordinated pair',
        NULL,
        concat(dd.field, '-', aa.encoding_id, '-', aa.value),
-       current_date,
+       COALESCE(c.valid_start_date, current_date),
        to_date('20991231','yyyymmdd'),
        NULL
 FROM sources.uk_biobank_hesdictionary dd
 JOIN all_answers aa
     ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
+LEFT JOIN concept c
+    ON concat(dd.field, '-', aa.encoding_id, '-', aa.value) = c.concept_code
+        AND c.vocabulary_id = 'UK Biobank'
 WHERE field IN ('mentcat', 'admistat', 'detncat', 'leglstat')
 ;
 
@@ -691,12 +741,15 @@ SELECT DISTINCT
        'Precoordinated pair',
        NULL,
        concat(dd.field, '-', aa.encoding_id, '-', aa.value),
-       current_date,
+       COALESCE(c.valid_start_date, current_date),
        to_date('20991231','yyyymmdd'),
        NULL
 FROM sources.uk_biobank_hesdictionary dd
 JOIN all_answers aa
     ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
+LEFT JOIN concept c
+    ON concat(dd.field, '-', aa.encoding_id, '-', aa.value) = c.concept_code
+        AND c.vocabulary_id = 'UK Biobank'
 WHERE field IN ('delchang', 'delinten', 'delonset', 'delposan', 'delprean', 'numbaby')      --anagest, antedur, numpreg, postdur not included --> only QA pairs
 ;
 
@@ -712,12 +765,15 @@ SELECT DISTINCT
        'Precoordinated pair',
        NULL,
        concat(dd.field, '-', aa.encoding_id, '-', aa.value),
-       current_date,
+       COALESCE(c.valid_start_date, current_date),
        to_date('20991231','yyyymmdd'),
        NULL
 FROM sources.uk_biobank_hesdictionary dd
 JOIN all_answers aa
-ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
+    ON aa.encoding_id::varchar = substring(data_coding, '[0-9].*')
+LEFT JOIN concept c
+    ON concat(dd.field, '-', aa.encoding_id, '-', aa.value) = c.concept_code
+        AND c.vocabulary_id = 'UK Biobank'
 WHERE field IN ('biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'sexbaby') --gestat not included -> only QA pairs
 ;
 
@@ -732,12 +788,15 @@ SELECT DISTINCT
        'Precoordinated pair',
        NULL,
        concat(f.field_id, '-', aa.encoding_id, '-', aa.value),
-       current_date,
+       COALESCE(c.valid_start_date, current_date),
        to_date('20991231','yyyymmdd'),
        NULL
 FROM sources.uk_biobank_field f
 JOIN all_answers aa
     ON f.encoding_id = aa.encoding_id
+LEFT JOIN concept c
+    ON concat(f.field_id, '-', aa.encoding_id, '-', aa.value) = c.concept_code
+        AND c.vocabulary_id = 'UK Biobank'
 WHERE main_category IN (100041, 100046, 100042, 100037, 100038, 100048, 100039, 100040, 100047, 100044, 100045, 100043)
 ;
 
@@ -752,12 +811,15 @@ SELECT DISTINCT
        'Precoordinated pair',
        NULL,
        concat(f.field_id, '-', aa.encoding_id, '-', aa.value),
-       current_date,
+       COALESCE(c.valid_start_date, current_date),
        to_date('20991231','yyyymmdd'),
        NULL
 FROM sources.uk_biobank_field f
 JOIN all_answers aa
     ON f.encoding_id = aa.encoding_id
+LEFT JOIN concept c
+    ON concat(f.field_id, '-', aa.encoding_id, '-', aa.value) = c.concept_code
+        AND c.vocabulary_id = 'UK Biobank'
 WHERE main_category IN ('148', '1307', '9081', '17518', '18518', '51428', '100079', '100080', '100081', '100082', '100083')
     AND f.title !~* 'aliquot|reportability|missing reason|correction reason|correction level|acquisition route|device ID'
 ;
@@ -772,7 +834,7 @@ WHERE concept_class_id = 'Precoordinated pair'
     AND concept_code NOT IN (SELECT DISTINCT concept_code_1 FROM concept_relationship_stage WHERE relationship_id = 'Maps to' AND invalid_reason IS NULL AND concept_code_1 IS NOT NULL);
 
 --10. Updates after creating concepts for precoordinated pairs
---Creating concept relationships from Questions to Precoordinated pairs
+--10a. Creating relationships from Questions/Variables to Precoordinated pairs
 INSERT INTO concept_relationship_stage(concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
        NULL::int,
@@ -790,13 +852,13 @@ JOIN concept_stage cs
     ON f.field_id::varchar = regexp_replace(cs.concept_code, '-.*$', '')
 WHERE cs.concept_class_id = 'Precoordinated pair';
 
---Creating concept relationships from Questions to Precoordinated pairs (HES)
+--10b. Creating relationships from Questions/Variables to Precoordinated pairs (HES)
 INSERT INTO concept_relationship_stage(concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
        NULL::int,
        NULL::int,
-        s.field,
-        cs.concept_code,
+       s.field,
+       cs.concept_code,
        'UK Biobank',
        'UK Biobank',
        'Has precoord pair',
@@ -807,6 +869,26 @@ FROM sources.uk_biobank_hesdictionary s
 JOIN concept_stage cs
     ON s.field = regexp_replace(cs.concept_code, '-.*$', '')
 WHERE cs.concept_class_id = 'Precoordinated pair';
+
+--10c. Creating relationships from Answers/Variables to Precoordinated pairs
+INSERT INTO concept_relationship_stage(concept_id_1, concept_id_2, concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT DISTINCT
+       NULL::int,
+       NULL::int,
+        cs1.concept_code,
+        cs2.concept_code,
+       'UK Biobank',
+       'UK Biobank',
+       'Has precoord pair',
+       cs2.valid_start_date,
+       to_date('20991231','yyyymmdd'),
+       NULL
+FROM concept_stage cs1
+JOIN concept_stage cs2
+    ON cs1.concept_code = regexp_replace(cs2.concept_code, '^[A-Za-z0-9]*-', '')
+        AND cs2.concept_class_id = 'Precoordinated pair'
+WHERE cs1.concept_class_id IN ('Answer', 'Value')
+;
 
 --11. Making concepts with mapping Non-standard
 UPDATE concept_stage

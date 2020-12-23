@@ -1207,18 +1207,20 @@ END $_$;
 --17. Start building the hierarchy for progagating domain_ids from toop to bottom
 DROP TABLE IF EXISTS snomed_ancestor;
 CREATE UNLOGGED TABLE snomed_ancestor AS (
-	WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, full_path) AS (
+	WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, levels_of_separation, full_path) AS (
 		SELECT ancestor_concept_code,
 			descendant_concept_code,
 			ancestor_concept_code AS root_ancestor_concept_code,
+			levels_of_separation,
 			ARRAY [descendant_concept_code::text] AS full_path
 		FROM concepts
-		
+
 		UNION ALL
-		
+
 		SELECT c.ancestor_concept_code,
 			c.descendant_concept_code,
 			root_ancestor_concept_code,
+			hc.levels_of_separation+c.levels_of_separation as levels_of_separation,
 			hc.full_path || c.descendant_concept_code::TEXT AS full_path
 		FROM concepts c
 		JOIN hierarchy_concepts hc ON hc.descendant_concept_code = c.ancestor_concept_code
@@ -1226,16 +1228,19 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 		),
 	concepts AS (
 		SELECT crs.concept_code_2 AS ancestor_concept_code,
-			crs.concept_code_1 AS descendant_concept_code
+			crs.concept_code_1 AS descendant_concept_code,
+            1 as levels_of_separation
 		FROM concept_relationship_stage crs
 		WHERE crs.invalid_reason IS NULL
 			AND crs.relationship_id = 'Is a'
 			AND crs.vocabulary_id_1 = 'SNOMED'
-		) 
-	SELECT DISTINCT hc.root_ancestor_concept_code::BIGINT AS ancestor_concept_code, hc.descendant_concept_code::BIGINT
+		)
+	SELECT hc.root_ancestor_concept_code::BIGINT AS ancestor_concept_code, hc.descendant_concept_code::BIGINT,
+		min(hc.levels_of_separation) as min_levels_of_separation
 	FROM hierarchy_concepts hc
 	JOIN concept_stage cs1 ON cs1.concept_code = hc.root_ancestor_concept_code AND cs1.vocabulary_id = 'SNOMED'
 	JOIN concept_stage cs2 ON cs2.concept_code = hc.descendant_concept_code AND cs2.vocabulary_id = 'SNOMED'
+	GROUP BY hc.root_ancestor_concept_code, hc.descendant_concept_code
 );
 
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
@@ -1243,10 +1248,14 @@ ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ances
 ANALYZE snomed_ancestor;
 
 --17.1. Append deprecated concepts that have mappings as extensions of their mapping target
-insert into snomed_ancestor (ancestor_concept_code,descendant_concept_code)
+insert into snomed_ancestor
+    (ancestor_concept_code,
+     descendant_concept_code,
+     min_levels_of_separation)
 select
 	a.ancestor_concept_code,
-	s1.concept_code :: bigint
+	s1.concept_code :: bigint,
+	a.min_levels_of_separation
 from concept_stage s1
 join concept_relationship_stage r on
 	s1.invalid_reason is not null and
@@ -1264,11 +1273,16 @@ where
 ;
 ANALYZE snomed_ancestor;
 ;
+
 --17.2. For deprecated concepts without mappings, take the latest 116680003 'Is a' relationship to active concept
-insert into snomed_ancestor (ancestor_concept_code,descendant_concept_code)
+insert into snomed_ancestor
+    (ancestor_concept_code,
+     descendant_concept_code,
+     min_levels_of_separation)
 select
 	a.ancestor_concept_code,
-	m.sourceid
+	m.sourceid,
+    a.min_levels_of_separation
 from concept_stage s1
 join
 	(
@@ -1282,7 +1296,7 @@ join
 			x.concept_code = r.destinationid :: varchar and
 			x.invalid_reason is null
 		where r.typeid = 116680003 -- Is a
-	) m 
+	) m
 on
 	s1.invalid_reason is not null and
 	m.sourceid = s1.concept_code :: bigint and
@@ -1298,266 +1312,591 @@ where
 ;
 --18. Create domain_id
 --18.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
-
 DROP TABLE IF EXISTS peak;
 CREATE UNLOGGED TABLE peak (
 	peak_code BIGINT, --the id of the top ancestor
 	peak_domain_id VARCHAR(20), -- the domain to assign to all its children
-	ranked INTEGER -- number for the order in which to assign
+	valid_start_date date, --a date when a peak with a mentioned Domain was introduced
+	valid_end_date date, --a date when a peak with a mentioned Domain was deprecated
+	levels_down int, --a number of levels down in hierarchy the peak has effect. When levels_down IS NOT NULL, this peak record won't affect the priority of another peaks
+	ranked INTEGER -- number for the order in which to assign the Domain. The more "ranked" is, the later it updates the Domain in the script.
 	);
 
 --18.2 Fill in the various peak concepts
 INSERT INTO peak
-VALUES (138875005, 'Metadata'), -- root
-	(900000000000441003, 'Metadata'), -- SNOMED CT Model Component
-	(105590001, 'Observation'), -- Substances
-	(123038009, 'Specimen'), -- Specimen
-	(48176007, 'Observation'), -- Social context
-	(243796009, 'Observation'), -- Situation with explicit context
-	(272379006, 'Observation'), -- Events
-	(260787004, 'Observation'), -- Physical object
-	(362981000, 'Observation'), -- Qualifier value
-	(363787002, 'Observation'), -- Observable entity
-	(410607006, 'Observation'), -- Organism
-	(419891008, 'Type Concept'), -- Record artifact
-	(78621006, 'Observation'), -- Physical force
-	(123037004, 'Spec Anatomic Site'), -- Body structure
-	(118956008, 'Observation'), -- Body structure, altered from its original anatomical structure, reverted from 123037004
-	(254291000, 'Measurement'), -- Staging / Scales [changed Observation->Measurement AVOF-1295]
-	(370115009, 'Metadata'), -- Special Concept
-	(308916002, 'Observation'), -- Environment or geographical location
-	(223366009, 'Provider'), (43741000, 'Place of Service'), -- Site of care
-	(420056007, 'Drug'), -- Aromatherapy agent
-	(373873005, 'Drug'), -- Pharmaceutical / biologic product
-	(410942007, 'Drug'), -- Drug or medicament
-	(385285004, 'Drug'), -- dialysis dosage form
-	(421967003, 'Drug'), -- drug dose form
-	(424387007, 'Drug'), -- dose form by site prepared for 
-	(421563008, 'Drug'), -- complementary medicine dose form
-	(284009009, 'Route'), -- Route of administration value
-	(373783004, 'Device'), -- dietary product, exception of Pharmaceutical / biologic product
-	(419572002, 'Observation'), -- alcohol agent, exception of drug
-	(373782009, 'Device'), -- diagnostic substance, exception of drug
-	(2949005, 'Observation'), -- diagnostic aid (exclusion from drugs)
-	(404684003, 'Condition'), -- Clinical Finding
-	(313413008, 'Condition'), -- Calculus observation
-	(405533003, 'Observation'), -- Adverse incident outcome categories
-	(365854008, 'Observation'), -- History finding
-	(118233009, 'Observation'), -- Finding of activity of daily living
-	(307824009, 'Observation'), -- Administrative statuses
-	(162408000, 'Observation'), -- Symptom description
-	(105729006, 'Observation'), -- Health perception, health management pattern
-	(162566001, 'Observation'), --Patient not aware of diagnosis
-	(122869004, 'Measurement'), --Measurement
-	(71388002, 'Procedure'), -- Procedure
-	(304252001, 'Observation'), -- Resuscitate
-	(304253006, 'Observation'), -- DNR
-	(113021009, 'Procedure'), -- Cardiovascular measurement
-	(297249002, 'Observation'), -- Family history of procedure
-	(14734007, 'Observation'), -- Administrative procedure
-	(416940007, 'Observation'), -- Past history of procedure
-	(183932001, 'Observation'), -- Procedure contraindicated
-	(438833006, 'Observation'), -- Administration of drug or medicament contraindicated
-	(410684002, 'Observation'), -- Drug therapy status
-	(17636008, 'Procedure'), -- Specimen collection treatments and procedures - - bad child of 4028908 Laboratory procedure
-	(365873007, 'Gender'), -- Gender
-	(372148003, 'Race'), --Ethnic group
-	(415229000, 'Race'), -- Racial group
-	(106237007, 'Observation'), -- Linkage concept
-	(767524001, 'Unit'), --  Unit of measure (Top unit)
-	(260245000, 'Meas Value'), -- Meas Value
-	(125677006, 'Relationship'), -- Relationship
-	(264301008, 'Observation'), -- Psychoactive substance of abuse - non-pharmaceutical
-	(226465004, 'Observation'), -- Drinks
-	(49062001, 'Device'), -- Device
-	(289964002, 'Device'), -- Surgical material
-	(260667007, 'Device'), -- Graft
-	(418920007, 'Device'), -- Adhesive agent
-	(255922001, 'Device'), -- Dental material
-	(413674002, 'Observation'), -- Body material
-	(118417008, 'Device'), -- Filling material
-	(445214009, 'Device'), -- corneal storage medium
-	(69449002, 'Observation'), -- Drug action
-	(79899007, 'Observation'), -- Drug interaction
-	(365858006, 'Observation'), -- Prognosis/outlook finding
-	(444332001, 'Observation'), -- Aware of prognosis
-	(444143004, 'Observation'), -- Carries emergency treatment
-	(13197004, 'Observation'), -- Contraception
-	(251859005, 'Observation'), -- Dialysis finding
-	(422704000, 'Observation'), -- Difficulty obtaining contraception
-	(250869005, 'Observation'), -- Equipment finding
-	(217315002, 'Observation'), -- Onset of illness
-	(127362006, 'Observation'), -- Previous pregnancies
-	(162511002, 'Observation'), -- Rare history finding
-	(118226009, 'Observation'),	-- Temporal finding
-	(366154003, 'Observation'), -- Respiratory flow rate - finding
-	(243826008, 'Observation'), -- Antenatal care status 
-	(418038007, 'Observation'), --Propensity to adverse reactions to substance
-	(413296003, 'Condition'), -- Depression requiring intervention
-	(72670004, 'Condition'), -- Sign
-	(124083000, 'Condition'), -- Urobilinogenemia
-	(59524001, 'Observation'), -- Blood bank procedure
-	(389067005, 'Observation'), -- Community health procedure
-	(225288009, 'Observation'), -- Environmental care procedure
-	(308335008, 'Observation'), -- Patient encounter procedure
-	(389084004, 'Observation'), -- Staff related procedure
-	(110461004, 'Observation'), -- Adjunctive care
-	(372038002, 'Observation'), -- Advocacy
-	(225365006, 'Observation'), -- Care regime
-	(228114008, 'Observation'), -- Child health procedures
-	(309466006, 'Observation'), -- Clinical observation regime
-	(225318000, 'Observation'), -- Personal and environmental management regime
-	(133877004, 'Observation'), -- Therapeutic regimen
-	(225367003, 'Observation'), -- Toileting regime
-	(303163003, 'Observation'), -- Treatments administered under the provisions of the law
-	(429159005, 'Procedure'), -- Child psychotherapy
-	(15220000, 'Measurement'), -- Laboratory test
-	(441742003, 'Condition'), -- Evaluation finding
-	(365605003, 'Observation'), -- Body measurement finding
-	(106019003, 'Condition'), -- Elimination pattern
-	(106146005, 'Condition'), -- Reflex finding
-	(103020000, 'Condition'), -- Adrenarche
-	(405729008, 'Condition'), -- Hematochezia
-	(165816005, 'Condition'), -- HIV positive
-	(300391003, 'Condition'), -- Finding of appearance of stool
-	(300393000, 'Condition'), -- Finding of odor of stool
-	(239516002, 'Observation'), -- Monitoring procedure
-	(243114000, 'Observation'), -- Support
-	(300893006, 'Observation'), -- Nutritional finding
-	(116336009, 'Observation'), -- Eating / feeding / drinking finding
-	(448717002, 'Condition'), -- Decline in Edinburgh postnatal depression scale score
-	(449413009, 'Condition'), -- Decline in Edinburgh postnatal depression scale score at 8 months
-	(118227000, 'Condition'), -- Vital signs finding
-	(363259005, 'Observation'), -- Patient management procedure
-	(278414003, 'Procedure'), -- Pain management
-	-- Added Jan 2017
-	(225831004, 'Observation'), -- Finding relating to advocacy
-	(134436002, 'Observation'), -- Lifestyle
-	(365980008, 'Observation'), -- Tobacco use and exposure - finding
-	(386091000, 'Observation'), -- Finding related to compliance with treatment
-	(424092004, 'Observation'), -- Questionable explanation of injury
-	(364721000000101, 'Measurement'), -- DFT: dynamic function test
-	(749211000000106, 'Observation'), -- NHS Sickle Cell and Thalassaemia Screening Programme family origin
-	(91291000000109, 'Observation'), -- Health of the Nation Outcome Scale interpretation
-	(900781000000102, 'Observation'), -- Noncompliance with dietetic intervention
-	(784891000000108, 'Observation'), -- Injury inconsistent with history given
-	(863811000000102, 'Observation'), -- Injury within last 48 hours
-	(920911000000100, 'Observation'), -- Appropriate use of accident and emergency service
-	(927031000000106, 'Observation'), -- Inappropriate use of walk-in centre
-	(927041000000102, 'Observation'), -- Inappropriate use of accident and emergency service
-	(927901000000101, 'Observation'), -- Inappropriate triage decision
-	(927921000000105, 'Observation'), -- Appropriate triage decision
-	(921071000000100, 'Observation'), -- Appropriate use of walk-in centre
-	(962871000000107, 'Observation'), -- Aware of overall cardiovascular disease risk
-	(968521000000109, 'Observation'), -- Inappropriate use of general practitioner service
-	--added 8/25/2017, these concepts should be in Observation, so people can put causative agent into 
-	(282100009, 'Observation'), -- Adverse reaction caused by substance
-	(473010000, 'Condition'), -- Hypersensitivity condition
-	(419199007, 'Observation'), -- Allergy to substance
-	(10628711000119101, 'Condition'), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
-	--added 8/30/2017
-	(310611001, 'Measurement'), -- Cardiovascular measure
-	(424122007, 'Observation'), -- ECOG performance status finding
-	(698289004, 'Observation'), -- Hooka whatever Observation  -- http://forums.ohdsi.org/t/hookah-concept/3515
-	(248627000, 'Measurement'), -- Pulse characteristics
-	--added 20171128 (AVOF-731)
-	(410652009, 'Device'), -- Blood product
-	--added 20180208
-	(105904009, 'Drug'), -- Type of drug preparation
+SELECT a.*, NULL FROM ( VALUES
+--18.2.1 Outdated
+
+--2014-Dec-18
+    (218496004,         'Condition',    to_date('20141218', 'YYYYMMDD'), to_date('20170810', 'YYYYMMDD')), -- Adverse reaction to primarily systemic agents
+    (118245000,         'Measurement',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Finding by measurement
+--history:on
+    (65367001,          'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Victim status
+    (65367001,          'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20150311', 'YYYYMMDD')), -- Victim status
+    (65367001,          'Observation',  to_date('20150311', 'YYYYMMDD'), to_date('20170106', 'YYYYMMDD')), -- Victim status
+--history:off
+    (162565002,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Patient aware of diagnosis
+    (418138009,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Patient condition finding
+    (405503005,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Staff member inattention
+    (405536006,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Staff member ill
+    (405502000,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Staff member distraction
+    (398051009,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Staff member fatigued
+    (398087002,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Staff member inadequately assisted
+    (397976005,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Staff member inadequately supervised
+    (162568000,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Family not aware of diagnosis
+    (162567005,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Family aware of diagnosis
+    (42045007,          'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Acceptance of illness
+    (108329005,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Social context condition
+    (309298003,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Drug therapy observations
+    (48340000,          'Condition',    to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Incontinence
+    (108252007,         'Measurement',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Laboratory procedures
+    (118246004,         'Measurement',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Laboratory test finding' - child of excluded Sample observation
+    (442564008,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Evaluation of urine specimen
+    (64108007,          'Procedure',    to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Blood unit processing - inside Measurements
+    (258666001,         'Unit',         to_date('20141218', 'YYYYMMDD'), to_date('20190211', 'YYYYMMDD')), -- Top unit
+--2014-Dec-31
+    (369443003,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- bedpan
+    (398146001,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- armband
+    (272181003,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- clinical equipment and/or device
+    (445316008,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- component of optical microscope
+    (419818001,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- Contact lens storage case
+    (228167008,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- Corset
+    (42380001,          'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- Ear plug, device
+    (1333003,           'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- Emesis basin, device
+    (360306007,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- Environmental control system
+    (33894003,          'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- Experimental device
+    (116250002,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- filter
+    (59432006,          'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- ligature
+    (360174002,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- nabeya capsule
+    (311767007,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- special bed
+    (360173008,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- watson capsule
+    (367561004,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150518', 'YYYYMMDD')), -- xenon arc photocoagulator
+--2015-Jan-19
+    (80631005,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Clinical stage finding
+    (281037003,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Child health observations
+    (105499002,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Convalescence
+    (301886001,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Drawing up knees
+    (298304004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Finding of balance
+    (298339004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Finding of body control
+    (300577008,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Finding of lesion
+    (298325004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Finding of movement
+    (427955007,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Finding related to status of agreement with prior finding
+    (118222006,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- General finding of observation of patient
+    (249857004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Loss of midline awareness
+    (300232005,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Oral cavity, dental and salivary finding
+    (364830008,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Position of body and posture - finding
+    (248982007,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Pregnancy, childbirth and puerperium finding
+    (128254003,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Respiratory auscultation finding
+    (397773008,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Surgical contraindication
+    (386053000,         'Measurement',  to_date('20150119', 'YYYYMMDD'), to_date('20150311', 'YYYYMMDD')), -- evaluation procedure
+    (127789004,         'Measurement',  to_date('20150119', 'YYYYMMDD'), to_date('20150311', 'YYYYMMDD')), -- laboratory procedure categorized by method
+    (395557000,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Tumor finding
+    (422989001,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Appendix with tumor involvement, with perforation not at tumor
+    (384980008,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Atelectasis AND/OR obstructive pneumonitis of entire lung associated with direct extension of malignant neoplasm
+    (396895006,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Endocrine pancreas tumor finding
+    (422805009,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Erosion of esophageal tumor into bronchus
+    (423018005,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Erosion of esophageal tumor into trachea
+    (399527001,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Invasive ovarian tumor omental implants present
+    (399600009,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Lymphoma finding
+    (405928008,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Renal sinus vessel involved by tumor
+    (405966006,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Renal tumor finding
+    (385356007,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Tumor stage finding
+    (13104003,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Clinical stage I
+    (60333009,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Clinical stage II
+    (50283003,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Clinical stage III
+    (2640006,           'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Clinical stage IV
+    (385358008,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Dukes stage finding
+    (385362002,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- FIGO stage finding for gynecological malignancy
+    (405917009,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Intergroup rhabdomyosarcoma study post-surgical clinical group finding
+    (409721000,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- International neuroblastoma staging system stage finding
+    (385389007,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Lymphoma stage finding
+    (396532004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Stage I: Tumor confined to gland, 5 cm or less
+    (396533009,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Stage II: Tumor confined to gland, greater than 5 cm
+    (396534003,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Stage III: Extraglandular extension of tumor without other organ involvement
+    (396535002,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Stage IV: Distant metastasis or extension into other organs
+    (399517007,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Tumor stage cannot be determined
+    (67101007,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- TX category
+    (385385001,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- pT category finding
+    (385382003,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Node category finding
+    (385380006,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Metastasis category finding
+    (386702006,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Victim of abuse
+    (95930005,          'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Victim of neglect
+    (248536006,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Finding of functional performance and activity
+    (37448008,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Disturbance in intuition
+    (12200008,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Impaired insight
+    (5988002,           'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Lack of intuition
+    (1230003,           'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- No diagnosis on Axis I
+    (10125004,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- No diagnosis on Axis II
+    (51112002,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- No diagnosis on Axis III
+    (54427008,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- No diagnosis on Axis IV
+    (37768003,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- No diagnosis on Axis V
+    (6811007,           'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Prejudice
+--2015-Aug-17
+    (46680005,          'Measurement',  to_date('20150817', 'YYYYMMDD'), to_date('20170810', 'YYYYMMDD')), -- Vital signs
+--2016-Mar-22
+    (57797005,          'Procedure',    to_date('20160322', 'YYYYMMDD'), to_date('20171024', 'YYYYMMDD')), -- Termination of pregnancy
+--2017-Aug-10
+--history:on
+    (62014003,          'Condition',    to_date('20170810', 'YYYYMMDD'), to_date('20180820', 'YYYYMMDD')), -- Adverse reaction to drug
+    (62014003,          'Observation',  to_date('20180820', 'YYYYMMDD'), to_date('20201110', 'YYYYMMDD')), -- Adverse reaction to drug
+--history:off
+--2017-Aug-25
+    (7895008,           'Observation',  to_date('20170825', 'YYYYMMDD'), to_date('20171116', 'YYYYMMDD')), -- Poisoning caused by drug AND/OR medicinal substance
+    (55680006,          'Observation',  to_date('20170825', 'YYYYMMDD'), to_date('20171116', 'YYYYMMDD')), -- Drug overdose
+    (292545003,         'Observation',  to_date('20170825', 'YYYYMMDD'), to_date('20171116', 'YYYYMMDD')), -- Oxitropium adverse reaction --somehow it sneaks through domain definition above, so define this one separately
+--2020-Mar-17
+    (41769001,          'Condition',    to_date('20200317', 'YYYYMMDD'), to_date('20200428', 'YYYYMMDD')), --Disease suspected
+
+--18.2.2 Relevant
+--history:on
+    (138875005,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150104', 'YYYYMMDD')), -- root
+    (138875005,         'Metadata',     to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- root
+--history:off
+	(900000000000441003,'Metadata',     to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- SNOMED CT Model Component
+	(105590001,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Substances
+	(123038009,         'Specimen',     to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Specimen
+	(48176007,          'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Social context
+	(243796009,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Situation with explicit context
+	(272379006,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Events
+	(260787004,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Physical object
+	(362981000,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Qualifier value
+	(363787002,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Observable entity
+	(410607006,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Organism
+--history:on
+	(419891008,         'Note Type',    to_date('20150104', 'YYYYMMDD'), to_date('20151009', 'YYYYMMDD')), -- Record artifact
+	(419891008,         'Type Concept', to_date('20151009', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Record artifact
+--history:off
+	(78621006,          'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Physical force
+	(123037004,   'Spec Anatomic Site', to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Body structure
+	(118956008,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Body structure, altered from its original anatomical structure, reverted from 123037004
+--history:on
+	(254291000,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20181107', 'YYYYMMDD')), -- Staging / Scales
+	(254291000,         'Measurement',  to_date('20181107', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Staging / Scales [AVOF-1295]
+--history:off
+	(370115009,         'Metadata',     to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Special Concept
+	(308916002,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Environment or geographical location
+--history:on
+	(223366009,   'Provider Specialty', to_date('20141218', 'YYYYMMDD'), to_date('20190201', 'YYYYMMDD')), -- Site of care
+	(223366009,         'Provider',     to_date('20190201', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Site of care
+--history:off
+    (43741000,      'Place of Service', to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Site of care
+	(420056007,         'Drug',         to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Aromatherapy agent
+	(373873005,         'Drug',         to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Pharmaceutical / biologic product
+	(410942007,         'Drug',         to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Drug or medicament
+	(385285004,         'Drug',         to_date('20150518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- dialysis dosage form
+	(421967003,         'Drug',         to_date('20150518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- drug dose form
+	(424387007,         'Drug',         to_date('20150518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- dose form by site prepared for
+	(421563008,         'Drug',         to_date('20150518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- complementary medicine dose form
+--history:on
+	(284009009,         'Drug',         to_date('20150518', 'YYYYMMDD'), to_date('20171116', 'YYYYMMDD')), -- Route of administration value
+	(284009009,         'Route',        to_date('20171116', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Route of administration value
+--history:off
+--history:on
+	(373783004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20190418', 'YYYYMMDD')), -- dietary product, exception of Pharmaceutical / biologic product
+	(373783004,         'Device',       to_date('20190418', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- dietary product, exception of Pharmaceutical / biologic product
+--history:off
+	(419572002,         'Observation',  to_date('20141231', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- alcohol agent, exception of drug
+--history:on
+	(373782009,         'Observation',  to_date('20141231', 'YYYYMMDD'), to_date('20180208', 'YYYYMMDD')), -- diagnostic substance, exception of drug
+	(373782009,         'Device',       to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- diagnostic substance, exception of drug
+--history:off
+	(2949005,           'Observation',  to_date('20150518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- diagnostic aid (exclusion from drugs)
+	(404684003,         'Condition',    to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Clinical Finding
+	(313413008,         'Condition',    to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Calculus observation
+	(405533003,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Adverse incident outcome categories
+	(365854008,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- History finding
+	(118233009,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Finding of activity of daily living
+	(307824009,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Administrative statuses
+	(162408000,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Symptom description
+	(105729006,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Health perception, health management pattern
+	(162566001,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Patient not aware of diagnosis
+--history:on
+	(122869004,         'Measurement',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), --Measurement
+	(122869004,         'Measurement',  to_date('20150311', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measurement
+--history:off
+	(71388002,          'Procedure',    to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Procedure
+--history:on
+	(304252001,         'Procedure',    to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Resuscitate
+	(304252001,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Resuscitate
+--history:off
+	(304253006,         'Procedure',    to_date('20141218', 'YYYYMMDD'), to_date('20150104', 'YYYYMMDD')), -- DNR
+	(304253006,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- DNR
+--history:on
+	(113021009,         'Procedure',    to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Cardiovascular measurement
+	(113021009,         'Procedure',    to_date('20150311', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Cardiovascular measurement
+--history:off
+	(297249002,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Family history of procedure
+	(14734007,          'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Administrative procedure
+	(416940007,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Past history of procedure
+	(183932001,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Procedure contraindicated
+	(438833006,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Administration of drug or medicament contraindicated
+	(410684002,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Drug therapy status
+	(17636008,          'Procedure',    to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Specimen collection treatments and procedures - - bad child of 4028908 Laboratory procedure
+	(365873007,         'Gender',       to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Gender
+	(372148003,         'Race',         to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Ethnic group
+	(415229000,         'Race',         to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Racial group
+	(106237007,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Linkage concept
+	(767524001,         'Unit',         to_date('20190211', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --  Unit of measure (Top unit)
+	(260245000,         'Meas Value',   to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Meas Value
+	(125677006,         'Relationship', to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Relationship
+	(264301008,         'Observation',  to_date('20141231', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Psychoactive substance of abuse - non-pharmaceutical
+	(226465004,         'Observation',  to_date('20141231', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Drinks
+--history:on
+	(49062001,          'Device',       to_date('20141218', 'YYYYMMDD'), to_date('20141231', 'YYYYMMDD')), -- Device
+	(49062001,          'Device',       to_date('20150518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Device
+--history:off
+	(289964002,         'Device',       to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Surgical material
+	(260667007,         'Device',       to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Graft
+	(418920007,         'Device',       to_date('20141218', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Adhesive agent
+	(255922001,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Dental material
+--history:on
+	(413674002,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20150104', 'YYYYMMDD')), -- Body material
+	(413674002,         'Observation',  to_date('20150104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Body material
+--history:off
+	(118417008,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Filling material
+	(445214009,         'Device',       to_date('20141231', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- corneal storage medium
+	(69449002,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Drug action
+	(79899007,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Drug interaction
+	(365858006,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Prognosis/outlook finding
+	(444332001,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Aware of prognosis
+	(444143004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Carries emergency treatment
+	(13197004,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Contraception
+	(251859005,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Dialysis finding
+	(422704000,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Difficulty obtaining contraception
+	(250869005,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Equipment finding
+	(217315002,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Onset of illness
+	(127362006,         'Observation',  to_date('20160322', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Previous pregnancies
+	(162511002,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Rare history finding
+	(118226009,         'Observation',  to_date('20190211', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),	-- Temporal finding
+	(366154003,         'Observation',  to_date('20190211', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Respiratory flow rate - finding
+	(243826008,         'Observation',  to_date('20190211', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Antenatal care status
+	(418038007,         'Observation',  to_date('20190211', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Propensity to adverse reactions to substance
+	(413296003,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Depression requiring intervention
+	(72670004,          'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Sign
+	(124083000,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Urobilinogenemia
+	(59524001,          'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Blood bank procedure
+	(389067005,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Community health procedure
+	(225288009,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Environmental care procedure
+	(308335008,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Patient encounter procedure
+	(389084004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Staff related procedure
+	(110461004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Adjunctive care
+	(372038002,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Advocacy
+	(225365006,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Care regime
+	(228114008,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Child health procedures
+	(309466006,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Clinical observation regime
+	(225318000,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Personal and environmental management regime
+	(133877004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Therapeutic regimen
+	(225367003,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Toileting regime
+	(303163003,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Treatments administered under the provisions of the law
+	(429159005,         'Procedure',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Child psychotherapy
+	(15220000,          'Measurement',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Laboratory test
+--history:on
+--TODO: postponed for the next SNOMED release - deStandardize, split and map over
+	(441742003,         'Measurement',  to_date('20150119', 'YYYYMMDD'), to_date('20170810', 'YYYYMMDD')), -- Evaluation finding
+	(441742003,         'Condition',    to_date('20170810', 'YYYYMMDD'), to_date('20201104', 'YYYYMMDD')), -- Evaluation finding
+	(441742003,         'Measurement',  to_date('20201104', 'YYYYMMDD'), to_date('20201210', 'YYYYMMDD')), -- Evaluation finding
+	(441742003,         'Condition',    to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Evaluation finding
+--history:off
+--history:on
+	(365605003,         'Measurement',  to_date('20150119', 'YYYYMMDD'), to_date('20170810', 'YYYYMMDD')), -- Body measurement finding
+	(365605003,         'Observation',  to_date('20170810', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Body measurement finding
+--history:off
+	(106019003,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Elimination pattern
+	(106146005,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Reflex finding
+	(103020000,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Adrenarche
+	(405729008,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Hematochezia
+--TODO: deStandardize, split and map over
+	(165816005,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- HIV positive
+	(300391003,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Finding of appearance of stool
+	(300393000,         'Condition',    to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Finding of odor of stool
+	(239516002,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Monitoring procedure
+	(243114000,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Support
+	(300893006,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Nutritional finding
+	(116336009,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Eating / feeding / drinking finding
+--history:on
+	(448717002,         'Measurement',  to_date('20150119', 'YYYYMMDD'), to_date('20170810', 'YYYYMMDD')), -- Decline in Edinburgh postnatal depression scale score
+	(448717002,         'Condition',    to_date('20170810', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Decline in Edinburgh postnatal depression scale score
+--history:off
+--history:on
+	(449413009,         'Measurement',  to_date('20150119', 'YYYYMMDD'), to_date('20170810', 'YYYYMMDD')), -- Decline in Edinburgh postnatal depression scale score at 8 months
+	(449413009,         'Condition',    to_date('20170810', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Decline in Edinburgh postnatal depression scale score at 8 months
+--history:off
+	(118227000,         'Condition',    to_date('20170810', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Vital signs finding
+	(363259005,         'Observation',  to_date('20160616', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Patient management procedure
+	(278414003,         'Procedure',    to_date('20160616', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Pain management
+	(225831004,         'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Finding relating to advocacy
+	(134436002,         'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Lifestyle
+	(365980008,         'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Tobacco use and exposure - finding
+	(386091000,         'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Finding related to compliance with treatment
+--history:on
+	(424092004,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), -- Questionable explanation of injury
+	(424092004,         'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Questionable explanation of injury
+--history:off
+	(364721000000101,   'Measurement',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- DFT: dynamic function test
+	(749211000000106,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- NHS Sickle Cell and Thalassaemia Screening Programme family origin
+	(91291000000109,    'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Health of the Nation Outcome Scale interpretation
+	(900781000000102,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Noncompliance with dietetic intervention
+	(784891000000108,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Injury inconsistent with history given
+	(863811000000102,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Injury within last 48 hours
+	(920911000000100,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Appropriate use of accident and emergency service
+	(927031000000106,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Inappropriate use of walk-in centre
+	(927041000000102,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Inappropriate use of accident and emergency service
+	(927901000000101,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Inappropriate triage decision
+	(927921000000105,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Appropriate triage decision
+	(921071000000100,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Appropriate use of walk-in centre
+	(962871000000107,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Aware of overall cardiovascular disease risk
+	(968521000000109,   'Observation',  to_date('20170314', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Inappropriate use of general practitioner service
+--2017-Aug-25 these concepts should be in Observation, so people can put causative agent into
+--history:on
+	(282100009,         'Observation',  to_date('20170825', 'YYYYMMDD'), to_date('20171116', 'YYYYMMDD')), -- Adverse reaction caused by substance
+	(282100009,         'Observation',  to_date('20180820', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Adverse reaction caused by substance
+--history:off
+	(473010000,         'Condition',    to_date('20171116', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Hypersensitivity condition
+	(419199007,         'Observation',  to_date('20170825', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Allergy to substance
+	(10628711000119101, 'Condition',    to_date('20171116', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
+--2017-Aug-30
+	(310611001,         'Measurement',  to_date('20170830', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Cardiovascular measure
+	(424122007,         'Observation',  to_date('20170830', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- ECOG performance status finding
+	(698289004,         'Observation',  to_date('20171116', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Hooka whatever Observation  -- http://forums.ohdsi.org/t/hookah-concept/3515
+	(248627000,         'Measurement',  to_date('20171116', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Pulse characteristics
+--2017-Nov-28 [AVOF-731]
+	(410652009,         'Device',       to_date('20171128', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Blood product
+	(105904009,         'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Type of drug preparation
 	--Azaribine, Pegaptanib sodium, Cutaneous aerosol, Pegaptanib, etc. - exclusion without nice hierarchy
-	(373447009, 'Drug'),
-	(416058004, 'Drug'),
-	(387111009, 'Drug'),
-	(423490007, 'Drug'),
-	(1536005, 'Drug'),
-	(386925003, 'Drug'),
-	(126154004, 'Drug'),
-	(421347001, 'Drug'),
-	(61483006, 'Drug'),
-	(373749006, 'Drug'),
-	--added 20180820
-	(709080004, 'Observation'),
-	--added 20181005
-	(414916001, 'Condition'), -- Obesity
-	--added 20181106 [AVOF-1295]
-	(125123008, 'Measurement'), -- Organ Weight
-	(125125001, 'Observation'), --Abnormal organ weight
-	(125124002, 'Observation'),-- Normal organ weight
-	(268444004, 'Measurement'), -- Radionuclide red cell mass measurement
-	(251880004, 'Measurement'), -- Respiratory measure
-	--added 20190418 [AVOF-1198]
-	(327838005, 'Device'), -- Intravenous nutrition
-	(116178008, 'Device'), -- Dialysis fluid
-	(407935004, 'Device'), -- Contrast media
-	(385420005, 'Device'), -- Contrast media
-	(332525008, 'Device'),  --Camouflaging preparations
-	(768697005, 'Device'), --Barium and barium compound product -- contrast media subcathegory
-	--added 20190827
-	(8653201000001106, 'Drug'),
-	(48176007, 'Observation'), -- Social context
-	(397731000, 'Race'), -- Ethnic group finding
-	--added 20191112
-	(108246006, 'Measurement'), --Tonometry AND/OR tonography procedure
-	--added 20200312
-	(61746007, 'Measurement'), --Taking patient vital signs
-	(771387000,'Drug'), --Substance with effector mechanism of action
-	--added 20200317
-	(365866002,'Measurement'), --Finding of HIV status
-	(438508001,'Measurement'), --Virus present
-	(710954001,'Measurement'), --Bacteria present
-	(871000124102,'Measurement'), --Virus not detected
-	(426000000,'Measurement'), --Fever greater than 100.4 Fahrenheit
-	(164304001,'Measurement'), --O/E - hyperpyrexia - greater than 40.5 degrees Celsius
-	(163633002,'Measurement'), --O/E -skin temperature abnormal
-	(164294007,'Measurement'), --O/E - rectal temperature
-	(164295008,'Measurement'), --O/E - core temperature
-	(164300005,'Measurement'), --O/E - temperature normal
-	(164303007,'Measurement'), --O/E - temperature elevated
-	(164293001,'Measurement'), --O/E - groin temperature
-	(164301009,'Measurement'), --O/E - temperature low
-	(164292006,'Measurement'), --O/E - axillary temperature
-	(275874003,'Measurement'), --O/E - oral temperature
-	(315632006,'Measurement'), --O/E - tympanic temperature
-	(274308003,'Measurement'), --O/E - hyperpyrexia
-	(164285001,'Measurement'), --O/E - fever - general
-	(164290003,'Measurement'), --O/E - method fever registered
-	(1240591000000102,'Measurement'), --2019 novel coronavirus not detected
-	(162913005,'Measurement'), --O/E - rate of respiration
-	--added 20200427
-	(117617002,'Measurement'), --Immunohistochemistry procedure
-	--added 20200518
-	(395098000, 'Condition'), --'Disorder confirmed'
-	(1321161000000104, 'Visit'),
-	(1321151000000102, 'Visit'),
-	(1321141000000100, 'Visit'),
-	(1321131000000109, 'Visit'), -- Self quarantine and similar
-	--added 20201028
-	(734539000,'Drug'), --Effector
-	(441742003,'Measurement'), --Evaluation finding
-	(1032021000000100,'Measurement'), --Protein level
-	(364711002,'Measurement'), --Specific test feature
-	(364066008,'Measurement'), --Cardiovascular observable
-	(248326004,'Measurement'), --Body measure
-	(396238001,'Measurement'), --Tumor measureable
-	(371508000,'Measurement'), --Tumour stage
-	(246116008,'Measurement'), --Lesion size
---	(445536008,'Measurement'), --Assessment using assessment scale -- disabled for now to avoid duplication with standard Measurements
-	(404933001,'Measurement'), --Berg balance test
-	(766739005,'Drug'), --Substance categorized by disposition
-	(365341008,'Observation'), --Finding related to ability to perform community living activities
-	(365031000,'Observation'), --Finding related to ability to perform activities of everyday life
-	(365242003,'Observation'), --Finding related to ability to perform domestic activities
-	(284530008,'Observation'), --Communication, speech and language finding
-	(29164008,'Condition'), --Disturbance in speech
-	(288579009,'Condition'), --Difficulty communicating
-	(288576002,'Condition'), --Unable to communicate
-	(229621000,'Condition'), --Disorder of fluency
+	(373447009,         'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+	(416058004,         'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+	(387111009,         'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+	(423490007,         'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+	(1536005,           'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+	(386925003,         'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+	(126154004,         'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+	(421347001,         'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+	(61483006,          'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+	(373749006,         'Drug',         to_date('20180208', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+--2018-Aug-21
+	(709080004,         'Observation',  to_date('20180821', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),
+--2018-Oct-06
+	(414916001,         'Condition',    to_date('20181006', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Obesity
+--2018-Nov-07 [AVOF-1295]
+	(125123008,         'Measurement',  to_date('20181107', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Organ Weight
+	(125125001,         'Observation',  to_date('20181107', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Abnormal organ weight
+	(125124002,         'Observation',  to_date('20181107', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),-- Normal organ weight
+	(268444004,         'Measurement',  to_date('20181107', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Radionuclide red cell mass measurement
+--2019-Apr-18 [AVOF-1198]
+	(327838005,         'Device',       to_date('20190418', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Intravenous nutrition
+	(116178008,         'Device',       to_date('20190418', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Dialysis fluid
+	(407935004,         'Device',       to_date('20190418', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Contrast media
+	(385420005,         'Device',       to_date('20190418', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Contrast media
+	(332525008,         'Device',       to_date('20190418', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')),  --Camouflaging preparations
+	(768697005,         'Device',       to_date('20190418', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Barium and barium compound product -- contrast media subcathegory
+--2019-Aug-27
+	(8653201000001106,  'Drug',         to_date('20190827', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --dm+d value
+	(397731000,         'Race',         to_date('20190827', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Ethnic group finding
+--2019-Mov-13
+	(108246006,         'Measurement',  to_date('20191113', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Tonometry AND/OR tonography procedure
+--2020-Mar-12
+	(61746007,          'Measurement',  to_date('20200312', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Taking patient vital signs
+	(771387000,         'Drug',         to_date('20200312', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Substance with effector mechanism of action
+--2020-Mar-17
+	(365866002,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Finding of HIV status
+	(438508001,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Virus present
+	(710954001,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Bacteria present
+	(871000124102,      'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Virus not detected
+	(426000000,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Fever greater than 100.4 Fahrenheit
+	(164304001,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - hyperpyrexia - greater than 40.5 degrees Celsius
+	(163633002,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E -skin temperature abnormal
+	(164294007,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - rectal temperature
+	(164295008,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - core temperature
+	(164300005,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - temperature normal
+	(164303007,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - temperature elevated
+	(164293001,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - groin temperature
+	(164301009,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - temperature low
+	(164292006,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - axillary temperature
+	(275874003,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - oral temperature
+	(315632006,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - tympanic temperature
+	(274308003,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - hyperpyrexia
+	(164285001,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - fever - general
+	(164290003,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - method fever registered
+	(1240591000000102,  'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --2019 novel coronavirus not detected
+	(162913005,         'Measurement',  to_date('20200317', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --O/E - rate of respiration
+--2020-Apr-28
+	(117617002,         'Measurement',  to_date('20200428', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Immunohistochemistry procedure
+--2020-May-18
+	(395098000,         'Condition',    to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Disorder confirmed
+	(1321161000000104,  'Visit',        to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Household quarantine to prevent exposure of community to contagion
+	(1321151000000102,  'Visit',        to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Reverse self-isolation of uninfected subject to prevent exposure to contagion
+	(1321141000000100,  'Visit',        to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Reverse isolation of household to prevent exposure of uninfected subject to contagion
+	(1321131000000109,  'Visit',        to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Self quarantine and similar
+--2020-Nov-04
+	(734539000,         'Drug',         to_date('20201104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Effector
+	(1032021000000100,  'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Protein level
+	(364711002,         'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Specific test feature
+) as a
+UNION ALL
+SELECT b.* FROM (VALUES
+--history:on
+    (364066008,         'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20201210', 'YYYYMMDD'), NULL), --Cardiovascular observable
+    (364066008,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 1), --Cardiovascular observable
+    (364066008,         'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 0), --Cardiovascular observable
+--history:off
+    (405805006,         'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 0), --Cardiac resuscitation outcome
+    (405801002,         'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 0), --Coronary reperfusion type
+    (364072008,         'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 0), --Cardiac feature
+    (364087003,         'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 0),  --Blood vessel feature
+    (364069001,         'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 0),  --Cardiac conduction system feature
+    (427751006,         'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 0),  --Extent of cardiac perfusion defect
+    (429162008,         'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 0),  --Extent of myocardial stress ischemia
+    (1099111000000105,  'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD'), 1)  --Thrombolysis In Myocardial Infarction risk score for unstable angina or non-ST-segment-elevation myocardial infarction
+) as b
+UNION ALL
+SELECT c.*, NULL FROM (VALUES
+	(248326004,         'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Body measure
+	(396238001,         'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Tumor measureable
+	(371508000,         'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Tumour stage
+	(246116008,         'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Lesion size
+	(404933001,         'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Berg balance test
+	(766739005,         'Drug',         to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Substance categorized by disposition
+	(365341008,         'Observation',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Finding related to ability to perform community living activities
+	(365031000,         'Observation',  to_date('20201124', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Finding related to ability to perform activities of everyday life
+	(365242003,         'Observation',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Finding related to ability to perform domestic activities
+--history:on
+	(284530008,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), --Communication, speech and language finding
+	(284530008,         'Observation',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Communication, speech and language finding
+--history:off
+	(29164008,          'Condition',    to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Disturbance in speech
+	(288579009,         'Condition',    to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Difficulty communicating
+	(288576002,         'Condition',    to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Unable to communicate
+	(229621000,         'Condition',    to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Disorder of fluency
 	--AVOF-2893
-	(260299005,'Meas Value'),--Number
-	(272063003,'Meas Value'), --Alphanumeric
-	(397745006,'Observation'), --Medical contraindication
-	(373063009,'Measurement') --Substance observable
+	(260299005,         'Meas Value',   to_date('20201117', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Number
+	(272063003,         'Meas Value',   to_date('20201117', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Alphanumeric
+--history:on
+	(397745006,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), --Medical contraindication
+	(397745006,         'Observation',  to_date('20201124', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Medical contraindication
+--history:off
+	(373063009,         'Measurement',  to_date('20201130', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Substance observable
+--2020-Dec-10
+	(252124009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Test distance
+--branches of 364676005 Anesthetic observable
+	(302132005,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --American Society of Anesthesiologists physical status class
+	(250808000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Arteriovenous difference
+--TODO: deStandardize and map over Observable Entities that have Staging / Scales equivalent
+	(787475007,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Post Anesthetic Recovery score
+	(364678006,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Neuromuscular blockade observable
+	(364681001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Waveform observable
+	(373629008,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Capillary carbon dioxide tension
+
+	(364048003,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Respiratory observable
+	  (400987003,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Asthma trigger
+	  (364053008,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Characteristic of respiratory tract function
+	  (364049006,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Lower respiratory tract observable
+	  (366874008,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Number of asthma exacerbations in past year
+	  (723245007,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Number of chronic obstructive pulmonary disease exacerbations in past year
+	  (364062005,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Respiration observable
+		(250822000,     'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Inspiration/expiration time ratio
+		(250811004,     'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Minute volume
+		(251880004,     'Measurement',  to_date('20181107', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Respiratory measure [AVOF-1295]
+		  (404988002,   'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Respiratory gas exchange status
+		  (404996007,   'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Airway patency status
+		  (75098008,    'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Flow history
+	  (364055001,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Respiratory characteristics of chest
+
+	(386725007,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Body temperature
+	(434912009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Blood glucose concentration
+	(934171000000101,   'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Blood lead level
+	(934191000000102,   'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Blood lead level
+	(1107241000000102,  'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Calcium substance concentration in plasma adjusted for albumin
+	(1107251000000104,  'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Calcium substance concentration in serum adjusted for albumin
+	(434910001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Interstitial fluid glucose concentration
+	(395527009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Microscopic specimen observable
+	  (397504000,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Organ AND/OR tissue microscopically involved by tumor
+	  (371509008,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Status of peritumoral lymphocyte response
+
+	(434911002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Plasma glucose concentration
+	(935051000000108,   'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Serum adjusted calcium concentration
+	(399435001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Specimen measurable
+	(102485007,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Personal risk factor
+	(364684009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Body product observable
+	(250430006,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Color of specimen
+	(115598002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Consistency of specimen
+	(314037008,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Serum appearance
+	(412835001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Calculus appearance
+	(250434002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Odor of specimen
+	(364575001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Bone observable
+	  (804361000000106, 'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Bone density scan due date
+	  (405043008,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Bone healing status
+	  (364576000,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Form of bone
+	  (364577009,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Movement of bone
+
+	(364566003,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of joint
+	(249948009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Grade of muscle power
+	(364574002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of skeletal muscle
+	(364580005,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Musculoskeletal measure
+	  (404977008,       'Observation',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Skeletal functioning status
+
+	(396277003,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Fluid observable
+	(439260001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Thromboelastography observable
+	(364362002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Obstetric investigative observable
+	(364200006,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of urination
+	(1240461000000109,  'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measurement of Severe acute respiratory syndrome coronavirus 2 antibody
+--branch 414236006 Feature of anatomical entity
+	(703489001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Anogenital distance
+	(246792000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Eye measure
+	(364499003,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of lower limb
+	(364313002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of menstruation
+	(364036001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of nose
+	(364247002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of vagina
+	(364259003,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of uterus
+	(364278003,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of gravid uterus
+	(364467009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of upper limb
+	(364276004,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of uterine contractions
+	(364292009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of cervix
+	(364295006,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of ovary
+	(364486001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of hand
+	(364519002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of foot
+	(397274003,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Exophthalmometry measurement
+	(363978004,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of lacrimation
+	(364309009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Duration measure of menstruation
+	(363939003,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measure of globe
+
+	(364097007,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Feature of pulmonary arterial pressure
+	(399048009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Main pulmonary artery peak velocity
+	(252091007,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Distal vessel patency
+	(364679003,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Intracerebral vascular observable
+	(398992002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Pulmonary vein feature
+	(251191008,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Cardiac axis
+	(251131006,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --AH interval
+	(251127000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Effective refractory period
+	(251132004,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --HV interval
+	(251133009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Wenckebach cycle length
+	(408719002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Cardiac end-diastolic volume
+	(408718005,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Cardiac end-systolic volume
+	(364077002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Characteristic of heart sound
+	(399137004,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Feature of left atrium
+	(364080001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Feature of left ventricle
+	(364081002,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Feature of right ventricle
+	(364082009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Heart valve feature
+	(364067004,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Cardiac investigative observable
+	(399231008,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Cardiovascular orifice observable
+	(364071001,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Cardiovascular shunt feature
+	(364068009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --ECG feature
+	(371846000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Pulmonary valve flow
+	(397417004,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Regurgitant flow
+	(399301000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Regurgitant fraction
+) as c
 ;
+
+--18.2.3 To be reviewed in the fiture
+--TODO: disabled for now to avoid duplication with standard Measurements
+--(445536008,         'Measurement',  to_date('new', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Assessment using assessment scale
+--TODO: sort it out
+--(364709006,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Hematology observable
+--TODO: sort it out
+--(414236006,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Feature of anatomical entity
+--TODO: review scales (A Mixture of scores and Observations)
+--(363870007,        'Measurement',  to_date('new', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Mental state, behavior / psychosocial function observable
+ --(86084001,        'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('19700101', 'YYYYMMDD')), --Hematologic function    --Postponed
+
 --18.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 --The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
@@ -1576,21 +1915,33 @@ SET ranked = (
 					peak pd
 				WHERE a.ancestor_concept_code = pa.peak_code
 					AND a.descendant_concept_code = pd.peak_code
+			        AND pa.levels_down IS NULL
+			        AND pa.valid_end_date = to_date('20991231', 'YYYYMMDD') --consider only active peaks
+			        AND pd.valid_end_date = to_date('20991231', 'YYYYMMDD') --consider only active peaks
 				) ranked
 			GROUP BY ranked.pd
 			) r
 		WHERE r.peak_code = p.peak_code
-		);
+		)
+WHERE valid_end_date = to_date('20991231', 'YYYYMMDD') --rank only active peaks
+;
 
 --For those that have no ancestors, the rank is 1
-UPDATE peak SET ranked = 1 WHERE ranked IS NULL;
+UPDATE peak
+SET ranked = 1
+WHERE ranked IS NULL
+    AND valid_end_date = to_date('20991231', 'YYYYMMDD') --rank only active peaks
+;
 
---18.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
+--18.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic.
 --This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
---The result should say "0 rows inserted"
-INSERT INTO peak -- before doing that check first out without the insert
+--this should retrive nothing, otherwise add these peaks manually
+do $$
+declare
+R record;
+begin
 SELECT DISTINCT c.concept_code::BIGINT AS peak_code,
-	CASE 
+	CASE
 		WHEN c.concept_class_id = 'Clinical finding'
 			THEN 'Condition'
 		WHEN c.concept_class_id = 'Model Comp'
@@ -1605,7 +1956,7 @@ SELECT DISTINCT c.concept_code::BIGINT AS peak_code,
 			THEN 'Drug'
 		ELSE 'Observation'
 		END AS peak_domain_id,
-	NULL::INT AS ranked
+	NULL::INT AS ranked into R --remove "into R" to run as generic query
 FROM snomed_ancestor a,
 	concept_stage c
 WHERE c.concept_code::BIGINT = a.ancestor_concept_code
@@ -1614,11 +1965,17 @@ WHERE c.concept_code::BIGINT = a.ancestor_concept_code
 			descendant_concept_code
 		FROM snomed_ancestor
 		)
-	AND a.ancestor_concept_code NOT IN (
+	AND a.ancestor_concept_code NOT IN ( --but exclude those we already have
 		SELECT peak_code
 		FROM peak
-		) -- but exclude those we already have
-	AND c.vocabulary_id = 'SNOMED';
+	    WHERE valid_end_date = to_date('20991231', 'YYYYMMDD') --consider only active peaks
+		)
+	AND c.vocabulary_id = 'SNOMED'
+LIMIT 1;
+	if found then
+		raise exception 'critical error';
+	end if;
+end $$;
 
 --18.5. Build domains, preassign all them with "Not assigned"
 DROP TABLE IF EXISTS domain_snomed;
@@ -1635,9 +1992,10 @@ DO $_$
 DECLARE
 A INT;
 BEGIN
-	FOR A IN (  SELECT DISTINCT ranked
-				 FROM peak
-			 ORDER BY ranked)
+	FOR A IN (SELECT DISTINCT ranked
+		      FROM peak
+	          WHERE ranked IS NOT NULL --consider active peaks only
+		      ORDER BY ranked)
 	LOOP
 		UPDATE domain_snomed d
 		SET domain_id = child.peak_domain_id
@@ -1669,6 +2027,7 @@ BEGIN
 			FROM peak p,
 				snomed_ancestor sa
 			WHERE sa.ancestor_concept_code = p.peak_code
+			    AND (p.levels_down >= sa.min_levels_of_separation OR p.levels_down IS NULL)
 				AND p.ranked = A
 			) child
 		WHERE child.concept_code = d.concept_code;
@@ -1679,9 +2038,12 @@ END $_$;
 UPDATE domain_snomed d
 SET domain_id = i.peak_domain_id
 FROM (
-	SELECT peak_code,
-		peak_domain_id
+	SELECT DISTINCT peak_code,
+	                -- if there are several records for 1 peak, use the following ORDER: levels_down = 0 > 1 ... x > NULL
+	                FIRST_VALUE(peak_domain_id) OVER (
+	                    PARTITION BY peak_code ORDER BY levels_down ASC NULLS last) as peak_domain_id
 	FROM peak
+    WHERE ranked IS NOT NULL  --consider active peaks only
 	) i
 WHERE i.peak_code = d.concept_code;
 
@@ -1772,88 +2134,10 @@ WHERE c.vocabulary_id = 'SNOMED'
 UPDATE concept_stage
 SET domain_id = 'Measurement'
 WHERE concept_code IN (
-		'839501000000106', --Nelfinavir measurement
-		'839511000000108', --Ritonavir measurement
-		'839571000000103', --Saquinavir measurement
-		'839601000000105', --Tipranavir measurement
-		'30058000', --Therapeutic drug monitoring assay
-		'839381000000107', --Darunavir measurement
-		'839421000000103', --Indinavir measurement
-		'839451000000108', --Lopinavir measurement
-		'222481000000103', --Valaciclovir measurement
-		'840721000000103', --Nevirapine measurement
-		'791931000000104', --Efavirenz measurement
 		'77667008', --Therapeutic drug monitoring, qualitative
 		'68555003', --Therapeutic drug monitoring, quantitative
-		'200311000000109', --Oxcarbazepine level
-		'194251000000108', --Bisacodyl level
-		'194521000000101',	--2-ethylidene-1,5-dimethyl-3,3-diphenylpyrrolidine measurement
-		'839251000000109',	--Abacavir measurement
-		'840761000000106',	--Adefovir dipivoxil measurement
+		'30058000', --Therapeutic drug monitoring assay
 		'88884005',	--Alpha-1-antitrypsin phenotyping
-		'840811000000104',	--Asunaprevir measurement
-		'791951000000106',	--Atazanavir measurement
-		'194261000000106',	--Bisacodyl metabolite measurement
-		'840871000000109',	--Boceprevir measurement
-		'838901000000107',	--Cidofovir measurement
-		'788101000000102',	--Citalopram measurement
-		'840801000000101',	--Daclatasvir measurement
-		'194481000000101',	--Desmethyldothiepin measurement
-		'839261000000107',	--Didanosine measurement
-		'781401000000100',	--Dihydrocodeine screen
-		'839271000000100',	--Emtricitabine measurement
-		'840731000000101',	--Enfuvirtide measurement
-		'840771000000104',	--Entecavir measurement
-		'816911000000102',	--Etravirine measurement
-		'838751000000106',	--Famciclovir measurement
-		'839411000000109',	--Fosamprenavir measurement
-		'838831000000105',	--Foscarnet sodium measurement
-		'838781000000100',	--Inosine pranobex measurement
-		'839281000000103',	--Lamivudine measurement
-		'194701000000102',	--Levetiracetam measurement
-		'840741000000105',	--Maraviroc measurement
-		'194951000000104',	--Moclobemide measurement
-		'377561000000103',	--Oral fluid 6-monoacetylmorphine measurement
-		'377681000000108',	--Oral fluid 7-aminonitrazepam measurement
-		'377711000000107',	--Oral fluid benzoylecgonine measurement
-		'816211000000108',	--Oral fluid cannabis measurement
-		'377741000000108',	--Oral fluid codeine measurement
-		'377801000000104',	--Oral fluid diazepam measurement
-		'377771000000102',	--Oral fluid dihydrocodeine measurement
-		'377831000000105',	--Oral fluid nitrazepam measurement
-		'377861000000100',	--Oral fluid nordiazepam measurement
-		'377891000000106',	--Oral fluid temazepam measurement
-		'838871000000107',	--Oseltamivir measurement
-		'195031000000106',	--Perhexiline measurement
-		'912521000000105',	--Plasma rivaroxaban measurement
-		'840751000000108',	--Raltegravir measurement
-		'840861000000102',	--Ribavirin measurement
-		'792051000000104',	--Screening test for diuretic drug
-		'900061000000109',	--Serum darunavir concentration measurement
-		'900181000000101',	--Serum efavirenz concentration measurement
-		'901781000000106',	--Serum indinavir concentration measurement
-		'901911000000102',	--Serum lopinavir concentration measurement
-		'901991000000106',	--Serum nelfinavir concentration measurement
-		'902031000000103',	--Serum nevirapine concentration measurement
-		'902091000000102',	--Serum oxcarbazepine concentration measurement
-		'958101000000104',	--Serum pentobarbital concentration measurement
-		'902381000000102',	--Serum posaconazole concentration measurement
-		'902621000000108',	--Serum ritonavir concentration measurement
-		'911041000000103',	--Serum saquinavir measurement
-		'902721000000102',	--Serum tipranavir concentration measurement
-		'910941000000105',	--Serum valaciclovir measurement
-		'902861000000101',	--Serum voriconazole concentration measurement
-		'902901000000108',	--Serum zopiclone concentration measurement
-		'839301000000102',	--Stavudine measurement
-		'840821000000105',	--Telaprevir measurement
-		'840781000000102',	--Telbivudine measurement
-		'839321000000106',	--Tenofovir disoproxil measurement
-		'783131000000103',	--Thioguanine measurement
-		'792061000000101',	--Tricyclic drug screening test
-		'903351000000103',	--Urine amphetamine concentration measurement
-		'957851000000106',	--Urine sulphonylurea screening test
-		'910891000000106',	--Whole blood everolimus concentration measurement
-		'838881000000109',	--Zanamivir measurement
 		'851211000000105' --Assessment of sedation level
 		);
 
@@ -2016,7 +2300,6 @@ WHERE vocabulary_id = 'SNOMED'
 		WHERE ancestor_concept_code = 363743006 -- Navigational Concept
 		);
 
-
 --20.2. Make those Obsolete routes non-standard
 UPDATE concept_stage
 SET standard_concept = NULL
@@ -2036,53 +2319,13 @@ WHERE EXISTS (
 		)
 	AND cs.standard_concept = 'S';
 
---21. Insert new synonyms from manual source
-INSERT INTO concept_synonym_stage (
-	synonym_concept_code,
-	synonym_vocabulary_id,
-	synonym_name,
-	language_concept_id
-	)
-VALUES ('1240461000000109','SNOMED','Measurement of SARS-CoV-2 antibody',4180186),
-	('1240531000000103','SNOMED','Myocarditis due to COVID-19',4180186),
-	('1240521000000100','SNOMED','Otitis media caused by 2019 novel coronavirus',4180186),
-	('1240571000000101','SNOMED','Gastroenteritis caused by 2019 novel coronavirus',4180186),
-	('1240551000000105','SNOMED','Pneumonia due to COVID-19',4180186),
-	('1240541000000107','SNOMED','Infection of upper respiratory tract caused by 2019 novel coronavirus',4180186),
-	('1240541000000107','SNOMED','Infection of upper respiratory tract due to COVID-19',4180186),
-	('1240441000000108','SNOMED','Close exposure to 2019 novel coronavirus infection',4180186),
-	('1240491000000103','SNOMED','2019 novel coronavirus vaccination',4180186),
-	('1240751000000100','SNOMED','Disease caused by 2019 novel coronavirus',4180186),
-	('1240401000000105','SNOMED','Antibody to 2019 novel coronavirus',4180186),
-	('1240561000000108','SNOMED','Encephalopathy caused by 2019 novel coronavirus',4180186),
-	('1240461000000109','SNOMED','Measurement of 2019 novel coronavirus antibody',4180186),
-	('1240531000000103','SNOMED','Myocarditis caused by 2019 novel coronavirus',4180186),
-	('1240511000000106','SNOMED','Detection of SARS-CoV-2 using polymerase chain reaction technique',4180186),
-	('1240471000000102','SNOMED','Measurement of 2019 novel coronavirus antigen',4180186),
-	('1240511000000106','SNOMED','Detection of 2019 novel coronavirus using polymerase chain reaction technique',4180186),
-	('1240551000000105','SNOMED','Pneumonia caused by 2019 novel coronavirus',4180186),
-	('1240571000000101','SNOMED','Gastroenteritis due to COVID-19',4180186),
-	('1240431000000104','SNOMED','Exposure to 2019 novel coronavirus infection',4180186),
-	('1240381000000105','SNOMED','2019 novel coronavirus',4180186),
-	('840544004','SNOMED','Suspected disease caused by severe acute respiratory coronavirus 2',4180186),
-	('1240581000000104','SNOMED','2019 novel coronavirus detected',4180186),
-	('1240581000000104','SNOMED','SARS-CoV-2 detected',4180186),
-	('1240561000000108','SNOMED','Encephalopathy due to COVID-19',4180186),
-	('1240761000000102','SNOMED','Suspected disease caused by 2019 novel coronavirus',4180186),
-	('1240391000000107','SNOMED','Antigen of 2019 novel coronavirus',4180186),
-	('1240591000000102','SNOMED','2019 novel coronavirus not detected',4180186),
-	('1240591000000102','SNOMED','SARS-CoV-2 not detected',4180186),
-	('1240441000000108','SNOMED','Close exposure to SARS-CoV-2',4180186),
-	('1240521000000100','SNOMED','Otitis media due to COVID-19',4180186),
-	('1240471000000102','SNOMED','Measurement of SARS-CoV-2 antigen',4180186);
-
---22. Clean up
+--21. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 DROP VIEW module_date;
 
---23. Need to check domains before runnig the generic_update
+--22. Need to check domains before runnig the generic_update
 /*temporary disabled for later use
 DO $_$
 DECLARE

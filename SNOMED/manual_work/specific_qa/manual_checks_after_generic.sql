@@ -62,18 +62,6 @@ left join devv5.concept c2 on
 where c2.concept_id is null and
 	c1.invalid_reason is null
 ;
---New logic for Observable entities and Evaluation findings, making them Measurements: complete overview
-select c.concept_code, c.concept_name, c2.domain_id as old, c.domain_id as new
-from devv5.concept_ancestor a --new concept ancestor is not yet built
-join devv5.concept c2 on
-	a.ancestor_concept_id in (4181663, 40480457) and --Observable entity, Evaluation Finding
-	a.descendant_concept_id = c2.concept_id and
-	c2.vocabulary_id = 'SNOMED'
-join dev_snomed.concept c on
-	(c.vocabulary_id, c.concept_code) = (c2.vocabulary_id, c2.concept_code) and
-	c.domain_id != c2.domain_id
-where c.invalid_reason is null
-;
 --New logic for Numbers and Letters, making them Measurement Values: complete overview
 select c.concept_code, c.concept_name, c2.domain_id as old, c.domain_id as new
 from devv5.concept_ancestor a --new concept ancestor is not yet built
@@ -124,8 +112,15 @@ where
 		'1321731000000108','1321711000000100','1321291000000100'
 	)
 ;
+
 --All new peaks and their changed descendants
-select p.concept_code as peak_code, p.concept_name as peak_name, c1.concept_code,c1.concept_name, c1.invalid_reason, c2.domain_id as old, c1.domain_id as new
+select p.concept_code as peak_code,
+       p.concept_name as peak_name,
+       c1.concept_code,
+       c1.concept_name,
+       c1.invalid_reason,
+       c2.domain_id as old,
+       c1.domain_id as new
 from dev_snomed.concept c1
 join devv5.concept c2 on
 	(c1.vocabulary_id, c1.concept_code) = (c2.vocabulary_id, c2.concept_code) and
@@ -133,31 +128,10 @@ join devv5.concept c2 on
 	c1.invalid_reason is null
 join dev_snomed.concept p on
 	p.vocabulary_id = 'SNOMED' and
-	p.concept_code :: int8 in
-(
-	734539000, --Effector
-	441742003, --Evaluation finding
-	1032021000000100, --Protein level
-	364711002, --Specific test feature
-	364066008, --Cardiovascular observable
-	248326004, --Body measure
-	396238001, --Tumor measureable
-	371508000, --Tumour stage
-	246116008, --Lesion size
---	(445536008,'Measurement'), --Assessment using assessment scale -- disabled for now to avoid duplication with standard Measurements
-	404933001, --Berg balance test
-	766739005, --Substance categorized by disposition
-	365341008, --Finding related to ability to perform community living activities
-	365242003, --Finding related to ability to perform domestic activities
-	284530008, --Communication, speech and language finding
-	29164008, --Disturbance in speech
-	288579009, --Difficulty communicating
-	288576002, --Unable to communicate
-	229621000, --Disorder of fluency
-	--AVOF-2893
-	260299005,--Number
-	272063003) --Alphanumeric
-join devv5.concept_ancestor a on
-	p.concept_id = a.ancestor_concept_id and
-	c2.concept_id = a.descendant_concept_id
+	p.concept_code :: int8 in (SELECT peak_code FROM peak WHERE
+	                                                            valid_start_date > to_date ('20201101', 'YYYYMMDD') --peaks introduced in the recent refresh
+	                                                        AND valid_end_date = to_date('20991231', 'YYYYMMDD'))   --active peaks
+join snomed_ancestor a on
+	p.concept_code = a.ancestor_concept_code::varchar and
+	c2.concept_code = a.descendant_concept_code::varchar
 order by p.concept_name, c1.domain_id, c2.domain_id

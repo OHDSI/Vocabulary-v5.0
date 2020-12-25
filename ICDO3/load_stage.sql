@@ -77,14 +77,14 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 	concepts AS 
 		(
 			SELECT
-				sourceid AS ancestor_concept_code,
-				destinationid AS descendant_concept_code
+				destinationid AS ancestor_concept_code,
+				sourceid AS descendant_concept_code
 			FROM active_status
 			where active = 1
 		) 
 	SELECT DISTINCT -- switched places for some reason
-		hc.root_ancestor_concept_code :: varchar AS descendant_concept_code,
-		hc.descendant_concept_code :: varchar AS ancestor_concept_code 
+		hc.descendant_concept_code :: varchar AS descendant_concept_code,
+		hc.root_ancestor_concept_code :: varchar AS ancestor_concept_code 
 	FROM hierarchy_concepts hc
 )
 ;
@@ -613,7 +613,8 @@ select distinct
 	(m.relationship_id = 'Maps to') 
 		then true
 		else false
-	end as m_exact
+	end as m_exact,
+	1 as debug_id
 
 from comb_table o
 
@@ -647,7 +648,9 @@ select distinct
 	(t.relationship_id = 'Maps to' and t.snomed_code = '-1') as t_exact, 
 
 	(ma.descendant_concept_code = ma.ancestor_concept_code) and
-	(m.relationship_id = 'Maps to') as m_exact
+	(m.relationship_id = 'Maps to') as m_exact,
+
+	2 as debug_id
 
 from comb_table o
 join concept_stage cs on o.concept_code = cs.concept_code
@@ -663,10 +666,16 @@ join r_to_c_all t on
 	t.concept_code = o.site
 
 join snomed_target_prepared s on
-	s.t_id = '-1' and
+	s.t_id in ('-1','87784001') and --"Soft tissues" is not a real topography
 	s.m_id = ma.ancestor_concept_code
 
 where cs.concept_code not in (select old_code from code_replace)
+;
+create index idx_blob on match_blob (i_code, s_id)
+;
+create index idx_blob_s on match_blob (s_id)
+;
+analyze match_blob
 ;
 --14.2 match blood cancers to concepts without topographes
 --Lymphoma/Leukemia group concepts relating to generic hematopoietic structures as topography
@@ -680,7 +689,9 @@ select distinct
 	TRUE as t_exact,
 
 	(ma.descendant_concept_code = ma.ancestor_concept_code) and
-	(m.relationship_id = 'Maps to') as m_exact
+	(m.relationship_id = 'Maps to') as m_exact,
+
+	3 as debug_id
 
 from comb_table o
 join concept_stage cs on o.concept_code = cs.concept_code
@@ -694,8 +705,7 @@ join snomed_ancestor ma on
 join snomed_target_prepared s on
 	s.m_id = ma.ancestor_concept_code
 where
---	959-972 Lymphomas
-	left (o.histology_behavior,3) between '959' and '993' and -- all hematological neoplasms
+	left (o.histology_behavior,3) between '9590' and '9990' and -- all hematological neoplasms
 -- Blood, Reticuloendothelial system, Hematopoietic NOS
 	o.site ~ '^C42\.[034]$' and
 	s.t_id in
@@ -704,7 +714,8 @@ where
 		'254198003',	--Lymph nodes of multiple sites
 		'57171008',	--Hematopoietic system structure
 		'87784001',	--Soft tissues
-		'127908000'	--Mononuclear phagocyte system structure
+		'127908000',	--Mononuclear phagocyte system structure
+		'-1' -- Unknown
 	)
 	and not exists
 	(
@@ -716,10 +727,6 @@ where
 			m.t_exact
 	)
 
-;
-create index idx_blob on match_blob (i_code, s_id)
-;
-create index idx_blob_s on match_blob (s_id)
 ;
 analyze match_blob
 ;

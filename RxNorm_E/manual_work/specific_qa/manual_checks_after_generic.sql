@@ -22,6 +22,7 @@ AND NOT EXISTS (
                 WHERE ca.descendant_concept_id = c.concept_id
     )
 GROUP BY 1,2
+ORDER BY 1,2
 ;
 
 --1b. full list
@@ -43,5 +44,5 @@ AND NOT EXISTS (
                         AND c2.standard_concept = 'S'
                 WHERE ca.descendant_concept_id = c.concept_id
     )
-GROUP BY 1,2
+ORDER BY concept_id
 ;

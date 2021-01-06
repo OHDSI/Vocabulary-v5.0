@@ -2306,7 +2306,101 @@ SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---20.3. Make concepts non standard if they have a 'Maps to' relationship
+--20.3. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
+--https://github.com/OHDSI/Vocabulary-v5.0/issues/431
+insert into concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+with concept_status as
+	(
+		select distinct
+			id as conceptid,
+			active,
+			statusid,
+			moduleid,
+			effectivetime,
+			rank () over (partition by id order by effectivetime desc) as rn 
+		from sources.sct2_concept_full_merged c
+	),
+concept_fsn as
+	(
+		select distinct
+			d.conceptid,
+			d.term as fsn,
+			a.active,
+			a.statusid,
+			a.moduleid,
+			a.effectivetime,
+			rank () over (partition by d.conceptid order by d.effectivetime desc) as rn	
+		from sources.sct2_desc_full_merged d
+		join concept_status a on
+			a.conceptid = d.conceptid and
+			a.active = 1 and
+			a.rn = 1
+		where
+			d.active = 1 and
+			d.typeid = 900000000000003001 -- FSN
+	),
+dupes as
+(
+	select fsn
+	from concept_fsn
+	where rn = 1
+	group by fsn
+	having count (conceptid) > 1
+),
+preferred_code as
+--1. Defined concept over primitive
+--2. International concept over local
+--3. Newest concept
+(
+	select
+		d.fsn,
+		c.conceptid,
+		first_value (c.conceptid) over
+			(
+				partition by d.fsn
+				order by
+					case c.statusid
+						when 900000000000073002 --fully defined
+						then 1
+						else 2
+					end,
+					case c.moduleid
+						when 900000000000207008 -- Core (International)
+						then 1
+						else 2
+					end,
+					effectivetime desc
+			)
+		as replacementid
+	from dupes d
+	join concept_fsn c on
+		c.fsn = d.fsn and
+		c.rn = 1
+)
+select
+	p.conceptid :: varchar,
+	p.replacementid :: varchar,
+	'SNOMED',
+	'SNOMED',
+	'Maps to',
+	to_date ('19700101','yyyymmdd'),
+	to_date ('20991231','yyyymmdd')
+from preferred_code p
+join concept_stage c on
+	c.concept_code = p.replacementid :: varchar and
+	c.standard_concept is not null
+where p.conceptid != p.replacementid
+;
+
+--20.4. Make concepts non standard if they have a 'Maps to' relationship
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (

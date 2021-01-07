@@ -2356,8 +2356,8 @@ dupes as
 	having count (conceptid) > 1
 ),
 preferred_code as
---1. Defined concept over primitive
---2. International concept over local
+--1. International concept over local
+--2. Defined concept over primitive
 --3. Newest concept
 (
 	select
@@ -2367,13 +2367,13 @@ preferred_code as
 			(
 				partition by d.fsn
 				order by
-					case c.statusid
-						when 900000000000073002 --fully defined
+					case c.moduleid
+						when 900000000000207008 -- Core (International)
 						then 1
 						else 2
 					end,
-					case c.moduleid
-						when 900000000000207008 -- Core (International)
+					case c.statusid
+						when 900000000000073002 --fully defined
 						then 1
 						else 2
 					end,

@@ -386,7 +386,7 @@ BEGIN
                 cVocabVer := cVocabularyName||' '||to_char(cVocabDate,'YYYY');
             WHEN cVocabularyName = 'CCAM'
             THEN
-              cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d]+)</h4>.+');
+              cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d.]+)</h4>.+');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

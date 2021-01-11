@@ -35,7 +35,6 @@ CREATE TABLE SOURCES.LOINC
   CONSUMER_NAME              VARCHAR(255),
   CLASSTYPE                  VARCHAR(255),
   FORMULA                    TEXT,
-  SPECIES                    VARCHAR(20),
   EXMPL_ANSWERS              TEXT,
   SURVEY_QUEST_TEXT          TEXT,
   SURVEY_QUEST_SRC           VARCHAR(50),

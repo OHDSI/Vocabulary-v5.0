@@ -395,7 +395,7 @@ begin
       update sources.loinc set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       execute 'COPY sources.map_to FROM '''||pVocabularyPath||'map_to.csv'' delimiter '','' csv HEADER';
       execute 'COPY sources.source_organization FROM '''||pVocabularyPath||'source_organization.csv'' delimiter '','' csv HEADER';
-      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'LOINC_MULTI-AXIAL_HIERARCHY.CSV'' delimiter '','' csv HEADER';
+      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'LOINC_MULTI-AXIAL_HIERARCHY.CSV'' delimiter '','' csv HEADER FORCE NULL path_to_root,sequence,immediate_parent,code,code_text';
       truncate table sources.loinc_answerslist, sources.loinc_answerslistlink, sources.loinc_forms;
       execute 'COPY sources.loinc_answerslist FROM '''||pVocabularyPath||'AnswerList.csv'' delimiter '','' csv HEADER FORCE NULL answerlistid, answerlistname, answerlistoid, extdefinedyn, 
          extdefinedanswerlistcodesystem, extdefinedanswerlistlink, answerstringid, localanswercode, localanswercodesystem, sequencenumber, displaytext, extcodeid, extcodedisplayname, extcodesystem, 

@@ -60,7 +60,7 @@ BEGIN
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
 
     --getting fully working download link from page
-    select substring(http_content,'.+<a href="(.+?)">NDC Database File - Text Version \(Zip Format\)</a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    select substring(lower(http_content),'.+<a href="(.+?)">ndc database file - text version \(zip format\)</a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://www.accessdata.fda.gov/cder/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (full) is not valid'; end if;
 
     perform write_log (

@@ -72,6 +72,11 @@ BEGIN
 	SET concept_name = REPLACE(concept_name, '–', '-')
 	WHERE concept_name LIKE '%–%';
 
+	--Remove trailing escape character (\)
+	UPDATE concept_stage
+	SET concept_name = TRIM(TRAILING '\' FROM concept_name)
+	WHERE concept_name LIKE '%\\';
+
 	--7. Clearing the synonym_name
 	--Remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_synonym_stage
@@ -82,10 +87,15 @@ BEGIN
 	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ', 'g')
 	WHERE synonym_name ~ ' {2,}';
 
-	--remove long dashes
+	--Remove long dashes
 	UPDATE concept_synonym_stage
 	SET synonym_name = REPLACE(synonym_name, '–', '-')
 	WHERE synonym_name LIKE '%–%';
+
+	--Remove trailing escape character (\)
+	UPDATE concept_synonym_stage
+	SET synonym_name = TRIM(TRAILING '\' FROM synonym_name)
+	WHERE synonym_name LIKE '%\\';
 
 	/***************************
 	* Update the concept table *

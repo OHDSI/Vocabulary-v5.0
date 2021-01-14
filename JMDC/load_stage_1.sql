@@ -147,6 +147,12 @@ DELETE
 FROM supplier
 WHERE concept_name = 'WATER';
 
+
+update supplier
+set concept_name = upper(concept_name)
+where concept_name in ('Matsuura', 'Nichifun', 'Honzo');
+
+
 UPDATE j
 SET brand_name = REPLACE(brand_name, SUBSTRING(brand_name, ' \w+$'), '')
 WHERE SUBSTRING(brand_name, ' \w+$') = UPPER(SUBSTRING(brand_name, ' \w+$'))
@@ -1309,45 +1315,5 @@ WHERE concept_code_1 IN
       )
 ;
 
--- 8.2 update some ingredient mappings to precise ingredients
 
--- update aut_ingredient_mapped set concept_id_2 = '45775584' where concept_id_2 = '19025115';
--- update aut_ingredient_mapped set concept_id_2 = '1387104' where concept_id_2 = '43525787';
--- update aut_ingredient_mapped set concept_id_2 = '19136207' where concept_id_2 = '19003472';
-
-
--- populate manual_mapping tables here
-
-
---add manual mapping
-
-INSERT INTO aut_ingredient_mapped (concept_name, precedence, concept_id_2)
-SELECT DISTINCT concept_name, COALESCE(precedence, 1), concept_id_2
-FROM ingredient_mm
-WHERE concept_id_2 IS NOT NULL
-  AND concept_id_2 NOT IN (17, 0)
-  AND concept_name NOT IN (
-                          SELECT concept_name
-                          FROM aut_ingredient_mapped
-                          );
-
-INSERT INTO aut_bn_mapped (concept_name, concept_id_2, precedence)
-SELECT DISTINCT concept_name, concept_id_2, COALESCE(precedence, 1)
-FROM bn_mm
-WHERE concept_id_2 IS NOT NULL
-  AND concept_id_2 NOT IN (17, 0)
-  AND concept_name NOT IN (
-                          SELECT concept_name
-                          FROM aut_bn_mapped
-                          );
-
-
-INSERT INTO aut_suppliers_mapped (source_name, concept_name, concept_id_2)
-SELECT DISTINCT source_name, concept_name, concept_id_2
-FROM supplier_mm
-WHERE concept_id_2 IS NOT NULL
-  AND concept_id_2 NOT IN (17, 0)
-  AND concept_name NOT IN (
-                          SELECT concept_name
-                          FROM aut_suppliers_mapped
-                          );
+-- populate manual_mapping tables

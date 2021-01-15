@@ -17,6 +17,28 @@
 * Date: 06-05-2019
 **************************************************************************/
 
+
+-- SET LATEST UPDATE
+DO
+$_$
+    BEGIN
+        PERFORM VOCABULARY_PACK.SetLatestUpdate(
+                        pVocabularyName => 'JMDC',
+                        pVocabularyDate => CURRENT_DATE,
+                        pVocabularyVersion => 'JMDC ' || CURRENT_DATE,
+                        pVocabularyDevSchema => 'DEV_JMDC'
+                    );
+        PERFORM VOCABULARY_PACK.SetLatestUpdate(
+                        pVocabularyName => 'RxNorm Extension',
+                        pVocabularyDate => CURRENT_DATE,
+                        pVocabularyVersion => 'RxNorm Extension ' || CURRENT_DATE,
+                        pVocabularyDevSchema => 'DEV_JMDC',
+                        pAppendVocabulary => TRUE
+                    );
+    END
+$_$;
+
+
 /*************************************************
 * Create sequence for entities that do not have source codes *
 *************************************************/

@@ -1,6 +1,5 @@
 ### Manual content processing:
-1.Extract the following csv file into the concept_manual table: https://drive.google.com/file/d/1iCmdHud7Y296SpeOan0vNNJEsg4qBsin/view?usp=sharing
-File is generated using the query:
+1.Extract the following csv file into the concept_manual table: https://drive.google.com/file/d/1iCmdHud7Y296SpeOan0vNNJEsg4qBsin/view?usp=sharing. The file was generated using the query:
 ```sql
 SELECT concept_name,
        domain_id,
@@ -14,7 +13,7 @@ SELECT concept_name,
 FROM concept_manual
 ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_end_date, concept_name;
 ```
-2.Extract the following csv file into the concept_synonym_manual table: https://drive.google.com/file/d/1C9qVJwR369y9Jk02iS-qK45Gn5iGGRJr/view?usp=sharing
+2.Extract the following csv file into the concept_synonym_manual table: https://drive.google.com/file/d/1C9qVJwR369y9Jk02iS-qK45Gn5iGGRJr/view?usp=sharing. The file was generated using the query:
 ```sql
 SELECT synonym_name,
        synonym_concept_code,
@@ -23,8 +22,7 @@ SELECT synonym_name,
 FROM concept_synonym_manual
 ORDER BY synonym_vocabulary_id, synonym_concept_code, language_concept_id, synonym_name;`
 ```
-3.Extract the following csv file into the concept_relationship_manual table: https://drive.google.com/file/d/1uUrkcknqIogs4Os0Hqu51WjSPo0C5mvH/view?usp=sharing
-File is generated using the query:
+3.Extract the following csv file into the concept_relationship_manual table: https://drive.google.com/file/d/1uUrkcknqIogs4Os0Hqu51WjSPo0C5mvH/view?usp=sharing. The file was generated using the query:
 ```sql
 SELECT concept_code_1,
        concept_code_2,

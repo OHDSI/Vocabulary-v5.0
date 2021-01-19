@@ -25,7 +25,7 @@ $_$
         PERFORM VOCABULARY_PACK.SetLatestUpdate(
                         pVocabularyName => 'JMDC',
                         pVocabularyDate => CURRENT_DATE,
-                        pVocabularyVersion => 'JMDC ' || CURRENT_DATE,
+                        pVocabularyVersion => 'JMDC ' || to_date('20200430', 'YYYYMMDD'),
                         pVocabularyDevSchema => 'DEV_JMDC'
                     );
         PERFORM VOCABULARY_PACK.SetLatestUpdate(
@@ -232,7 +232,7 @@ WHERE brand_name IN (
 UPDATE j
 SET brand_name = NULL
 WHERE brand_name IN (
-                    SELECT brand_name
+                    SELECT DISTINCT brand_name
                     FROM j
                     JOIN devv5.concept c
                         ON LOWER(j.brand_name) = LOWER(c.concept_name)
@@ -633,10 +633,9 @@ SELECT
 FROM (
      SELECT DISTINCT s.concept_name
      FROM supplier s
-     LEFT JOIN aut_suppliers_mapped
-         ON UPPER(source_name) = UPPER(s.concept_name)
+     LEFT JOIN aut_suppliers_mapped sm
+         ON UPPER(sm.source_name) = UPPER(s.concept_name)
      ) s;
-
 
 
 /*************************************************
@@ -680,8 +679,8 @@ INSERT INTO internal_relationship_stage
 SELECT DISTINCT jmdc_drug_code, dc.concept_code
 FROM aut_form_mapped a
 JOIN j
---     ON TRIM(formulation_small_classification_name) = a.concept_name
-    ON TRIM(formulation_large_classification_name) = a.concept_name
+    ON TRIM(formulation_small_classification_name) = a.concept_name
+--     ON TRIM(formulation_large_classification_name) = a.concept_name
 JOIN drug_concept_stage dc
     ON dc.concept_name = COALESCE(a.new_name, a.concept_name)
 WHERE dc.concept_class_id = 'Dose Form'
@@ -966,8 +965,8 @@ WHERE (drug_concept_code, ingredient_concept_code) IN
       JOIN ds_stage ds
           ON jmdc_drug_code = drug_concept_code
       WHERE who_atc_code ~ 'R01|R03'
-        AND formulation_large_classification_name ~ 'Inhal'
-        AND formulation_large_classification_name !~ 'Sol|Aeros'
+        AND formulation_small_classification_name ~ 'Inhal'
+        AND formulation_small_classification_name !~ 'Sol|Aeros'
         AND amount_unit = 'ug'
       );
 
@@ -985,8 +984,8 @@ WHERE (drug_concept_code, ingredient_concept_code) IN
       JOIN ds_stage ds
           ON jmdc_drug_code = drug_concept_code
       WHERE who_atc_code ~ 'R01|R03'
-        AND formulation_large_classification_name ~ 'Inhal'
-        AND formulation_large_classification_name !~ 'Sol|Aeros'
+        AND formulation_small_classification_name ~ 'Inhal'
+        AND formulation_small_classification_name !~ 'Sol|Aeros'
         AND brand_name = 'Meptin'
       );
 
@@ -1004,8 +1003,8 @@ WHERE (drug_concept_code, ingredient_concept_code) IN
       JOIN ds_stage ds
           ON jmdc_drug_code = drug_concept_code
       WHERE who_atc_code ~ 'R01|R03'
-        AND formulation_large_classification_name ~ 'Inhal'
-        AND formulation_large_classification_name !~ 'Sol|Aeros'
+        AND formulation_small_classification_name ~ 'Inhal'
+        AND formulation_small_classification_name !~ 'Sol|Aeros'
         AND brand_name = 'Erizas'
       );
 
@@ -1021,8 +1020,8 @@ WHERE (drug_concept_code, ingredient_concept_code) IN
       JOIN ds_stage ds
           ON jmdc_drug_code = drug_concept_code
       WHERE who_atc_code ~ 'R01|R03'
-        AND formulation_large_classification_name ~ 'Inhal'
-        AND formulation_large_classification_name !~ 'Sol|Aeros'
+        AND formulation_small_classification_name ~ 'Inhal'
+        AND formulation_small_classification_name !~ 'Sol|Aeros'
         AND standardized_unit = '1.50mg0.9087g1Bot'
       );
 

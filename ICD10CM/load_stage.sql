@@ -72,37 +72,49 @@ SELECT SUBSTR(CASE
 	NULL AS invalid_reason
 FROM sources.icd10cm;
 
---4. Add ICD10CM to SNOMED manual mappings
+--4. Add manual concepts or changes
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+--5. Working with manual synonyms
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+--6. Add ICD10CM to SNOMED manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---5. Working with replacement mappings
+--7. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---6. Add mapping from deprecated to fresh concepts
+--8. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---7. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---8. Delete ambiguous 'Maps to' mappings
+--10. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---9. Add "subsumes" relationship between concepts where the concept_code is like of another
+--11. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
@@ -140,7 +152,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---10. Update domain_id for ICD10CM from SNOMED and LOINC
+--12. Update domain_id for ICD10CM from SNOMED and LOINC
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -208,11 +220,11 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'ICD10CM';
 
---11. Check for NULL in domain_id
+--13. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---12. Load into concept_synonym_stage name from ICD10CM
+--14. Load into concept_synonym_stage name from ICD10CM
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -233,20 +245,15 @@ FROM (
 	SELECT short_name AS synonym_name,
 		REGEXP_REPLACE(code, '([[:print:]]{3})([[:print:]]+)', '\1.\2') AS code
 	FROM sources.icd10cm
-	) AS s0
+	) AS s0;
 
-UNION ALL
-
-VALUES ('U07.1','Disease caused by Severe acute respiratory syndrome coronavirus 2 (SARS-CoV-2)','ICD10CM',4180186),
-	('U07.0','Vaping-related disorder','ICD10CM',4180186);
-
---13. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--15. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---14. Build reverse relationship. This is necessary for next point
+--16. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -278,7 +285,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---15. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--17. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

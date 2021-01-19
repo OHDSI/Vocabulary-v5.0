@@ -70,13 +70,7 @@ SELECT SUBSTR(CASE
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.icd10cm
-
---manual concepts
---https://www.cdc.gov/nchs/data/icd/Vaping-Announcement-final-12-09-19.pdf
-UNION ALL
-VALUES ('Emergency use of U07.1 | COVID-19','Condition','ICD10CM','4-char billing code', NULL,'U07.1',TO_DATE('20200401','yyyymmdd'),TO_DATE('20991231','yyyymmdd'),NULL),
-	('Emergency use of U07.0 | Vaping-related disorder','Condition','ICD10CM','4-char billing code',NULL,'U07.0',TO_DATE('20200401','yyyymmdd'),TO_DATE('20991231','yyyymmdd'),NULL);
+FROM sources.icd10cm;
 
 --4. Add ICD10CM to SNOMED manual mappings
 DO $_$
@@ -146,7 +140,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---10. Update domain_id for ICD10CM from SNOMED
+--10. Update domain_id for ICD10CM from SNOMED and LOINC
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -172,7 +166,7 @@ FROM (
 		AND cs1.vocabulary_id = 'ICD10CM'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id in ( 'SNOMED', 'LOINC')
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 	
@@ -198,7 +192,7 @@ FROM (
 	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 		AND c1.vocabulary_id = 'ICD10CM'
 	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id in ( 'SNOMED', 'LOINC')
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'

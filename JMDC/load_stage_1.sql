@@ -51,16 +51,21 @@ TRUNCATE TABLE pc_stage;
 DROP SEQUENCE IF EXISTS new_vocab;
 CREATE SEQUENCE new_vocab INCREMENT BY 1 START WITH 1 CACHE 20;
 
+--set sequence starting value using the last used
+DO
+$_$
+    BEGIN
+        PERFORM  setval('new_vocab',  (SELECT MAX (CAST (REPLACE (concept_code, 'JMDC', '') AS INT))
+                                       FROM concept
+                                       WHERE vocabulary_id = 'JMDC'
+                                       AND concept_code LIKE 'JMDC%' ));
+    END
+$_$;
+
 /*************************************************
 * 0. Clean the data and extract non drugs *
 *************************************************/
 -- Preliminary work: manually identify new packs and add them to aut_pc_stage table (ingredients,dose forms and dosages; brand names and suplliers if applicable)
-
--- DROP TABLE IF EXISTS aut_pc_stage;
--- CREATE TABLE aut_pc_stage AS
--- SELECT *
--- FROM jmdc
--- WHERE formulation_small_classification_name = 'Pack';
 
 
 -- Radiopharmaceuticals, scintigraphic material and blood products
@@ -229,12 +234,13 @@ WHERE brand_name IN (
       'Sulfate|Nitrate|Acetat|Oxide|Saponated|Salicylat|Chloride|/|Acid|Sodium|Aluminum|Potassium|Ammonia|Ringer|Invert Soap|Dried Yeast|Fluidextract|Kakko| RTU|Infusion Solution| KO$|Globulin|Absorptive Ointment|Allergen|Water'
 ;
 
+ANALYSE j;
 UPDATE j
 SET brand_name = NULL
 WHERE brand_name IN (
                     SELECT DISTINCT brand_name
                     FROM j
-                    JOIN devv5.concept c
+                    JOIN concept c
                         ON LOWER(j.brand_name) = LOWER(c.concept_name)
                     WHERE c.concept_class_id LIKE '%Ingredient'
                     );
@@ -288,6 +294,9 @@ SET general_name = 'human normal immunoglobulin/histamine'
 WHERE LOWER(general_name) = 'immunoglobulin with histamine';
 
 -- remove junk from standard_unit
+DO
+$_$
+    BEGIN
 UPDATE j
 SET standardized_unit = REGEXP_REPLACE(standardized_unit, '\(forGeneralDiagnosis\)', '')
 WHERE standardized_unit LIKE '%(forGeneralDiagnosis)%';
@@ -408,6 +417,8 @@ WHERE standardized_unit LIKE '%AmountforOnce%';
 UPDATE j
 SET standardized_unit = REGEXP_REPLACE(standardized_unit, '\(w/Dil\)', '')
 WHERE standardized_unit LIKE '%(w/Dil)%';
+    END
+$_$;
 
 /*************************************************
 * 1. Create parsed Ingredients and relationships *
@@ -490,11 +501,11 @@ FROM j;
 -- Drugs from packs
 INSERT INTO drug_concept_stage
 SELECT
-    concept_name,
+    a.concept_name,
     'JMDC'                         AS vocabulary_id,
     'Drug Product'                 AS concept_class_id,
     NULL                           AS standard_concept,
-    'JMDC' || NEXTVAL('new_vocab') AS concept_code,
+    COALESCE ('JMDC' || MIN(CAST(REPLACE(c.concept_code, 'JMDC', '') AS INT)), 'JMDC' || NEXTVAL('new_vocab')) AS concept_code,
     NULL                           AS possible_excipient,
     'Drug',
     TO_DATE('19700101', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'),
@@ -504,6 +515,13 @@ FROM (
          SUBSTR(ingredient || ' ' || dosage || ' ' || LOWER(form), 1, 255) AS concept_name
      FROM aut_pc_stage
      ) a
+LEFT JOIN concept c
+    ON a.concept_name = c.concept_name
+        AND c.vocabulary_id = 'JMDC'
+        AND c.concept_class_id = 'Drug Product'
+        AND c.concept_code LIKE 'JMDC%'
+        AND c.domain_id = 'Drug'
+GROUP BY 1,2,3,4,6,7,8,9
 ;
 
 -- Devices
@@ -514,11 +532,11 @@ FROM non_drug;
 -- Ingredients
 INSERT INTO drug_concept_stage
 SELECT
-    TRIM(ing_name)                 AS concept_name,
+    TRIM(a.ing_name)               AS concept_name,
     'JMDC'                         AS vocabulary_id,
     'Ingredient'                   AS concept_class_id,
     NULL                           AS standard_concept,
-    'JMDC' || NEXTVAL('new_vocab') AS concept_code,
+    COALESCE ('JMDC' || MIN(CAST(REPLACE(c.concept_code, 'JMDC', '') AS INT)), 'JMDC' || NEXTVAL('new_vocab')) AS concept_code,
     NULL                           AS possible_excipient,
     'Drug',
     TO_DATE('19700101', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'),
@@ -526,7 +544,15 @@ SELECT
 FROM (
      SELECT DISTINCT ing_name
      FROM pi
-     ) a;
+     ) a
+LEFT JOIN concept c
+    ON TRIM(a.ing_name) = c.concept_name
+        AND c.vocabulary_id = 'JMDC'
+        AND c.concept_class_id = 'Ingredient'
+        AND c.concept_code LIKE 'JMDC%'
+        AND c.domain_id = 'Drug'
+GROUP BY 1,2,3,4,6,7,8,9
+;
 
 -- Brand Name
 INSERT INTO drug_concept_stage
@@ -535,7 +561,7 @@ SELECT
     'JMDC'                         AS vocabulary_id,
     'Brand Name'                   AS concept_class_id,
     NULL                           AS standard_concept,
-    'JMDC' || NEXTVAL('new_vocab') AS concept_code,
+    COALESCE ('JMDC' || MIN(CAST(REPLACE(c.concept_code, 'JMDC', '') AS INT)), 'JMDC' || NEXTVAL('new_vocab')) AS concept_code,
     NULL                           AS possible_excipient,
     'Drug',
     TO_DATE('19700101', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'),
@@ -545,17 +571,24 @@ FROM (
      FROM j
      WHERE brand_name IS NOT NULL
      ) a
+LEFT JOIN concept c
+    ON a.brand_name = c.concept_name
+        AND c.vocabulary_id = 'JMDC'
+        AND c.concept_class_id = 'Brand Name'
+        AND c.concept_code LIKE 'JMDC%'
+        AND c.domain_id = 'Drug'
+GROUP BY 1,2,3,4,6,7,8,9
 ;
 
 -- Dose Forms
 -- is populated based on manual tables
 INSERT INTO drug_concept_stage
 SELECT
-    concept_name,
+    a.concept_name,
     'JMDC'                         AS vocabulary_id,
     'Dose Form'                    AS concept_class_id,
     NULL                           AS standard_concept,
-    'JMDC' || NEXTVAL('new_vocab') AS concept_code,
+    COALESCE ('JMDC' || MIN(CAST(REPLACE(c.concept_code, 'JMDC', '') AS INT)), 'JMDC' || NEXTVAL('new_vocab')) AS concept_code,
     NULL                           AS possible_excipient,
     'Drug',
     TO_DATE('19700101', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'),
@@ -563,6 +596,13 @@ SELECT
 FROM (
      SELECT DISTINCT COALESCE(new_name, concept_name) AS concept_name FROM aut_form_mapped
      ) a
+LEFT JOIN concept c
+    ON a.concept_name = c.concept_name
+        AND c.vocabulary_id = 'JMDC'
+        AND c.concept_class_id = 'Dose Form'
+        AND c.concept_code LIKE 'JMDC%'
+        AND c.domain_id = 'Drug'
+GROUP BY 1,2,3,4,6,7,8,9
 ;
 
 -- Units
@@ -621,11 +661,11 @@ VALUES ('ul', 'JMDC', 'Unit', NULL, 'ul', 'Drug', TO_DATE('19700101', 'YYYYMMDD'
 INSERT INTO drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code,
                                 domain_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT
-    concept_name,
+    s.concept_name,
     'JMDC'                         AS vocabulary_id,
     'Supplier'                     AS concept_class_id,
     NULL                           AS standard_concept,
-    'JMDC' || NEXTVAL('new_vocab') AS concept_code,
+    COALESCE ('JMDC' || MIN(CAST(REPLACE(c.concept_code, 'JMDC', '') AS INT)), 'JMDC' || NEXTVAL('new_vocab')) AS concept_code,
     'Drug',
     TO_DATE('19700101', 'YYYYMMDD'),
     TO_DATE('20991231', 'YYYYMMDD'),
@@ -635,7 +675,15 @@ FROM (
      FROM supplier s
      LEFT JOIN aut_suppliers_mapped sm
          ON UPPER(sm.source_name) = UPPER(s.concept_name)
-     ) s;
+     ) s
+LEFT JOIN concept c
+    ON s.concept_name = c.concept_name
+        AND c.vocabulary_id = 'JMDC'
+        AND c.concept_class_id = 'Supplier'
+        AND c.concept_code LIKE 'JMDC%'
+        AND c.domain_id = 'Drug'
+GROUP BY 1,2,3,4,6,7,8,9
+;
 
 
 /*************************************************
@@ -680,7 +728,6 @@ SELECT DISTINCT jmdc_drug_code, dc.concept_code
 FROM aut_form_mapped a
 JOIN j
     ON TRIM(formulation_small_classification_name) = a.concept_name
---     ON TRIM(formulation_large_classification_name) = a.concept_name
 JOIN drug_concept_stage dc
     ON dc.concept_name = COALESCE(a.new_name, a.concept_name)
 WHERE dc.concept_class_id = 'Dose Form'
@@ -699,15 +746,6 @@ JOIN drug_concept_stage dcs2
 ;
 
 -- 3.4 Suppliers
--- INSERT INTO internal_relationship_stage (concept_code_1, concept_code_2)
--- SELECT DISTINCT jmdc_drug_code, concept_code
--- FROM supplier s
--- LEFT JOIN aut_suppliers_mapped a
---     ON UPPER(a.source_name) = UPPER(s.concept_name)
--- JOIN drug_concept_stage dc
---     ON dc.concept_name = COALESCE(a.concept_name, s.concept_name)
--- WHERE concept_class_id = 'Supplier';
-
 INSERT INTO internal_relationship_stage (concept_code_1, concept_code_2)
 select s.jmdc_drug_code, dcs.concept_code
     from supplier s
@@ -1097,17 +1135,15 @@ WHERE dc.concept_class_id = 'Ingredient'
 
 --precise ingredients
 INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id_2, precedence)
--- select * from precise_temp
--- where concept_code_1 not in (select concept_code_1 from relationship_to_concept);
 SELECT DISTINCT dc.concept_code, 'JMDC', c3.concept_id, 1
 FROM drug_concept_stage dc
 LEFT JOIN relationship_to_concept r
     ON concept_code = concept_code_1
-JOIN devv5.concept c2
+JOIN concept c2
     ON LOWER(C2.concept_name) = LOWER(dc.concept_name)
-JOIN devv5.concept_relationship cr
+JOIN concept_relationship cr
     ON cr.concept_id_1 = c2.concept_id
-JOIN devv5.concept c3
+JOIN concept c3
     ON c3.concept_id = cr.concept_id_2
 WHERE dc.concept_class_id = 'Ingredient'
   AND r.concept_id_2 IS NULL
@@ -1119,7 +1155,6 @@ WHERE dc.concept_class_id = 'Ingredient'
 ;
 
 -- delete/update invalid ingredients
-
 DELETE
 FROM aut_ingredient_mapped
 WHERE CAST(concept_id_2 AS int)
@@ -1170,7 +1205,7 @@ INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 SELECT DISTINCT
     dc.concept_code, 'JMDC', c.concept_id, RANK() OVER (PARTITION BY dc.concept_code ORDER BY c.concept_id)
 FROM drug_concept_stage dc
-JOIN devv5.concept c
+JOIN concept c
     ON REGEXP_REPLACE(LOWER(TRIM(dc.concept_name)), '(\s|\W)', '', 'g') =
        REGEXP_REPLACE(LOWER(TRIM(c.concept_name)), '(\s|\W)', '', 'g')
 WHERE dc.concept_class_id = 'Brand Name'
@@ -1184,11 +1219,11 @@ INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 SELECT DISTINCT
     dc.concept_code, 'JMDC', c2.concept_id, RANK() OVER (PARTITION BY dc.concept_code ORDER BY c2.concept_id)
 FROM drug_concept_stage dc
-JOIN devv5.concept c
+JOIN concept c
     ON LOWER(c.concept_name) = LOWER(dc.concept_name) AND c.invalid_reason = 'U' AND c.concept_class_id = 'Brand Name'
-JOIN devv5.concept_relationship cr
+JOIN concept_relationship cr
     ON cr.concept_id_1 = c.concept_id AND cr.invalid_reason IS NULL
-JOIN devv5.concept c2
+JOIN concept c2
     ON cr.concept_id_2 = c2.concept_id AND relationship_id = 'Concept replaced by'
 WHERE dc.concept_class_id = 'Brand Name'
   AND dc.concept_code NOT IN (
@@ -1237,7 +1272,7 @@ INSERT INTO relationship_to_concept (concept_code_1, vocabulary_id_1, concept_id
 SELECT DISTINCT
     dc.concept_code, 'JMDC', c.concept_id, RANK() OVER (PARTITION BY dc.concept_code ORDER BY c.concept_id)
 FROM drug_concept_stage dc
-JOIN devv5.concept c
+JOIN concept c
     ON LOWER(c.concept_name) = LOWER(dc.concept_name) AND c.concept_class_id = 'Supplier'
         AND c.invalid_reason IS NULL AND c.vocabulary_id = 'RxNorm Extension'
 WHERE dc.concept_class_id = 'Supplier'

@@ -1,5 +1,4 @@
 --add manual mapping
-
 INSERT INTO aut_ingredient_mapped (concept_name, precedence, concept_id_2)
 SELECT DISTINCT concept_name, COALESCE(precedence, 1), concept_id_2
 FROM ingredient_mm

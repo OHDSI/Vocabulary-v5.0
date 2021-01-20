@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Christian Reich, Anna Ostropolets
-* Date: 06-05-2019
+* Authors: Christian Reich, Anna Ostropolets, Artem Gorbachev, Alexander Davydov
+* Date: 20-Jan-2020
 **************************************************************************/
 
 

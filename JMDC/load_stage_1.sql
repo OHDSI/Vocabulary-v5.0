@@ -682,8 +682,15 @@ LEFT JOIN concept c
         AND c.concept_class_id = 'Supplier'
         AND c.concept_code LIKE 'JMDC%'
         AND c.domain_id = 'Drug'
-GROUP BY 1,2,3,4,6,7,8,9
+GROUP BY 1, 2, 3, 4, 6, 7, 8, 9
 ;
+
+DELETE
+FROM drug_concept_stage dcs
+WHERE dcs.concept_name IN (
+                           'Levofloxacin BT', 'Aleviatin with Phenobarbital', 'Isoflurane AW', 'Glutathione PH',
+                           'Cheong-Kwan-Jang Red Ginseng', 'Maltose ML', 'Fursultiamine PH', 'Carvedilol JD',
+                           'Glucose Solution', 'Xenon Cold');
 
 
 /*************************************************
@@ -692,9 +699,8 @@ GROUP BY 1,2,3,4,6,7,8,9
 
 -- 3.1 create relationship between products and ingredients
 INSERT INTO internal_relationship_stage
-SELECT DISTINCT
-    pi.jmdc_drug_code AS concept_code_1,
-    dcs.concept_code  AS concept_code_2
+SELECT DISTINCT pi.jmdc_drug_code AS concept_code_1,
+                dcs.concept_code AS concept_code_2
 FROM pi
 JOIN drug_concept_stage dcs
     ON dcs.concept_name = pi.ing_name AND dcs.concept_class_id = 'Ingredient'

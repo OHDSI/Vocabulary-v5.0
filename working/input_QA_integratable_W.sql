@@ -208,13 +208,13 @@ FROM (
 	
 	UNION ALL
 	
-	--Brand Names containing Ingedient (Aspirin Bayer)
+	--Brand Names containing Ingedient (e.g., Aspirin Bayer)
 	SELECT a.concept_code, 'Brand Names containing Ingedient (Aspirin Bayer)', 'drug_concept_stage'
 	FROM drug_concept_stage a
 	JOIN drug_concept_stage b ON (
 			a.concept_name ilike '% ' || b.concept_name -- Bayer Aspirin
 			OR a.concept_name ilike b.concept_name || ' %' -- Aspirin Bayer
-			OR a.concept_name = b.concept_name -- Aspirin
+			OR a.concept_name = b.concept_name --Aspirin
 			)
 	WHERE a.concept_class_id = 'Brand Name'
 		AND b.concept_class_id = 'Ingredient'

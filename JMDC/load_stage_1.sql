@@ -84,7 +84,7 @@ WHERE general_name ~*
       ('(99mTc)|(131I)|(89Sr)|capsule|iodixanol|iohexol|ioxilan|ioxaglate|iopamidol|iothalamate|(123I)|(9 Cl)|(111In)|(13C)|' ||
        '(123I)|(51Cr)|(201Tl)|(133Xe)|(90Y)|(81mKr)|(90Y)|(67Ga)|gadoter|gadopent|manganese chloride tetrahydrate|amino acid|' ||
        'barium sulfate|cellulose,oxidized|purified tuberculin|blood|plasma|diagnostic|nutrition|patch test|free milk|vitamin/|' ||
-       'white ointment|simple syrup|electrolyte|allergen extract(therapeutic)|simple ointment|absorptive|hydrophilic') -- cellulose = Surgicel Absorbable Hemostat
+       'white ointment|simple syrup|electrolyte|allergen extract(therapeutic)|simple ointment|absorptive|hydrophilic|irradiated') -- cellulose = Surgicel Absorbable Hemostat
   AND NOT general_name ~* 'coagulation|an extract from hemolysed blood'; -- coagulation factors
 
 

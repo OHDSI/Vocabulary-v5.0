@@ -12,7 +12,7 @@ BEGIN
 	BEGIN
 		SELECT STRING_AGG(error_text||' [rows_count='||rows_count||']', crlf) INTO z FROM qa_tests.Check_Stage_Tables();
 		IF LENGTH(z)>10000 THEN
-			z:=SUBSTR(z,1,10000)||'... (cutted)';
+			z:=SUBSTR(z,1,10000)||'... (cut)';
 		END IF;
 		IF z IS NOT NULL THEN
 			z:=crlf||z||crlf||crlf||'NOTE: You can also run SELECT * FROM qa_tests.Check_Stage_Tables();';
@@ -219,7 +219,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'US Census' THEN 1
 		WHEN c.vocabulary_id = 'HemOnc' THEN 1
 		WHEN c.vocabulary_id = 'NAACCR' THEN 1
-		WHEN c.vocabulary_id = 'JMDC' THEN 1
+		WHEN c.vocabulary_id = 'JMDC' THEN 0
 		WHEN c.vocabulary_id = 'KCD7' THEN 1
 		WHEN c.vocabulary_id = 'CTD' THEN 1
 		WHEN c.vocabulary_id = 'EDI' THEN 1

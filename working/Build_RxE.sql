@@ -6602,7 +6602,8 @@ WHERE ds.ingredient_concept_code = x.xxx_code;
 
 -- Remove negative and 0 concept_ids from concept_stage
 UPDATE concept_stage
-SET concept_id = NULL;
+SET concept_id = NULL
+WHERE TRUE; --to prevent interruption in some database clients
 
 --get duplicates for some reason
 DELETE

@@ -3,6 +3,7 @@ Update of OPCS4
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
 - Working directory OPCS4.
+- SNOMED must be loaded first
 
 1. Run create_source_tables.sql
 2. Download the latest Data Migration Workbench from https://isd.digital.nhs.uk/trud3/user/guest/group/0/pack/1/subpack/98/releases

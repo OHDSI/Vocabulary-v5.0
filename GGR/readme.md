@@ -1,21 +1,24 @@
 Update of GGR
 
 Prerequisites:
-- Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
+- Schema DevV5 with copies of tables concept, drug_strength, concept_relationship and concept_synonym from ProdV5, fully indexed.
 
 1. Run create_source_tables.sql and additional_DDL.sql
 2. Download GGR file
 - Open the site http://www.bcfi.be/nl/download
-- Download latest zip archieve (CSV format, NL-version) e.g. http://www.bcfi.be/nl/download/file?type=EMD&name=/csv4Emd_Nl_1709A.zip
+- Download latest zip archive (CSV format, NL-version) e.g. http://www.bcfi.be/nl/download
 - Extract all *.csv except Ggr_Link.csv and Hyr.csv
-3. Run in devv5: SELECT sources.load_input_tables('GGR',TO_DATE('20170901', 'yyyymmdd'),'GGR 20170901');
-4. Run auto_init.sql.
-Note: BN, Ingredients: lowercase 'n' in mapped_name suggests using concept_name instead. Lowercase 'g' in mapped_name indicates that concept should not be mapped. Brand Names with incorrect Suppliers must be deleted manually at this stage.
-5. Give tables tomap_unit, tomap_form, tomap_supplier, tomap_bn, tomap_ingred to Medical Coder.
-Reupload all tomap_* tables.
-Note: manual tables in correct format for current version are present in subdirectory manual_work
-6. Run after_mm.sql
-Give table dsfix to Medical Coder.
-Note: Place 'D' in Device field for products, that should be marked as Devices
-Upload dsfix.csv and run fixes.sql
-7. Run generic_update: devv5.GenericUpdate();
+3. Run in devv5: SELECT sources.load_input_tables('GGR',TO_DATE('20190401', 'yyyymmdd'),'GGR 20190401') with actual date;
+4. Upload legacy r_to_c_all (highly recommended, but not necessary)
+5. Run auto_init.sql with updated Latest_update.
+6. Manually fill table relationship_to_concept_to_map and re-upload it as relationship_to_concept_manual
+
+Note:
+* BN, Ingredients: Fill new name in target_concept_name (leaving target_concept_id empty) to change the name of the created RxNorm Extension concept
+* Non-null entry in invalid_indicator field indicates that RxE concept should not be created
+* manual_work/relationship_to_concept_manual.sql contains example of manual mappings made April 2019.
+* source_concept_desc contains French translations where available
+7. Run after_mm.sql
+8. Run build_rxe.sql from working/ directory
+9. Run postprocessing.sql
+10. Run generic_update: devv5.GenericUpdate();

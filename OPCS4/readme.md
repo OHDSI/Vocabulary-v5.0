@@ -10,3 +10,6 @@ Prerequisites:
 4. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('OPCS4',TO_DATE('20180614','YYYYMMDD'),'DATAMIGRATION_25.1.0_20180614000001');
 5. Run load_stage.sql
 6. Run generic_update: devv5.GenericUpdate();
+
+Contents for manual table are available here:
+https://drive.google.com/drive/u/1/folders/13g9xdvdsnllkII6NxZVKrSw16ODS5-U4

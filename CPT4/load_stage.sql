@@ -372,50 +372,7 @@ WHERE NOT EXISTS (
 			AND crs.vocabulary_id_2 = 'CPT4'
 		);
 
---12. Add everything from the Manual tables
---Working with manual concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;
-
---Working with manual synonyms
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
-END $_$;
-
---Working with manual mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
---Working with replacement mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
-
---Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
---13. Extract "hiden" CPT4 codes inside concept_names of another CPT4 codes.
+--12. Extract "hiden" CPT4 codes inside concept_names of another CPT4 codes.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -449,7 +406,7 @@ WHERE NOT EXISTS (
 			AND crs.vocabulary_id_2 = 'CPT4'
 		);
 
---14. Update dates from mrsat.atv (only for new concepts)
+--13. Update dates from mrsat.atv (only for new concepts)
 UPDATE concept_stage cs
 SET valid_start_date = i.dt
 FROM (
@@ -477,7 +434,7 @@ FROM (
 	) i
 WHERE i.concept_code = cs.concept_code;
 
---15. Update domain_id in concept_stage 
+--14. Update domain_id in concept_stage 
 UPDATE concept_stage cs
 SET domain_id = t1.domain_id
 FROM (
@@ -578,6 +535,49 @@ FROM (
 	LEFT JOIN sources.mrsty m2 ON m2.cui = m1.cui
 	) t1
 WHERE t1.concept_code = cs.concept_code;
+
+--15. Add everything from the Manual tables
+--Working with manual concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+--Working with manual synonyms
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+--Working with manual mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
 
 --16. Update domain_id  and standard concept value for CPT4 according to mappings
 UPDATE concept_stage cs

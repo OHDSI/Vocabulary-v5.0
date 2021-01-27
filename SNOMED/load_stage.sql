@@ -1761,7 +1761,7 @@ SELECT c.*, NULL FROM (VALUES
 	(365242003,         'Observation',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Finding related to ability to perform domestic activities
 --history:on
 	(284530008,         'Observation',  to_date('20150119', 'YYYYMMDD'), to_date('20160322', 'YYYYMMDD')), --Communication, speech and language finding
-	(284530008,         'Observation',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Communication, speech and language finding
+	(284530008,         'Observation',  to_date('20201110', 'YYYYMMDD'), to_date('20211027', 'YYYYMMDD')), --Communication, speech and language finding
 --history:off
 	(29164008,          'Condition',    to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Disturbance in speech
 	(288579009,         'Condition',    to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Difficulty communicating
@@ -1882,7 +1882,11 @@ SELECT c.*, NULL FROM (VALUES
 	(364068009,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --ECG feature
 	(371846000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Pulmonary valve flow
 	(397417004,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Regurgitant flow
-	(399301000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Regurgitant fraction
+	(399301000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Regurgitant fraction
+
+	(871562009,         'Measurement',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Detection of Severe acute respiratory syndrome coronavirus 2
+	(1240471000000102,  'Measurement',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measurement of Severe acute respiratory syndrome coronavirus 2 antigen
+	(62305002,          'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Disorder of language
 ) as c
 ;
 

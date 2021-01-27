@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2020
+* Date: 2021
 **************************************************************************/
 
 --1. Update latest_update field to new date 
@@ -106,7 +106,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT SUBSTR(spl_name, 1, 255) AS concept_name,
+SELECT vocabulary_pack.CutConceptName(spl_name) AS concept_name,
 	CASE 
 		WHEN displayname IN ('COSMETIC')
 			THEN 'Observation'
@@ -203,7 +203,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT TRIM(SUBSTR(concept_name, 1, 255)) concept_name,
+SELECT vocabulary_pack.CutConceptName(concept_name) concept_name,
 	CASE 
 		WHEN displayname IN (
 				'COSMETIC',
@@ -299,13 +299,13 @@ INSERT INTO concept_stage (
 WITH good_spl AS (
 		SELECT CASE -- add [brandname] if proprietaryname exists and not identical to nonproprietaryname
 				WHEN brand_name IS NULL
-					THEN TRIM(SUBSTR(TRIM(concept_name), 1, 255))
-				ELSE TRIM(SUBSTR(CONCAT (
+					THEN vocabulary_pack.CutConceptName(concept_name)
+				ELSE vocabulary_pack.CutConceptName(CONCAT (
 								TRIM(concept_name),
 								' [',
 								brand_name,
 								']'
-								), 1, 255))
+								))
 				END AS concept_name,
 			'Drug' AS domain_id,
 			'SPL' AS vocabulary_id,
@@ -345,7 +345,7 @@ WITH good_spl AS (
 							TRIM(SUBSTR(dosageformname, 1, 100))
 							)
 					END AS concept_name,
-				SUBSTR(brand_name, 1, 255) AS brand_name,
+				vocabulary_pack.CutConceptName(brand_name) AS brand_name,
 				valid_start_date
 			FROM (
 				WITH t AS (
@@ -486,7 +486,7 @@ INSERT INTO concept_synonym_stage (
 	)
 SELECT concept_code AS synonym_concept_code,
 	'SPL' AS vocabulary_id,
-	TRIM(SUBSTR(CASE 
+	vocabulary_pack.CutConceptSynonymName(CASE 
 				WHEN brand_name IS NULL
 					THEN TRIM(long_concept_name)
 				ELSE CONCAT (
@@ -495,7 +495,7 @@ SELECT concept_code AS synonym_concept_code,
 						brand_name,
 						']'
 						)
-				END, 1, 1000)) AS synonym_name,
+				END) AS synonym_name,
 	4180186 AS language_concept_id -- English
 FROM --get unique and aggregated data from source
 	(
@@ -518,7 +518,7 @@ FROM --get unique and aggregated data from source
 					dosageformname
 					)
 			END AS long_concept_name,
-		SUBSTR(brand_name, 1, 255) AS brand_name
+		vocabulary_pack.CutConceptName(brand_name) AS brand_name
 	FROM (
 		WITH t AS (
 				SELECT concept_code,
@@ -707,13 +707,13 @@ AS
 INSERT INTO main_ndc
 SELECT CASE -- add [brandname] if proprietaryname exists and not identical to nonproprietaryname
 		WHEN brand_name IS NULL
-			THEN TRIM(SUBSTR(TRIM(concept_name), 1, 255))
-		ELSE TRIM(SUBSTR(CONCAT (
+			THEN vocabulary_pack.CutConceptName(concept_name)
+		ELSE vocabulary_pack.CutConceptName(CONCAT (
 						TRIM(concept_name),
 						' [',
 						brand_name,
 						']'
-						), 1, 255))
+						))
 		END AS concept_name,
 	CASE -- same for long concept name
 		WHEN brand_name IS NULL
@@ -780,7 +780,7 @@ FROM --get unique and aggregated data from source
 					dosageformname
 					)
 			END AS long_concept_name,
-		SUBSTR(brand_name, 1, 255) AS brand_name,
+		vocabulary_pack.CutConceptName(brand_name) AS brand_name,
 		valid_start_date
 	FROM (
 		WITH t AS (
@@ -900,7 +900,7 @@ INSERT INTO main_ndc (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT TRIM(SUBSTR(c.str, 1, 255)) AS concept_name,
+SELECT DISTINCT vocabulary_pack.CutConceptName(c.str) AS concept_name,
 	TRIM(c.str) AS long_concept_name,
 	'Drug' AS domain_id,
 	'NDC' AS vocabulary_id,
@@ -933,7 +933,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT TRIM(SUBSTR(concept_name, 1, 255)) AS concept_name,
+SELECT vocabulary_pack.CutConceptName(concept_name) AS concept_name,
 	'Drug' AS domain_id,
 	'NDC' AS vocabulary_id,
 	'11-digit NDC' AS concept_class_id,
@@ -1005,7 +1005,7 @@ FROM (
 	) AS s0
 WHERE concept_name IS NOT NULL;
 
---15. Add additional NDC with fresh dates from the ndc_history where NDC have't activerxcui (same source). Take dates from COALESCE(NDC API, big XML (SPL), MAIN_NDC, concept, default dates)
+--15. Add additional NDC with fresh dates from the ndc_history where NDC have't activerxcui (same source). Take dates from COALESCE(NDC API (for old concepts from concept), big XML (SPL), MAIN_NDC, concept, default dates)
 CREATE OR REPLACE FUNCTION CheckNDCDate (pDate IN VARCHAR, pDateDefault IN DATE) RETURNS DATE
 AS
 $BODY$
@@ -1024,7 +1024,7 @@ AS (
 	SELECT concept_code,
 		COALESCE(startdate, MIN(l.ndc_valid_start_date)) valid_start_date,
 		COALESCE(enddate, MAX(h.ndc_valid_end_date)) valid_end_date,
-		TRIM(SUBSTR(COALESCE(c_name1, c_name2, MAX(spl_name)), 1, 255)) concept_name
+		vocabulary_pack.CutConceptName(COALESCE(c_name1, c_name2, MAX(spl_name))) concept_name
 	FROM (
 		SELECT n.concept_code,
 			n.startdate,
@@ -1048,7 +1048,8 @@ AS (
 		WHERE n.activerxcui IS NULL
 		) n,
 		LATERAL(SELECT MIN(ndc_valid_start_date) AS ndc_valid_start_date FROM (
-			SELECT CheckNDCDate(MIN(low_val), COALESCE(n.c_st_date1, n.c_st_date2, TO_DATE('19700101', 'YYYYMMDD'))) AS ndc_valid_start_date
+			--SELECT CheckNDCDate(MIN(low_val), COALESCE(n.c_st_date1, n.c_st_date2, TO_DATE('19700101', 'YYYYMMDD'))) AS ndc_valid_start_date <- deprecated, take concept.valid_start_date for existing concepts
+			SELECT COALESCE (n.c_st_date2,CheckNDCDate(MIN(low_val), COALESCE(n.c_st_date1, TO_DATE('19700101', 'YYYYMMDD')))) AS ndc_valid_start_date
 			FROM (
 				SELECT UNNEST(regexp_matches(n.low_value, '[^;]+', 'g')) AS low_val
 				) AS s0
@@ -1214,7 +1215,7 @@ INSERT INTO concept_synonym_stage (
 	)
 SELECT concept_code,
 	vocabulary_id,
-	TRIM(SUBSTR(long_concept_name, 1, 1000)),
+	vocabulary_pack.CutConceptSynonymName(long_concept_name),
 	4180186 AS language_concept_id -- English
 FROM main_ndc;
 
@@ -1677,7 +1678,7 @@ WITH ndc AS (
 		)
 SELECT p.pack_code AS synonym_concept_code,
 	m.vocabulary_id,
-	TRIM(SUBSTR(m.long_concept_name, 1, 1000)),
+	vocabulary_pack.CutConceptSynonymName(m.long_concept_name),
 	4180186 AS language_concept_id -- English
 FROM ndc n
 JOIN main_ndc m ON m.concept_code = n.concept_code

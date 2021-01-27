@@ -1,10 +1,5 @@
 --Name changes
-select c.concept_code, c.concept_name as new_name, c2.concept_name as old_name
-from dev_snomed.concept c
-join devv5.concept c2 using (concept_id)
-where 
-	c.concept_name != c2.concept_name and
-	c.invalid_reason is null
+--moved to https://github.com/OHDSI/Vocabulary-v5.0/blob/968a4f20086da72980864672c9fdad70a587b627/working/manual_checks_after_generic.sql#L26
 --contents of brackets are no longer lost, leading to way less duplication
 --Prefer US spelling over UK
 --Better overall
@@ -30,7 +25,7 @@ join devv5.concept c2 on
 	c1.invalid_reason is null
 order by c1.domain_id, c2.domain_id
 --Mostly due to new added peaks; some changes are caused by hierarchy changes
---Units lost their domains because UK hhierarchhy is broken; will fix itself next release cycle
+--Units lost their domains because UK hierarchy is broken; will fix itself next release cycle
 ;
 --domain changes for inactive concepts
 select c1.concept_code,c1.concept_name, c1.invalid_reason, c2.domain_id as old, c1.domain_id as new

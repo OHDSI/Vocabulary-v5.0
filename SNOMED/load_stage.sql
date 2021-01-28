@@ -1890,9 +1890,14 @@ SELECT c.*, NULL FROM (VALUES
 	(289161009,         'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Finding of appetite
 --history:on
 	(309298003,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Drug therapy observations
-	(309298003,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Drug therapy finding
-
+	(309298003,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Drug therapy finding
 --history:off
+	(271807003,         'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Eruption
+	(28926001,          'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Eruption due to drug
+	(402752000,         'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Dermatosis resulting from cytotoxic therapy
+	(238986007,         'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Chemical-induced dermatological disorder
+	(293104008,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Adverse reaction to vaccine product
+	(863903001,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Allergy to vaccine product
 ) as c
 ;
 

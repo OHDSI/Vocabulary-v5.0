@@ -70,7 +70,7 @@ join dev_snomed.concept c on
 where c.invalid_reason is null
 ;
 --New covid concepts and their mappings (All UK -- US changes were already managed by SNOMED US)
-select c.concept_code, c.concept_name, r.relationship_id, c2.concept_code, c2.vocabulary_id, c2.concept_name
+select c.concept_code, c.concept_name, c.standard_concept, r.relationship_id, c2.concept_code, c2.vocabulary_id, c2.concept_name, c2.standard_concept
 from dev_snomed.concept c
 join dev_snomed.concept_relationship r on
 	r.concept_id_1 = c.concept_id and

@@ -3,7 +3,9 @@ with code as (SELECT 'peak_code'::varchar as code)
 --All the ancestors
 SELECT * FROM (
 SELECT DISTINCT
-        CASE WHEN p.peak_code IS NOT NULL THEN 'IS PICK' ELSE NULL END as pick,
+        CASE WHEN p.valid_end_date = to_date('20991231', 'YYYYMMDD') THEN 'IS PICK'
+             WHEN p.valid_end_date < to_date('20991231', 'YYYYMMDD') THEN 'OLD PICK ' || p.valid_end_date
+             ELSE NULL END as pick,
         CASE WHEN MIN(s.concept_code) = MIN(cs.concept_code) THEN 0 ELSE MIN (ca.min_levels_of_separation) END as level,
         cs.*
 
@@ -26,7 +28,9 @@ UNION
 --All the descendants
 SELECT * FROM (
 SELECT DISTINCT
-        CASE WHEN p.peak_code IS NOT NULL THEN 'IS PICK' ELSE NULL END as pick,
+        CASE WHEN p.valid_end_date = to_date('20991231', 'YYYYMMDD') THEN 'IS PICK'
+             WHEN p.valid_end_date < to_date('20991231', 'YYYYMMDD') THEN 'OLD PICK ' || p.valid_end_date
+             ELSE NULL END as pick,
         CASE WHEN MIN(s.concept_code) = MIN(cs.concept_code) THEN 0 ELSE - MAX (ca.min_levels_of_separation) END as level,
         cs.*
 

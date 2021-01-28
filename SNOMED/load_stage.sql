@@ -1347,7 +1347,6 @@ SELECT a.*, NULL FROM ( VALUES
     (162567005,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Family aware of diagnosis
     (42045007,          'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Acceptance of illness
     (108329005,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Social context condition
-    (309298003,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Drug therapy observations
     (48340000,          'Condition',    to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Incontinence
     (108252007,         'Measurement',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Laboratory procedures
     (118246004,         'Measurement',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Laboratory test finding' - child of excluded Sample observation
@@ -1883,10 +1882,17 @@ SELECT c.*, NULL FROM (VALUES
 	(371846000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Pulmonary valve flow
 	(397417004,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Regurgitant flow
 	(399301000,         'Measurement',  to_date('20201210', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Regurgitant fraction
-
+--2021-Jan-27
 	(871562009,         'Measurement',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Detection of Severe acute respiratory syndrome coronavirus 2
 	(1240471000000102,  'Measurement',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measurement of Severe acute respiratory syndrome coronavirus 2 antigen
-	(62305002,          'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Disorder of language
+	(62305002,          'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Disorder of language
+	(129063003,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Instrumental activity of daily living
+	(289161009,         'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Finding of appetite
+--history:on
+	(309298003,         'Observation',  to_date('20141218', 'YYYYMMDD'), to_date('20150119', 'YYYYMMDD')), -- Drug therapy observations
+	(309298003,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Drug therapy finding
+
+--history:off
 ) as c
 ;
 

@@ -1523,6 +1523,13 @@ WHERE (
 		);
 
 --25. Add manual source
+--25.1. Add concept_manual
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+--25.2. Add concept_relationship_manual
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();

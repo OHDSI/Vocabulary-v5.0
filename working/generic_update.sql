@@ -159,9 +159,9 @@ BEGIN
 	--9. Deprecate concepts missing from concept_stage and are not already deprecated.
 	--This only works for vocabularies where we expect a full set of active concepts in concept_stage.
 	--If the vocabulary only provides changed concepts, this should not be run, and the update information is already dealt with in step 1.
-	--20180523: new rule for CPT4, ICD9Proc and HCPCS: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981
+	--20180523: new rule for some vocabularies, see http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981
 	--20200730 added ICD10PCS
-	--9.1. Update the concept for non-CPT4, non-ICD9Proc, non-HCPCS and non-ICD10PCS vocabularies
+	--9.1. Update the concept for 'regular' vocabularies
 	UPDATE concept c SET
 		invalid_reason = 'D',
 		standard_concept = NULL,
@@ -241,15 +241,15 @@ BEGIN
 		WHEN c.vocabulary_id = 'CCAM' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
-	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS');
+	AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
 
-	--9.2. Update the concept for CPT4, ICD9Proc, HCPCS and ICD10PCS
+	--9.2. Update the concept for 'special' vocabs
 	UPDATE concept c SET
 		valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
 	WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from concept_stage
 	AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 	AND c.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') -- not already deprecated
-	AND c.vocabulary_id IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS'); /*new rule for these vocabularies: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981*/
+	AND c.vocabulary_id IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
 
 	--10. Add new concepts from concept_stage
 	--Create sequence after last valid one

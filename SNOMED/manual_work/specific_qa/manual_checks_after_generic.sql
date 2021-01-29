@@ -74,11 +74,11 @@ select c.concept_code, c.concept_name, c.standard_concept, r.relationship_id, c2
 from dev_snomed.concept c
 join dev_snomed.concept_relationship r on
 	r.concept_id_1 = c.concept_id and
-	r.relationship_id in ('Maps to', 'Maps to value')
+	r.relationship_id in ('Maps to', 'Maps to value', 'Is a') AND r.invalid_reason IS NULL
 join dev_snomed.concept c2 on
 	c2.concept_id = r.concept_id_2
 where
-	c.vocabulary_id = 'SNOMED' and
+	c.vocabulary_id = 'SNOMED' and (
 	c.concept_code in
 	(
 		'1321241000000105','1321701000000102','1321661000000108',
@@ -106,6 +106,12 @@ where
 		'1321301000000101','1321741000000104','1321721000000106',
 		'1321731000000108','1321711000000100','1321291000000100'
 	)
+	    OR (c.concept_name ~* 'covid|Severe acute respiratory syndrome coronavirus|SARS-CoV-2'
+	        AND
+	        c.concept_name !~* 'Covidien')
+
+
+	    )
 ;
 
 --All new peaks and their changed descendants

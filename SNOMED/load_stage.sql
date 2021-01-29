@@ -1885,6 +1885,7 @@ SELECT c.*, NULL FROM (VALUES
 --2021-Jan-27
 	(871562009,         'Measurement',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Detection of Severe acute respiratory syndrome coronavirus 2
 	(1240471000000102,  'Measurement',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Measurement of Severe acute respiratory syndrome coronavirus 2 antigen
+	(1240581000000104,  'Measurement',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Severe acute respiratory syndrome coronavirus 2 detected
 	(62305002,          'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Disorder of language
 	(129063003,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Instrumental activity of daily living
 	(289161009,         'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Finding of appetite
@@ -1897,7 +1898,9 @@ SELECT c.*, NULL FROM (VALUES
 	(402752000,         'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Dermatosis resulting from cytotoxic therapy
 	(238986007,         'Condition',    to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Chemical-induced dermatological disorder
 	(293104008,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Adverse reaction to vaccine product
-	(863903001,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Allergy to vaccine product
+	(863903001,         'Observation',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Allergy to vaccine product
+	(20135006,          'Measurement',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Screening procedure
+	(80943009,          'Measurement',  to_date('20210127', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Risk factor
 ) as c
 ;
 
@@ -2168,6 +2171,12 @@ WHERE concept_code IN (
 		);
 
 UPDATE concept_stage
+SET domain_id = 'Observation'
+WHERE concept_code IN (
+		'294854007' --Allergy to albumin solution
+		);
+
+UPDATE concept_stage
 SET domain_id = 'Procedure'
 WHERE concept_code IN (
 		'128967005' --Exercise challenge
@@ -2426,6 +2435,20 @@ WHERE EXISTS (
 			AND cs.concept_code = crs.concept_code_1
 			AND cs.vocabulary_id = crs.vocabulary_id_1
 		)
+	AND cs.standard_concept = 'S';
+
+--20.5. Make concepts non standard if they represent no information
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE concept_code IN (
+    '1321581000000100', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result unknown
+    '1321641000000107', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result unknown
+    '1321651000000105', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) immunity status unknown
+    '1321691000000102', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) RNA (ribonucleic acid) detection result unknown
+    '1321781000000107', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result unknown
+    '1322821000000105', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result unknown
+    '1322911000000106' --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result unknown
+    )
 	AND cs.standard_concept = 'S';
 
 --21. Clean up

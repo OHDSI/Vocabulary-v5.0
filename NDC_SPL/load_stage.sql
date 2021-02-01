@@ -1522,34 +1522,76 @@ WHERE (
 			AND crs_int.vocabulary_id_2 = 'RxNorm'
 		);
 
---25. Add manual source
---25.1. Add concept_manual
+--25. Add PACKAGES
+ANALYZE concept_stage;
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+WITH ndc AS (
+		SELECT DISTINCT CASE 
+				WHEN devv5.INSTR(productndc, '-') = 5
+					THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
+				ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
+				END || CASE 
+				WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
+					THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
+				ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
+				END AS concept_code,
+			productndc
+		FROM sources.product
+		)
+SELECT DISTINCT cs.concept_name,
+	cs.domain_id,
+	cs.vocabulary_id,
+	'11-digit NDC' AS concept_class_id,
+	NULL AS standard_concept,
+	p.pack_code,
+	MIN(startmarketingdate) OVER (PARTITION BY p.pack_code) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM ndc n
+JOIN concept_stage cs ON cs.concept_code = n.concept_code
+	AND cs.vocabulary_id = 'NDC'
+JOIN sources.package p ON p.productndc = n.productndc
+LEFT JOIN concept_stage cs1 ON cs1.concept_code = p.pack_code
+	AND cs1.vocabulary_id = 'NDC'
+WHERE cs1.concept_code IS NULL;
+
+--26. Add manual source
+--26.1. Add concept_manual
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---25.2. Add concept_relationship_manual
+--26.2. Add concept_relationship_manual
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---26. Delete duplicate mappings to packs
-
---26.1. Add mapping from deprecated to fresh concepts (necessary for the next step)
+--27. Delete duplicate mappings to packs
+--27.1. Add mapping from deprecated to fresh concepts (necessary for the next step)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---26.2. Deprecate 'Maps to' mappings to deprecated and upgraded concepts (necessary for the next step)
+--27.2. Deprecate 'Maps to' mappings to deprecated and upgraded concepts (necessary for the next step)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---26.3 Do it
+--27.3 Do it
 DELETE
 FROM concept_relationship_stage r
 WHERE r.relationship_id = 'Maps to'
@@ -1619,49 +1661,6 @@ WHERE r.relationship_id = 'Maps to'
 			c_int.valid_start_date DESC,
 			c_int.concept_id LIMIT 1
 		);
-
---27. Add PACKAGES
-ANALYZE concept_stage;
-INSERT INTO concept_stage (
-	concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-WITH ndc AS (
-		SELECT DISTINCT CASE 
-				WHEN devv5.INSTR(productndc, '-') = 5
-					THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-				ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-				END || CASE 
-				WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
-					THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
-				ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
-				END AS concept_code,
-			productndc
-		FROM sources.product
-		)
-SELECT DISTINCT cs.concept_name,
-	cs.domain_id,
-	cs.vocabulary_id,
-	'11-digit NDC' AS concept_class_id,
-	NULL AS standard_concept,
-	p.pack_code,
-	MIN(startmarketingdate) OVER (PARTITION BY p.pack_code) AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
-FROM ndc n
-JOIN concept_stage cs ON cs.concept_code = n.concept_code
-	AND cs.vocabulary_id = 'NDC'
-JOIN sources.package p ON p.productndc = n.productndc
-LEFT JOIN concept_stage cs1 ON cs1.concept_code = p.pack_code
-	AND cs1.vocabulary_id = 'NDC'
-WHERE cs1.concept_code IS NULL;
 
 --28. Add full NDC packages names into concept_synonym_stage
 INSERT INTO concept_synonym_stage (

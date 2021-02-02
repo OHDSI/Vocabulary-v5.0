@@ -772,6 +772,12 @@ begin
       execute 'COPY sources.ccam_version (vocabulary_date) FROM PROGRAM ''cat "'||pVocabularyPath||'R_ACTE.txt" | awk "{if(NR==1)print}" ''';
       update sources.ccam_version set vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       analyze sources.ccam_r_acte;
+  when 'HEMONC' then
+      truncate table sources.hemonc_cs, sources.hemonc_crs, sources.hemonc_css;
+      execute 'COPY sources.hemonc_cs (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason) FROM '''||pVocabularyPath||'concept_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason HEADER';
+      execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id HEADER';
+      execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id HEADER';
+      update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

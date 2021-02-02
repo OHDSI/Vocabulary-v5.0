@@ -136,6 +136,7 @@ BEGIN
           24. SNOMED Veterinary
           25. ICD10GM
           26. CCAM
+          27. HemOnc
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -387,6 +388,10 @@ BEGIN
             WHEN cVocabularyName = 'CCAM'
             THEN
               cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d.]+)</h4>.+');
+            WHEN cVocabularyName = 'HEMONC'
+            THEN
+              cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology ([\d-]+)</span>.+'),'yyyy-mm-dd');
+              cVocabVer := 'HemOnc '||to_char(cVocabDate,'yyyy-mm-dd');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

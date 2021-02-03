@@ -28,7 +28,6 @@ pVocabularyOperation text;
   JUMP_TO_SNOMED_UK, JUMP_TO_SNOMED_UK_PREPARE, 
   JUMP_TO_SNOMED_US, JUMP_TO_SNOMED_US_PREPARE, 
   JUMP_TO_SNOMED_UK_DE, JUMP_TO_SNOMED_UK_DE_PREPARE, 
-  JUMP_TO_DMD, JUMP_TO_DMD_PREPARE, 
   JUMP_TO_SNOMED_IMPORT
 */
 pJumpToOperation text;
@@ -280,102 +279,6 @@ BEGIN
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
       iVocabulary_operation=>'GET_SNOMED UK DE prepare complete',
-      iVocabulary_status=>1
-    );
-  end if;
-  
-  if pJumpToOperation in ('ALL','JUMP_TO_DMD') then
-    pJumpToOperation:='ALL';
-    
-    pVocabularyOperation:='GET_SNOMED dm+d part 1';
-    --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=5;
-    
-    --authorization
-    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent
-    from py_http_post(url=>pVocabulary_auth, params=>'j_username='||devv5.urlencode(pVocabulary_login)||'&j_password='||devv5.urlencode(pVocabulary_pass)||'&commit=LOG%20IN');
-    if pCookie not like '%JSESSIONID=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%JSESSIONID=%% not found'; end if;       
-    
-    --get working download link
-    pCookie=substring(pCookie,'JSESSIONID=(.*?);');
-    select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
-    pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
-    
-    --start downloading
-    pVocabularyOperation:='GET_SNOMED dm+d part 1 downloading';
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_dmd.zip',
-      iDownloadLink=>pDownloadURL,
-      iDeleteAll=>0
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED dm+d part 1 downloading complete',
-      iVocabulary_status=>1
-    );
-    
-    --dm+d bonus
-    pVocabularyOperation:='GET_SNOMED dm+d part 2 (bonus)';
-    --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=6;
-    
-    --authorization
-    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent
-    from py_http_post(url=>pVocabulary_auth, params=>'j_username='||devv5.urlencode(pVocabulary_login)||'&j_password='||devv5.urlencode(pVocabulary_pass)||'&commit=LOG%20IN');
-    if pCookie not like '%JSESSIONID=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%JSESSIONID=%% not found'; end if;       
-    
-    --get working download link
-    pCookie=substring(pCookie,'JSESSIONID=(.*?);');
-    select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
-    pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
-    
-    --start downloading
-    pVocabularyOperation:='GET_SNOMED dm+d part 2 (bonus) downloading';
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_dmdbonus.zip',
-      iDownloadLink=>pDownloadURL,
-      iDeleteAll=>0
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED dm+d part 2 (bonus) downloading complete',
-      iVocabulary_status=>1
-    );
-  end if;
-  
-  if pJumpToOperation in ('ALL','JUMP_TO_DMD_PREPARE') then
-    pJumpToOperation:='ALL';
-    --extraction dm+d
-    pVocabularyOperation:='GET_SNOMED dm+d prepare';
-    perform get_snomed_prepare_dmd (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_dmd.zip'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED dm+d prepare complete',
-      iVocabulary_status=>1
-    );
-    
-    --extraction dm+d bonus
-    pVocabularyOperation:='GET_SNOMED dm+d bonus prepare';
-    perform get_snomed_prepare_dmdbonus (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_dmdbonus.zip'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_SNOMED dm+d bonus prepare complete',
       iVocabulary_status=>1
     );
   end if;

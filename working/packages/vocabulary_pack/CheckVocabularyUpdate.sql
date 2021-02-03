@@ -93,7 +93,7 @@ BEGIN
           union all
           (select vocabulary_date, vocabulary_version, 'UMLS' FROM sources.mrsmap LIMIT 1)
         ) as s
-        WHERE UPPER(vocabulary_id)=case cVocabularyName when 'NDC_SPL' then 'NDC' else cVocabularyName end;
+        WHERE UPPER(vocabulary_id)=case cVocabularyName when 'NDC_SPL' then 'NDC' when 'DMD' then 'DM+D' else cVocabularyName end;
 
         /*
           INSERT INTO vocabulary_access
@@ -137,6 +137,7 @@ BEGIN
           25. ICD10GM
           26. CCAM
           27. HemOnc
+          28. dm+d
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -392,6 +393,10 @@ BEGIN
             THEN
               cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology ([\d-]+)</span>.+'),'yyyy-mm-dd');
               cVocabVer := 'HemOnc '||to_char(cVocabDate,'yyyy-mm-dd');
+            WHEN cVocabularyName = 'DMD'
+            THEN
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhsbsa_dmd_\d\.\d\.\d_(\d{8})\d+.zip".+?\.zip">.+'),'yyyymmdd');
+                cVocabVer := 'dm+d Version '||SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhsbsa_dmd_\d\.\d\.\d_\d+.zip".+?\.zip">.+?<div class="current">.+?<h1 class="title">.+?Release (\d\.\d\.\d).+?</h1>.+')||' '||to_char(cVocabDate,'yyyymmdd');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

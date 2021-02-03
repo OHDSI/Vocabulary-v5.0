@@ -1282,8 +1282,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'dm+d',
-	pVocabularyDate			=> TO_DATE ('20201207', 'yyyymmdd'),
-	pVocabularyVersion		=> 'dm+d Version 12.0.0 20201207',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.f_lookup2 LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.f_lookup2 LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_DMD'
 );
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(

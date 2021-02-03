@@ -61,13 +61,6 @@ Rename files to sct2_Concept_Full_GB_DE.txt, sct2_Description_Full-en-GB_DE.txt,
 - der2_cRefset_AssociationFull_GBxxxxxxx_YYYYMMDD.txt from SnomedCT_UKDrugRF2_Production_YYYYMMDDTzzzzzz\Full\Refset\Content
 Rename to der2_cRefset_AssociationFull_INT.txt, der2_cRefset_AssociationFull_UK.txt, der2_cRefset_AssociationFull_US.txt and der2_cRefset_AssociationFull_GB_DE.txt
 
-
-11. Add DM+D: Download nhsbsa_dmd_X.X.X_xxxxxxxxxxxxxx.zip from https://isd.digital.nhs.uk/trud3/user/authenticated/group/0/pack/6/subpack/24/releases
-12. Extract f_ampp2_xxxxxxx.xml, f_amp2_xxxxxxx.xml, f_vmpp2_xxxxxxx.xml, f_vmp2_xxxxxxx.xml, f_lookup2_xxxxxxx.xml, f_vtm2_xxxxxxx.xml and f_ingredient2_xxxxxxx.xml
-13. Rename to f_ampp2.xml, f_amp2.xml, f_vmpp2.xml, f_vmp2.xml, f_lookup2.xml, f_vtm2.xml and f_ingredient2.xml
-14. Download nhsbsa_dmdbonus_X.X.X_YYYYMMDDXXXXXX.zip from https://isd.digital.nhs.uk/trud3/user/authenticated/group/0/pack/6/subpack/25/releases
-15. Extract weekXXYYYY-rX_X-BNF.zip/f_bnf1_XXXXXXX.xml and rename him to dmdbonus.xml
-
-16. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('SNOMED',TO_DATE('20180131','YYYYMMDD'),'Snomed Release 20180131');
-17. Run load_stage.sql
-18. Run generic_update: devv5.GenericUpdate();
+11. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('SNOMED',TO_DATE('20180131','YYYYMMDD'),'Snomed Release 20180131');
+12. Run load_stage.sql
+13. Run generic_update: devv5.GenericUpdate();

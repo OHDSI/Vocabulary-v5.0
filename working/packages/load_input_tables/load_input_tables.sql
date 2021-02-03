@@ -485,16 +485,6 @@ begin
       analyze sources.sct2_concept_full_merged;
       analyze sources.sct2_desc_full_merged;
       analyze sources.sct2_rela_full_merged;
-      --load XML sources
-      truncate table sources.f_lookup2, sources.f_ingredient2, sources.f_vtm2, sources.f_vmp2, sources.f_vmpp2, sources.f_amp2, sources.f_ampp2, sources.dmdbonus;
-      execute 'COPY sources.f_lookup2 FROM '''||pVocabularyPath||'f_lookup2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_ingredient2 FROM '''||pVocabularyPath||'f_ingredient2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_vtm2 FROM '''||pVocabularyPath||'f_vtm2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_vmp2 FROM '''||pVocabularyPath||'f_vmp2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_vmpp2 FROM '''||pVocabularyPath||'f_vmpp2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_amp2 FROM '''||pVocabularyPath||'f_amp2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_ampp2 FROM '''||pVocabularyPath||'f_ampp2.xml'' delimiter E''\b''';
-      execute 'COPY sources.dmdbonus FROM '''||pVocabularyPath||'dmdbonus.xml'' delimiter E''\b''';
       --loading der2_sRefset_SimpleMapFull_INT
       truncate table sources.der2_srefset_simplemapfull_int;
       execute 'COPY sources.der2_srefset_simplemapfull_int FROM '''||pVocabularyPath||'der2_sRefset_SimpleMapFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
@@ -778,6 +768,19 @@ begin
       execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id HEADER';
       execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id HEADER';
       update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'DMD' then
+      truncate table sources.f_lookup2, sources.f_ingredient2, sources.f_vtm2, sources.f_vmp2, sources.f_vmpp2, sources.f_amp2, sources.f_ampp2, sources.dmdbonus;
+      execute 'COPY sources.f_lookup2 (xmlfield) FROM '''||pVocabularyPath||'f_lookup2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_ingredient2 FROM '''||pVocabularyPath||'f_ingredient2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_vtm2 FROM '''||pVocabularyPath||'f_vtm2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_vmp2 FROM '''||pVocabularyPath||'f_vmp2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_vmpp2 FROM '''||pVocabularyPath||'f_vmpp2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_amp2 FROM '''||pVocabularyPath||'f_amp2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_ampp2 FROM '''||pVocabularyPath||'f_ampp2.xml'' delimiter E''\b''';
+      execute 'COPY sources.dmdbonus FROM '''||pVocabularyPath||'dmdbonus.xml'' delimiter E''\b''';
+      update sources.f_lookup2 set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'DM+D' then
+      RAISE EXCEPTION 'Use ''DMD'' instead of %', pVocabularyID;
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

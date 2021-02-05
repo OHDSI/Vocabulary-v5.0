@@ -381,10 +381,10 @@ BEGIN
             THEN
                 --ICD10GM uses ajax, so we need to make another HTTP-request to get date/version
                 SELECT http_content INTO cVocabHTML FROM vocabulary_download.py_http_get(url=>'https://www.dimdi.de/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/filelist-ajax.jsp?folder='||
-                    SUBSTRING(cVocabHTML,'.*data-folder="(.*?/klassifikationen/icd-10-gm/version\d{4}/)"')||'&sitepath=/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/&loc=de&rows=25&start=0',allow_redirects=>true);
+                    SUBSTRING(cVocabHTML,'.*?data-folder="(/sites/dimdi2018/\.downloads/klassifikationen/icd-10-gm/version\d{4}/)".+')||'&sitepath=/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/&loc=de&rows=25&start=0',allow_redirects=>true);
                 --cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM \d{4} Metadaten TXT \(CSV\) </a>.*?<p>Stand: ([\d.]+).*'),'dd.mm.yyyy');
                 --cVocabVer := cVocabularyName||SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM( \d{4}) Metadaten TXT \(CSV\) </a>.*?<p>Stand: [\d.]+.*');
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM (\d{4}) Metadaten TXT \(CSV\) </a>.*?<p>Stand: [\d.]+.*'),'yyyy');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta[\d-]*\.zip">ICD-10-GM (\d{4}) Metadaten TXT \(CSV\)\s*</a>.*?<p>Stand: [\d.]+.*'),'yyyy');
                 cVocabVer := cVocabularyName||' '||to_char(cVocabDate,'YYYY');
             WHEN cVocabularyName = 'CCAM'
             THEN

@@ -52,8 +52,11 @@ SELECT c.concept_name,
 	c.concept_class_id,
 	c.standard_concept,
 	g.concept_code,
-	g.valid_start_date,
-	g.valid_end_date
+	(SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10GM'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM sources.icd10gm g
 LEFT JOIN concept c ON c.concept_code = g.concept_code
 	AND c.vocabulary_id = 'ICD10';

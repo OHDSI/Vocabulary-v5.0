@@ -161,3 +161,54 @@ LEFT JOIN concept c ON c.concept_code = g.concept_code
 		'ICD10',
 		'ICD10GM'
 		);
+		
+
+/******************************
+***** CHANGES 09 02 2021 ******
+*******************************/
+-- crm changing due to appearance in SNOMED more accurate concepts for mapping
+INSERT INTO concept_relationship_manual
+SELECT concept_code_1,
+       concept_code_2,
+       vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason
+FROM concept_relationship_stage
+WHERE concept_code_1 IN (SELECT icd_code
+                         FROM icd10gm_map_dif
+                         WHERE icd_code NOT IN (SELECT concept_code FROM concept WHERE vocabulary_id = 'ICD10'))
+AND   vocabulary_id_2 = 'SNOMED'
+AND   concept_code_1 NOT IN (SELECT concept_code_1 FROM concept_relationship_manual);--27
+DELETE
+FROM concept_relationship_manual
+WHERE concept_code_1 IN (SELECT icd_code
+                         FROM icd10gm_map_dif
+                         WHERE icd_code NOT IN (SELECT concept_code FROM concept WHERE vocabulary_id = 'ICD10'));--29
+INSERT INTO concept_relationship_manual
+SELECT DISTINCT icd_code,
+       alter_code,
+       'ICD10GM',
+       'SNOMED',
+       'Maps to',
+       CURRENT_DATE -1,
+       TO_DATE('20991231','yyyymmdd'),
+       NULL
+FROM icd10gm_map_dif
+WHERE alter_code != '32864002'
+AND   icd_code NOT IN (SELECT concept_code FROM concept WHERE vocabulary_id = 'ICD10'); --29
+						
+-- adding of deprecated relationship 						
+INSERT INTO concept_relationship_manual
+SELECT concept_code_1,
+       concept_code_2,
+       vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id,
+       valid_start_date,
+       CURRENT_DATE -1,
+       'D'
+FROM concept_relationship_stage
+WHERE concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual);

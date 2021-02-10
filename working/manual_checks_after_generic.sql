@@ -7,7 +7,7 @@ select old.concept_code,
        old.domain_id as old_domain_id,
        new.domain_id as new_domain_id
 from devv5.concept old
-join concept new using (concept_id) 
+join concept new using (concept_id)
 where old.domain_id != new.domain_id
 ;
 
@@ -108,7 +108,8 @@ select a.concept_code,
 from concept a
 join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 join concept b on b.concept_id = concept_id_2
-where a.vocabulary_id IN (:your_vocabs) and a.invalid_reason is null
+where a.vocabulary_id IN (:your_vocabs)
+    --and a.invalid_reason is null --to exclude invalid concepts
 group by a.concept_code, a.concept_name
 )
 ,
@@ -121,7 +122,8 @@ select a.concept_code,
 from devv5. concept a
 join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
 join devv5.concept b on b.concept_id = concept_id_2
-where a.vocabulary_id IN (:your_vocabs) and a.invalid_reason is null
+where a.vocabulary_id IN (:your_vocabs)
+    --and a.invalid_reason is null --to exclude invalid concepts
 group by a.concept_code, a.concept_name
 )
 select a.concept_code as source_code,
@@ -208,5 +210,26 @@ where a.vocabulary_id IN (:your_vocabs)
                                 --and a.concept_id != b.concept_id --use it to exclude mapping to itself
                             group by a.concept_id
                             having count(*) > 1
+    )
+;
+
+--02.8. Concepts became non-Standard with no mapping replacement
+select a.concept_code,
+       a.concept_name,
+       a.concept_class_id,
+       a.vocabulary_id
+from devv5.concept a
+join concept b
+        on a.concept_code = b.concept_code
+            and a.vocabulary_id = b.vocabulary_id
+where a.vocabulary_id IN (:your_vocabs)
+    and a.standard_concept = 'S'
+    and b.standard_concept IS NULL
+    and not exists (
+                    SELECT 1
+                    FROM concept_relationship cr
+                    WHERE a.concept_id = cr.concept_id_1
+                        AND cr.relationship_id = 'Maps to'
+                        AND cr.invalid_reason IS NULL
     )
 ;

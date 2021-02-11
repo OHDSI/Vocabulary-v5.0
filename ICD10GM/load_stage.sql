@@ -137,11 +137,6 @@ FROM concept_stage c1,
 WHERE c2.concept_code LIKE c1.concept_code || '%'
 	AND c1.concept_code <> c2.concept_code;
 
-/* Due to the similarity of concept_codes in ICD10 and ICD10GM inaccurate mapping can occur in ICD10GM. 
-For these cases necessary mapping was put into concept_relationship_manual table as well as deprecated old one. 
-Thus, these pares should be deleted from concept_relationship_stage on this stage */
-DELETE FROM concept_relationship_stage WHERE concept_code_1 IN (SELECT concept_code_1 FROM concept_relationship_manual) AND vocabulary_id_2 = 'SNOMED';
-
 DROP INDEX trgm_idx;
 ANALYZE concept_relationship_stage;
 

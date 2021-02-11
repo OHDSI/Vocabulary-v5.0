@@ -217,6 +217,7 @@ where a.vocabulary_id IN (:your_vocabs)
 select a.concept_code,
        a.concept_name,
        a.concept_class_id,
+       a.domain_id,
        a.vocabulary_id
 from devv5.concept a
 join concept b

@@ -256,6 +256,3 @@ END $_$;
 
 ;
 update concept_stage set concept_name = trim(concept_name)
-;
-select devv5.genericupdate()
-;

@@ -610,7 +610,6 @@ where
 		and lower (v.nm) not like '%pollinex%'
 		and lower (v.nm) not like '%black currant syrup%'
 		and lower (v.nm) not like '%vaccine%')
-	
 		or lower (v.nm) not like '% essential oil'
 		or lower (v.nm) not like '%saliva%'
 	)
@@ -729,6 +728,7 @@ join concept d on
 		'89457008',	--Radioactive isotope
 		'37521911000001102', --Radium-223
 		'420884001'	--Human mesenchymal stem cell
+		'39248411000001101' -- Sodium iodide [I-131]
 	)
 ;
 insert into devices
@@ -787,7 +787,10 @@ where
 	lower (v.nm) like 'purified %' or
 	lower (a.nm) like 'phlexy%' or
 	lower (v.nm) like '%lymphoseek%' or
-	lower (v.nm) like '%radium%223%'
+	lower (v.nm) like '%radium%223%' or
+	lower (a.nm) like '%kryptoscan%' or
+	lower (v.nm) like '%mbq%' or
+	lower (v.nm) like '%gbq%'
 ;
 insert into devices
 --homeopathic products are not woth analyzing if source does not provide ingredients

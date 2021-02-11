@@ -1445,6 +1445,8 @@ SELECT a.*, NULL FROM ( VALUES
     (292545003,         'Observation',  to_date('20170825', 'YYYYMMDD'), to_date('20171116', 'YYYYMMDD')), -- Oxitropium adverse reaction --somehow it sneaks through domain definition above, so define this one separately
 --2020-Mar-17
     (41769001,          'Condition',    to_date('20200317', 'YYYYMMDD'), to_date('20200428', 'YYYYMMDD')), --Disease suspected
+--2020-Nov-04
+	(734539000,         'Drug',         to_date('20201104', 'YYYYMMDD'), to_date('20210211', 'YYYYMMDD')), --Effector
 
 --18.2.2 Relevant
 --history:on
@@ -1725,9 +1727,8 @@ SELECT a.*, NULL FROM ( VALUES
 	(1321161000000104,  'Visit',        to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Household quarantine to prevent exposure of community to contagion
 	(1321151000000102,  'Visit',        to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Reverse self-isolation of uninfected subject to prevent exposure to contagion
 	(1321141000000100,  'Visit',        to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Reverse isolation of household to prevent exposure of uninfected subject to contagion
-	(1321131000000109,  'Visit',        to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), -- Self quarantine and similar
+	(1321131000000109,  'Visit',        to_date('20200518', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Self quarantine and similar
 --2020-Nov-04
-	(734539000,         'Drug',         to_date('20201104', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Effector
 	(1032021000000100,  'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')), --Protein level
 	(364711002,         'Measurement',  to_date('20201110', 'YYYYMMDD'), to_date('20991231', 'YYYYMMDD')) --Specific test feature
 ) as a

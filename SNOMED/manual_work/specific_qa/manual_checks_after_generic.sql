@@ -6,7 +6,7 @@
 ;
 --Validity dates changes
 select c.concept_code, c.concept_name, c2.valid_start_date as old_start, c2.valid_end_date as old_end, c.valid_start_date as new_start, c.valid_end_date as new_end
-from dev_snomed.concept c
+from concept c
 join devv5.concept c2 using (concept_id)
 where 
 	c.invalid_reason is not null and
@@ -18,7 +18,7 @@ limit 1000
 ;
 --domain changes for active concepts
 select c1.concept_code,c1.concept_name, c1.invalid_reason, c2.domain_id as old, c1.domain_id as new
-from dev_snomed.concept c1
+from concept c1
 join devv5.concept c2 on
 	(c1.vocabulary_id, c1.concept_code) = (c2.vocabulary_id, c2.concept_code) and
 	c1.domain_id != c2.domain_id and
@@ -29,7 +29,7 @@ order by c1.domain_id, c2.domain_id
 ;
 --domain changes for inactive concepts
 select c1.concept_code,c1.concept_name, c1.invalid_reason, c2.domain_id as old, c1.domain_id as new
-from dev_snomed.concept c1
+from concept c1
 join devv5.concept c2 on
 	(c1.vocabulary_id, c1.concept_code) = (c2.vocabulary_id, c2.concept_code) and
 	c1.domain_id != c2.domain_id and
@@ -64,18 +64,18 @@ join devv5.concept c2 on
 	a.ancestor_concept_id in (4126548,4156064) and --Number, Alphanumeric
 	a.descendant_concept_id = c2.concept_id and
 	c2.vocabulary_id = 'SNOMED'
-join dev_snomed.concept c on
+join concept c on
 	(c.vocabulary_id, c.concept_code) = (c2.vocabulary_id, c2.concept_code) and
 	c.domain_id != c2.domain_id
 where c.invalid_reason is null
 ;
 --New covid concepts and their mappings (All UK -- US changes were already managed by SNOMED US)
-select c.concept_code, c.concept_name, c.standard_concept, r.relationship_id, c2.concept_code, c2.vocabulary_id, c2.concept_name, c2.standard_concept
-from dev_snomed.concept c
-join dev_snomed.concept_relationship r on
+select c.concept_code, c.concept_name, c.standard_concept, r.relationship_id, c2.concept_code, c2.vocabulary_id, c2.concept_name, c2.standard_concept, r.valid_start_date
+from concept c
+join concept_relationship r on
 	r.concept_id_1 = c.concept_id and
 	r.relationship_id in ('Maps to', 'Maps to value', 'Is a') AND r.invalid_reason IS NULL
-join dev_snomed.concept c2 on
+join concept c2 on
 	c2.concept_id = r.concept_id_2
 where
 	c.vocabulary_id = 'SNOMED' and (
@@ -122,12 +122,12 @@ select p.concept_code as peak_code,
        c1.invalid_reason,
        c2.domain_id as old,
        c1.domain_id as new
-from dev_snomed.concept c1
+from concept c1
 join devv5.concept c2 on
 	(c1.vocabulary_id, c1.concept_code) = (c2.vocabulary_id, c2.concept_code) and
 	c1.domain_id != c2.domain_id and
 	c1.invalid_reason is null
-join dev_snomed.concept p on
+join concept p on
 	p.vocabulary_id = 'SNOMED' and
 	p.concept_code :: int8 in (SELECT peak_code FROM peak WHERE
 	                                                            valid_start_date > to_date ('20201101', 'YYYYMMDD') --peaks introduced in the recent refresh

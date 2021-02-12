@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'HemOnc',
-	pVocabularyDate			=> TO_DATE ('20190829', 'yyyymmdd'),
-	pVocabularyVersion		=> 'HemOnc 2019-08-29',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.hemonc_cs LIMIT 1),
+	pVocabularyVersion		=>  (SELECT vocabulary_version  FROM sources.hemonc_cs LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_HEMONC'
 );
 END $_$;
@@ -104,13 +104,12 @@ SELECT DISTINCT NULL::int4 AS concept_id_1,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
 	r.relationship_id,
-	COALESCE(r.valid_start_date, (
-			SELECT latest_update
+	( SELECT latest_update
 			FROM vocabulary
 			WHERE vocabulary_id = 'HemOnc'
-			)) AS valid_start_date,
-	COALESCE(r.valid_end_date, TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
-	r.invalid_reason
+			) AS valid_start_date,
+ TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	 null as invalid_reason
 FROM sources.hemonc_crs r
 JOIN concept_stage cs ON cs.concept_code = r.concept_code_1
 	AND cs.vocabulary_id = r.vocabulary_id_1
@@ -354,8 +353,8 @@ WHERE ra.relationship_id = 'Maps to'
 	AND ra.invalid_reason IS NULL;
 
 --11. Concept synonym
-INSERT INTO concept_synonym_stage
-SELECT css.*
+INSERT INTO concept_synonym_stage(synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id)
+SELECT css.synonym_concept_id,css.synonym_name,css.synonym_concept_code,synonym_vocabulary_id,language_concept_id
 FROM sources.hemonc_css css
 JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	AND cs.vocabulary_id = css.synonym_vocabulary_id

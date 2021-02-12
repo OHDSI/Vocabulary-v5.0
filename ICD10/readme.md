@@ -10,5 +10,6 @@ Manual tables are available here https://drive.google.com/drive/folders/1S6bEzFj
 1. Go to http://apps.who.int/classifications/apps/icd/ClassificationDownload/DLArea/Download.aspx and download latest ICD-10 version (e.g. ICD-10 2016 version)
 2. Unzip the file icdClaMLYYYYens.xml and rename to icdClaML.xml
 3. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('ICD10',TO_DATE('20161201','YYYYMMDD'),'2016 Release');
-4. Run load_stage.sql
-5. Run generic_update: devv5.GenericUpdate();
+4. Edit concept_relationship_manual according to changes in SNOMED and then add these in the folder 'manual_work'
+5. Run load_stage.sql
+6. Run generic_update: devv5.GenericUpdate();

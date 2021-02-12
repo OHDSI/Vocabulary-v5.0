@@ -1,9 +1,3 @@
-
-A. If you decide to ingest RxE concepts with their relationships and synonyms manually ->  use mini_load_stage with appropriate descriptions stated in readme_for_manual_tables.md
-If Precise Ingredients assigned as Ingredients or New Ingredients created in RxE  are ONCOspecific -> Run HemOnc LS with Manually created relationships (Maps to + links to HemOnc)
-
-B. If you perform RxNorm_cleanup follow the steps below:
-
 1.Run fast_recreate_schema.sql in dev_rxe schema
 
 2.Run Create_Rxfix.sql
@@ -29,6 +23,7 @@ BEGIN
 END $_$;
 
 11.Run Basic_tables_QA.sql
+
 
 What this script does:
 1. Clean up supplier names

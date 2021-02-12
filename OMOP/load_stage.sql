@@ -22,7 +22,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=>'Type Concept',
 	pVocabularyDate			=> CURRENT_DATE,
-	pVocabularyVersion		=> NULL,
+	pVocabularyVersion		=> 'Type Concept '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
 	pVocabularyDevSchema	=> 'DEV_OMOP'
 );
 END $_$;

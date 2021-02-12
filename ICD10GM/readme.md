@@ -13,6 +13,7 @@ Manual tables are available here: https://drive.google.com/file/d/1ZjYCykojpUyxl
 3. Run create_source_tables.sql
 4. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('ICD10GM',TO_DATE('20200101','YYYYMMDD'),'2020 Release');
 5. Run manual_work/pre_load_stage.sql in dev_icd10gm schema
-
+6. Add English translations to concept_manual
+7. Edit concept_relationship_manual according to new concepts in ICD10GM, or changes in SNOMED and then add these in the folder 'manual_work'
 8. Run load_stage.sql
 9. Run generic_update: devv5.GenericUpdate();

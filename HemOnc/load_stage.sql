@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'HemOnc',
-	pVocabularyDate			=> TO_DATE ('20190829', 'yyyymmdd'),
-	pVocabularyVersion		=> 'HemOnc 2019-08-29',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.hemonc_cs LIMIT 1),
+	pVocabularyVersion		=>  (SELECT vocabulary_version  FROM sources.hemonc_cs LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_HEMONC'
 );
 END $_$;

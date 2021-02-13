@@ -155,7 +155,7 @@ SELECT vocabulary_pack.CutConceptName(spl_name) AS concept_name,
 			THEN 'Vaccine'
 		ELSE 'Prescription Drug'
 		END AS concept_class_id,
-	'C' AS standard_concept,
+	NULL AS standard_concept,
 	replaced_spl AS concept_code,
 	TO_DATE('19700101', 'YYYYMMDD') AS valid_start_date,
 	spl_date - 1 AS valid_end_date,
@@ -176,12 +176,21 @@ FROM (
 					AND UNBOUNDED FOLLOWING
 			) spl_date,
 		l.replaced_spl
-	FROM sources.spl_ext s
-	JOIN LATERAL(SELECT UNNEST(regexp_matches(s.replaced_spl, '[^;]+', 'g')) AS replaced_spl) l ON TRUE
+	FROM (
+		SELECT s_int.concept_code,
+			s_int.replaced_spl,
+			s_int.displayname,
+			MIN(s_int.valid_start_date) AS valid_start_date
+		FROM sources.spl_ext s_int
+		WHERE s_int.replaced_spl IS NOT NULL -- if there is an SPL codes ( l ) that is mentioned in another record as replaced_spl (path /document/relatedDocument/relatedDocument/setId/@root)
+		GROUP BY s_int.concept_code,
+			s_int.replaced_spl,
+			s_int.displayname
+		) s
+	CROSS JOIN LATERAL(SELECT UNNEST(regexp_matches(s.replaced_spl, '[^;]+', 'g')) AS replaced_spl) l
 	LEFT JOIN concept c ON c.vocabulary_id = 'SPL'
 		AND c.concept_code = l.replaced_spl
 	LEFT JOIN sources.spl_ext s2 ON s2.concept_code = l.replaced_spl
-	WHERE s.replaced_spl IS NOT NULL -- if there is an SPL codes ( l ) that is mentioned in another record as replaced_spl (path /document/relatedDocument/relatedDocument/setId/@root)
 	) AS s0
 WHERE spl_name IS NOT NULL
 	AND displayname NOT IN (
@@ -257,7 +266,16 @@ SELECT vocabulary_pack.CutConceptName(concept_name) concept_name,
 	valid_start_date,
 	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.spl_ext s
+FROM (
+	SELECT DISTINCT ON (s_int.concept_code)
+		s_int.concept_code,
+		s_int.concept_name,
+		s_int.displayname,
+		s_int.valid_start_date
+	FROM sources.spl_ext s_int
+	ORDER BY s_int.concept_code,
+		s_int.valid_start_date DESC
+	) s
 WHERE displayname NOT IN (
 		'IDENTIFICATION OF CBER-REGULATED GENERIC DRUG FACILITY',
 		'INDEXING - PHARMACOLOGIC CLASS',
@@ -615,8 +633,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT spl_code AS concept_code_1,
-	replaced_spl AS concept_code_2,
+SELECT replaced_spl AS concept_code_1,
+	spl_code AS concept_code_2,
 	'SPL' AS vocabulary_id_1,
 	'SPL' AS vocabulary_id_2,
 	'Concept replaced by' AS relationship_id,
@@ -635,9 +653,16 @@ FROM (
 					AND UNBOUNDED FOLLOWING
 			) spl_date,
 		l.replaced_spl
-	FROM sources.spl_ext s
-	JOIN LATERAL(SELECT UNNEST(regexp_matches(s.replaced_spl, '[^;]+', 'g')) AS replaced_spl) l ON TRUE
-	WHERE s.replaced_spl IS NOT NULL -- if there is an SPL codes ( l ) that is mentioned in another record as replaced_spl (path /document/relatedDocument/relatedDocument/setId/@root)
+	FROM (
+		SELECT s_int.concept_code,
+			s_int.replaced_spl,
+			MIN(s_int.valid_start_date) AS valid_start_date
+		FROM sources.spl_ext s_int
+		WHERE s_int.replaced_spl IS NOT NULL -- if there is an SPL codes ( l ) that is mentioned in another record as replaced_spl (path /document/relatedDocument/relatedDocument/setId/@root)
+		GROUP BY s_int.concept_code,
+			s_int.replaced_spl
+		) s
+	CROSS JOIN LATERAL(SELECT UNNEST(regexp_matches(s.replaced_spl, '[^;]+', 'g')) AS replaced_spl) l
 	) AS s0;
 
 ANALYZE concept_stage;
@@ -943,11 +968,12 @@ SELECT vocabulary_pack.CutConceptName(concept_name) AS concept_name,
 	endDate AS valid_end_date,
 	invalid_reason
 FROM (
-	SELECT n.concept_code,
+	SELECT DISTINCT ON (n.concept_code)
+		n.concept_code,
 		n.startDate,
 		n.endDate,
 		n.invalid_reason,
-		COALESCE(mn.concept_name, c.concept_name, MAX(spl.concept_name)) concept_name
+		COALESCE(mn.concept_name, c.concept_name, spl.concept_name) concept_name
 	FROM (
 		SELECT ndc.concept_code,
 			startDate,
@@ -994,18 +1020,16 @@ FROM (
 		AND mn.vocabulary_id = 'NDC' --first search name in old sources
 	LEFT JOIN concept c ON c.concept_code = n.concept_code
 		AND c.vocabulary_id = 'NDC' --search name in concept
-	LEFT JOIN sources.spl2ndc_mappings s ON n.concept_code = s.ndc_code --take name from SPL
+	LEFT JOIN sources.spl2ndc_mappings s ON s.ndc_code = n.concept_code--take name from SPL
 	LEFT JOIN sources.spl_ext spl ON spl.concept_code = s.concept_code
-	GROUP BY n.concept_code,
-		n.startDate,
-		n.endDate,
-		n.invalid_reason,
-		mn.concept_name,
-		c.concept_name
+		AND COALESCE(spl.ndc_code,s.ndc_code)=s.ndc_code
+	ORDER BY n.concept_code,
+		spl.high_value NULLS FIRST,
+		LENGTH(spl.concept_name) DESC
 	) AS s0
 WHERE concept_name IS NOT NULL;
 
---15. Add additional NDC with fresh dates from the ndc_history where NDC have't activerxcui (same source). Take dates from COALESCE(NDC API (for old concepts from concept), big XML (SPL), MAIN_NDC, concept, default dates)
+--15. Add additional NDC with fresh dates from the ndc_history where NDC have't activerxcui (same source). Take dates from COALESCE(NDC API, big XML (SPL), MAIN_NDC, concept, default dates)
 CREATE OR REPLACE FUNCTION CheckNDCDate (pDate IN VARCHAR, pDateDefault IN DATE) RETURNS DATE
 AS
 $BODY$
@@ -1017,54 +1041,33 @@ BEGIN
 	RETURN pDateDefault;
 END;
 $BODY$
-LANGUAGE 'plpgsql' IMMUTABLE PARALLEL SAFE;
+LANGUAGE 'plpgsql' IMMUTABLE;
 
 WITH ADDITIONALNDCINFO
 AS (
-	SELECT concept_code,
-		COALESCE(startdate, MIN(l.ndc_valid_start_date)) valid_start_date,
-		COALESCE(enddate, MAX(h.ndc_valid_end_date)) valid_end_date,
-		vocabulary_pack.CutConceptName(COALESCE(c_name1, c_name2, MAX(spl_name))) concept_name
-	FROM (
-		SELECT n.concept_code,
-			n.startdate,
-			n.enddate,
-			spl.low_value,
-			spl.high_value,
-			mn.concept_name c_name1,
-			c.concept_name c_name2,
-			spl.concept_name spl_name,
-			mn.valid_start_date c_st_date1,
-			mn.valid_end_date c_end_date1,
-			c.valid_start_date c_st_date2,
-			c.valid_end_date c_end_date2
-		FROM apigrabber.ndc_history n
-		LEFT JOIN main_ndc mn ON mn.concept_code = n.concept_code
-			AND mn.vocabulary_id = 'NDC'
-		LEFT JOIN concept c ON c.concept_code = n.concept_code
-			AND c.vocabulary_id = 'NDC'
-		LEFT JOIN sources.spl2ndc_mappings s ON n.concept_code = s.ndc_code
-		LEFT JOIN sources.spl_ext spl ON spl.concept_code = s.concept_code
-		WHERE n.activerxcui IS NULL
-		) n,
-		LATERAL(SELECT MIN(ndc_valid_start_date) AS ndc_valid_start_date FROM (
-			--SELECT CheckNDCDate(MIN(low_val), COALESCE(n.c_st_date1, n.c_st_date2, TO_DATE('19700101', 'YYYYMMDD'))) AS ndc_valid_start_date <- deprecated, take concept.valid_start_date for existing concepts
-			SELECT COALESCE (n.c_st_date2,CheckNDCDate(MIN(low_val), COALESCE(n.c_st_date1, TO_DATE('19700101', 'YYYYMMDD')))) AS ndc_valid_start_date
-			FROM (
-				SELECT UNNEST(regexp_matches(n.low_value, '[^;]+', 'g')) AS low_val
-				) AS s0
-			) AS s1) l,
-		LATERAL(SELECT MAX(ndc_valid_end_date) AS ndc_valid_end_date FROM (
-			SELECT CheckNDCDate(MAX(high_val), COALESCE(n.c_end_date1, n.c_end_date2, TO_DATE('20991231', 'YYYYMMDD'))) AS ndc_valid_end_date
-			FROM (
-				SELECT UNNEST(regexp_matches(n.high_value, '[^;]+', 'g')) AS high_val
-				) AS s2
-			) AS s3) h
-	GROUP BY concept_code,
-		startdate,
-		enddate,
-		c_name1,
-		c_name2
+	SELECT n.concept_code,
+		COALESCE(n.startdate, CheckNDCDate(l.ndc_valid_start_date, COALESCE(mn.valid_start_date, c.valid_start_date, TO_DATE('19700102', 'YYYYMMDD')))) AS valid_start_date,
+		COALESCE(
+			CASE WHEN LOWER(n.status)='active' THEN TO_DATE('20991231', 'YYYYMMDD') ELSE n.enddate END,
+			CheckNDCDate(l.ndc_valid_end_date, COALESCE(mn.valid_end_date, c.valid_end_date, TO_DATE('20991231', 'YYYYMMDD')))
+		) AS valid_end_date,
+		vocabulary_pack.CutConceptName(COALESCE(mn.concept_name, c.concept_name, l.spl_name)) AS concept_name
+	FROM apigrabber.ndc_history n
+	LEFT JOIN main_ndc mn ON mn.concept_code = n.concept_code
+		AND mn.vocabulary_id = 'NDC'
+	LEFT JOIN concept c ON c.concept_code = n.concept_code
+		AND c.vocabulary_id = 'NDC'
+	LEFT JOIN LATERAL(
+		SELECT DISTINCT
+			FIRST_VALUE(spl.low_value) OVER (ORDER BY spl.low_value) AS ndc_valid_start_date,
+			FIRST_VALUE(COALESCE(spl.high_value, '20991231')) OVER (ORDER BY spl.high_value DESC) AS ndc_valid_end_date,
+			FIRST_VALUE(spl.concept_name) OVER (ORDER BY spl.high_value DESC) AS spl_name
+		FROM sources.spl2ndc_mappings s
+		JOIN sources.spl_ext spl ON spl.concept_code = s.concept_code
+				AND COALESCE(spl.ndc_code, s.ndc_code) = s.ndc_code
+		WHERE s.ndc_code = n.concept_code
+	) l ON TRUE
+	WHERE n.activerxcui IS NULL
 	)
 INSERT INTO concept_stage (
 	concept_name,
@@ -1092,6 +1095,12 @@ SELECT concept_name,
 		END AS invalid_reason
 FROM additionalndcinfo
 WHERE concept_name IS NOT NULL;
+
+--15.1 Fix bug in sources, SPL XML returns 11/06/2103 for NDC:61077-003-33, proof: https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=fcd4b3e8-a40a-4aa1-9745-1c9768dca539&type=display
+UPDATE concept_stage
+SET valid_start_date = TO_DATE('20131106', 'yyyymmdd')
+WHERE concept_code = '61077000333'
+	AND valid_start_date = TO_DATE('21031106', 'yyyymmdd');
 
 --16. Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
 DROP TABLE IF EXISTS rxnorm2ndc_mappings_ext;

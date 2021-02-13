@@ -324,6 +324,23 @@ begin
           valid_start_date,
           displayname,
           replaced_spl,
+          NULLIF(CONCAT (
+              CASE 
+                  WHEN LENGTH(ndc_p1) = 4
+                      THEN '0' || ndc_p1
+                  ELSE ndc_p1
+                  END,
+              CASE 
+                  WHEN LENGTH(ndc_p2) = 3
+                      THEN '0' || ndc_p2
+                  ELSE ndc_p2
+                  END,
+              CASE 
+                  WHEN LENGTH(ndc_p3) = 1
+                      THEN '0' || ndc_p3
+                  ELSE ndc_p3
+                  END
+              ), '') AS ndc_code,
           low_value,
           high_value
       FROM (
@@ -332,6 +349,9 @@ begin
               valid_start_date,
               displayname,
               NULLIF(replaced_spl, '') AS replaced_spl,
+              ndc_code_array [1] AS ndc_p1,
+              ndc_code_array [2] AS ndc_p2,
+              ndc_code_array [3] AS ndc_p3,
               NULLIF(low_value, '') AS low_value,
               NULLIF(high_value, '') AS high_value
           FROM (
@@ -348,6 +368,7 @@ begin
                   UPPER(TRIM(regexp_replace(displayname, '[[:space:]]+', ' ', 'g'))) AS displayname,
                   replaced_spl,
                   kit,
+                  regexp_split_to_array(ndc_code, '-') AS ndc_code_array,
                   low_value,
                   high_value
               FROM (
@@ -358,7 +379,7 @@ begin
           ) AS s2;
 
       --delete duplicate records
-      DELETE FROM sources.spl_ext s WHERE EXISTS (SELECT 1 FROM sources.spl_ext s_int WHERE s_int.concept_code = s.concept_code AND s_int.ctid > s.ctid);
+      --DELETE FROM sources.spl_ext s WHERE EXISTS (SELECT 1 FROM sources.spl_ext s_int WHERE s_int.concept_code = s.concept_code AND s_int.ctid > s.ctid);
       UPDATE sources.spl_ext s
       SET valid_start_date = i.vocabulary_date
       FROM (

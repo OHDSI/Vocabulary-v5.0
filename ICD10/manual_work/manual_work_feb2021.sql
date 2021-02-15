@@ -102,7 +102,7 @@ UPDATE concept_relationship_manual
        valid_start_date = CURRENT_DATE -1
 WHERE concept_code_1 = 'N91.1';
 
--- afre SNOMED update better mapping could be found. For these cases additional table can be created
+-- after SNOMED update better mapping could be found. For these cases additional table can be created
 
 CREATE TABLE concepts_for_refresh 
 (

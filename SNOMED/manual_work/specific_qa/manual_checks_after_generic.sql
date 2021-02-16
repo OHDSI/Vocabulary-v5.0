@@ -17,7 +17,7 @@ limit 1000
 --150 000 rows in full list
 ;
 --domain changes for active concepts
-select c1.concept_code,c1.concept_name, c1.invalid_reason, c2.domain_id as old, c1.domain_id as new
+select c1.concept_code,c1.concept_name, c1.concept_class_id, c1.invalid_reason, c2.domain_id as old, c1.domain_id as new
 from concept c1
 join devv5.concept c2 on
 	(c1.vocabulary_id, c1.concept_code) = (c2.vocabulary_id, c2.concept_code) and

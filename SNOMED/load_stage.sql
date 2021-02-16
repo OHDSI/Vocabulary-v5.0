@@ -2401,7 +2401,16 @@ SELECT p.conceptid::VARCHAR,
 FROM preferred_code p
 JOIN concept_stage c ON c.concept_code = p.replacementid::VARCHAR
 	AND c.standard_concept IS NOT NULL
-WHERE p.conceptid <> p.replacementid;
+WHERE p.conceptid <> p.replacementid
+AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = p.conceptid::VARCHAR
+			AND crs_int.vocabulary_id_1='SNOMED'
+			AND crs_int.concept_code_2 = p.replacementid::VARCHAR
+			AND crs_int.vocabulary_id_2='SNOMED'
+			AND crs_int.relationship_id = 'Maps to'
+		);
 
 --21.4. Make concepts non standard if they have a 'Maps to' relationship
 UPDATE concept_stage cs

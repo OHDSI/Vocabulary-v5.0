@@ -885,25 +885,15 @@ BEGIN
 				AND css_int.ctid > css.ctid
 			);
 
-	--25. Add all missing synonyms
-	INSERT INTO concept_synonym_stage (
-		synonym_concept_id,
-		synonym_concept_code,
-		synonym_name,
-		synonym_vocabulary_id,
-		language_concept_id
-		)
-	SELECT cs.concept_id AS synonym_concept_id,
-		cs.concept_code AS synonym_concept_code,
-		cs.concept_name AS synonym_name,
-		cs.vocabulary_id AS synonym_vocabulary_id,
-		4180186 AS language_concept_id
-	FROM concept_stage cs
-	WHERE NOT EXISTS (
+	--25. Remove synonyms from concept_synonym_stage if synonym_name alreay exists in concept_stage
+	DELETE
+	FROM concept_synonym_stage css
+	WHERE EXISTS (
 			SELECT 1
-			FROM concept_synonym_stage css
-			WHERE css.synonym_concept_code = cs.concept_code
-				AND css.synonym_vocabulary_id = cs.vocabulary_id
+			FROM concept_stage cs
+			WHERE cs.concept_code = css.synonym_concept_code
+				AND cs.vocabulary_id = css.synonym_vocabulary_id
+				AND LOWER(cs.concept_name) = LOWER(css.synonym_name)
 			);
 
 	--26. Update synonym_concept_id

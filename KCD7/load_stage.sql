@@ -118,8 +118,7 @@ JOIN concept c ON c.concept_code = cs.concept_code
 	AND c.vocabulary_id = 'ICD10'
 JOIN concept_relationship cr ON cr.concept_id_1 = c.concept_id
 	AND cr.invalid_reason IS NULL
-JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-	AND c2.vocabulary_id in ('SNOMED','Cancer Modifier');
+        AND cr.relationship_id in ('Maps to','Maps to value');
 
 --6. Add "Subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns

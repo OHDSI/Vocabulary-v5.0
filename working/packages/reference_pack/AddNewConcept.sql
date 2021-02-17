@@ -78,9 +78,9 @@ BEGIN
              (z, z, 'Mapped from', pValid_start_date, TO_DATE('20991231', 'YYYYMMDD'), NULL);
   END IF;
 
-  --insert the synonym (=pConcept_name)
+  /*--insert the synonym (=pConcept_name)
   INSERT INTO concept_synonym (concept_id, concept_synonym_name, language_concept_id)
-    VALUES (z, pConcept_name, 4180186 /*English*/);
+    VALUES (z, pConcept_name, 4180186 /*English*/);*/ --deprecated [AVOF-2971]
 
   DROP SEQUENCE v5_concept;
   

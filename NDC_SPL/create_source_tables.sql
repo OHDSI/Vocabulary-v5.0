@@ -88,6 +88,7 @@ CREATE TABLE SOURCES.SPL_EXT
   valid_start_date  DATE,
   displayname       VARCHAR(4000),
   replaced_spl      VARCHAR(4000),
+  ndc_code          VARCHAR(4000),
   low_value         VARCHAR(4000),
   high_value        VARCHAR(4000)
 );
@@ -159,6 +160,7 @@ TABLE (
 	valid_start_date varchar,
 	displayname varchar,
 	replaced_spl varchar,
+	ndc_code varchar,
 	low_value varchar,
 	high_value varchar
 )
@@ -187,9 +189,18 @@ $BODY$
 	valid_start_date = xml.xpath('/x:document/x:effectiveTime[1]/@value',namespaces=xmlns_uris)[0]
 	displayname = xml.xpath('/x:document/x:code/@displayName',namespaces=xmlns_uris)[0]
 	replaced_spls = ';'.join(xml.xpath('//x:document/x:relatedDocument/x:relatedDocument/x:setId/@root',namespaces=xmlns_uris))
-	low_value = ';'.join(set(xml.xpath('//x:subjectOf/x:marketingAct/x:effectiveTime/x:low/@value',namespaces=xmlns_uris)))
-	high_value = ';'.join(set(xml.xpath('//x:subjectOf/x:marketingAct/x:effectiveTime/x:high/@value',namespaces=xmlns_uris)))
-	res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,low_value,high_value))
+	contents = xml.xpath('//x:asContent',namespaces=xmlns_uris)
+	if contents:
+		for content in contents:
+			ndc_code = content.xpath('./x:containerPackagedProduct/x:code/@code|./x:containerPackagedMedicine/x:code/@code',namespaces=xmlns_uris)
+			ndc_code=ndc_code[0] if ndc_code else ''
+			low_value = content.xpath('./x:subjectOf/x:marketingAct/x:effectiveTime/x:low/@value',namespaces=xmlns_uris)
+			low_value=low_value[0] if low_value else ''
+			high_value = content.xpath('./x:subjectOf/x:marketingAct/x:effectiveTime/x:high/@value',namespaces=xmlns_uris)
+			high_value=high_value[0] if high_value else ''
+			res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,ndc_code,low_value,high_value))
+	else:
+		res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,'','',''))
 	return res
 $BODY$
 LANGUAGE 'plpythonu'

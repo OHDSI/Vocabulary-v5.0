@@ -1,3 +1,22 @@
+/**************************************************************************
+* Copyright 2020 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Timur Vakhitov, Dmitry Dymshyts, Eduard Korchmar
+* Date: 2021
+**************************************************************************/
+
 -- 1. Vocabulary update routine
 DO $_$
 BEGIN
@@ -9,7 +28,7 @@ BEGIN
 );
 END $_$
 ;
-truncate table concept_stage, concept_relationship_stage, concept_synonym_stage
+truncate table concept_stage, concept_relationship_stage, concept_synonym_stage, drug_strength_stage, pack_content_stage
 ;
 --2. Reformat sources
 ---Topography
@@ -278,7 +297,7 @@ select
 from changelog_extract
 where fate ~ 'Moved to \d{4}\/\d'
 
-	union
+	union all
 
 select
 	code as old_code,
@@ -344,9 +363,9 @@ select
 from concept_stage
 where 
 	concept_class_id = 'ICDO Topography' and
-	concept_code ~ '\.' -- not hierarchical
+	concept_code like '%.%' -- not hierarchical
 
-	union
+	union all
 
 select
 	concept_code,
@@ -791,7 +810,7 @@ where
 				)
 			
 		) and 
-	i_code !~ '\.8$' --code for overlapping lesions
+	i_code not like '%.8' --code for overlapping lesions
 ;
 analyze match_blob
 ;
@@ -824,8 +843,6 @@ where exists
 	)
 ;
 --16. Fill mappings and other relations to SNOMED in concept_relationship_stage
-truncate concept_relationship_stage
-;
 --16.1. Write 'Maps to' relations where perfect one-to-one mappings are available and unique
 with monorelation as
 	(
@@ -1005,8 +1022,8 @@ select
 	'A'
 from topo_source_iacr t1
 join topo_source_iacr t2 on
-	t1.code ~ '\.' and
-	t2.code !~ '\.' and
+	t1.code like '%.%' and
+	t2.code not like '%.%' and
 	t1.code like t2.code || '.%'
 ;
 --19. Write 'Is a' for hierarchical concepts

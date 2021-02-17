@@ -1456,7 +1456,10 @@ SELECT a.*, NULL FROM ( VALUES
 	(223366009,   'Provider Specialty', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20190201', 'YYYYMMDD')), -- Site of care
 	(223366009,         'Provider',     TO_DATE('20190201', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care
 	--history:off
-	(43741000,      'Place of Service', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care
+	--history:on
+	(43741000,      'Place of Service', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20210217', 'YYYYMMDD')), -- Site of care
+	(43741000,      'Visit',            TO_DATE('20210217', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care
+	--history:off
 	(420056007,         'Drug',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aromatherapy agent
 	(373873005,         'Drug',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pharmaceutical / biologic product
 	(410942007,         'Drug',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug or medicament
@@ -1867,7 +1870,7 @@ SELECT c.*, NULL FROM (VALUES
 	(129063003,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Instrumental activity of daily living
 	(289161009,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding of appetite
 --history:on
-	(309298003,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Drug therapy observations
+	(309298003,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), --Drug therapy observations
 	(309298003,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Drug therapy finding
 --history:off
 	(271807003,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Eruption
@@ -2274,11 +2277,11 @@ SET standard_concept = CASE domain_id
 		WHEN 'Race'
 			THEN NULL -- Race are CDC
 		WHEN 'Provider'
-			THEN NULL -- got CMS and ABMS specialty
-		WHEN 'Place of Service'
-			THEN NULL -- got own place of service
+			THEN NULL -- got own Provider domain
+		WHEN 'Visit'
+			THEN NULL -- got own Visit domain
 		WHEN 'Type Concept'
-			THEN NULL -- Type Concept in own OMOP vocabulary
+			THEN NULL -- got own Type Concept domain
 		WHEN 'Unit'
 			THEN NULL -- Units are UCUM
 		ELSE 'S'

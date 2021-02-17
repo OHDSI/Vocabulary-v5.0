@@ -1,5 +1,6 @@
 --peak test
 with code as (SELECT 'peak_code'::varchar as code)
+
 --All the ancestors
 SELECT * FROM (
 SELECT DISTINCT
@@ -54,7 +55,7 @@ ORDER BY level DESC,
 
 --check whether the peak manual table contains several records for the same peak (make sure they're placed together in a group)
 --run after the following part of the load_stage: Fill in the various peak concepts
---24 were found and placed correctly
+--26 were found and placed correctly
 SELECT peak_code
 FROM peak p1
 GROUP BY peak_code

@@ -1,13 +1,14 @@
 --01. Concept changes
 --01.1. Concepts changed their Domain
-select old.concept_code,
-       old.concept_name as old_concept_name,
-       old.concept_class_id as old_concept_class_id,
-       old.standard_concept as old_standard_concept,
+select new.concept_code,
+       new.concept_name as concept_name,
+       new.concept_class_id as concept_class_id,
+       new.standard_concept as standard_concept,
        old.domain_id as old_domain_id,
        new.domain_id as new_domain_id
-from devv5.concept old
-join concept new using (concept_id)
+from concept new
+join devv5.concept old
+    using (concept_id)
 where old.domain_id != new.domain_id
 ;
 
@@ -184,6 +185,7 @@ order by a.concept_code
 select a.concept_code as concept_code_source,
        a.concept_name as concept_name_source,
        a.domain_id as domain_id_source,
+       b.concept_code as concept_code_target,
        CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
            ELSE b.concept_name END as concept_name_target,
        CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
@@ -219,13 +221,13 @@ select a.concept_code,
        a.concept_class_id,
        a.domain_id,
        a.vocabulary_id
-from devv5.concept a
-join concept b
+from concept a
+join devv5.concept b
         on a.concept_code = b.concept_code
             and a.vocabulary_id = b.vocabulary_id
 where a.vocabulary_id IN (:your_vocabs)
-    and a.standard_concept = 'S'
-    and b.standard_concept IS NULL
+    and b.standard_concept = 'S'
+    and a.standard_concept IS NULL
     and not exists (
                     SELECT 1
                     FROM concept_relationship cr

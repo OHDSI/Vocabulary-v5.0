@@ -264,65 +264,25 @@ WHERE rn = 1;
 
 DROP INDEX trgm_idx;
 
---11. Deprecate 'Subsumes' relationships for resurrected concepts to avoid possible violations of the hierarchy
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT c.concept_code AS concept_code_1,
-	c2.concept_code AS concept_code_2,
-	c.vocabulary_id AS vocabulary_id_1,
-	c2.vocabulary_id AS vocabulary_id_2,
-	'Subsumes' AS relationship_id,
-	r.valid_start_date AS valid_start_date,
-	(
-		SELECT latest_update - 1
-		FROM vocabulary
-		WHERE vocabulary_id = c.vocabulary_id
-		) AS valid_end_date,
-	'D' AS invalid_reason
-FROM concept c
-JOIN concept_relationship r ON r.concept_id_1 = c.concept_id
-	AND r.relationship_id = 'Subsumes'
-	AND r.invalid_reason IS NULL
-JOIN concept c2 ON c2.vocabulary_id = 'ICD10PCS'
-	AND r.concept_id_2 = c2.concept_id
-WHERE c.vocabulary_id = 'ICD10PCS'
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs_int
-		WHERE crs_int.concept_code_1 = c.concept_code
-			AND crs_int.concept_code_2 = c2.concept_code
-			AND crs_int.relationship_id = 'Subsumes'
-			AND crs_int.vocabulary_id_1 = 'ICD10PCS'
-			AND crs_int.vocabulary_id_2 = 'ICD10PCS'
-		);
-
---12. Working with replacement mappings
+--11. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---13. Add mapping from deprecated to fresh concepts
+--12. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--13. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---15. Delete ambiguous 'Maps to' mappings
+--14. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();

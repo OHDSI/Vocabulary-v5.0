@@ -1,4 +1,4 @@
-﻿--TODO: add 3rd iteration for filtering cycle with sepparate debugging
+--TODO: add 3rd iteration for filtering cycle with sepparate debugging
 --IN 3rd iteration first step should be to prefer attributes with the closest parent to attribute being investigated
 analyze snomed_relationship
 ;
@@ -14,7 +14,7 @@ create unlogged table attr_from_usagi
 		extra varchar(255)
 	);
 -- upload usagi/manually mapped table
-WbImport -file=/home/ekorchmar/i10patos_fu
+/*WbImport -file="Dropbox/i10patos_fu.csv"
 			-type=text
 			-table=ATTR_FROM_USAGI
 			-encoding="UTF-8"
@@ -30,7 +30,25 @@ WbImport -file=/home/ekorchmar/i10patos_fu
 			-ignoreIdentityColumns=false
 			-deleteTarget=true
 			-continueOnError=false
-			-batchSize=1000;
+			-batchSize=1000;*/
+;
+WbImport -file=/Users/eduardkorchmar/Documents/i10p_attributes.csv
+         -type=text
+         -table=attr_from_usagi
+         -encoding="UTF-8"
+         -header=true
+         -decode=false
+         -dateFormat="yyyy-MM-dd"
+         -timestampFormat="yyyy-MM-dd HH:mm:ss"
+         -delimiter='\t'
+         -quotechar='"'
+         -decimal=.
+         -fileColumns=attr_name,concept_id,new_code,new_name,$wb_skip$,extra
+         -quoteCharEscaping=none
+         -ignoreIdentityColumns=false
+         -deleteTarget=true
+         -continueOnError=false
+         -batchSize=1000;
 ;
 drop table if exists attr_map;
 create unlogged table attr_map as

@@ -26,6 +26,14 @@ BEGIN
 	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.icd10pcs LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_ICD10PCS'
 );
+
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'RxNorm Extension',
+	pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyVersion		=> 'RxNorm Extension '||CURRENT_DATE,
+	pVocabularyDevSchema	=> 'DEV_ICD10PCS',
+	pAppendVocabulary		=> TRUE);
+
 END $_$;
 
 --2. Truncate all working tables

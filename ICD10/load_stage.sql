@@ -28,19 +28,14 @@ END $_$;
 
 --2. Truncate all working tables
 TRUNCATE TABLE concept_stage;
-
 TRUNCATE TABLE concept_relationship_stage;
-
 TRUNCATE TABLE concept_synonym_stage;
-
 TRUNCATE TABLE pack_content_stage;
-
 TRUNCATE TABLE drug_strength_stage;
 
 --3. Create temporary tables with classes and modifiers from XML source
 --modifier classes
 DROP TABLE IF EXISTS modifier_classes;
-
 CREATE UNLOGGED TABLE modifier_classes 
 AS
 SELECT s1.modifierclass_code,
@@ -63,7 +58,6 @@ FROM (SELECT *
 
 --classes
 DROP TABLE IF EXISTS classes;
-
 CREATE UNLOGGED TABLE classes 
 AS
 WITH classes
@@ -124,8 +118,8 @@ AND   b.class_code NOT LIKE '%-%'),codes AS (SELECT a.*,
                                                LEFT JOIN modifier_classes b
                                                       ON SUBSTRING (b.modifierclass_modifier,'^...(.*?)_') = a.class_code
                                                      AND b.rubric_kind = 'preferred'
-                                                     AND modifierclass_modifier != 'I70M10_4'
-                                             --looks like a bug),concepts_modifiers AS (
+                                                     AND modifierclass_modifier != 'I70M10_4'),--looks like a bug
+                                             concepts_modifiers AS (
 --add all the modifiers using patterns described in a table
 --'I70M10_4' with or without gangrene related to gout, seems to be a bug, modifier says [See site code at the beginning of this chapter]
 SELECT a.concept_code || b.modifierclass_code AS concept_code,
@@ -134,8 +128,7 @@ SELECT a.concept_code || b.modifierclass_code AS concept_code,
 --only one modifier that has capital letter in it
 THEN REGEXP_REPLACE(a.concept_name,'[A-Z]\d\d(\.|-|$).*','','g') || ', ' || REGEXP_REPLACE(b.modifer_name,'[A-Z]\d\d(\.|-|$).*','','g')
 -- remove related code (A52.7)
-
-         ELSE REGEXP_REPLACE(a.concept_name,'[A-Z]\d\d(\.|-|$).*','','g') || ', ' ||LOWER(REGEXP_REPLACE(b.modifer_name,'[A-Z]\d\d(\.|-|$).*','','g'))
+ ELSE REGEXP_REPLACE(a.concept_name,'[A-Z]\d\d(\.|-|$).*','','g') || ', ' ||LOWER(REGEXP_REPLACE(b.modifer_name,'[A-Z]\d\d(\.|-|$).*','','g'))
        END AS concept_name
 FROM codes a
   JOIN codes b
@@ -153,7 +146,6 @@ FROM codes a
    AND SUBSTRING (b.concept_code,'^\D') = SUBSTRING (a.concept_code,'^\D')
    AND a.concept_code NOT LIKE 'M91%'
 -- seems to be ICD10 bag, M91% don't need additional modifiers  
-
    AND a.concept_code NOT LIKE 'M21.4%'
 --Flat foot [pes planus] (acquired)
 ))
@@ -165,8 +157,7 @@ SELECT a.concept_code || a.modifierclass_code AS concept_code,
 FROM codes a
 WHERE ((a.concept_code NOT LIKE '%.%' AND a.modifierclass_code LIKE '%.%') OR (a.concept_code LIKE '%.%' AND a.modifierclass_code NOT LIKE '%.%'))
 AND   a.modifierclass_code IS NOT NULL) SELECT concept_name,NULL AS domain_id,'ICD10' AS vocabulary_id,CASE WHEN LENGTH(concept_code) = 3 THEN 'ICD10 Hierarchy' ELSE 'ICD10 code' END AS concept_class_id,NULL AS standard_concept,concept_code,(SELECT latest_update
-                                                                                                                                                                                                                                                  FROM vocabulary
-                                                                                                                                                                                                                                                  WHERE vocabulary_id = 'ICD10') AS valid_start_date,TO_DATE('20991231','YYYYMMDD') AS valid_end_date,NULL AS invalid_reason FROM (
+                                                                                                                                                                                                                                                   FROM vocabulary                                                                                                                                                                                                                                                 WHERE vocabulary_id = 'ICD10') AS valid_start_date,TO_DATE('20991231','YYYYMMDD') AS valid_end_date,NULL AS invalid_reason FROM (
 --full list of concepts 
 SELECT *
 FROM concepts_modifiers
@@ -213,7 +204,23 @@ SELECT rubric_label AS concept_name,
 FROM classes
 WHERE class_code LIKE '%-%'
 AND   rubric_kind = 'preferred'
-AND   superclass_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$';
+AND   superclass_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$'
+UNION
+SELECT rubric_label AS concept_name,
+       'Condition' AS domain_id,
+       'ICD10' AS vocabulary_id,
+       'ICD10 SubChapter' AS concept_class_id,
+       NULL AS standard_concept,
+       class_code AS concept_code,
+       (SELECT latest_update
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10') AS valid_start_date,
+       TO_DATE('20991231','YYYYMMDD') AS valid_end_date,
+       NULL AS invalid_reason
+FROM classes
+WHERE class_code LIKE '%-%'
+AND   rubric_kind = 'preferred'
+AND   superclass_code LIKE '%-%';
 
 UPDATE concept_stage cs
    SET concept_name = i.new_name
@@ -229,6 +236,7 @@ FROM (SELECT c.concept_code,
              c.concept_name || ' as the cause of abnormal reaction of the patient, or of later complication, without mention of misadventure at the time of the procedure'
       FROM concept_stage c
       WHERE c.concept_code ~ '((Y83)|(Y84)).+'
+      AND   c.concept_code != 'Y83-Y84'
       UNION ALL
       SELECT c.concept_code,
              'Adverse effects in the therapeutic use of ' ||LOWER(concept_name)
@@ -307,13 +315,13 @@ FROM concept_stage c1,
      concept_stage c2
 WHERE c2.concept_code LIKE c1.concept_code || '%'
 AND   c1.concept_code <> c2.concept_code
-AND   c1.concept_class_id NOT IN ('ICD10 SubChapter','ICD10 Chapter')
-AND   c2.concept_class_id NOT IN ('ICD10 SubChapter','ICD10 Chapter')
 AND   NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage r_int
                   WHERE r_int.concept_code_1 = c1.concept_code
                   AND   r_int.concept_code_2 = c2.concept_code
-                  AND   r_int.relationship_id = 'Subsumes');
+                  AND   r_int.relationship_id = 'Subsumes')
+AND   c2.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
+AND   c1.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter');
 
 DROP INDEX trgm_idx;
 
@@ -452,12 +460,10 @@ AND   superclass_code LIKE '%-%';
 
 --15. Clean up
 DROP TABLE modifier_classes;
-
 DROP TABLE classes;
 
 --16. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$ BEGIN PERFORM VOCABULARY_PACK.AddFreshMapsToValue ();
-
 END $_$;
 
 --17. Build reverse relationship. This is necessary for next point

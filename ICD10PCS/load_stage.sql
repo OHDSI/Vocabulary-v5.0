@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich, Eduard Korchmar
-* Date: 2020
+* Date: 2021
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -24,8 +24,7 @@ BEGIN
 	pVocabularyName			=> 'ICD10PCS',
 	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.icd10pcs LIMIT 1),
 	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.icd10pcs LIMIT 1),
-	pVocabularyDevSchema	=> 'DEV_ICD10PCS'
-);
+	pVocabularyDevSchema	=> 'DEV_ICD10PCS');
 END $_$;
 
 --2. Truncate all working tables
@@ -128,7 +127,12 @@ SELECT code AS concept_code,
 	'ICD10PCS' AS vocabulary_id,
 	4180186 AS language_concept_id
 FROM sources.mrconso
-WHERE sab = 'ICD10PCS'
+left join concept_stage on
+	concept_code = code and
+	str = concept_name
+WHERE
+	sab = 'ICD10PCS' and
+	concept_code is null
 GROUP BY code,
 	str;
 
@@ -188,6 +192,7 @@ SELECT c.concept_code,
 FROM concept_synonym s
 JOIN concept c ON c.concept_id = s.concept_id
 	AND c.vocabulary_id = 'ICD10PCS'
+	AND s.concept_synonym_name != c.concept_name
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 WHERE i.concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes

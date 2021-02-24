@@ -13,444 +13,57 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Christian Reich
-* Date: 2016
+* Authors: Eduard Korchmar, Alexander Davydov, Timur Vakhitov, Christian Reich
+* Date: 2021
 **************************************************************************/
 
---1. Update latest_update field to new date 
---Use the later of the release dates of the international and UK versions. Usually, the UK is later.
---If the international version is already loaded, updating will not affect it
+--1. Extract each component (International, UK & US) versions to porperly date the combined source in next step
+DROP VIEW IF EXISTS module_date;
+CREATE VIEW module_date
+AS
+WITH maxdate
+AS
+	--Module content is at most as old as latest available module version
+	(
+	SELECT id,
+		MAX(effectivetime) AS effectivetime
+	FROM sources.der2_ssrefset_moduledependency_merged
+	GROUP BY id
+	)
+SELECT DISTINCT m1.moduleid,
+	TO_CHAR(m1.sourceeffectivetime, 'yyyy-mm-dd') AS version
+FROM sources.der2_ssrefset_moduledependency_merged m1
+JOIN maxdate m2 USING (id,effectivetime)
+WHERE m1.active = 1
+	AND m1.referencedcomponentid = 900000000000012004
+	AND --Model component module; Synthetic target, contains source version in each row
+	m1.moduleid IN (
+		900000000000207008, --Core (international) module
+		999000041000000102, --UK edition
+		731000124108 --US edition
+		);
+
+--2. Update latest_update field to new date 
+--Use the latest of the release dates of all source versions. Usually, the UK is the latest.
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'SNOMED',
 	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.sct2_concept_full_merged LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.sct2_concept_full_merged LIMIT 1),
+	pVocabularyVersion		=>
+		(SELECT version FROM module_date where moduleid = 900000000000207008) || ' SNOMED CT International Edition; ' ||
+		(SELECT version FROM module_date where moduleid = 731000124108) || ' SNOMED CT US Edition; ' ||
+		(SELECT version FROM module_date where moduleid = 999000041000000102) || ' SNOMED CT UK Edition',
 	pVocabularyDevSchema	=> 'DEV_SNOMED'
 );
 END $_$;
 
---2. Truncate all working tables
+--3. Truncate all working tables
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
-
---3. Create core version of DM+D
---3.1. We need to create temporary table of DM+D with the same structure as concept_stage and pseudo-column 'insert_id'
---later it will be important
-DROP TABLE IF EXISTS concept_stage_dmd;
-CREATE UNLOGGED TABLE concept_stage_dmd (LIKE concept_stage);
-ALTER TABLE concept_stage_dmd ADD insert_id INTEGER;
-
-INSERT INTO concept_stage_dmd (
-	concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason,
-	insert_id
-	)
-SELECT *
-FROM (
-	-- UoM
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Unit' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Qualifier Value' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason,
-		1 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	
-	UNION ALL
-	
-	--deprecated UoM
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Unit' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Qualifier Value' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		2 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION ALL
-	
-	--Forms
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Observation' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason,
-		3 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	
-	UNION ALL
-	
-	--deprecated Forms
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Observation' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		4 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION ALL
-	
-	--Routes
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Route' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Qualifier Value' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason,
-		5 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/ROUTE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	
-	UNION ALL
-	
-	--deprecated Routes
-	SELECT devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) concept_name,
-		'Route' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Qualifier Value' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./CDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		6 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/ROUTE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION ALL
-	
-	--Ingredients
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Substance' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		7 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
-		FROM sources.f_ingredient2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./ISIDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--deprecated Ingredients
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Substance' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./ISIDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./ISIDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		8 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
-		FROM sources.f_ingredient2 i
-		) AS i
-	
-	UNION ALL
-	
-	--VTMs (Ingredients)
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		9 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./VTMIDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--deprecated VTMs
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VTMIDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./VTMIDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		10 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	
-	UNION ALL
-	
-	--VMPs (generic or clinical drugs)
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		11 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./VTMIDDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--deprecated VMPs
-	SELECT devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VPIDPREV/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
-		to_date(unnest(xpath('./VPIDDT/text()', i.xmlfield))::VARCHAR, 'YYYY-MM-DD') - 1 valid_end_date,
-		'U' AS invalid_reason,
-		12 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION ALL
-	
-	--AMPs (branded drugs)
-	SELECT substr(devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT), 1, 255) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code,
-		to_date(coalesce(l.valid_start_date, '1970-01-01'), 'YYYY-MM-DD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		13 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./NMDT/text()', i.xmlfield))::VARCHAR valid_start_date) l ON true
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--VMPPs (clinical packs)
-	SELECT substr(devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT), 1, 255) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'YYYYMMDD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		14 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
-		FROM sources.f_vmpp2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	
-	UNION ALL
-	
-	--AMPPs (branded packs)
-	SELECT substr(devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT), 1, 255) concept_name,
-		'Drug' AS domain_id,
-		'SNOMED' AS vocabulary_id,
-		'Pharma/Biol Product' AS concept_class_id,
-		NULL AS standard_concept,
-		unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR concept_code,
-		TO_DATE('19700101', 'YYYYMMDD') valid_start_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN (
-						SELECT latest_update - 1
-						FROM vocabulary
-						WHERE vocabulary_id = 'SNOMED'
-						)
-			ELSE TO_DATE('20991231', 'yyyymmdd')
-			END AS valid_end_date,
-		CASE 
-			WHEN l1.invalid = '1'
-				THEN 'D'
-			ELSE NULL
-			END AS invalid_reason,
-		15 AS insert_id
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	LEFT JOIN lateral(SELECT unnest(xpath('./INVALID/text()', i.xmlfield))::VARCHAR invalid) l1 ON true
-	) AS s0
-WHERE /*postgresql 10 changed the xpath behavior, now xpath return NULL even for non-existing element. 9.6 returns nothing*/ concept_code IS NOT NULL;
-
---3.2. delete duplicates, first of all concepts with invalid_reason='D', then 'U', last of all 'NULL'
-DELETE
-FROM concept_stage_dmd csd
-WHERE NOT EXISTS (
-		SELECT 1
-		FROM (
-			SELECT LAST_VALUE(ctid) OVER (
-					PARTITION BY concept_code ORDER BY invalid_reason,
-						ctid ROWS BETWEEN UNBOUNDED PRECEDING
-							AND UNBOUNDED FOLLOWING
-					) AS i_ctid
-			FROM concept_stage_dmd
-			) i
-		WHERE i.i_ctid = csd.ctid
-		);
-
---3.3. copy DM+D to concept_stage
-INSERT INTO concept_stage (
-	concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT concept_name,
-	domain_id,
-	vocabulary_id,
-	concept_class_id,
-	standard_concept,
-	concept_code,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-FROM concept_stage_dmd;
 
 --4. Create core version of SNOMED without concept_id, domain_id, concept_class_id, standard_concept
 INSERT INTO concept_stage (
@@ -461,91 +74,92 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT regexp_replace(coalesce(umls.concept_name, sct2.concept_name), ' (\([^)]*\))$', ''), -- pick the umls one first (if there) and trim something like "(procedure)"
+SELECT sct2.concept_name,
 	'SNOMED' AS vocabulary_id,
 	sct2.concept_code,
-	(
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'SNOMED'
-		) AS valid_start_date,
-	TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
+	TO_DATE(effectivestart, 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM (
-	SELECT SUBSTR(d.term, 1, 255) AS concept_name,
+	SELECT vocabulary_pack.CutConceptName(d.term) AS concept_name,
 		d.conceptid::TEXT AS concept_code,
 		c.active,
+		MIN(c.effectivetime) OVER (
+			PARTITION BY c.id ORDER BY c.active DESC --if there ever were active versions of the concept, take the earliest one
+			) AS effectivestart,
 		ROW_NUMBER() OVER (
 			PARTITION BY d.conceptid
-			-- Order of preference: newest in sct2_concept, in sct2_desc, synonym, does not contain class in parenthesis
-			ORDER BY TO_DATE(c.effectivetime, 'YYYYMMDD') DESC,
-				TO_DATE(d.effectivetime, 'YYYYMMDD') DESC,
-				CASE 
-					WHEN typeid = 900000000000013009
-						THEN 0
-					ELSE 1
+			-- Order of preference:
+			-- Active descriptions first, characterised as Preferred Synonym, prefer SNOMED Int, then US, then UK, then take the latest term
+			ORDER BY c.active DESC,
+				d.active DESC,
+				l.active DESC,
+				CASE l.acceptabilityid
+					WHEN 900000000000548007
+						THEN 1 --Preferred
+					WHEN 900000000000549004
+						THEN 2 --Acceptable
+					ELSE 99
+					END ASC,
+				CASE d.typeid
+					WHEN 900000000000013009
+						THEN 1 --Synonym (PT)
+					WHEN 900000000000003001
+						THEN 2 --Fully specified name
+					ELSE 99
+					END ASC,
+				CASE l.refsetid
+					WHEN 900000000000509007
+						THEN 1 --US English language reference set
+					WHEN 900000000000508004
+						THEN 2 --UK English language reference set
+					ELSE 99 -- Various UK specific refsets
 					END,
-				CASE 
-					WHEN term LIKE '%(%)%'
-						THEN 1
-					ELSE 0
-					END,
-				LENGTH(TERM) DESC,
-				d.id DESC --same as of AVOF-650
+				CASE l.source_file_id
+					WHEN 'INT'
+						THEN 1 -- International release
+					WHEN 'US'
+						THEN 2 -- SNOMED US
+					WHEN 'GB_DE'
+						THEN 3 -- SNOMED UK Drug extension, updated more often
+					WHEN 'UK'
+						THEN 4 -- SNOMED UK
+					ELSE 99
+					END ASC,
+				l.effectivetime DESC
 			) AS rn
-	FROM sources.sct2_concept_full_merged c,
-		sources.sct2_desc_full_merged d
-	WHERE c.id = d.conceptid
-		AND term IS NOT NULL
+	FROM sources.sct2_concept_full_merged c
+	JOIN sources.sct2_desc_full_merged d ON d.conceptid = c.id
+	JOIN sources.der2_crefset_language_merged l ON l.referencedcomponentid = d.id
 	) sct2
-LEFT JOIN (
-	-- get a better concept_name
-	SELECT DISTINCT code AS concept_code,
-		FIRST_VALUE(-- take the best str 
-			SUBSTR(str, 1, 255)) OVER (
-			PARTITION BY code ORDER BY CASE tty
-					WHEN 'PT'
-						THEN 1
-					WHEN 'PTGB'
-						THEN 2
-					WHEN 'SY'
-						THEN 3
-					WHEN 'SYGB'
-						THEN 4
-					WHEN 'MTH_PT'
-						THEN 5
-					WHEN 'FN'
-						THEN 6
-					WHEN 'MTH_SY'
-						THEN 7
-					WHEN 'SB'
-						THEN 8
-					ELSE 10 -- default for the obsolete ones
-					END
-			) AS concept_name
-	FROM sources.mrconso
-	WHERE sab = 'SNOMEDCT_US'
-		AND tty IN (
-			'PT',
-			'PTGB',
-			'SY',
-			'SYGB',
-			'MTH_PT',
-			'FN',
-			'MTH_SY',
-			'SB'
-			)
-	) umls ON sct2.concept_code = umls.concept_code
-WHERE sct2.rn = 1
-	AND sct2.active = 1
-	AND NOT EXISTS (
-		--DM+D first, SNOMED last
-		SELECT 1
-		FROM concept_stage cs_int
-		WHERE cs_int.concept_code = sct2.concept_code
-		);
+WHERE sct2.rn = 1;
 
---5. Update concept_class_id from extracted class information and terms ordered by some good precedence
+--4.1 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
+WITH inactive
+AS (
+	SELECT c.id,
+		MAX(c.effectivetime) AS effectiveend
+	FROM sources.sct2_concept_full_merged c
+	LEFT JOIN sources.sct2_concept_full_merged c2 ON --ignore all entries before latest one with active = 1
+		c2.active = 1
+		AND c.id = c2.id
+		AND c.effectivetime < c2.effectivetime
+	WHERE c2.id IS NULL
+		AND c.active = 0
+	GROUP BY c.id
+	)
+UPDATE concept_stage cs
+SET invalid_reason = 'D',
+	valid_end_date = TO_DATE(i.effectiveend, 'yyyymmdd')
+FROM inactive i
+WHERE i.id::TEXT = cs.concept_code;
+
+--4.2 Some concepts were never alive; we don't know what their valid_start_date would be, so we set it to default minimum
+UPDATE concept_stage
+SET valid_start_date = TO_DATE('19700101', 'yyyymmdd')
+WHERE valid_start_date = valid_end_date;
+
+--5. Update concept_class_id from extracted hierarchy tag information and terms ordered by description table precedence
 UPDATE concept_stage cs
 SET concept_class_id = i.concept_class_id
 FROM (
@@ -553,10 +167,11 @@ FROM (
 			SELECT *
 			FROM (
 				SELECT concept_code,
-					f7, -- extracted class
+					f7, -- SNOMED hierarchy tag
 					ROW_NUMBER() OVER (
 						PARTITION BY concept_code
-						-- order of precedence: active, by class relevance, by highest number of parentheses
+						-- order of precedence: active, by class relevance
+						-- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we have concurrent sources, so this may prevent problems and breaks nothing
 						ORDER BY active DESC,
 							CASE f7
 								WHEN 'disorder'
@@ -670,38 +285,23 @@ FROM (
 				FROM (
 					SELECT concept_code,
 						active,
-						pc1,
-						pc2,
-						CASE 
-							WHEN pc1 = 0
-								OR pc2 = 0
-								THEN term -- when no term records with parentheses
-									-- extract class (called f7)
-							ELSE substring(term, '\(([^(]+)\)$')
-							END AS f7,
+						SUBSTRING(term, '\(([^(]+)\)$') AS f7,
 						rna AS rnb -- row number in sct2_desc_full_merged
 					FROM (
 						SELECT c.concept_code,
 							d.term,
 							d.active,
-							(
-								SELECT count(*)
-								FROM regexp_matches(d.term, '\(', 'g')
-								) pc1, -- parenthesis open count
-							(
-								SELECT count(*)
-								FROM regexp_matches(d.term, '\)', 'g')
-								) pc2, -- parenthesis close count
 							ROW_NUMBER() OVER (
-								PARTITION BY c.concept_code ORDER BY d.active DESC, -- first active ones
-									(
-										SELECT count(*)
-										FROM regexp_matches(d.term, '\(', 'g')
-										) DESC -- first the ones with the most parentheses - one of them the class info
+								PARTITION BY c.concept_code ORDER
+								BY
+									d.active DESC, -- active ones
+									d.effectivetime DESC -- latest active ones
 								) rna -- row number in sct2_desc_full_merged
 						FROM concept_stage c
 						JOIN sources.sct2_desc_full_merged d ON d.conceptid::TEXT = c.concept_code
-						WHERE c.vocabulary_id = 'SNOMED'
+						WHERE 
+							c.vocabulary_id = 'SNOMED' AND
+							d.typeid = 900000000000003001 -- only Fully Specified Names
 						) AS s0
 					) AS s1
 				) AS s2
@@ -847,6 +447,11 @@ FROM (
 					--Metadata concepts
 			WHEN F7 = 'OWL metadata concept'
 				THEN 'Model Comp'
+					--Specific drug qualifiers
+			WHEN F7 = 'supplier'
+				THEN 'Qualifier Value'
+			WHEN F7 = 'product name'
+				THEN 'Qualifier Value'
 			ELSE 'Undefined'
 			END AS concept_class_id
 	FROM tmp_concept_class
@@ -859,158 +464,29 @@ SET concept_class_id = 'Model Comp'
 WHERE concept_code = '138875005'
 	AND vocabulary_id = 'SNOMED';
 
---Concepts without full specified names, function as Qualifier Value
+--Deprecated Concepts with broken fully specified name
 UPDATE concept_stage
-SET concept_class_id = 'Qualifier Value'
+SET concept_class_id = 'Procedure'
 WHERE vocabulary_id = 'SNOMED'
 	AND concept_code IN (
-		'774164004', --Supplier
-		'774167006' --Product name
+		'712611000000106', --Assessment using childhood health assessment questionnaire
+		'193371000000106' --Fluoroscopic angioplasty of carotid artery
 		);
 
---6. Add DM+D into concept_synonym_stage
-INSERT INTO concept_synonym_stage (
-	synonym_concept_code,
-	synonym_vocabulary_id,
-	synonym_name,
-	language_concept_id
-	)
-SELECT *
-FROM (
-	SELECT unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
-		FROM sources.f_ingredient2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NMPREV/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./DESC/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NMPREV/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
-		FROM sources.f_vmpp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./NM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	
-	UNION
-	
-	SELECT unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR synonym_concept_code,
-		'SNOMED' AS synonym_vocabulary_id,
-		devv5.py_unescape(unnest(xpath('./ABBREVNM/text()', i.xmlfield))::TEXT) synonym_name,
-		4180186 AS language_concept_id -- English
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	) AS s0
-WHERE synonym_concept_code IS NOT NULL
-	AND synonym_name IS NOT NULL;
+--6. --Some old deprecated concepts from UK drug extension module never have had correct FSN, so we can't get explicit hierarchy tag and keep them as Context-dependent class
+UPDATE concept_stage c
+SET concept_class_id = 'Context-dependent'
+WHERE c.concept_class_id = 'Undefined'
+	AND c.invalid_reason IS NOT NULL
+	AND --Make sure we only affect old concepts and not mask new classes additions
+	EXISTS (
+		SELECT 1
+		FROM sources.sct2_concept_full_merged m
+		WHERE m.id::TEXT = c.concept_code
+			AND m.moduleid = 999000011000001104 --SNOMED CT United Kingdom drug extension module
+		);
 
---7. Get all the other ones in ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
+--7. Get all the synonyms from UMLS ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB') into concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_vocabulary_id,
@@ -1019,9 +495,10 @@ INSERT INTO concept_synonym_stage (
 	)
 SELECT DISTINCT m.code,
 	'SNOMED',
-	SUBSTR(m.str, 1, 1000),
+	vocabulary_pack.CutConceptSynonymName(m.str),
 	4180186 -- English
 FROM sources.mrconso m
+JOIN concept_stage s ON s.concept_code = m.code
 WHERE m.sab = 'SNOMEDCT_US'
 	AND m.tty IN (
 		'PT',
@@ -1032,570 +509,38 @@ WHERE m.sab = 'SNOMEDCT_US'
 		'FN',
 		'MTH_SY',
 		'SB'
-		)
+		);
+
+--8. Add active synonyms from merged descriptions list
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_vocabulary_id,
+	synonym_name,
+	language_concept_id
+	)
+SELECT DISTINCT d.conceptid,
+	'SNOMED',
+	vocabulary_pack.CutConceptSynonymName(d.term),
+	4180186 -- English
+FROM (
+	SELECT m.id,
+		m.conceptid::TEXT,
+		m.term,
+		FIRST_VALUE(active) OVER (
+			PARTITION BY id ORDER BY effectivetime DESC
+			) AS active_status
+	FROM sources.sct2_desc_full_merged m
+	) d
+JOIN concept_stage s ON s.concept_code = d.conceptid
+WHERE d.active_status = 1
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_synonym_stage css_int
-		WHERE css_int.synonym_concept_code = m.code
-			AND css_int.synonym_name = SUBSTR(m.str, 1, 1000)
+		WHERE css_int.synonym_concept_code = d.conceptid
+			AND css_int.synonym_name = vocabulary_pack.CutConceptSynonymName(d.term)
 		);
 
---8. Fill concept_relationship_stage from DM+D
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT *
-FROM (
-	--Upgrade links for UoM
-	SELECT unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/UNIT_OF_MEASURE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for Forms
-	SELECT unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/FORM/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for Route
-	SELECT unnest(xpath('./CDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/LOOKUP/ROUTE/INFO', i.xmlfield)) xmlfield
-		FROM sources.f_lookup2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for iss
-	SELECT unnest(xpath('./ISIDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/INGREDIENT_SUBSTANCES/ING', i.xmlfield)) xmlfield
-		FROM sources.f_ingredient2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for VTMs
-	SELECT unnest(xpath('./VTMIDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_THERAPEUTIC_MOIETIES/VTM', i.xmlfield)) xmlfield
-		FROM sources.f_vtm2 i
-		) AS i
-	
-	UNION
-	
-	--Upgrade links for VMPs
-	SELECT unnest(xpath('./VPIDPREV/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Concept replaced by' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Add Unit dose form units for VMP
-	--Linking VMPs to the unit of the form, for example "Sodium chloride 3% infusion 100ml bags" to "ml"
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./UDFS_UOMCD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has dose form unit' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Add Unit dose unit of measure for VMP
-	--Linking VMPs to the unit of the form, for example "Sodium chloride 3% infusion 100ml bags" to "bag"
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./UNIT_DOSE_UOMCD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has unit of prod use' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to VTMs
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VTMID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to Ingredients
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has spec active ing' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to Basis Ingredients (Atorvastatin instead of Atorvastatin calcium trihydrate)
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./BS_SUBID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has basis str subst' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to their drug forms
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./FORMCD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has disp dose form' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPs to their routes
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ROUTECD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has route' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_ROUTE/DROUTE', i.xmlfield)) xmlfield
-		FROM sources.f_vmp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPs to VMPs
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	--Inherit 'Has specific active ingredient' relationship from VMP
-	SELECT a.APID AS concept_code_1,
-		b.ISID AS concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has spec active ing' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-			unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-		FROM (
-			SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-			FROM sources.f_amp2 i
-			) AS i
-		) a,
-		(
-			SELECT unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR ISID,
-				unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-			FROM (
-				SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
-				FROM sources.f_vmp2 i
-				) AS i
-			) b
-	WHERE a.VPID = b.VPID
-	
-	UNION
-	
-	--Inherit Basis Ingredients relationships from VMP
-	SELECT a.APID AS concept_code_1,
-		b.BS_SUBID AS concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has basis str subst' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-			unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-		FROM (
-			SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-			FROM sources.f_amp2 i
-			) AS i
-		) a,
-		(
-			SELECT unnest(xpath('./BS_SUBID/text()', i.xmlfield))::VARCHAR BS_SUBID,
-				unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-			FROM (
-				SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/VIRTUAL_PRODUCT_INGREDIENT/VPI', i.xmlfield)) xmlfield
-				FROM sources.f_vmp2 i
-				) AS i
-			) b
-	WHERE a.VPID = b.VPID
-	
-	UNION
-	
-	--Inherit link drug forms from VMP
-	SELECT a.APID AS concept_code_1,
-		b.FORMCD AS concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has disp dose form' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR APID,
-			unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-		FROM (
-			SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AMPS/AMP', i.xmlfield)) xmlfield
-			FROM sources.f_amp2 i
-			) AS i
-		) a,
-		(
-			SELECT unnest(xpath('./FORMCD/text()', i.xmlfield))::VARCHAR FORMCD,
-				unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR VPID
-			FROM (
-				SELECT unnest(xpath('/VIRTUAL_MED_PRODUCTS/DRUG_FORM/DFORM', i.xmlfield)) xmlfield
-				FROM sources.f_vmp2 i
-				) AS i
-			) b
-	WHERE a.VPID = b.VPID
-	
-	UNION
-	
-	--Link AMPs to Incipients
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ISID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has excipient' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/AP_INGREDIENT/AP_ING', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPs to their licensed routes
-	SELECT unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ROUTECD/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has licensed route' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PRODUCTS/LICENSED_ROUTE/LIC_ROUTE', i.xmlfield)) xmlfield
-		FROM sources.f_amp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPPs to their contained VMPs
-	SELECT unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has VMP' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/VMPPS/VMPP', i.xmlfield)) xmlfield
-		FROM sources.f_vmpp2 i
-		) AS i
-	
-	UNION
-	
-	--Link VMPPs containing VMPPs
-	SELECT unnest(xpath('./PRNTVPPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CHLDVPPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/VIRTUAL_MED_PRODUCT_PACK/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
-		FROM sources.f_vmpp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPPs to their equivalent VMPPs
-	SELECT unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./VPPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPPs to their contained AMPs
-	SELECT unnest(xpath('./APPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./APID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Has AMP' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/AMPPS/AMPP', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	
-	UNION
-	
-	--Link AMPPs to containing AMPPs
-	SELECT unnest(xpath('./PRNTVPPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./CHLDVPPID/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'SNOMED' AS vocabulary_id_2,
-		'Is a' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/ACTUAL_MEDICINAL_PROD_PACKS/COMB_CONTENT/CCONTENT', i.xmlfield)) xmlfield
-		FROM sources.f_ampp2 i
-		) AS i
-	
-	UNION
-	
-	--Add SNOMED to ATC relationships
-	SELECT unnest(xpath('./VPID/text()', i.xmlfield))::VARCHAR concept_code_1,
-		unnest(xpath('./ATC/text()', i.xmlfield))::VARCHAR concept_code_2,
-		'SNOMED' AS vocabulary_id_1,
-		'ATC' AS vocabulary_id_2,
-		'SNOMED - ATC eq' AS relationship_id,
-		(
-			SELECT latest_update
-			FROM vocabulary
-			WHERE vocabulary_id = 'SNOMED'
-			) AS valid_start_date,
-		TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-		NULL AS invalid_reason
-	FROM (
-		SELECT unnest(xpath('/BNF_DETAILS/VMPS/VMP', i.xmlfield)) xmlfield
-		FROM sources.dmdbonus i
-		) AS i
-	) AS s0
-WHERE concept_code_1 IS NOT NULL
-	AND concept_code_2 IS NOT NULL;
-
---9. Fill concept_relationship_stage from SNOMED
+--9. Fill concept_relationship_stage from merged SNOMED source
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1616,12 +561,12 @@ WITH tmp_rel AS (
 				r.destinationid,
 				d.term,
 				ROW_NUMBER() OVER (
-					PARTITION BY r.id ORDER BY TO_DATE(r.effectivetime, 'YYYYMMDD') DESC,
+					PARTITION BY r.id ORDER BY r.effectivetime DESC,
 						d.id DESC -- fix for AVOF-650
 					) AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
 				r.active
 			FROM sources.sct2_rela_full_merged r
-			JOIN sources.sct2_desc_full_merged d ON r.typeid = d.conceptid
+			JOIN sources.sct2_desc_full_merged d ON d.conceptid = r.typeid
 			) AS s0
 		WHERE rn = 1
 			AND active = 1
@@ -1639,6 +584,7 @@ SELECT concept_code_1,
 	invalid_reason
 FROM (
 	--convert SNOMED to OMOP-type relationship_id
+	--TODO: this deserves a massive overhaul using raw typeid instead of extracted terms; however, it works in current state with no reported issues
 	SELECT DISTINCT sourceid AS concept_code_1,
 		destinationid AS concept_code_2,
 		'SNOMED' AS vocabulary_id_1,
@@ -1734,7 +680,7 @@ FROM (
 			WHEN term = 'Onset'
 				THEN 'Has clinical course' -- looks like old version
 			WHEN term = 'Part of'
-				THEN 'Has part of'
+				THEN 'Part of'
 			WHEN term = 'Pathological process'
 				THEN 'Has pathology'
 			WHEN term = 'Pathological process (qualifier value)'
@@ -1847,7 +793,7 @@ FROM (
 				THEN 'Has direct site'
 			WHEN term = 'Characterizes'
 				THEN 'Characterizes'
-			--added 20171116
+					--added 20171116
 			WHEN term = 'During'
 				THEN 'During'
 			WHEN term = 'Has BoSS'
@@ -1862,7 +808,7 @@ FROM (
 				THEN 'Has numerator unit'
 			WHEN term = 'Has presentation strength numerator value'
 				THEN 'Has numerator value'
-			--added 20180205
+					--added 20180205
 			WHEN term = 'Has basic dose form'
 				THEN 'Has basic dose form'
 			WHEN term = 'Has disposition'
@@ -1879,7 +825,7 @@ FROM (
 				THEN 'Has state of matter'
 			WHEN term = 'Temporally related to'
 				THEN 'Temp related to'
-			--added 20180622
+					--added 20180622
 			WHEN term = 'Has NHS dm+d basis of strength substance'
 				THEN 'Has basis str subst'
 			WHEN term = 'Has unit of administration'
@@ -1900,12 +846,12 @@ FROM (
 				THEN 'Modification of'
 			WHEN term = 'Count of base of active ingredient'
 				THEN 'Has count of ing'
-			--20190204
+					--20190204
 			WHEN term = 'Has realization'
 				THEN 'Has pathology'
 			WHEN term = 'Plays role'
 				THEN 'Plays role'
-			--20190823
+					--20190823
 			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) VMP (Virtual Medicinal Product) route of administration'
 				THEN 'Has route'
 			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) controlled drug category'
@@ -1916,20 +862,39 @@ FROM (
 				THEN 'Has combi prod ind'
 			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) dose form indicator'
 				THEN 'Has form continuity'
-			--20200312
+					--20200312
 			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) additional monitoring indicator'
 				THEN 'Has add monitor ind'
-			when term = 'Has NHS dm+d (dictionary of medicines and devices) AMP (actual medicinal product) availability restriction indicator'
-				then 'Has AMP restr ind'
+			WHEN term = 'Has NHS dm+d (dictionary of medicines and devices) AMP (actual medicinal product) availability restriction indicator'
+				THEN 'Has AMP restr ind'
 			WHEN term = 'Has NHS dm+d parallel import indicator'
-				then 'Paral imprt ind'
+				THEN 'Paral imprt ind'
 			WHEN term = 'Has NHS dm+d freeness indicator'
-				then 'Has free indicator'
+				THEN 'Has free indicator'
 			WHEN term = 'Units'
-				then 'Has unit'
+				THEN 'Has unit'
 			WHEN term = 'Process duration'
-				then 'Has proc duration'
-			ELSE term--'non-existing'
+				THEN 'Has proc duration'
+					--20201023
+			WHEN term = 'Relative to'
+				THEN 'Relative to'
+			WHEN term = 'Count of active ingredient'
+				THEN 'Has count of act ing'
+			WHEN term = 'Has product characteristic'
+				THEN 'Has prod character'
+			WHEN term = 'Has ingredient characteristic'
+				THEN 'Has prod character'
+			WHEN term = 'Has surface characteristic'
+				THEN 'Surf character of'
+			WHEN term = 'Has device intended site'
+				THEN 'Has dev intend site'
+			WHEN term = 'Has device characteristic'
+				THEN 'Has prod character'
+			WHEN term = 'Has compositional material'
+				THEN 'Has comp material'
+			WHEN term = 'Has filling'
+				THEN 'Has filling'
+			ELSE term --'non-existing'
 			END AS relationship_id,
 		(
 			SELECT latest_update
@@ -1969,11 +934,11 @@ SELECT DISTINCT sn.concept_code_1,
 	'SNOMED',
 	'SNOMED',
 	sn.relationship_id,
-	(
-		SELECT latest_update
-		FROM vocabulary
-		WHERE vocabulary_id = 'SNOMED'
-		),
+	COALESCE(cs.valid_end_date, (
+			SELECT latest_update
+			FROM vocabulary
+			WHERE vocabulary_id = 'SNOMED'
+			)),
 	TO_DATE('20991231', 'yyyymmdd'),
 	NULL
 FROM (
@@ -1993,7 +958,7 @@ FROM (
 			END AS relationship_id,
 		ROW_NUMBER() OVER (
 			PARTITION BY sc.referencedcomponentid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC,
-			sc.id DESC --same as of AVOF-650
+				sc.id DESC --same as of AVOF-650
 			) rn,
 		active
 	FROM sources.der2_crefset_assreffull_merged sc
@@ -2005,6 +970,9 @@ FROM (
 			900000000000530003
 			)
 	) sn
+LEFT JOIN concept_stage cs ON -- for valid_end_date
+	cs.concept_code = sn.concept_code_1
+	AND cs.invalid_reason IS NOT NULL
 WHERE sn.rn = 1
 	AND sn.active = 1
 	AND NOT EXISTS (
@@ -2015,7 +983,7 @@ WHERE sn.rn = 1
 			AND crs.relationship_id = sn.relationship_id
 		);
 
---sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
+--10.1 Sometimes concept are back from U to fresh, we need to deprecate our replacement mappings
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -2113,7 +1081,7 @@ WHERE cr.relationship_id = 'Maps to'
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
 
---delete records that does not exists in the concept and concept_stage
+--delete records that do not exist in the concept and concept_stage
 DELETE
 FROM concept_relationship_stage crs
 WHERE EXISTS (
@@ -2146,44 +1114,86 @@ WHERE EXISTS (
 ANALYZE concept_stage;
 ANALYZE concept_relationship_stage;
 
---11. Append resulting file from Medical Coder (in concept_relationship_stage format) to concept_relationship_stage
+--10.2. Update invalid reason for concepts with replacements to 'U', to ensure we keep correct date
+UPDATE concept_stage cs
+SET invalid_reason = 'U'
+FROM concept_relationship_stage crs
+WHERE crs.concept_code_1 = cs.concept_code
+	AND crs.relationship_id IN (
+		'Concept replaced by',
+		'Concept same_as to',
+		'Concept alt_to to',
+		'Concept poss_eq to',
+		'Concept was_a to'
+		)
+	AND crs.invalid_reason IS NULL;
+
+--10.3. Update valid_end_date to latest_update if there is a discrepancy after last point
+UPDATE concept_stage cs
+SET valid_end_date = (
+		SELECT latest_update - 1
+		FROM vocabulary
+		WHERE vocabulary_id = 'SNOMED'
+		)
+WHERE invalid_reason = 'U'
+	AND valid_end_date = TO_DATE('20991231', 'yyyymmdd');
+
+--11. Append manual concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+--12. Append manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---12. Working with replacement mappings
+--13. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---13. Add mapping from deprecated to fresh concepts
+--14. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--15. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---15. Delete ambiguous 'Maps to' mappings
+--16. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---16. Start building the hierarchy for progagating domain_ids from toop to bottom
+--17. Inherit concept class for updated concepts from mapping target -- some of them never had hierarchy tags to extract them
+UPDATE concept_stage cs
+SET concept_class_id = x.concept_class_id
+FROM concept_relationship_stage r,
+	concept_stage x
+WHERE r.concept_code_1 = cs.concept_code
+	AND r.relationship_id = 'Maps to'
+	AND r.invalid_reason IS NULL
+	AND r.concept_code_2 = x.concept_code
+	AND cs.concept_class_id = 'Undefined';
+
+--18. Start building the hierarchy for progagating domain_ids from toop to bottom
 DROP TABLE IF EXISTS snomed_ancestor;
-CREATE UNLOGGED TABLE snomed_ancestor AS (
-	WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, full_path) AS (
+CREATE UNLOGGED TABLE snomed_ancestor AS
+	WITH RECURSIVE hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, levels_of_separation, full_path) AS (
 		SELECT ancestor_concept_code,
 			descendant_concept_code,
 			ancestor_concept_code AS root_ancestor_concept_code,
-			ARRAY [descendant_concept_code::text] AS full_path
+			levels_of_separation,
+			ARRAY [descendant_concept_code::TEXT] AS full_path
 		FROM concepts
 		
 		UNION ALL
@@ -2191,6 +1201,7 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 		SELECT c.ancestor_concept_code,
 			c.descendant_concept_code,
 			root_ancestor_concept_code,
+			hc.levels_of_separation + c.levels_of_separation AS levels_of_separation,
 			hc.full_path || c.descendant_concept_code::TEXT AS full_path
 		FROM concepts c
 		JOIN hierarchy_concepts hc ON hc.descendant_concept_code = c.ancestor_concept_code
@@ -2198,263 +1209,696 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 		),
 	concepts AS (
 		SELECT crs.concept_code_2 AS ancestor_concept_code,
-			crs.concept_code_1 AS descendant_concept_code
+			crs.concept_code_1 AS descendant_concept_code,
+			1 AS levels_of_separation
 		FROM concept_relationship_stage crs
 		WHERE crs.invalid_reason IS NULL
 			AND crs.relationship_id = 'Is a'
 			AND crs.vocabulary_id_1 = 'SNOMED'
-		) 
-	SELECT DISTINCT hc.root_ancestor_concept_code::BIGINT AS ancestor_concept_code, hc.descendant_concept_code::BIGINT
+		)
+	SELECT hc.root_ancestor_concept_code::BIGINT AS ancestor_concept_code,
+		hc.descendant_concept_code::BIGINT,
+		MIN(hc.levels_of_separation) AS min_levels_of_separation
 	FROM hierarchy_concepts hc
-	JOIN concept_stage cs1 ON cs1.concept_code = hc.root_ancestor_concept_code AND cs1.vocabulary_id = 'SNOMED'
-	JOIN concept_stage cs2 ON cs2.concept_code = hc.descendant_concept_code AND cs2.vocabulary_id = 'SNOMED'
-);
+	JOIN concept_stage cs1 ON cs1.concept_code = hc.root_ancestor_concept_code
+		AND cs1.vocabulary_id = 'SNOMED'
+	JOIN concept_stage cs2 ON cs2.concept_code = hc.descendant_concept_code
+		AND cs2.vocabulary_id = 'SNOMED'
+	GROUP BY hc.root_ancestor_concept_code,
+		hc.descendant_concept_code;
 
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
+ANALYZE snomed_ancestor;
+
+--18.1. Append deprecated concepts that have mappings as extensions of their mapping target
+INSERT INTO snomed_ancestor (
+	ancestor_concept_code,
+	descendant_concept_code,
+	min_levels_of_separation
+	)
+SELECT a.ancestor_concept_code,
+	s1.concept_code::BIGINT,
+	a.min_levels_of_separation
+FROM concept_stage s1
+JOIN concept_relationship_stage r ON s1.invalid_reason IS NOT NULL
+	AND s1.concept_code = r.concept_code_1
+	AND r.relationship_id = 'Maps to'
+	AND r.invalid_reason IS NULL
+JOIN snomed_ancestor a ON r.concept_code_2 = a.descendant_concept_code::TEXT
+WHERE NOT EXISTS (
+		SELECT
+		FROM snomed_ancestor x
+		WHERE x.descendant_concept_code::TEXT = s1.concept_code
+		);
 
 ANALYZE snomed_ancestor;
 
---17. Create domain_id
---17.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
 
+--18.2. For deprecated concepts without mappings, take the latest 116680003 'Is a' relationship to active concept
+INSERT INTO snomed_ancestor (
+	ancestor_concept_code,
+	descendant_concept_code,
+	min_levels_of_separation
+	)
+SELECT a.ancestor_concept_code,
+	m.sourceid,
+	a.min_levels_of_separation
+FROM concept_stage s1
+JOIN (
+	SELECT DISTINCT r.sourceid,
+		FIRST_VALUE(r.destinationid) OVER (
+			PARTITION BY r.sourceid,
+			r.effectivetime
+			) AS destinationid, --pick one parent at random
+		r.effectivetime,
+		max(r.effectivetime) OVER (PARTITION BY r.sourceid) AS maxeffectivetime
+	FROM sources.sct2_rela_full_merged r
+	JOIN concept_stage x ON x.concept_code = r.destinationid::TEXT
+		AND x.invalid_reason IS NULL
+	WHERE r.typeid = 116680003 -- Is a
+	) m ON m.sourceid::TEXT = s1.concept_code
+	AND m.effectivetime = m.maxeffectivetime
+JOIN snomed_ancestor a ON m.destinationid = a.descendant_concept_code
+WHERE s1.invalid_reason IS NOT NULL
+	AND NOT EXISTS (
+		SELECT
+		FROM snomed_ancestor x
+		WHERE x.descendant_concept_code = m.sourceid
+		);
+
+--19. Create domain_id
+--19.1. Manually create table with "Peaks" = ancestors of records that are all of the same domain
 DROP TABLE IF EXISTS peak;
 CREATE UNLOGGED TABLE peak (
 	peak_code BIGINT, --the id of the top ancestor
 	peak_domain_id VARCHAR(20), -- the domain to assign to all its children
-	ranked INTEGER -- number for the order in which to assign
+	valid_start_date DATE, --a date when a peak with a mentioned Domain was introduced
+	valid_end_date DATE, --a date when a peak with a mentioned Domain was deprecated
+	levels_down INT, --a number of levels down in hierarchy the peak has effect. When levels_down IS NOT NULL, this peak record won't affect the priority of another peaks
+	ranked INT -- number for the order in which to assign the Domain. The more "ranked" is, the later it updates the Domain in the script.
 	);
 
---17.2 Fill in the various peak concepts
+--19.2 Fill in the various peak concepts
 INSERT INTO peak
-VALUES (138875005, 'Metadata'), -- root
-	(900000000000441003, 'Metadata'), -- SNOMED CT Model Component
-	(105590001, 'Observation'), -- Substances
-	(123038009, 'Specimen'), -- Specimen
-	(48176007, 'Observation'), -- Social context
-	(243796009, 'Observation'), -- Situation with explicit context
-	(272379006, 'Observation'), -- Events
-	(260787004, 'Observation'), -- Physical object
-	(362981000, 'Observation'), -- Qualifier value
-	(363787002, 'Observation'), -- Observable entity
-	(410607006, 'Observation'), -- Organism
-	(419891008, 'Type Concept'), -- Record artifact
-	(78621006, 'Observation'), -- Physical force
-	(123037004, 'Spec Anatomic Site'), -- Body structure
-	(118956008, 'Observation'), -- Body structure, altered from its original anatomical structure, reverted from 123037004
-	(254291000, 'Measurement'), -- Staging / Scales [changed Observation->Measurement AVOF-1295]
-	(370115009, 'Metadata'), -- Special Concept
-	(308916002, 'Observation'), -- Environment or geographical location
-	(223366009, 'Provider'), (43741000, 'Place of Service'), -- Site of care
-	(420056007, 'Drug'), -- Aromatherapy agent
-	(373873005, 'Drug'), -- Pharmaceutical / biologic product
-	(410942007, 'Drug'), -- Drug or medicament
-	(385285004, 'Drug'), -- dialysis dosage form
-	(421967003, 'Drug'), -- drug dose form
-	(424387007, 'Drug'), -- dose form by site prepared for 
-	(421563008, 'Drug'), -- complementary medicine dose form
-	(284009009, 'Route'), -- Route of administration value
-	(373783004, 'Device'), -- dietary product, exception of Pharmaceutical / biologic product
-	(419572002, 'Observation'), -- alcohol agent, exception of drug
-	(373782009, 'Device'), -- diagnostic substance, exception of drug
-	(2949005, 'Observation'), -- diagnostic aid (exclusion from drugs)
-	(404684003, 'Condition'), -- Clinical Finding
-	(62014003, 'Observation'), -- Adverse reaction to drug
-	(313413008, 'Condition'), -- Calculus observation
-	(405533003, 'Observation'), -- Adverse incident outcome categories
-	(365854008, 'Observation'), -- History finding
-	(118233009, 'Observation'), -- Finding of activity of daily living
-	(307824009, 'Observation'), -- Administrative statuses
-	(162408000, 'Observation'), -- Symptom description
-	(105729006, 'Observation'), -- Health perception, health management pattern
-	(162566001, 'Observation'), --Patient not aware of diagnosis
-	(122869004, 'Measurement'), --Measurement
-	(71388002, 'Procedure'), -- Procedure
-	(304252001, 'Observation'), -- Resuscitate
-	(304253006, 'Observation'), -- DNR
-	(113021009, 'Procedure'), -- Cardiovascular measurement
-	(297249002, 'Observation'), -- Family history of procedure
-	(14734007, 'Observation'), -- Administrative procedure
-	(416940007, 'Observation'), -- Past history of procedure
-	(183932001, 'Observation'), -- Procedure contraindicated
-	(438833006, 'Observation'), -- Administration of drug or medicament contraindicated
-	(410684002, 'Observation'), -- Drug therapy status
-	(17636008, 'Procedure'), -- Specimen collection treatments and procedures - - bad child of 4028908 Laboratory procedure
-	(365873007, 'Gender'), -- Gender
-	(372148003, 'Race'), --Ethnic group
-	(415229000, 'Race'), -- Racial group
-	(106237007, 'Observation'), -- Linkage concept
-	(767524001, 'Unit'), --  Unit of measure (Top unit)
-	(260245000, 'Meas Value'), -- Meas Value
-	(125677006, 'Relationship'), -- Relationship
-	(264301008, 'Observation'), -- Psychoactive substance of abuse - non-pharmaceutical
-	(226465004, 'Observation'), -- Drinks
-	(49062001, 'Device'), -- Device
-	(289964002, 'Device'), -- Surgical material
-	(260667007, 'Device'), -- Graft
-	(418920007, 'Device'), -- Adhesive agent
-	(255922001, 'Device'), -- Dental material
-	(413674002, 'Observation'), -- Body material
-	(118417008, 'Device'), -- Filling material
-	(445214009, 'Device'), -- corneal storage medium
-	(69449002, 'Observation'), -- Drug action
-	(79899007, 'Observation'), -- Drug interaction
-	(365858006, 'Observation'), -- Prognosis/outlook finding
-	(444332001, 'Observation'), -- Aware of prognosis
-	(444143004, 'Observation'), -- Carries emergency treatment
-	(13197004, 'Observation'), -- Contraception
-	(251859005, 'Observation'), -- Dialysis finding
-	(422704000, 'Observation'), -- Difficulty obtaining contraception
-	(250869005, 'Observation'), -- Equipment finding
-	(217315002, 'Observation'), -- Onset of illness
-	(127362006, 'Observation'), -- Previous pregnancies
-	(162511002, 'Observation'), -- Rare history finding
-	(118226009, 'Observation'),	-- Temporal finding
-	(366154003, 'Observation'), -- Respiratory flow rate - finding
-	(243826008, 'Observation'), -- Antenatal care status 
-	(418038007, 'Observation'), --Propensity to adverse reactions to substance
-	(413296003, 'Condition'), -- Depression requiring intervention
-	(72670004, 'Condition'), -- Sign
-	(124083000, 'Condition'), -- Urobilinogenemia
-	(59524001, 'Observation'), -- Blood bank procedure
-	(389067005, 'Observation'), -- Community health procedure
-	(225288009, 'Observation'), -- Environmental care procedure
-	(308335008, 'Observation'), -- Patient encounter procedure
-	(389084004, 'Observation'), -- Staff related procedure
-	(110461004, 'Observation'), -- Adjunctive care
-	(372038002, 'Observation'), -- Advocacy
-	(225365006, 'Observation'), -- Care regime
-	(228114008, 'Observation'), -- Child health procedures
-	(309466006, 'Observation'), -- Clinical observation regime
-	(225318000, 'Observation'), -- Personal and environmental management regime
-	(133877004, 'Observation'), -- Therapeutic regimen
-	(225367003, 'Observation'), -- Toileting regime
-	(303163003, 'Observation'), -- Treatments administered under the provisions of the law
-	(429159005, 'Procedure'), -- Child psychotherapy
-	(15220000, 'Measurement'), -- Laboratory test
-	(441742003, 'Condition'), -- Evaluation finding
-	(365605003, 'Observation'), -- Body measurement finding
-	(106019003, 'Condition'), -- Elimination pattern
-	(106146005, 'Condition'), -- Reflex finding
-	(103020000, 'Condition'), -- Adrenarche
-	(405729008, 'Condition'), -- Hematochezia
-	(165816005, 'Condition'), -- HIV positive
-	(300391003, 'Condition'), -- Finding of appearance of stool
-	(300393000, 'Condition'), -- Finding of odor of stool
-	(239516002, 'Observation'), -- Monitoring procedure
-	(243114000, 'Observation'), -- Support
-	(300893006, 'Observation'), -- Nutritional finding
-	(116336009, 'Observation'), -- Eating / feeding / drinking finding
-	(448717002, 'Condition'), -- Decline in Edinburgh postnatal depression scale score
-	(449413009, 'Condition'), -- Decline in Edinburgh postnatal depression scale score at 8 months
-	(118227000, 'Condition'), -- Vital signs finding
-	(363259005, 'Observation'), -- Patient management procedure
-	(278414003, 'Procedure'), -- Pain management
-	-- Added Jan 2017
-	(225831004, 'Observation'), -- Finding relating to advocacy
-	(134436002, 'Observation'), -- Lifestyle
-	(365980008, 'Observation'), -- Tobacco use and exposure - finding
-	(386091000, 'Observation'), -- Finding related to compliance with treatment
-	(424092004, 'Observation'), -- Questionable explanation of injury
-	(364721000000101, 'Measurement'), -- DFT: dynamic function test
-	(749211000000106, 'Observation'), -- NHS Sickle Cell and Thalassaemia Screening Programme family origin
-	(91291000000109, 'Observation'), -- Health of the Nation Outcome Scale interpretation
-	(900781000000102, 'Observation'), -- Noncompliance with dietetic intervention
-	(784891000000108, 'Observation'), -- Injury inconsistent with history given
-	(863811000000102, 'Observation'), -- Injury within last 48 hours
-	(920911000000100, 'Observation'), -- Appropriate use of accident and emergency service
-	(927031000000106, 'Observation'), -- Inappropriate use of walk-in centre
-	(927041000000102, 'Observation'), -- Inappropriate use of accident and emergency service
-	(927901000000101, 'Observation'), -- Inappropriate triage decision
-	(927921000000105, 'Observation'), -- Appropriate triage decision
-	(921071000000100, 'Observation'), -- Appropriate use of walk-in centre
-	(962871000000107, 'Observation'), -- Aware of overall cardiovascular disease risk
-	(968521000000109, 'Observation'), -- Inappropriate use of general practitioner service
-	--added 8/25/2017, these concepts should be in Observation, so people can put causative agent into 
-	(282100009, 'Observation'), -- Adverse reaction caused by substance
-	(473010000, 'Condition'), -- Hypersensitivity condition
-	(419199007, 'Observation'), -- Allergy to substance
-	(10628711000119101, 'Condition'), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
-	--added 8/30/2017
-	(310611001, 'Measurement'), -- Cardiovascular measure
-	(424122007, 'Observation'), -- ECOG performance status finding
-	(698289004, 'Observation'), -- Hooka whatever Observation  -- http://forums.ohdsi.org/t/hookah-concept/3515
-	(248627000, 'Measurement'), -- Pulse characteristics
-	--added 20171128 (AVOF-731)
-	(410652009, 'Device'), -- Blood product
-	--added 20180208
-	(105904009, 'Drug'), -- Type of drug preparation
-	--Azaribine, Pegaptanib sodium, Cutaneous aerosol, Pegaptanib, etc. - exclusion without nice hierarchy
-	(373447009, 'Drug'),
-	(416058004, 'Drug'),
-	(387111009, 'Drug'),
-	(423490007, 'Drug'),
-	(1536005, 'Drug'),
-	(386925003, 'Drug'),
-	(126154004, 'Drug'),
-	(421347001, 'Drug'),
-	(61483006, 'Drug'),
-	(373749006, 'Drug'),
-	--added 20180820
-	(709080004, 'Observation'),
-	--added 20181005
-	(414916001, 'Condition'), -- Obesity
-	--added 20181106 [AVOF-1295]
-	(125123008, 'Measurement'), -- Organ Weight
-	(125125001, 'Observation'), --Abnormal organ weight
-	(125124002, 'Observation'),-- Normal organ weight
-	(268444004, 'Measurement'), -- Radionuclide red cell mass measurement
-	(251880004, 'Measurement'), -- Respiratory measure
-	--added 20190418 [AVOF-1198]
-	(327838005, 'Device'), -- Intravenous nutrition
-	(116178008, 'Device'), -- Dialysis fluid
-	(407935004, 'Device'), -- Contrast media
-	(385420005, 'Device'), -- Contrast media
-	(332525008, 'Device'),  --Camouflaging preparations
-	(768697005, 'Device'), --Barium and barium compound product -- contrast media subcathegory
-	--added 20190827
-	(8653201000001106, 'Drug'),
-	(48176007, 'Observation'), -- Social context
-	(397731000, 'Race'), -- Ethnic group finding
-	--added 20191112
-	(108246006, 'Measurement'), --Tonometry AND/OR tonography procedure
-	--added 20200312
-	(61746007, 'Measurement'), --Taking patient vital signs
-	(771387000,'Drug'), --Substance with effector mechanism of action
-	--added 20200317
-	(365866002,'Measurement'), --Finding of HIV status
-	(438508001,'Measurement'), --Virus present
-	(710954001,'Measurement'), --Bacteria present
-	(871000124102,'Measurement'), --Virus not detected
-	(426000000,'Measurement'), --Fever greater than 100.4 Fahrenheit
-	(164304001,'Measurement'), --O/E - hyperpyrexia - greater than 40.5 degrees Celsius
-	(163633002,'Measurement'), --O/E -skin temperature abnormal
-	(164294007,'Measurement'), --O/E - rectal temperature
-	(164295008,'Measurement'), --O/E - core temperature
-	(164300005,'Measurement'), --O/E - temperature normal
-	(164303007,'Measurement'), --O/E - temperature elevated
-	(164293001,'Measurement'), --O/E - groin temperature
-	(164301009,'Measurement'), --O/E - temperature low
-	(164292006,'Measurement'), --O/E - axillary temperature
-	(275874003,'Measurement'), --O/E - oral temperature
-	(315632006,'Measurement'), --O/E - tympanic temperature
-	(274308003,'Measurement'), --O/E - hyperpyrexia
-	(164285001,'Measurement'), --O/E - fever - general
-	(164290003,'Measurement'), --O/E - method fever registered
-	(1240591000000102,'Measurement'), --2019 novel coronavirus not detected
-	(162913005,'Measurement'), --O/E - rate of respiration
-	--added 20200427
-	(117617002,'Measurement'), --Immunohistochemistry procedure
-	--added 20200518
-	(395098000, 'Condition'), --'Disorder confirmed'
-	(1321161000000104, 'Visit'),
-	(1321151000000102, 'Visit'),
-	(1321141000000100, 'Visit'),
-	(1321131000000109, 'Visit'); -- Self quarantine and similar
+SELECT a.*, NULL FROM ( VALUES
+--19.2.1 Outdated
 
---17.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
+	--2014-Dec-18
+	(218496004,         'Condition',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20170810', 'YYYYMMDD')), -- Adverse reaction to primarily systemic agents
+	(118245000,         'Measurement',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Finding by measurement
+	--history:on
+	(65367001,          'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Victim status
+	(65367001,          'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20150311', 'YYYYMMDD')), -- Victim status
+	(65367001,          'Observation',  TO_DATE('20150311', 'YYYYMMDD'), TO_DATE('20170106', 'YYYYMMDD')), -- Victim status
+	--history:off
+	(162565002,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Patient aware of diagnosis
+	(418138009,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Patient condition finding
+	(405503005,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Staff member inattention
+	(405536006,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Staff member ill
+	(405502000,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Staff member distraction
+	(398051009,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Staff member fatigued
+	(398087002,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Staff member inadequately assisted
+	(397976005,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Staff member inadequately supervised
+	(162568000,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Family not aware of diagnosis
+	(162567005,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Family aware of diagnosis
+	(42045007,          'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Acceptance of illness
+	(108329005,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Social context condition
+	(48340000,          'Condition',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Incontinence
+	(108252007,         'Measurement',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Laboratory procedures
+	(118246004,         'Measurement',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Laboratory test finding' - child of excluded Sample observation
+	(442564008,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Evaluation of urine specimen
+	(64108007,          'Procedure',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Blood unit processing - inside Measurements
+	(258666001,         'Unit',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20190211', 'YYYYMMDD')), -- Top unit
+	--2014-Dec-31
+	(369443003,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- bedpan
+	(398146001,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- armband
+	(272181003,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- clinical equipment and/or device
+	(445316008,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- component of optical microscope
+	(419818001,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- Contact lens storage case
+	(228167008,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- Corset
+	(42380001,          'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- Ear plug, device
+	(1333003,           'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- Emesis basin, device
+	(360306007,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- Environmental control system
+	(33894003,          'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- Experimental device
+	(116250002,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- filter
+	(59432006,          'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- ligature
+	(360174002,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- nabeya capsule
+	(311767007,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- special bed
+	(360173008,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- watson capsule
+	(367561004,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150518', 'YYYYMMDD')), -- xenon arc photocoagulator
+	--2015-Jan-19
+	(80631005,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Clinical stage finding
+	(281037003,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Child health observations
+	(105499002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Convalescence
+	(301886001,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Drawing up knees
+	(298304004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Finding of balance
+	(298339004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Finding of body control
+	(300577008,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Finding of lesion
+	(298325004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Finding of movement
+	(427955007,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Finding related to status of agreement with prior finding
+	(118222006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- General finding of observation of patient
+	(249857004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Loss of midline awareness
+	(300232005,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Oral cavity, dental and salivary finding
+	(364830008,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Position of body and posture - finding
+	(248982007,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Pregnancy, childbirth and puerperium finding
+	(128254003,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Respiratory auscultation finding
+	(397773008,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Surgical contraindication
+	(386053000,         'Measurement',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20150311', 'YYYYMMDD')), -- evaluation procedure
+	(127789004,         'Measurement',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20150311', 'YYYYMMDD')), -- laboratory procedure categorized by method
+	(395557000,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Tumor finding
+	(422989001,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Appendix with tumor involvement, with perforation not at tumor
+	(384980008,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Atelectasis AND/OR obstructive pneumonitis of entire lung associated with direct extension of malignant neoplasm
+	(396895006,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Endocrine pancreas tumor finding
+	(422805009,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Erosion of esophageal tumor into bronchus
+	(423018005,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Erosion of esophageal tumor into trachea
+	(399527001,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Invasive ovarian tumor omental implants present
+	(399600009,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Lymphoma finding
+	(405928008,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Renal sinus vessel involved by tumor
+	(405966006,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Renal tumor finding
+	(385356007,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Tumor stage finding
+	(13104003,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Clinical stage I
+	(60333009,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Clinical stage II
+	(50283003,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Clinical stage III
+	(2640006,           'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Clinical stage IV
+	(385358008,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Dukes stage finding
+	(385362002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- FIGO stage finding for gynecological malignancy
+	(405917009,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Intergroup rhabdomyosarcoma study post-surgical clinical group finding
+	(409721000,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- International neuroblastoma staging system stage finding
+	(385389007,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Lymphoma stage finding
+	(396532004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Stage I: Tumor confined to gland, 5 cm or less
+	(396533009,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Stage II: Tumor confined to gland, greater than 5 cm
+	(396534003,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Stage III: Extraglandular extension of tumor without other organ involvement
+	(396535002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Stage IV: Distant metastasis or extension into other organs
+	(399517007,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Tumor stage cannot be determined
+	(67101007,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- TX category
+	(385385001,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- pT category finding
+	(385382003,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Node category finding
+	(385380006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Metastasis category finding
+	(386702006,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Victim of abuse
+	(95930005,          'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Victim of neglect
+	(248536006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Finding of functional performance and activity
+	(37448008,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Disturbance in intuition
+	(12200008,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Impaired insight
+	(5988002,           'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Lack of intuition
+	(1230003,           'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- No diagnosis on Axis I
+	(10125004,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- No diagnosis on Axis II
+	(51112002,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- No diagnosis on Axis III
+	(54427008,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- No diagnosis on Axis IV
+	(37768003,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- No diagnosis on Axis V
+	(6811007,           'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Prejudice
+	--2015-Aug-17
+	(46680005,          'Measurement',  TO_DATE('20150817', 'YYYYMMDD'), TO_DATE('20170810', 'YYYYMMDD')), -- Vital signs
+	--2016-Mar-22
+	(57797005,          'Procedure',    TO_DATE('20160322', 'YYYYMMDD'), TO_DATE('20171024', 'YYYYMMDD')), -- Termination of pregnancy
+	--2017-Aug-10
+	--history:on
+	(62014003,          'Condition',    TO_DATE('20170810', 'YYYYMMDD'), TO_DATE('20180820', 'YYYYMMDD')), -- Adverse reaction to drug
+	(62014003,          'Observation',  TO_DATE('20180820', 'YYYYMMDD'), TO_DATE('20201110', 'YYYYMMDD')), -- Adverse reaction to drug
+	--history:off
+	--2017-Aug-25
+	(7895008,           'Observation',  TO_DATE('20170825', 'YYYYMMDD'), TO_DATE('20171116', 'YYYYMMDD')), -- Poisoning caused by drug AND/OR medicinal substance
+	(55680006,          'Observation',  TO_DATE('20170825', 'YYYYMMDD'), TO_DATE('20171116', 'YYYYMMDD')), -- Drug overdose
+	(292545003,         'Observation',  TO_DATE('20170825', 'YYYYMMDD'), TO_DATE('20171116', 'YYYYMMDD')), -- Oxitropium adverse reaction --somehow it sneaks through domain definition above, so define this one separately
+	--2020-Mar-17
+	(41769001,          'Condition',    TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20200428', 'YYYYMMDD')), --Disease suspected
+	--2020-Nov-04
+	(734539000,         'Drug',         TO_DATE('20201104', 'YYYYMMDD'), TO_DATE('20210211', 'YYYYMMDD')), --Effector
+
+	--19.2.2 Relevant
+	--history:on
+	(138875005,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150104', 'YYYYMMDD')), -- root
+	(138875005,         'Metadata',     TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- root
+	--history:off
+	(900000000000441003,'Metadata',     TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- SNOMED CT Model Component
+	(105590001,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Substances
+	(123038009,         'Specimen',     TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Specimen
+	(48176007,          'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Social context
+	(243796009,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Situation with explicit context
+	(272379006,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Events
+	(260787004,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Physical object
+	(362981000,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Qualifier value
+	(363787002,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Observable entity
+	(410607006,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Organism
+	--history:on
+	(419891008,         'Note Type',    TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20151009', 'YYYYMMDD')), -- Record artifact
+	(419891008,         'Type Concept', TO_DATE('20151009', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Record artifact
+	--history:off
+	(78621006,          'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Physical force
+	(123037004,   'Spec Anatomic Site', TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Body structure
+	(118956008,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Body structure, altered from its original anatomical structure, reverted from 123037004
+	--history:on
+	(254291000,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20181107', 'YYYYMMDD')), -- Staging / Scales
+	(254291000,         'Measurement',  TO_DATE('20181107', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Staging / Scales [AVOF-1295]
+	--history:off
+	(370115009,         'Metadata',     TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Special Concept
+	(308916002,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Environment or geographical location
+	--history:on
+	(223366009,   'Provider Specialty', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20190201', 'YYYYMMDD')), -- Site of care
+	(223366009,         'Provider',     TO_DATE('20190201', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care
+	--history:off
+	--history:on
+	(43741000,      'Place of Service', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20210217', 'YYYYMMDD')), -- Site of care
+	(43741000,      'Visit',            TO_DATE('20210217', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Site of care
+	--history:off
+	(420056007,         'Drug',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aromatherapy agent
+	(373873005,         'Drug',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pharmaceutical / biologic product
+	(410942007,         'Drug',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug or medicament
+	(385285004,         'Drug',         TO_DATE('20150518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- dialysis dosage form
+	(421967003,         'Drug',         TO_DATE('20150518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- drug dose form
+	(424387007,         'Drug',         TO_DATE('20150518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- dose form by site prepared for
+	(421563008,         'Drug',         TO_DATE('20150518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- complementary medicine dose form
+	--history:on
+	(284009009,         'Drug',         TO_DATE('20150518', 'YYYYMMDD'), TO_DATE('20171116', 'YYYYMMDD')), -- Route of administration value
+	(284009009,         'Route',        TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Route of administration value
+	--history:off
+	--history:on
+	(373783004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20190418', 'YYYYMMDD')), -- dietary product, exception of Pharmaceutical / biologic product
+	(373783004,         'Device',       TO_DATE('20190418', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- dietary product, exception of Pharmaceutical / biologic product
+	--history:off
+	(419572002,         'Observation',  TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- alcohol agent, exception of drug
+	--history:on
+	(373782009,         'Observation',  TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20180208', 'YYYYMMDD')), -- diagnostic substance, exception of drug
+	(373782009,         'Device',       TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- diagnostic substance, exception of drug
+	--history:off
+	(2949005,           'Observation',  TO_DATE('20150518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- diagnostic aid (exclusion from drugs)
+	(404684003,         'Condition',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Clinical Finding
+	(313413008,         'Condition',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Calculus observation
+	(405533003,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse incident outcome categories
+	(365854008,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- History finding
+	(118233009,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of activity of daily living
+	(307824009,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Administrative statuses
+	(162408000,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Symptom description
+	(105729006,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Health perception, health management pattern
+	(162566001,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Patient not aware of diagnosis
+	--history:on
+	(122869004,         'Measurement',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), --Measurement
+	(122869004,         'Measurement',  TO_DATE('20150311', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measurement
+	--history:off
+	(71388002,          'Procedure',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Procedure
+	--history:on
+	(304252001,         'Procedure',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Resuscitate
+	(304252001,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Resuscitate
+	--history:off
+	(304253006,         'Procedure',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150104', 'YYYYMMDD')), -- DNR
+	(304253006,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- DNR
+	--history:on
+	(113021009,         'Procedure',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), -- Cardiovascular measurement
+	(113021009,         'Procedure',    TO_DATE('20150311', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cardiovascular measurement
+	--history:off
+	(297249002,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Family history of procedure
+	(14734007,          'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Administrative procedure
+	(416940007,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Past history of procedure
+	(183932001,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Procedure contraindicated
+	(438833006,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Administration of drug or medicament contraindicated
+	(410684002,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug therapy status
+	(17636008,          'Procedure',    TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Specimen collection treatments and procedures - - bad child of 4028908 Laboratory procedure
+	(365873007,         'Gender',       TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Gender
+	(372148003,         'Race',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Ethnic group
+	(415229000,         'Race',         TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Racial group
+	(106237007,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Linkage concept
+	(767524001,         'Unit',         TO_DATE('20190211', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --  Unit of measure (Top unit)
+	(260245000,         'Meas Value',   TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Meas Value
+	(125677006,         'Relationship', TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Relationship
+	(264301008,         'Observation',  TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Psychoactive substance of abuse - non-pharmaceutical
+	(226465004,         'Observation',  TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drinks
+	--history:on
+	(49062001,          'Device',       TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20141231', 'YYYYMMDD')), -- Device
+	(49062001,          'Device',       TO_DATE('20150518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Device
+	--history:off
+	(289964002,         'Device',       TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Surgical material
+	(260667007,         'Device',       TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Graft
+	(418920007,         'Device',       TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adhesive agent
+	(255922001,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dental material
+	--history:on
+	(413674002,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20150104', 'YYYYMMDD')), -- Body material
+	(413674002,         'Observation',  TO_DATE('20150104', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Body material
+	--history:off
+	(118417008,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Filling material
+	(445214009,         'Device',       TO_DATE('20141231', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- corneal storage medium
+	(69449002,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug action
+	(79899007,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Drug interaction
+	(365858006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Prognosis/outlook finding
+	(444332001,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aware of prognosis
+	(444143004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Carries emergency treatment
+	(13197004,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Contraception
+	(251859005,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dialysis finding
+	(422704000,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Difficulty obtaining contraception
+	(250869005,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Equipment finding
+	(217315002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Onset of illness
+	(127362006,         'Observation',  TO_DATE('20160322', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Previous pregnancies
+	(162511002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Rare history finding
+	(118226009,         'Observation',  TO_DATE('20190211', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),	-- Temporal finding
+	(366154003,         'Observation',  TO_DATE('20190211', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Respiratory flow rate - finding
+	(243826008,         'Observation',  TO_DATE('20190211', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Antenatal care status
+	(418038007,         'Observation',  TO_DATE('20190211', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Propensity to adverse reactions to substance
+	(413296003,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Depression requiring intervention
+	(72670004,          'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Sign
+	(124083000,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Urobilinogenemia
+	(59524001,          'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Blood bank procedure
+	(389067005,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Community health procedure
+	(225288009,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Environmental care procedure
+	(308335008,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Patient encounter procedure
+	(389084004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Staff related procedure
+	(110461004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adjunctive care
+	(372038002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Advocacy
+	(225365006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Care regime
+	(228114008,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Child health procedures
+	(309466006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Clinical observation regime
+	(225318000,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Personal and environmental management regime
+	(133877004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Therapeutic regimen
+	(225367003,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Toileting regime
+	(303163003,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Treatments administered under the provisions of the law
+	(429159005,         'Procedure',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Child psychotherapy
+	(15220000,          'Measurement',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Laboratory test
+	--history:on
+	--TODO: postponed for the next SNOMED release - deStandardize, split and map over
+	(441742003,         'Measurement',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20170810', 'YYYYMMDD')), -- Evaluation finding
+	(441742003,         'Condition',    TO_DATE('20170810', 'YYYYMMDD'), TO_DATE('20201104', 'YYYYMMDD')), -- Evaluation finding
+	(441742003,         'Measurement',  TO_DATE('20201104', 'YYYYMMDD'), TO_DATE('20201210', 'YYYYMMDD')), -- Evaluation finding
+	(441742003,         'Condition',    TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Evaluation finding
+	--history:off
+	--history:on
+	(365605003,         'Measurement',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20170810', 'YYYYMMDD')), -- Body measurement finding
+	(365605003,         'Observation',  TO_DATE('20170810', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Body measurement finding
+	--history:off
+	(106019003,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Elimination pattern
+	(106146005,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Reflex finding
+	(103020000,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adrenarche
+	(405729008,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Hematochezia
+	--TODO: deStandardize, split and map over
+	(165816005,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- HIV positive
+	(300391003,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of appearance of stool
+	(300393000,         'Condition',    TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding of odor of stool
+	(239516002,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Monitoring procedure
+	(243114000,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Support
+	(300893006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Nutritional finding
+	(116336009,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Eating / feeding / drinking finding
+	--history:on
+	(448717002,         'Measurement',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20170810', 'YYYYMMDD')), -- Decline in Edinburgh postnatal depression scale score
+	(448717002,         'Condition',    TO_DATE('20170810', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Decline in Edinburgh postnatal depression scale score
+	--history:off
+	--history:on
+	(449413009,         'Measurement',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20170810', 'YYYYMMDD')), -- Decline in Edinburgh postnatal depression scale score at 8 months
+	(449413009,         'Condition',    TO_DATE('20170810', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Decline in Edinburgh postnatal depression scale score at 8 months
+	--history:off
+	(118227000,         'Condition',    TO_DATE('20170810', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Vital signs finding
+	(363259005,         'Observation',  TO_DATE('20160616', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Patient management procedure
+	(278414003,         'Procedure',    TO_DATE('20160616', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pain management
+	(225831004,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding relating to advocacy
+	(134436002,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Lifestyle
+	(365980008,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Tobacco use and exposure - finding
+	(386091000,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Finding related to compliance with treatment
+	--history:on
+	(424092004,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), -- Questionable explanation of injury
+	(424092004,         'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Questionable explanation of injury
+	--history:off
+	(364721000000101,   'Measurement',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- DFT: dynamic function test
+	(749211000000106,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- NHS Sickle Cell and Thalassaemia Screening Programme family origin
+	(91291000000109,    'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Health of the Nation Outcome Scale interpretation
+	(900781000000102,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Noncompliance with dietetic intervention
+	(784891000000108,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Injury inconsistent with history given
+	(863811000000102,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Injury within last 48 hours
+	(920911000000100,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Appropriate use of accident and emergency service
+	(927031000000106,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Inappropriate use of walk-in centre
+	(927041000000102,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Inappropriate use of accident and emergency service
+	(927901000000101,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Inappropriate triage decision
+	(927921000000105,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Appropriate triage decision
+	(921071000000100,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Appropriate use of walk-in centre
+	(962871000000107,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Aware of overall cardiovascular disease risk
+	(968521000000109,   'Observation',  TO_DATE('20170314', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Inappropriate use of general practitioner service
+	--2017-Aug-25 these concepts should be in Observation, so people can put causative agent into
+	--history:on
+	(282100009,         'Observation',  TO_DATE('20170825', 'YYYYMMDD'), TO_DATE('20171116', 'YYYYMMDD')), -- Adverse reaction caused by substance
+	(282100009,         'Observation',  TO_DATE('20180820', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Adverse reaction caused by substance
+	--history:off
+	(473010000,         'Condition',    TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Hypersensitivity condition
+	(419199007,         'Observation',  TO_DATE('20170825', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergy to substance
+	(10628711000119101, 'Condition',    TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Allergic contact dermatitis caused by plant (this is only one child of 419199007 Allergy to substance that has exact condition mentioned
+	--2017-Aug-30
+	(310611001,         'Measurement',  TO_DATE('20170830', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Cardiovascular measure
+	(424122007,         'Observation',  TO_DATE('20170830', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- ECOG performance status finding
+	(698289004,         'Observation',  TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Hooka whatever Observation  -- http://forums.ohdsi.org/t/hookah-concept/3515
+	(248627000,         'Measurement',  TO_DATE('20171116', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Pulse characteristics
+	--2017-Nov-28 [AVOF-731]
+	(410652009,         'Device',       TO_DATE('20171128', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Blood product
+	(105904009,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Type of drug preparation
+	--Azaribine, Pegaptanib sodium, Cutaneous aerosol, Pegaptanib, etc. - exclusion without nice hierarchy
+	(373447009,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	(416058004,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	(387111009,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	(423490007,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	(1536005,           'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	(386925003,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	(126154004,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	(421347001,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	(61483006,          'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	(373749006,         'Drug',         TO_DATE('20180208', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	--2018-Aug-21
+	(709080004,         'Observation',  TO_DATE('20180821', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+	--2018-Oct-06
+	(414916001,         'Condition',    TO_DATE('20181006', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Obesity
+	--2018-Nov-07 [AVOF-1295]
+	(125123008,         'Measurement',  TO_DATE('20181107', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Organ Weight
+	(125125001,         'Observation',  TO_DATE('20181107', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Abnormal organ weight
+	(125124002,         'Observation',  TO_DATE('20181107', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),-- Normal organ weight
+	(268444004,         'Measurement',  TO_DATE('20181107', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Radionuclide red cell mass measurement
+	--2019-Apr-18 [AVOF-1198]
+	(327838005,         'Device',       TO_DATE('20190418', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Intravenous nutrition
+	(116178008,         'Device',       TO_DATE('20190418', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Dialysis fluid
+	(407935004,         'Device',       TO_DATE('20190418', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Contrast media
+	(385420005,         'Device',       TO_DATE('20190418', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Contrast media
+	(332525008,         'Device',       TO_DATE('20190418', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),  --Camouflaging preparations
+	(768697005,         'Device',       TO_DATE('20190418', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Barium and barium compound product -- contrast media subcathegory
+	--2019-Aug-27
+	(8653201000001106,  'Drug',         TO_DATE('20190827', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --dm+d value
+	(397731000,         'Race',         TO_DATE('20190827', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), -- Ethnic group finding
+	--2019-Mov-13
+	(108246006,         'Measurement',  TO_DATE('20191113', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tonometry AND/OR tonography procedure
+	--2020-Mar-12
+	(61746007,          'Measurement',  TO_DATE('20200312', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Taking patient vital signs
+	(771387000,         'Drug',         TO_DATE('20200312', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Substance with effector mechanism of action
+	--2020-Mar-17
+	(365866002,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding of HIV status
+	(438508001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Virus present
+	(710954001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Bacteria present
+	(871000124102,      'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Virus not detected
+	(426000000,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Fever greater than 100.4 Fahrenheit
+	(164304001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - hyperpyrexia - greater than 40.5 degrees Celsius
+	(163633002,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E -skin temperature abnormal
+	(164294007,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - rectal temperature
+	(164295008,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - core temperature
+	(164300005,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - temperature normal
+	(164303007,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - temperature elevated
+	(164293001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - groin temperature
+	(164301009,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - temperature low
+	(164292006,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - axillary temperature
+	(275874003,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - oral temperature
+	(315632006,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - tympanic temperature
+	(274308003,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - hyperpyrexia
+	(164285001,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - fever - general
+	(164290003,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - method fever registered
+	(1240591000000102,  'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --2019 novel coronavirus not detected
+	(162913005,         'Measurement',  TO_DATE('20200317', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --O/E - rate of respiration
+	--2020-Apr-28
+	(117617002,         'Measurement',  TO_DATE('20200428', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Immunohistochemistry procedure
+	--2020-May-18
+	(395098000,         'Condition',    TO_DATE('20200518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disorder confirmed
+	(1321161000000104,  'Visit',        TO_DATE('20200518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Household quarantine to prevent exposure of community to contagion
+	(1321151000000102,  'Visit',        TO_DATE('20200518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Reverse self-isolation of uninfected subject to prevent exposure to contagion
+	(1321141000000100,  'Visit',        TO_DATE('20200518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Reverse isolation of household to prevent exposure of uninfected subject to contagion
+	(1321131000000109,  'Visit',        TO_DATE('20200518', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Self quarantine and similar
+	--2020-Nov-04
+	(1032021000000100,  'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Protein level
+	(364711002,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Specific test feature
+	) AS a
+	UNION ALL
+	SELECT b.* FROM (VALUES
+	--history:on
+	(364066008,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20201210', 'YYYYMMDD'), NULL), --Cardiovascular observable
+	(364066008,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 1), --Cardiovascular observable
+	(364066008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0), --Cardiovascular observable
+	--history:off
+	(405805006,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0), --Cardiac resuscitation outcome
+	(405801002,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0), --Coronary reperfusion type
+	(364072008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0), --Cardiac feature
+	(364087003,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Blood vessel feature
+	(364069001,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Cardiac conduction system feature
+	(427751006,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Extent of cardiac perfusion defect
+	(429162008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 0),  --Extent of myocardial stress ischemia
+	(1099111000000105,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'), 1)  --Thrombolysis In Myocardial Infarction risk score for unstable angina or non-ST-segment-elevation myocardial infarction
+) AS b
+UNION ALL
+SELECT c.*, NULL FROM (VALUES
+	(248326004,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Body measure
+	(396238001,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumor measureable
+	(371508000,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Tumour stage
+	(246116008,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Lesion size
+	(404933001,         'Measurement',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Berg balance test
+	(766739005,         'Drug',         TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Substance categorized by disposition
+	(365341008,         'Observation',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to perform community living activities
+	(365031000,         'Observation',  TO_DATE('20201124', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to perform activities of everyday life
+	(365242003,         'Observation',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding related to ability to perform domestic activities
+--history:on
+	(284530008,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), --Communication, speech and language finding
+	(284530008,         'Observation',  TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20211027', 'YYYYMMDD')), --Communication, speech and language finding
+--history:off
+	(29164008,          'Condition',    TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disturbance in speech
+	(288579009,         'Condition',    TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Difficulty communicating
+	(288576002,         'Condition',    TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Unable to communicate
+	(229621000,         'Condition',    TO_DATE('20201110', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disorder of fluency
+	--AVOF-2893
+	(260299005,         'Meas Value',   TO_DATE('20201117', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number
+	(272063003,         'Meas Value',   TO_DATE('20201117', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Alphanumeric
+--history:on
+	(397745006,         'Observation',  TO_DATE('20150119', 'YYYYMMDD'), TO_DATE('20160322', 'YYYYMMDD')), --Medical contraindication
+	(397745006,         'Observation',  TO_DATE('20201124', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Medical contraindication
+--history:off
+	(373063009,         'Measurement',  TO_DATE('20201130', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Substance observable
+--2020-Dec-10
+	(252124009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Test distance
+--branches of 364676005 Anesthetic observable
+	(302132005,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --American Society of Anesthesiologists physical status class
+	(250808000,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Arteriovenous difference
+--TODO: deStandardize and map over Observable Entities that have Staging / Scales equivalent
+	(787475007,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Post Anesthetic Recovery score
+	(364678006,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Neuromuscular blockade observable
+	(364681001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Waveform observable
+	(373629008,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Capillary carbon dioxide tension
+
+	(364048003,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Respiratory observable
+	(400987003,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Asthma trigger
+	(364053008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Characteristic of respiratory tract function
+	(364049006,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Lower respiratory tract observable
+	(366874008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of asthma exacerbations in past year
+	(723245007,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Number of chronic obstructive pulmonary disease exacerbations in past year
+	(364062005,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Respiration observable
+	(250822000,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Inspiration/expiration time ratio
+	(250811004,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Minute volume
+	(251880004,         'Measurement',  TO_DATE('20181107', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Respiratory measure [AVOF-1295]
+	(404988002,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Respiratory gas exchange status
+	(404996007,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Airway patency status
+	(75098008,          'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Flow history
+	(364055001,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Respiratory characteristics of chest
+
+	(386725007,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Body temperature
+	(434912009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Blood glucose concentration
+	(934171000000101,   'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Blood lead level
+	(934191000000102,   'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Blood lead level
+	(1107241000000102,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Calcium substance concentration in plasma adjusted for albumin
+	(1107251000000104,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Calcium substance concentration in serum adjusted for albumin
+	(434910001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Interstitial fluid glucose concentration
+	(395527009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Microscopic specimen observable
+	(397504000,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Organ AND/OR tissue microscopically involved by tumor
+	(371509008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Status of peritumoral lymphocyte response
+
+	(434911002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Plasma glucose concentration
+	(935051000000108,   'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Serum adjusted calcium concentration
+	(399435001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Specimen measurable
+	(102485007,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Personal risk factor
+	(364684009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Body product observable
+	(250430006,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Color of specimen
+	(115598002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Consistency of specimen
+	(314037008,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Serum appearance
+	(412835001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Calculus appearance
+	(250434002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Odor of specimen
+	(364575001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Bone observable
+	(804361000000106,   'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Bone density scan due date
+	(405043008,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Bone healing status
+	(364576000,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Form of bone
+	(364577009,         'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Movement of bone
+
+	(364566003,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of joint
+	(249948009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Grade of muscle power
+	(364574002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of skeletal muscle
+	(364580005,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Musculoskeletal measure
+	  (404977008,       'Observation',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Skeletal functioning status
+
+	(396277003,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Fluid observable
+	(439260001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Thromboelastography observable
+	(364362002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Obstetric investigative observable
+	(364200006,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of urination
+	(1240461000000109,  'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measurement of Severe acute respiratory syndrome coronavirus 2 antibody
+--branch 414236006 Feature of anatomical entity
+	(703489001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Anogenital distance
+	(246792000,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Eye measure
+	(364499003,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of lower limb
+	(364313002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of menstruation
+	(364036001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of nose
+	(364247002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of vagina
+	(364259003,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of uterus
+	(364278003,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of gravid uterus
+	(364467009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of upper limb
+	(364276004,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of uterine contractions
+	(364292009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of cervix
+	(364295006,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of ovary
+	(364486001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of hand
+	(364519002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of foot
+	(397274003,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Exophthalmometry measurement
+	(363978004,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of lacrimation
+	(364309009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Duration measure of menstruation
+	(363939003,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measure of globe
+
+	(364097007,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Feature of pulmonary arterial pressure
+	(399048009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Main pulmonary artery peak velocity
+	(252091007,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Distal vessel patency
+	(364679003,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Intracerebral vascular observable
+	(398992002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Pulmonary vein feature
+	(251191008,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Cardiac axis
+	(251131006,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --AH interval
+	(251127000,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Effective refractory period
+	(251132004,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --HV interval
+	(251133009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Wenckebach cycle length
+	(408719002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Cardiac end-diastolic volume
+	(408718005,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Cardiac end-systolic volume
+	(364077002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Characteristic of heart sound
+	(399137004,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Feature of left atrium
+	(364080001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Feature of left ventricle
+	(364081002,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Feature of right ventricle
+	(364082009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Heart valve feature
+	(364067004,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Cardiac investigative observable
+	(399231008,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Cardiovascular orifice observable
+	(364071001,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Cardiovascular shunt feature
+	(364068009,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --ECG feature
+	(371846000,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Pulmonary valve flow
+	(397417004,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Regurgitant flow
+	(399301000,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Regurgitant fraction
+--2021-Jan-27
+	(871562009,         'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Detection of Severe acute respiratory syndrome coronavirus 2
+	(1240471000000102,  'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Measurement of Severe acute respiratory syndrome coronavirus 2 antigen
+	(1240581000000104,  'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Severe acute respiratory syndrome coronavirus 2 detected
+	(62305002,          'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Disorder of language
+	(129063003,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Instrumental activity of daily living
+	(289161009,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Finding of appetite
+--history:on
+	(309298003,         'Observation',  TO_DATE('20141218', 'YYYYMMDD'), TO_DATE('20150119', 'YYYYMMDD')), --Drug therapy observations
+	(309298003,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Drug therapy finding
+--history:off
+	(271807003,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Eruption
+	(28926001,          'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Eruption due to drug
+	(402752000,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Dermatosis resulting from cytotoxic therapy
+	(238986007,         'Condition',    TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Chemical-induced dermatological disorder
+	(293104008,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Adverse reaction to vaccine product
+	(863903001,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Allergy to vaccine product
+	(20135006,          'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Screening procedure
+	(80943009,          'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Risk factor
+	(58915005,          'Measurement',  TO_DATE('20210215', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Immune status
+) as c;
+
+--19.2.3 To be reviewed in the fiture
+--TODO: disabled for now to avoid duplication with standard Measurements
+--(445536008,         'Measurement',  TO_DATE('new', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Assessment using assessment scale
+--TODO: sort it out
+--(364709006,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Hematology observable
+--TODO: sort it out
+--(414236006,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Feature of anatomical entity
+--TODO: review scales (A Mixture of scores and Observations)
+--(363870007,        'Measurement',  TO_DATE('new', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Mental state, behavior / psychosocial function observable
+--(86084001,        'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('19700101', 'YYYYMMDD')), --Hematologic function    --Postponed
+
+--19.3. Ancestors inherit the domain_id and standard_concept of their Peaks. However, the ancestors of Peaks are overlapping.
 --Therefore, the order by which the inheritance is passed depends on the "height" in the hierarchy: The lower the peak, the later it should be run
 --The following creates the right order by counting the number of ancestors: The more ancestors the lower in the hierarchy.
---This could cause trouble if a parallel fork happens at the same height
+--This could cause trouble if a parallel fork happens at the same height, but it is resolved by domain precedence.
 UPDATE peak p
 SET ranked = (
 		SELECT rnk
@@ -2469,51 +1913,68 @@ SET ranked = (
 					peak pd
 				WHERE a.ancestor_concept_code = pa.peak_code
 					AND a.descendant_concept_code = pd.peak_code
+					AND pa.levels_down IS NULL
+					AND pa.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') --consider only active peaks
+					AND pd.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') --consider only active peaks
 				) ranked
 			GROUP BY ranked.pd
 			) r
 		WHERE r.peak_code = p.peak_code
-		);
+		)
+WHERE valid_end_date = TO_DATE('20991231', 'YYYYMMDD');--rank only active peaks
 
 --For those that have no ancestors, the rank is 1
-UPDATE peak SET ranked = 1 WHERE ranked IS NULL;
+UPDATE peak
+SET ranked = 1
+WHERE ranked IS NULL
+	AND valid_end_date = TO_DATE('20991231', 'YYYYMMDD');--rank only active peaks
 
---17.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic. 
+--19.4. Find other peak concepts (orphans) that are missed from the above manual list, and assign them a domain_id based on heuristic.
 --This is a crude catch for those circumstances if the SNOMED hierarchy as changed and the peak list is no longer complete
---The result should say "0 rows inserted"
-INSERT INTO peak -- before doing that check first out without the insert
-SELECT DISTINCT c.concept_code::BIGINT AS peak_code,
-	CASE 
-		WHEN c.concept_class_id = 'Clinical finding'
-			THEN 'Condition'
-		WHEN c.concept_class_id = 'Model Comp'
-			THEN 'Metadata'
-		WHEN c.concept_class_id = 'Namespace Concept'
-			THEN 'Metadata'
-		WHEN c.concept_class_id = 'Observable Entity'
-			THEN 'Observation'
-		WHEN c.concept_class_id = 'Organism'
-			THEN 'Observation'
-		WHEN c.concept_class_id = 'Pharma/Biol Product'
-			THEN 'Drug'
-		ELSE 'Observation'
-		END AS peak_domain_id,
-	NULL::INT AS ranked
-FROM snomed_ancestor a,
-	concept_stage c
-WHERE c.concept_code::BIGINT = a.ancestor_concept_code
-	AND a.ancestor_concept_code NOT IN (
-		SELECT DISTINCT -- find those where ancestors are not also a descendant, i.e. a top of a tree
-			descendant_concept_code
-		FROM snomed_ancestor
-		)
-	AND a.ancestor_concept_code NOT IN (
-		SELECT peak_code
-		FROM peak
-		) -- but exclude those we already have
-	AND c.vocabulary_id = 'SNOMED';
+--this should retrive nothing, otherwise add these peaks manually
+DO $$
+DECLARE
+r RECORD;
+BEGIN
+	SELECT DISTINCT c.concept_code::BIGINT AS peak_code,
+		CASE 
+			WHEN c.concept_class_id = 'Clinical finding'
+				THEN 'Condition'
+			WHEN c.concept_class_id = 'Model Comp'
+				THEN 'Metadata'
+			WHEN c.concept_class_id = 'Namespace Concept'
+				THEN 'Metadata'
+			WHEN c.concept_class_id = 'Observable Entity'
+				THEN 'Observation'
+			WHEN c.concept_class_id = 'Organism'
+				THEN 'Observation'
+			WHEN c.concept_class_id = 'Pharma/Biol Product'
+				THEN 'Drug'
+			ELSE 'Observation'
+			END AS peak_domain_id,
+		NULL::INT AS ranked
+	INTO r --remove "into r" to run as generic query
+	FROM snomed_ancestor a,
+		concept_stage c
+	WHERE c.concept_code::BIGINT = a.ancestor_concept_code
+		AND a.ancestor_concept_code NOT IN (
+			SELECT DISTINCT -- find those where ancestors are not also a descendant, i.e. a top of a tree
+				descendant_concept_code
+			FROM snomed_ancestor
+			)
+		AND a.ancestor_concept_code NOT IN (
+			--but exclude those we already have
+			SELECT peak_code
+			FROM peak
+			WHERE valid_end_date = TO_DATE('20991231', 'YYYYMMDD') --consider only active peaks
+			)
+		AND c.vocabulary_id = 'SNOMED' LIMIT 1;
+	IF FOUND THEN
+		RAISE EXCEPTION 'critical error';
+	END IF;
+END $$;
 
---17.5. Build domains, preassign all them with "Not assigned"
+--19.5. Build domains, preassign all them with "Not assigned"
 DROP TABLE IF EXISTS domain_snomed;
 CREATE UNLOGGED TABLE domain_snomed AS
 SELECT concept_code::BIGINT,
@@ -2521,16 +1982,19 @@ SELECT concept_code::BIGINT,
 FROM concept_stage
 WHERE vocabulary_id = 'SNOMED';
 
---Pass out domain_ids
+--20. Pass out domain_ids
 --Method 1: Assign domains to children of peak concepts in the order rank, and within rank by order of precedence
 --Do that for all peaks by order of ranks. The highest first, the lower ones second, etc.
 DO $_$
 DECLARE
-A INT;
+a INT;
 BEGIN
-	FOR A IN (  SELECT DISTINCT ranked
-				 FROM peak
-			 ORDER BY ranked)
+	FOR a IN (
+			SELECT DISTINCT ranked
+			FROM peak
+			WHERE ranked IS NOT NULL --consider active peaks only
+			ORDER BY ranked
+			)
 	LOOP
 		UPDATE domain_snomed d
 		SET domain_id = child.peak_domain_id
@@ -2539,13 +2003,13 @@ BEGIN
 				-- if there are two conflicting domains in the rank (both equally distant from the ancestor) then use precedence
 				FIRST_VALUE(p.peak_domain_id) OVER (
 					PARTITION BY sa.descendant_concept_code ORDER BY CASE peak_domain_id
-							WHEN 'Measurement'
-								THEN 1
-							WHEN 'Procedure'
-								THEN 2
-							WHEN 'Device'
-								THEN 3
 							WHEN 'Condition'
+								THEN 1
+							WHEN 'Measurement'
+								THEN 2
+							WHEN 'Procedure'
+								THEN 3
+							WHEN 'Device'
 								THEN 4
 							WHEN 'Provider'
 								THEN 5
@@ -2562,7 +2026,11 @@ BEGIN
 			FROM peak p,
 				snomed_ancestor sa
 			WHERE sa.ancestor_concept_code = p.peak_code
-				AND p.ranked = A
+				AND (
+					p.levels_down >= sa.min_levels_of_separation
+					OR p.levels_down IS NULL
+					)
+				AND p.ranked = a
 			) child
 		WHERE child.concept_code = d.concept_code;
 	END LOOP;
@@ -2572,9 +2040,13 @@ END $_$;
 UPDATE domain_snomed d
 SET domain_id = i.peak_domain_id
 FROM (
-	SELECT peak_code,
-		peak_domain_id
+	SELECT DISTINCT peak_code,
+		-- if there are several records for 1 peak, use the following ORDER: levels_down = 0 > 1 ... x > NULL
+		FIRST_VALUE(peak_domain_id) OVER (
+			PARTITION BY peak_code ORDER BY levels_down ASC NULLS LAST
+			) AS peak_domain_id
 	FROM peak
+	WHERE ranked IS NOT NULL --consider active peaks only
 	) i
 WHERE i.peak_code = d.concept_code;
 
@@ -2583,6 +2055,7 @@ UPDATE domain_snomed SET domain_id = 'Metadata' WHERE concept_code = 138875005;
 
 --Method 2: For those that slipped through the cracks assign domains by using the class_concept_id
 --This is a crude method, and Method 1 should be revised to cover all concepts.
+--If Local editions are based on outdated versions of International release, there always will be rows in here. This is unavoidable on our end.
 UPDATE domain_snomed d
 SET domain_id = i.domain_id
 FROM (
@@ -2648,7 +2121,7 @@ FROM (
 WHERE d.domain_id = 'Not assigned'
 	AND i.concept_code = d.concept_code;
 
---17.6. Update concept_stage from newly created domains.
+--20.1. Update concept_stage from newly created domains.
 UPDATE concept_stage c
 SET domain_id = i.domain_id
 FROM (
@@ -2657,95 +2130,18 @@ FROM (
 	FROM domain_snomed d
 	) i
 WHERE c.vocabulary_id = 'SNOMED'
-	AND i.concept_code = c.concept_code::BIGINT;
+	AND i.concept_code::TEXT = c.concept_code;
 
---17.7. Make manual changes according to rules
+--20.2. Make manual changes according to rules
 --Manual correction
 UPDATE concept_stage
 SET domain_id = 'Measurement'
 WHERE concept_code IN (
-		'839501000000106', --Nelfinavir measurement
-		'839511000000108', --Ritonavir measurement
-		'839571000000103', --Saquinavir measurement
-		'839601000000105', --Tipranavir measurement
-		'30058000', --Therapeutic drug monitoring assay
-		'839381000000107', --Darunavir measurement
-		'839421000000103', --Indinavir measurement
-		'839451000000108', --Lopinavir measurement
-		'222481000000103', --Valaciclovir measurement
-		'840721000000103', --Nevirapine measurement
-		'791931000000104', --Efavirenz measurement
 		'77667008', --Therapeutic drug monitoring, qualitative
 		'68555003', --Therapeutic drug monitoring, quantitative
-		'200311000000109', --Oxcarbazepine level
-		'194251000000108', --Bisacodyl level
-		'194521000000101',	--2-ethylidene-1,5-dimethyl-3,3-diphenylpyrrolidine measurement
-		'839251000000109',	--Abacavir measurement
-		'840761000000106',	--Adefovir dipivoxil measurement
+		'30058000', --Therapeutic drug monitoring assay
 		'88884005',	--Alpha-1-antitrypsin phenotyping
-		'840811000000104',	--Asunaprevir measurement
-		'791951000000106',	--Atazanavir measurement
-		'194261000000106',	--Bisacodyl metabolite measurement
-		'840871000000109',	--Boceprevir measurement
-		'838901000000107',	--Cidofovir measurement
-		'788101000000102',	--Citalopram measurement
-		'840801000000101',	--Daclatasvir measurement
-		'194481000000101',	--Desmethyldothiepin measurement
-		'839261000000107',	--Didanosine measurement
-		'781401000000100',	--Dihydrocodeine screen
-		'839271000000100',	--Emtricitabine measurement
-		'840731000000101',	--Enfuvirtide measurement
-		'840771000000104',	--Entecavir measurement
-		'816911000000102',	--Etravirine measurement
-		'838751000000106',	--Famciclovir measurement
-		'839411000000109',	--Fosamprenavir measurement
-		'838831000000105',	--Foscarnet sodium measurement
-		'838781000000100',	--Inosine pranobex measurement
-		'839281000000103',	--Lamivudine measurement
-		'194701000000102',	--Levetiracetam measurement
-		'840741000000105',	--Maraviroc measurement
-		'194951000000104',	--Moclobemide measurement
-		'377561000000103',	--Oral fluid 6-monoacetylmorphine measurement
-		'377681000000108',	--Oral fluid 7-aminonitrazepam measurement
-		'377711000000107',	--Oral fluid benzoylecgonine measurement
-		'816211000000108',	--Oral fluid cannabis measurement
-		'377741000000108',	--Oral fluid codeine measurement
-		'377801000000104',	--Oral fluid diazepam measurement
-		'377771000000102',	--Oral fluid dihydrocodeine measurement
-		'377831000000105',	--Oral fluid nitrazepam measurement
-		'377861000000100',	--Oral fluid nordiazepam measurement
-		'377891000000106',	--Oral fluid temazepam measurement
-		'838871000000107',	--Oseltamivir measurement
-		'195031000000106',	--Perhexiline measurement
-		'912521000000105',	--Plasma rivaroxaban measurement
-		'840751000000108',	--Raltegravir measurement
-		'840861000000102',	--Ribavirin measurement
-		'792051000000104',	--Screening test for diuretic drug
-		'900061000000109',	--Serum darunavir concentration measurement
-		'900181000000101',	--Serum efavirenz concentration measurement
-		'901781000000106',	--Serum indinavir concentration measurement
-		'901911000000102',	--Serum lopinavir concentration measurement
-		'901991000000106',	--Serum nelfinavir concentration measurement
-		'902031000000103',	--Serum nevirapine concentration measurement
-		'902091000000102',	--Serum oxcarbazepine concentration measurement
-		'958101000000104',	--Serum pentobarbital concentration measurement
-		'902381000000102',	--Serum posaconazole concentration measurement
-		'902621000000108',	--Serum ritonavir concentration measurement
-		'911041000000103',	--Serum saquinavir measurement
-		'902721000000102',	--Serum tipranavir concentration measurement
-		'910941000000105',	--Serum valaciclovir measurement
-		'902861000000101',	--Serum voriconazole concentration measurement
-		'902901000000108',	--Serum zopiclone concentration measurement
-		'839301000000102',	--Stavudine measurement
-		'840821000000105',	--Telaprevir measurement
-		'840781000000102',	--Telbivudine measurement
-		'839321000000106',	--Tenofovir disoproxil measurement
-		'783131000000103',	--Thioguanine measurement
-		'792061000000101',	--Tricyclic drug screening test
-		'903351000000103',	--Urine amphetamine concentration measurement
-		'957851000000106',	--Urine sulphonylurea screening test
-		'910891000000106',	--Whole blood everolimus concentration measurement
-		'838881000000109'	--Zanamivir measurement
+		'851211000000105' --Assessment of sedation level
 		);
 
 UPDATE concept_stage
@@ -2757,6 +2153,12 @@ WHERE concept_code IN (
 		'702809001', --Drug reaction with eosinophilia and systemic symptoms
 		'702810006', --Allopurinol hypersensitivity syndrome
 		'702811005' --Drug reaction with eosinophilia and systemic symptoms caused by strontium ranelate
+		);
+
+UPDATE concept_stage
+SET domain_id = 'Observation'
+WHERE concept_code IN (
+		'294854007' --Allergy to albumin solution
 		);
 
 UPDATE concept_stage
@@ -2863,8 +2265,8 @@ WHERE vocabulary_id = 'SNOMED'
 		WHERE ancestor_concept_code = 363743006 -- Navigational Concept, contains all sorts of orphan codes
 		);
 
---17.8. Set standard_concept based on domain_id
-UPDATE concept_stage
+--21. Set standard_concept based on validity and domain_id
+UPDATE concept_stage cs
 SET standard_concept = CASE domain_id
 		WHEN 'Drug'
 			THEN NULL -- Drugs are RxNorm
@@ -2875,18 +2277,33 @@ SET standard_concept = CASE domain_id
 		WHEN 'Race'
 			THEN NULL -- Race are CDC
 		WHEN 'Provider'
-			THEN NULL -- got CMS and ABMS specialty
-		WHEN 'Place of Service'
-			THEN NULL -- got own place of service
+			THEN NULL -- got own Provider domain
+		WHEN 'Visit'
+			THEN NULL -- got own Visit domain
 		WHEN 'Type Concept'
-			THEN NULL -- Type Concept in own OMOP vocabulary
+			THEN NULL -- got own Type Concept domain
 		WHEN 'Unit'
 			THEN NULL -- Units are UCUM
 		ELSE 'S'
 		END
-WHERE invalid_reason is null;
+WHERE cs.invalid_reason IS NULL
+	AND --if the concept has outside mapping from manual table, do not update it's Standard status
+	NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.invalid_reason IS NULL
+			AND (
+				crs_int.concept_code_1,
+				crs_int.vocabulary_id_1
+				) <> (
+				crs_int.concept_code_2,
+				crs_int.vocabulary_id_2
+				)
+			AND crs_int.concept_code_1 = cs.concept_code
+			AND crs_int.relationship_id = 'Maps to'
+		);
 
---And de-standardize navigational concepts
+--21.1 De-standardize navigational concepts
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE vocabulary_id = 'SNOMED'
@@ -2896,98 +2313,109 @@ WHERE vocabulary_id = 'SNOMED'
 		WHERE ancestor_concept_code = 363743006 -- Navigational Concept
 		);
 
---18. Return domain_id and concept_class_id for some concepts according to our rules
---18.1 Return domain_id
-UPDATE concept_stage cs
-SET domain_id = i.domain_id
-FROM (
-	SELECT dmd_int.domain_id,
-		dmd_int.concept_code
-	FROM concept_stage_dmd dmd_int,
-		concept_stage cs_int
-	WHERE dmd_int.concept_code = cs_int.concept_code
-		AND dmd_int.domain_id <> cs_int.domain_id
-		AND dmd_int.insert_id IN (
-			1,
-			2,
-			3,
-			4,
-			5,
-			6
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
-
---18.2. Return concept_class_id
---for AMPPs (branded packs), AMPs (branded drugs) and VMPPs (clinical packs)
-UPDATE concept_stage cs
-SET concept_class_id = i.concept_class_id
-FROM (
-	SELECT dmd_int.concept_class_id,
-		dmd_int.concept_code
-	FROM concept_stage_dmd dmd_int,
-		concept_stage cs_int
-	WHERE dmd_int.concept_code = cs_int.concept_code
-		AND dmd_int.concept_class_id = 'Pharma/Biol Product'
-		AND cs_int.concept_class_id IS NULL
-		AND dmd_int.insert_id IN (
-			13,
-			14,
-			15
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
-
---for Ingredients and deprecated Ingredients
-UPDATE concept_stage cs
-SET concept_class_id = i.concept_class_id
-FROM (
-	SELECT dmd_int.concept_class_id,
-		dmd_int.concept_code
-	FROM concept_stage_dmd dmd_int,
-		concept_stage cs_int
-	WHERE dmd_int.concept_code = cs_int.concept_code
-		AND dmd_int.concept_class_id = 'Substance'
-		AND COALESCE(cs_int.concept_class_id, 'unknown') NOT IN ('Substance')
-		AND dmd_int.insert_id IN (
-			7,
-			8
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
-
---for Route, deprecated Routes, UoMs and deprecated UoMs
-UPDATE concept_stage cs
-SET concept_class_id = i.concept_class_id
-FROM (
-	SELECT dmd_int.concept_class_id,
-		dmd_int.concept_code
-	FROM concept_stage_dmd dmd_int,
-		concept_stage cs_int
-	WHERE dmd_int.concept_code = cs_int.concept_code
-		AND dmd_int.concept_class_id = 'Qualifier Value'
-		AND COALESCE(cs_int.concept_class_id, 'unknown') NOT IN ('Qualifier Value')
-		AND dmd_int.insert_id IN (
-			1,
-			2,
-			5,
-			6
-			)
-	) i
-WHERE i.concept_code = cs.concept_code;
-
---19. Rename this Topical one
-UPDATE concept_stage
-SET concept_name = 'Topical route'
-WHERE concept_code = '6064005';
-
---20. Make those Obsolete routes non-standard
+--21.2. Make those Obsolete routes non-standard
 UPDATE concept_stage
 SET standard_concept = NULL
 WHERE concept_name LIKE 'Obsolete%'
 	AND domain_id = 'Route';
 
---21. Make concepts non standard if they have 'Maps to' relationship
+--21.3. Add 'Maps to' relations to concepts that are duplicating between different SNOMED editions
+--https://github.com/OHDSI/Vocabulary-v5.0/issues/431
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+WITH concept_status AS (
+		SELECT *
+		FROM (
+			SELECT id AS conceptid,
+				active,
+				statusid,
+				moduleid,
+				effectivetime,
+				rank() OVER (
+					PARTITION BY id ORDER BY effectivetime DESC
+					) AS rn
+			FROM sources.sct2_concept_full_merged c
+			) AS s0
+		WHERE rn = 1
+		),
+	concept_fsn AS (
+		SELECT *
+		FROM (
+			SELECT d.conceptid,
+				d.term AS fsn,
+				a.active,
+				a.statusid,
+				a.moduleid,
+				a.effectivetime,
+				rank() OVER (
+					PARTITION BY d.conceptid ORDER BY d.effectivetime DESC
+					) AS rn
+			FROM sources.sct2_desc_full_merged d
+			JOIN concept_status a ON a.conceptid = d.conceptid
+				AND a.active = 1
+			WHERE d.active = 1
+				AND d.typeid = 900000000000003001 -- FSN
+			) AS s0
+		WHERE rn = 1
+		),
+	dupes AS (
+		SELECT fsn
+		FROM concept_fsn
+		GROUP BY fsn
+		HAVING COUNT(conceptid) > 1
+		),
+	preferred_code AS
+	--1. International concept over local
+	--2. Defined concept over primitive
+	--3. Newest concept
+	(
+		SELECT d.fsn,
+			c.conceptid,
+			first_value(c.conceptid) OVER (
+				PARTITION BY d.fsn ORDER BY CASE c.moduleid
+						WHEN 900000000000207008 -- Core (International)
+							THEN 1
+						ELSE 2
+						END,
+					CASE c.statusid
+						WHEN 900000000000073002 --fully defined
+							THEN 1
+						ELSE 2
+						END,
+					effectivetime DESC
+				) AS replacementid
+		FROM dupes d
+		JOIN concept_fsn c ON c.fsn = d.fsn
+		)
+SELECT p.conceptid::VARCHAR,
+	p.replacementid::VARCHAR,
+	'SNOMED',
+	'SNOMED',
+	'Maps to',
+	TO_DATE('19700101', 'yyyymmdd'),
+	TO_DATE('20991231', 'yyyymmdd')
+FROM preferred_code p
+JOIN concept_stage c ON c.concept_code = p.replacementid::VARCHAR
+	AND c.standard_concept IS NOT NULL
+WHERE p.conceptid <> p.replacementid
+AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = p.conceptid::VARCHAR
+			AND crs_int.vocabulary_id_1='SNOMED'
+			AND crs_int.concept_code_2 = p.replacementid::VARCHAR
+			AND crs_int.vocabulary_id_2='SNOMED'
+			AND crs_int.relationship_id = 'Maps to'
+		);
+
+--21.4. Make concepts non standard if they have a 'Maps to' relationship
 UPDATE concept_stage cs
 SET standard_concept = NULL
 WHERE EXISTS (
@@ -3000,53 +2428,27 @@ WHERE EXISTS (
 		)
 	AND cs.standard_concept = 'S';
 
---22. Insert new synonyms from manual source
-INSERT INTO concept_synonym_stage (
-	synonym_concept_code,
-	synonym_vocabulary_id,
-	synonym_name,
-	language_concept_id
-	)
-VALUES ('1240461000000109','SNOMED','Measurement of SARS-CoV-2 antibody',4180186),
-	('1240531000000103','SNOMED','Myocarditis due to COVID-19',4180186),
-	('1240521000000100','SNOMED','Otitis media caused by 2019 novel coronavirus',4180186),
-	('1240571000000101','SNOMED','Gastroenteritis caused by 2019 novel coronavirus',4180186),
-	('1240551000000105','SNOMED','Pneumonia due to COVID-19',4180186),
-	('1240541000000107','SNOMED','Infection of upper respiratory tract caused by 2019 novel coronavirus',4180186),
-	('1240541000000107','SNOMED','Infection of upper respiratory tract due to COVID-19',4180186),
-	('1240441000000108','SNOMED','Close exposure to 2019 novel coronavirus infection',4180186),
-	('1240491000000103','SNOMED','2019 novel coronavirus vaccination',4180186),
-	('1240751000000100','SNOMED','Disease caused by 2019 novel coronavirus',4180186),
-	('1240401000000105','SNOMED','Antibody to 2019 novel coronavirus',4180186),
-	('1240561000000108','SNOMED','Encephalopathy caused by 2019 novel coronavirus',4180186),
-	('1240461000000109','SNOMED','Measurement of 2019 novel coronavirus antibody',4180186),
-	('1240531000000103','SNOMED','Myocarditis caused by 2019 novel coronavirus',4180186),
-	('1240511000000106','SNOMED','Detection of SARS-CoV-2 using polymerase chain reaction technique',4180186),
-	('1240471000000102','SNOMED','Measurement of 2019 novel coronavirus antigen',4180186),
-	('1240511000000106','SNOMED','Detection of 2019 novel coronavirus using polymerase chain reaction technique',4180186),
-	('1240551000000105','SNOMED','Pneumonia caused by 2019 novel coronavirus',4180186),
-	('1240571000000101','SNOMED','Gastroenteritis due to COVID-19',4180186),
-	('1240431000000104','SNOMED','Exposure to 2019 novel coronavirus infection',4180186),
-	('1240381000000105','SNOMED','2019 novel coronavirus',4180186),
-	('840544004','SNOMED','Suspected disease caused by severe acute respiratory coronavirus 2',4180186),
-	('1240581000000104','SNOMED','2019 novel coronavirus detected',4180186),
-	('1240581000000104','SNOMED','SARS-CoV-2 detected',4180186),
-	('1240561000000108','SNOMED','Encephalopathy due to COVID-19',4180186),
-	('1240761000000102','SNOMED','Suspected disease caused by 2019 novel coronavirus',4180186),
-	('1240391000000107','SNOMED','Antigen of 2019 novel coronavirus',4180186),
-	('1240591000000102','SNOMED','2019 novel coronavirus not detected',4180186),
-	('1240591000000102','SNOMED','SARS-CoV-2 not detected',4180186),
-	('1240441000000108','SNOMED','Close exposure to SARS-CoV-2',4180186),
-	('1240521000000100','SNOMED','Otitis media due to COVID-19',4180186),
-	('1240471000000102','SNOMED','Measurement of SARS-CoV-2 antigen',4180186);
+--21.5. Make concepts non standard if they represent no information
+UPDATE concept_stage cs
+SET standard_concept = NULL
+WHERE cs.concept_code IN (
+		'1321581000000100', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgM detection result unknown
+		'1321641000000107', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgG detection result unknown
+		'1321651000000105', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) immunity status unknown
+		'1321691000000102', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) RNA (ribonucleic acid) detection result unknown
+		'1321781000000107', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) IgA detection result unknown
+		'1322821000000105', --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antigen detection result unknown
+		'1322911000000106' --SARS-CoV-2 (severe acute respiratory syndrome coronavirus 2) antibody detection result unknown
+		)
+	AND cs.standard_concept = 'S';
 
---23. Clean up
+--22. Clean up
 DROP TABLE peak;
 DROP TABLE domain_snomed;
-DROP TABLE concept_stage_dmd;
 DROP TABLE snomed_ancestor;
+DROP VIEW module_date;
 
---24. Need to check domains before runnig the generic_update
+--22. Need to check domains before runnig the generic_update
 /*temporary disabled for later use
 DO $_$
 DECLARE

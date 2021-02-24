@@ -4,6 +4,7 @@ select new.concept_code,
        new.concept_name as concept_name,
        new.concept_class_id as concept_class_id,
        new.standard_concept as standard_concept,
+       new.vocabulary_id as vocabulary_id,
        old.domain_id as old_domain_id,
        new.domain_id as new_domain_id
 from concept new
@@ -235,4 +236,20 @@ where a.vocabulary_id IN (:your_vocabs)
                         AND cr.relationship_id = 'Maps to'
                         AND cr.invalid_reason IS NULL
     )
+;
+
+--02.9. Concepts are presented in CRM with "Maps to" link, but end up with no valid "Maps to"
+SELECT *
+FROM concept c
+WHERE c.vocabulary_id IN (:your_vocabs)
+    AND EXISTS (SELECT 1
+                FROM concept_relationship_manual crm
+                WHERE c.concept_code = crm.concept_code_1
+                    AND c.vocabulary_id = crm.vocabulary_id_1
+                    AND crm.relationship_id = 'Maps to')
+AND NOT EXISTS (SELECT 1
+                FROM concept_relationship cr
+                WHERE c.concept_id = cr.concept_id_1
+                    AND cr.relationship_id = 'Maps to'
+                    AND cr.invalid_reason IS NULL)
 ;

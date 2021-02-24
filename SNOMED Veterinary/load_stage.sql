@@ -926,7 +926,7 @@ VALUES ('138875005', 'Metadata'), -- root
 	('370115009', 'Metadata'), -- Special Concept
 	('308916002', 'Observation'), -- Environment or geographical location
 	('223366009', 'Provider'),
-	('43741000', 'Place of Service'), -- Site of care
+	('43741000', 'Visit'), -- Site of care
 	('420056007', 'Drug'), -- Aromatherapy agent
 	('373873005', 'Drug'), -- Pharmaceutical / biologic product
 	('410942007', 'Drug'), -- Drug or medicament
@@ -1364,11 +1364,11 @@ SET standard_concept = CASE domain_id
 		WHEN 'Race'
 			THEN NULL -- Race are CDC
 		WHEN 'Provider'
-			THEN NULL -- got CMS and ABMS specialty
-		WHEN 'Place of Service'
-			THEN NULL -- got own place of service
+			THEN NULL -- got own Provider domain
+		WHEN 'Visit'
+			THEN NULL -- got own Visit domain
 		WHEN 'Type Concept'
-			THEN NULL -- Type Concept in own OMOP vocabulary
+			THEN NULL -- got own Type Concept domain
 		WHEN 'Unit'
 			THEN NULL -- Units are UCUM
 		ELSE 'S'

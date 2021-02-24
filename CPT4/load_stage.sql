@@ -83,7 +83,7 @@ INSERT INTO concept_stage (
 	)
 SELECT DISTINCT vocabulary_pack.CutConceptName(UPPER(SUBSTRING(str FROM 1 FOR 1)) || SUBSTRING(str FROM 2 FOR LENGTH(str))) AS concept_name,
 	'CPT4' AS vocabulary_id,
-	'Place of Service' AS concept_class_id,
+	'Visit' AS concept_class_id,
 	NULL AS standard_concept,
 	scui AS concept_code,
 	(
@@ -472,7 +472,7 @@ FROM (
 					'T093'
 					)
 				AND tty = 'POS'
-				THEN 'Place of Service'
+				THEN 'Visit'
 			WHEN m2.tui IN (
 					'T081',
 					'T097',

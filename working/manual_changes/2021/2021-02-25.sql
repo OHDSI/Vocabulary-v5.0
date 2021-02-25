@@ -1,3 +1,4 @@
+// Two monoclonal antibodies are currently missing from RxNorm but are required to map ICD10PCS concepts
 DO $_$
 BEGIN
   PERFORM vocabulary_pack.AddNewConcept(

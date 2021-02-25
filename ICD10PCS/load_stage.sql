@@ -96,8 +96,7 @@ SELECT DISTINCT
 					THEN LENGTH(str)
 				ELSE 0
 				END DESC,
-			str ROWS BETWEEN UNBOUNDED PRECEDING
-				AND UNBOUNDED FOLLOWING
+			str
 		) AS concept_name,
 	'ICD10PCS' AS vocabulary_id,
 	'Procedure' AS domain_id,
@@ -107,12 +106,12 @@ SELECT DISTINCT
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.mrconso
-WHERE sab = 'ICD10PCS'
+FROM sources.mrconso mr
+WHERE mr.sab = 'ICD10PCS'
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_stage cs
-		WHERE cs.concept_code = code
+		WHERE cs.concept_code = mr.code
 		);
 
 --5. Add all synonyms from umls.mrconso to concept_synonym stage
@@ -122,19 +121,15 @@ INSERT INTO concept_synonym_stage (
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT code AS concept_code,
-	str AS synonym_name,
+SELECT DISTINCT mr.code AS concept_code,
+	mr.str AS synonym_name,
 	'ICD10PCS' AS vocabulary_id,
 	4180186 AS language_concept_id
-FROM sources.mrconso
-left join concept_stage on
-	concept_code = code and
-	str = concept_name
-WHERE
-	sab = 'ICD10PCS' and
-	concept_code is null
-GROUP BY code,
-	str;
+FROM sources.mrconso mr
+LEFT JOIN concept_stage cs ON cs.concept_code = mr.code
+	AND LOWER(cs.concept_name) = LOWER(mr.str)
+WHERE mr.sab = 'ICD10PCS'
+	AND cs.concept_code IS NULL;
 
 --6. "Resurrect" previously deprecated concepts using the basic tables (they, being encountered in patient data, must remain Standard!)
 -- Add 'Deprecated' to concept_names to show the fact of deprecation by the source (we expect codes to be deprecated each release cycle)
@@ -192,7 +187,7 @@ SELECT c.concept_code,
 FROM concept_synonym s
 JOIN concept c ON c.concept_id = s.concept_id
 	AND c.vocabulary_id = 'ICD10PCS'
-	AND lower (s.concept_synonym_name) != lower (c.concept_name)
+	AND LOWER(c.concept_name) <> LOWER(s.concept_synonym_name)
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 WHERE i.concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
@@ -210,12 +205,12 @@ SELECT c.concept_code,
 	4180186 AS language_concept_id
 FROM concept c
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
-LEFT JOIN concept_synonym_stage a ON a.synonym_concept_code = c.concept_code
-	AND lower(a.synonym_name) = lower(c.concept_name)
-	AND c.concept_name not like '% (Deprecated)'
+LEFT JOIN concept_synonym_stage css ON css.synonym_concept_code = c.concept_code
+	AND LOWER(css.synonym_name) = LOWER(c.concept_name)
+	AND c.concept_name NOT LIKE '% (Deprecated)'
 WHERE c.vocabulary_id = 'ICD10PCS'
 	AND i.concept_code IS NULL
-	AND a.synonym_concept_code IS NULL
+	AND css.synonym_concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
 
 --9. Process manual tables for concept and relationship

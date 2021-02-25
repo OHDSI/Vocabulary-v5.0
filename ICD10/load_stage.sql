@@ -233,7 +233,56 @@ FROM (
 		AND class_code NOT LIKE '%-%'
 	) AS s0
 WHERE concept_code ~ '[A-Z]\d\d.*'
-	AND concept_code !~ 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.0|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+';
+	AND concept_code !~ 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.0|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+'
+	-- add chapters
+UNION
+SELECT rubric_label AS concept_name,
+       'Observation' AS domain_id,
+       'ICD10' AS vocabulary_id,
+       'ICD10 Chapter' AS concept_class_id,
+       NULL AS standard_concept,
+       class_code AS concept_code,
+       (SELECT latest_update
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10') AS valid_start_date,
+       TO_DATE('20991231','YYYYMMDD') AS valid_end_date,
+       NULL AS invalid_reason
+FROM classes
+WHERE class_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$'
+AND   rubric_kind = 'preferred'
+-- add subchapters
+UNION
+SELECT rubric_label AS concept_name,
+       'Condition' AS domain_id,
+       'ICD10' AS vocabulary_id,
+       'ICD10 SubChapter' AS concept_class_id,
+       NULL AS standard_concept,
+       class_code AS concept_code,
+       (SELECT latest_update
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10') AS valid_start_date,
+       TO_DATE('20991231','YYYYMMDD') AS valid_end_date,
+       NULL AS invalid_reason
+FROM classes
+WHERE class_code LIKE '%-%'
+AND   rubric_kind = 'preferred'
+AND   superclass_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$'
+UNION
+SELECT rubric_label AS concept_name,
+       'Condition' AS domain_id,
+       'ICD10' AS vocabulary_id,
+       'ICD10 SubChapter' AS concept_class_id,
+       NULL AS standard_concept,
+       class_code AS concept_code,
+       (SELECT latest_update
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10') AS valid_start_date,
+       TO_DATE('20991231','YYYYMMDD') AS valid_end_date,
+       NULL AS invalid_reason
+FROM classes
+WHERE class_code LIKE '%-%'
+AND   rubric_kind = 'preferred'
+AND   superclass_code LIKE '%-%';
 
 UPDATE concept_stage cs
 SET concept_name = i.new_name
@@ -252,6 +301,7 @@ FROM (
 		c.concept_name || ' as the cause of abnormal reaction of the patient, or of later complication, without mention of misadventure at the time of the procedure'
 	FROM concept_stage c
 	WHERE c.concept_code ~ '((Y83)|(Y84)).+'
+	AND   c.concept_code != 'Y83-Y84'
 	
 	UNION ALL
 	
@@ -344,7 +394,9 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		WHERE r_int.concept_code_1 = c1.concept_code
 			AND r_int.concept_code_2 = c2.concept_code
 			AND r_int.relationship_id = 'Subsumes'
-		);
+		)
+AND   c2.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
+AND   c1.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter');
 DROP INDEX trgm_idx;
 
 --12. Update domain_id for ICD10 from SNOMED
@@ -424,17 +476,100 @@ WHERE domain_id IS NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---14. Clean up
+-- 14. Add hierarchical relationships
+-- add relationship from chapters to subchapters and vice versa
+INSERT INTO concept_relationship_stage
+(
+  concept_code_1,
+  concept_code_2,
+  vocabulary_id_1,
+  vocabulary_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+SELECT superclass_code AS concept_code_1,
+       class_code AS concept_code_2,
+       'ICD10' AS vocabulary_id_1,
+       'ICD10' AS vocabulary_id_2,
+       'Subsumes' AS relationship_id,
+       (SELECT latest_update
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10') AS valid_start_date,
+       TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+       NULL AS invalid_reason
+FROM classes
+WHERE class_code LIKE '%-%'
+AND   rubric_kind = 'preferred'
+AND   superclass_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$'
+UNION
+SELECT class_code AS concept_code_1,
+       superclass_code AS concept_code_2,
+       'ICD10' AS vocabulary_id_1,
+       'ICD10' AS vocabulary_id_2,
+       'Is a' AS relationship_id,
+       (SELECT latest_update
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10') AS valid_start_date,
+       TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+       NULL AS invalid_reason
+FROM classes
+WHERE class_code LIKE '%-%'
+AND   rubric_kind = 'preferred'
+AND   superclass_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$';
+
+-- add relationship from subchapters to blocks and vice versa
+INSERT INTO concept_relationship_stage
+(
+  concept_code_1,
+  concept_code_2,
+  vocabulary_id_1,
+  vocabulary_id_2,
+  relationship_id,
+  valid_start_date,
+  valid_end_date,
+  invalid_reason
+)
+SELECT superclass_code AS concept_code_1,
+       class_code AS concept_code_2,
+       'ICD10' AS vocabulary_id_1,
+       'ICD10' AS vocabulary_id_2,
+       'Subsumes' AS relationship_id,
+       (SELECT latest_update
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10') AS valid_start_date,
+       TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+       NULL AS invalid_reason
+FROM classes
+WHERE rubric_kind = 'preferred'
+AND   superclass_code LIKE '%-%'
+UNION
+SELECT class_code AS concept_code_1,
+       superclass_code AS concept_code_2,
+       'ICD10' AS vocabulary_id_1,
+       'ICD10' AS vocabulary_id_2,
+       'Is a' AS relationship_id,
+       (SELECT latest_update
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10') AS valid_start_date,
+       TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+       NULL AS invalid_reason
+FROM classes
+WHERE rubric_kind = 'preferred'
+AND   superclass_code LIKE '%-%';
+
+--15. Clean up
 DROP TABLE modifier_classes;
 DROP TABLE classes;
 
---15. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--16. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---16. Build reverse relationship. This is necessary for next point
+--17. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -466,7 +601,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---17. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--18. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -501,6 +636,9 @@ WHERE 'ICD10' IN (
 			AND crs_int.vocabulary_id_1 = a.vocabulary_id
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
-		);
+		)
+AND   a.concept_class_id NOT IN ('ICD10 SubChapter','ICD10 Chapter')
+AND   b.concept_class_id NOT IN ('ICD10 SubChapter','ICD10 Chapter');
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+

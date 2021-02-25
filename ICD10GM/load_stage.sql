@@ -59,7 +59,8 @@ SELECT c.concept_name,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM sources.icd10gm g
 LEFT JOIN concept c ON c.concept_code = g.concept_code
-	AND c.vocabulary_id = 'ICD10';
+	AND c.vocabulary_id = 'ICD10'
+	AND c.concept_class_id NOT LIKE '%Chapter%';
 
 --4. Append concept corrections -- COVID concepts added and English translation
 DO $_$
@@ -98,6 +99,7 @@ FROM (
 			) AS concept_id
 	FROM concept_stage cs
 	JOIN concept c ON c.vocabulary_id = 'ICD10'
+		AND c.concept_class_id NOT LIKE '%Chapter%'
 		AND
 		--Allow fuzzy match uphill for this iteration
 		cs.concept_code LIKE c.concept_code || '%'

@@ -1,4 +1,4 @@
-﻿update concept_stage
+update concept_stage
 set concept_id = null
 ;
 analyze concept_stage
@@ -14,28 +14,6 @@ where concept_id is null and concept_class_id = 'ICD10PCS'
 analyze concept_stage
 ;
 drop table if exists ancestor_snomed cascade
-;
-create or replace view intl_code as --alternative way of finding valid codes since UMLS is updated infrequently
-with namespaces as
-	(
-		select trim ('{}' from substring (c.concept_name from '\{?\d{7}\}?$')) as namespace
-		from concept_relationship r
-		join concept c on
-			r.invalid_reason is null and
-			r.relationship_id = 'Is a' and
-			r.concept_id_1 = c.concept_id and
-			r.concept_id_2 = 40546921 and --SNOMED Namespace concept
-			r.concept_id_1 != 40555041 -- intl namespace
-	)
-select c.concept_code, c.concept_id
-from concept c
-left join namespaces n on
-	c.concept_code like '%' || n.namespace || '%' and
-	length (c.concept_code) > 8 --some intersection with core namespace: codes themself are at least 2 symbols long
-where
-	c.vocabulary_id = 'SNOMED' and
-	c.invalid_reason is null and
-	n.namespace is null
 ;
 create table ancestor_snomed as
 with recursive hierarchy_concepts (ancestor_concept_id,descendant_concept_id, root_ancestor_concept_id, levels_of_separation, full_path) as
@@ -66,8 +44,6 @@ with recursive hierarchy_concepts (ancestor_concept_id,descendant_concept_id, ro
 			r.invalid_reason is null
 --         	AND EXISTS (select 1 from sources.mrconso m1 where c1.concept_code = m1.code and m1.sab = 'SNOMEDCT_US')
 --			AND EXISTS (select 1 from sources.mrconso m2 where c1.concept_code = m2.code and m2.sab = 'SNOMEDCT_US')
-			and exists (select from intl_code m1 where c1.concept_id = m1.concept_id)
-			and exists (select from intl_code m2 where c2.concept_id = m2.concept_id)
 				--split false hierarchy
 			and (r.concept_id_1, r.concept_id_2) not in 
 				(
@@ -98,8 +74,7 @@ SELECT c.concept_id AS ancestor_concept_id,
 FROM concept c
 WHERE
 	c.vocabulary_id = 'SNOMED' and
-	exists (select from intl_code m where c.concept_id = m.concept_id) and
--- 	EXISTS (select 1 from sources.mrconso m where c.concept_code = m.code and m.sab = 'SNOMEDCT_US') and
+--	exists (select from intl_code m where c.concept_id = m.concept_id) and
 	c.invalid_reason is null
 ;
 ALTER TABLE ancestor_snomed ADD CONSTRAINT xpkancestor_snomed PRIMARY KEY (ancestor_concept_id,descendant_concept_id);
@@ -158,6 +133,7 @@ analyze ancestor_snomed
 ;
 drop table if exists relations
 ;
+--replace with algorythm from ICD9Proc
 create table relations (relationship_id varchar (127))
 ;
 DO $_$
@@ -206,6 +182,12 @@ analyze relations
 drop table if exists snomed_relationship cascade
 ;
 create table snomed_relationship as
+with defstat as
+	(
+		select distinct id :: varchar, first_value (statusid) over (partition by id order by effectivetime desc) as status
+		from sources.sct2_concept_full_merged
+	)
+
 select distinct cr.concept_id_1, cr.concept_id_2, cr.invalid_reason, cr.relationship_id, cr.valid_end_date, cr.valid_start_date
 from concept_relationship cr
 join relations r on
@@ -220,6 +202,9 @@ join concept c1 on
 join concept c2 on
 	c2.concept_id = cr.concept_id_2 and
 	c2.vocabulary_id = 'SNOMED'
+join defstat d on
+	c1.concept_code = d.id and
+	d.status = 900000000000073002 -- Defined
 where
 	exists
 		(
@@ -282,6 +267,7 @@ where
 	concept_id_1 = 4253788 and
 	relationship_id = 'Has dir subst'
 ;
+--should not be needed?
 delete from snomed_relationship 
 where concept_id_2 in --too generic
 	(
@@ -302,6 +288,7 @@ where concept_id_2 in --too generic
 		4338971	--Soft tissues
 	)
 ;
+--add relation to snomed_ancestor
 delete from snomed_relationship s --if procedure has 'revision' attribute, it should not have generic 'surgery' 
 where
 	concept_id_1 in
@@ -335,16 +322,15 @@ where
 drop table if exists attributes10
 ;
 --generate atribute table for mappings
+-- add @ synonyms from basic tables
 create table attributes10 as
 with mrconso_united as
 (
 		select cui,lat,ts,lui,stt,sui,ispref,aui,saui,scui,sdui,sab,tty,code,str,srl,suppress,cvf from sources.mrconso
--- 			union all
--- 		select cui,lat,ts,lui,stt,sui,ispref,aui,saui,scui,sdui,sab,tty,code,str,srl,suppress,cvf from sources.icdo3_mrconso
 ),
 i10 as
 (
-	select c.concept_id, m.code as concept_code, replace (m.str, ' @ ', '@') as concept_name
+	select c.concept_id, m.code as concept_code, m.str as concept_name
 	FROM mrconso_united m
 	join concept_stage c on
 		m.sab = 'ICD10PCS' and 
@@ -352,8 +338,20 @@ i10 as
 		length (m.code) = 7 and
 		c.concept_code = m.code and
 		c.vocabulary_id = 'ICD10PCS'
+
+		union
+
+	select c.concept_id, c.concept_code, s.concept_synonym_name
+	from devv5.concept c
+	join devv5.concept_synonym s on
+		c.concept_id = s.concept_id and
+		c.standard_concept = 'S' and
+		c.vocabulary_id = 'ICD10PCS' and
+		s.concept_synonym_name ~ '\@' and
+		s.concept_synonym_name !~ '\(Deprecated\)$'
+
  )
-SELECT distinct concept_id,concept_code,l.attr_name,l.priority
+SELECT distinct concept_id,concept_code,trim (' ,' from l.attr_name) as attr_name,l.priority
 FROM i10,
 lateral
 	(

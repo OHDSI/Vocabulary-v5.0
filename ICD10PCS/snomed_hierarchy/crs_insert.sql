@@ -1,4 +1,4 @@
-﻿truncate concept_relationship_stage
+truncate concept_relationship_stage
 ;
 insert into concept_relationship_stage
 	(

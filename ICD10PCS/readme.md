@@ -13,3 +13,5 @@ file name YYYY-ICD-10-PCS-Order-File.zip (e.g. 2019-ICD-10-PCS-Order-File.zip) l
 6. Run generic_update: devv5.GenericUpdate();
 
 Directory snomed_hierarchy contains unrefined version of tools to build automated relationship to SNOMED concepts currently stored in concept_relationship_manual. These scripts are early version and require a thorough refactoring before being reused.
+
+Attribute mappings for SNOMED are available under: https://drive.google.com/drive/u/2/folders/17PPiksUxXYNQ6batNduHpGxO-CDC1ZqV

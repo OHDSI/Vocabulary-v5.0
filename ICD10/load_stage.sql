@@ -235,7 +235,7 @@ FROM (
 WHERE concept_code ~ '[A-Z]\d\d.*'
 	AND concept_code !~ 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.0|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+'
 	-- add chapters
-UNION
+UNION ALL
 SELECT rubric_label AS concept_name,
        'Observation' AS domain_id,
        'ICD10' AS vocabulary_id,
@@ -251,7 +251,7 @@ FROM classes
 WHERE class_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$'
 AND   rubric_kind = 'preferred'
 -- add subchapters
-UNION
+UNION ALL
 SELECT rubric_label AS concept_name,
        'Condition' AS domain_id,
        'ICD10' AS vocabulary_id,
@@ -265,24 +265,7 @@ SELECT rubric_label AS concept_name,
        NULL AS invalid_reason
 FROM classes
 WHERE class_code LIKE '%-%'
-AND   rubric_kind = 'preferred'
-AND   superclass_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$'
-UNION
-SELECT rubric_label AS concept_name,
-       'Condition' AS domain_id,
-       'ICD10' AS vocabulary_id,
-       'ICD10 SubChapter' AS concept_class_id,
-       NULL AS standard_concept,
-       class_code AS concept_code,
-       (SELECT latest_update
-        FROM vocabulary
-        WHERE vocabulary_id = 'ICD10') AS valid_start_date,
-       TO_DATE('20991231','YYYYMMDD') AS valid_end_date,
-       NULL AS invalid_reason
-FROM classes
-WHERE class_code LIKE '%-%'
-AND   rubric_kind = 'preferred'
-AND   superclass_code LIKE '%-%';
+AND   rubric_kind = 'preferred';
 
 UPDATE concept_stage cs
 SET concept_name = i.new_name
@@ -641,4 +624,5 @@ AND   a.concept_class_id NOT IN ('ICD10 SubChapter','ICD10 Chapter')
 AND   b.concept_class_id NOT IN ('ICD10 SubChapter','ICD10 Chapter');
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+
 

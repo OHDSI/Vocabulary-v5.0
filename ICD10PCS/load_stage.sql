@@ -212,6 +212,7 @@ FROM concept c
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 LEFT JOIN concept_synonym_stage a ON a.synonym_concept_code = c.concept_code
 	AND a.synonym_name = c.concept_name
+	AND c.concept_name not like '% (Deprecated)'
 WHERE c.vocabulary_id = 'ICD10PCS'
 	AND i.concept_code IS NULL
 	AND a.synonym_concept_code IS NULL

@@ -192,7 +192,7 @@ SELECT c.concept_code,
 FROM concept_synonym s
 JOIN concept c ON c.concept_id = s.concept_id
 	AND c.vocabulary_id = 'ICD10PCS'
-	AND s.concept_synonym_name != c.concept_name
+	AND lower (s.concept_synonym_name) != lower (c.concept_name)
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 WHERE i.concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
@@ -211,7 +211,7 @@ SELECT c.concept_code,
 FROM concept c
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 LEFT JOIN concept_synonym_stage a ON a.synonym_concept_code = c.concept_code
-	AND a.synonym_name = c.concept_name
+	AND lower(a.synonym_name) = lower(c.concept_name)
 	AND c.concept_name not like '% (Deprecated)'
 WHERE c.vocabulary_id = 'ICD10PCS'
 	AND i.concept_code IS NULL

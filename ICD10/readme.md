@@ -5,7 +5,7 @@ Prerequisites:
 - SNOMED must be loaded first
 - Working directory dev_icd10
 
-* Manual tables are available here https://drive.google.com/drive/folders/1S6bEzFjn85M50V0f4jMhvgG6uuIhfJOD?usp=sharing
+Manual tables are available here https://drive.google.com/drive/folders/1S6bEzFjn85M50V0f4jMhvgG6uuIhfJOD?usp=sharing
 
 1. Go to http://apps.who.int/classifications/apps/icd/ClassificationDownload/DLArea/Download.aspx and download latest ICD-10 version (e.g. ICD-10 2016 version)
 2. Unzip the file icdClaMLYYYYens.xml and rename to icdClaML.xml
@@ -17,7 +17,7 @@ Prerequisites:
 8. Run load_stage.sql 
 9. Run generic_update: devv5.GenericUpdate();
 10. Run QA script:
- * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql
+  * https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql
 
 
 

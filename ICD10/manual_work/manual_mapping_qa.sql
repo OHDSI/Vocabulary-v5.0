@@ -12,12 +12,7 @@ required fields for checks in the manual table:
   relationship_id VARCHAR, 
   concept_id INT, 
   concept_code VARCHAR, 
-  concept_name VARCHAR 
-
-NB! change icd9cm_fullset_refresh_2020 to your table name everywhere in the script using Ctrl + H */
-
-
-
+  concept_name VARCHAR */
 
 -- 1 -- create table for checks
 DROP TABLE icd10_manual_checks;
@@ -31,7 +26,7 @@ SELECT b.concept_id as icd_id,
        c.concept_id,
        c.concept_code ,
        c.concept_name 
-FROM dev_icd10.concept_relationship_manual a
+FROM concept_relationship_manual a
   JOIN concept b
     ON b.concept_code = a.concept_code_1
    AND b.vocabulary_id = 'ICD10'
@@ -39,7 +34,6 @@ FROM dev_icd10.concept_relationship_manual a
     ON c.concept_code = a.concept_code_2
    AND c.vocabulary_id = 'SNOMED'
 WHERE a.invalid_reason IS NULL;
-
 
 -- 2 --count different rows number and relationship_ids. The difference between total number of (distinct) rows in mapping and in the devv5.concept should be 600 rows.
 SELECT 'row number - total in mapping' AS issue_desc,

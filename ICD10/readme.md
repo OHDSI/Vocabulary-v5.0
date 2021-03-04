@@ -6,7 +6,7 @@
 - SNOMED must be loaded first
 - Working directory dev_icd10
 
-##### Sequence of actions
+#### Sequence of actions
 1. Download the latest ICD-10 version (e.g. ICD-10 2016 version) on the [WHO Website](http://apps.who.int/classifications/apps/icd/ClassificationDownload/DLArea/Download.aspx) 
 2. Unzip the file icdClaMLYYYYens.xml and rename to icdClaML.xml
 3. Run in devv5 (with the fresh vocabulary date and version): 

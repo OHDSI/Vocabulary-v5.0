@@ -19,7 +19,7 @@ SELECT devv5.FastRecreateSchema(include_synonyms=>true);
 ```
 5. As described in the "manual_work" folder, upload concept_manual.csv and concept_relationship_manual.csv into eponymous tables, which exist by default in the dev schema after  the FastRecreate. If you already have manual staging tables, obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy, concept_manual_backup_ddmmyy)
 6. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/load_stage.sql) for the first time to define problems in mapping
-7. Run [mapping_refresh_qa.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/mapping_refresh_qa.sql) to obtain the list with mappings to outdated, deprecated or updated SNOMED concepts
+7. Run [mapping_refresh_qa.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/mapping_refresh_qa.sql) to obtain the list with mappings to outdated, deprecated or updated Standard concepts
 8. Perform manual review and mapping
 9. Using recommendations described in the "manual_work" folder, run [manual_mapping_qa.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/manual_work/manual_mapping_qa.sql)
 10. If everything is OK, deprecate old mappings for the ICD10 codes of interest in the concept_relationship_manual with valid_end_date = current_date and invalid_reason = 'D' 

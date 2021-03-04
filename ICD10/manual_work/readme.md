@@ -13,7 +13,7 @@ SELECT concept_name,
 FROM concept_manual
 ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_end_date, concept_name;
 ```
-2.Extract [the respective csv file](https://drive.google.com/file/d/1BdfX6R7LF4YLadOIkBVUWzm2HH09vjI2/view?usp=sharing) into the concept_relationship_manual table. The file was generated using the query:
+2.Extract the [respective csv file](https://drive.google.com/file/d/1BdfX6R7LF4YLadOIkBVUWzm2HH09vjI2/view?usp=sharing) into the concept_relationship_manual table. The file was generated using the query:
 ```sql
 SELECT concept_code_1,
        concept_code_2,

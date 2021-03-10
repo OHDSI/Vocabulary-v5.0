@@ -30,6 +30,7 @@ declare
   cHTML_OK constant varchar(100):='<font color=''green''>&#10004;</font> ';
   cHTML_ERROR constant varchar(100):='<font color=''red''>&#10008;</font> ';
   cHTML_WAITING constant varchar(100):='<font color=''e6e600''>&#9650;</font> ';
+  cHTML_DISABLED constant varchar(100):='&#10811; ';
 begin
   select nextval('vocabulary_download.log_seq') into pSession;
   perform vocabulary_download.write_log (
@@ -408,7 +409,11 @@ begin
     end;
   end loop;
 
-  --bottom block
+  --check for disabled
+  select string_agg(distinct vocabulary_id,', ' order by vocabulary_id) into cRet2 from devv5.vocabulary_access where vocabulary_enabled=0;
+  cMailText:=cMailText||
+  coalesce(crlf||crlf||cHTML_DISABLED||'Disabled vocabularies: '||cRet2,'');
+  
   select string_agg(vocabulary_id,', ' order by vocabulary_id) into cRet2 from devv5.vocabulary_access where vocabulary_order=1 and vocabulary_params is null and vocabulary_enabled=1 and vocabulary_id<>'UMLS';
   cMailText:=cMailText||crlf||crlf||'<font color=''#8c8c8c''><pre>---------------'||crlf||
   '- ISBT means ISBT and ISBT Attribute'||crlf||

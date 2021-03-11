@@ -23,7 +23,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'ICDO3',
 	pVocabularyDate			=> TO_DATE ('20200630', 'yyyymmdd'), -- https://seer.cancer.gov/ICDO3/
-	pVocabularyVersion		=> 'ICDO3 SEER Site/Histology Released 06/2019',
+	pVocabularyVersion		=> 'ICDO3 SEER Site/Histology Released 06/2020',
 	pVocabularyDevSchema	=> 'DEV_icdo3'
 );
 END $_$
@@ -42,7 +42,7 @@ update topo_source_iacr
 set concept_name = left (concept_name, 1) || replace (right (lower (concept_name), -1), ', nos', ', NOS')
 where concept_name = upper (concept_name)
 ;
--- 3. Building SNOMED hierarchy to pick future mapping targets
+-- 3.1. Building SNOMED hierarchy to pick future mapping targets
 DROP TABLE IF EXISTS snomed_ancestor cascade;
 CREATE UNLOGGED TABLE snomed_ancestor AS (
 	WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, full_path) AS (
@@ -101,18 +101,45 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 			FROM active_status
 			where active = 1
 		) 
-	SELECT DISTINCT -- switched places for some reason
+	SELECT DISTINCT
 		hc.descendant_concept_code :: varchar AS descendant_concept_code,
 		hc.root_ancestor_concept_code :: varchar AS ancestor_concept_code 
 	FROM hierarchy_concepts hc
 )
 ;
---add relation to self for each target
+--3.2. Add relation to self for each target
 insert into snomed_ancestor
 SELECT DISTINCT
 	descendant_concept_code AS descendant_concept_code,
 	descendant_concept_code AS ancestor_concept_code 
 FROM snomed_ancestor hc
+;
+--3.3. Add missing relation to Primary Malignant Neoplasm where needed
+insert into snomed_ancestor (ancestor_concept_code, descendant_concept_code)
+select distinct '86049000', snomed_code
+from r_to_c_all r
+where
+	r.concept_code ~ '\d{4}\/3' and
+	r.relationship_id = 'Maps to' and
+	not exists
+		(
+			select 1
+			from snomed_ancestor a
+			where
+				a.ancestor_concept_code = '86049000' and --PMN
+				a.descendant_concept_code = r.snomed_code
+		) 
+/*	and	not exists -- no common descendants with Secondary malignant neoplasm
+		(
+			select 1
+			from snomed_ancestor a1
+			join snomed_ancestor a2 on
+				a1.ancestor_concept_code = r.snomed_code and
+				a2.ancestor_concept_code = '14799000' and --SMN
+				a1.descendant_concept_code = a2.descendant_concept_code
+		)
+--It filters out nothing at this moment, so commented out for performance. Might still be needed in future as a safety measure
+*/
 ;
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
 ;
@@ -207,7 +234,7 @@ values
 		'9999/9',
 		'Unknown histology',
 		'Maps to',
-		'108369006'
+		'108369006' --Neoplasm
 	)
 ;
 create index if not exists rtca_target_vc on r_to_c_all (snomed_code)
@@ -284,7 +311,6 @@ where m.code not in
 		where concept_class_id = 'ICDO Histology'
 	)
 ;
-
 --11. Form table with replacements to handle historic changes for combinations and histologies
 drop table if exists code_replace
 ;
@@ -297,7 +323,7 @@ select
 from changelog_extract
 where fate ~ 'Moved to \d{4}\/\d'
 
-	union all
+	union
 
 select
 	code as old_code,
@@ -306,6 +332,7 @@ select
 from changelog_extract
 where fate ~ 'Moved to \/\d'
 ;
+
 --11.2. Same names; old code deprecated
 insert into code_replace
 select 
@@ -909,7 +936,7 @@ left join concept_relationship_stage r on
 	m.i_code = r.concept_code_1
 where r.concept_code_1 is null
 ;
---17 Write relations for attributes
+--17. Write relations for attributes
 --17.1. Maps to
 with monorelation as
 	(
@@ -1044,9 +1071,9 @@ where reltype = 'H'
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	a.ancestor_code,
-	coalesce (m.concept_code_2,t.concept_code),
+	t.concept_code,
 	'ICDO3',
-	coalesce (m.vocabulary_id_2,'ICDO3'),
+	'ICDO3',
 	'Subsumes',
 	TO_DATE ('01.01.1970', 'dd.mm.yyyy'),
 	TO_DATE ('31.12.2099', 'dd.mm.yyyy')
@@ -1055,9 +1082,6 @@ join comb_table t on
 	t.histology_behavior = a.descendant_code
 left join code_replace r on
 	r.old_code = t.concept_code
-left join concept_relationship_stage m on --check if mapping to SNOMED is present; if yes, SNOMED concept should be here instead
-	m.relationship_id = 'Maps to' and
-	m.concept_code_1 = t.concept_code
 where
 	a.reltype = 'A' and
 	r.old_code is null
@@ -1066,9 +1090,9 @@ where
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	a.ancestor_code,
-	coalesce (m.concept_code_2,t.concept_code),
+	t.concept_code,
 	'ICDO3',
-	coalesce (m.vocabulary_id_2,'ICDO3'),
+	'ICDO3',
 	'Subsumes',
 	TO_DATE ('01.01.1970', 'dd.mm.yyyy'),
 	TO_DATE ('31.12.2099', 'dd.mm.yyyy')
@@ -1077,9 +1101,6 @@ join comb_table t on
 	t.site = a.descendant_code
 left join code_replace r on
 	r.old_code = t.concept_code
-left join concept_relationship_stage m on --check if mapping to SNOMED is present; if yes, SNOMED concept should be here instead
-	m.relationship_id = 'Maps to' and
-	m.concept_code_1 = t.concept_code
 where
 	a.reltype = 'A' and
 	r.old_code is null
@@ -1124,21 +1145,17 @@ join concept_stage t on
 	c.ancestor_site = t.concept_code
 where c.concept_code !~ '(9999\/9|NULL)'
 ;
---19.4. preserve classification of SNOMED concepts
---Only for classification concepts, does not affect SNOMED hierarchy
+--19.4. preserve classification of condition concepts
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	a.ancestor_code,
-	coalesce (m.concept_code_2,a.concept_code),
+	a.concept_code,
 	'ICDO3',
-	coalesce (m.vocabulary_id_2,'ICDO3'),
+	'ICDO3',
 	'Subsumes',
 	TO_DATE ('01.01.1970', 'dd.mm.yyyy'),
 	TO_DATE ('31.12.2099', 'dd.mm.yyyy')
 from legacy_comb a
-left join concept_relationship_stage m on --check if mapping to SNOMED is present; if yes, SNOMED concept should be here instead
-	m.relationship_id = 'Maps to' and
-	m.concept_code_1 = a.concept_code
 ;
 --20. Form internal relations (to attributes)
 --write internal relations
@@ -1260,7 +1277,7 @@ where
 	 			a.concept_code_2 = r1.snomed_code
 	 	)
 ;
---20.5. remove cooccurrent parents of target attributes (consider our concepts fully defined)
+--20.5. remove co-occurrent parents of target attributes (consider our concepts fully defined)
 delete from concept_relationship_stage s
 where
 	relationship_id in ('Has asso morph','Has finding site') and
@@ -1285,8 +1302,8 @@ where
 --21. Handle replacements and self-mappings
 --Add replacements from code_replace
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
-select
-	old_code,	
+select distinct
+	old_code,
 	code,
 	'ICDO3',
 	'ICDO3',
@@ -1328,21 +1345,8 @@ where
 			where relationship_id = 'Maps to'
 		)
 ;
---24. Add self-"maps to" to Standard concepts
-insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
-select
-	concept_code,
-	concept_code,
-	'ICDO3',
-	'ICDO3',
-	'Maps to',
-	TO_DATE ('01.01.1970', 'dd.mm.yyyy'),
-	TO_DATE ('31.12.2099', 'dd.mm.yyyy')
-from concept_stage
-where standard_concept = 'S'
-;
---25. Since our relationship list is cannonically complete, we deprecate all existing relationships if they are not reinforced in current release
---25.1. From ICDO3 to SNOMED
+--24. Since our relationship list is cannonically complete, we deprecate all existing relationships if they are not reinforced in current release
+--24.1. From ICDO3 to SNOMED
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date, invalid_reason)
 select
 	c.concept_code,
@@ -1372,7 +1376,7 @@ left join concept_relationship_stage s on
 	s.relationship_id = r.relationship_id
 where s.concept_code_1 is null
 ;
---25.2. From ICDO to ICDO
+--24.2. From ICDO to ICDO
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date, invalid_reason)
 with rela as
 --Ensure such relations were created this release (avoids mirroring problem)
@@ -1413,8 +1417,8 @@ left join concept_relationship_stage s on
 	s.relationship_id = r.relationship_id
 where s.concept_code_1 is null
 ;
---26. Populate concept_synonym_stage 
---26.1. with morphologies
+--25. Populate concept_synonym_stage 
+--25.1. with morphologies
 insert into concept_synonym_stage
 --we ignore obsoletion status of synonyms for now: concepts may still be referenced by their old names in historical classifications
 --ICDO3 does not distinguish between 'old' and 'wrong'
@@ -1429,18 +1433,31 @@ where
 	level != 'Related' -- not actual synonyms
 	and icdo32 is not null
 ;
---26.2. with everything else
-insert into concept_synonym_stage
-select
-	null,
-	concept_name,
-	concept_code,
-	'ICDO3',
-	4180186 -- English
-from concept_stage
-where
-	concept_class_id != 'ICDO Histology'
+--26. Vocabulary pack procedures
+--26.1. Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--26.2, Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--26.3. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--26.4. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
 ;
 -- 27. Cleanup: drop all temporary tables
-drop table if exists  snomed_mapping, snomed_ancestor, snomed_target_prepared, attribute_hierarcy, comb_table, match_blob, legacy_comb, code_replace cascade
+drop table if exists  snomed_mapping, snomed_ancestor, snomed_target_prepared, attribute_hierarcy, comb_table, match_blob, legacy_comb, code_replace
 ;

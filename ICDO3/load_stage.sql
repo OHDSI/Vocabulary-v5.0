@@ -184,8 +184,8 @@ where exists
 		from snomed_mapping m2
 		join snomed_ancestor a on
 			a.ancestor_concept_code != a.descendant_concept_code and
-			a.descendant_concept_code = m2.snomed_code :: varchar and
-			a.ancestor_concept_code = m1.snomed_code :: varchar and
+			a.descendant_concept_code = m1.snomed_code :: varchar and
+			a.ancestor_concept_code = m2.snomed_code :: varchar and
 			m2.icdo_code = m1.icdo_code
 	)
 ;
@@ -565,8 +565,11 @@ snomed_concept as
 							'10749871000119100',	--Malignant neoplastic disease in pregnancy
 							'765205004',	--Disorder in remission
 							'302817000',	--Malignant tumor of unknown origin or ill-defined site
-							'109989006',	--Multiple myeloma
-							'448563005'	--Functionless pituitary neoplasm
+							'127274007', --Neoplasm of lymph nodes of multiple sites
+							'448563005',	--Functionless pituitary neoplasm
+							--BROKEN IN CURRENT SNOMED: CHECK THIS NEXT RELEASE!
+							'188321006', -- Malignant neoplasm of peripheral nerves and autonomic nervous system
+							'96901000119105' --Prostate cancer metastatic to eye (disorder)
 						)
 			)
 )
@@ -685,13 +688,13 @@ where o.concept_code not in (select old_code from code_replace)
 --14.1 match to concepts without topographies
 insert into match_blob
 select distinct
-	cs.concept_code as i_code,
+	o.concept_code as i_code,
 	s.concept_code as s_id,
 	s.m_id,
 	'-1' as t_id,
 
 -- concepts with known or 'deliberately' unknown topography should not have t_exact = TRUE
-	(t.relationship_id = 'Maps to' and t.snomed_code = '-1') as t_exact, 
+	coalesce ((t.relationship_id = 'Maps to' and t.snomed_code = '-1'),true) as t_exact, 
 
 	(ma.descendant_concept_code = ma.ancestor_concept_code) and
 	(m.relationship_id = 'Maps to') as m_exact,
@@ -699,7 +702,6 @@ select distinct
 	2 as debug_id
 
 from comb_table o
-join concept_stage cs on o.concept_code = cs.concept_code
 
 --morphology & up
 join r_to_c_all m on
@@ -708,14 +710,14 @@ join snomed_ancestor ma on
 	ma.descendant_concept_code = m.snomed_code
 
 --check if topography is Exactly unknown or just missing
-join r_to_c_all t on
+left join r_to_c_all t on
 	t.concept_code = o.site
 
 join snomed_target_prepared s on
 	s.t_id in ('-1','87784001') and --"Soft tissues" is not a real topography
 	s.m_id = ma.ancestor_concept_code
 
-where cs.concept_code not in (select old_code from code_replace)
+where o.concept_code not in (select old_code from code_replace)
 ;
 create index idx_blob on match_blob (i_code, s_id)
 ;
@@ -902,7 +904,7 @@ declare
 	codes text;
 BEGIN
 	select
-		string_agg (m.concept_code_1, ',')
+		string_agg (m.concept_code_1, ''',''')
 	into codes
 	from concept_relationship_manual m
 	join concept_relationship_stage s on
@@ -911,7 +913,7 @@ BEGIN
 		m.invalid_reason is null and
 		m.relationship_id = 'Maps to';
 	IF codes IS NOT NULL THEN
-			RAISE EXCEPTION 'Following codes need to be removed from manual table: %', codes ;
+			RAISE EXCEPTION 'Following codes need to be removed from manual table: ''%''', codes ;
 	END IF;
 END $_$;
 
@@ -1429,7 +1431,7 @@ select
 	'ICDO3',
 	4180186 -- English
 from morph_source_who
-where 
+where
 	level != 'Related' -- not actual synonyms
 	and icdo32 is not null
 ;

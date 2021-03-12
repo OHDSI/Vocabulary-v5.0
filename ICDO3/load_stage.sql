@@ -28,19 +28,8 @@ BEGIN
 );
 END $_$
 ;
+--2. Initial cleanup
 truncate table concept_stage, concept_relationship_stage, concept_synonym_stage, drug_strength_stage, pack_content_stage
-;
---2. Reformat sources
----Topography
-;
-update topo_source_iacr
-set
-	code = substring (trim(source_string),'^C\d\d\.?\d?'),
-	concept_name = regexp_replace (trim(source_string), '^C\d\d\.?\d?\s+', '')
-;
-update topo_source_iacr
-set concept_name = left (concept_name, 1) || replace (right (lower (concept_name), -1), ', nos', ', NOS')
-where concept_name = upper (concept_name)
 ;
 -- 3.1. Building SNOMED hierarchy to pick future mapping targets
 DROP TABLE IF EXISTS snomed_ancestor cascade;
@@ -294,17 +283,19 @@ where
 --10.3. Get obsolete and unconfirmed morphology concepts
 insert into concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select distinct
-	trim (m.str),
+	trim (m.concept_name),
 	'Observation',
 	'ICDO3',
 	'ICDO Histology',
 	null,
-	m.code,
+	m.concept_code,
 	TO_DATE ('01.01.1970', 'dd.mm.yyyy'),
 	(SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id='ICDO3'),
 	'D'
-from morph_to_snomed m
-where m.code not in
+from r_to_c_all m
+where
+	m.concept_code like '%/%' and
+	m.concept_code not in
 	(
 		select concept_code
 		from concept_stage
@@ -851,8 +842,8 @@ where
 		(
 			select c.concept_code
 			from comb_table c
-			join morph_to_snomed t on
-				t.code = c.histology_behavior
+			join r_to_c_all t on
+				t.concept_code = c.histology_behavior
 			join snomed_ancestor ca on
 				ca.ancestor_concept_code = '414388001' and --Hematopoietic neoplasm
 				ca.descendant_concept_code = t.snomed_code :: varchar
@@ -1419,7 +1410,7 @@ left join concept_relationship_stage s on
 	s.relationship_id = r.relationship_id
 where s.concept_code_1 is null
 ;
---25. Populate concept_synonym_stage 
+--25. Populate concept_synonym_stage
 --25.1. with morphologies
 insert into concept_synonym_stage
 --we ignore obsoletion status of synonyms for now: concepts may still be referenced by their old names in historical classifications

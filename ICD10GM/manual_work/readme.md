@@ -1,3 +1,5 @@
+### STEP 6 of the refresh: work with manual staging tables
+
 1.Extract the [respective csv file](https://drive.google.com/file/d/1ZjYCykojpUyxljZ4v1Qs3Yz72TiXWvKC/view?usp=sharing) into the concept_manual table. The file was generated using the query:
 ```sql
 SELECT concept_name,
@@ -48,3 +50,20 @@ ORDER BY synonym_name, synonym_concept_code, synonym_vocabulary_id, language_con
 - quote escape: with backslash \
 - quote always: FALSE
 - NULL string: empty
+
+### STEP 10 of the refresh: a manual mapping check for mechanical and semantic errors
+1. This script should be run BEFORE insert of refeshed or newly added mappings into concept_relationship_manual. 
+2. During mapping of ICD codes we recommend to use the following relationship_ids:
+  * **"Maps to"** is used for 1-to-1 FULL equivalent mapping only
+  * **"Maps to" + "Maps to value"** is used for for Observations and Measurements with results
+  * **"Is a"** is a temporary relationship used for this check only and applicable for 1-to-1 PARTIAL equivalent AND 1-to-many mappings.
+3. Preserve a manual table with 'Is a' relationships, but change 'Is a' to 'Maps to' during the insertion into the concept_relatioship_manual (e.g. using CASE WHEN).
+
+#### Required fields in a manual table
+- icd_id INT, 
+- icd_code VARHCAR, 
+- icd_name VARHCAR, 
+- relationship_id VARCHAR, 
+- concept_id INT, 
+- concept_code VARCHAR, 
+- concept_name VARCHAR

@@ -281,17 +281,17 @@ select
 	'ICDO Histology',
 	null,
 	icdo32,
-	case
-		when c.valid_start_date is null
-		then --new concept gets new date
+	coalesce
+		(
+			c.valid_start_date,
+			--new concept gets new date
 			(
 				select latest_update
 				from vocabulary
 				where latest_update is not null
 				limit 1
 			)
-		else least (TO_DATE ('20171220', 'yyyymmdd'), c.valid_start_date)
-	end,
+		),
 	TO_DATE ('20991231', 'yyyymmdd')
 from morph_source_who
 left join concept c on
@@ -325,6 +325,13 @@ where
 		from concept_stage
 		where concept_class_id = 'ICDO Histology'
 	)
+;
+--10.4. Get dates from manual table
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
 ;
 --11. Form table with replacements to handle historic changes for combinations and histologies
 drop table if exists code_replace
@@ -581,17 +588,15 @@ snomed_concept as
 						(
 							'111941005',	--Familial disease
 							'255051004',	--Tumor of unknown origin
-							'255054007',	--Tumor of ill-defined site
-							'363357005',		--Malignant tumor of ill-defined site
 							'127332000',	--Fetal neoplasm
 							'115966001',	--Occupational disorder
 							'10749871000119100',	--Malignant neoplastic disease in pregnancy
 							'765205004',	--Disorder in remission
-							'302817000',	--Malignant tumor of unknown origin or ill-defined site
 							'127274007', --Neoplasm of lymph nodes of multiple sites
 							'448563005',	--Functionless pituitary neoplasm
 							--BROKEN IN CURRENT SNOMED: CHECK THIS NEXT RELEASE!
-							'96901000119105' --Prostate cancer metastatic to eye (disorder)
+							'96901000119105', --Prostate cancer metastatic to eye (disorder)
+							'255068000'	--Carcinoma of bone, connective tissue, skin and breast
 						)
 			)
 )
@@ -857,7 +862,8 @@ where
 					'109851002', --Overlapping malignant neoplasm of retroperitoneum and peritoneum
 					'254388002', --Overlapping neoplasm of oral cavity and lips and salivary glands
 					'109919002', --Overlapping malignant neoplasm of peripheral nerves and autonomic nervous system
-					'109948008' --Overlapping malignant neoplasm of eye and adnexa, primary
+					'109948008', --Overlapping malignant neoplasm of eye and adnexa, primary
+					'188256008' --Malignant neoplasm of overlapping lesion of urinary organs 
 				)
 			
 		) and 
@@ -885,7 +891,7 @@ where
 delete from match_blob m
 where exists
 	(
-		select
+		select 1
 		from snomed_ancestor a
 		join match_blob b on
 			b.s_id != m.s_id and
@@ -898,11 +904,32 @@ where exists
 	m.t_exact and
 	m.m_exact
 ;
---15.2. Remove ancestors where descendants are available as targets
+--15.2. Do the same just for for t_exact with morphology being less precise than best alternative
+-- solves problematic concepts like 255168002 Benign neoplasm of esophagus, stomach and/or duodenum (disorder)
+--Multiple topographies
 delete from match_blob m
 where exists
 	(
-		select
+		select 1
+		from snomed_ancestor a
+		join match_blob b on
+			b.s_id != m.s_id and
+			m.s_id = a.descendant_concept_code and
+			b.s_id = a.ancestor_concept_code and
+			b.i_code = m.i_code	and
+			b.t_exact
+		--don't remove if morphhology is less precise
+		join snomed_ancestor x on
+			x.descendant_concept_code = b.m_id and
+			x.ancestor_concept_code = m.m_id
+	) and
+	m.t_exact
+;
+--15.3. Remove ancestors where descendants are available as targets
+delete from match_blob m
+where exists
+	(
+		select 1
 		from snomed_ancestor a
 		join match_blob b on
 			b.s_id != m.s_id and
@@ -1455,5 +1482,5 @@ where
 	invalid_reason is null
 ;
 -- 29. Cleanup: drop all temporary tables
-drop table if exists  snomed_mapping, snomed_ancestor, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace
+drop table if exists  snomed_mapping, snomed_ancestor, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace cascade
 ;

@@ -18,7 +18,6 @@
 **************************************************************************/
 -- define gaps in mapping
 -- A) generates lookup for mapping
-
 WITH t0
 AS
 (
@@ -39,7 +38,8 @@ FROM concept_relationship_stage a
    AND b.invalid_reason IN ('D', 'U')
 
   JOIN concept_stage c
-    ON a.concept_code_1 = c.concept_code
+    ON a.concept_code_1 = c.concept_code 
+    and c.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter')
 AND a.invalid_reason IS NULL
 UNION
 -- 'non-standard mapping'
@@ -60,6 +60,7 @@ FROM concept_relationship_stage a
    AND b.standard_concept IS NULL
   JOIN concept_stage c
     ON a.concept_code_1 = c.concept_code
+    and c.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter')
 UNION
 -- 'without mapping'
 SELECT a.concept_code,
@@ -81,7 +82,8 @@ FROM concept_stage a
         AND b.vocabulary_id = vocabulary_id_2
 WHERE a.vocabulary_id = 'ICD10'
 AND   a.invalid_reason IS NULL
-AND   b.concept_id IS NULL),
+AND   b.concept_id IS NULL
+and a.concept_class_id not in ('ICD10 Chapter','ICD10 SubChapter')),
 -- concepts which mapping can be replaced through 'Maps to' relationship
 t1 AS (SELECT d.concept_code AS icd_code,
               d.concept_name AS icd_name,
@@ -154,7 +156,6 @@ t4 AS (SELECT t0.icd_code,
               t0.reason
        FROM t0
          LEFT JOIN t3 ON t0.icd_code = t3.icd_code) SELECT*FROM t4;
-
 
 -- B) check sources.mrconso and devv5.concept_synonym for possible mappings to newly added target concepts with full name similarity (should be reviewed by an eye)
 WITH t0

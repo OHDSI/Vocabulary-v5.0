@@ -266,7 +266,7 @@ select
 	'ICDO Topography',
 	null,
 	code,
-	TO_DATE ('20010401', 'yyyymmdd'),
+	TO_DATE ('19700101', 'yyyymmdd'),
 	TO_DATE ('20991231', 'yyyymmdd')
 from topo_source_iacr
 where code is not null
@@ -446,7 +446,7 @@ left join code_replace r on
 	r.old_code = c.concept_code
 where c.concept_code !~ '(9999\/9|NULL)'
 ;
---12.1. one-legged concepts (no topography)
+--12.1. One-legged concepts (no topography)
 insert into concept_stage (CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select distinct
 	'Neoplasm defined only by histology: '||c.concept_name,
@@ -470,7 +470,7 @@ where
 	c.concept_class_id = 'ICDO Histology' and
 	c.concept_code like '%/%' -- not hierarchical
 ;
---12.2. one-legged concepts (no topography)
+--12.2. One-legged concepts (no histology)
 insert into concept_stage (CONCEPT_ID,CONCEPT_NAME,DOMAIN_ID,VOCABULARY_ID,CONCEPT_CLASS_ID,STANDARD_CONCEPT,CONCEPT_CODE,VALID_START_DATE,VALID_END_DATE,INVALID_REASON)
 select
 	null,
@@ -480,7 +480,7 @@ select
 	'ICDO Condition',
 	null,
 	'NULL-' || concept_code,
-	TO_DATE ('20171220', 'yyyymmdd'),
+	TO_DATE ('19700101', 'yyyymmdd'),
 	TO_DATE ('20991231', 'yyyymmdd'),
 	null	 
 from concept_stage

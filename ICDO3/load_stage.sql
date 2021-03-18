@@ -980,8 +980,8 @@ select distinct
 	'ICDO3',
 	'SNOMED',
 	'Maps to',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from match_blob m
 join monorelation o using (i_code)
 where
@@ -1021,8 +1021,8 @@ select distinct
 	'ICDO3',
 	'SNOMED',
 	'Is a',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from match_blob m
 left join concept_relationship_stage r on
 	m.i_code = r.concept_code_1
@@ -1037,8 +1037,8 @@ select distinct
 	'ICDO3',
 	'SNOMED',
 	'Maps to',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from r_to_c_all	
 left join code_replace on
 	old_code = concept_code
@@ -1056,8 +1056,8 @@ select distinct
 	'ICDO3',
 	'SNOMED',
 	'Is a',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from r_to_c_all
 where concept_code not in
 	(
@@ -1156,8 +1156,8 @@ select distinct
 	'ICDO3',
 	'ICDO3',
 	'Subsumes',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from attribute_hierarchy a
 where a.ancestor_code != a.descendant_code
 ;
@@ -1171,8 +1171,8 @@ select distinct
 	'ICDO3',
 	'ICDO3',
 	'Has Histology ICDO',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from comb_table c1
 left join code_replace c2 on
 	c2.old_code = c1.concept_code
@@ -1186,8 +1186,8 @@ select distinct
 	'ICDO3',
 	'ICDO3',
 	'Has Topography ICDO',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from comb_table c1
 left join code_replace c2 on
 	c2.old_code = c1.concept_code
@@ -1203,8 +1203,8 @@ select distinct
 	'ICDO3',
 	'SNOMED',
 	a.relationship_id,
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from concept_stage s
 join concept_relationship_stage r on
 	s.concept_class_id = 'ICDO Condition' and
@@ -1233,8 +1233,8 @@ select
 	'ICDO3',
 	'SNOMED',
 	'Has finding site',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from comb_table s
 left join concept_relationship_stage x on -- no mapping for condition
 	s.concept_code = x.concept_code_1 and
@@ -1261,8 +1261,8 @@ select
 	'ICDO3',
 	'SNOMED',
 	'Has asso morph',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from comb_table s
 left join concept_relationship_stage x on -- no mapping for condition
 	s.concept_code = x.concept_code_1 and
@@ -1313,8 +1313,8 @@ select distinct
 	'ICDO3',
 	'ICDO3',
 	'Concept replaced by',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from code_replace cr
 ;
 --22. Add mappings for replaced concepts
@@ -1325,8 +1325,8 @@ select
 	'ICDO3',
 	coalesce (r.vocabulary_id_2,'ICDO3'),
 	'Maps to',
-	TO_DATE ('19700101', 'yyyymmddd'),
-	TO_DATE ('20991231', 'yyyymmddd')
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
 from code_replace cr
 left join concept_relationship_stage r on
 	r.concept_code_1 = cr.code and
@@ -1501,6 +1501,4 @@ where
 	invalid_reason is null
 ;
 -- 29. Cleanup: drop all temporary tables
-drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace
-;
-drop table if exists snomed_ancestor cascade
+drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace, snomed_ancestor

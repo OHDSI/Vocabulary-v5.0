@@ -20,12 +20,12 @@ BEGIN
 	) LOOP
 		--row
 		cRet:=cRet||'<tr>';
-		cRet:=cRet||'<td>'||cResult.error_text||'</td>';
-		cRet:=cRet||'<td>'||cResult.schema_name||'</td>';
-		cRet:=cRet||'<td>'||cResult.table_name||'</td>';
-		cRet:=cRet||'<td>'||cResult.object_name||'</td>';
-		cRet:=cRet||'<td>'||cResult.descr||'</td>';
-		cRet:=cRet||'<td>'||cResult.how_to_fix||'</td>';
+		cRet:=CONCAT(cRet,'<td>',cResult.error_text,'</td>');
+		cRet:=CONCAT(cRet,'<td>',cResult.schema_name,'</td>');
+		cRet:=CONCAT(cRet,'<td>',cResult.table_name,'</td>');
+		cRet:=CONCAT(cRet,'<td>',cResult.object_name,'</td>');
+		cRet:=CONCAT(cRet,'<td>',cResult.descr,'</td>');
+		cRet:=CONCAT(cRet,'<td>',cResult.how_to_fix,'</td>');
 		--end row
 		cRet:=cRet||'</tr>';
 	END LOOP;

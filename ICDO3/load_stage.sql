@@ -130,13 +130,13 @@ where
 --It filters out nothing at this moment, so commented out for performance. Might still be needed in future as a safety measure
 */
 ;
-ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code);
+ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code)
 ;
 create index snomed_ancestor_a on snomed_ancestor (ancestor_concept_code)
 ;
 create index snomed_ancestor_d on snomed_ancestor (descendant_concept_code)
 ;
-ANALYZE snomed_ancestor;
+ANALYZE snomed_ancestor
 ;
 --4. Prepare updates for histology mapping from SNOMED refset
 drop table if exists snomed_mapping
@@ -277,7 +277,7 @@ BEGIN
 	IF codes IS NOT NULL THEN
 			RAISE EXCEPTION 'Following attributes relations target deprecated SNOMED concepts: ''%''', codes ;
 	END IF;
-END $_$;
+END $_$
 ;
 --10. Populate_concept stage with attributes
 --10.1. Topography
@@ -356,7 +356,6 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
-;
 --11. Form table with replacements to handle historic changes for combinations and histologies
 drop table if exists code_replace
 ;
@@ -1466,7 +1465,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
-;
+
 --27. If concept got replaced, give it invalid_reason = 'U'
 update concept_stage x
 set invalid_reason = 'U'
@@ -1502,5 +1501,6 @@ where
 	invalid_reason is null
 ;
 -- 29. Cleanup: drop all temporary tables
-drop table if exists  snomed_mapping, snomed_ancestor, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace cascade
+drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace
 ;
+drop table if exists snomed_ancestor cascade

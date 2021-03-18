@@ -200,7 +200,8 @@ set
 			where r.concept_code = s.icdo_code
 		)
 where
-	r.concept_code in (select s.icdo_code from snomed_mapping s)
+	r.concept_code in (select s.icdo_code from snomed_mapping s) and
+	r.precedence is null -- no automated modification for concepts with alternating mappings
 ;
 --7.2. Deprecated concepts with replacement
 with replacement as
@@ -223,8 +224,8 @@ set snomed_code = new_code
 from replacement x
 where
 	a.concept_code = x.concept_code and
-	x.old_code = a.snomed_code
-
+	x.old_code = a.snomed_code and
+	a.precedence is null -- no automated modification for concepts with alternating mappings
 ;
 --8. Remove duplications
 delete from r_to_c_all r1
@@ -236,7 +237,8 @@ where exists
 			r1.concept_code = r2.concept_code and
 			r2.snomed_code = r1.snomed_code and
 			r2.ctid < r1.ctid
-	)
+	) and
+	r1.precedence is null -- no automated modification for concepts with alternating mappings
 ;
 --9. Preserve missing morphology mapped to generic neoplasm
 delete from r_to_c_all where concept_code = '9999/9'
@@ -254,6 +256,28 @@ values
 create index if not exists rtca_target_vc on r_to_c_all (snomed_code)
 ;
 analyze r_to_c_all
+;
+--check for deprecated concepts in r_to_c_all.snomed_code field
+DO $_$
+declare
+	codes text;
+BEGIN
+	select
+		string_agg (r.concept_code, ''',''')
+	into codes
+	from r_to_c_all r
+	left join concept c on
+		r.snomed_code = c.concept_code and
+		c.vocabulary_id = 'SNOMED' and
+		c.invalid_reason is null
+	where
+		c.concept_code is null and
+		r.snomed_code != '-1'
+	;
+	IF codes IS NOT NULL THEN
+			RAISE EXCEPTION 'Following attributes relations target deprecated SNOMED concepts: ''%''', codes ;
+	END IF;
+END $_$;
 ;
 --10. Populate_concept stage with attributes
 --10.1. Topography
@@ -462,7 +486,7 @@ select distinct
 	'ICDO Condition',
 	null,
 	c.concept_code || '-NULL',
---get validdity period from histology concept
+--get validity period from histology concept
 	c.valid_start_date,
 	c.valid_end_date,
 		
@@ -918,7 +942,7 @@ where exists
 			b.s_id = a.ancestor_concept_code and
 			b.i_code = m.i_code	and
 			b.t_exact
-		--don't remove if morphhology is less precise
+		--don't remove if morphology is less precise
 		join snomed_ancestor x on
 			x.descendant_concept_code = b.m_id and
 			x.ancestor_concept_code = m.m_id
@@ -965,7 +989,7 @@ where
 	m.t_exact and
 	m.m_exact
 ;
---16.2. Check if there are manual 'Maps to' for already processed concepts in manual table; we should get error if there are intersections
+--16.2. Check if there are manual 'Maps to' for perfectly processed concepts in manual table; we should get error if there are intersections
 DO $_$
 declare
 	codes text;
@@ -1007,14 +1031,6 @@ where r.concept_code_1 is null
 ;
 --17. Write relations for attributes
 --17.1. Maps to
-with monorelation as
-	(
-		select concept_code as code1
-		from r_to_c_all
-		where relationship_id = 'Maps to'
-		group by concept_code
-		having count (snomed_code) = 1
-	)
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select distinct
 	concept_code,
@@ -1024,11 +1040,14 @@ select distinct
 	'Maps to',
 	TO_DATE ('19700101', 'yyyymmddd'),
 	TO_DATE ('20991231', 'yyyymmddd')
-from r_to_c_all
-join monorelation on concept_code = code1
+from r_to_c_all	
 left join code_replace on
 	old_code = concept_code
-where old_code is null and snomed_code != '-1'
+where 
+	old_code is null and
+	snomed_code != '-1' and 
+	relationship_id = 'Maps to' and
+	coalesce (precedence,1) = 1
 ;
 --17.2. Is a
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
@@ -1250,7 +1269,8 @@ left join concept_relationship_stage x on -- no mapping for condition
 	s.concept_code = x.concept_code_1 and
 	x.relationship_id = 'Maps to'
 join r_to_c_all r1 on
-	s.histology_behavior = r1.concept_code
+	s.histology_behavior = r1.concept_code and
+	coalesce (r1.precedence,1) = 1
 where
 	 x.concept_code_1 is null and
 	 r1.snomed_code != '-1' and

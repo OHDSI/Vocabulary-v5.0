@@ -403,7 +403,7 @@ create table comb_table as
 select distinct
 	*,
 	histology_behavior || '-' || site as concept_code
-from sources.icdo3_valid_combination c
+from icdo3_valid_combination c
 ;
 --Old; will be deprecated; transfer combinations to new concepts
 insert into comb_table
@@ -521,7 +521,6 @@ where
 --13. Form stable list of existing precoordinated concepts in SNOMED
 drop table if exists snomed_target_prepared
 ;
---TODO: use source SNOMED files for better filtering
 create table snomed_target_prepared as
 WITH def_status as --form list of defined neoplasia concepts without extraneous relations
 (
@@ -1502,3 +1501,11 @@ where
 ;
 -- 29. Cleanup: drop all temporary tables
 drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace, snomed_ancestor
+
+--TODO:
+/*
+	1. Once SNOMED metadata is implemented in concept_relationship, drop dependency on SNOMED sources and creation of separate snomed_ancestor
+	2. Include SEER conversion tables as relations between ICDO Topography sources and ICD10(CM)
+	3. Create user-space tool to create automated mappings to SNOMED for custom combinations
+	4. Create separate QA routine for sources and manual tables
+*/

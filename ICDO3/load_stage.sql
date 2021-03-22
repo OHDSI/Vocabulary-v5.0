@@ -32,7 +32,7 @@ END $_$
 truncate table concept_stage, concept_relationship_stage, concept_synonym_stage, drug_strength_stage, pack_content_stage
 ;
 -- 3.1. Building SNOMED hierarchy to pick future mapping targets
-DROP TABLE IF EXISTS snomed_ancestor cascade;
+DROP TABLE IF EXISTS snomed_ancestor;
 CREATE UNLOGGED TABLE snomed_ancestor AS (
 	WITH recursive hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, full_path) AS (
 		SELECT ancestor_concept_code,

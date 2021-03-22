@@ -1496,7 +1496,7 @@ where
 ;
 -- 29. Cleanup: drop all temporary tables
 drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace, snomed_ancestor
-
+;
 --TODO:
 /*
 	1. Once SNOMED metadata is implemented in concept_relationship, drop dependency on SNOMED sources and creation of separate snomed_ancestor

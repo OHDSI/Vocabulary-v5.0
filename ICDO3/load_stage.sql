@@ -132,8 +132,6 @@ where
 ;
 ALTER TABLE snomed_ancestor ADD CONSTRAINT xpksnomed_ancestor PRIMARY KEY (ancestor_concept_code,descendant_concept_code)
 ;
-create index snomed_ancestor_a on snomed_ancestor (ancestor_concept_code)
-;
 create index snomed_ancestor_d on snomed_ancestor (descendant_concept_code)
 ;
 ANALYZE snomed_ancestor
@@ -377,7 +375,6 @@ select distinct
 from changelog_extract
 where fate ~ 'Moved to \/\d'
 ;
-
 --11.2. Same names; old code deprecated
 insert into code_replace
 select distinct
@@ -668,8 +665,6 @@ join concept x2 on
 create index idx_snomed_target_prepared on snomed_target_prepared (concept_code)
 ;
 create index idx_snomed_target_attr on snomed_target_prepared (m_id, t_id)
-;
-create index idx_snomed_target_m on snomed_target_prepared (m_id)
 ;
 create index idx_snomed_target_t on snomed_target_prepared (t_id)
 ;

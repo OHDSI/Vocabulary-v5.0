@@ -1891,6 +1891,8 @@ SELECT c.*, NULL FROM (VALUES
 --(364709006,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Hematology observable
 --TODO: sort it out
 --(414236006,         'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Feature of anatomical entity
+-- 364599001 Fetal observable
+-- 415823006 Vision observable, including 363983007 Visual acuity
 --TODO: review scales (A Mixture of scores and Observations)
 --(363870007,        'Measurement',  TO_DATE('new', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Mental state, behavior / psychosocial function observable
 --(86084001,        'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('19700101', 'YYYYMMDD')), --Hematologic function    --Postponed

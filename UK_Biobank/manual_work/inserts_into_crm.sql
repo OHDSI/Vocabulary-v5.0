@@ -166,11 +166,6 @@ WHERE target_concept_id != 0
 AND f.field_id::varchar IN (SELECT concept_code FROM concept_stage WHERE domain_id IN ('Observation', 'Measurement'))
 ;
 
-/*
-INSERT INTO concept_relationship_manual
-SELECT * FROM  concept_relationship_manual_backup_03_23;
-;
- */
 
 --Deprecating all mappings that differ from the new version
 UPDATE concept_relationship_manual
@@ -213,9 +208,7 @@ AND (concept_code_1, concept_code_2) NOT IN (SELECT concat(field_id, '-', source
     )
 ;
 
-DELETE FROM crm_manual_mappings_changed WHERE cat IS NULL;
 
---TODO: Insert only to non-deprecated
 --Inserting new mappings + corrected mappings
 with mapping_of_questions AS
     (
@@ -229,6 +222,7 @@ with mapping_of_questions AS
                NULL AS invalid_reason
         FROM crm_manual_mappings_changed
         WHERE flag IN ('Q', 'q') AND concept_id IS NOT NULL AND concept_id != 0
+        AND cat NOT IN ('100069', '100058', '100051', '132')
     ),
 
      mapping_of_answers AS
@@ -243,6 +237,7 @@ with mapping_of_questions AS
                NULL AS invalid_reason
         FROM crm_manual_mappings_changed
         WHERE flag IN ('A', 'a') AND concept_id IS NOT NULL AND concept_id != 0
+        AND cat NOT IN ('100069', '100058', '100051', '132')
          ),
 
      mapping_of_pairs AS
@@ -257,6 +252,7 @@ with mapping_of_questions AS
                NULL AS invalid_reason
         FROM crm_manual_mappings_changed
         WHERE flag IN ('P', 'p') AND concept_id IS NOT NULL AND concept_id != 0
+        AND cat NOT IN ('100069', '100058', '100051', '132')
          )
 
 

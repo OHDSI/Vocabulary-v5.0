@@ -89,7 +89,8 @@ SELECT DISTINCT
             100019, --Hand grip strength
             100020, --Spirometry
             100081, --Blood count
-            100083 --Urine assays
+            100083, --Urine assays
+            100098   --Estimated nutrients yesterday
             )
             THEN 'Measurement' ELSE 'Observation' END AS domain_id,
        'UK Biobank',
@@ -777,35 +778,13 @@ LEFT JOIN concept c
 WHERE field IN ('biresus', 'birordr', 'birstat', 'birweight', 'delmeth', 'delplac', 'delstat', 'sexbaby') --gestat not included -> only QA pairs
 ;
 
---+ UKB_health_and_medical_history
---Creating concepts for QA pairs
-INSERT INTO concept_stage(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-SELECT DISTINCT
-       NULL::int,
-       concat(trim(f.title), ': ', trim(aa.meaning)),
-       'Observation',
-       'UK Biobank',
-       'Precoordinated pair',
-       NULL,
-       concat(f.field_id, '-', aa.encoding_id, '-', aa.value),
-       COALESCE(c.valid_start_date, current_date),
-       to_date('20991231','yyyymmdd'),
-       NULL
-FROM sources.uk_biobank_field f
-JOIN all_answers aa
-    ON f.encoding_id = aa.encoding_id
-LEFT JOIN concept c
-    ON concat(f.field_id, '-', aa.encoding_id, '-', aa.value) = c.concept_code
-        AND c.vocabulary_id = 'UK Biobank'
-WHERE main_category IN (100041, 100046, 100042, 100037, 100038, 100048, 100039, 100040, 100047, 100044, 100045, 100043)
-;
 
---+ 12 category_id = 100079 - Biological samples 🡪 Assay results
+--+ All possible precoordinated pairs from the main dataset
 --Creating concepts for QA pairs
 INSERT INTO concept_stage(concept_id, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
 SELECT DISTINCT
        NULL::int,
-       concat(trim(f.title), ': ', trim(aa.meaning)),
+       vocabulary_pack.cutconceptname(concat(trim(f.title), ': ', trim(aa.meaning))),
        'Observation',
        'UK Biobank',
        'Precoordinated pair',
@@ -820,8 +799,6 @@ JOIN all_answers aa
 LEFT JOIN concept c
     ON concat(f.field_id, '-', aa.encoding_id, '-', aa.value) = c.concept_code
         AND c.vocabulary_id = 'UK Biobank'
-WHERE main_category IN ('148', '1307', '9081', '17518', '18518', '51428', '100079', '100080', '100081', '100082', '100083')
-    AND f.title !~* 'aliquot|reportability|missing reason|correction reason|correction level|acquisition route|device ID'
 ;
 
 --9a. Processing manual relationships from concept_relationship_manual to concept_relationship

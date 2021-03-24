@@ -801,8 +801,11 @@ LEFT JOIN concept c
         AND c.vocabulary_id = 'UK Biobank'
 ;
 
---9a. Processing manual relationships from concept_relationship_manual to concept_relationship
-SELECT vocabulary_pack.ProcessManualRelationships();
+--9a. Processing manual relationships from concept_relationship_manual to concept_relationship_stage
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
 
 
 --9b. Removing unnecessary precoordinated pairs

@@ -103,7 +103,14 @@ SELECT DISTINCT NULL::int4 AS concept_id_1,
 	r.concept_code_2,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
-	r.relationship_id,
+	case r.relationship_id
+		when 'Has peptide-drug conjugate' then 'Has pept-drug cjgt'
+		when 'Has radioconjugate Rx' then 'Has radiocjgt Rx'
+		when 'Has antibody-drug conjugate' then 'Has AB-drug cjgt'
+		when 'Has cytotoxic chemotherapy' then 'Has cytotoxic chemo'
+		when 'Has endocrine therapy' then 'Has endocrine tx'
+		else r.relationship_id
+	end,
 	( SELECT latest_update
 			FROM vocabulary
 			WHERE vocabulary_id = 'HemOnc'
@@ -125,7 +132,8 @@ WHERE r.relationship_id NOT IN (
 		-- these aren't investigated well yet
 		'Has been compared to',
 		'Can be preceded by',
-		'Can be followed by'
+		'Can be followed by',
+		'May require'
 		)
 	--Antithymocyte globulin rabbit ATG was mapped to Thymoglobulin (Brand Name) , correct mapping will be added below
 	AND NOT (
@@ -273,16 +281,34 @@ FROM (
 		r2.concept_code_2,
 		cs1.vocabulary_id AS vocabulary_id_1,
 		r2.vocabulary_id_2,
-		CASE 
-			WHEN r.relationship_id = 'Has antineoplastic'
+		CASE r.relationship_id
+		WHEN 'Has antineoplastic'
 				THEN 'Has antineopl Rx'
-			WHEN r.relationship_id = 'Has immunosuppressor'
+			WHEN 'Has immunosuppressor'
 				THEN 'Has immunosuppr Rx'
-			WHEN r.relationship_id = 'Has local Therapy'
+			WHEN 'Has local Therapy'
 				THEN 'Has local therap Rx'
-			WHEN r.relationship_id = 'Has supportive med'
+			when 'Has local therapy'
+				THEN 'Has local therap Rx'
+			WHEN 'Has supportive med'
 				THEN 'Has support med Rx'
-			ELSE NULL
+			WHEN 'Has AB-drug cjgt'
+				THEN 'Has ADC Rx'
+			WHEN 'Has immunotherapy'
+				THEN 'Has immuno Rx'
+			when 'Has targeted therapy'
+				THEN 'Has targeted Rx'
+			when 'Has cytotoxic chemo'
+				THEN 'Has chemo Rx'
+			when 'Has radioconjugate'
+				THEN 'Has radiocjgt Rx'
+			when 'Has Has radioconjugate Rx'
+				THEN 'Has radiocjgt Rx'
+			when 'Has endocrine tx'
+				THEN 'Has endo Rx'
+			when 'Has radiotherapy'
+				THEN 'Has radio Rx'
+			ELSE null
 			END AS relationship_id,
 		cs1.valid_start_date,
 		cs1.valid_end_date,

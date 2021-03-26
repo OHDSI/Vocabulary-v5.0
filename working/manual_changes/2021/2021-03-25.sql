@@ -204,7 +204,7 @@ BEGIN
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Targeted therapy of (HemOnc)',
-	pReverse_relationship_id		=>'argeted therapy of',
+	pReverse_relationship_id		=>'Targeted therapy of',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );

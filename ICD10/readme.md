@@ -20,12 +20,13 @@ SELECT devv5.FastRecreateSchema(include_synonyms=>true);
 5. As described in the "manual_work" folder, upload concept_manual.csv and concept_relationship_manual.csv into eponymous tables, which exist by default in the dev schema after  the FastRecreate. If you already have manual staging tables, obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy, concept_manual_backup_ddmmyy)
 6. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/load_stage.sql) for the first time to define problems in mapping
 7. Run [mapping_refresh.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10-documentation/ICD10/mapping_refresh.sql). Table refresh_lookup will be created. It contains the list with mappings to outdated, deprecated or updated Standard concepts, as well as automaticaly improved mapping. Download this table and open it in Excel. Columns icd_ represent ICD10 concepts with uncertain mapping, columns current_ refer to mapping which currently exists in concept_relationship_stage and columns repl_by_ suggest automatically created mapping, the reason for concepts appearing in this table you can see in column reason (e.g., 'improve_map','without mapping').
-8. Perform manual review and mapping. Note, if you think that current mapping is better than suggested replacement, delete rows with these concepts from Excel table. Finally, delete current_ and reason columns.
+8. Firstly, perform manual review and mapping. Note, if you think that current mapping is better than suggested replacement, delete rows with these concepts from Excel table. Secondly, add column repl_by_relationship and put there necessary relationship_id following the recommendations described in the "manual_work" folder. Finally, delete current_ and reason columns.
 9. Save table as refresh_lookup_done.csv and upload it into your schema using script 
 ```sql
 CREATE TABLE refresh_lookup_done (
 icd_code VARCHAR,
 icd_name VARCHAR,
+repl_by_relationship VARCHAR,
 repl_by_id INT,
 repl_by_code VARCHAR,
 repl_by_name VARCHAR,

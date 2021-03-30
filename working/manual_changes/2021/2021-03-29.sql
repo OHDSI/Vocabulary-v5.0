@@ -1,7 +1,7 @@
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
-	pRelationship_name			=>'Concepts with reference to variant',
+	pRelationship_name			=>'Reference to variant',
 	pRelationship_id			=>'Has variant',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,

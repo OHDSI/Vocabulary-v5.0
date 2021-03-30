@@ -17,7 +17,6 @@
 * Date: 2021
 **************************************************************************/
 
--- count different rows number and relationships_id.
 SELECT 'row number - total in mapping' AS issue_desc,
        COUNT(icd_code)
 FROM refresh_lookup_done
@@ -239,11 +238,9 @@ SELECT 'mapping issue - lost Finding related to pregnancy' AS issue_desc,
        COUNT(DISTINCT k.icd_code)
 FROM refresh_lookup_done k
   JOIN concept c ON k.repl_by_id = c.concept_id
-WHERE k.icd_code NOT IN (SELECT a.icd_code
-                           FROM refresh_lookup_done a
-                             JOIN concept_ancestor b
-                               ON repl_by_id = b.descendant_concept_id
-                              AND ancestor_concept_id = 444094)
+WHERE k.icd_code NOT IN (SELECT icd_code
+                           FROM refresh_lookup_done
+                             WHERE repl_by_id = 444094)
 AND   k.icd_code ~ '^O'
 AND   c.domain_id != 'Procedure'
   UNION ALL
@@ -609,16 +606,6 @@ AND   icd_code NOT IN (SELECT icd_code
                        WHERE repl_by_name ~* 'refractor|intractable')
 AND   icd_code != 'G43.D1'
   UNION ALL
-SELECT 'mapping issue - non-standard concepts' AS issue_desc,
-       COUNT(repl_by_id)
-FROM refresh_lookup_done
-WHERE icd_code IN (SELECT a.icd_code
-                 FROM refresh_lookup_done a
-                   LEFT JOIN concept c
-                          ON a.icd_code = c.concept_code
-                         AND c.standard_concept = 'S' AND c.vocabulary_id = 'ICD10'
-                 WHERE c.concept_id IS NULL)
-  UNION ALL
 SELECT 'relationship_id - Maps to value with incorrect pair of repl_by_relationship' AS issue_desc,
        COUNT(icd_code)
 FROM refresh_lookup_done
@@ -705,4 +692,4 @@ FROM refresh_lookup_done a
 WHERE a.icd_code NOT IN (SELECT icd_code
                          FROM refresh_lookup_done
                          WHERE repl_by_relationship = 'Maps to value')
-ORDER BY issue_desc;                           
+ORDER BY issue_desc;     

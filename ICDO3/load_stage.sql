@@ -1396,7 +1396,18 @@ select
 	'ICDO3',
 	'ICDO3',
 	r.relationship_id,
-	r.valid_start_date,
+	--Workaround for fixes between source releases
+	case 
+		when r.valid_start_date <=
+		(
+			select latest_update
+			from vocabulary
+			where latest_update is not null
+			limit 1
+		)
+		then TO_DATE ('19700101', 'yyyymmdd')
+		else r.valid_start_date		
+	end,
 	(
 		select latest_update - 1
 		from vocabulary
@@ -1417,7 +1428,20 @@ left join concept_relationship_stage s on
 	s.concept_code_1 = c.concept_code and
 	s.concept_code_2 = c2.concept_code and
 	s.relationship_id = r.relationship_id
-where s.concept_code_1 is null
+where
+	s.concept_code_1 is null and
+	--don't deprecate maps to self for Standard concepts
+	not
+		(
+			c.concept_id = c2.concept_id and
+			r.relationship_id = 'Maps to' and
+			exists
+				(
+					select 1
+					from concept_stage x
+					where x.concept_code = c.concept_code
+				)
+		)
 ;
 --25. Populate concept_synonym_stage
 --25.1. with morphologies
@@ -1496,11 +1520,12 @@ where
 ;
 -- 29. Cleanup: drop all temporary tables
 drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace, snomed_ancestor
-;
+
 --TODO:
 /*
 	1. Once SNOMED metadata is implemented in concept_relationship, drop dependency on SNOMED sources and creation of separate snomed_ancestor
 	2. Include SEER conversion tables as relations between ICDO Topography sources and ICD10(CM)
 	3. Create user-space tool to create automated mappings to SNOMED for custom combinations
 	4. Create separate QA routine for sources and manual tables
+	5. Allow for generic mapping when source topography is organ system structure (e.g. Glioma of Nervous system, NOS can be mapped to Glioma (disorder))
 */

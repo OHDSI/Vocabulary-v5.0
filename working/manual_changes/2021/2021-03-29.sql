@@ -1,3 +1,4 @@
+-- Adding new relationsip
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
@@ -12,7 +13,7 @@ BEGIN
 );
 END $_$;
 
-
+--Adding new vocabulary 
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddNewVocabulary(
@@ -27,3 +28,12 @@ BEGIN
 	pClick_disabled			=> NULL --NULL or 'Y'
 );
 END $_$;
+
+
+-- Run for update concept codes before run staging tables
+-- Concept codes should contain version in refseq
+update concept 
+set concept_code = new_code
+from dev_dkaduk.upd_concept_3 
+where concept.concept_id = upd_concept_3.concept_id
+;

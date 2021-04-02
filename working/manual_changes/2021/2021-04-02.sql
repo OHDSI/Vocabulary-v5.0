@@ -9,7 +9,7 @@ PERFORM vocabulary_pack.AddNewSynonym(
                      pVocabulary_id    =>'RxNorm Extension',
                      pConcept_class_id =>'Ingredient',
                      pStandard_concept =>'S',
-                     pConcept_code     =>''
+                     pConcept_code     =>NULL
                           ),
       pSynonym_name        =>'Disease caused by Severe acute respiratory syndrome coronavirus 2 convalescent plasma',
       pLanguage_concept_id =>4180186

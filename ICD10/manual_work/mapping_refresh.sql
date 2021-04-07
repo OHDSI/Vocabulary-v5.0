@@ -215,12 +215,12 @@ JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND
     ON cs.concept_id = c.concept_id
    AND c.vocabulary_id = 'SNOMED'
    AND c.standard_concept = 'S'
-   AND c.concept_class_id IN ('Procedure', 'Context-dependent', 'Clinical Finding', 'Event', 'Social Context', 'Observable Entity')
-WHERE d.concept_id != c.concept_id),
+   AND c.concept_class_id IN ('Procedure', 'Context-dependent', 'Clinical Finding', 'Event', 'Social Context', 'Observable Entity')),
 p_map AS (    
     SELECT * FROM t5
   UNION
-    SELECT * FROM t6 )
+    SELECT * FROM t6
+WHERE icd_code NOT IN (SELECT icd_code FROM t6 WHERE icd_code IN (SELECT icd_code FROM t6 GROUP BY icd_code HAVING COUNT (icd_code)=1) AND current_id = repl_by_id))
 SELECT * FROM p_map 
 UNION 
 SELECT * FROM t4

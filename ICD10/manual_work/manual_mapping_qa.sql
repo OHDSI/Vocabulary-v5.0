@@ -181,16 +181,6 @@ AND   c.concept_class_id IN ('Body Structure','Morph Abnormality','Organism','Ph
 --  in this case these classes are ok: 'Location','Observable Entity', 'Physical Force', 
 AND   a.repl_by_relationship != 'Maps to value'
   UNION ALL
-SELECT 'relationship id - doubled Maps to' AS issue_desc,
-       COUNT(DISTINCT icd_code)
-FROM refresh_lookup_done
-WHERE icd_code IN (SELECT icd_code
-                       FROM refresh_lookup_done
-                       WHERE repl_by_relationship = 'Maps to'
-                       GROUP BY icd_code,
-                                repl_by_relationship
-                       HAVING COUNT(1) >= 2)
-  UNION ALL
 SELECT 'duplicates' AS issue_desc,
        COUNT(DISTINCT icd_code)
 FROM refresh_lookup_done

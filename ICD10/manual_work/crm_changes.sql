@@ -17,6 +17,6 @@
 * Date: 2021
 **************************************************************************/
 -- deprecate previous inaccurate mapping
-UPDATE concept_relationship_manual SET valid_end_date = CURRENT_DATE, invalid_reason = 'D' WHERE concept_code_1 IN (SELECT icd_code FROM refresh_lookup_done);
+UPDATE concept_relationship_manual SET valid_end_date = CURRENT_DATE, invalid_reason = 'D' WHERE concept_code_1 IN (SELECT icd_code FROM refresh_lookup_done) AND concept_code_2 NOT IN (SELECT repl_by_code FROM refresh_lookup_done);
 -- insert new mapping
 INSERT INTO concept_relationship_manual SELECT icd_code, repl_by_code, 'ICD10', repl_by_vocabulary, 'Maps to', CURRENT_DATE, TO_DATE('20991231','YYYYMMDD'), NULL FROM refresh_lookup_done;

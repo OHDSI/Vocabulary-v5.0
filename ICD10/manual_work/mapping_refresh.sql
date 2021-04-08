@@ -84,6 +84,29 @@ WHERE a.vocabulary_id = 'ICD10'
 AND   a.invalid_reason IS NULL
 AND   b.concept_id IS NULL
 AND a.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')),
+--brothers of depracted concepts: for cases when source concept has 1-to-many mapping and one of the target concepts is dead, we should see all other target concepts to create an accurate mapping
+miss_map_brother AS ( SELECT
+       a.icd_code,
+       a.icd_name,
+       c.relationship_id,
+       b.concept_id AS current_id,
+       b.concept_code AS current_code,
+       b.concept_name AS current_name,
+       b.domain_id AS current_domain,
+       b.vocabulary_id AS current_vocabulary,
+       b.concept_id,
+       b.concept_code,
+        b.concept_name,
+       b.domain_id,
+       b.vocabulary_id,
+       'brother of deprecated mapping' AS reason
+FROM miss_map a
+JOIN concept_relationship_stage c ON c.concept_code_1 = a.icd_code
+JOIN concept b
+    ON c.concept_code_2 = b.concept_code
+   AND b.vocabulary_id = c.vocabulary_id_2
+   AND c.relationship_id IN ('Maps to', 'Maps to value')
+   AND b.invalid_reason IS NULL),
 -- concepts which mapping can be replaced through 'Maps to' relationship
 t1 AS (SELECT d.concept_code AS icd_code,
               d.concept_name AS icd_name,
@@ -152,7 +175,9 @@ t4 AS (SELECT miss_map.icd_code,
               t3.repl_by_vocabulary,
               miss_map.reason
        FROM miss_map
-         LEFT JOIN t3 ON miss_map.icd_code = t3.icd_code),
+         LEFT JOIN t3 ON miss_map.icd_code = t3.icd_code
+      UNION
+         SELECT * FROM miss_map_brother),
 -- improve_map - automatically detected mapping improvements. Look carefully! Target vocabulary could have the same names of concepts with different domain_ids. Also, ICD10 chapter means a lot and should be taken into account for choosing appropriate mapping
 improve_map
 AS
@@ -215,12 +240,14 @@ JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND
     ON cs.concept_id = c.concept_id
    AND c.vocabulary_id = 'SNOMED'
    AND c.standard_concept = 'S'
-   AND c.concept_class_id IN ('Procedure', 'Context-dependent', 'Clinical Finding', 'Event', 'Social Context', 'Observable Entity')),
+   AND c.concept_class_id IN ('Procedure', 'Context-dependent', 'Clinical Finding', 'Event', 'Social Context', 'Observable Entity')
+AND c.concept_id NOT IN (SELECT descendant_concept_id FROM devv5.concept_ancestor WHERE ancestor_concept_id = 40485423 )), -- concept Unilateral clinical finding has weak hierarchy
 p_map AS (    
     SELECT * FROM t5
   UNION
-    SELECT * FROM t6
-WHERE icd_code NOT IN (SELECT icd_code FROM t6 WHERE icd_code IN (SELECT icd_code FROM t6 GROUP BY icd_code HAVING COUNT (icd_code)=1) AND current_id = repl_by_id))
+--exclude the cases 1 to 1 mapping with the current_id = repl_by_id, if there's multiple mapping and current_id = repl_by_id, the additional mapping serves as a hiearchy connector, so these are included into the comparison	
+    SELECT * FROM t6 WHERE icd_code NOT IN (SELECT icd_code FROM (
+SELECT *, COUNT(1) over (partition BY icd_code) AS cnt FROM t6) a WHERE a.cnt =1 AND current_id = repl_by_id))
 SELECT * FROM p_map 
 UNION 
 SELECT * FROM t4

@@ -49,11 +49,12 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
   * **"Is a"** is a temporary relationship used for this check only and applicable for 1-to-1 PARTIAL equivalent AND 1-to-many mappings.
 Preserve a manual table with 'Is a' relationships, but change 'Is a' to 'Maps to' during the insertion into the concept_relatioship_manual (e.g. using CASE WHEN).
 
-#### Required fields in a manual table
-- icd_id INT, 
+#### Required fields in a manual table 
 - icd_code VARHCAR, 
 - icd_name VARHCAR, 
-- relationship_id VARCHAR, 
-- concept_id INT, 
-- concept_code VARCHAR, 
-- concept_name VARCHAR
+- repl_by_relationship VARCHAR, 
+- repl_by_id INT, 
+- repl_by_code VARCHAR, 
+- repl_by_name VARCHAR,
+- repl_by_domain VARCHAR,
+- repl_by_vocabulary VARCHAR

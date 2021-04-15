@@ -1311,26 +1311,7 @@ select distinct
 	TO_DATE ('20991231', 'yyyymmdd')
 from code_replace cr
 ;
---22. Add mappings for replaced concepts
-insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
-select
-	cr.old_code,	
-	coalesce (r.concept_code_2,cr.code),
-	'ICDO3',
-	coalesce (r.vocabulary_id_2,'ICDO3'),
-	'Maps to',
-	TO_DATE ('19700101', 'yyyymmdd'),
-	TO_DATE ('20991231', 'yyyymmdd')
-from code_replace cr
-left join concept_relationship_stage r on
-	r.concept_code_1 = cr.code and
-	r.relationship_id = 'Maps to' and
-	r.invalid_reason is null
-where
---Only for conditions or directly mapped Histologies
-	(cr.concept_class_id = 'ICDO Condition' or r.concept_code_1 is not null)
-;
---23. Make concepts without 'Maps to' relations Standard
+--22. Make concepts without 'Maps to' relations Standard
 update concept_stage
 set standard_concept = 'S'
 where
@@ -1347,8 +1328,107 @@ where
 		(concept_class_id = 'ICDO Histology' and concept_code like '%/%')
 	)
 ;
---24. Since our relationship list is cannonically complete, we deprecate all existing relationships if they are not reinforced in current release
---24.1. From ICDO3 to SNOMED
+--23. Populate concept_synonym_stage
+--23.1. with morphologies
+insert into concept_synonym_stage
+--we ignore obsoletion status of synonyms for now: concepts may still be referenced by their old names in historical classifications
+--ICDO3 does not distinguish between 'old' and 'wrong'
+select
+	null,
+	trim (term),
+	icdo32,
+	'ICDO3',
+	4180186 -- English
+from morph_source_who
+where
+	level != 'Related' -- not actual synonyms
+	and icdo32 is not null
+;
+--24. Vocabulary pack procedures
+--24.1. Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--25.2, Add mapping from deprecated to fresh concepts -- Disabled - breaks Upgraded concepts
+/*DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;*/
+--do this instead:
+insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
+select
+	r.concept_code_1,
+	coalesce (r2.concept_code_2, r.concept_code_2),
+	r.vocabulary_id_1,
+	coalesce (r2.vocabulary_id_2, r.vocabulary_id_2),
+	'Maps to',
+	TO_DATE ('19700101', 'yyyymmdd'),
+	TO_DATE ('20991231', 'yyyymmdd')
+from concept_relationship_stage r
+left join concept_relationship_stage r2 on
+	r2.relationship_id = 'Maps to' and
+	r.concept_code_2 = r2.concept_code_1
+where
+	r.relationship_id = 'Concept replaced by' and
+	not exists
+		(
+			select 1
+			from concept_relationship_stage r3
+			where
+				r.concept_code_1 = r3.concept_code_1 and
+				r3.relationship_id = 'Maps to'
+		)
+;
+--25.3. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--25.4. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--26. If concept got replaced, give it invalid_reason = 'U'
+update concept_stage x
+set invalid_reason = 'U'
+where
+	invalid_reason = 'D' and
+	exists
+		(
+			select 1
+			from concept_relationship_stage
+			where
+				invalid_reason is null and
+				relationship_id = 'Concept replaced by' and
+				concept_code_1 = x.concept_code
+		)
+;
+--27. Condition built from deprecated (not replaced) histologies need to have their validity period or invalid_reason modified
+--27.1. invalid_reason => 'D'
+update concept_stage
+set  invalid_reason = 'D'
+where
+	concept_class_id = 'ICDO Condition' and
+	standard_concept is null and
+	valid_end_date < current_date and
+	invalid_reason is null
+;
+--28.2. end date => '20991231'
+update concept_stage
+set  valid_end_date = to_date ('20991231','yyyymmdd')
+where
+	concept_class_id = 'ICDO Condition' and
+	standard_concept = 'S' and
+	valid_end_date < current_date and
+	invalid_reason is null
+;
+--29. Since our relationship list is cannonically complete, we deprecate all existing relationships if they are not reinforced in current release
+--29.1. From ICDO3 to SNOMED
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date, invalid_reason)
 select
 	c.concept_code,
@@ -1378,7 +1458,7 @@ left join concept_relationship_stage s on
 	s.relationship_id = r.relationship_id
 where s.concept_code_1 is null
 ;
---24.2. From ICDO to ICDO
+--29.2. From ICDO to ICDO
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date, invalid_reason)
 with rela as
 --Ensure such relations were created this release (avoids mirroring problem)
@@ -1396,7 +1476,18 @@ select
 	'ICDO3',
 	'ICDO3',
 	r.relationship_id,
-	r.valid_start_date,
+	--Workaround for fixes between source releases
+	case 
+		when r.valid_start_date <=
+		(
+			select latest_update
+			from vocabulary
+			where latest_update is not null
+			limit 1
+		)
+		then TO_DATE ('19700101', 'yyyymmdd')
+		else r.valid_start_date		
+	end,
 	(
 		select latest_update - 1
 		from vocabulary
@@ -1417,90 +1508,30 @@ left join concept_relationship_stage s on
 	s.concept_code_1 = c.concept_code and
 	s.concept_code_2 = c2.concept_code and
 	s.relationship_id = r.relationship_id
-where s.concept_code_1 is null
-;
---25. Populate concept_synonym_stage
---25.1. with morphologies
-insert into concept_synonym_stage
---we ignore obsoletion status of synonyms for now: concepts may still be referenced by their old names in historical classifications
---ICDO3 does not distinguish between 'old' and 'wrong'
-select
-	null,
-	trim (term),
-	icdo32,
-	'ICDO3',
-	4180186 -- English
-from morph_source_who
 where
-	level != 'Related' -- not actual synonyms
-	and icdo32 is not null
-;
---26. Vocabulary pack procedures
---26.1. Working with replacement mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
-
---26.2, Add mapping from deprecated to fresh concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;
-
---26.3. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;
-
---26.4. Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
---27. If concept got replaced, give it invalid_reason = 'U'
-update concept_stage x
-set invalid_reason = 'U'
-where
-	invalid_reason = 'D' and
-	exists
+	s.concept_code_1 is null and
+	--don't deprecate maps to self for Standard concepts
+	not
 		(
-			select 1
-			from concept_relationship_stage
-			where
-				invalid_reason is null and
-				relationship_id = 'Concept replaced by' and
-				concept_code_1 = x.concept_code
+			c.concept_id = c2.concept_id and
+			r.relationship_id = 'Maps to' and
+			exists
+				(
+					select 1
+					from concept_stage x
+					where x.concept_code = c.concept_code
+				)
 		)
 ;
---28. Condition built from deprecated (not replaced) histologies need to have their validity period or invalid_reason modified
---28.1. invalid_reason => 'D'
-update concept_stage
-set  invalid_reason = 'D'
-where
-	concept_class_id = 'ICDO Condition' and
-	standard_concept is null and
-	valid_end_date < current_date and
-	invalid_reason is null
-;
---28.2. end date => '20991231'
-update concept_stage
-set  valid_end_date = to_date ('20991231','yyyymmdd')
-where
-	concept_class_id = 'ICDO Condition' and
-	standard_concept = 'S' and
-	valid_end_date < current_date and
-	invalid_reason is null
-;
--- 29. Cleanup: drop all temporary tables
-drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace, snomed_ancestor
-;
+-- 30. Cleanup: drop all temporary tables
+--drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace, snomed_ancestor
+
 --TODO:
 /*
 	1. Once SNOMED metadata is implemented in concept_relationship, drop dependency on SNOMED sources and creation of separate snomed_ancestor
 	2. Include SEER conversion tables as relations between ICDO Topography sources and ICD10(CM)
 	3. Create user-space tool to create automated mappings to SNOMED for custom combinations
 	4. Create separate QA routine for sources and manual tables
+	5. Allow for generic mapping when source topography is organ system structure (e.g. Glioma of Nervous system, NOS can be mapped to Glioma (disorder))
+	6. Add German synonyms
 */

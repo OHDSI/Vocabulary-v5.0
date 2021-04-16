@@ -42,6 +42,8 @@ FROM concept_synonym_manual
 ORDER BY synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id;
 ```
 
+### STEP 8 of the refresh: solving problems which are difened during the first load_stage run
+
 #### csv format:
 - delimiter: ','
 - encoding: 'UTF8'

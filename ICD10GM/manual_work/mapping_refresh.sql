@@ -80,7 +80,7 @@ FROM concept_stage a
   LEFT JOIN concept b
          ON b.concept_code = concept_code_2
         AND b.vocabulary_id = vocabulary_id_2
-WHERE a.vocabulary_id = 'ICD10'
+WHERE a.vocabulary_id = 'ICD10GM'
 AND   a.invalid_reason IS NULL
 AND   b.concept_id IS NULL
 AND a.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')),
@@ -197,7 +197,7 @@ a.concept_code AS icd_code,
        c.vocabulary_id AS repl_by_vocabulary,
        'improve_map' AS reason
 FROM concept a
-JOIN concept_relationship r ON r.concept_id_1 = a.concept_id AND a.vocabulary_id = 'ICD10' 
+JOIN concept_relationship r ON r.concept_id_1 = a.concept_id AND a.vocabulary_id = 'ICD10GM' 
 JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
   JOIN sources.mrconso
     ON lower (a.concept_name) = lower (str)
@@ -233,9 +233,9 @@ a.concept_code AS icd_code,
        c.vocabulary_id AS repl_by_vocabulary,
        'improve_map' AS reason
 FROM concept a
-JOIN concept_relationship r ON r.concept_id_1 = a.concept_id and a.vocabulary_id = 'ICD10' 
+JOIN concept_relationship r ON r.concept_id_1 = a.concept_id and a.vocabulary_id = 'ICD10GM' 
 JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
-  JOIN concept_synonym cs ON lower (a.concept_name) = lower (cs.concept_synonym_name) AND a.vocabulary_id = 'ICD10'
+  JOIN concept_synonym cs ON lower (a.concept_name) = lower (cs.concept_synonym_name) AND a.vocabulary_id = 'ICD10GM'
   JOIN concept c
     ON cs.concept_id = c.concept_id
    AND c.vocabulary_id = 'SNOMED'

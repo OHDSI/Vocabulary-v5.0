@@ -108,8 +108,8 @@ select a.concept_code,
        string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
        string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
 from concept a
-join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
-join concept b on b.concept_id = concept_id_2
+left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
+left join concept b on b.concept_id = concept_id_2
 where a.vocabulary_id IN (:your_vocabs)
     --and a.invalid_reason is null --to exclude invalid concepts
 group by a.concept_code, a.concept_name
@@ -122,8 +122,8 @@ select a.concept_code,
        string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
        string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
 from devv5. concept a
-join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
-join devv5.concept b on b.concept_id = concept_id_2
+left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
+left join devv5.concept b on b.concept_id = concept_id_2
 where a.vocabulary_id IN (:your_vocabs)
     --and a.invalid_reason is null --to exclude invalid concepts
 group by a.concept_code, a.concept_name
@@ -138,7 +138,7 @@ select a.concept_code as source_code,
        b.name_agg as new_name_agg
 from old_map  a
 join new_map b
-on a.concept_code = b.concept_code and (a.code_agg != b.code_agg or a.relationship_agg != b.relationship_agg)
+on a.concept_code = b.concept_code and (coalesce (a.code_agg, '') != coalesce (b.code_agg, '') or coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, ''))
 order by a.concept_code
 ;
 
@@ -150,8 +150,8 @@ select a.concept_code,
        string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
        string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
 from concept a
-join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
-join concept b on b.concept_id = concept_id_2
+left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
+left join concept b on b.concept_id = concept_id_2
 where a.vocabulary_id IN (:your_vocabs) and a.invalid_reason is null
 group by a.concept_code, a.concept_name
 )
@@ -163,8 +163,8 @@ select a.concept_code,
        string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
        string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
 from devv5. concept a
-join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
-join devv5.concept b on b.concept_id = concept_id_2
+left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
+left join devv5.concept b on b.concept_id = concept_id_2
 where a.vocabulary_id IN (:your_vocabs) and a.invalid_reason is null
 group by a.concept_code, a.concept_name
 )
@@ -178,7 +178,7 @@ select a.concept_code as source_code,
        b.name_agg as new_name_agg
 from old_map  a
 join new_map b
-on a.concept_code = b.concept_code and (a.code_agg != b.code_agg or a.relationship_agg != b.relationship_agg)
+on a.concept_code = b.concept_code and (coalesce (a.code_agg, '') != coalesce (b.code_agg, '') or coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, ''))
 order by a.concept_code
 ;
 

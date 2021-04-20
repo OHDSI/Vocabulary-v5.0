@@ -21,7 +21,7 @@ SELECT devv5.FastRecreateSchema('dev_icd10');
 6. As described in the "manual_work" folder, upload concept_manual.csv, concept_relationship_manual.csv and concept_synonym_manual.csv into eponymous tables, which exist by default in the dev schema after the FastRecreate. If you already have manual staging tables, obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy, concept_manual_backup_ddmmyy)
 7. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/load_stage.sql) for the first time to define problems in mapping
 8. Perform manual work described in manual_work folder
-9. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/load_stage.sql) for the second time to refresh ICD10
+9. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/load_stage.sql) for the second time to refresh ICD10GM
 10. Run generic_update: 
 ```sql
 SELECT devv5.GenericUpdate();

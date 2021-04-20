@@ -30,15 +30,14 @@ AS
        b.domain_id AS current_domain,
        b.vocabulary_id AS current_vocabulary,
        'deprecated mapping' AS reason
-FROM concept_relationship_stage a
+FROM concept_relationship_manual a
   JOIN concept b
     ON a.concept_code_2 = b.concept_code
    AND b.vocabulary_id = a.vocabulary_id_2
    AND a.relationship_id IN ('Maps to', 'Maps to value')
    AND b.invalid_reason IN ('D', 'U')
-  JOIN concept_stage c
+  JOIN concept_manual c
     ON a.concept_code_1 = c.concept_code 
-    AND c.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
 AND a.invalid_reason IS NULL
 UNION
 -- 'non-standard mapping'
@@ -51,16 +50,15 @@ SELECT c.concept_code,
        b.domain_id AS current_domain,
        b.vocabulary_id AS current_vocabulary,
        'non-standard mapping' AS reason
-FROM concept_relationship_stage a
+FROM concept_relationship_manual a
   JOIN concept b
     ON a.concept_code_2 = b.concept_code
    AND b.vocabulary_id = a.vocabulary_id_2
    AND a.relationship_id IN ('Maps to', 'Maps to value')
    AND b.invalid_reason IS NULL
    AND b.standard_concept IS NULL
-  JOIN concept_stage c
+  JOIN concept_manual c
     ON a.concept_code_1 = c.concept_code
-    AND c.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
 UNION
 -- 'without mapping'
 SELECT a.concept_code,
@@ -72,18 +70,18 @@ SELECT a.concept_code,
        NULL,
        NULL,
        'without mapping' AS reason
-FROM concept_stage a
-  LEFT JOIN concept_relationship_stage r
+FROM concept_manual a
+  LEFT JOIN concept_relationship_manual r
          ON a.concept_code = concept_code_1
         AND r.relationship_id IN ('Maps to') 
         AND r.invalid_reason IS NULL
-  LEFT JOIN concept b
+ LEFT JOIN concept b
          ON b.concept_code = concept_code_2
         AND b.vocabulary_id = vocabulary_id_2
 WHERE a.vocabulary_id = 'ICD10GM'
 AND   a.invalid_reason IS NULL
 AND   b.concept_id IS NULL
-AND a.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')),
+AND a.concept_code NOT IN (SELECT concept_code_1 FROM concept_relationship_stage)),
 --brothers of depracted concepts: for cases when source concept has 1-to-many mapping and one of the target concepts is dead, we should see all other target concepts to create an accurate mapping
 miss_map_brother AS ( SELECT
        a.icd_code,
@@ -101,7 +99,7 @@ miss_map_brother AS ( SELECT
        b.vocabulary_id,
        'brother of deprecated mapping' AS reason
 FROM miss_map a
-JOIN concept_relationship_stage c ON c.concept_code_1 = a.icd_code
+JOIN concept_relationship_manual c ON c.concept_code_1 = a.icd_code
 JOIN concept b
     ON c.concept_code_2 = b.concept_code
    AND b.vocabulary_id = c.vocabulary_id_2
@@ -117,13 +115,13 @@ t1 AS (SELECT d.concept_code AS icd_code,
               j.domain_id AS repl_by_domain,
               j.vocabulary_id AS repl_by_vocabulary,
               NULL
-       FROM concept_relationship_stage a
+       FROM concept_relationship_manual a
          JOIN concept b
            ON a.concept_code_2 = b.concept_code
           AND b.vocabulary_id = a.vocabulary_id_2
           AND a.relationship_id = 'Maps to'
           AND b.invalid_reason IN ('D', 'U')
-          JOIN concept_stage d
+          JOIN concept_manual d
     ON a.concept_code_1 = d.concept_code
          JOIN concept_relationship r2 ON b.concept_id = r2.concept_id_1
          JOIN concept j
@@ -142,13 +140,13 @@ t2 AS (SELECT d.concept_code AS icd_code,
               j.domain_id AS repl_by_domain,
               j.vocabulary_id AS repl_by_vocabulary,
               NULL
-       FROM concept_relationship_stage a
+       FROM concept_relationship_manual a
          JOIN concept b
            ON a.concept_code_2 = b.concept_code
           AND b.vocabulary_id = a.vocabulary_id_2
           AND a.relationship_id = 'Maps to'
           AND b.invalid_reason IN ('D', 'U')
-        JOIN concept_stage d
+        JOIN concept_manual d
     ON a.concept_code_1 = d.concept_code
          JOIN concept_relationship r2 ON b.concept_id = r2.concept_id_1
          JOIN concept j
@@ -197,8 +195,8 @@ a.concept_code AS icd_code,
        c.vocabulary_id AS repl_by_vocabulary,
        'improve_map' AS reason
 FROM concept a
-JOIN concept_relationship r ON r.concept_id_1 = a.concept_id AND a.vocabulary_id = 'ICD10GM' 
-JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
+JOIN concept_relationship_manual r ON r.concept_code_1 = a.concept_code AND a.vocabulary_id = 'ICD10GM' 
+JOIN concept d ON d.concept_code = r.concept_code_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
   JOIN sources.mrconso
     ON lower (a.concept_name) = lower (str)
    AND sab = 'SNOMEDCT_US'
@@ -233,8 +231,8 @@ a.concept_code AS icd_code,
        c.vocabulary_id AS repl_by_vocabulary,
        'improve_map' AS reason
 FROM concept a
-JOIN concept_relationship r ON r.concept_id_1 = a.concept_id and a.vocabulary_id = 'ICD10GM' 
-JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
+JOIN concept_relationship_manual r ON r.concept_code_1 = a.concept_code and a.vocabulary_id = 'ICD10GM' 
+JOIN concept d ON d.concept_code = r.concept_code_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
   JOIN concept_synonym cs ON lower (a.concept_name) = lower (cs.concept_synonym_name) AND a.vocabulary_id = 'ICD10GM'
   JOIN concept c
     ON cs.concept_id = c.concept_id

@@ -100,7 +100,8 @@ where a.vocabulary_id IN (:your_vocabs)
 and c.concept_id is null
 ;
 
---02.5. concepts changed their mapping ('Maps to')
+--02.5. concepts changed their mapping ('Maps to'), this includes 2 scenarios: mapping changed; mapping present in one version, absent in another; 
+--to detect the absent mappings cases, sort by the respective code_agg to get the NULL values first. 
 with new_map as (
 select a.concept_code,
        a.concept_name,
@@ -142,7 +143,8 @@ on a.concept_code = b.concept_code and (coalesce (a.code_agg, '') != coalesce (b
 order by a.concept_code
 ;
 
---02.6. Concepts changed their ancestry ('Is a')
+--02.6. Concepts changed their ancestry ('Is a'), this includes 2 scenarios: Ancestor(s) changed; ancestor(s) present in one version, absent in another; 
+--to detect the absent ancestry cases, sort by the respective code_agg to get the NULL values first. 
 with new_map as (
 select a.concept_code,
        a.concept_name,

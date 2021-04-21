@@ -34,34 +34,35 @@ truncate table concept_stage, concept_relationship_stage, concept_synonym_stage,
 --3. Fill concept_stage with concepts
 insert into concept_stage (concept_name,domain_id,vocabulary_id,concept_class_id,concept_code,valid_start_date,valid_end_date)
 select
-	o.concept_name,
+	o.descendant_name,
 	'Condition',
 	'OncoTree',
 	'Condition',
-	o.oncotree_code,
+	o.descendant_code,
 	(
 		select latest_update
 		from vocabulary
 		where vocabulary_id = 'OncoTree'
 	) as valid_start_date,
 	to_date ('20991231','yyyymmdd')
-from concept_ot o
+from oncotree o
 left join concept c on
 	c.vocabulary_id = 'OncoTree' and
-	c.concept_code = o.oncotree_code
+	c.concept_code = o.descendant_code
+where o.ancestor_code is not null
 ;
 --4. Put internal hierarchy in concept_relationship_stage
 insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
 select
-	oncotree_code,
-	parent_oncotree_code,
+	descendant_code,
+	ancestor_code,
 	'OncoTree',
 	'OncoTree',
 	'Is a',
 	to_date ('19700101','yyyymmdd'),
 	to_date ('20991231','yyyymmdd')
-from ancestor_ot
-where parent_oncotree_code != 'TISSUE'
+from oncotree
+where ancestor_code != 'TISSUE'
 ;
 --5. Process manual relationships
 DO $_$

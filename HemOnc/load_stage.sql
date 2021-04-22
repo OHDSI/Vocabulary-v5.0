@@ -103,14 +103,7 @@ SELECT DISTINCT NULL::int4 AS concept_id_1,
 	r.concept_code_2,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
-	case r.relationship_id
-		when 'Has peptide-drug conjugate' then 'Has pept-drug cjgt'
-		when 'Has radioconjugate Rx' then 'Has radiocjgt Rx'
-		when 'Has antibody-drug conjugate' then 'Has AB-drug cjgt'
-		when 'Has cytotoxic chemotherapy' then 'Has cytotoxic chemo'
-		when 'Has endocrine therapy' then 'Has endocrine tx'
-		else r.relationship_id
-	end,
+	r.relationship_id,
 	( SELECT latest_update
 			FROM vocabulary
 			WHERE vocabulary_id = 'HemOnc'
@@ -286,28 +279,28 @@ FROM (
 				THEN 'Has antineopl Rx'
 			WHEN 'Has immunosuppressor'
 				THEN 'Has immunosuppr Rx'
-			WHEN 'Has local Therapy'
-				THEN 'Has local therap Rx'
 			when 'Has local therapy'
 				THEN 'Has local therap Rx'
 			WHEN 'Has supportive med'
 				THEN 'Has support med Rx'
 			WHEN 'Has AB-drug cjgt'
-				THEN 'Has ADC Rx'
+				THEN 'Has AB-drug cjgt Rx'
 			WHEN 'Has immunotherapy'
-				THEN 'Has immuno Rx'
+				THEN 'Has immunotherapy Rx'
 			when 'Has targeted therapy'
-				THEN 'Has targeted Rx'
+				THEN 'Has targeted tx Rx'
 			when 'Has cytotoxic chemo'
-				THEN 'Has chemo Rx'
+				THEN 'Has cytotox chemo Rx'
 			when 'Has radioconjugate'
 				THEN 'Has radiocjgt Rx'
 			when 'Has Has radioconjugate Rx'
 				THEN 'Has radiocjgt Rx'
 			when 'Has endocrine tx'
-				THEN 'Has endo Rx'
+				THEN 'Has endocrine tx Rx'
 			when 'Has radiotherapy'
-				THEN 'Has radio Rx'
+				THEN 'Has radiotherapy Rx'
+			when 'Has pept-drug cjgt'
+				THEN 'Has pept-drg cjg Rx'
 			ELSE null
 			END AS relationship_id,
 		cs1.valid_start_date,

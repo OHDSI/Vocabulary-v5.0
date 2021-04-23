@@ -18,11 +18,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has antibody-drug conjugate - RxNorm (HemOnc)',
-	pRelationship_id			=>'Has ADC Rx',
+	pRelationship_id			=>'Has AB-drug cjgt Rx',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Antibody-drug conjugate of - RxNorm (HemOnc)',
-	pReverse_relationship_id		=>'Rx ADC of',
+	pReverse_relationship_id		=>'Rx AB-drug cjgt of',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -60,11 +60,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has cytotoxic chemotherapy - RxNorm (HemOnc)',
-	pRelationship_id			=>'Has chemo Rx',
+	pRelationship_id			=>'Has cytotox chemo Rx',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Cytotoxic chemotherapy of - RxNorm (HemOnc)',
-	pReverse_relationship_id		=>'Chemo RX of',
+	pReverse_relationship_id		=>'Cytotox chemo RX of',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -88,11 +88,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has endocrine therapy - RxNorm (HemOnc)',
-	pRelationship_id			=>'Has endo Rx',
+	pRelationship_id			=>'Has endocrine tx Rx',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Endocrine therapy of - RxNorm (HemOnc)',
-	pReverse_relationship_id		=>'Rx endo of',
+	pReverse_relationship_id		=>'Rx endocrine tx of',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -116,11 +116,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has immunotherapy - RxNorm (HemOnc)',
-	pRelationship_id			=>'Has immuno Rx',
+	pRelationship_id			=>'Has immunotherapy Rx',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Immunotherapy of - RxNorm (HemOnc)',
-	pReverse_relationship_id		=>'Rx immuno of',
+	pReverse_relationship_id		=>'Rx immunotherapy of',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -135,6 +135,20 @@ BEGIN
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Peptide-drug conjugate of (HemOnc)',
 	pReverse_relationship_id		=>'Pept-drug cjgt of',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Has peptide-drug conjugate - RxNorm (HemOnc)',
+	pRelationship_id			=>'Has pept-drg cjg Rx',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Peptide-drug conjugate of - RxNorm (HemOnc)',
+	pReverse_relationship_id		=>'Rx pept-drg cjg of',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -186,11 +200,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has radiotherapy - RxNorm (HemOnc)',
-	pRelationship_id			=>'Has radio Rx',
+	pRelationship_id			=>'Has radiotherapy Rx',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Radiotherapy of - RxNorm (HemOnc)',
-	pReverse_relationship_id		=>'Rx radio of',
+	pReverse_relationship_id		=>'Rx radiotherapy of',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
@@ -214,11 +228,11 @@ DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has targeted therapy - RxNorm (HemOnc)',
-	pRelationship_id			=>'Has targeted Rx',
+	pRelationship_id			=>'Has targeted tx Rx',
 	pIs_hierarchical			=>0,
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Targeted therapy of - RxNorm (HemOnc)',
-	pReverse_relationship_id		=>'Rx targeted of',
+	pReverse_relationship_id		=>'Rx targeted tx of',
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );

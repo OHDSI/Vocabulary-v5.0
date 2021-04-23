@@ -7,7 +7,7 @@
 - Working directory dev_cim10
 - Manual tables must be filled (e.g. for translations)
 #### Sequence of actions
-1. Download the latest CIM-10 version [here]
+1. Download the latest CIM-10 version [here](https://www.atih.sante.fr/nomenclatures-de-recueil-de-linformation/cim#Mises%20%C3%A0%20jour%20de%20la%20CIM-10)
 2. Unzip the file 
 3. Run [create_source_tables.sql]
 4. Run in devv5 (with fresh vocabulary date and version): 

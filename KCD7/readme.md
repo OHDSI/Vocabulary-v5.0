@@ -17,9 +17,11 @@ SELECT sources.load_input_tables('KCD7',TO_DATE('20170701','yyyymmdd'),'7th revi
 ```sql
 SELECT devv5.FastRecreateSchema('dev_icd10'); 
 ```
-6. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/KCD7/load_stage.sql)
-7. Run generic_update: 
+6. As described in the "manual_work" folder, upload concept_relationship_manual.csv, which exist by default in the dev schema after the FastRecreate. If you already have manual staging tables, obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy)
+7. Perform manual work described in manual_work folder
+8. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/KCD7/load_stage.sql) to refresh KCD7
+9. Run generic_update: 
 ```sql
 SELECT devv5.GenericUpdate();
 ```
-8. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
+10. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)

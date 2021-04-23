@@ -16,12 +16,12 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 ### STEP 8 of the refresh: solving problems which are difened during the first load_stage run
 
-1. Run [mapping_refresh.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/manual_work/mapping_refresh.sql). Table refresh_lookup will be created. It contains the list with mappings to outdated, deprecated or updated Standard concepts, as well as automaticaly improved mapping from concept_relationship_manual table. 
-2. Download this table and open it in Excel. Columns icd_ represent ICD10GM concepts with uncertain mapping, columns current_ refer to mapping which currently exists in concept_relationship_manual and columns repl_by_ suggest automatically created mapping, the reason for concepts appearing in this table you can see in column reason (e.g., 'improve_map','without mapping').
+1. Run [mapping_refresh.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/kcd7-documentation/KCD7/manual_work/mapping_refresh.sql). Table refresh_lookup will be created. It contains the list with mappings to outdated, deprecated or updated Standard concepts, as well as automaticaly improved mapping from concept_relationship_manual table. 
+2. Download this table and open it in Excel. Columns icd_ represent KCD7 concepts with uncertain mapping, columns current_ refer to mapping which currently exists in concept_relationship_manual and columns repl_by_ suggest automatically created mapping, the reason for concepts appearing in this table you can see in column reason (e.g., 'improve_map','without mapping').
 3. Perform manual review and mapping. Note, if you think that current mapping is better than suggested replacement, delete rows with these concepts from Excel table. Add column repl_by_relationship and put there necessary relationship_id following the recommendations described below. Then, delete current_ and reason columns.
-4. Save table as refresh_lookup_done.csv and upload it into your schema using script [create_manual_table.sql](https://github.com/OHDSI/Vocabulary-v5.0/tree/icd10gm-documentation/ICD10GM/manual_work)
-5. Run [manual_mapping_qa.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/manual_work/manual_mapping_qa.sql) to check whether refresh mapping meets the ICD10GM logic
-6. If everything is OK, deprecate old mappings for the KCD7 codes of interest and add fresh mappings to the concept_relationship_manual using [crm_changes.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/manual_work/crm_changes.sql) script
+4. Save table as refresh_lookup_done.csv and upload it into your schema using script [create_manual_table.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/kcd7-documentation/KCD7/manual_work/create_manual_table.sql)
+5. Run [manual_mapping_qa.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/kcd7-documentation/KCD7/manual_work/manual_mapping_qa.sql) to check whether refresh mapping meets the KCD7 logic
+6. If everything is OK, deprecate old mappings for the KCD7 codes of interest and add fresh mappings to the concept_relationship_manual using [crm_changes.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/kcd7-documentation/KCD7/manual_work/crm_changes.sql) script
 
 ### Recomanditions for relationship_ids
   * **"Maps to"** is used for 1-to-1 FULL equivalent mapping only

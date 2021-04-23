@@ -125,7 +125,8 @@ WHERE r.relationship_id NOT IN (
 		-- these aren't investigated well yet
 		'Has been compared to',
 		'Can be preceded by',
-		'Can be followed by'
+		'Can be followed by',
+		'May require'
 		)
 	--Antithymocyte globulin rabbit ATG was mapped to Thymoglobulin (Brand Name) , correct mapping will be added below
 	AND NOT (
@@ -273,16 +274,34 @@ FROM (
 		r2.concept_code_2,
 		cs1.vocabulary_id AS vocabulary_id_1,
 		r2.vocabulary_id_2,
-		CASE 
-			WHEN r.relationship_id = 'Has antineoplastic'
+		CASE r.relationship_id
+		WHEN 'Has antineoplastic'
 				THEN 'Has antineopl Rx'
-			WHEN r.relationship_id = 'Has immunosuppressor'
+			WHEN 'Has immunosuppressor'
 				THEN 'Has immunosuppr Rx'
-			WHEN r.relationship_id = 'Has local Therapy'
+			when 'Has local therapy'
 				THEN 'Has local therap Rx'
-			WHEN r.relationship_id = 'Has supportive med'
+			WHEN 'Has supportive med'
 				THEN 'Has support med Rx'
-			ELSE NULL
+			WHEN 'Has AB-drug cjgt'
+				THEN 'Has AB-drug cjgt Rx'
+			WHEN 'Has immunotherapy'
+				THEN 'Has immunotherapy Rx'
+			when 'Has targeted therapy'
+				THEN 'Has targeted tx Rx'
+			when 'Has cytotoxic chemo'
+				THEN 'Has cytotox chemo Rx'
+			when 'Has radioconjugate'
+				THEN 'Has radiocjgt Rx'
+			when 'Has Has radioconjugate Rx'
+				THEN 'Has radiocjgt Rx'
+			when 'Has endocrine tx'
+				THEN 'Has endocrine tx Rx'
+			when 'Has radiotherapy'
+				THEN 'Has radiotherapy Rx'
+			when 'Has pept-drug cjgt'
+				THEN 'Has pept-drg cjg Rx'
+			ELSE null
 			END AS relationship_id,
 		cs1.valid_start_date,
 		cs1.valid_end_date,

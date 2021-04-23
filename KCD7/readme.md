@@ -13,7 +13,7 @@
 ```sql
 SELECT sources.load_input_tables('KCD7',TO_DATE('20170701','yyyymmdd'),'7th revision');
 ```
-5. 5. Run the FastRecreate:
+5. Run the FastRecreate:
 ```sql
 SELECT devv5.FastRecreateSchema('dev_icd10'); 
 ```

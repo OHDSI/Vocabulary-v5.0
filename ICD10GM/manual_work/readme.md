@@ -42,7 +42,7 @@ FROM concept_synonym_manual
 ORDER BY synonym_name, synonym_concept_code, synonym_vocabulary_id, language_concept_id;
 ```
 
-### STEP 8 of the refresh: solving problems which are difened during the first load_stage run
+### STEP 7 of the refresh: updating concept_relationship_manual
 
 1. Run [mapping_refresh.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/manual_work/mapping_refresh.sql). Table refresh_lookup will be created. It contains the list with mappings to outdated, deprecated or updated Standard concepts, as well as automaticaly improved mapping. 
 2. Download this table and open it in Excel. Columns icd_ represent ICD10GM concepts with uncertain mapping, columns current_ refer to mapping which currently exists in concept_relationship_manual and columns repl_by_ suggest automatically created mapping, the reason for concepts appearing in this table you can see in column reason (e.g., 'improve_map','without mapping').

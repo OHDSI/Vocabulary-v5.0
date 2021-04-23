@@ -16,7 +16,6 @@
 * Authors: Polina Talapova, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
-
 SELECT 'row number - total in mapping' AS issue_desc,
        COUNT(icd_code)
 FROM refresh_lookup_done
@@ -67,8 +66,8 @@ ORDER BY issue_desc;
 /*******************************
 **** MECHANICAL ERROR CHECK ****
 ********************************/
--- check presence of problems in ICD10 manual mapping - all queries should return null 
-WITH icd10_proc_and_cond
+-- check presence of problems in ICD10GM manual mapping - all queries should return null 
+WITH ICD10GM_proc_and_cond
 AS
 (SELECT a.*,
        c.concept_class_id,
@@ -96,7 +95,7 @@ SELECT icd_code
 FROM (SELECT *,
              LAST_VALUE(domain_id) OVER (PARTITION BY icd_code) = 'Procedure' AS last_domain,
              FIRST_VALUE(domain_id) OVER (PARTITION BY icd_code) = 'Procedure' AS first_domain
-      FROM icd10_proc_and_cond) n
+      FROM ICD10GM_proc_and_cond) n
 WHERE last_domain <> first_domain)
   UNION ALL
 SELECT 'mapping issue - non-standard concepts' AS issue_desc,
@@ -134,15 +133,15 @@ SELECT 'empty repl_by_name' AS issue_desc,
 FROM refresh_lookup_done
 WHERE repl_by_name = ''
   UNION ALL
-SELECT 'incorrect ICD10 icd_code' AS issue_desc,
+SELECT 'incorrect ICD10GM icd_code' AS issue_desc,
        COUNT(icd_code)
 FROM refresh_lookup_done
-WHERE icd_code NOT IN (SELECT concept_code FROM concept WHERE vocabulary_id = 'ICD10')
+WHERE icd_code NOT IN (SELECT concept_code FROM concept WHERE vocabulary_id = 'ICD10GM')
   UNION ALL
-SELECT 'incorrect ICD10 icd_name' AS issue_desc,
+SELECT 'incorrect ICD10GM icd_name' AS issue_desc,
        COUNT(icd_name)
 FROM refresh_lookup_done
-WHERE icd_name NOT IN (SELECT concept_name FROM concept WHERE vocabulary_id = 'ICD10')
+WHERE icd_name NOT IN (SELECT concept_name FROM concept WHERE vocabulary_id = 'ICD10GM')
 -- in this case these classes are ok: 'Location','Observable Entity', 'Physical Force', 'Qualifier Value'
   UNION ALL
 SELECT 'incorrect repl_by_relationship' AS issue_desc,
@@ -286,8 +285,8 @@ FROM (SELECT *
                              FROM refresh_lookup_done
                              GROUP BY icd_code
                              HAVING COUNT(1) >= 2)) a2 ON a1.icd_code = a2.icd_code
-  JOIN concept c1 ON a1.icd_code = c1.concept_code AND c1.vocabulary_id = 'ICD10'  
-  JOIN concept c2 ON a2.icd_code = c2.concept_code AND c2.vocabulary_id = 'ICD10'                         
+  JOIN concept c1 ON a1.icd_code = c1.concept_code AND c1.vocabulary_id = 'ICD10GM'  
+  JOIN concept c2 ON a2.icd_code = c2.concept_code AND c2.vocabulary_id = 'ICD10GM'                         
   JOIN concept_ancestor ca
     ON c1.concept_id = ca.ancestor_concept_id
    AND c2.concept_id = ca.descendant_concept_id
@@ -379,8 +378,8 @@ FROM (SELECT *
                          FROM refresh_lookup_done
                          GROUP BY icd_code
                          HAVING COUNT(1) >= 2)) a2 ON a1.icd_code = a2.icd_code
-  JOIN concept c1 ON c1.concept_code = a1.icd_code AND c1.vocabulary_id = 'ICD10'
-  JOIN concept c2 ON c2.concept_code = a2.icd_code AND c1.vocabulary_id = 'ICD10'
+  JOIN concept c1 ON c1.concept_code = a1.icd_code AND c1.vocabulary_id = 'ICD10GM'
+  JOIN concept c2 ON c2.concept_code = a2.icd_code AND c1.vocabulary_id = 'ICD10GM'
   JOIN concept_ancestor ca
     ON c1.concept_id = ca.ancestor_concept_id
    AND c2.concept_id = ca.descendant_concept_id

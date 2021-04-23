@@ -14,7 +14,7 @@ FROM concept_relationship_manual
 ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, concept_code_2, invalid_reason, valid_start_date, valid_end_date;
 ```
 
-### STEP 8 of the refresh: solving problems which are difened during the first load_stage run
+### STEP 7 of the refresh: updating concept_relationship_manual
 
 1. Run [mapping_refresh.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/kcd7-documentation/KCD7/manual_work/mapping_refresh.sql). Table refresh_lookup will be created. It contains the list with mappings to outdated, deprecated or updated Standard concepts, as well as automaticaly improved mapping from concept_relationship_manual table. 
 2. Download this table and open it in Excel. Columns icd_ represent KCD7 concepts with uncertain mapping, columns current_ refer to mapping which currently exists in concept_relationship_manual and columns repl_by_ suggest automatically created mapping, the reason for concepts appearing in this table you can see in column reason (e.g., 'improve_map','without mapping').

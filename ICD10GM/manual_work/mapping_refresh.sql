@@ -30,7 +30,7 @@ AS
        b.domain_id AS current_domain,
        b.vocabulary_id AS current_vocabulary,
        'deprecated mapping' AS reason
-FROM concept_relationship_manual a
+FROM concept_relationship_stage a
   JOIN concept b
     ON a.concept_code_2 = b.concept_code
    AND b.vocabulary_id = a.vocabulary_id_2
@@ -50,7 +50,7 @@ SELECT c.concept_code,
        b.domain_id AS current_domain,
        b.vocabulary_id AS current_vocabulary,
        'non-standard mapping' AS reason
-FROM concept_relationship_manual a
+FROM concept_relationship_stage a
   JOIN concept b
     ON a.concept_code_2 = b.concept_code
    AND b.vocabulary_id = a.vocabulary_id_2
@@ -71,7 +71,7 @@ SELECT a.concept_code,
        NULL,
        'without mapping' AS reason
 FROM concept_manual a
-  LEFT JOIN concept_relationship_manual r
+  LEFT JOIN concept_relationship_stage r
          ON a.concept_code = concept_code_1
         AND r.relationship_id IN ('Maps to') 
         AND r.invalid_reason IS NULL
@@ -99,7 +99,7 @@ miss_map_brother AS ( SELECT
        b.vocabulary_id,
        'brother of deprecated mapping' AS reason
 FROM miss_map a
-JOIN concept_relationship_manual c ON c.concept_code_1 = a.icd_code
+JOIN concept_relationship_stage c ON c.concept_code_1 = a.icd_code
 JOIN concept b
     ON c.concept_code_2 = b.concept_code
    AND b.vocabulary_id = c.vocabulary_id_2
@@ -115,7 +115,7 @@ t1 AS (SELECT d.concept_code AS icd_code,
               j.domain_id AS repl_by_domain,
               j.vocabulary_id AS repl_by_vocabulary,
               NULL
-       FROM concept_relationship_manual a
+       FROM concept_relationship_stage a
          JOIN concept b
            ON a.concept_code_2 = b.concept_code
           AND b.vocabulary_id = a.vocabulary_id_2
@@ -140,7 +140,7 @@ t2 AS (SELECT d.concept_code AS icd_code,
               j.domain_id AS repl_by_domain,
               j.vocabulary_id AS repl_by_vocabulary,
               NULL
-       FROM concept_relationship_manual a
+       FROM concept_relationship_stage a
          JOIN concept b
            ON a.concept_code_2 = b.concept_code
           AND b.vocabulary_id = a.vocabulary_id_2
@@ -195,7 +195,7 @@ a.concept_code AS icd_code,
        c.vocabulary_id AS repl_by_vocabulary,
        'improve_map' AS reason
 FROM concept a
-JOIN concept_relationship_manual r ON r.concept_code_1 = a.concept_code AND a.vocabulary_id = 'ICD10GM' 
+JOIN concept_relationship_stage r ON r.concept_code_1 = a.concept_code AND a.vocabulary_id = 'ICD10GM' 
 JOIN concept d ON d.concept_code = r.concept_code_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
   JOIN sources.mrconso
     ON lower (a.concept_name) = lower (str)
@@ -231,7 +231,7 @@ a.concept_code AS icd_code,
        c.vocabulary_id AS repl_by_vocabulary,
        'improve_map' AS reason
 FROM concept a
-JOIN concept_relationship_manual r ON r.concept_code_1 = a.concept_code and a.vocabulary_id = 'ICD10GM' 
+JOIN concept_relationship_stage r ON r.concept_code_1 = a.concept_code and a.vocabulary_id = 'ICD10GM' 
 JOIN concept d ON d.concept_code = r.concept_code_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
   JOIN concept_synonym cs ON lower (a.concept_name) = lower (cs.concept_synonym_name) AND a.vocabulary_id = 'ICD10GM'
   JOIN concept c
@@ -244,9 +244,12 @@ p_map AS (
     SELECT * FROM t5
   UNION
 --exclude the cases 1 to 1 mapping with the current_id = repl_by_id, if there's multiple mapping and current_id = repl_by_id, the additional mapping serves as a hiearchy connector, so these are included into the comparison	
-    SELECT * FROM t6 WHERE icd_code NOT IN (SELECT icd_code FROM (
-SELECT *, COUNT(1) over (partition BY icd_code) AS cnt FROM t6) a WHERE a.cnt =1 AND current_id = repl_by_id))
-SELECT * FROM p_map 
+SELECT * FROM t6 WHERE icd_code NOT IN (SELECT icd_code FROM (
+SELECT *, COUNT(1) over (partition BY icd_code) AS cnt FROM t6) a WHERE a.cnt =1 AND current_id = repl_by_id)),
+final_step as (SELECT * FROM p_map 
 UNION 
-SELECT * FROM t4
+SELECT * FROM t4)
+SELECT * FROM final_step
+-- as far as ICD10GM is a semi-manual vocabulary, we have both mappings from ICD10 and ICD10GM in crs table BUT we don't want to impugn ICD10 mapping, so we just ignore them in this lookup
+WHERE icd_code NOT IN (SELECT concept_code FROM concept WHERE vocabulary_id = 'ICD10')
 ORDER BY icd_code;

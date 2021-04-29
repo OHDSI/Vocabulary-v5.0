@@ -138,6 +138,7 @@ BEGIN
           26. CCAM
           27. HemOnc
           28. dm+d
+          29. OncoTree
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -392,6 +393,12 @@ BEGIN
             THEN
                 cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhsbsa_dmd_\d\.\d\.\d_(\d{8})\d+.zip".+?\.zip">.+'),'yyyymmdd');
                 cVocabVer := 'dm+d Version '||SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhsbsa_dmd_\d\.\d\.\d_\d+.zip".+?\.zip">.+?<div class="current">.+?<h1 class="title">.+?Release (\d\.\d\.\d).+?</h1>.+')||' '||to_char(cVocabDate,'yyyymmdd');
+            WHEN cVocabularyName = 'ONCOTREE'
+            THEN
+                select x.release_date into cVocabDate
+                from json_to_recordset(cVocabHTML::json) as x (api_identifier text, release_date date)
+                where x.api_identifier='oncotree_latest_stable';
+                cVocabVer := 'OncoTree version '||to_char(cVocabDate,'yyyy-mm-dd');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

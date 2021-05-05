@@ -216,6 +216,7 @@ where
 update concept c
 set
 	invalid_reason = 'D',
+	standard_concept = NULL,
 	valid_end_date = current_date - 1
 where
 	exists

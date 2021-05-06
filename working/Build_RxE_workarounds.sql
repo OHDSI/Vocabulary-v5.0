@@ -97,7 +97,7 @@ blacklist as
 			ingredient_concept_id
 		from drug_strength a
 		join dup_ranked on
-			best_in_group = false and
+			not best_in_group and
 			drug_concept_id = dup_concept_id
 	),
 exclusion as
@@ -107,7 +107,7 @@ exclusion as
 		join blacklist b on
 			component_concept_id = ancestor_concept_id
 	--Sometimes drugs may have more than one component with same ingredient as ancestor (NaCl 8.8 & NaCl 9); exclude those.
-		where not exists
+		/*where not exists
 			(
 				select 1
 				from concept_ancestor x
@@ -119,7 +119,7 @@ exclusion as
 				join concept c on
 					d.drug_concept_id = c.concept_id and
 					c.concept_class_id = 'Clinical Drug Comp'
-			)
+			)*/
 	)
 select c.concept_id as bad_concept_id, 'Contributing Drug Component is a dublicate' as exclusion_criterion
 from concept c
@@ -215,8 +215,8 @@ where
 ;
 update concept c
 set
-	invalid_reason = 'D',
 	standard_concept = NULL,
+	invalid_reason = 'D',
 	valid_end_date = current_date - 1
 where
 	exists
@@ -234,7 +234,17 @@ where
 			select 1
 			from workaround_cleanup
 			where
-				bad_concept_id in (r.concept_id_1, r.concept_id_2)
+				bad_concept_id = r.concept_id_1
+		)
+;
+delete from concept_relationship r
+where
+	exists
+		(
+			select 1
+			from workaround_cleanup
+			where
+				bad_concept_id = r.concept_id_2
 		)
 ;
 delete from drug_strength

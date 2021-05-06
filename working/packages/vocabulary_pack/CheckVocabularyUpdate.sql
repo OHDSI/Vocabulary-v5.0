@@ -157,11 +157,7 @@ BEGIN
                 cVocabVer := SUBSTRING(cVocabHTML,'([\d]{4}[A-z]{2}) Full UMLS Release Files');
             WHEN cVocabularyName = 'SNOMED'
             THEN
-                cSearchString := '<a class="btn btn-info" href="';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cPos2 := devv5.INSTR (cVocabHTML, '.zip"><strong>Download RF2 Files Now!</strong></a>', cPos1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (SUBSTRING (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:digit:]]+'), 'yyyymmdd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-uk_sct2cl_[\d.]+_(\d{8})\d+.zip".+?\.zip">.+'),'yyyymmdd');
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'HCPCS'
             THEN

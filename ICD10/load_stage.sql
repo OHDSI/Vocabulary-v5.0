@@ -343,13 +343,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---10. Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
---11. Add "subsumes" relationship between concepts where the concept_code is like of another
+--10. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
@@ -395,7 +389,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---12. Update domain_id for ICD10 from SNOMED
+--11. Update domain_id for ICD10 from SNOMED, OMOP Extension
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -421,7 +415,7 @@ FROM (
 		AND cs1.vocabulary_id = 'ICD10'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id IN ('SNOMED', 'OMOP Extension')
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 	
@@ -447,7 +441,7 @@ FROM (
 	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 		AND c1.vocabulary_id = 'ICD10'
 	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id IN ('SNOMED', 'OMOP Extension')
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'
@@ -463,16 +457,17 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'ICD10';
 
---Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED,  put Observation as closest meaning to Unknown domain
+--TODO: check why the actual U* code limitation is not used.
+--Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
---13. Check for NULL in domain_id
+--12. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---14. Add hierarchical relationships
+--13. Add hierarchical relationships
 --add relationship from chapters to subchapters and vice versa
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -565,13 +560,13 @@ FROM classes
 WHERE rubric_kind = 'preferred'
 	AND superclass_code LIKE '%-%';
 
---15. Add mapping from deprecated to fresh concepts for 'Maps to value'
+--14. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---16. Build reverse relationship. This is necessary for next point
+--15. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -603,7 +598,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---17. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--16. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -648,7 +643,7 @@ WHERE 'ICD10' IN (
 		'ICD10 Chapter'
 		);
 
---18. Clean up
+--17. Clean up
 DROP TABLE modifier_classes;
 DROP TABLE classes;
 

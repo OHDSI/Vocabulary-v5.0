@@ -1894,6 +1894,10 @@ SELECT c.*, NULL FROM (VALUES
 -- 364599001 Fetal observable
 -- 415823006 Vision observable, including 363983007 Visual acuity
 -- 251837008 Total body water
+-- 364328002 Labor observable
+-- 716138005 Hoehn and Yahr Scale score
+-- 37859006 Pulmonary ventilation perfusion study
+-- 397852001 V/Q - Ventilation/perfusion ratio
 --TODO: review scales (A Mixture of scores and Observations)
 --(363870007,        'Measurement',  TO_DATE('new', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Mental state, behavior / psychosocial function observable
 --(86084001,        'Measurement',  TO_DATE('20201210', 'YYYYMMDD'), TO_DATE('19700101', 'YYYYMMDD')), --Hematologic function    --Postponed

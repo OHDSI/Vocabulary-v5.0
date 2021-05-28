@@ -25,6 +25,7 @@ BEGIN
 	pVocabularyVersion		=> 'Codebook Version 0.4.43 + COVID + MHWB',  -- Current Codebook Version from PPI Codebook
 	pVocabularyDevSchema	=> 'dev_ppi'
 );
+END $_$;
 
 -- 2. Truncate all working tables
 TRUNCATE TABLE concept_stage;

@@ -1,5 +1,5 @@
 ### Manual content processing:
-1.Extract the following csv file into the concept_manual table: https://drive.google.com/file/d/1j5AlnUzvpNrCf9dMdol4gRq5QImGkegY/view?usp=sharing
+1.Extract the following csv file into the concept_manual table: https://drive.google.com/file/d/1sXdWNn1oN-EhsqFyT6cl2TI4YBXbDQyV/view?usp=sharing
 
 File is generated using the query:
 
@@ -15,18 +15,7 @@ File is generated using the query:
 FROM concept_manual
 ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_end_date, concept_name`
 
-2.Extract the following csv file into the concept_synonym_manual table: https://drive.google.com/file/d/1AdzCBO-hc_l2udDrM-I52pYZLlFbzR73/view?usp=sharing
-
-File is generated using the query:
-
-`SELECT synonym_name,
-       synonym_concept_code,
-       synonym_vocabulary_id,
-       language_concept_id
-FROM concept_synonym_manual
-ORDER BY synonym_vocabulary_id, synonym_concept_code, language_concept_id, synonym_name`
-
-3.Extract the following csv file into the concept_relationship_manual table: https://drive.google.com/file/d/1gMqPAl2TimE-6T5Zf45TzYit1jHiV_Ju/view?usp=sharing
+2.Extract the following csv file into the concept_relationship_manual table: https://drive.google.com/file/d/1-R7_j_PNDrNIO1me_ni4-FNL2bs0iE1d/view?usp=sharing
 
 File is generated using the query:
 

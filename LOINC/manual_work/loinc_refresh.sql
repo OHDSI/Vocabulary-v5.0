@@ -170,7 +170,7 @@ AND c.vocabulary_id = 'LOINC'
 
 --Insert into CRM
 -- Step 1: Create table crm_manual_mappings_changed with fields from manual file
-CREATE TABLE dev_loinc.crm_manual_mappings_changed
+CREATE TABLE dev_loinc.crm_mapped
 (
     source_concept_name varchar(255),
     source_concept_code varchar(50),
@@ -190,7 +190,7 @@ CREATE TABLE dev_loinc.crm_manual_mappings_changed
 );
 
 --Step 2: Deprecate all mappings that differ from the new version
-UPDATE concept_relationship_manual
+UPDATE dev_loinc.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
 WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
@@ -198,7 +198,7 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
 (SELECT concept_code_1, concept_code_2, relationship_id FROM concept_relationship_manual crm_old
 
 WHERE NOT exists(SELECT source_concept_code, target_concept_code, 'LOINC', target_vocabulary_id, CASE WHEN to_value !~* 'value' THEN 'Maps to' ELSE 'Maps to value' END
-                FROM crm_manual_mappings_changed crm_new
+                FROM dev_loinc.crm_mapped crm_new
                 WHERE source_concept_code = crm_old.concept_code_1
                 AND target_concept_code = crm_old.concept_code_2
                 AND target_vocabulary_id = crm_old.vocabulary_id_2
@@ -218,7 +218,7 @@ with mapping AS
                current_date AS valid_start_date,
                to_date('20991231','yyyymmdd') AS valid_end_date,
                NULL AS invalid_reason
-        FROM crm_manual_mappings_changed
+        FROM dev_loinc.crm_mapped
     )
 
 

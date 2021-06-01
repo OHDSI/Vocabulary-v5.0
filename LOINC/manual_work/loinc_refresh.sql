@@ -25,8 +25,17 @@ with previous_mappings AS
         GROUP BY concept_id_1
          )
 
-SELECT DISTINCT c.concept_code AS concept_code, c.concept_name AS concept_name,
+
+SELECT DISTINCT
+                replace (c.concept_name, 'Deprecated ', '') AS source_concept_name_clean,
+                c.concept_name AS       source_concept_name,
+                c.concept_code AS       source_concept_code,
+                c.concept_class_id AS   source_concept_class_id,
+                c.invalid_reason AS     source_invalid_reason,
+                c.domain_id AS          source_domain_id,
+
                 NULL::varchar AS relationship_id,
+
                 CASE WHEN previous_mappings.concept_id_1 IS NOT NULL    --Mapping was available
                           AND NOT EXISTS (SELECT concept_id_1 FROM dev_loinc.concept_relationship lcr
                           JOIN dev_loinc.concept lc
@@ -35,7 +44,7 @@ SELECT DISTINCT c.concept_code AS concept_code, c.concept_name AS concept_name,
                                 AND lcr.concept_id_1 = c.concept_id --Concept_id never changes
                               )
                           AND previous_mappings.standard_concept = 'S'
-                    THEN 'Was Standard and don''t have replacement now'
+                    THEN 'Was Standard and don''t have mapping now'
 
                     WHEN previous_mappings.concept_id_1 IS NOT NULL    --Mapping was available
                           AND NOT EXISTS (SELECT concept_id_1 FROM dev_loinc.concept_relationship lcr
@@ -45,7 +54,7 @@ SELECT DISTINCT c.concept_code AS concept_code, c.concept_name AS concept_name,
                                 AND lcr.concept_id_1 = c.concept_id --Concept_id never changes
                               )
                           AND previous_mappings.standard_concept != 'S'
-                    THEN 'Was non-Standard but mapped and don''t have replacement now'
+                    THEN 'Was non-Standard but mapped and don''t have mapping now'
 
 --TODO: There are 2 concepts but LOINC hasn't been ran after snomed refresh so the mappings just died.
                 WHEN previous_mappings.concept_id_1 IN
@@ -93,9 +102,28 @@ AND c.concept_class_id IN ('Lab Test'
                            --,'Survey', 'Answer', 'Clinical Observation' --TODO: postponed for now
                            )
 
-UNION ALL
+ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code
+;
 
-SELECT concept_code_1 AS concept_code, c.concept_name AS concept_name, crm.relationship_id AS relationship_id, 'concept_relationship_manual' AS flag,
+
+
+
+--One time executed code to run and take concepts from concept_relationship_manual
+--TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
+-- Bring the list to the manual file.
+-- There should be a check that force us to manually fix the manual file (even before running the 1st query to get the delta). So once the concept is in the manual file, it should NOT appear in delta. Basically this is "check if target concepts are Standard and exist in the concept table"
+-- Once the relationship to the specific target concept is gone, the machinery should make it D in CRM using the current_date.
+SELECT DISTINCT
+       replace (c.concept_name, 'Deprecated ', '') AS source_concept_name_clean,
+       c.concept_name AS source_concept_name,
+       c.concept_code AS source_concept_code,
+       c.concept_class_id AS   source_concept_class_id,
+       c.invalid_reason AS     source_invalid_reason,
+       c.domain_id AS          source_domain_id,
+
+       crm.relationship_id AS relationship_id,
+
+       'CRM' AS flag,
        cc.concept_id AS target_concept_id,
        cc.concept_code AS target_concept_code,
        cc.concept_name AS target_concept_name,
@@ -109,7 +137,7 @@ FROM dev_loinc.concept_relationship_manual crm
 JOIN dev_loinc.concept c ON c.concept_code = crm.concept_code_1 AND c.vocabulary_id = 'LOINC'  AND crm.invalid_reason IS NULL
 JOIN dev_loinc.concept cc ON cc.concept_code = crm.concept_code_2 AND cc.vocabulary_id = crm.vocabulary_id_2
 
-ORDER BY concept_code, flag
+ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code, crm.relationship_id, cc.concept_id
 ;
 
 
@@ -138,35 +166,6 @@ AND c.vocabulary_id = 'LOINC'
 ;
 
 
---One time executed code to run and take concepts from concept_relationship_manual
---TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
--- Bring the list to the manual file.
--- There should be a check that force us to manually fix the manual file (even before running the 1st query to get the delta). So once the concept is in the manual file, it should NOT appear in delta. Basically this is "check if target concepts are Standard and exist in the concept table"
--- Once the relationship to the specific target concept is gone, the machinery should make it D in CRM using the current_date.
-SELECT c.concept_code, c.concept_name,
-       crm.relationship_id,
-       cc.*
-FROM dev_loinc.concept_relationship_manual crm
-JOIN dev_loinc.concept c
-ON c.concept_code = crm.concept_code_1 AND c.vocabulary_id = 'LOINC'
-JOIN dev_loinc.concept cc
-ON cc.concept_code = crm.concept_code_2
-WHERE crm.invalid_reason IS NULL
-ORDER BY c.concept_code
-;
-
-
-
---One-time check if all target 'Maps to' concepts in crm are valid and standard
---2 updated concepts, mentioned in the script above
-SELECT *
-FROM dev_loinc.concept_relationship_manual crm
-JOIN dev_loinc.concept c
-ON c.concept_code = crm.concept_code_2
-WHERE crm.relationship_id = 'Maps to'
-AND crm.invalid_reason IS NULL
-AND c.standard_concept != 'S' OR c.invalid_reason IS NOT NULL
-;
 
 
 --Insert into CRM

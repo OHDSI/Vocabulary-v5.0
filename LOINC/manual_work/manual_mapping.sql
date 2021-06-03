@@ -106,7 +106,7 @@ AND c.concept_class_id IN ('Lab Test'
 ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
 
-CREATE TABLE dev_loinc.crm_mapped
+CREATE TABLE loinc_mapped
 (
     source_concept_name varchar(255),
     source_concept_code varchar(50),

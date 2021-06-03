@@ -1,3 +1,4 @@
+CREATE TABLE loinc_source AS (
 with previous_mappings AS
     (SELECT concept_id_1, c.standard_concept, array_agg(concept_id_2 ORDER BY concept_id_2 DESC) AS old_maps_to
         FROM devv5.concept_relationship cr
@@ -102,11 +103,27 @@ AND c.concept_class_id IN ('Lab Test'
                            --,'Survey', 'Answer', 'Clinical Observation' --TODO: postponed for now
                            )
 
-ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code
+ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
 
-
-
+CREATE TABLE loinc_mapped
+(
+    source_concept_name varchar(255),
+    source_concept_code varchar(50),
+    source_concept_class_id varchar(50),
+    source_invalid_reason varchar(20),
+    source_domain_id varchar(50),
+    to_value varchar(50),
+    flag varchar(50),
+    target_concept_id int,
+    target_concept_code varchar(50),
+    target_concept_name varchar(255),
+    target_concept_class_id varchar(50),
+    target_standard_concept varchar(20),
+    target_invalid_reason varchar(20),
+    target_domain_id varchar(50),
+    target_vocabulary_id varchar(50)
+);
 
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.

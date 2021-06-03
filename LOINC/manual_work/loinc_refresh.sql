@@ -137,35 +137,51 @@ FROM dev_loinc.concept_relationship_manual crm
 JOIN dev_loinc.concept c ON c.concept_code = crm.concept_code_1 AND c.vocabulary_id = 'LOINC'  AND crm.invalid_reason IS NULL
 JOIN dev_loinc.concept cc ON cc.concept_code = crm.concept_code_2 AND cc.vocabulary_id = crm.vocabulary_id_2
 
-ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code, crm.relationship_id, cc.concept_id
+ORDER BY replace (c.concept_name, 'Deprecated ', ''),
+         c.concept_code,
+         crm.relationship_id,
+         cc.concept_id
 ;
 
 
+--New and COVID concepts lacking hierarchy
+SELECT * FROM (
+SELECT DISTINCT
+       replace (long_common_name, 'Deprecated ', '') AS source_concept_name_clean,
+       long_common_name AS source_concept_name,
+	   loinc AS source_concept_code,
+	   'Lab Test' AS source_concept_class_id,
+	   NULL as source_invalid_reason,
+	'Measurement' AS source_domain_id
+FROM vocabulary_pack.GetLoincPrerelease() s
 
---Non-standard without mapping at the moment
-SELECT DISTINCT * FROM devv5.concept c
-WHERE c.vocabulary_id = 'LOINC'
---AND c.domain_id NOT IN ('Meas Value')
---AND c.concept_class_id IN ('Lab Test')
-AND c.concept_class_id NOT IN ('LOINC Hierarchy', 'LOINC Component', 'LOINC Method', 'LOINC System', 'LOINC Property', 'LOINC Time', 'LOINC Scale')
-AND c.standard_concept IS NULL
-AND NOT EXISTS (SELECT concept_id_1 FROM devv5.concept_relationship cr
-                WHERE relationship_id IN ('Maps to', 'Maps to value', 'Concept replaced by')
-                AND cr.invalid_reason IS NULL
-                AND concept_id_1 = c.concept_id
-    )
-ORDER BY domain_id, concept_code
+UNION
+
+SELECT DISTINCT
+        replace (cs.concept_name, 'Deprecated ', '') AS source_concept_name_clean,
+        cs.concept_name AS       source_concept_name,
+        cs.concept_code AS       source_concept_code,
+        cs.concept_class_id AS   source_concept_class_id,
+        cs.invalid_reason AS     source_invalid_reason,
+        cs.domain_id AS          source_domain_id
+
+FROM dev_loinc.concept_stage cs
+WHERE cs.vocabulary_id = 'LOINC'
+    AND cs.concept_name ~* 'SARS-CoV-2|COVID|SARS2|SARS-2'
+    AND cs.concept_class_id IN ('Clinical Observation', 'Lab Test')
+) as s
+
+
+WHERE NOT EXISTS (
+SELECT
+FROM dev_loinc.concept_relationship_manual crm
+WHERE s.source_concept_code = crm.concept_code_1
+    AND crm.relationship_id = 'Is a'
+    AND crm.invalid_reason IS NULL
+)
+
+ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_code
 ;
-
---Replaced concepts from the LOINC vocabulary
-SELECT * FROM devv5.concept_relationship cr
-JOIN devv5.concept c
-ON cr.concept_id_1 = c.concept_id
-WHERE relationship_id = 'Concept replaced by'
-AND c.vocabulary_id = 'LOINC'
-;
-
-
 
 
 --Insert into CRM
@@ -188,6 +204,9 @@ CREATE TABLE dev_loinc.crm_mapped
     target_domain_id varchar(50),
     target_vocabulary_id varchar(50)
 );
+
+--TODO: backup concept_relationship_manual table before any changes
+--TODO: implement mapping to 0 logic
 
 --Step 2: Deprecate all mappings that differ from the new version
 UPDATE dev_loinc.concept_relationship_manual

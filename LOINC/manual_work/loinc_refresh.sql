@@ -106,25 +106,6 @@ AND c.concept_class_id IN ('Lab Test'
 ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
 
-CREATE TABLE loinc_mapped
-(
-    source_concept_name varchar(255),
-    source_concept_code varchar(50),
-    source_concept_class_id varchar(50),
-    source_invalid_reason varchar(20),
-    source_domain_id varchar(50),
-    to_value varchar(50),
-    flag varchar(50),
-    target_concept_id int,
-    target_concept_code varchar(50),
-    target_concept_name varchar(255),
-    target_concept_class_id varchar(50),
-    target_standard_concept varchar(20),
-    target_invalid_reason varchar(20),
-    target_domain_id varchar(50),
-    target_vocabulary_id varchar(50)
-);
-
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
 -- Bring the list to the manual file.
@@ -203,10 +184,10 @@ ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_co
 
 --Insert into CRM
 -- Step 1: Create table crm_manual_mappings_changed with fields from manual file
-CREATE TABLE dev_loinc.crm_mapped
+CREATE TABLE loinc_mapped
 (
-    source_concept_name varchar(255),
-    source_concept_code varchar(50),
+    source_code_description varchar(255),
+    source_code varchar(50),
     source_concept_class_id varchar(50),
     source_invalid_reason varchar(20),
     source_domain_id varchar(50),

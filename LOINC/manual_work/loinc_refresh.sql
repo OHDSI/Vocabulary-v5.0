@@ -1,3 +1,5 @@
+--Source table for refresh
+--Flags show different reasons for refresh
 CREATE TABLE loinc_source AS (
 with previous_mappings AS
     (SELECT concept_id_1, c.standard_concept, array_agg(concept_id_2 ORDER BY concept_id_2 DESC) AS old_maps_to
@@ -57,7 +59,6 @@ SELECT DISTINCT
                           AND previous_mappings.standard_concept != 'S'
                     THEN 'Was non-Standard but mapped and don''t have mapping now'
 
---TODO: There are 2 concepts but LOINC hasn't been ran after snomed refresh so the mappings just died.
                 WHEN previous_mappings.concept_id_1 IN
                     (SELECT cc.concept_id FROM dev_loinc.concept_relationship_manual crm
                     JOIN devv5.concept c
@@ -97,6 +98,7 @@ AND cr.invalid_reason IS NULL
  WHERE c.concept_id / concept_code NOT IN (SELECT FROM _mapped table)
  */
 
+--Conditions show options for specific concept classes refreshes
 WHERE cr.concept_id_2 IS NULL
 AND (c.standard_concept IS NULL OR c.invalid_reason = 'D') AND c.vocabulary_id = 'LOINC'
 AND c.concept_class_id IN ('Lab Test'
@@ -108,8 +110,10 @@ ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code)
 
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
+--! Not anymore
 -- Bring the list to the manual file.
--- There should be a check that force us to manually fix the manual file (even before running the 1st query to get the delta). So once the concept is in the manual file, it should NOT appear in delta. Basically this is "check if target concepts are Standard and exist in the concept table"
+-- There should be a check that force us to manually fix the manual file (even before running the 1st query to get the delta).
+-- So once the concept is in the manual file, it should NOT appear in delta. Basically this is "check if target concepts are Standard and exist in the concept table"
 -- Once the relationship to the specific target concept is gone, the machinery should make it D in CRM using the current_date.
 SELECT DISTINCT
        replace (c.concept_name, 'Deprecated ', '') AS source_concept_name_clean,
@@ -143,6 +147,7 @@ ORDER BY replace (c.concept_name, 'Deprecated ', ''),
 
 
 --New and COVID concepts lacking hierarchy
+--Taken into CRM
 SELECT * FROM (
 SELECT DISTINCT
        replace (long_common_name, 'Deprecated ', '') AS source_concept_name_clean,
@@ -203,8 +208,6 @@ CREATE TABLE loinc_mapped
     target_vocabulary_id varchar(50)
 );
 
---TODO: backup concept_relationship_manual table before any changes
---TODO: implement mapping to 0 logic
 
 --Step 2: Deprecate all mappings that differ from the new version
 UPDATE dev_loinc.concept_relationship_manual
@@ -212,30 +215,42 @@ SET invalid_reason = 'D',
     valid_end_date = current_date
 WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
 
-(SELECT concept_code_1, concept_code_2, relationship_id FROM concept_relationship_manual crm_old
+(SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2 FROM concept_relationship_manual crm_old
 
-WHERE NOT exists(SELECT source_concept_code, target_concept_code, 'LOINC', target_vocabulary_id, CASE WHEN to_value !~* 'value' THEN 'Maps to' ELSE 'Maps to value' END
-                FROM dev_loinc.crm_mapped crm_new
-                WHERE source_concept_code = crm_old.concept_code_1
+WHERE NOT exists(SELECT source_code, target_concept_code, 'LOINC', target_vocabulary_id, CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+                    WHEN to_value ~* 'Is a' THEN 'Is a'
+                    WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
+                   ELSE 'Maps to' END
+                FROM dev_loinc.loinc_mapped crm_new
+                WHERE source_code = crm_old.concept_code_1
                 AND target_concept_code = crm_old.concept_code_2
                 AND target_vocabulary_id = crm_old.vocabulary_id_2
-                AND CASE WHEN crm_new.to_value !~* 'value' THEN 'Maps to' ELSE 'Maps to value' END = crm_old.relationship_id
+                AND CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+                    WHEN to_value ~* 'Is a' THEN 'Is a'
+                    WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
+                   ELSE 'Maps to' END = crm_old.relationship_id
+
     )
+    AND invalid_reason IS NULL
     )
 ;
 
 --Step 3: Insert new mappings + corrected mappings
 with mapping AS
     (
-        SELECT DISTINCT source_concept_code AS concept_code_1,
+        SELECT DISTINCT source_code AS concept_code_1,
                target_concept_code AS concept_code_2,
                'LOINC' AS vocabulary_id_1,
                target_vocabulary_id AS vocabulary_id_2,
-               CASE WHEN to_value !~* 'value' THEN 'Maps to' ELSE 'Maps to value' END AS relationship_id,
+               CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+                    WHEN to_value ~* 'Is a' THEN 'Is a'
+                    WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
+                   ELSE 'Maps to' END AS relationship_id,
                current_date AS valid_start_date,
                to_date('20991231','yyyymmdd') AS valid_end_date,
                NULL AS invalid_reason
-        FROM dev_loinc.crm_mapped
+        FROM dev_loinc.loinc_mapped
+        WHERE target_concept_id != 0
     )
 
 
@@ -249,5 +264,7 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
             valid_end_date,
             invalid_reason
      FROM mapping m
+        WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
+                  NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM dev_loinc.concept_relationship_manual)
     )
 ;

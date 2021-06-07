@@ -1,6 +1,6 @@
 --insert relationship_to_concept_manual  into r_t_c which contains mappings of relationship_to_concept_to_map table created in a first part
---insert all manual work into r_t_c
-insert into relationship_to_concept
+--insert all manual work into r_t_c, do it 1 time, if you are using this script more than 1 time
+/*insert into relationship_to_concept
 (
 concept_code_1,
 vocabulary_id_1,
@@ -11,23 +11,17 @@ conversion_factor
 select dcs.concept_code, dcs.vocabulary_id, mt.target_concept_id, mt.precedence, mt.conversion_factor
 from drug_concept_stage dcs
 join relationship_to_concept_manual mt on upper(mt.source_attr_name) = upper(dcs.concept_name)
-;
-
+where target_concept_id is not null;
+*/
 --delete attributes they aren't mapped to RxNorm% and which we don't want to create RxNorm Extension from
-DELETE
-FROM internal_relationship_stage
-WHERE (concept_code_1,concept_code_2) IN (SELECT irs.*
-                                          FROM internal_relationship_stage irs 
-                                            JOIN drug_concept_stage dcs ON dcs.concept_code = irs.concept_code_2
-                                            JOIN relationship_to_concept_manual rtc ON upper(rtc.source_attr_name) = upper(dcs.concept_name)
-                                          WHERE rtc.indicator_rxe IS NULL and rtc.target_concept_id IS NULL);
-
 DELETE
 FROM drug_concept_stage
 WHERE concept_code IN (SELECT concept_code
                        FROM drug_concept_stage dcs
-                        JOIN relationship_to_concept_manual rtc ON upper(rtc.source_attr_name) = upper(dcs.concept_name)
-                       WHERE rtc.indicator_rxe IS NULL and rtc.target_concept_id IS NULL);
+                        JOIN relationship_to_concept_manual rtc 
+                        ON upper(rtc.source_attr_name) = upper(dcs.concept_name)
+                       WHERE rtc.indicator_rxe is null
+                       and rtc.target_concept_id IS NULL);
 
 
 --fill internal relationship table which include relation between source drugs and their attributes
@@ -83,6 +77,10 @@ SELECT DISTINCT a.fcc,
        CASE
          WHEN STRENGTH_UNIT = 'Y/H' THEN 'HOUR'
          WHEN VOLUME_UNIT = 'K.' THEN 'K'
+         WHEN VOLUME_UNIT IS NULL AND VOLUME IS NOT NULL AND therapy_name ~ '\/(ML|MG|G)' THEN SUBSTRING(therapy_name,'\/(ML|MG|G)')
+         WHEN VOLUME_UNIT IS NULL AND VOLUME IS NOT NULL AND therapy_name !~ '\/(ML|MG|G)' THEN SUBSTRING(therapy_name,'\.?\d+(ML)')
+         WHEN VOLUME_UNIT IS NULL AND VOLUME IS NOT NULL AND therapy_name !~ '\/(ML|MG|G)' AND therapy_name ~ '\.?\d+G$' THEN SUBSTRING(therapy_name,'\.?\d+(G)$')
+         WHEN VOLUME_UNIT IS NULL AND VOLUME IS NOT NULL AND therapy_name !~ '\/(ML|MG|G)' AND therapy_name ~ '\.?\d+G\s\(' THEN SUBSTRING(therapy_name,'\d+(G)\s\(')
          ELSE VOLUME_UNIT
        END AS VOLUME_UNIT,
        b.concept_code,
@@ -92,9 +90,13 @@ SELECT DISTINCT a.fcc,
        therapy_name
 FROM source_data_1 a
   LEFT JOIN grr_form_2 b ON a.fcc = b.fcc
-WHERE NO_OF_SUBSTANCES = '1'
-OR    (NO_OF_SUBSTANCES != '1' AND STRENGTH != '0')
+WHERE STRENGTH != '0'
 AND   substance NOT LIKE '%+%';
+
+UPDATE ds_0_sd_2
+   SET volume_unit = 'ML'
+WHERE volume_unit = 'G'
+AND   (therapy_name ~ 'ML\s\(' OR therapy_name ~ 'ML$');
 
 UPDATE ds_0_sd_2
    SET volume_unit = NULL
@@ -128,6 +130,13 @@ FROM ds_0_sd_2;
 UPDATE ds_0_sd_1
    SET amount_unit = NULL
 WHERE amount IS NULL;
+
+UPDATE ds_0_sd_1
+   SET denominator_unit = 'G',
+   numerator=numerator/1000
+WHERE numerator_unit = '%'
+AND   denominator_unit IS NULL
+and therapy_name ~ '\d+(G)';
 
 UPDATE ds_0_sd_1
    SET denominator_unit = 'ML'
@@ -169,7 +178,9 @@ SELECT fcc,
        substance,
        CASE
          WHEN therapy_name ~ '\d+(IU|MG|MCG|D|Y|C)(\s)?\/\d+ML' AND denominator IS NOT NULL THEN (numerator / 5)*denominator
-         WHEN therapy_name ~ '\d+(IU|MG|MCG|D|Y|C)\s?\/(ML|G)|\%' AND denominator IS NOT NULL THEN numerator*denominator
+         WHEN therapy_name ~ '\d+(IU|MG|MCG|D|Y|C)\s?\/(ML|G)' AND denominator IS NOT NULL THEN numerator*denominator
+         when therapy_name ~ '\%' and therapy_name ~ '\d+(G)' AND denominator IS NOT NULL THEN numerator*denominator*1000
+         when therapy_name ~ '\%' AND denominator IS NOT NULL THEN numerator*denominator
          ELSE numerator
        END numerator,
        numerator_unit,
@@ -194,6 +205,10 @@ AND   numerator IS NULL
 AND   numerator_unit IS NULL
 AND   denominator IS NOT NULL
 AND   denominator_unit IS NOT NULL;
+DELETE
+FROM ds_0_sd
+WHERE therapy_name = '' and box_size = '0';
+update ds_0_sd set box_size = null where box_size = '1';
 
 --fill ds_stage with extracted dosage from table that was used before
 TRUNCATE TABLE ds_stage;
@@ -213,11 +228,11 @@ INSERT INTO ds_stage
 SELECT fcc,
        b.concept_code,
        box_size,
-       amount,
+       amount::float8,
        AMOUNT_UNIT,
-       NUMERATOR,
+       NUMERATOR::float8,
        NUMERATOR_UNIT,
-       DENOMINATOR,
+       DENOMINATOR::float8,
        DENOMINATOR_UNIT
 FROM ds_0_sd a
   JOIN drug_concept_stage b
@@ -240,6 +255,8 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
                             WHERE amount_unit IS NULL
                             AND   numerator_unit IS NULL);
+                            
+
 
 UPDATE ds_stage
    SET denominator_value = NULL,
@@ -330,10 +347,12 @@ SELECT q_code,
        d1
 FROM c_m
   JOIN relationship_to_concept rtc ON CAST (c_m.ing AS INTEGER) = rtc.concept_id_2;
+  
 DELETE
 FROM ds_stage
 WHERE drug_concept_code IN (SELECT q_code FROM grr_mult);
 
+-- insert only solid multicomponent drugs
 INSERT INTO ds_stage
 (
   DRUG_CONCEPT_CODE,
@@ -348,7 +367,29 @@ SELECT q_code,
        CAST(d1 AS FLOAT),
        'MG'
 FROM grr_mult
-  JOIN source_data_1 ON fcc = q_code;
+  JOIN source_data_1 ON fcc = q_code
+  and nfc != 'DGJ';
+
+-- find dosage for liquid multicomponent drugs which have source doses in mg per tablespoon
+INSERT INTO ds_stage
+(
+  DRUG_CONCEPT_CODE,
+  INGREDIENT_CONCEPT_CODE,
+  numerator_value,
+  numerator_unit,
+  denominator_value,
+  denominator_unit
+)
+SELECT q_code,
+       concept_code_1,
+       (TRIM(d1)::FLOAT) / 5 *  CAST (volume as float),
+       'MG',
+       volume::FLOAT,
+       'ML'
+FROM grr_mult
+  JOIN source_data_1
+    ON q_code = fcc
+WHERE nfc = 'DGJ';
 
 --delete liquid homeopathy 
 DELETE
@@ -357,6 +398,11 @@ WHERE concept_code IN (SELECT drug_concept_code
                        FROM ds_stage
                        WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
                        AND   denominator_value IS NOT NULL);
+                       
+DELETE
+FROM relationship_to_concept
+WHERE concept_code_1 IN  ('DH','C','CH','D','TM','X','XMK')
+                   ;
 
 DELETE
 FROM internal_relationship_stage
@@ -449,8 +495,13 @@ AS
 SELECT CONCAT(denominator_value,' ',denominator_unit) AS quant,
        drug_concept_code,
        CASE
-         WHEN therapy_name ~ '\d+\.?\d+?(MG|G|Y|K)\s\/(\d+)?(ML|G)' THEN CONCAT (i.concept_name,' ',COALESCE(amount_value,numerator_value),' ',COALESCE(amount_unit,numerator_unit),COALESCE('/' ||denominator_unit))
-         ELSE CONCAT (i.concept_name,' ',ROUND((COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))::NUMERIC,(3 - FLOOR(LOG(COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))) -1)::INT),' ',COALESCE(amount_unit,numerator_unit))
+         WHEN therapy_name ~ '\d+\.?\d+?(MG|G|Y|K)\s\/(\d+)?(ML|G)' 
+             THEN CONCAT (i.concept_name,' ',COALESCE(amount_value,numerator_value) /COALESCE(denominator_value,1),' ',COALESCE(amount_unit,numerator_unit),COALESCE('/' ||denominator_unit))
+         ELSE CONCAT (i.concept_name,' ',
+                      ROUND((COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))::NUMERIC,(3 - FLOOR(LOG(COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))) -1)::INT),' ',
+                      COALESCE(amount_unit,numerator_unit),
+                      COALESCE('/' ||denominator_unit)
+                      )
        END AS dosage_name
 FROM ds_stage
   JOIN source_data_1 ON fcc = drug_concept_code
@@ -509,7 +560,21 @@ FROM ds_stage_cnc3 c
 
 INSERT INTO new_name
 SELECT DISTINCT a.concept_code,
-       CONCAT(a.ingred_name,CASE WHEN f.concept_name IS NOT NULL THEN CONCAT (' ',f.concept_name) ELSE NULL END,CASE WHEN b.concept_name IS NOT NULL THEN CONCAT (' [',b.concept_name,']') ELSE NULL END,CASE WHEN ds.box_size IS NOT NULL THEN CONCAT (' Box of ',ds.box_size) ELSE NULL END,CASE WHEN s.concept_name IS NOT NULL THEN CONCAT (' by ',s.concept_name) ELSE NULL END) AS concept_name
+       trim(CONCAT(
+       a.ingred_name,
+       CASE WHEN f.concept_name IS NOT NULL 
+       THEN CONCAT (' ',f.concept_name) 
+       ELSE NULL END,
+       CASE WHEN b.concept_name IS NOT NULL 
+       THEN CONCAT (' [',b.concept_name,']') 
+       ELSE NULL END,
+       CASE WHEN ds.box_size IS NOT NULL 
+       THEN CONCAT (' Box of ',ds.box_size) 
+       ELSE NULL END,
+       CASE WHEN s.concept_name IS NOT NULL 
+       THEN CONCAT (' by ',s.concept_name) 
+       ELSE NULL END
+       )) AS concept_name
 FROM (SELECT DISTINCT ca.concept_code,
              STRING_AGG(i.concept_name,'/') OVER (PARTITION BY ca.concept_code) AS ingred_name
       FROM (SELECT DISTINCT *
@@ -531,7 +596,7 @@ FROM (SELECT DISTINCT ca.concept_code,
 WHERE a.concept_code NOT IN (SELECT drug_concept_code FROM new_name);
 
 UPDATE drug_concept_stage a
-   SET concept_name = SUBSTR(n.concept_name,1,255)
+   SET concept_name = trim(SUBSTR(n.concept_name,1,255))
 FROM new_name n
 WHERE n.drug_concept_code = a.concept_code;
 
@@ -552,3 +617,5 @@ SELECT concept_name,
 FROM drug_concept_stage
   JOIN relationship_to_concept ON concept_code = concept_code_1
 WHERE UPPER(concept_name) NOT IN (SELECT UPPER(concept_name) FROM r_t_c_all);
+
+

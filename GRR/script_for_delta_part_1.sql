@@ -107,7 +107,7 @@ CREATE TABLE vacc_ins_manual
 AS
 SELECT *, null::integer as c_id, null::varchar as c_code, null::varchar as c_name 
 FROM source_data_1
-WHERE UPPER(substance) ~ 'VACCINE|INSULIN';
+WHERE UPPER(substance) ~* 'VACCINE|INSULIN|Immunoglob';
  
 --Fill non-drug table with Devices, Nutritional Supplements , etc.
 DROP TABLE IF EXISTS grr_non_drug;

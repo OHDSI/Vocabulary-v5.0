@@ -17,8 +17,6 @@ ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_en
 
 2.Extract the following csv file into the concept_synonym_manual table: https://drive.google.com/file/d/1AdzCBO-hc_l2udDrM-I52pYZLlFbzR73/view?usp=sharing
 
-File is generated using the query:
-
 `SELECT synonym_name,
        synonym_concept_code,
        synonym_vocabulary_id,
@@ -27,8 +25,6 @@ FROM concept_synonym_manual
 ORDER BY synonym_vocabulary_id, synonym_concept_code, language_concept_id, synonym_name`
 
 3.Extract the following csv file into the concept_relationship_manual table: https://drive.google.com/file/d/1gMqPAl2TimE-6T5Zf45TzYit1jHiV_Ju/view?usp=sharing
-
-File is generated using the query:
 
 `SELECT concept_code_1,
        concept_code_2,

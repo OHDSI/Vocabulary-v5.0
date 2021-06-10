@@ -1,10 +1,12 @@
--- Incorporate HGNC vocabulary       -- alias_name||' ('||alias_symbol||')'   and prev_name||' ('||prev_symbol||')' can we put it as synonyms?
+
+
+-- Incorporate HGNC vocabulary 
 INSERT INTO concept_stage
 SELECT DISTINCT NULL::INT,
-       trim(symbol|| ' (' ||f_name|| ')'||' Variant') AS concept_name,
+       trim(symbol|| ' (' ||f_name|| ')'||' gene variant measurement') AS concept_name,
        'Measurement' AS domain_id,
-       'HGNC' AS vocabulary_id,
-       'Gene' AS concept_class_id,
+       'OMOP Genomic' AS vocabulary_id,
+       'Gene variant' AS concept_class_id,
        'S' AS standard_concept,
        -- TBD
        TRIM( regexp_REPLACE(hgnc_id,'HGNC:','')) as concept_code,
@@ -12,22 +14,57 @@ SELECT DISTINCT NULL::INT,
        -- what use as valid_start_date (date_approved_reserved|date_modified)
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
-FROM protein_coding_gene
+FROM dev_christian.protein_coding_gene
 ;
 
--- we can use in a future to add them
-/*
+-- Synonyms for HGNC Variants 
+insert into concept_synonym_stage  
+select distinct * from (
 select  DISTINCT NULL::INT as synonym_concept_id,
-trim(prev_symbol|| ' (' ||prev_name|| ')'||' Variant') AS synonym_name,
+trim(alias_symbol_p) AS synonym_name,
 TRIM( regexp_REPLACE(hgnc_id,'HGNC:','')) as synonym_concept_code,
-'HGNC' AS synonym_vocabulary_id,
+'OMOP Genomic' AS synonym_vocabulary_id,
 4180186 as language_concept_id
-from  protein_coding_gene
-where prev_symbol is not null 
-and prev_name is not null 
+from  (select *,unnest(string_to_array(alias_symbol,'|')) as alias_symbol_p,unnest(string_to_array(alias_name,'|')) as alias_name_p,unnest(string_to_array(prev_symbol,'|')) as prev_symbol_p,unnest(string_to_array(prev_name,'|')) as prev_name_p from  dev_christian.protein_coding_gene
+) a 
+where alias_symbol_p is not null 
+union
+select  DISTINCT NULL::INT as synonym_concept_id,
+trim(alias_name_p) AS synonym_name,
+TRIM( regexp_REPLACE(hgnc_id,'HGNC:','')) as synonym_concept_code,
+'OMOP Genomic' AS synonym_vocabulary_id,
+4180186 as language_concept_id
+from  (select *,unnest(string_to_array(alias_symbol,'|')) as alias_symbol_p,unnest(string_to_array(alias_name,'|')) as alias_name_p,unnest(string_to_array(prev_symbol,'|')) as prev_symbol_p,unnest(string_to_array(prev_name,'|')) as prev_name_p from  dev_christian.protein_coding_gene
+) a 
+where alias_name_p is not null 
+union
+select  DISTINCT NULL::INT as synonym_concept_id,
+trim(prev_symbol_p) AS synonym_name,
+TRIM( regexp_REPLACE(hgnc_id,'HGNC:','')) as synonym_concept_code,
+'OMOP Genomic' AS synonym_vocabulary_id,
+4180186 as language_concept_id
+from  (select *,unnest(string_to_array(alias_symbol,'|')) as alias_symbol_p,unnest(string_to_array(alias_name,'|')) as alias_name_p,unnest(string_to_array(prev_symbol,'|')) as prev_symbol_p,unnest(string_to_array(prev_name,'|')) as prev_name_p from  dev_christian.protein_coding_gene
+) a 
+where prev_symbol_p is not null 
+union
+select  DISTINCT NULL::INT as synonym_concept_id,
+trim(prev_name_p) AS synonym_name,
+TRIM( regexp_REPLACE(hgnc_id,'HGNC:','')) as synonym_concept_code,
+'OMOP Genomic' AS synonym_vocabulary_id,
+4180186 as language_concept_id
+from  (select *,unnest(string_to_array(alias_symbol,'|')) as alias_symbol_p,unnest(string_to_array(alias_name,'|')) as alias_name_p,unnest(string_to_array(prev_symbol,'|')) as prev_symbol_p,unnest(string_to_array(prev_name,'|')) as prev_name_p from  dev_christian.protein_coding_gene
+) a 
+where prev_name_p is not null 
+)a
 ;
-*/
 
+
+-- cheking of HGNC synonyms
+/*select * from concept_stage 
+join concept_synonym_stage on synonym_concept_code = concept_code
+where concept_name like '%EGFR%' or  concept_name like '%ALK%'
+order by concept_name
+limit 1000;*/
 
 
 -- put source variants into concept stage  
@@ -45,7 +82,7 @@ SELECT DISTINCT NULL::INT,
 FROM g
 where (concept_code,vocabulary_id) in ( 
 select distinct concept_code,vocabulary_id 
-from canonical_variant 
+from dev_dkaduk.canonical_variant 
 join g using(gene,seqtype,variant)
 where vocabs not in ('ClinVar','JAX')
 )
@@ -55,8 +92,7 @@ and length(concept_code) <= 50
 ;
 
 
-
-
+/*
 DO $$
 DECLARE
 	ex INTEGER;
@@ -70,18 +106,21 @@ BEGIN
 	EXECUTE 'CREATE SEQUENCE omop_seq INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
 END$$
 ;
+*/
 
-
--- Additional Biomarkers from CAP
-insert into concept_stage
-SELECT DISTINCT NULL::INT,
-       substr(r.concept_name,1,255) AS concept_name,
+-- Additional Biomarkers from diff sources into maunal
+/*
+truncate concept_stage_manual;
+--create table concept_stage_manual as 
+insert into concept_stage_manual
+SELECT DISTINCT NULL::INT as concepT_id ,
+       substr(r.concept_name,1,255)||' measurement' AS concept_name,
        'Measurement' AS domain_id,
-       'OMOP Extension' AS vocabulary_id,
+       'OMOP Genomic' AS vocabulary_id,
        case 
-       when r.concept_name ~ 'somy|Fusion|Rearrangement|Karyotype|Microsatellite|Gene|Histone|t\(' then 'Genomic Variant'
+       when r.concept_name ~ 'somy|Fusion|Rearrangement|Karyotype|Microsatellite|Gene|Histone|t\(' then 'DNA Variant'
        when r.concept_name ~ 'Protein Expression' THEN 'Protein Variant'
-       when r.concept_name ~ 'Mutation|Amplification'  THEN 'Transcript Variant'
+       when r.concept_name ~ 'Mutation|Amplification'  THEN 'RNA Variant'
         else null end
  AS concept_class_id,
        'S' AS standard_concept,
@@ -99,21 +138,21 @@ select * FROM snomed_vs_icdo
 left join concept c on r.concept_name = c.concepT_name
 and vocabulary_id = 'OMOP Extension'
 ;
+*/
 
-
-
-
+insert into concept_stage
+select * from concept_stage_manual;
 
 -- insert to concept stage canonical variants as OMOP Extension vocab
 insert into concept_stage
 select * from(
 SELECT DISTINCT NULL::INT,
 -- create proper name for canonical variants
-TRIM('Detection of Variant '||
+TRIM(symbol||
 case 
-when seqtype = 'p' then 'of '||symbol||' protein:'
-when seqtype = 'c' then 'of '||symbol||' transcript:'
-else assembly||' in Chromosome '||substring(f_location,'^(\w\d?)\w')
+when seqtype = 'p' then ' protein:'
+when seqtype = 'c' then ' transcript:'
+else ' on genome '||assembly||' on chromosome '||substring(f_location,'^(\w\d?)\w')
 end||' '||
 case 
 
@@ -183,55 +222,74 @@ when variant ~ '\_' then ''||substring(variant,'(\*?\-?\d+\+?\-?\d*?)\_')||' to 
 
 -- mess variants?
 else var_name  
-end) AS concept_name,--var_name,
+end||' measurement') AS concept_name,--var_name,
        'Measurement' AS domain_id,
-       'OMOP Extension' AS vocabulary_id,
+       'OMOP Genomic' AS vocabulary_id,
        CASE
          WHEN seqtype = 'p' THEN 'Protein Variant'
-         WHEN seqtype = 'c' THEN 'Transcript Variant'
-         WHEN seqtype = 'g' THEN 'Genomic Variant'
+         WHEN seqtype = 'c' THEN 'RNA Variant'
+         WHEN seqtype = 'g' THEN 'DNA Variant'
          --WHEN seqtype = 'm' THEN 'Mitochondrial Variant' 
        END AS concept_class_id,
        'S' AS standard_concept,
-       a.refseq||a.version||':'||seqtype|| '.' ||variant AS concept_code,
+       omop.concept_code as concept_code,
        CURRENT_DATE -1 AS valid_start_date,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
 FROM canonical_refseq a
-join protein_coding_gene ON symbol = gene
+join omop_variants omop using(gene,variant)
+join dev_christian.protein_coding_gene ON symbol = a.gene
 left join 
   (
   select distinct assembly, chromosomeaccession from dev_christian.variant_summary
   union
   select distinct reference_build,substring(hgvs,'\w+\_\d+\.\d+') from ( 
   select civic_start, reference_build,(regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
-  from civic_variantsummaries
+  from dev_christian.civic_variantsummaries
   ) ref 
   where hgvs like '%'||civic_start||'%'
   ) ref_build on chromosomeaccession = refseq||version
 ) r 
 -- filter strange variant
 where concept_name is not null 
-and concept_name !~ 'Chromosome\s\d+\s\d+'
-and length(concept_code) <= 50
 ;
 
 
+select *--string_agg(distinct cs.concept_code,',')
+from concept_stage cs
+join omop_variants using(concept_code)
+join g using (gene,variant)
+where g.concept_code in (
+select g.concept_code from concept_stage 
+join omop_variants using(concept_code)
+join g using (gene,variant)
+where var_name = 'Thr 790Met '
+)
+and cs.concept_name like '%EGFR%'
+limit 10000
+;
+
+select * from concept_synonym_stage
+where synonym_concept_code in ('OMOP5266576','OMOP5266948','OMOP5267132','OMOP5267878')
+
+
+
+-- insert synonyms such as HGNC for all canonical variants
 insert into concept_synonym_stage
+select * 
+from (
 select  
 DISTINCT NULL::INT as synonym_concept_id,
 g.refseq||g.version||':'||g.seqtype|| '.' ||g.variant AS synonym_name,
 cs.concept_code as synonym_concept_code,
 cs.vocabulary_id AS synonym_vocabulary_id,
 4180186 as language_concept_id
-from canonical_refseq a 
-join concept_stage cs on concept_code = refseq||version||':'||seqtype|| '.' ||variant
-join g using(gene,seqtype,variant)
-where a.refseq != g.refseq
-and a.version != g.version
+from omop_variants a 
+join concept_stage cs on cs.concept_code = a.concept_code
+join g using(gene,variant)
+) r
+where synonym_name is not null
 ;
-
-
 
 
 
@@ -240,7 +298,7 @@ and a.version != g.version
 
 
 -- add realtionship from gene to protein variants
-insert into concept_relationship_stage
+--insert into concept_relationship_stage
 SELECT distinct 
        NULL::integer as concept_id_1, 
        NULL::integer as concept_id_2, 
@@ -252,11 +310,11 @@ SELECT distinct
        CURRENT_DATE -1 AS valid_start_date,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
-FROM protein_coding_gene
+FROM dev_christian.protein_coding_gene
   JOIN concept_stage cs
     ON TRIM ( REPLACE (hgnc_id,'HGNC:','')) = concept_code
-   AND cs.vocabulary_id = 'HGNC'
-  JOIN canonical_refseq g ON symbol = g.gene
+   AND cs.vocabulary_id = 'OMOP Genomic'
+  JOIN omop_variants g ON symbol = g.gene
   JOIN concept_stage cs1 ON cs1.concept_code = g.refseq||g.version|| ':' ||seqtype|| '.' ||variant
 WHERE g.seqtype = 'p';
 
@@ -284,7 +342,7 @@ select * FROM CAP_add
 union  
 select * FROM snomed_vs_icdo
 ) r   using(concept_name)
-join protein_coding_gene ON symbol = substring (concept_name, '^\w+') or symbol = substring (concept_name, '^\w+\-(\w+)')
+join dev_christian.protein_coding_gene ON symbol = substring (concept_name, '^\w+') or symbol = substring (concept_name, '^\w+\-(\w+)')
   JOIN concept_stage cs1
     ON TRIM ( REPLACE (hgnc_id,'HGNC:','')) = cs1.concept_code
    AND cs1.vocabulary_id = 'HGNC'
@@ -454,5 +512,31 @@ union
 select * FROM snomed_vs_icdo
 ) r   using(concept_name)
 join snomed_vs_icdo_mapping on cs.concept_name = variant_name
-join concept c on icdo_id = c.concept_id
+join devv5.concept c on icdo_id = c.concept_id
+;
+
+
+insert into concept_stage 
+select concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,null as standard_concept,concept_code,valid_start_date,current_date as valid_end_date,'D' as invalid_reason 
+from concept 
+where vocabulary_id = 'OMOP Extension'
+and concept_class_id like '%Variant'
+and concept_code not in (select concept_code from concept_stage);
+
+
+insert into concept_relationship_stage 
+select 
+cs.concept_id,
+cc.concept_id,
+cs.concept_code,
+cc.concept_code,
+cs.vocabulary_id,
+cc.vocabulary_id,
+cr.relationship_id,
+cr.valid_start_date,
+current_date,
+'D'
+from concept_stage cs
+join concept_relationship cr on cr.concept_id_1 = cs.concept_id and cs.invalid_reason = 'D' and cr.invalid_reason is null
+join concept cc on cc.concept_id = cr.concept_id_2
 ;

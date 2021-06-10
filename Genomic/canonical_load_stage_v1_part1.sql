@@ -1,10 +1,10 @@
 -- extract position for canonical variant from hgvs expressions  
-drop table if exists g;
-create table g as
+drop table if exists dev_dkaduk.g;
+create table dev_dkaduk.g as
 with snp as (
 -- ClinVar 
   select distinct f_name as concept_name, 'ClinVar' as vocabulary_id, cast(alleleid as varchar(6)) as concept_code, genesymbol as gene,  hgvs
-  from variant_summary 
+  from dev_christian.variant_summary 
   join clinvar_clean on f_name = clin_name
   where hgvs ~ '^NM|^NP|^NC|^LRG|^NG|^NR'
  
@@ -12,7 +12,7 @@ with snp as (
 -- civic
 union
   select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, gene, ( regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
-  from civic_variantsummaries
+  from dev_christian.civic_variantsummaries
   where hgvs_expressions ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
 
 
@@ -20,7 +20,7 @@ union
 union
   select concept_name, vocabulary_id, concept_code, ( regexp_matches(display_name, '(\w+) '))[1] as gene, ( regexp_matches(display_name, '\w+ (.+)'))[1] as hgvs from (
     select definition as concept_name, 'NCIt' as vocabulary_id, code as concept_code, display_name
-    from nci_thesaurus 
+    from ddymshyts.nci_thesaurus 
     where coalesce(concept_status, '') not in ('Retired_Concept', 'Obsolete_Concept') and semantic_type in ('Cell or Molecular Dysfunction')
       and display_name ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
   ) a
@@ -115,31 +115,31 @@ select concept_name, vocabulary_id, concept_code, gene, refseq, version, seqtype
 update g set variant = replace (variant,'=',substring(variant, '^\w\w\w')),var_name = replace (var_name,'=',substring(var_name, '^\w\w\w')) where variant like '%=%';
 
 -- one letter instead of three letter AA
-update g set variant=replace(variant, 'Ala', 'A'),var_name=replace(var_name, 'Ala', 'Ala ')where seqtype='p'; 
-update g set variant=replace(variant, 'Asx', 'B'),var_name=replace(var_name, 'Asx', 'Asx') where seqtype='p'; 
-update g set variant=replace(variant, 'Cys', 'C'),var_name=replace(var_name, 'Cys', 'Cys ') where seqtype='p'; 
-update g set variant=replace(variant, 'Asp', 'D'),var_name=replace(var_name, 'Asp', 'Asp ') where seqtype='p'; 
-update g set variant=replace(variant, 'Glu', 'E'),var_name=replace(var_name, 'Glu', 'Glu ') where seqtype='p'; 
-update g set variant=replace(variant, 'Phe', 'F'),var_name=replace(var_name, 'Phe', 'Phe ') where seqtype='p'; 
-update g set variant=replace(variant, 'Gly', 'G'),var_name=replace(var_name, 'Gly', 'Gly ') where seqtype='p'; 
-update g set variant=replace(variant, 'His', 'H'),var_name=replace(var_name, 'His', 'His ') where seqtype='p'; 
-update g set variant=replace(variant, 'Ile', 'I'),var_name=replace(var_name, 'Ile', 'Ile ') where seqtype='p';
-update g set variant=replace(variant, 'Lys', 'K'),var_name=replace(var_name, 'Lys', 'Lys ') where seqtype='p'; 
-update g set variant=replace(variant, 'Leu', 'L'),var_name=replace(var_name, 'Leu', 'Leu ') where seqtype='p'; 
-update g set variant=replace(variant, 'Met', 'M'),var_name=replace(var_name, 'Met', 'Met ') where seqtype='p'; 
-update g set variant=replace(variant, 'Asn', 'N'),var_name=replace(var_name, 'Asn', 'Asn ') where seqtype='p'; 
-update g set variant=replace(variant, 'Pro', 'P'),var_name=replace(var_name, 'Pro', 'Pro ') where seqtype='p'; 
-update g set variant=replace(variant, 'Gln', 'Q'),var_name=replace(var_name, 'Gln', 'Gln ') where seqtype='p'; 
-update g set variant=replace(variant, 'Arg', 'R'),var_name=replace(var_name, 'Arg', 'Arg ') where seqtype='p'; 
-update g set variant=replace(variant, 'Ser', 'S'),var_name=replace(var_name, 'Ser', 'Ser ') where seqtype='p';   
-update g set variant=replace(variant, 'Thr', 'T'),var_name=replace(var_name, 'Thr', 'Thr ') where seqtype='p'; 
-update g set variant=replace(variant, 'Sec', 'U'),var_name=replace(var_name, 'Sec', 'Sec ') where seqtype='p';
-update g set variant=replace(variant, 'Val', 'V'),var_name=replace(var_name, 'Val', 'Val ') where seqtype='p'; 
-update g set variant=replace(variant, 'Trp', 'W'),var_name=replace(var_name, 'Trp', 'Trp ') where seqtype='p'; 
-update g set variant=replace(variant, 'Xaa', 'X'),var_name=replace(var_name, 'Xaa', 'Xaa ') where seqtype='p'; 
-update g set variant=replace(variant, 'Tyr', 'Y'),var_name=replace(var_name, 'Tyr', 'Tyr ') where seqtype='p'; 
-update g set variant=replace(variant, 'Glx', 'Z'),var_name=replace(var_name, 'Glx', 'Glx ')  where seqtype='p';
-update g set variant=replace(variant, 'Ter', '*'),var_name=replace(var_name, 'Ter', 'Ter ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Ala', 'A'),var_name=replace(var_name, 'Ala', 'Ala ')where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Asx', 'B'),var_name=replace(var_name, 'Asx', 'Asx') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Cys', 'C'),var_name=replace(var_name, 'Cys', 'Cys ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Asp', 'D'),var_name=replace(var_name, 'Asp', 'Asp ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Glu', 'E'),var_name=replace(var_name, 'Glu', 'Glu ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Phe', 'F'),var_name=replace(var_name, 'Phe', 'Phe ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Gly', 'G'),var_name=replace(var_name, 'Gly', 'Gly ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'His', 'H'),var_name=replace(var_name, 'His', 'His ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Ile', 'I'),var_name=replace(var_name, 'Ile', 'Ile ') where seqtype='p';
+update dev_dkaduk.g set variant=replace(variant, 'Lys', 'K'),var_name=replace(var_name, 'Lys', 'Lys ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Leu', 'L'),var_name=replace(var_name, 'Leu', 'Leu ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Met', 'M'),var_name=replace(var_name, 'Met', 'Met ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Asn', 'N'),var_name=replace(var_name, 'Asn', 'Asn ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Pro', 'P'),var_name=replace(var_name, 'Pro', 'Pro ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Gln', 'Q'),var_name=replace(var_name, 'Gln', 'Gln ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Arg', 'R'),var_name=replace(var_name, 'Arg', 'Arg ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Ser', 'S'),var_name=replace(var_name, 'Ser', 'Ser ') where seqtype='p';   
+update dev_dkaduk.g set variant=replace(variant, 'Thr', 'T'),var_name=replace(var_name, 'Thr', 'Thr ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Sec', 'U'),var_name=replace(var_name, 'Sec', 'Sec ') where seqtype='p';
+update dev_dkaduk.g set variant=replace(variant, 'Val', 'V'),var_name=replace(var_name, 'Val', 'Val ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Trp', 'W'),var_name=replace(var_name, 'Trp', 'Trp ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Xaa', 'X'),var_name=replace(var_name, 'Xaa', 'Xaa ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Tyr', 'Y'),var_name=replace(var_name, 'Tyr', 'Tyr ') where seqtype='p'; 
+update dev_dkaduk.g set variant=replace(variant, 'Glx', 'Z'),var_name=replace(var_name, 'Glx', 'Glx ')  where seqtype='p';
+update dev_dkaduk.g set variant=replace(variant, 'Ter', '*'),var_name=replace(var_name, 'Ter', 'Ter ') where seqtype='p'; 
 
 
 -- update for proper naming protein variatns
@@ -150,36 +150,36 @@ from g
 where seqtype = 'p'and  vocabulary_id in ('NCIt','CAP','LOINC','JAX','OncoKB') and var_name = variant
 ; 
 
-update g set var_name= replace(var_name, 'A', 'Ala ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'B', 'Asx') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'C', 'Cys ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'D', 'Asp ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'G', 'Gly ')where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'E', 'Glu ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'P', 'Pro ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'F', 'Phe ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
-update g set var_name= replace(var_name, 'H', 'His ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'I', 'Ile ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'L', 'Leu ')where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'K', 'Lys ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);
-update g set var_name= replace(var_name, 'M', 'Met ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
-update g set var_name= replace(var_name, 'N', 'Asn ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'Q', 'Gln ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'R', 'Arg ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
-update g set var_name= replace(var_name, 'S', 'Ser ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'T', 'Thr ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
-update g set var_name= replace(var_name, 'U', 'Sec ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'V', 'Val ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
-update g set var_name= replace(var_name, 'W', 'Trp ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'X', 'Xaa ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
-update g set var_name= replace(var_name, 'Y', 'Tyr ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, 'Z', 'Glx ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
-update g set var_name= replace(var_name, '*', 'Ter ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
+update dev_dkaduk.g set var_name= replace(var_name, 'A', 'Ala ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'B', 'Asx') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'C', 'Cys ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'D', 'Asp ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'G', 'Gly ')where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'E', 'Glu ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'P', 'Pro ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'F', 'Phe ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
+update dev_dkaduk.g set var_name= replace(var_name, 'H', 'His ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'I', 'Ile ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'L', 'Leu ')where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'K', 'Lys ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);
+update dev_dkaduk.g set var_name= replace(var_name, 'M', 'Met ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
+update dev_dkaduk.g set var_name= replace(var_name, 'N', 'Asn ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'Q', 'Gln ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'R', 'Arg ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
+update dev_dkaduk.g set var_name= replace(var_name, 'S', 'Ser ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'T', 'Thr ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
+update dev_dkaduk.g set var_name= replace(var_name, 'U', 'Sec ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'V', 'Val ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
+update dev_dkaduk.g set var_name= replace(var_name, 'W', 'Trp ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'X', 'Xaa ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
+update dev_dkaduk.g set var_name= replace(var_name, 'Y', 'Tyr ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, 'Z', 'Glx ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj); 
+update dev_dkaduk.g set var_name= replace(var_name, '*', 'Ter ') where (concept_code,vocabulary_id,gene,refseq,seqtype,variant) in (select concept_code,vocabulary_id,gene,refseq,seqtype,variant from g_adj);  
 
-update g set var_name= replace(var_name, '*', 'Ter ') where var_name ~ '\*$' ;
+update dev_dkaduk.g set var_name= replace(var_name, '*', 'Ter ') where var_name ~ '\*$' ;
 
 -- Change indel to substitution
-update g set variant= replace(variant, 'del([GATCU][GATCU]?[GATCU]?[GATCU]?[GATCU]?[GATCU]?)ins', E'\\1>') where variant like '%del_%ins%'
+update dev_dkaduk.g set variant= replace(variant, 'del([GATCU][GATCU]?[GATCU]?[GATCU]?[GATCU]?[GATCU]?)ins', E'\\1>') where variant like '%del_%ins%'
 ;
 
 
@@ -193,252 +193,31 @@ from g
 group by gene, seqtype, variant
 ;
 
+DO $$
+DECLARE
+	ex INTEGER;
+BEGIN
+	SELECT MAX(REPLACE(concept_code, 'OMOP','')::int4)+1 INTO ex FROM (
+		SELECT concept_code FROM concept WHERE concept_code LIKE 'OMOP%'  AND concept_code NOT LIKE '% %' -- Last valid value of the OMOP123-type codes
+		UNION ALL
+		SELECT concept_code FROM drug_concept_stage WHERE concept_code LIKE 'OMOP%' AND concept_code NOT LIKE '% %' -- Last valid value of the OMOP123-type codes
+	) AS s0;
+	DROP SEQUENCE IF EXISTS omop_seq;
+	EXECUTE 'CREATE SEQUENCE omop_seq INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
+END$$
+;
 
 
---collecting list refseq of variant that we have 
-drop table if exists g_ref;
-create table g_ref as 
-with all_var as(
-select *
+create table omop_variants as 
+select *, 'OMOP' || NEXTVAL('omop_seq') AS concept_code from (
+select distinct gene, variant
 from g 
 where (concept_code,vocabulary_id) in ( 
 select distinct concept_code,vocabulary_id
-from canonical_variant 
+from dev_dkaduk.canonical_variant 
 join g using(gene,seqtype,variant)
 where vocabs not in ('ClinVar','JAX')
 )
-),
-
-exist_refseq as (
-select a.concept_name,a.vocabulary_id, a.concept_code, gene, variant, a.var_name, seqtype, b.refseq as refseq, b.version as version
-from all_var a 
-join all_var b using(gene,variant,seqtype)
-where a.vocabulary_id != b.vocabulary_id
-and a.refseq !~ '^NM\_|^NC\_|^NP\_'
-and b.refseq ~ '^NM\_|^NC\_|^NP\_'
-)
-
-select concept_name,vocabulary_id, concept_code, gene, variant,var_name, seqtype, refseq as refseq, version as version
-from all_var
-where refseq ~ '^NM\_|^NC\_|^NP\_'
-union
-select *
-from exist_refseq
+)a
 ;
-
-
-
--- count variants for each refseq
-drop table if exists all_var;
-create table all_var as 
-with a as(
-select concept_code, vocabulary_id,gene, seqtype,count(distinct variant) as var_count
-from g_ref
-group by concept_code, vocabulary_id,gene, seqtype
-),
--- count refseq for each seqtype
-b as (
-select concept_code, vocabulary_id,gene, seqtype,variant, count(distinct refseq) as refseq_count
-from g_ref 
-group by concept_code, vocabulary_id,gene, seqtype,variant
-),
--- count versions of refseq for each variant
-c as (
-select * , '.'||max(replace(version,'.','')::int) over (partition by gene,variant,refseq,seqtype) as lat_new_code, max(vocab_count) over (partition by gene,variant,refseq,seqtype)  as max_vocab_count
-from (
-select distinct gene, refseq, version, seqtype, variant, count ( distinct vocabulary_id) as vocab_count, string_agg(distinct vocabulary_id,'|') as vocabs
-from g_ref
-group by gene, refseq, version, seqtype, variant
-) r
-)
-select distinct concept_name, concept_code,vocabulary_id, c.gene,  refseq,version,seqtype,variant,var_name, var_count,refseq_count,vocab_count,vocabs,max_vocab_count,max(refseq) over (partition by g_ref.variant,g_ref.gene,g_ref.seqtype,g_ref.concept_code) as max_refseq
-from g_ref
-join a using(concept_code, vocabulary_id,gene, seqtype)
-join b using(concept_code, vocabulary_id,gene, seqtype,variant)
-join c using(refseq, seqtype, variant,version)
-;
-
-
---pick canonical genomic variant
-drop table if exists genom_canonical;
-create table  genom_canonical as 
-select distinct gene,refseq,version,seqtype,variant,var_name
-from all_var 
-where refseq_count = 1
-and seqtype = 'g'
-;
-
---pick canonical transcript variant
-drop table if exists trans_canonical;
-create table  trans_canonical as 
-with trans_1 as (
-select distinct a.gene,a.refseq,a.version,a.seqtype,a.variant,a.var_name
-from all_var a 
-join all_var b using (concept_name, concept_code, vocabulary_id,gene, seqtype,variant)
-where a.refseq_count > 1
-and a.max_vocab_count > b.vocab_count
-and a.seqtype = 'c'
-and a.version = substring(concept_name,'\d(\.\d\d?)\(')
-), 
-
-trans_2 as (
-select distinct gene,refseq,version,seqtype,variant,var_name
-from all_var
-where (concept_code,vocabulary_id) not in 
-(
-select concept_code,vocabulary_id 
-from all_var
-join trans_1 using(gene,refseq,version,seqtype,variant)
-)
-and seqtype = 'c'
-and (version = substring(concept_name,'\d(\.\d\d?)\(') or  version = substring(concept_name,'\d(\.\d\d?)\:'))
-and (refseq = substring(concept_name,'(NM\_\d+)\.\d\d?\(') or refseq = substring(concept_name,'(NM\_\d+)\.\d\d?\:'))
-),
-
-trans_3 as (
-select distinct a.gene,a.refseq,a.version,a.seqtype,a.variant,a.var_name
-from all_var a 
-join all_var b using (concept_name, concept_code, vocabulary_id,gene, seqtype,variant)
-where a.refseq_count > 1
-and a.max_vocab_count > b.vocab_count
-and a.seqtype = 'c'
-and (concept_code,vocabulary_id) not in 
-(
-select concept_code,vocabulary_id 
-from all_var
-where (gene,refseq,version,seqtype,variant) in 
-(
-select gene,refseq,version,seqtype,variant
-from trans_1
-union 
-select gene,refseq,version,seqtype,variant
-from trans_2
-)
-)
-),
-
-trans_4 as (
-select gene,refseq,version,seqtype,variant ,var_name
-from all_var
-where (concept_code,vocabulary_id) not in 
-(
-select concept_code,vocabulary_id 
-from all_var
-where (gene,refseq,version,seqtype,variant) in (
-select gene,refseq,version,seqtype,variant
-from trans_1
-union 
-select gene,refseq,version,seqtype,variant
-from trans_2
-union 
-select gene,refseq,version,seqtype,variant
-from trans_3
-)
-)
-and seqtype = 'c'
-and refseq_count > 1
-and refseq = max_refseq
-)
-
-
-
-select gene,refseq,version,seqtype,variant,var_name
-from trans_1
-union 
-select gene,refseq,version,seqtype,variant,var_name
-from trans_2
-union 
-select gene,refseq,version,seqtype,variant,var_name
-from trans_3
-union 
-select gene,refseq,version,seqtype,variant,var_name
-from trans_4
-union
-select gene,refseq,version,seqtype,variant,var_name
-from all_var
-where (concept_code,vocabulary_id) not in 
-(
-select concept_code,vocabulary_id 
-from all_var
-where (gene,refseq,version,seqtype,variant) in (
-select gene,refseq,version,seqtype,variant
-from trans_1
-union 
-select gene,refseq,version,seqtype,variant
-from trans_2
-union 
-select gene,refseq,version,seqtype,variant
-from trans_3
-union 
-select gene,refseq,version,seqtype,variant
-from trans_4
-)
-)
-and seqtype = 'c'
-and refseq like 'NM%'
-;
-
--- pick canonical protein variant
-drop table if exists prot_canonical;
-create table  prot_canonical as 
-with prot_1 as (
-select distinct a.gene,a.refseq,a.version,a.seqtype,a.variant, a.var_name
-from all_var a 
-join all_var b using (concept_name, concept_code, vocabulary_id,gene, seqtype,variant)
-where a.refseq_count > 1
-and a.max_vocab_count > b.vocab_count
-and a.seqtype = 'p'
-and a.refseq like 'NP%'
-), 
-
-prot_2 as (
-select distinct gene,refseq,version,seqtype,variant,var_name
-from all_var
-where (concept_code,vocabulary_id) not in 
-(
-select concept_code,vocabulary_id 
-from all_var
-join prot_1 using(gene,refseq,version,seqtype,variant)
-)
-and seqtype = 'p'
-and refseq_count > 1
-and refseq = max_refseq
-and refseq like 'NP%'
-)
-
-
-select gene,refseq,version,seqtype,variant,var_name
-from prot_1
-union 
-select gene,refseq,version,seqtype,variant,var_name
-from prot_2
-union
-select gene,refseq,version,seqtype,variant,var_name
-from all_var
-where (concept_code,vocabulary_id) not in 
-(
-select concept_code,vocabulary_id 
-from all_var
-where (gene,refseq,version,seqtype,variant) in (
-select gene,refseq,version,seqtype,variant
-from prot_1
-union 
-select gene,refseq,version,seqtype,variant
-from prot_2
-)
-)
-and seqtype = 'p'
-and refseq like 'NP%'
-;
-
---create one table with canonical refseq
-drop table if exists canonical_refseq;
-create table canonical_refseq as 
-select * from prot_canonical
-union
-select * from trans_canonical
-union
-select * from genom_canonical
-;
-
 

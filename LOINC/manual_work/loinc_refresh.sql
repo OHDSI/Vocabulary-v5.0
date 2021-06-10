@@ -187,10 +187,22 @@ ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_co
 ;
 
 
+--backup CRM
+--CREATE TABLE dev_loinc.concept_relationship_manual_backup_20210603 AS SELECT * FROM dev_loinc.concept_relationship_manual;
+;
+
+--restore CRM
+--TRUNCATE TABLE dev_loinc.concept_relationship_manual;
+--INSERT INTO dev_loinc.concept_relationship_manual
+--SELECT * FROM dev_loinc.concept_relationship_manual_backup_20210603;
+
+
 --Insert into CRM
 -- Step 1: Create table crm_manual_mappings_changed with fields from manual file
-CREATE TABLE loinc_mapped
+--TRUNCATE TABLE dev_loinc.loinc_mapped;
+CREATE TABLE dev_loinc.loinc_mapped
 (
+    id SERIAL PRIMARY KEY,
     source_code_description varchar(255),
     source_code varchar(50),
     source_concept_class_id varchar(50),

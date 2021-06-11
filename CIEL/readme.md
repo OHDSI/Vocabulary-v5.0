@@ -1,6 +1,9 @@
 Update of CIEL
 
-CIEL vocabulary source files can be requested from Andrew Kanter (IMO). The files had to be post-processed for a couple of small formatting issues (e.g. extra TAB characters)
+CIEL vocabulary source files can be requested from Andrew Kanter (IMO). 
+These source files come already with mapping that is translated to OMOP relationships in the process of "load stage".
+
+The files had to be post-processed for a couple of small formatting issues (e.g. extra TAB characters)
 The processed csv files can be found here:
 https://drive.google.com/drive/folders/15omdYTgmftnUm0TA3D498yE8aSWw-SG3?usp=sharing
 

@@ -1,24 +1,5 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-* 
-* Authors: Christian Reich, Timur Vakhitov
-* Date: 2020
-**************************************************************************/
-
-DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT;
-CREATE TABLE SOURCES.CIEL_CONCEPT
+DROP TABLE IF EXISTS DEV_CIEL.CIEL_CONCEPT;
+CREATE TABLE DEV_CIEL.CIEL_CONCEPT
 (
    CONCEPT_ID      INT4,
    RETIRED         INT4,
@@ -37,11 +18,10 @@ CREATE TABLE SOURCES.CIEL_CONCEPT
    DATE_RETIRED    DATE,
    RETIRE_REASON   VARCHAR (255),
    UUID            VARCHAR (38),
-   FILLER_COLUMN INT
 );
 
-DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_CLASS;
-CREATE TABLE SOURCES.CIEL_CONCEPT_CLASS
+DROP TABLE IF EXISTS DEV_CIEL.CIEL_CONCEPT_CLASS;
+CREATE TABLE DEV_CIEL.CIEL_CONCEPT_CLASS
 (
    CONCEPT_CLASS_ID   INT4,
    CIEL_NAME          VARCHAR (255),
@@ -53,13 +33,16 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_CLASS
    DATE_RETIRED       DATE,
    RETIRE_REASON      VARCHAR (255),
    UUID               VARCHAR (38),
-   FILLER_COLUMN      INT,
-   VOCABULARY_DATE    DATE,
-   VOCABULARY_VERSION VARCHAR (200)
+   DATE_CHANGED       DATE,
+   CHANGED_BY         INT4
+   -- FILLER_COLUMN      INT, -- not needed anymore with new source format
+   VOCABULARY_DATE    DATE, -- will be populated on source upload
+   VOCABULARY_VERSION VARCHAR (200) -- will be populated on source upload
 );
 
-DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_NAME;
-CREATE TABLE SOURCES.CIEL_CONCEPT_NAME
+
+DROP TABLE IF EXISTS DEV_CIEL.CIEL_CONCEPT_NAME;
+CREATE TABLE DEV_CIEL.CIEL_CONCEPT_NAME
 (
    CONCEPT_ID          INT4,
    CIEL_NAME           VARCHAR (255),
@@ -74,11 +57,13 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_NAME
    UUID                VARCHAR (38),
    CONCEPT_NAME_TYPE   VARCHAR (50),
    LOCALE_PREFERRED    INT4,
-   FILLER_COLUMN       INT
+   DATE_CHANGED       DATE,
+   CHANGED_BY         INT4
+   -- FILLER_COLUMN       INT
 );
 
-DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_REFERENCE_MAP;
-CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_MAP
+DROP TABLE IF EXISTS DEV_CIEL.CIEL_CONCEPT_REFERENCE_MAP;
+CREATE TABLE DEV_CIEL.CIEL_CONCEPT_REFERENCE_MAP
 (
    CONCEPT_MAP_ID              INT4,
    CREATOR                     INT4,
@@ -88,12 +73,12 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_MAP
    CONCEPT_REFERENCE_TERM_ID   INT4,
    CONCEPT_MAP_TYPE_ID         INT4,
    CHANGED_BY                  INT4,
-   DATE_CHANGED                DATE,
-   FILLER_COLUMN               INT
+   DATE_CHANGED                DATE
+   -- FILLER_COLUMN               INT
 );
 
-DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_REFERENCE_TERM;
-CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_TERM
+DROP TABLE IF EXISTS DEV_CIEL.CIEL_CONCEPT_REFERENCE_TERM;
+CREATE TABLE DEV_CIEL.CIEL_CONCEPT_REFERENCE_TERM
 (
    CONCEPT_REFERENCE_TERM_ID   INT4,
    CONCEPT_SOURCE_ID           INT4,
@@ -109,12 +94,12 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_TERM
    RETIRED_BY                  INT4,
    DATE_RETIRED                DATE,
    RETIRE_REASON               VARCHAR (255),
-   UUID                        VARCHAR (38),
-   FILLER_COLUMN               INT
+   UUID                        VARCHAR (38)
+   -- FILLER_COLUMN               INT
 );
 
-DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_REFERENCE_SOURCE;
-CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_SOURCE
+DROP TABLE IF EXISTS DEV_CIEL.CIEL_CONCEPT_REFERENCE_SOURCE;
+CREATE TABLE DEV_CIEL.CIEL_CONCEPT_REFERENCE_SOURCE
 (
    CONCEPT_SOURCE_ID   INT4,
    CIEL_NAME           VARCHAR (50),
@@ -127,5 +112,8 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_SOURCE
    DATE_RETIRED        DATE,
    RETIRE_REASON       VARCHAR (255),
    UUID                VARCHAR (38),
-   FILLER_COLUMN       INT
+   UNIQUE_ID           VARCHAR (250),
+   DATE_CHANGED        DATE,
+   CHANGED_BY          INT4  
+   -- FILLER_COLUMN       INT
 );

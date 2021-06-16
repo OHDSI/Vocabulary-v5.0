@@ -622,15 +622,17 @@ begin
       analyze sources.ggr_sam;
   when 'AMT' then
       truncate table sources.amt_full_descr_drug_only, sources.amt_sct2_concept_full_au, sources.amt_rf2_full_relationships, sources.amt_rf2_ss_strength_refset,
-      	sources.amt_sct2_rela_full_au;
+      	sources.amt_sct2_rela_full_au, sources.amt_crefset_language;
       drop index sources.idx_amt_concept_id;
       drop index sources.idx_amt_descr_id;
       drop index sources.idx_amt_rela_id;
       drop index sources.idx_amt_rela2_id;
+      drop index sources.idx_amt_lang_refid;
       execute 'COPY sources.amt_full_descr_drug_only FROM '''||pVocabularyPath||'sct2_Description_Full-en-AU_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_sct2_concept_full_au (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_rf2_full_relationships FROM '''||pVocabularyPath||'sct2_Relationship_Full_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_rf2_ss_strength_refset FROM '''||pVocabularyPath||'der2_ccsRefset_StrengthFull_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.amt_crefset_language FROM '''||pVocabularyPath||'der2_cRefset_LanguageFull-en-AU_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       --execute 'COPY sources.amt_sct2_rela_full_au FROM '''||pVocabularyPath||'sct2_Relationship_Full_AU36.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       update sources.amt_sct2_concept_full_au set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       
@@ -638,12 +640,14 @@ begin
       create index idx_amt_descr_id on sources.amt_full_descr_drug_only (conceptid);
       create index idx_amt_rela_id on sources.amt_rf2_full_relationships (id);
       create index idx_amt_rela2_id on sources.amt_sct2_rela_full_au (id);
+      create index idx_amt_lang_refid on sources.amt_crefset_language (referencedcomponentid);
       
       analyze sources.amt_full_descr_drug_only;
       analyze sources.amt_sct2_concept_full_au;
       analyze sources.amt_rf2_full_relationships;
       analyze sources.amt_rf2_ss_strength_refset;
       analyze sources.amt_sct2_rela_full_au;
+      analyze sources.amt_crefset_language;
   when 'ISBT' then
       truncate table sources.isbt_product_desc, sources.isbt_classes, sources.isbt_modifiers, sources.isbt_attribute_values, sources.isbt_attribute_groups, 
       	sources.isbt_categories, sources.isbt_modifier_category_map, sources.isbt_version;

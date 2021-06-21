@@ -60,17 +60,21 @@ begin
       analyze sources.mrrel;
       analyze sources.mrsty;
   when 'CIEL' then
-      set local datestyle='ISO, DMY'; --set proper date format
+      --set local datestyle='ISO, DMY'; --set proper date format
       truncate table sources.ciel_concept, sources.ciel_concept_class, sources.ciel_concept_name, sources.ciel_concept_reference_map, sources.ciel_concept_reference_term, sources.ciel_concept_reference_source;
-      execute 'COPY sources.ciel_concept FROM '''||pVocabularyPath||'CONCEPT_CIEL.csv'' delimiter ''|'' csv';
+      execute 'COPY sources.ciel_concept FROM '''||pVocabularyPath||'CONCEPT_CIEL.csv'' delimiter E''\t'' csv NULL ''\N''';
       execute 'COPY sources.ciel_concept_class (concept_class_id,ciel_name,description,creator,date_created,
-      	retired,retired_by,date_retired,retire_reason,uuid,filler_column) FROM '''||pVocabularyPath||'CONCEPT_CLASS_CIEL.csv'' delimiter ''|'' csv';
-      execute 'COPY sources.ciel_concept_name FROM '''||pVocabularyPath||'CONCEPT_NAME.csv'' delimiter ''|'' csv';
-      execute 'COPY sources.ciel_concept_reference_map FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_MAP.csv'' delimiter ''|'' csv';
-      execute 'COPY sources.ciel_concept_reference_term FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_TERM.csv'' delimiter ''|'' csv';
-      execute 'COPY sources.ciel_concept_reference_source FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_SOURCE.csv'' delimiter ''|'' csv';
-      update sources.ciel_concept_name set ciel_name=trim(ciel_name) where trim(ciel_name)<>ciel_name;
+      	retired,retired_by,date_retired,retire_reason,uuid,date_changed,changed_by) FROM '''||pVocabularyPath||'CONCEPT_CLASS_CIEL.csv'' delimiter E''\t'' csv NULL ''\N''';
+      execute 'COPY sources.ciel_concept_name FROM '''||pVocabularyPath||'CONCEPT_NAME.csv'' delimiter E''\t'' csv NULL ''\N''';
+      execute 'COPY sources.ciel_concept_reference_map FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_MAP.csv'' delimiter E''\t'' csv NULL ''\N''';
+      execute 'COPY sources.ciel_concept_reference_term FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_TERM.csv'' delimiter E''\t'' csv NULL ''\N''';
+      execute 'COPY sources.ciel_concept_reference_source FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_SOURCE.csv'' delimiter E''\t'' csv NULL ''\N''';
       update sources.ciel_concept_class set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      --force NULL for empty fields
+      update sources.ciel_concept_class set ciel_name=nullif(trim(ciel_name),'');
+      update sources.ciel_concept_name set ciel_name=nullif(trim(ciel_name),''),locale=nullif(trim(locale),'');
+      update sources.ciel_concept_reference_term set ciel_name=nullif(trim(ciel_name),''),ciel_code=nullif(trim(ciel_code),'');
+      update sources.ciel_concept_reference_source set ciel_name=nullif(trim(ciel_name),'');
   when 'RXNORM' then
       truncate table sources.rxnsat, sources.rxnrel, sources.rxnatomarchive, sources.rxnconso;
       drop index sources.x_rxnconso_str;

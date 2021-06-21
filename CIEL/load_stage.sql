@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Christian Reich, Timur Vakhitov
-* Date: 2020
+* Authors: Christian Reich, Timur Vakhitov, Michael Kallfelz
+* Date: 2020, 2021
 **************************************************************************/
 
 --1. Update latest_update field to new date 
@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIEL',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.ciel_concept_class LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.ciel_concept_class LIMIT 1),
+	pVocabularyDate			=> (SELECT vocabulary_date FROM dev_ciel.ciel_concept_class LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM dev_ciel.ciel_concept_class LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_CIEL'
 );
 END $_$;
@@ -32,8 +32,8 @@ END $_$;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
-TRUNCATE TABLE pack_content_stage;
-TRUNCATE TABLE drug_strength_stage;
+-- TRUNCATE TABLE pack_content_stage; -- not used
+-- TRUNCATE TABLE drug_strength_stage;
 
 --3. Load into concept_stage
 INSERT INTO concept_stage (
@@ -112,6 +112,10 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN 'Drug'
 		WHEN 'Medical supply'
 			THEN 'Device'
+-- begin change M. Kallfelz 2021-05-06 
+		WHEN 'InteractSet' -- Set of drugs that interact with parent drug.
+			THEN 'Drug' 
+-- end change M. Kallfelz 2021-05-06
 		END AS domain_id,
 	'CIEL' AS vocabulary_id,
 	CASE ccl.ciel_name -- shorten the ones that won't fit the 20 char limit
@@ -123,10 +127,14 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN 'Radiology' -- there are LOINC codes which are Measurement, but results are not connected
 		WHEN 'Pharmacologic Drug Class'
 			THEN 'Drug Class'
+-- begin change M. Kallfelz 2021-05-06 
+		WHEN 'InteractSet' -- Set of drugs that interact with parent drug.
+			THEN 'Drug Class' -- Class 'Drug Interaction' is not suitable and not in use
+-- end change M. Kallfelz 2021-05-06
 		ELSE ccl.ciel_name
 		END AS concept_class_id,
 	NULL AS standard_concept,
-	c.concept_id AS concept_code,
+   c.concept_id AS concept_code,
 	COALESCE(c.date_created, TO_DATE('19700101', 'yyyymmdd')) AS valid_start_date,
 	CASE c.retired
 		WHEN 0
@@ -142,10 +150,59 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN NULL
 		ELSE 'D' -- we might change that.
 		END AS invalid_reason
-FROM sources.ciel_concept c
-LEFT JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
-LEFT JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
+FROM dev_ciel.ciel_concept c
+LEFT JOIN dev_ciel.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
+LEFT JOIN dev_ciel.ciel_concept_name cn ON cn.concept_id = c.concept_id
 	AND cn.locale = 'en';
+
+-- begin addition M. Kallfelz 2021-05-06 
+-- 3 a) TRIM leading or trailing spaces in concept name
+UPDATE dev_ciel.concept_stage AS cs SET concept_name = TRIM(cs.concept_name) WHERE LENGTH(TRIM(cs.concept_name)) <> LENGTH(cs.concept_name);
+
+--3 b) add synonyms to concept_synonym_stage by language
+--SELECT DISTINCT ON (locale) * FROM ciel_concept_name
+-- WHERE voided = 0;
+-- am = Amharic => no OMOP language
+-- bn = Bengali, Bangla => no OMOP language
+-- en
+-- es = Spanish, Castilian => 4182511
+-- fr = French => 4180190
+-- ht = Haitian => no OMOP language
+-- in = Indonesian (ISO code is id!) => no OMOP language
+-- it = Italian => 4182507
+-- nl = Dutch => 4182503
+-- om = Oromo => no OMOP language
+-- pt = Portuguese => 4181536
+-- ru = Russian => no OMOP language
+-- rw = Kinyarwanda => no OMOP language
+-- sw = Swahili => no OMOP language
+-- ti = Tigrinya => no OMOP language
+-- ur = Urdu => no OMOP language
+-- vi = Vietnamese => no OMOP language
+INSERT INTO concept_synonym_stage (
+	synonym_name,
+	synonym_concept_code,
+	synonym_vocabulary_id,
+	language_concept_id
+	)
+SELECT TRIM(BOTH FROM cn.ciel_name) AS synonym_name, 
+       cn.concept_id AS synonym_concept_code,
+       'CIEL' AS synonym_vocabulary_id,
+       	CASE cn.locale -- 
+				WHEN 'es'
+					THEN 4182511
+				WHEN 'fr'
+					THEN 4180190
+				WHEN 'it'
+					THEN 4182507
+				WHEN 'nl'
+					THEN 4182503
+				WHEN 'pt'
+					THEN 4181536
+   		 END AS language_concept_id
+ FROM dev_ciel.ciel_concept_name AS cn
+  WHERE cn.locale IN ('es', 'fr', 'it', 'nl', 'pt'); -- no other OMOP languages match the locale
+-- end addition M. Kallfelz 2021-05-06 
 
 --4. Create chain between CIEL and the best OMOP concept and create map
 DROP TABLE IF EXISTS ciel_to_concept_map;
@@ -221,13 +278,13 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 						THEN 'NDFRT-c'
 					ELSE NULL
 					END AS vocabulary_id_2
-			FROM sources.ciel_concept c
-			JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
-			JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
+			FROM dev_ciel.ciel_concept c
+			JOIN dev_ciel.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
+			JOIN dev_ciel.ciel_concept_name cn ON cn.concept_id = c.concept_id
 				AND cn.locale = 'en'
-			JOIN sources.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
-			JOIN sources.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
-			JOIN sources.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
+			JOIN dev_ciel.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
+			JOIN dev_ciel.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
+			JOIN dev_ciel.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
 			WHERE crt.retired = 0
 				AND crs.ciel_name IN (
 					'RxNORM',
@@ -589,13 +646,13 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN NULL
 		ELSE 'D'
 		END AS invalid_reason
-FROM sources.ciel_concept c
-LEFT JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
-LEFT JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
+FROM dev_ciel.ciel_concept c
+LEFT JOIN dev_ciel.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
+LEFT JOIN dev_ciel.ciel_concept_name cn ON cn.concept_id = c.concept_id
 	AND cn.locale = 'en'
-LEFT JOIN sources.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
-LEFT JOIN sources.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
-LEFT JOIN sources.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
+LEFT JOIN dev_ciel.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
+LEFT JOIN dev_ciel.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
+LEFT JOIN dev_ciel.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
 WHERE crs.ciel_name IN (
 		'SNOMED CT',
 		'SNOMED NP',
@@ -677,3 +734,4 @@ DROP TABLE ciel_concept_with_map;
 DROP TABLE ciel_to_concept_map;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+-- Before generic update, go through stage table QA checks with functions qa_ddl and check_stage_tables

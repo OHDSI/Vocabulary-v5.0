@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Christian Reich, Timur Vakhitov
-* Date: 2020
+* Authors: Christian Reich, Timur Vakhitov, Michael Kallfelz
+* Date: 2021
 **************************************************************************/
 
 DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT;
@@ -36,8 +36,7 @@ CREATE TABLE SOURCES.CIEL_CONCEPT
    RETIRED_BY      INT4,
    DATE_RETIRED    DATE,
    RETIRE_REASON   VARCHAR (255),
-   UUID            VARCHAR (38),
-   FILLER_COLUMN INT
+   UUID            VARCHAR (38)
 );
 
 DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_CLASS;
@@ -53,7 +52,8 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_CLASS
    DATE_RETIRED       DATE,
    RETIRE_REASON      VARCHAR (255),
    UUID               VARCHAR (38),
-   FILLER_COLUMN      INT,
+   DATE_CHANGED       DATE,
+   CHANGED_BY         INT4,
    VOCABULARY_DATE    DATE,
    VOCABULARY_VERSION VARCHAR (200)
 );
@@ -74,7 +74,8 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_NAME
    UUID                VARCHAR (38),
    CONCEPT_NAME_TYPE   VARCHAR (50),
    LOCALE_PREFERRED    INT4,
-   FILLER_COLUMN       INT
+   DATE_CHANGED        DATE,
+   CHANGED_BY          INT4
 );
 
 DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_REFERENCE_MAP;
@@ -88,8 +89,7 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_MAP
    CONCEPT_REFERENCE_TERM_ID   INT4,
    CONCEPT_MAP_TYPE_ID         INT4,
    CHANGED_BY                  INT4,
-   DATE_CHANGED                DATE,
-   FILLER_COLUMN               INT
+   DATE_CHANGED                DATE
 );
 
 DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_REFERENCE_TERM;
@@ -109,8 +109,7 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_TERM
    RETIRED_BY                  INT4,
    DATE_RETIRED                DATE,
    RETIRE_REASON               VARCHAR (255),
-   UUID                        VARCHAR (38),
-   FILLER_COLUMN               INT
+   UUID                        VARCHAR (38)
 );
 
 DROP TABLE IF EXISTS SOURCES.CIEL_CONCEPT_REFERENCE_SOURCE;
@@ -127,5 +126,7 @@ CREATE TABLE SOURCES.CIEL_CONCEPT_REFERENCE_SOURCE
    DATE_RETIRED        DATE,
    RETIRE_REASON       VARCHAR (255),
    UUID                VARCHAR (38),
-   FILLER_COLUMN       INT
+   UNIQUE_ID           VARCHAR (250),
+   DATE_CHANGED        DATE,
+   CHANGED_BY          INT4
 );

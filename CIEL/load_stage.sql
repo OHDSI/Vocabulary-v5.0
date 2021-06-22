@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIEL',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM dev_ciel.ciel_concept_class LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM dev_ciel.ciel_concept_class LIMIT 1),
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.ciel_concept_class LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.ciel_concept_class LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_CIEL'
 );
 END $_$;
@@ -32,8 +32,8 @@ END $_$;
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
 TRUNCATE TABLE concept_synonym_stage;
--- TRUNCATE TABLE pack_content_stage; -- not used
--- TRUNCATE TABLE drug_strength_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
 
 --3. Load into concept_stage
 INSERT INTO concept_stage (
@@ -134,7 +134,7 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 		ELSE ccl.ciel_name
 		END AS concept_class_id,
 	NULL AS standard_concept,
-   c.concept_id AS concept_code,
+	c.concept_id AS concept_code,
 	COALESCE(c.date_created, TO_DATE('19700101', 'yyyymmdd')) AS valid_start_date,
 	CASE c.retired
 		WHEN 0
@@ -150,16 +150,13 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN NULL
 		ELSE 'D' -- we might change that.
 		END AS invalid_reason
-FROM dev_ciel.ciel_concept c
-LEFT JOIN dev_ciel.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
-LEFT JOIN dev_ciel.ciel_concept_name cn ON cn.concept_id = c.concept_id
+FROM sources.ciel_concept c
+LEFT JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
+LEFT JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
 	AND cn.locale = 'en';
 
 -- begin addition M. Kallfelz 2021-05-06 
--- 3 a) TRIM leading or trailing spaces in concept name
-UPDATE dev_ciel.concept_stage AS cs SET concept_name = TRIM(cs.concept_name) WHERE LENGTH(TRIM(cs.concept_name)) <> LENGTH(cs.concept_name);
-
---3 b) add synonyms to concept_synonym_stage by language
+--4. Add synonyms to concept_synonym_stage by language
 --SELECT DISTINCT ON (locale) * FROM ciel_concept_name
 -- WHERE voided = 0;
 -- am = Amharic => no OMOP language
@@ -185,26 +182,32 @@ INSERT INTO concept_synonym_stage (
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT TRIM(BOTH FROM cn.ciel_name) AS synonym_name, 
-       cn.concept_id AS synonym_concept_code,
-       'CIEL' AS synonym_vocabulary_id,
-       	CASE cn.locale -- 
-				WHEN 'es'
-					THEN 4182511
-				WHEN 'fr'
-					THEN 4180190
-				WHEN 'it'
-					THEN 4182507
-				WHEN 'nl'
-					THEN 4182503
-				WHEN 'pt'
-					THEN 4181536
-   		 END AS language_concept_id
- FROM dev_ciel.ciel_concept_name AS cn
-  WHERE cn.locale IN ('es', 'fr', 'it', 'nl', 'pt'); -- no other OMOP languages match the locale
--- end addition M. Kallfelz 2021-05-06 
+SELECT cn.ciel_name AS synonym_name,
+	cn.concept_id AS synonym_concept_code,
+	'CIEL' AS synonym_vocabulary_id,
+	CASE cn.locale
+		WHEN 'es'
+			THEN 4182511
+		WHEN 'fr'
+			THEN 4180190
+		WHEN 'it'
+			THEN 4182507
+		WHEN 'nl'
+			THEN 4182503
+		WHEN 'pt'
+			THEN 4181536
+		END AS language_concept_id
+FROM sources.ciel_concept_name AS cn
+WHERE cn.locale IN (
+		'es',
+		'fr',
+		'it',
+		'nl',
+		'pt'
+		);-- no other OMOP languages match the locale
+-- end addition M. Kallfelz 2021-05-06
 
---4. Create chain between CIEL and the best OMOP concept and create map
+--5. Create chain between CIEL and the best OMOP concept and create map
 DROP TABLE IF EXISTS ciel_to_concept_map;
 CREATE UNLOGGED TABLE ciel_to_concept_map AS
 	WITH RECURSIVE hierarchy_concepts AS (
@@ -278,13 +281,13 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 						THEN 'NDFRT-c'
 					ELSE NULL
 					END AS vocabulary_id_2
-			FROM dev_ciel.ciel_concept c
-			JOIN dev_ciel.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
-			JOIN dev_ciel.ciel_concept_name cn ON cn.concept_id = c.concept_id
+			FROM sources.ciel_concept c
+			JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
+			JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
 				AND cn.locale = 'en'
-			JOIN dev_ciel.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
-			JOIN dev_ciel.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
-			JOIN dev_ciel.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
+			JOIN sources.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
+			JOIN sources.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
+			JOIN sources.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
 			WHERE crt.retired = 0
 				AND crs.ciel_name IN (
 					'RxNORM',
@@ -628,7 +631,7 @@ FROM hierarchy_concepts
 -- intermediate steps from the final and then pick the best path from a possible list
 WHERE vocabulary_id_2 NOT LIKE '%-c%';-- the terminating relationshp should have no suffix, indicating it is a proper standard concept.
 
---5. Create temporary table of CIEL concepts that have mapping to some useful vocabulary, even though if it doesn't work. This is for debugging, in the final release we won't need that
+--6. Create temporary table of CIEL concepts that have mapping to some useful vocabulary, even though if it doesn't work. This is for debugging, in the final release we won't need that
 DROP TABLE IF EXISTS ciel_concept_with_map;
 CREATE UNLOGGED TABLE ciel_concept_with_map AS
 SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
@@ -646,13 +649,13 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN NULL
 		ELSE 'D'
 		END AS invalid_reason
-FROM dev_ciel.ciel_concept c
-LEFT JOIN dev_ciel.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
-LEFT JOIN dev_ciel.ciel_concept_name cn ON cn.concept_id = c.concept_id
+FROM sources.ciel_concept c
+LEFT JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
+LEFT JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
 	AND cn.locale = 'en'
-LEFT JOIN dev_ciel.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
-LEFT JOIN dev_ciel.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
-LEFT JOIN dev_ciel.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
+LEFT JOIN sources.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
+LEFT JOIN sources.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
+LEFT JOIN sources.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
 WHERE crs.ciel_name IN (
 		'SNOMED CT',
 		'SNOMED NP',
@@ -665,7 +668,7 @@ WHERE crs.ciel_name IN (
 		'NDF-RT NUI'
 		);
 
---6. Create concept_relationship_stage records
+--7. Create concept_relationship_stage records
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -699,37 +702,37 @@ SELECT DISTINCT cm.concept_code_1 AS concept_code_1,
 FROM ciel_concept_with_map c
 JOIN ciel_to_concept_map cm ON c.concept_code = cm.concept_code_1;
 
---7. Add manual relationships
+--8. Add manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---8. Working with replacement mappings
+--9. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9. Add mapping from deprecated to fresh concepts
+--10. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Delete ambiguous 'Maps to' mappings
+--12. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---12. Clean up
+--13. Clean up
 DROP TABLE ciel_concept_with_map;
 DROP TABLE ciel_to_concept_map;
 

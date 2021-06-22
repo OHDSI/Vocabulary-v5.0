@@ -123,6 +123,7 @@ JOIN concept c ON c.concept_id = r.concept_id_2
 		'RxNorm Extension',
 		'UCUM'
 		)
+;
 
 CREATE INDEX idx_rtc ON r_to_c (concept_code_1, concept_id_2);
 ANALYZE r_to_c;

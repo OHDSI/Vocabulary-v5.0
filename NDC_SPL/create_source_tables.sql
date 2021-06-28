@@ -90,7 +90,8 @@ CREATE TABLE SOURCES.SPL_EXT
   replaced_spl      VARCHAR(4000),
   ndc_code          VARCHAR(4000),
   low_value         VARCHAR(4000),
-  high_value        VARCHAR(4000)
+  high_value        VARCHAR(4000),
+  is_diluent        BOOLEAN
 );
 
 DROP TABLE IF EXISTS SOURCES.SPL2NDC_MAPPINGS;
@@ -182,7 +183,7 @@ $BODY$
 	formcode=formcode[0] if formcode else ''
 	kit = xml.xpath('/x:document/x:component/x:structuredBody/x:component[1]/x:section/x:subject[1]/x:manufacturedProduct/x:*/x:asSpecializedKind/x:generalizedMaterialKind/x:code/@displayName',namespaces=xmlns_uris)
 	kit=kit[0] if kit else ''
-	concept_name_clob_part = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:name/text()',namespaces=xmlns_uris))
+	concept_name_clob_part = ' '.join(set(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:name/text()',namespaces=xmlns_uris)))
 	concept_name_clob_suffix = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:name/x:suffix/text()',namespaces=xmlns_uris))
 	concept_name_clob_part2 = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:asEntityWithGeneric/x:genericMedicine/x:name/text()',namespaces=xmlns_uris))
 	formcode_clob = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:formCode/@displayName',namespaces=xmlns_uris))

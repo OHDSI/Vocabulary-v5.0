@@ -346,7 +346,8 @@ begin
                   END
               ), '') AS ndc_code,
           low_value,
-          high_value
+          high_value,
+          is_diluent
       FROM (
           SELECT COALESCE(NULLIF(concept_name, ''), NULLIF(concept_name_clob, ''), '') || ' - ' || COALESCE(NULLIF(LOWER(kit), ''), NULLIF(concept_name_p2, ''), NULLIF(concept_name_clob_p2, ''), '') AS concept_name,
               concept_code,
@@ -357,7 +358,8 @@ begin
               ndc_code_array [2] AS ndc_p2,
               ndc_code_array [3] AS ndc_p3,
               NULLIF(low_value, '') AS low_value,
-              NULLIF(high_value, '') AS high_value
+              NULLIF(high_value, '') AS high_value,
+              CASE WHEN concept_name_clob LIKE '%DILUENT%' THEN TRUE ELSE FALSE END is_diluent
           FROM (
               SELECT TRIM(UPPER(TRIM(concept_name_part)) || ' ' || UPPER(TRIM(concept_name_suffix))) AS concept_name,
                   TRIM(UPPER(TRIM(concept_name_clob_part)) || ' ' || UPPER(TRIM(concept_name_clob_suffix))) AS concept_name_clob,

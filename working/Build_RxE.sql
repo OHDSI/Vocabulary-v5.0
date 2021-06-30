@@ -807,7 +807,9 @@ SELECT concept_id,
 	STRING_AGG(i_code, '-' ORDER BY i_code) AS i_combo,
 	STRING_AGG(ds_code, '-' ORDER BY LPAD(ds_code, 10, '0')) AS d_combo
 FROM r_ds
-GROUP BY concept_id;
+GROUP BY concept_id
+having count (i_code) = count(distinct i_code)
+;
 
 -- Add Drug Forms, which have no entry in ds_stage. 
 INSERT INTO r_combo
@@ -820,7 +822,8 @@ WHERE NOT EXISTS (
 		FROM r_combo r
 		WHERE r.concept_id = i.concept_id
 		)
-GROUP BY concept_id;
+GROUP BY concept_id
+having count (i_code) = count(distinct i_code);
 
 CREATE INDEX idx_r_combo ON r_combo (concept_id);
 ANALYZE r_combo;
@@ -932,133 +935,38 @@ ANALYZE r_bs;
 drop table if exists workaround_cleanup
 ;
 create unlogged table workaround_cleanup as
---gather all Clinical Drug Comps which have duplicates within 0.05 dosage
-with dup_list as
-	(
-		select
-			c.concept_id,
-			c.concept_name,
-			s.numerator_value / 10 ^ floor (log (s.numerator_value)) as normal_value,
-			c2.concept_id as dup_concept_id,
-			c2.concept_name as dup_concept_name,
-			s2.numerator_value / 10 ^ floor (log (s2.numerator_value)) as dup_normal_value
-		from concept c
-		join concept c2 on
-			c.concept_class_id = 'Clinical Drug Comp' and
-			c2.concept_class_id = 'Clinical Drug Comp' and
-			c.standard_concept = 'S' and
-			c2.standard_concept = 'S' and
-			c.concept_id != c2.concept_id
-		join drug_strength s on
-			s.drug_concept_id = c.concept_id
-		join drug_strength s2 on
-			s2.drug_concept_id = c2.concept_id and
-			s2.denominator_unit_concept_id = s.denominator_unit_concept_id and
-			s2.numerator_unit_concept_id = s.numerator_unit_concept_id and
-			s2.ingredient_concept_id = s.ingredient_concept_id and
-			s2.numerator_value > s.numerator_value and
-			s2.numerator_value * 0.95 < s.numerator_value
-	),
---unify comp groups by lowest member
-dup_groups as
-	(
-		select
-			d1.concept_id as group_id,
-			d1.dup_concept_id as dup_concept_id,
-			d1.dup_normal_value as dup_normal_value
-		from dup_list d1
-		--don't create groups from not the lowest
-		left join dup_list d3 on
-			d1.concept_id = d3.dup_concept_id
-		where d3.dup_concept_id is null
-
-			union
-
-		--get subsequent duplicates over medium level members
-		select distinct
-			d1.concept_id as group_id,
-			d2.dup_concept_id,
-			d2.dup_normal_value
-		from dup_list d1
-		join dup_list d2 on
-			d2.concept_id = d2.dup_concept_id
-		--don't create groups from not the lowest
-		left join dup_list d3 on
-			d1.concept_id = d3.dup_concept_id
-		where d3.dup_concept_id is null
-
-			union
-		--add self
-		select distinct
-			d1.concept_id as group_id,
-			d1.concept_id,
-			d1.normal_value
-		from dup_list d1
-		--don't create groups from not the lowest
-		left join dup_list d3 on
-			d1.concept_id = d3.dup_concept_id
-		where d3.dup_concept_id is null
-	),
---Find the best (simplest) target in group and exclude the rest
-dup_ranked as
-	(
-		select
-			group_id,
-			dup_concept_id,
-			dup_concept_id =
-				(
-					first_value (dup_concept_id) over
-						(
-							partition by group_id
-							order by
-							--Measures how "simple" a number looks
-								dup_normal_value % 0.05 asc,
-								dup_normal_value % 0.1 asc,
-								dup_normal_value % 0.25 asc,
-								dup_normal_value % 0.5 asc
-						)
-				) as best_in_group
-		from dup_groups
-	),
---This excludes concepts that stem from duplicate components
-blacklist as
-	(
-		select
-			drug_concept_id as component_concept_id,
-			ingredient_concept_id
-		from drug_strength a
-		join dup_ranked on
-			not best_in_group and
-			drug_concept_id = dup_concept_id
-	),
+--Remove drugs that have more than one component with the same ingredient
+with cd_to_comp as
+(
+	select
+		c.concept_id as problematic_concept_id
+	from concept c
+	join concept_relationship r on
+		r.concept_id_1 = c.concept_id and
+		c.standard_concept = 'S' and
+		c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and
+		r.relationship_id = 'Consists of'
+	join concept c2 on
+		c2.concept_id = r.concept_id_2 and
+		c2.concept_class_id in ('Clinical Drug Comp', 'Branded Drug Comp')
+	join drug_strength d on
+		d.drug_concept_id = c2.concept_id
+	group by c.concept_id
+	having count (ingredient_concept_id) > count (distinct ingredient_concept_id)
+),
 exclusion as
 	(
 		select a.descendant_concept_id
 		from concept_ancestor a
-		join blacklist b on
-			component_concept_id = ancestor_concept_id
-	--Sometimes drugs may have more than one component with same ingredient as ancestor (NaCl 8.8 & NaCl 9); exclude those.
-		/*where not exists
-			(
-				select 1
-				from concept_ancestor x
-				join drug_strength d on
-					x.descendant_concept_id = a.descendant_concept_id and
-					d.ingredient_concept_id = b.ingredient_concept_id and
-					d.drug_concept_id = x.ancestor_concept_id and
-					x.ancestor_concept_id != b.component_concept_id
-				join concept c on
-					d.drug_concept_id = c.concept_id and
-					c.concept_class_id = 'Clinical Drug Comp'
-			)*/
+		join cd_to_comp b on
+			problematic_concept_id = ancestor_concept_id
 	)
-select c.concept_id as bad_concept_id, 'Contributing Drug Component is a dublicate' as exclusion_criterion
-from concept c
-where exists	
-	(select 1 from exclusion where c.concept_id = descendant_concept_id)
-
+select concept_id, 'Components of same ingredient present'
+from concept
+join exclusion on
+	concept_id = descendant_concept_id
+	
 	union all
-
 --This will remove concepts that have valid relation to inactive attributes; Build_RxE would otherwise treat them as duplicate concepts of another class
 select concept_id as bad_concept_id, 'Valid relation to invalid attribute' as exclusion_criterion
 from concept c
@@ -1338,7 +1246,18 @@ WHERE r1.concept_id IS NULL
 	AND r4.concept_id IS NULL
 	AND r5.concept_id IS NULL;
 
--- RxNorm has duplicates by attributes. Usually Ingredient and Precise Ingredient versions of the same drug. The Precise tends to be newer. This query picks the newest
+
+-- Delete blacklisted concepts
+delete from r_existing r
+where exists
+	(
+		select 1
+		from workaround_cleanup w
+		where r.concept_id = w.concept_id
+	)
+;
+
+-- RxNorm has duplicates by attributes. Usually Ingredient and Precise Ingredient versions of the same drug. The Precise tends to be newer. This query picks the shortest name, then the oldest
 DELETE
 FROM r_existing r
 WHERE EXISTS (
@@ -1354,25 +1273,14 @@ WHERE EXISTS (
 					r_int.df_id,
 					r_int.bn_id,
 					r_int.bs,
-					r_int.mf_id ORDER BY c.valid_start_date,
-						c.concept_name DESC
-					) AS newest
+					r_int.mf_id ORDER BY length(c.concept_name), c.valid_start_date asc, c.concept_name DESC
+					) AS oldest
 			FROM r_existing r_int
 			JOIN concept c ON c.concept_id = r_int.concept_id
 			) AS s0
-		WHERE s0.concept_name <> s0.newest
+		WHERE s0.concept_name <> s0.oldest
 			AND s0.rowid = r.ctid
 		);
-
--- Delete blacklisted concepts
-delete from r_existing r
-where exists
-	(
-		select 1
-		from workaround_cleanup
-		where r.concept_id = bad_concept_id
-	)
-;
 
 /************************************************************************************************
 * 6. Create translation tables between q and r attributes with corridors, all starting with qr_ *
@@ -5253,6 +5161,8 @@ BEGIN
 	DROP SEQUENCE IF EXISTS omop_seq;
 	EXECUTE 'CREATE SEQUENCE omop_seq INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
 END$$;
+;
+
 
 -- Empty concept_stage in case there are remnants from a previous run.
 TRUNCATE TABLE concept_stage;

@@ -2380,6 +2380,14 @@ SELECT DISTINCT class_code,
 FROM dev_combo
 WHERE class_code = 'N02BA51';
 
+--remove vitamin D as a false Ingredient
+DELETE
+FROM dev_combo
+WHERE class_code IN (SELECT class_code FROM dev_combo WHERE concept_id = 19009405)
+AND   class_name ~* 'colecalc'
+AND   class_name !~* 'vitamin D'
+AND   concept_id = 19009405;
+
 -- add links between ATC Classes indicating Ingredient Groups AND ATC Drug Attributes in the form of OMOP Ingredient names using dev_combo table
 INSERT INTO internal_relationship_stage
 (concept_code_1, concept_code_2)

@@ -1,11 +1,26 @@
-/*********************
-**** INPUT TABLES ****
-**********************/
--- for ATC we don't need ds_stage AND pc_stage
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences AND Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may NOT use this file except IN compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to IN writing, software
+* distributed under the License is distributed ON an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* Authors: Anna Ostropolets, Polina Talapova
+* Date: Jul 2021
+**************************************************************************/
 DROP TABLE IF EXISTS drug_concept_stage CASCADE;
 DROP TABLE IF EXISTS internal_relationship_stage;
-DROP TABLE IF EXISTS relationship_to_concept CASCADE;;
+DROP TABLE IF EXISTS relationship_to_concept CASCADE;
 
+-- for ATC we don't need ds_stage AND pc_stage
 CREATE TABLE drug_concept_stage 
 ( concept_name    VARCHAR(255),
  vocabulary_id    VARCHAR(20),
@@ -887,8 +902,8 @@ FROM concept_manual a
 **** combined ATC Classes ****
 ******************************/
 -- obtain 1st ATC Combo Ingredient using the concept table and full name match
-drop table if exists dev_combo;
-create unlogged table dev_combo AS (
+DROP TABLE if exists dev_combo;
+CREATE TABLE dev_combo AS (
 WITH t1 AS
 (
  SELECT *
@@ -1258,7 +1273,7 @@ WITH t1 AS (select distinct a.concept_code_1, a.relationship_id, c.concept_name
 SELECT DISTINCT concept_code_1, 
   concept_name -- OMOP Ingredient name AS an ATC Drug Attribute code,
 FROM t1 a
- JOIN class_drugs_scraper b ON b.class_code = a.concept_code_1 AND b,change_type IN ('A', '')
+ JOIN class_drugs_scraper b ON b.class_code = a.concept_code_1 AND b.change_type IN ('A', '')
  AND a.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
  AND (concept_code_1, concept_name) NOT IN (SELECT SPLIT_PART(concept_code_1, ' ', 1),concept_code_2
              FROM internal_relationship_stage);
@@ -1266,7 +1281,6 @@ FROM t1 a
 /**********************************
 ******* drug_concept_stage ********
 ***********************************/
-TRUNCATE drug_concept_stage;
 -- change length of concept_code field
 ALTER TABLE drug_concept_stage ALTER COLUMN concept_code TYPE VARCHAR;
 
@@ -2451,7 +2465,6 @@ AND concept_code_2 NOT IN (select concept_code FROM drug_concept_stage);
 ******* relationship_to_concept ********
 ****************************************/
 -- add mappings of ATC Drug Attributes to OMOP Equivalents
-TRUNCATE relationship_to_concept;
 ALTER TABLE relationship_to_concept ALTER COLUMN concept_code_1 TYPE VARCHAR;
 
 -- add links between ATC Drug Attributes AND their OMOP equivalents

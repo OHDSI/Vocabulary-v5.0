@@ -1662,14 +1662,14 @@ SELECT DISTINCT class_code,
   'corticosteroids',
   concept_id,
   concept_name,
-  CASE WHEN class_name ~* '^corticosteroids' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN class_name ~* '^corticosteroid|^combinations of corticosteroids?' THEN 3 ELSE 4 END ::INT AS rnk
 FROM class_drugs_scraper, concept_ancestor
  JOIN concept c
  ON descendant_concept_id = c.concept_id
  AND ancestor_concept_id IN (21605042, 21605164, 21605200, 21605165, 21605199, 21601607, 975125) 
  AND vocabulary_id LIKE 'RxNorm%'
  AND concept_class_id = 'Ingredient'
-WHERE class_name ~* 'corticosteroids?'
+WHERE class_name ~* 'corticosteroid'
 AND LENGTH(class_code) = 7;
 
 -- take descendants of Cough suppressants

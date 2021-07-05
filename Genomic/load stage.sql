@@ -5,15 +5,15 @@ create table genom as
 with snp as (
 -- ClinVar 
   select distinct f_name as concept_name, 'ClinVar' as vocabulary_id, cast(alleleid as varchar(6)) as concept_code, genesymbol as gene,  hgvs
-  from dev_christian.variant_summary 
-  join dev_dkaduk.clinvar_clean on f_name = clin_name
+  from sources.clinvar
+  join sources.clinvar_ext on f_name = clin_name
   where hgvs ~ '^NM|^NP|^NC|^LRG|^NG|^NR'
  
   
 -- civic
 union
   select distinct variant as concept_name, 'CIViC' as vocabulary_id, cast(variant_id as varchar(5)) as concept_code, gene, ( regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
-  from dev_christian.civic_variantsummaries
+  from sources.civic_variantsummaries
   where hgvs_expressions ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
 
 
@@ -21,7 +21,7 @@ union
 union
   select concept_name, vocabulary_id, concept_code, ( regexp_matches(display_name, '(\w+) '))[1] as gene, ( regexp_matches(display_name, '\w+ (.+)'))[1] as hgvs from (
     select definition as concept_name, 'NCIt' as vocabulary_id, code as concept_code, display_name
-    from ddymshyts.nci_thesaurus 
+    from sources.nci_thesaurus 
     where coalesce(concept_status, '') not in ('Retired_Concept', 'Obsolete_Concept') and semantic_type in ('Cell or Molecular Dysfunction')
       and display_name ~ '[\w_]+(\.\d+)?:[cCgGoOmMnNrRpP]\.'
   ) a
@@ -32,10 +32,10 @@ union
     select concept_name, vocabulary_id, concept_code, coalesce(m1, m2) as gene, ( regexp_matches(concept_name, '[cCpP]\.[\w\_\+\-\*>=]+', 'g'))[1] as hgvs_half from (
      select vl.concept_name, vl.vocabulary_id, vl.concept_code, 
         ( regexp_matches(vl.concept_name, '^\w{3,8}'))[1] as m1, ( regexp_matches(vr.concept_name, '^\w{3,8}'))[1] as m2
-      from devv5.concept vl 
+      from concept vl 
       left join (
         select concept_id_1, concept_name
-        from devv5.concept_relationship r join devv5.concept on concept_id=r.concept_id_2
+        from concept_relationship r join devv5.concept on concept_id=r.concept_id_2
         where r.invalid_reason is null and r.relationship_id='CAP value of'  
       ) vr on vr.concept_id_1=vl.concept_id  
       where vl.vocabulary_id= 'CAP' -- and lower(vr.concept_name) like '%mutatat%' 
@@ -58,11 +58,11 @@ union
 union
 (
 select distinct individual_mutation as concept_name, 'CGI' as vocabulary_id,  individual_mutation as concept_code, ( regexp_matches(biomarker, '(\w+) '))[1] as gene, gdna as hgvs
-from dev_dkaduk.cgi_genomic
+from sources.cgi_genomic
 where gdna != '' 
 union 
 select distinct individual_mutation as concept_name, 'CGI' as vocabulary_id,  individual_mutation as concept_code, ( regexp_matches(biomarker, '(\w+) '))[1] as gene, ( regexp_matches(biomarker, '(\w+) '))[1]||':'||cdna as hgvs
-from dev_dkaduk.cgi_genomic
+from sources.cgi_genomic
 where cdna != '' 
 )
 
@@ -70,30 +70,30 @@ where cdna != ''
 union 
 (
 select distinct gene_symbol||':'||variant  as concept_name, 'JAX' as  vocabulary_id, gene_variant_id, gene_symbol as gene, g_dna
-from dev_dkaduk.jax_variant 
+from sources.jax_variant 
 union 
 select distinct gene_symbol||':'||variant  as concept_name, 'JAX' as  vocabulary_id, gene_variant_id, gene_symbol as gene, gene_symbol||':'||c_dna
-from dev_dkaduk.jax_variant 
+from sources.jax_variant 
 union 
 select distinct gene_symbol||':'||variant as concept_name, 'JAX' as  vocabulary_id, gene_variant_id, gene_symbol as gene, gene_symbol||':'||protein
-from dev_dkaduk.jax_variant 
+from sources.jax_variant 
 )
 
 -- file from Korean's
 union
 (
 select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id as gene, reference_sequence||':'||hgvs_c as hgvs
-from dev_dkaduk.ajou_var_vs_code
+from sources.korean_varaints
 union
 select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id as gene, reference_sequence||':'||hgvs_p as hgvs
-from dev_dkaduk.ajou_var_vs_code
+from sources.korean_varaints
 where hgvs_p != 'NULL'
 )
 
 union
 (
 select hugo_symbol||':'||variant as concept_name, 'OncoKB' as vocabulary_id, hugo_symbol||':'||variant as concept_code, hugo_symbol as gene, hugo_symbol||':p.'||variant as hgvs
-from dev_dkaduk.oncokb
+from sources.oncokb
 )
 
 ),
@@ -217,7 +217,7 @@ select distinct gene,seqtype,variant
 from genom 
 where (concept_code,vocabulary_id) in ( 
 select distinct concept_code,vocabulary_id
-from dev_dkaduk.canonical_variant 
+from canonical_variant 
 join genom using(gene,seqtype,variant)
 where vocabs not in ('ClinVar','JAX')
 )
@@ -248,7 +248,7 @@ SELECT DISTINCT NULL::INT,
        -- what use as valid_start_date (date_approved_reserved|date_modified)
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
-FROM dev_christian.protein_coding_gene
+FROM sources.hgnc
 ;
 
 -- Synonyms for HGNC Variants 
@@ -277,17 +277,10 @@ trim(symbol) AS synonym_name,
 TRIM( regexp_REPLACE(hgnc_id,'HGNC:','')) as synonym_concept_code,
 'OMOP Genomic' AS synonym_vocabulary_id,
 4180186 as language_concept_id
-from   dev_christian.protein_coding_gene 
+from   sources.hgnc 
 )a
 ;
 
-
--- cheking of HGNC synonyms
-/*select * from concept_stage 
-join concept_synonym_stage on synonym_concept_code = concept_code
-where concept_name like '%EGFR%' or  concept_name like '%ALK%'
-order by concept_name
-limit 1000;*/
 
 
 -- put source variants into concept stage  
@@ -305,7 +298,7 @@ SELECT DISTINCT NULL::INT,
 FROM genom
 where (concept_code,vocabulary_id) in ( 
 select distinct concept_code,vocabulary_id 
-from dev_dkaduk.canonical_variant 
+from canonical_variant 
 join genom using(gene,seqtype,variant)
 where vocabs not in ('ClinVar','JAX')
 )
@@ -413,14 +406,14 @@ end||' measurement') AS concept_name,--var_name,
        TO_DATE('20991231','yyyymmdd') AS valid_end_date,
        NULL AS invalid_reason
 FROM g_can a 
-join dev_christian.protein_coding_gene ON symbol = a.gene
+join sources.hgnc ON symbol = a.gene
 left join 
   (
-  select distinct assembly, chromosomeaccession from dev_christian.variant_summary
+  select distinct assembly, chromosomeaccession from sources.clinvar
   union
   select distinct reference_build,substring(hgvs,'\w+\_\d+\.\d+') from ( 
   select civic_start, reference_build,(regexp_matches(hgvs_expressions, '[^, ]+', 'g'))[1] as hgvs
-  from dev_christian.civic_variantsummaries
+  from sources.civic_variantsummaries
   ) ref 
   where hgvs like '%'||civic_start||'%'
   ) ref_build on chromosomeaccession = refseq||version
@@ -555,15 +548,6 @@ AND   g.omop_can_code NOT IN (SELECT concept_code_2
                               WHERE cs1.concept_class_id = 'DNA Variant' and cs2.concept_class_id = 'RNA Variant' ) 
 ;
 
-DELETE
-FROM concept_relationship_stage f
-WHERE EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage f_int
-		WHERE f_int.concept_code_1 = f.concept_code_1
-		  AND f_int.concept_code_2 = f.concept_code_2
-			AND f_int.ctid > f.ctid
-		);
 
 INSERT INTO concept_relationship_stage
 SELECT distinct 

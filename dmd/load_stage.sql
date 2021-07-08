@@ -595,12 +595,15 @@ left join VIRTUAL_PRODUCT_INGREDIENT i
 	on v.vpid = i.vpid
 where 
 	i.vpid is null
+	and v.nm not ilike '%covid%'
 
 	and
 	(
 		(v.nm not like '%tablets'
+		and v.nm not ilike '%covid%'
 		and lower (v.nm) not like '%fish oil%'
 		and v.nm not like '%capsules'
+		and v.nm not ilike '%vaccine%'
 		and lower (v.nm) not like '%ferric%'
 		and lower (v.nm) not like '%antivenom%'
 		and lower (v.nm) not like '%immunoglobulin%'
@@ -609,10 +612,8 @@ where
 		and lower (v.nm) not like '%herbal liquid%'
 		and lower (v.nm) not like '%pollinex%'
 		and lower (v.nm) not like '%black currant syrup%'
-		and lower (v.nm) not like '%vaccine%')
-	
-		or lower (v.nm) not like '% essential oil'
-		or lower (v.nm) not like '%saliva%'
+		and lower (v.nm) not like '%vaccine%') or
+		v.nm like '% oil %'
 	)
 ;
 analyze ancestor_snomed
@@ -778,7 +779,12 @@ where
 	lower (v.nm) like '%ornith%aspart%' or
 	lower (a.nm) like '%hepa%merz%' or
 	lower (a.nm) like '%gallium citrate%' or
+	lower (a.nm) like '%lymphoseek%' or
+	
 	lower (v.nm) like '%kbq%' or
+	lower (v.nm) like '%mbq%' or
+	lower (v.nm) like '%gbq%' or
+	
 	lower (v.nm) like '%ether solvent%' or
 	lower (v.nm) = 'herbal liquid' or
 	lower (v.nm) like 'toiletries %' or
@@ -787,7 +793,10 @@ where
 	lower (v.nm) like 'purified %' or
 	lower (a.nm) like 'phlexy%' or
 	lower (v.nm) like '%lymphoseek%' or
-	lower (v.nm) like '%radium%223%'
+	lower (v.nm) like '%radium%223%' or
+	lower (v.nm) like '%mo-99%' or
+	lower (v.nm) like '%catheter%' or
+	lower (v.nm) like '%radiopharm%'
 ;
 insert into devices
 --homeopathic products are not woth analyzing if source does not provide ingredients
@@ -868,6 +877,23 @@ where vpid in
 		join a_p_v using (vpid)
 		where c2 != c1
 	)
+;
+--Form indicates domain
+insert into devices
+select
+	a.apid,
+	a.nm,
+	v.vpid,
+	v.nm,
+	'Form indicates device domain' as reason
+from vmps v
+join amps a using (vpid)
+join drug_form d on
+	d.vpid = v.vpid and
+	formcd in
+		(	
+			'419202002' -- {Bone} cement
+		)
 ;
 --fix bugs in source (dosages in wrong units, missing denominators, inconsistent dosage of ingredients etc)
 update virtual_product_ingredient
@@ -1120,6 +1146,22 @@ AND   isid = '51224002';
 update virtual_product_ingredient
 set strnt_nmrtr_uomcd = '258685003'
 where vpid = '36458811000001107'
+;
+--create new temporary ingredients for COVID vaccines
+--COVID-19 vaccine, recombinant, full-length nanoparticle spike (S) protein, adjuvanted with Matrix-M
+--COVID-19 vaccine, whole virus, inactivated, adjuvanted with Alum and CpG 1018
+;
+insert into ingredient_substances (isid, nm)
+values
+	('OMOP0000000001', 'COVID-19 vaccine, recombinant, full-length nanoparticle spike (S) protein, adjuvanted with Matrix-M'),
+	('OMOP0000000002', 'COVID-19 vaccine, whole virus, inactivated, adjuvanted with Alum and CpG 1018'),
+	('OMOP0000000003', 'COVID-19 vaccine, recombinant, plant-derived Virus-Like Particle (VLP) spike (S) protein, adjuvanted with AS03')
+;
+insert into virtual_product_ingredient (vpid, isid)
+values
+	('39478211000001100', 'OMOP0000000001'),
+	('39375211000001103', 'OMOP0000000002'),
+	('39828011000001104', 'OMOP0000000003')
 ;
 --2. Build drug_concept_stage
 create table devices1 as select distinct apid,nm_a,vpid,nm_v from devices
@@ -3717,7 +3759,7 @@ join concept c on
 	c.concept_id = a.descendant_concept_id 
 join concept c2 on
 	c2.concept_id = a.ancestor_concept_id and
-	c2.concept_code in ('74947009','290032000') --Gases, Inert gases, Gaseous substance
+	c2.concept_code in ('74947009','765040008') --Gases, Inert gases, Gaseous substance
 ;
 update ds_stage
 set
@@ -3940,8 +3982,9 @@ where
 			select source_code
 			from tomap_ingreds_man
 			where concept_id is not null
-		)
-;/*
+			)
+;
+/*
 drop table if exists tomap_units_man
 ;
 -- create table tomap_units_man as
@@ -3993,7 +4036,7 @@ from tomap_units_man
 drop table if exists tomap_forms
 ;
 -- create table tomap_forms as
-select
+ select
 	concept_code as source_code,
 	concept_name as source_name,
 	null :: int4 as mapped_id,
@@ -4190,6 +4233,10 @@ create table brands as --all brand names given by UK SNOMED
 		join concept c2 on
 			cr.concept_id_2 = c2.concept_id
 	)
+;
+update brands
+set brand_name = regexp_replace(brand_name, ' \(.*\)$', '')
+where brand_name ilike '%(%'
 ;
 drop table if exists amps_to_brands
 ;
@@ -4405,8 +4452,10 @@ WbImport -file=/home/ekorchmar/Documents/dmd/tofind_brands_man.csv
          -batchSize=1000
 ;*/
 ;
-delete from tofind_brands_man
-where concept_code not in (select concept_code from tofind_brands)
+/*delete from tofind_brands_man
+where concept_code not in (select concept_code from tofind_brands)*/
+delete from amps_to_brands
+where concept_code in (select concept_code from tofind_brands_man)
 ;
 insert into amps_to_brands --assign codes to manually found brands
 with man_brands as
@@ -4869,7 +4918,32 @@ where
 				a.preserve_this != b.concept_code_1
 		)
 ;
--- 6. Some manual fixes for some drugs inc. vaccines
+-- 6. Some manual fixes for some drugs inc. vaccines\
+drop table if exists covid_vac
+;
+create table covid_vac as
+select vpid as concept_code
+from vmps
+where vtmid = '39330711000001103' -- covid vaccines
+;
+insert into covid_vac
+select apid
+from amps
+join covid_vac on
+	concept_code = vpid
+;
+insert into covid_vac
+select vppid
+from vmpps
+join covid_vac on
+	concept_code = vpid
+;
+insert into covid_vac
+select appid
+from ampps
+join covid_vac on
+	concept_code = apid
+;
 /*
 drop table if exists tomap_varicella
 --manually reassign ingredients to distinguish between varicella and varicella-zoster vaccines
@@ -4886,14 +4960,28 @@ select
 from drug_concept_stage d
 join internal_relationship_stage i on
 	d.concept_code = i.concept_code_1 and
-	concept_code_2 in ('20114111000001107','11170811000001106')
+	concept_code_2 in ('20114111000001107','11170811000001106','38737611000001109')
 join drug_concept_stage s on
 	i.concept_code_2 = s.concept_code
 left join relationship_to_concept r on
 	i.concept_code_2 = r.concept_code_1 and
 	r.precedence = 1
-join concept c on
+left join concept c on
 	c.concept_id = r.concept_id_2
+where	
+	d.concept_code not in (select concept_code from tomap_varicella)
+;
+select 
+	d.source_concept_class_id,
+	d.concept_code,
+	d.concept_name,
+	null as ingredient_code,
+	null as ingredient_name,
+	null as target_id,
+	null as target_name
+from drug_concept_stage d
+join covid_vac c on
+	d.concept_code = c.concept_code
 where	
 	d.concept_code not in (select concept_code from tomap_varicella)
 ;
@@ -4916,10 +5004,14 @@ WbImport -file=/home/ekorchmar/Documents/dmd/tomap_varicella.csv
          -batchSize=10;
 */
 ;
-delete from pc_stage where pack_concept_code in (select concept_code from tomap_varicella where ingredient_code is null)
-;
 delete from internal_relationship_stage
-where concept_code_1 in (select concept_code from tomap_varicella where ingredient_code is null)
+where concept_code_1 in (select concept_code from tomap_varicella)
+;
+delete from drug_concept_stage
+where source_concept_class_id in ('Ingredient', 'Dose Form', 'Brand Name', 'Supplier') and concept_code not in (select concept_code_2 from internal_relationship_stage)
+;
+delete from relationship_to_concept
+where concept_code_1 not in (select concept_code from drug_concept_stage)
 ;
 insert into relationship_to_concept
 select 
@@ -4929,7 +5021,6 @@ select
 	1,
 	null
 from tomap_varicella
-where ingredient_code is null
 ;
 --Influenza fix to CVX
 /*
@@ -5019,6 +5110,9 @@ delete from drug_concept_stage
 where 
 	concept_class_id in ('Ingredient','Dose Form','Supplier','Brand Name') and
 	concept_code not in (select concept_code_2 from internal_relationship_stage)
+;
+delete from relationship_to_concept where concept_code_1 not in
+	(select concept_code from drug_concept_stage)
 ;
 --OMOP replacement: existing OMOP codes and shift sequence to after last code in devv5.concept
 drop table if exists code_replace
@@ -5499,3 +5593,7 @@ where
 			where concept_code_1 in (apid,appid)
 		)
 ;
+delete from pc_stage where pack_concept_code in (select concept_code from tomap_varicella)
+;
+delete from ds_stage where drug_concept_code in (select concept_code from tomap_varicella)
+

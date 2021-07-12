@@ -6,7 +6,6 @@ with snp as (
 -- ClinVar 
   select distinct f_name as concept_name, 'ClinVar' as vocabulary_id, cast(alleleid as varchar(6)) as concept_code, genesymbol as gene,  hgvs
   from sources.clinvar
-  join sources.clinvar_ext on f_name = clin_name
   where hgvs ~ '^NM|^NP|^NC|^LRG|^NG|^NR'
  
   
@@ -86,7 +85,7 @@ select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id
 from sources.korean_varaints
 union
 select concept_name, 'OncoPanel' as vocabulary_id, concept_code, target_gene1_id as gene, reference_sequence||':'||hgvs_p as hgvs
-from sources.korean_varaints
+from sources.korean_variants
 where hgvs_p != 'NULL'
 )
 

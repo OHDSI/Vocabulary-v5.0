@@ -255,3 +255,40 @@ AND NOT EXISTS (SELECT 1
                     AND cr.relationship_id = 'Maps to'
                     AND cr.invalid_reason IS NULL)
 ;
+
+--02.10. Mapping of vaccines (please move to the project-specific QA folder and adjust vaccine_exclusion in there)
+with vaccine_exclusion as (SELECT
+    'placeholder|placeholder' as vaccine_exclusion
+    )
+
+select distinct c.concept_name, c.concept_class_id, b.concept_name, b.concept_class_id, b.vocabulary_id
+from concept c
+left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id ='Maps to' and cr.invalid_reason is null
+left join concept b on b.concept_id = cr.concept_id_2
+where c.vocabulary_id IN (:your_vocabs)
+
+    and ((c.concept_name ~* (select vaccine_inclusion from dev_rxe.vaccine_inclusion) and c.concept_name !~* (select vaccine_exclusion from vaccine_exclusion))
+        or
+        (b.concept_name ~* (select vaccine_inclusion from dev_rxe.vaccine_inclusion) and b.concept_name !~* (select vaccine_exclusion from vaccine_exclusion)))
+;
+
+--02.11. Mapping of covid concepts (please adjust inclusion/exclusion in the master branch if found something)
+with covid_inclusion as (SELECT
+    'sars|^cov|cov$|^ncov|ncov$|corona|severe acute|covid' as covid_inclusion
+    ),
+
+covid_exclusion as (SELECT
+    'coronal|coronary|cover' as covid_exclusion
+    )
+
+
+select distinct c.concept_name, c.concept_class_id, b.concept_name, b.concept_class_id, b.vocabulary_id
+from concept c
+left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id ='Maps to' and cr.invalid_reason is null
+left join concept b on b.concept_id = cr.concept_id_2
+where c.vocabulary_id IN (:your_vocabs)
+
+    and ((c.concept_name ~* (select covid_inclusion from covid_inclusion) and c.concept_name !~* (select covid_exclusion from covid_exclusion))
+        or
+        (b.concept_name ~* (select covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
+;

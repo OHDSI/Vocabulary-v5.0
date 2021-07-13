@@ -274,11 +274,11 @@ where c.vocabulary_id IN (:your_vocabs)
 
 --02.11. Mapping of covid concepts (please adjust inclusion/exclusion in the master branch if found something)
 with covid_inclusion as (SELECT
-    'sars|^cov|cov$|^ncov|ncov$|corona|severe acute|covid' as covid_inclusion
+    'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry))|severe acute|covid(?!ien)' as covid_inclusion
     ),
 
 covid_exclusion as (SELECT
-    'coronal|coronary|cover' as covid_exclusion
+    '( |^)LASSARS' as covid_exclusion
     )
 
 

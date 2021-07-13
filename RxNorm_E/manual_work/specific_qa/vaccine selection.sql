@@ -1,3 +1,5 @@
+DROP TABLE dev_rxe.vaccine_inclusion;
+
 CREATE TABLE dev_rxe.vaccine_inclusion AS (
 SELECT
         --general
@@ -10,25 +12,25 @@ SELECT
         'influenza|Grippe|Gripe|Orthomyxov|flu$|H(a|)emagglutinin|Neuraminidase|(h\d{1,2}n\d{1,2}(?!\d))|IIV|LAIV'
         || '|' ||
         --botulism
-        'botul|Clostrid|Klostrid|C\.b|C\. b'
+        'botuli|Clostrid|Klostrid|C( )*(\.)?( )*botu'
         || '|' ||
         --gas-gangrene
-        '(Gas).*(Gangrene)|(Gangrene).*(Gas)|C\. p|C\.p|perfringens|novyi|C\.n|C\. n|septicum|C\. s|C\.s|ramnosum|C\.r|C\. r'
+        '(Gas).*(Gangrene)|(Gangrene).*(Gas)|C( )*(\.)?( )*perf|perfringens|novyi|C( )*(\.)?( )*novy|septicum|C( )*(\.)?( )*septic|ramnosum|C( )*(\.)?( )*ramnos'
         || '|' ||
         --staphylococcus
-        'staphyloc|aureus|S\. a|S\. a|epidermidis|S\.e|S\. e'
+        'staphyloc|aureus|S( )*(\.)?( )*aure|epidermidis|S( )*(\.)?( )*epiderm'
         || '|' ||
         --cytomegalovirus
         'cytomegalov|cmv|herpes|HHV'
         || '|' ||
         --Coxiella Burnetii
-        'Coxiella|burnetii|C\.b|C\. b|Q( |-|)fever'
+        'Coxiella|burneti|C( )*(\.)?( )*burn|Q( |-|)fever'
         || '|' ||
         --anthrax
-        'anthrax|antrax|Bacil|anthracis|B\.a|B\. a'
+        'anthrax|antrax|Bacil|anthracis|B( )*(\.)?( )*ant(h|)rac'
         || '|' ||
         --brucella
-        'brucel|(undulant|Mediterranean|Bang).*(fever|disease)|(fever|disease).*(undulant|Mediterranean|Bang)|melitensis|B\.m|B\. m|abortus|B\.a|B\. a'
+        'brucel|(undulant|Mediterranean|Bang).*(fever|disease)|(fever|disease).*(undulant|Mediterranean|Bang)|melitensis|B( )*(\.)?( )*melit|abortus|B( )*(\.)?( )*abort'
         || '|' ||
         --rubella
         'rubella|RuV|Rubiv|Togav|Wistar|(RA).*(27).*(3)'
@@ -43,22 +45,22 @@ SELECT
         'polio|Enterovi|Mahoney|MEF( |-|)1|Saukett|Sabin|IPV|OPV'
         || '|' ||
         --diphtheria
-        'dipht|Dipth|Coryne|Corine|C\.d|C\. d'
+        'dipht|Coryne|Corine|C( )*(\.)?( )*Dipth'
         || '|' ||
         --tetanus
-        'tetan|C\.t|C\. t|Clostrid|Klostrid'
+        'tetan(us|i)|C( )*(\.)?( )*tetan|Clostrid|Klostrid'
         || '|' ||
         --pertussis
-        'pertus|Bord|B\. p|B\.p|Pertactin|Fimbri(a|)e|Filamentous'
+        'pertuss|Bordat|B( )*(\.)?( )*pert|Pertactin|Fimbri(a|)e|Filamentous'
         || '|' ||
         --hepatitis B
         'hepat|HBV|Orthohepad|Hepadn|ADW2|HBSAG|CpG|HepB|HBIG|Hepa( |-|)Gam'
         || '|' ||
         --hemophilus influenzae B
-        'h(a|)emophilus|influenz|hib|H\.inf|H\. inf|Ross|HbOC|PRP(-| |)OMP|PRP(-| |)T|PRP(-| |)D'
+        'h(a|)emophilus|influenz|hib|H( )*(\.)?( )*inf|Ross|HbOC|PRP(-| |)OMP|PRP(-| |)T|PRP(-| |)D'
         || '|' ||
         --Neisseria
-        'mening|N\.m|N\. m|Neis|CRM197|MenB|MenC(-| |)TT|MenY(-| |)TT|MenD|MenAC|MenCY|PsA(-| |)TT|MenACWY|MPSV|MCV|Adhesin( |-|)A|Factor( |-|)H|Membrane Vesicle'
+        'mening|N( )*(\.)?( )*men|Neiss|CRM197|MenB|MenC(-| |)TT|MenY(-| |)TT|MenD|MenAC|MenCY|PsA(-| |)TT|MenACWY|MPSV|MCV|Adhesin( |-|)A|Factor( |-|)H|Membrane Vesicle'
         || '|' ||
         --rabies
         'rabies|rhabdo|rabdo|lyssav|PM( |-|)1503|1503( |-|)3M'
@@ -82,23 +84,23 @@ SELECT
         'hepat|HAV|HM175|HepA'
         || '|' ||
         --typhoid
-        'typh|Salmone|S\.t|S\. t|S\.e|S\. e|Ty21|ty( |-|)2'
+        't(y|i)ph|Salmone|S( )*(\.)?( )*t(y|i)|S\.e|S\. e|Ty21|ty( |-|)2'
         || '|' ||
         --encephalitis
         'encephalitis|tick|Flaviv|Japanese'
         || '|' ||
         --typhus exanthematicus
-        'typhus|exanthematicus|Rickettsia|prowaz|R\.p|R\. p|Orientia|tsutsug|O\.t|O\. t|R\. ty|R\. ty|felis|typhi|R\. f|R\. f'
+        'typhus|exanthematicus|Rickettsia|prowaz|R( )*(\.)?( )*pro(w|v)|Orientia|tsutsug|O( )*(\.)?( )*tsu|R( )*(\.)?( )*t(y|i)p|felis|typhi|R( )*(\.)?( )*fel'
         || '|' ||
         --tuberculosis
-        'tuberc|M\. t|M\.t|M\. b|M\.b|M\. a|M\.a|mycobacterium|bcg|Calmet|Guerin|bovis|africanum|Tice|Connaught|Montreal'
+        'tuberc|M( )*(\.)?( )*tub|M( )*(\.)?( )*bov|M( )*(\.)?( )*afr|mycobacterium|bcg|Calmet|Guerin|bovis|africanum|Tice|Connaught|Montreal'
         || '|' ||
         --pneumococcus
-        'pneumo|S\.pn|S\. pn|PCV|PPSV'
+        'pneumo|S( )*(\.)?( )*pn|PCV|PPSV'
         || '|' ||
         --plague
-        'plague|Yersinia|Y\.p|Y\. p'
+        'plague|Yersinia|Y( )*(\.)?( )*pes'
         || '|' ||
         --cholera
-        'choler|Vibri|V\.c|V\. c|Inaba|Ogawa' as vaccine_inclusion
+        'choler|Vibri|V( )*(\.)?( )*cho|Inaba|Ogawa' as vaccine_inclusion
 );

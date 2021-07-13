@@ -130,11 +130,6 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---Add manual 'Maps to' from Read to RxNorm, CVX and SNOMED
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
 
 --4. Create mapping to self for fresh concepts
 INSERT INTO concept_relationship_stage (
@@ -401,3 +396,9 @@ WHERE rd.concept_code_1 = cs.concept_code
 DROP TABLE read_domain;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+;
+--Add manual 'Maps to' from Read to RxNorm, CVX and SNOMED
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;

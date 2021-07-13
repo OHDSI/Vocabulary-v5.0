@@ -240,7 +240,7 @@ FROM (
 		concept_class_id
 	FROM (
 		WITH filled_domain AS (
-				-- get Read concepts with direct mappings to SNOMED
+				-- get Read concepts with direct mappings
 				SELECT c1.concept_code,
 					c2.domain_id
 				FROM concept_relationship_stage r,

@@ -163,13 +163,17 @@ TABLE (
 	replaced_spl varchar,
 	ndc_code varchar,
 	low_value varchar,
-	high_value varchar
+	high_value varchar,
+	ndc_root_code varchar,
+	ndc_root_name varchar
 )
 AS
 $BODY$
 	from lxml.etree import XMLParser, fromstring
 	p = XMLParser(huge_tree=True) #to prevent XML_PARSE_HUGE error
 	res = []
+	ndc_root_code_prev = None
+	ndc_root_name_prev = None
 	xmlns_uris = {'x': 'urn:hl7-org:v3'}
 	xml = fromstring(xml_string, parser=p)
 	concept_code = xml.xpath('/x:document/x:setId/@root',namespaces=xmlns_uris)[0]
@@ -193,15 +197,25 @@ $BODY$
 	contents = xml.xpath('//x:asContent',namespaces=xmlns_uris)
 	if contents:
 		for content in contents:
+			#ndc_root_code=content.xpath('../../../x:manufacturedProduct/x:manufacturedProduct/x:code/@code|../../../x:manufacturedProduct/x:manufacturedMedicine/x:code/@code',namespaces=xmlns_uris)
+			#ndc_root_code=content.xpath('../x:code/@code',namespaces=xmlns_uris)
+			ndc_root_code=content.xpath('../../x:manufacturedProduct/x:code/@code|../../x:manufacturedMedicine/x:code/@code|../../x:partProduct/x:code/@code',namespaces=xmlns_uris)
+			ndc_root_code=ndc_root_code[0] if ndc_root_code else ndc_root_code_prev
+			ndc_root_code_prev=ndc_root_code
+			#ndc_root_name=content.xpath('../../../x:manufacturedProduct/x:manufacturedProduct/x:name/text()|../../../x:manufacturedProduct/x:manufacturedMedicine/x:name/text()',namespaces=xmlns_uris)
+			#ndc_root_name=content.xpath('../x:name/text()',namespaces=xmlns_uris)
+			ndc_root_name=content.xpath('../../x:manufacturedProduct/x:name/text()|../../x:manufacturedMedicine/x:name/text()|../../x:partProduct/x:name/text()',namespaces=xmlns_uris)
+			ndc_root_name=ndc_root_name[0] if ndc_root_name else ndc_root_name_prev
+			ndc_root_name_prev=ndc_root_name
 			ndc_code = content.xpath('./x:containerPackagedProduct/x:code/@code|./x:containerPackagedMedicine/x:code/@code',namespaces=xmlns_uris)
 			ndc_code=ndc_code[0] if ndc_code else ''
 			low_value = content.xpath('./x:subjectOf/x:marketingAct/x:effectiveTime/x:low/@value',namespaces=xmlns_uris)
 			low_value=low_value[0] if low_value else ''
 			high_value = content.xpath('./x:subjectOf/x:marketingAct/x:effectiveTime/x:high/@value',namespaces=xmlns_uris)
 			high_value=high_value[0] if high_value else ''
-			res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,ndc_code,low_value,high_value))
+			res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,ndc_code,low_value,high_value,ndc_root_code,ndc_root_name))
 	else:
-		res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,'','',''))
+		res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,'','','','',''))
 	return res
 $BODY$
 LANGUAGE 'plpythonu'

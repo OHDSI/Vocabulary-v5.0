@@ -359,7 +359,7 @@ begin
               ndc_code_array [3] AS ndc_p3,
               NULLIF(low_value, '') AS low_value,
               NULLIF(high_value, '') AS high_value,
-              CASE WHEN concept_name_clob LIKE '%DILUENT%' THEN TRUE ELSE FALSE END is_diluent
+              CASE WHEN ndc_root_name LIKE '%DILUENT%' AND ndc_code <> '' THEN TRUE ELSE FALSE END AS is_diluent
           FROM (
               SELECT TRIM(UPPER(TRIM(concept_name_part)) || ' ' || UPPER(TRIM(concept_name_suffix))) AS concept_name,
                   TRIM(UPPER(TRIM(concept_name_clob_part)) || ' ' || UPPER(TRIM(concept_name_clob_suffix))) AS concept_name_clob,
@@ -376,7 +376,9 @@ begin
                   kit,
                   regexp_split_to_array(ndc_code, '-') AS ndc_code_array,
                   low_value,
-                  high_value
+                  high_value,
+                  ndc_code,
+                  UPPER(ndc_root_name) AS ndc_root_name
               FROM (
                   SELECT (sources.py_xmlparse_spl(xmlfield)).*
                   FROM sources.spl_ext_raw

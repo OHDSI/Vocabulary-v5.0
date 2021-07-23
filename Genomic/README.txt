@@ -1,1 +1,2 @@
-First start with part 1 then part 2 
+1. Run Setlatestupdate.sql
+2. Run load stage.sql

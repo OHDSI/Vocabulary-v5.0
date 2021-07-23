@@ -27,6 +27,19 @@ BEGIN
 );
 END $_$;
 
+DO $_$
+BEGIN
+  PERFORM vocabulary_pack.AddNewConcept(
+    pConcept_name     =>'Psychiatry or Neurology',
+    pDomain_id        =>'Provider',
+    pVocabulary_id    =>'Provider',
+    pConcept_class_id =>'Physician Specialty',
+    pStandard_concept =>'S',
+    pConcept_code     =>'OMOP5117448',
+    pValid_start_date => CURRENT_DATE
+);
+END $_$;
+
 --2. Add concepts and map (Maps to) the 1st one (Transfer from a Designated Disaster Alternate Care Site) to the 2nd one (Alternate care site (ACS))
 DO $_$
 BEGIN
@@ -103,6 +116,11 @@ WHERE c.concept_id = p.concept_id
 		);
 
 --Update concept_name but preserve the current name as a synonym (only for NUCC and for those concepts that have no synonym)
+--Manual update for concept_id=43125860
+UPDATE concept
+SET concept_name = 'Allopathic & Osteopathic Physicians, Psychiatry & Neurology, Behavioral Neurology & Neuropsychiatry'
+WHERE concept_id = 43125860;
+
 WITH update_concept
 AS (
 	UPDATE concept c

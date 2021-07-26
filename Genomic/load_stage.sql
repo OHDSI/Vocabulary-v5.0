@@ -1,3 +1,8 @@
+truncate concept_synonym_stage;
+truncate concept_stage;
+truncate concept_relationship_stage;
+
+
 ------ SOURCE Processing ------
 -- extract position for canonical variant from hgvs expressions  
 drop table if exists genom;

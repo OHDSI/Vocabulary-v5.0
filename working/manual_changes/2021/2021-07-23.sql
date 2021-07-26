@@ -46,7 +46,7 @@ BEGIN
   PERFORM vocabulary_pack.AddNewConcept(
     pConcept_name     =>'Transfer from a Designated Disaster Alternate Care Site',
     pDomain_id        =>'Visit',
-      pVocabulary_id    =>'UB04 Point of Origin',
+    pVocabulary_id    =>'UB04 Point of Origin',
     pConcept_class_id =>'UB04 Point of Origin',
     pStandard_concept =>NULL,
     pConcept_code     =>'G',
@@ -136,7 +136,6 @@ UPDATE concept
 SET concept_name = 'Allopathic & Osteopathic Physicians, Urology, Female Pelvic Medicine and Reconstructive Surgery'
 WHERE concept_id = 43125861;
 
-
 WITH update_concept
 AS (
 	UPDATE concept c
@@ -164,7 +163,8 @@ AS (
 	FROM dev_test.providers_to_update p
 	WHERE c.concept_id = p.concept_id
 		AND c.standard_concept IS NULL
-		AND p.standard_concept = 'S' RETURNING c.concept_id
+		AND p.standard_concept = 'S'
+	RETURNING c.concept_id
 	),
 deprecate_mappings
 AS (
@@ -341,6 +341,3 @@ UNION ALL
 	NULL FROM new_mappings n
 	JOIN relationship r USING (relationship_id)
 	);
-
-
-

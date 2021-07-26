@@ -341,3 +341,13 @@ UNION ALL
 	NULL FROM new_mappings n
 	JOIN relationship r USING (relationship_id)
 	);
+
+--5. Delete duplicates from synonyms
+DELETE
+FROM concept_synonym cs
+WHERE EXISTS (
+		SELECT 1
+		FROM concept c_int
+		WHERE c_int.concept_id = cs.concept_id
+			AND LOWER(c_int.concept_name) = LOWER(cs.concept_synonym_name)
+		);

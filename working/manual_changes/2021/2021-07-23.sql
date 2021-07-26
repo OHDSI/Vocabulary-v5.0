@@ -46,7 +46,7 @@ BEGIN
   PERFORM vocabulary_pack.AddNewConcept(
     pConcept_name     =>'Transfer from a Designated Disaster Alternate Care Site',
     pDomain_id        =>'Visit',
-    pVocabulary_id    =>'UB04 Point of Origin',
+      pVocabulary_id    =>'UB04 Point of Origin',
     pConcept_class_id =>'UB04 Point of Origin',
     pStandard_concept =>NULL,
     pConcept_code     =>'G',
@@ -120,6 +120,22 @@ WHERE c.concept_id = p.concept_id
 UPDATE concept
 SET concept_name = 'Allopathic & Osteopathic Physicians, Psychiatry & Neurology, Behavioral Neurology & Neuropsychiatry'
 WHERE concept_id = 43125860;
+
+--Manual update for concept_id=43125856
+UPDATE concept
+SET concept_name = 'Dental Providers, Dentist, Dentist Anesthesiologist'
+WHERE concept_id = 43125856;
+
+--Manual update for concept_id=43125859
+UPDATE concept
+SET concept_name = 'Allopathic & Osteopathic Physicians, Obstetrics & Gynecology, Female Pelvic Medicine and Reconstructive Surgery'
+WHERE concept_id = 43125859;
+
+--Manual update for concept_id=43125861
+UPDATE concept
+SET concept_name = 'Allopathic & Osteopathic Physicians, Urology, Female Pelvic Medicine and Reconstructive Surgery'
+WHERE concept_id = 43125861;
+
 
 WITH update_concept
 AS (
@@ -325,3 +341,6 @@ UNION ALL
 	NULL FROM new_mappings n
 	JOIN relationship r USING (relationship_id)
 	);
+
+
+

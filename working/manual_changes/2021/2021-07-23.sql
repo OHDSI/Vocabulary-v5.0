@@ -342,29 +342,7 @@ UNION ALL
 	JOIN relationship r USING (relationship_id)
 	);
 
---5. Clean up concept names
-SELECT c1.concept_name,
-
-       regexp_replace(
-           regexp_replace(c1.concept_name, '\/(?! |$)', '/ ', 'g'),
-           '(?<! |^)\/', ' /', 'g'),
-
-       devv5.levenshtein (c1.concept_name, regexp_replace(
-           regexp_replace(c1.concept_name, '\/(?! |$)', '/ ', 'g'),
-           '(?<! |^)\/', ' /', 'g'))
-
-FROM concept c1
-
-WHERE c1.concept_name ~ '\/'
-    AND c1.domain_id IN ('Provider', 'Visit')
-    AND c1.vocabulary_id NOT IN ('CPT4', 'Nebraska Lexicon', 'Read', 'SNOMED')
-;
-
---6. Clean up concept synonyms
-
-
-
---7. Delete duplicates from synonyms
+--5. Delete duplicates from synonyms
 DELETE
 FROM concept_synonym cs
 WHERE EXISTS (
@@ -372,4 +350,41 @@ WHERE EXISTS (
 		FROM concept c_int
 		WHERE c_int.concept_id = cs.concept_id
 			AND LOWER(c_int.concept_name) = LOWER(cs.concept_synonym_name)
+		);
+
+--6. Clean up concept/synonym names
+UPDATE concept c
+SET concept_name = REPLACE(REGEXP_REPLACE(c.concept_name, '\s*(/|@)\s*', ' \1 ', 'g'), '(I / T / U)', '(I/T/U)')
+WHERE (
+		c.concept_name LIKE '%/%'
+		OR c.concept_name LIKE '%@%'
+		)
+	AND c.domain_id IN (
+		'Provider',
+		'Visit'
+		)
+	AND c.vocabulary_id NOT IN (
+		'CPT4',
+		'Nebraska Lexicon',
+		'Read',
+		'SNOMED'
+		);
+
+UPDATE concept_synonym cs
+SET concept_synonym_name = REPLACE(REGEXP_REPLACE(cs.concept_synonym_name, '\s*(/|@)\s*', ' \1 ', 'g'), '(I / T / U)', '(I/T/U)')
+FROM concept c
+WHERE cs.concept_id = c.concept_id
+	AND (
+		cs.concept_synonym_name LIKE '%/%'
+		OR cs.concept_synonym_name LIKE '%@%'
+		)
+	AND c.domain_id IN (
+		'Provider',
+		'Visit'
+		)
+	AND c.vocabulary_id NOT IN (
+		'CPT4',
+		'Nebraska Lexicon',
+		'Read',
+		'SNOMED'
 		);

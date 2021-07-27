@@ -14,42 +14,27 @@ BEGIN
 );
 END $_$;
 
--- remove constraints for changing relationship_ids
-ALTER TABLE relationship drop CONSTRAINT fpk_relationship_reverse;
-ALTER TABLE concept_relationship drop CONSTRAINT xpk_concept_relationship;
-ALTER TABLE concept_relationship drop CONSTRAINT fpk_concept_relationship_id;
-ALTER TABLE relationship drop CONSTRAINT fpk_relationship_concept;
-
--- update relationship_ids
+-- change hierarchy direction
 update relationship
-set reverse_relationship_id = 'Is transcribed to'
+set is_hierarchical = 1,
+defines_ancestry = 1 
 where relationship_concept_id = 32919;
 
 update relationship
-set relationship_id = 'Is transcribed to'
+set is_hierarchical = 0,
+defines_ancestry = 0
 where relationship_concept_id = 32920;
 
 update relationship
-set reverse_relationship_id = 'Is translated to'
+set is_hierarchical = 1,
+defines_ancestry = 1 
 where relationship_concept_id = 32921;
 
 update relationship
-set relationship_id = 'Is translated to'
+set is_hierarchical = 0,
+defines_ancestry = 0
 where relationship_concept_id = 32922;
 
-update concept_relationship
-set relationship_id = 'Is transcribed to'
-where relationship_id = 'Is transcribed from';
-
-update concept_relationship
-set relationship_id = 'Is translated to'
-where relationship_id = 'Is translated from';
-
---add constraints for changed relationship_ids
-ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id);
-ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
-ALTER TABLE concept_relationship ADD CONSTRAINT xpk_concept_relationship PRIMARY KEY (concept_id_1,concept_id_2,relationship_id);
-ALTER TABLE concept_relationship ADD CONSTRAINT fpk_concept_relationship_id FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
 
 -- remove constraints for changing concept_classes
 ALTER TABLE concept drop CONSTRAINT fpk_concept_class;

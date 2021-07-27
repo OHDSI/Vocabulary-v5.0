@@ -342,17 +342,7 @@ UNION ALL
 	JOIN relationship r USING (relationship_id)
 	);
 
---5. Delete duplicates from synonyms
-DELETE
-FROM concept_synonym cs
-WHERE EXISTS (
-		SELECT 1
-		FROM concept c_int
-		WHERE c_int.concept_id = cs.concept_id
-			AND LOWER(c_int.concept_name) = LOWER(cs.concept_synonym_name)
-		);
-
---6. Clean up concept/synonym names
+--5. Clean up concept/synonym names
 UPDATE concept c
 SET concept_name = REPLACE(REGEXP_REPLACE(c.concept_name, '\s*(/|@)\s*', ' \1 ', 'g'), '(I / T / U)', '(I/T/U)')
 WHERE (
@@ -387,4 +377,15 @@ WHERE cs.concept_id = c.concept_id
 		'Nebraska Lexicon',
 		'Read',
 		'SNOMED'
+		);
+
+
+--6. Delete duplicates from synonyms
+DELETE
+FROM concept_synonym cs
+WHERE EXISTS (
+		SELECT 1
+		FROM concept c_int
+		WHERE c_int.concept_id = cs.concept_id
+			AND LOWER(c_int.concept_name) = LOWER(cs.concept_synonym_name)
 		);

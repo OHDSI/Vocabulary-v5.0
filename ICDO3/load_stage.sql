@@ -61,6 +61,9 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 					order by c.effectivetime desc
 				) as active
 		from sources.sct2_concept_full_merged c
+		-- filter out new sources, as SNOMED update could have been delayed
+		where
+			to_date(c.effectivetime :: varchar, 'yyyymmdd') <= (select to_date(substring(vocabulary_version from 78 for 10),'yyyy-mm-dd') from vocabulary where vocabulary_id = 'SNOMED')
 	),
 	active_status as
 		(
@@ -80,7 +83,9 @@ CREATE UNLOGGED TABLE snomed_ancestor AS (
 				a2.id = r.destinationid and
 				a2.active = 1
 			where 
-				r.typeid = 116680003 -- Is a
+				r.typeid = 116680003 and -- Is a
+				--filter out newer sources
+				to_date(r.effectivetime :: varchar, 'yyyymmdd') <= (select to_date(substring(vocabulary_version from 78 for 10),'yyyy-mm-dd') from vocabulary where vocabulary_id = 'SNOMED')
 		),
 	concepts AS 
 		(
@@ -150,6 +155,9 @@ with active_concept as
 					order by c.effectivetime desc
 				) as c_active
 		from sources.sct2_concept_full_merged c
+		-- filter out new sources, as SNOMED update could have been delayed
+		where
+			to_date(c.effectivetime :: varchar, 'yyyymmdd') <= (select to_date(substring(vocabulary_version from 78 for 10),'yyyy-mm-dd') from vocabulary where vocabulary_id = 'SNOMED')
 	)
 select distinct
 	referencedcomponentid as snomed_code,
@@ -159,6 +167,9 @@ join active_concept on
 	c_id = referencedcomponentid and
 	c_active = 1
 where
+	-- filter out new sources, as SNOMED update could have been delayed
+	to_date(effectivetime :: varchar, 'yyyymmdd') <= (select to_date(substring(vocabulary_version from 78 for 10),'yyyy-mm-dd') from vocabulary where vocabulary_id = 'SNOMED') and
+	
 	refsetid = '446608001' and
 	active = 1 and
 	maptarget like '%/%'
@@ -400,7 +411,7 @@ create table comb_table as
 select distinct
 	*,
 	histology_behavior || '-' || site as concept_code
-from icdo3_valid_combination c
+from sources.icdo3_valid_combination c
 ;
 --Old; will be deprecated; transfer combinations to new concepts
 insert into comb_table
@@ -529,6 +540,9 @@ WITH def_status as --form list of defined neoplasia concepts without extraneous 
 		c.vocabulary_id = 'SNOMED' and
 		c.standard_concept = 'S' and
 		c.concept_code = f.id :: varchar
+	-- filter out new sources, as SNOMED update could have been delayed
+	where
+		to_date(f.effectivetime :: varchar, 'yyyymmdd') <= (select to_date(substring(vocabulary_version from 78 for 10),'yyyy-mm-dd') from vocabulary where vocabulary_id = 'SNOMED')
 ),
 snomed_concept as
 (

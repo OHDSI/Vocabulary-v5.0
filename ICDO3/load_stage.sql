@@ -1539,7 +1539,7 @@ where
 ;
 -- 30. Cleanup: drop all temporary tables
 drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace, snomed_ancestor
-
+;
 --TODO:
 /*
 	1. Once SNOMED metadata is implemented in concept_relationship, drop dependency on SNOMED sources and creation of separate snomed_ancestor
@@ -1549,3 +1549,5 @@ drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy
 	5. Allow for generic mapping when source topography is organ system structure (e.g. Glioma of Nervous system, NOS can be mapped to Glioma (disorder))
 	6. Add German synonyms
 */
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

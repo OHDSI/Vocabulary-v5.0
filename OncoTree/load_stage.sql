@@ -69,19 +69,13 @@ BEGIN
 END $_$;
 ;
 --6. Vocabulary pack procedures
---6.1. Working with replacement mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;
-
---6.2, Add mapping from deprecated to fresh concepts
+--6.1, Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---6.3. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--6.2. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();

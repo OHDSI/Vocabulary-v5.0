@@ -67,7 +67,7 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
-;
+
 --6. Vocabulary pack procedures
 --6.1, Add mapping from deprecated to fresh concepts
 DO $_$
@@ -80,3 +80,5 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
+
+-- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

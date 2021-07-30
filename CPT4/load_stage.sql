@@ -467,11 +467,7 @@ FROM (
 					)
 				AND cs.concept_code <> '86789'
 				THEN 'Drug'
-			WHEN m2.tui IN (
-					'T073',
-					'T093'
-					)
-				AND tty = 'POS'
+			WHEN tty = 'POS'
 				THEN 'Visit'
 			WHEN m2.tui IN (
 					'T081',

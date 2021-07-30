@@ -81,14 +81,9 @@ BEGIN
       ARRAY[
       ARRAY['rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'],
       ARRAY['global', 'http://purl.org/rss/1.0/']
-      ]))::VARCHAR cvx_link,
-      unnest(xpath ('/rdf:RDF/global:item/global:title/text()', t.http_content, 
-      ARRAY[
-      ARRAY['rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'],
-      ARRAY['global', 'http://purl.org/rss/1.0/']
-      ]))::VARCHAR cvx_title
+      ]))::VARCHAR cvx_link
       from t
-    ) as s0 where cvx_title like 'Vaccines administered (CVX)%' order by s0.cvx_date desc limit 1;
+    ) as s0 order by s0.cvx_date desc limit 1;
     
     --http://phinvads.cdc.gov/vads/ViewValueSet.action?id=FBEE6963-241C-E811-99B0-0017A477041A
     if not coalesce(pDownloadURL,'-') ~* '^(https?://phinvads.cdc.gov/vads/ViewValueSet\.action\?id=)(.+)$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;

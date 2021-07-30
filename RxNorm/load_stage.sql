@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Christian Reich, Timur Vakhitov
-* Date: 2020
+* Date: 2021
 **************************************************************************/
 
 -- 1. Update latest_update field to new date 
@@ -269,6 +269,33 @@ WHERE rx.sab = 'RXNORM'
 		'BPCK',
 		'GPCK'
 		);
+
+-- Add MIN (Multiple Ingredients) as alive concepts [AVOF-3122]
+INSERT INTO concept_stage (
+	concept_name,
+	vocabulary_id,
+	domain_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT DISTINCT ON (rxcui) vocabulary_pack.CutConceptName(str) AS concept_name,
+	'RxNorm' AS vocabulary_id,
+	'Drug' AS domain_id,
+	'Multiple Ingredients' AS concept_class_id,
+	NULL AS standard_concept,
+	rxcui AS concept_code,
+	TO_TIMESTAMP(created_timestamp, 'mm/dd/yyyy hh:mm:ss pm')::DATE AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM sources.rxnatomarchive
+WHERE tty = 'MIN'
+	AND sab = 'RXNORM'
+ORDER BY rxcui,
+	TO_TIMESTAMP(created_timestamp, 'mm/dd/yyyy hh:mm:ss pm');
 
 --4. Add synonyms - for all classes except the packs (they use code as concept_code)
 INSERT INTO concept_synonym_stage (
@@ -1161,31 +1188,71 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---8. Working with replacement mappings
+--8. Add 'Maps to' from MIN to Ingredient
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT cs_min.concept_code AS concept_code_1,
+	CASE 
+		WHEN cs.concept_class_id = 'Ingredient'
+			THEN cs.concept_code
+		ELSE cs1.concept_code
+		END AS concept_code_2,
+	'RxNorm' AS vocabulary_id_1,
+	'RxNorm' AS vocabulary_id_2,
+	'Maps to' AS relationship_id,
+	cs_min.valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM sources.rxnrel rel
+JOIN concept_stage cs_min ON cs_min.concept_code = rel.rxcui2
+	AND cs_min.concept_class_id = 'Multiple Ingredients'
+JOIN concept_stage cs ON cs.concept_code = rel.rxcui1
+	AND cs.concept_class_id IN (
+		'Precise Ingredient',
+		'Ingredient'
+		)
+LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
+	AND crs.vocabulary_id_1 = 'RxNorm'
+	AND relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND crs.concept_code_1 <> crs.concept_code_2
+	AND crs.vocabulary_id_2 = 'RxNorm'
+LEFT JOIN concept_stage cs1 ON cs1.concept_code = crs.concept_code_2
+	AND cs1.concept_class_id = 'Ingredient'
+WHERE rel.sab = 'RXNORM'
+	AND rel.rela = 'has_part';
+
+--9. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9. Add mapping from deprecated to fresh concepts
+--10. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Delete ambiguous 'Maps to' mappings
+--12. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---12. Create mapping to self for fresh concepts
+--13. Create mapping to self for fresh concepts
 ANALYZE concept_relationship_stage;
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
@@ -1222,7 +1289,7 @@ WHERE c.vocabulary_id = v.vocabulary_id
 		);
 ANALYZE concept_relationship_stage;
 
---13. Turn "Clinical Drug" to "Quant Clinical Drug" and "Branded Drug" to "Quant Branded Drug"
+--14. Turn "Clinical Drug" to "Quant Clinical Drug" and "Branded Drug" to "Quant Branded Drug"
 UPDATE concept_stage c
 SET concept_class_id = CASE 
 		WHEN concept_class_id = 'Branded Drug'
@@ -1241,7 +1308,7 @@ WHERE concept_class_id IN (
 			AND r.vocabulary_id_1 = c.vocabulary_id
 		);
 
---14. Create pack_content_stage table
+--15. Create pack_content_stage table
 INSERT INTO pack_content_stage
 SELECT DISTINCT pc.pack_code AS pack_concept_code,
 	'RxNorm' AS pack_vocabulary_id,
@@ -1284,13 +1351,13 @@ JOIN (
 	) cont ON cont.concept_code_1 = pc.pack_code
 	AND pc.drug LIKE '%' || cont.concept_name || '%'; -- this is where the component name is fit into the parsed drug name from the Pack string
 
---15. Run FillDrugStrengthStage
+--16. Run FillDrugStrengthStage
 DO $_$
 BEGIN
 	PERFORM dev_rxnorm.FillDrugStrengthStage();
 END $_$;
 
---16. Run QA-script (you can always re-run this QA manually: SELECT * FROM get_qa_rxnorm() ORDER BY info_level, description;)
+--17. Run QA-script (you can always re-run this QA manually: SELECT * FROM get_qa_rxnorm() ORDER BY info_level, description;)
 DO $_$
 BEGIN
 	IF CURRENT_SCHEMA = 'dev_rxnorm' /*run only if we are inside dev_rxnorm*/ THEN
@@ -1302,13 +1369,13 @@ BEGIN
 	END IF;
 END $_$;
 
---17. We need to run generic_update before small RxE clean up
+--18. We need to run generic_update before small RxE clean up
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
 
---18. Run RxE clean up
+--19. Run RxE clean up
 DO $_$
 BEGIN
 	PERFORM vocabulary_pack.RxECleanUP();

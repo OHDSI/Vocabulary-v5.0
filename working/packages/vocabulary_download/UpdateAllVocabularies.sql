@@ -149,8 +149,9 @@ begin
               --move to devv5
               if not cScriptFailed and cMoveToDevv5='1' then
                 begin
-                  reset session authorization;
                   reset search_path;
+                  perform vocabulary_pack.ClearBasicTables(); --AVOF-3148
+                  reset session authorization;
                   execute cLoadStageScript;
                   perform devv5.GenericUpdate();
                   perform vocabulary_download.write_log (
@@ -291,8 +292,9 @@ begin
                   --move to devv5
                   if not cScriptFailed and cMoveToDevv5='1' then
                     begin
-                      reset session authorization;
                       reset search_path;
+                      perform vocabulary_pack.ClearBasicTables(); --AVOF-3148
+                      reset session authorization;
                       execute cLoadStageScript;
                       perform devv5.GenericUpdate();
                       perform vocabulary_download.write_log (

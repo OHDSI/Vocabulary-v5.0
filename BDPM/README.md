@@ -13,6 +13,6 @@ Working directory dev_bdpm.
 -CIS_CIP_bdpm.txt
 -CIS_COMPO_bdpm.txt
 -CIS_GENER_bdpm.txt
-from: http://base-donnees-publique.medicaments.gouv.fr/telechargement.php
+from: https://base-donnees-publique.medicaments.gouv.fr/telechargement.php
 3. Run in devv5: SELECT sources.load_input_tables('BDPM',TO_DATE('20180622','YYYYMMDD'));
 4. Run load_stage.sql

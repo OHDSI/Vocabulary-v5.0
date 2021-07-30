@@ -138,6 +138,7 @@ BEGIN
           26. CCAM
           27. HemOnc
           28. dm+d
+          29. OncoTree
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -156,11 +157,7 @@ BEGIN
                 cVocabVer := SUBSTRING(cVocabHTML,'([\d]{4}[A-z]{2}) Full UMLS Release Files');
             WHEN cVocabularyName = 'SNOMED'
             THEN
-                cSearchString := '<a class="btn btn-info" href="';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cPos2 := devv5.INSTR (cVocabHTML, '.zip"><strong>Download RF2 Files Now!</strong></a>', cPos1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (SUBSTRING (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:digit:]]+'), 'yyyymmdd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-uk_sct2cl_[\d.]+_(\d{8})\d+.zip".+?\.zip">.+'),'yyyymmdd');
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'HCPCS'
             THEN
@@ -304,18 +301,13 @@ BEGIN
             WHEN cVocabularyName = 'CVX'
             THEN
                 select s0.cvx_date into cVocabDate from (
-                  select unnest(xpath ('/rdf:RDF/global:item/dc:date/text()', cVocabHTML::xml, 
+                  select unnest(xpath ('/rdf:RDF/global:item/dc:date/text()', cVocabHTML::xml,
                   ARRAY[
                     ARRAY['rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'],
                     ARRAY['global', 'http://purl.org/rss/1.0/'],
                     ARRAY['dc', 'http://purl.org/dc/elements/1.1/']
-                  ]))::VARCHAR::date cvx_date,
-                  unnest(xpath ('/rdf:RDF/global:item/global:title/text()', cVocabHTML::xml, 
-                  ARRAY[
-                    ARRAY['rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'],
-                    ARRAY['global', 'http://purl.org/rss/1.0/']
-                  ]))::VARCHAR cvx_title
-                ) as s0 where cvx_title like 'Vaccines administered (CVX)%' order by s0.cvx_date desc limit 1;
+                  ]))::VARCHAR::date cvx_date
+                ) as s0 order by s0.cvx_date desc limit 1;
                 cVocabVer := 'CVX Code Set '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'BDPM'
             THEN
@@ -391,12 +383,18 @@ BEGIN
               cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d.]+)</h4>.+');
             WHEN cVocabularyName = 'HEMONC'
             THEN
-              cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology ([\d-]+)</span>.+'),'yyyy-mm-dd');
+              cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology</span>.+?<span class="text-muted">(.+?)</span>.+'),'month dd, yyyy');
               cVocabVer := 'HemOnc '||to_char(cVocabDate,'yyyy-mm-dd');
             WHEN cVocabularyName = 'DMD'
             THEN
                 cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhsbsa_dmd_\d\.\d\.\d_(\d{8})\d+.zip".+?\.zip">.+'),'yyyymmdd');
                 cVocabVer := 'dm+d Version '||SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhsbsa_dmd_\d\.\d\.\d_\d+.zip".+?\.zip">.+?<div class="current">.+?<h1 class="title">.+?Release (\d\.\d\.\d).+?</h1>.+')||' '||to_char(cVocabDate,'yyyymmdd');
+            WHEN cVocabularyName = 'ONCOTREE'
+            THEN
+                select x.release_date into cVocabDate
+                from json_to_recordset(cVocabHTML::json) as x (api_identifier text, release_date date)
+                where x.api_identifier='oncotree_latest_stable';
+                cVocabVer := 'OncoTree version '||to_char(cVocabDate,'yyyy-mm-dd');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

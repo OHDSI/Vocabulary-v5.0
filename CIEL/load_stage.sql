@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Christian Reich, Timur Vakhitov
-* Date: 2020
+* Authors: Christian Reich, Timur Vakhitov, Michael Kallfelz
+* Date: 2020, 2021
 **************************************************************************/
 
 --1. Update latest_update field to new date 
@@ -112,6 +112,10 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN 'Drug'
 		WHEN 'Medical supply'
 			THEN 'Device'
+-- begin change M. Kallfelz 2021-05-06 
+		WHEN 'InteractSet' -- Set of drugs that interact with parent drug.
+			THEN 'Drug' 
+-- end change M. Kallfelz 2021-05-06
 		END AS domain_id,
 	'CIEL' AS vocabulary_id,
 	CASE ccl.ciel_name -- shorten the ones that won't fit the 20 char limit
@@ -123,6 +127,10 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN 'Radiology' -- there are LOINC codes which are Measurement, but results are not connected
 		WHEN 'Pharmacologic Drug Class'
 			THEN 'Drug Class'
+-- begin change M. Kallfelz 2021-05-06 
+		WHEN 'InteractSet' -- Set of drugs that interact with parent drug.
+			THEN 'Drug Class' -- Class 'Drug Interaction' is not suitable and not in use
+-- end change M. Kallfelz 2021-05-06
 		ELSE ccl.ciel_name
 		END AS concept_class_id,
 	NULL AS standard_concept,
@@ -147,7 +155,59 @@ LEFT JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
 LEFT JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
 	AND cn.locale = 'en';
 
---4. Create chain between CIEL and the best OMOP concept and create map
+-- begin addition M. Kallfelz 2021-05-06 
+--4. Add synonyms to concept_synonym_stage by language
+--SELECT DISTINCT ON (locale) * FROM ciel_concept_name
+-- WHERE voided = 0;
+-- am = Amharic => no OMOP language
+-- bn = Bengali, Bangla => no OMOP language
+-- en
+-- es = Spanish, Castilian => 4182511
+-- fr = French => 4180190
+-- ht = Haitian => no OMOP language
+-- in = Indonesian (ISO code is id!) => no OMOP language
+-- it = Italian => 4182507
+-- nl = Dutch => 4182503
+-- om = Oromo => no OMOP language
+-- pt = Portuguese => 4181536
+-- ru = Russian => no OMOP language
+-- rw = Kinyarwanda => no OMOP language
+-- sw = Swahili => no OMOP language
+-- ti = Tigrinya => no OMOP language
+-- ur = Urdu => no OMOP language
+-- vi = Vietnamese => no OMOP language
+INSERT INTO concept_synonym_stage (
+	synonym_name,
+	synonym_concept_code,
+	synonym_vocabulary_id,
+	language_concept_id
+	)
+SELECT cn.ciel_name AS synonym_name,
+	cn.concept_id AS synonym_concept_code,
+	'CIEL' AS synonym_vocabulary_id,
+	CASE cn.locale
+		WHEN 'es'
+			THEN 4182511
+		WHEN 'fr'
+			THEN 4180190
+		WHEN 'it'
+			THEN 4182507
+		WHEN 'nl'
+			THEN 4182503
+		WHEN 'pt'
+			THEN 4181536
+		END AS language_concept_id
+FROM sources.ciel_concept_name AS cn
+WHERE cn.locale IN (
+		'es',
+		'fr',
+		'it',
+		'nl',
+		'pt'
+		);-- no other OMOP languages match the locale
+-- end addition M. Kallfelz 2021-05-06
+
+--5. Create chain between CIEL and the best OMOP concept and create map
 DROP TABLE IF EXISTS ciel_to_concept_map;
 CREATE UNLOGGED TABLE ciel_to_concept_map AS
 	WITH RECURSIVE hierarchy_concepts AS (
@@ -571,7 +631,7 @@ FROM hierarchy_concepts
 -- intermediate steps from the final and then pick the best path from a possible list
 WHERE vocabulary_id_2 NOT LIKE '%-c%';-- the terminating relationshp should have no suffix, indicating it is a proper standard concept.
 
---5. Create temporary table of CIEL concepts that have mapping to some useful vocabulary, even though if it doesn't work. This is for debugging, in the final release we won't need that
+--6. Create temporary table of CIEL concepts that have mapping to some useful vocabulary, even though if it doesn't work. This is for debugging, in the final release we won't need that
 DROP TABLE IF EXISTS ciel_concept_with_map;
 CREATE UNLOGGED TABLE ciel_concept_with_map AS
 SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
@@ -608,7 +668,7 @@ WHERE crs.ciel_name IN (
 		'NDF-RT NUI'
 		);
 
---6. Create concept_relationship_stage records
+--7. Create concept_relationship_stage records
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -642,38 +702,39 @@ SELECT DISTINCT cm.concept_code_1 AS concept_code_1,
 FROM ciel_concept_with_map c
 JOIN ciel_to_concept_map cm ON c.concept_code = cm.concept_code_1;
 
---7. Add manual relationships
+--8. Add manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---8. Working with replacement mappings
+--9. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---9. Add mapping from deprecated to fresh concepts
+--10. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Delete ambiguous 'Maps to' mappings
+--12. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---12. Clean up
+--13. Clean up
 DROP TABLE ciel_concept_with_map;
 DROP TABLE ciel_to_concept_map;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+-- Before generic update, go through stage table QA checks with functions qa_ddl and check_stage_tables

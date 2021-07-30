@@ -15,7 +15,7 @@ BEGIN
 				WHEN d.domain_id IS NULL AND cm.domain_id IS NOT NULL THEN 'domain_id not found in the domain: '||cm.domain_id
 				WHEN cc.concept_class_id IS NULL AND cm.concept_class_id IS NOT NULL THEN 'concept_class_id not found in the concept_class: '||cm.concept_class_id
 				WHEN COALESCE(cm.standard_concept, 'S') NOT IN ('C','S','X') THEN 'wrong value for standard_concept: '||cm.standard_concept
-				WHEN COALESCE(cm.invalid_reason, 'D') NOT IN ('D','X') THEN 'wrong value for invalid_reason: '||cm.invalid_reason
+				WHEN COALESCE(cm.invalid_reason, 'D') NOT IN ('D','U','X') THEN 'wrong value for invalid_reason: '||cm.invalid_reason
 				ELSE NULL
 			END AS reason
 		FROM concept_manual cm

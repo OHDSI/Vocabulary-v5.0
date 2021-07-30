@@ -135,7 +135,7 @@ BEGIN
     
     --getting fully working download link from page
     select substring(http_content,'.+<a href="(.+?)">rxnorm_mappings.zip</a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
-    if not coalesce(pDownloadURL,'-') ~* '^(ftp://public.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (full) is not valid'; end if;
+    if not coalesce(pDownloadURL,'-') ~* '^(https://dailymed-data.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (full) is not valid'; end if;
 
     perform write_log (
       iVocabularyID=>pVocabularyID,

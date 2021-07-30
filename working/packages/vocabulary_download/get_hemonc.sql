@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION vocabulary_download.get_ggr (
+CREATE OR REPLACE FUNCTION vocabulary_download.get_hemonc(
 iOperation text default null,
 out session_id int4,
 out last_status INT,
@@ -7,7 +7,7 @@ out result_output text
 AS
 $BODY$
 DECLARE
-pVocabularyID constant text:='GGR';
+pVocabularyID constant text:='HEMONC';
 pVocabulary_auth vocabulary_access.vocabulary_auth%type;
 pVocabulary_url vocabulary_access.vocabulary_url%type;
 pVocabulary_login vocabulary_access.vocabulary_login%type;
@@ -17,33 +17,26 @@ pVocabularySrcVersion text;
 pVocabularyNewDate date;
 pVocabularyNewVersion text;
 pCookie text;
-pCookie_p1 text;
-pCookie_p1_value text;
-pCookie_p2 text;
-pCookie_p2_value text;
 pContent text;
 pDownloadURL text;
+pDownloadURL2 text;
 auth_hidden_param varchar(10000);
 pErrorDetails text;
 pVocabularyOperation text;
-/*
-  possible values of pJumpToOperation:
-  ALL (default), JUMP_TO_GGR_PREPARE, JUMP_TO_GGR_IMPORT
-*/
-pJumpToOperation text;
+pJumpToOperation text; --ALL (default), JUMP_TO_HEMONC_PREPARE, JUMP_TO_HEMONC_IMPORT
 cRet text;
 CRLF constant text:=E'\r\n';
 pSession int4;
 pVocabulary_load_path text;
 z record;
 BEGIN
-  pVocabularyOperation:='GET_GGR';
+  pVocabularyOperation:='GET_HEMONC';
   select nextval('vocabulary_download.log_seq') into pSession;
   
   select new_date, new_version, src_date, src_version 
   	into pVocabularyNewDate, pVocabularyNewVersion, pVocabularySrcDate, pVocabularySrcVersion 
   from vocabulary_pack.CheckVocabularyUpdate(pVocabularyID);
-  
+
   set local search_path to vocabulary_download;
   
   perform write_log (
@@ -53,11 +46,10 @@ BEGIN
     iVocabulary_status=>0
   );
   
-  if iOperation is null then pJumpToOperation:='ALL'; else pJumpToOperation:=iOperation; end if;
-  if iOperation not in ('ALL', 'JUMP_TO_GGR_PREPARE', 'JUMP_TO_GGR_IMPORT'
-  ) then raise exception 'Wrong iOperation %',iOperation; end if;
+  if pVocabularyNewDate is null then raise exception '% already updated',pVocabularyID; end if;
   
-  if pVocabularyNewVersion is null then raise exception '% already updated',pVocabularyID; end if;
+  if iOperation is null then pJumpToOperation:='ALL'; else pJumpToOperation:=iOperation; end if;
+  if iOperation not in ('ALL', 'JUMP_TO_HEMONC_PREPARE', 'JUMP_TO_HEMONC_IMPORT') then raise exception 'Wrong iOperation %',iOperation; end if;
   
   if not pg_try_advisory_xact_lock(hashtext(pVocabularyID)) then raise exception 'Processing of % already started',pVocabularyID; end if;
   
@@ -67,51 +59,83 @@ BEGIN
     --get credentials
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
-    
-    --getting fully working download link from page
-    select (regexp_matches (http_content,'.+?<a target="_blank" download="" href="(/nl/downloads/file\?type=EMD&amp;name=/csv4Emd_Nl_[\d]{4}.+\.zip)">CSV NL</a>.+','i'))[1] into pDownloadURL from py_http_get(url=>pVocabulary_url);
-    pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||pDownloadURL;
 
-    --start downloading
-    pVocabularyOperation:='GET_GGR downloading';
+    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'<a href="(/dataset.xhtml\?persistentId=.+?)"><span style=.+?>HemOnc ontology</span></a>') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
+
+    pDownloadURL2 := 'https://dataverse.harvard.edu/api/access/datafile/'||SUBSTRING(LOWER(http_content),'.+<a href="/file.xhtml\?fileid=([\d]+).+?">.+?concept_relationship_stage\.tab.+?</a>.+') from py_http_get(url=>pDownloadURL,allow_redirects=>true);
+
+    --start downloading concept_relationship_stage
+    pVocabularyOperation:='GET_HEMONC concept_relationship_stage downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip',
-      iDownloadLink=>pDownloadURL
+      iFilename=>'concept_relationship_stage.tab',
+      iDownloadLink=>pDownloadURL2
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_GGR downloading complete',
+      iVocabulary_operation=>'GET_HEMONC downloading complete',
+      iVocabulary_status=>1
+    );
+
+    pDownloadURL2 := 'https://dataverse.harvard.edu/api/access/datafile/'||SUBSTRING(LOWER(http_content),'.+<a href="/file.xhtml\?fileid=([\d]+).+?">.+?concept_stage\.tab.+?</a>.+') from py_http_get(url=>pDownloadURL,allow_redirects=>true);
+    --start downloading concept_stage
+    pVocabularyOperation:='GET_HEMONC concept_stage downloading';
+    perform run_wget (
+      iPath=>pVocabulary_load_path,
+      iFilename=>'concept_stage.tab',
+      iDownloadLink=>pDownloadURL2,
+      iDeleteAll=>0
+    );
+    perform write_log (
+      iVocabularyID=>pVocabularyID,
+      iSessionID=>pSession,
+      iVocabulary_operation=>'GET_HEMONC downloading complete',
+      iVocabulary_status=>1
+    );
+
+    pDownloadURL2 := 'https://dataverse.harvard.edu/api/access/datafile/'||SUBSTRING(LOWER(http_content),'.+<a href="/file.xhtml\?fileid=([\d]+).+?">.+?concept_synonym_stage\.tab.+?</a>.+') from py_http_get(url=>pDownloadURL,allow_redirects=>true);
+    --start downloading concept_synonym_stage
+    pVocabularyOperation:='GET_HEMONC concept_synonym_stage downloading';
+    perform run_wget (
+      iPath=>pVocabulary_load_path,
+      iFilename=>'concept_synonym_stage.tab',
+      iDownloadLink=>pDownloadURL2,
+      iDeleteAll=>0
+    );
+    perform write_log (
+      iVocabularyID=>pVocabularyID,
+      iSessionID=>pSession,
+      iVocabulary_operation=>'GET_HEMONC downloading complete',
       iVocabulary_status=>1
     );
   end if;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_GGR_PREPARE') then
+  if pJumpToOperation in ('ALL','JUMP_TO_HEMONC_PREPARE') then
     pJumpToOperation:='ALL';
     --extraction
-    pVocabularyOperation:='GET_GGR prepare';
-    perform get_ggr_prepare (
+    pVocabularyOperation:='GET_HEMONC prepare';
+    perform get_hemonc_prepare (
       iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.zip'
+      iFilename=>lower(pVocabularyID)
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_GGR prepare complete',
+      iVocabulary_operation=>'GET_HEMONC prepare complete',
       iVocabulary_status=>1
     );
   end if;
   
-  if pJumpToOperation in ('ALL','JUMP_TO_GGR_IMPORT') then
-    pJumpToOperation:='ALL';
+  if pJumpToOperation in ('ALL','JUMP_TO_HEMONC_IMPORT') then
+  	pJumpToOperation:='ALL';
     --finally we have all input tables, we can start importing
-    pVocabularyOperation:='GET_GGR load_input_tables';
+    pVocabularyOperation:='GET_HEMONC load_input_tables';
     perform sources.load_input_tables(pVocabularyID,pVocabularyNewDate,pVocabularyNewVersion);
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_GGR load_input_tables complete',
+      iVocabulary_operation=>'GET_HEMONC load_input_tables complete',
       iVocabulary_status=>1
     );
   end if;
@@ -119,7 +143,7 @@ BEGIN
   perform write_log (
     iVocabularyID=>pVocabularyID,
     iSessionID=>pSession,
-    iVocabulary_operation=>'GET_GGR all tasks done',
+    iVocabulary_operation=>'GET_HEMONC all tasks done',
     iVocabulary_status=>3
   );
   

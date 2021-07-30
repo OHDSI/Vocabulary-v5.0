@@ -77,7 +77,7 @@ BEGIN
   if pJumpToOperation='ALL' then
     --get credentials
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
+    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
     
     --first part, getting raw download link from page
     select substring(http_content,'<a class="btn btn-info" href="(.+?)"><strong>Download RF2 Files Now!</strong></a>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
@@ -131,7 +131,7 @@ BEGIN
     pVocabularyOperation:='GET_SNOMED UK-part';
     --get credentials
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
+    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=3;
     
     --authorization
     select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent
@@ -183,7 +183,7 @@ BEGIN
     pVocabularyOperation:='GET_SNOMED US-part';
     --get credentials
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=3;
+    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=4;
     
     --first part, getting raw download link from page
     select substring(http_content,'Current US Edition Release</h3>.+?<p><a href="(.+?)" class="btn btn-info">Download Now!</a></p>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
@@ -238,7 +238,7 @@ BEGIN
     pVocabularyOperation:='GET_SNOMED UK DE-part';
     --get credentials
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=4;
+    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=5;
     
     --authorization
     select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent

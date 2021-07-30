@@ -1524,8 +1524,7 @@ where
 		)
 ;
 -- 30. Cleanup: drop all temporary tables
-drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace, snomed_ancestor
-
+drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy, comb_table, match_blob, code_replace, snomed_ancestor;
 
 --TODO:
 /*
@@ -1536,4 +1535,3 @@ drop table if exists snomed_mapping, snomed_target_prepared, attribute_hierarchy
 	5. Allow for generic mapping when source topography is organ system structure (e.g. Glioma of Nervous system, NOS can be mapped to Glioma (disorder))
 	6. Add German synonyms
 */
-

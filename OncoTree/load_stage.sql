@@ -22,46 +22,63 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'OncoTree',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.oncotree_tree LIMIT 1), 
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.oncotree_tree LIMIT 1), 
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.oncotree_tree LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.oncotree_tree LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_ONCOTREE'
 );
-END $_$
-;
+END $_$;
+
 --2. Truncate all working tables
-truncate table concept_stage, concept_relationship_stage, concept_synonym_stage, drug_strength_stage, pack_content_stage
-;
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
+
 --3. Fill concept_stage with concepts
-insert into concept_stage (concept_name,domain_id,vocabulary_id,concept_class_id,concept_code,valid_start_date,valid_end_date)
-select
-	o.descendant_name,
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	concept_code,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT o.descendant_name,
 	'Condition',
 	'OncoTree',
 	'Condition',
 	o.descendant_code,
-/*	(
-		select latest_update
-		from vocabulary
-		where vocabulary_id = 'OncoTree'
-	) */ -- remove comments in the next release when we get the actual dates, while there's totally new release we treat all concepts as created sometimes in a past ('19700101')
-		to_date ('19700101','yyyymmdd')
-as valid_start_date,
-	to_date ('20991231','yyyymmdd')
-from sources.oncotree_tree o
-;
+	/*(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'OncoTree'
+		) AS valid_start_date, */ -- remove comments in the next release when we get the actual dates, while there's totally new release we treat all concepts as created sometimes in a past ('19700101')
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM sources.oncotree_tree o;
+
 --4. Put internal hierarchy in concept_relationship_stage
-insert into concept_relationship_stage (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id,valid_start_date,valid_end_date)
-select
-	descendant_code,
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT descendant_code,
 	ancestor_code,
 	'OncoTree',
 	'OncoTree',
 	'Is a',
-	to_date ('19700101','yyyymmdd'),
-	to_date ('20991231','yyyymmdd')
-from sources.oncotree_tree 
-where ancestor_code is not null
-;
+	TO_DATE('19700101', 'yyyymmdd'),
+	TO_DATE('20991231', 'yyyymmdd')
+FROM sources.oncotree_tree
+WHERE ancestor_code IS NOT NULL;
+
 --5. Process manual relationships
 DO $_$
 BEGIN
@@ -69,7 +86,7 @@ BEGIN
 END $_$;
 
 --6. Vocabulary pack procedures
---6.1, Add mapping from deprecated to fresh concepts
+--6.1. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();

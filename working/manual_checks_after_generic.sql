@@ -1,6 +1,7 @@
 --01. Concept changes
 --01.1. Concepts changed their Domain
-select new.concept_code,
+select new.concept_id,
+       new.concept_code,
        new.concept_name as concept_name,
        new.concept_class_id as concept_class_id,
        new.standard_concept as standard_concept,
@@ -226,8 +227,7 @@ select a.concept_code,
        a.vocabulary_id
 from concept a
 join devv5.concept b
-        on a.concept_code = b.concept_code
-            and a.vocabulary_id = b.vocabulary_id
+        on a.concept_id = b.concept_id
 where a.vocabulary_id IN (:your_vocabs)
     and b.standard_concept = 'S'
     and a.standard_concept IS NULL

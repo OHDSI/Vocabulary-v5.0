@@ -1,5 +1,7 @@
 Update of SOPT
 
+(Remark: this vocabulary previously was erroneously named "PHDSC". It was renamed to SOPT: Source of Payment Typology.)
+
 Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
 - Working directory SOPT.

@@ -90,4 +90,25 @@ JOIN concept_stage cs2 ON cs2.concept_code LIKE cs1.concept_code || '%'
 	AND LENGTH(cs2.concept_code) - 1 = LENGTH(cs1.concept_code)
 JOIN vocabulary v ON v.vocabulary_id = 'SOPT';
 
+--5. Manual manipulations
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -2,16 +2,14 @@ CREATE OR REPLACE FUNCTION apigrabber.getrxnormbystatus (
   rxstatus varchar
 )
 RETURNS TABLE (
-  rxcode varchar
+  rxcode text
 ) AS
 $body$
 BEGIN
-  perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
-  set local http.timeout_msec TO 30000;
-  return query 
-  select 
-  unnest(xpath('/rxcuihistorydata/rxcuiList/rxcuis/text()', h.content::xml))::varchar
-  from devv5.http_get('https://rxnav.nlm.nih.gov/REST/rxcuihistory/status.xml?type='||rxstatus) h;
+  return query
+  select minConcept->>'rxcui' from
+  (select http_content::json#>'{minConceptGroup}' minConceptGroup  from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/allstatus.json?status='||rxstatus,allow_redirects=>true)) concepts
+  cross join json_array_elements(concepts.minConceptGroup#>'{minConcept}') minConcept;
 END;
 $body$
 LANGUAGE 'plpgsql'

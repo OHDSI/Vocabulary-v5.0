@@ -48,8 +48,8 @@ BEGIN
 	(
 		concept_code_1      VARCHAR (255),
 		concept_id_2        INTEGER,
-		precedence          INTEGER,
-		conversion_factor   FLOAT,
+		precedence          INT2,
+		conversion_factor   NUMERIC,
 		CONSTRAINT r2c_uq_cc1_cid2 UNIQUE (concept_code_1, concept_id_2),
 		CONSTRAINT r2c_uq2_cc1_cid2 UNIQUE (concept_code_1, precedence)
 	);
@@ -66,13 +66,13 @@ BEGIN
 	(
 		drug_concept_code         VARCHAR (255), -- The source code of the Drug or Drug Component, either Branded or Clinical.
 		ingredient_concept_code   VARCHAR (255), -- The source code for one of the Ingredients.
-		amount_value              FLOAT,         -- The numeric value for absolute content (usually solid formulations).
+		amount_value              NUMERIC,         -- The numeric value for absolute content (usually solid formulations).
 		amount_unit               VARCHAR (255), -- The verbatim unit of the absolute content (solids).
-		numerator_value           FLOAT,         -- The numerator value for a concentration (usally liquid formulations).
+		numerator_value           NUMERIC,         -- The numerator value for a concentration (usally liquid formulations).
 		numerator_unit            VARCHAR (255), -- The verbatim numerator unit of a concentration (liquids).
-		denominator_value         FLOAT,         -- The denominator value for a concentration (usally liquid formulations).
+		denominator_value         NUMERIC,         -- The denominator value for a concentration (usally liquid formulations).
 		denominator_unit          VARCHAR (255), -- The verbatim denominator unit of a concentration (liquids).
-		box_size                  INTEGER
+		box_size                  INT2
 	);
 
 	/************************************
@@ -619,7 +619,7 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('acyclovir', 1703687, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('adalimumab', 1119119, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('adenosine', 1309204, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('adenosine for diagnostic use', 0, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('adenosine for diagnostic use', 1309204, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('adenosine for therapeutic use', 1309204, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('administration', 0, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('ado-trastuzumab emtansine', 43525787, NULL);
@@ -669,8 +669,8 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('arsenic trioxide', 19010961, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('artificial saliva', NULL, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('asparaginase', 19012585, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('asparaginase (erwinaze)', 19055717, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('asparaginase erwinia chrysanthemi', 43533115, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('asparaginase (erwinaze)', 19012585, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('asparaginase erwinia chrysanthemi', 19012585, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('atropine', 914335, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('atropine sulfate', 914335, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('aurothioglucose', 1163570, NULL);
@@ -781,7 +781,6 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('cosyntropin', 19008009, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('cosyntropin (cortrosyn)', 19008009, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('cromolyn sodium', 1152631, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('crotalidae polyvalent immune fab (ovine)', 19071744, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('cryoprecipitate', 0, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('cyclophosphamide', 1310317, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('cyclosporin', 19010482, NULL);
@@ -839,7 +838,7 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('doxercalciferol', 1512446, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('doxorubicin hydrochloride', 1338512, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('doxorubicin hydrochloride liposomal', 19051649, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('dronabinol', 40125879, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('dronabinol', 1037005, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('droperidol', 739323, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('dyphylline', 1140088, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('ecallantide', 40168938, NULL);
@@ -925,11 +924,11 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('galsulfase', 19078649, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('gamma globulin', 19117912, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('ganirelix acetate', 1536743, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('garamycin', 919345, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('garamycin', 45892419, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('gatifloxacin', 1789276, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('gefitinib', 1319193, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('gemcitabine hydrochloride', 1314924, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('gemtuzumab ozogamicin', 19098566, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('gemtuzumab ozogamicin', 42799711, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('glatiramer acetate', 751889, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('glucagon hydrochloride', 1560278, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('glucarpidase', 42709319, NULL);
@@ -951,7 +950,7 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('histrelin', 1366773, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('histrelin acetate', 1366773, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('home infusion therapy', 0, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('human fibrinogen concentrate', 19044986, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('human fibrinogen concentrate', 19054702, NULL);
 		--INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('human plasma fibrin sealant', 0, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('hyaluronan or derivative', 787787, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('hyaluronidase', 19073699, NULL);
@@ -1046,8 +1045,8 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('lomustine', 1391846, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('lorazepam', 791967, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('loxapine', 792263, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('lymphocyte immune globulin, antithymocyte globulin, equine', 19003476, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('lymphocyte immune globulin, antithymocyte globulin, rabbit', 19136207, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('lymphocyte immune globulin, antithymocyte globulin, equine', 19136041, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('lymphocyte immune globulin, antithymocyte globulin, rabbit', 19136041, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('magnesium sulfate', 19093848, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('mannitol', 994058, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('mecasermin', 1502877, NULL);
@@ -1186,8 +1185,8 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('platelet rich plasma', 0, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('plerixafor', 19017581, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('plicamycin', 19009165, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('pneumococcal conjugate vaccine', 513909, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('pneumococcal vaccine', 513909, NULL);
+-- 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('pneumococcal conjugate vaccine', 513909, NULL);
+-- 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('pneumococcal vaccine', 513909, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('porfimer sodium', 19090420, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('potassium chloride', 19049105, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('pralatrexate', 40166461, NULL);
@@ -1407,7 +1406,7 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('chromic phosphate p-32', 19011099, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('elotuzumab', 35604032, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('goserelin acetate implant, per 3.6 mg', 1366310, NULL);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('hyaluronan', 798336, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('hyaluronan', 787787, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('factor x', 44785022, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('fluocinolone acetonide, intravitreal implant', 996541, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('irinotecan liposome', 35603068, 1);
@@ -1428,6 +1427,11 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('fibrinogen', 19054702, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('thrombin', 1300673, NULL);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('factor xiii (antihemophilic factor, recombinant), tretten, per 10 i.u.', 1352213, NULL);
+		--		-- Agkistrodon piscivorus antivenin / Crotalus adamanteus antivenin / Crotalus atrox antivenin / Crotalus scutulatus antivenin
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Agkistrodon piscivorus antivenin', 40168516, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Crotalus adamanteus antivenin', 40168421, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Crotalus atrox antivenin', 40168423, NULL);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Crotalus scutulatus antivenin', 40168425, NULL);
 		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'chlorpromazine hydrochloride');
 		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'diphenhydramine hydrochloride');
 		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'dronabinol');
@@ -1437,6 +1441,10 @@ BEGIN
 		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'levodopa');
 		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'promethazine hydrochloride');
 		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'trimethobenzamide hydrochloride');
+		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'Agkistrodon piscivorus antivenin');
+		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'Crotalus adamanteus antivenin');
+		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'Crotalus atrox antivenin');
+		INSERT INTO drug_concept_stage (domain_id, concept_name, vocabulary_id, concept_class_id, concept_code) VALUES (NULL, 'Drug', 'HCPCS', 'Ingredient', 'Crotalus scutulatus antivenin');
 	END $_$;
 
 	-- Add ingredients for combination products
@@ -1690,7 +1698,16 @@ BEGIN
 		INSERT INTO internal_relationship_stage
 		SELECT concept_code_1, 'clavulanate' AS concept_code_2 FROM internal_relationship_stage WHERE concept_code_2='ticarcillin disodium AND clavulanate potassium';
 		DELETE FROM internal_relationship_stage WHERE concept_code_2='ticarcillin disodium AND clavulanate potassium';
-
+		-- Agkistrodon piscivorus antivenin / Crotalus adamanteus antivenin / Crotalus atrox antivenin / Crotalus scutulatus antivenin
+		INSERT INTO internal_relationship_stage
+		SELECT concept_code_1, 'Agkistrodon piscivorus antivenin' AS concept_code_2 FROM internal_relationship_stage WHERE concept_code_2='crotalidae polyvalent immune fab (ovine)';
+		INSERT INTO internal_relationship_stage
+		SELECT concept_code_1, 'Crotalus adamanteus antivenin' AS concept_code_2 FROM internal_relationship_stage WHERE concept_code_2='crotalidae polyvalent immune fab (ovine)';
+		INSERT INTO internal_relationship_stage
+		SELECT concept_code_1, 'Crotalus atrox antivenin' AS concept_code_2 FROM internal_relationship_stage WHERE concept_code_2='crotalidae polyvalent immune fab (ovine)';
+		INSERT INTO internal_relationship_stage
+		SELECT concept_code_1, 'Crotalus scutulatus antivenin' AS concept_code_2 FROM internal_relationship_stage WHERE concept_code_2='crotalidae polyvalent immune fab (ovine)';
+		DELETE FROM internal_relationship_stage WHERE concept_code_2='crotalidae polyvalent immune fab (ovine)';
 		-- Add AND remove ingredients
 		DELETE FROM drug_concept_stage WHERE concept_class_id='Ingredient' AND concept_code NOT IN (SELECT concept_code_2 FROM internal_relationship_stage);
 	END $_$;
@@ -1789,8 +1806,7 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Oral', 45775491, 39);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Oral', 45775492, 40);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Oral', 19111155, 41);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Oral', 19126316, 42);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Oral', 19082285, 43);
+		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Oral', 19082285, 42);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Patch', 19082229, 1);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Patch', 19082701, 2);
 		-- INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Patch', 19082224, 3); -- Topical cream
@@ -1870,120 +1886,6 @@ BEGIN
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Suppository', 19082200, 1);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Suppository', 19093368, 2);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Suppository', 19082575, 3);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082573, 1);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082103, 2);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082168, 3);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082170, 4);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082079, 5);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082224, 6);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082191, 7);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082227, 8);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082228, 9);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19135866, 10);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082077, 11);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095973, 12);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082225, 13);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19129634, 14);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19126920, 15);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082200, 16);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082253, 17);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095912, 18);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082104, 19);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19001949, 20);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082229, 21);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19008697, 22);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 46234469, 23);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095898, 24);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082076, 25);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19130307, 26);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082258, 27);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082255, 28);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082109, 29);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19135925, 30);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095916, 31);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082080, 32);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082285, 33);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082286, 34);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095972, 35);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19011167, 36);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19126590, 37);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19093368, 38);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082195, 39);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082165, 40);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19009068, 41);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082167, 42);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19016586, 43);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095976, 44);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082108, 45);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082226, 46);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19102295, 47);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19010878, 48);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082627, 49);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082259, 50);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082110, 51);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082651, 52);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 44817840, 53);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19126918, 54);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19124968, 55);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082251, 56);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19129139, 57);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095900, 58);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082197, 59);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19102296, 60);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082282, 61);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095911, 62);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 46234468, 63);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19010880, 64);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19126316, 65);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 46234466, 66);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19010962, 67);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082166, 68);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19126919, 69);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095918, 70);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19127579, 71);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 46234467, 72);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 40175589, 73);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082281, 74);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19059413, 75);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082196, 76);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082163, 77);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082169, 78);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19112648, 79);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095917, 80);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095971, 81);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082162, 82);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 40164192, 83);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082574, 84);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082105, 85);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082222, 86);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082575, 87);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082652, 88);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 45775489, 89);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 45775491, 90);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082164, 91);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 40167393, 92);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082287, 93);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082194, 94);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082576, 95);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095975, 96);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082628, 97);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 46275062, 98);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19010879, 99);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 46234410, 100);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19135439, 101);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095977, 102);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082199, 103);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082283, 104);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19095974, 105);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19135446, 106);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19130329, 107);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 45775490, 108);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 45775492, 109);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19082101, 110);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19135440, 111);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 19135438, 112);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 45775488, 113);
-		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Unknown', 44784844, 114);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Instillation', 19016586, 1);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Instillation', 46234410, 2);
 		INSERT INTO relationship_to_concept (concept_code_1, concept_id_2, precedence) VALUES ('Instillation', 19082104, 3);
@@ -2089,15 +1991,15 @@ BEGIN
 				THEN d.u
 			ELSE NULL
 			END AS numerator_unit,
-		NULL::FLOAT AS denominator_value,
+		NULL::NUMERIC AS denominator_value,
 		NULL AS denominator_unit,
-		NULL::INT AS box_size
+		NULL::INT2 AS box_size
 	FROM (
 		SELECT concept_code,
 			CASE v
 				WHEN 'per'
 					THEN 1
-				ELSE cast(translate(v, 'a,', 'a') AS FLOAT)
+				ELSE cast(translate(v, 'a,', 'a') AS NUMERIC)
 				END AS v,
 			u
 		FROM (
@@ -2251,6 +2153,7 @@ BEGIN
 			lower(c.concept_name),
 			'[^a-z]'
 			)
+		and c.invalid_reason is null
 	WHERE d.concept_class_id = 'Procedure Drug';
 
 	INSERT INTO drug_concept_stage
@@ -2270,7 +2173,7 @@ BEGIN
 	SELECT DISTINCT brandname AS concept_code_1,
 		concept_id AS concept_id_2,
 		1 AS precedence,
-		NULL::FLOAT AS conversion_factor
+		NULL::NUMERIC AS conversion_factor
 	FROM brandname;
 
 	INSERT INTO internal_relationship_stage

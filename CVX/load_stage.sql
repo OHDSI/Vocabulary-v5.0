@@ -149,4 +149,13 @@ WHERE crs.relationship_id = 'RxNorm - CVX'
 			AND c.invalid_reason = 'D'
 		);
 
+--8. Make concepts that have relationship 'Maps to' non-standard
+UPDATE concept_stage cs
+SET standard_concept = NULL
+FROM concept_relationship_stage crs
+WHERE cs.concept_code = crs.concept_code_1
+	AND cs.vocabulary_id = crs.vocabulary_id_1
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL;
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

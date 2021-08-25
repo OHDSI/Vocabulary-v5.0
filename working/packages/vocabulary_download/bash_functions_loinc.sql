@@ -27,7 +27,9 @@ BEGIN
     unzip -oqj "$2_gf.zip" "GroupLoincTerms.csv" -d . && \
     unzip -oqj "$2_gf.zip" "ParentGroupAttributes.csv" -d . && \
     unzip -oqj "$2_partf.zip" "Part.csv" -d . && \
-    unzip -oqj "$2_partf.zip" "LoincPartLink.csv" -d .
+    unzip -oqj "$2_partf.zip" "LoincPartLink_Primary.csv" -d . && \
+    unzip -oqj "$2_partf.zip" "LoincPartLink_Supplementary.csv" -d . && \
+    unzip -oqj "$2_radiology.zip" "LoincRsnaRadiologyPlaybook.csv" -d .
     
     #move result to original folder
     cd "$1"
@@ -48,7 +50,9 @@ BEGIN
     mv work/GroupLoincTerms.csv "GroupLoincTerms.csv" && \
     mv work/ParentGroupAttributes.csv "ParentGroupAttributes.csv" && \
     mv work/Part.csv "Part.csv" && \
-    mv work/LoincPartLink.csv "LoincPartLink.csv"
+    mv work/LoincPartLink_Primary.csv "LoincPartLink_Primary.csv" && \
+    mv work/LoincPartLink_Supplementary.csv "LoincPartLink_Supplementary.csv" && \
+    mv work/LoincRsnaRadiologyPlaybook.csv "LoincRsnaRadiologyPlaybook.csv"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

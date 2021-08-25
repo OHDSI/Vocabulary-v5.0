@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'HemOnc',
-	pVocabularyDate			=> TO_DATE ('20190829', 'yyyymmdd'),
-	pVocabularyVersion		=> 'HemOnc 2019-08-29',
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.hemonc_cs LIMIT 1),
+	pVocabularyVersion		=>  (SELECT vocabulary_version  FROM sources.hemonc_cs LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_HEMONC'
 );
 END $_$;
@@ -51,14 +51,10 @@ SELECT NULL AS concept_id,
 				'Brand Name',
 				'Component Class',
 				'Route',
-				'Regimen type'
+				'Regimen Class'
 				)
 			THEN 'Drug'
-		WHEN h.concept_class_id IN (
-				'Condition',
-				'Condition Class',
-				'BioCondition'
-				)
+		WHEN h.concept_class_id = 'Condition'
 			THEN 'Condition'
 		WHEN h.concept_class_id IN (
 				'Regimen',
@@ -70,19 +66,20 @@ SELECT NULL AS concept_id,
 	h.vocabulary_id,
 	h.concept_class_id,
 	CASE 
-		WHEN h.concept_class_id = 'Condition Class'
-			THEN 'C' -- let's make them classification concepts (in previos version Component Class was assigned manually, Jeremy fixed it in the 30-Aug-2019 release)
+		WHEN h.concept_class_id = 'Regimen Class'
+			THEN 'C'
 		WHEN concept_class_id = 'Modality'
 			THEN 'S' -- can be used as a generic Regimen when we don't know what exact Chemo or Hormonotherapy patient got
+		WHEN h.standard_concept = ''
+			THEN NULL
 		ELSE h.standard_concept
 		END AS standard_concept,
 	h.concept_code,
 	h.valid_start_date,
 	h.valid_end_date,
-	h.invalid_reason
+	NULLIF(h.invalid_reason, '') AS invalid_reason
 FROM sources.hemonc_cs h
 WHERE h.concept_class_id IN (
-		'Regimen type', -- type
 		'Component Class', -- looks like ATC, perhaps require additional mapping to ATC, in a first run make them "C", then replace with ATC, still a lot of work
 		'Component', -- ingredient, Standard if there's no equivalent in Rx, RxE
 		'Context', -- therapy intent or line or other Context, STANDARD
@@ -91,13 +88,10 @@ WHERE h.concept_class_id IN (
 		'Route',
 		'Procedure',
 		--added 30-Aug-2019
-		'Modality'
-		--need to be added, requires further analysis of relationships
-		/*
-		'BioCondition',
+		'Modality',
 		'Condition',
-		'Condition Class'
-		*/
+		--added 4/28/2020
+		'Regimen Class'
 		)
 	AND h.concept_name IS NOT NULL;
 
@@ -110,9 +104,12 @@ SELECT DISTINCT NULL::int4 AS concept_id_1,
 	r.vocabulary_id_1,
 	r.vocabulary_id_2,
 	r.relationship_id,
-	r.valid_start_date,
-	r.valid_end_date,
-	r.invalid_reason
+	( SELECT latest_update
+			FROM vocabulary
+			WHERE vocabulary_id = 'HemOnc'
+			) AS valid_start_date,
+ TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	 null as invalid_reason
 FROM sources.hemonc_crs r
 JOIN concept_stage cs ON cs.concept_code = r.concept_code_1
 	AND cs.vocabulary_id = r.vocabulary_id_1
@@ -356,8 +353,8 @@ WHERE ra.relationship_id = 'Maps to'
 	AND ra.invalid_reason IS NULL;
 
 --11. Concept synonym
-INSERT INTO concept_synonym_stage
-SELECT css.*
+INSERT INTO concept_synonym_stage(synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id)
+SELECT css.synonym_concept_id,css.synonym_name,css.synonym_concept_code,synonym_vocabulary_id,language_concept_id
 FROM sources.hemonc_css css
 JOIN concept_stage cs ON cs.concept_code = css.synonym_concept_code
 	AND cs.vocabulary_id = css.synonym_vocabulary_id
@@ -382,5 +379,104 @@ WHERE crs.concept_code_1 = cs.concept_code
 	AND crs.vocabulary_id_1 = cs.vocabulary_id
 	AND crs.relationship_id = 'Concept replaced by'
 	AND crs.invalid_reason IS NULL;
+
+--13. Add manual mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--14. Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--15. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--16. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--17. Delete ambiguous 'Maps to' mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;
+
+--18. Build reverse relationship. This is necessary for next point
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT crs.concept_code_2,
+	crs.concept_code_1,
+	crs.vocabulary_id_2,
+	crs.vocabulary_id_1,
+	r.reverse_relationship_id,
+	crs.valid_start_date,
+	crs.valid_end_date,
+	crs.invalid_reason
+FROM concept_relationship_stage crs
+JOIN relationship r ON r.relationship_id = crs.relationship_id
+WHERE NOT EXISTS (
+		-- the inverse record
+		SELECT 1
+		FROM concept_relationship_stage i
+		WHERE crs.concept_code_1 = i.concept_code_2
+			AND crs.concept_code_2 = i.concept_code_1
+			AND crs.vocabulary_id_1 = i.vocabulary_id_2
+			AND crs.vocabulary_id_2 = i.vocabulary_id_1
+			AND r.reverse_relationship_id = i.relationship_id
+		);
+
+--19. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT a.concept_code,
+	b.concept_code,
+	a.vocabulary_id,
+	b.vocabulary_id,
+	relationship_id,
+	r.valid_start_date,
+	CURRENT_DATE,
+	'D'
+FROM concept a
+JOIN concept_relationship r ON a.concept_id = concept_id_1
+	AND r.invalid_reason IS NULL
+JOIN concept b ON b.concept_id = concept_id_2
+WHERE 'HemOnc' IN (
+		a.vocabulary_id,
+		b.vocabulary_id
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = a.concept_code
+			AND crs_int.concept_code_2 = b.concept_code
+			AND crs_int.vocabulary_id_1 = a.vocabulary_id
+			AND crs_int.vocabulary_id_2 = b.vocabulary_id
+			AND crs_int.relationship_id = r.relationship_id
+		);
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

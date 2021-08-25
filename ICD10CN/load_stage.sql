@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Eduard Korchmar, Dmitry Dymshyts
-* Date: 2020
+* Date: 2021
 **************************************************************************/
 /*
 TODO:
@@ -80,7 +80,8 @@ SELECT
 	4180186 AS language_concept_id -- English
 FROM sources.icd10cn_concept ic
 JOIN concept c ON c.vocabulary_id = 'ICD10'
-	AND replace(ic.concept_code_clean, '.x00', '') = c.concept_code
+	AND c.concept_class_id NOT LIKE '%Chapter%'
+	AND REPLACE(ic.concept_code_clean, '.x00', '') = c.concept_code
 WHERE ic.concept_code <> 'Metadata'
 
 UNION
@@ -94,6 +95,7 @@ SELECT
 	4180186 AS language_concept_id -- English
 FROM sources.icd10cn_concept ic
 JOIN concept c ON c.vocabulary_id = 'ICD10'
+	AND c.concept_class_id NOT LIKE '%Chapter%'
 	AND ic.concept_code_clean = c.concept_code || '00'
 WHERE ic.concept_code <> 'Metadata'
 
@@ -192,12 +194,14 @@ LEFT JOIN icd10cn_chapters ch ON ch.chapter_code = ic.concept_code_clean
 
 UNION ALL
 
-VALUES ('Emergency use of U07.1 | Disease caused by severe acute respiratory syndrome coronavirus 2','Condition','ICD10CN','ICD10 code','U07.1',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('Confirmed COVID-19, excluding pneumonia (machine translation)','Condition','ICD10CN','ICD10 code','U07.100x002',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('COVID-19 (machine translation)','Condition','ICD10CN','ICD10 code','U07.100',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('Suspected case of COVID-19 (machine translation)','Condition','ICD10CN','ICD10 code','Z03.800x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('COVID-19 pneumonia (machine translation)','Condition','ICD10CN','ICD10 code','U07.100x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
-	('COVID-19 pneumonia (machine translation)','Condition','ICD10CN','ICD10 code','U07.100x003',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'));
+VALUES
+	('Emergency use of U07.1 | COVID-19, virus identified','Condition','ICD10CN','ICD10 code','U07.1',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('Emergency use of U07.2 | COVID-19, virus not identified','Condition','ICD10CN','ICD10 code','U07.2',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19, excluding pneumonia','Condition','ICD10CN','ICD10 code','U07.100x002',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19','Condition','ICD10CN','ICD10 code','U07.100',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('Suspected case of COVID-19 pneumonia','Observation','ICD10CN','ICD10 code','Z03.800x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 pneumonia','Condition','ICD10CN','ICD10 code','U07.100x001',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd')),
+	('COVID-19 pneumonia','Condition','ICD10CN','ICD10 code','U07.100x003',TO_DATE('19700101','yyyymmdd'),TO_DATE('20991231','yyyymmdd'));
 
 --6.1. Replace names with manually corrected English components wherever possible
 WITH new_names
@@ -276,7 +280,8 @@ FROM name_source ns
 
 UNION ALL
 
-VALUES ('新型冠状病毒肺炎疑似病例','Z03.800x001','ICD10CN',4182948),
+VALUES
+	('新型冠状病毒肺炎疑似病例','Z03.800x001','ICD10CN',4182948),
 	('Emergency use of U07.1 | COVID-19','U07.1','ICD10CN',4180186),
 	('新型冠状病毒肺炎临床诊断病例','U07.100x003','ICD10CN',4182948),
 	('新型冠状病毒肺炎','U07.100x001','ICD10CN',4182948),
@@ -365,6 +370,7 @@ FROM (
 			) AS concept_id
 	FROM concept_stage cs
 	JOIN concept c ON c.vocabulary_id = 'ICD10'
+		AND c.concept_class_id NOT LIKE '%Chapter%'
 		AND
 		--Allow fuzzy match uphill for this iteration
 		cs.concept_code LIKE c.concept_code || '%'
@@ -372,6 +378,9 @@ FROM (
 			'ICD10 code',
 			'ICD10 Hierarchy'
 			)
+		--Exclude ICD10CN COVID-19 specific stuff that is mapped in CRM
+		AND cs.concept_code NOT LIKE 'U07.100%'
+		AND cs.concept_code <> 'Z03.800x001'
 	) i
 JOIN concept_relationship r ON r.concept_id_1 = i.concept_id
 	AND r.invalid_reason IS NULL

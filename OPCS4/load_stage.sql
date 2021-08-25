@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich
-* Date: 2017
+* Date: 2021
 **************************************************************************/
 
 -- 1. Update latest_update field to new date 
@@ -134,6 +134,44 @@ WHERE (
 			crs.vocabulary_id_1
 		FROM concept_relationship_stage crs
 		WHERE crs.invalid_reason IS NULL
+		);
+
+--12. Add distinct relationships to SNOMED attributes from target procedures for standard procedures
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT r.concept_code_1,
+	y.concept_code,
+	'OPCS4',
+	'SNOMED',
+	x.relationship_id,
+	min(x.valid_start_date) OVER (PARTITION BY r.concept_code_1), --attribute may come from multiple parents
+	x.valid_end_date
+FROM concept_relationship_stage r
+JOIN concept c ON r.concept_code_2 = c.concept_code
+	AND c.vocabulary_id = 'SNOMED'
+	AND c.concept_class_id = 'Procedure'
+	AND r.invalid_reason IS NULL
+	AND r.relationship_id = 'Is a'
+JOIN concept_relationship x ON x.concept_id_1 = c.concept_id
+	AND x.invalid_reason IS NULL
+JOIN concept y ON y.concept_id = x.concept_id_2
+	AND y.vocabulary_id = 'SNOMED'
+	AND y.invalid_reason IS NULL
+JOIN sources.sct2_rela_full_merged m ON -- check if relation exists in SNOMED sources, to avoid where procedures themselves are attributes of other concepts
+	m.sourceid::VARCHAR = c.concept_code
+	AND m.destinationid::VARCHAR = y.concept_code
+WHERE x.relationship_id NOT IN (
+		'Is a',
+		'Subsumes',
+		'Maps to',
+		'Mapped from'
 		);
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

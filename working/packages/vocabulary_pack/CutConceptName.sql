@@ -1,0 +1,10 @@
+CREATE OR REPLACE FUNCTION vocabulary_pack.CutConceptName (concept_name IN TEXT) RETURNS TEXT
+AS
+$BODY$
+	SELECT CASE 
+		WHEN LENGTH(TRIM(concept_name)) > 255
+			THEN TRIM(SUBSTR(TRIM(concept_name), 1, 252)) || '...'
+		ELSE TRIM(concept_name)
+		END;
+$BODY$
+LANGUAGE 'sql' IMMUTABLE PARALLEL SAFE SECURITY INVOKER COST 1;

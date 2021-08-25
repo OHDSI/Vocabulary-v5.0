@@ -35,7 +35,6 @@ CREATE TABLE SOURCES.LOINC
   CONSUMER_NAME              VARCHAR(255),
   CLASSTYPE                  VARCHAR(255),
   FORMULA                    TEXT,
-  SPECIES                    VARCHAR(20),
   EXMPL_ANSWERS              TEXT,
   SURVEY_QUEST_TEXT          TEXT,
   SURVEY_QUEST_SRC           VARCHAR(50),
@@ -269,8 +268,21 @@ CREATE TABLE SOURCES.LOINC_GROUPLOINCTERMS
   LONGCOMMONNAME        VARCHAR(1000)
 );
 
-DROP TABLE IF EXISTS SOURCES.LOINC_PARTLINK;
-CREATE TABLE SOURCES.LOINC_PARTLINK
+DROP TABLE IF EXISTS SOURCES.LOINC_PARTLINK_PRIMARY;
+CREATE TABLE SOURCES.LOINC_PARTLINK_PRIMARY
+(
+  LOINCNUMBER           VARCHAR(10),
+  LONGCOMMONNAME        VARCHAR(1000),
+  PARTNUMBER            VARCHAR(1000),
+  PARTNAME              VARCHAR(1000),
+  PARTCODESYSTEM        VARCHAR(1000),
+  PARTTYPENAME          VARCHAR(1000),
+  LINKTYPENAME          VARCHAR(1000),
+  PROPERTY              VARCHAR(1000)
+);
+
+DROP TABLE IF EXISTS SOURCES.LOINC_PARTLINK_SUPPLEMENTARY;
+CREATE TABLE SOURCES.LOINC_PARTLINK_SUPPLEMENTARY
 (
   LOINCNUMBER           VARCHAR(10),
   LONGCOMMONNAME        VARCHAR(1000),
@@ -291,3 +303,48 @@ CREATE TABLE SOURCES.LOINC_PART
   PARTDISPLAYNAME       VARCHAR(1000),
   STATUS                VARCHAR(100)
 );
+
+DROP TABLE IF EXISTS SOURCES.LOINC_RADIOLOGY;
+CREATE TABLE SOURCES.LOINC_RADIOLOGY
+(
+  LOINCNUMBER           VARCHAR(10),
+  LONGCOMMONNAME        VARCHAR(1000),
+  PARTNUMBER            VARCHAR(1000),
+  PARTTYPENAME          VARCHAR(1000),
+  PARTNAME              VARCHAR(1000),
+  PARTSEQUENCEORDER     VARCHAR(1000),
+  RID                   VARCHAR(1000),
+  PREFERREDNAME         VARCHAR(1000),
+  RPID                  VARCHAR(1000),
+  LONGNAME              VARCHAR(1000)
+);
+
+CREATE OR REPLACE FUNCTION vocabulary_pack.GetLoincPrerelease ()
+RETURNS TABLE (
+  created_on date,
+  loinc text,
+  long_common_name text
+) AS
+$body$
+BEGIN
+  return query 
+  select s0.created_on, s0.loinc, s0.long_common_name from (
+    with loinc_table as (
+        select replace(replace(replace(substring(http_content,'<table id="prereleasetable".*?(<tbody>.*</tbody>)'),'&','&amp;'),' <= ',' &lt;= '),'<30','&lt;30')::xml xmlfield
+        from vocabulary_download.py_http_get(url=>'https://loinc.org/prerelease',allow_redirects=>true)
+    )
+    select
+      to_date((xpath('./td/text()',sections))[1]::text,'yyyy-mm-dd') as created_on,
+      unnest(xpath('./td/a/text()',sections))::text as loinc,
+      devv5.py_unescape((xpath('./td/text()',sections))[2]::text) as long_common_name,
+      unnest(xpath('./td/i/@title',sections))::text as special_use
+    from loinc_table i,
+    unnest(xpath('/tbody/tr', i.xmlfield)) sections
+  ) as s0 where s0.special_use is not null;
+END;
+$body$
+LANGUAGE 'plpgsql'
+VOLATILE
+CALLED ON NULL INPUT
+SECURITY DEFINER
+COST 100 ROWS 100;

@@ -14,9 +14,6 @@ declare
   cMailBody varchar (1000);
 begin
     perform devv5.SendMailHTML (email, cJOBName||' was started', 'Time: '||now()::timestamp(0));
-    set local search_path to devv5; --for proper work of devv5.http_get
-    perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
-    set local http.timeout_msec TO 30000; --set HTTP timeout
     truncate table apigrabber.rxnorm2spl_mappings_tmp;
     truncate table apigrabber.api_codes_failed;
 
@@ -24,7 +21,7 @@ begin
     for cCode in (select c.concept_code from devv5.concept c WHERE c.vocabulary_id = 'RxNorm') loop
       begin
         insert into apigrabber.rxnorm2spl_mappings_tmp
-          select cCode, unnest(xpath('//propValue/text()', (select content::xml from devv5.http_get('https://rxnav.nlm.nih.gov/REST/rxcui/'||cCode||'/property?propName=SPL_SET_ID'))));
+          select cCode, unnest(xpath('//propValue/text()', (select http_content::xml from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/rxcui/'||cCode||'/property?propName=SPL_SET_ID',allow_redirects=>true))));
         exception when others then 
         --if we have any exception - writing to the LOG-table
         insert into apigrabber.api_codes_failed values (cCode);
@@ -38,7 +35,7 @@ begin
           for cCode in (select f.concept_code from apigrabber.api_codes_failed f order by random()/*if some concept fails, try the following*/) loop
           begin
             insert into apigrabber.rxnorm2spl_mappings_tmp
-              select cCode, unnest(xpath('//propValue/text()', (select content::xml from devv5.http_get('https://rxnav.nlm.nih.gov/REST/rxcui/'||cCode||'/property?propName=SPL_SET_ID'))));
+              select cCode, unnest(xpath('//propValue/text()', (select http_content::xml from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/rxcui/'||cCode||'/property?propName=SPL_SET_ID',allow_redirects=>true))));
             delete from apigrabber.api_codes_failed f where f.concept_code=cCode; --delete the concept if the operation was successful
             cExecCounter:=0; --reset the counter if the operation was successful
             exception when others then

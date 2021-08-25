@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION vocabulary_pack.CheckVocabularyUpdate (
+CREATE OR REPLACE FUNCTION vocabulary_pack.CheckVocabularyUpdate (
   pVocabularyName varchar,
   out old_date date,
   out new_date date,
@@ -93,7 +93,7 @@ BEGIN
           union all
           (select vocabulary_date, vocabulary_version, 'UMLS' FROM sources.mrsmap LIMIT 1)
         ) as s
-        WHERE UPPER(vocabulary_id)=case cVocabularyName when 'NDC_SPL' then 'NDC' else cVocabularyName end;
+        WHERE UPPER(vocabulary_id)=case cVocabularyName when 'NDC_SPL' then 'NDC' when 'DMD' then 'DM+D' else cVocabularyName end;
 
         /*
           INSERT INTO vocabulary_access
@@ -134,10 +134,13 @@ BEGIN
           22. AMT
           23. CDM
           24. SNOMED Veterinary
+          25. ICD10GM
+          26. CCAM
+          27. HemOnc
+          28. dm+d
+          29. OncoTree
         */
-        perform http_set_curlopt('CURLOPT_TIMEOUT', '30');
-        set local http.timeout_msec TO 30000;
-        SELECT content into cVocabHTML FROM http_get(cURL);
+        SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
         CASE
             WHEN cVocabularyName = 'RXNORM'
@@ -154,11 +157,7 @@ BEGIN
                 cVocabVer := SUBSTRING(cVocabHTML,'([\d]{4}[A-z]{2}) Full UMLS Release Files');
             WHEN cVocabularyName = 'SNOMED'
             THEN
-                cSearchString := '<a class="btn btn-info" href="';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cPos2 := devv5.INSTR (cVocabHTML, '.zip"><strong>Download RF2 Files Now!</strong></a>', cPos1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (SUBSTRING (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:digit:]]+'), 'yyyymmdd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-uk_sct2cl_[\d.]+_(\d{8})\d+.zip".+?\.zip">.+'),'yyyymmdd');
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'HCPCS'
             THEN
@@ -186,11 +185,11 @@ BEGIN
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');
             WHEN cVocabularyName = 'ICD10CM'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'Note: The FY ([[:digit:]]{4}) release of ICD-10-CM is now available') || '0101', 'yyyymmdd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, 'FY ([[:digit:]]{4}) release of ICD-10-CM') || '0101', 'yyyymmdd');
                 cVocabVer := 'ICD10CM FY'||to_char(cVocabDate,'YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN
-                cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'<a href="/Medicare/Coding/ICD10/([[:digit:]]{4})-ICD-10-PCS"') || '0101', 'yyyymmdd');
+                cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<a href="/medicare/[^/]+/([[:digit:]]{4})-icd-10-pcs".*?>[[:digit:]]{4} icd-10-pcs</a>') || '1001', 'yyyymmdd') - interval '1 year';
                 /*old version2
                 select s1.icd10pcs_year into cVocabDate from (
                   select TO_DATE (SUBSTRING(url,'/([[:digit:]]{4})')::int - 1 || '0101', 'yyyymmdd') icd10pcs_year from (
@@ -208,7 +207,7 @@ BEGIN
                 perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
                 cVocabDate := TO_DATE (SUBSTRING (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '^[[:digit:]]+')::int - 1 || '0101', 'yyyymmdd');
                 */
-                cVocabVer := 'ICD10PCS '||to_char(cVocabDate,'YYYY');
+                cVocabVer := 'ICD10PCS '||to_char(cVocabDate + interval '1 year','YYYY');
             WHEN cVocabularyName = 'LOINC'
             THEN
                 cSearchString := 'LOINC Table File (CSV)';
@@ -238,8 +237,9 @@ BEGIN
                     unnest(xpath ('/rss/channel/item/pubDate/text()', cVocabHTML::xml)) ::varchar pubDate
                 ) as t
                 WHERE t.link_str LIKE '%www.meddra.org/how-to-use/support-documentation/english'
+                AND t.title LIKE '%MedDRA Version%'
                 ORDER BY TO_DATE (pubDate, 'dy dd mon yyyy hh24:mi:ss') DESC
-                LIMIT 1;             
+                LIMIT 1;
             WHEN cVocabularyName = 'NDC_SPL'
             THEN
                 /*cSearchString := 'Current through: ';
@@ -301,7 +301,7 @@ BEGIN
             WHEN cVocabularyName = 'CVX'
             THEN
                 select s0.cvx_date into cVocabDate from (
-                  select unnest(xpath ('/rdf:RDF/global:item/dc:date/text()', cVocabHTML::xml, 
+                  select unnest(xpath ('/rdf:RDF/global:item/dc:date/text()', cVocabHTML::xml,
                   ARRAY[
                     ARRAY['rdf', 'http://www.w3.org/1999/02/22-rdf-syntax-ns#'],
                     ARRAY['global', 'http://purl.org/rss/1.0/'],
@@ -369,16 +369,42 @@ BEGIN
             THEN
                 cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a href="SnomedCT_Release_VTS.+?_([\d]{8})\.zip" target="main">Download the Veterinary Extension of SNOMED CT</a>.+'),'yyyymmdd');
                 cVocabVer := 'SNOMED Veterinary '||to_char(cVocabDate,'YYYYMMDD');
+            WHEN cVocabularyName = 'ICD10GM'
+            THEN
+                --ICD10GM uses ajax, so we need to make another HTTP-request to get date/version
+                SELECT http_content INTO cVocabHTML FROM vocabulary_download.py_http_get(url=>'https://www.dimdi.de/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/filelist-ajax.jsp?folder='||
+                    SUBSTRING(cVocabHTML,'.*?data-folder="(/sites/dimdi2018/\.downloads/klassifikationen/icd-10-gm/version\d{4}/)".+')||'&sitepath=/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/&loc=de&rows=25&start=0',allow_redirects=>true);
+                --cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM \d{4} Metadaten TXT \(CSV\) </a>.*?<p>Stand: ([\d.]+).*'),'dd.mm.yyyy');
+                --cVocabVer := cVocabularyName||SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM( \d{4}) Metadaten TXT \(CSV\) </a>.*?<p>Stand: [\d.]+.*');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta[\d-]*\.zip">ICD-10-GM (\d{4}) Metadaten TXT \(CSV\)\s*</a>.*?<p>Stand: [\d.]+.*'),'yyyy');
+                cVocabVer := cVocabularyName||' '||to_char(cVocabDate,'YYYY');
+            WHEN cVocabularyName = 'CCAM'
+            THEN
+              cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d.]+)</h4>.+');
+            WHEN cVocabularyName = 'HEMONC'
+            THEN
+              cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology</span>.+?<span class="text-muted">(.+?)</span>.+'),'month dd, yyyy');
+              cVocabVer := 'HemOnc '||to_char(cVocabDate,'yyyy-mm-dd');
+            WHEN cVocabularyName = 'DMD'
+            THEN
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhsbsa_dmd_\d\.\d\.\d_(\d{8})\d+.zip".+?\.zip">.+'),'yyyymmdd');
+                cVocabVer := 'dm+d Version '||SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhsbsa_dmd_\d\.\d\.\d_\d+.zip".+?\.zip">.+?<div class="current">.+?<h1 class="title">.+?Release (\d\.\d\.\d).+?</h1>.+')||' '||to_char(cVocabDate,'yyyymmdd');
+            WHEN cVocabularyName = 'ONCOTREE'
+            THEN
+                select x.release_date into cVocabDate
+                from json_to_recordset(cVocabHTML::json) as x (api_identifier text, release_date date)
+                where x.api_identifier='oncotree_latest_stable';
+                cVocabVer := 'OncoTree version '||to_char(cVocabDate,'yyyy-mm-dd');
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;
 
-        IF (cVocabDate IS NULL AND cVocabularyName <> 'ISBT') OR (cVocabVer IS NULL AND cVocabularyName = 'ISBT')
+        IF (cVocabDate IS NULL AND cVocabularyName NOT IN ('ISBT','CCAM')) OR (cVocabVer IS NULL AND cVocabularyName IN ('ISBT','CCAM'))
         THEN
             RAISE EXCEPTION 'NULL detected for %', pVocabularyName;
         END IF;
 
-        IF cVocabularyName = 'ISBT'
+        IF cVocabularyName IN ('ISBT','CCAM')
         THEN
           IF cVocabVer <> cVocabOldVer
           THEN

@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION vocabulary_pack.deleteambiguousmapsto (
+﻿CREATE OR REPLACE FUNCTION vocabulary_pack.DeleteAmbiguousMAPSTO (
 )
 RETURNS void AS
 $body$
@@ -23,8 +23,7 @@ BEGIN
 				))
 	FROM (
 		WITH t AS (
-				SELECT rid,
-					concept_code_1,
+				SELECT concept_code_1,
 					concept_code_2,
 					vocabulary_id_1,
 					vocabulary_id_2,
@@ -36,8 +35,7 @@ BEGIN
 						) have_true_mapping,
 					has_rel_with_comp
 				FROM (
-					SELECT cs.ctid rid,
-						concept_code_1,
+					SELECT concept_code_1,
 						concept_code_2,
 						vocabulary_id_1,
 						vocabulary_id_2,
@@ -80,26 +78,21 @@ BEGIN
 										AND relationship_id = 'Maps to'
 									) crs_int,
 								(
-									(
-										SELECT DISTINCT concept_code,
-											vocabulary_id,
-											first_value(concept_class_id) OVER (
-												PARTITION BY concept_code ORDER BY table_type
-												) AS concept_class_id
-										FROM (
-											SELECT cs.concept_id,
-												cs.domain_id,
-												cs.vocabulary_id,
-												cs.concept_class_id,
-												cs.concept_code,
-												cs.valid_start_date,
-												1 AS table_type
-											FROM concept_stage cs
-											WHERE cs.domain_id = 'Drug'
-												AND cs.concept_class_id = 'Clinical Drug Comp'
-												AND cs.vocabulary_id LIKE 'Rx%'
-											) AS s0
-										)
+									SELECT concept_code,
+										vocabulary_id,
+										concept_class_id
+									FROM (
+										SELECT cs.concept_id,
+											cs.domain_id,
+											cs.vocabulary_id,
+											cs.concept_class_id,
+											cs.concept_code,
+											cs.valid_start_date
+										FROM concept_stage cs
+										WHERE cs.domain_id = 'Drug'
+											AND cs.concept_class_id = 'Clinical Drug Comp'
+											AND cs.vocabulary_id LIKE 'Rx%'
+										) AS s0
 									) c_int
 							WHERE cr_int.concept_code_1 = c.concept_code
 								AND cr_int.vocabulary_id_1 = c.vocabulary_id
@@ -115,18 +108,18 @@ BEGIN
 						(
 							SELECT DISTINCT concept_code,
 								vocabulary_id,
-								first_value(concept_id) OVER (
+								FIRST_VALUE(concept_id) OVER (
 									PARTITION BY concept_code,
 									vocabulary_id ORDER BY table_type
 									) AS concept_id,
-								first_value(domain_id) OVER (
+								FIRST_VALUE(domain_id) OVER (
 									PARTITION BY concept_code,
 									vocabulary_id ORDER BY table_type
 									) AS domain_id,
-								first_value(concept_class_id) OVER (
+								FIRST_VALUE(concept_class_id) OVER (
 									PARTITION BY concept_code ORDER BY table_type
 									) AS concept_class_id,
-								first_value(valid_start_date) OVER (
+								FIRST_VALUE(valid_start_date) OVER (
 									PARTITION BY concept_code,
 									vocabulary_id ORDER BY table_type
 									) AS valid_start_date

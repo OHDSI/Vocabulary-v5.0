@@ -23,7 +23,7 @@ $body$
   * limitations under the License.
   * 
   * Authors: Timur Vakhitov
-  * Date: 2017
+  * Date: 2020
   **************************************************************************/
 
   /*
@@ -75,6 +75,7 @@ $body$
     ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id);
     ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
     ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_concept FOREIGN KEY (concept_id) REFERENCES concept (concept_id);
+    ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_language FOREIGN KEY (language_concept_id) REFERENCES concept (concept_id);
     ALTER TABLE concept_synonym ADD CONSTRAINT unique_synonyms UNIQUE (concept_id,concept_synonym_name,language_concept_id);
     IF drop_concept_ancestor OR include_concept_ancestor THEN ALTER TABLE concept_ancestor ADD CONSTRAINT xpkconcept_ancestor PRIMARY KEY (ancestor_concept_id,descendant_concept_id); END IF;
 
@@ -91,7 +92,13 @@ $body$
     CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id);
     CREATE UNIQUE INDEX u_pack_content ON pack_content (pack_concept_id, drug_concept_id, amount);
     ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id);
+    CREATE INDEX IF NOT EXISTS idx_cs_concept_code ON concept_stage (concept_code);
+    CREATE INDEX IF NOT EXISTS idx_cs_concept_id ON concept_stage (concept_id);
+    CREATE INDEX IF NOT EXISTS idx_concept_code_1 ON concept_relationship_stage (concept_code_1);
+    CREATE INDEX IF NOT EXISTS idx_concept_code_2 ON concept_relationship_stage (concept_code_2);
+    CREATE INDEX IF NOT EXISTS idx_dss_concept_code ON drug_strength_stage (drug_concept_code);
     CREATE INDEX IF NOT EXISTS idx_ca_descendant ON concept_ancestor (descendant_concept_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS xpk_vocab_conversion ON vocabulary_conversion (vocabulary_id_v5);
 
     --Enable other constraints
     ALTER TABLE domain ADD CONSTRAINT fpk_domain_concept FOREIGN KEY (DOMAIN_concept_id) REFERENCES concept (concept_id);

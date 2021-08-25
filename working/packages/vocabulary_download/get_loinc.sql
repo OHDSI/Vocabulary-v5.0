@@ -22,8 +22,8 @@ pCookie_p1_value text;
 pCookie_p2 text;
 pCookie_p2_value text;
 pContent text;
+pTicket text;
 pDownloadURL text;
-auth_hidden_param varchar(10000);
 pErrorDetails text;
 pVocabularyOperation text;
 /*
@@ -102,7 +102,7 @@ BEGIN
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.zip',
       iDownloadLink=>pDownloadURL,
-      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -120,7 +120,7 @@ BEGIN
       iFilename=>lower(pVocabularyID)||'_mh.zip',
       iDownloadLink=>pVocabulary_url,
       iDeleteAll=>0,
-      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -137,7 +137,7 @@ BEGIN
       iFilename=>lower(pVocabularyID)||'_pf.zip',
       iDownloadLink=>pVocabulary_url,
       iDeleteAll=>0,
-      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -154,7 +154,7 @@ BEGIN
       iFilename=>lower(pVocabularyID)||'_ls.zip',
       iDownloadLink=>pVocabulary_url,
       iDeleteAll=>0,
-      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -171,7 +171,7 @@ BEGIN
       iFilename=>lower(pVocabularyID)||'_la.zip',
       iDownloadLink=>pVocabulary_url,
       iDeleteAll=>0,
-      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -188,7 +188,7 @@ BEGIN
       iFilename=>lower(pVocabularyID)||'_do.zip',
       iDownloadLink=>pVocabulary_url,
       iDeleteAll=>0,
-      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -205,7 +205,7 @@ BEGIN
       iFilename=>lower(pVocabularyID)||'_gf.zip',
       iDownloadLink=>pVocabulary_url,
       iDeleteAll=>0,
-      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -222,12 +222,29 @@ BEGIN
       iFilename=>lower(pVocabularyID)||'_partf.zip',
       iDownloadLink=>pVocabulary_url,
       iDeleteAll=>0,
-      iParams=>'--no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
       iVocabulary_operation=>'GET_LOINC LOINC Part File downloading complete',
+      iVocabulary_status=>1
+    );
+    
+    --LOINC/RSNA Radiology Playbook File
+    pVocabularyOperation:='GET_LOINC LOINC/RSNA Radiology Playbook File downloading';
+    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=11;
+    perform run_wget (
+      iPath=>pVocabulary_load_path,
+      iFilename=>lower(pVocabularyID)||'_radiology.zip',
+      iDownloadLink=>pVocabulary_url,
+      iDeleteAll=>0,
+      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
+    );
+    perform write_log (
+      iVocabularyID=>pVocabularyID,
+      iSessionID=>pSession,
+      iVocabulary_operation=>'GET_LOINC LOINC/RSNA Radiology Playbook File downloading complete',
       iVocabulary_status=>1
     );
     
@@ -241,13 +258,9 @@ BEGIN
     select 'https:'||substring(http_content,'<th>LOINC to CPT Mapping Version</th>.+?href="(.+?)">Draft') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
-    --get full working link with proper cookie
-    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'),
-    (select value from json_each_text(http_headers) where lower(key)='location'),http_content
-    into pCookie, pDownloadURL, pContent from py_http_umls (pVocabulary_auth,pDownloadURL,devv5.urlencode(pVocabulary_login),devv5.urlencode(pVocabulary_pass));
-    if pCookie not like '%MOD_AUTH_CAS=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%MOD_AUTH_CAS=%% not found'; end if;
-    
-    pCookie=substring(pCookie,'MOD_AUTH_CAS=(.*?);');
+    --get the proper ticket and concatenate it with the pDownloadURL
+    pTicket:=get_umls_ticket (pVocabulary_auth,pVocabulary_login,pDownloadURL);
+    pDownloadURL:=pDownloadURL||'?ticket='||pTicket;
 
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -262,7 +275,6 @@ BEGIN
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'_cpt.zip',
       iDownloadLink=>pDownloadURL,
-      iParams=>'--no-cookies --header "Cookie: MOD_AUTH_CAS='||pCookie||'"',
       iDeleteAll=>0
     );
     perform write_log (

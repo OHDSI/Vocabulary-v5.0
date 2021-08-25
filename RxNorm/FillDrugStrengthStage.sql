@@ -256,7 +256,7 @@ BEGIN
 					numerator_unit
 					) AS numerator_value,
 				numerator_unit,
-				NULL::FLOAT AS denominator_value, -- in Clinical/Branded Drugs always normalized to 1
+				NULL::NUMERIC AS denominator_value, -- in Clinical/Branded Drugs always normalized to 1
 				denominator_unit,
 				valid_start_date,
 				valid_end_date
@@ -268,7 +268,7 @@ BEGIN
 						WHEN component_name ~ '\/[^-]'
 							THEN NULL
 						ELSE SUBSTRING(substring(component_name FROM position), '( [0-9]+(\.[0-9]+)? )')
-						END::FLOAT AS amount,
+						END::NUMERIC AS amount,
 					CASE 
 						WHEN component_name ~ '\/[^-]'
 							THEN NULL
@@ -278,7 +278,7 @@ BEGIN
 						WHEN NOT component_name ~ '\/[^-]'
 							THEN NULL
 						ELSE substring(substring(component_name FROM position), '.* ([0-9.]+) [[:alpha:]-]+')
-						END::FLOAT AS numerator,
+						END::NUMERIC AS numerator,
 					CASE 
 						WHEN NOT component_name ~ '\/[^-]'
 							THEN NULL
@@ -434,7 +434,7 @@ BEGIN
 					numerator_unit
 					) AS numerator_value,
 				numerator_unit,
-				NULL::FLOAT AS denominator_value, -- denominator_value, in Clinical/Branded Drugs always normalized to 1
+				NULL::NUMERIC AS denominator_value, -- denominator_value, in Clinical/Branded Drugs always normalized to 1
 				denominator_unit,
 				valid_start_date,
 				valid_end_date
@@ -446,7 +446,7 @@ BEGIN
 						WHEN component_name ~ '\/[^-]'
 							THEN NULL
 						ELSE substring(substring(component_name FROM position), '( [0-9]+(\.[0-9]+)? )')
-						END::FLOAT AS amount,
+						END::NUMERIC AS amount,
 					CASE 
 						WHEN component_name ~ '\/[^-]'
 							THEN NULL
@@ -456,7 +456,7 @@ BEGIN
 						WHEN NOT component_name ~ '\/[^-]'
 							THEN NULL
 						ELSE substring(substring(component_name FROM position), '.* ([0-9.]+) [[:alpha:]-]+')
-						END::FLOAT AS numerator,
+						END::NUMERIC AS numerator,
 					CASE 
 						WHEN NOT component_name ~ '\/[^-]'
 							THEN NULL
@@ -560,7 +560,7 @@ BEGIN
 			vocabulary_id_1,
 			ingredient_concept_code, -- of the original non-quantified
 			vocabulary_id_2,
-			NULL::FLOAT AS amount_value,
+			NULL::NUMERIC AS amount_value,
 			NULL::INT4 AS amount_unit_concept_id,
 			v * numerator_value AS numerator_value,
 			numerator_unit_concept_id,
@@ -579,7 +579,7 @@ BEGIN
 				ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
 				ds.valid_start_date,
 				ds.valid_end_date,
-				substring(q.concept_name, '^[0-9\.]+')::FLOAT AS v
+				substring(q.concept_name, '^[0-9\.]+')::NUMERIC AS v
 			FROM drug_strength_stage ds
 			JOIN concept_stage d ON d.concept_code = ds.drug_concept_code
 				AND d.vocabulary_id = ds.vocabulary_id_1
@@ -620,7 +620,7 @@ BEGIN
 			vocabulary_id_1,
 			ingredient_concept_code, -- of the original non-quantified
 			vocabulary_id_2,
-			NULL::FLOAT AS amount_value,
+			NULL::NUMERIC AS amount_value,
 			NULL::INT4 AS amount_unit_concept_id,
 			v * numerator_value * 24 AS numerator_value,
 			numerator_unit_concept_id,
@@ -639,7 +639,7 @@ BEGIN
 				ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
 				ds.valid_start_date,
 				ds.valid_end_date,
-				substring(q.concept_name, '^[0-9\.]+')::FLOAT AS v
+				substring(q.concept_name, '^[0-9\.]+')::NUMERIC AS v
 			FROM drug_strength_stage ds
 			JOIN concept_stage d ON d.concept_code = ds.drug_concept_code
 				AND d.vocabulary_id = ds.vocabulary_id_1
@@ -680,7 +680,7 @@ BEGIN
 			vocabulary_id_1,
 			ingredient_concept_code, -- of the original non-quantified
 			vocabulary_id_2,
-			NULL::FLOAT AS amount_value,
+			NULL::NUMERIC AS amount_value,
 			NULL::int4 AS amount_unit_concept_id,
 			v AS numerator_value,
 			numerator_unit_concept_id,
@@ -699,7 +699,7 @@ BEGIN
 				ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
 				ds.valid_start_date,
 				ds.valid_end_date,
-				substring(q.concept_name, '^[0-9\.]+')::FLOAT AS v
+				substring(q.concept_name, '^[0-9\.]+')::NUMERIC AS v
 			FROM drug_strength_stage ds
 			JOIN concept_stage d ON d.concept_code = ds.drug_concept_code
 				AND d.vocabulary_id = ds.vocabulary_id_1
@@ -740,7 +740,7 @@ BEGIN
 			vocabulary_id_1,
 			ingredient_concept_code, -- of the original non-quantified
 			vocabulary_id_2,
-			NULL::FLOAT AS amount_value,
+			NULL::NUMERIC AS amount_value,
 			NULL::int4 AS amount_unit_concept_id,
 			CASE denominator_unit_concept_id
 				WHEN 8587
@@ -767,7 +767,7 @@ BEGIN
 				ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
 				ds.valid_start_date,
 				ds.valid_end_date,
-				substring(q.concept_name, '^[0-9\.]+')::FLOAT AS v
+				substring(q.concept_name, '^[0-9\.]+')::NUMERIC AS v
 			FROM drug_strength_stage ds
 			JOIN concept_stage d ON d.concept_code = ds.drug_concept_code
 				AND d.vocabulary_id = ds.vocabulary_id_1
@@ -811,7 +811,7 @@ BEGIN
 			vocabulary_id_1,
 			ingredient_concept_code, -- of the original non-quantified
 			vocabulary_id_2,
-			NULL::FLOAT AS amount_value,
+			NULL::NUMERIC AS amount_value,
 			NULL::int4 AS amount_unit_concept_id,
 			CASE 
 				WHEN amount_unit_concept_id = 8510
@@ -840,7 +840,7 @@ BEGIN
 				ds.denominator_unit_concept_id, -- Actuations never have values in the amount section
 				ds.valid_start_date,
 				ds.valid_end_date,
-				substring(q.concept_name, '^[0-9\.]+')::FLOAT AS v
+				substring(q.concept_name, '^[0-9\.]+')::NUMERIC AS v
 			FROM drug_strength_stage ds
 			JOIN concept_stage d ON d.concept_code = ds.drug_concept_code
 				AND d.vocabulary_id = ds.vocabulary_id_1
@@ -884,7 +884,7 @@ BEGIN
 			vocabulary_id_1,
 			ingredient_concept_code, -- of the original non-quantified
 			vocabulary_id_2,
-			NULL::FLOAT AS amount_value,
+			NULL::NUMERIC AS amount_value,
 			NULL::int4 AS amount_unit_concept_id,
 			CASE 
 				WHEN amount_unit_concept_id = 8510
@@ -921,7 +921,7 @@ BEGIN
 				ds.denominator_unit_concept_id,
 				ds.valid_start_date,
 				ds.valid_end_date,
-				substring(q.concept_name, '^[0-9\.]+')::FLOAT AS v
+				substring(q.concept_name, '^[0-9\.]+')::NUMERIC AS v
 			FROM drug_strength_stage ds
 			JOIN concept_stage d ON d.concept_code = ds.drug_concept_code
 				AND d.vocabulary_id = ds.vocabulary_id_1

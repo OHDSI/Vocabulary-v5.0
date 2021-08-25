@@ -33,7 +33,9 @@ BEGIN
 	CREATE UNLOGGED TABLE concept_relationship_stage (LIKE devv5.concept_relationship_stage);
 
 	--DROP TABLE IF EXISTS concept_relationship_manual; --we don't want to accidentally drop a table
-	CREATE TABLE IF NOT EXISTS concept_relationship_manual (LIKE devv5.concept_relationship_manual);
+	CREATE TABLE IF NOT EXISTS concept_relationship_manual (LIKE devv5.concept_relationship_manual INCLUDING CONSTRAINTS);
+	CREATE TABLE IF NOT EXISTS concept_manual (LIKE devv5.concept_manual INCLUDING CONSTRAINTS);
+	CREATE TABLE IF NOT EXISTS concept_synonym_manual (LIKE devv5.concept_synonym_manual INCLUDING CONSTRAINTS);
 
 	DROP TABLE IF EXISTS concept_synonym_stage;
 	CREATE UNLOGGED TABLE concept_synonym_stage (LIKE devv5.concept_synonym_stage);
@@ -86,6 +88,7 @@ BEGIN
 	ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
 	ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_concept FOREIGN KEY (concept_id) REFERENCES concept (concept_id);
+	ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_language FOREIGN KEY (language_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE concept_synonym ADD CONSTRAINT unique_synonyms UNIQUE (concept_id,concept_synonym_name,language_concept_id);
 	ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_1 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_2 FOREIGN KEY (ingredient_concept_id) REFERENCES concept (concept_id);
@@ -117,6 +120,11 @@ BEGIN
 	CREATE INDEX idx_dss_concept_code ON drug_strength_stage (drug_concept_code);
 	CREATE INDEX idx_ca_descendant ON concept_ancestor (descendant_concept_id);
 	CREATE UNIQUE INDEX xpk_vocab_conversion ON vocabulary_conversion (vocabulary_id_v5);
+
+	--Create UNIQUE constraints for manual tables
+	ALTER TABLE concept_relationship_manual ADD CONSTRAINT unique_manual_relationships UNIQUE (concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id);
+	ALTER TABLE concept_manual ADD CONSTRAINT unique_manual_concepts UNIQUE (vocabulary_id,concept_code);
+	ALTER TABLE concept_synonym_manual ADD CONSTRAINT unique_manual_synonyms UNIQUE (synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id);
 
 	--Analyzing
 	ANALYZE concept;

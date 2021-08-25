@@ -112,9 +112,9 @@ CREATE UNLOGGED TABLE cap_hierarchy AS
 	) as s_done;
 
 --4. Source table preparation
-DROP TABLE IF EXISTS cap_breast_cs_preliminary;
-CREATE UNLOGGED TABLE cap_breast_cs_preliminary AS
-SELECT source_code AS concept_code,
+DROP TABLE IF EXISTS cap_cs_preliminary;
+CREATE UNLOGGED TABLE cap_cs_preliminary AS
+SELECT SUBSTR(source_code, 1, 50) AS concept_code, -- to get 50chars length codes AS concept_code
 	source_description AS concept_name,
 	alt_source_description AS alternative_concept_name,
 	CASE 
@@ -162,8 +162,7 @@ FROM (
 						)) AS source_description, --full hierarchical explanation of source_code
 				LEFT(filename, - 4) AS source_filename
 			FROM cap_hierarchy
-			WHERE filename ILIKE '%breast%'
-				AND value_code IS NOT NULL --used to exclude 5 rows which are aggregation of all source_concepts in one for each brest protocol
+			WHERE value_code IS NOT NULL --used to exclude rows which are aggregation of all source_concepts in one for each  protocol
 			GROUP BY value_code,
 				COALESCE(value_description, value_alt),
 				LEFT(filename, - 4),
@@ -177,8 +176,7 @@ FROM (
 				TRIM(COALESCE(variable_description, variable_alt)) AS source_description,
 				LEFT(filename, - 4) AS source_filename
 			FROM cap_hierarchy
-			WHERE filename ILIKE '%breast%'
-				AND variable_code NOT IN (
+			WHERE variable_code NOT IN (
 					SELECT source_code
 					FROM tab_val
 					)
@@ -190,7 +188,6 @@ FROM (
 				officialname || '. Version ' || cap_protocolversion AS alt_source_description,
 				LEFT(filename, - 4) AS source_filename
 			FROM cap_hierarchy
-			WHERE filename ILIKE '%breast%'
 			)
 	SELECT source_code,
 		source_class,
@@ -217,7 +214,8 @@ FROM (
 		source_filename
 	FROM tab_filename
 	) AS s0
-WHERE source_class <> 'DI';--to exclude them from concept_stage because of lack of sense
+WHERE source_class <> 'DI' --to exclude them from concept_stage because of lack of sense(note section signature)
+AND alt_source_description IS NOT NULL; --to exclude them from concept_stage because of lack of sense(still participate in hierarchy building)
 
 --5. Load into concept stage
 INSERT INTO concept_stage (
@@ -231,7 +229,11 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT alternative_concept_name,
+SELECT CASE 
+		WHEN LENGTH(alternative_concept_name) > 255
+			THEN SUBSTRING(alternative_concept_name, '.{1,251}\s') || '...' -- to get 255 length names
+		ELSE alternative_concept_name
+		END AS alternative_concept_name,
 	domain_id,
 	vocabulary_id,
 	concept_class_id,
@@ -240,7 +242,8 @@ SELECT alternative_concept_name,
 	valid_start_date,
 	valid_end_date,
 	invalid_reason
-FROM cap_breast_cs_preliminary;
+FROM cap_cs_preliminary;
+
 ANALYZE concept_stage;
 
 --6. Load into concept_synonym_stage
@@ -254,7 +257,7 @@ SELECT concept_name,
 	concept_code,
 	vocabulary_id,
 	4180186 AS language_concept_id --for english language
-FROM cap_breast_cs_preliminary;
+FROM cap_cs_preliminary;
 
 --7. Load into concept_relationship_stage
 --7.1. 'CAP value of'
@@ -285,8 +288,7 @@ JOIN concept_stage cs
 	ON e.value_code = cs.concept_code
 JOIN concept_stage cs2
 	ON e.variable_code = cs2.concept_code
-WHERE e.filename ILIKE '%breast%'
-	AND e.level_of_separation = 1
+WHERE e.level_of_separation = 1
 	AND cs.concept_class_id = 'CAP Value'
 	AND cs2.concept_class_id = 'CAP Variable';
 
@@ -318,8 +320,7 @@ JOIN concept_stage cs
 	ON e.value_code = cs.concept_code
 JOIN concept_stage cs2
 	ON e.variable_code = cs2.concept_code
-WHERE e.filename ILIKE '%breast%'
-	AND e.level_of_separation = 1
+WHERE  e.level_of_separation = 1
 	AND cs.concept_class_id = 'CAP Variable'
 	AND cs2.concept_class_id = 'CAP Variable'
 	AND NOT EXISTS (
@@ -361,8 +362,7 @@ JOIN concept_stage cs
 	ON e.value_code = cs.concept_code
 JOIN concept_stage cs2
 	ON e.variable_code = cs2.concept_code
-WHERE e.filename ILIKE '%breast%'
-	AND e.level_of_separation = 1
+WHERE e.level_of_separation = 1
 	AND cs.concept_class_id = 'CAP Variable'
 	AND cs2.concept_class_id = 'CAP Header'
 	AND NOT EXISTS (
@@ -400,8 +400,7 @@ JOIN concept_stage cs
 	ON e.value_code = cs.concept_code
 JOIN concept_stage cs2
 	ON e.variable_code = cs2.concept_code
-WHERE e.filename ILIKE '%breast%'
-	AND e.level_of_separation = 1
+WHERE e.level_of_separation = 1
 	AND cs.concept_class_id = 'CAP Variable'
 	AND cs2.concept_class_id = 'CAP Value'
 	AND NOT EXISTS (
@@ -439,8 +438,7 @@ JOIN concept_stage cs
 	ON e.value_code = cs.concept_code
 JOIN concept_stage cs2
 	ON e.variable_code = cs2.concept_code
-WHERE e.filename ILIKE '%breast%'
-	AND e.level_of_separation = 1
+WHERE e.level_of_separation = 1
 	AND cs.concept_class_id = 'CAP Header'
 	AND cs2.concept_class_id = 'CAP Value'
 	AND NOT EXISTS (
@@ -478,8 +476,7 @@ JOIN concept_stage cs
 	ON e.value_code = cs.concept_code
 JOIN concept_stage cs2
 	ON e.variable_code = cs2.concept_code
-WHERE e.filename ILIKE '%breast%'
-	AND e.level_of_separation = 1
+WHERE  e.level_of_separation = 1
 	AND cs.concept_class_id IN (
 		'CAP Variable',
 		'CAP Header'
@@ -503,7 +500,7 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 SELECT concept_code AS concept_code_1,
-	source_filename AS concept_code_2,
+	SUBSTR(source_filename, 1, 50) AS concept_code_2, -- to get 50-chars length codes
 	'CAP' AS vocabulary_id_1,
 	'CAP' AS vocabulary_id_2,
 	'Has CAP protocol' AS relationship_id,
@@ -514,9 +511,8 @@ SELECT concept_code AS concept_code_1,
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM cap_breast_cs_preliminary
-WHERE source_filename ~* 'DCIS\.Res|DCIS\.Bx|Breast\.Invasive\.Bx|Breast\.Invasive\.Res|Breast\.Bmk'
-	AND concept_code <> source_filename;
+FROM cap_cs_preliminary
+WHERE concept_code <> source_filename;
 
 --8. Add manual source
 DO $_$
@@ -544,6 +540,6 @@ END $_$;
 
 --12. Clean up
 DROP TABLE cap_hierarchy;
-DROP TABLE cap_breast_cs_preliminary;
+DROP TABLE cap_cs_preliminary;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

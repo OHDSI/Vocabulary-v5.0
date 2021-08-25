@@ -33,263 +33,295 @@ INSERT INTO concept_stage_sn (concept_name,
                               valid_start_date,
                               valid_end_date,
                               invalid_reason)
-SELECT regexp_replace(coalesce(umls.concept_name, sct2.concept_name), ' (\([^)]*\))$',
-                      ''), -- pick the umls one first (if there) and trim something like "(procedure)"
-       'SNOMED'                        AS vocabulary_id,
+SELECT sct2.concept_name,
+       'SNOMED' AS vocabulary_id,
        sct2.concept_code,
-       (
-       SELECT latest_update
-       FROM vocabulary_conversion
-       WHERE vocabulary_id_v5 = 'SNOMED'
-       )                               AS valid_start_date,
+       TO_DATE(effectivestart, 'yyyymmdd') AS valid_start_date,
        TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-       NULL                            AS invalid_reason
+       NULL AS invalid_reason
 FROM (
-     SELECT SUBSTR(d.term, 1, 255) AS concept_name,
-            d.conceptid::TEXT      AS concept_code,
+     SELECT vocabulary_pack.CutConceptName(d.term) AS concept_name,
+            d.conceptid::TEXT AS concept_code,
             c.active,
+            MIN(c.effectivetime) OVER (
+                PARTITION BY c.id ORDER BY c.active DESC --if there ever were active versions of the concept, take the earliest one
+                ) AS effectivestart,
             ROW_NUMBER() OVER (
                 PARTITION BY d.conceptid
-                -- Order of preference: newest in sct2_concept, in sct2_desc, synonym, does not contain class in parenthesis
-                ORDER BY TO_DATE(c.effectivetime, 'YYYYMMDD') DESC,
-                    TO_DATE(d.effectivetime, 'YYYYMMDD') DESC,
-                    CASE
-                        WHEN typeid = 900000000000013009
-                            THEN 0
-                        ELSE 1
-                        END,
-                    CASE
-                        WHEN term LIKE '%(%)%'
-                            THEN 1
-                        ELSE 0
-                        END,
-                    LENGTH(TERM) DESC,
-                    d.id DESC
-                )                  AS rn
-     FROM sources.amt_sct2_concept_full_au c,
-          sources.amt_full_descr_drug_only d
-     WHERE c.id = d.conceptid
-       AND term IS NOT NULL
-     ) sct2
-     LEFT JOIN (
-               -- get a better concept_name
-               SELECT DISTINCT code  AS concept_code,
-                               FIRST_VALUE(-- take the best str
-                               SUBSTR(str, 1, 255)) OVER (
-                                   PARTITION BY code ORDER BY CASE tty
-                                       --formatter:off
-                                              WHEN 'PT' THEN 1
-                                              WHEN 'PTGB' THEN 2
-                                              WHEN 'SY' THEN 3
-                                              WHEN 'SYGB' THEN 4
-                                              WHEN 'MTH_PT' THEN 5
-                                              WHEN 'FN' THEN 6
-                                              WHEN 'MTH_SY' THEN 7
-                                              WHEN 'SB' THEN 8
-                                              ELSE 10 -- default for the obsolete ones
-                                       --formatter:on
-                                       END
-                                   ) AS concept_name
-               FROM sources.mrconso
-               WHERE sab = 'SNOMEDCT_US'
-                 AND tty IN ('PT', 'PTGB', 'SY', 'SYGB', 'MTH_PT', 'FN', 'MTH_SY', 'SB')
-               ) umls
-     ON sct2.concept_code = umls.concept_code
-WHERE sct2.rn = 1
-  AND sct2.active = 1;
-
---2. Create temporary table with extracted class information and terms ordered by some good precedence
-DROP TABLE IF EXISTS tmp_concept_class;
-CREATE UNLOGGED TABLE tmp_concept_class AS
-SELECT *
-FROM (
-     SELECT concept_code,
-            f7, -- extracted class
-            ROW_NUMBER() OVER (
-                PARTITION BY concept_code
-                -- order of precedence: active, by class relevance, by highest number of parentheses
-                ORDER BY active DESC,
-                    CASE f7
-                        --formatter:off
-                        WHEN 'disorder' THEN 1
-                        WHEN 'finding' THEN 2
-                        WHEN 'procedure' THEN 3
-                        WHEN 'regime/therapy' THEN 4
-                        WHEN 'qualifier value' THEN 5
-                        WHEN 'contextual qualifier' THEN 6
-                        WHEN 'body structure' THEN 7
-                        WHEN 'cell' THEN 8
-                        WHEN 'cell structure' THEN 9
-                        WHEN 'external anatomical feature' THEN 10
-                        WHEN 'organ component' THEN 11
-                        WHEN 'organism' THEN 12
-                        WHEN 'living organism' THEN 13
-                        WHEN 'physical object' THEN 14
-                        WHEN 'physical device' THEN 15
-                        WHEN 'physical force' THEN 16
-                        WHEN 'occupation' THEN 17
-                        WHEN 'person' THEN 18
-                        WHEN 'ethnic group' THEN 19
-                        WHEN 'religion/philosophy' THEN 20
-                        WHEN 'life style' THEN 21
-                        WHEN 'social concept' THEN 22
-                        WHEN 'racial group' THEN 23
-                        WHEN 'event' THEN 24
-                        WHEN 'life event - finding' THEN 25
-                        WHEN 'product' THEN 26
-                        WHEN 'substance' THEN 27
-                        WHEN 'assessment scale' THEN 28
-                        WHEN 'tumor staging' THEN 29
-                        WHEN 'staging scale' THEN 30
-                        WHEN 'specimen' THEN 31
-                        WHEN 'special concept' THEN 32
-                        WHEN 'observable entity' THEN 33
-                        WHEN 'namespace concept' THEN 34
-                        WHEN 'morphologic abnormality' THEN 35
-                        WHEN 'foundation metadata concept' THEN 36
-                        WHEN 'core metadata concept' THEN 37
-                        WHEN 'metadata' THEN 38
-                        WHEN 'environment' THEN 39
-                        WHEN 'geographic location' THEN 40
-                        WHEN 'situation' THEN 41
-                        WHEN 'situation' THEN 42
-                        WHEN 'context-dependent category' THEN 43
-                        WHEN 'biological function' THEN 44
-                        WHEN 'attribute' THEN 45
-                        WHEN 'administrative concept' THEN 46
-                        WHEN 'record artifact' THEN 47
-                        WHEN 'navigational concept' THEN 48
-                        WHEN 'inactive concept' THEN 49
-                        WHEN 'linkage concept' THEN 50
-                        WHEN 'link assertion' THEN 51
-                        WHEN 'environment / location' THEN 52
-                        WHEN 'AU substance' THEN 53
-                        WHEN 'AU qualifier' THEN 54
-                        WHEN 'medicinal product unit of use' THEN 55
-                        WHEN 'medicinal product pack' THEN 56
-                        WHEN 'medicinal product' THEN 57
-                        WHEN 'trade product pack' THEN 58
-                        WHEN 'trade product unit of use' THEN 59
-                        WHEN 'trade product' THEN 60
-                        WHEN 'containered trade product pack' THEN 61
+                -- Order of preference:
+                -- Active descriptions first, characterised as Preferred Synonym, prefer SNOMED Int, then US, then UK, then take the latest term
+                ORDER BY c.active DESC,
+                    d.active DESC,
+                    l.active DESC,
+                    CASE l.acceptabilityid
+                        WHEN 900000000000548007
+                            THEN 1 --Preferred
+                        WHEN 900000000000549004
+                            THEN 2 --Acceptable
                         ELSE 99
-                        END,
-                    --formatter:on
-                    rnb
-                ) AS rnc
-     FROM (
-          SELECT concept_code,
-                 active,
-                 pc1,
-                 pc2,
-                 CASE
-                     WHEN pc1 = 0
-                         OR pc2 = 0
-                         THEN term -- when no term records with parentheses
-                 -- extract class (called f7)
-                     ELSE substring(term, '\(([^(]+)\)$')
-                     END AS f7,
-                 rna     AS rnb -- row number in SCT2_DESC_FULL_AU
-          FROM (
-               SELECT c.concept_code,
-                      d.term,
-                      d.active,
-                      (
-                      SELECT count(*)
-                      FROM regexp_matches(d.term, '\(', 'g')
-                      )     pc1, -- parenthesis open count
-                      (
-                      SELECT count(*)
-                      FROM regexp_matches(d.term, '\)', 'g')
-                      )     pc2, -- parenthesis close count
-                      ROW_NUMBER() OVER (
-                          PARTITION BY c.concept_code ORDER BY d.active DESC, -- first active ones
-                              (
-                              SELECT count(*)
-                              FROM regexp_matches(d.term, '\(', 'g')
-                              ) DESC -- first the ones with the most parentheses - one of them the class info
-                          ) rna  -- row number in SCT2_DESC_FULL_AU
-               FROM concept_stage_sn c
-                    JOIN sources.amt_full_descr_drug_only d
-                    ON d.conceptid::TEXT = c.concept_code
-               WHERE c.vocabulary_id = 'SNOMED'
-               ) AS s0
-          ) AS s1
-     ) AS s2
-WHERE rnc = 1;
-CREATE INDEX x_cc_2cd ON tmp_concept_class (concept_code);
+                    END ASC,
+                    CASE d.typeid
+                        WHEN 900000000000013009
+                            THEN 1 --Synonym (PT)
+                        WHEN 900000000000003001
+                            THEN 2 --Fully specified name
+                        ELSE 99
+                    END ASC,
+                    CASE l.refsetid
+                        WHEN 900000000000509007
+                            THEN 1 --US English language reference set
+                        WHEN 900000000000508004
+                            THEN 2 --UK English language reference set
+                        ELSE 99 -- Various UK specific refsets
+                    END,
+                    --                     CASE l.source_file_id
+--                         WHEN 'INT'
+--                             THEN 1 -- International release
+--                         WHEN 'US'
+--                             THEN 2 -- SNOMED US
+--                         WHEN 'GB_DE'
+--                             THEN 3 -- SNOMED UK Drug extension, updated more often
+--                         WHEN 'UK'
+--                             THEN 4 -- SNOMED UK
+--                         ELSE 99
+--                     END ASC,
+                    l.effectivetime DESC
+                ) AS rn
+     FROM sources.amt_sct2_concept_full_au c
+     JOIN sources.amt_full_descr_drug_only d
+         ON d.conceptid = c.id
+--      JOIN sources.der2_crefset_language_merged l
+     JOIN sources.amt_crefset_language l
+         ON l.referencedcomponentid = d.id
+     ) sct2
+WHERE sct2.rn = 1;
 
---3. Create reduced set of classes
+
+--2 For concepts with latest entry in sct2_concept having active = 0, preserve invalid_reason and valid_end date
+WITH inactive
+         AS (
+            SELECT c.id,
+                   MAX(c.effectivetime) AS effectiveend
+            FROM sources.amt_sct2_concept_full_au c
+            LEFT JOIN sources.amt_sct2_concept_full_au c2
+                ON --ignore all entries before latest one with active = 1
+                            c2.active = 1
+                        AND c.id = c2.id
+                        AND c.effectivetime < c2.effectivetime
+            WHERE c2.id IS NULL
+              AND c.active = 0
+            GROUP BY c.id
+            )
 UPDATE concept_stage_sn cs
-SET concept_class_id = CASE
-    --formatter:off
-           WHEN F7 = 'disorder' THEN 'Clinical Finding'
-           WHEN F7 = 'procedure' THEN 'Procedure'
-           WHEN F7 = 'finding' THEN 'Clinical Finding'
-           WHEN F7 = 'organism' THEN 'Organism'
-           WHEN F7 = 'body structure' THEN 'Body Structure'
-           WHEN F7 = 'substance' THEN 'Substance'
-           WHEN F7 = 'product' THEN 'Pharma/Biol Product'
-           WHEN F7 = 'event' THEN 'Event'
-           WHEN F7 = 'qualifier value' THEN 'Qualifier Value'
-           WHEN F7 = 'observable entity' THEN 'Observable Entity'
-           WHEN F7 = 'situation' THEN 'Context-dependent'
-           WHEN F7 = 'occupation' THEN 'Social Context'
-           WHEN F7 = 'regime/therapy' THEN 'Procedure'
-           WHEN F7 = 'morphologic abnormality' THEN 'Morph Abnormality'
-           WHEN F7 = 'physical object' THEN 'Physical Object'
-           WHEN F7 = 'specimen' THEN 'Specimen'
-           WHEN F7 = 'environment' THEN 'Location'
-           WHEN F7 = 'environment / location' THEN 'Location'
-           WHEN F7 = 'context-dependent category' THEN 'Context-dependent'
-           WHEN F7 = 'attribute' THEN 'Attribute'
-           WHEN F7 = 'linkage concept' THEN 'Linkage Concept'
-           WHEN F7 = 'assessment scale' THEN 'Staging / Scales'
-           WHEN F7 = 'person' THEN 'Social Context'
-           WHEN F7 = 'cell' THEN 'Body Structure'
-           WHEN F7 = 'geographic location' THEN 'Location'
-           WHEN F7 = 'cell structure' THEN 'Body Structure'
-           WHEN F7 = 'ethnic group' THEN 'Social Context'
-           WHEN F7 = 'tumor staging' THEN 'Staging / Scales'
-           WHEN F7 = 'religion/philosophy' THEN 'Social Context'
-           WHEN F7 = 'record artifact' THEN 'Record Artifact'
-           WHEN F7 = 'physical force' THEN 'Physical Force'
-           WHEN F7 = 'foundation metadata concept' THEN 'Model Comp'
-           WHEN F7 = 'namespace concept' THEN 'Namespace Concept'
-           WHEN F7 = 'administrative concept' THEN 'Admin Concept'
-           WHEN F7 = 'biological function' THEN 'Biological Function'
-           WHEN F7 = 'living organism' THEN 'Organism'
-           WHEN F7 = 'life style' THEN 'Social Context'
-           WHEN F7 = 'contextual qualifier' THEN 'Qualifier Value'
-           WHEN F7 = 'staging scale' THEN 'Staging / Scales'
-           WHEN F7 = 'life event - finding' THEN 'Event'
-           WHEN F7 = 'social concept' THEN 'Social Context'
-           WHEN F7 = 'core metadata concept' THEN 'Model Comp'
-           WHEN F7 = 'special concept' THEN 'Special Concept'
-           WHEN F7 = 'racial group' THEN 'Social Context'
-           WHEN F7 = 'therapy' THEN 'Procedure'
-           WHEN F7 = 'external anatomical feature' THEN 'Body Structure'
-           WHEN F7 = 'organ component' THEN 'Body Structure'
-           WHEN F7 = 'physical device' THEN 'Physical Object'
-           WHEN F7 = 'linkage concept' THEN 'Linkage Concept'
-           WHEN F7 = 'link assertion' THEN 'Linkage Assertion'
-           WHEN F7 = 'metadata' THEN 'Model Comp'
-           WHEN F7 = 'navigational concept' THEN 'Navi Concept'
-           WHEN F7 = 'inactive concept' THEN 'Inactive Concept'
-           WHEN F7 = 'AU substance' THEN 'AU Substance'
-           WHEN F7 = 'AU qualifier' THEN 'AU Qualifier'
-           WHEN F7 = 'medicinal product unit of use' THEN 'Med Product Unit'
-           WHEN F7 = 'medicinal product pack' THEN 'Med Product Pack'
-           WHEN F7 = 'medicinal product' THEN 'Medicinal Product'
-           WHEN F7 = 'trade product pack' THEN 'Trade Product Pack'
-           WHEN F7 = 'trade product' THEN 'Trade Product'
-           WHEN F7 = 'trade product unit of use' THEN 'Trade Product Unit'
-           WHEN F7 = 'containered trade product pack' THEN 'Containered Pack'
-           ELSE 'Undefined'
-           --formatter:on
-    END
-FROM tmp_concept_class cc
-WHERE cc.concept_code = cs.concept_code;
+SET invalid_reason = 'D',
+    valid_end_date = TO_DATE(i.effectiveend, 'yyyymmdd')
+FROM inactive i
+WHERE i.id::TEXT = cs.concept_code;
+
+--3 Some concepts were never alive; we don't know what their valid_start_date would be, so we set it to default minimum
+UPDATE concept_stage_sn
+SET valid_start_date = TO_DATE('19700101', 'yyyymmdd')
+WHERE valid_start_date = valid_end_date;
+
+--4. Update concept_class_id from extracted hierarchy tag information and terms ordered by description table precedence
+UPDATE concept_stage_sn cs
+SET concept_class_id = i.concept_class_id
+FROM (
+     WITH tmp_concept_class AS (
+                               SELECT *
+                               FROM (
+                                    SELECT concept_code,
+                                           f7, -- SNOMED hierarchy tag
+                                           ROW_NUMBER() OVER (
+                                               PARTITION BY concept_code
+                                               -- order of precedence: active, by class relevance
+                                               -- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we have concurrent sources, so this may prevent problems and breaks nothing
+                                               ORDER BY active DESC,
+                                                   CASE f7
+                                                       --formatter:off
+                                                       WHEN 'disorder' THEN 1
+                                                       WHEN 'finding' THEN 2
+                                                       WHEN 'procedure' THEN 3
+                                                       WHEN 'regime/therapy' THEN 4
+                                                       WHEN 'qualifier value' THEN 5
+                                                       WHEN 'contextual qualifier' THEN 6
+                                                       WHEN 'body structure' THEN 7
+                                                       WHEN 'cell' THEN 8
+                                                       WHEN 'cell structure' THEN 9
+                                                       WHEN 'external anatomical feature' THEN 10
+                                                       WHEN 'organ component' THEN 11
+                                                       WHEN 'organism' THEN 12
+                                                       WHEN 'living organism' THEN 13
+                                                       WHEN 'physical object' THEN 14
+                                                       WHEN 'physical device' THEN 15
+                                                       WHEN 'physical force' THEN 16
+                                                       WHEN 'occupation' THEN 17
+                                                       WHEN 'person' THEN 18
+                                                       WHEN 'ethnic group' THEN 19
+                                                       WHEN 'religion/philosophy' THEN 20
+                                                       WHEN 'life style' THEN 21
+                                                       WHEN 'social concept' THEN 22
+                                                       WHEN 'racial group' THEN 23
+                                                       WHEN 'event' THEN 24
+                                                       WHEN 'life event - finding' THEN 25
+                                                       WHEN 'product' THEN 26
+                                                       WHEN 'substance' THEN 27
+                                                       WHEN 'assessment scale' THEN 28
+                                                       WHEN 'tumor staging' THEN 29
+                                                       WHEN 'staging scale' THEN 30
+                                                       WHEN 'specimen' THEN 31
+                                                       WHEN 'special concept' THEN 32
+                                                       WHEN 'observable entity' THEN 33
+                                                       WHEN 'namespace concept' THEN 34
+                                                       WHEN 'morphologic abnormality' THEN 35
+                                                       WHEN 'foundation metadata concept' THEN 36
+                                                       WHEN 'core metadata concept' THEN 37
+                                                       WHEN 'metadata' THEN 38
+                                                       WHEN 'environment' THEN 39
+                                                       WHEN 'geographic location' THEN 40
+                                                       WHEN 'situation' THEN 41
+                                                       WHEN 'situation' THEN 42
+                                                       WHEN 'context-dependent category' THEN 43
+                                                       WHEN 'biological function' THEN 44
+                                                       WHEN 'attribute' THEN 45
+                                                       WHEN 'administrative concept' THEN 46
+                                                       WHEN 'record artifact' THEN 47
+                                                       WHEN 'navigational concept' THEN 48
+                                                       WHEN 'inactive concept' THEN 49
+                                                       WHEN 'linkage concept' THEN 50
+                                                       WHEN 'link assertion' THEN 51
+                                                       WHEN 'environment / location' THEN 52
+                                                       WHEN 'AU substance' THEN 53
+                                                       WHEN 'AU qualifier' THEN 54
+                                                       WHEN 'medicinal product unit of use' THEN 55
+                                                       WHEN 'medicinal product pack' THEN 56
+                                                       WHEN 'medicinal product' THEN 57
+                                                       WHEN 'trade product pack' THEN 58
+                                                       WHEN 'trade product unit of use' THEN 59
+                                                       WHEN 'trade product' THEN 60
+                                                       WHEN 'containered trade product pack' THEN 61
+                                                       ELSE 99
+                                                       --formatter:on
+                                                   END,
+                                                   rnb
+                                               ) AS rnc
+                                    FROM (
+                                         SELECT concept_code,
+                                                active,
+                                                SUBSTRING(term, '\(([^(]+)\)$') AS f7,
+                                                rna AS rnb -- row number in amt_full_descr_drug_only
+                                         FROM (
+                                              SELECT c.concept_code,
+                                                     d.term,
+                                                     d.active,
+                                                     ROW_NUMBER() OVER (
+                                                         PARTITION BY c.concept_code ORDER
+                                                             BY
+                                                             d.active DESC, -- active ones
+                                                             d.effectivetime DESC -- latest active ones
+                                                         ) rna -- row number in amt_full_descr_drug_only
+                                              FROM concept_stage_sn c
+                                              JOIN sources.amt_full_descr_drug_only d
+                                                  ON d.conceptid::TEXT = c.concept_code
+                                              WHERE c.vocabulary_id = 'SNOMED'
+                                                AND d.typeid = 900000000000003001 -- only Fully Specified Names
+                                              ) AS s0
+                                         ) AS s1
+                                    ) AS s2
+                               WHERE rnc = 1
+                               )
+     SELECT concept_code,
+            CASE
+                --formatter:off
+                WHEN F7 = 'disorder' THEN 'Clinical Finding'
+                WHEN F7 = 'procedure' THEN 'Procedure'
+                WHEN F7 = 'finding' THEN 'Clinical Finding'
+                WHEN F7 = 'organism' THEN 'Organism'
+                WHEN F7 = 'body structure' THEN 'Body Structure'
+                WHEN F7 = 'substance' THEN 'Substance'
+                WHEN F7 = 'product' THEN 'Pharma/Biol Product'
+                WHEN F7 = 'event' THEN 'Event'
+                WHEN F7 = 'qualifier value' THEN 'Qualifier Value'
+                WHEN F7 = 'observable entity' THEN 'Observable Entity'
+                WHEN F7 = 'situation' THEN 'Context-dependent'
+                WHEN F7 = 'occupation' THEN 'Social Context'
+                WHEN F7 = 'regime/therapy' THEN 'Procedure'
+                WHEN F7 = 'morphologic abnormality' THEN 'Morph Abnormality'
+                WHEN F7 = 'physical object' THEN 'Physical Object'
+                WHEN F7 = 'specimen' THEN 'Specimen'
+                WHEN F7 = 'environment' THEN 'Location'
+                WHEN F7 = 'environment / location' THEN 'Location'
+                WHEN F7 = 'context-dependent category' THEN 'Context-dependent'
+                WHEN F7 = 'attribute' THEN 'Attribute'
+                WHEN F7 = 'linkage concept' THEN 'Linkage Concept'
+                WHEN F7 = 'assessment scale' THEN 'Staging / Scales'
+                WHEN F7 = 'person' THEN 'Social Context'
+                WHEN F7 = 'cell' THEN 'Body Structure'
+                WHEN F7 = 'geographic location' THEN 'Location'
+                WHEN F7 = 'cell structure' THEN 'Body Structure'
+                WHEN F7 = 'ethnic group' THEN 'Social Context'
+                WHEN F7 = 'tumor staging' THEN 'Staging / Scales'
+                WHEN F7 = 'religion/philosophy' THEN 'Social Context'
+                WHEN F7 = 'record artifact' THEN 'Record Artifact'
+                WHEN F7 = 'physical force' THEN 'Physical Force'
+                WHEN F7 = 'foundation metadata concept' THEN 'Model Comp'
+                WHEN F7 = 'namespace concept' THEN 'Namespace Concept'
+                WHEN F7 = 'administrative concept' THEN 'Admin Concept'
+                WHEN F7 = 'biological function' THEN 'Biological Function'
+                WHEN F7 = 'living organism' THEN 'Organism'
+                WHEN F7 = 'life style' THEN 'Social Context'
+                WHEN F7 = 'contextual qualifier' THEN 'Qualifier Value'
+                WHEN F7 = 'staging scale' THEN 'Staging / Scales'
+                WHEN F7 = 'life event - finding' THEN 'Event'
+                WHEN F7 = 'social concept' THEN 'Social Context'
+                WHEN F7 = 'core metadata concept' THEN 'Model Comp'
+                WHEN F7 = 'special concept' THEN 'Special Concept'
+                WHEN F7 = 'racial group' THEN 'Social Context'
+                WHEN F7 = 'therapy' THEN 'Procedure'
+                WHEN F7 = 'external anatomical feature' THEN 'Body Structure'
+                WHEN F7 = 'organ component' THEN 'Body Structure'
+                WHEN F7 = 'physical device' THEN 'Physical Object'
+                WHEN F7 = 'linkage concept' THEN 'Linkage Concept'
+                WHEN F7 = 'link assertion' THEN 'Linkage Assertion'
+                WHEN F7 = 'metadata' THEN 'Model Comp'
+                WHEN F7 = 'navigational concept' THEN 'Navi Concept'
+                WHEN F7 = 'inactive concept' THEN 'Inactive Concept'
+                --added 20190109 (AVOF-1369)
+                WHEN F7 = 'administration method' THEN 'Qualifier Value'
+                WHEN F7 = 'basic dose form' THEN 'Dose Form'
+                WHEN F7 = 'clinical drug' THEN 'Clinical Drug'
+                WHEN F7 = 'disposition' THEN 'Disposition'
+                WHEN F7 = 'dose form' THEN 'Dose Form'
+                WHEN F7 = 'intended site' THEN 'Qualifier Value'
+                WHEN F7 = 'medicinal product' THEN 'Pharma/Biol Product'
+                WHEN F7 = 'medicinal product form' THEN 'Clinical Drug Form'
+                WHEN F7 = 'number' THEN 'Qualifier Value'
+                WHEN F7 = 'release characteristic' THEN 'Qualifier Value'
+                WHEN F7 = 'role' THEN 'Qualifier Value'
+                WHEN F7 = 'state of matter' THEN 'Qualifier Value'
+                WHEN F7 = 'transformation' THEN 'Qualifier Value'
+                WHEN F7 = 'unit of presentation' THEN 'Qualifier Value'
+                --Metadata concepts
+                WHEN F7 = 'OWL metadata concept' THEN 'Model Comp'
+                --Specific drug qualifiers
+                WHEN F7 = 'supplier' THEN 'Qualifier Value'
+                WHEN F7 = 'product name' THEN 'Qualifier Value'
+                -- AMT specific
+                WHEN F7 = 'AU substance' THEN 'AU Substance'
+                WHEN F7 = 'AU qualifier' THEN 'AU Qualifier'
+                WHEN F7 = 'medicinal product unit of use' THEN 'Med Product Unit'
+                WHEN F7 = 'medicinal product pack' THEN 'Med Product Pack'
+                WHEN F7 = 'medicinal product' THEN 'Medicinal Product'  -- copy
+                WHEN F7 = 'trade product pack' THEN 'Trade Product Pack'
+                WHEN F7 = 'trade product' THEN 'Trade Product'
+                WHEN F7 = 'trade product unit of use' THEN 'Trade Product Unit'
+                WHEN F7 = 'containered trade product pack' THEN 'Containered Pack'
+                ELSE 'Undefined'
+                --formatter:on
+            END AS concept_class_id
+     FROM tmp_concept_class
+     ) i
+WHERE i.concept_code = cs.concept_code;
 
 
 -- 0. NON-DRUG
@@ -298,7 +330,7 @@ CREATE TABLE non_drug AS
 SELECT *
 FROM concept_stage_sn
 WHERE concept_name ~*
-      --formatter:off
+    --formatter:off
       ( /*general categories and terms which themselves or their related products are treated as devices*/
         'dialysis|sunscreen|dressing|diagnostic|(?<![\w])glove| rope|ribbon|' ||
         'gauze|pouch|wipes|lubri|roll(?!\w)|bone cement|adhesive|(?<![\s])milk|cannula|' ||
@@ -318,7 +350,7 @@ WHERE concept_name ~*
 
         'Crampeze|smoflipid|smofkabiven|sorbolene|lanolin|' ||
         'cranberry|pedialyte|hydralyte|kilocalories|emulsifying ointment|paraffin|cotton|aqueous cream')
-
+--formatter:on
   AND concept_class_id IN ('AU Substance', 'AU Qualifier', 'Med Product Unit', 'Med Product Pack',
                            'Medicinal Product', 'Trade Product Pack', 'Trade Product', 'Trade Product Unit',
                            'Containered Pack');
@@ -340,9 +372,9 @@ INSERT INTO non_drug
 SELECT DISTINCT a.*
 FROM concept_stage_sn a
 JOIN sources.amt_rf2_full_relationships b
-    ON a.concept_code = destinationid::text
+    ON a.concept_code = destinationid::TEXT
 JOIN concept_stage_sn c
-    ON c.concept_Code = sourceid::text
+    ON c.concept_Code = sourceid::TEXT
 WHERE a.concept_name IN ('bar', 'can', 'roll', 'rope', 'sheet')
   AND a.concept_code NOT IN (
                             SELECT concept_code
@@ -353,9 +385,9 @@ INSERT INTO non_drug
 SELECT DISTINCT c.*
 FROM concept_stage_sn a
 JOIN sources.amt_rf2_full_relationships b
-    ON a.concept_code = destinationid::text
+    ON a.concept_code = destinationid::TEXT
 JOIN concept_stage_sn c
-    ON c.concept_Code = sourceid::text
+    ON c.concept_Code = sourceid::TEXT
 WHERE a.concept_name IN ('bar', 'can', 'roll', 'rope', 'sheet')
   AND c.concept_name NOT LIKE '%ointment%'
   AND c.concept_name != 'soap bar'--soap bar dose form
@@ -368,7 +400,7 @@ INSERT INTO non_drug --contrast
 SELECT DISTINCT a.*
 FROM concept_stage_sn a
 JOIN sources.amt_rf2_full_relationships b
-    ON a.concept_code = sourceid::text
+    ON a.concept_code = sourceid::TEXT
 WHERE (destinationid IN (31108011000036106, 75889011000036104, 31109011000036103, 31527011000036107, 75888011000036107,
                          48143011000036102, 48144011000036100, 48145011000036101, 31956011000036101, 733181000168100,
                          732871000168102)
@@ -397,9 +429,9 @@ INSERT INTO non_drug
 SELECT DISTINCT dcs2.*
 FROM drug_concept_stage dcs1
 JOIN sources.amt_rf2_full_relationships fr
-    ON dcs1.concept_code = fr.destinationid::text
+    ON dcs1.concept_code = fr.destinationid::TEXT
 JOIN concept_stage_sn dcs2
-    ON dcs2.concept_code = fr.sourceid::text
+    ON dcs2.concept_code = fr.sourceid::TEXT
 WHERE dcs1.concept_name IN (
                            SELECT name
                            FROM ingredient_mapped
@@ -424,9 +456,9 @@ INSERT INTO non_drug
 SELECT DISTINCT dcs2.*
 FROM drug_concept_stage dcs1
 JOIN sources.amt_rf2_full_relationships fr
-    ON dcs1.concept_code = fr.destinationid::text
+    ON dcs1.concept_code = fr.destinationid::TEXT
 JOIN concept_stage_sn dcs2
-    ON dcs2.concept_code = fr.sourceid::text
+    ON dcs2.concept_code = fr.sourceid::TEXT
 WHERE dcs1.concept_name IN (
                            SELECT name
                            FROM brand_name_mapped
@@ -438,9 +470,9 @@ INSERT INTO non_drug --add non_drugs that are related to already found
 SELECT c.*
 FROM non_drug a
 JOIN sources.amt_rf2_full_relationships b
-    ON b.destinationid::text = a.concept_code
+    ON b.destinationid::TEXT = a.concept_code
 JOIN concept_stage_sn c
-    ON b.sourceid::text = c.concept_code
+    ON b.sourceid::TEXT = c.concept_code
 WHERE c.concept_code NOT IN (
                             SELECT concept_code
                             FROM non_drug
@@ -451,9 +483,9 @@ INSERT INTO non_drug --add non_drugs that are related to already found
 SELECT DISTINCT c.*
 FROM non_drug a
 JOIN sources.amt_rf2_full_relationships b
-    ON sourceid::text = a.concept_code
+    ON sourceid::TEXT = a.concept_code
 JOIN concept_stage_sn c
-    ON destinationid::text = c.concept_code
+    ON destinationid::TEXT = c.concept_code
 WHERE c.concept_code NOT IN (
                             SELECT concept_code
                             FROM non_drug
@@ -466,9 +498,9 @@ INSERT INTO non_drug --add supplement
 SELECT DISTINCT c.*
 FROM non_drug a
 JOIN sources.amt_rf2_full_relationships b
-    ON sourceid::text = a.concept_code
+    ON sourceid::TEXT = a.concept_code
 JOIN concept_stage_sn c
-    ON destinationid::text = c.concept_code
+    ON destinationid::TEXT = c.concept_code
 WHERE c.concept_code NOT IN (
                             SELECT concept_code
                             FROM non_drug
@@ -481,11 +513,11 @@ INSERT INTO non_drug --add supplement
 SELECT DISTINCT a.*
 FROM concept_stage_sn a
 JOIN sources.amt_rf2_full_relationships b
-    ON b.sourceid::text = a.concept_code
+    ON b.sourceid::TEXT = a.concept_code
 JOIN sources.amt_rf2_full_relationships e
     ON b.destinationid = e.sourceid
 JOIN concept_stage_sn c
-    ON c.concept_code = e.destinationid::text
+    ON c.concept_code = e.destinationid::TEXT
 WHERE c.concept_class_id IN ('AU Qualifier', 'AU Substance')
   AND c.concept_name ~ 'dressing|amino acid|trace elements'
   AND NOT c.concept_name ~ 'copper|manganese|zinc|magnesium'
@@ -495,6 +527,15 @@ WHERE c.concept_class_id IN ('AU Qualifier', 'AU Substance')
                             )
 ;
 
+INSERT INTO non_drug
+SELECT *
+FROM concept_stage_sn
+WHERE concept_code IN ('923718011000036109', '923721011000036107', '68822011000036108', '68858011000036105',
+                       '68761011000036105', '69044011000036102', '69042011000036106', '69043011000036104',
+                       '68936011000036101', '722891000168103', '722911000168101', '722921000168108',
+                       '68942011000036101', '68785011000036105', '68693011000036101'
+    )
+;
 DELETE
 FROM non_drug
 WHERE concept_code = '159011000036105'   --soap bar
@@ -521,18 +562,28 @@ WHERE concept_code NOT IN (
 */
 
 -- 1. DRUG_CONCEPT_STAGE
---create basic supplier table
-DROP TABLE IF EXISTS supplier;
-CREATE TABLE supplier AS
-SELECT DISTINCT initcap(substring(concept_name, '\((.*)\)')) AS supplier, NULL AS sup_new_name
+--create basic supplier table, keeping the one-letter supplier_names, will be used later
+DROP TABLE IF EXISTS all_suppliers;
+CREATE TEMP TABLE all_suppliers AS
+SELECT DISTINCT initcap(substring(regexp_replace(concept_name, '\(Night\)|\(Hartmann''s\)', '', 'g'),
+                                  '\((.*)\)')) AS supplier,
+                NULL AS sup_new_name
 FROM concept_stage_sn
 WHERE concept_class_id IN ('Trade Product Unit', 'Trade Product Pack', 'Containered Pack')
   AND substring(concept_name, '\((.*)\)') IS NOT NULL
   AND NOT substring(concept_name, '\((.*)\)') ~ '[0-9]'
   AND NOT substring(concept_name, '\((.*)\)') ~
           'blood|virus|inert|[Cc]apsule|vaccine|D|accidental|CSL|paraffin|once|extemporaneous|long chain|perindopril|triglycerides|Night Tablet'
-  AND length(substring(concept_name, '\(.*\)')) > 5
+  AND length(substring(concept_name, '\(.*\)')) > 2
   AND substring(lower(concept_name), '\((.*)\)') != 'night';
+
+--create basic supplier table - exclude short names(less than 4 characters)
+DROP TABLE IF EXISTS supplier;
+CREATE TABLE supplier AS
+SELECT *
+FROM all_suppliers
+WHERE length(supplier) >= 4;
+
 
 --set new names for some suppliers
 UPDATE supplier s
@@ -571,18 +622,35 @@ WHERE supplier NOT IN (
 INSERT INTO supplier_2 (supplier)
 --formatter:off
 VALUES ('Apo'), ('Sun'), ('David Craig'), ('Parke Davis'), ('Ipc'), ('Rbx'), ('Dakota'),
-       ('Dbl'), ('Scp'), ('Myx'), ('Aft'), ('Douglas'), ('Omega'), ('Bnm'), ('Qv'), ('Gxp'),
+       ('Dbl'), ('Scp'), ('Myx'), ('Aft'), ('Douglas'), ('Bnm'), ('Qv'), ('Gxp'),
        ('Fbm'), ('Drla'), ('Csl'), ('Briemar'), ('Sau'), ('Drx');
 --formatter:on
 
--- check for duplication of suppliers after manual insertion; should be empty
-SELECT supplier
-FROM supplier_2
-GROUP BY supplier
-HAVING count(*) > 1;
+
+-- Make sure no supplier duplicates are present after manual insertion;
+DO
+$_$
+    DECLARE
+        suppliers TEXT;
+    BEGIN
+        SELECT string_agg(t.supplier, ',')
+        INTO suppliers
+        FROM (
+             SELECT supplier
+             FROM supplier_2
+             GROUP BY supplier
+             HAVING count(*) > 1
+             ) t;
+        IF suppliers IS NOT NULL THEN
+            RAISE EXCEPTION 'Following suppliers are duplicated: ''%''', suppliers;
+        END IF;
+    END
+$_$
+;
+
 
 ALTER TABLE supplier_2
-    ADD concept_code varchar(255);
+    ADD concept_code VARCHAR(255);
 
 --using old codes from previous runs that have OMOP-codes
 UPDATE supplier_2 s2
@@ -732,18 +800,25 @@ SELECT DISTINCT rel.sourceid, rel.destinationid, str.unitid, str.value
 FROM sources.amt_rf2_ss_strength_refset str
 JOIN sources.amt_rf2_full_relationships rel
     ON str.referencedComponentId = rel.id
-WHERE sourceid::text NOT IN (
+WHERE sourceid::TEXT NOT IN (
                             SELECT concept_code
                             FROM non_drug
                             )
 ;
+
+--set correct unitid code manually
+UPDATE ds_0
+SET unitid = 700000771000036100
+WHERE sourceid = 1171741000168100;
 
 -- remove duplicate ingredients with different dosages, presented in drug_strength, but actually absent in drugs
 -- got that drugs at QA check ds_stage duplicate ingredients per drug
 DELETE
 FROM ds_0
 WHERE (sourceid = '1154351000168104' AND value <> '0.833')
-   OR (sourceid = '1154361000168102' AND value <> '0.833');
+   OR (sourceid = '1154361000168102' AND value <> '0.833')
+   OR (sourceid = '1322911000168102' AND value <> '0.75')
+   OR (sourceid = '1322921000168109' AND value <> '0.75');
 
 
 -- parse units:
@@ -787,18 +862,18 @@ CREATE TABLE form AS
 SELECT DISTINCT a.concept_name, 'Dose Form' AS new_concept_class_id, a.concept_code, a.concept_class_id
 FROM concept_stage_sn a
 JOIN sources.amt_rf2_full_relationships b
-    ON a.concept_code = b.sourceid::text
+    ON a.concept_code = b.sourceid::TEXT
 JOIN concept_stage_sn c
-    ON c.concept_code = destinationid::text
+    ON c.concept_code = destinationid::TEXT
 WHERE a.concept_class_id = 'AU Qualifier'
   AND a.concept_code NOT IN
       (
       SELECT DISTINCT a.concept_code
       FROM concept_stage_sn a
       JOIN sources.amt_rf2_full_relationships b
-          ON a.concept_code = b.sourceid::text
+          ON a.concept_code = b.sourceid::TEXT
       JOIN concept_stage_sn c
-          ON c.concept_code = destinationid::text
+          ON c.concept_code = destinationid::TEXT
       WHERE a.concept_class_id = 'AU Qualifier'
         AND initcap(c.concept_name) IN
             ('Area Unit Of Measure', 'Biological Unit Of Measure', 'Composite Unit Of Measure',
@@ -815,7 +890,8 @@ DROP TABLE IF EXISTS dcs_bn;
 CREATE TABLE dcs_bn AS
 SELECT DISTINCT *
 FROM concept_stage_sn
-WHERE concept_class_id = 'Trade Product';
+WHERE concept_class_id = 'Trade Product'
+  AND invalid_reason <> 'D';;
 
 -- update dcs_bn using regular expressions
 UPDATE dcs_bn
@@ -913,6 +989,23 @@ WHERE CONCEPT_CODE IN
        '45161000168106', '45161000168106', '7061000168108', '38571000168102')
 ;
 
+-- remove brackets containing supplier names
+UPDATE dcs_bn
+SET concept_name = regexp_replace(concept_name, ' \(.*\)', '');
+
+-- delete brands - ingredients (brand name = ingredient)
+DELETE
+FROM dcs_bn
+WHERE concept_name IN (
+                      SELECT DISTINCT dcs.concept_name
+                      FROM dcs_bn dcs
+                      JOIN devv5.concept c
+                          ON lower(dcs.concept_name) = lower(c.concept_name)
+                              AND c.concept_class_id = 'Ingredient'
+                              AND c.vocabulary_id ILIKE 'Rx%'
+                      );
+
+
 -- create initial drug_concept_stage table
 TRUNCATE TABLE drug_concept_stage;
 INSERT INTO drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code,
@@ -961,29 +1054,29 @@ FROM (
                                          ) > 1)
      ) AS s0;
 
--- remove drugs which boiler has hard times dealing with
---TODO: temporary solution. Remove after the bug is fixed
-DELETE
-FROM drug_concept_stage
-WHERE concept_code IN (
---2591011000036106 - sodium chloride
---1013361000168101 - starch
-'1013451000168109', '1013461000168106', '1013491000168104', '1013411000168108', '1013501000168106',
-'1013471000168100', '1013511000168109', '1013541000168108', '1013521000168102', '1013481000168102',
-'1013401000168105', '1013391000168108', '1013531000168104', '1013431000168103', '1013421000168101',
-'1013441000168107', '1213411000168104', '1213431000168109', '1213421000168106', '1213901000168109',
-'1213441000168100', '1213911000168107', '1213891000168105', '1213401000168102',
-
---30922011000036107 - castor oil
---2719011000036105 - zinc oxide
-'81602011000036103', '81029011000036107', '80987011000036108', '80509011000036107', '80508011000036104',
-'80965011000036101', '81579011000036109', '80480011000036105', '81603011000036105', '80988011000036109',
-'80479011000036105', '81269011000036106', '80152011000036101', '80171011000036105',
-
---1948011000036102 - Cinchocaine Hydrochloride
---2719011000036105 - zinc oxide
-'81584011000036104', '80485011000036101', '81001011000036103', '81260011000036100', '80160011000036107'
-);
+-- -- remove drugs which boiler has hard times dealing with
+-- --temporary solution. Remove after the bug is fixed. Looks like the bug is fixed
+-- DELETE
+-- FROM drug_concept_stage
+-- WHERE concept_code IN (
+-- --2591011000036106 - sodium chloride
+-- --1013361000168101 - starch
+-- '1013451000168109', '1013461000168106', '1013491000168104', '1013411000168108', '1013501000168106',
+-- '1013471000168100', '1013511000168109', '1013541000168108', '1013521000168102', '1013481000168102',
+-- '1013401000168105', '1013391000168108', '1013531000168104', '1013431000168103', '1013421000168101',
+-- '1013441000168107', '1213411000168104', '1213431000168109', '1213421000168106', '1213901000168109',
+-- '1213441000168100', '1213911000168107', '1213891000168105', '1213401000168102',
+--
+-- --30922011000036107 - castor oil
+-- --2719011000036105 - zinc oxide
+-- '81602011000036103', '81029011000036107', '80987011000036108', '80509011000036107', '80508011000036104',
+-- '80965011000036101', '81579011000036109', '80480011000036105', '81603011000036105', '80988011000036109',
+-- '80479011000036105', '81269011000036106', '80152011000036101', '80171011000036105',
+--
+-- --1948011000036102 - Cinchocaine Hydrochloride
+-- --2719011000036105 - zinc oxide
+-- '81584011000036104', '80485011000036101', '81001011000036103', '81260011000036100', '80160011000036107'
+-- );
 
 -- get packs where drugs separator '(&)' is more than 250 symbols deep and the pack is treated as a drug
 DROP TABLE IF EXISTS undetected_packs;
@@ -991,7 +1084,7 @@ CREATE TABLE undetected_packs AS
 SELECT DISTINCT ON (conceptid) position('(&)' IN dd.term) AS sep_position, dd.term, dd.conceptid
 FROM sources.amt_full_descr_drug_only dd
 JOIN drug_concept_stage dcs
-    ON dd.conceptid::text = dcs.concept_code -- sometimes codes are equal, but names are different
+    ON dd.conceptid::TEXT = dcs.concept_code -- sometimes codes are equal, but names are different
         AND substring(lower(dd.term) FROM 1 FOR 240) = substring(lower(dcs.concept_name) FROM 1 FOR 240)
 WHERE dd.term LIKE '%(&)%'
   AND position('(&)' IN dd.term) > 250
@@ -1001,7 +1094,7 @@ ORDER BY conceptid;
 UPDATE drug_concept_stage
 SET concept_name = concat(substr(concept_name, 1, 242), ' [Drug Pack]')
 WHERE concept_code IN (
-                      SELECT conceptid::text
+                      SELECT conceptid::TEXT
                       FROM undetected_packs
                       );
 
@@ -1098,7 +1191,7 @@ WHERE lower(concept_name) IN (
                              WHERE concept_id_2 = 0
                                AND name IS NOT NULL
                              )
-AND concept_class_id = 'Dose Form';
+  AND concept_class_id = 'Dose Form';
 
 DELETE
 FROM drug_concept_stage
@@ -1106,6 +1199,20 @@ WHERE concept_code IN (
                       SELECT concept_code
                       FROM non_drug
                       );
+
+-- -- remove brand names of format "ingredient (Supplier)"
+-- DELETE
+-- FROM drug_concept_stage dcs
+-- WHERE concept_code IN (
+--                       SELECT DISTINCT dcs1.concept_code
+--                       FROM drug_concept_stage dcs1
+--                       JOIN drug_concept_stage dcs2
+--                           ON dcs1.concept_name ILIKE '%' || dcs2.concept_name || '%'
+--                       JOIN all_suppliers als
+--                           ON dcs1.concept_name ILIKE '%' || als.supplier || '%'
+--                       WHERE dcs1.concept_class_id = 'Brand Name'
+--                         AND dcs2.concept_class_id = 'Ingredient'
+--                       );
 
 --adding non_drugs into drug_concept_stage
 INSERT INTO drug_concept_stage (concept_name, vocabulary_id, concept_class_id, standard_concept, concept_code,
@@ -1124,12 +1231,12 @@ WHERE NOT (concept_class_id = 'Supplier' AND length(concept_name) < 4);--to fix 
 DELETE
 FROM drug_concept_stage --delete containers
 WHERE concept_code IN (
-                      SELECT destinationid::text
+                      SELECT destinationid::TEXT
                       FROM concept_stage_sn a
                       JOIN sources.amt_rf2_full_relationships b
-                          ON destinationid::text = a.concept_code
+                          ON destinationid::TEXT = a.concept_code
                       JOIN concept_stage_sn c
-                          ON c.concept_code = sourceid::text
+                          ON c.concept_code = sourceid::TEXT
                       WHERE typeid = '30465011000036106'
                       );
 
@@ -1243,11 +1350,16 @@ WHERE a.STANDARD_CONCEPT = 'S'
 UPDATE drug_concept_stage
 SET concept_name = trim(concept_name);
 
+DELETE
+FROM drug_concept_stage
+WHERE concept_class_id = 'Ingredient'
+  AND standard_concept IS NULL;
+
 --2. DS_STAGE
 -- parse amount, numerator, denominator info from ds_0
 DROP TABLE IF EXISTS ds_0_1_1;
 CREATE TABLE ds_0_1_1 AS -- still only MP
-SELECT DISTINCT sourceid::text AS drug_concept_code,
+SELECT DISTINCT sourceid::TEXT AS drug_concept_code,
                 destinationid AS ingredient_concept_Code,
                 dcs.concept_name,
                 CASE
@@ -1329,9 +1441,9 @@ SELECT DISTINCT sourceid::text AS drug_concept_code,
                 END AS denominator_unit
 FROM ds_0 ds
 JOIN concept_stage_sn sn
-    ON sn.concept_code = ds.unitid::text
+    ON sn.concept_code = ds.unitid::TEXT
 JOIN drug_concept_stage dcs
-    ON ds.sourceid::text = dcs.concept_code
+    ON ds.sourceid::TEXT = dcs.concept_code
 ;
 
 UPDATE ds_0_1_1
@@ -1350,18 +1462,19 @@ WHERE concept_name IN ('Invite E High Potency Vitamin E Cream',
                        'Dl-Alpha-Tocopherol Acetate 10% + Glycerol 5% Cream')
   AND denominator_unit IS NULL;
 
+
 -- create additional ds table by getting ancestors of ds_0_0_1 concepts
 DROP TABLE IF EXISTS ds_0_1_3;
 CREATE TABLE ds_0_1_3 AS
-SELECT c.concept_code AS drug_concept_code,
-       ingredient_concept_code, amount_value,
-       amount_unit, numerator_value, numerator_unit,
-       denominator_unit, c.concept_name
+SELECT DISTINCT c.concept_code AS drug_concept_code,
+                ingredient_concept_code, a.amount_value,
+                amount_unit, numerator_value, numerator_unit,
+                denominator_unit, c.concept_name
 FROM ds_0_1_1 a
 JOIN sources.amt_rf2_full_relationships b
-    ON a.drug_concept_code = destinationid::text
+    ON a.drug_concept_code = destinationid::TEXT
 JOIN drug_concept_stage c
-    ON b.sourceid::text = c.concept_code
+    ON b.sourceid::TEXT = c.concept_code
 WHERE c.source_concept_class_id IN
       ('Med Product Pack', 'Med Product Unit', 'Trade Product Unit', 'Trade Product Pack', 'Containered Pack')
   AND c.concept_name NOT LIKE '%[Drug Pack]%'
@@ -1381,17 +1494,17 @@ WHERE (drug_concept_code = '1167051000168104' AND numerator_value <> '0.05')
 --getting second order ancestors of ds_0_0_1 concepts
 DROP TABLE IF EXISTS ds_0_1_4;
 CREATE TABLE ds_0_1_4 AS
-SELECT c.concept_code AS drug_concept_code,
-       ingredient_concept_code, amount_value,
-       amount_unit, numerator_value, numerator_unit,
-       denominator_unit, c.concept_name
+SELECT DISTINCT c.concept_code AS drug_concept_code,
+                ingredient_concept_code, amount_value,
+                amount_unit, numerator_value, numerator_unit,
+                denominator_unit, c.concept_name
 FROM ds_0_1_1 a
 JOIN sources.amt_rf2_full_relationships b
-    ON a.drug_concept_code = destinationid::text
+    ON a.drug_concept_code = destinationid::TEXT
 JOIN sources.amt_rf2_full_relationships b2
     ON b.sourceid = b2.destinationid
 JOIN drug_concept_stage c
-    ON b2.sourceid::text = concept_code
+    ON b2.sourceid::TEXT = concept_code
 WHERE c.source_concept_class_id IN
       ('Med Product Pack', 'Med Product Unit', 'Trade Product Unit', 'Trade Product Pack', 'Containered Pack')
   AND c.CONCEPT_NAME NOT LIKE '%[Drug Pack]%'
@@ -1429,8 +1542,8 @@ CREATE TABLE ds_0_2 AS
 SELECT drug_concept_code, ingredient_concept_code, amount_value, amount_unit, numerator_value, numerator_unit,
        denominator_unit, concept_name,
        substring(concept_name,
-                 '[,X]\s[0-9.]+\s(Mg|Ml|millilitre|G|L|Actuation)') AS new_denom_unit, --add real volume (, 50 Ml Vial)
-       substring(concept_name, '[,X]\s([0-9.]+)\s(Mg|Ml|millilitre|G|L|Actuation)') AS new_denom_value
+                 '[,X/]\s?[0-9.]+\s(Mg|Ml|millilitre|G|L|Actuation)') AS new_denom_unit, --add real volume (, 50 Ml Vial)
+       substring(concept_name, '[,X/]\s?([0-9.]+)\s(Mg|Ml|millilitre|G|L|Actuation)') AS new_denom_value
 FROM ds_0_2_0
 ;
 
@@ -1485,19 +1598,19 @@ SET numerator_value=CASE
                             THEN numerator_value::FLOAT * new_denom_value::FLOAT
                         WHEN new_denom_value IS NOT NULL AND lower(new_denom_unit) IN ('ml') AND
                              denominator_unit IS NULL
-                            THEN numerator_value::float * new_denom_value::float
+                            THEN numerator_value::FLOAT * new_denom_value::FLOAT
 
                         WHEN new_denom_value IS NOT NULL AND lower(new_denom_unit) IN ('ml') AND
                              lower(denominator_unit) IN ('ml', 'millilitre') AND lower(numerator_unit) = 'microgram'
-                            THEN numerator_value::float * new_denom_value::float
+                            THEN numerator_value::FLOAT * new_denom_value::FLOAT
                         WHEN new_denom_value IS NOT NULL AND lower(new_denom_unit) IN ('ml') AND
                              lower(denominator_unit) IN ('ml', 'millilitre') AND
                              lower(numerator_unit) IN ('ml', 'millilitre')
-                            THEN numerator_value::float * new_denom_value::float
+                            THEN numerator_value::FLOAT * new_denom_value::FLOAT
                         WHEN new_denom_value IS NOT NULL AND lower(new_denom_unit) IN ('ml') AND
                              lower(denominator_unit) IN ('ml', 'millilitre') AND
                              lower(numerator_unit) IN ('index of reactivity unit')
-                            THEN numerator_value::float * new_denom_value::float
+                            THEN numerator_value::FLOAT * new_denom_value::FLOAT
                         WHEN new_denom_value IS NOT NULL AND lower(new_denom_unit) IN ('g') AND
                              lower(denominator_unit) IN ('g', 'gram') AND lower(numerator_unit) = 'mg'
                             THEN numerator_value::FLOAT * new_denom_value::FLOAT
@@ -1514,9 +1627,9 @@ WHERE new_denom_unit IS NOT NULL
 
 --round values
 UPDATE ds_0_2
-SET amount_value=round(amount_value::numeric, 5),
-    numerator_value=round(numerator_value::numeric, 5),
-    new_denom_value=round(new_denom_value::numeric, 5);
+SET amount_value=round(amount_value::NUMERIC, 5),
+    numerator_value=round(numerator_value::NUMERIC, 5),
+    new_denom_value=round(new_denom_value::NUMERIC, 5);
 
 --capitalize units
 UPDATE ds_0_2
@@ -1529,6 +1642,15 @@ UPDATE ds_0_2
 SET new_denom_value=NULL
 WHERE denominator_unit = '24 Hours'
    OR denominator_unit = '16 Hours';
+
+
+UPDATE ds_0_2
+SET numerator_unit  = 'Unit',
+    numerator_value = 5000
+WHERE drug_concept_code IN (
+                            '923084011000036103', '923439011000036103', '923895011000036104',
+                            '923993011000036106', '924201011000036106'
+    );
 
 -- adding box_size info
 DROP TABLE IF EXISTS ds_0_3;
@@ -1571,8 +1693,8 @@ TRUNCATE TABLE ds_stage;
 INSERT INTO ds_stage --add box size
 (drug_concept_code, ingredient_concept_code, box_size, amount_value, amount_unit, numerator_value, numerator_unit,
  denominator_value, denominator_unit)
-SELECT DISTINCT drug_concept_code, ingredient_concept_code, box_size, amount_value::float, amount_unit,
-                numerator_value::float, numerator_unit, new_denom_value::float, denominator_unit
+SELECT DISTINCT drug_concept_code, ingredient_concept_code, box_size, amount_value::FLOAT, amount_unit,
+                numerator_value::FLOAT, numerator_unit, new_denom_value::FLOAT, denominator_unit
 FROM ds_0_3;
 
 -- add drugs that don't have dosages
@@ -1580,17 +1702,17 @@ INSERT INTO ds_stage (drug_concept_code, ingredient_concept_code)
 SELECT DISTINCT a.sourceid, a.destinationid
 FROM sources.amt_rf2_full_relationships a
 JOIN drug_concept_stage b
-    ON b.concept_code = a.sourceid::text
+    ON b.concept_code = a.sourceid::TEXT
 JOIN drug_concept_stage c
-    ON c.concept_code = a.destinationid::text
+    ON c.concept_code = a.destinationid::TEXT
 WHERE b.concept_class_id = 'Drug Product'
   AND c.concept_class_id = 'Ingredient'
   AND c.concept_name NOT LIKE '%Inert%'
-  AND sourceid::text NOT IN (
+  AND sourceid::TEXT NOT IN (
                             SELECT drug_concept_code
                             FROM ds_stage
                             )
-  AND sourceid::text NOT IN (
+  AND sourceid::TEXT NOT IN (
                             SELECT pack_concept_code
                             FROM pc_stage
                             );
@@ -1599,15 +1721,15 @@ INSERT INTO ds_stage (drug_concept_code, ingredient_concept_code)
 SELECT DISTINCT a.sourceid, d.destinationid
 FROM sources.amt_rf2_full_relationships a
 JOIN drug_concept_stage b
-    ON b.concept_code = a.sourceid::text
+    ON b.concept_code = a.sourceid::TEXT
 JOIN sources.amt_rf2_full_relationships d
     ON d.sourceid = a.destinationid
 JOIN drug_concept_stage c
-    ON c.concept_code = d.destinationid::text
+    ON c.concept_code = d.destinationid::TEXT
 WHERE b.concept_class_id = 'Drug Product'
   AND c.concept_class_id = 'Ingredient'
   AND c.concept_name NOT LIKE '%Inert%'
-  AND a.sourceid::text NOT IN (
+  AND a.sourceid::TEXT NOT IN (
                               SELECT drug_concept_code
                               FROM ds_stage
                               )
@@ -1722,7 +1844,7 @@ SET denominator_unit='Ml',
 WHERE denominator_unit = 'L'
   AND drug_concept_code NOT IN
       (
-      SELECT SOURCEID::text
+      SELECT SOURCEID::TEXT
       FROM sources.amt_rf2_full_relationships a
       WHERE DESTINATIONID IN (122011000036104, 187011000036109)
       );
@@ -1878,6 +2000,56 @@ $_$
     END;
 $_$;
 
+DROP TABLE IF EXISTS t;
+CREATE TEMP TABLE t AS (
+                       SELECT drug_concept_code, ingredient_concept_code, box_size, amount_value, amount_unit,
+                              sum(numerator_value) AS numerator_value, numerator_unit, denominator_value,
+                              denominator_unit
+                       FROM ds_stage
+                       WHERE drug_concept_code IN (
+                                                   '154321000036100', '154281000036109', '154311000036107',
+                                                   '154341000036108', '154271000036107')
+                       GROUP BY drug_concept_code, ingredient_concept_code, box_size, amount_value, amount_unit,
+                                numerator_unit,
+                                denominator_value, denominator_unit
+                       );
+
+
+DELETE
+FROM ds_stage
+WHERE drug_concept_code IN (
+                            '154321000036100', '154281000036109', '154311000036107',
+                            '154341000036108', '154271000036107'
+    );
+
+INSERT INTO ds_stage
+SELECT *
+FROM t;
+
+-- correct wrong percents
+UPDATE ds_stage
+SET numerator_value  = amount_value * 10,
+    numerator_unit   = 'Mg',
+    denominator_unit = 'G',
+    amount_value     = NULL,
+    amount_unit      = NULL,
+    box_size         = NULL
+WHERE drug_concept_code IN ('82454011000036102',
+                            '82567011000036107',
+                            '82039011000036108',
+                            '82202011000036104',
+                            '82413011000036109');
+
+UPDATE ds_stage
+SET box_size = NULL
+WHERE box_size = 1;
+
+UPDATE ds_stage
+SET numerator_value = numerator_value / 1000
+WHERE drug_concept_code = '872211000168107'
+  AND ingredient_concept_code = '864001000168101';
+
+
 --3. INTERNAL_RELATIONSHIP_STAGE
 --drug to supplier relation
 DROP TABLE IF EXISTS drug_to_supplier;
@@ -1966,9 +2138,9 @@ SELECT b.concept_Code,
        END AS concept_Code_2
 FROM sources.amt_rf2_full_relationships a
 JOIN drug_concept_stage b
-    ON a.sourceid::text = b.concept_code
+    ON a.sourceid::TEXT = b.concept_code
 JOIN drug_concept_stage c
-    ON a.destinationid::text = c.concept_code
+    ON a.destinationid::TEXT = c.concept_code
 LEFT JOIN non_S_form_to_S d
     ON d.concept_code = c.concept_code
 WHERE b.concept_class_id = 'Drug Product'
@@ -1977,7 +2149,7 @@ WHERE b.concept_class_id = 'Drug Product'
 
 UNION
 
-SELECT a.sourceid::text,
+SELECT a.sourceid::TEXT,
        CASE
            WHEN c.concept_code IN (
                                   SELECT concept_Code
@@ -1988,15 +2160,15 @@ SELECT a.sourceid::text,
        END AS concept_Code_2
 FROM sources.amt_rf2_full_relationships a
 JOIN drug_concept_stage d2
-    ON d2.concept_code = a.sourceid::text
+    ON d2.concept_code = a.sourceid::TEXT
 JOIN sources.amt_rf2_full_relationships b
     ON a.destinationid = b.sourceid
 JOIN drug_concept_stage c
-    ON b.destinationid::text = c.concept_code
+    ON b.destinationid::TEXT = c.concept_code
 LEFT JOIN non_S_form_to_S d
     ON d.concept_code = c.concept_code
 WHERE c.concept_class_id = 'Dose Form'
-  AND a.sourceid::text NOT IN (
+  AND a.sourceid::TEXT NOT IN (
                               SELECT concept_code
                               FROM drug_concept_stage
                               WHERE concept_name LIKE '%[Drug Pack]'
@@ -2016,9 +2188,9 @@ SELECT b.concept_Code,
        END AS concept_Code_2
 FROM sources.amt_rf2_full_relationships a
 JOIN drug_concept_stage b
-    ON a.sourceid::text = b.concept_code
+    ON a.sourceid::TEXT = b.concept_code
 JOIN drug_concept_stage c
-    ON a.destinationid::text = c.concept_code
+    ON a.destinationid::TEXT = c.concept_code
 LEFT JOIN non_S_bn_to_S d
     ON d.concept_code = c.concept_code
 WHERE b.source_concept_class_id IN ('Trade Product Unit', 'Trade Product Pack', 'Containered Pack')
@@ -2026,7 +2198,7 @@ WHERE b.source_concept_class_id IN ('Trade Product Unit', 'Trade Product Pack', 
 
 UNION
 
-SELECT a.sourceid::text,
+SELECT a.sourceid::TEXT,
        CASE
            WHEN c.concept_code IN (
                                   SELECT concept_Code
@@ -2037,15 +2209,15 @@ SELECT a.sourceid::text,
        END AS concept_Code_2
 FROM sources.amt_rf2_full_relationships a
 JOIN drug_concept_stage d2
-    ON d2.concept_code = a.sourceid::text
+    ON d2.concept_code = a.sourceid::TEXT
 JOIN sources.amt_rf2_full_relationships b
     ON a.destinationid = b.sourceid
 JOIN drug_concept_stage c
-    ON b.destinationid::text = c.concept_code
+    ON b.destinationid::TEXT = c.concept_code
 LEFT JOIN non_S_bn_to_S d
     ON d.concept_code = c.concept_code
 WHERE c.concept_class_id = 'Brand Name'
-  AND a.sourceid::text NOT IN (
+  AND a.sourceid::TEXT NOT IN (
                               SELECT concept_code
                               FROM drug_concept_stage
                               WHERE concept_name LIKE '%[Drug Pack]'
@@ -2224,13 +2396,26 @@ DELETE
 FROM internal_relationship_stage
 WHERE concept_code_1 = '933231511000036106'
   AND concept_code_2 = '4174011000036102';
+DELETE
+FROM internal_relationship_stage
+WHERE concept_code_1 = '86613011000036105'
+  AND concept_code_2 = '220011000036100';
+DELETE
+FROM internal_relationship_stage
+WHERE concept_code_1 = '86621011000036102'
+  AND concept_code_2 = '220011000036100';
+DELETE
+FROM internal_relationship_stage
+WHERE concept_code_1 = '18658011000036108'
+  AND concept_code_2 = 'OMOP527929';
+
 
 -- 4. PC_STAGE
 TRUNCATE TABLE concept_synonym_stage;
 
 -- insert long pack names into concept_synonym_stage to avoid name trimming
 INSERT INTO concept_synonym_stage
-SELECT DISTINCT NULL::int,
+SELECT DISTINCT NULL::INT,
                 concat(regexp_replace(descr.term, ' \(trade product pack\)| \(containered trade product pack\)', '',
                                       'g'),
                        ' [Drug Pack]') AS concept_name,
@@ -2239,8 +2424,9 @@ SELECT DISTINCT NULL::int,
                 4180186
 FROM concept_stage_sn sn
 JOIN sources.amt_full_descr_drug_only descr
-    ON descr.term LIKE sn.concept_name || '%'
-        AND sn.concept_code = descr.conceptid::text
+--     ON descr.term LIKE sn.concept_name || '%'
+    ON descr.term LIKE left(sn.concept_name, -3) || '%'
+        AND sn.concept_code = descr.conceptid::TEXT
 WHERE concept_class_id IN
       ('Containered Pack', 'Med Product Pack', 'Trade Product Pack', 'Med Product Unit', 'Trade Product Unit')
   AND (
@@ -2264,15 +2450,15 @@ CREATE TABLE pc_0_initial
 AS
 SELECT DISTINCT dcs1.concept_code AS pack_code,
                 coalesce(syn.synonym_name, dcs1.concept_name) AS pack_name,
-                dcs2.concept_name::varchar,
+                dcs2.concept_name::VARCHAR,
                 dcs2.concept_code,
                 dcs2.concept_class_id,
                 dcs2.source_concept_class_id
 FROM drug_concept_stage dcs1
 JOIN sources.amt_rf2_full_relationships frel
-    ON dcs1.concept_code = frel.sourceid::text
+    ON dcs1.concept_code = frel.sourceid::TEXT
 JOIN drug_concept_stage dcs2
-    ON dcs2.concept_code = frel.destinationid::text
+    ON dcs2.concept_code = frel.destinationid::TEXT
 LEFT JOIN concept_synonym_stage syn
     ON dcs1.concept_code = syn.synonym_concept_code
 WHERE (dcs1.concept_name LIKE '%[Drug Pack]'
@@ -2287,12 +2473,24 @@ FROM (
      SELECT term, conceptid
      FROM undetected_packs
      ) AS undetected
-WHERE pack_code = undetected.conceptid::text;
+WHERE pack_code = undetected.conceptid::TEXT;
 
+
+-- correct some errors detected in source
+UPDATE pc_0_initial
+SET pack_name = regexp_replace(pack_name, 'Tabletss', 'Tablets')
+WHERE pack_name ILIKE '%Tabletss%';
+
+
+--remove duplicates (reveled on pack check)
+DELETE
+FROM pc_0_initial
+WHERE pack_code IN ('63564011000036106', '63346011000036106')
+  AND pack_name NOT ILIKE '%1 pack%';
 
 -- remove wrong pack_names that were obtained from concept_stage_sn and add them manually later
 DROP TABLE IF EXISTS pc_wrong;
-CREATE TEMP TABLE pc_wrong AS
+CREATE TABLE pc_wrong AS
 SELECT *
 FROM pc_0_initial
 WHERE pack_code IN ('1071621000168106', '1071631000168109', '1073961000168106', '1073971000168100');
@@ -2323,21 +2521,33 @@ SELECT pack_code,
 FROM pc_0_initial
 WHERE pack_name LIKE '%(&)%';
 
---== DO NOT PROCEED UNTIL THE FOLLOWING CHECK RETURNS EMPTY RESULT ==--
--- should be empty! check for packs from pc_0_initial that aren't in pc_1_ampersand_sep
-SELECT *
-FROM pc_0_initial pc0
-WHERE pc0.pack_name LIKE '%(&)%'
-  AND pack_code NOT IN (
-                       SELECT DISTINCT pack_code
-                       FROM pc_1_ampersand_sep
-                       );
+
+--check for packs from pc_0_initial that aren't in pc_1_ampersand_sep
+DO
+$_$
+    DECLARE
+        packs TEXT;
+    BEGIN
+        SELECT string_agg(pack_code, ', ')
+        INTO packs
+        FROM pc_0_initial pc0
+        WHERE pc0.pack_name LIKE '%(&)%'
+          AND pack_code NOT IN (
+                               SELECT DISTINCT pack_code
+                               FROM pc_1_ampersand_sep
+                               );
+        IF packs IS NOT NULL THEN
+            RAISE EXCEPTION 'packs from pc_0_initial that aren''t in pc_1_ampersand_sep: ''%''', packs;
+        END IF;
+    END
+$_$
+;
 
 -- identical pack constituents
 /*Since any pack has at least 2 drugs, each pack has to have at least four records.
   A pack which occurs only twice either has different amount of the same drug drug or a bug*/
 DROP TABLE IF EXISTS pc_identical_drugs;
-CREATE TEMP TABLE pc_identical_drugs AS
+CREATE TABLE pc_identical_drugs AS
 SELECT *
 FROM pc_1_ampersand_sep pc1
 WHERE pc1.pack_code IN (
@@ -2383,16 +2593,17 @@ $_$;
 
 -- pc_1_ampersand_sep and intersection of words counts between pack_comp and concept_name of a drug - pack constituent
 DROP TABLE IF EXISTS ampersand_sep_intersection_check;
-CREATE TEMP TABLE ampersand_sep_intersection_check AS
+CREATE TABLE ampersand_sep_intersection_check AS
 SELECT DISTINCT pc1.pack_code,
                 pc1.pack_name,
                 pc1.concept_name,
                 pc1.concept_code,
                 pc1.pack_comp,
                 cardinality(array(
-                        SELECT unnest(regexp_split_to_array(pc1.concept_name, ' '))
+                        SELECT unnest(regexp_split_to_array(regexp_replace(pc1.concept_name, '\)|\(|s\)', '', 'g'),
+                                                            ' '))
                         INTERSECT
-                        SELECT unnest(regexp_split_to_array(regexp_replace(pc1.pack_comp, '\)|\(|s\)', ''), ' '))
+                        SELECT unnest(regexp_split_to_array(regexp_replace(pc1.pack_comp, '\)|\(|s\)', '', 'g'), ' '))
                     )) AS intersection
 FROM pc_1_ampersand_sep pc1
 WHERE pc1.pack_code NOT IN (
@@ -2404,7 +2615,7 @@ ORDER BY pack_code
 
 DROP TABLE IF EXISTS ampersand_sep_intersection_ambig;
 -- get those drugs whose max intersections occur more than once for single pack (ambiguous constituent drug)
-CREATE TEMP TABLE ampersand_sep_intersection_ambig AS
+CREATE TABLE ampersand_sep_intersection_ambig AS
 WITH tab AS
          (
          SELECT pack_code,
@@ -2434,11 +2645,12 @@ WITH tab AS (
                             pc1.concept_name,
                             pc1.concept_code,
                             cardinality(array(
-                                    SELECT unnest(regexp_split_to_array(concept_name, ' '))
+                                    SELECT unnest(regexp_split_to_array(
+                                            regexp_replace(concept_name, '\)|\(|s\)', '', 'g'), ' '))
                                     INTERSECT
                                     SELECT unnest(
                                                    regexp_split_to_array(
-                                                           regexp_replace(pack_comp, '\)|\(|s\)', ''), ' ')
+                                                           regexp_replace(pack_comp, '\)|\(|s\)', '', 'g'), ' ')
                                                )
                                 )
                                 ) AS intersection,
@@ -2473,9 +2685,9 @@ WHERE intersection = (
                        FROM pc_identical_drugs
                        );
 
--- add ambiguous drugs where ambiguity was resolved by consistent match of another drug from a pack, while pack is already in pc_2
+-- add ambiguous drugs where ambiguity was resolved by consistent match for another drug from a pack, when pack is already in pc_2
 INSERT
-INTO pc_2_ampersand_sep_amount
+    INTO pc_2_ampersand_sep_amount
 SELECT aa.pack_code, aa.pack_name, aa.concept_name, aa.concept_code, ach.pack_comp,
        SUBSTRING(ach.pack_comp, '(?<=\[)\d+') AS amount, 'ambig_resolved'
 FROM ampersand_sep_intersection_ambig aa
@@ -2510,6 +2722,7 @@ FROM pc_identical_drugs;
 INSERT INTO pc_2_ampersand_sep_amount
 SELECT pack_code, pack_name, concept_name, concept_code, 'manually_wrong', NULL, 'manual_wrong_source'
 FROM pc_wrong;
+
 DO
 $_$
     BEGIN
@@ -2538,6 +2751,10 @@ DO
 $_$
     BEGIN
         --formatter:off
+        UPDATE pc_2_ampersand_sep_amount SET amount = '15' WHERE pack_code = '86415011000036109' AND concept_code = '86215011000036108';
+        UPDATE pc_2_ampersand_sep_amount SET amount = '6' WHERE pack_code = '86415011000036109' AND concept_code = '86214011000036109';
+        UPDATE pc_2_ampersand_sep_amount SET amount = '6' WHERE pack_code = '63564011000036106' AND concept_code = '62038011000036103';
+        UPDATE pc_2_ampersand_sep_amount SET amount = '1' WHERE pack_code = '1167031000168105';
         UPDATE pc_2_ampersand_sep_amount SET amount = '5' WHERE pack_code = '86414011000036105' AND concept_code = '86215011000036108';
         UPDATE pc_2_ampersand_sep_amount SET amount = '2' WHERE pack_code = '86414011000036105' AND concept_code = '86214011000036109';
         UPDATE pc_2_ampersand_sep_amount SET amount = '5' WHERE pack_code = '85643011000036101' AND concept_code = '85317011000036106';
@@ -2581,43 +2798,51 @@ $_$
     END
 $_$;
 
--- DO NOT PROCEED UNTIL THE FOLLOWING CHECK RETURNS EMPTY RESULT
--- should be empty! ampersand_sep that didn't find their way to pc_2
-SELECT DISTINCT pc1.pack_code,
-                pc1.pack_name,
-                pc1.concept_name,
-                pc1.concept_code,
-                pc1.pack_comp
-FROM pc_1_ampersand_sep pc1
-WHERE pc1.pack_code NOT IN (
-                           SELECT pack_code
-                           FROM pc_2_ampersand_sep_amount
-                           );
+
+-- get ampersand_sep packs that didn't find their way to pc_2
+DO
+$_$
+    DECLARE
+        packs TEXT;
+    BEGIN
+        SELECT string_agg(DISTINCT pc1.pack_code, ', ')
+        INTO packs
+        FROM pc_1_ampersand_sep pc1
+        WHERE pc1.pack_code NOT IN (
+                                   SELECT pack_code
+                                   FROM pc_2_ampersand_sep_amount
+                                   );
+        IF packs IS NOT NULL THEN
+            RAISE EXCEPTION 'ampersand_sep packs that didn''t find their way to pc_2: ''%''', packs;
+        END IF;
+    END
+$_$
+;
 
 
--- remap packs constituents to more specific drugs to prevent mapping to the same drug more than once
+-- remap identical packs constituents to more specific drugs to prevent mapping to the same drug more than once
 DO
 $_$
     BEGIN
         UPDATE pc_2_ampersand_sep_amount
         SET concept_code = '1037031000168109'
-        WHERE pack_comp ~* 'diclofenac diethylammonium 1\.?1\.?6'
+        WHERE pack_comp ~* 'diclofenac diethyl'
           AND amount = '20';
         UPDATE pc_2_ampersand_sep_amount
         SET concept_code = '1037061000168101'
-        WHERE pack_comp ~* 'diclofenac diethylammonium 1\.?1\.?6'
+        WHERE pack_comp ~* 'diclofenac diethyl'
           AND amount = '50';
         UPDATE pc_2_ampersand_sep_amount
         SET concept_code = '1037001000168102'
-        WHERE pack_comp ~* 'diclofenac diethylammonium 1\.?1\.?6'
+        WHERE pack_comp ~* 'diclofenac diethyl'
           AND amount = '100';
         UPDATE pc_2_ampersand_sep_amount
         SET concept_code = '1093361000168102'
-        WHERE pack_comp ~* 'diclofenac diethylammonium 1\.?1\.?6'
+        WHERE pack_comp ~* 'diclofenac diethyl'
           AND amount = '120';
         UPDATE pc_2_ampersand_sep_amount
         SET concept_code = '1096781000168102'
-        WHERE pack_comp ~* 'diclofenac diethylammonium 1\.?1\.?6'
+        WHERE pack_comp ~* 'diclofenac diethyl'
           AND amount = '180';
         UPDATE pc_2_ampersand_sep_amount
         SET concept_code = '1200401000168106'
@@ -2640,30 +2865,42 @@ $_$;
 
 
 -- different count of constituents in pc_1_ampersand and pc_2_ampersand for same packs
-SELECT *
-FROM pc_2_ampersand_sep_amount
-WHERE pack_code IN (
-                   SELECT pc.pack_code
-                   FROM pc_2_ampersand_sep_amount pc
-                   GROUP BY pc.pack_code
-                   HAVING count(pc.pack_code) <> (
-                                                 SELECT count(pack_code)
-                                                 FROM (
-                                                      SELECT DISTINCT pc1.pack_code,
-                                                                      pc1.concept_code
-                                                      FROM pc_1_ampersand_sep pc1
-                                                      ) t
-                                                 WHERE pack_code = pc.pack_code
-                                                 )
-                   )
-  AND pack_code NOT IN (
-                       SELECT pack_code
-                       FROM pc_identical_drugs
-                       )
-  AND pack_code NOT IN (
-                       SELECT pack_code
-                       FROM pc_wrong
-                       );
+DO
+$_$
+    DECLARE
+        packs TEXT;
+    BEGIN
+        SELECT string_agg(DISTINCT pack_code, ', ')
+        INTO packs
+        FROM pc_2_ampersand_sep_amount
+        WHERE pack_code IN (
+                           SELECT pc.pack_code
+                           FROM pc_2_ampersand_sep_amount pc
+                           GROUP BY pc.pack_code
+                           HAVING count(pc.pack_code) <> (
+                                                         SELECT count(pack_code)
+                                                         FROM (
+                                                              SELECT DISTINCT pc1.pack_code,
+                                                                              pc1.concept_code
+                                                              FROM pc_1_ampersand_sep pc1
+                                                              ) t
+                                                         WHERE pack_code = pc.pack_code
+                                                         )
+                           )
+          AND pack_code NOT IN (
+                               SELECT pack_code
+                               FROM pc_identical_drugs
+                               )
+          AND pack_code NOT IN (
+                               SELECT pack_code
+                               FROM pc_wrong
+                               );
+        IF packs IS NOT NULL THEN
+            RAISE WARNING 'different count of constituents in pc_1_ampersand and pc_2_ampersand for: ''%''', packs;
+        END IF;
+    END
+$_$
+;
 
 -- get pc2_ampersand_sep for review
 /*SELECT pack_code, concept_code, pack_name, concept_name, pack_comp, amount, source
@@ -2691,18 +2928,87 @@ WHERE pack_code NOT IN (
                        FROM pc_1_ampersand_sep
                        );
 
--- DO NOT PROCEED UNTIL THE FOLLOWING CHECK RETURNS EMPTY RESULT
--- should be empty! check for packs from pc_0_initial that aren't in pc_1_comma_sep
+-- create identical drugs for comma_sep packs
+TRUNCATE pc_identical_drugs;
+
+INSERT INTO pc_identical_drugs
 SELECT *
-FROM pc_0_initial
-WHERE pack_code NOT IN (
-                       SELECT pack_code
-                       FROM pc_1_ampersand_sep
-                       )
-  AND pack_code NOT IN (
+FROM pc_1_comma_sep pc1
+WHERE pc1.pack_code IN (
                        SELECT pack_code
                        FROM pc_1_comma_sep
-                       );
+                       GROUP BY pack_code
+                       HAVING count(*) = 2
+                       )
+;
+
+DO
+$_$
+    BEGIN
+        UPDATE pc_1_comma_sep
+        SET pack_comp = pack_comp || ')'
+        WHERE pack_comp ~* 'Tablets$'
+           OR pack_comp ~* 'Capsules$';
+
+        UPDATE pc_1_comma_sep
+        SET pack_comp = pack_comp || ' Day'
+        WHERE pack_comp ILIKE '%Day Tablets%'
+           OR pack_comp ILIKE '%Day Capsules%'
+           OR pack_comp ILIKE '%Day Liquid%';
+
+        UPDATE pc_1_comma_sep
+        SET pack_comp = pack_comp || ' Night'
+        WHERE pack_comp ILIKE '%Night Tablets%'
+           OR pack_comp ILIKE '%Night Capsules%'
+           OR pack_comp ILIKE '%Night Liquid%';
+
+        UPDATE pc_1_comma_sep
+        SET pack_comp = pack_comp || ' Ezetrol'
+        WHERE pack_comp ILIKE '%Ezetrol%';
+
+        UPDATE pc_1_comma_sep
+        SET concept_name = concept_name || ' Ezetrol'
+        WHERE concept_name ILIKE '%Ezetrol%';
+
+        UPDATE pc_1_comma_sep
+        SET concept_name = concept_name || ' Intralipid'
+        WHERE concept_name ~* 'Kabiven .+ Intralipid';
+
+        UPDATE pc_1_comma_sep
+        SET pack_comp = pack_comp || ' Intralipid'
+        WHERE pack_comp ~* 'Intralipid';
+
+        UPDATE pc_1_comma_sep
+        SET pack_comp = regexp_replace(pack_comp, 'Old Formulation', '')
+        WHERE pack_comp ILIKE '%old Formulation%';
+
+    END;
+$_$;
+
+-- check for packs from pc_0_initial that aren't in pc_1_comma_sep
+DO
+$_$
+    DECLARE
+        packs TEXT;
+    BEGIN
+        SELECT string_agg(DISTINCT pack_code, ', ')
+        INTO packs
+        FROM pc_0_initial
+        WHERE pack_code NOT IN (
+                               SELECT pack_code
+                               FROM pc_1_ampersand_sep
+                               )
+          AND pack_code NOT IN (
+                               SELECT pack_code
+                               FROM pc_1_comma_sep
+                               );
+        IF packs IS NOT NULL THEN
+            RAISE EXCEPTION 'packs from pc_0_initial that aren''t in pc_1_comma_sep: ''%''', packs;
+        END IF;
+    END
+$_$
+;
+
 
 
 DROP TABLE IF EXISTS pc_2_comma_sep_amount;
@@ -2721,36 +3027,116 @@ JOIN pc_1_comma_sep pc2
     ON ' ' || pc1.concept_name LIKE -- compensate for space, left in pack_comp at the beginning,
        '%' || regexp_replace(substring(pc2.pack_comp, '\sX\s.*Mg |\sX\s.*Ml |\sX\s.*G |\sX\s.*Ir '), 'X\s', '', 'g') ||
        '%'
-        AND pc1.pack_code = pc2.pack_code;
+        AND pc1.pack_code = pc2.pack_code
+        AND pc1.pack_code NOT IN (
+                                 SELECT pack_code
+                                 FROM pc_identical_drugs
+                                 );
+
+
+-- tweak packs constituents to prevent mapping to the same drug more than once due to identical dosage for a drug in a pack --
+-- following check retrieves drugs with such a problem
+DO
+$_$
+    BEGIN
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1200441000168108',
+            pack_comp    = 'amount X dosage updated' -- Venclexa 14x100Mg
+        WHERE concept_name ~* 'Venclexta 100'
+          AND amount = '14';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1200411000168109',
+            pack_comp    = 'amount X dosage updated' -- Venclexa 7x100Mg
+        WHERE concept_name ~* 'Venclexta 100'
+          AND amount = '7';
+        DELETE
+        FROM pc_2_comma_sep_amount
+        WHERE concept_name ~* 'Amoxycillin|Amoxil' -- same dosage for amoxicillin and clarithromycin causes ambiguity
+          AND pack_name ~* '28 X 500 Mg Capsules'
+          AND amount = '14';
+        DELETE
+        FROM pc_2_comma_sep_amount
+        WHERE concept_name ~* 'Klacid|Clarihex' -- same dosage for amoxicillin and clarithromycin causes ambiguity
+          AND pack_name ~* '14 X 500 Mg Tablets'
+          AND amount = '28';
+    END;
+$_$;
+
+
+-- check for packs with multiple relations to the same drug after previous step
+DO
+$_$
+    DECLARE
+        packs TEXT;
+    BEGIN
+        SELECT string_agg(DISTINCT pack_code, ', ')
+        INTO packs
+        FROM pc_2_comma_sep_amount
+        WHERE pack_code IN (
+                           SELECT pack_code
+                           FROM pc_2_comma_sep_amount pc2_1
+                           GROUP BY(pack_code)
+                           HAVING count(*) <> (
+                                              SELECT count(pack_code)
+                                              FROM (
+                                                   SELECT DISTINCT pack_code, concept_code
+                                                   FROM pc_2_comma_sep_amount
+                                                   ) t
+                                              WHERE pc2_1.pack_code = t.pack_code
+                                              )
+                           );
+        IF packs IS NOT NULL THEN
+            RAISE EXCEPTION 'multiple relation to the same drug for pack_code: ''%''', packs;
+        END IF;
+    END
+$_$
+;
+
 
 -- manual insertions based on the results of the return of the following check (should be empty)
 DROP TABLE IF EXISTS pc_2_comma_sep_amount_insertion;
-CREATE TEMP TABLE pc_2_comma_sep_amount_insertion
+CREATE TABLE pc_2_comma_sep_amount_insertion
 (
-    pack_code    varchar(50),
-    concept_code varchar(50),
-    amount       text
+    pack_code    VARCHAR(50),
+    concept_code VARCHAR(50),
+    amount       TEXT
 );
 
 INSERT INTO pc_2_comma_sep_amount_insertion (pack_code, concept_code, amount)
-VALUES ('1228401000168101', '1228251000168103', '1'),
-       ('1228411000168103', '1228251000168103', '1'),
-       ('1377951000168104', '1008481000168107', '2'),
-       ('1377961000168102', '1008481000168107', '2'),
-       ('1378011000168102', '1008481000168107', '4'),
-       ('1378021000168109', '1008481000168107', '4'),
-       ('1378031000168107', '1008481000168107', '12'),
-       ('1378041000168103', '1008481000168107', '12'),
-       ('1378051000168101', '1008481000168107', '16'),
-       ('1378061000168104', '1008481000168107', '16'),
-       ('765011000168104', '764971000168107', '1'),
-       ('765021000168106', '764971000168107', '1'),
-       ('902181000168109', '902141000168104', '2'),
-       ('902191000168107', '902141000168104', '2'),
-       ('902221000168101', '902211000168108', '2'),
-       ('902231000168103', '902211000168108', '2'),
-       ('1465051000168106', '1465021000168103', '56'),
-       ('1465061000168108', '1465021000168103', '56');
+--formatter:off
+VALUES ('1228401000168101', '1228251000168103', '1'), ('1228411000168103', '1228251000168103', '1'),
+       ('1377951000168104', '1008481000168107', '2'), ('1377961000168102', '1008481000168107', '2'),
+       ('1378011000168102', '1008481000168107', '4'), ('1378021000168109', '1008481000168107', '4'),
+       ('1378031000168107', '1008481000168107', '12'), ('1378041000168103', '1008481000168107', '12'),
+       ('1378051000168101', '1008481000168107', '16'), ('1378061000168104', '1008481000168107', '16'),
+       ('765011000168104', '764971000168107', '1'), --('765021000168106', '764971000168107', '1'),
+       ('902181000168109', '902141000168104', '2'), ('902191000168107', '902141000168104', '2'),
+       ('902221000168101', '902211000168108', '2'), ('902231000168103', '902211000168108', '2'),
+       ('1465051000168106', '1465021000168103', '56'), ('1465061000168108', '1465021000168103', '56'),
+       ('1499661000168104', '1499621000168109', '4'), ('1499671000168105', '1499621000168109', '4'),
+       ('85643011000036101', '85317011000036106', '5'), ('86060011000036107', '85317011000036106', '5'),
+       ('684301000168108', '85317011000036106', '5'), ('76722011000036101', '76140011000036109', '1'),
+       ('76722011000036101', '76141011000036102', '1'), ('77306011000036105', '76140011000036109', '1'),
+       ('77306011000036105', '76141011000036102', '1'), ('175511000036100', '173471000036109', '14'),
+       ('175511000036100', '173191000036101', '14'), ('13523011000036109', '6806011000036103', '14'),
+       ('13523011000036109', '6805011000036105', '14'), ('20314011000036101', '6806011000036103', '14'),
+       ('20314011000036101', '6805011000036105', '14'), ('1294991000168100', '7246011000036103', '10'),
+       ('1294991000168100', '173251000036103', '10'), ('175201000036100', '7246011000036103', '30'),
+       ('175201000036100', '173261000036100', '30'), ('726071000168109', '726021000168108', '14'),
+       ('726081000168107', '726021000168108', '14'), ('726551000168105', '726021000168108', '56'),
+       ('726561000168107', '726021000168108', '56'), ('933231511000036106', '7619011000036101', '4'),
+       ('933231511000036106', '933220771000036100', '4'), ('841011000168105', '840891000168104', '10'),
+       ('841001000168107', '840891000168104', '10'), ('719421000168102', '719301000168103', '14'),
+       ('719411000168109', '719301000168103', '14'), ('20081011000036101', '6594011000036105', '4'),
+       ('20080011000036108', '6592011000036101', '4'), ('19147011000036107', '5193011000036100', '12'),
+       ('150411000036106', '7246011000036103', '30'), ('1155971000168108', '7246011000036103', '30'),
+       ('933225691000036100', '7619011000036101', '4'), ('933225691000036100', '933220771000036100', '4'),
+       ('177211000036109', '173191000036101', '14'), ('177211000036109', '173471000036109', '14'),
+       ('733921000168101', '726051000168100', '112'), ('734491000168107', '726051000168100', '112'),
+       ('833841000168101', '832621000168100', '2'), ('833851000168104', '832621000168100', '2'),
+       ('13309011000036102', '6594011000036105', '4'), ('13309011000036102', '6595011000036109', '4')
+--formatter:on
+;
 
 
 INSERT INTO pc_2_comma_sep_amount
@@ -2763,43 +3149,68 @@ JOIN pc_1_comma_sep pc
 
 DROP TABLE IF EXISTS comma_sep_intersection_check;
 -- Check for constituents of pack with equal intersection counts which leads to ambiguity
-CREATE TEMP TABLE comma_sep_intersection_check AS
+CREATE TABLE comma_sep_intersection_check AS
 SELECT DISTINCT pc1.pack_code,
                 pc1.pack_name,
                 pc1.concept_name,
                 pc1.concept_code,
                 pc1.pack_comp,
                 cardinality(array(
-                        SELECT unnest(regexp_split_to_array(pc1.concept_name, ' '))
-                        INTERSECT
-                        SELECT unnest(regexp_split_to_array(regexp_replace(pc1.pack_comp, '\)|\(|s\)', ''), ' '))
+                        SELECT unnest(regexp_split_to_array(
+                                regexp_replace(pc1.concept_name,
+                                               '\)|\(|s\)', '', 'g'),
+                                ' '))
+                        INTERSECT ALL
+                        SELECT unnest(regexp_split_to_array(
+                                regexp_replace(pc1.pack_comp,
+                                               '\)|\(|s\)', '', 'g'), ' '))
                     )) AS intersection
+
 FROM pc_1_comma_sep pc1
 JOIN pc_1_comma_sep pc2
     ON pc1.pack_code = pc2.pack_code
         AND pc1.concept_code = pc2.concept_code
-WHERE (pc1.pack_code, pc1.concept_code) NOT IN (
-                                               SELECT pack_code, concept_code
-                                               FROM pc_2_comma_sep_amount
-                                               )
+WHERE pc1.pack_code NOT IN (
+                           SELECT pack_code
+                           FROM pc_2_comma_sep_amount
+                           )
+  AND pc1.pack_code NOT IN (
+                           SELECT pack_code
+                           FROM pc_identical_drugs
+                           )
 ORDER BY pack_code;
+
+
 
 -- Do not proceed until the following query returns empty result.
 -- If not - add corresponding amounts for constituents into pc_2_comma_sep_amount_insertion manually (query is located above)
 -- get constituents from pc_1_comma_sep which have the same max intersection count for several pack_components.
-WITH tab AS (
-            SELECT pack_code, concept_code, max(intersection) AS intersection
-            FROM comma_sep_intersection_check
-            GROUP BY pack_code, concept_code
-            )
-SELECT ic.pack_code, ic.pack_name, ic.concept_name, ic.concept_code, ic.intersection
-FROM tab t
-JOIN comma_sep_intersection_check ic
-    ON t.pack_code = ic.pack_code
-        AND t.concept_code = ic.concept_code
-        AND t.intersection = ic.intersection
-GROUP BY ic.pack_code, ic.pack_name, ic.concept_name, ic.concept_code, ic.intersection
-HAVING count(*) > 1;
+
+DO
+$_$
+    DECLARE
+        packs TEXT;
+    BEGIN
+        WITH tab AS (
+                    SELECT pack_code, concept_code, max(intersection) AS intersection
+                    FROM comma_sep_intersection_check
+                    GROUP BY pack_code, concept_code
+                    )
+        SELECT string_agg(DISTINCT ic.pack_code, ', ')
+        INTO packs
+        FROM tab t
+        JOIN comma_sep_intersection_check ic
+            ON t.pack_code = ic.pack_code
+                AND t.concept_code = ic.concept_code
+                AND t.intersection = ic.intersection
+        GROUP BY ic.pack_code, ic.pack_name, ic.concept_name, ic.concept_code, ic.intersection
+        HAVING count(*) > 1;
+        IF packs IS NOT NULL THEN
+            RAISE EXCEPTION 'same intersection count for: ''%''', packs;
+        END IF;
+    END
+$_$
+;
 
 
 -- insert unmatched by "amount X dosage" into pc_2_comma_sep_amount
@@ -2810,11 +3221,12 @@ WITH tab AS (
                             pc1.concept_name,
                             pc1.concept_code,
                             cardinality(array(
-                                    SELECT unnest(regexp_split_to_array(concept_name, ' '))
-                                    INTERSECT
+                                    SELECT unnest(regexp_split_to_array(
+                                            regexp_replace(concept_name, '\)|\(|s\)', '', 'g'), ' '))
+                                    INTERSECT ALL
                                     SELECT unnest(
                                                    regexp_split_to_array(
-                                                           regexp_replace(pack_comp, '\)|\(|s\)', ''), ' ')
+                                                           regexp_replace(pack_comp, '\)|\(|s\)', '', 'g'), ' ')
                                                )
                                 )
                                 ) AS intersection,
@@ -2839,20 +3251,44 @@ WHERE intersection = (
                      FROM tab tab2
                      WHERE tab2.pack_code = tab.pack_code
                        AND tab2.concept_code = tab.concept_code
-                     );
+                     )
+  AND pack_code NOT IN (
+                       SELECT DISTINCT pack_code
+                       FROM pc_2_comma_sep_amount
+                       WHERE pack_comp = 'amount X dosage updated'
+                       )
+  AND pack_code NOT IN (
+                       SELECT pack_code
+                       FROM pc_identical_drugs
+                       )
+;
 
--- CHECK --
--- comma_sep that didn't find their way to pc_2; should be empty
-SELECT DISTINCT pc1.pack_code,
-                pc1.pack_name,
-                pc1.concept_name,
-                pc1.concept_code,
-                pc1.pack_comp
-FROM pc_1_comma_sep pc1
-WHERE pc1.pack_code NOT IN (
-                           SELECT pack_code
-                           FROM pc_2_comma_sep_amount
-                           );
+
+-- insert packs with identical drug constituents
+INSERT INTO pc_2_comma_sep_amount
+SELECT *, substring(pack_comp, '\d+') AS amount
+FROM pc_identical_drugs;
+
+
+-- pc_1_comma_sep that didn't find their way to pc_2;
+DO
+$_$
+    DECLARE
+        packs TEXT;
+    BEGIN
+        SELECT string_agg(DISTINCT pack_code, ', ')
+        INTO packs
+        FROM pc_1_comma_sep pc1
+        WHERE pc1.pack_code NOT IN (
+                                   SELECT pack_code
+                                   FROM pc_2_comma_sep_amount
+                                   );
+        IF packs IS NOT NULL THEN
+            RAISE EXCEPTION 'comma_sep packs not in pc_2: ''%''', packs;
+        END IF;
+    END
+$_$
+;
 
 
 -- remap packs constituents to more specific drugs to prevent mapping to the same drug more than once ==--
@@ -2868,35 +3304,56 @@ $_$
         WHERE concept_name ~* 'odourless fish oil'
           AND amount = '400';
         UPDATE pc_2_comma_sep_amount
-        SET concept_code = '1200441000168108' -- Venclexa 14x100Mg
-        WHERE concept_name ~* 'Venclexta 100'
-          AND amount = '14';
+        SET concept_code = '1096761000168106'
+        WHERE pack_comp ILIKE '%20 g gel%'
+          AND concept_name ILIKE '%voltaren emulgel no mess%';
         UPDATE pc_2_comma_sep_amount
-        SET concept_code = '1200411000168109' -- Venclexa 7x100Mg
-        WHERE concept_name ~* 'Venclexta 100'
-          AND amount = '7';
+        SET concept_code = '1037041000168100'
+        WHERE pack_comp ILIKE '%20 g gel%'
+          AND concept_name ~* 'voltaren emulgel \d';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1096651000168100'
+        WHERE pack_comp ILIKE '%50 g gel%'
+          AND concept_name ILIKE '%voltaren emulgel no mess%';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1037071000168107'
+        WHERE pack_comp ILIKE '%50 g gel%'
+          AND concept_name ~* 'voltaren emulgel \d';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1093341000168101'
+        WHERE pack_comp ILIKE '%100 g gel%'
+          AND concept_name ILIKE '%voltaren emulgel no mess%';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1037011000168104'
+        WHERE pack_comp ILIKE '%100 g gel%'
+          AND concept_name ~* 'voltaren emulgel \d';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1093371000168108'
+        WHERE pack_comp ILIKE '%120 g gel%'
+          AND concept_name ILIKE '%voltaren emulgel no mess%';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1189981000168104'
+        WHERE pack_comp ILIKE '%120 g gel%'
+          AND concept_name ~* 'voltaren emulgel \d';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1093391000168109'
+        WHERE pack_comp ILIKE '%150 g gel%'
+          AND concept_name ILIKE '%voltaren emulgel no mess%';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1190061000168104'
+        WHERE pack_comp ILIKE '%150 g gel%'
+          AND concept_name ~* 'voltaren emulgel \d';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1096791000168104'
+        WHERE pack_comp ILIKE '%180 g gel%'
+          AND concept_name ILIKE '%voltaren emulgel no mess%';
+        UPDATE pc_2_comma_sep_amount
+        SET concept_code = '1190081000168108'
+        WHERE pack_comp ILIKE '%180 g gel%'
+          AND concept_name ~* 'voltaren emulgel \d';
     END;
 $_$;
 
-
--- get packs where some of the constituent drugs have not been matched
-/*count of constituents in pc_2_comma_sep_amount differs from count of constituents in pc_1_comma_sep*/
-SELECT *
-FROM pc_2_comma_sep_amount
-WHERE pack_code IN (
-                   SELECT pc.pack_code
-                   FROM pc_2_comma_sep_amount pc
-                   GROUP BY pc.pack_code
-                   HAVING count(pc.pack_code) <> (
-                                                 SELECT count(pack_code)
-                                                 FROM (
-                                                      SELECT DISTINCT pc1.pack_code,
-                                                                      pc1.concept_code
-                                                      FROM pc_1_comma_sep pc1
-                                                      ) t
-                                                 WHERE pack_code = pc.pack_code
-                                                 )
-                   );
 
 -- get pc2_comma_sep for review
 /*SELECT pack_code, concept_code, pack_name, concept_name, pack_comp, amount
@@ -2927,8 +3384,49 @@ WHERE pack_name LIKE '%Viekira Pak%';
 
 TRUNCATE TABLE pc_stage;
 INSERT INTO pc_stage (pack_concept_code, drug_concept_code, amount, box_size)
-SELECT DISTINCT pack_code, concept_code, amount::float, box_size::int4
+SELECT DISTINCT pack_code, concept_code, amount::FLOAT, box_size::int4
 FROM pc_3_box_size;
+
+
+--insert packs that were identified as drugs and remove corresponding info from ds_stage and irs
+INSERT INTO pc_stage
+VALUES ('13009011000036101', '22837011000036106', '9', '4'),  --1mg
+       ('13009011000036101', '22835011000036101', '12', '4'), -- 0.5 mg
+       ('13009011000036101', '22836011000036108', '7', '4'),  --inactive
+       ('19749011000036106', '22837011000036106', '9', '4'),
+       ('19749011000036106', '22835011000036101', '12', '4'),
+       ('19749011000036106', '22836011000036108', '7', '4'),
+       ('700029861000036100', '22837011000036106', '9', NULL),
+       ('700029861000036100', '22835011000036101', '12', NULL),
+       ('700029861000036100', '22836011000036108', '7', NULL),
+       ('19748011000036103', '22837011000036106', '9', '4'),
+       ('19748011000036103', '22835011000036101', '12', '4'),
+       ('19748011000036103', '22836011000036108', '7', '4'),
+       ('13008011000036109', '22837011000036106', '9', NULL),
+       ('13008011000036109', '22835011000036101', '12', NULL),
+       ('13008011000036109', '22836011000036108', '7', NULL),
+       ('700029971000036104', '22837011000036106', '9', NULL),
+       ('700029971000036104', '22835011000036101', '12', NULL),
+       ('700029971000036104', '22836011000036108', '7', NULL);
+
+DELETE
+FROM ds_stage
+WHERE drug_concept_code IN (
+                            '13009011000036101', '19749011000036106', '700029861000036100',
+                            '19748011000036103', '13008011000036109', '700029971000036104'
+    );
+
+DELETE
+FROM internal_relationship_stage
+WHERE concept_code_1 IN (
+                         '13009011000036101', '19749011000036106', '700029861000036100',
+                         '19748011000036103', '13008011000036109', '700029971000036104'
+    );
+
+DELETE
+FROM pc_stage
+WHERE pack_concept_code = '930838011000036102'
+  AND drug_concept_code = '36098011000036103';
 
 
 -- 5. RELATIONSHIP_TO_CONCEPT
@@ -2936,7 +3434,7 @@ DO
 $$
     BEGIN
         ALTER TABLE relationship_to_concept
-            ADD COLUMN mapping_type varchar(255);
+            ADD COLUMN mapping_type VARCHAR(255);
     EXCEPTION
         WHEN duplicate_column THEN RAISE NOTICE 'column mapping_type already exists in relationship_to_concept.';
     END;
@@ -3109,33 +3607,15 @@ WHERE concept_class_id = 'Ingredient'
                               FROM relationship_to_concept
                               )
   AND dcs.concept_name NOT IN (
-                              SELECT DISTINCT name
+                              SELECT DISTINCT NAME
                               FROM ingredient_mapped
-                              WHERE name IS NOT NULL
+                              WHERE NAME IS NOT NULL
                               )
-ORDER BY dcs.concept_name
-;
-
--- ingredient to map
-SELECT DISTINCT name,
-                '' AS new_name,
-                '' AS comment,
-                NULL AS precedence,
-                NULL AS target_concept_id,
-                NULL AS concept_code,
-                NULL AS concept_name,
-                NULL AS concept_class_id,
-                NULL AS standard_concept,
-                NULL AS invalid_reason,
-                NULL AS domain_id,
-                NULL AS target_vocabulary_id
-FROM ingredient_to_map itm
-WHERE lower(itm.name) NOT IN (
-                             SELECT lower(new_name)
-                             FROM ingredient_mapped
-                             WHERE new_name IS NOT NULL
-                             )
-ORDER BY itm.name;
+  AND dcs.concept_name NOT IN (
+                              SELECT DISTINCT NAME
+                              FROM ingredient_mm
+                              )
+ORDER BY dcs.concept_name;
 
 
 --2. Brand Names
@@ -3146,7 +3626,7 @@ SELECT DISTINCT dcs.concept_code, --dcs.concept_name,
                 'AMT',
                 c.concept_id,     --c.concept_name,
                 rank() OVER (PARTITION BY dcs.concept_code ORDER BY c.vocabulary_id, c.concept_id),
-                NULL::double precision,
+                NULL::DOUBLE PRECISION,
                 'am_name_match'
 FROM drug_concept_stage dcs
 JOIN concept c
@@ -3250,7 +3730,7 @@ WHERE name IN (
 
 DROP TABLE IF EXISTS brand_name_to_map;
 
---brand_name to_map
+--brand_names to_map
 CREATE TABLE IF NOT EXISTS brand_name_to_map AS
 SELECT DISTINCT dcs.concept_name AS name
 FROM drug_concept_stage dcs
@@ -3260,33 +3740,16 @@ WHERE concept_class_id = 'Brand Name'
                               FROM relationship_to_concept
                               )
   AND dcs.concept_name NOT IN (
-                              SELECT DISTINCT name
+                              SELECT DISTINCT NAME
                               FROM brand_name_mapped
-                              WHERE name IS NOT NULL
+                              WHERE NAME IS NOT NULL
                               )
-ORDER BY dcs.concept_name
-;
+  AND dcs.concept_name NOT IN (
+                              SELECT DISTINCT NAME
+                              FROM brand_name_mm
+                              )
+ORDER BY dcs.concept_name;
 
---brand_name_to_map
-SELECT DISTINCT tm.name,
-                '' AS new_name,
-                '' AS comment,
-                NULL AS precedence,
-                NULL AS target_concept_id,
-                NULL AS concept_code,
-                NULL AS concept_name,
-                NULL AS concept_class_id,
-                NULL AS standard_concept,
-                NULL AS invalid_reason,
-                NULL AS domain_id,
-                NULL AS target_vocabulary_id
-FROM brand_name_to_map tm
-WHERE lower(tm.name) NOT IN (
-                            SELECT lower(new_name)
-                            FROM brand_name_mapped
-                            WHERE new_name IS NOT NULL
-                            )
-ORDER BY tm.name;
 
 --3. Supplier
 -- insert auto-mapping into rtc by concept_name match
@@ -3296,7 +3759,7 @@ SELECT DISTINCT dcs.concept_code, --dcs.concept_name,
                 'AMT',
                 c.concept_id,     --c.concept_name,
                 rank() OVER (PARTITION BY dcs.concept_code ORDER BY c.vocabulary_id, c.concept_id),
-                NULL::double precision,
+                NULL::DOUBLE PRECISION,
                 'am_name_match'
 FROM drug_concept_stage dcs
 JOIN concept c
@@ -3404,33 +3867,15 @@ WHERE concept_class_id = 'Supplier'
                               FROM relationship_to_concept
                               )
   AND dcs.concept_name NOT IN (
-                              SELECT DISTINCT name
+                              SELECT DISTINCT NAME
                               FROM supplier_mapped
-                              WHERE name IS NOT NULL
+                              WHERE NAME IS NOT NULL
                               )
-ORDER BY dcs.concept_name
-;
-
--- supplier_to_map
-SELECT DISTINCT tm.name,
-                '' AS new_name,
-                '' AS comment,
-                NULL AS precedence,
-                NULL AS target_concept_id,
-                NULL AS concept_code,
-                NULL AS concept_name,
-                NULL AS concept_class_id,
-                NULL AS standard_concept,
-                NULL AS invalid_reason,
-                NULL AS domain_id,
-                NULL AS target_vocabulary_id
-FROM supplier_to_map tm
-WHERE lower(tm.name) NOT IN (
-                            SELECT lower(new_name)
-                            FROM supplier_mapped
-                            WHERE new_name IS NOT NULL
-                            )
-ORDER BY tm.name;
+  AND dcs.concept_name NOT IN (
+                              SELECT DISTINCT NAME
+                              FROM supplier_mm
+                              )
+ORDER BY dcs.concept_name;
 
 
 --4. Dose Form
@@ -3490,36 +3935,20 @@ DROP TABLE IF EXISTS dose_form_to_map;
 
 --dose_form to_map
 CREATE TABLE IF NOT EXISTS dose_form_to_map AS
-SELECT DISTINCT dcs.concept_name AS name
+SELECT DISTINCT dcs.concept_name AS NAME
 FROM drug_concept_stage dcs
 WHERE concept_class_id = 'Dose Form'
   AND dcs.concept_name NOT IN (
-                              SELECT DISTINCT name
+                              SELECT DISTINCT NAME
                               FROM dose_form_mapped
-                              WHERE name IS NOT NULL
+                              WHERE NAME IS NOT NULL
                               )
-ORDER BY dcs.concept_name
-;
--- dose_form_to_map
-SELECT DISTINCT tm.name,
-                '' AS new_name,
-                '' AS comment,
-                NULL AS precedence,
-                NULL AS target_concept_id,
-                NULL AS concept_code,
-                NULL AS concept_name,
-                NULL AS concept_class_id,
-                NULL AS standard_concept,
-                NULL AS invalid_reason,
-                NULL AS domain_id,
-                NULL AS target_vocabulary_id
-FROM dose_form_to_map tm
-WHERE lower(tm.name) NOT IN (
-                            SELECT lower(new_name)
-                            FROM dose_form_mapped
-                            WHERE new_name IS NOT NULL
-                            )
-ORDER BY tm.name;
+  AND dcs.concept_name NOT IN (
+                              SELECT DISTINCT NAME
+                              FROM dose_form_mm
+                              )
+ORDER BY dcs.concept_name;
+
 
 --5. Unit
 --delete from unit_mapped if target concept is U/D
@@ -3544,37 +3973,20 @@ DROP TABLE IF EXISTS unit_to_map;
 
 --unit to_map
 CREATE TABLE IF NOT EXISTS unit_to_map AS
-SELECT DISTINCT dcs.concept_name AS name
+SELECT DISTINCT dcs.concept_name AS NAME
 FROM drug_concept_stage dcs
 WHERE concept_class_id = 'Unit'
   AND dcs.concept_name NOT IN (
-                              SELECT DISTINCT name
+                              SELECT DISTINCT NAME
                               FROM unit_mapped
-                              WHERE name IS NOT NULL
+                              WHERE NAME IS NOT NULL
                               )
-ORDER BY dcs.concept_name
-;
+  AND dcs.concept_name NOT IN (
+                              SELECT DISTINCT NAME
+                              FROM unit_mm
+                              )
+ORDER BY dcs.concept_name;
 
---unit_to_map
-SELECT DISTINCT tm.name,
-                '' AS new_name,
-                '' AS comment,
-                NULL AS precedence,
-                NULL AS conversion_factor,
-                NULL AS target_concept_id,
-                NULL AS concept_code,
-                NULL AS concept_name,
-                NULL AS concept_class_id,
-                NULL AS standard_concept,
-                NULL AS invalid_reason,
-                NULL AS domain_id,
-                NULL AS target_vocabulary_id
-FROM unit_to_map tm
-WHERE lower(tm.name) NOT IN (
-                            SELECT lower(new_name)
-                            FROM unit_mapped
-                            WHERE new_name IS NOT NULL
-                            )
-ORDER BY tm.name;
 
--- populate manually mapped tables with new concepts before proceeding with load_stage_2. _to_map tables should be empty
+-- populate manually mapped tables with new concepts before proceeding with load_stage_2.
+-- _to_map tables should be empty

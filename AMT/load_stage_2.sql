@@ -361,20 +361,38 @@ $_$
         drop table if exists non_S_bn_to_S;
         drop table if exists drug_to_supplier;
         drop table if exists supp_upd;
-        drop table if exists irs_upd;
-        drop table if exists irs_upd_2;
-        drop table if exists ds_sum;
-        drop table if exists pc_0_initial;
-        drop table if exists pc_1_ampersand_sep;
-        drop table if exists pc_1_comma_sep;
-        drop table if exists pc_2_ampersand_sep_amount;
-        drop table if exists pc_2_comma_sep_amount;
-        drop table if exists pc_3_box_size;
-        drop table if exists undetected_packs;
+        DROP TABLE IF EXISTS irs_upd;
+        DROP TABLE IF EXISTS irs_upd_2;
+        DROP TABLE IF EXISTS ds_sum;
+        DROP TABLE IF EXISTS pc_0_initial;
+        DROP TABLE IF EXISTS pc_1_ampersand_sep;
+        DROP TABLE IF EXISTS pc_1_comma_sep;
+        DROP TABLE IF EXISTS pc_2_ampersand_sep_amount;
+        DROP TABLE IF EXISTS pc_2_comma_sep_amount;
+        DROP TABLE IF EXISTS pc_3_box_size;
+        DROP TABLE IF EXISTS undetected_packs;
+        DROP TABLE IF EXISTS pc_wrong;
+        DROP TABLE IF EXISTS pc_identical_drugs;
+        DROP TABLE IF EXISTS ampersand_sep_intersection_check;
+        DROP TABLE IF EXISTS ampersand_sep_intersection_ambig;
+        DROP TABLE IF EXISTS comma_sep_intersection_ambig;
+        DROP TABLE IF EXISTS pc_2_comma_sep_amount_insertion;
+        DROP TABLE IF EXISTS comma_sep_intersection_check;
     END;
 $_$;
 
 
--- need for BuildRxE to run
+-- needed for BuildRxE to run
 ALTER TABLE relationship_to_concept
-DROP COLUMN mapping_type;
+    DROP COLUMN mapping_type;
+
+--insert valid vaccine concepts into crm
+-- TRUNCATE concept_relationship_manual;
+
+-- INSERT INTO concept_relationship_manual
+-- SELECT source_concept_code, concept_code, 'AMT', vocabulary_id, 'Maps to',
+--        CURRENT_DATE, '2099-12-31'::DATE, NULL
+-- FROM vaccines_to_map
+-- WHERE vocabulary_id ILIKE '%Rx%'
+--   AND standard_concept = 'S';
+

@@ -3,6 +3,7 @@ CREATE OR REPLACE FUNCTION devv5.GenericUpdate (
 RETURNS void AS
 $BODY$
 BEGIN
+	SET LOCAL audit.script_name='GenericUpdate';
 	--1. Prerequisites:
 	--1.1 Check stage tables for incorrect rows
 	DO $$

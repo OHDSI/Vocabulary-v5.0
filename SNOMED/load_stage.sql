@@ -894,7 +894,11 @@ FROM (
 				THEN 'Has comp material'
 			WHEN term = 'Has filling'
 				THEN 'Has filling'
-			ELSE term --'non-existing'
+				WHEN term = 'Has ingredient qualitative strength'
+				THEN 'Has ing qual strengt'	
+        WHEN term ='Has target population'
+        THEN 'Has target populatio'
+			ELSE term -- very nice fix as a lot of relationships are used as they are
 			END AS relationship_id,
 		(
 			SELECT latest_update
@@ -1881,7 +1885,14 @@ SELECT c.*, NULL FROM (VALUES
 	(863903001,         'Observation',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Allergy to vaccine product
 	(20135006,          'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Screening procedure
 	(80943009,          'Measurement',  TO_DATE('20210127', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Risk factor
-	(58915005,          'Measurement',  TO_DATE('20210215', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')) --Immune status
+	(58915005,          'Measurement',  TO_DATE('20210215', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')), --Immune status
+(	401826003,	'Device',	 TO_DATE('20210828', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+(163166004,	'Observation',	 TO_DATE('20210828', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+(268935007,	'Observation',	 TO_DATE('20210828', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+(401783003,	'Device',	 TO_DATE('20210828', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+(401830000,	'Device',	 TO_DATE('20210828', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+(164399004,	'Observation',	 TO_DATE('20210828', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD')),
+(268936008,	'Observation',	 TO_DATE('20210828', 'YYYYMMDD'), TO_DATE('20991231', 'YYYYMMDD'))
 ) as c;
 
 --19.2.3 To be reviewed in the fiture
@@ -1957,6 +1968,8 @@ BEGIN
 				THEN 'Observation'
 			WHEN c.concept_class_id = 'Pharma/Biol Product'
 				THEN 'Drug'
+			WHEN c.concept_class_id ='Physical Object' 
+			   THEN 'Device'
 			ELSE 'Observation'
 			END AS peak_domain_id,
 		NULL::INT AS ranked
@@ -2454,6 +2467,7 @@ DROP TABLE peak;
 DROP TABLE domain_snomed;
 DROP TABLE snomed_ancestor;
 DROP VIEW module_date;
+*/
 
 --22. Need to check domains before runnig the generic_update
 /*temporary disabled for later use

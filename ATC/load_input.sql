@@ -1659,62 +1659,7 @@ AND class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 4)
 AND class_code IN (SELECT class_code FROM dev_combo WHERE rnk = 3)
 AND rnk = 1;
 
-DELETE
-FROM dev_combo
-WHERE class_code = 'A06AG11'
-AND class_name = 'sodium lauryl sulfoacetate, incl. combinations'
-AND concept_name = 'sodium'
-AND rnk = 1;
-
-DELETE
-FROM dev_combo
-WHERE class_code = 'A01AA51'
-AND class_name = 'sodium fluoride, combinations'
-AND concept_name = 'sodium'
-AND rnk = 1;
-
-DELETE
-FROM dev_combo
-WHERE class_code = 'A06AB58'
-AND class_name = 'sodium picosulfate, combinations'
-AND concept_name = 'sodium'
-AND rnk = 1;
-
-DELETE
-FROM dev_combo
-WHERE class_code = 'B05XA06'
-AND class_name = 'potassium phosphate, incl. combinations WITH other potassium salts'
-AND concept_name = 'potassium'
-AND rnk = 1;
-
-DELETE
-FROM dev_combo
-WHERE class_code = 'A12BA51'
-AND class_name = 'potassium chloride, combinations'
-AND concept_name = 'potassium'
-AND rnk = 1;
-
-DELETE
-FROM dev_combo
-WHERE class_code = 'C01DA58'
-AND class_name = 'isosorbide dinitrate, combinations'
-AND concept_name = 'isosorbide'
-AND rnk = 1;
-
--- fix erroneous rnk of 3 for J07AG53
-UPDATE dev_combo
- SET rnk = 1
-WHERE class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 1)
-AND class_code IN (SELECT class_code FROM dev_combo WHERE rnk = 2)
-AND class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 4)
-AND class_code IN (SELECT class_code FROM dev_combo WHERE rnk = 3)
-AND rnk = 3;
-
-DELETE
-FROM dev_combo
-WHERE class_code = 'B03AD01'
-AND rnk = 4;
-
+-- add missing codeine
 INSERT INTO dev_combo
 SELECT DISTINCT class_code,
   class_name,
@@ -1724,33 +1669,6 @@ SELECT DISTINCT class_code,
   1
 FROM dev_combo
 WHERE class_code = 'N02AA59'; 
-
--- erroneous map to bismuth
-DELETE
-FROM dev_combo
-WHERE class_code = 'A02BD08'
-AND   class = 'bismuth subcitrate, tetracycline'
-AND   concept_id = 19025138;
--- erroneous map to Pentaerythritol Distearate
-DELETE
-FROM dev_combo
-WHERE class_code = 'C01DA55'
-AND   class = ''
-AND   concept_id = 42903512;
-
--- erroneous map to Potassium
-DELETE
-FROM dev_combo
-WHERE class_code = 'B05XA06'
-AND   class = 'potassium phosphate, incl. combinations with other potassium salts'
-AND   concept_id = 19049024;
-
--- erroneous map to tenofovir
-DELETE
-FROM dev_combo
-WHERE class_code = 'J05AR03'
-AND   class = 'tenofovir disoproxil'
-AND   concept_id = 19011093;
 
 -- remove doubling ingredients with different rank, remaining those which are Primary lateral
 DELETE
@@ -1764,13 +1682,6 @@ WHERE (class_code,concept_id,rnk) IN (SELECT a.class_code,
                                    AND a.concept_id = b.concept_id
                                 WHERE a.rnk > 1
                                 AND   b.rnk = 1);
-                                
-UPDATE dev_combo
-   SET rnk = 3
-WHERE class_code = 'A07FA51'
-AND   class_name = 'lactic acid producing organisms, combinations'
-AND   concept_id = 19136028
-AND   concept_name = 'Saccharomyces cerevisiae';
 
 DELETE
 FROM dev_combo
@@ -1801,13 +1712,6 @@ AND   class_name = 'cough suppressants and mucolytics'
 AND   class = 'cough suppressants'
 AND   concept_id = 19057932
 AND   rnk = 3;
-DELETE
-FROM dev_combo
-WHERE class_code = 'R05FB01'
-AND   class_name = 'cough suppressants and mucolytics'
-AND   class = ''
-AND   concept_id = 19057932
-AND   rnk = 4;
 
 UPDATE dev_combo
    SET rnk = 4
@@ -1816,22 +1720,6 @@ AND   class_name = 'cough suppressants and mucolytics'
 AND   class = 'cough suppressants'
 AND   concept_id = 19071999
 AND   rnk = 3;
-
-UPDATE dev_combo
-   SET rnk = 3
-WHERE class_code = 'S02AA30'
-AND   class_name = 'antiinfectives, combinations'
-AND   class = ''
-AND   concept_id = 963742
-AND   rnk = 4;
-
-UPDATE dev_combo
-   SET rnk = 3
-WHERE class_code = 'S02AA30'
-AND   class_name = 'antiinfectives, combinations'
-AND   class = ''
-AND   concept_id = 19006842
-AND   rnk = 4;
 
 UPDATE dev_combo
    SET rnk = 4
@@ -1985,7 +1873,8 @@ UPDATE dev_combo
 WHERE class_code = 'R05FB02'
 AND   class = 'cough suppressants'
 AND   concept_id = 1103137
-AND   rnk = 3;                        
+AND   rnk = 3;           
+             
 /*******************************************
 **** ADD ODDMENTS TO THE INPUT TABLES *****
 ********************************************/
@@ -2095,6 +1984,18 @@ WHERE SUBSTRING(concept_code_1,'\w+') IN (SELECT class_code FROM atc_inexistent)
 AND   SUBSTRING(concept_code_1,'\w+') NOT IN (SELECT class_code FROM dev_combo)
 AND   concept_code_1 !~ '\s+';
 
+-- 	pentaerithrityl tetranitrate, combinations
+DELETE
+FROM drug_concept_stage
+WHERE concept_code ~ 'C01DA55';
+
+DELETE
+FROM internal_relationship_stage
+WHERE concept_code_1 ~ 'C01DA55';
+
+DELETE
+FROM dev_combo
+WHERE class_code = 'C01DA55';
 /***************************************
 ******* relationship_to_concept ********
 ****************************************/

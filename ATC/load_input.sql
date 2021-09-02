@@ -16,10 +16,11 @@
 * Authors: Anna Ostropolets, Polina Talapova
 * Date: Jul 2021
 **************************************************************************/
--- in ATC we do not use ds_stage AND pc_stage
+
 DROP TABLE IF EXISTS drug_concept_stage CASCADE;
 DROP TABLE IF EXISTS internal_relationship_stage;
-DROP TABLE IF EXISTS relationship_to_concept CASCADE;;
+DROP TABLE IF EXISTS relationship_to_concept CASCADE;
+-- ds_stage AND pc_stage are not used in the ATC deployment
 
 CREATE TABLE drug_concept_stage 
 ( concept_name    VARCHAR(255),
@@ -45,7 +46,7 @@ CREATE TABLE relationship_to_concept
  precedence   INT,
  conversion_factor FLOAT);
 
---create indexes AND constraints
+-- create indexes AND constraints
 DROP INDEX if exists irs_concept_code_1;
 DROP INDEX if exists irs_concept_code_2;
 DROP INDEX if exists dcs_concept_code;
@@ -67,16 +68,19 @@ CREATE INDEX irs_unique_concept_code
 /*************************************
 ***** internal_relationship_stage ****
 **************************************/
+----------------
+-- Dose Forms --
+----------------
 -- increase the LENGTH for concept_code_1 AND concept_code_2 fields to infinity
 ALTER TABLE internal_relationship_stage ALTER COLUMN concept_code_1 TYPE VARCHAR;
 ALTER TABLE internal_relationship_stage ALTER COLUMN concept_code_2 TYPE VARCHAR;
------------------------
--- oral formulations --
-------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE if exists dev_oral;
-CREATE TABLE dev_oral 
-AS
+
+-- create a temporary table WITH all ATC-related RxN/RxE Dose Forms
+DROP TABLE if exists dev_form;
+CREATE TABLE dev_form
+AS (
+with dev_oral -- 1 - Oral forms
+as 
 (SELECT DISTINCT d.*
 FROM concept_relationship r
  JOIN concept c ON c.concept_Id = r.concept_id_1
@@ -84,72 +88,11 @@ FROM concept_relationship r
  ON d.concept_id = r.concept_id_2
  AND d.invalid_reason IS NULL
  AND d.concept_class_id = 'Dose Form'
-WHERE concept_id_1 = 36217214 -- 	Oral Product (Dose Form Group)
+WHERE concept_id_1 IN (36217214, 36244020, 36217223) -- Oral Product | Buccal Product | Paste product (Dose Form Group)
 AND relationship_id = 'RxNorm inverse is a'
-AND d.concept_name !~* 'sublingual'); -- will be processed separately
-
--- add links between Oral ATC Drug Classes AND RxN/RxE Dose Forms into the internal_relationship_stage 
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT 
-a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name AS concept_code_2 -- OMOP Dose Form name treated AS a code
-FROM concept_manual a,
-  dev_oral b 
-WHERE a.concept_name ~* 'oral|systemic|chewing gum' -- respective ATC dose forms (preliminarily converted from adm_r and added to the names in concept_manual)
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th'; -- indicates alive ATC code
-
--- add links between Oral ATC Drug Classes AND Standard Ingredients using the concept table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_oral b 
-WHERE a.concept_name ~* 'oral|systemic|chewing gum'
-AND a.invalid_reason IS NULL
-)
- SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name treated AS a code
- FROM t1 a 
- JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$',''))) -- remove all unnecessary information after the semicolon
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
-WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Oral ATC Drug Classes AND Standard Ingredients using the concept_synonym table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_oral b 
-WHERE a.concept_name ~* 'oral|systemic|chewing gum'
-AND a.invalid_reason IS NULL
-) 
- SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
- FROM t1 a
- JOIN concept_synonym b ON UPPER(b.concept_synonym_name) = upper(TRIM(REGEXP_REPLACE(a.concept_name, ';.*$', '')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL 
-WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
------------------------------
--- sublingual formulations --
------------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE if exists dev_sub;
-CREATE TABLE dev_sub 
-AS
+),--  sublingual route is included as well despite the fact it is processed separately
+dev_sub -- 2 - Sublingual forms
+AS 
 (SELECT DISTINCT d.*
 FROM concept_relationship r
  JOIN concept c ON c.concept_Id = r.concept_id_1
@@ -157,70 +100,11 @@ FROM concept_relationship r
  ON d.concept_id = r.concept_id_2
  AND d.invalid_reason IS NULL
  AND d.concept_class_id = 'Dose Form'
-WHERE concept_id_1 = 36217214
+WHERE concept_id_1 in (36217214, 36244020) -- Sublingual Product | Buccal Product (Dose Form Group)
 AND relationship_id = 'RxNorm inverse is a'
-AND d.concept_name ~* 'sublingual'); -- should be separated FROM oral forms in the ATC vocabulary.
-
--- add links between Sublingual ATC Drug Classes and Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code   
-FROM concept_manual a,
-  dev_sub b 
-WHERE a.concept_name ~* 'sublingual'
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th'; -- 507
-
--- add links between Sublingual ATC Drug Classes AND Standard Ingredients using the concept table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_sub b 
-WHERE a.concept_name ~* 'sublingual'
-AND a.invalid_reason IS NULL
-)
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2
-FROM t1 a
-JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
-WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Sublingual ATC Drug Classes AND Standard Ingredients using the concept_synonym table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_sub b 
-WHERE a.concept_name ~* 'sublingual'
-AND a.invalid_reason IS NULL
-)
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept_synonym b ON UPPER(b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
------------------------------
--- parenteral formulations --
------------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE if exists dev_parenteral;
-CREATE TABLE dev_parenteral 
+AND d.concept_name ~* 'sublingual'
+), -- should be separated FROM oral forms in the ATC vocabulary.
+ dev_parenteral -- 3 - Parenteral forms
 AS
 (SELECT DISTINCT d.*
 FROM concept_relationship r
@@ -229,70 +113,9 @@ FROM concept_relationship r
  ON d.concept_id = r.concept_id_2
  AND d.invalid_reason IS NULL
  AND d.concept_class_id = 'Dose Form'
-WHERE concept_id_1 = 36217210 -- Injectable Product
-AND relationship_id = 'RxNorm inverse is a'); -- returns all children of Injectable Product
-
--- add links between Injectable ATC Drug Classes AND Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code 
-FROM concept_manual a,
-  dev_parenteral b 
-WHERE a.concept_name ~* 'parenteral|systemic' -- respective ATC routes
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th';
-
--- add links between Parenteral ATC Drug Classes AND Standard Ingredients using the concept table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_parenteral b 
-WHERE a.concept_name ~* 'parenteral|systemic'
-AND a.invalid_reason IS NULL
-) 
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept c
- ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
-WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Parenteral ATC Drug Classes AND Ingredients using the concept_synonym table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_parenteral b 
-WHERE a.concept_name ~* 'parenteral|systemic'
-AND a.invalid_reason IS NULL
- ) 
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept_synonym b ON UPPER (b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage); 
-------------------------
--- nasal formulations --
-------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE if exists dev_nasal;
-CREATE TABLE dev_nasal 
+WHERE concept_id_1 in ( 36217210, 36217222) -- Injectable Product | Irrigation Product
+AND relationship_id = 'RxNorm inverse is a'), -- returns all children of Injectable Product
+ dev_nasal -- 4 - Nasal forms
 AS
 (SELECT DISTINCT d.*
 FROM concept_relationship r
@@ -302,72 +125,9 @@ FROM concept_relationship r
  AND d.invalid_reason IS NULL
  AND d.concept_class_id = 'Dose Form'
 WHERE concept_id_1 = 36217213 -- Nasal Product
-AND relationship_id = 'RxNorm inverse is a'); -- returns all children of Nasal Product
-
--- add those which are out of ancestry (Nasal Pin)
-INSERT INTO dev_nasal
-SELECT * FROM concept WHERE concept_id = 43563498;
-
--- add links between Nasal ATC Drug Classes AND Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code
-FROM concept_manual a,
-  dev_nasal b 
-WHERE a.concept_name ~* 'nasal'
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th';
-
--- add links between Nasal ATC Drug Classes AND Standars Ingredients using the concept table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_nasal b 
-WHERE a.concept_name ~* 'nasal'
-AND a.invalid_reason IS NULL
-) 
- SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Nasal ATC Drug Classes AND Standars Ingredients using the concept_synonym table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_nasal b 
-WHERE a.concept_name ~* 'nasal'
-AND a.invalid_reason IS NULL
-) 
- SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept_synonym b ON UPPER (b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
-WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
---------------------------
--- topical formulations --
---------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE IF EXISTS dev_topic;
-CREATE TABLE dev_topic 
+AND relationship_id = 'RxNorm inverse is a'
+), -- returns all children of Nasal Product
+dev_topic -- 5 - Topical forms
 AS
 (SELECT DISTINCT d.*
 FROM concept_relationship r
@@ -378,127 +138,9 @@ FROM concept_relationship r
  AND d.concept_class_id = 'Dose Form'
 WHERE concept_id_1 IN (
   36217206,36244040,36244034,36217219,-- Topical Product|Soap Product|Shampoo Product|Drug Implant Product
-  36217223,36217212,36217224) -- Paste Product|Mucosal Product|Prefilled Applicator Product
-AND relationship_id = 'RxNorm inverse is a'); -- returns all children of Topical Product
-
--- add those which are out of Dose Form ancestry
-INSERT INTO dev_topic
-SELECT * FROM concept WHERE concept_id IN (43126087); -- Medicated Nail Polish
-
--- add links between 1) genuine Topical ATC Drug Classes AND Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code 
-FROM concept_manual a,
-  dev_topic b 
-WHERE a.concept_name ~* 'topical'
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th'; -- exclude transdermal systems
-
--- add links between 2) Transdermal or Implantable ATC Drug Classes AND Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name AS concept_code_2 -- OMOP Dose Form name treated AS a code  
-FROM concept_manual a,
-  dev_topic b 
-WHERE a.concept_name ~* 'topical'
-AND a.invalid_reason IS NULL;
-
--- add links between Topical ATC Drug Classes AND Standard Ingredients using the concept table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_topic b 
-WHERE a.concept_name ~* 'topical'
-AND a.invalid_reason IS NULL
-) -- respective ATC routes
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Ingredient name AS a code
-FROM t1 a
- JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Topical ATC Drug Classes AND Standard Ingredients using the concept_synonym table 
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_topic b 
-WHERE a.concept_name ~* 'topical'
-AND a.invalid_reason IS NULL
-)
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept_synonym b ON UPPER (b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
-WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Transdermal or Implantable ATC Drug Classes AND Standard Ingredients using the concept table 
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_topic b 
-WHERE a.concept_name ~* 'transdermal|implant' -- respective ATC routes
-AND a.invalid_reason IS NULL
-) 
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2-- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
- 
--- add links between Transdermal or Implantable ATC Drug Classes AND Standard Ingredients using the concept_synonym table 
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_topic b 
-WHERE a.concept_name ~* 'transdermal|implant' -- respective ATC routes
-AND a.invalid_reason IS NULL
-)
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept_synonym b ON UPPER (b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
-WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
------------------------------
--- mouthwash formulations --
------------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE if exists dev_mouth;
-CREATE TABLE dev_mouth 
+  36217223,36217212,36217224, 19016586) -- Paste Product|Mucosal Product|Prefilled Applicator Product|Irrigation Solution
+AND relationship_id = 'RxNorm inverse is a'), -- returns all children of Topical Product
+dev_mouth -- 6 - Local oral forms
 AS
 (SELECT DISTINCT d.*
 FROM concept_relationship r
@@ -507,47 +149,10 @@ FROM concept_relationship r
  ON d.concept_id = r.concept_id_2
  AND d.invalid_reason IS NULL
  AND d.concept_class_id = 'Dose Form'
-WHERE concept_id_1 = 36244022 -- 	Mouthwash Product (Dose Form Group)
+WHERE concept_id_1 in (36244022, 36217223) -- 	Mouthwash Product | Paste Product (Dose Form Group)
 AND relationship_id = 'RxNorm inverse is a'
-AND d.concept_name ~* 'mouthwash');
-
--- add links between Local Oral ATC Drug Classes AND Rx Mouthwash formulations
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code
-FROM concept_manual a,
-  dev_mouth b 
-WHERE a.concept_name ~* 'local oral' -- respective ATC route
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th'; -- 21
-
--- add links between Local Oral ATC Drug Classes AND Ingredients using the concept table (up to date no need to use tne concept_synonym but you may check)
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN
-FROM concept_manual a,
-  dev_mouth b 
-WHERE a.concept_name ~* 'local oral' -- respective ATC routes
-AND a.invalid_reason IS NULL
-)
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2
-FROM t1 a
-JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
-WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
--------------------------
--- rectal formulations --
--------------------------
--- create a temporary table WITH all related Dose Forms
-DROP TABLE IF EXISTS dev_rectal;
-CREATE TABLE dev_rectal 
+AND d.concept_name ~* 'mouthwash'),
+dev_rectal -- 7 - Rectal forms
 AS
 (SELECT DISTINCT d.*
 FROM concept_relationship r
@@ -557,69 +162,9 @@ FROM concept_relationship r
  AND d.invalid_reason IS NULL
  AND d.concept_class_id = 'Dose Form'
 WHERE concept_id_1 = 	36217211 -- Rectal Product
-AND relationship_id = 'RxNorm inverse is a');
-
--- add links between Rectal ATC Drug Classes AND Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name AS concept_code_2 -- OMOP Dose Form name treated AS a code
-FROM concept_manual a,
-  dev_rectal b 
-WHERE a.concept_name ~* 'rectal' -- respective ATC route
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th'; -- 1150
-
--- add links between Rectal ATC Drug Classes AND Standard Ingredients using the concept table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_rectal b 
-WHERE a.concept_name ~* 'rectal' -- respective ATC route
-AND a.invalid_reason IS NULL
-) 
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Rectal ATC Drug Classes AND Standard Ingredients using the concept_synonym synonym
-INSERT INTO internal_relationship_stage
-( concept_code_1,
- concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN
-FROM concept_manual a,
-  dev_rectal b 
-WHERE a.concept_name ~* 'rectal' -- respective ATC route
-AND a.invalid_reason IS NULL
-) 
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept_synonym b ON UPPER (b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
---------------------------
--- vaginal formulations --
---------------------------
--- create a temporary table WITH all related Dose Forms
-DROP TABLE IF EXISTS dev_vaginal;
-CREATE TABLE dev_vaginal 
+AND relationship_id = 'RxNorm inverse is a'
+),
+dev_vaginal -- 8 - Vaginal forms
 AS
 (SELECT DISTINCT d.*
 FROM concept_relationship r
@@ -630,69 +175,8 @@ FROM concept_relationship r
  AND d.concept_class_id = 'Dose Form'
  AND d.invalid_reason IS NULL
 WHERE concept_id_1 = 36217209
-AND relationship_id = 'RxNorm inverse is a'); -- Vaginal Product
-
--- add links between Vaginal ATC Drug Classes and Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code
-FROM concept_manual a,
-  dev_vaginal b 
-WHERE a.concept_name ~* 'vaginal' -- respective ATC routes
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th';
-
--- add links between Vaginal ATC Drug Classes AND Standard Ingredients using the concept table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN
-FROM concept_manual a,
-  dev_vaginal b 
-WHERE a.concept_name ~* 'vaginal' -- respective ATC route
-AND a.invalid_reason IS NULL
-) 
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Vaginal ATC Drug Classes AND Standard Ingredients using the concept_synonym table
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN
-FROM concept_manual a,
-  dev_vaginal b 
-WHERE a.concept_name ~* 'vaginal' -- respective ATC route
-AND a.invalid_reason IS NULL
-) 
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept_synonym b ON UPPER (b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
----------------------------
--- urethral formulations --
----------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE IF EXISTS dev_urethral;
-CREATE TABLE dev_urethral 
-AS
+AND relationship_id = 'RxNorm inverse is a'), -- Vaginal Product
+ dev_urethral AS -- 9 - Urethral forms
 (SELECT DISTINCT d.*
 FROM concept_relationship r
  JOIN concept c ON c.concept_Id = r.concept_id_1
@@ -701,46 +185,9 @@ FROM concept_relationship r
  AND d.invalid_reason IS NULL
  AND d.concept_class_id = 'Dose Form'
 WHERE concept_id_1 = 36217225 -- Urethral Product
-AND relationship_id = 'RxNorm inverse is a');
-
--- add links between Urethral ATC Drug Classes AND Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code 
-FROM concept_manual a,
-  dev_urethral b 
-WHERE a.concept_name ~* 'urethral' -- respective ATC route
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th';
-
--- add links between Urethral ATC Drug Classes AND Standard Ingredients using the concept table (up to date no need to use tne concept_synonym but you may check)
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
- WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN
-FROM concept_manual a,
-  dev_urethral b 
-WHERE a.concept_name ~* 'urethral' -- respective ATC route
-AND a.invalid_reason IS NULL
-) 
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-------------------------------
---- ophtalmic formulations ---
-------------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE if exists dev_opht;
-CREATE TABLE dev_opht 
-AS
+AND relationship_id = 'RxNorm inverse is a'),
+ dev_opht -- 10 - Ophthalmic forms
+AS 
 (SELECT DISTINCT d.*
 FROM concept_relationship r
  JOIN concept c ON c.concept_Id = r.concept_id_1
@@ -748,70 +195,10 @@ FROM concept_relationship r
  ON d.concept_id = r.concept_id_2
  AND d.invalid_reason IS NULL
  AND d.concept_class_id = 'Dose Form'
-WHERE concept_id_1 = 36217218 -- Ophthalmic Product (Dose Form Group)
+WHERE concept_id_1 in (36217218, 36217224) -- Ophthalmic Product | Prefilled Applicator  (Dose Form Group)
 AND relationship_id = 'RxNorm inverse is a'
-AND d.concept_name ~* 'ophthalmic');
-
--- add links between Ophthalmic ATC Drug Classes AND Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code
-FROM concept_manual a,
-  dev_opht b 
-WHERE a.concept_name ~* 'ophthalmic' -- respective ATC route
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th';
-
--- add links between Ophthalmic ATC Drug Classes AND Standard Ingredients using the concept table 
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN
-FROM concept_manual a,
-  dev_opht b 
-WHERE a.concept_name ~* 'ophthalmic' -- respective ATC route
-AND a.invalid_reason IS NULL
-)
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2
-FROM t1 a
-JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
-WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Ophthalmic ATC Drug Classes AND Standard Ingredients using the concept_synonym table 
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN
-FROM concept_manual a,
-  dev_opht b 
-WHERE a.concept_name ~* 'ophthalmic' -- respective ATC route
-AND a.invalid_reason IS NULL
-)
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept_synonym b ON UPPER(b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
- -------------------------
---- otic formulations ---
---------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE if exists dev_otic;
-CREATE TABLE dev_otic
+AND d.concept_name ~* 'ophthalmic'),
+dev_otic -- 11 - Otic forms
 AS
 (SELECT DISTINCT d.*
 FROM concept_relationship r
@@ -822,68 +209,8 @@ FROM concept_relationship r
  AND d.concept_class_id = 'Dose Form'
 WHERE concept_id_1 = 36217217 -- Otic Product (Dose Form Group)
 AND relationship_id = 'RxNorm inverse is a'
-);
-
--- add links between Ophthalmic ATC Drug Classes AND Rx Dose Forms
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code
-FROM concept_manual a,
-  dev_otic b 
-WHERE a.concept_name ~* '\yotic' -- respective ATC route
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th';
-
--- add links between Ophthalmic ATC Drug Classes AND Standard Ingredients using the concept table 
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN
-FROM concept_manual a,
-  dev_otic b 
-WHERE a.concept_name ~* '\yotic' -- respective ATC route
-AND a.invalid_reason IS NULL
-)
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2
-FROM t1 a
-JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
-WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
-
--- add links between Ophthalmic ATC Drug Classes AND Standard Ingredients using the concept_synonym table 
-INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN
-FROM concept_manual a,
-  dev_otic b 
-WHERE a.concept_name ~* '\yotic' -- respective ATC route
-AND a.invalid_reason IS NULL
-)
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
-FROM t1 a
- JOIN concept_synonym b ON UPPER(b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
- JOIN concept c
- ON c.concept_id = b.concept_id
- AND c.standard_concept = 'S'
- AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
----------------------------
--- inhalant formulations --
----------------------------
--- create a temporary table WITH all related RxN/RxE Dose Forms
-DROP TABLE if exists dev_inhal;
-CREATE TABLE dev_inhal 
+),
+dev_inhal -- 12 - Inhalation forms
 AS
 (SELECT DISTINCT d.*
 FROM concept_relationship r
@@ -892,63 +219,89 @@ FROM concept_relationship r
  ON d.concept_id = r.concept_id_2
  AND d.invalid_reason IS NULL
  AND d.concept_class_id = 'Dose Form'
-WHERE concept_id_1 IN (36217207, 36244037) -- 	Inhalant Product|	Oral Spray Product
-AND relationship_id = 'RxNorm inverse is a');
+WHERE concept_id_1 IN (36217207, 36244037) -- 	Inhalant Product| Oral Spray Product
+AND relationship_id = 'RxNorm inverse is a')
+select * from (
+select *, 'dev_oral' as df from dev_oral -- 1
+UNION ALL
+select *, 'dev_sub' from dev_sub -- 2
+UNION ALL
+select *, 'dev_parenteral' from dev_parenteral -- 3
+UNION ALL
+select *, 'dev_nasal' from dev_nasal -- 4
+UNION ALL
+select *, 'dev_topic' from dev_topic  -- 5
+UNION ALL
+select *, 'dev_mouth' from dev_mouth -- 6
+UNION ALL
+select *,'dev_rectal' from dev_rectal -- 7
+UNION ALL
+select *, 'dev_vaginal' from dev_vaginal -- 8
+UNION ALL
+select *, 'dev_urethral' from dev_urethral -- 9
+UNION ALL
+select *, 'dev_opht' from  dev_opht -- 10
+UNION ALL
+select *, 'dev_otic' from dev_otic -- 11
+UNION ALL
+select *, 'dev_inhal' from dev_inhal -- 12
+)l);
 
--- add links between Inhalant ATC Drug Classes AND Rx Dose Forms
+-- connect all existing RxN/RxE forms of interest from dev_form to the ATC
+DROP TABLE if exists atc_to_form;
+CREATE TABLE atc_to_form AS 
+SELECT DISTINCT 
+a.concept_name, a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
+  b.concept_name AS concept_code_2 -- OMOP Dose Form name treated AS a code
+FROM concept_manual a,
+  dev_form b 
+WHERE  a.invalid_reason IS NULL
+AND a.concept_class_id = 'ATC 5th'
+AND 
+(( a.concept_name ~* 'oral|systemic|chewing gum' and b.df = 'dev_oral') -- 1
+OR (a.concept_name ~* 'sublingual' and b.df = 'dev_sub') -- 2
+OR (a.concept_name ~* 'parenteral|systemic|irrigat' and b.df = 'dev_parenteral') -- 3
+OR (a.concept_name ~* 'nasal'and b.df = 'dev_nasal') -- 4
+OR (a.concept_name ~* 'topical' AND b.df = 'dev_topic') -- 5
+OR (a.concept_name ~* 'transdermal|implant|systemic' AND b.df = 'dev_topical' and  b.concept_name ~* 'transdermal|Drug Implant')
+OR (a.concept_name ~* 'local oral' AND b.df = 'dev_mouth') -- 7
+OR (a.concept_name ~* 'rectal' AND b.df = 'dev_rectal')
+OR (a.concept_name ~* 'vaginal' AND b.df = 'dev_vaginal')
+OR (a.concept_name ~* 'urethral' AND b.df = 'dev_urethral')
+OR (a.concept_name ~* 'ophthalmic' AND b.df = 'dev_opht')
+OR (a.concept_name ~* '\yotic' AND b.df = 'dev_otic')
+OR (a.concept_name ~* 'inhalant|systemic' AND b.df = 'dev_inhal'))
+;
+
+-- add links between Oral ATC Drug Classes AND RxN/RxE Dose Forms into the internal_relationship_stage 
+TRUNCATE internal_relationship_stage;
 INSERT INTO internal_relationship_stage
 (concept_code_1, concept_code_2)
-SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  b.concept_name -- OMOP Dose Form name treated AS a code
-FROM concept_manual a,
-  dev_inhal b 
-WHERE a.concept_name ~* 'inhalant' -- respective ATC route
-AND a.invalid_reason IS NULL
-AND a.concept_class_id = 'ATC 5th';
+SELECT DISTINCT concept_code_1, concept_code_2 from atc_to_form
+WHERE (concept_code_1, concept_code_2) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
 
--- add links between Inhalant ATC Drug Classes AND Standard Ingredients using the concept table
 INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_inhal b 
-WHERE a.concept_name ~* 'inhalant' -- respective ATC route
-AND a.invalid_reason IS NULL
-) 
 SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2
-FROM t1 a
- JOIN concept c ON UPPER (c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
+  c.concept_name AS concept_code_2 -- Standard Ingredient name treated AS a code
+ FROM atc_to_form  a 
+ JOIN concept c ON UPPER(c.concept_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$',''))) -- remove all unnecessary information after the semicolon
  AND c.standard_concept = 'S'
  AND c.concept_class_id = 'Ingredient'
  AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
- 
--- add links between Inhalant ATC Drug Classes AND Standard Ingredients using the concept_synonym table
+WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
+
+-- add links between Oral ATC Drug Classes AND Standard Ingredients using the concept_synonym table
 INSERT INTO internal_relationship_stage
-(concept_code_1, concept_code_2)
-WITH t1
-AS
-(SELECT DISTINCT a.concept_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
-  a.concept_name -- ATC name to be used AS a key for JOIN 
-FROM concept_manual a,
-  dev_inhal b 
-WHERE a.concept_name ~* 'inhalant' -- respective ATC route
-AND a.invalid_reason IS NULL
-) 
-SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
-  c.concept_name AS concept_code_2
-FROM t1 a
- JOIN concept_synonym b ON UPPER (b.concept_synonym_name) = UPPER(TRIM(REGEXP_REPLACE(a.concept_name,';.*$','')))
+ SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
+  c.concept_name AS concept_code_2 -- Standard Ingredient name AS a code
+ FROM atc_to_form a
+ JOIN concept_synonym b ON UPPER(b.concept_synonym_name) = upper(TRIM(REGEXP_REPLACE(a.concept_name, ';.*$', '')))
  JOIN concept c
  ON c.concept_id = b.concept_id
  AND c.standard_concept = 'S'
  AND c.concept_class_id = 'Ingredient'
- AND c.invalid_reason IS NULL
- WHERE (concept_code_1, c.concept_name) NOT IN (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
+ AND c.invalid_reason IS NULL 
+WHERE (concept_code_1, c.concept_name) not in (SELECT concept_code_1, concept_code_2 FROM internal_relationship_stage);
 --------------------------------
 -- Ingredients W/O Dose Forms --
 --------------------------------
@@ -958,7 +311,8 @@ INSERT INTO internal_relationship_stage
 SELECT DISTINCT a.concept_code AS concept_code_1, -- for such Drug Classes use ATC code only 
  c.concept_name AS concept_code_2
 FROM concept_manual a
- JOIN concept c ON TRIM(UPPER (REGEXP_REPLACE (c.concept_name,'\s+|\W+','','g'))) = TRIM( UPPER (REGEXP_REPLACE (a.concept_name,'\s+|\W+| \(.*\)|, combinations.*|;.*$','','g')))
+ JOIN concept c
+ ON TRIM(UPPER (REGEXP_REPLACE (c.concept_name,'\s+|\W+','','g'))) = TRIM( UPPER (REGEXP_REPLACE (a.concept_name,'\s+|\W+| \(.*\)|, combinations.*|;.*$','','g'))) -- to neglect spaces, non-word characters, additional information and dose forms
  AND a.concept_class_id = 'ATC 5th'
  AND c.standard_concept = 'S'
  AND c.concept_class_id = 'Ingredient'
@@ -978,11 +332,13 @@ FROM concept_manual a
  AND c.standard_concept = 'S'
  AND c.concept_class_id = 'Ingredient'
  AND c.invalid_reason IS NULL
-  WHERE (a.concept_code, c.concept_name) not IN (SELECT SPLIT_PART(concept_code_1, ' ', 1), concept_code_2 FROM internal_relationship_stage);	
-/*****************************  
-**** combined ATC Classes ****
-******************************/
--- separate all ATC Combo Classes
+  WHERE (a.concept_code, c.concept_name) not IN (SELECT SPLIT_PART(concept_code_1, ' ', 1), concept_code_2 FROM internal_relationship_stage);
+
+-- note, name matching with Non-standard OMOP drugs and cross-walk to Standard via concept_relationship gives a lot of errors (clean up is required). That is why this step is ignored here. 	
+/**************************
+**** ATC Combo Classes ****
+***************************/
+-- separate all ATC Combo Classes 
 DROP TABLE if exists combo_pull;
 CREATE TABLE combo_pull 
 AS
@@ -992,12 +348,12 @@ AS
        concept_name AS class_name,
        SPLIT_PART(concept_name,';','1') AS nm
 FROM concept_manual
-WHERE SPLIT_PART(concept_name,';','1') ~ ' and |combinat|preparations|acids|animals|antiinfectives|compounds|lytes\y|flowers|^glycerol|grass pollen|bacillus|^oil|alkaloids|\/|antiserum|organisms|antiseptics'
+WHERE SPLIT_PART(concept_name,';','1') ~* ' and |combinat|preparations|acids|animals|antiinfectives|compounds|lytes\y|flowers|^glycerol|grass pollen|bacillus|^oil|alkaloids|\/|antiserum|organisms|antiseptics'
 AND   invalid_reason IS NULL
 AND   concept_class_id = 'ATC 5th'
 AND   concept_name !~* 'varicella/zoster|tositumomab/iodine') SELECT*FROM t1);
 
--- create a table for ATC Combo Class mappings, start with the 1st ATC Combo Ingredient using the concept table and full name match
+-- obtain 1st ATC Combo Ingredient using the concept table and full name match
 DROP TABLE if exists dev_combo;
 CREATE TABLE dev_combo 
 AS
@@ -1013,7 +369,7 @@ WHERE c.standard_concept = 'S'
 AND   c.concept_class_id = 'Ingredient'
 AND   c.vocabulary_id ~ 'Rx');
 
--- obtain 1st ATC Combo Ingredient using the concept table and partial name match
+-- obtain 1st ATC Combo Ingredient using the concept table and full name match
 INSERT INTO dev_combo
 SELECT DISTINCT class_code,
   class_name,
@@ -1028,7 +384,7 @@ AND c.concept_class_id = 'Ingredient'
 AND c.vocabulary_id ~ 'Rx'
 AND (class_code, c.concept_id) NOT IN (select class_code, concept_id FROM dev_combo);
 
--- obtain 1st ATC Combo Ingredient using the concept_synonym table and name match
+-- obtain 1st ATC Combo Ingredient using the concept_synonym table and full name match
 INSERT INTO dev_combo
 SELECT DISTINCT class_code,
   class_name,
@@ -1042,9 +398,9 @@ JOIN concept d ON d.concept_id = cs.concept_id
 WHERE d.standard_concept = 'S'
 AND d.concept_class_id = 'Ingredient'
 AND d.vocabulary_id ~ 'Rx'
-AND (class_code, d.concept_id) NOT IN (select class_code, concept_id FROM dev_combo); -- 15 
+AND (class_code, d.concept_id) NOT IN (select class_code, concept_id FROM dev_combo);
 
--- obtain 1st ATC Combo Ingredient using the concept table and partial name match
+-- last hope
 INSERT INTO dev_combo
 SELECT DISTINCT class_code,
   class_name,
@@ -1057,7 +413,7 @@ FROM combo_pull a
 WHERE c.standard_concept = 'S'
 AND c.concept_class_id = 'Ingredient'
 AND c.vocabulary_id ~ 'Rx'
-AND (class_code) NOT IN (select class_code FROM dev_combo); -- 3 
+AND (class_code) NOT IN (select class_code FROM dev_combo); 
 
 -- obtain 2nd ATC Combo Ingredient using the concept table and full name match
 INSERT INTO dev_combo
@@ -1071,7 +427,7 @@ FROM combo_pull a
  JOIN concept c ON lower (c.concept_name) = TRIM (lower (SPLIT_PART (a.nm,' and ', 2)))
 WHERE c.standard_concept = 'S'
 AND c.concept_class_id = 'Ingredient'
-AND c.vocabulary_id ~ 'Rx'; -- 249
+AND c.vocabulary_id ~ 'Rx';
 
 -- obtain 2nd ATC Combo Ingredient using the concept table and partial name match
 INSERT INTO dev_combo
@@ -1087,7 +443,7 @@ WHERE c.standard_concept = 'S'
 AND c.concept_class_id = 'Ingredient'
 AND c.vocabulary_id ~ 'Rx'
 AND (class_code, c.concept_id) NOT IN (select class_code, concept_id FROM dev_combo)
-AND c.concept_id NOT IN (19049024, 19136048); -- 4 
+AND c.concept_id NOT IN (19049024, 19136048);
 
 -- obtain 2nd ATC Combo Ingredient using the concept_synonym table and partial name match
 INSERT INTO dev_combo
@@ -1103,7 +459,7 @@ JOIN concept d ON d.concept_id = cs.concept_id
 WHERE d.standard_concept = 'S'
 AND d.concept_class_id = 'Ingredient'
 AND d.vocabulary_id ~ '^Rx'
-AND (class_code, d.concept_id) NOT IN (select class_code, concept_id FROM dev_combo); -- 1 
+AND (class_code, d.concept_id) NOT IN (select class_code, concept_id FROM dev_combo);
 
 -- last hope for the 2nd one
 INSERT INTO dev_combo
@@ -1120,7 +476,7 @@ AND c.concept_class_id = 'Ingredient'
 AND c.vocabulary_id ~ 'Rx'
 AND (class_code, c.concept_id) NOT IN (select class_code, concept_id FROM dev_combo)
 AND c.concept_id NOT IN (19049024, 19136048)
-and class_code in ('R03AK10', 'R03AL01', 'R03AL03', 'R03AL04', 'R03AL05', 'R03AL06',  'R03AL07', 'R03AL10') ; -- 4
+and class_code in ('R03AK10', 'R03AL01', 'R03AL03', 'R03AL04', 'R03AL05', 'R03AL06',  'R03AL07', 'R03AL10');
 
 -- add manual mappings for ATC Combos using concept_relationship_manual 
 INSERT INTO dev_combo
@@ -1140,8 +496,9 @@ JOIN concept_relationship_manual r ON r.concept_code_1= a.class_code
 JOIN concept c ON c.concept_code = r.concept_code_2 AND c.vocabulary_id ~ 'Rx'
 AND c.concept_class_id = 'Ingredient' AND c.standard_concept = 'S'
 WHERE (class_code, c.concept_id) NOT IN (select class_code, concept_id FROM dev_combo)
-AND r.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up'); -- 17075
+AND r.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up');
 
+-- add mappings to those Ingredients, which have problems with name matching
 -- add Acetylsalicylic acid 
 INSERT INTO dev_combo
 SELECT class_code,
@@ -1152,9 +509,9 @@ SELECT class_code,
   CASE WHEN class_name ~ '^acetylsalicylic' THEN 1 ELSE 2 END
 FROM dev_combo
 WHERE (class_code, concept_id) NOT IN ( select class_code, 1112807 FROM dev_combo WHERE class_name ~* 'acetylsalicylic')
-AND class_name ~* 'acetylsalicylic'; -- 276
+AND class_name ~* 'acetylsalicylic';
 
--- ethinylestradiol 
+-- add Ethinylestradiol 
 INSERT INTO dev_combo
 SELECT class_code,
   class_name,
@@ -1164,59 +521,59 @@ SELECT class_code,
   CASE WHEN class_name ~* '^ethinylestradiol' THEN 1 ELSE 2 END
 FROM dev_combo
 WHERE (class_code, concept_id) NOT IN ( select class_code, 1549786 FROM dev_combo WHERE class_name ~* 'ethinylestradiol')
-AND class_name ~* 'ethinylestradiol'; -- 44 
+AND class_name ~* 'ethinylestradiol';
  
--- estrogen
+-- add Estrogen
 INSERT INTO dev_combo
 SELECT class_code,
   class_name,
-  'ethinylestradiol',
+  'estrogens',
   19049228,
   'estrogens',
-  CASE WHEN class_name ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
+  CASE WHEN split_part(class_name, ';', 1) ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
 FROM dev_combo
 WHERE (class_code, concept_id) NOT IN ( select class_code, 19049228 FROM dev_combo WHERE class_name ~* 'estrogen')
-AND class_name ~ 'estrogen'
+AND split_part(class_name, ';', 1) ~ 'estrogen'
     UNION ALL
 SELECT class_code,
   class_name,
-  'estrogens, conjugated (USP)',
+  'estrogens',
   1549080,
   'estrogens, conjugated (USP)',
-  CASE WHEN class_name ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
+  CASE WHEN SPLIT_PART(class_name,';',1) ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
 FROM dev_combo
 WHERE (class_code, concept_id) NOT IN ( select class_code, 1549080 FROM dev_combo WHERE class_name ~* 'estrogen')
-AND class_name ~ 'estrogen'
+AND split_part(class_name, ';', 1) ~ 'estrogen'
     UNION ALL
 SELECT class_code,
   class_name,
-  'estrogens, esterified (USP)',
+  'estrogens',
   1551673,
   'estrogens, esterified (USP)',
-  CASE WHEN class_name ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
+  CASE WHEN split_part(class_name, ';', 1) ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
 FROM dev_combo
 WHERE (class_code, concept_id) NOT IN ( select class_code, 1551673 FROM dev_combo WHERE class_name ~* 'estrogen') 
-AND class_name ~ 'estrogen'
+AND split_part(class_name, ';', 1) ~ 'estrogen'
     UNION ALL
 SELECT class_code,
   class_name,
-  'synthetic conjugated estrogens, A',
+  'estrogens',
   1596779,
   'synthetic conjugated estrogens, A',
-  CASE WHEN class_name ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
+  CASE WHEN split_part(class_name, ';', 1) ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
 FROM dev_combo
 WHERE (class_code, concept_id) NOT IN ( select class_code, 1596779 FROM dev_combo WHERE class_name ~* 'estrogen')
-AND class_name ~* 'estrogen'
+AND split_part(class_name, ';', 1) ~* 'estrogen'
     UNION ALL
 SELECT class_code,
   class_name,
-  'synthetic conjugated estrogens, B' AS class,
+  'estrogens' AS class,
   1586808,
   'synthetic conjugated estrogens, B',
-  CASE WHEN class_name ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
+  CASE WHEN split_part(class_name, ';', 1) ~* '^estrogens|^conjugated estrogens' THEN 1 ELSE 2 END
 FROM dev_combo
 WHERE (class_code, concept_id) NOT IN ( select class_code, 1586808 FROM dev_combo WHERE class_name ~* 'estrogen')
-AND class_name ~* 'estrogen'; -- 1235
+AND split_part(class_name, ';', 1) ~* 'estrogen';
 
 -- remove erroneous automap
 DELETE FROM dev_combo WHERE class_code = 'M05BX53' AND concept_id = 19000815; -- strontium
@@ -1229,9 +586,9 @@ AS
 (SELECT DISTINCT a.class_code|| ' ' ||b.concept_name AS concept_code_1, -- ATC code + Dose Form name AS a code
 a.concept_id
 FROM dev_combo a,
-  dev_oral b,
+  dev_form b,
   concept_manual c 
-WHERE c.concept_name ~* 'oral|systemic|chewing gum'
+WHERE c.concept_name ~* 'oral|systemic|chewing gum' AND b.df = 'dev_oral'
 AND c.concept_code = a.class_code
 )
  SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
@@ -1251,9 +608,9 @@ AS
   a.class_name,
 a.concept_id
 FROM dev_combo a,
-  dev_parenteral b,
+  dev_form b,
   concept_manual c 
-WHERE c.concept_name ~ 'parenteral|systemic'
+WHERE c.concept_name ~ 'parenteral|systemic' AND b.df = 'dev_parenteral'
 AND c.concept_code = a.class_code
 ) -- Oral formulations
  SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
@@ -1273,9 +630,9 @@ AS
   a.class_name, 
 a.concept_id
 FROM dev_combo a,
-  dev_vaginal b,
+  dev_form b,
   concept_manual c 
-WHERE c.concept_name ~* 'vaginal'
+WHERE c.concept_name ~* 'vaginal' and b.df = 'dev_vaginal'
 AND c.concept_code = a.class_code
 )
  SELECT DISTINCT a.concept_code_1, -- ATC code + Dose Form name AS a code
@@ -1304,31 +661,27 @@ WHERE class_name !~';'
  JOIN concept c ON c.concept_id = a.concept_id
  AND c.standard_concept = 'S'
  AND c.concept_class_id = 'Ingredient'
-WHERE (concept_code_1, c.concept_name) NOT IN (SELECT SPLIT_PART(concept_code_1, ' ', 1), concept_code_2 FROM internal_relationship_stage); -- 1198
-
+WHERE (concept_code_1, c.concept_name) NOT IN (SELECT SPLIT_PART(concept_code_1, ' ', 1), concept_code_2 FROM internal_relationship_stage);
 /******************************
 ******* manual mapping ********
 *******************************/
 -- add manually mapped ATC Drug Classes to Standard Ingredients using concept_relationship_manual
 INSERT INTO internal_relationship_stage
 ( concept_code_1, concept_code_2)
-WITH t1 AS (select distinct a.concept_code_1, a.relationship_id, c.concept_name
+WITH t1 AS (select distinct a.concept_code_1, a.relationship_id, c.concept_name as concept_code_2
  FROM concept_relationship_manual a
  JOIN concept_manual b
- ON b.concept_code = a.concept_code_1
+ ON b.concept_code = a.concept_code_1 AND a.invalid_reason is null
  JOIN concept c
  ON c.concept_code = a.concept_code_2
  AND c.vocabulary_id = a.vocabulary_id_2
  AND c.standard_concept = 'S' AND c.vocabulary_id IN ('RxNorm', 'RxNorm Extension') 
- AND c.concept_class_id = 'Ingredient')
+ AND c.concept_class_id = 'Ingredient'
+ and a.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')) -- use ATC-specific relationships only
 SELECT DISTINCT concept_code_1, 
-  a.concept_name -- OMOP Ingredient name AS an ATC Drug Attribute code,
-FROM t1 a
- JOIN concept_manual b ON b.concept_code = a.concept_code_1 AND b.invalid_reason is null and b.concept_class_id = 'ATC 5th'
- AND a.relationship_id IN ('ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up', 'ATC - RxNorm sec up')
- AND (concept_code_1, a.concept_name) NOT IN (SELECT SPLIT_PART(concept_code_1, ' ', 1),concept_code_2
-             FROM internal_relationship_stage); -- 7208
-						 
+  concept_code_2 -- OMOP Ingredient name AS an ATC Drug Attribute code,
+FROM t1  WHERE (concept_code_1, concept_code_2) NOT IN (SELECT SPLIT_PART(concept_code_1, ' ', 1),concept_code_2
+             FROM internal_relationship_stage);						 
 /**********************************
 ******* drug_concept_stage ********
 ***********************************/
@@ -1389,7 +742,7 @@ AND concept_class_id = 'Dose Form'
 AND vocabulary_id ~ 'RxNorm'
 AND invalid_reason IS NULL;
 
--- add ATC Drug Attributes IN the form of Standard Ingredient names using the internal_relationship_stage table
+-- add ATC Drug Attributes in the form of Standard Ingredient names using the internal_relationship_stage table
 INSERT INTO drug_concept_stage
 ( concept_name,
  vocabulary_id,
@@ -1447,7 +800,7 @@ AND class_code NOT IN (SELECT SPLIT_PART(concept_code_1,' ',1)
        AND c.concept_class_id = 'Ingredient')
 AND LENGTH(class_code) = 7)
 OR
- -- with absent Ingredient IN drug_relationship_stage
+ -- with absent Ingredient in drug_relationship_stage
 (class_code IN (SELECT SPLIT_PART(concept_code_1,' ',1)
 FROM internal_relationship_stage
 GROUP BY concept_code_1
@@ -1459,7 +812,7 @@ HAVING COUNT(1) = 1) AND class_code NOT IN (
    AND c.concept_class_id = 'Ingredient'
    AND c.standard_concept = 'S'))
 ),
--- fuzzy macth 1 using name similarity
+-- fuzzy macth using name similarity
 t2 AS
 (SELECT a.*,
   c.*
@@ -1513,11 +866,11 @@ WHERE (class_code,concept_name) NOT IN (SELECT concept_code_1,
             concept_code_2
           FROM internal_relationship_stage)
   AND concept_id <> 43013482; -- butyl ester of methyl vinyl ether-maleic anhydride copolymer (125 kD)
-/*****************************************
-*** FUTHER WORK WITH ATC COMBO CLASSES ***
-******************************************/
+/**********************************
+*** FUTHER WORK WITH ATC COMBOS ***
+***********************************/
 -- assemble mappings for ATC Classes indicating Ingredient Groups using the the concept_ancestor AND/OR concept tables along WITH word pattern matching
--- take descendants of Acid preparations
+-- add descendants of Acid preparations
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
@@ -1532,10 +885,10 @@ FROM concept_manual a, -- ATC
  AND ca.ancestor_concept_id = 21600704-- ATC code of Acid preparations
  AND vocabulary_id LIKE 'RxNorm%'
  AND concept_class_id = 'Ingredient'
-WHERE a.concept_name ~* 'acid preparations'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 8
+WHERE SPLIT_PART(a.concept_name,';',1) ~* 'acid preparations'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- Sulfonamides
+-- add descendants of Sulfonamides
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
@@ -1552,17 +905,17 @@ FROM  concept_manual a, -- ATC
  AND c.concept_class_id = 'Ingredient'
  JOIN concept_relationship b ON b.concept_id_1 = ancestor_concept_id
  AND b.invalid_reason is null AND b.relationship_id = 'ATC - RxNorm pr lat'
-WHERE a.concept_name ~* 'sulfonamides' AND  a.concept_name !~* '^short-acting sulfonamides|^intermediate-acting sulfonamides|^long-acting sulfonamides'
+WHERE SPLIT_PART(a.concept_name,';',1) ~* 'sulfonamides' AND  SPLIT_PART(a.concept_name,';',1) !~* '^short-acting sulfonamides|^intermediate-acting sulfonamides|^long-acting sulfonamides'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- take descendants of Amino acids
+-- add descendants of Amino acids
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
   'amino acids',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^amino acids' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1)~* '^amino acids' THEN 3 ELSE 4 END ::INT AS rnk
 FROM  concept_manual a, -- ATC
   concept_ancestor ca
  JOIN concept c
@@ -1570,18 +923,18 @@ FROM  concept_manual a, -- ATC
  AND ca.ancestor_concept_id IN (21601215, 21601034) -- 21601215	B05XB	Amino acids| 21601034	B02AA	Amino acids
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
-  WHERE a.concept_name ~* 'amino\s*acid'
+  WHERE SPLIT_PART(a.concept_name,';',1)  ~* 'amino\s*acid'
   AND a.concept_code <> 'B03AD01'
   AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; --	ferrous amino acid complex
 
--- take descendants of Analgesics
+-- add descendants of Analgesics
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
   'analgesics',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^analgesics' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1)~* '^analgesics' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON ca.descendant_concept_id = c.concept_id
@@ -1589,20 +942,20 @@ FROM concept_manual a, concept_ancestor ca
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
  AND c.concept_id NOT IN (939506, 950435, 964407) --	sodium bicarbonate|citric acid|salicylic acid
-   WHERE a.concept_name ~* 'analgesics?' AND a.concept_name !~* '\yexcl'
+   WHERE SPLIT_PART(a.concept_name,';',1) ~* 'analgesics?' AND SPLIT_PART(a.concept_name,';',1) !~* '\yexcl'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- take ingredients indicating Animals
+-- add ingredients indicating Animals
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
   'animals',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^animals' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^animals' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a,
      concept c
-WHERE a.concept_name ~* 'Animals'
+WHERE SPLIT_PART(a.concept_name,';',1) ~* 'Animals'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'
 AND (c.concept_id IN (19091701,19056189,40170543,40170448,40170341,40170416,40175840,40175865,40170916,40175984,40161698,40170420,
 19095690,40170741,40170848,40161809,40161813,45892235,40171114,45892234,37496548,40170660,40172147,40175843,40175898,40175933,40171110,
@@ -1614,16 +967,16 @@ c.concept_name ~* 'rabbit|\ycow\y|\ydog\y|\ycat\y|goose|\yhog\y|\ygland\y|hamste
 AND c.concept_name ~* 'extract' AND c.vocabulary_id LIKE 'RxNorm%' 
 AND c.standard_concept = 'S' AND c.concept_class_id = 'Ingredient' 
 AND c.concept_id NOT IN (46276144,40170814,40226703,43560374,40227355,42903998,40227484,19086386))
-); -- 98
+);
 
--- take descendants of Antiinfectives 
+-- add descendants of Antiinfectives 
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
   'antiinfectives',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^antiinfectives' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^antiinfectives' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a,
  concept_ancestor ca
  JOIN concept c
@@ -1632,66 +985,66 @@ FROM concept_manual a,
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
  AND c.concept_id NOT IN (19044522)-- 	zinc sulfate
- WHERE a.concept_name ~* 'antiinfectives?' --AND class_name ~* '\yexcl'
+ WHERE SPLIT_PART(a.concept_name,';',1) ~* 'antiinfectives?' --AND class_name ~* '\yexcl'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
- 
--- take ingredients indicating Cadmium compounds
+
+-- add ingredients indicating Cadmium compounds
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
   'cadmium compounds', 
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^cadmium compounds' THEN 3 ELSE 4 END ::INT AS rnk -- groups don't have primary lateral ings
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^cadmium compounds' THEN 3 ELSE 4 END ::INT AS rnk -- groups don't have primary lateral ings
 FROM concept_manual a, 
 concept c
 WHERE lower(c.concept_name) LIKE '%cadmium %'
 AND c.concept_class_id = 'Ingredient'
 AND c.vocabulary_id LIKE 'RxNorm%'
 AND c.concept_id <> 45775350 
-AND a.concept_name ~* 'cadmium compounds?' --AND class_name ~* '\yexcl'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 4
+AND SPLIT_PART(a.concept_name,';',1) ~* 'cadmium compounds?' --AND class_name ~* '\yexcl'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take ingredients indicating Calcium (different salts)
+-- add ingredients indicating Calcium (different salts)
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'calcium (different salts IN combination)',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^calcium \(different salts IN combination\)' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^calcium \(different salts IN combination\)' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept c
 WHERE c.concept_name ~* '\ycalcium\y'
 AND c.concept_class_id = 'Ingredient'
 AND c.vocabulary_id LIKE 'RxNorm%'
 AND c.concept_id NOT IN (42903945,43533002,1337191,19007595,43532262,19051475) -- calcium ion|calcium hydride|calcium hydroxide|calcium oxide|calcium peroxide|anhydrous calcium iodide
-AND a.concept_name ~* 'calcium' AND a.concept_name ~* '\ysalt'
+AND SPLIT_PART(a.concept_name,';',1) ~* 'calcium' AND SPLIT_PART(a.concept_name,';',1) ~* '\ysalt'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';	
 
--- take ingredients indicating Calcium compounds
+-- add ingredients indicating Calcium compounds
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
   'calcium compounds',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^calcium compounds' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^calcium compounds' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept c
 WHERE c.concept_name ~* '\ycalcium\y'
 AND c.concept_class_id = 'Ingredient'
 AND c.vocabulary_id LIKE 'RxNorm%'
 AND c.concept_id NOT IN (19014944,42903945)
-AND a.concept_name ~* 'calcium' AND a.concept_name ~* '\ycompound'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 212
+AND SPLIT_PART(a.concept_name,';',1) ~* 'calcium' AND SPLIT_PART(a.concept_name,';',1) ~* '\ycompound'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take descendants of Laxatives
+-- add descendants of Laxatives
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
   'contact laxatives',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^contact laxatives' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^contact laxatives' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, 
 concept_ancestor ca
  JOIN concept c
@@ -1699,17 +1052,17 @@ concept_ancestor ca
  AND ca.ancestor_concept_id IN (21600537) 
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
-WHERE a.concept_name ~* 'contact' AND a.concept_name ~* 'laxatives?'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 22
+WHERE SPLIT_PART(a.concept_name,';',1) ~* 'contact' AND SPLIT_PART(a.concept_name,';',1) ~* 'laxatives?'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take descendants of Corticosteroids
+-- add descendants of Corticosteroids
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'corticosteroids',
   c.concept_id,
   c.concept_name,
-  CASE WHEN  a.concept_name ~* '^corticosteroids?|^combinations of corticosteroids?' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN  SPLIT_PART(a.concept_name,';',1) ~* '^corticosteroids?|^combinations of corticosteroids?' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, 
 concept_ancestor ca
  JOIN concept c
@@ -1717,17 +1070,17 @@ concept_ancestor ca
  AND ca.ancestor_concept_id IN (21605042, 21605164, 21605200, 21605165, 21605199, 21601607, 975125) 
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
-WHERE a.concept_name ~* 'corticosteroids?'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';  -- 608
+WHERE SPLIT_PART(a.concept_name,';',1) ~* 'corticosteroids?'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take descendants of Cough suppressants
+-- add descendants of Cough suppressants
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'cough suppressants',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^cough suppressants|^other cough suppressants' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^cough suppressants|^other cough suppressants' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, 
 concept_ancestor ca
  JOIN concept c
@@ -1736,34 +1089,34 @@ concept_ancestor ca
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
  AND c.concept_id NOT IN (943191,1139042,1189220,1781321,19008366,19039512,19041843,19050346,19058933,19071861,19088167,19095266,42904041)
- WHERE a.concept_name ~* 'cough' AND a.concept_name ~* 'suppressants?'
+ WHERE SPLIT_PART(a.concept_name,';',1) ~* 'cough' AND SPLIT_PART(a.concept_name,';',1) ~* 'suppressants?'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
        
--- take descendants of Diuretics
+-- add descendants of Diuretics
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'diuretics',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^diuretics' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^diuretics' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON ca.descendant_concept_id = c.concept_id
  AND ca.ancestor_concept_id = 21601461 
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
- WHERE a.concept_name ~* 'diuretics?'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 2378
+ WHERE SPLIT_PART(a.concept_name,';',1) ~* 'diuretics?'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take descendants of Magnesium (different salts IN combination)
+-- add descendants of Magnesium (different salts IN combination)
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'magnesium (different salts IN combination)',
   c.concept_id,
   c.concept_name,
-  CASE WHEN  a.concept_name ~* '^magnesium \(different salts IN combination\)' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN  SPLIT_PART(a.concept_name,';',1) ~* '^magnesium \(different salts IN combination\)' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, -- ATC
 concept_ancestor ca
  JOIN concept c -- Rx
@@ -1771,47 +1124,46 @@ concept_ancestor ca
  AND ca.ancestor_concept_id IN (21600892) 
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
-  WHERE a.concept_name ~* 'magnesium' AND a.concept_name ~* 'salt'
+  WHERE SPLIT_PART(a.concept_name,';',1) ~* 'magnesium' AND SPLIT_PART(a.concept_name,';',1) ~* 'salt'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take ingredients indicating Magnesium (different salts IN combination)
+-- add ingredients indicating Magnesium (different salts IN combination)
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'magnesium (different salts IN combination)',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^magnesium \(different salts IN combination\)' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^magnesium \(different salts IN combination\)' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept c
-  WHERE a.concept_name ~* 'magnesium' AND a.concept_name ~* 'salt'
+  WHERE SPLIT_PART(a.concept_name,';',1) ~* 'magnesium' AND SPLIT_PART(a.concept_name,';',1) ~* 'salt'
   AND c.concept_name ~ 'magnesium' AND c.standard_concept = 'S' AND c.concept_class_id = 'Ingredient'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'
 AND (a.concept_code, c.concept_id) NOT IN (select class_code, concept_id FROM dev_combo)
 AND concept_id NOT IN (43532017, 37498676); -- magnesium cation | magnesium Mg-28
 
--- take ingredients indicating Multivitamins
+-- add ingredients indicating Multivitamins
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
   'multivitamins',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^multivitamins' THEN 1 ELSE 2 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^multivitamins' THEN 1 ELSE 2 END ::INT AS rnk
 FROM concept_manual a,
   concept c
 WHERE c.concept_id = 36878782
- AND a.concept_name ~* 'multivitamins?'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 7
-------------------------------------------------------------------
+ AND SPLIT_PART(a.concept_name,';',1) ~* 'multivitamins?'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take descendants of Opium alkaloids WITH morphine
+-- add descendants of Opium alkaloids WITH morphine
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'opium alkaloids WITH morphine',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^opium alkaloids WITH morphine' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1)  ~* '^opium alkaloids WITH morphine' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON descendant_concept_id = c.concept_id
@@ -1819,17 +1171,17 @@ FROM concept_manual a, concept_ancestor ca
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
  AND c.concept_id NOT IN (19112635)
- WHERE a.concept_name  ~* 'opium alkaloids WITH morphine'
+ WHERE SPLIT_PART(a.concept_name,';',1)  ~* 'opium alkaloids WITH morphine'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take descendants of Opium derivatives
+-- add descendants of Opium derivatives
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'opium derivatives',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^opium derivatives' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^opium derivatives' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON ca.descendant_concept_id = c.concept_id
@@ -1837,34 +1189,36 @@ FROM concept_manual a, concept_ancestor ca
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
  AND c.concept_id NOT IN (19021930, 1201620)
- WHERE a.concept_name ~* 'opium derivatives'
+ WHERE SPLIT_PART(a.concept_name,';',1) ~* 'opium derivatives'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- take descendants of Organic nitrates
+-- add descendants of Organic nitrates
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
 'organic nitrates',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^organic nitrates' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^organic nitrates' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON ca.descendant_concept_id = c.concept_id
  AND ca.ancestor_concept_id IN (21600316) 
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
-  WHERE a.concept_name ~* 'organic nitrates'
+  WHERE SPLIT_PART(a.concept_name,';',1) ~* 'organic nitrates'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- take descendants of Psycholeptics
+-- add descendants of Psycholeptics
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'psycholeptics',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^psycholeptics' THEN 3 WHEN a.concept_name ~ 'excl\. psycholeptics' THEN 0 ELSE 4 END ::INT AS rnk -- 0 stands for excluded drugs
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^psycholeptics' THEN 3 
+  WHEN SPLIT_PART(a.concept_name,';',1) ~ 'excl\. psycholeptics' THEN 0 
+  ELSE 4 END ::INT AS rnk -- 0 stands for excluded drugs
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON ca.descendant_concept_id = c.concept_id
@@ -1872,189 +1226,189 @@ FROM concept_manual a, concept_ancestor ca
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
  AND c.concept_id NOT IN (742594)
-   WHERE a.concept_name ~* 'psycholeptics?' --AND class_name !~* 'excl\. psycholeptics'
+   WHERE SPLIT_PART(a.concept_name,';',1) ~* 'psycholeptics?' --AND class_name !~* 'excl\. psycholeptics'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take descendants of Selenium compounds
+-- add descendants of Selenium compounds
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
 'selenium compounds',
  c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^selenium compounds' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^selenium compounds' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON ca.descendant_concept_id = c.concept_id
  AND ca.ancestor_concept_id IN (21600908) 
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
- WHERE a.concept_name ~* 'selenium compounds'
+ WHERE SPLIT_PART(a.concept_name,';',1) ~* 'selenium compounds'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take descendants of Silver compounds
+-- add descendants of Silver compounds
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'silver compounds',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^silver compounds' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1)  ~* '^silver compounds' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON ca.descendant_concept_id = c.concept_id
  AND ca.ancestor_concept_id IN (21602248)
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
-  WHERE a.concept_name  ~* 'silver compounds'
+  WHERE SPLIT_PART(a.concept_name,';',1)  ~* 'silver compounds'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; 
  
--- take ingredients indicating Silver
+-- add ingredients indicating Silver
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'silver compounds',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^silver compounds' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1)  ~* '^silver compounds' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.concept_name ~* 'silver\y'
  AND ('silver compounds', c.concept_id) NOT IN (select class, concept_id FROM dev_combo)
-AND a.concept_name  ~* 'silver compounds'
+AND SPLIT_PART(a.concept_name,';',1)  ~* 'silver compounds'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take descendants of Sulfonylureas
+-- add descendants of Sulfonylureas
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'sulfonylureas',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^sulfonylureas?' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^sulfonylureas?' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON ca.descendant_concept_id = c.concept_id
  AND ca.ancestor_concept_id = 21600749 
  AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient'
-WHERE a.concept_name  ~* 'sulfonylureas?'
+WHERE SPLIT_PART(a.concept_name,';',1) ~* 'sulfonylureas?'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take ingredients indicating Snake venom antiserum
+-- add ingredients indicating Snake venom antiserum
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'snake venom antiserum',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^snake venom antiserum' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^snake venom antiserum' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a,concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
  AND c.concept_name ~* 'antiserum' AND c.concept_name ~* 'snake'
-AND a.concept_name  ~* 'snake venom antiserum'
+AND SPLIT_PART(a.concept_name,';',1) ~* 'snake venom antiserum'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take ingredients indicating Aluminium preparations
+-- add ingredients indicating Aluminium preparations
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'aluminium preparations',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^aluminium preparations' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^aluminium preparations' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a,concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
  AND c.concept_name ~* 'aluminium|aluminum'
- AND a.concept_name  ~* 'aluminium preparations'
+ AND SPLIT_PART(a.concept_name,';',1) ~* 'aluminium preparations'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- take ingredients indicating Aluminium compounds
+-- add ingredients indicating Aluminium compounds
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'aluminium compounds',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^aluminium compounds' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^aluminium compounds' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a,concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* 'aluminium|aluminum' 
-  AND a.concept_name  ~* 'aluminium compounds'
+  AND SPLIT_PART(a.concept_name,';',1) ~* 'aluminium compounds'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- take ingredients indicating Lactic acid producing organisms
+-- add ingredients indicating Lactic acid producing organisms
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'lactic acid producing organisms',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^lactic acid producing organisms' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^lactic acid producing organisms' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* 'lactobacil' 
-   AND a.concept_name  ~* 'lactic acid producing organisms'
+   AND SPLIT_PART(a.concept_name,';',1) ~* 'lactic acid producing organisms'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- take ingredients indicating Lactobacillus  
+-- add ingredients indicating Lactobacillus  
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'lactobacillus',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^lactobacillus' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^lactobacillus' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* 'lactobacil' 
-    AND a.concept_name  ~* 'lactobacillus'
+    AND SPLIT_PART(a.concept_name,';',1) ~* 'lactobacillus'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
   
--- take ingredients indicating Magnesium compounds
+-- add ingredients indicating Magnesium compounds
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'magnesium compounds',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^magnesium compounds' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^magnesium compounds' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a,concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* 'magnesium'
-     AND a.concept_name  ~* 'magnesium compounds'
+     AND SPLIT_PART(a.concept_name,';',1) ~* 'magnesium compounds'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; 
   
--- take ingredients indicating Grass pollen
+-- add ingredients indicating Grass pollen
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'grass pollen',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^grass pollen' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^grass pollen' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a,concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
-  AND a.concept_name  ~* 'grass' AND c.concept_name ~* 'pollen' 
- AND a.concept_name  ~* 'grass pollen'
+  AND c.concept_name  ~* 'grass' AND c.concept_name ~* 'pollen' 
+ AND SPLIT_PART(a.concept_name,';',1)  ~* 'grass pollen'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
   
--- take ingredients indicating Oil
+-- add ingredients indicating Oil
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
@@ -2068,91 +1422,89 @@ WHERE c.vocabulary_id IN ('RxNorm','RxNorm Extension')
 AND c.concept_class_id = 'Ingredient'
 AND c.standard_concept = 'S'
 AND c.concept_name ~* '\yoil\y|\yoleum\y'
-AND a.concept_name  ~* '^oil'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 475
+AND SPLIT_PART(a.concept_name,';',1) ~* '^oil'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
---select * from concept_manual where concept_name  ~* 'oil';
-
--- take ingredients indicating Flowers
+-- add ingredients indicating Flowers
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'flowers',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^flowers' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^flowers' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* '\yflower\y' AND c.concept_name ~* 'extract'
-   AND a.concept_name  ~* '^flowers'
+   AND SPLIT_PART(a.concept_name,';',1) ~* '^flowers'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
   
--- take ingredients indicating Fumaric acid derivatives
+-- add ingredients indicating Fumaric acid derivatives
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'fumaric acid derivatives',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^fumaric acid derivatives' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^fumaric acid derivatives' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a,
     concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* 'fumarate\y'
- AND a.concept_name  ~* 'fumaric acid derivatives'
+ AND SPLIT_PART(a.concept_name,';',1) ~* 'fumaric acid derivatives'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
   
--- take ingredients indicating Glycerol	
+-- add ingredients indicating Glycerol	
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'glycerol',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^glycerol' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN a.concept_name  ~* '^glycerol' THEN 1 ELSE 2 END ::INT AS rnk
 FROM concept_manual a,concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
-  AND c.concept_name ~* 'glycerol\y'
-  AND a.concept_name  ~* 'glycerol'
+  AND c.concept_name ~* 'glycerol\y' and SPLIT_PART(a.concept_name,';',1) !~ 'rectal'
+  AND SPLIT_PART(a.concept_name,';',1) ~* 'glycerol' and SPLIT_PART(a.concept_name,';',1) !~ 'phenylbutyrate'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- take descendants of Proton pump inhibitors
+-- add descendants of Proton pump inhibitors
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'proton pump inhibitors',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name  ~* '^proton pump inhibitors' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^proton pump inhibitors' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor s
  JOIN concept c
  ON descendant_concept_id = c.concept_id AND c.concept_class_id = 'Ingredient' AND c.standard_concept = 'S'
  AND ancestor_concept_id IN (21600095) 
- WHERE a.concept_name ~* 'proton pump inhibitors?'
+ WHERE SPLIT_PART(a.concept_name,';',1) ~* 'proton pump inhibitors?'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- take descendants of Thiazides
+-- add descendants of Thiazides
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'thiazides',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^thiazides' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^thiazides' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept_ancestor ca
  JOIN concept c
  ON ca.descendant_concept_id = c.concept_id AND c.concept_class_id = 'Ingredient' AND c.standard_concept = 'S'
  AND ca.ancestor_concept_id IN (21601463) 
- WHERE a.concept_name ~* 'thiazides'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 160
+ WHERE SPLIT_PART(a.concept_name,';',1) ~* 'thiazides'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- take ingredients indicating Electrolytes
+-- add ingredients indicating Electrolytes
  INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
   a.concept_name,
@@ -2167,10 +1519,10 @@ WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.standard_concept = 'S'
   AND c.concept_name ~* ('^magnesium sulfate|^ammonium chloride|^sodium chloride|^sodium acetate|^magnesium chloride^|potassium lactate|^sodium glycerophosphate|^magnesium phosphate|^potassium chloride|^calcium chloride'
   || '^sodium bicarbonate|^hydrochloric acid|^potassium acetate|^zinc chloride|^sodium phosphate|^potassium bicarbonate|^succinic acid|^sodium lactate|^sodium gluconate|^sodium fumarate')
-  AND a.concept_name ~* 'electrolytes'
+  AND SPLIT_PART(a.concept_name,';',1) ~* 'electrolytes'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- bismuth preparations
+-- add ingredients indicating bismuth preparations
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
@@ -2183,10 +1535,10 @@ WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* ('\ybismuth')
-  AND a.concept_name ~* 'bismuth preparations'
+  AND SPLIT_PART(a.concept_name,';',1) ~* 'bismuth preparations'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- artificial tears 
+-- add ingredients indicating Artificial Tears 
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
@@ -2199,26 +1551,26 @@ WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.standard_concept = 'S'
   AND c.concept_name ~* 'carboxymethylcellulose$|carboxypolymethylene|polyvinyl alcohol$|hydroxypropyl methylcellulose$|^hypromellose$|hydroxypropyl cellulose|^hyaluronate'
  AND c.concept_class_id = 'Ingredient' 
-  AND a.concept_name ~* 'artificial tears'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 23
+  AND SPLIT_PART(a.concept_name,';',1) ~* 'artificial tears'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
  
--- potassium-sparing agents	
+-- add ingredients indicating Potassium-sparing agents	
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
   'potassium-sparing agents',
   c.concept_id,
   c.concept_name,
-  CASE WHEN a.concept_name ~* '^potassium-sparing agents' THEN 3 ELSE 4 END ::INT AS rnk
+  CASE WHEN SPLIT_PART(a.concept_name,';',1) ~* '^potassium-sparing agents' THEN 3 ELSE 4 END ::INT AS rnk
 FROM concept_manual a, concept c
 WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* '\yamiloride|triamterene|spironolactone|eplerenone|finerenone|canrenone|canrenoic acid'
-  AND a.concept_name ~* 'potassium-sparing agents'
+  AND SPLIT_PART(a.concept_name,';',1) ~* 'potassium-sparing agents'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- 19050016	4125	ethiodized oil
+-- add ingredients indicating ethiodized oil
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
@@ -2231,10 +1583,50 @@ WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* 'ethiodized oil'
-  AND a.concept_name ~* '^ethyl esters of iodised fatty acids'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; -- 1 
- 
--- excl\.trimethoprim
+  AND SPLIT_PART(a.concept_name,';',1) ~* '^ethyl esters of iodised fatty acids'
+AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; 
+
+-- add ingredients indicating Ophthalmic Antibiotics
+INSERT INTO dev_combo
+SELECT DISTINCT  a.concept_code,
+  a.concept_name,
+  'antibiotics ophthalmic',
+  c.concept_id,
+  c.concept_name,
+  3 -- hradcoded
+FROM concept_manual a, concept c
+WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
+ AND c.concept_class_id = 'Ingredient'
+ AND c.standard_concept = 'S'
+  AND SPLIT_PART(a.concept_name,';',1) ~* 'antibiotics' and SPLIT_PART(a.concept_name,';',1) ~* 'combination' and SPLIT_PART(a.concept_name,';',1) ~* 'ophthalmic'
+AND lower (substring(c.concept_name, '\w+')) in (
+'azithromycin','bacitracin','besifloxacin','ciprofloxacin','erythromycin','gatifloxacin','gentamicin','levofloxacin',
+'moxifloxacin','ofloxacin','sulfacetamide','tobramycin','polymyxin B','trimethoprim','sulfacetamide','neomycin','gramicidin'
+ )
+AND a.invalid_reason IS NULL 
+AND a.concept_class_id = 'ATC 5th';
+
+-- add ingredients indicating Topical Antibiotics
+INSERT INTO dev_combo
+SELECT DISTINCT  a.concept_code,
+  a.concept_name,
+  'antibiotics topical',
+  c.concept_id,
+  c.concept_name,
+  4 -- hradcoded
+FROM concept_manual a, concept c
+WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
+ AND c.concept_class_id = 'Ingredient'
+ AND c.standard_concept = 'S'
+  AND SPLIT_PART(a.concept_name,';',1) ~* 'antibiotics' and SPLIT_PART(a.concept_name,';',1) ~* 'combination' and SPLIT_PART(a.concept_name,';',1) ~* 'topical'
+AND lower(c.concept_name)in (
+'mupirocin','sulfacetamide','retapamulin','silver sulfadiazine','polymyxin b','bacitracin',
+'neomycin','ozenoxacin','erythromycin','mafenide','gentamicin','demeclocycline','retapamulin',
+'chlortetracycline','virginiamycin','chloramphenicol','oxytetracycline','tetracycline')
+AND a.invalid_reason IS NULL 
+AND a.concept_class_id = 'ATC 5th';
+
+-- add excluded Trimethoprim
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
@@ -2248,9 +1640,10 @@ WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
  AND c.concept_class_id = 'Ingredient'
  AND c.standard_concept = 'S'
   AND c.concept_name ~* 'trimethoprim'
-  AND a.concept_name ~* 'excl. trimethoprim'
+  AND SPLIT_PART(a.concept_name,';',1) ~* 'excl. trimethoprim'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
- 
+
+-- perform dev_combo cleanup
 -- fix Vitamin D AND analogues IN combination
 UPDATE dev_combo
  SET rnk = 3
@@ -2271,42 +1664,42 @@ FROM dev_combo
 WHERE class_code = 'A06AG11'
 AND class_name = 'sodium lauryl sulfoacetate, incl. combinations'
 AND concept_name = 'sodium'
-AND rnk = 1; -- 0
+AND rnk = 1;
 
 DELETE
 FROM dev_combo
 WHERE class_code = 'A01AA51'
 AND class_name = 'sodium fluoride, combinations'
 AND concept_name = 'sodium'
-AND rnk = 1; --0 
+AND rnk = 1;
 
 DELETE
 FROM dev_combo
 WHERE class_code = 'A06AB58'
 AND class_name = 'sodium picosulfate, combinations'
 AND concept_name = 'sodium'
-AND rnk = 1; -- 0
+AND rnk = 1;
 
 DELETE
 FROM dev_combo
 WHERE class_code = 'B05XA06'
 AND class_name = 'potassium phosphate, incl. combinations WITH other potassium salts'
 AND concept_name = 'potassium'
-AND rnk = 1;--0
+AND rnk = 1;
 
 DELETE
 FROM dev_combo
 WHERE class_code = 'A12BA51'
 AND class_name = 'potassium chloride, combinations'
 AND concept_name = 'potassium'
-AND rnk = 1;--0
+AND rnk = 1;
 
 DELETE
 FROM dev_combo
 WHERE class_code = 'C01DA58'
 AND class_name = 'isosorbide dinitrate, combinations'
 AND concept_name = 'isosorbide'
-AND rnk = 1; --0
+AND rnk = 1;
 
 -- fix erroneous rnk of 3 for J07AG53
 UPDATE dev_combo
@@ -2315,12 +1708,12 @@ WHERE class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 1)
 AND class_code IN (SELECT class_code FROM dev_combo WHERE rnk = 2)
 AND class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 4)
 AND class_code IN (SELECT class_code FROM dev_combo WHERE rnk = 3)
-AND rnk = 3; -- 0
+AND rnk = 3;
 
 DELETE
 FROM dev_combo
 WHERE class_code = 'B03AD01'
-AND rnk = 4; -- 0
+AND rnk = 4;
 
 INSERT INTO dev_combo
 SELECT DISTINCT class_code,
@@ -2337,28 +1730,27 @@ DELETE
 FROM dev_combo
 WHERE class_code = 'A02BD08'
 AND   class = 'bismuth subcitrate, tetracycline'
-AND   concept_id = 19025138; --0 
-
+AND   concept_id = 19025138;
 -- erroneous map to Pentaerythritol Distearate
 DELETE
 FROM dev_combo
 WHERE class_code = 'C01DA55'
 AND   class = ''
-AND   concept_id = 42903512; -- 0
+AND   concept_id = 42903512;
 
 -- erroneous map to Potassium
 DELETE
 FROM dev_combo
 WHERE class_code = 'B05XA06'
 AND   class = 'potassium phosphate, incl. combinations with other potassium salts'
-AND   concept_id = 19049024; -- 0
+AND   concept_id = 19049024;
 
 -- erroneous map to tenofovir
 DELETE
 FROM dev_combo
 WHERE class_code = 'J05AR03'
 AND   class = 'tenofovir disoproxil'
-AND   concept_id = 19011093; -- 0
+AND   concept_id = 19011093;
 
 -- remove doubling ingredients with different rank, remaining those which are Primary lateral
 DELETE
@@ -2371,26 +1763,26 @@ WHERE (class_code,concept_id,rnk) IN (SELECT a.class_code,
                                     ON a.class_code = b.class_code
                                    AND a.concept_id = b.concept_id
                                 WHERE a.rnk > 1
-                                AND   b.rnk = 1); -- 20
+                                AND   b.rnk = 1);
                                 
 UPDATE dev_combo
    SET rnk = 3
 WHERE class_code = 'A07FA51'
 AND   class_name = 'lactic acid producing organisms, combinations'
 AND   concept_id = 19136028
-AND   concept_name = 'Saccharomyces cerevisiae'; -- 0
+AND   concept_name = 'Saccharomyces cerevisiae';
 
 DELETE
 FROM dev_combo
 WHERE class_name ~ 'antiinfectives'
 AND   rnk = 4
-AND   concept_id IN (19010309,19136048,1036884,19049024,989878,961145,19018544,917006,914335); -- 13
+AND   concept_id IN (19010309,19136048,1036884,19049024,989878,961145,19018544,917006,914335);
 
 UPDATE dev_combo
    SET rnk = 3
 WHERE class_name ~ 'lactic acid producing organisms'
 AND   rnk = 4
-AND   concept_name ~* 'Saccharomyces|Bacillus|Bifidobacterium|Enterococcus|Escherichia|Streptococcus'; -- 9
+AND   concept_name ~* 'Saccharomyces|Bacillus|Bifidobacterium|Enterococcus|Escherichia|Streptococcus';
 
 DELETE
 FROM dev_combo
@@ -2402,31 +1794,6 @@ UPDATE dev_combo
 WHERE class_name ~ 'opium derivatives'
 AND   rnk = 1;
 
-UPDATE dev_combo
-   SET rnk = 3
-WHERE (class_code,concept_id) IN (SELECT a.class_code,
-                                         a.concept_id
-                                  FROM dev_combo a
-                                    JOIN dev_combo b
-                                      ON b.class_code = a.class_code
-                                     AND a.rnk <> b.rnk
-                                     AND a.concept_id = b.concept_id
-                                  WHERE (a.class_Code,a.concept_name) IN (SELECT class_code,
-                                                                                 concept_name
-                                                                          FROM dev_combo
-                                                                          GROUP BY class_code,
-                                                                                   concept_name
-                                                                          HAVING COUNT(1) > 1)
-                                  AND   (b.class_Code,b.concept_name) IN (SELECT class_code,
-                                                                                 concept_name
-                                                                          FROM dev_combo
-                                                                          GROUP BY class_code,
-                                                                                   concept_name
-                                                                          HAVING COUNT(1) > 1)
-                                  AND   a.class_code = 'S03AA30'
-                                  AND   a.rnk = 4)
-AND   rnk = 4;
-
 DELETE
 FROM dev_combo
 WHERE class_code = 'R05FB01'
@@ -2434,6 +1801,13 @@ AND   class_name = 'cough suppressants and mucolytics'
 AND   class = 'cough suppressants'
 AND   concept_id = 19057932
 AND   rnk = 3;
+DELETE
+FROM dev_combo
+WHERE class_code = 'R05FB01'
+AND   class_name = 'cough suppressants and mucolytics'
+AND   class = ''
+AND   concept_id = 19057932
+AND   rnk = 4;
 
 UPDATE dev_combo
    SET rnk = 4
@@ -2448,6 +1822,14 @@ UPDATE dev_combo
 WHERE class_code = 'S02AA30'
 AND   class_name = 'antiinfectives, combinations'
 AND   class = ''
+AND   concept_id = 963742
+AND   rnk = 4;
+
+UPDATE dev_combo
+   SET rnk = 3
+WHERE class_code = 'S02AA30'
+AND   class_name = 'antiinfectives, combinations'
+AND   class = ''
 AND   concept_id = 19006842
 AND   rnk = 4;
 
@@ -2456,21 +1838,21 @@ UPDATE dev_combo
 WHERE class_code = 'J01RA02'
 AND   class = 'sulfonamides'
 AND   concept_id = 1790868
-AND   rnk = 3;
+AND   rnk = 3; -- 1 
 
 UPDATE dev_combo
    SET rnk = 4
 WHERE class_code = 'J01RA02'
 AND   class = 'sulfonamides'
 AND   concept_id = 1734104
-AND   rnk = 3;
+AND   rnk = 3; -- 1
 
 UPDATE dev_combo
    SET rnk = 4
 WHERE class_code = 'J01RA02'
 AND   class = 'sulfonamides'
 AND   concept_id = 1748975
-AND   rnk = 3;
+AND   rnk = 3; -- 1
 
 UPDATE dev_combo
    SET rnk = 4
@@ -2527,6 +1909,7 @@ WHERE class_code = 'J01RA02'
 AND   class = 'sulfonamides'
 AND   concept_id = 19023254
 AND   rnk = 3;
+
 UPDATE dev_combo
    SET rnk = 4
 WHERE class_code = 'J01RA02'
@@ -2554,6 +1937,7 @@ WHERE class_code = 'J01RA02'
 AND   class = 'sulfonamides'
 AND   concept_id = 1836948
 AND   rnk = 3;
+
 UPDATE dev_combo
    SET rnk = 4
 WHERE class_code = 'J01RA02'
@@ -2601,7 +1985,7 @@ UPDATE dev_combo
 WHERE class_code = 'R05FB02'
 AND   class = 'cough suppressants'
 AND   concept_id = 1103137
-AND   rnk = 3;
+AND   rnk = 3;                        
 /*******************************************
 **** ADD ODDMENTS TO THE INPUT TABLES *****
 ********************************************/
@@ -2685,6 +2069,32 @@ AND concept_class_id = 'Ingredient'
 AND vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 AND invalid_reason IS NULL
 AND concept_code_2 NOT IN (select concept_code FROM drug_concept_stage);
+
+-- remove dead deprecated or updated codes 
+DELETE
+FROM internal_relationship_stage
+WHERE SUBSTRING(concept_code_1,'\w+') IN (SELECT concept_code
+                                          FROM concept_manual
+                                          WHERE invalid_reason IS NOT NULL);
+
+DELETE
+FROM drug_concept_stage
+WHERE concept_code IN (SELECT concept_code
+                       FROM concept_manual
+                       WHERE invalid_reason IS NOT NULL);
+
+-- remove inexistent drug mapping (old and wrong)
+DELETE
+FROM drug_concept_stage
+WHERE concept_code IN (SELECT class_code FROM atc_inexistent)
+AND   concept_code NOT IN (SELECT class_code FROM dev_combo);
+
+DELETE
+FROM internal_relationship_stage
+WHERE SUBSTRING(concept_code_1,'\w+') IN (SELECT class_code FROM atc_inexistent)
+AND   SUBSTRING(concept_code_1,'\w+') NOT IN (SELECT class_code FROM dev_combo)
+AND   concept_code_1 !~ '\s+';
+
 /***************************************
 ******* relationship_to_concept ********
 ****************************************/

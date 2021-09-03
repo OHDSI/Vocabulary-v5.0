@@ -238,11 +238,18 @@ left JOIN dev_mnerovnya.cm_old_new c on n.concept_name = c.concept_name_old
 where n.concept_class_id = 'Dimension'
 ;
 --NAACCR mapping
-SELECT  n.vr_name, n.vl_name, n.schema_name, c.concept_name_old, c.concept_name_new
+with a as (SELECT DISTINCT  n.vr_name as naaccr_name, c.comment as comment, c.concept_name_old as concept_name_cm, c.concept_name_new
 FROM dev_mnerovnya.naaccr_to_cm n
 left JOIN dev_mnerovnya.cm_old_new c on n.concept_name = c.concept_name_old
-where n.concept_class_id = 'Dimension'
+where n.concept_class_id = 'Dimension')
 
+SELECT DISTINCT c1.concept_id, c1.concept_code, a.naaccr_name, c1.vocabulary_id, 'Maps to' as relationship, a.comment, c2.concept_id, c2.concept_code, a.concept_name_new as new_cm_name,c2.vocabulary_id
+FROM a
+LEFT JOIN devv5.concept c1 on a.naaccr_name = c1.concept_name
+LEFT JOIN devv5.concept c2 on a.concept_name_cm = c2.concept_name
+where c1.vocabulary_id =  'NAACCR' and c2.vocabulary_id = 'Cancer Modifier'
+ORDER BY a.naaccr_name
+;
 SELECT *
 FROM devv5.concept
 WHERE vocabulary_id = 'NAACCR'

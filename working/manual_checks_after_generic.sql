@@ -258,7 +258,7 @@ WHERE c.vocabulary_id IN (:your_vocabs)
                 FROM concept_relationship_manual crm
                 WHERE c.concept_code = crm.concept_code_1
                     AND c.vocabulary_id = crm.vocabulary_id_1
-                    AND crm.relationship_id = 'Maps to')
+                    AND crm.relationship_id = 'Maps to' AND crm.invalid_reason IS NULL)
 AND NOT EXISTS (SELECT 1
                 FROM concept_relationship cr
                 WHERE c.concept_id = cr.concept_id_1

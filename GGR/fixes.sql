@@ -33,7 +33,7 @@ WHERE concept_code_1 IN (
 		WHERE device IS NOT NULL
 		);
 
-DROP TABLE IF EXISTS generated_concepts;s
+DROP TABLE IF EXISTS generated_concepts;
 CREATE TABLE generated_concepts AS
 
 SELECT 'OMOP' || nextval('conc_stage_seq') AS concept_code,
@@ -194,3 +194,13 @@ WHERE concept_code IN (
 		WHERE concept_class_id = 'Ingredient'
 			AND standard_concept IS NOT NULL
 		);
+update 
+ds_stage
+set box_size = null
+where box_size = '1';
+
+
+update 
+pc_stage
+set box_size = null
+where box_size = '1';

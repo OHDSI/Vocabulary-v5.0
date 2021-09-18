@@ -16,7 +16,6 @@
 * Authors: Anna Ostropolets, Polina Talapova
 * Date: Jul 2021
 **************************************************************************/
-
 DROP TABLE IF EXISTS drug_concept_stage CASCADE;
 DROP TABLE IF EXISTS internal_relationship_stage;
 DROP TABLE IF EXISTS relationship_to_concept CASCADE;
@@ -1984,18 +1983,55 @@ WHERE SUBSTRING(concept_code_1,'\w+') IN (SELECT class_code FROM atc_inexistent)
 AND   SUBSTRING(concept_code_1,'\w+') NOT IN (SELECT class_code FROM dev_combo)
 AND   concept_code_1 !~ '\s+';
 
--- 	pentaerithrityl tetranitrate, combinations
-DELETE
-FROM drug_concept_stage
-WHERE concept_code ~ 'C01DA55';
+-- remove mappings which have been deprecated in crm
+WITH t1 AS
+(
+  SELECT *
+  FROM concept_relationship_manual
+  WHERE relationship_id IN ('ATC - RxNorm pr lat','ATC - RxNorm sec up','ATC - RxNorm pr up','ATC - RxNorm sec lat')
+) DELETE
+FROM dev_combo
+WHERE class_code||concept_id IN (SELECT DISTINCT a.class_code||c.concept_id
+                                 FROM dev_combo a
+                                   JOIN concept c ON c.concept_id = a.concept_id
+                                   JOIN t1 r
+                                     ON r.concept_code_1 = a.class_code
+                                    AND r.concept_code_2 = c.concept_code
+                                    AND r.invalid_reason IS NOT NULL);
 
-DELETE
-FROM internal_relationship_stage
-WHERE concept_code_1 ~ 'C01DA55';
-
+-- clean up sulfonamides
 DELETE
 FROM dev_combo
-WHERE class_code = 'C01DA55';
+WHERE class_code||concept_id NOT IN (SELECT class_code||concept_id
+                                     FROM dev_combo
+                                     WHERE class_name ~ 'sulfonamides'
+                                     AND   (concept_id IN (SELECT concept_id FROM dev_combo WHERE class_code = 'J01EB20') OR concept_name ~* '^sulfa')
+                                     AND   rnk = 3)
+AND   class_name ~ 'sulfonamides'
+AND   rnk = 3;
+
+INSERT INTO dev_combo
+WITH t1
+AS
+(SELECT concept_id,
+       concept_name,
+       rnk
+FROM dev_combo
+WHERE class_name ~ 'sulfonamides'
+AND   (concept_id IN (SELECT concept_id FROM dev_combo WHERE class_code = 'J01EB20') OR concept_name ~* '^sulfa')
+AND   rnk = 3) SELECT DISTINCT class_code,class_name,'sulfonamides',b.*FROM dev_combo a,t1 b WHERE class_name ~ 'sulfonamides'
+AND class_code||b.concept_id NOT IN (SELECT class_code||concept_id FROM dev_combo);
+
+-- non-combo: glycerol
+DELETE
+FROM dev_combo
+WHERE class_code = 'A16AX09';
+
+UPDATE dev_combo
+   SET rnk = 2
+WHERE concept_id = 529303
+AND   class_code = 'J07AM51';
+
 /***************************************
 ******* relationship_to_concept ********
 ****************************************/
@@ -2015,4 +2051,4 @@ FROM internal_relationship_stage
  AND c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
  AND c.invalid_reason IS NULL;
  
--- run load_interim.sql
+ -- run load_interim.sql

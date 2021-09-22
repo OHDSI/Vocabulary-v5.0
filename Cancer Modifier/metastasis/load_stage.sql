@@ -207,6 +207,46 @@ and c2.concept_class_id= 'Body Structure'
 and cr2.invalid_reason is null
 ;
 
+--TODO fix the UNCOVERED MTS with SNOMED Anatomic site resuscitation
+SELECT *
+FROM concept
+WHERE  vocabulary_id='Cancer Modifier'
+and  concept_class_id = 'Metastasis'
+AND  (concept_id,'Has finding site')  NOT IN (SELECT concept_id_1,relationship_id FROM concept_relationship_stage )
+and concept_id NOT IN (
+                                          35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
+                                          36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
+                                          35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
+                                          36769170,	--Non-Malignant Ascites Maps to 200528	389026000	Ascites
+                                          36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                                          36769415,	--Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                                          36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
+                                          36768818 --	Ascites Maps to 200528	389026000	Ascites
+                                          ,
+                                         36770091-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+
+    )
+and standard_concept ='S'
+;
+
+SELECT concept_id_1,
+       concept_id_2,
+       concept_code_1,
+       concept_code_2,
+       vocabulary_id_1,
+       vocabulary_id_2,
+       relationship_id,
+      c.concept_name as site_name,
+       cc.concept_name as mts_name,
+       devv5.similarity(c.concept_name,cc.concept_name),
+       row_number() OVER (PARTITION BY concept_id_1 ORDER BY devv5.similarity(c.concept_name,cc.concept_name) desc )  AS rating_in_section
+FROM concept_relationship_stage crs
+JOIN concept c
+on crs.concept_id_2=c.concept_id
+JOIN concept cc
+on crs.concept_id_1=cc.concept_id
+WHERE (concept_id_1,'Has finding site')  IN (SELECT concept_id_1,relationship_id FROM concept_relationship_stage group by 1,2 having count( distinct concept_code_2 )>1)
+
 --Maps to inside the Metastasis Class of CM vocabulary
 INSERT INTO concept_relationship_stage (
                                         concept_id_1,
@@ -621,6 +661,75 @@ and concept_name ILIKE '%gastrointestinal%'
 ;
 
 
+--ICDO3 /6 codes mappings
 
+WITH geterd_mts_codes as (
+    SELECT distinct concept_name,
+                         concept_code,
+                    split_part(concept_code,'-',2) as tumor_site_code,
+                         vocabulary_id,
+                         'ICDO3' as source_flag
+         FROM concept c
+         WHERE c.vocabulary_id = 'ICDO3'
+           and c.concept_class_id = 'ICDO Condition'
+           and c.concept_code ILIKE '%/6%'
 
+         UNION ALL
+
+         select d.concept_name || ' of ' || c.concept_name,
+                morphology_code || '-' || tumor_site_code,
+                tumor_site_code,
+                'ICDO3',
+                'TrinetX'
+         from dev_icdo3.trinetx t
+                  join concept c on c.concept_code = tumor_site_code and c.vocabulary_id = 'ICDO3'
+                  join concept d on d.concept_code = morphology_code and d.vocabulary_id = 'ICDO3'
+    where morphology_code ILIKE '%/6%'
+)
+, icd_to_localisation as (
+    SELECT distinct
+                    s.concept_name,
+                    s.concept_code,
+                    tumor_site_code,
+                    s.vocabulary_id,
+                    source_flag,
+                    cc.concept_id as somed_id,
+                    cc.concept_name as snomed_name ,
+                    cc.vocabulary_id as snomed_voc,
+                    cc.concept_code as snomed_code
+    FROM geterd_mts_codes s
+             LEFT JOIN concept c
+                       ON s.tumor_site_code = c.concept_code
+                           and c.concept_class_id = 'ICDO Topography'
+             LEFT JOIN concept_relationship cr
+                       ON c.concept_id = cr.concept_id_1
+                           and cr.invalid_reason is null
+                           and cr.relationship_id = 'Maps to'
+             LEFT JOIN concept cc
+                       on cr.concept_id_2 = cc.concept_id
+                           and cr.invalid_reason is null
+                           and cc.concept_class_id = 'Body Structure'
+
+    WHERE s.concept_code IN (
+        SELECT concept_code
+        FROM geterd_mts_codes
+        group by 1
+        having count(distinct source_flag) = 1
+    )
+),
+res as (
+SELECT distinct i.*,
+                concept_id as cm_id,
+                ct.concept_name as cm_name,
+                ct.vocabulary_id as  cm_voc,
+                ct.concept_code as  cm_code
+FROM icd_to_localisation i
+LEFT JOIN concept_relationship_stage crs
+ON i.snomed_code = crs.concept_code_2
+and crs.vocabulary_id_2='SNOMED'
+LEFT JOIN concept  ct
+ON ct.concept_id = crs.concept_id_1
+and crs.vocabulary_id_1=ct.vocabulary_id)
+
+SELECT * FROM RES where concept_code IN (SELECT concept_code from res group by 1 having count (distinct cm_id)=1)
 

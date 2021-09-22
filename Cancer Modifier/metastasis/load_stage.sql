@@ -134,7 +134,6 @@ and  concept_class_id = 'Metastasis'
   --LIST OF CODES TO BE DEPRECATED AS DUPLICATES and REMAPPED
 AND c.concept_id NOT IN (
                                           35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
-                                          36769181,-- Metastases Maps TO 36769180 Metastasis
                                           36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
                                           36769170,	--Non-Malignant Ascites Maps to 200528	389026000	Ascites
@@ -171,8 +170,98 @@ and c2.concept_class_id= 'Body Structure'
 and cr2.invalid_reason is null
 ;
 
+--CRS insert of Anatomic Sites
+INSERT INTO concept_relationship_stage (
+                                        concept_id_1,
+                                        concept_code_1,
+                                        vocabulary_id_1,
+                                        concept_id_2,
+                                        concept_code_2 ,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason
+
+)
+SELECT distinct
+                cs.concept_id as concept_id_1,
+                cs.concept_code as concept_concept_code_1,
+                cs.vocabulary_id as concept_vocabulary_id_1,
+                c2.concept_id  as concept_concept_id_2,
+                c2.concept_code as concept_concept_code_2,
+                c2.vocabulary_id as concept_vocabulary_id_2,
+                 'Has finding site' as relationship_id,
+                CURRENT_DATE,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                null as invalid_reason
+FROM concept_stage cs
+JOIN concept_relationship cr on cs.concept_id = cr.concept_id_1
+JOIN concept c
+on cr.concept_id_2=c.concept_id
+and c.vocabulary_id='SNOMED'
+JOIN concept_relationship cr2 on c.concept_id = cr2.concept_id_1
+JOIN concept c2
+on c2.concept_id=cr2.concept_id_2
+and c2.concept_class_id= 'Body Structure'
+and cr2.invalid_reason is null
+;
+
+--Maps to inside the Metastasis Class of CM vocabulary
+INSERT INTO concept_relationship_stage (
+                                        concept_id_1,
+                                        concept_code_1,
+                                        vocabulary_id_1,
+                                        concept_id_2,
+                                        concept_code_2 ,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason
+
+)
+SELECT distinct
+                c.concept_id as concept_id_1,
+                c.concept_code as concept_concept_code_1,
+                c.vocabulary_id as concept_vocabulary_id_1,
+                c2.concept_id  as concept_concept_id_2,
+                c2.concept_code as concept_concept_code_2,
+                c2.vocabulary_id as concept_vocabulary_id_2,
+                 'Maps to' as relationship_id,
+                CURRENT_DATE,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                null as invalid_reason
+FROM concept c
+JOIN concept c2
+ON c2.concept_id=
+      CASE WHEN c.concept_id =   35225652  then      35225556
+                     WHEN c.concept_id =   36768964  then      36769180
+                      WHEN c.concept_id =   35226153  then      35226152
+                   WHEN c.concept_id =   36769170  then      200528
+               WHEN c.concept_id =   36769789  then      254061
+                WHEN c.concept_id =   36769789  then      254061
+                WHEN c.concept_id =   36769415  then      254061
+              WHEN c.concept_id =   36768514  then      200528
+            WHEN   c.concept_id =   36768818 then  200528 end
+WHERE c.concept_id  IN (
+                                          35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
+                                          36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
+                                          35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
+                                          36769170,	--Non-Malignant Ascites Maps to 200528	389026000	Ascites
+                                          36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                                          36769415,	--Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                                          36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
+                                          36768818 --	Ascites Maps to 200528	389026000	Ascites
+                                          --,
+                                          -- 36770091-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+
+    )
+;
+
 
 --obvious SNOMED codes to be used as Metastasis
+--Maps to insertion
 with obviuos_snomed_mts as (
     SELECT distinct
                     c2.concept_name as site_name,
@@ -315,61 +404,223 @@ SELECT     row_number() OVER (PARTITION BY concept_concept_id_1 ORDER BY similar
        concept_concept_name_2,
        concept_vocabulary_id_2
 FROM similarity)
-SELECT
-       concept_concept_id_1,
-       concept_code_1,
-       concept_concept_name_1,
-       concept_vocabulary_id_1,
-       invalid_reason,
-       relationship_id,
-       concept_id_2,
-       concept_concept_code_2,
-       concept_concept_name_2,
-       concept_vocabulary_id_2
-FROM similarity_result
-where CASE WHEN concept_code_1 = '285634003' then rating_in_section=3 else rating_in_section=1 end
+--INSERT
+INSERT INTO concept_relationship_stage (
+                                        concept_id_1,
+                                        concept_code_1,
+                                        vocabulary_id_1,
+                                        concept_id_2,
+                                        concept_code_2 ,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason
 
-UNION ALL
+)
+SELECT distinct
+concept_concept_id_1 as concept_id_1 ,
+                                        concept_code_1,
+                                        concept_vocabulary_id_1,
+                                        concept_id_2,
+                                        concept_concept_code_2 ,
+                                        concept_vocabulary_id_2,
+                                        relationship_id,
+                CURRENT_DATE,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                null as invalid_reason
+FROM (
+         SELECT rating_in_section,
+                concept_concept_id_1,
+                concept_code_1,
+                concept_concept_name_1,
+                concept_vocabulary_id_1,
+                invalid_reason,
+                relationship_id,
+                concept_id_2,
+                concept_concept_code_2,
+                concept_concept_name_2,
+                concept_vocabulary_id_2
+         FROM similarity_result
+         where CASE WHEN concept_code_1 = '285634003' then rating_in_section = 3 else rating_in_section = 1 end
 
-SELECT
-    concept_id as concept_concept_id_1,
-    concept_code as concept_code_1,
-    concept_name as concept_concept_name_1,
-    vocabulary_id as concept_vocabulary_id_1,
-    null as invalid_reason,
-    'Maps to' as relationship_id,
-    36768130 as concept_id_2,
-    'OMOP4997805' as concept_concept_code_2,
-    'Generalized Metastases' as concept_concept_name_2,
-    'Cancer Modifier'  as concept_vocabulary_id_2
-FROM obviuos_snomed_mts osm
-LEFT JOIN crs crs
-ON osm.site_id=crs.concept_concept_id_2
-where crs.concept_id_1 is  null
-and (concept_name ilike '%Carcinomatosis%'
-or concept_name ilike '%Disseminated%')
+         UNION ALL
 
-UNION ALL
+         SELECT 0                        as rating_in_section,
+                concept_id               as concept_concept_id_1,
+                concept_code             as concept_code_1,
+                concept_name             as concept_concept_name_1,
+                vocabulary_id            as concept_vocabulary_id_1,
+                null                     as invalid_reason,
+                'Maps to'                as relationship_id,
+                36768130                 as concept_id_2,
+                'OMOP4997805'            as concept_concept_code_2,
+                'Generalized Metastases' as concept_concept_name_2,
+                'Cancer Modifier'        as concept_vocabulary_id_2
+         FROM obviuos_snomed_mts osm
+                  LEFT JOIN crs crs
+                            ON osm.site_id = crs.concept_concept_id_2
+         where crs.concept_id_1 is null
+           and (concept_name ilike '%Carcinomatosis%'
+             or concept_name ilike '%Disseminated%')
 
-SELECT
+    UNION ALL
+
+    SELECT
+           0                        as rating_in_section,
      concept_id as concept_concept_id_1,
     concept_code as concept_code_1,
     concept_name as concept_concept_name_1,
     vocabulary_id as concept_vocabulary_id_1,
     null as invalid_reason,
     'Maps to' as relationship_id,
-    concept_id_1 as concept_id_2,
-    concept_concept_code_1 as concept_concept_code_2,
-    concept_concept_name_1 as concept_concept_name_2,
-    concept_vocabulary_id_1  as concept_vocabulary_id_2
+    36768082 as concept_id_2,
+    'OMOP4997757' as concept_concept_code_2,
+    'Metastasis to the Kidney' as concept_concept_name_2,
+    'Cancer Modifier'  as concept_vocabulary_id_2
 FROM obviuos_snomed_mts osm
 LEFT JOIN crs crs
 ON osm.site_id=crs.concept_concept_id_2
 where crs.concept_id_1 is  null
 and (concept_name not ilike '%Carcinomatosis%'
 and concept_name not ilike '%Disseminated%')
+and concept_name ILIKE '%kidney%'
+
+UNION ALL
+
+SELECT
+       0                        as rating_in_section,
+     concept_id as concept_concept_id_1,
+    concept_code as concept_code_1,
+    concept_name as concept_concept_name_1,
+    vocabulary_id as concept_vocabulary_id_1,
+    null as invalid_reason,
+    'Maps to' as relationship_id,
+    36770283 as concept_id_2,
+    'OMOP4999962' as concept_concept_code_2,
+    'Metastasis to the Lung' as concept_concept_name_2,
+    'Cancer Modifier'  as concept_vocabulary_id_2
+FROM obviuos_snomed_mts osm
+LEFT JOIN crs crs
+ON osm.site_id=crs.concept_concept_id_2
+where crs.concept_id_1 is  null
+and (concept_name not ilike '%Carcinomatosis%'
+and concept_name not ilike '%Disseminated%')
+and concept_name ILIKE '%lung%'
+
+UNION ALL
+
+SELECT
+       0                        as rating_in_section,
+     concept_id as concept_concept_id_1,
+    concept_code as concept_code_1,
+    concept_name as concept_concept_name_1,
+    vocabulary_id as concept_vocabulary_id_1,
+    null as invalid_reason,
+    'Maps to' as relationship_id,
+    36768630 as concept_id_2,
+    'OMOP4998307' as concept_concept_code_2,
+    'Metastasis to the Spleen' as concept_concept_name_2,
+    'Cancer Modifier'  as concept_vocabulary_id_2
+FROM obviuos_snomed_mts osm
+LEFT JOIN crs crs
+ON osm.site_id=crs.concept_concept_id_2
+where crs.concept_id_1 is  null
+and (concept_name not ilike '%Carcinomatosis%'
+and concept_name not ilike '%Disseminated%')
+and concept_name ILIKE '%spleen%'
+
+UNION ALL
+
+SELECT
+       0                        as rating_in_section,
+     concept_id as concept_concept_id_1,
+    concept_code as concept_code_1,
+    concept_name as concept_concept_name_1,
+    vocabulary_id as concept_vocabulary_id_1,
+    null as invalid_reason,
+    'Maps to' as relationship_id,
+    35225594 as concept_id_2,
+    'OMOP5032003' as concept_concept_code_2,
+    'Metastasis to the Vertebral Column' as concept_concept_name_2,
+    'Cancer Modifier'  as concept_vocabulary_id_2
+FROM obviuos_snomed_mts osm
+LEFT JOIN crs crs
+ON osm.site_id=crs.concept_concept_id_2
+where crs.concept_id_1 is  null
+and (concept_name not ilike '%Carcinomatosis%'
+and concept_name not ilike '%Disseminated%')
+and concept_name ILIKE '%vertebral%'
+
+UNION ALL
+
+SELECT
+       0                        as rating_in_section,
+     concept_id as concept_concept_id_1,
+    concept_code as concept_code_1,
+    concept_name as concept_concept_name_1,
+    vocabulary_id as concept_vocabulary_id_1,
+    null as invalid_reason,
+    'Maps to' as relationship_id,
+    36769301 as concept_id_2,
+    'OMOP4998978' as concept_concept_code_2,
+    'Metastasis to the Bone' as concept_concept_name_2,
+    'Cancer Modifier'  as concept_vocabulary_id_2
+FROM obviuos_snomed_mts osm
+LEFT JOIN crs crs
+ON osm.site_id=crs.concept_concept_id_2
+where crs.concept_id_1 is  null
+and (concept_name not ilike '%Carcinomatosis%'
+and concept_name not ilike '%Disseminated%')
+and concept_name ILIKE '%bone%'
+
+UNION ALL
+
+SELECT
+       0                        as rating_in_section,
+     concept_id as concept_concept_id_1,
+    concept_code as concept_code_1,
+    concept_name as concept_concept_name_1,
+    vocabulary_id as concept_vocabulary_id_1,
+    null as invalid_reason,
+    'Maps to' as relationship_id,
+    36769301 as concept_id_2,
+    'OMOP4998978' as concept_concept_code_2,
+    'Metastasis to the Bone' as concept_concept_name_2,
+    'Cancer Modifier'  as concept_vocabulary_id_2
+FROM obviuos_snomed_mts osm
+LEFT JOIN crs crs
+ON osm.site_id=crs.concept_concept_id_2
+where crs.concept_id_1 is  null
+and (concept_name not ilike '%Carcinomatosis%'
+and concept_name not ilike '%Disseminated%')
+and concept_name ILIKE '%bone%'
+
+UNION ALL
+
+SELECT
+       0                        as rating_in_section,
+     concept_id as concept_concept_id_1,
+    concept_code as concept_code_1,
+    concept_name as concept_concept_name_1,
+    vocabulary_id as concept_vocabulary_id_1,
+    null as invalid_reason,
+    'Maps to' as relationship_id,
+    36770040 as concept_id_2,
+    'OMOP4999718' as concept_concept_code_2,
+    'Metastasis to the Gastrointestinal Tract' as concept_concept_name_2,
+    'Cancer Modifier'  as concept_vocabulary_id_2
+FROM obviuos_snomed_mts osm
+LEFT JOIN crs crs
+ON osm.site_id=crs.concept_concept_id_2
+where crs.concept_id_1 is  null
+and (concept_name not ilike '%Carcinomatosis%'
+and concept_name not ilike '%Disseminated%')
+and concept_name ILIKE '%gastrointestinal%'
+     ) as table_insert
 ;
 
-SELECT *
-FROM concept_stage
+
+
+
 

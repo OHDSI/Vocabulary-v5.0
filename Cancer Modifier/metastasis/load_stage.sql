@@ -208,6 +208,7 @@ and cr2.invalid_reason is null
 ;
 
 --TODO fix the UNCOVERED MTS with SNOMED Anatomic site resuscitation
+-- Replace Metastasis to the with Secondary malignant neoplasm of  to get SNOMEDs->Topographied
 SELECT *
 FROM concept
 WHERE  vocabulary_id='Cancer Modifier'

@@ -34,6 +34,9 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
+SELECT *
+FROM concept_stage;
+
 --3.1 CS Insert of Full Name Equivalence between SNOMED and CM Metastasis
 INSERT INTO concept_stage (concept_id,
                            concept_name,
@@ -61,10 +64,12 @@ JOIN concept_relationship cr
 ON concept_id=cr.concept_id_1
 AND  vocabulary_id='Cancer Modifier'
 and  concept_class_id = 'Metastasis'
+and c.standard_concept='S'
 JOIN  concept cc
 on cr.concept_id_2=cc.concept_id
 and cc.vocabulary_id='SNOMED'
 WHERE lower(regexp_replace(cc.concept_name,'Secondary malignant neoplasm of','Metastasis to the','g'))=lower(c.concept_name)
+
 ;
 
 --3.2 CS Insert of non-Full Name Equivalence between SNOMED and CM Metastasis
@@ -94,6 +99,7 @@ JOIN concept_relationship cr
 ON concept_id=cr.concept_id_1
 AND  vocabulary_id='Cancer Modifier'
 and  concept_class_id = 'Metastasis'
+and c.standard_concept='S'
 JOIN  concept cc
 on cr.concept_id_2=cc.concept_id
 and cc.vocabulary_id='SNOMED'
@@ -128,9 +134,10 @@ SELECT distinct
 FROM concept c
 WHERE  vocabulary_id='Cancer Modifier'
 and  concept_class_id = 'Metastasis'
-/* AND c.concept_id  NOT IN (
+  and  standard_concept = 'S'
+ AND c.concept_id  NOT IN (
     SELECT concept_id from concept_stage
-    )*/
+    )
   --LIST OF CODES TO BE DEPRECATED AS DUPLICATES and REMAPPED
 AND c.concept_id NOT IN (
                                           35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
@@ -141,7 +148,9 @@ AND c.concept_id NOT IN (
                                           36769415,	--Pleural Effusion Maps to 254061	60046008	Pleural effusion
                                           36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
                                           36768818,--	Ascites Maps to 200528	389026000	Ascites
-                                           36770091-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+                                           36770091,-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+                                          35226309--Metastasis to the Unknown Site
+
 
     )
 ;
@@ -205,16 +214,88 @@ JOIN concept c2
 on c2.concept_id=cr2.concept_id_2
 and c2.concept_class_id= 'Body Structure'
 and cr2.invalid_reason is null
+AND    (                            cs.concept_code,
+                                        cs.vocabulary_id ,
+                                         c2.concept_code ,
+                                         c2.vocabulary_id,
+                                         'Has finding site' ) NOT IN
+       (SELECT concept_code_1,vocabulary_id_1,concept_code_2, vocabulary_id_2,concept_relationship_stage.relationship_id from concept_relationship_stage
+
+        )
+
 ;
 
---TODO fix the UNCOVERED MTS with SNOMED Anatomic site resuscitation
--- Replace Metastasis to the with Secondary malignant neoplasm of  to get SNOMEDs->Topographied
-SELECT *
-FROM concept
-WHERE  vocabulary_id='Cancer Modifier'
-and  concept_class_id = 'Metastasis'
-AND  (concept_id,'Has finding site')  NOT IN (SELECT concept_id_1,relationship_id FROM concept_relationship_stage )
-and concept_id NOT IN (
+
+
+CREATE OR REPLACE FUNCTION array_sort_unique (ANYARRAY) RETURNS ANYARRAY
+LANGUAGE SQL
+AS $body$
+  SELECT ARRAY(
+    SELECT DISTINCT $1[s.i]
+    FROM generate_series(array_lower($1,1), array_upper($1,1)) AS s(i)
+    ORDER BY 1
+  );
+$body$;
+
+--Manual Topography resuscitation
+with snomed_bs as (
+    SELECT
+           array_sort_unique(string_to_array( lower(tab.concept_name)||' structure of'|| ' part of',' ')) as array_name_snomed,
+           concept_id,
+           concept_name,
+           domain_id,
+           vocabulary_id,
+           concept_class_id,
+           standard_concept,
+           concept_code,
+           valid_start_date,
+           valid_end_date,
+           invalid_reason
+    FROM (SELECT  concept_id,
+           concept_name,
+           domain_id,
+           vocabulary_id,
+           concept_class_id,
+           standard_concept,
+           concept_code,
+           valid_start_date,
+           valid_end_date,
+           invalid_reason
+    FROM concept c
+    where c.vocabulary_id='SNOMED'
+    and c.concept_class_id='Body Structure'
+        UNION ALL
+        SELECT  cc.concept_id,
+           concept_synonym_name,
+           domain_id,
+           vocabulary_id,
+           concept_class_id,
+           standard_concept,
+           concept_code,
+           valid_start_date,
+           valid_end_date,
+           invalid_reason
+    FROM concept_synonym cs
+    JOIN concept cc
+    on cs.concept_id=cc.concept_id
+    where cc.vocabulary_id='SNOMED'
+    and cc.concept_class_id='Body Structure'
+) as tab)
+,
+     cs as (select
+                   array_sort_unique (string_to_array(lower(regexp_replace(cs.concept_name,'Metastasis to the |Metastasis to the other |Metastasis to the Other Parts |Metastasis to Same |Metastasis to a Different Ipsilateral Lobe of the |Metastasis to the Connective Tissue And Other |Metastasis to Same Lobe of the |Metastasis to a Different Ipsilateral |Metastasis to the Ipsilateral |Metastasis to the Connective Tissue And Other ','','gi')||' structure of' || ' part of'),' ')) as array_name_cs,
+                   concept_id,
+                   concept_name,
+                   domain_id,
+                   vocabulary_id,
+                   concept_class_id,
+                   standard_concept,
+                   concept_code,
+                   valid_start_date,
+                   valid_end_date,
+                   invalid_reason
+            from concept_stage cs where  (cs.concept_id,'Has finding site')  NOT IN (SELECT concept_id_1,relationship_id FROM concept_relationship_stage )
+and cs.concept_id NOT IN (
                                           35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
                                           36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
@@ -222,31 +303,383 @@ and concept_id NOT IN (
                                           36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
                                           36769415,	--Pleural Effusion Maps to 254061	60046008	Pleural effusion
                                           36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
-                                          36768818 --	Ascites Maps to 200528	389026000	Ascites
-                                          ,
-                                         36770091-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+                                          36768818, --	Ascites Maps to 200528	389026000	Ascites
+                                          36770091,-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+                                          35226309--Metastasis to the Unknown Site
+
 
     )
-and standard_concept ='S'
+and cs.standard_concept ='S')
+,
+     auto_bodysites as (
+         SELECT distinct cs.concept_id
+                       , cs.concept_name
+                       , cs.domain_id
+                       , cs.vocabulary_id
+                       , cs.concept_class_id
+                       , cs.standard_concept
+                       , cs.concept_code
+                       , cs.valid_start_date
+                       , cs.valid_end_date
+                       , cs.invalid_reason
+                       , c3.concept_id                                                                        as bs_id
+                       , c3.concept_name                                                                      as bs_name
+                       , c3.vocabulary_id                                                                     as bs_vocabulary
+                       , c3.standard_concept                                                                  as bs_standard
+                       , c3.concept_code                                                                      as bs_code
+                       , row_number()
+                         OVER (PARTITION BY cs.concept_id ORDER BY length(c3.concept_name) DESC)              AS rating_in_section
+         FROM cs
+                  left join snomed_bs bs
+                            on array_name_cs = array_name_snomed
+                  left JOIN concept_relationship cr
+                            ON bs.concept_id = cr.concept_id_1
+                                and cr.relationship_id = 'Maps to'
+                  LEFT JOIN concept c3
+                            on c3.concept_id = cr.concept_id_2
+         where c3.concept_id is not null
+     )
+,
+     bodystructeradded1 as (
+         SELECT concept_id,
+                concept_name,
+                domain_id,
+                vocabulary_id,
+                concept_class_id,
+                standard_concept,
+                concept_code,
+                valid_start_date,
+                valid_end_date,
+                invalid_reason,
+                bs_id,
+                bs_name,
+                bs_vocabulary,
+                bs_standard,
+                bs_code
+         FROM auto_bodysites
+         where CASE WHEN concept_id = 35225613 then rating_in_section = 3 else rating_in_section = 1 end
+
+         UNION ALL
+
+         SELECT distinct cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         cc2.concept_id,
+                         cc2.concept_name,
+                         cc2.vocabulary_id,
+                         cc2.standard_concept,
+                         cc2.concept_code
+         FROM cs cs
+                  LEFT JOIN concept c
+                            ON lower(c.concept_name) = lower(regexp_replace(cs.concept_name, 'Metastasis to the ',
+                                                                            'Secondary malignant neoplasm of ', 'gi'))
+                                and c.vocabulary_id <> 'Cancer Modifier'
+                                and c.domain_id = 'Condition'
+                                and c.vocabulary_id IN ('ICD10', 'Nebraska Lexicon', 'SNOMED'
+                                    )
+                  JOIN concept_relationship r
+                       on c.concept_id = r.concept_id_1
+                           AND r.invalid_reason is null
+                           and relationship_id = 'Maps to'
+                  JOIN concept cc
+                       on cc.concept_id = r.concept_id_2
+                           and cc.standard_concept = 'S'
+                  JOIN concept_relationship r2
+                       on cc.concept_id = r2.concept_id_1
+                           AND r2.invalid_reason is null
+                  JOIN concept cc2
+                       on cc2.concept_id = r2.concept_id_2
+                           and cc2.standard_concept = 'S'
+                           and cc2.concept_class_id = 'Body Structure'
+         WHERE cs.concept_id
+             NOT IN (SELECT concept_id from auto_bodysites where rating_in_section = 1)
+           and cc.vocabulary_id <> 'Cancer Modifier'
+     )
+
+INSERT INTO concept_relationship_stage (
+                                        concept_id_1,
+                                        concept_code_1,
+                                        vocabulary_id_1,
+                                        concept_id_2,
+                                        concept_code_2 ,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason
+
+)
+
+SELECT distinct concept_id,
+                       concept_code,
+                       vocabulary_id,
+      -- concept_name,
+      -- domain_id,
+     --  concept_class_id,
+      -- standard_concept,
+  --     valid_start_date,
+      -- valid_end_date,
+      -- invalid_reason,
+       bs_id,
+      bs_code,
+    --   bs_name,
+       bs_vocabulary,
+ --      bs_standard,
+                     'Has finding site' as relationship_id,
+                CURRENT_DATE,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                null as invalid_reason
+FROM (
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id=4004823	--	Structure of abdomen, peritoneum and retroperitoneum (combined site)
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Retroperitoneum Or Peritoneum%'
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id=37017947	-- 714324006	Entire organ in respiratory system
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Respiratory Organs%'
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id=4033554	--	Structure of large intestine
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Large Intestine%'
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id = 4191382	--	Brain and spinal cord structure
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Brain Or Spinal Cord%'
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id = 4172281	--	Digestive organ structure
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Other Digestive Organs%'
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id = 4004004	--	Kidney and renal pelvis, CS
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Kidney And Renal%'
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id = 4150673	--	Pleural structure
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Pleural%' -- 4150673	--	Pleural structure
+
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id = 4009105	--	Liver structure
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Liver%' -- 4009105	--	Liver structure
+
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id =4099608	--	Omentum structure
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike'%Omentum%'
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id =4216845	--	Genital structure
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Genital%' -- 4009105	--	Liver structure
+UNION ALL
+SELECT cs.concept_id,
+                         cs.concept_name,
+                         cs.domain_id,
+                         cs.vocabulary_id,
+                         cs.concept_class_id,
+                         cs.standard_concept,
+                         cs.concept_code,
+                         cs.valid_start_date,
+                         cs.valid_end_date,
+                         cs.invalid_reason,
+                         c.concept_id as bs_id,
+                         c.concept_name as  bs_name,
+                         c.vocabulary_id as bs_vocabulary,
+                         c.standard_concept as bs_standard,
+                         c.concept_code as bs_code
+FROM cs cs
+JOIN concept c ON c.concept_id =4146765	--	Structure of small intestine
+where cs.concept_id not in (select concept_id from bodystructeradded1 )
+and cs.concept_name ilike '%Small Intestiin%'
+UNION ALL
+select concept_id,
+       concept_name,
+       domain_id,
+       vocabulary_id,
+       concept_class_id,
+       standard_concept,
+       concept_code,
+       valid_start_date,
+       valid_end_date,
+       invalid_reason,
+       bs_id,
+       bs_name,
+       bs_vocabulary,
+       bs_standard,
+       bs_code
+from bodystructeradded1) as result -- table with checked links to Body Structures
+WHERE (concept_code, 'Has finding site',bs_code) NOT IN (SELECT concept_code_1,relationship_id,concept_code_2 from concept_relationship_stage)
 ;
 
-SELECT concept_id_1,
-       concept_id_2,
-       concept_code_1,
-       concept_code_2,
-       vocabulary_id_1,
-       vocabulary_id_2,
-       relationship_id,
-      c.concept_name as site_name,
-       cc.concept_name as mts_name,
-       devv5.similarity(c.concept_name,cc.concept_name),
-       row_number() OVER (PARTITION BY concept_id_1 ORDER BY devv5.similarity(c.concept_name,cc.concept_name) desc )  AS rating_in_section
-FROM concept_relationship_stage crs
-JOIN concept c
-on crs.concept_id_2=c.concept_id
-JOIN concept cc
-on crs.concept_id_1=cc.concept_id
-WHERE (concept_id_1,'Has finding site')  IN (SELECT concept_id_1,relationship_id FROM concept_relationship_stage group by 1,2 having count( distinct concept_code_2 )>1)
+
+
 
 --Maps to inside the Metastasis Class of CM vocabulary
 INSERT INTO concept_relationship_stage (
@@ -284,7 +717,9 @@ ON c2.concept_id=
                 WHEN c.concept_id =   36769789  then      254061
                 WHEN c.concept_id =   36769415  then      254061
               WHEN c.concept_id =   36768514  then      200528
-            WHEN   c.concept_id =   36768818 then  200528 end
+            WHEN   c.concept_id =   36768818 then  200528
+        WHEN   c.concept_id =  35226309 then      36769180
+          end
 WHERE c.concept_id  IN (
                                           35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
                                           36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
@@ -293,9 +728,11 @@ WHERE c.concept_id  IN (
                                           36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
                                           36769415,	--Pleural Effusion Maps to 254061	60046008	Pleural effusion
                                           36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
-                                          36768818 --	Ascites Maps to 200528	389026000	Ascites
+                                          36768818, --	Ascites Maps to 200528	389026000	Ascites
                                           --,
                                           -- 36770091-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+                                          35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
+
 
     )
 ;
@@ -662,30 +1099,32 @@ and concept_name ILIKE '%gastrointestinal%'
 ;
 
 
---ICDO3 /6 codes mappings
-
+--ICDO3 /6 codes mappings to Cancer Modifier
+--1st step
 WITH geterd_mts_codes as (
-    SELECT distinct concept_name,
-                         concept_code,
-                    split_part(concept_code,'-',2) as tumor_site_code,
-                         vocabulary_id,
-                         'ICDO3' as source_flag
-         FROM concept c
+     --aggregate the source
+    SELECT DISTINCT concept_name, concept_code, tumor_site_code, vocabulary_id, source_flag
+    FROM (SELECT distinct concept_name,
+                          concept_code,
+                          split_part(concept_code,'-',2) as tumor_site_code,
+                          vocabulary_id,
+                          'ICDO3' as source_flag
+          FROM concept c
          WHERE c.vocabulary_id = 'ICDO3'
            and c.concept_class_id = 'ICDO Condition'
            and c.concept_code ILIKE '%/6%'
 
-         UNION ALL
+          UNION ALL
 
-         select d.concept_name || ' of ' || c.concept_name,
+          select d.concept_name || ' of ' || c.concept_name,
                 morphology_code || '-' || tumor_site_code,
                 tumor_site_code,
                 'ICDO3',
                 'TrinetX'
-         from dev_icdo3.trinetx t
+          from dev_icdo3.trinetx t
                   join concept c on c.concept_code = tumor_site_code and c.vocabulary_id = 'ICDO3'
                   join concept d on d.concept_code = morphology_code and d.vocabulary_id = 'ICDO3'
-    where morphology_code ILIKE '%/6%'
+          where morphology_code ILIKE '%/6%') as tab
 )
 , icd_to_localisation as (
     SELECT distinct
@@ -709,13 +1148,13 @@ WITH geterd_mts_codes as (
              LEFT JOIN concept cc
                        on cr.concept_id_2 = cc.concept_id
                            and cr.invalid_reason is null
-                           and cc.concept_class_id = 'Body Structure'
+                           and cc.standard_concept = 'S'
 
     WHERE s.concept_code IN (
         SELECT concept_code
         FROM geterd_mts_codes
         group by 1
-        having count(distinct source_flag) = 1
+        having count(distinct source_flag) =1
     )
 ),
 res as (
@@ -731,6 +1170,177 @@ and crs.vocabulary_id_2='SNOMED'
 LEFT JOIN concept  ct
 ON ct.concept_id = crs.concept_id_1
 and crs.vocabulary_id_1=ct.vocabulary_id)
+,
+     resulted_mapping_of_slash6 as (
+         SELECT *
+         FROM RES
+         where concept_code IN (SELECT concept_code from res group by 1 having count(distinct cm_id) > 1)
+           and cm_name not ilike '% and %'
+           and cm_name not ilike '% other %'
+           and cm_name not ilike '% same %'
+           and cm_name not ilike '% Ipsilateral %'
+           and cm_name not ilike '%Pleural Effusion%'
+           and cm_name not ilike '%Blood Vessel%'
+           and cm_name not ilike '% leg%'
+           and cm_name not ilike '% arm%'
+           and cm_name <> 'Metastasis to the Liver'
 
-SELECT * FROM RES where concept_code IN (SELECT concept_code from res group by 1 having count (distinct cm_id)=1)
+         UNION ALL
+
+         SELECT *
+         FROM RES
+         where concept_code IN (SELECT concept_code from res group by 1 having count(distinct cm_id) = 1)
+     )
+--ICDO3 maps to
+INSERT INTO concept_relationship_stage (
+                                        concept_id_1,
+                                        concept_code_1,
+                                        vocabulary_id_1,
+                                        concept_id_2,
+                                        concept_code_2 ,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason
+
+)
+
+SELECT
+c.concept_id,
+       s.concept_code,
+       s.vocabulary_id,
+       cm_id,
+            cm_code,
+       cm_voc,
+          'Maps to' as relationship_id,
+                CURRENT_DATE,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                null as invalid_reason
+FROM resulted_mapping_of_slash6 s
+LEFT JOIN concept  c
+on c.concept_code=s.concept_code
+and c.vocabulary_id=s.vocabulary_id
+
+UNION ALL
+
+SELECT cc.concept_id,
+      g.concept_code,g.vocabulary_id,
+       cs.concept_id  as cm_id,
+              cs.concept_code,
+       cs.vocabulary_id,
+          'Maps to' as relationship_id,
+                CURRENT_DATE,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                null as invalid_reason
+FROM geterd_mts_codes g
+JOIN concept c
+ON split_part(g.tumor_site_code,'.',1) =c.concept_code
+and c.concept_class_id ='ICDO Topography'
+JOIN concept_stage cs
+ON lower('metastasis to the ' || regexp_replace(c.concept_name,'\, NOS','','gi'))=lower(cs.concept_name)
+LEFT JOIN concept  cc
+on cc.concept_code=g.concept_code
+and c.vocabulary_id=g.vocabulary_id
+WHERE g.concept_code NOT IN (
+    select concept_code from resulted_mapping_of_slash6
+    )
+and tumor_site_code <>'NULL'
+
+;
+
+--Step2
+WITH geterd_mts_codes as (
+     --agragate the scource
+    SELECT DISTINCT concept_name, concept_code, tumor_site_code, vocabulary_id, source_flag
+    FROM (SELECT distinct concept_name,
+                          concept_code,
+                          split_part(concept_code,'-',2) as tumor_site_code,
+                          vocabulary_id,
+                          'ICDO3' as source_flag
+          FROM concept c
+         WHERE c.vocabulary_id = 'ICDO3'
+           and c.concept_class_id = 'ICDO Condition'
+           and c.concept_code ILIKE '%/6%'
+
+          UNION ALL
+
+          select d.concept_name || ' of ' || c.concept_name,
+                morphology_code || '-' || tumor_site_code,
+                tumor_site_code,
+                'ICDO3',
+                'TrinetX'
+          from dev_icdo3.trinetx t
+                  join concept c on c.concept_code = tumor_site_code and c.vocabulary_id = 'ICDO3'
+                  join concept d on d.concept_code = morphology_code and d.vocabulary_id = 'ICDO3'
+          where morphology_code ILIKE '%/6%') as tab
+)
+--ICDO3 maps to
+INSERT INTO concept_relationship_stage (
+                                        concept_id_1,
+                                        concept_code_1,
+                                        vocabulary_id_1,
+                                        concept_id_2,
+                                        concept_code_2 ,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason
+
+)
+
+SELECT cc.concept_id,
+
+      s.concept_code,s.vocabulary_id,
+       cs.concept_id_2  as cm_id,
+              cs.concept_code_2,
+       cs.vocabulary_id_2,
+          'Maps to' as relationship_id,
+                CURRENT_DATE,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                null as invalid_reason
+FROM geterd_mts_codes s
+JOIN concept_relationship_stage cs
+on '8000/6-'||split_part(s.tumor_site_code,'.',1)||'.9' = cs.concept_code_1
+and cs.vocabulary_id_1='ICDO3'
+LEFT JOIN concept cc
+on cc.concept_code=s.concept_code
+and cc.vocabulary_id=s.vocabulary_id
+WHERE s.concept_code NOT IN (
+SELECT concept_code_1
+FROM concept_relationship_stage)
+and tumor_site_code<>'NULL'
+;
+WITH geterd_mts_codes as (
+     --agragate the scource
+    SELECT DISTINCT concept_name, concept_code, tumor_site_code, vocabulary_id, source_flag
+    FROM (SELECT distinct concept_name,
+                          concept_code,
+                          split_part(concept_code,'-',2) as tumor_site_code,
+                          vocabulary_id,
+                          'ICDO3' as source_flag
+          FROM concept c
+         WHERE c.vocabulary_id = 'ICDO3'
+           and c.concept_class_id = 'ICDO Condition'
+           and c.concept_code ILIKE '%/6%'
+
+          UNION ALL
+
+          select d.concept_name || ' of ' || c.concept_name,
+                morphology_code || '-' || tumor_site_code,
+                tumor_site_code,
+                'ICDO3',
+                'TrinetX'
+          from dev_icdo3.trinetx t
+                  join concept c on c.concept_code = tumor_site_code and c.vocabulary_id = 'ICDO3'
+                  join concept d on d.concept_code = morphology_code and d.vocabulary_id = 'ICDO3'
+          where morphology_code ILIKE '%/6%') as tab
+)
+SELECT *
+FROM geterd_mts_codes s
+WHERE s.concept_code NOT IN (
+SELECT concept_code_1
+FROM concept_relationship_stage)
+;
 

@@ -245,6 +245,12 @@ AND s.drug_code NOT IN (SELECT drug_code FROM sources.dpd_active_ingredients_all
 AND s.drug_code NOT IN (SELECT drug_code FROM temp_duplicates_removal WHERE rank > 1)
 ORDER BY drug_code;
 
+--Accidental caught into devices
+DELETE FROM non_drug
+WHERE dev_dpd.non_drug.product_categorization = 'LS - VITAMIN SUPPLEMENTS'
+AND non_drug.brand_name ~* 'VITAMIN B|VITAMIN C|NIACIN|BIOTIN'
+AND non_drug.brand_name !~* 'NATURAL';
+
 --Update non-drug (device) invalid_reason and assign valid_start_date and valid_end_date
 --valid_start_date = when drug became marketed or approved for the first time (if never approved - first date mentioned)
 --valid_end_date = when drug was mentioned dormant or cancelled for the last time
@@ -694,82 +700,25 @@ SET new_name = trim(regexp_replace(regexp_replace(new_name, 'PWS$| INJ$| SOLN$|S
 
 DO
 $$
+DECLARE
+    brand varchar;
 BEGIN
-UPDATE brand_name SET new_name = 'BENZAGEL'
-WHERE new_name LIKE '%BENZAGEL%';
-UPDATE brand_name SET new_name = 'TYLENOL'
-WHERE new_name LIKE '%TYLENOL%';
-UPDATE brand_name SET new_name = 'NEUTROGENA'
-WHERE new_name LIKE '%NEUTROGENA%';
-UPDATE brand_name SET new_name = 'TRAVASOL'
-WHERE new_name LIKE '%TRAVASOL%';
-UPDATE brand_name SET new_name = 'ADALAT'
-WHERE new_name LIKE '%ADALAT%';
-UPDATE brand_name SET new_name = 'NITRO-DUR'
-WHERE new_name LIKE '%NITRO-DUR%';
-UPDATE brand_name SET new_name = 'MYLAN-NITRO PATCH'
-WHERE new_name LIKE '%MYLAN-NITRO PATCH%';
-UPDATE brand_name SET new_name = 'TRANSDERM-NITRO'
-WHERE new_name LIKE '%TRANSDERM-NITRO%';
-UPDATE brand_name SET new_name = 'AMINOSYN'
-WHERE new_name LIKE '%AMINOSYN%';
-UPDATE brand_name SET new_name = 'BALMINIL'
-WHERE new_name LIKE '%BALMINIL%';
-UPDATE brand_name SET new_name = 'BEMINAL'
-WHERE new_name LIKE '%BEMINAL%';
-UPDATE brand_name SET new_name = 'BENYLIN'
-WHERE new_name LIKE '%BENYLIN%';
-UPDATE brand_name SET new_name = 'MAALOX'
-WHERE new_name LIKE '%MAALOX%';
-UPDATE brand_name SET new_name = 'ROBITUSSIN'
-WHERE new_name LIKE '%ROBITUSSIN%';
-UPDATE brand_name SET new_name = 'SUDAFED'
-WHERE new_name LIKE '%SUDAFED%';
-UPDATE brand_name SET new_name = 'KOFFEX DM'
-WHERE new_name LIKE '%KOFFEX DM%';
-UPDATE brand_name SET new_name = 'T/GEL'
-WHERE new_name LIKE '%T/GEL%';
-UPDATE brand_name SET new_name = 'PRO-LECARB'
-WHERE new_name LIKE '%PRO-LECARB%';
-UPDATE brand_name SET new_name = 'ADENOCARD'
-WHERE new_name LIKE '%ADENOCARD%';
-UPDATE brand_name SET new_name = 'ADVIL'
-WHERE new_name LIKE '%ADVIL%';
-UPDATE brand_name SET new_name = 'FLOVENT'
-WHERE new_name LIKE '%FLOVENT%';
-UPDATE brand_name SET new_name = 'MARCAINE'
-WHERE new_name LIKE '%MARCAINE%';
-UPDATE brand_name SET new_name = 'PEPTO-BISMOL'
-WHERE new_name LIKE '%PEPTO-BISMOL%';
-UPDATE brand_name SET new_name = 'MAXIPIME'
-WHERE new_name LIKE '%MAXIPIME%';
-UPDATE brand_name SET new_name = 'LAPIDAR'
-WHERE new_name LIKE '%LAPIDAR%';
-UPDATE brand_name SET new_name = 'E-PILO'
-WHERE new_name LIKE '%E-PILO%';
-UPDATE brand_name SET new_name = 'ARISTOCORT'
-WHERE new_name LIKE '%ARISTOCORT%';
-UPDATE brand_name SET new_name = 'GEL-KAM FLUOROCARE'
-WHERE new_name LIKE '%GEL-KAM FLUOROCARE%';
-UPDATE brand_name SET new_name = 'SELSUN'
-WHERE new_name LIKE '%SELSUN%';
-UPDATE brand_name SET new_name = 'IMOVAX'
-WHERE new_name LIKE '%IMOVAX%';
-UPDATE brand_name SET new_name = 'PARIET'
-WHERE new_name LIKE '%PARIET%';
-UPDATE brand_name SET new_name = 'BUCKLEY''S COMPLETE'
-WHERE new_name LIKE '%BUCKLEY''S COMPLETE%';
-UPDATE brand_name SET new_name = 'VITRASERT'
-WHERE new_name LIKE '%VITRASERT%';
-UPDATE brand_name SET new_name = 'VENOMIL'
-WHERE new_name LIKE '%VENOMIL%';
-UPDATE brand_name SET new_name = 'DRISTAN'
-WHERE new_name LIKE '%DRISTAN%';
-UPDATE brand_name SET new_name = 'CORICIDIN'
-WHERE new_name LIKE '%CORICIDIN%';
-UPDATE brand_name SET new_name = 'EFFIDOSE'
-WHERE new_name LIKE '%EFFIDOSE%';
-UPDATE brand_name SET new_name = 'ACNOPUR'
-WHERE new_name LIKE '%ACNOPUR%';
+        CREATE TABLE temp_table (
+            brand_name varchar
+    );
+        INSERT INTO temp_table (brand_name)
+        VALUES ('BENZAGEL'), ('TYLENOL'), ('NEUTROGENA'), ('TRAVASOL'), ('ADALAT'), ('NITRO-DUR'), ('MYLAN-NITRO PATCH'), ('TRANSDERM-NITRO'), ('AMINOSYN'), ('BALMINIL'), ('BEMINAL'),
+            ('BENYLIN'), ('MAALOX'), ('ROBITUSSIN'), ('SUDAFED'), ('KOFFEX DM'), ('T/GEL'), ('PRO-LECARB'), ('ADENOCARD'), ('ADVIL'), ('FLOVENT'), ('MARCAINE'), ('PEPTO-BISMOL'),
+            ('MAXIPIME'), ('LAPIDAR'), ('E-PILO'), ('ARISTOCORT'), ('GEL-KAM FLUOROCARE'), ('SELSUN'), ('IMOVAX'), ('PARIET'), ('BUCKLEY''S COMPLETE'), ('VITRASERT'), ('VENOMIL'), ('DRISTAN'),
+            ('CORICIDIN'), ('EFFIDOSE'), ('ACNOPUR')
+               ;
+
+    FOR brand IN SELECT brand_name FROM temp_table
+    LOOP
+UPDATE brand_name
+    SET new_name = brand WHERE new_name LIKE ('%' || brand || '%');
+    END LOOP;
+
+    DROP TABLE temp_table;
 END
 $$;

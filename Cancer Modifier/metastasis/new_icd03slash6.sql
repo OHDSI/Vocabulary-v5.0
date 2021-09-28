@@ -38,14 +38,14 @@ WITH getherd_mts_codes as (
                     cc.vocabulary_id as snomed_voc,
                     cc.concept_code as snomed_code
     FROM getherd_mts_codes s
-             LEFT JOIN concept c
+             LEFT JOIN  dev_cancer_modifier.concept c
                        ON s.tumor_site_code = c.concept_code
                            and c.concept_class_id = 'ICDO Topography'
-             LEFT JOIN concept_relationship cr
+             LEFT JOIN  dev_cancer_modifier.concept_relationship cr
                        ON c.concept_id = cr.concept_id_1
                            and cr.invalid_reason is null
                            and cr.relationship_id = 'Maps to'
-             LEFT JOIN concept cc
+             LEFT JOIN  dev_cancer_modifier.concept cc
                        on cr.concept_id_2 = cc.concept_id
                            and cr.invalid_reason is null
                            and cc.standard_concept = 'S'
@@ -59,17 +59,17 @@ WITH getherd_mts_codes as (
 ),
 res as (
 SELECT distinct i.*,
-                concept_id as cm_id,
+                ct.concept_id as cm_id,
                 ct.concept_name as cm_name,
                 ct.vocabulary_id as  cm_voc,
                 ct.concept_code as  cm_code
 FROM icd_to_localisation i
-LEFT JOIN concept_relationship_stage crs
-ON i.snomed_code = crs.concept_code_2
-and crs.vocabulary_id_2='SNOMED'
+LEFT JOIN dev_cancer_modifier.concept_relationship crs
+ON i.somed_id = crs.concept_id_2
+    and crs.relationship_id ='Has finding site'
 LEFT JOIN concept  ct
 ON ct.concept_id = crs.concept_id_1
-and crs.vocabulary_id_1=ct.vocabulary_id)
+    and ct.vocabulary_id='Cancer Modifier')
 ,
      resulted_mapping_of_slash6 as (
          SELECT *
@@ -122,7 +122,7 @@ c.concept_id,
                 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
                 null as invalid_reason
 FROM resulted_mapping_of_slash6 s
-LEFT JOIN concept  c
+LEFT JOIN  dev_cancer_modifier.concept  c
 on c.concept_code=s.concept_code
 and c.vocabulary_id=s.vocabulary_id
 
@@ -138,12 +138,12 @@ SELECT cc.concept_id,
                 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
                 null as invalid_reason
 FROM getherd_mts_codes g
-JOIN concept c
+JOIN dev_cancer_modifier.concept c
 ON split_part(g.tumor_site_code,'.',1) =c.concept_code
 and c.concept_class_id ='ICDO Topography'
 JOIN concept_stage cs
 ON lower('metastasis to ' || regexp_replace(c.concept_name,'\, NOS','','gi'))=lower(cs.concept_name)
-LEFT JOIN concept  cc
+LEFT JOIN dev_cancer_modifier.concept  cc
 on cc.concept_code=g.concept_code
 and c.vocabulary_id=g.vocabulary_id
 WHERE g.concept_code NOT IN (
@@ -152,6 +152,7 @@ WHERE g.concept_code NOT IN (
 and tumor_site_code <>'NULL'
 
 ;
+
 
 --Step2
 WITH getherd_mts_codes as (

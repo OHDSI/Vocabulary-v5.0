@@ -67,9 +67,20 @@ and standard_concept='S'
 
 
 
---4.1 Update of validity of Non-cancerous concepts
+--4.1.1 Update of validity of Non-cancerous concepts
 UPDATE concept_stage
     SET invalid_reason ='D'
+    where concept_id IN (
+                         36769170, --Non-Malignant Ascites Maps to 200528	389026000	Ascites
+                         36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                         36769415, --Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                         36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
+                         36768818, --	Ascites Maps to 200528	389026000	Ascites
+                        36770091 -- OMOP4999769	Metastasis to the Contralateral Lobe
+        );
+--4.1.2 Update of valid_end_date  of Non-cancerous concepts
+UPDATE concept_stage
+    SET valid_end_date = CURRENT_DATE
     where concept_id IN (
                          36769170, --Non-Malignant Ascites Maps to 200528	389026000	Ascites
                          36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
@@ -91,7 +102,7 @@ UPDATE concept_stage
                         36770091 -- OMOP4999769	Metastasis to the Contralateral Lobe
         );
 
---4.3 Update of validity of Updated CM concepts
+--4.3.1 Update of validity of Updated CM concepts
 UPDATE concept_stage
     SET invalid_reason ='U'
     where concept_id IN (
@@ -101,6 +112,17 @@ UPDATE concept_stage
                                           -- 36770091-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
                                           35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
         );
+--4.3.2 Update of valid_end_date of Updated CM concepts
+UPDATE concept_stage
+  SET valid_end_date = CURRENT_DATE
+    where concept_id IN (
+      35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
+                                          36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
+                                          35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
+                                          -- 36770091-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+                                          35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
+        );
+
 
 --4.4 Update of Stadardness  of Updated CM concepts
 UPDATE concept_stage
@@ -863,8 +885,8 @@ concept_concept_id_1 as concept_id_1 ,
                                         concept_vocabulary_id_2,
                                         relationship_id,
                 CURRENT_DATE,
-                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-                null as invalid_reason
+                CURRENT_DATE,
+                'D' as invalid_reason
 FROM (
          SELECT rating_in_section,
                 concept_concept_id_1,

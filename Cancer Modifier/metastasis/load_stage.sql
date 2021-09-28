@@ -60,100 +60,61 @@ SELECT distinct
                 c.valid_end_date,
                 c.invalid_reason
 FROM concept c
-JOIN concept_relationship cr
-ON concept_id=cr.concept_id_1
-AND  vocabulary_id='Cancer Modifier'
+where vocabulary_id='Cancer Modifier'
 and  concept_class_id = 'Metastasis'
-and c.standard_concept='S'
-JOIN  concept cc
-on cr.concept_id_2=cc.concept_id
-and cc.vocabulary_id='SNOMED'
-WHERE lower(regexp_replace(cc.concept_name,'Secondary malignant neoplasm of','Metastasis to the','g'))=lower(c.concept_name)
-
 ;
 
---3.2 CS Insert of non-Full Name Equivalence between SNOMED and CM Metastasis
-INSERT INTO concept_stage (concept_id,
-                           concept_name,
-                           domain_id,
-                           vocabulary_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-SELECT distinct
-                c.concept_id,
-           CASE WHEN      c.concept_name ilike '%ofe' then regexp_replace(regexp_replace(regexp_replace(c.concept_name,'Secondary malignant neoplasm of','Metastasis to the','g'),'ofe','Nose','g'),' NOS$','','g') else regexp_replace(c.concept_name,'Secondary malignant neoplasm of','Metastasis to the','g') end as concept_name,
-                c.domain_id,
-                c.vocabulary_id,
-                c.concept_class_id,
-                c.standard_concept,
-                c.concept_code,
-                c.valid_start_date,
-                c.valid_end_date,
-                c.invalid_reason
-FROM concept c
-JOIN concept_relationship cr
-ON concept_id=cr.concept_id_1
-AND  vocabulary_id='Cancer Modifier'
-and  concept_class_id = 'Metastasis'
-and c.standard_concept='S'
-JOIN  concept cc
-on cr.concept_id_2=cc.concept_id
-and cc.vocabulary_id='SNOMED'
-WHERE lower(regexp_replace(cc.concept_name,'Secondary malignant neoplasm of','Metastasis to the','g'))<>lower(c.concept_name)
-AND c.concept_id  NOT IN (
-    SELECT concept_id from concept_stage
-    )
-;
 
---3.3 CS Insert of CM Metastasis Codes not existing in SNOMED
-INSERT INTO concept_stage (concept_id,
-                           concept_name,
-                           domain_id,
-                           vocabulary_id,
-                           concept_class_id,
-                           standard_concept,
-                           concept_code,
-                           valid_start_date,
-                           valid_end_date,
-                           invalid_reason)
-SELECT distinct
-                c.concept_id,
-                 CASE WHEN      c.concept_name ilike '%ofe' then regexp_replace(regexp_replace(c.concept_name,'Secondary malignant neoplasm of','Metastasis to the','g'),'ofe','Nose','g') else regexp_replace(c.concept_name,'Secondary malignant neoplasm of','Metastasis to the','g') end as concept_name,
-                c.domain_id,
-                c.vocabulary_id,
-                c.concept_class_id,
-                c.standard_concept,
-                c.concept_code,
-                c.valid_start_date,
-                c.valid_end_date,
-                c.invalid_reason
-FROM concept c
-WHERE  vocabulary_id='Cancer Modifier'
-and  concept_class_id = 'Metastasis'
-  and  standard_concept = 'S'
- AND c.concept_id  NOT IN (
-    SELECT concept_id from concept_stage
-    )
-  --LIST OF CODES TO BE DEPRECATED AS DUPLICATES and REMAPPED
-AND c.concept_id NOT IN (
-                                          35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
+
+--Update of validity of Non-cancerous concepts
+UPDATE concept_stage
+    SET invalid_reason ='D'
+    where concept_id IN (
+                         36769170, --Non-Malignant Ascites Maps to 200528	389026000	Ascites
+                         36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                         36769415, --Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                         36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
+                         36768818, --	Ascites Maps to 200528	389026000	Ascites
+                        36770091 -- OMOP4999769	Metastasis to the Contralateral Lobe
+        );
+
+--Update of Stadardness of Non-cancerous concepts
+UPDATE concept_stage
+    SET standard_concept  = null
+    where concept_id IN (
+                         36769170, --Non-Malignant Ascites Maps to 200528	389026000	Ascites
+                         36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                         36769415, --Pleural Effusion Maps to 254061	60046008	Pleural effusion
+                         36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
+                         36768818, --	Ascites Maps to 200528	389026000	Ascites
+                        36770091 -- OMOP4999769	Metastasis to the Contralateral Lobe
+        );
+
+--Update of validity of Updated CM concepts
+UPDATE concept_stage
+    SET invalid_reason ='U'
+    where concept_id IN (
+      35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
                                           36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
-                                          36769170,	--Non-Malignant Ascites Maps to 200528	389026000	Ascites
-                                          36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
-                                          36769415,	--Pleural Effusion Maps to 254061	60046008	Pleural effusion
-                                          36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
-                                          36768818,--	Ascites Maps to 200528	389026000	Ascites
-                                           36770091,-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
-                                          35226309--Metastasis to the Unknown Site
+                                          -- 36770091-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+                                          35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
+        );
 
+--Update of Stadardness  of Updated CM concepts
+UPDATE concept_stage
+    SET standard_concept  = null
+    where concept_id IN (
+                         35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
+                         36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
+                         35226153, --  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
+                         35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
+        );
 
-    )
-;
+--Update of names
+UPDATE concept_stage
+SET concept_name =     substr(upper(regexp_replace(concept_name,'Metastasis to the','Metastasis to','gi')),1,1)|| substr(lower(regexp_replace(concept_name,'Metastasis to the','Metastasis to','gi')),2)
+where standard_concept='S';
 
 --CRS insert of Anatomic Sites
 SELECT distinct
@@ -222,11 +183,12 @@ AND    (                            cs.concept_code,
        (SELECT concept_code_1,vocabulary_id_1,concept_code_2, vocabulary_id_2,concept_relationship_stage.relationship_id from concept_relationship_stage
 
         )
+AND c2.standard_concept='S'
 
 ;
 
 
-
+--FUNCTION USED TO order the elements of array
 CREATE OR REPLACE FUNCTION array_sort_unique (ANYARRAY) RETURNS ANYARRAY
 LANGUAGE SQL
 AS $body$
@@ -283,7 +245,7 @@ with snomed_bs as (
 ) as tab)
 ,
      cs as (select
-                   array_sort_unique (string_to_array(lower(regexp_replace(cs.concept_name,'Metastasis to the |Metastasis to the other |Metastasis to the Other Parts |Metastasis to Same |Metastasis to a Different Ipsilateral Lobe of the |Metastasis to the Connective Tissue And Other |Metastasis to Same Lobe of the |Metastasis to a Different Ipsilateral |Metastasis to the Ipsilateral |Metastasis to the Connective Tissue And Other ','','gi')||' structure of' || ' part of'),' ')) as array_name_cs,
+                   array_sort_unique (string_to_array(lower(regexp_replace(cs.concept_name,'Metastasis to |Metastasis to other |Metastasis to Other Parts |Metastasis to Same |Metastasis to a Different Ipsilateral Lobe of the |Metastasis to Connective Tissue And Other |Metastasis to Same Lobe of the |Metastasis to a Different Ipsilateral |Metastasis to Ipsilateral |Metastasis to Connective Tissue And Other ','','gi')||' structure of' || ' part of'),' ')) as array_name_cs,
                    concept_id,
                    concept_name,
                    domain_id,
@@ -378,7 +340,7 @@ and cs.standard_concept ='S')
                          cc2.concept_code
          FROM cs cs
                   LEFT JOIN concept c
-                            ON lower(c.concept_name) = lower(regexp_replace(cs.concept_name, 'Metastasis to the ',
+                            ON lower(c.concept_name) = lower(regexp_replace(cs.concept_name, 'Metastasis to ',
                                                                             'Secondary malignant neoplasm of ', 'gi'))
                                 and c.vocabulary_id <> 'Cancer Modifier'
                                 and c.domain_id = 'Condition'
@@ -657,7 +619,7 @@ SELECT cs.concept_id,
 FROM cs cs
 JOIN concept c ON c.concept_id =4146765	--	Structure of small intestine
 where cs.concept_id not in (select concept_id from bodystructeradded1 )
-and cs.concept_name ilike '%Small Intestiin%'
+and cs.concept_name ilike '%Small Intestin%'
 UNION ALL
 select concept_id,
        concept_name,
@@ -680,8 +642,8 @@ WHERE (concept_code, 'Has finding site',bs_code) NOT IN (SELECT concept_code_1,r
 
 
 
-
---Maps to inside the Metastasis Class of CM vocabulary
+--Update of some ambiguous CM codes
+--Maps to relationships inside the Metastasis Class of CM vocabulary
 INSERT INTO concept_relationship_stage (
                                         concept_id_1,
                                         concept_code_1,
@@ -712,25 +674,42 @@ ON c2.concept_id=
       CASE WHEN c.concept_id =   35225652  then      35225556
                      WHEN c.concept_id =   36768964  then      36769180
                       WHEN c.concept_id =   35226153  then      35226152
-                   WHEN c.concept_id =   36769170  then      200528
-               WHEN c.concept_id =   36769789  then      254061
-                WHEN c.concept_id =   36769789  then      254061
-                WHEN c.concept_id =   36769415  then      254061
-              WHEN c.concept_id =   36768514  then      200528
-            WHEN   c.concept_id =   36768818 then  200528
         WHEN   c.concept_id =  35226309 then      36769180
           end
 WHERE c.concept_id  IN (
                                           35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
                                           36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
-                                          36769170,	--Non-Malignant Ascites Maps to 200528	389026000	Ascites
-                                          36769789, --	Non-malignant Pleural Effusion Maps to 254061	60046008	Pleural effusion
-                                          36769415,	--Pleural Effusion Maps to 254061	60046008	Pleural effusion
-                                          36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
-                                          36768818, --	Ascites Maps to 200528	389026000	Ascites
-                                          --,
-                                          -- 36770091-- Metastasis to the Contralateral Lobe LOBE OF WHAT???
+                                          35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
+
+
+    )
+
+UNION ALL
+
+SELECT distinct
+                c.concept_id as concept_id_1,
+                c.concept_code as concept_concept_code_1,
+                c.vocabulary_id as concept_vocabulary_id_1,
+                c2.concept_id  as concept_concept_id_2,
+                c2.concept_code as concept_concept_code_2,
+                c2.vocabulary_id as concept_vocabulary_id_2,
+                 'Concept replaced by' as relationship_id,
+                CURRENT_DATE,
+                TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+                null as invalid_reason
+FROM concept c
+JOIN concept c2
+ON c2.concept_id=
+      CASE WHEN c.concept_id =   35225652  then      35225556
+                     WHEN c.concept_id =   36768964  then      36769180
+                      WHEN c.concept_id =   35226153  then      35226152
+        WHEN   c.concept_id =  35226309 then      36769180
+          end
+WHERE c.concept_id  IN (
+                                          35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
+                                          36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
+                                          35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
                                           35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
 
 
@@ -954,7 +933,7 @@ FROM (
     'Maps to' as relationship_id,
     36768082 as concept_id_2,
     'OMOP4997757' as concept_concept_code_2,
-    'Metastasis to the Kidney' as concept_concept_name_2,
+    'Metastasis to Kidney' as concept_concept_name_2,
     'Cancer Modifier'  as concept_vocabulary_id_2
 FROM obviuos_snomed_mts osm
 LEFT JOIN crs crs
@@ -976,7 +955,7 @@ SELECT
     'Maps to' as relationship_id,
     36770283 as concept_id_2,
     'OMOP4999962' as concept_concept_code_2,
-    'Metastasis to the Lung' as concept_concept_name_2,
+    'Metastasis to Lung' as concept_concept_name_2,
     'Cancer Modifier'  as concept_vocabulary_id_2
 FROM obviuos_snomed_mts osm
 LEFT JOIN crs crs
@@ -998,7 +977,7 @@ SELECT
     'Maps to' as relationship_id,
     36768630 as concept_id_2,
     'OMOP4998307' as concept_concept_code_2,
-    'Metastasis to the Spleen' as concept_concept_name_2,
+    'Metastasis to Spleen' as concept_concept_name_2,
     'Cancer Modifier'  as concept_vocabulary_id_2
 FROM obviuos_snomed_mts osm
 LEFT JOIN crs crs
@@ -1020,7 +999,7 @@ SELECT
     'Maps to' as relationship_id,
     35225594 as concept_id_2,
     'OMOP5032003' as concept_concept_code_2,
-    'Metastasis to the Vertebral Column' as concept_concept_name_2,
+    'Metastasis to Vertebral Column' as concept_concept_name_2,
     'Cancer Modifier'  as concept_vocabulary_id_2
 FROM obviuos_snomed_mts osm
 LEFT JOIN crs crs
@@ -1042,7 +1021,7 @@ SELECT
     'Maps to' as relationship_id,
     36769301 as concept_id_2,
     'OMOP4998978' as concept_concept_code_2,
-    'Metastasis to the Bone' as concept_concept_name_2,
+    'Metastasis to Bone' as concept_concept_name_2,
     'Cancer Modifier'  as concept_vocabulary_id_2
 FROM obviuos_snomed_mts osm
 LEFT JOIN crs crs
@@ -1064,7 +1043,7 @@ SELECT
     'Maps to' as relationship_id,
     36769301 as concept_id_2,
     'OMOP4998978' as concept_concept_code_2,
-    'Metastasis to the Bone' as concept_concept_name_2,
+    'Metastasis to Bone' as concept_concept_name_2,
     'Cancer Modifier'  as concept_vocabulary_id_2
 FROM obviuos_snomed_mts osm
 LEFT JOIN crs crs
@@ -1086,7 +1065,7 @@ SELECT
     'Maps to' as relationship_id,
     36770040 as concept_id_2,
     'OMOP4999718' as concept_concept_code_2,
-    'Metastasis to the Gastrointestinal Tract' as concept_concept_name_2,
+    'Metastasis to Gastrointestinal Tract' as concept_concept_name_2,
     'Cancer Modifier'  as concept_vocabulary_id_2
 FROM obviuos_snomed_mts osm
 LEFT JOIN crs crs
@@ -1101,7 +1080,7 @@ and concept_name ILIKE '%gastrointestinal%'
 
 --ICDO3 /6 codes mappings to Cancer Modifier
 --1st step
-WITH geterd_mts_codes as (
+WITH getherd_mts_codes as (
      --aggregate the source
     SELECT DISTINCT concept_name, concept_code, tumor_site_code, vocabulary_id, source_flag
     FROM (SELECT distinct concept_name,
@@ -1137,7 +1116,7 @@ WITH geterd_mts_codes as (
                     cc.concept_name as snomed_name ,
                     cc.vocabulary_id as snomed_voc,
                     cc.concept_code as snomed_code
-    FROM geterd_mts_codes s
+    FROM getherd_mts_codes s
              LEFT JOIN concept c
                        ON s.tumor_site_code = c.concept_code
                            and c.concept_class_id = 'ICDO Topography'
@@ -1152,7 +1131,7 @@ WITH geterd_mts_codes as (
 
     WHERE s.concept_code IN (
         SELECT concept_code
-        FROM geterd_mts_codes
+        FROM getherd_mts_codes
         group by 1
         having count(distinct source_flag) =1
     )
@@ -1183,7 +1162,11 @@ and crs.vocabulary_id_1=ct.vocabulary_id)
            and cm_name not ilike '%Blood Vessel%'
            and cm_name not ilike '% leg%'
            and cm_name not ilike '% arm%'
-           and cm_name <> 'Metastasis to the Liver'
+           and cm_id <> 36770544 -- OMOP5000224	Cancer Modifier
+         and cm_id <> 35225721	--OMOP5031913	Cancer Modifier
+
+
+
 
          UNION ALL
 
@@ -1192,7 +1175,7 @@ and crs.vocabulary_id_1=ct.vocabulary_id)
          where concept_code IN (SELECT concept_code from res group by 1 having count(distinct cm_id) = 1)
      )
 --ICDO3 maps to
-INSERT INTO concept_relationship_stage (
+/*INSERT INTO concept_relationship_stage (
                                         concept_id_1,
                                         concept_code_1,
                                         vocabulary_id_1,
@@ -1204,7 +1187,7 @@ INSERT INTO concept_relationship_stage (
                                         valid_end_date,
                                         invalid_reason
 
-)
+)*/
 
 SELECT
 c.concept_id,
@@ -1233,12 +1216,12 @@ SELECT cc.concept_id,
                 CURRENT_DATE,
                 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
                 null as invalid_reason
-FROM geterd_mts_codes g
+FROM getherd_mts_codes g
 JOIN concept c
 ON split_part(g.tumor_site_code,'.',1) =c.concept_code
 and c.concept_class_id ='ICDO Topography'
 JOIN concept_stage cs
-ON lower('metastasis to the ' || regexp_replace(c.concept_name,'\, NOS','','gi'))=lower(cs.concept_name)
+ON lower('metastasis to ' || regexp_replace(c.concept_name,'\, NOS','','gi'))=lower(cs.concept_name)
 LEFT JOIN concept  cc
 on cc.concept_code=g.concept_code
 and c.vocabulary_id=g.vocabulary_id
@@ -1250,7 +1233,7 @@ and tumor_site_code <>'NULL'
 ;
 
 --Step2
-WITH geterd_mts_codes as (
+WITH getherd_mts_codes as (
      --agragate the scource
     SELECT DISTINCT concept_name, concept_code, tumor_site_code, vocabulary_id, source_flag
     FROM (SELECT distinct concept_name,
@@ -1276,7 +1259,7 @@ WITH geterd_mts_codes as (
           where morphology_code ILIKE '%/6%') as tab
 )
 --ICDO3 maps to
-INSERT INTO concept_relationship_stage (
+/*INSERT INTO concept_relationship_stage (
                                         concept_id_1,
                                         concept_code_1,
                                         vocabulary_id_1,
@@ -1288,7 +1271,7 @@ INSERT INTO concept_relationship_stage (
                                         valid_end_date,
                                         invalid_reason
 
-)
+)*/
 
 SELECT cc.concept_id,
 
@@ -1300,7 +1283,7 @@ SELECT cc.concept_id,
                 CURRENT_DATE,
                 TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
                 null as invalid_reason
-FROM geterd_mts_codes s
+FROM getherd_mts_codes s
 JOIN concept_relationship_stage cs
 on '8000/6-'||split_part(s.tumor_site_code,'.',1)||'.9' = cs.concept_code_1
 and cs.vocabulary_id_1='ICDO3'
@@ -1312,7 +1295,7 @@ SELECT concept_code_1
 FROM concept_relationship_stage)
 and tumor_site_code<>'NULL'
 ;
-WITH geterd_mts_codes as (
+WITH getherd_mts_codes as (
      --agragate the scource
     SELECT DISTINCT concept_name, concept_code, tumor_site_code, vocabulary_id, source_flag
     FROM (SELECT distinct concept_name,
@@ -1338,7 +1321,7 @@ WITH geterd_mts_codes as (
           where morphology_code ILIKE '%/6%') as tab
 )
 SELECT *
-FROM geterd_mts_codes s
+FROM getherd_mts_codes s
 WHERE s.concept_code NOT IN (
 SELECT concept_code_1
 FROM concept_relationship_stage)

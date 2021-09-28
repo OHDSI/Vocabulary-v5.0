@@ -67,6 +67,7 @@ FROM concept c
 where vocabulary_id='Cancer Modifier'
 and  concept_class_id = 'Metastasis'
 and standard_concept='S'
+and (concept_code,vocabulary_id) NOT IN (SELECT concept_code,vocabulary_id from concept_stage)
 ;
 
 

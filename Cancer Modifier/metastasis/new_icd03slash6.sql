@@ -85,9 +85,8 @@ ON ct.concept_id = crs.concept_id_1
            and cm_name not ilike '% arm%'
            and cm_id <> 36770544 -- OMOP5000224	Cancer Modifier
          and cm_id <> 35225721	--OMOP5031913	Cancer Modifier
-
-
-
+   and cm_id <> 35225719	--OMOP5031911	Cancer Modifier
+   and cm_id <> 35225722 --	OMOP5031914	Cancer Modifier
 
          UNION ALL
 
@@ -125,6 +124,7 @@ FROM resulted_mapping_of_slash6 s
 LEFT JOIN  dev_cancer_modifier.concept  c
 on c.concept_code=s.concept_code
 and c.vocabulary_id=s.vocabulary_id
+where cm_id is not null
 
 UNION ALL
 
@@ -150,7 +150,7 @@ WHERE g.concept_code NOT IN (
     select concept_code from resulted_mapping_of_slash6
     )
 and tumor_site_code <>'NULL'
-
+and  cs.concept_id  is not null
 ;
 
 
@@ -217,6 +217,8 @@ SELECT concept_code_1
 FROM concept_relationship_stage)
 and tumor_site_code<>'NULL'
 ;
+
+
 WITH getherd_mts_codes as (
      --agragate the scource
     SELECT DISTINCT concept_name, concept_code, tumor_site_code, vocabulary_id, source_flag

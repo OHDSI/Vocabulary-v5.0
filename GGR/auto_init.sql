@@ -1,23 +1,4 @@
-SELECT devv5.FastRecreateSchema();
-/**************************************************************************/
 
---1. Update latest_update field to new date 
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.SetLatestUpdate(
-	pVocabularyName			=> 'GGR',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.ggr_ir LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.ggr_ir LIMIT 1),
-	pVocabularyDevSchema	=> 'DEV_GGR'
-);
-	PERFORM VOCABULARY_PACK.SetLatestUpdate(
-	pVocabularyName			=> 'RxNorm Extension',
-	pVocabularyDate			=> CURRENT_DATE,
-	pVocabularyVersion		=> 'RxNorm Extension '||CURRENT_DATE,
-	pVocabularyDevSchema	=> 'DEV_GGR',
-	pAppendVocabulary		=> TRUE
-);
-END $_$;
 --create table r_to_c_all_back as select * from r_to_c_all;
 --keep legacy mappings for the future
 create table if not exists r_to_c_all
@@ -137,6 +118,8 @@ WHERE mppcv NOT IN (
 
 insert into units values ('l')
 ;
+
+
 -- now that devices and packs are dealt with, we can fill ds_stage
 TRUNCATE TABLE drug_concept_stage;
 INSERT INTO drug_concept_stage -- Devices
@@ -295,17 +278,19 @@ FROM units
 
 drop table if exists ingred_vac_only;
 
-create table ingred_vac_only as with att_vac as (select * from ggr_sam where hyr_ like 'LA%')
+create table ingred_vac_only as with att_vac as (select * from SOURCES.ggr_sam where hyr_ like 'LA%')
 ,
 att_vac_only as (select distinct s.stofcv, s.stofnm_
-from ggr_sam s
-left join ggr_sam a on
+from SOURCES.ggr_sam s
+left join SOURCES.ggr_sam a on
 	a.hyr_ not like 'LA%' and
 	s.stofcv = a.stofcv
 where 
 	s.hyr_ like 'LA%' and
 	a.stofcv is null)
 	select * from att_vac_only;
+	
+
 	
 drop table if exists dose_form_vac_only;
 create table dose_form_vac_only as with att_vac as (select * from ggr_mpp where hyr_ like 'LA%')
@@ -403,7 +388,7 @@ CREATE TABLE tomap_form (
 	)
 ;
 INSERT INTO tomap_form
-SELECT CONCAT (
+SELECT  distinct CONCAT (
 		'gal',
 		galcv
 		) AS concept_code,
@@ -718,7 +703,7 @@ select distinct
 	concept_id,
 	concept_name
 from tofix_vax;
-
+update relationship_to_concept_to_map set target_concept_id = null, target_concept_name = null where target_concept_id =0;
 
 drop table if exists relationship_to_concept_manual
 ;
@@ -727,34 +712,40 @@ select *
 from relationship_to_concept_to_map
 where false
 ;
-select * from relationship_to_concept_to_map where target_concept_id = 0 and source_concept_code not in (select source_concept_code from ggr_manual_03_20);
-update ggr_manual_03_20 set target_concept_id = null where target_concept_id = 0;
-delete from relationship_to_concept_to_map where source_concept_code = 'stof02489';
-delete from relationship_to_concept_to_map where source_concept_code = 'gal00573';
-delete  from relationship_to_concept_to_map where source_concept_code in ('gal00047', 'gal00731', 'gal00310','gal00368','gal00316');
-insert into relationship_to_concept_to_map (select 'stof02489', 'doravirine', null, 'Ingredient', 35200446, 'DORAVIRINE', '1',null,null);
---alter table ggr_manual_03_20 drop column target_concept_code;
-insert into relationship_to_concept_manual select * from relationship_to_concept_to_map where target_concept_id is not null and target_concept_id !=0;
-insert into relationship_to_concept_manual select *from ggr_manual_03_20;
-insert into ggr_manual_03_20(select 'stof02493',	'emicizumab', null,		'Ingredient',	793042, 'emicizumab',	'1', null, null);
-select * from relationship_to_concept_to_map where source_concept_code not in (select source_concept_code from relationship_to_concept_manual);
-delete
-FROM relationship_to_concept_manual
-WHERE ctid NOT IN (SELECT MIN(ctid)
-                   FROM relationship_to_concept_manual
-                   group by source_concept_code,	source_concept_name,	source_concept_class_id, precedence
-                            
-                           );
+
+
 insert into relationship_to_concept_to_map (select * from relationship_to_concept_manual where  source_concept_code in ('gal00047', 'gal00731', 'gal00310','gal00368','gal00316'));
-select * from relationship_to_concept_manual where source_concept_code not in (select source_concept_code from relationship_to_concept_to_map) and source_concept_code in (select source_concept_code from ggr_manual_03_20);
+select * from relationship_to_concept_manual where source_concept_code not in (select source_concept_code from relationship_to_concept_to_map) and source_concept_code in (select source_concept_code from ggr_manual_09_21);
+select * from relationship_to_concept_to_map
+where target_concept_id is null;
+drop table ggr_manual_09_21;
+create table ggr_manual_09_21 (source_concept_code varchar,	source_concept_name varchar,	source_concept_desc varchar,	source_concept_class_id varchar,	target_concept_id int,	target_concept_code varchar,	target_concept_name varchar,	precedence int,	conversion_factor FLOAT,	invalid_indicator varchar);																
+WbImport -file="C:/Users/алло/Downloads/GGR_to_map - null.tsv"
+         -type=text
+         -table=ggr_manual_09_21
+         -encoding="UTF-8"
+         -header=true
+         -decode=false
+         -dateFormat="yyyy-MM-dd"
+         -timestampFormat="yyyy-MM-dd HH:mm:ss"
+         -delimiter='\t'
+         -decimal=.
+         -fileColumns=source_concept_code,source_concept_name,source_concept_desc,$wb_skip$,target_concept_id,target_concept_code,target_concept_name,source_concept_class_id,precedence
+         -quoteCharEscaping=none
+         -ignoreIdentityColumns=false
+         -deleteTarget=false
+         -continueOnError=false
+         -batchSize=100;
 
-/*
-truncate table ggr_manual_03_20;
-create table ggr_manual_03_20 (source_concept_code varchar,	source_concept_name varchar,	source_concept_desc varchar,	source_concept_class_id varchar,	target_concept_id int,	target_concept_code varchar,	target_concept_name varchar,	precedence int,	conversion_factor FLOAT,	invalid_indicator varchar);																
-select source_concept_code, source_concept_name from ggr_manual_03_20
---where precedence is null
-group by source_concept_code, source_concept_name
-having count (1)> 1 ;
+
+delete from relationship_to_concept_to_map where source_concept_code in (select source_concept_code from ggr_manual_09_21 where target_concept_id !=0);
+insert into relationship_to_concept_to_map
+select
+source_concept_code,
+source_concept_name,
+source_concept_desc,source_concept_class_id
+,target_concept_id,target_concept_name,precedence
+,conversion_factor,invalid_indicator
+from ggr_manual_09_21 where target_concept_id !=0;
+
 insert into relationship_to_concept_manual select * from relationship_to_concept_to_map where target_concept_id is not null;
-
-select * from tofix_vax;*/

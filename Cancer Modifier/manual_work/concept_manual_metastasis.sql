@@ -1,3 +1,5 @@
+--The file emulates stage tables creation only and used to populate the Manual tables
+
 --TRUNCATE STAGE TABLES
 TRUNCATE TABLE concept_stage;
 TRUNCATE TABLE concept_relationship_stage;
@@ -29,6 +31,34 @@ where vocabulary_id='Cancer Modifier'
 and  concept_class_id = 'Metastasis'
 and standard_concept='S'
 and (concept_code,vocabulary_id) NOT IN (SELECT concept_code,vocabulary_id from concept_stage)
+
+UNION ALL
+--New concepts
+SELECT distinct
+       null::int as         concept_id,
+    'Metastasis to meninges'   as        concept_name,
+          'Measurement'   as   domain_id,
+            'Cancer Modifier'    as vocabulary_id,
+            'Metastasis'   as  concept_class_id,
+                'S' as standard_concept,
+       'OMOP5117515'         concept_code,
+             CURRENT_DATE as    valid_start_date,
+            TO_DATE('20991231', 'yyyymmdd')  as    valid_end_date,
+            null as    invalid_reason
+
+UNION ALL
+
+SELECT distinct
+       null::int as         concept_id,
+    'Metastasis to abdomen'   as        concept_name,
+          'Measurement'   as   domain_id,
+            'Cancer Modifier'    as vocabulary_id,
+            'Metastasis'   as  concept_class_id,
+                'S' as standard_concept,
+       'OMOP5117516'         concept_code,
+             CURRENT_DATE as    valid_start_date,
+            TO_DATE('20991231', 'yyyymmdd')  as    valid_end_date,
+            null as    invalid_reason
 ;
 
 
@@ -44,6 +74,7 @@ UPDATE concept_stage
                          36768818, --	Ascites Maps to 200528	389026000	Ascites
                         36770091 -- OMOP4999769	Metastasis to the Contralateral Lobe
         );
+
 --4.1.2 Update of valid_end_date  of Non-cancerous concepts
 UPDATE concept_stage
     SET valid_end_date = CURRENT_DATE

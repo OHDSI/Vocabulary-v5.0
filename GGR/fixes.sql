@@ -1,18 +1,4 @@
-/**************************************************************************
-* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-* http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-**************************************************************************/
+
 
 --Remove devices from our tables
 UPDATE drug_concept_stage
@@ -204,3 +190,90 @@ update
 pc_stage
 set box_size = null
 where box_size = '1';
+
+
+
+	update ds_stage
+	set box_size = null
+		WHERE drug_concept_code NOT IN (
+				SELECT drug_concept_code
+				FROM ds_stage ds
+				JOIN internal_relationship_stage i ON concept_code_1 = drug_concept_code
+				JOIN drug_concept_stage ON concept_code = concept_code_2
+					AND concept_class_id = 'Dose Form'
+				WHERE ds.box_size IS NOT NULL
+				)
+			AND box_size IS NOT NULL;
+			
+delete from internal_relationship_stage where concept_code_1 in (
+select concept_code_1 from internal_relationship_stage 
+join drug_concept_stage on concept_code_2 = concept_code and concept_class_id = 'Supplier'
+where concept_code_1 in (	SELECT concept_code
+		FROM drug_concept_stage dcs
+		JOIN (
+			SELECT concept_code_1
+			FROM internal_relationship_stage
+			JOIN drug_concept_stage ON concept_code_2 = concept_code
+				AND concept_class_id = 'Supplier'
+			LEFT JOIN ds_stage ON drug_concept_code = concept_code_1
+			WHERE drug_concept_code IS NULL
+						
+			UNION
+			
+			SELECT concept_code_1
+			FROM internal_relationship_stage
+			JOIN drug_concept_stage ON concept_code_2 = concept_code
+				AND concept_class_id = 'Supplier'
+			WHERE concept_code_1 NOT IN (
+					SELECT concept_code_1
+					FROM internal_relationship_stage
+					JOIN drug_concept_stage ON concept_code_2 = concept_code
+						AND concept_class_id = 'Dose Form'
+					)
+			) s
+		        ON s.concept_code_1 = dcs.concept_code
+		WHERE dcs.concept_class_id = 'Drug Product'
+			AND dcs.invalid_reason IS NULL
+			and s.concept_code_1 not in (select pack_concept_code from pc_stage)))
+			and concept_code_2 in (select concept_code_2 from internal_relationship_stage 
+join drug_concept_stage on concept_code_2 = concept_code and concept_class_id = 'Supplier'
+where concept_code_1 in (	SELECT concept_code
+		FROM drug_concept_stage dcs
+		JOIN (
+			SELECT concept_code_1
+			FROM internal_relationship_stage
+			JOIN drug_concept_stage ON concept_code_2 = concept_code
+				AND concept_class_id = 'Supplier'
+			LEFT JOIN ds_stage ON drug_concept_code = concept_code_1
+			WHERE drug_concept_code IS NULL
+						
+			UNION
+			
+			SELECT concept_code_1
+			FROM internal_relationship_stage
+			JOIN drug_concept_stage ON concept_code_2 = concept_code
+				AND concept_class_id = 'Supplier'
+			WHERE concept_code_1 NOT IN (
+					SELECT concept_code_1
+					FROM internal_relationship_stage
+					JOIN drug_concept_stage ON concept_code_2 = concept_code
+						AND concept_class_id = 'Dose Form'
+					)
+			) s
+		        ON s.concept_code_1 = dcs.concept_code
+		WHERE dcs.concept_class_id = 'Drug Product'
+			AND dcs.invalid_reason IS NULL
+			and s.concept_code_1 not in (select pack_concept_code from pc_stage)));
+/* change uncorrect dose_form mapping		
+
+delete from relationship_to_concept where concept_code_1 = 'OMOP4921859';
+insert into relationship_to_concept( select 'OMOP4921859', 'GGR', '46234467','1',null);
+insert into relationship_to_concept( select 'OMOP4921859', 'GGR', '19126920','2',null);
+insert into relationship_to_concept(select  'OMOP4921859', 'GGR', '46234469','3',null);
+
+delete from relationship_to_concept where concept_code_1 = 'OMOP4921861';
+insert into relationship_to_concept( select 'OMOP4921861', 'GGR', '46234467','1',null);
+insert into relationship_to_concept( select 'OMOP4921861', 'GGR', '19126920','2',null);
+insert into relationship_to_concept(select  'OMOP4921861', 'GGR', '46234469','3',null);
+*/
+delete from ds_stage where drug_concept_code = '0057448';--source dosage >1g

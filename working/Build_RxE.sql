@@ -945,7 +945,8 @@ with cd_to_comp as
 		r.concept_id_1 = c.concept_id and
 		c.standard_concept = 'S' and
 		c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and
-		r.relationship_id = 'Consists of'
+		r.relationship_id = 'Consists of' and
+		r.invalid_reason is NULL
 	join concept c2 on
 		c2.concept_id = r.concept_id_2 and
 		c2.concept_class_id in ('Clinical Drug Comp', 'Branded Drug Comp')
@@ -1881,6 +1882,7 @@ LEFT JOIN (
 	SELECT cr.concept_id_1, cr.concept_id_2, NULL
 	FROM concept_relationship cr
 	JOIN concept c_int ON c_int.concept_id = cr.concept_id_2
+		AND cr.invalid_reason is NULL
 		AND c_int.vocabulary_id IN (
 			'RxNorm',
 			'RxNorm Extension'

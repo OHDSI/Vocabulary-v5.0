@@ -441,11 +441,9 @@ begin
       execute 'COPY sources.loinc_partlink_supplementary FROM '''||pVocabularyPath||'LoincPartLink_Supplementary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
       execute 'COPY sources.loinc_part FROM '''||pVocabularyPath||'Part.csv'' delimiter '','' csv HEADER FORCE NULL partnumber,parttypename,partname,partdisplayname,status';
       execute 'COPY sources.loinc_radiology FROM '''||pVocabularyPath||'LoincRsnaRadiologyPlaybook.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,parttypename,partname,partsequenceorder,rid,preferredname,rpid,longname';
-      truncate table sources.loinc_class, sources.scccrefset_expressionassociation_int, sources.scccrefset_mapcorrorfull_int, sources.cpt_mrsmap;
+      truncate table sources.loinc_class, sources.cpt_mrsmap;
       set local datestyle='ISO, DMY'; --set proper date format
       execute 'COPY sources.loinc_class FROM '''||pVocabularyPath||'loinc_class.csv'' delimiter ''|'' csv HEADER';
-      execute 'COPY sources.scccrefset_expressionassociation_int FROM '''||pVocabularyPath||'der2_sscccRefset_LOINCExpressionAssociationFull_INT.txt'' delimiter E''\t'' csv HEADER';
-      execute 'COPY sources.scccrefset_mapcorrorfull_int FROM '''||pVocabularyPath||'der2_scccRefset_LOINCMapCorrelationOriginFull_INT.txt'' delimiter E''\t'' csv HEADER';
       execute 'COPY sources.cpt_mrsmap FROM '''||pVocabularyPath||'CPT_MRSMAP.RRF'' delimiter ''|'' csv';
       execute 'COPY sources.loinc_documentontology FROM '''||pVocabularyPath||'DocumentOntology.csv'' delimiter '','' csv HEADER';
   when 'HCPCS' then
@@ -721,12 +719,13 @@ begin
       
       truncate table sources.cdm_raw_table;
       --we need to replace all carriage returns with chr(0) due to loading the entire file
-      execute 'COPY sources.cdm_raw_table (ddl_text) FROM PROGRAM ''cat "'||pVocabularyPath||'OMOP CDM postgresql ddl.txt" "'||pVocabularyPath||'OMOP CDM Results postgresql ddl.txt" | tr ''''\r\n'''' '''''||chr(1)||'''''  '' csv delimiter E''\b'' quote E''\f'' ';
+      execute 'COPY sources.cdm_raw_table (ddl_text) FROM PROGRAM ''cat "'||pVocabularyPath||'PostgreSQL_DDL.sql" | tr ''''\r\n'''' '''''||chr(1)||'''''  '' csv delimiter E''\b'' quote E''\f'' ';
       --return the carriage returns back and comment all 'ALTER TABLE' clauses
       update sources.cdm_raw_table set ddl_text=regexp_replace(replace(ddl_text,chr(1),E'\r\n'),'ALTER TABLE','--ALTER TABLE','gi'),
       	ddl_date=(pVocabularyVersion::json->>'published_at')::timestamp, ddl_release_id=(pVocabularyVersion::json->>'node_id'), 
         vocabulary_date=(pVocabularyVersion::json->>'published_at')::date, vocabulary_version=(pVocabularyVersion::json->>'version');
       update sources.cdm_raw_table set ddl_text=regexp_replace(ddl_text,'datetime2','timestamp','gi') where ddl_release_id='MDc6UmVsZWFzZTExNDY1Njg5';--fix DDL bug in CDM v5.3.1
+      update sources.cdm_raw_table set ddl_text=replace(ddl_text,'@cdmDatabaseSchema.','');--remove prefixes
       insert into sources.cdm_tables
         select p.*,r.ddl_date, r.ddl_release_id,r.vocabulary_date, r.vocabulary_version
         from sources.cdm_raw_table r
@@ -814,6 +813,10 @@ begin
       update sources.f_lookup2 set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   when 'DM+D' then
       RAISE EXCEPTION 'Use ''DMD'' instead of %', pVocabularyID;
+  when 'SOPT' then
+      truncate table sources.sopt_source;
+      execute 'COPY sources.sopt_source (concept_code,concept_name) FROM '''||pVocabularyPath||'sopt_source.csv'' delimiter '';'' csv quote ''"'' ';
+      update sources.sopt_source set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

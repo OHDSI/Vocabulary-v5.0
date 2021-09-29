@@ -67,9 +67,9 @@ BEGIN
 
   IF cCIDs IS NOT NULL
     THEN
-    	cRet := cRet || crlf || 'Some new concept_id''s: ' || cCIDs;
+    	cRet := cRet || crlf || 'Some new concept_ids: ' || cCIDs;
     else
-    	cRet := cRet || crlf || 'No new concept_id''s ';
+    	cRet := cRet || crlf || 'No new concept_ids ';
   END IF;
 
   perform devv5.SendMailHTML (email, 'Release status [OK] [Athena]', cRet);

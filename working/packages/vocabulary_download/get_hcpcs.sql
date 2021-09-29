@@ -58,27 +58,8 @@ BEGIN
     --get credentials
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
-    
-    /*old version
-    --parse RSS to get raw link to download page
-    select t.link into pDownloadURL from (
-      with url as (select http_content from py_http_get(url=>pVocabulary_url))
-      select 
-        unnest(xpath ('/rss/channel/item/title/text()', http_content::xml))::varchar::int title,
-        unnest(xpath ('/rss/channel/item/link/text()', http_content::xml)) ::varchar link 
-      from url
-    ) as t
-    where t.link like '%Alpha-Numeric-HCPCS-File%' and t.link not like '%orrections%'
-    order by t.title desc limit 1;
-
-    if not coalesce(pDownloadURL,'-') ~* '^https?://www.cms.gov/Medicare/Coding/(.+)Alpha.Numeric.HCPCS.File.*html$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
-    
-    --getting fully working download link from page
-    select substring(pDownloadURL,'^(https?://([^/]+))')||substring(http_content,'.+<h2>Downloads</h2>.+<a type="application/zip" href="(.+?)">\d{4} Alpha-Numeric HCPCS File') into pDownloadURL from py_http_get(url=>pDownloadURL,allow_redirects=>true);
-    */
-    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'<a href="(/Medicare/Coding/HCPCSReleaseCodeSets/Alpha-Numeric-HCPCS-Items/[[:digit:]]{4}-Alpha-Numeric-HCPCS-File)">') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
-    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'<a href="(/Medicare/Coding/HCPCSReleaseCodeSets/Downloads/[[:digit:]]{4}-Alpha-Numeric-HCPCS-File.zip)">') from py_http_get(url=>pDownloadURL,allow_redirects=>true);
-    if not coalesce(pDownloadURL,'-') ~* '^(https?://www.cms.gov/Medicare/Coding)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (full) is not valid'; end if;
+    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'<h1.*?class="page-title">.*?HCPCS Quarterly Update.*?<li><a data-entity-substitution="canonical" data-entity-type="media".*?href="(/files/zip/.*?alpha-numeric-hcpcs-file\.zip)".+?>') from py_http_get(url=>pVocabulary_url,allow_redirects=>true);
+    if not coalesce(pDownloadURL,'-') ~* '^(https?://www.cms.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (full) is not valid'; end if;
 
     perform write_log (
       iVocabularyID=>pVocabularyID,

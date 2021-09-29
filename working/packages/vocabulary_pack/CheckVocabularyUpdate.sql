@@ -161,16 +161,8 @@ BEGIN
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'HCPCS'
             THEN
-              cVocabDate := TO_DATE(SUBSTRING(cVocabHTML,'<a href="/Medicare/Coding/HCPCSReleaseCodeSets/Alpha-Numeric-HCPCS-Items/([[:digit:]]{4})-Alpha-Numeric-HCPCS-File">')::int - 1 || '0101', 'yyyymmdd');
-              /*old version
-              select TO_DATE ( (MAX (t.title) - 1) || '0101', 'yyyymmdd') into cVocabDate  From (
-                select 
-                    unnest(xpath ('/rss/channel/item/title/text()', cVocabHTML::xml))::varchar::int title,
-                    unnest(xpath ('/rss/channel/item/link/text()', cVocabHTML::xml)) ::varchar description 
-              ) as t
-              WHERE t.description LIKE '%Alpha-Numeric-HCPCS-File%' AND t.description NOT LIKE '%orrections%';
-              */
-              cVocabVer := to_char(cVocabDate + interval '1 year','YYYY')||' Alpha Numeric HCPCS File';
+              cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<h1.*?class="page-title">.*?hcpcs quarterly update.*?<li><a data-entity-substitution.*?href="/files/zip/.*?alpha-numeric-hcpcs-file\.zip" title="(.+?) alpha-numeric hcpcs file">'),'month yyyy');
+              cVocabVer := to_char(cVocabDate,'YYYYMMDD')||' Alpha Numeric HCPCS File';
             WHEN cVocabularyName IN ('ICD9CM', 'ICD9PROC')
             THEN
                 cSearchString := '<a type="application/zip" href="/Medicare/Coding/ICD9ProviderDiagnosticCodes/Downloads';
@@ -345,7 +337,7 @@ BEGIN
                 from (
                   select s0.vocabulary_version, s0.release_date from (
                     with t as (select json_array_elements(cVocabHTML::json) as json_content)
-                    select trim(replace(replace(regexp_replace(t.json_content->>'name','^CDM v5\.0$','CDM v5.0.0'),' (historical)',''),'CDM v5.2 Bug Fix 1','CDM v5.2.0')) as vocabulary_version, 
+                    select trim(replace(replace(replace(regexp_replace(t.json_content->>'name','^CDM v5\.0$','CDM v5.0.0'),' (historical)',''),'CDM v5.2 Bug Fix 1','CDM v5.2.0'),'CDM v5.4','CDM v5.4.0')) as vocabulary_version, 
                     (t.json_content->>'published_at')::timestamp as release_date
                     from t
                     where (t.json_content->>'prerelease')::boolean = false
@@ -383,7 +375,7 @@ BEGIN
               cVocabVer := SUBSTRING (LOWER(cVocabHTML),'.+?<h3>version actuelle</h3><div class="telechargement_bas"><h4>ccam version ([\d.]+)</h4>.+');
             WHEN cVocabularyName = 'HEMONC'
             THEN
-              cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology</span>.+?<span class="text-muted">(.+?)</span>.+'),'month dd, yyyy');
+              cVocabDate := TO_DATE (SUBSTRING (LOWER(cVocabHTML),'.+?>hemonc ontology</span>.+?<span class="text-muted">(.+?)</span>.+'),'Mon dd, yyyy');
               cVocabVer := 'HemOnc '||to_char(cVocabDate,'yyyy-mm-dd');
             WHEN cVocabularyName = 'DMD'
             THEN

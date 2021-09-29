@@ -53,9 +53,9 @@ BEGIN
 	WHERE cs.concept_code = c.concept_code
 		AND cs.vocabulary_id = c.vocabulary_id;
 
-	--5. Analysing
-	ANALYSE concept_stage;
-	ANALYSE concept_relationship_stage;
+	--5. Analyzing
+	ANALYZE concept_stage;
+	ANALYZE concept_relationship_stage;
 
 	--6. Clearing the concept_name
 	--Remove double spaces, carriage return, newline, vertical tab and form feed
@@ -103,58 +103,32 @@ BEGIN
 
 	--8. Update existing concept details from concept_stage.
 	--All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date, invalid_reason) are updated
-
-	--8.1. For 'concept_name'
 	UPDATE concept c
-	SET concept_name = cs.concept_name
+	SET (
+			concept_name,
+			domain_id,
+			concept_class_id,
+			standard_concept,
+			valid_start_date,
+			valid_end_date,
+			invalid_reason
+			) = (
+			cs.concept_name,
+			cs.domain_id,
+			cs.concept_class_id,
+			cs.standard_concept,
+			CASE 
+				WHEN cs.valid_start_date <> v.latest_update --if we have a real date in the concept_stage, use it. If it is only the release date, use the existing
+					THEN cs.valid_start_date
+				ELSE c.valid_start_date
+				END,
+			cs.valid_end_date,
+			cs.invalid_reason
+			)
 	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND c.concept_name <> cs.concept_name;
-
-	--8.2. For 'domain_id'
-	UPDATE concept c
-	SET domain_id = cs.domain_id
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND c.domain_id <> cs.domain_id;
-
-	--8.3. For 'concept_class_id'
-	UPDATE concept c
-	SET concept_class_id = cs.concept_class_id
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND c.concept_class_id <> cs.concept_class_id;
-
-	--8.4. For 'standard_concept'
-	UPDATE concept c
-	SET standard_concept = cs.standard_concept
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND COALESCE(c.standard_concept, 'X') <> COALESCE(cs.standard_concept, 'X');
-
-	--8.5. For 'valid_start_date'
-	UPDATE concept c
-	SET valid_start_date = cs.valid_start_date
-	FROM concept_stage cs,
-		vocabulary v
-	WHERE c.concept_id = cs.concept_id
-		AND v.vocabulary_id = cs.vocabulary_id
-		AND c.valid_start_date <> cs.valid_start_date
-		AND cs.valid_start_date <> v.latest_update; -- if we have a real date in concept_stage, use it. If it is only the release date, use the existing
-
-	--8.6. For 'valid_end_date'
-	UPDATE concept c
-	SET valid_end_date = cs.valid_end_date
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND c.valid_end_date <> cs.valid_end_date;
-
-	--8.7. For 'invalid_reason'
-	UPDATE concept c
-	SET invalid_reason = cs.invalid_reason
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND COALESCE(c.invalid_reason, 'X') <> COALESCE(cs.invalid_reason, 'X');
+	JOIN vocabulary v USING (vocabulary_id)
+	WHERE c.* IS DISTINCT FROM cs.*
+		AND c.concept_id = cs.concept_id;
 
 	--9. Deprecate concepts missing from concept_stage and are not already deprecated.
 	--This only works for vocabularies where we expect a full set of active concepts in concept_stage.
@@ -239,6 +213,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'ICD10GM' THEN 1
 		WHEN c.vocabulary_id = 'Cancer Modifier' THEN 1
 		WHEN c.vocabulary_id = 'CCAM' THEN 1
+		WHEN c.vocabulary_id = 'SOPT' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
 	AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
@@ -908,10 +883,17 @@ BEGIN
 	--Synonyms are built from scratch each time, no life cycle
 	DELETE
 	FROM concept_synonym csyn
-	WHERE EXISTS (
+	WHERE NOT EXISTS (
 			SELECT 1
-			FROM concept_stage cs
-			WHERE cs.concept_id = csyn.concept_id
+			FROM concept_synonym_stage css_int
+			WHERE css_int.synonym_concept_id = csyn.concept_id
+				AND css_int.synonym_name = csyn.concept_synonym_name
+				AND css_int.language_concept_id = csyn.language_concept_id
+			)
+		AND EXISTS (
+			SELECT 1
+			FROM concept_stage c_int
+			WHERE c_int.concept_id = csyn.concept_id
 			);
 
 	--28. Add new synonyms
@@ -923,7 +905,8 @@ BEGIN
 	SELECT css.synonym_concept_id,
 		css.synonym_name,
 		css.language_concept_id
-	FROM concept_synonym_stage css;
+	FROM concept_synonym_stage css
+	ON CONFLICT ON CONSTRAINT unique_synonyms DO NOTHING;
 
 	--29. Fillig drug_strength
 	--Special rules for RxNorm Extension: same as 'Maps to' rules, but records from deprecated concepts will be deleted

@@ -210,7 +210,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---6. update domain_id for Read from SNOMED
+--6. update domain_id for Read from target concepts (currently, limited to following vocabs: SNOMED, OMOP Extension, Race)
 --create temporary table read_domain
 --if domain_id is empty we use previous and next domain_id or its combination
 DROP TABLE IF EXISTS read_domain;
@@ -240,7 +240,7 @@ FROM (
 		concept_class_id
 	FROM (
 		WITH filled_domain AS (
-				-- get Read concepts with direct mappings to SNOMED
+				-- get Read concepts with direct mappings
 				SELECT c1.concept_code,
 					c2.domain_id
 				FROM concept_relationship_stage r,
@@ -253,7 +253,8 @@ FROM (
 					AND r.vocabulary_id_1 = 'Read'
 					AND r.vocabulary_id_2 IN (
 						'SNOMED',
-						'OMOP Extension'
+						'OMOP Extension',
+						'Race'
 						)
 					AND r.invalid_reason IS NULL
 				)
@@ -289,7 +290,8 @@ FROM (
 				AND r.vocabulary_id_2 = c2.vocabulary_id
 				AND c2.vocabulary_id IN (
 					'SNOMED',
-					'OMOP Extension'
+					'OMOP Extension',
+					'Race'
 					)
 			) r1 ON r1.concept_code_1 = c1.concept_code
 			AND r1.vocabulary_id_1 = c1.vocabulary_id

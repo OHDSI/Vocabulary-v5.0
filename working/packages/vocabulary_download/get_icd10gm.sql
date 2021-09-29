@@ -63,7 +63,7 @@ BEGIN
     select http_content into pContent from py_http_get(url=>pVocabulary_url);
     --pVocabulary_auth contains target page for second AJAX-request
     select substring(http_content,'.*<a class="dl-titlelink" target="_blank" href="(.*)">ICD-10-GM \d{4} Metadaten TXT \(CSV\) </a>.*') into pDownloadURL from py_http_get(url=>pVocabulary_auth||'?folder='||
-        substring(pContent,'.*data-folder="(.*?/klassifikationen/icd-10-gm/version\d{4}/)"')||'&sitepath=/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/&loc=de&rows=25&start=0');
+        substring(pContent,'.*<a href="#nav_1".*?data-folder="(.*?/klassifikationen/icd-10-gm/version\d{4}/)".*')||'&sitepath=/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/&loc=de&rows=25&start=0');
     pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||pDownloadURL;
     --https://www.dimdi.de/dynamic/.downloads/klassifikationen/icd-10-gm/version2020/icd10gm2020syst-meta.zip
     if not coalesce(pDownloadURL,'-') ~* '^(https://www.dimdi.de/)(.+)meta\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
@@ -74,7 +74,7 @@ BEGIN
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
 
     --dummy POST request that we have accepted the terms of use
-    perform py_http_post(url=>'https://www.dimdi.de/dynamic/de/klassifikationen/downloads/icd-10-gm-downloadbedingungen/index.html',
+    perform py_http_post(url=>'https://www.dimdi.de/dynamic/de/klassifikationen/downloads/icd-10-gm-downloadbedingungen-bfarm/index.html',
         params=>'formaction=submit&InputField-1=Ich+habe+die+Downloadbedingungen+gelesen+und+stimme+diesen+ausdr%FCcklich+zu.',
         cookies=>'{"JSESSIONID":"'||pCookie||'"}',
         allow_redirects=>false);

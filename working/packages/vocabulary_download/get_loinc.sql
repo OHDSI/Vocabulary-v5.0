@@ -146,7 +146,7 @@ BEGIN
       iVocabulary_status=>1
     );
     
-    --loinc to snomed
+    /*--loinc to snomed <--deprecated, no longer available
     pVocabularyOperation:='GET_LOINC LOINC/SNOMED CT Expression Association downloading';
     select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=4;
     perform run_wget (
@@ -161,7 +161,7 @@ BEGIN
       iSessionID=>pSession,
       iVocabulary_operation=>'GET_LOINC LOINC/SNOMED CT Expression Association downloading complete',
       iVocabulary_status=>1
-    );
+    );*/
     
     --loinc answer
     pVocabularyOperation:='GET_LOINC LOINC Answer downloading';

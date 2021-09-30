@@ -1,3 +1,4 @@
+
 --Interim Table with Mappings
 DROP TABLE icdo3_to_cm_metastasis;
 --ICDO3 /6 codes mappings to Cancer Modifier

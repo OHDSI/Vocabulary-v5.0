@@ -1152,9 +1152,34 @@ FROM  (
            cs.invalid_reason
     FROM  concept c ,concept_stage cs
     WHERE cs.concept_id = 35226152
-    and c.concept_id in (42485173 ,--KCD7 Secondary malignant neoplasm of genital organs
-45600528,-- ICD10CM Secondary malignant neoplasm of genital organs
-37081414 --Secondary malignant neoplasm of the genital organs ICD10GM
+    and c.concept_id in (42485173,--KCD7 Secondary malignant neoplasm of genital organs
+                         45600528,-- ICD10CM Secondary malignant neoplasm of genital organs
+                         37081414 --Secondary malignant neoplasm of the genital organs ICD10GM
+        )
+
+                        UNION ALL
+
+                            SELECT c.concept_id AS concept_id_1,
+           c.concept_name,
+           c.domain_id ,
+           c.vocabulary_id as vocabulary_id_1,
+           c.concept_class_id,
+           c.standard_concept,
+           c.concept_code as concept_code_1,
+           c.valid_start_date,
+           c.valid_end_date,
+           c.invalid_reason,
+           cs.concept_id as concept_id_2,
+           cs.vocabulary_id as vocabulary_id_2,
+           cs.concept_class_id,
+           cs.standard_concept,
+           cs.concept_code as concept_code_2,
+           cs.valid_start_date,
+           cs.valid_end_date,
+           cs.invalid_reason
+    FROM  concept c ,concept_stage cs
+    WHERE cs.concept_id = 35225556
+    and c.concept_id in ( 37081413 --ICD10GM Secondary malignant neoplasm of the mammary gland
 
         )
           ) AS TAB

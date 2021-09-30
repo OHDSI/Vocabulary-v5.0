@@ -1092,6 +1092,24 @@ SELECT
        invalid_reason
 FROM concept_stage
     ;
+    
+   --mnaual fix of lung lobes
+     UPDATE concept_manual
+   SET concept_name = 'Metastasis to contralateral lobe of lung',
+       standard_concept = 'S',
+       valid_end_date = to_DATE ('2099-12-31', 'yyyy-MM-dd'),
+       invalid_reason = NULL
+WHERE vocabulary_id = 'Cancer Modifier'
+AND   concept_code = 'OMOP4999769';
+
+UPDATE concept_manual
+   SET concept_name = 'Metastasis to same lobe of lung'
+WHERE vocabulary_id = 'Cancer Modifier'
+AND   concept_code = 'OMOP4997758';
+UPDATE concept_manual
+   SET concept_name = 'Metastasis to a different ipsilateral lobe of lung'
+WHERE vocabulary_id = 'Cancer Modifier'
+AND   concept_code = 'OMOP4997846';
 
 --TRUNCATE STAGE TABLES
 TRUNCATE TABLE concept_stage;

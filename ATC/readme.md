@@ -6,7 +6,7 @@
 * SNOMED, RxNorm and RxNorm Extension must be loaded first with the full release cycle.
 * Working directory, e.g. *dev_atc*.
 
-##### I - Manual work #####
+#### I - Manual work ####
 1. Create a backup of the **class_drugs_scraper** table
 2. There are 2 options:
 **Scenario A** - addendum of new ATC codes
@@ -29,7 +29,7 @@ FROM atc_addendum_MMYY;
 Insert them as new entities into the class_drugs_scraper table assigning them unique ids and preserving old versions of ATC codes.
 3. Using class_drugs_scraper, add new codes with OMOPized names and their row variants to the concept_manual and concept_synonym_manual tables respectively.
 
-##### II - Machinery #####
+#### II - Machinery ####
 1. Run load_input.sql, which populates the **input tables** of *drug_concept_stage, internal_relationship_stage, relationship_to_concept* and ATC-specific *dev_combo*.
 2. Run load_interim.sql, which prepares the **class_to_drug** table containing links bwetween ATC Drug Classes and RxN/RxE Drug Products 
 3. Run load_stage.sql which populates the **staging tables** of *concept_stage, concept_relationship_stage*, and *concept_synonym_stage*
@@ -45,4 +45,4 @@ END $_$;
 2. Run generic_update:
 ```sql
 SELECT devv5.genericupdate();
-```sql 
+```sql

@@ -36,7 +36,7 @@ FROM atc_addendum_MMYY;
 2. Run *load_interim.sql*, which prepares the **class_to_drug** table containing links bwetween ATC Drug Classes and RxN/RxE Drug Products 
 3. Run *load_stage.sql* which populates the **staging tables** of **concept_stage, concept_relationship_stage**, and **concept_synonym_stage**
 4. Run *generic_update.sql*
-5.  ```sql
+```sql
 SELECT devv5.genericupdate();
 ```sql
 6. Perform **post-processing**:

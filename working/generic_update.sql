@@ -211,7 +211,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'NCIt' THEN 0
 		WHEN c.vocabulary_id = 'HGNC' THEN 0
 		WHEN c.vocabulary_id = 'ICD10GM' THEN 1
-		WHEN c.vocabulary_id = 'Cancer Modifier' THEN 1
+		WHEN c.vocabulary_id = 'Cancer Modifier' THEN 0
 		WHEN c.vocabulary_id = 'CCAM' THEN 1
 		WHEN c.vocabulary_id = 'SOPT' THEN 1
 		ELSE 0 -- in default we will not deprecate

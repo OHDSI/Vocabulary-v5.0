@@ -1612,8 +1612,8 @@ FROM missing a
     ON b.concept_code = a.atc_code
    AND b.invalid_reason IS NULL
   JOIN concept c USING (concept_id)
-WHERE c.concept_id NOT IN (42731911, 40046823, 36264365, 42481935, 43730307, 42800420);
-and b.concept_code||c.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new)
+WHERE c.concept_id NOT IN (42731911, 40046823, 36264365, 42481935, 43730307, 42800420)
+AND b.concept_code||c.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new); -- 2833
 
 -- remove excessive links to children among Packs
 WITH t1 AS
@@ -1688,8 +1688,7 @@ ON a1.class_code = a2.class_code
    AND a1.concept_id <> a2.concept_id
    and a2.concept_class_id !~ 'Pack'
    AND a1.class_code  IN ('A02BA07','B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02')
-   ) -- catridecacog | susoctocog alfa; parenteral, topical, urethral | norgestrel and estrogen | 	varicella, live attenuated; systemic |zoster, live attenuated; systemic
-   ;
+   ); -- catridecacog | susoctocog alfa; parenteral, topical, urethral | norgestrel and estrogen |varicella, live attenuated; systemic |zoster, live attenuated; systemic
  
 -- clean up the same issue among exclusions - Packs
 WITH t0 AS
@@ -1950,7 +1949,7 @@ WHERE CTID NOT IN (SELECT MAX(CTID)
                    GROUP BY class_code,
                             concept_id);
                             
--- usgin the concep_order field from the class_to_drgu_new table, assemble the final table of class_to_drug in the following Concept Order:  
+-- usgin the concep_order field from the class_to_drgu_new table, assemble the final table of class_to_drug and re-assign concept_order value in the following way:  
 /*1. Manual
 2. Mono: Ingredient A; form
 3. Mono: Ingredient A

@@ -1602,13 +1602,18 @@ INSERT INTO class_to_drug_new
    
 -- ATC Combo Class to Drug Product which is out of drug hierarchy (order = 23)
 INSERT INTO class_to_drug_new
-  SELECT DISTINCT 
-atc_code,atc_name,c.*,
+SELECT DISTINCT b.concept_code,
+       b.concept_name,
+       c.*,
        23 AS conept_order,
        'ATC Combo Class to Drug Product which is out of drug hierarchy'
-    FROM MISSING a 
-    join concept c using (concept_id)
-   where atc_code||concept_id not in (select class_code||concept_id from class_to_drug_new); -- 2890
+FROM missing a
+  JOIN concept_manual b
+    ON b.concept_code = a.atc_code
+   AND b.invalid_reason IS NULL
+  JOIN concept c USING (concept_id)
+WHERE c.concept_id NOT IN (42731911, 40046823, 36264365, 42481935, 43730307, 42800420);
+and b.concept_code||c.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new)
 
 -- remove excessive links to children among Packs
 WITH t1 AS
@@ -1984,6 +1989,7 @@ SELECT DISTINCT class_code,
 FROM class_to_drug_new
 ; -- 116679
 
-/*-- update class_to_drug in the schema of 'sources'
-SELECT * FROM vocabulary_pack.CreateTablesCopiesATC (); 
--- run load_stage.sql */
+-- update class_to_drug in the schema of 'sources'
+SELECT * FROM vocabulary_pack.CreateTablesCopiesATC ();
+
+-- run load_stage.sql

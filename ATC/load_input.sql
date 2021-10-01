@@ -603,7 +603,6 @@ AND split_part(class_name, ';', 1) ~* 'estrogen';
 
 -- remove erroneous mapping of strontium ranelate to strontium
 DELETE FROM dev_combo WHERE class_code = 'M05BX53' AND concept_id = 19000815; -- strontium
-
 /**********************************************
 **** Combo to internal_realtionship_stage  ****
 ***********************************************/
@@ -720,7 +719,7 @@ TRUNCATE drug_concept_stage;
 -- change length of concept_code field
 ALTER TABLE drug_concept_stage ALTER COLUMN concept_code TYPE VARCHAR;
 
--- add all ATC Drug Classes using the internal_relationship_stage table
+-- add to DCS ATC Drug Classes as Drug Products using the internal_relationship_stage table
 INSERT INTO drug_concept_stage
 (
  concept_name,
@@ -802,7 +801,7 @@ AND standard_concept = 'S'
 AND invalid_reason IS NULL
 AND concept_code_2 NOT IN (select concept_code FROM drug_concept_stage);
 
--- obtain additional ingredients for those ATC codes which are still unmapped using fuzzy match
+-- obtain additional Ingredients for those ATC Classes which are still unmapped using fuzzy match
 INSERT INTO internal_relationship_stage
 WITH t1 AS
 (
@@ -900,7 +899,7 @@ WHERE (class_code,concept_name) NOT IN (SELECT concept_code_1,
 /**********************************
 *** FUTHER WORK WITH ATC COMBOS ***
 ***********************************/
--- assemble mappings for ATC Classes indicating Ingredient Groups using the the concept_ancestor AND/OR concept tables along WITH word pattern matching
+-- assemble mappings for ATC Classes indicating Ingredient Groups using the concept_ancestor AND/OR concept tables along WITH word pattern matching
 -- add descendants of Acid preparations
 INSERT INTO dev_combo
 SELECT DISTINCT a.concept_code,
@@ -1269,13 +1268,11 @@ OR c.concept_name ~*  ('Butalbital|Lorazepam|Ethchlorvynol|Ziprasidone|Talbutal|
 'Ketazolam|Prazepam|Quazepam|Cinolazepam|Nitrazepam|Periciazine|Acepromazine|Molindone|Pipotiazine|'||
 'Thioproperazine|Thiothixene|Zuclopenthixol|Methaqualone|Fluspirilene|Iloperidone|'||
 'Cariprazine|Sertindole|Asenapine|Amisulpride|Clomethiazole|Triclofos|Mebutamate|Tofisopam')::text
-)
+) -- obtained from https://go.drugbank.com/categories/DBCAT002185
  AND c.concept_id NOT IN (742594) 
    WHERE SPLIT_PART(a.concept_name,';',1) ~* 'psycholeptics?' --AND class_name !~* 'excl\. psycholeptics'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th' AND c.vocabulary_id LIKE 'RxNorm%'
  AND c.concept_class_id = 'Ingredient' and c.standard_concept = 'S';
-
-
 
 -- add descendants of Selenium compounds
 INSERT INTO dev_combo
@@ -1505,22 +1502,6 @@ WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
   AND c.concept_name ~* 'fumarate\y'
  AND SPLIT_PART(a.concept_name,';',1) ~* 'fumaric acid derivatives'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
-  
-/*-- add ingredients indicating Glycerol	
-INSERT INTO dev_combo
-SELECT DISTINCT  a.concept_code,
-  a.concept_name,
-  'glycerol',
-  c.concept_id,
-  c.concept_name,
-  CASE WHEN a.concept_name  ~* '^glycerol' THEN 1 ELSE 2 END ::INT AS rnk
-FROM concept_manual a,concept c
-WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
- AND c.concept_class_id = 'Ingredient'
- AND c.standard_concept = 'S'
-  AND c.concept_name ~* 'glycerol\y' and SPLIT_PART(a.concept_name,';',1) !~ 'rectal'
-  AND SPLIT_PART(a.concept_name,';',1) ~* 'glycerol' and SPLIT_PART(a.concept_name,';',1) !~ 'phenylbutyrate'
-AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th'; */
  
 -- add descendants of Proton pump inhibitors
 INSERT INTO dev_combo
@@ -1618,7 +1599,7 @@ WHERE c.vocabulary_id IN ( 'RxNorm', 'RxNorm Extension')
   AND SPLIT_PART(a.concept_name,';',1) ~* 'potassium-sparing agents'
 AND a.invalid_reason IS NULL AND a.concept_class_id = 'ATC 5th';
 
--- add ingredients indicating ethiodized oil
+-- add ingredients indicating Ethiodized oil
 INSERT INTO dev_combo
 SELECT DISTINCT  a.concept_code,
   a.concept_name,
@@ -1926,7 +1907,7 @@ AND   rnk = 3;
 /*******************************************
 **** ADD ODDMENTS TO THE INPUT TABLES *****
 ********************************************/
--- add links between ATC Classes indicating Ingredient Groups AND ATC Drug Attributes in the form of OMOP Ingredient names using dev_combo table
+-- add to links between ATC Classes indicating Ingredient Groups AND ATC Drug Attributes in the form of RxN/RxE Standard Ingredient names using the dev_combo table
 INSERT INTO internal_relationship_stage
 (concept_code_1, concept_code_2)
 SELECT DISTINCT class_code, -- ATC
@@ -1940,7 +1921,7 @@ FROM internal_relationship_stage)
 WHERE LENGTH (class_code) = 7
 AND rnk <> 0;
 
--- add more links between ATC Classes indicating Ingredient Groups AND ATC Drug Attributes in the form of OMOP Ingredient names using dev_combo table
+-- add more links between ATC Classes indicating Ingredient Groups AND ATC Drug Attributes in the form of RxN/RxE Standard Ingredient names using the dev_combo table
 INSERT INTO internal_relationship_stage
 (concept_code_1, concept_code_2)
 SELECT DISTINCT class_code, -- ATC
@@ -1955,7 +1936,7 @@ FROM internal_relationship_stage)
 WHERE LENGTH (class_code) = 7 
 AND rnk <> 0;
 
--- add ATC Groupers to DCS AS Drug Products
+-- add ATC Classes of Ingredient Groups AS Drug Products using the internal_relationship_stage and class_drugs_scraper tables
 INSERT INTO drug_concept_stage
 ( concept_name,
  vocabulary_id,
@@ -1967,20 +1948,20 @@ INSERT INTO drug_concept_stage
  valid_start_date,
  valid_end_date
 )
-SELECT DISTINCT b.class_name, -- ATC code+name
-  'ATC',
-  'Drug Product',
-  NULL,
-  concept_code_1,
-  NULL,
-  'Drug', 
+SELECT DISTINCT b.class_name AS concept_name,
+  'ATC' AS vocabulary_id,
+  'Drug Product' AS concept_class_id,
+  NULL AS standard_concept,
+  concept_code_1 AS concept_code,
+  NULL AS possible_excipient,
+  'Drug' AS domain_id, 
   TO_DATE ('19700101', 'YYYYMMDD') AS valid_start_date,
   TO_DATE('20991231','YYYYMMDD') AS valid_end_date
 FROM internal_relationship_stage a
 JOIN class_drugs_scraper b ON b.class_code = SPLIT_PART(a.concept_code_1, ' ', 1)
 WHERE concept_code_1 NOT IN (select concept_code FROM drug_concept_stage);
 
--- add ATC Drug Attributes IN the form of Standard Ingredient names using internal_relationship_stage
+-- add ATC Drug Attributes IN the form of Standard Ingredient names using the internal_relationship_stage and concept tables
 INSERT INTO drug_concept_stage
 ( concept_name,
  vocabulary_id,
@@ -2007,7 +1988,7 @@ AND vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 AND invalid_reason IS NULL
 AND concept_code_2 NOT IN (select concept_code FROM drug_concept_stage);
 
--- remove dead deprecated or updated codes 
+-- remove dead deprecated or updated ATC codes 
 DELETE
 FROM internal_relationship_stage
 WHERE SUBSTRING(concept_code_1,'\w+') IN (SELECT concept_code
@@ -2020,7 +2001,7 @@ WHERE concept_code IN (SELECT concept_code
                        FROM concept_manual
                        WHERE invalid_reason IS NOT NULL);
 
--- remove inexistent drug mapping (old and wrong)
+-- remove mappings of ATC Classes which are nonexistent in OMOP (old and wrong)
 DELETE
 FROM drug_concept_stage
 WHERE concept_code IN (SELECT class_code FROM atc_inexistent)
@@ -2032,7 +2013,7 @@ WHERE SUBSTRING(concept_code_1,'\w+') IN (SELECT class_code FROM atc_inexistent)
 AND   SUBSTRING(concept_code_1,'\w+') NOT IN (SELECT class_code FROM dev_combo)
 AND   concept_code_1 !~ '\s+';
 
--- remove mappings which have been deprecated in crm
+-- remove mappings which have been deprecated in concept_relationship_manual
 WITH t1 AS
 (
   SELECT *
@@ -2059,6 +2040,7 @@ WHERE class_code||concept_id NOT IN (SELECT class_code||concept_id
 AND   class_name ~ 'sulfonamides'
 AND   rnk = 3; -- 16 
 
+-- add missing sulfonamides
 INSERT INTO dev_combo
 WITH t1
 AS
@@ -2077,17 +2059,15 @@ UPDATE dev_combo
 WHERE concept_id = 529303
 AND   class_code = 'J07AM51';
 
+-- remove wrong rank for the Mono ATC of B03AD02	ferrous fumarate, combinations
 DELETE from dev_combo where class_code = 'B03AD02'
 and rnk = 2;
-
 /***************************************
 ******* relationship_to_concept ********
 ****************************************/
--- add mappings of ATC Drug Attributes to OMOP Equivalents
+-- add mappings of ATC Drug Attributes to OMOP Equivalents (Standard for the Ingredients and valid for the Dose Forms)
 TRUNCATE relationship_to_concept;
 ALTER TABLE relationship_to_concept ALTER COLUMN concept_code_1 TYPE VARCHAR;
-
--- add links between ATC Drug Attributes AND their OMOP equivalents
 INSERT INTO relationship_to_concept
 ( concept_code_1, vocabulary_id_1, concept_id_2)
 SELECT DISTINCT concept_code_2 AS concept_code_1, -- ATC attribute IN the form of OMOP Dose Form OR Ingredient name

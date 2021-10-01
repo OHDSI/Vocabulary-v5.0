@@ -1972,14 +1972,14 @@ SELECT DISTINCT class_code,
          AND class_code NOT IN (SELECT class_code FROM combo_pull) and concept_class_id !~ 'Pack' and concept_name !~ ' \/ '
          AND concept_order <> 11 THEN 1 -- if ATC Mono has an entry in crm, its higher concept_order values have to be converted to 1 as well
          WHEN class_code NOT IN (SELECT class_code FROM combo_pull) AND concept_order = 11 AND concept_name ~ ' / ' THEN 7
-         WHEN concept_class_id ~ 'Pack' THEN 8 -- 14, 15, 16, 17, 18, 
-         WHEN concept_order IN (11,13) THEN 1 -- ATC Class to Drug Product from concept_relationship_manual
-         WHEN concept_order IN (1,12) THEN 2 -- ATC Monocomp Class
+         WHEN concept_class_id ~ 'Pack' THEN 8 -- 14, 15, 16, 17, 18 (note, that 19 doesn't exist) 
+         WHEN concept_order IN (11, 13) THEN 1 -- ATC Class to Drug Product from concept_relationship_manual
+         WHEN concept_order IN (1, 12) THEN 2 -- ATC Monocomp Class
          WHEN concept_order = 20 THEN 3 --  Mono: Ingredient A
-         WHEN concept_order IN (5,6,7) THEN 4 -- ATC Combo Class: Primary lateral + Secondary lateral (2, 3 and 4 ingreds)
-         WHEN concept_order IN (9,10,50,60,70) THEN 5 -- Combo: Ingredient A  OR Group A + group B
-         WHEN concept_order IN (3,4,8) THEN 6 -- ATC Combo Class: Primary lateral in combination | ATC Combo Class: Primary lateral in combination with excluded Ingredient
-         WHEN concept_order IN (2,21,22,23,24) THEN 7 -- 7. Combo: Ingredient A, combination -- 24 - to Ingredients (skipped)
+         WHEN concept_order IN (5, 6, 7) THEN 4 -- ATC Combo Class: Primary lateral + Secondary lateral (2, 3 and 4 ingreds)
+         WHEN concept_order IN (9, 10, 50, 60, 70) THEN 5 -- Combo: Ingredient A  OR Group A + group B
+         WHEN concept_order IN (3, 4, 8) THEN 6 -- ATC Combo Class: Primary lateral in combination | ATC Combo Class: Primary lateral in combination with excluded Ingredient
+         WHEN concept_order IN (2, 21, 22, 23, 24) THEN 7 -- 7. Combo: Ingredient A, combination
        END AS concept_order
 FROM class_to_drug_new
 ; -- 116679

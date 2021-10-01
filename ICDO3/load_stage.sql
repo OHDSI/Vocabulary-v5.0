@@ -411,7 +411,7 @@ create table comb_table as
 select distinct
 	*,
 	histology_behavior || '-' || site as concept_code
-from icdo3_valid_combination c -- !!! modified with usage of a local table 
+from sources.icdo3_valid_combination c  
 ;
 --Old; will be deprecated; transfer combinations to new concepts
 insert into comb_table

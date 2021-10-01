@@ -15,7 +15,7 @@
 *
 * Authors: Anna Ostropolets, Polina Talapova, Timur Vakhitov
 * Date: Oct 2021
-
+* Total script execution time: 4m 58s
 **************************************************************************/
 DO $_$
 BEGIN

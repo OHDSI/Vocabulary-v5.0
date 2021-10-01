@@ -1279,7 +1279,7 @@ SELECT DISTINCT b.concept_code AS class_code,
       c.*,
       13 as concept_order,
       'ATC Class from old class_to_drug'
-FROM sources_class_to_drug_160921 a
+FROM sources_class_to_drug_old a
   JOIN concept_manual b ON b.concept_code = a.class_code
   JOIN concept c
     ON a.concept_id = c.concept_id
@@ -1436,8 +1436,8 @@ SELECT DISTINCT class_code,
        19 as concept_order,
        'Additional Pack: semi-manual contraceptive'
 FROM class_to_drug_new f
-  JOIN devv5.concept_ancestor ca ON ca.ancestor_concept_id = CAST (f.concept_id AS INT)
-  JOIN devv5.concept c
+  JOIN concept_ancestor ca ON ca.ancestor_concept_id = CAST (f.concept_id AS INT)
+  JOIN concept c
     ON c.concept_id = descendant_concept_id
    AND c.concept_class_id LIKE '%Pack%'
 WHERE f.class_code ~ 'G03FB|G03AB'
@@ -1910,17 +1910,17 @@ WHERE concept_class_id ~ '\yComp';
 
 -- remove suspicious mapping of inexistent drugs (this table should be checked before)
 DELETE
---select *
 FROM class_to_drug_new
-WHERE class_code IN (SELECT class_code FROM atc_inexistent); -- 16
+WHERE class_code IN (SELECT class_code FROM atc_inexistent); -- 14
 
 -- remove wrong mappings 
 DELETE
---select *
 FROM class_to_drug_new
-WHERE class_code||concept_code IN (SELECT concept_code_1||concept_code_2
-                                   FROM concept_relationship_manual
-                                   WHERE invalid_reason IS NOT NULL);-- 3
+  WHERE class_code||concept_code IN (
+  SELECT concept_code_1||concept_code_2
+  FROM concept_relationship_manual
+  WHERE invalid_reason IS NOT NULL
+  AND   relationship_id = 'ATC - RxNorm'); -- 0
 
 -- remove dead ATC Classes if any
 DELETE
@@ -1945,7 +1945,7 @@ WHERE CTID NOT IN (SELECT MAX(CTID)
                    GROUP BY class_code,
                             concept_id);
                             
--- assemble the final of class_to_drug table in the following Concept Order:  
+-- usgin the concep_order field from the class_to_drgu_new table, assemble the final table of class_to_drug in the following Concept Order:  
 /*1. Manual
 2. Mono: Ingredient A; form
 3. Mono: Ingredient A
@@ -1963,21 +1963,27 @@ SELECT DISTINCT class_code,
        concept_name,
        concept_class_id,
        CASE
+         WHEN class_code||concept_code IN (SELECT concept_code_1||concept_code_2
+          FROM concept_relationship_manual  WHERE relationship_id = 'ATC - RxNorm' AND invalid_reason IS NULL) 
+         AND class_code IN (SELECT class_code FROM combo_pull) and concept_class_id !~ 'Pack'
+          AND concept_order <> 11 THEN 1 -- if ATC Combo has an entry in crm, its higher concept_order values have to be converted to 1 as well
+           WHEN class_code||concept_code IN (SELECT concept_code_1||concept_code_2
+          FROM concept_relationship_manual  WHERE relationship_id = 'ATC - RxNorm' AND invalid_reason IS NULL) 
+         AND class_code NOT IN (SELECT class_code FROM combo_pull) and concept_class_id !~ 'Pack' and concept_name !~ ' \/ '
+         AND concept_order <> 11 THEN 1 -- if ATC Mono has an entry in crm, its higher concept_order values have to be converted to 1 as well
          WHEN class_code NOT IN (SELECT class_code FROM combo_pull) AND concept_order = 11 AND concept_name ~ ' / ' THEN 7
-         WHEN concept_class_id ~ 'Pack' THEN 8-- 14, 15, 16, 17, 18, 
-         WHEN concept_order IN (11,13) THEN 1-- ATC Class to Drug Product from concept_relationship_manual
-         WHEN concept_order IN (1,12) THEN 2-- ATC Monocomp Class
-         WHEN concept_order = 20 THEN 3--  Mono: Ingredient A
-         WHEN concept_order IN (5,6,7) THEN 4-- ATC Combo Class: Primary lateral + Secondary lateral (2, 3 and 4 ingreds)
-         WHEN concept_order IN (9,10,50,60,70) THEN 5-- Combo: Ingredient A  OR Group A + group B
-         WHEN concept_order IN (3,4,8) THEN 6-- ATC Combo Class: Primary lateral in combination | ATC Combo Class: Primary lateral in combination with excluded Ingredient
-         WHEN concept_order IN (2,21,22,23,24) THEN 7-- 7. Combo: Ingredient A, combination -- 24 - to Ingredients (skipped)
+         WHEN concept_class_id ~ 'Pack' THEN 8 -- 14, 15, 16, 17, 18, 
+         WHEN concept_order IN (11,13) THEN 1 -- ATC Class to Drug Product from concept_relationship_manual
+         WHEN concept_order IN (1,12) THEN 2 -- ATC Monocomp Class
+         WHEN concept_order = 20 THEN 3 --  Mono: Ingredient A
+         WHEN concept_order IN (5,6,7) THEN 4 -- ATC Combo Class: Primary lateral + Secondary lateral (2, 3 and 4 ingreds)
+         WHEN concept_order IN (9,10,50,60,70) THEN 5 -- Combo: Ingredient A  OR Group A + group B
+         WHEN concept_order IN (3,4,8) THEN 6 -- ATC Combo Class: Primary lateral in combination | ATC Combo Class: Primary lateral in combination with excluded Ingredient
+         WHEN concept_order IN (2,21,22,23,24) THEN 7 -- 7. Combo: Ingredient A, combination -- 24 - to Ingredients (skipped)
        END AS concept_order
 FROM class_to_drug_new
-; -- 12
+; -- 116679
 
-DELETE
-FROM class_to_drug
-WHERE concept_class_id ~ 'Comp';
-
--- run load_stage.sql
+/*-- update class_to_drug in the schema of 'sources'
+SELECT * FROM vocabulary_pack.CreateTablesCopiesATC (); 
+-- run load_stage.sql */

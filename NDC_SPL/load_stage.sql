@@ -1961,15 +1961,18 @@ AS (
 	SET concept_name = vocabulary_pack.CutConceptSynonymName(COALESCE(css.synonym_name, cs.concept_name) || ' [Diluent]')
 	FROM ndc_codes nc
 	LEFT JOIN concept_synonym_stage css ON css.synonym_concept_code = nc.concept_code
+		AND css.synonym_name NOT ILIKE '%water%' --exclude water
 	WHERE nc.concept_code = cs.concept_code
 		AND cs.concept_name NOT LIKE '% [Diluent]' --do not mark already marked codes
+		AND cs.concept_name NOT ILIKE '%water%'
 	)
 --update concept_synonym_stage
 UPDATE concept_synonym_stage css
 SET synonym_name = vocabulary_pack.CutConceptSynonymName('Diluent of ' || cs.concept_name)
 FROM concept_stage cs
 JOIN ndc_codes USING (concept_code)
-WHERE cs.concept_code = css.synonym_concept_code;
+WHERE cs.concept_code = css.synonym_concept_code
+	AND cs.concept_name NOT ILIKE '%water%'; --exclude water
 
 --36. Clean up
 DROP FUNCTION GetAggrDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR);

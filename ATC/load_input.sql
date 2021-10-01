@@ -15,7 +15,7 @@
 *
 * Authors: Anna Ostropolets, Polina Talapova
 * Date: Jul 2021
-* Total script execution time: 9m 51s
+* Total script execution time: 21m 27s
 **************************************************************************/
 DROP TABLE IF EXISTS drug_concept_stage CASCADE;
 DROP TABLE IF EXISTS internal_relationship_stage;

@@ -2062,6 +2062,13 @@ AND   class_code = 'J07AM51';
 -- remove wrong rank for the Mono ATC of B03AD02	ferrous fumarate, combinations
 DELETE from dev_combo where class_code = 'B03AD02'
 and rnk = 2;
+
+-- remove duplicates (to do: prevent the entry of duplicates in previous steps)
+DELETE 
+FROM dev_combo
+WHERE ctid NOT IN (SELECT MIN(ctid)
+                   FROM dev_combo
+GROUP BY class_code, class_name, concept_id, rnk);
 /***************************************
 ******* relationship_to_concept ********
 ****************************************/

@@ -15,7 +15,7 @@
 *
 * Authors: Anna Ostropolets, Polina Talapova
 * Date: Jul 2021
-* Total script execution time: 21m 27s
+* Total script execution time: 27m 33s
 **************************************************************************/
 DROP TABLE IF EXISTS drug_concept_stage CASCADE;
 DROP TABLE IF EXISTS internal_relationship_stage;
@@ -1902,8 +1902,7 @@ UPDATE dev_combo
 WHERE class_code = 'R05FB02'
 AND   class = 'cough suppressants'
 AND   concept_id = 1103137
-AND   rnk = 3;           
-             
+AND   rnk = 3;                        
 /*******************************************
 **** ADD ODDMENTS TO THE INPUT TABLES *****
 ********************************************/

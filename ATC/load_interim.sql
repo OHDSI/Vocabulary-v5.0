@@ -2088,6 +2088,7 @@ SELECT DISTINCT class_code,
          WHEN class_code NOT IN (SELECT class_code FROM combo_pull) AND concept_order = 11 AND concept_name ~ ' / ' THEN 7
          WHEN concept_class_id ~ 'Pack' THEN 8 -- 14, 15, 16, 17, 18 (note, that 19 does not exist) 
          WHEN concept_order = 21 AND concept_class_id !~ 'Box|Product' THEN 1 -- ATC Mono out of hierarchy (as manual)
+	 WHEN concept_order = 21 AND concept_class_id ~ 'Box|Product' THEN 7
          WHEN concept_order IN (11, 13) THEN 1 -- ATC Class to Drug Product from concept_relationship_manual
          WHEN concept_order IN (1, 12) THEN 2 -- ATC Monocomp Class
          WHEN concept_order = 20 THEN 3 --  Mono: Ingredient A

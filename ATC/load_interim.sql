@@ -482,7 +482,7 @@ SELECT DISTINCT a.class_code,
        a.valid_start_date,
        a.valid_end_date,
        a.invalid_reason,
-       5,
+       5 AS concept_order,
        'ATC Combo Class: Primary lateral + Secondary lateral, 4 ingreds' AS order_desc
 FROM t1 a
   JOIN t1 b
@@ -533,7 +533,7 @@ SELECT DISTINCT a.class_code,
        a.valid_start_date,
        a.valid_end_date,
        a.invalid_reason,
-       50,
+       50 AS concept_order,
        'ATC Combo Class: Primary lateral + Secondary upward, 4 ingreds' AS order_desc
 FROM t1 a
   JOIN t1 b
@@ -584,7 +584,7 @@ SELECT DISTINCT a.class_code,
        a.valid_start_date,
        a.valid_end_date,
        a.invalid_reason,
-       6,
+       6 AS concept_order,
        'ATC Combo Class: Primary lateral + Secondary lateral, 3 ingreds' AS order_desc
 FROM t1 a
   JOIN t1 b
@@ -626,7 +626,7 @@ SELECT DISTINCT a.class_code,
        a.valid_start_date,
        a.valid_end_date,
        a.invalid_reason,
-       60,
+       60 AS concept_order,
        'ATC Combo Class: Primary lateral + Secondary upward, 3 ingreds' AS order_desc
 FROM t1 a
   JOIN t1 b
@@ -669,7 +669,7 @@ SELECT DISTINCT  a.class_code,
        a.valid_start_date,
        a.valid_end_date,
        a.invalid_reason,
-       7,
+       7 AS concept_order,
        'ATC Combo Class: Primary lateral + Secondary lateral, 2 ingreds' AS order_desc
 FROM t1 a
   JOIN t1 b
@@ -677,10 +677,10 @@ FROM t1 a
    AND b.concept_id = a.concept_id
    AND a.ing_id <> b.ing_id
 WHERE a.rnk = 1
-AND   b.rnk <> 1
-AND   a.class_code NOT IN (SELECT class_code FROM class_to_drug_new)
+AND b.rnk <> 1
+AND a.class_code NOT IN (SELECT class_code FROM class_to_drug_new)
 AND a.class_name NOT LIKE '%,%and%' AND a.class_code !~ '^J07'
-AND   a.class_code||a.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new); -- 2426
+AND a.class_code||a.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new); -- 2426
 
 -- add mappings of Multicomponent ACT Classes of 'Primary lateral' + 'Secondary upward', 2 ingreds' (order = 70)
 INSERT INTO class_to_drug_new
@@ -708,7 +708,7 @@ SELECT DISTINCT  a.class_code,
        a.valid_start_date,
        a.valid_end_date,
        a.invalid_reason,
-       70,
+       70 AS concept_order,
        'ATC Combo Class: Primary lateral + Secondary upward, 2 ingreds' AS order_desc
 FROM t1 a
   JOIN t1 b
@@ -716,8 +716,8 @@ FROM t1 a
    AND b.concept_id = a.concept_id
    AND a.ing_id <> b.ing_id
 WHERE a.rnk = 1
-AND   b.rnk <> 1
-AND   a.class_code||a.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new); -- 0
+AND b.rnk <> 1
+AND a.class_code||a.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new); -- 0
 
 -- add mappings of Multicomponent ACT Classes of 'Primary lateral' in combination with other drugs and an excluded Ingredient (order = 8)
 INSERT INTO class_to_drug_new
@@ -737,7 +737,7 @@ t2 AS
 (SELECT DISTINCT class_code,
        class_name,
        c.*,
-       11,
+       11 AS concept_order,
        b.ing_name
 FROM t1 a
   JOIN rx_all_combo b
@@ -759,8 +759,8 @@ SELECT DISTINCT class_code,
        valid_start_date,
        valid_end_date,
        invalid_reason,
-       8 as concept_order,
-       'ATC Combo Class: Primary lateral in combination with excluded Ingredient'
+       8 AS concept_order,
+       'ATC Combo Class: Primary lateral in combination with excluded Ingredient' AS order_desc
 FROM t2
 WHERE concept_name ~ ' / '
 AND   concept_id NOT IN (SELECT d_id
@@ -788,7 +788,7 @@ FROM atc_all_combo a
   JOIN rx_all_combo b USING (ing_id,df_id)
   JOIN concept c ON c.concept_id = d_id
 WHERE a.class_code IN (SELECT class_code FROM ing_pr_up_sec_up_excl)),
-t2 as ( 
+t2 AS ( 
 SELECT DISTINCT a.class_code,
        a.class_name,
        a.concept_id,
@@ -801,7 +801,7 @@ SELECT DISTINCT a.class_code,
        a.valid_start_date,
        a.valid_end_date,
        a.invalid_reason,
-       0, -- no match up to now, but it can happen in the future
+       0 AS concept_order, -- no match up to now, but it can happen in the future
        'ATC Combo Class: Primary upward + Secondary upward with excluded ingredient' AS order_desc
 FROM t1 a
   JOIN t1 b
@@ -810,7 +810,7 @@ FROM t1 a
    AND a.ing_id <> b.ing_id
 WHERE a.rnk = 3
 AND   b.rnk <> 3)
-SELECT DISTINCT * from t2 
+SELECT DISTINCT * FROM t2 
 WHERE concept_name ~ ' / '
 AND   concept_id NOT IN (SELECT d_id
                          FROM rx_all_combo a
@@ -818,7 +818,7 @@ AND   concept_id NOT IN (SELECT d_id
                              ON LOWER (b.ing_name) = LOWER (a.ing_name)
                             AND LOWER (b.df_name) = LOWER (a.df_name)
                             AND b.rnk = 0)
-AND   class_code||concept_id::varchar NOT IN (SELECT class_code||concept_id::varchar  FROM class_to_drug_new); --0 
+AND   class_code||concept_id::varchar NOT IN (SELECT class_code||concept_id::varchar FROM class_to_drug_new); --0 
 
 -- add mappings of Multicomponent ACT Classes of 'Primary upward' + 'Secondary upward' (order = 9)
 INSERT INTO class_to_drug_new
@@ -847,8 +847,7 @@ FROM t1 a
     ON c.concept_id = b.d_id
    AND c.standard_concept = 'S'
    AND rnk = 3),
-t3
-AS
+t3 AS
 (SELECT DISTINCT a.class_code,
        a.class_name,
        a.ing_name,
@@ -863,7 +862,7 @@ FROM t1 a
    AND rnk = 4) 
 SELECT DISTINCT a.*,
        9 AS concept_order,
-       'ATC Combo Class: Primary upward + Secondary upward'
+       'ATC Combo Class: Primary upward + Secondary upward' AS order_desc
 FROM t2 a
   JOIN t3 b
     ON b.class_code = a.class_code
@@ -906,7 +905,7 @@ WHERE rnk = 4; -- Secondary upward
 -- add Primary lateral AND (Secondary lateral 1 AND/OR Secondary lateral 2) AND/OR Primary upward AND/OR Secondary upward Multicomponent ATC Classes 
 DROP TABLE if exists full_combo;
 CREATE UNLOGGED TABLE full_combo 
-AS(
+AS (
 SELECT DISTINCT a.class_code,
        a.class_name,
        a.concept_id||COALESCE('-' || b.concept_id,'') ||COALESCE('-' || c.concept_id,'') ||COALESCE('-' || c1.concept_id,'') ||COALESCE('-' || d.concept_id,'') AS i_combo
@@ -953,11 +952,11 @@ WHERE i_combo NOT IN (SELECT i_combo FROM full_combo);
 DROP TABLE IF EXISTS permutations;
 CREATE UNLOGGED TABLE permutations 
 AS
-SELECT distinct a.class_code, a.class_name, a.concept_id||COALESCE('-' || b.concept_id, '')||COALESCE('-' || c.concept_id, '') AS i_combo
+SELECT distinct a.class_code, a.class_name, a.concept_id||COALESCE('-'||b.concept_id, '')||COALESCE('-'||c.concept_id, '') AS i_combo
         FROM t1 a -- from Primary lateral
 LEFT JOIN t2 b ON b.class_code = a.class_code -- to the 1st Secondary lateral
 LEFT JOIN t2 c ON c.class_code = a.class_code -- and the 2nd Secondary lateral
-WHERE b.concept_id<>c.concept_id AND b.concept_id<>a.concept_id;
+WHERE b.concept_id <> c.concept_id AND b.concept_id <> a.concept_id;
 
 -- add newly created permutations to the full_combo table in order to enrich the set of aggregated ATC Ingredients
 INSERT INTO full_combo
@@ -966,9 +965,8 @@ SELECT * FROM permutations;
 -- create temporary table with all possible i_combos for Primary lateral in combinations (with unspecified drugs) 
 DROP TABLE if exists ing_pr_lat_combo_to_drug;
 CREATE TABLE ing_pr_lat_combo_to_drug 
-AS
-(WITH z1
-AS
+AS (
+WITH z1 AS
 (SELECT drug_concept_id,
        REGEXP_SPLIT_TO_TABLE(i_combo,'-')::INT AS i_combo
 FROM rx_combo
@@ -983,9 +981,8 @@ FROM ing_pr_lat_combo a
 -- create temporary table with all possible i_combos for Primary lateral + Secondary upward
 DROP TABLE if exists ing_pr_lat_sec_up_combo_to_drug;
 CREATE TABLE ing_pr_lat_sec_up_combo_to_drug 
-AS
-(WITH z1
-AS
+AS (
+WITH z1 AS
 (SELECT drug_concept_id,
        REGEXP_SPLIT_TO_TABLE(i_combo,'-')::INT AS i_combo
 FROM rx_combo
@@ -1016,11 +1013,20 @@ AS
 (SELECT drug_concept_id,
        REGEXP_SPLIT_TO_TABLE(i_combo,'-')::INT AS i_combo
 FROM rx_combo
-WHERE i_combo LIKE '%-%') SELECT DISTINCT a.class_code,a.class_name,d.i_combo FROM ing_pr_lat_combo_excl a JOIN t1 b ON b.i_combo = a.concept_id 
-JOIN ing_pr_lat_combo_excl a1 ON a1.class_code = a.class_code AND a1.rnk <> a.rnk AND a1.rnk = 0 JOIN t1 f ON f.i_combo = a1.concept_id
--- excluded
-JOIN rx_combo d ON d.drug_concept_id = b.drug_concept_id JOIN rx_combo d1 ON d1.drug_concept_id = f.drug_concept_id
--- excluded
+WHERE i_combo LIKE '%-%') 
+ SELECT DISTINCT
+	a.class_code,
+ 	a.class_name,
+ 	d.i_combo 
+ FROM ing_pr_lat_combo_excl a 
+ JOIN t1 b ON b.i_combo = a.concept_id 
+JOIN ing_pr_lat_combo_excl a1 ON a1.class_code = a.class_code 
+ AND a1.rnk <> a.rnk 
+ AND a1.rnk = 0 
+ JOIN t1 f ON f.i_combo = a1.concept_id -- excluded
+JOIN rx_combo d ON d.drug_concept_id = b.drug_concept_id 
+ JOIN rx_combo d1 
+ ON d1.drug_concept_id = f.drug_concept_id -- excluded
 AND d1.drug_concept_id <> d.drug_concept_id);
 
 -- create a temporary table with all possible i_combos for Primary upward + Secondary upward:  ing_pr_sec_up_combo_to_drug
@@ -1087,19 +1093,15 @@ FROM ing_pr_sec_up_combo_excl a
 
 -- add prepared list of aggregated Ingredients of ATC Combo Classes to full_combo
 INSERT INTO full_combo
-SELECT *
-FROM ing_pr_lat_combo_to_drug
+SELECT * FROM ing_pr_lat_combo_to_drug
 UNION
-SELECT *
-FROM ing_pr_lat_combo_excl_to_drug
+SELECT * FROM ing_pr_lat_combo_excl_to_drug
 UNION
-SELECT *
-FROM ing_pr_sec_up_combo_to_drug
+SELECT * FROM ing_pr_sec_up_combo_to_drug
 UNION
-SELECT *
-FROM ing_pr_sec_up_combo_excl_to_drug
+SELECT * FROM ing_pr_sec_up_combo_excl_to_drug
 UNION
-SELECT * from ing_pr_lat_sec_up_combo_to_drug;
+SELECT * FROM ing_pr_lat_sec_up_combo_to_drug;
 
 -- create a table to order aggregated ATC ingredients by an Ingredient
 DROP TABLE IF EXISTS full_combo_reodered;
@@ -1119,10 +1121,11 @@ CREATE INDEX i_full_combo_reodered ON full_combo_reodered (class_code, i_combo);
 DROP TABLE full_combo_with_form;
 CREATE UNLOGGED TABLE full_combo_with_form
 AS
-SELECT DISTINCT a.class_code,
-        a.class_name,
+SELECT DISTINCT 
+       a.class_code,
+       a.class_name,
        a.i_combo,
-       r.concept_id_2::int as df_id
+       r.concept_id_2::int AS df_id
 FROM full_combo_reodered a
   JOIN internal_relationship_stage i ON class_code = substring (concept_code_1, '\w+') -- cut ATC code before space character
   JOIN drug_concept_stage b
@@ -1159,11 +1162,11 @@ CREATE INDEX i_full_combo_with_form ON full_combo_with_form (class_code, i_combo
 INSERT INTO class_to_drug_new
 WITH t1
 AS
-(SELECT c.concept_id,       -- Standard Drug Product
+(SELECT c.concept_id, -- Standard Drug Product
        c.concept_name,
        c.concept_class_id,
        c.vocabulary_id,
-       r.concept_id_2 AS df_id,       -- Dose Form
+       r.concept_id_2 AS df_id, -- Dose Form
        a.i_combo -- combination of Standard Ingredient IDs as a key for join 
        FROM rx_combo a
   JOIN concept c ON c.concept_id = a.drug_concept_id
@@ -1175,18 +1178,20 @@ AND   r.relationship_id = 'RxNorm has dose form'
 AND   r.invalid_reason IS NULL
     )
   SELECT DISTINCT f.class_code, -- ATC
-       c.concept_name as class_name,
+       c.concept_name AS class_name,
        d.*,
        10 AS conept_order,
-       'ATC Combo Class with Dose Form to Clinical Drug Form by additional permutations'
+       'ATC Combo Class with Dose Form to Clinical Drug Form by additional permutations' AS order_desc 
     FROM full_combo_with_form f
-        JOIN concept_manual c on c.concept_code = f.class_code and c.invalid_reason is null and c.concept_class_id = 'ATC 5th'
+        JOIN concept_manual c ON c.concept_code = f.class_code 
+	AND c.invalid_reason IS NULL 
+	AND c.concept_class_id = 'ATC 5th'
   JOIN t1 r
     ON r.i_combo = f.i_combo -- combination of Standard Ingredient IDs 
    AND r.df_id = f.df_id
-   JOIN concept d on d.concept_id = r.concept_id
-   and f.class_code||r.concept_id not in (select class_code||concept_id from class_to_drug_new)
-   and f.class_code  in ( 'J07CA10', 'G03FB09', 'G03FB06', 'G03FB05', 'G03FA12', 'G03FA11','G03FA01', 'G03EA03','A11GB01'); -- 63
+   JOIN concept d ON d.concept_id = r.concept_id
+   AND f.class_code||r.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new)
+   AND f.class_code IN ( 'J07CA10', 'G03FB09', 'G03FB06', 'G03FB05', 'G03FA12', 'G03FA11','G03FA01', 'G03EA03','A11GB01'); -- 63
 
 -- add manual mappings from concept_relationship_manual (order = 11)
 INSERT INTO class_to_drug_new
@@ -1194,7 +1199,7 @@ SELECT DISTINCT a.class_code,
        f.concept_name AS class_name,
        c.*,
        11 AS concept_order,
-       'ATC Class to Drug Product from concept_relationship_manual'
+       'ATC Class to Drug Product from concept_relationship_manual' AS order_desc 
 FROM class_drugs_scraper a
   JOIN concept_relationship_manual b ON b.concept_code_1 = a.class_code
   JOIN concept_manual f
@@ -1206,7 +1211,7 @@ FROM class_drugs_scraper a
    AND c.vocabulary_id IN ('RxNorm', 'RxNorm Extension') 
    AND c.standard_concept = 'S'
    AND (a.class_code,c.concept_id) NOT IN (SELECT class_code,concept_id FROM class_to_drug_new) 
-AND f.invalid_reason IS NULL  AND b.invalid_reason is null
+AND f.invalid_reason IS NULL  AND b.invalid_reason IS null
 AND f.concept_class_id = 'ATC 5th'; -- 7558
 
 -- manual clean up for Precise Ingredients and other particular cases (according to the information on the ATC WHO Website)
@@ -1217,44 +1222,54 @@ OR class_code = 'N05AF02' -- clopentixol
 OR class_code IN ('D07AB02','D07BB04') -- hydrocortisone butyrate + combo that so far doesn't exist
 OR class_code = 'C01DA05' -- pentaerithrityl tetranitrate; oral
 OR (class_code = 'B02BD14'  AND concept_name LIKE '%Tretten%') -- 2 --catridecacog
-OR (class_code IN ('B02BD14','B02BD11') and concept_class_id = 'Ingredient')-- susoctocog alfa | catridecacog
+OR (class_code IN ('B02BD14','B02BD11') AND concept_class_id = 'Ingredient')-- susoctocog alfa | catridecacog
 ; -- 310
 
 -- add additional semi-manual mappings based on pattern-matching  (order = 12)
 INSERT INTO class_to_drug_new
-with t1 as (
-SELECT 'B02BD11' as class_code,'catridecacog' as class_name, concept_id
+with t1 AS (
+SELECT 'B02BD11' AS class_code,'catridecacog' as class_name, concept_id
 FROM concept
-WHERE (vocabulary_id LIKE 'RxNorm%' AND concept_name LIKE 'coagulation factor XIII a-subunit (recombinant)%'
-      AND standard_concept = 'S' AND concept_class_id = 'Clinical Drug')
+WHERE (vocabulary_id LIKE 'RxNorm%' 
+      AND concept_name LIKE 'coagulation factor XIII a-subunit (recombinant)%'
+      AND standard_concept = 'S' 
+      AND concept_class_id = 'Clinical Drug')
    OR concept_id = 35603348 -- the whole hierarchy (factor XIII Injection [Tretten] Branded Drug Form) 
 UNION ALL
 SELECT 'B02BD14','susoctocog alfa', concept_id
 FROM concept
 WHERE (vocabulary_id LIKE 'RxNorm%'
-      AND concept_name LIKE 'antihemophilic factor, porcine B-domain truncated recombinant%' AND standard_concept = 'S' AND concept_class_id = 'Clinical Drug')
+      AND concept_name LIKE 'antihemophilic factor, porcine B-domain truncated recombinant%' 
+      AND standard_concept = 'S' 
+       AND concept_class_id = 'Clinical Drug')
    OR concept_id IN (35603348, 44109089) -- the whole hierarchy
 UNION ALL
 SELECT 'A02BA07','ranitidine bismuth citrate',concept_id
 FROM concept
-WHERE vocabulary_id LIKE 'RxNorm%' AND concept_name LIKE '%Tritec%'
-      AND standard_concept = 'S' AND concept_class_id = 'Branded Drug Form'
+WHERE vocabulary_id LIKE 'RxNorm%' 
+	AND concept_name LIKE '%Tritec%'
+     	AND standard_concept = 'S' 
+	AND concept_class_id = 'Branded Drug Form'
 UNION ALL
 SELECT 'N05AF02','clopenthixol', concept_id
 FROM concept
-WHERE vocabulary_id LIKE 'RxNorm%' AND concept_name ~* 'Sordinol|Ciatyl'
-      AND standard_concept = 'S' AND concept_class_id = 'Branded Drug Form'
+WHERE vocabulary_id LIKE 'RxNorm%' 
+	AND concept_name ~* 'Sordinol|Ciatyl'
+      	AND standard_concept = 'S' 
+	AND concept_class_id = 'Branded Drug Form'
 UNION ALL
 SELECT 'D07AB02','hydrocortisone butyrate',concept_id
 FROM concept
-WHERE vocabulary_id LIKE 'RxNorm%' AND concept_name ~* 'Hydrocortisone butyrate' AND concept_class_id = 'Clinical Drug'
-      AND standard_concept = 'S'
+WHERE vocabulary_id LIKE 'RxNorm%'
+	AND concept_name ~* 'Hydrocortisone butyrate' 
+	AND concept_class_id = 'Clinical Drug'
+     	AND standard_concept = 'S'
       )
 SELECT DISTINCT a.class_code,
        d.concept_name,
        c.*,
-       12 as concept_order,
-       'ATC Class with semi-manual point fix'
+       12 AS concept_order,
+       'ATC Class with semi-manual point fix' AS order_desc
 FROM t1 a
   JOIN concept c ON c.concept_id = a.concept_id
   JOIN concept_manual d
@@ -1265,7 +1280,6 @@ AND a.class_code||c.concept_id NOT IN (SELECT class_code||concept_id FROM class_
       
 -- clean up erroneous amount of ingredients 
 DELETE
---SELECT *
 FROM class_to_drug_new
 WHERE class_name LIKE '%,%and%'
   AND class_name NOT LIKE '%,%,%and%'
@@ -1277,32 +1291,33 @@ INSERT INTO class_to_drug_new
 SELECT DISTINCT b.concept_code AS class_code,
        b.concept_name AS class_name,
       c.*,
-      13 as concept_order,
-      'ATC Class from old class_to_drug'
+      13 AS concept_order,
+      'ATC Class from old class_to_drug' AS order_desc 
 FROM sources_class_to_drug_old a
   JOIN concept_manual b ON b.concept_code = a.class_code
-  JOIN concept c
-    ON a.concept_id = c.concept_id
-   AND c.standard_concept = 'S' and c.concept_class_id !~ 'Pack|Ingredient'
+  JOIN concept c ON c.concept_id = a.concept_id
+   AND c.standard_concept = 'S' 
+   AND c.concept_class_id !~ 'Pack|Ingredient'
    AND b.invalid_reason IS NULL
 WHERE (class_code) NOT IN (SELECT class_code FROM class_to_drug_new)
-AND   class_code NOT IN ('S02CA01','V03AB05','P03AC54','S02CA03','S02CA03')
-AND   (class_code,c.concept_id) NOT IN (
+AND   class_code NOT IN ('S02CA01', 'V03AB05', 'P03AC54', 'S02CA03', 'S02CA03')
+AND   (class_code, c.concept_id) NOT IN (
  SELECT 'A06AA02', 40031558 -- oral - otic
- UNION ALL
+    UNION ALL
  SELECT 'A06AA02', 40031561 -- oral - rectal 
-  UNION ALL
+    UNION ALL
  SELECT 'A06AA02', 40031561 -- oral - enema
-   UNION ALL
+    UNION ALL
  SELECT 'A06AA02', 40723180 -- oral - enema
     UNION ALL
- SELECT 'A06AA02',41080219
+ SELECT 'A06AA02', 41080219 -- oral - enema
     UNION ALL
- SELECT 'A06AA02',41205788
+ SELECT 'A06AA02', 41205788 -- oral - enema
     UNION ALL
- SELECT 'A06AA02',43158334
-     UNION ALL
- SELECT 'A06AA02',40036796); --  235
+ SELECT 'A06AA02', 43158334 -- oral - enema
+    UNION ALL
+ SELECT 'A06AA02', 40036796) -- oral - enema
+ ; --  235
 /**********************
 ****** ADD PACKS ******
 ***********************/
@@ -1311,8 +1326,8 @@ INSERT INTO class_to_drug_new
 SELECT DISTINCT a.class_code,
        a.class_name,
        j.*,
-       14 as concept_order,
-       'Pack: Primary lateral in combo' as order_desc 
+       14 AS concept_order,
+       'Pack: Primary lateral in combo' AS order_desc 
 FROM class_to_drug_new a
   JOIN concept_relationship r ON r.concept_id_1 = a.concept_id
   JOIN concept d
@@ -1327,12 +1342,6 @@ AND   j.concept_class_id IN ('Clinical Pack','Clinical Pack Box','Branded Pack')
 AND   j.standard_concept = 'S'
 AND   a.class_code IN (SELECT class_code
                        FROM ing_pr_lat_combo)
-                       /*dev_combo
-                       WHERE class_code IN (SELECT class_code FROM dev_combo WHERE rnk = 1)
-                       AND   class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 2)
-                       AND   class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 3)
-                       AND   class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 4)
-                       AND   class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 0))*/
 AND   j.concept_name ~ ' / ' -- combos only
 AND   (a.class_code,j.concept_id) NOT IN (SELECT class_code, concept_id FROM class_to_drug_new); -- 1174
 
@@ -1341,8 +1350,8 @@ INSERT INTO class_to_drug_new
 SELECT DISTINCT a.class_code,
        a.class_name,
        j.*,
-       15 as concept_order,
-       'Pack: Primary lateral in combo additional'
+       15 AS concept_order,
+       'Pack: Primary lateral in combo additional' AS order_desc
 FROM class_to_drug_new a
   JOIN concept_relationship r2 ON r2.concept_id_1 = a.concept_id
   JOIN concept j ON j.concept_id = r2.concept_id_2
@@ -1351,12 +1360,6 @@ AND   j.concept_class_id IN ('Clinical Pack','Clinical Pack Box','Branded Pack',
 AND   j.standard_concept = 'S'
 AND   a.class_code IN (SELECT class_code
                        FROM ing_pr_lat_combo)
-                       /*dev_combo
-                       WHERE class_code IN (SELECT class_code FROM dev_combo WHERE rnk = 1)
-                       AND   class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 2)
-                       AND   class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 3)
-                       AND   class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 4)
-                       AND   class_code NOT IN (SELECT class_code FROM dev_combo WHERE rnk = 0)) */
 AND   j.concept_name ~ ' / ' -- combos only
 AND   (a.class_code,j.concept_id) NOT IN (SELECT class_code, concept_id FROM class_to_drug_new); -- 262
 
@@ -1365,8 +1368,8 @@ INSERT INTO class_to_drug_new
 SELECT DISTINCT a.class_code,
        a.class_name,
        j.*,
-       16 as concept_order,
-       'Pack: Primary lateral + Secondary lateral'
+       16 AS concept_order,
+       'Pack: Primary lateral + Secondary lateral' AS order_desc
 FROM class_to_drug_new a
   JOIN concept_relationship r ON r.concept_id_1 = a.concept_id
   JOIN concept d
@@ -1389,8 +1392,8 @@ INSERT INTO class_to_drug_new
 SELECT DISTINCT a.class_code,
        a.class_name,
        j.*,
-       17 as concept_order,
-       'Pack: Primary lateral + Secondary upward'
+       17 AS concept_order,
+       'Pack: Primary lateral + Secondary upward' AS order_desc
 FROM class_to_drug_new a
   JOIN concept_relationship r ON r.concept_id_1 = a.concept_id
   JOIN concept d
@@ -1413,8 +1416,8 @@ INSERT INTO class_to_drug_new
 SELECT DISTINCT b.concept_code AS class_code,
        b.concept_name AS class_name,
        c.*,
-       18 as concept_order,
-       'Additional Pack: from old c_t_d'
+       18 AS concept_order,
+       'Additional Pack: from old c_t_d' AS order_desc
 FROM sources_class_to_drug_160921 a
   JOIN concept_manual b ON b.concept_code = a.class_code
   JOIN concept c
@@ -1427,14 +1430,14 @@ AND   a.class_code NOT IN ('G01AF55','S03CA04','S01CA03','S02CA03')-- gives pack
 AND   a.class_code NOT IN ('B03AE01','C07BB52','D01AC52','C10AD52') -- wrong ing combo 
 ; -- 289
 
--- еnrich pool of links to Packs for 'G03FB Progestogens and estrogens, sequential preparations' AND 'G03AB Progestogens and estrogens, sequential preparations' 
+-- еnrich the pool of links to Packs for 'G03FB Progestogens and estrogens, sequential preparations' AND 'G03AB Progestogens and estrogens, sequential preparations' 
 -- they are always used as packs (order = 19)
 INSERT INTO class_to_drug_new
 SELECT DISTINCT class_code,
        class_name,
        c.*,
-       19 as concept_order,
-       'Additional Pack: semi-manual contraceptive'
+       19 AS concept_order,
+       'Additional Pack: semi-manual contraceptive' AS order_desc
 FROM class_to_drug_new f
   JOIN concept_ancestor ca ON ca.ancestor_concept_id = CAST (f.concept_id AS INT)
   JOIN concept c
@@ -1452,19 +1455,25 @@ AND   concept_class_id !~ 'Pack'; -- 81
 --  add links from ATC Classes WO Dose Forms specified, however their possible ancestors are unique (order = 20)
 INSERT INTO class_to_drug_new
 	WITH ing AS (
-SELECT concept_id_2,concept_code_1, count(concept_id_2)  AS cnt
+SELECT  concept_id_2,
+	concept_code_1, 
+	COUNT(concept_id_2) AS cnt
 FROM (
-  SELECT DISTINCT substring(i.concept_code_1,'\w+'), r.concept_code_1, concept_id_2
+  SELECT DISTINCT substring(i.concept_code_1,'\w+'), 
+		  r.concept_code_1, 
+		  concept_id_2
 FROM relationship_to_concept r
-JOIN internal_relationship_stage i on i.concept_code_2 = r.concept_code_1
-JOIN drug_concept_stage d on d.concept_code = i.concept_code_2 AND d.concept_class_id = 'Ingredient'
- ) a GROUP BY concept_id_2,concept_code_1 ),
+JOIN internal_relationship_stage i ON i.concept_code_2 = r.concept_code_1
+JOIN drug_concept_stage d ON d.concept_code = i.concept_code_2
+			 AND d.concept_class_id = 'Ingredient') a 
+	GROUP BY concept_id_2, concept_code_1),
 drug AS (
-    SELECT DISTINCT substring(concept_code_1,'\w+') AS code,concept_code_2
+    SELECT DISTINCT SUBSTRING(concept_code_1,'\w+') AS code,
+		    concept_code_2
 FROM internal_relationship_stage i
-WHERE not exists (SELECT 1 FROM internal_relationship_stage i2
-                           WHERE i.concept_code_2=i2.concept_code_2
-                           AND substring(i.concept_code_1,'\w+')!=substring(i2.concept_code_1,'\w+'))
+WHERE NOT EXISTS (SELECT 1 FROM internal_relationship_stage i2
+                           WHERE i.concept_code_2 = i2.concept_code_2
+                           AND substring(i.concept_code_1,'\w+') != substring(i2.concept_code_1,'\w+'))
 ),
 drug_name AS (
 SELECT DISTINCT class_code,class_name, concept_id_2
@@ -1477,19 +1486,18 @@ AND code NOT IN (SELECT class_code FROM class_to_drug_new)
 all_drug AS (
 SELECT class_code, class_name, concept_id, count(concept_id_2) OVER (PARTITION BY class_code) AS cnt
 FROM drug_name a
-JOIN concept c on c.concept_id = a.concept_id_2
+JOIN concept c ON c.concept_id = a.concept_id_2
 )
 SELECT DISTINCT a.class_code,
        b.concept_name,
        c.*,
-       20 as concept_order,
+       20 AS concept_order,
        'ATC Mono WO Dose Form to Ingredient'
 FROM all_drug a
-join concept_manual b on b.concept_code = a.class_code and b.invalid_reason is null
-join concept c on c.concept_id = a.concept_id
+JOIN concept_manual b ON b.concept_code = a.class_code AND b.invalid_reason IS null
+JOIN concept c ON c.concept_id = a.concept_id
 WHERE cnt = 1
-AND   (class_code) NOT IN (SELECT class_code FROM class_to_drug_new); -- 5 */ -- to check
-
+AND (class_code) NOT IN (SELECT class_code FROM class_to_drug_new); -- 5
 
 -- add those which are absent in the drug hierarchy
 -- step 1
@@ -1508,7 +1516,7 @@ AS
 FROM concept c
 WHERE domain_id = 'Drug'
 AND   concept_id NOT IN (SELECT descendant_concept_id FROM no_atc_1)
-AND   c.vocabulary_id IN ('RxNorm','RxNorm Extension')
+AND   c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
 AND   c.concept_class_id != 'Ingredient'
 AND   c.standard_concept = 'S');
 
@@ -1589,16 +1597,16 @@ CREATE INDEX i_no_atc_full_combo ON no_atc_full_combo (concept_id, i_combo,df_id
 
 -- add mappings of ATC Combo Class to Drug Product which is out of drug hierarchy (order = 22)
 INSERT INTO class_to_drug_new
-  SELECT DISTINCT k.concept_code as class_code, -- ATC
-       k.concept_name as class_name,
+  SELECT DISTINCT k.concept_code AS class_code, -- ATC
+       k.concept_name AS class_name,
        d.*,
        22 AS conept_order,
-       'ATC Combo Class to Drug Product which is out of drug hierarchy'
+       'ATC Combo Class to Drug Product which is out of drug hierarchy' AS order_desc
     FROM no_atc_full_combo f
-        JOIN full_combo_with_form c on c.i_combo = f.i_combo and c.df_id = f.df_id is null 
-        join concept_manual k on k.concept_code = c.class_code and k.concept_class_id = 'ATC 5th' and k.invalid_reason is null
-   JOIN concept d on d.concept_id = f.concept_id
-   and c.class_code||d.concept_id not in (select class_code||concept_id from class_to_drug_new); -- 6188
+        JOIN full_combo_with_form c ON c.i_combo = f.i_combo AND c.df_id = f.df_id IS null 
+        JOIN concept_manual k ON k.concept_code = c.class_code AND k.concept_class_id = 'ATC 5th' AND k.invalid_reason IS null
+   JOIN concept d ON d.concept_id = f.concept_id
+   AND c.class_code||d.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new); -- 6188
    
 -- ATC Combo Class to Drug Product which is out of drug hierarchy (order = 23)
 INSERT INTO class_to_drug_new
@@ -1606,7 +1614,7 @@ SELECT DISTINCT b.concept_code,
        b.concept_name,
        c.*,
        23 AS conept_order,
-       'ATC Combo Class to Drug Product which is out of drug hierarchy'
+       'ATC Combo Class to Drug Product which is out of drug hierarchy' AS order_desc
 FROM missing a
   JOIN concept_manual b
     ON b.concept_code = a.atc_code
@@ -1620,10 +1628,9 @@ WITH t1 AS
 (
   SELECT *
   FROM class_to_drug_new
-  where  concept_class_id ~ 'Pack')
-delete from class_to_drug_new where class_code||concept_id in ( 
-SELECT a1.class_code||
-       a2.concept_id
+  WHERE  concept_class_id ~ 'Pack')
+DELETE FROM class_to_drug_new WHERE class_code||concept_id IN ( 
+SELECT a1.class_code||a2.concept_id
 FROM t1 a1-- papa 
   JOIN t1 a2 -- child
 ON a1.class_code = a2.class_code
@@ -1631,9 +1638,9 @@ ON a1.class_code = a2.class_code
     ON a1.concept_id = ca.ancestor_concept_id
    AND a2.concept_id = ca.descendant_concept_id
    AND a1.concept_id <> a2.concept_id
-   and a2.concept_class_id ~ 'Pack'
-     AND a1.class_code not in ('A02BA07','B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02' ))-- susoctocog alfa; parenteral, topical, urethral | norgestrel and estrogen | 	varicella, live attenuated; systemic); -- 2558 
-   ; -- 3920
+   AND a2.concept_class_id ~ 'Pack'
+     AND a1.class_code NOT IN ('A02BA07','B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02') -- susoctocog alfa; parenteral, topical, urethral | norgestrel and estrogen | 	varicella, live attenuated; systemic); -- 2558 
+  ); -- 3920
    
 -- remove excessive links to children among unpacked Drug Products
 WITH t0 AS
@@ -1642,15 +1649,14 @@ WITH t0 AS
   FROM class_to_drug_new
   WHERE  concept_class_id !~ 'Pack'
 ),
-t1 as (
-select * from t0 where class_code IN (SELECT class_code
+t1 AS (
+SELECT * FROM t0 WHERE class_code IN (SELECT class_code
                        FROM class_to_drug_new
                        GROUP BY class_code
                        HAVING COUNT(1) >= 2))
 DELETE
 FROM class_to_drug_new where class_code||concept_id IN ( 
-SELECT a1.class_code||
-       a2.concept_id -- child mapping
+SELECT a1.class_code||a2.concept_id -- child mapping
 FROM t1 a1-- papa 
   JOIN t1 a2 -- child
 ON a1.class_code = a2.class_code
@@ -1658,9 +1664,9 @@ ON a1.class_code = a2.class_code
     ON a1.concept_id = ca.ancestor_concept_id
    AND a2.concept_id = ca.descendant_concept_id
    AND a1.concept_id <> a2.concept_id
-   and a2.concept_class_id !~ 'Pack'
-   AND a1.class_code NOT IN ('A02BA07','B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02')) -- catridecacog | susoctocog alfa; parenteral, topical, urethral | norgestrel and estrogen | 	varicella, live attenuated; systemic |zoster, live attenuated; systemic
-   ;-- 10432
+   AND a2.concept_class_id !~ 'Pack'
+   AND a1.class_code NOT IN ('A02BA07','B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02') -- catridecacog|susoctocog alfa; parenteral, topical, urethral | norgestrel and estrogen | 	varicella, live attenuated; systemic |zoster, live attenuated; systemic
+   );-- 10432
    
 -- clean up the same issue among exclusions 
 WITH t0 AS
@@ -1668,17 +1674,16 @@ WITH t0 AS
   SELECT *
   FROM class_to_drug_new
   WHERE  concept_class_id !~ 'Pack'
-  AND class_code  IN ('A02BA07','B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02')
+  AND class_code  IN ('A02BA07', 'B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02')
 ),
-t1 as (
-select * from t0 where class_code IN (SELECT class_code
+t1 AS (
+SELECT * FROM t0 WHERE class_code IN (SELECT class_code
                        FROM class_to_drug_new
                        GROUP BY class_code
                        HAVING COUNT(1) >= 2))
 DELETE
 FROM class_to_drug_new where class_code||concept_id IN ( 
-SELECT a1.class_code||
-       a1.concept_id -- papa mapping
+SELECT a1.class_code||a1.concept_id -- papa mapping
 FROM t1 a1-- papa 
   JOIN t1 a2 -- child
 ON a1.class_code = a2.class_code
@@ -1686,9 +1691,9 @@ ON a1.class_code = a2.class_code
     ON a1.concept_id = ca.ancestor_concept_id
    AND a2.concept_id = ca.descendant_concept_id
    AND a1.concept_id <> a2.concept_id
-   and a2.concept_class_id !~ 'Pack'
-   AND a1.class_code  IN ('A02BA07','B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02')
-   ); -- catridecacog | susoctocog alfa; parenteral, topical, urethral | norgestrel and estrogen |varicella, live attenuated; systemic |zoster, live attenuated; systemic
+   AND a2.concept_class_id !~ 'Pack'
+   AND a1.class_code  IN ('A02BA07', 'B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02', 'J07BB01', 'N05AF02')
+   ); -- catridecacog|susoctocog alfa; parenteral, topical, urethral|norgestrel and estrogen|varicella, live attenuated; systemic|zoster, live attenuated; systemic
  
 -- clean up the same issue among exclusions - Packs
 WITH t0 AS
@@ -1696,18 +1701,17 @@ WITH t0 AS
   SELECT *
   FROM class_to_drug_new
   WHERE  concept_class_id ~ 'Pack'
-  AND class_code  IN ('A02BA07','B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02')
+  AND class_code  IN ('A02BA07', 'B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02', 'J07BB01', 'N05AF02')
 ),
-t1 as (
-select * from t0 where class_code IN (SELECT class_code
+t1 AS (
+SELECT * FROM t0 WHERE class_code IN (SELECT class_code
                        FROM class_to_drug_new
                        GROUP BY class_code
                        HAVING COUNT(1) >= 2))
 DELETE
 FROM class_to_drug_new where class_code||concept_id IN ( 
-SELECT a1.class_code||
-       a1.concept_id -- papa mapping
-FROM t1 a1-- papa 
+SELECT a1.class_code||a1.concept_id -- papa mapping
+FROM t1 a1 -- papa 
   JOIN t1 a2 -- child
 ON a1.class_code = a2.class_code
   JOIN concept_ancestor ca
@@ -1716,28 +1720,27 @@ ON a1.class_code = a2.class_code
    AND a1.concept_id <> a2.concept_id
    and a2.concept_class_id ~ 'Pack'
    AND a1.class_code  IN ('A02BA07','B02BD11', 'B02BD14', 'J07BK01', 'J07BK02', 'J07AE02','J07BB01','N05AF02')
-   ) -- catridecacog | susoctocog alfa; parenteral, topical, urethral | norgestrel and estrogen | 	varicella, live attenuated; systemic |zoster, live attenuated; systemic
+   ) -- catridecacog|susoctocog alfa; parenteral, topical, urethral|norgestrel and estrogen|varicella, live attenuated; systemic|zoster, live attenuated; systemic
    ;-- 19
 /***************************
 ******** DF CLEAN UP *******
 ****************************/
 -- clean up oral forms
 DROP TABLE IF EXISTS wrong_df;
-CREATE TABLE wrong_df as (
-SELECT *, 'oral mismatch' as issue_desc
+CREATE TABLE wrong_df AS (
+SELECT *, 'oral mismatch' AS issue_desc
 FROM class_to_drug_new
 WHERE SPLIT_PART(class_name,';',2) ~ 'oral'
 AND   concept_name !~* 'oral|chew|tooth|mouth|elixir|Extended Release Suspension|buccal|Sublingual|Paste|Mucosal|Prefilled Syringe|\...|Oral Ointment|Oral Cream'
 AND   class_name !~ 'rectal|topical|inhalant|parenteral|transdermal|otic|vaginal|local oral|nasal'
 AND   concept_class_id !~ 'Pack|Ingredient|Clinical Drug Comp'
-AND   class_code NOT IN ('A01AA04','A01AA02','G04BD08')
-);
+AND   class_code NOT IN ('A01AA04', 'A01AA02', 'G04BD08'));
 
 INSERT INTO wrong_df
-select *, 'vaginal mismatch' from class_to_drug_new  where class_name ~ 'vaginal' 
-and concept_name !~* 'vaginal|topical|mucosal|Drug Implant|Douche|Irrigation Solution'
-and class_name !~ 'oral|topical|inhalant|parenteral|transdermal|otic|rectal|local oral|systemic' 
-and concept_class_id !~ 'Pack|Ingredient|Clinical Drug Comp'; -- 1
+SELECT *, 'vaginal mismatch' FROM class_to_drug_new  WHERE class_name ~ 'vaginal' 
+AND concept_name !~* 'vaginal|topical|mucosal|Drug Implant|Douche|Irrigation Solution'
+AND class_name !~ 'oral|topical|inhalant|parenteral|transdermal|otic|rectal|local oral|systemic' 
+AND concept_class_id !~ 'Pack|Ingredient|Clinical Drug Comp'; -- 1
 
 -- clean up rectal forms
 INSERT INTO wrong_df
@@ -1762,7 +1765,7 @@ AND   concept_class_id !~ 'Pack|Ingredient|Clinical Drug Comp';
 INSERT INTO wrong_df
 SELECT *, 'local oral mismatch' 
 FROM class_to_drug_new
-WHERE class_name ~ 'local oral' and class_name !~ 'oral, local oral'
+WHERE class_name ~ 'local oral' AND class_name !~ 'oral, local oral'
 AND   concept_name !~* 'mouth|topical|paste|irrig|Lozenge|gum|buccal|Suspension|solution|subl|Gel|spray|Disintegrating Oral Tablet|Effervescent Oral Tablet|Oral Powder|Chewable Tablet|Oral Film|Oral Granules'
 AND   concept_class_id !~ 'Pack|Ingredient|Clinical Drug Comp';
 
@@ -1842,7 +1845,7 @@ AND   concept_name !~* '\...$|\...\) \} Pack$|oral|rectal|inject|chew|Cartridge|
 AND   class_name !~* 'rectal|nasal|vaginal|topical'
 AND   concept_name !~* 'Alfentanil|amyl nitrite|Chloroform|dihydroergotamine|estradiol|fentanyl|Furosemide|gonadorelin|Isosorbide Dinitrate|Ketamine|ketorolac|midazolam|naloxone|Thyrotropin-Releasing Hormone|succimer Kit for radiopharmaceutical preparation'
 AND   concept_class_id ~ 'Pack'
-and class_code not in ('R03AC130');   -- formoterol Powder for Oral Suspension|
+AND class_code NOT IN ('R03AC130');   -- formoterol Powder for Oral Suspension|
 
 -- clean up systemic packs 2 -  check This next time
 INSERT INTO wrong_df
@@ -1862,14 +1865,14 @@ FROM class_to_drug_new
 WHERE class_name ~ 'vaginal ring'
 AND   concept_name !~* 'ring|insert|system|implant';
 
-DELETE FROM wrong_df where class_code in ( 'C02AC01', 'G03GA08', 'R03AC13');
+DELETE FROM wrong_df WHERE class_code IN ( 'C02AC01', 'G03GA08', 'R03AC13');
 
 -- look at them and remove from class_to_drug_new
 DELETE
 FROM class_to_drug_new
 WHERE class_code||concept_id IN (SELECT class_code||concept_id FROM wrong_df); -- 891
       
--- add links from ATC Combo Classes which do not have Dose Forms to Ingredients (do we need them?) order = 24
+-- add links from ATC Combo Classes which do not have Dose Forms to Ingredients (order = 24)
 INSERT INTO class_to_drug_new 
 WITH t1
 AS
@@ -1884,8 +1887,8 @@ AND   concept_code NOT IN (SELECT class_code FROM atc_inexistent)
 SELECT DISTINCT a.concept_code,
        a.concept_name,
        c.*,
-       24 as concept_order,
-       'ATC Combo Class to Ingredient'
+       24 AS concept_order,
+       'ATC Combo Class to Ingredient' AS order_desc
 FROM t1 a
   JOIN dev_combo k
     ON k.class_code = a.concept_code
@@ -1894,7 +1897,7 @@ FROM t1 a
     ON c.concept_id = k.concept_id
    AND c.concept_class_id = 'Ingredient'
    AND c.standard_concept = 'S'
-   and a.concept_code||c.concept_id not in (select class_code||concept_id from class_to_drug_new);--314
+   AND a.concept_code||c.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new);--314
    
 -- wrong match
 DELETE
@@ -1912,7 +1915,7 @@ DELETE
 FROM class_to_drug_new
 WHERE concept_class_id ~ '\yComp';
 
--- remove suspicious mapping of inexistent drugs (this table should be checked before)
+-- remove suspicious mapping of inexistent drugs (atc_inexistent should be checked before)
 DELETE
 FROM class_to_drug_new
 WHERE class_code IN (SELECT class_code FROM atc_inexistent); -- 14
@@ -1959,6 +1962,7 @@ WHERE CTID NOT IN (SELECT MAX(CTID)
 7. Combo: Ingredient A, combination
 8. Any packs*/
 
+-- be sure, that you have a backup of class_to_drug
 TRUNCATE TABLE class_to_drug;
 INSERT INTO class_to_drug
 SELECT DISTINCT class_code,
@@ -1969,21 +1973,21 @@ SELECT DISTINCT class_code,
        CASE
          WHEN class_code||concept_code IN (SELECT concept_code_1||concept_code_2
           FROM concept_relationship_manual  WHERE relationship_id = 'ATC - RxNorm' AND invalid_reason IS NULL) 
-         AND class_code IN (SELECT class_code FROM combo_pull) and concept_class_id !~ 'Pack'
+         AND class_code IN (SELECT class_code FROM combo_pull) AND concept_class_id !~ 'Pack'
           AND concept_order <> 11 THEN 1 -- if ATC Combo has an entry in crm, its higher concept_order values have to be converted to 1 as well
            WHEN class_code||concept_code IN (SELECT concept_code_1||concept_code_2
           FROM concept_relationship_manual  WHERE relationship_id = 'ATC - RxNorm' AND invalid_reason IS NULL) 
-         AND class_code NOT IN (SELECT class_code FROM combo_pull) and concept_class_id !~ 'Pack' and concept_name !~ ' \/ '
+         AND class_code NOT IN (SELECT class_code FROM combo_pull) AND concept_class_id !~ 'Pack' AND concept_name !~ ' \/ '
          AND concept_order <> 11 THEN 1 -- if ATC Mono has an entry in crm, its higher concept_order values have to be converted to 1 as well
          WHEN class_code NOT IN (SELECT class_code FROM combo_pull) AND concept_order = 11 AND concept_name ~ ' / ' THEN 7
-         WHEN concept_class_id ~ 'Pack' THEN 8 -- 14, 15, 16, 17, 18 (note, that 19 doesn't exist) 
+         WHEN concept_class_id ~ 'Pack' THEN 8 -- 14, 15, 16, 17, 18 (note, that 19 does not exist) 
          WHEN concept_order IN (11, 13) THEN 1 -- ATC Class to Drug Product from concept_relationship_manual
          WHEN concept_order IN (1, 12) THEN 2 -- ATC Monocomp Class
          WHEN concept_order = 20 THEN 3 --  Mono: Ingredient A
-         WHEN concept_order IN (5, 6, 7) THEN 4 -- ATC Combo Class: Primary lateral + Secondary lateral (2, 3 and 4 ingreds)
+         WHEN concept_order IN (5, 6, 7) THEN 4 -- ATC Combo Class: Primary lateral + Secondary lateral (2, 3 and 4 ingredients)
          WHEN concept_order IN (9, 10, 50, 60, 70) THEN 5 -- Combo: Ingredient A  OR Group A + group B
          WHEN concept_order IN (3, 4, 8) THEN 6 -- ATC Combo Class: Primary lateral in combination | ATC Combo Class: Primary lateral in combination with excluded Ingredient
-         WHEN concept_order IN (2, 21, 22, 23, 24) THEN 7 -- 7. Combo: Ingredient A, combination
+         WHEN concept_order IN (2, 21, 22, 23, 24) THEN 7 -- Combo: Ingredient A, combination
        END AS concept_order
 FROM class_to_drug_new
 ; -- 116679

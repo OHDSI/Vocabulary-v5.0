@@ -1563,6 +1563,42 @@ AND   k.concept_class_id = 'ATC 5th'
 AND   k.concept_code NOT IN (SELECT class_code FROM dev_combo)
 AND   k.concept_code||p.concept_id NOT IN (SELECT class_code||concept_id FROM class_to_drug_new);--6107
 
+-- add Clinical or Branded Drug Forms as descendants of non-to-Form mappings if they present in the concept_ancestor table 
+-- simultaneous child-parent maps will be deleted in further steps
+INSERT INTO class_to_drug_new
+SELECT DISTINCT a.class_code,
+       a.class_name,
+       c.*,
+       21 AS concept_order,
+       'ATC Monocomp Class to Drug Product which is out of hierarchy'
+FROM class_to_drug_new a
+  JOIN concept_ancestor ca ON ca.descendant_concept_id = concept_id
+  JOIN concept c
+    ON c.concept_id = ca.ancestor_concept_id
+   AND c.concept_class_id ~ 'Form'
+   AND c.standard_concept = 'S'
+WHERE concept_order = 21
+AND NOT EXISTS (SELECT 1 FROM class_to_drug_new x WHERE x.class_code||x.concept_id = a.class_code||c.concept_id)
+AND   c.domain_id = 'Drug'; -- 271
+
+-- add descendants of other non-to-Form mappings (in class_to_drug_new) if they present in concept_ancestor (abundant child-parent mappings will be deleted in further steps)
+INSERT INTO class_to_drug_new
+SELECT DISTINCT a.class_code,
+       a.class_name, 
+       c.*,
+       a.concept_order,
+       a.order_desc
+FROM class_to_drug_new a
+  JOIN concept_ancestor ca ON ca.descendant_concept_id = concept_id
+  JOIN concept c
+    ON c.concept_id = ca.ancestor_concept_id
+   AND c.concept_class_id ~ 'Form' and a.concept_class_id !~ 'Form'
+   AND c.standard_concept = 'S'
+WHERE 
+  c.domain_id = 'Drug' AND a.class_code NOT IN (SELECT class_code
+  FROM combo_pull) AND NOT EXISTS (SELECT 1 FROM class_to_drug_new x WHERE x.class_code||x.concept_id = a.class_code||c.concept_id)
+  AND a.class_code NOT IN ('B02BD11', 'B02BD14', 'D07AB02'); -- intentionally excluded 	catridecacog|susoctocog alfa|hydrocortisone butyrate -- no such Precise Ingredients connected to Dose Forms
+  
 -- obtain more ATC Combo classes 
 DROP TABLE no_atc_full_combo;
 CREATE TABLE no_atc_full_combo 
@@ -1928,6 +1964,48 @@ FROM class_to_drug_new
   FROM concept_relationship_manual
   WHERE invalid_reason IS NOT NULL
   AND   relationship_id = 'ATC - RxNorm'); -- 0
+  
+  -- clean up wrong vaccine mappings (they should be processed manually and be stored in CRM)
+-- firstly, drop wrong mono-vaccines         
+DELETE
+FROM class_to_drug_new
+WHERE class_code ~ '^J07'
+AND   class_code||concept_code NOT IN (SELECT concept_code_1||concept_code_2 -- not in crm
+                                       FROM concept_relationship_manual
+                                       WHERE relationship_id = 'ATC - RxNorm'
+                                       AND   invalid_reason IS NULL)
+                                       AND   concept_name !~ ' / '
+AND   concept_name !~ 'bivalent|trivalent|pentavalent'
+AND   class_code NOT IN ('J07AC01', 'J07BX03', 'J07BA01', 'J07BC02', 'J07AL01','J07AP02', 'J07CA10');
+
+-- secondly, drop wrong combo-vaccines         
+DELETE
+FROM class_to_drug_new
+WHERE class_code ~ '^J07'
+AND   class_code||concept_code NOT IN (SELECT concept_code_1||concept_code_2
+                                       FROM concept_relationship_manual
+                                       WHERE relationship_id = 'ATC - RxNorm'
+                                       AND   invalid_reason IS NULL)
+AND   concept_name ~ ' / '
+AND   class_code NOT IN ('J07AC01', 'J07BX03', 'J07BA01', 'J07BC02', 'J07AL01','J07AP02', 'J07CA10', 'J07AM51', 'J07BJ51', 'J07AJ52', 'J07AJ51', 'J07AH08', 'J07BD52', 'J07CA02', 'J07BD54'); -- 1220
+
+-- wrong mono hepatitis A          
+DELETE
+FROM class_to_drug_new
+WHERE class_code = 'J07BC02'
+AND   concept_name ~ ' / ';
+
+-- wrong mono typhoid        
+DELETE
+FROM class_to_drug_new
+WHERE class_code = 'J07AP02'
+AND   concept_name ~ ' / ';
+
+-- wrong mono pneumococcus
+DELETE
+FROM class_to_drug_new
+WHERE class_code = 'J07AL01'
+AND   concept_name ~ ' / '; -- 8 
 
 -- remove dead ATC Classes if any
 DELETE
@@ -1953,7 +2031,36 @@ WHERE CTID NOT IN (SELECT MAX(CTID)
                             concept_id);
                             
 -- usgin the concep_order field from the class_to_drgu_new table, assemble the final table of class_to_drug and re-assign concept_order value in the following way:  
-/*1. Manual
+/*
+--==== class_to_drug_new ====--
+1	ATC Monocomp Class
+2	Greedy ATC Monocomp Class
+3	ATC Combo Class: Primary lateral in combination
+4	ATC Combo Class: Primary upward in combination
+5	ATC Combo Class: Primary lateral + Secondary lateral, 4 ingreds
+50	ATC Combo Class: Primary lateral + Secondary upward, 4 ingreds
+6	ATC Combo Class: Primary lateral + Secondary lateral, 3 ingreds
+60	ATC Combo Class: Primary lateral + Secondary upward, 3 ingreds
+7	ATC Combo Class: Primary lateral + Secondary lateral, 2 ingreds
+70	ATC Combo Class: Primary lateral + Secondary upward, 2 ingreds
+8	ATC Combo Class: Primary lateral in combination with excluded Ingredient
+9	ATC Combo Class: Primary upward + Secondary upward
+10	ATC Combo Class with Dose Form to Clinical Drug Form by additional permutations
+11	ATC Class to Drug Product from concept_relationship_manual
+12	ATC Class with semi-manual point fix
+13	ATC Class from old class_to_drug
+14	Pack: Primary lateral in combo
+16	Pack: Primary lateral + Secondary lateral
+17	Pack: Primary lateral + Secondary upward
+18	Additional Pack: from old c_t_d
+20	ATC Mono WO Dose Form to Ingredient
+21	ATC Monocomp Class to Drug Product which is out of hierarchy
+22	ATC Combo Class to Drug Product which is out of drug hierarchy
+23	ATC Combo Class to Drug Product which is out of drug hierarchy
+24	ATC Combo Class to Ingredient
+
+--==== class_to_drug ====--
+1. Manual
 2. Mono: Ingredient A; form
 3. Mono: Ingredient A
 4. Combo: Ingredient A + Ingredient B
@@ -1962,7 +2069,6 @@ WHERE CTID NOT IN (SELECT MAX(CTID)
 7. Combo: Ingredient A, combination
 8. Any packs*/
 
--- be sure, that you have a backup of class_to_drug
 TRUNCATE TABLE class_to_drug;
 INSERT INTO class_to_drug
 SELECT DISTINCT class_code,
@@ -1981,16 +2087,48 @@ SELECT DISTINCT class_code,
          AND concept_order <> 11 THEN 1 -- if ATC Mono has an entry in crm, its higher concept_order values have to be converted to 1 as well
          WHEN class_code NOT IN (SELECT class_code FROM combo_pull) AND concept_order = 11 AND concept_name ~ ' / ' THEN 7
          WHEN concept_class_id ~ 'Pack' THEN 8 -- 14, 15, 16, 17, 18 (note, that 19 does not exist) 
+         WHEN concept_order = 21 AND concept_class_id !~ 'Box|Product' THEN 1 -- ATC Mono out of hierarchy (as manual)
          WHEN concept_order IN (11, 13) THEN 1 -- ATC Class to Drug Product from concept_relationship_manual
          WHEN concept_order IN (1, 12) THEN 2 -- ATC Monocomp Class
          WHEN concept_order = 20 THEN 3 --  Mono: Ingredient A
          WHEN concept_order IN (5, 6, 7) THEN 4 -- ATC Combo Class: Primary lateral + Secondary lateral (2, 3 and 4 ingredients)
          WHEN concept_order IN (9, 10, 50, 60, 70) THEN 5 -- Combo: Ingredient A  OR Group A + group B
          WHEN concept_order IN (3, 4, 8) THEN 6 -- ATC Combo Class: Primary lateral in combination | ATC Combo Class: Primary lateral in combination with excluded Ingredient
-         WHEN concept_order IN (2, 21, 22, 23, 24) THEN 7 -- Combo: Ingredient A, combination
+         WHEN concept_order IN (2, 22, 23, 24) THEN 7 -- Combo: Ingredient A, combination
        END AS concept_order
-FROM class_to_drug_new
-; -- 116679
+FROM class_to_drug_new;
+
+-- fix wrong mono
+UPDATE class_to_drug
+   SET "order" = 7
+WHERE class_code IN ('A01AB14','B02BD30')
+AND   concept_name ~ ' / '
+AND   "order" <> 7;
+
+-- update wrong order for some manual links
+WITH t1 AS
+(
+  SELECT a.*,
+         c.concept_code
+  FROM class_to_drug a
+    JOIN concept c ON c.concept_id = a.concept_id
+),
+t2 as (
+SELECT *
+FROM t1
+WHERE class_code||concept_code IN (SELECT concept_code_1||concept_code_2
+                                   FROM concept_relationship_manual
+                                   WHERE relationship_id = 'ATC - RxNorm'
+                                   AND   invalid_reason IS NULL)
+AND   concept_class_id !~ 'Pack'
+AND   "order" <> 1
+AND   concept_name ~ ' / '
+AND   class_code IN ('A10AC04','A10AD01','A10AD02','A10AD03','A10AD04','A10AD05','G03GA02','J07AG01','J07AH03','J07AH04','J07AH08',
+'J07AL01','J07AL02','J07BB02','J07BB03','J07BH02','J07BM01','J07BM02','J07BM03','J07BF02', 'J07BF03'))
+
+UPDATE class_to_drug
+   SET "order" = 1
+WHERE class_code||concept_id IN (SELECT class_code||concept_id FROM t2); -- 105
 
 -- update class_to_drug in the schema of 'sources'
 SELECT * FROM vocabulary_pack.CreateTablesCopiesATC ();

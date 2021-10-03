@@ -1903,6 +1903,11 @@ AND   concept_name !~* 'ring|insert|system|implant';
 
 DELETE FROM wrong_df WHERE class_code IN ( 'C02AC01', 'G03GA08', 'R03AC13');
 
+DELETE
+FROM wrong_df
+WHERE class_name ~ 'local oral'
+AND   concept_name ~* 'paste|gel|oint';
+
 -- look at them and remove from class_to_drug_new
 DELETE
 FROM class_to_drug_new

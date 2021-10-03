@@ -2007,6 +2007,12 @@ FROM class_to_drug_new
 WHERE class_code = 'J07AL01'
 AND   concept_name ~ ' / '; -- 8 
 
+-- wrong old mapping
+DELETE
+FROM class_to_drug_new
+WHERE class_code = 'N01BB52'
+AND   concept_name ~* 'pack';
+
 -- remove dead ATC Classes if any
 DELETE
 FROM class_to_drug_new

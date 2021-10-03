@@ -15,7 +15,7 @@
 *
 * Authors: Anna Ostropolets, Polina Talapova
 * Date: Jul 2021
-* Total script execution time: 27m 33s
+* Total script execution time: 17m 11s
 **************************************************************************/
 DROP TABLE IF EXISTS drug_concept_stage CASCADE;
 DROP TABLE IF EXISTS internal_relationship_stage;
@@ -2083,6 +2083,6 @@ FROM internal_relationship_stage
  JOIN concept c
  ON lower(concept_code_2) = lower(c.concept_name)
  AND c.vocabulary_id IN ('RxNorm', 'RxNorm Extension')
- AND c.invalid_reason IS NULL; -- 5701
+ AND c.invalid_reason IS NULL; -- 5699
  
  -- run load_interim.sql

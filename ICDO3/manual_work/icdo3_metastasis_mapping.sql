@@ -1,6 +1,7 @@
 
 --Interim Table with Mappings
 DROP TABLE icdo3_to_cm_metastasis;
+
 --ICDO3 /6 codes mappings to Cancer Modifier
 CREATE TABLE icdo3_to_cm_metastasis as
 WITH getherd_mts_codes as (
@@ -112,7 +113,7 @@ SELECT distinct
                 s.concept_name as icd_name,
                 s.concept_code as icd_code,
               split_part(s.concept_code,'-',2) as tumor_site_code,
-                icd_code,
+                icd_vocab,
                m. concept_id,
                m.concept_code,
                 m.concept_name,

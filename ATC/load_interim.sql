@@ -2142,6 +2142,22 @@ UPDATE class_to_drug
    SET "order" = 1
 WHERE class_code||concept_id IN (SELECT class_code||concept_id FROM t2); -- 105
 
+UPDATE class_to_drug
+   SET "order" = 1
+WHERE class_code IN (SELECT class_code FROM class_to_drug WHERE "order" = 1)
+AND   class_code IN (SELECT class_code FROM class_to_drug WHERE "order" <> 1)
+AND   class_code IN (SELECT class_code FROM atc_all_mono)
+AND   concept_name !~ ' / '
+AND   "order" <> 1;
+
+UPDATE class_to_drug
+   SET "order" = 1
+WHERE class_code IN (SELECT class_code FROM class_to_drug WHERE "order" = 1)
+AND   class_code IN (SELECT class_code FROM class_to_drug WHERE "order" <> 1)
+AND   class_code NOT IN (SELECT class_code FROM atc_all_mono)
+AND   concept_name ~ ' / '
+AND   "order" <> 1;
+
 -- update class_to_drug in the schema of 'sources'
 SELECT * FROM vocabulary_pack.CreateTablesCopiesATC ();
 

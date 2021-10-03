@@ -95,17 +95,17 @@ SELECT uppr.concept_code AS concept_code_1,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM concept_stage uppr,
-	concept_stage lowr,
-	vocabulary v
-WHERE uppr.invalid_reason IS null 
-AND lowr.invalid_reason IS null -- to exclude deprecated or updated from the hierarchy
+	   concept_stage lowr,
+	   vocabulary v
+WHERE uppr.invalid_reason IS NULL 
+AND lowr.invalid_reason IS NULL -- to exclude deprecated or updated codes from the hierarchy
 AND (
 (LENGTH(uppr.concept_code) IN (4, 5) AND lowr.concept_code = SUBSTR(uppr.concept_code,1,LENGTH(uppr.concept_code) - 1)) 
 OR (LENGTH(uppr.concept_code) IN (3, 7) AND lowr.concept_code = SUBSTR(uppr.concept_code,1,LENGTH(uppr.concept_code) - 2))
 )
 	AND uppr.vocabulary_id = 'ATC'
 	AND lowr.vocabulary_id = 'ATC'
-	AND v.vocabulary_id = 'ATC'; -- 6493
+	AND v.vocabulary_id = 'ATC'; -- 6495
 
 -- add 'ATC - RxNorm' relationships between ATC Classes and RxN/RxE Drug Products using class_to_drug table 
 INSERT INTO concept_relationship_stage
@@ -119,26 +119,32 @@ INSERT INTO concept_relationship_stage
   valid_end_date,
   invalid_reason
 )
-SELECT DISTINCT cs.class_code AS concept_code_1,
+WITH t1 AS
+(
+  SELECT DISTINCT 
+       cs.class_code AS concept_code_1,
        c.concept_code AS concept_code_2,
        'ATC' AS vocabulary_id_1,
        c.vocabulary_id AS vocabulary_id_2,
        'ATC - RxNorm' AS relationship_id,
        CURRENT_DATE AS valid_start_date,
-       TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+       TO_DATE('20991231','YYYYMMDD') AS valid_end_date,
        NULL AS invalid_reason
-FROM class_to_drug cs -- manually curated table with ATC Class to Rx Drug Product links
-JOIN concept_manual k ON k.concept_code = cs.class_code AND k.invalid_reason IS NULL
+FROM sources.class_to_drug cs -- manually curated table with ATC Class to Rx Drug Product links
+JOIN concept_manual k ON k.concept_code = cs.class_code 
+AND k.invalid_reason IS NULL
   JOIN concept c ON c.concept_id = cs.concept_id
+WHERE c.concept_class_id != 'Ingredient'  
+)
+  SELECT *  FROM t1 cs
 WHERE NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage crs
-                  WHERE crs.concept_code_1 = cs.class_code
-                  AND   crs.vocabulary_id_1 = 'ATC'
-                  AND   crs.concept_code_2 = c.concept_code
-                  AND   crs.vocabulary_id_2 = c.vocabulary_id
-                  AND   crs.relationship_id = 'ATC - RxNorm'  --  and crs.invalid_reason is null
-                 )
-AND   c.concept_class_id != 'Ingredient'; -- 107533
+                  WHERE crs.concept_code_1 = cs.concept_code_1
+                  AND   crs.vocabulary_id_1 = cs.vocabulary_id_1
+                  AND   crs.concept_code_2 = cs.concept_code_2
+                  AND   crs.vocabulary_id_2 = cs.vocabulary_id_2
+                  AND   crs.relationship_id = cs.relationship_id
+		 ); -- 115047
 
 -- add 'ATC - RxNorm pr lat' relationships indicating Primary unambiguous links between ATC Classes and RxN/RxE Drug Products (using input tables and dev_combo populated during previous Steps)
 INSERT INTO concept_relationship_stage
@@ -152,7 +158,7 @@ INSERT INTO concept_relationship_stage
   valid_end_date,
   invalid_reason
 )
-with t1 as (
+WITH t1 AS (
 SELECT DISTINCT SUBSTRING(irs.concept_code_1,'\w+') AS concept_code_1,
        c.concept_code AS concept_code_2,
        'ATC' AS vocabulary_id_1,
@@ -177,11 +183,11 @@ SELECT * FROM t1 cs
 WHERE NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage crs
                   WHERE crs.concept_code_1 = cs.concept_code_1
-                  AND   crs.vocabulary_id_1 = 'ATC'
+                  AND   crs.vocabulary_id_1 = cs.vocabulary_id_1
                   AND   crs.concept_code_2 = cs.concept_code_2
                   AND   crs.vocabulary_id_2 = cs.vocabulary_id_2
-                  AND   crs.relationship_id = 'ATC - RxNorm pr lat' -- and crs.invalid_reason is null
-                  ); -- 3292
+                  AND   crs.relationship_id = cs.relationship_id
+		 ); -- 3292
 
 -- add 'ATC - RxNorm pr lat', 'ATC - RxNorm sec lat', 'ATC - RxNorm pr up' for ATC Combo Classes using dev_combo
 INSERT INTO concept_relationship_stage
@@ -220,11 +226,11 @@ SELECT DISTINCT * FROM t2 cs
 WHERE NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage crs
                   WHERE crs.concept_code_1 = cs.concept_code_1
-                  AND   crs.vocabulary_id_1 = 'ATC'
+                  AND   crs.vocabulary_id_1 = cs.vocabulary_id_1
                   AND   crs.concept_code_2 = cs.concept_code_2
                   AND   crs.vocabulary_id_2 = cs.vocabulary_id_2
-                  AND   crs.relationship_id = cs.relationship_id --   and crs.invalid_reason is null
-                );  -- 3670
+                  AND   crs.relationship_id = cs.relationship_id
+		  );  -- 3670
 
 --  add 'ATC - RxNorm sec up' relationships for Primary lateral in combination 
 INSERT INTO concept_relationship_stage
@@ -260,7 +266,7 @@ SELECT class_code,
 class_name, concept_id FROM ing_pr_up_sec_up_excl WHERE rnk = 3
 ),
 t2 AS (
-SELECT DISTINCT c.class_code AS concept_code_1,
+SELECT DISTINCT k.concept_code AS concept_code_1,
        cc.concept_code AS concept_code_2,
        'ATC' AS vocabulary_id_1,
        cc.vocabulary_id AS vocabulary_id_2,
@@ -268,7 +274,7 @@ SELECT DISTINCT c.class_code AS concept_code_1,
        CURRENT_DATE AS valid_start_date,
        TO_DATE('20991231','YYYYMMDD') AS valid_end_date,
        NULL AS invalid_reason
-FROM class_to_drug c
+FROM sources.class_to_drug c
   JOIN concept_ancestor ca ON ca.descendant_concept_id = c.concept_id
   JOIN concept cc
     ON cc.concept_id = ca.ancestor_concept_id
@@ -285,13 +291,12 @@ SELECT  * FROM t2 cs
 WHERE NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage crs
                   WHERE crs.concept_code_1 = cs.concept_code_1
-                  AND   crs.vocabulary_id_1 = 'ATC'
+                  AND   crs.vocabulary_id_1 = cs.vocabulary_id_1
                   AND   crs.concept_code_2 = cs.concept_code_2
                   AND   crs.vocabulary_id_2 = cs.vocabulary_id_2
-                  AND   crs.relationship_id = 'ATC - RxNorm sec up'
-		  AND crs.invalid_reason = cs.invalid_reason
-           ); -- 23477
-
+                  AND   crs.relationship_id = cs.relationship_id
+           ); -- 23313
+      
 -- deprecate links between ATC classes and dead RxN/RxE
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -303,7 +308,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-	with t1 AS (
+WITH t1 AS (
 SELECT c.concept_code AS concept_code_1,
        cc.concept_code AS concept_code_2,
        c.vocabulary_id AS vocabulary_id_1,
@@ -315,7 +320,7 @@ SELECT c.concept_code AS concept_code_1,
 FROM concept_relationship cr
   JOIN concept c ON concept_id_1 = c.concept_id
   JOIN concept cc ON concept_id_2 = cc.concept_id
-AND cc.standard_concept is null -- non-standard
+AND cc.standard_concept IS NULL -- non-standard
 WHERE c.vocabulary_id = 'ATC'
 AND   cc.vocabulary_id LIKE 'RxNorm%'
 AND   cr.invalid_reason IS NULL)
@@ -323,11 +328,10 @@ SELECT * FROM t1 cs
 WHERE NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage crs
                   WHERE crs.concept_code_1 = cs.concept_code_1
-                  AND   crs.vocabulary_id_1 = 'ATC'
+                  AND   crs.vocabulary_id_1 = cs.vocabulary_id_1
                   AND   crs.concept_code_2 = cs.concept_code_2
                   AND   crs.vocabulary_id_2 = cs.vocabulary_id_2
-                  AND   crs.relationship_id = cs.relationship_id
-                  AND crs.invalid_reason = cs.invalid_reason); -- 8365
+                  AND   crs.relationship_id = cs.relationship_id); -- 8365
 
 -- deprecate accessory links for invalid codes
 INSERT INTO concept_relationship_stage (
@@ -355,19 +359,19 @@ FROM concept_relationship cr
   JOIN concept c ON concept_id_1 = c.concept_id
   JOIN concept cc ON concept_id_2 = cc.concept_id
   JOIN concept_manual k ON k.concept_code = c.concept_code 
-  AND k.invalid_reason IS NOT null
+  AND k.invalid_reason IS NOT NULL
 WHERE c.vocabulary_id = 'ATC'
-AND cr.invalid_reason IS NULL)
+AND cr.invalid_reason IS NULL 
+AND c.concept_code <> 'H01BA06') -- deprecated argipressin
 SELECT * FROM t1 cs
 WHERE NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage crs
                   WHERE crs.concept_code_1 = cs.concept_code_1
-                  AND   crs.vocabulary_id_1 = 'ATC'
+                  AND   crs.vocabulary_id_1 = cs.vocabulary_id_1
                   AND   crs.concept_code_2 = cs.concept_code_2
                   AND   crs.vocabulary_id_2 = cs.vocabulary_id_2
                   AND   crs.relationship_id = cs.relationship_id
-                  AND crs.invalid_reason = cs.invalid_reason 
-                  );  -- 1215
+                  ) ;  -- 1213
 
 -- add mirroring 'Maps to' for 'ATC - RxNorm pr lat' for monocomponent ATC Classes, which do not have doubling Standard ingredients (1-to-many mappings are permissive only for ATC Combo Classes)
 INSERT INTO concept_relationship_stage (
@@ -388,8 +392,8 @@ WITH t1 AS
   AND   invalid_reason IS NULL
 ),
 t2 AS (
-SELECT DISTINCT a.concept_code_1,
-       a.concept_code_2,
+SELECT DISTINCT a.concept_code_1, --k.concept_name,
+       a.concept_code_2, --d.concept_name,
        a.vocabulary_id_1,
        a.vocabulary_id_2,
        'Maps to' AS relationship_id,
@@ -412,7 +416,7 @@ SELECT * FROM t2 cs
 WHERE NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage crs
                   WHERE crs.concept_code_1 = cs.concept_code_1
-                  AND   crs.vocabulary_id_1 = 'ATC'
+                  AND   crs.vocabulary_id_1 = cs.vocabulary_id_1
                   AND   crs.concept_code_2 = cs.concept_code_2
                   AND   crs.vocabulary_id_2 = cs.vocabulary_id_2
                   AND   crs.relationship_id = cs.relationship_id
@@ -442,8 +446,8 @@ WITH T1 AS
   WHERE rnk = 2
 ),
 t2 AS (
-SELECT DISTINCT class_code AS concept_code_1,
-       concept_code AS concept_code_2,
+SELECT DISTINCT class_code AS concept_code_1,--class_name,
+       concept_code AS concept_code_2,-- concept_name,
        'ATC' AS vocabulary_id_1,
        vocabulary_id AS vocabulary_id_2,
        'Maps to' AS relationship_id,
@@ -460,12 +464,12 @@ SELECT * FROM t2 cs
 WHERE NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage crs
                   WHERE crs.concept_code_1 = cs.concept_code_1
-                  AND   crs.vocabulary_id_1 = 'ATC'
+                  AND   crs.vocabulary_id_1 = vocabulary_id_1
                   AND   crs.concept_code_2 = cs.concept_code_2
                   AND   crs.vocabulary_id_2 = cs.vocabulary_id_2
-                  AND   crs.relationship_id = 'Maps to'
+                  AND   crs.relationship_id = cs.relationship_id
                   ); -- 209
-
+                  
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -476,7 +480,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-WITH T1 AS
+WITH t1 AS
 (
   SELECT class_code,
          class_name,
@@ -489,8 +493,8 @@ WITH T1 AS
   WHERE rnk = 2
 ),
 t2 AS (
-SELECT DISTINCT class_code AS concept_code_1,
-       concept_code AS concept_code_2,
+SELECT DISTINCT class_code AS concept_code_1, --class_name,
+       concept_code AS concept_code_2,-- concept_name,
        'ATC' AS vocabulary_id_1,
        vocabulary_id AS vocabulary_id_2,
        'Maps to' AS relationship_id,
@@ -510,10 +514,10 @@ SELECT * FROM t2 cs
 WHERE NOT EXISTS (SELECT 1
                   FROM concept_relationship_stage crs
                   WHERE crs.concept_code_1 = cs.concept_code_1
-                  AND   crs.vocabulary_id_1 = 'ATC'
+                  AND   crs.vocabulary_id_1 = cs.vocabulary_id_1
                   AND   crs.concept_code_2 = cs.concept_code_2
                   AND   crs.vocabulary_id_2 = cs.vocabulary_id_2
-                  AND   crs.relationship_id = 'Maps to'
+                  AND   crs.relationship_id = cs.relationship_id
                  )
 AND concept_code_1 NOT IN ('P01BF05', 'J07AG52', 'J07BD51') -- artenimol and piperaquine|hemophilus influenzae B, combinations with pertussis and toxoids; systemic|measles, combinations with mumps, live attenuated; systemic
 ; -- 193
@@ -534,7 +538,7 @@ JOIN sources.rxnconso r ON dv.concept_code = r.code
 	AND r.code != 'NOCODE'
 	AND r.lat = 'ENG'
 		AND r.sab = 'ATC'
-		AND r.tty IN ('PT','IN'); 
+		AND r.tty IN ('PT','IN'); -- 6440
 
 -- perform mapping replacement using function below
 DO $_$
@@ -637,15 +641,6 @@ WHERE 'ATC' IN (
 		
 -- remove suspicious replacement mapping for OLD codes
 DELETE FROM concept_relationship_stage
-WHERE concept_code_1 IN ('C10AA55','J05AE06','C10AA52','C10AA53','C10AA51','N02AX52', 'H01BA06')
+WHERE concept_code_1 IN ('C10AA55', 'J05AE06', 'C10AA52', 'C10AA53', 'C10AA51', 'N02AX52', 'H01BA06')
 AND   concept_code_2 IN ('17767','85762','7393','1191','161', '11149')
-AND   invalid_reason IS NULL; -- 6
-
--- delete duplicate (to do: define its origin)
-DELETE
-FROM concept_relationship_stage
-WHERE ctid NOT IN (SELECT MIN(ctid)
-                   FROM concept_relationship_stage
-GROUP BY concept_code_1, concept_code_2, relationship_id, invalid_reason
-		  )
-  and  concept_code_1 = 'H01BA06';-- 1
+AND   invalid_reason IS NULL; -- 7

@@ -44,7 +44,7 @@ CREATE TABLE relationship_to_concept
  vocabulary_id_1  VARCHAR(20),
  concept_id_2  INT,
  precedence   INT,
- conversion_factor FLOAT);
+ conversion_factor NUMERIC);
 
 -- create indexes AND constraints
 DROP INDEX if exists irs_concept_code_1;

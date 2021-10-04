@@ -704,7 +704,8 @@ CREATE UNLOGGED TABLE main_ndc (
 	concept_code TEXT,
 	valid_start_date DATE,
 	valid_end_date DATE,
-	invalid_reason TEXT
+	invalid_reason TEXT,
+	is_diluent BOOLEAN DEFAULT FALSE
 	);
 
 CREATE OR REPLACE VIEW prod --for using INDEX 'idx_f1_product'
@@ -757,7 +758,8 @@ SELECT CASE -- add [brandname] if proprietaryname exists and not identical to no
 	concept_code,
 	COALESCE(valid_start_date, latest_update) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
+	NULL AS invalid_reason,
+	is_diluent
 FROM --get unique and aggregated data from source
 	(
 	SELECT concept_code,
@@ -806,12 +808,14 @@ FROM --get unique and aggregated data from source
 					)
 			END AS long_concept_name,
 		vocabulary_pack.CutConceptName(brand_name) AS brand_name,
-		valid_start_date
+		valid_start_date,
+		is_diluent
 	FROM (
 		WITH t AS (
 				SELECT concept_code,
 					valid_start_date,
-					GetAggrDose(active_numerator_strength, active_ingred_unit) aggr_dose
+					GetAggrDose(active_numerator_strength, active_ingred_unit) aggr_dose,
+					is_diluent
 				FROM (
 					SELECT concept_code,
 						STRING_AGG(active_numerator_strength, '; ' ORDER BY CONCAT (
@@ -822,12 +826,14 @@ FROM --get unique and aggregated data from source
 								active_numerator_strength,
 								active_ingred_unit
 								)) AS active_ingred_unit,
-						valid_start_date
+						valid_start_date,
+						is_diluent
 					FROM (
 						SELECT concept_code,
 							active_numerator_strength,
 							active_ingred_unit,
-							MIN(valid_start_date) OVER (PARTITION BY concept_code) AS valid_start_date
+							MIN(valid_start_date) OVER (PARTITION BY concept_code) AS valid_start_date,
+							is_diluent
 						FROM (
 							SELECT GetDistinctDose(active_numerator_strength, active_ingred_unit, 1) AS active_numerator_strength,
 								GetDistinctDose(active_numerator_strength, active_ingred_unit, 2) AS active_ingred_unit,
@@ -840,16 +846,23 @@ FROM --get unique and aggregated data from source
 										THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 									ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 									END AS concept_code,
-								startmarketingdate AS valid_start_date
+								startmarketingdate AS valid_start_date,
+								CASE 
+									WHEN proprietaryname ILIKE '%diluent%' 
+										THEN TRUE 
+									ELSE FALSE
+									END AS is_diluent
 							FROM sources.product
 							) AS s0
 						GROUP BY concept_code,
 							active_numerator_strength,
 							active_ingred_unit,
-							valid_start_date
+							valid_start_date,
+							is_diluent
 						) AS s1
 					GROUP BY concept_code,
-						valid_start_date
+						valid_start_date,
+						is_diluent
 					) AS s2
 				)
 		SELECT t1.*,
@@ -1215,18 +1228,25 @@ WHERE NOT EXISTS (
 			AND cs_int.vocabulary_id = 'NDC'
 		);
 
---19. Add full NDC names into concept_synonym_stage
+--19. Add full unique NDC names into concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_vocabulary_id,
 	synonym_name,
 	language_concept_id
 	)
-SELECT concept_code,
-	vocabulary_id,
-	vocabulary_pack.CutConceptSynonymName(long_concept_name),
+SELECT mn.concept_code,
+	mn.vocabulary_id,
+	vocabulary_pack.CutConceptSynonymName(mn.long_concept_name),
 	4180186 AS language_concept_id -- English
-FROM main_ndc;
+FROM main_ndc mn
+WHERE NOT EXISTS (
+		SELECT 1
+		FROM concept_stage cs_int
+		WHERE cs_int.concept_code = mn.concept_code
+			AND cs_int.vocabulary_id = mn.vocabulary_id
+			AND REPLACE(LOWER(cs_int.concept_name), ' [diluent]', '') = LOWER(vocabulary_pack.CutConceptSynonymName(mn.long_concept_name))
+		);
 
 --20. Add mapping from SPL to RxNorm through RxNorm API (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/property?propName=SPL_SET_ID)
 INSERT INTO concept_relationship_stage (
@@ -1671,7 +1691,7 @@ WHERE r.relationship_id = 'Maps to'
 			c_int.concept_id LIMIT 1
 		);
 
---28. Add full NDC packages names into concept_synonym_stage
+--28. Add full unique NDC packages names into concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_vocabulary_id,
@@ -1699,7 +1719,14 @@ FROM ndc n
 JOIN main_ndc m ON m.concept_code = n.concept_code
 JOIN sources.package p ON p.productndc = n.productndc
 LEFT JOIN concept_synonym_stage css ON css.synonym_concept_code = p.pack_code
-WHERE css.synonym_concept_code IS NULL;
+WHERE css.synonym_concept_code IS NULL
+AND NOT EXISTS (
+		SELECT 1
+		FROM concept_stage cs_int
+		WHERE cs_int.concept_code = p.pack_code
+			AND cs_int.vocabulary_id = m.vocabulary_id
+			AND REPLACE(LOWER(cs_int.concept_name), ' [diluent]', '') = LOWER(vocabulary_pack.CutConceptSynonymName(m.long_concept_name))
+		);
 
 --29. Add relationships (take from 9-digit NDC codes), but only new
 ANALYZE concept_relationship_stage;
@@ -1740,8 +1767,8 @@ JOIN concept_relationship_stage crs ON crs.concept_code_1 = n.concept_code
 	AND crs.vocabulary_id_2 = 'RxNorm'
 JOIN sources.package p ON p.productndc = n.productndc
 LEFT JOIN concept_relationship_stage crs1 ON crs1.concept_code_1 = p.pack_code
-	AND crs1.vocabulary_id_1 = 'NDC'
-	AND crs1.vocabulary_id_2 = 'RxNorm'
+	AND crs1.vocabulary_id_1 = crs.vocabulary_id_1
+	AND crs1.vocabulary_id_2 = crs.vocabulary_id_2
 WHERE crs1.concept_code_1 IS NULL;
 
 --30. Working with replacement mappings
@@ -1852,8 +1879,7 @@ SET concept_class_id = 'Device',
 FROM dev_ndc.ndc_manual_mapped m
 WHERE m.source_code = cs.concept_code
 	AND cs.vocabulary_id = 'NDC'
-	AND m.target_concept_id = 17
-;
+	AND m.target_concept_id = 17;
 
 /*Put your updates here..
 	UPDATE concept_stage SET concept_class_id = 'Device', domain_id = 'Device', standard_concept='S' WHERE concept_code in ('x','y');
@@ -1893,7 +1919,62 @@ WHERE crs.concept_code_1 = i.concept_code_1
 	AND crs.valid_end_date <> i.valid_end_date
 	AND crs.invalid_reason IS NOT NULL;
 
---35. Clean up
+--35. Mark diluent as [Diluent]
+WITH ndc_packages
+AS (
+	SELECT DISTINCT CASE 
+			WHEN devv5.INSTR(productndc, '-') = 5
+				THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
+			ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
+			END || CASE 
+			WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
+				THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
+			ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
+			END AS concept_code,
+		productndc
+	FROM sources.product
+	),
+ndc_codes
+AS (
+	SELECT concept_code
+	FROM main_ndc
+	WHERE is_diluent
+	
+	UNION
+	
+	SELECT p.pack_code
+	FROM ndc_packages n
+	JOIN main_ndc m ON m.concept_code = n.concept_code
+		AND m.is_diluent
+	JOIN sources.package p ON p.productndc = n.productndc
+	
+	UNION
+	
+	SELECT ndc_code
+	FROM sources.spl_ext
+	WHERE is_diluent
+		AND ndc_code IS NOT NULL
+	),
+ndc_update --update concept_stage
+AS (
+	UPDATE concept_stage cs
+	SET concept_name = vocabulary_pack.CutConceptSynonymName(COALESCE(css.synonym_name, cs.concept_name) || ' [Diluent]')
+	FROM ndc_codes nc
+	LEFT JOIN concept_synonym_stage css ON css.synonym_concept_code = nc.concept_code
+		AND css.synonym_name NOT ILIKE '%water%' --exclude water
+	WHERE nc.concept_code = cs.concept_code
+		AND cs.concept_name NOT LIKE '% [Diluent]' --do not mark already marked codes
+		AND cs.concept_name NOT ILIKE '%water%'
+	)
+--update concept_synonym_stage
+UPDATE concept_synonym_stage css
+SET synonym_name = vocabulary_pack.CutConceptSynonymName('Diluent of ' || cs.concept_name)
+FROM concept_stage cs
+JOIN ndc_codes USING (concept_code)
+WHERE cs.concept_code = css.synonym_concept_code
+	AND cs.concept_name NOT ILIKE '%water%'; --exclude water
+
+--36. Clean up
 DROP FUNCTION GetAggrDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR);
 DROP FUNCTION GetDistinctDose (active_numerator_strength IN VARCHAR, active_ingred_unit IN VARCHAR, p IN INT);
 DROP FUNCTION CheckNDCDate (pDate IN VARCHAR, pDateDefault IN DATE);

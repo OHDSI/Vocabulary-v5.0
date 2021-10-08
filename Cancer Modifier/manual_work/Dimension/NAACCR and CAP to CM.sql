@@ -14,6 +14,7 @@ FROM dev_mnerovnya.naaccr_to_cm
 WHERE concept_class_id = 'Dimension';
 
 --CM_concept
+TRUNCATE TABLE dev_mnerovnya.cm_concept_dimension;
 CREATE TABLE dev_mnerovnya.cm_concept_dimension
 (
     old_concept_code varchar,
@@ -66,12 +67,17 @@ CREATE TABLE dev_mnerovnya.cancer_mod_dimension
 SELECT *
 FROM dev_mnerovnya.cancer_mod_dimension;
 
+SELECT site, meas, meas || ' of ' || site as concept_name
+FROM dev_mnerovnya.cancer_mod_dimension
+ORDER BY site, meas;
+
 CREATE TABLE dev_mnerovnya.cancer_mod_dimension_atr
 (
     anc_atr  varchar,
     desc_atr varchar
 
 );
+
 SELECT *
 FROM dev_mnerovnya.cancer_mod_dimension_atr;
 
@@ -108,17 +114,18 @@ CREATE TABLE dev_mnerovnya.source_mapping_dimension
 );
 
 SELECT *
-FROM dev_mnerovnya.source_mapping_dimension;
+FROM dev_mnerovnya.source_mapping_dimension
+ORDER BY source_name, target_concept_name;
 
 --inserting to source_mapping
 WITH a AS (SELECT DISTINCT n.vr_name          AS naaccr_name,
                            c.status          AS status,
                            c.old_concept_name AS concept_name_cm,
-                           c.new_concept_name
+                           c.new_concept_name,
            FROM dev_mnerovnya.cm_concept_dimension c
                     LEFT JOIN dev_mnerovnya.naaccr_to_cm n ON n.concept_name = c.old_concept_name
            WHERE n.concept_class_id = 'Dimension'
-             AND c.new_concept_name != ''
+         AND c.new_concept_name != ''
     )
 INSERT INTO dev_mnerovnya.source_mapping_dimension
 (
@@ -149,8 +156,41 @@ WHERE c1.vocabulary_id = 'NAACCR'
 ORDER BY target_concept_name
 ;
 
+--concept_relationship
+WITH a AS (SELECT DISTINCT n.vr_name          AS naaccr_name,
+                           c.status          AS status,
+                           c.old_concept_name AS concept_name_cm,
+                           c.new_concept_name,
+case when status = 'deprecate' then 'D'
+else null end as invalin_reason
+           FROM dev_mnerovnya.cm_concept_dimension c
+                    LEFT JOIN dev_mnerovnya.naaccr_to_cm n ON n.concept_name = c.old_concept_name
+           WHERE n.concept_class_id = 'Dimension'
+            AND c.new_concept_name != ''
+    )
+
+SELECT DISTINCT
+                c1.concept_code    AS concept_code_1,
+                c2.concept_code    AS concept_code_2,
+                c1.vocabulary_id   AS vocabulary_id_1,
+                c2.vocabulary_id   AS vocabulary_id_2,
+                'Maps to' as relationship_id,
+                current_date as valid_start_date,
+                '2099-12-31'::date   AS valid_end_date,
+                a.invalin_reason
+
+FROM a
+         LEFT JOIN devv5.concept c1 ON a.naaccr_name = c1.concept_name
+         LEFT JOIN devv5.concept c2 ON a.concept_name_cm = c2.concept_name
+WHERE c1.vocabulary_id = 'NAACCR'
+  AND c2.vocabulary_id = 'Cancer Modifier'
+;
+
 SELECT *
 FROM dev_cancer_modifier.concept_relationship_manual;
+
+SELECT *
+FROM dev_cancer_modifier.concept_stage;
 
 
 
@@ -169,6 +209,10 @@ CREATE TABLE dev_mnerovnya.cap_to_cm
 );
 SELECT *
 FROM dev_mnerovnya.cap_to_cm;
+
+SELECT DISTINCT *
+FROM dev_mnerovnya.cap_to_cm
+WHERE concept_class_id = 'Dimension';
 
 
 --CAP mapping
@@ -229,3 +273,33 @@ SELECT DISTINCT --vl_concept_code,
 FROM a
 ;
 
+WITH a AS (SELECT DISTINCT n.protocol_name,
+                           n.vr_name          ,
+                           n.vl_name,
+                           c.status          AS status,
+                           c.old_concept_name AS old_cm_name,
+                           c.new_concept_name
+           FROM dev_mnerovnya.cm_concept_dimension c
+                    LEFT JOIN dev_mnerovnya.cap_to_cm n ON n.concept_name = c.old_concept_name
+           WHERE n.concept_class_id = 'Dimension'
+            -- AND c.new_concept_name != ''
+    )
+
+
+SELECT DISTINCT c1.vocabulary_id   AS source_vocabulary_id,
+                c1.concept_code    AS source_code,
+
+                a.cap_name      AS source_name,
+                a.new_concept_name AS target_concept_name,
+
+                c2.concept_code    AS target_concept_code,
+                c2.vocabulary_id   AS target_vocabulary_id
+
+
+FROM a
+         LEFT JOIN devv5.concept c1 ON a.cap_name = c1.concept_name
+         LEFT JOIN devv5.concept c2 ON a.old_cm_name = c2.concept_name
+WHERE c1.vocabulary_id = 'CAP'
+  AND c2.vocabulary_id = 'Cancer Modifier'
+ORDER BY target_concept_name
+;

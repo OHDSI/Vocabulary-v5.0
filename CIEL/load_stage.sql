@@ -112,10 +112,10 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN 'Drug'
 		WHEN 'Medical supply'
 			THEN 'Device'
--- begin change M. Kallfelz 2021-05-06 
+				-- begin change M. Kallfelz 2021-05-06 
 		WHEN 'InteractSet' -- Set of drugs that interact with parent drug.
-			THEN 'Drug' 
--- end change M. Kallfelz 2021-05-06
+			THEN 'Drug'
+				-- end change M. Kallfelz 2021-05-06
 		END AS domain_id,
 	'CIEL' AS vocabulary_id,
 	CASE ccl.ciel_name -- shorten the ones that won't fit the 20 char limit
@@ -127,10 +127,10 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 			THEN 'Radiology' -- there are LOINC codes which are Measurement, but results are not connected
 		WHEN 'Pharmacologic Drug Class'
 			THEN 'Drug Class'
--- begin change M. Kallfelz 2021-05-06 
+				-- begin change M. Kallfelz 2021-05-06 
 		WHEN 'InteractSet' -- Set of drugs that interact with parent drug.
 			THEN 'Drug Class' -- Class 'Drug Interaction' is not suitable and not in use
--- end change M. Kallfelz 2021-05-06
+				-- end change M. Kallfelz 2021-05-06
 		ELSE ccl.ciel_name
 		END AS concept_class_id,
 	NULL AS standard_concept,
@@ -155,7 +155,7 @@ LEFT JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
 LEFT JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
 	AND cn.locale = 'en';
 
--- begin addition M. Kallfelz 2021-05-06 
+--begin addition M. Kallfelz 2021-05-06
 --4. Add synonyms to concept_synonym_stage by language
 --SELECT DISTINCT ON (locale) * FROM ciel_concept_name
 -- WHERE voided = 0;
@@ -205,7 +205,7 @@ WHERE cn.locale IN (
 		'nl',
 		'pt'
 		);-- no other OMOP languages match the locale
--- end addition M. Kallfelz 2021-05-06
+	-- end addition M. Kallfelz 2021-05-06
 
 --5. Create chain between CIEL and the best OMOP concept and create map
 DROP TABLE IF EXISTS ciel_to_concept_map;
@@ -305,7 +305,7 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 			
 			-- resolve RxNorm MIN to RxNorm IN (not currently in Vocabularies)
 			SELECT DISTINCT FIRST_VALUE(rx_min.str) OVER (
-					PARTITION BY rx_min.rxcui ORDER BY CASE 
+					PARTITION BY rx_min.rxcui ORDER BY CASE
 							WHEN LENGTH(rx_min.str) <= 255
 								THEN LENGTH(rx_min.str)
 							ELSE 0
@@ -315,7 +315,7 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 				rx_min.rxcui AS concept_code_1,
 				'RxNorm-c' AS vocabulary_id_1,
 				FIRST_VALUE(ing.str) OVER (
-					PARTITION BY ing.rxcui ORDER BY CASE 
+					PARTITION BY ing.rxcui ORDER BY CASE
 							WHEN LENGTH(ing.str) <= 255
 								THEN LENGTH(ing.str)
 							ELSE 0

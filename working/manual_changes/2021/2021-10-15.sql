@@ -6,7 +6,6 @@ BEGIN
     pVocabulary_id    =>'UCUM',
     pConcept_class_id =>'Unit',
     pStandard_concept =>'S',
-    pConcept_code     =>'nkat/L',
-    pValid_start_date => CURRENT_DATE
+    pConcept_code     =>'nkat/L'
 );
 END $_$;

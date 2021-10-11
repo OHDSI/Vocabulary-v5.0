@@ -282,13 +282,13 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 					ELSE NULL
 					END AS vocabulary_id_2
 			FROM sources.ciel_concept c
-			JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
 			JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
 				AND cn.locale = 'en'
 			JOIN sources.ciel_concept_reference_map crm ON crm.concept_id = c.concept_id
 			JOIN sources.ciel_concept_reference_term crt ON crt.concept_reference_term_id = crm.concept_reference_term_id
 			JOIN sources.ciel_concept_reference_source crs ON crs.concept_source_id = crt.concept_source_id
 			WHERE crt.retired = 0
+				AND c.class_id <> 3 --exclude drugs [AVOF-3147]
 				AND crs.ciel_name IN (
 					'RxNORM',
 					'SNOMED CT',
@@ -303,6 +303,113 @@ CREATE UNLOGGED TABLE ciel_to_concept_map AS
 			
 			UNION
 			
+			-- new logic for drugs [AVOF-3147]
+			SELECT s1.ciel_name AS concept_name_1,
+				s1.ciel_code AS concept_code_1,
+				'CIEL' AS vocabulary_id_1,
+				s1.target_name AS concept_name_2,
+				s1.code AS concept_code_2,
+				c.vocabulary_id || '-c' AS vocabulary_id_2
+			FROM (
+				SELECT s0.ciel_code,
+					s0.ciel_name,
+					s0.concept_map_id,
+					s0.target_pr_rxcui,
+					CASE 
+						WHEN s0.target_pr_sab = 'SNOMEDCT_US'
+							AND s0.target_sec_code IS NOT NULL
+							THEN s0.target_sec_sab
+						ELSE s0.target_pr_sab
+						END sab,
+					CASE 
+						WHEN s0.target_pr_sab = 'SNOMEDCT_US'
+							AND s0.target_sec_code IS NOT NULL
+							THEN s0.target_sec_code
+						ELSE s0.target_pr_code
+						END code,
+					CASE 
+						WHEN s0.target_pr_sab = 'SNOMEDCT_US'
+							AND s0.target_sec_code IS NOT NULL
+							THEN s0.target_sec_str
+						ELSE s0.target_pr_str
+						END target_name
+				FROM (
+					SELECT c.concept_id::TEXT ciel_code,
+						cn.ciel_name,
+						cm.concept_map_id,
+						target_primary.rxcui target_pr_rxcui,
+						target_primary.code target_pr_code,
+						target_primary.sab target_pr_sab,
+						target_secondary.rxcui target_sec_code,
+						'RXNORM' target_sec_sab,
+						target_primary.str target_pr_str,
+						target_secondary.str target_sec_str,
+						RANK() OVER (
+							PARTITION BY c.concept_id ORDER BY CASE 
+									WHEN target_primary.sab = 'RXNORM'
+										THEN 1
+									WHEN target_secondary.rxcui IS NOT NULL
+										THEN 2
+									END /*priority: RXNORM (primary target), RXNORM (secondary target via SNOMED), SNOMED*/,
+								TRANSLATE(LEFT(target_primary.tty, 1), 'SMIP', '1234') /*priority for primary: SCD, MIN, IN, PIN*/,
+								TRANSLATE(LEFT(target_secondary.tty, 1), 'SMIP', '1234') /*priority for secondary: SCD, MIN, IN, PIN*/
+							) target_rnk
+					FROM sources.ciel_concept c
+					JOIN sources.ciel_concept_reference_map cm ON cm.concept_id = c.concept_id
+					JOIN sources.ciel_concept_reference_term ct ON ct.concept_reference_term_id = cm.concept_reference_term_id
+					JOIN sources.ciel_concept_name cn ON c.concept_id = cn.concept_id
+					JOIN sources.rxnconso target_primary ON target_primary.rxcui = ct.ciel_code
+						AND target_primary.sab IN (
+							'RXNORM',
+							'SNOMEDCT_US'
+							)
+					/*trying to find secondary mapping via SNOMED*/
+					LEFT JOIN (
+						SELECT sn_to_rxcui.code snomed_code,
+							rxn.rxcui,
+							rxn.tty,
+							rxn.str,
+							rxn.suppress
+						FROM sources.rxnconso sn_to_rxcui
+						JOIN sources.rxnconso rxn USING (rxcui)
+						WHERE sn_to_rxcui.sab = 'SNOMEDCT_US'
+							AND rxn.sab = 'RXNORM'
+							AND rxn.tty IN (
+								'SCD',
+								'IN',
+								'MIN',
+								'PIN'
+								)
+						) target_secondary ON target_secondary.snomed_code = target_primary.code
+					WHERE c.class_id = 3 --only drugs
+						AND target_primary.tty IN (
+							'SCD',
+							'IN',
+							'MIN',
+							'PIN',
+							'PT'
+							)
+						AND cn.locale = 'en'
+						AND cn.locale_preferred = 1
+						AND ct.concept_source_id IN (
+							1,
+							2,
+							4,
+							5
+							) --RxNorm+SCT
+					) s0
+				WHERE s0.target_rnk = 1
+				) s1
+			JOIN concept c ON c.concept_code = s1.code
+				AND c.vocabulary_id = CASE 
+					WHEN s1.sab = 'RXNORM'
+						THEN 'RxNorm'
+					ELSE 'SNOMED'
+					END
+			WHERE c.concept_id <> 4269754 --concept_id=4269754 (Immunoglobulin structure) is a child of concept 4008249 (Immunoglobulin) and is therefore ignored
+
+			UNION
+
 			-- resolve RxNorm MIN to RxNorm IN (not currently in Vocabularies)
 			SELECT DISTINCT FIRST_VALUE(rx_min.str) OVER (
 					PARTITION BY rx_min.rxcui ORDER BY CASE

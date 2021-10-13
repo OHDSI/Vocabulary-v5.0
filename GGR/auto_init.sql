@@ -1,4 +1,3 @@
-
 --create table r_to_c_all_back as select * from r_to_c_all;
 --keep legacy mappings for the future
 create table if not exists r_to_c_all
@@ -118,8 +117,6 @@ WHERE mppcv NOT IN (
 
 insert into units values ('l')
 ;
-
-
 -- now that devices and packs are dealt with, we can fill ds_stage
 TRUNCATE TABLE drug_concept_stage;
 INSERT INTO drug_concept_stage -- Devices
@@ -278,11 +275,11 @@ FROM units
 
 drop table if exists ingred_vac_only;
 
-create table ingred_vac_only as with att_vac as (select * from SOURCES.ggr_sam where hyr_ like 'LA%')
+create table ingred_vac_only as with att_vac as (select * from sources.ggr_sam where hyr_ like 'LA%')
 ,
 att_vac_only as (select distinct s.stofcv, s.stofnm_
-from SOURCES.ggr_sam s
-left join SOURCES.ggr_sam a on
+from sources.ggr_sam s
+left join sources.ggr_sam a on
 	a.hyr_ not like 'LA%' and
 	s.stofcv = a.stofcv
 where 
@@ -290,14 +287,12 @@ where
 	a.stofcv is null)
 	select * from att_vac_only;
 	
-
-	
 drop table if exists dose_form_vac_only;
-create table dose_form_vac_only as with att_vac as (select * from ggr_mpp where hyr_ like 'LA%')
+create table dose_form_vac_only as with att_vac as (select * from sources.ggr_mpp where hyr_ like 'LA%')
 ,
 att_vac_only as (select distinct s.galcv, s.galnm_
-from ggr_mpp s
-left join ggr_mpp a on
+from sources.ggr_mpp s
+left join sources.ggr_mpp a on
 	a.hyr_ not like 'LA%' and
 	s.galcv = a.galcv
 where 
@@ -388,7 +383,7 @@ CREATE TABLE tomap_form (
 	)
 ;
 INSERT INTO tomap_form
-SELECT  distinct CONCAT (
+SELECT CONCAT (
 		'gal',
 		galcv
 		) AS concept_code,
@@ -703,8 +698,8 @@ select distinct
 	concept_id,
 	concept_name
 from tofix_vax;
-update relationship_to_concept_to_map set target_concept_id = null, target_concept_name = null where target_concept_id =0;
 
+update relationship_to_concept_to_map set target_concept_id = null, target_concept_name = null where target_concept_id = 0;
 drop table if exists relationship_to_concept_manual
 ;
 create table relationship_to_concept_manual as
@@ -713,14 +708,18 @@ from relationship_to_concept_to_map
 where false
 ;
 
+/*
+truncate table ggr_manual_03_20;
+create table ggr_manual_03_20 (source_concept_code varchar,	source_concept_name varchar,	source_concept_desc varchar,	source_concept_class_id varchar,	target_concept_id int,	target_concept_code varchar,	target_concept_name varchar,	precedence int,	conversion_factor FLOAT,	invalid_indicator varchar);																
+select source_concept_code, source_concept_name from ggr_manual_03_20
+--where precedence is null
+group by source_concept_code, source_concept_name
+having count (1)> 1 ;
+insert into relationship_to_concept_manual select * from relationship_to_concept_to_map where target_concept_id is not null;
 
-insert into relationship_to_concept_to_map (select * from relationship_to_concept_manual where  source_concept_code in ('gal00047', 'gal00731', 'gal00310','gal00368','gal00316'));
-select * from relationship_to_concept_manual where source_concept_code not in (select source_concept_code from relationship_to_concept_to_map) and source_concept_code in (select source_concept_code from ggr_manual_09_21);
-select * from relationship_to_concept_to_map
-where target_concept_id is null;
-drop table ggr_manual_09_21;
-create table ggr_manual_09_21 (source_concept_code varchar,	source_concept_name varchar,	source_concept_desc varchar,	source_concept_class_id varchar,	target_concept_id int,	target_concept_code varchar,	target_concept_name varchar,	precedence int,	conversion_factor FLOAT,	invalid_indicator varchar);																
-WbImport -file="C:/Users/алло/Downloads/GGR_to_map - null.tsv"
+select * from tofix_vax;*/
+/*truncate ggr_manual_09_21;
+WbImport -file="C:/Users/vkomar/Downloads/GGR_to_map - null.tsv"
          -type=text
          -table=ggr_manual_09_21
          -encoding="UTF-8"
@@ -735,17 +734,13 @@ WbImport -file="C:/Users/алло/Downloads/GGR_to_map - null.tsv"
          -ignoreIdentityColumns=false
          -deleteTarget=false
          -continueOnError=false
-         -batchSize=100;
+         -batchSize=1000;
+
+         */
+insert into relationship_to_concept_manual 
+select source_concept_code,source_concept_name,source_concept_desc,source_concept_class_id,target_concept_id,target_concept_name,precedence,conversion_factor,invalid_indicator
+from ggr_manual_09_21 where target_concept_id is not null or invalid_indicator is not null
+union 
+select  source_concept_code,source_concept_name,source_concept_desc,source_concept_class_id,target_concept_id,target_concept_name,precedence,conversion_factor,invalid_indicator from relationship_to_concept_to_map where target_concept_id is not null;
 
 
-delete from relationship_to_concept_to_map where source_concept_code in (select source_concept_code from ggr_manual_09_21 where target_concept_id !=0);
-insert into relationship_to_concept_to_map
-select
-source_concept_code,
-source_concept_name,
-source_concept_desc,source_concept_class_id
-,target_concept_id,target_concept_name,precedence
-,conversion_factor,invalid_indicator
-from ggr_manual_09_21 where target_concept_id !=0;
-
-insert into relationship_to_concept_manual select * from relationship_to_concept_to_map where target_concept_id is not null;

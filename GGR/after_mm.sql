@@ -74,12 +74,6 @@ from relationship_to_concept_manual r
 join concept c on r.target_concept_id = c.concept_id
 where source_concept_class_id = 'Drug Product'
 ;
-
-
-
-
-
-
 TRUNCATE TABLE relationship_to_concept;
 INSERT INTO relationship_to_concept --Measurement Units
 SELECT DISTINCT concept_code AS CONCEPT_CODE_1,
@@ -931,45 +925,6 @@ where
 insert into r_to_c_all
 select * from r_to_c_insert
 ;
-delete from r_to_c_all a
-where concept_name = 'auric./ocul. druppels susp. [zonder bew.]'
-and concept_id in ('19126920','46234469','19082103');
-
-delete from r_to_c_all a
-where concept_name = 'dosisaerosol oploss. HFA'
-and concept_id in ('19082104','46234469');
-
-update r_to_c_all a
-set precedence = '3'
-where concept_name = 'inj. oploss. (pdr. + solv.) i.m./s.c. [2x flac.]'
-and concept_id in ('46234469');
-
-update r_to_c_all a
-set precedence = '3'
-where concept_name = 'inj. oploss. (pdr.) i.camer. [flac.]'
-and concept_id in ('46234469');
-
-update r_to_c_all a
-set precedence = '2'
-where concept_name = 'inj. susp. verl. afgifte s.c. [voorgev. spuit]'
-and concept_id in ('19082103');
-update r_to_c_all a
-set precedence = '4'
-where concept_name = 'inj. susp. verl. afgifte s.c. [voorgev. spuit]'
-and concept_id in ('19126920');
-
-delete from r_to_c_all
-where concept_name = 'transderm. lok. crème'
-and concept_id in ('19082103','46234469');
-update r_to_c_all a
-set precedence = '3'
-where concept_name = 'transderm. lok. spray oploss.'
-and concept_id in ('46234410');
-
-delete from r_to_c_all
-where concept_name = 'urethr. crème (unidose)'
-and concept_id in ('19082103','46234469','19126920');
-
 --ingredient names should be made english
 -- update drug_concept_stage x
 -- set concept_name = (select distinct mapped_name from tomap_ingred where concept_code = x.concept_code and (precedence = 1 or precedence is null))

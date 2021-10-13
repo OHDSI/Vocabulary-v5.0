@@ -192,6 +192,17 @@ set box_size = null
 where box_size = '1';
 
 
+delete from relationship_to_concept where concept_code_1 = 'OMOP4921859';
+insert into relationship_to_concept( select 'OMOP4921859', 'GGR', '46234467','1',null);
+insert into relationship_to_concept( select 'OMOP4921859', 'GGR', '19126920','2',null);
+insert into relationship_to_concept(select  'OMOP4921859', 'GGR', '46234469','3',null);
+delete from relationship_to_concept where concept_code_1 = 'OMOP4921861';
+insert into relationship_to_concept( select 'OMOP4921861', 'GGR', '46234467','1',null);
+insert into relationship_to_concept( select 'OMOP4921861', 'GGR', '19126920','2',null);
+insert into relationship_to_concept(select  'OMOP4921861', 'GGR', '46234469','3',null);
+*/
+delete from ds_stage where drug_concept_code = '0057448';--source dosage >1g
+
 
 	update ds_stage
 	set box_size = null
@@ -204,7 +215,7 @@ where box_size = '1';
 				WHERE ds.box_size IS NOT NULL
 				)
 			AND box_size IS NOT NULL;
-			
+
 delete from internal_relationship_stage where concept_code_1 in (
 select concept_code_1 from internal_relationship_stage 
 join drug_concept_stage on concept_code_2 = concept_code and concept_class_id = 'Supplier'
@@ -217,9 +228,9 @@ where concept_code_1 in (	SELECT concept_code
 				AND concept_class_id = 'Supplier'
 			LEFT JOIN ds_stage ON drug_concept_code = concept_code_1
 			WHERE drug_concept_code IS NULL
-						
+
 			UNION
-			
+
 			SELECT concept_code_1
 			FROM internal_relationship_stage
 			JOIN drug_concept_stage ON concept_code_2 = concept_code
@@ -246,9 +257,9 @@ where concept_code_1 in (	SELECT concept_code
 				AND concept_class_id = 'Supplier'
 			LEFT JOIN ds_stage ON drug_concept_code = concept_code_1
 			WHERE drug_concept_code IS NULL
-						
+
 			UNION
-			
+
 			SELECT concept_code_1
 			FROM internal_relationship_stage
 			JOIN drug_concept_stage ON concept_code_2 = concept_code
@@ -264,16 +275,3 @@ where concept_code_1 in (	SELECT concept_code
 		WHERE dcs.concept_class_id = 'Drug Product'
 			AND dcs.invalid_reason IS NULL
 			and s.concept_code_1 not in (select pack_concept_code from pc_stage)));
-/* change uncorrect dose_form mapping		
-
-delete from relationship_to_concept where concept_code_1 = 'OMOP4921859';
-insert into relationship_to_concept( select 'OMOP4921859', 'GGR', '46234467','1',null);
-insert into relationship_to_concept( select 'OMOP4921859', 'GGR', '19126920','2',null);
-insert into relationship_to_concept(select  'OMOP4921859', 'GGR', '46234469','3',null);
-
-delete from relationship_to_concept where concept_code_1 = 'OMOP4921861';
-insert into relationship_to_concept( select 'OMOP4921861', 'GGR', '46234467','1',null);
-insert into relationship_to_concept( select 'OMOP4921861', 'GGR', '19126920','2',null);
-insert into relationship_to_concept(select  'OMOP4921861', 'GGR', '46234469','3',null);
-*/
-delete from ds_stage where drug_concept_code = '0057448';--source dosage >1g

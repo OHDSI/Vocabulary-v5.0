@@ -843,5 +843,50 @@ END $_$;
 DROP TABLE ciel_concept_with_map;
 DROP TABLE ciel_to_concept_map;
 
+--14. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT a.concept_code,
+	b.concept_code,
+	a.vocabulary_id,
+	b.vocabulary_id,
+	relationship_id,
+	r.valid_start_date,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'CIEL'
+		) - 1,
+	'D'
+FROM concept a
+JOIN concept_relationship r ON a.concept_id = concept_id_1
+	AND r.invalid_reason IS NULL
+	AND r.relationship_id NOT IN (
+		'Concept replaced by',
+		'Concept replaces'
+		)
+JOIN concept b ON b.concept_id = concept_id_2
+WHERE 'CIEL' IN (
+		a.vocabulary_id,
+		b.vocabulary_id
+		)
+	AND NOT EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = a.concept_code
+			AND crs_int.concept_code_2 = b.concept_code
+			AND crs_int.vocabulary_id_1 = a.vocabulary_id
+			AND crs_int.vocabulary_id_2 = b.vocabulary_id
+			AND crs_int.relationship_id = r.relationship_id
+		);
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
 -- Before generic update, go through stage table QA checks with functions qa_ddl and check_stage_tables

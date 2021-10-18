@@ -15,6 +15,8 @@ EXECUTE 'CREATE SEQUENCE new_voc INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE
 END
 $$;
 
+--TODO: Take only drugs here
+--TODO: Check 'Nuwiq Kit' - the same drug with different drug_ids results in multiple concepts without any links to drug_ids
 --For drugs with multiple forms we create OMOP-Generated codes
 DROP TABLE IF EXISTS drugs_mult_forms;
 CREATE TABLE drugs_mult_forms AS
@@ -28,57 +30,76 @@ WHERE forms.drug_code IN (SELECT drug_code FROM forms GROUP BY drug_code HAVING 
     );
 
 --Table with omop-generated codes
+--TODO: Assign concept_codes here at the time of JOIN to devv5 by upper(name)/class/vocab
+--TODO: Use correct names (new names) probably taken from manual files already here
+--TODO: Rename table
 DROP TABLE IF EXISTS list_temp;
 CREATE TABLE list_temp AS
-SELECT DISTINCT a.*,
-	nextval('new_voc') AS concept_code
+SELECT DISTINCT a.concept_name, coalesce(a.concept_code, ('OMOP' || nextval('new_voc')::varchar)) AS concept_code,
+                a.concept_class_id, a.standard_concept, a.valid_start_date, a.valid_end_date
 FROM (
 
     SELECT DISTINCT initcap(modified_name) AS concept_name,
+                    c.concept_code,
                     'Ingredient' AS concept_class_id,
                     NULL AS standard_concept,
-                    (current_date - 1) AS valid_start_date,
-	                to_date('20991231', 'yyyymmdd') AS valid_end_date
-	FROM ingr
+                    to_date('19700101', 'yyyymmdd') AS valid_start_date,
+	                coalesce(c.valid_end_date, (current_date - 1)) AS valid_end_date
+	FROM ingr i
+    LEFT JOIN concept c
+    ON upper(c.concept_name) = upper(i.modified_name) AND c.concept_class_id = 'Ingredient' AND c.vocabulary_id = 'DPD' AND c.concept_code LIKE 'OMOP%'
 
 	UNION
 
 	SELECT DISTINCT new_name AS concept_name,
+	                c.concept_code,
 	       'Brand Name' AS concept_class_id,
 	       NULL AS standard_concept,
-	       (current_date - 1) AS valid_start_date,
-	       to_date('20991231', 'yyyymmdd') AS valid_end_date
-	FROM brand_name
+                    to_date('19700101', 'yyyymmdd') AS valid_start_date,
+	                coalesce(c.valid_end_date, (current_date - 1)) AS valid_end_date
+	FROM brand_name bn
+    LEFT JOIN concept c
+    ON upper(c.concept_name) = upper(bn.new_name) AND c.concept_class_id = 'Brand Name' AND c.vocabulary_id = 'DPD' AND c.concept_code LIKE 'OMOP%'
 	WHERE new_name IS NOT NULL
+
 
 	UNION
 
 	SELECT DISTINCT initcap(form_name) AS concept_name,
+	                c.concept_code,
 	       'Dose Form' AS concept_class_id,
 	       NULL AS standard_concept,
-	       (current_date - 1) AS valid_start_date,
-	       to_date('20991231', 'yyyymmdd') AS valid_end_date
-	FROM forms
+                    to_date('19700101', 'yyyymmdd') AS valid_start_date,
+	                coalesce(c.valid_end_date, (current_date - 1)) AS valid_end_date
+	FROM forms f
+    LEFT JOIN concept c
+    ON upper(c.concept_name) = upper(f.form_name) AND c.concept_class_id = 'Dose Form' AND c.vocabulary_id = 'DPD' AND c.concept_code LIKE 'OMOP%'
 	WHERE form_name IS NOT NULL
 
 	UNION
 
 	SELECT DISTINCT initcap(edited_name) AS concept_name,
+	                c.concept_code,
 	       'Supplier' AS concept_class_id,
 	       NULL AS standard_concept,
-	       (current_date - 1) AS valid_start_date,
-	       to_date('20991231', 'yyyymmdd') AS valid_end_date
-	FROM companies
+                    to_date('19700101', 'yyyymmdd') AS valid_start_date,
+	                coalesce(c.valid_end_date, (current_date - 1)) AS valid_end_date
+	FROM companies cm
+    LEFT JOIN concept c
+    ON upper(c.concept_name) = upper(cm.edited_name) AND c.concept_class_id = 'Supplier' AND c.vocabulary_id = 'DPD' AND c.concept_code LIKE 'OMOP%'
 	WHERE edited_name IS NOT NULL
 
     UNION
-
-    SELECT DISTINCT non_drug.brand_name AS concept_name,
+--TODO: Make them standard? There is an option to do that, however, they don't have correct concept_codes
+    SELECT DISTINCT d.brand_name AS concept_name,
+                    c.concept_code,
                     'Device' AS concept_class_id,
                     NULL AS standard_concept,
-                    (current_date - 1) AS valid_start_date,
-	                to_date('20991231', 'yyyymmdd') AS valid_end_date
-    FROM non_drug
+                    to_date('19700101', 'yyyymmdd') AS valid_start_date,
+	                coalesce(c.valid_end_date, (current_date - 1)) AS valid_end_date
+    FROM non_drug d
+    LEFT JOIN concept c
+    ON upper(c.concept_name) = upper(d.brand_name) AND c.concept_class_id = 'Device' AND c.vocabulary_id = 'DPD' AND c.concept_code LIKE 'OMOP%'
     WHERE drug_id = 'Not Applicable/non applicable'
 	) AS a;
 
@@ -113,14 +134,15 @@ FROM (
 	SELECT initcap(concept_name) AS concept_name,
 	       concept_class_id,
 	       standard_concept,
-	       'OMOP' || concept_code AS concept_code,
+	       concept_code,
 	       valid_start_date,
 	       valid_end_date,
 	       'D' AS invalid_reason
 
-	FROM list_temp --ADD 'OMOP' to all OMOP-generated concepts
+	FROM list_temp
 
 UNION
+--TODO: Double check, probably we would need more units after parsing?
 	SELECT concept_name,
 	       concept_class_id,
 	       NULL AS standard_concept,
@@ -131,7 +153,8 @@ UNION
 	FROM unit
 
 UNION
-	SELECT initcap(brand_name) AS concept_name,         --TODO: Do we really need [Drug] added?
+
+	SELECT initcap(brand_name) AS concept_name,         --TODO: Do we really need [Drug] added? Remove after the decision
 	       --initcap(brand_name || ' [Drug]') AS concept_name
 	       'Drug Product' AS concept_class_id,
 	       NULL AS standard_concept,
@@ -145,9 +168,10 @@ UNION
 	WHERE drug_id NOT IN (SELECT drug_id FROM drugs_mult_forms)
 
 UNION
+
     SELECT initcap(brand_name) AS concept_name,
            'Device' AS concept_class_id,
-           CASE WHEN non_drug.valid_end_date > current_date THEN 'S' ELSE NULL END AS standard_concept,             --TODO: Should we leave any device standard?
+           CASE WHEN non_drug.valid_end_date > current_date THEN 'S' ELSE NULL END AS standard_concept,
            drug_id::varchar(50) AS concept_code,
            non_drug.valid_start_date,
            non_drug.valid_end_date,
@@ -156,6 +180,7 @@ UNION
     WHERE drug_id != 'Not Applicable/non applicable'
 
 UNION
+
     SELECT drugs_mult_forms.concept_name AS concept_name,
            'Drug Product' AS concept_class_id,
            NULL AS standard_concept,
@@ -167,34 +192,12 @@ UNION
 	) AS a;
 
 --Case when valid_start_date or valid_end_date > current date
---Source can have data of this type, but OMOP should not
+--DPD can have data of this type, but OMOP should not
 UPDATE drug_concept_stage
     SET valid_start_date = CASE WHEN valid_start_date > current_date THEN current_date
                                 ELSE valid_start_date END,
-        valid_end_date = CASE WHEN valid_end_date > current_date THEN current_date
-                              WHEN valid_end_date < valid_start_date THEN valid_start_date
+        valid_end_date = CASE WHEN valid_end_date < valid_start_date THEN valid_start_date
                                 ELSE valid_end_date END;
-
---Integration with existing concepts for OMOP-generated concepts
---13043 matches with DPD
---77 matches with OMOP
-
---TODO: For the first run on devv5, change OMOP% to DPD%????
--- There are also matches with OMOP, but only if concept_name is all capital
-/*
-with a AS (
-    SELECT *
-    FROM devv5.concept c
-    WHERE c.vocabulary_id = 'DPD'
-    AND c.concept_code like 'OMOP%'
-)
-UPDATE drug_concept_stage
-SET concept_code = a.concept_code
-FROM drug_concept_stage cs
-JOIN a
-    ON cs.concept_name = a.concept_name and cs.concept_class_id = a.concept_class_id
-AND cs.concept_code like 'OMOP%';
- */
 
 --Delete Water as unnecessary ingredient
 --TODO: Delete from ds_stage and internal relationship stage water, etc.
@@ -204,15 +207,17 @@ WHERE concept_name IN ('Sterile Water (Diluent)', 'Sea Water', 'Water (Diluent)'
 
 --Create drug_concept_code backup + versioning
 -- Implemented from AMT
-
---create dsc_backup prior to name updates to get old names in mapping review
+--create dcs_backup prior to name updates to get old names in mapping review
 DROP TABLE IF EXISTS drug_concept_stage_backup;
 CREATE TABLE drug_concept_stage_backup AS
 SELECT *
 FROM drug_concept_stage;
 
 
---+ Unclear where to put this piece of code
+--! By this step we have all attributes, drug and devices separated from each other
+--! Now switching to mappings
+
+--TODO: Unclear where to put this piece of code
 --TODO: maybe put it right before rtc_2?
 
 -- set new_names for ingredients from ingredient_mapped
@@ -221,9 +226,9 @@ SET concept_name = names.new_name
 FROM (
      SELECT name, new_name
      FROM ingredient_mapped
-     WHERE new_name <> ''
+     WHERE new_name != ''
      ) AS names
-WHERE lower(dcs.concept_name) = lower(names.name)
+WHERE upper(dcs.concept_name) = upper(names.name)
     AND dcs.concept_class_id = 'Ingredient'
 ;
 
@@ -233,9 +238,9 @@ SET concept_name = names.new_name
 FROM (
      SELECT name, new_name
      FROM brand_name_mapped
-     WHERE new_name <> ''
+     WHERE new_name != ''
      ) AS names
-WHERE lower(dcs.concept_name) = lower(names.name)
+WHERE upper(dcs.concept_name) = upper(names.name)
     AND dcs.concept_class_id = 'Brand Name'
 ;
 
@@ -245,9 +250,9 @@ SET concept_name = names.new_name
 FROM (
      SELECT name, new_name
      FROM supplier_mapped
-     WHERE new_name <> ''
+     WHERE new_name != ''
      ) AS names
-WHERE lower(dcs.concept_name) = lower(names.name)
+WHERE upper(dcs.concept_name) = upper(names.name)
     AND concept_class_id = 'Supplier'
 ;
 
@@ -257,9 +262,9 @@ SET concept_name = names.new_name
 FROM (
      SELECT name, new_name
      FROM dose_form_mapped
-     WHERE new_name <> ''
+     WHERE new_name != ''
      ) AS names
-WHERE lower(dcs.concept_name) = lower(names.name)
+WHERE upper(dcs.concept_name) = upper(names.name)
     AND concept_class_id = 'Dose Form'
 ;
 
@@ -267,8 +272,8 @@ WHERE lower(dcs.concept_name) = lower(names.name)
 -- delete from dcs concepts, mapped to 0 in ingredient_mapped
 DELETE
 FROM drug_concept_stage dcs
-WHERE lower(concept_name) IN (
-                             SELECT lower(name)
+WHERE upper(concept_name) IN (
+                             SELECT upper(name)
                              FROM ingredient_mapped
                              WHERE concept_id_2 = 0
                                AND name IS NOT NULL
@@ -278,8 +283,8 @@ WHERE lower(concept_name) IN (
 -- delete from dcs concepts, mapped to 0 in brand_name_mapped
 DELETE
 FROM drug_concept_stage dcs
-WHERE lower(concept_name) IN (
-                             SELECT lower(name)
+WHERE upper(concept_name) IN (
+                             SELECT upper(name)
                              FROM brand_name_mapped
                              WHERE concept_id_2 = 0
                                 AND name IS NOT NULL
@@ -289,8 +294,8 @@ WHERE lower(concept_name) IN (
 -- delete from dcs concepts, mapped to 0 in supplier_mapped
 DELETE
 FROM drug_concept_stage dcs
-WHERE lower(concept_name) IN (
-                             SELECT lower(name)
+WHERE upper(concept_name) IN (
+                             SELECT upper(name)
                              FROM supplier_mapped
                              WHERE concept_id_2 = 0
                                AND name IS NOT NULL
@@ -300,8 +305,8 @@ AND concept_class_id = 'Supplier';
 -- delete from dcs concepts, mapped to 0 in dose_form_mapped
 DELETE
 FROM drug_concept_stage dcs
-WHERE lower(concept_name) IN (
-                             SELECT lower(name)
+WHERE upper(concept_name) IN (
+                             SELECT upper(name)
                              FROM dose_form_mapped
                              WHERE concept_id_2 = 0
                                AND name IS NOT NULL
@@ -309,6 +314,7 @@ WHERE lower(concept_name) IN (
 AND concept_class_id = 'Dose Form';
 
 --internal_relationship_stage population
+--TODO: Double check joins
 TRUNCATE internal_relationship_stage;
 INSERT INTO internal_relationship_stage (concept_code_1, concept_code_2)
 (
@@ -358,6 +364,7 @@ WHERE dp.drug_id NOT IN (SELECT drug_id FROM drugs_mult_forms)
 ;
 
 --Insert into internal_relationship_stage relationship for drugs with multiple forms
+--TODO: Double check, may be problems with forms as there are multiple forms
 INSERT INTO internal_relationship_stage (concept_code_1, concept_code_2)
 (
 --drug to manufacturer
@@ -411,6 +418,23 @@ LEFT JOIN internal_relationship_stage b ON a.concept_code = b.concept_code_2
 WHERE a.concept_class_id = 'Dose Form'
 	AND b.concept_code_1 IS NULL);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--! Done till this point
 --Step 4: ds_stage population
 --ds_stage population
 TRUNCATE ds_stage;
@@ -463,6 +487,7 @@ UPDATE ds_stage
 SET amount_value = NULL, amount_unit = NULL
 WHERE denominator_unit IS NOT NULL AND denominator_value IS NOT NULL;
 
+--TODO: DOUBLE CHECK
 --add 1 as denominator value and set unnescessary fields to null for drugs with amounts and isolated denominators units
 UPDATE ds_stage ds
 SET amount_value = (CASE WHEN denominator_unit IN ('Kg', 'DROP', 'G', 'HOUR', 'L', 'ML', 'SQ CM') THEN NULL ELSE amount_value END),

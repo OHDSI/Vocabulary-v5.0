@@ -77,7 +77,7 @@ ORDER BY rx.code,
 
 --3.1. fix for concepts that were originally added as deprecated
 UPDATE concept_stage
-SET valid_end_date = valid_start_date
+SET valid_start_date = TO_DATE('19700101', 'yyyymmdd')
 WHERE valid_end_date < valid_start_date;
 
 --4. Fill concept_synonym_stage

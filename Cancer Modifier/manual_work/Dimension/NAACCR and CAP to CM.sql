@@ -11,7 +11,11 @@ CREATE TABLE dev_mnerovnya.naaccr_to_cm
 
 SELECT DISTINCT *
 FROM dev_mnerovnya.naaccr_to_cm
-WHERE concept_class_id = 'Dimension';
+WHERE concept_class_id = 'Histopattern';
+
+SELECT *
+    from concept
+        where vocabulary_id = 'Cancer Modifier' and concept_class_id = 'Histopattern'
 
 --CM_concept
 TRUNCATE TABLE dev_mnerovnya.cm_concept_dimension;

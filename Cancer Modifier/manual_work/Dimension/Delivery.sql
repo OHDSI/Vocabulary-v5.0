@@ -18,6 +18,8 @@ $$
 $$;
 
 --CONCEPT_MANUAL
+SELECT *
+FROM concept_manual;
 
 TRUNCATE concept_manual
 ;
@@ -177,8 +179,11 @@ FROM cancer_mod_dimension cm
 
 
 --CONCEPT_RELATIONSHIP_MANUAL
+SELECT *
+FROM concept_relationship_manual;
 
-TRUNCATE table concept_relationship_manual;
+TRUNCATE TABLE concept_relationship_manual;
+
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2,
                                          relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT c.concept_code                  AS cocnept_code_1,
@@ -225,33 +230,33 @@ FROM source_mapping_dimension smd
 
 UNION
 
-SELECT old_concept_code  AS cocnept_code_1,
-       remap_to          AS cocnept_code_2,
-       'Cancer Modifier' AS vocabulary_id_1,
-       'Cancer Modifier' AS vocabulary_id_2,
-       'Maps to'         AS relationship_id,
-       current_date  AS valid_start_date,
-               TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
-               NULL AS invalid_reason
-               FROM cm_concept_dimension
-               WHERE status = 'Remap'
+SELECT old_concept_code                AS cocnept_code_1,
+       remap_to                        AS cocnept_code_2,
+       'Cancer Modifier'               AS vocabulary_id_1,
+       'Cancer Modifier'               AS vocabulary_id_2,
+       'Maps to'                       AS relationship_id,
+       CURRENT_DATE                    AS valid_start_date,
+       TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
+       NULL                            AS invalid_reason
+FROM cm_concept_dimension
+WHERE status = 'Remap'
 
 UNION
 
-SELECT old_concept_code  AS cocnept_code_1,
-       remap_to          AS cocnept_code_2,
-       'Cancer Modifier' AS vocabulary_id_1,
-       'Cancer Modifier' AS vocabulary_id_2,
-       'Concept replaced by'         AS relationship_id,
-       current_date  AS valid_start_date,
-               TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
-               NULL AS invalid_reason
-               FROM cm_concept_dimension
-               WHERE status = 'Remap'
+SELECT old_concept_code                AS cocnept_code_1,
+       remap_to                        AS cocnept_code_2,
+       'Cancer Modifier'               AS vocabulary_id_1,
+       'Cancer Modifier'               AS vocabulary_id_2,
+       'Concept replaced by'           AS relationship_id,
+       CURRENT_DATE                    AS valid_start_date,
+       TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
+       NULL                            AS invalid_reason
+FROM cm_concept_dimension
+WHERE status = 'Remap'
 ;
 
 
-with a as (
+WITH a AS (
     SELECT a.concept_name AS parent_name, d.concept_name AS child_name
     FROM cancer_mod_dimension a
              JOIN cancer_mod_dimension_atr b ON a.site = b.anc_atr
@@ -267,32 +272,69 @@ with a as (
         AND a.concept_name != d.concept_name
 )
 
-INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2,
-                                         relationship_id, valid_start_date, valid_end_date, invalid_reason)
-SELECT cm1.concept_name  AS cocnept_code_1,
-       cm2.concept_name          AS cocnept_code_2,
-       cm1.vocabulary_id AS vocabulary_id_1,
-       cm2.vocabulary_id AS vocabulary_id_2,
-       'Is a'         AS relationship_id,
-       current_date  AS valid_start_date,
-               TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
-               NULL AS invalid_reason
+INSERT
+INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2,
+                                  relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT cm2.concept_code                AS cocnept_code_1,
+       cm1.concept_code                AS cocnept_code_2,
+/*       cm2.concept_name  AS cocnept_name_1,
+       cm1.concept_name          AS cocnept_name_2,*/
+       cm2.vocabulary_id               AS vocabulary_id_1,
+       cm1.vocabulary_id               AS vocabulary_id_2,
+       'Is a'                          AS relationship_id,
+       CURRENT_DATE                    AS valid_start_date,
+       TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
+       NULL                            AS invalid_reason
 FROM a
-JOIN concept_manual cm1 on cm1.concept_name = a.parent_name
-JOIN concept_manual cm2 on cm2.concept_name = a.child_name;
-;
+         JOIN concept_manual cm1 ON cm1.concept_name = a.parent_name
+         JOIN concept_manual cm2 ON cm2.concept_name = a.child_name;
 ;
 
-
-SELECT *
-FROM concept_manual;
+--attributes inserting
+insert INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2,
+                                  relationship_id, valid_start_date, valid_end_date, invalid_reason)
+SELECT --b.concept_name                  AS name_1,
+       b.concept_code                  AS cocnept_code_1,
+        --a.concept_name                  AS name_2,
+       a.concept_code                  AS cocnept_code_2,
+       b.vocabulary_id                 AS vocabulary_id_1,
+       a.vocabulary_id                 AS vocabulary_id_2,
+       'Is a'                          AS relationship_id,
+       CURRENT_DATE                    AS valid_start_date,
+       TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
+       NULL                            AS invalid_reason
+FROM dev_mnerovnya.cancer_mod_dimension_atr atr
+         JOIN dev_mnerovnya.concept_manual a
+              ON a.concept_name = atr.anc_atr
+         JOIN dev_mnerovnya.concept_manual b ON b.concept_name = atr.desc_atr
+where a.concept_code != b.concept_code;
 
 SELECT *
 FROM dev_mnerovnya.concept_relationship_manual;
 
 
-
-;
-
 SELECT *
 FROM cm_concept_dimension;
+
+SELECT a.concept_code,
+       a.concept_name,
+       a.standard_concept,
+       a.invalid_reason,
+       relationship_id,
+       b.concept_code,
+       b.concept_name,
+       b.standard_concept,
+       b.invalid_reason
+FROM concept_manual a
+         JOIN concept_relationship_manual r ON a.concept_code = r.concept_code_1
+         JOIN concept_manual b ON b.concept_code = r.concept_code_2
+;
+
+SELECT DISTINCT relationship_id
+FROM dev_cancer_modifier.concept_relationship_manual;
+
+SELECT *
+FROM dev_mnerovnya.concept_relationship_manual;
+
+SELECT *
+FROM source_mapping_dimension;

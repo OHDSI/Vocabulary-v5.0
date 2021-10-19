@@ -53,7 +53,11 @@ SELECT DISTINCT ON (rx.code) vocabulary_pack.CutConceptName(rx.str) AS concept_n
 	'Drug Product' AS concept_class_id,
 	NULL AS standard_concept,
 	rx.code AS concept_code,
-	v.latest_update AS valid_start_date,
+	CASE 
+		WHEN v.latest_update = to_date('20211004', 'yyyymmdd')
+			THEN TO_DATE('19700101', 'yyyymmdd')
+		ELSE v.latest_update
+		END AS valid_start_date, --for the first time we put concepts as 1970
 	COALESCE(TO_DATE(rxs.atv, 'yyyymmdd'), TO_DATE('20991231', 'yyyymmdd')) AS valid_end_date,
 	CASE 
 		WHEN rxs.atv IS NULL
@@ -73,12 +77,7 @@ WHERE rx.sab = 'VANDF'
 		)
 	AND v.vocabulary_id = 'VANDF'
 ORDER BY rx.code,
-	TO_DATE(rxs.atv, 'yyyymmdd') DESC; --some codes have several records in rxnsat with different NF_INACTIVATE, so we take the only one with MAX (atv)
-
---3.1. fix for concepts that were originally added as deprecated
-UPDATE concept_stage
-SET valid_start_date = TO_DATE('19700101', 'yyyymmdd')
-WHERE valid_end_date < valid_start_date;
+	TO_DATE(rxs.atv, 'yyyymmdd') DESC;--some codes have several records in rxnsat with different NF_INACTIVATE, so we take the only one with MAX (atv)
 
 --4. Fill concept_synonym_stage
 INSERT INTO concept_synonym_stage (

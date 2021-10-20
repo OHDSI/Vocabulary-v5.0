@@ -191,7 +191,7 @@ begin
       analyze sources.retchch0_etc_hicseqn_hist;
   when 'MEDDRA' then
       truncate table sources.hlgt_pref_term, sources.hlgt_hlt_comp, sources.hlt_pref_term, sources.hlt_pref_comp, sources.low_level_term, 
-      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp;
+      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp, sources.meddra_mapsto_snomed, sources.meddra_mappedfrom_snomed;
       execute 'COPY sources.hlgt_pref_term FROM '''||pVocabularyPath||'hlgt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlgt_hlt_comp FROM '''||pVocabularyPath||'hlgt_hlt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlt_pref_term FROM '''||pVocabularyPath||'hlt.asc'' delimiter ''$'' csv quote E''\b''';
@@ -201,16 +201,9 @@ begin
       execute 'COPY sources.pref_term FROM '''||pVocabularyPath||'pt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.soc_term FROM '''||pVocabularyPath||'soc.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.soc_hlgt_comp FROM '''||pVocabularyPath||'soc_hlgt.asc'' delimiter ''$'' csv quote E''\b''';
+      insert into sources.meddra_mapsto_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',0);
+      insert into sources.meddra_mappedfrom_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',1);
       update sources.hlt_pref_comp set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
-      analyze sources.hlgt_pref_term;
-      analyze sources.hlgt_hlt_comp;
-      analyze sources.hlt_pref_term;
-      analyze sources.hlt_pref_comp;
-      analyze sources.low_level_term;
-      analyze sources.md_hierarchy;
-      analyze sources.pref_term;
-      analyze sources.soc_term;
-      analyze sources.soc_hlgt_comp;
   when 'GPI' then
       truncate table sources.gpi_name, sources.ndw_v_product;
       execute 'COPY sources.gpi_name (gpi_code,drug_string) FROM '''||pVocabularyPath||'gpi_name.txt'' delimiter '';'' csv quote ''$''';

@@ -150,7 +150,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'ICD10' THEN 1
 		WHEN c.vocabulary_id = 'RxNorm' THEN 1
 		WHEN c.vocabulary_id = 'NDFRT' THEN 1
-		WHEN c.vocabulary_id = 'VA Product' THEN 1
+		WHEN c.vocabulary_id = 'VANDF' THEN 1
 		WHEN c.vocabulary_id = 'VA Class' THEN 1
 		WHEN c.vocabulary_id = 'ATC' THEN 1
 		WHEN c.vocabulary_id = 'NDC' THEN 0

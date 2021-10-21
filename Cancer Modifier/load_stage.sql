@@ -14,7 +14,7 @@
 * limitations under the License.
 *
 * Authors: Medical team
-* Date: 2020
+* Date: 2021
 **************************************************************************/
 
 DO $_$
@@ -34,8 +34,35 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Manual concepts
+--1   ProcessManualConcepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
+
+
+--2. Add manual relationships
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--3. Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--4 Add mapping from deprecated to fresh concepts (necessary for the next step)
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--5. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+

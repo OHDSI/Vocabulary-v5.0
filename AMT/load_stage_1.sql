@@ -891,7 +891,7 @@ CREATE TABLE dcs_bn AS
 SELECT DISTINCT *
 FROM concept_stage_sn
 WHERE concept_class_id = 'Trade Product'
-  AND invalid_reason <> 'D';;
+  AND invalid_reason IS NULL;
 
 -- update dcs_bn using regular expressions
 UPDATE dcs_bn
@@ -2408,6 +2408,10 @@ DELETE
 FROM internal_relationship_stage
 WHERE concept_code_1 = '18658011000036108'
   AND concept_code_2 = 'OMOP527929';
+DELETE
+FROM internal_relationship_stage
+WHERE concept_code_1 = '684511000168101'
+  AND concept_code_2 = '123981000036102';
 
 
 -- 4. PC_STAGE

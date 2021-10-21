@@ -118,7 +118,7 @@ AS (
                             '|' ||
                             'Seravit|Pevaryl|Alanine|Magnesium|Autohaler|Inhaler|Rivaroxaban|Simvar|Stivarga|Tamarindus|Tamiflu|Tenderwet|Tevaripiprazole|Truvada|Zyprexa|Meadowsweet|Gripe' ||
                             '|' ||
-                            'Sodium|Canakinumab|Codeine|Insulin|Paracetamol|Doxylamine|progesteron|Atectura|Mevadol|estrogen|hydromorphone|bazedoxifene|Indacaterol|Mometasone|Orencia'
+                            'Sodium|Canakinumab|Codeine|Insulin|Paracetamol|Doxylamine|progesteron|Atectura|Mevadol|estrogen|hydromorphone|bazedoxifene|Indacaterol|Mometasone|Orencia|Insulin|Truvelog'
                      )
 
 select * from (

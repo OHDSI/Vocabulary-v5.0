@@ -386,13 +386,14 @@ $_$;
 ALTER TABLE relationship_to_concept
     DROP COLUMN mapping_type;
 
---insert valid vaccine concepts into crm
--- TRUNCATE concept_relationship_manual;
+-- insert valid vaccine concepts into crm
+TRUNCATE concept_relationship_manual;
 
--- INSERT INTO concept_relationship_manual
--- SELECT source_concept_code, concept_code, 'AMT', vocabulary_id, 'Maps to',
---        CURRENT_DATE, '2099-12-31'::DATE, NULL
--- FROM vaccines_to_map
--- WHERE vocabulary_id ILIKE '%Rx%'
---   AND standard_concept = 'S';
+INSERT INTO concept_relationship_manual
+SELECT source_concept_code, concept_code, 'AMT', vocabulary_id, 'Maps to',
+       CURRENT_DATE, '2099-12-31'::DATE, NULL
+FROM vaccines_to_map
+WHERE vocabulary_id ILIKE '%Rx%'
+  AND standard_concept = 'S';
+
 

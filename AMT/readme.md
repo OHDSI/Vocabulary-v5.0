@@ -13,6 +13,7 @@ update of amt
 6. Rerun vaccines.sql.
 7. Run load_stage_2.sql
 8. Run input tables checks: input_QA_integratable_E.sql
-9. Run build_RxE.sql
-10. Run stage_tables checks: drug_stage_tables_QA.sql
-11. Run generic_update: devv5.GenericUpdate();
+9. Run input tables checks: input_QA_integratable_W.sql
+10. Run build_RxE.sql
+11. Run stage_tables checks: drug_stage_tables_QA.sql
+12. Run generic_update: devv5.GenericUpdate();

@@ -2,9 +2,9 @@ CREATE OR REPLACE FUNCTION vocabulary_pack.CutConceptSynonymName (concept_name I
 AS
 $BODY$
 	SELECT CASE 
-		WHEN LENGTH(concept_name) > 1000
-			THEN TRIM(SUBSTR(concept_name, 1, 997)) || '...'
-		ELSE concept_name
+		WHEN LENGTH(TRIM(concept_name)) > 1000
+			THEN TRIM(SUBSTR(TRIM(concept_name), 1, 997)) || '...'
+		ELSE TRIM(concept_name)
 		END;
 $BODY$
-LANGUAGE 'sql' IMMUTABLE PARALLEL SAFE SECURITY INVOKER;
+LANGUAGE 'sql' IMMUTABLE PARALLEL SAFE SECURITY INVOKER COST 1;

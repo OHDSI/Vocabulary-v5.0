@@ -22,8 +22,8 @@ pCookie_p1_value text;
 pCookie_p2 text;
 pCookie_p2_value text;
 pContent text;
+pTicket text;
 pDownloadURL text;
-auth_hidden_param varchar(10000);
 pErrorDetails text;
 pVocabularyOperation text;
 /*
@@ -146,7 +146,7 @@ BEGIN
       iVocabulary_status=>1
     );
     
-    --loinc to snomed
+    /*--loinc to snomed <--deprecated, no longer available
     pVocabularyOperation:='GET_LOINC LOINC/SNOMED CT Expression Association downloading';
     select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=4;
     perform run_wget (
@@ -161,7 +161,7 @@ BEGIN
       iSessionID=>pSession,
       iVocabulary_operation=>'GET_LOINC LOINC/SNOMED CT Expression Association downloading complete',
       iVocabulary_status=>1
-    );
+    );*/
     
     --loinc answer
     pVocabularyOperation:='GET_LOINC LOINC Answer downloading';
@@ -258,13 +258,9 @@ BEGIN
     select 'https:'||substring(http_content,'<th>LOINC to CPT Mapping Version</th>.+?href="(.+?)">Draft') into pDownloadURL from py_http_get(url=>pVocabulary_url);
     if not coalesce(pDownloadURL,'-') ~* '^(https://download.nlm.nih.gov/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
-    --get full working link with proper cookie
-    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'),
-    (select value from json_each_text(http_headers) where lower(key)='location'),http_content
-    into pCookie, pDownloadURL, pContent from py_http_umls (pVocabulary_auth,pDownloadURL,devv5.urlencode(pVocabulary_login),devv5.urlencode(pVocabulary_pass));
-    if pCookie not like '%MOD_AUTH_CAS=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%MOD_AUTH_CAS=%% not found'; end if;
-    
-    pCookie=substring(pCookie,'MOD_AUTH_CAS=(.*?);');
+    --get the proper ticket and concatenate it with the pDownloadURL
+    pTicket:=get_umls_ticket (pVocabulary_auth,pVocabulary_login,pDownloadURL);
+    pDownloadURL:=pDownloadURL||'?ticket='||pTicket;
 
     perform write_log (
       iVocabularyID=>pVocabularyID,
@@ -279,7 +275,6 @@ BEGIN
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'_cpt.zip',
       iDownloadLink=>pDownloadURL,
-      iParams=>'--no-cookies --header "Cookie: MOD_AUTH_CAS='||pCookie||'"',
       iDeleteAll=>0
     );
     perform write_log (

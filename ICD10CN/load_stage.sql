@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Eduard Korchmar, Dmitry Dymshyts
-* Date: 2020
+* Date: 2021
 **************************************************************************/
 /*
 TODO:
@@ -80,7 +80,8 @@ SELECT
 	4180186 AS language_concept_id -- English
 FROM sources.icd10cn_concept ic
 JOIN concept c ON c.vocabulary_id = 'ICD10'
-	AND replace(ic.concept_code_clean, '.x00', '') = c.concept_code
+	AND c.concept_class_id NOT LIKE '%Chapter%'
+	AND REPLACE(ic.concept_code_clean, '.x00', '') = c.concept_code
 WHERE ic.concept_code <> 'Metadata'
 
 UNION
@@ -94,6 +95,7 @@ SELECT
 	4180186 AS language_concept_id -- English
 FROM sources.icd10cn_concept ic
 JOIN concept c ON c.vocabulary_id = 'ICD10'
+	AND c.concept_class_id NOT LIKE '%Chapter%'
 	AND ic.concept_code_clean = c.concept_code || '00'
 WHERE ic.concept_code <> 'Metadata'
 
@@ -368,6 +370,7 @@ FROM (
 			) AS concept_id
 	FROM concept_stage cs
 	JOIN concept c ON c.vocabulary_id = 'ICD10'
+		AND c.concept_class_id NOT LIKE '%Chapter%'
 		AND
 		--Allow fuzzy match uphill for this iteration
 		cs.concept_code LIKE c.concept_code || '%'

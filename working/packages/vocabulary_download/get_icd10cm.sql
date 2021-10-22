@@ -59,15 +59,13 @@ BEGIN
     select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
     into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
 
-    --ICD10CM doesn't provide direct links, only general FTP-link ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/YYYY/
-    --so it can be hardcoded
-    pDownloadURL:='ftp://ftp.cdc.gov/pub/Health_Statistics/NCHS/Publications/ICD10CM/'||to_char(pVocabularyNewDate,'YYYY')||'/icd10cm_order_'||to_char(pVocabularyNewDate,'YYYY')||'.txt';
+    pDownloadURL := SUBSTRING(pVocabulary_url,'^(https?://([^/]+))')||SUBSTRING(http_content,'.+<A HREF="(/pub/Health_Statistics/NCHS/Publications/ICD10CM/\d{4}/.+?Descriptions.+?\.zip)">.+?Descriptions.+?</A>') from py_http_get(url=>pVocabulary_url||to_char(pVocabularyNewDate,'YYYY')||'/');
 
     --start downloading
     pVocabularyOperation:='GET_ICD10CM downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'.txt',
+      iFilename=>lower(pVocabularyID)||'.zip',
       iDownloadLink=>pDownloadURL
     );
     perform write_log (

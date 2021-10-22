@@ -17,3 +17,6 @@ RXNSAT.RRF
 5. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('RxNorm',TO_DATE('20180507','YYYYMMDD'),'RxNorm Full 20180507');
 6. Run load_stage.sql
 7. Run generic_update: devv5.GenericUpdate();
+
+NOTE: When RxNorm is run in dev_rxnorm schema, rxn_info_sheet table is created.
+Please review it's results, before running RxNorm in devv5

@@ -82,6 +82,12 @@ FROM (
 	JOIN concept c ON c.concept_id = r.concept_id_2
 		AND c.vocabulary_id LIKE 'RxNorm%'
 	WHERE a.concept_class_id <> c.concept_class_id
+		AND a.concept_class_id IN (
+			'Ingredient',
+			'Brand Name',
+			'Dose Form',
+			'Supplier'
+			)
 	
 	UNION ALL
 	
@@ -418,6 +424,12 @@ FROM (
 	JOIN concept b ON b.concept_code <> a.concept_code
 		AND (LOWER(a.concept_name), a.concept_class_id, a.vocabulary_id) = (LOWER(b.concept_name), b.concept_class_id, b.vocabulary_id)
 	WHERE a.concept_code LIKE 'OMOP%'
+		AND a.concept_class_id NOT IN (
+			'Ingredient',
+			'Brand Name',
+			'Dose Form',
+			'Supplier'
+			)
 	
 	UNION ALL
 	

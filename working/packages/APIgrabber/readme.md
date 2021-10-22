@@ -20,9 +20,9 @@
 	Procedures gets data from the sources and parse into our tables
 	
 	Target tables:
-	ndc_history - target table with parsed NDC-data (job GetAllNDC)
-	rxnorm2ndc_mappings - target table with parsed mappings from RxNorm to NDC (job RxNorm2NDC_Mappings)
-	rxnorm2spl_mappings - target table with parsed mappings from RxNorm to SPL (job RxNorm2SPL_Mappings)
+	ndc_history - target table with parsed NDC-data (job GetAllNDC) [https://rxnav.nlm.nih.gov/api-RxNorm.getNDCStatus.html, history=1]
+	rxnorm2ndc_mappings - target table with parsed mappings from RxNorm to NDC (job RxNorm2NDC_Mappings) [https://rxnav.nlm.nih.gov/api-RxNorm.getAllHistoricalNDCs.html, history=1]
+	rxnorm2spl_mappings - target table with parsed mappings from RxNorm to SPL (job RxNorm2SPL_Mappings) [https://rxnav.nlm.nih.gov/api-RxNorm.getRxProperty.html, propName=SPL_SET_ID]
 	TEMP tables:
 	api_codes_failed - table for failed concepts
 	ndc_history_tmp - temporary table for ndc_history

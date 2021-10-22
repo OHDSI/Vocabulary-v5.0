@@ -35,7 +35,6 @@ CREATE TABLE SOURCES.LOINC
   CONSUMER_NAME              VARCHAR(255),
   CLASSTYPE                  VARCHAR(255),
   FORMULA                    TEXT,
-  SPECIES                    VARCHAR(20),
   EXMPL_ANSWERS              TEXT,
   SURVEY_QUEST_TEXT          TEXT,
   SURVEY_QUEST_SRC           VARCHAR(50),
@@ -331,7 +330,7 @@ BEGIN
   return query 
   select s0.created_on, s0.loinc, s0.long_common_name from (
     with loinc_table as (
-        select replace(replace(substring(http_content,'<table id="prereleasetable".*?(<tbody>.*</tbody>)'),'&','&amp;'),' <= ',' &lt;= ')::xml xmlfield
+        select replace(replace(replace(substring(http_content,'<table id="prereleasetable".*?(<tbody>.*</tbody>)'),'&','&amp;'),' <= ',' &lt;= '),'<30','&lt;30')::xml xmlfield
         from vocabulary_download.py_http_get(url=>'https://loinc.org/prerelease',allow_redirects=>true)
     )
     select

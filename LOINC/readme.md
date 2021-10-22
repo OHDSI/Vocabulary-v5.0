@@ -11,7 +11,7 @@ NOTE: The FastRecreateSchema must be used with a include_deprecated_rels=>true
 and multiaxial hierarchy (https://loinc.org/file-access/download-id/8991)
 3. Extract loinc.csv, map_to.csv, source_organization.csv and LOINC_XXX_MULTI-AXIAL_HIERARCHY.CSV. LOINC_XXX_MULTI-AXIAL_HIERARCHY.CSV should be renamed to LOINC_MULTI-AXIAL_HIERARCHY.CSV
 4. Download LOINC_XXX_PanelsAndForms.zip from https://loinc.org/file-access/download-id/8987/, extract LOINC_XXX_PanelsAndForms.csv and rename to LOINC_PanelsAndForms.csv
-5. Download "LOINC/SNOMED CT Expression Association and Map Sets File" (xSnomedCT_LOINC_Beta_YYYYMMDDTXXXXXX.zip) from https://loinc.org/file-access/download-id/9516/
+5. Download "LOINC/SNOMED CT Expression Association and Map Sets File" (xSnomedCT_LOINC_Beta_YYYYMMDDTXXXXXX.zip) from https://loinc.org/file-access/download-id/9516/ (NOTE! The file is no longer available!)
 6. Extract \Full\Refset\Content\der2_sscccRefset_LOINCExpressionAssociationFull_INT_xxxxxxxx.txt and rename to der2_sscccRefset_LOINCExpressionAssociationFull_INT.txt
 7. Extract \Full\Refset\Content\der2_scccRefset_LOINCMapCorrelationOriginFull_INT_xxxxxxxx.txt and rename to der2_scccRefset_LOINCMapCorrelationOriginFull_INT.txt
 8. Download LNCxxx_TO_CPT2005_MAPPINGS.zip from http://www.nlm.nih.gov/research/umls/mapping_projects/loinc_to_cpt_map.html

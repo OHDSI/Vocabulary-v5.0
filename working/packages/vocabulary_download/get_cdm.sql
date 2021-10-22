@@ -74,10 +74,11 @@ BEGIN
     select s1.release_date, s1.release_id, s1.release_url
     into pVocabularyNewDateTIMESTAMP, pVocabularyReleaseID, pDownloadURL
     from (
-      select s0.release_date, s0.release_id, s0.release_url from (
+      select s0.release_date, s0.release_id, coalesce(s0.browser_download_url,s0.release_url) as release_url from (
         with t as (select json_array_elements(http_content::json) as json_content from py_http_get(url=>pVocabulary_url))
         select (t.json_content->>'published_at')::timestamp as release_date,
-        t.json_content->>'node_id' as release_id, t.json_content->>'zipball_url' as release_url
+        t.json_content->>'node_id' as release_id, t.json_content->>'zipball_url' as release_url,
+        t.json_content#>>'{assets,0,browser_download_url}' as browser_download_url
         from t
         where (t.json_content->>'prerelease')::boolean = false
         and (t.json_content->>'node_id')<>'MDc6UmVsZWFzZTcxOTY0MDE=' --exclude 5.2.0 due to DDL bugs
@@ -86,7 +87,7 @@ BEGIN
     ) s1;
 
     --https://api.github.com/repos/OHDSI/CommonDataModel/zipball/v6.0.0
-    if not pDownloadURL ~* '^(https://api\.github\.com/repos/OHDSI/CommonDataModel/zipball/)(.+)$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
+    --https://github.com/OHDSI/CommonDataModel/releases/download/v5.4.0/OMOPCDM_5.4.zip (if browser_download_url is present)
 
     --start downloading
     pVocabularyOperation:='GET_CDM downloading';

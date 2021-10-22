@@ -461,13 +461,15 @@ where domain_id is null
 
 
 
---14. Clean up
-DROP TABLE modifier_classes;
-DROP TABLE classes;
-
-
 --additional French work
 -- Preserve original names in concept_synonym_stage
+UPDATE concept_stage a
+   SET concept_name = b.rubric_label
+FROM classes b
+WHERE a.concept_code = b.class_code
+AND   class_code IN ('D51','U07.4','D51.8','U07.3','U07.2','D51.3','U07.5','U07.7','U07.8','U07.9','U07.6')
+AND rubric_kind = 'preferred';
+
 insert into concept_synonym_stage (synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id)
 select
 	concept_name,
@@ -481,6 +483,10 @@ update concept_stage cs set concept_name=c.concept_name
 from concept c
 where c.concept_code=cs.concept_code and c.vocabulary_id='ICD10';
 -- 11427 rows affected in 2019 version
+														
+--14. Clean up
+DROP TABLE modifier_classes;
+DROP TABLE classes;														
 
 DO $_$
 BEGIN
@@ -491,3 +497,4 @@ END $_$;
 DELETE FROM concept_stage cs WHERE EXISTS (SELECT 1 FROM concept_stage cs_int WHERE cs_int.concept_code = cs.concept_code AND cs_int.ctid > cs.ctid);
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+

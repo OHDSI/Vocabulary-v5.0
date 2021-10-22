@@ -60,22 +60,21 @@ begin
       analyze sources.mrrel;
       analyze sources.mrsty;
   when 'CIEL' then
-      set local datestyle='ISO, DMY'; --set proper date format
-      truncate table sources.concept_ciel, sources.concept_class_ciel, sources.concept_name, sources.concept_reference_map, sources.concept_reference_term, sources.concept_reference_source;
-      execute 'COPY sources.concept_ciel FROM '''||pVocabularyPath||'CONCEPT_CIEL.csv'' delimiter ''|'' csv';
-      execute 'COPY sources.concept_class_ciel (concept_class_id,"name",description,creator,date_created,
-      	retired,retired_by,date_retired,retire_reason,uuid,filler_column) FROM '''||pVocabularyPath||'CONCEPT_CLASS_CIEL.csv'' delimiter ''|'' csv';
-      execute 'COPY sources.concept_name FROM '''||pVocabularyPath||'CONCEPT_NAME.csv'' delimiter ''|'' csv';
-      execute 'COPY sources.concept_reference_map FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_MAP.csv'' delimiter ''|'' csv';
-      execute 'COPY sources.concept_reference_term FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_TERM.csv'' delimiter ''|'' csv';
-      execute 'COPY sources.concept_reference_source FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_SOURCE.csv'' delimiter ''|'' csv';
-      update sources.concept_class_ciel set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
-      analyze sources.concept_ciel;
-      analyze sources.concept_class_ciel;
-      analyze sources.concept_name;
-      analyze sources.concept_reference_map;
-      analyze sources.concept_reference_term;
-      analyze sources.concept_reference_source;
+      --set local datestyle='ISO, DMY'; --set proper date format
+      truncate table sources.ciel_concept, sources.ciel_concept_class, sources.ciel_concept_name, sources.ciel_concept_reference_map, sources.ciel_concept_reference_term, sources.ciel_concept_reference_source;
+      execute 'COPY sources.ciel_concept FROM '''||pVocabularyPath||'CONCEPT_CIEL.csv'' delimiter E''\t'' csv NULL ''\N''';
+      execute 'COPY sources.ciel_concept_class (concept_class_id,ciel_name,description,creator,date_created,
+      	retired,retired_by,date_retired,retire_reason,uuid,date_changed,changed_by) FROM '''||pVocabularyPath||'CONCEPT_CLASS_CIEL.csv'' delimiter E''\t'' csv NULL ''\N''';
+      execute 'COPY sources.ciel_concept_name FROM '''||pVocabularyPath||'CONCEPT_NAME.csv'' delimiter E''\t'' csv NULL ''\N''';
+      execute 'COPY sources.ciel_concept_reference_map FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_MAP.csv'' delimiter E''\t'' csv NULL ''\N''';
+      execute 'COPY sources.ciel_concept_reference_term FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_TERM.csv'' delimiter E''\t'' csv NULL ''\N''';
+      execute 'COPY sources.ciel_concept_reference_source FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_SOURCE.csv'' delimiter E''\t'' csv NULL ''\N''';
+      update sources.ciel_concept_class set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      --force NULL for empty fields
+      update sources.ciel_concept_class set ciel_name=nullif(trim(ciel_name),'');
+      update sources.ciel_concept_name set ciel_name=nullif(trim(ciel_name),''),locale=nullif(trim(locale),'');
+      update sources.ciel_concept_reference_term set ciel_name=nullif(trim(ciel_name),''),ciel_code=nullif(trim(ciel_code),'');
+      update sources.ciel_concept_reference_source set ciel_name=nullif(trim(ciel_name),'');
   when 'RXNORM' then
       truncate table sources.rxnsat, sources.rxnrel, sources.rxnatomarchive, sources.rxnconso;
       drop index sources.x_rxnconso_str;
@@ -192,7 +191,7 @@ begin
       analyze sources.retchch0_etc_hicseqn_hist;
   when 'MEDDRA' then
       truncate table sources.hlgt_pref_term, sources.hlgt_hlt_comp, sources.hlt_pref_term, sources.hlt_pref_comp, sources.low_level_term, 
-      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp;
+      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp, sources.meddra_mapsto_snomed, sources.meddra_mappedfrom_snomed;
       execute 'COPY sources.hlgt_pref_term FROM '''||pVocabularyPath||'hlgt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlgt_hlt_comp FROM '''||pVocabularyPath||'hlgt_hlt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlt_pref_term FROM '''||pVocabularyPath||'hlt.asc'' delimiter ''$'' csv quote E''\b''';
@@ -202,16 +201,9 @@ begin
       execute 'COPY sources.pref_term FROM '''||pVocabularyPath||'pt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.soc_term FROM '''||pVocabularyPath||'soc.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.soc_hlgt_comp FROM '''||pVocabularyPath||'soc_hlgt.asc'' delimiter ''$'' csv quote E''\b''';
+      insert into sources.meddra_mapsto_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',0);
+      insert into sources.meddra_mappedfrom_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',1);
       update sources.hlt_pref_comp set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
-      analyze sources.hlgt_pref_term;
-      analyze sources.hlgt_hlt_comp;
-      analyze sources.hlt_pref_term;
-      analyze sources.hlt_pref_comp;
-      analyze sources.low_level_term;
-      analyze sources.md_hierarchy;
-      analyze sources.pref_term;
-      analyze sources.soc_term;
-      analyze sources.soc_hlgt_comp;
   when 'GPI' then
       truncate table sources.gpi_name, sources.ndw_v_product;
       execute 'COPY sources.gpi_name (gpi_code,drug_string) FROM '''||pVocabularyPath||'gpi_name.txt'' delimiter '';'' csv quote ''$''';
@@ -329,16 +321,38 @@ begin
           valid_start_date,
           displayname,
           replaced_spl,
+          NULLIF(CONCAT (
+              CASE 
+                  WHEN LENGTH(ndc_p1) = 4
+                      THEN '0' || ndc_p1
+                  ELSE ndc_p1
+                  END,
+              CASE 
+                  WHEN LENGTH(ndc_p2) = 3
+                      THEN '0' || ndc_p2
+                  ELSE ndc_p2
+                  END,
+              CASE 
+                  WHEN LENGTH(ndc_p3) = 1
+                      THEN '0' || ndc_p3
+                  ELSE ndc_p3
+                  END
+              ), '') AS ndc_code,
           low_value,
-          high_value
+          high_value,
+          is_diluent
       FROM (
           SELECT COALESCE(NULLIF(concept_name, ''), NULLIF(concept_name_clob, ''), '') || ' - ' || COALESCE(NULLIF(LOWER(kit), ''), NULLIF(concept_name_p2, ''), NULLIF(concept_name_clob_p2, ''), '') AS concept_name,
               concept_code,
               valid_start_date,
               displayname,
               NULLIF(replaced_spl, '') AS replaced_spl,
+              ndc_code_array [1] AS ndc_p1,
+              ndc_code_array [2] AS ndc_p2,
+              ndc_code_array [3] AS ndc_p3,
               NULLIF(low_value, '') AS low_value,
-              NULLIF(high_value, '') AS high_value
+              NULLIF(high_value, '') AS high_value,
+              CASE WHEN ndc_root_name LIKE '%DILUENT%' AND ndc_code <> '' THEN TRUE ELSE FALSE END AS is_diluent
           FROM (
               SELECT TRIM(UPPER(TRIM(concept_name_part)) || ' ' || UPPER(TRIM(concept_name_suffix))) AS concept_name,
                   TRIM(UPPER(TRIM(concept_name_clob_part)) || ' ' || UPPER(TRIM(concept_name_clob_suffix))) AS concept_name_clob,
@@ -353,8 +367,11 @@ begin
                   UPPER(TRIM(regexp_replace(displayname, '[[:space:]]+', ' ', 'g'))) AS displayname,
                   replaced_spl,
                   kit,
+                  regexp_split_to_array(ndc_code, '-') AS ndc_code_array,
                   low_value,
-                  high_value
+                  high_value,
+                  ndc_code,
+                  UPPER(ndc_root_name) AS ndc_root_name
               FROM (
                   SELECT (sources.py_xmlparse_spl(xmlfield)).*
                   FROM sources.spl_ext_raw
@@ -363,7 +380,7 @@ begin
           ) AS s2;
 
       --delete duplicate records
-      DELETE FROM sources.spl_ext s WHERE EXISTS (SELECT 1 FROM sources.spl_ext s_int WHERE s_int.concept_code = s.concept_code AND s_int.ctid > s.ctid);
+      --DELETE FROM sources.spl_ext s WHERE EXISTS (SELECT 1 FROM sources.spl_ext s_int WHERE s_int.concept_code = s.concept_code AND s_int.ctid > s.ctid);
       UPDATE sources.spl_ext s
       SET valid_start_date = i.vocabulary_date
       FROM (
@@ -391,7 +408,7 @@ begin
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_date;
       alter table sources.loinc DROP COLUMN IF EXISTS vocabulary_version;
       execute 'COPY sources.loinc FROM '''||pVocabularyPath||'loinc.csv'' delimiter '','' csv HEADER FORCE NULL loinc_num, component, property, time_aspct, system, scale_typ, method_typ, class, versionlastchanged, 
-         chng_type, definitiondescription, status, consumer_name, classtype, formula, species, exmpl_answers, survey_quest_text, survey_quest_src, unitsrequired, submitted_units, relatednames2, shortname, 
+         chng_type, definitiondescription, status, consumer_name, classtype, formula, exmpl_answers, survey_quest_text, survey_quest_src, unitsrequired, submitted_units, relatednames2, shortname, 
          order_obs, cdisc_common_tests, hl7_field_subfield_id, external_copyright_notice, example_units, long_common_name, unitsandrange, example_ucum_units, example_si_ucum_units, status_reason, 
          status_text, change_reason_public, common_test_rank, common_order_rank, common_si_test_rank, hl7_attachment_structure, external_copyright_link, paneltype, askatorderentry, associatedobservations, 
          versionfirstreleased, validhl7attachmentrequest, displayname';
@@ -400,7 +417,7 @@ begin
       update sources.loinc set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       execute 'COPY sources.map_to FROM '''||pVocabularyPath||'map_to.csv'' delimiter '','' csv HEADER';
       execute 'COPY sources.source_organization FROM '''||pVocabularyPath||'source_organization.csv'' delimiter '','' csv HEADER';
-      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'LOINC_MULTI-AXIAL_HIERARCHY.CSV'' delimiter '','' csv HEADER';
+      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'LOINC_MULTI-AXIAL_HIERARCHY.CSV'' delimiter '','' csv HEADER FORCE NULL path_to_root,sequence,immediate_parent,code,code_text';
       truncate table sources.loinc_answerslist, sources.loinc_answerslistlink, sources.loinc_forms;
       execute 'COPY sources.loinc_answerslist FROM '''||pVocabularyPath||'AnswerList.csv'' delimiter '','' csv HEADER FORCE NULL answerlistid, answerlistname, answerlistoid, extdefinedyn, 
          extdefinedanswerlistcodesystem, extdefinedanswerlistlink, answerstringid, localanswercode, localanswercodesystem, sequencenumber, displaytext, extcodeid, extcodedisplayname, extcodesystem, 
@@ -417,11 +434,9 @@ begin
       execute 'COPY sources.loinc_partlink_supplementary FROM '''||pVocabularyPath||'LoincPartLink_Supplementary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
       execute 'COPY sources.loinc_part FROM '''||pVocabularyPath||'Part.csv'' delimiter '','' csv HEADER FORCE NULL partnumber,parttypename,partname,partdisplayname,status';
       execute 'COPY sources.loinc_radiology FROM '''||pVocabularyPath||'LoincRsnaRadiologyPlaybook.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,parttypename,partname,partsequenceorder,rid,preferredname,rpid,longname';
-      truncate table sources.loinc_class, sources.scccrefset_expressionassociation_int, sources.scccrefset_mapcorrorfull_int, sources.cpt_mrsmap;
+      truncate table sources.loinc_class, sources.cpt_mrsmap;
       set local datestyle='ISO, DMY'; --set proper date format
       execute 'COPY sources.loinc_class FROM '''||pVocabularyPath||'loinc_class.csv'' delimiter ''|'' csv HEADER';
-      execute 'COPY sources.scccrefset_expressionassociation_int FROM '''||pVocabularyPath||'der2_sscccRefset_LOINCExpressionAssociationFull_INT.txt'' delimiter E''\t'' csv HEADER';
-      execute 'COPY sources.scccrefset_mapcorrorfull_int FROM '''||pVocabularyPath||'der2_scccRefset_LOINCMapCorrelationOriginFull_INT.txt'' delimiter E''\t'' csv HEADER';
       execute 'COPY sources.cpt_mrsmap FROM '''||pVocabularyPath||'CPT_MRSMAP.RRF'' delimiter ''|'' csv';
       execute 'COPY sources.loinc_documentontology FROM '''||pVocabularyPath||'DocumentOntology.csv'' delimiter '','' csv HEADER';
   when 'HCPCS' then
@@ -490,16 +505,6 @@ begin
       analyze sources.sct2_concept_full_merged;
       analyze sources.sct2_desc_full_merged;
       analyze sources.sct2_rela_full_merged;
-      --load XML sources
-      truncate table sources.f_lookup2, sources.f_ingredient2, sources.f_vtm2, sources.f_vmp2, sources.f_vmpp2, sources.f_amp2, sources.f_ampp2, sources.dmdbonus;
-      execute 'COPY sources.f_lookup2 FROM '''||pVocabularyPath||'f_lookup2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_ingredient2 FROM '''||pVocabularyPath||'f_ingredient2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_vtm2 FROM '''||pVocabularyPath||'f_vtm2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_vmp2 FROM '''||pVocabularyPath||'f_vmp2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_vmpp2 FROM '''||pVocabularyPath||'f_vmpp2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_amp2 FROM '''||pVocabularyPath||'f_amp2.xml'' delimiter E''\b''';
-      execute 'COPY sources.f_ampp2 FROM '''||pVocabularyPath||'f_ampp2.xml'' delimiter E''\b''';
-      execute 'COPY sources.dmdbonus FROM '''||pVocabularyPath||'dmdbonus.xml'' delimiter E''\b''';
       --loading der2_sRefset_SimpleMapFull_INT
       truncate table sources.der2_srefset_simplemapfull_int;
       execute 'COPY sources.der2_srefset_simplemapfull_int FROM '''||pVocabularyPath||'der2_sRefset_SimpleMapFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
@@ -514,6 +519,15 @@ begin
       update sources.der2_crefset_language_merged set source_file_id='GB_DE' where source_file_id is null;
       CREATE INDEX idx_lang_merged_refid ON sources.der2_crefset_language_merged (referencedcomponentid);
       analyze sources.der2_crefset_language_merged;
+      --loading der2_ssrefset_moduledependency_merged
+      truncate table sources.der2_ssrefset_moduledependency_merged;
+      execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_INT.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_UK.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.der2_ssrefset_moduledependency_merged FROM '''||pVocabularyPath||'der2_ssRefset_ModuleDependencyFull_GB_DE.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      --loading der2_iisssccrefset_extendedmapfull_us
+      truncate table sources.der2_iisssccrefset_extendedmapfull_us;
+      execute 'COPY sources.der2_iisssccrefset_extendedmapfull_us FROM '''||pVocabularyPath||'der2_iisssccRefset_ExtendedMapFull_US.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
   when 'ICD10CM' then
       truncate table sources.icd10cm_temp, sources.icd10cm;
       execute 'COPY sources.icd10cm_temp FROM '''||pVocabularyPath||'icd10cm.txt'' delimiter E''\b''';
@@ -607,15 +621,17 @@ begin
       analyze sources.ggr_sam;
   when 'AMT' then
       truncate table sources.amt_full_descr_drug_only, sources.amt_sct2_concept_full_au, sources.amt_rf2_full_relationships, sources.amt_rf2_ss_strength_refset,
-      	sources.amt_sct2_rela_full_au;
+      	sources.amt_sct2_rela_full_au, sources.amt_crefset_language;
       drop index sources.idx_amt_concept_id;
       drop index sources.idx_amt_descr_id;
       drop index sources.idx_amt_rela_id;
       drop index sources.idx_amt_rela2_id;
+      drop index sources.idx_amt_lang_refid;
       execute 'COPY sources.amt_full_descr_drug_only FROM '''||pVocabularyPath||'sct2_Description_Full-en-AU_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_sct2_concept_full_au (id,effectivetime,active,moduleid,statusid) FROM '''||pVocabularyPath||'sct2_Concept_Full_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_rf2_full_relationships FROM '''||pVocabularyPath||'sct2_Relationship_Full_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       execute 'COPY sources.amt_rf2_ss_strength_refset FROM '''||pVocabularyPath||'der2_ccsRefset_StrengthFull_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
+      execute 'COPY sources.amt_crefset_language FROM '''||pVocabularyPath||'der2_cRefset_LanguageFull-en-AU_AU.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       --execute 'COPY sources.amt_sct2_rela_full_au FROM '''||pVocabularyPath||'sct2_Relationship_Full_AU36.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';
       update sources.amt_sct2_concept_full_au set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       
@@ -623,12 +639,14 @@ begin
       create index idx_amt_descr_id on sources.amt_full_descr_drug_only (conceptid);
       create index idx_amt_rela_id on sources.amt_rf2_full_relationships (id);
       create index idx_amt_rela2_id on sources.amt_sct2_rela_full_au (id);
+      create index idx_amt_lang_refid on sources.amt_crefset_language (referencedcomponentid);
       
       analyze sources.amt_full_descr_drug_only;
       analyze sources.amt_sct2_concept_full_au;
       analyze sources.amt_rf2_full_relationships;
       analyze sources.amt_rf2_ss_strength_refset;
       analyze sources.amt_sct2_rela_full_au;
+      analyze sources.amt_crefset_language;
   when 'ISBT' then
       truncate table sources.isbt_product_desc, sources.isbt_classes, sources.isbt_modifiers, sources.isbt_attribute_values, sources.isbt_attribute_groups, 
       	sources.isbt_categories, sources.isbt_modifier_category_map, sources.isbt_version;
@@ -694,12 +712,13 @@ begin
       
       truncate table sources.cdm_raw_table;
       --we need to replace all carriage returns with chr(0) due to loading the entire file
-      execute 'COPY sources.cdm_raw_table (ddl_text) FROM PROGRAM ''cat "'||pVocabularyPath||'OMOP CDM postgresql ddl.txt" "'||pVocabularyPath||'OMOP CDM Results postgresql ddl.txt" | tr ''''\r\n'''' '''''||chr(1)||'''''  '' csv delimiter E''\b'' quote E''\f'' ';
+      execute 'COPY sources.cdm_raw_table (ddl_text) FROM PROGRAM ''cat "'||pVocabularyPath||'PostgreSQL_DDL.sql" | tr ''''\r\n'''' '''''||chr(1)||'''''  '' csv delimiter E''\b'' quote E''\f'' ';
       --return the carriage returns back and comment all 'ALTER TABLE' clauses
       update sources.cdm_raw_table set ddl_text=regexp_replace(replace(ddl_text,chr(1),E'\r\n'),'ALTER TABLE','--ALTER TABLE','gi'),
       	ddl_date=(pVocabularyVersion::json->>'published_at')::timestamp, ddl_release_id=(pVocabularyVersion::json->>'node_id'), 
         vocabulary_date=(pVocabularyVersion::json->>'published_at')::date, vocabulary_version=(pVocabularyVersion::json->>'version');
       update sources.cdm_raw_table set ddl_text=regexp_replace(ddl_text,'datetime2','timestamp','gi') where ddl_release_id='MDc6UmVsZWFzZTExNDY1Njg5';--fix DDL bug in CDM v5.3.1
+      update sources.cdm_raw_table set ddl_text=replace(ddl_text,'@cdmDatabaseSchema.','');--remove prefixes
       insert into sources.cdm_tables
         select p.*,r.ddl_date, r.ddl_release_id,r.vocabulary_date, r.vocabulary_version
         from sources.cdm_raw_table r
@@ -759,6 +778,41 @@ begin
       truncate table sources.icd10gm;
       execute 'COPY sources.icd10gm (concept_code,concept_name) FROM PROGRAM ''cat "'||pVocabularyPath||'icd10gm.csv"| awk -F "\"*;\"*" ''''{print $7";"$9}''''  '' delimiter '';'' csv quote ''"'' ';
       update sources.icd10gm set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'CCAM' then
+      truncate table sources.ccam_r_acte, sources.ccam_r_menu, sources.ccam_r_acte_ivite, sources.ccam_r_regroupement, sources.ccam_version;
+      execute 'COPY sources.ccam_r_acte FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_ACTE.dbf" | awk "{if(NR>1)print}" ''';
+      execute 'COPY sources.ccam_r_menu FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_MENU.dbf" | awk "{if(NR>1)print}" ''';
+      execute 'COPY sources.ccam_r_acte_ivite FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_ACTE_IVITE.dbf" | awk "{if(NR>1)print}" ''';
+      execute 'COPY sources.ccam_r_regroupement FROM PROGRAM ''pgdbf -TCDE -s 850 "'||pVocabularyPath||'R_REGROUPEMENT.dbf" | awk "{if(NR>1)print}" ''';
+      execute 'COPY sources.ccam_version (vocabulary_date) FROM PROGRAM ''cat "'||pVocabularyPath||'R_ACTE.txt" | awk "{if(NR==1)print}" ''';
+      update sources.ccam_version set vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      analyze sources.ccam_r_acte;
+  when 'HEMONC' then
+      truncate table sources.hemonc_cs, sources.hemonc_crs, sources.hemonc_css;
+      alter table sources.hemonc_cs alter column valid_end_date type text; --dirty hack for truncating values like "2021-09-06 11-30-12" (otherwise there will be an error "time zone displacement out of range: "2021-09-06 11-30-12")
+      execute 'COPY sources.hemonc_cs (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason) FROM '''||pVocabularyPath||'concept_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason HEADER';
+      execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id HEADER';
+      execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id HEADER';
+      update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      update sources.hemonc_cs set valid_end_date=SUBSTRING(valid_end_date,'(.+)\s') where valid_end_date like '% %';
+      alter table sources.hemonc_cs alter column valid_end_date type date using valid_end_date::date; --return proper type
+  when 'DMD' then
+      truncate table sources.f_lookup2, sources.f_ingredient2, sources.f_vtm2, sources.f_vmp2, sources.f_vmpp2, sources.f_amp2, sources.f_ampp2, sources.dmdbonus;
+      execute 'COPY sources.f_lookup2 (xmlfield) FROM '''||pVocabularyPath||'f_lookup2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_ingredient2 FROM '''||pVocabularyPath||'f_ingredient2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_vtm2 FROM '''||pVocabularyPath||'f_vtm2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_vmp2 FROM '''||pVocabularyPath||'f_vmp2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_vmpp2 FROM '''||pVocabularyPath||'f_vmpp2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_amp2 FROM '''||pVocabularyPath||'f_amp2.xml'' delimiter E''\b''';
+      execute 'COPY sources.f_ampp2 FROM '''||pVocabularyPath||'f_ampp2.xml'' delimiter E''\b''';
+      execute 'COPY sources.dmdbonus FROM '''||pVocabularyPath||'dmdbonus.xml'' delimiter E''\b''';
+      update sources.f_lookup2 set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'DM+D' then
+      RAISE EXCEPTION 'Use ''DMD'' instead of %', pVocabularyID;
+  when 'SOPT' then
+      truncate table sources.sopt_source;
+      execute 'COPY sources.sopt_source (concept_code,concept_name) FROM '''||pVocabularyPath||'sopt_source.csv'' delimiter '';'' csv quote ''"'' ';
+      update sources.sopt_source set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

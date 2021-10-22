@@ -21,16 +21,16 @@ DO $$
 BEGIN
 	--Create stage and 'manual' tables
 	DROP TABLE IF EXISTS drug_strength_stage;
-	CREATE UNLOGGED TABLE drug_strength_stage (LIKE devv5.drug_strength_stage);
+	CREATE TABLE drug_strength_stage (LIKE devv5.drug_strength_stage);
 
 	DROP TABLE IF EXISTS pack_content_stage;
-	CREATE UNLOGGED TABLE pack_content_stage (LIKE devv5.pack_content_stage);
+	CREATE TABLE pack_content_stage (LIKE devv5.pack_content_stage);
 
 	DROP TABLE IF EXISTS concept_stage;
-	CREATE UNLOGGED TABLE concept_stage (LIKE devv5.concept_stage);
+	CREATE TABLE concept_stage (LIKE devv5.concept_stage);
 
 	DROP TABLE IF EXISTS concept_relationship_stage;
-	CREATE UNLOGGED TABLE concept_relationship_stage (LIKE devv5.concept_relationship_stage);
+	CREATE TABLE concept_relationship_stage (LIKE devv5.concept_relationship_stage);
 
 	--DROP TABLE IF EXISTS concept_relationship_manual; --we don't want to accidentally drop a table
 	CREATE TABLE IF NOT EXISTS concept_relationship_manual (LIKE devv5.concept_relationship_manual INCLUDING CONSTRAINTS);
@@ -38,7 +38,7 @@ BEGIN
 	CREATE TABLE IF NOT EXISTS concept_synonym_manual (LIKE devv5.concept_synonym_manual INCLUDING CONSTRAINTS);
 
 	DROP TABLE IF EXISTS concept_synonym_stage;
-	CREATE UNLOGGED TABLE concept_synonym_stage (LIKE devv5.concept_synonym_stage);
+	CREATE TABLE concept_synonym_stage (LIKE devv5.concept_synonym_stage);
 
 	--Create copies of table
 	DROP TABLE IF EXISTS concept_ancestor, concept, concept_relationship, relationship, vocabulary, vocabulary_conversion, concept_class, domain, concept_synonym, drug_strength, pack_content CASCADE;
@@ -88,6 +88,7 @@ BEGIN
 	ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
 	ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_concept FOREIGN KEY (concept_id) REFERENCES concept (concept_id);
+	ALTER TABLE concept_synonym ADD CONSTRAINT fpk_concept_synonym_language FOREIGN KEY (language_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE concept_synonym ADD CONSTRAINT unique_synonyms UNIQUE (concept_id,concept_synonym_name,language_concept_id);
 	ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_1 FOREIGN KEY (drug_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE drug_strength ADD CONSTRAINT fpk_drug_strength_concept_2 FOREIGN KEY (ingredient_concept_id) REFERENCES concept (concept_id);

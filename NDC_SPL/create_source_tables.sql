@@ -27,7 +27,7 @@ CREATE TABLE SOURCES.PRODUCT
   proprietarynamesuffix             VARCHAR(126),
   nonproprietaryname                VARCHAR(4000),
   dosageformname                    VARCHAR(48),
-  routename                         VARCHAR(1000),
+  routename                         TEXT,
   startmarketingdate                DATE,
   endmarketingdate                  DATE,
   marketingcategoryname             VARCHAR(40),
@@ -88,8 +88,10 @@ CREATE TABLE SOURCES.SPL_EXT
   valid_start_date  DATE,
   displayname       VARCHAR(4000),
   replaced_spl      VARCHAR(4000),
+  ndc_code          VARCHAR(4000),
   low_value         VARCHAR(4000),
-  high_value        VARCHAR(4000)
+  high_value        VARCHAR(4000),
+  is_diluent        BOOLEAN
 );
 
 DROP TABLE IF EXISTS SOURCES.SPL2NDC_MAPPINGS;
@@ -159,14 +161,19 @@ TABLE (
 	valid_start_date varchar,
 	displayname varchar,
 	replaced_spl varchar,
+	ndc_code varchar,
 	low_value varchar,
-	high_value varchar
+	high_value varchar,
+	ndc_root_code varchar,
+	ndc_root_name varchar
 )
 AS
 $BODY$
 	from lxml.etree import XMLParser, fromstring
 	p = XMLParser(huge_tree=True) #to prevent XML_PARSE_HUGE error
 	res = []
+	ndc_root_code_prev = None
+	ndc_root_name_prev = None
 	xmlns_uris = {'x': 'urn:hl7-org:v3'}
 	xml = fromstring(xml_string, parser=p)
 	concept_code = xml.xpath('/x:document/x:setId/@root',namespaces=xmlns_uris)[0]
@@ -180,16 +187,35 @@ $BODY$
 	formcode=formcode[0] if formcode else ''
 	kit = xml.xpath('/x:document/x:component/x:structuredBody/x:component[1]/x:section/x:subject[1]/x:manufacturedProduct/x:*/x:asSpecializedKind/x:generalizedMaterialKind/x:code/@displayName',namespaces=xmlns_uris)
 	kit=kit[0] if kit else ''
-	concept_name_clob_part = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:name/text()',namespaces=xmlns_uris))
+	concept_name_clob_part = ' '.join(set(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:name/text()',namespaces=xmlns_uris)))
 	concept_name_clob_suffix = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:name/x:suffix/text()',namespaces=xmlns_uris))
 	concept_name_clob_part2 = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:asEntityWithGeneric/x:genericMedicine/x:name/text()',namespaces=xmlns_uris))
 	formcode_clob = ''.join(xml.xpath('/x:document/x:component/x:structuredBody/x:component/x:section/x:subject/x:manufacturedProduct/x:*/x:formCode/@displayName',namespaces=xmlns_uris))
 	valid_start_date = xml.xpath('/x:document/x:effectiveTime[1]/@value',namespaces=xmlns_uris)[0]
 	displayname = xml.xpath('/x:document/x:code/@displayName',namespaces=xmlns_uris)[0]
 	replaced_spls = ';'.join(xml.xpath('//x:document/x:relatedDocument/x:relatedDocument/x:setId/@root',namespaces=xmlns_uris))
-	low_value = ';'.join(set(xml.xpath('//x:subjectOf/x:marketingAct/x:effectiveTime/x:low/@value',namespaces=xmlns_uris)))
-	high_value = ';'.join(set(xml.xpath('//x:subjectOf/x:marketingAct/x:effectiveTime/x:high/@value',namespaces=xmlns_uris)))
-	res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,low_value,high_value))
+	contents = xml.xpath('//x:asContent',namespaces=xmlns_uris)
+	if contents:
+		for content in contents:
+			#ndc_root_code=content.xpath('../../../x:manufacturedProduct/x:manufacturedProduct/x:code/@code|../../../x:manufacturedProduct/x:manufacturedMedicine/x:code/@code',namespaces=xmlns_uris)
+			#ndc_root_code=content.xpath('../x:code/@code',namespaces=xmlns_uris)
+			ndc_root_code=content.xpath('../../x:manufacturedProduct/x:code/@code|../../x:manufacturedMedicine/x:code/@code|../../x:partProduct/x:code/@code',namespaces=xmlns_uris)
+			ndc_root_code=ndc_root_code[0] if ndc_root_code else ndc_root_code_prev
+			ndc_root_code_prev=ndc_root_code
+			#ndc_root_name=content.xpath('../../../x:manufacturedProduct/x:manufacturedProduct/x:name/text()|../../../x:manufacturedProduct/x:manufacturedMedicine/x:name/text()',namespaces=xmlns_uris)
+			#ndc_root_name=content.xpath('../x:name/text()',namespaces=xmlns_uris)
+			ndc_root_name=content.xpath('../../x:manufacturedProduct/x:name/text()|../../x:manufacturedMedicine/x:name/text()|../../x:partProduct/x:name/text()',namespaces=xmlns_uris)
+			ndc_root_name=ndc_root_name[0] if ndc_root_name else ndc_root_name_prev
+			ndc_root_name_prev=ndc_root_name
+			ndc_code = content.xpath('./x:containerPackagedProduct/x:code/@code|./x:containerPackagedMedicine/x:code/@code',namespaces=xmlns_uris)
+			ndc_code=ndc_code[0] if ndc_code else ''
+			low_value = content.xpath('./x:subjectOf/x:marketingAct/x:effectiveTime/x:low/@value',namespaces=xmlns_uris)
+			low_value=low_value[0] if low_value else ''
+			high_value = content.xpath('./x:subjectOf/x:marketingAct/x:effectiveTime/x:high/@value',namespaces=xmlns_uris)
+			high_value=high_value[0] if high_value else ''
+			res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,ndc_code,low_value,high_value,ndc_root_code,ndc_root_name))
+	else:
+		res.append((concept_name_part,concept_name_suffix,concept_name_part2,formcode,kit,concept_name_clob_part,concept_name_clob_suffix,concept_name_clob_part2,formcode_clob,concept_code,valid_start_date,displayname,replaced_spls,'','','','',''))
 	return res
 $BODY$
 LANGUAGE 'plpythonu'

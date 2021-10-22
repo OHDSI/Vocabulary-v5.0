@@ -24,7 +24,7 @@ begin
           select cCode, unnest(xpath('//ndc/text()', h.http_content))::varchar ndc_code,
           to_date(unnest(xpath('//startDate/text()', h.http_content))::varchar,'YYYYMM') startDate,
           to_date(unnest(xpath('//endDate/text()', h.http_content))::varchar,'YYYYMM') endDate
-          from (select http_content::xml from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/rxcui/'||cCode||'/allndcs?history=1',allow_redirects=>true)) as h;
+          from (select http_content::xml from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/rxcui/'||cCode||'/allhistoricalndcs?history=1',allow_redirects=>true)) as h;
         exception when others then 
         --if we have any exception - writing to the LOG-table
         insert into apigrabber.api_codes_failed values (cCode);
@@ -41,7 +41,7 @@ begin
               select cCode, unnest(xpath('//ndc/text()', h.http_content))::varchar ndc_code,
               to_date(unnest(xpath('//startDate/text()', h.http_content))::varchar,'YYYYMM') startDate,
               to_date(unnest(xpath('//endDate/text()', h.http_content))::varchar,'YYYYMM') endDate
-              from (select http_content::xml from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/rxcui/'||cCode||'/allndcs?history=1',allow_redirects=>true)) as h;
+              from (select http_content::xml from vocabulary_download.py_http_get(url=>'https://rxnav.nlm.nih.gov/REST/rxcui/'||cCode||'/allhistoricalndcs?history=1',allow_redirects=>true)) as h;
             delete from apigrabber.api_codes_failed f where f.concept_code=cCode; --delete the concept if the operation was successful
             cExecCounter:=0; --reset the counter if the operation was successful
             exception when others then

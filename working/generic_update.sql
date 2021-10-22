@@ -6,10 +6,20 @@ BEGIN
 	--1. Prerequisites:
 	--1.1 Check stage tables for incorrect rows
 	DO $$
+	DECLARE
+	z TEXT;
+	crlf TEXT:=E'\r\n';
 	BEGIN
-		PERFORM QA_TESTS.Check_Stage_Tables();
+		SELECT STRING_AGG(error_text||' [rows_count='||rows_count||']', crlf) INTO z FROM qa_tests.Check_Stage_Tables();
+		IF LENGTH(z)>10000 THEN
+			z:=SUBSTR(z,1,10000)||'... (cut)';
+		END IF;
+		IF z IS NOT NULL THEN
+			z:=crlf||z||crlf||crlf||'NOTE: You can also run SELECT * FROM qa_tests.Check_Stage_Tables();';
+			RAISE EXCEPTION '%', z;
+		END IF;
 	END $$;
-	
+
 	--1.2 Clear concept_id's just in case
 	UPDATE concept_stage
 	SET concept_id = NULL
@@ -36,23 +46,18 @@ BEGIN
 	WHERE cs.valid_end_date = TO_DATE ('20991231', 'YYYYMMDD')
 	AND cs.invalid_reason IS NOT NULL;
 
-	--4. Fix valid_start_date for incorrect concepts (bad data in sources)
-	UPDATE concept_stage cs
-	SET valid_start_date = cs.valid_end_date - 1
-	WHERE cs.valid_end_date < cs.valid_start_date;
-
-	--5. Update concept_id in concept_stage from concept for existing concepts
+	--4. Update concept_id in concept_stage from concept for existing concepts
 	UPDATE concept_stage cs
 		SET concept_id = c.concept_id
 	FROM concept c
 	WHERE cs.concept_code = c.concept_code
 		AND cs.vocabulary_id = c.vocabulary_id;
 
-	--6. Analysing
-	ANALYSE concept_stage;
-	ANALYSE concept_relationship_stage;
+	--5. Analyzing
+	ANALYZE concept_stage;
+	ANALYZE concept_relationship_stage;
 
-	--7. Clearing the concept_name
+	--6. Clearing the concept_name
 	--Remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_stage
 	SET concept_name = REGEXP_REPLACE(concept_name, '[[:cntrl:]]+', ' ', 'g')
@@ -62,21 +67,17 @@ BEGIN
 	SET concept_name = REGEXP_REPLACE(concept_name, ' {2,}', ' ', 'g')
 	WHERE concept_name ~ ' {2,}';
 
-	--Remove leading and trailing spaces
-	UPDATE concept_stage
-	SET concept_name = TRIM(concept_name)
-	WHERE concept_name <> TRIM(concept_name)
-		AND NOT (
-			concept_name = ' '
-			AND vocabulary_id = 'GPI'
-			);--exclude GPI empty names
-
 	--Remove long dashes
 	UPDATE concept_stage
 	SET concept_name = REPLACE(concept_name, '–', '-')
 	WHERE concept_name LIKE '%–%';
 
-	--8. Clearing the synonym_name
+	--Remove trailing escape character (\)
+	UPDATE concept_stage
+	SET concept_name = TRIM(TRAILING '\' FROM concept_name)
+	WHERE concept_name LIKE '%\\';
+
+	--7. Clearing the synonym_name
 	--Remove double spaces, carriage return, newline, vertical tab and form feed
 	UPDATE concept_synonym_stage
 	SET synonym_name = REGEXP_REPLACE(synonym_name, '[[:cntrl:]]+', ' ', 'g')
@@ -86,85 +87,55 @@ BEGIN
 	SET synonym_name = REGEXP_REPLACE(synonym_name, ' {2,}', ' ', 'g')
 	WHERE synonym_name ~ ' {2,}';
 
-	--Remove leading and trailing spaces
-	UPDATE concept_synonym_stage
-	SET synonym_name = TRIM(synonym_name)
-	WHERE synonym_name <> TRIM(synonym_name)
-		AND NOT (
-			synonym_name = ' '
-			AND synonym_vocabulary_id = 'GPI'
-			);--exclude GPI empty names
-
-	--remove long dashes
+	--Remove long dashes
 	UPDATE concept_synonym_stage
 	SET synonym_name = REPLACE(synonym_name, '–', '-')
 	WHERE synonym_name LIKE '%–%';
+
+	--Remove trailing escape character (\)
+	UPDATE concept_synonym_stage
+	SET synonym_name = TRIM(TRAILING '\' FROM synonym_name)
+	WHERE synonym_name LIKE '%\\';
 
 	/***************************
 	* Update the concept table *
 	****************************/
 
-	--9. Update existing concept details from concept_stage.
+	--8. Update existing concept details from concept_stage.
 	--All fields (concept_name, domain_id, concept_class_id, standard_concept, valid_start_date, valid_end_date, invalid_reason) are updated
-
-	--9.1. For 'concept_name'
 	UPDATE concept c
-	SET concept_name = cs.concept_name
+	SET (
+			concept_name,
+			domain_id,
+			concept_class_id,
+			standard_concept,
+			valid_start_date,
+			valid_end_date,
+			invalid_reason
+			) = (
+			cs.concept_name,
+			cs.domain_id,
+			cs.concept_class_id,
+			cs.standard_concept,
+			CASE 
+				WHEN cs.valid_start_date <> v.latest_update --if we have a real date in the concept_stage, use it. If it is only the release date, use the existing
+					THEN cs.valid_start_date
+				ELSE c.valid_start_date
+				END,
+			cs.valid_end_date,
+			cs.invalid_reason
+			)
 	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND c.concept_name <> cs.concept_name;
+	JOIN vocabulary v USING (vocabulary_id)
+	WHERE c.* IS DISTINCT FROM cs.*
+		AND c.concept_id = cs.concept_id;
 
-	--9.2. For 'domain_id'
-	UPDATE concept c
-	SET domain_id = cs.domain_id
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND c.domain_id <> cs.domain_id;
-
-	--9.3. For 'concept_class_id'
-	UPDATE concept c
-	SET concept_class_id = cs.concept_class_id
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND c.concept_class_id <> cs.concept_class_id;
-
-	--9.4. For 'standard_concept'
-	UPDATE concept c
-	SET standard_concept = cs.standard_concept
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND COALESCE(c.standard_concept, 'X') <> COALESCE(cs.standard_concept, 'X');
-
-	--9.5. For 'valid_start_date'
-	UPDATE concept c
-	SET valid_start_date = cs.valid_start_date
-	FROM concept_stage cs,
-		vocabulary v
-	WHERE c.concept_id = cs.concept_id
-		AND v.vocabulary_id = cs.vocabulary_id
-		AND c.valid_start_date <> cs.valid_start_date
-		AND cs.valid_start_date <> v.latest_update; -- if we have a real date in concept_stage, use it. If it is only the release date, use the existing
-
-	--9.6. For 'valid_end_date'
-	UPDATE concept c
-	SET valid_end_date = cs.valid_end_date
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND c.valid_end_date <> cs.valid_end_date;
-
-	--9.7. For 'invalid_reason'
-	UPDATE concept c
-	SET invalid_reason = cs.invalid_reason
-	FROM concept_stage cs
-	WHERE c.concept_id = cs.concept_id
-		AND COALESCE(c.invalid_reason, 'X') <> COALESCE(cs.invalid_reason, 'X');
-
-	--10. Deprecate concepts missing from concept_stage and are not already deprecated.
+	--9. Deprecate concepts missing from concept_stage and are not already deprecated.
 	--This only works for vocabularies where we expect a full set of active concepts in concept_stage.
 	--If the vocabulary only provides changed concepts, this should not be run, and the update information is already dealt with in step 1.
-	--20180523: new rule for CPT4, ICD9Proc and HCPCS: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981
+	--20180523: new rule for some vocabularies, see http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981
 	--20200730 added ICD10PCS
-	--10.1. Update the concept for non-CPT4, non-ICD9Proc, non-HCPCS and non-ICD10PCS vocabularies
+	--9.1. Update the concept for 'regular' vocabularies
 	UPDATE concept c SET
 		invalid_reason = 'D',
 		standard_concept = NULL,
@@ -179,7 +150,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'ICD10' THEN 1
 		WHEN c.vocabulary_id = 'RxNorm' THEN 1
 		WHEN c.vocabulary_id = 'NDFRT' THEN 1
-		WHEN c.vocabulary_id = 'VA Product' THEN 1
+		WHEN c.vocabulary_id = 'VANDF' THEN 1
 		WHEN c.vocabulary_id = 'VA Class' THEN 1
 		WHEN c.vocabulary_id = 'ATC' THEN 1
 		WHEN c.vocabulary_id = 'NDC' THEN 0
@@ -206,7 +177,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'GRR' THEN 0
 		WHEN c.vocabulary_id = 'CVX' THEN 1
 		WHEN c.vocabulary_id = 'LPD_Australia' THEN 0
-		WHEN c.vocabulary_id = 'PPI' THEN 1
+		WHEN c.vocabulary_id = 'PPI' THEN 0
 		WHEN c.vocabulary_id = 'ICDO3' THEN 1
 		WHEN c.vocabulary_id = 'CDT' THEN 1
 		WHEN c.vocabulary_id = 'ISBT' THEN 0
@@ -222,7 +193,7 @@ BEGIN
 		WHEN c.vocabulary_id = 'US Census' THEN 1
 		WHEN c.vocabulary_id = 'HemOnc' THEN 1
 		WHEN c.vocabulary_id = 'NAACCR' THEN 1
-		WHEN c.vocabulary_id = 'JMDC' THEN 1
+		WHEN c.vocabulary_id = 'JMDC' THEN 0
 		WHEN c.vocabulary_id = 'KCD7' THEN 1
 		WHEN c.vocabulary_id = 'CTD' THEN 1
 		WHEN c.vocabulary_id = 'EDI' THEN 1
@@ -239,19 +210,23 @@ BEGIN
 		WHEN c.vocabulary_id = 'JAX' THEN 0
 		WHEN c.vocabulary_id = 'NCIt' THEN 0
 		WHEN c.vocabulary_id = 'HGNC' THEN 0
+		WHEN c.vocabulary_id = 'ICD10GM' THEN 1
+		WHEN c.vocabulary_id = 'Cancer Modifier' THEN 0
+		WHEN c.vocabulary_id = 'CCAM' THEN 1
+		WHEN c.vocabulary_id = 'SOPT' THEN 1
 		ELSE 0 -- in default we will not deprecate
 	END = 1
-	AND c.vocabulary_id NOT IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS');
+	AND c.vocabulary_id NOT IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
 
-	--10.2. Update the concept for CPT4, ICD9Proc, HCPCS and ICD10PCS
+	--9.2. Update the concept for 'special' vocabs
 	UPDATE concept c SET
 		valid_end_date = (SELECT latest_update-1 FROM vocabulary WHERE vocabulary_id = c.vocabulary_id)
 	WHERE NOT EXISTS (SELECT 1 FROM concept_stage cs WHERE cs.concept_id = c.concept_id AND cs.vocabulary_id = c.vocabulary_id) -- if concept missing from concept_stage
 	AND c.vocabulary_id IN (SELECT vocabulary_id FROM vocabulary WHERE latest_update IS NOT NULL) -- only for current vocabularies
 	AND c.valid_end_date = TO_DATE('20991231', 'YYYYMMDD') -- not already deprecated
-	AND c.vocabulary_id IN ('CPT4', 'HCPCS', 'ICD9Proc', 'ICD10PCS'); /*new rule for these vocabularies: http://forums.ohdsi.org/t/proposal-to-keep-outdated-standard-concepts-active-and-standard/3695/22 and AVOF-981*/
+	AND c.vocabulary_id IN (SELECT TRIM(v) FROM UNNEST(STRING_TO_ARRAY((SELECT var_value FROM devv5.config$ WHERE var_name='special_vocabularies'),',')) v);
 
-	--11. Add new concepts from concept_stage
+	--10. Add new concepts from concept_stage
 	--Create sequence after last valid one
 	DO $$
 	DECLARE
@@ -277,6 +252,7 @@ BEGIN
 		EXECUTE 'CREATE SEQUENCE v5_concept INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
 	END$$;
 
+	--11. Insert new concepts
 	INSERT INTO concept (
 		concept_id,
 		concept_name,
@@ -884,25 +860,15 @@ BEGIN
 				AND css_int.ctid > css.ctid
 			);
 
-	--25. Add all missing synonyms
-	INSERT INTO concept_synonym_stage (
-		synonym_concept_id,
-		synonym_concept_code,
-		synonym_name,
-		synonym_vocabulary_id,
-		language_concept_id
-		)
-	SELECT cs.concept_id AS synonym_concept_id,
-		cs.concept_code AS synonym_concept_code,
-		cs.concept_name AS synonym_name,
-		cs.vocabulary_id AS synonym_vocabulary_id,
-		4180186 AS language_concept_id
-	FROM concept_stage cs
-	WHERE NOT EXISTS (
+	--25. Remove synonyms from concept_synonym_stage if synonym_name alreay exists in concept_stage
+	DELETE
+	FROM concept_synonym_stage css
+	WHERE EXISTS (
 			SELECT 1
-			FROM concept_synonym_stage css
-			WHERE css.synonym_concept_code = cs.concept_code
-				AND css.synonym_vocabulary_id = cs.vocabulary_id
+			FROM concept_stage cs
+			WHERE cs.concept_code = css.synonym_concept_code
+				AND cs.vocabulary_id = css.synonym_vocabulary_id
+				AND LOWER(cs.concept_name) = LOWER(css.synonym_name)
 			);
 
 	--26. Update synonym_concept_id
@@ -917,10 +883,17 @@ BEGIN
 	--Synonyms are built from scratch each time, no life cycle
 	DELETE
 	FROM concept_synonym csyn
-	WHERE EXISTS (
+	WHERE NOT EXISTS (
 			SELECT 1
-			FROM concept_stage cs
-			WHERE cs.concept_id = csyn.concept_id
+			FROM concept_synonym_stage css_int
+			WHERE css_int.synonym_concept_id = csyn.concept_id
+				AND css_int.synonym_name = csyn.concept_synonym_name
+				AND css_int.language_concept_id = csyn.language_concept_id
+			)
+		AND EXISTS (
+			SELECT 1
+			FROM concept_stage c_int
+			WHERE c_int.concept_id = csyn.concept_id
 			);
 
 	--28. Add new synonyms
@@ -932,7 +905,8 @@ BEGIN
 	SELECT css.synonym_concept_id,
 		css.synonym_name,
 		css.language_concept_id
-	FROM concept_synonym_stage css;
+	FROM concept_synonym_stage css
+	ON CONFLICT ON CONSTRAINT unique_synonyms DO NOTHING;
 
 	--29. Fillig drug_strength
 	--Special rules for RxNorm Extension: same as 'Maps to' rules, but records from deprecated concepts will be deleted

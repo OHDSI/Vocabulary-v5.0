@@ -19,6 +19,7 @@ declare
 	cRet_git TEXT;
 	cFooter CONSTANT VARCHAR(1000) := E'\r\n\***\r\nIf you have any questions, please try to find the answers on http://forums.ohdsi.org. If you can\'t find it, please ask here: http://forums.ohdsi.org/t/vocabulary-release-questions/6650';
 	cEmptyResultText CONSTANT VARCHAR(1000) :=E'\r\nthere were no changes here\r\n';
+	cHeader CONSTANT VARCHAR(1000) := E'\r\nThis [guide](https://github.com/OHDSI/Vocabulary-v5.0/wiki/Release-notes-guide) can provide you more background on how to read the release notes.\r\n';
 begin
 	cTitle:=E'\r\n# Domain changes\r\n';
 	cRet:=E'<table>\r\n';
@@ -200,7 +201,7 @@ begin
 		cFullRet:=cFullRet||cTitle||cRet;
 	END IF;
 	
-	cFullRet:=cFullRet||cFooter;
+	cFullRet:=cHeader||cFullRet||cFooter;
 	
 	SELECT vocabulary_pack.py_git_release (cGitRepository,'Release notes v'||TO_CHAR(CURRENT_DATE,'yyyymmdd'), cFullRet, cGitReleaseTag, cGitToken) into cRet_git;
 	IF NOT cRet_git ~ '^[\d]+$' THEN

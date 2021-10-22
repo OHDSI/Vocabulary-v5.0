@@ -43,3 +43,4 @@ CREATE TABLE nccd_full_done
   related_code       VARCHAR(50),
   df_name            VARCHAR(255)
 );
+

@@ -43,10 +43,18 @@ BEGIN
 	SET concept_name = COALESCE(cm.concept_name, cs.concept_name),
 		domain_id = COALESCE(cm.domain_id, cs.domain_id),
 		concept_class_id = COALESCE(cm.concept_class_id, cs.concept_class_id),
-		standard_concept = cm.standard_concept,
+		standard_concept = CASE 
+			WHEN cm.standard_concept = 'X' --don't change the original standard_concept if standard_concept in the cm is 'X'
+				THEN cs.standard_concept
+			ELSE cm.standard_concept
+			END,
 		valid_start_date = COALESCE(cm.valid_start_date, cs.valid_start_date),
 		valid_end_date = COALESCE(cm.valid_end_date, cs.valid_end_date),
-		invalid_reason = cm.invalid_reason
+		invalid_reason = CASE 
+			WHEN cm.invalid_reason = 'X' --don't change the original invalid_reason if invalid_reason in the cm is 'X'
+				THEN cs.invalid_reason
+			ELSE cm.invalid_reason
+			END
 	FROM concept_manual cm
 	WHERE cm.concept_code = cs.concept_code
 		AND cm.vocabulary_id = cs.vocabulary_id;

@@ -57,7 +57,7 @@ BEGIN
   pConcept_code:=REGEXP_REPLACE(pConcept_code, ' {2,}', ' ', 'g');
   pConcept_code:=TRIM(pConcept_code);
   pConcept_code:=REPLACE(pConcept_code, '–', '-');
-  pConcept_code:=COALESCE(pConcept_code,(SELECT 'OMOP'||MAX(REPLACE(concept_code, 'OMOP','')::INT4)+1 FROM concept WHERE concept_code LIKE 'OMOP%' AND concept_code NOT LIKE '% %'));
+  pConcept_code:=COALESCE(NULLIF(pConcept_code,''),(SELECT 'OMOP'||MAX(REPLACE(concept_code, 'OMOP','')::INT4)+1 FROM concept WHERE concept_code LIKE 'OMOP%' AND concept_code NOT LIKE '% %'));
 
   DROP SEQUENCE IF EXISTS v5_concept;
 
@@ -78,9 +78,9 @@ BEGIN
              (z, z, 'Mapped from', pValid_start_date, TO_DATE('20991231', 'YYYYMMDD'), NULL);
   END IF;
 
-  --insert the synonym (=pConcept_name)
+  /*--insert the synonym (=pConcept_name)
   INSERT INTO concept_synonym (concept_id, concept_synonym_name, language_concept_id)
-    VALUES (z, pConcept_name, 4180186 /*English*/);
+    VALUES (z, pConcept_name, 4180186 /*English*/);*/ --deprecated [AVOF-2971]
 
   DROP SEQUENCE v5_concept;
   

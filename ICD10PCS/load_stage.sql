@@ -14,7 +14,7 @@
 * limitations under the License.
 * 
 * Authors: Timur Vakhitov, Christian Reich, Eduard Korchmar
-* Date: 2020
+* Date: 2021
 **************************************************************************/
 
 --1. Update latest_update field to new date
@@ -24,8 +24,7 @@ BEGIN
 	pVocabularyName			=> 'ICD10PCS',
 	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.icd10pcs LIMIT 1),
 	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.icd10pcs LIMIT 1),
-	pVocabularyDevSchema	=> 'DEV_ICD10PCS'
-);
+	pVocabularyDevSchema	=> 'DEV_ICD10PCS');
 END $_$;
 
 --2. Truncate all working tables
@@ -97,8 +96,7 @@ SELECT DISTINCT
 					THEN LENGTH(str)
 				ELSE 0
 				END DESC,
-			str ROWS BETWEEN UNBOUNDED PRECEDING
-				AND UNBOUNDED FOLLOWING
+			str
 		) AS concept_name,
 	'ICD10PCS' AS vocabulary_id,
 	'Procedure' AS domain_id,
@@ -108,12 +106,12 @@ SELECT DISTINCT
 	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM sources.mrconso
-WHERE sab = 'ICD10PCS'
+FROM sources.mrconso mr
+WHERE mr.sab = 'ICD10PCS'
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_stage cs
-		WHERE cs.concept_code = code
+		WHERE cs.concept_code = mr.code
 		);
 
 --5. Add all synonyms from umls.mrconso to concept_synonym stage
@@ -123,14 +121,15 @@ INSERT INTO concept_synonym_stage (
 	synonym_vocabulary_id,
 	language_concept_id
 	)
-SELECT code AS concept_code,
-	str AS synonym_name,
+SELECT DISTINCT mr.code AS concept_code,
+	mr.str AS synonym_name,
 	'ICD10PCS' AS vocabulary_id,
 	4180186 AS language_concept_id
-FROM sources.mrconso
-WHERE sab = 'ICD10PCS'
-GROUP BY code,
-	str;
+FROM sources.mrconso mr
+LEFT JOIN concept_stage cs ON cs.concept_code = mr.code
+	AND LOWER(cs.concept_name) = LOWER(mr.str)
+WHERE mr.sab = 'ICD10PCS'
+	AND cs.concept_code IS NULL;
 
 --6. "Resurrect" previously deprecated concepts using the basic tables (they, being encountered in patient data, must remain Standard!)
 -- Add 'Deprecated' to concept_names to show the fact of deprecation by the source (we expect codes to be deprecated each release cycle)
@@ -188,6 +187,7 @@ SELECT c.concept_code,
 FROM concept_synonym s
 JOIN concept c ON c.concept_id = s.concept_id
 	AND c.vocabulary_id = 'ICD10PCS'
+	AND LOWER(c.concept_name) <> LOWER(s.concept_synonym_name)
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
 WHERE i.concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
@@ -205,14 +205,26 @@ SELECT c.concept_code,
 	4180186 AS language_concept_id
 FROM concept c
 LEFT JOIN sources.icd10pcs i ON i.concept_code = c.concept_code
-LEFT JOIN concept_synonym_stage a ON a.synonym_concept_code = c.concept_code
-	AND a.synonym_name = c.concept_name
+LEFT JOIN concept_synonym_stage css ON css.synonym_concept_code = c.concept_code
+	AND LOWER(css.synonym_name) = LOWER(c.concept_name)
+	AND c.concept_name NOT LIKE '% (Deprecated)'
 WHERE c.vocabulary_id = 'ICD10PCS'
 	AND i.concept_code IS NULL
-	AND a.synonym_concept_code IS NULL
+	AND css.synonym_concept_code IS NULL
 	AND c.concept_code NOT LIKE 'MTHU00000_';-- to exclude internal technical source codes
 
---9. Build 'Subsumes' relationships from ancestors to immediate descendants using concept code similarity (c2.concept_code LIKE c1.concept_code || '_')
+--9. Process manual tables for concept and relationship
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--10. Build 'Subsumes' relationships from ancestors to immediate descendants using concept code similarity; build direct ancestorship relation with the longest code
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); -- for LIKE patterns
 ANALYZE concept_stage;
 
@@ -226,98 +238,52 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT c1.concept_code AS concept_code_1,
-	c2.concept_code AS concept_code_2,
-	c1.vocabulary_id AS vocabulary_id_1,
-	c1.vocabulary_id AS vocabulary_id_2,
+SELECT s0.concept_code_1 AS concept_code_1,
+	s0.concept_code_2 AS concept_code_2,
+	'ICD10PCS' AS vocabulary_id_1,
+	'ICD10PCS' AS vocabulary_id_2,
 	'Subsumes' AS relationship_id,
 	(
 		SELECT latest_update
 		FROM vocabulary
-		WHERE vocabulary_id = c1.vocabulary_id
+		WHERE vocabulary_id = 'ICD10PCS'
 		) AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
-FROM concept_stage c1,
-	concept_stage c2
-WHERE c2.concept_code LIKE c1.concept_code || '_'
-	AND c1.concept_code <> c2.concept_code
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage r_int
-		WHERE r_int.concept_code_1 = c1.concept_code
-			AND r_int.concept_code_2 = c2.concept_code
-			AND r_int.relationship_id = 'Subsumes'
-			AND r_int.vocabulary_id_1='ICD10PCS'
-			AND r_int.vocabulary_id_2='ICD10PCS'
-		);
+FROM (
+	SELECT c1.concept_code AS concept_code_1,
+		c2.concept_code AS concept_code_2,
+		ROW_NUMBER() OVER (
+			PARTITION BY c2.concept_code ORDER BY LENGTH(c1.concept_code) DESC,
+				c1.concept_code
+			) AS rn -- pick the most granular available ancestor
+	FROM concept_stage c1
+	JOIN concept_stage c2 ON c2.concept_code LIKE c1.concept_code || '%'
+		AND c1.concept_code <> c2.concept_code
+	) AS s0
+WHERE rn = 1;
+
 DROP INDEX trgm_idx;
 
---10. Add manual relationships
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;
-
---11. Deprecate 'Subsumes' relationships for resurrected concepts to avoid possible violations of the hierarchy
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
-	invalid_reason
-	)
-SELECT c.concept_code AS concept_code_1,
-	c2.concept_code AS concept_code_2,
-	c.vocabulary_id AS vocabulary_id_1,
-	c2.vocabulary_id AS vocabulary_id_2,
-	'Subsumes' AS relationship_id,
-	r.valid_start_date AS valid_start_date,
-	(
-		SELECT latest_update - 1
-		FROM vocabulary
-		WHERE vocabulary_id = c.vocabulary_id
-		) AS valid_end_date,
-	'D' AS invalid_reason
-FROM concept c
-JOIN concept_relationship r ON r.concept_id_1 = c.concept_id
-	AND r.relationship_id = 'Subsumes'
-	AND r.invalid_reason IS NULL
-JOIN concept c2 ON c2.vocabulary_id = 'ICD10PCS'
-	AND r.concept_id_2 = c2.concept_id
-WHERE c.vocabulary_id = 'ICD10PCS'
-	AND NOT EXISTS (
-		SELECT 1
-		FROM concept_relationship_stage crs_int
-		WHERE crs_int.concept_code_1 = c.concept_code
-			AND crs_int.concept_code_2 = c2.concept_code
-			AND crs_int.relationship_id = 'Subsumes'
-			AND crs_int.vocabulary_id_1 = 'ICD10PCS'
-			AND crs_int.vocabulary_id_2 = 'ICD10PCS'
-		);
-
---12. Working with replacement mappings
+--11. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---13. Add mapping from deprecated to fresh concepts
+--12. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---14. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--13. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---15. Delete ambiguous 'Maps to' mappings
+--14. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();

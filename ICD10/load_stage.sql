@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Timur Vakhitov, Dmitry Dymshyts, Christian Reich
-* Date: 2017
+* Authors: Daryna Ivakhnenko, Timur Vakhitov, Dmitry Dymshyts, Christian Reich
+* Date: 2021
 **************************************************************************/
 
 --1. Update latest_update field to new date 
@@ -51,18 +51,18 @@ FROM (
 		SELECT (xpath('./@code', i.xmlfield))[1]::VARCHAR modifierclass_code,
 			(xpath('./@modifier', i.xmlfield))[1]::VARCHAR modifierclass_modifier,
 			(xpath('./SuperClass/@code', i.xmlfield))[1]::VARCHAR superclass_code,
-			unnest(xpath('./Rubric/@id', i.xmlfield))::VARCHAR rubric_id,
-			unnest(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-			unnest(xpath('./Rubric', i.xmlfield)) rubric_label
+			UNNEST(xpath('./Rubric/@id', i.xmlfield))::VARCHAR rubric_id,
+			UNNEST(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
+			UNNEST(xpath('./Rubric', i.xmlfield)) rubric_label
 		FROM (
-			SELECT unnest(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
+			SELECT UNNEST(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
 			FROM sources.icdclaml i
 			) AS i
 		) AS s0
 	) AS s1
-LEFT JOIN lateral(SELECT string_agg(ltrim(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
-		SELECT unnest(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
-		) AS s0) l ON true;
+LEFT JOIN LATERAL(SELECT STRING_AGG(ltrim(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
+		SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
+		) AS s0) l ON TRUE;
 
 --classes
 DROP TABLE IF EXISTS classes;
@@ -78,29 +78,29 @@ AS (
 		FROM (
 			SELECT (xpath('./@code', i.xmlfield))[1]::VARCHAR class_code,
 				l.superclass_code,
-				unnest(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
-				unnest(xpath('./Rubric', i.xmlfield)) rubric_label
+				UNNEST(xpath('./Rubric/@kind', i.xmlfield))::VARCHAR rubric_kind,
+				UNNEST(xpath('./Rubric', i.xmlfield)) rubric_label
 			FROM (
-				SELECT unnest(xpath('/ClaML/Class', i.xmlfield)) xmlfield
+				SELECT UNNEST(xpath('/ClaML/Class', i.xmlfield)) xmlfield
 				FROM sources.icdclaml i
 				) AS i
-			LEFT JOIN lateral(SELECT unnest(xpath('./SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
+			LEFT JOIN LATERAL(SELECT UNNEST(xpath('./SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON TRUE
 			) AS s0
 		) AS s1
-	LEFT JOIN lateral(SELECT string_agg(ltrim(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
-			SELECT unnest(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
-			) AS s0) l ON true
+	LEFT JOIN LATERAL(SELECT STRING_AGG(ltrim(REGEXP_REPLACE(rubric_label, '\t', '', 'g')), '') AS rubric_label FROM (
+			SELECT UNNEST(xpath('//text()', s1.rubric_label))::VARCHAR rubric_label
+			) AS s0) l ON TRUE
 	)
 --modify classes_table replacing  preferred name to preferredLong where it's possible
-SELECT a.CLASS_CODE,
-	a.RUBRIC_KIND,
-	a.SUPERCLASS_CODE,
-	coalesce(b.rubric_label, a.rubric_label) AS rubric_label
+SELECT a.class_code,
+	a.rubric_kind,
+	a.superclass_code,
+	COALESCE(b.rubric_label, a.rubric_label) AS rubric_label
 FROM classes a
 LEFT JOIN classes b ON a.class_code = b.class_code
 	AND a.rubric_kind = 'preferred'
 	AND b.rubric_kind = 'preferredLong'
-WHERE a.rubric_kind != 'preferredLong';
+WHERE a.rubric_kind <> 'preferredLong';
 
 --4. Fill the concept_stage
 INSERT INTO concept_stage (
@@ -143,13 +143,13 @@ WITH codes_need_modified AS (
 		SELECT a.concept_code || b.modifierclass_code AS concept_code,
 			CASE 
 				WHEN b.modifer_name = 'Kimmelstiel-Wilson syndromeN08.3' --only one modifier that has capital letter in it
-					THEN regexp_replace(a.concept_name, '[A-Z]\d\d(\.|-|$).*', '','g') || ', ' || regexp_replace(b.modifer_name, '[A-Z]\d\d(\.|-|$).*', '','g') -- remove related code (A52.7)
-				ELSE regexp_replace(a.concept_name, '[A-Z]\d\d(\.|-|$).*', '','g') || ', ' || lower(regexp_replace(b.modifer_name, '[A-Z]\d\d(\.|-|$).*', '','g'))
+					THEN REGEXP_REPLACE(a.concept_name, '[A-Z]\d\d(\.|-|$).*', '','g') || ', ' || REGEXP_REPLACE(b.modifer_name, '[A-Z]\d\d(\.|-|$).*', '','g') -- remove related code (A52.7)
+				ELSE REGEXP_REPLACE(a.concept_name, '[A-Z]\d\d(\.|-|$).*', '','g') || ', ' || LOWER(REGEXP_REPLACE(b.modifer_name, '[A-Z]\d\d(\.|-|$).*', '','g'))
 				END AS concept_name
 		FROM codes a
 		JOIN codes b ON (
 				(
-					substring(a.rubric_label, '\D\d\d') = b.concept_code
+					SUBSTRING(a.rubric_label, '\D\d\d') = b.concept_code
 					AND a.rubric_label = b.rubric_label
 					AND a.class_code != b.class_code
 					)
@@ -164,7 +164,7 @@ WITH codes_need_modified AS (
 					AND a.rubric_label = b.rubric_label
 					AND a.class_code != b.class_code
 					AND b.concept_code LIKE '_00'
-					AND substring(b.concept_code, '^\D') = substring(a.concept_code, '^\D')
+					AND SUBSTRING(b.concept_code, '^\D') = SUBSTRING(a.concept_code, '^\D')
 					AND a.concept_code NOT LIKE 'M91%' -- seems to be ICD10 bag, M91% don't need additional modifiers  
 					AND a.concept_code NOT LIKE 'M21.4%' --Flat foot [pes planus] (acquired)
 					)
@@ -213,7 +213,7 @@ SELECT concept_name,
 		FROM vocabulary
 		WHERE vocabulary_id = 'ICD10'
 		) AS valid_start_date,
-	to_date('20991231', 'YYYYMMDD') AS valid_end_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
 	NULL AS invalid_reason
 FROM (
 	--full list of concepts 
@@ -226,20 +226,59 @@ FROM (
 		CASE 
 			WHEN rubric_label LIKE 'Emergency use of%'
 				THEN rubric_label
-			ELSE regexp_replace(rubric_label, '[A-Z]\d\d(\.|-|$).*', '','g') -- remove related code (A52.7) i.e.  Late syphilis of kidneyA52.7 but except of cases like "Emergency use of U07.0"
+			ELSE REGEXP_REPLACE(rubric_label, '[A-Z]\d\d(\.|-|$).*', '','g') -- remove related code (A52.7) i.e.  Late syphilis of kidneyA52.7 but except of cases like "Emergency use of U07.0"
 			END AS concept_name
 	FROM classes
 	WHERE rubric_kind = 'preferred'
 		AND class_code NOT LIKE '%-%'
 	) AS s0
 WHERE concept_code ~ '[A-Z]\d\d.*'
-	AND concept_code !~ 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.0|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+';
+	AND concept_code !~ 'M(21.3|21.5|21.6|21.7|21.8|24.3|24.7|54.2|54.3|54.4|54.5|54.6|65.3|65.4|70.0|70.2|70.3|70.4|70.5|70.6|70.7|71.2|72.0|72.1|72.2|76.1|76.2|76.3|76.4|76.5|76.6|76.7|76.8|76.9|77.0|77.1|77.2|77.3|77.4|77.5|79.4|85.2|88.0|94.0)+\d+'
+-- add chapters
+UNION ALL
+
+SELECT rubric_label AS concept_name,
+	'Observation' AS domain_id,
+	'ICD10' AS vocabulary_id,
+	'ICD10 Chapter' AS concept_class_id,
+	NULL AS standard_concept,
+	class_code AS concept_code,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM classes
+WHERE class_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$'
+	AND rubric_kind = 'preferred'
+
+-- add subchapters
+UNION ALL
+
+SELECT rubric_label AS concept_name,
+	'Condition' AS domain_id,
+	'ICD10' AS vocabulary_id,
+	'ICD10 SubChapter' AS concept_class_id,
+	NULL AS standard_concept,
+	class_code AS concept_code,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'YYYYMMDD') AS valid_end_date,
+	NULL AS invalid_reason
+FROM classes
+WHERE class_code LIKE '%-%'
+	AND rubric_kind = 'preferred';
 
 UPDATE concept_stage cs
 SET concept_name = i.new_name
 FROM (
 	SELECT c.concept_code,
-		cs.concept_name || ' ' || lower(c.concept_name) AS new_name
+		cs.concept_name || ' ' || LOWER(c.concept_name) AS new_name
 	FROM concept_stage c
 	LEFT JOIN classes cl ON c.concept_code = cl.class_code
 	LEFT JOIN concept_stage cs ON cl.superclass_code = cs.concept_code
@@ -252,11 +291,12 @@ FROM (
 		c.concept_name || ' as the cause of abnormal reaction of the patient, or of later complication, without mention of misadventure at the time of the procedure'
 	FROM concept_stage c
 	WHERE c.concept_code ~ '((Y83)|(Y84)).+'
+	AND   c.concept_code != 'Y83-Y84'
 	
 	UNION ALL
 	
 	SELECT c.concept_code,
-		'Adverse effects in the therapeutic use of ' || lower(concept_name)
+		'Adverse effects in the therapeutic use of ' || LOWER(concept_name)
 	FROM concept_stage c
 	WHERE concept_code >= 'Y40'
 		AND concept_code < 'Y60'
@@ -264,10 +304,10 @@ FROM (
 	UNION ALL
 	
 	SELECT c.concept_code,
-		replace(cs.concept_name, 'during%', '') || ' ' || lower(c.concept_name)
+		REPLACE(cs.concept_name, 'during%', '') || ' ' || LOWER(c.concept_name)
 	FROM concept_stage c
-	LEFT JOIN classes cl ON c.concept_code = cl.CLASS_CODE
-	LEFT JOIN concept_stage cs ON cl.SUPERCLASS_CODE = cs.concept_code
+	LEFT JOIN classes cl ON c.concept_code = cl.class_code
+	LEFT JOIN concept_stage cs ON cl.superclass_code = cs.concept_code
 	WHERE c.concept_code ~ '((Y60)|(Y61)|(Y62)).+'
 		AND rubric_kind = 'preferred'
 	) i
@@ -303,13 +343,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---10. Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
---11. Add "subsumes" relationship between concepts where the concept_code is like of another
+--10. Add "subsumes" relationship between concepts where the concept_code is like of another
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
 ANALYZE concept_stage;
 INSERT INTO concept_relationship_stage (
@@ -344,15 +378,23 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		WHERE r_int.concept_code_1 = c1.concept_code
 			AND r_int.concept_code_2 = c2.concept_code
 			AND r_int.relationship_id = 'Subsumes'
+		)
+	AND c2.concept_class_id NOT IN (
+		'ICD10 Chapter',
+		'ICD10 SubChapter'
+		)
+	AND c1.concept_class_id NOT IN (
+		'ICD10 Chapter',
+		'ICD10 SubChapter'
 		);
 DROP INDEX trgm_idx;
 
---12. Update domain_id for ICD10 from SNOMED
+--11. Update domain_id for ICD10 from SNOMED, OMOP Extension
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
 	SELECT DISTINCT cs1.concept_code,
-		first_value(c2.domain_id) OVER (
+		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
 					WHEN 'Condition'
 						THEN 1
@@ -373,14 +415,14 @@ FROM (
 		AND cs1.vocabulary_id = 'ICD10'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id IN ('SNOMED', 'OMOP Extension')
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 	
 	UNION ALL
 	
 	SELECT DISTINCT cs1.concept_code,
-		first_value(c2.domain_id) OVER (
+		FIRST_VALUE(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
 					WHEN 'Condition'
 						THEN 1
@@ -399,7 +441,7 @@ FROM (
 	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 		AND c1.vocabulary_id = 'ICD10'
 	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id IN ('SNOMED', 'OMOP Extension')
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'
@@ -415,26 +457,116 @@ FROM (
 WHERE i.concept_code = cs.concept_code
 	AND cs.vocabulary_id = 'ICD10';
 
---Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED,  put Observation as closest meaning to Unknown domain
+--TODO: check why the actual U* code limitation is not used.
+--Only unassigned Emergency use codes (starting with U) don't have mappings to SNOMED, put Observation as closest meaning to Unknown domain
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
---13. Check for NULL in domain_id
+--12. Check for NULL in domain_id
 ALTER TABLE concept_stage ALTER COLUMN domain_id SET NOT NULL;
 ALTER TABLE concept_stage ALTER COLUMN domain_id DROP NOT NULL;
 
---14. Clean up
-DROP TABLE modifier_classes;
-DROP TABLE classes;
+--13. Add hierarchical relationships
+--add relationship from chapters to subchapters and vice versa
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT superclass_code AS concept_code_1,
+	class_code AS concept_code_2,
+	'ICD10' AS vocabulary_id_1,
+	'ICD10' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM classes
+WHERE class_code LIKE '%-%'
+	AND rubric_kind = 'preferred'
+	AND superclass_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$'
 
---15. Add mapping from deprecated to fresh concepts for 'Maps to value'
+UNION ALL
+
+SELECT class_code AS concept_code_1,
+	superclass_code AS concept_code_2,
+	'ICD10' AS vocabulary_id_1,
+	'ICD10' AS vocabulary_id_2,
+	'Is a' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM classes
+WHERE class_code LIKE '%-%'
+	AND rubric_kind = 'preferred'
+	AND superclass_code ~ '^V\D|^I\D|^X\D|^V$|^I$|^X$';
+
+--add relationship from subchapters to blocks and vice versa
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT superclass_code AS concept_code_1,
+	class_code AS concept_code_2,
+	'ICD10' AS vocabulary_id_1,
+	'ICD10' AS vocabulary_id_2,
+	'Subsumes' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM classes
+WHERE rubric_kind = 'preferred'
+	AND superclass_code LIKE '%-%'
+
+UNION ALL
+
+SELECT class_code AS concept_code_1,
+	superclass_code AS concept_code_2,
+	'ICD10' AS vocabulary_id_1,
+	'ICD10' AS vocabulary_id_2,
+	'Is a' AS relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'ICD10'
+		) AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM classes
+WHERE rubric_kind = 'preferred'
+	AND superclass_code LIKE '%-%';
+
+--14. Add mapping from deprecated to fresh concepts for 'Maps to value'
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMapsToValue();
 END $_$;
 
---16. Build reverse relationship. This is necessary for next point
+--15. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -466,7 +598,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---17. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--16. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -501,6 +633,18 @@ WHERE 'ICD10' IN (
 			AND crs_int.vocabulary_id_1 = a.vocabulary_id
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
+		)
+	AND a.concept_class_id NOT IN (
+		'ICD10 SubChapter',
+		'ICD10 Chapter'
+		)
+	AND b.concept_class_id NOT IN (
+		'ICD10 SubChapter',
+		'ICD10 Chapter'
 		);
+
+--17. Clean up
+DROP TABLE modifier_classes;
+DROP TABLE classes;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

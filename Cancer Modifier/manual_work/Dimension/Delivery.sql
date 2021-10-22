@@ -134,6 +134,23 @@ SELECT *
 FROM concept_manual
 ;
 
+--add naaccr to concept_manual
+INSERT INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code,
+                            valid_start_date, valid_end_date, invalid_reason)
+SELECT DISTINCT c.concept_name,
+       c.domain_id,
+       c.vocabulary_id,
+       c.concept_class_id,
+       null as standard_concept,
+       c.concept_code,
+       c.valid_start_date,
+       c.valid_end_date,
+       c.invalid_reason
+FROM dev_mnerovnya.concept_relationship_manual m
+         JOIN devv5.concept c ON m.concept_code_1 = c.concept_code
+WHERE m.vocabulary_id_1 = 'NAACCR'
+and c.vocabulary_id = 'NAACCR';
+
 --
 
 SELECT a.concept_name AS parent_name, d.concept_name AS child_name
@@ -291,11 +308,11 @@ FROM a
 ;
 
 --attributes inserting
-insert INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2,
-                                  relationship_id, valid_start_date, valid_end_date, invalid_reason)
+INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2,
+                                         relationship_id, valid_start_date, valid_end_date, invalid_reason)
 SELECT --b.concept_name                  AS name_1,
        b.concept_code                  AS cocnept_code_1,
-        --a.concept_name                  AS name_2,
+       --a.concept_name                  AS name_2,
        a.concept_code                  AS cocnept_code_2,
        b.vocabulary_id                 AS vocabulary_id_1,
        a.vocabulary_id                 AS vocabulary_id_2,
@@ -307,7 +324,7 @@ FROM dev_mnerovnya.cancer_mod_dimension_atr atr
          JOIN dev_mnerovnya.concept_manual a
               ON a.concept_name = atr.anc_atr
          JOIN dev_mnerovnya.concept_manual b ON b.concept_name = atr.desc_atr
-where a.concept_code != b.concept_code;
+WHERE a.concept_code != b.concept_code;
 
 SELECT *
 FROM dev_mnerovnya.concept_relationship_manual;
@@ -335,6 +352,9 @@ FROM dev_cancer_modifier.concept_relationship_manual;
 
 SELECT *
 FROM dev_mnerovnya.concept_relationship_manual;
+
+SELECT *
+FROM dev_mnerovnya.concept_manual;
 
 SELECT *
 FROM source_mapping_dimension;

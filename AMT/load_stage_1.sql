@@ -332,24 +332,28 @@ FROM concept_stage_sn
 WHERE concept_name ~*
     --formatter:off
       ( /*general categories and terms which themselves or their related products are treated as devices*/
-        'dialysis|sunscreen|dressing|diagnostic|(?<![\w])glove| rope|ribbon|' ||
-        'gauze|pouch|wipes|lubri|roll(?!\w)|bone cement|adhesive|(?<![\s])milk|cannula|' ||
-        'swabs|bandage|artificial saliva|juice|supplement|trace elements|' ||
+        'dialysis|sunscreen|sunsense|antiseptic wipe|antiseptic swab|dressing|diagnostic|(?<![\w])glove| rope|ribbon|' ||
+        'gauze|pouch|wipes|lubri|roll(?!\w)|bone cement|adhesive|(?<![\s])milk|cannula|scrub|handrub|' ||
+        'swabs|bandage|artificial saliva|juice|supplement|trace elements|Antiseptic Solution|Antiseptic Ointment|' ||
+        'handrub|Talc |hand sanitizer|hand sanitiser|hand gel|Disinfectant|skinman|antimony|Bd Persist|' ||
         /*Miscellaneous Brand Names*/
-        'palacos|duralock|immune reviver|hydraderm|aridol|mannitol 0|periolimel|' ||
+        'palacos|duralock|immune reviver|hydraderm|aridol|mannitol 0|periolimel|Colgate|' ||
+        'dermaveen|Ialuril|Iodixanol|Povidone-Iodine|`Qv` |(Qv)|Zo rub|Solastick|Soluprep|' ||
         /*Dietary management of congenital errors of metabolism; malabsorption and malnutrition; vitamins and minerals*/
         'mma/pa|camino|maxamum|sno-pro|peptamen|pepti-junior|procal(?!\w)|' ||
         'glytactin|keyomega|cystine|docomega|anamix|xlys|xmtvi |pku |(?<!\w)tyr |' ||
         'msud|hcu |eaa |gluten|prozero|energivit|pro-phree|elecare|neocate|carbzero|' ||
-        'medium chain|long chain|low protein|mineral mixture|amino acids|' ||
+        'medium chain|long chain|low protein|mineral mixture|amino acids|Nutrients|' ||
         'phlexy-10|wagner 1000|nutrition care|amino acid formula|elevit|bio magnesium|' ||
-        'monogen powder|betaquik|liquigen|lipistart|fruitivits|ultivite|' ||
+        'Coq10|monogen powder|betaquik|liquigen|lipistart|fruitivits|ultivite|rehydration|finomel|' ||
         /*Contrasts and Radiopharmaceuticals radiodiagnostics*/
         'pytest|helicap|bq|octreoscan|Ct Plus|optiray|ioversol|iomeprol|iomeron|' ||
-        'iopamidol|isovue|ultravist|omnipaq|iohex|' ||
+        'iopamidol|isovue|ultravist|omnipaq|iohex|omniscan|optimark|X-Opaque|Visipaque|' ||
+        'Barium Sulfate|conray|definity|gadodiamide|Gadoversetamide|Radpharm|Lymph-Flo|Sodium Oxidronate|' ||
 
-        'Crampeze|smoflipid|smofkabiven|sorbolene|lanolin|' ||
-        'cranberry|pedialyte|hydralyte|kilocalories|emulsifying ointment|paraffin|cotton|aqueous cream')
+        'Crampeze|smoflipid|smofkabiven|sorbolene|lanolin|albumin aggregated|oatmeal|Megazorb|' ||
+        'cranberry|pedialyte|hydralyte|kilocalories|emulsifying ointment|paraffin|cotton|aqueous cream|' ||
+        'Z\.S\.C\.')
 --formatter:on
   AND concept_class_id IN ('AU Substance', 'AU Qualifier', 'Med Product Unit', 'Med Product Pack',
                            'Medicinal Product', 'Trade Product Pack', 'Trade Product', 'Trade Product Unit',
@@ -418,7 +422,11 @@ FROM concept_stage_sn a
 WHERE concept_code IN
       ('31108011000036106', '75889011000036104', '31109011000036103', '31527011000036107', '75888011000036107',
        '48143011000036102', '48144011000036100', '48145011000036101', '31956011000036101', '733181000168100',
-       '732871000168102', '1471451000168106')
+       '732871000168102', '1471451000168106', '1404921000168104', '69503011000036106', '926910011000036109',
+       '1091811000168106', '1091081000168107', '1150071000168103', '1111241000168100', '1092981000168104',
+       '1212871000168101', '1213091000168102', '1098131000168100', '77203011000036108', '1098161000168108',
+           '1447411000168101', '1447421000168108', '1447431000168106', '920157011000036108', '920394011000036101',
+       '920652011000036107', '920395011000036102', '920662011000036102')
   AND concept_code NOT IN (
                           SELECT concept_code
                           FROM non_drug
@@ -477,6 +485,7 @@ WHERE c.concept_code NOT IN (
                             SELECT concept_code
                             FROM non_drug
                             )
+  AND a.concept_name <> 'dry powder inhaler'
 ;
 
 INSERT INTO non_drug --add non_drugs that are related to already found
@@ -548,9 +557,27 @@ WHERE concept_code = '159011000036105'   --soap bar
 -- MPP, CTPP, TPP, TPUU
 DELETE
 FROM non_drug nd
-WHERE nd.concept_code IN ('30513011000036104', '30537011000036101',
-                          '30404011000036106', '30425011000036101');
+WHERE nd.concept_code IN ('30513011000036104', '30537011000036101', '30404011000036106', '30425011000036101');
 
+
+DELETE
+FROM non_drug
+WHERE concept_code IN
+      ('1406901000168101', '1406921000168105', '1406951000168102', '1513421000168103', '1513451000168106',
+       '87207011000036100', '1301741000168100', '27702011000036103', '76561000036100', '23037011000036103',
+       '76531000036106', '1300841000168100', '27701011000036109', '76551000036103', '23036011000036101',
+       '76541000036101', '1443701000168103', '1443721000168107', '1443751000168104', '1415211000168103',
+       '1415261000168100', '1415231000168108', '76065011000036102', '76619011000036107', '77203011000036108',
+       '86211011000036106', '688421000168102', '86409011000036109', '86408011000036101', '1179931000168105',
+       '1192701000168101', '77582011000036109', '1173041000168104', '1173071000168106', '1179911000168100',
+       '1173541000168105', '1173561000168109', '924131000168105', '924141000168101', '923921000168108',
+       '923931000168106', '924191000168109', '924201000168107', '924281000168104', '924291000168101',
+       '923991000168105', '924011000168104', '1432221000168105', '63819011000036107', '1452241000168103',
+       '1452291000168106', '1452321000168103', '1452261000168104', '1514901000168102', '1514921000168106',
+       '1514951000168103', '1353341000168105', '1353291000168107', '1353311000168106', '924121000168107',
+       '923911000168101', '924181000168106', '924271000168102', '923971000168109', '1434291000168101',
+       '1434311000168102'
+          );
 
 --== get new non_drugs for review (difference between last backup and current version)==--
 /*SELECT DISTINCT *

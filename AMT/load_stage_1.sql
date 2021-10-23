@@ -333,19 +333,19 @@ WHERE concept_name ~*
     --formatter:off
       ( /*general categories and terms which themselves or their related products are treated as devices*/
         'dialysis|sunscreen|sunsense|antiseptic wipe|antiseptic swab|dressing|diagnostic|(?<![\w])glove| rope|ribbon|' ||
-        'gauze|pouch|wipes|lubri|roll(?!\w)|bone cement|adhesive|(?<![\s])milk|cannula|scrub|handrub|' ||
-        'swabs|bandage|artificial saliva|juice|supplement|trace elements|Antiseptic Solution|Antiseptic Ointment|' ||
-        'handrub|Talc |hand sanitizer|hand sanitiser|hand gel|Disinfectant|skinman|antimony|Bd Persist|' ||
+        'gauze|pouch|wipes|lubri|roll(?!\w)|bone cement|adhesive|(?<![\s])milk|cannula|' ||
+        'swabs|bandage|artificial saliva|juice|supplement|trace elements|' ||
+        'Talc |antimony|Bd Persist|' ||
         /*Miscellaneous Brand Names*/
         'palacos|duralock|immune reviver|hydraderm|aridol|mannitol 0|periolimel|Colgate|' ||
-        'dermaveen|Ialuril|Iodixanol|Povidone-Iodine|`Qv` |(Qv)|Zo rub|Solastick|Soluprep|' ||
+        'dermaveen|Ialuril|Iodixanol|Qv |(Qv)|Zo rub|Solastick|Soluprep|' ||
         /*Dietary management of congenital errors of metabolism; malabsorption and malnutrition; vitamins and minerals*/
         'mma/pa|camino|maxamum|sno-pro|peptamen|pepti-junior|procal(?!\w)|' ||
         'glytactin|keyomega|cystine|docomega|anamix|xlys|xmtvi |pku |(?<!\w)tyr |' ||
         'msud|hcu |eaa |gluten|prozero|energivit|pro-phree|elecare|neocate|carbzero|' ||
         'medium chain|long chain|low protein|mineral mixture|amino acids|Nutrients|' ||
         'phlexy-10|wagner 1000|nutrition care|amino acid formula|elevit|bio magnesium|' ||
-        'Coq10|monogen powder|betaquik|liquigen|lipistart|fruitivits|ultivite|rehydration|finomel|' ||
+        'monogen powder|betaquik|liquigen|lipistart|fruitivits|ultivite|finomel|' ||
         /*Contrasts and Radiopharmaceuticals radiodiagnostics*/
         'pytest|helicap|bq|octreoscan|Ct Plus|optiray|ioversol|iomeprol|iomeron|' ||
         'iopamidol|isovue|ultravist|omnipaq|iohex|omniscan|optimark|X-Opaque|Visipaque|' ||
@@ -576,7 +576,10 @@ WHERE concept_code IN
        '1452291000168106', '1452321000168103', '1452261000168104', '1514901000168102', '1514921000168106',
        '1514951000168103', '1353341000168105', '1353291000168107', '1353311000168106', '924121000168107',
        '923911000168101', '924181000168106', '924271000168102', '923971000168109', '1434291000168101',
-       '1434311000168102'
+       '1434311000168102', '1301751000168103', '1301761000168101', '13339011000036107', '20114011000036105',
+       '6624011000036109', '1300851000168103', '1300861000168101', '13336011000036103', '20111011000036107',
+       '6621011000036106', '13338011000036104', '20113011000036108', '6623011000036107', '13337011000036100',
+       '20112011000036101', '6622011000036100'
           );
 
 --== get new non_drugs for review (difference between last backup and current version)==--

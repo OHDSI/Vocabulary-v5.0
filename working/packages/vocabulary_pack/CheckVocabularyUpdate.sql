@@ -157,7 +157,7 @@ BEGIN
                 cVocabVer := SUBSTRING(cVocabHTML,'([\d]{4}[A-z]{2}) Full UMLS Release Files');
             WHEN cVocabularyName = 'SNOMED'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-uk_sct2cl_[\d.]+_(\d{8})\d+.zip".+?\.zip">.+'),'yyyymmdd');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-uk_sct2cl_[\d.]+_(\d{8})\d+.*\.zip".+?\.zip">.+'),'yyyymmdd');
                 cVocabVer := 'Snomed Release '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'HCPCS'
             THEN

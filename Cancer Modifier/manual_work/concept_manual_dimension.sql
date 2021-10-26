@@ -433,11 +433,11 @@ SELECT
        invalid_reason
 FROM concept_relationship_manual_dimension
  ;
-
+--Check CRM
 SELECT *
 FROM concept_relationship_manual m
 LEFT JOIN concept c on c.concept_code = m.concept_code_1
 ;
-
+--Check CM
 SELECT *
 FROM concept_manual;

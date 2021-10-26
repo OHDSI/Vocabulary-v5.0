@@ -141,8 +141,8 @@ BEGIN
     --get working download link
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
-    pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    --https://isd.digital.nhs.uk/trud3/api/v1/keys/xxx/files/SNOMEDCT2/28.0.0/UK_SCT2CL/uk_sct2cl_28.0.0_20191001000001.zip
+    pDownloadURL:=substring(pContent,'Release file.+?<a href="(.+?)\?.*?">.+?</a>');
+    --https://isd.digital.nhs.uk/download/api/v1/keys/e3016b7419ca8ab2caec8a8360316708b1f6a8e9/content/SNOMEDCT2/32.5.0/UK_SCT2CL/uk_sct2cl_32.5.0_20210929000001Z.zip?consumer=webapp-releases-page
     if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
     
     --start downloading
@@ -248,7 +248,7 @@ BEGIN
     --get working download link
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
-    pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
+    pDownloadURL:=substring(pContent,'Release file.+?<a href="(.+?)\?.*?">.+?</a>');
     if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
     
     --start downloading

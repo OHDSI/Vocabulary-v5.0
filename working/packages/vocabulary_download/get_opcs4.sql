@@ -76,8 +76,7 @@ BEGIN
     --get working download link
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}',allow_redirects=>true);
-    pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    --https://isd.digital.nhs.uk/trud3/api/v1/keys/e3016b7419ca8ab2caec8a8360316708b1f6a8e9/files/DATAMIGRATION/28.0.0/NHS_DMWB/nhs_dmwb_28.0.0_20191001000001.zip
+    pDownloadURL:=substring(pContent,'Release file.+?<a href="(.+?)\?.*?">.+?</a>');
     if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
 
     perform write_log (

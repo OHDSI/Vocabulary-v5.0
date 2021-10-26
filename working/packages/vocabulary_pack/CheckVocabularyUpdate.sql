@@ -258,27 +258,8 @@ BEGIN
             --WHEN cVocabularyName IN ('OPCS4', 'READ') --disable READ
             WHEN cVocabularyName = 'OPCS4'
             THEN
-                cSearchString := 'class="release available';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                /*
-                gets 21.0.0_YYYYMMDD000001
-                cPos2 := devv5.INSTR (cVocabHTML, '</h2>', cPos1);
-                cVocabDate:=to_date(regexp_substr(TRIM (REGEXP_REPLACE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:space:]]+', ' ')),'[[:digit:]]{8}'),'yyyymmdd');
-                new: Friday, 18 March 2016
-                */
-                cSearchString := 'Released on';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString, cPos1);
-                cPos2 := devv5.INSTR (cVocabHTML, '</p>', cPos1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (TRIM (REGEXP_REPLACE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '[[:space:]]+', ' ')), 'day, dd month yyyy');
-                --the version extraction
-                cSearchString := 'Releases of this item';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cSearchString := 'data-entity-id="';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString, cPos1);
-                cPos2 := devv5.INSTR (cVocabHTML, '">', cPos1 + LENGTH (cSearchString) + 1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabVer := SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString));
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhs_dmwb_[\d.]+_(\d{8}).*\.zip".+'),'yyyymmdd');
+                cVocabVer := 'DATAMIGRATION '||SUBSTRING (cVocabHTML,'<div class="releases available".+?<div id="release-nhs_dmwb_([\d.]+_\d{8}.*)\.zip".+');
             WHEN cVocabularyName = 'ISBT'
             THEN
               SELECT SUBSTRING(t.title,' ([\d.]+) ') INTO cVocabVer FROM (

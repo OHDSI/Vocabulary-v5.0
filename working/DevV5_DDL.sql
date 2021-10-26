@@ -306,3 +306,6 @@ ALTER TABLE concept_synonym ADD CONSTRAINT chk_csyn_concept_synonym_name CHECK (
 ALTER TABLE concept_manual ADD CONSTRAINT chk_cmnl_concept_name CHECK (concept_name <> '');
 ALTER TABLE concept_manual ADD CONSTRAINT chk_cmnl_concept_code CHECK (concept_code <> '');
 ALTER TABLE concept_synonym_manual ADD CONSTRAINT chk_csynmnl_concept_synonym_name CHECK (synonym_name <> '');
+ALTER TABLE concept_relationship_manual ADD CONSTRAINT chk_crm_invalid_reason CHECK (COALESCE(invalid_reason,'D')='D');
+ALTER TABLE concept_relationship_manual ADD CONSTRAINT chk_crm_concept_code_1 CHECK (concept_code_1 <> '');
+ALTER TABLE concept_relationship_manual ADD CONSTRAINT chk_crm_concept_code_2 CHECK (concept_code_2 <> '');

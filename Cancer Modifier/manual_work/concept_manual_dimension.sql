@@ -44,6 +44,9 @@ CREATE TABLE  cancer_mod_dimension_atr
     desc_Atr	varchar(255)
 )
 ;
+TRUNCATE concept_manual;
+TRUNCATE concept_relationship_manual;
+
 
 --Codes to be Renamed Insert
 INSERT INTO concept_manual (
@@ -375,21 +378,6 @@ where a.concept_code != b.concept_code
 
 
 
---CONCEPT MANUAL (Dimension)
-INSERT INTO concept_stage
-(concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code, valid_start_date, valid_end_date, invalid_reason)
-SELECT
-       concept_name,
-       domain_id,
-       vocabulary_id,
-       concept_class_id,
-       standard_concept,
-       concept_code,
-       valid_start_date,
-       valid_end_date,
-       invalid_reason
-FROM concept_manual
-    ;
 
 --CONCEPT MANUAL backup
 DROP TABLE concept_manual_dimension;
@@ -446,3 +434,10 @@ SELECT
 FROM concept_relationship_manual_dimension
  ;
 
+SELECT *
+FROM concept_relationship_manual m
+LEFT JOIN concept c on c.concept_code = m.concept_code_1
+;
+
+SELECT *
+FROM concept_manual;

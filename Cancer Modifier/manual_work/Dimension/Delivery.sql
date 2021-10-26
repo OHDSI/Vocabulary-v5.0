@@ -17,6 +17,10 @@ $$
     END
 $$;
 
+--attributes
+SELECT *
+FROM dev_cancer_modifier.cancer_mod_dimension_atr;
+
 --CONCEPT_MANUAL
 SELECT *
 FROM concept_manual;
@@ -69,7 +73,7 @@ SELECT old_concept_name,
        'D'
 FROM cm_concept_dimension a
          JOIN devv5.concept c ON c.concept_code = a.old_concept_code AND c.vocabulary_id = 'Cancer Modifier'
-WHERE status = 'deprecate'
+WHERE status = 'Deprecate'
 ;
 --Remap
 INSERT INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code,
@@ -134,22 +138,6 @@ SELECT *
 FROM concept_manual
 ;
 
---add naaccr to concept_manual
-INSERT INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code,
-                            valid_start_date, valid_end_date, invalid_reason)
-SELECT DISTINCT c.concept_name,
-       c.domain_id,
-       c.vocabulary_id,
-       c.concept_class_id,
-       null as standard_concept,
-       c.concept_code,
-       c.valid_start_date,
-       c.valid_end_date,
-       c.invalid_reason
-FROM dev_mnerovnya.concept_relationship_manual m
-         JOIN devv5.concept c ON m.concept_code_1 = c.concept_code
-WHERE m.vocabulary_id_1 = 'NAACCR'
-and c.vocabulary_id = 'NAACCR';
 
 --
 
@@ -196,8 +184,8 @@ FROM cancer_mod_dimension cm
 
 
 --CONCEPT_RELATIONSHIP_MANUAL
-SELECT *
-FROM concept_relationship_manual;
+/*SELECT *
+FROM concept_relationship_manual;*/
 
 TRUNCATE TABLE concept_relationship_manual;
 
@@ -289,9 +277,9 @@ WITH a AS (
         AND a.concept_name != d.concept_name
 )
 
-INSERT
+/*INSERT
 INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2,
-                                  relationship_id, valid_start_date, valid_end_date, invalid_reason)
+                                  relationship_id, valid_start_date, valid_end_date, invalid_reason)*/
 SELECT cm2.concept_code                AS cocnept_code_1,
        cm1.concept_code                AS cocnept_code_2,
 /*       cm2.concept_name  AS cocnept_name_1,
@@ -310,9 +298,9 @@ FROM a
 --attributes inserting
 INSERT INTO concept_relationship_manual (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2,
                                          relationship_id, valid_start_date, valid_end_date, invalid_reason)
-SELECT --b.concept_name                  AS name_1,
+SELECT b.concept_name                  AS name_1,
        b.concept_code                  AS cocnept_code_1,
-       --a.concept_name                  AS name_2,
+       a.concept_name                  AS name_2,
        a.concept_code                  AS cocnept_code_2,
        b.vocabulary_id                 AS vocabulary_id_1,
        a.vocabulary_id                 AS vocabulary_id_2,
@@ -326,9 +314,37 @@ FROM dev_mnerovnya.cancer_mod_dimension_atr atr
          JOIN dev_mnerovnya.concept_manual b ON b.concept_name = atr.desc_atr
 WHERE a.concept_code != b.concept_code;
 
-SELECT *
-FROM dev_mnerovnya.concept_relationship_manual;
+--add naaccr to concept_manual
+INSERT INTO concept_manual (concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, concept_code,
+                            valid_start_date, valid_end_date, invalid_reason)
+SELECT DISTINCT c.concept_name,
+       c.domain_id,
+       c.vocabulary_id,
+       c.concept_class_id,
+       null as standard_concept,
+       c.concept_code,
+       c.valid_start_date,
+       c.valid_end_date,
+       c.invalid_reason
+FROM dev_mnerovnya.concept_relationship_manual m
+         JOIN devv5.concept c ON m.concept_code_1 = c.concept_code
+WHERE m.vocabulary_id_1 = 'NAACCR'
+and c.vocabulary_id = 'NAACCR';
 
+-------
+
+with a as (
+    SELECT *
+    FROM concept_manual m
+LEFT JOIN concept c ON m.concept_code = c.concept_code
+)
+SELECT cm.concept_name as name_1, cmm.concept_name as name_2, m.*
+FROM dev_cancer_modifier.concept_relationship m
+LEFT JOIN dev_cancer_modifier.concept_manual cm on m.concept_id_1 = cm.concept_id
+LEFT JOIN dev_cancer_modifier.concept_manual cmm on m.concept_id_2 = cmm.concept_id;
+
+SELECT *
+FROM dev_cancer_modifier.concept_relationship;
 
 SELECT *
 FROM cm_concept_dimension;
@@ -351,10 +367,75 @@ SELECT DISTINCT relationship_id
 FROM dev_cancer_modifier.concept_relationship_manual;
 
 SELECT *
-FROM dev_mnerovnya.concept_relationship_manual;
+FROM dev_cancer_modifier.concept_relationship_manual;
 
-SELECT *
+SELECT DISTINCT concept_name, concept_class_id
 FROM dev_mnerovnya.concept_manual;
+
 
 SELECT *
 FROM source_mapping_dimension;
+
+
+
+SELECT *
+FROM concept_manual;
+
+SELECT *
+FROM cm_concept_dimension;
+
+SELECT concept_class_id,concept_name,vocabulary_id
+FROM concept_manual
+EXCEPT
+SELECT concept_class_id,concept_name,vocabulary_id
+FROM dev_cancer_modifier.concept_manual;
+
+
+SELECT source_code                     AS cocnept_code_1,
+       target_concept_code             AS cocnept_code_2,
+       source_vocabulary_id            AS vocabulary_id_1,
+       target_vocabulary_id            AS vocabulary_id_2,
+       'Maps to'                       AS relationship_id,
+       c.valid_start_date,
+       TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
+       c.invalid_reason
+
+FROM dev_mnerovnya.source_mapping_dimension smd
+         JOIN dev_mnerovnya.concept_manual c ON smd.target_concept_code = c.concept_code
+
+EXCEPT
+
+SELECT source_code                     AS cocnept_code_1,
+       target_concept_code             AS cocnept_code_2,
+       source_vocabulary_id            AS vocabulary_id_1,
+       target_vocabulary_id            AS vocabulary_id_2,
+       'Maps to'                       AS relationship_id,
+       c.valid_start_date,
+       TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
+       c.invalid_reason
+
+FROM dev_cancer_modifier.source_mapping_dimension smd
+         JOIN dev_cancer_modifier.concept_manual c ON smd.target_concept_code = c.concept_code
+
+SELECT c1.concept_name, c2.concept_name, c1.concept_class_id, c2.concept_class_id
+FROM dev_cancer_modifier.concept_relationship cr
+JOIN dev_cancer_modifier.concept c1 on c1.concept_id = cr.concept_id_1
+JOIN dev_cancer_modifier.concept c2 on c2.concept_id = cr.concept_id_2
+where relationship_id = 'Is a'
+AND c1.vocabulary_id = 'Cancer Modifier' ;
+
+--check mapping
+SELECT c1.concept_class_id, c1.standard_concept, c1.concept_code,  c1.concept_name, relationship_id, c2.concept_name,c2.concept_code,c2.standard_concept, c2.concept_class_id
+FROM dev_cancer_modifier.concept_relationship cr
+LEFT JOIN  dev_cancer_modifier.concept c1 on c1.concept_id = cr.concept_id_1
+LEFT JOIN dev_cancer_modifier.concept c2 on c2.concept_id = cr.concept_id_2
+where ((c1.concept_class_id ='Morph Abnormality' and c2.concept_class_id ='Morph Abnormality') or
+      (c1.concept_class_id ='NAACCR Variable' and c2.concept_class_id ='Dimension') or
+      (c1.concept_class_id ='Dimension' and c2.concept_class_id ='Morph Abnormality') or
+      (c1.concept_class_id ='Dimension' and c2.concept_class_id ='Qualifier Value') or
+      (c1.concept_class_id ='Qualifier Value' and c2.concept_class_id ='Qualifier Value') or
+      (c1.concept_class_id ='Dimension' and c2.concept_class_id ='Dimension')) and
+      (c1.vocabulary_id = 'Cancer Modifier' or c1.vocabulary_id = 'NAACCR')
+and cr.invalid_reason is null
+
+;

@@ -89,7 +89,7 @@ Will show all changes to the base tables made during this transaction.
 
 ---
 
-Through detailed logs, it is possible to use them to restore dev-schema (and even directly devv5) at any convenient time (from the moment of installation). For example, if you want to restore the dev-schema to the moment before the last update, the following steps are needed:
+Through detailed logs, it is possible to use them to restore dev-schema (and even directly devv5) at any convenient time. For example, if you want to restore the dev-schema to the moment before the latest update, the following steps are needed:
 1. Connect to the required dev-schema
 2. Run
 ```SQL
@@ -99,6 +99,9 @@ BEGIN
 END $$;
 ```
 3. Get the corresponding log_id from `GetLogSummary`
+
+![audit package](https://i.imgur.com/1LA51xK.png)
+
 4. Substitute it into `RestoreBasicTables` and run
 ```SQL
 DO $$
@@ -107,4 +110,4 @@ BEGIN
 END $$;
 ```
 
-After some time the dev-schema will be restored.
+After some time the dev-schema will be restored (including event from selected log_id).

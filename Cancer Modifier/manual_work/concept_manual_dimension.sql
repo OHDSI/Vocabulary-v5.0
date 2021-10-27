@@ -26,9 +26,9 @@ CREATE TABLE source_mapping_dimension
 )
 ;
 
---cancer_mod_dimension the manual File  https://docs.google.com/spreadsheets/d/1K7jeNwAy8b-L6RGFq_mte94jp3R8yza8G2LZZgicszg/edit#gid=0
-DROP TABLE IF EXISTS cancer_mod_dimension;
-CREATE TABLE cancer_mod_dimension
+--Concept_attributes the manual File  https://docs.google.com/spreadsheets/d/1K7jeNwAy8b-L6RGFq_mte94jp3R8yza8G2LZZgicszg/edit#gid=0
+DROP TABLE IF EXISTS Concept_attributes;
+CREATE TABLE Concept_attributes
 (
     concept_name varchar(255),
     site	varchar(255),
@@ -37,8 +37,8 @@ CREATE TABLE cancer_mod_dimension
 ;
 
 --FROM source_mapping_dimension smd the manual File  https://docs.google.com/spreadsheets/d/1K7jeNwAy8b-L6RGFq_mte94jp3R8yza8G2LZZgicszg/edit
-DROP TABLE IF EXISTS  cancer_mod_dimension_atr ;
-CREATE TABLE  cancer_mod_dimension_atr
+DROP TABLE IF EXISTS  Attributes_hierarchy ;
+CREATE TABLE  Attributes_hierarchy
 (
     anc_atr varchar(255),
     desc_Atr	varchar(255)
@@ -192,7 +192,7 @@ SELECT DISTINCT site,
                 CURRENT_DATE,
                 TO_DATE('20991231', 'yyyyMMdd'),
                 NULL
-FROM (SELECT DISTINCT site FROM cancer_mod_dimension) a
+FROM (SELECT DISTINCT site FROM Concept_attributes) a
 ;
 
 --New concepts with Attributive Chars to be added
@@ -217,7 +217,7 @@ SELECT DISTINCT meas,
                 CURRENT_DATE,
                 TO_DATE('20991231', 'yyyyMMdd'),
                 NULL
-FROM (SELECT DISTINCT meas FROM cancer_mod_dimension) a
+FROM (SELECT DISTINCT meas FROM Concept_attributes) a
 ;
 
 -- To make NAACCR concepts Non-Standard
@@ -256,7 +256,7 @@ SELECT c.concept_code                  AS cocnept_code_1,
        c1.valid_start_date,
        TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
        c1.invalid_reason
-FROM cancer_mod_dimension cm
+FROM Concept_attributes cm
          JOIN concept_manual c ON cm.concept_name = c.concept_name
          JOIN concept_manual c1 ON cm.site = c1.concept_name
     AND c.concept_name != c1.concept_name
@@ -271,7 +271,7 @@ SELECT c.concept_code                  AS cocnept_code_1,
        c1.valid_start_date,
        TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
        c1.invalid_reason
-FROM cancer_mod_dimension cm
+FROM Concept_attributes cm
          JOIN concept_manual c ON cm.concept_name = c.concept_name
          JOIN concept_manual c1 ON cm.meas = c1.concept_name
     AND c.concept_name != c1.concept_name
@@ -323,17 +323,17 @@ WHERE status = 'Remap'
 --Hierarchy of Attributes construction
 WITH a AS (
     SELECT a.concept_name AS parent_name, d.concept_name AS child_name
-    FROM cancer_mod_dimension a
-             JOIN cancer_mod_dimension_atr b ON a.site = b.anc_atr
---join cancer_mod_dimension_atr c  on a.meas = c.anc_atr
-             JOIN cancer_mod_dimension d ON d.site = b.desc_atr AND d.meas = a.meas
+    FROM Concept_attributes a
+             JOIN Attributes_hierarchy b ON a.site = b.anc_atr
+--join Attributes_hierarchy c  on a.meas = c.anc_atr
+             JOIN Concept_attributes d ON d.site = b.desc_atr AND d.meas = a.meas
         AND a.concept_name != d.concept_name
     UNION
     SELECT a.concept_name AS parent_name, d.concept_name AS child_name
-    FROM cancer_mod_dimension a
---join cancer_mod_dimension_atr b  on a.site = b.anc_atr
-             JOIN cancer_mod_dimension_atr c ON a.meas = c.anc_atr
-             JOIN cancer_mod_dimension d ON d.site = a.site AND d.meas = c.desc_atr
+    FROM Concept_attributes a
+--join Attributes_hierarchy b  on a.site = b.anc_atr
+             JOIN Attributes_hierarchy c ON a.meas = c.anc_atr
+             JOIN Concept_attributes d ON d.site = a.site AND d.meas = c.desc_atr
         AND a.concept_name != d.concept_name
 )
 
@@ -369,7 +369,7 @@ SELECT --b.concept_name                  AS name_1,
        CURRENT_DATE                    AS valid_start_date,
        TO_DATE('20991231', 'yyyyMMdd') AS valid_end_date,
        NULL                            AS invalid_reason
-FROM cancer_mod_dimension_atr atr
+FROM Attributes_hierarchy atr
          JOIN concept_manual a
               ON a.concept_name = atr.anc_atr
          JOIN concept_manual b ON b.concept_name = atr.desc_atr

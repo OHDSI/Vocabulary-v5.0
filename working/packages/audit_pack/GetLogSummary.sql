@@ -10,7 +10,7 @@ $BODY$
 	SELECT MIN(log_id) log_id,
 		tx_time,
 		script_name,
-		string_agg(affected_vocabs, ', ') || ' [' || dev_schema_name || ']' affected_vocabs,
+		string_agg(affected_vocabs, ', ') || ' [' || UPPER(dev_schema_name) || ']' affected_vocabs,
 		MIN(tx_id) tx_id
 	FROM (
 		SELECT s1.tx_time,

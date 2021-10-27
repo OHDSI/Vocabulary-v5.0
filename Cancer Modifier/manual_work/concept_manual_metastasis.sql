@@ -77,7 +77,8 @@ UPDATE concept_stage
                          36769415, --Pleural Effusion Maps to 254061	60046008	Pleural effusion
                          36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
                          36768818--	Ascites Maps to 200528	389026000	Ascites
-        );
+        )
+and (concept_id,'D') NOT IN (select concept_id,invalid_reason from concept);
 
 
 --4.3.1 Update of validity,valid_end_date,Stadardness of Updated CM concepts
@@ -89,8 +90,12 @@ UPDATE concept_stage
       35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
                                           36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
-                                          35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
-        );
+                                          35226309,--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
+                                         35226223,--Metastasis to other digestive organs Maps to 35226222 Metastasis to other digestive organ
+                                         35226224 --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
+
+        )
+and (concept_id,'U') NOT IN (select concept_id,invalid_reason from concept);
 
 
 --4.5 Update of names
@@ -248,8 +253,9 @@ and coalesce(cs.concept_id,1) NOT IN ( -- to add ne codes coalesce was applied
                                           36769415,	--Pleural Effusion Maps to 254061	60046008	Pleural effusion
                                           36768514, -- 	Suspicious Ascites Maps to 200528	389026000	Ascites
                                           36768818, --	Ascites Maps to 200528	389026000	Ascites
-                                          35226309--Metastasis to the Unknown Site
-
+                                          35226309,--Metastasis to the Unknown Site
+                                          35226223,--Metastasis to other digestive organs Maps to 35226222 Metastasis to other digestive organ
+                                          35226224 --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
 
     )
 and cs.standard_concept ='S')
@@ -700,13 +706,16 @@ ON c2.concept_id=
       CASE WHEN c.concept_id =   35225652  then      35225556
                      WHEN c.concept_id =   36768964  then      36769180
                       WHEN c.concept_id =   35226153  then      35226152
-        WHEN   c.concept_id =  35226309 then      36769180
+        WHEN   c.concept_id =  35226223 then      35226222
+          WHEN   c.concept_id =  35226224 then      35226222
           end
 WHERE c.concept_id  IN (
                                           35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
                                           36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
-                                          35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
+                                          35226309,--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
+                                         35226223,--Metastasis to other digestive organs Maps to 35226222 Metastasis to other digestive organ
+                                         35226224 --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
 
 
     )
@@ -731,14 +740,17 @@ ON c2.concept_id=
                      WHEN c.concept_id =   36768964  then      36769180
                       WHEN c.concept_id =   35226153  then      35226152
         WHEN   c.concept_id =  35226309 then      36769180
+                  WHEN   c.concept_id =  35226223 then      35226222
+          WHEN   c.concept_id =  35226224 then      35226222
+
           end
 WHERE c.concept_id  IN (
                                           35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
                                           36768964,--	Distant Metastasis Maps TO 36769180 Metastasis
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
-                                          35226309--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
-
-
+                                          35226309,--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
+                                         35226223,--Metastasis to other digestive organs Maps to 35226222 Metastasis to other digestive organ
+                                         35226224 --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
     )
 ;
 
@@ -1104,6 +1116,9 @@ and concept_name ILIKE '%gastrointestinal%'
 ;
 
 
+
+
+
 -- 8 ICD10s  Maps To resuscitation
 --Maps to insertion
 INSERT INTO concept_relationship_stage (
@@ -1204,6 +1219,77 @@ SELECT
        invalid_reason
 FROM concept_stage
     ;
+
+-- 9 Internal Metastasis Hierarchy resuscitation
+--Is a links
+/*INSERT INTO concept_relationship_stage (
+                                        concept_id_1,
+                                        concept_code_1,
+                                        vocabulary_id_1,
+                                        concept_id_2,
+                                        concept_code_2 ,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason
+
+)*/
+SELECT
+row_number() OVER (PARTITION BY c.concept_id ORDER BY c4.concept_name asc)  AS rating_in_section,
+c.concept_id as concept_id_1,
+c.concept_name as concept_name_1,
+c.domain_id as domain_id_1,
+c.vocabulary_id as vocabulary_id_1,
+c.concept_class_id as concept_class_id_1,
+c.standard_concept as standard_concept_id_1,
+c.concept_code as concept_code_1,
+c.valid_start_date as valid_start_date_1,
+c.valid_end_date as valid_end_date_1,
+c.invalid_reason,cr.relationship_id,
+           c4.concept_id as concept_id_2,
+c4.concept_name as concept_name_2,
+c4.domain_id as domain_id_2,
+c4.vocabulary_id as vocabulary_id_2,
+c4.concept_class_id as concept_class_id_2,
+c4.standard_concept as standard_concept_id_2,
+c4.concept_code as concept_code_2,
+c4.valid_start_date as valid_start_date_2,
+c4.valid_end_date as valid_end_date_2
+FROM concept c
+JOIN concept_relationship cr
+ON c.concept_id=cr.concept_id_1
+and c.concept_class_id='Metastasis'
+JOIN concept c2
+ON c2.concept_id=cr.concept_id_2
+and c2.concept_class_id='Body Structure'
+JOIN concept_relationship ca
+ON c2.concept_id=ca.concept_id_1    and ca.relationship_id='Is a'
+and c2.concept_class_id='Body Structure'
+JOIN concept c3
+ON c3.concept_id=ca.concept_id_2
+and c3.concept_class_id='Body Structure'
+JOIN concept_relationship cr2
+on c3.concept_id=cr2.concept_id_1
+JOIN concept c4
+ON c4.concept_id=cr2.concept_id_2
+and c4.concept_class_id='Metastasis'
+and c4.concept_id<>c.concept_id
+             where c4.concept_id NOT IN (
+
+35225548--Metastasis to both lungs
+
+             )
+
+         and  c4.concept_name not ilike '%vessel%'
+and c4.concept_id NOT IN (
+
+35226223,--Metastasis to other digestive organs
+35226224--Metastasis to other digestive organs and spleen
+
+    )
+
+;
     
 
 

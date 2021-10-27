@@ -440,4 +440,5 @@ LEFT JOIN concept c on c.concept_code = m.concept_code_1
 ;
 --Check CM
 SELECT *
-FROM concept_manual;
+FROM concept_manual
+;

@@ -111,7 +111,7 @@ ALTER TABLE ds_stage
 
 /*end QA*/
 
--- Add existing mappings from previous runs.
+-- Clean version of r_to_c
 DROP TABLE IF EXISTS r_to_c;
 --CREATE OR replace VIEW r_to_c AS
 CREATE UNLOGGED TABLE r_to_c AS
@@ -123,42 +123,7 @@ JOIN concept c ON c.concept_id = r.concept_id_2
 		'RxNorm Extension',
 		'UCUM'
 		)
-
-UNION ALL
-
-SELECT DISTINCT c1.concept_code AS concept_code_1,
-	c1.vocabulary_id AS vocabulary_id_1,
-	r.concept_id_2 AS concept_id_2,
-	1 AS precedence,
-	NULL::NUMERIC AS conversion_factor
-FROM concept c1
-JOIN concept_relationship r ON r.concept_id_1 = c1.concept_id
-	AND r.relationship_id IN (
-		'Maps to',
-		'Source - RxNorm eq'
-		)
-	AND r.invalid_reason IS NULL
-JOIN concept c2 ON c2.concept_id = r.concept_id_2
-	AND c2.invalid_reason IS NULL
-WHERE c1.vocabulary_id = (
-		SELECT dcs.vocabulary_id
-		FROM drug_concept_stage dcs LIMIT 1
-		)
-	AND c2.vocabulary_id IN (
-		'RxNorm',
-		'RxNorm Extension'
-		)
-	AND c2.concept_class_id IN (
-		'Ingredient',
-		'Dose Form',
-		'Brand Name',
-		'Supplier'
-		)
-	AND NOT EXISTS (
-		SELECT 1
-		FROM relationship_to_concept rtc
-		WHERE rtc.concept_code_1 = c1.concept_code
-		);
+;
 
 CREATE INDEX idx_rtc ON r_to_c (concept_code_1, concept_id_2);
 ANALYZE r_to_c;
@@ -332,7 +297,7 @@ FROM (
 			40228366
 			) -- Gas for Inhalation, Gas
 		AND rn.concept_id_2 = 8576 /*mg*/
-		AND rd.concept_id_2 IN (
+		AND rd.concept_id_2 IN ( 
 			8576 /*mg*/,
 			8587 /*mL*/
 			)
@@ -842,7 +807,9 @@ SELECT concept_id,
 	STRING_AGG(i_code, '-' ORDER BY i_code) AS i_combo,
 	STRING_AGG(ds_code, '-' ORDER BY LPAD(ds_code, 10, '0')) AS d_combo
 FROM r_ds
-GROUP BY concept_id;
+GROUP BY concept_id
+having count (i_code) = count(distinct i_code)
+;
 
 -- Add Drug Forms, which have no entry in ds_stage. 
 INSERT INTO r_combo
@@ -855,7 +822,8 @@ WHERE NOT EXISTS (
 		FROM r_combo r
 		WHERE r.concept_id = i.concept_id
 		)
-GROUP BY concept_id;
+GROUP BY concept_id
+having count (i_code) = count(distinct i_code);
 
 CREATE INDEX idx_r_combo ON r_combo (concept_id);
 ANALYZE r_combo;
@@ -963,6 +931,129 @@ ANALYZE r_bs;
 /**************************************************************************
 * 5. Create the list of all all existing r products in attribute notation * 
 ***************************************************************************/
+-- Create a blacklist of concepts with attribute problems that break conventions
+drop table if exists workaround_cleanup
+;
+create unlogged table workaround_cleanup as
+--Remove drugs that have more than one component with the same ingredient
+with cd_to_comp as
+(
+	select
+		c.concept_id as problematic_concept_id
+	from concept c
+	join concept_relationship r on
+		r.concept_id_1 = c.concept_id and
+		c.standard_concept = 'S' and
+		c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and
+		r.relationship_id = 'Consists of' and
+		r.invalid_reason is NULL
+	join concept c2 on
+		c2.concept_id = r.concept_id_2 and
+		c2.concept_class_id in ('Clinical Drug Comp', 'Branded Drug Comp')
+	join drug_strength d on
+		d.drug_concept_id = c2.concept_id
+	group by c.concept_id
+	having count (ingredient_concept_id) > count (distinct ingredient_concept_id)
+),
+exclusion as
+	(
+		select a.descendant_concept_id
+		from concept_ancestor a
+		join cd_to_comp b on
+			problematic_concept_id = ancestor_concept_id
+	)
+select concept_id, 'Components of same ingredient present'
+from concept
+join exclusion on
+	concept_id = descendant_concept_id
+	
+	union all
+--This will remove concepts that have valid relation to inactive attributes; Build_RxE would otherwise treat them as duplicate concepts of another class
+select concept_id as bad_concept_id, 'Valid relation to invalid attribute' as exclusion_criterion
+from concept c
+where
+    c.invalid_reason is null and
+    c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and
+    c.domain_id = 'Drug' and
+    c.concept_class_id != 'Ingredient' and
+    c.concept_id in
+    (
+    	select concept_id_2
+        from concept_relationship r
+        join concept c on
+            r.relationship_id = 'Brand name of' and
+            c.concept_id = r.concept_id_1 and
+            c.concept_class_id = 'Brand Name' and
+            c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and
+            c.invalid_reason is not null and
+            r.invalid_reason is null
+            --some may still have another valid attribute
+            and not exists
+            	(
+            		select 1
+            		from concept_relationship xr
+            		join concept xc on
+            			r.concept_id_2 = xr.concept_id_2 and
+            			r.concept_id_1 != xr.concept_id_1 and
+            			xr.relationship_id = 'Brand name of' and
+            			xc.invalid_reason is null and
+            			xr.invalid_reason is null and
+            			xr.concept_id_1 = xc.concept_id
+            	)
+
+			union all
+
+        select concept_id_2
+        from concept_relationship r
+        join concept c on
+            r.relationship_id = 'RxNorm dose form of' and
+            c.concept_id = r.concept_id_1 and
+            c.concept_class_id = 'Dose Form' and
+            c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and
+            c.invalid_reason is not null and
+            r.invalid_reason is null
+            --some may still have another valid attribute
+          	and not exists
+
+            	(
+            		select 1
+            		from concept_relationship xr
+            		join concept xc on
+            			r.concept_id_2 = xr.concept_id_2 and
+            			r.concept_id_1 != xr.concept_id_1 and
+            			xr.relationship_id = 'RxNorm dose form of' and
+            			xc.invalid_reason is null and
+            			xr.invalid_reason is null and
+            			xr.concept_id_1 = xc.concept_id
+            	)
+
+                         union all
+               
+        select concept_id_2
+        from concept_relationship r
+        join concept c on
+            r.relationship_id = 'Supplier of' and
+            c.concept_id = r.concept_id_1 and
+            c.concept_class_id = 'Supplier' and
+            c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and
+            c.invalid_reason is not null and
+            r.invalid_reason is null
+            --some may still have another valid attribute
+            and not exists
+            	(
+            		select 1
+            		from concept_relationship xr
+            		join concept xc on
+            			r.concept_id_2 = xr.concept_id_2 and
+            			r.concept_id_1 != xr.concept_id_1 and
+            			xr.relationship_id = 'Supplier of' and
+            			xc.invalid_reason is null and
+            			xr.invalid_reason is null and
+            			xr.concept_id_1 = xc.concept_id
+            	)
+    )
+;
+
 
 DROP TABLE IF EXISTS r_existing;
 CREATE UNLOGGED TABLE r_existing AS
@@ -1156,7 +1247,18 @@ WHERE r1.concept_id IS NULL
 	AND r4.concept_id IS NULL
 	AND r5.concept_id IS NULL;
 
--- RxNorm has duplicates by attributes. Usually Ingredient and Precise Ingredient versions of the same drug. The Precise tends to be newer. This query picks the newest
+
+-- Delete blacklisted concepts
+delete from r_existing r
+where exists
+	(
+		select 1
+		from workaround_cleanup w
+		where r.concept_id = w.concept_id
+	)
+;
+
+-- RxNorm has duplicates by attributes. Usually Ingredient and Precise Ingredient versions of the same drug. The Precise tends to be newer. This query picks the shortest name, then the oldest
 DELETE
 FROM r_existing r
 WHERE EXISTS (
@@ -1172,13 +1274,12 @@ WHERE EXISTS (
 					r_int.df_id,
 					r_int.bn_id,
 					r_int.bs,
-					r_int.mf_id ORDER BY c.valid_start_date,
-						c.concept_name DESC
-					) AS newest
+					r_int.mf_id ORDER BY length(c.concept_name), c.valid_start_date asc, c.concept_name DESC
+					) AS oldest
 			FROM r_existing r_int
 			JOIN concept c ON c.concept_id = r_int.concept_id
 			) AS s0
-		WHERE s0.concept_name <> s0.newest
+		WHERE s0.concept_name <> s0.oldest
 			AND s0.rowid = r.ctid
 		);
 
@@ -1781,6 +1882,7 @@ LEFT JOIN (
 	SELECT cr.concept_id_1, cr.concept_id_2, NULL
 	FROM concept_relationship cr
 	JOIN concept c_int ON c_int.concept_id = cr.concept_id_2
+		AND cr.invalid_reason is NULL
 		AND c_int.vocabulary_id IN (
 			'RxNorm',
 			'RxNorm Extension'
@@ -5061,6 +5163,8 @@ BEGIN
 	DROP SEQUENCE IF EXISTS omop_seq;
 	EXECUTE 'CREATE SEQUENCE omop_seq INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
 END$$;
+;
+
 
 -- Empty concept_stage in case there are remnants from a previous run.
 TRUNCATE TABLE concept_stage;
@@ -6712,3 +6816,4 @@ DROP SEQUENCE omop_seq;
 DROP TABLE rl;
 DROP TABLE ex;
 DROP TABLE xxx_replace;
+DROP TABLE workaround_cleanup;

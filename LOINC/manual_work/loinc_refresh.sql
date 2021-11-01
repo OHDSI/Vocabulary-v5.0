@@ -1,5 +1,6 @@
 --Source table for refresh
 --Flags show different reasons for refresh
+--DROP TABLE loinc_source;
 CREATE TABLE loinc_source AS (
 with previous_mappings AS
     (SELECT concept_id_1, c.standard_concept, array_agg(concept_id_2 ORDER BY concept_id_2 DESC) AS old_maps_to
@@ -94,12 +95,12 @@ AND cr.relationship_id IN ('Maps to', 'Maps to value')
 AND cr.invalid_reason IS NULL
 
 --TODO: implement diff logic
-/*
- WHERE c.concept_id / concept_code NOT IN (SELECT FROM _mapped table)
- */
+
+ --WHERE c.concept_code NOT IN ()
+
 
 --Conditions show options for specific concept classes refreshes
-WHERE cr.concept_id_2 IS NULL
+AND cr.concept_id_2 IS NULL
 AND (c.standard_concept IS NULL OR c.invalid_reason = 'D') AND c.vocabulary_id = 'LOINC'
 AND c.concept_class_id IN ('Lab Test'
                            --,'Survey', 'Answer', 'Clinical Observation' --TODO: postponed for now
@@ -107,6 +108,15 @@ AND c.concept_class_id IN ('Lab Test'
 
 ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
+
+
+SELECT * FROM loinc_source;
+
+--Backup
+--DROP TABLE dev_loinc.loinc_source_20211028;
+CREATE TABLE dev_loinc.loinc_source_backup_20211028
+AS (SELECT *
+    FROM dev_loinc.loinc_source);
 
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
@@ -186,6 +196,7 @@ WHERE s.source_concept_code = crm.concept_code_1
 ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_code
 ;
 
+select * from loinc_source;
 
 --backup CRM
 --CREATE TABLE dev_loinc.concept_relationship_manual_backup_20210603 AS SELECT * FROM dev_loinc.concept_relationship_manual;
@@ -209,7 +220,7 @@ CREATE TABLE dev_loinc.loinc_mapped
     source_invalid_reason varchar(20),
     source_domain_id varchar(50),
     to_value varchar(50),
-    flag varchar(50),
+    source varchar(50),
     target_concept_id int,
     target_concept_code varchar(50),
     target_concept_name varchar(255),
@@ -219,6 +230,28 @@ CREATE TABLE dev_loinc.loinc_mapped
     target_domain_id varchar(50),
     target_vocabulary_id varchar(50)
 );
+
+--Backup
+--DROP TABLE dev_loinc.loinc_mapped_20211028;
+CREATE TABLE dev_loinc.loinc_mapped_backup_20211028
+AS (SELECT *
+    FROM dev_loinc.loinc_mapped);
+
+--Finding concepts that will be Standard
+SELECT * FROM dev_loinc.loinc_mapped
+WHERE source_code not in (select distinct loinc
+                        from sources.map_to)
+AND source_code in (select distinct loinc_num from sources.loinc l where l.status = 'DISCOURAGED');
+
+--Creating flag for concepts that will be Standard
+UPDATE dev_loinc.loinc_mapped
+SET flag = 'DEP'
+WHERE source_code not in (select distinct loinc
+                        from sources.map_to)
+AND source_code in (select distinct loinc_num from sources.loinc l where l.status = 'DISCOURAGED');
+
+--Selection of concepts that will be Standard
+SELECT id, source_code, flag FROM dev_loinc.loinc_mapped ORDER BY id;
 
 
 --Step 2: Deprecate all mappings that differ from the new version

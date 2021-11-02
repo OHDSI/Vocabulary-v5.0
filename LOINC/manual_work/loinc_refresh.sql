@@ -100,15 +100,15 @@ AND cr.invalid_reason IS NULL
 
 
 --Conditions show options for specific concept classes refreshes
-AND cr.concept_id_2 IS NULL
+WHERE cr.concept_id_2 IS NULL
 AND (c.standard_concept IS NULL OR c.invalid_reason = 'D') AND c.vocabulary_id = 'LOINC'
 AND c.concept_class_id IN ('Lab Test'
                            --,'Survey', 'Answer', 'Clinical Observation' --TODO: postponed for now
                            )
+AND c.invalid_reason != 'U'
 
 ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
-
 
 SELECT * FROM loinc_source;
 

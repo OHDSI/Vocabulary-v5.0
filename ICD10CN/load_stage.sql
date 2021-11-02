@@ -408,13 +408,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---13. Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
---14. Update Domains 
+--13. Update Domains 
 --ICD10 Histologies are always Condition
 UPDATE concept_stage
 SET domain_id = 'Condition'
@@ -488,7 +482,7 @@ UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id = 'Undefined';
 
---15. Add "subsumes" relationship between concepts where the concept_code is like of another
+--14. Add "subsumes" relationship between concepts where the concept_code is like of another
 -- Although 'Is a' relations exist, it is done to differentiate between "true" source-provided hierarchy and convenient "jump" links we build now
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -605,7 +599,7 @@ JOIN concept_stage c2 ON LEFT(c2.concept_code, 3) BETWEEN c1.start_code
 			AND r_int.relationship_id = 'Subsumes'
 		);
 
---16. Cleanup
+--15. Cleanup
 DROP INDEX trgm_idx;
 DROP TABLE icd10cn_chapters, name_source, intervals;
 

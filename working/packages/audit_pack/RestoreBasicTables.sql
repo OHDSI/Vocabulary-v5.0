@@ -191,7 +191,7 @@ BEGIN
 			ELSIF r.table_name='drug_strength' THEN
 				DELETE FROM drug_strength WHERE drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND ingredient_concept_id=(r.new_row->>'ingredient_concept_id')::INT4;
 			ELSIF r.table_name='pack_content' THEN
-				DELETE FROM pack_content WHERE pack_concept_id=(r.new_row->>'pack_concept_id')::INT4 AND drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND amount=(r.new_row->>'amount')::INT2;
+				DELETE FROM pack_content WHERE pack_concept_id=(r.new_row->>'pack_concept_id')::INT4 AND drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND amount IS NOT DISTINCT FROM (r.new_row->>'amount')::INT2;
 			ELSIF r.table_name='vocabulary_conversion' THEN
 				DELETE FROM vocabulary_conversion WHERE vocabulary_id_v4=(r.new_row->>'vocabulary_id_v4')::INT4;
 			END IF;
@@ -265,7 +265,7 @@ BEGIN
 					(pack_concept_id,drug_concept_id,amount,box_size)=
 					(j.pack_concept_id,j.drug_concept_id,j.amount,j.box_size)
 				FROM JSONB_POPULATE_RECORD(NULL::pack_content, r.old_row) j
-				WHERE pc.pack_concept_id=(r.new_row->>'pack_concept_id')::INT4 AND pc.drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND pc.amount=(r.new_row->>'amount')::INT2;
+				WHERE pc.pack_concept_id=(r.new_row->>'pack_concept_id')::INT4 AND pc.drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND pc.amount IS NOT DISTINCT FROM (r.new_row->>'amount')::INT2;
 
 			ELSIF r.table_name='vocabulary_conversion' THEN
 				UPDATE vocabulary_conversion vc SET

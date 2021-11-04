@@ -118,6 +118,19 @@ CREATE TABLE dev_loinc.loinc_source_backup_20211028
 AS (SELECT *
     FROM dev_loinc.loinc_source);
 
+--Show discouraged concepts that should be standard
+select distinct *
+from sources.loinc l
+where loinc_num not in (select distinct loinc
+                        from sources.map_to)
+  AND l.status = 'DISCOURAGED';
+
+--Show discouraged concepts that are standard now
+SELECT *
+FROM dev_loinc.concept
+WHERE concept_code in (select loinc_num from sources.loinc l where l.status = 'DISCOURAGED')
+AND standard_concept = 'S';
+
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
 --! Not anymore

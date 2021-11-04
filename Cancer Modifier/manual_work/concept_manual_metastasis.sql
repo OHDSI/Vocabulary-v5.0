@@ -98,7 +98,20 @@ UPDATE concept_stage
 35226118,	-- Metastasis to connective tissue and other soft tissues of neck maps to 35225733	Metastasis to soft tissues of neck
  35225720,--	Metastasis to small intestine and duodenum  maps to 35225721	Metastasis to small intestine including duodenum
 35225722,	-- Metastasis to small intestine or duodenum  maps to 35225721	Metastasis to small intestine including duodenum
-35225616 --	Metastasis to large intestine or rectum maps to  35225557 Metastasis to large intestine and rectum
+35225616, --	Metastasis to large intestine or rectum maps to  35225557 Metastasis to large intestine and rectum
+36769093,--	Metastasis with pathological confirmation -- 36769180 Metastasis
+36769223,	--Metastasis to liver with pathological confirmation --  maps to 36770544 Metastasis to liver
+36769638,--	Metastasis to omentum with pathological confirmation -- maps to 35226218 Metastasis to omentum
+36769897,--	Metastasis to small intestine with pathological confirmation maps to 35225719 Metastasis to small intestine
+36768605,	-- Metastasis with imaging confirmation maps to  -- 36769180 Metastasis
+35226228,--Metastasis to other urinary organ maps to 35225580	Metastasis to urinary system
+35226229,--	Metastasis to other urinary organs maps to 35225580	Metastasis to urinary system
+35226227,-- Metastasis to other respiratory organs maps to 35226280 Metastasis to respiratory tract
+                        35226278 -- Metastasis to respiratory and digestive systems maps to  35226277 Metastasis to respiratory and digestive organs
+
+
+
+
 
         )
 and (concept_id,'U') NOT IN (select concept_id,invalid_reason from concept);

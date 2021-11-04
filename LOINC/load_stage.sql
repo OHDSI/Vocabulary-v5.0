@@ -296,15 +296,33 @@ SELECT CASE
 		WHEN classtype = '4'
 			THEN 'Survey'
 		END AS concept_class_id,
-	'S' AS standard_concept,
+	--'S' AS standard_concept,
+    CASE
+        WHEN l.status IN (
+				'DEPRECATED'
+				) THEN NULL
+        WHEN l.status IN (
+	        'DISCOURAGED'
+            ) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to)
+	        THEN NULL
+        ELSE 'S'
+        END AS standard_concept,
 	LOINC_NUM AS concept_code,
 	v.latest_update AS valid_start_date,
 	CASE
 		WHEN l.status IN (
-				'DISCOURAGED',
 				'DEPRECATED'
 				)
 			THEN CASE
+					WHEN c.valid_end_date > v.latest_update
+						OR c.valid_end_date IS NULL
+						THEN v.latest_update
+					ELSE c.valid_end_date
+					END
+	    WHEN l.status IN (
+	        'DISCOURAGED'
+            ) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to)
+	        THEN CASE
 					WHEN c.valid_end_date > v.latest_update
 						OR c.valid_end_date IS NULL
 						THEN v.latest_update
@@ -320,7 +338,6 @@ SELECT CASE
 				)
 			THEN 'U'
 		WHEN l.status IN (
-				'DISCOURAGED',
 				'DEPRECATED'
 				)
 			THEN 'D'
@@ -330,6 +347,7 @@ FROM sources.loinc l
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
 	AND c.vocabulary_id = 'LOINC';
+
 
 --todo: confirm that these concepts are not expected to be Measurements storing the result
 --todo: define concept_class_id
@@ -346,6 +364,12 @@ WHERE
 				code not in (select loincnumber from sources.loinc_partlink where partnumber in ('LP7753-9','LP200093-5','LP200395-4')) -- LOINC Parts that identify direct measures or scores
 		)
 ;*/
+--Should be Procedure
+/*SELECT loinc_num,
+long_common_name
+FROM sources.loinc
+WHERE class = 'RAD';*/
+
 
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the concept_stage
 INSERT INTO concept_stage (
@@ -1595,6 +1619,7 @@ FROM sources.cpt_mrsmap l,
 WHERE v.vocabulary_id = 'LOINC';
 
 --24. Build 'Concept replaced by' relationships for updated LOINC concepts and deprecate already existing replacing mappings with the use of a 'sources.map_to' table
+--TODO: Consider using 1-to-many source mappings as "Maps to"
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

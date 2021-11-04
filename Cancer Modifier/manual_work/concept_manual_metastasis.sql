@@ -92,7 +92,13 @@ UPDATE concept_stage
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
                                           35226309,--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
                                          35226223,--Metastasis to other digestive organs Maps to 35226222 Metastasis to other digestive organ
-                                         35226224 --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
+                                         35226224, --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
+35226225,--	Metastasis to other part of nervous system maps to 35225775	Metastasis to nervous system
+35226226,	-- Metastasis to other parts of nervous system  maps to 35225775	Metastasis to nervous system
+35226118,	-- Metastasis to connective tissue and other soft tissues of neck maps to 35225733	Metastasis to soft tissues of neck
+ 35225720,--	Metastasis to small intestine and duodenum  maps to 35225721	Metastasis to small intestine including duodenum
+35225722,	-- Metastasis to small intestine or duodenum  maps to 35225721	Metastasis to small intestine including duodenum
+35225616 --	Metastasis to large intestine or rectum maps to  35225557 Metastasis to large intestine and rectum
 
         )
 and (concept_id,'U') NOT IN (select concept_id,invalid_reason from concept);
@@ -670,7 +676,7 @@ select concept_id,
        bs_standard,
        bs_code
 from bodystructeradded1) as result -- table with checked links to Body Structures
-WHERE (concept_code, 'Has finding site',bs_code) NOT IN (SELECT concept_code_1,relationship_id,concept_code_2 from concept_relationship_stage)
+WHERE (concept_id, 'Has finding site',bs_id) NOT IN (SELECT concept_id_1,relationship_id,concept_id_2 from concept_relationship )
 ;
 
 
@@ -689,6 +695,7 @@ INSERT INTO concept_relationship_stage (
                                         invalid_reason
 
 )
+SELECT distinct * FROM (
 SELECT distinct
                 c.concept_id as concept_id_1,
                 c.concept_code as concept_concept_code_1,
@@ -708,6 +715,12 @@ ON c2.concept_id=
                       WHEN c.concept_id =   35226153  then      35226152
         WHEN   c.concept_id =  35226223 then      35226222
           WHEN   c.concept_id =  35226224 then      35226222
+                    WHEN   c.concept_id =  35226225 then      35225775
+                    WHEN   c.concept_id =  35226226 then      35225775
+                  WHEN   c.concept_id =  35226118 then      35225733
+                  WHEN   c.concept_id =  35225720 then      35225721
+                  WHEN   c.concept_id =  35225722 then      35225721
+                      WHEN   c.concept_id =  35225616 then      35225557
           end
 WHERE c.concept_id  IN (
                                           35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
@@ -715,8 +728,13 @@ WHERE c.concept_id  IN (
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
                                           35226309,--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
                                          35226223,--Metastasis to other digestive organs Maps to 35226222 Metastasis to other digestive organ
-                                         35226224 --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
-
+                                         35226224, --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
+                       35226225,--	Metastasis to other part of nervous system maps to 35225775	Metastasis to nervous system
+35226226,	-- Metastasis to other parts of nervous system  maps to 35225775	Metastasis to nervous system
+35226118,	-- Metastasis to connective tissue and other soft tissues of neck maps to 35225733	Metastasis to soft tissues of neck
+35225720,--	Metastasis to small intestine and duodenum  maps to 35225721	Metastasis to small intestine including duodenum
+35225722,	-- Metastasis to small intestine or duodenum  maps to 35225721	Metastasis to small intestine including duodenum
+35225616 --	Metastasis to large intestine or rectum maps to  35225557 Metastasis to large intestine and rectum
 
     )
 
@@ -742,7 +760,12 @@ ON c2.concept_id=
         WHEN   c.concept_id =  35226309 then      36769180
                   WHEN   c.concept_id =  35226223 then      35226222
           WHEN   c.concept_id =  35226224 then      35226222
-
+                      WHEN   c.concept_id =  35226225 then      35225775
+                    WHEN   c.concept_id =  35226226 then      35225775
+                  WHEN   c.concept_id =  35226118 then      35225733
+                        WHEN   c.concept_id =  35225720 then      35225721
+                  WHEN   c.concept_id =  35225722 then      35225721
+            WHEN   c.concept_id =  35225616 then      35225557
           end
 WHERE c.concept_id  IN (
                                           35225652, --Metastasis to the Mammary Gland maps to 35225556 Metastasis to the Breast
@@ -750,8 +773,16 @@ WHERE c.concept_id  IN (
                                           35226153,	--  Metastasis to the Genital Organs Maps to 35226152	Metastasis to the Genital Organs
                                           35226309,--Metastasis to the Unknown Site Maps TO 36769180 Metastasis
                                          35226223,--Metastasis to other digestive organs Maps to 35226222 Metastasis to other digestive organ
-                                         35226224 --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
-    )
+                                            35226224, --Metastasis to other digestive organs and spleen Maps to 35226222 Metastasis to other digestive organ
+                       35226225,--	Metastasis to other part of nervous system maps to 35225775	Metastasis to nervous system
+35226226,	-- Metastasis to other parts of nervous system  maps to 35225775	Metastasis to nervous system
+35226118,	-- Metastasis to connective tissue and other soft tissues of neck maps to 35225733	Metastasis to soft tissues of neck
+35225720,--	Metastasis to small intestine and duodenum  maps to 35225721	Metastasis to small intestine including duodenum
+35225722,	-- Metastasis to small intestine or duodenum  maps to 35225721	Metastasis to small intestine including duodenum
+35225616 --	Metastasis to large intestine or rectum maps to  35225557 Metastasis to large intestine and rectum
+
+    ) ) as tab
+where (concept_id_1,relationship_id,concept_concept_id_2) NOT IN (select concept_id_1,relationship_id,concept_id_2 from concept_relationship)
 ;
 
 
@@ -1235,8 +1266,10 @@ FROM concept_stage
                                         invalid_reason
 
 )*/
-SELECT
-row_number() OVER (PARTITION BY c.concept_id ORDER BY c4.concept_name asc)  AS rating_in_section,
+
+CREATE TABLE dev_cancer_modifier.metastasis_hierarchy as
+SELECT distinct
+--row_number() OVER (PARTITION BY c.concept_id ORDER BY c4.concept_name asc)  AS rating_in_section,
 c.concept_id as concept_id_1,
 c.concept_name as concept_name_1,
 c.domain_id as domain_id_1,
@@ -1244,18 +1277,14 @@ c.vocabulary_id as vocabulary_id_1,
 c.concept_class_id as concept_class_id_1,
 c.standard_concept as standard_concept_id_1,
 c.concept_code as concept_code_1,
-c.valid_start_date as valid_start_date_1,
-c.valid_end_date as valid_end_date_1,
-c.invalid_reason,cr.relationship_id,
-           c4.concept_id as concept_id_2,
+       'Is a' as relationship_id,
+ c4.concept_id as concept_id_2,
 c4.concept_name as concept_name_2,
 c4.domain_id as domain_id_2,
 c4.vocabulary_id as vocabulary_id_2,
 c4.concept_class_id as concept_class_id_2,
 c4.standard_concept as standard_concept_id_2,
-c4.concept_code as concept_code_2,
-c4.valid_start_date as valid_start_date_2,
-c4.valid_end_date as valid_end_date_2
+c4.concept_code as concept_code_2
 FROM concept c
 JOIN concept_relationship cr
 ON c.concept_id=cr.concept_id_1
@@ -1264,7 +1293,8 @@ JOIN concept c2
 ON c2.concept_id=cr.concept_id_2
 and c2.concept_class_id='Body Structure'
 JOIN concept_relationship ca
-ON c2.concept_id=ca.concept_id_1    and ca.relationship_id='Is a'
+ON c2.concept_id=ca.concept_id_1
+       and ca.relationship_id='Is a'
 and c2.concept_class_id='Body Structure'
 JOIN concept c3
 ON c3.concept_id=ca.concept_id_2
@@ -1284,12 +1314,23 @@ and c4.concept_id<>c.concept_id
          and  c4.concept_name not ilike '%vessel%'
 and c4.concept_id NOT IN (
 
-35226223,--Metastasis to other digestive organs
-35226224--Metastasis to other digestive organs and spleen
+35226223,--Metastasis to other digestive organs maps to 35226222	Metastasis to other digestive organ
+35226224,--Metastasis to other digestive organs and spleen  maps to 35226222	Metastasis to other digestive organ
+35226225,--	Metastasis to other part of nervous system maps to 35225775	Metastasis to nervous system
+35226226,	-- Metastasis to other parts of nervous system  maps to 35225775	Metastasis to nervous system
+35226118,	-- Metastasis to connective tissue and other soft tissues of neck maps to 35225733	Metastasis to soft tissues of neck
+36769532,	-- Metastasis to ipsilateral lung -- as it is not a real Ancester
+35226030,--	Metastasis to areola of female breast  -- as it is not a real Ancester (most cases)
+35226211,	-- Metastasis to nipple of female breast  -- as it is not a real Ancester (most cases)
+35225710,--	Metastasis to skin of shoulder and arm  -- as it is a better to make the cleas finding site as ancester
+35225717,--	Metastasis to skin of upper limb -- as it is a better to make the cleas finding site as ancester
+35225720, --Metastasis to small intestine and duodenum Maps to  35225721	Metastasis to small intestine including duodenum
+35225722,	--Metastasis to small intestine or duodenum Maps to  35225721	Metastasis to small intestine including duodenum
+35225616 --	Metastasis to large intestine or rectum maps to  35225557 Metastasis to large intestine and rectum
 
     )
-
 ;
+
     
 
 
@@ -1350,3 +1391,27 @@ CREATE TABLE concept_relationship_manual_metastasis as
 ;
 --TRUNCATE STAGE TABLES
 TRUNCATE TABLE concept_relationship_stage;
+
+
+SELECT * FROM devv5.concept c
+where vocabulary_id='Cancer Modifier' and concept_class_id='Metastasis'
+and concept_id  not in (select
+                           c.concept_id
+from devv5.concept c
+    join devv5.concept_relationship cr
+        on cr.concept_id_1=c.concept_id
+               and c.concept_class_id='Metastasis'
+    join devv5.concept cc
+        on cr.concept_id_2=cc.concept_id
+where cc.vocabulary_id='SNOMED'
+    and relationship_id='Mapped from');
+
+select
+                        *
+from devv5.concept c
+    join devv5.concept_relationship cr
+        on cr.concept_id_1=c.concept_id
+               and c.concept_class_id='Metastasis'
+    join devv5.concept cc
+        on cr.concept_id_2=cc.concept_id
+where cc.vocabulary_id='SNOMED'

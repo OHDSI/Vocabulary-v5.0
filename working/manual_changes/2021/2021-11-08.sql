@@ -238,3 +238,12 @@ BEGIN
 );
 END $_$;
 
+--this is not a hierarchical relationship, otherwise acetominophen becomes the parent of chemotherapy regimen
+UPDATE relationship
+   SET is_hierarchical = 0
+WHERE relationship_id = 'Has support med Rx';
+
+UPDATE relationship
+   SET is_hierarchical = 0,
+       defines_ancestry = 0
+WHERE relationship_id = 'Rx support med of';

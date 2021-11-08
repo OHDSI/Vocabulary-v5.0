@@ -129,7 +129,14 @@ where loinc_num not in (select distinct loinc
 SELECT *
 FROM dev_loinc.concept
 WHERE concept_code in (select loinc_num from sources.loinc l where l.status = 'DISCOURAGED')
-AND standard_concept = 'S';
+AND concept_name NOT LIKE '%Mass or Moles%'
+AND concept_code not in (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1);
+
+select * from dev_loinc.concept
+where concept_code not in (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
+AND vocabulary_id = 'LOINC'
+AND concept_code in (select loinc_num from sources.loinc l where l.status = 'DISCOURAGED')
+AND concept_name NOT LIKE '%Mass or Moles%';
 
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
@@ -252,16 +259,16 @@ AS (SELECT *
 
 --Finding concepts that will be Standard
 SELECT * FROM dev_loinc.loinc_mapped
-WHERE source_code not in (select distinct loinc
-                        from sources.map_to)
-AND source_code in (select distinct loinc_num from sources.loinc l where l.status = 'DISCOURAGED');
+WHERE source_code in (select distinct loinc_num from sources.loinc l where l.status = 'DISCOURAGED')
+AND source_code not in (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
+AND source_code_description NOT LIKE '%Mass or Moles%';
 
 --Creating flag for concepts that will be Standard
 UPDATE dev_loinc.loinc_mapped
 SET flag = 'DEP'
-WHERE source_code not in (select distinct loinc
-                        from sources.map_to)
-AND source_code in (select distinct loinc_num from sources.loinc l where l.status = 'DISCOURAGED');
+WHERE source_code in (select distinct loinc_num from sources.loinc l where l.status = 'DISCOURAGED')
+AND source_code not in (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
+AND source_code_description NOT LIKE '%Mass or Moles%';;
 
 --Selection of concepts that will be Standard
 SELECT id, source_code, flag FROM dev_loinc.loinc_mapped ORDER BY id;

@@ -126,7 +126,12 @@ WHERE r.relationship_id NOT IN (
 		'Has been compared to',
 		'Can be preceded by',
 		'Can be followed by',
-		'May require'
+		'May require',
+		--duplicated, not really know how to merge them with the existing hierarchy ('Is a' relationships)
+ 'Has major class',
+'Has minor class'
+)
+;
 		)
 	--Antithymocyte globulin rabbit ATG was mapped to Thymoglobulin (Brand Name) , correct mapping will be added below
 	AND NOT (

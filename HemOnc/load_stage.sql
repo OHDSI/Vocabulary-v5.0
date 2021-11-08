@@ -461,7 +461,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---19. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--19. Deprecate all relationships in concept_relationship that don't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -497,5 +497,9 @@ WHERE 'HemOnc' IN (
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
 		);
-
+--Osimertinib monotherapy -	Has antineoplastic -	Surgery	https://odysseusdataservices.atlassian.net/browse/AVOF-3357
+update concept_relationship_stage
+set valid_end_date = to_date ('08-11-2021', 'dd-MM-yyyy'), invalid_reason ='D'
+ where concept_code_1 ='10746' and relationship_id ='Has antineoplastic' and concept_code_2 ='14051' 
+;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -18,13 +18,8 @@ begin
       drop index sources.x_mrsat_cui;
       drop index sources.x_mrconso_code;
       drop index sources.x_mrconso_cui;
-      drop index sources.x_mrconso_lui;
       drop index sources.x_mrconso_sab_tty;
       drop index sources.x_mrconso_scui;
-      drop index sources.x_mrconso_sdui;
-      drop index sources.x_mrconso_str;
-      drop index sources.x_mrconso_sui;
-      drop index sources.x_mrrel_aui;
       drop index sources.x_mrsty_cui;
       /*
       UMLS can contain characters like single quotes and double quotes, but PG uses them as a service characters
@@ -42,14 +37,9 @@ begin
       CREATE INDEX x_mrsat_cui ON sources.mrsat (cui);
       CREATE INDEX x_mrconso_code ON sources.mrconso (code);
       CREATE INDEX x_mrconso_cui ON sources.mrconso (cui);
-      CREATE INDEX x_mrconso_lui ON sources.mrconso (lui);
       CREATE UNIQUE INDEX x_mrconso_pk ON sources.mrconso (aui);
       CREATE INDEX x_mrconso_sab_tty ON sources.mrconso (sab, tty);
       CREATE INDEX x_mrconso_scui ON sources.mrconso (scui);
-      CREATE INDEX x_mrconso_sdui ON sources.mrconso (sdui);
-      CREATE INDEX x_mrconso_str ON sources.mrconso (str);
-      CREATE INDEX x_mrconso_sui ON sources.mrconso (sui);
-      CREATE INDEX x_mrrel_aui ON sources.mrrel (aui1, aui2);
       CREATE INDEX x_mrsty_cui ON sources.mrsty (cui);
       ALTER TABLE sources.mrconso ADD CONSTRAINT x_mrconso_pk PRIMARY KEY USING INDEX x_mrconso_pk;
       analyze sources.mrconso;

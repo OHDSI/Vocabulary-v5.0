@@ -431,6 +431,10 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
+--Osimertinib monotherapy -	Has antineoplastic -	Surgery	https://odysseusdataservices.atlassian.net/browse/AVOF-3357
+delete from concept_relationship_stage
+ where concept_code_1 ='10746' and relationship_id ='Has antineoplastic' and concept_code_2 ='14051' 
+;
 --18. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -499,9 +503,4 @@ WHERE 'HemOnc' IN (
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
 		);
---Osimertinib monotherapy -	Has antineoplastic -	Surgery	https://odysseusdataservices.atlassian.net/browse/AVOF-3357
-update concept_relationship_stage
-set valid_end_date = to_date ('08-11-2021', 'dd-MM-yyyy'), invalid_reason ='D'
- where concept_code_1 ='10746' and relationship_id ='Has antineoplastic' and concept_code_2 ='14051' 
-;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -88,9 +88,8 @@ $body$
     CREATE INDEX idx_concept_relationship_id_2 ON concept_relationship (concept_id_2);
     CREATE INDEX idx_concept_synonym_id ON concept_synonym (concept_id);
     CREATE INDEX idx_csyn_concept_syn_name ON concept_synonym (concept_synonym_name);
-    CREATE INDEX idx_pack_content_id_1 ON pack_content (pack_concept_id);
     CREATE INDEX idx_pack_content_id_2 ON pack_content (drug_concept_id);
-    CREATE UNIQUE INDEX u_pack_content ON pack_content (pack_concept_id, drug_concept_id, amount);
+    CREATE UNIQUE INDEX u_pack_content ON pack_content (pack_concept_id, drug_concept_id, COALESCE(amount,-1));
     ALTER TABLE drug_strength ADD CONSTRAINT xpk_drug_strength PRIMARY KEY (drug_concept_id, ingredient_concept_id);
     CREATE INDEX IF NOT EXISTS idx_cs_concept_code ON concept_stage (concept_code);
     CREATE INDEX IF NOT EXISTS idx_cs_concept_id ON concept_stage (concept_id);

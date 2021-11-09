@@ -296,14 +296,17 @@ SELECT CASE
 		WHEN classtype = '4'
 			THEN 'Survey'
 		END AS concept_class_id,
-	--'S' AS standard_concept,
     CASE
         WHEN l.status IN (
 				'DEPRECATED'
 				) THEN NULL
         WHEN l.status IN (
 	        'DISCOURAGED'
-            ) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to)
+            ) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
+	        THEN NULL
+        WHEN l.status IN (
+	        'DISCOURAGED'
+            ) AND l.long_common_name LIKE '%Mass or Moles%'
 	        THEN NULL
         ELSE 'S'
         END AS standard_concept,
@@ -321,7 +324,16 @@ SELECT CASE
 					END
 	    WHEN l.status IN (
 	        'DISCOURAGED'
-            ) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to)
+            ) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
+	        THEN CASE
+					WHEN c.valid_end_date > v.latest_update
+						OR c.valid_end_date IS NULL
+						THEN v.latest_update
+					ELSE c.valid_end_date
+					END
+	    WHEN l.status IN (
+	        'DISCOURAGED'
+            ) AND l.long_common_name LIKE '%Mass or Moles%'
 	        THEN CASE
 					WHEN c.valid_end_date > v.latest_update
 						OR c.valid_end_date IS NULL
@@ -331,15 +343,23 @@ SELECT CASE
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date,
 	CASE
-		WHEN EXISTS (
-				SELECT 1
-				FROM sources.map_to m
-				WHERE m.loinc = l.loinc_num
-				)
-			THEN 'U'
+	    WHEN l.loinc_num IN (select distinct loinc from sources.map_to group by 1 having count(distinct map_to) = 1)
+	                    AND l.status IN ('DISCOURAGED')
+	    THEN 'U'
+	    WHEN l.loinc_num IN (select distinct loinc from sources.map_to)
+	                    AND l.status IN ('DEPRECATED')
+	    THEN 'U'
 		WHEN l.status IN (
 				'DEPRECATED'
 				)
+			THEN 'D'
+	    WHEN l.status IN (
+				'DISCOURAGED'
+				) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
+			THEN 'D'
+	    WHEN l.status IN (
+				'DISCOURAGED'
+				) AND l.long_common_name LIKE '%Mass or Moles%' AND l.loinc_num not in (SELECT DISTINCT loinc FROM sources.map_to)
 			THEN 'D'
 		ELSE NULL
 		END AS invalid_reason

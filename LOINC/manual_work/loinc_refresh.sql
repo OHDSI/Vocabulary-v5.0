@@ -119,11 +119,11 @@ AS (SELECT *
     FROM dev_loinc.loinc_source);
 
 --Show discouraged concepts that should be standard
-select distinct *
-from sources.loinc l
-where loinc_num not in (select distinct loinc
-                        from sources.map_to)
-  AND l.status = 'DISCOURAGED';
+SELECT DISTINCT *
+FROM sources.loinc l
+WHERE l.status = 'DISCOURAGED'
+  AND l.loinc_num NOT IN (select distinct loincnumber from sources.loinc_partlink_primary where partnumber = 'LP33032-1')
+  AND (loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) != 1) OR loinc_num NOT IN (SELECT DISTINCT loinc FROM sources.map_to));
 
 --Show discouraged concepts that are standard now
 SELECT *

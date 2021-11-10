@@ -122,21 +122,28 @@ AS (SELECT *
 SELECT DISTINCT *
 FROM sources.loinc l
 WHERE l.status = 'DISCOURAGED'
-  AND l.loinc_num NOT IN (select distinct loincnumber from sources.loinc_partlink_primary where partnumber = 'LP33032-1')
-  AND (loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) != 1) OR loinc_num NOT IN (SELECT DISTINCT loinc FROM sources.map_to));
+  AND l.loinc_num NOT IN (SELECT DISTINCT loincnumber
+                          FROM sources.loinc_partlink_primary
+                          WHERE partnumber = 'LP33032-1')
+  AND loinc_num NOT IN (SELECT DISTINCT loinc
+                        FROM sources.map_to
+                        GROUP BY 1
+                        HAVING COUNT(DISTINCT map_to) = 1);
 
 --Show discouraged concepts that are standard now
-SELECT *
-FROM dev_loinc.concept
-WHERE concept_code in (select loinc_num from sources.loinc l where l.status = 'DISCOURAGED')
-AND concept_name NOT LIKE '%Mass or Moles%'
-AND concept_code not in (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1);
-
-select * from dev_loinc.concept
-where concept_code not in (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
-AND vocabulary_id = 'LOINC'
-AND concept_code in (select loinc_num from sources.loinc l where l.status = 'DISCOURAGED')
-AND concept_name NOT LIKE '%Mass or Moles%';
+SELECT DISTINCT *
+FROM dev_loinc.concept c
+WHERE c.concept_code IN (SELECT loinc_num
+                         FROM sources.loinc l
+                         WHERE l.status = 'DISCOURAGED')
+  AND c.concept_code NOT IN (SELECT DISTINCT loincnumber
+                             FROM sources.loinc_partlink_primary
+                             WHERE partnumber = 'LP33032-1')
+  AND c.concept_code NOT IN (SELECT DISTINCT loinc
+                             FROM sources.map_to
+                             GROUP BY 1
+                             HAVING COUNT(DISTINCT map_to) = 1)
+  AND vocabulary_id = 'LOINC';
 
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
@@ -145,25 +152,24 @@ AND concept_name NOT LIKE '%Mass or Moles%';
 -- There should be a check that force us to manually fix the manual file (even before running the 1st query to get the delta).
 -- So once the concept is in the manual file, it should NOT appear in delta. Basically this is "check if target concepts are Standard and exist in the concept table"
 -- Once the relationship to the specific target concept is gone, the machinery should make it D in CRM using the current_date.
-SELECT DISTINCT
-       replace (c.concept_name, 'Deprecated ', '') AS source_concept_name_clean,
-       c.concept_name AS source_concept_name,
-       c.concept_code AS source_concept_code,
-       c.concept_class_id AS   source_concept_class_id,
-       c.invalid_reason AS     source_invalid_reason,
-       c.domain_id AS          source_domain_id,
+SELECT DISTINCT replace(c.concept_name, 'Deprecated ', '') AS source_concept_name_clean,
+                c.concept_name                             AS source_concept_name,
+                c.concept_code                             AS source_concept_code,
+                c.concept_class_id                         AS source_concept_class_id,
+                c.invalid_reason                           AS source_invalid_reason,
+                c.domain_id                                AS source_domain_id,
 
-       crm.relationship_id AS relationship_id,
+                crm.relationship_id                        AS relationship_id,
 
-       'CRM' AS flag,
-       cc.concept_id AS target_concept_id,
-       cc.concept_code AS target_concept_code,
-       cc.concept_name AS target_concept_name,
-       cc.concept_class_id AS target_concept_class_id,
-       cc.standard_concept AS target_standard_concept,
-       cc.invalid_reason AS target_invalid_reason,
-       cc.domain_id AS target_domain_id,
-       cc.vocabulary_id AS target_vocabulary_id
+                'CRM'                                      AS flag,
+                cc.concept_id                              AS target_concept_id,
+                cc.concept_code                            AS target_concept_code,
+                cc.concept_name                            AS target_concept_name,
+                cc.concept_class_id                        AS target_concept_class_id,
+                cc.standard_concept                        AS target_standard_concept,
+                cc.invalid_reason                          AS target_invalid_reason,
+                cc.domain_id                               AS target_domain_id,
+                cc.vocabulary_id                           AS target_vocabulary_id
 
 FROM dev_loinc.concept_relationship_manual crm
 JOIN dev_loinc.concept c ON c.concept_code = crm.concept_code_1 AND c.vocabulary_id = 'LOINC'  AND crm.invalid_reason IS NULL
@@ -257,21 +263,24 @@ CREATE TABLE dev_loinc.loinc_mapped_backup_20211028
 AS (SELECT *
     FROM dev_loinc.loinc_mapped);
 
---Finding concepts that will be Standard
-SELECT * FROM dev_loinc.loinc_mapped
-WHERE source_code in (select distinct loinc_num from sources.loinc l where l.status = 'DISCOURAGED')
-AND source_code not in (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
-AND source_code_description NOT LIKE '%Mass or Moles%';
-
 --Creating flag for concepts that will be Standard
 UPDATE dev_loinc.loinc_mapped
 SET flag = 'DEP'
-WHERE source_code in (select distinct loinc_num from sources.loinc l where l.status = 'DISCOURAGED')
-AND source_code not in (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
-AND source_code_description NOT LIKE '%Mass or Moles%';;
+WHERE source_code IN (SELECT DISTINCT loinc_num
+                      FROM sources.loinc l
+                      WHERE l.status = 'DISCOURAGED')
+  AND source_code NOT IN (SELECT DISTINCT loinc
+                          FROM sources.map_to
+                          GROUP BY 1
+                          HAVING COUNT(DISTINCT map_to) = 1)
+  AND source_code NOT IN (SELECT DISTINCT loincnumber
+                          FROM sources.loinc_partlink_primary
+                          WHERE partnumber = 'LP33032-1');
 
 --Selection of concepts that will be Standard
-SELECT id, source_code, flag FROM dev_loinc.loinc_mapped ORDER BY id;
+SELECT id, source_code, flag
+FROM dev_loinc.loinc_mapped
+ORDER BY id;
 
 
 --Step 2: Deprecate all mappings that differ from the new version
@@ -279,18 +288,24 @@ UPDATE dev_loinc.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
 WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
+      (SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2
+       FROM concept_relationship_manual crm_old
 
-(SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2 FROM concept_relationship_manual crm_old
-
-WHERE NOT exists(SELECT source_code, target_concept_code, 'LOINC', target_vocabulary_id, CASE WHEN to_value ~* 'value' THEN 'Maps to value'
-                    WHEN to_value ~* 'Is a' THEN 'Is a'
-                    WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
-                   ELSE 'Maps to' END
-                FROM dev_loinc.loinc_mapped crm_new
-                WHERE source_code = crm_old.concept_code_1
-                AND target_concept_code = crm_old.concept_code_2
-                AND target_vocabulary_id = crm_old.vocabulary_id_2
-                AND CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+       WHERE NOT exists(SELECT source_code,
+                               target_concept_code,
+                               'LOINC',
+                               target_vocabulary_id,
+                               CASE
+                                   WHEN to_value ~* 'value' THEN 'Maps to value'
+                                   WHEN to_value ~* 'Is a' THEN 'Is a'
+                                   WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
+                                   ELSE 'Maps to' END
+                        FROM dev_loinc.loinc_mapped crm_new
+                        WHERE source_code = crm_old.concept_code_1
+                          AND target_concept_code = crm_old.concept_code_2
+                          AND target_vocabulary_id = crm_old.vocabulary_id_2
+                          AND CASE
+                                  WHEN to_value ~* 'value' THEN 'Maps to value'
                     WHEN to_value ~* 'Is a' THEN 'Is a'
                     WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
                    ELSE 'Maps to' END = crm_old.relationship_id

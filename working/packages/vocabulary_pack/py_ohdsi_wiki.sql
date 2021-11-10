@@ -12,7 +12,7 @@ $BODY$
         'p': ohdsi_password
     }
 
-    ohdsi_post=s.post('https://www.ohdsi.org/web/wiki/doku.php?do=login', data=data, timeout=30).text
+    ohdsi_post=s.post('https://www.ohdsi.org/web/wiki/doku.php?do=login', data=data, timeout=30, verify=False).text
 
     #get the new security token. if error return full HTML-page
     sectok=re.findall('<input type="hidden" name="sectok" value="(.*?)" />',ohdsi_post)[0]
@@ -28,7 +28,7 @@ $BODY$
         'do[save]' : ''
     }
 
-    ohdsi_post=s.post('https://www.ohdsi.org/web/wiki/doku.php?id=' + doc_id, data=data, timeout=30)
+    ohdsi_post=s.post('https://www.ohdsi.org/web/wiki/doku.php?id=' + doc_id, data=data, timeout=30, verify=False)
     
     return 'OK'
 $BODY$

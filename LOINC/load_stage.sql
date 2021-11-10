@@ -306,7 +306,7 @@ SELECT CASE
 	        THEN NULL
         WHEN l.status IN (
 	        'DISCOURAGED'
-            ) AND l.long_common_name LIKE '%Mass or Moles%'
+            ) AND l.loinc_num in (select distinct loincnumber from sources.loinc_partlink_primary where partnumber = 'LP33032-1')
 	        THEN NULL
         ELSE 'S'
         END AS standard_concept,
@@ -333,7 +333,7 @@ SELECT CASE
 					END
 	    WHEN l.status IN (
 	        'DISCOURAGED'
-            ) AND l.long_common_name LIKE '%Mass or Moles%'
+            ) AND l.loinc_num in (select distinct loincnumber from sources.loinc_partlink_primary where partnumber = 'LP33032-1')
 	        THEN CASE
 					WHEN c.valid_end_date > v.latest_update
 						OR c.valid_end_date IS NULL
@@ -359,7 +359,7 @@ SELECT CASE
 			THEN 'D'
 	    WHEN l.status IN (
 				'DISCOURAGED'
-				) AND l.long_common_name LIKE '%Mass or Moles%' AND l.loinc_num not in (SELECT DISTINCT loinc FROM sources.map_to)
+				) AND l.loinc_num in (select distinct loincnumber from sources.loinc_partlink_primary where partnumber = 'LP33032-1') AND l.loinc_num not in (SELECT DISTINCT loinc FROM sources.map_to)
 			THEN 'D'
 		ELSE NULL
 		END AS invalid_reason

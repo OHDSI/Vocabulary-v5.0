@@ -371,25 +371,15 @@ LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
 
 --todo: confirm that these concepts are not expected to be Measurements storing the result
 --todo: define concept_class_id
-/*--3.1. Update Domains for concepts representing Imaging procedures based on hierarchy
+--3.1. Update Domains for concepts representing Imaging procedures based on hierarchy
 update concept_stage
 set domain_id = 'Procedure'
-WHERE
-	concept_code in
-		(
-			select code
-			from sources.loinc_hierarchy
-			where
-				path_to_root ~ ('^(LP7787\-7\.LP29684\-5|LP7787\-7\.LP7797\-6\.LP29680\-3)\.') and --LP29684-5 Radiology LP29680-3 Eye ultrasound
-				code not in (select loincnumber from sources.loinc_partlink where partnumber in ('LP7753-9','LP200093-5','LP200395-4')) -- LOINC Parts that identify direct measures or scores
-		)
-;*/
---Should be Procedure
-/*SELECT loinc_num,
-long_common_name
-FROM sources.loinc
-WHERE class = 'RAD';*/
-
+WHERE concept_code IN (SELECT DISTINCT loinc_num
+                       FROM sources.loinc
+                       WHERE class = 'RAD')
+  AND concept_code NOT IN (select loincnumber
+                           from sources.loinc_partlink_primary
+                           where partnumber in ('LP7753-9', 'LP200093-5', 'LP200395-4'));
 
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the concept_stage
 INSERT INTO concept_stage (

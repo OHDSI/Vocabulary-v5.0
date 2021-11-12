@@ -10,4 +10,6 @@ a.concept_code, c.concept_code, a.vocabulary_id, c.vocabulary_id, r.relationship
  from dev_cancer_modifier.concept a 
 join dev_cancer_modifier.concept_relationship r on a.concept_id = r.concept_id_1
 join dev_cancer_modifier.concept c on c.concept_id = r.concept_id_2
-where a.vocabulary_id ='NAACCR' 
+where a.vocabulary_id ='NAACCR'
+--load only 'direct' relationships
+and r.relationship_id in ('Schema to ICDO','Has Answer','Start date of','Type of','Value to Schema','ICDO to Proc Schema','Variable has date','Has unit','Variable to Schema','Parent item of','Permiss range of','Has end date','Maps to');

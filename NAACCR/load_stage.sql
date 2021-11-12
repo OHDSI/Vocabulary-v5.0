@@ -24,7 +24,7 @@ BEGIN
 	pVocabularyName			=> 'NAACCR',
     pVocabularyDate			=> to_date ('2018-03-02', 'yyyy-mm-dd'), -- https://www.naaccr.org/data-standards-data-dictionary/#DataDictionary -- Version 18 Data Standards and Data Dictionary - (posted 3/2/18;
 	pVocabularyVersion		=> 'NAACCR v18',
-	pVocabularyDevSchema	=> 'dev_cancer_modifier'
+	pVocabularyDevSchema	=> 'dev_naaccr'
 	);
 	END $_$;
 

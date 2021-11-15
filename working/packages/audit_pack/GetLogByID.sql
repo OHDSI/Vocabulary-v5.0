@@ -77,4 +77,4 @@ $BODY$
 			(a.new_row ->> 'pack_concept_id')::INT4
 			)
 		OR a.tx_id = iTransactionID;
-$BODY$ LANGUAGE 'sql' IMMUTABLE;
+$BODY$ LANGUAGE 'sql' STABLE;

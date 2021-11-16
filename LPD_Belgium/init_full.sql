@@ -1,13 +1,31 @@
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.SetLatestUpdate(
-	pVocabularyName			=> 'LPD_Belgium',
-	pVocabularyDate			=> TO_DATE ('20190501', 'yyyymmdd'),
-	pVocabularyVersion		=> 'LPD_Belgium 2019-MAY-31',
-	pVocabularyDevSchema	=> 'dev_belg'
-);
-END $_$
-;
+
+SELECT devv5.FastRecreateSchema(include_concept_ancestor => false, main_schema_name => 'devv5', include_synonyms => true);
+
+
+
+
+DO
+$_$
+    BEGIN
+        PERFORM VOCABULARY_PACK.SetLatestUpdate(
+                        pVocabularyName => 'LPD_Belgium',
+                        pVocabularyDate => (SELECT vocabulary_date FROM sources.ggr_ir LIMIT 1),
+                        pVocabularyVersion => 'LPD_Belgium 2021-SEP-01',
+                        pVocabularyDevSchema => 'dev_belg'
+                    );
+        PERFORM VOCABULARY_PACK.SetLatestUpdate(
+                        pVocabularyName => 'RxNorm Extension',
+                        pVocabularyDate => CURRENT_DATE,
+                        pVocabularyVersion => 'RxNorm Extension ' || CURRENT_DATE,
+                        pVocabularyDevSchema => 'dev_belg',
+                        pAppendVocabulary => TRUE
+                    );
+    END
+$_$;
+
+
+
+
 drop table if exists belg_source_full
 ;
 create table belg_source_full as select * from belg_source
@@ -138,6 +156,29 @@ where exists
 delete from belg_source b --only delta gets to be mapped
 where exists (select from official_mappings where prod_prd_id = b.prod_prd_id)
 ;
+
+drop table if exists junk_drugs;
+
+create table junk_drugs as 
+select prd_name
+from belg_source 
+where 	
+	prd_name like 'TRAUMEEL%' or
+	prd_name like '%UNDA' or
+	prd_name like '%BOIRON%' or
+	prd_name like '%HEEL' or
+	prd_name like 'WELEDA%' or
+	prd_name like '%WELEDA' or
+	prd_name like '%HOMEOROPA%' or
+	manufacturer_name like 'HEEL %' or
+	manufacturer_name like 'BOIRON %' 
+or	(prd_name like '%SHAMPOO%' and mol_name = 'UNKNOWN');
+
+insert into junk_drugs 
+select prd_name from belg_source where prd_name ~ 'ANTIPERSPIRANT|LUBRIFIANT|HUMIDIFIANT|COREGA|LACTACYD|MERCEVIT|NIVEA|VITANZA HQ'
+and prd_name not in (select prd_name from junk_drugs);
+
+
 drop table if exists devices_mapped
 ;
 create table devices_mapped as
@@ -146,33 +187,28 @@ from belg_source
 where 
 	regexp_match (prd_name,'[0-9 ]+(CM|MM|M)? ?X ?[0-9 ]+(CM|MM|M)[ $]') is not null or -- 00 MM X 00 MM
 	prd_name like '% PANTS %' or
-	(prd_name like '%SHAMPOO%' and mol_name = 'UNKNOWN') or
-	regexp_match (prd_name,'\d{2,} ?G$') is not null or
+		regexp_match (prd_name,'\d{2,} ?G$') is not null or
 	prd_name like '%ROUL%' or
 	prd_name like '%TROUSSE%' or
 	prd_name like 'BOTA%' or
 	prd_name like '%COMPRESS%' or
+	prd_name like '3M %' or
 	prd_name like '%VALVE%' or
 	prd_name like '%BAND%' or
 	prd_name like '%ACCESSOIRE%' or
 	prd_name like '%COLLIER%' or
 	prd_name like '%CM %' or
 	prd_name like '%LATEX%' or
+	prd_name like 'HEXABRIX%' or
+	prd_name like 'TELEBRIX%' or
+	prd_name like 'NEOPHYR%' or
 	prd_name like '%TALC%' or
 	prd_name like '%STRIP%' or
 	prd_name like '%LANCETTE%' or
 	prd_name like '%PLUG%' or
 	prd_name like 'BEQUILLE%' or
 	prd_name like 'THERMOMETRE%' or
-	--suppliers
-	prd_name like '%UNDA' or
-	prd_name like '%BOIRON%' or
-	prd_name like '%HEEL' or
-	prd_name like 'WELEDA%' or
-	prd_name like '%WELEDA' or
-	prd_name like '%HOMEOROPA%' or
-	manufacturer_name like 'HEEL %' or
-	manufacturer_name like 'BOIRON %' or
+
 	--Brands (nutrition, devices)
 	prd_name like '%CALDYN%' or
 	prd_name like '%SOUVENAID%' or
@@ -185,13 +221,29 @@ where
 	prd_name like 'ONETOUCH%' or
 	prd_name like 'MEPILEX%' or
 	prd_name like 'TENA %' or
-	prd_name like 'TRAUMEEL%' or
-	--Devices
+	prd_name like 'STRUCTOKABIVEN%' or
+		--Devices
 	prd_name like 'ALCOOL%DESINF%' or
 	prd_name like 'ACCU%CHEK%' or
 	prd_name like 'BD EMERALD%' or
 	prd_name like 'BD MICROFINE%'
 ;
+
+insert into devices_mapped 
+select prd_name from belg_source where prd_name ~ 'ACCESS|ACCU FINE|AIGUILLE|AIRCAST|ALCO PREP|DIFFUSEUR|ALTERNA|ALWAYS|GANTS|PLASTIC|PLASTIQUE|TERUMO|ATTELLE|AUDIOCAMENTS|NUTRIFLUID|ANTIPERSPIRANT|MASQUE|BIATAIN|LUBRIFIANT|HUMIDIFIANT|PEDISOFT|BOUTEILLES|BRACE|ADHESIVE| TEST |CHEVILLERE|COLOPLAST|COMBIHESIVE|COMFEEL|COMPEED|CONVEEN|COREGA|COSMOPOR|DERMAPLAST|DIASIP|DUREX|EPITACT|EPITRAIN|TAMPON|FORTICARE|FRESUBIN|FREESTYLE|FUTURO|ORTHESE|GENUTRAIN|GIBAUD|GLUCOJECT|GLUCOMEN|GLUCOMETER|HANSAPLAST|HONEYPATCH|ECHARPE|PENIEN|LACTACYD|LIGACAST|MANOMETRE|MARQUE|ELBOW|MEDICOPLAST|MEDISET|MEDIVEN|MEPORE|MERCEVIT|MODIFAST|AUTOTEST|MYSTAR|NAN |COLDHOT|NIVEA|NOVOFINE|NOVOPEN|NUTRIDRINK|NUTRILON|NUTRIMONIUM|NUTRINI|NUTRIDRINK|NUTRISON|PRECISION|PREDICTOR|PROTEFIX|RAUCOSET|RESPIFOR|RHIZOLOC|SAFE PRO|SAFE SMOKE|SLOAN|SNOGG|FOLEY|SONDE|SPEEDICATH|SPIDIPATCH|SPORTSTECH|ABLE2|SURGIFIX|TENSIOMETRE|AIGUILLE|TERUMO|TG FIX|THERMACARE|THUASNE|TUBEGAUZ|ULTRAMEAL|VISCOHEEL|VISCOSPOT|VITANZA HQ|ZENOSPOT|ZOVIPROTECT'
+and prod_prd_id not in (select prod_prd_id from official_mappings) and prd_name not in (select prd_name from devices_mapped);
+insert into devices_mapped
+select prd_name from belg_source where prd_name  like 'SERINGUE%' and prd_name not in (select prd_name from devices_mapped);
+insert into devices_mapped
+select prd_name from belg_source where prod_prd_id in ('31941', '174256', '2972755','116503','116504','116502','5116', '160524', '185413', '160503') and prd_name not in (select prd_name from devices_mapped);
+
+delete from devices_mapped
+where prd_name in (select prd_name from junk_drugs);
+
+
+
+
+
 truncate drug_concept_stage
 ;
 INSERT INTO drug_concept_stage --devices
@@ -210,6 +262,24 @@ SELECT distinct
 FROM belg_source d
 JOIN devices_mapped m ON m.prd_name = d.prd_name;
 
+INSERT INTO drug_concept_stage --Drugs without mapping
+SELECT distinct
+	d.prd_name,
+	'LPD_Belgium' AS vocabulary_id,
+	'Drug Product' AS concept_class_id,
+	NULL AS source_concept_class_id,
+	'S' AS standard_concept,
+	d.prod_prd_id AS concept_code,
+	NULL AS possible_excipient,
+	'Drug' AS domain_id,
+	CURRENT_DATE AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
+FROM belg_source d
+JOIN junk_drugs m ON m.prd_name = d.prd_name;
+
+
+
 INSERT INTO drug_concept_stage --drugs
 SELECT d.prd_name,
 	'LPD_Belgium' AS vocabulary_id,
@@ -227,6 +297,7 @@ WHERE prd_name NOT IN (
 		SELECT prd_name
 		FROM devices_mapped
 		)
+and prd_name not in (select  prd_name from junk_drugs)
 ;
 --insert Drug products and Devices (judging by their mappings) from official_mappings
 insert into drug_concept_stage
@@ -254,6 +325,10 @@ join official_mappings o on
 join concept c on
 	c.concept_id = o.concept_id
 ;
+
+
+
+
 --create a table to ensure legacy mapping inheritance
 -- DROP TABLE IF EXISTS r_to_c_all CASCADE;
 
@@ -514,7 +589,13 @@ where
 			where d.prd_name = s.prd_name
 		) and
 	s.mol_name != 'UNKNOWN'
-;
+	and 
+not exists 
+		(
+			select
+			from junk_drugs j
+			where j.prd_name = s.prd_name
+		);
 drop table if exists to_map
 ;
 --start getting mappings
@@ -688,11 +769,14 @@ select distinct
 		else null
 	end :: varchar as invalid_indicator
 from to_map
+where source_attr_name !=''
 ;
 --Entry invalid_indicator means attribute should not be treated as such (ingredient as BN, excipient as ingredient)
 --Multiple mappings for Ingredients with empty precedence fields indicate split
 --Brand Names can (and should) be mapped to their Ingredients when BN mappings are not found
 ;
+
+
 drop table if exists relationship_to_concept_manual
 ;
 create table relationship_to_concept_manual as
@@ -700,3 +784,19 @@ select *
 from relationship_to_concept_to_map
 where false
 ;
+
+
+insert into relationship_to_concept_manual select source_attr_name,	source_attr_concept_class,	target_concept_id,	target_concept_name,	target_concept_class_id,	precedence,	conversion_factor,	invalid_indicator 
+from belg_man where target_concept_id is not null or invalid_indicator is not null;
+
+insert into relationship_to_concept_manual select source_attr_name,	source_attr_concept_class,	target_concept_id,	target_concept_name,	target_concept_class_id,	precedence,	conversion_factor,	invalid_indicator 
+from relationship_to_concept_to_map where target_concept_id is not null;
+--delete from relationship_to_concept_manual where source_attr_name not in (select source_attr_name from relationship_to_concept_to_map); 
+
+
+update relationship_to_concept_manual
+set invalid_indicator = 'D', target_concept_id = null,target_concept_name = null,target_concept_class_id=null where source_attr_name in (
+select source_attr_name from relationship_to_concept_manual where source_attr_name ~*'LISINOPRIL|EAU|OLANZAPINE|DONEPEZIL|PREGABALIN|GLUCOSE|SILDENAFIL|CHLORHEXIDINE|CEFTAZIDIM|SIMVASTATINE|PARACETAMOL|NACL|RIBAVIRIN|ACICLOVIR'
+and source_attr_concept_class = 'Brand Name');
+
+

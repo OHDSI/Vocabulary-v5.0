@@ -1,7 +1,9 @@
+
 update relationship_to_concept_manual
 set precedence = 1 
 where precedence is null
 ;
+-- 	'OMOP' || nextval('conc_stage_seq') AS concept_code,
 DROP SEQUENCE IF EXISTS conc_stage_seq;
 CREATE sequence conc_stage_seq MINVALUE 100 MAXVALUE 1000000 START
 	WITH 100 INCREMENT BY 1 CACHE 20;
@@ -38,6 +40,7 @@ join concept c on
 	c.concept_class_id = 'CVX' and
 	c.concept_id = r.target_concept_id
 ;
+/*
 delete from belg_source b
 where
 	b.prod_prd_id in
@@ -51,7 +54,7 @@ where
 			c.concept_class_id = 'CVX' and
 			c.concept_id = r.target_concept_id
 	)
-;
+;*/
 --brand names, mapped to ingredients
 insert into prod_to_ing
 select distinct
@@ -106,7 +109,7 @@ join concept c on
 	c.concept_class_id = 'CVX' and
 	c.concept_id = r.target_concept_id
 ;
-delete from belg_source b
+/*delete from belg_source b
 where
 	b.mast_prd_name in
 	(
@@ -118,7 +121,7 @@ where
 			c.concept_class_id = 'CVX' and
 			c.concept_id = r.target_concept_id
 	)
-;
+;*/
 --save existing relation to ingredient for concepts that were only mapped to ingredient (legacy mappings, lowest precedence)
 insert into prod_to_ing
 with dirty as
@@ -141,6 +144,7 @@ with dirty as
 			c2.concept_class_id = 'Ingredient'
 		left join prod_to_ing o using (prod_prd_id)
 		left join devices_mapped x using (prd_name)
+		left join junk_drugs j using (prd_name)
 		where
 			o.prod_prd_id is null and
 			a.prd_name is null
@@ -235,7 +239,9 @@ join drug_concept_stage c on
 	c.concept_name = b.drug_form
 left join devices_mapped d on
 	d.prd_name = b.prd_name
+left join junk_drugs j on j.prd_name = b.prd_name
 where d.prd_name is null
+and j.prd_name is null
 ;
 --supplier
 insert into internal_relationship_stage
@@ -248,7 +254,8 @@ join drug_concept_stage c on
 	c.concept_name = b.manufacturer_name
 left join devices_mapped d on
 	d.prd_name = b.prd_name
-where d.prd_name is null
+	left join junk_drugs j on j.prd_name = b.prd_name
+where d.prd_name is null and j.prd_name is null
 ;
 --brand name
 insert into internal_relationship_stage
@@ -261,7 +268,8 @@ join drug_concept_stage c on
 	c.concept_name = b.mast_prd_name
 left join devices_mapped d on
 	d.prd_name = b.prd_name
-where d.prd_name is null
+	left join junk_drugs j on j.prd_name = b.prd_name
+where d.prd_name is null and j.prd_name is null
 ;
 --ingredients
 insert into internal_relationship_stage
@@ -403,6 +411,8 @@ WITH a AS (
 				SELECT *
 				FROM devices_mapped
 				)
+				and d.prd_name not in (SELECT *
+				FROM junk_drugs)
 		),
 	percents AS (
 		SELECT d.*
@@ -418,6 +428,10 @@ WITH a AS (
 				SELECT *
 				FROM devices_mapped
 				)
+				AND d.prd_name NOT IN (
+				SELECT *
+				FROM junk_drugs
+				)
 		),
 	transderm AS (
 		SELECT d.*
@@ -432,6 +446,10 @@ WITH a AS (
 			AND d.prd_name NOT IN (
 				SELECT *
 				FROM devices_mapped
+				)
+				AND d.prd_name NOT IN (
+				SELECT *
+				FROM junk_drugs
 				)
 		)
 SELECT c1.concept_code AS drug_concept_code,
@@ -573,6 +591,11 @@ CREATE TABLE map_auto AS
 						(
 							SELECT prd_name
 							FROM devices_mapped
+						)
+							AND d.prd_name NOT IN
+						(
+							SELECT prd_name
+							FROM junk_drugs
 						)
 					AND regexp_match (d.prd_name, '(X| )\d+ ?(MG|MCG|G(?![A-Z])|UI|IU)( |$)') is not null
 					AND (ARRAY(SELECT unnest(regexp_matches(d.prd_name, '((?:\d+)\.?(?:\d+)? ?(?:MCG|MG|G(?![A-Z])|UI|IU) )', 'g')))) [3] IS NULL
@@ -997,6 +1020,7 @@ where
 	invalid_indicator is null
 ;
 --replace old mappings that were changed in manual tables
+
 delete from r_to_c_all
 where
 	(concept_name, concept_class_id) in
@@ -1008,3 +1032,75 @@ where
 insert into r_to_c_all
 select * from r_to_c_insert
 ;
+
+delete from ds_stage where drug_concept_code in (SELECT drug_concept_code
+		FROM ds_stage
+		join relationship_to_concept on
+			concept_code_1 in (numerator_unit,amount_unit) and
+			concept_id_2 = 8587)
+;
+
+
+
+delete from internal_relationship_stage where concept_code_1 in (
+select concept_code_1 from internal_relationship_stage 
+join drug_concept_stage on concept_code_2 = concept_code and concept_class_id = 'Supplier'
+where concept_code_1 in (	SELECT concept_code
+		FROM drug_concept_stage dcs
+		JOIN (
+			SELECT concept_code_1
+			FROM internal_relationship_stage
+			JOIN drug_concept_stage ON concept_code_2 = concept_code
+				AND concept_class_id = 'Supplier'
+			LEFT JOIN ds_stage ON drug_concept_code = concept_code_1
+			WHERE drug_concept_code IS NULL
+
+			UNION
+
+			SELECT concept_code_1
+			FROM internal_relationship_stage
+			JOIN drug_concept_stage ON concept_code_2 = concept_code
+				AND concept_class_id = 'Supplier'
+			WHERE concept_code_1 NOT IN (
+					SELECT concept_code_1
+					FROM internal_relationship_stage
+					JOIN drug_concept_stage ON concept_code_2 = concept_code
+						AND concept_class_id = 'Dose Form'
+					)
+			) s
+		        ON s.concept_code_1 = dcs.concept_code
+		WHERE dcs.concept_class_id = 'Drug Product'
+			AND dcs.invalid_reason IS NULL
+			and s.concept_code_1 not in (select pack_concept_code from pc_stage)))
+			and concept_code_2 in (select concept_code_2 from internal_relationship_stage 
+join drug_concept_stage on concept_code_2 = concept_code and concept_class_id = 'Supplier'
+where concept_code_1 in (	SELECT concept_code
+		FROM drug_concept_stage dcs
+		JOIN (
+			SELECT concept_code_1
+			FROM internal_relationship_stage
+			JOIN drug_concept_stage ON concept_code_2 = concept_code
+				AND concept_class_id = 'Supplier'
+			LEFT JOIN ds_stage ON drug_concept_code = concept_code_1
+			WHERE drug_concept_code IS NULL
+
+			UNION
+
+			SELECT concept_code_1
+			FROM internal_relationship_stage
+			JOIN drug_concept_stage ON concept_code_2 = concept_code
+				AND concept_class_id = 'Supplier'
+			WHERE concept_code_1 NOT IN (
+					SELECT concept_code_1
+					FROM internal_relationship_stage
+					JOIN drug_concept_stage ON concept_code_2 = concept_code
+						AND concept_class_id = 'Dose Form'
+					)
+			) s
+		        ON s.concept_code_1 = dcs.concept_code
+		WHERE dcs.concept_class_id = 'Drug Product'
+			AND dcs.invalid_reason IS NULL
+			and s.concept_code_1 not in (select pack_concept_code from pc_stage)));
+
+
+

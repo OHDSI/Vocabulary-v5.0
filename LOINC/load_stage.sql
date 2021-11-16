@@ -155,6 +155,9 @@ SELECT CASE
 							)
 						)
 					)
+			    OR (
+		        long_common_name ~* 'note|Note'
+                )
 				)
 			AND (
 				long_common_name !~* 'scale|score'
@@ -372,8 +375,8 @@ LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
 --todo: confirm that these concepts are not expected to be Measurements storing the result
 --todo: define concept_class_id
 --3.1. Update Domains for concepts representing Imaging procedures based on hierarchy
-update concept_stage
-set domain_id = 'Procedure'
+UPDATE concept_stage
+SET domain_id = 'Procedure'
 WHERE concept_code IN (SELECT DISTINCT loinc_num
                        FROM sources.loinc
                        WHERE class = 'RAD')
@@ -1721,7 +1724,49 @@ FROM sources.loinc_documentontology d,
 WHERE v.vocabulary_id = 'LOINC'
 	AND d.partname NOT LIKE '{%}';-- decision to exclude LP173061-5 '{Settings}' and LP187187-2 '{Role}' PartNames was probably made due to vague reverse relationship formulations: Concept X 'Has setting' '{Setting}' or Concept Y 'Has role' {Role}.
 
---26. Build 'Has type of service', 'Has subject matter', 'Has role', 'Has setting', 'Has kind' reverse relationships from LOINC concepts indicating Measurements or Observations to LOINC Document Ontology concepts
+--26. Makes deprecated "Maps to" relationships for concepts that was Non-Standard and became Standard
+--TODO: change numbers of instruction
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c1.concept_code AS concept_code_1,
+	c2.concept_code AS concept_code_2,
+	c1.vocabulary_id AS vocabulary_id_1,
+	c2.vocabulary_id AS vocabulary_id_2,
+	r.relationship_id,
+	r.valid_start_date,
+	(
+		SELECT latest_update - 1
+		FROM vocabulary
+		WHERE vocabulary_id = 'LOINC'
+			AND latest_update IS NOT NULL
+		),
+	'D'
+FROM concept c1
+JOIN concept_relationship r ON r.concept_id_1 = c1.concept_id
+	AND r.relationship_id = 'Concept replaced by'
+	AND r.invalid_reason IS NULL
+JOIN concept c2 ON c2.concept_id = r.concept_id_2
+WHERE c1.vocabulary_id = 'LOINC'
+	AND c2.vocabulary_id = 'LOINC'
+	AND NOT EXISTS (
+		SELECT 1
+		FROM sources.map_to m
+		WHERE c1.concept_code IN (
+				m.loinc,
+				m.map_to
+				)
+		);
+
+
+--27. Build 'Has type of service', 'Has subject matter', 'Has role', 'Has setting', 'Has kind' reverse relationships from LOINC concepts indicating Measurements or Observations to LOINC Document Ontology concepts
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1756,7 +1801,7 @@ FROM sources.loinc_documentontology d,
 WHERE v.vocabulary_id = 'LOINC'
 	AND d.partname NOT LIKE '{%}';
 
---27. Add hierarchical LOINC Group Category and Group concepts to the concept_stage
+--28. Add hierarchical LOINC Group Category and Group concepts to the concept_stage
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -1798,7 +1843,7 @@ SELECT TRIM(lg.lgroup) AS concept_name, -- LOINC Group name
 FROM sources.loinc_group lg
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
 
---28. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
+--29. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1839,7 +1884,7 @@ JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 JOIN concept_stage cs1 ON cs1.concept_code = lg.parentgroupid -- LOINC Group Category code
 JOIN concept_stage cs2 ON cs2.concept_code = lg.groupid;-- LOINC Group code
 
---29. Add LOINC Group Categories and Groups to the concept_synonym_stage
+--30. Add LOINC Group Categories and Groups to the concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -1863,7 +1908,7 @@ SELECT lpga.parentgroupid AS synonym_concept_code, -- LOINC Group Category code
 	4180186 AS language_concept_id -- English
 FROM sources.loinc_parentgroupattributes lpga;-- table with descriptions of LOINC Group Categories
 
---30. Add Chinese language synonyms (AVOF-2231) from UMLS
+--31. Add Chinese language synonyms (AVOF-2231) from UMLS
 INSERT INTO concept_synonym_stage (
 	synonym_name,
 	synonym_concept_code,
@@ -1878,37 +1923,37 @@ FROM concept_stage cs
 JOIN sources.mrconso m ON m.code = cs.concept_code
 	AND m.sab = 'LNC-ZH-CN';
 
---31. Working with manual mappings
+--32. Working with manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---32. Working with replacement mappings
+--33. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---33. Add mapping from deprecated to fresh concepts
+--34. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---34. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--35. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---35. Delete ambiguous 'Maps to' mappings
+--36. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---36. Build reverse relationships. This is necessary for the next point.
+--37. Build reverse relationships. This is necessary for the next point.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1940,7 +1985,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---37. Add to the concept_relationship_stage and deprecate all relationships which do not exist there
+--38. Add to the concept_relationship_stage and deprecate all relationships which do not exist there
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1983,6 +2028,6 @@ WHERE a.vocabulary_id = 'LOINC'
 			AND crs_int.relationship_id = r.relationship_id
 		);
 
---38. Clean up
+--39. Clean up
 DROP TABLE sn_attr, lc_attr;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

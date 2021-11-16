@@ -1725,7 +1725,6 @@ WHERE v.vocabulary_id = 'LOINC'
 	AND d.partname NOT LIKE '{%}';-- decision to exclude LP173061-5 '{Settings}' and LP187187-2 '{Role}' PartNames was probably made due to vague reverse relationship formulations: Concept X 'Has setting' '{Setting}' or Concept Y 'Has role' {Role}.
 
 --26. Makes deprecated "Maps to" relationships for concepts that was Non-Standard and became Standard
---TODO: change numbers of instruction
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,

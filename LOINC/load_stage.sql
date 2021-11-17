@@ -51,325 +51,335 @@ INSERT INTO concept_stage (
 	invalid_reason
 	)
 SELECT CASE
-		WHEN loinc_num = '66678-4'
-			AND property = 'Hx'
-			THEN 'History of Diabetes (regardless of treatment) [PhenX]'
-		WHEN loinc_num = '82312-0'
-			THEN 'History of ' || REPLACE(long_common_name, 'andor', 'and/or')
-		WHEN property = 'Hx'
-			AND long_common_name !~* 'hx|histor|reported|status|narrative|^do you|^have you|^does|^has |education|why you|timing|virtuoso|maestro|grade|received|cause|allergies|in the past'
-			THEN 'History of ' || long_common_name
-		ELSE long_common_name -- AVOF-819
-		END AS concept_name,
-	CASE
-		WHEN classtype IN (
-				'1',
-				'2'
-				)
-			AND (
-				survey_quest_text LIKE '%?%' -- manually defined source attributes indicating the 'Observation' domain
-				OR scale_typ = 'Set'
-				OR property IN (
-					'Hx',
-					'Addr',
-					'Anat',
-					'ClockTime',
-					'Date',
-					'DateRange',
-					'Desc',
-					'EmailAddr',
-					'Instrct',
-					'Loc',
-					'Pn',
-					'Tele',
-					'TmStp',
-					'TmStpRange',
-					'Txt',
-					'URI',
-					'Xad',
-					'Bib'
-					)
-				OR (
-					property = 'ID'
-					AND system IN (
-						'^BPU',
-						'^Patient',
-						'Vaccine'
-						)
-					)
-				OR system IN (
-					'^Family member',
-					'^Neighborhood',
-					'^Brother',
-					'^Daughter',
-					'^Sister',
-					'^Son',
-					'^CCD',
-					'^Census tract',
-					'^Clinical trial protocol',
-					'^Community',
-					'*',
-					'?',
-					'^Contact',
-					'^Donor',
-					'^Emergency contact',
-					'^Event',
-					'^Facility',
-					'Provider',
-					'Report',
-					'Repository',
-					'School',
-					'Surgical procedure'
-					)
-				OR (
-					system IN (
-						'^Patient',
-						'*^Patient'
-						)
-					AND (
-						scale_typ IN (
-							'Doc',
-							'Nar',
-							'Nom',
-							'Ord',
-							'OrdQn'
-							)
-						AND (
-							method_typ <> 'Apgar'
-							OR method_typ IS NULL
-							)
-						OR property IN (
-							'Arb',
-							'Imp',
-							'NRat',
-							'Num',
-							'PrThr',
-							'RelRto',
-							'Time',
-							'Type',
-							'Find'
-							)
-						AND class NOT IN (
-							'COAG',
-							'PULM'
-							)
-						)
-					)
-			    OR (
-		        long_common_name ~* 'note|Note'
-                )
-				)
-			AND (
-				long_common_name !~* 'scale|score'
-				OR long_common_name ~* 'interpretation|rose dyspnea scale'
-				)
-			AND (
-				method_typ <> 'Measured'
-				OR method_typ IS NULL
-				)
-			AND loinc_num NOT IN (
-				'65712-2',
-				'65713-0'
-				)
-			THEN 'Observation' -- AVOF-1579
-		WHEN classtype = '1'
-			THEN 'Measurement'
-		WHEN classtype = '2'
-			THEN 'Measurement'
-		WHEN classtype = '3'
-			THEN 'Observation'
-		WHEN classtype = '4'
-			THEN 'Observation'
-		END AS domain_id,
-	v.vocabulary_id,
-	CASE
-		WHEN classtype IN (
-				'1',
-				'2'
-				)
-			AND (
-				survey_quest_text LIKE '%?%' -- manually defined source attributes indicating the 'Clinical Observation' concept class
-				OR scale_typ = 'Set'
-				OR property IN (
-					'Hx',
-					'Addr',
-					'Anat',
-					'ClockTime',
-					'Date',
-					'DateRange',
-					'Desc',
-					'EmailAddr',
-					'Instrct',
-					'Loc',
-					'Pn',
-					'Tele',
-					'TmStp',
-					'TmStpRange',
-					'Txt',
-					'URI',
-					'Xad',
-					'Bib'
-					)
-				OR (
-					property = 'ID'
-					AND system IN (
-						'^BPU',
-						'^Patient',
-						'Vaccine'
-						)
-					)
-				OR system IN (
-					'^Family member',
-					'^Neighborhood',
-					'^Brother',
-					'^Daughter',
-					'^Sister',
-					'^Son',
-					'^CCD',
-					'^Census tract',
-					'^Clinical trial protocol',
-					'^Community',
-					'*',
-					'?',
-					'^Contact',
-					'^Donor',
-					'^Emergency contact',
-					'^Event',
-					'^Facility',
-					'Provider',
-					'Report',
-					'Repository',
-					'School',
-					'Surgical procedure'
-					)
-				OR (
-					system IN (
-						'^Patient',
-						'*^Patient'
-						)
-					AND (
-						scale_typ IN (
-							'Doc',
-							'Nar',
-							'Nom',
-							'Ord',
-							'OrdQn'
-							)
-						AND (
-							method_typ NOT IN ('Apgar')
-							OR method_typ IS NULL
-							)
-						OR property IN (
-							'Arb',
-							'Imp',
-							'NRat',
-							'Num',
-							'PrThr',
-							'RelRto',
-							'Time',
-							'Type',
-							'Find'
-							)
-						AND class NOT IN (
-							'COAG',
-							'PULM'
-							)
-						)
-					)
-				)
-			AND (
-				long_common_name !~* 'scale|score'
-				OR long_common_name ~* 'interpretation|rose dyspnea scale'
-				)
-			AND (
-				method_typ <> 'Measured'
-				OR method_typ IS NULL
-				)
-			AND loinc_num NOT IN (
-				'65712-2',
-				'65713-0'
-				)
-			THEN 'Clinical Observation' -- AVOF-1579
-		WHEN classtype = '1'
-			THEN 'Lab Test'
-		WHEN classtype = '2'
-			THEN 'Clinical Observation'
-		WHEN classtype = '3'
-			THEN 'Claims Attachment'
-		WHEN classtype = '4'
-			THEN 'Survey'
-		END AS concept_class_id,
-    CASE
-        WHEN l.status IN (
-				'DEPRECATED'
-				) THEN NULL
-        WHEN l.status IN (
-	        'DISCOURAGED'
-            ) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
-	        THEN NULL
-        WHEN l.status IN (
-	        'DISCOURAGED'
-            ) AND l.loinc_num in (select distinct loincnumber from sources.loinc_partlink_primary where partnumber = 'LP33032-1')
-	        THEN NULL
-        ELSE 'S'
-        END AS standard_concept,
-	LOINC_NUM AS concept_code,
-	v.latest_update AS valid_start_date,
-	CASE
-		WHEN l.status IN (
-				'DEPRECATED'
-				)
-			THEN CASE
-					WHEN c.valid_end_date > v.latest_update
-						OR c.valid_end_date IS NULL
-						THEN v.latest_update
-					ELSE c.valid_end_date
-					END
-	    WHEN l.status IN (
-	        'DISCOURAGED'
-            ) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
-	        THEN CASE
-					WHEN c.valid_end_date > v.latest_update
-						OR c.valid_end_date IS NULL
-						THEN v.latest_update
-					ELSE c.valid_end_date
-					END
-	    WHEN l.status IN (
-	        'DISCOURAGED'
-            ) AND l.loinc_num in (select distinct loincnumber from sources.loinc_partlink_primary where partnumber = 'LP33032-1')
-	        THEN CASE
-					WHEN c.valid_end_date > v.latest_update
-						OR c.valid_end_date IS NULL
-						THEN v.latest_update
-					ELSE c.valid_end_date
-					END
-		ELSE TO_DATE('20991231', 'yyyymmdd')
-		END AS valid_end_date,
-	CASE
-	    WHEN l.loinc_num IN (select distinct loinc from sources.map_to group by 1 having count(distinct map_to) = 1)
-	                    AND l.status IN ('DISCOURAGED')
-	    THEN 'U'
-	    WHEN l.loinc_num IN (select distinct loinc from sources.map_to)
-	                    AND l.status IN ('DEPRECATED')
-	    THEN 'U'
-		WHEN l.status IN (
-				'DEPRECATED'
-				)
-			THEN 'D'
-	    WHEN l.status IN (
-				'DISCOURAGED'
-				) AND l.loinc_num IN (SELECT DISTINCT loinc FROM sources.map_to GROUP BY 1 HAVING COUNT(DISTINCT map_to) = 1)
-			THEN 'D'
-	    WHEN l.status IN (
-				'DISCOURAGED'
-				) AND l.loinc_num in (select distinct loincnumber from sources.loinc_partlink_primary where partnumber = 'LP33032-1') AND l.loinc_num not in (SELECT DISTINCT loinc FROM sources.map_to)
-			THEN 'D'
-		ELSE NULL
-		END AS invalid_reason
+           WHEN loinc_num = '66678-4'
+               AND property = 'Hx'
+               THEN 'History of Diabetes (regardless of treatment) [PhenX]'
+           WHEN loinc_num = '82312-0'
+               THEN 'History of ' || REPLACE(long_common_name, 'andor', 'and/or')
+           WHEN property = 'Hx'
+               AND long_common_name !~*
+                   'hx|histor|reported|status|narrative|^do you|^have you|^does|^has |education|why you|timing|virtuoso|maestro|grade|received|cause|allergies|in the past'
+               THEN 'History of ' || long_common_name
+           ELSE long_common_name -- AVOF-819
+           END         AS concept_name,
+       CASE
+           WHEN classtype IN (
+                              '1',
+                              '2'
+               )
+               AND (
+                        survey_quest_text LIKE '%?%' -- manually defined source attributes indicating the 'Observation' domain
+                        OR scale_typ = 'Set'
+                        OR property IN (
+                                        'Hx',
+                                        'Addr',
+                                        'Anat',
+                                        'ClockTime',
+                                        'Date',
+                                        'DateRange',
+                                        'Desc',
+                                        'EmailAddr',
+                                        'Instrct',
+                                        'Loc',
+                                        'Pn',
+                                        'Tele',
+                                        'TmStp',
+                                        'TmStpRange',
+                                        'Txt',
+                                        'URI',
+                                        'Xad',
+                                        'Bib'
+                        )
+                        OR (
+                                property = 'ID'
+                                AND system IN (
+                                               '^BPU',
+                                               '^Patient',
+                                               'Vaccine'
+                                )
+                            )
+                        OR system IN (
+                                      '^Family member',
+                                      '^Neighborhood',
+                                      '^Brother',
+                                      '^Daughter',
+                                      '^Sister',
+                                      '^Son',
+                                      '^CCD',
+                                      '^Census tract',
+                                      '^Clinical trial protocol',
+                                      '^Community',
+                                      '*',
+                                      '?',
+                                      '^Contact',
+                                      '^Donor',
+                                      '^Emergency contact',
+                                      '^Event',
+                                      '^Facility',
+                                      'Provider',
+                                      'Report',
+                                      'Repository',
+                                      'School',
+                                      'Surgical procedure'
+                        )
+                        OR (
+                                    system IN (
+                                               '^Patient',
+                                               '*^Patient'
+                                    )
+                                AND (
+                                                    scale_typ IN (
+                                                                  'Doc',
+                                                                  'Nar',
+                                                                  'Nom',
+                                                                  'Ord',
+                                                                  'OrdQn'
+                                                    )
+                                                AND (
+                                                            method_typ <> 'Apgar'
+                                                            OR method_typ IS NULL
+                                                        )
+                                            OR property IN (
+                                                            'Arb',
+                                                            'Imp',
+                                                            'NRat',
+                                                            'Num',
+                                                            'PrThr',
+                                                            'RelRto',
+                                                            'Time',
+                                                            'Type',
+                                                            'Find'
+                                            )
+                                                        AND class NOT IN (
+                                                                          'COAG',
+                                                                          'PULM'
+                                                )
+                                        )
+                            )
+                        OR (
+                            long_common_name ~* 'note|Note'
+                            )
+                    )
+               AND (
+                        long_common_name !~* 'scale|score'
+                        OR long_common_name ~* 'interpretation|rose dyspnea scale'
+                    )
+               AND (
+                        method_typ <> 'Measured'
+                        OR method_typ IS NULL
+                    )
+               AND loinc_num NOT IN (
+                                     '65712-2',
+                                     '65713-0'
+                   )
+               THEN 'Observation' -- AVOF-1579
+           WHEN classtype = '1'
+               THEN 'Measurement'
+           WHEN classtype = '2'
+               THEN 'Measurement'
+           WHEN classtype = '3'
+               THEN 'Observation'
+           WHEN classtype = '4'
+               THEN 'Observation'
+           END         AS domain_id,
+       v.vocabulary_id,
+       CASE
+           WHEN classtype IN (
+                              '1',
+                              '2'
+               )
+               AND (
+                        survey_quest_text LIKE '%?%' -- manually defined source attributes indicating the 'Clinical Observation' concept class
+                        OR scale_typ = 'Set'
+                        OR property IN (
+                                        'Hx',
+                                        'Addr',
+                                        'Anat',
+                                        'ClockTime',
+                                        'Date',
+                                        'DateRange',
+                                        'Desc',
+                                        'EmailAddr',
+                                        'Instrct',
+                                        'Loc',
+                                        'Pn',
+                                        'Tele',
+                                        'TmStp',
+                                        'TmStpRange',
+                                        'Txt',
+                                        'URI',
+                                        'Xad',
+                                        'Bib'
+                        )
+                        OR (
+                                property = 'ID'
+                                AND system IN (
+                                               '^BPU',
+                                               '^Patient',
+                                               'Vaccine'
+                                )
+                            )
+                        OR system IN (
+                                      '^Family member',
+                                      '^Neighborhood',
+                                      '^Brother',
+                                      '^Daughter',
+                                      '^Sister',
+                                      '^Son',
+                                      '^CCD',
+                                      '^Census tract',
+                                      '^Clinical trial protocol',
+                                      '^Community',
+                                      '*',
+                                      '?',
+                                      '^Contact',
+                                      '^Donor',
+                                      '^Emergency contact',
+                                      '^Event',
+                                      '^Facility',
+                                      'Provider',
+                                      'Report',
+                                      'Repository',
+                                      'School',
+                                      'Surgical procedure'
+                        )
+                        OR (
+                                    system IN (
+                                               '^Patient',
+                                               '*^Patient'
+                                    )
+                                AND (
+                                                    scale_typ IN (
+                                                                  'Doc',
+                                                                  'Nar',
+                                                                  'Nom',
+                                                                  'Ord',
+                                                                  'OrdQn'
+                                                    )
+                                                AND (
+                                                            method_typ NOT IN ('Apgar')
+                                                            OR method_typ IS NULL
+                                                        )
+                                            OR property IN (
+                                                            'Arb',
+                                                            'Imp',
+                                                            'NRat',
+                                                            'Num',
+                                                            'PrThr',
+                                                            'RelRto',
+                                                            'Time',
+                                                            'Type',
+                                                            'Find'
+                                            )
+                                                        AND class NOT IN (
+                                                                          'COAG',
+                                                                          'PULM'
+                                                )
+                                        )
+                            )
+                    )
+               AND (
+                        long_common_name !~* 'scale|score'
+                        OR long_common_name ~* 'interpretation|rose dyspnea scale'
+                    )
+               AND (
+                        method_typ <> 'Measured'
+                        OR method_typ IS NULL
+                    )
+               AND loinc_num NOT IN (
+                                     '65712-2',
+                                     '65713-0'
+                   )
+               THEN 'Clinical Observation' -- AVOF-1579
+           WHEN classtype = '1'
+               THEN 'Lab Test'
+           WHEN classtype = '2'
+               THEN 'Clinical Observation'
+           WHEN classtype = '3'
+               THEN 'Claims Attachment'
+           WHEN classtype = '4'
+               THEN 'Survey'
+           END         AS concept_class_id,
+       CASE
+           WHEN l.status IN (
+               'DEPRECATED'
+               ) THEN NULL
+           WHEN l.status IN (
+               'DISCOURAGED'
+               ) AND
+                (l.loinc_num IN (SELECT DISTINCT loinc
+                                 FROM sources.map_to
+                                 GROUP BY 1
+                                 HAVING COUNT(DISTINCT map_to) = 1)
+                    OR l.loinc_num IN
+                       (SELECT DISTINCT loincnumber
+                        FROM sources.loinc_partlink_primary
+                        WHERE partnumber = 'LP33032-1')
+                    OR l.class = 'PANEL.HEDIS')
+               THEN NULL
+           ELSE 'S'
+           END         AS standard_concept,
+       LOINC_NUM       AS concept_code,
+       v.latest_update AS valid_start_date,
+       CASE
+           WHEN l.status IN (
+               'DEPRECATED'
+               )
+               THEN CASE
+                        WHEN c.valid_end_date > v.latest_update
+                            OR c.valid_end_date IS NULL
+                            THEN v.latest_update
+                        ELSE c.valid_end_date
+               END
+           WHEN l.status IN (
+               'DISCOURAGED'
+               ) AND
+                (l.loinc_num IN (SELECT DISTINCT loinc
+                                 FROM sources.map_to
+                                 GROUP BY 1
+                                 HAVING COUNT(DISTINCT map_to) = 1)
+                    OR l.loinc_num IN
+                       (SELECT DISTINCT loincnumber
+                        FROM sources.loinc_partlink_primary
+                        WHERE partnumber = 'LP33032-1')
+                    OR l.class = 'PANEL.HEDIS')
+               THEN CASE
+                        WHEN c.valid_end_date > v.latest_update
+                            OR c.valid_end_date IS NULL
+                            THEN v.latest_update
+                        ELSE c.valid_end_date
+               END
+           ELSE TO_DATE('20991231', 'yyyymmdd')
+           END         AS valid_end_date,
+       CASE
+           WHEN (l.status IN ('DISCOURAGED')
+               AND ((l.loinc_num IN (SELECT DISTINCT loinc
+                                     FROM sources.map_to)
+                   AND (l.class = 'PANEL.HEDIS'
+                       OR l.loinc_num IN (SELECT DISTINCT loincnumber
+                                          FROM sources.loinc_partlink_primary
+                                          WHERE partnumber = 'LP33032-1')))
+                   OR l.loinc_num IN (SELECT DISTINCT loinc
+                                      FROM sources.map_to
+                                      GROUP BY 1
+                                      HAVING COUNT(DISTINCT map_to) = 1)))
+               OR (l.status IN ('DEPRECATED')
+                   AND l.loinc_num IN (SELECT DISTINCT loinc
+                                       FROM sources.map_to))
+               THEN 'U'
+           WHEN l.status = 'DEPRECATED'
+               OR (l.status = 'DISCOURAGED'
+                   AND (l.class = 'PANEL.HEDIS'
+                       OR l.loinc_num IN (SELECT DISTINCT loincnumber
+                                          FROM sources.loinc_partlink_primary
+                                          WHERE partnumber = 'LP33032-1')))
+               THEN 'D'
+           ELSE NULL
+           END         AS invalid_reason
 FROM sources.loinc l
-JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
-LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
-	AND c.vocabulary_id = 'LOINC';
+         JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
+         LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
+    AND c.vocabulary_id = 'LOINC';
 
 
 --todo: confirm that these concepts are not expected to be Measurements storing the result

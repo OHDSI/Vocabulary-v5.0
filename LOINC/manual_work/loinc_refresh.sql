@@ -84,66 +84,32 @@ SELECT DISTINCT
                 NULL::varchar AS target_vocabulary_id
 
 FROM dev_loinc.concept c
-LEFT JOIN previous_mappings
-ON c.concept_id = previous_mappings.concept_id_1
-LEFT JOIN current_mapping
-ON c.concept_id = current_mapping.concept_id_1
+         LEFT JOIN previous_mappings
+                   ON c.concept_id = previous_mappings.concept_id_1
+         LEFT JOIN current_mapping
+                   ON c.concept_id = current_mapping.concept_id_1
     --new concept_relationship
-LEFT JOIN dev_loinc.concept_relationship cr
-ON c.concept_id = cr.concept_id_1
-AND cr.relationship_id IN ('Maps to', 'Maps to value')
-AND cr.invalid_reason IS NULL
+         LEFT JOIN dev_loinc.concept_relationship cr
+                   ON c.concept_id = cr.concept_id_1
+                       AND cr.relationship_id IN ('Maps to', 'Maps to value')
+                       AND cr.invalid_reason IS NULL
 
 --TODO: implement diff logic
-
- --WHERE c.concept_code NOT IN ()
+WHERE c.concept_code NOT IN (SELECT source_code
+                             FROM loinc_mapped)
 
 
 --Conditions show options for specific concept classes refreshes
-WHERE cr.concept_id_2 IS NULL
-AND (c.standard_concept IS NULL OR c.invalid_reason = 'D') AND c.vocabulary_id = 'LOINC'
-AND c.concept_class_id IN ('Lab Test'
-                           --,'Survey', 'Answer', 'Clinical Observation' --TODO: postponed for now
-                           )
-AND c.invalid_reason != 'U'
+  and cr.concept_id_2 IS NULL
+  AND (c.standard_concept IS NULL OR c.invalid_reason = 'D')
+  AND c.vocabulary_id = 'LOINC'
+  AND c.concept_class_id IN ('Lab Test'
+    --,'Survey', 'Answer', 'Clinical Observation' --TODO: postponed for now
+    )
+--AND c.invalid_reason != 'U'
 
-ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code)
+ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
-
-SELECT * FROM loinc_source;
-
---Backup
---DROP TABLE dev_loinc.loinc_source_20211028;
-CREATE TABLE dev_loinc.loinc_source_backup_20211028
-AS (SELECT *
-    FROM dev_loinc.loinc_source);
-
---Show discouraged concepts that should be standard
-SELECT DISTINCT *
-FROM sources.loinc l
-WHERE l.status = 'DISCOURAGED'
-  AND l.loinc_num NOT IN (SELECT DISTINCT loincnumber
-                          FROM sources.loinc_partlink_primary
-                          WHERE partnumber = 'LP33032-1')
-  AND loinc_num NOT IN (SELECT DISTINCT loinc
-                        FROM sources.map_to
-                        GROUP BY 1
-                        HAVING COUNT(DISTINCT map_to) = 1);
-
---Show discouraged concepts that are standard now
-SELECT DISTINCT *
-FROM dev_loinc.concept c
-WHERE c.concept_code IN (SELECT loinc_num
-                         FROM sources.loinc l
-                         WHERE l.status = 'DISCOURAGED')
-  AND c.concept_code NOT IN (SELECT DISTINCT loincnumber
-                             FROM sources.loinc_partlink_primary
-                             WHERE partnumber = 'LP33032-1')
-  AND c.concept_code NOT IN (SELECT DISTINCT loinc
-                             FROM sources.map_to
-                             GROUP BY 1
-                             HAVING COUNT(DISTINCT map_to) = 1)
-  AND vocabulary_id = 'LOINC';
 
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
@@ -222,11 +188,8 @@ WHERE s.source_concept_code = crm.concept_code_1
 ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_code
 ;
 
-select * from loinc_source;
-
 --backup CRM
 --CREATE TABLE dev_loinc.concept_relationship_manual_backup_20210603 AS SELECT * FROM dev_loinc.concept_relationship_manual;
-;
 
 --restore CRM
 --TRUNCATE TABLE dev_loinc.concept_relationship_manual;
@@ -256,31 +219,6 @@ CREATE TABLE dev_loinc.loinc_mapped
     target_domain_id varchar(50),
     target_vocabulary_id varchar(50)
 );
-
---Backup
---DROP TABLE dev_loinc.loinc_mapped_20211028;
-CREATE TABLE dev_loinc.loinc_mapped_backup_20211028
-AS (SELECT *
-    FROM dev_loinc.loinc_mapped);
-
---Creating flag for concepts that will be Standard
-UPDATE dev_loinc.loinc_mapped
-SET flag = 'DEP'
-WHERE source_code IN (SELECT DISTINCT loinc_num
-                      FROM sources.loinc l
-                      WHERE l.status = 'DISCOURAGED')
-  AND source_code NOT IN (SELECT DISTINCT loinc
-                          FROM sources.map_to
-                          GROUP BY 1
-                          HAVING COUNT(DISTINCT map_to) = 1)
-  AND source_code NOT IN (SELECT DISTINCT loincnumber
-                          FROM sources.loinc_partlink_primary
-                          WHERE partnumber = 'LP33032-1');
-
---Selection of concepts that will be Standard
-SELECT id, source_code, flag
-FROM dev_loinc.loinc_mapped
-ORDER BY id;
 
 
 --Step 2: Deprecate all mappings that differ from the new version

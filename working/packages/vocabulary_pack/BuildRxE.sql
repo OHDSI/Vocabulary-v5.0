@@ -45,7 +45,7 @@ $BODY$
 	/*Usage:
 	DO $_$
 	BEGIN
-		PERFORM devv5.BuildRxE();
+		PERFORM vocabulary_pack.BuildRxE();
 	END $_$;
 	*/
 BEGIN

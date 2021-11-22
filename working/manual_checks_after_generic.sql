@@ -266,7 +266,9 @@ AND NOT EXISTS (SELECT 1
                     AND cr.invalid_reason IS NULL)
 ;
 
---02.10. Mapping of vaccines (please move to the project-specific QA folder and adjust vaccine_exclusion in there)
+--02.10. Mapping of vaccines
+--move to the project-specific QA folder and adjust exclusion criteria in there
+--adjust inclusion criteria here if needed: https://github.com/OHDSI/Vocabulary-v5.0/blob/master/RxNorm_E/manual_work/specific_qa/vaccine%20selection.sql
 with vaccine_exclusion as (SELECT
     'placeholder|placeholder' as vaccine_exclusion
     )
@@ -284,7 +286,7 @@ where c.vocabulary_id IN (:your_vocabs)
 
 --02.11. Mapping of covid concepts (please adjust inclusion/exclusion in the master branch if found something)
 with covid_inclusion as (SELECT
-    'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry))|severe acute|covid(?!ien)' as covid_inclusion
+        'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' as covid_inclusion
     ),
 
 covid_exclusion as (SELECT

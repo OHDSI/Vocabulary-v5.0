@@ -23,8 +23,8 @@ BEGIN
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Antibody-drug conjugate of - RxNorm (HemOnc)',
 	pReverse_relationship_id		=>'Rx AB-drug cjgt of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 
@@ -65,8 +65,8 @@ BEGIN
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Cytotoxic chemotherapy of - RxNorm (HemOnc)',
 	pReverse_relationship_id		=>'Cytotox chemo RX of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 
@@ -93,8 +93,8 @@ BEGIN
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Endocrine therapy of - RxNorm (HemOnc)',
 	pReverse_relationship_id		=>'Rx endocrine tx of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 
@@ -121,8 +121,8 @@ BEGIN
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Immunotherapy of - RxNorm (HemOnc)',
 	pReverse_relationship_id		=>'Rx immunotherapy of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 
@@ -149,8 +149,8 @@ BEGIN
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Peptide-drug conjugate of - RxNorm (HemOnc)',
 	pReverse_relationship_id		=>'Rx pept-drg cjg of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 
@@ -177,8 +177,8 @@ BEGIN
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Radioconjugate of - RxNorm (HemOnc)',
 	pReverse_relationship_id		=>'Rx radiocjgt of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 
@@ -205,8 +205,8 @@ BEGIN
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Radiotherapy of - RxNorm (HemOnc)',
 	pReverse_relationship_id		=>'Rx radiotherapy of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 
@@ -233,8 +233,8 @@ BEGIN
 	pDefines_ancestry			=>0,
 	pRelationship_name_rev	=>'Targeted therapy of - RxNorm (HemOnc)',
 	pReverse_relationship_id		=>'Rx targeted tx of',
-	pIs_hierarchical_rev		=>0,
-	pDefines_ancestry_rev		=>0
+	pIs_hierarchical_rev		=>1,
+	pDefines_ancestry_rev		=>1
 );
 END $_$;
 

@@ -1,5 +1,331 @@
+-- step 1
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+-- step 2 (load stage, including 6)
+-- step 3 - return null
+select * from devv5.qa_ddl();
+-- step 4 - return null
+SELECT * FROM qa_tests.check_stage_tables ();
+-- step 5
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;
+-- step 6 - return 0
+select * from QA_TESTS.GET_CHECKS();
+-- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql
+--01. Concept changes
+
+    --01.1. Concepts changed their Domain
+select new.concept_code,
+       new.concept_name as concept_name,
+       new.concept_class_id as concept_class_id,
+       new.standard_concept as standard_concept,
+       new.vocabulary_id as vocabulary_id,
+       old.domain_id as old_domain_id,
+       new.domain_id as new_domain_id
+from concept new
+join devv5.concept old
+    using (concept_id)
+where old.domain_id != new.domain_id
+;
+
+    --01.2. Domain of newly added concepts
+SELECT c1.concept_code,
+       c1.concept_name,
+       c1.concept_class_id,
+       c1.standard_concept,
+       c1.domain_id as new_domain
+FROM concept c1
+LEFT JOIN devv5.concept c2
+    ON c1.concept_id = c2.concept_id
+WHERE c2.vocabulary_id IS NULL
+;
+
+    --01.3. Concepts changed their names
+SELECT c.concept_code,
+       c.vocabulary_id,
+       c2.concept_name as old_name,
+       c.concept_name as new_name,
+       devv5.similarity (c2.concept_name, c.concept_name)
+FROM concept c
+JOIN devv5.concept c2
+    ON c.concept_id = c2.concept_id
+        AND c.concept_name != c2.concept_name
+WHERE c.vocabulary_id IN ('MedDRA')
+ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
+;
+
+--02. Mapping of concepts
+        --02.1. looking at new concepts and their mapping -- 'Maps to' absent
+select a.concept_code as concept_code_source,
+       a.concept_name as concept_name_source,
+       a.vocabulary_id as vocabulary_id_source,
+       a.concept_class_id as concept_class_id_source,
+       a.domain_id as domain_id_source,
+       b.concept_name as concept_name_target,
+       b.vocabulary_id as vocabulary_id_target
+ from concept a
+left join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Maps to'
+left join concept  b on b.concept_id = r.concept_id_2
+left join devv5.concept  c on c.concept_id = a.concept_id
+where a.vocabulary_id IN ('MedDRA')
+and c.concept_id is null and b.concept_id is null
+;
+
+--02.2. looking at new concepts and their mapping -- 'Maps to' present
+select a.concept_code as concept_code_source,
+       a.concept_name as concept_name_source,
+       a.vocabulary_id as vocabulary_id_source,
+       a.concept_class_id as concept_class_id_source,
+       a.domain_id as domain_id_source,
+       CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
+           ELSE b.concept_name END as concept_name_target,
+       CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
+           ELSE b.vocabulary_id END as vocabulary_id_target
+from concept a
+join concept_relationship r
+    on a.concept_id=r.concept_id_1
+           and r.invalid_reason is null
+           and r.relationship_Id ='Maps to'
+join concept b
+    on b.concept_id = r.concept_id_2
+left join devv5.concept  c
+    on c.concept_id = a.concept_id
+where a.vocabulary_id IN ('MedDRA')
+    and c.concept_id is null
+   -- and a.concept_id != b.concept_id --use it to exclude mapping to itself
+;
+
+--02.3. looking at new concepts and their ancestry -- 'Is a' absent
+select a.concept_code, a.concept_name, a.concept_class_id, a.domain_id, b.concept_name, b.concept_class_id, b.vocabulary_id
+from concept a
+left join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Is a'
+left join concept b on b.concept_id = r.concept_id_2
+left join devv5.concept  c on c.concept_id = a.concept_id
+where a.vocabulary_id IN (:your_vocabs)
+and c.concept_id is null and b.concept_id is null
+;
+
+--02.4. looking at new concepts and their ancestry -- 'Is a' present
+select a.concept_code, a.concept_name, a.concept_class_id, a.domain_id, b.concept_name, b.concept_class_id, b.vocabulary_id
+from concept a
+join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Is a'
+join concept  b on b.concept_id = r.concept_id_2
+left join devv5.concept  c on c.concept_id = a.concept_id
+where a.vocabulary_id IN ('MedDRA')
+and c.concept_id is null
+;
+
+--02.5. concepts changed their mapping ('Maps to'), this includes 2 scenarios: mapping changed; mapping present in one version, absent in another;
+--to detect the absent mappings cases, sort by the respective code_agg to get the NULL values first.
+with new_map as (
+select a.concept_id,
+       a.vocabulary_id,
+       a.concept_code,
+       a.concept_name,
+       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
+       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
+       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+from concept a
+left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
+left join concept b on b.concept_id = concept_id_2
+where a.vocabulary_id IN ('MedDRA')
+    --and a.invalid_reason is null --to exclude invalid concepts
+group by a.concept_id, a.vocabulary_id, a.concept_code, a.concept_name
+)
+,
+old_map as (
+select a.concept_id,
+       a.vocabulary_id,
+       a.concept_code,
+       a.concept_name,
+       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
+       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
+       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+from devv5. concept a
+left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Maps to', 'Maps to value') and r.invalid_reason is null
+left join devv5.concept b on b.concept_id = concept_id_2
+where a.vocabulary_id IN ('MedDRA')
+    --and a.invalid_reason is null --to exclude invalid concepts
+group by a.concept_id, a.vocabulary_id, a.concept_code, a.concept_name
+)
+select b.vocabulary_id as new_vocabulary_id,
+       a.concept_code as source_code,
+       a.concept_name as source_name,
+       a.relationship_agg as old_relat_agg,
+       a.code_agg as old_code_agg,
+       a.name_agg as old_name_agg,
+       b.relationship_agg as new_relat_agg,
+       b.code_agg as new_code_agg,
+       b.name_agg as new_name_agg
+from old_map  a
+join new_map b
+on a.concept_id = b.concept_id and ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) or (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
+order by a.concept_code
+;
+
+--02.6. Concepts changed their ancestry ('Is a'), this includes 2 scenarios: Ancestor(s) changed; ancestor(s) present in one version, absent in another;
+--to detect the absent ancestry cases, sort by the respective code_agg to get the NULL values first.
+with new_map as (
+select a.concept_id,
+       a.vocabulary_id,
+       a.concept_code,
+       a.concept_name,
+       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
+       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
+       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+from concept a
+left join concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
+left join concept b on b.concept_id = concept_id_2
+where a.vocabulary_id IN ('MedDRA') and a.invalid_reason is null
+group by a.concept_id, a.vocabulary_id, a.concept_code, a.concept_name
+)
+,
+old_map as (
+select a.concept_id,
+       a.vocabulary_id,
+       a.concept_code,
+       a.concept_name,
+       string_agg (r.relationship_id, '-' order by b.concept_code ) as relationship_agg,
+       string_agg (b.concept_code, '-' order by b.concept_code ) as code_agg,
+       string_agg (b.concept_name, '-/-' order by b.concept_code) as name_agg
+from devv5. concept a
+left join devv5.concept_relationship r on a.concept_id = concept_id_1 and r.relationship_id in ('Is a') and r.invalid_reason is null
+left join devv5.concept b on b.concept_id = concept_id_2
+where a.vocabulary_id IN ('MedDRA') and a.invalid_reason is null
+group by a.concept_id, a.vocabulary_id, a.concept_code, a.concept_name
+)
+select b.vocabulary_id as new_vocabulary_id,
+       a.concept_code as source_code,
+       a.concept_name as source_name,
+       a.relationship_agg as old_relat_agg,
+       a.code_agg as old_code_agg,
+       a.name_agg as old_name_agg,
+       b.relationship_agg as new_relat_agg,
+       b.code_agg as new_code_agg,
+       b.name_agg as new_name_agg
+from old_map  a
+join new_map b
+on a.concept_id = b.concept_id and ((coalesce (a.code_agg, '') != coalesce (b.code_agg, '')) or (coalesce (a.relationship_agg, '') != coalesce (b.relationship_agg, '')))
+order by a.concept_code
+;
+
+--02.7. Concepts with 1-to-many mapping -- multiple 'Maps to' present
+select a.vocabulary_id,
+       a.concept_code as concept_code_source,
+       a.concept_name as concept_name_source,
+       a.domain_id as domain_id_source,
+       b.concept_code as concept_code_target,
+       CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
+           ELSE b.concept_name END as concept_name_target,
+       CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
+           ELSE b.vocabulary_id END as vocabulary_id_target
+from concept a
+join concept_relationship r
+    on a.concept_id=r.concept_id_1
+           and r.invalid_reason is null
+           and r.relationship_Id ='Maps to'
+join concept b
+    on b.concept_id = r.concept_id_2
+where a.vocabulary_id IN ('MedDRA')
+    --and a.concept_id != b.concept_id --use it to exclude mapping to itself
+    and a.concept_id IN (
+                            select a.concept_id
+                            from concept a
+                            join concept_relationship r
+                                on a.concept_id=r.concept_id_1
+                                       and r.invalid_reason is null
+                                       and r.relationship_Id ='Maps to'
+                            join concept b
+                                on b.concept_id = r.concept_id_2
+                            where a.vocabulary_id IN ('MedDRA')
+                                --and a.concept_id != b.concept_id --use it to exclude mapping to itself
+                            group by a.concept_id
+                            having count(*) > 1
+    )
+;
+
+--02.8. Concepts became non-Standard with no mapping replacement
+select a.concept_code,
+       a.concept_name,
+       a.concept_class_id,
+       a.domain_id,
+       a.vocabulary_id
+from concept a
+join devv5.concept b
+        on a.concept_id = b.concept_id
+where a.vocabulary_id IN ('MedDRA')
+    and b.standard_concept = 'S'
+    and a.standard_concept IS NULL
+    and not exists (
+                    SELECT 1
+                    FROM concept_relationship cr
+                    WHERE a.concept_id = cr.concept_id_1
+                        AND cr.relationship_id = 'Maps to'
+                        AND cr.invalid_reason IS NULL
+    )
+;
+
+--02.9. Concepts are presented in CRM with "Maps to" link, but end up with no valid "Maps to"
+SELECT *
+FROM concept c
+WHERE c.vocabulary_id IN ('MedDRA')
+    AND EXISTS (SELECT 1
+                FROM concept_relationship_manual crm
+                WHERE c.concept_code = crm.concept_code_1
+                    AND c.vocabulary_id = crm.vocabulary_id_1
+                    AND crm.relationship_id = 'Maps to' AND crm.invalid_reason IS NULL)
+AND NOT EXISTS (SELECT 1
+                FROM concept_relationship cr
+                WHERE c.concept_id = cr.concept_id_1
+                    AND cr.relationship_id = 'Maps to'
+                    AND cr.invalid_reason IS NULL)
+;
+
+--02.10. Mapping of vaccines
+--move to the project-specific QA folder and adjust exclusion criteria in there
+--adjust inclusion criteria here if needed: https://github.com/OHDSI/Vocabulary-v5.0/blob/master/RxNorm_E/manual_work/specific_qa/vaccine%20selection.sql
+with vaccine_exclusion as (SELECT
+    'placeholder|placeholder' as vaccine_exclusion
+    )
+
+select distinct c.concept_name, c.concept_class_id, b.concept_name, b.concept_class_id, b.vocabulary_id
+from concept c
+left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id ='Maps to' and cr.invalid_reason is null
+left join concept b on b.concept_id = cr.concept_id_2
+where c.vocabulary_id IN (:your_vocabs)
+
+    and ((c.concept_name ~* (select vaccine_inclusion from dev_rxe.vaccine_inclusion) and c.concept_name !~* (select vaccine_exclusion from vaccine_exclusion))
+        or
+        (b.concept_name ~* (select vaccine_inclusion from dev_rxe.vaccine_inclusion) and b.concept_name !~* (select vaccine_exclusion from vaccine_exclusion)))
+;
+
+--02.11. Mapping of covid concepts (please adjust inclusion/exclusion in the master branch if found something)
+with covid_inclusion as (SELECT
+        'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' as covid_inclusion
+    ),
+
+covid_exclusion as (SELECT
+    '( |^)LASSARS' as covid_exclusion
+    )
+
+
+select distinct c.vocabulary_id, c.concept_name, c.concept_class_id, b.concept_name, b.concept_class_id, b.vocabulary_id as target_vocabulary_id
+from concept c
+left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id ='Maps to' and cr.invalid_reason is null
+left join concept b on b.concept_id = cr.concept_id_2
+where c.vocabulary_id IN ('MedDRA')
+
+    and ((c.concept_name ~* (select covid_inclusion from covid_inclusion) and c.concept_name !~* (select covid_exclusion from covid_exclusion))
+        or
+        (b.concept_name ~* (select covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
+;
+
+
+
 
 --Review COVID-19 mappings
+/*
 SELECT DISTINCT
     concept_id,
     concept_name,
@@ -11,204 +337,7 @@ SELECT DISTINCT
 FROM dev_meddra.concept AS c
 WHERE lower (concept_name)  ~* 'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries))|severe acute|covid(?!ien)'
   AND lower(concept_name) !~* '( |^)LASSARS' AND vocabulary_id='MedDRA' AND NOT EXISTS (SELECT 1 FROM dev_meddra.meddra_mapped AS m WHERE m.source_code =  CAST(c.concept_code AS varchar))
-
-----Review COVID-19 mappings with hierarchy
-WITH tab as (
-    SELECT ROW_NUMBER() OVER (
-        order by source_code,source_code_description,to_value nulls first,CASE
-                                                                              WHEN data_source = 'MedDRAtoSNOMED'
-                                                                                  then 'M-S'
-                                                                              WHEN data_source = 'SMOMEDtoMedDRA'
-                                                                                  then 'S-M'
-                                                                              WHEN data_source = 'MedDRAtoSNOMED|SMOMEDtoMedDRA'
-                                                                                  then 'M-S|S-M'
-                                                                              else customer end,target_concept_id ) as new_id,
-           id::int as old_id,
-           source_code,
-           source_code_description,
-           CASE
-               WHEN data_source = 'MedDRAtoSNOMED' then 'M-S'
-               WHEN data_source = 'SMOMEDtoMedDRA' then 'S-M'
-               WHEN data_source = 'MedDRAtoSNOMED|SMOMEDtoMedDRA' then 'M-S|S-M'
-               else customer end                                                                                    as customer,
-           jj_counts,
-           gemini_counts,
-           counts,
-           to_value,
-           comments,
-           target_concept_id,
-           target_concept_code,
-           target_concept_name,
-           target_concept_class_id,
-           CASE
-               WHEN m.target_standard_concept = 'S' then 'Standard'
-               else m.target_standard_concept
-               end                                                                                                  as target_standard_concept,
-
-           CASE
-               WHEN m.target_invalid_reason is null then 'Valid'
-               else m.target_invalid_reason
-               end                                                                                                  as target_invalid_reason,
-           target_domain_id,
-           target_vocabulary_id,
-           CASE
-               WHEN (m.source_code, coalesce(m.to_value, 'X')) IN ((SELECT DISTINCT source_code, coalesce(to_value, 'X')
-                                                                    FROM dev_meddra.MedDRA_environment_mapping_combined
-                                                                    where (lower(source_code), coalesce(to_value, 'X')) IN
-                                                                          (SELECT DISTINCT lower(source_code), coalesce(to_value, 'X')
-                                                                           FROM dev_meddra.MedDRA_environment_mapping_combined
-                                                                           group by 1, 2
-                                                                           having count(distinct coalesce(data_source, customer)) > 1)
-                                                                      AND (lower(source_code), target_concept_id) not IN
-                                                                          (SELECT DISTINCT lower(source_code), target_concept_id
-                                                                           FROM dev_meddra.MedDRA_environment_mapping_combined
-                                                                           group by 1, 2
-                                                                           having count(*) > 1))) then 1
-               else null
-               end                                                                                                  as dedup_flag,
-
-           CASE
-               WHEN lower(m.source_code_description) IN (SELECT lower(source_code_description)
-                                                         FROM MedDRA_environment_mapping_combined
-                                                         group by 1
-                                                         having count(distinct source_code) > 1) then 1
-               else null
-               end                                                                                                  as alternative_hierarchy
-    FROM dev_meddra.meddra_environment_mapping_combined m
-)
-,
-     tabb as ( -- short ancestry buildung
-
-SELECT
-       new_id,
-       old_id,
-       string_agg( distinct concat(  ccc.concept_name , 'SOC: '||cc.concept_name,'='),'>') as short_ancestry,
-      q. source_code,
-      c.concept_name as    source_code_description,
-       customer,
-       s.jj_counts,
-     s.  gemini_counts,
-     s.  counts,
-       to_value,
-       comments,
-       target_concept_id,
-       target_concept_code,
-       target_concept_name,
-       target_concept_class_id,
-       target_standard_concept,
-       target_invalid_reason,
-       target_domain_id,
-       target_vocabulary_id,
-       dedup_flag,
-       alternative_hierarchy
-FROM tab q
-    JOIN MedDRA_environment_source s
-on q.source_code=s.source_code
-    JOIN devv5.concept c
-on s.source_code=c.concept_code
-and c.vocabulary_id='MedDRA'
---and lower (c.concept_name)  ~* 'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries))|severe acute|covid(?!ien)'
---and lower(c.concept_name) !~* '( |^)LASSARS' and NOT EXISTS (SELECT 1 FROM dev_meddra.meddra_mapped AS mmm WHERE mmm.source_code =  CAST(c.concept_code AS varchar))
-LEFT JOIN devv5.concept_ancestor ca
-on ca.descendant_concept_id=c.concept_id
-LEFT JOIN devv5.concept cc
-on ca.ancestor_concept_id=cc.concept_id
-and cc.concept_class_id in ('SOC')
-LEFT JOIN devv5.concept ccc
-on ca.ancestor_concept_id=ccc.concept_id
-and min_levels_of_separation in (1)
-group by   new_id,
-       old_id,
-    q.source_code,
-      c.concept_name,
-       customer,
-   s.    jj_counts,
-     s.  gemini_counts,
-    s.   counts,
-       to_value,
-       comments,
-       target_concept_id,
-       target_concept_code,
-       target_concept_name,
-       target_concept_class_id,
-       target_standard_concept,
-       target_invalid_reason,
-       target_domain_id,
-       target_vocabulary_id,
-       dedup_flag,
-       alternative_hierarchy)
-SELECT new_id,
-       old_id,
- string_agg ( cc.concept_class_id||': '||cc.concept_name,'=>' order by min_levels_of_separation asc) as ancestry,
- regexp_replace(short_ancestry,'^\=>|\=$','','gi') as short_ancestry  ,
-       c.concept_class_id as source_class_id,
-       c.standard_concept as source_standard_concept,
-       source_code,
-       source_code_description,
-       customer,
-       jj_counts,
-       gemini_counts,
-       counts,
-       to_value,
-             CASE WHEN (source_code,coalesce(to_value,'x'),customer) in (
-    SELECT source_code,coalesce(to_value,'x'),customer
-    FROM tabb
-    GROUP BY source_code,coalesce(to_value,'x'),customer
-    HAVING count(*) > 1) then 1 else null end as OtoM,
-       comments,
-       target_concept_id,
-       target_concept_code,
-       target_concept_name,
-       target_concept_class_id,
-       target_standard_concept,
-       target_invalid_reason,
-       target_domain_id,
-       target_vocabulary_id,
-       dedup_flag,
-       alternative_hierarchy
-FROM tabb a
-    JOIN devv5.concept c
-on a.source_code=c.concept_code
-and c.vocabulary_id='MedDRA'
-LEFT JOIN devv5.concept_ancestor ca
-on c.concept_id=ca.descendant_concept_id
-and ca.min_levels_of_separation>0
-LEFT JOIN devv5.concept cc
-on ca.ancestor_concept_id=cc.concept_id
-and cc.vocabulary_id='MedDRA'
-group by new_id,
-       old_id,
-       regexp_replace(short_ancestry,'^\=>|\=$','','gi'),
-       source_code,
-       source_code_description,
-           c.concept_class_id,
-           c.standard_concept,
-       customer,
-       CASE WHEN (source_code,coalesce(to_value,'x'),customer) in (
-    SELECT source_code,coalesce(to_value,'x'),customer
-    FROM tabb
-    GROUP BY source_code,coalesce(to_value,'x'),customer
-    HAVING count(*) > 1) then 1 else null end,
-       jj_counts,
-       gemini_counts,
-       counts,
-       to_value,
-       comments,
-       target_concept_id,
-       target_concept_code,
-       target_concept_name,
-       target_concept_class_id,
-       target_standard_concept,
-       target_invalid_reason,
-       target_domain_id,
-       target_vocabulary_id,
-       dedup_flag,
-       alternative_hierarchy
-ORDER BY old_id asc nulls last, new_id asc;
-
-
-
-
+*/
 
 -- Insert mappings to CRM
 with mapping AS
@@ -241,6 +370,8 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
         WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
                   NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM dev_meddra.concept_relationship_manual)
     );
+
+
 
 
 /*
@@ -585,7 +716,7 @@ WHERE NOT exists(SELECT source_code, target_concept_code, 'MedDRA', target_vocab
                     WHEN to_value ~* 'Is a' THEN 'Is a'
                     WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
                    ELSE 'Maps to' END
-                FROM dev_meddra.meddra_mapped crm_new
+                FROM dev_meddra.meddra_mapped_version22_11_21 crm_new
                 WHERE source_code = crm_old.concept_code_1
                 AND target_concept_code = crm_old.concept_code_2
                 AND target_vocabulary_id = crm_old.vocabulary_id_2
@@ -613,7 +744,7 @@ with mapping AS
                current_date AS valid_start_date,
                to_date('20991231','yyyymmdd') AS valid_end_date,
                NULL AS invalid_reason
-        FROM dev_meddra.meddra_mapped
+        FROM dev_meddra.meddra_mapped_version22_11_21
         WHERE target_concept_id != 0
     )
 

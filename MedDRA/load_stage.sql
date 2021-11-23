@@ -355,11 +355,19 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
      FROM SOURCES.low_level_term
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
 
+
+--Additional? Working with concept_manual table
+/*DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+*/
+
 --6. Append result to concept_relationship_stage table
 /*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;*/
+END $_$; */
 
 --7. Working with replacement mappings
 /*DO $_$

@@ -384,7 +384,7 @@ FROM sources.loinc l
 
 --todo: confirm that these concepts are not expected to be Measurements storing the result
 --todo: define concept_class_id
---3.1. Update Domains for concepts representing Imaging procedures based on hierarchy
+--3.1. Update Domains for concepts representing Imaging procedures
 UPDATE concept_stage
 SET domain_id = 'Procedure'
 WHERE concept_code IN (SELECT DISTINCT loinc_num
@@ -553,6 +553,14 @@ SELECT long_common_name AS concept_name,
 	created_on AS valid_start_date,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM vocabulary_pack.GetLoincPrerelease();
+
+--5.1 Update Radiology Hierarchy Domains
+UPDATE concept_stage
+SET domain_id = 'Procedure'
+WHERE concept_code IN (SELECT code FROM sources.loinc_hierarchy WHERE path_to_root ~ ('LP29684\-5'))
+AND concept_class_id = 'LOINC Hierarchy'
+AND concept_name ~ 'Radiology'
+OR concept_code = 'LP29684-5';
 
 --6. Insert missing codes from manual extraction
 DO $_$
@@ -1851,6 +1859,12 @@ SELECT TRIM(lg.lgroup) AS concept_name, -- LOINC Group name
 	NULL AS invalid_reason
 FROM sources.loinc_group lg
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
+
+--28.1 Update radiology Group Domains
+UPDATE concept_stage
+SET domain_id = 'Procedure'
+WHERE concept_code IN (SELECT groupid FROM sources.loinc_group where parentgroupid = 'LG85-3')
+OR concept_code IN ('LG85-3', 'LG41849-7', 'LG41814-1');
 
 --29. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
 INSERT INTO concept_relationship_stage (

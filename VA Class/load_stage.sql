@@ -91,7 +91,11 @@ SELECT rx_vandf.code AS concept_code_1,
 	'VANDF' AS vocabulary_id_1,
 	'VA Class' AS vocabulary_id_2,
 	'Is a' AS relationship_id,
-	v.latest_update AS valid_start_date,
+	CASE 
+		WHEN v.latest_update = TO_DATE('20211101', 'yyyymmdd')
+			THEN TO_DATE('19700101', 'yyyymmdd')
+		ELSE v.latest_update
+		END AS valid_start_date, --for the first time we put relationships as 1970
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM concept_stage cs

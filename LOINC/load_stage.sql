@@ -1099,7 +1099,8 @@ CREATE UNLOGGED TABLE sn_attr AS
 					'104326007',
 					'104323004',
 					'697001',
-					'413058006'
+					'413058006',
+				    '432883005'
 					) -- SNOMED concepts with wrong sets of attributes
 			), -- exclude concepts with multiple attributes from one category
 		-- get a list of Fully defined SNOMED concepts, using sources.sct2_concept_full_merged, to weed out Primitive SNOMED Measurements composed of inadequate attribute set

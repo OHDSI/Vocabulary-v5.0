@@ -177,28 +177,11 @@ BEGIN
                 cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'monthdd,yyyy');
             WHEN cVocabularyName = 'ICD10CM'
             THEN
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, '.+<A HREF="/pub/Health_Statistics/NCHS/Publications/ICD10CM/\d{4}/">(\d{4})</A>'), 'yyyy');
-                cVocabVer := 'ICD10CM FY'||to_char(cVocabDate,'YYYY')||' code descriptions';
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML, '.+<A HREF="/pub/Health_Statistics/NCHS/Publications/ICD10CM/\d{4}/">(\d{4})</A>') || '1001', 'yyyymmdd') - interval '1 year';
+                cVocabVer := 'ICD10CM FY'||to_char(cVocabDate + interval '1 year','YYYY')||' code descriptions';
             WHEN cVocabularyName = 'ICD10PCS'
             THEN
                 cVocabDate := TO_DATE(SUBSTRING(LOWER(cVocabHTML),'<a href="/medicare/[^/]+/([[:digit:]]{4})-icd-10-pcs".*?>[[:digit:]]{4} icd-10-pcs</a>') || '1001', 'yyyymmdd') - interval '1 year';
-                /*old version2
-                select s1.icd10pcs_year into cVocabDate from (
-                  select TO_DATE (SUBSTRING(url,'/([[:digit:]]{4})')::int - 1 || '0101', 'yyyymmdd') icd10pcs_year from (
-                    select unnest(xpath ('//global:loc/text()', cVocabHTML::xml, ARRAY[ARRAY['global', 'http://www.sitemaps.org/schemas/sitemap/0.9']]))::varchar url
-                  ) s0
-                  where s0.url ilike '%www.cms.gov/Medicare/Coding/ICD10/Downloads/%PCS%Order%.zip'
-                ) as s1 order by s1.icd10pcs_year desc limit 1;
-                */
-                /*old version
-                cSearchString := 'ICD-10 PCS and GEMs';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cSearchString := '">';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString, cPos1);
-                cPos2 := devv5.INSTR (cVocabHTML, '</a>', cPos1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (SUBSTRING (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), '^[[:digit:]]+')::int - 1 || '0101', 'yyyymmdd');
-                */
                 cVocabVer := 'ICD10PCS '||to_char(cVocabDate + interval '1 year','YYYY');
             WHEN cVocabularyName = 'LOINC'
             THEN

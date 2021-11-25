@@ -381,9 +381,6 @@ FROM sources.loinc l
          LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
     AND c.vocabulary_id = 'LOINC';
 
-
---todo: confirm that these concepts are not expected to be Measurements storing the result
---todo: define concept_class_id
 --3.1. Update Domains for concepts representing Imaging procedures
 UPDATE concept_stage
 SET domain_id = 'Procedure'
@@ -544,33 +541,37 @@ INSERT INTO concept_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT long_common_name AS concept_name,
-	'Measurement' AS domain_id,
-	'LOINC' AS vocabulary_id,
-	'Lab Test' AS concept_class_id,
-	'S' AS standard_concept,
-	loinc AS concept_code,
-	created_on AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+SELECT long_common_name                AS concept_name,
+       'Measurement'                   AS domain_id,
+       'LOINC'                         AS vocabulary_id,
+       'Lab Test'                      AS concept_class_id,
+       'S'                             AS standard_concept,
+       loinc                           AS concept_code,
+       created_on                      AS valid_start_date,
+       TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM vocabulary_pack.GetLoincPrerelease();
 
 --5.1 Update Radiology Hierarchy Domains
 UPDATE concept_stage
 SET domain_id = 'Procedure'
-WHERE concept_code IN (SELECT code FROM sources.loinc_hierarchy WHERE path_to_root ~ ('LP29684\-5'))
-AND concept_class_id = 'LOINC Hierarchy'
-AND concept_name ~ 'Radiology'
-OR concept_code = 'LP29684-5';
+WHERE concept_code IN (SELECT code
+                       FROM sources.loinc_hierarchy
+                       WHERE path_to_root ~ ('LP29684\-5'))
+    AND concept_class_id = 'LOINC Hierarchy'
+    AND concept_name ~ 'Radiology'
+   OR concept_code = 'LP29684-5';
 
 --6. Insert missing codes from manual extraction
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-END $_$;
+DO
+$_$
+    BEGIN
+        PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+    END
+$_$;
 
 --7. Update Domain = 'Observation' and standard_concept = NULL for attributes that are not part of Hierarchy (AVOF-2222)
 WITH hierarchy
-AS (
+         AS (
 	SELECT lh.code
 	FROM sources.loinc_hierarchy lh
 	WHERE (NOT EXISTS (
@@ -1849,33 +1850,36 @@ WHERE lgt.category IS NOT NULL
 UNION ALL
 
 --add LOINC Groups
-SELECT TRIM(lg.lgroup) AS concept_name, -- LOINC Group name
-	'Measurement' AS domain_id,
-	v.vocabulary_id AS vocabulary_id,
-	'LOINC Group' AS concept_class_id,
-	'C' AS standard_concept,
-	lg.groupid AS concept_code, -- LOINC Group code
-	v.latest_update AS valid_start_date,
-	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-	NULL AS invalid_reason
+SELECT TRIM(lg.lgroup)                 AS concept_name, -- LOINC Group name
+       'Measurement'                   AS domain_id,
+       v.vocabulary_id                 AS vocabulary_id,
+       'LOINC Group'                   AS concept_class_id,
+       'C'                             AS standard_concept,
+       lg.groupid                      AS concept_code, -- LOINC Group code
+       v.latest_update                 AS valid_start_date,
+       TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+       NULL                            AS invalid_reason
 FROM sources.loinc_group lg
-JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
+         JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
 
 --28.1 Update radiology Group Domains
 UPDATE concept_stage
 SET domain_id = 'Procedure'
-WHERE concept_code IN (SELECT groupid FROM sources.loinc_group where parentgroupid = 'LG85-3')
-OR concept_code IN ('LG85-3', 'LG41849-7', 'LG41814-1');
+WHERE concept_code IN (SELECT groupid
+                       FROM sources.loinc_group
+                       WHERE parentgroupid = 'LG85-3')
+   OR concept_code IN ('LG85-3',
+                       'LG41849-7',
+                       'LG41814-1');
 
 --29. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
-INSERT INTO concept_relationship_stage (
-	concept_code_1,
-	concept_code_2,
-	vocabulary_id_1,
-	vocabulary_id_2,
-	relationship_id,
-	valid_start_date,
-	valid_end_date,
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
 	invalid_reason
 	)
 -- from LOINC concepts indicating Measurements and Observations to LOINC Groups using sources.loinc_grouploincterms

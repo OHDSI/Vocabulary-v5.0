@@ -70,11 +70,11 @@ FROM dev_loinc.concept c
 
 WHERE EXISTS (
 		SELECT 1
-		FROM dev_loinc.concept_relationship_stage crs
-		WHERE crs.relationship_id = 'Maps to'
-			AND crs.invalid_reason IS NULL
-			AND c.concept_code = crs.concept_code_1
-			AND c.vocabulary_id = crs.vocabulary_id_1
+		FROM dev_loinc.concept_relationship cr
+		WHERE cr.relationship_id = 'Maps to'
+			AND cr.invalid_reason IS NULL
+			AND c.concept_id = cr.concept_id_1
+            AND cr.concept_id_1 != cr.concept_id_2
 		)
 
 	AND c.standard_concept = 'S'

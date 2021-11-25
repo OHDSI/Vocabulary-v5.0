@@ -184,9 +184,11 @@ WHERE s.source_concept_code = crm.concept_code_1
     AND crm.relationship_id = 'Is a'
     AND crm.invalid_reason IS NULL
 )
-/*AND NOT EXISTS (SELECT
+AND NOT EXISTS (SELECT
                 FROM dev_loinc.loinc_mapped lm
-                WHERE s.source_concept_code = lm.source_code)*/
+                WHERE s.source_concept_code = lm.source_code
+                AND lm.to_value = 'Is a'
+                AND target_concept_id = '0')
 
 ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_code
 ;

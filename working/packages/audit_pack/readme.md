@@ -111,3 +111,10 @@ END $$;
 ```
 
 After some time the dev-schema will be restored (including event from selected log_id).
+
+---
+
+## Keep in mind
+- The concept_ancestor table is not supported by this package and won't be affected in any way.
+- If you plan using the concept_ancestor table in any of the dev schemas you're working in, rebuild it on updated basic tables using the respective [function](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/pConceptAncestor.sql).
+- If you will not use the concept_ancestor table, keep it trancated or even drop it in order to avoid unexpected results of its querying.

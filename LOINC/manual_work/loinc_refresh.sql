@@ -111,6 +111,13 @@ WHERE c.concept_code NOT IN (SELECT source_code
 ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
 
+--Backup of the previous version of loinc_source
+--DROP TABLE dev_loinc.loinc_source_20211028;
+/*CREATE TABLE dev_loinc.loinc_source_backup_20211028
+AS (SELECT *
+    FROM dev_loinc.loinc_source);*/
+
+
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
 --! Not anymore
@@ -201,6 +208,11 @@ ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_co
 --INSERT INTO dev_loinc.concept_relationship_manual
 --SELECT * FROM dev_loinc.concept_relationship_manual_backup_20210603;
 
+--Backup of the previous version of loinc_mapped
+--DROP TABLE dev_loinc.loinc_mapped_20211028;
+/*CREATE TABLE dev_loinc.loinc_mapped_backup_20211028
+AS (SELECT *
+    FROM dev_loinc.loinc_mapped);*/
 
 --Insert into CRM
 -- Step 1: Create table crm_manual_mappings_changed with fields from manual file

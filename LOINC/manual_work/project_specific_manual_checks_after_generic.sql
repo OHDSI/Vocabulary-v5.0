@@ -38,7 +38,6 @@ on a.concept_code = b.concept_code and (a.code_agg != b.code_agg or a.relationsh
 order by a.concept_code
 ;
 
---TODO: Check why they exist
 --02. Standard concepts with additional mapping
 -- in stage table
 SELECT *

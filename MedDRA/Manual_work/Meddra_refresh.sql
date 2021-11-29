@@ -102,7 +102,7 @@ from concept a
 left join concept_relationship r on a.concept_id= r.concept_id_1 and r.invalid_reason is null and r.relationship_Id ='Is a'
 left join concept b on b.concept_id = r.concept_id_2
 left join devv5.concept  c on c.concept_id = a.concept_id
-where a.vocabulary_id IN (:your_vocabs)
+where a.vocabulary_id IN ('MedDRA')
 and c.concept_id is null and b.concept_id is null
 ;
 
@@ -305,6 +305,9 @@ with covid_inclusion as (SELECT
         'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' as covid_inclusion
     ),
 
+     /*~* 'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries))|severe acute|covid(?!ien)'
+  AND lower(c.concept_name) !~* '( |^)LASSARS|papillaris|radiata' AND c.vocabulary_id='MedDRA'*/
+
 covid_exclusion as (SELECT
     '( |^)LASSARS' as covid_exclusion
     )
@@ -320,6 +323,27 @@ where c.vocabulary_id IN ('MedDRA')
         or
         (b.concept_name ~* (select covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
 ;
+
+-- step 8
+select * from qa_tests.purge_cache();
+select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
+select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
+select * from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'devv5');
+
+-- Statistics QA checks
+--13.1. Domain changes
+select * from qa_tests.get_domain_changes(pCompareWith=>'devv5');
+--13.2. Newly added concepts grouped by vocabulary_id and domain
+select * from qa_tests.get_newly_concepts(pCompareWith=>'devv5');
+--13.3. Standard concept changes
+select * from qa_tests.get_standard_concept_changes(pCompareWith=>'devv5');
+--13.4. Newly added concepts and their standard concept status
+select * from qa_tests.get_newly_concepts_standard_concept_status(pCompareWith=>'devv5');
+--13.5. Changes of concept mapping status grouped by target domain
+select * from qa_tests.get_changes_concept_mapping(pCompareWith=>'devv5');
+
+
+
 
 
 
@@ -370,9 +394,6 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
         WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
                   NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM dev_meddra.concept_relationship_manual)
     );
-
-
-
 
 /*
 Check of current and prerelise mapping snomedtomeddra and meddratosnomed

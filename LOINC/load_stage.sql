@@ -307,15 +307,15 @@ SELECT CASE
            WHEN l.status IN (
                'DISCOURAGED'
                ) AND
-                (l.loinc_num IN (SELECT DISTINCT loinc
+                (l.loinc_num IN (SELECT loinc
                                  FROM sources.map_to
                                  GROUP BY 1
                                  HAVING COUNT(DISTINCT map_to) = 1)
                     OR l.loinc_num IN
-                       (SELECT DISTINCT loincnumber
+                       (SELECT loincnumber
                         FROM sources.loinc_partlink_primary
                         WHERE partnumber = 'LP33032-1')
-                    OR l.class = 'PANEL.HEDIS')
+                    OR l.class = 'PANEL.HEDIS') --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS"
                THEN NULL
            ELSE 'S'
            END         AS standard_concept,
@@ -334,15 +334,15 @@ SELECT CASE
            WHEN l.status IN (
                'DISCOURAGED'
                ) AND
-                (l.loinc_num IN (SELECT DISTINCT loinc
+                (l.loinc_num IN (SELECT loinc
                                  FROM sources.map_to
                                  GROUP BY 1
                                  HAVING COUNT(DISTINCT map_to) = 1)
                     OR l.loinc_num IN
-                       (SELECT DISTINCT loincnumber
+                       (SELECT loincnumber
                         FROM sources.loinc_partlink_primary
                         WHERE partnumber = 'LP33032-1')
-                    OR l.class = 'PANEL.HEDIS')
+                    OR l.class = 'PANEL.HEDIS') --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS"
                THEN CASE
                         WHEN c.valid_end_date > v.latest_update
                             OR c.valid_end_date IS NULL
@@ -353,26 +353,26 @@ SELECT CASE
            END         AS valid_end_date,
        CASE
            WHEN (l.status IN ('DISCOURAGED')
-               AND ((l.loinc_num IN (SELECT DISTINCT loinc
+               AND ((l.loinc_num IN (SELECT loinc
                                      FROM sources.map_to)
                    AND (l.class = 'PANEL.HEDIS'
-                       OR l.loinc_num IN (SELECT DISTINCT loincnumber
+                       OR l.loinc_num IN (SELECT loincnumber
                                           FROM sources.loinc_partlink_primary
-                                          WHERE partnumber = 'LP33032-1')))
-                   OR l.loinc_num IN (SELECT DISTINCT loinc
+                                          WHERE partnumber = 'LP33032-1'))) --Discouraged concepts that should be Updated: 1) have Mass or Substance Concentration Loinc property and with mapping in the sources.to_map 3) have the class "PANEL.HEDIS" and with mapping in the sources.to_map
+                   OR l.loinc_num IN (SELECT loinc
                                       FROM sources.map_to
                                       GROUP BY 1
-                                      HAVING COUNT(DISTINCT map_to) = 1)))
+                                      HAVING COUNT(DISTINCT map_to) = 1))) --Discouraged concepts that should be Updated: 1) have only one link in the sources.map_to
                OR (l.status IN ('DEPRECATED')
-                   AND l.loinc_num IN (SELECT DISTINCT loinc
+                   AND l.loinc_num IN (SELECT loinc
                                        FROM sources.map_to))
                THEN 'U'
            WHEN l.status = 'DEPRECATED'
                OR (l.status = 'DISCOURAGED'
                    AND (l.class = 'PANEL.HEDIS'
-                       OR l.loinc_num IN (SELECT DISTINCT loincnumber
+                       OR l.loinc_num IN (SELECT loincnumber
                                           FROM sources.loinc_partlink_primary
-                                          WHERE partnumber = 'LP33032-1')))
+                                          WHERE partnumber = 'LP33032-1'))) --Discouraged concepts that should be Deprecated: 1) have Mass or Substance Concentration Loinc property without mapping in the sources.map_to 2) have the class "PANEL.HEDIS" without mapping in the sources.map_to
                THEN 'D'
            ELSE NULL
            END         AS invalid_reason
@@ -384,12 +384,12 @@ FROM sources.loinc l
 --3.1. Update Domains for concepts representing Imaging procedures
 UPDATE concept_stage
 SET domain_id = 'Procedure'
-WHERE concept_code IN (SELECT DISTINCT loinc_num
+WHERE concept_code IN (SELECT loinc_num
                        FROM sources.loinc
-                       WHERE class = 'RAD')
-  AND concept_code NOT IN (select loincnumber
-                           from sources.loinc_partlink_primary
-                           where partnumber in ('LP7753-9', 'LP200093-5', 'LP200395-4'));
+                       WHERE class = 'RAD') --Radiology concepts
+  AND concept_code NOT IN (SELECT loincnumber
+                           FROM sources.loinc_partlink_primary
+                           WHERE partnumber IN ('LP7753-9', 'LP200093-5', 'LP200395-4')); --Concept code doesn't have parts like "Qn", "Densitometry", "Calcium score"
 
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the concept_stage
 INSERT INTO concept_stage (
@@ -554,11 +554,11 @@ FROM vocabulary_pack.GetLoincPrerelease();
 --5.1 Update Radiology Hierarchy Domains
 UPDATE concept_stage
 SET domain_id = 'Procedure'
-WHERE concept_code IN (SELECT code
+WHERE (concept_code IN (SELECT code
                        FROM sources.loinc_hierarchy
-                       WHERE path_to_root ~ ('LP29684\-5'))
+                       WHERE path_to_root ~ ('LP29684\-5')) --Radiology (LOINC Hierarchy)
     AND concept_class_id = 'LOINC Hierarchy'
-    AND concept_name ~ 'Radiology'
+    AND concept_name ~ 'Radiology')
    OR concept_code = 'LP29684-5';
 
 --6. Insert missing codes from manual extraction
@@ -1867,10 +1867,10 @@ UPDATE concept_stage
 SET domain_id = 'Procedure'
 WHERE concept_code IN (SELECT groupid
                        FROM sources.loinc_group
-                       WHERE parentgroupid = 'LG85-3')
-   OR concept_code IN ('LG85-3',
-                       'LG41849-7',
-                       'LG41814-1');
+                       WHERE parentgroupid = 'LG85-3') --Radiology
+   OR concept_code IN ('LG85-3', --Radiology
+                       'LG41849-7', --Region imaged: Lower extremity
+                       'LG41814-1'); --	Radiology
 
 --29. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
 INSERT INTO concept_relationship_stage (concept_code_1,

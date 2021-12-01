@@ -62,6 +62,7 @@ SELECT CASE
                THEN 'History of ' || long_common_name
            ELSE long_common_name -- AVOF-819
            END         AS concept_name,
+       --TODO: fix wrong domains, more information in AVOF-2241
        CASE
            WHEN classtype IN (
                               '1',
@@ -317,7 +318,9 @@ SELECT CASE
                         FROM sources.loinc_partlink_primary
                         WHERE partnumber = 'LP33032-1'
                            AND partnumber IS NOT NULL)
-                    OR l.class = 'PANEL.HEDIS') --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS"
+                    OR l.class = 'PANEL.HEDIS'
+                    OR l.classtype IN ('3',
+                                       '4')) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
                THEN NULL
            ELSE 'S'
            END         AS standard_concept,
@@ -346,7 +349,9 @@ SELECT CASE
                         FROM sources.loinc_partlink_primary
                         WHERE partnumber = 'LP33032-1'
                            AND partnumber IS NOT NULL)
-                    OR l.class = 'PANEL.HEDIS') --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS"
+                    OR l.class = 'PANEL.HEDIS'
+                    OR l.classtype IN ('3',
+                                       '4')) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
                THEN CASE
                         WHEN c.valid_end_date > v.latest_update
                             OR c.valid_end_date IS NULL
@@ -381,7 +386,9 @@ SELECT CASE
                        OR l.loinc_num IN (SELECT loincnumber
                                           FROM sources.loinc_partlink_primary
                                           WHERE partnumber = 'LP33032-1'
-                                          AND loincnumber IS NOT NULL))) --Discouraged concepts that should be Deprecated: 1) have Mass or Substance Concentration Loinc property without mapping in the sources.map_to 2) have the class "PANEL.HEDIS" without mapping in the sources.map_to
+                                          AND loincnumber IS NOT NULL)
+                       OR l.classtype IN ('3',
+                                          '4'))) --Discouraged concepts that should be Deprecated: 1) have Mass or Substance Concentration Loinc property without mapping in the sources.map_to 2) have the class "PANEL.HEDIS" without mapping in the sources.map_to 3) have classtype 3 (Survey) or 4 (Claims Attachment) without mapping in the sources.map_to
                THEN 'D'
            ELSE NULL
            END         AS invalid_reason

@@ -348,7 +348,7 @@ SELECT CASE
                        (SELECT loincnumber
                         FROM sources.loinc_partlink_primary
                         WHERE partnumber = 'LP33032-1'
-                           AND partnumber IS NOT NULL)
+                           AND loincnumber IS NOT NULL)
                     OR l.class = 'PANEL.HEDIS'
                     OR l.classtype IN ('3',
                                        '4')) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)

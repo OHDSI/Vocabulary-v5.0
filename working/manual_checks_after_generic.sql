@@ -285,7 +285,15 @@ with vaccine_exclusion as (SELECT
     'placeholder|placeholder' as vaccine_exclusion
     )
 
-select distinct c.concept_name, c.concept_class_id, b.concept_name, b.concept_class_id, b.vocabulary_id
+select distinct c.vocabulary_id,
+                c.concept_name,
+                c.concept_class_id,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.concept_name END as target_concept_name,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.concept_class_id END as target_concept_class_id,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.vocabulary_id END as target_vocabulary_id
 from concept c
 left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id ='Maps to' and cr.invalid_reason is null
 left join concept b on b.concept_id = cr.concept_id_2
@@ -306,7 +314,15 @@ covid_exclusion as (SELECT
     )
 
 
-select distinct c.vocabulary_id, c.concept_name, c.concept_class_id, b.concept_name, b.concept_class_id, b.vocabulary_id as target_vocabulary_id
+select distinct c.vocabulary_id,
+                c.concept_name,
+                c.concept_class_id,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.concept_name END as target_concept_name,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.concept_class_id END as target_concept_class_id,
+                CASE WHEN c.concept_id = b.concept_id THEN '<Mapped to itself>'
+                    ELSE b.vocabulary_id END as target_vocabulary_id
 from concept c
 left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id ='Maps to' and cr.invalid_reason is null
 left join concept b on b.concept_id = cr.concept_id_2

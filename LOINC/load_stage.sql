@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Oleg Zhuk, Polina Talapova, Dmitry Dymshyts, Alexander Davydov, Timur Vakhitov, Christian Reich
-* Date: 2020
+* Authors: Maria Rogozhkina, Oleg Zhuk, Polina Talapova, Dmitry Dymshyts, Alexander Davydov, Timur Vakhitov, Christian Reich
+* Date: 2021
 **************************************************************************/
 
 --1. Update a 'latest_update' field to a new date
@@ -50,366 +50,363 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE
-           WHEN loinc_num = '66678-4'
-               AND property = 'Hx'
-               THEN 'History of Diabetes (regardless of treatment) [PhenX]'
-           WHEN loinc_num = '82312-0'
-               THEN 'History of ' || REPLACE(long_common_name, 'andor', 'and/or')
-           WHEN property = 'Hx'
-               AND long_common_name !~*
-                   'hx|histor|reported|status|narrative|^do you|^have you|^does|^has |education|why you|timing|virtuoso|maestro|grade|received|cause|allergies|in the past'
-               THEN 'History of ' || long_common_name
-           ELSE long_common_name -- AVOF-819
-           END         AS concept_name,
-       --TODO: fix wrong domains, more information in AVOF-2241
-       CASE
-           WHEN classtype IN (
-                              '1',
-                              '2'
-               )
-               AND (
-                        survey_quest_text LIKE '%?%' -- manually defined source attributes indicating the 'Observation' domain
-                        OR scale_typ = 'Set'
-                        OR property IN (
-                                        'Hx',
-                                        'Addr',
-                                        'Anat',
-                                        'ClockTime',
-                                        'Date',
-                                        'DateRange',
-                                        'Desc',
-                                        'EmailAddr',
-                                        'Instrct',
-                                        'Loc',
-                                        'Pn',
-                                        'Tele',
-                                        'TmStp',
-                                        'TmStpRange',
-                                        'Txt',
-                                        'URI',
-                                        'Xad',
-                                        'Bib'
-                        )
-                        OR (
-                                property = 'ID'
-                                AND system IN (
-                                               '^BPU',
-                                               '^Patient',
-                                               'Vaccine'
-                                )
-                            )
-                        OR system IN (
-                                      '^Family member',
-                                      '^Neighborhood',
-                                      '^Brother',
-                                      '^Daughter',
-                                      '^Sister',
-                                      '^Son',
-                                      '^CCD',
-                                      '^Census tract',
-                                      '^Clinical trial protocol',
-                                      '^Community',
-                                      '*',
-                                      '?',
-                                      '^Contact',
-                                      '^Donor',
-                                      '^Emergency contact',
-                                      '^Event',
-                                      '^Facility',
-                                      'Provider',
-                                      'Report',
-                                      'Repository',
-                                      'School',
-                                      'Surgical procedure'
-                        )
-                        OR (
-                                    system IN (
-                                               '^Patient',
-                                               '*^Patient'
-                                    )
-                                AND (
-                                                    scale_typ IN (
-                                                                  'Doc',
-                                                                  'Nar',
-                                                                  'Nom',
-                                                                  'Ord',
-                                                                  'OrdQn'
-                                                    )
-                                                AND (
-                                                            method_typ <> 'Apgar'
-                                                            OR method_typ IS NULL
-                                                        )
-                                            OR property IN (
-                                                            'Arb',
-                                                            'Imp',
-                                                            'NRat',
-                                                            'Num',
-                                                            'PrThr',
-                                                            'RelRto',
-                                                            'Time',
-                                                            'Type',
-                                                            'Find'
-                                            )
-                                                        AND class NOT IN (
-                                                                          'COAG',
-                                                                          'PULM'
-                                                )
-                                        )
-                            )
-                        OR (
-                            long_common_name ~* 'note|Note'
-                            )
-                    )
-               AND (
-                        long_common_name !~* 'scale|score'
-                        OR long_common_name ~* 'interpretation|rose dyspnea scale'
-                    )
-               AND (
-                        method_typ <> 'Measured'
-                        OR method_typ IS NULL
-                    )
-               AND loinc_num NOT IN (
-                                     '65712-2',
-                                     '65713-0'
-                   )
-               THEN 'Observation' -- AVOF-1579
-           WHEN classtype = '1'
-               THEN 'Measurement'
-           WHEN classtype = '2'
-               THEN 'Measurement'
-           WHEN classtype = '3'
-               THEN 'Observation'
-           WHEN classtype = '4'
-               THEN 'Observation'
-           END         AS domain_id,
-       v.vocabulary_id,
-       CASE
-           WHEN classtype IN (
-                              '1',
-                              '2'
-               )
-               AND (
-                        survey_quest_text LIKE '%?%' -- manually defined source attributes indicating the 'Clinical Observation' concept class
-                        OR scale_typ = 'Set'
-                        OR property IN (
-                                        'Hx',
-                                        'Addr',
-                                        'Anat',
-                                        'ClockTime',
-                                        'Date',
-                                        'DateRange',
-                                        'Desc',
-                                        'EmailAddr',
-                                        'Instrct',
-                                        'Loc',
-                                        'Pn',
-                                        'Tele',
-                                        'TmStp',
-                                        'TmStpRange',
-                                        'Txt',
-                                        'URI',
-                                        'Xad',
-                                        'Bib'
-                        )
-                        OR (
-                                property = 'ID'
-                                AND system IN (
-                                               '^BPU',
-                                               '^Patient',
-                                               'Vaccine'
-                                )
-                            )
-                        OR system IN (
-                                      '^Family member',
-                                      '^Neighborhood',
-                                      '^Brother',
-                                      '^Daughter',
-                                      '^Sister',
-                                      '^Son',
-                                      '^CCD',
-                                      '^Census tract',
-                                      '^Clinical trial protocol',
-                                      '^Community',
-                                      '*',
-                                      '?',
-                                      '^Contact',
-                                      '^Donor',
-                                      '^Emergency contact',
-                                      '^Event',
-                                      '^Facility',
-                                      'Provider',
-                                      'Report',
-                                      'Repository',
-                                      'School',
-                                      'Surgical procedure'
-                        )
-                        OR (
-                                    system IN (
-                                               '^Patient',
-                                               '*^Patient'
-                                    )
-                                AND (
-                                                    scale_typ IN (
-                                                                  'Doc',
-                                                                  'Nar',
-                                                                  'Nom',
-                                                                  'Ord',
-                                                                  'OrdQn'
-                                                    )
-                                                AND (
-                                                            method_typ NOT IN ('Apgar')
-                                                            OR method_typ IS NULL
-                                                        )
-                                            OR property IN (
-                                                            'Arb',
-                                                            'Imp',
-                                                            'NRat',
-                                                            'Num',
-                                                            'PrThr',
-                                                            'RelRto',
-                                                            'Time',
-                                                            'Type',
-                                                            'Find'
-                                            )
-                                                        AND class NOT IN (
-                                                                          'COAG',
-                                                                          'PULM'
-                                                )
-                                        )
-                            )
-                    )
-               AND (
-                        long_common_name !~* 'scale|score'
-                        OR long_common_name ~* 'interpretation|rose dyspnea scale'
-                    )
-               AND (
-                        method_typ <> 'Measured'
-                        OR method_typ IS NULL
-                    )
-               AND loinc_num NOT IN (
-                                     '65712-2',
-                                     '65713-0'
-                   )
-               THEN 'Clinical Observation' -- AVOF-1579
-           WHEN classtype = '1'
-               THEN 'Lab Test'
-           WHEN classtype = '2'
-               THEN 'Clinical Observation'
-           WHEN classtype = '3'
-               THEN 'Claims Attachment'
-           WHEN classtype = '4'
-               THEN 'Survey'
-           END         AS concept_class_id,
-       CASE
-           WHEN l.status IN (
-               'DEPRECATED'
-               ) THEN NULL
-           WHEN l.status IN (
-               'DISCOURAGED'
-               ) AND
-                (l.loinc_num IN (SELECT loinc
-                                 FROM sources.map_to
-                                 WHERE loinc IS NOT NULL
-                                 GROUP BY 1
-                                 HAVING COUNT(DISTINCT map_to) = 1)
-                    OR l.loinc_num IN
-                       (SELECT loincnumber
-                        FROM sources.loinc_partlink_primary
-                        WHERE partnumber = 'LP33032-1'
-                           AND partnumber IS NOT NULL)
-                    OR l.class = 'PANEL.HEDIS'
-                    OR l.classtype IN ('3',
-                                       '4')) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
-               THEN NULL
-           ELSE 'S'
-           END         AS standard_concept,
-       LOINC_NUM       AS concept_code,
-       v.latest_update AS valid_start_date,
-       CASE
-           WHEN l.status IN (
-               'DEPRECATED'
-               )
-               THEN CASE
-                        WHEN c.valid_end_date > v.latest_update
-                            OR c.valid_end_date IS NULL
-                            THEN v.latest_update
-                        ELSE c.valid_end_date
-               END
-           WHEN l.status IN (
-               'DISCOURAGED'
-               ) AND
-                (l.loinc_num IN (SELECT loinc
-                                 FROM sources.map_to
-                                 WHERE loinc IS NOT NULL
-                                 GROUP BY 1
-                                 HAVING COUNT(DISTINCT map_to) = 1)
-                    OR l.loinc_num IN
-                       (SELECT loincnumber
-                        FROM sources.loinc_partlink_primary
-                        WHERE partnumber = 'LP33032-1'
-                           AND loincnumber IS NOT NULL)
-                    OR l.class = 'PANEL.HEDIS'
-                    OR l.classtype IN ('3',
-                                       '4')) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
-               THEN CASE
-                        WHEN c.valid_end_date > v.latest_update
-                            OR c.valid_end_date IS NULL
-                            THEN v.latest_update
-                        ELSE c.valid_end_date
-               END
-           ELSE TO_DATE('20991231', 'yyyymmdd')
-           END         AS valid_end_date,
-       CASE
-           WHEN (l.status IN ('DISCOURAGED')
-               AND ((l.loinc_num IN (SELECT loinc
-                                     FROM sources.map_to
-                                     WHERE loinc IS NOT NULL)
-                   AND (l.class = 'PANEL.HEDIS'
-                       OR l.loinc_num IN (SELECT loincnumber
-                                          FROM sources.loinc_partlink_primary
-                                          WHERE partnumber = 'LP33032-1'
-                                          AND loincnumber IS NOT NULL))) --Discouraged concepts that should be Updated: 1) have Mass or Substance Concentration Loinc property and with mapping in the sources.to_map 3) have the class "PANEL.HEDIS" and with mapping in the sources.to_map
-                   OR l.loinc_num IN (SELECT loinc
-                                      FROM sources.map_to
-                                      WHERE loinc IS NOT NULL
-                                      GROUP BY 1
-                                      HAVING COUNT(DISTINCT map_to) = 1))) --Discouraged concepts that should be Updated: 1) have only one link in the sources.map_to
-               OR (l.status IN ('DEPRECATED')
-                   AND l.loinc_num IN (SELECT loinc
-                                       FROM sources.map_to
-                                       WHERE loinc IS NOT NULL))
-               THEN 'U'
-           WHEN l.status = 'DEPRECATED'
-               OR (l.status = 'DISCOURAGED'
-                   AND (l.class = 'PANEL.HEDIS'
-                       OR l.loinc_num IN (SELECT loincnumber
-                                          FROM sources.loinc_partlink_primary
-                                          WHERE partnumber = 'LP33032-1'
-                                          AND loincnumber IS NOT NULL)
-                       OR l.classtype IN ('3',
-                                          '4'))) --Discouraged concepts that should be Deprecated: 1) have Mass or Substance Concentration Loinc property without mapping in the sources.map_to 2) have the class "PANEL.HEDIS" without mapping in the sources.map_to 3) have classtype 3 (Survey) or 4 (Claims Attachment) without mapping in the sources.map_to
-               THEN 'D'
-           ELSE NULL
-           END         AS invalid_reason
+SELECT CASE 
+		WHEN loinc_num = '66678-4'
+			AND property = 'Hx'
+			THEN 'History of Diabetes (regardless of treatment) [PhenX]'
+		WHEN loinc_num = '82312-0'
+			THEN 'History of ' || REPLACE(long_common_name, 'andor', 'and/or')
+		WHEN property = 'Hx'
+			AND long_common_name !~* 'hx|histor|reported|status|narrative|^do you|^have you|^does|^has |education|why you|timing|virtuoso|maestro|grade|received|cause|allergies|in the past'
+			THEN 'History of ' || long_common_name
+		ELSE long_common_name -- AVOF-819
+		END AS concept_name,
+	--TODO: fix wrong domains, more information in AVOF-2241
+	CASE 
+		WHEN classtype IN (
+				'1',
+				'2'
+				)
+			AND (
+				survey_quest_text LIKE '%?%' -- manually defined source attributes indicating the 'Observation' domain
+				OR scale_typ = 'Set'
+				OR property IN (
+					'Hx',
+					'Addr',
+					'Anat',
+					'ClockTime',
+					'Date',
+					'DateRange',
+					'Desc',
+					'EmailAddr',
+					'Instrct',
+					'Loc',
+					'Pn',
+					'Tele',
+					'TmStp',
+					'TmStpRange',
+					'Txt',
+					'URI',
+					'Xad',
+					'Bib'
+					)
+				OR (
+					property = 'ID'
+					AND system IN (
+						'^BPU',
+						'^Patient',
+						'Vaccine'
+						)
+					)
+				OR system IN (
+					'^Family member',
+					'^Neighborhood',
+					'^Brother',
+					'^Daughter',
+					'^Sister',
+					'^Son',
+					'^CCD',
+					'^Census tract',
+					'^Clinical trial protocol',
+					'^Community',
+					'*',
+					'?',
+					'^Contact',
+					'^Donor',
+					'^Emergency contact',
+					'^Event',
+					'^Facility',
+					'Provider',
+					'Report',
+					'Repository',
+					'School',
+					'Surgical procedure'
+					)
+				OR (
+					system IN (
+						'^Patient',
+						'*^Patient'
+						)
+					AND (
+						scale_typ IN (
+							'Doc',
+							'Nar',
+							'Nom',
+							'Ord',
+							'OrdQn'
+							)
+						AND (
+							method_typ <> 'Apgar'
+							OR method_typ IS NULL
+							)
+						OR property IN (
+							'Arb',
+							'Imp',
+							'NRat',
+							'Num',
+							'PrThr',
+							'RelRto',
+							'Time',
+							'Type',
+							'Find'
+							)
+						AND class NOT IN (
+							'COAG',
+							'PULM'
+							)
+						)
+					)
+				OR (long_common_name ~* 'note|Note')
+				)
+			AND (
+				long_common_name !~* 'scale|score'
+				OR long_common_name ~* 'interpretation|rose dyspnea scale'
+				)
+			AND (
+				method_typ <> 'Measured'
+				OR method_typ IS NULL
+				)
+			AND loinc_num NOT IN (
+				'65712-2',
+				'65713-0'
+				)
+			THEN 'Observation' -- AVOF-1579
+		WHEN classtype = '1'
+			THEN 'Measurement'
+		WHEN classtype = '2'
+			THEN 'Measurement'
+		WHEN classtype = '3'
+			THEN 'Observation'
+		WHEN classtype = '4'
+			THEN 'Observation'
+		END AS domain_id,
+	v.vocabulary_id,
+	CASE 
+		WHEN classtype IN (
+				'1',
+				'2'
+				)
+			AND (
+				survey_quest_text LIKE '%?%' -- manually defined source attributes indicating the 'Clinical Observation' concept class
+				OR scale_typ = 'Set'
+				OR property IN (
+					'Hx',
+					'Addr',
+					'Anat',
+					'ClockTime',
+					'Date',
+					'DateRange',
+					'Desc',
+					'EmailAddr',
+					'Instrct',
+					'Loc',
+					'Pn',
+					'Tele',
+					'TmStp',
+					'TmStpRange',
+					'Txt',
+					'URI',
+					'Xad',
+					'Bib'
+					)
+				OR (
+					property = 'ID'
+					AND system IN (
+						'^BPU',
+						'^Patient',
+						'Vaccine'
+						)
+					)
+				OR system IN (
+					'^Family member',
+					'^Neighborhood',
+					'^Brother',
+					'^Daughter',
+					'^Sister',
+					'^Son',
+					'^CCD',
+					'^Census tract',
+					'^Clinical trial protocol',
+					'^Community',
+					'*',
+					'?',
+					'^Contact',
+					'^Donor',
+					'^Emergency contact',
+					'^Event',
+					'^Facility',
+					'Provider',
+					'Report',
+					'Repository',
+					'School',
+					'Surgical procedure'
+					)
+				OR (
+					system IN (
+						'^Patient',
+						'*^Patient'
+						)
+					AND (
+						scale_typ IN (
+							'Doc',
+							'Nar',
+							'Nom',
+							'Ord',
+							'OrdQn'
+							)
+						AND (
+							method_typ NOT IN ('Apgar')
+							OR method_typ IS NULL
+							)
+						OR property IN (
+							'Arb',
+							'Imp',
+							'NRat',
+							'Num',
+							'PrThr',
+							'RelRto',
+							'Time',
+							'Type',
+							'Find'
+							)
+						AND class NOT IN (
+							'COAG',
+							'PULM'
+							)
+						)
+					)
+				)
+			AND (
+				long_common_name !~* 'scale|score'
+				OR long_common_name ~* 'interpretation|rose dyspnea scale'
+				)
+			AND (
+				method_typ <> 'Measured'
+				OR method_typ IS NULL
+				)
+			AND loinc_num NOT IN (
+				'65712-2',
+				'65713-0'
+				)
+			THEN 'Clinical Observation' -- AVOF-1579
+		WHEN classtype = '1'
+			THEN 'Lab Test'
+		WHEN classtype = '2'
+			THEN 'Clinical Observation'
+		WHEN classtype = '3'
+			THEN 'Claims Attachment'
+		WHEN classtype = '4'
+			THEN 'Survey'
+		END AS concept_class_id,
+	CASE 
+		WHEN l.STATUS IN ('DEPRECATED')
+			THEN NULL
+		WHEN l.STATUS IN ('DISCOURAGED')
+			AND (
+				l.loinc_num = ANY (cj_1map.arr_loinc)
+				OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+				OR l.class = 'PANEL.HEDIS'
+				OR l.classtype IN (
+					'3',
+					'4'
+					)
+				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
+			THEN NULL
+		ELSE 'S'
+		END AS standard_concept,
+	LOINC_NUM AS concept_code,
+	v.latest_update AS valid_start_date,
+	CASE 
+		WHEN l.STATUS IN ('DEPRECATED')
+			THEN CASE 
+					WHEN c.valid_end_date > v.latest_update
+						OR c.valid_end_date IS NULL
+						THEN v.latest_update
+					ELSE c.valid_end_date
+					END
+		WHEN l.STATUS IN ('DISCOURAGED')
+			AND (
+				l.loinc_num = ANY (cj_1map.arr_loinc)
+				OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+				OR l.class = 'PANEL.HEDIS'
+				OR l.classtype IN (
+					'3',
+					'4'
+					)
+				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
+			THEN CASE 
+					WHEN c.valid_end_date > v.latest_update
+						OR c.valid_end_date IS NULL
+						THEN v.latest_update
+					ELSE c.valid_end_date
+					END
+		ELSE TO_DATE('20991231', 'yyyymmdd')
+		END AS valid_end_date,
+	CASE 
+		WHEN (
+				l.STATUS IN ('DISCOURAGED')
+				AND (
+					(
+						l.loinc_num = ANY (cj_map.arr_loinc)
+						AND (
+							l.class = 'PANEL.HEDIS'
+							OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+							)
+						) --Discouraged concepts that should be Updated: 1) have Mass or Substance Concentration Loinc property and with mapping in the sources.to_map 3) have the class "PANEL.HEDIS" and with mapping in the sources.to_map
+					OR l.loinc_num = ANY (cj_1map.arr_loinc)
+					)
+				) --Discouraged concepts that should be Updated: 1) have only one link in the sources.map_to
+			OR (
+				l.STATUS IN ('DEPRECATED')
+				AND l.loinc_num = ANY (cj_map.arr_loinc)
+				)
+			THEN 'U'
+		WHEN l.STATUS = 'DEPRECATED'
+			OR (
+				l.STATUS = 'DISCOURAGED'
+				AND (
+					l.class = 'PANEL.HEDIS'
+					OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+					OR l.classtype IN (
+						'3',
+						'4'
+						)
+					)
+				) --Discouraged concepts that should be Deprecated: 1) have Mass or Substance Concentration Loinc property without mapping in the sources.map_to 2) have the class "PANEL.HEDIS" without mapping in the sources.map_to 3) have classtype 3 (Survey) or 4 (Claims Attachment) without mapping in the sources.map_to
+			THEN 'D'
+		ELSE NULL
+		END AS invalid_reason
 FROM sources.loinc l
-         JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
-         LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
-    AND c.vocabulary_id = 'LOINC';
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
+CROSS JOIN (
+	SELECT ARRAY(SELECT DISTINCT m.loinc FROM sources.map_to m) arr_loinc
+	) cj_map
+CROSS JOIN (
+	SELECT ARRAY(SELECT m.loinc FROM sources.map_to m GROUP BY m.loinc HAVING COUNT(DISTINCT m.map_to) = 1) arr_loinc
+	) cj_1map
+CROSS JOIN (
+	SELECT ARRAY(SELECT lp.loincnumber FROM sources.loinc_partlink_primary lp WHERE lp.partnumber = 'LP33032-1') arr_loincnumber
+	) cj_part
+LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
+	AND c.vocabulary_id = 'LOINC';
 
 --3.1. Update Domains for concepts representing Imaging procedures
-UPDATE concept_stage
+UPDATE concept_stage cs
 SET domain_id = 'Procedure'
-WHERE concept_code IN (SELECT loinc_num
-                       FROM sources.loinc
-                       WHERE class = 'RAD'
-                            AND loinc_num IS NOT NULL) --Radiology concepts
-  AND concept_code NOT IN (SELECT loincnumber
-                           FROM sources.loinc_partlink_primary
-                           WHERE partnumber IN ('LP7753-9',
-                                                'LP200093-5',
-                                                'LP200395-4')
-                                    AND loincnumber IS NOT NULL); --Concept code doesn't have parts like "Qn", "Densitometry", "Calcium score"
+FROM sources.loinc l
+WHERE cs.concept_code = l.loinc_num
+	AND l.class = 'RAD' --Radiology concepts
+	--Concept code doesn't have parts like "Qn", "Densitometry", "Calcium score"
+	AND NOT EXISTS (
+		SELECT 1
+		FROM sources.loinc_partlink_primary lp
+		WHERE lp.partnumber IN (
+				'LP7753-9',
+				'LP200093-5',
+				'LP200395-4'
+				)
+			AND lp.loincnumber = cs.concept_code
+		);
 
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the concept_stage
 INSERT INTO concept_stage (
@@ -561,52 +558,53 @@ INSERT INTO concept_stage (
 	valid_start_date,
 	valid_end_date
 	)
-SELECT long_common_name                AS concept_name,
-       'Measurement'                   AS domain_id,
-       'LOINC'                         AS vocabulary_id,
-       'Lab Test'                      AS concept_class_id,
-       'S'                             AS standard_concept,
-       loinc                           AS concept_code,
-       created_on                      AS valid_start_date,
-       TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+SELECT long_common_name AS concept_name,
+	'Measurement' AS domain_id,
+	'LOINC' AS vocabulary_id,
+	'Lab Test' AS concept_class_id,
+	'S' AS standard_concept,
+	loinc AS concept_code,
+	created_on AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM vocabulary_pack.GetLoincPrerelease();
 
 --5.1 Update Radiology Hierarchy Domains
-UPDATE concept_stage
+UPDATE concept_stage cs
 SET domain_id = 'Procedure'
-WHERE (concept_code IN (SELECT code
-                       FROM sources.loinc_hierarchy
-                       WHERE path_to_root ~ ('LP29684\-5')
-                             AND code IS NOT NULL) --Radiology (LOINC Hierarchy)
-    AND concept_class_id = 'LOINC Hierarchy'
-    AND concept_name ~ 'Radiology')
-   OR concept_code = 'LP29684-5';
+FROM sources.loinc_hierarchy lh
+WHERE (
+		lh.path_to_root LIKE '%LP29684-5%' --Radiology (LOINC Hierarchy)
+		AND cs.concept_class_id = 'LOINC Hierarchy'
+		AND cs.concept_name LIKE '%Radiology%'
+		AND lh.code = cs.concept_code
+		)
+	OR cs.concept_code = 'LP29684-5';
 
 --6. Insert missing codes from manual extraction
-DO
-$_$
-    BEGIN
-        PERFORM VOCABULARY_PACK.ProcessManualConcepts();
-    END
-$_$;
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
 
 --7. Update Domain = 'Observation' and standard_concept = NULL for attributes that are not part of Hierarchy (AVOF-2222)
 WITH hierarchy
-         AS (
+AS (
 	SELECT lh.code
 	FROM sources.loinc_hierarchy lh
-	WHERE (NOT EXISTS (
-			SELECT 1
-			FROM sources.loinc_partlink_primary lpp
-			WHERE lh.code = lpp.partnumber
-				AND lpp.parttypename <> 'CLASS'
-			)
-		AND NOT EXISTS (
+	WHERE (
+			NOT EXISTS (
+				SELECT 1
+				FROM sources.loinc_partlink_primary lpp
+				WHERE lh.code = lpp.partnumber
+					AND lpp.parttypename <> 'CLASS'
+				)
+			AND NOT EXISTS (
 				SELECT 1
 				FROM sources.loinc_partlink_supplementary lps
 				WHERE lh.code = lps.partnumber
 					AND lps.parttypename <> 'CLASS'
-				))
+				)
+			)
 		AND lh.code !~ '^\d'
 	)
 UPDATE concept_stage cs
@@ -1805,7 +1803,6 @@ WHERE c1.vocabulary_id = 'LOINC'
 				)
 		);
 
-
 --27. Build 'Has type of service', 'Has subject matter', 'Has role', 'Has setting', 'Has kind' reverse relationships from LOINC concepts indicating Measurements or Observations to LOINC Document Ontology concepts
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -1871,37 +1868,41 @@ WHERE lgt.category IS NOT NULL
 UNION ALL
 
 --add LOINC Groups
-SELECT TRIM(lg.lgroup)                 AS concept_name, -- LOINC Group name
-       'Measurement'                   AS domain_id,
-       v.vocabulary_id                 AS vocabulary_id,
-       'LOINC Group'                   AS concept_class_id,
-       'C'                             AS standard_concept,
-       lg.groupid                      AS concept_code, -- LOINC Group code
-       v.latest_update                 AS valid_start_date,
-       TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
-       NULL                            AS invalid_reason
+SELECT TRIM(lg.lgroup) AS concept_name, -- LOINC Group name
+	'Measurement' AS domain_id,
+	v.vocabulary_id AS vocabulary_id,
+	'LOINC Group' AS concept_class_id,
+	'C' AS standard_concept,
+	lg.groupid AS concept_code, -- LOINC Group code
+	v.latest_update AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date,
+	NULL AS invalid_reason
 FROM sources.loinc_group lg
-         JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
+JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
 
 --28.1 Update radiology Group Domains
-UPDATE concept_stage
+UPDATE concept_stage cs
 SET domain_id = 'Procedure'
-WHERE concept_code IN (SELECT groupid
-                       FROM sources.loinc_group
-                       WHERE parentgroupid = 'LG85-3'
-                             AND groupid IS NOT NULL) --Radiology
-   OR concept_code IN ('LG85-3', --Radiology
-                       'LG41849-7', --Region imaged: Lower extremity
-                       'LG41814-1'); --	Radiology
+FROM sources.loinc_group lg
+WHERE (
+		cs.concept_code = lg.groupid
+		AND lg.parentgroupid = 'LG85-3'
+		)
+	OR cs.concept_code IN (
+		'LG85-3', --Radiology
+		'LG41849-7', --Region imaged: Lower extremity
+		'LG41814-1' --Radiology
+		);
 
 --29. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
-INSERT INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
 	invalid_reason
 	)
 -- from LOINC concepts indicating Measurements and Observations to LOINC Groups using sources.loinc_grouploincterms

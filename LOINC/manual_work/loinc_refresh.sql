@@ -1,5 +1,6 @@
 --Source table for refresh
 --Flags show different reasons for refresh
+--DROP TABLE loinc_source;
 CREATE TABLE loinc_source AS (
 with previous_mappings AS
     (SELECT concept_id_1, c.standard_concept, array_agg(concept_id_2 ORDER BY concept_id_2 DESC) AS old_maps_to
@@ -83,30 +84,39 @@ SELECT DISTINCT
                 NULL::varchar AS target_vocabulary_id
 
 FROM dev_loinc.concept c
-LEFT JOIN previous_mappings
-ON c.concept_id = previous_mappings.concept_id_1
-LEFT JOIN current_mapping
-ON c.concept_id = current_mapping.concept_id_1
+         LEFT JOIN previous_mappings
+                   ON c.concept_id = previous_mappings.concept_id_1
+         LEFT JOIN current_mapping
+                   ON c.concept_id = current_mapping.concept_id_1
     --new concept_relationship
-LEFT JOIN dev_loinc.concept_relationship cr
-ON c.concept_id = cr.concept_id_1
-AND cr.relationship_id IN ('Maps to', 'Maps to value')
-AND cr.invalid_reason IS NULL
+         LEFT JOIN dev_loinc.concept_relationship cr
+                   ON c.concept_id = cr.concept_id_1
+                       AND cr.relationship_id IN ('Maps to', 'Maps to value')
+                       AND cr.invalid_reason IS NULL
 
 --TODO: implement diff logic
-/*
- WHERE c.concept_id / concept_code NOT IN (SELECT FROM _mapped table)
- */
+WHERE c.concept_code NOT IN (SELECT source_code
+                             FROM loinc_mapped)
+
 
 --Conditions show options for specific concept classes refreshes
-WHERE cr.concept_id_2 IS NULL
-AND (c.standard_concept IS NULL OR c.invalid_reason = 'D') AND c.vocabulary_id = 'LOINC'
-AND c.concept_class_id IN ('Lab Test'
-                           --,'Survey', 'Answer', 'Clinical Observation' --TODO: postponed for now
-                           )
+  and cr.concept_id_2 IS NULL
+  AND (c.standard_concept IS NULL OR c.invalid_reason = 'D')
+  AND c.vocabulary_id = 'LOINC'
+  AND c.concept_class_id IN ('Lab Test'
+    --,'Survey', 'Answer', 'Clinical Observation' --TODO: postponed for now
+    )
+--AND c.invalid_reason != 'U'
 
-ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code)
+ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
+
+--Backup of the previous version of loinc_source
+--DROP TABLE dev_loinc.loinc_source_20211028;
+/*CREATE TABLE dev_loinc.loinc_source_backup_20211028
+AS (SELECT *
+    FROM dev_loinc.loinc_source);*/
+
 
 --One time executed code to run and take concepts from concept_relationship_manual
 --TODO: There are a lot of non-deprecated relationships to non-standard (in dev_loinc) concepts.
@@ -115,25 +125,24 @@ ORDER BY replace (c.concept_name, 'Deprecated ', ''), c.concept_code)
 -- There should be a check that force us to manually fix the manual file (even before running the 1st query to get the delta).
 -- So once the concept is in the manual file, it should NOT appear in delta. Basically this is "check if target concepts are Standard and exist in the concept table"
 -- Once the relationship to the specific target concept is gone, the machinery should make it D in CRM using the current_date.
-SELECT DISTINCT
-       replace (c.concept_name, 'Deprecated ', '') AS source_concept_name_clean,
-       c.concept_name AS source_concept_name,
-       c.concept_code AS source_concept_code,
-       c.concept_class_id AS   source_concept_class_id,
-       c.invalid_reason AS     source_invalid_reason,
-       c.domain_id AS          source_domain_id,
+SELECT DISTINCT replace(c.concept_name, 'Deprecated ', '') AS source_concept_name_clean,
+                c.concept_name                             AS source_concept_name,
+                c.concept_code                             AS source_concept_code,
+                c.concept_class_id                         AS source_concept_class_id,
+                c.invalid_reason                           AS source_invalid_reason,
+                c.domain_id                                AS source_domain_id,
 
-       crm.relationship_id AS relationship_id,
+                crm.relationship_id                        AS relationship_id,
 
-       'CRM' AS flag,
-       cc.concept_id AS target_concept_id,
-       cc.concept_code AS target_concept_code,
-       cc.concept_name AS target_concept_name,
-       cc.concept_class_id AS target_concept_class_id,
-       cc.standard_concept AS target_standard_concept,
-       cc.invalid_reason AS target_invalid_reason,
-       cc.domain_id AS target_domain_id,
-       cc.vocabulary_id AS target_vocabulary_id
+                'CRM'                                      AS flag,
+                cc.concept_id                              AS target_concept_id,
+                cc.concept_code                            AS target_concept_code,
+                cc.concept_name                            AS target_concept_name,
+                cc.concept_class_id                        AS target_concept_class_id,
+                cc.standard_concept                        AS target_standard_concept,
+                cc.invalid_reason                          AS target_invalid_reason,
+                cc.domain_id                               AS target_domain_id,
+                cc.vocabulary_id                           AS target_vocabulary_id
 
 FROM dev_loinc.concept_relationship_manual crm
 JOIN dev_loinc.concept c ON c.concept_code = crm.concept_code_1 AND c.vocabulary_id = 'LOINC'  AND crm.invalid_reason IS NULL
@@ -182,20 +191,31 @@ WHERE s.source_concept_code = crm.concept_code_1
     AND crm.relationship_id = 'Is a'
     AND crm.invalid_reason IS NULL
 )
+AND NOT EXISTS (SELECT
+                FROM dev_loinc.loinc_mapped lm
+                WHERE s.source_concept_code = lm.source_code
+                AND lm.to_value = 'Is a'
+                AND target_concept_id = '0')
 
 ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_code
 ;
 
-
 --backup CRM
 --CREATE TABLE dev_loinc.concept_relationship_manual_backup_20210603 AS SELECT * FROM dev_loinc.concept_relationship_manual;
-;
 
 --restore CRM
 --TRUNCATE TABLE dev_loinc.concept_relationship_manual;
 --INSERT INTO dev_loinc.concept_relationship_manual
 --SELECT * FROM dev_loinc.concept_relationship_manual_backup_20210603;
 
+--Backup of the previous version of loinc_mapped
+--DROP TABLE dev_loinc.loinc_mapped_20211028;
+/*CREATE TABLE dev_loinc.loinc_mapped_backup_20211028
+AS (SELECT *
+    FROM dev_loinc.loinc_mapped);*/
+
+--backup CRM
+--CREATE TABLE dev_loinc.concept_relationship_manual_backup_20211130 AS SELECT * FROM dev_loinc.concept_relationship_manual;
 
 --Insert into CRM
 -- Step 1: Create table crm_manual_mappings_changed with fields from manual file
@@ -209,7 +229,7 @@ CREATE TABLE dev_loinc.loinc_mapped
     source_invalid_reason varchar(20),
     source_domain_id varchar(50),
     to_value varchar(50),
-    flag varchar(50),
+    source varchar(50),
     target_concept_id int,
     target_concept_code varchar(50),
     target_concept_name varchar(255),
@@ -226,18 +246,24 @@ UPDATE dev_loinc.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
 WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
+      (SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2
+       FROM concept_relationship_manual crm_old
 
-(SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2 FROM concept_relationship_manual crm_old
-
-WHERE NOT exists(SELECT source_code, target_concept_code, 'LOINC', target_vocabulary_id, CASE WHEN to_value ~* 'value' THEN 'Maps to value'
-                    WHEN to_value ~* 'Is a' THEN 'Is a'
-                    WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
-                   ELSE 'Maps to' END
-                FROM dev_loinc.loinc_mapped crm_new
-                WHERE source_code = crm_old.concept_code_1
-                AND target_concept_code = crm_old.concept_code_2
-                AND target_vocabulary_id = crm_old.vocabulary_id_2
-                AND CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+       WHERE NOT exists(SELECT source_code,
+                               target_concept_code,
+                               'LOINC',
+                               target_vocabulary_id,
+                               CASE
+                                   WHEN to_value ~* 'value' THEN 'Maps to value'
+                                   WHEN to_value ~* 'Is a' THEN 'Is a'
+                                   WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
+                                   ELSE 'Maps to' END
+                        FROM dev_loinc.loinc_mapped crm_new
+                        WHERE source_code = crm_old.concept_code_1
+                          AND target_concept_code = crm_old.concept_code_2
+                          AND target_vocabulary_id = crm_old.vocabulary_id_2
+                          AND CASE
+                                  WHEN to_value ~* 'value' THEN 'Maps to value'
                     WHEN to_value ~* 'Is a' THEN 'Is a'
                     WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
                    ELSE 'Maps to' END = crm_old.relationship_id

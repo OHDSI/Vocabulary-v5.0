@@ -39,6 +39,56 @@ WHERE c.vocabulary_id IN (:your_vocabs)
 ORDER BY devv5.similarity (c2.concept_name, c.concept_name)
 ;
 
+
+--01.4. Concepts changed their synonyms
+with old_syn as (
+
+SELECT c.concept_code,
+       c.vocabulary_id,
+       cs.language_concept_id,
+       array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) as old_synonym
+FROM devv5.concept c
+JOIN devv5.concept_synonym cs
+    ON c.concept_id = cs.concept_id
+WHERE c.vocabulary_id IN (:your_vocabs)
+GROUP BY c.concept_code,
+       c.vocabulary_id,
+       cs.language_concept_id
+),
+
+new_syn as (
+
+SELECT c.concept_code,
+       c.vocabulary_id,
+       cs.language_concept_id,
+       array_agg (DISTINCT cs.concept_synonym_name ORDER BY cs.concept_synonym_name) as new_synonym
+FROM concept c
+JOIN concept_synonym cs
+    ON c.concept_id = cs.concept_id
+WHERE c.vocabulary_id IN (:your_vocabs)
+GROUP BY c.concept_code,
+       c.vocabulary_id,
+       cs.language_concept_id
+)
+
+SELECT DISTINCT
+       o.concept_code,
+       o.vocabulary_id,
+       o.old_synonym,
+       n.new_synonym,
+       devv5.similarity (o.old_synonym::varchar, n.new_synonym::varchar)
+FROM old_syn o
+
+LEFT JOIN new_syn n
+    ON o.concept_code = n.concept_code
+        AND o.language_concept_id = n.language_concept_id
+
+WHERE o.old_synonym != n.new_synonym OR n.new_synonym IS NULL
+
+ORDER BY devv5.similarity (o.old_synonym::varchar, n.new_synonym::varchar)
+;
+
+
 --02. Mapping of concepts
 --02.1. looking at new concepts and their mapping -- 'Maps to' absent
 select a.concept_code as concept_code_source,

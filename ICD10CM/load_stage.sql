@@ -178,12 +178,12 @@ FROM (
 		AND cs1.vocabulary_id = 'ICD10CM'
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id in ( 'SNOMED', 'LOINC')
+		AND c2.vocabulary_id in ( 'SNOMED', 'LOINC', 'Cancer Modifier', 'OMOP Extension')
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
-	
+
 	UNION ALL
-	
+
 	SELECT DISTINCT cs1.concept_code,
 		first_value(c2.domain_id) OVER (
 			PARTITION BY cs1.concept_code ORDER BY CASE c2.domain_id
@@ -204,7 +204,7 @@ FROM (
 	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 		AND c1.vocabulary_id = 'ICD10CM'
 	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.vocabulary_id in ( 'SNOMED', 'LOINC')
+		AND c2.vocabulary_id in ('SNOMED', 'LOINC', 'Cancer Modifier', 'OMOP Extension')
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'

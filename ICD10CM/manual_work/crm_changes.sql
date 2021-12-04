@@ -16,20 +16,21 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
--- deprecate previous inaccurate mapping
+
 UPDATE concept_relationship_manual crm
 SET invalid_reason = 'D',
     valid_end_date = current_date
-
-WHERE (crm.concept_code_1, crm.concept_code_2, crm.relationship_id, crm.vocabulary_id_2) IN
-    (SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2
-    FROM concept_relationship_manual crm
-    LEFT JOIN refresh_lookup_done rl
-        ON crm.concept_code_1 = rl.icd_code
-    WHERE rl.repl_by_code != crm.concept_code_2
-        OR rl.repl_by_vocabulary != crm.vocabulary_id_2
-        OR rl.repl_by_relationship != crm.relationship_id)
-AND invalid_reason IS NULL;
+--SELECT * FROM concept_relationship_manual
+WHERE concept_code_1 in
+    (SELECT icd_code FROM refresh_lookup_done)
+AND (concept_code_2, relationship_id, vocabulary_id_2) in
+(SELECT concept_code_2, relationship_id, vocabulary_id_2 FROM concept_relationship_manual crm
+WHERE NOT exists (SELECT repl_by_code, repl_by_relationship, repl_by_vocabulary FROM refresh_lookup_done rl
+                  WHERE rl.repl_by_code = crm.concept_code_2
+                  AND rl.repl_by_vocabulary = crm.vocabulary_id_2
+                  AND rl.repl_by_relationship = crm.relationship_id)
+AND invalid_reason IS NULL)
+    ;
 
 -- insert new mapping
 with mapping AS
@@ -60,3 +61,4 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
         NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM concept_relationship_manual)
     )
 ;
+

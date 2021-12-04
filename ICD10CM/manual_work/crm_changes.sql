@@ -21,17 +21,21 @@
 UPDATE concept_relationship_manual crm
 SET invalid_reason = 'D',
     valid_end_date = current_date
---SELECT * FROM concept_relationship_manual
-WHERE concept_code_1 in
-    (SELECT icd_code FROM refresh_lookup_done)
-AND (concept_code_2, relationship_id, vocabulary_id_2) in
-(SELECT concept_code_2, relationship_id, vocabulary_id_2 FROM concept_relationship_manual crm
-WHERE NOT exists (SELECT repl_by_code, repl_by_relationship, repl_by_vocabulary FROM refresh_lookup_done rl
-                  WHERE rl.repl_by_code = crm.concept_code_2
-                  AND rl.repl_by_vocabulary = crm.vocabulary_id_2
-                  AND rl.repl_by_relationship = crm.relationship_id)
-AND invalid_reason IS NULL)
-    ;
+
+--SELECT * FROM concept_relationship_manual crm --use this SELECT for QA
+WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order to preserve the original deprecation date
+
+    AND concept_code_1 IN (SELECT icd_code FROM refresh_lookup_done) --work only with the codes presented in the manual file of the current vocabulary refresh
+
+    AND NOT EXISTS (SELECT 1 --don't deprecate mapping if the same exists in the current manual file
+                    FROM refresh_lookup_done rl
+                    WHERE rl.icd_code = crm.concept_code_1 --the same source_code is mapped
+                        AND rl.repl_by_code = crm.concept_code_2 --to the same concept_code
+                        AND rl.repl_by_vocabulary = crm.vocabulary_id_2 --of the same vocabulary
+                        AND rl.repl_by_relationship = crm.relationship_id --with the same relationship
+        )
+;
+
 
 -- insert new mapping
 with mapping AS

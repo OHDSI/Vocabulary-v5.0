@@ -17,6 +17,7 @@
 * Date: 2021
 **************************************************************************/
 
+-- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
 SET invalid_reason = 'D',
     valid_end_date = current_date

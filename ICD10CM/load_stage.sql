@@ -152,7 +152,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---12. Update domain_id for ICD10CM from SNOMED and LOINC
+--12. Update domain_id for ICD10CM from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (

@@ -25,7 +25,7 @@ There are several functions for easier viewing - `GetLogSummary`, `GetLogByID` a
 
 # Examples
 
-To view a short aggregated history of base tables changes, type
+### To view a short aggregated history of base tables changes, type
 ```SQL
 SELECT log_id,
 	tx_time AT TIME ZONE 'MSK' AS tx_time,
@@ -47,7 +47,7 @@ Some explanations:
 NOTE: If the change was made manually, for example "update concept set concept_name = '1' where concept_id = 1", then the corresponding query will be shown marked "Manual".
 * affected_vocabs - the vocabularies that were specified in `SetLatestUpdate`, with the schema name (e.g. NDC, SPL [DEV_NDC]).
 
-If you want to see the history of a specific concept, type
+### If you want to see the history of a specific concept, type
 ```SQL
 SELECT log_id,
 	table_name,
@@ -70,7 +70,7 @@ Some explanations:
 
 NOTE: as `iConceptID` you can use the field concept_id (`concept`, `concept_synonym`), concept_id_1 (`concept_relationship`), relationship_concept_id (`relationship`), vocabulary_concept_id (`vocabulary`), concept_class_concept_id (`concept_class`), domain_concept_id (`domain`), drug_concept_id (`drug_strength`), pack_concept_id (`pack_content`).
 
-If you want to see the history of a specific transaction, type
+### If you want to see the history of a specific transaction, type
 ```SQL
 SELECT log_id,
 	table_name,
@@ -87,8 +87,9 @@ LIMIT 100;
 
 Will show all changes to the base tables made during this transaction.
 
----
 
+
+### Restoring the dev-schema
 Through detailed logs, it is possible to use them to restore dev-schema (and even directly devv5) at any convenient time. For example, if you want to restore the dev-schema to the moment before the latest update, the following steps are needed:
 1. Connect to the required dev-schema
 2. Run
@@ -112,7 +113,8 @@ END $$;
 
 After some time the dev-schema will be restored (including event from selected log_id).
 
-If you want to see which vocabularies have been updated since the last release, type 
+
+### If you want to see which vocabularies have been updated since the last release, type 
 ```SQL
 SELECT MAX(tx_time) AS tx_time,
 	s0.affected_vocabs

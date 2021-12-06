@@ -1,11 +1,14 @@
-Update of LOINC
+### Update of LOINC
 
-Prerequisites:
+#### Prerequisites:
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
 - SNOMED must be loaded first
 - Working directory LOINC.
 NOTE: The FastRecreateSchema must be used with a include_deprecated_rels=>true
 
+#### Sequence of actions
+
+##### Source filling
 1. Run create_source_tables.sql
 2. Download full set (https://loinc.org/file-access/download-id/8960)
 and multiaxial hierarchy (https://loinc.org/file-access/download-id/8991)
@@ -22,6 +25,34 @@ and multiaxial hierarchy (https://loinc.org/file-access/download-id/8991)
 13. Download "LOINC Group File" https://loinc.org/file-access/download-id/17949/, extract Group.csv, GroupLoincTerms.csv and ParentGroupAttributes.csv
 14. Download "LOINC Part File" https://loinc.org/file-access/download-id/17948/, extract LoincPartLink_Supplementary.csv, LoincPartLink_Primary.csv and Part.csv
 15. Download "LOINC/RSNA Radiology Playbook File" https://loinc.org/file-access/download-id/9526/, extract LoincRsnaRadiologyPlaybook.csv
-16. Run in devv5 (with fresh vocabulary date and version): SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2.64');
-17. Run load_stage.sql
-18. Run generic_update: devv5.GenericUpdate();
+16. Run in devv5 (with fresh vocabulary date and version):
+```sql
+SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2.64');
+```
+
+##### Filling stage and basic tables
+1. Run the FastRecreate:
+```sql
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> true,
+                                include_deprecated_rels=> true, include_synonyms=> true);
+```
+2. As described in the "manual_work" folder, upload concept_manual.csv and concept_relationship_manual.csv into eponymous tables, which exist by default in the dev schema after the FastRecreate. If you already have manual staging tables, obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy, concept_manual_backup_ddmmyy)
+3. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/load_stage.sql)
+4. Run check_stage_tables function (should retrieve NULL):
+```sql
+SELECT * FROM qa_tests.check_stage_tables();
+```
+5. Run generic_update:
+```sql
+SELECT devv5.GenericUpdate();
+```
+6. Run basic tables check (should retrieve NULL):
+```sql
+SELECT * FROM qa_tests.get_checks();
+```
+7. Perform manual work described in manual_work folder
+8. Repeat 1 - 6 steps
+9. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
+10. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql)
+11. Run all standard checks after generic to collect statistics and summary.
+12. If no problems, enjoy!

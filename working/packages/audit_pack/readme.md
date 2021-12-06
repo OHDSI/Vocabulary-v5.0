@@ -112,6 +112,23 @@ END $$;
 
 After some time the dev-schema will be restored (including event from selected log_id).
 
+If you want to see which vocabularies have been updated since the last release, type 
+```SQL
+SELECT MAX(tx_time) AS tx_time,
+	s0.affected_vocabs
+FROM (
+	SELECT log_id,
+		tx_time AT TIME ZONE 'MSK' AS tx_time,
+		affected_vocabs,
+		MAX(log_id) FILTER(WHERE script_name = 'StartRelease') OVER () latest_release_id
+	FROM audit.GetLogSummary()
+	) s0
+WHERE s0.log_id > s0.latest_release_id
+	AND s0.affected_vocabs IS NOT NULL
+GROUP BY s0.affected_vocabs
+ORDER BY 1 DESC;
+```
+
 ---
 
 ## Keep in mind

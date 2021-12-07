@@ -16,6 +16,22 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
+-- create backup of concept_relationship_manual table
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT CURRENT_DATE
+        INTO update
+        FROM vocabulary
+        WHERE vocabulary_id = 'ICD10CM'
+        LIMIT 1;
+        EXECUTE format('drop table if exists %I; create table if not exists %I as select * from concept_relationship_manual',
+                       'concept_relationship_manual_backup_' || update, 'concept_relationship_manual_' || update );
+
+    END
+$body$;
 
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm
@@ -35,7 +51,6 @@ WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order
                         AND rl.repl_by_relationship = crm.relationship_id --with the same relationship
         )
 ;
-
 
 -- insert new mapping
 with mapping AS

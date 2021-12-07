@@ -28,7 +28,7 @@ $body$
         WHERE vocabulary_id = 'ICD10CM'
         LIMIT 1;
         EXECUTE format('drop table if exists %I; create table if not exists %I as select * from concept_relationship_manual',
-                       'concept_relationship_manual_backup_' || update, 'concept_relationship_manual_' || update );
+                       'concept_relationship_manual_backup_' || update, 'concept_relationship_backup_' || update );
 
     END
 $body$;

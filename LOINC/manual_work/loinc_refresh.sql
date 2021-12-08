@@ -200,6 +200,23 @@ AND NOT EXISTS (SELECT
 ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_code
 ;
 
+-- create backup of concept_relationship_manual table
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT CURRENT_DATE
+        INTO update
+        FROM vocabulary
+        WHERE vocabulary_id = 'LOINC'
+        LIMIT 1;
+        EXECUTE format('drop table if exists %I; create table if not exists %I as select * from concept_relationship_manual',
+                       'concept_relationship_manual_backup_' || update, 'concept_relationship_manual_' || update );
+
+    END
+$body$;
+
 --backup CRM
 --CREATE TABLE dev_loinc.concept_relationship_manual_backup_20210603 AS SELECT * FROM dev_loinc.concept_relationship_manual;
 

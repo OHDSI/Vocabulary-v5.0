@@ -39,7 +39,7 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 - NULL string: empty
 
 ### STEP 7 of the refresh:
-1. Make backups of concept_manual and concept_relationship_manual tables.
+1. Make backup of the concept_relationship_manual table.
 2. Run [loinc_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/loinc_refresh.sql) file. At the beginning create loinc_source table.
 3. Download loinc_source table and open it in Excel.
 4. Download table with actual mappings existing in CRM (!If you don't have it) and place it in the same Excel file.

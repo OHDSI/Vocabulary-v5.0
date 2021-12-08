@@ -355,42 +355,95 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
      FROM SOURCES.low_level_term
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
 
+6. Insert MedDRA to SNOMED mapping from meddra_mapped to concept_relationship_manual - done 06.12.2021
+with mapping AS
+    (
+        SELECT DISTINCT source_code AS concept_code_1,
+               target_concept_code AS concept_code_2,
+               'MedDRA' AS vocabulary_id_1,
+               target_vocabulary_id AS vocabulary_id_2,
+               CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+                    WHEN to_value ~* 'Is a' THEN 'Is a'
+                    WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
+                   ELSE 'Maps to' END AS relationship_id,
+               current_date AS valid_start_date,
+               to_date('20991231','yyyymmdd') AS valid_end_date,
+               NULL AS invalid_reason
+        FROM dev_meddra.meddra_mapped
+        WHERE target_concept_id != 0
+    )
 
---Additional? Working with concept_manual table
-/*DO $_$
+INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+    (SELECT concept_code_1,
+            concept_code_2,
+            vocabulary_id_1,
+            vocabulary_id_2,
+            relationship_id,
+            valid_start_date,
+            valid_end_date,
+            invalid_reason
+     FROM mapping AS m
+        WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
+                  NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM dev_meddra.concept_relationship_manual)
+    );
+
+-- 7. Working with concept_manual table
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
-*/
 
---6. Append result to concept_relationship_stage table
-/*DO $_$
+-- 8. Append result to concept_relationship_stage table
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$; */
+END $_$;
 
---7. Working with replacement mappings
-/*DO $_$
+-- 9. Working with replacement mappings
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;*/
+END $_$;
 
---8. Add mapping from deprecated to fresh concepts
-/*DO $_$
+--10. Add mapping from deprecated to fresh concepts
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;*/
+END $_$;
 
---9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-/*DO $_$
+--11. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;*/
+END $_$;
 
---10. Delete ambiguous 'Maps to' mappings
-/*DO $_$
+--12. Delete ambiguous 'Maps to' mappings
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;*/
+END $_$;
+
+--13. Deprecate old 'Maps to' mappings when exist new variant
+
+UPDATE dev_meddra.concept_relationship_stage
+SET invalid_reason = 'D'
+FROM dev_meddra.concept_relationship_stage as crs
+INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
+INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
+WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%'
+ORDER BY cr.concept_id_1;
+
+
+
+/*SELECT * FROM dev_meddra.concept_relationship
+WHERE invalid_reason IS null AND  relationship_id='MedDRA - SNOMED eq'
+
+SELECT DISTINCT COUNT (concept_id_1) FROM dev_meddra.concept_relationship;
+SELECT DISTINCT COUNT (concept_id_1) FROM dev_meddra.concept_relationship_stage;
+SELECT * FROM dev_meddra.concept_relationship WHERE relationship_id LIKE '%MedDRA%';
+*/
+
+
+
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -1,16 +1,18 @@
--- step 1
+---vocabularies QA and run
+
+-- step 1 -- done 08.12.21
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
--- step 2 (load stage, including 6)
--- step 3 - return null
+-- step 2 -- load stage -- done 06.12.21
+-- step 3 - return null -- done 06.12.21
 select * from devv5.qa_ddl();
--- step 4 - return null
+-- step 4 - return null -- done 06.12.21
 SELECT * FROM qa_tests.check_stage_tables ();
 -- step 5
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
--- step 6 - return 0
+-- step 6 - return null -- done 06.12.21
 select * from QA_TESTS.GET_CHECKS();
 -- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql
 --01. Concept changes
@@ -362,38 +364,6 @@ FROM dev_meddra.concept AS c
 WHERE lower (concept_name)  ~* 'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries))|severe acute|covid(?!ien)'
   AND lower(concept_name) !~* '( |^)LASSARS' AND vocabulary_id='MedDRA' AND NOT EXISTS (SELECT 1 FROM dev_meddra.meddra_mapped AS m WHERE m.source_code =  CAST(c.concept_code AS varchar))
 */
-
--- Insert mappings to CRM
-with mapping AS
-    (
-        SELECT DISTINCT source_code AS concept_code_1,
-               target_concept_code AS concept_code_2,
-               'MedDRA' AS vocabulary_id_1,
-               target_vocabulary_id AS vocabulary_id_2,
-               CASE WHEN to_value ~* 'value' THEN 'Maps to value'
-                    WHEN to_value ~* 'Is a' THEN 'Is a'
-                    WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
-                   ELSE 'Maps to' END AS relationship_id,
-               current_date AS valid_start_date,
-               to_date('20991231','yyyymmdd') AS valid_end_date,
-               NULL AS invalid_reason
-        FROM dev_meddra.meddra_mapped
-        WHERE target_concept_id != 0
-    )
-
-INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-    (SELECT concept_code_1,
-            concept_code_2,
-            vocabulary_id_1,
-            vocabulary_id_2,
-            relationship_id,
-            valid_start_date,
-            valid_end_date,
-            invalid_reason
-     FROM mapping AS m
-        WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
-                  NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM dev_meddra.concept_relationship_manual)
-    );
 
 /*
 Check of current and prerelise mapping snomedtomeddra and meddratosnomed

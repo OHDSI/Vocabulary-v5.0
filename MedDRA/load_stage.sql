@@ -354,8 +354,17 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
           NULL
      FROM SOURCES.low_level_term
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
+    UNION ALL;
 
-6. Insert MedDRA to SNOMED mapping from meddra_mapped to concept_relationship_manual - done 06.12.2021
+UPDATE dev_meddra.concept_relationship_stage
+SET invalid_reason = 'D'
+FROM dev_meddra.concept_relationship_stage as crs
+INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
+INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
+WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%';
+
+--6. Insert MedDRA to SNOMED mapping from meddra_mapped to concept_relationship_manual - done 06.12.2021
+
 with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
@@ -424,26 +433,16 @@ BEGIN
 END $_$;
 
 --13. Deprecate old 'Maps to' mappings when exist new variant
-
+/*
 UPDATE dev_meddra.concept_relationship_stage
 SET invalid_reason = 'D'
 FROM dev_meddra.concept_relationship_stage as crs
 INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
 INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
-WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%'
-ORDER BY cr.concept_id_1;
-
-
-
-/*SELECT * FROM dev_meddra.concept_relationship
-WHERE invalid_reason IS null AND  relationship_id='MedDRA - SNOMED eq'
-
-SELECT DISTINCT COUNT (concept_id_1) FROM dev_meddra.concept_relationship;
-SELECT DISTINCT COUNT (concept_id_1) FROM dev_meddra.concept_relationship_stage;
-SELECT * FROM dev_meddra.concept_relationship WHERE relationship_id LIKE '%MedDRA%';
+WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%';
 */
 
 
-
-
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+
+

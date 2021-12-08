@@ -2,19 +2,19 @@
 
 -- step 1 -- done 08.12.21
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
--- step 2 -- load stage -- done 06.12.21
--- step 3 - return null -- done 06.12.21
+-- step 2 -- load stage -- done 08.12.21
+-- step 3 - return null -- done 08.12.21
 select * from devv5.qa_ddl();
--- step 4 - return null -- done 06.12.21
+-- step 4 - return null -- done 08.12.21
 SELECT * FROM qa_tests.check_stage_tables ();
--- step 5
+-- step 5 -- done 08.12.21
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
--- step 6 - return null -- done 06.12.21
+-- step 6 - return null -- done 08.12.21
 select * from QA_TESTS.GET_CHECKS();
--- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql
+-- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql - done 08.12.21
 --01. Concept changes
 
     --01.1. Concepts changed their Domain
@@ -247,7 +247,7 @@ where a.vocabulary_id IN ('MedDRA')
     )
 ;
 
---02.8. Concepts became non-Standard with no mapping replacement
+--02.8. Concepts became non-Standard with no mapping replacement - return null 08.12.21
 select a.concept_code,
        a.concept_name,
        a.concept_class_id,
@@ -284,25 +284,8 @@ AND NOT EXISTS (SELECT 1
                     AND cr.invalid_reason IS NULL)
 ;
 
---02.10. Mapping of vaccines
---move to the project-specific QA folder and adjust exclusion criteria in there
---adjust inclusion criteria here if needed: https://github.com/OHDSI/Vocabulary-v5.0/blob/master/RxNorm_E/manual_work/specific_qa/vaccine%20selection.sql
-with vaccine_exclusion as (SELECT
-    'placeholder|placeholder' as vaccine_exclusion
-    )
 
-select distinct c.concept_name, c.concept_class_id, b.concept_name, b.concept_class_id, b.vocabulary_id
-from concept c
-left join concept_relationship cr on cr.concept_id_1 = c.concept_id and relationship_id ='Maps to' and cr.invalid_reason is null
-left join concept b on b.concept_id = cr.concept_id_2
-where c.vocabulary_id IN (:your_vocabs)
-
-    and ((c.concept_name ~* (select vaccine_inclusion from dev_rxe.vaccine_inclusion) and c.concept_name !~* (select vaccine_exclusion from vaccine_exclusion))
-        or
-        (b.concept_name ~* (select vaccine_inclusion from dev_rxe.vaccine_inclusion) and b.concept_name !~* (select vaccine_exclusion from vaccine_exclusion)))
-;
-
---02.11. Mapping of covid concepts (please adjust inclusion/exclusion in the master branch if found something)
+--02.9. Mapping of covid concepts (please adjust inclusion/exclusion in the master branch if found something)
 with covid_inclusion as (SELECT
         'sars(?!(tedt|aparilla))|^cov(?!(er|onia|aWound|idien))|cov$|^ncov|ncov$|corona(?!(l|ry|ries| radiata))|severe acute|covid(?!ien)' as covid_inclusion
     ),
@@ -311,7 +294,7 @@ with covid_inclusion as (SELECT
   AND lower(c.concept_name) !~* '( |^)LASSARS|papillaris|radiata' AND c.vocabulary_id='MedDRA'*/
 
 covid_exclusion as (SELECT
-    '( |^)LASSARS' as covid_exclusion
+    '( |^)LASSARS|Coronaro|coronae' as covid_exclusion
     )
 
 

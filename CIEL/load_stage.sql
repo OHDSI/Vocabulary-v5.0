@@ -47,14 +47,8 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
-			PARTITION BY c.concept_id ORDER BY CASE 
-					WHEN LENGTH(cn.ciel_name) <= 255
-						THEN LENGTH(cn.ciel_name)
-					ELSE 0
-					END DESC,
-				LENGTH(cn.ciel_name)
-			), 'Concept ' || c.concept_id /*for strange reason we have 4 concepts without concept_name*/) AS concept_name,
+SELECT DISTINCT ON (c.concept_id)
+	vocabulary_pack.CutConceptName(COALESCE(cn.ciel_name, 'Concept ' || c.concept_id /*for strange reason we have 4 concepts without concept_name*/)) AS concept_name,
 	CASE ccl.ciel_name
 		WHEN 'Test'
 			THEN 'Measurement'
@@ -153,7 +147,10 @@ SELECT DISTINCT COALESCE(FIRST_VALUE(cn.ciel_name) OVER (
 FROM sources.ciel_concept c
 LEFT JOIN sources.ciel_concept_class ccl ON ccl.concept_class_id = c.class_id
 LEFT JOIN sources.ciel_concept_name cn ON cn.concept_id = c.concept_id
-	AND cn.locale = 'en';
+	AND cn.locale = 'en'
+ORDER BY c.concept_id,
+	cn.locale_preferred DESC,
+	LENGTH(cn.ciel_name) DESC /*some concepts don't have locale_preferred*/;
 
 --begin addition M. Kallfelz 2021-05-06
 --4. Add synonyms to concept_synonym_stage by language

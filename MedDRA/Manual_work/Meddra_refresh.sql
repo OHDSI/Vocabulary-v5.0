@@ -7,6 +7,7 @@ SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ances
 select * from devv5.qa_ddl();
 -- step 4 - return null -- done 08.12.21
 SELECT * FROM qa_tests.check_stage_tables ();
+
 -- step 5 -- done 08.12.21
 DO $_$
 BEGIN
@@ -313,7 +314,7 @@ where c.vocabulary_id IN ('MedDRA')
 select * from qa_tests.purge_cache();
 select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
 select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
-select * from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'devv5');
+--select * from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'devv5');
 
 -- Statistics QA checks
 --13.1. Domain changes
@@ -329,10 +330,7 @@ select * from qa_tests.get_changes_concept_mapping(pCompareWith=>'devv5');
 
 
 
-
-
-
-
+--- Final ----
 --Review COVID-19 mappings
 /*
 SELECT DISTINCT

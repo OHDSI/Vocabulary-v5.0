@@ -356,13 +356,6 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
     UNION ALL;
 
-UPDATE dev_meddra.concept_relationship_stage
-SET invalid_reason = 'D'
-FROM dev_meddra.concept_relationship_stage as crs
-INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
-INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
-WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%';
-
 --6. Insert MedDRA to SNOMED mapping from meddra_mapped to concept_relationship_manual - done 06.12.2021
 
 with mapping AS
@@ -408,6 +401,26 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
+-- Depricate MedDRA-SNOMED eq
+WITH tbl AS
+(SELECT *
+FROM dev_meddra.concept_relationship_stage as crs
+INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
+INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
+WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%')
+
+UPDATE dev_meddra.concept_relationship_stage
+SET invalid_reason = 'D'
+FROM dev_meddra.concept_relationship_stage;
+
+
+-- Deprication check
+SELECT *
+FROM dev_meddra.concept_relationship_stage as crs
+INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
+INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
+WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%';
+
 -- 9. Working with replacement mappings
 DO $_$
 BEGIN
@@ -432,15 +445,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---13. Deprecate old 'Maps to' mappings when exist new variant
-/*
-UPDATE dev_meddra.concept_relationship_stage
-SET invalid_reason = 'D'
-FROM dev_meddra.concept_relationship_stage as crs
-INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
-INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
-WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%';
-*/
+
 
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

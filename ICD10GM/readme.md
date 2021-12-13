@@ -14,7 +14,7 @@
 ```sql
 SELECT sources.load_input_tables('ICD10GM',TO_DATE('20200101','YYYYMMDD'),'2020 Release');
 ```
-5. Run the FastRecreate:
+5. Run the FastRecreate (Full recreate from devv5):
 ```sql
 SELECT devv5.FastRecreateSchema('dev_icd10'); 
 ```

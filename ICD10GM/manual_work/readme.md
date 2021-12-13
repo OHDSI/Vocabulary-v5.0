@@ -1,4 +1,4 @@
-### STEP 6 of the refresh: work with manual staging tables
+### STEP 6 of the refresh: work with manual staging tables (run only while working on any server but Vocabulary)
 
 1.Extract the [respective csv file](https://drive.google.com/file/d/1ZjYCykojpUyxljZ4v1Qs3Yz72TiXWvKC/view?usp=sharing) into the concept_manual table. The file was generated using the query:
 ```sql

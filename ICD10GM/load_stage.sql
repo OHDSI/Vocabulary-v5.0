@@ -195,7 +195,7 @@ FROM (
 	FROM concept_relationship_stage crs
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id in ('SNOMED', 'Cancer Modifier', 'OMOP Extension')
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 		AND crs.vocabulary_id_1 = 'ICD10GM'

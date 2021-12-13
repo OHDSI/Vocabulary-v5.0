@@ -57,7 +57,7 @@ with mapping AS
     (
         SELECT DISTINCT icd_code AS concept_code_1,
                repl_by_code AS concept_code_2,
-               'ICD10CM' AS vocabulary_id_1,
+               'ICD10' AS vocabulary_id_1,
                repl_by_vocabulary AS vocabulary_id_2,
                repl_by_relationship AS relationship_id,
                current_date AS valid_start_date,

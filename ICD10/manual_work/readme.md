@@ -58,3 +58,4 @@ Preserve a manual table with 'Is a' relationships, but change 'Is a' to 'Maps to
 - repl_by_name VARCHAR,
 - repl_by_domain VARCHAR,
 - repl_by_vocabulary VARCHAR
+

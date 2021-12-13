@@ -1,5 +1,5 @@
 ### STEP 2 of the refresh: upload manual staging tables
-1.Extract the [respective csv file](https://drive.google.com/file/d/11NiyTjRg5rzJx8Mwfv5DJ7wsoiihINCO/view?usp=sharing) into the concept_manual table.
+1.Extract the [respective csv file](https://drive.google.com/file/d/1sXdWNn1oN-EhsqFyT6cl2TI4YBXbDQyV/view?usp=sharing) into the concept_manual table.
 The file was generated using the query:
 ```sql
 SELECT concept_name,
@@ -15,7 +15,7 @@ FROM concept_manual
 ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_end_date, concept_name
 ```
 
-2.Extract the [respective csv file](https://drive.google.com/file/d/1s3y0Dju-Pruoazakw4J4sQ7-beSc-575/view?usp=sharing) into the concept_relationship_manual table.
+2.Extract the [respective csv file](https://drive.google.com/file/d/1-R7_j_PNDrNIO1me_ni4-FNL2bs0iE1d/view?usp=sharing) into the concept_relationship_manual table.
 The file was generated using the query:
 ```sql
 SELECT concept_code_1,

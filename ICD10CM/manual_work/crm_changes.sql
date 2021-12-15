@@ -16,7 +16,7 @@
 * Authors: Irina Zherko, Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
--- create backup of concept_relationship_manual table
+-- create current date backup of concept_relationship_manual table
 DO
 $body$
     DECLARE
@@ -27,11 +27,12 @@ $body$
         FROM vocabulary
         WHERE vocabulary_id = 'ICD10CM'
         LIMIT 1;
-        EXECUTE format('drop table if exists %I; create table if not exists %I as select * from concept_relationship_manual',
-                       'concept_relationship_manual_backup_' || update, 'concept_relationship_backup_' || update );
+        EXECUTE format('create table if not exists %I as select * from concept_relationship_manual',
+                       'concept_relationship_manual_backup_' || update);
 
     END
 $body$;
+
 
 -- deprecate previous inaccurate mapping
 UPDATE concept_relationship_manual crm

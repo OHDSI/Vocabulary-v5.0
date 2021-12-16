@@ -17,12 +17,22 @@
 * Date: 2021
 **************************************************************************/
 
-DO $_$
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=>'Type Concept',
 	pVocabularyDate			=> CURRENT_DATE,
 	pVocabularyVersion		=> 'Type Concept '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
+	pVocabularyDevSchema	=> 'DEV_OMOP'
+);
+END $_$;*/
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=>'Visit',
+	pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyVersion		=> 'Visit '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
 	pVocabularyDevSchema	=> 'DEV_OMOP'
 );
 END $_$;

@@ -1,21 +1,21 @@
 ---vocabularies QA and run
 
--- step 1 -- done 08.12.21
+-- step 1 -- done 17/12/21
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
--- step 2 -- load stage -- done 08.12.21
--- step 3 - return null -- done 08.12.21
+-- step 2 -- load stage -- done 17/12/21
+-- step 3 - return null -- done 17/12/21
 select * from devv5.qa_ddl();
--- step 4 - return null -- done 08.12.21
+-- step 4 - return null -- done 17/12/21
 SELECT * FROM qa_tests.check_stage_tables ();
 
--- step 5 -- done 08.12.21
+-- step 5 -- done 17/12/21
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
--- step 6 - return null -- done 08.12.21
+-- step 6 - return null -- done 17/12/21
 select * from QA_TESTS.GET_CHECKS();
--- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql - done 08.12.21
+-- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql - done 17/12/21
 --01. Concept changes
 
     --01.1. Concepts changed their Domain
@@ -248,7 +248,7 @@ where a.vocabulary_id IN ('MedDRA')
     )
 ;
 
---02.8. Concepts became non-Standard with no mapping replacement - return null 08.12.21
+--02.8. Concepts became non-Standard with no mapping replacement - return null 17.12.21
 select a.concept_code,
        a.concept_name,
        a.concept_class_id,
@@ -328,9 +328,13 @@ select * from qa_tests.get_newly_concepts_standard_concept_status(pCompareWith=>
 --13.5. Changes of concept mapping status grouped by target domain
 select * from qa_tests.get_changes_concept_mapping(pCompareWith=>'devv5');
 
-
-
 --- Final ----
+
+
+
+
+
+
 --Review COVID-19 mappings
 /*
 SELECT DISTINCT
@@ -716,7 +720,7 @@ with mapping AS
                current_date AS valid_start_date,
                to_date('20991231','yyyymmdd') AS valid_end_date,
                NULL AS invalid_reason
-        FROM dev_meddra.meddra_mapped_version22_11_21
+        FROM dev_meddra.meddra_mapped
         WHERE target_concept_id != 0
     )
 

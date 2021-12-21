@@ -26,7 +26,3 @@ repl_by_code VARCHAR,
 repl_by_name VARCHAR,
 repl_by_domain VARCHAR,
 repl_by_vocabulary VARCHAR);
-
-
-
-

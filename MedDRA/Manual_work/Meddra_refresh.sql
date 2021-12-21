@@ -1,19 +1,19 @@
 ---vocabularies QA and run
 
--- step 1 -- done 17/12/21
+-- step 1 -- done 21/12/21
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
--- step 2 -- load stage -- done 17/12/21
--- step 3 - return null -- done 17/12/21
+-- step 2 -- load stage -- done 21/12/21
+-- step 3 - return null -- done 21/12/21
 select * from devv5.qa_ddl();
--- step 4 - return null -- done 17/12/21
+-- step 4 - return null -- done 21/12/21
 SELECT * FROM qa_tests.check_stage_tables ();
 
--- step 5 -- done 17/12/21
+-- step 5 -- done 21/12/21
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
--- step 6 - return null -- done 17/12/21
+-- step 6 - return null -- done 21/12/21
 select * from QA_TESTS.GET_CHECKS();
 -- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql - done 17/12/21
 --01. Concept changes

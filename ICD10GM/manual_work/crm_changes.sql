@@ -27,7 +27,7 @@ $body$
         FROM vocabulary
         WHERE vocabulary_id = 'ICD10GM'
         LIMIT 1;
-        EXECUTE format('create table if not exists %I as select * from concept_relationship_manual',
+        EXECUTE format('create table %I as select * from concept_relationship_manual',
                        'concept_relationship_manual_backup_' || update);
         END
 $body$;
@@ -52,19 +52,20 @@ WHERE invalid_reason IS NULL --deprecate only what's not yet deprecated in order
 ;
 
 -- insert new mapping
-with mapping AS
+with mapping AS -- select all new codes with their mappings from manual file
     (
         SELECT DISTINCT icd_code AS concept_code_1,
                repl_by_code AS concept_code_2,
-               'ICD10GM' AS vocabulary_id_1,
+               'ICD10GM' AS vocabulary_id_1, -- set current vocabulary name as vocabulary_id_1
                repl_by_vocabulary AS vocabulary_id_2,
                repl_by_relationship AS relationship_id,
-               current_date AS valid_start_date,
+               current_date AS valid_start_date, -- set the date of the refresh as valid_start_date
                to_date('20991231','yyyymmdd') AS valid_end_date,
-               NULL AS invalid_reason
+               NULL AS invalid_reason -- make all new mappings valid
         FROM refresh_lookup_done
-        WHERE repl_by_id != 0
+        WHERE repl_by_id != 0 -- select only codes with mapping to standard concepts
     )
+-- insert new mappings into concept_relationship_manual table
 INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
 (
         SELECT concept_code_1,
@@ -76,7 +77,16 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
             valid_end_date,
             invalid_reason
      FROM mapping m
-        WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
-        NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM concept_relationship_manual)
+        -- don't insert codes with mapping if the same exists in the current manual file
+        WHERE (concept_code_1, --the same source_code is mapped
+               concept_code_2, --to the same concept_code
+               vocabulary_id_1,
+               vocabulary_id_2, --of the same vocabulary
+               relationship_id) --with the same relationship
+        NOT IN (SELECT concept_code_1,
+                       concept_code_2,
+                       vocabulary_id_1,
+                       vocabulary_id_2,
+                       relationship_id FROM concept_relationship_manual)
     )
 ;

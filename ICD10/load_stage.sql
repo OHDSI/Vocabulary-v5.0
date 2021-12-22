@@ -389,7 +389,7 @@ WHERE c2.concept_code LIKE c1.concept_code || '%'
 		);
 DROP INDEX trgm_idx;
 
---11. Update domain_id for ICD10 from SNOMED, OMOP Extension
+--11. Update domain_id for ICD10 from from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (

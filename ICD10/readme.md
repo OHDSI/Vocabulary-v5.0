@@ -13,7 +13,7 @@
 ```sql
 SELECT sources.load_input_tables('ICD10',TO_DATE('20161201','YYYYMMDD'),'2016 Release');
 ```
-4. Run the FastRecreate:
+4. Run FULL FastRecreate:
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
 ```

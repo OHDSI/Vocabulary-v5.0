@@ -15,7 +15,7 @@
 ```sql
 SELECT sources.load_input_tables('ICD10CM',TO_DATE('20170428','YYYYMMDD'),'ICD10CM FY2017 code descriptions');
 ```
-5. Run the FastRecreate (Full recreate from devv5):
+5. Run FULL FastRecreate:
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
 ```

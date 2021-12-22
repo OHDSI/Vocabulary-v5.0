@@ -1,4 +1,4 @@
-### STEP 6 of the refresh: work with manual staging tables (run only while working on any server but Vocabulary)
+### STEP 6 of the refresh: work with manual staging tables (skip this step if implementing on the Pallas vocabulary server)
 
 1.Extract the [respective csv file](https://drive.google.com/file/d/1ZjYCykojpUyxljZ4v1Qs3Yz72TiXWvKC/view?usp=sharing) into the concept_manual table. The file was generated using the query:
 ```sql
@@ -45,7 +45,7 @@ ORDER BY synonym_name, synonym_concept_code, synonym_vocabulary_id, language_con
 ### STEP 7 of the refresh: updating concept_relationship_manual
 
 1. Run [mapping_refresh.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/manual_work/mapping_refresh.sql). Table refresh_lookup will be created. It contains the list with mappings to outdated, deprecated or updated Standard concepts, as well as automaticaly improved mapping. 
-2. Download this table and open it in Excel. Columns icd_ represent ICD10GM concepts with uncertain mapping, columns current_ refer to mapping which currently exists in concept_relationship_manual and columns repl_by_ suggest automatically created mapping, the reason for concepts appearing in this table you can see in column reason (e.g., 'improve_map','without mapping').
+2. Download this table and open it in spreadsheet viewer. Columns icd_ represent ICD10GM concepts with uncertain mapping, columns current_ refer to mapping which currently exists in concept_relationship_manual and columns repl_by_ suggest automatically created mapping, the reason for concepts appearing in this table you can see in column reason (e.g., 'improve_map','without mapping').
 3. Perform manual review and mapping. Note, if you think that current mapping is better than suggested replacement, delete rows with these concepts from Excel table. Add column repl_by_relationship and put there necessary relationship_id following the recommendations described below. Then, delete current_ and reason columns.
 4. Save table as refresh_lookup_done.csv and upload it into your schema using script [create_manual_table.sql](https://github.com/OHDSI/Vocabulary-v5.0/tree/icd10gm-documentation/ICD10GM/manual_work)
 5. Run [manual_mapping_qa.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/manual_work/manual_mapping_qa.sql) to check whether refresh mapping meets the ICD10GM logic

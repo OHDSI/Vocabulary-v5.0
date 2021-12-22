@@ -172,7 +172,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Update domain_id for ICD10GM from SNOMED
+--11. Update domain_id for ICD10GM from from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (

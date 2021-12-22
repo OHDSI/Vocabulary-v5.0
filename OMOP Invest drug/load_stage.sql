@@ -81,5 +81,13 @@ select
 null::int, a.concept_name, 'Drug', 'RxNorm Extension', 'Ingredient', 'S',  r.concept_code_2, to_date ('19700101', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null
  from concept_stage a 
 join concept_relationship_stage r on a.concept_code = r.concept_code_1 and relationship_id ='Maps to'
-where r.vocabulary_id_2 = 'RxNorm Extension' -- to do -- to add the way to distinguish from the real RxE
+where r.vocabulary_id_2 = 'RxNorm Extension' 
+-- to do -- to add the way to distinguish from the real RxE
+;
+--4. hierarchy
+--4.1 build hierarchical relationships to the ATC 'L01' concept using the ncit_antineopl 
+insert into concept_relationship_stage
+select distinct null::int, null::int, a.concept_code_2,'L01' ,'RxNorm Extension', 'ATC', 'Is a', to_date ('19700101', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null from concept_relationship_stage a
+join ncit_antineopl b on substring (a.concept_code_1, 'C\d+') = b.code --NCI code
+where a.vocabulary_id_2 ='RxNorm Extension' and relationship_id ='Maps to' -- Investigational drugs mapped to RxE we have to build the hiearchy for
 ;

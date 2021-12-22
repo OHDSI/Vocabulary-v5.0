@@ -27,3 +27,9 @@ left join devv5.concept c on lower (c.concept_name) = lower (sy) and c.vocabular
 where a.concept_id not in
 (
 select code from nci_drb_rxn)
+;
+--normalize ncit_antineopl, making separate entries for each synonym
+create table ncit_antineopl as
+select distinct * from ( -- somehow the source table has duplicates of synonyms
+select code,preferred_name,definition,semantic_type, regexp_split_to_table (synonyms, ' \|\| ') as synonym_name from dev_mkallfelz.ncit_antineopl 
+) a

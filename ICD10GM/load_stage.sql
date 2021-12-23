@@ -172,7 +172,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Update domain_id for ICD10GM from from target vocabularies
+--11. Update domain_id for ICD10GM from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -232,5 +232,4 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
-
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

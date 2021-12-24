@@ -111,7 +111,8 @@ select a.concept_code as concept_code_source,
        a.concept_name as concept_name_source,
        a.vocabulary_id as vocabulary_id_source,
        a.concept_class_id as concept_class_id_source,
-       a.domain_id as domain_id_source, r.relationship_id,
+       a.domain_id as domain_id_source,
+       r.relationship_id,
        CASE WHEN a.concept_id = b.concept_id and r.relationship_id ='Maps to' THEN '<Mapped to itself>'
            ELSE b.concept_name END as concept_name_target,
        CASE WHEN a.concept_id = b.concept_id and r.relationship_id ='Maps to' THEN '<Mapped to itself>'
@@ -125,7 +126,7 @@ join concept b
     on b.concept_id = r.concept_id_2
 left join devv5.concept  c
     on c.concept_id = a.concept_id
-where a.vocabulary_id IN ('PPI')
+where a.vocabulary_id IN (:your_vocabs)
     and c.concept_id is null
     --and a.concept_id != b.concept_id --use it to exclude mapping to itself
 order by a.concept_code

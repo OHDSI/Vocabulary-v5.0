@@ -4,7 +4,6 @@
 - Schema DevV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed. 
 - SNOMED must be loaded first
 - Working directory LOINC.
-NOTE: The FastRecreateSchema must be used with a include_deprecated_rels=>true
 
 #### Sequence of actions
 
@@ -36,23 +35,22 @@ SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> true,
                                 include_deprecated_rels=> true, include_synonyms=> true);
 ```
-18. As described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/loinc_refresh_10_2021/LOINC/manual_work/readme.md) in the "manual_work" folder, upload concept_manual.csv and concept_relationship_manual.csv into eponymous tables. Skip this step if implementing on the Pallas vocabulary server, but obligatory create backups of them (e.g. concept_relationship_manual_backup_ddmmyy, concept_manual_backup_ddmmyy)
-19. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/load_stage.sql)
-20. Run check_stage_tables function (should retrieve NULL):
+18. Run [load_stage.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/load_stage.sql)
+19. Run check_stage_tables function (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.check_stage_tables();
 ```
-21. Run generic_update:
+20. Run generic_update:
 ```sql
 SELECT devv5.GenericUpdate();
 ```
-22. Run basic tables check (should retrieve NULL):
+21. Run basic tables check (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.get_checks();
 ```
-23. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/loinc_refresh_10_2021/LOINC/manual_work/readme.md) in the manual_work folder
-24. Repeat 1 - 6 steps
-25. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
-26. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql)
-27. Run all standard checks after generic to collect statistics and summary.
-28. If no problems, enjoy!
+22. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/readme.md) in the manual_work folder
+23. Repeat 1 - 6 steps
+24. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
+25. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql)
+26. Run all standard checks after generic to collect statistics and summary.
+27. If no problems, enjoy!

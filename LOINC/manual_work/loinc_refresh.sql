@@ -1,5 +1,5 @@
---Step 23.1 of refresh
---Create backup of concept_relationship_manual table
+--Step 22.3.1 of refresh
+--Make backup of the concept_relationship_manual table and concept_manual table
 DO
 $body$
     DECLARE
@@ -16,15 +16,31 @@ $body$
     END
 $body$;
 
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT CURRENT_DATE
+        INTO update
+        FROM vocabulary
+        WHERE vocabulary_id = 'LOINC'
+        LIMIT 1;
+        EXECUTE format('create table %I as select * from concept_manual',
+                       'concept_manual_backup_' || update );
+
+    END
+$body$;
+
 --Drop old backup
 --DROP TABLE dev_loinc.concept_relationship_manual_backup_20211130;
 
 
---Step 23.2 of refresh
---Source table for refresh
+--Step 22.3.2 of refresh
+--Create loinc_to_map table (source table for refresh)
 --Flags show different reasons for refresh
---DROP TABLE loinc_source;
-CREATE TABLE loinc_source AS (
+--DROP TABLE loinc_to_map;
+CREATE TABLE loinc_to_map AS (
 with previous_mappings AS
     (SELECT concept_id_1, c.standard_concept, array_agg(concept_id_2 ORDER BY concept_id_2 DESC) AS old_maps_to
         FROM devv5.concept_relationship cr
@@ -133,7 +149,7 @@ WHERE c.concept_code NOT IN (SELECT source_code
 ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
 
---Step 23.4 of refresh
+--Step 22.3.4. of refresh
 --New and COVID concepts lacking hierarchy (need to be taken to the concept_relationship_manual table)
 SELECT * FROM (
 SELECT DISTINCT
@@ -183,7 +199,8 @@ ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_co
 --INSERT INTO dev_loinc.concept_relationship_manual;
 --SELECT * FROM dev_loinc.concept_relationship_manual_backup_20211130;
 
---Step 23.7.1 of refresh: Backup of the previous version of loinc_mapped
+--Step 22.3.7. of refresh
+--Make backup of loinc_mapped table
 DO
 $body$
     DECLARE
@@ -201,8 +218,7 @@ $body$
 $body$;
 --DROP TABLE dev_loinc.loinc_mapped_20211028;
 
---Step 23.7.1 of refresh: Create table crm_manual_mappings_changed with fields from manual file
---Insert into CRM
+--Step 22.3.8. of refresh
 --TRUNCATE TABLE dev_loinc.loinc_mapped;
 CREATE TABLE dev_loinc.loinc_mapped
 (
@@ -225,7 +241,8 @@ CREATE TABLE dev_loinc.loinc_mapped
 );
 
 
---Step 23.8.1 of refresh: Deprecate all mappings that differ from the new version
+--Step 22.3.9 of refresh
+--Deprecate all mappings that differ from the new version
 UPDATE dev_loinc.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
@@ -257,7 +274,8 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
     )
 ;
 
---Step 23.8.2 of refresh: Insert new mappings + corrected mappings
+--Step 22.3.10. of refresh
+--Insert new mappings + corrected mappings
 with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,

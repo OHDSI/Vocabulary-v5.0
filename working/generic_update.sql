@@ -1,7 +1,8 @@
-CREATE OR REPLACE FUNCTION devv5.GenericUpdate (
-)
-RETURNS void AS
-$BODY$
+CREATE OR REPLACE FUNCTION devv5.genericupdate()
+  RETURNS void
+  LANGUAGE plpgsql
+AS
+$body$
 BEGIN
 	--1. Prerequisites:
 	--1.1 Check stage tables for incorrect rows
@@ -69,8 +70,8 @@ BEGIN
 
 	--Remove long dashes
 	UPDATE concept_stage
-	SET concept_name = REPLACE(concept_name, '–', '-')
-	WHERE concept_name LIKE '%–%';
+	SET concept_name = REPLACE(concept_name, '-', '-')
+	WHERE concept_name LIKE '%-%';
 
 	--Remove trailing escape character (\)
 	UPDATE concept_stage
@@ -89,8 +90,8 @@ BEGIN
 
 	--Remove long dashes
 	UPDATE concept_synonym_stage
-	SET synonym_name = REPLACE(synonym_name, '–', '-')
-	WHERE synonym_name LIKE '%–%';
+	SET synonym_name = REPLACE(synonym_name, '-', '-')
+	WHERE synonym_name LIKE '%-%';
 
 	--Remove trailing escape character (\)
 	UPDATE concept_synonym_stage
@@ -506,15 +507,6 @@ BEGIN
 		WHERE crs.concept_id_1=r.concept_id_1
 		AND crs.relationship_id=r.relationship_id
 		AND crs.invalid_reason IS NULL
-		AND (
-			crs.vocabulary_id_2=c2.vocabulary_id
-			OR (/*AVOF-459*/
-				crs.vocabulary_id_2 IN ('RxNorm','RxNorm Extension') AND c2.vocabulary_id IN ('RxNorm','RxNorm Extension')
-			)
-			OR (/*AVOF-1439*/
-				crs.vocabulary_id_2 IN ('SNOMED','SNOMED Veterinary') AND c2.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
-			)
-		)
 	)
 	AND NOT EXISTS (
 		SELECT 1 FROM concept_relationship_stage crs
@@ -556,15 +548,6 @@ BEGIN
 		WHERE crs.concept_id_2=r.concept_id_2
 		AND crs.relationship_id=r.relationship_id
 		AND crs.invalid_reason IS NULL
-		AND (
-			crs.vocabulary_id_1=c1.vocabulary_id 
-			OR (/*AVOF-459*/
-				crs.vocabulary_id_1 IN ('RxNorm','RxNorm Extension') AND c1.vocabulary_id IN ('RxNorm','RxNorm Extension')
-			)
-			OR (/*AVOF-1439*/
-				crs.vocabulary_id_1 IN ('SNOMED','SNOMED Veterinary') AND c1.vocabulary_id IN ('SNOMED','SNOMED Veterinary')
-			)
-		)
 	)
 	AND NOT EXISTS (
 		SELECT 1 FROM concept_relationship_stage crs

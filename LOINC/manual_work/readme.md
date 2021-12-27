@@ -38,8 +38,7 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 - quote always: FALSE
 - NULL string: empty
 
-25.3. Work with [loinc_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/loinc_refresh.sql) file:
-
+25.3. Work with [loinc_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/loinc_refresh.sql) file.
 25.3.1. Make backup of the concept_relationship_manual table and concept_manual table.
 25.3.2. Create loinc_to_map table (source table for refresh).
 25.3.3. Download loinc_to_map table and open it in spreadsheet viewer.

@@ -49,7 +49,7 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 25.3.4. Download table with New and Covid concepts lacking hierarchy and place it in the same spreadsheet viewer (these concepts need 'Is a' mapping).
 
-25.3.5. Add concepts from 23.3 and 23.4 steps to the table for manual mapping.
+25.3.5. Add concepts from 25.3.3 and 25.3.4 steps to the table for manual mapping.
 
 25.3.6. Perform manual review of previous mapping and map new concepts. Note, if you think that previous mapping can be improved, just make a new mapping of this row. If you want to deprecate previous mapping without replacement, just delete row.
 

@@ -1,8 +1,7 @@
-CREATE OR REPLACE FUNCTION devv5.genericupdate()
-  RETURNS void
-  LANGUAGE plpgsql
-AS
-$body$
+CREATE OR REPLACE FUNCTION devv5.GenericUpdate (
+)
+RETURNS void AS
+$BODY$
 BEGIN
 	--1. Prerequisites:
 	--1.1 Check stage tables for incorrect rows
@@ -474,7 +473,7 @@ BEGIN
 				AND crs.relationship_id = d.relationship_id
 			);
 
-	--17. Deprecate old 'Maps to', 'Maps to value' and replacement records, but only if we have a new one in concept_relationship_stage with the same source concept
+	--17. Deprecate old 'Maps to', 'Maps to value' and replacement records
 	--part 1 (direct mappings)
 	WITH relationships AS (
 		SELECT relationship_id FROM relationship

@@ -1,4 +1,4 @@
---Step 22.3.1 of refresh
+--Step 25.3.1 of refresh
 --Make backup of the concept_relationship_manual table and concept_manual table
 DO
 $body$
@@ -36,7 +36,7 @@ $body$;
 --DROP TABLE dev_loinc.concept_relationship_manual_backup_20211130;
 
 
---Step 22.3.2 of refresh
+--Step 25.3.2 of refresh
 --Create loinc_to_map table (source table for refresh)
 --Flags show different reasons for refresh
 --DROP TABLE loinc_to_map;
@@ -149,7 +149,7 @@ WHERE c.concept_code NOT IN (SELECT source_code
 ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code)
 ;
 
---Step 22.3.4. of refresh
+--Step 25.3.4. of refresh
 --New and COVID concepts lacking hierarchy (need to be taken to the concept_relationship_manual table)
 SELECT * FROM (
 SELECT DISTINCT
@@ -199,7 +199,7 @@ ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_co
 --INSERT INTO dev_loinc.concept_relationship_manual;
 --SELECT * FROM dev_loinc.concept_relationship_manual_backup_20211130;
 
---Step 22.3.7. of refresh
+--Step 25.3.7. of refresh
 --Make backup of loinc_mapped table
 DO
 $body$
@@ -218,7 +218,7 @@ $body$
 $body$;
 --DROP TABLE dev_loinc.loinc_mapped_20211028;
 
---Step 22.3.8. of refresh
+--Step 25.3.8. of refresh
 --TRUNCATE TABLE dev_loinc.loinc_mapped;
 CREATE TABLE dev_loinc.loinc_mapped
 (
@@ -241,7 +241,7 @@ CREATE TABLE dev_loinc.loinc_mapped
 );
 
 
---Step 22.3.9 of refresh
+--Step 25.3.9 of refresh
 --Deprecate all mappings that differ from the new version
 UPDATE dev_loinc.concept_relationship_manual
 SET invalid_reason = 'D',
@@ -274,7 +274,7 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
     )
 ;
 
---Step 22.3.10. of refresh
+--Step 25.3.10. of refresh
 --Insert new mappings + corrected mappings
 with mapping AS
     (

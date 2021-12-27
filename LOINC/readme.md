@@ -48,9 +48,9 @@ SELECT devv5.GenericUpdate();
 ```sql
 SELECT * FROM qa_tests.get_checks();
 ```
-22. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/readme.md) in the manual_work folder
-23. Repeat 1 - 6 steps
-24. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
-25. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql)
-26. Run all standard checks after generic to collect statistics and summary.
+22. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
+23. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql)
+24. Run all standard checks after generic to collect statistics and summary.
+25. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/readme.md) in the manual_work folder
+26. Repeat 17 - 24 steps.
 27. If no problems, enjoy!

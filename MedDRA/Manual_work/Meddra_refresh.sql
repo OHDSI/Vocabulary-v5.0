@@ -1,21 +1,50 @@
+-- Creation of dev_meddra_meddra_mapped table
+
+--DROP TABLE dev_meddra.meddra_mapped;
+
+CREATE TABLE dev_meddra.meddra_mapped
+(
+    id                      SERIAL PRIMARY KEY,
+    source_code             varchar(255),
+    source_code_description varchar (255),
+    source_class_id         varchar (255),
+    counts                  bigint,
+    source                  varchar (255),
+    flag                    varchar(255),
+    "2m"                    varchar(1),
+    to_value                varchar(255),
+    comments                varchar(255),
+    target_concept_id       int,
+    target_concept_code     varchar(255),
+    target_concept_name     varchar(255),
+    target_concept_class_id varchar(255),
+    target_standard_concept varchar(255),
+    target_invalid_reason   varchar(255),
+    target_domain_id        varchar(255),
+    target_vocabulary_id    varchar(255)
+);
+
+SELECT * From dev_meddra.meddra_mapped;
+
+
 ---vocabularies QA and run
 
--- step 1 -- done 21/12/21
+-- step 1 -- done 30/12/21
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
--- step 2 -- load stage -- done 21/12/21
--- step 3 - return null -- done 21/12/21
+-- step 2 -- load stage -- done 30/12/21
+-- step 3 - return null -- done 30/12/21
 select * from devv5.qa_ddl();
--- step 4 - return null -- done 21/12/21
+-- step 4 - return null -- done 30/12/21
 SELECT * FROM qa_tests.check_stage_tables ();
 
--- step 5 -- done 21/12/21
+-- step 5 -- done 30/12/21
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
--- step 6 - return null -- done 21/12/21
+-- step 6 - return null -- done 30/12/21
 select * from QA_TESTS.GET_CHECKS();
--- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql - done 17/12/21
+-- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql - done 30/12/21
 --01. Concept changes
 
     --01.1. Concepts changed their Domain
@@ -310,7 +339,7 @@ where c.vocabulary_id IN ('MedDRA')
         (b.concept_name ~* (select covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
 ;
 
--- step 8
+-- step 8 - done 30.12.21
 select * from qa_tests.purge_cache();
 select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
 select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
@@ -331,11 +360,31 @@ select * from qa_tests.get_changes_concept_mapping(pCompareWith=>'devv5');
 --- Final ----
 
 
+-- Transitional steps of work
 
+    --1. Addition new mapping concepts from Polina
 
+-- Все концепты Meddra_to_SNOMED Полины - 205 in total
+select * from dev_ptalapova.meddra_from_vifor
+where vocabulary_id = 'SNOMED';
 
+-- Все концепты, которые уже есть в нашей dev_meddra.meddra_mapped - 183 in total
+select mm.source_code, mm.source_code_description, mm.target_concept_id, mm.target_concept_name, mm.target_domain_id, mv.source_code, mv.source_description, mv.domain_id from dev_meddra.meddra_mapped as mm
+inner join dev_ptalapova.meddra_from_vifor as mv
+on mm.source_code=mv.source_code
+where mm.target_vocabulary_id = 'SNOMED'  and mv.vocabulary_id='SNOMED';
 
---Review COVID-19 mappings
+-- -- Все концепты, которые уже есть в нашей dev_meddra.meddra_mapped, но маппинг с Полиной различается-  24 in total
+select mm.source_code, mm.source_code_description, mm.target_concept_id, mm.target_concept_name, mm.target_domain_id, mv.concept_code, mv.concept_name, mv.domain_id from dev_meddra.meddra_mapped as mm
+inner join dev_ptalapova.meddra_from_vifor as mv
+on mm.source_code=mv.source_code
+where mm.target_vocabulary_id = 'SNOMED' and mv.vocabulary_id='SNOMED' and  mm.target_concept_id != mv.concept_id;
+
+-- Все недостающие у нас концепты, которые смапплены на SNOMED у Полины:
+select * from dev_ptalapova.meddra_from_vifor
+where source_code not in (SELECT source_code FROM dev_meddra.meddra_mapped) and vocabulary_id = 'SNOMED';
+
+    -- 2. Review COVID-19 mappings
 /*
 SELECT DISTINCT
     concept_id,
@@ -658,7 +707,6 @@ ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_co
 
 --Insert into CRM
 -- Step 1: Create table crm_manual_mappings_changed with fields from manual file
---TRUNCATE TABLE dev_loinc.loinc_mapped;
 CREATE TABLE dev_meddra.meddra_mapped
 (
     id SERIAL PRIMARY KEY,
@@ -678,7 +726,6 @@ CREATE TABLE dev_meddra.meddra_mapped
     target_domain_id varchar(50),
     target_vocabulary_id varchar(50)
 );
-
 
 --Step 2: Deprecate all mappings that differ from the new version
 UPDATE dev_meddra.concept_relationship_manual

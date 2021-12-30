@@ -57,7 +57,7 @@ SELECT * FROM qa_tests.get_checks();
 
 24. Clean cash:
 ```sql
-SELECT * FROM qa_tests.purge_cache();;
+SELECT * FROM qa_tests.purge_cache();
 ```
 25. Run scripts to get summary:
 ```sql

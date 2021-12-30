@@ -43,13 +43,13 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 22.3. Work with [loinc_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/loinc_refresh.sql) file:
 
-22.3.1. Backup concept_relationship_manual table and concept_manual table
+22.3.1. Backup concept_relationship_manual table and concept_manual table.
 
-25.3.2 Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh
+22.3.2. Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh.
 
-25.3.3 Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor
+22.3.3. Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor.
 
-25.3.4 Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships)
+22.3.4. Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships).
 
 22.3.5. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
 
@@ -59,6 +59,6 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 
 22.3.8. Iteratively repeat steps 22.3.5-22.3.7 if found any issues.
 
-25.3.9 Deprecate all mappings that differ from the new version of resulting mapping file
+22.3.9. Deprecate all mappings that differ from the new version of resulting mapping file.
 
-25.3.10 Insert new and corrected mappings into the concept_relationship_manual table
+22.3.10. Insert new and corrected mappings into the concept_relationship_manual table.

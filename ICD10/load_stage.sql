@@ -441,7 +441,7 @@ FROM (
 	JOIN concept c1 ON c1.concept_id = cr.concept_id_1
 		AND c1.vocabulary_id = 'ICD10'
 	JOIN concept c2 ON c2.concept_id = cr.concept_id_2
-		AND c2.vocabulary_id IN ('SNOMED', 'OMOP Extension', 'Cancer Modifier')
+		AND c2.vocabulary_id IN ('SNOMED', 'Cancer Modifier', 'OMOP Extension')
 	JOIN concept_stage cs1 ON cs1.concept_code = c1.concept_code
 		AND cs1.vocabulary_id = c1.vocabulary_id
 	WHERE cr.relationship_id = 'Maps to'

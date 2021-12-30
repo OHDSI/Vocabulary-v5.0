@@ -22,11 +22,8 @@ $body$
     DECLARE
         update text;
     BEGIN
-        SELECT CURRENT_DATE
-        INTO update
-        FROM vocabulary
-        WHERE vocabulary_id = 'ICD10GM'
-        LIMIT 1;
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
         EXECUTE format('create table %I as select * from concept_relationship_manual',
                        'concept_relationship_manual_backup_' || update);
         END

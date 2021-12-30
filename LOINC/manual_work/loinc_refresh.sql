@@ -1,46 +1,63 @@
---Step 25.3.1 of refresh
---Make backup of the concept_relationship_manual table and concept_manual table
+--22.3.1. Backup concept_relationship_manual table and concept_manual table
 DO
 $body$
     DECLARE
         update text;
     BEGIN
-        SELECT CURRENT_DATE
-        INTO update
-        FROM vocabulary
-        WHERE vocabulary_id = 'LOINC'
-        LIMIT 1;
-        EXECUTE format('create table %I as select * from concept_relationship_manual',
-                       'concept_relationship_manual_backup_' || update );
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE FORMAT('create table %I as select * from concept_relationship_manual',
+                       'concept_relationship_manual_backup_' || update);
 
     END
 $body$;
+
+--restore concept_relationship_manual table (run it only if something went wrong)
+/*TRUNCATE TABLE dev_loinc.concept_relationship_manual;
+INSERT INTO dev_loinc.concept_relationship_manual
+SELECT * FROM dev_loinc.concept_relationship_manual_backup_YYYY_MM_DD;*/
 
 DO
 $body$
     DECLARE
         update text;
     BEGIN
-        SELECT CURRENT_DATE
-        INTO update
-        FROM vocabulary
-        WHERE vocabulary_id = 'LOINC'
-        LIMIT 1;
-        EXECUTE format('create table %I as select * from concept_manual',
-                       'concept_manual_backup_' || update );
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE FORMAT('create table %I as select * from concept_manual',
+                       'concept_manual_backup_' || update);
 
     END
 $body$;
 
---Drop old backup
---DROP TABLE dev_loinc.concept_relationship_manual_backup_20211130;
+--restore concept_manual table (run it only if something went wrong)
+/*TRUNCATE TABLE dev_loinc.concept_manual;
+INSERT INTO dev_loinc.concept_manual
+SELECT * FROM dev_loinc.concept_manual_backup_YYYY_MM_DD;*/
 
+--25.3.2 Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh
+--DROP TABLE dev_loinc.loinc_mapped;
+CREATE TABLE dev_loinc.loinc_mapped
+(
+    id SERIAL PRIMARY KEY,
+    source_code_description varchar(255),
+    source_code varchar(50),
+    source_concept_class_id varchar(50),
+    source_invalid_reason varchar(20),
+    source_domain_id varchar(50),
+    to_value varchar(50),
+    source varchar(50),
+    target_concept_id int,
+    target_concept_code varchar(50),
+    target_concept_name varchar(255),
+    target_concept_class_id varchar(50),
+    target_standard_concept varchar(20),
+    target_invalid_reason varchar(20),
+    target_domain_id varchar(50),
+    target_vocabulary_id varchar(50)
+);
 
---Step 25.3.2 of refresh
---Create loinc_to_map table (source table for refresh)
---Flags show different reasons for refresh
---DROP TABLE loinc_to_map;
-CREATE TABLE loinc_to_map AS (
+--25.3.3 Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor
 with previous_mappings AS
     (SELECT concept_id_1, c.standard_concept, array_agg(concept_id_2 ORDER BY concept_id_2 DESC) AS old_maps_to
         FROM devv5.concept_relationship cr
@@ -68,7 +85,6 @@ with previous_mappings AS
         GROUP BY concept_id_1
          )
 
-
 SELECT DISTINCT
                 replace (c.concept_name, 'Deprecated ', '') AS source_concept_name_clean,
                 c.concept_name AS       source_concept_name,
@@ -79,22 +95,22 @@ SELECT DISTINCT
 
                 NULL::varchar AS relationship_id,
 
-                CASE WHEN previous_mappings.concept_id_1 IS NOT NULL    --Mapping was available
+                CASE WHEN previous_mappings.concept_id_1 IS NOT NULL --mapping was available
                           AND NOT EXISTS (SELECT concept_id_1 FROM dev_loinc.concept_relationship lcr
                           JOIN dev_loinc.concept lc
                           ON lc.concept_id = lcr.concept_id_1 AND lc.vocabulary_id = 'LOINC'
                           WHERE lcr.relationship_id IN ('Maps to', 'Maps to value') AND lcr.invalid_reason IS NULL
-                                AND lcr.concept_id_1 = c.concept_id --Concept_id never changes
+                                AND lcr.concept_id_1 = c.concept_id --concept_id never changes
                               )
                           AND previous_mappings.standard_concept = 'S'
                     THEN 'Was Standard and don''t have mapping now'
 
-                    WHEN previous_mappings.concept_id_1 IS NOT NULL    --Mapping was available
+                    WHEN previous_mappings.concept_id_1 IS NOT NULL --mapping was available
                           AND NOT EXISTS (SELECT concept_id_1 FROM dev_loinc.concept_relationship lcr
                           JOIN dev_loinc.concept lc
                           ON lc.concept_id = lcr.concept_id_1 AND lc.vocabulary_id = 'LOINC'
                           WHERE lcr.relationship_id IN ('Maps to', 'Maps to value') AND lcr.invalid_reason IS NULL
-                                AND lcr.concept_id_1 = c.concept_id --Concept_id never changes
+                                AND lcr.concept_id_1 = c.concept_id --concept_id never changes
                               )
                           AND previous_mappings.standard_concept != 'S'
                     THEN 'Was non-Standard but mapped and don''t have mapping now'
@@ -133,24 +149,19 @@ FROM dev_loinc.concept c
                        AND cr.relationship_id IN ('Maps to', 'Maps to value')
                        AND cr.invalid_reason IS NULL
 
-WHERE c.concept_code NOT IN (SELECT source_code
-                             FROM loinc_mapped)
+WHERE c.concept_code NOT IN (SELECT source_code FROM loinc_mapped) --exclude codes that are already in the loinc_mapped table
+    AND cr.concept_id_2 IS NULL --there's no valid mapping after vocabulary dry run
+    AND (c.standard_concept IS NULL OR c.invalid_reason = 'D') --TODO: 2nd condition looks redundant. Need to test it out in further refreshes and remove
+    AND c.vocabulary_id = 'LOINC'
+    AND c.concept_class_id IN ('Lab Test' --options for specific concept classes refreshes --TODO: postponed for now
+      --,'Survey', 'Answer', 'Clinical Observation'
+      )
+    --AND c.invalid_reason != 'U' --TODO:redundant condition because they already have valid mapping after vocabulary dry run. Need to test it out in further refreshes and remove
 
-
---Conditions show options for specific concept classes refreshes
-  and cr.concept_id_2 IS NULL
-  AND (c.standard_concept IS NULL OR c.invalid_reason = 'D')
-  AND c.vocabulary_id = 'LOINC'
-  AND c.concept_class_id IN ('Lab Test'
-    --,'Survey', 'Answer', 'Clinical Observation' --TODO: postponed for now
-    )
---AND c.invalid_reason != 'U'
-
-ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code)
+ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code
 ;
 
---Step 25.3.4. of refresh
---New and COVID concepts lacking hierarchy (need to be taken to the concept_relationship_manual table)
+--25.3.4 Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships)
 SELECT * FROM (
 SELECT DISTINCT
        replace (long_common_name, 'Deprecated ', '') AS source_concept_name_clean,
@@ -194,55 +205,10 @@ AND NOT EXISTS (SELECT
 ORDER BY replace (s.source_concept_name, 'Deprecated ', ''), s.source_concept_code
 ;
 
---restore CRM
---TRUNCATE TABLE dev_loinc.concept_relationship_manual;
---INSERT INTO dev_loinc.concept_relationship_manual;
---SELECT * FROM dev_loinc.concept_relationship_manual_backup_20211130;
+--22.3.6. Truncate the loinc_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
+TRUNCATE TABLE dev_loinc.loinc_mapped;
 
---Step 25.3.7. of refresh
---Make backup of loinc_mapped table
-DO
-$body$
-    DECLARE
-        update text;
-    BEGIN
-        SELECT CURRENT_DATE
-        INTO update
-        FROM vocabulary
-        WHERE vocabulary_id = 'LOINC'
-        LIMIT 1;
-        EXECUTE format('create table %I as select * from concept_relationship_manual',
-                       'loinc_mapped_backup_' || update );
-
-    END
-$body$;
---DROP TABLE dev_loinc.loinc_mapped_20211028;
-
---Step 25.3.8. of refresh
---TRUNCATE TABLE dev_loinc.loinc_mapped;
-CREATE TABLE dev_loinc.loinc_mapped
-(
-    id SERIAL PRIMARY KEY,
-    source_code_description varchar(255),
-    source_code varchar(50),
-    source_concept_class_id varchar(50),
-    source_invalid_reason varchar(20),
-    source_domain_id varchar(50),
-    to_value varchar(50),
-    source varchar(50),
-    target_concept_id int,
-    target_concept_code varchar(50),
-    target_concept_name varchar(255),
-    target_concept_class_id varchar(50),
-    target_standard_concept varchar(20),
-    target_invalid_reason varchar(20),
-    target_domain_id varchar(50),
-    target_vocabulary_id varchar(50)
-);
-
-
---Step 25.3.9 of refresh
---Deprecate all mappings that differ from the new version
+--25.3.9 Deprecate all mappings that differ from the new version of resulting mapping file
 UPDATE dev_loinc.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
@@ -274,8 +240,7 @@ WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
     )
 ;
 
---Step 25.3.10. of refresh
---Insert new mappings + corrected mappings
+--25.3.10 Insert new and corrected mappings into the concept_relationship_manual table
 with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
@@ -293,8 +258,7 @@ with mapping AS
         WHERE target_concept_id != 0
     )
 
-
-INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
+INSERT INTO dev_loinc.concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
     (SELECT concept_code_1,
             concept_code_2,
             vocabulary_id_1,

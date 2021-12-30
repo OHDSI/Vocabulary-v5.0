@@ -1,5 +1,6 @@
-### STEP 25 of the refresh:
-25.1. Upload concept_manual table. Extract the [respective csv file](https://drive.google.com/file/d/1sXdWNn1oN-EhsqFyT6cl2TI4YBXbDQyV/view?usp=sharing) into the concept_manual table.
+### STEP 22 of the refresh:
+22.1. Upload concept_manual table into the working schema (skip this step if implementing on the Pallas vocabulary server).
+Extract the [respective csv file](https://drive.google.com/file/d/1sXdWNn1oN-EhsqFyT6cl2TI4YBXbDQyV/view?usp=sharing) into the concept_manual table.
 The file was generated using the query:
 ```sql
 SELECT concept_name,
@@ -15,7 +16,8 @@ FROM concept_manual
 ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_end_date, concept_name
 ```
 
-25.2. Upload concept_relationship_manual table. Extract the [respective csv file](https://drive.google.com/file/d/1-R7_j_PNDrNIO1me_ni4-FNL2bs0iE1d/view?usp=sharing) into the concept_relationship_manual table.
+22.2. Upload concept_relationship_manual into the working schema (skip this step if implementing on the Pallas vocabulary server).
+Extract the [respective csv file](https://drive.google.com/file/d/1-R7_j_PNDrNIO1me_ni4-FNL2bs0iE1d/view?usp=sharing) into the concept_relationship_manual table.
 The file was generated using the query:
 ```sql
 SELECT concept_code_1,
@@ -39,25 +41,24 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 - NULL string: empty
 
 
-25.3. Work with [loinc_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/loinc_refresh.sql) file:
+22.3. Work with [loinc_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/loinc_refresh.sql) file:
 
-25.3.1. Make backup of the concept_relationship_manual table and concept_manual table.
+22.3.1. Backup concept_relationship_manual table and concept_manual table
 
-25.3.2. Create loinc_to_map table (source table for refresh).
+25.3.2 Create loinc_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh
 
-25.3.3. Download loinc_to_map table and open it in spreadsheet viewer.
+25.3.3 Select concepts to map (flag shows different reasons for mapping refresh) and add them to the manual file in the spreadsheet editor
 
-25.3.4. Download table with New and Covid concepts lacking hierarchy and place it in the same spreadsheet viewer (these concepts need 'Is a' mapping).
+25.3.4 Select COVID concepts lacking hierarchy and add them to the manual file in the spreadsheet editor (these concepts need 'Is a' relationships)
 
-25.3.5. Add concepts from 25.3.3 and 25.3.4 steps to the table for manual mapping.
+22.3.5. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
 
-25.3.6. Perform manual review of previous mapping and map new concepts. Note, if you think that previous mapping can be improved, just make a new mapping of this row. If you want to deprecate previous mapping without replacement, just delete row.
+22.3.6. Truncate the loinc_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
 
-25.3.7. Make backup of loinc_mapped table.
+22.3.7. Perform any mapping checks you have set.
 
-25.3.8. Save table as loinc_mapped and upload it into your schema.
+22.3.8. Iteratively repeat steps 22.3.5-22.3.7 if found any issues.
 
-25.3.9. Deprecate all mappings that differ from the new version.
+25.3.9 Deprecate all mappings that differ from the new version of resulting mapping file
 
-25.3.10. Insert new mappings + corrected mappings.
-
+25.3.10 Insert new and corrected mappings into the concept_relationship_manual table

@@ -30,7 +30,7 @@ SELECT sources.load_input_tables('LOINC',TO_DATE('20180615','YYYYMMDD'),'LOINC 2
 ```
 
 ##### Filling stage and basic tables
-17. Run the FULL FastRecreate:
+17. Run FULL FastRecreate:
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=> true,
                                 include_deprecated_rels=> true, include_synonyms=> true);
@@ -42,27 +42,31 @@ SELECT * FROM qa_tests.check_stage_tables();
 ```
 20. Run generic_update:
 ```sql
-SELECT devv5.GenericUpdate();
+DO $_$
+BEGIN
+	PERFORM devv5.GenericUpdate();
+END $_$;
 ```
 21. Run basic tables check (should retrieve NULL):
 ```sql
 SELECT * FROM qa_tests.get_checks();
 ```
-22. Clean cash:
+22. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/readme.md) file in the manual_work folder
+
+23. Repeat steps 17-21.
+
+24. Clean cash:
 ```sql
 SELECT * FROM qa_tests.purge_cache();;
 ```
-23. Run checks to get summary:
+25. Run scripts to get summary:
 ```sql
 SELECT DISTINCT * FROM qa_tests.get_summary('concept');
 ```
 ```sql
 SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
 ```
-```sql
-SELECT DISTINCT * FROM qa_tests.get_summary('concept_ancestor');
-```
-24. Run checks to collect statistics:
+26. Run scripts to collect statistics:
 ```sql
 SELECT DISTINCT * FROM qa_tests.get_domain_changes();
 ```
@@ -70,7 +74,7 @@ SELECT DISTINCT * FROM qa_tests.get_domain_changes();
 SELECT DISTINCT * FROM qa_tests.get_newly_concepts();
 ```
 ```sql
-SELECT DISTINCT *FROM qa_tests.get_standard_concept_changes();
+SELECT DISTINCT * FROM qa_tests.get_standard_concept_changes();
 ```
 ```sql
 SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
@@ -78,8 +82,7 @@ SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
 ```sql
 SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
 ```
-25. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/readme.md) in the manual_work folder
-26. Repeat 17 - 24 steps.
+
 27. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql)
 28. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql)
 29. If no problems, enjoy!

@@ -11,12 +11,12 @@
 --check if everything uploaded correctly and count of uploaded rows
 --* We expect this check to return every single row. Please, use sorting within different fields to check extremum of each field
 SELECT *
-FROM dev_meddra.meddra_mapped;
+FROM dev_meddra."meddra_mapped_bckp_05.01.22";
 
 --check semantics of target concepts (vocabs, domains, classes using sorting)
 --* We expect this check to return every single row. Please, use sorting within different fields to check extremum of each field
 SELECT *
-FROM dev_meddra.meddra_mapped
+FROM dev_meddra."meddra_mapped_bckp_05.01.22"
 ORDER BY target_domain_id, target_vocabulary_id, target_concept_class_id, target_concept_code, target_concept_name,
          target_concept_id;
 
@@ -24,9 +24,9 @@ ORDER BY target_domain_id, target_vocabulary_id, target_concept_class_id, target
 --check if any source code/description are lost
 --* We expect this check to return nothing. Return source_code + source_code_description pairs are lost. Consider accidental loosing or modification of the pairs
 SELECT *
-FROM dev_meddra.meddra_mapped s
+FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 WHERE NOT EXISTS(SELECT 1
-                 FROM dev_meddra.meddra_mapped m
+                 FROM dev_meddra."meddra_mapped_bckp_05.01.22" m
                  WHERE s.source_code = m.source_code
                    AND s.source_code_description = m.source_code_description
     );
@@ -38,7 +38,7 @@ WHERE NOT EXISTS(SELECT 1
 select r.id, r.source_code, s.source_code,
         s.counts
 from dev_meddra.meddra_environment_source  s
-left join  dev_meddra.meddra_mapped r on
+left join  dev_meddra."meddra_mapped_bckp_05.01.22" r on
 r.source_code = s.source_code
 order by r.id asc  nulls last, r.source_code asc;
 
@@ -47,7 +47,7 @@ order by r.id asc  nulls last, r.source_code asc;
 --when working with custom mapping
 --* We expect this check to return nothing. Return source_code + source_code_description pairs are modified in mapped file
 SELECT *
-FROM dev_meddra.meddra_mapped m
+FROM dev_meddra."meddra_mapped_bckp_05.01.22" m
 WHERE NOT EXISTS(SELECT 1
                  FROM dev_meddra.meddra_environment_source s
                  WHERE lower(s.source_code_description) = lower (m.source_code_description)
@@ -60,7 +60,7 @@ WITH descr AS (
     SELECT source_code, --choose sc or scd
            -- source_code_description,
            count(*) AS to_many
-    FROM dev_meddra.meddra_mapped
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22"
     GROUP BY  source_code
            -- source_code_description
     HAVING count(*) > 1
@@ -71,7 +71,7 @@ case when target_concept_id is NULL then 'CHECK DEVICE MAPPING'
     WHEN target_concept_id = 0 then 'CHECK TO MANY + 0'
     else  null  end as error_comment , *
 FROM descr
-LEFT JOIN dev_meddra.meddra_mapped b
+LEFT JOIN dev_meddra."meddra_mapped_bckp_05.01.22" b
     USING (source_code --choose sc or scd
            -- source_code_description
            )
@@ -85,7 +85,7 @@ WHERE target_concept_id IS NULL
 --* We expect this check to return nothing. Returned codes are not mapped and have greater counts than previously agreed threshold. Note that we exclude mapping to 0
 SELECT s.source_code, s.source_code_description, s.counts, m.target_concept_id
 FROM dev_meddra.meddra_environment_source s
-         LEFT JOIN dev_meddra.meddra_mapped m
+         LEFT JOIN dev_meddra."meddra_mapped_bckp_05.01.22" m
                    ON m.source_code = s.source_code
 WHERE s.counts >= 0 --add threshold here
   AND (m.target_concept_id IS NULL
@@ -97,9 +97,9 @@ WHERE s.counts >= 0 --add threshold here
 --* We expect this check to return nothing. Returned rows have differences with concept table of the selected vocabulary version.
 --* Consider Non-standard mapping/change in concept: name, domain, concept_class, invalid_reason
 SELECT *
-FROM dev_meddra.meddra_mapped j1
+FROM dev_meddra."meddra_mapped_bckp_05.01.22" j1
 WHERE NOT EXISTS(SELECT *
-                 FROM dev_meddra.meddra_mapped j2
+                 FROM dev_meddra."meddra_mapped_bckp_05.01.22" j2
                           JOIN dev_meddra.concept c
                                ON j2.target_concept_id = c.concept_id
                                    AND c.concept_code = j2.target_concept_code
@@ -117,7 +117,7 @@ WHERE NOT EXISTS(SELECT *
 --* Consider excluding certain vocabularies from this check if mapping to abnormal domains/classes is expected
 with tab as (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
     WHERE target_concept_id != 0
 )
 
@@ -150,7 +150,7 @@ ORDER BY source_code_description
 --* We expect this check to return nothing. 1 to_value in mapping simultaneously with 2 Observation/Measurement concepts result in assigning value for both of them. Consider remapping
 with tab as (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 )
 
 SELECT *
@@ -185,7 +185,7 @@ ORDER BY source_code
 --* Less strict than 2 Observation/Measurement for 1 value check
 with tab as (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 )
 
 SELECT *
@@ -216,7 +216,7 @@ ORDER BY source_code
 --* We expect this check to return nothing. Returned rows lack Observation/Measurement for to_value mapping
 with tab as (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 )
 
 SELECT *
@@ -245,7 +245,7 @@ WHERE source_code in (
 --* We expect this check to return nothing. History concepts should be used only with values. History concepts themselves are useless
 with tab as (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 )
 
 SELECT *
@@ -283,7 +283,7 @@ WHERE source_code in (
 --* We expect this check to return nothing. Event concept and to_value concept should should have one vocabulary_id.
 with tab as (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 )
 
 SELECT *
@@ -311,7 +311,7 @@ ORDER BY source_code, to_value -- add/replace source_code to source_code_descrip
 --* We expect this check to return all one to many mappings (incl. to_value, to_unit, etc.) for manual review. NB: Some vocabularies can't have one to many (Unit, Provider, etc.)a
 with tab as (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 )
 
 SELECT *
@@ -329,7 +329,7 @@ ORDER BY source_code
 --* We expect this check to return Maps to and maps to value, modifier, qualifier - not 'real' one to many mapping
 WITH tab AS (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 )
 
 SELECT *
@@ -352,7 +352,7 @@ ORDER BY source_code, to_value
 --* We expect this check to return 'real' one to many mapping
 with tab as (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 )
 
 SELECT *
@@ -385,7 +385,7 @@ ORDER BY source_code, to_value
 --* We expect this check to return nothing. First you choose key terms and then check if targets have them.
 WITH tab AS (
     SELECT DISTINCT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
 )
 SELECT *
 FROM tab a
@@ -403,7 +403,7 @@ ORDER BY source_code;
 --* We expect this check to return nothing. Returned rows have identical source_code, but they are located away from each other in manual file. Consider review and reformatting
 WITH ordered_source AS (
     SELECT s.*
-    FROM dev_meddra.meddra_mapped s
+    FROM dev_meddra."meddra_mapped_bckp_05.01.22" s
     ORDER BY s.id
 ),
 
@@ -449,7 +449,7 @@ WITH tab AS (
         WITH t AS (
             WITH t0 AS (
                 SELECT source_code, source_code_description, target_concept_id
-                FROM dev_meddra.meddra_mapped
+                FROM dev_meddra."meddra_mapped_bckp_05.01.22"
                 ORDER BY id
             )
             SELECT source_code, source_code_description, target_concept_id, ROW_NUMBER() OVER () AS r_num
@@ -474,16 +474,16 @@ WHERE max_in_group - min_in_group <> max_row - min_row
 
 --codes count
 SELECT DISTINCT source_code
-FROM dev_meddra.meddra_mapped;
+FROM dev_meddra."meddra_mapped_bckp_05.01.22";
 
 --codes count diff
 --* We expect this check to return nothing. Returned rows' source_code have been changed.
 SELECT DISTINCT source_code
-FROM dev_meddra.meddra_mapped
+FROM dev_meddra."meddra_mapped_bckp_05.01.22"
     EXCEPT
 
 SELECT DISTINCT source_code
-FROM dev_meddra.meddra_mapped
+FROM dev_meddra."meddra_mapped_bckp_05.01.22"
 ;
 
 
@@ -530,7 +530,7 @@ FROM (
                     WHEN c.vocabulary_id IN ('CCS', 'AMIS', 'EU Product')
                         THEN 'Currently not available' END AS error_code
 
-         FROM dev_meddra.meddra_mapped m
+         FROM dev_meddra."meddra_mapped_bckp_05.01.22" m
                   JOIN dev_meddra.concept c
                        ON c.concept_id = m.target_concept_id) a
 WHERE error_code IS NOT NULL
@@ -597,12 +597,12 @@ FROM (
                     WHEN c.vocabulary_id IN ('CCS', 'AMIS', 'EU Product')
                         THEN 'Currently not available' END AS error_code
 
-         FROM dev_meddra.meddra_mapped m
+         FROM dev_meddra."meddra_mapped_bckp_05.01.22" m
                   JOIN dev_meddra.concept c
                        ON c.concept_id = m.target_concept_id) a
          LEFT JOIN dev_meddra.concept c2
                    ON a.concept_id = c2.concept_id
-         LEFT JOIN dev_meddra.meddra_mapped mm
+         LEFT JOIN dev_meddra."meddra_mapped_bckp_05.01.22" mm
                    ON a.source_code = mm.source_code
 WHERE error_code IS NOT NULL
 ORDER BY a.error_code, a.source_code

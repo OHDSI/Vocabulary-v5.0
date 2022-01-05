@@ -357,7 +357,7 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
     UNION ALL;
 
 
---6. Insert MedDRA to SNOMED mapping from meddra_mapped to concept_relationship_manual - done 06.12.2021
+--6. Insert MedDRA to SNOMED mapping from meddra_mapped to concept_relationship_manual - done 05.01.2022
 
 with mapping AS
     (
@@ -372,7 +372,7 @@ with mapping AS
                current_date AS valid_start_date,
                to_date('20991231','yyyymmdd') AS valid_end_date,
                NULL AS invalid_reason
-        FROM dev_meddra.meddra_mapped
+        FROM dev_meddra."meddra_mapped_bckp_05.01.22"
         WHERE target_concept_id != 0
     )
 
@@ -402,17 +402,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
--- 9. Depricate MedDRA-SNOMED eq
-WITH tbl AS
-(SELECT  *
-FROM dev_meddra.concept_relationship_stage as crs
-INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
-INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
-WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%')
 
-UPDATE concept_relationship_stage AS crs2 SET invalid_reason='D', valid_end_date=current_date
-FROM tbl
-WHERE crs2.concept_code_1=tbl.concept_code_1 AND crs2.concept_code_2=tbl.concept_code_2;
 
 
 

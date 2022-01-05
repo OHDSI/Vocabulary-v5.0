@@ -29,22 +29,22 @@ SELECT * From dev_meddra.meddra_mapped;
 
 ---vocabularies QA and run
 
--- step 1 -- done 30/12/21
+-- step 1 -- done 05/01/22
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
--- step 2 -- load stage -- done 30/12/21
--- step 3 - return null -- done 30/12/21
+-- step 2 -- load stage -- done 05/01/22
+-- step 3 - return null -- done 05/01/22
 select * from devv5.qa_ddl();
--- step 4 - return null -- done 30/12/21
+-- step 4 - return null -- done 05/01/22
 SELECT * FROM qa_tests.check_stage_tables ();
 
--- step 5 -- done 30/12/21
+-- step 5 -- done 05/01/22
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();
 END $_$;
--- step 6 - return null -- done 30/12/21
+-- step 6 - return null -- done 05/01/22
 select * from QA_TESTS.GET_CHECKS();
--- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql - done 30/12/21
+-- step 7 -- https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql - done 05/01/22
 --01. Concept changes
 
     --01.1. Concepts changed their Domain
@@ -339,13 +339,13 @@ where c.vocabulary_id IN ('MedDRA')
         (b.concept_name ~* (select covid_inclusion from covid_inclusion) and b.concept_name !~* (select covid_exclusion from covid_exclusion)))
 ;
 
--- step 8 - done 30.12.21
+-- step 8 - done 05.01.22
 select * from qa_tests.purge_cache();
 select * from qa_tests.get_summary (table_name=>'concept',pCompareWith=>'devv5');
 select * from qa_tests.get_summary (table_name=>'concept_relationship',pCompareWith=>'devv5');
 --select * from qa_tests.get_summary (table_name=>'concept_ancestor',pCompareWith=>'devv5');
 
--- Statistics QA checks
+-- Statistics QA checks - done 05.01.22
 --13.1. Domain changes
 select * from qa_tests.get_domain_changes(pCompareWith=>'devv5');
 --13.2. Newly added concepts grouped by vocabulary_id and domain
@@ -360,6 +360,7 @@ select * from qa_tests.get_changes_concept_mapping(pCompareWith=>'devv5');
 --- Final ----
 
 
+
 -- Transitional steps of work
 
     --1. Addition new mapping concepts from Polina
@@ -369,20 +370,20 @@ select * from dev_ptalapova.meddra_from_vifor
 where vocabulary_id = 'SNOMED';
 
 -- Все концепты, которые уже есть в нашей dev_meddra.meddra_mapped - 183 in total
-select mm.source_code, mm.source_code_description, mm.target_concept_id, mm.target_concept_name, mm.target_domain_id, mv.source_code, mv.source_description, mv.domain_id from dev_meddra.meddra_mapped as mm
+select mm.source_code, mm.source_code_description, mm.target_concept_id, mm.target_concept_name, mm.target_domain_id, mv.source_code, mv.source_description, mv.domain_id from dev_meddra."meddra_mapped_bckp_05.01.22" as mm
 inner join dev_ptalapova.meddra_from_vifor as mv
 on mm.source_code=mv.source_code
 where mm.target_vocabulary_id = 'SNOMED'  and mv.vocabulary_id='SNOMED';
 
 -- -- Все концепты, которые уже есть в нашей dev_meddra.meddra_mapped, но маппинг с Полиной различается-  24 in total
-select mm.source_code, mm.source_code_description, mm.target_concept_id, mm.target_concept_name, mm.target_domain_id, mv.concept_code, mv.concept_name, mv.domain_id from dev_meddra.meddra_mapped as mm
+select mm.source_code, mm.source_code_description, mm.target_concept_id, mm.target_concept_name, mm.target_domain_id, mv.concept_code, mv.concept_name, mv.domain_id from dev_meddra."meddra_mapped_bckp_05.01.22" as mm
 inner join dev_ptalapova.meddra_from_vifor as mv
 on mm.source_code=mv.source_code
 where mm.target_vocabulary_id = 'SNOMED' and mv.vocabulary_id='SNOMED' and  mm.target_concept_id != mv.concept_id;
 
 -- Все недостающие у нас концепты, которые смапплены на SNOMED у Полины:
 select * from dev_ptalapova.meddra_from_vifor
-where source_code not in (SELECT source_code FROM dev_meddra.meddra_mapped) and vocabulary_id = 'SNOMED';
+where source_code not in (SELECT source_code FROM dev_meddra."meddra_mapped_bckp_05.01.22")and vocabulary_id = 'SNOMED';
 
     -- 2. Review COVID-19 mappings
 /*
@@ -495,6 +496,20 @@ from first
 UNION ALL
 SELECT *
 from second;
+
+    -- 3. Depricate MedDRA-SNOMED eq
+WITH tbl AS
+(SELECT  *
+FROM dev_meddra.concept_relationship_stage as crs
+INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
+INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
+WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%')
+
+UPDATE concept_relationship_stage AS crs2 SET invalid_reason='D', valid_end_date=current_date
+FROM tbl
+WHERE crs2.concept_code_1=tbl.concept_code_1 AND crs2.concept_code_2=tbl.concept_code_2;
+
+
 
 
 
@@ -767,7 +782,7 @@ with mapping AS
                current_date AS valid_start_date,
                to_date('20991231','yyyymmdd') AS valid_end_date,
                NULL AS invalid_reason
-        FROM dev_meddra.meddra_mapped
+        FROM dev_meddra."meddra_mapped_bckp_05.01.22"
         WHERE target_concept_id != 0
     )
 

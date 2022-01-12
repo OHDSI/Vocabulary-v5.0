@@ -7,7 +7,7 @@
 - Working directory dev_icd10gm
 - Manual tables must be filled (e.g. for translations)
 #### Sequence of actions
-1. Download the latest ICD-10-GM version [here](https://www.dimdi.de/dynamic/de/klassifikationen/downloads/) 
+1. Download the latest ICD-10-GM version [here](https://www.bfarm.de/DE/Kodiersysteme/Services/Downloads/_node.html) 
 2. Unzip the file \Klassifikationsdateien\icd10gmYYYYsyst_kodes.txt and rename to icd10gm.csv
 3. Run [create_source_tables.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/icd10gm-documentation/ICD10GM/create_source_tables.sql)
 4. Run in devv5 (with fresh vocabulary date and version): 

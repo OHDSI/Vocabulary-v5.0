@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIEL',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.ciel_concept_class LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.ciel_concept_class LIMIT 1),
+	pVocabularyDate			=> (SELECT MAX(date_created) FROM sources.ciel_concept_name),
+	pVocabularyVersion		=> (SELECT 'OpenMRS 2.11.0 '||TO_CHAR(MAX(date_created),'yyyymmdd') FROM sources.ciel_concept_name),
 	pVocabularyDevSchema	=> 'DEV_CIEL'
 );
 END $_$;
@@ -201,8 +201,9 @@ WHERE cn.locale IN (
 		'it',
 		'nl',
 		'pt'
-		);-- no other OMOP languages match the locale
+		) -- no other OMOP languages match the locale
 	-- end addition M. Kallfelz 2021-05-06
+	AND cn.ciel_name IS NOT NULL;
 
 --5. Create chain between CIEL and the best OMOP concept and create map
 DROP TABLE IF EXISTS ciel_to_concept_map;

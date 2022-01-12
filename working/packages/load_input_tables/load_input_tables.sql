@@ -63,7 +63,7 @@ begin
       truncate table sources.ciel_concept, sources.ciel_concept_class, sources.ciel_concept_name, sources.ciel_concept_reference_map, sources.ciel_concept_reference_term, sources.ciel_concept_reference_source;
       execute 'COPY sources.ciel_concept FROM '''||pVocabularyPath||'CONCEPT_CIEL.csv'' delimiter E''\t'' csv';
       execute 'COPY sources.ciel_concept_class (concept_class_id,ciel_name,description,creator,date_created,
-      	retired,retired_by,date_retired,retire_reason,uuid,date_changed,changed_by) FROM '''||pVocabularyPath||'CONCEPT_CLASS_CIEL.csv'' delimiter E''\t'' csv';
+      	retired,retired_by,date_retired,retire_reason,uuid) FROM '''||pVocabularyPath||'CONCEPT_CLASS_CIEL.csv'' delimiter E''\t'' csv';
       execute 'COPY sources.ciel_concept_name FROM '''||pVocabularyPath||'CONCEPT_NAME.csv'' delimiter E''\t'' csv';
       execute 'COPY sources.ciel_concept_reference_map FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_MAP.csv'' delimiter E''\t'' csv';
       execute 'COPY sources.ciel_concept_reference_term FROM '''||pVocabularyPath||'CONCEPT_REFERENCE_TERM.csv'' delimiter E''\t'' csv';

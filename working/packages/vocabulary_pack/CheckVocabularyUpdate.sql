@@ -139,6 +139,7 @@ BEGIN
           27. HemOnc
           28. dm+d
           29. OncoTree
+          20 CIM10
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -346,6 +347,18 @@ BEGIN
                 from json_to_recordset(cVocabHTML::json) as x (api_identifier text, release_date date)
                 where x.api_identifier='oncotree_latest_stable';
                 cVocabVer := 'OncoTree version '||to_char(cVocabDate,'yyyy-mm-dd');
+            WHEN cVocabularyName = 'CIM10'
+            THEN
+                SELECT TO_DATE (SUBSTRING (title, 'CIM-10 FR (\d{4}) à usage PMSI'), 'yyyy'),
+                cVocabularyName||' '||SUBSTRING (title, 'CIM-10 FR (\d{4}) à usage PMSI')
+                INTO cVocabDate, cVocabVer
+                FROM (
+                 SELECT 
+                    UNNEST(xpath ('/rss/channel/item/title/text()', cVocabHTML::xml))::varchar title,
+                    UNNEST(xpath ('/rss/channel/item/pubDate/text()', cVocabHTML::xml)) ::varchar pubDate
+                ) AS t
+                WHERE t.title LIKE '%CIM-10 FR % à usage PMSI%'
+                ORDER BY TO_DATE (pubDate, 'dy dd mon yyyy hh24:mi:ss') DESC LIMIT 1;
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

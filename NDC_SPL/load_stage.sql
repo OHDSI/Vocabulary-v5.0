@@ -1982,3 +1982,19 @@ DROP TABLE main_ndc;
 DROP TABLE rxnorm2ndc_mappings_ext;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
+
+--Full fast
+SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+
+DROP TABLE IF EXISTS NDC_not_mapped;
+CREATE TABLE NDC_not_mapped as (
+select * from devv5.concept
+where vocabulary_id = 'NDC'
+AND not exists
+(select 1 from devv5.concept_relationship cr where concept_id_1 = concept_id and relationship_id = 'Maps to' and cr.invalid_reason is null)
+);
+
+--To map
+select * from devv5.concept
+where vocabulary_id = 'NDC'
+AND concept_id in ('1799556', '1799558', '1799562', '1799559', '1799560', '1779597', '1779561', '1799760', '1779550', '1799561');

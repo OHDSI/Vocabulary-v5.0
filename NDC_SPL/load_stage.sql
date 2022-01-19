@@ -1994,7 +1994,4 @@ AND not exists
 (select 1 from devv5.concept_relationship cr where concept_id_1 = concept_id and relationship_id = 'Maps to' and cr.invalid_reason is null)
 );
 
---To map
-select * from devv5.concept
-where vocabulary_id = 'NDC'
-AND concept_id in ('1799556', '1799558', '1799562', '1799559', '1799560', '1779597', '1779561', '1799760', '1779550', '1799561');
+

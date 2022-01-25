@@ -358,16 +358,8 @@ pConcept_code =>'nmol/(24.h)/mg'
 );
 END $_$;
 
-DO $_$
-BEGIN
-PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'milliliter per minute per 1.73 square meter',
-pDomain_id =>'Unit',
-pVocabulary_id =>'UCUM',
-pConcept_class_id =>'Unit',
-pStandard_concept =>'S',
-pConcept_code =>'mL/min/(173.10*-2.m2)'
-);
-END $_$;
-
-
+--Manual update for concept_id=9117
+UPDATE concept
+SET concept_code = 'mL/min/(173.10*-2.m2)'
+WHERE concept_id = 9117
+;

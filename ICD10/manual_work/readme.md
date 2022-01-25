@@ -1,5 +1,5 @@
 ### STEP 5 of the refresh: work with manual staging tables (skip this step if implementing on the Pallas vocabulary server)
-5.1.Extract the [respective csv file](https://drive.google.com/file/d/14X9LbiG7dqbfh_XK2jKV_yprO4-Y2feM/view?usp=sharing) into the concept_manual table. The file was generated using the query:
+5.1.Extract the [respective csv file](https://drive.google.com/file/d/1sXdWNn1oN-EhsqFyT6cl2TI4YBXbDQyV/view?usp=sharing) into the concept_manual table. The file was generated using the query:
 ```sql
 SELECT concept_name,
        domain_id,
@@ -13,7 +13,7 @@ SELECT concept_name,
 FROM concept_manual
 ORDER BY vocabulary_id, concept_code, invalid_reason, valid_start_date, valid_end_date, concept_name;
 ```
-5.2.Extract the [respective csv file](https://drive.google.com/file/d/1BdfX6R7LF4YLadOIkBVUWzm2HH09vjI2/view?usp=sharing) into the concept_relationship_manual table. The file was generated using the query:
+5.2.Extract the [respective csv file](https://drive.google.com/file/d/1-R7_j_PNDrNIO1me_ni4-FNL2bs0iE1d/view?usp=sharing) into the concept_relationship_manual table. The file was generated using the query:
 ```sql
 SELECT concept_code_1,
        concept_code_2,

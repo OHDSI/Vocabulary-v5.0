@@ -5,7 +5,7 @@
 --====================================
 -- Use current_date for valid_start_date, always show date format after valid_end_date e.g. 'yyyymmmdd'
 -- In case if you need to insert more, than one concept use select from mapped_table 
--- It's convenient to use case for Answer| Question | Topic|Module concept_class_id
+-- It's convenient to use case for Answer| Question | Topic | Module concept_class_id
 
 --TRUNCATE concept_manual ;
 --to add all sources to cm
@@ -26,7 +26,14 @@ NULL AS invalid_reason
 --'wms' as flag -- Winter Medical Survey
 FROM ppi_wms_1121_mapped
 where lower(source_code) not in (select lower(concept_code) from concept
-where vocabulary_id = 'PPI' );
+where vocabulary_id = 'PPI' ) ;
+
+--add cope_a_236 concept
+INSERT INTO concept_manual
+SELECT concept_name,domain_id,vocabulary_id,concept_class_id,NULL,concept_code,valid_start_date,valid_end_date,invalid_reason
+FROM concept a 
+WHERE a.concept_code ='cope_a_236' ;
+
 --====================================
 -- concept_relationship_manual
 --====================================
@@ -57,6 +64,10 @@ invalid_reason
 FROM ppi_wms_1121_mapped
 where mark = 'a'
 and concept_id !=0  ; --2
+
+--add mapping for cope_a_236
+INSERT INTO concept_relationship_manual 
+VALUES ('cope_a_236', 'LA9-3', 'PPI', 'LOINC',	'Maps to', 	'2021-08-12', 	'2099-12-31', NULL) ;
 
 --add hierarchy 'Answer of (PPI)' from Answers to Questions
 INSERT INTO concept_relationship_manual
@@ -99,6 +110,11 @@ TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
 FROM ppi_wms_1121_mapped a 
 where mark = 'q' ; --141
+
+------------------------------------------------
+-- branching logic between connected concepts --
+------------------------------------------------
+--note! first commited row above each part of the script given as an example of branching logic.
 
 --cdc_covid_xx_b_dose10 PARENT OF cdc_covid_xx_b_dose10_other
 INSERT INTO concept_relationship_manual

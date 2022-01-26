@@ -49,7 +49,17 @@ AS
      SPLIT_PART(answer_reg, ',', 1) AS answer_code,
      trim(SPLIT_PART(answer_reg, ',', 2)) AS answer_name 
      FROM a) ;
-     
+ 
+ --check wether the concepts sent to us exist in different register than in Athena
+ --if such concepts exist, report to the customer
+ select * from wms 
+ join concept c on lower (question_code) = c.concept_code and question_code !=c.concept_code
+ where vocabulary_id ='PPI'
+ union
+ select * from wms 
+ join concept c on lower (answer_code) = c.concept_code and answer_code != c.concept_code
+ where vocabulary_id ='PPI'
+;
 --routine update
 UPDATE wms 
 SET answer_code = NULL, 
@@ -108,6 +118,16 @@ AS
      trim(SPLIT_PART(answer_reg, ',', 2)) AS answer_name 
      FROM a) ;
 
+ --check wether the concepts sent to us exist in different register than in Athena
+ --if such concepts exist, report to the customer
+ select * from ppi_pfh_c 
+ join concept c on lower (question_code) = c.concept_code and question_code !=c.concept_code
+ where vocabulary_id ='PPI'
+ union
+ select * from ppi_pfh_c 
+ join concept c on lower (answer_code) = c.concept_code and answer_code != c.concept_code
+ where vocabulary_id ='PPI'
+;
 --routine updates
 UPDATE ppi_pfh_c 
 SET answer_code = NULL, 

@@ -14,3 +14,13 @@ UPDATE concept
        valid_end_date = to_date ('2022-01-25','yyyy-MM-dd'),
        invalid_reason = 'D'
 WHERE concept_id = 905043;
+
+--deprecate all relationships for these concepts
+update concept_relationship set invalid_reason='D' ,
+valid_end_date = to_date ('2022-01-25','yyyy-MM-dd')
+where concept_id_1 in (905023, 905043)
+;
+update concept_relationship set invalid_reason='D',
+valid_end_date = to_date ('2022-01-25','yyyy-MM-dd')
+where concept_id_2 in (905023, 905043)
+;

@@ -1,3 +1,9 @@
+--before sending concepts for review, ensure that there are no additional duplicates by concept_code
+select vocabulary_id, lower(concept_code) from concept 
+ WHERE vocabulary_id  IN ('PPI') AND concept_code <> 'OMOP generated'
+ and invalid_reason is null
+ group by vocabulary_id, lower(concept_code) having count(*)>1
+ ;
 --new concepts
 --create table new_c0 as select * from new_c
 ;

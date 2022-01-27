@@ -76,8 +76,7 @@ BEGIN
     --get working download link
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}',allow_redirects=>true);
-    pDownloadURL:=substring(pContent,'Release file.+?<a href="(.+?)\?.*?">.+?</a>');
-    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
+    pDownloadURL:=substring(pContent,'<div class="release-details__label">.+?<a href="(.*?)">.+');
 
     perform write_log (
       iVocabularyID=>pVocabularyID,

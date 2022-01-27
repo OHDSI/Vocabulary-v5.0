@@ -106,21 +106,22 @@ where a.vocabulary_id IN (:your_vocabs)
 and c.concept_id is null and b.concept_id is null
 ;
 
---02.2. looking at new concepts and their mapping -- 'Maps to' present
+--02.2. looking at new concepts and their mapping -- 'Maps to', 'Maps to value' present
 select a.concept_code as concept_code_source,
        a.concept_name as concept_name_source,
        a.vocabulary_id as vocabulary_id_source,
        a.concept_class_id as concept_class_id_source,
        a.domain_id as domain_id_source,
-       CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
+       r.relationship_id,
+       CASE WHEN a.concept_id = b.concept_id and r.relationship_id ='Maps to' THEN '<Mapped to itself>'
            ELSE b.concept_name END as concept_name_target,
-       CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'
+       CASE WHEN a.concept_id = b.concept_id and r.relationship_id ='Maps to' THEN '<Mapped to itself>'
            ELSE b.vocabulary_id END as vocabulary_id_target
 from concept a
 join concept_relationship r
     on a.concept_id=r.concept_id_1
            and r.invalid_reason is null
-           and r.relationship_Id ='Maps to'
+           and r.relationship_Id in ('Maps to', 'Maps to value')
 join concept b
     on b.concept_id = r.concept_id_2
 left join devv5.concept  c
@@ -128,6 +129,7 @@ left join devv5.concept  c
 where a.vocabulary_id IN (:your_vocabs)
     and c.concept_id is null
     --and a.concept_id != b.concept_id --use it to exclude mapping to itself
+order by a.concept_code
 ;
 
 --02.3. looking at new concepts and their ancestry -- 'Is a' absent

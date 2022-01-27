@@ -139,6 +139,7 @@ BEGIN
           27. HemOnc
           28. dm+d
           29. OncoTree
+          20 CIM10
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -327,12 +328,7 @@ BEGIN
                 cVocabVer := 'SNOMED Veterinary '||to_char(cVocabDate,'YYYYMMDD');
             WHEN cVocabularyName = 'ICD10GM'
             THEN
-                --ICD10GM uses ajax, so we need to make another HTTP-request to get date/version
-                SELECT http_content INTO cVocabHTML FROM vocabulary_download.py_http_get(url=>'https://www.dimdi.de/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/filelist-ajax.jsp?folder='||
-                    SUBSTRING(cVocabHTML,'.*?data-folder="(/sites/dimdi2018/\.downloads/klassifikationen/icd-10-gm/version\d{4}/)".+')||'&sitepath=/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/&loc=de&rows=25&start=0',allow_redirects=>true);
-                --cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM \d{4} Metadaten TXT \(CSV\) </a>.*?<p>Stand: ([\d.]+).*'),'dd.mm.yyyy');
-                --cVocabVer := cVocabularyName||SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta\.zip">ICD-10-GM( \d{4}) Metadaten TXT \(CSV\) </a>.*?<p>Stand: [\d.]+.*');
-                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.*<a class=.*?/icd-10-gm/version\d{4}/icd10gm\d{4}syst-meta[\d-]*\.zip">ICD-10-GM (\d{4}) Metadaten TXT \(CSV\)\s*</a>.*?<p>Stand: [\d.]+.*'),'yyyy');
+                cVocabDate := TO_DATE (SUBSTRING (cVocabHTML,'.+?<a href="SharedDocs/Downloads/DE/Kodiersysteme/klassifikationen/icd-10-gm/version(\d{4})/icd10gm\d{4}syst-meta.*?_zip.+?>'),'yyyy');
                 cVocabVer := cVocabularyName||' '||to_char(cVocabDate,'YYYY');
             WHEN cVocabularyName = 'CCAM'
             THEN
@@ -351,6 +347,18 @@ BEGIN
                 from json_to_recordset(cVocabHTML::json) as x (api_identifier text, release_date date)
                 where x.api_identifier='oncotree_latest_stable';
                 cVocabVer := 'OncoTree version '||to_char(cVocabDate,'yyyy-mm-dd');
+            WHEN cVocabularyName = 'CIM10'
+            THEN
+                SELECT TO_DATE (SUBSTRING (title, 'CIM-10 FR (\d{4}) à usage PMSI'), 'yyyy'),
+                cVocabularyName||' '||SUBSTRING (title, 'CIM-10 FR (\d{4}) à usage PMSI')
+                INTO cVocabDate, cVocabVer
+                FROM (
+                 SELECT 
+                    UNNEST(xpath ('/rss/channel/item/title/text()', cVocabHTML::xml))::varchar title,
+                    UNNEST(xpath ('/rss/channel/item/pubDate/text()', cVocabHTML::xml)) ::varchar pubDate
+                ) AS t
+                WHERE t.title LIKE '%CIM-10 FR % à usage PMSI%'
+                ORDER BY TO_DATE (pubDate, 'dy dd mon yyyy hh24:mi:ss') DESC LIMIT 1;
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

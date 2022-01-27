@@ -1,3 +1,4 @@
+
 ### STEP 5 of the refresh: work with manual staging tables (skip this step if implementing on the Pallas vocabulary server)
 5.1.Extract the [respective csv file](https://drive.google.com/file/d/1sXdWNn1oN-EhsqFyT6cl2TI4YBXbDQyV/view?usp=sharing) into the concept_manual table. The file was generated using the query:
 ```sql
@@ -58,3 +59,4 @@ Preserve a manual table with 'Is a' relationships, but change 'Is a' to 'Maps to
 - repl_by_name VARCHAR,
 - repl_by_domain VARCHAR,
 - repl_by_vocabulary VARCHAR
+

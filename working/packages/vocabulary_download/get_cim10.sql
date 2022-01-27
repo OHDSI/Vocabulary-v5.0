@@ -1,4 +1,4 @@
-CREATE OR REPLACE FUNCTION vocabulary_download.get_icd10gm (
+CREATE OR REPLACE FUNCTION vocabulary_download.get_cim10 (
 iOperation text default null,
 out session_id int4,
 out last_status INT,
@@ -7,7 +7,7 @@ out result_output text
 AS
 $BODY$
 DECLARE
-pVocabularyID constant text:='ICD10GM';
+pVocabularyID constant text:='CIM10';
 pVocabulary_auth vocabulary_access.vocabulary_auth%type;
 pVocabulary_url vocabulary_access.vocabulary_url%type;
 pVocabulary_login vocabulary_access.vocabulary_login%type;
@@ -16,26 +16,27 @@ pVocabularySrcDate date;
 pVocabularySrcVersion text;
 pVocabularyNewDate date;
 pVocabularyNewVersion text;
-pCookie text;
 pContent text;
 pDownloadURL text;
-auth_hidden_param varchar(10000);
 pErrorDetails text;
 pVocabularyOperation text;
-pJumpToOperation text; --ALL (default), JUMP_TO_ICD10GM_PREPARE, JUMP_TO_ICD10GM_IMPORT
-z int;
+/*
+  possible values of pJumpToOperation:
+  ALL (default), JUMP_TO_CIM10_PREPARE, JUMP_TO_CIM10_IMPORT
+*/
+pJumpToOperation text;
 cRet text;
 CRLF constant text:=E'\r\n';
 pSession int4;
 pVocabulary_load_path text;
 BEGIN
-  pVocabularyOperation:='GET_ICD10GM';
+  pVocabularyOperation:='GET_CIM10';
   select nextval('vocabulary_download.log_seq') into pSession;
   
   select new_date, new_version, src_date, src_version 
   	into pVocabularyNewDate, pVocabularyNewVersion, pVocabularySrcDate, pVocabularySrcVersion 
   from vocabulary_pack.CheckVocabularyUpdate(pVocabularyID);
-
+  
   set local search_path to vocabulary_download;
   
   perform write_log (
@@ -45,10 +46,11 @@ BEGIN
     iVocabulary_status=>0
   );
   
-  if pVocabularyNewDate is null then raise exception '% already updated',pVocabularyID; end if;
-  
   if iOperation is null then pJumpToOperation:='ALL'; else pJumpToOperation:=iOperation; end if;
-  if iOperation not in ('ALL', 'JUMP_TO_ICD10GM_PREPARE', 'JUMP_TO_ICD10GM_IMPORT') then raise exception 'Wrong iOperation %',iOperation; end if;
+  if iOperation not in ('ALL', 'JUMP_TO_CIM10_PREPARE', 'JUMP_TO_CIM10_IMPORT'
+  ) then raise exception 'Wrong iOperation %',iOperation; end if;
+  
+  if pVocabularyNewVersion is null then raise exception '% already updated',pVocabularyID; end if;
   
   if not pg_try_advisory_xact_lock(hashtext(pVocabularyID)) then raise exception 'Processing of % already started',pVocabularyID; end if;
   
@@ -57,15 +59,25 @@ BEGIN
   if pJumpToOperation='ALL' then
     --get vocabulary_url
     select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
-    --first part, get the filename
-    select substring(http_content,'.+?<a href="SharedDocs/Downloads/DE/Kodiersysteme/klassifikationen/icd-10-gm/(version\d{4}/icd10gm\d{4}syst-meta.*?)_zip.+?>') into pContent from py_http_get(url=>pVocabulary_url);
-
-    --second part, get working download link
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
-    pDownloadURL:=pVocabulary_url||pContent||'.zip';
-
+    
+    --getting download link from RSS link
+    select http_content into pContent from py_http_get(url=>pVocabulary_url);
+    select link_str	into pVocabulary_url
+    from (
+     select 
+        unnest(xpath ('/rss/channel/item/title/text()', pContent::xml))::varchar title,
+        unnest(xpath ('/rss/channel/item/link/text()', pContent::xml)) ::varchar link_str,
+        unnest(xpath ('/rss/channel/item/pubdate/text()', pContent::xml)) ::varchar pubdate
+    ) as t
+    where t.title like '%CIM-10 FR % à usage PMSI%'
+    order by to_date (t.pubdate, 'dy dd mon yyyy hh24:mi:ss') desc limit 1;
+    
+    --getting working dl link
+    select substring(http_content,'.+<a class="link-attachment-content" href="(.+?claml.+?\.zip)" target="_blank">') into pDownloadURL from py_http_get(url=>pVocabulary_url);
+    if not coalesce(pDownloadURL,'-') ~* '^(https://www.atih.sante.fr/sites/default/files/public/content/)(.+)\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL is not valid'; end if;
+    
     --start downloading
-    pVocabularyOperation:='GET_ICD10GM downloading';
+    pVocabularyOperation:='GET_CIM10 downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.zip',
@@ -74,36 +86,36 @@ BEGIN
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_ICD10GM downloading complete',
+      iVocabulary_operation=>'GET_CIM10 downloading complete',
       iVocabulary_status=>1
     );
   end if;
-
-  if pJumpToOperation in ('ALL','JUMP_TO_ICD10GM_PREPARE') then
+    
+  if pJumpToOperation in ('ALL','JUMP_TO_CIM10_PREPARE') then
     pJumpToOperation:='ALL';
     --extraction
-    pVocabularyOperation:='GET_ICD10GM prepare';
-    perform get_icd10gm_prepare (
+    pVocabularyOperation:='GET_CIM10 prepare';
+    perform get_cim10_prepare (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_ICD10GM prepare complete',
+      iVocabulary_operation=>'GET_CIM10 prepare complete',
       iVocabulary_status=>1
     );
   end if;
-
-  if pJumpToOperation in ('ALL','JUMP_TO_ICD10GM_IMPORT') then
-  	pJumpToOperation:='ALL';
+  
+  if pJumpToOperation in ('ALL','JUMP_TO_CIM10_IMPORT') then
+    pJumpToOperation:='ALL';
     --finally we have all input tables, we can start importing
-    pVocabularyOperation:='GET_ICD10GM load_input_tables';
+    pVocabularyOperation:='GET_CIM10 load_input_tables';
     perform sources.load_input_tables(pVocabularyID,pVocabularyNewDate,pVocabularyNewVersion);
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_ICD10GM load_input_tables complete',
+      iVocabulary_operation=>'GET_CIM10 load_input_tables complete',
       iVocabulary_status=>1
     );
   end if;
@@ -111,7 +123,7 @@ BEGIN
   perform write_log (
     iVocabularyID=>pVocabularyID,
     iSessionID=>pSession,
-    iVocabulary_operation=>'GET_ICD10GM all tasks done',
+    iVocabulary_operation=>'GET_CIM10 all tasks done',
     iVocabulary_status=>3
   );
   

@@ -46,6 +46,7 @@ FROM devv5.concept c
 LEFT JOIN devv5.concept_relationship cr
 ON cr.concept_id_1 = c.concept_id
 WHERE vocabulary_id = 'NDC'
+AND cr.invalid_reason is null
 AND concept_id in ('1799556', '1799558', '1799562', '1799559', '1799560', '1779597', '1779561', '1799760', '1779550', '1799561');
 
 --4. Truncate the NDC_manual_mapped table. Save the spreadsheet as the NDC_manual_mapped table and upload it into the working schema.

@@ -10,7 +10,7 @@
 - NULL string: empty
 
 
-9.3Work with [NDC_SPL_refresh] file:
+9.3 Work with [NDC_SPL_refresh] file:
 
 9.3.1. Backup concept_relationship_manual table.
 

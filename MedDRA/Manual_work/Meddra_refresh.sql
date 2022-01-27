@@ -1,4 +1,4 @@
---Backup concept_relationship_manual table and concept_manual table.
+--2.1. Backup concept_relationship_manual table and concept_manual table.
 DO
 $body$
     DECLARE
@@ -35,7 +35,7 @@ $body$;
 INSERT INTO dev_meddra.concept_manual
 SELECT * FROM dev_meddra.concept_manual_backup_YYYY_MM_DD;*/
 
--- Create dev_meddra_meddra_mapped table
+-- 2.2. Create dev_meddra_meddra_mapped table
 
 --DROP TABLE dev_meddra.meddra_mapped;
 
@@ -58,11 +58,18 @@ CREATE TABLE dev_meddra.meddra_mapped
     target_domain_id varchar(50),
     target_vocabulary_id varchar(50)
 );
--- Truncate the meddra_mapped table. Save the spreadsheet as the meddra_mapped table and upload it into the working schema.
+
+-- 2.3. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
+
+-- 2.4. Select concepts to map  and add them to the manual file in the spreadsheet editor.
+
+-- 2.5. Truncate the meddra_mapped table. Save the spreadsheet as the meddra_mapped table and upload it into the working schema.
 --TRUNCATE TABLE dev_meddra.meddra_mapped;
 
+-- 2.6. Perform any mapping checks you have set.
+-- 2.7. Iteratively repeat steps 2.3-2.6 if found any issues.
 
--- Deprecate all mappings that differ from the new version of resulting mapping file
+-- 2.8. Deprecate all mappings that differ from the new version of resulting mapping file
 UPDATE dev_meddra.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
@@ -88,7 +95,7 @@ WHERE NOT exists(SELECT source_code, target_concept_code, 'MedDRA', target_vocab
     )
 ;
 
---Insert new and corrected mappings
+--2.9. Insert new and corrected mappings
 with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,
@@ -120,6 +127,3 @@ INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabula
                   NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM dev_meddra.concept_relationship_manual)
     )
 ;
-
-
-

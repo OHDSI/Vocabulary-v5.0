@@ -12,6 +12,7 @@ $body$
     END
 $body$;
 
+
 --restore concept_relationship_manual table (run it only if something went wrong)
 /*TRUNCATE TABLE dev_meddra.concept_relationship_manual;
 INSERT INTO dev_meddra.concept_relationship_manual

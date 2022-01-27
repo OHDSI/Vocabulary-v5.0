@@ -356,39 +356,18 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
     UNION ALL;
 
+-- 6. Depricate MedDRA-SNOMED eq
+WITH tbl AS
+(SELECT  *
+FROM dev_meddra.concept_relationship_stage as crs
+INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
+INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
+WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%')
 
---6. Insert MedDRA to SNOMED mapping from meddra_mapped to concept_relationship_manual - done 05.01.2022
+UPDATE concept_relationship_stage AS crs2 SET invalid_reason='D', valid_end_date=current_date
+FROM tbl
+WHERE crs2.concept_code_1=tbl.concept_code_1 AND crs2.concept_code_2=tbl.concept_code_2;
 
-with mapping AS
-    (
-        SELECT DISTINCT source_code AS concept_code_1,
-               target_concept_code AS concept_code_2,
-               'MedDRA' AS vocabulary_id_1,
-               target_vocabulary_id AS vocabulary_id_2,
-               CASE WHEN to_value ~* 'value' THEN 'Maps to value'
-                    WHEN to_value ~* 'Is a' THEN 'Is a'
-                    WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
-                   ELSE 'Maps to' END AS relationship_id,
-               current_date AS valid_start_date,
-               to_date('20991231','yyyymmdd') AS valid_end_date,
-               NULL AS invalid_reason
-        FROM dev_meddra."meddra_mapped_bckp_05.01.22"
-        WHERE target_concept_id != 0
-    )
-
-INSERT INTO concept_relationship_manual(concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, invalid_reason)
-    (SELECT concept_code_1,
-            concept_code_2,
-            vocabulary_id_1,
-            vocabulary_id_2,
-            relationship_id,
-            valid_start_date,
-            valid_end_date,
-            invalid_reason
-     FROM mapping AS m
-        WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id)
-                  NOT IN (SELECT concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id FROM dev_meddra.concept_relationship_manual)
-    );
 
 -- 7. Working with concept_manual table
 DO $_$
@@ -430,14 +409,3 @@ END $_$;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
 
 
---  Depricate MedDRA-SNOMED eq
-WITH tbl AS
-(SELECT  *
-FROM dev_meddra.concept_relationship_stage as crs
-INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
-INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
-WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%')
-
-UPDATE concept_relationship_stage AS crs2 SET invalid_reason='D', valid_end_date=current_date
-FROM tbl
-WHERE crs2.concept_code_1=tbl.concept_code_1 AND crs2.concept_code_2=tbl.concept_code_2;

@@ -403,9 +403,6 @@ BEGIN
 END $_$;
 
 
-
-
-
 -- 10. Working with replacement mappings
 DO $_$
 BEGIN
@@ -433,3 +430,14 @@ END $_$;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
 
 
+--  Depricate MedDRA-SNOMED eq
+WITH tbl AS
+(SELECT  *
+FROM dev_meddra.concept_relationship_stage as crs
+INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
+INNER JOIN dev_meddra.concept_relationship AS cr ON c.concept_id=cr.concept_id_1
+WHERE cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%')
+
+UPDATE concept_relationship_stage AS crs2 SET invalid_reason='D', valid_end_date=current_date
+FROM tbl
+WHERE crs2.concept_code_1=tbl.concept_code_1 AND crs2.concept_code_2=tbl.concept_code_2;

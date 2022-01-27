@@ -58,9 +58,11 @@ CREATE TABLE dev_meddra.meddra_mapped
     target_domain_id varchar(50),
     target_vocabulary_id varchar(50)
 );
--- Truncate the meddra_mapped table. Save the spreadsheet as the loinc_mapped table and upload it into the working schema.
+-- Truncate the meddra_mapped table. Save the spreadsheet as the meddra_mapped table and upload it into the working schema.
 --TRUNCATE TABLE dev_meddra.meddra_mapped;
 
+
+-- Deprecate all mappings that differ from the new version of resulting mapping file
 UPDATE dev_meddra.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
@@ -72,7 +74,7 @@ WHERE NOT exists(SELECT source_code, target_concept_code, 'MedDRA', target_vocab
                     WHEN to_value ~* 'Is a' THEN 'Is a'
                     WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
                    ELSE 'Maps to' END
-                FROM dev_meddra.meddra_mapped_version22_11_21 crm_new
+                FROM dev_meddra.meddra_mapped crm_new
                 WHERE source_code = crm_old.concept_code_1
                 AND target_concept_code = crm_old.concept_code_2
                 AND target_vocabulary_id = crm_old.vocabulary_id_2
@@ -85,7 +87,6 @@ WHERE NOT exists(SELECT source_code, target_concept_code, 'MedDRA', target_vocab
     AND invalid_reason IS NULL
     )
 ;
-
 
 --Insert new and corrected mappings
 with mapping AS

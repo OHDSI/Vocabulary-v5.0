@@ -24,8 +24,3 @@ update concept_relationship set invalid_reason='D',
 valid_end_date = to_date ('2022-01-25','yyyy-MM-dd')
 where concept_id_2 in (905023, 905043)
 ;
---to avoid any confusion when people mapping to PPI, we cover it under the licence
-UPDATE vocabulary_conversion
-   SET url = 'mailto:contact@ohdsi.org?subject=License%20required%20for%20PPI&body=Describe%20your%20situation%20and%20your%20need%20for%20this%20vocabulary.'
-WHERE vocabulary_id_v5 = 'PPI';
-

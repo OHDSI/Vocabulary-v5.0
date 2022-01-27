@@ -101,7 +101,7 @@ with mapping AS
                current_date AS valid_start_date,
                to_date('20991231','yyyymmdd') AS valid_end_date,
                NULL AS invalid_reason
-        FROM dev_meddra."meddra_mapped_bckp_05.01.22"
+        FROM dev_meddra.meddra_mapped
         WHERE target_concept_id != 0
     )
 

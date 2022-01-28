@@ -368,7 +368,6 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
-
 -- 8. Working with replacement mappings
 DO $_$
 BEGIN
@@ -394,39 +393,36 @@ BEGIN
 END $_$;
 
 -- 12. Insert 'MedDRA-SNOMED eq' mappings to crs in order to deprecate those having valid 'Maps to'
-INSERT INTO concept_relationship_stage (concept_code_1,
-                                        concept_code_2,
-                                        vocabulary_id_1,
-                                        vocabulary_id_2,
-                                        relationship_id,
-                                        valid_start_date,
-                                        valid_end_date,
-                                        invalid_reason)
-
-SELECT DISTINCT c.concept_code,
-                c2.concept_code,
-                c.vocabulary_id,
-                c2.vocabulary_id,
-                cr.relationship_id,
-                cr.valid_start_date,
-                current_date,
-                'D'
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c.concept_code,
+	c2.concept_code,
+	c.vocabulary_id,
+	c2.vocabulary_id,
+	cr.relationship_id,
+	cr.valid_start_date,
+	CURRENT_DATE,
+	'D'
 FROM concept_relationship cr
-
-JOIN concept c
-    ON cr.concept_id_1 = c.concept_id
-        AND c.vocabulary_id = 'MedDRA'
-
-JOIN concept c2
-    ON cr.concept_id_2 = c2.concept_id
-
-JOIN concept_relationship_stage crs
-    ON c.concept_code = crs.concept_code_1
-        AND c.vocabulary_id = crs.vocabulary_id_1
-        AND crs.relationship_id = 'Maps to'
-        AND crs.invalid_reason IS NULL
-
+JOIN concept c ON c.concept_id = cr.concept_id_1
+	AND c.vocabulary_id = 'MedDRA'
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2
 WHERE cr.relationship_id = 'MedDRA - SNOMED eq'
-      AND cr.invalid_reason IS NULL;
-
+	AND cr.invalid_reason IS NULL
+	AND EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = c.concept_code
+			AND crs_int.vocabulary_id_1 = c.vocabulary_id
+			AND crs_int.relationship_id = 'Maps to'
+			AND crs_int.invalid_reason IS NULL
+		);
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

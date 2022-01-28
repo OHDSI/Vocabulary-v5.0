@@ -1,4 +1,4 @@
---2.1. Backup concept_relationship_manual table and concept_manual table.
+--6.2.1. Backup concept_relationship_manual table and concept_manual table.
 DO
 $body$
     DECLARE
@@ -36,10 +36,9 @@ $body$;
 INSERT INTO dev_meddra.concept_manual
 SELECT * FROM dev_meddra.concept_manual_backup_YYYY_MM_DD;*/
 
--- 2.2. Create dev_meddra_meddra_mapped table
+--6.2.2. Create meddra_mapped table and pre-populate it with the resulting manual table of the previous MedDRA refresh.
 
---DROP TABLE dev_meddra.meddra_mapped;
-
+DROP TABLE dev_meddra.meddra_mapped;
 CREATE TABLE dev_meddra.meddra_mapped
 (
     id SERIAL PRIMARY KEY,
@@ -60,25 +59,26 @@ CREATE TABLE dev_meddra.meddra_mapped
     target_vocabulary_id varchar(50)
 );
 
--- 2.3. Review the previous mapping and map new concepts. If previous mapping can be improved, just change mapping of the respective row. To deprecate a previous mapping without a replacement, just delete a row.
 
--- 2.4. Select concepts to map  and add them to the manual file in the spreadsheet editor.
+--6.2.5. Truncate the 'meddra_mapped' table. Save the spreadsheet as the 'meddra_mapped table' and upload it into the working schema.
+TRUNCATE TABLE dev_meddra.meddra_mapped;
 
--- 2.5. Truncate the meddra_mapped table. Save the spreadsheet as the meddra_mapped table and upload it into the working schema.
---TRUNCATE TABLE dev_meddra.meddra_mapped;
 
--- 2.6. Perform any mapping checks you have set.
--- 2.7. Iteratively repeat steps 2.3-2.6 if found any issues.
-
--- 2.8. Deprecate all mappings that differ from the new version of resulting mapping file
+--6.2.8. Deprecate all mappings that differ from the new version of resulting mapping file.
+--TODO: to be tested (we never run it in MedDRA)
 UPDATE dev_meddra.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
 WHERE (concept_code_1, concept_code_2, relationship_id, vocabulary_id_2) IN
 
-(SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2 FROM concept_relationship_manual crm_old
+(SELECT concept_code_1, concept_code_2, relationship_id, vocabulary_id_2
+FROM concept_relationship_manual crm_old
 
-WHERE NOT exists(SELECT source_code, target_concept_code, 'MedDRA', target_vocabulary_id, CASE WHEN to_value ~* 'value' THEN 'Maps to value'
+WHERE NOT exists(SELECT source_code,
+                        target_concept_code,
+                        'MedDRA',
+                        target_vocabulary_id,
+                        CASE WHEN to_value ~* 'value' THEN 'Maps to value'
                     WHEN to_value ~* 'Is a' THEN 'Is a'
                     WHEN to_value ~* 'Subsumes' THEN 'Subsumes'
                    ELSE 'Maps to' END
@@ -96,7 +96,8 @@ WHERE NOT exists(SELECT source_code, target_concept_code, 'MedDRA', target_vocab
     )
 ;
 
---2.9. Insert new and corrected mappings
+
+--6.2.9. Insert new and corrected mappings into the concept_relationship_manual table.
 with mapping AS
     (
         SELECT DISTINCT source_code AS concept_code_1,

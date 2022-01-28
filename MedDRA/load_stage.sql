@@ -14,7 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors:  Dmitry Dymshyts, Denys Kaduk,Timur Vakhitov, Christian Reich
+* Authors: Mikita Salavei, Dmitry Dymshyts, Denys Kaduk, Timur Vakhitov, Christian Reich
 * Date: 2019
 **************************************************************************/
 
@@ -354,58 +354,79 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
           NULL
      FROM SOURCES.low_level_term
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
-    UNION ALL;
-
--- 6. Depricate MedDRA-SNOMED eq
-WITH tbl AS
-(SELECT  *
-FROM dev_meddra.concept_relationship_stage as crs
-INNER JOIN dev_meddra.concept  AS c ON crs.concept_code_1 = c.concept_code AND  crs.vocabulary_id_1=c.vocabulary_id
-INNER JOIN dev_meddra.concept_relationship AS cr    ON c.concept_id=cr.concept_id_1
-WHERE crs.invalid_reason IS null AND cr.invalid_reason IS null AND  cr.relationship_id='MedDRA - SNOMED eq' AND crs.relationship_id LIKE 'Maps to%')
-
-UPDATE concept_relationship_stage AS crs2 SET invalid_reason='D', valid_end_date=current_date
-FROM tbl
-WHERE crs2.concept_code_1=tbl.concept_code_1 AND crs2.concept_code_2=tbl.concept_code_2 AND crs2.vocabulary_id_1 = tbl.vocabulary_id_1 AND crs2.vocabulary_id_2 = tbl.vocabulary_id_2;
 
 
--- 7. Working with concept_manual table
+-- 6. Working with concept_manual table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
--- 8. Append result to concept_relationship_stage table
+-- 7. Append result to concept_relationship_stage table
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
 
--- 10. Working with replacement mappings
+-- 8. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---11. Add mapping from deprecated to fresh concepts
+--9. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---12. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---13. Delete ambiguous 'Maps to' mappings
+--11. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
+-- 12. Insert 'MedDRA-SNOMED eq' mappings to crs in order to deprecate those having valid 'Maps to'
+INSERT INTO concept_relationship_stage (concept_code_1,
+                                        concept_code_2,
+                                        vocabulary_id_1,
+                                        vocabulary_id_2,
+                                        relationship_id,
+                                        valid_start_date,
+                                        valid_end_date,
+                                        invalid_reason)
+
+SELECT DISTINCT c.concept_code,
+                c2.concept_code,
+                c.vocabulary_id,
+                c2.vocabulary_id,
+                cr.relationship_id,
+                cr.valid_start_date,
+                current_date,
+                'D'
+FROM concept_relationship cr
+
+JOIN concept c
+    ON cr.concept_id_1 = c.concept_id
+        AND c.vocabulary_id = 'MedDRA'
+
+JOIN concept c2
+    ON cr.concept_id_2 = c2.concept_id
+
+JOIN concept_relationship_stage crs
+    ON c.concept_code = crs.concept_code_1
+        AND c.vocabulary_id = crs.vocabulary_id_1
+        AND crs.relationship_id = 'Maps to'
+        AND crs.invalid_reason IS NULL
+
+WHERE cr.relationship_id = 'MedDRA - SNOMED eq'
+      AND cr.invalid_reason IS NULL;
+
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
-
-

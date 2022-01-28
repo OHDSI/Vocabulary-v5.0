@@ -51,7 +51,7 @@ END $_$;
 ```sql
 SELECT * FROM qa_tests.get_checks();
 ```
-22. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/readme.md) file in the manual_work folder.
+22. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/readme.md) file in the 'manual_work' folder.
 
 23. Repeat steps 17-21.
 
@@ -59,14 +59,14 @@ SELECT * FROM qa_tests.get_checks();
 ```sql
 SELECT * FROM qa_tests.purge_cache();
 ```
-25. Run scripts to get summary:
+25. Run scripts to get summary, and interpret the results:
 ```sql
 SELECT DISTINCT * FROM qa_tests.get_summary('concept');
 ```
 ```sql
 SELECT DISTINCT * FROM qa_tests.get_summary('concept_relationship');
 ```
-26. Run scripts to collect statistics:
+26. Run scripts to collect statistics, and interpret the results:
 ```sql
 SELECT DISTINCT * FROM qa_tests.get_domain_changes();
 ```
@@ -83,6 +83,6 @@ SELECT DISTINCT * FROM qa_tests.get_newly_concepts_standard_concept_status();
 SELECT DISTINCT * FROM qa_tests.get_changes_concept_mapping();
 ```
 
-27. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql).
-28. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql).
+27. Run [manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/manual_checks_after_generic.sql), and interpret the results.
+28. Run [project_specific_manual_checks_after_generic.sql](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/LOINC/manual_work/project_specific_manual_checks_after_generic.sql), and interpret the results.
 29. If no problems, enjoy!

@@ -14,7 +14,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors:  Dmitry Dymshyts, Denys Kaduk,Timur Vakhitov, Christian Reich
+* Authors: Mikita Salavei, Dmitry Dymshyts, Denys Kaduk, Timur Vakhitov, Christian Reich
 * Date: 2019
 **************************************************************************/
 
@@ -355,34 +355,74 @@ INSERT INTO  concept_relationship_stage (concept_code_1,
      FROM SOURCES.low_level_term
     WHERE llt_currency = 'Y' AND llt_code <> pt_code;
 
---6. Append result to concept_relationship_stage table
-/*DO $_$
+
+-- 6. Working with concept_manual table
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
+END $_$;
+
+-- 7. Append result to concept_relationship_stage table
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
-END $_$;*/
+END $_$;
 
---7. Working with replacement mappings
-/*DO $_$
+-- 8. Working with replacement mappings
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
-END $_$;*/
+END $_$;
 
---8. Add mapping from deprecated to fresh concepts
-/*DO $_$
+--9. Add mapping from deprecated to fresh concepts
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
-END $_$;*/
+END $_$;
 
---9. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
-/*DO $_$
+--10. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
-END $_$;*/
+END $_$;
 
---10. Delete ambiguous 'Maps to' mappings
-/*DO $_$
+--11. Delete ambiguous 'Maps to' mappings
+DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;*/
+END $_$;
 
+-- 12. Insert 'MedDRA-SNOMED eq' mappings to crs in order to deprecate those having valid 'Maps to'
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c.concept_code,
+	c2.concept_code,
+	c.vocabulary_id,
+	c2.vocabulary_id,
+	cr.relationship_id,
+	cr.valid_start_date,
+	CURRENT_DATE,
+	'D'
+FROM concept_relationship cr
+JOIN concept c ON c.concept_id = cr.concept_id_1
+	AND c.vocabulary_id = 'MedDRA'
+JOIN concept c2 ON c2.concept_id = cr.concept_id_2
+WHERE cr.relationship_id = 'MedDRA - SNOMED eq'
+	AND cr.invalid_reason IS NULL
+	AND EXISTS (
+		SELECT 1
+		FROM concept_relationship_stage crs_int
+		WHERE crs_int.concept_code_1 = c.concept_code
+			AND crs_int.vocabulary_id_1 = c.vocabulary_id
+			AND crs_int.relationship_id = 'Maps to'
+			AND crs_int.invalid_reason IS NULL
+		);
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

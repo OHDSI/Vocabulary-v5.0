@@ -12,7 +12,7 @@
 * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 * See the License for the specific language governing permissions and
 * limitations under the License.
-* 
+*
 * Authors: Eduard Korchmar, Alexander Davydov, Timur Vakhitov, Christian Reich
 * Date: 2021
 **************************************************************************/
@@ -39,11 +39,11 @@ WHERE m1.active = 1
 	AND --Model component module; Synthetic target, contains source version in each row
 	m1.moduleid IN (
 		900000000000207008, --Core (international) module
-		999000041000000102, --UK edition
+		999000011000000103, --UK edition
 		731000124108 --US edition
 		);
 
---2. Update latest_update field to new date 
+--2. Update latest_update field to new date
 --Use the latest of the release dates of all source versions. Usually, the UK is the latest.
 DO $_$
 BEGIN
@@ -53,7 +53,7 @@ BEGIN
 	pVocabularyVersion		=>
 		(SELECT version FROM module_date where moduleid = 900000000000207008) || ' SNOMED CT International Edition; ' ||
 		(SELECT version FROM module_date where moduleid = 731000124108) || ' SNOMED CT US Edition; ' ||
-		(SELECT version FROM module_date where moduleid = 999000041000000102) || ' SNOMED CT UK Edition',
+		(SELECT version FROM module_date where moduleid = 999000011000000103) || ' SNOMED CT UK Edition',
 	pVocabularyDevSchema	=> 'DEV_SNOMED'
 );
 END $_$;
@@ -299,7 +299,7 @@ FROM (
 								) rna -- row number in sct2_desc_full_merged
 						FROM concept_stage c
 						JOIN sources.sct2_desc_full_merged d ON d.conceptid::TEXT = c.concept_code
-						WHERE 
+						WHERE
 							c.vocabulary_id = 'SNOMED' AND
 							d.typeid = 900000000000003001 -- only Fully Specified Names
 						) AS s0
@@ -308,7 +308,7 @@ FROM (
 			WHERE rnc = 1
 			)
 	SELECT concept_code,
-		CASE 
+		CASE
 			WHEN F7 = 'disorder'
 				THEN 'Clinical Finding'
 			WHEN F7 = 'procedure'
@@ -589,7 +589,7 @@ FROM (
 		destinationid AS concept_code_2,
 		'SNOMED' AS vocabulary_id_1,
 		'SNOMED' AS vocabulary_id_2,
-		CASE 
+		CASE
 			WHEN term = 'Access'
 				THEN 'Has access'
 			WHEN term = 'Associated aetiologic finding'
@@ -894,6 +894,21 @@ FROM (
 				THEN 'Has comp material'
 			WHEN term = 'Has filling'
 				THEN 'Has filling'
+		    --January 2022
+		    WHEN term = 'Has coating material'
+		        THEN 'Has coating material'
+		    WHEN term = 'Has absorbability'
+		        THEN 'Has absorbability'
+		    WHEN term = 'Process extends to'
+		        THEN 'Process extends to'
+		    WHEN term = 'Has ingredient qualitative strength'
+		        THEN 'Has strength'
+		    WHEN term = 'Has surface texture'
+		        THEN 'Has surface texture'
+		    WHEN term = 'Is sterile'
+		        THEN 'Is sterile'
+		    WHEN term = 'Has target population'
+		        THEN 'Has targ population'
 			ELSE term --'non-existing'
 			END AS relationship_id,
 		(
@@ -912,6 +927,111 @@ WHERE NOT EXISTS (
 			AND crs.concept_code_2 = sn.concept_code_2
 			AND crs.relationship_id = sn.relationship_id
 		);
+
+
+--TODO: Remove temp code to the manual changes repository
+/*
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Has coating material (SNOMED)',
+	pRelationship_id			=>'Has coating material',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Coating material of (SNOMED)',
+	pReverse_relationship_id		=>'Coating material of',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Has absorbability (SNOMED)',
+	pRelationship_id			=>'Has absorbability',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Absorbability of (SNOMED)',
+	pReverse_relationship_id		=>'Absorbability of',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Process extends to (SNOMED)',
+	pRelationship_id			=>'Process extends to',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Process extends from (SNOMED)',
+	pReverse_relationship_id		=>'Process extends from',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Has ingredient qualitative strength (SNOMED)',
+	pRelationship_id			=>'Has strength',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Ingredient qualitative strength of (SNOMED)',
+	pReverse_relationship_id		=>'Strength of',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;
+
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Has surface texture (SNOMED)',
+	pRelationship_id			=>'Has surface texture',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Surface texture of (SNOMED)',
+	pReverse_relationship_id		=>'Surface texture of',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;
+
+/*
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Is sterile (SNOMED)',
+	pRelationship_id			=>'Is sterile',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Is sterile of (SNOMED)',
+	pReverse_relationship_id		=>'Is sterile of',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;
+ */
+
+DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Has target population (SNOMED)',
+	pRelationship_id			=>'Has targ population',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Target population of (SNOMED)',
+	pReverse_relationship_id		=>'Targ population of',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;
+ */
+
 
 --check for non-existing relationships
 ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
@@ -1195,9 +1315,9 @@ CREATE UNLOGGED TABLE snomed_ancestor AS
 			levels_of_separation,
 			ARRAY [descendant_concept_code::TEXT] AS full_path
 		FROM concepts
-		
+
 		UNION ALL
-		
+
 		SELECT c.ancestor_concept_code,
 			c.descendant_concept_code,
 			root_ancestor_concept_code,
@@ -1946,7 +2066,7 @@ DECLARE
 r RECORD;
 BEGIN
 	SELECT DISTINCT c.concept_code::BIGINT AS peak_code,
-		CASE 
+		CASE
 			WHEN c.concept_class_id = 'Clinical finding'
 				THEN 'Condition'
 			WHEN c.concept_class_id = 'Model Comp'
@@ -1962,7 +2082,7 @@ BEGIN
 			ELSE 'Observation'
 			END AS peak_domain_id,
 		NULL::INT AS ranked
-	INTO r --remove "into r" to run as generic query
+--	INTO r --remove "into r" to run as generic query
 	FROM snomed_ancestor a,
 		concept_stage c
 	WHERE c.concept_code::BIGINT = a.ancestor_concept_code

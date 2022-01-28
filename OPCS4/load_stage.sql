@@ -23,7 +23,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'OPCS4',
 	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.opcs LIMIT 1),
-	pVocabularyVersion		=> (SELECT EXTRACT (YEAR FROM vocabulary_date)||' Release' FROM sources.opcs LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.opcs LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_OPCS4'
 );
 END $_$;

@@ -260,12 +260,14 @@ WHERE EXISTS (
 		FROM sources.mrconso mr_int
 		WHERE mr_int.sab = 'HCPT'
 			AND mr_int.scui = mr.scui
+			and mr.sab = 'HCPT'
 		)
 	AND NOT EXISTS (
 		SELECT 1
 		FROM sources.mrconso mr_int
 		WHERE mr_int.sab = 'CPT'
 			AND mr_int.scui = mr.scui
+			and mr.sab = 'CPT'
 		)
 	AND (
 		(

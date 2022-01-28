@@ -55,37 +55,21 @@ BEGIN
   select var_value||pVocabularyID into pVocabulary_load_path from devv5.config$ where var_name='vocabulary_load_path';
     
   if pJumpToOperation='ALL' then
-    --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
-    
-    --create two AJAX-requests
-    select http_content into pContent from py_http_get(url=>pVocabulary_url);
-    --pVocabulary_auth contains target page for second AJAX-request
-    select substring(http_content,'.*<a class="dl-titlelink" target="_blank" href="(.*)">ICD-10-GM \d{4} Metadaten TXT \(CSV\) </a>.*') into pDownloadURL from py_http_get(url=>pVocabulary_auth||'?folder='||
-        substring(pContent,'.*<a href="#nav_1".*?data-folder="(.*?/klassifikationen/icd-10-gm/version\d{4}/)".*')||'&sitepath=/dynamic/system/modules/de.dimdi.apollo.template.downloadcenter/pages/&loc=de&rows=25&start=0');
-    pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||pDownloadURL;
-    --https://www.dimdi.de/dynamic/.downloads/klassifikationen/icd-10-gm/version2020/icd10gm2020syst-meta.zip
-    if not coalesce(pDownloadURL,'-') ~* '^(https://www.dimdi.de/)(.+)meta\.zip$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
-    
-    --get cookie
-    select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent from py_http_get(url=>pDownloadURL);
-    if pCookie not like '%JSESSIONID=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie JSESSIONID not found'; end if;
-    pCookie=substring(pCookie,'JSESSIONID=(.*?);');
+    --get vocabulary_url
+    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
+    --first part, get the filename
+    select substring(http_content,'.+?<a href="SharedDocs/Downloads/DE/Kodiersysteme/klassifikationen/icd-10-gm/(version\d{4}/icd10gm\d{4}syst-meta.*?)_zip.+?>') into pContent from py_http_get(url=>pVocabulary_url);
 
-    --dummy POST request that we have accepted the terms of use
-    perform py_http_post(url=>'https://www.dimdi.de/dynamic/de/klassifikationen/downloads/icd-10-gm-downloadbedingungen-bfarm/index.html',
-        params=>'formaction=submit&InputField-1=Ich+habe+die+Downloadbedingungen+gelesen+und+stimme+diesen+ausdr%FCcklich+zu.',
-        cookies=>'{"JSESSIONID":"'||pCookie||'"}',
-        allow_redirects=>false);
+    --second part, get working download link
+    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
+    pDownloadURL:=pVocabulary_url||pContent||'.zip';
 
     --start downloading
     pVocabularyOperation:='GET_ICD10GM downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.zip',
-      iDownloadLink=>pDownloadURL,
-      iParams=>'--no-cookies --header "Cookie: JSESSIONID='||pCookie||';CookieBannerOK=accepted; apollodisclaimer--de-klassifikationen-downloads-icd-10-gm-downloadbedingungen-index.html=true"'
+      iDownloadLink=>pDownloadURL
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,

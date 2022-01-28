@@ -25,7 +25,7 @@ There are several functions for easier viewing - `GetLogSummary`, `GetLogByID` a
 
 # Examples
 
-To view a short aggregated history of base tables changes, type
+### To view a short aggregated history of base tables changes, type
 ```SQL
 SELECT log_id,
 	tx_time AT TIME ZONE 'MSK' AS tx_time,
@@ -47,7 +47,7 @@ Some explanations:
 NOTE: If the change was made manually, for example "update concept set concept_name = '1' where concept_id = 1", then the corresponding query will be shown marked "Manual".
 * affected_vocabs - the vocabularies that were specified in `SetLatestUpdate`, with the schema name (e.g. NDC, SPL [DEV_NDC]).
 
-If you want to see the history of a specific concept, type
+### If you want to see the history of a specific concept, type
 ```SQL
 SELECT log_id,
 	table_name,
@@ -70,7 +70,7 @@ Some explanations:
 
 NOTE: as `iConceptID` you can use the field concept_id (`concept`, `concept_synonym`), concept_id_1 (`concept_relationship`), relationship_concept_id (`relationship`), vocabulary_concept_id (`vocabulary`), concept_class_concept_id (`concept_class`), domain_concept_id (`domain`), drug_concept_id (`drug_strength`), pack_concept_id (`pack_content`).
 
-If you want to see the history of a specific transaction, type
+### If you want to see the history of a specific transaction, type
 ```SQL
 SELECT log_id,
 	table_name,
@@ -87,9 +87,10 @@ LIMIT 100;
 
 Will show all changes to the base tables made during this transaction.
 
----
 
-Through detailed logs, it is possible to use them to restore dev-schema (and even directly devv5) at any convenient time (from the moment of installation). For example, if you want to restore the dev-schema to the moment before the last update, the following steps are needed:
+
+### Restoring the dev-schema
+Through detailed logs, it is possible to use them to restore dev-schema (and even directly devv5) at any convenient time. For example, if you want to restore the dev-schema to the moment before the latest update, the following steps are needed:
 1. Connect to the required dev-schema
 2. Run
 ```SQL
@@ -99,6 +100,9 @@ BEGIN
 END $$;
 ```
 3. Get the corresponding log_id from `GetLogSummary`
+
+![audit package](https://i.imgur.com/1LA51xK.png)
+
 4. Substitute it into `RestoreBasicTables` and run
 ```SQL
 DO $$
@@ -107,4 +111,29 @@ BEGIN
 END $$;
 ```
 
-After some time the dev-schema will be restored.
+After some time the dev-schema will be restored (including event from selected log_id).
+
+
+### If you want to see which vocabularies have been updated since the last release, type 
+```SQL
+SELECT MAX(tx_time) AS tx_time,
+	s0.affected_vocabs
+FROM (
+	SELECT log_id,
+		tx_time AT TIME ZONE 'MSK' AS tx_time,
+		affected_vocabs,
+		MAX(log_id) FILTER(WHERE script_name = 'StartRelease') OVER () latest_release_id
+	FROM audit.GetLogSummary()
+	) s0
+WHERE s0.log_id > s0.latest_release_id
+	AND s0.affected_vocabs IS NOT NULL
+GROUP BY s0.affected_vocabs
+ORDER BY 1 DESC;
+```
+
+---
+
+## Keep in mind
+- The concept_ancestor table is not supported by this package and won't be affected in any way.
+- If you plan using the concept_ancestor table in any of the dev schemas you're working in, rebuild it on updated basic tables using the respective [function](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/working/packages/vocabulary_pack/pConceptAncestor.sql).
+- If you will not use the concept_ancestor table, keep it trancated or even drop it in order to avoid unexpected results of its querying.

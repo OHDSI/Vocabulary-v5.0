@@ -18,13 +18,8 @@ begin
       drop index sources.x_mrsat_cui;
       drop index sources.x_mrconso_code;
       drop index sources.x_mrconso_cui;
-      drop index sources.x_mrconso_lui;
       drop index sources.x_mrconso_sab_tty;
       drop index sources.x_mrconso_scui;
-      drop index sources.x_mrconso_sdui;
-      drop index sources.x_mrconso_str;
-      drop index sources.x_mrconso_sui;
-      drop index sources.x_mrrel_aui;
       drop index sources.x_mrsty_cui;
       /*
       UMLS can contain characters like single quotes and double quotes, but PG uses them as a service characters
@@ -42,14 +37,9 @@ begin
       CREATE INDEX x_mrsat_cui ON sources.mrsat (cui);
       CREATE INDEX x_mrconso_code ON sources.mrconso (code);
       CREATE INDEX x_mrconso_cui ON sources.mrconso (cui);
-      CREATE INDEX x_mrconso_lui ON sources.mrconso (lui);
       CREATE UNIQUE INDEX x_mrconso_pk ON sources.mrconso (aui);
       CREATE INDEX x_mrconso_sab_tty ON sources.mrconso (sab, tty);
       CREATE INDEX x_mrconso_scui ON sources.mrconso (scui);
-      CREATE INDEX x_mrconso_sdui ON sources.mrconso (sdui);
-      CREATE INDEX x_mrconso_str ON sources.mrconso (str);
-      CREATE INDEX x_mrconso_sui ON sources.mrconso (sui);
-      CREATE INDEX x_mrrel_aui ON sources.mrrel (aui1, aui2);
       CREATE INDEX x_mrsty_cui ON sources.mrsty (cui);
       ALTER TABLE sources.mrconso ADD CONSTRAINT x_mrconso_pk PRIMARY KEY USING INDEX x_mrconso_pk;
       analyze sources.mrconso;
@@ -191,7 +181,7 @@ begin
       analyze sources.retchch0_etc_hicseqn_hist;
   when 'MEDDRA' then
       truncate table sources.hlgt_pref_term, sources.hlgt_hlt_comp, sources.hlt_pref_term, sources.hlt_pref_comp, sources.low_level_term, 
-      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp;
+      	sources.md_hierarchy, sources.pref_term, sources.soc_term, sources.soc_hlgt_comp, sources.meddra_mapsto_snomed, sources.meddra_mappedfrom_snomed;
       execute 'COPY sources.hlgt_pref_term FROM '''||pVocabularyPath||'hlgt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlgt_hlt_comp FROM '''||pVocabularyPath||'hlgt_hlt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.hlt_pref_term FROM '''||pVocabularyPath||'hlt.asc'' delimiter ''$'' csv quote E''\b''';
@@ -201,16 +191,9 @@ begin
       execute 'COPY sources.pref_term FROM '''||pVocabularyPath||'pt.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.soc_term FROM '''||pVocabularyPath||'soc.asc'' delimiter ''$'' csv quote E''\b''';
       execute 'COPY sources.soc_hlgt_comp FROM '''||pVocabularyPath||'soc_hlgt.asc'' delimiter ''$'' csv quote E''\b''';
+      insert into sources.meddra_mapsto_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',0);
+      insert into sources.meddra_mappedfrom_snomed select * from sources.py_xlsparse_meddra_snomed(pVocabularyPath||'/meddra_mappings.xlsx',1);
       update sources.hlt_pref_comp set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
-      analyze sources.hlgt_pref_term;
-      analyze sources.hlgt_hlt_comp;
-      analyze sources.hlt_pref_term;
-      analyze sources.hlt_pref_comp;
-      analyze sources.low_level_term;
-      analyze sources.md_hierarchy;
-      analyze sources.pref_term;
-      analyze sources.soc_term;
-      analyze sources.soc_hlgt_comp;
   when 'GPI' then
       truncate table sources.gpi_name, sources.ndw_v_product;
       execute 'COPY sources.gpi_name (gpi_code,drug_string) FROM '''||pVocabularyPath||'gpi_name.txt'' delimiter '';'' csv quote ''$''';
@@ -346,7 +329,8 @@ begin
                   END
               ), '') AS ndc_code,
           low_value,
-          high_value
+          high_value,
+          is_diluent
       FROM (
           SELECT COALESCE(NULLIF(concept_name, ''), NULLIF(concept_name_clob, ''), '') || ' - ' || COALESCE(NULLIF(LOWER(kit), ''), NULLIF(concept_name_p2, ''), NULLIF(concept_name_clob_p2, ''), '') AS concept_name,
               concept_code,
@@ -357,7 +341,8 @@ begin
               ndc_code_array [2] AS ndc_p2,
               ndc_code_array [3] AS ndc_p3,
               NULLIF(low_value, '') AS low_value,
-              NULLIF(high_value, '') AS high_value
+              NULLIF(high_value, '') AS high_value,
+              CASE WHEN ndc_root_name LIKE '%DILUENT%' AND ndc_code <> '' THEN TRUE ELSE FALSE END AS is_diluent
           FROM (
               SELECT TRIM(UPPER(TRIM(concept_name_part)) || ' ' || UPPER(TRIM(concept_name_suffix))) AS concept_name,
                   TRIM(UPPER(TRIM(concept_name_clob_part)) || ' ' || UPPER(TRIM(concept_name_clob_suffix))) AS concept_name_clob,
@@ -374,7 +359,9 @@ begin
                   kit,
                   regexp_split_to_array(ndc_code, '-') AS ndc_code_array,
                   low_value,
-                  high_value
+                  high_value,
+                  ndc_code,
+                  UPPER(ndc_root_name) AS ndc_root_name
               FROM (
                   SELECT (sources.py_xmlparse_spl(xmlfield)).*
                   FROM sources.spl_ext_raw
@@ -792,10 +779,13 @@ begin
       analyze sources.ccam_r_acte;
   when 'HEMONC' then
       truncate table sources.hemonc_cs, sources.hemonc_crs, sources.hemonc_css;
+      alter table sources.hemonc_cs alter column valid_end_date type text; --dirty hack for truncating values like "2021-09-06 11-30-12" (otherwise there will be an error "time zone displacement out of range: "2021-09-06 11-30-12")
       execute 'COPY sources.hemonc_cs (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason) FROM '''||pVocabularyPath||'concept_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason HEADER';
       execute 'COPY sources.hemonc_crs FROM '''||pVocabularyPath||'concept_relationship_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL concept_id_1,concept_id_2,concept_code_1,concept_code_2,vocabulary_id_1,vocabulary_id_2,relationship_id HEADER';
       execute 'COPY sources.hemonc_css FROM '''||pVocabularyPath||'concept_synonym_stage.tab'' delimiter E''\t'' csv quote ''"'' FORCE NULL synonym_concept_id,synonym_name,synonym_concept_code,synonym_vocabulary_id,language_concept_id HEADER';
       update sources.hemonc_cs set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+      update sources.hemonc_cs set valid_end_date=SUBSTRING(valid_end_date,'(.+)\s') where valid_end_date like '% %';
+      alter table sources.hemonc_cs alter column valid_end_date type date using valid_end_date::date; --return proper type
   when 'DMD' then
       truncate table sources.f_lookup2, sources.f_ingredient2, sources.f_vtm2, sources.f_vmp2, sources.f_vmpp2, sources.f_amp2, sources.f_ampp2, sources.dmdbonus;
       execute 'COPY sources.f_lookup2 (xmlfield) FROM '''||pVocabularyPath||'f_lookup2.xml'' delimiter E''\b''';
@@ -813,6 +803,13 @@ begin
       truncate table sources.sopt_source;
       execute 'COPY sources.sopt_source (concept_code,concept_name) FROM '''||pVocabularyPath||'sopt_source.csv'' delimiter '';'' csv quote ''"'' ';
       update sources.sopt_source set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'CIM10' then
+      truncate table sources.cim10;
+      ALTER TABLE sources.cim10 ALTER COLUMN xmlfield SET DATA TYPE text;
+      execute 'COPY sources.cim10 (xmlfield) FROM PROGRAM ''cat "'||pVocabularyPath||'cim10.xml"| tr ''''\r\n'''' '''' ''''  '' csv delimiter E''\b'' quote E''\f'' ';
+      update sources.cim10 set xmlfield=replace(xmlfield,'<!DOCTYPE ClaML SYSTEM "ClaML.dtd">',''); --PG can not work with DOCTYPE
+      ALTER TABLE sources.cim10 ALTER COLUMN xmlfield SET DATA TYPE xml USING xmlfield::xml;
+      update sources.cim10 set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   else
       RAISE EXCEPTION 'Vocabulary with id=% not found', pVocabularyID;
   end case;

@@ -1,4 +1,4 @@
-﻿CREATE OR REPLACE FUNCTION vocabulary_pack.addfreshmapsto (
+CREATE OR REPLACE FUNCTION vocabulary_pack.addfreshmapsto (
 )
 RETURNS void AS
 $body$
@@ -150,6 +150,11 @@ BEGIN
 						AND crs.vocabulary_id_1 = r.root_vocabulary_id_1
 					)
 			) AS s3
+		WHERE EXISTS (--check if target concept is valid and standard (first in concept_stage, then concept)
+		SELECT 1
+		FROM vocabulary_pack.GetActualConceptInfo(concept_code_2, vocabulary_id_2) a
+		WHERE a.standard_concept = 'S'
+			AND a.invalid_reason IS NULL)
 		),
 	updated
 	AS (

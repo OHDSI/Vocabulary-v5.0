@@ -13,8 +13,8 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 *
-* Authors: Oleg Zhuk, Polina Talapova, Dmitry Dymshyts, Alexander Davydov, Timur Vakhitov, Christian Reich
-* Date: 2020
+* Authors: Maria Rogozhkina, Oleg Zhuk, Polina Talapova, Dmitry Dymshyts, Alexander Davydov, Timur Vakhitov, Christian Reich
+* Date: 2021
 **************************************************************************/
 
 --1. Update a 'latest_update' field to a new date
@@ -50,7 +50,7 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT CASE
+SELECT CASE 
 		WHEN loinc_num = '66678-4'
 			AND property = 'Hx'
 			THEN 'History of Diabetes (regardless of treatment) [PhenX]'
@@ -61,7 +61,8 @@ SELECT CASE
 			THEN 'History of ' || long_common_name
 		ELSE long_common_name -- AVOF-819
 		END AS concept_name,
-	CASE
+	--TODO: fix wrong domains, more information in AVOF-2241
+	CASE 
 		WHEN classtype IN (
 				'1',
 				'2'
@@ -155,6 +156,7 @@ SELECT CASE
 							)
 						)
 					)
+				OR (long_common_name ~* 'note|Note')
 				)
 			AND (
 				long_common_name !~* 'scale|score'
@@ -179,7 +181,7 @@ SELECT CASE
 			THEN 'Observation'
 		END AS domain_id,
 	v.vocabulary_id,
-	CASE
+	CASE 
 		WHEN classtype IN (
 				'1',
 				'2'
@@ -296,15 +298,43 @@ SELECT CASE
 		WHEN classtype = '4'
 			THEN 'Survey'
 		END AS concept_class_id,
-	'S' AS standard_concept,
+	CASE 
+		WHEN l.STATUS IN ('DEPRECATED')
+			THEN NULL
+		WHEN l.STATUS IN ('DISCOURAGED')
+			AND (
+				l.loinc_num = ANY (cj_1map.arr_loinc)
+				OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+				OR l.class = 'PANEL.HEDIS'
+				OR l.classtype IN (
+					'3',
+					'4'
+					)
+				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
+			THEN NULL
+		ELSE 'S'
+		END AS standard_concept,
 	LOINC_NUM AS concept_code,
 	v.latest_update AS valid_start_date,
-	CASE
-		WHEN l.status IN (
-				'DISCOURAGED',
-				'DEPRECATED'
-				)
-			THEN CASE
+	CASE 
+		WHEN l.STATUS IN ('DEPRECATED')
+			THEN CASE 
+					WHEN c.valid_end_date > v.latest_update
+						OR c.valid_end_date IS NULL
+						THEN v.latest_update
+					ELSE c.valid_end_date
+					END
+		WHEN l.STATUS IN ('DISCOURAGED')
+			AND (
+				l.loinc_num = ANY (cj_1map.arr_loinc)
+				OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+				OR l.class = 'PANEL.HEDIS'
+				OR l.classtype IN (
+					'3',
+					'4'
+					)
+				) --Discouraged concepts that shouldn't be Standard: 1) have only one link in the sources.map_to 2) have Mass or Substance Concentration Loinc property 3) have the class "PANEL.HEDIS" 4) have classtype 3 (Survey) or 4 (Claims Attachment)
+			THEN CASE 
 					WHEN c.valid_end_date > v.latest_update
 						OR c.valid_end_date IS NULL
 						THEN v.latest_update
@@ -312,40 +342,71 @@ SELECT CASE
 					END
 		ELSE TO_DATE('20991231', 'yyyymmdd')
 		END AS valid_end_date,
-	CASE
-		WHEN EXISTS (
-				SELECT 1
-				FROM sources.map_to m
-				WHERE m.loinc = l.loinc_num
+	CASE 
+		WHEN (
+				l.STATUS IN ('DISCOURAGED')
+				AND (
+					(
+						l.loinc_num = ANY (cj_map.arr_loinc)
+						AND (
+							l.class = 'PANEL.HEDIS'
+							OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+							)
+						) --Discouraged concepts that should be Updated: 1) have Mass or Substance Concentration Loinc property and with mapping in the sources.to_map 3) have the class "PANEL.HEDIS" and with mapping in the sources.to_map
+					OR l.loinc_num = ANY (cj_1map.arr_loinc)
+					)
+				) --Discouraged concepts that should be Updated: 1) have only one link in the sources.map_to
+			OR (
+				l.STATUS IN ('DEPRECATED')
+				AND l.loinc_num = ANY (cj_map.arr_loinc)
 				)
 			THEN 'U'
-		WHEN l.status IN (
-				'DISCOURAGED',
-				'DEPRECATED'
-				)
+		WHEN l.STATUS = 'DEPRECATED'
+			OR (
+				l.STATUS = 'DISCOURAGED'
+				AND (
+					l.class = 'PANEL.HEDIS'
+					OR l.loinc_num = ANY (cj_part.arr_loincnumber)
+					OR l.classtype IN (
+						'3',
+						'4'
+						)
+					)
+				) --Discouraged concepts that should be Deprecated: 1) have Mass or Substance Concentration Loinc property without mapping in the sources.map_to 2) have the class "PANEL.HEDIS" without mapping in the sources.map_to 3) have classtype 3 (Survey) or 4 (Claims Attachment) without mapping in the sources.map_to
 			THEN 'D'
 		ELSE NULL
 		END AS invalid_reason
 FROM sources.loinc l
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
+CROSS JOIN (
+	SELECT ARRAY(SELECT DISTINCT m.loinc FROM sources.map_to m) arr_loinc
+	) cj_map
+CROSS JOIN (
+	SELECT ARRAY(SELECT m.loinc FROM sources.map_to m GROUP BY m.loinc HAVING COUNT(DISTINCT m.map_to) = 1) arr_loinc
+	) cj_1map
+CROSS JOIN (
+	SELECT ARRAY(SELECT lp.loincnumber FROM sources.loinc_partlink_primary lp WHERE lp.partnumber = 'LP33032-1') arr_loincnumber
+	) cj_part
 LEFT JOIN concept c ON c.concept_code = l.LOINC_NUM
 	AND c.vocabulary_id = 'LOINC';
 
---todo: confirm that these concepts are not expected to be Measurements storing the result
---todo: define concept_class_id
-/*--3.1. Update Domains for concepts representing Imaging procedures based on hierarchy
-update concept_stage
-set domain_id = 'Procedure'
-WHERE
-	concept_code in
-		(
-			select code
-			from sources.loinc_hierarchy
-			where
-				path_to_root ~ ('^(LP7787\-7\.LP29684\-5|LP7787\-7\.LP7797\-6\.LP29680\-3)\.') and --LP29684-5 Radiology LP29680-3 Eye ultrasound
-				code not in (select loincnumber from sources.loinc_partlink where partnumber in ('LP7753-9','LP200093-5','LP200395-4')) -- LOINC Parts that identify direct measures or scores
-		)
-;*/
+--3.1. Update Domains for concepts representing Imaging procedures
+UPDATE concept_stage cs
+SET domain_id = 'Procedure'
+FROM sources.loinc l
+WHERE cs.concept_code = l.loinc_num
+	AND l.class = 'RAD' --Radiology concepts
+	--Concept code doesn't have parts like "Qn", "Densitometry", "Calcium score"
+	AND NOT EXISTS (
+		SELECT 1
+		FROM sources.loinc_partlink_primary lp
+		WHERE lp.partnumber IN (
+				'LP7753-9',
+				'LP200093-5',
+				'LP200395-4'
+				)
+			AND lp.loincnumber = cs.concept_code
+		);
 
 --4. Add LOINC Classes from a manual table of 'sources.loinc_class' into the concept_stage
 INSERT INTO concept_stage (
@@ -507,6 +568,18 @@ SELECT long_common_name AS concept_name,
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM vocabulary_pack.GetLoincPrerelease();
 
+--5.1 Update Radiology Hierarchy Domains
+UPDATE concept_stage cs
+SET domain_id = 'Procedure'
+FROM sources.loinc_hierarchy lh
+WHERE (
+		lh.path_to_root LIKE '%LP29684-5%' --Radiology (LOINC Hierarchy)
+		AND cs.concept_class_id = 'LOINC Hierarchy'
+		AND cs.concept_name LIKE '%Radiology%'
+		AND lh.code = cs.concept_code
+		)
+	OR cs.concept_code = 'LP29684-5';
+
 --6. Insert missing codes from manual extraction
 DO $_$
 BEGIN
@@ -518,18 +591,20 @@ WITH hierarchy
 AS (
 	SELECT lh.code
 	FROM sources.loinc_hierarchy lh
-	WHERE (NOT EXISTS (
-			SELECT 1
-			FROM sources.loinc_partlink_primary lpp
-			WHERE lh.code = lpp.partnumber
-				AND lpp.parttypename <> 'CLASS'
-			)
-		AND NOT EXISTS (
+	WHERE (
+			NOT EXISTS (
+				SELECT 1
+				FROM sources.loinc_partlink_primary lpp
+				WHERE lh.code = lpp.partnumber
+					AND lpp.parttypename <> 'CLASS'
+				)
+			AND NOT EXISTS (
 				SELECT 1
 				FROM sources.loinc_partlink_supplementary lps
 				WHERE lh.code = lps.partnumber
 					AND lps.parttypename <> 'CLASS'
-				))
+				)
+			)
 		AND lh.code !~ '^\d'
 	)
 UPDATE concept_stage cs
@@ -1044,7 +1119,8 @@ CREATE UNLOGGED TABLE sn_attr AS
 					'104326007',
 					'104323004',
 					'697001',
-					'413058006'
+					'413058006',
+				    '432883005'
 					) -- SNOMED concepts with wrong sets of attributes
 			), -- exclude concepts with multiple attributes from one category
 		-- get a list of Fully defined SNOMED concepts, using sources.sct2_concept_full_merged, to weed out Primitive SNOMED Measurements composed of inadequate attribute set
@@ -1595,6 +1671,7 @@ FROM sources.cpt_mrsmap l,
 WHERE v.vocabulary_id = 'LOINC';
 
 --24. Build 'Concept replaced by' relationships for updated LOINC concepts and deprecate already existing replacing mappings with the use of a 'sources.map_to' table
+--TODO: Consider using 1-to-many source mappings as "Maps to"
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1686,7 +1763,47 @@ FROM sources.loinc_documentontology d,
 WHERE v.vocabulary_id = 'LOINC'
 	AND d.partname NOT LIKE '{%}';-- decision to exclude LP173061-5 '{Settings}' and LP187187-2 '{Role}' PartNames was probably made due to vague reverse relationship formulations: Concept X 'Has setting' '{Setting}' or Concept Y 'Has role' {Role}.
 
---26. Build 'Has type of service', 'Has subject matter', 'Has role', 'Has setting', 'Has kind' reverse relationships from LOINC concepts indicating Measurements or Observations to LOINC Document Ontology concepts
+--26. Makes deprecated "Maps to" relationships for concepts that was Non-Standard and became Standard
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+SELECT c1.concept_code AS concept_code_1,
+	c2.concept_code AS concept_code_2,
+	c1.vocabulary_id AS vocabulary_id_1,
+	c2.vocabulary_id AS vocabulary_id_2,
+	r.relationship_id,
+	r.valid_start_date,
+	(
+		SELECT latest_update - 1
+		FROM vocabulary
+		WHERE vocabulary_id = 'LOINC'
+			AND latest_update IS NOT NULL
+		),
+	'D'
+FROM concept c1
+JOIN concept_relationship r ON r.concept_id_1 = c1.concept_id
+	AND r.relationship_id = 'Concept replaced by'
+	AND r.invalid_reason IS NULL
+JOIN concept c2 ON c2.concept_id = r.concept_id_2
+WHERE c1.vocabulary_id = 'LOINC'
+	AND c2.vocabulary_id = 'LOINC'
+	AND NOT EXISTS (
+		SELECT 1
+		FROM sources.map_to m
+		WHERE c1.concept_code IN (
+				m.loinc,
+				m.map_to
+				)
+		);
+
+--27. Build 'Has type of service', 'Has subject matter', 'Has role', 'Has setting', 'Has kind' reverse relationships from LOINC concepts indicating Measurements or Observations to LOINC Document Ontology concepts
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1721,7 +1838,7 @@ FROM sources.loinc_documentontology d,
 WHERE v.vocabulary_id = 'LOINC'
 	AND d.partname NOT LIKE '{%}';
 
---27. Add hierarchical LOINC Group Category and Group concepts to the concept_stage
+--28. Add hierarchical LOINC Group Category and Group concepts to the concept_stage
 INSERT INTO concept_stage (
 	concept_name,
 	domain_id,
@@ -1763,7 +1880,21 @@ SELECT TRIM(lg.lgroup) AS concept_name, -- LOINC Group name
 FROM sources.loinc_group lg
 JOIN vocabulary v ON v.vocabulary_id = 'LOINC';
 
---28. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
+--28.1 Update radiology Group Domains
+UPDATE concept_stage cs
+SET domain_id = 'Procedure'
+FROM sources.loinc_group lg
+WHERE (
+		cs.concept_code = lg.groupid
+		AND lg.parentgroupid = 'LG85-3'
+		)
+	OR cs.concept_code IN (
+		'LG85-3', --Radiology
+		'LG41849-7', --Region imaged: Lower extremity
+		'LG41814-1' --Radiology
+		);
+
+--29. Build 'Is a' relationships to create a hierarchy for LOINC Group Categories and Groups
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1804,7 +1935,7 @@ JOIN vocabulary v ON v.vocabulary_id = 'LOINC'
 JOIN concept_stage cs1 ON cs1.concept_code = lg.parentgroupid -- LOINC Group Category code
 JOIN concept_stage cs2 ON cs2.concept_code = lg.groupid;-- LOINC Group code
 
---29. Add LOINC Group Categories and Groups to the concept_synonym_stage
+--30. Add LOINC Group Categories and Groups to the concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -1828,7 +1959,7 @@ SELECT lpga.parentgroupid AS synonym_concept_code, -- LOINC Group Category code
 	4180186 AS language_concept_id -- English
 FROM sources.loinc_parentgroupattributes lpga;-- table with descriptions of LOINC Group Categories
 
---30. Add Chinese language synonyms (AVOF-2231) from UMLS
+--31. Add Chinese language synonyms (AVOF-2231) from UMLS
 INSERT INTO concept_synonym_stage (
 	synonym_name,
 	synonym_concept_code,
@@ -1843,37 +1974,37 @@ FROM concept_stage cs
 JOIN sources.mrconso m ON m.code = cs.concept_code
 	AND m.sab = 'LNC-ZH-CN';
 
---31. Working with manual mappings
+--32. Working with manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---32. Working with replacement mappings
+--33. Working with replacement mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
 
---33. Add mapping from deprecated to fresh concepts
+--34. Add mapping from deprecated to fresh concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
 END $_$;
 
---34. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+--35. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---35. Delete ambiguous 'Maps to' mappings
+--36. Delete ambiguous 'Maps to' mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
---36. Build reverse relationships. This is necessary for the next point.
+--37. Build reverse relationships. This is necessary for the next point.
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1905,7 +2036,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---37. Add to the concept_relationship_stage and deprecate all relationships which do not exist there
+--38. Add to the concept_relationship_stage and deprecate all relationships which do not exist there
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -1948,6 +2079,6 @@ WHERE a.vocabulary_id = 'LOINC'
 			AND crs_int.relationship_id = r.relationship_id
 		);
 
---38. Clean up
+--39. Clean up
 DROP TABLE sn_attr, lc_attr;
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

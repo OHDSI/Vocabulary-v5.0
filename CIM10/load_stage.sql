@@ -17,14 +17,13 @@
 * Date: 2020
 **************************************************************************/
 
---1. Update latest_update field to new date 
- -- doesn't work
+--1. Update latest_update field to new date
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'CIM10',
-	pVocabularyDate			=> (SELECT vocabulary_date FROM dev_cim10.CIM10_2020 LIMIT 1),
-	pVocabularyVersion		=> (SELECT vocabulary_version FROM dev_cim10.CIM10_2020 LIMIT 1),
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.cim10 LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.cim10 LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_CIM10'
 );
 END $_$;
@@ -57,7 +56,7 @@ FROM (
 			UNNEST(xpath('./Rubric', i.xmlfield)) rubric_label
 		FROM (
 			SELECT UNNEST(xpath('/ClaML/ModifierClass', i.xmlfield)) xmlfield
-			FROM dev_cim10.CIM10_2020 i
+			FROM sources.cim10 i
 			) AS i
 		) AS s0
 	) AS s1
@@ -85,7 +84,7 @@ AS (
 				UNNEST(xpath('./Rubric', i.xmlfield)) rubric_label
 			FROM (
 				SELECT UNNEST(xpath('/ClaML/Class', i.xmlfield)) xmlfield
-				FROM dev_cim10.CIM10_2020 i
+				FROM sources.cim10 i
 				) AS i
 			LEFT JOIN LATERAL(SELECT UNNEST(xpath('./SuperClass/@code', i.xmlfield))::VARCHAR superclass_code) l ON true
 			LEFT JOIN LATERAL(SELECT UNNEST(xpath('./ModifiedBy/@code', i.xmlfield))::VARCHAR modifiedby_code) l1 ON true

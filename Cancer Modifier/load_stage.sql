@@ -14,8 +14,9 @@
 * limitations under the License.
 *
 * Authors: Medical team
-* Date: 2020
+* Date: 2021
 **************************************************************************/
+
 
 DO $_$
 BEGIN
@@ -25,6 +26,13 @@ BEGIN
 	pVocabularyVersion		=> 'Cancer Modifier '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
 	pVocabularyDevSchema	=> 'dev_cancer_modifier'
 );
+/*	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=> 'NAACCR',
+    pVocabularyDate			=> to_date ('2018-03-02', 'yyyy-mm-dd'), -- https://www.naaccr.org/data-standards-data-dictionary/#DataDictionary -- Version 18 Data Standards and Data Dictionary – (posted 3/2/18;
+	pVocabularyVersion		=> 'NAACCR v18',
+	pVocabularyDevSchema	=> 'dev_cancer_modifier',
+	pAppendVocabulary		=> TRUE
+);*/ --commented for the current run
 END $_$;
 
 -- 2. Truncate all working tables
@@ -34,8 +42,35 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
---3. Manual concepts
+--1   ProcessManualConcepts
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
+
+
+--2. Add manual relationships
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
+END $_$;
+
+--3. Working with replacement mappings
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
+END $_$;
+
+--4 Add mapping from deprecated to fresh concepts (necessary for the next step)
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--5. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+

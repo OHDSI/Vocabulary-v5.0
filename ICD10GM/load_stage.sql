@@ -172,13 +172,7 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
 
---11. Delete ambiguous 'Maps to' mappings
-DO $_$
-BEGIN
-	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
-END $_$;
-
---12. Update domain_id for ICD10GM from SNOMED
+--11. Update domain_id for ICD10GM from target vocabularies
 UPDATE concept_stage cs
 SET domain_id = i.domain_id
 FROM (
@@ -201,19 +195,19 @@ FROM (
 	FROM concept_relationship_stage crs
 	JOIN concept c2 ON c2.concept_code = crs.concept_code_2
 		AND c2.vocabulary_id = crs.vocabulary_id_2
-		AND c2.vocabulary_id = 'SNOMED'
+		AND c2.vocabulary_id in ('SNOMED', 'Cancer Modifier', 'OMOP Extension')
 	WHERE crs.relationship_id = 'Maps to'
 		AND crs.invalid_reason IS NULL
 		AND crs.vocabulary_id_1 = 'ICD10GM'
 	) i
 WHERE i.concept_code_1 = cs.concept_code;
 
---13. Concepts are mapped through parent codes, a few left should become observation
+--12. Concepts are mapped through parent codes, a few left should become observation
 UPDATE concept_stage
 SET domain_id = 'Observation'
 WHERE domain_id IS NULL;
 
---14. Fill concept_synonym_stage
+--13. Fill concept_synonym_stage
 INSERT INTO concept_synonym_stage (
 	synonym_concept_code,
 	synonym_name,
@@ -233,10 +227,9 @@ WHERE concept_code NOT IN (
 		'U99.0'
 		);
 
---15. Manually adding synonyms (COVID19, E-cig)
+--14. Manually adding synonyms (COVID19, E-cig)
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
-
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

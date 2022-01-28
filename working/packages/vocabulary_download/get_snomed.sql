@@ -141,9 +141,7 @@ BEGIN
     --get working download link
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
-    pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    --https://isd.digital.nhs.uk/trud3/api/v1/keys/xxx/files/SNOMEDCT2/28.0.0/UK_SCT2CL/uk_sct2cl_28.0.0_20191001000001.zip
-    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
+    pDownloadURL:=substring(pContent,'<div class="release-details__label">.+?<a href="(.*?)">.+');
     
     --start downloading
     pVocabularyOperation:='GET_SNOMED UK-part downloading';
@@ -243,13 +241,12 @@ BEGIN
     --authorization
     select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent
     from py_http_post(url=>pVocabulary_auth, params=>'j_username='||devv5.urlencode(pVocabulary_login)||'&j_password='||devv5.urlencode(pVocabulary_pass)||'&commit=LOG%20IN');
-    if pCookie not like '%JSESSIONID=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%JSESSIONID=%% not found'; end if;       
+    if pCookie not like '%JSESSIONID=%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%JSESSIONID=%% not found'; end if;
     
     --get working download link
     pCookie=substring(pCookie,'JSESSIONID=(.*?);');
     select http_content into pContent from py_http_get(url=>pVocabulary_url,cookies=>'{"JSESSIONID":"'||pCookie||'"}');
-    pDownloadURL:=substring(pVocabulary_url,'^(https?://([^/]+))')||substring(pContent,'<a class="download-release" href="(.*?)">Download</a>');
-    if not pDownloadURL ~* '^(https://isd.digital.nhs.uk/)(.+)\.zip$' then pErrorDetails:=pDownloadURL; raise exception 'pDownloadURL (full) is not valid'; end if;
+    pDownloadURL:=substring(pContent,'<div class="release-details__label">.+?<a href="(.*?)">.+');
     
     --start downloading
     pVocabularyOperation:='GET_SNOMED UK DE-part downloading';

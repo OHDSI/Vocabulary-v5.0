@@ -472,6 +472,39 @@ FROM (
 			WHERE cr_int.relationship_id = 'Has ingredient'
 				AND cr_int.invalid_reason IS NULL
 			)
+
+	union all
+	
+	--13. PI-promotion related reports
+	SELECT 
+	'I' AS info_level,
+		'Artificially promoted Ingredients from Precise Ingredients' AS description,
+		COUNT(distinct pi_rxcui) AS err_cnt
+	FROM pi_promotion
+	
+	union all
+	
+		
+	SELECT 
+		'I' AS info_level,
+		'New RxNorm Extension concepts inisde hierarchy by class: ' || cs.concept_class_id AS description,
+		COUNT(cs.concept_code) AS err_cnt
+	FROM concept_stage cs
+	where vocabulary_id = 'RxNorm Extension'
+	group by concept_class_id
+	
+	union all
+
+	select
+		'I' as info_level,
+		'Replaced relations due to creation of synthetic RxNorm Extension concepts' as description,
+		count(r.relationship_id)
+		from concept_relationship_stage r
+		join relationship e on r.relationship_id = e.relationship_id and defines_ancestry = 1
+		where
+			r.vocabulary_id_1 = 'RxNorm' and
+			r.vocabulary_id_2 = 'RxNorm Extension'
+	
 	) AS s0
 WHERE err_cnt <> 0;
 $BODY$

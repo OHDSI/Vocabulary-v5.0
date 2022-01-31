@@ -1,4 +1,4 @@
-### DA France Refresh Process ###
+### DA France Refresh Process
 
 #### Prerequisites ####
 * Basic knowledge of the custom vocabulary refresh
@@ -8,7 +8,7 @@
 ```sql
    SELECT devv5.FastRecreateSchema(include_concept_ancestor=>true,include_deprecated_rels=>true,include_synonyms=>true)
 ``` 
-#### Sequence of actions:####
+#### Sequence of actions
 1. Download source files (e.g. da_france_source)
 2. Run create_source_tables.sql
 3. Prepare worktable

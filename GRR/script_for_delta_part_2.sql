@@ -1,6 +1,6 @@
 --insert relationship_to_concept_manual  into r_t_c which contains mappings of relationship_to_concept_to_map table created in a first part
---insert all manual work into r_t_c
-insert into relationship_to_concept
+--insert all manual work into r_t_c, do it 1 time, if you are using this script more than 1 time
+/*insert into relationship_to_concept
 (
 concept_code_1,
 vocabulary_id_1,
@@ -12,7 +12,7 @@ select dcs.concept_code, dcs.vocabulary_id, mt.target_concept_id, mt.precedence,
 from drug_concept_stage dcs
 join relationship_to_concept_manual mt on upper(mt.source_attr_name) = upper(dcs.concept_name)
 where target_concept_id is not null;
-
+*/
 --delete attributes they aren't mapped to RxNorm% and which we don't want to create RxNorm Extension from
 DELETE
 FROM drug_concept_stage
@@ -205,7 +205,33 @@ AND   numerator IS NULL
 AND   numerator_unit IS NULL
 AND   denominator IS NOT NULL
 AND   denominator_unit IS NOT NULL;
+delete from ds_0_sd where fcc in ('1150583_11012020','1056198_10012018','1165067_03012021','1108317_06152019','1113551_04011991','1119460_01012020','1119461_01012020','1119465_01012020',
+'959075_05152017','1166339_05152017','1117410_01011959','1140606_02012008');
 
+insert into ds_0_sd
+select a.fcc,
+       therapy_name,
+       concept_name,
+       cast (packsize as numeric),
+       null,
+       null,
+       substance,
+       cast (strength as float8)*10 as numerator,
+       'MG' as numerator_unit,
+      cast (volume as float8) as denominator,
+      volume_unit as denominator_unit
+      from source_data_1 a
+      LEFT JOIN grr_form_2 b ON a.fcc = b.fcc
+      where a.fcc in ('1150583_11012020','1056198_10012018','1165067_03012021','1108317_06152019','1113551_04011991','1119460_01012020','1119461_01012020','1119465_01012020',
+'959075_05152017','1166339_05152017','1117410_01011959','1140606_02012008');
+
+
+update ds_0_sd set numerator = numerator*1000, numerator_unit = 'IU'
+where numerator_unit = 'K' and therapy_name !~*'ZOSTAVAX';
+update ds_0_sd set numerator_unit = 'MCG' where numerator_unit = 'Y';
+update ds_0_sd set amount_unit = 'MCG' where amount_unit = 'Y';
+update ds_0_sd set amount = amount*1000, amount_unit = 'IU'
+where amount_unit = 'K' ;
 --fill ds_stage with extracted dosage from table that was used before
 TRUNCATE TABLE ds_stage;
 
@@ -224,11 +250,11 @@ INSERT INTO ds_stage
 SELECT fcc,
        b.concept_code,
        box_size,
-       amount,
+       amount::float8,
        AMOUNT_UNIT,
-       NUMERATOR,
+       NUMERATOR::float8,
        NUMERATOR_UNIT,
-       DENOMINATOR,
+       DENOMINATOR::float8,
        DENOMINATOR_UNIT
 FROM ds_0_sd a
   JOIN drug_concept_stage b
@@ -251,6 +277,8 @@ WHERE drug_concept_code IN (SELECT drug_concept_code
                             FROM ds_stage
                             WHERE amount_unit IS NULL
                             AND   numerator_unit IS NULL);
+                            
+
 
 UPDATE ds_stage
    SET denominator_value = NULL,
@@ -341,6 +369,21 @@ SELECT q_code,
        d1
 FROM c_m
   JOIN relationship_to_concept rtc ON CAST (c_m.ing AS INTEGER) = rtc.concept_id_2;
+
+delete from grr_mult where q_code in ('1143155_08012020') and d1='10' and concept_code_1 in (select concept_code from drug_concept_stage where concept_name = 'Ramipril' 
+and concept_class_id = 'Ingredient');
+delete from grr_mult where q_code in ('1143155_08012020') and d1='5' and concept_code_1 in (select concept_code from drug_concept_stage where concept_name = 'Amlodipine' 
+and concept_class_id = 'Ingredient');  
+delete from grr_mult where q_code in ('1143153_08012020') and d1='5' and concept_code_1 in (select concept_code from drug_concept_stage where concept_name = 'Ramipril' 
+and concept_class_id = 'Ingredient');
+delete from grr_mult where q_code in ('1143153_08012020') and d1='10' and concept_code_1 in (select concept_code from drug_concept_stage where concept_name = 'Amlodipine' 
+and concept_class_id = 'Ingredient');  
+delete from grr_mult where q_code in ('1136517_05012020') and d1='12.5' and concept_code_1 in (select concept_code from drug_concept_stage where concept_name = 'Valsartan' 
+and concept_class_id = 'Ingredient');
+delete from grr_mult where q_code in ('1136517_05012020') and d1='80' and concept_code_1 in (select concept_code from drug_concept_stage where concept_name = 'Hydrochlorothiazide' 
+and concept_class_id = 'Ingredient');  
+
+
   
 DELETE
 FROM ds_stage
@@ -376,7 +419,7 @@ INSERT INTO ds_stage
 )
 SELECT q_code,
        concept_code_1,
-       (TRIM(d1)::FLOAT) / 5 *volume,
+       (TRIM(d1)::FLOAT) / 5 *  CAST (volume as float),
        'MG',
        volume::FLOAT,
        'ML'
@@ -392,6 +435,11 @@ WHERE concept_code IN (SELECT drug_concept_code
                        FROM ds_stage
                        WHERE numerator_unit IN ('DH','C','CH','D','TM','X','XMK')
                        AND   denominator_value IS NOT NULL);
+                       
+DELETE
+FROM relationship_to_concept
+WHERE concept_code_1 IN  ('DH','C','CH','D','TM','X','XMK')
+                   ;
 
 DELETE
 FROM internal_relationship_stage
@@ -485,12 +533,10 @@ SELECT CONCAT(denominator_value,' ',denominator_unit) AS quant,
        drug_concept_code,
        CASE
          WHEN therapy_name ~ '\d+\.?\d+?(MG|G|Y|K)\s\/(\d+)?(ML|G)' 
-             THEN CONCAT (i.concept_name,' ',COALESCE(amount_value,numerator_value) /COALESCE(denominator_value,1),' ',COALESCE(amount_unit,numerator_unit),COALESCE('/' ||denominator_unit))
+             THEN CONCAT (i.concept_name,' ',TRIM(TRAILING '.' FROM TO_CHAR(COALESCE(amount_value,numerator_value) /COALESCE(denominator_value,1), 'FM9999999999999999999990.999999999999999999999')),' ',COALESCE(amount_unit,numerator_unit),COALESCE('/' ||denominator_unit))
          ELSE CONCAT (i.concept_name,' ',
-                      ROUND((COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))::NUMERIC,(3 - FLOOR(LOG(COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))) -1)::INT),' ',
-                      COALESCE(amount_unit,numerator_unit),
-                      COALESCE('/' ||denominator_unit)
-                      )
+                     TRIM(TRAILING '.' FROM TO_CHAR(ROUND((COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1))),(1 - FLOOR(LOG(COALESCE(amount_value,numerator_value /COALESCE(denominator_value,1)))) -1)::INT), 'FM9999999999999999999990.999999999999999999999')))
+                      
        END AS dosage_name
 FROM ds_stage
   JOIN source_data_1 ON fcc = drug_concept_code
@@ -584,10 +630,7 @@ FROM (SELECT DISTINCT ca.concept_code,
   LEFT JOIN ds_stage ds ON a.concept_code = ds.drug_concept_code
 WHERE a.concept_code NOT IN (SELECT drug_concept_code FROM new_name);
 
-UPDATE drug_concept_stage a
-   SET concept_name = trim(SUBSTR(n.concept_name,1,255))
-FROM new_name n
-WHERE n.drug_concept_code = a.concept_code;
+
 
 --insert attributes in r_t_c_all from current rtc for future usage
 INSERT INTO r_t_c_all 
@@ -606,3 +649,138 @@ SELECT concept_name,
 FROM drug_concept_stage
   JOIN relationship_to_concept ON concept_code = concept_code_1
 WHERE UPPER(concept_name) NOT IN (SELECT UPPER(concept_name) FROM r_t_c_all);
+
+delete from r_t_c_all where concept_name  ='Zinksalbe';
+		update ds_stage set box_size = null where drug_concept_code in (
+		SELECT drug_concept_code
+		FROM ds_stage
+		WHERE drug_concept_code NOT IN (
+				SELECT drug_concept_code
+				FROM ds_stage ds
+				JOIN internal_relationship_stage i ON concept_code_1 = drug_concept_code
+				JOIN drug_concept_stage ON concept_code = concept_code_2
+					AND concept_class_id = 'Dose Form'
+				WHERE ds.box_size IS NOT NULL
+				)
+			AND box_size IS NOT NULL
+);
+update ds_stage set box_size = null where drug_concept_code in(		
+select drug_concept_code
+		from ds_stage
+		where
+			numerator_value is not null and
+			denominator_value is null and
+			box_size is not null);
+			
+		update ds_stage
+		set box_size = null
+		where box_size = 1;
+
+drop table if exists new_names; 
+create table new_names (drug_concept_code varchar, new_name varchar);
+insert into new_names select * from (
+with a as
+(
+  select ds.drug_concept_code,  concat ( d2.concept_name,' ', ds.amount_value, ' ', ds.amount_unit) as comp_name from ds_stage ds
+  join drug_concept_stage d2 on ds.ingredient_concept_code = d2.concept_code
+join drug_concept_stage d1 on d1.concept_code = ds.drug_concept_code
+ where numerator_value is null )
+select distinct drug_concept_code, string_agg (comp_name, '/') over (partition by drug_concept_code order by comp_name asc) from a) as s;
+
+insert into new_names select * from (
+with a as
+(
+  select ds.drug_concept_code, case when denominator_value is not null then  concat ( d2.concept_name,' ', ds.numerator_value*ds.denominator_value, ' ', ds.numerator_unit,'/', denominator_unit)  when denominator_value is null then concat (d2.concept_name,' ', ds.numerator_value, ' ', ds.numerator_unit,'/', denominator_unit) end as comp_name from ds_stage ds
+  join drug_concept_stage d2 on ds.ingredient_concept_code = d2.concept_code
+join drug_concept_stage d1 on d1.concept_code = ds.drug_concept_code 
+
+ where amount_value is null 
+)
+select distinct drug_concept_code, string_agg (comp_name, ' / ')  over (partition by drug_concept_code order by comp_name asc) from a) as s;
+;
+
+drop table if exists name_dup ;                
+create table name_dup as (select distinct first_value (a.new_name) over (partition by a.drug_concept_code order by length (a.new_name) desc, 
+a.new_name asc) as cor, drug_concept_code from new_names a
+);
+delete from name_dup a
+where a.ctid <> (SELECT min(b.ctid)
+                 FROM   dev_da_france_2.name_dup b
+                 WHERE  a.drug_concept_code = b.drug_concept_code
+                 and a.cor = b.cor);
+
+
+
+
+drop table  if exists a;
+create table a as (
+select distinct n.drug_concept_code as code, concat(ds.denominator_value, ' ', ds.denominator_unit, ' ', n.cor) as d from name_dup n
+join ds_stage ds on n.drug_concept_code = ds.drug_concept_code and ds.denominator_value is not null
+);
+
+
+update name_dup x
+set cor = (select distinct d from a where code = x.drug_concept_code)
+where drug_concept_code in (select distinct drug_concept_code from a where code = x.drug_concept_code);
+drop table  if exists d;
+
+create table d as (
+select distinct n.drug_concept_code as code, concat(n.cor, ' ', d.concept_name) as d from name_dup n
+join internal_relationship_stage i on n.drug_concept_code = i.concept_code_1
+join drug_concept_stage d on i.concept_code_2 = d.concept_code and d.concept_class_id = 'Dose Form');
+update name_dup x
+set cor = (select distinct d from d where code = x.drug_concept_code)
+where drug_concept_code in (select distinct drug_concept_code from d where code = x.drug_concept_code);
+
+
+drop table  if exists b;
+create table b as (
+select ds.drug_concept_code as code,  concat ( cor, ' ','[', d3.concept_name,']') as comp_name from name_dup ds
+join internal_relationship_stage i on ds.drug_concept_code = i.concept_code_1
+join drug_concept_stage d3 on i.concept_code_2 = d3.concept_code and d3.concept_class_id = 'Brand Name');
+
+update name_dup x
+set cor = (select distinct comp_name from b where code = x.drug_concept_code)
+where drug_concept_code in (select distinct code from b where code = x.drug_concept_code);
+
+drop table  if exists s;
+create table s as ( 
+select distinct n.drug_concept_code as code, concat(n.cor, ' ','by', ' ', d.concept_name) as d from name_dup n
+join internal_relationship_stage i on n.drug_concept_code = i.concept_code_1
+join drug_concept_stage d on i.concept_code_2 = d.concept_code and d.concept_class_id = 'Supplier');
+update name_dup x
+set cor = (select distinct d from s where code = x.drug_concept_code)
+where drug_concept_code in (select distinct drug_concept_code from s where code = x.drug_concept_code);
+
+
+
+
+
+
+
+update name_dup x
+set cor = (
+SELECT  CASE 
+		WHEN LENGTH(TRIM(cor)) > 255
+			THEN TRIM(SUBSTR(TRIM(cor), 1, 252)) || '...'
+		ELSE TRIM(cor) end from name_dup c where c.drug_concept_code = x.drug_concept_code)
+		where drug_concept_code in (select distinct drug_concept_code from name_dup c where c.drug_concept_code = x.drug_concept_code);
+		
+
+
+
+
+update drug_concept_stage x
+set concept_name = (select distinct cor from name_dup where drug_concept_code = x.concept_code)
+where concept_code in (select distinct drug_concept_code from name_dup where drug_concept_code = x.concept_code);
+
+
+
+update drug_concept_stage x
+set concept_name = (
+SELECT  CASE 
+		WHEN LENGTH(TRIM(concept_name)) > 255
+			THEN TRIM(SUBSTR(TRIM(concept_name), 1, 252)) || '...'
+		ELSE TRIM(concept_name) end from drug_concept_stage c where c.concept_code = x.concept_code)
+		where concept_code in (select distinct concept_code from drug_concept_stage c where c.concept_code = x.concept_code);
+		

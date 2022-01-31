@@ -1,5 +1,7 @@
+
+
 -- fixing mistake with create '' in empty cells but not NULL   in it, that was created during upload
-UPDATE source_data
+UPDATE source
    SET product_launch_date = NULL::VARCHAR
 WHERE product_launch_date = '';
 
@@ -12,45 +14,75 @@ SELECT CASE
          WHEN product_launch_date IS NULL THEN CAST(input_fcc AS VARCHAR)
          ELSE input_fcc || '_' || TO_CHAR(TO_DATE(product_launch_date,'dd.mm.yyyy'),'mmddyyyy')
        END AS fcc,
-       LTRIM(CAST(pzn AS VARCHAR),'0') AS pzn,
-       Therapy_Name AS therapy_name_code,
-       Therapy_Name_Therapy_Name AS therapy_name,
-       product_no,
-       product_launch_date,
-       product_form,
-       product_form_name,
-       strength,
-       Strength_Unit_Strength_Unit AS strength_unit,
-       volume,
-       Volume_Unit_Volume_Unit AS volume_unit,
-       packsize,
-       form_launch_date,
-       out_of_trade_date,
-       manufacturer,
-       manufacturer_name,
-       manufacturer_short_name,
-       who_atc5_code,
-       who_atc5_text,
-       who_atc4_code,
-       who_atc4_text,
-       who_atc3_code,
-       who_atc3_text,
-       who_atc2_code,
-       who_atc2_text,
-       who_atc1_code,
-       who_atc1_text,
-       substance,
-       no_of_substances,
-       nfc_no,
-       nfc,
-       nfc_description
-FROM source_data
+       *
+FROM source
 ;
 
+update source_data_1
+set therapy_name = trim(both '"' from therapy_name);
+update source_data_1
+set product_form_name = trim(both '"' from product_form_name);
+update source_data_1
+set strength_unit = trim(both '"' from strength_unit);
+update source_data_1
+set volume_unit = trim(both '"' from volume_unit);
+update source_data_1
+set manufacturer_name = trim(both '"' from manufacturer_name);
+update source_data_1
+set manufacturer_short_name = trim(both '"' from manufacturer_short_name);
+update source_data_1
+set atc4_code = trim(both '"' from atc4_code);
+update source_data_1
+set atc4_text = trim(both '"' from atc4_text);
+update source_data_1
+set atc3_code = trim(both '"' from atc3_code);
+update source_data_1
+set atc3_text = trim(both '"' from atc3_text);
+update source_data_1
+set atc2_code = trim(both '"' from atc2_code);
+update source_data_1
+set atc2_text = trim(both '"' from atc2_text);
+update source_data_1
+set atc1_code = trim(both '"' from atc1_code);
+update source_data_1
+set atc1_text = trim(both '"' from atc1_text);
+
+update source_data_1
+set who_atc5_code = trim(both '"' from who_atc5_code);
+update source_data_1
+set who_atc5_text = trim(both '"' from who_atc5_text);
+update source_data_1
+set who_atc4_code = trim(both '"' from who_atc4_code);
+update source_data_1
+set who_atc4_text = trim(both '"' from who_atc4_text);
+update source_data_1
+set who_atc3_code = trim(both '"' from who_atc3_code);
+update source_data_1
+set who_atc3_text = trim(both '"' from who_atc3_text);
+update source_data_1
+set who_atc2_code = trim(both '"' from who_atc2_code);
+update source_data_1
+set who_atc2_text = trim(both '"' from who_atc2_text);
+ update source_data_1
+set who_atc1_code = trim(both '"' from who_atc1_code);
+update source_data_1
+set who_atc1_text = trim(both '"' from who_atc1_text); 
+
+update source_data_1
+set substance = trim(both '"' from substance);
+update source_data_1
+set generic_original = trim(both '"' from generic_original);
+update source_data_1
+set pzn = trim(both '"' from pzn);
+update source_data_1
+set nfc = trim(both '"' from nfc);
+ update source_data_1
+set nfc_description = trim(both '"' from nfc_description);
+
+
 --use data that we haven't in devv5 and those concepts which haven't 'live' mapping
-DELETE
-FROM source_data_1
-WHERE fcc IN (SELECT DISTINCT fcc
+drop table if exists in_devv5;
+create table in_devv5  as (SELECT distinct fcc
               FROM source_data_1
                 JOIN concept c1
                   ON c1.concept_code = fcc
@@ -62,6 +94,11 @@ WHERE fcc IN (SELECT DISTINCT fcc
                 JOIN concept c2
                   ON c2.concept_id = cr.concept_id_2
                  AND c2.invalid_reason IS NULL);
+ analyze source_data_1;
+analyze in_devv5;
+
+DELETE from source_data_1 s WHERE exists (SELECT 1 from in_devv5 i where i.fcc=s.fcc);
+
 
 -- ATTENTION!! manual mapping for vaccines\insulins,  after manual work put mapped concepts to concept_relationship_manual 
 DROP TABLE if exists vacc_ins_manual;
@@ -70,7 +107,7 @@ CREATE TABLE vacc_ins_manual
 AS
 SELECT *, null::integer as c_id, null::varchar as c_code, null::varchar as c_name 
 FROM source_data_1
-WHERE UPPER(substance) ~ 'VACCINE|INSULIN';
+WHERE UPPER(substance) ~* 'VACCINE|INSULIN|Immunoglob';
  
 --Fill non-drug table with Devices, Nutritional Supplements , etc.
 DROP TABLE IF EXISTS grr_non_drug;
@@ -83,9 +120,9 @@ SELECT fcc,
        'Device' as concept_class_id
 FROM source_data_1
 WHERE substance ~ 'AMINOACIDS|TAMPON|HAIR |ELECTROLYTE SOLUTION|ANTACIDS|ANTI-PSORIASIS|TOPICAL ANALGESICS|NASAL DECONGESTANTS|EMOLLIENT|MEDICAL|MEDICINE|SHAMPOOS|INFANT|INCONTINENCE|REPELLENT|^NON |MULTIVITAMINS AND MINERALS|DRESSING|WIRE|BRANDY|PROTECTAN|PROMOTIONAL|MOUTH|OTHER|CONDOM|LUBRICANTS|CARE |PARASITIC|COMBINATION'
-OR    substance ~ 'GLUCOMANNAN|SELENIC ACID|SOAP|UNSPECIFIED|HYLAN|DEVICE|CLEANS|DISINFECTANT|TEST| LENS|URINARY PREPARATION|DEODORANT|CREAM|BANDAGE|MOUTH |KATHETER|NUTRI|LOZENGE|WOUND|LOTION|PROTECT|ARTIFICIAL|MULTI SUBSTANZ|DENTAL| FOOT|^FOOT|^BLOOD| FOOD| DIET|BLOOD|PREPARATION|DIABETIC|UNDECYLENAMIDOPROPYL|DIALYSIS|DISPOSABLE|DRUG'
+OR    substance ~ 'GLUCOMANNAN|PROTEINS|HYDROCOLLOID|SELENIC ACID|SOAP|UNSPECIFIED|HYLAN|DEVICE|CLEANS|DISINFECTANT|TEST| LENS|URINARY PREPARATION|DEODORANT|CREAM|BANDAGE|MOUTH |KATHETER|NUTRI|LOZENGE|WOUND|LOTION|PROTECT|ARTIFICIAL|MULTI SUBSTANZ|DENTAL| FOOT|^FOOT|^BLOOD| FOOD| DIET|BLOOD|PREPARATION|DIABETIC|UNDECYLENAMIDOPROPYL|DIALYSIS|DISPOSABLE|DRUG'
 OR    substance IN ('ENDOLYSIN','EYE','ANTIDIARRHOEALS','BATH OIL','TONICS','ENZYME (UNSPECIFIED)','GADOBENIC ACID','SWABS','EYE BATHS','POLYHEXAMETHYLBIGUANIDE','AMBAZONE','TOOTHPASTES','GADOPENTETIC ACID','GADOTERIC ACID','KEINE ZUORDNUNG')
-OR    product_form_name ~ 'WUNDGAZE|WUNDKOMPRESS|WUNDV.'
+OR    product_form_name ~ 'WUNDGAZE|WUNDKOMPRESS|WUNDV.|COMFORT'
 OR    (therapy_name ~ '\d+(\.)?(\d+)?(CM|MM)(\s)?(\d+)?(CM|MM)?|DALLMANN|KNOBIVITAL' AND strength = '0.0' AND volume = '0.0')
 OR    WHO_ATC4_CODE = 'V07A0'
 OR    WHO_ATC5_CODE LIKE 'B05AX03%'
@@ -127,9 +164,22 @@ SELECT fcc,
        'Drug Product'
 FROM source_data_1
 WHERE who_atc5_text ~* 'HOMOEOPATHIKA|Keine Zuordnung'
+or therapy_name ~* 'dilution'
+or manufacturer_name ~*'WELEDA|HEVERT'
+or who_atc4_text ~*'homoeop'
+or atc4_text ~*'homoeop' 
+or substance ~*'VISCUM ALBUM'
 and fcc NOT IN (SELECT fcc FROM vacc_ins_manual)
 AND fcc NOT IN (SELECT fcc FROM grr_non_drug)
 ;
+DELETE
+FROM grr_non_drug f
+WHERE EXISTS (
+		SELECT 1
+		FROM grr_non_drug f_int
+		WHERE f_int.fcc = f.fcc
+			AND f_int.ctid > f.ctid
+		);
 
 --delete non-drugs from working tables
 DELETE  
@@ -166,6 +216,47 @@ regexp_replace(TRIM(UNNEST(REGEXP_MATCHES(substance,'[^\+]+','g'))),'E$','')
 ) AS ingredient from source_data_1
 )
 ;
+insert into grr_bn
+select c2.concept_code, 'Valium', c2.concept_name as old_name  from concept c
+join drug_strength ds on ds.drug_concept_id=c.concept_id and ds.box_size>=32000
+join concept_relationship cr on cr.concept_id_2=c.concept_id and cr.relationship_id='Maps to' and cr.invalid_reason is null and cr.concept_id_1<>cr.concept_id_2
+join concept c2 on c2.concept_id=cr.concept_id_1
+where c2.concept_name ~* 'Valium';
+insert into grr_bn
+select c2.concept_code, 'Falicard', c2.concept_name as old_name  from concept c
+join drug_strength ds on ds.drug_concept_id=c.concept_id and ds.box_size>=32000
+join concept_relationship cr on cr.concept_id_2=c.concept_id and cr.relationship_id='Maps to' and cr.invalid_reason is null and cr.concept_id_1<>cr.concept_id_2
+join concept c2 on c2.concept_id=cr.concept_id_1
+where c2.concept_name ~* 'Falicard';
+
+insert into grr_bn
+select c2.concept_code, 'Parkopan', c2.concept_name as old_name  from concept c
+join drug_strength ds on ds.drug_concept_id=c.concept_id and ds.box_size>=32000
+join concept_relationship cr on cr.concept_id_2=c.concept_id and cr.relationship_id='Maps to' and cr.invalid_reason is null and cr.concept_id_1<>cr.concept_id_2
+join concept c2 on c2.concept_id=cr.concept_id_1
+where c2.concept_name ~* 'Parkopan';
+
+insert into grr_bn
+select c2.concept_code, 'Myambutol', c2.concept_name as old_name  from concept c
+join drug_strength ds on ds.drug_concept_id=c.concept_id and ds.box_size>=32000
+join concept_relationship cr on cr.concept_id_2=c.concept_id and cr.relationship_id='Maps to' and cr.invalid_reason is null and cr.concept_id_1<>cr.concept_id_2
+join concept c2 on c2.concept_id=cr.concept_id_1
+where c2.concept_name ~* 'Myambutol';
+
+insert into grr_bn
+select c2.concept_code, 'Akineton', c2.concept_name as old_name  from concept c
+join drug_strength ds on ds.drug_concept_id=c.concept_id and ds.box_size>=32000
+join concept_relationship cr on cr.concept_id_2=c.concept_id and cr.relationship_id='Maps to' and cr.invalid_reason is null and cr.concept_id_1<>cr.concept_id_2
+join concept c2 on c2.concept_id=cr.concept_id_1
+where c2.concept_name ~* 'Akineton';
+
+insert into grr_bn
+select c2.concept_code, 'Norakin', c2.concept_name as old_name  from concept c
+join drug_strength ds on ds.drug_concept_id=c.concept_id and ds.box_size>=32000
+join concept_relationship cr on cr.concept_id_2=c.concept_id and cr.relationship_id='Maps to' and cr.invalid_reason is null and cr.concept_id_1<>cr.concept_id_2
+join concept c2 on c2.concept_id=cr.concept_id_1
+where c2.concept_name ~* 'Norakin';
+
 
 delete
 from grr_bn
@@ -1733,6 +1824,13 @@ FROM (SELECT DISTINCT TRIM(UNNEST(REGEXP_MATCHES(t.substance,'[^\+]+','g'))) AS 
 WHERE ingredient NOT IN ('MULTI SUBSTANZ','ENZYME (UNSPECIFIED)','NASAL DECONGESTANTS','ANTACIDS','ELECTROLYTE SOLUTIONS','ANTI-PSORIASIS','TOPICAL ANALGESICS')
 
 ;
+with a as (select c2.concept_code, c3.concept_name from concept c
+join drug_strength ds on ds.drug_concept_id=c.concept_id and ds.box_size>=32000
+join concept_relationship cr on cr.concept_id_2=c.concept_id and cr.relationship_id='Maps to' and cr.invalid_reason is null and cr.concept_id_1<>cr.concept_id_2
+join concept c2 on c2.concept_id=cr.concept_id_1
+join concept c3 on ds.ingredient_concept_id = c3.concept_id )
+insert into grr_ing_2
+select * from a;--for box_size
 
 --find OMOP codes that aren't used in concept table
 DO $$ DECLARE ex INTEGER;
@@ -1781,7 +1879,7 @@ AS
 SELECT INITCAP(therapy_name) AS concept_name,
        fcc
 FROM source_data_1
-;
+ where therapy_name !='';
 
 --create table with units
 DROP TABLE IF EXISTS dcs_unit;
@@ -1966,3 +2064,37 @@ from drug_concept_stage
 left join relationship_to_concept on concept_code_1 = concept_code 
 where concept_code_1 is null 
 and concept_class_id not in ('Drug Product','Device');
+/*
+drop table if exists manual_0122;
+
+
+create table manual_0122 as select * from relationship_to_concept_to_map;
+truncate manual_0122;
+WbImport -file=C:/Users/алло/OneDrive/Рабочий стол/работа/manual0122.csv
+         -type=text
+         -table=manual_0122
+         -encoding="UTF-8"
+         -header=true
+         -decode=false
+         -dateFormat="yyyy-MM-dd"
+         -timestampFormat="yyyy-MM-dd HH:mm:ss"
+         -delimiter=','
+         -decimal=.
+         -fileColumns=source_attr_name,source_attr_concept_class,target_concept_id,target_concept_code,target_concept_name,precedence,conversion_factor,indicator_rxe
+         -quoteCharEscaping=none
+         -ignoreIdentityColumns=false
+         -deleteTarget=false
+         -continueOnError=false
+         -batchSize=1000;
+
+
+         
+
+update manual_0122 set indicator_rxe = 'd' where target_concept_id = '0';
+
+insert into  relationship_to_concept_manual
+select * from manual_0122 m where indicator_rxe is null and source_attr_name in (select source_attr_name from relationship_to_concept_manual);
+
+
+*/
+

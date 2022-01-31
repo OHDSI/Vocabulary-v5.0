@@ -588,6 +588,7 @@ DO $_$
 	JOIN concept c ON c.concept_id = cs.concept_id
 		AND c.vocabulary_id = 'RxNorm Extension';
 
+END;
 $body$
   VOLATILE
   COST 100;

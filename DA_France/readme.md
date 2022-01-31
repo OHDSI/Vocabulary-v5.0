@@ -4,7 +4,7 @@
 * Basic knowledge of the custom vocabulary refresh
 * Schema devV5 with copies of tables concept, concept_relationship and concept_synonym from ProdV5, fully indexed.
 * Working directory, e.g. *dev_da_france_2* (and there is no '_1', do not ask why)
-* * FULL fastRecreate with ancestror:
+* FULL fastRecreate
 ```sql
    SELECT devv5.FastRecreateSchema(include_concept_ancestor=>true,include_deprecated_rels=>true,include_synonyms=>true)
 ``` 

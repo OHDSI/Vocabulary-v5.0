@@ -26,13 +26,17 @@ BEGIN
 				WHEN new.standard_concept = 'S'
 					THEN 'Standard'
 				WHEN new.standard_concept = 'C'
-					THEN 'Classification'
+					AND r.relationship_id = 'Maps to'
+					THEN 'Classification with mapping'
+				WHEN new.standard_concept = 'C'
+					AND r.relationship_id IS NULL
+					THEN 'Classification without mapping'
 				WHEN new.standard_concept IS NULL
 					AND r.relationship_id = 'Maps to'
 					THEN 'Non-standard with mapping'
 				ELSE 'Non-standard without mapping'
 				END AS new_standard_concept,
-			count(*) AS cnt
+			COUNT(DISTINCT new.concept_id) AS cnt --there can be more than one Maps to, so DISTINCT
 		FROM concept new
 		LEFT JOIN $$||pCompareWith||$$.concept old ON old.concept_id = new.concept_id
 		LEFT JOIN concept_relationship r ON r.concept_id_1 = new.concept_id

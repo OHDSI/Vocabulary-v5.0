@@ -140,3 +140,47 @@ CREATE TABLE SOURCES.SOC_HLGT_COMP
    hlgt_code     INT4,
    filler_column INT
 );
+
+DROP TABLE IF EXISTS SOURCES.MEDDRA_MAPSTO_SNOMED;
+CREATE TABLE SOURCES.MEDDRA_MAPSTO_SNOMED
+(
+   meddra_code    TEXT,
+   meddra_llt     TEXT,
+   snomed_code    TEXT,
+   snomed_ct_fsn  TEXT
+);
+
+DROP TABLE IF EXISTS SOURCES.MEDDRA_MAPPEDFROM_SNOMED;
+CREATE TABLE SOURCES.MEDDRA_MAPPEDFROM_SNOMED
+(
+   snomed_code    TEXT,
+   snomed_ct_fsn  TEXT,
+   meddra_code    TEXT,
+   meddra_llt     TEXT
+);
+
+CREATE OR REPLACE FUNCTION sources.py_xlsparse_meddra_snomed(xls_path varchar, sheet_id int)
+RETURNS
+TABLE (
+    src_code text,
+    src_desc text,
+    target_code text,
+    target_desc text
+)
+AS
+$BODY$
+import xlrd
+res = []
+wb = xlrd.open_workbook(xls_path)
+sheet = wb.sheet_by_index(sheet_id)
+for rowid in range(1,sheet.nrows):
+  row = sheet.row_values(rowid)
+  src_code=row[0] if row[0] else None
+  src_desc=row[1] if row[1] else None
+  target_code=row[2] if row[2] else None
+  target_desc=row[3] if row[3] else None
+  res.append((src_code,src_desc,target_code,target_desc))
+return res
+$BODY$
+LANGUAGE 'plpythonu'
+SECURITY DEFINER;

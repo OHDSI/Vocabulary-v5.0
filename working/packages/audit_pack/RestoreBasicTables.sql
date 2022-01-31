@@ -151,6 +151,7 @@ BEGIN
 
 	RAISE NOTICE 'Disabling constraints...';
 	ALTER TABLE relationship DROP CONSTRAINT fpk_relationship_concept;
+	ALTER TABLE relationship DROP CONSTRAINT fpk_relationship_reverse;
 	ALTER TABLE vocabulary DROP CONSTRAINT fpk_vocabulary_concept;
 	ALTER TABLE concept_class DROP CONSTRAINT fpk_concept_class_concept;
 	ALTER TABLE domain DROP CONSTRAINT fpk_domain_concept;
@@ -191,7 +192,7 @@ BEGIN
 			ELSIF r.table_name='drug_strength' THEN
 				DELETE FROM drug_strength WHERE drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND ingredient_concept_id=(r.new_row->>'ingredient_concept_id')::INT4;
 			ELSIF r.table_name='pack_content' THEN
-				DELETE FROM pack_content WHERE pack_concept_id=(r.new_row->>'pack_concept_id')::INT4 AND drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND amount=(r.new_row->>'amount')::INT2;
+				DELETE FROM pack_content WHERE pack_concept_id=(r.new_row->>'pack_concept_id')::INT4 AND drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND amount IS NOT DISTINCT FROM (r.new_row->>'amount')::INT2;
 			ELSIF r.table_name='vocabulary_conversion' THEN
 				DELETE FROM vocabulary_conversion WHERE vocabulary_id_v4=(r.new_row->>'vocabulary_id_v4')::INT4;
 			END IF;
@@ -265,7 +266,7 @@ BEGIN
 					(pack_concept_id,drug_concept_id,amount,box_size)=
 					(j.pack_concept_id,j.drug_concept_id,j.amount,j.box_size)
 				FROM JSONB_POPULATE_RECORD(NULL::pack_content, r.old_row) j
-				WHERE pc.pack_concept_id=(r.new_row->>'pack_concept_id')::INT4 AND pc.drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND pc.amount=(r.new_row->>'amount')::INT2;
+				WHERE pc.pack_concept_id=(r.new_row->>'pack_concept_id')::INT4 AND pc.drug_concept_id=(r.new_row->>'drug_concept_id')::INT4 AND pc.amount IS NOT DISTINCT FROM (r.new_row->>'amount')::INT2;
 
 			ELSIF r.table_name='vocabulary_conversion' THEN
 				UPDATE vocabulary_conversion vc SET
@@ -295,6 +296,7 @@ BEGIN
 	ALTER TABLE concept ADD CONSTRAINT fpk_concept_class FOREIGN KEY (concept_class_id) REFERENCES concept_class (concept_class_id);
 	ALTER TABLE concept ADD CONSTRAINT fpk_concept_vocabulary FOREIGN KEY (vocabulary_id) REFERENCES vocabulary (vocabulary_id);
 	ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id);
+	ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
 	ALTER TABLE vocabulary ADD CONSTRAINT fpk_vocabulary_concept FOREIGN KEY (vocabulary_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE concept_class ADD CONSTRAINT fpk_concept_class_concept FOREIGN KEY (concept_class_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE domain ADD CONSTRAINT fpk_domain_concept FOREIGN KEY (domain_concept_id) REFERENCES concept (concept_id);

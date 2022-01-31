@@ -14,18 +14,7 @@ BEGIN
     #move result to original folder
     cd "$1"
     rm -f *.*
-    #fix old versions
-    if [ -f "work/OMOP CDM ddl - PostgreSQL.sql" ] ; then
-      mv "work/OMOP CDM ddl - PostgreSQL.sql" "work/OMOP CDM postgresql ddl.txt"
-    fi
-    #fix 4.0.0
-    if [ -f "work/CDM V4 DDL.sql" ] ; then
-      mv "work/CDM V4 DDL.sql" "work/OMOP CDM postgresql ddl.txt"
-    fi
-    if [ ! -f "work/OMOP CDM Results postgresql ddl.txt" ] ; then
-      touch "work/OMOP CDM Results postgresql ddl.txt"
-    fi
-    mv work/*.txt .
+    mv work/*.sql "PostgreSQL_DDL.sql"
     $BODY$
     LANGUAGE 'plsh'
     SECURITY DEFINER;

@@ -50,12 +50,11 @@ SELECT o.descendant_name,
 	'OncoTree',
 	'Condition',
 	o.descendant_code,
-	/*(
+	(
 		SELECT latest_update
 		FROM vocabulary
 		WHERE vocabulary_id = 'OncoTree'
-		) AS valid_start_date, */ -- remove comments in the next release when we get the actual dates, while there's totally new release we treat all concepts as created sometimes in a past ('19700101')
-	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+		) AS valid_start_date, 
 	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
 FROM sources.oncotree_tree o;
 
@@ -97,5 +96,4 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
 END $_$;
-
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

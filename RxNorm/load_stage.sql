@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Christian Reich, Timur Vakhitov
+* Authors: Christian Reich, Timur Vakhitov, Eduard Korchmar
 * Date: 2021
 **************************************************************************/
 
@@ -36,7 +36,86 @@ TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
 --3. Insert into concept_stage
--- Get drugs, components, forms and ingredients
+--3.1. Create table for Precise Ingredients that must change class to Ingredients
+drop table if exists pi_promotion;
+create table pi_promotion as
+select distinct r1.rxcui2 as component_rxcui, r1.rxcui1 as pi_rxcui, r2.rxcui1 as i_rxcui 
+from sources.rxnrel r1
+join sources.rxnrel r2 on
+	r2.rxcui2 = r1.rxcui2 and
+	r2.rela = 'has_ingredient' and
+	r1.rela = 'has_precise_ingredient'
+where
+	--All three are active
+	NOT EXISTS (
+		SELECT 1
+		FROM sources.rxnatomarchive arch
+		WHERE arch.rxcui = r1.rxcui2
+			AND sab = 'RXNORM'
+			AND tty IN (
+				'IN',
+				'DF',
+				'SCDC',
+				'SCDF',
+				'SCD',
+				'BN',
+				'SBDC',
+				'SBDF',
+				'SBD',
+				'PIN',
+				'DFG',
+				'SCDG',
+				'SBDG'
+				)
+			AND rxcui <> merged_to_rxcui
+		) and
+	NOT EXISTS (
+		SELECT 1
+		FROM sources.rxnatomarchive arch
+		WHERE arch.rxcui = r1.rxcui1
+			AND sab = 'RXNORM'
+			AND tty IN (
+				'IN',
+				'DF',
+				'SCDC',
+				'SCDF',
+				'SCD',
+				'BN',
+				'SBDC',
+				'SBDF',
+				'SBD',
+				'PIN',
+				'DFG',
+				'SCDG',
+				'SBDG'
+				)
+			AND rxcui <> merged_to_rxcui
+		) and
+	NOT EXISTS (
+		SELECT 1
+		FROM sources.rxnatomarchive arch
+		WHERE arch.rxcui = r2.rxcui1
+			AND sab = 'RXNORM'
+			AND tty IN (
+				'IN',
+				'DF',
+				'SCDC',
+				'SCDF',
+				'SCD',
+				'BN',
+				'SBDC',
+				'SBDF',
+				'SBD',
+				'PIN',
+				'DFG',
+				'SCDG',
+				'SBDG'
+				)
+			AND rxcui <> merged_to_rxcui
+		)
+;
+
+--3.2. Get drugs, components, forms and ingredients
 INSERT INTO concept_stage (
 	concept_name,
 	vocabulary_id,
@@ -48,53 +127,64 @@ INSERT INTO concept_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT vocabulary_pack.CutConceptName(str),
+SELECT distinct vocabulary_pack.CutConceptName(str),
 	'RxNorm',
 	'Drug',
-	-- use RxNorm tty as for Concept Classes
-	CASE tty
-		WHEN 'IN'
-			THEN 'Ingredient'
-		WHEN 'DF'
-			THEN 'Dose Form'
-		WHEN 'SCDC'
-			THEN 'Clinical Drug Comp'
-		WHEN 'SCDF'
-			THEN 'Clinical Drug Form'
-		WHEN 'SCD'
-			THEN 'Clinical Drug'
-		WHEN 'BN'
-			THEN 'Brand Name'
-		WHEN 'SBDC'
-			THEN 'Branded Drug Comp'
-		WHEN 'SBDF'
-			THEN 'Branded Drug Form'
-		WHEN 'SBD'
-			THEN 'Branded Drug'
-		WHEN 'PIN'
-			THEN 'Precise Ingredient'
-		WHEN 'DFG'
-			THEN 'Dose Form Group'
-		WHEN 'SCDG'
-			THEN 'Clinical Dose Group'
-		WHEN 'SBDG'
-			THEN 'Branded Dose Group'
+	-- Use Ingredient concept class for promoting Precise Ingredients
+	CASE 
+		when p.pi_rxcui is not null 
+		then 'Ingredient'
+	ELSE
+		-- use RxNorm tty as for Concept Classes
+		CASE tty
+			WHEN 'IN'
+				THEN 'Ingredient'
+			WHEN 'DF'
+				THEN 'Dose Form'
+			WHEN 'SCDC'
+				THEN 'Clinical Drug Comp'
+			WHEN 'SCDF'
+				THEN 'Clinical Drug Form'
+			WHEN 'SCD'
+				THEN 'Clinical Drug'
+			WHEN 'BN'
+				THEN 'Brand Name'
+			WHEN 'SBDC'
+				THEN 'Branded Drug Comp'
+			WHEN 'SBDF'
+				THEN 'Branded Drug Form'
+			WHEN 'SBD'
+				THEN 'Branded Drug'
+			WHEN 'PIN'
+				THEN 'Precise Ingredient'
+			WHEN 'DFG'
+				THEN 'Dose Form Group'
+			WHEN 'SCDG'
+				THEN 'Clinical Dose Group'
+			WHEN 'SBDG'
+				THEN 'Branded Dose Group'
+			END
 		END,
 	-- only Ingredients, drug components, drug forms, drugs and packs are standard concepts
-	CASE tty
-		WHEN 'PIN'
-			THEN NULL
-		WHEN 'DFG'
-			THEN 'C'
-		WHEN 'SCDG'
-			THEN 'C'
-		WHEN 'SBDG'
-			THEN 'C'
-		WHEN 'DF'
-			THEN NULL
-		WHEN 'BN'
-			THEN NULL
-		ELSE 'S'
+	CASE 
+		when p.pi_rxcui is not null 
+		then 'S'
+	ELSE
+		CASE tty
+			WHEN 'PIN'
+				THEN NULL
+			WHEN 'DFG'
+				THEN 'C'
+			WHEN 'SCDG'
+				THEN 'C'
+			WHEN 'SBDG'
+				THEN 'C'
+			WHEN 'DF'
+				THEN NULL
+			WHEN 'BN'
+				THEN NULL
+			ELSE 'S'
+			END
 		END,
 	-- the code used in RxNorm
 	rxcui,
@@ -160,6 +250,8 @@ SELECT vocabulary_pack.CutConceptName(str),
 		ELSE NULL
 		END
 FROM sources.rxnconso rx
+left join pi_promotion p on
+	p.pi_rxcui = rx.rxcui
 WHERE sab = 'RXNORM'
 	AND tty IN (
 		'IN',
@@ -370,56 +462,61 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT rxcui2 AS concept_code_1, -- !! The RxNorm source files have the direction the opposite than OMOP
+SELECT distinct rxcui2 AS concept_code_1, -- !! The RxNorm source files have the direction the opposite than OMOP
 	rxcui1 AS concept_code_2,
 	'RxNorm' AS vocabulary_id_1,
 	'RxNorm' AS vocabulary_id_2,
-	CASE -- 
-		WHEN rela = 'has_precise_ingredient'
-			THEN 'Has precise ing'
-		WHEN rela = 'has_tradename'
-			THEN 'Has tradename'
-		WHEN rela = 'has_dose_form'
-			THEN 'RxNorm has dose form'
-		WHEN rela = 'has_form'
-			THEN 'Has form' -- links Ingredients to Precise Ingredients
-		WHEN rela = 'has_ingredient'
-			THEN 'RxNorm has ing'
-		WHEN rela = 'constitutes'
-			THEN 'Constitutes'
-		WHEN rela = 'contains'
-			THEN 'Contains'
-		WHEN rela = 'reformulated_to'
-			THEN 'Reformulated in'
-		WHEN rela = 'inverse_isa'
-			THEN 'RxNorm inverse is a'
-		WHEN rela = 'has_quantified_form'
-			THEN 'Has quantified form' -- links extended release tablets to 12 HR extended release tablets
-		WHEN rela = 'quantified_form_of'
-			THEN 'Quantified form of'
-		WHEN rela = 'consists_of'
-			THEN 'Consists of'
-		WHEN rela = 'ingredient_of'
-			THEN 'RxNorm ing of'
-		WHEN rela = 'precise_ingredient_of'
-			THEN 'Precise ing of'
-		WHEN rela = 'dose_form_of'
-			THEN 'RxNorm dose form of'
-		WHEN rela = 'isa'
-			THEN 'RxNorm is a'
-		WHEN rela = 'contained_in'
-			THEN 'Contained in'
-		WHEN rela = 'form_of'
-			THEN 'Form of'
-		WHEN rela = 'reformulation_of'
-			THEN 'Reformulation of'
-		WHEN rela = 'tradename_of'
-			THEN 'Tradename of'
-		WHEN rela = 'doseformgroup_of'
-			THEN 'Dose form group of'
-		WHEN rela = 'has_doseformgroup'
-			THEN 'Has dose form group'
-		ELSE 'non-existing'
+	case
+		when p.pi_rxcui is not null
+			then 'RxNorm has ing'
+	else
+		CASE -- 
+			WHEN rela = 'has_precise_ingredient'
+				THEN 'Has precise ing'
+			WHEN rela = 'has_tradename'
+				THEN 'Has tradename'
+			WHEN rela = 'has_dose_form'
+				THEN 'RxNorm has dose form'
+			WHEN rela = 'has_form'
+				THEN 'Has form' -- links Ingredients to Precise Ingredients
+			WHEN rela = 'has_ingredient'
+				THEN 'RxNorm has ing'
+			WHEN rela = 'constitutes'
+				THEN 'Constitutes'
+			WHEN rela = 'contains'
+				THEN 'Contains'
+			WHEN rela = 'reformulated_to'
+				THEN 'Reformulated in'
+			WHEN rela = 'inverse_isa'
+				THEN 'RxNorm inverse is a'
+			WHEN rela = 'has_quantified_form'
+				THEN 'Has quantified form' -- links extended release tablets to 12 HR extended release tablets
+			WHEN rela = 'quantified_form_of'
+				THEN 'Quantified form of'
+			WHEN rela = 'consists_of'
+				THEN 'Consists of'
+			WHEN rela = 'ingredient_of'
+				THEN 'RxNorm ing of'
+			WHEN rela = 'precise_ingredient_of'
+				THEN 'Precise ing of'
+			WHEN rela = 'dose_form_of'
+				THEN 'RxNorm dose form of'
+			WHEN rela = 'isa'
+				THEN 'RxNorm is a'
+			WHEN rela = 'contained_in'
+				THEN 'Contained in'
+			WHEN rela = 'form_of'
+				THEN 'Form of'
+			WHEN rela = 'reformulation_of'
+				THEN 'Reformulation of'
+			WHEN rela = 'tradename_of'
+				THEN 'Tradename of'
+			WHEN rela = 'doseformgroup_of'
+				THEN 'Dose form group of'
+			WHEN rela = 'has_doseformgroup'
+				THEN 'Has dose form group'
+			ELSE 'non-existing'
+			END 
 		END AS relationship_id,
 	(
 		SELECT latest_update
@@ -470,8 +567,40 @@ FROM (
 			'part_of',
 			'ingredients_of'
 			)
-	) AS s0;
-
+	) AS s0
+	
+--Exclude the old link to ingredient
+left join pi_promotion p on
+	s0.rxcui1 = p.pi_rxcui
+left join pi_promotion p2 on
+	s0.rxcui1 = p2.i_rxcui and
+	s0.rxcui2 = p2.component_rxcui
+where p2.i_rxcui is null
+;
+--Update link to Ingredient where relation is replaced by the precise ingredients
+update concept_relationship_stage r
+set
+	concept_code_1 = p.pi_rxcui
+from pi_promotion p
+where
+	r.concept_code_2 = p.component_rxcui and
+	r.relationship_id = 'RxNorm ing of' and
+	r.invalid_reason is null and
+	r.concept_code_1 = p.i_rxcui
+;
+--Delete reverse link for promoted precise ingredients
+delete from concept_relationship_stage r
+where exists
+	(
+		select 1
+		from pi_promotion p
+		where
+			r.concept_code_2 = p.component_rxcui and
+			r.relationship_id = 'Precise ing of' and
+			r.invalid_reason is null and
+			r.concept_code_1 = p.pi_rxcui
+	)
+;
 --check for non-existing relationships
 ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
 ALTER TABLE concept_relationship_stage DROP CONSTRAINT tmp_constraint_relid;
@@ -736,7 +865,6 @@ WHERE EXISTS (
 			AND crs_m.vocabulary_id_2 = r.vocabulary_id_2
 			AND crs_m.relationship_id = r.relationship_id
 		);
-
 --6. Add cross-link and mapping table between SNOMED and RxNorm
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -919,7 +1047,7 @@ WHERE (
 		);
 
 --7.3. Revive concepts which have status='active' in https://rxnav.nlm.nih.gov/REST/rxcuihistory/status.xml?type=active, but we have them in the concept with invalid_reason='U' (the source changed his mind)
-DROP TABLE IF EXISTS wrong_replacements;
+DROP TABLE IF EXISTS wrong_replacements cascade;
 CREATE UNLOGGED TABLE wrong_replacements AS
 
 SELECT c.concept_code AS concept_code_1,
@@ -1046,7 +1174,8 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT wr.concept_code_1,
+SELECT 
+	wr.concept_code_1,
 	wr.concept_code_2,
 	'RxNorm',
 	'RxNorm',
@@ -1056,7 +1185,7 @@ SELECT wr.concept_code_1,
 		SELECT latest_update - 1
 		FROM vocabulary
 		WHERE vocabulary_id = 'RxNorm'
-		),
+	),
 	'D'
 FROM wrong_replacements wr
 WHERE NOT EXISTS (
@@ -1152,7 +1281,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date,
 	invalid_reason
 	)
-SELECT crs.concept_code_1,
+SELECT distinct crs.concept_code_1,
 	crs.concept_code_2,
 	crs.vocabulary_id_1,
 	crs.vocabulary_id_2,
@@ -1170,8 +1299,13 @@ JOIN concept_stage c2 ON c2.concept_code = crs.concept_code_2
 	AND c2.concept_class_id = 'Ingredient'
 	AND c2.vocabulary_id = 'RxNorm'
 	AND c2.standard_concept = 'S'
+-- Check if the PI was promoted:
+left join pi_promotion p on
+	p.pi_rxcui = crs.concept_code_1 and
+	p.i_rxcui = crs.concept_code_2
 WHERE crs.relationship_id = 'Form of'
 	AND crs.invalid_reason IS NULL
+	AND p.pi_rxcui is null
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs_int
@@ -1182,7 +1316,44 @@ WHERE crs.relationship_id = 'Form of'
 			AND crs_int.relationship_id = 'Maps to'
 		);
 
---7.6 Add manual relationships
+--7.6 Make sure we explicitly deprecate old Precise Ingredient to Ingredient relationship, or AddFreshMapsTo grabs them from basic tables:
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date,
+	invalid_reason
+	)
+select distinct
+	cpi.concept_code,
+	ci.concept_code,
+	cpi.vocabulary_id,
+	ci.vocabulary_id,
+	'Maps to',
+	r.valid_start_date,
+	(
+		SELECT latest_update - 1
+		FROM vocabulary
+		WHERE vocabulary_id = 'RxNorm'
+	),
+	'D'
+from concept ci
+join concept_relationship r on
+	ci.concept_class_id = 'Ingredient' and
+	r.relationship_id = 'Maps to' and
+	r.concept_id_2 = ci.concept_id and
+	r.invalid_reason is NULL
+join concept cpi on
+	cpi.concept_class_id = 'Precise Ingredient' and
+	cpi.concept_id = r.concept_id_1
+join pi_promotion p on
+	p.pi_rxcui = cpi.concept_code and
+	p.i_rxcui  =  ci.concept_code;
+
+--7.7 Add manual relationships
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
@@ -1351,13 +1522,468 @@ JOIN (
 	) cont ON cont.concept_code_1 = pc.pack_code
 	AND pc.drug LIKE '%' || cont.concept_name || '%'; -- this is where the component name is fit into the parsed drug name from the Pack string
 
---16. Run FillDrugStrengthStage
+;
+--17. Create RxNorm's concept code ancestor
+DROP TABLE IF EXISTS rxnorm_ancestor;
+CREATE UNLOGGED TABLE rxnorm_ancestor AS (
+	WITH RECURSIVE hierarchy_concepts(ancestor_concept_code, ancestor_vocabulary_id, descendant_concept_code, descendant_vocabulary_id, root_ancestor_concept_code, root_ancestor_vocabulary_id, full_path) AS (
+		SELECT ancestor_concept_code,
+			ancestor_vocabulary_id,
+			descendant_concept_code,
+			descendant_vocabulary_id,
+			ancestor_concept_code AS root_ancestor_concept_code,
+			ancestor_vocabulary_id AS root_ancestor_vocabulary_id,
+			ARRAY [ROW (descendant_concept_code, descendant_vocabulary_id)] AS full_path
+		FROM concepts
+			
+		UNION ALL
+			
+		SELECT c.ancestor_concept_code,
+			c.ancestor_vocabulary_id,
+			c.descendant_concept_code,
+			c.descendant_vocabulary_id,
+			root_ancestor_concept_code,
+			root_ancestor_vocabulary_id,
+			hc.full_path || ROW(c.descendant_concept_code, c.descendant_vocabulary_id) AS full_path
+		FROM concepts c
+		JOIN hierarchy_concepts hc ON hc.descendant_concept_code = c.ancestor_concept_code
+			AND hc.descendant_vocabulary_id = c.ancestor_vocabulary_id
+		WHERE ROW(c.descendant_concept_code, c.descendant_vocabulary_id) <> ALL (full_path)
+		),
+	concepts AS (
+		SELECT distinct crs.concept_code_1 AS ancestor_concept_code,
+			crs.vocabulary_id_1 AS ancestor_vocabulary_id,
+			crs.concept_code_2 AS descendant_concept_code,
+			crs.vocabulary_id_2 AS descendant_vocabulary_id
+		FROM concept_relationship_stage crs
+		JOIN relationship s ON s.relationship_id = crs.relationship_id
+			AND s.defines_ancestry = 1
+		JOIN concept_stage c1 ON c1.concept_code = crs.concept_code_1
+			AND c1.vocabulary_id = crs.vocabulary_id_1
+			AND c1.invalid_reason IS NULL
+			AND c1.vocabulary_id = 'RxNorm'
+		JOIN concept_stage c2 ON c2.concept_code = crs.concept_code_2
+			AND c1.vocabulary_id = crs.vocabulary_id_2
+			AND c2.invalid_reason IS NULL
+			AND c2.vocabulary_id = 'RxNorm'
+		WHERE crs.invalid_reason IS NULL
+		) SELECT DISTINCT hc.root_ancestor_concept_code AS ancestor_concept_code,
+	hc.root_ancestor_vocabulary_id AS ancestor_vocabulary_id,
+	hc.descendant_concept_code,
+	hc.descendant_vocabulary_id FROM hierarchy_concepts hc JOIN concept_stage cs1 ON cs1.concept_code = hc.root_ancestor_concept_code
+	AND cs1.standard_concept IS NOT NULL JOIN concept_stage cs2 ON cs2.concept_code = hc.descendant_concept_code
+	AND cs2.standard_concept IS NOT NULL
+
+UNION ALL
+		
+	SELECT cs.concept_code,
+	cs.vocabulary_id,
+	cs.concept_code,
+	cs.vocabulary_id FROM concept_stage cs WHERE cs.vocabulary_id = 'RxNorm'
+	AND cs.invalid_reason IS NULL
+	AND cs.standard_concept IS NOT NULL
+	);
+ANALYZE rxnorm_ancestor;
+;
+
+--18. Prepare list of concepts stemming from new precise ingredients and thus missing proper CDF as parent:
+drop table if exists precise_affected cascade;
+create table precise_affected as
+select distinct
+	s.concept_code as drug_concept_code,
+	cdf.concept_code as outdated_form_code
+from concept_stage s
+join rxnorm_ancestor ca1 on	
+	s.concept_code = ca1.descendant_concept_code
+join concept_stage cdf on
+	cdf.concept_class_id in ('Clinical Drug Form', 'Branded Drug Form') and
+	cdf.concept_code = ca1.ancestor_concept_code
+
+join rxnorm_ancestor ca2 on
+	s.concept_code = ca2.descendant_concept_code
+join pi_promotion p on
+	p.component_rxcui = ca2.ancestor_concept_code
+where
+	s.concept_class_id <> 'Branded Drug Form' -- Separate case
+;
+-- Create sequence that starts after existing OMOPxxx-style concept codes
+DO $$
+DECLARE
+	ex INTEGER;
+BEGIN
+	SELECT MAX(REPLACE(concept_code, 'OMOP','')::int4)+1 INTO ex FROM (
+		SELECT concept_code FROM concept WHERE concept_code LIKE 'OMOP%'  AND concept_code NOT LIKE '% %' -- Last valid value of the OMOP123-type codes
+		UNION ALL
+		SELECT concept_code FROM drug_concept_stage WHERE concept_code LIKE 'OMOP%' AND concept_code NOT LIKE '% %' -- Last valid value of the OMOP123-type codes
+	) AS s0;
+	DROP SEQUENCE IF EXISTS omop_seq;
+	EXECUTE 'CREATE SEQUENCE omop_seq INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
+END $$
+;
+
+--18.1 Create list of true new ingredients for these concepts:
+drop table if exists cdf_portrait cascade;
+create table cdf_portrait as
+with raw_form as -- ONLY CDF
+	(
+		select distinct
+			a.*,
+			f.concept_code as df_concept_code,
+			s.concept_code as ingredient_concept_code,
+			i.pi_rxcui as replacing_ingredient_concept_code
+		from precise_affected a
+		join concept_stage x on
+			x.concept_code = a.outdated_form_code and
+			x.concept_class_id = 'Clinical Drug Form'
+		--Original ingredient related to the form
+		join concept_relationship_stage ri on
+			ri.concept_code_1 = a.outdated_form_code and
+			ri.invalid_reason is null
+		join concept_stage s on
+			s.concept_code = ri.concept_code_2 and
+			s.concept_class_id = 'Ingredient'
+		--Cross-reference PI promotion to replace old ingredients with new
+		join rxnorm_ancestor ra on
+			ra.descendant_concept_code = a.drug_concept_code
+		left join pi_promotion i on
+			i.i_rxcui = s.concept_code and
+			ra.ancestor_concept_code = i.component_rxcui
+		--Add Dose Form:
+		join concept_relationship_stage rf on
+			rf.invalid_reason is null and
+			rf.concept_code_1 = a.outdated_form_code
+		join concept_stage f on
+			f.concept_code = rf.concept_code_2 and
+			f.concept_class_id = 'Dose Form'
+	),
+--Remove rows where replacing ingredients dublicate
+deduplicated as (
+	select distinct 
+		--static rows
+		drug_concept_code,outdated_form_code,df_concept_code,
+		first_value(coalesce(replacing_ingredient_concept_code, ingredient_concept_code)
+		) over
+		(
+			partition by drug_concept_code,outdated_form_code,df_concept_code, ingredient_concept_code
+			order by replacing_ingredient_concept_code
+		) as true_ingredient_code
+	from raw_form
+),
+--Prepare to assign OMOP codes by finding distinct CDF constructs
+aggregated as (
+	select
+		drug_concept_code, outdated_form_code, df_concept_code, string_agg(true_ingredient_code, '/' order by true_ingredient_code) as ingredient_string
+	from deduplicated
+	group by drug_concept_code, outdated_form_code, df_concept_code
+),
+coded as (
+	select df_concept_code, ingredient_string, 'OMOP' || nextval('omop_seq') as new_code
+	from aggregated
+	group by df_concept_code, ingredient_string
+)
+select a.*, new_code from aggregated a
+join coded c on
+	(a.df_concept_code, a.ingredient_string) = (c.df_concept_code, c.ingredient_string)
+;
+--18.2 Create portrait of missing BDFs
+drop table if exists bdf_portrait cascade;
+create table bdf_portrait as
+select
+	pa.drug_concept_code,
+	pa.outdated_form_code,
+	cp.new_code as new_cdf_code,
+	cs.concept_code_2 as bn_code,
+	NULL as new_code
+from precise_affected pa
+join concept_stage bdf on
+	bdf.concept_code = pa.outdated_form_code and
+	bdf.concept_class_id = 'Branded Drug Form'
+join rxnorm_ancestor ra on
+	ra.descendant_concept_code = pa.drug_concept_code
+-- CDF are always part of the equation:
+join cdf_portrait cp on
+	cp.drug_concept_code = pa.drug_concept_code and
+	cp.outdated_form_code = ra.ancestor_concept_code
+-- Assert existence of direct link, not just shared ancestry
+join concept_relationship_stage x on
+	x.concept_code_1 = pa.outdated_form_code and
+	x.concept_code_2 = cp.outdated_form_code
+-- Get Brand Name:
+join concept_relationship_stage cs on
+	cs.concept_code_1 = pa.outdated_form_code and
+	cs.invalid_reason is null and
+	cs.relationship_id = 'Has brand name'
+;
+--Populate codes:
+with portraits as (
+	select outdated_form_code, new_cdf_code, bn_code, 'OMOP' || nextval('omop_seq') as new_code
+	from bdf_portrait
+	group by outdated_form_code, new_cdf_code, bn_code
+)
+update bdf_portrait b
+set new_code = p.new_code
+from portraits p
+where	
+	(p.outdated_form_code, p.new_cdf_code, p.bn_code) = (b.outdated_form_code, b.new_cdf_code, b.bn_code)
+;
+-- 18.3 Generate NEW relations for synthetic DF: to Ingredients, Forms and Brand Names
+-- 18.3.1 CDF to Ingredients (reversed for FillDrugStrength)
+insert into concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+with cdf_to_ingstr as
+		(
+			select distinct new_code, ingredient_string
+			from cdf_portrait
+		),
+	cdf_to_ing as
+		(
+			select new_code, regexp_split_to_table(ingredient_string, '\/') as ing_code
+			from cdf_to_ingstr
+		)
+select
+	ing_code,
+	new_code,
+	'RxNorm',
+	'RxNorm Extension',
+	'RxNorm ing of',
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'RxNorm'
+	),
+	to_date('20991231','yyyymmdd')
+from cdf_to_ing
+;
+-- 18.3.2 CDF to Dose Form
+insert into concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+select distinct
+	new_code,
+	df_concept_code,
+	'RxNorm Extension',
+	'RxNorm',
+	'RxNorm has dose form',
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'RxNorm'
+	),
+	to_date('20991231','yyyymmdd')
+from cdf_portrait
+;
+-- 18.3.3 BDF to Brand Name
+insert into concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+select distinct
+	new_code,
+	bn_code,
+	'RxNorm Extension',
+	'RxNorm',
+	'Has brand name',
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'RxNorm'
+	),
+	to_date('20991231','yyyymmdd')
+from bdf_portrait
+;
+-- 18.3.4. BDF to CDF (this direction for FillDrugStrength)
+insert into concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+select distinct 
+	new_code,
+	new_cdf_code,
+	'RxNorm Extension',
+	'RxNorm Extension',
+	'Tradename of',
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'RxNorm'
+	),
+	to_date('20991231','yyyymmdd')
+from bdf_portrait
+;
+--18.3.5. Self Map:
+insert into concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+with self as
+	(
+		select distinct new_code from cdf_portrait
+			union all
+		select distinct new_code from bdf_portrait
+	),
+rel as
+	(
+		select 'Maps to' as relationship_id union all
+		select 'Mapped from' as relationship_id
+	)
+select distinct 
+	new_code,
+	new_code,
+	'RxNorm Extension',
+	'RxNorm Extension',
+	relationship_id,
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'RxNorm'
+	),
+	to_date('20991231','yyyymmdd')
+from self
+join rel on True
+;
+--18.4. Replace relations for affected concepts:
+create or replace view replacement as
+	(
+		select 
+			drug_concept_code,
+			outdated_form_code,
+			new_code
+		from cdf_portrait
+			union all
+		select 
+			drug_concept_code,
+			outdated_form_code,
+			new_code
+		from bdf_portrait
+	)
+;
+--18.4.1. Downward facing:
+update concept_relationship_stage r
+set
+	concept_code_2 = e.new_code,
+	vocabulary_id_2 = 'RxNorm Extension'
+from replacement e
+where
+	r.invalid_reason is null and
+	r.concept_code_1 = e.drug_concept_code and
+	r.concept_code_2 = e.outdated_form_code
+;
+--18.4.2. Upward facing:
+update concept_relationship_stage r
+set
+	concept_code_1 = e.new_code,
+	vocabulary_id_1 = 'RxNorm Extension'
+from replacement e
+where
+	r.invalid_reason is null and
+	r.concept_code_2 = e.drug_concept_code and
+	r.concept_code_1 = e.outdated_form_code
+;
+--18.5. Concept stage entries
+with cdf_to_ingstr as
+		(
+			select distinct new_code, df_concept_code, ingredient_string
+			from cdf_portrait
+		),
+	cdf_to_ing as
+		(
+			select new_code, regexp_split_to_table(ingredient_string, '\/') as ing_code
+			from cdf_to_ingstr
+		),
+	cdf_spelled_out as
+		(
+			select
+				cti.new_code, string_agg(si.concept_name, ' / ' ORDER BY UPPER(si.concept_name) COLLATE "C") || ' ' || sf.concept_name as new_name
+			from cdf_to_ing cti
+			join cdf_to_ingstr c on
+				cti.new_code = c.new_code
+			join concept_stage si on
+				cti.ing_code = si.concept_code
+			join concept_stage sf on
+				c.df_concept_code = sf.concept_code
+			group by cti.new_code, sf.concept_name
+		),
+	bdf_spelled_out as
+		(
+			select distinct
+				b.new_code,
+				i.new_name || ' [' || cb.concept_name || ']' as new_name
+			from cdf_spelled_out i
+			join bdf_portrait b on
+				i.new_code = b.new_cdf_code
+			join concept_stage cb on 
+				cb.concept_code = b.bn_code
+		)
+insert into concept_stage (concept_code, concept_name, domain_id, vocabulary_id, concept_class_id, standard_concept, valid_start_date, valid_end_date)
+select
+	new_code,
+	trim(left(new_name, 255)) as concept_name,
+	'Drug',
+	'RxNorm Extension',
+	'Clinical Drug Form',
+	'S',
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'RxNorm'
+	),
+	to_date('20991231','yyyymmdd')
+from cdf_spelled_out
+
+	union all
+
+select
+	new_code,
+	trim(left(new_name, 255)) as concept_name,
+	'Drug',
+	'RxNorm Extension',
+	'Branded Drug Form',
+	'S',
+	(
+		SELECT latest_update
+		FROM vocabulary
+		WHERE vocabulary_id = 'RxNorm'
+	),
+	to_date('20991231','yyyymmdd')
+from bdf_spelled_out
+;
+drop table if exists rxnorm_ancestor
+;
+--19. Run FillDrugStrengthStage
 DO $_$
 BEGIN
 	PERFORM dev_rxnorm.FillDrugStrengthStage();
 END $_$;
 
---17. Run QA-script (you can always re-run this QA manually: SELECT * FROM get_qa_rxnorm() ORDER BY info_level, description;)
+--20. Run QA-script (you can always re-run this QA manually: SELECT * FROM get_qa_rxnorm() ORDER BY info_level, description;)
 DO $_$
 BEGIN
 	IF CURRENT_SCHEMA = 'dev_rxnorm' /*run only if we are inside dev_rxnorm*/ THEN
@@ -1365,11 +1991,18 @@ BEGIN
 		ANALYZE concept_relationship_stage;
 		ANALYZE drug_strength_stage;
 		TRUNCATE TABLE rxn_info_sheet;
-		INSERT INTO rxn_info_sheet SELECT * FROM get_qa_rxnorm();
+		INSERT INTO rxn_info_sheet SELECT * FROM dev_rxnorm.get_qa_rxnorm();
 	END IF;
 END $_$;
 
---18. We need to run generic_update before small RxE clean up
+--21. Cleanup:
+drop view if exists replacement;
+drop table if exists precise_affected cascade;
+drop table if exists cdf_portrait cascade;
+drop table if exists bdf_portrait cascade;
+;
+
+--22. We need to run generic_update before small RxE clean up
 DO $_$
 BEGIN
 	PERFORM devv5.GenericUpdate();

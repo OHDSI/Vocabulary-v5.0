@@ -27,7 +27,6 @@ Open the site http://www.fda.gov/Drugs/InformationOnDrugs/ucm142438.htm
 ```sql
 SELECT devv5.FastRecreateSchema(main_schema_name=>'devv5', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
 ```
-
 8. Run [load_stage.sql]
 
 9. Perform manual work described in manual_work folder

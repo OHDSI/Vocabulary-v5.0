@@ -36,41 +36,11 @@ CREATE TABLE dev_ndc.NDC_manual_mapped (
 );
 
 --3. Select concepts to map and add them to the manual file in the spreadsheet editor.
-SELECT c.concept_id as source_concept_id,
-       c.concept_code as source_code,
-       c.concept_name as source_code_description,
-       null as source_count,
-       CASE WHEN cr.concept_id_2 is not null THEN 'check' ELSE null END as comments,
-       cr.concept_id_2 as target_concept_id
-FROM devv5.concept c
-LEFT JOIN devv5.concept_relationship cr
-ON cr.concept_id_1 = c.concept_id
-WHERE vocabulary_id = 'NDC'
-AND cr.invalid_reason is null
-AND concept_id in ('1799556', '1799558', '1799562', '1799559', '1799560', '1779597', '1779561', '1799760', '1779550', '1799561');
 
 --4. Truncate the NDC_manual_mapped table. Save the spreadsheet as the NDC_manual_mapped table and upload it into the working schema.
 TRUNCATE TABLE dev_ndc.NDC_manual_mapped;
 
 --5. Perform mapping (NDC_manual_mapped) checks
-SELECT *
-FROM dev_ndc.NDC_manual_mapped j1
-WHERE NOT EXISTS (  SELECT *
-                    FROM dev_ndc.NDC_manual_mapped j2
-                    JOIN dev_ndc.concept c
-                        ON j2.target_concept_id = c.concept_id
-                            AND c.concept_code = j2.target_concept_code
-                            AND replace(lower(c.concept_name), ' ', '') =
-                                replace(lower(j2.target_concept_name), ' ', '')
-                            AND c.vocabulary_id = j2.target_vocabulary_id
-                            AND c.domain_id = j2.target_domain_id
-                            AND c.standard_concept = 'S'
-                            AND c.invalid_reason is NULL
-                           WHERE j1.source_concept_id = j2.source_concept_id
-                  )
-    AND j1.target_concept_id != '17'
-    AND j1.target_concept_id BETWEEN 2 AND 2000000000
-    ;
 
 --6. Deprecate all mappings that differ from the new version of resulting mapping file.
 --SELECT (try-out for the following UPDATE)

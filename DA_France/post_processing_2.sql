@@ -52,6 +52,11 @@ join concept c using (concept_id)
 truncate concept_relationship_stage
 ;
 insert into concept_relationship_stage
+/*determine concepts that have mapping and target concepts have hierarchy that ends with Ingredient
+maybe it's better to use this 
+https://github.com/OHDSI/Vocabulary-v5.0/blob/acb7d37c9cc030c546244a7350ba7edb5df5feb3/working/packages/vocabulary_pack/RxECleanUP.sql#L48
+do define broken concepts
+*/
 with aa as (select a.concept_code from concept a
 join concept_relationship r on  a.concept_id  = r.concept_id_1 and relationship_id ='Maps to' and r.invalid_reason is null
 join concept_ancestor an on an.descendant_concept_id = r.concept_id_2 

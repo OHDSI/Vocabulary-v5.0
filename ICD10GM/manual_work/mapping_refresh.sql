@@ -20,7 +20,7 @@ DROP TABLE IF EXISTS refresh_lookup;
 CREATE TABLE refresh_lookup AS WITH miss_map 
 AS
 (
-	-- 'deprecated mapping'
+-- 'deprecated mapping'
 	SELECT c.concept_code AS icd_code,
        c.concept_name AS icd_name,
        a.relationship_id AS current_relationship,
@@ -61,14 +61,14 @@ FROM concept_relationship_stage a
     ON a.concept_code_1 = c.concept_code
 UNION
 -- 'without mapping'
-SELECT a.concept_code,
-       a.concept_name,
-       NULL,
-       NULL,
-       NULL,
-       NULL,
-       NULL,
-       NULL,
+SELECT a.concept_code AS icd_code,
+       a.concept_name AS icd_name,
+       NULL AS current_relationship,
+       NULL AS current_id,
+       NULL AS current_code,
+       NULL AS current_name,
+       NULL AS current_domain,
+       NULL AS current_vocabulary,
        'without mapping' AS reason
 FROM concept_manual a
   LEFT JOIN concept_relationship_stage r
@@ -83,7 +83,7 @@ AND   a.invalid_reason IS NULL
 AND   b.concept_id IS NULL
 AND a.concept_code NOT IN (SELECT concept_code_1 FROM concept_relationship_stage)),
 --brothers of depracted concepts: for cases when source concept has 1-to-many mapping and one of the target concepts is dead, we should see all other target concepts to create an accurate mapping
-miss_map_brother AS ( SELECT
+miss_map_brother AS (SELECT
        a.icd_code,
        a.icd_name,
        c.relationship_id,
@@ -253,3 +253,42 @@ SELECT * FROM final_step
 -- as far as ICD10GM is a semi-manual vocabulary, we have both mappings from ICD10 and ICD10GM in crs table BUT we don't want to impugn ICD10 mapping, so we just ignore them in this lookup
 WHERE icd_code NOT IN (SELECT concept_code FROM concept WHERE vocabulary_id = 'ICD10')
 ORDER BY icd_code;
+
+
+SELECT devv5.FastRecreateSchema(main_schema_name=>'dev_SNOMED', include_concept_ancestor=>true, include_deprecated_rels=>true, include_synonyms=>true);
+
+SELECT *
+from concept_relationship_stage
+WHERE vocabulary_id_1 = 'ICD10GM'
+AND vocabulary_id_2 = 'SNOMED'
+AND relationship_id in ('Maps to', 'Maps to value')
+AND invalid_reason is not null
+ORDER BY concept_code_1;
+
+with ex as
+(SELECT *
+from concept_relationship_stage
+WHERE vocabulary_id_1 = 'ICD10GM'
+AND vocabulary_id_2 = 'SNOMED'
+AND relationship_id in ('Maps to', 'Maps to value')
+AND invalid_reason is not null)
+--AND concept_code_1 not in (SELECT icd_code FROM refresh_lookup))
+SELECT * FROM ex
+LEFT JOIN dev_snomed.concept c on ex.concept_code_2 = c.concept_code
+AND vocabulary_id_2 = c.vocabulary_id
+AND c.standard_concept is null
+ORDER BY concept_code_1;
+
+with code as (SELECT *
+from concept_relationship_stage
+WHERE vocabulary_id_1 = 'ICD10GM'
+AND vocabulary_id_2 = 'SNOMED'
+AND relationship_id in ('Maps to', 'Maps to value')
+AND invalid_reason is not null
+ORDER BY concept_code_1)
+SELECT c.concept_code_1, cc.concept_name FROM code c LEFT JOIN concept cc on c.concept_code_1=cc.concept_code
+and c.vocabulary_id_1=cc.vocabulary_id;
+
+
+
+

@@ -35,11 +35,11 @@ FROM concept_relationship_stage a
     ON a.concept_code_2 = b.concept_code
    AND b.vocabulary_id = a.vocabulary_id_2
    AND a.relationship_id IN ('Maps to', 'Maps to value')
-   AND b.invalid_reason IN ('D', 'U')
-  JOIN concept_stage c
+   AND b.invalid_reason is not null --IN ('D', 'U')
+   JOIN concept_stage c
     ON a.concept_code_1 = c.concept_code 
     AND c.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
-AND a.invalid_reason IS NULL
+    AND a.invalid_reason IS NULL
 UNION
 -- 'non-standard mapping'
 SELECT c.concept_code,
@@ -84,7 +84,7 @@ WHERE a.vocabulary_id = 'ICD10CM'
 AND   a.invalid_reason IS NULL
 AND   b.concept_id IS NULL
 AND a.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')),
---brothers of depracted concepts: for cases when source concept has 1-to-many mapping and one of the target concepts is dead, we should see all other target concepts to create an accurate mapping
+--brothers of deprecated concepts: for cases when source concept has 1-to-many mapping and one of the target concepts is dead, we should see all other target concepts to create an accurate mapping
 miss_map_brother AS ( SELECT
        a.icd_code,
        a.icd_name,
@@ -130,7 +130,7 @@ t1 AS (SELECT d.concept_code AS icd_code,
            ON j.concept_id = r2.concept_id_2
           AND j.vocabulary_id = 'SNOMED'-- place for target vocabulary       
           AND j.standard_concept = 'S'
-          AND r2.relationship_id = 'Maps to'
+          AND r2.relationship_id in ('Asso finding of', 'Asso with finding', 'Concept poss_eq to', 'Concept same_as to', 'Due to of', 'Focus of', 'Follows', 'Has asso morph', 'Has finding site', 'Has interprets', 'Has pathology')
        WHERE a.concept_code_1 IN (SELECT icd_code FROM miss_map)),
 -- concepts which mapping can be replaced through 'Concept replaces' relationship
 t2 AS (SELECT d.concept_code AS icd_code,
@@ -157,7 +157,7 @@ t2 AS (SELECT d.concept_code AS icd_code,
           AND j.standard_concept = 'S'
           AND r2.relationship_id = 'Concept replaced by'
        WHERE a.concept_code_1 IN (SELECT icd_code FROM miss_map)),
--- all concepts which can be remapped autimatically (however, should be reviewed)
+-- all concepts which can be remapped automatically (however, should be reviewed)
 t3 AS (SELECT * FROM t1 UNION SELECT * FROM t2),
 -- look-up table with all concepts with deprecated mapping + automatically remapped
 t4 AS (SELECT miss_map.icd_code,
@@ -252,3 +252,318 @@ SELECT * FROM p_map
 UNION 
 SELECT * FROM t4
 ORDER BY icd_code;
+
+
+
+--working
+with ex as
+(SELECT *
+from concept_relationship_stage
+WHERE vocabulary_id_1 = 'ICD10CM'
+AND vocabulary_id_2 = 'SNOMED'
+AND relationship_id in ('Maps to', 'Maps to value')
+AND invalid_reason is not null
+AND concept_code_1 not in (SELECT icd_code FROM refresh_lookup))
+SELECT * FROM ex
+LEFT JOIN dev_snomed.concept c on ex.concept_code_2 = c.concept_code
+AND vocabulary_id_2 = c.vocabulary_id
+AND c.standard_concept is null
+ORDER BY concept_code_1;
+
+SELECT *
+from concept_relationship_stage
+WHERE vocabulary_id_1 = 'ICD10CM'
+AND vocabulary_id_2 = 'SNOMED'
+AND relationship_id in ('Maps to', 'Maps to value')
+AND invalid_reason is not null;
+
+
+WITH ex AS
+(
+  SELECT *
+  FROM dev_icd10cm.concept_relationship_stage
+  WHERE vocabulary_id_1 = 'ICD10CM'
+  AND   vocabulary_id_2 = 'SNOMED'
+  AND   relationship_id IN ('Maps to','Maps to value')
+  AND   invalid_reason IS NOT NULL
+  AND   concept_code_1 NOT IN (SELECT icd_code FROM dev_icd10cm.refresh_lookup)
+),
+t2 AS
+(
+  SELECT ex.*
+  FROM ex
+    LEFT JOIN dev_snomed.concept c
+           ON ex.concept_code_2 = c.concept_code
+          AND vocabulary_id_2 = c.vocabulary_id
+          AND c.standard_concept IS NULL
+  ORDER BY concept_code_1
+),
+t3 AS
+(
+  SELECT DISTINCT c.concept_code AS icd_code,
+         c.concept_name AS icd_name,
+         cr.relationship_id,
+         x.concept_id,
+         x.concept_code,
+         x.concept_name,
+         x.vocabulary_id,
+         x.invalid_reason,
+         x.standard_concept
+  FROM dev_icd10cm.concept_relationship_stage cr
+    JOIN dev_snomed.concept c ON c.concept_code||c.vocabulary_id = cr.concept_code_1||cr.vocabulary_id_1
+    JOIN dev_snomed.concept x ON x.concept_code||x.vocabulary_id = cr.concept_code_2||cr.vocabulary_id_2
+  WHERE cr.vocabulary_id_1 = 'ICD10CM'
+  AND   cr.vocabulary_id_2 = 'SNOMED'
+  AND   cr.relationship_id IN ('Maps to','Maps to value')
+  AND   cr.invalid_reason IS NOT NULL
+)
+SELECT *
+FROM t3
+WHERE icd_code||concept_code NOT IN (SELECT concept_code_1||concept_code_2 FROM t2);
+
+
+
+--new
+DROP TABLE IF EXISTS refresh_lookup;
+CREATE TABLE refresh_lookup AS WITH miss_map
+AS
+(
+-- 'deprecated mapping'
+	SELECT c.concept_code AS icd_code,
+       c.concept_name AS icd_name,
+       a.relationship_id AS current_relationship,
+       b.concept_id AS current_id,
+       b.concept_code AS current_code,
+       b.concept_name AS current_name,
+       b.domain_id AS current_domain,
+       b.vocabulary_id AS current_vocabulary,
+       'deprecated mapping' AS reason
+FROM concept_relationship_stage a
+  JOIN concept b
+    ON a.concept_code_2 = b.concept_code
+   AND b.vocabulary_id = a.vocabulary_id_2
+   AND a.relationship_id IN ('Maps to', 'Maps to value')
+   AND b.invalid_reason is not null
+   JOIN concept_stage c
+   ON a.concept_code_1 = c.concept_code
+   AND c.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
+   --AND a.invalid_reason IS NULL
+UNION
+-- 'non-standard mapping'
+SELECT c.concept_code,
+       c.concept_name,
+       a.relationship_id AS current_relationship,
+       b.concept_id AS current_id,
+       b.concept_code AS current_code,
+       b.concept_name AS current_name,
+       b.domain_id AS current_domain,
+       b.vocabulary_id AS current_vocabulary,
+       'non-standard mapping' AS reason
+FROM concept_relationship_stage a
+  JOIN concept b
+    ON a.concept_code_2 = b.concept_code
+   AND b.vocabulary_id = a.vocabulary_id_2
+   AND a.relationship_id IN ('Maps to', 'Maps to value')
+   AND b.invalid_reason IS NULL
+   AND b.standard_concept IS NULL
+  JOIN concept_stage c
+    ON a.concept_code_1 = c.concept_code
+    AND c.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')
+UNION
+-- 'without mapping'
+SELECT a.concept_code,
+       a.concept_name,
+       NULL,
+       NULL,
+       NULL,
+       NULL,
+       NULL,
+       NULL,
+       'without mapping' AS reason
+FROM concept_stage a
+  LEFT JOIN concept_relationship_stage r
+         ON a.concept_code = concept_code_1
+        AND r.relationship_id IN ('Maps to')
+        AND r.invalid_reason IS NULL
+  LEFT JOIN concept b
+         ON b.concept_code = concept_code_2
+        AND b.vocabulary_id = vocabulary_id_2
+WHERE a.vocabulary_id = 'ICD10CM'
+AND   a.invalid_reason IS NULL
+AND   b.concept_id IS NULL
+AND a.concept_class_id NOT IN ('ICD10 Chapter','ICD10 SubChapter')),
+--brothers of deprecated concepts: for cases when source concept has 1-to-many mapping and one of the target concepts is dead, we should see all other target concepts to create an accurate mapping
+miss_map_brother AS ( SELECT
+       a.icd_code,
+       a.icd_name,
+       c.relationship_id,
+       b.concept_id AS current_id,
+       b.concept_code AS current_code,
+       b.concept_name AS current_name,
+       b.domain_id AS current_domain,
+       b.vocabulary_id AS current_vocabulary,
+       b.concept_id,
+       b.concept_code,
+       b.concept_name,
+       b.domain_id,
+       b.vocabulary_id,
+       'brother of deprecated mapping' AS reason
+FROM miss_map a
+JOIN concept_relationship_stage c ON c.concept_code_1 = a.icd_code
+JOIN concept b
+    ON c.concept_code_2 = b.concept_code
+   AND b.vocabulary_id = c.vocabulary_id_2
+   AND c.relationship_id IN ('Maps to', 'Maps to value')
+   AND b.invalid_reason IS NULL),
+-- concepts which mapping can be replaced through 'Maps to' relationship
+t1 AS (SELECT d.concept_code AS icd_code,
+              d.concept_name AS icd_name,
+              d.domain_id AS icd_domain,
+              j.concept_id AS repl_by_id,
+              j.concept_code AS repl_by_code,
+              j.concept_name AS repl_by_name,
+              j.domain_id AS repl_by_domain,
+              j.vocabulary_id AS repl_by_vocabulary,
+              NULL
+       FROM concept_relationship_stage a
+         JOIN concept b
+           ON a.concept_code_2 = b.concept_code
+          AND b.vocabulary_id = a.vocabulary_id_2
+          AND a.relationship_id = 'Maps to'
+          AND b.invalid_reason IN ('D', 'U')
+          JOIN concept_stage d
+    ON a.concept_code_1 = d.concept_code
+         JOIN concept_relationship r2 ON b.concept_id = r2.concept_id_1
+         JOIN concept j
+           ON j.concept_id = r2.concept_id_2
+          AND j.vocabulary_id = 'SNOMED'-- place for target vocabulary
+          AND j.standard_concept = 'S'
+          AND r2.relationship_id in ('Maps to')
+       WHERE a.concept_code_1 IN (SELECT icd_code FROM miss_map)),
+-- concepts which mapping can be replaced through 'Concept replaces' relationship
+t2 AS (SELECT d.concept_code AS icd_code,
+              d.concept_name AS icd_name,
+              d.domain_id AS icd_domain,
+              j.concept_id AS repl_by_id,
+              j.concept_code AS repl_by_code,
+              j.concept_name AS repl_by_name,
+              j.domain_id AS repl_by_domain,
+              j.vocabulary_id AS repl_by_vocabulary,
+              NULL
+       FROM concept_relationship_stage a
+         JOIN concept b
+           ON a.concept_code_2 = b.concept_code
+          AND b.vocabulary_id = a.vocabulary_id_2
+          AND a.relationship_id = 'Maps to'
+          AND b.invalid_reason IN ('D', 'U')
+        JOIN concept_stage d
+    ON a.concept_code_1 = d.concept_code
+         JOIN concept_relationship r2 ON b.concept_id = r2.concept_id_1
+         JOIN concept j
+           ON j.concept_id = r2.concept_id_2
+          AND j.vocabulary_id = 'SNOMED' -- place for target vocabulary
+          AND j.standard_concept = 'S'
+          AND r2.relationship_id in ('Concept replaced by', 'Concept poss_eq to', 'Concept same_as to')
+       WHERE a.concept_code_1 IN (SELECT icd_code FROM miss_map)),
+-- all concepts which can be remapped automatically (however, should be reviewed)
+t3 AS (SELECT * FROM t1 UNION SELECT * FROM t2),
+-- look-up table with all concepts with deprecated mapping + automatically remapped
+t4 AS (SELECT miss_map.icd_code,
+              miss_map.icd_name,
+              miss_map.current_relationship,
+              miss_map.current_id,
+              miss_map.current_code,
+              miss_map.current_name,
+              miss_map.current_domain,
+              miss_map.current_vocabulary,
+              t3.repl_by_id,
+              t3.repl_by_code,
+              t3.repl_by_name,
+              t3.repl_by_domain,
+              t3.repl_by_vocabulary,
+              miss_map.reason
+       FROM miss_map
+         LEFT JOIN t3 ON miss_map.icd_code = t3.icd_code
+      UNION
+         SELECT * FROM miss_map_brother),
+-- improve_map - automatically detected mapping improvements. Look carefully! Target vocabulary could have the same names of concepts with different domain_ids. Also, ICD10 chapter means a lot and should be taken into account for choosing appropriate mapping
+improve_map
+AS
+(SELECT DISTINCT
+a.concept_code AS icd_code,
+       a.concept_name AS icd_name,
+       r.relationship_id AS current_relationship,
+       d.concept_id AS current_id,
+       d.concept_code AS current_code,
+       d.concept_name AS current_name,
+       d.domain_id AS current_domain,
+       d.vocabulary_id AS current_vocabulary,
+       c.concept_id AS repl_by_id,
+       code AS repl_by_code,
+       str AS repl_by_name,
+       c.domain_id AS repl_by_domain,
+       c.vocabulary_id AS repl_by_vocabulary,
+       'improve_map' AS reason
+FROM concept a
+JOIN concept_relationship r ON r.concept_id_1 = a.concept_id AND a.vocabulary_id = 'ICD10CM'
+JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
+  JOIN sources.mrconso
+    ON lower (a.concept_name) = lower (str)
+   AND sab = 'SNOMEDCT_US'
+   AND suppress = 'N'
+   AND tty = 'PT'
+  JOIN concept c
+    ON c.concept_code = code
+   AND c.vocabulary_id = 'SNOMED'
+   AND c.standard_concept = 'S'
+   AND c.concept_class_id IN ('Procedure', 'Context-dependent', 'Clinical Finding', 'Event', 'Social Context', 'Observable Entity')),
+t5 as (
+SELECT  * FROM improve_map
+WHERE icd_code IN (SELECT icd_code
+                   FROM improve_map
+                   WHERE repl_by_code != current_code)
+AND icd_code NOT IN (SELECT icd_code FROM improve_map WHERE icd_name ~ '\s+and\s+' GROUP BY icd_code HAVING COUNT(icd_code)=1)
+                   ),
+t6 AS (
+SELECT DISTINCT
+a.concept_code AS icd_code,
+       a.concept_name AS icd_name,
+       r.relationship_id AS current_relationship,
+       d.concept_id AS current_id,
+       d.concept_code AS current_code,
+       d.concept_name AS current_name,
+       d.domain_id AS current_domain,
+       d.vocabulary_id AS current_vocabulary,
+       c.concept_id AS repl_by_id,
+       c.concept_code AS repl_by_code,
+       c.concept_name AS repl_by_name,
+       c.domain_id AS repl_by_domain,
+       c.vocabulary_id AS repl_by_vocabulary,
+       'improve_map' AS reason
+FROM concept a
+JOIN concept_relationship r ON r.concept_id_1 = a.concept_id and a.vocabulary_id = 'ICD10CM'
+JOIN concept d ON d.concept_id = r.concept_id_2 AND r.invalid_reason IS NULL AND d.standard_concept = 'S' AND r.relationship_id IN ('Maps to', 'Maps to value')
+  JOIN concept_synonym cs ON lower (a.concept_name) = lower (cs.concept_synonym_name) AND a.vocabulary_id = 'ICD10CM'
+  JOIN concept c
+    ON cs.concept_id = c.concept_id
+   AND c.vocabulary_id = 'SNOMED'
+   AND c.standard_concept = 'S'
+   AND c.concept_class_id IN ('Procedure', 'Context-dependent', 'Clinical Finding', 'Event', 'Social Context', 'Observable Entity')
+AND c.concept_id NOT IN (SELECT descendant_concept_id FROM devv5.concept_ancestor WHERE ancestor_concept_id = 40485423 )), -- concept Unilateral clinical finding has weak hierarchy
+p_map AS (
+    SELECT * FROM t5
+  UNION
+--exclude the cases 1 to 1 mapping with the current_id = repl_by_id, if there's multiple mapping and current_id = repl_by_id, the additional mapping serves as a hiearchy connector, so these are included into the comparison
+    SELECT * FROM t6 WHERE icd_code NOT IN (SELECT icd_code FROM (
+SELECT *, COUNT(1) over (partition BY icd_code) AS cnt FROM t6) a WHERE a.cnt =1 AND current_id = repl_by_id))
+SELECT * FROM p_map
+UNION
+SELECT * FROM t4
+ORDER BY icd_code;
+
+SELECT * FROM refresh_lookup;
+
+
+
+
+

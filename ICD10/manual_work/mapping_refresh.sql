@@ -252,3 +252,54 @@ SELECT * FROM p_map
 UNION 
 SELECT * FROM t4
 ORDER BY icd_code;
+
+--working
+SELECT *
+from concept_relationship_stage
+WHERE vocabulary_id_1 = 'ICD10'
+AND vocabulary_id_2 = 'SNOMED'
+AND relationship_id in ('Maps to', 'Maps to value')
+AND invalid_reason is not null;
+
+WITH ex AS
+(
+  SELECT *
+  FROM dev_icd10.concept_relationship_stage
+  WHERE vocabulary_id_1 = 'ICD10CM'
+  AND   vocabulary_id_2 = 'SNOMED'
+  AND   relationship_id IN ('Maps to','Maps to value')
+  AND   invalid_reason IS NOT NULL
+  AND   concept_code_1 NOT IN (SELECT icd_code FROM dev_icd10.refresh_lookup)
+),
+t2 AS
+(
+  SELECT ex.*
+  FROM ex
+    LEFT JOIN dev_snomed.concept c
+           ON ex.concept_code_2 = c.concept_code
+          AND vocabulary_id_2 = c.vocabulary_id
+          AND c.standard_concept IS NULL
+  ORDER BY concept_code_1
+),
+t3 AS
+(
+  SELECT DISTINCT c.concept_code AS icd_code,
+         c.concept_name AS icd_name,
+         cr.relationship_id,
+         x.concept_id,
+         x.concept_code,
+         x.concept_name,
+         x.vocabulary_id,
+         x.invalid_reason,
+         x.standard_concept
+  FROM dev_icd10.concept_relationship_stage cr
+    JOIN dev_snomed.concept c ON c.concept_code||c.vocabulary_id = cr.concept_code_1||cr.vocabulary_id_1
+    JOIN dev_snomed.concept x ON x.concept_code||x.vocabulary_id = cr.concept_code_2||cr.vocabulary_id_2
+  WHERE cr.vocabulary_id_1 = 'ICD10CM'
+  AND   cr.vocabulary_id_2 = 'SNOMED'
+  AND   cr.relationship_id IN ('Maps to','Maps to value')
+  AND   cr.invalid_reason IS NOT NULL
+)
+SELECT *
+FROM t3
+WHERE icd_code||concept_code NOT IN (SELECT concept_code_1||concept_code_2 FROM t2)

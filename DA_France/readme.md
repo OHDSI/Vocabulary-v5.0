@@ -16,5 +16,6 @@
 5. Run load_input.sql
 6. Run Build_RxE.sql and MapDrug.sql
 7. Run post_processing
-8. Run load_stage (to add!) -- Dima's TASK
-9. Perform standard QA
+8. Run post_processing_2.sql
+9. run generic_update
+10. Perform standard QA

@@ -159,6 +159,8 @@ insert into concept_relationship_stage
 select distinct null::int, null::int, a.concept_code, 
 'OMOP' || NEXTVAL('omop_seq')  as concept_code_2 ,
 'OMOP Invest Drug','RxNorm Extension', 'Maps to',  to_date ('19700101', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null
+from (
+select distinct a.concept_code
  from concept_stage a 
  --don't have mapping to RxNorm(E)
 left join concept_relationship_stage r on a.concept_code = r.concept_code_1 and relationship_id ='Maps to'
@@ -167,6 +169,7 @@ join inv_master m on m.concept_code = a.concept_code
 left join inv_master m2 on m.code = m2.parent_code
 where m2.concept_code is null
 and r.concept_code_1 is null
+) a
 ;
 --3.3 add these RxE concepts to the concept_stage table
 --somehow got a lot of duplicates here
@@ -186,7 +189,12 @@ insert into concept_relationship_stage
 select distinct null::int, null::int, a.concept_code_2,'L01' ,'RxNorm Extension', 'ATC', 'Is a', to_date ('19700101', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null
  from concept_relationship_stage a
 join inv_master m on a.concept_code_1 = m.concept_code and m.antineopl_code is not null --NCI code
-where a.vocabulary_id_2 ='RxNorm Extension' and relationship_id ='Maps to' -- Investigational drugs mapped to RxE we have to build the hiearchy for
+--exclude already existing RxEs
+left join concept c on c.concept_code = r.concept_code_2 and c.vocabulary_id = 'RxNorm Extension'
+where r.vocabulary_id_2 = 'RxNorm Extension' 
+and c.concept_code is null
+-- Investigational drugs mapped to RxE we have to build the hiearchy for
+where a.vocabulary_id_2 ='RxNorm Extension' and relationship_id ='Maps to' 
 ;
 --4.3 built internal hierarchy given by NCIt
 insert into concept_relationship_stage

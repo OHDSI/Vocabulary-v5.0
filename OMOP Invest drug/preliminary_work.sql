@@ -81,10 +81,13 @@ with cui_to_code as (
 select replace (string_agg (code, '-') over (partition by cui order by code), 'C', 'NCITC')  as concept_code, code
  from (select distinct cui, code from inv_rx_map where cui is not null ) a
 union
---you can't aggregate is CUI is null
+--you can't aggregate if CUI is null
 select replace (code, 'C', 'NCITC') as concept_code , code
 from inv_rx_map where cui is null
 )
 select concept_code, a.* from inv_rx_map a
 join cui_to_code b on a.code = b.code
+;
+--manual step (occurrs only due to problem with existing RxE that same drugs have different concepts)
+delete from  inv_master where concept_code ='NCITC171815' and concept_code_2 ='OMOP4873903' 
 ;

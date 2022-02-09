@@ -190,11 +190,10 @@ select distinct null::int, null::int, a.concept_code_2,'L01' ,'RxNorm Extension'
  from concept_relationship_stage a
 join inv_master m on a.concept_code_1 = m.concept_code and m.antineopl_code is not null --NCI code
 --exclude already existing RxEs
-left join concept c on c.concept_code = r.concept_code_2 and c.vocabulary_id = 'RxNorm Extension'
-where r.vocabulary_id_2 = 'RxNorm Extension' 
-and c.concept_code is null
+left join concept c on c.concept_code = a.concept_code_2 and c.vocabulary_id = 'RxNorm Extension'
+where c.concept_code is null
 -- Investigational drugs mapped to RxE we have to build the hiearchy for
-where a.vocabulary_id_2 ='RxNorm Extension' and relationship_id ='Maps to' 
+and a.vocabulary_id_2 ='RxNorm Extension' and relationship_id ='Maps to' 
 ;
 --4.3 built internal hierarchy given by NCIt
 insert into concept_relationship_stage

@@ -1,5 +1,17 @@
+--do we have nice synonyms in RxNorm?
+drop table if exists rx_names
+;
+create table rx_names as (
+select c.concept_code, c.vocabulary_id , cs.concept_synonym_name as concept_name from devv5.concept_synonym cs 
+join concept c on cs.concept_id = c.concept_id 
+where c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c.concept_class_id in ('Ingredient' , 'Precise Ingredient')
+union 
+select c.concept_code, c.vocabulary_id , c.concept_name  from concept c
+where c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c.concept_class_id ='Ingredient' and c.concept_class_id in ('Ingredient' , 'Precise Ingredient') -- non stated whether it's standard or not as we will Map them in the future steps
+)
+;
 --parse ncit_antineopl , got it from https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Drug_or_Substance/Antineoplastic_Agent.txt
-drop table ncit_antineopl
+drop table if exists ncit_antineopl
 ;
 create table ncit_antineopl as
 select distinct * from ( -- somehow the source table has duplicates of synonyms
@@ -8,28 +20,15 @@ select code,preferred_name,definition,semantic_type, regexp_split_to_table (syno
 ;
 drop table if exists nci_drb_syn
 ;
---add synonyms from UMLS !!! review this logic!!
+--add synonyms from UMLS and NCIt
 create table nci_drb_syn as (
 --DRUGBANK and NCI taken from mrconso
-
- select db.cui, db.sab, db.code, db.str from sources.mrconso db 
+ select  db.sab, db.code, db.str from sources.mrconso db 
   where db.sab='DRUGBANK' and suppress ='N'
   union all 
-   select distinct db.cui, db.sab, db.code, db.str 
-    from sources.mrconso db 
-   --get NCI drugs - NCI has a lot of other domains
-   join dev_mkallfelz.ncit_pharmsub a on a.concept_id = db.code
-  where db.sab='NCI' and suppress ='N'
+   select distinct 'NCI', a.concept_id, sy from dev_mkallfelz.ncit_pharmsub a
   )
  ;
---concept present in NCIt file but absent in the MRCONSO added to the nci_drb_rxn table with an attempt of mapping them to RxNorm by matching of names since NCI doesn't have CUI in this case
-insert into nci_drb_syn
-select distinct null, 'NCI', a.concept_id, sy  from dev_mkallfelz.ncit_pharmsub  a
-where ( a.concept_id, sy) not in
-(
-select code, str from nci_drb_syn)
-
-;
 drop table if exists nci_drb
 ;
 create table nci_drb as
@@ -59,12 +58,20 @@ drop table if exists inv_rx_map
 --add mappings to RxNorm (E) 
 --so basically this table now should have everything -- all mappings and synonyms
 create table inv_rx_map as
+with map as (
 select distinct a.*, coalesce (b.code, rx1.concept_code, rx2.concept_code) as concept_code_2, coalesce (b.str, rx1.concept_name, rx2.concept_name) as concept_name_2,
  coalesce (case when b.sab='RXNORM' then 'RxNorm' else null end ,rx1.vocabulary_id, rx2.vocabulary_id) as vocabulary_id_2
 from inv_syn a
 left join sources.mrconso b on a.cui = b.cui and b.sab ='RXNORM' AND b.suppress ='N' and b.tty in ('PIN', 'IN')
-left join rx_names rx1 on lower (rx1.concept_name) = lower (a.str) -- str corresponds to the preffered name
+left join rx_names rx1 on lower (rx1.concept_name) = lower (a.str) -- str corresponds to the source preffered name
 left join rx_names rx2 on lower (rx2.concept_name) = lower (a.synonym_name) -- synonym_name
+)
+--adding replacement mappings for updated RxNorms or being non-standard by other reasons
+select cui,sab,tty,code,str,parent_code,antineopl_code,synonym_name,b.concept_code as concept_code_2,b.concept_name as concept_name_2,b.vocabulary_id as vocabulary_id_2 
+from map a
+left join concept c on a.concept_code_2 = c.concept_code and a.vocabulary_id_2 = c.vocabulary_id
+left join concept_relationship r on r.concept_id_1 = c.concept_id and relationship_id ='Maps to' and r.invalid_reason is null
+left join concept b on b.concept_id = r.concept_id_2
 ;
 drop table if exists inv_master
 ;
@@ -81,7 +88,3 @@ from inv_rx_map where cui is null
 select concept_code, a.* from inv_rx_map a
 join cui_to_code b on a.code = b.code
 ;
-select count(distinct concept_code) from 
-inv_master
-;
-select * from inv_master limit 1

@@ -1,7 +1,7 @@
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'milliliter per kilogram per minute',
+pConcept_name =>'milliliter per kilogram per minute ',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
@@ -25,24 +25,24 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'Wood units * square meter',
+pConcept_name =>'wood unit per square meter',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
 pStandard_concept =>'S',
-pConcept_code =>'WU.m2'
+pConcept_code =>'[wood''U]/m2'
 );
 END $_$;
 
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'(dyne-second per centimeter to the fifth power)*square meter',
+pConcept_name =>'dyne-second per centimeter to the fifth power per square meter',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
 pStandard_concept =>'S',
-pConcept_code =>'(dyn.s/cm5).m2'
+pConcept_code =>'dyn.s/cm5/m2'
 );
 END $_$;
 
@@ -61,18 +61,6 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'meters per 6 minutes',
-pDomain_id =>'Unit',
-pVocabulary_id =>'UCUM',
-pConcept_class_id =>'Unit',
-pStandard_concept =>'S',
-pConcept_code =>'m/(6.min)'
-);
-END $_$;
-
-DO $_$
-BEGIN
-PERFORM vocabulary_pack.AddNewConcept(
 pConcept_name =>'millivolt',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
@@ -85,12 +73,12 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'gram per 72 hour',
+pConcept_name =>'kilojoule per mole',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
 pStandard_concept =>'S',
-pConcept_code =>'g/(72.h)'
+pConcept_code =>'kJ/mol'
 );
 END $_$;
 
@@ -109,12 +97,12 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'kiloarbitary unit/liters',
+pConcept_name =>'kiloarbitary unit per liter',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
 pStandard_concept =>'S',
-pConcept_code =>'k[arb''U]/L'
+pConcept_code =>'10*3[arb''U]/L'
 );
 END $_$;
 
@@ -133,19 +121,31 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'units per 10 to the 10th power cells',
+pConcept_name =>'unit per 10 to the 10th power cells',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
 pStandard_concept =>'S',
-pConcept_code =>'U/10*10{cells}'
+pConcept_code =>'U/10*10.{cells}'
 );
 END $_$;
 
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'microns per second',
+pConcept_name =>'pack per day',
+pDomain_id =>'Unit',
+pVocabulary_id =>'UCUM',
+pConcept_class_id =>'Unit',
+pStandard_concept =>'S',
+pConcept_code =>'pack/(24.h)'
+);
+END $_$;
+
+DO $_$
+BEGIN
+PERFORM vocabulary_pack.AddNewConcept(
+pConcept_name =>'micrometer per second',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
@@ -169,7 +169,7 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'nanomole per minute per mg of proteine',
+pConcept_name =>'nanomole per minute per mg of protein',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
@@ -181,19 +181,19 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'circulating tumor cells per 7.5 mililiters',
+pConcept_name =>'cells per 7.5 mililiters',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
 pStandard_concept =>'S',
-pConcept_code =>'{CTCs}/(7.5.mL)'
+pConcept_code =>'{cells}/(75.10*-1.mL)'
 );
 END $_$;
 
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'femtoliter/nanoliter',
+pConcept_name =>'femtoliter per nanoliter',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
@@ -217,7 +217,7 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'unit per 2 hour',
+pConcept_name =>'unit per 2 hours',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
@@ -241,36 +241,36 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'milliliter/pound',
+pConcept_name =>'milliliter per pound (US)',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
 pStandard_concept =>'S',
-pConcept_code =>'mL/[lb_av]'
+pConcept_code =>'mL/[lb_us]'
 );
 END $_$;
 
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'nanogram/nanogram',
+pConcept_name =>'millibar',
+pDomain_id =>'Unit',
+pVocabulary_id =>'UCUM',
+pConcept_class_id =>'Unit',
+pStandard_concept =>'S',
+pConcept_code =>'mbar'
+);
+END $_$;
+
+DO $_$
+BEGIN
+PERFORM vocabulary_pack.AddNewConcept(
+pConcept_name =>'nanogram per nanogram',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
 pStandard_concept =>'S',
 pConcept_code =>'ng/ng'
-);
-END $_$;
-
-DO $_$
-BEGIN
-PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'kilounits per liter',
-pDomain_id =>'Unit',
-pVocabulary_id =>'UCUM',
-pConcept_class_id =>'Unit',
-pStandard_concept =>'S',
-pConcept_code =>'kU/L'
 );
 END $_$;
 
@@ -289,19 +289,7 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'cells per mililiter',
-pDomain_id =>'Unit',
-pVocabulary_id =>'UCUM',
-pConcept_class_id =>'Unit',
-pStandard_concept =>'S',
-pConcept_code =>'cells/ml'
-);
-END $_$;
-
-DO $_$
-BEGIN
-PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'milligram/deciliter]/[24*hour]',
+pConcept_name =>'milligram per deciliter per 24 hours',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
@@ -325,18 +313,6 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'millimeter of induration',
-pDomain_id =>'Unit',
-pVocabulary_id =>'UCUM',
-pConcept_class_id =>'Unit',
-pStandard_concept =>'S',
-pConcept_code =>'{MM_INDURATION}'
-);
-END $_$;
-
-DO $_$
-BEGIN
-PERFORM vocabulary_pack.AddNewConcept(
 pConcept_name =>'picomole per hour per microliter',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
@@ -349,7 +325,7 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'nanomole per day per milligram',
+pConcept_name =>'nanomole per 24 hours per milligram',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',
 pConcept_class_id =>'Unit',
@@ -358,8 +334,101 @@ pConcept_code =>'nmol/(24.h)/mg'
 );
 END $_$;
 
+DO $_$
+BEGIN
+PERFORM vocabulary_pack.AddNewConcept(
+pConcept_name =>'milliliter per millibar',
+pDomain_id =>'Unit',
+pVocabulary_id =>'UCUM',
+pConcept_class_id =>'Unit',
+pStandard_concept =>'S',
+pConcept_code =>'ml/mbar'
+);
+END $_$;
+
+DO $_$
+BEGIN
+PERFORM vocabulary_pack.AddNewConcept(
+pConcept_name =>'millibar per centimeter of water',
+pDomain_id =>'Unit',
+pVocabulary_id =>'UCUM',
+pConcept_class_id =>'Unit',
+pStandard_concept =>'S',
+pConcept_code =>'ml/cm [H2O]'
+);
+END $_$;
+
+DO $_$
+BEGIN
+PERFORM vocabulary_pack.AddNewConcept(
+pConcept_name =>'millibar per liter',
+pDomain_id =>'Unit',
+pVocabulary_id =>'UCUM',
+pConcept_class_id =>'Unit',
+pStandard_concept =>'S',
+pConcept_code =>'mbar/L'
+);
+END $_$;
+
+DO $_$
+BEGIN
+PERFORM vocabulary_pack.AddNewConcept(
+pConcept_name =>'milliliter per second per 1.73 square meter',
+pDomain_id =>'Unit',
+pVocabulary_id =>'UCUM',
+pConcept_class_id =>'Unit',
+pStandard_concept =>'S',
+pConcept_code =>'mL/s/(173.10*-2.m2)'
+);
+END $_$;
+
 --Manual update for concept_id=9117
 UPDATE concept
-SET concept_code = 'mL/min/(173.10*-2.m2)'
+SET  valid_end_date = CURRENT_DATE,
+	 invalid_reason = 'D'
 WHERE concept_id = 9117
 ;
+
+DO $_$
+BEGIN
+PERFORM vocabulary_pack.AddNewConcept(
+pConcept_name =>'milliliter per minute per 1.73 square meter',
+pDomain_id =>'Unit',
+pVocabulary_id =>'UCUM',
+pConcept_class_id =>'Unit',
+pStandard_concept =>'S',
+pConcept_code =>'mL/min/(173.10*-2.m2)'
+);
+END $_$;
+
+WITH new_rel
+AS (
+	SELECT c1.concept_id AS c_id1,
+		c2.concept_id AS c_id2
+	FROM concept c1
+	JOIN concept c2 ON c2.concept_code = 'mL/min/(173.10*-2.m2)'
+		AND c2.vocabulary_id = 'UCUM'
+	WHERE c1.concept_code = 'mL/min/1.73.m2'
+		AND c1.vocabulary_id = 'UCUM'
+	)
+INSERT INTO concept_relationship (
+		SELECT nr.c_id1,
+	nr.c_id2,
+	'Concept replaced by',
+	CURRENT_DATE,
+	TO_DATE('20991231', 'YYYYMMDD'),
+	NULL FROM new_rel nr
+UNION ALL
+	--reverse
+	SELECT nc.c_id2,
+	nc.c_id1,
+	'Concept replaces',
+	CURRENT_DATE,
+	TO_DATE('20991231', 'YYYYMMDD'),
+	NULL FROM new_rel nc
+);
+
+
+
+
+

@@ -17,7 +17,7 @@ AS $BODY$
 SELECT *
 FROM (
 	--1. Concepts that have active distinctive relations to attributes that are no longer active;
-	--- Brand Names
+	---Brand Names
 	SELECT 'W' AS info_level,
 		'Branded concepts that have active relations to deprecated Brand Names' AS description,
 		COUNT(cs.concept_code) AS err_cnt
@@ -62,7 +62,7 @@ FROM (
 	
 	UNION ALL
 	
-	--- Dose Form
+	---Dose Form
 	SELECT 'W',
 		'Formulated concepts that have active relations to deprecated Dose Forms' AS description,
 		COUNT(c.concept_code) AS err_cnt
@@ -430,7 +430,7 @@ FROM (
 	
 	UNION ALL
 	
-	-- 12. Valid relation to non-standard ingredient with no alternatives -- hard Error
+	--12. Valid relation to non-standard ingredient with no alternatives -- hard Error
 	SELECT 'E' AS info_level,
 		'Concepts that have active relations to deprecated Ingredients with no alternative' AS description,
 		COUNT(cs.concept_code) AS err_cnt
@@ -472,41 +472,37 @@ FROM (
 			WHERE cr_int.relationship_id = 'Has ingredient'
 				AND cr_int.invalid_reason IS NULL
 			)
-
-	union all
+	
+	UNION ALL
 	
 	--13. PI-promotion related reports
-	SELECT 
-	'I' AS info_level,
+	SELECT 'I' AS info_level,
 		'Artificially promoted Ingredients from Precise Ingredients' AS description,
-		COUNT(distinct pi_rxcui) AS err_cnt
+		COUNT(DISTINCT pi_rxcui) AS err_cnt
 	FROM pi_promotion
 	
-	union all
+	UNION ALL
 	
-		
-	SELECT 
-		'I' AS info_level,
+	SELECT 'I' AS info_level,
 		'New RxNorm Extension concepts inisde hierarchy by class: ' || cs.concept_class_id AS description,
 		COUNT(cs.concept_code) AS err_cnt
 	FROM concept_stage cs
-	where vocabulary_id = 'RxNorm Extension'
-	group by concept_class_id
+	WHERE cs.vocabulary_id = 'RxNorm Extension'
+	GROUP BY cs.concept_class_id
 	
-	union all
-
-	select
-		'I' as info_level,
-		'Replaced relations due to creation of synthetic RxNorm Extension concepts' as description,
-		count(r.relationship_id)
-		from concept_relationship_stage r
-		join relationship e on r.relationship_id = e.relationship_id and defines_ancestry = 1
-		where
-			r.vocabulary_id_1 = 'RxNorm' and
-			r.vocabulary_id_2 = 'RxNorm Extension'
+	UNION ALL
 	
+	SELECT 'I' AS info_level,
+		'Replaced relations due to creation of synthetic RxNorm Extension concepts' AS description,
+		COUNT(crs.relationship_id)
+	FROM concept_relationship_stage crs
+	JOIN relationship r ON r.relationship_id = crs.relationship_id
+		AND r.defines_ancestry = 1
+	WHERE crs.vocabulary_id_1 = 'RxNorm'
+		AND crs.vocabulary_id_2 = 'RxNorm Extension'
 	) AS s0
 WHERE err_cnt <> 0;
 $BODY$
 LANGUAGE 'sql'
-STABLE PARALLEL SAFE SECURITY INVOKER;
+STABLE PARALLEL SAFE SECURITY INVOKER
+SET check_function_bodies = false; --pi_promotion is not our "base" table, so it might not be present at function compilation time

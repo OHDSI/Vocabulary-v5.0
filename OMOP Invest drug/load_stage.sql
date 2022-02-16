@@ -7,7 +7,7 @@ join concept c on cs.concept_id = c.concept_id
 where c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c.concept_class_id in ('Ingredient' , 'Precise Ingredient')
 union 
 select c.concept_code, c.vocabulary_id , c.concept_name  from concept c
-where c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c.concept_class_id ='Ingredient' and c.concept_class_id in ('Ingredient' , 'Precise Ingredient') -- non stated whether it's standard or not as we will Map them in the future steps
+where c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c.concept_class_id in ('Ingredient' , 'Precise Ingredient') -- non stated whether it's standard or not as we will Map them in the future steps
 )
 ;
 --parse ncit_antineopl , got it from https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Drug_or_Substance/Antineoplastic_Agent.txt

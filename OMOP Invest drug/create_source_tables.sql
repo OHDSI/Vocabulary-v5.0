@@ -13,7 +13,7 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 * 
-* Authors: Authors: Dmitry Dymshyts, Timur Vakhitov
+* Authors: Dmitry Dymshyts, Timur Vakhitov
 * Date: 2022
 **************************************************************************/
 

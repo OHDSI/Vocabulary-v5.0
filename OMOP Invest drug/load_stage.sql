@@ -42,7 +42,6 @@ TRUNCATE TABLE concept_synonym_stage;
 TRUNCATE TABLE pack_content_stage;
 TRUNCATE TABLE drug_strength_stage;
 
-
 --3. We can try to map not only new concepts but all of them using synonyms
 --Add parent_child relat, fill antineopl_code if it belongs to the antineopls category
 DROP TABLE IF EXISTS inv_syn;

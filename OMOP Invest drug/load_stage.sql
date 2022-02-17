@@ -1,205 +1,408 @@
---do we have nice synonyms in RxNorm?
-drop table if exists rx_names
-;
-create table rx_names as (
-select c.concept_code, c.vocabulary_id , cs.concept_synonym_name as concept_name from devv5.concept_synonym cs 
-join concept c on cs.concept_id = c.concept_id 
-where c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c.concept_class_id in ('Ingredient' , 'Precise Ingredient')
-union 
-select c.concept_code, c.vocabulary_id , c.concept_name  from concept c
-where c.vocabulary_id in ('RxNorm', 'RxNorm Extension') and c.concept_class_id in ('Ingredient' , 'Precise Ingredient') -- non stated whether it's standard or not as we will Map them in the future steps
-)
-;
---parse ncit_antineopl , got it from https://evs.nci.nih.gov/ftp1/NCI_Thesaurus/Drug_or_Substance/Antineoplastic_Agent.txt
-drop table if exists ncit_antineopl
-;
-create table ncit_antineopl as
-select distinct * from ( -- somehow the source table has duplicates of synonyms
-select code,preferred_name,definition,semantic_type, regexp_split_to_table (synonyms, ' \|\| ') as synonym_name from dev_mkallfelz.ncit_antineopl 
-) a
-;
-drop table if exists nci_drb_syn
-;
---add synonyms from UMLS and NCIt
-create table nci_drb_syn as (
---DRUGBANK and NCI taken from mrconso
- select  db.sab, db.code, db.str from sources.mrconso db 
-  where db.sab='DRUGBANK' and suppress ='N'
-  union all 
-   select distinct 'NCI', a.concept_id, sy from dev_mkallfelz.ncit_pharmsub a
-  )
- ;
-drop table if exists nci_drb
-;
-create table nci_drb as
---DRUGBANK and NCI taken from mrconso
- select cui, sab, tty, code, str from sources.mrconso db 
-  where db.sab='DRUGBANK' and db.tty ='IN' and suppress ='N'
-  union all 
-   select distinct cui, 'NCI', 'PT', a.concept_id, pt from dev_mkallfelz.ncit_pharmsub a
-   left join sources.mrconso db on a.concept_id = db.code and db.sab='NCI' and db.tty ='PT' and suppress ='N'
- ;
---we can try to map not only new concepts but all of them using synonyms
---add parent_child relat, fill antineopl_code if it belongs to the antineopls category
-drop table if exists inv_syn
-;
-create table inv_syn as
-select a.*, t.parent_code, c.code as antineopl_code, s.str as synonym_name 
-from nci_drb a
---get the hierarchy indicators
-left join (select code, regexp_split_to_table (parents,'\|') as parent_code from sources.genomic_nci_thesaurus ) t on  a.code =t.code
---get the antineoplastic drugs
-left join ncit_antineopl c on a.code = c.code
---get synonyms !!! nci_drb_syn - to review the logic of this table!
-left join nci_drb_syn s on s.sab = a.sab and a.code = s.code
-;
-drop table if exists inv_rx_map
-;
---add mappings to RxNorm (E) 
---so basically this table now should have everything -- all mappings and synonyms
-create table inv_rx_map as
-with map as (
-select distinct a.*, coalesce (b.code, rx1.concept_code, rx2.concept_code) as concept_code_2, coalesce (b.str, rx1.concept_name, rx2.concept_name) as concept_name_2,
- coalesce (case when b.sab='RXNORM' then 'RxNorm' else null end ,rx1.vocabulary_id, rx2.vocabulary_id) as vocabulary_id_2
-from inv_syn a
-left join sources.mrconso b on a.cui = b.cui and b.sab ='RXNORM' AND b.suppress ='N' and b.tty in ('PIN', 'IN')
-left join rx_names rx1 on lower (rx1.concept_name) = lower (a.str) -- str corresponds to the source preffered name
-left join rx_names rx2 on lower (rx2.concept_name) = lower (a.synonym_name) -- synonym_name
-)
---adding replacement mappings for updated RxNorms or being non-standard by other reasons
-select cui,sab,tty,code,str,parent_code,antineopl_code,synonym_name,b.concept_code as concept_code_2,b.concept_name as concept_name_2,b.vocabulary_id as vocabulary_id_2 
-from map a
-left join concept c on a.concept_code_2 = c.concept_code and a.vocabulary_id_2 = c.vocabulary_id
-left join concept_relationship r on r.concept_id_1 = c.concept_id and relationship_id ='Maps to' and r.invalid_reason is null
-left join concept b on b.concept_id = r.concept_id_2
-;
-drop table if exists inv_master
-;
---assing concatenated codes (that will be used in concept_stage) to our table
-create table inv_master as
-with cui_to_code as (
-select replace (string_agg (code, '-') over (partition by cui order by code), 'C', 'NCITC')  as concept_code, code
- from (select distinct cui, code from inv_rx_map where cui is not null ) a
-union
---you can't aggregate if CUI is null
-select replace (code, 'C', 'NCITC') as concept_code , code
-from inv_rx_map where cui is null
-)
-select concept_code, a.* from inv_rx_map a
-join cui_to_code b on a.code = b.code
-;
---manual step (occurrs only due to problem with existing RxE that same drugs have different concepts)
-delete from  inv_master where concept_code ='NCITC171815' and concept_code_2 ='OMOP4873903' 
-;
+/**************************************************************************
+* Copyright 2016 Observational Health Data Sciences and Informatics (OHDSI)
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+* http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+* 
+* Authors: Dmitry Dymshyts, Timur Vakhitov
+* Date: 2022
+**************************************************************************/
 
---get latest update
+--1. Update latest_update field to new date 
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=>'OMOP Invest Drug',
 	pVocabularyDate			=> CURRENT_DATE,
 	pVocabularyVersion		=> 'OMOP Invest Drug '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
-	pVocabularyDevSchema	=> 'DEV_invdrug'
+	pVocabularyDevSchema	=> 'DEV_INVDRUG'
 );
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=> 'RxNorm Extension',
 	pVocabularyDate			=> CURRENT_DATE,
-	pVocabularyVersion		=> 'RxNorm Extension '||CURRENT_DATE,
-	pVocabularyDevSchema	=> 'DEV_DMD',
+	pVocabularyVersion		=> 'RxNorm Extension '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
+	pVocabularyDevSchema	=> 'DEV_INVDRUG',
 	pAppendVocabulary		=> TRUE
 );
 END $_$;
 
--- Create sequence that starts after existing OMOPxxx-style concept codes
-	DO $$
-	DECLARE
-		ex INTEGER;
-	BEGIN
-		SELECT MAX(REPLACE(concept_code, 'OMOP','')::int4)+1 INTO ex FROM (
-			SELECT concept_code FROM concept WHERE concept_code LIKE 'OMOP%'  AND concept_code NOT LIKE '% %' -- Last valid value of the OMOP123-type codes
-		) AS s0;
-		DROP SEQUENCE IF EXISTS omop_seq;
-		EXECUTE 'CREATE SEQUENCE omop_seq INCREMENT BY 1 START WITH ' || ex || ' NO CYCLE CACHE 20';
-	END$$;
-	
---1. fill the concept stage
-truncate table concept_stage
-;
---1.1  let drugbank be a primary name since it should have a better coverage, it has not only antineoplastics as NCIt
-insert into concept_stage
-select distinct
-null::int, first_value (str) over (partition by concept_code order by sab, str) as concept_name, 'Drug', 'OMOP Invest Drug', 'Ingredient', null,  concept_code, to_date ('19700101', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null
- from (select distinct trim (str) as str, sab, concept_code from inv_master) a
- where length (a.concept_code ) <= 50
-;
---2. concept_synonym_stage
-truncate table concept_synonym_stage
-;
---take the synonyms from inv_master
-insert into concept_synonym_stage
-select distinct
-null::int, trim (synonym_name),  concept_code, 'OMOP Invest Drug', 4180186 -- English language
- from inv_master 
-where length (concept_code) <= 50 
+--2. Truncate all working tables
+TRUNCATE TABLE concept_stage;
+TRUNCATE TABLE concept_relationship_stage;
+TRUNCATE TABLE concept_synonym_stage;
+TRUNCATE TABLE pack_content_stage;
+TRUNCATE TABLE drug_strength_stage;
+
+
+--3. We can try to map not only new concepts but all of them using synonyms
+--Add parent_child relat, fill antineopl_code if it belongs to the antineopls category
+DROP TABLE IF EXISTS inv_syn;
+CREATE UNLOGGED TABLE inv_syn AS
+	WITH ncit_antineopl AS (
+			SELECT DISTINCT /*somehow the source table has duplicates of synonyms*/ code,
+				TRIM(UNNEST(string_to_array(synonyms, ' || '))) AS synonym_name
+			FROM sources.ncit_antineopl a
+			),
+		nci_drb_syn AS (
+			--add synonyms from UMLS and NCIt
+			SELECT mr.sab,
+				mr.code,
+				mr.str
+			FROM sources.mrconso mr
+			WHERE mr.sab = 'DRUGBANK'
+				AND mr.suppress = 'N'
+			
+			UNION ALL
+			
+			SELECT DISTINCT 'NCI',
+				p.concept_id,
+				p.sy
+			FROM sources.ncit_pharmsub p
+			),
+		nci_drb AS (
+			--DRUGBANK and NCI taken from mrconso
+			SELECT mr1.cui,
+				mr1.sab,
+				mr1.tty,
+				mr1.code,
+				mr1.str
+			FROM sources.mrconso mr1
+			WHERE mr1.sab = 'DRUGBANK'
+				AND mr1.tty = 'IN'
+				AND mr1.suppress = 'N'
+			
+			UNION ALL
+			
+			SELECT DISTINCT mr2.cui,
+				'NCI',
+				'PT',
+				p.concept_id,
+				p.pt
+			FROM sources.ncit_pharmsub p
+			LEFT JOIN sources.mrconso mr2 ON mr2.code = p.concept_id
+				AND mr2.sab = 'NCI'
+				AND mr2.tty = 'PT'
+				AND mr2.suppress = 'N'
+			)
+SELECT a.*,
+	t.parent_code,
+	c.code AS antineopl_code,
+	s.str AS synonym_name
+FROM nci_drb a
+--get the hierarchy indicators
+LEFT JOIN (
+	SELECT code,
+		UNNEST(string_to_array(parents, '|')) AS parent_code
+	FROM sources.genomic_nci_thesaurus
+	) t ON t.code = a.code
+--get the antineoplastic drugs
+LEFT JOIN ncit_antineopl c ON c.code = a.code
+--get synonyms !!! nci_drb_syn - to review the logic of this query!
+LEFT JOIN nci_drb_syn s ON s.sab = a.sab
+	AND s.code = a.code;
+
+--4. Add mappings to RxNorm (E)
+--So basically this table now should have everything -- all mappings and synonyms
+DROP TABLE IF EXISTS inv_rx_map;
+CREATE UNLOGGED TABLE inv_rx_map AS
+	WITH rx_names AS (
+			--do we have nice synonyms in RxNorm?
+			SELECT c.concept_code,
+				c.vocabulary_id,
+				cs.concept_synonym_name AS concept_name
+			FROM concept_synonym cs
+			JOIN concept c ON c.concept_id = cs.concept_id
+			WHERE c.vocabulary_id IN (
+					'RxNorm',
+					'RxNorm Extension'
+					)
+				AND c.concept_class_id IN (
+					'Ingredient',
+					'Precise Ingredient'
+					)
+			
+			UNION ALL
+			
+			SELECT c.concept_code,
+				c.vocabulary_id,
+				c.concept_name
+			FROM concept c
+			WHERE c.vocabulary_id IN (
+					'RxNorm',
+					'RxNorm Extension'
+					)
+				AND c.concept_class_id IN (
+					'Ingredient',
+					'Precise Ingredient'
+					) -- non stated whether it's standard or not as we will Map them in the future steps
+			),
+		mappings AS (
+			SELECT DISTINCT syn.*,
+				COALESCE(mr.code, rx1.concept_code, rx2.concept_code) AS concept_code_2,
+				COALESCE(mr.str, rx1.concept_name, rx2.concept_name) AS concept_name_2,
+				COALESCE(REPLACE(mr.sab, 'RXNORM', 'RxNorm'), rx1.vocabulary_id, rx2.vocabulary_id) AS vocabulary_id_2
+			FROM inv_syn syn
+			LEFT JOIN sources.mrconso mr ON mr.cui = syn.cui
+				AND mr.sab = 'RXNORM'
+				AND mr.suppress = 'N'
+				AND mr.tty IN (
+					'PIN',
+					'IN'
+					)
+			LEFT JOIN rx_names rx1 ON LOWER(rx1.concept_name) = LOWER(syn.str) -- str corresponds to the source preffered name
+			LEFT JOIN rx_names rx2 ON LOWER(rx2.concept_name) = LOWER(syn.synonym_name) -- synonym_name
+			)
+--adding replacement mappings for updated RxNorms or being non-standard by other reasons
+SELECT m.cui,
+	m.sab,
+	m.tty,
+	m.code,
+	m.str,
+	m.parent_code,
+	m.antineopl_code,
+	m.synonym_name,
+	c2.concept_code AS concept_code_2,
+	c2.concept_name AS concept_name_2,
+	c2.vocabulary_id AS vocabulary_id_2
+FROM mappings m
+LEFT JOIN concept c1 ON c1.concept_code = m.concept_code_2
+	AND c1.vocabulary_id = m.vocabulary_id_2
+LEFT JOIN concept_relationship r ON r.concept_id_1 = c1.concept_id
+	AND r.relationship_id = 'Maps to'
+	AND r.invalid_reason IS NULL
+LEFT JOIN concept c2 ON c2.concept_id = r.concept_id_2;
+
+--5. Assing concatenated codes (that will be used in concept_stage) to our table
+DROP TABLE IF EXISTS inv_master;
+CREATE UNLOGGED TABLE inv_master AS
+	WITH cui_to_code AS (
+			SELECT REPLACE(l.codes_list, 'C', 'NCITC') AS concept_code,
+				s0.code
+			FROM (
+				SELECT ARRAY_AGG(codes.code) OVER (PARTITION BY COALESCE(codes.cui, codes.code)) AS codes_list,
+					codes.code
+				FROM (
+					SELECT DISTINCT cui,
+						code
+					FROM inv_rx_map
+					) codes
+				) s0
+			CROSS JOIN LATERAL(SELECT STRING_AGG(s_int.codes_list, '-' ORDER BY s_int.codes_list) AS codes_list FROM (
+					SELECT UNNEST(s0.codes_list) AS codes_list
+					) AS s_int) AS l
+			)
+SELECT c.concept_code,
+	m.*
+FROM inv_rx_map m
+JOIN cui_to_code c ON c.code = m.code
+--manual step (occurrs only due to problem with existing RxE that same drugs have different concepts)
+WHERE NOT (
+		c.concept_code = 'NCITC171815'
+		AND m.concept_code_2 = 'OMOP4873903'
+		);
+
+CREATE INDEX idx_invmaster ON inv_master (concept_code);
+ANALYZE inv_master;
+
+--6. Insert into concept_stage
+--Let drugbank be a primary name since it should have a better coverage, it has not only antineoplastics as NCIt
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT ON (im.concept_code) im.str AS concept_name,
+	'Drug' AS domain_id,
+	'OMOP Invest Drug' AS vocabulary_id,
+	'Ingredient' AS concept_class_id,
+	NULL AS standard_concept,
+	im.concept_code,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM inv_master im
+WHERE LENGTH(im.concept_code) <= 50
+ORDER BY im.concept_code,
+	im.sab,
+	im.str;
+
+--7. Insert into concept_synonym_stage
+--Take the synonyms from inv_master
+INSERT INTO concept_synonym_stage (
+	synonym_concept_code,
+	synonym_name,
+	synonym_vocabulary_id,
+	language_concept_id
+	)
+SELECT DISTINCT im.concept_code,
+	im.synonym_name,
+	'OMOP Invest Drug',
+	4180186 -- English language
+FROM inv_master im
 --doesn't make sense to create a separate synonym entity if it differs by registry only
-and (concept_code, lower (synonym_name)) not in (
-select concept_code, lower (concept_name) from concept_stage)
-;
---3. concept_relationship_stage
-truncate table concept_relationship_stage
-;
---3.1 add the mappings to RxNorm or RxE
-insert into concept_relationship_stage
-select distinct null::int, null::int, concept_code, concept_code_2, 'OMOP Invest Drug', vocabulary_id_2, 'Maps to', to_date ('20220208', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null
- from inv_master where length (concept_code) <= 50
- and concept_code_2 is not null
-;
---3.2 add the mappings to RxE
-insert into concept_relationship_stage
-select distinct null::int, null::int, a.concept_code, 
-'OMOP' || NEXTVAL('omop_seq')  as concept_code_2 ,
-'OMOP Invest Drug','RxNorm Extension', 'Maps to',  to_date ('19700101', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null
-from (
-select distinct a.concept_code
- from concept_stage a 
- --don't have mapping to RxNorm(E)
-left join concept_relationship_stage r on a.concept_code = r.concept_code_1 and relationship_id ='Maps to'
---RxE concepts shouldn't be created out of parent concepts 
-join inv_master m on m.concept_code = a.concept_code 
-left join inv_master m2 on m.code = m2.parent_code
-where m2.concept_code is null
-and r.concept_code_1 is null
-) a
-;
---3.3 add these RxE concepts to the concept_stage table
---somehow got a lot of duplicates here
-insert into concept_stage
-select 
-null::int, a.concept_name, 'Drug', 'RxNorm Extension', 'Ingredient', 'S',  r.concept_code_2, to_date ('19700101', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null
- from concept_stage a 
-join concept_relationship_stage r on a.concept_code = r.concept_code_1 and relationship_id ='Maps to'
+LEFT JOIN concept_stage cs ON cs.concept_code = im.concept_code
+	AND LOWER(cs.concept_name) = LOWER(im.synonym_name)
+WHERE LENGTH(im.concept_code) <= 50
+	AND cs.concept_code IS NULL;
+
+--8. Insert into concept_relationship_stage
+--8.1 Add the mappings to RxNorm or RxE
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT concept_code AS concept_code_1,
+	concept_code_2,
+	'OMOP Invest Drug' AS vocabulary_id_1,
+	vocabulary_id_2,
+	'Maps to' AS relationship_id,
+	TO_DATE('20220208', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM inv_master
+WHERE LENGTH(concept_code) <= 50
+	AND concept_code_2 IS NOT NULL;
+
+--8.2 Add the mappings to RxE
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT cs.concept_code AS concept_code_1,
+	'OMOP' || ROW_NUMBER() OVER (/*order by cs.concept_code*/) + l.max_omop_concept_code AS concept_code_2,
+	'OMOP Invest Drug' AS vocabulary_id_1,
+	'RxNorm Extension' AS vocabulary_id_2,
+	'Maps to' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM concept_stage cs
+--don't have mapping to RxNorm(E)
+LEFT JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+CROSS JOIN LATERAL(SELECT MAX(REPLACE(concept_code, 'OMOP', '')::INT4) AS max_omop_concept_code FROM concept WHERE concept_code LIKE 'OMOP%'
+		AND concept_code NOT LIKE '% %' --last valid value of the OMOP123-type codes
+	) l
+WHERE crs.concept_code_1 IS NULL
+	--RxE concepts shouldn't be created out of parent concepts 
+	AND EXISTS (
+		SELECT 1
+		FROM inv_master im_int
+		LEFT JOIN inv_master im_int2 ON im_int2.parent_code = im_int.code
+		WHERE im_int.concept_code = cs.concept_code
+			AND im_int2.concept_code IS NULL
+		);
+
+--8.3 Add these RxE concepts to the concept_stage table
+INSERT INTO concept_stage (
+	concept_name,
+	domain_id,
+	vocabulary_id,
+	concept_class_id,
+	standard_concept,
+	concept_code,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT cs.concept_name,
+	'Drug' AS domain_id,
+	'RxNorm Extension' AS vocabulary_id,
+	'Ingredient' AS concept_class_id,
+	'S' AS standard_concept,
+	crs.concept_code_2 AS concept_code,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM concept_stage cs
+JOIN concept_relationship_stage crs ON crs.concept_code_1 = cs.concept_code
+	AND crs.relationship_id = 'Maps to'
+	AND crs.vocabulary_id_2 = 'RxNorm Extension'
+	AND crs.invalid_reason IS NULL
 --and RxNorm extension concept shouldn't exist already as a part of a routine RxE build
-left join concept c on c.concept_code = r.concept_code_2 and c.vocabulary_id = 'RxNorm Extension'
-where r.vocabulary_id_2 = 'RxNorm Extension' 
-and c.concept_code is null
-;
---4. hierarchy
---4.1 build hierarchical relationships from new RxEs to the ATC 'L01' concept using the ncit_antineopl 
-insert into concept_relationship_stage
-select distinct null::int, null::int, a.concept_code_2,'L01' ,'RxNorm Extension', 'ATC', 'Is a', to_date ('19700101', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null
- from concept_relationship_stage a
-join inv_master m on a.concept_code_1 = m.concept_code and m.antineopl_code is not null --NCI code
+LEFT JOIN concept c ON c.concept_code = crs.concept_code_2
+	AND c.vocabulary_id = 'RxNorm Extension'
+WHERE c.concept_code IS NULL;
+
+--9. Hierarchy
+--9.1 Build hierarchical relationships from new RxEs to the ATC 'L01' concept using the ncit_antineopl 
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT crs.concept_code_2 AS concept_code_1,
+	'L01' AS concept_code_2,
+	'RxNorm Extension' AS vocabulary_id_1,
+	'ATC' AS vocabulary_id_2,
+	'Is a' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM concept_relationship_stage crs
 --exclude already existing RxEs
-left join concept c on c.concept_code = a.concept_code_2 and c.vocabulary_id = 'RxNorm Extension'
-where c.concept_code is null
--- Investigational drugs mapped to RxE we have to build the hiearchy for
-and a.vocabulary_id_2 ='RxNorm Extension' and relationship_id ='Maps to' 
-;
---4.3 built internal hierarchy given by NCIt
-insert into concept_relationship_stage
-select distinct null::int, null::int, a.concept_code, c.concept_code ,a.vocabulary_id, c.vocabulary_id, 'Is a', to_date ('19700101', 'yyyyMMdd'), to_date ('20991231', 'yyyyMMdd'), null 
-from concept_stage a
-join inv_master m1 on a.concept_code = m1.concept_code
-join inv_master m2 on m1.parent_code = m2.code
-join concept_stage c on c.concept_code = m2.concept_code
-;
+LEFT JOIN concept c ON c.concept_code = crs.concept_code_2
+	AND c.vocabulary_id = 'RxNorm Extension'
+WHERE c.concept_code IS NULL
+	-- Investigational drugs mapped to RxE we have to build the hiearchy for
+	AND crs.vocabulary_id_2 = 'RxNorm Extension'
+	AND crs.relationship_id = 'Maps to'
+	AND crs.invalid_reason IS NULL
+	AND EXISTS (
+		SELECT 1
+		FROM inv_master im_int
+		WHERE im_int.concept_code = crs.concept_code_1
+			AND im_int.antineopl_code IS NOT NULL --NCI code
+		);
+
+--9.2 Built internal hierarchy given by NCIt
+INSERT INTO concept_relationship_stage (
+	concept_code_1,
+	concept_code_2,
+	vocabulary_id_1,
+	vocabulary_id_2,
+	relationship_id,
+	valid_start_date,
+	valid_end_date
+	)
+SELECT DISTINCT cs1.concept_code AS concept_code_1,
+	cs2.concept_code AS concept_code_2,
+	cs1.vocabulary_id AS vocabulary_id_1,
+	cs2.vocabulary_id AS vocabulary_id_2,
+	'Is a' AS relationship_id,
+	TO_DATE('19700101', 'yyyymmdd') AS valid_start_date,
+	TO_DATE('20991231', 'yyyymmdd') AS valid_end_date
+FROM concept_stage cs1
+JOIN inv_master im1 ON im1.concept_code = cs1.concept_code
+JOIN inv_master im2 ON im2.code = im1.parent_code
+JOIN concept_stage cs2 ON cs2.concept_code = im2.concept_code;
+
+--10. Cleanup
+DROP TABLE inv_syn;
+DROP TABLE inv_rx_map;
+DROP TABLE inv_master;
+
+--At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

@@ -139,6 +139,7 @@ BEGIN
           27. HemOnc
           28. dm+d
           29. OncoTree
+          30. OMOP Invest Drug
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -368,6 +369,12 @@ BEGIN
                 from json_to_recordset(cVocabHTML::json) as x (api_identifier text, release_date date)
                 where x.api_identifier='oncotree_latest_stable';
                 cVocabVer := 'OncoTree version '||to_char(cVocabDate,'yyyy-mm-dd');
+            WHEN cVocabularyName = 'OMOP INVEST DRUG'
+            THEN
+                SELECT TO_DATE(s0.arr[2],'yyyymmdd'), 'OMOP Invest Drug '||s0.arr[1] INTO cVocabDate, cVocabVer FROM (
+                  SELECT regexp_matches(cVocabHTML,'<td><a href="NCIT_PharmSub_([\d.a-z]+)_([\d]+)\.xlsx">.*?</a></td>','gn') arr
+                ) AS s0
+                ORDER BY TO_DATE(s0.arr[2],'yyyymmdd') DESC LIMIT 1;
             ELSE
                 RAISE EXCEPTION '% are not supported at this time!', pVocabularyName;
         END CASE;

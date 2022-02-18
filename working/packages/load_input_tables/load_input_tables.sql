@@ -803,6 +803,13 @@ begin
       truncate table sources.sopt_source;
       execute 'COPY sources.sopt_source (concept_code,concept_name) FROM '''||pVocabularyPath||'sopt_source.csv'' delimiter '';'' csv quote ''"'' ';
       update sources.sopt_source set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
+  when 'CIM10' then
+      truncate table sources.cim10;
+      ALTER TABLE sources.cim10 ALTER COLUMN xmlfield SET DATA TYPE text;
+      execute 'COPY sources.cim10 (xmlfield) FROM PROGRAM ''cat "'||pVocabularyPath||'cim10.xml"| tr ''''\r\n'''' '''' ''''  '' csv delimiter E''\b'' quote E''\f'' ';
+      update sources.cim10 set xmlfield=replace(xmlfield,'<!DOCTYPE ClaML SYSTEM "ClaML.dtd">',''); --PG can not work with DOCTYPE
+      ALTER TABLE sources.cim10 ALTER COLUMN xmlfield SET DATA TYPE xml USING xmlfield::xml;
+      update sources.cim10 set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
   when 'OMOP INVEST DRUG' then
       truncate table sources.ncit_antineopl, sources.ncit_pharmsub;
       execute 'COPY sources.ncit_antineopl FROM '''||pVocabularyPath||'antineoplastic_agent.txt'' delimiter E''\t'' csv quote E''\b'' HEADER';

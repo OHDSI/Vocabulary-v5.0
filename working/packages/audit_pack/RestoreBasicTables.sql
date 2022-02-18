@@ -151,6 +151,7 @@ BEGIN
 
 	RAISE NOTICE 'Disabling constraints...';
 	ALTER TABLE relationship DROP CONSTRAINT fpk_relationship_concept;
+	ALTER TABLE relationship DROP CONSTRAINT fpk_relationship_reverse;
 	ALTER TABLE vocabulary DROP CONSTRAINT fpk_vocabulary_concept;
 	ALTER TABLE concept_class DROP CONSTRAINT fpk_concept_class_concept;
 	ALTER TABLE domain DROP CONSTRAINT fpk_domain_concept;
@@ -295,6 +296,7 @@ BEGIN
 	ALTER TABLE concept ADD CONSTRAINT fpk_concept_class FOREIGN KEY (concept_class_id) REFERENCES concept_class (concept_class_id);
 	ALTER TABLE concept ADD CONSTRAINT fpk_concept_vocabulary FOREIGN KEY (vocabulary_id) REFERENCES vocabulary (vocabulary_id);
 	ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_concept FOREIGN KEY (relationship_concept_id) REFERENCES concept (concept_id);
+	ALTER TABLE relationship ADD CONSTRAINT fpk_relationship_reverse FOREIGN KEY (reverse_relationship_id) REFERENCES relationship (relationship_id);
 	ALTER TABLE vocabulary ADD CONSTRAINT fpk_vocabulary_concept FOREIGN KEY (vocabulary_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE concept_class ADD CONSTRAINT fpk_concept_class_concept FOREIGN KEY (concept_class_concept_id) REFERENCES concept (concept_id);
 	ALTER TABLE domain ADD CONSTRAINT fpk_domain_concept FOREIGN KEY (domain_concept_id) REFERENCES concept (concept_id);

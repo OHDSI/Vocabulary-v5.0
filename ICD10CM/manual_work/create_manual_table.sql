@@ -16,7 +16,7 @@
 * Authors: Darina Ivakhnenko, Dmitry Dymshyts
 * Date: 2021
 **************************************************************************/
-
+DROP TABLE IF EXISTS refresh_lookup_done;
 CREATE TABLE refresh_lookup_done (
 icd_code VARCHAR,
 icd_name VARCHAR,

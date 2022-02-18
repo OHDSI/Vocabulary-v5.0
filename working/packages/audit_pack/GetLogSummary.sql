@@ -78,4 +78,4 @@ $BODY$
 		statement_time,
 		dev_schema_name,
 		virtual_group;
-$BODY$ LANGUAGE 'sql' IMMUTABLE;
+$BODY$ LANGUAGE 'sql' STABLE;

@@ -125,7 +125,10 @@ WHERE r.relationship_id NOT IN (
 		-- these aren't investigated well yet
 		'Has been compared to',
 		'Can be preceded by',
-		'Can be followed by'
+		'Can be followed by',
+		'May require',
+		'Has major class',
+    'Has minor class'
 		)
 	--Antithymocyte globulin rabbit ATG was mapped to Thymoglobulin (Brand Name) , correct mapping will be added below
 	AND NOT (
@@ -273,16 +276,34 @@ FROM (
 		r2.concept_code_2,
 		cs1.vocabulary_id AS vocabulary_id_1,
 		r2.vocabulary_id_2,
-		CASE 
-			WHEN r.relationship_id = 'Has antineoplastic'
+		CASE r.relationship_id
+		WHEN 'Has antineoplastic'
 				THEN 'Has antineopl Rx'
-			WHEN r.relationship_id = 'Has immunosuppressor'
+			WHEN 'Has immunosuppressor'
 				THEN 'Has immunosuppr Rx'
-			WHEN r.relationship_id = 'Has local Therapy'
+			when 'Has local therapy'
 				THEN 'Has local therap Rx'
-			WHEN r.relationship_id = 'Has supportive med'
+			WHEN 'Has supportive med'
 				THEN 'Has support med Rx'
-			ELSE NULL
+			WHEN 'Has AB-drug cjgt'
+				THEN 'Has AB-drug cjgt Rx'
+			WHEN 'Has immunotherapy'
+				THEN 'Has immunotherapy Rx'
+			when 'Has targeted therapy'
+				THEN 'Has targeted tx Rx'
+			when 'Has cytotoxic chemo'
+				THEN 'Has cytotox chemo Rx'
+			when 'Has radioconjugate'
+				THEN 'Has radiocjgt Rx'
+			when 'Has Has radioconjugate Rx'
+				THEN 'Has radiocjgt Rx'
+			when 'Has endocrine tx'
+				THEN 'Has endocrine tx Rx'
+			when 'Has radiotherapy'
+				THEN 'Has radiotherapy Rx'
+			when 'Has pept-drug cjgt'
+				THEN 'Has pept-drg cjg Rx'
+			ELSE null
 			END AS relationship_id,
 		cs1.valid_start_date,
 		cs1.valid_end_date,
@@ -410,6 +431,10 @@ BEGIN
 	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
 END $_$;
 
+--Osimertinib monotherapy -	Has antineoplastic -	Surgery	https://odysseusdataservices.atlassian.net/browse/AVOF-3357
+delete from concept_relationship_stage
+ where concept_code_1 ='10746' and relationship_id ='Has antineoplastic' and concept_code_2 ='14051' 
+;
 --18. Build reverse relationship. This is necessary for next point
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
@@ -442,7 +467,7 @@ WHERE NOT EXISTS (
 			AND r.reverse_relationship_id = i.relationship_id
 		);
 
---19. Deprecate all relationships in concept_relationship that aren't exist in concept_relationship_stage
+--19. Deprecate all relationships in concept_relationship that don't exist in concept_relationship_stage
 INSERT INTO concept_relationship_stage (
 	concept_code_1,
 	concept_code_2,
@@ -478,5 +503,4 @@ WHERE 'HemOnc' IN (
 			AND crs_int.vocabulary_id_2 = b.vocabulary_id
 			AND crs_int.relationship_id = r.relationship_id
 		);
-
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script

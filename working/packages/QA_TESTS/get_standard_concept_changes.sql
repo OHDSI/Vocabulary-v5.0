@@ -27,7 +27,11 @@ BEGIN
 				WHEN i.old_standard_concept = 'S'
 					THEN 'Standard'
 				WHEN i.old_standard_concept = 'C'
-					THEN 'Classification'
+					AND i.old_relationship_id = 'Maps to'
+					THEN 'Classification with mapping'
+				WHEN i.old_standard_concept = 'C'
+					AND i.old_relationship_id IS NULL
+					THEN 'Classification without mapping'
 				WHEN i.old_standard_concept IS NULL
 					AND i.old_relationship_id = 'Maps to'
 					THEN 'Non-standard with mapping'
@@ -37,7 +41,11 @@ BEGIN
 				WHEN i.new_standard_concept = 'S'
 					THEN 'Standard'
 				WHEN i.new_standard_concept = 'C'
-					THEN 'Classification'
+					AND i.new_relationship_id = 'Maps to'
+					THEN 'Classification with mapping'
+				WHEN i.new_standard_concept = 'C'
+					AND i.new_relationship_id IS NULL
+					THEN 'Classification without mapping'
 				WHEN i.new_standard_concept IS NULL
 					AND i.new_relationship_id = 'Maps to'
 					THEN 'Non-standard with mapping'
@@ -50,7 +58,7 @@ BEGIN
 				r_old.relationship_id AS old_relationship_id,
 				new.standard_concept AS new_standard_concept,
 				r.relationship_id AS new_relationship_id,
-				count(*) AS cnt
+				COUNT(DISTINCT new.concept_id) AS cnt --there can be more than one Maps to, so DISTINCT
 			FROM concept new
 			JOIN $$||pCompareWith||$$.concept old ON old.concept_id = new.concept_id
 				AND COALESCE(old.standard_concept, 'X') <> COALESCE(new.standard_concept, 'X')

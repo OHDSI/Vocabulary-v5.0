@@ -290,7 +290,7 @@ INSERT INTO concept_relationship_stage (
 	valid_end_date
 	)
 SELECT cs.concept_code AS concept_code_1,
-	'OMOP' || ROW_NUMBER() OVER (/*order by cs.concept_code*/) + l.max_omop_concept_code AS concept_code_2,
+	'OMOP' || ROW_NUMBER() OVER (ORDER BY cs.concept_code) + l.max_omop_concept_code AS concept_code_2,
 	'OMOP Invest Drug' AS vocabulary_id_1,
 	'RxNorm Extension' AS vocabulary_id_2,
 	'Maps to' AS relationship_id,

@@ -22,8 +22,8 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=>'OMOP Invest Drug',
-	pVocabularyDate			=> CURRENT_DATE,
-	pVocabularyVersion		=> 'OMOP Invest Drug '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
+	pVocabularyDate			=> (SELECT vocabulary_date FROM sources.ncit_pharmsub LIMIT 1),
+	pVocabularyVersion		=> (SELECT vocabulary_version FROM sources.ncit_pharmsub LIMIT 1),
 	pVocabularyDevSchema	=> 'DEV_INVDRUG'
 );
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(

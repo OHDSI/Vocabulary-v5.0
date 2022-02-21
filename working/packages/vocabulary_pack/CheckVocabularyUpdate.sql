@@ -139,7 +139,7 @@ BEGIN
           27. HemOnc
           28. dm+d
           29. OncoTree
-          20 CIM10
+          30 CIM10
         */
         SELECT http_content into cVocabHTML FROM vocabulary_download.py_http_get(url=>cURL,allow_redirects=>true);
         
@@ -186,21 +186,9 @@ BEGIN
                 cVocabVer := 'ICD10PCS '||to_char(cVocabDate + interval '1 year','YYYY');
             WHEN cVocabularyName = 'LOINC'
             THEN
-                cSearchString := 'LOINC Table File (CSV)';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cSearchString := 'Released';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString, cPos1);
-                cPos2 := devv5.INSTR (cVocabHTML, ' ', cPos1 + LENGTH (cSearchString) + 1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabDate := TO_DATE (SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString)), 'yyyy-mm-dd');
-                --the version extraction
-                cSearchString := 'LOINC Table File (CSV)';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString);
-                cSearchString := 'Version ';
-                cPos1 := devv5.INSTR (cVocabHTML, cSearchString, cPos1);
-                cPos2 := devv5.INSTR (cVocabHTML, ' ', cPos1 + LENGTH (cSearchString) + 1);
-                perform vocabulary_pack.CheckVocabularyPositions (cPos1, cPos2, pVocabularyName);
-                cVocabVer := SUBSTR (cVocabHTML, cPos1 + LENGTH (cSearchString), cPos2 - cPos1 - LENGTH (cSearchString));
+                SELECT TO_DATE(s0.arr[2],'yyyy-mm-dd'), 'LOINC '||s0.arr[1] INTO cVocabDate, cVocabVer FROM (
+                  SELECT regexp_matches(cVocabHTML,'<h1 class="entry-title">Download LOINC</h1>.*?>Loinc_([\d.]+)\.zip</a>.*?<p>Released: ([\d-]+)<') arr
+                ) AS s0;
             WHEN cVocabularyName = 'MEDDRA'
             THEN
                 SELECT TO_DATE (SUBSTRING (TRIM (title), '[[:alpha:]]+ [[:digit:]]+$'), 'month yyyy'),

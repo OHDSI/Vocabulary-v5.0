@@ -17,7 +17,7 @@
 * Date: 2021
 **************************************************************************/
 
---1. Extract each component (International, UK & US) versions to porperly date the combined source in next step
+--1. Extract each component (International, UK & US) versions to properly date the combined source in next step
 DROP VIEW IF EXISTS module_date;
 CREATE VIEW module_date
 AS
@@ -563,7 +563,7 @@ WITH tmp_rel AS (
 				ROW_NUMBER() OVER (
 					PARTITION BY r.id ORDER BY r.effectivetime DESC,
 						d.id DESC -- fix for AVOF-650
-					) AS rn, -- get the latest in a sequence of relationships, to decide wether it is still active
+					) AS rn, -- get the latest in a sequence of relationships, to decide whether it is still active
 				r.active
 			FROM sources.sct2_rela_full_merged r
 			JOIN sources.sct2_desc_full_merged d ON d.conceptid = r.typeid
@@ -929,7 +929,7 @@ WHERE NOT EXISTS (
 		);
 
 
---TODO: Remove temp code to the manual changes repository
+--TODO: Move temp code to the manual changes repository
 /*
 DO $_$
 BEGIN
@@ -1305,7 +1305,7 @@ WHERE r.concept_code_1 = cs.concept_code
 	AND r.concept_code_2 = x.concept_code
 	AND cs.concept_class_id = 'Undefined';
 
---18. Start building the hierarchy for progagating domain_ids from toop to bottom
+--18. Start building the hierarchy for progagating domain_ids from top to bottom
 DROP TABLE IF EXISTS snomed_ancestor;
 CREATE UNLOGGED TABLE snomed_ancestor AS
 	WITH RECURSIVE hierarchy_concepts(ancestor_concept_code, descendant_concept_code, root_ancestor_concept_code, levels_of_separation, full_path) AS (

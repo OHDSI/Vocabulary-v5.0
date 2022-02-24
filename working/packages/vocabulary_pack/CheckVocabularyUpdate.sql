@@ -187,7 +187,7 @@ BEGIN
             WHEN cVocabularyName = 'LOINC'
             THEN
                 SELECT TO_DATE(s0.arr[2],'yyyy-mm-dd'), 'LOINC '||s0.arr[1] INTO cVocabDate, cVocabVer FROM (
-                  SELECT regexp_matches(cVocabHTML,'<h1 class="entry-title">Download LOINC</h1>.*?>Loinc_([\d.]+)\.zip</a>.*?<p>Released: ([\d-]+)<') arr
+                  SELECT regexp_matches(cVocabHTML,'<h3>LOINC Version ([\d.]+)</h3>.*?Released ([\d-]+)</p>') arr
                 ) AS s0;
             WHEN cVocabularyName = 'MEDDRA'
             THEN

@@ -31,7 +31,6 @@ pVocabularyOperation text;
   ALL (default), JUMP_TO_LOINC_PREPARE, JUMP_TO_LOINC_IMPORT
 */
 pJumpToOperation text;
-z int;
 cRet text;
 CRLF constant text:=E'\r\n';
 pSession int4;
@@ -71,17 +70,12 @@ BEGIN
     
   if pJumpToOperation='ALL' then
     --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
-
+    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass
+    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=1;
     --authorization
     select (select value from json_each_text(http_headers) where lower(key)='set-cookie'), http_content into pCookie, pContent
     from py_http_post(url=>pVocabulary_auth, params=>'log='||devv5.urlencode(pVocabulary_login)||'&pwd='||devv5.urlencode(pVocabulary_pass)||'&testcookie=1&rememberme=forever&wp-submit=Log%20In');
     if pCookie not like '%wordpress_logged_in%' then pErrorDetails:=pCookie||CRLF||CRLF||pContent; raise exception 'cookie %%wordpress_logged_in%% not found'; end if;
-
-    --first part, getting raw download link from page
-    select substring(http_content,'.+<h3><a href="(.+?)" rel="no-follow">LOINC Table File \(CSV\)</a></h3>') into pDownloadURL from py_http_get(url=>pVocabulary_url);
-    if not coalesce(pDownloadURL,'-') ~* '^(https://loinc.org/download/)(.+)csv/*$' then pErrorDetails:=coalesce(pDownloadURL,'-'); raise exception 'pDownloadURL (raw) is not valid'; end if;
     
     pCookie_p1=substring(pCookie,'(wordpress_sec_.+?)=(.*?);');
     pCookie_p1_value=substring(pCookie,'wordpress_sec_.+?=(.*?);');
@@ -97,162 +91,25 @@ BEGIN
 
     --start downloading
     --LOINC doesn't provide direct link, just the raw binary data after POST-request
-    pVocabularyOperation:='GET_LOINC Main Table downloading';
+    pVocabularyOperation:='GET_LOINC main archive downloading';
     perform run_wget (
       iPath=>pVocabulary_load_path,
       iFilename=>lower(pVocabularyID)||'.zip',
-      iDownloadLink=>pDownloadURL,
-      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_LOINC Main Table downloading complete',
-      iVocabulary_status=>1
-    );
-
-    --we are already logged in, so let's download the next links
-    --multiaxial hierarchy
-    pVocabularyOperation:='GET_LOINC Multiaxial Hierarchy downloading';
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_mh.zip',
       iDownloadLink=>pVocabulary_url,
-      iDeleteAll=>0,
       iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
     );
     perform write_log (
       iVocabularyID=>pVocabularyID,
       iSessionID=>pSession,
-      iVocabulary_operation=>'GET_LOINC Multiaxial Hierarchy downloading complete',
-      iVocabulary_status=>1
-    );
-    
-    --panel and forms
-    pVocabularyOperation:='GET_LOINC Panels and Forms downloading';
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=3;
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_pf.zip',
-      iDownloadLink=>pVocabulary_url,
-      iDeleteAll=>0,
-      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_LOINC Panels and Forms downloading complete',
-      iVocabulary_status=>1
-    );
-    
-    /*--loinc to snomed <--deprecated, no longer available
-    pVocabularyOperation:='GET_LOINC LOINC/SNOMED CT Expression Association downloading';
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=4;
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_ls.zip',
-      iDownloadLink=>pVocabulary_url,
-      iDeleteAll=>0,
-      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_LOINC LOINC/SNOMED CT Expression Association downloading complete',
-      iVocabulary_status=>1
-    );*/
-    
-    --loinc answer
-    pVocabularyOperation:='GET_LOINC LOINC Answer downloading';
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=5;
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_la.zip',
-      iDownloadLink=>pVocabulary_url,
-      iDeleteAll=>0,
-      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_LOINC LOINC Answer downloading complete',
-      iVocabulary_status=>1
-    );
-    
-    --loinc document ontology
-    pVocabularyOperation:='GET_LOINC LOINC Document Ontology downloading';
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=8;
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_do.zip',
-      iDownloadLink=>pVocabulary_url,
-      iDeleteAll=>0,
-      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_LOINC LOINC Document Ontology downloading complete',
-      iVocabulary_status=>1
-    );
-    
-    --loinc group file
-    pVocabularyOperation:='GET_LOINC LOINC Group File downloading';
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=9;
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_gf.zip',
-      iDownloadLink=>pVocabulary_url,
-      iDeleteAll=>0,
-      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_LOINC LOINC Group File downloading complete',
-      iVocabulary_status=>1
-    );
-    
-    --loinc part file
-    pVocabularyOperation:='GET_LOINC LOINC Part File downloading';
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=10;
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_partf.zip',
-      iDownloadLink=>pVocabulary_url,
-      iDeleteAll=>0,
-      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_LOINC LOINC Part File downloading complete',
-      iVocabulary_status=>1
-    );
-    
-    --LOINC/RSNA Radiology Playbook File
-    pVocabularyOperation:='GET_LOINC LOINC/RSNA Radiology Playbook File downloading';
-    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=11;
-    perform run_wget (
-      iPath=>pVocabulary_load_path,
-      iFilename=>lower(pVocabularyID)||'_radiology.zip',
-      iDownloadLink=>pVocabulary_url,
-      iDeleteAll=>0,
-      iParams=>'--no-check-certificate --no-cookies --header "Cookie: '||pCookie_p1||'='||pCookie_p1_value||'; '||pCookie_p2||'='||pCookie_p2_value||'" --post-data "tc_accepted=1&tc_submit=Download"'
-    );
-    perform write_log (
-      iVocabularyID=>pVocabularyID,
-      iSessionID=>pSession,
-      iVocabulary_operation=>'GET_LOINC LOINC/RSNA Radiology Playbook File downloading complete',
+      iVocabulary_operation=>'GET_LOINC main archive downloading complete',
       iVocabulary_status=>1
     );
     
     --loinc to cpt mapping
     pVocabularyOperation:='GET_LOINC LOINC To CPT Mapping';
     --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=6;
+    select vocabulary_auth, vocabulary_url, vocabulary_login
+    into pVocabulary_auth, pVocabulary_url, pVocabulary_login from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=2;
     
     --first part, getting raw download link from page
     select 'https:'||substring(http_content,'<th>LOINC to CPT Mapping Version</th>.+?href="(.+?)">Draft') into pDownloadURL from py_http_get(url=>pVocabulary_url);
@@ -287,8 +144,7 @@ BEGIN
     --loinc to cpt mapping
     pVocabularyOperation:='GET_LOINC loinc_class.csv (raw)';
     --get credentials
-    select vocabulary_auth, vocabulary_url, vocabulary_login, vocabulary_pass, max(vocabulary_order) over()
-    into pVocabulary_auth, pVocabulary_url, pVocabulary_login, pVocabulary_pass, z from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=7;
+    select vocabulary_url into pVocabulary_url from devv5.vocabulary_access where vocabulary_id=pVocabularyID and vocabulary_order=3;
     
     --start downloading
     pVocabularyOperation:='GET_LOINC loinc_class.csv downloading';

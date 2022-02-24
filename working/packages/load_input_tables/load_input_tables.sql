@@ -405,30 +405,30 @@ begin
       alter table sources.loinc ADD COLUMN vocabulary_date date;
       alter table sources.loinc ADD COLUMN vocabulary_version VARCHAR (200);
       update sources.loinc set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
-      execute 'COPY sources.map_to FROM '''||pVocabularyPath||'map_to.csv'' delimiter '','' csv HEADER';
-      execute 'COPY sources.source_organization FROM '''||pVocabularyPath||'source_organization.csv'' delimiter '','' csv HEADER';
-      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'LOINC_MULTI-AXIAL_HIERARCHY.CSV'' delimiter '','' csv HEADER FORCE NULL path_to_root,sequence,immediate_parent,code,code_text';
+      execute 'COPY sources.map_to FROM '''||pVocabularyPath||'mapto.csv'' delimiter '','' csv HEADER';
+      execute 'COPY sources.source_organization FROM '''||pVocabularyPath||'sourceorganization.csv'' delimiter '','' csv HEADER';
+      execute 'COPY sources.loinc_hierarchy FROM '''||pVocabularyPath||'multiaxialhierarchy.csv'' delimiter '','' csv HEADER FORCE NULL path_to_root,sequence,immediate_parent,code,code_text';
       truncate table sources.loinc_answerslist, sources.loinc_answerslistlink, sources.loinc_forms;
-      execute 'COPY sources.loinc_answerslist FROM '''||pVocabularyPath||'AnswerList.csv'' delimiter '','' csv HEADER FORCE NULL answerlistid, answerlistname, answerlistoid, extdefinedyn, 
+      execute 'COPY sources.loinc_answerslist FROM '''||pVocabularyPath||'answerlist.csv'' delimiter '','' csv HEADER FORCE NULL answerlistid, answerlistname, answerlistoid, extdefinedyn, 
          extdefinedanswerlistcodesystem, extdefinedanswerlistlink, answerstringid, localanswercode, localanswercodesystem, sequencenumber, displaytext, extcodeid, extcodedisplayname, extcodesystem, 
          extcodesystemversion, extcodesystemcopyrightnotice, subsequenttextprompt, description, score';
       update sources.loinc_answerslist set displaytext=substr(displaytext,1,255) where length(displaytext)>255;
-      execute 'COPY sources.loinc_answerslistlink FROM '''||pVocabularyPath||'LoincAnswerListLink.csv'' delimiter '','' csv HEADER';
+      execute 'COPY sources.loinc_answerslistlink FROM '''||pVocabularyPath||'loincanswerlistlink.csv'' delimiter '','' csv HEADER';
       --insert into sources.loinc_forms select * from sources.py_xlsparse_forms(pVocabularyPath||'/LOINC_PanelsAndForms.xlsx'); --PanelsAndForms.xlsx replaced with CSV-file in v2.65
-      execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'LOINC_PanelsAndForms.csv'' delimiter '','' csv HEADER';
+      execute 'COPY sources.loinc_forms FROM '''||pVocabularyPath||'panelsandforms.csv'' delimiter '','' csv HEADER';
       truncate table sources.loinc_group, sources.loinc_parentgroupattributes, sources.loinc_grouploincterms, sources.loinc_partlink_primary, sources.loinc_partlink_supplementary, sources.loinc_part, sources.loinc_radiology;
-      execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'Group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
-      execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'ParentGroupAttributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
-      execute 'COPY sources.loinc_grouploincterms FROM '''||pVocabularyPath||'GroupLoincTerms.csv'' delimiter '','' csv HEADER FORCE NULL category,groupid,archetype,loincnumber,longcommonname';
-      execute 'COPY sources.loinc_partlink_primary FROM '''||pVocabularyPath||'LoincPartLink_Primary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
-      execute 'COPY sources.loinc_partlink_supplementary FROM '''||pVocabularyPath||'LoincPartLink_Supplementary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
-      execute 'COPY sources.loinc_part FROM '''||pVocabularyPath||'Part.csv'' delimiter '','' csv HEADER FORCE NULL partnumber,parttypename,partname,partdisplayname,status';
-      execute 'COPY sources.loinc_radiology FROM '''||pVocabularyPath||'LoincRsnaRadiologyPlaybook.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,parttypename,partname,partsequenceorder,rid,preferredname,rpid,longname';
+      execute 'COPY sources.loinc_group FROM '''||pVocabularyPath||'group.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,groupid,lgroup,archetype,status,versionfirstreleased';
+      execute 'COPY sources.loinc_parentgroupattributes FROM '''||pVocabularyPath||'parentgroupattributes.csv'' delimiter '','' csv HEADER FORCE NULL parentgroupid,ltype,lvalue';
+      execute 'COPY sources.loinc_grouploincterms FROM '''||pVocabularyPath||'grouploincterms.csv'' delimiter '','' csv HEADER FORCE NULL category,groupid,archetype,loincnumber,longcommonname';
+      execute 'COPY sources.loinc_partlink_primary FROM '''||pVocabularyPath||'loincpartlink_primary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
+      execute 'COPY sources.loinc_partlink_supplementary FROM '''||pVocabularyPath||'loincpartlink_supplementary.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,partname,partcodesystem,parttypename,linktypename,property';
+      execute 'COPY sources.loinc_part FROM '''||pVocabularyPath||'part.csv'' delimiter '','' csv HEADER FORCE NULL partnumber,parttypename,partname,partdisplayname,status';
+      execute 'COPY sources.loinc_radiology FROM '''||pVocabularyPath||'loincrsnaradiologyplaybook.csv'' delimiter '','' csv HEADER FORCE NULL loincnumber,longcommonname,partnumber,parttypename,partname,partsequenceorder,rid,preferredname,rpid,longname';
       truncate table sources.loinc_class, sources.cpt_mrsmap;
       set local datestyle='ISO, DMY'; --set proper date format
       execute 'COPY sources.loinc_class FROM '''||pVocabularyPath||'loinc_class.csv'' delimiter ''|'' csv HEADER';
-      execute 'COPY sources.cpt_mrsmap FROM '''||pVocabularyPath||'CPT_MRSMAP.RRF'' delimiter ''|'' csv';
-      execute 'COPY sources.loinc_documentontology FROM '''||pVocabularyPath||'DocumentOntology.csv'' delimiter '','' csv HEADER';
+      execute 'COPY sources.cpt_mrsmap FROM '''||pVocabularyPath||'cpt_mrsmap.rrf'' delimiter ''|'' csv';
+      execute 'COPY sources.loinc_documentontology FROM '''||pVocabularyPath||'documentontology.csv'' delimiter '','' csv HEADER';
   when 'HCPCS' then
       truncate table sources.anweb_v2;
       insert into sources.anweb_v2 

@@ -10,7 +10,6 @@ RETURNS void as
 $BODY$
 DECLARE
 pQuery text;
-z int4;
 BEGIN
   set local search_path to vocabulary_download;
   if iVocabulary_status not in (0,1,2,3) then raise exception 'vocabulary_id=%, bad vocabulary status=%',iVocabularyID,iVocabulary_status; end if;
@@ -27,9 +26,7 @@ BEGIN
     coalesce('$$'||iError_details||'$$','NULL')||','||
     iVocabulary_status||')
   ';
-  z:=devv5.pg_background_launch (pQuery);
-  perform pg_sleep(0.1);--don't know how this parameter affects the python module 'requests', but without it py_http_* can return an "Interrupted system call" error
-  perform devv5.pg_background_detach(z); --avoid the problem of "too many dynamic shared memory segments"
+  perform * from devv5.pg_background_result(devv5.pg_background_launch (pQuery)) as (result text);
 END;
 $BODY$
 LANGUAGE 'plpgsql'

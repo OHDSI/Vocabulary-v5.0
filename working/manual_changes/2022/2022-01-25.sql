@@ -373,6 +373,18 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
+pConcept_name =>'fraction',
+pDomain_id =>'Unit',
+pVocabulary_id =>'UCUM',
+pConcept_class_id =>'Unit',
+pStandard_concept =>'S',
+pConcept_code =>'{fraction}'
+);
+END $_$;
+
+DO $_$
+BEGIN
+PERFORM vocabulary_pack.AddNewConcept(
 pConcept_name =>'milliliter per second per 1.73 square meter',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',

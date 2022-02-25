@@ -666,9 +666,13 @@ begin
       set local datestyle='ISO, DMY'; --set proper date format
       truncate table sources.bdpm_drug, sources.bdpm_ingredient, sources.bdpm_packaging;
       execute 'COPY sources.bdpm_drug (drug_code,drug_descr,form,route,status,certifier,market_status,approval_date,inactive_flag,eu_number,manufacturer,surveillance_flag) FROM '''||pVocabularyPath||'CIS_bdpm.txt'' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-1''';
-      execute 'COPY sources.bdpm_ingredient FROM '''||pVocabularyPath||'CIS_COMPO_bdpm.txt'' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-1''';
+      --execute 'COPY sources.bdpm_ingredient FROM '''||pVocabularyPath||'CIS_COMPO_bdpm.txt'' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-1''';
+      --data hotfix, extra TAB in 'ingredient' column
+      execute 'COPY sources.bdpm_ingredient FROM PROGRAM ''cat "'||pVocabularyPath||'CIS_COMPO_bdpm.txt"| sed ''''s/\t\t\t\t/\t/g''''  '' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-1''';
       execute 'COPY sources.bdpm_packaging FROM '''||pVocabularyPath||'CIS_CIP_bdpm.txt'' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-1''';
-      execute 'COPY sources.bdpm_gener FROM '''||pVocabularyPath||'CIS_GENER_bdpm.txt'' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-1''';
+      --execute 'COPY sources.bdpm_gener FROM '''||pVocabularyPath||'CIS_GENER_bdpm.txt'' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-1''';
+      --data hotfix, extra TAB in 'generic_desc' column
+      execute 'COPY sources.bdpm_gener FROM PROGRAM ''cat "'||pVocabularyPath||'CIS_GENER_bdpm.txt"| sed ''''s/\t\t/\t/g''''  '' delimiter E''\t'' csv quote E''\b'' ENCODING ''ISO-8859-1''';
       update sources.bdpm_drug set vocabulary_date=COALESCE(pVocabularyDate,current_date), vocabulary_version=COALESCE(pVocabularyVersion,pVocabularyID||' '||current_date);
       --mistakes in the orinal table fixing
       UPDATE sources.bdpm_ingredient

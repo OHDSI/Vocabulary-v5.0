@@ -25,7 +25,7 @@
 SELECT sources.load_input_tables('MedDRA',TO_DATE('20160901','YYYYMMDD'),'MedDRA version 19.1')
 ```
 ##### Filling stage and basic tables
-6. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/meddra/manual_work/readme.md) file in the 'manual_work' folder.
+6. Perform manual work described in the [readme.md](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/MedDRA/Manual_work/readme.md) file in the 'manual_work' folder.
 7. Run load_stage.sql
 8. Run check_stage_tables function (should retrieve NULL):
 ```sql

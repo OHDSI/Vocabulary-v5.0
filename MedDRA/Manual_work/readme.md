@@ -25,7 +25,7 @@ ORDER BY vocabulary_id_1, vocabulary_id_2, relationship_id, concept_code_1, conc
 - quote always: FALSE
 - NULL string: empty
 
-6.2. Work with [meddra_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/meddra/manual_work/meddra_refresh.sql) file:
+6.2. Work with the [meddra_refresh](https://github.com/OHDSI/Vocabulary-v5.0/blob/master/MedDRA/Manual_work/meddra_refresh.sql) file:
 
 6.2.1. Backup concept_relationship_manual table and concept_manual table.
 

@@ -573,6 +573,41 @@ WITH tmp_rel AS (
 			AND sourceid IS NOT NULL
 			AND destinationid IS NOT NULL
 			AND term <> 'PBCL flag true'
+
+    UNION
+--add relationships from concept to module
+		SELECT cs.concept_code::TEXT,
+		       moduleid::TEXT,
+		       'Has Module' AS term
+		FROM sources.sct2_concept_full_merged c
+		JOIN concept_stage cs ON c.id = cs.concept_code
+		    AND cs.vocabulary_id = 'SNOMED'
+		WHERE moduleid IN (
+		900000000000207008, --Core (international) module
+		999000011000000103, --UK edition
+		731000124108 --US edition
+		)
+
+    UNION
+--add relationship from concept to status
+		SELECT st.concept_code::TEXT,
+		       st.statusid::TEXT,
+		       'Has status'
+		FROM
+        (SELECT cs.concept_code,
+               statusid::TEXT,
+       		ROW_NUMBER() OVER (
+			PARTITION BY id ORDER BY TO_DATE(effectivetime, 'YYYYMMDD') DESC
+			) rn
+        FROM SOURCES.SCT2_CONCEPT_FULL_MERGED c
+        JOIN concept_stage cs ON c.id = cs.concept_code
+            AND cs.vocabulary_id = 'SNOMED'
+        WHERE statusid IN (
+		900000000000073002, --Defined
+		900000000000074008  --Primitive
+		)) st
+    WHERE st.rn = 1
+
 		)
 SELECT concept_code_1,
 	concept_code_2,
@@ -909,6 +944,10 @@ FROM (
 		        THEN 'Is sterile'
 		    WHEN term = 'Has target population'
 		        THEN 'Has targ population'
+		    WHEN term = 'Has Module'
+		        THEN 'Has Module'
+		    WHEN term = 'Has status'
+		        THEN 'Has status'
 			ELSE term --'non-existing'
 			END AS relationship_id,
 		(
@@ -1032,6 +1071,21 @@ BEGIN
 END $_$;
  */
 
+--TODO: Left uncommented, waiting for the test run
+ DO $_$
+BEGIN
+	PERFORM vocabulary_pack.AddNewRelationship(
+	pRelationship_name			=>'Has status',
+	pRelationship_id			=>'Has status',
+	pIs_hierarchical			=>0,
+	pDefines_ancestry			=>0,
+	pRelationship_name_rev	=>'Status of',
+	pReverse_relationship_id		=>'Status of',
+	pIs_hierarchical_rev		=>0,
+	pDefines_ancestry_rev		=>0
+);
+END $_$;
+
 
 --check for non-existing relationships
 ALTER TABLE concept_relationship_stage ADD CONSTRAINT tmp_constraint_relid FOREIGN KEY (relationship_id) REFERENCES relationship (relationship_id);
@@ -1076,10 +1130,13 @@ FROM (
 			WHEN 900000000000530003
 				THEN 'Concept alt_to to'
 			END AS relationship_id,
+	       refsetid,
 		ROW_NUMBER() OVER (
 			PARTITION BY sc.referencedcomponentid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC,
 				sc.id DESC --same as of AVOF-650
 			) rn,
+	       	    ROW_NUMBER() OVER (
+	        PARTITION BY sc.referencedcomponentid, sc.targetcomponent, sc.moduleid ORDER BY TO_DATE(sc.effectivetime, 'YYYYMMDD') DESC) AS recent_status,   --recent status of the relationship. To be used with 'active' field
 		active
 	FROM sources.der2_crefset_assreffull_merged sc
 	WHERE sc.refsetid IN (
@@ -1093,8 +1150,10 @@ FROM (
 LEFT JOIN concept_stage cs ON -- for valid_end_date
 	cs.concept_code = sn.concept_code_1
 	AND cs.invalid_reason IS NOT NULL
-WHERE sn.rn = 1
+WHERE CASE WHEN sn.refsetid = '900000000000523009' THEN sn.rn >= 1     --Bring all Concept poss_eq to concept_relationship table and do not build new Maps to based on them
+            ELSE sn.rn = 1 END
 	AND sn.active = 1
+    AND sn.recent_status = 1    --no row with the same target concept, but more recent relationship with active = 0
 	AND NOT EXISTS (
 		SELECT 1
 		FROM concept_relationship_stage crs

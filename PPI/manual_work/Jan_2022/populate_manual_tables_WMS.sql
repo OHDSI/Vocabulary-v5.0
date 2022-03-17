@@ -7,6 +7,55 @@
 -- In case if you need to insert more, than one concept use select from mapped_table 
 -- It's convenient to use case for Answer| Question | Topic | Module concept_class_id
 
+--SELECT * FROM ppi_wms_1121_mapped_backup_2022_03_15;
+--SELECT * FROM dev_ppi.concept_manual_backup_2022_03_17;
+--SELECT * FROM dev_ppi.concept_relationship_manual_backup_2022_03_17;
+
+-- ppi_wms_1121_mapped backup
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from ppi_wms_1121_mapped',
+                       'ppi_wms_1121_mapped_backup_' || update);
+    END
+$body$;
+
+-- concept_manual backup
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from concept_manual',
+                       'concept_manual_backup_' || update);
+    END
+$body$;
+
+-- concept_relationship_manual backup
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from concept_relationship_manual',
+                       'concept_relationship_manual_backup_' || update);
+    END
+$body$;
+
+-- add cope_vaccine4 concept from New Year Minute Survey to source table
+INSERT INTO ppi_wms_1121_mapped
+VALUES ('cope_vaccine4', 'COVID-19 Vaccine Survey', '0', null, null, null, null, null, null, 'm', null, '2099-12-31', null);
+
+SELECT * FROM dev_ppi.concept_manual;
+
 --TRUNCATE concept_manual ;
 --to add all sources to cm
 INSERT INTO concept_manual
@@ -110,6 +159,20 @@ TO_DATE('20991231','yyyymmdd') AS valid_end_date,
 null as invalid_reason
 FROM ppi_wms_1121_mapped a 
 where mark = 'q' ; --141
+
+--add hierarchy 'PPI parent code of' from Module to Questions for 'cope_vaccine4'
+INSERT INTO concept_relationship_manual
+SELECT DISTINCT
+'cope_vaccine4' AS concept_code_1,
+trim(source_code) AS concept_code_2, --better to trim
+'PPI' AS vocabulary_id_1,
+'PPI' AS vocabulary_id_2,
+'PPI parent code of' AS relationship_id,
+CURRENT_DATE AS valid_start_date,
+TO_DATE('20991231','yyyymmdd') AS valid_end_date,
+null as invalid_reason
+FROM ppi_wms_1121_mapped a
+where mark = 'q' ;
 
 ------------------------------------------------
 -- branching logic between connected concepts --
@@ -417,4 +480,4 @@ select distinct a.concept_code as concept_code_1,a.concept_name as concept_name_
 relationship_id, b.concept_code as concept_code_2,b.concept_name as concept_name_2,b.domain_id as domain_id_2,b.concept_class_id as concept_class_id_2,b.standard_concept as standard_concept_2, 'wms' as flag from concept_manual a
 join concept_relationship_manual r on a.concept_code = r.concept_Code_1 and a.vocabulary_id = r.vocabulary_id_1 and r.invalid_reason is null
 join (select concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason from concept 
-union all select * from concept_manual) b on b.concept_code = r.concept_Code_2 and b.vocabulary_id = r.vocabulary_id_2 )
+union all select * from concept_manual) b on b.concept_code = r.concept_Code_2 and b.vocabulary_id = r.vocabulary_id_2;

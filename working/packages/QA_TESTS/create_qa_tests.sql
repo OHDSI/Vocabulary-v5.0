@@ -679,8 +679,8 @@ BEGIN
 				WHEN v1.vocabulary_id IS NULL THEN 'vocabulary_id_1 not found in the vocabulary: '||CASE WHEN crs.vocabulary_id_1='' THEN '''''' ELSE crs.vocabulary_id_1 END
 				WHEN v2.vocabulary_id IS NULL THEN 'vocabulary_id_2 not found in the vocabulary: '||CASE WHEN crs.vocabulary_id_2='' THEN '''''' ELSE crs.vocabulary_id_2 END
 				WHEN rl.relationship_id IS NULL THEN 'relationship_id not found in the relationship: '||CASE WHEN crs.relationship_id='' THEN '''''' ELSE crs.relationship_id END
-				WHEN crs.valid_start_date > CURRENT_DATE THEN 'concept_relationship_stage.valid_start_date is greater than the current date: '||TO_CHAR(crs.valid_start_date,'YYYYMMDD')
-				WHEN crs.valid_start_date < TO_DATE ('19000101', 'yyyymmdd') THEN 'concept_stage.valid_start_date is before 1900: '||TO_CHAR(crs.valid_start_date,'YYYYMMDD')
+				WHEN crs.valid_start_date > CURRENT_DATE AND crs.valid_start_date<>v1.latest_update THEN 'concept_relationship_stage.valid_start_date is greater than the current date: '||TO_CHAR(crs.valid_start_date,'YYYYMMDD')
+				WHEN crs.valid_start_date < TO_DATE ('19000101', 'yyyymmdd') THEN 'concept_relationship_stage.valid_start_date is before 1900: '||TO_CHAR(crs.valid_start_date,'YYYYMMDD')
 				ELSE NULL
 			END AS reason
 			FROM concept_relationship_stage crs

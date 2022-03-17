@@ -15,17 +15,9 @@ BEGIN
   if iVocabulary_status not in (0,1,2,3) then raise exception 'vocabulary_id=%, bad vocabulary status=%',iVocabularyID,iVocabulary_status; end if;
   if nullif(iVocabularyID,'') is null then raise exception 'vocabulary_id cannot be empty!'; end if;
   if nullif(iVocabulary_operation,'') is null then raise exception 'vocabulary_operation cannot be empty!'; end if;
-  pQuery:='
-    insert into vocabulary_download.vocabulary_log values ('||
-    nextval('log_seq')||',$$'||
-    iVocabularyID||'$$,'||
-    iSessionID||',
-    clock_timestamp(),'||
-    coalesce('$$'||iVocabulary_operation||'$$','NULL')||','||
-    coalesce('$$'||iVocabulary_error||'$$','NULL')||','||
-    coalesce('$$'||iError_details||'$$','NULL')||','||
-    iVocabulary_status||')
-  ';
+
+  pQuery:=FORMAT ('insert into vocabulary_download.vocabulary_log values (%L,%L,%L,%L,%L,%L,%L,%L)', nextval('log_seq'), iVocabularyID, iSessionID, clock_timestamp(),iVocabulary_operation,iVocabulary_error,iError_details,iVocabulary_status);
+
   perform * from devv5.pg_background_result(devv5.pg_background_launch (pQuery)) as (result text);
 END;
 $BODY$

@@ -473,12 +473,19 @@ AS $BODY$
 						r.valid_end_date <> TO_DATE('20991231', 'YYYYMMDD')
 						AND r.invalid_reason IS NULL
 						)
-					OR r.valid_start_date > CURRENT_DATE
+					OR (
+						r.valid_start_date > CURRENT_DATE
+						AND r.valid_start_date IS DISTINCT FROM GREATEST(vc1.latest_update, vc2.latest_update)
+						)
 					OR r.valid_start_date < TO_DATE('19700101', 'yyyymmdd')
 					THEN 1
 				ELSE 0
 				END check_flag
 		FROM concept_relationship r
+		JOIN concept c1 ON c1.concept_id = r.concept_id_1
+		JOIN concept c2 ON c2.concept_id = r.concept_id_2
+		LEFT JOIN vocabulary_conversion vc1 ON vc1.vocabulary_id_v5 = c1.vocabulary_id
+		LEFT JOIN vocabulary_conversion vc2 ON vc2.vocabulary_id_v5 = c2.vocabulary_id
 		) AS s0
 	WHERE check_flag = 1
 		AND COALESCE(checkid, 8) = 8

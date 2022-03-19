@@ -173,6 +173,7 @@ FROM (
 						-- order of precedence: active, by class relevance
 						-- Might be redundant, as normally concepts will never have more than 1 hierarchy tag, but we have concurrent sources, so this may prevent problems and breaks nothing
 						ORDER BY active DESC,
+						    rnb,
 							CASE f7
 								WHEN 'disorder'
 									THEN 1
@@ -279,8 +280,7 @@ FROM (
 								WHEN 'environment / location'
 									THEN 52
 								ELSE 99
-								END,
-							rnb
+								END
 						) AS rnc
 				FROM (
 					SELECT concept_code,

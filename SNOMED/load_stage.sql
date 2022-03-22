@@ -580,7 +580,7 @@ WITH tmp_rel AS (
 		       moduleid::TEXT,
 		       'Has Module' AS term
 		FROM sources.sct2_concept_full_merged c
-		JOIN concept_stage cs ON c.id = cs.concept_code
+		JOIN concept_stage cs ON c.id::TEXT = cs.concept_code
 		    AND cs.vocabulary_id = 'SNOMED'
 		WHERE moduleid IN (
 		900000000000207008, --Core (international) module
@@ -600,7 +600,7 @@ WITH tmp_rel AS (
 			PARTITION BY id ORDER BY TO_DATE(effectivetime, 'YYYYMMDD') DESC
 			) rn
         FROM SOURCES.SCT2_CONCEPT_FULL_MERGED c
-        JOIN concept_stage cs ON c.id = cs.concept_code
+        JOIN concept_stage cs ON c.id::TEXT = cs.concept_code
             AND cs.vocabulary_id = 'SNOMED'
         WHERE statusid IN (
 		900000000000073002, --Defined
@@ -1068,10 +1068,7 @@ BEGIN
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
-END $_$;
- */
 
---TODO: Left uncommented, waiting for the test run
  DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
@@ -1085,6 +1082,9 @@ BEGIN
 	pDefines_ancestry_rev		=>0
 );
 END $_$;
+END $_$;
+ */
+
 
 
 --check for non-existing relationships
@@ -2631,10 +2631,11 @@ WHERE cs.concept_code IN (
 	AND cs.standard_concept = 'S';
 
 --22. Clean up
-DROP TABLE peak;
-DROP TABLE domain_snomed;
-DROP TABLE snomed_ancestor;
-DROP VIEW module_date;
+--TODO: commented for test
+--DROP TABLE peak;
+--DROP TABLE domain_snomed;
+--DROP TABLE snomed_ancestor;
+--DROP VIEW module_date;
 
 --22. Need to check domains before runnig the generic_update
 /*temporary disabled for later use

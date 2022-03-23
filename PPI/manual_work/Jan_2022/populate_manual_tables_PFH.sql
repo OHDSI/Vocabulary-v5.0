@@ -7,6 +7,34 @@
 -- In case if you need to insert more, than one concept use select from mapped_table 
 -- It's convenient to use case for Answer| Question | Topic|Module concept_class_id
 
+
+-- concept_manual backup
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from concept_manual',
+                       'concept_manual_backup_' || update);
+    END
+$body$;
+
+-- concept_relationship_manual backup
+DO
+$body$
+    DECLARE
+        update text;
+    BEGIN
+        SELECT TO_CHAR(CURRENT_DATE, 'YYYY_MM_DD')
+        INTO update;
+        EXECUTE format('create table %I as select * from concept_relationship_manual',
+                       'concept_relationship_manual_backup_' || update);
+    END
+$body$;
+
+
 TRUNCATE concept_manual ;
 --to add all concepts
 INSERT INTO concept_manual
@@ -215,4 +243,5 @@ select distinct a.concept_code as concept_code_1,a.concept_name as concept_name_
 relationship_id, b.concept_code as concept_code_2,b.concept_name as concept_name_2,b.domain_id as domain_id_2,b.concept_class_id as concept_class_id_2,b.standard_concept as standard_concept_2, 'pfh' as flag from concept_manual a
 join concept_relationship_manual r on a.concept_code = r.concept_Code_1 and a.vocabulary_id = r.vocabulary_id_1 and r.invalid_reason is null
 join (select concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason from concept 
-union all select * from concept_manual) b on b.concept_code = r.concept_Code_2 and b.vocabulary_id = r.vocabulary_id_2 )
+union all select * from concept_manual) b on b.concept_code = r.concept_Code_2 and b.vocabulary_id = r.vocabulary_id_2;
+

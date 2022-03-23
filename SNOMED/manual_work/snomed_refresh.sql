@@ -137,6 +137,8 @@ INSERT INTO dev_snomed.concept_relationship_manual(concept_code_1, concept_code_
 
 
 --TODO: temp code to start working with snomed_mapped table
+--TODO: Implement automatic id assignment before reuploading to snomed_mapped table
+--! Currently joined to devv5 schema because all concepts are released
 /*
 INSERT INTO dev_snomed.snomed_mapped(source_code_description,
                                      source_code,

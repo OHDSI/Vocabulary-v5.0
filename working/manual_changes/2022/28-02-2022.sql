@@ -85,18 +85,6 @@ END $_$;
 DO $_$
 BEGIN
 PERFORM vocabulary_pack.AddNewConcept(
-pConcept_name =>'kilojoule/mole',
-pDomain_id =>'Unit',
-pVocabulary_id =>'UCUM',
-pConcept_class_id =>'Unit',
-pStandard_concept =>'S',
-pConcept_code =>'kJ/mol'
-);
-END $_$;
-
-DO $_$
-BEGIN
-PERFORM vocabulary_pack.AddNewConcept(
 pConcept_name =>'kiloarbitary unit per liter',
 pDomain_id =>'Unit',
 pVocabulary_id =>'UCUM',

@@ -61,7 +61,6 @@ SELECT CASE
 			THEN 'History of ' || long_common_name
 		ELSE long_common_name -- AVOF-819
 		END AS concept_name,
-	--TODO: fix wrong domains, more information in AVOF-2241
 	CASE 
 		WHEN classtype IN (
 				'1',
@@ -156,7 +155,24 @@ SELECT CASE
 							)
 						)
 					)
-				OR (long_common_name ~* 'note|Note')
+				OR class IN (
+		        'ADMIN',
+		        'VACCIN',
+		        'PANEL.SURG',
+		        'DOC.ONTOLOGY',
+		        'PANEL.ADMIN'
+                )
+				OR loinc_num IN (
+		        '98740-4',
+		        '99958-1',
+		        '71579-7',
+		        '63518-5',
+		        '98371-8',
+				'97504-5',
+				'96749-7',
+				'98075-5'
+                )
+				OR (long_common_name ~* 'note|Note|summary|notification|Letter|Checklist|instructions')
 				)
 			AND (
 				long_common_name !~* 'scale|score'

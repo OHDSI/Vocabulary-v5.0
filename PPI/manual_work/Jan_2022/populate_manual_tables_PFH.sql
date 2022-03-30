@@ -237,11 +237,3 @@ null as invalid_reason
 from t2
 left join concept e on lower(t2.concept_code_1) = lower(e.concept_code) and e.vocabulary_id = 'PPI'
 left join concept e1 on lower(t2.concept_code_2) = lower(e1.concept_code) and e1.vocabulary_id = 'PPI' ; --691
-
---lookup to check yourself 
-select distinct a.concept_code as concept_code_1,a.concept_name as concept_name_1,a.domain_id as domain_id_1,a.concept_class_id as concept_class_id_1,a.standard_concept as standard_concept_1, 
-relationship_id, b.concept_code as concept_code_2,b.concept_name as concept_name_2,b.domain_id as domain_id_2,b.concept_class_id as concept_class_id_2,b.standard_concept as standard_concept_2, 'pfh' as flag from concept_manual a
-join concept_relationship_manual r on a.concept_code = r.concept_Code_1 and a.vocabulary_id = r.vocabulary_id_1 and r.invalid_reason is null
-join (select concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason from concept 
-union all select * from concept_manual) b on b.concept_code = r.concept_Code_2 and b.vocabulary_id = r.vocabulary_id_2;
-

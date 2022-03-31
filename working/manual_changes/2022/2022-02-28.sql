@@ -146,7 +146,7 @@ BEGIN
 	);
 
 	PERFORM vocabulary_pack.AddNewConcept(
-		pConcept_name =>'unit per kilogram',
+		pConcept_name =>'unit per kilogram of hemoglobin',
 		pDomain_id =>'Unit',
 		pVocabulary_id =>'UCUM',
 		pConcept_class_id =>'Unit',

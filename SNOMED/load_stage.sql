@@ -159,6 +159,13 @@ UPDATE concept_stage
 SET valid_start_date = TO_DATE('19700101', 'yyyymmdd')
 WHERE valid_start_date = valid_end_date;
 
+--4.3 Fix concept names: change vitamin B>12< deficiency to vitamin B-12 deficiency; NAD(P)^+^ to NAD(P)+
+UPDATE concept_stage
+SET concept_name = vocabulary_pack.CutConceptName(translate(concept_name, '>,<,^', '-'))
+WHERE (concept_name LIKE '%>%' AND concept_name LIKE '%<%')
+OR (concept_name LIKE '%^%^%')
+;
+
 --5. Update concept_class_id from extracted hierarchy tag information and terms ordered by description table precedence
 UPDATE concept_stage cs
 SET concept_class_id = i.concept_class_id

@@ -262,6 +262,7 @@ order by a.concept_code
 select a.vocabulary_id,
        a.concept_code as concept_code_source,
        a.concept_name as concept_name_source,
+       a.concept_class_id as concept_class_id_source,
        a.domain_id as domain_id_source,
        b.concept_code as concept_code_target,
        CASE WHEN a.concept_id = b.concept_id THEN '<Mapped to itself>'

@@ -1115,12 +1115,12 @@ SET valid_start_date = TO_DATE('20131106', 'yyyymmdd')
 WHERE concept_code = '61077000333'
 	AND valid_start_date = TO_DATE('21031106', 'yyyymmdd');
 
---Another fix for NDC:70377-038-11, "POSACONAZOLE - posaconazole tablet, delayed release", proof: https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=e0e8023a-3c82-e455-a57b-ccc0206ad156&type=display
+--Another fix for NDCs tagged "delayed release", examples: https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=e0e8023a-3c82-e455-a57b-ccc0206ad156&type=display https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=8516e135-5cc0-ef2d-6dad-0f9f841bb27b&type=display
 UPDATE concept_stage cs
 SET valid_start_date = v.latest_update
 FROM vocabulary v
 WHERE v.vocabulary_id=cs.vocabulary_id
-	AND cs.concept_code = '70377003811'
+	--AND cs.concept_code = '70377003811'
 	AND cs.valid_start_date = TO_DATE('20991231', 'yyyymmdd');
 
 --16. Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)

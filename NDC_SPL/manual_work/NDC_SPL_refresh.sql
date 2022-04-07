@@ -17,7 +17,7 @@ $body$;
 INSERT INTO dev_ndc.concept_relationship_manual
 SELECT * FROM dev_ndc.concept_relationship_manual_backup_YYYY_MM_DD;*/
 
---2. Create NDC_manual_mapped table and pre-populate it with the resulting manual table of the previous LOINC refresh
+--2. Create NDC_manual_mapped table and pre-populate it with the resulting manual table of the previous NDC refresh
 --DROP TABLE dev_ndc.NDC_manual_mapped;
 CREATE TABLE dev_ndc.NDC_manual_mapped (
     source_concept_id int,
@@ -43,26 +43,14 @@ TRUNCATE TABLE dev_ndc.NDC_manual_mapped;
 --5. Perform mapping (NDC_manual_mapped) checks
 
 --6. Deprecate all mappings that differ from the new version of resulting mapping file.
---SELECT (try-out for the following UPDATE)
-SELECT *
-FROM dev_ndc.concept_relationship_manual crm
-WHERE crm.vocabulary_id_1 = 'NDC'
-    AND crm.invalid_reason IS NULL
-    AND crm.concept_code_1 IN (SELECT source_code FROM dev_ndc.NDC_manual_mapped WHERE source_code IS NOT NULL)
-    AND NOT EXISTS (SELECT 1
-                    FROM dev_ndc.NDC_manual_mapped m
-                    JOIN dev_ndc.concept c
-                        ON  m.target_concept_id = c.concept_id
-                    WHERE crm.concept_code_1 = m.source_code
-                        AND crm.concept_code_2 = c.concept_code
-                        AND crm.vocabulary_id_2 = c.vocabulary_id
-                    )
-;
 
+-- Perform UPDATE after review SELECT result
 UPDATE dev_ndc.concept_relationship_manual
 SET invalid_reason = 'D',
     valid_end_date = current_date
 WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relationship_id, valid_start_date, valid_end_date, coalesce(invalid_reason, '1')) in
+
+--SELECT (try-out for the following UPDATE)
       (SELECT concept_code_1,
               concept_code_2,
               vocabulary_id_1,
@@ -79,7 +67,7 @@ WHERE (concept_code_1, concept_code_2, vocabulary_id_1, vocabulary_id_2, relatio
                            FROM dev_ndc.NDC_manual_mapped m
                            JOIN dev_ndc.concept c
                                ON  m.target_concept_id = c.concept_id
-                           WHERE crm.concept_code_1 = m.source_code
+                               WHERE crm.concept_code_1 = m.source_code
                                AND crm.concept_code_2 = c.concept_code
                                AND crm.vocabulary_id_2 = c.vocabulary_id
                             )

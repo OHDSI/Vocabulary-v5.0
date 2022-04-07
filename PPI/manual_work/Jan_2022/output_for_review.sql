@@ -110,3 +110,16 @@ select * from new_r where concept_id_2 in (select concept_id from covid_concepts
 select * from history_rel
 ;
 select * from covid_rel
+
+
+select * from dev_ppi.concept_ancestor
+where min_levels_of_separation != 0
+limit 10
+;
+
+select * from dev_ppi.concept_relationship_stage
+join dev_ppi.concept on concept_code_2=concept_code
+where concept_code_1 = 'Are any of these a closer description of how you think of yourself?';
+
+select * from dev_ppi.concept
+where concept_name = 'The Basics: Birthplace';

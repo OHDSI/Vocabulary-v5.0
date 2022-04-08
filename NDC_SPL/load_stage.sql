@@ -1115,6 +1115,14 @@ SET valid_start_date = TO_DATE('20131106', 'yyyymmdd')
 WHERE concept_code = '61077000333'
 	AND valid_start_date = TO_DATE('21031106', 'yyyymmdd');
 
+--Another fix for NDCs tagged "delayed release", examples: https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=e0e8023a-3c82-e455-a57b-ccc0206ad156&type=display https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=8516e135-5cc0-ef2d-6dad-0f9f841bb27b&type=display
+UPDATE concept_stage cs
+SET valid_start_date = v.latest_update
+FROM vocabulary v
+WHERE v.vocabulary_id=cs.vocabulary_id
+	--AND cs.concept_code = '70377003811'
+	AND cs.valid_start_date = TO_DATE('20991231', 'yyyymmdd');
+
 --16. Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
 DROP TABLE IF EXISTS rxnorm2ndc_mappings_ext;
 CREATE UNLOGGED TABLE rxnorm2ndc_mappings_ext AS
@@ -1135,12 +1143,12 @@ FROM (
 			) last_rxnorm_name,
 		mp.startDate,
 		mp.ndc_code,
-		CASE 
+		CASE
 			WHEN mp.endDate = mp.max_end_date
 				THEN TO_DATE('20991231', 'yyyymmdd')
 			ELSE mp.endDate
 			END endDate,
-		CASE 
+		CASE
 			WHEN mp.endDate = mp.max_end_date
 				THEN NULL
 			ELSE 'D'
@@ -1360,12 +1368,12 @@ SELECT first_half || second_half AS concept_code_1,
 	TO_DATE ('20991231', 'yyyymmdd') AS valid_end_date,
 	NULL AS invalid_reason
 FROM (
-	SELECT DISTINCT CASE 
+	SELECT DISTINCT CASE
 			WHEN devv5.INSTR(productndc, '-') = 5
 				THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 			ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 			END AS first_half,
-		CASE 
+		CASE
 			WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 				THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 			ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
@@ -1380,7 +1388,7 @@ FROM (
 	JOIN vocabulary v ON v.vocabulary_id = 'NDC'
 	) AS s0;
 
---23. Add additional mapping for NDC codes 
+--23. Add additional mapping for NDC codes
 --The 9-digit NDC codes that have no mapping can be mapped to the same concept of the 11-digit NDC codes, if all 11-digit NDC codes agree on the same destination Concept
 
 CREATE INDEX IF NOT EXISTS trgm_idx ON concept_stage USING GIN (concept_code devv5.gin_trgm_ops); --for LIKE patterns
@@ -1537,9 +1545,9 @@ WHERE (
 			up.vocabulary_id_2,
 			up.relationship_id
 		FROM to_be_updated up
-		
+
 		UNION ALL
-		
+
 		SELECT crs_int.concept_code_1,
 			crs_int.concept_code_2,
 			crs_int.vocabulary_id_1,
@@ -1565,11 +1573,11 @@ INSERT INTO concept_stage (
 	invalid_reason
 	)
 WITH ndc AS (
-		SELECT DISTINCT CASE 
+		SELECT DISTINCT CASE
 				WHEN devv5.INSTR(productndc, '-') = 5
 					THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 				ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-				END || CASE 
+				END || CASE
 				WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 					THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 				ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
@@ -1699,11 +1707,11 @@ INSERT INTO concept_synonym_stage (
 	language_concept_id
 	)
 WITH ndc AS (
-		SELECT DISTINCT CASE 
+		SELECT DISTINCT CASE
 				WHEN devv5.INSTR(productndc, '-') = 5
 					THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 				ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-				END || CASE 
+				END || CASE
 				WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 					THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 				ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
@@ -1741,11 +1749,11 @@ INSERT INTO concept_relationship_stage (
 	invalid_reason
 	)
 WITH ndc AS (
-		SELECT DISTINCT CASE 
+		SELECT DISTINCT CASE
 				WHEN devv5.INSTR(productndc, '-') = 5
 					THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 				ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-				END || CASE 
+				END || CASE
 				WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 					THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 				ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
@@ -1922,11 +1930,11 @@ WHERE crs.concept_code_1 = i.concept_code_1
 --35. Mark diluent as [Diluent]
 WITH ndc_packages
 AS (
-	SELECT DISTINCT CASE 
+	SELECT DISTINCT CASE
 			WHEN devv5.INSTR(productndc, '-') = 5
 				THEN '0' || SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
 			ELSE SUBSTR(productndc, 1, devv5.INSTR(productndc, '-') - 1)
-			END || CASE 
+			END || CASE
 			WHEN LENGTH(SUBSTR(productndc, devv5.INSTR(productndc, '-'))) = 4
 				THEN '0' || SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
 			ELSE SUBSTR(productndc, devv5.INSTR(productndc, '-') + 1)
@@ -1939,17 +1947,17 @@ AS (
 	SELECT concept_code
 	FROM main_ndc
 	WHERE is_diluent
-	
+
 	UNION
-	
+
 	SELECT p.pack_code
 	FROM ndc_packages n
 	JOIN main_ndc m ON m.concept_code = n.concept_code
 		AND m.is_diluent
 	JOIN sources.package p ON p.productndc = n.productndc
-	
+
 	UNION
-	
+
 	SELECT ndc_code
 	FROM sources.spl_ext
 	WHERE is_diluent
@@ -1982,5 +1990,3 @@ DROP TABLE main_ndc;
 DROP TABLE rxnorm2ndc_mappings_ext;
 
 -- At the end, the three tables concept_stage, concept_relationship_stage and concept_synonym_stage should be ready to be fed into the generic_update.sql script
-
-

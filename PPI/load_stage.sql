@@ -51,6 +51,3 @@ DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
 END $_$;
-
-
-

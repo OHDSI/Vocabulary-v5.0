@@ -1340,16 +1340,31 @@ FROM (
 	) AS pc
 -- match by name with the component drug obtained through the 'Contains' relationship
 JOIN (
-	SELECT concept_code_1,
-		concept_code_2,
-		concept_code,
-		concept_name
+	SELECT r.concept_code_1,
+		r.concept_code_2 AS concept_code,
+		rx.str AS concept_name
 	FROM concept_relationship_stage r
-	JOIN concept_stage ON concept_code = r.concept_code_2
+	JOIN sources.rxnconso rx ON rx.rxcui = r.concept_code_2 --use rxnconso to get full names
+		AND rx.sab = 'RXNORM'
+		AND rx.tty IN (
+			'IN',
+			'DF',
+			'SCDC',
+			'SCDF',
+			'SCD',
+			'BN',
+			'SBDC',
+			'SBDF',
+			'SBD',
+			'PIN',
+			'DFG',
+			'SCDG',
+			'SBDG'
+			)
 	WHERE r.relationship_id = 'Contains'
 		AND r.invalid_reason IS NULL
 	) cont ON cont.concept_code_1 = pc.pack_code
-	AND pc.drug LIKE '%' || cont.concept_name || '%'; -- this is where the component name is fit into the parsed drug name from the Pack string
+	AND pc.drug LIKE '%' || cont.concept_name || '%';-- this is where the component name is fit into the parsed drug name from the Pack string
 
 --16. Run FillDrugStrengthStage
 DO $_$

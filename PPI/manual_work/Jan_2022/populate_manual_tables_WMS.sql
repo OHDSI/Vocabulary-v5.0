@@ -154,20 +154,6 @@ null as invalid_reason
 FROM ppi_wms_1121_mapped a 
 where mark = 'q' ; --141
 
---add hierarchy 'PPI parent code of' from Module to Questions for 'cope_vaccine4'
-INSERT INTO concept_relationship_manual
-SELECT DISTINCT
-'cope_vaccine4' AS concept_code_1,
-trim(source_code) AS concept_code_2, --better to trim
-'PPI' AS vocabulary_id_1,
-'PPI' AS vocabulary_id_2,
-'PPI parent code of' AS relationship_id,
-CURRENT_DATE AS valid_start_date,
-TO_DATE('20991231','yyyymmdd') AS valid_end_date,
-null as invalid_reason
-FROM ppi_wms_1121_mapped a
-where mark = 'q' ;
-
 ------------------------------------------------
 -- branching logic between connected concepts --
 ------------------------------------------------

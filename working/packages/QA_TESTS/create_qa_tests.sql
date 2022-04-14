@@ -651,7 +651,33 @@ AS $BODY$
 			AND c.concept_code = 'OMOP generated'
 		) AS s0
 	WHERE s0.cnt > 1
-		AND COALESCE(checkid, 12) = 12;
+		AND COALESCE(checkid, 12) = 12
+
+	UNION ALL
+
+	--duplicate concept_name in 'OMOP Extension' vocabulary
+	SELECT 13 check_id,
+		'duplicate concept_name in ''OMOP Extension'' vocabulary: ' || s0.concept_name AS check_name,
+		s0.concept_id,
+		NULL,
+		s0.vocabulary_id,
+		s0.valid_start_date,
+		s0.valid_end_date,
+		s0.invalid_reason
+	FROM (
+		SELECT c.concept_id,
+			c.concept_name,
+			c.vocabulary_id,
+			c.valid_start_date,
+			c.valid_end_date,
+			c.invalid_reason,
+			COUNT(c.concept_code) OVER (PARTITION BY LOWER(c.concept_name)) AS cnt
+		FROM concept c
+		WHERE c.vocabulary_id = 'OMOP Extension'
+			AND c.invalid_reason IS NULL
+		) s0
+	WHERE s0.cnt > 1
+		AND COALESCE(checkid, 13) = 13;
 
 $BODY$
 language 'sql'

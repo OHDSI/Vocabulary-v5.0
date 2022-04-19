@@ -39,7 +39,7 @@ BEGIN
 	pVocabularyVersion		=> ' NCIt ' ||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
 	pVocabularyDevSchema	=> 'dev_cancer_modifier',
 	pAppendVocabulary		=> TRUE
-);--commented for the current run
+);
 END $_$;
 
 -- 2. Truncate all working tables

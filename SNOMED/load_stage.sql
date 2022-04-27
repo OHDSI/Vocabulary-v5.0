@@ -1075,8 +1075,9 @@ BEGIN
 	pIs_hierarchical_rev		=>0,
 	pDefines_ancestry_rev		=>0
 );
+END $_$;
 
- DO $_$
+DO $_$
 BEGIN
 	PERFORM vocabulary_pack.AddNewRelationship(
 	pRelationship_name			=>'Has status',
@@ -1089,7 +1090,7 @@ BEGIN
 	pDefines_ancestry_rev		=>0
 );
 END $_$;
-END $_$;
+
  */
 
 

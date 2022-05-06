@@ -156,23 +156,23 @@ SELECT CASE
 						)
 					)
 				OR class IN (
-		        'ADMIN',
-		        'VACCIN',
-		        'PANEL.SURG',
-		        'DOC.ONTOLOGY',
-		        'PANEL.ADMIN'
-                )
+					'ADMIN',
+					'VACCIN',
+					'PANEL.SURG',
+					'DOC.ONTOLOGY',
+					'PANEL.ADMIN'
+					)
 				OR loinc_num IN (
-		        '98740-4',
-		        '99958-1',
-		        '71579-7',
-		        '63518-5',
-		        '98371-8',
-				'97504-5',
-				'96749-7',
-				'98075-5'
-                )
-				OR (long_common_name ~* 'note|Note|summary|notification|Letter|Checklist|instructions')
+					'98740-4',
+					'99958-1',
+					'71579-7',
+					'63518-5',
+					'98371-8',
+					'97504-5',
+					'96749-7',
+					'98075-5'
+					)
+				OR (long_common_name ~* 'note|summary|notification|Letter|Checklist|instructions')
 				)
 			AND (
 				long_common_name !~* 'scale|score'

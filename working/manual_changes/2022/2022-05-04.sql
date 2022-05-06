@@ -4,6 +4,7 @@ UPDATE concept
 SET concept_name = 'Invalid UCUM Concept, do not use',
 	concept_code = concept_id,
 	valid_end_date = CURRENT_DATE,
+	standard_concept = NULL,
 	invalid_reason = 'D'
 WHERE concept_id IN (
 		9258,

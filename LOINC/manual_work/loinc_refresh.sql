@@ -151,12 +151,11 @@ FROM dev_loinc.concept c
 
 WHERE c.concept_code NOT IN (SELECT source_code FROM loinc_mapped) --exclude codes that are already in the loinc_mapped table
     AND cr.concept_id_2 IS NULL --there's no valid mapping after vocabulary dry run
-    AND (c.standard_concept IS NULL OR c.invalid_reason = 'D') --TODO: 2nd condition looks redundant. Need to test it out in further refreshes and remove
+    AND (c.standard_concept IS NULL)
     AND c.vocabulary_id = 'LOINC'
     AND c.concept_class_id IN ('Lab Test' --options for specific concept classes refreshes --TODO: postponed for now
       --,'Survey', 'Answer', 'Clinical Observation'
       )
-    --AND c.invalid_reason != 'U' --TODO:redundant condition because they already have valid mapping after vocabulary dry run. Need to test it out in further refreshes and remove
 
 ORDER BY replace(c.concept_name, 'Deprecated ', ''), c.concept_code
 ;

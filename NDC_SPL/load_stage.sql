@@ -1116,12 +1116,12 @@ WHERE concept_code = '61077000333'
 	AND valid_start_date = TO_DATE('21031106', 'yyyymmdd');
 
 --Another fix for NDCs tagged "delayed release", examples: https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=e0e8023a-3c82-e455-a57b-ccc0206ad156&type=display https://dailymed.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=8516e135-5cc0-ef2d-6dad-0f9f841bb27b&type=display
+--Just use latest_update if valid_start_date is greater than current_date + 2 year [AVOF-3394]
 UPDATE concept_stage cs
 SET valid_start_date = v.latest_update
 FROM vocabulary v
 WHERE v.vocabulary_id=cs.vocabulary_id
-	--AND cs.concept_code = '70377003811'
-	AND cs.valid_start_date = TO_DATE('20991231', 'yyyymmdd');
+	AND cs.valid_start_date > CURRENT_DATE + INTERVAL '2 year';
 
 --16. Create temporary table for NDC mappings to RxNorm (source: http://rxnav.nlm.nih.gov/REST/rxcui/xxx/allndcs?history=1)
 DROP TABLE IF EXISTS rxnorm2ndc_mappings_ext;

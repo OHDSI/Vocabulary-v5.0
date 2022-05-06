@@ -27,12 +27,22 @@ BEGIN
 );
 END $_$;*/
 
-DO $_$
+/*DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.SetLatestUpdate(
 	pVocabularyName			=>'Visit',
 	pVocabularyDate			=> CURRENT_DATE,
 	pVocabularyVersion		=> 'Visit '||TO_CHAR(CURRENT_DATE,'YYYYMMDD'),
+	pVocabularyDevSchema	=> 'DEV_OMOP'
+);
+END $_$;*/
+
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.SetLatestUpdate(
+	pVocabularyName			=>'UCUM',
+	pVocabularyDate			=> CURRENT_DATE,
+	pVocabularyVersion		=> 'Version 1.8.2',
 	pVocabularyDevSchema	=> 'DEV_OMOP'
 );
 END $_$;

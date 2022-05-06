@@ -1,4 +1,4 @@
---DOwnload manula tables as csv https://drive.google.com/drive/u/0/folders/1giqnH9bLsEtVQj_DcI16DXJZd1Xetv4c
+--DOwnload manua tables as csv https://drive.google.com/drive/u/0/folders/1giqnH9bLsEtVQj_DcI16DXJZd1Xetv4c
 --Manual-work table population
 drop table concept_manual_staging;
 CREATE TABLE concept_manual_staging
@@ -17,28 +17,11 @@ CREATE TABLE concept_manual_staging
 )
 ;
 
+
+
 --Update of invalid reason
 UPDATE concept_manual_staging SET invalid_reason= null where length(invalid_reason)=0
-
---CR
---mapt to ony + is a for responses
---Only for one to one hierarchy
-DROP TABLE concept_relationship_manual_staging;
-CREATE TABLE concept_relationship_manual_staging
-(
-
-    concept_code_1   varchar(50),
-    vocabulary_id_1  varchar(20),
-    valid_start_date date,
-    valid_end_date   date,
-    invalid_reason   varchar(1),
-        relationship_id varchar (20),
-    concept_code_2   varchar(50),
-        vocabulary_id_2  varchar(20)
-
-)
 ;
-
 
 --To check distinct  codes with several names
 SELECT  distinct *
@@ -50,8 +33,7 @@ FROM concept_manual_staging
     )
 ;
 
-
---SET INVALID as InvalidReasonon and null as StConcepts for these codes
+--SET INVALID as InvalidReason and null as StConcepts for these codes
 INSERT INTO concept_manual_staging (
                                     concept_name,
                                     domain_id,
@@ -93,6 +75,25 @@ and invalid_reason  is null
 and standard_concept='S'
 ;
 
+--CR
+--mapt to ony + is a for responses
+--Only for one to one hierarchy
+--Punt the csv before script run
+DROP TABLE concept_relationship_manual_staging;
+CREATE TABLE concept_relationship_manual_staging
+(
+
+    concept_code_1   varchar(50),
+    vocabulary_id_1  varchar(20),
+    valid_start_date date,
+    valid_end_date   date,
+    invalid_reason   varchar(1),
+        relationship_id varchar (20),
+    concept_code_2   varchar(50),
+        vocabulary_id_2  varchar(20)
+
+)
+;
 
 --automap
 --autoIsa
@@ -795,6 +796,7 @@ Update concept_relationship_manual_staging  set relationship_id= trim(relationsh
 -- normalisation of invalidreason
 Update concept_relationship_manual_staging  set invalid_reason= null where length(invalid_reason)=0;
 
+--Generic Stage  Is a
 with tab as (
 SELECT s.concept_code as concept_code_1,ss.concept_code as concept_code_2,row_number() OVER (PARTITION BY s.concept_code ORDER BY length(ss.concept_code) DESC) as rating
 FROM concept_manual_staging s
@@ -806,6 +808,31 @@ and s.concept_code !~*'^Stage-\d'
 and ss.concept_code ~*'^Stage-\d')
 
 INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id_1, valid_start_date, valid_end_date, invalid_reason, relationship_id, concept_code_2, vocabulary_id_2)
+
+SELECT
+       concept_code_1,
+          'Cancer Modifier' as vocabulary_id_1,
+                         '2022-04-18'::date as valid_start_date,
+                         '2099-12-31'::date as valid_end_date,
+                            null         as invalid_reason,
+                                'Is a'    as relationship_id,
+                             concept_code_2,
+                'Cancer Modifier' as vocabulary_id_2
+FROM tab
+where rating=1
+;
+--Generic Grade  Is a
+with tab as (
+SELECT s.concept_code as concept_code_1,ss.concept_code as concept_code_2,row_number() OVER (PARTITION BY s.concept_code ORDER BY length(ss.concept_code) DESC) as rating
+FROM concept_manual_staging s
+JOIN concept_manual_staging ss
+ON split_part(s.concept_code,'-',array_length(regexp_split_to_array(s.concept_code,'-'),1)) ~* split_part(ss.concept_code,'-',array_length(regexp_split_to_array(ss.concept_code,'-'),1))
+and  s.concept_name ilike '%Grade%'
+and s.concept_code !~*'^Grade-\d'
+       and s.standard_concept='S'
+and ss.concept_code ~*'^Grade-\d')
+
+--INSERT INTO concept_relationship_manual_staging  (concept_code_1,  vocabulary_id_1, valid_start_date, valid_end_date, invalid_reason, relationship_id, concept_code_2, vocabulary_id_2)
 
 SELECT
        concept_code_1,
@@ -938,3 +965,18 @@ CREATE TABLE concept_relationship_manual_staging as
                  invalid_reason
  FROM concept_relationship_manual
 ;
+
+
+---Attributes
+--Postfix if not NULL is  allways with suffix
+--Version if not NULL is always with system
+CREATE TABLE concept_attribute_manual_staging
+    (
+prefix varchar(55),
+version varchar(55),
+system varchar(55),
+category varchar(55),
+suffix varchar(55),
+postfix varchar(55)
+    )
+    ;

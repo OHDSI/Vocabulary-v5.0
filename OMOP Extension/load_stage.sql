@@ -40,14 +40,54 @@ BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualConcepts();
 END $_$;
 
---4. Manual mappings
+--4. Manual synonyms
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+END $_$;
+
+--5. Manual mappings
 DO $_$
 BEGIN
 	PERFORM VOCABULARY_PACK.ProcessManualRelationships();
 END $_$;
 
---5. Manual synonyms
+--6. Working with replacement mappings
 DO $_$
 BEGIN
-	PERFORM VOCABULARY_PACK.ProcessManualSynonyms();
+	PERFORM VOCABULARY_PACK.CheckReplacementMappings();
 END $_$;
+
+--7. Add mapping from deprecated to fresh concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.AddFreshMAPSTO();
+END $_$;
+
+--8. Deprecate 'Maps to' mappings to deprecated and upgraded concepts
+DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeprecateWrongMAPSTO();
+END $_$;
+
+--9. Delete ambiguous 'Maps to' mappings
+--Not used because there are no mappings to the Drug Domain
+/*DO $_$
+BEGIN
+	PERFORM VOCABULARY_PACK.DeleteAmbiguousMAPSTO();
+END $_$;*/
+
+--10. Assign Domain for concepts with unassigned Domain using the Domain of an ancestor
+--TODO: AVOF-3548
+
+--11. Assign Concept_class for concepts with unassigned Concept_class using the Concept_class of an ancestor
+--TODO: AVOF-3548
+
+--12. Workaround to drop the relationships between the vocabularies that are not affected by the SetLatestUpdate
+DELETE
+FROM concept_relationship_stage
+WHERE vocabulary_id_1 = vocabulary_id_2
+    AND vocabulary_id_1 IN ('SNOMED')
+;
+
+--13. "History of" / replacement mapping fix
